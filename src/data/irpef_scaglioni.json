@@ -1,0 +1,44 @@
+{
+  "_description": "Scaglioni IRPEF 2024+ (3 scaglioni post-riforma)",
+  "scaglioni": [
+    {"fino_a": 28000, "aliquota": 23},
+    {"fino_a": 50000, "aliquota": 35},
+    {"oltre": true, "aliquota": 43}
+  ],
+  "no_tax_area": {
+    "dipendente": 8500,
+    "pensionato": 8500,
+    "autonomo": 5500
+  },
+  "detrazioni_lavoro_dipendente": [
+    {"fino_a": 15000, "detrazione": 1955, "formula": "1955"},
+    {"fino_a": 28000, "detrazione_base": 1910, "formula": "1910 + 1190*(28000-reddito)/(28000-15000)"},
+    {"fino_a": 50000, "detrazione_base": 1910, "formula": "1910*(50000-reddito)/(50000-28000)"},
+    {"oltre": true, "detrazione": 0}
+  ],
+  "detrazioni_pensione": [
+    {"fino_a": 8500, "detrazione": 1955},
+    {"fino_a": 28000, "detrazione_base": 700, "formula": "700 + 1255*(28000-reddito)/(28000-8500)"},
+    {"fino_a": 50000, "detrazione_base": 700, "formula": "700*(50000-reddito)/(50000-28000)"},
+    {"oltre": true, "detrazione": 0}
+  ],
+  "addizionale_regionale_media": 1.73,
+  "addizionale_comunale_media": 0.8,
+  "forfettario": {
+    "coefficienti_redditivita": {
+      "47.73": ["commercio_ingrosso_dettaglio"],
+      "54.00": ["commercio_ambulante_alimentari"],
+      "40.00": ["commercio_ambulante_non_alimentari"],
+      "62.00": ["costruzioni_immobiliari", "intermediari_commercio"],
+      "67.00": ["alloggio_ristorazione"],
+      "78.00": ["attivita_professionali_scientifiche"],
+      "86.00": ["agenti_rappresentanti"]
+    },
+    "aliquota_startup": 5,
+    "aliquota_ordinaria": 15,
+    "limite_ricavi": 85000,
+    "contributi_inps_artigiani": 24.48,
+    "contributi_inps_commercianti": 24.48,
+    "contributi_gestione_separata": 26.07
+  }
+}

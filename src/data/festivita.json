@@ -1,0 +1,15 @@
+{
+  "_description": "Festività nazionali italiane (fisse). La Pasqua e il Lunedì dell'Angelo si calcolano algoritmicamente.",
+  "fisse": [
+    {"giorno": 1, "mese": 1, "nome": "Capodanno"},
+    {"giorno": 6, "mese": 1, "nome": "Epifania"},
+    {"giorno": 25, "mese": 4, "nome": "Festa della Liberazione"},
+    {"giorno": 1, "mese": 5, "nome": "Festa dei Lavoratori"},
+    {"giorno": 2, "mese": 6, "nome": "Festa della Repubblica"},
+    {"giorno": 15, "mese": 8, "nome": "Ferragosto"},
+    {"giorno": 1, "mese": 11, "nome": "Tutti i Santi"},
+    {"giorno": 8, "mese": 12, "nome": "Immacolata Concezione"},
+    {"giorno": 25, "mese": 12, "nome": "Natale"},
+    {"giorno": 26, "mese": 12, "nome": "Santo Stefano"}
+  ]
+}

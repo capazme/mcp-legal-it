@@ -1,0 +1,34 @@
+{
+  "_description": "Imposte di successione e donazione — TU 346/1990",
+  "aliquote": [
+    {"parentela": "coniuge_linea_retta", "aliquota": 4, "franchigia": 1000000},
+    {"parentela": "fratelli_sorelle", "aliquota": 6, "franchigia": 100000},
+    {"parentela": "parenti_fino_4_grado_affini_fino_3", "aliquota": 6, "franchigia": 0},
+    {"parentela": "altri", "aliquota": 8, "franchigia": 0}
+  ],
+  "portatore_handicap_grave": {
+    "franchigia": 1500000,
+    "nota": "Franchigia aggiuntiva per soggetti portatori di handicap grave (L. 104/92 art. 3 co. 3)"
+  },
+  "imposte_ipocatastali": {
+    "ipotecaria": 2,
+    "catastale": 1,
+    "minimo_ipotecaria": 200,
+    "minimo_catastale": 200,
+    "prima_casa": {
+      "ipotecaria": 200,
+      "catastale": 200,
+      "nota": "Misura fissa per almeno un erede che usufruisce agevolazione prima casa"
+    }
+  },
+  "imposta_registro_compravendita": {
+    "prima_casa": {"registro": 2, "ipotecaria": 50, "catastale": 50, "minimo_registro": 1000},
+    "seconda_casa": {"registro": 9, "ipotecaria": 50, "catastale": 50, "minimo_registro": 1000},
+    "da_costruttore_iva": {
+      "prima_casa": {"iva": 4, "registro": 200, "ipotecaria": 200, "catastale": 200},
+      "seconda_casa": {"iva": 10, "registro": 200, "ipotecaria": 200, "catastale": 200},
+      "lusso": {"iva": 22, "registro": 200, "ipotecaria": 200, "catastale": 200}
+    },
+    "terreno_agricolo": {"registro": 15, "ipotecaria": 50, "catastale": 50}
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "_description": "Tabelle danno biologico — micropermanenti art. 139 CdA e macropermanenti (tabella unica nazionale DM 2024)",
+  "micropermanenti": {
+    "_note": "Art. 139 Cod. Assicurazioni — aggiornamento 2024. Punto base €954.64, incremento 10.81% per anno di età",
+    "punto_base_2024": 954.64,
+    "incremento_percentuale_per_anno_sotto_undici": 10.81,
+    "eta_pivot": 11,
+    "decremento_per_anno_sopra_undici": 0.5,
+    "maggiorazione_morale_max_pct": 33.33,
+    "invalidita_temporanea_totale_giornaliera": 56.35,
+    "invalidita_temporanea_parziale_75_pct": 42.26,
+    "invalidita_temporanea_parziale_50_pct": 28.18,
+    "invalidita_temporanea_parziale_25_pct": 14.09
+  },
+  "macropermanenti": {
+    "_note": "Tabella unica nazionale ex art. 138 CdA (DM 2024). Valori punto per percentuale invalidità. I valori reali variano per età — qui riportati i valori medi indicativi.",
+    "punto_base": {
+      "10": 2680,
+      "15": 3800,
+      "20": 5100,
+      "25": 6500,
+      "30": 8200,
+      "35": 10100,
+      "40": 12500,
+      "45": 15200,
+      "50": 18500,
+      "55": 22000,
+      "60": 26000,
+      "65": 30500,
+      "70": 35500,
+      "75": 41000,
+      "80": 47000,
+      "85": 53500,
+      "90": 60500,
+      "95": 68000,
+      "100": 76000
+    },
+    "coefficiente_eta": {
+      "_note": "Moltiplicatore decrescente per età dell'avente diritto",
+      "0-10": 1.50,
+      "11-20": 1.40,
+      "21-30": 1.30,
+      "31-40": 1.20,
+      "41-50": 1.10,
+      "51-60": 1.00,
+      "61-70": 0.85,
+      "71-80": 0.70,
+      "81-90": 0.55,
+      "91-100": 0.40
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "_description": "Coefficienti per calcolo valore usufrutto/nuda proprietà — Prospetto allegato DPR 131/1986, aggiornato con tasso legale 2026 (2%)",
+  "_note": "Il coefficiente va ricalcolato quando cambia il tasso legale. Valore usufrutto = rendita annua * coefficiente. Nuda proprietà = valore pieno - usufrutto.",
+  "tasso_legale": 2.0,
+  "coefficienti": [
+    {"eta_min": 0, "eta_max": 20, "coefficiente": 38.00},
+    {"eta_min": 21, "eta_max": 30, "coefficiente": 36.00},
+    {"eta_min": 31, "eta_max": 40, "coefficiente": 33.50},
+    {"eta_min": 41, "eta_max": 45, "coefficiente": 30.50},
+    {"eta_min": 46, "eta_max": 50, "coefficiente": 27.00},
+    {"eta_min": 51, "eta_max": 53, "coefficiente": 24.50},
+    {"eta_min": 54, "eta_max": 56, "coefficiente": 22.00},
+    {"eta_min": 57, "eta_max": 60, "coefficiente": 19.00},
+    {"eta_min": 61, "eta_max": 63, "coefficiente": 16.50},
+    {"eta_min": 64, "eta_max": 66, "coefficiente": 14.50},
+    {"eta_min": 67, "eta_max": 69, "coefficiente": 12.50},
+    {"eta_min": 70, "eta_max": 72, "coefficiente": 10.50},
+    {"eta_min": 73, "eta_max": 75, "coefficiente": 8.50},
+    {"eta_min": 76, "eta_max": 78, "coefficiente": 6.50},
+    {"eta_min": 79, "eta_max": 82, "coefficiente": 5.00},
+    {"eta_min": 83, "eta_max": 86, "coefficiente": 3.50},
+    {"eta_min": 87, "eta_max": 92, "coefficiente": 2.50},
+    {"eta_min": 93, "eta_max": 99, "coefficiente": 1.50},
+    {"eta_min": 100, "eta_max": 120, "coefficiente": 1.00}
+  ]
+}
