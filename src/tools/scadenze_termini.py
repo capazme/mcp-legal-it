@@ -73,6 +73,16 @@ def _subtract_calendar_days_with_slide(d: date, days: int) -> tuple[date, bool]:
     return _slide_forward(result)
 
 
+def _add_months(d: date, months: int) -> date:
+    """Add N months to a date, clamping to end of month if needed."""
+    import calendar
+    year = d.year + (d.month + months - 1) // 12
+    month = (d.month + months - 1) % 12 + 1
+    max_day = calendar.monthrange(year, month)[1]
+    day = min(d.day, max_day)
+    return date(year, month, day)
+
+
 @mcp.tool()
 def scadenza_processuale(
     data_evento: str,
@@ -427,3 +437,389 @@ def scadenze_multe(
     result["riepilogo_opzioni"] = riepilogo
 
     return result
+
+
+@mcp.tool()
+def termini_memorie_repliche(data_udienza: str) -> dict:
+    """Riepilogo completo termini memorie integrative e repliche art. 171-ter c.p.c. (rito Cartabia).
+
+    Calcola tutte le scadenze per memoria integrativa (40gg prima udienza),
+    replica (20gg prima) e prova contraria (10gg prima) in un'unica risposta.
+
+    Args:
+        data_udienza: Data dell'udienza di trattazione (YYYY-MM-DD)
+    """
+    dt_udienza = _parse_date(data_udienza)
+
+    termini = [
+        ("memoria_integrativa", 40, "Memoria integrativa art. 171-ter, co. 1, n. 1 — precisazione/modificazione domande, eccezioni, conclusioni"),
+        ("replica", 20, "Replica art. 171-ter, co. 1, n. 2 — replica ed eccezioni nuove conseguenti"),
+        ("prova_contraria", 10, "Prova contraria art. 171-ter, co. 1, n. 3 — indicazione prova contraria"),
+    ]
+
+    scadenze = []
+    for nome, giorni, descrizione in termini:
+        scad, adjusted = _subtract_calendar_days_with_slide(dt_udienza, giorni)
+        scadenze.append({
+            "termine": nome,
+            "giorni_prima_udienza": giorni,
+            "descrizione": descrizione,
+            "scadenza": scad.isoformat(),
+            "prorogata_art_155": adjusted,
+            "giorno_settimana": scad.strftime("%A"),
+        })
+
+    return {
+        "data_udienza": data_udienza,
+        "rito": "ordinario post-Cartabia (D.Lgs. 149/2022)",
+        "riferimento_normativo": "Art. 171-ter c.p.c.",
+        "scadenze": scadenze,
+        "nota": "I termini sono a ritroso rispetto alla data di udienza. Se cadono in giorno festivo, slittano al primo giorno non festivo successivo (art. 155 c.p.c.).",
+    }
+
+
+@mcp.tool()
+def termini_procedimento_semplificato(data_udienza: str) -> dict:
+    """Termini per procedimento semplificato di cognizione art. 281-decies ss. c.p.c. (riforma Cartabia).
+
+    Calcola: comparsa di risposta (70gg prima udienza) e memorie integrative (40/20/10gg prima).
+
+    Args:
+        data_udienza: Data dell'udienza fissata (YYYY-MM-DD)
+    """
+    dt_udienza = _parse_date(data_udienza)
+
+    termini = [
+        ("comparsa_risposta", 70, "Comparsa di costituzione e risposta art. 281-undecies, co. 2 c.p.c."),
+        ("memoria_integrativa", 40, "Memoria integrativa art. 281-duodecies, co. 3 — precisazione domande, eccezioni, conclusioni"),
+        ("replica", 20, "Replica art. 281-duodecies, co. 3 — replica e nuove eccezioni"),
+        ("prova_contraria", 10, "Prova contraria art. 281-duodecies, co. 3 — indicazione prova contraria"),
+    ]
+
+    scadenze = []
+    for nome, giorni, descrizione in termini:
+        scad, adjusted = _subtract_calendar_days_with_slide(dt_udienza, giorni)
+        scadenze.append({
+            "termine": nome,
+            "giorni_prima_udienza": giorni,
+            "descrizione": descrizione,
+            "scadenza": scad.isoformat(),
+            "prorogata_art_155": adjusted,
+            "giorno_settimana": scad.strftime("%A"),
+        })
+
+    return {
+        "data_udienza": data_udienza,
+        "rito": "semplificato di cognizione (D.Lgs. 149/2022)",
+        "riferimento_normativo": "Artt. 281-decies, 281-undecies, 281-duodecies c.p.c.",
+        "scadenze": scadenze,
+        "nota": "Il procedimento semplificato è applicabile quando i fatti di causa non sono controversi, o la domanda è fondata su prova documentale, o è di pronta soluzione.",
+    }
+
+
+@mcp.tool()
+def termini_183_190_cpc(data_udienza: str) -> dict:
+    """Termini pre-Cartabia per memorie ex art. 183, co. 6 e comparse ex art. 190 c.p.c.
+
+    Applicabile a cause pendenti ante 28/02/2023.
+    Calcola: prima memoria (30gg), seconda (30gg dopo la prima), terza (20gg dopo la seconda),
+    conclusionali (60gg dopo udienza di PC), repliche (20gg dopo conclusionali).
+
+    Args:
+        data_udienza: Data dell'udienza ex art. 183 c.p.c. o data di precisazione conclusioni (YYYY-MM-DD)
+    """
+    dt_udienza = _parse_date(data_udienza)
+
+    # Memorie ex art. 183 comma 6 — termini successivi dall'udienza
+    mem1_raw = dt_udienza + timedelta(days=30)
+    mem1, mem1_adj = _slide_forward(mem1_raw)
+
+    mem2_raw = mem1_raw + timedelta(days=30)
+    mem2, mem2_adj = _slide_forward(mem2_raw)
+
+    mem3_raw = mem2_raw + timedelta(days=20)
+    mem3, mem3_adj = _slide_forward(mem3_raw)
+
+    # Conclusionali e repliche ex art. 190
+    concl_raw = dt_udienza + timedelta(days=60)
+    concl, concl_adj = _slide_forward(concl_raw)
+
+    repl_raw = concl_raw + timedelta(days=20)
+    repl, repl_adj = _slide_forward(repl_raw)
+
+    scadenze = [
+        {
+            "termine": "memoria_183_n1",
+            "descrizione": "Art. 183, co. 6, n. 1 — precisazione/modificazione domande, eccezioni, conclusioni",
+            "scadenza": mem1.isoformat(),
+            "giorni_da_udienza": 30,
+            "prorogata_art_155": mem1_adj,
+            "giorno_settimana": mem1.strftime("%A"),
+        },
+        {
+            "termine": "memoria_183_n2",
+            "descrizione": "Art. 183, co. 6, n. 2 — replica e prova diretta",
+            "scadenza": mem2.isoformat(),
+            "giorni_da_udienza": 60,
+            "prorogata_art_155": mem2_adj,
+            "giorno_settimana": mem2.strftime("%A"),
+        },
+        {
+            "termine": "memoria_183_n3",
+            "descrizione": "Art. 183, co. 6, n. 3 — indicazione prova contraria",
+            "scadenza": mem3.isoformat(),
+            "giorni_da_udienza": 80,
+            "prorogata_art_155": mem3_adj,
+            "giorno_settimana": mem3.strftime("%A"),
+        },
+        {
+            "termine": "comparsa_conclusionale",
+            "descrizione": "Comparsa conclusionale art. 190 c.p.c.",
+            "scadenza": concl.isoformat(),
+            "giorni_da_udienza_pc": 60,
+            "prorogata_art_155": concl_adj,
+            "giorno_settimana": concl.strftime("%A"),
+        },
+        {
+            "termine": "memoria_replica_190",
+            "descrizione": "Memoria di replica art. 190 c.p.c.",
+            "scadenza": repl.isoformat(),
+            "giorni_da_udienza_pc": 80,
+            "prorogata_art_155": repl_adj,
+            "giorno_settimana": repl.strftime("%A"),
+        },
+    ]
+
+    return {
+        "data_udienza": data_udienza,
+        "rito": "ordinario pre-Cartabia (ante 28/02/2023)",
+        "riferimento_normativo": "Artt. 183, co. 6 e 190 c.p.c. (testo previgente)",
+        "scadenze": scadenze,
+        "nota": "Applicabile solo a cause iscritte a ruolo prima del 28/02/2023. Le memorie 183 decorrono dall'udienza di trattazione; conclusionali e repliche dall'udienza di PC.",
+    }
+
+
+@mcp.tool()
+def termini_esecuzioni(
+    data_notifica_titolo: str,
+    tipo: str = "pignoramento_mobiliare",
+) -> dict:
+    """Termini procedure esecutive (art. 481 ss. c.p.c.).
+
+    Args:
+        data_notifica_titolo: Data di notifica del precetto (YYYY-MM-DD)
+        tipo: 'pignoramento_mobiliare', 'pignoramento_immobiliare', 'pignoramento_presso_terzi', 'opposizione_esecuzione'
+    """
+    dt_notifica = _parse_date(data_notifica_titolo)
+
+    config = {
+        "pignoramento_mobiliare": {
+            "termine_minimo_giorni": 10,
+            "efficacia_precetto_giorni": 90,
+            "descrizione": "Pignoramento mobiliare — il precetto perde efficacia se non si inizia l'esecuzione entro 90gg",
+            "normativa": "Artt. 480, 481, 513 ss. c.p.c.",
+        },
+        "pignoramento_immobiliare": {
+            "termine_minimo_giorni": 10,
+            "efficacia_precetto_giorni": 90,
+            "descrizione": "Pignoramento immobiliare — il precetto perde efficacia se non si inizia l'esecuzione entro 90gg",
+            "normativa": "Artt. 480, 481, 555 ss. c.p.c.",
+        },
+        "pignoramento_presso_terzi": {
+            "termine_minimo_giorni": 10,
+            "efficacia_precetto_giorni": 90,
+            "descrizione": "Pignoramento presso terzi — il precetto perde efficacia se non si inizia l'esecuzione entro 90gg",
+            "normativa": "Artt. 480, 481, 543 ss. c.p.c.",
+        },
+        "opposizione_esecuzione": {
+            "termine_minimo_giorni": None,
+            "efficacia_precetto_giorni": None,
+            "termine_opposizione_giorni": 20,
+            "descrizione": "Opposizione all'esecuzione — termine per proporre opposizione agli atti esecutivi",
+            "normativa": "Art. 617 c.p.c.",
+        },
+    }
+
+    if tipo not in config:
+        return {
+            "errore": f"tipo non valido: {tipo}",
+            "valori_ammessi": list(config.keys()),
+        }
+
+    cfg = config[tipo]
+
+    if tipo == "opposizione_esecuzione":
+        scad_raw = dt_notifica + timedelta(days=cfg["termine_opposizione_giorni"])
+        scad, adjusted = _slide_forward(scad_raw)
+        return {
+            "data_notifica": data_notifica_titolo,
+            "tipo": tipo,
+            "descrizione": cfg["descrizione"],
+            "termine_opposizione_giorni": cfg["termine_opposizione_giorni"],
+            "scadenza_opposizione": scad.isoformat(),
+            "prorogata_art_155": adjusted,
+            "giorno_settimana": scad.strftime("%A"),
+            "riferimento_normativo": cfg["normativa"],
+        }
+
+    # Termine dilatorio minimo (10gg) — non si può pignorare prima
+    termine_min_raw = dt_notifica + timedelta(days=cfg["termine_minimo_giorni"])
+    termine_min, termine_min_adj = _slide_forward(termine_min_raw)
+
+    # Efficacia precetto (90gg)
+    efficacia_raw = dt_notifica + timedelta(days=cfg["efficacia_precetto_giorni"])
+    efficacia, efficacia_adj = _slide_forward(efficacia_raw)
+
+    return {
+        "data_notifica_precetto": data_notifica_titolo,
+        "tipo": tipo,
+        "descrizione": cfg["descrizione"],
+        "termine_minimo_10gg": {
+            "data": termine_min.isoformat(),
+            "nota": "Il pignoramento non può essere eseguito prima di 10gg dalla notifica del precetto (art. 482 c.p.c.)",
+            "prorogata_art_155": termine_min_adj,
+        },
+        "scadenza_efficacia_precetto": {
+            "data": efficacia.isoformat(),
+            "nota": "Il precetto perde efficacia se l'esecuzione non è iniziata entro 90gg dalla notifica (art. 481 c.p.c.)",
+            "prorogata_art_155": efficacia_adj,
+        },
+        "finestra_utile": f"dal {termine_min.isoformat()} al {efficacia.isoformat()}",
+        "riferimento_normativo": cfg["normativa"],
+    }
+
+
+@mcp.tool()
+def termini_deposito_atti_appello(
+    data_notifica_sentenza: str | None = None,
+    data_pubblicazione: str | None = None,
+) -> dict:
+    """Termini per appello: termine lungo (6 mesi da pubblicazione) o breve (30gg da notifica).
+
+    Include iscrizione a ruolo (30gg da notifica citazione) e comparsa di risposta (20gg prima udienza).
+
+    Args:
+        data_notifica_sentenza: Data notifica sentenza per termine breve (YYYY-MM-DD), opzionale
+        data_pubblicazione: Data pubblicazione sentenza per termine lungo (YYYY-MM-DD), opzionale
+    """
+    if not data_notifica_sentenza and not data_pubblicazione:
+        return {
+            "errore": "Specificare almeno uno tra data_notifica_sentenza e data_pubblicazione",
+        }
+
+    result = {
+        "riferimento_normativo": "Artt. 325, 327, 347, 166 c.p.c.",
+        "termini": [],
+    }
+
+    if data_notifica_sentenza:
+        dt_notifica = _parse_date(data_notifica_sentenza)
+        scad_breve_raw = dt_notifica + timedelta(days=30)
+        scad_breve, adj_breve = _slide_forward(scad_breve_raw)
+        result["termini"].append({
+            "termine": "appello_termine_breve",
+            "descrizione": "Termine breve per proporre appello dalla notifica della sentenza",
+            "giorni": 30,
+            "decorrenza": data_notifica_sentenza,
+            "scadenza": scad_breve.isoformat(),
+            "prorogata_art_155": adj_breve,
+            "giorno_settimana": scad_breve.strftime("%A"),
+            "normativa": "Art. 325, co. 1 c.p.c.",
+        })
+
+    if data_pubblicazione:
+        dt_pub = _parse_date(data_pubblicazione)
+        scad_lungo_raw = _add_months(dt_pub, 6)
+        scad_lungo, adj_lungo = _slide_forward(scad_lungo_raw)
+        result["termini"].append({
+            "termine": "appello_termine_lungo",
+            "descrizione": "Termine lungo per proporre appello dalla pubblicazione della sentenza",
+            "mesi": 6,
+            "decorrenza": data_pubblicazione,
+            "scadenza": scad_lungo.isoformat(),
+            "prorogata_art_155": adj_lungo,
+            "giorno_settimana": scad_lungo.strftime("%A"),
+            "normativa": "Art. 327 c.p.c.",
+        })
+
+    # Iscrizione a ruolo
+    result["termini"].append({
+        "termine": "iscrizione_a_ruolo",
+        "descrizione": "Iscrizione a ruolo entro 30gg dalla notifica della citazione in appello",
+        "giorni": 30,
+        "nota": "Decorre dalla notifica della citazione in appello (non dalla sentenza)",
+        "normativa": "Art. 347 c.p.c.",
+    })
+
+    # Comparsa di risposta
+    result["termini"].append({
+        "termine": "comparsa_risposta_appellato",
+        "descrizione": "Costituzione dell'appellato con comparsa di risposta almeno 20gg prima dell'udienza",
+        "giorni_prima_udienza": 20,
+        "nota": "Termine a ritroso dall'udienza fissata — specificare data_udienza per il calcolo esatto",
+        "normativa": "Art. 166 c.p.c.",
+    })
+
+    return result
+
+
+@mcp.tool()
+def termini_deposito_ctu(
+    data_conferimento: str,
+    giorni_termine: int = 60,
+) -> dict:
+    """Termini deposito CTU e osservazioni delle parti (art. 195 c.p.c.).
+
+    Default: 60gg per deposito CTU, poi 15gg per osservazioni parti, poi 15gg per replica CTU.
+    Tutti soggetti a proroga art. 155 c.p.c.
+
+    Args:
+        data_conferimento: Data del conferimento dell'incarico al CTU (YYYY-MM-DD)
+        giorni_termine: Giorni concessi per il deposito della relazione CTU (default 60)
+    """
+    dt_conf = _parse_date(data_conferimento)
+
+    # Deposito CTU
+    deposito_raw = dt_conf + timedelta(days=giorni_termine)
+    deposito, deposito_adj = _slide_forward(deposito_raw)
+
+    # Osservazioni parti (15gg dal deposito CTU)
+    oss_raw = deposito_raw + timedelta(days=15)
+    oss, oss_adj = _slide_forward(oss_raw)
+
+    # Replica CTU (15gg dalle osservazioni)
+    replica_raw = oss_raw + timedelta(days=15)
+    replica, replica_adj = _slide_forward(replica_raw)
+
+    return {
+        "data_conferimento": data_conferimento,
+        "giorni_termine_ctu": giorni_termine,
+        "riferimento_normativo": "Art. 195, co. 3 c.p.c.",
+        "scadenze": [
+            {
+                "termine": "deposito_bozza_ctu",
+                "descrizione": "Deposito bozza relazione CTU",
+                "giorni_da_conferimento": giorni_termine,
+                "scadenza": deposito.isoformat(),
+                "prorogata_art_155": deposito_adj,
+                "giorno_settimana": deposito.strftime("%A"),
+            },
+            {
+                "termine": "osservazioni_parti",
+                "descrizione": "Termine per le osservazioni delle parti alla bozza CTU",
+                "giorni_da_deposito_ctu": 15,
+                "scadenza": oss.isoformat(),
+                "prorogata_art_155": oss_adj,
+                "giorno_settimana": oss.strftime("%A"),
+            },
+            {
+                "termine": "replica_ctu",
+                "descrizione": "Termine per la replica del CTU alle osservazioni delle parti e deposito relazione definitiva",
+                "giorni_da_osservazioni": 15,
+                "scadenza": replica.isoformat(),
+                "prorogata_art_155": replica_adj,
+                "giorno_settimana": replica.strftime("%A"),
+            },
+        ],
+        "nota": "I termini di 15gg per osservazioni e replica sono quelli previsti dall'art. 195, co. 3 c.p.c. Il giudice può disporre termini diversi. Art. 155 c.p.c. si applica a tutti i termini.",
+    }

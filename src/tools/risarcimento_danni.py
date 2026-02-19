@@ -361,3 +361,154 @@ def risarcimento_inail(
         "nota": "Invalidità >16%: rendita diretta. Composta da quota biologica + quota patrimoniale.",
         "riferimento_normativo": "D.Lgs. 38/2000 art. 13 — Rendita per danno biologico e patrimoniale",
     }
+
+
+@mcp.tool()
+def danno_non_patrimoniale(
+    percentuale_invalidita: int,
+    eta_vittima: int,
+    tipo_danno: str = "biologico",
+    giorni_itt: int = 0,
+    spese_mediche: float = 0,
+    danno_morale_pct: float = 0,
+    danno_esistenziale_pct: float = 0,
+) -> dict:
+    """Calcolo complessivo danno non patrimoniale con tutte le componenti.
+
+    Combina danno biologico (micro/macro in base alla %), morale (personalizzazione),
+    esistenziale e patrimoniale emergente (spese mediche + ITT) in un unico prospetto.
+
+    Args:
+        percentuale_invalidita: Percentuale di invalidità permanente (1-100)
+        eta_vittima: Età della vittima al momento del sinistro
+        tipo_danno: Voce principale: 'biologico', 'morale', 'esistenziale', 'patrimoniale_emergente'
+        giorni_itt: Giorni di invalidità temporanea totale
+        spese_mediche: Spese mediche documentate in euro
+        danno_morale_pct: Percentuale personalizzazione danno morale (0-50)
+        danno_esistenziale_pct: Percentuale personalizzazione danno esistenziale (0-50)
+    """
+    if not 1 <= percentuale_invalidita <= 100:
+        return {"errore": "Percentuale invalidità deve essere tra 1 e 100"}
+
+    if danno_morale_pct < 0 or danno_morale_pct > 50:
+        return {"errore": "danno_morale_pct deve essere tra 0 e 50"}
+
+    if danno_esistenziale_pct < 0 or danno_esistenziale_pct > 50:
+        return {"errore": "danno_esistenziale_pct deve essere tra 0 e 50"}
+
+    # Calcolo componente biologica (micro o macro)
+    if percentuale_invalidita <= 9:
+        punto_base = _MICRO["punto_base_2024"]
+        eta_pivot = _MICRO["eta_pivot"]
+
+        if eta_vittima < eta_pivot:
+            anni_sotto = eta_pivot - eta_vittima
+            valore_punto = punto_base * (1 + (_MICRO["incremento_percentuale_per_anno_sotto_undici"] / 100) * anni_sotto)
+        else:
+            anni_sopra = eta_vittima - eta_pivot
+            valore_punto = punto_base * (1 - (_MICRO["decremento_per_anno_sopra_undici"] / 100) * anni_sopra)
+            valore_punto = max(valore_punto, 0)
+
+        danno_biologico = 0.0
+        for p in range(1, percentuale_invalidita + 1):
+            danno_biologico += valore_punto * (0.5 + 0.5 * p)
+
+        tipo_calcolo = "micropermanenti (art. 139)"
+    else:
+        punto_base = _interpola_punto_base(percentuale_invalidita)
+        coeff_eta = _coefficiente_eta(eta_vittima)
+        danno_biologico = punto_base * percentuale_invalidita * coeff_eta
+        tipo_calcolo = "macropermanenti (art. 138)"
+
+    # ITT
+    itt_giornaliero = _MICRO["invalidita_temporanea_totale_giornaliera"]
+    danno_itt = giorni_itt * itt_giornaliero
+
+    # Componente morale
+    danno_morale = danno_biologico * (danno_morale_pct / 100)
+
+    # Componente esistenziale
+    danno_esistenziale = danno_biologico * (danno_esistenziale_pct / 100)
+
+    # Patrimoniale emergente
+    danno_patrimoniale = spese_mediche + danno_itt
+
+    totale = danno_biologico + danno_morale + danno_esistenziale + danno_patrimoniale
+
+    return {
+        "percentuale_invalidita": percentuale_invalidita,
+        "eta_vittima": eta_vittima,
+        "tipo_calcolo": tipo_calcolo,
+        "componenti": {
+            "danno_biologico": round(danno_biologico, 2),
+            "danno_morale": {
+                "personalizzazione_pct": danno_morale_pct,
+                "importo": round(danno_morale, 2),
+            },
+            "danno_esistenziale": {
+                "personalizzazione_pct": danno_esistenziale_pct,
+                "importo": round(danno_esistenziale, 2),
+            },
+            "danno_patrimoniale_emergente": {
+                "spese_mediche": round(spese_mediche, 2),
+                "itt": {"giorni": giorni_itt, "importo": round(danno_itt, 2)},
+                "totale": round(danno_patrimoniale, 2),
+            },
+        },
+        "totale_risarcimento": round(totale, 2),
+        "riferimento_normativo": "Art. 138-139 Cod. Assicurazioni; Tabelle Milano 2024; Cass. SU 26972/2008",
+    }
+
+
+@mcp.tool()
+def equo_indennizzo(
+    categoria_tabella: str,
+    percentuale_invalidita: float,
+    stipendio_annuo: float,
+) -> dict:
+    """Calcolo equo indennizzo per causa di servizio (dipendenti pubblici).
+
+    Tabella A DPR 834/1981: invalidità dalla 1ª all'8ª categoria. Il calcolo si basa su
+    stipendio annuo × coefficiente categoria × percentuale invalidità.
+
+    Args:
+        categoria_tabella: Categoria dalla tabella A (da '1' a '8')
+        percentuale_invalidita: Percentuale di invalidità accertata dalla CMO
+        stipendio_annuo: Ultimo stipendio annuo lordo in euro
+    """
+    coefficienti = {
+        "1": {"range": "81-100%", "coefficiente": 8.0, "pensione_privilegiata": True},
+        "2": {"range": "61-80%", "coefficiente": 6.5, "pensione_privilegiata": True},
+        "3": {"range": "51-60%", "coefficiente": 5.0, "pensione_privilegiata": True},
+        "4": {"range": "41-50%", "coefficiente": 4.0, "pensione_privilegiata": True},
+        "5": {"range": "31-40%", "coefficiente": 3.0, "pensione_privilegiata": True},
+        "6": {"range": "21-30%", "coefficiente": 2.5, "pensione_privilegiata": False},
+        "7": {"range": "11-20%", "coefficiente": 1.5, "pensione_privilegiata": False},
+        "8": {"range": "1-10%", "coefficiente": 0.7, "pensione_privilegiata": False},
+    }
+
+    cat = str(categoria_tabella).strip()
+    if cat not in coefficienti:
+        return {"errore": f"Categoria non valida. Valori ammessi: 1-8 (trovato: {categoria_tabella})"}
+
+    info = coefficienti[cat]
+    base = stipendio_annuo * info["coefficiente"] * (percentuale_invalidita / 100)
+    indennizzo = round(base, 2)
+
+    result = {
+        "categoria_tabella": cat,
+        "range_invalidita": info["range"],
+        "percentuale_invalidita": percentuale_invalidita,
+        "stipendio_annuo": stipendio_annuo,
+        "coefficiente": info["coefficiente"],
+        "equo_indennizzo": indennizzo,
+        "pensione_privilegiata": info["pensione_privilegiata"],
+    }
+
+    if info["pensione_privilegiata"]:
+        result["nota_pensione"] = (
+            "Categoria 1ª-5ª: diritto a pensione privilegiata se cessazione dal servizio per infermità"
+        )
+
+    result["riferimento_normativo"] = "DPR 461/2001; DPR 834/1981 — Tabella A equo indennizzo causa di servizio"
+    return result

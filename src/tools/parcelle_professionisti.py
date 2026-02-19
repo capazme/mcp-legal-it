@@ -317,3 +317,354 @@ def ritenuta_acconto(
         ),
         "riferimento_normativo": "Art. 25 DPR 600/1973",
     }
+
+
+# Scaglioni compenso curatore fallimentare DM 30/2012
+_SCAGLIONI_CURATORE = [
+    (16_227.08, 14.0),
+    (24_340.62, 10.5),
+    (40_567.68, 7.0),
+    (81_131.36, 4.75),
+    (162_262.72, 2.8),
+    (float("inf"), 1.5),
+]
+_CURATORE_MIN = 811.31
+_CURATORE_MAX = 405_656.80
+
+
+@mcp.tool()
+def compenso_curatore_fallimentare(
+    attivo_realizzato: float,
+    passivo_accertato: float,
+) -> dict:
+    """Compenso curatore fallimentare DM 30/2012, calcolato su attivo realizzato e passivo accertato.
+
+    Args:
+        attivo_realizzato: Attivo realizzato in euro
+        passivo_accertato: Passivo accertato in euro
+    """
+    # Calcolo su attivo realizzato (scaglioni progressivi)
+    def _calcola_scaglioni(importo: float, scaglioni: list, moltiplicatore: float = 1.0) -> list:
+        dettaglio = []
+        residuo = importo
+        precedente = 0.0
+        for soglia, pct in scaglioni:
+            fascia = min(residuo, soglia - precedente)
+            if fascia <= 0:
+                break
+            compenso = round(fascia * pct * moltiplicatore / 100, 2)
+            dettaglio.append({
+                "fascia": f"€{precedente:,.2f} - €{min(soglia, precedente + fascia):,.2f}",
+                "percentuale": pct * moltiplicatore,
+                "base": round(fascia, 2),
+                "compenso": compenso,
+            })
+            residuo -= fascia
+            precedente = soglia
+        return dettaglio
+
+    det_attivo = _calcola_scaglioni(attivo_realizzato, _SCAGLIONI_CURATORE)
+    comp_attivo = sum(d["compenso"] for d in det_attivo)
+
+    # Maggiorazione su passivo: metà degli scaglioni
+    det_passivo = _calcola_scaglioni(passivo_accertato, _SCAGLIONI_CURATORE, 0.5)
+    comp_passivo = sum(d["compenso"] for d in det_passivo)
+
+    totale = round(comp_attivo + comp_passivo, 2)
+    totale = max(totale, _CURATORE_MIN)
+    totale = min(totale, _CURATORE_MAX)
+
+    return {
+        "attivo_realizzato": attivo_realizzato,
+        "passivo_accertato": passivo_accertato,
+        "compenso_su_attivo": round(comp_attivo, 2),
+        "dettaglio_attivo": det_attivo,
+        "compenso_su_passivo": round(comp_passivo, 2),
+        "dettaglio_passivo": det_passivo,
+        "totale_compenso": totale,
+        "minimo": _CURATORE_MIN,
+        "massimo": _CURATORE_MAX,
+        "note": [
+            "Compenso su attivo: scaglioni progressivi DM 30/2012",
+            "Compenso su passivo: metà delle percentuali su attivo",
+            f"Limiti: minimo €{_CURATORE_MIN:,.2f}, massimo €{_CURATORE_MAX:,.2f}",
+            "Al compenso si aggiungono IVA e CPA se dovute",
+        ],
+        "riferimento_normativo": "DM 30/2012 — Compensi curatore fallimentare",
+    }
+
+
+@mcp.tool()
+def compenso_delegati_vendite(
+    prezzo_aggiudicazione: float,
+) -> dict:
+    """Compenso professionisti delegati per vendite giudiziarie DM 227/2015.
+
+    Args:
+        prezzo_aggiudicazione: Prezzo di aggiudicazione in euro
+    """
+    if prezzo_aggiudicazione <= 100_000:
+        pct = 2.6
+        compenso = round(prezzo_aggiudicazione * pct / 100, 2)
+        compenso = max(compenso, 1_100.0)
+    elif prezzo_aggiudicazione <= 500_000:
+        compenso_prima_fascia = round(100_000 * 2.6 / 100, 2)
+        compenso_seconda_fascia = round((prezzo_aggiudicazione - 100_000) * 1.5 / 100, 2)
+        compenso = round(compenso_prima_fascia + compenso_seconda_fascia, 2)
+        pct = round(compenso / prezzo_aggiudicazione * 100, 2)
+    else:
+        compenso_prima_fascia = round(100_000 * 2.6 / 100, 2)
+        compenso_seconda_fascia = round(400_000 * 1.5 / 100, 2)
+        compenso_terza_fascia = round((prezzo_aggiudicazione - 500_000) * 0.75 / 100, 2)
+        compenso = round(compenso_prima_fascia + compenso_seconda_fascia + compenso_terza_fascia, 2)
+        pct = round(compenso / prezzo_aggiudicazione * 100, 2)
+
+    return {
+        "prezzo_aggiudicazione": prezzo_aggiudicazione,
+        "compenso": compenso,
+        "percentuale_effettiva": pct,
+        "scaglioni": [
+            {"fascia": "fino a €100.000", "percentuale": 2.6, "minimo": 1_100},
+            {"fascia": "€100.001 - €500.000", "percentuale": 1.5},
+            {"fascia": "oltre €500.000", "percentuale": 0.75},
+        ],
+        "note": [
+            "Compenso minimo: €1.100 (per aggiudicazioni fino a €100.000)",
+            "Al compenso si aggiungono IVA e CPA/rivalsa se dovute",
+            "Rimborso spese forfettario: 10% del compenso",
+        ],
+        "riferimento_normativo": "DM 227/2015 — Compensi professionisti delegati vendite giudiziarie",
+    }
+
+
+@mcp.tool()
+def compenso_mediatore_familiare(
+    n_incontri: int,
+    tariffa_incontro: float = 120.0,
+) -> dict:
+    """Compenso mediatore familiare. Primo incontro informativo gratuito, percorso tipico 8-12 incontri.
+
+    Args:
+        n_incontri: Numero totale di incontri (incluso il primo informativo gratuito)
+        tariffa_incontro: Tariffa per singolo incontro in euro (default: €120)
+    """
+    if n_incontri < 1:
+        return {"errore": "Numero incontri deve essere almeno 1"}
+
+    incontri_a_pagamento = max(0, n_incontri - 1)
+    compenso = round(incontri_a_pagamento * tariffa_incontro, 2)
+
+    return {
+        "n_incontri_totali": n_incontri,
+        "primo_incontro": "gratuito (informativo)",
+        "incontri_a_pagamento": incontri_a_pagamento,
+        "tariffa_incontro": tariffa_incontro,
+        "compenso_totale": compenso,
+        "note": [
+            "Il primo incontro informativo è gratuito",
+            "Percorso tipico: 8-12 incontri",
+            "Tariffa indicativa — varia per professionista e territorio",
+            "La mediazione familiare non è regolata da tariffe ministeriali",
+        ],
+    }
+
+
+# Enasarco 2026
+_ENASARCO_ALIQUOTA = 17.0  # 50% agente + 50% preponente
+_ENASARCO_MINIMALE_TRIMESTRALE = 443.0
+_ENASARCO_MASSIMALE_ANNUO = 27_000.0
+
+
+@mcp.tool()
+def fattura_enasarco(
+    provvigioni: float,
+    tipo_agente: str = "monocommittente",
+    anno: int = 2026,
+) -> dict:
+    """Fattura agente di commercio con contributo Enasarco, IVA e ritenuta.
+
+    Args:
+        provvigioni: Importo provvigioni in euro (imponibile)
+        tipo_agente: "monocommittente" o "pluricommittente"
+        anno: Anno di riferimento (default: 2026)
+    """
+    if tipo_agente not in ("monocommittente", "pluricommittente"):
+        return {"errore": f"Tipo agente non valido: {tipo_agente}. Usare: monocommittente, pluricommittente"}
+
+    contributo_totale = round(provvigioni * _ENASARCO_ALIQUOTA / 100, 2)
+    quota_agente = round(contributo_totale / 2, 2)
+    quota_preponente = round(contributo_totale - quota_agente, 2)
+
+    iva = round(provvigioni * 22 / 100, 2)
+    ritenuta = round(provvigioni * 50 / 100 * 23 / 100, 2)  # 23% sul 50% delle provvigioni
+
+    totale_fattura = round(provvigioni + iva, 2)
+    netto = round(totale_fattura - ritenuta - quota_agente, 2)
+
+    return {
+        "provvigioni": provvigioni,
+        "tipo_agente": tipo_agente,
+        "anno": anno,
+        "contributo_enasarco": {
+            "aliquota_totale": _ENASARCO_ALIQUOTA,
+            "contributo_totale": contributo_totale,
+            "quota_agente": quota_agente,
+            "quota_preponente": quota_preponente,
+            "minimale_trimestrale": _ENASARCO_MINIMALE_TRIMESTRALE,
+            "massimale_annuo": _ENASARCO_MASSIMALE_ANNUO,
+        },
+        "iva_22pct": iva,
+        "ritenuta_acconto": {
+            "base": round(provvigioni * 50 / 100, 2),
+            "aliquota": 23.0,
+            "importo": ritenuta,
+            "nota": "23% sul 50% delle provvigioni (art. 25-bis DPR 600/1973)",
+        },
+        "totale_fattura": totale_fattura,
+        "netto_a_pagare": netto,
+        "nota": (
+            f"Il preponente versa la propria quota Enasarco (€{quota_preponente}) "
+            f"e trattiene dalla fattura la quota agente (€{quota_agente}) + ritenuta (€{ritenuta})"
+        ),
+        "riferimento_normativo": "D.Lgs. 303/1996 — Regolamento Enasarco",
+    }
+
+
+@mcp.tool()
+def ricevuta_prestazione_occasionale(
+    compenso_lordo: float,
+    committente: str,
+    prestatore: str,
+    descrizione: str,
+) -> dict:
+    """Genera ricevuta per prestazione occasionale art. 2222 c.c. con ritenuta d'acconto 20%.
+
+    Args:
+        compenso_lordo: Compenso lordo pattuito in euro
+        committente: Nome/ragione sociale del committente
+        prestatore: Nome e cognome del prestatore
+        descrizione: Descrizione della prestazione
+    """
+    ritenuta = round(compenso_lordo * 20 / 100, 2)
+    netto = round(compenso_lordo - ritenuta, 2)
+    bollo = 2.0 if compenso_lordo > 77.47 else 0.0
+
+    linee = [
+        "RICEVUTA PER PRESTAZIONE OCCASIONALE",
+        f"Art. 2222 c.c. — Art. 67, comma 1, lett. l) TUIR",
+        "",
+        f"Prestatore: {prestatore}",
+        f"Committente: {committente}",
+        "",
+        f"Descrizione: {descrizione}",
+        "",
+        f"  Compenso lordo: €{compenso_lordo:,.2f}",
+        f"  Ritenuta d'acconto 20%: -€{ritenuta:,.2f}",
+        f"  Netto a pagare: €{netto:,.2f}",
+    ]
+    if bollo > 0:
+        linee.append(f"  Imposta di bollo: €{bollo:,.2f} (importo > €77,47)")
+    linee.append("")
+    linee.append("Operazione fuori campo IVA ex art. 5 DPR 633/1972")
+
+    return {
+        "testo_ricevuta": "\n".join(linee),
+        "calcoli": {
+            "compenso_lordo": compenso_lordo,
+            "ritenuta_acconto_20pct": ritenuta,
+            "netto_a_pagare": netto,
+            "bollo": bollo,
+        },
+        "committente": committente,
+        "prestatore": prestatore,
+        "descrizione": descrizione,
+        "note": [
+            "Il committente versa la ritenuta con F24 (codice tributo 1040) entro il 16 del mese successivo",
+            "Il prestatore dichiara il reddito nella dichiarazione dei redditi (quadro RL)",
+            "Limite annuo: €5.000 lordi per non incorrere in obbligo contributivo INPS Gestione Separata",
+        ],
+        "riferimento_normativo": "Art. 2222 c.c. — Art. 67 co. 1 lett. l) TUIR — Art. 25 DPR 600/1973",
+    }
+
+
+# Tabella indennità mediazione DM 150/2023 completa
+_TABELLA_MEDIAZIONE_DM150 = [
+    {"fino_a": 1_000, "spese_avvio": 40, "indennita_negativo": 60, "indennita_positivo": 120},
+    {"fino_a": 5_000, "spese_avvio": 40, "indennita_negativo": 100, "indennita_positivo": 200},
+    {"fino_a": 10_000, "spese_avvio": 40, "indennita_negativo": 170, "indennita_positivo": 340},
+    {"fino_a": 25_000, "spese_avvio": 40, "indennita_negativo": 240, "indennita_positivo": 480},
+    {"fino_a": 50_000, "spese_avvio": 40, "indennita_negativo": 360, "indennita_positivo": 720},
+    {"fino_a": 250_000, "spese_avvio": 40, "indennita_negativo": 530, "indennita_positivo": 1_060},
+    {"fino_a": 500_000, "spese_avvio": 40, "indennita_negativo": 880, "indennita_positivo": 1_760},
+    {"fino_a": 2_500_000, "spese_avvio": 40, "indennita_negativo": 1_250, "indennita_positivo": 2_500},
+    {"fino_a": 5_000_000, "spese_avvio": 40, "indennita_negativo": 2_000, "indennita_positivo": 4_000},
+    {"oltre": True, "spese_avvio": 40, "indennita_negativo": 2_800, "indennita_positivo": 5_600},
+]
+
+
+@mcp.tool()
+def tariffe_mediazione(
+    valore_controversia: float,
+) -> dict:
+    """Tabella completa indennità mediazione DM 150/2023 con spese avvio e indennità per esito.
+
+    Args:
+        valore_controversia: Valore della controversia in euro
+    """
+    scaglione_applicabile = None
+    for s in _TABELLA_MEDIAZIONE_DM150:
+        if s.get("oltre") or valore_controversia <= s["fino_a"]:
+            scaglione_applicabile = s
+            break
+
+    label = f"fino a €{scaglione_applicabile['fino_a']:,.0f}" if not scaglione_applicabile.get("oltre") else "oltre €5.000.000"
+
+    spese_avvio = scaglione_applicabile["spese_avvio"]
+    ind_neg = scaglione_applicabile["indennita_negativo"]
+    ind_pos = scaglione_applicabile["indennita_positivo"]
+
+    # Costi per parte
+    iva_neg = round(ind_neg * 22 / 100, 2)
+    iva_pos = round(ind_pos * 22 / 100, 2)
+    totale_neg = round(spese_avvio + ind_neg + iva_neg, 2)
+    totale_pos = round(spese_avvio + ind_pos + iva_pos, 2)
+
+    return {
+        "valore_controversia": valore_controversia,
+        "scaglione": label,
+        "spese_avvio_per_parte": spese_avvio,
+        "esito_negativo": {
+            "indennita_per_parte": ind_neg,
+            "iva_22pct": iva_neg,
+            "totale_per_parte": totale_neg,
+            "totale_2_parti": round(totale_neg * 2, 2),
+        },
+        "esito_positivo": {
+            "indennita_per_parte": ind_pos,
+            "iva_22pct": iva_pos,
+            "totale_per_parte": totale_pos,
+            "totale_2_parti": round(totale_pos * 2, 2),
+        },
+        "tabella_completa": [
+            {
+                "scaglione": f"fino a €{s['fino_a']:,.0f}" if not s.get("oltre") else "oltre €5.000.000",
+                "spese_avvio": s["spese_avvio"],
+                "indennita_negativo": s["indennita_negativo"],
+                "indennita_positivo": s["indennita_positivo"],
+            }
+            for s in _TABELLA_MEDIAZIONE_DM150
+        ],
+        "note": [
+            "Spese di avvio: €40 per ciascuna parte, dovute all'atto della presentazione della domanda",
+            "Indennità: dovuta per ciascuna parte a ciascun organismo",
+            "Esito positivo = accordo raggiunto; esito negativo = mancato accordo",
+            "Incontri successivi al primo: maggiorazione fino al 25% dell'indennità",
+            "Per più di 2 parti: aumento indennità per ciascuna parte ulteriore",
+        ],
+        "agevolazioni": [
+            "Credito d'imposta fino a €600 per parte in caso di accordo (art. 20 D.Lgs. 28/2010)",
+            "Esenzione imposta di registro fino a €100.000",
+            "Gratuito patrocinio: parti ammesse non pagano indennità",
+        ],
+        "riferimento_normativo": "DM 150/2023 — D.Lgs. 28/2010 (Riforma Cartabia)",
+    }

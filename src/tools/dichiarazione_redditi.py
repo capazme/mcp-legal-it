@@ -401,3 +401,410 @@ def assegno_unico(
         "totale_annuo": totale_annuo,
         "riferimento_normativo": "D.Lgs. 230/2021 — Importi 2024 (DPCM 16/02/2023)",
     }
+
+
+@mcp.tool()
+def detrazione_figli(
+    reddito_complessivo: float,
+    n_figli_over21: int,
+    n_figli_disabili: int = 0,
+) -> dict:
+    """Detrazione figli a carico >= 21 anni (art. 12 TUIR). Figli under 21 rientrano nell'Assegno Unico.
+
+    Args:
+        reddito_complessivo: Reddito complessivo annuo in euro
+        n_figli_over21: Numero figli a carico con eta >= 21 anni
+        n_figli_disabili: Numero figli disabili (inclusi nel conteggio over21, detrazione maggiorata)
+    """
+    if n_figli_over21 <= 0:
+        return {"errore": "Il numero di figli over 21 deve essere almeno 1"}
+
+    n_figli_normali = n_figli_over21 - n_figli_disabili
+    if n_figli_normali < 0:
+        return {"errore": "I figli disabili non possono superare il totale figli over 21"}
+
+    soglia = 95000
+    dettaglio = []
+    totale = 0.0
+
+    for i in range(n_figli_normali):
+        detrazione_base = 950
+        coefficiente = max((soglia - reddito_complessivo) / soglia, 0)
+        importo = round(detrazione_base * coefficiente, 2)
+        dettaglio.append({"figlio": i + 1, "tipo": "ordinario", "detrazione_teorica": detrazione_base, "importo": importo})
+        totale += importo
+
+    for i in range(n_figli_disabili):
+        detrazione_base = 1350
+        coefficiente = max((soglia - reddito_complessivo) / soglia, 0)
+        importo = round(detrazione_base * coefficiente, 2)
+        dettaglio.append({"figlio": n_figli_normali + i + 1, "tipo": "disabile", "detrazione_teorica": detrazione_base, "importo": importo})
+        totale += importo
+
+    return {
+        "reddito_complessivo": reddito_complessivo,
+        "n_figli_over21": n_figli_over21,
+        "n_figli_disabili": n_figli_disabili,
+        "soglia_reddito": soglia,
+        "dettaglio": dettaglio,
+        "detrazione_totale": round(totale, 2),
+        "riferimento_normativo": "Art. 12 TUIR — D.P.R. 917/1986 (mod. D.Lgs. 230/2021)",
+    }
+
+
+@mcp.tool()
+def detrazione_coniuge(reddito_complessivo: float) -> dict:
+    """Detrazione per coniuge a carico (art. 12 TUIR). Il coniuge e a carico se reddito <= 2840.51 euro (o 4000 se under 24).
+
+    Args:
+        reddito_complessivo: Reddito complessivo annuo del contribuente in euro
+    """
+    if reddito_complessivo <= 0:
+        return {"errore": "Il reddito complessivo deve essere positivo"}
+
+    if reddito_complessivo <= 15000:
+        detrazione = max(800 - (110 * reddito_complessivo / 15000), 0)
+        fascia = "fino a 15.000€"
+    elif reddito_complessivo <= 40000:
+        detrazione = 690
+        fascia = "15.001-40.000€"
+    elif reddito_complessivo <= 80000:
+        detrazione = 690 * (80000 - reddito_complessivo) / 40000
+        fascia = "40.001-80.000€"
+    else:
+        detrazione = 0
+        fascia = "oltre 80.000€"
+
+    return {
+        "reddito_complessivo": reddito_complessivo,
+        "fascia": fascia,
+        "detrazione": round(detrazione, 2),
+        "limite_reddito_coniuge": 2840.51,
+        "limite_reddito_coniuge_under24": 4000,
+        "riferimento_normativo": "Art. 12, comma 1, lett. a) TUIR — D.P.R. 917/1986",
+    }
+
+
+@mcp.tool()
+def detrazione_altri_familiari(
+    reddito_complessivo: float,
+    n_familiari: int,
+) -> dict:
+    """Detrazione per altri familiari a carico (art. 12 TUIR): genitori, fratelli, nonni, ecc.
+
+    Args:
+        reddito_complessivo: Reddito complessivo annuo del contribuente in euro
+        n_familiari: Numero di altri familiari a carico
+    """
+    if n_familiari <= 0:
+        return {"errore": "Il numero di familiari deve essere almeno 1"}
+
+    soglia = 80000
+    detrazione_unitaria = 750
+    coefficiente = max((soglia - reddito_complessivo) / soglia, 0)
+    importo_per_familiare = round(detrazione_unitaria * coefficiente, 2)
+    totale = round(importo_per_familiare * n_familiari, 2)
+
+    return {
+        "reddito_complessivo": reddito_complessivo,
+        "n_familiari": n_familiari,
+        "soglia_reddito": soglia,
+        "detrazione_unitaria_teorica": detrazione_unitaria,
+        "detrazione_per_familiare": importo_per_familiare,
+        "detrazione_totale": totale,
+        "riferimento_normativo": "Art. 12, comma 1, lett. d) TUIR — D.P.R. 917/1986",
+    }
+
+
+@mcp.tool()
+def detrazione_lavoro_dipendente(
+    reddito_complessivo: float,
+    giorni_lavoro: int = 365,
+) -> dict:
+    """Detrazione redditi di lavoro dipendente (art. 13 TUIR 2024) proporzionata ai giorni lavorati.
+
+    Args:
+        reddito_complessivo: Reddito complessivo annuo in euro
+        giorni_lavoro: Giorni di lavoro nell'anno (max 365)
+    """
+    giorni_lavoro = min(max(giorni_lavoro, 1), 365)
+
+    if reddito_complessivo <= 15000:
+        detrazione_annua = 1955
+        fascia = "fino a 15.000€"
+    elif reddito_complessivo <= 28000:
+        detrazione_annua = 1910 + 1190 * (28000 - reddito_complessivo) / (28000 - 15000)
+        fascia = "15.001-28.000€"
+    elif reddito_complessivo <= 50000:
+        detrazione_annua = 1910 * (50000 - reddito_complessivo) / (50000 - 28000)
+        fascia = "28.001-50.000€"
+    else:
+        detrazione_annua = 0
+        fascia = "oltre 50.000€"
+
+    detrazione = round(detrazione_annua * giorni_lavoro / 365, 2)
+
+    return {
+        "reddito_complessivo": reddito_complessivo,
+        "giorni_lavoro": giorni_lavoro,
+        "fascia": fascia,
+        "detrazione_annua_piena": round(detrazione_annua, 2),
+        "detrazione_rapportata": detrazione,
+        "riferimento_normativo": "Art. 13, comma 1, TUIR — D.P.R. 917/1986 (scaglioni 2024 ex L. 213/2023)",
+    }
+
+
+@mcp.tool()
+def detrazione_pensione(
+    reddito_complessivo: float,
+    giorni: int = 365,
+) -> dict:
+    """Detrazione redditi di pensione (art. 13 TUIR) proporzionata ai giorni di pensione.
+
+    Args:
+        reddito_complessivo: Reddito complessivo annuo in euro
+        giorni: Giorni di pensione nell'anno (max 365)
+    """
+    giorni = min(max(giorni, 1), 365)
+
+    if reddito_complessivo <= 8500:
+        detrazione_annua = 1955
+        fascia = "fino a 8.500€"
+    elif reddito_complessivo <= 28000:
+        detrazione_annua = 700 + 1255 * (28000 - reddito_complessivo) / (28000 - 8500)
+        fascia = "8.501-28.000€"
+    elif reddito_complessivo <= 50000:
+        detrazione_annua = 700 * (50000 - reddito_complessivo) / (50000 - 28000)
+        fascia = "28.001-50.000€"
+    else:
+        detrazione_annua = 0
+        fascia = "oltre 50.000€"
+
+    detrazione = round(detrazione_annua * giorni / 365, 2)
+
+    return {
+        "reddito_complessivo": reddito_complessivo,
+        "giorni": giorni,
+        "fascia": fascia,
+        "detrazione_annua_piena": round(detrazione_annua, 2),
+        "detrazione_rapportata": detrazione,
+        "riferimento_normativo": "Art. 13, comma 3, TUIR — D.P.R. 917/1986",
+    }
+
+
+@mcp.tool()
+def detrazione_assegno_coniuge(reddito_complessivo: float) -> dict:
+    """Detrazione per assegno periodico al coniuge separato/divorziato (redditi assimilati al lavoro dipendente).
+
+    Args:
+        reddito_complessivo: Reddito complessivo annuo del percipiente in euro
+    """
+    if reddito_complessivo <= 0:
+        return {"errore": "Il reddito complessivo deve essere positivo"}
+
+    if reddito_complessivo <= 5500:
+        detrazione = 1265
+        fascia = "fino a 5.500€"
+    elif reddito_complessivo <= 28000:
+        detrazione = 500 + 765 * (28000 - reddito_complessivo) / (28000 - 5500)
+        fascia = "5.501-28.000€"
+    elif reddito_complessivo <= 50000:
+        detrazione = 500 * (50000 - reddito_complessivo) / (50000 - 28000)
+        fascia = "28.001-50.000€"
+    else:
+        detrazione = 0
+        fascia = "oltre 50.000€"
+
+    return {
+        "reddito_complessivo": reddito_complessivo,
+        "fascia": fascia,
+        "detrazione": round(detrazione, 2),
+        "nota": "L'assegno periodico al coniuge e reddito assimilato al lavoro dipendente per il percipiente e onere deducibile per chi lo versa.",
+        "riferimento_normativo": "Art. 13, comma 5-bis, TUIR — Art. 10, comma 1, lett. c) TUIR",
+    }
+
+
+@mcp.tool()
+def detrazione_canone_locazione(
+    reddito_complessivo: float,
+    tipo_contratto: str = "libero",
+) -> dict:
+    """Detrazione per inquilini con contratto di locazione (art. 16 TUIR).
+
+    Args:
+        reddito_complessivo: Reddito complessivo annuo in euro
+        tipo_contratto: 'libero' (art. 16 co.1), 'concordato' (co.2), 'giovani_under31' (co.1-ter: 20% canone, max 2000€)
+    """
+    tipi_validi = ("libero", "concordato", "giovani_under31")
+    if tipo_contratto not in tipi_validi:
+        return {"errore": f"tipo_contratto deve essere uno tra {tipi_validi}"}
+
+    if tipo_contratto == "libero":
+        if reddito_complessivo <= 15493.71:
+            detrazione = 300
+        elif reddito_complessivo <= 30987.41:
+            detrazione = 150
+        else:
+            detrazione = 0
+    elif tipo_contratto == "concordato":
+        if reddito_complessivo <= 15493.71:
+            detrazione = 495.80
+        elif reddito_complessivo <= 30987.41:
+            detrazione = 247.90
+        else:
+            detrazione = 0
+    else:  # giovani_under31
+        if reddito_complessivo <= 15493.71:
+            detrazione = 2000
+        else:
+            detrazione = 0
+
+    return {
+        "reddito_complessivo": reddito_complessivo,
+        "tipo_contratto": tipo_contratto,
+        "detrazione": round(detrazione, 2),
+        "nota_giovani": "Per giovani under 31: detrazione pari al 20% del canone, max 2.000€, reddito <= 15.493,71€" if tipo_contratto == "giovani_under31" else None,
+        "riferimento_normativo": "Art. 16 TUIR — D.P.R. 917/1986",
+    }
+
+
+@mcp.tool()
+def acconto_irpef(
+    imposta_anno_precedente: float,
+    metodo: str = "storico",
+) -> dict:
+    """Calcolo acconto IRPEF (primo e secondo acconto) con scadenze.
+
+    Args:
+        imposta_anno_precedente: Imposta netta risultante dalla dichiarazione dell'anno precedente
+        metodo: 'storico' (100% imposta precedente) o 'previsionale' (su stima anno corrente)
+    """
+    if metodo not in ("storico", "previsionale"):
+        return {"errore": "metodo deve essere 'storico' o 'previsionale'"}
+
+    if imposta_anno_precedente <= 51.65:
+        return {
+            "imposta_anno_precedente": imposta_anno_precedente,
+            "metodo": metodo,
+            "acconto_dovuto": False,
+            "motivo": "Nessun acconto dovuto: imposta anno precedente <= 51.65€",
+        }
+
+    acconto_totale = round(imposta_anno_precedente, 2)
+    primo_acconto = round(acconto_totale * 0.40, 2)
+    secondo_acconto = round(acconto_totale - primo_acconto, 2)
+
+    return {
+        "imposta_anno_precedente": imposta_anno_precedente,
+        "metodo": metodo,
+        "acconto_dovuto": True,
+        "acconto_totale": acconto_totale,
+        "primo_acconto": {
+            "importo": primo_acconto,
+            "percentuale": 40,
+            "scadenza": "30 giugno (o 30 luglio con maggiorazione 0.40%)",
+        },
+        "secondo_acconto": {
+            "importo": secondo_acconto,
+            "percentuale": 60,
+            "scadenza": "30 novembre",
+        },
+        "nota_previsionale": "Con metodo previsionale, gli importi vanno calcolati sull'imposta stimata per l'anno corrente" if metodo == "previsionale" else None,
+        "riferimento_normativo": "Art. 17 D.P.R. 435/2001 — Art. 4 D.L. 69/1989",
+    }
+
+
+@mcp.tool()
+def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
+    """Calcolo acconto cedolare secca con scadenze e importi.
+
+    Args:
+        imposta_anno_precedente: Imposta da cedolare secca risultante dalla dichiarazione dell'anno precedente
+    """
+    if imposta_anno_precedente <= 51.65:
+        return {
+            "imposta_anno_precedente": imposta_anno_precedente,
+            "acconto_dovuto": False,
+            "motivo": "Nessun acconto dovuto: imposta anno precedente <= 51.65€",
+        }
+
+    acconto_totale = round(imposta_anno_precedente, 2)
+    primo_acconto = round(acconto_totale * 0.40, 2)
+    secondo_acconto = round(acconto_totale - primo_acconto, 2)
+
+    return {
+        "imposta_anno_precedente": imposta_anno_precedente,
+        "acconto_dovuto": True,
+        "acconto_totale": acconto_totale,
+        "primo_acconto": {
+            "importo": primo_acconto,
+            "percentuale": 40,
+            "scadenza": "30 giugno (o 30 luglio con maggiorazione 0.40%)",
+        },
+        "secondo_acconto": {
+            "importo": secondo_acconto,
+            "percentuale": 60,
+            "scadenza": "30 novembre",
+        },
+        "riferimento_normativo": "Art. 3, comma 4, D.Lgs. 23/2011",
+    }
+
+
+@mcp.tool()
+def rateizzazione_imposte(
+    importo_totale: float,
+    n_rate: int,
+    data_prima_rata: str,
+    tasso_interesse_annuo: float = 2.0,
+) -> dict:
+    """Calcolo piano di rateizzazione imposte IRPEF/addizionali da dichiarazione dei redditi.
+
+    Args:
+        importo_totale: Importo totale da rateizzare in euro
+        n_rate: Numero di rate (max 7, da giugno a novembre)
+        data_prima_rata: Data della prima rata (YYYY-MM-DD)
+        tasso_interesse_annuo: Tasso di interesse annuo percentuale (default 2.0%)
+    """
+    from datetime import date as _date
+
+    if n_rate < 2 or n_rate > 7:
+        return {"errore": "Il numero di rate deve essere tra 2 e 7"}
+    if importo_totale <= 0:
+        return {"errore": "L'importo totale deve essere positivo"}
+
+    try:
+        dt_prima = _date.fromisoformat(data_prima_rata)
+    except ValueError:
+        return {"errore": "data_prima_rata non valida, usare formato YYYY-MM-DD"}
+
+    importo_rata_base = round(importo_totale / n_rate, 2)
+    tasso_mensile = tasso_interesse_annuo / 100 / 12
+    piano = []
+
+    for i in range(n_rate):
+        mesi_dalla_prima = i
+        interessi = round(importo_totale * tasso_mensile * mesi_dalla_prima, 2) if i > 0 else 0
+        # Date approssimate: una rata al mese
+        data_rata = _date(dt_prima.year, dt_prima.month + i, min(dt_prima.day, 28)) if dt_prima.month + i <= 12 else _date(dt_prima.year + 1, (dt_prima.month + i) - 12, min(dt_prima.day, 28))
+
+        rata_totale = round(importo_rata_base + interessi, 2)
+        piano.append({
+            "rata": i + 1,
+            "data_scadenza": data_rata.isoformat(),
+            "importo_capitale": importo_rata_base,
+            "interessi": interessi,
+            "rata_totale": rata_totale,
+        })
+
+    totale_interessi = sum(r["interessi"] for r in piano)
+    totale_versato = round(importo_totale + totale_interessi, 2)
+
+    return {
+        "importo_totale": importo_totale,
+        "n_rate": n_rate,
+        "tasso_interesse_annuo_pct": tasso_interesse_annuo,
+        "piano_rate": piano,
+        "totale_interessi": round(totale_interessi, 2),
+        "totale_versato": totale_versato,
+        "riferimento_normativo": "Art. 20 D.Lgs. 241/1997",
+    }

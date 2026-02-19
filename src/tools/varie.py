@@ -378,3 +378,458 @@ def scorporo_iva(
         "iva": round(iva, 2),
         "verifica": round(imponibile + iva, 2),
     }
+
+
+@mcp.tool()
+def decurtazione_punti_patente(violazione: str) -> dict:
+    """Punti decurtati dalla patente per violazione del Codice della Strada.
+
+    Args:
+        violazione: Keyword della violazione (es. 'cellulare', 'cintura', 'semaforo_rosso', 'eccesso_velocita_10', 'guida_ebbra', ecc.)
+    """
+    _VIOLAZIONI = {
+        "cellulare": {"punti": 5, "articolo": "Art. 173 CdS", "descrizione": "Uso del telefono alla guida", "sanzione_accessoria": "Sospensione patente in caso di recidiva"},
+        "cintura": {"punti": 5, "articolo": "Art. 172 CdS", "descrizione": "Mancato uso della cintura di sicurezza"},
+        "semaforo_rosso": {"punti": 6, "articolo": "Art. 146 CdS", "descrizione": "Passaggio con semaforo rosso", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
+        "eccesso_velocita_10": {"punti": 0, "articolo": "Art. 142 CdS", "descrizione": "Eccesso di velocita fino a 10 km/h"},
+        "eccesso_velocita_40": {"punti": 6, "articolo": "Art. 142 CdS", "descrizione": "Eccesso di velocita tra 10 e 40 km/h"},
+        "eccesso_velocita_60": {"punti": 10, "articolo": "Art. 142 CdS", "descrizione": "Eccesso di velocita oltre 60 km/h", "sanzione_accessoria": "Sospensione patente 6-12 mesi"},
+        "guida_ebbra": {"punti": 10, "articolo": "Art. 186 CdS", "descrizione": "Guida in stato di ebbrezza (tasso > 0.5 g/l)", "sanzione_accessoria": "Sospensione/revoca patente"},
+        "sorpasso": {"punti": 4, "articolo": "Art. 148 CdS", "descrizione": "Sorpasso vietato o pericoloso"},
+        "precedenza": {"punti": 8, "articolo": "Art. 145 CdS", "descrizione": "Mancata precedenza", "sanzione_accessoria": "Sospensione patente in caso di incidente"},
+        "stop": {"punti": 6, "articolo": "Art. 145 CdS", "descrizione": "Mancato arresto al segnale di stop"},
+        "contromano": {"punti": 10, "articolo": "Art. 143 CdS", "descrizione": "Circolazione contromano", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
+        "strisce_pedonali": {"punti": 8, "articolo": "Art. 191 CdS", "descrizione": "Mancata precedenza ai pedoni sulle strisce"},
+        "distanza_sicurezza": {"punti": 5, "articolo": "Art. 149 CdS", "descrizione": "Mancato rispetto della distanza di sicurezza"},
+        "casco": {"punti": 5, "articolo": "Art. 171 CdS", "descrizione": "Mancato uso del casco"},
+        "fuga_incidente": {"punti": 10, "articolo": "Art. 189 CdS", "descrizione": "Fuga dopo incidente con danni", "sanzione_accessoria": "Sospensione/revoca patente"},
+        "patente_scaduta": {"punti": 0, "articolo": "Art. 126 CdS", "descrizione": "Guida con patente scaduta"},
+        "revisione_scaduta": {"punti": 0, "articolo": "Art. 80 CdS", "descrizione": "Circolazione con revisione scaduta"},
+        "assicurazione": {"punti": 0, "articolo": "Art. 193 CdS", "descrizione": "Circolazione senza assicurazione", "sanzione_accessoria": "Sequestro del veicolo"},
+    }
+
+    violazione_lower = violazione.lower().strip()
+
+    # Exact match
+    if violazione_lower in _VIOLAZIONI:
+        v = _VIOLAZIONI[violazione_lower]
+        return {"violazione": violazione_lower, **v}
+
+    # Keyword search
+    risultati = []
+    for key, v in _VIOLAZIONI.items():
+        if violazione_lower in key or violazione_lower in v["descrizione"].lower():
+            risultati.append({"violazione": key, **v})
+
+    if risultati:
+        return {"ricerca": violazione, "risultati": risultati}
+
+    return {
+        "errore": f"Violazione '{violazione}' non trovata",
+        "violazioni_disponibili": sorted(_VIOLAZIONI.keys()),
+    }
+
+
+@mcp.tool()
+def tasso_alcolemico(
+    sesso: str,
+    peso_kg: float,
+    unita_alcoliche: float,
+    ore_trascorse: float,
+    stomaco_pieno: bool = False,
+) -> dict:
+    """Calcolo tasso alcolemico teorico con formula di Widmark e fascia sanzionatoria CdS.
+
+    Args:
+        sesso: 'M' o 'F'
+        peso_kg: Peso corporeo in kg
+        unita_alcoliche: Numero di unita alcoliche consumate (1 UA = 12g di alcol puro = 1 birra 33cl, 1 bicchiere vino 12cl)
+        ore_trascorse: Ore trascorse dall'assunzione
+        stomaco_pieno: True se consumo durante pasto completo (riduzione assorbimento ~30%)
+    """
+    sesso = sesso.upper().strip()
+    if sesso not in ("M", "F"):
+        return {"errore": "sesso deve essere 'M' o 'F'"}
+    if peso_kg <= 0 or unita_alcoliche < 0:
+        return {"errore": "peso_kg e unita_alcoliche devono essere positivi"}
+
+    GRAMMI_PER_UA = 12
+    COEFF_WIDMARK = 0.73 if sesso == "M" else 0.66
+    METABOLIZZAZIONE = 0.15  # g/l per ora
+
+    alcol_grammi = unita_alcoliche * GRAMMI_PER_UA
+    if stomaco_pieno:
+        alcol_grammi *= 0.70  # riduzione 30%
+
+    tasso_picco = alcol_grammi / (peso_kg * COEFF_WIDMARK)
+    tasso_attuale = max(tasso_picco - (METABOLIZZAZIONE * ore_trascorse), 0)
+    tasso_attuale = round(tasso_attuale, 2)
+
+    # Tempo per smaltimento completo
+    ore_smaltimento = round(tasso_picco / METABOLIZZAZIONE, 1) if tasso_picco > 0 else 0
+    ore_residue = round(max(ore_smaltimento - ore_trascorse, 0), 1)
+
+    # Fascia sanzionatoria
+    if tasso_attuale == 0:
+        fascia = "nessuna (tasso 0)"
+        sanzione = None
+    elif tasso_attuale < 0.5:
+        fascia = "nessuna (< 0.5 g/l)"
+        sanzione = None
+    elif tasso_attuale < 0.8:
+        fascia = "art. 186 co. 2 lett. a)"
+        sanzione = "Ammenda 500-2000€, sospensione patente 3-6 mesi"
+    elif tasso_attuale < 1.5:
+        fascia = "art. 186 co. 2 lett. b)"
+        sanzione = "Ammenda 800-3200€, arresto fino a 6 mesi, sospensione patente 6-12 mesi"
+    else:
+        fascia = "art. 186 co. 2 lett. c)"
+        sanzione = "Ammenda 1500-6000€, arresto 6-12 mesi, sospensione patente 1-2 anni, confisca veicolo"
+
+    return {
+        "sesso": sesso,
+        "peso_kg": peso_kg,
+        "unita_alcoliche": unita_alcoliche,
+        "ore_trascorse": ore_trascorse,
+        "stomaco_pieno": stomaco_pieno,
+        "alcol_assorbito_grammi": round(alcol_grammi, 1),
+        "tasso_picco_g_l": round(tasso_picco, 2),
+        "tasso_attuale_g_l": tasso_attuale,
+        "ore_smaltimento_totale": ore_smaltimento,
+        "ore_residue_smaltimento": ore_residue,
+        "fascia_sanzione_cds": fascia,
+        "sanzione": sanzione,
+        "avvertenza": "Calcolo puramente indicativo basato su formula di Widmark. Il tasso reale dipende da metabolismo individuale, farmaci, condizioni fisiche.",
+        "riferimento_normativo": "Art. 186 D.Lgs. 285/1992 (Codice della Strada)",
+    }
+
+
+@mcp.tool()
+def prescrizione_diritti(
+    tipo_diritto: str,
+    data_evento: str,
+) -> dict:
+    """Calcolo prescrizione diritti civili: verifica se un diritto e prescritto e data di prescrizione.
+
+    Args:
+        tipo_diritto: Tipo di diritto — 'ordinaria' (10 anni), 'risarcimento_danni' (5), 'risarcimento_rca' (2), 'diritti_lavoro' (5), 'crediti_professionisti' (3), 'canoni_locazione' (5), 'contributi_previdenziali' (5), 'vizi_vendita' (1), 'garanzia_appalto' (2)
+        data_evento: Data del fatto generatore del diritto (YYYY-MM-DD)
+    """
+    _TERMINI = {
+        "ordinaria": {"anni": 10, "norma": "Art. 2946 c.c."},
+        "risarcimento_danni": {"anni": 5, "norma": "Art. 2947 c.c."},
+        "risarcimento_rca": {"anni": 2, "norma": "Art. 2947, comma 2, c.c."},
+        "diritti_lavoro": {"anni": 5, "norma": "Art. 2948 c.c."},
+        "crediti_professionisti": {"anni": 3, "norma": "Art. 2956 c.c."},
+        "canoni_locazione": {"anni": 5, "norma": "Art. 2948, n. 3, c.c."},
+        "contributi_previdenziali": {"anni": 5, "norma": "Art. 3, comma 9, L. 335/1995"},
+        "vizi_vendita": {"anni": 1, "norma": "Art. 1495 c.c."},
+        "garanzia_appalto": {"anni": 2, "norma": "Art. 1667 c.c."},
+    }
+
+    if tipo_diritto not in _TERMINI:
+        return {"errore": f"tipo_diritto deve essere uno tra: {', '.join(sorted(_TERMINI.keys()))}"}
+
+    try:
+        dt_evento = _parse_date(data_evento)
+    except ValueError:
+        return {"errore": "data_evento non valida, usare formato YYYY-MM-DD"}
+
+    termine = _TERMINI[tipo_diritto]
+    anni = termine["anni"]
+    data_prescrizione = date(dt_evento.year + anni, dt_evento.month, dt_evento.day)
+    oggi = date.today()
+    prescritto = oggi > data_prescrizione
+    giorni_mancanti = (data_prescrizione - oggi).days if not prescritto else 0
+
+    return {
+        "tipo_diritto": tipo_diritto,
+        "data_evento": data_evento,
+        "termine_anni": anni,
+        "data_prescrizione": data_prescrizione.isoformat(),
+        "prescritto": prescritto,
+        "giorni_mancanti": giorni_mancanti,
+        "nota": "I termini possono essere sospesi o interrotti da atti specifici (diffida, citazione, riconoscimento del debito).",
+        "riferimento_normativo": termine["norma"],
+    }
+
+
+@mcp.tool()
+def calcolo_tempo_trascorso(
+    data_inizio: str,
+    data_fine: str | None = None,
+) -> dict:
+    """Calcolo tempo trascorso tra due date in anni, mesi e giorni. Utile per anzianita, durata contratti, etc.
+
+    Args:
+        data_inizio: Data inizio (YYYY-MM-DD)
+        data_fine: Data fine (YYYY-MM-DD). Se omessa usa la data odierna.
+    """
+    try:
+        dt_inizio = _parse_date(data_inizio)
+    except ValueError:
+        return {"errore": "data_inizio non valida, usare formato YYYY-MM-DD"}
+
+    if data_fine:
+        try:
+            dt_fine = _parse_date(data_fine)
+        except ValueError:
+            return {"errore": "data_fine non valida, usare formato YYYY-MM-DD"}
+    else:
+        dt_fine = date.today()
+
+    if dt_fine < dt_inizio:
+        return {"errore": "data_fine deve essere uguale o successiva a data_inizio"}
+
+    # Calculate years, months, days
+    anni = dt_fine.year - dt_inizio.year
+    mesi = dt_fine.month - dt_inizio.month
+    giorni = dt_fine.day - dt_inizio.day
+
+    if giorni < 0:
+        mesi -= 1
+        # Days in previous month
+        prev_month = dt_fine.month - 1 if dt_fine.month > 1 else 12
+        prev_year = dt_fine.year if dt_fine.month > 1 else dt_fine.year - 1
+        if prev_month in (1, 3, 5, 7, 8, 10, 12):
+            days_prev = 31
+        elif prev_month in (4, 6, 9, 11):
+            days_prev = 30
+        else:
+            days_prev = 29 if (prev_year % 4 == 0 and (prev_year % 100 != 0 or prev_year % 400 == 0)) else 28
+        giorni += days_prev
+
+    if mesi < 0:
+        anni -= 1
+        mesi += 12
+
+    giorni_totali = (dt_fine - dt_inizio).days
+
+    return {
+        "data_inizio": data_inizio,
+        "data_fine": dt_fine.isoformat(),
+        "anni": anni,
+        "mesi": mesi,
+        "giorni": giorni,
+        "giorni_totali": giorni_totali,
+        "descrizione": f"{anni} anni, {mesi} mesi, {giorni} giorni",
+    }
+
+
+@mcp.tool()
+def verifica_partita_iva(partita_iva: str) -> dict:
+    """Validazione formale partita IVA italiana (11 cifre, algoritmo di controllo).
+
+    Args:
+        partita_iva: Numero di partita IVA (11 cifre)
+    """
+    piva = partita_iva.strip().replace(" ", "")
+
+    if not piva.isdigit():
+        return {"valido": False, "errore": "La partita IVA deve contenere solo cifre"}
+    if len(piva) != 11:
+        return {"valido": False, "errore": f"La partita IVA deve essere di 11 cifre, trovate {len(piva)}"}
+
+    # Codice provincia (prime 2 cifre per persone fisiche, 3 per soggetti diversi)
+    codice_ufficio = piva[:2]
+
+    # Luhn-like algorithm for Italian VAT numbers
+    somma = 0
+    for i, c in enumerate(piva[:10]):
+        digit = int(c)
+        if i % 2 == 0:
+            # Odd position (1-indexed): add as-is
+            somma += digit
+        else:
+            # Even position: double, subtract 9 if >= 10
+            doubled = digit * 2
+            somma += doubled if doubled < 10 else doubled - 9
+
+    check_digit = (10 - (somma % 10)) % 10
+    valido = check_digit == int(piva[10])
+
+    return {
+        "partita_iva": piva,
+        "valido": valido,
+        "codice_ufficio": codice_ufficio,
+        "cifra_controllo_attesa": check_digit,
+        "cifra_controllo_presente": int(piva[10]),
+    }
+
+
+@mcp.tool()
+def calcolo_eta_anagrafica(
+    data_nascita: str,
+    data_riferimento: str | None = None,
+) -> dict:
+    """Calcolo eta anagrafica esatta in anni, mesi, giorni con prossimo compleanno.
+
+    Args:
+        data_nascita: Data di nascita (YYYY-MM-DD)
+        data_riferimento: Data di riferimento (YYYY-MM-DD). Se omessa usa la data odierna.
+    """
+    try:
+        dt_nascita = _parse_date(data_nascita)
+    except ValueError:
+        return {"errore": "data_nascita non valida, usare formato YYYY-MM-DD"}
+
+    if data_riferimento:
+        try:
+            dt_rif = _parse_date(data_riferimento)
+        except ValueError:
+            return {"errore": "data_riferimento non valida, usare formato YYYY-MM-DD"}
+    else:
+        dt_rif = date.today()
+
+    if dt_rif < dt_nascita:
+        return {"errore": "La data di riferimento deve essere successiva alla data di nascita"}
+
+    # Age calculation
+    anni = dt_rif.year - dt_nascita.year
+    mesi = dt_rif.month - dt_nascita.month
+    giorni = dt_rif.day - dt_nascita.day
+
+    if giorni < 0:
+        mesi -= 1
+        prev_month = dt_rif.month - 1 if dt_rif.month > 1 else 12
+        prev_year = dt_rif.year if dt_rif.month > 1 else dt_rif.year - 1
+        if prev_month in (1, 3, 5, 7, 8, 10, 12):
+            days_prev = 31
+        elif prev_month in (4, 6, 9, 11):
+            days_prev = 30
+        else:
+            days_prev = 29 if (prev_year % 4 == 0 and (prev_year % 100 != 0 or prev_year % 400 == 0)) else 28
+        giorni += days_prev
+
+    if mesi < 0:
+        anni -= 1
+        mesi += 12
+
+    # Next birthday
+    try:
+        prossimo = date(dt_rif.year, dt_nascita.month, dt_nascita.day)
+    except ValueError:
+        prossimo = date(dt_rif.year, dt_nascita.month, 28)
+    if prossimo <= dt_rif:
+        try:
+            prossimo = date(dt_rif.year + 1, dt_nascita.month, dt_nascita.day)
+        except ValueError:
+            prossimo = date(dt_rif.year + 1, dt_nascita.month, 28)
+
+    giorni_al_compleanno = (prossimo - dt_rif).days
+
+    return {
+        "data_nascita": data_nascita,
+        "data_riferimento": dt_rif.isoformat(),
+        "eta_anni": anni,
+        "eta_mesi": mesi,
+        "eta_giorni": giorni,
+        "descrizione": f"{anni} anni, {mesi} mesi, {giorni} giorni",
+        "prossimo_compleanno": prossimo.isoformat(),
+        "giorni_al_compleanno": giorni_al_compleanno,
+    }
+
+
+@mcp.tool()
+def ricerca_codici_ateco(keyword: str) -> dict:
+    """Ricerca codice ATECO per keyword. Utile per regime forfettario (coefficiente di redditivita).
+
+    Args:
+        keyword: Parola chiave da cercare (es. 'ristorante', 'avvocato', 'sviluppatore', 'commercio')
+    """
+    _ATECO = [
+        {"codice": "01.11.10", "descrizione": "Coltivazione di cereali", "coefficiente": 40},
+        {"codice": "10.71.10", "descrizione": "Produzione di pane e prodotti di panetteria freschi", "coefficiente": 40},
+        {"codice": "25.11.00", "descrizione": "Fabbricazione di strutture metalliche", "coefficiente": 86},
+        {"codice": "41.20.00", "descrizione": "Costruzione di edifici residenziali e non", "coefficiente": 86},
+        {"codice": "43.21.01", "descrizione": "Installazione di impianti elettrici", "coefficiente": 86},
+        {"codice": "43.22.01", "descrizione": "Installazione di impianti idraulici", "coefficiente": 86},
+        {"codice": "45.11.01", "descrizione": "Commercio ingrosso/dettaglio di autovetture", "coefficiente": 40},
+        {"codice": "45.20.10", "descrizione": "Riparazione meccanica di autoveicoli", "coefficiente": 67},
+        {"codice": "46.11.00", "descrizione": "Intermediari del commercio (agenti)", "coefficiente": 62},
+        {"codice": "46.19.02", "descrizione": "Procacciatori d'affari", "coefficiente": 62},
+        {"codice": "47.11.40", "descrizione": "Minimercati e altri esercizi non specializzati", "coefficiente": 40},
+        {"codice": "47.19.10", "descrizione": "Grandi magazzini", "coefficiente": 40},
+        {"codice": "47.24.10", "descrizione": "Commercio al dettaglio di pane", "coefficiente": 40},
+        {"codice": "47.71.10", "descrizione": "Commercio al dettaglio di abbigliamento", "coefficiente": 40},
+        {"codice": "47.91.10", "descrizione": "Commercio al dettaglio via internet (e-commerce)", "coefficiente": 40},
+        {"codice": "49.32.10", "descrizione": "Trasporto con taxi", "coefficiente": 67},
+        {"codice": "49.41.00", "descrizione": "Trasporto merci su strada", "coefficiente": 67},
+        {"codice": "55.10.00", "descrizione": "Alberghi", "coefficiente": 40},
+        {"codice": "55.20.51", "descrizione": "Affittacamere, B&B, case vacanze", "coefficiente": 40},
+        {"codice": "56.10.11", "descrizione": "Ristorazione con somministrazione", "coefficiente": 40},
+        {"codice": "56.10.30", "descrizione": "Gelaterie e pasticcerie", "coefficiente": 40},
+        {"codice": "56.21.00", "descrizione": "Catering per eventi", "coefficiente": 40},
+        {"codice": "56.30.00", "descrizione": "Bar e altri esercizi simili", "coefficiente": 40},
+        {"codice": "62.01.00", "descrizione": "Produzione di software, consulenza informatica", "coefficiente": 67},
+        {"codice": "62.02.00", "descrizione": "Consulenza informatica", "coefficiente": 67},
+        {"codice": "62.09.09", "descrizione": "Altre attivita dei servizi IT", "coefficiente": 67},
+        {"codice": "63.11.19", "descrizione": "Elaborazione dati, hosting, web", "coefficiente": 67},
+        {"codice": "63.91.00", "descrizione": "Attivita delle agenzie di stampa", "coefficiente": 67},
+        {"codice": "68.20.02", "descrizione": "Affitto di immobili propri", "coefficiente": 40},
+        {"codice": "69.10.10", "descrizione": "Attivita degli studi legali — avvocati", "coefficiente": 78},
+        {"codice": "69.10.20", "descrizione": "Attivita degli studi notarili", "coefficiente": 78},
+        {"codice": "69.20.11", "descrizione": "Servizi forniti da dottori commercialisti", "coefficiente": 78},
+        {"codice": "69.20.12", "descrizione": "Servizi forniti da ragionieri e periti commerciali", "coefficiente": 78},
+        {"codice": "69.20.13", "descrizione": "Servizi forniti da consulenti del lavoro", "coefficiente": 78},
+        {"codice": "69.20.30", "descrizione": "Attivita dei CAF", "coefficiente": 78},
+        {"codice": "70.22.09", "descrizione": "Consulenza aziendale e gestionale", "coefficiente": 78},
+        {"codice": "71.11.00", "descrizione": "Attivita degli studi di architettura", "coefficiente": 78},
+        {"codice": "71.12.10", "descrizione": "Attivita degli studi di ingegneria", "coefficiente": 78},
+        {"codice": "71.12.20", "descrizione": "Servizi di progettazione di ingegneria integrata", "coefficiente": 78},
+        {"codice": "71.12.40", "descrizione": "Attivita di studio geologico e di prospezione", "coefficiente": 78},
+        {"codice": "71.20.10", "descrizione": "Collaudi e analisi tecniche", "coefficiente": 78},
+        {"codice": "72.19.09", "descrizione": "Ricerca e sviluppo sperimentale", "coefficiente": 78},
+        {"codice": "73.11.02", "descrizione": "Agenzie pubblicitarie", "coefficiente": 78},
+        {"codice": "74.10.21", "descrizione": "Attivita dei designer industriali", "coefficiente": 78},
+        {"codice": "74.10.29", "descrizione": "Altre attivita di design", "coefficiente": 78},
+        {"codice": "74.10.10", "descrizione": "Attivita di design di moda", "coefficiente": 78},
+        {"codice": "74.20.19", "descrizione": "Altre attivita di riprese fotografiche", "coefficiente": 78},
+        {"codice": "74.30.00", "descrizione": "Traduzione e interpretariato", "coefficiente": 78},
+        {"codice": "74.90.99", "descrizione": "Altre attivita professionali NCA", "coefficiente": 78},
+        {"codice": "75.00.00", "descrizione": "Servizi veterinari", "coefficiente": 78},
+        {"codice": "77.11.00", "descrizione": "Noleggio autovetture e autoveicoli leggeri", "coefficiente": 40},
+        {"codice": "79.11.00", "descrizione": "Attivita delle agenzie di viaggio", "coefficiente": 40},
+        {"codice": "82.11.01", "descrizione": "Servizi di segreteria e supporto amministrativo", "coefficiente": 67},
+        {"codice": "85.59.20", "descrizione": "Corsi di formazione e aggiornamento professionale", "coefficiente": 78},
+        {"codice": "85.59.30", "descrizione": "Scuole e corsi di lingua", "coefficiente": 78},
+        {"codice": "85.51.00", "descrizione": "Corsi sportivi e ricreativi", "coefficiente": 78},
+        {"codice": "86.10.10", "descrizione": "Ospedali e case di cura generici", "coefficiente": 78},
+        {"codice": "86.21.00", "descrizione": "Servizi degli studi medici di medicina generale", "coefficiente": 78},
+        {"codice": "86.22.09", "descrizione": "Studi medici specialistici", "coefficiente": 78},
+        {"codice": "86.23.00", "descrizione": "Attivita degli studi odontoiatrici", "coefficiente": 78},
+        {"codice": "86.90.21", "descrizione": "Fisioterapia", "coefficiente": 78},
+        {"codice": "86.90.29", "descrizione": "Altre attivita paramediche (es. logopedista, psicologo)", "coefficiente": 78},
+        {"codice": "88.91.00", "descrizione": "Servizi di asili nido", "coefficiente": 67},
+        {"codice": "90.01.01", "descrizione": "Attivita nel campo della recitazione", "coefficiente": 67},
+        {"codice": "90.03.09", "descrizione": "Altre creazioni artistiche e letterarie", "coefficiente": 67},
+        {"codice": "93.11.10", "descrizione": "Gestione di impianti sportivi", "coefficiente": 67},
+        {"codice": "93.13.00", "descrizione": "Gestione di palestre", "coefficiente": 67},
+        {"codice": "93.19.10", "descrizione": "Enti e organizzazioni sportive, personal trainer", "coefficiente": 67},
+        {"codice": "95.11.00", "descrizione": "Riparazione di computer", "coefficiente": 67},
+        {"codice": "96.02.01", "descrizione": "Servizi dei saloni di barbiere e parrucchiere", "coefficiente": 67},
+        {"codice": "96.02.02", "descrizione": "Servizi degli istituti di bellezza", "coefficiente": 67},
+        {"codice": "96.04.10", "descrizione": "Servizi di centri per il benessere fisico (esclusi gli stabilimenti termali)", "coefficiente": 67},
+        {"codice": "96.09.09", "descrizione": "Altre attivita di servizi per la persona NCA", "coefficiente": 67},
+    ]
+
+    keyword_lower = keyword.lower().strip()
+    risultati = []
+
+    for voce in _ATECO:
+        if keyword_lower in voce["descrizione"].lower() or keyword_lower in voce["codice"]:
+            risultati.append(voce)
+
+    if not risultati:
+        return {
+            "keyword": keyword,
+            "risultati": [],
+            "suggerimento": "Prova con termini piu generici (es. 'commercio', 'medic', 'informatica', 'bar', 'ingegn')",
+        }
+
+    return {
+        "keyword": keyword,
+        "n_risultati": len(risultati),
+        "risultati": risultati,
+        "nota": "Il coefficiente di redditivita e usato nel regime forfettario per determinare il reddito imponibile (ricavi * coefficiente / 100)",
+    }
