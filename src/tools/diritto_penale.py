@@ -1,4 +1,5 @@
-"""Sezione 8 — Diritto Penale: calcolo pena, conversione, prescrizione, patteggiamento."""
+"""Calcolo pena con aggravanti/attenuanti (art. 63-69 c.p.), prescrizione del reato
+(art. 157 ss. c.p., post L. 251/2005), patteggiamento (art. 444 c.p.p.), fine pena."""
 
 from datetime import date, timedelta
 from math import ceil
@@ -27,13 +28,19 @@ def aumenti_riduzioni_pena(
     attenuanti: list[dict] | None = None,
     recidiva: bool = False,
 ) -> dict:
-    """Calcolo pena con aggravanti e attenuanti art. 63-69 c.p.
+    """Calcola la pena risultante applicando aggravanti, attenuanti e recidiva sulla pena base.
+
+    Calcola la pena finale partendo dalla pena base edittale, applicando in sequenza
+    recidiva (+1/3), aggravanti (aumenti percentuali) e attenuanti (riduzioni percentuali).
+    Per simulare il patteggiamento usare pena_concordata; per la data fine pena usare fine_pena.
+    Vigenza: Artt. 63-69 c.p. (aumenti/riduzioni); art. 99 c.p. (recidiva).
+    Precisione: INDICATIVO (il giudice applica le variazioni discrezionalmente nei limiti di legge).
 
     Args:
-        pena_base_mesi: Pena base in mesi
-        aggravanti: Lista di aggravanti, ciascuna con {tipo: str, aumento_pct: float}
-        attenuanti: Lista di attenuanti, ciascuna con {tipo: str, riduzione_pct: float}
-        recidiva: Se applicare recidiva semplice art. 99 c.p. (+1/3)
+        pena_base_mesi: Pena base in mesi (es. 24 per 2 anni; range tipico: 1-240)
+        aggravanti: Lista di aggravanti, ciascuna con {'tipo': str, 'aumento_pct': float} (es. aumento_pct: 33.33 per +1/3)
+        attenuanti: Lista di attenuanti, ciascuna con {'tipo': str, 'riduzione_pct': float} (es. riduzione_pct: 33.33 per -1/3)
+        recidiva: True per applicare recidiva semplice art. 99 c.p. (+1/3 sulla pena base)
     """
     pena = pena_base_mesi
     dettaglio = [{"step": "Pena base", "mesi": round(pena, 2)}]
@@ -86,12 +93,15 @@ def conversione_pena(
     direzione: str = "detentiva_a_pecuniaria",
     tipo_pena: str = "reclusione",
 ) -> dict:
-    """Conversione pena detentiva ↔ pecuniaria art. 135 c.p.
+    """Converte pena detentiva in pecuniaria (o viceversa) al tasso legale di €250/giorno.
+
+    Vigenza: Art. 135 c.p. — tasso di conversione €250 per giorno (aggiornato periodicamente).
+    Precisione: ESATTO per il tasso di legge vigente; verificare aggiornamenti al tasso ex art. 135 c.p.
 
     Args:
-        importo: Giorni di pena detentiva (se detentiva_a_pecuniaria) o euro (se pecuniaria_a_detentiva)
-        direzione: 'detentiva_a_pecuniaria' o 'pecuniaria_a_detentiva'
-        tipo_pena: 'reclusione' o 'arresto'
+        importo: Giorni di pena detentiva (se direzione='detentiva_a_pecuniaria') oppure importo in euro (€) (se direzione='pecuniaria_a_detentiva')
+        direzione: Direzione della conversione: 'detentiva_a_pecuniaria' o 'pecuniaria_a_detentiva'
+        tipo_pena: Tipo di pena detentiva: 'reclusione' (delitti) o 'arresto' (contravvenzioni)
     """
     tasso_giornaliero = 250  # €250 per giorno (art. 135 c.p.)
 
@@ -126,13 +136,19 @@ def fine_pena(
     liberazione_anticipata: bool = True,
     giorni_presofferto: int = 0,
 ) -> dict:
-    """Calcolo data fine pena con liberazione anticipata art. 54 L. 354/1975.
+    """Calcola la data di fine pena con eventuale liberazione anticipata (45 giorni per semestre).
+
+    Sottrae i giorni di presofferto (custodia cautelare) e calcola il beneficio della
+    liberazione anticipata ex art. 54 L. 354/1975 (ordinamento penitenziario).
+    Per calcolare la pena da scontare (con aggravanti/attenuanti) usare aumenti_riduzioni_pena.
+    Vigenza: Art. 54 L. 354/1975 (ordinamento penitenziario).
+    Precisione: INDICATIVO (la liberazione anticipata è concessa discrezionalmente dal magistrato di sorveglianza).
 
     Args:
-        data_inizio_pena: Data inizio esecuzione pena (YYYY-MM-DD)
-        pena_totale_mesi: Pena totale in mesi
-        liberazione_anticipata: Se calcolare la liberazione anticipata (45gg ogni semestre)
-        giorni_presofferto: Giorni di custodia cautelare da sottrarre
+        data_inizio_pena: Data di inizio esecuzione della pena (formato YYYY-MM-DD)
+        pena_totale_mesi: Durata totale della pena da scontare in mesi (es. 36 per 3 anni)
+        liberazione_anticipata: True per calcolare lo sconto di 45 giorni ogni semestre (default: True)
+        giorni_presofferto: Giorni di custodia cautelare già scontati da sottrarre (default 0)
     """
     dt_inizio = _parse_date(data_inizio_pena)
 
@@ -178,14 +194,21 @@ def prescrizione_reato(
     sospensioni_giorni: int = 0,
     tipo_reato: str = "delitto",
 ) -> dict:
-    """Calcolo termine prescrizione reato art. 157 c.p.
+    """Calcola il termine di prescrizione del reato e la data di prescrizione.
+
+    Termine base: massimo edittale (min. 6 anni per delitti, 4 per contravvenzioni).
+    Le interruzioni estendono il termine di 1/4; le sospensioni lo spostano in avanti.
+    Attenzione: per reati con pena perpetua o con regimi speciali (es. mafia, corruzione post L. 3/2019)
+    il calcolo standard non è applicabile.
+    Vigenza: Art. 157-161 c.p. (post riforma L. 251/2005 — ex Cirielli; e L. 134/2021 — Riforma Cartabia).
+    Precisione: INDICATIVO (il calcolo esatto dipende da interruzioni e sospensioni specifiche del processo).
 
     Args:
-        pena_massima_anni: Pena massima edittale in anni
-        data_commissione: Data di commissione del reato (YYYY-MM-DD)
-        interruzioni_giorni: Giorni di interruzione (estendono il termine di 1/4)
-        sospensioni_giorni: Giorni di sospensione della prescrizione
-        tipo_reato: 'delitto' o 'contravvenzione'
+        pena_massima_anni: Pena massima edittale del reato in anni (es. 5.0; range tipico: 0.25-30)
+        data_commissione: Data di commissione del reato (formato YYYY-MM-DD)
+        interruzioni_giorni: Giorni totali di atti interruttivi (estendono il termine di 1/4)
+        sospensioni_giorni: Giorni totali di sospensione della prescrizione (spostano la data in avanti)
+        tipo_reato: Tipo di reato: 'delitto' (minimo 6 anni) o 'contravvenzione' (minimo 4 anni)
     """
     dt_commissione = _parse_date(data_commissione)
 
@@ -234,12 +257,19 @@ def pena_concordata(
     attenuanti_generiche: bool = True,
     diminuente_rito: bool = True,
 ) -> dict:
-    """Simulazione patteggiamento art. 444 c.p.p.
+    """Simula la pena patteggiata (art. 444 c.p.p.) con attenuanti generiche e diminuente di rito.
+
+    Calcola la pena finale applicando -1/3 per attenuanti generiche (art. 62-bis c.p.) e
+    -1/3 per la diminuente di rito del patteggiamento (art. 444 c.p.p.).
+    Il patteggiamento è ammissibile se la pena finale è ≤ 5 anni (60 mesi).
+    Per calcolare la pena base con aggravanti/attenuanti specifiche usare aumenti_riduzioni_pena.
+    Vigenza: Art. 444 c.p.p. — Art. 62-bis c.p.
+    Precisione: INDICATIVO (le riduzioni sono soggette a valutazione discrezionale del giudice).
 
     Args:
-        pena_base_mesi: Pena base in mesi
-        attenuanti_generiche: Se applicare attenuanti generiche art. 62-bis c.p. (-1/3)
-        diminuente_rito: Se applicare la diminuente per rito abbreviato/patteggiamento (-1/3)
+        pena_base_mesi: Pena base in mesi da cui partire (es. 36 per 3 anni; range tipico: 1-240)
+        attenuanti_generiche: True per applicare attenuanti generiche art. 62-bis c.p. (-1/3 sulla pena base)
+        diminuente_rito: True per applicare diminuente di rito art. 444 c.p.p. (-1/3 sulla pena dopo attenuanti)
     """
     pena = pena_base_mesi
     dettaglio = [{"step": "Pena base", "mesi": round(pena, 2)}]

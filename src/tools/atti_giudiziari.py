@@ -1,4 +1,7 @@
-"""Sezione 4 — Atti Giudiziari: CU, diritti copia, pignoramento, solleciti, decreti ingiuntivi, hash PCT, tassazione."""
+"""Calcoli e generazione di atti giudiziari: Contributo Unificato (DPR 115/2002), diritti di copia
+(cartacei e PCT), pignoramento stipendio (art. 545 c.p.c.), imposta di registro su atti giudiziari.
+Generazione bozze: sollecito pagamento, decreto ingiuntivo, precetto, sfratto per morosità,
+procura alle liti, attestazione conformità PCT, relata PEC, note trattazione scritta e altri atti."""
 
 import hashlib
 import json
@@ -14,6 +17,12 @@ with open(_DATA / "contributo_unificato.json") as f:
 
 with open(_DATA / "tassi_mora.json") as f:
     _TASSI_MORA = json.load(f)["tassi"]
+
+with open(_DATA / "tribunali_competenti.json") as f:
+    _TRIBUNALI_COMPETENTI = json.load(f)
+
+with open(_DATA / "codici_ruolo.json") as f:
+    _CODICI_RUOLO = json.load(f)
 
 
 def _parse_date(d: str) -> date:
@@ -87,12 +96,18 @@ def contributo_unificato(
     tipo_procedimento: str = "cognizione",
     grado: str = "primo",
 ) -> dict:
-    """Calcola il Contributo Unificato (DPR 115/2002) per valore causa, tipo e grado.
+    """Calcola il Contributo Unificato per valore della causa, tipo di procedimento e grado.
+    Vigenza: DPR 115/2002 — Testo Unico Spese di Giustizia (tabelle aggiornate al 2024).
+    Precisione: ESATTO (scaglioni per valore; moltiplicatori per appello e cassazione).
 
     Args:
-        valore_causa: Valore della causa in euro
-        tipo_procedimento: cognizione, esecuzione_immobiliare, esecuzione_mobiliare, monitorio, volontaria_giurisdizione, separazione_consensuale, separazione_giudiziale, divorzio_congiunto, divorzio_giudiziale, cautelari, lavoro, tributario, tar
-        grado: primo, appello, cassazione
+        valore_causa: Valore della causa in euro (€)
+        tipo_procedimento: Tipo di rito: 'cognizione', 'esecuzione_immobiliare',
+                           'esecuzione_mobiliare', 'monitorio', 'volontaria_giurisdizione',
+                           'separazione_consensuale', 'separazione_giudiziale',
+                           'divorzio_congiunto', 'divorzio_giudiziale', 'cautelari',
+                           'lavoro' (primo grado esente), 'tributario', 'tar'
+        grado: Grado del giudizio: 'primo', 'appello', 'cassazione'
     """
     cu_base = _calcola_cu_base(valore_causa, tipo_procedimento)
 
@@ -129,21 +144,61 @@ def contributo_unificato(
 def diritti_copia(
     n_pagine: int,
     tipo: str = "semplice",
+    formato: str = "digitale",
     urgente: bool = False,
 ) -> dict:
-    """Calcola diritti di copia atti giudiziari.
+    """Calcola i diritti di copia per atti giudiziari in formato cartaceo e digitale PCT.
+    Vigenza: DPR 115/2002, artt. 267-270, Tabella 8; DL 90/2014 conv. L. 114/2014
+    (copie semplici digitali gratuite).
+    Precisione: ESATTO (tariffe per pagina per cartaceo; forfettaria a scaglioni per digitale).
 
     Args:
-        n_pagine: Numero di pagine dell'atto
-        tipo: semplice, autentica, esecutiva
-        urgente: True per urgenza (+50%)
+        n_pagine: Numero di pagine dell'atto (intero positivo)
+        tipo: Tipo di copia: 'semplice', 'autentica', 'esecutiva'
+        formato: Formato di rilascio: 'digitale' (PCT — gratuito se semplice) o 'cartaceo'
+        urgente: True per maggiorazione urgenza +50% (solo per formato cartaceo)
     """
+    if formato not in ("digitale", "cartaceo"):
+        return {"errore": "formato deve essere 'digitale' o 'cartaceo'"}
+    if tipo not in ("semplice", "autentica", "esecutiva"):
+        return {"errore": "tipo deve essere 'semplice', 'autentica' o 'esecutiva'"}
+
+    if formato == "digitale":
+        if tipo == "semplice":
+            # Copie semplici digitali gratuite (art. 40 DPR 115/2002 mod. DL 90/2014)
+            totale = 0.0
+            nota = "Copia semplice digitale gratuita (art. 40 DPR 115/2002 mod. DL 90/2014)"
+        else:
+            # Copie autentiche/esecutive digitali: tariffa forfettaria
+            if n_pagine <= 4:
+                totale = 1.62
+            elif n_pagine <= 10:
+                totale = 4.05
+            elif n_pagine <= 20:
+                totale = 6.48
+            elif n_pagine <= 50:
+                totale = 8.11
+            else:
+                totale = 10.13 + (n_pagine - 50) // 50 * 1.62
+                totale = round(totale, 2)
+            nota = f"Copia {tipo} digitale — tariffa forfettaria DPR 115/2002 Tabella 8"
+
+        return {
+            "n_pagine": n_pagine,
+            "tipo": tipo,
+            "formato": formato,
+            "totale": round(totale, 2),
+            "nota": nota,
+            "riferimento_normativo": "DPR 115/2002, art. 267-270, Tabella 8 — DL 90/2014 conv. L. 114/2014",
+        }
+
+    # Cartaceo (original logic)
     tariffe = {
         "semplice": 0.30,
         "autentica": 0.70,
         "esecutiva": 0.70,
     }
-    tariffa_pagina = tariffe.get(tipo, 0.30)
+    tariffa_pagina = tariffe[tipo]
     subtotale = round(n_pagine * tariffa_pagina, 2)
     maggiorazione_urgenza = round(subtotale * 0.5, 2) if urgente else 0.0
     totale = round(subtotale + maggiorazione_urgenza, 2)
@@ -151,6 +206,7 @@ def diritti_copia(
     result = {
         "n_pagine": n_pagine,
         "tipo": tipo,
+        "formato": formato,
         "tariffa_pagina": tariffa_pagina,
         "subtotale": subtotale,
         "urgente": urgente,
@@ -167,11 +223,16 @@ def pignoramento_stipendio(
     stipendio_netto_mensile: float,
     tipo_credito: str = "ordinario",
 ) -> dict:
-    """Calcola quote pignorabili dello stipendio/pensione ex art. 545 c.p.c.
+    """Calcola le quote pignorabili dello stipendio o della pensione ex art. 545 c.p.c.
+    Vigenza: art. 545 c.p.c. (mod. DL 83/2015); art. 72-ter DPR 602/1973 per crediti fiscali.
+    Precisione: ESATTO (quote fisse di legge: 1/5 ordinario, 1/3 alimentare, scaglioni fiscale).
 
     Args:
-        stipendio_netto_mensile: Stipendio netto mensile in euro
-        tipo_credito: ordinario, alimentare, fiscale, concorso_crediti
+        stipendio_netto_mensile: Stipendio o pensione netta mensile in euro (€)
+        tipo_credito: Tipo di credito per cui si procede: 'ordinario' (1/5),
+                      'alimentare' (fino a 1/3 — misura fissata dal giudice),
+                      'fiscale' (scaglioni per Equitalia: 1/10, 1/7, 1/5),
+                      'concorso_crediti' (fino a 1/2 in caso di concorso)
     """
     # Assegno sociale 2024 come minimo vitale per pensioni
     minimo_vitale = 534.41
@@ -185,11 +246,17 @@ def pignoramento_stipendio(
         pignorabile = round(stipendio_netto_mensile * quota, 2)
         descrizione = "Fino a 1/3 dello stipendio netto (art. 545 co. 3 c.p.c.) — misura fissata dal giudice"
     elif tipo_credito == "fiscale":
-        quota_base = 1 / 5
-        quota_aggiuntiva = 1 / 10
-        pignorabile = round(stipendio_netto_mensile * (quota_base + quota_aggiuntiva), 2)
-        quota = quota_base + quota_aggiuntiva
-        descrizione = "1/5 + 1/10 per crediti fiscali/cartelle esattoriali (DPR 602/73)"
+        # Scaglioni art. 72-ter DPR 602/73 (riformato DL 83/2015)
+        if stipendio_netto_mensile <= 2500:
+            quota = 1 / 10
+            descrizione = "1/10 — stipendio netto ≤ €2.500 (art. 72-ter DPR 602/73)"
+        elif stipendio_netto_mensile <= 5000:
+            quota = 1 / 7
+            descrizione = "1/7 — stipendio netto €2.500-5.000 (art. 72-ter DPR 602/73)"
+        else:
+            quota = 1 / 5
+            descrizione = "1/5 — stipendio netto > €5.000 (art. 72-ter DPR 602/73)"
+        pignorabile = round(stipendio_netto_mensile * quota, 2)
     elif tipo_credito == "concorso_crediti":
         quota = 1 / 2
         pignorabile = round(stipendio_netto_mensile * quota, 2)
@@ -221,15 +288,19 @@ def sollecito_pagamento(
     data_sollecito: str,
     tasso_mora: float | None = None,
 ) -> dict:
-    """Genera lettera di sollecito pagamento con calcolo interessi mora.
+    """Genera bozza di lettera di sollecito pagamento con calcolo degli interessi di mora.
+    Vigenza: D.Lgs. 231/2002 (tasso BCE + 8 pp per crediti commerciali, aggiornato semestralmente);
+    per tasso convenzionale indicare manualmente tasso_mora.
+    Precisione: ESATTO per gli interessi (calcolo pro rata sul periodo di ritardo).
 
     Args:
-        creditore: Nome/ragione sociale del creditore
-        debitore: Nome/ragione sociale del debitore
-        importo: Importo del credito in euro
-        data_scadenza: Data scadenza originale (YYYY-MM-DD)
-        data_sollecito: Data del sollecito (YYYY-MM-DD)
-        tasso_mora: Tasso mora annuo % personalizzato (se None, usa D.Lgs. 231/2002)
+        creditore: Nome o ragione sociale del creditore
+        debitore: Nome o ragione sociale del debitore
+        importo: Importo del credito in euro (€)
+        data_scadenza: Data di scadenza originale del pagamento (YYYY-MM-DD)
+        data_sollecito: Data odierna o di emissione del sollecito (YYYY-MM-DD)
+        tasso_mora: Tasso di mora annuo personalizzato in percentuale (es. 8.5);
+                    se None usa il tasso D.Lgs. 231/2002 (BCE + 8 pp) aggiornato
     """
     dt_scadenza = _parse_date(data_scadenza)
     dt_sollecito = _parse_date(data_sollecito)
@@ -244,10 +315,21 @@ def sollecito_pagamento(
         tasso_applicato = tasso_mora
         base_giuridica_tasso = f"Tasso convenzionale {tasso_mora}%"
     else:
+        # Split by mora rate periods like interessi_mora()
+        interessi_totali = 0.0
+        current = dt_scadenza + timedelta(days=1)
+        dt_sollecito_end = dt_sollecito
+        while current <= dt_sollecito_end:
+            info_mora = _get_tasso_mora(current)
+            period_end_raw = _parse_date(info_mora["al"])
+            periodo_end = min(period_end_raw, dt_sollecito_end)
+            giorni_periodo = (periodo_end - current).days + 1
+            interessi_totali += importo * (info_mora["mora"] / 100) * giorni_periodo / _days_in_year(current.year)
+            current = periodo_end + timedelta(days=1)
+        interessi = round(interessi_totali, 2)
         info_mora = _get_tasso_mora(dt_scadenza)
         tasso_applicato = info_mora["mora"]
-        interessi = round(importo * (tasso_applicato / 100) * giorni_ritardo / _days_in_year(dt_scadenza.year), 2)
-        base_giuridica_tasso = f"D.Lgs. 231/2002 — tasso BCE ({info_mora['bce']}%) + 8 pp = {tasso_applicato}%"
+        base_giuridica_tasso = f"D.Lgs. 231/2002 — tasso BCE variabile per semestre (tasso iniziale {info_mora['bce']}% + 8 pp = {tasso_applicato}%)"
 
     totale_dovuto = round(importo + interessi, 2)
 
@@ -291,17 +373,20 @@ def decreto_ingiuntivo(
     tipo_credito: str = "ordinario",
     provvisoria_esecuzione: bool = False,
 ) -> dict:
-    """Genera bozza ricorso per decreto ingiuntivo con calcolo competenza e CU.
+    """Genera bozza di ricorso per decreto ingiuntivo con calcolo della competenza per valore e CU.
+    Vigenza: artt. 633-656 c.p.c.; D.Lgs. 116/2017 (soglia GdP €10.000); DPR 115/2002 (CU monitorio).
+    Precisione: INDICATIVO per la bozza (richiede completamento con dati specifici del caso).
 
     Args:
-        creditore: Nome/ragione sociale del creditore
-        debitore: Nome/ragione sociale del debitore
-        importo: Importo del credito in euro
-        tipo_credito: ordinario, professionale, condominiale, cambiale
-        provvisoria_esecuzione: True per richiedere provvisoria esecuzione ex art. 642 c.p.c.
+        creditore: Nome o ragione sociale del creditore
+        debitore: Nome o ragione sociale del debitore
+        importo: Importo del credito in euro (€)
+        tipo_credito: Natura del credito: 'ordinario', 'professionale' (parcella vidimata),
+                      'condominiale' (delibera assembleare), 'cambiale'
+        provvisoria_esecuzione: True per richiedere la clausola ex art. 642 c.p.c.
     """
-    # Giudice competente per valore
-    if importo <= 5000:
+    # Giudice competente per valore (D.Lgs. 116/2017: soglia GdP €10.000)
+    if importo <= 10000:
         giudice = "Giudice di Pace"
     else:
         giudice = "Tribunale"
@@ -380,10 +465,12 @@ Avv. [LEGALE]"""
 
 @mcp.tool()
 def calcolo_hash(testo: str) -> dict:
-    """Calcola impronta hash SHA-256 per deposito telematico PCT.
+    """Calcola l'impronta hash SHA-256 di un testo per il deposito telematico PCT.
+    Vigenza: DM 44/2011 — Specifiche tecniche PCT (algoritmo SHA-256 obbligatorio).
+    Precisione: ESATTO (hash deterministico su testo UTF-8).
 
     Args:
-        testo: Testo o contenuto del documento di cui calcolare l'hash
+        testo: Testo o contenuto del documento di cui calcolare l'impronta digitale
     """
     digest = hashlib.sha256(testo.encode("utf-8")).hexdigest()
 
@@ -401,12 +488,17 @@ def tassazione_atti(
     valore: float,
     prima_casa: bool = False,
 ) -> dict:
-    """Calcola imposta di registro su atti giudiziari.
+    """Calcola l'imposta di registro dovuta su atti giudiziari.
+    Vigenza: DPR 131/1986 — TU Imposta di Registro, Tariffa Parte I (tabelle vigenti).
+    Precisione: ESATTO (imposta proporzionale 3% con minimo €200; 2% per prima casa su verbale).
 
     Args:
-        tipo_atto: sentenza_condanna, decreto_ingiuntivo, verbale_conciliazione, ordinanza
-        valore: Valore dell'atto/importo oggetto del provvedimento in euro
-        prima_casa: True se relativo a trasferimento prima casa (aliquota agevolata)
+        tipo_atto: Tipo di atto giudiziario: 'sentenza_condanna' (3% proporzionale o €200 fisso),
+                   'decreto_ingiuntivo' (3%), 'verbale_conciliazione' (3% o 2% prima casa),
+                   'ordinanza' (€200 fisso)
+        valore: Valore dell'atto o importo oggetto del provvedimento in euro (€)
+        prima_casa: True se il verbale di conciliazione riguarda un trasferimento prima casa
+                    (aliquota agevolata 2%, minimo €1.000)
     """
     # Imposte fisse e proporzionali per atti giudiziari
     imposta_fissa = 200.0
@@ -451,160 +543,6 @@ def tassazione_atti(
     }
 
 
-# ---------------------------------------------------------------------------
-# Mapping tribunali competenti per i principali comuni italiani
-# ---------------------------------------------------------------------------
-_TRIBUNALI_COMPETENTI: dict[str, dict[str, str]] = {
-    "roma": {"tribunale": "Tribunale di Roma", "giudice_pace": "Giudice di Pace di Roma"},
-    "milano": {"tribunale": "Tribunale di Milano", "giudice_pace": "Giudice di Pace di Milano"},
-    "napoli": {"tribunale": "Tribunale di Napoli", "giudice_pace": "Giudice di Pace di Napoli"},
-    "torino": {"tribunale": "Tribunale di Torino", "giudice_pace": "Giudice di Pace di Torino"},
-    "palermo": {"tribunale": "Tribunale di Palermo", "giudice_pace": "Giudice di Pace di Palermo"},
-    "genova": {"tribunale": "Tribunale di Genova", "giudice_pace": "Giudice di Pace di Genova"},
-    "bologna": {"tribunale": "Tribunale di Bologna", "giudice_pace": "Giudice di Pace di Bologna"},
-    "firenze": {"tribunale": "Tribunale di Firenze", "giudice_pace": "Giudice di Pace di Firenze"},
-    "bari": {"tribunale": "Tribunale di Bari", "giudice_pace": "Giudice di Pace di Bari"},
-    "catania": {"tribunale": "Tribunale di Catania", "giudice_pace": "Giudice di Pace di Catania"},
-    "venezia": {"tribunale": "Tribunale di Venezia", "giudice_pace": "Giudice di Pace di Venezia"},
-    "verona": {"tribunale": "Tribunale di Verona", "giudice_pace": "Giudice di Pace di Verona"},
-    "messina": {"tribunale": "Tribunale di Messina", "giudice_pace": "Giudice di Pace di Messina"},
-    "padova": {"tribunale": "Tribunale di Padova", "giudice_pace": "Giudice di Pace di Padova"},
-    "trieste": {"tribunale": "Tribunale di Trieste", "giudice_pace": "Giudice di Pace di Trieste"},
-    "taranto": {"tribunale": "Tribunale di Taranto", "giudice_pace": "Giudice di Pace di Taranto"},
-    "brescia": {"tribunale": "Tribunale di Brescia", "giudice_pace": "Giudice di Pace di Brescia"},
-    "reggio calabria": {"tribunale": "Tribunale di Reggio Calabria", "giudice_pace": "Giudice di Pace di Reggio Calabria"},
-    "modena": {"tribunale": "Tribunale di Modena", "giudice_pace": "Giudice di Pace di Modena"},
-    "prato": {"tribunale": "Tribunale di Prato", "giudice_pace": "Giudice di Pace di Prato"},
-    "parma": {"tribunale": "Tribunale di Parma", "giudice_pace": "Giudice di Pace di Parma"},
-    "cagliari": {"tribunale": "Tribunale di Cagliari", "giudice_pace": "Giudice di Pace di Cagliari"},
-    "livorno": {"tribunale": "Tribunale di Livorno", "giudice_pace": "Giudice di Pace di Livorno"},
-    "perugia": {"tribunale": "Tribunale di Perugia", "giudice_pace": "Giudice di Pace di Perugia"},
-    "foggia": {"tribunale": "Tribunale di Foggia", "giudice_pace": "Giudice di Pace di Foggia"},
-    "reggio emilia": {"tribunale": "Tribunale di Reggio Emilia", "giudice_pace": "Giudice di Pace di Reggio Emilia"},
-    "salerno": {"tribunale": "Tribunale di Salerno", "giudice_pace": "Giudice di Pace di Salerno"},
-    "ravenna": {"tribunale": "Tribunale di Ravenna", "giudice_pace": "Giudice di Pace di Ravenna"},
-    "ferrara": {"tribunale": "Tribunale di Ferrara", "giudice_pace": "Giudice di Pace di Ferrara"},
-    "rimini": {"tribunale": "Tribunale di Rimini", "giudice_pace": "Giudice di Pace di Rimini"},
-    "sassari": {"tribunale": "Tribunale di Sassari", "giudice_pace": "Giudice di Pace di Sassari"},
-    "siracusa": {"tribunale": "Tribunale di Siracusa", "giudice_pace": "Giudice di Pace di Siracusa"},
-    "pescara": {"tribunale": "Tribunale di Pescara", "giudice_pace": "Giudice di Pace di Pescara"},
-    "monza": {"tribunale": "Tribunale di Monza", "giudice_pace": "Giudice di Pace di Monza"},
-    "bergamo": {"tribunale": "Tribunale di Bergamo", "giudice_pace": "Giudice di Pace di Bergamo"},
-    "trento": {"tribunale": "Tribunale di Trento", "giudice_pace": "Giudice di Pace di Trento"},
-    "bolzano": {"tribunale": "Tribunale di Bolzano", "giudice_pace": "Giudice di Pace di Bolzano"},
-    "forlì": {"tribunale": "Tribunale di Forlì", "giudice_pace": "Giudice di Pace di Forlì"},
-    "vicenza": {"tribunale": "Tribunale di Vicenza", "giudice_pace": "Giudice di Pace di Vicenza"},
-    "terni": {"tribunale": "Tribunale di Terni", "giudice_pace": "Giudice di Pace di Terni"},
-    "novara": {"tribunale": "Tribunale di Novara", "giudice_pace": "Giudice di Pace di Novara"},
-    "ancona": {"tribunale": "Tribunale di Ancona", "giudice_pace": "Giudice di Pace di Ancona"},
-    "piacenza": {"tribunale": "Tribunale di Piacenza", "giudice_pace": "Giudice di Pace di Piacenza"},
-    "lecce": {"tribunale": "Tribunale di Lecce", "giudice_pace": "Giudice di Pace di Lecce"},
-    "pesaro": {"tribunale": "Tribunale di Pesaro", "giudice_pace": "Giudice di Pace di Pesaro"},
-    "catanzaro": {"tribunale": "Tribunale di Catanzaro", "giudice_pace": "Giudice di Pace di Catanzaro"},
-    "cosenza": {"tribunale": "Tribunale di Cosenza", "giudice_pace": "Giudice di Pace di Cosenza"},
-    "latina": {"tribunale": "Tribunale di Latina", "giudice_pace": "Giudice di Pace di Latina"},
-    "udine": {"tribunale": "Tribunale di Udine", "giudice_pace": "Giudice di Pace di Udine"},
-    "arezzo": {"tribunale": "Tribunale di Arezzo", "giudice_pace": "Giudice di Pace di Arezzo"},
-    "caserta": {"tribunale": "Tribunale di Santa Maria Capua Vetere", "giudice_pace": "Giudice di Pace di Caserta"},
-    "la spezia": {"tribunale": "Tribunale di La Spezia", "giudice_pace": "Giudice di Pace di La Spezia"},
-    "pistoia": {"tribunale": "Tribunale di Pistoia", "giudice_pace": "Giudice di Pace di Pistoia"},
-    "lucca": {"tribunale": "Tribunale di Lucca", "giudice_pace": "Giudice di Pace di Lucca"},
-    "como": {"tribunale": "Tribunale di Como", "giudice_pace": "Giudice di Pace di Como"},
-    "varese": {"tribunale": "Tribunale di Varese", "giudice_pace": "Giudice di Pace di Varese"},
-    "treviso": {"tribunale": "Tribunale di Treviso", "giudice_pace": "Giudice di Pace di Treviso"},
-    "pisa": {"tribunale": "Tribunale di Pisa", "giudice_pace": "Giudice di Pace di Pisa"},
-    "lecco": {"tribunale": "Tribunale di Lecco", "giudice_pace": "Giudice di Pace di Lecco"},
-    "l'aquila": {"tribunale": "Tribunale di L'Aquila", "giudice_pace": "Giudice di Pace di L'Aquila"},
-    "potenza": {"tribunale": "Tribunale di Potenza", "giudice_pace": "Giudice di Pace di Potenza"},
-    "campobasso": {"tribunale": "Tribunale di Campobasso", "giudice_pace": "Giudice di Pace di Campobasso"},
-    "aosta": {"tribunale": "Tribunale di Aosta", "giudice_pace": "Giudice di Pace di Aosta"},
-    "alessandria": {"tribunale": "Tribunale di Alessandria", "giudice_pace": "Giudice di Pace di Alessandria"},
-    "asti": {"tribunale": "Tribunale di Asti", "giudice_pace": "Giudice di Pace di Asti"},
-    "cuneo": {"tribunale": "Tribunale di Cuneo", "giudice_pace": "Giudice di Pace di Cuneo"},
-    "savona": {"tribunale": "Tribunale di Savona", "giudice_pace": "Giudice di Pace di Savona"},
-    "imperia": {"tribunale": "Tribunale di Imperia", "giudice_pace": "Giudice di Pace di Imperia"},
-    "belluno": {"tribunale": "Tribunale di Belluno", "giudice_pace": "Giudice di Pace di Belluno"},
-    "rovigo": {"tribunale": "Tribunale di Rovigo", "giudice_pace": "Giudice di Pace di Rovigo"},
-    "pordenone": {"tribunale": "Tribunale di Pordenone", "giudice_pace": "Giudice di Pace di Pordenone"},
-    "gorizia": {"tribunale": "Tribunale di Gorizia", "giudice_pace": "Giudice di Pace di Gorizia"},
-    "mantova": {"tribunale": "Tribunale di Mantova", "giudice_pace": "Giudice di Pace di Mantova"},
-    "cremona": {"tribunale": "Tribunale di Cremona", "giudice_pace": "Giudice di Pace di Cremona"},
-    "lodi": {"tribunale": "Tribunale di Lodi", "giudice_pace": "Giudice di Pace di Lodi"},
-    "pavia": {"tribunale": "Tribunale di Pavia", "giudice_pace": "Giudice di Pace di Pavia"},
-    "sondrio": {"tribunale": "Tribunale di Sondrio", "giudice_pace": "Giudice di Pace di Sondrio"},
-    "massa": {"tribunale": "Tribunale di Massa", "giudice_pace": "Giudice di Pace di Massa"},
-    "grosseto": {"tribunale": "Tribunale di Grosseto", "giudice_pace": "Giudice di Pace di Grosseto"},
-    "siena": {"tribunale": "Tribunale di Siena", "giudice_pace": "Giudice di Pace di Siena"},
-    "viterbo": {"tribunale": "Tribunale di Viterbo", "giudice_pace": "Giudice di Pace di Viterbo"},
-    "rieti": {"tribunale": "Tribunale di Rieti", "giudice_pace": "Giudice di Pace di Rieti"},
-    "frosinone": {"tribunale": "Tribunale di Frosinone", "giudice_pace": "Giudice di Pace di Frosinone"},
-    "teramo": {"tribunale": "Tribunale di Teramo", "giudice_pace": "Giudice di Pace di Teramo"},
-    "chieti": {"tribunale": "Tribunale di Chieti", "giudice_pace": "Giudice di Pace di Chieti"},
-    "isernia": {"tribunale": "Tribunale di Isernia", "giudice_pace": "Giudice di Pace di Isernia"},
-    "avellino": {"tribunale": "Tribunale di Avellino", "giudice_pace": "Giudice di Pace di Avellino"},
-    "benevento": {"tribunale": "Tribunale di Benevento", "giudice_pace": "Giudice di Pace di Benevento"},
-    "brindisi": {"tribunale": "Tribunale di Brindisi", "giudice_pace": "Giudice di Pace di Brindisi"},
-    "matera": {"tribunale": "Tribunale di Matera", "giudice_pace": "Giudice di Pace di Matera"},
-    "crotone": {"tribunale": "Tribunale di Crotone", "giudice_pace": "Giudice di Pace di Crotone"},
-    "vibo valentia": {"tribunale": "Tribunale di Vibo Valentia", "giudice_pace": "Giudice di Pace di Vibo Valentia"},
-    "agrigento": {"tribunale": "Tribunale di Agrigento", "giudice_pace": "Giudice di Pace di Agrigento"},
-    "caltanissetta": {"tribunale": "Tribunale di Caltanissetta", "giudice_pace": "Giudice di Pace di Caltanissetta"},
-    "enna": {"tribunale": "Tribunale di Enna", "giudice_pace": "Giudice di Pace di Enna"},
-    "ragusa": {"tribunale": "Tribunale di Ragusa", "giudice_pace": "Giudice di Pace di Ragusa"},
-    "trapani": {"tribunale": "Tribunale di Trapani", "giudice_pace": "Giudice di Pace di Trapani"},
-    "nuoro": {"tribunale": "Tribunale di Nuoro", "giudice_pace": "Giudice di Pace di Nuoro"},
-    "oristano": {"tribunale": "Tribunale di Oristano", "giudice_pace": "Giudice di Pace di Oristano"},
-    "verbania": {"tribunale": "Tribunale di Verbania", "giudice_pace": "Giudice di Pace di Verbania"},
-    "biella": {"tribunale": "Tribunale di Biella", "giudice_pace": "Giudice di Pace di Biella"},
-    "vercelli": {"tribunale": "Tribunale di Vercelli", "giudice_pace": "Giudice di Pace di Vercelli"},
-}
-
-# ---------------------------------------------------------------------------
-# Codici oggetto iscrizione a ruolo — principali cause civili
-# ---------------------------------------------------------------------------
-_CODICI_RUOLO: list[dict[str, str]] = [
-    {"codice": "1.01.001", "materia": "contratto", "descrizione": "Inadempimento contrattuale"},
-    {"codice": "1.01.002", "materia": "contratto", "descrizione": "Risoluzione contrattuale"},
-    {"codice": "1.01.003", "materia": "contratto", "descrizione": "Annullamento contratto"},
-    {"codice": "1.01.010", "materia": "compravendita", "descrizione": "Compravendita immobiliare"},
-    {"codice": "1.01.011", "materia": "compravendita", "descrizione": "Compravendita mobiliare"},
-    {"codice": "1.02.001", "materia": "locazione", "descrizione": "Locazione — sfratto per morosità"},
-    {"codice": "1.02.002", "materia": "locazione", "descrizione": "Locazione — sfratto per finita locazione"},
-    {"codice": "1.02.003", "materia": "locazione", "descrizione": "Locazione — determinazione canone"},
-    {"codice": "1.02.010", "materia": "locazione", "descrizione": "Locazione — altro"},
-    {"codice": "1.03.001", "materia": "responsabilità", "descrizione": "Responsabilità extracontrattuale — risarcimento danni"},
-    {"codice": "1.03.002", "materia": "responsabilità", "descrizione": "Responsabilità professionale — medica"},
-    {"codice": "1.03.003", "materia": "responsabilità", "descrizione": "Responsabilità professionale — avvocato"},
-    {"codice": "1.03.010", "materia": "responsabilità", "descrizione": "Responsabilità da circolazione stradale"},
-    {"codice": "1.04.001", "materia": "condominio", "descrizione": "Impugnazione delibera condominiale"},
-    {"codice": "1.04.002", "materia": "condominio", "descrizione": "Ripartizione spese condominiali"},
-    {"codice": "1.05.001", "materia": "famiglia", "descrizione": "Separazione giudiziale"},
-    {"codice": "1.05.002", "materia": "famiglia", "descrizione": "Separazione consensuale"},
-    {"codice": "1.05.003", "materia": "famiglia", "descrizione": "Divorzio giudiziale"},
-    {"codice": "1.05.004", "materia": "famiglia", "descrizione": "Divorzio congiunto"},
-    {"codice": "1.05.010", "materia": "famiglia", "descrizione": "Modifica condizioni separazione/divorzio"},
-    {"codice": "1.05.020", "materia": "famiglia", "descrizione": "Affidamento e mantenimento figli"},
-    {"codice": "1.06.001", "materia": "successione", "descrizione": "Petizione di eredità"},
-    {"codice": "1.06.002", "materia": "successione", "descrizione": "Divisione ereditaria"},
-    {"codice": "1.06.003", "materia": "successione", "descrizione": "Impugnazione testamento"},
-    {"codice": "1.07.001", "materia": "lavoro", "descrizione": "Lavoro subordinato — impugnazione licenziamento"},
-    {"codice": "1.07.002", "materia": "lavoro", "descrizione": "Lavoro subordinato — differenze retributive"},
-    {"codice": "1.07.003", "materia": "lavoro", "descrizione": "Lavoro subordinato — mobbing"},
-    {"codice": "1.07.010", "materia": "lavoro", "descrizione": "Previdenza e assistenza obbligatoria"},
-    {"codice": "1.08.001", "materia": "societario", "descrizione": "Impugnazione delibera assembleare"},
-    {"codice": "1.08.002", "materia": "societario", "descrizione": "Azione di responsabilità vs amministratori"},
-    {"codice": "1.09.001", "materia": "proprietà", "descrizione": "Rivendicazione proprietà"},
-    {"codice": "1.09.002", "materia": "proprietà", "descrizione": "Azione negatoria servitù"},
-    {"codice": "1.09.003", "materia": "proprietà", "descrizione": "Regolamento confini"},
-    {"codice": "1.09.010", "materia": "proprietà", "descrizione": "Usucapione"},
-    {"codice": "1.10.001", "materia": "possesso", "descrizione": "Azione di reintegrazione (spoglio)"},
-    {"codice": "1.10.002", "materia": "proprietà", "descrizione": "Azione di manutenzione"},
-    {"codice": "1.11.001", "materia": "consumatore", "descrizione": "Tutela del consumatore — clausole vessatorie"},
-    {"codice": "1.11.002", "materia": "consumatore", "descrizione": "Tutela del consumatore — prodotto difettoso"},
-    {"codice": "1.12.001", "materia": "bancario", "descrizione": "Contratti bancari — anatocismo"},
-    {"codice": "1.12.002", "materia": "bancario", "descrizione": "Contratti bancari — usura"},
-    {"codice": "1.12.003", "materia": "bancario", "descrizione": "Contratti bancari — fideiussione"},
-]
 
 
 # ---------------------------------------------------------------------------
@@ -618,12 +556,14 @@ def copie_processo_tributario(
     tipo: str = "semplice",
     urgente: bool = False,
 ) -> dict:
-    """Calcola diritti di copia specifici per il processo tributario.
+    """Calcola i diritti di copia specifici per il processo tributario.
+    Vigenza: DPR 115/2002 — tariffe processo tributario (€0,25/pagina semplice, €0,50 autentica).
+    Precisione: ESATTO (tariffe per pagina; maggiorazione urgenza +50%).
 
     Args:
-        n_pagine: Numero di pagine
-        tipo: semplice, autentica
-        urgente: True per urgenza (+50%)
+        n_pagine: Numero di pagine dell'atto (intero positivo)
+        tipo: Tipo di copia: 'semplice' (€0,25/pag) o 'autentica' (€0,50/pag)
+        urgente: True per maggiorazione urgenza +50%
     """
     tariffe = {"semplice": 0.25, "autentica": 0.50}
     tariffa = tariffe.get(tipo, 0.25)
@@ -650,11 +590,16 @@ def note_iscrizione_ruolo(
     tipo_procedimento: str,
     valore_causa: float | None = None,
 ) -> dict:
-    """Genera note per iscrizione a ruolo con codici oggetto e CU calcolato.
+    """Genera note per l'iscrizione a ruolo con codici oggetto suggeriti e CU calcolato.
+    Vigenza: DPR 115/2002 (CU); provvedimenti DGSIA per codici oggetto iscrizione a ruolo.
+    Precisione: INDICATIVO per i codici oggetto (suggeriti in base alla materia; verificare
+    sempre il codice esatto nel software di deposito telematico PCT).
 
     Args:
-        tipo_procedimento: cognizione_ordinaria, lavoro, locazione, condominio, esecuzione_mobiliare, esecuzione_immobiliare, monitorio, volontaria_giurisdizione
-        valore_causa: Valore della causa in euro (se applicabile)
+        tipo_procedimento: Tipo di rito: 'cognizione_ordinaria', 'lavoro', 'locazione',
+                           'condominio', 'esecuzione_mobiliare', 'esecuzione_immobiliare',
+                           'monitorio', 'volontaria_giurisdizione'
+        valore_causa: Valore della causa in euro (€) — necessario per calcolare il CU
     """
     mapping_cu = {
         "cognizione_ordinaria": "cognizione",
@@ -695,10 +640,14 @@ def note_iscrizione_ruolo(
 
 @mcp.tool()
 def codici_iscrizione_ruolo(materia: str) -> dict:
-    """Ricerca codice oggetto per iscrizione a ruolo cause civili.
+    """Ricerca il codice oggetto per l'iscrizione a ruolo di cause civili.
+    Vigenza: provvedimenti DGSIA — Codici oggetto iscrizione a ruolo (tabella aggiornata).
+    Precisione: INDICATIVO (ricerca per keyword nella materia e descrizione).
 
     Args:
-        materia: Keyword di ricerca (contratto, locazione, responsabilità, famiglia, lavoro, condominio, successione, societario, proprietà, possesso, consumatore, bancario)
+        materia: Keyword di ricerca per la materia della causa, es. 'contratto', 'locazione',
+                 'responsabilita', 'famiglia', 'lavoro', 'condominio', 'successione',
+                 'societario', 'proprieta', 'possesso', 'consumatore', 'bancario'
     """
     keyword = materia.lower().strip()
     risultati = [
@@ -722,14 +671,15 @@ def fascicolo_di_parte(
     tribunale: str,
     rg_numero: str | None = None,
 ) -> dict:
-    """Genera frontespizio fascicolo di parte.
+    """Genera bozza di frontespizio per il fascicolo di parte.
+    Vigenza: art. 165 c.p.c. — Costituzione dell'attore; specifiche PCT DM 44/2011.
 
     Args:
         avvocato: Nome dell'avvocato difensore
-        parte: Nome della parte assistita
-        controparte: Nome della controparte
-        tribunale: Denominazione del tribunale
-        rg_numero: Numero di Ruolo Generale (se già assegnato)
+        parte: Nome della parte assistita (attrice/ricorrente)
+        controparte: Nome della controparte (convenuta/resistente)
+        tribunale: Denominazione completa del tribunale competente
+        rg_numero: Numero di Ruolo Generale, es. "1234/2025" (se già assegnato, altrimenti omettere)
     """
     rg_line = f"R.G. n. {rg_numero}" if rg_numero else "R.G. n. ___/____"
 
@@ -777,15 +727,17 @@ def procura_alle_liti(
     oggetto_causa: str,
     tipo: str = "generale",
 ) -> dict:
-    """Genera procura alle liti ex art. 83 c.p.c.
+    """Genera bozza di procura alle liti ex art. 83 c.p.c.
+    Vigenza: art. 83 c.p.c. (testo vigente); include clausola GDPR e antiriciclaggio.
 
     Args:
         parte: Nome della parte che conferisce la procura
-        avvocato: Nome dell'avvocato
+        avvocato: Nome e cognome dell'avvocato incaricato
         cf_avvocato: Codice fiscale dell'avvocato
-        foro: Foro di appartenenza dell'avvocato
-        oggetto_causa: Oggetto della causa
-        tipo: generale, speciale, appello
+        foro: Foro di appartenenza dell'avvocato (es. "Milano", "Roma")
+        oggetto_causa: Descrizione sintetica dell'oggetto della causa
+        tipo: Tipo di procura: 'generale' (ogni stato e grado), 'speciale' (solo questo giudizio),
+              'appello' (solo per il giudizio di appello avverso sentenza specifica)
     """
     if tipo == "speciale":
         intestazione = "PROCURA SPECIALE ALLE LITI"
@@ -838,13 +790,16 @@ def attestazione_conformita(
     estremi_originale: str,
     modalita: str = "estratto",
 ) -> dict:
-    """Attestazione di conformità ex art. 16-bis DL 179/2012 per PCT.
+    """Genera bozza di attestazione di conformità per il deposito telematico PCT.
+    Vigenza: art. 16-bis co. 9-bis DL 179/2012 conv. L. 221/2012;
+    art. 16-undecies DL 179/2012 — DM 44/2011 specifiche tecniche PCT.
 
     Args:
-        avvocato: Nome dell'avvocato
-        tipo_documento: Descrizione del tipo di documento attestato
-        estremi_originale: Estremi identificativi dell'originale
-        modalita: estratto, copia_informatica, duplicato
+        avvocato: Nome e cognome dell'avvocato attestante
+        tipo_documento: Descrizione del tipo di documento attestato (es. "verbale di causa")
+        estremi_originale: Estremi identificativi dell'originale (es. "R.G. 1234/2024, pag. 1-3")
+        modalita: Modalità di attestazione: 'estratto' (copia dal fascicolo informatico),
+                  'copia_informatica' (copia da originale analogico), 'duplicato' (duplicato informatico)
     """
     if modalita == "copia_informatica":
         tipo_attestazione = "copia informatica di documento analogico"
@@ -894,14 +849,16 @@ def relata_notifica_pec(
     atto_notificato: str,
     data_invio: str,
 ) -> dict:
-    """Relata di notifica a mezzo PEC ex L. 53/1994.
+    """Genera bozza di relata di notificazione a mezzo PEC ex L. 53/1994.
+    Vigenza: art. 3-bis L. 53/1994 (mod. L. 228/2012); la notifica si perfeziona con
+    la ricevuta di avvenuta consegna (RdAC).
 
     Args:
-        avvocato: Nome dell'avvocato notificante
+        avvocato: Nome e cognome dell'avvocato notificante (iscritto a INI-PEC)
         destinatario: Nome del destinatario della notifica
-        pec_destinatario: Indirizzo PEC del destinatario
-        atto_notificato: Descrizione dell'atto notificato
-        data_invio: Data di invio PEC (YYYY-MM-DD)
+        pec_destinatario: Indirizzo PEC del destinatario (estratto da INI-PEC/ReGIndE/Registro Imprese)
+        atto_notificato: Descrizione dell'atto notificato (es. "ricorso per decreto ingiuntivo")
+        data_invio: Data di invio del messaggio PEC (YYYY-MM-DD)
     """
     dt = _parse_date(data_invio)
     data_fmt = dt.strftime("%d/%m/%Y")
@@ -950,10 +907,14 @@ Avv. {avvocato}
 
 @mcp.tool()
 def indice_documenti(documenti: list[dict]) -> dict:
-    """Genera indice numerato documenti per deposito telematico PCT.
+    """Genera bozza di indice numerato dei documenti per deposito telematico PCT.
+    Vigenza: specifiche tecniche PCT DM 44/2011 — elenco allegati al deposito.
 
     Args:
-        documenti: Lista di documenti, ciascuno con chiavi: numero (int), descrizione (str), pagine (int)
+        documenti: Lista di documenti, ciascuno con le chiavi:
+                   - numero (int): numero progressivo del documento
+                   - descrizione (str): descrizione dell'allegato
+                   - pagine (int): numero di pagine del documento
     """
     righe = []
     totale_pagine = 0
@@ -987,15 +948,17 @@ def note_trattazione_scritta(
     giudice: str,
     conclusioni: str,
 ) -> dict:
-    """Note di trattazione scritta ex art. 127-ter c.p.c. (sostituzione udienza).
+    """Genera bozza di note di trattazione scritta in sostituzione dell'udienza.
+    Vigenza: art. 127-ter c.p.c. introdotto dalla Riforma Cartabia (D.Lgs. 149/2022,
+    in vigore dal 28/02/2023) — sostituzione dell'udienza con deposito di note scritte.
 
     Args:
-        avvocato: Nome dell'avvocato
-        parte: Nome della parte
-        tribunale: Denominazione del tribunale
-        rg_numero: Numero di Ruolo Generale
-        giudice: Nome del giudice
-        conclusioni: Testo delle conclusioni e istanze
+        avvocato: Nome e cognome dell'avvocato depositante
+        parte: Nome della parte assistita
+        tribunale: Denominazione del tribunale (es. "Tribunale di Milano")
+        rg_numero: Numero di Ruolo Generale del procedimento (es. "1234/2025")
+        giudice: Nome del giudice istruttore o del collegio
+        conclusioni: Testo delle conclusioni e istanze da includere nelle note
     """
     testo = f"""{tribunale.upper()}
 Sezione ___
@@ -1056,15 +1019,16 @@ def sfratto_morosita(
     mensilita_insolute: int,
     data_contratto: str,
 ) -> dict:
-    """Genera intimazione di sfratto per morosità ex art. 658 c.p.c. con citazione per convalida.
+    """Genera bozza di intimazione di sfratto per morosità con citazione per convalida.
+    Vigenza: artt. 658-669 c.p.c.; art. 55 L. 392/1978 (termine di grazia fino a 90gg).
 
     Args:
-        locatore: Nome del locatore
-        conduttore: Nome del conduttore
-        immobile: Descrizione dell'immobile (indirizzo, dati catastali)
-        canone_mensile: Canone mensile in euro
-        mensilita_insolute: Numero di mensilità non pagate
-        data_contratto: Data del contratto di locazione (YYYY-MM-DD)
+        locatore: Nome o ragione sociale del locatore
+        conduttore: Nome o ragione sociale del conduttore moroso
+        immobile: Descrizione dell'immobile (indirizzo e, se disponibili, dati catastali)
+        canone_mensile: Canone mensile pattuito in euro (€)
+        mensilita_insolute: Numero di mensilità non pagate (interi positivi)
+        data_contratto: Data di stipula del contratto di locazione (YYYY-MM-DD)
     """
     totale_dovuto = round(canone_mensile * mensilita_insolute, 2)
     dt_contratto = _parse_date(data_contratto)
@@ -1131,15 +1095,17 @@ def atto_di_precetto(
     interessi: float = 0,
     spese: float = 0,
 ) -> dict:
-    """Genera atto di precetto ex art. 480 c.p.c.
+    """Genera bozza di atto di precetto con avvertimento ex art. 480 c.p.c.
+    Vigenza: art. 480 c.p.c. — precetto; il debitore ha 10gg per pagare, poi si può pignorare.
 
     Args:
-        creditore: Nome del creditore
-        debitore: Nome del debitore
-        titolo_esecutivo: Descrizione del titolo esecutivo (sentenza, decreto ingiuntivo, etc.)
-        importo_capitale: Importo del capitale in euro
-        interessi: Interessi maturati in euro
-        spese: Spese legali e di procedimento in euro
+        creditore: Nome o ragione sociale del creditore
+        debitore: Nome o ragione sociale del debitore
+        titolo_esecutivo: Descrizione del titolo esecutivo (es. "sentenza Tribunale di Milano
+                          n. 1234/2024 del 15/01/2024, passata in giudicato")
+        importo_capitale: Importo del capitale in euro (€)
+        interessi: Interessi maturati fino alla data del precetto in euro (€)
+        spese: Spese legali e di procedimento in euro (€)
     """
     totale = round(importo_capitale + interessi + spese, 2)
 
@@ -1199,16 +1165,18 @@ def nota_precisazione_credito(
     spese_legali: float,
     spese_esecuzione: float,
 ) -> dict:
-    """Nota di precisazione del credito ex art. 547 c.p.c. per procedure esecutive.
+    """Genera bozza di nota di precisazione del credito per procedure esecutive.
+    Vigenza: art. 547 c.p.c. — precisazione del credito nel pignoramento presso terzi
+    e nelle procedure esecutive mobiliari e immobiliari.
 
     Args:
-        creditore: Nome del creditore
-        debitore: Nome del debitore
-        procedura_esecutiva: Estremi della procedura (es. R.G.E. 123/2024)
-        capitale: Importo capitale in euro
-        interessi: Interessi maturati in euro
-        spese_legali: Spese legali in euro
-        spese_esecuzione: Spese di esecuzione in euro
+        creditore: Nome o ragione sociale del creditore procedente
+        debitore: Nome o ragione sociale del debitore esecutato
+        procedura_esecutiva: Estremi della procedura (es. "R.G.E. 123/2024")
+        capitale: Importo del capitale in euro (€)
+        interessi: Interessi maturati fino alla data della precisazione in euro (€)
+        spese_legali: Spese legali in euro (€)
+        spese_esecuzione: Spese di esecuzione (ufficiale giudiziario, notifica, etc.) in euro (€)
     """
     totale = round(capitale + interessi + spese_legali + spese_esecuzione, 2)
 
@@ -1269,13 +1237,15 @@ def dichiarazione_553_cpc(
     procedura: str,
     tipo_rapporto: str = "conto_corrente",
 ) -> dict:
-    """Modello di dichiarazione del terzo pignorato ex art. 547 c.p.c.
+    """Genera bozza di dichiarazione del terzo pignorato ex art. 547 c.p.c.
+    Vigenza: art. 547 c.p.c. (mod. DL 132/2014 — dichiarazione anche per iscritto prima dell'udienza).
 
     Args:
-        terzo_pignorato: Nome del terzo pignorato (banca, datore di lavoro, etc.)
-        debitore: Nome del debitore esecutato
-        procedura: Estremi della procedura esecutiva
-        tipo_rapporto: conto_corrente, stipendio, altro
+        terzo_pignorato: Nome o ragione sociale del terzo pignorato (banca, datore di lavoro, etc.)
+        debitore: Nome o ragione sociale del debitore esecutato
+        procedura: Estremi della procedura esecutiva (es. "R.G.E. 456/2024")
+        tipo_rapporto: Tipo di rapporto tra terzo e debitore: 'conto_corrente' (banca),
+                       'stipendio' (datore di lavoro), 'altro' (credito generico)
     """
     if tipo_rapporto == "conto_corrente":
         sezione_rapporto = f"""DICHIARA
@@ -1355,11 +1325,13 @@ def testimonianza_scritta(
     teste: str,
     capitoli_prova: list[str],
 ) -> dict:
-    """Modello per testimonianza scritta ex art. 257-bis c.p.c.
+    """Genera bozza del modulo per testimonianza scritta con capitoli e ammonizione.
+    Vigenza: art. 257-bis c.p.c. — testimonianza scritta su autorizzazione del giudice.
 
     Args:
-        teste: Nome completo del teste
-        capitoli_prova: Lista dei capitoli di prova su cui il teste deve deporre
+        teste: Nome e cognome del testimone
+        capitoli_prova: Lista dei capitoli di prova su cui il teste deve rispondere
+                        (es. ["È vero che il 10/01/2024 lei era presente in..."])
     """
     capitoli_formattati = []
     for i, cap in enumerate(capitoli_prova, 1):
@@ -1440,14 +1412,16 @@ def istanza_visibilita_fascicolo(
     rg_numero: str,
     motivo: str = "costituzione",
 ) -> dict:
-    """Istanza di visibilità del fascicolo telematico per avvocati non ancora costituiti.
+    """Genera bozza di istanza di visibilità del fascicolo telematico per avvocato non costituito.
+    Vigenza: art. 16-bis DL 179/2012 — specifiche tecniche PCT DM 44/2011.
 
     Args:
-        avvocato: Nome dell'avvocato richiedente
+        avvocato: Nome e cognome dell'avvocato richiedente (con PEC e foro di appartenenza)
         parte: Nome della parte assistita
-        tribunale: Denominazione del tribunale
-        rg_numero: Numero di Ruolo Generale
-        motivo: costituzione, consultazione, intervento
+        tribunale: Denominazione del tribunale (es. "Tribunale di Milano, Sezione Prima Civile")
+        rg_numero: Numero di Ruolo Generale del procedimento (es. "1234/2025")
+        motivo: Motivo della richiesta: 'costituzione' (per predisporre la difesa),
+                'consultazione' (per interessi della parte), 'intervento' (ex art. 105 c.p.c.)
     """
     motivi_testo = {
         "costituzione": "di doversi costituire nel procedimento sopra indicato in qualità di difensore della parte convenuta/resistente e necessitando pertanto di prendere visione degli atti contenuti nel fascicolo telematico per predisporre la propria difesa",
@@ -1503,11 +1477,14 @@ def cerca_ufficio_giudiziario(
     comune: str,
     tipo: str = "tribunale",
 ) -> dict:
-    """Lookup ufficio giudiziario competente per territorio.
+    """Cerca l'ufficio giudiziario territorialmente competente per un dato comune.
+    Vigenza: R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario; circondari vigenti.
+    Precisione: INDICATIVO (copertura sui principali circondari italiani — per comuni minori
+    verificare sempre sul sito del Ministero della Giustizia).
 
     Args:
-        comune: Nome del comune
-        tipo: tribunale, giudice_pace
+        comune: Nome del comune (es. "Milano", "Roma", "Brescia")
+        tipo: Tipo di ufficio: 'tribunale' (sede principale) o 'giudice_pace'
     """
     key = comune.lower().strip()
     entry = _TRIBUNALI_COMPETENTI.get(key)

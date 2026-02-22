@@ -1,4 +1,6 @@
-"""Sezione 11 — Dichiarazione Redditi: IRPEF, forfettario, TFR, ravvedimento, assegno unico."""
+"""Calcoli fiscali per la dichiarazione dei redditi: IRPEF 2026 (L. 199/2025), regime forfettario
+(L. 190/2014), TFR, ravvedimento operoso (D.Lgs. 87/2024), Assegno Unico Universale 2026,
+detrazioni familiari, lavoro dipendente, pensione, locazione e rateizzazione imposte."""
 
 import json
 from pathlib import Path
@@ -69,13 +71,17 @@ def calcolo_irpef(
     deduzioni: float = 0,
     detrazioni_extra: float = 0,
 ) -> dict:
-    """Calcolo IRPEF 2024 con scaglioni, detrazioni lavoro, addizionali regionali e comunali.
+    """Calcola l'IRPEF con scaglioni, detrazioni da lavoro e addizionali regionali e comunali.
+    Vigenza: scaglioni IRPEF 2026 (L. 199/2025 — Legge di Bilancio 2026);
+    detrazioni da lavoro dipendente ex art. 13 TUIR aggiornate; addizionali medie nazionali.
+    Precisione: INDICATIVO (le addizionali regionali e comunali variano per ente impositore;
+    i valori usati sono medie nazionali — per il calcolo esatto serve l'aliquota del comune/regione).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo lordo in euro
-        tipo_reddito: 'dipendente', 'pensionato' o 'autonomo'
-        deduzioni: Oneri deducibili (riducono il reddito imponibile)
-        detrazioni_extra: Detrazioni aggiuntive (riducono l'imposta lorda)
+        reddito_complessivo: Reddito complessivo annuo lordo in euro (€)
+        tipo_reddito: Tipo di reddito prevalente: 'dipendente', 'pensionato' o 'autonomo'
+        deduzioni: Oneri deducibili in euro (€) — riducono il reddito imponibile prima del calcolo
+        detrazioni_extra: Detrazioni aggiuntive in euro (€) — riducono l'imposta lorda calcolata
     """
     if reddito_complessivo <= 0:
         return {"errore": "Il reddito complessivo deve essere positivo"}
@@ -127,7 +133,7 @@ def calcolo_irpef(
         "totale_imposte": totale_imposte,
         "reddito_netto": reddito_netto,
         "aliquota_effettiva_pct": round(totale_imposte / reddito_complessivo * 100, 2),
-        "riferimento_normativo": "TUIR — D.P.R. 917/1986, art. 11-13 (scaglioni 2024 ex L. 213/2023)",
+        "riferimento_normativo": "TUIR — D.P.R. 917/1986, art. 11-13 (scaglioni 2026 ex L. 199/2025)",
     }
 
 
@@ -138,13 +144,18 @@ def regime_forfettario(
     anni_attivita: int = 1,
     contributi_inps: float = 0,
 ) -> dict:
-    """Simulazione regime forfettario: imposta sostitutiva, confronto con IRPEF ordinario.
+    """Simula il regime forfettario: imposta sostitutiva e confronto con l'IRPEF ordinaria.
+    Vigenza: art. 1, commi 54-89, L. 190/2014 (mod. L. 208/2015 e L. 145/2018);
+    limite ricavi 85.000€; aliquota ordinaria 15%, startup 5% (primi 5 anni).
+    Precisione: ESATTO per l'imposta sostitutiva; INDICATIVO per il confronto con l'IRPEF ordinaria
+    (usa medie addizionali e non considera detrazioni da lavoro autonomo).
 
     Args:
-        ricavi: Ricavi o compensi annui lordi in euro
-        coefficiente_redditivita: Coefficiente di redditivita percentuale (es. 78 per professionisti)
-        anni_attivita: Anni di attivita (1-5 = aliquota startup 5%, oltre = 15%)
-        contributi_inps: Contributi INPS versati nell'anno (deducibili dal reddito imponibile)
+        ricavi: Ricavi o compensi annui lordi in euro (€) — deve essere ≤85.000€
+        coefficiente_redditivita: Coefficiente di redditivita in percentuale per categoria
+                                  ATECO (es. 78 per professionisti, 67 per commercio)
+        anni_attivita: Anni di attività dall'inizio — 1-5 = aliquota startup 5%, oltre 5 = 15%
+        contributi_inps: Contributi INPS versati nell'anno in euro (€), deducibili dal reddito imponibile
     """
     forfettario = _IRPEF["forfettario"]
     limite = forfettario["limite_ricavi"]
@@ -192,12 +203,16 @@ def calcolo_tfr(
     anni_servizio: int,
     rivalutazione_media_pct: float = 2.0,
 ) -> dict:
-    """Calcolo TFR (Trattamento di Fine Rapporto) lordo e netto con tassazione separata.
+    """Calcola il TFR (Trattamento di Fine Rapporto) lordo e netto con tassazione separata.
+    Vigenza: art. 2120 c.c. (accantonamento e rivalutazione); artt. 17 e 19 TUIR (tassazione separata).
+    Precisione: INDICATIVO (la tassazione separata usa un'approssimazione dell'aliquota media IRPEF
+    degli ultimi 5 anni; il calcolo esatto dipende dalla storia reddituale individuale).
 
     Args:
-        retribuzione_annua_lorda: RAL annua in euro
-        anni_servizio: Anni di servizio presso il datore di lavoro
-        rivalutazione_media_pct: Indice FOI medio annuo percentuale per rivalutazione TFR
+        retribuzione_annua_lorda: Retribuzione annua lorda (RAL) in euro (€)
+        anni_servizio: Anni di servizio presso il datore di lavoro (interi positivi)
+        rivalutazione_media_pct: Indice FOI medio annuo in percentuale per la rivalutazione TFR
+                                 (default 2.0%, componente inflattiva ISTAT)
     """
     if anni_servizio <= 0:
         return {"errore": "Gli anni di servizio devono essere almeno 1"}
@@ -246,47 +261,61 @@ def ravvedimento_operoso(
     giorni_ritardo: int,
     tipo: str = "omesso_versamento",
 ) -> dict:
-    """Calcolo ravvedimento operoso: sanzioni ridotte e interessi legali per versamenti tardivi.
+    """Calcola sanzioni ridotte e interessi legali per il ravvedimento operoso.
+    Vigenza: art. 13 D.Lgs. 472/1997 (mod. D.Lgs. 87/2024 — nuova sanzione base 25%);
+    tasso di interesse legale aggiornato all'ultimo dato disponibile nei tassi_legali.json.
+    Precisione: ESATTO (formule di legge; sanzione base 25% per omesso versamento, 120%
+    per dichiarazione tardiva; riduzioni sprint/breve/intermedio/lungo/biennale/ultrannuale).
 
     Args:
-        imposta_dovuta: Importo dell'imposta originariamente dovuta in euro
-        giorni_ritardo: Giorni di ritardo nel versamento
-        tipo: 'omesso_versamento' o 'dichiarazione_tardiva'
+        imposta_dovuta: Importo dell'imposta originariamente dovuta in euro (€)
+        giorni_ritardo: Giorni di ritardo rispetto alla scadenza ordinaria (interi positivi)
+        tipo: Tipo di violazione: 'omesso_versamento' (sanzione base 25%) o
+              'dichiarazione_tardiva' (sanzione base 120%)
     """
     if giorni_ritardo <= 0:
         return {"errore": "I giorni di ritardo devono essere almeno 1"}
 
-    # Sanzione base: 30% per omesso versamento, 120-250% per dichiarazione
+    # Sanzione base: 25% per omesso versamento (D.Lgs. 87/2024), 120% per dichiarazione
     if tipo == "omesso_versamento":
-        sanzione_base_pct = 30
+        sanzione_base_pct = 25
+        sanzione_dimezzata = 12.5  # ≤90 gg: metà della sanzione base
     else:
         sanzione_base_pct = 120
+        sanzione_dimezzata = 60
 
-    # Riduzione sanzioni per ravvedimento
+    # Riduzione sanzioni per ravvedimento (art. 13 D.Lgs. 472/1997 mod. D.Lgs. 87/2024)
     if giorni_ritardo <= 14:
-        # Sprint: 0.1% per ogni giorno (1/10 di 1/15 del 30% = 0.1%/giorno per primi 14gg)
-        sanzione_pct = 0.1 * giorni_ritardo
+        # Sprint: 1/10 di (sanzione_dimezzata * giorni/15)
+        sanzione_pct = round(sanzione_dimezzata / 15 * giorni_ritardo / 10, 4)
         tipo_ravvedimento = "sprint (entro 14 giorni)"
     elif giorni_ritardo <= 30:
-        sanzione_pct = 1.5
+        # Breve: 1/10 della sanzione dimezzata
+        sanzione_pct = round(sanzione_dimezzata / 10, 4)
         tipo_ravvedimento = "breve (15-30 giorni)"
     elif giorni_ritardo <= 90:
-        sanzione_pct = 1.67
+        # Intermedio: 1/9 della sanzione dimezzata
+        sanzione_pct = round(sanzione_dimezzata / 9, 4)
         tipo_ravvedimento = "intermedio (31-90 giorni)"
     elif giorni_ritardo <= 365:
-        sanzione_pct = 3.75
+        # Lungo: 1/8 della sanzione piena
+        sanzione_pct = round(sanzione_base_pct / 8, 4)
         tipo_ravvedimento = "lungo (91 giorni - 1 anno)"
     elif giorni_ritardo <= 730:
-        sanzione_pct = 4.29
+        # Biennale: 1/7 della sanzione piena
+        sanzione_pct = round(sanzione_base_pct / 7, 4)
         tipo_ravvedimento = "biennale (1-2 anni)"
     else:
-        sanzione_pct = 5.0
+        # Ultrannuale: 1/6 della sanzione piena
+        sanzione_pct = round(sanzione_base_pct / 6, 4)
         tipo_ravvedimento = "ultrannuale (oltre 2 anni)"
 
     sanzione = round(imposta_dovuta * sanzione_pct / 100, 2)
 
-    # Interessi legali pro rata (tasso 2024: 2.5%)
-    tasso_legale = 2.5
+    # Interessi legali pro rata (caricato da tassi_legali.json)
+    with open(_DATA / "tassi_legali.json") as f:
+        tassi = json.load(f)["tassi"]
+    tasso_legale = tassi[-1]["tasso"]  # ultimo tasso vigente
     interessi = round(imposta_dovuta * tasso_legale / 100 * giorni_ritardo / 365, 2)
 
     totale_dovuto = round(imposta_dovuta + sanzione + interessi, 2)
@@ -315,22 +344,26 @@ def assegno_unico(
     eta_figli: list[int] | None = None,
     genitore_solo: bool = False,
 ) -> dict:
-    """Simulazione Assegno Unico Universale 2024 per figli a carico.
+    """Simula l'Assegno Unico Universale (AUU) per figli a carico.
+    Vigenza: D.Lgs. 230/2021; importi 2026 (DPCM 16/02/2023 con rivalutazione annuale ISTAT).
+    Precisione: INDICATIVO (gli importi base 2026 sono aggiornati; le maggiorazioni dipendono
+    dalla composizione familiare; verificare sempre gli importi aggiornati su INPS).
 
     Args:
-        isee: Valore ISEE familiare in euro (0 se non presentato)
-        n_figli: Numero totale di figli a carico
-        eta_figli: Lista delle eta dei figli in anni (opzionale, per calcolare maggiorazioni)
-        genitore_solo: True se nucleo monogenitoriale (maggiorazione 30%)
+        isee: Valore ISEE familiare in euro (€) — inserire 0 se non si ha l'ISEE
+        n_figli: Numero totale di figli a carico (interi positivi, minimo 1)
+        eta_figli: Lista delle età dei figli in anni — opzionale, necessaria per calcolare
+                   maggiorazioni (es. [0, 2, 5] per figlio neonato, bimbo e bambino)
+        genitore_solo: True se nucleo monogenitoriale — aggiunge maggiorazione del 30%
     """
     if n_figli <= 0:
         return {"errore": "Il numero di figli deve essere almeno 1"}
 
-    # Importi base 2024
-    ISEE_MIN = 17090.61
-    ISEE_MAX = 45574.96
-    IMPORTO_MIN = 57.0
-    IMPORTO_MAX = 199.4
+    # Importi base 2026
+    ISEE_MIN = 17468.51
+    ISEE_MAX = 46582.71
+    IMPORTO_MIN = 58.30
+    IMPORTO_MAX = 203.80
 
     # Importo base per figlio (scala lineare tra min e max)
     if isee <= 0 or isee <= ISEE_MIN:
@@ -409,12 +442,16 @@ def detrazione_figli(
     n_figli_over21: int,
     n_figli_disabili: int = 0,
 ) -> dict:
-    """Detrazione figli a carico >= 21 anni (art. 12 TUIR). Figli under 21 rientrano nell'Assegno Unico.
+    """Calcola la detrazione IRPEF per figli a carico con età ≥21 anni (art. 12 TUIR).
+    I figli under 21 rientrano nell'Assegno Unico Universale — non generano detrazione IRPEF.
+    Vigenza: art. 12 TUIR — D.P.R. 917/1986 (mod. D.Lgs. 230/2021 che ha spostato i figli
+    under 21 all'AUU); soglia reddito 95.000€.
+    Precisione: ESATTO (formula di legge; detrazione proporzionale al reddito).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo in euro
-        n_figli_over21: Numero figli a carico con eta >= 21 anni
-        n_figli_disabili: Numero figli disabili (inclusi nel conteggio over21, detrazione maggiorata)
+        reddito_complessivo: Reddito complessivo annuo del contribuente in euro (€)
+        n_figli_over21: Numero di figli a carico con età ≥21 anni (interi positivi)
+        n_figli_disabili: Numero di figli disabili tra quelli over21 (detrazione maggiorata a 1.350€)
     """
     if n_figli_over21 <= 0:
         return {"errore": "Il numero di figli over 21 deve essere almeno 1"}
@@ -454,10 +491,13 @@ def detrazione_figli(
 
 @mcp.tool()
 def detrazione_coniuge(reddito_complessivo: float) -> dict:
-    """Detrazione per coniuge a carico (art. 12 TUIR). Il coniuge e a carico se reddito <= 2840.51 euro (o 4000 se under 24).
+    """Calcola la detrazione IRPEF per coniuge a carico (art. 12 TUIR).
+    Il coniuge è a carico se il suo reddito non supera €2.840,51 (o €4.000 se under 24).
+    Vigenza: art. 12, comma 1, lett. a) TUIR — D.P.R. 917/1986 (testo vigente).
+    Precisione: ESATTO (scaglioni di legge: fino a 15.000€, 15.001-40.000€, 40.001-80.000€).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo del contribuente in euro
+        reddito_complessivo: Reddito complessivo annuo del contribuente in euro (€)
     """
     if reddito_complessivo <= 0:
         return {"errore": "Il reddito complessivo deve essere positivo"}
@@ -490,11 +530,15 @@ def detrazione_altri_familiari(
     reddito_complessivo: float,
     n_familiari: int,
 ) -> dict:
-    """Detrazione per altri familiari a carico (art. 12 TUIR): genitori, fratelli, nonni, ecc.
+    """Calcola la detrazione IRPEF per altri familiari a carico (art. 12 TUIR).
+    Comprende: genitori, fratelli, sorelle, nonni, nipoti e altri soggetti ex art. 433 c.c.
+    il cui reddito non supera €2.840,51.
+    Vigenza: art. 12, comma 1, lett. d) TUIR — D.P.R. 917/1986; soglia 80.000€.
+    Precisione: ESATTO (detrazione unitaria teorica €750, proporzionata al reddito).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo del contribuente in euro
-        n_familiari: Numero di altri familiari a carico
+        reddito_complessivo: Reddito complessivo annuo del contribuente in euro (€)
+        n_familiari: Numero di altri familiari a carico (interi positivi)
     """
     if n_familiari <= 0:
         return {"errore": "Il numero di familiari deve essere almeno 1"}
@@ -521,16 +565,19 @@ def detrazione_lavoro_dipendente(
     reddito_complessivo: float,
     giorni_lavoro: int = 365,
 ) -> dict:
-    """Detrazione redditi di lavoro dipendente (art. 13 TUIR 2024) proporzionata ai giorni lavorati.
+    """Calcola la detrazione IRPEF per redditi di lavoro dipendente (art. 13 TUIR), proporzionata
+    ai giorni lavorati nell'anno.
+    Vigenza: art. 13, comma 1, TUIR — scaglioni 2026 ex L. 199/2025 (Legge di Bilancio 2026).
+    Precisione: ESATTO (detrazione calcolata per scaglioni e poi proporzionata ai giorni lavorati).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo in euro
-        giorni_lavoro: Giorni di lavoro nell'anno (max 365)
+        reddito_complessivo: Reddito complessivo annuo in euro (€)
+        giorni_lavoro: Giorni lavorati nell'anno (1-365; default 365 per anno intero)
     """
     giorni_lavoro = min(max(giorni_lavoro, 1), 365)
 
     if reddito_complessivo <= 15000:
-        detrazione_annua = 1955
+        detrazione_annua = _IRPEF["detrazioni_lavoro_dipendente"][0]["detrazione"]
         fascia = "fino a 15.000€"
     elif reddito_complessivo <= 28000:
         detrazione_annua = 1910 + 1190 * (28000 - reddito_complessivo) / (28000 - 15000)
@@ -550,7 +597,7 @@ def detrazione_lavoro_dipendente(
         "fascia": fascia,
         "detrazione_annua_piena": round(detrazione_annua, 2),
         "detrazione_rapportata": detrazione,
-        "riferimento_normativo": "Art. 13, comma 1, TUIR — D.P.R. 917/1986 (scaglioni 2024 ex L. 213/2023)",
+        "riferimento_normativo": "Art. 13, comma 1, TUIR — D.P.R. 917/1986 (scaglioni 2026 ex L. 199/2025)",
     }
 
 
@@ -559,11 +606,13 @@ def detrazione_pensione(
     reddito_complessivo: float,
     giorni: int = 365,
 ) -> dict:
-    """Detrazione redditi di pensione (art. 13 TUIR) proporzionata ai giorni di pensione.
+    """Calcola la detrazione IRPEF per redditi da pensione (art. 13 TUIR), proporzionata ai giorni.
+    Vigenza: art. 13, comma 3, TUIR — D.P.R. 917/1986 (scaglioni invariati rispetto al 2024).
+    Precisione: ESATTO (scaglioni: fino a 8.500€, 8.501-28.000€, 28.001-50.000€, oltre 50.000€).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo in euro
-        giorni: Giorni di pensione nell'anno (max 365)
+        reddito_complessivo: Reddito complessivo annuo in euro (€)
+        giorni: Giorni di godimento della pensione nell'anno (1-365; default 365 per anno intero)
     """
     giorni = min(max(giorni, 1), 365)
 
@@ -594,10 +643,14 @@ def detrazione_pensione(
 
 @mcp.tool()
 def detrazione_assegno_coniuge(reddito_complessivo: float) -> dict:
-    """Detrazione per assegno periodico al coniuge separato/divorziato (redditi assimilati al lavoro dipendente).
+    """Calcola la detrazione per assegno periodico percepito dal coniuge separato o divorziato.
+    L'assegno periodico è reddito assimilato al lavoro dipendente per il percipiente
+    e onere deducibile ex art. 10 TUIR per chi lo corrisponde.
+    Vigenza: art. 13, comma 5-bis, TUIR; art. 10, comma 1, lett. c) TUIR — D.P.R. 917/1986.
+    Precisione: ESATTO (scaglioni: fino a 5.500€, 5.501-28.000€, 28.001-50.000€, oltre 50.000€).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo del percipiente in euro
+        reddito_complessivo: Reddito complessivo annuo del percipiente l'assegno in euro (€)
     """
     if reddito_complessivo <= 0:
         return {"errore": "Il reddito complessivo deve essere positivo"}
@@ -629,11 +682,15 @@ def detrazione_canone_locazione(
     reddito_complessivo: float,
     tipo_contratto: str = "libero",
 ) -> dict:
-    """Detrazione per inquilini con contratto di locazione (art. 16 TUIR).
+    """Calcola la detrazione IRPEF per inquilini con contratto di locazione come abitazione principale.
+    Vigenza: art. 16 TUIR — D.P.R. 917/1986 (importi rivalutati; soglie reddito non aggiornate dal 1997).
+    Precisione: ESATTO (importi fissi per scaglione di reddito come da legge).
 
     Args:
-        reddito_complessivo: Reddito complessivo annuo in euro
-        tipo_contratto: 'libero' (art. 16 co.1), 'concordato' (co.2), 'giovani_under31' (co.1-ter: 20% canone, max 2000€)
+        reddito_complessivo: Reddito complessivo annuo in euro (€)
+        tipo_contratto: Tipologia contrattuale: 'libero' (art. 16 co. 1, max €300/150),
+                        'concordato' (co. 2, max €495,80/247,90),
+                        'giovani_under31' (co. 1-ter, 20% del canone max €2.000, solo reddito ≤€15.493,71)
     """
     tipi_validi = ("libero", "concordato", "giovani_under31")
     if tipo_contratto not in tipi_validi:
@@ -673,11 +730,16 @@ def acconto_irpef(
     imposta_anno_precedente: float,
     metodo: str = "storico",
 ) -> dict:
-    """Calcolo acconto IRPEF (primo e secondo acconto) con scadenze.
+    """Calcola l'acconto IRPEF (primo e secondo acconto) con importi e scadenze.
+    Vigenza: art. 17 D.P.R. 435/2001; art. 4 D.L. 69/1989; acconto totale = 100% dell'imposta
+    dell'anno precedente (con metodo storico).
+    Precisione: ESATTO (40% primo acconto, 60% secondo; soglia esenzione €51,65).
 
     Args:
-        imposta_anno_precedente: Imposta netta risultante dalla dichiarazione dell'anno precedente
-        metodo: 'storico' (100% imposta precedente) o 'previsionale' (su stima anno corrente)
+        imposta_anno_precedente: Imposta netta IRPEF risultante dalla dichiarazione dell'anno
+                                 precedente in euro (€) — da rigo RN34 del modello Redditi PF
+        metodo: Metodo di calcolo: 'storico' (100% dell'imposta precedente) o 'previsionale'
+                (su stima dell'imposta per l'anno corrente — calcolare manualmente l'importo)
     """
     if metodo not in ("storico", "previsionale"):
         return {"errore": "metodo deve essere 'storico' o 'previsionale'"}
@@ -716,10 +778,14 @@ def acconto_irpef(
 
 @mcp.tool()
 def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
-    """Calcolo acconto cedolare secca con scadenze e importi.
+    """Calcola l'acconto cedolare secca (primo e secondo acconto) con importi e scadenze.
+    Vigenza: art. 3, comma 4, D.Lgs. 23/2011; acconto totale = 100% della cedolare secca
+    dell'anno precedente; stesse scadenze dell'IRPEF (giugno/luglio e novembre).
+    Precisione: ESATTO (40% primo acconto, 60% secondo; soglia esenzione €51,65).
 
     Args:
-        imposta_anno_precedente: Imposta da cedolare secca risultante dalla dichiarazione dell'anno precedente
+        imposta_anno_precedente: Imposta da cedolare secca risultante dalla dichiarazione
+                                 dell'anno precedente in euro (€)
     """
     if imposta_anno_precedente <= 51.65:
         return {
@@ -757,13 +823,16 @@ def rateizzazione_imposte(
     data_prima_rata: str,
     tasso_interesse_annuo: float = 2.0,
 ) -> dict:
-    """Calcolo piano di rateizzazione imposte IRPEF/addizionali da dichiarazione dei redditi.
+    """Calcola il piano di rateizzazione delle imposte IRPEF e addizionali da dichiarazione.
+    Vigenza: art. 20 D.Lgs. 241/1997; la rateizzazione è consentita da 2 a 7 rate mensili
+    a partire dal mese di giugno (o luglio con maggiorazione 0,40%).
+    Precisione: ESATTO (rata base + interessi mensili calcolati sulla quota residua).
 
     Args:
-        importo_totale: Importo totale da rateizzare in euro
-        n_rate: Numero di rate (max 7, da giugno a novembre)
-        data_prima_rata: Data della prima rata (YYYY-MM-DD)
-        tasso_interesse_annuo: Tasso di interesse annuo percentuale (default 2.0%)
+        importo_totale: Importo totale da rateizzare in euro (€)
+        n_rate: Numero di rate mensili (2-7; oltre luglio si aggiunge maggiorazione 0,40%)
+        data_prima_rata: Data della prima rata — di norma 30 giugno (YYYY-MM-DD)
+        tasso_interesse_annuo: Tasso di interesse annuo in percentuale (default 2,0%)
     """
     from datetime import date as _date
 
@@ -783,7 +852,7 @@ def rateizzazione_imposte(
 
     for i in range(n_rate):
         mesi_dalla_prima = i
-        interessi = round(importo_totale * tasso_mensile * mesi_dalla_prima, 2) if i > 0 else 0
+        interessi = round((importo_totale - i * importo_rata_base) * tasso_mensile * mesi_dalla_prima, 2) if i > 0 else 0
         # Date approssimate: una rata al mese
         data_rata = _date(dt_prima.year, dt_prima.month + i, min(dt_prima.day, 28)) if dt_prima.month + i <= 12 else _date(dt_prima.year + 1, (dt_prima.month + i) - 12, min(dt_prima.day, 28))
 

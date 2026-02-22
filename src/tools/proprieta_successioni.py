@@ -1,4 +1,5 @@
-"""Sezione 9 — Proprietà e Successioni: eredità, imposte successione, usufrutto, IMU, compravendita."""
+"""Calcolo quote ereditarie, imposte di successione (D.Lgs. 346/1990), IMU (L. 160/2019),
+compravendita immobiliare (DPR 131/1986), usufrutto, cedolare secca, spese condominiali."""
 
 import json
 from pathlib import Path
@@ -19,11 +20,13 @@ def calcolo_eredita(
     massa_ereditaria: float,
     eredi: dict,
 ) -> dict:
-    """Calcola quote ereditarie legittime secondo il codice civile italiano (art. 536 ss. c.c.).
+    """Calcola le quote di legittima e la quota disponibile secondo le norme di successione necessaria.
+    Vigenza: Art. 536 ss. c.c. — Successione necessaria (quote immutabili per legge).
+    Precisione: ESATTO (quote frazioni legali: 1/2, 1/3, 1/4 ecc. secondo c.c.).
 
     Args:
-        massa_ereditaria: Valore totale della massa ereditaria in euro
-        eredi: Composizione nucleo familiare: {coniuge: bool, figli: int, ascendenti: bool, fratelli: int}
+        massa_ereditaria: Valore totale della massa ereditaria in euro (€)
+        eredi: Composizione del nucleo familiare: {'coniuge': bool, 'figli': int, 'ascendenti': bool, 'fratelli': int}
     """
     coniuge = eredi.get("coniuge", False)
     figli = eredi.get("figli", 0)
@@ -118,13 +121,16 @@ def imposte_successione(
     immobili: bool = False,
     prima_casa: bool = False,
 ) -> dict:
-    """Calcola imposte di successione con franchigie e ipocatastali.
+    """Calcola imposta di successione con franchigie, aliquote e imposte ipocatastali.
+    Vigenza: D.Lgs. 346/1990 (TU successioni e donazioni); aliquote: 4% (linea retta), 6% (fratelli/altri parenti), 8% (estranei).
+    Franchigie: €1.000.000 (coniuge/figli), €100.000 (fratelli), €0 (altri).
+    Precisione: ESATTO (aliquote e franchigie di legge vigenti).
 
     Args:
-        valore_beni: Valore complessivo dei beni ereditati in euro
+        valore_beni: Valore complessivo dei beni ereditati in euro (€)
         parentela: Grado di parentela: 'coniuge_linea_retta', 'fratelli_sorelle', 'parenti_fino_4_grado_affini_fino_3', 'altri'
-        immobili: True se l'eredità comprende beni immobili
-        prima_casa: True se almeno un erede usufruisce dell'agevolazione prima casa
+        immobili: True se l'eredità comprende beni immobili (aggiunge imposte ipotecaria e catastale)
+        prima_casa: True se almeno un erede beneficia dell'agevolazione prima casa (imposte fisse ridotte)
     """
     aliquota_info = None
     for a in _SUCCESSIONE["aliquote"]:
@@ -177,10 +183,12 @@ def calcolo_usufrutto(
     eta_usufruttuario: int,
 ) -> dict:
     """Calcola valore dell'usufrutto e della nuda proprietà in base all'età dell'usufruttuario.
+    Vigenza: DPR 131/1986 — Prospetto coefficienti usufrutto (aggiornato periodicamente).
+    Precisione: ESATTO (coefficienti tabellari ufficiali dell'Agenzia delle Entrate).
 
     Args:
-        valore_piena_proprieta: Valore della piena proprietà in euro
-        eta_usufruttuario: Età dell'usufruttuario in anni compiuti
+        valore_piena_proprieta: Valore della piena proprietà in euro (€)
+        eta_usufruttuario: Età dell'usufruttuario in anni compiuti (0-120)
     """
     tasso_legale = _USUFRUTTO["tasso_legale"]
     coefficiente = None
@@ -218,13 +226,16 @@ def calcolo_imu(
     aliquota_comunale: float = 0.86,
     prima_casa: bool = False,
 ) -> dict:
-    """Calcola IMU per immobile in base a rendita catastale e categoria.
+    """Calcola IMU annua e semestrale per immobile in base a rendita catastale e categoria.
+    L'abitazione principale è esente IMU salvo categorie di lusso (A/1, A/8, A/9).
+    Vigenza: L. 160/2019 art. 1 co. 738-783 — IMU (anno fiscale corrente).
+    Precisione: ESATTO per moltiplicatori catastali e rivalutazione 5%; INDICATIVO per aliquota (varia per comune).
 
     Args:
-        rendita_catastale: Rendita catastale non rivalutata in euro
-        categoria: Categoria catastale (es. 'A/2', 'C/1', 'D/1', 'A/10')
-        aliquota_comunale: Aliquota comunale in percentuale (default 0.86 = 8,6 per mille)
-        prima_casa: True se abitazione principale di lusso (A/1, A/8, A/9)
+        rendita_catastale: Rendita catastale non rivalutata dell'immobile in euro (€)
+        categoria: Categoria catastale dell'immobile (es. 'A/2', 'A/10', 'C/1', 'D/1')
+        aliquota_comunale: Aliquota IMU comunale in percentuale (default 0.86 = 8,6‰; range tipico: 0.46-1.06)
+        prima_casa: True se l'immobile è abitazione principale (esente salvo A/1, A/8, A/9)
     """
     cat_upper = categoria.upper().strip()
 
@@ -243,6 +254,8 @@ def calcolo_imu(
         molt = 140
     elif cat_upper == "C/1":
         molt = 55
+    elif cat_upper in ("C/3", "C/4", "C/5"):
+        molt = 140
     elif cat_upper.startswith("C/"):
         molt = 160
     elif cat_upper == "D/5":
@@ -295,14 +308,17 @@ def imposte_compravendita(
     da_costruttore: bool = False,
     rendita_catastale: float | None = None,
 ) -> dict:
-    """Calcola imposte per acquisto immobile (registro, ipotecaria, catastale, IVA).
+    """Calcola imposte per acquisto immobile: registro, ipotecaria, catastale e IVA.
+    Se da_costruttore=True si applica IVA (4%, 10% o 22%); altrimenti imposta di registro (2% o 9%).
+    Vigenza: DPR 131/1986 — TU Imposta di registro; DPR 633/1972 (IVA).
+    Precisione: ESATTO per aliquote e importi fissi vigenti; INDICATIVO per base prezzo-valore (dipende da rendita).
 
     Args:
-        prezzo: Prezzo di acquisto in euro
-        tipo_immobile: 'abitazione', 'lusso', 'terreno_agricolo', 'commerciale'
-        prima_casa: True se si usufruisce dell'agevolazione prima casa
-        da_costruttore: True se acquisto da impresa costruttrice (soggetto IVA)
-        rendita_catastale: Rendita catastale (opzionale, per calcolo prezzo-valore prima casa)
+        prezzo: Prezzo di acquisto in euro (€)
+        tipo_immobile: Tipo di immobile: 'abitazione', 'lusso', 'terreno_agricolo', 'commerciale'
+        prima_casa: True se si beneficia dell'agevolazione prima casa (riduce le aliquote)
+        da_costruttore: True se acquisto da impresa costruttrice soggetta IVA
+        rendita_catastale: Rendita catastale dell'immobile in euro (€, opzionale — abilita calcolo prezzo-valore)
     """
     reg = _SUCCESSIONE["imposta_registro_compravendita"]
     imposte = {}
@@ -376,16 +392,18 @@ def pensione_reversibilita(
     beneficiari: dict,
     reddito_beneficiario: float = 0,
 ) -> dict:
-    """Calcolo pensione di reversibilità INPS.
+    """Calcola pensione di reversibilità INPS con quote per tipologia di beneficiari e riduzione per cumulo redditi.
 
     Quote: coniuge solo 60%, coniuge+1 figlio 80%, coniuge+2+ figli 100%,
     solo 1 figlio 70%, 2 figli 80%, 3+ figli 100%, genitori 15% ciascuno.
     Riduzione se reddito supera soglie (3x, 4x, 5x trattamento minimo).
+    Vigenza: L. 335/1995 art. 1 co. 41; Tabella F (trattamento minimo aggiornato annualmente).
+    Precisione: INDICATIVO (il trattamento minimo di riferimento viene aggiornato ogni anno dall'INPS).
 
     Args:
-        pensione_de_cuius: Importo annuo lordo della pensione del defunto in euro
-        beneficiari: Composizione beneficiari: {coniuge: bool, figli: int, figli_minori: int, genitori: int}
-        reddito_beneficiario: Reddito annuo lordo del beneficiario principale (per tetto cumulo)
+        pensione_de_cuius: Importo annuo lordo della pensione del defunto in euro (€)
+        beneficiari: Composizione dei beneficiari: {'coniuge': bool, 'figli': int, 'figli_minori': int, 'genitori': int}
+        reddito_beneficiario: Reddito annuo lordo del beneficiario principale in euro (€, per verifica tetto cumulo)
     """
     coniuge = beneficiari.get("coniuge", False)
     figli = beneficiari.get("figli", 0)
@@ -454,13 +472,15 @@ def pensione_reversibilita(
 def grado_parentela(
     relazione: str,
 ) -> dict:
-    """Calcolo grado di parentela tra due persone.
+    """Calcola il grado di parentela tra due persone, con rilevanza successoria e fiscale.
 
-    Accetta input descrittivo (es. 'cugino', 'zio', 'nipote_nonno') oppure catena di passi
-    separati da virgola (es. 'figlio,fratello' = nipote di zio, grado 3).
+    Accetta input descrittivo (es. 'cugino', 'zio') oppure catena di passi separati da virgola
+    (es. 'genitore,figlio' = fratello, grado 2; 'genitore,genitore,figlio' = zio, grado 3).
+    Vigenza: Art. 74-77 c.c. — Parentela e affinità.
+    Precisione: ESATTO (calcolo sul numero di passi).
 
     Args:
-        relazione: Relazione familiare descrittiva o catena di passi separati da virgola
+        relazione: Relazione familiare ('figlio', 'nonno', 'fratello', 'zio', 'cugino', 'prozio', 'cugino_secondo') o catena di passi separati da virgola (es. 'genitore,figlio,figlio')
     """
     # Relazioni note
     relazioni_note = {
@@ -528,11 +548,14 @@ def calcolo_valore_catastale(
     categoria: str,
     tipo: str = "successione",
 ) -> dict:
-    """Calcolo valore catastale immobile per successione, compravendita o IMU.
+    """Calcola valore catastale rivalutato dell'immobile per successione, compravendita o IMU.
+    Il coefficiente applicato varia per categoria e finalità (successione/compravendita/IMU).
+    Vigenza: DPR 131/1986; L. 160/2019 — Coefficienti valore catastale.
+    Precisione: ESATTO (rivalutazione 5% + coefficiente tabellare per categoria).
 
     Args:
-        rendita_catastale: Rendita catastale non rivalutata in euro
-        categoria: Categoria catastale (es. 'A/2', 'A/10', 'B/1', 'C/1', 'D/1')
+        rendita_catastale: Rendita catastale non rivalutata dell'immobile in euro (€)
+        categoria: Categoria catastale (es. 'A/2', 'A/10', 'B/1', 'C/1', 'D/1', 'D/8')
         tipo: Finalità del calcolo: 'successione', 'compravendita', 'imu'
     """
     tipo = tipo.lower()
@@ -548,8 +571,8 @@ def calcolo_valore_catastale(
         coeff_succ = 120.0
         coeff_comp = 126.0
     elif cat.startswith("B"):
-        coeff_succ = 176.4
-        coeff_comp = 176.4
+        coeff_succ = 140.0
+        coeff_comp = 140.0
     elif cat == "C/1":
         coeff_succ = 42.84
         coeff_comp = 42.84
@@ -579,6 +602,8 @@ def calcolo_valore_catastale(
             coeff = 140.0
         elif cat == "C/1":
             coeff = 55.0
+        elif cat in ("C/3", "C/4", "C/5"):
+            coeff = 140.0
         elif cat.startswith("C/"):
             coeff = 160.0
         elif cat == "D/5":
@@ -612,15 +637,18 @@ def calcolo_superficie_commerciale(
     cantina: float = 0,
     garage: float = 0,
 ) -> dict:
-    """Calcolo superficie commerciale immobile con coefficienti DPR 138/1998.
+    """Calcola la superficie commerciale dell'immobile applicando i coefficienti DPR 138/1998.
+    Utile per la valutazione catastale e per i contratti di locazione/compravendita.
+    Vigenza: DPR 138/1998 — Standard dimensionali catastali.
+    Precisione: ESATTO (coefficienti fissi: calpestabile 1.00, balconi 0.33, terrazzi 0.25, giardino 0.10, cantina 0.25, garage 0.50).
 
     Args:
         superficie_calpestabile: Superficie interna calpestabile in mq
-        balconi: Superficie balconi in mq
-        terrazzi: Superficie terrazzi scoperti in mq
-        giardino: Superficie giardino/area esterna in mq
-        cantina: Superficie cantina in mq
-        garage: Superficie garage/box in mq
+        balconi: Superficie balconi in mq (default 0)
+        terrazzi: Superficie terrazzi scoperti in mq (default 0)
+        giardino: Superficie giardino/area esterna in mq (default 0)
+        cantina: Superficie cantina in mq (default 0)
+        garage: Superficie garage/box in mq (default 0)
     """
     coefficienti = {
         "calpestabile": 1.00,
@@ -668,18 +696,25 @@ def cedolare_secca(
     tipo_contratto: str = "libero",
     irpef_marginale: float = 38,
 ) -> dict:
-    """Confronto convenienza cedolare secca vs IRPEF ordinaria per locazioni.
+    """Confronta la convenienza tra cedolare secca e IRPEF ordinaria per redditi da locazione.
+    Vigenza: D.Lgs. 23/2011 art. 3 — aliquote: 21% (libero), 10% (concordato), 26% (brevi periodi).
+    Precisione: INDICATIVO per IRPEF (le addizionali regionali/comunali stimate al 2% variano per comune).
 
     Args:
-        canone_annuo: Canone annuo di locazione in euro
-        tipo_contratto: 'libero' (aliquota 21%) o 'concordato' (aliquota 10%)
+        canone_annuo: Canone annuo di locazione in euro (€)
+        tipo_contratto: Tipo di contratto: 'libero' (cedolare 21%), 'concordato' (cedolare 10%), 'brevi' (cedolare 26%)
         irpef_marginale: Aliquota IRPEF marginale del locatore in percentuale (es. 23, 35, 43)
     """
     tipo = tipo_contratto.lower()
-    if tipo not in ("libero", "concordato"):
-        return {"errore": "tipo_contratto deve essere 'libero' o 'concordato'"}
+    if tipo not in ("libero", "concordato", "brevi"):
+        return {"errore": "tipo_contratto deve essere 'libero', 'concordato' o 'brevi'"}
 
-    aliquota_cedolare = 21.0 if tipo == "libero" else 10.0
+    if tipo == "libero":
+        aliquota_cedolare = 21.0
+    elif tipo == "concordato":
+        aliquota_cedolare = 10.0
+    else:  # brevi
+        aliquota_cedolare = 26.0
     imposta_cedolare = round(canone_annuo * aliquota_cedolare / 100, 2)
 
     # IRPEF ordinaria: base imponibile = 95% del canone (abbattimento forfettario 5%)
@@ -721,16 +756,16 @@ def imposta_registro_locazioni(
     tipo_contratto: str = "libero",
     prima_registrazione: bool = True,
 ) -> dict:
-    """Calcolo imposta di registro per contratto di locazione.
-
-    2% del canone annuo per immobili abitativi, 1% per concordati in comuni ad alta densità.
-    Minimo €67 per prima registrazione.
+    """Calcola imposta di registro per contratto di locazione abitativa.
+    Aliquota: 2% del canone annuo (libero) o 1% (concordato in comuni ad alta densità); minimo €67 per prima registrazione.
+    Vigenza: DPR 131/1986 art. 5 Tariffa Parte I.
+    Precisione: ESATTO (aliquote e minimo di legge).
 
     Args:
-        canone_annuo: Canone annuo di locazione in euro
-        durata_anni: Durata contrattuale in anni (default 4)
-        tipo_contratto: 'libero' (2%) o 'concordato' (1% se comune alta densità abitativa)
-        prima_registrazione: True per prima registrazione, False per annualità successive
+        canone_annuo: Canone annuo di locazione in euro (€)
+        durata_anni: Durata contrattuale in anni (default 4; tipico: 4+4 libero, 3+2 concordato)
+        tipo_contratto: Tipo di contratto: 'libero' (aliquota 2%) o 'concordato' (aliquota 1%)
+        prima_registrazione: True per prima registrazione (minimo €67), False per annualità successive
     """
     tipo = tipo_contratto.lower()
     if tipo not in ("libero", "concordato"):
@@ -746,8 +781,8 @@ def imposta_registro_locazioni(
 
     # Opzione pagamento intero periodo (sconto 50% delle annualità successive)
     # In realtà: si può pagare per l'intera durata con sconto del canone costante
-    imposta_intera_durata = round(canone_annuo * aliquota / 100 * durata_anni, 2)
-    imposta_intera_durata = max(imposta_intera_durata, minimo)
+    prima_annualita_intera = max(canone_annuo * aliquota / 100, minimo)
+    imposta_intera_durata = round(prima_annualita_intera + canone_annuo * aliquota / 100 * (durata_anni - 1), 2)
 
     return {
         "canone_annuo": canone_annuo,
@@ -772,17 +807,17 @@ def spese_condominiali(
     piano: int = 0,
     immobile_locato: bool = False,
 ) -> dict:
-    """Ripartizione spese condominiali per millesimi e tipo spesa.
-
-    Tipi: ordinaria/straordinaria (millesimi proprietà), ascensore (50% millesimi + 50% piano),
-    riscaldamento (millesimi riscaldamento). Se locato, ripartizione proprietario/inquilino.
+    """Calcola la quota condominiale spettante all'unità immobiliare per millesimi e tipo di spesa.
+    Se l'immobile è in locazione, ripartisce tra proprietario e inquilino (L. 392/1978 art. 9).
+    Vigenza: Art. 1123-1124 c.c.; L. 392/1978 art. 9.
+    Precisione: ESATTO per millesimi e percentuali legali; INDICATIVO per ascensore (normalizzazione su 10 piani).
 
     Args:
-        importo_totale: Importo totale della spesa condominiale in euro
-        millesimi_proprietario: Millesimi di proprietà dell'unità immobiliare (es. 85.50)
-        tipo_spesa: 'ordinaria', 'straordinaria', 'riscaldamento', 'ascensore'
-        piano: Piano dell'unità (rilevante per ascensore, 0 = piano terra)
-        immobile_locato: True se l'immobile è dato in locazione
+        importo_totale: Importo totale della spesa condominiale in euro (€)
+        millesimi_proprietario: Millesimi di proprietà dell'unità immobiliare (es. 85.50 su 1000)
+        tipo_spesa: Tipo di spesa: 'ordinaria', 'straordinaria', 'riscaldamento', 'ascensore'
+        piano: Piano dell'unità immobiliare (rilevante solo per ascensore; 0 = piano terra)
+        immobile_locato: True se l'immobile è concesso in locazione (abilita ripartizione proprietario/inquilino)
     """
     tipo = tipo_spesa.lower()
     if tipo not in ("ordinaria", "straordinaria", "riscaldamento", "ascensore"):

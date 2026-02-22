@@ -1,8 +1,8 @@
 {
-  "_description": "Scaglioni IRPEF 2024+ (3 scaglioni post-riforma)",
+  "_description": "Scaglioni IRPEF 2026 (3 scaglioni) — L. 199/2025 (Legge di Bilancio 2026). Aliquota 2° scaglione: 33% (era 35% fino al 31/12/2025).",
   "scaglioni": [
     {"fino_a": 28000, "aliquota": 23},
-    {"fino_a": 50000, "aliquota": 35},
+    {"fino_a": 50000, "aliquota": 33},
     {"oltre": true, "aliquota": 43}
   ],
   "no_tax_area": {

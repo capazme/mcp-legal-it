@@ -7,6 +7,7 @@
     {"giorno": 1, "mese": 5, "nome": "Festa dei Lavoratori"},
     {"giorno": 2, "mese": 6, "nome": "Festa della Repubblica"},
     {"giorno": 15, "mese": 8, "nome": "Ferragosto"},
+    {"giorno": 4, "mese": 10, "nome": "San Francesco d'Assisi", "dal_anno": 2026},
     {"giorno": 1, "mese": 11, "nome": "Tutti i Santi"},
     {"giorno": 8, "mese": 12, "nome": "Immacolata Concezione"},
     {"giorno": 25, "mese": 12, "nome": "Natale"},

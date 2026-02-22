@@ -1,4 +1,5 @@
-"""Sezione 1 — Rivalutazioni ISTAT: rivalutazione monetaria, inflazione, canoni, TFR."""
+"""Rivalutazione monetaria con indici FOI ISTAT (disponibili dal 1947, base 2015=100):
+inflazione, adeguamento canoni (L. 392/1978 art. 32), TFR (art. 2120 c.c.)."""
 
 import json
 from datetime import date
@@ -17,6 +18,9 @@ with open(_DATA / "tassi_legali.json") as f:
 
 def _parse_date(d: str) -> date:
     return date.fromisoformat(d)
+
+
+_FOI_FALLBACK_WARNINGS: list[str] = []
 
 
 def _get_foi(year: int, month: int) -> float | None:
@@ -38,6 +42,10 @@ def _get_foi(year: int, month: int) -> float | None:
     available_years = sorted(_INDICI_FOI.keys(), key=lambda y: abs(int(y) - year))
     if available_years:
         best_year = available_years[0]
+        gap = abs(int(best_year) - year)
+        if gap > 1:
+            warning = f"ATTENZIONE: indice FOI per {year}/{m_str} non disponibile — usato anno {best_year} (distanza {gap} anni). Risultato approssimato."
+            _FOI_FALLBACK_WARNINGS.append(warning)
         months = _INDICI_FOI[best_year]
         closest_m = min(months.keys(), key=lambda m: abs(int(m) - month))
         return months[closest_m]
@@ -63,16 +71,18 @@ def rivalutazione_monetaria(
     data_fine: str,
     con_interessi_legali: bool = True,
 ) -> dict:
-    """Rivalutazione monetaria di un capitale con indici FOI ISTAT.
+    """Rivaluta un capitale con indici FOI ISTAT, con o senza interessi legali anno per anno.
 
-    Se con_interessi_legali=True, calcola anche gli interessi legali anno per anno
-    sul capitale rivalutato (criterio Cass. SU 1712/1995).
+    Se con_interessi_legali=True, applica il criterio Cass. SU 1712/1995: interessi legali
+    sul capitale rivalutato per ciascun anno (metodo più favorevole al creditore).
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente pubblicato.
+    Precisione: ESATTO (indici ISTAT ufficiali); INDICATIVO se la data richiesta è oltre l'ultimo indice disponibile (usa l'anno più prossimo).
 
     Args:
-        capitale: Importo originario in euro
-        data_inizio: Data del credito originario (YYYY-MM-DD)
-        data_fine: Data di liquidazione (YYYY-MM-DD)
-        con_interessi_legali: Se True, aggiunge interessi legali sul rivalutato
+        capitale: Importo originario del credito in euro (€)
+        data_inizio: Data del credito originario (formato YYYY-MM-DD)
+        data_fine: Data di liquidazione/calcolo (formato YYYY-MM-DD)
+        con_interessi_legali: Se True, calcola interessi legali (art. 1284 c.c.) anno per anno sul rivalutato
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
@@ -156,15 +166,17 @@ def rivalutazione_mensile(
     data_inizio: str,
     data_fine: str,
 ) -> dict:
-    """Rivalutazione mensile per rate/assegni ricorrenti con indici FOI.
+    """Rivaluta ogni singola mensilità di una rata/assegno ricorrente con indici FOI ISTAT.
 
-    Rivaluta ogni singola mensilità dall'erogazione alla data_fine
-    e restituisce la somma totale rivalutata.
+    Utile per assegni di mantenimento arretrati o canoni mensili non corrisposti:
+    ogni mensilità viene rivalutata individualmente dalla sua data fino a data_fine.
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente.
+    Precisione: ESATTO (indici ISTAT ufficiali mese per mese).
 
     Args:
-        importo_mensile: Importo della rata/assegno mensile in euro
-        data_inizio: Data prima mensilità (YYYY-MM-DD)
-        data_fine: Data di riferimento per la rivalutazione (YYYY-MM-DD)
+        importo_mensile: Importo della singola rata/assegno mensile in euro (€)
+        data_inizio: Data della prima mensilità (formato YYYY-MM-DD)
+        data_fine: Data di riferimento finale per la rivalutazione (formato YYYY-MM-DD)
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
@@ -229,16 +241,17 @@ def adeguamento_canone_locazione(
     data_adeguamento: str,
     percentuale_istat: float = 75.0,
 ) -> dict:
-    """Adeguamento ISTAT canone di locazione (L. 392/1978, art. 32).
+    """Calcola l'adeguamento ISTAT del canone di locazione secondo L. 392/1978 art. 32.
 
-    Applica la variazione FOI (di default al 75%) al canone annuo.
-    Per contratti liberi (4+4) si applica il 100%, per concordati il 75%.
+    Per contratti liberi 4+4 si applica il 100% della variazione FOI; per concordati il 75%.
+    Vigenza: L. 392/1978 art. 32 — L. 431/1998; indici FOI ISTAT base 2015=100.
+    Precisione: ESATTO (indici ISTAT ufficiali; la percentuale applicabile dipende dal tipo di contratto).
 
     Args:
-        canone_annuo: Canone annuo in euro
-        data_stipula: Data stipula/ultimo adeguamento (YYYY-MM-DD)
-        data_adeguamento: Data per cui calcolare l'adeguamento (YYYY-MM-DD)
-        percentuale_istat: Percentuale variazione ISTAT da applicare (default 75%)
+        canone_annuo: Canone annuo corrente in euro (€)
+        data_stipula: Data di stipula del contratto o dell'ultimo adeguamento (formato YYYY-MM-DD)
+        data_adeguamento: Data per cui calcolare il nuovo canone (formato YYYY-MM-DD)
+        percentuale_istat: Percentuale della variazione FOI da applicare (0.0-100.0; default 75% per concordati, 100% per liberi)
     """
     dt_stipula = _parse_date(data_stipula)
     dt_adeguamento = _parse_date(data_adeguamento)
@@ -280,11 +293,15 @@ def calcolo_inflazione(
     data_inizio: str,
     data_fine: str,
 ) -> dict:
-    """Calcolo dell'inflazione percentuale tra due date usando indici FOI ISTAT.
+    """Calcola la variazione percentuale di inflazione tra due date usando gli indici FOI ISTAT.
+
+    Restituisce variazione cumulata, coefficiente di rivalutazione e inflazione media annua.
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente pubblicato.
+    Precisione: ESATTO (indici ISTAT ufficiali).
 
     Args:
-        data_inizio: Data iniziale (YYYY-MM-DD)
-        data_fine: Data finale (YYYY-MM-DD)
+        data_inizio: Data iniziale del periodo (formato YYYY-MM-DD)
+        data_fine: Data finale del periodo (formato YYYY-MM-DD)
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
@@ -323,15 +340,17 @@ def rivalutazione_tfr(
     anni_servizio: int,
     anno_cessazione: int,
 ) -> dict:
-    """Calcolo TFR con rivalutazione ex art. 2120 c.c.
+    """Calcola il TFR con rivalutazione annuale ex art. 2120 c.c.
 
-    Il TFR accantonato si rivaluta annualmente con il coefficiente:
-    1.5% fisso + 75% dell'indice ISTAT FOI.
+    Il TFR accantonato (1/13.5 della retribuzione annua) si rivaluta ogni anno con coefficiente:
+    1.5% fisso + 75% della variazione FOI. Sull'importo rivalutato si applica imposta sostitutiva 17%.
+    Vigenza: Art. 2120 c.c.; indici FOI ISTAT base 2015=100 (disponibili dal 1947).
+    Precisione: ESATTO per la formula di legge; INDICATIVO se la variazione FOI dell'anno non è ancora disponibile.
 
     Args:
-        retribuzione_annua: Ultima retribuzione annua lorda in euro
-        anni_servizio: Numero di anni di servizio
-        anno_cessazione: Anno di cessazione del rapporto
+        retribuzione_annua: Ultima retribuzione annua lorda in euro (€)
+        anni_servizio: Numero di anni di servizio (intero positivo)
+        anno_cessazione: Anno di cessazione del rapporto di lavoro (es. 2025)
     """
     if anni_servizio <= 0:
         return {"errore": "anni_servizio deve essere maggiore di zero"}
@@ -400,16 +419,18 @@ def interessi_vari_capitale_rivalutato(
     data_fine: str,
     tasso_personalizzato: float | None = None,
 ) -> dict:
-    """Rivalutazione monetaria con interessi a tasso personalizzato sul capitale rivalutato anno per anno.
+    """Rivaluta un capitale FOI e calcola interessi a tasso personalizzato o legale sul rivalutato (criterio Cass. SU 1712/1995).
 
-    Applica rivalutazione FOI e calcola interessi (a tasso legale o personalizzato)
-    sul capitale rivalutato di ciascun anno (criterio Cass. SU 1712/1995).
+    Versione estesa di rivalutazione_monetaria che permette di usare un tasso diverso da quello legale
+    (es. tasso contrattuale, tasso BOT). Se tasso_personalizzato=None usa il tasso legale vigente per anno.
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente.
+    Precisione: ESATTO (indici ISTAT ufficiali); tasso personalizzato non verificato rispetto ai tassi di legge.
 
     Args:
-        capitale: Importo originario in euro
-        data_inizio: Data del credito originario (YYYY-MM-DD)
-        data_fine: Data di liquidazione (YYYY-MM-DD)
-        tasso_personalizzato: Tasso annuo percentuale personalizzato (None = usa tasso legale)
+        capitale: Importo originario del credito in euro (€)
+        data_inizio: Data del credito originario (formato YYYY-MM-DD)
+        data_fine: Data di liquidazione (formato YYYY-MM-DD)
+        tasso_personalizzato: Tasso annuo percentuale da applicare (es. 3.5); se None usa tasso legale vigente
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
@@ -478,18 +499,20 @@ def lettera_adeguamento_canone(
     data_adeguamento: str,
     percentuale_istat: float = 75.0,
 ) -> dict:
-    """Genera testo lettera formale di comunicazione adeguamento ISTAT canone locazione.
+    """Genera il testo della lettera formale di comunicazione dell'adeguamento ISTAT del canone di locazione.
 
-    Include calcolo nuovo canone e riferimenti normativi (L. 392/1978, art. 32).
+    Include calcolo del nuovo canone con indici FOI e riferimenti normativi pronti per l'invio al conduttore.
+    Vigenza: L. 392/1978 art. 32 — L. 431/1998; indici FOI ISTAT base 2015=100.
+    Precisione: ESATTO (indici ISTAT ufficiali).
 
     Args:
-        locatore: Nome completo del locatore
-        conduttore: Nome completo del conduttore
+        locatore: Nome e cognome completo del locatore (mittente della lettera)
+        conduttore: Nome e cognome completo del conduttore (destinatario)
         indirizzo_immobile: Indirizzo completo dell'immobile locato
-        canone_attuale: Canone mensile attuale in euro
-        data_stipula: Data stipula contratto o ultimo adeguamento (YYYY-MM-DD)
-        data_adeguamento: Data decorrenza nuovo canone (YYYY-MM-DD)
-        percentuale_istat: Percentuale variazione ISTAT da applicare (default 75%)
+        canone_attuale: Canone mensile corrente in euro (€)
+        data_stipula: Data di stipula del contratto o dell'ultimo adeguamento (formato YYYY-MM-DD)
+        data_adeguamento: Data di decorrenza del nuovo canone (formato YYYY-MM-DD)
+        percentuale_istat: Percentuale della variazione FOI da applicare (0.0-100.0; default 75%)
     """
     dt_stipula = _parse_date(data_stipula)
     dt_adeguamento = _parse_date(data_adeguamento)
@@ -548,14 +571,16 @@ def calcolo_devalutazione(
     data_attuale: str,
     data_passata: str,
 ) -> dict:
-    """Calcolo inverso della rivalutazione: dato un importo odierno, calcola quanto valeva in una data passata.
+    """Calcolo inverso della rivalutazione: riconduce un importo attuale al suo valore in una data passata.
 
-    Usa indici FOI per determinare il potere d'acquisto in una data storica.
+    Utile per confronti storici di valore (es. "quanto valeva in euro 1990 questa somma di oggi?").
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente.
+    Precisione: ESATTO (indici ISTAT ufficiali).
 
     Args:
-        importo_attuale: Importo attuale in euro
-        data_attuale: Data dell'importo attuale (YYYY-MM-DD)
-        data_passata: Data passata a cui riportare il valore (YYYY-MM-DD)
+        importo_attuale: Importo attuale di riferimento in euro (€)
+        data_attuale: Data dell'importo attuale (formato YYYY-MM-DD)
+        data_passata: Data storica a cui ricondurre il valore (formato YYYY-MM-DD, deve essere anteriore a data_attuale)
     """
     dt_attuale = _parse_date(data_attuale)
     dt_passata = _parse_date(data_passata)
@@ -591,15 +616,17 @@ def rivalutazione_storica(
     anno_partenza: int,
     anno_arrivo: int,
 ) -> dict:
-    """Rivalutazione semplificata anno-su-anno con media annua degli indici FOI.
+    """Rivalutazione semplificata basata sulla media annuale degli indici FOI (senza specificare il mese).
 
-    Usa la media annuale degli indici FOI per ciascun anno e restituisce
-    coefficiente e importo rivalutato.
+    Usa la media annuale degli indici FOI per ciascun anno. Utile quando non si conosce
+    il mese esatto dell'obbligazione. Per precisione mensile usare rivalutazione_monetaria.
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947.
+    Precisione: ESATTO (media annua indici ISTAT ufficiali); meno preciso di rivalutazione_monetaria se si conosce il mese.
 
     Args:
-        importo: Importo originario in euro
-        anno_partenza: Anno di partenza
-        anno_arrivo: Anno di arrivo
+        importo: Importo originario in euro (€)
+        anno_partenza: Anno di partenza (es. 2010; deve essere presente negli indici FOI)
+        anno_arrivo: Anno di arrivo (es. 2025; deve essere presente negli indici FOI)
     """
     if anno_arrivo <= anno_partenza:
         return {"errore": "anno_arrivo deve essere successivo a anno_partenza"}
@@ -651,14 +678,15 @@ def variazioni_istat(
     anno_inizio: int,
     anno_fine: int,
 ) -> dict:
-    """Tabella delle variazioni percentuali annuali degli indici FOI ISTAT.
+    """Restituisce la tabella delle variazioni percentuali annuali degli indici FOI ISTAT per un periodo.
 
-    Restituisce la variazione % anno su anno per il periodo richiesto.
-    Utile per consulenze e analisi storiche dell'inflazione.
+    Utile per consulenze, analisi storiche dell'inflazione e relazioni peritali.
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente.
+    Precisione: ESATTO (medie annue indici ISTAT ufficiali).
 
     Args:
-        anno_inizio: Anno iniziale del periodo
-        anno_fine: Anno finale del periodo
+        anno_inizio: Anno iniziale del periodo (es. 2000; range disponibile: 1947 a oggi)
+        anno_fine: Anno finale del periodo (es. 2024)
     """
     if anno_fine <= anno_inizio:
         return {"errore": "anno_fine deve essere successivo a anno_inizio"}
@@ -718,15 +746,17 @@ def rivalutazione_annuale_media(
     data_inizio: str,
     data_fine: str,
 ) -> dict:
-    """Rivalutazione usando la media annuale degli indici FOI.
+    """Rivaluta un importo usando la media annuale degli indici FOI (ignora il mese, conta solo l'anno).
 
-    Utile quando non si conosce il mese esatto dell'obbligazione:
-    usa la media annua FOI anziché l'indice del mese specifico.
+    Alternativa a rivalutazione_monetaria quando non si conosce il mese esatto dell'obbligazione.
+    Per calcoli dove il mese è noto, preferire rivalutazione_monetaria.
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947.
+    Precisione: ESATTO su base annua (media annua indici ISTAT ufficiali).
 
     Args:
-        importo: Importo originario in euro
-        data_inizio: Data iniziale (YYYY-MM-DD, conta solo l'anno)
-        data_fine: Data finale (YYYY-MM-DD, conta solo l'anno)
+        importo: Importo originario in euro (€)
+        data_inizio: Data iniziale (formato YYYY-MM-DD; viene usato solo l'anno)
+        data_fine: Data finale (formato YYYY-MM-DD; viene usato solo l'anno)
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
@@ -770,16 +800,18 @@ def inflazione_titoli_stato(
     data_inizio: str,
     data_fine: str,
 ) -> dict:
-    """Confronta rendimento di un investimento con l'inflazione nello stesso periodo.
+    """Confronta il rendimento nominale di un investimento con l'inflazione FOI nello stesso periodo.
 
-    Mostra il rendimento reale (al netto dell'inflazione) e se l'investimento
-    ha preservato o meno il potere d'acquisto.
+    Calcola il rendimento reale (equazione di Fisher) e verifica se l'investimento
+    ha preservato il potere d'acquisto rispetto all'inflazione ISTAT del periodo.
+    Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente.
+    Precisione: ESATTO per indici FOI; INDICATIVO per rendimento reale (usa inflazione media annua FOI).
 
     Args:
-        capitale_investito: Capitale iniziale investito in euro
-        rendimento_lordo_annuo_pct: Rendimento lordo annuo percentuale (es. 3.5)
-        data_inizio: Data inizio investimento (YYYY-MM-DD)
-        data_fine: Data fine investimento (YYYY-MM-DD)
+        capitale_investito: Capitale iniziale investito in euro (€)
+        rendimento_lordo_annuo_pct: Rendimento lordo annuo in percentuale (es. 3.5 per 3,5%)
+        data_inizio: Data di inizio dell'investimento (formato YYYY-MM-DD)
+        data_fine: Data di fine dell'investimento (formato YYYY-MM-DD)
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)

@@ -1,101 +1,199 @@
 {
-  "_description": "Parametri compensi forensi — DM 55/2014 aggiornato DM 147/2022",
-  "_note": "Valori medi per fase. Fasi: studio, introduttiva, istruttoria/trattazione, decisionale",
+  "_description": "Parametri compensi forensi — DM 55/2014 aggiornato DM 147/2022 (in vigore dal 23/10/2022)",
+  "_source": "Scraped da avvocatoandreani.it/servizi/tabelle-parametri-forensi.php il 2026-02-19",
+  "_note": "Valori medio con variazione -50%/+50% per min/max (Art. 4, comma 1, DM 55/2014). Civile = Giudizi di cognizione innanzi al tribunale (competenza 110).",
   "civile": {
     "scaglioni": [
       {
         "fino_a": 1100,
-        "studio": {"min": 67.5, "medio": 135, "max": 270},
-        "introduttiva": {"min": 67.5, "medio": 135, "max": 270},
-        "istruttoria": {"min": 101.25, "medio": 202.5, "max": 405},
-        "decisionale": {"min": 101.25, "medio": 202.5, "max": 405}
+        "studio":       {"min": 66, "medio": 131, "max": 197},
+        "introduttiva": {"min": 66, "medio": 131, "max": 197},
+        "istruttoria":  {"min": 100, "medio": 200, "max": 300},
+        "decisionale":  {"min": 100, "medio": 200, "max": 300}
       },
       {
         "fino_a": 5200,
-        "studio": {"min": 125, "medio": 250, "max": 500},
-        "introduttiva": {"min": 125, "medio": 250, "max": 500},
-        "istruttoria": {"min": 187.5, "medio": 375, "max": 750},
-        "decisionale": {"min": 187.5, "medio": 375, "max": 750}
+        "studio":       {"min": 213, "medio": 425, "max": 638},
+        "introduttiva": {"min": 213, "medio": 425, "max": 638},
+        "istruttoria":  {"min": 426, "medio": 851, "max": 1277},
+        "decisionale":  {"min": 426, "medio": 851, "max": 1277}
       },
       {
         "fino_a": 26000,
-        "studio": {"min": 270, "medio": 540, "max": 1080},
-        "introduttiva": {"min": 270, "medio": 540, "max": 1080},
-        "istruttoria": {"min": 472.5, "medio": 945, "max": 1890},
-        "decisionale": {"min": 472.5, "medio": 945, "max": 1890}
+        "studio":       {"min": 460, "medio": 919, "max": 1379},
+        "introduttiva": {"min": 389, "medio": 777, "max": 1166},
+        "istruttoria":  {"min": 840, "medio": 1680, "max": 2520},
+        "decisionale":  {"min": 851, "medio": 1701, "max": 2552}
       },
       {
         "fino_a": 52000,
-        "studio": {"min": 405, "medio": 810, "max": 1620},
-        "introduttiva": {"min": 405, "medio": 810, "max": 1620},
-        "istruttoria": {"min": 675, "medio": 1350, "max": 2700},
-        "decisionale": {"min": 675, "medio": 1350, "max": 2700}
+        "studio":       {"min": 851, "medio": 1701, "max": 2552},
+        "introduttiva": {"min": 602, "medio": 1204, "max": 1806},
+        "istruttoria":  {"min": 903, "medio": 1806, "max": 2709},
+        "decisionale":  {"min": 1453, "medio": 2905, "max": 4358}
       },
       {
         "fino_a": 260000,
-        "studio": {"min": 540, "medio": 1080, "max": 2160},
-        "introduttiva": {"min": 540, "medio": 1080, "max": 2160},
-        "istruttoria": {"min": 945, "medio": 1890, "max": 3780},
-        "decisionale": {"min": 945, "medio": 1890, "max": 3780}
+        "studio":       {"min": 1276, "medio": 2552, "max": 3828},
+        "introduttiva": {"min": 814, "medio": 1628, "max": 2442},
+        "istruttoria":  {"min": 2835, "medio": 5670, "max": 8505},
+        "decisionale":  {"min": 2127, "medio": 4253, "max": 6380}
       },
       {
         "fino_a": 520000,
-        "studio": {"min": 810, "medio": 1620, "max": 3240},
-        "introduttiva": {"min": 810, "medio": 1620, "max": 3240},
-        "istruttoria": {"min": 1147.5, "medio": 2295, "max": 4590},
-        "decisionale": {"min": 1147.5, "medio": 2295, "max": 4590}
+        "studio":       {"min": 1772, "medio": 3544, "max": 5316},
+        "introduttiva": {"min": 1169, "medio": 2338, "max": 3507},
+        "istruttoria":  {"min": 5206, "medio": 10411, "max": 15617},
+        "decisionale":  {"min": 3082, "medio": 6164, "max": 9246}
+      },
+      {
+        "fino_a": 1000000,
+        "studio":       {"min": 2304, "medio": 4607, "max": 6911},
+        "introduttiva": {"min": 1520, "medio": 3039, "max": 4559},
+        "istruttoria":  {"min": 6767, "medio": 13534, "max": 20301},
+        "decisionale":  {"min": 4007, "medio": 8013, "max": 12020}
+      },
+      {
+        "fino_a": 2000000,
+        "studio":       {"min": 2995, "medio": 5989, "max": 8984},
+        "introduttiva": {"min": 1976, "medio": 3951, "max": 5927},
+        "istruttoria":  {"min": 8797, "medio": 17594, "max": 26391},
+        "decisionale":  {"min": 5209, "medio": 10417, "max": 15626}
+      },
+      {
+        "fino_a": 4000000,
+        "studio":       {"min": 3893, "medio": 7786, "max": 11679},
+        "introduttiva": {"min": 2568, "medio": 5136, "max": 7704},
+        "istruttoria":  {"min": 11436, "medio": 22872, "max": 34308},
+        "decisionale":  {"min": 6771, "medio": 13542, "max": 20313}
+      },
+      {
+        "fino_a": 8000000,
+        "studio":       {"min": 5061, "medio": 10122, "max": 15183},
+        "introduttiva": {"min": 3339, "medio": 6677, "max": 10016},
+        "istruttoria":  {"min": 14867, "medio": 29734, "max": 44601},
+        "decisionale":  {"min": 8803, "medio": 17605, "max": 26408}
+      },
+      {
+        "fino_a": 16000000,
+        "studio":       {"min": 6580, "medio": 13159, "max": 19739},
+        "introduttiva": {"min": 4340, "medio": 8680, "max": 13020},
+        "istruttoria":  {"min": 19327, "medio": 38654, "max": 57981},
+        "decisionale":  {"min": 11444, "medio": 22887, "max": 34331}
+      },
+      {
+        "fino_a": 32000000,
+        "studio":       {"min": 8554, "medio": 17107, "max": 25661},
+        "introduttiva": {"min": 5642, "medio": 11284, "max": 16926},
+        "istruttoria":  {"min": 25125, "medio": 50250, "max": 75375},
+        "decisionale":  {"min": 14877, "medio": 29753, "max": 44630}
       },
       {
         "oltre": true,
-        "studio": {"min": 1012.5, "medio": 2025, "max": 4050},
-        "introduttiva": {"min": 1012.5, "medio": 2025, "max": 4050},
-        "istruttoria": {"min": 1620, "medio": 3240, "max": 6480},
-        "decisionale": {"min": 1620, "medio": 3240, "max": 6480}
+        "studio":       {"min": 8554, "medio": 17107, "max": 25661},
+        "introduttiva": {"min": 5642, "medio": 11284, "max": 16926},
+        "istruttoria":  {"min": 25125, "medio": 50250, "max": 75375},
+        "decisionale":  {"min": 14877, "medio": 29753, "max": 44630}
       }
     ]
   },
   "penale": {
-    "_note": "Compensi per tipo di reato e fase",
-    "scaglioni": [
+    "_note": "Valori per competenza (organo giudicante). Penale non usa scaglioni per valore causa.",
+    "competenze": [
       {
-        "tipo": "contravvenzioni",
-        "studio": {"min": 75, "medio": 150, "max": 300},
-        "introduttiva": {"min": 75, "medio": 150, "max": 300},
-        "istruttoria": {"min": 125, "medio": 250, "max": 500},
-        "decisionale": {"min": 125, "medio": 250, "max": 500}
+        "tipo": "giudice_pace",
+        "label": "Giudice di pace",
+        "studio":       {"min": 189, "medio": 378, "max": 567},
+        "introduttiva": {"min": 237, "medio": 473, "max": 710},
+        "istruttoria":  {"min": 378, "medio": 756, "max": 1134},
+        "decisionale":  {"min": 331, "medio": 662, "max": 993}
       },
       {
-        "tipo": "delitti_fino_4_anni",
-        "studio": {"min": 150, "medio": 300, "max": 600},
-        "introduttiva": {"min": 150, "medio": 300, "max": 600},
-        "istruttoria": {"min": 250, "medio": 500, "max": 1000},
-        "decisionale": {"min": 250, "medio": 500, "max": 1000}
+        "tipo": "tribunale_monocratico",
+        "label": "Tribunale monocratico",
+        "studio":       {"min": 237, "medio": 473, "max": 710},
+        "introduttiva": {"min": 284, "medio": 567, "max": 851},
+        "istruttoria":  {"min": 567, "medio": 1134, "max": 1701},
+        "decisionale":  {"min": 709, "medio": 1418, "max": 2127}
       },
       {
-        "tipo": "delitti_4_8_anni",
-        "studio": {"min": 250, "medio": 500, "max": 1000},
-        "introduttiva": {"min": 250, "medio": 500, "max": 1000},
-        "istruttoria": {"min": 500, "medio": 1000, "max": 2000},
-        "decisionale": {"min": 500, "medio": 1000, "max": 2000}
+        "tipo": "tribunale_collegiale",
+        "label": "Tribunale collegiale",
+        "studio":       {"min": 237, "medio": 473, "max": 710},
+        "introduttiva": {"min": 378, "medio": 756, "max": 1134},
+        "istruttoria":  {"min": 709, "medio": 1418, "max": 2127},
+        "decisionale":  {"min": 709, "medio": 1418, "max": 2127}
       },
       {
-        "tipo": "delitti_oltre_8_anni",
-        "studio": {"min": 500, "medio": 1000, "max": 2000},
-        "introduttiva": {"min": 500, "medio": 1000, "max": 2000},
-        "istruttoria": {"min": 1000, "medio": 2000, "max": 4000},
-        "decisionale": {"min": 1000, "medio": 2000, "max": 4000}
+        "tipo": "corte_assise",
+        "label": "Corte d'Assise",
+        "studio":       {"min": 378, "medio": 756, "max": 1134},
+        "introduttiva": {"min": 709, "medio": 1418, "max": 2127},
+        "istruttoria":  {"min": 1182, "medio": 2363, "max": 3545},
+        "decisionale":  {"min": 1418, "medio": 2835, "max": 4253}
+      },
+      {
+        "tipo": "corte_appello",
+        "label": "Corte d'Appello",
+        "studio":       {"min": 237, "medio": 473, "max": 710},
+        "introduttiva": {"min": 473, "medio": 945, "max": 1418},
+        "istruttoria":  {"min": 709, "medio": 1418, "max": 2127},
+        "decisionale":  {"min": 709, "medio": 1418, "max": 2127}
+      },
+      {
+        "tipo": "cassazione",
+        "label": "Corte di Cassazione",
+        "studio":       {"min": 473, "medio": 945, "max": 1418},
+        "introduttiva": {"min": 1323, "medio": 2646, "max": 3969},
+        "istruttoria":  null,
+        "decisionale":  {"min": 1371, "medio": 2741, "max": 4112}
       }
     ]
   },
   "stragiudiziale": {
     "scaglioni": [
-      {"fino_a": 1100, "min": 135, "medio": 270, "max": 540},
-      {"fino_a": 5200, "min": 250, "medio": 500, "max": 1000},
-      {"fino_a": 26000, "min": 540, "medio": 1080, "max": 2160},
-      {"fino_a": 52000, "min": 810, "medio": 1620, "max": 3240},
-      {"fino_a": 260000, "min": 1080, "medio": 2160, "max": 4320},
-      {"fino_a": 520000, "min": 1620, "medio": 3240, "max": 6480},
-      {"oltre": true, "min": 2025, "medio": 4050, "max": 8100}
+      {"fino_a": 1100,   "min": 142, "medio": 284, "max": 426},
+      {"fino_a": 5200,   "min": 638, "medio": 1276, "max": 1914},
+      {"fino_a": 26000,  "min": 993, "medio": 1985, "max": 2978},
+      {"fino_a": 52000,  "min": 1205, "medio": 2410, "max": 3615},
+      {"fino_a": 260000, "min": 2268, "medio": 4536, "max": 6804},
+      {"fino_a": 520000, "min": 3082, "medio": 6164, "max": 9246},
+      {"oltre": true,    "min": 3082, "medio": 6164, "max": 9246}
+    ]
+  },
+  "volontaria_giurisdizione": {
+    "_note": "Tab. 7 DM 55/2014 agg. DM 147/2022 — Procedimenti di volontaria giurisdizione (natura non contenziosa). Compenso unico per scaglione ripartito 50% studio / 50% trattazione.",
+    "scaglioni": [
+      {
+        "fino_a": 5200,
+        "studio":     {"min": 106, "medio": 213, "max": 319},
+        "trattazione": {"min": 107, "medio": 212, "max": 319}
+      },
+      {
+        "fino_a": 26000,
+        "studio":     {"min": 355, "medio": 709, "max": 1064},
+        "trattazione": {"min": 354, "medio": 709, "max": 1063}
+      },
+      {
+        "fino_a": 52000,
+        "studio":     {"min": 584, "medio": 1168, "max": 1752},
+        "trattazione": {"min": 584, "medio": 1168, "max": 1752}
+      },
+      {
+        "fino_a": 260000,
+        "studio":     {"min": 833, "medio": 1665, "max": 2497},
+        "trattazione": {"min": 832, "medio": 1664, "max": 2497}
+      },
+      {
+        "fino_a": 520000,
+        "studio":     {"min": 1134, "medio": 2268, "max": 3402},
+        "trattazione": {"min": 1134, "medio": 2268, "max": 3402}
+      },
+      {
+        "oltre": true,
+        "studio":     {"min": 1134, "medio": 2268, "max": 3402},
+        "trattazione": {"min": 1134, "medio": 2268, "max": 3402}
+      }
     ]
   }
 }

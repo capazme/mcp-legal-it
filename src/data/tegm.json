@@ -1,0 +1,40 @@
+{
+  "_descrizione": "TEGM (Tasso Effettivo Globale Medio) — Banca d'Italia, ultimo aggiornamento 2025-Q1",
+  "_fonte": "Decreto MEF trimestrale ex L. 108/1996 art. 2 — Gazzetta Ufficiale",
+  "_formula_soglia": "min(TEGM × 1.25 + 4, TEGM + 8)",
+  "trimestre": "2025-Q1",
+  "categorie": {
+    "mutuo_prima_casa": {
+      "tegm": 4.41,
+      "descrizione": "Mutui ipotecari a tasso fisso"
+    },
+    "mutuo_tasso_variabile": {
+      "tegm": 4.87,
+      "descrizione": "Mutui ipotecari a tasso variabile"
+    },
+    "credito_personale": {
+      "tegm": 10.78,
+      "descrizione": "Prestiti personali e finalizzati"
+    },
+    "apertura_credito": {
+      "tegm": 11.82,
+      "descrizione": "Aperture di credito in conto corrente"
+    },
+    "leasing": {
+      "tegm": 7.35,
+      "descrizione": "Leasing immobiliare e strumentale"
+    },
+    "factoring": {
+      "tegm": 6.12,
+      "descrizione": "Factoring"
+    },
+    "carte_revolving": {
+      "tegm": 16.53,
+      "descrizione": "Carte di credito revolving"
+    },
+    "cessione_quinto": {
+      "tegm": 10.02,
+      "descrizione": "Cessione del quinto dello stipendio/pensione"
+    }
+  }
+}

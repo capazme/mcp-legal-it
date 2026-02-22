@@ -1,25 +1,25 @@
 {
   "_description": "Danno da perdita del rapporto parentale — Tabelle di Milano e Roma (2024)",
   "milano": {
-    "_note": "Tribunale di Milano — Osservatorio sulla giustizia civile (edizione 2024). Range min-max.",
+    "_note": "Tribunale di Milano — Osservatorio sulla giustizia civile, edizione giugno 2024. Rivalutazione ISTAT +16.2268% al 01/01/2024. Range min-max.",
     "rapporti": [
-      {"vittima": "figlio", "superstite": "genitore", "min": 168250, "max": 336500},
-      {"vittima": "genitore", "superstite": "figlio", "min": 168250, "max": 336500},
-      {"vittima": "coniuge", "superstite": "coniuge", "min": 168250, "max": 336500},
-      {"vittima": "fratello", "superstite": "fratello", "min": 25240, "max": 147070},
-      {"vittima": "nipote", "superstite": "nonno", "min": 25240, "max": 147070},
-      {"vittima": "nonno", "superstite": "nipote", "min": 25240, "max": 147070}
+      {"vittima": "figlio", "superstite": "genitore", "min": 195551.59, "max": 391103.18},
+      {"vittima": "genitore", "superstite": "figlio", "min": 195551.59, "max": 391103.18},
+      {"vittima": "coniuge", "superstite": "coniuge", "min": 195551.59, "max": 391103.18},
+      {"vittima": "fratello", "superstite": "fratello", "min": 28301.23, "max": 169830.60},
+      {"vittima": "nipote", "superstite": "nonno", "min": 28301.23, "max": 169830.60},
+      {"vittima": "nonno", "superstite": "nipote", "min": 28301.23, "max": 169830.60}
     ]
   },
   "roma": {
-    "_note": "Tribunale di Roma — criteri orientativi (edizione 2024). Punto base con coefficienti correttivi.",
+    "_note": "Tribunale di Roma — criteri orientativi, edizione 2024 (stima). Nessuna tabella ufficiale Roma 2024 pubblicata: valori scalati proporzionalmente con il fattore ISTAT +16.2268% applicato da Milano. Punto base con coefficienti correttivi.",
     "rapporti": [
-      {"vittima": "figlio", "superstite": "genitore", "min": 163990, "max": 327980},
-      {"vittima": "genitore", "superstite": "figlio", "min": 163990, "max": 327980},
-      {"vittima": "coniuge", "superstite": "coniuge", "min": 163990, "max": 327980},
-      {"vittima": "fratello", "superstite": "fratello", "min": 24598, "max": 143488},
-      {"vittima": "nipote", "superstite": "nonno", "min": 24598, "max": 143488},
-      {"vittima": "nonno", "superstite": "nipote", "min": 24598, "max": 143488}
+      {"vittima": "figlio", "superstite": "genitore", "min": 190498.26, "max": 380996.52},
+      {"vittima": "genitore", "superstite": "figlio", "min": 190498.26, "max": 380996.52},
+      {"vittima": "coniuge", "superstite": "coniuge", "min": 190498.26, "max": 380996.52},
+      {"vittima": "fratello", "superstite": "fratello", "min": 28588.47, "max": 166793.57},
+      {"vittima": "nipote", "superstite": "nonno", "min": 28588.47, "max": 166793.57},
+      {"vittima": "nonno", "superstite": "nipote", "min": 28588.47, "max": 166793.57}
     ]
   }
 }

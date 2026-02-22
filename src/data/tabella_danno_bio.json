@@ -1,16 +1,26 @@
 {
-  "_description": "Tabelle danno biologico — micropermanenti art. 139 CdA e macropermanenti (tabella unica nazionale DM 2024)",
+  "_description": "Tabelle danno biologico — micropermanenti art. 139 CdA (DM 2025) e macropermanenti (tabella unica nazionale DM 2024)",
   "micropermanenti": {
-    "_note": "Art. 139 Cod. Assicurazioni — aggiornamento 2024. Punto base €954.64, incremento 10.81% per anno di età",
-    "punto_base_2024": 954.64,
-    "incremento_percentuale_per_anno_sotto_undici": 10.81,
-    "eta_pivot": 11,
-    "decremento_per_anno_sopra_undici": 0.5,
-    "maggiorazione_morale_max_pct": 33.33,
-    "invalidita_temporanea_totale_giornaliera": 56.35,
-    "invalidita_temporanea_parziale_75_pct": 42.26,
-    "invalidita_temporanea_parziale_50_pct": 28.18,
-    "invalidita_temporanea_parziale_25_pct": 14.09
+    "_note": "Art. 139 Cod. Assicurazioni — DM 18/07/2025 (GU n.176 31/07/2025), in vigore da aprile 2025. Coefficienti progressione: Allegato A, art. 5 L.57/2001",
+    "punto_base": 963.40,
+    "coefficienti_punto": {
+      "1": 1.0,
+      "2": 1.1,
+      "3": 1.2,
+      "4": 1.3,
+      "5": 1.5,
+      "6": 1.7,
+      "7": 1.9,
+      "8": 2.1,
+      "9": 2.3
+    },
+    "decremento_eta_pct_per_anno": 0.5,
+    "eta_decremento_da": 10,
+    "maggiorazione_morale_max_pct": 20.0,
+    "invalidita_temporanea_totale_giornaliera": 56.18,
+    "invalidita_temporanea_parziale_75_pct": 42.14,
+    "invalidita_temporanea_parziale_50_pct": 28.09,
+    "invalidita_temporanea_parziale_25_pct": 14.05
   },
   "macropermanenti": {
     "_note": "Tabella unica nazionale ex art. 138 CdA (DM 2024). Valori punto per percentuale invalidità. I valori reali variano per età — qui riportati i valori medi indicativi.",
