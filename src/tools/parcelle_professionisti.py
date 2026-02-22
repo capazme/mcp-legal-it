@@ -60,7 +60,7 @@ _COMPENSI_CTU = {
 }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def fattura_professionista(
     imponibile: float,
     tipo: str = "ingegnere",
@@ -134,7 +134,7 @@ def fattura_professionista(
         }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def compenso_ctu(
     tipo_incarico: str,
     valore_causa: float | None = None,
@@ -193,7 +193,7 @@ def compenso_ctu(
     return risultato
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def spese_mediazione(
     valore_controversia: float,
     esito: str = "positivo",
@@ -250,7 +250,7 @@ def spese_mediazione(
     return risultato
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def compenso_orario(
     tariffa_oraria: float,
     ore: int,
@@ -292,7 +292,7 @@ def compenso_orario(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def ritenuta_acconto(
     compenso_lordo: float,
     aliquota: float = 20.0,
@@ -341,7 +341,7 @@ _CURATORE_MIN = 811.31
 _CURATORE_MAX = 405_656.80
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def compenso_curatore_fallimentare(
     attivo_realizzato: float,
     passivo_accertato: float,
@@ -405,7 +405,7 @@ def compenso_curatore_fallimentare(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def compenso_delegati_vendite(
     prezzo_aggiudicazione: float,
 ) -> dict:
@@ -450,7 +450,7 @@ def compenso_delegati_vendite(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def compenso_mediatore_familiare(
     n_incontri: int,
     tariffa_incontro: float = 120.0,
@@ -491,7 +491,7 @@ _ENASARCO_MINIMALE_TRIMESTRALE = 443.0
 _ENASARCO_MASSIMALE_ANNUO = 27_000.0
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def fattura_enasarco(
     provvigioni: float,
     tipo_agente: str = "monocommittente",
@@ -548,7 +548,7 @@ def fattura_enasarco(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def ricevuta_prestazione_occasionale(
     compenso_lordo: float,
     committente: str,
@@ -623,7 +623,7 @@ _TABELLA_MEDIAZIONE_DM150 = [
 ]
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_prof"})
 def tariffe_mediazione(
     valore_controversia: float,
 ) -> dict:

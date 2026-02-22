@@ -21,7 +21,7 @@ def _add_months(d: date, months: int) -> date:
     return date(year, month, day)
 
 
-@mcp.tool()
+@mcp.tool(tags={"penale"})
 def aumenti_riduzioni_pena(
     pena_base_mesi: float,
     aggravanti: list[dict] | None = None,
@@ -35,6 +35,7 @@ def aumenti_riduzioni_pena(
     Per simulare il patteggiamento usare pena_concordata; per la data fine pena usare fine_pena.
     Vigenza: Artt. 63-69 c.p. (aumenti/riduzioni); art. 99 c.p. (recidiva).
     Precisione: INDICATIVO (il giudice applica le variazioni discrezionalmente nei limiti di legge).
+    Chaining: → pena_concordata() per simulare un patteggiamento
 
     Args:
         pena_base_mesi: Pena base in mesi (es. 24 per 2 anni; range tipico: 1-240)
@@ -87,7 +88,7 @@ def aumenti_riduzioni_pena(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"penale"})
 def conversione_pena(
     importo: float,
     direzione: str = "detentiva_a_pecuniaria",
@@ -129,7 +130,7 @@ def conversione_pena(
         }
 
 
-@mcp.tool()
+@mcp.tool(tags={"penale"})
 def fine_pena(
     data_inizio_pena: str,
     pena_totale_mesi: float,
@@ -186,7 +187,7 @@ def fine_pena(
     return result
 
 
-@mcp.tool()
+@mcp.tool(tags={"penale"})
 def prescrizione_reato(
     pena_massima_anni: float,
     data_commissione: str,
@@ -202,6 +203,7 @@ def prescrizione_reato(
     il calcolo standard non è applicabile.
     Vigenza: Art. 157-161 c.p. (post riforma L. 251/2005 — ex Cirielli; e L. 134/2021 — Riforma Cartabia).
     Precisione: INDICATIVO (il calcolo esatto dipende da interruzioni e sospensioni specifiche del processo).
+    Chaining: → cite_law() per verificare il testo della norma incriminatrice
 
     Args:
         pena_massima_anni: Pena massima edittale del reato in anni (es. 5.0; range tipico: 0.25-30)
@@ -251,7 +253,7 @@ def prescrizione_reato(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"penale"})
 def pena_concordata(
     pena_base_mesi: float,
     attenuanti_generiche: bool = True,

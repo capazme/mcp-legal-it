@@ -64,7 +64,7 @@ def _days_in_year(year: int) -> int:
     return 366 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def rivalutazione_monetaria(
     capitale: float,
     data_inizio: str,
@@ -77,6 +77,7 @@ def rivalutazione_monetaria(
     sul capitale rivalutato per ciascun anno (metodo più favorevole al creditore).
     Vigenza: Indici FOI ISTAT base 2015=100, disponibili dal 1947 al mese più recente pubblicato.
     Precisione: ESATTO (indici ISTAT ufficiali); INDICATIVO se la data richiesta è oltre l'ultimo indice disponibile (usa l'anno più prossimo).
+    Spesso chiamato dopo danno_biologico_* o interessi_mora per attualizzare un importo.
 
     Args:
         capitale: Importo originario del credito in euro (€)
@@ -160,7 +161,7 @@ def rivalutazione_monetaria(
     return result
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def rivalutazione_mensile(
     importo_mensile: float,
     data_inizio: str,
@@ -234,7 +235,7 @@ def rivalutazione_mensile(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def adeguamento_canone_locazione(
     canone_annuo: float,
     data_stipula: str,
@@ -288,7 +289,7 @@ def adeguamento_canone_locazione(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def calcolo_inflazione(
     data_inizio: str,
     data_fine: str,
@@ -334,7 +335,7 @@ def calcolo_inflazione(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def rivalutazione_tfr(
     retribuzione_annua: float,
     anni_servizio: int,
@@ -412,7 +413,7 @@ def rivalutazione_tfr(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def interessi_vari_capitale_rivalutato(
     capitale: float,
     data_inizio: str,
@@ -489,7 +490,7 @@ def interessi_vari_capitale_rivalutato(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def lettera_adeguamento_canone(
     locatore: str,
     conduttore: str,
@@ -565,7 +566,7 @@ def lettera_adeguamento_canone(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def calcolo_devalutazione(
     importo_attuale: float,
     data_attuale: str,
@@ -610,7 +611,7 @@ def calcolo_devalutazione(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def rivalutazione_storica(
     importo: float,
     anno_partenza: int,
@@ -673,7 +674,7 @@ def rivalutazione_storica(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def variazioni_istat(
     anno_inizio: int,
     anno_fine: int,
@@ -740,7 +741,7 @@ def variazioni_istat(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def rivalutazione_annuale_media(
     importo: float,
     data_inizio: str,
@@ -793,7 +794,7 @@ def rivalutazione_annuale_media(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"rivalutazione"})
 def inflazione_titoli_stato(
     capitale_investito: float,
     rendimento_lordo_annuo_pct: float,

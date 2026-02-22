@@ -211,11 +211,14 @@ async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "
         return f"**Errore Brocardi**: {e}"
 
 
-@mcp.tool()
+@mcp.tool(tags={"normativa"})
 async def cite_law(reference: str, include_annotations: bool = False) -> str:
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
     Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), Brocardi (annotazioni).
+
+    Dopo questo tool: cerca_brocardi() per approfondimenti dottrinali, cerca_giurisprudenza() per precedenti.
+    Restituisce: testo ufficiale dell'articolo da Normattiva/EUR-Lex con URL fonte.
 
     Args:
         reference: Riferimento normativo, es. "art. 13 GDPR", "art. 2043 c.c.",
@@ -226,11 +229,12 @@ async def cite_law(reference: str, include_annotations: bool = False) -> str:
     return await _cite_law_impl(reference, include_annotations)
 
 
-@mcp.tool()
+@mcp.tool(tags={"normativa"})
 async def fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupero a basso livello di un articolo con parametri espliciti da Normattiva o EUR-Lex.
     Usare cite_law() per il caso comune; questo tool è per quando serve controllo preciso
     sul tipo atto, anno e numero (es. ambiguità di abbreviazione).
+    Restituisce: testo dell'articolo da Normattiva/EUR-Lex con URL fonte.
 
     Args:
         act_type: Tipo di atto normativo, es. "decreto legislativo", "regolamento ue",
@@ -242,10 +246,11 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
     return await _fetch_law_article_impl(act_type, article, date, act_number)
 
 
-@mcp.tool()
+@mcp.tool(tags={"normativa"})
 async def fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupera le annotazioni Brocardi per un articolo: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali. Da usare per approfondire la norma già recuperata con cite_law().
+    Restituisce: ratio legis, spiegazione dottrinale, massime giurisprudenziali da Brocardi.
 
     Args:
         act_type: Tipo di atto normativo, es. "codice civile", "codice penale", "costituzione"
@@ -291,7 +296,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
     return "\n".join(parts)
 
 
-@mcp.tool()
+@mcp.tool(tags={"normativa"})
 async def cerca_brocardi(reference: str) -> str:
     """Cerca annotazioni Brocardi per un articolo di legge: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali con riferimenti strutturati alla Cassazione, relazioni storiche,
@@ -300,6 +305,8 @@ async def cerca_brocardi(reference: str) -> str:
     Rispetto a fetch_law_annotations, accetta un riferimento in formato naturale (come cite_law)
     e restituisce anche i riferimenti strutturati alle sentenze della Cassazione
     (utilizzabili con leggi_sentenza per recuperare il testo completo).
+    Dopo questo tool: leggi_sentenza() per il testo completo delle sentenze citate nelle massime.
+    Restituisce: ratio legis, spiegazione, massime con numeri sentenza strutturati, relazioni storiche.
 
     Args:
         reference: Riferimento normativo, es. "art. 2043 c.c.", "art. 13 Costituzione",
@@ -452,12 +459,13 @@ async def _download_law_pdf_impl(reference: str) -> str:
         return f"**Errore** generazione PDF: {e}"
 
 
-@mcp.tool()
+@mcp.tool(tags={"normativa"})
 async def download_law_pdf(reference: str) -> str:
     """Scarica o genera il PDF completo di una legge.
 
     Per regolamenti/direttive UE: scarica il PDF ufficiale da EUR-Lex.
     Per leggi italiane: genera un PDF dal testo ufficiale recuperato da Normattiva.
+    Restituisce: path al file PDF salvato in /tmp con fonte e dimensione.
 
     Args:
         reference: Nome dell'atto o riferimento normativo, es. "GDPR", "D.Lgs. 196/2003",

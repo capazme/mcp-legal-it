@@ -35,7 +35,7 @@ _TASSI_BUONI = {
 }
 
 
-@mcp.tool()
+@mcp.tool(tags={"investimenti"})
 def rendimento_bot(
     valore_nominale: float,
     prezzo_acquisto: float,
@@ -80,7 +80,7 @@ def rendimento_bot(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"investimenti"})
 def rendimento_btp(
     valore_nominale: float,
     prezzo_acquisto: float,
@@ -148,7 +148,7 @@ def rendimento_btp(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"investimenti"})
 def pronti_termine(
     capitale: float,
     tasso_lordo_pct: float,
@@ -190,7 +190,7 @@ def pronti_termine(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"investimenti"})
 def rendimento_buoni_postali(
     importo: float,
     tipo: str = "ordinario",
@@ -264,7 +264,7 @@ def rendimento_buoni_postali(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"investimenti"})
 def confronto_investimenti(
     importo: float,
     investimenti: list[dict],

@@ -64,7 +64,7 @@ def _detrazione_pensione(reddito: float) -> float:
     return 0
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def calcolo_irpef(
     reddito_complessivo: float,
     tipo_reddito: str = "dipendente",
@@ -137,7 +137,7 @@ def calcolo_irpef(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def regime_forfettario(
     ricavi: float,
     coefficiente_redditivita: float = 78,
@@ -197,7 +197,7 @@ def regime_forfettario(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def calcolo_tfr(
     retribuzione_annua_lorda: float,
     anni_servizio: int,
@@ -255,7 +255,7 @@ def calcolo_tfr(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def ravvedimento_operoso(
     imposta_dovuta: float,
     giorni_ritardo: int,
@@ -337,7 +337,7 @@ def ravvedimento_operoso(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def assegno_unico(
     isee: float,
     n_figli: int,
@@ -436,7 +436,7 @@ def assegno_unico(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def detrazione_figli(
     reddito_complessivo: float,
     n_figli_over21: int,
@@ -489,7 +489,7 @@ def detrazione_figli(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def detrazione_coniuge(reddito_complessivo: float) -> dict:
     """Calcola la detrazione IRPEF per coniuge a carico (art. 12 TUIR).
     Il coniuge è a carico se il suo reddito non supera €2.840,51 (o €4.000 se under 24).
@@ -525,7 +525,7 @@ def detrazione_coniuge(reddito_complessivo: float) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def detrazione_altri_familiari(
     reddito_complessivo: float,
     n_familiari: int,
@@ -560,7 +560,7 @@ def detrazione_altri_familiari(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def detrazione_lavoro_dipendente(
     reddito_complessivo: float,
     giorni_lavoro: int = 365,
@@ -601,7 +601,7 @@ def detrazione_lavoro_dipendente(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def detrazione_pensione(
     reddito_complessivo: float,
     giorni: int = 365,
@@ -641,7 +641,7 @@ def detrazione_pensione(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def detrazione_assegno_coniuge(reddito_complessivo: float) -> dict:
     """Calcola la detrazione per assegno periodico percepito dal coniuge separato o divorziato.
     L'assegno periodico è reddito assimilato al lavoro dipendente per il percipiente
@@ -677,7 +677,7 @@ def detrazione_assegno_coniuge(reddito_complessivo: float) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def detrazione_canone_locazione(
     reddito_complessivo: float,
     tipo_contratto: str = "libero",
@@ -725,7 +725,7 @@ def detrazione_canone_locazione(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def acconto_irpef(
     imposta_anno_precedente: float,
     metodo: str = "storico",
@@ -776,7 +776,7 @@ def acconto_irpef(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
     """Calcola l'acconto cedolare secca (primo e secondo acconto) con importi e scadenze.
     Vigenza: art. 3, comma 4, D.Lgs. 23/2011; acconto totale = 100% della cedolare secca
@@ -816,7 +816,7 @@ def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"fiscale"})
 def rateizzazione_imposte(
     importo_totale: float,
     n_rate: int,
