@@ -5,7 +5,7 @@ Setup interattivo per MCP Legal IT.
 Installa i profili selezionati in Claude Desktop e/o Claude Code.
 Pensato per essere eseguito con:
 
-    python3 setup.py
+    python3 install.py
 
 Nessun argomento richiesto — il setup è completamente guidato.
 """
@@ -420,7 +420,7 @@ def summary(profiles: list[str], targets: list[str]) -> None:
         print(f"    {c(GREEN, p):>25s}  {desc} ({tools} tool)")
 
     print()
-    print(c(DIM, "  Per cambiare profili in futuro, riesegui: python3 setup.py"))
+    print(c(DIM, "  Per cambiare profili in futuro, riesegui: python3 install.py"))
     print()
 
 
