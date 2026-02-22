@@ -155,7 +155,7 @@ async def _ultime_pronunce_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(tags={"giurisprudenza"})
 async def leggi_sentenza(
     numero: int,
     anno: int,
@@ -167,6 +167,7 @@ async def leggi_sentenza(
     USARE SEMPRE quando l'utente menziona una sentenza con numero e anno già noti
     (es. "Cass. n. 10787/2024", "Sez. III n. 10787 del 22 aprile 2024").
     NON usare web search per sentenze identificate — questo tool è diretto e ufficiale.
+    Restituisce: testo completo della sentenza con dispositivo, massima ufficiale, e metadati.
 
     Args:
         numero: Numero della decisione (es. 10787)
@@ -177,7 +178,7 @@ async def leggi_sentenza(
     return await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio)
 
 
-@mcp.tool()
+@mcp.tool(tags={"giurisprudenza"})
 async def cerca_giurisprudenza(
     query: str,
     archivio: str = "tutti",
@@ -191,6 +192,8 @@ async def cerca_giurisprudenza(
 
     Usare per trovare decisioni su un tema quando non si conosce il numero specifico.
     Una volta trovato il numero, usare leggi_sentenza() per il testo completo.
+    Dopo questo tool: leggi_sentenza() per leggere il testo integrale delle decisioni trovate.
+    Restituisce: lista di decisioni con numero, data, sezione, dispositivo e snippet matching.
 
     Args:
         query: Testo da cercare nel corpo delle decisioni
@@ -207,7 +210,7 @@ async def cerca_giurisprudenza(
     )
 
 
-@mcp.tool()
+@mcp.tool(tags={"giurisprudenza"})
 async def giurisprudenza_su_norma(
     riferimento: str,
     archivio: str = "tutti",
@@ -217,6 +220,8 @@ async def giurisprudenza_su_norma(
 
     Workflow Brocardi→Italgiure: usa cerca_brocardi() per ottenere le massime con
     riferimenti strutturati, poi questo tool per leggere le sentenze complete.
+    Dopo questo tool: leggi_sentenza() per il testo completo delle decisioni trovate.
+    Restituisce: decisioni della Cassazione che citano la norma, con numero e snippet.
 
     Args:
         riferimento: Riferimento normativo (es. "art. 2043 c.c.", "art. 13 GDPR", "art. 6 D.Lgs. 231/2001")
@@ -226,7 +231,7 @@ async def giurisprudenza_su_norma(
     return await _giurisprudenza_su_norma_impl(riferimento, archivio=archivio, max_risultati=max_risultati)
 
 
-@mcp.tool()
+@mcp.tool(tags={"giurisprudenza"})
 async def ultime_pronunce(
     materia: str = "",
     sezione: str = "",
@@ -235,6 +240,9 @@ async def ultime_pronunce(
     max_risultati: int = 10,
 ) -> str:
     """Ultime pronunce depositate dalla Cassazione, con filtri opzionali.
+
+    Dopo questo tool: leggi_sentenza() per leggere il testo integrale di una decisione specifica.
+    Restituisce: lista cronologica delle ultime decisioni depositate con metadati e dispositivo.
 
     Args:
         materia: Filtro per materia

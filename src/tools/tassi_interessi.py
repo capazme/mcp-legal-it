@@ -116,7 +116,7 @@ def _days_in_year(year: int) -> int:
     return 366 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def interessi_legali(
     capitale: float,
     data_inizio: str,
@@ -129,6 +129,7 @@ def interessi_legali(
     Tasso legale vigente 2024: 2.5% — per interessi in corso di causa usare interessi_corso_causa.
     Vigenza: Art. 1284 c.c.; tassi aggiornati annualmente con DM MEF (dal 1° gennaio di ogni anno).
     Precisione: ESATTO per tassi legali storici (dati tabellari ministeriali).
+    Spesso chiamato come ultimo step nel workflow sinistro dopo rivalutazione_monetaria().
 
     Args:
         capitale: Importo del capitale in euro (€)
@@ -188,7 +189,7 @@ def interessi_legali(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def interessi_mora(
     capitale: float,
     data_inizio: str,
@@ -200,6 +201,7 @@ def interessi_mora(
     Per crediti tra privati usare interessi_legali. Per interessi in corso di causa: interessi_corso_causa.
     Vigenza: D.Lgs. 231/2002 (recepimento Dir. 2011/7/UE); tasso BCE aggiornato semestralmente (gen e lug).
     Precisione: ESATTO per tassi storici pubblicati dalla BCE; INDICATIVO per periodi futuri.
+    Chaining: → rivalutazione_monetaria() → decreto_ingiuntivo() → parcella_avvocato_civile()
 
     Args:
         capitale: Importo del credito commerciale in euro (€)
@@ -249,7 +251,7 @@ def interessi_mora(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def interessi_tasso_fisso(
     capitale: float,
     tasso_annuo: float,
@@ -298,7 +300,7 @@ def interessi_tasso_fisso(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def calcolo_ammortamento(
     capitale: float,
     tasso_annuo: float,
@@ -372,7 +374,7 @@ def calcolo_ammortamento(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def verifica_usura(
     tasso_applicato: float,
     tipo_operazione: str = "mutuo_prima_casa",
@@ -422,7 +424,7 @@ def verifica_usura(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def interessi_acconti(
     capitale: float,
     data_inizio: str,
@@ -502,7 +504,7 @@ def interessi_acconti(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def calcolo_maggior_danno(
     capitale: float,
     data_inizio: str,
@@ -577,7 +579,7 @@ def calcolo_maggior_danno(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def interessi_corso_causa(
     capitale: float,
     data_citazione: str,
@@ -643,7 +645,7 @@ def interessi_corso_causa(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def calcolo_surroga_mutuo(
     debito_residuo: float,
     rata_attuale: float,
@@ -713,7 +715,7 @@ def calcolo_surroga_mutuo(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"interessi"})
 def calcolo_taeg(
     capitale: float,
     rate: int,

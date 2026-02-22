@@ -49,7 +49,7 @@ def _interpola_punto_base(percentuale: int) -> float:
     return punti[soglie[-1]]
 
 
-@mcp.tool()
+@mcp.tool(tags={"danni"})
 def danno_biologico_micro(
     percentuale_invalidita: int,
     eta_vittima: int,
@@ -67,6 +67,7 @@ def danno_biologico_micro(
     Usa questo quando: sinistro stradale o sanitario con invalidità permanente tra 1% e 9%.
     NON usare per: invalidità ≥10% → usa danno_biologico_macro().
     NON usare per: danno non patrimoniale con tutte le componenti → usa danno_non_patrimoniale().
+    Chaining: → danno_non_patrimoniale() → rivalutazione_monetaria() → interessi_legali()
 
     Args:
         percentuale_invalidita: Percentuale di invalidità permanente (1-9)
@@ -143,7 +144,7 @@ def danno_biologico_micro(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"danni"})
 def danno_biologico_macro(
     percentuale_invalidita: int,
     eta_vittima: int,
@@ -158,6 +159,7 @@ def danno_biologico_macro(
     Usa questo quando: sinistro stradale o sanitario con invalidità permanente tra 10% e 100%.
     NON usare per: invalidità <10% → usa danno_biologico_micro().
     NON usare per: danno non patrimoniale con tutte le componenti → usa danno_non_patrimoniale().
+    Chaining: → danno_non_patrimoniale() → rivalutazione_monetaria() → interessi_legali()
 
     Args:
         percentuale_invalidita: Percentuale di invalidità permanente (10-100)
@@ -194,7 +196,7 @@ def danno_biologico_macro(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"danni"})
 def danno_parentale(
     vittima: str,
     superstite: str,
@@ -208,6 +210,7 @@ def danno_parentale(
 
     Usa questo quando: richiesta risarcimento per morte del congiunto in sinistro o illecito.
     NON usare per: danno biologico del superstite (es. disturbo dell'adattamento) → usa danno_biologico_micro/macro().
+    Chaining: → rivalutazione_monetaria() per attualizzare l'importo
 
     Args:
         vittima: Ruolo della vittima deceduta (figlio, genitore, coniuge, fratello, nipote, nonno)
@@ -255,7 +258,7 @@ def danno_parentale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"danni"})
 def menomazioni_plurime(
     percentuali: list[float],
 ) -> dict:
@@ -306,7 +309,7 @@ def menomazioni_plurime(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"danni"})
 def risarcimento_inail(
     retribuzione_annua: float,
     percentuale_invalidita: float,
@@ -406,7 +409,7 @@ def risarcimento_inail(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"danni"})
 def danno_non_patrimoniale(
     percentuale_invalidita: int,
     eta_vittima: int,
@@ -428,6 +431,7 @@ def danno_non_patrimoniale(
     NON usare per: solo danno biologico micro → usa danno_biologico_micro() (più dettagliato).
     NON usare per: solo danno biologico macro → usa danno_biologico_macro().
     NON usare per: danno da perdita del rapporto parentale → usa danno_parentale().
+    Chaining: → rivalutazione_monetaria() per attualizzare → interessi_legali() per gli interessi compensativi
 
     Args:
         percentuale_invalidita: Percentuale di invalidità permanente (1-100)
@@ -511,7 +515,7 @@ def danno_non_patrimoniale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"danni"})
 def equo_indennizzo(
     categoria_tabella: str,
     percentuale_invalidita: float,

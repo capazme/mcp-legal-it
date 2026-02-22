@@ -95,7 +95,7 @@ def _lookup_codice_catastale(comune: str) -> str | None:
     return _STATI_ESTERI.get(comune_up)
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def codice_fiscale(
     cognome: str,
     nome: str,
@@ -152,7 +152,7 @@ def codice_fiscale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
     """Decodifica un codice fiscale italiano a 16 caratteri estraendo i dati anagrafici.
 
@@ -225,7 +225,7 @@ def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def verifica_iban(iban: str) -> dict:
     """Valida un IBAN italiano (27 caratteri) ed estrae le componenti ABI, CAB e conto.
 
@@ -309,7 +309,7 @@ def _get_holidays(year: int) -> dict[date, str]:
     return holidays
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def conta_giorni(
     data_inizio: str,
     data_fine: str,
@@ -378,7 +378,7 @@ def conta_giorni(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def scorporo_iva(
     importo_ivato: float,
     aliquota: float = 22,
@@ -408,7 +408,7 @@ def scorporo_iva(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def decurtazione_punti_patente(violazione: str) -> dict:
     """Restituisce punti decurtati, sanzione pecuniaria e sospensione patente per violazione CdS.
 
@@ -441,7 +441,7 @@ def decurtazione_punti_patente(violazione: str) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def tasso_alcolemico(
     sesso: str,
     peso_kg: float,
@@ -520,7 +520,7 @@ def tasso_alcolemico(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def prescrizione_diritti(
     tipo_diritto: str,
     data_evento: str,
@@ -579,7 +579,7 @@ def prescrizione_diritti(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def calcolo_tempo_trascorso(
     data_inizio: str,
     data_fine: str | None = None,
@@ -644,7 +644,7 @@ def calcolo_tempo_trascorso(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def verifica_partita_iva(partita_iva: str) -> dict:
     """Valida formalmente una partita IVA italiana tramite algoritmo di controllo (11 cifre).
 
@@ -688,7 +688,7 @@ def verifica_partita_iva(partita_iva: str) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def calcolo_eta_anagrafica(
     data_nascita: str,
     data_riferimento: str | None = None,
@@ -764,7 +764,7 @@ def calcolo_eta_anagrafica(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"utility"})
 def ricerca_codici_ateco(keyword: str) -> dict:
     """Ricerca codici ATECO per parola chiave, con coefficiente di redditività per il regime forfettario.
 

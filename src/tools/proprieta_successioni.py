@@ -15,7 +15,7 @@ with open(_DATA / "usufrutto_coefficienti.json") as f:
     _USUFRUTTO = json.load(f)
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def calcolo_eredita(
     massa_ereditaria: float,
     eredi: dict,
@@ -114,7 +114,7 @@ def calcolo_eredita(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def imposte_successione(
     valore_beni: float,
     parentela: str,
@@ -177,7 +177,7 @@ def imposte_successione(
     return result
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def calcolo_usufrutto(
     valore_piena_proprieta: float,
     eta_usufruttuario: int,
@@ -219,7 +219,7 @@ def calcolo_usufrutto(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def calcolo_imu(
     rendita_catastale: float,
     categoria: str,
@@ -300,7 +300,7 @@ def calcolo_imu(
     return result
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def imposte_compravendita(
     prezzo: float,
     tipo_immobile: str = "abitazione",
@@ -386,7 +386,7 @@ def imposte_compravendita(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def pensione_reversibilita(
     pensione_de_cuius: float,
     beneficiari: dict,
@@ -468,7 +468,7 @@ def pensione_reversibilita(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def grado_parentela(
     relazione: str,
 ) -> dict:
@@ -542,7 +542,7 @@ def grado_parentela(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def calcolo_valore_catastale(
     rendita_catastale: float,
     categoria: str,
@@ -628,7 +628,7 @@ def calcolo_valore_catastale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def calcolo_superficie_commerciale(
     superficie_calpestabile: float,
     balconi: float = 0,
@@ -690,7 +690,7 @@ def calcolo_superficie_commerciale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def cedolare_secca(
     canone_annuo: float,
     tipo_contratto: str = "libero",
@@ -749,7 +749,7 @@ def cedolare_secca(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def imposta_registro_locazioni(
     canone_annuo: float,
     durata_anni: int = 4,
@@ -799,7 +799,7 @@ def imposta_registro_locazioni(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"proprieta"})
 def spese_condominiali(
     importo_totale: float,
     millesimi_proprietario: float,

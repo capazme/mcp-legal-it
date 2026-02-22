@@ -44,7 +44,7 @@ def _find_scaglione_volontaria(valore_causa: float) -> dict:
     return _PARAMETRI["volontaria_giurisdizione"]["scaglioni"][-1]
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv", "sinistro", "credito"})
 def parcella_avvocato_civile(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -53,6 +53,7 @@ def parcella_avvocato_civile(
     """Calcola compenso tabellare avvocato per contenzioso civile.
     Vigenza: DM 55/2014 aggiornato DM 147/2022 — Parametri forensi.
     Precisione: INDICATIVO (valori medi tabellari; il giudice può variare ±50% ex art. 4 DM 55/2014).
+    Spesso chiamato come ultimo step nel workflow recupero crediti dopo decreto_ingiuntivo().
 
     Args:
         valore_causa: Valore della causa in euro (€)
@@ -89,7 +90,7 @@ def parcella_avvocato_civile(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def parcella_avvocato_penale(
     competenza: str,
     fasi: list[str] | None = None,
@@ -139,7 +140,7 @@ def parcella_avvocato_penale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def parcella_stragiudiziale(
     valore_pratica: float,
     livello: str = "medio",
@@ -168,7 +169,7 @@ def parcella_stragiudiziale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def parcella_volontaria_giurisdizione(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -217,7 +218,7 @@ def parcella_volontaria_giurisdizione(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def preventivo_volontaria_giurisdizione(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -305,7 +306,7 @@ def preventivo_volontaria_giurisdizione(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def fattura_avvocato(
     imponibile: float,
     regime: str = "ordinario",
@@ -358,7 +359,7 @@ def fattura_avvocato(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def nota_spese(
     voci: list[dict],
 ) -> dict:
@@ -439,7 +440,7 @@ def _contributo_unificato(valore_causa: float) -> float:
     return _SPESE_VIVE_STIMATE["contributo_unificato"][-1][1]
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def preventivo_civile(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -546,7 +547,7 @@ def preventivo_civile(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def preventivo_stragiudiziale(
     valore_pratica: float,
     livello: str = "medio",
@@ -612,7 +613,7 @@ def preventivo_stragiudiziale(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def spese_trasferta_avvocati(
     km_distanza: float,
     ore_assenza: float,
@@ -706,7 +707,7 @@ _NOTULA_PROCEDIMENTI = {
 }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def modello_notula(
     tipo_procedimento: str,
     avvocato: str,
@@ -820,7 +821,7 @@ def modello_notula(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"parcelle_avv"})
 def calcolo_notula_penale(
     competenza: str,
     fasi: list[str] | None = None,

@@ -90,7 +90,7 @@ def _calcola_cu_base(valore_causa: float, tipo_procedimento: str) -> float:
     return _lookup_scaglione(civile["cognizione"], valore_causa)
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario", "credito", "sinistro"})
 def contributo_unificato(
     valore_causa: float,
     tipo_procedimento: str = "cognizione",
@@ -99,6 +99,7 @@ def contributo_unificato(
     """Calcola il Contributo Unificato per valore della causa, tipo di procedimento e grado.
     Vigenza: DPR 115/2002 — Testo Unico Spese di Giustizia (tabelle aggiornate al 2024).
     Precisione: ESATTO (scaglioni per valore; moltiplicatori per appello e cassazione).
+    Spesso chiamato insieme a decreto_ingiuntivo() o prima di avviare una causa civile.
 
     Args:
         valore_causa: Valore della causa in euro (€)
@@ -140,7 +141,7 @@ def contributo_unificato(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def diritti_copia(
     n_pagine: int,
     tipo: str = "semplice",
@@ -218,7 +219,7 @@ def diritti_copia(
     return result
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario", "credito"})
 def pignoramento_stipendio(
     stipendio_netto_mensile: float,
     tipo_credito: str = "ordinario",
@@ -279,7 +280,7 @@ def pignoramento_stipendio(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario", "credito"})
 def sollecito_pagamento(
     creditore: str,
     debitore: str,
@@ -365,7 +366,7 @@ Distinti saluti,
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario", "credito"})
 def decreto_ingiuntivo(
     creditore: str,
     debitore: str,
@@ -376,6 +377,7 @@ def decreto_ingiuntivo(
     """Genera bozza di ricorso per decreto ingiuntivo con calcolo della competenza per valore e CU.
     Vigenza: artt. 633-656 c.p.c.; D.Lgs. 116/2017 (soglia GdP €10.000); DPR 115/2002 (CU monitorio).
     Precisione: INDICATIVO per la bozza (richiede completamento con dati specifici del caso).
+    Chaining: → contributo_unificato() per calcolare le spese di giustizia → parcella_avvocato_civile()
 
     Args:
         creditore: Nome o ragione sociale del creditore
@@ -463,7 +465,7 @@ Avv. [LEGALE]"""
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def calcolo_hash(testo: str) -> dict:
     """Calcola l'impronta hash SHA-256 di un testo per il deposito telematico PCT.
     Vigenza: DM 44/2011 — Specifiche tecniche PCT (algoritmo SHA-256 obbligatorio).
@@ -482,7 +484,7 @@ def calcolo_hash(testo: str) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def tassazione_atti(
     tipo_atto: str,
     valore: float,
@@ -550,7 +552,7 @@ def tassazione_atti(
 # ---------------------------------------------------------------------------
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def copie_processo_tributario(
     n_pagine: int,
     tipo: str = "semplice",
@@ -585,7 +587,7 @@ def copie_processo_tributario(
     return result
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def note_iscrizione_ruolo(
     tipo_procedimento: str,
     valore_causa: float | None = None,
@@ -638,7 +640,7 @@ def note_iscrizione_ruolo(
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def codici_iscrizione_ruolo(materia: str) -> dict:
     """Ricerca il codice oggetto per l'iscrizione a ruolo di cause civili.
     Vigenza: provvedimenti DGSIA — Codici oggetto iscrizione a ruolo (tabella aggiornata).
@@ -663,7 +665,7 @@ def codici_iscrizione_ruolo(materia: str) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def fascicolo_di_parte(
     avvocato: str,
     parte: str,
@@ -718,7 +720,7 @@ INDICE DOCUMENTI:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def procura_alle_liti(
     parte: str,
     avvocato: str,
@@ -783,7 +785,7 @@ Avv. {avvocato}"""
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def attestazione_conformita(
     avvocato: str,
     tipo_documento: str,
@@ -841,7 +843,7 @@ Avv. {avvocato}
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def relata_notifica_pec(
     avvocato: str,
     destinatario: str,
@@ -905,7 +907,7 @@ Avv. {avvocato}
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def indice_documenti(documenti: list[dict]) -> dict:
     """Genera bozza di indice numerato dei documenti per deposito telematico PCT.
     Vigenza: specifiche tecniche PCT DM 44/2011 — elenco allegati al deposito.
@@ -939,7 +941,7 @@ def indice_documenti(documenti: list[dict]) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def note_trattazione_scritta(
     avvocato: str,
     parte: str,
@@ -1010,7 +1012,7 @@ Avv. {avvocato}"""
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario", "credito"})
 def sfratto_morosita(
     locatore: str,
     conduttore: str,
@@ -1086,7 +1088,7 @@ Avv. _______________"""
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario", "credito"})
 def atto_di_precetto(
     creditore: str,
     debitore: str,
@@ -1155,7 +1157,7 @@ Avv. _______________
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario", "credito"})
 def nota_precisazione_credito(
     creditore: str,
     debitore: str,
@@ -1230,7 +1232,7 @@ Avv. _______________"""
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def dichiarazione_553_cpc(
     terzo_pignorato: str,
     debitore: str,
@@ -1320,7 +1322,7 @@ Ai sensi dell'art. 547 co. 3 c.p.c., in caso di mancata comparizione all'udienza
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def testimonianza_scritta(
     teste: str,
     capitoli_prova: list[str],
@@ -1404,7 +1406,7 @@ Timbro e firma: _______________"""
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def istanza_visibilita_fascicolo(
     avvocato: str,
     parte: str,
@@ -1472,7 +1474,7 @@ Avv. {avvocato}
     }
 
 
-@mcp.tool()
+@mcp.tool(tags={"giudiziario"})
 def cerca_ufficio_giudiziario(
     comune: str,
     tipo: str = "tribunale",

@@ -91,7 +91,7 @@ async def _ultimi_provvedimenti_garante_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(tags={"privacy"})
 async def cerca_provvedimenti_garante(
     query: str,
     tipologia: str = "",
@@ -104,6 +104,8 @@ async def cerca_provvedimenti_garante(
     USARE quando si parla di: sanzioni GDPR, provvedimenti del Garante, cookie policy,
     data breach, profilazione, videosorveglianza, trattamento dati, AI e privacy.
     Dopo aver trovato un documento, usare leggi_provvedimento_garante() per il testo completo.
+    Dopo questo tool: leggi_provvedimento_garante() con il DocWeb ID per il testo completo.
+    Restituisce: lista provvedimenti con DocWeb ID, data, tipologia, oggetto e snippet.
 
     Args:
         query: Testo da cercare (es. "data breach notifica", "cookie consenso", "intelligenza artificiale")
@@ -118,12 +120,13 @@ async def cerca_provvedimenti_garante(
     )
 
 
-@mcp.tool()
+@mcp.tool(tags={"privacy"})
 async def leggi_provvedimento_garante(docweb_id: int) -> str:
     """Legge il testo completo di un provvedimento del Garante Privacy tramite DocWeb ID.
 
     Usare dopo cerca_provvedimenti_garante() o ultimi_provvedimenti_garante() per leggere
     il testo completo. Il DocWeb ID è riportato in ogni risultato della ricerca.
+    Restituisce: testo integrale del provvedimento con titolo, data, e link alla fonte GPDP.
 
     Esempi di DocWeb ID noti:
     - 9677876: Linee guida cookie 2021
@@ -136,12 +139,15 @@ async def leggi_provvedimento_garante(docweb_id: int) -> str:
     return await _leggi_provvedimento_garante_impl(docweb_id)
 
 
-@mcp.tool()
+@mcp.tool(tags={"privacy"})
 async def ultimi_provvedimenti_garante(
     tipologia: str = "",
     max_risultati: int = 10,
 ) -> str:
     """Ultimi provvedimenti depositati dal Garante Privacy, con filtro opzionale per tipologia.
+
+    Dopo questo tool: leggi_provvedimento_garante() con il DocWeb ID per il testo completo.
+    Restituisce: lista cronologica degli ultimi provvedimenti con DocWeb ID e metadati.
 
     Args:
         tipologia: Filtra per tipo (es. "provvedimento", "ordinanza", "parere", "linee guida")
