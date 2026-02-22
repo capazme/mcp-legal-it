@@ -1,0 +1,21 @@
+{
+  "cellulare": {"punti": 5, "articolo": "Art. 173 CdS", "descrizione": "Uso del telefono alla guida", "sanzione_accessoria": "Sospensione patente in caso di recidiva"},
+  "cintura": {"punti": 5, "articolo": "Art. 172 CdS", "descrizione": "Mancato uso della cintura di sicurezza"},
+  "semaforo_rosso": {"punti": 6, "articolo": "Art. 146 CdS", "descrizione": "Passaggio con semaforo rosso", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
+  "eccesso_velocita_10": {"punti": 0, "articolo": "Art. 142 c.6 CdS", "descrizione": "Eccesso di velocita fino a 10 km/h"},
+  "eccesso_velocita_40": {"punti": 3, "articolo": "Art. 142 c.7 CdS", "descrizione": "Eccesso di velocita tra 10 e 40 km/h"},
+  "eccesso_velocita_60": {"punti": 6, "articolo": "Art. 142 c.8 CdS", "descrizione": "Eccesso di velocita tra 40 e 60 km/h", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
+  "eccesso_velocita_oltre_60": {"punti": 10, "articolo": "Art. 142 c.9 CdS", "descrizione": "Eccesso di velocita oltre 60 km/h", "sanzione_accessoria": "Sospensione patente 6-12 mesi"},
+  "guida_ebbra": {"punti": 10, "articolo": "Art. 186 CdS", "descrizione": "Guida in stato di ebbrezza (tasso > 0.5 g/l)", "sanzione_accessoria": "Sospensione/revoca patente"},
+  "sorpasso": {"punti": 4, "articolo": "Art. 148 CdS", "descrizione": "Sorpasso vietato o pericoloso"},
+  "precedenza": {"punti": 8, "articolo": "Art. 145 CdS", "descrizione": "Mancata precedenza", "sanzione_accessoria": "Sospensione patente in caso di incidente"},
+  "stop": {"punti": 6, "articolo": "Art. 145 CdS", "descrizione": "Mancato arresto al segnale di stop"},
+  "contromano": {"punti": 10, "articolo": "Art. 143 CdS", "descrizione": "Circolazione contromano", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
+  "strisce_pedonali": {"punti": 8, "articolo": "Art. 191 CdS", "descrizione": "Mancata precedenza ai pedoni sulle strisce"},
+  "distanza_sicurezza": {"punti": 5, "articolo": "Art. 149 CdS", "descrizione": "Mancato rispetto della distanza di sicurezza"},
+  "casco": {"punti": 5, "articolo": "Art. 171 CdS", "descrizione": "Mancato uso del casco"},
+  "fuga_incidente": {"punti": 10, "articolo": "Art. 189 CdS", "descrizione": "Fuga dopo incidente con danni", "sanzione_accessoria": "Sospensione/revoca patente"},
+  "patente_scaduta": {"punti": 0, "articolo": "Art. 126 CdS", "descrizione": "Guida con patente scaduta"},
+  "revisione_scaduta": {"punti": 0, "articolo": "Art. 80 CdS", "descrizione": "Circolazione con revisione scaduta"},
+  "assicurazione": {"punti": 0, "articolo": "Art. 193 CdS", "descrizione": "Circolazione senza assicurazione", "sanzione_accessoria": "Sequestro del veicolo"}
+}

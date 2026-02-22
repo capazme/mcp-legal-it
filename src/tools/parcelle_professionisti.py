@@ -1,4 +1,5 @@
-"""Sezione 6 — Parcelle Professionisti: fatture, CTU, mediazione, compensi orari, ritenuta."""
+"""Calcolo parcelle e fatture per professionisti non avvocati: CTU/periti (DPR 115/2002),
+mediazione civile (DM 150/2023), Enasarco, curatore fallimentare (DM 30/2012)."""
 
 import math
 
@@ -65,12 +66,14 @@ def fattura_professionista(
     tipo: str = "ingegnere",
     regime: str = "ordinario",
 ) -> dict:
-    """Calcola fattura generica professionista con rivalsa INPS, IVA e ritenuta.
+    """Calcola fattura per professionista (non avvocato) con rivalsa INPS, IVA e ritenuta d'acconto.
+    Vigenza: DPR 633/1972 (IVA); DPR 600/1973 art. 25 (ritenuta); L. 190/2014 (forfettario).
+    Precisione: ESATTO (aliquote di legge: rivalsa INPS 4-5%, IVA 22%, ritenuta 20%).
 
     Args:
-        imponibile: Compenso professionale in euro (imponibile)
-        tipo: Tipo professionista (ingegnere, architetto, geometra, commercialista, consulente_lavoro, psicologo, medico)
-        regime: 'ordinario' (IVA 22% + ritenuta 20%) o 'forfettario' (no IVA, no ritenuta, bollo se >77.47€)
+        imponibile: Compenso professionale in euro (€, imponibile)
+        tipo: Tipo professionista: 'ingegnere', 'architetto', 'geometra', 'commercialista', 'consulente_lavoro', 'psicologo', 'medico'
+        regime: Regime fiscale: 'ordinario' (IVA 22% + ritenuta 20%) o 'forfettario' (no IVA, no ritenuta, bollo se >77.47€)
     """
     if tipo not in _RIVALSA_INPS:
         return {"errore": f"Tipo professionista non valido. Valori: {list(_RIVALSA_INPS.keys())}"}
@@ -88,8 +91,7 @@ def fattura_professionista(
 
     if regime == "ordinario":
         iva = round(base_imponibile_iva * 22 / 100, 2)
-        # Ritenuta d'acconto 20% su compenso + rivalsa
-        ritenuta = round(base_imponibile_iva * 20 / 100, 2)
+        ritenuta = round(imponibile * 20 / 100, 2)
         totale = round(base_imponibile_iva + iva - ritenuta, 2)
 
         voci.append({"voce": "IVA 22%", "importo": iva})
@@ -138,12 +140,14 @@ def compenso_ctu(
     valore_causa: float | None = None,
     ore_lavoro: float | None = None,
 ) -> dict:
-    """Calcola compenso indicativo del consulente tecnico d'ufficio (CTU).
+    """Calcola compenso indicativo del consulente tecnico d'ufficio (CTU) nominato dal giudice.
+    Vigenza: DPR 115/2002 — DM 30/05/2002 — il giudice liquida il compenso definitivo.
+    Precisione: INDICATIVO (range min-max orientativo; il giudice può discostarsene).
 
     Args:
-        tipo_incarico: Tipo incarico (perizia_immobiliare, perizia_contabile, perizia_medica, stima_danni, accertamenti_tecnici)
-        valore_causa: Valore della causa in euro (per calcolo a percentuale)
-        ore_lavoro: Ore di lavoro effettive (per calcolo orario)
+        tipo_incarico: Tipo incarico: 'perizia_immobiliare', 'perizia_contabile', 'perizia_medica', 'stima_danni', 'accertamenti_tecnici'
+        valore_causa: Valore della causa in euro (€, opzionale — per calcolo a percentuale)
+        ore_lavoro: Ore di lavoro effettive (opzionale — per calcolo a tariffa oraria)
     """
     if tipo_incarico not in _COMPENSI_CTU:
         return {"errore": f"Tipo incarico non valido. Valori: {list(_COMPENSI_CTU.keys())}"}
@@ -194,11 +198,13 @@ def spese_mediazione(
     valore_controversia: float,
     esito: str = "positivo",
 ) -> dict:
-    """Calcola indennità di mediazione civile/commerciale DM 150/2023.
+    """Calcola indennità di mediazione civile e commerciale per scaglione di valore.
+    Vigenza: DM 150/2023 — D.Lgs. 28/2010 (Riforma Cartabia).
+    Precisione: ESATTO (importi tabellari ministeriali).
 
     Args:
-        valore_controversia: Valore della controversia in euro
-        esito: 'positivo' (accordo raggiunto) o 'negativo' (mancato accordo)
+        valore_controversia: Valore della controversia in euro (€)
+        esito: Esito della mediazione: 'positivo' (accordo raggiunto) o 'negativo' (mancato accordo)
     """
     if esito not in ("positivo", "negativo"):
         return {"errore": "Esito deve essere 'positivo' o 'negativo'"}
@@ -251,13 +257,14 @@ def compenso_orario(
     minuti: int = 0,
     arrotondamento: str = "mezz_ora",
 ) -> dict:
-    """Calcola compenso professionale a ore con arrotondamento.
+    """Calcola compenso professionale a ore con arrotondamento per eccesso all'unità scelta.
+    Precisione: ESATTO (dato un importo orario e un tempo, il calcolo è matematicamente preciso).
 
     Args:
-        tariffa_oraria: Tariffa oraria in euro
-        ore: Numero di ore lavorate
+        tariffa_oraria: Tariffa oraria in euro (€/ora)
+        ore: Numero di ore lavorate (intero non negativo)
         minuti: Minuti aggiuntivi (0-59)
-        arrotondamento: Tipo arrotondamento: 'quarto_ora' (15 min), 'mezz_ora' (30 min), 'ora' (60 min)
+        arrotondamento: Tipo arrotondamento per eccesso: 'quarto_ora' (15 min), 'mezz_ora' (30 min), 'ora' (60 min)
     """
     if arrotondamento not in ("quarto_ora", "mezz_ora", "ora"):
         return {"errore": "Arrotondamento deve essere 'quarto_ora', 'mezz_ora' o 'ora'"}
@@ -290,11 +297,13 @@ def ritenuta_acconto(
     compenso_lordo: float,
     aliquota: float = 20.0,
 ) -> dict:
-    """Calcola ritenuta d'acconto su compensi professionali.
+    """Calcola ritenuta d'acconto su compensi professionali e mostra i campi per la Certificazione Unica.
+    Vigenza: Art. 25 DPR 600/1973.
+    Precisione: ESATTO (calcolo matematico su aliquota fornita).
 
     Args:
-        compenso_lordo: Compenso lordo in euro (base imponibile per la ritenuta)
-        aliquota: Aliquota ritenuta in percentuale (default 20%)
+        compenso_lordo: Compenso lordo in euro (€, base imponibile per la ritenuta)
+        aliquota: Aliquota ritenuta in percentuale (default 20%; range tipico: 20.0-30.0)
     """
     ritenuta = round(compenso_lordo * aliquota / 100, 2)
     netto = round(compenso_lordo - ritenuta, 2)
@@ -337,11 +346,13 @@ def compenso_curatore_fallimentare(
     attivo_realizzato: float,
     passivo_accertato: float,
 ) -> dict:
-    """Compenso curatore fallimentare DM 30/2012, calcolato su attivo realizzato e passivo accertato.
+    """Calcola compenso del curatore fallimentare su scaglioni progressivi.
+    Vigenza: DM 30/2012 — compenso minimo €811,31 e massimo €405.656,80.
+    Precisione: ESATTO (scaglioni percentuali tabellari DM 30/2012).
 
     Args:
-        attivo_realizzato: Attivo realizzato in euro
-        passivo_accertato: Passivo accertato in euro
+        attivo_realizzato: Attivo realizzato dalla procedura in euro (€)
+        passivo_accertato: Passivo accertato in euro (€, usato a metà aliquota)
     """
     # Calcolo su attivo realizzato (scaglioni progressivi)
     def _calcola_scaglioni(importo: float, scaglioni: list, moltiplicatore: float = 1.0) -> list:
@@ -398,10 +409,12 @@ def compenso_curatore_fallimentare(
 def compenso_delegati_vendite(
     prezzo_aggiudicazione: float,
 ) -> dict:
-    """Compenso professionisti delegati per vendite giudiziarie DM 227/2015.
+    """Calcola compenso del professionista delegato alle vendite giudiziarie immobiliari.
+    Vigenza: DM 227/2015 — compenso minimo €1.100 per aggiudicazioni fino a €100.000.
+    Precisione: ESATTO (scaglioni percentuali tabellari DM 227/2015).
 
     Args:
-        prezzo_aggiudicazione: Prezzo di aggiudicazione in euro
+        prezzo_aggiudicazione: Prezzo di aggiudicazione dell'immobile in euro (€)
     """
     if prezzo_aggiudicazione <= 100_000:
         pct = 2.6
@@ -442,11 +455,14 @@ def compenso_mediatore_familiare(
     n_incontri: int,
     tariffa_incontro: float = 120.0,
 ) -> dict:
-    """Compenso mediatore familiare. Primo incontro informativo gratuito, percorso tipico 8-12 incontri.
+    """Calcola compenso del mediatore familiare per percorso di mediazione.
+    Il primo incontro informativo è gratuito; la mediazione familiare non è regolata da tariffe ministeriali.
+    Vigenza: nessuna tariffa ministeriale — importi di prassi professionale.
+    Precisione: INDICATIVO (tariffa varia per professionista e territorio; percorso tipico: 8-12 incontri).
 
     Args:
-        n_incontri: Numero totale di incontri (incluso il primo informativo gratuito)
-        tariffa_incontro: Tariffa per singolo incontro in euro (default: €120)
+        n_incontri: Numero totale di incontri comprensivo del primo informativo gratuito (minimo 1)
+        tariffa_incontro: Tariffa per singolo incontro a pagamento in euro (€, default: €120)
     """
     if n_incontri < 1:
         return {"errore": "Numero incontri deve essere almeno 1"}
@@ -481,12 +497,14 @@ def fattura_enasarco(
     tipo_agente: str = "monocommittente",
     anno: int = 2026,
 ) -> dict:
-    """Fattura agente di commercio con contributo Enasarco, IVA e ritenuta.
+    """Calcola struttura fattura agente di commercio con contributo Enasarco, IVA e ritenuta.
+    Vigenza: D.Lgs. 303/1996 — Regolamento Enasarco; aliquota 2026: 17% totale (50% agente + 50% preponente).
+    Precisione: ESATTO per aliquote vigenti nell'anno indicato; verificare aggiornamenti annuali Enasarco.
 
     Args:
-        provvigioni: Importo provvigioni in euro (imponibile)
-        tipo_agente: "monocommittente" o "pluricommittente"
-        anno: Anno di riferimento (default: 2026)
+        provvigioni: Importo provvigioni in euro (€, imponibile)
+        tipo_agente: Tipo mandato: 'monocommittente' o 'pluricommittente'
+        anno: Anno di riferimento per le aliquote Enasarco (es. 2026)
     """
     if tipo_agente not in ("monocommittente", "pluricommittente"):
         return {"errore": f"Tipo agente non valido: {tipo_agente}. Usare: monocommittente, pluricommittente"}
@@ -537,13 +555,16 @@ def ricevuta_prestazione_occasionale(
     prestatore: str,
     descrizione: str,
 ) -> dict:
-    """Genera ricevuta per prestazione occasionale art. 2222 c.c. con ritenuta d'acconto 20%.
+    """Genera testo ricevuta per prestazione occasionale con ritenuta d'acconto (20%) e bollo se >€77,47.
+    Vigenza: Art. 2222 c.c. — Art. 67 co. 1 lett. l) TUIR — Art. 25 DPR 600/1973.
+    Precisione: ESATTO (ritenuta 20%, soglia bollo €77,47 fissa per legge).
+    Nota: limite annuo €5.000 per evitare obbligo INPS Gestione Separata.
 
     Args:
-        compenso_lordo: Compenso lordo pattuito in euro
-        committente: Nome/ragione sociale del committente
-        prestatore: Nome e cognome del prestatore
-        descrizione: Descrizione della prestazione
+        compenso_lordo: Compenso lordo pattuito in euro (€)
+        committente: Nome / ragione sociale del committente (sostituto d'imposta)
+        prestatore: Nome e cognome del prestatore della prestazione
+        descrizione: Descrizione sintetica della prestazione svolta
     """
     ritenuta = round(compenso_lordo * 20 / 100, 2)
     netto = round(compenso_lordo - ritenuta, 2)
@@ -606,10 +627,13 @@ _TABELLA_MEDIAZIONE_DM150 = [
 def tariffe_mediazione(
     valore_controversia: float,
 ) -> dict:
-    """Tabella completa indennità mediazione DM 150/2023 con spese avvio e indennità per esito.
+    """Restituisce la tabella completa delle indennità di mediazione DM 150/2023 per scaglione applicabile.
+    A differenza di spese_mediazione, include anche le spese di avvio (€40) e la tabella per tutti gli scaglioni.
+    Vigenza: DM 150/2023 — D.Lgs. 28/2010 (Riforma Cartabia).
+    Precisione: ESATTO (importi tabellari ministeriali).
 
     Args:
-        valore_controversia: Valore della controversia in euro
+        valore_controversia: Valore della controversia in euro (€)
     """
     scaglione_applicabile = None
     for s in _TABELLA_MEDIAZIONE_DM150:

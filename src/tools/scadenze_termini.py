@@ -1,4 +1,6 @@
-"""Sezione 3 — Scadenze e Termini: calcolo scadenze processuali, impugnazioni, famiglia, multe."""
+"""Calcolo scadenze processuali civili: termini ex art. 155 c.p.c., memorie ex art. 171-ter c.p.c.
+(rito post-Cartabia D.Lgs. 149/2022), impugnazioni, esecuzioni, famiglia, contravvenzioni stradali.
+Per procedimenti ante 28/02/2023 usare termini_183_190_cpc() (rito pre-Cartabia)."""
 
 import json
 from datetime import date, timedelta
@@ -40,6 +42,8 @@ def _is_holiday(d: date) -> bool:
     if d.weekday() >= 5:  # Saturday=5, Sunday=6
         return True
     for f in _FESTIVITA_FISSE:
+        if f.get("dal_anno") and d.year < f["dal_anno"]:
+            continue
         if d.day == f["giorno"] and d.month == f["mese"]:
             return True
     pasqua = _easter(d.year)
@@ -67,10 +71,43 @@ def _add_business_days(start: date, days: int) -> date:
     return current
 
 
+def _slide_backward(d: date) -> tuple[date, bool]:
+    """Slide to previous business day if holiday (for backward deadlines per Cass. SS.UU. 8830/2019)."""
+    original = d
+    while _is_holiday(d):
+        d -= timedelta(days=1)
+    return d, d != original
+
+
 def _subtract_calendar_days_with_slide(d: date, days: int) -> tuple[date, bool]:
-    """Subtract calendar days and slide forward if result is a holiday."""
+    """Subtract calendar days and slide backward if result is a holiday (Cass. SS.UU. 8830/2019)."""
     result = d - timedelta(days=days)
-    return _slide_forward(result)
+    return _slide_backward(result)
+
+
+def _apply_sospensione_feriale(data_inizio: date, giorni: int) -> int:
+    """L. 742/1969: aggiungi i giorni agosto se il periodo attraversa la sospensione feriale (1-31 agosto)."""
+    data_fine_raw = data_inizio + timedelta(days=giorni)
+    agosto_inizio = date(data_inizio.year, 8, 1)
+    agosto_fine = date(data_inizio.year, 8, 31)
+
+    # Periodo si sovrappone con agosto
+    overlap_start = max(data_inizio, agosto_inizio)
+    overlap_end = min(data_fine_raw, agosto_fine)
+    if overlap_start <= overlap_end:
+        giorni_agosto = (overlap_end - overlap_start).days + 1
+        return giorni + giorni_agosto
+
+    # Se il periodo inizia in un anno e finisce nell'anno successivo (raro), controlla anche agosto anno successivo
+    agosto_inizio_next = date(data_inizio.year + 1, 8, 1)
+    agosto_fine_next = date(data_inizio.year + 1, 8, 31)
+    overlap_start_next = max(data_inizio, agosto_inizio_next)
+    overlap_end_next = min(data_fine_raw, agosto_fine_next)
+    if overlap_start_next <= overlap_end_next:
+        giorni_agosto = (overlap_end_next - overlap_start_next).days + 1
+        return giorni + giorni_agosto
+
+    return giorni
 
 
 def _add_months(d: date, months: int) -> date:
@@ -89,12 +126,17 @@ def scadenza_processuale(
     giorni: int,
     tipo: str = "calendario",
 ) -> dict:
-    """Calcolo scadenza processuale con proroga art. 155 c.p.c.
+    """Calcola una scadenza processuale generica con proroga festiva ex art. 155 c.p.c.
+    Vigenza: art. 155 c.p.c. (testo vigente — non modificato dalla Riforma Cartabia).
+    Precisione: ESATTO (dies a quo escluso; proroga automatica al primo giorno feriale successivo).
+
+    Usa questo quando: devi calcolare un termine di legge generico (non coperto dagli altri tool).
+    Per memorie ex art. 171-ter → usa termini_processuali_civili() o termini_memorie_repliche().
 
     Args:
-        data_evento: Data da cui decorre il termine (YYYY-MM-DD) — dies a quo escluso
-        giorni: Numero di giorni del termine
-        tipo: 'calendario' (dies a quo escluso, art. 155 c.p.c.) o 'lavorativi'
+        data_evento: Data da cui decorre il termine — dies a quo ESCLUSO (YYYY-MM-DD)
+        giorni: Numero di giorni del termine (interi positivi)
+        tipo: Tipo di conteggio: 'calendario' (dies a quo escluso, art. 155 c.p.c.) o 'lavorativi'
     """
     dt_evento = _parse_date(data_evento)
 
@@ -120,12 +162,19 @@ def scadenza_processuale(
 def termini_processuali_civili(
     data_udienza: str,
     tipo_termine: str,
+    sospensione_feriale: bool = True,
 ) -> dict:
-    """Termini memorie ex art. 171-ter c.p.c. (rito post-Cartabia, D.Lgs. 149/2022).
+    """Calcola i termini per memorie e comparse ex art. 171-ter c.p.c. (rito post-Cartabia).
+    Vigenza: rito ordinario post-Cartabia (D.Lgs. 149/2022, in vigore dal 28/02/2023).
+    Precisione: ESATTO (termini di legge; sospensione feriale L. 742/1969; proroga art. 155 c.p.c.).
+    Nota: per procedimenti iscritti a ruolo PRIMA del 28/02/2023 → usa termini_183_190_cpc().
 
     Args:
         data_udienza: Data dell'udienza di trattazione (YYYY-MM-DD)
-        tipo_termine: Tipo di termine: 'memoria_I' (40gg prima), 'memoria_II' (20gg prima), 'memoria_III' (10gg prima), 'comparsa_conclusionale' (60gg dopo), 'replica' (20gg dopo conclusionale)
+        tipo_termine: Tipo di termine: 'memoria_I' (40gg prima), 'memoria_II' (20gg prima),
+                      'memoria_III' (10gg prima), 'comparsa_conclusionale' (60gg dopo udienza PC),
+                      'replica' (80gg dopo udienza PC, cioè 20gg dopo la conclusionale)
+        sospensione_feriale: Applica sospensione feriale agosto ex L. 742/1969 (default True)
     """
     dt_udienza = _parse_date(data_udienza)
 
@@ -164,18 +213,29 @@ def termini_processuali_civili(
         }
 
     config = termini_config[tipo_termine]
+    giorni = config["giorni"]
 
     if config["direzione"] == "prima":
-        scadenza, adjusted = _subtract_calendar_days_with_slide(dt_udienza, config["giorni"])
+        # For backward deadlines: compute from udienza back, then apply feriale if needed
+        data_inizio_periodo = dt_udienza - timedelta(days=giorni)
+        if sospensione_feriale:
+            giorni = _apply_sospensione_feriale(data_inizio_periodo, giorni)
+        scadenza, adjusted = _subtract_calendar_days_with_slide(dt_udienza, giorni)
     else:
-        scadenza_raw = dt_udienza + timedelta(days=config["giorni"])
+        if sospensione_feriale:
+            giorni = _apply_sospensione_feriale(dt_udienza, giorni)
+        scadenza_raw = dt_udienza + timedelta(days=giorni)
         scadenza, adjusted = _slide_forward(scadenza_raw)
 
     # Calculate all "prima" deadlines for context
     tutte_scadenze = {}
     for nome, cfg in termini_config.items():
         if cfg["direzione"] == "prima":
-            d, _ = _subtract_calendar_days_with_slide(dt_udienza, cfg["giorni"])
+            gg = cfg["giorni"]
+            if sospensione_feriale:
+                dp = dt_udienza - timedelta(days=gg)
+                gg = _apply_sospensione_feriale(dp, gg)
+            d, _ = _subtract_calendar_days_with_slide(dt_udienza, gg)
             tutte_scadenze[nome] = d.isoformat()
 
     result = {
@@ -185,7 +245,8 @@ def termini_processuali_civili(
         "scadenza": scadenza.isoformat(),
         "prorogata_art_155": adjusted,
         "giorno_settimana": scadenza.strftime("%A"),
-        "riferimento_normativo": "Art. 171-ter c.p.c. (D.Lgs. 149/2022 — Riforma Cartabia)",
+        "sospensione_feriale_applicata": sospensione_feriale,
+        "riferimento_normativo": "Art. 171-ter c.p.c. (D.Lgs. 149/2022 — Riforma Cartabia); L. 742/1969 sospensione feriale agosto",
     }
 
     if config["direzione"] == "prima":
@@ -199,11 +260,16 @@ def termini_separazione_divorzio(
     data_evento: str,
     tipo: str,
 ) -> dict:
-    """Scadenze diritto di famiglia per separazione, divorzio e negoziazione assistita.
+    """Calcola le scadenze di diritto di famiglia per separazione, divorzio e negoziazione assistita.
+    Vigenza: L. 898/1970 (mod. L. 55/2015 — divorzio breve); DL 132/2014 conv. L. 162/2014.
+    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c. se cadono in giorno festivo).
 
     Args:
-        data_evento: Data dell'evento rilevante (YYYY-MM-DD) — es. omologa separazione, sentenza passata in giudicato
-        tipo: 'separazione_consensuale' (6 mesi per divorzio), 'separazione_giudiziale' (12 mesi), 'negoziazione_assistita' (6 mesi), 'ricorso_modifica' (nessun termine)
+        data_evento: Data dell'evento rilevante — es. omologa separazione o passaggio in
+                     giudicato della sentenza (YYYY-MM-DD)
+        tipo: Tipo di procedimento: 'separazione_consensuale' (6 mesi per il divorzio),
+              'separazione_giudiziale' (12 mesi), 'negoziazione_assistita' (6 mesi),
+              'ricorso_modifica' (nessun termine — proponibile in qualsiasi momento)
     """
     dt_evento = _parse_date(data_evento)
 
@@ -277,12 +343,18 @@ def scadenze_impugnazioni(
     tipo_impugnazione: str,
     notificata: bool = False,
 ) -> dict:
-    """Termini di impugnazione sentenze civili.
+    """Calcola i termini di impugnazione per sentenze civili (termine breve e termine lungo).
+    Vigenza: artt. 325-327 c.p.c. (testo post-Cartabia — D.Lgs. 149/2022, dal 28/02/2023).
+    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c. se cadono in giorno festivo).
+    Nota: per procedimenti ante 28/02/2023 i termini sono invariati; la Riforma Cartabia
+    non ha modificato i termini di impugnazione ex artt. 325-327 c.p.c.
 
     Args:
-        data_pubblicazione: Data pubblicazione/notifica sentenza (YYYY-MM-DD)
-        tipo_impugnazione: 'appello_sentenza', 'cassazione', 'revocazione', 'opposizione_terzo', 'regolamento_competenza'
-        notificata: True se la sentenza è stata notificata (termine breve), False per termine lungo
+        data_pubblicazione: Data di pubblicazione o notifica della sentenza (YYYY-MM-DD)
+        tipo_impugnazione: Tipo di impugnazione: 'appello_sentenza' (30gg breve / 6 mesi lungo),
+                           'cassazione' (60gg breve / 6 mesi lungo), 'revocazione' (30gg / 6 mesi),
+                           'opposizione_terzo' (30gg, senza termine lungo), 'regolamento_competenza' (30gg / 6 mesi)
+        notificata: True = termine breve dalla notifica; False = termine lungo dalla pubblicazione
     """
     dt_pub = _parse_date(data_pubblicazione)
 
@@ -373,11 +445,16 @@ def scadenze_multe(
     data_notifica: str,
     tipo_ricorso: str,
 ) -> dict:
-    """Termini per ricorso contro contravvenzioni stradali (CdS).
+    """Calcola i termini per ricorso o pagamento contro contravvenzioni al Codice della Strada.
+    Vigenza: D.Lgs. 285/1992 Codice della Strada (mod. L. 120/2010 per il pagamento in 5gg).
+    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c. se cadono in giorno festivo).
 
     Args:
-        data_notifica: Data di notifica del verbale (YYYY-MM-DD)
-        tipo_ricorso: 'prefetto' (60gg), 'giudice_pace' (30gg), 'pagamento_ridotto' (60gg), 'pagamento_ridotto_5gg' (5gg sconto 30%)
+        data_notifica: Data di notifica del verbale di accertamento (YYYY-MM-DD)
+        tipo_ricorso: Tipo di opzione: 'prefetto' (60gg, ricorso amministrativo),
+                      'giudice_pace' (30gg, ricorso giurisdizionale),
+                      'pagamento_ridotto' (60gg, sanzione minima prevista),
+                      'pagamento_ridotto_5gg' (5gg, sconto 30% sulla sanzione minima)
     """
     dt_notifica = _parse_date(data_notifica)
 
@@ -441,13 +518,15 @@ def scadenze_multe(
 
 @mcp.tool()
 def termini_memorie_repliche(data_udienza: str) -> dict:
-    """Riepilogo completo termini memorie integrative e repliche art. 171-ter c.p.c. (rito Cartabia).
+    """Calcola in un'unica risposta tutte le scadenze per memorie e repliche ex art. 171-ter c.p.c.
+    Vigenza: rito ordinario post-Cartabia (D.Lgs. 149/2022, in vigore dal 28/02/2023).
+    Precisione: ESATTO (termini di legge a ritroso dall'udienza; proroga art. 155 c.p.c.).
+    Nota: per procedimenti iscritti a ruolo PRIMA del 28/02/2023 → usa termini_183_190_cpc().
 
-    Calcola tutte le scadenze per memoria integrativa (40gg prima udienza),
-    replica (20gg prima) e prova contraria (10gg prima) in un'unica risposta.
+    Calcola: memoria integrativa (40gg prima), replica (20gg prima), prova contraria (10gg prima).
 
     Args:
-        data_udienza: Data dell'udienza di trattazione (YYYY-MM-DD)
+        data_udienza: Data dell'udienza di trattazione fissata dal giudice (YYYY-MM-DD)
     """
     dt_udienza = _parse_date(data_udienza)
 
@@ -480,12 +559,18 @@ def termini_memorie_repliche(data_udienza: str) -> dict:
 
 @mcp.tool()
 def termini_procedimento_semplificato(data_udienza: str) -> dict:
-    """Termini per procedimento semplificato di cognizione art. 281-decies ss. c.p.c. (riforma Cartabia).
+    """Calcola i termini per il procedimento semplificato di cognizione (rito Cartabia).
+    Vigenza: artt. 281-decies, 281-undecies, 281-duodecies c.p.c. introdotti dal D.Lgs. 149/2022,
+    in vigore dal 28/02/2023. Applicabile quando i fatti non sono controversi o la domanda
+    è fondata su prova documentale o è di pronta soluzione.
+    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c.).
+    Nota: per procedimenti ante 28/02/2023 → usa termini_183_190_cpc() (rito previgente).
 
-    Calcola: comparsa di risposta (70gg prima udienza) e memorie integrative (40/20/10gg prima).
+    Calcola: comparsa di risposta (70gg prima), memoria integrativa (40gg), replica (20gg),
+    prova contraria (10gg prima dell'udienza).
 
     Args:
-        data_udienza: Data dell'udienza fissata (YYYY-MM-DD)
+        data_udienza: Data dell'udienza fissata dal giudice (YYYY-MM-DD)
     """
     dt_udienza = _parse_date(data_udienza)
 
@@ -519,25 +604,30 @@ def termini_procedimento_semplificato(data_udienza: str) -> dict:
 
 @mcp.tool()
 def termini_183_190_cpc(data_udienza: str) -> dict:
-    """Termini pre-Cartabia per memorie ex art. 183, co. 6 e comparse ex art. 190 c.p.c.
+    """Calcola i termini ex art. 183 co. 6 e art. 190 c.p.c. (rito civile ordinario PRE-Cartabia).
+    Vigenza: artt. 183 co. 6 e 190 c.p.c. nel testo previgente — applicabile SOLO a cause
+    iscritte a ruolo prima del 28/02/2023 (data di entrata in vigore della Riforma Cartabia
+    D.Lgs. 149/2022).
+    Precisione: ESATTO (termini di legge a decorrere dall'udienza; proroga art. 155 c.p.c.).
+    Nota: per cause post-28/02/2023 → usa termini_memorie_repliche() o termini_processuali_civili().
 
-    Applicabile a cause pendenti ante 28/02/2023.
-    Calcola: prima memoria (30gg), seconda (30gg dopo la prima), terza (20gg dopo la seconda),
-    conclusionali (60gg dopo udienza di PC), repliche (20gg dopo conclusionali).
+    Calcola: I memoria (30gg), II memoria (60gg), III memoria (80gg) dall'udienza ex art. 183;
+    comparsa conclusionale (60gg) e replica (80gg) dall'udienza di PC.
 
     Args:
-        data_udienza: Data dell'udienza ex art. 183 c.p.c. o data di precisazione conclusioni (YYYY-MM-DD)
+        data_udienza: Data dell'udienza di trattazione ex art. 183 c.p.c. oppure, per le
+                      conclusionali e repliche, data dell'udienza di precisazione conclusioni (YYYY-MM-DD)
     """
     dt_udienza = _parse_date(data_udienza)
 
-    # Memorie ex art. 183 comma 6 — termini successivi dall'udienza
+    # Memorie ex art. 183 comma 6 — termini calcolati dall'udienza
     mem1_raw = dt_udienza + timedelta(days=30)
     mem1, mem1_adj = _slide_forward(mem1_raw)
 
-    mem2_raw = mem1_raw + timedelta(days=30)
+    mem2_raw = dt_udienza + timedelta(days=60)
     mem2, mem2_adj = _slide_forward(mem2_raw)
 
-    mem3_raw = mem2_raw + timedelta(days=20)
+    mem3_raw = dt_udienza + timedelta(days=80)
     mem3, mem3_adj = _slide_forward(mem3_raw)
 
     # Conclusionali e repliche ex art. 190
@@ -604,11 +694,15 @@ def termini_esecuzioni(
     data_notifica_titolo: str,
     tipo: str = "pignoramento_mobiliare",
 ) -> dict:
-    """Termini procedure esecutive (art. 481 ss. c.p.c.).
+    """Calcola i termini nelle procedure esecutive civili (pignoramento, opposizione).
+    Vigenza: artt. 480-482, 543, 555, 617 c.p.c. (testo vigente).
+    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c.).
 
     Args:
-        data_notifica_titolo: Data di notifica del precetto (YYYY-MM-DD)
-        tipo: 'pignoramento_mobiliare', 'pignoramento_immobiliare', 'pignoramento_presso_terzi', 'opposizione_esecuzione'
+        data_notifica_titolo: Data di notifica del precetto al debitore (YYYY-MM-DD)
+        tipo: Tipo di procedura: 'pignoramento_mobiliare', 'pignoramento_immobiliare',
+              'pignoramento_presso_terzi' (tutti: minimo 10gg e max 90gg dall'efficacia del precetto),
+              'opposizione_esecuzione' (20gg per opposizione agli atti esecutivi ex art. 617 c.p.c.)
     """
     dt_notifica = _parse_date(data_notifica_titolo)
 
@@ -694,13 +788,17 @@ def termini_deposito_atti_appello(
     data_notifica_sentenza: str | None = None,
     data_pubblicazione: str | None = None,
 ) -> dict:
-    """Termini per appello: termine lungo (6 mesi da pubblicazione) o breve (30gg da notifica).
+    """Calcola i termini per proporre appello (termine breve e lungo) con iscrizione a ruolo.
+    Vigenza: artt. 325-327, 347, 166 c.p.c. (rito appello — non modificati dalla Riforma Cartabia).
+    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c.).
 
-    Include iscrizione a ruolo (30gg da notifica citazione) e comparsa di risposta (20gg prima udienza).
+    Calcola: termine breve (30gg dalla notifica), termine lungo (6 mesi dalla pubblicazione),
+    iscrizione a ruolo (30gg dalla notifica della citazione in appello), comparsa di risposta (20gg
+    prima dell'udienza — indicativa, richiede data udienza per calcolo esatto).
 
     Args:
-        data_notifica_sentenza: Data notifica sentenza per termine breve (YYYY-MM-DD), opzionale
-        data_pubblicazione: Data pubblicazione sentenza per termine lungo (YYYY-MM-DD), opzionale
+        data_notifica_sentenza: Data di notifica della sentenza per il termine breve (YYYY-MM-DD), opzionale
+        data_pubblicazione: Data di pubblicazione della sentenza per il termine lungo (YYYY-MM-DD), opzionale
     """
     if not data_notifica_sentenza and not data_pubblicazione:
         return {
@@ -768,14 +866,16 @@ def termini_deposito_ctu(
     data_conferimento: str,
     giorni_termine: int = 60,
 ) -> dict:
-    """Termini deposito CTU e osservazioni delle parti (art. 195 c.p.c.).
+    """Calcola le scadenze per il deposito della relazione CTU e le osservazioni delle parti.
+    Vigenza: art. 195 co. 3 c.p.c. (testo post-Cartabia — D.Lgs. 149/2022, dal 28/02/2023).
+    Precisione: ESATTO (termini ex art. 195; proroga art. 155 c.p.c.; il giudice può fissare
+    termini diversi con provvedimento nel verbale di conferimento).
 
-    Default: 60gg per deposito CTU, poi 15gg per osservazioni parti, poi 15gg per replica CTU.
-    Tutti soggetti a proroga art. 155 c.p.c.
+    Calcola: deposito bozza CTU, osservazioni parti (15gg), replica CTU e deposito definitivo (15gg).
 
     Args:
-        data_conferimento: Data del conferimento dell'incarico al CTU (YYYY-MM-DD)
-        giorni_termine: Giorni concessi per il deposito della relazione CTU (default 60)
+        data_conferimento: Data del conferimento dell'incarico al CTU da parte del giudice (YYYY-MM-DD)
+        giorni_termine: Giorni concessi al CTU per il deposito della bozza di relazione (default 60)
     """
     dt_conf = _parse_date(data_conferimento)
 

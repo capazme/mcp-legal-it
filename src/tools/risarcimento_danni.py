@@ -1,4 +1,6 @@
-"""Sezione 7 — Risarcimento Danni: danno biologico, parentale, menomazioni plurime, INAIL."""
+"""Calcoli per risarcimento danni: danno biologico micropermanenti (art. 139 CdA) e macropermanenti
+(art. 138 CdA), danno non patrimoniale con tutte le componenti, danno parentale (tabelle Milano/Roma),
+menomazioni plurime (Balthazard), indennizzo INAIL, equo indennizzo causa di servizio."""
 
 import json
 from pathlib import Path
@@ -57,43 +59,53 @@ def danno_biologico_micro(
     giorni_itp25: int = 0,
     personalizzazione_pct: float = 0,
 ) -> dict:
-    """Calcola danno biologico micropermanenti art. 139 Cod. Assicurazioni (1-9%).
+    """Calcola il danno biologico per MICROPERMANENTI (≤9% di invalidità).
+    Applica art. 139 Codice delle Assicurazioni (D.Lgs. 209/2005).
+    Vigenza: tabelle aggiornate al DM 18/07/2025.
+    Precisione: ESATTO (formula di legge applicata ai valori tabellari vigenti).
+
+    Usa questo quando: sinistro stradale o sanitario con invalidità permanente tra 1% e 9%.
+    NON usare per: invalidità ≥10% → usa danno_biologico_macro().
+    NON usare per: danno non patrimoniale con tutte le componenti → usa danno_non_patrimoniale().
 
     Args:
         percentuale_invalidita: Percentuale di invalidità permanente (1-9)
-        eta_vittima: Età della vittima al momento del sinistro
-        giorni_itt: Giorni di invalidità temporanea totale (100%)
+        eta_vittima: Età della vittima al momento del sinistro (0-120)
+        giorni_itt: Giorni di invalidità temporanea totale al 100%
         giorni_itp75: Giorni di invalidità temporanea parziale al 75%
         giorni_itp50: Giorni di invalidità temporanea parziale al 50%
         giorni_itp25: Giorni di invalidità temporanea parziale al 25%
-        personalizzazione_pct: Percentuale personalizzazione danno morale (0-33.33)
+        personalizzazione_pct: Percentuale di personalizzazione per danno morale (0-33.33)
     """
     if not 1 <= percentuale_invalidita <= 9:
         return {"errore": "Micropermanenti: percentuale deve essere tra 1 e 9"}
 
+    if not 0 <= eta_vittima <= 120:
+        return {"errore": "Età non valida"}
+
     if personalizzazione_pct < 0 or personalizzazione_pct > _MICRO["maggiorazione_morale_max_pct"]:
         return {"errore": f"Personalizzazione deve essere tra 0 e {_MICRO['maggiorazione_morale_max_pct']}%"}
 
-    punto_base = _MICRO["punto_base_2024"]
-    eta_pivot = _MICRO["eta_pivot"]
+    punto_base = _MICRO["punto_base"]
+    coefficienti = _MICRO["coefficienti_punto"]
+    eta_inizio_decremento = _MICRO["eta_decremento_da"]
+    decremento_pct = _MICRO["decremento_eta_pct_per_anno"]
 
-    if eta_vittima < eta_pivot:
-        anni_sotto = eta_pivot - eta_vittima
-        valore_punto = punto_base * (1 + (_MICRO["incremento_percentuale_per_anno_sotto_undici"] / 100) * anni_sotto)
+    # Age adjustment: 0.5% reduction per year from age 11 onward (art. 139 c. 1)
+    if eta_vittima >= eta_inizio_decremento:
+        anni_sopra = eta_vittima - eta_inizio_decremento
+        riduzione = 1 - (decremento_pct / 100) * anni_sopra
+        riduzione = max(riduzione, 0)
     else:
-        anni_sopra = eta_vittima - eta_pivot
-        valore_punto = punto_base * (1 - (_MICRO["decremento_per_anno_sopra_undici"] / 100) * anni_sopra)
-        valore_punto = max(valore_punto, 0)
+        riduzione = 1.0
 
-    # Danno permanente: valore punto * percentuale con progressione
-    # Formula: somma dei valori punto per ogni punto percentuale
-    # Ogni punto successivo vale il precedente + 10% del punto base
     danno_permanente = 0.0
     dettaglio_punti = []
     for p in range(1, percentuale_invalidita + 1):
-        valore_p = valore_punto * (0.5 + 0.5 * p)  # progressione crescente
-        danno_permanente += valore_p
-        dettaglio_punti.append({"punto": p, "valore": round(valore_p, 2)})
+        coeff = coefficienti[str(p)]
+        valore_punto = punto_base * coeff * riduzione
+        danno_permanente += valore_punto
+        dettaglio_punti.append({"percentuale": p, "coefficiente": coeff, "valore": round(valore_punto, 2)})
 
     # Invalidità temporanea
     itt = giorni_itt * _MICRO["invalidita_temporanea_totale_giornaliera"]
@@ -112,7 +124,8 @@ def danno_biologico_micro(
     return {
         "percentuale_invalidita": percentuale_invalidita,
         "eta_vittima": eta_vittima,
-        "valore_punto_base": round(valore_punto, 2),
+        "punto_base": punto_base,
+        "riduzione_eta": round(riduzione, 4),
         "danno_permanente": round(danno_permanente, 2),
         "danno_temporaneo": {
             "itt": {"giorni": giorni_itt, "importo": round(itt, 2)},
@@ -126,7 +139,7 @@ def danno_biologico_micro(
         "maggiorazione_morale": round(maggiorazione_morale, 2),
         "totale_risarcimento": round(totale, 2),
         "dettaglio_punti": dettaglio_punti,
-        "riferimento_normativo": "Art. 139 Cod. Assicurazioni (D.Lgs. 209/2005) — aggiornamento DM 2024",
+        "riferimento_normativo": "Art. 139 Cod. Assicurazioni (D.Lgs. 209/2005) — DM 18/07/2025",
     }
 
 
@@ -136,15 +149,26 @@ def danno_biologico_macro(
     eta_vittima: int,
     personalizzazione_pct: float = 0,
 ) -> dict:
-    """Calcola danno biologico macropermanenti art. 138 Cod. Assicurazioni (10-100%).
+    """Calcola il danno biologico per MACROPERMANENTI (≥10% di invalidità).
+    Applica art. 138 Codice delle Assicurazioni (D.Lgs. 209/2005) con tabella unica nazionale.
+    Vigenza: Tabella unica nazionale DM 2024 — valori Milano per interpolazione.
+    Precisione: INDICATIVO (interpolazione lineare sui punti tabellari; il valore esatto
+    dipende dalla tabella unica nazionale definitiva ex art. 138 CdA, ancora in via di adozione).
+
+    Usa questo quando: sinistro stradale o sanitario con invalidità permanente tra 10% e 100%.
+    NON usare per: invalidità <10% → usa danno_biologico_micro().
+    NON usare per: danno non patrimoniale con tutte le componenti → usa danno_non_patrimoniale().
 
     Args:
         percentuale_invalidita: Percentuale di invalidità permanente (10-100)
-        eta_vittima: Età della vittima al momento del sinistro
-        personalizzazione_pct: Percentuale personalizzazione danno morale (0-50)
+        eta_vittima: Età della vittima al momento del sinistro (0-120)
+        personalizzazione_pct: Percentuale di personalizzazione per danno morale (0-50)
     """
     if not 10 <= percentuale_invalidita <= 100:
         return {"errore": "Macropermanenti: percentuale deve essere tra 10 e 100"}
+
+    if not 0 <= eta_vittima <= 120:
+        return {"errore": "Età non valida"}
 
     if personalizzazione_pct < 0 or personalizzazione_pct > 50:
         return {"errore": "Personalizzazione macropermanenti deve essere tra 0 e 50%"}
@@ -177,11 +201,17 @@ def danno_parentale(
     tabella: str = "milano",
     personalizzazione_pct: float = 50,
 ) -> dict:
-    """Calcola danno da perdita del rapporto parentale (tabelle Milano/Roma 2024).
+    """Calcola il danno da perdita del rapporto parentale (danno morale da morte del congiunto).
+    Vigenza: Tabelle di Milano 2024 e Roma 2024 (aggiornate con Cass. SU 26972/2008 e successive).
+    Precisione: INDICATIVO (forchetta min-max; il valore finale dipende dalla personalizzazione
+    giudiziale sulle concrete circostanze del rapporto e del lutto).
+
+    Usa questo quando: richiesta risarcimento per morte del congiunto in sinistro o illecito.
+    NON usare per: danno biologico del superstite (es. disturbo dell'adattamento) → usa danno_biologico_micro/macro().
 
     Args:
         vittima: Ruolo della vittima deceduta (figlio, genitore, coniuge, fratello, nipote, nonno)
-        superstite: Ruolo del superstite che chiede il risarcimento (figlio, genitore, coniuge, fratello, nipote, nonno)
+        superstite: Ruolo del superstite richiedente il risarcimento (figlio, genitore, coniuge, fratello, nipote, nonno)
         tabella: Tabella di riferimento: 'milano' o 'roma'
         personalizzazione_pct: Posizione nel range min-max (0=minimo, 50=mediano, 100=massimo)
     """
@@ -229,10 +259,16 @@ def danno_parentale(
 def menomazioni_plurime(
     percentuali: list[float],
 ) -> dict:
-    """Calcola invalidità complessiva per menomazioni plurime (formula Balthazard).
+    """Calcola l'invalidità complessiva per menomazioni plurime con la formula Balthazard.
+    Vigenza: formula medico-legale standard, recepita dalla prassi giurisprudenziale italiana.
+    Precisione: ESATTO (formula matematica deterministica).
+
+    Usa questo quando: il danneggiato presenta più menomazioni distinte da cumulare correttamente.
+    NON usare per: una singola menomazione (non serve la formula di riduzione).
 
     Args:
-        percentuali: Lista delle percentuali di invalidità per ciascuna menomazione (es. [15, 10, 5])
+        percentuali: Lista delle percentuali di invalidità per ciascuna menomazione in ordine decrescente,
+                     es. [15, 10, 5]. Ogni valore deve essere compreso tra 0 e 100. Minimo 2 valori.
     """
     if not percentuali or len(percentuali) < 2:
         return {"errore": "Servono almeno 2 percentuali di invalidità"}
@@ -276,12 +312,19 @@ def risarcimento_inail(
     percentuale_invalidita: float,
     tipo: str = "permanente",
 ) -> dict:
-    """Calcola indennizzo INAIL per infortunio sul lavoro o malattia professionale.
+    """Calcola l'indennizzo INAIL per infortunio sul lavoro o malattia professionale.
+    Vigenza: D.Lgs. 38/2000 art. 13 — D.P.R. 1124/1965 TU INAIL — tabelle INAIL vigenti.
+    Precisione: INDICATIVO (i coefficienti per la forma capitale sono una semplificazione;
+    il valore esatto richiede la tabella INAIL ufficiale per anno e grado di invalidità).
+
+    Usa questo quando: lavoratore infortunato o con malattia professionale riconosciuta dall'INAIL.
+    NON usare per: danno biologico civilistico da illecito di terzi → usa danno_biologico_micro/macro().
 
     Args:
-        retribuzione_annua: Retribuzione annua lorda del lavoratore in euro
-        percentuale_invalidita: Percentuale di invalidità accertata
-        tipo: 'permanente' (indennizzo in capitale o rendita) o 'temporanea' (indennità giornaliera)
+        retribuzione_annua: Retribuzione annua lorda del lavoratore in euro (€)
+        percentuale_invalidita: Percentuale di invalidità accertata dall'INAIL (0-100)
+        tipo: Tipo di indennizzo: 'permanente' (in capitale se ≤15%, rendita se >15%)
+              o 'temporanea' (indennità giornaliera per i giorni di assenza)
     """
     tipo = tipo.lower()
     if tipo not in ("permanente", "temporanea"):
@@ -373,19 +416,27 @@ def danno_non_patrimoniale(
     danno_morale_pct: float = 0,
     danno_esistenziale_pct: float = 0,
 ) -> dict:
-    """Calcolo complessivo danno non patrimoniale con tutte le componenti.
+    """Calcola il danno non patrimoniale complessivo con tutte le componenti in un unico prospetto.
 
-    Combina danno biologico (micro/macro in base alla %), morale (personalizzazione),
-    esistenziale e patrimoniale emergente (spese mediche + ITT) in un unico prospetto.
+    Combina automaticamente danno biologico (micro se ≤9%, macro se ≥10%), danno morale
+    (personalizzazione), danno esistenziale e patrimoniale emergente (spese mediche + ITT).
+    Vigenza: art. 138-139 Cod. Assicurazioni; Tabelle Milano 2024; Cass. SU 26972/2008.
+    Precisione: INDICATIVO (il danno biologico macro è interpolato; la personalizzazione
+    morale ed esistenziale è soggetta a valutazione giudiziale discrezionale).
+
+    Usa questo quando: vuoi un prospetto completo di tutte le componenti del danno non patrimoniale.
+    NON usare per: solo danno biologico micro → usa danno_biologico_micro() (più dettagliato).
+    NON usare per: solo danno biologico macro → usa danno_biologico_macro().
+    NON usare per: danno da perdita del rapporto parentale → usa danno_parentale().
 
     Args:
         percentuale_invalidita: Percentuale di invalidità permanente (1-100)
-        eta_vittima: Età della vittima al momento del sinistro
-        tipo_danno: Voce principale: 'biologico', 'morale', 'esistenziale', 'patrimoniale_emergente'
-        giorni_itt: Giorni di invalidità temporanea totale
-        spese_mediche: Spese mediche documentate in euro
-        danno_morale_pct: Percentuale personalizzazione danno morale (0-50)
-        danno_esistenziale_pct: Percentuale personalizzazione danno esistenziale (0-50)
+        eta_vittima: Età della vittima al momento del sinistro (0-120)
+        tipo_danno: Voce principale richiesta: 'biologico', 'morale', 'esistenziale', 'patrimoniale_emergente'
+        giorni_itt: Giorni di invalidità temporanea totale al 100%
+        spese_mediche: Spese mediche documentate in euro (€)
+        danno_morale_pct: Percentuale di personalizzazione per danno morale (0-50)
+        danno_esistenziale_pct: Percentuale di personalizzazione per danno esistenziale (0-50)
     """
     if not 1 <= percentuale_invalidita <= 100:
         return {"errore": "Percentuale invalidità deve essere tra 1 e 100"}
@@ -398,20 +449,20 @@ def danno_non_patrimoniale(
 
     # Calcolo componente biologica (micro o macro)
     if percentuale_invalidita <= 9:
-        punto_base = _MICRO["punto_base_2024"]
-        eta_pivot = _MICRO["eta_pivot"]
+        punto_base = _MICRO["punto_base"]
+        coefficienti = _MICRO["coefficienti_punto"]
+        eta_inizio_decremento = _MICRO["eta_decremento_da"]
+        decremento_pct = _MICRO["decremento_eta_pct_per_anno"]
 
-        if eta_vittima < eta_pivot:
-            anni_sotto = eta_pivot - eta_vittima
-            valore_punto = punto_base * (1 + (_MICRO["incremento_percentuale_per_anno_sotto_undici"] / 100) * anni_sotto)
+        if eta_vittima >= eta_inizio_decremento:
+            anni_sopra = eta_vittima - eta_inizio_decremento
+            riduzione = max(1 - (decremento_pct / 100) * anni_sopra, 0)
         else:
-            anni_sopra = eta_vittima - eta_pivot
-            valore_punto = punto_base * (1 - (_MICRO["decremento_per_anno_sopra_undici"] / 100) * anni_sopra)
-            valore_punto = max(valore_punto, 0)
+            riduzione = 1.0
 
         danno_biologico = 0.0
         for p in range(1, percentuale_invalidita + 1):
-            danno_biologico += valore_punto * (0.5 + 0.5 * p)
+            danno_biologico += punto_base * coefficienti[str(p)] * riduzione
 
         tipo_calcolo = "micropermanenti (art. 139)"
     else:
@@ -466,15 +517,24 @@ def equo_indennizzo(
     percentuale_invalidita: float,
     stipendio_annuo: float,
 ) -> dict:
-    """Calcolo equo indennizzo per causa di servizio (dipendenti pubblici).
+    """Calcola l'equo indennizzo per causa di servizio per dipendenti pubblici (istituto abrogato).
 
-    Tabella A DPR 834/1981: invalidità dalla 1ª all'8ª categoria. Il calcolo si basa su
-    stipendio annuo × coefficiente categoria × percentuale invalidità.
+    ATTENZIONE: Istituto ABROGATO per eventi successivi al 06/12/2011
+    (art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero). Il calcolo resta valido
+    esclusivamente per pratiche relative a fatti anteriori a tale data.
+
+    Vigenza: DPR 834/1981 Tabella A — applicabile solo a fatti anteriori al 06/12/2011.
+    Precisione: INDICATIVO (coefficienti tabellari semplificati; il calcolo esatto
+    dipende dalla specifica categoria e dalla delibera della CMO).
+
+    Usa questo quando: dipendente pubblico con infermità da causa di servizio anteriore al 06/12/2011.
+    NON usare per: eventi successivi al 06/12/2011 (istituto abrogato).
+    NON usare per: lavoratori privati infortunati → usa risarcimento_inail().
 
     Args:
-        categoria_tabella: Categoria dalla tabella A (da '1' a '8')
-        percentuale_invalidita: Percentuale di invalidità accertata dalla CMO
-        stipendio_annuo: Ultimo stipendio annuo lordo in euro
+        categoria_tabella: Categoria dalla Tabella A DPR 834/1981 ('1' = 81-100%, '8' = 1-10%)
+        percentuale_invalidita: Percentuale di invalidità accertata dalla CMO (0-100)
+        stipendio_annuo: Ultimo stipendio annuo lordo in euro (€)
     """
     coefficienti = {
         "1": {"range": "81-100%", "coefficiente": 8.0, "pensione_privilegiata": True},
@@ -510,5 +570,10 @@ def equo_indennizzo(
             "Categoria 1ª-5ª: diritto a pensione privilegiata se cessazione dal servizio per infermità"
         )
 
-    result["riferimento_normativo"] = "DPR 461/2001; DPR 834/1981 — Tabella A equo indennizzo causa di servizio"
+    result["attenzione"] = (
+        "Istituto ABROGATO per eventi successivi al 06/12/2011 "
+        "(art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero). "
+        "Il calcolo è valido solo per pratiche relative a fatti anteriori a tale data."
+    )
+    result["riferimento_normativo"] = "DPR 461/2001; DPR 834/1981 — Tabella A. Abrogato per nuovi eventi da art. 6 DL 201/2011 (L. 214/2011)"
     return result

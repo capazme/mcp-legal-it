@@ -1,4 +1,6 @@
-"""Sezione 10 — Investimenti: rendimento BOT, BTP, pronti termine, buoni postali, confronto."""
+"""Calcolo del rendimento netto di strumenti finanziari italiani: BOT (zero-coupon), BTP (cedola fissa),
+pronti contro termine (PCT), buoni fruttiferi postali e confronto tra più strumenti.
+Tassazione agevolata 12,5% per titoli di Stato (D.Lgs. 239/1996); 26% per altri strumenti."""
 
 from src.server import mcp
 
@@ -40,13 +42,15 @@ def rendimento_bot(
     giorni_scadenza: int,
     commissione_pct: float = 0.0,
 ) -> dict:
-    """Calcola rendimento netto di un BOT (zero-coupon, imposta sostitutiva 12.5%).
+    """Calcola il rendimento netto di un BOT (Buono Ordinario del Tesoro, zero-coupon).
+    Vigenza: D.Lgs. 239/1996 — imposta sostitutiva 12,5% sulla plusvalenza (scarto di emissione).
+    Precisione: ESATTO (formula rendimento annualizzato su base 365gg; imposta sulla plusvalenza).
 
     Args:
-        valore_nominale: Valore nominale del BOT in euro (rimborso a scadenza)
-        prezzo_acquisto: Prezzo di acquisto in euro
-        giorni_scadenza: Giorni residui alla scadenza
-        commissione_pct: Commissione bancaria percentuale sul nominale (es. 0.15)
+        valore_nominale: Valore nominale del BOT in euro — importo rimborsato a scadenza (€)
+        prezzo_acquisto: Prezzo di acquisto in euro (€), normalmente inferiore al nominale
+        giorni_scadenza: Giorni residui alla scadenza (interi positivi)
+        commissione_pct: Commissione bancaria percentuale sul nominale (es. 0.15 per 0,15%)
     """
     if giorni_scadenza <= 0:
         return {"errore": "giorni_scadenza deve essere positivo"}
@@ -84,14 +88,17 @@ def rendimento_btp(
     anni_scadenza: int,
     frequenza_cedola: int = 2,
 ) -> dict:
-    """Calcola rendimento netto di un BTP a cedola fissa (imposta sostitutiva 12.5%).
+    """Calcola il rendimento netto di un BTP (Buono del Tesoro Poliennale) a cedola fissa.
+    Vigenza: D.Lgs. 239/1996 — imposta sostitutiva 12,5% su cedole e plusvalenza da capital gain.
+    Precisione: INDICATIVO (rendimento semplificato: non considera il reinvestimento delle cedole
+    né il rateo cedolare al momento dell'acquisto; per il rendimento esatto usare il TIR).
 
     Args:
-        valore_nominale: Valore nominale del BTP in euro
-        prezzo_acquisto: Prezzo di acquisto in euro
-        cedola_annua_pct: Tasso cedolare annuo lordo (es. 3.5 per 3,5%)
-        anni_scadenza: Anni residui alla scadenza
-        frequenza_cedola: Numero cedole per anno (default 2 = semestrale)
+        valore_nominale: Valore nominale del BTP in euro (€), solitamente 1.000€ per titolo
+        prezzo_acquisto: Prezzo di acquisto in euro (€), può essere sopra o sotto il nominale
+        cedola_annua_pct: Tasso cedolare annuo lordo in percentuale (es. 3.5 per 3,5%)
+        anni_scadenza: Anni residui alla scadenza (interi positivi)
+        frequenza_cedola: Numero di cedole per anno (default 2 = semestrale; 1 = annuale)
     """
     if anni_scadenza <= 0:
         return {"errore": "anni_scadenza deve essere positivo"}
@@ -148,13 +155,15 @@ def pronti_termine(
     giorni: int,
     tipo_sottostante: str = "titoli_stato",
 ) -> dict:
-    """Calcola rendimento netto di un pronti contro termine (PCT).
+    """Calcola il rendimento netto di un pronti contro termine (PCT).
+    Vigenza: D.Lgs. 239/1996 (titoli di Stato, aliquota 12,5%); D.L. 66/2014 (altri strumenti, 26%).
+    Precisione: ESATTO (formula interessi su base 365gg con aliquota corretta per il sottostante).
 
     Args:
-        capitale: Capitale investito in euro
-        tasso_lordo_pct: Tasso lordo annuo percentuale (es. 3.5)
-        giorni: Durata dell'operazione in giorni
-        tipo_sottostante: 'titoli_stato' (aliquota 12.5%) o 'altro' (aliquota 26%)
+        capitale: Capitale investito in euro (€)
+        tasso_lordo_pct: Tasso di interesse lordo annuo in percentuale (es. 3.5 per 3,5%)
+        giorni: Durata dell'operazione in giorni (interi positivi)
+        tipo_sottostante: Tipo di sottostante: 'titoli_stato' (aliquota 12,5%) o 'altro' (aliquota 26%)
     """
     if giorni <= 0:
         return {"errore": "giorni deve essere positivo"}
@@ -187,12 +196,16 @@ def rendimento_buoni_postali(
     tipo: str = "ordinario",
     anni: int = 10,
 ) -> dict:
-    """Calcola rendimento netto di buoni fruttiferi postali (imposta sostitutiva 12.5%).
+    """Calcola il rendimento netto di buoni fruttiferi postali con capitalizzazione a scaglioni.
+    Vigenza: D.Lgs. 239/1996 — imposta sostitutiva 12,5% (equiparati ai titoli di Stato).
+    Precisione: INDICATIVO (i tassi sono indicativi aggiornati al momento dell'implementazione;
+    le condizioni effettive variano — verificare sempre le condizioni aggiornate su poste.it).
 
     Args:
-        importo: Importo sottoscritto in euro
-        tipo: Tipo di buono ('ordinario', '3x4', '4x4', 'dedicato_minori')
-        anni: Durata in anni (max dipende dal tipo)
+        importo: Importo sottoscritto in euro (€)
+        tipo: Tipologia di buono: 'ordinario' (durata max 20 anni), '3x4' (max 12 anni),
+              '4x4' (max 16 anni), 'dedicato_minori' (max 18 anni)
+        anni: Durata in anni desiderata — viene limitata al massimo del tipo selezionato
     """
     if importo <= 0:
         return {"errore": "importo deve essere positivo"}
@@ -256,11 +269,17 @@ def confronto_investimenti(
     importo: float,
     investimenti: list[dict],
 ) -> dict:
-    """Confronta rendimento netto tra diversi strumenti finanziari.
+    """Confronta il rendimento netto tra diversi strumenti finanziari con tassazione corretta.
+    Precisione: INDICATIVO (confronto basato su rendimento lordo annuo costante; non considera
+    rischio, inflazione, costi di gestione o variazioni di tasso nel tempo).
 
     Args:
-        importo: Importo da investire in euro
-        investimenti: Lista di investimenti, ciascuno con {nome, rendimento_lordo_pct, tipo_tassazione, durata_anni}. tipo_tassazione: 'titoli_stato' (12.5%) o 'altro' (26%).
+        importo: Importo da investire in euro (€), uguale per tutti gli strumenti nel confronto
+        investimenti: Lista di dict, ciascuno con le chiavi:
+                      - nome (str): nome identificativo dello strumento
+                      - rendimento_lordo_pct (float): tasso lordo annuo in percentuale
+                      - tipo_tassazione (str): 'titoli_stato' (12,5%) o 'altro' (26%)
+                      - durata_anni (int): orizzonte temporale in anni
     """
     if importo <= 0:
         return {"errore": "importo deve essere positivo"}

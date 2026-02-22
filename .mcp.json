@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "legal-it": {
+      "command": ".venv/bin/python",
+      "args": ["src/server.py"]
+    }
+  }
+}
