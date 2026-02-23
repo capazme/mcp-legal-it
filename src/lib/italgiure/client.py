@@ -34,7 +34,7 @@ _KIND_FILTER = {
 TIPO_PROV = {"sentenza": "S", "ordinanza": "O", "decreto": "D"}
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
-_MAX_OCR_LENGTH = 8000
+_MAX_OCR_LENGTH = 30000
 
 _SEZIONI = {
     "1": "I",
@@ -77,10 +77,11 @@ async def solr_query(params: dict) -> dict:
 
     Uses POST to /sn-collection/select?app.query with form-encoded body.
     Fetches homepage first to obtain session cookie. verify=False for invalid SSL.
+    Handles list-valued params (e.g. multiple fq) via urlencode(doseq=True).
     """
     async with httpx.AsyncClient(verify=False, timeout=_TIMEOUT, headers=_HEADERS) as client:
         await client.get(_HOMEPAGE)
-        body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"})
+        body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
         resp = await client.post(_SOLR_URL, content=body)
         resp.raise_for_status()
         return resp.json()
@@ -94,35 +95,38 @@ def build_search_params(
     anno_da: int | None = None,
     anno_a: int | None = None,
     rows: int = 10,
+    start: int = 0,
     highlight: bool = True,
 ) -> dict:
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
     params: dict = {
-        "q": f"({kind_clause}) AND ocr:({query})",
+        "defType": "edismax",
+        "q": query,
+        "qf": "ocrdis^5 ocr^1",
+        "pf": "ocrdis^10",
+        "fq": [f"({kind_clause})"],
         "sort": "pd desc",
         "rows": rows,
+        "start": start,
         "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
     }
-    fq = []
     if materia:
-        fq.append(f"materia:{materia}")
+        params["fq"].append(f"materia:{materia}")
     if sezione:
-        fq.append(f"szdec:{sezione}")
+        params["fq"].append(f"szdec:{sezione}")
     if anno_da and anno_a:
-        fq.append(f"anno:[{anno_da} TO {anno_a}]")
+        params["fq"].append(f"anno:[{anno_da} TO {anno_a}]")
     elif anno_da:
-        fq.append(f"anno:[{anno_da} TO *]")
+        params["fq"].append(f"anno:[{anno_da} TO *]")
     elif anno_a:
-        fq.append(f"anno:[* TO {anno_a}]")
-    if fq:
-        params["fq"] = " AND ".join(fq)
+        params["fq"].append(f"anno:[* TO {anno_a}]")
     if highlight:
         params.update({
             "hl": "true",
-            "hl.fl": "ocr",
+            "hl.fl": "ocr,ocrdis",
             "hl.fragsize": "400",
-            "hl.snippets": "1",
+            "hl.snippets": "2",
         })
     return params
 
@@ -135,13 +139,14 @@ def build_lookup_params(
 ) -> dict:
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
-    q = f"({kind_clause}) AND numdec:{numero} AND anno:{anno}"
+    numdec_str = str(numero).zfill(5)
+    q = f"({kind_clause}) AND numdec:{numdec_str} AND anno:{anno}"
     if sezione:
         q += f" AND szdec:{sezione}"
     return {
         "q": q,
         "rows": 5,
-        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocr,ocrdis,nomegiudice,kind",
+        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocr,ocrdis,relatore,presidente,kind",
     }
 
 
@@ -212,7 +217,7 @@ def format_estremi(doc: dict) -> str:
     return ", ".join(parts)
 
 
-def format_summary(doc: dict, highlight: str | None = None) -> str:
+def format_summary(doc: dict, highlights: dict[str, list[str]] | None = None) -> str:
     estremi = format_estremi(doc)
     materia = _first(doc.get("materia", ""))
     ocrdis = _first(doc.get("ocrdis", ""))
@@ -220,9 +225,14 @@ def format_summary(doc: dict, highlight: str | None = None) -> str:
     lines = [f"### {estremi}"]
     if materia:
         lines.append(f"**Materia**: {materia}")
-    if highlight:
-        lines.append(f"**Estratto**: ...{highlight}...")
-    if ocrdis:
+    if highlights:
+        hl_dis = highlights.get("ocrdis", [])
+        hl_ocr = highlights.get("ocr", [])
+        if hl_dis:
+            lines.append(f"**Dispositivo (match)**: ...{hl_dis[0]}...")
+        if hl_ocr:
+            lines.append(f"**Estratto**: ...{hl_ocr[0]}...")
+    if ocrdis and not (highlights and highlights.get("ocrdis")):
         disp = ocrdis[:200].strip()
         if len(ocrdis) > 200:
             disp += "…"
@@ -234,15 +244,18 @@ def format_summary(doc: dict, highlight: str | None = None) -> str:
 def format_full_text(doc: dict) -> str:
     estremi = format_estremi(doc)
     materia = _first(doc.get("materia", ""))
-    giudice = _first(doc.get("nomegiudice", ""))
+    relatore = _first(doc.get("relatore", ""))
+    presidente = _first(doc.get("presidente", ""))
     ocr = _first(doc.get("ocr", ""))
     ocrdis = _first(doc.get("ocrdis", ""))
 
     lines = [f"# {estremi}"]
     if materia:
         lines.append(f"**Materia**: {materia}")
-    if giudice:
-        lines.append(f"**Relatore**: {giudice}")
+    if relatore:
+        lines.append(f"**Relatore**: {relatore}")
+    if presidente:
+        lines.append(f"**Presidente**: {presidente}")
     lines.append("")
 
     if ocr:

@@ -2,10 +2,13 @@
 
 import asyncio
 import re
+import warnings
 from urllib.parse import urljoin
 
 import httpx
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .models import NormaVisitata
 from .map import find_brocardi_url
@@ -31,21 +34,22 @@ async def fetch_article(nv: NormaVisitata) -> dict:
 
     Returns: {"text": str, "url": str, "source": "normattiva"|"eurlex"}
     """
-    url = nv.url()
-    if not url:
-        return {"text": "", "url": "", "source": "", "error": "Could not generate URL for this act"}
-
     is_eurlex = nv.norma._is_eurlex()
     source = "eurlex" if is_eurlex else "normattiva"
 
-    async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
-        resp = await client.get(url)
-        resp.raise_for_status()
-        html = resp.text
-
     if is_eurlex:
+        html, url = await _fetch_eurlex_html(nv.norma)
+        if not html:
+            return {"text": "", "url": url, "source": source, "error": "Could not fetch EUR-Lex document"}
         text = _extract_eurlex_article(html, nv.numero_articolo)
     else:
+        url = nv.url()
+        if not url:
+            return {"text": "", "url": "", "source": "", "error": "Could not generate URL for this act"}
+        async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            html = resp.text
         text = _extract_normattiva_article(html)
 
     return {"text": text, "url": url, "source": source}
@@ -90,7 +94,7 @@ def _extract_normattiva_article(html: str) -> str:
     soup = BeautifulSoup(html, "lxml")
     corpo = soup.find("div", class_="bodyTesto")
     if corpo is None:
-        return soup.get_text(separator="\n", strip=True)[:5000]
+        return soup.get_text(separator="\n", strip=True)
 
     # Scenario 1: AKN Detailed (art-comma-div-akn)
     if corpo.find(class_="art-comma-div-akn"):
@@ -178,75 +182,154 @@ def _clean_normattiva_text(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# EUR-Lex extraction (4 strategies from original)
+# EUR-Lex fetch + extraction
 # ---------------------------------------------------------------------------
+
+_CELLAR_BASE = "https://publications.europa.eu/resource/celex/"
+
+
+def _build_celex(norma) -> str | None:
+    """Build CELEX identifier from Norma. Returns None for treaties."""
+    from .map import EURLEX
+    norm = norma.tipo_atto_normalized.lower()
+    eurlex_val = EURLEX.get(norm)
+    if not eurlex_val or eurlex_val.startswith("https"):
+        return None
+    type_letter = {"reg": "R", "dir": "L"}.get(eurlex_val, "R")
+    year = norma.data.split("-")[0] if norma.data and "-" in norma.data else norma.data
+    number = norma.numero_atto.zfill(4)
+    return f"3{year}{type_letter}{number}"
+
+
+async def _fetch_eurlex_html(norma) -> tuple[str, str]:
+    """Fetch EUR-Lex HTML via EU Publications Office Cellar (bypasses WAF).
+
+    For treaties (TUE, TFUE, CDFUE) falls back to direct EUR-Lex URL.
+    Returns (html, url). On failure returns ("", url).
+    """
+    from .map import EURLEX
+    norm = norma.tipo_atto_normalized.lower()
+    eurlex_val = EURLEX.get(norm)
+    if not eurlex_val:
+        return "", ""
+
+    # Treaties: direct URL (no CELEX)
+    if eurlex_val.startswith("https"):
+        url = eurlex_val
+    else:
+        celex = _build_celex(norma)
+        if not celex:
+            return "", ""
+        url = f"{_CELLAR_BASE}{celex}"
+
+    async with httpx.AsyncClient(
+        headers={
+            **_HEADERS,
+            "Accept": "application/xhtml+xml,text/html",
+            "Accept-Language": "it-IT,it;q=0.9",
+        },
+        timeout=httpx.Timeout(60.0, connect=10.0),
+        follow_redirects=True,
+    ) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        html = resp.text
+
+    # Detect WAF challenge (202 + tiny body)
+    if resp.status_code == 202 or (len(html) < 5000 and "WAF" in html):
+        return "", url
+
+    final_url = str(resp.url) if hasattr(resp, "url") else url
+    return html, final_url
+
 
 def _extract_eurlex_article(html: str, article: str) -> str:
     soup = BeautifulSoup(html, "lxml")
     if not article:
-        return soup.get_text(separator="\n", strip=True)[:5000]
+        return soup.get_text(separator="\n", strip=True)
+
+    # Strategy 1: semantic id — div#art_N (most reliable on Cellar XHTML)
+    art_id = f"art_{article}"
+    article_div = soup.find("div", id=art_id)
+    if article_div:
+        return _extract_eurlex_subdivision(article_div)
 
     search_patterns = [f"Articolo {article}", f"Article {article}", f"Art. {article}"]
-    article_section = None
 
-    # Strategy 1: <p class="ti-art">
+    # Strategy 2: <p class="oj-ti-art"> (Cellar/OJ format)
     for pattern in search_patterns:
-        article_section = soup.find(
-            lambda tag: tag.name == "p"
-            and "ti-art" in tag.get("class", [])
-            and tag.get_text(strip=True).startswith(pattern)
+        for p_tag in soup.find_all("p", class_=lambda c: c and "ti-art" in c):
+            if p_tag.get_text(strip=True).startswith(pattern):
+                # Check if parent is eli-subdivision — if so, extract the whole block
+                parent_sub = p_tag.find_parent("div", class_=lambda c: c and "eli-subdivision" in c)
+                if parent_sub:
+                    return _extract_eurlex_subdivision(parent_sub)
+                # Fallback: collect siblings until next article
+                return _extract_eurlex_siblings(p_tag)
+
+    # Strategy 3: eli-subdivision containing article text
+    for subdiv in soup.find_all("div", class_=lambda c: c and "eli-subdivision" in c):
+        title_elem = subdiv.find(
+            ["p", "span", "div"],
+            string=lambda s: s and any(s.strip().startswith(p) for p in search_patterns),
         )
-        if article_section:
-            break
+        if title_elem:
+            return _extract_eurlex_subdivision(subdiv)
 
-    # Strategy 2: class containing 'art' or 'title'
-    if not article_section:
-        for pattern in search_patterns:
-            article_section = soup.find(
-                lambda tag: tag.get("class")
-                and any("art" in c.lower() or "title" in c.lower() for c in tag.get("class", []))
-                and tag.get_text(strip=True).startswith(pattern)
-            )
-            if article_section:
-                break
+    # Strategy 4: regex text match anywhere
+    article_regex = re.compile(rf"^Articolo\s+{re.escape(str(article))}\b", re.IGNORECASE)
+    for tag in soup.find_all(["p", "div", "span", "h1", "h2", "h3", "h4"]):
+        if article_regex.match(tag.get_text(strip=True)):
+            parent_sub = tag.find_parent("div", class_=lambda c: c and "eli-subdivision" in c)
+            if parent_sub:
+                return _extract_eurlex_subdivision(parent_sub)
+            return _extract_eurlex_siblings(tag)
 
-    # Strategy 3: regex text match
-    if not article_section:
-        article_regex = re.compile(rf"^Articolo\s+{re.escape(str(article))}\b", re.IGNORECASE)
-        article_section = soup.find(
-            lambda tag: tag.name in ["p", "div", "span", "h1", "h2", "h3", "h4"]
-            and article_regex.match(tag.get_text(strip=True))
-        )
+    return f"[Articolo {article} non trovato nel documento EUR-Lex]"
 
-    # Strategy 4: eli-subdivision divs
-    if not article_section:
-        for subdiv in soup.find_all("div", class_=lambda c: c and "eli-subdivision" in c):
-            title_elem = subdiv.find(
-                ["p", "span", "div"],
-                string=lambda s: s and any(s.strip().startswith(p) for p in search_patterns),
-            )
-            if title_elem:
-                article_section = subdiv
-                break
 
-    if not article_section:
-        return f"[Articolo {article} non trovato nel documento EUR-Lex]"
+def _extract_eurlex_subdivision(div: Tag) -> str:
+    """Extract text from an eli-subdivision div, handling nested structure."""
+    parts: list[str] = []
+    for child in div.children:
+        if isinstance(child, NavigableString):
+            t = str(child).strip()
+            if t:
+                parts.append(t)
+        elif isinstance(child, Tag):
+            # Skip nested article subdivisions (they are separate articles)
+            if child.get("class") and any("eli-subdivision" in c for c in child.get("class", [])):
+                child_id = child.get("id", "")
+                if child_id.startswith("art_"):
+                    continue
+            if child.name == "table":
+                for row in child.find_all("tr"):
+                    cells = row.find_all("td")
+                    row_text = " ".join(c.get_text(strip=True) for c in cells)
+                    if row_text:
+                        parts.append(row_text)
+            else:
+                t = child.get_text(strip=True)
+                if t:
+                    parts.append(t)
+    return "\n".join(parts)
 
-    # Collect text until next article
-    full_text = [article_section.get_text(strip=True)]
-    element = article_section.find_next_sibling()
+
+def _extract_eurlex_siblings(start_tag: Tag) -> str:
+    """Collect text from start_tag and siblings until next article header."""
+    full_text = [start_tag.get_text(strip=True)]
     next_article_pat = re.compile(r"^Articolo\s+\d+|^Article\s+\d+|^Art\.\s+\d+", re.IGNORECASE)
-
+    element = start_tag.find_next_sibling()
     while element:
-        if element.name == "p" and "ti-art" in element.get("class", []):
+        classes = element.get("class", []) if hasattr(element, "get") else []
+        if any("ti-art" in c for c in classes):
             break
-        elem_text = element.get_text(strip=True) if element.name else ""
+        elem_text = element.get_text(strip=True) if hasattr(element, "get_text") else ""
         if next_article_pat.match(elem_text):
             break
         if element.name in ["p", "div", "span"]:
-            text = element.get_text(strip=True)
-            if text:
-                full_text.append(text)
+            if elem_text:
+                full_text.append(elem_text)
         elif element.name == "table":
             for row in element.find_all("tr"):
                 cells = row.find_all("td")
@@ -254,7 +337,6 @@ def _extract_eurlex_article(html: str, article: str) -> str:
                 if row_text:
                     full_text.append(row_text)
         element = element.find_next_sibling()
-
     return "\n".join(full_text)
 
 
@@ -274,10 +356,14 @@ async def _find_brocardi_article_url(client: httpx.AsyncClient, base_url: str, a
 
     pattern = re.compile(rf'href=["\']([^"\']*art{re.escape(article_num)}\.html)["\']')
 
-    # Direct match in main page
+    # Direct match in main page — use base_url (not domain root) so relative
+    # hrefs like "libro-quarto/titolo-ix/art2043.html" resolve correctly
+    page_url = str(resp.url) if hasattr(resp, "url") else base_url
+    if not page_url.endswith("/"):
+        page_url += "/"
     matches = pattern.findall(html)
     if matches:
-        result = urljoin("https://www.brocardi.it", matches[0])
+        result = urljoin(page_url, matches[0])
         _brocardi_url_cache[cache_key] = result
         return result
 
@@ -291,7 +377,7 @@ async def _find_brocardi_article_url(client: httpx.AsyncClient, base_url: str, a
         for a_tag in section.find_all("a", href=True):
             if fetched >= max_sub_pages:
                 break
-            sub_url = urljoin("https://www.brocardi.it", a_tag.get("href", ""))
+            sub_url = urljoin(page_url, a_tag.get("href", ""))
             if not sub_url.startswith("https://www.brocardi.it"):
                 continue
             fetched += 1
@@ -299,9 +385,12 @@ async def _find_brocardi_article_url(client: httpx.AsyncClient, base_url: str, a
             try:
                 sub_resp = await client.get(sub_url)
                 sub_resp.raise_for_status()
+                sub_page_url = str(sub_resp.url) if hasattr(sub_resp, "url") else sub_url
+                if not sub_page_url.endswith("/"):
+                    sub_page_url += "/"
                 sub_matches = pattern.findall(sub_resp.text)
                 if sub_matches:
-                    result = urljoin("https://www.brocardi.it", sub_matches[0])
+                    result = urljoin(sub_page_url, sub_matches[0])
                     _brocardi_url_cache[cache_key] = result
                     return result
             except httpx.HTTPError:
@@ -402,14 +491,15 @@ async def download_eurlex_pdf(norma: "Norma") -> bytes:
         return resp.content
 
 
-async def fetch_normattiva_full_text(norma: "Norma") -> dict:
-    """Fetch the complete text of a Normattiva act via /esporta/attoCompleto.
+async def fetch_act_index(norma: "Norma") -> dict:
+    """Fetch the structured index (rubriche) of a Normattiva act.
 
-    Returns: {"text": str, "title": str, "url": str} or {"error": str}
+    Uses /atto/vediRubriche endpoint to get article titles without full text.
+    Returns: {"index": list[str], "codice_redazionale": str, "url": str} or {"error": str}
     """
     act_url = norma.url()
     if not act_url:
-        return {"text": "", "title": "", "url": "", "error": "Could not generate URL"}
+        return {"index": [], "url": "", "error": "Could not generate URL"}
 
     async with httpx.AsyncClient(
         headers=_HEADERS,
@@ -420,28 +510,155 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
         resp.raise_for_status()
         html = resp.text
 
-        # Try to find the /esporta/attoCompleto link in the page
-        export_match = re.search(r'(/esporta/attoCompleto\?[^"\'>\s]+)', html)
-        final_url = act_url
+        # Extract codiceRedazionale from ELI meta tags
+        soup = BeautifulSoup(html, "lxml")
+        codice_redaz = ""
+        data_gu = ""
+        for meta in soup.find_all("meta", attrs={"property": "eli:id_local"}):
+            codice_redaz = meta.get("content", "")
+            break
+        # Extract dataPubblicazioneGazzetta from the page
+        gu_match = re.search(r'dataPubblicazioneGazzetta=(\d{4}-\d{2}-\d{2})', html)
+        if gu_match:
+            data_gu = gu_match.group(1)
 
-        if export_match:
-            export_path = export_match.group(1).replace("&amp;", "&")
-            export_url = f"https://www.normattiva.it{export_path}"
-            resp = await client.get(export_url)
-            resp.raise_for_status()
-            html = resp.text
-            final_url = export_url
+        if not codice_redaz or not data_gu:
+            # Try to extract from the canonical URL or other patterns
+            redaz_match = re.search(r'codiceRedazionale=([A-Z0-9]+)', html)
+            if redaz_match:
+                codice_redaz = redaz_match.group(1)
+            gu_match2 = re.search(r'atto\.dataPubblicazioneGazzetta=(\d{4}-\d{2}-\d{2})', html)
+            if gu_match2:
+                data_gu = gu_match2.group(1)
 
-    soup = BeautifulSoup(html, "lxml")
+        if not codice_redaz or not data_gu:
+            return {"index": [], "url": act_url, "error": "Could not extract codiceRedazionale or dataGU from page"}
 
-    title_tag = soup.find("h1") or soup.find("title")
-    title = title_tag.get_text(strip=True) if title_tag else str(norma)
+        # Fetch rubriche
+        rub_url = f"https://www.normattiva.it/atto/vediRubriche?atto.dataPubblicazioneGazzetta={data_gu}&atto.codiceRedazionale={codice_redaz}"
+        resp2 = await client.get(rub_url)
+        resp2.raise_for_status()
 
-    body = soup.find("div", class_="bodyTesto") or soup.find("body")
-    if body:
-        text = _extract_text_recursive(body)
-        text = _clean_normattiva_text(text)
-    else:
-        text = soup.get_text(separator="\n", strip=True)
+    rub_soup = BeautifulSoup(resp2.text, "lxml")
+    entries: list[str] = []
+    for li in rub_soup.find_all("li"):
+        text = li.get_text(strip=True)
+        if text:
+            entries.append(text)
 
-    return {"text": text, "title": title, "url": final_url}
+    if not entries:
+        # Fallback: extract from the raw text
+        raw = rub_soup.get_text(separator="\n", strip=True)
+        entries = [line.strip() for line in raw.splitlines() if line.strip()]
+
+    return {
+        "index": entries,
+        "codice_redazionale": codice_redaz,
+        "data_gu": data_gu,
+        "url": act_url,
+    }
+
+
+async def fetch_normattiva_full_text(norma: "Norma") -> dict:
+    """Fetch the complete text of a Normattiva act by loading all articles via AJAX.
+
+    Normattiva only renders Art. 1 in the static DOM. All other articles are loaded
+    on-demand via /atto/caricaArticolo. This function extracts all article URLs from
+    the sidebar tree (#albero) and fetches each one.
+
+    Returns: {"text": str, "title": str, "url": str, "article_count": int} or {"error": str}
+    """
+    act_url = norma.url()
+    if not act_url:
+        return {"text": "", "title": "", "url": "", "error": "Could not generate URL"}
+
+    ajax_headers = {**_HEADERS, "X-Requested-With": "XMLHttpRequest"}
+
+    async with httpx.AsyncClient(
+        headers=_HEADERS,
+        timeout=httpx.Timeout(120.0, connect=15.0),
+        follow_redirects=True,
+    ) as client:
+        resp = await client.get(act_url)
+        resp.raise_for_status()
+        html = resp.text
+        soup = BeautifulSoup(html, "lxml")
+
+        title_tag = soup.find("h1") or soup.find("title")
+        title = title_tag.get_text(strip=True) if title_tag else str(norma)
+
+        # Extract first article already in the DOM
+        first_body = soup.find("div", class_="bodyTesto")
+        first_article_text = ""
+        if first_body:
+            first_article_text = _extract_text_recursive(first_body)
+            first_article_text = _clean_normattiva_text(first_article_text)
+
+        # Extract all article AJAX URLs from the sidebar tree
+        article_urls = _extract_article_ajax_urls(html)
+
+        if not article_urls:
+            # Fallback: return just the first article (old behavior)
+            return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1}
+
+        # Fetch all articles via AJAX, preserving order
+        all_parts: list[str] = []
+        seen_urls: set[str] = set()
+        for ajax_path in article_urls:
+            if ajax_path in seen_urls:
+                continue
+            seen_urls.add(ajax_path)
+            ajax_url = f"https://www.normattiva.it{ajax_path}"
+            try:
+                art_resp = await client.get(ajax_url, headers=ajax_headers)
+                art_resp.raise_for_status()
+                art_html = art_resp.text
+                # Skip error pages
+                if "Normattiva - Errore" in art_html or len(art_html) < 50:
+                    continue
+                art_soup = BeautifulSoup(art_html, "lxml")
+                body = art_soup.find("div", class_="bodyTesto")
+                if body:
+                    text = _extract_text_recursive(body)
+                    text = _clean_normattiva_text(text)
+                    if text and text != "[Articolo senza contenuto o abrogato]":
+                        all_parts.append(text)
+            except httpx.HTTPError:
+                continue
+
+    if not all_parts:
+        return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1}
+
+    full_text = "\n\n---\n\n".join(all_parts)
+    return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts)}
+
+
+def _extract_article_ajax_urls(html: str) -> list[str]:
+    """Extract /atto/caricaArticolo URLs from onclick handlers in the sidebar tree.
+
+    Normattiva sidebar lists multiple versions (art.versione) for articles that
+    have been amended. We keep only the first occurrence per article (idGruppo +
+    idArticolo + flagTipoArticolo), which is the current/vigente version.
+    """
+    pattern = re.compile(r"showArticle\('(/atto/caricaArticolo\?[^']+)'")
+    matches = pattern.findall(html)
+    # Deduplicate by article identity (keep first = vigente version).
+    # Params can appear in any order, so extract each individually.
+    seen_articles: set[str] = set()
+    unique: list[str] = []
+    for raw_url in matches:
+        url_clean = raw_url.replace("&amp;", "&")
+        grp = re.search(r"art\.idGruppo=(\d+)", url_clean)
+        art = re.search(r"art\.idArticolo=(\d+)", url_clean)
+        flag = re.search(r"art\.flagTipoArticolo=(\d+)", url_clean)
+        if grp and art and flag:
+            article_key = f"{grp.group(1)}_{art.group(1)}_{flag.group(1)}"
+            if article_key in seen_articles:
+                continue
+            seen_articles.add(article_key)
+        elif url_clean in seen_articles:
+            continue
+        else:
+            seen_articles.add(url_clean)
+        unique.append(url_clean)
+    return unique

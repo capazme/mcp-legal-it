@@ -333,19 +333,44 @@ class TestFindArticleUrl:
     async def test_direct_match(self):
         mock_resp = AsyncMock()
         mock_resp.text = '<a href="/codice-civile/art2043.html">Art. 2043</a>'
+        mock_resp.url = "https://www.brocardi.it/codice-civile/"
         mock_resp.raise_for_status = MagicMock()
 
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_resp)
 
+        # Clear cache to avoid interference
+        from src.lib.brocardi.client import _url_cache
+        _url_cache.clear()
+
         url = await find_article_url(mock_client, "https://www.brocardi.it/codice-civile/", "2043")
         assert url is not None
         assert "art2043.html" in url
+        assert "/codice-civile/" in url
+
+    @pytest.mark.asyncio
+    async def test_relative_href_preserves_path(self):
+        """Relative hrefs like 'libro-quarto/titolo-ix/art2043.html' must resolve
+        against the page URL, not the domain root."""
+        mock_resp = AsyncMock()
+        mock_resp.text = '<a href="libro-quarto/titolo-ix/art2043.html">Art. 2043</a>'
+        mock_resp.url = "https://www.brocardi.it/codice-civile/"
+        mock_resp.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=mock_resp)
+
+        from src.lib.brocardi.client import _url_cache
+        _url_cache.clear()
+
+        url = await find_article_url(mock_client, "https://www.brocardi.it/codice-civile/", "2043")
+        assert url == "https://www.brocardi.it/codice-civile/libro-quarto/titolo-ix/art2043.html"
 
     @pytest.mark.asyncio
     async def test_not_found(self):
         mock_resp = AsyncMock()
         mock_resp.text = "<html><body>No articles here</body></html>"
+        mock_resp.url = "https://www.brocardi.it/test/"
         mock_resp.raise_for_status = MagicMock()
 
         mock_client = AsyncMock()
@@ -394,6 +419,7 @@ def _mock_httpx_brocardi(index_html: str, article_html: str):
         call_count += 1
         resp = AsyncMock()
         resp.raise_for_status = MagicMock()
+        resp.url = url  # needed for urljoin base resolution
         if call_count == 1:
             resp.text = index_html
         else:
