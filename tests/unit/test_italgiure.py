@@ -51,7 +51,8 @@ def _civile_doc(num: str = "24003", anno: str = "2025", sez: str = "3") -> dict:
         "kind": "snciv",
         "ocrdis": ["P.Q.M La Corte rigetta il ricorso."],
         "ocr": ["PDFBox: 1 REPUBBLICA ITALIANA " + "x" * 100],
-        "nomegiudice": ["MARIO ROSSI"],
+        "relatore": ["MARIO ROSSI"],
+        "presidente": ["ANNA BIANCHI"],
     }
 
 
@@ -159,45 +160,57 @@ class TestFormatDate:
 class TestBuildSearchParams:
     def test_basic_query(self):
         p = build_search_params("danno biologico")
-        assert "danno biologico" in p["q"]
-        assert 'kind:"snciv"' in p["q"] or 'kind:"snpen"' in p["q"]
+        assert p["q"] == "danno biologico"
+        assert p["defType"] == "edismax"
+        assert "ocrdis^5" in p["qf"]
+        # kind filter is in fq list
+        fq_str = " ".join(p["fq"]) if isinstance(p["fq"], list) else p["fq"]
+        assert 'kind:"snciv"' in fq_str or 'kind:"snpen"' in fq_str
         assert p["sort"] == "pd desc"
         assert p["rows"] == 10
 
     def test_archivio_civile(self):
         p = build_search_params("test", archivio="civile")
-        assert 'kind:"snciv"' in p["q"]
-        assert "snpen" not in p["q"]
+        fq_str = " ".join(p["fq"]) if isinstance(p["fq"], list) else p["fq"]
+        assert 'kind:"snciv"' in fq_str
+        assert "snpen" not in fq_str
 
     def test_archivio_penale(self):
         p = build_search_params("test", archivio="penale")
-        assert 'kind:"snpen"' in p["q"]
-        assert "snciv" not in p["q"]
+        fq_str = " ".join(p["fq"]) if isinstance(p["fq"], list) else p["fq"]
+        assert 'kind:"snpen"' in fq_str
+        assert "snciv" not in fq_str
 
     def test_materia_filter(self):
         p = build_search_params("test", materia="contratti")
-        assert p.get("fq") and "materia:contratti" in p["fq"]
+        fq = p.get("fq", [])
+        assert any("materia:contratti" in f for f in fq)
 
     def test_sezione_filter(self):
         p = build_search_params("test", sezione="3")
-        assert p.get("fq") and "szdec:3" in p["fq"]
+        fq = p.get("fq", [])
+        assert any("szdec:3" in f for f in fq)
 
     def test_anno_range(self):
         p = build_search_params("test", anno_da=2020, anno_a=2025)
-        assert p.get("fq") and "anno:[2020 TO 2025]" in p["fq"]
+        fq = p.get("fq", [])
+        assert any("anno:[2020 TO 2025]" in f for f in fq)
 
     def test_anno_da_only(self):
         p = build_search_params("test", anno_da=2022)
-        assert p.get("fq") and "anno:[2022 TO *]" in p["fq"]
+        fq = p.get("fq", [])
+        assert any("anno:[2022 TO *]" in f for f in fq)
 
     def test_anno_a_only(self):
         p = build_search_params("test", anno_a=2023)
-        assert p.get("fq") and "anno:[* TO 2023]" in p["fq"]
+        fq = p.get("fq", [])
+        assert any("anno:[* TO 2023]" in f for f in fq)
 
     def test_highlight_included_by_default(self):
         p = build_search_params("test")
         assert p.get("hl") == "true"
-        assert p.get("hl.fl") == "ocr"
+        assert "ocr" in p.get("hl.fl", "")
+        assert "ocrdis" in p.get("hl.fl", "")
 
     def test_highlight_disabled(self):
         p = build_search_params("test", highlight=False)
@@ -221,6 +234,10 @@ class TestBuildLookupParams:
         p = build_lookup_params(24003, 2025)
         assert "numdec:24003" in p["q"]
         assert "anno:2025" in p["q"]
+
+    def test_zero_padding(self):
+        p = build_lookup_params(3806, 2026)
+        assert "numdec:03806" in p["q"]
 
     def test_archivio_civile(self):
         p = build_lookup_params(1, 2024, archivio="civile")
@@ -332,7 +349,8 @@ class TestFormatSummary:
 
     def test_includes_highlight(self):
         doc = _civile_doc()
-        result = format_summary(doc, highlight="estratto <em>danno</em> biologico")
+        hl = {"ocr": ["estratto <em>danno</em> biologico"]}
+        result = format_summary(doc, highlights=hl)
         assert "estratto" in result
         assert "**Estratto**" in result
 
@@ -374,7 +392,7 @@ class TestFormatFullText:
         assert "MARIO ROSSI" in result
 
     def test_truncation(self):
-        long_ocr = "T" * 10000
+        long_ocr = "T" * 40000
         doc = {**_civile_doc(), "ocr": [long_ocr]}
         result = format_full_text(doc)
         assert "Testo troncato" in result

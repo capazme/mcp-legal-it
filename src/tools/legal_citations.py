@@ -14,6 +14,7 @@ from src.lib.visualex.scraper import (
     fetch_annotations,
     download_eurlex_pdf,
     fetch_normattiva_full_text,
+    fetch_act_index as _fetch_act_index_scraper,
 )
 from src.lib.brocardi.client import fetch_brocardi, BrocardiResult, parse_massime_references
 
@@ -70,9 +71,41 @@ def _resolve_act(act_name: str) -> dict | None:
         tipo_ue = {"regolamento": "regolamento ue", "direttiva": "direttiva ue"}
         return {"tipo_atto": tipo_ue[tipo_raw.lower()], "data": anno, "numero_atto": numero}
 
-    # 3. Pattern: "D.Lgs. 196/2003", "L. 241/1990", "DPR 380/2001"
+    # 3a. Long form with Italian date: "D.M. 10 marzo 2014 n. 55", "D.Lgs. 30 giugno 2003, n. 196"
+    _MESI_IT = {
+        "gennaio": "01", "febbraio": "02", "marzo": "03", "aprile": "04",
+        "maggio": "05", "giugno": "06", "luglio": "07", "agosto": "08",
+        "settembre": "09", "ottobre": "10", "novembre": "11", "dicembre": "12",
+    }
+    long_match = re.match(
+        r"(D\.?Lgs\.?|D\.?L\.?|D\.?M\.?|D\.?P\.?C\.?M\.?|L\.?|DPR|D\.?P\.?R\.?|R\.?D\.?)"
+        r"\s+(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+        r"\s+(\d{4})[,]?\s*n\.?\s*(\d+)",
+        act_name,
+        re.IGNORECASE,
+    )
+    if long_match:
+        tipo_raw, giorno, mese_it, anno, numero = long_match.groups()
+        mese = _MESI_IT[mese_it.lower()]
+        data = f"{anno}-{mese}-{giorno.zfill(2)}"
+        tipo_map_local = {
+            "dlgs": "decreto legislativo", "d.lgs.": "decreto legislativo", "d.lgs": "decreto legislativo",
+            "dl": "decreto legge", "d.l.": "decreto legge", "d.l": "decreto legge",
+            "dm": "decreto ministeriale", "d.m.": "decreto ministeriale", "d.m": "decreto ministeriale",
+            "dpcm": "decreto del presidente del consiglio dei ministri",
+            "d.p.c.m.": "decreto del presidente del consiglio dei ministri",
+            "d.p.c.m": "decreto del presidente del consiglio dei ministri",
+            "l": "legge", "l.": "legge",
+            "dpr": "decreto del presidente della repubblica",
+            "d.p.r.": "decreto del presidente della repubblica", "d.p.r": "decreto del presidente della repubblica",
+            "rd": "regio decreto", "r.d.": "regio decreto", "r.d": "regio decreto",
+        }
+        tipo_normalized = tipo_map_local.get(tipo_raw.lower().rstrip("."), tipo_raw.lower())
+        return {"tipo_atto": tipo_normalized, "data": data, "numero_atto": numero}
+
+    # 3b. Short form: "D.Lgs. 196/2003", "L. 241/1990", "DPR 380/2001", "D.M. 55/2014"
     match = re.match(
-        r"(D\.?Lgs\.?|D\.?L\.?|L\.?|DPR|D\.?P\.?R\.?|R\.?D\.?)\s*(\d+)/(\d{4})",
+        r"(D\.?Lgs\.?|D\.?L\.?|D\.?M\.?|D\.?P\.?C\.?M\.?|L\.?|DPR|D\.?P\.?R\.?|R\.?D\.?)\s*(\d+)/(\d{4})",
         act_name,
         re.IGNORECASE,
     )
@@ -85,6 +118,12 @@ def _resolve_act(act_name: str) -> dict | None:
             "dl": "decreto legge",
             "d.l.": "decreto legge",
             "d.l": "decreto legge",
+            "dm": "decreto ministeriale",
+            "d.m.": "decreto ministeriale",
+            "d.m": "decreto ministeriale",
+            "dpcm": "decreto del presidente del consiglio dei ministri",
+            "d.p.c.m.": "decreto del presidente del consiglio dei ministri",
+            "d.p.c.m": "decreto del presidente del consiglio dei ministri",
             "l": "legge",
             "l.": "legge",
             "dpr": "decreto del presidente della repubblica",
@@ -313,6 +352,115 @@ async def cerca_brocardi(reference: str) -> str:
                    "art. 575 c.p.", "art. 6 D.Lgs. 231/2001"
     """
     return await _cerca_brocardi_impl(reference)
+
+
+# ---------------------------------------------------------------------------
+# Full act / index tools
+# ---------------------------------------------------------------------------
+
+async def _fetch_act_index_impl(reference: str) -> str:
+    """Implementation of fetch_act_index."""
+    _, act_name = _parse_reference(reference)
+    if not act_name:
+        return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
+    act_info = _resolve_act(act_name)
+    if not act_info:
+        return f"**Errore**: atto '{act_name}' non riconosciuto."
+
+    norma = Norma(
+        tipo_atto=act_info["tipo_atto"],
+        data=act_info.get("data", ""),
+        numero_atto=act_info.get("numero_atto", ""),
+    )
+    try:
+        result = await _fetch_act_index_scraper(norma)
+    except Exception as e:
+        return f"**Errore** nel recupero dell'indice: {e}"
+
+    if result.get("error"):
+        return f"**Errore**: {result['error']}"
+
+    entries = result.get("index", [])
+    if not entries:
+        return f"Nessun indice trovato per {act_name}."
+
+    lines = [f"## Indice — {norma}\n"]
+    for entry in entries:
+        lines.append(f"- {entry}")
+    lines.append(f"\n*Codice redazionale*: `{result.get('codice_redazionale', '')}`")
+    return "\n".join(lines)
+
+
+@mcp.tool(tags={"normativa"})
+async def fetch_act_index(reference: str) -> str:
+    """Recupera l'indice strutturato (rubriche) di un atto normativo da Normattiva.
+
+    Restituisce l'elenco degli articoli con i relativi titoli, utile per navigare
+    atti complessi senza scaricare il testo intero.
+    Restituisce: lista degli articoli con rubrica e codice redazionale dell'atto.
+
+    Args:
+        reference: Nome dell'atto, es. "D.Lgs. 231/2001", "codice civile", "D.M. 55/2014"
+    """
+    return await _fetch_act_index_impl(reference)
+
+
+async def _fetch_full_act_impl(reference: str) -> str:
+    """Implementation of fetch_full_act."""
+    _, act_name = _parse_reference(reference)
+    if not act_name:
+        return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
+    act_info = _resolve_act(act_name)
+    if not act_info:
+        return f"**Errore**: atto '{act_name}' non riconosciuto."
+
+    norma = Norma(
+        tipo_atto=act_info["tipo_atto"],
+        data=act_info.get("data", ""),
+        numero_atto=act_info.get("numero_atto", ""),
+    )
+
+    if norma._is_eurlex():
+        return "Per atti UE usare download_law_pdf() — il testo integrale è disponibile solo in PDF."
+
+    try:
+        result = await fetch_normattiva_full_text(norma)
+    except Exception as e:
+        return f"**Errore** nel recupero del testo completo: {e}"
+
+    if result.get("error"):
+        return f"**Errore**: {result['error']}"
+
+    text = result.get("text", "")
+    title = result.get("title", str(norma))
+    url = result.get("url", "")
+
+    if not text or len(text) < 50:
+        return f"**Errore**: testo insufficiente. URL: {url}"
+
+    lines = [
+        f"# {title}",
+        f"**Fonte**: Normattiva — {url}",
+        f"**Dimensione**: {len(text):,} caratteri\n",
+        text,
+    ]
+
+    return "\n".join(lines)
+
+
+@mcp.tool(tags={"normativa"})
+async def fetch_full_act(reference: str) -> str:
+    """Recupera il testo completo di un atto normativo italiano da Normattiva.
+
+    Restituisce il testo integrale dell'atto senza troncamenti.
+    ATTENZIONE: per codici voluminosi (c.c., c.p.) il testo può essere molto lungo.
+    Per atti UE usare download_law_pdf() per il PDF ufficiale da EUR-Lex.
+    Restituisce: testo completo dell'atto con titolo e URL fonte.
+
+    Args:
+        reference: Nome dell'atto, es. "D.Lgs. 231/2001", "D.M. 55/2014", "L. 604/1966"
+    """
+    return await _fetch_full_act_impl(reference)
 
 
 # ---------------------------------------------------------------------------

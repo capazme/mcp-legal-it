@@ -8,13 +8,17 @@ Extracts from each article page:
 - Brocardi (adagi/proverbi giuridici)
 - Massime giurisprudenziali (structured: autorità, numero, anno, testo)
 - Relazioni storiche (Guardasigilli, Ruini)
+- Glossario (link a definizioni giuridiche inline)
 - Note a piè di pagina
 - Riferimenti incrociati (link ad altri articoli)
 - Articoli correlati (precedente/successivo)
 """
 
+import json
+import os
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import urljoin
 
 import httpx
@@ -31,8 +35,29 @@ _HEADERS = {
 }
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
-# In-memory cache for article URLs
-_url_cache: dict[str, str] = {}
+# Persistent JSON cache for article URLs
+_CACHE_DIR = Path(os.environ.get("MCP_CACHE_DIR", Path.home() / ".cache" / "mcp-legal-it"))
+_CACHE_FILE = _CACHE_DIR / "brocardi_urls.json"
+
+
+def _load_url_cache() -> dict[str, str]:
+    try:
+        if _CACHE_FILE.exists():
+            return json.loads(_CACHE_FILE.read_text())
+    except (json.JSONDecodeError, OSError):
+        pass
+    return {}
+
+
+def _save_url_cache(cache: dict[str, str]) -> None:
+    try:
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False))
+    except OSError:
+        pass
+
+
+_url_cache: dict[str, str] = _load_url_cache()
 
 # ── Italian judicial authorities (for structured massime parsing) ───────────
 
@@ -83,16 +108,26 @@ class Relazione:
 
 
 @dataclass
+class GlossaryEntry:
+    """A link to a Brocardi legal dictionary term found inline in the article text."""
+    termine: str
+    url: str
+    dizionario_id: str = ""
+
+
+@dataclass
 class BrocardiResult:
     """Full Brocardi extraction result for an article."""
 
     url: str = ""
     position: str = ""
+    dispositivo: str = ""
     brocardi: list[str] = field(default_factory=list)
     ratio: str = ""
     spiegazione: str = ""
     massime: list[Massima] = field(default_factory=list)
     relazioni: list[Relazione] = field(default_factory=list)
+    glossario: list[GlossaryEntry] = field(default_factory=list)
     footnotes: list[dict[str, str | int]] = field(default_factory=list)
     cross_references: list[dict[str, str]] = field(default_factory=list)
     related_articles: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -113,6 +148,9 @@ class BrocardiResult:
 
         if self.position:
             parts.append(f"**Posizione**: {self.position}\n")
+
+        if self.dispositivo:
+            parts.append(f"## Testo dell'articolo\n{self.dispositivo}\n")
 
         if self.ratio:
             parts.append(f"## Ratio Legis\n{self.ratio}\n")
@@ -137,6 +175,12 @@ class BrocardiResult:
             parts.append("## Relazioni storiche")
             for r in self.relazioni:
                 parts.append(f"### {r.titolo}\n{r.testo}\n")
+
+        if self.glossario:
+            parts.append("## Glossario giuridico")
+            for g in self.glossario:
+                parts.append(f"- **{g.termine}**: {g.url}")
+            parts.append("")
 
         if self.footnotes:
             parts.append("## Note")
@@ -193,7 +237,11 @@ async def fetch_brocardi(
 async def find_article_url(
     client: httpx.AsyncClient, base_url: str, article_num: str
 ) -> str | None:
-    """Navigate Brocardi to find the article page URL."""
+    """Navigate Brocardi to find the article page URL.
+
+    Uses persistent JSON cache to avoid repeated HTTP requests across sessions.
+    Searches sub-pages without a fixed limit — stops as soon as the article is found.
+    """
     cache_key = f"{base_url}#{article_num}"
     if cache_key in _url_cache:
         return _url_cache[cache_key]
@@ -201,39 +249,47 @@ async def find_article_url(
     resp = await client.get(base_url)
     resp.raise_for_status()
 
-    pattern = re.compile(rf'href=["\']([^"\']*art{re.escape(article_num)}\.html)["\']')
+    # Word-boundary pattern: match artNNN.html but not artNNNx.html
+    pattern = re.compile(
+        rf'href=["\']([^"\']*art{re.escape(article_num)}(?:\.html))["\']'
+    )
 
-    # Direct match
+    # Direct match on index page — use base_url (not BASE_URL) so relative
+    # hrefs like "libro-quarto/titolo-ix/art2043.html" resolve correctly
+    page_url = str(resp.url) if hasattr(resp, "url") else base_url
+    if not page_url.endswith("/"):
+        page_url += "/"
     matches = pattern.findall(resp.text)
     if matches:
-        result = urljoin(BASE_URL, matches[0])
+        result = urljoin(page_url, matches[0])
         _url_cache[cache_key] = result
+        _save_url_cache(_url_cache)
         return result
 
-    # Search in sub-pages (section-title links)
+    # Collect all sub-page URLs first, then search them
     soup = BeautifulSoup(resp.text, "lxml")
-    max_sub = 15
-    fetched = 0
+    sub_urls: list[str] = []
     for section in soup.find_all("div", class_="section-title"):
-        if fetched >= max_sub:
-            break
         for a_tag in section.find_all("a", href=True):
-            if fetched >= max_sub:
-                break
-            sub_url = urljoin(BASE_URL, a_tag.get("href", ""))
-            if not sub_url.startswith(BASE_URL):
-                continue
-            fetched += 1
-            try:
-                sub_resp = await client.get(sub_url)
-                sub_resp.raise_for_status()
-                sub_matches = pattern.findall(sub_resp.text)
-                if sub_matches:
-                    result = urljoin(BASE_URL, sub_matches[0])
-                    _url_cache[cache_key] = result
-                    return result
-            except httpx.HTTPError:
-                continue
+            sub_url = urljoin(page_url, a_tag.get("href", ""))
+            if sub_url.startswith(BASE_URL) and sub_url != base_url:
+                sub_urls.append(sub_url)
+
+    for sub_url in sub_urls:
+        try:
+            sub_resp = await client.get(sub_url)
+            sub_resp.raise_for_status()
+            sub_page_url = str(sub_resp.url) if hasattr(sub_resp, "url") else sub_url
+            if not sub_page_url.endswith("/"):
+                sub_page_url += "/"
+            sub_matches = pattern.findall(sub_resp.text)
+            if sub_matches:
+                result = urljoin(sub_page_url, sub_matches[0])
+                _url_cache[cache_key] = result
+                _save_url_cache(_url_cache)
+                return result
+        except httpx.HTTPError:
+            continue
 
     return None
 
@@ -281,21 +337,62 @@ def _extract_position(soup: BeautifulSoup) -> str:
 def _extract_all_sections(soup: BeautifulSoup, result: BrocardiResult) -> None:
     corpo = soup.find(
         "div",
-        class_="panes-condensed panes-w-ads content-ext-guide content-mark",
+        class_=lambda c: c and "panes-condensed" in c and "content-ext-guide" in c,
     )
     if not corpo:
         corpo = soup.find("body") or soup
         if not corpo:
             return
 
+    _extract_dispositivo(soup, result)
     _extract_brocardi_adagi(corpo, result)
     _extract_ratio(corpo, result)
     _extract_spiegazione(corpo, result)
     _extract_massime(corpo, result)
     _extract_relazioni(corpo, result)
+    _extract_glossario(soup, result)
     _extract_footnotes(corpo, result)
     _extract_cross_references(corpo, result)
     _extract_related_articles(soup, result)
+
+
+def _extract_dispositivo(soup: BeautifulSoup, result: BrocardiResult) -> None:
+    """Extract the article text from the #dispositivo tab section."""
+    # The dispositivo is in a div targeted by the #dispositivo anchor
+    disp = soup.find("div", id="dispositivo")
+    if disp:
+        text = _clean_text(disp.get_text())
+        if text:
+            result.dispositivo = text
+            return
+    # Fallback: look for the corpoDelTesto inside the dispositivo area
+    for div in soup.find_all("div", class_="corpoDelTesto"):
+        parent = div.find_parent("div", id="dispositivo")
+        if parent:
+            result.dispositivo = _clean_text(div.get_text())
+            return
+
+
+def _extract_glossario(soup: BeautifulSoup, result: BrocardiResult) -> None:
+    """Extract glossary links (/dizionario/NNN.html) from the article page."""
+    seen: set[str] = set()
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag.get("href", "")
+        if "/dizionario/" not in href or ".html" not in href:
+            continue
+        url = href if href.startswith("http") else f"{BASE_URL}{href}"
+        if url in seen:
+            continue
+        seen.add(url)
+        termine = a_tag.get_text(strip=True)
+        if not termine:
+            continue
+        id_match = re.search(r"/dizionario/(\d+)\.html", href)
+        result.glossario.append(GlossaryEntry(
+            termine=termine,
+            url=url,
+            dizionario_id=id_match.group(1) if id_match else "",
+        ))
 
 
 def _extract_brocardi_adagi(corpo: Tag, result: BrocardiResult) -> None:

@@ -1,5 +1,6 @@
 from .client import (
     BrocardiResult,
+    GlossaryEntry,
     Massima,
     fetch_brocardi,
     find_article_url,
@@ -8,6 +9,7 @@ from .client import (
 
 __all__ = [
     "BrocardiResult",
+    "GlossaryEntry",
     "Massima",
     "fetch_brocardi",
     "find_article_url",

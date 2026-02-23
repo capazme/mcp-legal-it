@@ -46,6 +46,7 @@ async def _cerca_giurisprudenza_impl(
     anno_da: int = 0,
     anno_a: int = 0,
     max_risultati: int = 10,
+    pagina: int = 0,
 ) -> str:
     max_risultati = min(max_risultati, 50)
     params = build_search_params(
@@ -56,20 +57,23 @@ async def _cerca_giurisprudenza_impl(
         anno_da=anno_da or None,
         anno_a=anno_a or None,
         rows=max_risultati,
+        start=pagina * max_risultati,
     )
     try:
         data = await solr_query(params)
     except Exception as exc:
         return f"Errore nella ricerca: {exc}"
     docs = data.get("response", {}).get("docs", [])
+    num_found = data.get("response", {}).get("numFound", 0)
     highlighting = data.get("highlighting", {})
     if not docs:
         return "Nessuna decisione trovata per la ricerca indicata."
-    lines = [f"**Trovate {len(docs)} decisioni della Cassazione per**: _{query}_\n"]
+    start_idx = pagina * max_risultati + 1
+    end_idx = start_idx + len(docs) - 1
+    lines = [f"**Trovate {num_found} decisioni** per: _{query}_ (mostro {start_idx}-{end_idx})\n"]
     for doc in docs:
         doc_id = doc.get("id", "")
-        hl_fragments = highlighting.get(doc_id, {}).get("ocr", [])
-        hl = hl_fragments[0] if hl_fragments else None
+        hl = highlighting.get(doc_id)
         lines.append(format_summary(doc, hl))
         lines.append("")
     return "\n".join(lines)
@@ -79,6 +83,7 @@ async def _giurisprudenza_su_norma_impl(
     riferimento: str,
     archivio: str = "tutti",
     max_risultati: int = 10,
+    pagina: int = 0,
 ) -> str:
     max_risultati = min(max_risultati, 50)
     kinds = get_kind_filter(archivio)
@@ -88,25 +93,28 @@ async def _giurisprudenza_su_norma_impl(
         "q": f"({kind_clause}) AND {norma_q}",
         "sort": "score desc",
         "rows": max_risultati,
+        "start": pagina * max_risultati,
         "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
         "hl": "true",
-        "hl.fl": "ocr",
+        "hl.fl": "ocr,ocrdis",
         "hl.fragsize": "400",
-        "hl.snippets": "1",
+        "hl.snippets": "2",
     }
     try:
         data = await solr_query(params)
     except Exception as exc:
         return f"Errore nella ricerca per norma: {exc}"
     docs = data.get("response", {}).get("docs", [])
+    num_found = data.get("response", {}).get("numFound", 0)
     highlighting = data.get("highlighting", {})
     if not docs:
         return f"Nessuna decisione trovata per il riferimento: {riferimento}"
-    lines = [f"**Giurisprudenza su**: _{riferimento}_\n"]
+    start_idx = pagina * max_risultati + 1
+    end_idx = start_idx + len(docs) - 1
+    lines = [f"**Trovate {num_found} decisioni su**: _{riferimento}_ (mostro {start_idx}-{end_idx})\n"]
     for doc in docs:
         doc_id = doc.get("id", "")
-        hl_fragments = highlighting.get(doc_id, {}).get("ocr", [])
-        hl = hl_fragments[0] if hl_fragments else None
+        hl = highlighting.get(doc_id)
         lines.append(format_summary(doc, hl))
         lines.append("")
     return "\n".join(lines)
@@ -128,7 +136,7 @@ async def _ultime_pronunce_impl(
         "rows": max_risultati,
         "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
     }
-    fq_parts = []
+    fq_parts: list[str] = []
     if materia:
         fq_parts.append(f"materia:{materia}")
     if sezione:
@@ -136,15 +144,16 @@ async def _ultime_pronunce_impl(
     if tipo_provvedimento and tipo_provvedimento in TIPO_PROV:
         fq_parts.append(f"tipoprov:{TIPO_PROV[tipo_provvedimento]}")
     if fq_parts:
-        params["fq"] = " AND ".join(fq_parts)
+        params["fq"] = fq_parts
     try:
         data = await solr_query(params)
     except Exception as exc:
         return f"Errore nel recupero ultime pronunce: {exc}"
     docs = data.get("response", {}).get("docs", [])
+    num_found = data.get("response", {}).get("numFound", 0)
     if not docs:
         return "Nessuna decisione recente trovata con i filtri specificati."
-    lines = ["**Ultime pronunce della Cassazione**\n"]
+    lines = [f"**Ultime pronunce della Cassazione** ({num_found} totali)\n"]
     for doc in docs:
         lines.append(format_summary(doc))
         lines.append("")
@@ -187,6 +196,7 @@ async def cerca_giurisprudenza(
     anno_da: int = 0,
     anno_a: int = 0,
     max_risultati: int = 10,
+    pagina: int = 0,
 ) -> str:
     """Ricerca full-text nelle sentenze della Cassazione su Italgiure (fonte ufficiale).
 
@@ -194,6 +204,7 @@ async def cerca_giurisprudenza(
     Una volta trovato il numero, usare leggi_sentenza() per il testo completo.
     Dopo questo tool: leggi_sentenza() per leggere il testo integrale delle decisioni trovate.
     Restituisce: lista di decisioni con numero, data, sezione, dispositivo e snippet matching.
+    L'output mostra il totale trovato e il range visualizzato. Usare pagina>0 per navigare.
 
     Args:
         query: Testo da cercare nel corpo delle decisioni
@@ -202,11 +213,12 @@ async def cerca_giurisprudenza(
         sezione: Filtro sezione (1-6, L=lavoro, T=tributaria, SU=sezioni unite)
         anno_da: Anno di inizio (incluso)
         anno_a: Anno di fine (incluso)
-        max_risultati: Numero massimo di risultati (default 10, max 50)
+        max_risultati: Numero massimo di risultati per pagina (default 10, max 50)
+        pagina: Pagina dei risultati, 0-indexed (default 0 = prima pagina)
     """
     return await _cerca_giurisprudenza_impl(
         query, archivio=archivio, materia=materia, sezione=sezione,
-        anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati,
+        anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati, pagina=pagina,
     )
 
 
@@ -215,6 +227,7 @@ async def giurisprudenza_su_norma(
     riferimento: str,
     archivio: str = "tutti",
     max_risultati: int = 10,
+    pagina: int = 0,
 ) -> str:
     """Trova sentenze della Cassazione che citano uno specifico articolo di legge.
 
@@ -226,9 +239,12 @@ async def giurisprudenza_su_norma(
     Args:
         riferimento: Riferimento normativo (es. "art. 2043 c.c.", "art. 13 GDPR", "art. 6 D.Lgs. 231/2001")
         archivio: "civile", "penale", o "tutti" (default)
-        max_risultati: Numero massimo di risultati (default 10)
+        max_risultati: Numero massimo di risultati per pagina (default 10)
+        pagina: Pagina dei risultati, 0-indexed (default 0 = prima pagina)
     """
-    return await _giurisprudenza_su_norma_impl(riferimento, archivio=archivio, max_risultati=max_risultati)
+    return await _giurisprudenza_su_norma_impl(
+        riferimento, archivio=archivio, max_risultati=max_risultati, pagina=pagina,
+    )
 
 
 @mcp.tool(tags={"giurisprudenza"})
