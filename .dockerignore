@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+tests/
+.git/
+.gitignore
+.claude/
+.mcp.json
+*.md
+LICENSE
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+_bmad-output/
+docs/

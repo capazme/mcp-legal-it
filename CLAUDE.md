@@ -262,3 +262,45 @@ cerca_brocardi("art. 2043 c.c.")
   └─> parse_massime_references(massime) = [{"numero": 100, "anno": 2024}, ...]
   └─> leggi_sentenza(100, 2024)  ← testo completo da Italgiure
 ```
+
+## Docker
+
+Il server supporta due transport: **stdio** (default, per Claude Desktop/Code) e **SSE** (HTTP, per deployment remoti).
+
+### Env vars
+
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` o `sse` |
+| `MCP_HOST` | `0.0.0.0` | Bind address (solo SSE) |
+| `MCP_PORT` | `8000` | Porta (solo SSE) |
+| `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
+| `MCP_CACHE_DIR` | — | Directory cache Brocardi |
+
+### Comandi
+
+```bash
+# Build
+docker build -t mcp-legal-it .
+
+# Run SSE (porta 8000)
+docker run -p 8000:8000 mcp-legal-it
+
+# Run con docker-compose
+docker compose up
+
+# Test endpoint SSE
+curl http://localhost:8000/sse
+```
+
+### Configurazione client MCP (SSE)
+
+```json
+{
+  "mcpServers": {
+    "legal-it": {
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}
+```

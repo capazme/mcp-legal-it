@@ -1,0 +1,13 @@
+services:
+  mcp-legal-it:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - LEGAL_PROFILE=full
+      - MCP_TRANSPORT=sse
+    volumes:
+      - mcp-cache:/app/.cache/mcp-legal-it
+
+volumes:
+  mcp-cache:
