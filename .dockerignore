@@ -13,3 +13,4 @@ LICENSE
 .ruff_cache/
 _bmad-output/
 docs/
+docker-compose.yml
