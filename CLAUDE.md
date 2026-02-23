@@ -174,6 +174,69 @@ Poi importare il modulo in `src/server.py` nella lista degli import.
 - `tests/comparison/` — valori numerici attesi, eseguiti senza mock
 - Marker `@pytest.mark.live` per test che colpiscono server reali
 
+## Git Flow
+
+Questo progetto usa **Git Flow classico**. Le regole sono tassative.
+
+### Branch permanenti
+
+| Branch | Scopo | Protetto |
+|--------|-------|----------|
+| `main` | Produzione — codice stabile e rilasciato | Sì — solo merge da `release/*` e `hotfix/*` |
+| `develop` | Integrazione — raccoglie le feature completate | Sì — solo merge da `feature/*`, `release/*`, `hotfix/*` |
+
+### Branch temporanei
+
+| Prefisso | Da | Merge verso | Scopo |
+|----------|----|-------------|-------|
+| `feature/<nome>` | `develop` | `develop` | Nuova funzionalità o miglioramento |
+| `fix/<nome>` | `develop` | `develop` | Bug fix non urgente |
+| `release/<versione>` | `develop` | `main` + `develop` | Preparazione rilascio (bump version, changelog, fix finali) |
+| `hotfix/<nome>` | `main` | `main` + `develop` | Fix critico in produzione |
+
+### Regole operative
+
+1. **Mai committare direttamente su `main`** — sempre via `release/*` o `hotfix/*`
+2. **Mai committare direttamente su `develop`** — sempre via `feature/*` o `fix/*`
+3. **Branch di lavoro**: creare sempre da `develop` (tranne hotfix, da `main`)
+4. **Merge**: usare `--no-ff` per mantenere la storia dei branch nel grafo
+5. **Naming**: `feature/add-solr-facets`, `fix/brocardi-404`, `release/1.2.0`, `hotfix/eurlex-waf`
+6. **Pulizia**: eliminare il branch dopo il merge (locale e remote)
+7. **Tag**: creare tag `vX.Y.Z` su `main` dopo ogni merge da `release/*`
+
+### Workflow per Claude Code
+
+```bash
+# Nuova feature
+git checkout develop
+git pull origin develop
+git checkout -b feature/<nome>
+# ... lavoro ...
+git push -u origin feature/<nome>
+# PR: feature/<nome> → develop
+
+# Hotfix urgente
+git checkout main
+git pull origin main
+git checkout -b hotfix/<nome>
+# ... fix ...
+git push -u origin hotfix/<nome>
+# PR: hotfix/<nome> → main (poi merge main → develop)
+
+# Release
+git checkout develop
+git checkout -b release/X.Y.Z
+# ... bump version, fix finali ...
+# PR: release/X.Y.Z → main (poi merge main → develop, tag vX.Y.Z)
+```
+
+### Versioning
+
+Segue [Semantic Versioning](https://semver.org/):
+- **MAJOR** (X): breaking change nelle API dei tool (signature, output format)
+- **MINOR** (Y): nuovi tool, nuove feature, nuovi scraper
+- **PATCH** (Z): bug fix, miglioramenti interni, aggiornamenti dati
+
 ## Italgiure — note tecniche
 
 - **API**: Solr REST su `https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr`
@@ -181,12 +244,12 @@ Poi importare il modulo in `src/server.py` nella lista degli import.
 - **SSL**: certificato non valido → `verify=False` in httpx (hardcoded, necessario)
 - **Autenticazione**: nessuna — API pubblica
 - **Campi chiave**: `numdec` (numero), `anno`, `datdep` (data deposito), `szdec` (sezione), `ocr` (testo), `ocrdis` (dispositivo)
-- **OCR troncato** a 8000 caratteri per evitare saturazione context window
+- **OCR troncato** a 30000 caratteri per evitare saturazione context window
 
 ## Brocardi — note tecniche
 
 - **Navigazione in due passi**: URL base del codice → trova pagina articolo → scraping
-- **Cache in-memory** degli URL degli articoli (`_url_cache` in `client.py`)
+- **Cache persistente JSON** degli URL degli articoli (`~/.cache/mcp-legal-it/brocardi_urls.json`)
 - **Massime strutturate**: parsing regex per autorità (Cass., Trib., Cons. Stato, CGUE, CEDU)
 - **`parse_massime_references()`**: estrae riferimenti Cassazione per `leggi_sentenza()`
 - **`BrocardiResult.cassazione_references`**: property che filtra solo massime Cass.
@@ -198,4 +261,46 @@ cerca_brocardi("art. 2043 c.c.")
   └─> BrocardiResult.massime = [Massima(autorita="Cass. civ.", numero="100", anno="2024"), ...]
   └─> parse_massime_references(massime) = [{"numero": 100, "anno": 2024}, ...]
   └─> leggi_sentenza(100, 2024)  ← testo completo da Italgiure
+```
+
+## Docker
+
+Il server supporta due transport: **stdio** (default, per Claude Desktop/Code) e **SSE** (HTTP, per deployment remoti).
+
+### Env vars
+
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` o `sse` |
+| `MCP_HOST` | `0.0.0.0` | Bind address (solo SSE) |
+| `MCP_PORT` | `8000` | Porta (solo SSE) |
+| `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
+| `MCP_CACHE_DIR` | — | Directory cache Brocardi |
+
+### Comandi
+
+```bash
+# Build
+docker build -t mcp-legal-it .
+
+# Run SSE (porta 8000)
+docker run -p 8000:8000 mcp-legal-it
+
+# Run con docker-compose
+docker compose up
+
+# Test endpoint SSE
+curl http://localhost:8000/sse
+```
+
+### Configurazione client MCP (SSE)
+
+```json
+{
+  "mcpServers": {
+    "legal-it": {
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}
 ```
