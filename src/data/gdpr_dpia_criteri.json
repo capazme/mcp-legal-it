@@ -1,0 +1,84 @@
+{
+  "criteri_wp248": [
+    {
+      "id": 1,
+      "criterio": "Valutazione o assegnazione di un punteggio (scoring/profiling)",
+      "parametro": "profilazione",
+      "descrizione": "Valutazione sistematica di aspetti personali basata su trattamento automatizzato, compresa la profilazione, su cui si fondano decisioni con effetti giuridici"
+    },
+    {
+      "id": 2,
+      "criterio": "Processo decisionale automatizzato con effetti giuridici o analoghi",
+      "parametro": "decisione_automatizzata",
+      "descrizione": "Trattamento finalizzato ad assumere decisioni su interessati con effetti giuridici significativi (art. 22 GDPR)"
+    },
+    {
+      "id": 3,
+      "criterio": "Monitoraggio sistematico",
+      "parametro": "monitoraggio_sistematico",
+      "descrizione": "Osservazione, monitoraggio o controllo sistematico degli interessati, inclusa la raccolta tramite reti o il monitoraggio sistematico di aree accessibili al pubblico"
+    },
+    {
+      "id": 4,
+      "criterio": "Dati sensibili o di natura altamente personale",
+      "parametro": "dati_sensibili",
+      "descrizione": "Categorie particolari (art. 9), dati relativi a condanne penali (art. 10), dati di localizzazione, dati finanziari, comunicazioni elettroniche"
+    },
+    {
+      "id": 5,
+      "criterio": "Trattamento su larga scala",
+      "parametro": "larga_scala",
+      "descrizione": "Numero significativo di interessati, volume di dati, durata/permanenza, estensione geografica"
+    },
+    {
+      "id": 6,
+      "criterio": "Combinazione o incrocio di dataset",
+      "parametro": "incrocio_dataset",
+      "descrizione": "Combinazione di insiemi di dati provenienti da due o più operazioni di trattamento con finalità diverse e/o da titolari diversi"
+    },
+    {
+      "id": 7,
+      "criterio": "Dati relativi a interessati vulnerabili",
+      "parametro": "soggetti_vulnerabili",
+      "descrizione": "Minori, dipendenti, pazienti, anziani, richiedenti asilo — squilibrio di potere tra interessato e titolare"
+    },
+    {
+      "id": 8,
+      "criterio": "Uso innovativo o applicazione di nuove soluzioni tecnologiche",
+      "parametro": "nuove_tecnologie",
+      "descrizione": "Biometria, intelligenza artificiale, IoT, blockchain, riconoscimento facciale, nuove tecnologie emergenti"
+    },
+    {
+      "id": 9,
+      "criterio": "Trattamento che impedisce l'esercizio di un diritto o l'utilizzo di un servizio o contratto",
+      "parametro": "impedimento_diritto",
+      "descrizione": "Il trattamento impedisce agli interessati di esercitare un diritto o di avvalersi di un servizio o di un contratto (art. 35(3)(a) GDPR)"
+    }
+  ],
+  "soglia_criteri": 2,
+  "nota_soglia": "Se il trattamento soddisfa almeno 2 dei 9 criteri, la DPIA è generalmente necessaria (WP248 rev.01, par. III.C)",
+  "lista_garante_italiano": [
+    "Trattamenti valutativi o di scoring su larga scala",
+    "Trattamenti automatizzati con effetto giuridico significativo",
+    "Monitoraggio sistematico su larga scala (videosorveglianza, geolocalizzazione)",
+    "Trattamento su larga scala di dati ex art. 9 o 10 GDPR",
+    "Trattamento sistematico di dati biometrici",
+    "Trattamento sistematico di dati genetici",
+    "Trattamento su larga scala di dati di localizzazione",
+    "Trattamento di dati di soggetti vulnerabili (minori, dipendenti, pazienti)",
+    "Utilizzo di tecnologie innovative per il trattamento di dati personali",
+    "Trattamenti che comportano scambio tra diversi titolari su larga scala",
+    "Trattamenti di dati personali tramite interconnessione di banche dati",
+    "Trattamenti sistematici di dati biometrici di dipendenti"
+  ],
+  "esenzioni_dpia": [
+    "Trattamento necessario per obblighi legali con base giuridica specifica",
+    "Trattamento già sottoposto a DPIA con esito positivo senza modifiche",
+    "Trattamento inserito nell'elenco delle esenzioni dell'autorità di controllo"
+  ],
+  "riferimenti_normativi": {
+    "gdpr": "Art. 35 Reg. UE 2016/679",
+    "wp248": "WP248 rev.01 — Linee guida sulla valutazione d'impatto (DPIA)",
+    "garante": "Elenco delle tipologie di trattamenti soggetti a DPIA — Provvedimento Garante 11/10/2018 [doc. web 9058979]"
+  }
+}

@@ -57,16 +57,19 @@ mcp-legal-it/
 │       ├── proprieta_successioni.py
 │       ├── investimenti.py
 │       ├── dichiarazione_redditi.py
-│       └── varie.py
+│       ├── varie.py
+│       └── privacy_gdpr.py
 └── tests/
     ├── unit/
     │   ├── test_calculations.py     # Test calcoli numerici
     │   ├── test_legal_citations.py  # Test cite_law, resolve_act, PDF helpers
-    │   └── test_brocardi.py         # Test scraper Brocardi e tool cerca_brocardi
+    │   ├── test_brocardi.py         # Test scraper Brocardi e tool cerca_brocardi
+    │   └── test_privacy_gdpr.py   # Test 12 tool GDPR/Privacy compliance
     └── comparison/                  # Test di confronto con valori attesi
+        └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
 ```
 
-## Tool disponibili (14 categorie, 144 tool)
+## Tool disponibili (15 categorie, 161 tool)
 
 ### Consultazione Normativa
 | Tool | Descrizione |
@@ -98,8 +101,25 @@ mcp-legal-it/
 10. Investimenti (5 tool) — BOT, BTP, buoni postali
 11. Dichiarazione redditi (14 tool) — IRPEF, regime forfettario, TFR
 12. Varie (12 tool) — codice fiscale, IBAN, ATECO, prescrizione diritti
+13. Privacy/GDPR (12 tool) — informative privacy, cookie, DPA, DPIA, data breach, sanzioni
 
-## Prompt guidati (12)
+### Privacy/GDPR Compliance
+| Tool | Descrizione |
+|------|-------------|
+| `genera_informativa_privacy(titolare, finalita[], ...)` | Informativa completa art. 13 o 14 GDPR con checklist elementi obbligatori |
+| `genera_informativa_cookie(titolare, cookie_tecnici[], sito_web)` | Cookie policy con tabella cookie e testo banner suggerito |
+| `genera_informativa_dipendenti(titolare, ...)` | Informativa privacy per i dipendenti (art. 13 GDPR + Statuto Lavoratori) |
+| `genera_informativa_videosorveglianza(titolare, finalita[], ...)` | Cartello EDPB + informativa estesa per videosorveglianza |
+| `genera_dpa(titolare, responsabile, ...)` | Contratto art. 28 GDPR con checklist 8 clausole obbligatorie |
+| `genera_registro_trattamenti(titolare, trattamento, ...)` | Scheda art. 30 GDPR formattata |
+| `genera_dpia(titolare, descrizione, rischi[], ...)` | DPIA completa con matrice rischi e rischio residuo |
+| `analisi_base_giuridica(tipo_trattamento, contesto, finalita)` | Analisi basi giuridiche applicabili con raccomandazione motivata |
+| `verifica_necessita_dpia(tipo_trattamento, ...)` | Verifica 9 criteri WP248 — ≥2 → DPIA obbligatoria |
+| `valutazione_data_breach(tipo_violazione, ...)` | Valutazione rischio e obblighi di notifica/comunicazione |
+| `calcolo_sanzione_gdpr(tipo_violazione, ...)` | Stima range sanzioni con analisi criteri art. 83(2) |
+| `genera_notifica_data_breach(titolare, ...)` | Modulo notifica al Garante con scadenza 72h |
+
+## Prompt guidati (13)
 
 - `analisi_sinistro` — danno biologico + rivalutazione + interessi
 - `recupero_credito` — interessi mora + decreto ingiuntivo + parcella
@@ -114,8 +134,9 @@ mcp-legal-it/
 - `confronto_norme` — specialità, gerarchia, coordinamento
 - `mappatura_normativa` — mappa completa per settore/attività
 - `analisi_giurisprudenziale` — workflow: cerca_giurisprudenza → leggi_sentenza → cite_law → sintesi
+- `compliance_privacy` — workflow GDPR: base giuridica → DPIA → registro → informativa → DPA
 
-## Risorse statiche (legal://)
+## Risorse statiche (legal://) — 9
 
 - `legal://riferimenti/procedura-civile` — fasi e termini post-Cartabia
 - `legal://riferimenti/termini-processuali` — quadro sinottico termini
@@ -125,6 +146,7 @@ mcp-legal-it/
 - `legal://riferimenti/checklist-decreto-ingiuntivo` — checklist ricorso
 - `legal://riferimenti/fonti-diritto-italiano` — gerarchia fonti + formato citazione
 - `legal://riferimenti/codici-e-leggi-principali` — indice ragionato codici e leggi UE
+- `legal://riferimenti/gdpr-checklist` — checklist compliance GDPR con tool disponibili
 
 ## Convenzioni di sviluppo
 
