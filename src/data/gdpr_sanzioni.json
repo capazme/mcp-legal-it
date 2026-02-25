@@ -1,0 +1,103 @@
+{
+  "massimali": {
+    "art83_4": {
+      "euro": 10000000,
+      "percentuale_fatturato": 2,
+      "descrizione": "Violazioni obblighi titolare/responsabile, organismo certificazione, organismo controllo (art. 83(4) GDPR)"
+    },
+    "art83_5": {
+      "euro": 20000000,
+      "percentuale_fatturato": 4,
+      "descrizione": "Violazioni principi base, diritti interessati, trasferimenti, ordini autorità (art. 83(5) GDPR)"
+    },
+    "art83_6": {
+      "euro": 20000000,
+      "percentuale_fatturato": 4,
+      "descrizione": "Inosservanza ordine di limitazione/sospensione trattamento (art. 83(6) GDPR)"
+    }
+  },
+  "criteri_art83_2": [
+    {
+      "id": "a",
+      "criterio": "Natura, gravità e durata della violazione",
+      "parametro": "numero interessati, entità danno, durata, categorie dati"
+    },
+    {
+      "id": "b",
+      "criterio": "Carattere doloso o colposo della violazione",
+      "parametro": "intenzionalità, negligenza, errore scusabile"
+    },
+    {
+      "id": "c",
+      "criterio": "Misure adottate per attenuare il danno",
+      "parametro": "azioni correttive, notifiche, cooperazione con interessati"
+    },
+    {
+      "id": "d",
+      "criterio": "Grado di responsabilità (misure tecniche e organizzative)",
+      "parametro": "adeguatezza misure ex art. 25 e 32 GDPR"
+    },
+    {
+      "id": "e",
+      "criterio": "Precedenti violazioni",
+      "parametro": "recidiva, storico sanzioni, ammonimenti precedenti"
+    },
+    {
+      "id": "f",
+      "criterio": "Grado di cooperazione con l'autorità di controllo",
+      "parametro": "collaborazione durante indagini, trasparenza, tempestività"
+    },
+    {
+      "id": "g",
+      "criterio": "Categorie di dati personali interessate",
+      "parametro": "dati particolari (art. 9), dati giudiziari (art. 10), dati minori"
+    },
+    {
+      "id": "h",
+      "criterio": "Modo in cui l'autorità ha preso conoscenza della violazione",
+      "parametro": "autonotifica, reclamo, indagine d'ufficio, stampa"
+    },
+    {
+      "id": "i",
+      "criterio": "Rispetto di provvedimenti precedenti",
+      "parametro": "ottemperanza a ordini, prescrizioni, sanzioni precedenti"
+    },
+    {
+      "id": "j",
+      "criterio": "Adesione a codici di condotta o meccanismi di certificazione",
+      "parametro": "certificazioni ex art. 40-42, codici di condotta approvati"
+    }
+  ],
+  "fattori_aggravanti": [
+    "Trattamento su larga scala",
+    "Coinvolgimento dati particolari (art. 9) o giudiziari (art. 10)",
+    "Soggetti vulnerabili (minori, anziani, dipendenti)",
+    "Violazione dolosa o per negligenza grave",
+    "Mancata notifica data breach",
+    "Precedenti violazioni o ammonimenti",
+    "Mancata cooperazione con il Garante",
+    "Profitto economico dalla violazione",
+    "Violazione sistematica e continuativa",
+    "Inosservanza di provvedimenti precedenti"
+  ],
+  "fattori_attenuanti": [
+    "Prima violazione",
+    "Cooperazione piena con l'autorità",
+    "Misure correttive immediate",
+    "Notifica spontanea della violazione",
+    "Adesione a codici di condotta approvati",
+    "Certificazione ex art. 42 GDPR",
+    "Carattere colposo lieve (errore scusabile)",
+    "Danno limitato agli interessati",
+    "Dimensione ridotta dell'organizzazione",
+    "Assenza di profitto dalla violazione"
+  ],
+  "modulazione_percentuale": {
+    "base_minima_pct": 0.5,
+    "base_media_pct": 5,
+    "base_massima_pct": 20,
+    "aggravante_incremento_pct": 25,
+    "attenuante_riduzione_pct": 20,
+    "precedenti_incremento_pct": 50
+  }
+}

@@ -867,3 +867,93 @@ REGOLE:
 - Ogni affermazione deve essere supportata da una sentenza o norma verificata.
 - Se una sentenza non è trovata su Italgiure, indicarlo esplicitamente.
 """
+
+
+# ---------------------------------------------------------------------------
+# Prompt per compliance GDPR/Privacy
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Workflow completo compliance privacy GDPR: analisi base giuridica, DPIA, registro, informativa e DPA"
+)
+def compliance_privacy(
+    titolare: str, tipo_trattamento: str, contesto: str
+) -> str:
+    return f"""Esegui un assessment di compliance GDPR completo per il trattamento indicato.
+
+DATI:
+- Titolare: {titolare}
+- Tipo di trattamento: {tipo_trattamento}
+- Contesto: {contesto} (B2C / B2B / dipendenti / pubblica_amministrazione / sanita / profilazione)
+
+PROCEDURA (segui nell'ordine):
+
+1. ANALISI BASE GIURIDICA
+   Chiama `analisi_base_giuridica` con tipo_trattamento="{tipo_trattamento}", contesto="{contesto}".
+   Identifica la base giuridica appropriata ex art. 6 GDPR.
+   Se il trattamento coinvolge dati particolari (art. 9), attiva il flag dati_particolari=true.
+   Annota la base consigliata per i passi successivi.
+
+2. VERIFICA NECESSITÀ DPIA
+   Chiama `verifica_necessita_dpia` con i criteri applicabili al trattamento.
+   Valuta: profilazione, dati sensibili, monitoraggio sistematico, larga scala,
+   soggetti vulnerabili, nuove tecnologie, scoring, incrocio dataset.
+   Se il risultato è dpia_necessaria=true, procedere al passo 2b.
+
+   2b. DPIA (se necessaria)
+   Chiama `genera_dpia` con i rischi identificati e le misure di mitigazione previste.
+   Documenta la matrice dei rischi e il rischio residuo.
+
+3. REGISTRO TRATTAMENTI
+   Chiama `genera_registro_trattamenti` per creare la scheda del trattamento ai sensi dell'art. 30.
+   Usa la base giuridica identificata al passo 1.
+
+4. INFORMATIVA PRIVACY
+   Chiama `genera_informativa_privacy` per generare l'informativa ai sensi dell'art. 13 GDPR.
+   Includi tutte le finalità, basi giuridiche, categorie di dati e destinatari.
+
+5. DPA (se presenti responsabili del trattamento)
+   Se il trattamento coinvolge responsabili esterni (fornitori IT, cloud, commercialista, ecc.),
+   chiama `genera_dpa` per generare il contratto ex art. 28 GDPR.
+
+FORMATO OUTPUT:
+
+## Assessment Compliance GDPR — {titolare}
+
+### 1. Base Giuridica
+| Elemento | Dettaglio |
+|----------|----------|
+| Base consigliata | ... |
+| Articolo | ... |
+| Motivazione | ... |
+
+### 2. DPIA
+| Criterio | Soddisfatto | Descrizione |
+|----------|-------------|-------------|
+| ... | Sì/No | ... |
+| **DPIA necessaria** | **Sì/No** | ... |
+
+### 3. Registro Trattamenti
+Scheda art. 30 generata con tutti i campi obbligatori.
+
+### 4. Informativa Privacy
+Testo completo dell'informativa art. 13 GDPR pronto per l'uso.
+
+### 5. DPA
+Contratto art. 28 GDPR (se applicabile).
+
+### Checklist Compliance
+- [ ] Base giuridica identificata e documentata
+- [ ] DPIA eseguita (se necessaria)
+- [ ] Registro trattamenti aggiornato
+- [ ] Informativa privacy redatta e pubblicata
+- [ ] DPA stipulati con tutti i responsabili
+- [ ] Misure di sicurezza adeguate (art. 32 GDPR)
+- [ ] Procedura data breach predisposta (artt. 33-34 GDPR)
+
+AVVERTENZE:
+- Il presente assessment è uno strumento di supporto e non sostituisce la consulenza legale specializzata.
+- Verificare sempre la normativa nazionale integrativa (D.Lgs. 196/2003 come modificato dal D.Lgs. 101/2018).
+- Per trattamenti su larga scala o ad alto rischio, consultare il DPO e valutare una consultazione preventiva (art. 36 GDPR).
+"""
