@@ -5,12 +5,20 @@ import re
 import pytest
 from playwright.sync_api import sync_playwright
 
+_NO_LIVE_MARK = {"test_privacy_docs.py"}
+
+
 def pytest_collection_modifyitems(items):
-    """Mark all comparison tests as 'live' so they are skipped by default."""
+    """Mark all comparison tests as 'live' so they are skipped by default.
+
+    Files listed in _NO_LIVE_MARK are unit-style tests that need no network
+    access and are not marked live.
+    """
     live_marker = pytest.mark.live
     for item in items:
         if "/comparison/" in str(item.fspath):
-            item.add_marker(live_marker)
+            if item.fspath.basename not in _NO_LIVE_MARK:
+                item.add_marker(live_marker)
 
 
 @pytest.fixture(scope="session")

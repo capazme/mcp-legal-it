@@ -1,0 +1,156 @@
+{
+  "basi_art6": {
+    "consenso": {
+      "lettera": "a",
+      "articolo": "Art. 6(1)(a) GDPR",
+      "descrizione": "L'interessato ha espresso il consenso al trattamento per una o più specifiche finalità",
+      "contesti_tipici": ["marketing diretto", "profilazione", "newsletter", "cookie di profilazione", "trasferimento dati a terzi per marketing"],
+      "pro": ["Massima flessibilità per il titolare", "Applicabile a qualsiasi finalità", "Valorizza l'autodeterminazione informativa"],
+      "contro": ["Revocabile in qualsiasi momento (art. 7(3))", "Onere della prova sul titolare (art. 7(1))", "Requisiti stringenti di validità (libero, specifico, informato, inequivocabile)", "Non idoneo se squilibrio di potere (es. datore-dipendente)"],
+      "requisiti": ["Libero", "Specifico", "Informato", "Inequivocabile", "Documentabile", "Revocabile"]
+    },
+    "contratto": {
+      "lettera": "b",
+      "articolo": "Art. 6(1)(b) GDPR",
+      "descrizione": "Trattamento necessario per l'esecuzione di un contratto o misure precontrattuali richieste dall'interessato",
+      "contesti_tipici": ["e-commerce", "gestione ordini", "fatturazione", "assistenza clienti", "gestione rapporto di lavoro (base)", "preventivi su richiesta"],
+      "pro": ["Non revocabile durante il rapporto contrattuale", "Giustificazione solida e verificabile", "Non richiede consenso separato"],
+      "contro": ["Limitata alla stretta necessità contrattuale", "Non copre finalità ulteriori (es. marketing)", "Cessa con il rapporto contrattuale"],
+      "requisiti": ["Il trattamento deve essere oggettivamente necessario", "Non basta che sia menzionato nel contratto"]
+    },
+    "obbligo_legale": {
+      "lettera": "c",
+      "articolo": "Art. 6(1)(c) GDPR",
+      "descrizione": "Trattamento necessario per adempiere un obbligo legale cui è soggetto il titolare",
+      "contesti_tipici": ["obblighi fiscali", "antiriciclaggio", "sicurezza sul lavoro", "comunicazioni obbligatorie PA", "conservazione documentale obbligatoria", "adempimenti previdenziali"],
+      "pro": ["Base solida e non contestabile", "Non richiede consenso", "Giustifica anche dati sensibili (con art. 9(2)(b))"],
+      "contro": ["Deve esistere un obbligo di legge specifico (UE o Stato membro)", "Non copre trattamenti facoltativi", "Interpretazione restrittiva"],
+      "requisiti": ["Obbligo previsto dal diritto UE o dello Stato membro", "Deve essere sufficientemente chiaro e preciso"]
+    },
+    "interesse_vitale": {
+      "lettera": "d",
+      "articolo": "Art. 6(1)(d) GDPR",
+      "descrizione": "Trattamento necessario per la salvaguardia degli interessi vitali dell'interessato o di altra persona fisica",
+      "contesti_tipici": ["emergenze sanitarie", "catastrofi naturali", "salvataggio persona", "epidemie"],
+      "pro": ["Applicabile anche senza consenso", "Copre situazioni di emergenza"],
+      "contro": ["Solo per pericolo di vita o salute", "Residuale: non usare se altra base è disponibile", "Interpretazione molto restrittiva"],
+      "requisiti": ["Pericolo per la vita o l'integrità fisica", "Impossibilità di ottenere il consenso"]
+    },
+    "interesse_pubblico": {
+      "lettera": "e",
+      "articolo": "Art. 6(1)(e) GDPR",
+      "descrizione": "Trattamento necessario per l'esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri",
+      "contesti_tipici": ["pubblica amministrazione", "sanità pubblica", "istruzione pubblica", "giustizia", "sicurezza nazionale", "ricerca scientifica (con garanzie)"],
+      "pro": ["Adatta a PA e soggetti con funzioni pubbliche", "L'interessato può opporsi (art. 21) ma con bilanciamento"],
+      "contro": ["Richiede base nel diritto UE o nazionale", "Non applicabile a soggetti privati (salvo funzioni delegate)", "Richiede proporzionalità"],
+      "requisiti": ["Base normativa nel diritto UE o nazionale", "Proporzionalità e necessità"]
+    },
+    "legittimo_interesse": {
+      "lettera": "f",
+      "articolo": "Art. 6(1)(f) GDPR",
+      "descrizione": "Trattamento necessario per il perseguimento del legittimo interesse del titolare o di terzi, a condizione che non prevalgano gli interessi o i diritti dell'interessato",
+      "contesti_tipici": ["prevenzione frodi", "sicurezza rete/IT", "marketing diretto (limitato)", "cessione infragruppo", "gestione contenzioso", "videosorveglianza (sicurezza)"],
+      "pro": ["Flessibile e adattabile", "Non richiede consenso", "Copre molte finalità aziendali legittime"],
+      "contro": ["Richiede test di bilanciamento (LIA)", "L'interessato può opporsi (art. 21)", "NON applicabile a PA (art. 6(1) ultimo comma)", "Maggiore esposizione a contestazioni", "Onere documentale (LIA assessment)"],
+      "requisiti": ["Interesse legittimo reale e concreto", "Necessità del trattamento", "Bilanciamento con diritti e libertà dell'interessato (LIA)", "Non prevalenza degli interessi dell'interessato"],
+      "nota_pa": "NON utilizzabile da autorità pubbliche nell'esecuzione dei loro compiti (art. 6(1), ultimo comma GDPR)"
+    }
+  },
+  "condizioni_art9": {
+    "premessa": "Il trattamento di categorie particolari di dati (art. 9(1): origine razziale/etnica, opinioni politiche, convinzioni religiose, appartenenza sindacale, dati genetici, biometrici, salute, vita/orientamento sessuale) è vietato salvo le eccezioni dell'art. 9(2)",
+    "eccezioni": {
+      "consenso_esplicito": {
+        "lettera": "a",
+        "descrizione": "Consenso esplicito per una o più finalità specifiche"
+      },
+      "obblighi_lavoro": {
+        "lettera": "b",
+        "descrizione": "Obblighi in materia di diritto del lavoro, sicurezza sociale, protezione sociale"
+      },
+      "interessi_vitali": {
+        "lettera": "c",
+        "descrizione": "Salvaguardia interessi vitali quando l'interessato non può prestare consenso"
+      },
+      "attivita_legittima": {
+        "lettera": "d",
+        "descrizione": "Trattamento da parte di fondazione, associazione, organismo senza scopo di lucro"
+      },
+      "dati_resi_pubblici": {
+        "lettera": "e",
+        "descrizione": "Dati manifestamente resi pubblici dall'interessato"
+      },
+      "contenzioso": {
+        "lettera": "f",
+        "descrizione": "Accertamento, esercizio o difesa di un diritto in sede giudiziaria"
+      },
+      "interesse_pubblico_rilevante": {
+        "lettera": "g",
+        "descrizione": "Motivi di interesse pubblico rilevante (proporzionato, garanzie)"
+      },
+      "medicina_lavoro": {
+        "lettera": "h",
+        "descrizione": "Medicina preventiva/del lavoro, valutazione capacità lavorativa, diagnosi, assistenza sanitaria"
+      },
+      "sanita_pubblica": {
+        "lettera": "i",
+        "descrizione": "Motivi di interesse pubblico nel settore della sanità pubblica"
+      },
+      "archiviazione_ricerca": {
+        "lettera": "j",
+        "descrizione": "Archiviazione nel pubblico interesse, ricerca scientifica/storica, fini statistici"
+      }
+    }
+  },
+  "matrice_contesto_base": {
+    "B2C_marketing": {
+      "base_consigliata": "consenso",
+      "alternative": ["legittimo_interesse"],
+      "nota": "Per marketing diretto via email, il consenso è richiesto anche dalla Dir. ePrivacy (art. 130 D.Lgs. 196/2003). Il legittimo interesse è ammesso solo per soft spam (clienti esistenti, prodotti analoghi, con opt-out)."
+    },
+    "B2C_ecommerce": {
+      "base_consigliata": "contratto",
+      "alternative": ["obbligo_legale"],
+      "nota": "Per l'esecuzione dell'ordine e la consegna. Per fatturazione e adempimenti fiscali: obbligo legale."
+    },
+    "B2B_gestione_clienti": {
+      "base_consigliata": "contratto",
+      "alternative": ["legittimo_interesse"],
+      "nota": "Per l'esecuzione del contratto commerciale. Per attività accessorie (CRM, analytics): legittimo interesse con LIA."
+    },
+    "dipendenti_gestione": {
+      "base_consigliata": "contratto",
+      "alternative": ["obbligo_legale"],
+      "nota": "Per l'esecuzione del contratto di lavoro. Per adempimenti contributivi/fiscali: obbligo legale. Per dati sanitari: art. 9(2)(b) o (h). Il consenso è sconsigliato per lo squilibrio di potere."
+    },
+    "dipendenti_videosorveglianza": {
+      "base_consigliata": "legittimo_interesse",
+      "alternative": [],
+      "nota": "Richiede accordo sindacale o autorizzazione ITL ex art. 4 L. 300/1970. Il legittimo interesse deve essere documentato con LIA. Vietato il controllo a distanza dell'attività lavorativa."
+    },
+    "pubblica_amministrazione": {
+      "base_consigliata": "interesse_pubblico",
+      "alternative": ["obbligo_legale"],
+      "nota": "La PA non può usare il legittimo interesse (art. 6(1), ultimo comma). Deve sempre identificare la base nel diritto UE o nazionale."
+    },
+    "sanita": {
+      "base_consigliata": "obbligo_legale",
+      "alternative": ["interesse_pubblico"],
+      "nota": "Per trattamento dati sanitari: art. 9(2)(h) con base in art. 75 D.Lgs. 196/2003. Per emergenze: interesse vitale (art. 6(1)(d) + art. 9(2)(c))."
+    },
+    "ricerca_scientifica": {
+      "base_consigliata": "interesse_pubblico",
+      "alternative": ["consenso"],
+      "nota": "Art. 9(2)(j) con garanzie ex art. 89. In Italia: artt. 97-110 D.Lgs. 196/2003."
+    },
+    "profilazione_online": {
+      "base_consigliata": "consenso",
+      "alternative": [],
+      "nota": "Per cookie di profilazione: consenso obbligatorio (Linee Guida Garante 10/06/2021). Per profilazione con effetti significativi: art. 22 GDPR richiede consenso esplicito."
+    },
+    "antifrode_sicurezza": {
+      "base_consigliata": "legittimo_interesse",
+      "alternative": [],
+      "nota": "Considerando 47 GDPR: la prevenzione delle frodi costituisce legittimo interesse. Documentare con LIA. Se su larga scala con dati sensibili: valutare DPIA."
+    }
+  }
+}

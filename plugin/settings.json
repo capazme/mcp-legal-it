@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__legal-it__*"
+    ]
+  }
+}
