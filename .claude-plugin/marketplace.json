@@ -1,5 +1,6 @@
 {
   "name": "mcp-legal-it",
+  "description": "Marketplace per tool legali italiani: calcoli, normativa, giurisprudenza, compliance GDPR.",
   "owner": {
     "name": "gpuzio",
     "url": "https://github.com/gpuzio"
