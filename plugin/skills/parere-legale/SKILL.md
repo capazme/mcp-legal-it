@@ -1,0 +1,59 @@
+---
+name: parere-legale
+description: Redazione parere legale strutturato con citazioni normative verificate e giurisprudenza.
+  Usa quando l'utente chiede un parere, un'opinione legale o un'analisi giuridica su una questione.
+argument-hint: "[descrizione della questione giuridica]"
+---
+
+# Workflow Parere Legale
+
+Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+
+## Step 1 — Analisi del quesito
+Identifica:
+- **Questione giuridica** principale
+- **Norme potenzialmente applicabili** (codice civile, leggi speciali, regolamenti UE)
+- **Parti coinvolte** e loro posizioni
+- **Fatti rilevanti**
+
+## Step 2 — Verifica normativa
+Per OGNI norma che intendi citare nel parere:
+1. Chiama `cite_law("art. X legge Y")` per ottenere il testo vigente
+2. Se serve approfondimento dottrinale: chiama `cerca_brocardi("art. X legge Y")`
+
+MAI citare una norma a memoria. Ogni citazione deve avere un `cite_law()` corrispondente.
+
+## Step 3 — Ricerca giurisprudenziale
+Per le questioni controverse o con orientamenti divergenti:
+1. Chiama `cerca_giurisprudenza("tema specifico")` per trovare le sentenze rilevanti
+2. Per le top 2-3 sentenze più pertinenti: chiama `leggi_sentenza(numero, anno)` per il testo integrale
+3. Identifica l'orientamento prevalente (consolidato, in evoluzione, contrasto)
+
+## Step 4 — Redazione del parere
+Struttura il parere nelle seguenti sezioni:
+
+### FATTO
+Riassumi i fatti rilevanti come esposti dal cliente.
+
+### DIRITTO
+Esponi il quadro normativo applicabile, citando:
+- Articoli di legge (con testo recuperato da cite_law)
+- Principi giurisprudenziali (con numero e anno delle sentenze)
+- Dottrina rilevante (se emersa da cerca_brocardi)
+
+### ANALISI
+Applica il diritto ai fatti:
+- Sussunzione dei fatti nelle fattispecie normative
+- Valutazione dei pro e contro per le diverse tesi
+- Rischi e incertezze
+
+### CONCLUSIONI
+- Risposta al quesito in termini chiari
+- Raccomandazioni operative
+- Eventuali azioni da intraprendere con tempistiche
+
+## Note
+- Ogni norma citata DEVE avere un `cite_law()` nel transcript
+- Ogni sentenza citata DEVE essere stata letta con `leggi_sentenza()`
+- Segnalare chiaramente quando un'interpretazione è controversa
+- Distinguere tra orientamento consolidato e orientamento minoritario

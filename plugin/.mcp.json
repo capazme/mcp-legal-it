@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "legal-it": {
+      "url": "https://unsomber-lashanda-uneffaceable.ngrok-free.dev/legal-it/sse"
+    }
+  }
+}

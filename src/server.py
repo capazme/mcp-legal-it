@@ -1,4 +1,4 @@
-"""MCP Legal IT — 147 Italian legal tools: calculations, normative citations, case law."""
+"""MCP Legal IT — 161 Italian legal tools: calculations, normative citations, case law, GDPR compliance."""
 
 import os
 
@@ -21,6 +21,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - NORMATIVA: cite_law() per testo vigente, Brocardi per dottrina, PDF norme
 - GIURISPRUDENZA: sentenze Cassazione (Italgiure), ricerca full-text
 - GARANTE PRIVACY: provvedimenti GPDP, ricerca sanzioni, linee guida
+- GDPR/PRIVACY COMPLIANCE: informative privacy (art. 13-14), cookie policy, DPA (art. 28), registro trattamenti (art. 30), DPIA (art. 35), data breach (art. 33-34), sanzioni (art. 83), base giuridica (art. 6)
 
 REGOLE: cite_law() PRIMA di citare norme. leggi_sentenza() DIRETTO per sentenze note.
 OUTPUT: € 1.234,56 | GG/MM/AAAA | segnalare INDICATIVO se stimato.
@@ -30,6 +31,8 @@ Sinistro → danno_biologico_* → danno_non_patrimoniale → rivalutazione_mone
 Credito → interessi_mora → rivalutazione_monetaria → decreto_ingiuntivo → parcella_avvocato_civile
 Norma → cite_law → cerca_brocardi → cerca_giurisprudenza → leggi_sentenza
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
+Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
+Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
 """,
 )
 
@@ -50,6 +53,7 @@ from src.tools import (  # noqa: E402, F401
     legal_citations,
     italgiure,
     gpdp,
+    privacy_gdpr,
 )
 
 from src import prompts, resources  # noqa: E402, F401
@@ -65,6 +69,7 @@ _PROFILES: dict[str, set[str]] = {
     "penale": {"penale", "normativa", "giurisprudenza"},
     "fiscale": {"fiscale", "proprieta", "utility"},
     "normativa": {"normativa", "giurisprudenza", "privacy"},
+    "privacy": {"privacy", "normativa", "giurisprudenza"},
     "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof"},
 }
 

@@ -1,3 +1,6 @@
+# Standalone MCP Legal IT
+# For full server setup with SAPG, use ~/server-infra/docker-compose.yml
+
 services:
   mcp-legal-it:
     build: .
@@ -8,6 +11,7 @@ services:
       - MCP_TRANSPORT=sse
     volumes:
       - mcp-cache:/app/.cache/mcp-legal-it
+    restart: unless-stopped
 
 volumes:
   mcp-cache:
