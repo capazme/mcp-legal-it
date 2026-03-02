@@ -529,10 +529,10 @@ def install_plugin(*, non_interactive: bool = False) -> bool:
                 capture_output=True, text=True, timeout=30,
             )
 
-    # Register as marketplace source
-    info("Registro il plugin nel marketplace locale...")
+    # Register as marketplace source (marketplace.json is in repo root)
+    info("Registro il marketplace locale...")
     result = subprocess.run(
-        ["claude", "plugin", "marketplace", "add", str(PROJECT_DIR / "plugin")],
+        ["claude", "plugin", "marketplace", "add", str(PROJECT_DIR)],
         capture_output=True, text=True, timeout=30,
     )
     if result.returncode != 0 and "already" not in result.stderr.lower():
