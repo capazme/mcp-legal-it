@@ -400,6 +400,47 @@ def _server_name(profile: str) -> str:
     return f"legal-it-{profile}" if profile != "full" else "legal-it"
 
 
+def _is_claude_desktop_running() -> bool:
+    """Check if Claude Desktop app is currently running."""
+    system = platform.system()
+    try:
+        if system == "Darwin":
+            return subprocess.run(["pgrep", "-x", "Claude"], capture_output=True).returncode == 0
+        elif system == "Linux":
+            return subprocess.run(["pgrep", "-f", "claude-desktop"], capture_output=True).returncode == 0
+        elif system == "Windows":
+            r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq Claude.exe"], capture_output=True, text=True)
+            return "Claude.exe" in r.stdout
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+    return False
+
+
+def _quit_claude_desktop() -> bool:
+    """Gracefully quit Claude Desktop. Returns True if process exited."""
+    import time
+
+    system = platform.system()
+    try:
+        if system == "Darwin":
+            subprocess.run(
+                ["osascript", "-e", 'tell application "Claude" to quit'],
+                capture_output=True, timeout=10,
+            )
+        elif system == "Windows":
+            subprocess.run(["taskkill", "/IM", "Claude.exe"], capture_output=True, timeout=10)
+        else:
+            subprocess.run(["pkill", "-f", "claude-desktop"], capture_output=True, timeout=10)
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return False
+
+    for _ in range(10):
+        if not _is_claude_desktop_running():
+            return True
+        time.sleep(0.5)
+    return not _is_claude_desktop_running()
+
+
 def _build_plugin_mcp_config(*, local: bool) -> dict:
     """Build the plugin's .mcp.json content."""
     if local:
@@ -414,6 +455,25 @@ def install_claude_desktop(profiles: list[str], *, non_interactive: bool = False
     if not config_path:
         warn(f"Sistema operativo {system} non supportato per Claude Desktop")
         return False
+
+    # Check if Claude Desktop is running (it overwrites config on exit)
+    if _is_claude_desktop_running():
+        warn("Claude Desktop è in esecuzione — sovrascriverà il config all'uscita")
+        if non_interactive:
+            info("Chiudo Claude Desktop automaticamente...")
+            if _quit_claude_desktop():
+                success("Claude Desktop chiuso")
+            else:
+                warn("Impossibile chiudere Claude Desktop — il config potrebbe essere sovrascritto")
+                info("Riavvia Claude Desktop manualmente dopo l'installazione")
+        elif ask_yes_no("Chiudere Claude Desktop automaticamente?"):
+            if _quit_claude_desktop():
+                success("Claude Desktop chiuso")
+            else:
+                warn("Impossibile chiudere automaticamente")
+                input(f"  {c(BOLD, '>')} Chiudi manualmente (Cmd+Q) e premi Invio... ")
+        else:
+            input(f"  {c(BOLD, '>')} Chiudi manualmente (Cmd+Q) e premi Invio... ")
 
     # Check if Claude Desktop is installed
     claude_dir = config_path.parent

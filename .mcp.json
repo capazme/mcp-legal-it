@@ -1,0 +1,83 @@
+{
+  "mcpServers": {
+    "legal-it-sinistro": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "LEGAL_PROFILE": "sinistro",
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    },
+    "legal-it-credito": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "LEGAL_PROFILE": "credito",
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    },
+    "legal-it-penale": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "LEGAL_PROFILE": "penale",
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    },
+    "legal-it-fiscale": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "LEGAL_PROFILE": "fiscale",
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    },
+    "legal-it-normativa": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "LEGAL_PROFILE": "normativa",
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    },
+    "legal-it-privacy": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "LEGAL_PROFILE": "privacy",
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    },
+    "legal-it-studio": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "LEGAL_PROFILE": "studio",
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    },
+    "legal-it": {
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
+    }
+  }
+}
