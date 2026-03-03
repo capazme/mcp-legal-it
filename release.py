@@ -421,9 +421,11 @@ def run_tests(*, skip: bool) -> None:
     if skip:
         warn("Test saltati (--skip-tests) — usare solo per hotfix urgenti")
         return
+    venv_python = PROJECT_DIR / ".venv" / "bin" / "python"
+    python = str(venv_python) if venv_python.exists() else sys.executable
     info("Esecuzione in corso (output streaming)...")
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "-m", "not live", "-q"],
+        [python, "-m", "pytest", "-m", "not live", "-q"],
         cwd=str(PROJECT_DIR),
     )
     if result.returncode != 0:
