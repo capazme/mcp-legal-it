@@ -2,17 +2,26 @@
   "hooks": {
     "Stop": [
       {
-        "type": "prompt",
-        "model": "haiku",
-        "prompt": "Verifica che ogni norma citata nella risposta (articoli di legge, codici, decreti, regolamenti) abbia una corrispondente chiamata cite_law() nel transcript della conversazione. Se trovi norme citate senza cite_law(), elenca quelle mancanti con il formato: 'ATTENZIONE: le seguenti norme sono state citate senza verifica con cite_law(): [elenco]. Richiamare cite_law() per ciascuna prima di finalizzare la risposta.' Se tutte le norme sono verificate, rispondi 'OK'. Ignora: norme citate all'interno di risultati di tool (già verificate), riferimenti generici senza numero di articolo, e calcoli (i tool di calcolo applicano le norme internamente)."
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "model": "haiku",
+            "prompt": "Verifica che ogni norma citata nella risposta (articoli di legge, codici, decreti, regolamenti) abbia una corrispondente chiamata cite_law() nel transcript della conversazione. Se trovi norme citate senza cite_law(), elenca quelle mancanti con il formato: 'ATTENZIONE: le seguenti norme sono state citate senza verifica con cite_law(): [elenco]. Richiamare cite_law() per ciascuna prima di finalizzare la risposta.' Se tutte le norme sono verificate, rispondi 'OK'. Ignora: norme citate all'interno di risultati di tool (già verificate), riferimenti generici senza numero di articolo, e calcoli (i tool di calcolo applicano le norme internamente)."
+          }
+        ]
       }
     ],
     "SessionStart": [
       {
-        "matcher": "compact",
-        "type": "prompt",
-        "model": "haiku",
-        "prompt": "Il contesto è stato compattato. Ricorda la regola fondamentale: LEGAL GROUNDING PROTOCOL — chiama cite_law() PRIMA di citare qualunque norma. Mai usare la conoscenza pregressa per il contenuto di articoli di legge. Per sentenze con numero noto: leggi_sentenza() DIRETTO, no web search. Per provvedimenti Garante con docweb noto: leggi_provvedimento_garante() DIRETTO."
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "model": "haiku",
+            "prompt": "Il contesto è stato compattato. Ricorda la regola fondamentale: LEGAL GROUNDING PROTOCOL — chiama cite_law() PRIMA di citare qualunque norma. Mai usare la conoscenza pregressa per il contenuto di articoli di legge. Per sentenze con numero noto: leggi_sentenza() DIRETTO, no web search. Per provvedimenti Garante con docweb noto: leggi_provvedimento_garante() DIRETTO."
+          }
+        ]
       }
     ]
   }
