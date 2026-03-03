@@ -1,7 +1,13 @@
 {
   "mcpServers": {
     "legal-it": {
-      "url": "https://unsomber-lashanda-uneffaceable.ngrok-free.dev/legal-it/sse"
+      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "args": [
+        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+      ],
+      "env": {
+        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+      }
     }
   }
 }

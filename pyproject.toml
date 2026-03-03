@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-legal-it"
-version = "0.2.0"
+version = "0.3.1"
 description = "MCP server with 60+ Italian legal calculation tools"
 requires-python = ">=3.10"
 dependencies = [

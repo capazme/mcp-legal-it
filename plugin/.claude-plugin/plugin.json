@@ -1,10 +1,19 @@
 {
   "name": "legal-it",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Plugin legale italiano completo: 161 tool di calcolo, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), compliance GDPR, 17 workflow guidati e 3 agenti specializzati.",
-  "author": { "name": "gpuzio" },
+  "author": {
+    "name": "gpuzio"
+  },
   "homepage": "https://github.com/gpuzio/mcp-legal-it",
   "repository": "https://github.com/gpuzio/mcp-legal-it",
   "license": "MIT",
-  "keywords": ["legal", "italian-law", "GDPR", "normattiva", "cassazione", "avvocato"]
+  "keywords": [
+    "legal",
+    "italian-law",
+    "GDPR",
+    "normattiva",
+    "cassazione",
+    "avvocato"
+  ]
 }
