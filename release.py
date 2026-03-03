@@ -2,15 +2,17 @@
 """
 Release automation for mcp-legal-it.
 
-Supports two modes:
+Supports three modes:
   --from-develop   Git Flow: release branch → merge main → tag → back-merge develop
   --tag-only       Tag current main + push
+  --plugin-only    Bump plugin only (no git tag, no pyproject, no Git Flow)
 
 Usage:
   python3 release.py                                # interactive
   python3 release.py 0.4.0 --from-develop --dry-run
   python3 release.py 0.4.0 --from-develop --push
   python3 release.py 0.3.1 --tag-only --no-plugin-bump
+  python3 release.py 1.1.0 --plugin-only --dry-run
 """
 import argparse
 import json
@@ -19,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+from datetime import date
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -30,8 +33,25 @@ PYPROJECT_TOML = PROJECT_DIR / "pyproject.toml"
 PLUGIN_JSON = PROJECT_DIR / "plugin" / ".claude-plugin" / "plugin.json"
 BUILD_WEB_SKILLS = PROJECT_DIR / "plugin" / "build-web-skills.py"
 
+CHANGELOG_ROOT = PROJECT_DIR / "CHANGELOG.md"
+CHANGELOG_PLUGIN = PROJECT_DIR / "plugin" / "CHANGELOG.md"
+
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 PYPROJECT_VERSION_RE = re.compile(r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE)
+
+# Conventional commit type → Keep a Changelog section
+_CC_MAP = {
+    "feat": "Added",
+    "fix": "Fixed",
+    "refactor": "Changed",
+    "perf": "Changed",
+    "docs": "Other",
+    "chore": "Other",
+    "test": "Other",
+    "ci": "Other",
+    "build": "Other",
+    "style": "Other",
+}
 
 # ---------------------------------------------------------------------------
 # Output helpers (same pattern as install.py)
@@ -191,6 +211,75 @@ def build_web_skills(*, dry_run: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
+# CHANGELOG helpers
+# ---------------------------------------------------------------------------
+
+_CC_RE = re.compile(r"^[0-9a-f]+ (\w+)(?:\(.+?\))?!?:\s*(.+)$")
+
+
+def generate_changelog_entry(version: str, from_tag: str | None) -> str:
+    """Generate a Keep a Changelog entry from conventional commits since `from_tag`."""
+    if not from_tag:
+        return f"## [{version}] - {date.today().isoformat()}\n\nInitial release.\n"
+
+    result = subprocess.run(
+        ["git", "log", "--oneline", f"{from_tag}..HEAD"],
+        capture_output=True, text=True, cwd=str(PROJECT_DIR),
+    )
+    lines = [l for l in result.stdout.strip().split("\n") if l] if result.returncode == 0 else []
+
+    sections: dict[str, list[str]] = {"Added": [], "Fixed": [], "Changed": [], "Other": []}
+    for line in lines:
+        m = _CC_RE.match(line)
+        if m:
+            cc_type, msg = m.group(1), m.group(2)
+            section = _CC_MAP.get(cc_type, "Other")
+            sections[section].append(msg.strip())
+        else:
+            # Non-conventional commit — strip hash prefix
+            msg = line.split(" ", 1)[1] if " " in line else line
+            sections["Other"].append(msg.strip())
+
+    parts = [f"## [{version}] - {date.today().isoformat()}"]
+    for section_name in ("Added", "Fixed", "Changed", "Other"):
+        items = sections[section_name]
+        if items:
+            parts.append(f"\n### {section_name}")
+            for item in items:
+                parts.append(f"- {item}")
+
+    return "\n".join(parts) + "\n"
+
+
+def write_changelog(path: Path, entry: str, *, dry_run: bool) -> None:
+    """Write a CHANGELOG entry at the top of the file (after the header)."""
+    if dry_run:
+        info(f"[DRY RUN] Scrivi CHANGELOG entry in {path.name}")
+        return
+
+    header = (
+        "# Changelog\n\n"
+        "All notable changes to this project will be documented in this file.\n\n"
+        "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),\n"
+        "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n"
+    )
+
+    if path.exists():
+        content = path.read_text()
+        # Find the end of the header (first ## line)
+        idx = content.find("\n## ")
+        if idx >= 0:
+            new_content = content[:idx] + "\n" + entry + "\n" + content[idx + 1:]
+        else:
+            new_content = content.rstrip() + "\n\n" + entry
+    else:
+        new_content = header + "\n" + entry
+
+    path.write_text(new_content)
+    success(f"CHANGELOG aggiornato: {path.name}")
+
+
+# ---------------------------------------------------------------------------
 # Git helpers
 # ---------------------------------------------------------------------------
 
@@ -311,6 +400,22 @@ def check_tag_not_exists(version: str) -> None:
     success(f"Tag '{tag}' disponibile")
 
 
+def check_version_sync() -> None:
+    """Warn if pyproject.toml version is out of sync with the latest git tag."""
+    step("Verifica allineamento pyproject.toml ↔ ultimo git tag")
+    latest_tag = git_latest_tag()
+    if not latest_tag:
+        info("Nessun tag trovato — skip controllo allineamento")
+        return
+    tag_ver = latest_tag.lstrip("v")
+    pyproject_ver = read_pyproject_version()
+    if tag_ver == pyproject_ver:
+        success(f"Versione allineata: pyproject.toml={pyproject_ver}, tag={latest_tag}")
+    else:
+        warn(f"pyproject.toml ({pyproject_ver}) non allineato con ultimo tag ({latest_tag})")
+        info(f"Suggerimento: aggiorna pyproject.toml a {tag_ver} o crea un nuovo tag")
+
+
 def run_tests(*, skip: bool) -> None:
     step("Esecuzione test suite — pytest -m 'not live' (solo unit test)")
     if skip:
@@ -357,6 +462,95 @@ def update_marketplace(*, dry_run: bool) -> None:
         warn(f"plugin install: {result.stderr.strip()[:200]}")
     else:
         success("Plugin marketplace aggiornato")
+
+
+def verify_marketplace(*, dry_run: bool) -> None:
+    """Verify marketplace registration and plugin install persisted."""
+    if dry_run:
+        info("[DRY RUN] Verifica registrazione marketplace")
+        return
+
+    claude_bin = shutil.which("claude")
+    if not claude_bin:
+        return
+
+    step("Verifica registrazione marketplace")
+
+    # Check marketplace list
+    result = subprocess.run(
+        ["claude", "plugin", "marketplace", "list"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if result.returncode == 0 and "mcp-legal-it" in result.stdout:
+        success("Sorgente marketplace registrata correttamente")
+    else:
+        warn("Sorgente marketplace non trovata in 'claude plugin marketplace list'")
+        info("Riprova manualmente: claude plugin marketplace add " + str(PROJECT_DIR))
+
+    # Check plugin list
+    result = subprocess.run(
+        ["claude", "plugin", "list"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if result.returncode == 0 and "legal-it" in result.stdout:
+        success("Plugin legal-it installato e visibile")
+    else:
+        warn("Plugin legal-it non trovato in 'claude plugin list'")
+        info("Riprova manualmente: claude plugin install legal-it@mcp-legal-it")
+
+
+def update_claude_desktop(*, dry_run: bool) -> None:
+    """Offer to update Claude Desktop config after release."""
+    if dry_run:
+        info("[DRY RUN] Aggiornamento config Claude Desktop")
+        return
+
+    if not ask_yes_no("Aggiornare la configurazione Claude Desktop?", default=False):
+        return
+
+    import platform as _platform
+
+    _desktop_paths = {
+        "Darwin": Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",
+        "Linux": Path.home() / ".config" / "Claude" / "claude_desktop_config.json",
+    }
+    config_path = _desktop_paths.get(_platform.system())
+    if not config_path:
+        warn(f"Sistema {_platform.system()} non supportato per Claude Desktop")
+        return
+
+    venv_python = PROJECT_DIR / ".venv" / "bin" / "python"
+    run_server = PROJECT_DIR / "run_server.py"
+    cache_dir = Path.home() / ".cache" / "mcp-legal-it"
+
+    entry = {
+        "command": str(venv_python),
+        "args": [str(run_server)],
+    }
+    env = {}
+    if cache_dir.exists():
+        env["MCP_CACHE_DIR"] = str(cache_dir)
+    if env:
+        entry["env"] = env
+
+    config: dict = {}
+    if config_path.exists():
+        try:
+            config = json.loads(config_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    if "mcpServers" not in config:
+        config["mcpServers"] = {}
+
+    config["mcpServers"]["legal-it"] = entry
+
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+        success(f"Claude Desktop config aggiornato: {config_path}")
+    except OSError as e:
+        warn(f"Impossibile scrivere config: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -449,6 +643,7 @@ def interactive_setup() -> argparse.Namespace:
     print()
     print(f"    {c(BOLD, '1.')} from-develop  {c(DIM, '— Git Flow completo: release branch → main → tag → develop')}")
     print(f"    {c(BOLD, '2.')} tag-only      {c(DIM, '— Solo tag su main + push (per release già mergiate)')}")
+    print(f"    {c(BOLD, '3.')} plugin-only   {c(DIM, '— Solo plugin: bump + CHANGELOG + marketplace (no tag, no Git Flow)')}")
 
     # Auto-suggest based on branch
     if branch == "develop":
@@ -458,14 +653,79 @@ def interactive_setup() -> argparse.Namespace:
         default_mode = "2"
         info(f"Consigliato: tag-only (sei su '{branch}')")
     else:
-        default_mode = "1"
-        warn(f"Sei su '{branch}' — nessuna delle due modalità corrisponde al branch attuale")
+        default_mode = "3"
+        info(f"Consigliato: plugin-only (sei su '{branch}' — non è main/develop)")
 
     print()
     mode_choice = ask("Modalità", default_mode)
-    from_develop = mode_choice != "2"
+    plugin_only = mode_choice == "3"
+    from_develop = mode_choice == "1"
 
     # --- Version ---
+    if plugin_only:
+        # Plugin-only: version refers to the plugin
+        print()
+        print(c(BOLD, "  Scegli la versione del plugin:"))
+        print()
+
+        base = plugin_ver
+        patch = bump_part(base, "patch")
+        minor = bump_part(base, "minor")
+        major = bump_part(base, "major")
+
+        print(f"    {c(BOLD, '1.')} {patch}  {c(DIM, '— patch (bug fix, miglioramenti skills/hooks)')}")
+        print(f"    {c(BOLD, '2.')} {minor}  {c(DIM, '— minor (nuove skill, nuovi agenti)')}")
+        print(f"    {c(BOLD, '3.')} {major}  {c(DIM, '— major (breaking change nel plugin)')}")
+        print(f"    {c(BOLD, '4.')} custom {c(DIM, '— inserisci manualmente')}")
+
+        print()
+        ver_choice = ask("Versione plugin", "1")
+        if ver_choice == "1":
+            version = patch
+        elif ver_choice == "2":
+            version = minor
+        elif ver_choice == "3":
+            version = major
+        else:
+            version = ask("Inserisci versione plugin (X.Y.Z)")
+            if not SEMVER_RE.match(version):
+                fatal(f"Versione '{version}' non valida — formato: X.Y.Z")
+
+        # --- Options ---
+        print()
+        print(c(BOLD, "  Opzioni aggiuntive:"))
+        print()
+        dry_run = ask_yes_no("Dry run? (mostra i passi senza eseguire)", default=False)
+
+        # --- Recap ---
+        print()
+        print(c(DIM, "  " + "-" * 55))
+        print()
+        print(c(BOLD, "  Riepilogo:"))
+        print()
+        print(f"    Plugin:       {plugin_ver} → {c(BOLD, version)}")
+        print(f"    Modalità:     {c(BOLD, 'plugin-only')}")
+        print(f"    Dry run:      {'sì' if dry_run else 'no'}")
+        print()
+
+        if not ask_yes_no("Procedere?"):
+            print()
+            info("Release annullata.")
+            sys.exit(0)
+
+        return argparse.Namespace(
+            version=version,
+            from_develop=False,
+            tag_only=False,
+            plugin_only=True,
+            plugin_version=None,
+            no_plugin_bump=False,
+            skip_tests=True,
+            dry_run=dry_run,
+            push=False,
+        )
+
+    # --- Version (server release) ---
     print()
     print(c(BOLD, "  Scegli la versione:"))
     print()
@@ -555,6 +815,7 @@ def interactive_setup() -> argparse.Namespace:
         version=version,
         from_develop=from_develop,
         tag_only=not from_develop,
+        plugin_only=False,
         plugin_version=explicit_plugin_ver,
         no_plugin_bump=not plugin_bump,
         skip_tests=skip_tests,
@@ -592,6 +853,7 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
     check_branch("develop")
     check_remote_sync("develop")
     check_semver(version)
+    check_version_sync()
     check_version_gt(version, current_pyproject)
     check_tag_not_exists(version)
     run_tests(skip=args.skip_tests)
@@ -617,6 +879,26 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
             step("Rigenerazione ZIP web skills per upload Claude Web")
             build_web_skills(dry_run=dry)
 
+        # --- CHANGELOG ---
+        section("CHANGELOG")
+
+        latest_tag = git_latest_tag()
+        step("Generazione entry CHANGELOG da conventional commits")
+        entry = generate_changelog_entry(version, latest_tag)
+        print()
+        print(c(DIM, "    --- CHANGELOG preview ---"))
+        for line in entry.strip().split("\n"):
+            print(f"    {c(DIM, line)}")
+        print(c(DIM, "    --- fine preview ---"))
+        print()
+
+        if ask_yes_no("Scrivere il CHANGELOG?"):
+            write_changelog(CHANGELOG_ROOT, entry, dry_run=dry)
+            if not args.no_plugin_bump:
+                write_changelog(CHANGELOG_PLUGIN, entry, dry_run=dry)
+        else:
+            info("CHANGELOG non scritto — puoi aggiornarlo manualmente")
+
         # --- Git Flow ---
         section("Git Flow")
 
@@ -636,6 +918,10 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
             dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
             if dist_dir.exists():
                 files_to_add.append(str(dist_dir))
+        if CHANGELOG_ROOT.exists():
+            files_to_add.append(str(CHANGELOG_ROOT))
+        if CHANGELOG_PLUGIN.exists():
+            files_to_add.append(str(CHANGELOG_PLUGIN))
         if not dry:
             run_git("add", *files_to_add)
             run_git("commit", "-m", f"chore(release): bump version to {version}")
@@ -678,6 +964,7 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
         if not args.no_plugin_bump:
             section("Plugin marketplace")
             update_marketplace(dry_run=dry)
+            verify_marketplace(dry_run=dry)
 
         # --- Push ---
         section("Push")
@@ -713,6 +1000,11 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
             except RuntimeError:
                 info("Branch remoto non presente — nulla da eliminare")
 
+        # --- Post-release ---
+        if not dry:
+            section("Post-release")
+            update_claude_desktop(dry_run=dry)
+
     print_summary(version, effective_plugin, current_pyproject, current_plugin,
                   "from-develop", dry, pushed=not dry)
 
@@ -746,6 +1038,7 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
     check_branch("main")
     check_remote_sync("main")
     check_semver(version)
+    check_version_sync()
     check_version_gt(version, current_pyproject)
     check_tag_not_exists(version)
     run_tests(skip=args.skip_tests)
@@ -776,6 +1069,27 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
             build_web_skills(dry_run=dry)
             needs_commit = True
 
+        # --- CHANGELOG ---
+        section("CHANGELOG")
+
+        latest_tag = git_latest_tag()
+        step("Generazione entry CHANGELOG da conventional commits")
+        entry = generate_changelog_entry(version, latest_tag)
+        print()
+        print(c(DIM, "    --- CHANGELOG preview ---"))
+        for line in entry.strip().split("\n"):
+            print(f"    {c(DIM, line)}")
+        print(c(DIM, "    --- fine preview ---"))
+        print()
+
+        if ask_yes_no("Scrivere il CHANGELOG?"):
+            write_changelog(CHANGELOG_ROOT, entry, dry_run=dry)
+            if not args.no_plugin_bump:
+                write_changelog(CHANGELOG_PLUGIN, entry, dry_run=dry)
+            needs_commit = True
+        else:
+            info("CHANGELOG non scritto — puoi aggiornarlo manualmente")
+
         if needs_commit:
             step("Commit delle versioni aggiornate su main")
             files_to_add = [str(PYPROJECT_TOML)]
@@ -784,6 +1098,10 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
                 dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
                 if dist_dir.exists():
                     files_to_add.append(str(dist_dir))
+            if CHANGELOG_ROOT.exists():
+                files_to_add.append(str(CHANGELOG_ROOT))
+            if CHANGELOG_PLUGIN.exists():
+                files_to_add.append(str(CHANGELOG_PLUGIN))
             if not dry:
                 run_git("add", *files_to_add)
                 run_git("commit", "-m", f"chore(release): bump version to {version}")
@@ -804,6 +1122,7 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
         if not args.no_plugin_bump:
             section("Plugin marketplace")
             update_marketplace(dry_run=dry)
+            verify_marketplace(dry_run=dry)
 
         # --- Push ---
         section("Push")
@@ -831,8 +1150,111 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
             run_git("push", "origin", "--tags", dry_run=dry)
             success(f"Tag {tag} pushato")
 
+        # --- Post-release ---
+        if not dry:
+            section("Post-release")
+            update_claude_desktop(dry_run=dry)
+
     print_summary(version, effective_plugin, current_pyproject, current_plugin,
                   "tag-only", dry, pushed=not dry)
+
+
+# ---------------------------------------------------------------------------
+# Flow: --plugin-only
+# ---------------------------------------------------------------------------
+
+def run_plugin_only(version: str, args: argparse.Namespace) -> None:
+    global _step_counter
+    _step_counter = 0
+    dry = args.dry_run
+    current_plugin = read_plugin_version()
+
+    banner(version, "plugin-only", dry)
+
+    # --- Preflight ---
+    section("Preflight checks")
+
+    check_clean_tree()
+    check_semver(version)
+
+    step(f"Confronto versioni plugin — {version} deve essere > {current_plugin}")
+    new_parts = tuple(int(x) for x in version.split("."))
+    cur_parts = tuple(int(x) for x in current_plugin.split("."))
+    if new_parts <= cur_parts:
+        warn(f"{version} non è maggiore di {current_plugin} — procedo comunque")
+    else:
+        success(f"Upgrade plugin confermato: {current_plugin} → {version}")
+
+    # --- Version bump ---
+    section("Plugin version bump")
+
+    orig_plugin = PLUGIN_JSON.read_text() if PLUGIN_JSON.exists() else None
+
+    step(f"Aggiornamento plugin.json — versione {current_plugin} → {version}")
+    write_plugin_version(version, dry_run=dry)
+
+    step("Rigenerazione ZIP web skills per upload Claude Web")
+    build_web_skills(dry_run=dry)
+
+    # --- CHANGELOG ---
+    section("CHANGELOG")
+
+    latest_tag = git_latest_tag()
+    step("Generazione entry CHANGELOG da conventional commits")
+    entry = generate_changelog_entry(version, latest_tag)
+    print()
+    print(c(DIM, "    --- CHANGELOG preview ---"))
+    for line in entry.strip().split("\n"):
+        print(f"    {c(DIM, line)}")
+    print(c(DIM, "    --- fine preview ---"))
+    print()
+
+    if ask_yes_no("Scrivere il CHANGELOG?"):
+        write_changelog(CHANGELOG_PLUGIN, entry, dry_run=dry)
+    else:
+        info("CHANGELOG non scritto — puoi aggiornarlo manualmente")
+
+    # --- Commit ---
+    section("Commit")
+
+    step(f"Commit plugin bump su branch corrente")
+    files_to_add = [str(PLUGIN_JSON)]
+    if CHANGELOG_PLUGIN.exists():
+        files_to_add.append(str(CHANGELOG_PLUGIN))
+    dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
+    if dist_dir.exists():
+        files_to_add.append(str(dist_dir))
+
+    if not dry:
+        run_git("add", *files_to_add)
+        run_git("commit", "-m", f"chore(plugin): bump plugin to {version}")
+        success(f"Commit: chore(plugin): bump plugin to {version}")
+    else:
+        info(f"[DRY RUN] git add + commit 'chore(plugin): bump plugin to {version}'")
+
+    # --- Plugin marketplace ---
+    section("Plugin marketplace")
+
+    update_marketplace(dry_run=dry)
+    verify_marketplace(dry_run=dry)
+
+    # --- Summary ---
+    print()
+    print(c(DIM, "  " + "-" * 55))
+    print()
+    if dry:
+        print(c(BOLD + YELLOW, "  DRY RUN completato — nessuna modifica effettuata"))
+    else:
+        print(c(BOLD + GREEN, "  Plugin release completata!"))
+    print()
+    print(f"  {'plugin.json':20s} {current_plugin:>12s}   {c(BOLD, f'{version:>12s}')}")
+    print()
+    print(f"  {c(BOLD, 'Modalità')}:  plugin-only")
+    print(f"  {c(BOLD, 'Branch')}:   {git_current_branch()}")
+    print()
+    if not dry:
+        info("Ricorda di pushare il commit e, se necessario, aprire una PR.")
+    print()
 
 
 # ---------------------------------------------------------------------------
@@ -903,6 +1325,7 @@ def parse_args() -> argparse.Namespace | None:
               python3 release.py 0.4.0 --from-develop --push
               python3 release.py 0.3.1 --tag-only --no-plugin-bump
               python3 release.py 0.4.0 --from-develop --plugin-version 1.1.0
+              python3 release.py 1.1.0 --plugin-only --dry-run
         """),
     )
     parser.add_argument(
@@ -920,6 +1343,11 @@ def parse_args() -> argparse.Namespace | None:
         "--tag-only",
         action="store_true",
         help="Tag current main + push (no release branch)",
+    )
+    mode_group.add_argument(
+        "--plugin-only",
+        action="store_true",
+        help="Bump plugin only (no git tag, no pyproject bump, no Git Flow)",
     )
 
     parser.add_argument(
@@ -962,10 +1390,12 @@ def main() -> None:
     if args is None:
         args = interactive_setup()
 
-    if getattr(args, "plugin_version", None) and args.no_plugin_bump:
+    if getattr(args, "plugin_version", None) and getattr(args, "no_plugin_bump", False):
         fatal("--plugin-version and --no-plugin-bump are mutually exclusive")
 
-    if args.from_develop:
+    if getattr(args, "plugin_only", False):
+        run_plugin_only(args.version, args)
+    elif args.from_develop:
         run_from_develop(args.version, getattr(args, "plugin_version", None), args)
     else:
         run_tag_only(args.version, getattr(args, "plugin_version", None), args)
