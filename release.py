@@ -925,7 +925,7 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
         if CHANGELOG_PLUGIN.exists():
             files_to_add.append(str(CHANGELOG_PLUGIN))
         if not dry:
-            run_git("add", *files_to_add)
+            run_git("add", "-f", *files_to_add)
             run_git("commit", "-m", f"chore(release): bump version to {version}")
             success(f"Commit: chore(release): bump version to {version}")
         else:
@@ -1105,7 +1105,7 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
             if CHANGELOG_PLUGIN.exists():
                 files_to_add.append(str(CHANGELOG_PLUGIN))
             if not dry:
-                run_git("add", *files_to_add)
+                run_git("add", "-f", *files_to_add)
                 run_git("commit", "-m", f"chore(release): bump version to {version}")
                 success(f"Commit: chore(release): bump version to {version}")
             else:
@@ -1228,7 +1228,7 @@ def run_plugin_only(version: str, args: argparse.Namespace) -> None:
         files_to_add.append(str(dist_dir))
 
     if not dry:
-        run_git("add", *files_to_add)
+        run_git("add", "-f", *files_to_add)
         run_git("commit", "-m", f"chore(plugin): bump plugin to {version}")
         success(f"Commit: chore(plugin): bump plugin to {version}")
     else:
