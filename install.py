@@ -32,6 +32,7 @@ VENV_PYTHON = (
 )
 RUN_SERVER = PROJECT_DIR / "run_server.py"
 CACHE_DIR = Path.home() / ".cache" / "mcp-legal-it"
+REMOTE_SSE_URL = "https://unsomber-lashanda-uneffaceable.ngrok-free.dev/legal-it/sse"
 
 MIN_PYTHON = (3, 10)
 
@@ -105,6 +106,7 @@ def parse_args() -> argparse.Namespace:
               python3 install.py                              # interattivo
               python3 install.py -y                           # defaults (full, desktop)
               python3 install.py --profile full --target plugin
+              python3 install.py --target plugin --mode local # plugin con server locale
               python3 install.py --uninstall
         """),
     )
@@ -128,6 +130,11 @@ def parse_args() -> argparse.Namespace:
         choices=["desktop", "code", "plugin"],
         action="append",
         help="Target di installazione (ripetibile, es. --target desktop --target code)",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["local", "remote"],
+        help="Modalità server per il plugin: locale (stdio) o remoto (SSE)",
     )
     return parser.parse_args()
 
@@ -393,6 +400,13 @@ def _server_name(profile: str) -> str:
     return f"legal-it-{profile}" if profile != "full" else "legal-it"
 
 
+def _build_plugin_mcp_config(*, local: bool) -> dict:
+    """Build the plugin's .mcp.json content."""
+    if local:
+        return {"mcpServers": {"legal-it": _build_server_entry("full")}}
+    return {"mcpServers": {"legal-it": {"url": REMOTE_SSE_URL}}}
+
+
 def install_claude_desktop(profiles: list[str], *, non_interactive: bool = False) -> bool:
     system = platform.system()
     config_path = _CLAUDE_DESKTOP_PATHS.get(system)
@@ -496,7 +510,7 @@ def install_claude_code(profiles: list[str]) -> bool:
         return False
 
 
-def install_plugin(*, non_interactive: bool = False) -> bool:
+def install_plugin(*, non_interactive: bool = False, local: bool = False) -> bool:
     """Install the Claude Code plugin (skills, agents, hooks + MCP server)."""
     if not PLUGIN_DIR.exists():
         error(f"Directory plugin non trovata: {PLUGIN_DIR}")
@@ -511,6 +525,14 @@ def install_plugin(*, non_interactive: bool = False) -> bool:
         return False
 
     info(f"CLI Claude trovata: {claude_bin}")
+
+    # Write appropriate .mcp.json for the plugin
+    plugin_mcp = PLUGIN_DIR / ".mcp.json"
+    plugin_mcp.write_text(
+        json.dumps(_build_plugin_mcp_config(local=local), indent=2, ensure_ascii=False) + "\n"
+    )
+    mode_label = "locale (stdio)" if local else "remoto (SSE)"
+    info(f"Modalità server: {c(BOLD, mode_label)}")
 
     # Check if already installed
     already_installed = _is_plugin_installed()
@@ -590,19 +612,40 @@ def select_targets(args: argparse.Namespace) -> list[str]:
     return target_map.get(answer, ["desktop"])
 
 
+def select_plugin_mode(args: argparse.Namespace) -> bool:
+    """Select plugin server mode. Returns True for local, False for remote."""
+    if args.mode:
+        is_local = args.mode == "local"
+        label = "locale (stdio)" if is_local else "remoto (SSE)"
+        info(f"Modalità plugin: {c(BOLD, label)}")
+        return is_local
+
+    if args.non_interactive:
+        return True  # default: local
+
+    print()
+    print(c(BOLD, "  Modalità server per il plugin:"))
+    print()
+    print(f"  {c(BOLD, '1.')} Locale {c(DIM, '(stdio — il server gira sulla tua macchina)')}")
+    print(f"  {c(BOLD, '2.')} Remoto {c(DIM, '(SSE — connessione al server ngrok)')}")
+    print()
+    answer = ask("Scegli", "1")
+    return answer != "2"
+
+
 # ---------------------------------------------------------------------------
 # Uninstall
 # ---------------------------------------------------------------------------
 
 def uninstall() -> None:
-    """Remove all legal-it configurations."""
+    """Remove all legal-it configurations, venv, and cache."""
     banner()
     print(c(BOLD + YELLOW, "  Disinstallazione MCP Legal IT"))
     print()
 
     removed_any = False
 
-    # Claude Desktop
+    # 1. Claude Desktop config
     config_path = _CLAUDE_DESKTOP_PATHS.get(platform.system())
     if config_path and config_path.exists():
         try:
@@ -620,7 +663,7 @@ def uninstall() -> None:
         except (json.JSONDecodeError, OSError) as e:
             warn(f"Errore lettura config Claude Desktop: {e}")
 
-    # Claude Code .mcp.json
+    # 2. Claude Code .mcp.json
     if _CLAUDE_CODE_MCP.exists():
         try:
             config = json.loads(_CLAUDE_CODE_MCP.read_text())
@@ -629,15 +672,21 @@ def uninstall() -> None:
             if legal_keys:
                 for k in legal_keys:
                     del servers[k]
-                _CLAUDE_CODE_MCP.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
-                success(f"Rimossi da .mcp.json: {', '.join(legal_keys)}")
+                if not servers and list(config.keys()) == ["mcpServers"]:
+                    _CLAUDE_CODE_MCP.unlink()
+                    success("Rimosso .mcp.json (conteneva solo legal-it)")
+                else:
+                    _CLAUDE_CODE_MCP.write_text(
+                        json.dumps(config, indent=2, ensure_ascii=False) + "\n"
+                    )
+                    success(f"Rimossi da .mcp.json: {', '.join(legal_keys)}")
                 removed_any = True
             else:
                 info("Nessun server legal-it in .mcp.json")
         except (json.JSONDecodeError, OSError) as e:
             warn(f"Errore lettura .mcp.json: {e}")
 
-    # Plugin
+    # 3. Plugin + marketplace
     if shutil.which("claude"):
         if _is_plugin_installed():
             info("Rimuovo il plugin Claude Code...")
@@ -652,19 +701,52 @@ def uninstall() -> None:
                 warn(f"Errore rimozione plugin: {result.stderr.strip()[:200]}")
         else:
             info("Plugin legal-it non installato")
+
+        # Remove marketplace registration
+        info("Rimuovo la registrazione marketplace...")
+        result = subprocess.run(
+            ["claude", "plugin", "marketplace", "remove", str(PROJECT_DIR)],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0:
+            success("Marketplace locale rimosso")
+            removed_any = True
+        else:
+            stderr = result.stderr.strip().lower()
+            if stderr and "not found" not in stderr and "not registered" not in stderr:
+                warn(f"Rimozione marketplace: {result.stderr.strip()[:200]}")
     else:
-        info("CLI claude non trovata, skip rimozione plugin")
+        info("CLI claude non trovata, skip rimozione plugin e marketplace")
+
+    # 4. Virtual environment
+    if VENV_DIR.exists():
+        info(f"Rimuovo il virtual environment: {VENV_DIR.name}/")
+        try:
+            shutil.rmtree(VENV_DIR)
+            success("Virtual environment rimosso")
+            removed_any = True
+        except OSError as e:
+            warn(f"Errore rimozione venv: {e}")
+    else:
+        info("Nessun virtual environment trovato")
+
+    # 5. Cache
+    if CACHE_DIR.exists():
+        info(f"Rimuovo la cache: {CACHE_DIR}")
+        try:
+            shutil.rmtree(CACHE_DIR)
+            success("Cache rimossa")
+            removed_any = True
+        except OSError as e:
+            warn(f"Errore rimozione cache: {e}")
+    else:
+        info("Nessuna cache trovata")
 
     print()
     if removed_any:
-        success("Disinstallazione completata")
-        print()
-        print(c(DIM, "  Il virtual environment (.venv/) e la cache (~/.cache/mcp-legal-it/)"))
-        print(c(DIM, "  non sono stati rimossi. Per rimuoverli manualmente:"))
-        print(f"    rm -rf {VENV_DIR}")
-        print(f"    rm -rf {CACHE_DIR}")
+        success("Disinstallazione completa")
     else:
-        info("Nessuna configurazione legal-it trovata")
+        info("Nessun artefatto legal-it trovato")
     print()
 
 
@@ -785,8 +867,9 @@ def main() -> None:
         info("Configuro Claude Code (.mcp.json)...")
         ok = install_claude_code(profiles) and ok
     if "plugin" in targets:
+        plugin_local = select_plugin_mode(args)
         info("Installo il plugin Claude Code...")
-        ok = install_plugin(non_interactive=args.non_interactive) and ok
+        ok = install_plugin(non_interactive=args.non_interactive, local=plugin_local) and ok
 
     if not ok:
         print()
