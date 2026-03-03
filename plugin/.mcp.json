@@ -1,9 +1,9 @@
 {
   "mcpServers": {
     "legal-it": {
-      "command": "~/Desktop/CODE/mcp-legal-it/.venv/bin/python",
+      "command": "~/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
       "args": [
-        "~/Desktop/CODE/mcp-legal-it/run_server.py"
+        "~/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
       ],
       "env": {
         "MCP_CACHE_DIR": "~/.cache/mcp-legal-it"
