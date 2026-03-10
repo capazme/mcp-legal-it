@@ -1,4 +1,4 @@
-"""MCP Prompts — 12 guided legal workflow prompts for Claude."""
+"""MCP Prompts — 16 guided legal workflow prompts for Claude."""
 
 from src.server import mcp
 
@@ -591,10 +591,17 @@ Giurisprudenza consolidata e questioni aperte.
 ### 5. Quadro Sanzionatorio
 Tabella sanzioni applicabili.
 
+5. FONTI AUTORITÀ DI VIGILANZA (se area finanziaria/mercati)
+   Se il tema riguarda mercati finanziari, intermediari, emittenti, OPA, crowdfunding
+   o cripto-attività, chiama `cerca_delibere_consob(query="{tema}")` per recuperare
+   le delibere e i provvedimenti CONSOB rilevanti.
+   Per le delibere più significative, chiama `leggi_delibera_consob(numero)` per il testo.
+
 REGOLE:
 - OGNI norma citata DEVE essere verificata con cite_law — mai citare a memoria.
 - Indicare espressamente se una norma è stata modificata o abrogata.
 - Segnalare norme in corso di modifica o proposte di riforma pendenti.
+- Per materie finanziarie, includere sempre i provvedimenti delle autorità di vigilanza (CONSOB, Banca d'Italia).
 """
 
 
@@ -768,9 +775,11 @@ PROCEDURA:
 
 4. FONTI REGOLAMENTARI E SOFT LAW
    - Decreti ministeriali (D.M.)
-   - Regolamenti di autorità indipendenti (Garante Privacy, AGCM, Consob, ecc.)
+   - Regolamenti di autorità indipendenti (Garante Privacy, AGCM, CONSOB, ecc.)
    - Linee guida e provvedimenti generali
    - Standard tecnici (ISO, UNI) se vincolanti
+   Per settori finanziari/mercati: chiama `cerca_delibere_consob` per delibere CONSOB.
+   Per le delibere chiave, leggi il testo con `leggi_delibera_consob(numero)`.
 
 5. OBBLIGHI E ADEMPIMENTI
    Per ogni fonte, estrai gli obblighi concreti:
@@ -866,6 +875,140 @@ REGOLE:
 - Non citare mai numeri di sentenza a memoria — usa esclusivamente i risultati dei tool.
 - Ogni affermazione deve essere supportata da una sentenza o norma verificata.
 - Se una sentenza non è trovata su Italgiure, indicarlo esplicitamente.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Prompt per CONSOB e mercati finanziari
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Ricerca e analisi delibere CONSOB su un tema: provvedimenti, sanzioni, regolamenti mercati finanziari"
+)
+def analisi_delibere_consob(tema: str, tipologia: str = "", argomento: str = "") -> str:
+    filtri_extra = ""
+    if tipologia:
+        filtri_extra += f'\n- Tipologia: {tipologia} (delibere / comunicazioni / provvedimenti_urgenti / opa)'
+    if argomento:
+        filtri_extra += f'\n- Argomento: {argomento} (abusi_di_mercato / intermediari / emittenti / mercati / cripto_attivita / crowdfunding)'
+
+    return f"""Esegui una ricerca e analisi delle delibere CONSOB sul tema indicato.
+
+TEMA: {tema}{filtri_extra}
+
+PROCEDURA:
+
+### Fase 1 — Ricerca delibere
+Chiama `cerca_delibere_consob(query="{tema}"{', tipologia="' + tipologia + '"' if tipologia else ''}{', argomento="' + argomento + '"' if argomento else ''})` per trovare
+le delibere e i provvedimenti CONSOB pertinenti.
+
+Se il tema è ampio, esegui più ricerche con query diverse per coprire i diversi aspetti.
+
+### Fase 2 — Lettura delibere chiave
+Seleziona le 2-3 delibere più significative dalla ricerca.
+Per ciascuna, chiama `leggi_delibera_consob(numero)` per leggere il testo completo.
+
+Privilegia:
+- Delibere recenti (ultimo biennio)
+- Delibere che stabiliscono principi generali o sanzioni rilevanti
+- Provvedimenti che riguardano fattispecie analoghe al tema richiesto
+
+### Fase 3 — Quadro normativo di riferimento
+Identifica le norme richiamate nelle delibere lette.
+Per ciascuna norma chiave, chiama `cite_law(reference)` per il testo vigente.
+
+Fonti tipiche:
+- TUF (D.Lgs. 58/1998) — Testo Unico della Finanza
+- Regolamento Emittenti (Reg. CONSOB 11971/1999)
+- Regolamento Intermediari (Reg. CONSOB 20307/2018)
+- Regolamento Mercati (Reg. CONSOB 20249/2017)
+- MAR (Reg. UE 596/2014) — abusi di mercato
+- MiFID II (Dir. 2014/65/UE) / MiFIR (Reg. UE 600/2014)
+- Reg. UE 2020/1503 — crowdfunding
+- MiCA (Reg. UE 2023/1114) — cripto-attività
+
+### Fase 4 — Giurisprudenza correlata (se pertinente)
+Se le delibere citano pronunce giurisdizionali o se il tema ha risvolti contenziosi,
+chiama `cerca_giurisprudenza(query="{tema}")` per verificare eventuali sentenze.
+
+### Fase 5 — Sintesi strutturata
+
+## Analisi Delibere CONSOB: {tema}
+
+### 1. Quadro Regolatorio
+Norme primarie e secondarie applicabili (testo da cite_law).
+
+### 2. Orientamento CONSOB
+| Delibera | Data | Principio / Esito |
+|----------|------|--------------------|
+| n. ... | GG/MM/AAAA | ... |
+
+### 3. Sanzioni e Misure
+Tabella delle sanzioni comminate o delle misure adottate nei provvedimenti esaminati.
+
+### 4. Principi Consolidati
+Sintesi dei principi ricorrenti nelle delibere CONSOB sul tema.
+
+### 5. Indicazioni Operative
+Raccomandazioni pratiche derivanti dall'analisi.
+
+REGOLE:
+- Usare `cerca_delibere_consob` e `leggi_delibera_consob` per i provvedimenti CONSOB.
+- Usare `cite_law` per TUTTE le norme citate — mai citare a memoria.
+- Indicare espressamente il numero e la data di ogni delibera citata.
+- Segnalare se l'orientamento è consolidato o in evoluzione.
+"""
+
+
+@mcp.prompt(
+    description="Ultime novità CONSOB: delibere recenti per tipologia o argomento con sintesi degli orientamenti"
+)
+def novita_consob(tipologia: str = "", argomento: str = "") -> str:
+    filtri = ""
+    if tipologia:
+        filtri += f', tipologia="{tipologia}"'
+    if argomento:
+        filtri += f', argomento="{argomento}"'
+
+    return f"""Fornisci un riepilogo delle ultime delibere e provvedimenti CONSOB.
+
+PROCEDURA:
+
+1. ULTIME DELIBERE
+   Chiama `ultime_delibere_consob({filtri.lstrip(', ') if filtri else ''})` per ottenere
+   le delibere più recenti pubblicate dalla CONSOB.
+
+2. APPROFONDIMENTO
+   Per le 2-3 delibere più rilevanti, chiama `leggi_delibera_consob(numero)` per
+   leggere il testo completo e comprendere il contenuto.
+
+3. QUADRO NORMATIVO
+   Per le norme richiamate nelle delibere, chiama `cite_law(reference)` per il testo vigente.
+
+FORMATO OUTPUT:
+
+## Ultime Delibere CONSOB
+
+### Panoramica
+Riepilogo sintetico delle tendenze emergenti dai provvedimenti recenti.
+
+### Delibere Principali
+Per ciascuna delibera letta:
+
+#### Delibera n. ... del GG/MM/AAAA
+- **Oggetto**: ...
+- **Norme di riferimento**: ...
+- **Decisione/Sanzione**: ...
+- **Rilevanza pratica**: ...
+
+### Tendenze e Indicazioni
+Sintesi degli orientamenti che emergono dalle delibere più recenti.
+
+REGOLE:
+- Usare esclusivamente i tool CONSOB per i provvedimenti — mai citare a memoria.
+- Per le norme, usare sempre cite_law.
+- Indicare data e numero di ogni delibera.
 """
 
 
