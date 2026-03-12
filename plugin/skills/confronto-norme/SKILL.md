@@ -1,62 +1,36 @@
 ---
 name: confronto-norme
-description: Confronto tra due o più norme con analisi di differenze, sovrapposizioni, prevalenza e coordinamento.
-  Usa quando l'utente chiede di confrontare articoli di legge o capire quale norma prevale.
-argument-hint: "[norma 1, es. 'art. 2043 c.c.'] [norma 2, es. 'art. 2050 c.c.'] [contesto opzionale]"
+description: Confronta due o piu norme evidenziando differenze, sovrapposizioni, criteri di prevalenza e coordinamento. Usa quando l'utente chiede di confrontare articoli, verificare quale norma prevale, risolvere un conflitto normativo o capire il rapporto tra due disposizioni.
 ---
 
-# Workflow Confronto Norme
+# Confronto Norme
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Differenze, sovrapposizioni, prevalenza e coordinamento.
 
-## Step 1 — Recupero testi
-Chiama `cite_law` per ciascuna norma da confrontare.
-Per entrambe, chiama anche con `include_annotations=true` per giurisprudenza e dottrina.
+## Workflow
 
-## Step 2 — Analisi comparativa
-Confronta le norme su:
-- **Ambito oggettivo**: quale materia disciplinano
-- **Ambito soggettivo**: a chi si applicano
-- **Presupposti**: quando si attivano
-- **Effetti**: quali conseguenze producono
-- **Sanzioni**: apparato sanzionatorio
+### 1. Recupero testi
 
-## Step 3 — Rapporto tra le norme
-Determina la relazione:
-- **Specialità** (art. 15 c.p. / lex specialis): una è speciale rispetto all'altra?
-- **Successione temporale** (lex posterior): una ha abrogato l'altra?
-- **Gerarchia**: una prevale per rango (Costituzione > legge > regolamento)?
-- **Concorso**: si applicano entrambe contemporaneamente?
-- **Complementarietà**: disciplinano aspetti diversi della stessa materia?
+Chiama `legal-it:cite_law` per ciascuna norma. Per annotazioni: `legal-it:cerca_brocardi`.
 
-## Step 4 — Giurisprudenza sul coordinamento
-Dalle annotazioni, individua pronunce che hanno affrontato il rapporto tra le due norme.
+### 2. Analisi comparativa
 
-## Step 5 — Presentazione risultati
+Confronta su: ambito oggettivo, soggettivo, presupposti, effetti, sanzioni.
 
-### Testi a Confronto
-| Elemento | Norma 1 | Norma 2 |
-|----------|---------|---------|
-| Fonte | ... | ... |
-| Ambito oggettivo | ... | ... |
-| Ambito soggettivo | ... | ... |
-| Presupposti | ... | ... |
-| Effetti | ... | ... |
-| Sanzioni | ... | ... |
+### 3. Rapporto tra le norme
 
-### Rapporto tra le Norme
-Analisi del criterio di prevalenza applicabile.
+- **Specialita** (lex specialis)
+- **Successione** (lex posterior)
+- **Gerarchia** (rango)
+- **Concorso** (applicazione contemporanea)
+- **Complementarieta**
 
-### Aree di Sovrapposizione
-Casi in cui entrambe le norme sono potenzialmente applicabili e come si coordinano.
+### 4. Giurisprudenza sul coordinamento
 
-### Orientamento Giurisprudenziale
-Come la giurisprudenza ha risolto i conflitti tra queste norme.
+Dalle annotazioni, individua pronunce sul rapporto tra le norme.
 
-### Conclusioni Operative
-Indicazione pratica su quale norma applicare e in quali circostanze.
+## Tool utilizzati
 
-## Note
-- Entrambi i testi DEVONO provenire da `cite_law`.
-- Non dare per scontata la prevalenza di una norma — argomentare il criterio.
-- Se il rapporto è controverso, esporre le diverse tesi.
+- `legal-it:cite_law` (obbligatorio per entrambe)
+- `legal-it:cerca_brocardi` (annotazioni)
+- `legal-it:cerca_giurisprudenza` (se necessario)
