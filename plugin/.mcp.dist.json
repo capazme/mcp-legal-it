@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "legal-it": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project", "${CLAUDE_PLUGIN_ROOT}/server",
+        "python", "${CLAUDE_PLUGIN_ROOT}/server/run_server.py"
+      ],
+      "env": {
+        "MCP_CACHE_DIR": "${HOME}/.cache/mcp-legal-it",
+        "LEGAL_PROFILE": "full"
+      }
+    }
+  }
+}

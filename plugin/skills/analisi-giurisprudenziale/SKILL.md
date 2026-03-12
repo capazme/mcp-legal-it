@@ -1,61 +1,52 @@
 ---
 name: analisi-giurisprudenziale
-description: Analisi degli orientamenti giurisprudenziali su un tema con sintesi delle sentenze principali.
-  Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione, o precedenti.
-argument-hint: "[tema giuridico o questione da ricercare]"
+description: Analisi strutturata degli orientamenti giurisprudenziali su un tema con ricerca sentenze Cassazione su Italgiure, lettura testo completo delle decisioni chiave e sintesi degli orientamenti. Usa quando l'utente chiede giurisprudenza su un argomento, orientamenti della Cassazione, precedenti, o sentenze su un tema specifico.
 ---
 
-# Workflow Analisi Giurisprudenziale
+# Analisi Giurisprudenziale
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Ricerca Italgiure, lettura decisioni chiave, sintesi orientamenti.
 
-## Step 1 — Ricerca decisioni
-Chiama `cerca_giurisprudenza(query, archivio, max_risultati=15)` con:
-- `query`: il tema giuridico descritto dall'utente
-- `archivio`: "civile", "penale", o "tutti" a seconda del contesto
+## Regola fondamentale
 
-Se il tema è collegato a una norma specifica, chiama anche `giurisprudenza_su_norma(riferimento)`.
+**Non citare mai numeri di sentenza a memoria**. Usa esclusivamente i risultati dei tool.
 
-## Step 2 — Lettura sentenze chiave
-Dalle decisioni trovate, seleziona le 3-5 più rilevanti (per pertinenza e per rappresentatività degli orientamenti).
+## Workflow
 
-Per ciascuna, chiama `leggi_sentenza(numero, anno)` per il testo integrale.
+### Fase 1 — Panoramica
 
-Criteri di selezione:
-- Sentenze delle Sezioni Unite (prevalgono)
-- Sentenze più recenti (orientamento attuale)
-- Sentenze che rappresentano orientamenti diversi (se c'è contrasto)
+Chiama `legal-it:cerca_giurisprudenza` con query, archivio e max 15 risultati.
 
-## Step 3 — Verifica normativa
-Per ogni norma citata nelle sentenze lette, chiama `cite_law(reference)` per verificare il testo vigente.
+Se il tema riguarda una norma specifica, chiama prima `legal-it:giurisprudenza_su_norma` per trovare le decisioni che la citano.
 
-Questo è essenziale perché la norma potrebbe essere stata modificata dopo la sentenza.
+### Fase 2 — Approfondimento
 
-## Step 4 — Mappatura orientamenti
-Classifica le decisioni trovate per orientamento:
-- **Orientamento consolidato**: posizione costante della Cassazione
-- **Orientamento recente/in evoluzione**: cambio di direzione
-- **Contrasto giurisprudenziale**: posizioni divergenti tra sezioni
+Seleziona 2-3 decisioni significative (privilegia Sezioni Unite).
+Per ciascuna: `legal-it:leggi_sentenza` con numero e anno.
 
-## Step 5 — Sintesi strutturata
+**Non fare web search per sentenze gia identificate.**
 
-### Quadro normativo di riferimento
-Le norme rilevanti (con testo da cite_law).
+### Fase 3 — Annotazioni Brocardi
 
-### Orientamento prevalente
-La posizione dominante della Cassazione, con sentenze chiave.
+Se il tema ruota attorno a un articolo specifico: `legal-it:cerca_brocardi` per ratio legis, spiegazione e massime strutturate.
 
-### Orientamenti minoritari o in evoluzione
-Posizioni alternative, se presenti.
+### Fase 4 — Fondamento normativo
 
-### Sentenze chiave
+Per le norme citate nelle decisioni: `legal-it:cite_law` per testo vigente.
 
-| Sentenza | Sezione | Principio |
-|----------|---------|-----------|
-| Cass. n. .../... | ... | ... |
+### Fase 5 — Sintesi
 
-### Conclusioni operative
-- Stato attuale dell'orientamento
-- Livello di consolidamento
-- Rischi di revirement
-- Raccomandazioni per chi deve impostare una strategia processuale
+1. **Orientamento prevalente**: principio di diritto
+2. **Evoluzione**: cambiamenti nel tempo
+3. **Contrasti**: divergenze tra sezioni
+4. **Sezioni Unite**: principio di diritto (se pronunciate)
+5. **Norme di riferimento**
+6. **Decisioni citate**: elenco con estremi
+
+## Tool utilizzati
+
+- `legal-it:cerca_giurisprudenza` (ricerca full-text)
+- `legal-it:giurisprudenza_su_norma` (sentenze su norma)
+- `legal-it:leggi_sentenza` (testo completo)
+- `legal-it:cerca_brocardi` (annotazioni e massime)
+- `legal-it:cite_law` (norme citate)

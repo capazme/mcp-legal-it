@@ -1,62 +1,34 @@
 ---
 name: verifica-prescrizione
-description: Verifica prescrizione di un diritto civile o di un reato penale con analisi temporale.
-  Usa quando l'utente chiede se un diritto è prescritto o quando scade un termine di prescrizione.
-argument-hint: "[tipo: civile|penale] [descrizione fatto] [data fatto GG/MM/AAAA]"
+description: Verifica la prescrizione di un diritto civile o di un reato penale con calcolo termine, analisi cause di sospensione/interruzione e stato attuale. Usa quando l'utente chiede se un diritto e prescritto, i termini di prescrizione, o la decadenza di un'azione.
 ---
 
-# Workflow Verifica Prescrizione
+# Verifica Prescrizione
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Calcolo termine prescrizione civile o penale.
 
-## Step 1 — Classificazione
-Identifica dall'input dell'utente:
-- **Tipo**: civile o penale
-- **Descrizione del fatto/diritto**
-- **Data del fatto** o della nascita del diritto
+## Workflow
 
-Se mancano dati essenziali, chiedi all'utente.
+### Civile
 
-## Step 2 — Calcolo prescrizione
+Chiama `legal-it:prescrizione_diritti`:
+- **10 anni**: ordinario (art. 2946 c.c.)
+- **5 anni**: risarcimento (art. 2947)
+- **2 anni**: assicurazione (art. 2952)
 
-**Se civile**: chiama `prescrizione_diritti` con i dati forniti.
-- Identifica il tipo di diritto (contrattuale, extracontrattuale, reale, etc.)
-- Termine ordinario: 10 anni (art. 2946 c.c.)
-- Termini brevi: 5 anni (risarcimento danni, art. 2947 c.c.), 2 anni (assicurazione, art. 2952 c.c.), 1 anno (trasporti)
-- Verifica cause di sospensione (artt. 2941-2942 c.c.)
-- Verifica cause di interruzione (art. 2943 c.c.): messa in mora, ricorso, riconoscimento del debito
+Verifica sospensione (artt. 2941-2942) e interruzione (art. 2943).
 
-**Se penale**: chiama `prescrizione_reato` con i dati forniti.
-- Identifica il reato (titolo e articolo c.p.)
-- Termine base = massimo edittale della pena (min. 6 anni delitto, 4 anni contravvenzione)
-- Verifica cause di sospensione (art. 159 c.p.) e interruzione (art. 160 c.p.)
-- Regime applicabile: ordinario / Bonafede (L. 3/2019) / Cartabia (D.Lgs. 150/2022) in base alla data del fatto
+### Penale
 
-## Step 3 — Analisi temporale
-- Data decorrenza
-- Data odierna: calcola il tempo trascorso
-- Data prescrizione: indica la scadenza esatta
-- Stato: PRESCRITTA / NON PRESCRITTA / IN SCADENZA (ultimi 6 mesi)
+Chiama `legal-it:prescrizione_reato`:
+- Termine = massimo edittale (min 6 anni delitto, 4 contravvenzione)
+- Sospensione (art. 159 c.p.) e interruzione (art. 160 c.p.)
+- Riforma Cartabia: improcedibilita in appello/cassazione
 
-## Step 4 — Tabella riepilogativa
+## Output: stato PRESCRITTA / NON PRESCRITTA / IN SCADENZA con data esatta.
 
-| Elemento | Dettaglio |
-|----------|----------|
-| Fatto | ... |
-| Data fatto | GG/MM/AAAA |
-| Tipo diritto/reato | ... |
-| Norma applicabile | art. ... |
-| Termine prescrizione | ... anni |
-| Data decorrenza | GG/MM/AAAA |
-| Data scadenza prescrizione | GG/MM/AAAA |
-| Tempo trascorso | ... anni, ... mesi, ... giorni |
-| Tempo residuo | ... anni, ... mesi, ... giorni |
-| **STATO** | **PRESCRITTA / NON PRESCRITTA / IN SCADENZA** |
+## Tool utilizzati
 
-### Cause di Sospensione/Interruzione
-Elenca eventuali cause note che potrebbero aver modificato il decorso.
-
-### Avvertenze
-- La prescrizione può essere interrotta o sospesa da atti non noti al momento dell'analisi.
-- Per la prescrizione penale, la riforma Bonafede e Cartabia hanno modificato il regime — il tool applica automaticamente la disciplina corretta.
-- In ambito civile, il decorso può essere interrotto con atto stragiudiziale (raccomandata/PEC di messa in mora).
+- `legal-it:prescrizione_diritti` (civile)
+- `legal-it:prescrizione_reato` (penale)
+- `legal-it:cite_law` (norme sulla prescrizione)
