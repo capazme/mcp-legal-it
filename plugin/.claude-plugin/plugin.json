@@ -3,10 +3,10 @@
   "version": "1.1.0",
   "description": "Plugin legale italiano completo: 164 tool di calcolo, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), CONSOB, compliance GDPR. 18 skill tool-aware, 8 slash command, 3 agenti specializzati.",
   "author": {
-    "name": "gpuzio"
+    "name": "capazme"
   },
-  "homepage": "https://github.com/gpuzio/mcp-legal-it",
-  "repository": "https://github.com/gpuzio/mcp-legal-it",
+  "homepage": "https://github.com/capazme/mcp-legal-it",
+  "repository": "https://github.com/capazme/mcp-legal-it",
   "license": "MIT",
   "keywords": [
     "legal",
