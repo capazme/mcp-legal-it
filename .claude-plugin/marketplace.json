@@ -1,15 +1,15 @@
 {
   "name": "mcp-legal-it",
-  "description": "Marketplace per tool legali italiani: calcoli, normativa, giurisprudenza, compliance GDPR.",
+  "description": "Marketplace per tool legali italiani: calcoli, normativa, giurisprudenza, CONSOB, compliance GDPR.",
   "owner": {
-    "name": "gpuzio",
-    "url": "https://github.com/gpuzio"
+    "name": "capazme",
+    "url": "https://github.com/capazme"
   },
   "plugins": [
     {
       "name": "legal-it",
       "source": "./plugin",
-      "description": "Plugin legale italiano completo: 161 tool di calcolo, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), compliance GDPR, 17 workflow guidati e 3 agenti specializzati."
+      "description": "Plugin legale italiano completo: 164 tool di calcolo, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), CONSOB, compliance GDPR. 18 skill tool-aware, 8 slash command, 3 agenti specializzati."
     }
   ]
 }
