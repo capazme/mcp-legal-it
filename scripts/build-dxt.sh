@@ -22,9 +22,11 @@ cp "$ROOT_DIR/dxt/manifest.json" "$BUILD_DIR/"
 # Copy .mcpbignore
 cp "$ROOT_DIR/dxt/.mcpbignore" "$BUILD_DIR/"
 
-# Copy server source
+# Copy server source and bootstrap script
 cp "$ROOT_DIR/pyproject.toml" "$BUILD_DIR/"
 cp "$ROOT_DIR/run_server.py" "$BUILD_DIR/"
+cp "$ROOT_DIR/dxt/start_server.sh" "$BUILD_DIR/"
+chmod +x "$BUILD_DIR/start_server.sh"
 cp -r "$ROOT_DIR/src" "$BUILD_DIR/src"
 
 # Clean __pycache__ from copied source
