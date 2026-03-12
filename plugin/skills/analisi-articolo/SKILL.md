@@ -1,67 +1,65 @@
 ---
 name: analisi-articolo
-description: Analisi approfondita di un singolo articolo di legge con testo, ratio, giurisprudenza e norme collegate.
-  Simile ad analisi-norma ma include anche l'evoluzione storica e gli elementi costitutivi della fattispecie.
-argument-hint: "[riferimento normativo, es. 'art. 2043 c.c.', 'art. 6 D.Lgs. 231/2001']"
+description: Analisi approfondita di un singolo articolo di legge con testo vigente, ratio legis, giurisprudenza di riferimento e norme collegate. Usa quando l'utente chiede di spiegare, analizzare o approfondire un articolo specifico (es. "spiegami l'art. 2043 c.c.").
 ---
 
-# Workflow Analisi Articolo
+# Analisi Articolo
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Testo, ratio, giurisprudenza e collegamenti per un articolo di legge.
 
-## Step 1 — Testo vigente
-Chiama `cite_law(riferimento)` per recuperare il testo ufficiale aggiornato.
-Se la risposta indica che il testo è stato modificato, recupera anche la versione precedente.
+## Workflow
 
-## Step 2 — Annotazioni e giurisprudenza
-Chiama `cerca_brocardi(riferimento)` per recuperare da Brocardi:
-- Ratio legis (scopo della norma)
+### 1. Testo vigente
+
+Chiama `legal-it:cite_law` con il riferimento normativo. Se modificato, recupera anche la versione precedente.
+
+### 2. Annotazioni e giurisprudenza
+
+Chiama `legal-it:cerca_brocardi` per:
+- Ratio legis
 - Spiegazione dottrinale
-- Massime giurisprudenziali rilevanti
+- Massime giurisprudenziali
 - Casistica applicativa
 
-## Step 3 — Norme collegate
-Identifica e recupera con `cite_law`:
-- Articoli precedenti e successivi nello stesso testo normativo (contesto sistematico)
-- Norme richiamate espressamente nel testo
-- Norme che richiamano questo articolo
-- Disposizioni di attuazione o regolamentari
+I riferimenti Cassazione nelle massime possono essere letti con `legal-it:leggi_sentenza`.
 
-## Step 4 — Evoluzione storica
-Se disponibile dalle annotazioni, riporta:
-- Versioni precedenti del testo
-- Leggi di modifica con date
-- Motivazioni delle modifiche
+### 3. Norme collegate
 
-## Step 5 — Presentazione risultati
+Con `legal-it:cite_law` recupera:
+- Articoli precedenti/successivi (contesto sistematico)
+- Norme richiamate nel testo
+- Disposizioni di attuazione
 
-### Testo Vigente
-> [testo completo dell'articolo da cite_law]
+### 4. Evoluzione storica
 
-### Ratio Legis
-Spiegazione dello scopo e della funzione della norma nell'ordinamento.
+Dalle annotazioni: versioni precedenti, leggi di modifica, motivazioni.
 
-### Elementi Costitutivi
-Scomposizione della norma in:
+## Output atteso
+
+### Testo vigente
+> [da cite_law]
+
+### Ratio legis
+Scopo e funzione nell'ordinamento.
+
+### Elementi costitutivi
 - Presupposti (fattispecie astratta)
-- Effetti giuridici (conseguenze)
+- Effetti giuridici
 - Soggetti destinatari
 - Ambito di applicazione
 
-### Giurisprudenza di Riferimento
+### Giurisprudenza
 | Pronuncia | Principio | Rilevanza |
 |-----------|-----------|-----------|
-| Cass. n. .../... | ... | ... |
+| ... | ... | ... |
 
-### Norme Collegate
+### Norme collegate
 | Norma | Relazione | Contenuto |
 |-------|-----------|-----------|
-| art. ... | richiamo espresso / sistematico | ... |
+| ... | ... | ... |
 
-### Note Operative
-Indicazioni pratiche per l'applicazione della norma.
+## Tool utilizzati
 
-## Note
-- Il testo DEVE provenire da `cite_law`, non dalla memoria.
-- Se Brocardi non ha annotazioni per questa norma, indicarlo espressamente.
-- Distinguere tra interpretazione consolidata e orientamenti minoritari.
+- `legal-it:cite_law` (obbligatorio)
+- `legal-it:cerca_brocardi` (annotazioni complete)
+- `legal-it:leggi_sentenza` (testo sentenze citate)

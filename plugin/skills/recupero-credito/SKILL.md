@@ -1,58 +1,38 @@
 ---
 name: recupero-credito
-description: Workflow completo recupero credito con interessi, rivalutazione, decreto ingiuntivo e parcella.
-  Usa quando l'utente ha un credito da recuperare o chiede di calcolare interessi di mora.
-argument-hint: "[importo credito] [data scadenza] [tipo debitore: impresa|PA|privato]"
+description: Workflow completo per recupero crediti insoluti con calcolo interessi di mora, rivalutazione ISTAT, predisposizione decreto ingiuntivo e parcella avvocato. Usa quando l'utente ha un credito da recuperare, una fattura non pagata, chiede interessi di mora o vuole procedere con decreto ingiuntivo.
 ---
 
-# Workflow Recupero Credito
+# Recupero Credito
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Workflow completo: interessi mora, rivalutazione, decreto ingiuntivo, parcella.
 
-## Step 1 — Raccolta dati
-Identifica dall'input dell'utente:
-- **Importo del credito** (capitale originario)
-- **Data di scadenza** del pagamento
-- **Tipo di debitore**: impresa, pubblica amministrazione, privato
-- **Tipo di transazione**: commerciale (B2B/B2PA) o non commerciale
-- **Eventuale tasso convenzionale** pattuito
+## Workflow
 
-Se mancano dati essenziali, chiedi all'utente.
+### 1. Interessi di mora
 
-## Step 2 — Calcolo interessi di mora
-Chiama `interessi_mora(capitale, data_scadenza, data_calcolo, tipo_transazione)`.
-- Per transazioni commerciali: si applicano i tassi BCE + maggiorazione (D.Lgs. 231/2002)
-- Per altre: interessi legali ex art. 1284 c.c.
+Chiama `legal-it:interessi_mora` con importo e data_decorrenza.
 
-## Step 3 — Rivalutazione monetaria
-Chiama `rivalutazione_monetaria(importo, data_iniziale, data_finale)` con:
-- `importo`: il capitale originario
-- `data_iniziale`: data di scadenza del credito
-- `data_finale`: oggi
+- **Commerciale**: tasso BCE + 8 punti (D.Lgs. 231/2002)
+- **Privato**: tasso legale art. 1284 c.c.
 
-## Step 4 — Decreto ingiuntivo
-Chiama `decreto_ingiuntivo(valore_causa)` per calcolare:
-- Contributo unificato
-- Spese di notifica
-- Diritti di cancelleria
-- Marca da bollo
+### 2. Rivalutazione monetaria
 
-## Step 5 — Parcella avvocato
-Chiama `parcella_avvocato_civile(valore_causa, fasi, complessita)` con:
-- `valore_causa`: importo del credito + interessi
-- `fasi`: ["studio", "introduttiva"] per monitorio, oppure tutte le fasi se si prevede opposizione
+Chiama `legal-it:rivalutazione_monetaria`.
 
-## Step 6 — Tabella riepilogativa
+**Nota**: mora e rivalutazione NON si cumulano (Cass. SS.UU. 16601/2017). Presenta entrambi, indica il piu favorevole.
 
-| Voce | Importo |
-|------|---------|
-| Capitale originario | € ... |
-| Interessi di mora | € ... |
-| Rivalutazione ISTAT | € ... |
-| **Subtotale credito** | **€ ...** |
-| Contributo unificato | € ... |
-| Spese di giustizia | € ... |
-| Parcella avvocato | € ... |
-| **TOTALE DA RECUPERARE** | **€ ...** |
+### 3. Decreto ingiuntivo
 
-Aggiungi note su: base normativa, tasso BCE applicato, possibilità di provvisoria esecuzione ex art. 642 c.p.c.
+Chiama `legal-it:decreto_ingiuntivo`: competenza, CU, requisiti, provvisoria esecutivita.
+
+### 4. Parcella
+
+Chiama `legal-it:parcella_avvocato_civile` per fase monitoria.
+
+## Tool utilizzati
+
+- `legal-it:interessi_mora`
+- `legal-it:rivalutazione_monetaria`
+- `legal-it:decreto_ingiuntivo`
+- `legal-it:parcella_avvocato_civile`

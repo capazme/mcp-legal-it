@@ -1,81 +1,46 @@
 ---
 name: data-breach
-description: Gestione data breach con valutazione rischio, notifica al Garante e stima sanzioni.
-  Usa quando l'utente segnala una violazione di dati personali o chiede come gestire un data breach.
-argument-hint: "[tipo violazione: confidenzialità|integrità|disponibilità] [numero interessati] [dati coinvolti]"
+description: Gestione data breach GDPR con valutazione rischio, notifica al Garante entro 72h e stima sanzioni. Usa quando l'utente segnala una violazione di dati personali, chiede come gestire un data breach o deve notificare al Garante.
 ---
 
-# Workflow Data Breach
+# Data Breach
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Valutazione rischio, notifica Garante, stima sanzioni.
 
-## Step 1 — Raccolta dati sull'incidente
-Identifica dall'input dell'utente:
-- **Tipo di violazione**: confidenzialità (accesso non autorizzato), integrità (alterazione), disponibilità (perdita/distruzione)
-- **Numero di interessati** coinvolti
-- **Categorie di dati** violati (anagrafici, sanitari, finanziari, biometrici, etc.)
-- **Causa della violazione** (attacco informatico, errore umano, guasto tecnico, etc.)
-- **Data/ora della scoperta**
-- **Misure di contenimento** già adottate
+## Workflow
 
-Se mancano dati essenziali, chiedi all'utente.
+### 1. Raccolta dati incidente
 
-## Step 2 — Valutazione rischio
-Chiama `valutazione_data_breach(tipo_violazione, numero_interessati, categorie_dati, ...)`.
-Il tool valuta:
-- Livello di rischio per gli interessati (basso, medio, alto, molto alto)
-- Obbligo di notifica al Garante (art. 33 GDPR) — sì se rischio non improbabile
-- Obbligo di comunicazione agli interessati (art. 34 GDPR) — sì se rischio elevato
+Identificare: tipo violazione (confidenzialita/integrita/disponibilita), numero interessati, categorie dati, causa, data scoperta.
 
-## Step 3 — Notifica al Garante
-Se la notifica è necessaria, chiama `genera_notifica_data_breach(titolare, tipo_violazione, ...)`.
-Il tool genera il modulo con tutte le informazioni richieste dall'art. 33 GDPR.
+### 2. Valutazione rischio
 
-**SCADENZA**: 72 ore dalla scoperta della violazione.
+Chiama `legal-it:valutazione_data_breach`:
+- Livello rischio per interessati
+- Obbligo notifica Garante (art. 33 GDPR)
+- Obbligo comunicazione interessati (art. 34 GDPR)
 
-## Step 4 — Stima sanzioni
-Chiama `calcolo_sanzione_gdpr(tipo_violazione, ...)` per stimare il range di sanzioni applicabili.
-Analizza i criteri dell'art. 83(2) GDPR:
-- Natura, gravità e durata della violazione
-- Carattere doloso o colposo
-- Misure adottate per attenuare il danno
-- Precedenti violazioni
-- Categorie di dati coinvolti
+### 3. Notifica al Garante
 
-## Step 5 — Piano d'azione
+Se necessaria: chiama `legal-it:genera_notifica_data_breach`.
 
-### Valutazione Rischio
-| Elemento | Dettaglio |
-|----------|----------|
-| Tipo violazione | ... |
-| Interessati coinvolti | ... |
-| Categorie dati | ... |
-| **Livello di rischio** | **...** |
-| Notifica Garante | Sì/No |
-| Comunicazione interessati | Sì/No |
+**SCADENZA**: 72 ore dalla scoperta.
 
-### Scadenze
-| Adempimento | Scadenza | Stato |
-|-------------|----------|-------|
-| Notifica al Garante | 72h dalla scoperta | ... |
-| Comunicazione agli interessati | Senza ingiustificato ritardo | ... |
-| Annotazione nel registro violazioni | Immediata | ... |
+### 4. Stima sanzioni
 
-### Range Sanzioni
-| Scenario | Importo stimato |
-|----------|----------------|
-| Minimo | € ... |
-| Medio | € ... |
-| Massimo | € ... |
+Chiama `legal-it:calcolo_sanzione_gdpr` con criteri art. 83(2) GDPR.
 
-### Azioni Immediate
+### 5. Piano d'azione
+
 1. Contenere la violazione
-2. Documentare l'incidente nel registro violazioni (art. 33(5) GDPR)
+2. Documentare nel registro violazioni (art. 33(5))
 3. Notificare al Garante (se rischio non improbabile)
 4. Comunicare agli interessati (se rischio elevato)
-5. Adottare misure correttive per prevenire recidive
+5. Misure correttive
 
-### Avvertenze
-- La scadenza di 72h è tassativa — il ritardo va motivato.
-- La mancata notifica è essa stessa una violazione sanzionabile.
-- Documentare SEMPRE l'incidente, anche se non si notifica al Garante.
+## Tool utilizzati
+
+- `legal-it:valutazione_data_breach`
+- `legal-it:genera_notifica_data_breach`
+- `legal-it:calcolo_sanzione_gdpr`
+- `legal-it:cite_law` (artt. 33-34 GDPR)
