@@ -1,65 +1,39 @@
 ---
 name: quantificazione-danni
-description: Quantificazione danni biologico, patrimoniale o morale con personalizzazione e attualizzazione.
-  Usa quando l'utente chiede di quantificare un danno specifico (non un sinistro completo).
-argument-hint: "[tipo: biologico|patrimoniale|morale] [valore o % invalidità] [età vittima]"
+description: Quantifica danni biologici, patrimoniali o morali con personalizzazione e attualizzazione monetaria. Usa quando l'utente chiede di calcolare un risarcimento, quantificare danni da invalidita, danno emergente, lucro cessante o danno morale/esistenziale.
 ---
 
-# Workflow Quantificazione Danni
+# Quantificazione Danni
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Calcolo base, personalizzazione e attualizzazione.
 
-## Step 1 — Classificazione danno
-Identifica dall'input dell'utente:
-- **Tipo danno**: biologico, patrimoniale, morale/esistenziale
-- **Valore/percentuale**: importo (patrimoniale) o % invalidità (biologico)
-- **Età della vittima**
+## Workflow
 
-Se mancano dati essenziali, chiedi all'utente.
+### 1. Calcolo base
 
-## Step 2 — Calcolo base
-In base al tipo di danno:
-
-**Biologico** (percentuale invalidità):
-- Se ≤ 9%: chiama `danno_biologico_micro(percentuale, eta)` — tabelle art. 139 CdA
-- Se ≥ 10%: chiama `danno_biologico_macro(percentuale, eta)` — tabelle Milano
+**Biologico** (percentuale invalidita):
+- <= 9%: `legal-it:danno_biologico_micro` (tabelle art. 139 CdA)
+- > 9%: `legal-it:danno_biologico_macro` (tabelle Milano)
 
 **Patrimoniale** (importo):
-- Danno emergente: il valore indicato
-- Lucro cessante: calcola in base alla durata della privazione
-- Chiama `interessi_legali` sulla somma dalla data dell'evento
+- Danno emergente + lucro cessante
+- `legal-it:interessi_legali` dalla data evento
 
 **Morale/esistenziale**:
-- Chiama `danno_non_patrimoniale` come punto di partenza
-- Applica la personalizzazione per gravità e impatto sulla vita di relazione
+- `legal-it:danno_non_patrimoniale` come base
 
-## Step 3 — Personalizzazione
-Valuta i criteri di personalizzazione (Cass. SS.UU. 26972/2008):
-- Entità della sofferenza soggettiva
-- Incidenza sulla vita di relazione
-- Specificità del caso concreto
+### 2. Personalizzazione
 
-Indica una percentuale di personalizzazione motivata.
+Criteri Cass. SS.UU. 26972/2008: sofferenza soggettiva, vita di relazione, specificita del caso.
 
-## Step 4 — Attualizzazione
-Chiama `rivalutazione_monetaria` dalla data dell'evento a oggi.
-Chiama `interessi_legali` sulla somma rivalutata.
+### 3. Attualizzazione
 
-## Step 5 — Tabella riepilogativa
+1. `legal-it:rivalutazione_monetaria` dalla data evento
+2. `legal-it:interessi_legali` sulla somma rivalutata
 
-| Componente | Importo |
-|------------|---------|
-| Danno base (tabellare/documentale) | € ... |
-| Personalizzazione (±...%) | € ... |
-| Subtotale | € ... |
-| Rivalutazione ISTAT | € ... |
-| Interessi legali | € ... |
-| **TOTALE** | **€ ...** |
+## Tool utilizzati
 
-### Motivazione
-Spiega i criteri di personalizzazione adottati e la giurisprudenza di riferimento.
-
-### Avvertenze
-- Quantificazione indicativa basata sulle tabelle vigenti.
-- La prova del danno patrimoniale richiede documentazione specifica.
-- Per il danno biologico è necessaria perizia medico-legale.
+- `legal-it:danno_biologico_micro` / `legal-it:danno_biologico_macro`
+- `legal-it:danno_non_patrimoniale`
+- `legal-it:rivalutazione_monetaria`
+- `legal-it:interessi_legali`

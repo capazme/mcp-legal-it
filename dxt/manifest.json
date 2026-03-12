@@ -1,0 +1,51 @@
+{
+  "manifest_version": "0.4",
+  "name": "legal-it",
+  "version": "1.1.0",
+  "display_name": "Legal IT — Diritto Italiano",
+  "description": "164 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), delibere CONSOB e compliance GDPR.",
+  "long_description": "Server MCP completo per il diritto italiano. Include: calcoli rivalutazione/interessi, scadenze processuali, parcelle avvocati, risarcimento danni, decreto ingiuntivo, IRPEF/TFR, successioni, codice fiscale, privacy GDPR. Consultazione normativa da Normattiva e EUR-Lex, giurisprudenza di Cassazione da Italgiure, annotazioni da Brocardi, delibere CONSOB.",
+  "author": {
+    "name": "gpuzio",
+    "url": "https://github.com/gpuzio"
+  },
+  "repository": {
+    "url": "https://github.com/gpuzio/mcp-legal-it"
+  },
+  "homepage": "https://github.com/gpuzio/mcp-legal-it",
+  "license": "MIT",
+  "server": {
+    "type": "uv",
+    "entry_point": "run_server.py"
+  },
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  },
+  "tools_generated": true,
+  "prompts_generated": true,
+  "keywords": [
+    "legal", "italian-law", "diritto-italiano", "GDPR", "privacy",
+    "normattiva", "cassazione", "italgiure", "brocardi", "CONSOB",
+    "avvocato", "risarcimento", "interessi", "rivalutazione"
+  ],
+  "user_config": {
+    "cache_dir": {
+      "type": "directory",
+      "title": "Cache directory",
+      "description": "Directory per la cache degli URL Brocardi e dei risultati",
+      "required": false,
+      "default": "${HOME}/.cache/mcp-legal-it"
+    },
+    "profile": {
+      "type": "string",
+      "title": "Profilo tool",
+      "description": "Profilo tool da caricare: full, sinistro, credito, penale, fiscale, normativa, privacy, studio",
+      "required": false,
+      "default": "full"
+    }
+  }
+}

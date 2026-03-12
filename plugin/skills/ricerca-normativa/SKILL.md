@@ -1,69 +1,45 @@
 ---
 name: ricerca-normativa
-description: Ricerca normativa completa su un tema giuridico con gerarchia delle fonti e coordinamento.
-  Usa quando l'utente chiede quali norme disciplinano un tema o vuole una panoramica del quadro normativo.
-argument-hint: "[tema giuridico] [area: civile|penale|amministrativo|lavoro|tributario|privacy]"
+description: Ricerca normativa completa su un tema giuridico con tutte le fonti applicabili ordinate per gerarchia, giurisprudenza e quadro sanzionatorio. Usa quando l'utente chiede quali norme si applicano, il quadro normativo di un settore, le fonti di una materia o una ricerca legislativa.
 ---
 
-# Workflow Ricerca Normativa
+# Ricerca Normativa
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Fonti primarie, norme collegate, giurisprudenza e sanzioni.
 
-## Step 1 — Individuazione fonti primarie
-Identifica le norme principali che disciplinano il tema.
-Per ciascuna norma, chiama `cite_law` per recuperare il testo vigente.
-Ordina per gerarchia delle fonti:
-- Costituzione (artt. rilevanti)
-- Regolamenti UE (direttamente applicabili)
-- Direttive UE (recepite con D.Lgs.)
-- Leggi ordinarie / D.Lgs. / D.L.
-- Regolamenti ministeriali / D.M.
-- Circolari e prassi amministrativa
+## Regola fondamentale
 
-## Step 2 — Norme collegate e coordinamento
-Per ogni norma primaria, verifica:
-- Norme di attuazione e regolamenti
-- Modifiche successive (novelle, correttivi)
-- Norme abrogate espressamente o implicitamente
-- Disposizioni transitorie
+**Ogni norma citata DEVE essere verificata con `legal-it:cite_law`**. Mai citare a memoria.
 
-Usa `cite_law` per ciascun articolo rilevante.
+## Workflow
 
-## Step 3 — Giurisprudenza e dottrina
-Per le norme chiave, chiama `cite_law` con `include_annotations=true` per recuperare da Brocardi:
-- Massime di Cassazione e Corte Costituzionale
-- Orientamenti consolidati vs. questioni aperte
-- Posizioni dottrinali prevalenti
+### 1. Fonti primarie
 
-## Step 4 — Quadro sanzionatorio (se pertinente)
-Identifica:
-- Sanzioni penali (contravvenzioni, delitti)
-- Sanzioni amministrative (pecuniarie, interdittive)
-- Responsabilità civile (risarcimento danni)
-- Sanzioni disciplinari (ordini professionali, PA)
+Per ogni norma individuata, chiama `legal-it:cite_law`. Ordina per gerarchia:
+1. Costituzione
+2. Regolamenti UE
+3. Direttive UE (+ D.Lgs. recepimento)
+4. Leggi ordinarie / D.Lgs. / D.L.
+5. D.M. e regolamenti
+6. Circolari e prassi
 
-## Step 5 — Presentazione risultati
+### 2. Norme collegate
 
-### Fonti Primarie
-| Fonte | Norma | Oggetto |
-|-------|-------|---------|
-| Costituzione | art. ... | ... |
-| Reg. UE | ... | ... |
-| Legge | ... | ... |
+Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transitorie.
 
-### Articoli Chiave
-Per ciascun articolo: testo (da cite_law), commento sintetico, nessi con altri articoli.
+### 3. Giurisprudenza
 
-### Evoluzione Normativa
-Timeline delle modifiche rilevanti.
+`legal-it:cerca_brocardi` per massime. `legal-it:cerca_giurisprudenza` per approfondimento.
 
-### Orientamenti Interpretativi
-Giurisprudenza consolidata e questioni aperte.
+### 4. Fonti autorita vigilanza
 
-### Quadro Sanzionatorio
-Tabella sanzioni applicabili.
+- Finanza/mercati: `legal-it:cerca_delibere_consob`
+- Privacy: `legal-it:cerca_provvedimenti_garante`
 
-## Note
-- OGNI norma citata DEVE essere verificata con `cite_law` — mai citare a memoria.
-- Indicare espressamente se una norma è stata modificata o abrogata.
-- Segnalare norme in corso di modifica o proposte di riforma pendenti.
+## Tool utilizzati
+
+- `legal-it:cite_law` (obbligatorio)
+- `legal-it:cerca_brocardi`
+- `legal-it:cerca_giurisprudenza`
+- `legal-it:cerca_delibere_consob`
+- `legal-it:cerca_provvedimenti_garante`

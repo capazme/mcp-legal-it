@@ -45,7 +45,10 @@ async def _cerca_giurisprudenza_impl(
     sezione: str = "",
     anno_da: int = 0,
     anno_a: int = 0,
-    max_risultati: int = 10,
+    tipo_provvedimento: str = "",
+    solo_sezioni_unite: bool = False,
+    ordinamento: str = "rilevanza",
+    max_risultati: int = 5,
     pagina: int = 0,
 ) -> str:
     max_risultati = min(max_risultati, 50)
@@ -56,6 +59,9 @@ async def _cerca_giurisprudenza_impl(
         sezione=sezione or None,
         anno_da=anno_da or None,
         anno_a=anno_a or None,
+        tipo_provvedimento=tipo_provvedimento or None,
+        solo_sezioni_unite=solo_sezioni_unite,
+        ordinamento=ordinamento,
         rows=max_risultati,
         start=pagina * max_risultati,
     )
@@ -70,7 +76,8 @@ async def _cerca_giurisprudenza_impl(
         return "Nessuna decisione trovata per la ricerca indicata."
     start_idx = pagina * max_risultati + 1
     end_idx = start_idx + len(docs) - 1
-    lines = [f"**Trovate {num_found} decisioni** per: _{query}_ (mostro {start_idx}-{end_idx})\n"]
+    ord_label = "per rilevanza" if ordinamento == "rilevanza" else "per data"
+    lines = [f"**Trovate {num_found} decisioni** per: _{query}_ (mostro {start_idx}-{end_idx}, {ord_label})\n"]
     for doc in docs:
         doc_id = doc.get("id", "")
         hl = highlighting.get(doc_id)
@@ -82,13 +89,25 @@ async def _cerca_giurisprudenza_impl(
 async def _giurisprudenza_su_norma_impl(
     riferimento: str,
     archivio: str = "tutti",
-    max_risultati: int = 10,
+    solo_sezioni_unite: bool = False,
+    anno_da: int = 0,
+    anno_a: int = 0,
+    max_risultati: int = 5,
     pagina: int = 0,
 ) -> str:
     max_risultati = min(max_risultati, 50)
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
     norma_q = build_norma_variants(riferimento)
+    fq_parts: list[str] = []
+    if solo_sezioni_unite:
+        fq_parts.append("szdec:(SU OR U)")
+    if anno_da and anno_a:
+        fq_parts.append(f"anno:[{anno_da} TO {anno_a}]")
+    elif anno_da:
+        fq_parts.append(f"anno:[{anno_da} TO *]")
+    elif anno_a:
+        fq_parts.append(f"anno:[* TO {anno_a}]")
     params: dict = {
         "q": f"({kind_clause}) AND {norma_q}",
         "sort": "score desc",
@@ -100,6 +119,8 @@ async def _giurisprudenza_su_norma_impl(
         "hl.fragsize": "400",
         "hl.snippets": "2",
     }
+    if fq_parts:
+        params["fq"] = fq_parts
     try:
         data = await solr_query(params)
     except Exception as exc:
@@ -125,7 +146,8 @@ async def _ultime_pronunce_impl(
     sezione: str = "",
     archivio: str = "tutti",
     tipo_provvedimento: str = "",
-    max_risultati: int = 10,
+    solo_sezioni_unite: bool = False,
+    max_risultati: int = 5,
 ) -> str:
     max_risultati = min(max_risultati, 50)
     kinds = get_kind_filter(archivio)
@@ -141,6 +163,8 @@ async def _ultime_pronunce_impl(
         fq_parts.append(f"materia:{materia}")
     if sezione:
         fq_parts.append(f"szdec:{sezione}")
+    if solo_sezioni_unite:
+        fq_parts.append("szdec:(SU OR U)")
     if tipo_provvedimento and tipo_provvedimento in TIPO_PROV:
         fq_parts.append(f"tipoprov:{TIPO_PROV[tipo_provvedimento]}")
     if fq_parts:
@@ -195,7 +219,10 @@ async def cerca_giurisprudenza(
     sezione: str = "",
     anno_da: int = 0,
     anno_a: int = 0,
-    max_risultati: int = 10,
+    tipo_provvedimento: str = "",
+    solo_sezioni_unite: bool = False,
+    ordinamento: str = "rilevanza",
+    max_risultati: int = 5,
     pagina: int = 0,
 ) -> str:
     """Ricerca full-text nelle sentenze della Cassazione su Italgiure (fonte ufficiale).
@@ -213,12 +240,17 @@ async def cerca_giurisprudenza(
         sezione: Filtro sezione (1-6, L=lavoro, T=tributaria, SU=sezioni unite)
         anno_da: Anno di inizio (incluso)
         anno_a: Anno di fine (incluso)
-        max_risultati: Numero massimo di risultati per pagina (default 10, max 50)
+        tipo_provvedimento: "sentenza", "ordinanza", o "decreto" (default: tutti)
+        solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
+        ordinamento: "rilevanza" (score desc, default) o "data" (più recenti prima)
+        max_risultati: Numero massimo di risultati per pagina (default 5, max 50)
         pagina: Pagina dei risultati, 0-indexed (default 0 = prima pagina)
     """
     return await _cerca_giurisprudenza_impl(
         query, archivio=archivio, materia=materia, sezione=sezione,
-        anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati, pagina=pagina,
+        anno_da=anno_da, anno_a=anno_a, tipo_provvedimento=tipo_provvedimento,
+        solo_sezioni_unite=solo_sezioni_unite, ordinamento=ordinamento,
+        max_risultati=max_risultati, pagina=pagina,
     )
 
 
@@ -226,7 +258,10 @@ async def cerca_giurisprudenza(
 async def giurisprudenza_su_norma(
     riferimento: str,
     archivio: str = "tutti",
-    max_risultati: int = 10,
+    solo_sezioni_unite: bool = False,
+    anno_da: int = 0,
+    anno_a: int = 0,
+    max_risultati: int = 5,
     pagina: int = 0,
 ) -> str:
     """Trova sentenze della Cassazione che citano uno specifico articolo di legge.
@@ -239,11 +274,15 @@ async def giurisprudenza_su_norma(
     Args:
         riferimento: Riferimento normativo (es. "art. 2043 c.c.", "art. 13 GDPR", "art. 6 D.Lgs. 231/2001")
         archivio: "civile", "penale", o "tutti" (default)
-        max_risultati: Numero massimo di risultati per pagina (default 10)
+        solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
+        anno_da: Anno di inizio (incluso, es. 2020)
+        anno_a: Anno di fine (incluso, es. 2025)
+        max_risultati: Numero massimo di risultati per pagina (default 5)
         pagina: Pagina dei risultati, 0-indexed (default 0 = prima pagina)
     """
     return await _giurisprudenza_su_norma_impl(
-        riferimento, archivio=archivio, max_risultati=max_risultati, pagina=pagina,
+        riferimento, archivio=archivio, solo_sezioni_unite=solo_sezioni_unite,
+        anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati, pagina=pagina,
     )
 
 
@@ -253,7 +292,8 @@ async def ultime_pronunce(
     sezione: str = "",
     archivio: str = "tutti",
     tipo_provvedimento: str = "",
-    max_risultati: int = 10,
+    solo_sezioni_unite: bool = False,
+    max_risultati: int = 5,
 ) -> str:
     """Ultime pronunce depositate dalla Cassazione, con filtri opzionali.
 
@@ -265,9 +305,11 @@ async def ultime_pronunce(
         sezione: Filtro sezione (1-6, L=lavoro, T=tributaria, SU=sezioni unite)
         archivio: "civile", "penale", o "tutti" (default)
         tipo_provvedimento: "sentenza", "ordinanza", o "decreto"
-        max_risultati: Numero massimo di risultati (default 10)
+        solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
+        max_risultati: Numero massimo di risultati (default 5)
     """
     return await _ultime_pronunce_impl(
         materia=materia, sezione=sezione, archivio=archivio,
-        tipo_provvedimento=tipo_provvedimento, max_risultati=max_risultati,
+        tipo_provvedimento=tipo_provvedimento, solo_sezioni_unite=solo_sezioni_unite,
+        max_risultati=max_risultati,
     )

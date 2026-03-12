@@ -1,75 +1,72 @@
 ---
 name: compliance-privacy
-description: Assessment completo compliance GDPR con analisi base giuridica, DPIA, registro trattamenti, informativa e DPA.
-  Usa quando l'utente chiede un assessment privacy, deve adeguarsi al GDPR o vuole generare documentazione privacy.
-argument-hint: "[titolare] [tipo trattamento] [contesto: B2C|B2B|dipendenti|PA|sanità|profilazione]"
+description: Assessment completo di compliance GDPR con analisi base giuridica, verifica DPIA, registro trattamenti, informativa privacy e DPA. Usa quando l'utente chiede compliance privacy, adeguamento GDPR, informativa privacy, registro trattamenti, DPIA, valutazione impatto, data breach o contratto con responsabile del trattamento.
 ---
 
-# Workflow Compliance Privacy
+# Compliance Privacy GDPR
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Assessment completo: base giuridica, DPIA, registro, informativa, DPA.
 
-## Step 1 — Raccolta dati
-Identifica dall'input dell'utente:
-- **Titolare del trattamento** (denominazione)
-- **Tipo di trattamento** (raccolta dati clienti, marketing, videosorveglianza, etc.)
-- **Contesto** (B2C, B2B, dipendenti, pubblica amministrazione, sanità, profilazione)
+## Workflow
 
-Se mancano dati essenziali, chiedi all'utente.
+### 1. Analisi base giuridica
 
-## Step 2 — Analisi base giuridica
-Chiama `analisi_base_giuridica(tipo_trattamento, contesto, finalita)`.
-Identifica la base giuridica appropriata ex art. 6 GDPR.
-Se il trattamento coinvolge dati particolari (art. 9), attiva il flag `dati_particolari=true`.
+Chiama `legal-it:analisi_base_giuridica` con tipo_trattamento e contesto.
+Identifica la base ex art. 6 GDPR. Se dati particolari (art. 9), attiva flag.
 
-## Step 3 — Verifica necessità DPIA
-Chiama `verifica_necessita_dpia` con i criteri applicabili.
+### 2. Verifica necessita DPIA
+
+Chiama `legal-it:verifica_necessita_dpia` con i criteri applicabili.
 Valuta: profilazione, dati sensibili, monitoraggio sistematico, larga scala, soggetti vulnerabili, nuove tecnologie, scoring, incrocio dataset.
 
-Se DPIA necessaria: chiama `genera_dpia` con i rischi identificati e le misure di mitigazione.
+Se >= 2 criteri soddisfatti (WP248): DPIA obbligatoria.
 
-## Step 4 — Registro trattamenti
-Chiama `genera_registro_trattamenti` per creare la scheda del trattamento ai sensi dell'art. 30.
-Usa la base giuridica identificata al passo 2.
+### 2b. DPIA (se necessaria)
 
-## Step 5 — Informativa privacy
-Chiama `genera_informativa_privacy` per generare l'informativa ai sensi dell'art. 13 GDPR.
-Includi tutte le finalità, basi giuridiche, categorie di dati e destinatari.
+Chiama `legal-it:genera_dpia` con rischi e misure di mitigazione.
 
-## Step 6 — DPA (se presenti responsabili del trattamento)
-Se il trattamento coinvolge responsabili esterni (fornitori IT, cloud, commercialista, ecc.), chiama `genera_dpa` per generare il contratto ex art. 28 GDPR.
+### 3. Registro trattamenti
 
-## Step 7 — Riepilogo
+Chiama `legal-it:genera_registro_trattamenti` per scheda art. 30 GDPR.
 
-### Base Giuridica
-| Elemento | Dettaglio |
-|----------|----------|
-| Base consigliata | ... |
-| Articolo | ... |
-| Motivazione | ... |
+### 4. Informativa privacy
 
-### DPIA
-| Criterio | Soddisfatto | Descrizione |
-|----------|-------------|-------------|
-| ... | Sì/No | ... |
-| **DPIA necessaria** | **Sì/No** | ... |
+Chiama `legal-it:genera_informativa_privacy` per informativa art. 13 GDPR.
 
-### Documentazione Generata
-1. Registro trattamenti (art. 30)
-2. Informativa privacy (art. 13)
-3. DPIA (art. 35) — se necessaria
-4. DPA (art. 28) — se applicabile
+Varianti disponibili:
+- `legal-it:genera_informativa_cookie` (cookie policy)
+- `legal-it:genera_informativa_dipendenti` (dipendenti)
+- `legal-it:genera_informativa_videosorveglianza` (videosorveglianza)
 
-### Checklist Compliance
+### 5. DPA (se responsabili esterni)
+
+Chiama `legal-it:genera_dpa` per contratto art. 28 GDPR.
+
+## Output atteso
+
+### Checklist compliance
 - [ ] Base giuridica identificata e documentata
 - [ ] DPIA eseguita (se necessaria)
 - [ ] Registro trattamenti aggiornato
-- [ ] Informativa privacy redatta e pubblicata
-- [ ] DPA stipulati con tutti i responsabili
-- [ ] Misure di sicurezza adeguate (art. 32 GDPR)
-- [ ] Procedura data breach predisposta (artt. 33-34 GDPR)
+- [ ] Informativa privacy redatta
+- [ ] DPA stipulati con responsabili
+- [ ] Misure di sicurezza (art. 32)
+- [ ] Procedura data breach (artt. 33-34)
 
-### Avvertenze
-- Il presente assessment è uno strumento di supporto e non sostituisce la consulenza legale specializzata.
-- Verificare sempre la normativa nazionale integrativa (D.Lgs. 196/2003 come modificato dal D.Lgs. 101/2018).
-- Per trattamenti su larga scala o ad alto rischio, consultare il DPO.
+## Tool aggiuntivi per incident
+
+- `legal-it:valutazione_data_breach` — valutazione rischio e obblighi notifica
+- `legal-it:genera_notifica_data_breach` — modulo notifica Garante (72h)
+- `legal-it:calcolo_sanzione_gdpr` — stima range sanzioni art. 83
+
+## Tool utilizzati
+
+- `legal-it:analisi_base_giuridica`
+- `legal-it:verifica_necessita_dpia`
+- `legal-it:genera_dpia`
+- `legal-it:genera_registro_trattamenti`
+- `legal-it:genera_informativa_privacy` (+ varianti cookie, dipendenti, videosorveglianza)
+- `legal-it:genera_dpa`
+- `legal-it:valutazione_data_breach`
+- `legal-it:genera_notifica_data_breach`
+- `legal-it:calcolo_sanzione_gdpr`
