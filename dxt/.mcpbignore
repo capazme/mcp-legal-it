@@ -1,0 +1,37 @@
+# Development
+.venv/
+venv/
+.git/
+.github/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+build/
+dist/
+*.egg
+
+# Plugin (separate distribution)
+plugin/
+dxt/
+
+# Tests (not needed in extension)
+tests/
+
+# Config
+.env
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+
+# Docker (separate distribution)
+Dockerfile
+docker-compose.yml

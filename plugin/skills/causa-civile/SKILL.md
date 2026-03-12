@@ -1,65 +1,44 @@
 ---
 name: causa-civile
-description: Pianificazione causa civile con contributo unificato, scadenze, impugnazioni e preventivo.
-  Usa quando l'utente deve avviare una causa o vuole stimare costi e tempi di un giudizio civile.
-argument-hint: "[valore causa] [rito: ordinario|sommario|lavoro] [grado: primo|appello|cassazione]"
+description: Pianifica una causa civile con calcolo contributo unificato, scadenze processuali post-Cartabia, termini impugnazione e preventivo costi. Usa quando l'utente chiede di avviare una causa, calcolare costi giudiziali, verificare termini processuali o preparare un preventivo per il cliente.
 ---
 
-# Workflow Causa Civile
+# Causa Civile
 
-Segui questi step nell'ordine. Usa i tool MCP di Legal IT.
+Pianificazione completa: costi, scadenze, preventivo.
 
-## Step 1 — Raccolta dati
-Identifica dall'input dell'utente:
-- **Valore della causa** (in euro)
-- **Rito**: ordinario, sommario (semplificato), lavoro
-- **Grado**: primo grado, appello, cassazione
+## Workflow
 
-Se mancano dati essenziali, chiedi all'utente.
+### 1. Contributo unificato
 
-## Step 2 — Contributo unificato
-Chiama `contributo_unificato(valore, rito, grado)`.
-Verifica eventuali esenzioni:
-- Cause di lavoro sotto soglia
-- Procedimenti di volontaria giurisdizione
-- Controversie previdenziali
+Chiama `legal-it:contributo_unificato` con valore, rito e grado.
 
-## Step 3 — Scadenze processuali
-Chiama `scadenza_processuale` per calcolare i termini chiave in base al rito:
-- **Ordinario**: comparsa di risposta (70gg), memorie art. 171-ter c.p.c.
-- **Sommario/Semplificato**: costituzione resistente, eventuale mutamento rito
-- **Lavoro**: ricorso, memoria difensiva, note autorizzate
+### 2. Scadenze processuali
 
-Indica la sospensione feriale (1-31 agosto) se applicabile.
+Chiama `legal-it:scadenza_processuale` per i termini in base al rito:
+- **Ordinario**: comparsa risposta (70gg), memorie art. 171-ter c.p.c.
+- **Sommario**: costituzione resistente, mutamento rito
+- **Lavoro**: ricorso, memoria difensiva
 
-## Step 4 — Scadenze impugnazioni
-Chiama `scadenze_impugnazioni` per i termini del grado attuale:
-- Primo grado → appello: 30gg (breve) / 6 mesi (lungo)
-- Appello → cassazione: 60gg (breve) / 6 mesi (lungo)
-- Revocazione, opposizione di terzo se pertinenti
+Sospensione feriale: 1-31 agosto.
 
-## Step 5 — Preventivo costi
-Chiama `preventivo_civile(valore, rito, grado)`.
-Mostra il range di compenso per ogni fase processuale.
+### 3. Impugnazioni
 
-## Step 6 — Tabella riepilogativa
+Chiama `legal-it:scadenze_impugnazioni`:
+- Primo -> appello: 30gg (breve) / 6 mesi (lungo)
+- Appello -> cassazione: 60gg (breve) / 6 mesi (lungo)
 
-### Quadro Economico
-| Voce | Importo |
-|------|---------|
-| Contributo unificato | € ... |
-| Marca da bollo | € 27,00 |
-| Compenso avvocato (range min-max) | € ... — € ... |
-| Spese generali (15%) | € ... |
-| CPA (4%) + IVA (22%) | € ... |
-| **Budget stimato (medio)** | **€ ...** |
+### 4. Preventivo
 
-### Scadenze Chiave
-| Termine | Scadenza | Norma |
-|---------|----------|-------|
-| ... | ... | ... |
+Chiama `legal-it:preventivo_civile` con range compenso per fase.
 
-### Note
-- Indicare i rischi di soccombenza e regime spese (art. 91 c.p.c.)
-- Valutare la mediazione obbligatoria se applicabile (D.Lgs. 28/2010)
-- Segnalare se il rito è soggetto a negoziazione assistita (D.L. 132/2014)
+## Note
+- Mediazione obbligatoria (D.Lgs. 28/2010)
+- Negoziazione assistita (D.L. 132/2014)
+
+## Tool utilizzati
+
+- `legal-it:contributo_unificato`
+- `legal-it:scadenza_processuale`
+- `legal-it:scadenze_impugnazioni`
+- `legal-it:preventivo_civile`

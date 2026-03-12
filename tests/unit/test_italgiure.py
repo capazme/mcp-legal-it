@@ -71,8 +71,6 @@ def _penale_doc(num: str = "1234", anno: str = "2024", sez: str = "1") -> dict:
 
 def _mock_httpx_client(homepage_resp: dict | None = None, solr_resp: dict | None = None):
     """Return a context manager mock for httpx.AsyncClient."""
-    call_count = 0
-
     async def mock_get(url, **kwargs):
         resp = AsyncMock()
         resp.raise_for_status = MagicMock()
@@ -91,6 +89,30 @@ def _mock_httpx_client(homepage_resp: dict | None = None, solr_resp: dict | None
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=False)
     return mock_client
+
+
+def _capturing_mock_client(solr_resp: dict | None = None) -> tuple[AsyncMock, dict]:
+    """Return (mock_client, captured) where captured['body'] has the POST body."""
+    captured: dict = {}
+
+    async def mock_get(url, **kwargs):
+        resp = AsyncMock()
+        resp.raise_for_status = MagicMock()
+        return resp
+
+    async def mock_post(url, content=None, **kwargs):
+        captured["body"] = content or ""
+        resp = AsyncMock()
+        resp.raise_for_status = MagicMock()
+        resp.json = MagicMock(return_value=solr_resp or _make_solr_response([]))
+        return resp
+
+    mock_client = AsyncMock()
+    mock_client.get = mock_get
+    mock_client.post = mock_post
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    return mock_client, captured
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +176,7 @@ class TestFormatDate:
 
 
 # ---------------------------------------------------------------------------
-# build_search_params
+# build_search_params — core
 # ---------------------------------------------------------------------------
 
 class TestBuildSearchParams:
@@ -163,11 +185,16 @@ class TestBuildSearchParams:
         assert p["q"] == "danno biologico"
         assert p["defType"] == "edismax"
         assert "ocrdis^5" in p["qf"]
-        # kind filter is in fq list
         fq_str = " ".join(p["fq"]) if isinstance(p["fq"], list) else p["fq"]
         assert 'kind:"snciv"' in fq_str or 'kind:"snpen"' in fq_str
-        assert p["sort"] == "pd desc"
-        assert p["rows"] == 10
+
+    def test_default_sort_is_rilevanza(self):
+        p = build_search_params("test")
+        assert p["sort"] == "score desc"
+
+    def test_default_rows_is_5(self):
+        p = build_search_params("test")
+        assert p["rows"] == 5
 
     def test_archivio_civile(self):
         p = build_search_params("test", archivio="civile")
@@ -223,6 +250,157 @@ class TestBuildSearchParams:
     def test_fl_includes_kind(self):
         p = build_search_params("test")
         assert "kind" in p["fl"]
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — NEW: minimum match
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsMM:
+    def test_mm_is_set(self):
+        p = build_search_params("danno biologico responsabilita medica")
+        assert "mm" in p
+        assert p["mm"] == "2<75% 5<60%"
+
+    def test_mm_present_for_single_term(self):
+        p = build_search_params("danno")
+        assert "mm" in p
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — NEW: phrase boosting
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsPhraseBoosting:
+    def test_pf_includes_ocr(self):
+        p = build_search_params("danno biologico")
+        assert "ocr^3" in p["pf"]
+        assert "ocrdis^10" in p["pf"]
+
+    def test_pf2_present(self):
+        p = build_search_params("danno biologico")
+        assert "pf2" in p
+        assert "ocrdis^6" in p["pf2"]
+        assert "ocr^2" in p["pf2"]
+
+    def test_pf3_present(self):
+        p = build_search_params("danno biologico grave")
+        assert "pf3" in p
+        assert "ocrdis^4" in p["pf3"]
+        assert "ocr^1" in p["pf3"]
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — NEW: ordinamento
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsOrdinamento:
+    def test_rilevanza_default(self):
+        p = build_search_params("test")
+        assert p["sort"] == "score desc"
+
+    def test_rilevanza_explicit(self):
+        p = build_search_params("test", ordinamento="rilevanza")
+        assert p["sort"] == "score desc"
+
+    def test_data(self):
+        p = build_search_params("test", ordinamento="data")
+        assert p["sort"] == "pd desc"
+
+    def test_unknown_ordinamento_falls_to_data(self):
+        p = build_search_params("test", ordinamento="unknown")
+        assert p["sort"] == "pd desc"
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — NEW: tipo_provvedimento
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsTipoProv:
+    def test_sentenza(self):
+        p = build_search_params("test", tipo_provvedimento="sentenza")
+        fq = p.get("fq", [])
+        assert any("tipoprov:S" in f for f in fq)
+
+    def test_ordinanza(self):
+        p = build_search_params("test", tipo_provvedimento="ordinanza")
+        fq = p.get("fq", [])
+        assert any("tipoprov:O" in f for f in fq)
+
+    def test_decreto(self):
+        p = build_search_params("test", tipo_provvedimento="decreto")
+        fq = p.get("fq", [])
+        assert any("tipoprov:D" in f for f in fq)
+
+    def test_invalid_tipo_not_added(self):
+        p = build_search_params("test", tipo_provvedimento="invalid")
+        fq = p.get("fq", [])
+        assert not any("tipoprov" in f for f in fq)
+
+    def test_no_tipo_default(self):
+        p = build_search_params("test")
+        fq = p.get("fq", [])
+        assert not any("tipoprov" in f for f in fq)
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — NEW: solo_sezioni_unite
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsSezioniUnite:
+    def test_solo_sezioni_unite_true(self):
+        p = build_search_params("test", solo_sezioni_unite=True)
+        fq = p.get("fq", [])
+        assert any("szdec:(SU OR U)" in f for f in fq)
+
+    def test_solo_sezioni_unite_false(self):
+        p = build_search_params("test", solo_sezioni_unite=False)
+        fq = p.get("fq", [])
+        assert not any("SU OR U" in f for f in fq)
+
+    def test_sezioni_unite_with_sezione_both_present(self):
+        """solo_sezioni_unite + sezione are independent filters."""
+        p = build_search_params("test", sezione="3", solo_sezioni_unite=True)
+        fq = p.get("fq", [])
+        assert any("szdec:3" in f for f in fq)
+        assert any("szdec:(SU OR U)" in f for f in fq)
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — NEW: combined filters
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsCombined:
+    def test_all_filters(self):
+        p = build_search_params(
+            "test",
+            archivio="civile",
+            materia="contratti",
+            sezione="3",
+            anno_da=2020,
+            anno_a=2025,
+            tipo_provvedimento="sentenza",
+            solo_sezioni_unite=True,
+            ordinamento="rilevanza",
+            rows=3,
+        )
+        fq = p.get("fq", [])
+        fq_joined = " ".join(fq)
+        assert 'kind:"snciv"' in fq_joined
+        assert "materia:contratti" in fq_joined
+        assert "szdec:3" in fq_joined
+        assert "szdec:(SU OR U)" in fq_joined
+        assert "tipoprov:S" in fq_joined
+        assert "anno:[2020 TO 2025]" in fq_joined
+        assert p["sort"] == "score desc"
+        assert p["rows"] == 3
+        assert p["mm"] == "2<75% 5<60%"
+
+    def test_minimal_call(self):
+        p = build_search_params("test")
+        assert p["q"] == "test"
+        assert p["defType"] == "edismax"
+        assert len(p["fq"]) == 1  # only kind filter
 
 
 # ---------------------------------------------------------------------------
@@ -535,30 +713,148 @@ class TestCercaGiurisprudenzaImpl:
 
     @pytest.mark.asyncio
     async def test_max_risultati_capped(self):
-        captured = {}
-
-        async def mock_get(url, **kwargs):
-            resp = AsyncMock()
-            resp.raise_for_status = MagicMock()
-            return resp
-
-        async def mock_post(url, content=None, **kwargs):
-            captured["body"] = content
-            resp = AsyncMock()
-            resp.raise_for_status = MagicMock()
-            resp.json = MagicMock(return_value=_make_solr_response([]))
-            return resp
-
-        mock_client = AsyncMock()
-        mock_client.get = mock_get
-        mock_client.post = mock_post
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client, captured = _capturing_mock_client()
 
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test", max_risultati=999)
 
         assert "rows=50" in captured.get("body", ""), "max_risultati should be capped at 50"
+
+    @pytest.mark.asyncio
+    async def test_default_ordinamento_rilevanza(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("danno biologico")
+
+        body = captured.get("body", "")
+        assert "sort=score+desc" in body or "sort=score%20desc" in body or "sort=score desc" in body.replace("+", " ")
+
+    @pytest.mark.asyncio
+    async def test_ordinamento_data(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("danno biologico", ordinamento="data")
+
+        body = captured.get("body", "")
+        assert "pd" in body
+
+    @pytest.mark.asyncio
+    async def test_output_shows_ordinamento_label(self):
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=100)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test", ordinamento="rilevanza")
+        assert "per rilevanza" in result
+
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test", ordinamento="data")
+        assert "per data" in result
+
+    @pytest.mark.asyncio
+    async def test_tipo_provvedimento_sentenza(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("test", tipo_provvedimento="sentenza")
+
+        body = captured.get("body", "")
+        assert "tipoprov" in body
+
+    def test_tipo_provvedimento_invalid_not_in_params(self):
+        """Invalid tipo_provvedimento should not produce a tipoprov fq filter."""
+        p = build_search_params("test", tipo_provvedimento="invalid")
+        fq = p.get("fq", [])
+        assert not any("tipoprov" in f for f in fq)
+
+    @pytest.mark.asyncio
+    async def test_solo_sezioni_unite(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("test", solo_sezioni_unite=True)
+
+        body = captured.get("body", "")
+        assert "SU" in body
+
+    @pytest.mark.asyncio
+    async def test_solo_sezioni_unite_false_no_filter(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("test", solo_sezioni_unite=False)
+
+        body = captured.get("body", "")
+        # SU appears in kind filter but not as szdec filter
+        assert "szdec" not in body or "SU+OR+U" not in body
+
+    @pytest.mark.asyncio
+    async def test_mm_present_in_body(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("danno biologico responsabilita")
+
+        body = captured.get("body", "")
+        assert "mm=" in body
+
+    @pytest.mark.asyncio
+    async def test_pf2_present_in_body(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("danno biologico")
+
+        body = captured.get("body", "")
+        assert "pf2=" in body
+
+    @pytest.mark.asyncio
+    async def test_default_max_risultati_is_5(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("test")
+
+        body = captured.get("body", "")
+        assert "rows=5" in body
+
+    @pytest.mark.asyncio
+    async def test_pagination(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("test", max_risultati=5, pagina=2)
+
+        body = captured.get("body", "")
+        assert "start=10" in body
+
+    @pytest.mark.asyncio
+    async def test_combined_filters(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl(
+                "test",
+                archivio="civile",
+                materia="contratti",
+                sezione="3",
+                anno_da=2020,
+                anno_a=2025,
+                tipo_provvedimento="sentenza",
+                solo_sezioni_unite=True,
+                ordinamento="rilevanza",
+                max_risultati=3,
+            )
+
+        body = captured.get("body", "")
+        assert "snciv" in body
+        assert "contratti" in body
+        assert "tipoprov" in body
+        assert "rows=3" in body
 
 
 # ---------------------------------------------------------------------------
@@ -568,25 +864,7 @@ class TestCercaGiurisprudenzaImpl:
 class TestGiurisprudenzaSuNormaImpl:
     @pytest.mark.asyncio
     async def test_builds_norma_variants(self):
-        captured = {}
-
-        async def mock_get(url, **kwargs):
-            resp = AsyncMock()
-            resp.raise_for_status = MagicMock()
-            return resp
-
-        async def mock_post(url, content=None, **kwargs):
-            captured["body"] = content or ""
-            resp = AsyncMock()
-            resp.raise_for_status = MagicMock()
-            resp.json = MagicMock(return_value=_make_solr_response([]))
-            return resp
-
-        mock_client = AsyncMock()
-        mock_client.get = mock_get
-        mock_client.post = mock_post
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client, captured = _capturing_mock_client()
 
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
@@ -602,6 +880,96 @@ class TestGiurisprudenzaSuNormaImpl:
             result = await _giurisprudenza_su_norma_impl("art. 9999 c.c.")
 
         assert "Nessuna" in result
+
+    @pytest.mark.asyncio
+    async def test_solo_sezioni_unite(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _giurisprudenza_su_norma_impl("art. 2043 c.c.", solo_sezioni_unite=True)
+
+        body = captured.get("body", "")
+        assert "SU" in body
+
+    @pytest.mark.asyncio
+    async def test_anno_range(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _giurisprudenza_su_norma_impl("art. 2043 c.c.", anno_da=2020, anno_a=2025)
+
+        body = captured.get("body", "")
+        assert "2020" in body
+        assert "2025" in body
+
+    @pytest.mark.asyncio
+    async def test_anno_da_only(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _giurisprudenza_su_norma_impl("art. 2043 c.c.", anno_da=2022)
+
+        body = captured.get("body", "")
+        assert "2022" in body
+
+    @pytest.mark.asyncio
+    async def test_anno_a_only(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _giurisprudenza_su_norma_impl("art. 2043 c.c.", anno_a=2023)
+
+        body = captured.get("body", "")
+        assert "2023" in body
+
+    @pytest.mark.asyncio
+    async def test_default_rows_5(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
+
+        body = captured.get("body", "")
+        assert "rows=5" in body
+
+    @pytest.mark.asyncio
+    async def test_returns_formatted_results(self):
+        doc = _civile_doc()
+        hl = {doc["id"]: {"ocr": ["art. 2043 codice civile"]}}
+        solr_resp = _make_solr_response([doc], num_found=50, highlighting=hl)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
+
+        assert "Trovate 50 decisioni" in result
+        assert "Cass. civ." in result
+
+    @pytest.mark.asyncio
+    async def test_no_fq_when_no_filters(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
+
+        body = captured.get("body", "")
+        # fq should not be present when no filters
+        assert "fq=" not in body
+
+    @pytest.mark.asyncio
+    async def test_error_handling(self):
+        async def raise_error(*args, **kwargs):
+            raise Exception("timeout")
+
+        mock_client = AsyncMock()
+        mock_client.get = raise_error
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
+
+        assert "Errore" in result
 
 
 # ---------------------------------------------------------------------------
@@ -631,25 +999,7 @@ class TestUltimePronunceImpl:
 
     @pytest.mark.asyncio
     async def test_fq_with_materia(self):
-        captured = {}
-
-        async def mock_get(url, **kwargs):
-            resp = AsyncMock()
-            resp.raise_for_status = MagicMock()
-            return resp
-
-        async def mock_post(url, content=None, **kwargs):
-            captured["body"] = content or ""
-            resp = AsyncMock()
-            resp.raise_for_status = MagicMock()
-            resp.json = MagicMock(return_value=_make_solr_response([]))
-            return resp
-
-        mock_client = AsyncMock()
-        mock_client.get = mock_get
-        mock_client.post = mock_post
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client, captured = _capturing_mock_client()
 
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _ultime_pronunce_impl(materia="contratti")
@@ -657,3 +1007,62 @@ class TestUltimePronunceImpl:
         body = captured.get("body", "")
         assert "materia" in body
         assert "contratti" in body
+
+    @pytest.mark.asyncio
+    async def test_solo_sezioni_unite(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _ultime_pronunce_impl(solo_sezioni_unite=True)
+
+        body = captured.get("body", "")
+        assert "SU" in body
+
+    @pytest.mark.asyncio
+    async def test_solo_sezioni_unite_false(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _ultime_pronunce_impl(solo_sezioni_unite=False)
+
+        body = captured.get("body", "")
+        # No fq at all when no filters
+        assert "fq=" not in body
+
+    @pytest.mark.asyncio
+    async def test_default_rows_5(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _ultime_pronunce_impl()
+
+        body = captured.get("body", "")
+        assert "rows=5" in body
+
+    @pytest.mark.asyncio
+    async def test_tipo_provvedimento(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _ultime_pronunce_impl(tipo_provvedimento="sentenza")
+
+        body = captured.get("body", "")
+        assert "tipoprov" in body
+
+    @pytest.mark.asyncio
+    async def test_combined_filters(self):
+        mock_client, captured = _capturing_mock_client()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _ultime_pronunce_impl(
+                materia="contratti",
+                sezione="3",
+                archivio="civile",
+                tipo_provvedimento="ordinanza",
+                solo_sezioni_unite=True,
+                max_risultati=3,
+            )
+
+        body = captured.get("body", "")
+        assert "contratti" in body
+        assert "rows=3" in body

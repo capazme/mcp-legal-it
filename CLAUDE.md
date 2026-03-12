@@ -1,7 +1,8 @@
 # mcp-legal-it — Project Context
 
-> MCP server con 140+ tool di calcolo legale italiano, consultazione normativa
-> (Normattiva, EUR-Lex, Brocardi) e ricerca giurisprudenziale (Italgiure/Cassazione).
+> MCP server con 160+ tool di calcolo legale italiano, consultazione normativa
+> (Normattiva, EUR-Lex, Brocardi), ricerca giurisprudenziale (Italgiure/Cassazione)
+> e delibere CONSOB.
 
 ## Confini del progetto — LEGGERE PRIMA
 
@@ -32,8 +33,8 @@ Se un agente non vede `leggi_sentenza`, è perché sta guardando il server sbagl
 mcp-legal-it/
 ├── src/
 │   ├── server.py              # FastMCP entry point — registra tutti i tool
-│   ├── prompts.py             # 12 workflow guidati (@mcp.prompt)
-│   ├── resources.py           # 8 risorse statiche (@mcp.resource)
+│   ├── prompts.py             # 16 workflow guidati (@mcp.prompt)
+│   ├── resources.py           # 10 risorse statiche (@mcp.resource)
 │   ├── lib/
 │   │   ├── visualex/          # Normattiva + EUR-Lex scraper
 │   │   │   ├── scraper.py     # fetch_article(), fetch_annotations(), fetch_normattiva_full_text()
@@ -41,8 +42,10 @@ mcp-legal-it/
 │   │   │   └── models.py      # Norma, NormaVisitata dataclasses
 │   │   ├── brocardi/          # Scraper Brocardi standalone
 │   │   │   └── client.py      # fetch_brocardi(), BrocardiResult, Massima, parse_massime_references()
-│   │   └── italgiure/         # Client Italgiure (Cassazione Solr API)
-│   │       └── client.py      # solr_query(), build_*_params(), format_*()
+│   │   ├── italgiure/         # Client Italgiure (Cassazione Solr API)
+│   │   │   └── client.py      # solr_query(), build_*_params(), format_*()
+│   │   └── consob/            # Client CONSOB (Liferay Portal scraper)
+│   │       └── client.py      # search_delibere(), fetch_delibera(), format_*()
 │   └── tools/
 │       ├── legal_citations.py # cite_law, fetch_law_article, fetch_law_annotations, cerca_brocardi, download_law_pdf
 │       ├── italgiure.py       # leggi_sentenza, cerca_giurisprudenza, giurisprudenza_su_norma, ultime_pronunce
@@ -58,18 +61,20 @@ mcp-legal-it/
 │       ├── investimenti.py
 │       ├── dichiarazione_redditi.py
 │       ├── varie.py
+│       ├── consob.py          # cerca_delibere_consob, leggi_delibera_consob, ultime_delibere_consob
 │       └── privacy_gdpr.py
 └── tests/
     ├── unit/
     │   ├── test_calculations.py     # Test calcoli numerici
     │   ├── test_legal_citations.py  # Test cite_law, resolve_act, PDF helpers
     │   ├── test_brocardi.py         # Test scraper Brocardi e tool cerca_brocardi
+    │   ├── test_consob.py          # Test scraper CONSOB e 3 tool delibere
     │   └── test_privacy_gdpr.py   # Test 12 tool GDPR/Privacy compliance
     └── comparison/                  # Test di confronto con valori attesi
         └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
 ```
 
-## Tool disponibili (15 categorie, 161 tool)
+## Tool disponibili (16 categorie, 164 tool)
 
 ### Consultazione Normativa
 | Tool | Descrizione |
@@ -87,6 +92,13 @@ mcp-legal-it/
 | `cerca_giurisprudenza(query, archivio?, materia?, ...)` | Ricerca full-text nelle sentenze |
 | `giurisprudenza_su_norma(riferimento, archivio?)` | Sentenze che citano un articolo specifico |
 | `ultime_pronunce(materia?, sezione?, archivio?)` | Ultime decisioni depositate |
+
+### CONSOB (Bollettino delibere)
+| Tool | Descrizione |
+|------|-------------|
+| `cerca_delibere_consob(query, tipologia?, argomento?, data_da?, data_a?)` | Ricerca delibere/provvedimenti nel bollettino CONSOB |
+| `leggi_delibera_consob(numero)` | **Testo completo** della delibera. Usare quando si ha già il numero. |
+| `ultime_delibere_consob(tipologia?, argomento?)` | Ultime delibere pubblicate dalla CONSOB |
 
 ### Calcoli (tool numerici, non richiedono cite_law)
 1. Rivalutazione monetaria (11 tool) — ISTAT, TFR, canoni
@@ -119,7 +131,7 @@ mcp-legal-it/
 | `calcolo_sanzione_gdpr(tipo_violazione, ...)` | Stima range sanzioni con analisi criteri art. 83(2) |
 | `genera_notifica_data_breach(titolare, ...)` | Modulo notifica al Garante con scadenza 72h |
 
-## Prompt guidati (13)
+## Prompt guidati (16)
 
 - `analisi_sinistro` — danno biologico + rivalutazione + interessi
 - `recupero_credito` — interessi mora + decreto ingiuntivo + parcella
@@ -129,14 +141,16 @@ mcp-legal-it/
 - `quantificazione_danni` — personalizzazione + attualizzazione
 - `calcolo_parcella` — D.M. 55/2014 per attività civile/penale/stragiudiziale
 - `verifica_prescrizione` — civile (artt. 2941-2946 c.c.) e penale
-- `ricerca_normativa` — fonti primarie + norme collegate + giurisprudenza
+- `ricerca_normativa` — fonti primarie + norme collegate + giurisprudenza + CONSOB per settore finanziario
 - `analisi_articolo` — testo vigente + ratio + massime + norme collegate
 - `confronto_norme` — specialità, gerarchia, coordinamento
-- `mappatura_normativa` — mappa completa per settore/attività
+- `mappatura_normativa` — mappa completa per settore/attività + fonti autorità vigilanza
 - `analisi_giurisprudenziale` — workflow: cerca_giurisprudenza → leggi_sentenza → cite_law → sintesi
 - `compliance_privacy` — workflow GDPR: base giuridica → DPIA → registro → informativa → DPA
+- `analisi_delibere_consob` — ricerca e analisi delibere CONSOB su un tema: provvedimenti, sanzioni, normativa
+- `novita_consob` — ultime delibere CONSOB con sintesi orientamenti per tipologia/argomento
 
-## Risorse statiche (legal://) — 9
+## Risorse statiche (legal://) — 10
 
 - `legal://riferimenti/procedura-civile` — fasi e termini post-Cartabia
 - `legal://riferimenti/termini-processuali` — quadro sinottico termini
@@ -147,6 +161,7 @@ mcp-legal-it/
 - `legal://riferimenti/fonti-diritto-italiano` — gerarchia fonti + formato citazione
 - `legal://riferimenti/codici-e-leggi-principali` — indice ragionato codici e leggi UE
 - `legal://riferimenti/gdpr-checklist` — checklist compliance GDPR con tool disponibili
+- `legal://riferimenti/consob-delibere` — guida tool CONSOB: tipologie, argomenti, normativa mercati finanziari
 
 ## Convenzioni di sviluppo
 
@@ -284,6 +299,20 @@ cerca_brocardi("art. 2043 c.c.")
   └─> parse_massime_references(massime) = [{"numero": 100, "anno": 2024}, ...]
   └─> leggi_sentenza(100, 2024)  ← testo completo da Italgiure
 ```
+
+## CONSOB — note tecniche
+
+- **Sito**: `https://www.consob.it/web/area-pubblica/bollettino/ricerca`
+- **Portlet**: `it_consob_BollettinoRicercaPortlet` (Liferay Portal)
+- **Autenticazione**: nessuna — ricerca pubblica GET
+- **URL delibera**: `/web/area-pubblica/-/delibera-n.-{numero}` (es. `delibera-n.-23257`)
+- **Numero delibera**: stringa (es. "23257", "23256-1" per varianti)
+- **Date ricerca**: formato `YYYY-MM-DD` (campo HTML5 date)
+- **Date risultati**: formato `DD/MM/YYYY`
+- **Tipologie**: `delibera`, `comunicazione`, `provvedimento` + combinazioni con pipe
+- **Argomenti**: 10 top categorie con ID Liferay (es. `4989535` = Abusi di mercato)
+- **Max text**: 8000 caratteri (delibere più lunghe dei provvedimenti GPDP)
+- **Tag MCP**: `"consob"` — incluso nei profili `"fiscale"` e `"normativa"`
 
 ## Docker
 
