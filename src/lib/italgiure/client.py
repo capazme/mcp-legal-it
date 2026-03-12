@@ -94,19 +94,30 @@ def build_search_params(
     sezione: str | None = None,
     anno_da: int | None = None,
     anno_a: int | None = None,
-    rows: int = 10,
+    tipo_provvedimento: str | None = None,
+    solo_sezioni_unite: bool = False,
+    ordinamento: str = "rilevanza",
+    rows: int = 5,
     start: int = 0,
     highlight: bool = True,
 ) -> dict:
+    """Build eDisMax params for full-text search.
+
+    ordinamento: "rilevanza" (score desc) or "data" (pd desc).
+    """
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
+    sort = "score desc" if ordinamento == "rilevanza" else "pd desc"
     params: dict = {
         "defType": "edismax",
         "q": query,
         "qf": "ocrdis^5 ocr^1",
-        "pf": "ocrdis^10",
+        "pf": "ocrdis^10 ocr^3",
+        "pf2": "ocrdis^6 ocr^2",
+        "pf3": "ocrdis^4 ocr^1",
+        "mm": "2<75% 5<60%",
         "fq": [f"({kind_clause})"],
-        "sort": "pd desc",
+        "sort": sort,
         "rows": rows,
         "start": start,
         "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
@@ -115,6 +126,10 @@ def build_search_params(
         params["fq"].append(f"materia:{materia}")
     if sezione:
         params["fq"].append(f"szdec:{sezione}")
+    if solo_sezioni_unite:
+        params["fq"].append("szdec:(SU OR U)")
+    if tipo_provvedimento and tipo_provvedimento in TIPO_PROV:
+        params["fq"].append(f"tipoprov:{TIPO_PROV[tipo_provvedimento]}")
     if anno_da and anno_a:
         params["fq"].append(f"anno:[{anno_da} TO {anno_a}]")
     elif anno_da:

@@ -12,3 +12,14 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Build artifacts
+*.mcpb
+dist/dxt-build/
+dist/plugin-build/
+
+# Secrets
+*.pem
+*.key
+*.secret
+credentials.json
