@@ -283,8 +283,10 @@ Elenca e cita le norme applicabili (testo da cite_law).
 Indica le fonti: legge, regolamento, direttiva UE, etc.
 
 #### 3.2 Orientamento giurisprudenziale
-Se disponibile (tramite cite_law con include_annotations=true),
-riporta gli orientamenti di Cassazione e giurisprudenza di merito.
+Usa `cite_law` con `include_annotations=true` per le massime Brocardi.
+Per giurisprudenza recente (2020+), chiama
+`cerca_giurisprudenza(query="\\"{area_diritto}\\"", modalita="esplora")` per la distribuzione,
+poi con filtri mirati. Leggi le decisioni chiave con `leggi_sentenza`.
 
 #### 3.3 Dottrina
 Se pertinente, menziona le posizioni dottrinali prevalenti.
@@ -939,8 +941,10 @@ Fonti tipiche:
 - MiCA (Reg. UE 2023/1114) — cripto-attività
 
 ### Fase 4 — Giurisprudenza correlata (se pertinente)
-Se le delibere citano pronunce giurisdizionali o se il tema ha risvolti contenziosi,
-chiama `cerca_giurisprudenza(query="{tema}")` per verificare eventuali sentenze.
+Se le delibere citano pronunce giurisdizionali o se il tema ha risvolti contenziosi:
+1. Esplora la distribuzione: `cerca_giurisprudenza(query="\\"{tema}\\"", modalita="esplora")`
+2. Filtra con materia/sezione dai facets, poi `leggi_sentenza` per le decisioni chiave.
+Usa virgolette per frasi esatte.
 
 ### Fase 5 — Sintesi strutturata
 

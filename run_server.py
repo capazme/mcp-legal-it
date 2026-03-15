@@ -26,6 +26,24 @@ transport = os.environ.get("MCP_TRANSPORT", "stdio")
 if transport == "sse":
     host = os.environ.get("MCP_HOST", "0.0.0.0")
     port = int(os.environ.get("MCP_PORT", "8000"))
-    mcp.run(transport="sse", host=host, port=port)
+
+    # Mount /health endpoint for liveness probes
+    from starlette.applications import Starlette
+    from starlette.responses import PlainTextResponse
+    from starlette.routing import Route
+
+    async def health(request):
+        return PlainTextResponse("ok")
+
+    sse_app = mcp.sse_app()
+    app = Starlette(
+        routes=[Route("/health", health)],
+        on_startup=sse_app.router.on_startup,
+        on_shutdown=sse_app.router.on_shutdown,
+    )
+    app.mount("/", sse_app)
+
+    import uvicorn
+    uvicorn.run(app, host=host, port=port)
 else:
     mcp.run(transport="stdio")
