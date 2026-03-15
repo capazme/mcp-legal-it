@@ -1,11 +1,11 @@
 # legal-it — Plugin Claude Code per il Diritto Italiano
 
-Plugin legale italiano completo per Claude Code: **161 tool** di calcolo, consultazione normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), compliance GDPR, **17 workflow guidati** e **3 agenti specializzati**.
+Plugin legale italiano completo per Claude Code: **164 tool** di calcolo, consultazione normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), delibere CONSOB, compliance GDPR, **18 skill tool-aware**, **8 slash command** e **3 agenti specializzati**.
 
 ## Installazione
 
 ```bash
-claude plugin add gpuzio/mcp-legal-it
+claude plugin add capazme/mcp-legal-it
 ```
 
 Oppure da path locale (per sviluppatori):
@@ -16,14 +16,15 @@ claude plugin add /path/to/mcp-legal-it/plugin
 
 ## Cosa include
 
-### Server MCP (161 tool)
+### Server MCP (164 tool)
 
-Il plugin si connette al server MCP `legal-it` via SSE — nessuna installazione Python richiesta. I tool coprono:
+Il plugin configura il server MCP `legal-it` in locale — nessun server remoto richiesto. I tool coprono:
 
 | Categoria | Tool | Esempi |
 |-----------|------|--------|
 | Normativa | 5 | `cite_law`, `cerca_brocardi`, `download_law_pdf` |
 | Giurisprudenza | 4 | `leggi_sentenza`, `cerca_giurisprudenza` |
+| CONSOB | 3 | `cerca_delibere_consob`, `leggi_delibera_consob` |
 | Rivalutazione ISTAT | 11 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
 | Interessi e tassi | 10 | `interessi_legali`, `interessi_mora`, `calcolo_taeg` |
 | Scadenze processuali | 11 | `scadenza_processuale`, `termini_memorie_repliche` |
@@ -39,7 +40,7 @@ Il plugin si connette al server MCP `legal-it` via SSE — nessuna installazione
 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
 | Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
 
-### Skill (17 workflow guidati)
+### Skill (18 workflow guidati)
 
 Invocabili con `/legal-it:<nome>`:
 
@@ -62,6 +63,20 @@ Invocabili con `/legal-it:<nome>`:
 | `/legal-it:compliance-privacy` | Assessment GDPR: base giuridica → DPIA → registro → informativa |
 | `/legal-it:data-breach` | Gestione data breach: valutazione → notifica → sanzioni |
 | `/legal-it:redazione-contratto` | Supporto redazione contrattuale con verifica normativa |
+| `/legal-it:analisi-delibere-consob` | Ricerca e analisi delibere CONSOB su un tema |
+
+### Slash command (8)
+
+| Comando | Descrizione |
+|---------|-------------|
+| `/legal-it:norma` | Cerca e cita una norma |
+| `/legal-it:sentenza` | Leggi una sentenza di Cassazione |
+| `/legal-it:ricerca` | Ricerca giurisprudenziale full-text |
+| `/legal-it:interessi` | Calcolo interessi legali o di mora |
+| `/legal-it:parcella` | Calcolo parcella avvocato |
+| `/legal-it:codice-fiscale` | Calcolo o decodifica codice fiscale |
+| `/legal-it:scadenza` | Calcolo scadenza processuale |
+| `/legal-it:privacy` | Genera informativa privacy |
 
 ### Agenti (3 specialisti)
 
@@ -84,20 +99,7 @@ Il plugin include due hook che garantiscono l'accuratezza delle citazioni normat
 
 ### Server locale (per sviluppatori)
 
-Per usare un server locale al posto di quello remoto, modifica `plugin/.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "legal-it": {
-      "command": "uvx",
-      "args": ["mcp-legal-it"]
-    }
-  }
-}
-```
-
-Oppure con Docker:
+Il plugin usa il server MCP in locale tramite `uv`. Per usare Docker:
 
 ```json
 {
@@ -149,7 +151,7 @@ Calcola gli interessi di mora su un credito commerciale di € 15.000 scaduto il
 ## Requisiti
 
 - Claude Code (con supporto plugin)
-- Connessione internet (per il server MCP remoto)
+- Python >= 3.10 (per il server MCP locale)
 
 ## Licenza
 
@@ -157,6 +159,6 @@ MIT — vedi [LICENSE](LICENSE).
 
 ## Link utili
 
-- [Repository](https://github.com/gpuzio/mcp-legal-it)
-- [Issue tracker](https://github.com/gpuzio/mcp-legal-it/issues)
+- [Repository](https://github.com/capazme/mcp-legal-it)
+- [Issue tracker](https://github.com/capazme/mcp-legal-it/issues)
 - [Changelog](CHANGELOG.md)
