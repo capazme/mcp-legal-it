@@ -561,6 +561,10 @@ PROCEDURA:
    - Orientamenti consolidati vs. questioni aperte
    - Posizioni dottrinali prevalenti
 
+   Per trovare giurisprudenza recente (2020+), chiama
+   `cerca_giurisprudenza(query="\"art. ... codice\"", modalita="esplora")`
+   per la distribuzione, poi con filtri per le decisioni più rilevanti.
+
 4. QUADRO SANZIONATORIO
    Se pertinente, identifica:
    - Sanzioni penali (contravvenzioni, delitti)
@@ -840,12 +844,18 @@ ARCHIVIO: {archivio} (civile / penale / tutti)
 
 PROCEDURA:
 
-### Fase 1 — Panoramica degli orientamenti
-Chiama `cerca_giurisprudenza(query="{tema}", archivio="{archivio}", max_risultati=15)` per
-ottenere una panoramica delle decisioni più recenti e rilevanti.
+### Fase 1 — Esplorazione distribuzione
+Chiama `cerca_giurisprudenza(query="\"{tema}\"", archivio="{archivio}", modalita="esplora")`
+per vedere la distribuzione per materia, sezione, anno e tipo provvedimento.
+Usa virgolette per frasi esatte.
 
 Se il tema riguarda una norma specifica (es. "art. 2043 c.c."), chiama prima
 `giurisprudenza_su_norma(riferimento="art. ...")` per trovare le decisioni che la citano.
+
+### Fase 1b — Ricerca con filtri
+In base ai facets, chiama `cerca_giurisprudenza` con filtri mirati (materia, sezione,
+tipo_provvedimento="sentenza", max_risultati=10).
+Per cercare solo nel dispositivo: `campo="dispositivo"`.
 
 ### Fase 2 — Approfondimento decisioni chiave
 Seleziona le 2-3 decisioni più significative (privilegia Sezioni Unite se presenti).
