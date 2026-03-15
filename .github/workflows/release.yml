@@ -20,6 +20,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Run tests
+        run: pytest tests/ -m "not live" -q
+
       - name: Build Desktop Extension (.mcpb)
         run: |
           VERSION="${TAG_VERSION#v}"
