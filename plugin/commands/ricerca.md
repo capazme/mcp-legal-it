@@ -5,7 +5,12 @@ description: Ricerca giurisprudenza o normativa su un tema
 
 In base alla richiesta dell'utente, scegli il tipo di ricerca:
 
-**Giurisprudenza**: Usa `legal-it:cerca_giurisprudenza` con la query dell'utente. Presenta i risultati con numero, data, sezione e massima. Per leggere una sentenza specifica, usa `legal-it:leggi_sentenza`.
+**Giurisprudenza** (archivio Cassazione 2020+):
+1. Prima esplora la distribuzione: `legal-it:cerca_giurisprudenza(query="...", modalita="esplora")`
+2. In base ai facets (materia, sezione, anno, tipo), cerca con filtri mirati
+3. Usa virgolette per frasi esatte: `"responsabilità medica"` non `responsabilità medica`
+4. Per match precisi: `campo="dispositivo"`
+5. Per leggere una sentenza: `legal-it:leggi_sentenza`
 
 **Normativa**: Usa `legal-it:cite_law` per le norme individuate. Integra con `legal-it:cerca_brocardi` per annotazioni e massime.
 

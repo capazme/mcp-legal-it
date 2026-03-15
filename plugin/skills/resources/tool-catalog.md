@@ -19,7 +19,7 @@ Reference completa dei tool disponibili. Ogni skill carica solo questa sezione s
 | Tool | Uso |
 |------|-----|
 | `legal-it:leggi_sentenza` | Testo completo sentenza (numero + anno noti) |
-| `legal-it:cerca_giurisprudenza` | Ricerca full-text nelle sentenze |
+| `legal-it:cerca_giurisprudenza` | Ricerca full-text (archivio 2020+). Parametri chiave: `modalita="esplora"` (solo distribuzione), `campo="dispositivo"` (solo dispositivo), `materia`, `sezione`, `tipo_provvedimento`. Strategia: esplora → filtra → leggi |
 | `legal-it:giurisprudenza_su_norma` | Sentenze che citano un articolo specifico |
 | `legal-it:ultime_pronunce` | Ultime decisioni depositate |
 
