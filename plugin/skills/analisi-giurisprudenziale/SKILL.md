@@ -13,28 +13,52 @@ Ricerca Italgiure, lettura decisioni chiave, sintesi orientamenti.
 
 ## Workflow
 
-### Fase 1 — Panoramica
+### Fase 1 — Esplora la distribuzione
 
-Chiama `legal-it:cerca_giurisprudenza` con query, archivio e max 15 risultati.
+Chiama `legal-it:cerca_giurisprudenza` con `modalita="esplora"` per vedere quante decisioni esistono e come sono distribuite per materia, sezione, anno e tipo.
 
-Se il tema riguarda una norma specifica, chiama prima `legal-it:giurisprudenza_su_norma` per trovare le decisioni che la citano.
+```
+legal-it:cerca_giurisprudenza(query="\"tema specifico\"", modalita="esplora")
+```
 
-### Fase 2 — Approfondimento
+**Usa virgolette** per frasi esatte (es. `"responsabilita' medica"` non `responsabilita' medica`).
 
-Seleziona 2-3 decisioni significative (privilegia Sezioni Unite).
+### Fase 2 — Cerca con filtri mirati
+
+In base ai facets del Passo 1, applica filtri per restringere i risultati:
+
+```
+legal-it:cerca_giurisprudenza(
+    query="\"tema specifico\"",
+    materia="...",
+    sezione="...",
+    tipo_provvedimento="sentenza",
+    max_risultati=10
+)
+```
+
+Se il tema riguarda una norma specifica, usa anche `legal-it:giurisprudenza_su_norma`.
+
+Per cercare solo nel dispositivo (piu' preciso): `campo="dispositivo"`.
+
+**Sintassi query Solr**: `"frase esatta"`, `AND`/`OR`, `-esclusione`, `"frase"~3` (prossimita'), `termin*` (wildcard).
+
+### Fase 3 — Approfondimento
+
+Seleziona 2-4 decisioni significative (privilegia Sezioni Unite e sentenze recenti).
 Per ciascuna: `legal-it:leggi_sentenza` con numero e anno.
 
 **Non fare web search per sentenze gia identificate.**
 
-### Fase 3 — Annotazioni Brocardi
+### Fase 4 — Annotazioni Brocardi
 
 Se il tema ruota attorno a un articolo specifico: `legal-it:cerca_brocardi` per ratio legis, spiegazione e massime strutturate.
 
-### Fase 4 — Fondamento normativo
+### Fase 5 — Fondamento normativo
 
 Per le norme citate nelle decisioni: `legal-it:cite_law` per testo vigente.
 
-### Fase 5 — Sintesi
+### Fase 6 — Sintesi
 
 1. **Orientamento prevalente**: principio di diritto
 2. **Evoluzione**: cambiamenti nel tempo
@@ -45,7 +69,7 @@ Per le norme citate nelle decisioni: `legal-it:cite_law` per testo vigente.
 
 ## Tool utilizzati
 
-- `legal-it:cerca_giurisprudenza` (ricerca full-text)
+- `legal-it:cerca_giurisprudenza` (ricerca full-text — supporta `modalita="esplora"` e `campo="dispositivo"`)
 - `legal-it:giurisprudenza_su_norma` (sentenze su norma)
 - `legal-it:leggi_sentenza` (testo completo)
 - `legal-it:cerca_brocardi` (annotazioni e massime)
