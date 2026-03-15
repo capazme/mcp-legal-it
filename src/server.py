@@ -19,7 +19,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - INVESTIMENTI: BOT, BTP, buoni postali, rendimento
 - UTILITÀ: codice fiscale, IBAN, scorporo IVA, patente, alcolemico, ATECO
 - NORMATIVA: cite_law() per testo vigente, Brocardi per dottrina, PDF norme
-- GIURISPRUDENZA: sentenze Cassazione (Italgiure), ricerca full-text
+- GIURISPRUDENZA: sentenze Cassazione (Italgiure, archivio 2020+). Strategia: esplora → filtra → leggi
 - GARANTE PRIVACY: provvedimenti GPDP, ricerca sanzioni, linee guida
 - GDPR/PRIVACY COMPLIANCE: informative privacy (art. 13-14), cookie policy, DPA (art. 28), registro trattamenti (art. 30), DPIA (art. 35), data breach (art. 33-34), sanzioni (art. 83), base giuridica (art. 6)
 - CONSOB: delibere, provvedimenti, regolamenti mercati finanziari, intermediari, abusi di mercato
@@ -30,7 +30,8 @@ OUTPUT: € 1.234,56 | GG/MM/AAAA | segnalare INDICATIVO se stimato.
 WORKFLOW:
 Sinistro → danno_biologico_* → danno_non_patrimoniale → rivalutazione_monetaria → interessi_legali
 Credito → interessi_mora → rivalutazione_monetaria → decreto_ingiuntivo → parcella_avvocato_civile
-Norma → cite_law → cerca_brocardi → cerca_giurisprudenza → leggi_sentenza
+Norma → cite_law → cerca_brocardi → giurisprudenza_su_norma → leggi_sentenza
+Giurisprudenza → cerca_giurisprudenza(modalita="esplora") → cerca_giurisprudenza(filtri) → leggi_sentenza
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
 Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
 Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
