@@ -6,6 +6,8 @@ SSL: verify=False (invalid cert on www.italgiure.giustizia.it).
 Collections: snciv (civile), snpen (penale) — filtered via kind field in query.
 """
 
+from __future__ import annotations
+
 import re
 import urllib.parse
 
@@ -36,6 +38,8 @@ TIPO_PROV = {"sentenza": "S", "ordinanza": "O", "decreto": "D"}
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 _MAX_OCR_LENGTH = 30000
 
+_FACET_FIELDS = ["materia", "szdec", "anno", "tipoprov"]
+
 _SEZIONI = {
     "1": "I",
     "2": "II",
@@ -49,6 +53,8 @@ _SEZIONI = {
     "SU": "SS.UU.",
     "U": "sez. un.",
 }
+
+_TIPO_LABELS = {"S": "sentenza", "O": "ordinanza", "D": "decreto"}
 
 _RAMO = {"snciv": "civ.", "snpen": "pen."}
 
@@ -72,13 +78,42 @@ def _first(val) -> str:
     return str(val) if val is not None else ""
 
 
-async def solr_query(params: dict) -> dict:
+class SolrSession:
+    """Reusable Solr session — fetches homepage cookie once, reuses for N queries."""
+
+    def __init__(self) -> None:
+        self._client: httpx.AsyncClient | None = None
+
+    async def __aenter__(self) -> SolrSession:
+        self._client = httpx.AsyncClient(verify=False, timeout=_TIMEOUT, headers=_HEADERS)
+        await self._client.get(_HOMEPAGE)
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    async def query(self, params: dict) -> dict:
+        if self._client is None:
+            raise RuntimeError("SolrSession not entered — use `async with`")
+        body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
+        resp = await self._client.post(_SOLR_URL, content=body)
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def solr_query(params: dict, session: SolrSession | None = None) -> dict:
     """Execute Solr query against Italgiure unified endpoint.
 
     Uses POST to /sn-collection/select?app.query with form-encoded body.
     Fetches homepage first to obtain session cookie. verify=False for invalid SSL.
     Handles list-valued params (e.g. multiple fq) via urlencode(doseq=True).
+
+    If *session* is provided, reuses its client (no extra homepage fetch).
     """
+    if session is not None:
+        return await session.query(params)
     async with httpx.AsyncClient(verify=False, timeout=_TIMEOUT, headers=_HEADERS) as client:
         await client.get(_HOMEPAGE)
         body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
@@ -100,27 +135,43 @@ def build_search_params(
     rows: int = 5,
     start: int = 0,
     highlight: bool = True,
+    campo: str = "tutto",
+    include_facets: bool = False,
+    mm: str | None = None,
 ) -> dict:
     """Build eDisMax params for full-text search.
 
     ordinamento: "rilevanza" (score desc) or "data" (pd desc).
+    campo: "tutto" (ocrdis+ocr, default) or "dispositivo" (solo ocrdis).
+    include_facets: if True, adds facet params for materia/szdec/anno/tipoprov.
+    mm: override minimum-should-match (default "2<75% 5<60%").
     """
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
     sort = "score desc" if ordinamento == "rilevanza" else "pd desc"
+    if campo == "dispositivo":
+        qf = "ocrdis^1"
+        pf = "ocrdis^3"
+        pf2 = "ocrdis^2"
+        pf3 = "ocrdis^1"
+    else:
+        qf = "ocrdis^5 ocr^1"
+        pf = "ocrdis^10 ocr^3"
+        pf2 = "ocrdis^6 ocr^2"
+        pf3 = "ocrdis^4 ocr^1"
     params: dict = {
         "defType": "edismax",
         "q": query,
-        "qf": "ocrdis^5 ocr^1",
-        "pf": "ocrdis^10 ocr^3",
-        "pf2": "ocrdis^6 ocr^2",
-        "pf3": "ocrdis^4 ocr^1",
-        "mm": "2<75% 5<60%",
+        "qf": qf,
+        "pf": pf,
+        "pf2": pf2,
+        "pf3": pf3,
+        "mm": mm or "2<75% 5<60%",
         "fq": [f"({kind_clause})"],
         "sort": sort,
         "rows": rows,
         "start": start,
-        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
+        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind,score",
     }
     if materia:
         params["fq"].append(f"materia:{materia}")
@@ -136,6 +187,11 @@ def build_search_params(
         params["fq"].append(f"anno:[{anno_da} TO *]")
     elif anno_a:
         params["fq"].append(f"anno:[* TO {anno_a}]")
+    if include_facets:
+        params["facet"] = "true"
+        params["facet.field"] = _FACET_FIELDS
+        params["facet.limit"] = 10
+        params["facet.mincount"] = 1
     if highlight:
         params.update({
             "hl": "true",
@@ -144,6 +200,68 @@ def build_search_params(
             "hl.snippets": "2",
         })
     return params
+
+
+def build_explore_params(
+    query: str,
+    archivio: str = "tutti",
+    campo: str = "tutto",
+) -> dict:
+    """Build params for facet-only exploration (rows=0, no documents).
+
+    Returns distribution by materia, sezione, anno, tipo provvedimento.
+    """
+    kinds = get_kind_filter(archivio)
+    kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
+    if campo == "dispositivo":
+        qf = "ocrdis^1"
+    else:
+        qf = "ocrdis^5 ocr^1"
+    return {
+        "defType": "edismax",
+        "q": query,
+        "qf": qf,
+        "mm": "2<75% 5<60%",
+        "fq": [f"({kind_clause})"],
+        "rows": 0,
+        "fl": "id",
+        "facet": "true",
+        "facet.field": _FACET_FIELDS,
+        "facet.limit": 15,
+        "facet.mincount": 1,
+    }
+
+
+def format_facets(facet_counts: dict, num_found: int) -> str:
+    """Format Solr facet_counts into readable markdown.
+
+    Maps szdec codes to section names, tipoprov codes to type names.
+    Returns empty string if no facet data.
+    """
+    facet_fields = facet_counts.get("facet_fields", {})
+    if not facet_fields:
+        return ""
+    lines = [f"**Distribuzione risultati** ({num_found} totali):"]
+    field_labels = {
+        "materia": "Materia",
+        "szdec": "Sezione",
+        "anno": "Anno",
+        "tipoprov": "Tipo",
+    }
+    for field_name, label in field_labels.items():
+        raw = facet_fields.get(field_name, [])
+        pairs = list(zip(raw[0::2], raw[1::2]))
+        if not pairs:
+            continue
+        formatted = []
+        for name, count in pairs:
+            if field_name == "szdec":
+                name = _SEZIONI.get(str(name), str(name))
+            elif field_name == "tipoprov":
+                name = _TIPO_LABELS.get(str(name), str(name))
+            formatted.append(f"{name} ({count})")
+        lines.append(f"- **{label}**: {', '.join(formatted)}")
+    return "\n".join(lines)
 
 
 def build_lookup_params(

@@ -7,10 +7,13 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.lib.italgiure.client import (
+    SolrSession,
+    build_explore_params,
     build_lookup_params,
     build_norma_variants,
     build_search_params,
     format_estremi,
+    format_facets,
     format_full_text,
     format_summary,
     get_kind_filter,
@@ -21,6 +24,7 @@ from src.lib.italgiure.client import (
 # Import _impl functions at module level to avoid metaclass conflict when patching httpx
 from src.tools.italgiure import (
     _cerca_giurisprudenza_impl,
+    _filter_by_score,
     _giurisprudenza_su_norma_impl,
     _leggi_sentenza_impl,
     _ultime_pronunce_impl,
@@ -1066,3 +1070,664 @@ class TestUltimePronunceImpl:
         body = captured.get("body", "")
         assert "contratti" in body
         assert "rows=3" in body
+
+
+# ---------------------------------------------------------------------------
+# SolrSession
+# ---------------------------------------------------------------------------
+
+class TestSolrSession:
+    @pytest.mark.asyncio
+    async def test_session_reuses_client(self):
+        """Session should call GET homepage once and allow multiple queries."""
+        get_count = 0
+        post_count = 0
+
+        async def mock_get(url, **kwargs):
+            nonlocal get_count
+            get_count += 1
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_post(url, content=None, **kwargs):
+            nonlocal post_count
+            post_count += 1
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            resp.json = MagicMock(return_value=_make_solr_response([]))
+            return resp
+
+        mock_client = AsyncMock()
+        mock_client.get = mock_get
+        mock_client.post = mock_post
+        mock_client.aclose = AsyncMock()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            async with SolrSession() as session:
+                await session.query({"q": "test1"})
+                await session.query({"q": "test2"})
+                await session.query({"q": "test3"})
+
+        assert get_count == 1, "Homepage should be fetched once"
+        assert post_count == 3, "Three queries should produce three POSTs"
+
+    @pytest.mark.asyncio
+    async def test_session_not_entered_raises(self):
+        session = SolrSession()
+        with pytest.raises(RuntimeError, match="not entered"):
+            await session.query({"q": "test"})
+
+    @pytest.mark.asyncio
+    async def test_solr_query_with_session(self):
+        """solr_query(params, session=session) should delegate to session.query."""
+        async def mock_get(url, **kwargs):
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_post(url, content=None, **kwargs):
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            resp.json = MagicMock(return_value=_make_solr_response([_civile_doc()]))
+            return resp
+
+        mock_client = AsyncMock()
+        mock_client.get = mock_get
+        mock_client.post = mock_post
+        mock_client.aclose = AsyncMock()
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            from src.lib.italgiure.client import solr_query as sq
+            async with SolrSession() as session:
+                result = await sq({"q": "test"}, session=session)
+
+        assert result["response"]["docs"][0]["numdec"] == "24003"
+
+    @pytest.mark.asyncio
+    async def test_solr_query_without_session_backward_compat(self):
+        """solr_query(params) without session should still work (backward compat)."""
+        mock_client = _mock_httpx_client(solr_resp=_make_solr_response([_civile_doc()]))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            from src.lib.italgiure.client import solr_query as sq
+            result = await sq({"q": "test"})
+        assert result["response"]["numFound"] == 1
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — campo
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsCampo:
+    def test_default_tutto(self):
+        p = build_search_params("test")
+        assert "ocrdis^5" in p["qf"]
+        assert "ocr^1" in p["qf"]
+
+    def test_campo_dispositivo_qf(self):
+        p = build_search_params("test", campo="dispositivo")
+        assert p["qf"] == "ocrdis^1"
+        assert "ocr^" not in p["qf"]
+
+    def test_campo_dispositivo_pf(self):
+        p = build_search_params("test", campo="dispositivo")
+        assert p["pf"] == "ocrdis^3"
+        assert "ocr^" not in p["pf"]
+
+    def test_campo_dispositivo_pf2(self):
+        p = build_search_params("test", campo="dispositivo")
+        assert p["pf2"] == "ocrdis^2"
+
+    def test_campo_dispositivo_pf3(self):
+        p = build_search_params("test", campo="dispositivo")
+        assert p["pf3"] == "ocrdis^1"
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — include_facets
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsFacets:
+    def test_no_facets_by_default(self):
+        p = build_search_params("test")
+        assert "facet" not in p
+
+    def test_facets_enabled(self):
+        p = build_search_params("test", include_facets=True)
+        assert p["facet"] == "true"
+        assert "materia" in p["facet.field"]
+        assert "szdec" in p["facet.field"]
+        assert "anno" in p["facet.field"]
+        assert "tipoprov" in p["facet.field"]
+        assert p["facet.limit"] == 10
+        assert p["facet.mincount"] == 1
+
+    def test_score_in_fl(self):
+        p = build_search_params("test")
+        assert "score" in p["fl"]
+
+
+# ---------------------------------------------------------------------------
+# build_search_params — mm override
+# ---------------------------------------------------------------------------
+
+class TestBuildSearchParamsMmOverride:
+    def test_default_mm(self):
+        p = build_search_params("test")
+        assert p["mm"] == "2<75% 5<60%"
+
+    def test_mm_override(self):
+        p = build_search_params("test", mm="100%")
+        assert p["mm"] == "100%"
+
+
+# ---------------------------------------------------------------------------
+# build_explore_params
+# ---------------------------------------------------------------------------
+
+class TestBuildExploreParams:
+    def test_rows_zero(self):
+        p = build_explore_params("test")
+        assert p["rows"] == 0
+
+    def test_facets_enabled(self):
+        p = build_explore_params("test")
+        assert p["facet"] == "true"
+        assert "materia" in p["facet.field"]
+
+    def test_campo_tutto(self):
+        p = build_explore_params("test", campo="tutto")
+        assert "ocr^1" in p["qf"]
+
+    def test_campo_dispositivo(self):
+        p = build_explore_params("test", campo="dispositivo")
+        assert p["qf"] == "ocrdis^1"
+        assert "ocr^" not in p["qf"]
+
+    def test_archivio_civile(self):
+        p = build_explore_params("test", archivio="civile")
+        fq_str = " ".join(p["fq"]) if isinstance(p["fq"], list) else p["fq"]
+        assert 'kind:"snciv"' in fq_str
+        assert "snpen" not in fq_str
+
+    def test_fl_minimal(self):
+        p = build_explore_params("test")
+        assert p["fl"] == "id"
+
+
+# ---------------------------------------------------------------------------
+# format_facets
+# ---------------------------------------------------------------------------
+
+class TestFormatFacets:
+    def test_basic_formatting(self):
+        facet_counts = {
+            "facet_fields": {
+                "materia": ["contratti", 45, "responsabilità", 23],
+                "szdec": ["3", 30, "1", 20, "SU", 8],
+                "anno": ["2024", 25, "2023", 15],
+                "tipoprov": ["S", 40, "O", 15],
+            }
+        }
+        result = format_facets(facet_counts, 15432)
+        assert "15432 totali" in result
+        assert "contratti (45)" in result
+        assert "III (30)" in result  # szdec mapped
+        assert "SS.UU. (8)" in result  # SU mapped
+        assert "sentenza (40)" in result  # tipoprov mapped
+        assert "ordinanza (15)" in result
+
+    def test_empty_facets(self):
+        result = format_facets({}, 0)
+        assert result == ""
+
+    def test_empty_facet_fields(self):
+        result = format_facets({"facet_fields": {}}, 100)
+        assert result == ""
+
+    def test_partial_facets(self):
+        facet_counts = {
+            "facet_fields": {
+                "materia": ["contratti", 10],
+            }
+        }
+        result = format_facets(facet_counts, 10)
+        assert "Materia" in result
+        assert "contratti (10)" in result
+        assert "Sezione" not in result  # szdec not present
+
+    def test_section_mapping(self):
+        facet_counts = {
+            "facet_fields": {
+                "szdec": ["L", 5, "T", 3, "U", 2],
+            }
+        }
+        result = format_facets(facet_counts, 10)
+        assert "lav. (5)" in result
+        assert "trib. (3)" in result
+        assert "sez. un. (2)" in result
+
+    def test_tipoprov_mapping(self):
+        facet_counts = {
+            "facet_fields": {
+                "tipoprov": ["D", 7],
+            }
+        }
+        result = format_facets(facet_counts, 7)
+        assert "decreto (7)" in result
+
+
+# ---------------------------------------------------------------------------
+# Score filtering
+# ---------------------------------------------------------------------------
+
+class TestScoreFiltering:
+    def test_basic_threshold(self):
+        docs = [
+            {"id": "1", "score": 10.0},
+            {"id": "2", "score": 8.0},
+            {"id": "3", "score": 1.5},  # 15% of max, below 20%
+        ]
+        filtered, dropped = _filter_by_score(docs)
+        assert len(filtered) == 2
+        assert dropped == 1
+        assert all(d["id"] in ("1", "2") for d in filtered)
+
+    def test_all_above_threshold(self):
+        docs = [
+            {"id": "1", "score": 10.0},
+            {"id": "2", "score": 5.0},
+            {"id": "3", "score": 3.0},
+        ]
+        filtered, dropped = _filter_by_score(docs)
+        assert len(filtered) == 3
+        assert dropped == 0
+
+    def test_no_score_passthrough(self):
+        docs = [{"id": "1"}, {"id": "2"}]
+        filtered, dropped = _filter_by_score(docs)
+        assert len(filtered) == 2
+        assert dropped == 0
+
+    def test_empty_list(self):
+        filtered, dropped = _filter_by_score([])
+        assert filtered == []
+        assert dropped == 0
+
+    def test_zero_max_score(self):
+        docs = [{"id": "1", "score": 0.0}]
+        filtered, dropped = _filter_by_score(docs)
+        assert len(filtered) == 1
+        assert dropped == 0
+
+    def test_exact_threshold(self):
+        """Score exactly at 20% of max should be kept."""
+        docs = [
+            {"id": "1", "score": 10.0},
+            {"id": "2", "score": 2.0},  # exactly 20%
+        ]
+        filtered, dropped = _filter_by_score(docs)
+        assert len(filtered) == 2
+        assert dropped == 0
+
+
+# ---------------------------------------------------------------------------
+# Modalità esplora
+# ---------------------------------------------------------------------------
+
+class TestModalitaEsplora:
+    @pytest.mark.asyncio
+    async def test_returns_facets_no_docs(self):
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 15000, "start": 0, "docs": []},
+            "facet_counts": {
+                "facet_fields": {
+                    "materia": ["contratti", 500, "resp. civile", 300],
+                    "szdec": ["3", 200],
+                    "anno": ["2024", 400],
+                    "tipoprov": ["S", 600, "O", 200],
+                }
+            },
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("responsabilità medica", modalita="esplora")
+        assert "Esplorazione" in result
+        assert "15000" in result
+        assert "Suggerimento" in result
+        assert "contratti" in result
+
+    @pytest.mark.asyncio
+    async def test_esplora_no_results(self):
+        solr_resp = _make_solr_response([], num_found=0)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("xyz nessun risultato", modalita="esplora")
+        assert "Nessuna" in result
+
+    @pytest.mark.asyncio
+    async def test_esplora_error(self):
+        async def raise_error(*args, **kwargs):
+            raise Exception("timeout")
+
+        mock_client = AsyncMock()
+        mock_client.get = raise_error
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test", modalita="esplora")
+        assert "Errore" in result
+
+
+# ---------------------------------------------------------------------------
+# Auto-refinement
+# ---------------------------------------------------------------------------
+
+class TestAutoRefinement:
+    def _make_faceted_response(self, docs, num_found):
+        return {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": num_found, "start": 0, "docs": docs},
+            "highlighting": {},
+            "facet_counts": {
+                "facet_fields": {
+                    "materia": ["contratti", num_found],
+                    "szdec": ["3", num_found],
+                    "anno": ["2024", num_found],
+                    "tipoprov": ["S", num_found],
+                }
+            },
+        }
+
+    @pytest.mark.asyncio
+    async def test_triggers_when_above_threshold(self):
+        """When numFound > 50, auto-refinement should be attempted."""
+        call_count = 0
+
+        async def mock_get(url, **kwargs):
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_post(url, content=None, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            if call_count == 1:
+                # First call: too many results
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 15000
+                ))
+            elif call_count == 2:
+                # Second call (first refinement step mm=100%): success
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 30
+                ))
+            else:
+                resp.json = MagicMock(return_value=self._make_faceted_response([], 0))
+            return resp
+
+        mock_client = AsyncMock()
+        mock_client.get = mock_get
+        mock_client.post = mock_post
+        mock_client.aclose = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("responsabilità medica")
+
+        assert "Raffinamento automatico" in result
+        assert "15000" in result
+        assert "30" in result
+
+    @pytest.mark.asyncio
+    async def test_no_trigger_below_threshold(self):
+        """When numFound <= 50, no auto-refinement."""
+        doc = _civile_doc()
+        doc["score"] = 10.0
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 30, "start": 0, "docs": [doc]},
+            "highlighting": {},
+            "facet_counts": {"facet_fields": {}},
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test specifico")
+        assert "Raffinamento" not in result
+        assert "Trovate 30" in result
+
+    @pytest.mark.asyncio
+    async def test_no_trigger_with_explicit_filters(self):
+        """Auto-refinement should not trigger when user already applied filters."""
+        call_count = 0
+
+        async def mock_get(url, **kwargs):
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_post(url, content=None, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            doc = _civile_doc()
+            doc["score"] = 10.0
+            resp.json = MagicMock(return_value={
+                "responseHeader": {"status": 0},
+                "response": {"numFound": 200, "start": 0, "docs": [doc]},
+                "highlighting": {},
+                "facet_counts": {"facet_fields": {"materia": ["contratti", 200]}},
+            })
+            return resp
+
+        mock_client = AsyncMock()
+        mock_client.get = mock_get
+        mock_client.post = mock_post
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test", materia="contratti")
+
+        # Only 1 POST (no refinement calls)
+        assert call_count == 1
+        assert "Raffinamento" not in result
+
+    @pytest.mark.asyncio
+    async def test_early_exit_on_success(self):
+        """Refinement should stop at the first step that works."""
+        call_count = 0
+
+        async def mock_get(url, **kwargs):
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_post(url, content=None, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            if call_count == 1:
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 5000
+                ))
+            else:
+                # First refinement step succeeds
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 20
+                ))
+            return resp
+
+        mock_client = AsyncMock()
+        mock_client.get = mock_get
+        mock_client.post = mock_post
+        mock_client.aclose = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test generico")
+
+        assert "Raffinamento automatico" in result
+        # 1 initial + 1 homepage + 1 successful refinement = max 3 posts
+        # (homepage is a GET, so only 2 POSTs expected)
+        assert call_count <= 3
+
+    @pytest.mark.asyncio
+    async def test_fallback_to_best_when_no_step_below_threshold(self):
+        """When no step gets below threshold, use the step with fewest results."""
+        call_count = 0
+
+        async def mock_get(url, **kwargs):
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_post(url, content=None, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            if call_count == 1:
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 10000
+                ))
+            elif call_count == 2:
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 500
+                ))
+            elif call_count == 3:
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 200  # Best result
+                ))
+            elif call_count == 4:
+                resp.json = MagicMock(return_value=self._make_faceted_response(
+                    [_civile_doc()], 300
+                ))
+            else:
+                resp.json = MagicMock(return_value=self._make_faceted_response([], 0))
+            return resp
+
+        mock_client = AsyncMock()
+        mock_client.get = mock_get
+        mock_client.post = mock_post
+        mock_client.aclose = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test ampio")
+
+        assert "Raffinamento automatico" in result
+        assert "200" in result  # Should use the best (200)
+
+
+# ---------------------------------------------------------------------------
+# cerca_giurisprudenza enhanced — campo + modalita + score e2e
+# ---------------------------------------------------------------------------
+
+class TestCercaGiurisprudenzaEnhanced:
+    @pytest.mark.asyncio
+    async def test_campo_dispositivo_passed(self):
+        mock_client, captured = _capturing_mock_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("test", campo="dispositivo")
+        body = captured.get("body", "")
+        # qf should only have ocrdis, not ocr
+        assert "ocrdis" in body
+        # In dispositivo mode, qf=ocrdis^1 (no ocr^1)
+        assert "qf=ocrdis" in body
+
+    @pytest.mark.asyncio
+    async def test_backward_compat_defaults(self):
+        """Default campo="tutto" and modalita="cerca" produce same output as before."""
+        doc = _civile_doc()
+        doc["score"] = 10.0
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 1, "start": 0, "docs": [doc]},
+            "highlighting": {},
+            "facet_counts": {"facet_fields": {}},
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test")
+        assert "Trovate" in result
+        assert "Cass. civ." in result
+
+    @pytest.mark.asyncio
+    async def test_score_filtering_applied(self):
+        """Docs with low scores should be filtered out."""
+        docs = [
+            {**_civile_doc("1001", "2024"), "score": 50.0, "id": "doc1"},
+            {**_civile_doc("1002", "2024"), "score": 40.0, "id": "doc2"},
+            {**_civile_doc("1003", "2024"), "score": 1.0, "id": "doc3"},  # Below threshold
+        ]
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 3, "start": 0, "docs": docs},
+            "highlighting": {},
+            "facet_counts": {"facet_fields": {}},
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test")
+        assert "2 ad alta rilevanza" in result
+        assert "1001" in result
+        assert "1002" in result
+
+    @pytest.mark.asyncio
+    async def test_facets_shown_when_many_results(self):
+        """Facets should appear in output when numFound > 50."""
+        doc = _civile_doc()
+        doc["score"] = 10.0
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 200, "start": 0, "docs": [doc]},
+            "highlighting": {},
+            "facet_counts": {
+                "facet_fields": {
+                    "materia": ["contratti", 100],
+                    "szdec": ["3", 50],
+                    "anno": ["2024", 80],
+                    "tipoprov": ["S", 120],
+                }
+            },
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            # Use explicit filter to avoid auto-refinement
+            result = await _cerca_giurisprudenza_impl("test", materia="contratti")
+        assert "Distribuzione risultati" in result
+        assert "Suggerimento" in result
+
+    @pytest.mark.asyncio
+    async def test_facets_not_shown_when_few_results(self):
+        """Facets should not appear when numFound <= 50."""
+        doc = _civile_doc()
+        doc["score"] = 10.0
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 10, "start": 0, "docs": [doc]},
+            "highlighting": {},
+            "facet_counts": {"facet_fields": {"materia": ["contratti", 10]}},
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_impl("test specifico")
+        assert "Distribuzione" not in result
+
+    @pytest.mark.asyncio
+    async def test_include_facets_in_params(self):
+        mock_client, captured = _capturing_mock_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            await _cerca_giurisprudenza_impl("test")
+        body = captured.get("body", "")
+        assert "facet=true" in body
