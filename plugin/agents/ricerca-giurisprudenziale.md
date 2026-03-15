@@ -65,6 +65,14 @@ Se il tema ruota attorno a un articolo specifico, chiama `legal-it:cerca_brocard
 
 Per le norme citate nelle sentenze: `legal-it:cite_law` per il testo vigente. Mai citare norme a memoria.
 
+### Passo 7 — Cross-reference fonti amministrative (se pertinente)
+
+Se il tema tocca **mercati finanziari** (insider trading, abusi di mercato, OPA, intermediari):
+- `legal-it:cerca_delibere_consob(query="...")` per delibere e sanzioni CONSOB correlate
+
+Se il tema tocca **protezione dati** (data breach, consenso, profilazione, sanzioni privacy):
+- `legal-it:cerca_provvedimenti_garante(query="...")` per provvedimenti del Garante
+
 ## Sintassi query Solr
 
 Il motore e' Solr eDisMax. Sintassi supportata nel campo `query`:
