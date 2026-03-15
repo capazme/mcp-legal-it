@@ -5,45 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.1] - 2026-03-03
-
-### Added
-- overhaul install.py with CLI flags, plugin support, updated profiles
+## [1.1.1] - 2026-03-15
 
 ### Fixed
-- use git add -f for dist files ignored by .gitignore
-- use venv python for pytest in release.py
-- marketplace add path should point to repo root, not plugin subdir
+- Author: gpuzio → capazme in all manifests (plugin.json, marketplace.json, dxt/manifest.json)
+- marketplace.json description updated to 164 tool
+- README updated with correct tool count, skills, commands, and links
+- CHANGELOG cleaned up (removed duplicate entries)
+- Version aligned across all manifests (pyproject.toml, dxt/manifest.json, plugin.json)
+- Web skills ZIP regenerated (added analisi-delibere-consob, novita-consob)
 
-### Other
-- feature/update-installer into develop
-- improve release.py with version sync, CHANGELOG, plugin-only mode
-- update installer and mcp config
-- add comprehensive project documentation and release tooling
-- main (v0.3.0) back into develop
-
-## [0.3.1] - 2026-03-03
+## [1.1.0] - 2026-03-08
 
 ### Added
-- overhaul install.py with CLI flags, plugin support, updated profiles
+- CONSOB integration: 3 new tools (`cerca_delibere_consob`, `leggi_delibera_consob`, `ultime_delibere_consob`)
+- CONSOB scraper (`src/lib/consob/client.py`)
+- 2 new skills: `analisi-delibere-consob`, `novita-consob`
+- 2 new prompts: `analisi_delibere_consob`, `novita_consob`
+- Desktop Extension (DXT) support: `dxt/manifest.json`, `dxt/start_server.sh`
+- Build scripts: `scripts/build-dxt.sh`, `scripts/build-plugin.sh`, `scripts/build-all.sh`
+- GitHub Actions release workflow (`.github/workflows/release.yml`)
+- 8 slash commands: norma, sentenza, ricerca, interessi, parcella, codice-fiscale, scadenza, privacy
+- Distributable `.mcp.dist.json` with `${CLAUDE_PLUGIN_ROOT}` variable
 
-### Fixed
-- use venv python for pytest in release.py
-- marketplace add path should point to repo root, not plugin subdir
-
-### Other
-- feature/update-installer into develop
-- improve release.py with version sync, CHANGELOG, plugin-only mode
-- update installer and mcp config
-- add comprehensive project documentation and release tooling
-- main (v0.3.0) back into develop
+### Changed
+- Tool count: 161 → 164
+- Skill count: 17 → 18 (renamed analisi-norma → analisi-articolo externally, added CONSOB skills)
+- All agents updated with `legal-it:` tool-qualified references
+- Docker support: added `MCP_PATH_PREFIX` for reverse proxy deployment
 
 ## [1.0.0] - 2026-02-26
 
 ### Added
 - Initial release of the `legal-it` Claude Code plugin
 - `.claude-plugin/plugin.json` manifest
-- `.mcp.json` SSE connection to remote server (161 tools)
+- `.mcp.json` MCP server connection (161 tools)
 - 17 skills (workflow guidati):
   - 5 existing: `parere-legale`, `analisi-norma`, `analisi-giurisprudenziale`, `recupero-credito`, `sinistro`
   - 10 from MCP prompts: `causa-civile`, `pianificazione-successione`, `quantificazione-danni`, `calcolo-parcella`, `verifica-prescrizione`, `ricerca-normativa`, `analisi-articolo`, `confronto-norme`, `mappatura-normativa`, `compliance-privacy`
