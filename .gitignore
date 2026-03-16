@@ -8,6 +8,8 @@ build/
 *.egg
 .venv/
 venv/
+plugin/server/.venv/
+plugin/server/__pycache__/
 .env
 .pytest_cache/
 .mypy_cache/
