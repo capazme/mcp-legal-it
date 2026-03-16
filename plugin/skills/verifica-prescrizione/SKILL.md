@@ -1,6 +1,8 @@
 ---
 name: verifica-prescrizione
 description: Verifica la prescrizione di un diritto civile o di un reato penale con calcolo termine, analisi cause di sospensione/interruzione e stato attuale. Usa quando l'utente chiede se un diritto e prescritto, i termini di prescrizione, o la decadenza di un'azione.
+argument-hint: "[tipo diritto o reato] [data evento]"
+allowed-tools: mcp__legal-it__prescrizione_diritti, mcp__legal-it__prescrizione_reato, mcp__legal-it__cite_law
 ---
 
 # Verifica Prescrizione
@@ -26,9 +28,3 @@ Chiama `prescrizione_reato`:
 - Riforma Cartabia: improcedibilita in appello/cassazione
 
 ## Output: stato PRESCRITTA / NON PRESCRITTA / IN SCADENZA con data esatta.
-
-## Tool utilizzati
-
-- `prescrizione_diritti` (civile)
-- `prescrizione_reato` (penale)
-- `cite_law` (norme sulla prescrizione)

@@ -1,6 +1,7 @@
 ---
 name: ricerca
 description: Ricerca giurisprudenza o normativa su un tema
+allowed-tools: mcp__legal-it__cerca_giurisprudenza, mcp__legal-it__leggi_sentenza, mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__legal-it__cerca_provvedimenti_garante, mcp__legal-it__cerca_delibere_consob
 ---
 
 In base alla richiesta dell'utente, scegli il tipo di ricerca:

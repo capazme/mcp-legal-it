@@ -1,5 +1,6 @@
 ---
 model: sonnet
+description: Ricercatore giurisprudenziale esperto Italgiure. Delega per ricerche approfondite su orientamenti, precedenti e sentenze della Cassazione.
 ---
 
 # Ricercatore Giurisprudenziale — Specialista in ricerca sentenze Cassazione
@@ -117,11 +118,3 @@ Restituisci un report strutturato:
 3. **Esplora PRIMA di cercare** — il Passo 1 e' obbligatorio
 4. **Virgolette per frasi esatte** — sempre, per query di 2+ parole correlate
 5. **Leggi prima di sintetizzare** — non riassumere basandoti solo sul dispositivo troncato
-
-## Tool disponibili
-
-- `cerca_giurisprudenza` — ricerca full-text con `modalita` e `campo`
-- `giurisprudenza_su_norma` — sentenze che citano un articolo specifico
-- `leggi_sentenza` — testo completo di una decisione
-- `cerca_brocardi` — annotazioni, massime, ratio legis
-- `cite_law` — testo vigente di una norma

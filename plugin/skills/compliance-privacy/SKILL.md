@@ -1,6 +1,8 @@
 ---
 name: compliance-privacy
 description: Assessment completo di compliance GDPR con analisi base giuridica, verifica DPIA, registro trattamenti, informativa privacy e DPA. Usa quando l'utente chiede compliance privacy, adeguamento GDPR, informativa privacy, registro trattamenti, DPIA, valutazione impatto, data breach o contratto con responsabile del trattamento.
+argument-hint: "[titolare] [tipo trattamento] [contesto]"
+allowed-tools: mcp__legal-it__analisi_base_giuridica, mcp__legal-it__verifica_necessita_dpia, mcp__legal-it__genera_dpia, mcp__legal-it__genera_registro_trattamenti, mcp__legal-it__genera_informativa_privacy, mcp__legal-it__genera_informativa_cookie, mcp__legal-it__genera_informativa_dipendenti, mcp__legal-it__genera_informativa_videosorveglianza, mcp__legal-it__genera_dpa, mcp__legal-it__valutazione_data_breach, mcp__legal-it__genera_notifica_data_breach, mcp__legal-it__calcolo_sanzione_gdpr
 ---
 
 # Compliance Privacy GDPR
@@ -52,21 +54,3 @@ Chiama `genera_dpa` per contratto art. 28 GDPR.
 - [ ] DPA stipulati con responsabili
 - [ ] Misure di sicurezza (art. 32)
 - [ ] Procedura data breach (artt. 33-34)
-
-## Tool aggiuntivi per incident
-
-- `valutazione_data_breach` — valutazione rischio e obblighi notifica
-- `genera_notifica_data_breach` — modulo notifica Garante (72h)
-- `calcolo_sanzione_gdpr` — stima range sanzioni art. 83
-
-## Tool utilizzati
-
-- `analisi_base_giuridica`
-- `verifica_necessita_dpia`
-- `genera_dpia`
-- `genera_registro_trattamenti`
-- `genera_informativa_privacy` (+ varianti cookie, dipendenti, videosorveglianza)
-- `genera_dpa`
-- `valutazione_data_breach`
-- `genera_notifica_data_breach`
-- `calcolo_sanzione_gdpr`

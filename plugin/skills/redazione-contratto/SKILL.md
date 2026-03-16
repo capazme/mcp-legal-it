@@ -1,6 +1,8 @@
 ---
 name: redazione-contratto
 description: Supporto alla redazione contrattuale con verifica normativa, clausole tipo e compliance GDPR. Usa quando l'utente chiede di redigere, revisionare, analizzare un contratto, verificare clausole o predisporre un accordo.
+argument-hint: "[tipo contratto]"
+allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__legal-it__analisi_base_giuridica, mcp__legal-it__genera_dpa
 ---
 
 # Redazione Contratto
@@ -42,10 +44,3 @@ Per contratti con consumatori: verificare clausole vessatorie (artt. 33-38 Cod. 
 Schema clausole con: titolo, contenuto, fondamento normativo, note operative.
 
 **Non redigere un contratto completo** — fornire schema e clausole chiave con fondamento normativo.
-
-## Tool utilizzati
-
-- `cite_law` (obbligatorio per ogni norma)
-- `cerca_brocardi` (orientamenti)
-- `analisi_base_giuridica` (se dati personali)
-- `genera_dpa` (se responsabile trattamento)

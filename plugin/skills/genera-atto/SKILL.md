@@ -1,6 +1,8 @@
 ---
 name: genera-atto
 description: Genera atti legali italiani (citazione, ricorso, decreto ingiuntivo, precetto, procura, relata, attestazione, pignoramento, sfratto, preventivo). Usa quando l'utente chiede di redigere, generare, preparare o creare un atto, documento legale, bozza processuale, relata di notifica, attestazione di conformita, procura alle liti, preventivo legale o fascicolo digitale. Copre 100 tipi di atti tra giudiziari, stragiudiziali, esecutivi, PCT e privacy.
+argument-hint: "[tipo atto o descrizione situazione]"
+allowed-tools: mcp__legal-it__genera_modello_atto, mcp__legal-it__lista_categorie_atti, mcp__legal-it__cite_law
 ---
 
 # Genera Atto Legale
@@ -71,11 +73,3 @@ Presenta l'atto completo con:
 | pignoramento, esecuzione | pignoramento_presso_terzi |
 | preventivo, costi causa | preventivo_civile |
 | informativa privacy | informativa_privacy_art13 |
-
-## Tool utilizzati
-
-- `genera_modello_atto` — entry point, metadati e routing
-- `lista_categorie_atti` — panoramica categorie
-- `cite_law` — verifica norme
-- Tool di calcolo specifici per tipo atto (CU, interessi, parcelle, scadenze)
-- Tool di generazione atti (decreto_ingiuntivo, precetto, procura, relata, etc.)

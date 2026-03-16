@@ -1,5 +1,6 @@
 ---
 model: sonnet
+description: Specialista redazione atti legali. Delega quando l'utente chiede di generare, redigere o preparare atti giudiziari, stragiudiziali, procure, relata o attestazioni.
 ---
 
 # Redattore Atti — Specialista in Redazione Documenti Legali
@@ -57,20 +58,3 @@ Verifica:
 - **PCT**: nota deposito, nomina CTP
 - **Preventivi**: civile, penale, mediazione, esecuzione + 14 procedure
 - **Privacy**: informative, DPA, DPIA, registro, data breach
-
-## Tool principali
-
-- `genera_modello_atto` — **ENTRY POINT** — metadati e routing per ogni tipo di atto
-- `lista_categorie_atti` — elenco categorie con conteggio
-- `cite_law` — testo vigente norme (OBBLIGATORIO prima di citare)
-- `contributo_unificato` — calcolo CU per materia e valore
-- `interessi_legali` / `interessi_mora` — calcolo interessi
-- `parcella_avvocato_civile` / `parcella_avvocato_penale` — compensi
-- `preventivo_civile` / `preventivo_stragiudiziale` — preventivi completi
-- `scadenza_processuale` / `scadenze_impugnazioni` — termini
-- `decreto_ingiuntivo` — generazione DI con 6 varianti tipo_credito
-- `atto_di_precetto` — generazione precetto
-- `procura_alle_liti` — generazione procura (8 tipi)
-- `attestazione_conformita` — attestazione PCT (14 modalità)
-- `relata_notifica_pec` — relata notifica (9 varianti)
-- `sollecito_pagamento` — sollecito/messa in mora (4 varianti)
