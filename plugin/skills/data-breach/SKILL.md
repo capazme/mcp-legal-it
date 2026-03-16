@@ -17,20 +17,20 @@ Identificare: tipo violazione (confidenzialita/integrita/disponibilita), numero 
 
 ### 2. Valutazione rischio
 
-Chiama `valutazione_data_breach`:
+Chiama `legal-it:valutazione_data_breach`:
 - Livello rischio per interessati
 - Obbligo notifica Garante (art. 33 GDPR)
 - Obbligo comunicazione interessati (art. 34 GDPR)
 
 ### 3. Notifica al Garante
 
-Se necessaria: chiama `genera_notifica_data_breach`.
+Se necessaria: chiama `legal-it:genera_notifica_data_breach`.
 
 **SCADENZA**: 72 ore dalla scoperta.
 
 ### 4. Stima sanzioni
 
-Chiama `calcolo_sanzione_gdpr` con criteri art. 83(2) GDPR.
+Chiama `legal-it:calcolo_sanzione_gdpr` con criteri art. 83(2) GDPR.
 
 ### 5. Piano d'azione
 
