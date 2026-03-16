@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-03-16
+
+### Changed
+- Server code (`src/`, `run_server.py`) moved inside `plugin/server/` — plugin is now fully self-contained
+- Root `src` is a symlink to `plugin/server/src` for dev/test/Docker retrocompatibility
+- Root `run_server.py` is a thin wrapper delegating to `plugin/server/run_server.py`
+- `pyproject.toml` copied to `plugin/server/` for standalone install
+- Dockerfile and build scripts updated to reference new paths
+- Co-work / marketplace install now includes MCP server without needing repo root
+
 ## [1.3.8] - 2026-03-16
 
 ### Fixed

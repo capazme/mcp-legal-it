@@ -22,9 +22,9 @@ cp "$ROOT_DIR/dxt/manifest.json" "$BUILD_DIR/"
 cp "$ROOT_DIR/dxt/.mcpbignore" "$BUILD_DIR/"
 cp "$ROOT_DIR/pyproject.toml" "$BUILD_DIR/"
 
-# Copy server source
-cp "$ROOT_DIR/run_server.py" "$BUILD_DIR/"
-cp -r "$ROOT_DIR/src" "$BUILD_DIR/src"
+# Copy server source from plugin/server/
+cp "$ROOT_DIR/plugin/server/run_server.py" "$BUILD_DIR/"
+cp -r "$ROOT_DIR/plugin/server/src" "$BUILD_DIR/src"
 
 # Clean __pycache__ from copied source
 find "$BUILD_DIR" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
