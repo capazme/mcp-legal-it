@@ -29,11 +29,8 @@ chmod +x "$BUILD_DIR/start_server.sh"
 # .mcp.json is now portable (uses ${CLAUDE_PLUGIN_ROOT})
 cp "$ROOT_DIR/plugin/.mcp.json" "$BUILD_DIR/.mcp.json"
 
-# Bundle the MCP server inside plugin/server/
-mkdir -p "$BUILD_DIR/server"
-cp "$ROOT_DIR/pyproject.toml" "$BUILD_DIR/server/"
-cp "$ROOT_DIR/run_server.py" "$BUILD_DIR/server/"
-cp -r "$ROOT_DIR/src" "$BUILD_DIR/server/src"
+# Server code is already in plugin/server/ — copy it
+cp -r "$ROOT_DIR/plugin/server" "$BUILD_DIR/server"
 
 # Clean __pycache__
 find "$BUILD_DIR" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
