@@ -1,11 +1,10 @@
 {
   "mcpServers": {
     "legal-it": {
-      "command": "uv",
+      "command": "bash",
       "args": [
-        "run",
-        "--project", "${CLAUDE_PLUGIN_ROOT}/server",
-        "python", "${CLAUDE_PLUGIN_ROOT}/server/run_server.py"
+        "-c",
+        "cd \"${CLAUDE_PLUGIN_ROOT}/server\" && pip install -q -e . 2>/dev/null; python run_server.py"
       ],
       "env": {
         "MCP_CACHE_DIR": "${HOME}/.cache/mcp-legal-it",
