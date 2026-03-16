@@ -11,15 +11,15 @@ Ultime delibere con sintesi orientamenti.
 
 ### 1. Ultime delibere
 
-Chiama `legal-it:ultime_delibere_consob` con eventuali filtri (tipologia, argomento).
+Chiama `ultime_delibere_consob` con eventuali filtri (tipologia, argomento).
 
 ### 2. Approfondimento
 
-Per le 2-3 delibere piu rilevanti: `legal-it:leggi_delibera_consob` con numero.
+Per le 2-3 delibere piu rilevanti: `leggi_delibera_consob` con numero.
 
 ### 3. Quadro normativo
 
-Per le norme richiamate: `legal-it:cite_law`.
+Per le norme richiamate: `cite_law`.
 
 ## Output atteso
 
@@ -37,6 +37,6 @@ Sintesi orientamenti dalle delibere piu recenti.
 
 ## Tool utilizzati
 
-- `legal-it:ultime_delibere_consob`
-- `legal-it:leggi_delibera_consob`
-- `legal-it:cite_law`
+- `ultime_delibere_consob`
+- `leggi_delibera_consob`
+- `cite_law`
