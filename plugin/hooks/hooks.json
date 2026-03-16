@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/start_server.sh --daemon"
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/ensure-desktop-server.sh"
           }
         ]
       },
