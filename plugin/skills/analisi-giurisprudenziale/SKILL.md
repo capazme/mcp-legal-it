@@ -1,6 +1,8 @@
 ---
 name: analisi-giurisprudenziale
 description: Analisi strutturata degli orientamenti giurisprudenziali su un tema con ricerca sentenze Cassazione su Italgiure, lettura testo completo delle decisioni chiave e sintesi degli orientamenti. Usa quando l'utente chiede giurisprudenza su un argomento, orientamenti della Cassazione, precedenti, o sentenze su un tema specifico.
+argument-hint: "[tema giuridico]"
+allowed-tools: mcp__legal-it__cerca_giurisprudenza, mcp__legal-it__giurisprudenza_su_norma, mcp__legal-it__leggi_sentenza, mcp__legal-it__cerca_brocardi, mcp__legal-it__cite_law
 ---
 
 # Analisi Giurisprudenziale
@@ -66,11 +68,3 @@ Per le norme citate nelle decisioni: `cite_law` per testo vigente.
 4. **Sezioni Unite**: principio di diritto (se pronunciate)
 5. **Norme di riferimento**
 6. **Decisioni citate**: elenco con estremi
-
-## Tool utilizzati
-
-- `cerca_giurisprudenza` (ricerca full-text — supporta `modalita="esplora"` e `campo="dispositivo"`)
-- `giurisprudenza_su_norma` (sentenze su norma)
-- `leggi_sentenza` (testo completo)
-- `cerca_brocardi` (annotazioni e massime)
-- `cite_law` (norme citate)

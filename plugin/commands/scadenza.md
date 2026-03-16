@@ -1,6 +1,7 @@
 ---
 name: scadenza
 description: Calcola una scadenza processuale o termine
+allowed-tools: mcp__legal-it__scadenza_processuale, mcp__legal-it__termini_processuali_civili, mcp__legal-it__termini_183_190_cpc, mcp__legal-it__scadenze_impugnazioni, mcp__legal-it__termini_esecuzioni, mcp__legal-it__prescrizione_diritti, mcp__legal-it__prescrizione_reato, mcp__legal-it__termini_memorie_repliche
 ---
 
 In base al tipo di scadenza richiesta:

@@ -1,6 +1,8 @@
 ---
 name: analisi-sinistro
 description: Analizza sinistri stradali, sanitari e lavorativi con quantificazione completa del danno biologico, morale/esistenziale, rivalutazione ISTAT e interessi legali. Usa quando l'utente descrive un incidente, un sinistro, chiede risarcimento danni per invalidita o quantificazione danni da lesioni personali.
+argument-hint: "[descrizione sinistro, percentuale invalidità, data]"
+allowed-tools: mcp__legal-it__danno_biologico_micro, mcp__legal-it__danno_biologico_macro, mcp__legal-it__danno_non_patrimoniale, mcp__legal-it__rivalutazione_monetaria, mcp__legal-it__interessi_legali
 ---
 
 # Analisi Sinistro
@@ -54,10 +56,3 @@ Tabella riepilogativa:
 - Non sostituisce la valutazione medico-legale
 - Per ITT/ITP, danno emergente e lucro cessante servono dati aggiuntivi
 - Citare sempre la fonte tabellare e normativa
-
-## Tool utilizzati
-
-- `danno_biologico_micro` / `danno_biologico_macro`
-- `danno_non_patrimoniale`
-- `rivalutazione_monetaria`
-- `interessi_legali`

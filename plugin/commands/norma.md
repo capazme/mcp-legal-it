@@ -1,6 +1,7 @@
 ---
 name: norma
 description: Cerca il testo vigente di un articolo di legge
+allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__legal-it__giurisprudenza_su_norma
 ---
 
 Usa `cite_law` per cercare il testo vigente della norma richiesta dall'utente.
