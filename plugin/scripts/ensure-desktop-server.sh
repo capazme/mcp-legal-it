@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Ensures the legal-it MCP server is configured in claude_desktop_config.json.
 # Called by SessionStart hook. Idempotent — skips if already present.
+# Venv is created in MCP_CACHE_DIR (writable) — plugin dir may be read-only in Cowork.
 set -euo pipefail
 
 CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
@@ -19,11 +20,14 @@ else
   SERVER_DIR="$(cd "$PLUGIN_DIR/.." && pwd)"
 fi
 
-VENV="$SERVER_DIR/.venv"
+# Use writable cache dir for venv
+CACHE_DIR="${MCP_CACHE_DIR:-${HOME}/.cache/mcp-legal-it}"
+VENV="$CACHE_DIR/venv"
+mkdir -p "$CACHE_DIR"
 
 # Ensure venv exists
 if [ ! -f "$VENV/bin/python" ]; then
-  python3 -m venv "$VENV" 2>/dev/null
+  python3 -m venv "$VENV"
   "$VENV/bin/pip" install -q --disable-pip-version-check \
     "fastmcp>=2.0.0" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7"
 fi
