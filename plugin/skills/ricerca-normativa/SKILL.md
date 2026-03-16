@@ -9,13 +9,13 @@ Fonti primarie, norme collegate, giurisprudenza e sanzioni.
 
 ## Regola fondamentale
 
-**Ogni norma citata DEVE essere verificata con `legal-it:cite_law`**. Mai citare a memoria.
+**Ogni norma citata DEVE essere verificata con `cite_law`**. Mai citare a memoria.
 
 ## Workflow
 
 ### 1. Fonti primarie
 
-Per ogni norma individuata, chiama `legal-it:cite_law`. Ordina per gerarchia:
+Per ogni norma individuata, chiama `cite_law`. Ordina per gerarchia:
 1. Costituzione
 2. Regolamenti UE
 3. Direttive UE (+ D.Lgs. recepimento)
@@ -29,17 +29,17 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 ### 3. Giurisprudenza
 
-`legal-it:cerca_brocardi` per massime. `legal-it:cerca_giurisprudenza` per approfondimento.
+`cerca_brocardi` per massime. `cerca_giurisprudenza` per approfondimento.
 
 ### 4. Fonti autorita vigilanza
 
-- Finanza/mercati: `legal-it:cerca_delibere_consob`
-- Privacy: `legal-it:cerca_provvedimenti_garante`
+- Finanza/mercati: `cerca_delibere_consob`
+- Privacy: `cerca_provvedimenti_garante`
 
 ## Tool utilizzati
 
-- `legal-it:cite_law` (obbligatorio)
-- `legal-it:cerca_brocardi`
-- `legal-it:cerca_giurisprudenza`
-- `legal-it:cerca_delibere_consob`
-- `legal-it:cerca_provvedimenti_garante`
+- `cite_law` (obbligatorio)
+- `cerca_brocardi`
+- `cerca_giurisprudenza`
+- `cerca_delibere_consob`
+- `cerca_provvedimenti_garante`

@@ -3,9 +3,9 @@ name: norma
 description: Cerca il testo vigente di un articolo di legge
 ---
 
-Usa `legal-it:cite_law` per cercare il testo vigente della norma richiesta dall'utente.
+Usa `cite_law` per cercare il testo vigente della norma richiesta dall'utente.
 
 Se l'utente ha specificato un riferimento (es. "art. 2043 c.c.", "art. 6 GDPR"), chiamalo direttamente.
 Se non ha specificato, chiedi quale norma vuole consultare.
 
-Dopo il testo, chiedi se vuole anche le annotazioni Brocardi (`legal-it:cerca_brocardi`) o la giurisprudenza collegata (`legal-it:giurisprudenza_su_norma`).
+Dopo il testo, chiedi se vuole anche le annotazioni Brocardi (`cerca_brocardi`) o la giurisprudenza collegata (`giurisprudenza_su_norma`).
