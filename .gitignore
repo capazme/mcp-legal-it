@@ -18,6 +18,9 @@ venv/
 dist/dxt-build/
 dist/plugin-build/
 
+# Local MCP config (dev machine — absolute paths)
+plugin/.mcp.local.json
+
 # Secrets
 *.pem
 *.key

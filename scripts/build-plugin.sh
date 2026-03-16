@@ -26,8 +26,8 @@ cp "$ROOT_DIR/plugin/settings.json" "$BUILD_DIR/"
 cp "$ROOT_DIR/plugin/start_server.sh" "$BUILD_DIR/"
 chmod +x "$BUILD_DIR/start_server.sh"
 
-# Use distributable .mcp.json (with ${CLAUDE_PLUGIN_ROOT} paths)
-cp "$ROOT_DIR/plugin/.mcp.dist.json" "$BUILD_DIR/.mcp.json"
+# .mcp.json is now portable (uses ${CLAUDE_PLUGIN_ROOT})
+cp "$ROOT_DIR/plugin/.mcp.json" "$BUILD_DIR/.mcp.json"
 
 # Bundle the MCP server inside plugin/server/
 mkdir -p "$BUILD_DIR/server"
