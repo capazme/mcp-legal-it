@@ -13,21 +13,21 @@ Testo, ratio, giurisprudenza e collegamenti per un articolo di legge.
 
 ### 1. Testo vigente
 
-Chiama `cite_law` con il riferimento normativo. Se modificato, recupera anche la versione precedente.
+Chiama `legal-it:cite_law` con il riferimento normativo. Se modificato, recupera anche la versione precedente.
 
 ### 2. Annotazioni e giurisprudenza
 
-Chiama `cerca_brocardi` per:
+Chiama `legal-it:cerca_brocardi` per:
 - Ratio legis
 - Spiegazione dottrinale
 - Massime giurisprudenziali
 - Casistica applicativa
 
-I riferimenti Cassazione nelle massime possono essere letti con `leggi_sentenza`.
+I riferimenti Cassazione nelle massime possono essere letti con `legal-it:leggi_sentenza`.
 
 ### 3. Norme collegate
 
-Con `cite_law` recupera:
+Con `legal-it:cite_law` recupera:
 - Articoli precedenti/successivi (contesto sistematico)
 - Norme richiamate nel testo
 - Disposizioni di attuazione

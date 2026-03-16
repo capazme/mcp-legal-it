@@ -15,7 +15,7 @@ Italgiure contiene sentenze della Cassazione **dal 2020 in poi** (civile ~186K, 
 
 ### Passo 1 — Esplora
 
-Chiama `cerca_giurisprudenza` con `modalita="esplora"` per ottenere la distribuzione senza documenti:
+Chiama `legal-it:cerca_giurisprudenza` con `modalita="esplora"` per ottenere la distribuzione senza documenti:
 
 ```
 cerca_giurisprudenza(query="...", modalita="esplora")
@@ -48,7 +48,7 @@ Se i risultati sono ancora troppi, aggiungi filtri (anno, archivio) o usa `campo
 
 ### Passo 4 — Leggi le decisioni chiave
 
-Per le 2-4 decisioni piu' rilevanti, chiama `leggi_sentenza` con numero e anno.
+Per le 2-4 decisioni piu' rilevanti, chiama `legal-it:leggi_sentenza` con numero e anno.
 
 **Privilegia**:
 1. Sezioni Unite (risolvono contrasti)
@@ -57,22 +57,22 @@ Per le 2-4 decisioni piu' rilevanti, chiama `leggi_sentenza` con numero e anno.
 
 ### Passo 5 — Arricchisci con Brocardi
 
-Se il tema ruota attorno a un articolo specifico, chiama `cerca_brocardi` per:
+Se il tema ruota attorno a un articolo specifico, chiama `legal-it:cerca_brocardi` per:
 - Ratio legis e spiegazione dottrinale
 - Massime strutturate con riferimenti Cassazione
-- I riferimenti Cassazione nelle massime possono essere letti con `leggi_sentenza`
+- I riferimenti Cassazione nelle massime possono essere letti con `legal-it:leggi_sentenza`
 
 ### Passo 6 — Fondamento normativo
 
-Per le norme citate nelle sentenze: `cite_law` per il testo vigente. Mai citare norme a memoria.
+Per le norme citate nelle sentenze: `legal-it:cite_law` per il testo vigente. Mai citare norme a memoria.
 
 ### Passo 7 — Cross-reference fonti amministrative (se pertinente)
 
 Se il tema tocca **mercati finanziari** (insider trading, abusi di mercato, OPA, intermediari):
-- `cerca_delibere_consob(query="...")` per delibere e sanzioni CONSOB correlate
+- `legal-it:cerca_delibere_consob(query="...")` per delibere e sanzioni CONSOB correlate
 
 Se il tema tocca **protezione dati** (data breach, consenso, profilazione, sanzioni privacy):
-- `cerca_provvedimenti_garante(query="...")` per provvedimenti del Garante
+- `legal-it:cerca_provvedimenti_garante(query="...")` per provvedimenti del Garante
 
 ## Sintassi query Solr
 

@@ -14,15 +14,15 @@ Calcolo base, personalizzazione e attualizzazione.
 ### 1. Calcolo base
 
 **Biologico** (percentuale invalidita):
-- <= 9%: `danno_biologico_micro` (tabelle art. 139 CdA)
-- > 9%: `danno_biologico_macro` (tabelle Milano)
+- <= 9%: `legal-it:danno_biologico_micro` (tabelle art. 139 CdA)
+- > 9%: `legal-it:danno_biologico_macro` (tabelle Milano)
 
 **Patrimoniale** (importo):
 - Danno emergente + lucro cessante
-- `interessi_legali` dalla data evento
+- `legal-it:interessi_legali` dalla data evento
 
 **Morale/esistenziale**:
-- `danno_non_patrimoniale` come base
+- `legal-it:danno_non_patrimoniale` come base
 
 ### 2. Personalizzazione
 
@@ -30,5 +30,5 @@ Criteri Cass. SS.UU. 26972/2008: sofferenza soggettiva, vita di relazione, speci
 
 ### 3. Attualizzazione
 
-1. `rivalutazione_monetaria` dalla data evento
-2. `interessi_legali` sulla somma rivalutata
+1. `legal-it:rivalutazione_monetaria` dalla data evento
+2. `legal-it:interessi_legali` sulla somma rivalutata
