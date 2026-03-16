@@ -17,7 +17,7 @@ Ricerca Italgiure, lettura decisioni chiave, sintesi orientamenti.
 
 ### Fase 1 — Esplora la distribuzione
 
-Chiama `cerca_giurisprudenza` con `modalita="esplora"` per vedere quante decisioni esistono e come sono distribuite per materia, sezione, anno e tipo.
+Chiama `legal-it:cerca_giurisprudenza` con `modalita="esplora"` per vedere quante decisioni esistono e come sono distribuite per materia, sezione, anno e tipo.
 
 ```
 cerca_giurisprudenza(query="\"tema specifico\"", modalita="esplora")
@@ -39,7 +39,7 @@ cerca_giurisprudenza(
 )
 ```
 
-Se il tema riguarda una norma specifica, usa anche `giurisprudenza_su_norma`.
+Se il tema riguarda una norma specifica, usa anche `legal-it:giurisprudenza_su_norma`.
 
 Per cercare solo nel dispositivo (piu' preciso): `campo="dispositivo"`.
 
@@ -48,17 +48,17 @@ Per cercare solo nel dispositivo (piu' preciso): `campo="dispositivo"`.
 ### Fase 3 — Approfondimento
 
 Seleziona 2-4 decisioni significative (privilegia Sezioni Unite e sentenze recenti).
-Per ciascuna: `leggi_sentenza` con numero e anno.
+Per ciascuna: `legal-it:leggi_sentenza` con numero e anno.
 
 **Non fare web search per sentenze gia identificate.**
 
 ### Fase 4 — Annotazioni Brocardi
 
-Se il tema ruota attorno a un articolo specifico: `cerca_brocardi` per ratio legis, spiegazione e massime strutturate.
+Se il tema ruota attorno a un articolo specifico: `legal-it:cerca_brocardi` per ratio legis, spiegazione e massime strutturate.
 
 ### Fase 5 — Fondamento normativo
 
-Per le norme citate nelle decisioni: `cite_law` per testo vigente.
+Per le norme citate nelle decisioni: `legal-it:cite_law` per testo vigente.
 
 ### Fase 6 — Sintesi
 

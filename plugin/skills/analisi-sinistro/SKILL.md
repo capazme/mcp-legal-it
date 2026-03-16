@@ -15,14 +15,14 @@ Quantificazione completa del danno da sinistro stradale, sanitario o lavorativo.
 
 Determina lo strumento in base alla percentuale di invalidita:
 
-- **<= 9%**: chiama `danno_biologico_micro` (tabelle art. 139 CdA)
-- **> 9%**: chiama `danno_biologico_macro` (tabelle Milano)
+- **<= 9%**: chiama `legal-it:danno_biologico_micro` (tabelle art. 139 CdA)
+- **> 9%**: chiama `legal-it:danno_biologico_macro` (tabelle Milano)
 
 Parametri: `percentuale`, `eta`.
 
 ### 2. Danno non patrimoniale
 
-Chiama `danno_non_patrimoniale` per la componente morale/esistenziale.
+Chiama `legal-it:danno_non_patrimoniale` per la componente morale/esistenziale.
 
 Personalizza in base al tipo di sinistro:
 - **Stradale**: incidenza su mobilita, lavoro, sport
@@ -31,11 +31,11 @@ Personalizza in base al tipo di sinistro:
 
 ### 3. Rivalutazione monetaria
 
-Chiama `rivalutazione_monetaria` sugli importi dalla data del sinistro a oggi.
+Chiama `legal-it:rivalutazione_monetaria` sugli importi dalla data del sinistro a oggi.
 
 ### 4. Interessi legali
 
-Chiama `interessi_legali` sul capitale rivalutato, dalla data del sinistro a oggi.
+Chiama `legal-it:interessi_legali` sul capitale rivalutato, dalla data del sinistro a oggi.
 
 ## Output atteso
 
