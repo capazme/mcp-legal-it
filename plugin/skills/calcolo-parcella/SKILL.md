@@ -15,14 +15,14 @@ Compenso avvocato D.M. 55/2014 con nota spese.
 
 | Tipo | Tool |
 |------|------|
-| Civile | `parcella_avvocato_civile` |
-| Penale | `parcella_avvocato_penale` |
-| Stragiudiziale | `parcella_stragiudiziale` |
-| Vol. giurisdizione | `parcella_volontaria_giurisdizione` |
+| Civile | `legal-it:parcella_avvocato_civile` |
+| Penale | `legal-it:parcella_avvocato_penale` |
+| Stragiudiziale | `legal-it:parcella_stragiudiziale` |
+| Vol. giurisdizione | `legal-it:parcella_volontaria_giurisdizione` |
 
 ### 2. Nota spese
 
-Chiama `nota_spese` per il prospetto: compenso per fase, spese generali (15%), CPA (4%), IVA (22%).
+Chiama `legal-it:nota_spese` per il prospetto: compenso per fase, spese generali (15%), CPA (4%), IVA (22%).
 
 ## Output atteso
 

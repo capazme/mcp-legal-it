@@ -13,11 +13,11 @@ Pianificazione completa: costi, scadenze, preventivo.
 
 ### 1. Contributo unificato
 
-Chiama `contributo_unificato` con valore, rito e grado.
+Chiama `legal-it:contributo_unificato` con valore, rito e grado.
 
 ### 2. Scadenze processuali
 
-Chiama `scadenza_processuale` per i termini in base al rito:
+Chiama `legal-it:scadenza_processuale` per i termini in base al rito:
 - **Ordinario**: comparsa risposta (70gg), memorie art. 171-ter c.p.c.
 - **Sommario**: costituzione resistente, mutamento rito
 - **Lavoro**: ricorso, memoria difensiva
@@ -26,13 +26,13 @@ Sospensione feriale: 1-31 agosto.
 
 ### 3. Impugnazioni
 
-Chiama `scadenze_impugnazioni`:
+Chiama `legal-it:scadenze_impugnazioni`:
 - Primo -> appello: 30gg (breve) / 6 mesi (lungo)
 - Appello -> cassazione: 60gg (breve) / 6 mesi (lungo)
 
 ### 4. Preventivo
 
-Chiama `preventivo_civile` con range compenso per fase.
+Chiama `legal-it:preventivo_civile` con range compenso per fase.
 
 ## Note
 - Mediazione obbligatoria (D.Lgs. 28/2010)
