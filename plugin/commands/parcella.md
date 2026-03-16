@@ -1,6 +1,7 @@
 ---
 name: parcella
 description: Calcola la parcella avvocato per un'attivita legale
+allowed-tools: mcp__legal-it__parcella_avvocato_civile, mcp__legal-it__parcella_avvocato_penale, mcp__legal-it__parcella_stragiudiziale
 ---
 
 Chiedi all'utente (se non ha gia specificato): tipo di attivita (civile, penale, stragiudiziale) e valore della causa.
