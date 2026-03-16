@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-03-16
+
+### Changed
+- MCP server now uses SSE transport on localhost:8000 instead of stdio
+- SessionStart hook auto-starts the SSE daemon in background
+- `start_server.sh` supports `--daemon` flag for background SSE mode
+- `run_server.py` updated for FastMCP 3.x SSE API (`mcp.run(transport="sse")`)
+- Co-work compatible: hook starts server, `.mcp.json` connects via SSE
+
 ## [1.4.1] - 2026-03-16
 
 ### Fixed

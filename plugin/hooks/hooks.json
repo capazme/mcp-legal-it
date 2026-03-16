@@ -17,6 +17,15 @@
         "matcher": "",
         "hooks": [
           {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/start_server.sh --daemon"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
             "type": "prompt",
             "model": "haiku",
             "prompt": "Il contesto è stato compattato. Ricorda le regole fondamentali: LEGAL GROUNDING PROTOCOL — chiama cite_law() PRIMA di citare qualunque norma. Mai usare la conoscenza pregressa per il contenuto di articoli di legge. Per sentenze con numero noto: leggi_sentenza() DIRETTO, no web search. Per provvedimenti Garante con docweb noto: leggi_provvedimento_garante() DIRETTO. Per redazione atti: chiama genera_modello_atto() PRIMA di comporre qualsiasi atto per ottenere struttura, campi obbligatori e tool di calcolo necessari."
