@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml .
 RUN pip install --no-cache-dir .
 
-COPY src/ src/
-COPY run_server.py .
+COPY plugin/server/src/ src/
+COPY plugin/server/run_server.py .
 
 ENV LEGAL_PROFILE=full
 ENV MCP_TRANSPORT=sse
