@@ -1,19 +1,31 @@
 {
   "name": "legal-it",
   "version": "1.3.0",
-  "description": "Plugin legale italiano completo: 166 tool di calcolo, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), CONSOB, compliance GDPR, generazione atti (100 tipi). 19 skill tool-aware, 8 slash command, 5 agenti specializzati.",
+  "description": "Plugin legale italiano completo: 166 tool di calcolo, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), CONSOB, compliance GDPR, generazione atti (100 tipi). 19 skill, 8 slash command, 5 agenti specializzati.",
   "author": {
-    "name": "capazme"
+    "name": "capazme",
+    "url": "https://github.com/capazme"
   },
   "homepage": "https://github.com/capazme/mcp-legal-it",
-  "repository": "https://github.com/capazme/mcp-legal-it",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/capazme/mcp-legal-it.git"
+  },
   "license": "MIT",
   "keywords": [
     "legal",
     "italian-law",
-    "GDPR",
+    "diritto-italiano",
     "normattiva",
     "cassazione",
+    "italgiure",
+    "brocardi",
+    "consob",
+    "gdpr",
     "avvocato"
-  ]
+  ],
+  "commands": "./commands",
+  "agents": "./agents",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
 }
