@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.8] - 2026-03-16
+
+### Fixed
+- Restored `legal-it:` prefix on tool names in skill/agent/command body text — Claude Desktop needs the MCP server prefix to resolve tools correctly
+- v1.3.6 removal of prefix caused "No such tool available" errors; ToolSearch with prefix is cosmetic only (tools still work)
+- Combined with v1.3.7 frontmatter (`allowed-tools`, `argument-hint`, `description`) for optimal behavior
+
 ## [1.3.7] - 2026-03-16
 
 ### Fixed
