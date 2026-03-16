@@ -1,6 +1,8 @@
 ---
 name: recupero-credito
 description: Workflow completo per recupero crediti insoluti con calcolo interessi di mora, rivalutazione ISTAT, predisposizione decreto ingiuntivo e parcella avvocato. Usa quando l'utente ha un credito da recuperare, una fattura non pagata, chiede interessi di mora o vuole procedere con decreto ingiuntivo.
+argument-hint: "[importo] [data scadenza] [tipo debitore]"
+allowed-tools: mcp__legal-it__interessi_mora, mcp__legal-it__rivalutazione_monetaria, mcp__legal-it__decreto_ingiuntivo, mcp__legal-it__parcella_avvocato_civile
 ---
 
 # Recupero Credito
@@ -29,10 +31,3 @@ Chiama `decreto_ingiuntivo`: competenza, CU, requisiti, provvisoria esecutivita.
 ### 4. Parcella
 
 Chiama `parcella_avvocato_civile` per fase monitoria.
-
-## Tool utilizzati
-
-- `interessi_mora`
-- `rivalutazione_monetaria`
-- `decreto_ingiuntivo`
-- `parcella_avvocato_civile`

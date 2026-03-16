@@ -1,6 +1,7 @@
 ---
 name: codice-fiscale
 description: Calcola o decodifica un codice fiscale
+allowed-tools: mcp__legal-it__codice_fiscale, mcp__legal-it__decodifica_codice_fiscale
 ---
 
 In base alla richiesta:

@@ -1,6 +1,8 @@
 ---
 name: pianificazione-successione
 description: Pianifica una successione ereditaria con calcolo quote legittime, imposte di successione, franchigie e adempimenti. Usa quando l'utente chiede di calcolare quote ereditarie, imposte successione, eredita, testamento, franchigia o donazione.
+argument-hint: "[valore asse] [eredi] [grado parentela]"
+allowed-tools: mcp__legal-it__calcolo_eredita, mcp__legal-it__imposte_successione, mcp__legal-it__imposte_compravendita, mcp__legal-it__grado_parentela
 ---
 
 # Pianificazione Successione
@@ -29,10 +31,3 @@ Chiama `imposte_compravendita`.
 - Dichiarazione successione: entro 12 mesi
 - Voltura catastale: entro 30 giorni
 - Accettazione eredita: con beneficio d'inventario se opportuno
-
-## Tool utilizzati
-
-- `calcolo_eredita`
-- `imposte_successione`
-- `imposte_compravendita`
-- `grado_parentela`

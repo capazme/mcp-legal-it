@@ -1,6 +1,8 @@
 ---
 name: novita-consob
 description: Riepilogo delle ultime delibere e provvedimenti CONSOB con sintesi orientamenti per tipologia o argomento. Usa quando l'utente chiede le ultime novita CONSOB, delibere recenti, aggiornamenti sui mercati finanziari o provvedimenti recenti dell'autorita di vigilanza.
+argument-hint: "[tipologia o argomento opzionale]"
+allowed-tools: mcp__legal-it__ultime_delibere_consob, mcp__legal-it__leggi_delibera_consob, mcp__legal-it__cite_law
 ---
 
 # Novita CONSOB
@@ -34,9 +36,3 @@ Tendenze emergenti dai provvedimenti recenti.
 
 ### Tendenze e indicazioni
 Sintesi orientamenti dalle delibere piu recenti.
-
-## Tool utilizzati
-
-- `ultime_delibere_consob`
-- `leggi_delibera_consob`
-- `cite_law`

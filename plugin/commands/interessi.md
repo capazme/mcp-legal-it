@@ -1,6 +1,7 @@
 ---
 name: interessi
 description: Calcola interessi legali o di mora su un importo
+allowed-tools: mcp__legal-it__interessi_legali, mcp__legal-it__interessi_mora, mcp__legal-it__rivalutazione_monetaria
 ---
 
 Chiedi all'utente (se non ha gia specificato): importo, data decorrenza, tipo (legale o mora commerciale).
