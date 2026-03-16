@@ -11,7 +11,7 @@ Calcolo termine prescrizione civile o penale.
 
 ### Civile
 
-Chiama `legal-it:prescrizione_diritti`:
+Chiama `prescrizione_diritti`:
 - **10 anni**: ordinario (art. 2946 c.c.)
 - **5 anni**: risarcimento (art. 2947)
 - **2 anni**: assicurazione (art. 2952)
@@ -20,7 +20,7 @@ Verifica sospensione (artt. 2941-2942) e interruzione (art. 2943).
 
 ### Penale
 
-Chiama `legal-it:prescrizione_reato`:
+Chiama `prescrizione_reato`:
 - Termine = massimo edittale (min 6 anni delitto, 4 contravvenzione)
 - Sospensione (art. 159 c.p.) e interruzione (art. 160 c.p.)
 - Riforma Cartabia: improcedibilita in appello/cassazione
@@ -29,6 +29,6 @@ Chiama `legal-it:prescrizione_reato`:
 
 ## Tool utilizzati
 
-- `legal-it:prescrizione_diritti` (civile)
-- `legal-it:prescrizione_reato` (penale)
-- `legal-it:cite_law` (norme sulla prescrizione)
+- `prescrizione_diritti` (civile)
+- `prescrizione_reato` (penale)
+- `cite_law` (norme sulla prescrizione)

@@ -11,18 +11,18 @@ Quote ereditarie, imposte e adempimenti.
 
 ### 1. Quote ereditarie
 
-Chiama `legal-it:calcolo_eredita` con valore_asse, grado_parentela, numero_eredi.
+Chiama `calcolo_eredita` con valore_asse, grado_parentela, numero_eredi.
 
 ### 2. Imposte di successione
 
-Chiama `legal-it:imposte_successione`:
+Chiama `imposte_successione`:
 - Aliquota per grado di parentela
 - Franchigia (1M coniuge/figli, 100K fratelli)
 - Imposte ipotecaria (2%) e catastale (1%) se immobili
 
 ### 3. Imposte compravendita (se immobili da vendere)
 
-Chiama `legal-it:imposte_compravendita`.
+Chiama `imposte_compravendita`.
 
 ## Adempimenti da indicare
 
@@ -32,7 +32,7 @@ Chiama `legal-it:imposte_compravendita`.
 
 ## Tool utilizzati
 
-- `legal-it:calcolo_eredita`
-- `legal-it:imposte_successione`
-- `legal-it:imposte_compravendita`
-- `legal-it:grado_parentela`
+- `calcolo_eredita`
+- `imposte_successione`
+- `imposte_compravendita`
+- `grado_parentela`

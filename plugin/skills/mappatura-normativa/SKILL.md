@@ -11,7 +11,7 @@ Mappa completa delle fonti per settore/attivita, organizzata per gerarchia.
 
 ### 1. Fonti per livello
 
-Per ogni livello, chiama `legal-it:cite_law` su ogni articolo fondamentale:
+Per ogni livello, chiama `cite_law` su ogni articolo fondamentale:
 1. **Costituzione** — articoli rilevanti
 2. **UE** — regolamenti e direttive con D.Lgs. di recepimento
 3. **Nazionale** — codici, testi unici, leggi, D.Lgs.
@@ -19,8 +19,8 @@ Per ogni livello, chiama `legal-it:cite_law` su ogni articolo fondamentale:
 
 ### 2. Fonti autorita vigilanza
 
-- Settori finanziari: `legal-it:cerca_delibere_consob`
-- Privacy: `legal-it:cerca_provvedimenti_garante`
+- Settori finanziari: `cerca_delibere_consob`
+- Privacy: `cerca_provvedimenti_garante`
 
 ### 3. Matrice adempimenti
 
@@ -30,7 +30,7 @@ Per ogni livello, chiama `legal-it:cite_law` su ogni articolo fondamentale:
 
 ## Tool utilizzati
 
-- `legal-it:cite_law` (obbligatorio)
-- `legal-it:cerca_delibere_consob`
-- `legal-it:cerca_provvedimenti_garante`
-- `legal-it:cerca_brocardi`
+- `cite_law` (obbligatorio)
+- `cerca_delibere_consob`
+- `cerca_provvedimenti_garante`
+- `cerca_brocardi`
