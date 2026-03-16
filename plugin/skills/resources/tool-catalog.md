@@ -139,6 +139,19 @@ Reference completa dei tool disponibili. Ogni skill carica solo questa sezione s
 | `legal-it:valutazione_data_breach` | Valutazione rischio breach |
 | `legal-it:calcolo_sanzione_gdpr` | Stima sanzioni art. 83 GDPR |
 
+## Redazione Atti (100 tipi)
+| Tool | Uso |
+|------|-----|
+| `legal-it:genera_modello_atto` | **ENTRY POINT** — metadati, campi, routing per qualsiasi tipo di atto. Usare `tipo_atto="catalogo"` per elenco completo, `tipo_atto="cerca"` con `parametri={"query": "..."}` per ricerca |
+| `legal-it:lista_categorie_atti` | Elenco categorie (atti_introduttivi, esecuzione, notifiche, attestazioni, procure, stragiudiziale, istanze, pct, preventivi, privacy) con conteggio |
+| `legal-it:decreto_ingiuntivo` | DI con tipo_credito: ordinario, professionale, condominiale, cambiale |
+| `legal-it:atto_di_precetto` | Precetto con interessi |
+| `legal-it:sfratto_morosita` | Sfratto con calcolo canoni |
+| `legal-it:procura_alle_liti` | Procura: generale, speciale, appello |
+| `legal-it:attestazione_conformita` | Attestazione PCT: estratto, copia_informatica, duplicato |
+| `legal-it:relata_notifica_pec` | Relata PEC generica |
+| `legal-it:sollecito_pagamento` | Sollecito/messa in mora |
+
 ## Utilita
 | Tool | Uso |
 |------|-----|
