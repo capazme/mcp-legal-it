@@ -1,6 +1,7 @@
 ---
 name: privacy
 description: Genera documenti GDPR (informativa, DPA, DPIA, registro trattamenti)
+allowed-tools: mcp__legal-it__genera_informativa_privacy, mcp__legal-it__genera_informativa_cookie, mcp__legal-it__genera_informativa_dipendenti, mcp__legal-it__genera_informativa_videosorveglianza, mcp__legal-it__genera_dpa, mcp__legal-it__genera_registro_trattamenti, mcp__legal-it__genera_dpia, mcp__legal-it__verifica_necessita_dpia, mcp__legal-it__analisi_base_giuridica, mcp__legal-it__cite_law
 ---
 
 In base alla richiesta:
