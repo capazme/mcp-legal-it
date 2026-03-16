@@ -17,14 +17,17 @@ echo "==> Building Desktop Extension v${VERSION} (UV runtime)"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR" "$DIST_DIR"
 
-# Copy manifest and pyproject.toml (UV reads deps from here)
+# Copy manifest
 cp "$ROOT_DIR/dxt/manifest.json" "$BUILD_DIR/"
 cp "$ROOT_DIR/dxt/.mcpbignore" "$BUILD_DIR/"
 cp "$ROOT_DIR/pyproject.toml" "$BUILD_DIR/"
 
-# Copy server source from plugin/server/
-cp "$ROOT_DIR/plugin/server/run_server.py" "$BUILD_DIR/"
-cp -r "$ROOT_DIR/plugin/server/src" "$BUILD_DIR/src"
+# Copy start_server.sh (bootstrap script that creates venv + installs deps)
+cp "$ROOT_DIR/plugin/start_server.sh" "$BUILD_DIR/"
+chmod +x "$BUILD_DIR/start_server.sh"
+
+# Copy server source into server/ subdir (matches start_server.sh expectations)
+cp -r "$ROOT_DIR/plugin/server" "$BUILD_DIR/server"
 
 # Clean __pycache__ from copied source
 find "$BUILD_DIR" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
