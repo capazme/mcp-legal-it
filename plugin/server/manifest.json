@@ -1,0 +1,27 @@
+{
+  "manifest_version": "0.4",
+  "name": "mcp-legal-it",
+  "display_name": "Legal IT — Diritto Italiano",
+  "version": "2.0.0",
+  "description": "166 tool di calcolo legale italiano, consultazione normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), delibere CONSOB e compliance GDPR.",
+  "author": {
+    "name": "capazme",
+    "url": "https://github.com/capazme"
+  },
+  "server": {
+    "type": "uv",
+    "entry_point": "src/__main__.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "python", "-m", "src"]
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  },
+  "keywords": ["legal", "italian-law", "GDPR", "normattiva", "cassazione", "avvocato"],
+  "license": "MIT"
+}
