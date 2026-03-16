@@ -26,6 +26,13 @@ transport = os.environ.get("MCP_TRANSPORT", "stdio")
 if transport == "sse":
     host = os.environ.get("MCP_HOST", "0.0.0.0")
     port = int(os.environ.get("MCP_PORT", "8000"))
-    mcp.run(transport="sse", host=host, port=port)
+    ssl_cert = os.environ.get("MCP_SSL_CERT")
+    ssl_key = os.environ.get("MCP_SSL_KEY")
+    if ssl_cert and ssl_key:
+        import uvicorn
+        app = mcp.http_app(transport="sse")
+        uvicorn.run(app, host=host, port=port, ssl_certfile=ssl_cert, ssl_keyfile=ssl_key)
+    else:
+        mcp.run(transport="sse", host=host, port=port)
 else:
     mcp.run(transport="stdio")

@@ -2,7 +2,7 @@
   "mcpServers": {
     "legal-it": {
       "type": "sse",
-      "url": "http://localhost:8000/sse"
+      "url": "https://localhost:8000/sse"
     }
   }
 }
