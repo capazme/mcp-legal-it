@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-16
+
+### Changed
+- **BREAKING**: Plugin no longer bundles MCP server — install DXT extension (.mcpb) separately for the 166 tools
+- Removed `.mcp.json` from plugin (no more "server MCP locali" dialog in Co-work)
+- Removed `ensure-desktop-server.sh` hook (MCP setup now handled by DXT)
+- Plugin provides: 19 skills, 8 commands, 5 agents, hooks (Legal Grounding Protocol)
+- DXT provides: 166 MCP tools, 16 prompts, 10 resources
+
 ## [1.6.1] - 2026-03-16
 
 ### Fixed
