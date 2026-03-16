@@ -15,10 +15,10 @@ Ricerca Italgiure, lettura decisioni chiave, sintesi orientamenti.
 
 ### Fase 1 — Esplora la distribuzione
 
-Chiama `legal-it:cerca_giurisprudenza` con `modalita="esplora"` per vedere quante decisioni esistono e come sono distribuite per materia, sezione, anno e tipo.
+Chiama `cerca_giurisprudenza` con `modalita="esplora"` per vedere quante decisioni esistono e come sono distribuite per materia, sezione, anno e tipo.
 
 ```
-legal-it:cerca_giurisprudenza(query="\"tema specifico\"", modalita="esplora")
+cerca_giurisprudenza(query="\"tema specifico\"", modalita="esplora")
 ```
 
 **Usa virgolette** per frasi esatte (es. `"responsabilita' medica"` non `responsabilita' medica`).
@@ -28,7 +28,7 @@ legal-it:cerca_giurisprudenza(query="\"tema specifico\"", modalita="esplora")
 In base ai facets del Passo 1, applica filtri per restringere i risultati:
 
 ```
-legal-it:cerca_giurisprudenza(
+cerca_giurisprudenza(
     query="\"tema specifico\"",
     materia="...",
     sezione="...",
@@ -37,7 +37,7 @@ legal-it:cerca_giurisprudenza(
 )
 ```
 
-Se il tema riguarda una norma specifica, usa anche `legal-it:giurisprudenza_su_norma`.
+Se il tema riguarda una norma specifica, usa anche `giurisprudenza_su_norma`.
 
 Per cercare solo nel dispositivo (piu' preciso): `campo="dispositivo"`.
 
@@ -46,17 +46,17 @@ Per cercare solo nel dispositivo (piu' preciso): `campo="dispositivo"`.
 ### Fase 3 — Approfondimento
 
 Seleziona 2-4 decisioni significative (privilegia Sezioni Unite e sentenze recenti).
-Per ciascuna: `legal-it:leggi_sentenza` con numero e anno.
+Per ciascuna: `leggi_sentenza` con numero e anno.
 
 **Non fare web search per sentenze gia identificate.**
 
 ### Fase 4 — Annotazioni Brocardi
 
-Se il tema ruota attorno a un articolo specifico: `legal-it:cerca_brocardi` per ratio legis, spiegazione e massime strutturate.
+Se il tema ruota attorno a un articolo specifico: `cerca_brocardi` per ratio legis, spiegazione e massime strutturate.
 
 ### Fase 5 — Fondamento normativo
 
-Per le norme citate nelle decisioni: `legal-it:cite_law` per testo vigente.
+Per le norme citate nelle decisioni: `cite_law` per testo vigente.
 
 ### Fase 6 — Sintesi
 
@@ -69,8 +69,8 @@ Per le norme citate nelle decisioni: `legal-it:cite_law` per testo vigente.
 
 ## Tool utilizzati
 
-- `legal-it:cerca_giurisprudenza` (ricerca full-text — supporta `modalita="esplora"` e `campo="dispositivo"`)
-- `legal-it:giurisprudenza_su_norma` (sentenze su norma)
-- `legal-it:leggi_sentenza` (testo completo)
-- `legal-it:cerca_brocardi` (annotazioni e massime)
-- `legal-it:cite_law` (norme citate)
+- `cerca_giurisprudenza` (ricerca full-text — supporta `modalita="esplora"` e `campo="dispositivo"`)
+- `giurisprudenza_su_norma` (sentenze su norma)
+- `leggi_sentenza` (testo completo)
+- `cerca_brocardi` (annotazioni e massime)
+- `cite_law` (norme citate)

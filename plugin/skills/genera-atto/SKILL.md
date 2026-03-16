@@ -13,9 +13,9 @@ Workflow guidato per la redazione di atti legali italiani. Copre 100 tipi di doc
 
 Determina il tipo di atto richiesto:
 
-- Se l'utente specifica un atto → chiama `legal-it:genera_modello_atto(tipo_atto="nome_specifico")`
-- Se l'utente descrive una situazione → chiama `legal-it:genera_modello_atto(tipo_atto="cerca", parametri={"query": "termine"})`
-- Se l'utente vuole esplorare → chiama `legal-it:lista_categorie_atti()` e poi `legal-it:genera_modello_atto(tipo_atto="catalogo")`
+- Se l'utente specifica un atto → chiama `genera_modello_atto(tipo_atto="nome_specifico")`
+- Se l'utente descrive una situazione → chiama `genera_modello_atto(tipo_atto="cerca", parametri={"query": "termine"})`
+- Se l'utente vuole esplorare → chiama `lista_categorie_atti()` e poi `genera_modello_atto(tipo_atto="catalogo")`
 
 ### 2. Raccolta dati
 
@@ -45,7 +45,7 @@ Usa il tool suggerito nelle `istruzioni` come approssimazione.
 
 ### 5. Verifica norme
 
-Per ogni norma citata nell'atto, chiama `legal-it:cite_law` per verificare il testo vigente.
+Per ogni norma citata nell'atto, chiama `cite_law` per verificare il testo vigente.
 
 ### 6. Output
 
@@ -74,8 +74,8 @@ Presenta l'atto completo con:
 
 ## Tool utilizzati
 
-- `legal-it:genera_modello_atto` — entry point, metadati e routing
-- `legal-it:lista_categorie_atti` — panoramica categorie
-- `legal-it:cite_law` — verifica norme
+- `genera_modello_atto` — entry point, metadati e routing
+- `lista_categorie_atti` — panoramica categorie
+- `cite_law` — verifica norme
 - Tool di calcolo specifici per tipo atto (CU, interessi, parcelle, scadenze)
 - Tool di generazione atti (decreto_ingiuntivo, precetto, procura, relata, etc.)

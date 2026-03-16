@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.6] - 2026-03-16
+
+### Fixed
+- Removed `legal-it:` prefix from all tool references in skills, commands, and agents
+- Tool references like `legal-it:cite_law` triggered ToolSearch in newer Claude Desktop versions, causing "No matching deferred tools found"
+- Reverted to bare function names (`cite_law`, `cerca_giurisprudenza`, etc.) which Claude resolves directly to MCP tools
+
 ## [1.1.1] - 2026-03-15
 
 ### Fixed

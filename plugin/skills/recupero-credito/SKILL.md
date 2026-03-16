@@ -11,28 +11,28 @@ Workflow completo: interessi mora, rivalutazione, decreto ingiuntivo, parcella.
 
 ### 1. Interessi di mora
 
-Chiama `legal-it:interessi_mora` con importo e data_decorrenza.
+Chiama `interessi_mora` con importo e data_decorrenza.
 
 - **Commerciale**: tasso BCE + 8 punti (D.Lgs. 231/2002)
 - **Privato**: tasso legale art. 1284 c.c.
 
 ### 2. Rivalutazione monetaria
 
-Chiama `legal-it:rivalutazione_monetaria`.
+Chiama `rivalutazione_monetaria`.
 
 **Nota**: mora e rivalutazione NON si cumulano (Cass. SS.UU. 16601/2017). Presenta entrambi, indica il piu favorevole.
 
 ### 3. Decreto ingiuntivo
 
-Chiama `legal-it:decreto_ingiuntivo`: competenza, CU, requisiti, provvisoria esecutivita.
+Chiama `decreto_ingiuntivo`: competenza, CU, requisiti, provvisoria esecutivita.
 
 ### 4. Parcella
 
-Chiama `legal-it:parcella_avvocato_civile` per fase monitoria.
+Chiama `parcella_avvocato_civile` per fase monitoria.
 
 ## Tool utilizzati
 
-- `legal-it:interessi_mora`
-- `legal-it:rivalutazione_monetaria`
-- `legal-it:decreto_ingiuntivo`
-- `legal-it:parcella_avvocato_civile`
+- `interessi_mora`
+- `rivalutazione_monetaria`
+- `decreto_ingiuntivo`
+- `parcella_avvocato_civile`
