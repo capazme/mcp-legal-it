@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.1",
   "name": "legal-it",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "display_name": "Legal IT — Diritto Italiano",
   "description": "166 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), delibere CONSOB, compliance GDPR e generazione atti (100 tipi).",
   "long_description": "Server MCP completo per il diritto italiano. Include: calcoli rivalutazione/interessi, scadenze processuali, parcelle avvocati, risarcimento danni, decreto ingiuntivo, IRPEF/TFR, successioni, codice fiscale, privacy GDPR. Consultazione normativa da Normattiva e EUR-Lex, giurisprudenza di Cassazione da Italgiure, annotazioni da Brocardi, delibere CONSOB.",
