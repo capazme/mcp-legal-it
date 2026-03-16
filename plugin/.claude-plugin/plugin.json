@@ -1,6 +1,6 @@
 {
   "name": "legal-it",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Plugin legale italiano completo: 166 tool di calcolo, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione/Italgiure), CONSOB, compliance GDPR, generazione atti (100 tipi). 19 skill, 8 slash command, 5 agenti specializzati.",
   "author": {
     "name": "capazme"
