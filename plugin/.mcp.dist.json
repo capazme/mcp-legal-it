@@ -3,8 +3,7 @@
     "legal-it": {
       "command": "bash",
       "args": [
-        "-c",
-        "cd \"${CLAUDE_PLUGIN_ROOT}/server\" && pip install -q -e . 2>/dev/null; python run_server.py"
+        "${CLAUDE_PLUGIN_ROOT}/start_server.sh"
       ],
       "env": {
         "MCP_CACHE_DIR": "${HOME}/.cache/mcp-legal-it",
