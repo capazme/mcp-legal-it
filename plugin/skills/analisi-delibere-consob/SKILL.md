@@ -13,13 +13,13 @@ Ricerca, lettura e analisi delibere/provvedimenti CONSOB.
 
 ### 1. Ricerca delibere
 
-Chiama `cerca_delibere_consob` con query e filtri (tipologia, argomento, date).
+Chiama `legal-it:cerca_delibere_consob` con query e filtri (tipologia, argomento, date).
 Se il tema e ampio, esegui piu ricerche con query diverse.
 
 ### 2. Lettura delibere chiave
 
 Seleziona 2-3 delibere significative.
-Per ciascuna: `leggi_delibera_consob` con numero.
+Per ciascuna: `legal-it:leggi_delibera_consob` con numero.
 
 Privilegia:
 - Delibere recenti (ultimo biennio)
@@ -27,7 +27,7 @@ Privilegia:
 
 ### 3. Quadro normativo
 
-Per le norme richiamate: `cite_law`.
+Per le norme richiamate: `legal-it:cite_law`.
 
 Fonti tipiche:
 - TUF (D.Lgs. 58/1998)
@@ -39,7 +39,7 @@ Fonti tipiche:
 
 ### 4. Giurisprudenza (se pertinente)
 
-Chiama `cerca_giurisprudenza` per verificare sentenze correlate.
+Chiama `legal-it:cerca_giurisprudenza` per verificare sentenze correlate.
 
 ## Output atteso
 

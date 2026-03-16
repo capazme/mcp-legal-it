@@ -6,8 +6,8 @@ allowed-tools: mcp__legal-it__interessi_legali, mcp__legal-it__interessi_mora, m
 
 Chiedi all'utente (se non ha gia specificato): importo, data decorrenza, tipo (legale o mora commerciale).
 
-- **Interessi legali**: Usa `interessi_legali` con importo e data_decorrenza.
-- **Interessi di mora commerciale**: Usa `interessi_mora` (tasso BCE + 8 punti, D.Lgs. 231/2002).
-- **Rivalutazione monetaria**: Se utile, calcola anche con `rivalutazione_monetaria`.
+- **Interessi legali**: Usa `legal-it:interessi_legali` con importo e data_decorrenza.
+- **Interessi di mora commerciale**: Usa `legal-it:interessi_mora` (tasso BCE + 8 punti, D.Lgs. 231/2002).
+- **Rivalutazione monetaria**: Se utile, calcola anche con `legal-it:rivalutazione_monetaria`.
 
 Nota: interessi di mora e rivalutazione NON si cumulano (Cass. SS.UU. 16601/2017). Presenta entrambi indicando quale e piu favorevole.
