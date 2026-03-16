@@ -1,6 +1,8 @@
 ---
 name: ricerca-normativa
 description: Ricerca normativa completa su un tema giuridico con tutte le fonti applicabili ordinate per gerarchia, giurisprudenza e quadro sanzionatorio. Usa quando l'utente chiede quali norme si applicano, il quadro normativo di un settore, le fonti di una materia o una ricerca legislativa.
+argument-hint: "[tema giuridico]"
+allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__legal-it__cerca_giurisprudenza, mcp__legal-it__cerca_delibere_consob, mcp__legal-it__cerca_provvedimenti_garante
 ---
 
 # Ricerca Normativa
@@ -35,11 +37,3 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 - Finanza/mercati: `cerca_delibere_consob`
 - Privacy: `cerca_provvedimenti_garante`
-
-## Tool utilizzati
-
-- `cite_law` (obbligatorio)
-- `cerca_brocardi`
-- `cerca_giurisprudenza`
-- `cerca_delibere_consob`
-- `cerca_provvedimenti_garante`

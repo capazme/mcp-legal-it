@@ -1,6 +1,7 @@
 ---
 name: sentenza
 description: Leggi il testo integrale di una sentenza di Cassazione
+allowed-tools: mcp__legal-it__leggi_sentenza
 ---
 
 Usa `leggi_sentenza` per recuperare il testo integrale della sentenza.

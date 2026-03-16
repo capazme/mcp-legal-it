@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.7] - 2026-03-16
+
+### Fixed
+- Added `allowed-tools` frontmatter to all 19 skills and 8 commands — pre-authorizes MCP tools, prevents ToolSearch lookups
+- Added `argument-hint` frontmatter to all 18 skills missing it (restored from v1.0.2)
+- Added `description` frontmatter to all 5 agents — enables proper delegation routing
+- Removed `## Tool utilizzati` / `## Tool principali` / `## Tool disponibili` sections from skills and agents — these caused ToolSearch triggers when Claude parsed tool names in body text
+
 ## [1.3.6] - 2026-03-16
 
 ### Fixed
