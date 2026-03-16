@@ -18,15 +18,15 @@ Identifica:
 
 ## Step 2 — Verifica normativa
 Per OGNI norma che intendi citare nel parere:
-1. Chiama `legal-it:cite_law` con il riferimento (es. "art. X legge Y") per ottenere il testo vigente
-2. Se serve approfondimento dottrinale: chiama `legal-it:cerca_brocardi`
+1. Chiama `cite_law` con il riferimento (es. "art. X legge Y") per ottenere il testo vigente
+2. Se serve approfondimento dottrinale: chiama `cerca_brocardi`
 
-MAI citare una norma a memoria. Ogni citazione deve avere un `legal-it:cite_law` corrispondente.
+MAI citare una norma a memoria. Ogni citazione deve avere un `cite_law` corrispondente.
 
 ## Step 3 — Ricerca giurisprudenziale
 Per le questioni controverse o con orientamenti divergenti:
-1. Chiama `legal-it:cerca_giurisprudenza` con il tema specifico per trovare le sentenze rilevanti
-2. Per le top 2-3 sentenze piu pertinenti: chiama `legal-it:leggi_sentenza` con numero e anno per il testo integrale
+1. Chiama `cerca_giurisprudenza` con il tema specifico per trovare le sentenze rilevanti
+2. Per le top 2-3 sentenze piu pertinenti: chiama `leggi_sentenza` con numero e anno per il testo integrale
 3. Identifica l'orientamento prevalente (consolidato, in evoluzione, contrasto)
 
 ## Step 4 — Redazione del parere
@@ -37,9 +37,9 @@ Riassumi i fatti rilevanti come esposti dal cliente.
 
 ### DIRITTO
 Esponi il quadro normativo applicabile, citando:
-- Articoli di legge (con testo recuperato da `legal-it:cite_law`)
+- Articoli di legge (con testo recuperato da `cite_law`)
 - Principi giurisprudenziali (con numero e anno delle sentenze)
-- Dottrina rilevante (se emersa da `legal-it:cerca_brocardi`)
+- Dottrina rilevante (se emersa da `cerca_brocardi`)
 
 ### ANALISI
 Applica il diritto ai fatti:
@@ -53,7 +53,7 @@ Applica il diritto ai fatti:
 - Eventuali azioni da intraprendere con tempistiche
 
 ## Note
-- Ogni norma citata DEVE avere un `legal-it:cite_law` nel transcript
-- Ogni sentenza citata DEVE essere stata letta con `legal-it:leggi_sentenza`
+- Ogni norma citata DEVE avere un `cite_law` nel transcript
+- Ogni sentenza citata DEVE essere stata letta con `leggi_sentenza`
 - Segnalare chiaramente quando un'interpretazione è controversa
 - Distinguere tra orientamento consolidato e orientamento minoritario

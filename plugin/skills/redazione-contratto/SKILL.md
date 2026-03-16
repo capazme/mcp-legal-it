@@ -11,12 +11,12 @@ Schema clausole con fondamento normativo e compliance GDPR.
 
 ### 1. Quadro normativo
 
-Chiama `legal-it:cite_law` per le norme del tipo contrattuale:
+Chiama `cite_law` per le norme del tipo contrattuale:
 - Norme generali (artt. 1321-1469 c.c.)
 - Norme specifiche del tipo (es. locazione artt. 1571 ss.)
 - Legislazione speciale (Cod. Consumo per B2C)
 
-Per orientamenti: `legal-it:cerca_brocardi` sulle norme chiave.
+Per orientamenti: `cerca_brocardi` sulle norme chiave.
 
 ### 2. Clausole essenziali
 
@@ -30,8 +30,8 @@ Sulla base del quadro normativo:
 ### 3. Compliance GDPR (se dati personali)
 
 Se il contratto prevede trattamento dati:
-1. `legal-it:analisi_base_giuridica` per la base giuridica
-2. `legal-it:genera_dpa` se una parte e responsabile del trattamento (art. 28)
+1. `analisi_base_giuridica` per la base giuridica
+2. `genera_dpa` se una parte e responsabile del trattamento (art. 28)
 
 ### 4. Verifica vessatorieta (B2C)
 
@@ -45,7 +45,7 @@ Schema clausole con: titolo, contenuto, fondamento normativo, note operative.
 
 ## Tool utilizzati
 
-- `legal-it:cite_law` (obbligatorio per ogni norma)
-- `legal-it:cerca_brocardi` (orientamenti)
-- `legal-it:analisi_base_giuridica` (se dati personali)
-- `legal-it:genera_dpa` (se responsabile trattamento)
+- `cite_law` (obbligatorio per ogni norma)
+- `cerca_brocardi` (orientamenti)
+- `analisi_base_giuridica` (se dati personali)
+- `genera_dpa` (se responsabile trattamento)
