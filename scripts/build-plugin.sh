@@ -23,6 +23,8 @@ cp -r "$ROOT_DIR/plugin/agents" "$BUILD_DIR/agents"
 cp -r "$ROOT_DIR/plugin/commands" "$BUILD_DIR/commands"
 cp -r "$ROOT_DIR/plugin/hooks" "$BUILD_DIR/hooks"
 cp "$ROOT_DIR/plugin/settings.json" "$BUILD_DIR/"
+cp "$ROOT_DIR/plugin/start_server.sh" "$BUILD_DIR/"
+chmod +x "$BUILD_DIR/start_server.sh"
 
 # Use distributable .mcp.json (with ${CLAUDE_PLUGIN_ROOT} paths)
 cp "$ROOT_DIR/plugin/.mcp.dist.json" "$BUILD_DIR/.mcp.json"
