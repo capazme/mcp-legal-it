@@ -1,12 +1,13 @@
 {
   "mcpServers": {
     "legal-it": {
-      "command": "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/.venv/bin/python",
+      "command": "bash",
       "args": [
-        "/Users/gpuzio/Desktop/CODE/server-infra/mcp-legal-it/run_server.py"
+        "${CLAUDE_PLUGIN_ROOT}/start_server.sh"
       ],
       "env": {
-        "MCP_CACHE_DIR": "/Users/gpuzio/.cache/mcp-legal-it"
+        "MCP_CACHE_DIR": "${HOME}/.cache/mcp-legal-it",
+        "LEGAL_PROFILE": "full"
       }
     }
   }
