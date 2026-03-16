@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # Bootstrap script: ensures dependencies are installed, then starts the MCP server.
-# Called by Claude Code via .mcp.json — works on any machine with Python 3.10+.
+# Works in two modes:
+#   1. GitHub install (Co-work): src/ and run_server.py are in ../../ relative to plugin/
+#   2. ZIP install (Claude Code): server code is in ./server/
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-SERVER="$DIR/server"
+
+# Detect mode: if server/ subdir exists, use it (ZIP mode); otherwise go up to repo root (GitHub mode)
+if [ -d "$DIR/server" ]; then
+  SERVER="$DIR/server"
+else
+  SERVER="$(cd "$DIR/.." && pwd)"
+fi
+
 VENV="$SERVER/.venv"
 
 # Create venv and install deps on first run (cached after that)
