@@ -1,8 +1,14 @@
 {
   "mcpServers": {
     "legal-it": {
-      "type": "sse",
-      "url": "https://localhost:8000/sse"
+      "command": "bash",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/start_server.sh"
+      ],
+      "env": {
+        "MCP_CACHE_DIR": "${HOME}/.cache/mcp-legal-it",
+        "LEGAL_PROFILE": "full"
+      }
     }
   }
 }
