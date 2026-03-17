@@ -7,7 +7,7 @@
   },
   "homepage": "https://github.com/capazme/mcp-legal-it",
   "repository": "https://github.com/capazme/mcp-legal-it",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "legal",
     "italian-law",
