@@ -1027,6 +1027,141 @@ REGOLE:
 
 
 # ---------------------------------------------------------------------------
+# Prompt per giurisprudenza tributaria (CeRDEF) e CGUE
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Analisi giurisprudenza tributaria: ricerca CeRDEF, lettura provvedimenti e sintesi orientamenti fiscali"
+)
+def analisi_tributaria(tema: str, ente: str = "") -> str:
+    ente_filter = f', ente="{ente}"' if ente else ""
+    return f"""Esegui un'analisi della giurisprudenza tributaria sul tema indicato.
+
+TEMA: {tema}
+{f'ENTE: {ente} (corte_suprema / cgt_primo_grado / cgt_secondo_grado)' if ente else ''}
+
+PROCEDURA:
+
+### Fase 1 — Ricerca CeRDEF
+Chiama `cerca_giurisprudenza_tributaria(query="{tema}"{ente_filter})` per trovare
+sentenze e provvedimenti nella banca dati del MEF.
+
+### Fase 2 — Lettura provvedimenti chiave
+Seleziona i 2-3 provvedimenti più significativi (privilegia Cassazione se presente).
+Per ciascuno, chiama `cerdef_leggi_provvedimento(guid)` per leggere massima e testo completo.
+
+### Fase 3 — Quadro normativo
+Per le norme tributarie citate nelle sentenze, chiama `cite_law(reference)` per il testo vigente.
+Fonti tipiche: TUIR (DPR 917/1986), D.Lgs. 546/1992, DPR 633/1972 (IVA), D.Lgs. 472/1997.
+
+### Fase 4 — Giurisprudenza Cassazione (se pertinente)
+Se emergono principi di diritto rilevanti, cerca anche su Italgiure:
+`cerca_giurisprudenza(query="\\"{tema}\\"", archivio="civile")` per sezione tributaria.
+
+### Fase 5 — Sintesi
+
+## Analisi Giurisprudenza Tributaria: {tema}
+
+### 1. Orientamento Prevalente
+Principio di diritto che emerge dalle sentenze esaminate.
+
+### 2. Provvedimenti Esaminati
+| Provvedimento | Ente | Data | Principio |
+|---------------|------|------|-----------|
+| ... | ... | ... | ... |
+
+### 3. Quadro Normativo
+Norme tributarie rilevanti con testo da cite_law.
+
+### 4. Indicazioni Operative
+Raccomandazioni pratiche per il contribuente/professionista.
+
+REGOLE:
+- Usare `cerca_giurisprudenza_tributaria` e `cerdef_leggi_provvedimento` per i provvedimenti CeRDEF.
+- Usare `cite_law` per TUTTE le norme citate.
+- Non citare mai numeri di sentenza o GUID a memoria.
+"""
+
+
+@mcp.prompt(
+    description="Analisi giurisprudenziale europea strutturata: ricerca CGUE/Tribunale UE, lettura sentenze chiave e sintesi orientamenti"
+)
+def analisi_giurisprudenza_europea(tema: str, corte: str = "tutte") -> str:
+    return f"""Esegui un'analisi giurisprudenziale strutturata sulla Corte di Giustizia UE per il tema indicato.
+
+TEMA: {tema}
+CORTE: {corte} (tutte / corte_di_giustizia / tribunale)
+
+PROCEDURA:
+
+### Fase 1 — Ricerca sentenze
+Chiama `cerca_giurisprudenza_cgue(query="{tema}", corte="{corte}")`
+per trovare le sentenze CGUE pertinenti.
+
+Se il tema riguarda una norma specifica del diritto UE (es. "art. 101 TFUE", "art. 7 GDPR"),
+chiama `giurisprudenza_cgue_su_norma(riferimento="art. ... norma")` per trovare le decisioni
+che interpretano quella norma.
+
+### Fase 1b — Filtraggio per materia
+Se il tema rientra in una delle materie predefinite (iva, concorrenza, ambiente, lavoro,
+protezione_dati, appalti, consumatori), aggiungi il parametro materia alla ricerca per
+ottenere risultati più mirati.
+
+### Fase 2 — Lettura sentenze chiave
+Seleziona le 2-3 sentenze più significative dalla ricerca.
+Per ciascuna, chiama `leggi_sentenza_cgue(cellar_uri)` con il CELLAR URI riportato nel risultato.
+
+Privilegia:
+- Sentenze della Grande Sezione (massima autorità interpretativa)
+- Sentenze recenti (ultimi 3 anni)
+- Sentenze che citano principi generali del diritto UE
+
+IMPORTANTE: usa `leggi_sentenza_cgue` con il CELLAR URI — NON usare EUR-Lex (ha WAF).
+
+### Fase 3 — Fondamento normativo
+Per le norme UE citate nelle sentenze lette, chiama `cite_law(reference)` per verificare
+il testo vigente dalla fonte ufficiale. Fonti tipiche:
+- TFUE: "art. 101 TFUE", "art. 267 TFUE" (rinvio pregiudiziale)
+- Regolamenti UE: "Reg. UE 2016/679 art. 5" (GDPR), "Reg. UE 596/2014 art. 7" (MAR)
+- Direttive: cercare il D.Lgs. italiano di recepimento
+
+### Fase 4 — Sintesi strutturata
+
+## Analisi Giurisprudenziale CGUE: {tema}
+
+### 1. Orientamento Prevalente
+Principio di diritto che emerge dalla giurisprudenza CGUE sul tema.
+
+### 2. Sentenze Chiave
+| Caso | ECLI | Data | Principio |
+|------|------|------|-----------|
+| C-.../... | ECLI:EU:C:... | GG/MM/AAAA | ... |
+
+### 3. Evoluzione dell'Interpretazione
+Come si è evoluta l'interpretazione della CGUE nel tempo.
+
+### 4. Impatto sull'Ordinamento Italiano
+Come i principi CGUE influenzano l'applicazione del diritto italiano:
+- Obbligo di interpretazione conforme (Mangold/Kücükdeveci)
+- Disapplicazione norme nazionali incompatibili
+- Responsabilità dello Stato per violazione diritto UE (Francovich)
+
+### 5. Norme di Riferimento
+Disposizioni UE rilevanti (testo da cite_law).
+
+### 6. Indicazioni Operative
+Raccomandazioni pratiche per avvocati e giuristi italiani.
+
+REGOLE:
+- Non citare mai numeri di sentenza a memoria — usa esclusivamente i risultati dei tool.
+- Il CELLAR URI per leggere il testo completo è riportato in ogni risultato.
+- Ogni affermazione deve essere supportata da una sentenza o norma verificata.
+- Per norme citate, usare sempre cite_law — mai citare a memoria.
+"""
+
+
+# ---------------------------------------------------------------------------
 # Prompt per compliance GDPR/Privacy
 # ---------------------------------------------------------------------------
 
@@ -1113,4 +1248,66 @@ AVVERTENZE:
 - Il presente assessment è uno strumento di supporto e non sostituisce la consulenza legale specializzata.
 - Verificare sempre la normativa nazionale integrativa (D.Lgs. 196/2003 come modificato dal D.Lgs. 101/2018).
 - Per trattamenti su larga scala o ad alto rischio, consultare il DPO e valutare una consultazione preventiva (art. 36 GDPR).
+"""
+
+
+# ---------------------------------------------------------------------------
+# Prompt per giurisprudenza amministrativa
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Analisi giurisprudenza amministrativa: ricerca TAR/CdS, lettura provvedimenti e sintesi orientamenti"
+)
+def analisi_giurisprudenza_amministrativa(tema: str, sede: str = "") -> str:
+    sede_filter = f', sede="{sede}"' if sede else ""
+    sede_note = f"\nSEDE: {sede} (consiglio_di_stato / tar_lazio / tar_lombardia / ...)" if sede else ""
+    return f"""Esegui un'analisi della giurisprudenza amministrativa sul tema indicato.
+
+TEMA: {tema}{sede_note}
+
+PROCEDURA:
+
+### Fase 1 — Ricerca provvedimenti
+Chiama `cerca_giurisprudenza_amministrativa(query="{tema}"{sede_filter})` per trovare
+sentenze e provvedimenti di TAR e Consiglio di Stato.
+
+### Fase 2 — Lettura provvedimenti chiave
+Seleziona i 2-3 provvedimenti più significativi (privilegia CdS e Adunanza Plenaria).
+Per ciascuno, chiama `leggi_provvedimento_amm(sede, nrg, nome_file)` per il testo completo.
+
+### Fase 3 — Giurisprudenza su norma (se pertinente)
+Se il tema ruota attorno a una norma specifica, chiama
+`giurisprudenza_amm_su_norma(riferimento="art. ...")` per trovare decisioni che la citano.
+
+### Fase 4 — Quadro normativo
+Per le norme citate nelle sentenze, chiama `cite_law(reference)` per il testo vigente.
+Fonti tipiche: CPA (D.Lgs. 104/2010), D.Lgs. 36/2023 (Codice Appalti), TUEL (D.Lgs. 267/2000),
+L. 241/1990, DPR 380/2001 (TU Edilizia).
+
+### Fase 5 — Sintesi
+
+## Analisi Giurisprudenza Amministrativa: {tema}
+
+### 1. Orientamento Prevalente
+Principio di diritto che emerge dalle sentenze esaminate.
+
+### 2. Provvedimenti Esaminati
+| Provvedimento | Sede | Data | Principio |
+|---------------|------|------|-----------|
+| ... | ... | ... | ... |
+
+### 3. Adunanza Plenaria / Sezioni Unite
+Se si è pronunciata l'Adunanza Plenaria, riportare il principio di diritto.
+
+### 4. Quadro Normativo
+Norme amministrative rilevanti con testo da cite_law.
+
+### 5. Indicazioni Operative
+Raccomandazioni pratiche per il ricorrente/PA.
+
+REGOLE:
+- Usare `cerca_giurisprudenza_amministrativa` e `leggi_provvedimento_amm` per i provvedimenti.
+- Usare `cite_law` per TUTTE le norme citate.
+- Non citare mai numeri di sentenza a memoria.
 """

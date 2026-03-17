@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-17
+
+### Added
+- **CeRDEF integration** (def.finanze.it): 3 tools for Italian tax case law (`cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `ultime_sentenze_tributarie`)
+- **Giustizia Amministrativa integration** (giustizia-amministrativa.it): 4 tools for TAR/CdS case law (`cerca_giurisprudenza_amministrativa`, `leggi_provvedimento_amm`, `giurisprudenza_amm_su_norma`, `ultimi_provvedimenti_amm`)
+- **CGUE integration** (CELLAR SPARQL): 4 tools for EU Court of Justice case law (`cerca_giurisprudenza_cgue`, `leggi_sentenza_cgue`, `giurisprudenza_cgue_su_norma`, `ultime_sentenze_cgue`)
+- Prompt `analisi_tributaria` — workflow giurisprudenza tributaria
+- Prompt `analisi_giurisprudenza_amministrativa` — workflow TAR/CdS
+- Prompt `analisi_giurisprudenza_europea` — workflow CGUE
+- Resource `legal://riferimenti/cerdef-giurisprudenza` — guida CeRDEF
+- Resource `legal://riferimenti/giustizia-amministrativa` — guida TAR/CdS con 28 sedi
+- Resource `legal://riferimenti/cgue-giurisprudenza` — guida CGUE con materie e CELEX
+
+### Changed
+- Tool count: 166 → 177 (+3 CeRDEF, +4 GA, +4 CGUE)
+- Prompt count: 16 → 19
+- Profile `normativa`: added `giurisprudenza_amm`, `giurisprudenza_ue` tags
+- Profile `fiscale`: CeRDEF tools included via existing `giurisprudenza` + `fiscale` tags
+
 ## [2.0.2] - 2026-03-17
 
 ### Changed
