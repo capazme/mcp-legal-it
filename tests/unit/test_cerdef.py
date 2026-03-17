@@ -497,3 +497,459 @@ class TestUltimeSentenzeTributarieImpl:
             result = await _ultime_sentenze_tributarie_impl()
 
         assert "Nessuna" in result
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: _strip_cdata_html
+# ---------------------------------------------------------------------------
+
+from src.lib.cerdef.client import _strip_cdata_html
+
+
+class TestStripCdataHtml:
+    def test_empty_string(self):
+        assert _strip_cdata_html("") == ""
+
+    def test_plain_text_passthrough(self):
+        assert _strip_cdata_html("testo semplice") == "testo semplice"
+
+    def test_strips_html_tags(self):
+        result = _strip_cdata_html("<p>paragrafo <b>grassetto</b></p>")
+        assert "<p>" not in result
+        assert "<b>" not in result
+        assert "paragrafo" in result
+        assert "grassetto" in result
+
+    def test_strips_nested_html(self):
+        result = _strip_cdata_html("<div><ul><li>item1</li><li>item2</li></ul></div>")
+        assert "item1" in result
+        assert "item2" in result
+        assert "<" not in result
+
+    def test_preserves_text_entities(self):
+        result = _strip_cdata_html("<p>IVA &amp; IRES</p>")
+        assert "IVA" in result
+        assert "IRES" in result
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: CerdefSession
+# ---------------------------------------------------------------------------
+
+from src.lib.cerdef.client import CerdefSession
+
+
+class TestCerdefSession:
+    def test_client_raises_when_not_entered(self):
+        session = CerdefSession()
+        with pytest.raises(RuntimeError, match="not entered"):
+            _ = session.client
+
+    @pytest.mark.asyncio
+    async def test_aenter_creates_client(self):
+        with patch("src.lib.cerdef.client.httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.aclose = AsyncMock()
+            MockClient.return_value = mock_instance
+            async with CerdefSession() as session:
+                assert session._client is not None
+                assert session.client is mock_instance
+
+    @pytest.mark.asyncio
+    async def test_aexit_closes_client(self):
+        with patch("src.lib.cerdef.client.httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.aclose = AsyncMock()
+            MockClient.return_value = mock_instance
+            async with CerdefSession():
+                pass
+            mock_instance.aclose.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_aexit_sets_client_to_none(self):
+        with patch("src.lib.cerdef.client.httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.aclose = AsyncMock()
+            MockClient.return_value = mock_instance
+            session = CerdefSession()
+            async with session:
+                pass
+            assert session._client is None
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: _unescape_js_string edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestUnescapeJsStringExtended:
+    def test_mixed_case_hex(self):
+        assert _unescape_js_string("\\u00E0") == "à"
+        assert _unescape_js_string("\\u00C0") == "À"
+
+    def test_multiple_consecutive_unicode(self):
+        result = _unescape_js_string("\\u0041\\u0042\\u0043")
+        assert result == "ABC"
+
+    def test_combined_slash_and_unicode(self):
+        result = _unescape_js_string("path\\/to\\u002Ffile")
+        assert result == "path/to/file"
+
+    def test_emoji_range_unicode(self):
+        # Surrogate pair not in BMP — 4-digit capped at \uFFFF
+        result = _unescape_js_string("\\u00A9")  # ©
+        assert result == "©"
+
+    def test_empty_string(self):
+        assert _unescape_js_string("") == ""
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: _extract_xml_from_js edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestExtractXmlFromJsExtended:
+    def test_multiline_xml_content(self):
+        html = """<script>
+var xmlResult = '<root><a>line1</a><b>line2</b></root>';
+</script>"""
+        xml = _extract_xml_from_js(html, "xmlResult")
+        assert "<root>" in xml
+        assert "line1" in xml
+
+    def test_extra_whitespace_around_assignment(self):
+        html = """<script>
+var   xmlResult   =   '<root>ok</root>'  ;
+</script>"""
+        xml = _extract_xml_from_js(html, "xmlResult")
+        assert "ok" in xml
+
+    def test_different_var_name(self):
+        html = """<script>var customVar = '<data>test</data>';</script>"""
+        xml = _extract_xml_from_js(html, "customVar")
+        assert "test" in xml
+
+    def test_does_not_match_wrong_var_name(self):
+        html = """<script>var otherVar = '<data>test</data>';</script>"""
+        xml = _extract_xml_from_js(html, "xmlResult")
+        assert xml == ""
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: _parse_search_xml edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestParseSearchXmlExtended:
+    def test_result_with_whitespace_guid(self):
+        xml = "<risultati><risultato><guid>  </guid><estremi>X</estremi></risultato></risultati>"
+        results = _parse_search_xml(xml)
+        assert results == []
+
+    def test_result_with_special_chars_in_titoli(self):
+        xml = '<risultati><risultato><guid>g1</guid><estremi>S</estremi><titoli>IVA &amp; IRES</titoli><ente>E</ente><data>01/01/2024</data></risultato></risultati>'
+        results = _parse_search_xml(xml)
+        assert len(results) == 1
+        assert "IVA" in results[0].titoli
+
+    def test_many_results(self):
+        items = "".join(
+            f"<risultato><guid>g{i}</guid><estremi>S{i}</estremi><titoli>T</titoli><ente>E</ente><data>D</data></risultato>"
+            for i in range(50)
+        )
+        xml = f"<risultati>{items}</risultati>"
+        results = _parse_search_xml(xml)
+        assert len(results) == 50
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: _parse_detail_xml edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestParseDetailXmlExtended:
+    def test_html_in_massima_fully_stripped(self):
+        xml = '<dettaglio><guid>g</guid><estremi>E</estremi><massima><![CDATA[<div class="x"><p>Principio <em>importante</em></p></div>]]></massima><testoIntegrale></testoIntegrale></dettaglio>'
+        detail = _parse_detail_xml(xml)
+        assert "<div" not in detail.massima
+        assert "<em>" not in detail.massima
+        assert "Principio" in detail.massima
+        assert "importante" in detail.massima
+
+    def test_all_optional_fields_present(self):
+        xml = '<dettaglio><guid>g</guid><estremi>E</estremi><massima>M</massima><testoIntegrale>T</testoIntegrale><collegio>C</collegio><udienza>U</udienza><ricorsi>R</ricorsi></dettaglio>'
+        detail = _parse_detail_xml(xml)
+        assert detail.collegio == "C"
+        assert detail.udienza == "U"
+        assert detail.ricorsi == "R"
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: format_result edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestFormatResultExtended:
+    def test_empty_data_field(self):
+        doc = ProvvedimentoResult(guid="g", estremi="E", titoli="T", ente="E", data="")
+        text = format_result(doc)
+        assert "Data" not in text
+
+    def test_empty_ente_field(self):
+        doc = ProvvedimentoResult(guid="g", estremi="E", titoli="T", ente="", data="01/01/2024")
+        text = format_result(doc)
+        assert "Ente" not in text
+
+    def test_empty_titoli_field(self):
+        doc = ProvvedimentoResult(guid="g", estremi="E", titoli="", ente="", data="")
+        text = format_result(doc)
+        assert "Oggetto" not in text
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: format_detail edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestFormatDetailExtended:
+    def test_only_massima_no_testo(self):
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="La massima.", testo_integrale="")
+        text = format_detail(detail)
+        assert "Massima" in text
+        assert "Testo Integrale" not in text
+
+    def test_only_testo_no_massima(self):
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="Il testo.")
+        text = format_detail(detail)
+        assert "Massima" not in text
+        assert "Testo Integrale" in text
+
+    def test_both_empty(self):
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="")
+        text = format_detail(detail)
+        assert "# E" in text
+        assert "Massima" not in text
+        assert "Testo Integrale" not in text
+
+    def test_truncation_boundary(self):
+        """Exactly at the limit — no truncation note."""
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="a" * 25000)
+        text = format_detail(detail)
+        assert "troncato" not in text
+
+    def test_truncation_at_limit_plus_one(self):
+        """One over the limit — should truncate."""
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="a" * 25001)
+        text = format_detail(detail)
+        assert "troncato" in text
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: search_giurisprudenza pagination
+# ---------------------------------------------------------------------------
+
+
+from src.lib.cerdef.client import search_giurisprudenza
+
+
+class TestSearchGiurisprudenzaPagination:
+    @pytest.mark.asyncio
+    async def test_single_page_sufficient(self):
+        """When first page returns all needed results, no pagination."""
+        mock_resp = _make_mock_response(_SEARCH_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML_EMPTY))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            results = await search_giurisprudenza(parole="IVA", rows=2)
+
+        assert len(results) == 2
+        mock_client.get.assert_not_called()  # No pagination needed
+
+    @pytest.mark.asyncio
+    async def test_pagination_requested_when_rows_exceed_first_page(self):
+        """When rows > first page results, pagination is triggered."""
+        page1_html = _SEARCH_HTML
+        page2_html = _SEARCH_HTML_NO_VAR  # Empty / no more results
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=_make_mock_response(page1_html))
+        mock_client.get = AsyncMock(return_value=_make_mock_response(page2_html))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            results = await search_giurisprudenza(parole="IVA", rows=50)
+
+        # First page yields 2 results, second page empty → total 2
+        assert len(results) == 2
+        mock_client.get.assert_called_once()  # Tried pagination
+
+    @pytest.mark.asyncio
+    async def test_rows_capped_at_250(self):
+        """rows > 250 should be capped."""
+        mock_resp = _make_mock_response(_SEARCH_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML_EMPTY))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            results = await search_giurisprudenza(parole="IVA", rows=999)
+
+        assert len(results) <= 250
+
+    @pytest.mark.asyncio
+    async def test_form_data_includes_criteria(self):
+        """Verify form data sent to POST matches expected fields."""
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML_EMPTY))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            await search_giurisprudenza(
+                parole="IVA",
+                tipo_criterio="frase_esatta",
+                tipo_estremi="sentenza",
+                ente="corte_suprema",
+                data_da="01/01/2023",
+                data_a="31/12/2024",
+                ordinamento="data",
+            )
+
+        call_kwargs = mock_client.post.call_args
+        form = call_kwargs.kwargs.get("data", {})
+        assert form["paroleChiave"] == "IVA"
+        assert form["tipoCriterio"] == "E"  # frase_esatta → E
+        assert form["tipoEstremi"] == "Sentenza"
+        assert "Cassazione" in form["ente"]
+        assert form["dataDa"] == "01/01/2023"
+        assert form["dataA"] == "31/12/2024"
+        assert form["ordinamento"] == "data"
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: fetch_provvedimento
+# ---------------------------------------------------------------------------
+
+from src.lib.cerdef.client import fetch_provvedimento
+
+
+class TestFetchProvvedimento:
+    @pytest.mark.asyncio
+    async def test_passes_guid_as_param(self):
+        mock_resp = _make_mock_response(_DETAIL_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=mock_resp)
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            detail = await fetch_provvedimento("test-guid-123")
+
+        mock_client.get.assert_called_once()
+        call_kwargs = mock_client.get.call_args
+        params = call_kwargs.kwargs.get("params", {})
+        assert params["id"] == "test-guid-123"
+
+    @pytest.mark.asyncio
+    async def test_returns_provvedimento_detail(self):
+        mock_resp = _make_mock_response(_DETAIL_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=mock_resp)
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            detail = await fetch_provvedimento("abc-123")
+
+        assert isinstance(detail, ProvvedimentoDetail)
+        assert detail.guid == "abc-123"
+
+
+# ---------------------------------------------------------------------------
+# Extended tests: _impl with filter combinations
+# ---------------------------------------------------------------------------
+
+
+class TestImplFilterCombinations:
+    @pytest.mark.asyncio
+    async def test_cerca_with_ente_filter(self):
+        mock_resp = _make_mock_response(_SEARCH_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML_EMPTY))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_tributaria_impl(
+                "IVA", ente="corte_suprema"
+            )
+
+        assert "Trovati" in result
+        call_kwargs = mock_client.post.call_args
+        form = call_kwargs.kwargs.get("data", {})
+        assert "Cassazione" in form["ente"]
+
+    @pytest.mark.asyncio
+    async def test_cerca_with_criterio_frase_esatta(self):
+        mock_resp = _make_mock_response(_SEARCH_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML_EMPTY))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_tributaria_impl(
+                "soggettività passiva IVA", criterio="frase_esatta"
+            )
+
+        assert "Trovati" in result
+        call_kwargs = mock_client.post.call_args
+        form = call_kwargs.kwargs.get("data", {})
+        assert form["tipoCriterio"] == "E"
+
+    @pytest.mark.asyncio
+    async def test_ultime_with_ente_and_tipo(self):
+        mock_resp = _make_mock_response(_SEARCH_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML_EMPTY))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _ultime_sentenze_tributarie_impl(
+                ente="cgt_secondo_grado", tipo_provvedimento="ordinanza"
+            )
+
+        assert "Ultime sentenze" in result
+        call_kwargs = mock_client.post.call_args
+        form = call_kwargs.kwargs.get("data", {})
+        assert form["ordinamento"] == "data"
+        assert "CGT II" in form["ente"]
+        assert form["tipoEstremi"] == "Ordinanza"
+
+    @pytest.mark.asyncio
+    async def test_cerca_max_risultati_capped_at_250(self):
+        """Verify _impl caps at 250."""
+        mock_resp = _make_mock_response(_SEARCH_HTML)
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML_EMPTY))
+
+        with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _cerca_giurisprudenza_tributaria_impl("IVA", max_risultati=999)
+
+        # Should still work but with capped results
+        assert "Trovati" in result or "Nessun" in result
