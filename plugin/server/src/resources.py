@@ -1239,3 +1239,132 @@ WORKFLOW TIPO
 5. Verifica norme con cite_law()
 6. Presenta l'atto completo con calcoli e checklist
 """
+
+
+@mcp.resource(
+    "legal://riferimenti/giustizia-amministrativa",
+    name="Giustizia Amministrativa — Guida Ricerca TAR/CdS",
+    description="Guida all'uso dei tool per la ricerca di sentenze TAR e Consiglio di Stato: sedi, tipi, workflow e normativa di riferimento",
+)
+def giustizia_amministrativa() -> str:
+    return """GIUSTIZIA AMMINISTRATIVA — GUIDA ALLA RICERCA PROVVEDIMENTI TAR/CdS
+(giustizia-amministrativa.it — mdp.giustizia-amministrativa.it)
+
+═══════════════════════════════════════════════════════════
+TOOL DISPONIBILI
+═══════════════════════════════════════════════════════════
+
+| Tool | Uso | Parametri chiave |
+|------|-----|------------------|
+| `cerca_giurisprudenza_amministrativa` | Ricerca full-text TAR/CdS | query, sede, tipo, anno, max_risultati |
+| `leggi_provvedimento_amm` | Testo completo dal sottodominio mdp | sede, nrg, nome_file |
+| `giurisprudenza_amm_su_norma` | Decisioni che citano un articolo | riferimento, sede, anno_da |
+| `ultimi_provvedimenti_amm` | Ultimi depositati | sede, tipo, max_risultati |
+
+═══════════════════════════════════════════════════════════
+SEDI DISPONIBILI (28 sedi)
+═══════════════════════════════════════════════════════════
+
+| Chiave | Codice | Sede |
+|--------|--------|------|
+| `consiglio_di_stato` | CDS | Consiglio di Stato |
+| `cgars` | CGARS | CGARS (Consiglio di Giustizia Amministrativa per la Regione Siciliana) |
+| `tar_lazio` | TARLAZ | TAR Lazio |
+| `tar_lombardia` | TARLOM | TAR Lombardia |
+| `tar_campania_napoli` | TARCAM | TAR Campania - Napoli |
+| `tar_campania_salerno` | TARCAMSAL | TAR Campania - Salerno |
+| `tar_sicilia_palermo` | TARSIC | TAR Sicilia - Palermo |
+| `tar_sicilia_catania` | TARSICCAT | TAR Sicilia - Catania |
+| `tar_veneto` | TARVEN | TAR Veneto |
+| `tar_piemonte` | TARPIE | TAR Piemonte |
+| `tar_emilia_romagna` | TAREMI | TAR Emilia-Romagna |
+| `tar_toscana` | TARTOS | TAR Toscana |
+| `tar_puglia_bari` | TARPUG | TAR Puglia - Bari |
+| `tar_puglia_lecce` | TARPUGLEC | TAR Puglia - Lecce |
+| `tar_calabria_catanzaro` | TARCAL | TAR Calabria - Catanzaro |
+| `tar_calabria_reggio` | TARCALREG | TAR Calabria - Reggio |
+| `tar_liguria` | TARLIG | TAR Liguria |
+| `tar_sardegna` | TARSAR | TAR Sardegna |
+| `tar_friuli` | TARFRI | TAR Friuli-Venezia Giulia |
+| `tar_marche` | TARMAR | TAR Marche |
+| `tar_abruzzo_pescara` | TARABR | TAR Abruzzo - Pescara |
+| `tar_abruzzo_laquila` | TARABRLAQ | TAR Abruzzo - L'Aquila |
+| `tar_umbria` | TARUMB | TAR Umbria |
+| `tar_molise` | TARMOL | TAR Molise |
+| `tar_basilicata` | TARBAS | TAR Basilicata |
+| `tar_trentino_bolzano` | TARBOL | TAR Trentino-Alto Adige - Bolzano |
+| `tar_trentino_trento` | TARTRETN | TAR Trentino-Alto Adige - Trento |
+| `tar_valle_aosta` | TARVDA | TAR Valle d'Aosta |
+
+═══════════════════════════════════════════════════════════
+TIPI DI PROVVEDIMENTO
+═══════════════════════════════════════════════════════════
+
+| Chiave | Descrizione |
+|--------|-------------|
+| `sentenza` | Sentenza (decisione nel merito) |
+| `ordinanza` | Ordinanza (cautelare, istruttoria) |
+| `decreto` | Decreto monocratico (cautelare urgente) |
+| `parere` | Parere del Consiglio di Stato |
+
+═══════════════════════════════════════════════════════════
+WORKFLOW CONSIGLIATI
+═══════════════════════════════════════════════════════════
+
+Ricerca tematica:
+1. cerca_giurisprudenza_amministrativa(query="appalto esclusione requisiti")
+2. leggi_provvedimento_amm(sede="CDS", nrg="...", nome_file="...")
+3. cite_law("art. 83 D.Lgs. 36/2023") → norma di riferimento
+
+Ricerca su norma:
+1. giurisprudenza_amm_su_norma(riferimento="art. 21-nonies L. 241/1990")
+2. leggi_provvedimento_amm(...) → testo completo decisioni
+3. cite_law("art. 21-nonies L. 241/1990") → testo aggiornato
+
+Monitoraggio novità:
+1. ultimi_provvedimenti_amm(sede="consiglio_di_stato", tipo="sentenza")
+2. leggi_provvedimento_amm(...) → approfondimento
+
+═══════════════════════════════════════════════════════════
+NORMATIVA AMMINISTRATIVA DI RIFERIMENTO
+═══════════════════════════════════════════════════════════
+
+| Fonte | Riferimento | Citazione | Materia |
+|-------|-------------|-----------|---------|
+| CPA | D.Lgs. 104/2010 | art. N CPA | Codice del Processo Amministrativo |
+| Codice Appalti | D.Lgs. 36/2023 | art. N D.Lgs. 36/2023 | Appalti e concessioni |
+| Procedimento amm. | L. 241/1990 | art. N L. 241/1990 | Accesso, silenzio, SCIA, conferenza servizi |
+| TUEL | D.Lgs. 267/2000 | art. N TUEL | Enti locali, bilancio, organi |
+| TU Edilizia | D.P.R. 380/2001 | art. N DPR 380/2001 | Permesso costruire, abusi edilizi |
+| CAD | D.Lgs. 82/2005 | art. N CAD | Documento informatico, PEC |
+| Codice Antimafia | D.Lgs. 159/2011 | art. N Cod. Antimafia | Informative antimafia, interdittive |
+| D.Lgs. 33/2013 | D.Lgs. 33/2013 | art. N D.Lgs. 33/2013 | Trasparenza PA, accesso civico |
+
+Per il testo aggiornato: usare cite_law("art. N [fonte]").
+
+═══════════════════════════════════════════════════════════
+MATERIE TIPICHE — ESEMPI DI QUERY
+═══════════════════════════════════════════════════════════
+
+| Materia | Query suggerita | Norma tipica |
+|---------|----------------|--------------|
+| Appalti — esclusione | "esclusione gara requisiti" | art. 94-98 D.Lgs. 36/2023 |
+| Appalti — offerta anomala | "offerta anomala verifica" | art. 110 D.Lgs. 36/2023 |
+| Silenzio-assenso | "silenzio-assenso formazione" | art. 20 L. 241/1990 |
+| Accesso atti | "accesso documenti amministrativi" | art. 22 L. 241/1990 |
+| Autotutela | "annullamento in autotutela" | art. 21-nonies L. 241/1990 |
+| Urbanistica | "permesso costruire variante PRG" | DPR 380/2001 |
+| Interdittiva antimafia | "informativa antimafia interdittiva" | D.Lgs. 159/2011 |
+| Accesso civico | "accesso civico generalizzato FOIA" | D.Lgs. 33/2013 |
+
+═══════════════════════════════════════════════════════════
+NOTE TECNICHE
+═══════════════════════════════════════════════════════════
+
+- Il portale usa Liferay Portal — ricerca pubblica, nessuna autenticazione
+- Testi integrali sul sottodominio mdp in formato XML <GA> (epigrafe + motivazione + dispositivo)
+- Certificato SSL non valido → verify=False (necessario, come Italgiure)
+- Il testo è troncato a 15000 caratteri per evitare saturazione del contesto
+- I parametri sede, nrg e nome_file per leggi_provvedimento_amm vengono dai risultati di ricerca
+- Adunanza Plenaria: massima autorità del CdS — privilegiare nelle ricerche
+"""
