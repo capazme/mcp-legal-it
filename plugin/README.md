@@ -121,4 +121,4 @@ Calcola gli interessi di mora su un credito commerciale di 15.000 scaduto il 01/
 
 ## Licenza
 
-MIT — vedi [LICENSE](LICENSE).
+[Apache License 2.0](LICENSE) — Copyright 2025-2026 [capazme](https://github.com/capazme).
