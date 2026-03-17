@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-17
+
+### Added
+- CeRDEF: 3 tools for Italian tax case law (def.finanze.it)
+- Giustizia Amministrativa: 4 tools for TAR/CdS case law (giustizia-amministrativa.it)
+- CGUE: 4 tools for EU Court of Justice case law via CELLAR SPARQL
+- 3 new prompts: analisi_tributaria, analisi_giurisprudenza_amministrativa, analisi_giurisprudenza_europea
+- 3 new resources: cerdef-giurisprudenza, giustizia-amministrativa, cgue-giurisprudenza
+
+### Changed
+- Tool count: 166 → 177
+- Prompt count: 16 → 19
+
 ## [2.0.1] - 2026-03-17
 
 ### Added
