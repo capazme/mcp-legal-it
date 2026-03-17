@@ -15,10 +15,14 @@ plugin/server/__pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# macOS
+.DS_Store
+
 # Build artifacts
 *.mcpb
 dist/dxt-build/
 dist/plugin-build/
+plugin.zip
 
 # Local MCP config (dev machine — absolute paths)
 plugin/.mcp.local.json
