@@ -1027,6 +1027,64 @@ REGOLE:
 
 
 # ---------------------------------------------------------------------------
+# Prompt per giurisprudenza tributaria (CeRDEF)
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Analisi giurisprudenza tributaria: ricerca CeRDEF, lettura provvedimenti e sintesi orientamenti fiscali"
+)
+def analisi_tributaria(tema: str, ente: str = "") -> str:
+    ente_filter = f', ente="{ente}"' if ente else ""
+    return f"""Esegui un'analisi della giurisprudenza tributaria sul tema indicato.
+
+TEMA: {tema}
+{f'ENTE: {ente} (corte_suprema / cgt_primo_grado / cgt_secondo_grado)' if ente else ''}
+
+PROCEDURA:
+
+### Fase 1 — Ricerca CeRDEF
+Chiama `cerca_giurisprudenza_tributaria(query="{tema}"{ente_filter})` per trovare
+sentenze e provvedimenti nella banca dati del MEF.
+
+### Fase 2 — Lettura provvedimenti chiave
+Seleziona i 2-3 provvedimenti più significativi (privilegia Cassazione se presente).
+Per ciascuno, chiama `cerdef_leggi_provvedimento(guid)` per leggere massima e testo completo.
+
+### Fase 3 — Quadro normativo
+Per le norme tributarie citate nelle sentenze, chiama `cite_law(reference)` per il testo vigente.
+Fonti tipiche: TUIR (DPR 917/1986), D.Lgs. 546/1992, DPR 633/1972 (IVA), D.Lgs. 472/1997.
+
+### Fase 4 — Giurisprudenza Cassazione (se pertinente)
+Se emergono principi di diritto rilevanti, cerca anche su Italgiure:
+`cerca_giurisprudenza(query="\\"{tema}\\"", archivio="civile")` per sezione tributaria.
+
+### Fase 5 — Sintesi
+
+## Analisi Giurisprudenza Tributaria: {tema}
+
+### 1. Orientamento Prevalente
+Principio di diritto che emerge dalle sentenze esaminate.
+
+### 2. Provvedimenti Esaminati
+| Provvedimento | Ente | Data | Principio |
+|---------------|------|------|-----------|
+| ... | ... | ... | ... |
+
+### 3. Quadro Normativo
+Norme tributarie rilevanti con testo da cite_law.
+
+### 4. Indicazioni Operative
+Raccomandazioni pratiche per il contribuente/professionista.
+
+REGOLE:
+- Usare `cerca_giurisprudenza_tributaria` e `cerdef_leggi_provvedimento` per i provvedimenti CeRDEF.
+- Usare `cite_law` per TUTTE le norme citate.
+- Non citare mai numeri di sentenza o GUID a memoria.
+"""
+
+
+# ---------------------------------------------------------------------------
 # Prompt per compliance GDPR/Privacy
 # ---------------------------------------------------------------------------
 
