@@ -1,4 +1,4 @@
-"""MCP Legal IT — 166 Italian legal tools: calculations, normative citations, case law, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 177 Italian legal tools: calculations, normative citations, case law (Cassazione, CeRDEF, TAR/CdS, CGUE), GDPR compliance, CONSOB, document generation."""
 
 import os
 
