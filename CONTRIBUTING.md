@@ -3,7 +3,7 @@
 ## 1. Setup ambiente
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/capazme/mcp-legal-it
 cd mcp-legal-it
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
