@@ -1,4 +1,4 @@
-"""MCP Resources — 12 static legal reference documents."""
+"""MCP Resources — 13 static legal reference documents."""
 
 from src.server import mcp
 
@@ -1047,6 +1047,107 @@ NOTE TECNICHE
 
 
 @mcp.resource(
+    "legal://riferimenti/cerdef-giurisprudenza",
+    name="CeRDEF — Giurisprudenza Tributaria",
+    description="Guida ai tool CeRDEF: enti, criteri di ricerca, tipi provvedimento e norme fiscali principali",
+)
+def cerdef_giurisprudenza() -> str:
+    return """CeRDEF — BANCA DATI GIURISPRUDENZA TRIBUTARIA (def.finanze.it)
+(Ministero dell'Economia e delle Finanze)
+
+═══════════════════════════════════════════════════════════
+TOOL DISPONIBILI
+═══════════════════════════════════════════════════════════
+
+| Tool | Uso | Parametri chiave |
+|------|-----|------------------|
+| `cerca_giurisprudenza_tributaria` | Ricerca nel database | query, tipo_provvedimento, ente, data_da, data_a, numero, criterio, ordinamento |
+| `cerdef_leggi_provvedimento` | Testo completo provvedimento | guid |
+| `ultime_sentenze_tributarie` | Ultime pubblicate | ente, tipo_provvedimento, max_risultati |
+
+═══════════════════════════════════════════════════════════
+ENTI (filtro per organo giudicante)
+═══════════════════════════════════════════════════════════
+
+| Chiave | Denominazione completa |
+|--------|------------------------|
+| `corte_suprema` | Corte Suprema di Cassazione |
+| `cgt_primo_grado` | CGT I grado (Corte di Giustizia Tributaria di primo grado) |
+| `cgt_secondo_grado` | CGT II grado (Corte di Giustizia Tributaria di secondo grado) |
+
+Nota: CGT = Commissioni Tributarie rinominate dalla L. 130/2022 (ex CTP/CTR).
+
+═══════════════════════════════════════════════════════════
+CRITERI DI RICERCA
+═══════════════════════════════════════════════════════════
+
+| Chiave | Codice | Effetto |
+|--------|--------|---------|
+| `tutti` | T | Tutte le parole (default) |
+| `frase_esatta` | E | Frase esatta |
+| `almeno_uno` | O | Almeno una parola |
+| `codice` | C | Per codice/numero atto |
+
+═══════════════════════════════════════════════════════════
+TIPI PROVVEDIMENTO
+═══════════════════════════════════════════════════════════
+
+| Chiave | Tipo |
+|--------|------|
+| `sentenza` | Sentenza |
+| `ordinanza` | Ordinanza |
+| `decreto` | Decreto |
+
+═══════════════════════════════════════════════════════════
+NORME TRIBUTARIE PRINCIPALI
+═══════════════════════════════════════════════════════════
+
+| Nome | Riferimento | Citazione | Materia |
+|------|-------------|-----------|---------|
+| TUIR | D.P.R. 917/1986 | art. N TUIR | IRPEF, IRES, redditi, deduzioni |
+| IVA | D.P.R. 633/1972 | art. N DPR 633/1972 | Imposta sul Valore Aggiunto |
+| Contenzioso tributario | D.Lgs. 546/1992 | art. N D.Lgs. 546/1992 | Processo tributario |
+| Sanzioni tributarie | D.Lgs. 472/1997 | art. N D.Lgs. 472/1997 | Sanzioni amministrative fiscali |
+| Accertamento imposte | D.P.R. 600/1973 | art. N DPR 600/1973 | Accertamento IRPEF/IRES |
+| Riscossione | D.P.R. 602/1973 | art. N DPR 602/1973 | Riscossione coattiva |
+| Registro | D.P.R. 131/1986 | art. N DPR 131/1986 | Imposta di registro |
+| IMU | D.Lgs. 23/2011 + L. 160/2019 | art. N D.Lgs. 23/2011 | Imposta municipale propria |
+| ICI (storico) | D.Lgs. 504/1992 | art. N D.Lgs. 504/1992 | Imposta comunale sugli immobili |
+| Successioni e donazioni | D.Lgs. 346/1990 | art. N D.Lgs. 346/1990 | Imposta successioni e donazioni |
+
+Per il testo vigente: usare cite_law("art. N [fonte]").
+
+═══════════════════════════════════════════════════════════
+WORKFLOW CONSIGLIATI
+═══════════════════════════════════════════════════════════
+
+Ricerca tematica:
+1. cerca_giurisprudenza_tributaria(query="tema") → lista provvedimenti
+2. cerdef_leggi_provvedimento(guid) → massima e testo completo
+3. cite_law("art. N TUIR") → norma tributaria di riferimento
+
+Monitoraggio novità:
+1. ultime_sentenze_tributarie() → ultime pubblicate
+2. ultime_sentenze_tributarie(ente="corte_suprema") → solo Cassazione
+3. cerdef_leggi_provvedimento(guid) → approfondimento
+
+Ricerca per ente e tipo:
+cerca_giurisprudenza_tributaria(query="IVA", ente="corte_suprema", tipo_provvedimento="sentenza")
+
+═══════════════════════════════════════════════════════════
+NOTE TECNICHE
+═══════════════════════════════════════════════════════════
+
+- Endpoint: def.finanze.it/DocTribFrontend/ (MEF — dati pubblici)
+- Ricerca: POST form-encoded, risultati in XML embedded in JS
+- Testo troncato a 25000 caratteri per evitare saturazione del contesto
+- Il GUID identifica univocamente ogni provvedimento
+- Date nei parametri di ricerca: formato DD/MM/YYYY
+- Max risultati: 250 per richiesta (paginazione automatica via cookie di sessione)
+"""
+
+
+@mcp.resource(
     "legal://riferimenti/modelli-atti-catalogo",
     name="Catalogo Modelli Atti — 100 Tipi",
     description="Indice di tutti i 100 tipi di atti legali generabili: routing, tool, resource e campi obbligatori per ciascun tipo",
@@ -1137,4 +1238,258 @@ WORKFLOW TIPO
 4. Chiama il tool_diretto o leggi la resource_modello
 5. Verifica norme con cite_law()
 6. Presenta l'atto completo con calcoli e checklist
+"""
+
+
+@mcp.resource(
+    "legal://riferimenti/giustizia-amministrativa",
+    name="Giustizia Amministrativa — Guida Ricerca TAR/CdS",
+    description="Guida all'uso dei tool per la ricerca di sentenze TAR e Consiglio di Stato: sedi, tipi, workflow e normativa di riferimento",
+)
+def giustizia_amministrativa() -> str:
+    return """GIUSTIZIA AMMINISTRATIVA — GUIDA ALLA RICERCA PROVVEDIMENTI TAR/CdS
+(giustizia-amministrativa.it — mdp.giustizia-amministrativa.it)
+
+═══════════════════════════════════════════════════════════
+TOOL DISPONIBILI
+═══════════════════════════════════════════════════════════
+
+| Tool | Uso | Parametri chiave |
+|------|-----|------------------|
+| `cerca_giurisprudenza_amministrativa` | Ricerca full-text TAR/CdS | query, sede, tipo, anno, max_risultati |
+| `leggi_provvedimento_amm` | Testo completo dal sottodominio mdp | sede, nrg, nome_file |
+| `giurisprudenza_amm_su_norma` | Decisioni che citano un articolo | riferimento, sede, anno_da |
+| `ultimi_provvedimenti_amm` | Ultimi depositati | sede, tipo, max_risultati |
+
+═══════════════════════════════════════════════════════════
+SEDI DISPONIBILI (28 sedi)
+═══════════════════════════════════════════════════════════
+
+| Chiave | Codice | Sede |
+|--------|--------|------|
+| `consiglio_di_stato` | CDS | Consiglio di Stato |
+| `cgars` | CGARS | CGARS (Consiglio di Giustizia Amministrativa per la Regione Siciliana) |
+| `tar_lazio` | TARLAZ | TAR Lazio |
+| `tar_lombardia` | TARLOM | TAR Lombardia |
+| `tar_campania_napoli` | TARCAM | TAR Campania - Napoli |
+| `tar_campania_salerno` | TARCAMSAL | TAR Campania - Salerno |
+| `tar_sicilia_palermo` | TARSIC | TAR Sicilia - Palermo |
+| `tar_sicilia_catania` | TARSICCAT | TAR Sicilia - Catania |
+| `tar_veneto` | TARVEN | TAR Veneto |
+| `tar_piemonte` | TARPIE | TAR Piemonte |
+| `tar_emilia_romagna` | TAREMI | TAR Emilia-Romagna |
+| `tar_toscana` | TARTOS | TAR Toscana |
+| `tar_puglia_bari` | TARPUG | TAR Puglia - Bari |
+| `tar_puglia_lecce` | TARPUGLEC | TAR Puglia - Lecce |
+| `tar_calabria_catanzaro` | TARCAL | TAR Calabria - Catanzaro |
+| `tar_calabria_reggio` | TARCALREG | TAR Calabria - Reggio |
+| `tar_liguria` | TARLIG | TAR Liguria |
+| `tar_sardegna` | TARSAR | TAR Sardegna |
+| `tar_friuli` | TARFRI | TAR Friuli-Venezia Giulia |
+| `tar_marche` | TARMAR | TAR Marche |
+| `tar_abruzzo_pescara` | TARABR | TAR Abruzzo - Pescara |
+| `tar_abruzzo_laquila` | TARABRLAQ | TAR Abruzzo - L'Aquila |
+| `tar_umbria` | TARUMB | TAR Umbria |
+| `tar_molise` | TARMOL | TAR Molise |
+| `tar_basilicata` | TARBAS | TAR Basilicata |
+| `tar_trentino_bolzano` | TARBOL | TAR Trentino-Alto Adige - Bolzano |
+| `tar_trentino_trento` | TARTRETN | TAR Trentino-Alto Adige - Trento |
+| `tar_valle_aosta` | TARVDA | TAR Valle d'Aosta |
+
+═══════════════════════════════════════════════════════════
+TIPI DI PROVVEDIMENTO
+═══════════════════════════════════════════════════════════
+
+| Chiave | Descrizione |
+|--------|-------------|
+| `sentenza` | Sentenza (decisione nel merito) |
+| `ordinanza` | Ordinanza (cautelare, istruttoria) |
+| `decreto` | Decreto monocratico (cautelare urgente) |
+| `parere` | Parere del Consiglio di Stato |
+
+═══════════════════════════════════════════════════════════
+WORKFLOW CONSIGLIATI
+═══════════════════════════════════════════════════════════
+
+Ricerca tematica:
+1. cerca_giurisprudenza_amministrativa(query="appalto esclusione requisiti")
+2. leggi_provvedimento_amm(sede="CDS", nrg="...", nome_file="...")
+3. cite_law("art. 83 D.Lgs. 36/2023") → norma di riferimento
+
+Ricerca su norma:
+1. giurisprudenza_amm_su_norma(riferimento="art. 21-nonies L. 241/1990")
+2. leggi_provvedimento_amm(...) → testo completo decisioni
+3. cite_law("art. 21-nonies L. 241/1990") → testo aggiornato
+
+Monitoraggio novità:
+1. ultimi_provvedimenti_amm(sede="consiglio_di_stato", tipo="sentenza")
+2. leggi_provvedimento_amm(...) → approfondimento
+
+═══════════════════════════════════════════════════════════
+NORMATIVA AMMINISTRATIVA DI RIFERIMENTO
+═══════════════════════════════════════════════════════════
+
+| Fonte | Riferimento | Citazione | Materia |
+|-------|-------------|-----------|---------|
+| CPA | D.Lgs. 104/2010 | art. N CPA | Codice del Processo Amministrativo |
+| Codice Appalti | D.Lgs. 36/2023 | art. N D.Lgs. 36/2023 | Appalti e concessioni |
+| Procedimento amm. | L. 241/1990 | art. N L. 241/1990 | Accesso, silenzio, SCIA, conferenza servizi |
+| TUEL | D.Lgs. 267/2000 | art. N TUEL | Enti locali, bilancio, organi |
+| TU Edilizia | D.P.R. 380/2001 | art. N DPR 380/2001 | Permesso costruire, abusi edilizi |
+| CAD | D.Lgs. 82/2005 | art. N CAD | Documento informatico, PEC |
+| Codice Antimafia | D.Lgs. 159/2011 | art. N Cod. Antimafia | Informative antimafia, interdittive |
+| D.Lgs. 33/2013 | D.Lgs. 33/2013 | art. N D.Lgs. 33/2013 | Trasparenza PA, accesso civico |
+
+Per il testo aggiornato: usare cite_law("art. N [fonte]").
+
+═══════════════════════════════════════════════════════════
+MATERIE TIPICHE — ESEMPI DI QUERY
+═══════════════════════════════════════════════════════════
+
+| Materia | Query suggerita | Norma tipica |
+|---------|----------------|--------------|
+| Appalti — esclusione | "esclusione gara requisiti" | art. 94-98 D.Lgs. 36/2023 |
+| Appalti — offerta anomala | "offerta anomala verifica" | art. 110 D.Lgs. 36/2023 |
+| Silenzio-assenso | "silenzio-assenso formazione" | art. 20 L. 241/1990 |
+| Accesso atti | "accesso documenti amministrativi" | art. 22 L. 241/1990 |
+| Autotutela | "annullamento in autotutela" | art. 21-nonies L. 241/1990 |
+| Urbanistica | "permesso costruire variante PRG" | DPR 380/2001 |
+| Interdittiva antimafia | "informativa antimafia interdittiva" | D.Lgs. 159/2011 |
+| Accesso civico | "accesso civico generalizzato FOIA" | D.Lgs. 33/2013 |
+
+═══════════════════════════════════════════════════════════
+NOTE TECNICHE
+═══════════════════════════════════════════════════════════
+
+- Il portale usa Liferay Portal — ricerca pubblica, nessuna autenticazione
+- Testi integrali sul sottodominio mdp in formato XML <GA> (epigrafe + motivazione + dispositivo)
+- Certificato SSL non valido → verify=False (necessario, come Italgiure)
+- Il testo è troncato a 15000 caratteri per evitare saturazione del contesto
+- I parametri sede, nrg e nome_file per leggi_provvedimento_amm vengono dai risultati di ricerca
+- Adunanza Plenaria: massima autorità del CdS — privilegiare nelle ricerche
+"""
+
+
+@mcp.resource(
+    "legal://riferimenti/cgue-giurisprudenza",
+    name="CGUE — Guida Giurisprudenza Europea",
+    description="Guida ai tool CGUE: corti, tipi documento, materie, formato CELEX/ECLI, workflow",
+)
+def cgue_giurisprudenza() -> str:
+    return """CGUE — GIURISPRUDENZA CORTE DI GIUSTIZIA EUROPEA (CELLAR SPARQL)
+
+═══════════════════════════════════════════════════════════
+TOOL DISPONIBILI (4)
+═══════════════════════════════════════════════════════════
+
+| Tool | Quando usarlo |
+|------|---------------|
+| cerca_giurisprudenza_cgue(query, corte?, tipo_documento?, anno_da?, anno_a?, materia?) | Ricerca per keyword nei titoli italiani |
+| leggi_sentenza_cgue(cellar_uri) | Testo completo via CELLAR URI (da risultati ricerca) |
+| giurisprudenza_cgue_su_norma(riferimento, corte?, anno_da?) | Sentenze che citano una norma UE specifica |
+| ultime_sentenze_cgue(corte?, tipo_documento?, materia?) | Ultime decisioni pubblicate |
+
+═══════════════════════════════════════════════════════════
+CORTI (parametro corte=)
+═══════════════════════════════════════════════════════════
+
+| Valore | Corte | Codice CELEX |
+|--------|-------|--------------|
+| corte_di_giustizia | Corte di Giustizia | CJ (sentenza), CC (ordinanza), CO (conclusioni AG) |
+| tribunale | Tribunale dell'UE | TJ (sentenza), TO (ordinanza) |
+| tutte | Tutte le corti | — (default) |
+
+═══════════════════════════════════════════════════════════
+TIPI DOCUMENTO (parametro tipo_documento=)
+═══════════════════════════════════════════════════════════
+
+| Valore | Descrizione |
+|--------|-------------|
+| sentenza | Sentenza (JUDG) |
+| ordinanza | Ordinanza (ORDER) |
+| conclusioni_ag | Conclusioni dell'Avvocato Generale (OPIN_AG) |
+| tutti | Tutti i tipi (default) |
+
+═══════════════════════════════════════════════════════════
+MATERIE PREDEFINITE (parametro materia=)
+═══════════════════════════════════════════════════════════
+
+| Valore | Keywords incluse |
+|--------|-----------------|
+| iva | iva, imposta sul valore aggiunto, sesta direttiva |
+| concorrenza | concorrenza, aiuti di stato, intesa, abuso di posizione dominante |
+| ambiente | ambiente, rifiuti, emissioni, valutazione impatto ambientale |
+| lavoro | lavoro, lavoratore, contratto di lavoro, licenziamento |
+| protezione_dati | dati personali, protezione dei dati, gdpr, vita privata |
+| appalti | appalto, appalti pubblici, gara, aggiudicazione |
+| consumatori | consumatore, clausola abusiva, garanzia |
+
+═══════════════════════════════════════════════════════════
+FORMATO CELEX (giurisprudenza)
+═══════════════════════════════════════════════════════════
+
+Struttura: 6 {anno_caso} {codice_corte} {numero_caso_paddato}
+
+Esempi:
+- 62024CJ0008 → Sentenza CJ, caso C-8/2024
+- 62023TJ0100 → Sentenza Tribunale, caso T-100/2023
+- 62022CJ0262 → Sentenza CJ, caso C-262/2022
+
+Settore 6 = giurisprudenza (case law)
+Il CELEX con "_" (es. "_RES") = sommario, NON la decisione → filtrato automaticamente
+
+═══════════════════════════════════════════════════════════
+FORMATO ECLI
+═══════════════════════════════════════════════════════════
+
+ECLI:EU:C:{anno}:{numero}   → Corte di Giustizia
+ECLI:EU:T:{anno}:{numero}   → Tribunale UE
+ECLI:EU:F:{anno}:{numero}   → Tribunale della Funzione Pubblica (cessato)
+
+Esempio: ECLI:EU:C:2026:210
+
+═══════════════════════════════════════════════════════════
+CELLAR URI — RECUPERO TESTO COMPLETO
+═══════════════════════════════════════════════════════════
+
+Il CELLAR URI è fornito in ogni risultato di ricerca.
+Formato: http://publications.europa.eu/resource/cellar/{uuid}.{lang_code}
+
+Esempio: http://publications.europa.eu/resource/cellar/44bb4d8a-21e1-11f1-8c3a-01aa75ed71a1.0006
+
+IMPORTANTE: usare sempre leggi_sentenza_cgue(cellar_uri) — NON le URL EUR-Lex
+(EUR-Lex ha protezione WAF/JS challenge, CELLAR risponde direttamente).
+
+═══════════════════════════════════════════════════════════
+WORKFLOW TIPO
+═══════════════════════════════════════════════════════════
+
+1. Ricerca per tema:
+   cerca_giurisprudenza_cgue(query="rinvio pregiudiziale IVA", materia="iva")
+
+2. Lettura testo completo:
+   leggi_sentenza_cgue(cellar_uri="http://publications.europa.eu/resource/cellar/abc.0006")
+
+3. Verifica norma citata:
+   cite_law("art. 168 direttiva 2006/112")
+
+4. Ricerca per norma specifica:
+   giurisprudenza_cgue_su_norma(riferimento="art. 101 TFUE")
+
+5. Ultime decisioni per materia:
+   ultime_sentenze_cgue(materia="concorrenza", tipo_documento="sentenza")
+
+═══════════════════════════════════════════════════════════
+NORME UE FREQUENTI DA COMBINARE CON CGUE
+═══════════════════════════════════════════════════════════
+
+| Norma | cite_law reference | Materia CGUE |
+|-------|-------------------|--------------|
+| TFUE art. 101 | "art. 101 TFUE" | concorrenza |
+| TFUE art. 107 | "art. 107 TFUE" | aiuti di stato |
+| TFUE art. 267 | "art. 267 TFUE" | rinvio pregiudiziale |
+| GDPR art. 5 | "art. 5 Reg. UE 2016/679" | protezione_dati |
+| Direttiva IVA art. 168 | "art. 168 Direttiva 2006/112" | iva |
+| Direttiva appalti art. 57 | "art. 57 Direttiva 2014/24" | appalti |
+| Direttiva consumatori art. 6 | "art. 6 Direttiva 2011/83" | consumatori |
 """
