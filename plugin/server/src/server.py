@@ -23,6 +23,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - GARANTE PRIVACY: provvedimenti GPDP, ricerca sanzioni, linee guida
 - GDPR/PRIVACY COMPLIANCE: informative privacy (art. 13-14), cookie policy, DPA (art. 28), registro trattamenti (art. 30), DPIA (art. 35), data breach (art. 33-34), sanzioni (art. 83), base giuridica (art. 6)
 - CONSOB: delibere, provvedimenti, regolamenti mercati finanziari, intermediari, abusi di mercato
+- GIURISPRUDENZA UE: sentenze CGUE, Corte di Giustizia UE, Tribunale UE, rinvio pregiudiziale, conclusioni AG, ECLI
 - REDAZIONE ATTI: genera_modello_atto() per catalogo 100 tipi atti (DI, precetto, procura, relata, attestazione, citazione, pignoramento, preventivo, privacy)
 
 REGOLE: cite_law() PRIMA di citare norme. leggi_sentenza() DIRETTO per sentenze note.
@@ -37,6 +38,7 @@ Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedime
 Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
 Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
 CONSOB → cerca_delibere_consob → leggi_delibera_consob
+Diritto UE → cerca_giurisprudenza_cgue → leggi_sentenza_cgue → cite_law
 Redazione atti → genera_modello_atto(tipo) → [raccolta dati] → [tool calcolo] → [composizione atto]
 """,
 )
@@ -59,6 +61,7 @@ from src.tools import (  # noqa: E402, F401
     italgiure,
     gpdp,
     consob,
+    cgue,
     privacy_gdpr,
     modelli_atti,
 )
@@ -75,7 +78,7 @@ _PROFILES: dict[str, set[str]] = {
     "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
     "penale": {"penale", "normativa", "giurisprudenza"},
     "fiscale": {"fiscale", "proprieta", "utility", "consob"},
-    "normativa": {"normativa", "giurisprudenza", "privacy", "consob"},
+    "normativa": {"normativa", "giurisprudenza", "giurisprudenza_ue", "privacy", "consob"},
     "privacy": {"privacy", "normativa", "giurisprudenza"},
     "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof"},
     "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
