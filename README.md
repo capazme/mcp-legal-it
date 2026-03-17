@@ -111,56 +111,266 @@ Configurazione in `claude_desktop_config.json`:
 
 ---
 
-## Skill, Command, Agenti
+## Skill — 19 workflow guidati
 
-### Skill — 19 workflow guidati
+Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base al contesto.
 
-Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
+### Analisi normativa e giurisprudenziale
 
-| Skill | Descrizione |
-|-------|-------------|
-| `parere-legale` | Parere strutturato con citazioni verificate |
-| `analisi-articolo` | Analisi approfondita di un articolo di legge |
-| `analisi-giurisprudenziale` | Ricerca e sintesi orientamenti giurisprudenziali |
-| `recupero-credito` | Interessi mora + decreto ingiuntivo + parcella |
-| `analisi-sinistro` | Quantificazione danni da sinistro con rivalutazione |
-| `causa-civile` | Pianificazione causa: costi, scadenze, preventivo |
-| `pianificazione-successione` | Quote ereditarie, imposte, adempimenti |
-| `quantificazione-danni` | Calcolo danno biologico/patrimoniale/morale |
-| `calcolo-parcella` | Parcella avvocato D.M. 55/2014 |
-| `verifica-prescrizione` | Prescrizione civile o penale |
-| `ricerca-normativa` | Ricerca normativa completa su un tema |
-| `confronto-norme` | Confronto tra norme: prevalenza, coordinamento |
-| `mappatura-normativa` | Mappa normativa per settore/attivita |
-| `compliance-privacy` | Assessment GDPR completo |
-| `data-breach` | Gestione data breach: valutazione + notifica |
-| `redazione-contratto` | Supporto redazione contrattuale |
-| `genera-atto` | Generazione atti giudiziari (100 modelli) |
-| `analisi-delibere-consob` | Ricerca e analisi delibere CONSOB |
-| `novita-consob` | Ultime delibere CONSOB |
+| Skill | Descrizione | Tool principali |
+|-------|-------------|-----------------|
+| `parere-legale` | Parere strutturato: Fatto, Diritto, Analisi, Conclusioni — ogni norma verificata con `cite_law` | `cite_law`, `cerca_giurisprudenza`, `leggi_sentenza` |
+| `analisi-articolo` | Testo vigente + ratio legis + annotazioni Brocardi + giurisprudenza + norme collegate | `cite_law`, `cerca_brocardi`, `leggi_sentenza` |
+| `analisi-giurisprudenziale` | Ricerca Italgiure con modalita esplora, lettura 2-4 decisioni chiave, sintesi orientamenti | `cerca_giurisprudenza`, `leggi_sentenza`, `cerca_brocardi`, `cite_law` |
+| `ricerca-normativa` | Fonti primarie e secondarie ordinate per gerarchia + giurisprudenza + provvedimenti autorita | `cite_law`, `cerca_brocardi`, `cerca_giurisprudenza`, `cerca_delibere_consob`, `cerca_provvedimenti_garante` |
+| `confronto-norme` | Confronto sistematico tra norme: differenze, sovrapposizioni, criteri di specialita/posteriorita/gerarchia | `cite_law`, `cerca_brocardi`, `cerca_giurisprudenza` |
+| `mappatura-normativa` | Mappa normativa completa per settore con fonti per livello gerarchico e matrice adempimenti | `cite_law`, `cerca_delibere_consob`, `cerca_provvedimenti_garante`, `cerca_brocardi` |
+| `verifica-prescrizione` | Termine prescrizione civile (artt. 2941-2946 c.c.) o penale con sospensione/interruzione | `prescrizione_diritti`, `prescrizione_reato`, `cite_law` |
 
-### Slash command — 8
+### Contenzioso e calcoli
 
-| Comando | Descrizione |
+| Skill | Descrizione | Tool principali |
+|-------|-------------|-----------------|
+| `recupero-credito` | Workflow completo: interessi mora BCE+8pp, rivalutazione ISTAT, bozza decreto ingiuntivo, parcella e CU | `interessi_mora`, `rivalutazione_monetaria`, `decreto_ingiuntivo`, `parcella_avvocato_civile` |
+| `causa-civile` | Pianificazione causa: CU per valore/tipo, scadenze post-Cartabia, termini impugnazione, preventivo | `contributo_unificato`, `scadenza_processuale`, `scadenze_impugnazioni`, `preventivo_civile` |
+| `analisi-sinistro` | Quantificazione danno biologico (micro/macro in base a %), personalizzazione, rivalutazione, interessi | `danno_biologico_micro`, `danno_biologico_macro`, `rivalutazione_monetaria`, `interessi_legali` |
+| `quantificazione-danni` | Calcolo risarcimento con personalizzazione per eta/attivita/condizioni e attualizzazione | `danno_biologico_micro`, `danno_biologico_macro`, `danno_non_patrimoniale`, `rivalutazione_monetaria` |
+| `calcolo-parcella` | Parcella D.M. 55/2014 per fase (studio, introduttiva, trattazione, decisionale) con nota spese e fattura | `parcella_avvocato_civile`, `parcella_avvocato_penale`, `parcella_stragiudiziale`, `nota_spese`, `fattura_avvocato` |
+| `pianificazione-successione` | Quote legittime e disponibili, grado parentela, imposte con franchigie, donazioni, adempimenti | `calcolo_eredita`, `imposte_successione`, `grado_parentela`, `imposte_compravendita` |
+
+### Privacy e compliance
+
+| Skill | Descrizione | Tool principali |
+|-------|-------------|-----------------|
+| `compliance-privacy` | Assessment GDPR completo: base giuridica, check DPIA, registro, informativa, DPA, data breach | tutti i 12 tool GDPR + `cite_law` |
+| `data-breach` | Gestione incidente: valutazione rischio, modulo notifica Garante entro 72h, stima sanzioni art. 83 | `valutazione_data_breach`, `genera_notifica_data_breach`, `calcolo_sanzione_gdpr`, `cite_law` |
+
+### Redazione documenti
+
+| Skill | Descrizione | Tool principali |
+|-------|-------------|-----------------|
+| `genera-atto` | Generazione atti legali — **100 modelli in 10 categorie** ([dettaglio sotto](#genera-atto--100-modelli-di-atti)) | `genera_modello_atto`, `lista_categorie_atti`, `cite_law` |
+| `redazione-contratto` | Supporto contrattuale: verifica norme, clausole tipo da Brocardi, check privacy/DPA se necessario | `cite_law`, `cerca_brocardi`, `analisi_base_giuridica`, `genera_dpa` |
+
+### CONSOB
+
+| Skill | Descrizione | Tool principali |
+|-------|-------------|-----------------|
+| `analisi-delibere-consob` | Ricerca delibere CONSOB su un tema, lettura testo, quadro TUF/MiFID, sintesi orientamenti | `cerca_delibere_consob`, `leggi_delibera_consob`, `cite_law` |
+| `novita-consob` | Ultime delibere pubblicate con sintesi orientamenti per tipologia/argomento | `ultime_delibere_consob`, `leggi_delibera_consob`, `cite_law` |
+
+---
+
+## Genera Atto — 100 modelli di atti
+
+La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow: identificazione tipo atto &rarr; raccolta campi obbligatori &rarr; calcoli automatici (CU, interessi, parcelle) &rarr; generazione &rarr; verifica norme con `cite_law` &rarr; output con checklist allegati.
+
+<details>
+<summary><strong>Atti introduttivi</strong> (12 modelli)</summary>
+
+| Modello | Descrizione |
 |---------|-------------|
-| `/legal-it:norma` | Cerca e cita una norma |
-| `/legal-it:sentenza` | Leggi una sentenza di Cassazione |
-| `/legal-it:ricerca` | Ricerca giurisprudenziale full-text |
-| `/legal-it:interessi` | Calcolo interessi legali o di mora |
-| `/legal-it:parcella` | Calcolo parcella avvocato |
-| `/legal-it:codice-fiscale` | Calcolo o decodifica codice fiscale |
-| `/legal-it:scadenza` | Calcolo scadenza processuale |
-| `/legal-it:privacy` | Genera informativa privacy |
+| `decreto_ingiuntivo_ordinario` | Ricorso per DI — credito ordinario |
+| `decreto_ingiuntivo_professionale` | Credito professionale (parcella vidimata) |
+| `decreto_ingiuntivo_condominiale` | Credito condominiale |
+| `decreto_ingiuntivo_cambiale` | Credito cambiario |
+| `decreto_ingiuntivo_fatture` | Credito da fatture commerciali |
+| `decreto_ingiuntivo_retribuzioni` | Crediti retributivi (sezione lavoro) |
+| `sfratto_morosita` | Intimazione di sfratto per morosita |
+| `citazione_ordinaria` | Atto di citazione — rito ordinario Tribunale |
+| `ricorso_giudice_pace` | Ricorso al Giudice di Pace (fino a 10.000 euro) |
+| `ricorso_semplificato` | Rito semplificato di cognizione (art. 281-decies c.p.c.) |
+| `atto_appello` | Citazione in appello |
+| `opposizione_decreto_ingiuntivo` | Citazione in opposizione a DI |
 
-### Agenti — 5 specialisti
+</details>
 
-| Agente | Specializzazione |
-|--------|------------------|
-| `civilista` | Contratti, responsabilita, successioni, obbligazioni, famiglia |
-| `penalista` | Reati, pene, prescrizione, misure cautelari |
-| `privacy-specialist` | GDPR, Codice Privacy, provvedimenti Garante |
-| `redattore-atti` | Redazione atti giudiziari e stragiudiziali |
-| `ricerca-giurisprudenziale` | Ricerca sistematica su Italgiure |
+<details>
+<summary><strong>Esecuzione</strong> (19 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `atto_di_precetto` | Atto di precetto |
+| `pignoramento_presso_terzi` | Pignoramento presso terzi |
+| `pignoramento_immobiliare` | Pignoramento immobiliare |
+| `nota_precisazione_credito` | Nota di precisazione del credito |
+| `dichiarazione_553_cpc` | Dichiarazione del terzo ex art. 553 c.p.c. |
+| `ricerca_beni_492bis` | Ricerca beni con modalita telematiche (art. 492-bis) |
+| `avviso_543_5_cpc` | Avviso ex art. 543 co. 5 c.p.c. |
+| `cessazione_obbligo_custodia` | Cessazione obbligo di custodia |
+| `ordinanza_assegnazione_somme` | Ordinanza di assegnazione somme |
+| `ordinanza_assegnazione_crediti` | Ordinanza di assegnazione crediti |
+| `ordinanza_assegnazione_543_cpc` | Ordinanza di assegnazione ex art. 543 c.p.c. |
+| `proroga_567_cpc` | Proroga termini ex art. 567 c.p.c. |
+| `vendita_mobili` | Istanza di vendita beni mobili |
+| `vendita_immobili` | Istanza di vendita beni immobili |
+| `rinuncia_esecuzione` | Rinuncia all'esecuzione |
+| `rinuncia_intervento` | Rinuncia all'intervento |
+| `perdita_efficacia_pignoramento` | Dichiarazione perdita efficacia pignoramento |
+| `assegnazione_510_cpc` | Assegnazione ex art. 510 c.p.c. |
+| `termine_efficacia_titolo` | Verifica termine efficacia titolo esecutivo |
+
+</details>
+
+<details>
+<summary><strong>Preventivi</strong> (17 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `preventivo_civile` | Preventivo causa civile ordinaria |
+| `preventivo_stragiudiziale` | Preventivo attivita stragiudiziale |
+| `preventivo_volontaria_giurisdizione` | Preventivo volontaria giurisdizione |
+| `preventivo_mediazione` | Preventivo procedura di mediazione |
+| `preventivo_decreto_ingiuntivo` | Preventivo ricorso per DI |
+| `preventivo_opposizione_di` | Preventivo opposizione a DI |
+| `preventivo_precetto` | Preventivo atto di precetto |
+| `preventivo_pignoramento` | Preventivo pignoramento |
+| `preventivo_esecuzione_mobiliare` | Preventivo esecuzione mobiliare |
+| `preventivo_esecuzione_immobiliare` | Preventivo esecuzione immobiliare |
+| `preventivo_atp` | Preventivo accertamento tecnico preventivo |
+| `preventivo_giudice_pace` | Preventivo causa Giudice di Pace |
+| `preventivo_cautelari` | Preventivo procedimenti cautelari |
+| `preventivo_lavoro` | Preventivo causa di lavoro |
+| `preventivo_appello` | Preventivo giudizio di appello |
+| `preventivo_penale` | Preventivo difesa penale |
+| `preventivo_sfratto` | Preventivo procedimento di sfratto |
+
+</details>
+
+<details>
+<summary><strong>Attestazioni di conformita</strong> (11 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `attestazione_estratto` | Attestazione di estratto |
+| `attestazione_copia_informatica` | Attestazione copia informatica |
+| `attestazione_duplicato` | Attestazione duplicato informatico |
+| `attestazione_margine_fascicolo` | Attestazione a margine — fascicolo telematico |
+| `attestazione_separata_fascicolo` | Attestazione separata — fascicolo telematico |
+| `attestazione_margine_scanner` | Attestazione a margine — documento scansionato |
+| `attestazione_separata_scanner` | Attestazione separata — documento scansionato |
+| `attestazione_archivio_zip` | Attestazione archivio ZIP |
+| `attestazione_stampe_pec` | Attestazione stampe PEC |
+| `attestazione_composito_di` | Attestazione composito — decreto ingiuntivo |
+| `attestazione_composito_decreto` | Attestazione composito — decreto |
+
+</details>
+
+<details>
+<summary><strong>Notifiche e relate</strong> (9 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `relata_pec_generica` | Relata di notifica PEC generica |
+| `relata_pec_decreto_ingiuntivo` | Relata PEC — decreto ingiuntivo |
+| `relata_pec_opposizione_di` | Relata PEC — opposizione a DI |
+| `relata_pec_appello` | Relata PEC — atto di appello |
+| `relata_pec_sentenza_giudicato` | Relata PEC — sentenza passata in giudicato |
+| `relata_pec_penale` | Relata PEC — atto penale |
+| `relata_posta` | Relata di notifica a mezzo posta |
+| `relata_unep` | Relata di notifica tramite UNEP |
+| `relata_pat` | Relata di notifica PAT (giustizia amministrativa) |
+
+</details>
+
+<details>
+<summary><strong>Procure</strong> (8 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `procura_generale` | Procura alle liti generale |
+| `procura_speciale` | Procura speciale alle liti |
+| `procura_appello` | Procura per giudizio di appello |
+| `procura_mediazione` | Procura per mediazione |
+| `procura_mediazione_sostanziale` | Procura per mediazione con poteri sostanziali |
+| `procura_negoziazione` | Procura per negoziazione assistita |
+| `procura_arbitrato` | Procura per arbitrato |
+| `procura_incarico_professionale` | Procura e incarico professionale |
+
+</details>
+
+<details>
+<summary><strong>Stragiudiziale</strong> (8 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `sollecito_pagamento` | Sollecito di pagamento |
+| `sollecito_formale_mora` | Sollecito formale con costituzione in mora |
+| `sollecito_prima_richiesta` | Sollecito — prima richiesta bonaria |
+| `sollecito_post_sentenza` | Sollecito post-sentenza |
+| `invito_negoziazione` | Invito a negoziazione assistita |
+| `adesione_negoziazione` | Adesione a negoziazione assistita |
+| `lettera_adeguamento_istat` | Lettera adeguamento canone ISTAT |
+| `richiesta_nominativi_morosi` | Richiesta nominativi morosi al condominio |
+
+</details>
+
+<details>
+<summary><strong>Privacy</strong> (8 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `informativa_privacy_art13` | Informativa ex art. 13 GDPR |
+| `informativa_cookie` | Cookie policy con tabella e banner |
+| `informativa_dipendenti` | Informativa privacy dipendenti |
+| `informativa_videosorveglianza` | Cartello EDPB + informativa estesa |
+| `dpa_art28` | Contratto responsabile trattamento art. 28 GDPR |
+| `registro_trattamenti` | Scheda registro ex art. 30 GDPR |
+| `dpia` | Valutazione d'impatto sulla protezione dati |
+| `notifica_data_breach` | Modulo notifica violazione al Garante |
+
+</details>
+
+<details>
+<summary><strong>Istanze</strong> (6 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `istanza_esecutorieta` | Istanza di esecutorieta |
+| `certificato_giudicato` | Richiesta certificato di passaggio in giudicato |
+| `istanza_giudicato` | Istanza di giudicato |
+| `ricorso_intervento` | Ricorso per intervento |
+| `avviso_impugnazione` | Avviso di impugnazione |
+| `avviso_opposizione_di` | Avviso di opposizione a decreto ingiuntivo |
+
+</details>
+
+<details>
+<summary><strong>PCT</strong> (2 modelli)</summary>
+
+| Modello | Descrizione |
+|---------|-------------|
+| `nota_deposito_pct` | Nota di deposito telematico PCT |
+| `nomina_ctp` | Nomina consulente tecnico di parte |
+
+</details>
+
+---
+
+## Slash command — 8
+
+| Comando | Descrizione | Logica di routing |
+|---------|-------------|-------------------|
+| `/legal-it:norma` | Cerca e cita una norma | Fetch testo vigente con `cite_law`, poi offre annotazioni Brocardi o giurisprudenza collegata |
+| `/legal-it:sentenza` | Leggi una sentenza di Cassazione | Testo integrale con `leggi_sentenza` se numero+anno noti, altrimenti suggerisce `/ricerca` |
+| `/legal-it:ricerca` | Ricerca giurisprudenziale | Routing per contesto: Italgiure, Garante Privacy, CONSOB o normativa |
+| `/legal-it:interessi` | Calcolo interessi legali o di mora | Distingue legali (art. 1284 c.c.) da mora commerciale (BCE+8pp, D.Lgs. 231/2002) |
+| `/legal-it:parcella` | Calcolo parcella avvocato | Civile/penale/stragiudiziale con dettaglio per fase D.M. 55/2014 (min/medio/max) |
+| `/legal-it:codice-fiscale` | Calcolo o decodifica CF | Se riceve un CF lo decodifica, se riceve dati anagrafici lo calcola |
+| `/legal-it:scadenza` | Calcolo scadenza processuale | Routing: memorie 183/190, impugnazioni, esecuzioni, prescrizione civile/penale |
+| `/legal-it:privacy` | Genera informativa privacy | Routing per tipo: art. 13, cookie, dipendenti, videosorveglianza, DPA, DPIA, data breach |
+
+---
+
+## Agenti — 5 specialisti
+
+| Agente | Specializzazione | Aree coperte |
+|--------|------------------|--------------|
+| `civilista` | Contratti, responsabilita, successioni, diritti reali, obbligazioni, famiglia | Artt. 1321-1469 c.c. (contratti), art. 2043 ss. (resp. extracontrattuale), artt. 456-768 (successioni), artt. 832-1172 (diritti reali) |
+| `penalista` | Reati, pene, prescrizione, misure cautelari, riti alternativi | Gestione automatica regime prescrizione: Bonafede (fatti 2020-2024), Cartabia (dal 2025) |
+| `privacy-specialist` | GDPR, Codice Privacy, provvedimenti Garante | Struttura: Quadro normativo &rarr; Analisi &rarr; Rischi e sanzioni &rarr; Raccomandazioni |
+| `redattore-atti` | Redazione atti giudiziari, stragiudiziali, procure, relate, attestazioni | Accesso a tutti i 100 modelli di atti + tool di calcolo (CU, interessi, parcelle) |
+| `ricerca-giurisprudenziale` | Ricerca sistematica su Italgiure, CONSOB, Garante | Strategia: esplora &rarr; filtra con facets &rarr; cerca con filtri &rarr; leggi decisioni chiave &rarr; Brocardi &rarr; fondamento normativo |
 
 ---
 
