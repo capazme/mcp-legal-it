@@ -1,8 +1,8 @@
 # mcp-legal-it — Project Context
 
-> MCP server con 160+ tool di calcolo legale italiano, consultazione normativa
-> (Normattiva, EUR-Lex, Brocardi), ricerca giurisprudenziale (Italgiure/Cassazione)
-> e delibere CONSOB.
+> MCP server con 177 tool di calcolo legale italiano, consultazione normativa
+> (Normattiva, EUR-Lex, Brocardi), ricerca giurisprudenziale (Italgiure, CeRDEF,
+> TAR/CdS, CGUE), delibere CONSOB.
 
 ## Confini del progetto — LEGGERE PRIMA
 
@@ -33,8 +33,8 @@ Se un agente non vede `leggi_sentenza`, è perché sta guardando il server sbagl
 mcp-legal-it/
 ├── src/
 │   ├── server.py              # FastMCP entry point — registra tutti i tool
-│   ├── prompts.py             # 16 workflow guidati (@mcp.prompt)
-│   ├── resources.py           # 10 risorse statiche (@mcp.resource)
+│   ├── prompts.py             # 19 workflow guidati (@mcp.prompt)
+│   ├── resources.py           # 13 risorse statiche (@mcp.resource)
 │   ├── lib/
 │   │   ├── visualex/          # Normattiva + EUR-Lex scraper
 │   │   │   ├── scraper.py     # fetch_article(), fetch_annotations(), fetch_normattiva_full_text()
@@ -44,8 +44,14 @@ mcp-legal-it/
 │   │   │   └── client.py      # fetch_brocardi(), BrocardiResult, Massima, parse_massime_references()
 │   │   ├── italgiure/         # Client Italgiure (Cassazione Solr API)
 │   │   │   └── client.py      # solr_query(), build_*_params(), format_*()
-│   │   └── consob/            # Client CONSOB (Liferay Portal scraper)
-│   │       └── client.py      # search_delibere(), fetch_delibera(), format_*()
+│   │   ├── consob/            # Client CONSOB (Liferay Portal scraper)
+│   │   │   └── client.py      # search_delibere(), fetch_delibera(), format_*()
+│   │   ├── cerdef/            # Client CeRDEF (Giurisprudenza Tributaria MEF)
+│   │   │   └── client.py      # search_giurisprudenza(), fetch_provvedimento(), format_*()
+│   │   ├── giustizia_amm/     # Client Giustizia Amministrativa (TAR/CdS)
+│   │   │   └── client.py      # search_provvedimenti(), fetch_provvedimento_text(), format_*()
+│   │   └── cgue/              # Client CGUE (CELLAR SPARQL + EUR-Lex)
+│   │       └── client.py      # search_giurisprudenza(), fetch_sentenza_text(), format_*()
 │   └── tools/
 │       ├── legal_citations.py # cite_law, fetch_law_article, fetch_law_annotations, cerca_brocardi, download_law_pdf
 │       ├── italgiure.py       # leggi_sentenza, cerca_giurisprudenza, giurisprudenza_su_norma, ultime_pronunce
@@ -62,6 +68,9 @@ mcp-legal-it/
 │       ├── dichiarazione_redditi.py
 │       ├── varie.py
 │       ├── consob.py          # cerca_delibere_consob, leggi_delibera_consob, ultime_delibere_consob
+│       ├── cerdef.py          # cerca_giurisprudenza_tributaria, cerdef_leggi_provvedimento, ultime_sentenze_tributarie
+│       ├── giustizia_amm.py   # cerca_giurisprudenza_amministrativa, leggi_provvedimento_amm, giurisprudenza_amm_su_norma, ultimi_provvedimenti_amm
+│       ├── cgue.py            # cerca_giurisprudenza_cgue, leggi_sentenza_cgue, giurisprudenza_cgue_su_norma, ultime_sentenze_cgue
 │       └── privacy_gdpr.py
 └── tests/
     ├── unit/
@@ -69,12 +78,15 @@ mcp-legal-it/
     │   ├── test_legal_citations.py  # Test cite_law, resolve_act, PDF helpers
     │   ├── test_brocardi.py         # Test scraper Brocardi e tool cerca_brocardi
     │   ├── test_consob.py          # Test scraper CONSOB e 3 tool delibere
-    │   └── test_privacy_gdpr.py   # Test 12 tool GDPR/Privacy compliance
+    │   ├── test_privacy_gdpr.py   # Test 12 tool GDPR/Privacy compliance
+    │   ├── test_cerdef.py         # Test CeRDEF scraper e 3 tool tributari (88 test)
+    │   ├── test_giustizia_amm.py  # Test GA scraper e 4 tool TAR/CdS (90 test)
+    │   └── test_cgue.py           # Test CGUE SPARQL client e 4 tool (76 test)
     └── comparison/                  # Test di confronto con valori attesi
         └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
 ```
 
-## Tool disponibili (16 categorie, 164 tool)
+## Tool disponibili (19 categorie, 177 tool)
 
 ### Consultazione Normativa
 | Tool | Descrizione |
@@ -99,6 +111,29 @@ mcp-legal-it/
 | `cerca_delibere_consob(query, tipologia?, argomento?, data_da?, data_a?)` | Ricerca delibere/provvedimenti nel bollettino CONSOB |
 | `leggi_delibera_consob(numero)` | **Testo completo** della delibera. Usare quando si ha già il numero. |
 | `ultime_delibere_consob(tipologia?, argomento?)` | Ultime delibere pubblicate dalla CONSOB |
+
+### Giurisprudenza Tributaria (CeRDEF — def.finanze.it)
+| Tool | Descrizione |
+|------|-------------|
+| `cerca_giurisprudenza_tributaria(query, tipo_provvedimento?, ente?, data_da?, data_a?, numero?, criterio?, ordinamento?)` | Ricerca nel CeRDEF — IVA, IRES, accertamento, riscossione |
+| `cerdef_leggi_provvedimento(guid)` | **Testo completo** tramite GUID. Usare dopo la ricerca. |
+| `ultime_sentenze_tributarie(ente?, tipo_provvedimento?)` | Ultime pronunce tributarie depositate |
+
+### Giustizia Amministrativa (TAR/CdS — giustizia-amministrativa.it)
+| Tool | Descrizione |
+|------|-------------|
+| `cerca_giurisprudenza_amministrativa(query, sede?, tipo?, anno?)` | Ricerca TAR/CdS — appalti, urbanistica, PA, accesso atti |
+| `leggi_provvedimento_amm(sede, nrg, nome_file)` | **Testo completo** da mdp subdomain. Usare dopo la ricerca. |
+| `giurisprudenza_amm_su_norma(riferimento, sede?, anno_da?)` | Sentenze che citano un articolo specifico |
+| `ultimi_provvedimenti_amm(sede?, tipo?)` | Ultimi provvedimenti depositati |
+
+### Giurisprudenza CGUE (CELLAR SPARQL — publications.europa.eu)
+| Tool | Descrizione |
+|------|-------------|
+| `cerca_giurisprudenza_cgue(query, corte?, tipo_documento?, anno_da?, anno_a?, materia?)` | Ricerca sentenze Corte di Giustizia UE e Tribunale UE |
+| `leggi_sentenza_cgue(cellar_uri)` | **Testo completo** via CELLAR content negotiation. Usare dopo la ricerca. |
+| `giurisprudenza_cgue_su_norma(riferimento, corte?, anno_da?)` | Sentenze che citano una norma UE (TFUE, direttive, regolamenti) |
+| `ultime_sentenze_cgue(corte?, tipo_documento?, materia?)` | Ultime decisioni CGUE depositate |
 
 ### Calcoli (tool numerici, non richiedono cite_law)
 1. Rivalutazione monetaria (11 tool) — ISTAT, TFR, canoni
@@ -131,7 +166,7 @@ mcp-legal-it/
 | `calcolo_sanzione_gdpr(tipo_violazione, ...)` | Stima range sanzioni con analisi criteri art. 83(2) |
 | `genera_notifica_data_breach(titolare, ...)` | Modulo notifica al Garante con scadenza 72h |
 
-## Prompt guidati (16)
+## Prompt guidati (19)
 
 - `analisi_sinistro` — danno biologico + rivalutazione + interessi
 - `recupero_credito` — interessi mora + decreto ingiuntivo + parcella
@@ -146,11 +181,14 @@ mcp-legal-it/
 - `confronto_norme` — specialità, gerarchia, coordinamento
 - `mappatura_normativa` — mappa completa per settore/attività + fonti autorità vigilanza
 - `analisi_giurisprudenziale` — workflow: cerca_giurisprudenza → leggi_sentenza → cite_law → sintesi
+- `analisi_tributaria` — workflow: cerca_giurisprudenza_tributaria → cerdef_leggi_provvedimento → cite_law
+- `analisi_giurisprudenza_amministrativa` — workflow: cerca_giurisprudenza_amministrativa → leggi_provvedimento_amm → cite_law
+- `analisi_giurisprudenza_europea` — workflow: cerca_giurisprudenza_cgue → leggi_sentenza_cgue → cite_law
 - `compliance_privacy` — workflow GDPR: base giuridica → DPIA → registro → informativa → DPA
 - `analisi_delibere_consob` — ricerca e analisi delibere CONSOB su un tema: provvedimenti, sanzioni, normativa
 - `novita_consob` — ultime delibere CONSOB con sintesi orientamenti per tipologia/argomento
 
-## Risorse statiche (legal://) — 10
+## Risorse statiche (legal://) — 13
 
 - `legal://riferimenti/procedura-civile` — fasi e termini post-Cartabia
 - `legal://riferimenti/termini-processuali` — quadro sinottico termini
@@ -162,6 +200,9 @@ mcp-legal-it/
 - `legal://riferimenti/codici-e-leggi-principali` — indice ragionato codici e leggi UE
 - `legal://riferimenti/gdpr-checklist` — checklist compliance GDPR con tool disponibili
 - `legal://riferimenti/consob-delibere` — guida tool CONSOB: tipologie, argomenti, normativa mercati finanziari
+- `legal://riferimenti/cerdef-giurisprudenza` — guida CeRDEF: enti, criteri di ricerca, norme fiscali principali
+- `legal://riferimenti/giustizia-amministrativa` — guida TAR/CdS: 28 sedi, tipi provvedimento, norme amministrative
+- `legal://riferimenti/cgue-giurisprudenza` — guida CGUE: corti, materie, formato CELEX/ECLI, workflow SPARQL
 
 ## Convenzioni di sviluppo
 
@@ -189,8 +230,11 @@ Poi importare il modulo in `src/server.py` nella lista degli import.
 
 ### Legal Grounding Protocol
 - **Norme**: usare sempre `cite_law()` — mai citare testo articoli a memoria
-- **Sentenze con numero noto**: usare `leggi_sentenza(numero, anno)` — mai web search
-- **Sentenze su tema**: `cerca_giurisprudenza()` per trovare, poi `leggi_sentenza()` per leggere
+- **Sentenze Cassazione con numero noto**: usare `leggi_sentenza(numero, anno)` — mai web search
+- **Sentenze Cassazione su tema**: `cerca_giurisprudenza()` per trovare, poi `leggi_sentenza()` per leggere
+- **Sentenze tributarie**: `cerca_giurisprudenza_tributaria()` per trovare, poi `cerdef_leggi_provvedimento(guid)` per leggere
+- **Sentenze TAR/CdS**: `cerca_giurisprudenza_amministrativa()` per trovare, poi `leggi_provvedimento_amm(sede, nrg, nome_file)` per leggere
+- **Sentenze CGUE**: `cerca_giurisprudenza_cgue()` per trovare, poi `leggi_sentenza_cgue(cellar_uri)` per leggere
 - **Annotazioni**: `cerca_brocardi()` per massime strutturate con riferimenti Cassazione
 - I tool di calcolo applicano le norme internamente — non richiedono cite_law
 
@@ -313,6 +357,71 @@ cerca_brocardi("art. 2043 c.c.")
 - **Argomenti**: 10 top categorie con ID Liferay (es. `4989535` = Abusi di mercato)
 - **Max text**: 8000 caratteri (delibere più lunghe dei provvedimenti GPDP)
 - **Tag MCP**: `"consob"` — incluso nei profili `"fiscale"` e `"normativa"`
+
+## CeRDEF — note tecniche
+
+- **Sito**: `https://def.finanze.it/DocTribFrontend/`
+- **Ricerca**: POST a `executeAdvancedGiurisprudenzaSearch.do` con form params
+- **Risultati**: XML embeddato in `var xmlResult = '...'` nella pagina HTML (richiede unescape `\/`, `\uXXXX`)
+- **Dettaglio**: GET a `getGiurisprudenzaDetail.do?id={GUID}` → XML in `var xmlDettaglio`
+- **Paginazione**: session cookie-based (`paginatorXml.do?paginaRichiesta=N`), max 250 risultati
+- **Autenticazione**: nessuna — API pubblica, SSL standard
+- **Enti**: Corte Suprema di Cassazione, CGT I grado, CGT II grado
+- **Criteri ricerca**: tutti (T), frase_esatta (E), almeno_uno (O), codice (C)
+- **Max text**: 25000 caratteri
+- **Tag MCP**: `"giurisprudenza"`, `"fiscale"` — inclusi nei profili `fiscale` e `normativa`
+
+## Giustizia Amministrativa — note tecniche
+
+- **Sito**: `https://www.giustizia-amministrativa.it`
+- **Framework**: Liferay Portal (stesso di CONSOB) — portlet `decisioni_pareri_web_WAR_decisioni_pareri_webportlet`
+- **CSRF**: `p_auth` token da estrarre con GET iniziale (input hidden o form action URL)
+- **Risultati**: HTML `<article class="ricerca--item">` con attributi `data-sede`, `data-nrg`, `nomeFile`
+- **Testo completo**: sottodominio `mdp.giustizia-amministrativa.it` — XML strutturato `<GA>` con `<epigrafe>`, `<motivazione>`, `<dispositivo>`
+- **SSL**: `verify=False` necessario (come Italgiure)
+- **Sedi**: 28 (CdS, CGARS, tutti i TAR regionali)
+- **Max text**: 15000 caratteri (motivazioni CdS molto lunghe)
+- **Tag MCP**: `"giurisprudenza_amm"`, `"normativa"`
+
+## CGUE — note tecniche
+
+- **Metadati**: SPARQL endpoint `https://publications.europa.eu/webapi/rdf/sparql` (POST, JSON response)
+- **Ontologia**: CDM (`http://publications.europa.eu/ontology/cdm#`) — FRBR-compliant
+- **Testo completo**: content negotiation su URI CELLAR expression (`Accept: text/html`) — bypassa WAF EUR-Lex
+- **CELEX case law**: `6{anno}{codice_corte}{numero}` (es. `62024CJ0008` = sentenza CdG, causa C-8/2024)
+- **Codici corte**: `CJ` (sentenza CdG), `CC` (ordinanza CdG), `CO` (conclusioni AG), `TJ` (sentenza Tribunale), `TO` (ordinanza Tribunale)
+- **ECLI**: `ECLI:EU:C:YYYY:NNN` (Corte) o `ECLI:EU:T:YYYY:NNN` (Tribunale)
+- **Titolo IT**: expression con lingua ITA, separatore `#` o `##` tra header/parti/materia
+- **IMPORTANTE**: CELEX literals in SPARQL richiedono `^^xsd:string` type annotation
+- **Autenticazione**: nessuna — endpoint pubblico
+- **Max text**: 25000 caratteri
+- **Tag MCP**: `"giurisprudenza_ue"`, `"normativa"`
+
+## Workflow CeRDEF → Italgiure
+
+```
+cerca_giurisprudenza_tributaria("IVA soggettività passiva")
+  └─> [ProvvedimentoResult(guid="abc-123", estremi="Sent. n. 1234/2024", ente="Corte Suprema")]
+  └─> cerdef_leggi_provvedimento("abc-123") ← massima + testo integrale
+  └─> Se Cassazione: leggi_sentenza(1234, 2024) ← testo completo da Italgiure
+```
+
+## Workflow Giustizia Amministrativa
+
+```
+cerca_giurisprudenza_amministrativa("appalto pubblico esclusione")
+  └─> [ProvvedimentoResult(sede="CDS", nrg="202301234", nome_file="202301234_11.xml")]
+  └─> leggi_provvedimento_amm("CDS", "202301234", "202301234_11.xml") ← testo completo da mdp
+```
+
+## Workflow CGUE
+
+```
+cerca_giurisprudenza_cgue("imposta sul valore aggiunto")
+  └─> [CaseResult(celex="62024CJ0008", case_number="C-8/2024", cellar_uri="http://...")]
+  └─> leggi_sentenza_cgue("http://publications.europa.eu/resource/cellar/...") ← testo IT
+  └─> cite_law("art. 168 direttiva 2006/112/CE") ← norma UE citata nella sentenza
+```
 
 ## Docker
 
