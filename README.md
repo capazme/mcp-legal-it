@@ -11,17 +11,20 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/python-%3E%3D3.10-3776ab?style=flat-square" alt="Python">
   <a href="https://github.com/capazme/mcp-legal-it/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/capazme/mcp-legal-it/ci.yml?branch=develop&style=flat-square&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tool-166-green?style=flat-square" alt="Tools">
+  <img src="https://img.shields.io/badge/tool-177-green?style=flat-square" alt="Tools">
 </p>
 
 ---
 
 ## Cos'e mcp-legal-it
 
-Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **166 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
+Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **177 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
 - **Normativa verificata** — testi vigenti da Normattiva, EUR-Lex e Brocardi (no allucinazioni)
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
+- **Giurisprudenza Tributaria** — sentenze CTP/CTR/CGT e Cassazione tributaria da CeRDEF (def.finanze.it)
+- **Giustizia Amministrativa** — sentenze TAR e Consiglio di Stato (giustizia-amministrativa.it)
+- **Giurisprudenza CGUE** — sentenze Corte di Giustizia UE e Tribunale UE via CELLAR SPARQL
 - **Delibere CONSOB** — ricerca e testo integrale dal Bollettino ufficiale
 - **Calcoli giuridici** — interessi, rivalutazione ISTAT, parcelle, contributo unificato, IRPEF, successioni, danni e altro
 - **GDPR compliance** — informative, DPIA, DPA, registro trattamenti, data breach, sanzioni
@@ -88,26 +91,29 @@ Configurazione in `claude_desktop_config.json`:
 
 ---
 
-## Tool disponibili — 166 tool, 16 categorie
+## Tool disponibili — 177 tool, 19 categorie
 
 | # | Categoria | Tool | Esempi |
 |---|-----------|:----:|--------|
 | 1 | Consultazione Normativa | 5 | `cite_law`, `cerca_brocardi`, `download_law_pdf` |
 | 2 | Giurisprudenza Cassazione | 4 | `leggi_sentenza`, `cerca_giurisprudenza`, `ultime_pronunce` |
-| 3 | Delibere CONSOB | 3 | `cerca_delibere_consob`, `leggi_delibera_consob` |
-| 4 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
-| 5 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
-| 6 | Rivalutazione Monetaria | 11 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
-| 7 | Interessi e Tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
-| 8 | Scadenze e Termini | 11 | `scadenza_processuale`, `termini_memorie_repliche` |
-| 9 | Atti Giudiziari | 15 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
-| 10 | Parcelle Avvocati | 11 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
-| 11 | Parcelle Professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
-| 12 | Risarcimento Danni | 7 | `danno_biologico_micro`, `danno_biologico_macro`, `danno_parentale` |
-| 13 | Diritto Penale | 5 | `prescrizione_reato`, `aumenti_riduzioni_pena` |
-| 14 | Proprieta e Successioni | 11 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
-| 15 | Investimenti e Fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
-| 16 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `prescrizione_diritti` |
+| 3 | Giurisprudenza Tributaria (CeRDEF) | 3 | `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `ultime_sentenze_tributarie` |
+| 4 | Giustizia Amministrativa (TAR/CdS) | 4 | `cerca_giurisprudenza_amministrativa`, `leggi_provvedimento_amm`, `giurisprudenza_amm_su_norma` |
+| 5 | Giurisprudenza CGUE | 4 | `cerca_giurisprudenza_cgue`, `leggi_sentenza_cgue`, `giurisprudenza_cgue_su_norma` |
+| 6 | Delibere CONSOB | 3 | `cerca_delibere_consob`, `leggi_delibera_consob` |
+| 7 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
+| 8 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
+| 9 | Rivalutazione Monetaria | 11 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
+| 10 | Interessi e Tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
+| 11 | Scadenze e Termini | 11 | `scadenza_processuale`, `termini_memorie_repliche` |
+| 12 | Atti Giudiziari | 15 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
+| 13 | Parcelle Avvocati | 11 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
+| 14 | Parcelle Professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
+| 15 | Risarcimento Danni | 7 | `danno_biologico_micro`, `danno_biologico_macro`, `danno_parentale` |
+| 16 | Diritto Penale | 5 | `prescrizione_reato`, `aumenti_riduzioni_pena` |
+| 17 | Proprieta e Successioni | 11 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
+| 18 | Investimenti e Fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
+| 19 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `prescrizione_diritti` |
 
 ---
 
@@ -151,6 +157,14 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base a
 |-------|-------------|-----------------|
 | `genera-atto` | Generazione atti legali — **100 modelli in 10 categorie** ([dettaglio sotto](#genera-atto--100-modelli-di-atti)) | `genera_modello_atto`, `lista_categorie_atti`, `cite_law` |
 | `redazione-contratto` | Supporto contrattuale: verifica norme, clausole tipo da Brocardi, check privacy/DPA se necessario | `cite_law`, `cerca_brocardi`, `analisi_base_giuridica`, `genera_dpa` |
+
+### Giurisprudenza specializzata
+
+| Skill | Descrizione | Tool principali |
+|-------|-------------|-----------------|
+| `analisi-tributaria` | Ricerca giurisprudenza tributaria CeRDEF, lettura provvedimenti, quadro normativo fiscale | `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `cite_law` |
+| `analisi-giurisprudenza-amministrativa` | Ricerca TAR/CdS, lettura sentenze, quadro CPA/L.241 | `cerca_giurisprudenza_amministrativa`, `leggi_provvedimento_amm`, `cite_law` |
+| `analisi-giurisprudenza-europea` | Ricerca CGUE via CELLAR SPARQL, lettura sentenze, quadro TFUE/direttive | `cerca_giurisprudenza_cgue`, `leggi_sentenza_cgue`, `cite_law` |
 
 ### CONSOB
 
@@ -370,7 +384,7 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 | `penalista` | Reati, pene, prescrizione, misure cautelari, riti alternativi | Gestione automatica regime prescrizione: Bonafede (fatti 2020-2024), Cartabia (dal 2025) |
 | `privacy-specialist` | GDPR, Codice Privacy, provvedimenti Garante | Struttura: Quadro normativo &rarr; Analisi &rarr; Rischi e sanzioni &rarr; Raccomandazioni |
 | `redattore-atti` | Redazione atti giudiziari, stragiudiziali, procure, relate, attestazioni | Accesso a tutti i 100 modelli di atti + tool di calcolo (CU, interessi, parcelle) |
-| `ricerca-giurisprudenziale` | Ricerca sistematica su Italgiure, CONSOB, Garante | Strategia: esplora &rarr; filtra con facets &rarr; cerca con filtri &rarr; leggi decisioni chiave &rarr; Brocardi &rarr; fondamento normativo |
+| `ricerca-giurisprudenziale` | Ricerca sistematica su Italgiure, CeRDEF, TAR/CdS, CGUE, CONSOB, Garante | Strategia: esplora &rarr; filtra con facets &rarr; cerca con filtri &rarr; leggi decisioni chiave &rarr; Brocardi &rarr; fondamento normativo |
 
 ---
 
@@ -408,10 +422,10 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 | Profilo | Tool caricati |
 |---------|---------------|
-| `full` | Tutti i 166 tool |
+| `full` | Tutti i 177 tool |
 | `calcoli` | Solo tool di calcolo (nessuna connessione HTTP) |
-| `normativa` | Normattiva + EUR-Lex + Brocardi + Italgiure + CONSOB |
-| `fiscale` | Calcoli fiscali + IRPEF + investimenti + CONSOB |
+| `normativa` | Normattiva + EUR-Lex + Brocardi + Italgiure + TAR/CdS + CGUE + CONSOB |
+| `fiscale` | Calcoli fiscali + IRPEF + investimenti + CeRDEF + CONSOB |
 | `privacy` | Tool GDPR/Privacy + Garante |
 
 ---
