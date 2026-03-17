@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-03-17
+
+### Changed
+- License changed from MIT to Apache 2.0 across all manifests
+
+### Added
+- Professional README with badges, installation guides, and full tool catalog
+- `LICENSE` file in repository root (Apache 2.0)
+- GitHub Actions CI workflow (Python 3.10 + 3.12, runs on PR and push to develop)
+- Issue templates (bug report, feature request)
+- Pull request template with checklist
+
 ## [2.0.1] - 2026-03-17
 
 ### Added
