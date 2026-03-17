@@ -33,7 +33,7 @@ _KIND_FILTER = {
     "tutti": ["snciv", "snpen"],
 }
 
-TIPO_PROV = {"sentenza": "S", "ordinanza": "O", "decreto": "D"}
+TIPO_PROV = {"sentenza": "Sentenza", "ordinanza": "Ordinanza", "decreto": "Decreto"}
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 _MAX_OCR_LENGTH = 30000
@@ -54,7 +54,11 @@ _SEZIONI = {
     "U": "sez. un.",
 }
 
-_TIPO_LABELS = {"S": "sentenza", "O": "ordinanza", "D": "decreto"}
+_TIPO_LABELS = {
+    "S": "sentenza", "O": "ordinanza", "D": "decreto",
+    "Sentenza": "sentenza", "Ordinanza": "ordinanza", "Decreto": "decreto",
+    "Ordinanza Interlocutoria": "ord. int.",
+}
 
 _RAMO = {"snciv": "civ.", "snpen": "pen."}
 
