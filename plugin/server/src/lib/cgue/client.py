@@ -16,6 +16,8 @@ import re
 from dataclasses import dataclass
 
 import httpx
+
+from src.lib._http import retry_request
 from bs4 import BeautifulSoup
 
 _SPARQL_URL = "https://publications.europa.eu/webapi/rdf/sparql"
@@ -149,8 +151,7 @@ LIMIT {limit}"""
 
 async def _execute_sparql(query: str) -> list[dict]:
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS_SPARQL) as client:
-        resp = await client.post(_SPARQL_URL, data={"query": query})
-        resp.raise_for_status()
+        resp = await retry_request(client, "POST", _SPARQL_URL, data={"query": query})
         data = resp.json()
         return data["results"]["bindings"]
 
@@ -225,8 +226,7 @@ def _parse_title(raw_title: str) -> tuple[str, str, str]:
 
 async def _fetch_html(cellar_uri: str) -> str:
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS_HTML, follow_redirects=True) as client:
-        resp = await client.get(cellar_uri)
-        resp.raise_for_status()
+        resp = await retry_request(client, "GET", cellar_uri)
         return resp.text
 
 

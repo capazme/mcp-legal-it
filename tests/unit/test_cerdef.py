@@ -429,8 +429,10 @@ class TestCerdefLeggiProvvedimentoImpl:
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_404 = MagicMock()
+        mock_404.status_code = 404
         mock_client.get = AsyncMock(side_effect=httpx.HTTPStatusError(
-            "404", request=MagicMock(), response=MagicMock()
+            "404", request=MagicMock(), response=mock_404
         ))
 
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):

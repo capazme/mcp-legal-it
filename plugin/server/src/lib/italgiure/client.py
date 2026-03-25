@@ -13,6 +13,8 @@ import urllib.parse
 
 import httpx
 
+from src.lib._http import retry_request
+
 _BASE = "https://www.italgiure.giustizia.it/sncass"
 _SOLR_URL = f"{_BASE}/isapi/hc.dll/sn.solr/sn-collection/select?app.query"
 _HOMEPAGE = f"{_BASE}/"
@@ -102,8 +104,7 @@ class SolrSession:
         if self._client is None:
             raise RuntimeError("SolrSession not entered — use `async with`")
         body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
-        resp = await self._client.post(_SOLR_URL, content=body)
-        resp.raise_for_status()
+        resp = await retry_request(self._client, "POST", _SOLR_URL, content=body)
         return resp.json()
 
 
@@ -121,8 +122,7 @@ async def solr_query(params: dict, session: SolrSession | None = None) -> dict:
     async with httpx.AsyncClient(verify=False, timeout=_TIMEOUT, headers=_HEADERS) as client:
         await client.get(_HOMEPAGE)
         body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
-        resp = await client.post(_SOLR_URL, content=body)
-        resp.raise_for_status()
+        resp = await retry_request(client, "POST", _SOLR_URL, content=body)
         return resp.json()
 
 
