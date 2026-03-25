@@ -81,7 +81,20 @@ mcp-legal-it/
     │   ├── test_privacy_gdpr.py   # Test 12 tool GDPR/Privacy compliance
     │   ├── test_cerdef.py         # Test CeRDEF scraper e 3 tool tributari (88 test)
     │   ├── test_giustizia_amm.py  # Test GA scraper e 4 tool TAR/CdS (90 test)
-    │   └── test_cgue.py           # Test CGUE SPARQL client e 4 tool (76 test)
+    │   ├── test_cgue.py           # Test CGUE SPARQL client e 4 tool (76 test)
+    │   ├── test_http_retry.py     # Test retry helper con backoff
+    │   ├── test_atti_giudiziari.py     # Test 23 tool atti giudiziari (134 test)
+    │   ├── test_scadenze_termini.py    # Test 11 tool scadenze processuali (91 test)
+    │   ├── test_fatturazione_avvocati.py # Test 12 tool parcelle DM 55/2014 (100 test)
+    │   ├── test_dichiarazione_redditi.py # Test 15 tool IRPEF/fiscale (121 test)
+    │   ├── test_proprieta_successioni.py # Test 12 tool proprietà/successioni (110 test)
+    │   ├── test_rivalutazioni_istat.py   # Test 11 tool rivalutazione ISTAT (70 test)
+    │   ├── test_tassi_interessi.py       # Test 10 tool interessi/tassi (59 test)
+    │   ├── test_varie.py                 # Test 12 tool utility varie (79 test)
+    │   ├── test_parcelle_professionisti.py # Test 11 tool parcelle professionisti (79 test)
+    │   ├── test_risarcimento_danni.py    # Test 7 tool risarcimento danni (75 test)
+    │   ├── test_investimenti.py          # Test 5 tool investimenti (48 test)
+    │   └── test_diritto_penale.py        # Test 5 tool diritto penale (49 test)
     └── comparison/                  # Test di confronto con valori attesi
         └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
 ```
@@ -434,8 +447,29 @@ Il server supporta due transport: **stdio** (default, per Claude Desktop/Code) e
 | `MCP_TRANSPORT` | `stdio` | Transport: `stdio` o `sse` |
 | `MCP_HOST` | `0.0.0.0` | Bind address (solo SSE) |
 | `MCP_PORT` | `8000` | Porta (solo SSE) |
-| `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
+| `LEGAL_PROFILE` | `full` | Profilo tool da caricare (vedi tabella sotto) |
 | `MCP_CACHE_DIR` | — | Directory cache Brocardi |
+
+### Profili disponibili
+
+| Profilo | Tag inclusi | Uso tipico |
+|---------|------------|------------|
+| `full` | tutti | Claude Code con Tool Search |
+| `sinistro` | danni, rivalutazione, interessi, normativa, giurisprudenza, sinistro | Risarcimento danni |
+| `credito` | interessi, rivalutazione, parcelle_avv, normativa, giurisprudenza, credito | Recupero crediti |
+| `penale` | penale, normativa, giurisprudenza | Procedimenti penali |
+| `fiscale` | fiscale, proprieta, utility, consob, investimenti | Consulenza fiscale |
+| `normativa` | normativa, giurisprudenza, giurisprudenza_amm, giurisprudenza_ue, privacy, consob | Ricerca normativa |
+| `privacy` | privacy, normativa, giurisprudenza | GDPR/Privacy |
+| `studio` | scadenze, giudiziario, parcelle_avv, parcelle_prof, investimenti | Studio legale generico |
+| `redattore` | atti, giudiziario, parcelle_avv, scadenze, normativa | Redazione atti giudiziari |
+
+### Timeout HTTP differenziati
+
+| Client | Timeout | Connect | Note |
+|--------|---------|---------|------|
+| Italgiure, CONSOB, GA | 30s | 10s | Standard |
+| CeRDEF, CGUE | 45s | 15s | Endpoint più lenti |
 
 ### Comandi
 
