@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from xml.etree import ElementTree
 
 import httpx
+
+from src.lib._http import retry_request
 from bs4 import BeautifulSoup
 
 _BASE_SEARCH = "https://www.giustizia-amministrativa.it"
@@ -304,7 +306,7 @@ class GASession:
             headers=_HEADERS,
             follow_redirects=True,
         )
-        resp = await self._client.get(_BASE_SEARCH + _SEARCH_PATH)
+        resp = await retry_request(self._client, "GET", _BASE_SEARCH + _SEARCH_PATH)
         self._p_auth = _extract_p_auth(resp.text)
         return self
 
@@ -314,16 +316,16 @@ class GASession:
             self._client = None
 
     async def search(self, params: dict) -> str:
-        assert self._client is not None
-        resp = await self._client.post(_BASE_SEARCH + _SEARCH_PATH, data=params)
-        resp.raise_for_status()
+        if self._client is None:
+            raise RuntimeError("GASession not entered — use `async with`")
+        resp = await retry_request(self._client, "POST", _BASE_SEARCH + _SEARCH_PATH, data=params)
         return resp.text
 
     async def fetch_text(self, nome_file: str) -> bytes:
-        assert self._client is not None
+        if self._client is None:
+            raise RuntimeError("GASession not entered — use `async with`")
         url = f"{_BASE_MDP}/mdp/atti/{nome_file}"
-        resp = await self._client.get(url)
-        resp.raise_for_status()
+        resp = await retry_request(self._client, "GET", url)
         return resp.content
 
 

@@ -77,16 +77,16 @@ from src import prompts, resources  # noqa: E402, F401
 # ---------------------------------------------------------------------------
 # Profile-based tool filtering (for Desktop/Browser — lighter context)
 # Usage: LEGAL_PROFILE=sinistro python -m src.server
-# Default: "full" (all 164 tools — for Claude Code with Tool Search)
+# Default: "full" (all tools — for Claude Code with Tool Search)
 # ---------------------------------------------------------------------------
 _PROFILES: dict[str, set[str]] = {
     "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro"},
     "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
     "penale": {"penale", "normativa", "giurisprudenza"},
-    "fiscale": {"fiscale", "proprieta", "utility", "consob"},
+    "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti"},
     "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob"},
     "privacy": {"privacy", "normativa", "giurisprudenza"},
-    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof"},
+    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti"},
     "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
 }
 

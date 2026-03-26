@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
 import httpx
+
+from src.lib._http import retry_request
 from bs4 import BeautifulSoup
 
 _BASE = "https://def.finanze.it/DocTribFrontend/"
@@ -251,8 +253,7 @@ async def search_giurisprudenza(
     results: list[ProvvedimentoResult] = []
 
     async with CerdefSession() as session:
-        resp = await session.client.post(_SEARCH_URL, data=form_data)
-        resp.raise_for_status()
+        resp = await retry_request(session.client, "POST", _SEARCH_URL, data=form_data)
 
         xml_str = _extract_xml_from_js(resp.text, "xmlResult")
         page_results = _parse_search_xml(xml_str)
@@ -260,10 +261,10 @@ async def search_giurisprudenza(
 
         page = 2
         while len(results) < rows and len(page_results) > 0:
-            resp = await session.client.get(
-                _PAGINATOR_URL, params={"paginaRichiesta": page}
+            resp = await retry_request(
+                session.client, "GET", _PAGINATOR_URL,
+                params={"paginaRichiesta": page},
             )
-            resp.raise_for_status()
 
             xml_str = _extract_xml_from_js(resp.text, "xmlResult")
             page_results = _parse_search_xml(xml_str)
@@ -280,7 +281,6 @@ async def fetch_provvedimento(guid: str) -> ProvvedimentoDetail:
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
-        resp = await client.get(_DETAIL_URL, params={"id": guid})
-        resp.raise_for_status()
+        resp = await retry_request(client, "GET", _DETAIL_URL, params={"id": guid})
         xml_str = _extract_xml_from_js(resp.text, "xmlDettaglio")
         return _parse_detail_xml(xml_str)

@@ -3,6 +3,7 @@
 detrazioni familiari, lavoro dipendente, pensione, locazione e rateizzazione imposte."""
 
 import json
+from datetime import date
 from pathlib import Path
 
 from src.server import mcp
@@ -13,9 +14,17 @@ with open(_DATA / "irpef_scaglioni.json") as f:
     _IRPEF = json.load(f)
 
 
-def _calcola_imposta_lorda(imponibile: float) -> tuple[float, list[dict]]:
+def _get_scaglioni(anno: int | None = None) -> list[dict]:
+    """Return IRPEF brackets for the given fiscal year (default: current year)."""
+    if anno is None:
+        anno = date.today().year
+    per_anno = _IRPEF.get("scaglioni_per_anno", {})
+    return per_anno.get(str(anno), _IRPEF["scaglioni"])
+
+
+def _calcola_imposta_lorda(imponibile: float, anno: int | None = None) -> tuple[float, list[dict]]:
     """Calculate gross IRPEF tax across brackets, returning total and breakdown."""
-    scaglioni = _IRPEF["scaglioni"]
+    scaglioni = _get_scaglioni(anno)
     imposta = 0.0
     dettaglio = []
     residuo = imponibile
@@ -70,10 +79,10 @@ def calcolo_irpef(
     tipo_reddito: str = "dipendente",
     deduzioni: float = 0,
     detrazioni_extra: float = 0,
+    anno_fiscale: int = 0,
 ) -> dict:
     """Calcola l'IRPEF con scaglioni, detrazioni da lavoro e addizionali regionali e comunali.
-    Vigenza: scaglioni IRPEF 2026 (L. 199/2025 — Legge di Bilancio 2026);
-    detrazioni da lavoro dipendente ex art. 13 TUIR aggiornate; addizionali medie nazionali.
+    Vigenza: scaglioni IRPEF storicizzati per anno (2024: 23-35-43%, 2026+: 23-33-43%).
     Precisione: INDICATIVO (le addizionali regionali e comunali variano per ente impositore;
     i valori usati sono medie nazionali — per il calcolo esatto serve l'aliquota del comune/regione).
 
@@ -82,12 +91,14 @@ def calcolo_irpef(
         tipo_reddito: Tipo di reddito prevalente: 'dipendente', 'pensionato' o 'autonomo'
         deduzioni: Oneri deducibili in euro (€) — riducono il reddito imponibile prima del calcolo
         detrazioni_extra: Detrazioni aggiuntive in euro (€) — riducono l'imposta lorda calcolata
+        anno_fiscale: Anno fiscale di riferimento (default: anno corrente). 2024-2025: aliquota 35%; 2026+: aliquota 33%.
     """
     if reddito_complessivo <= 0:
         return {"errore": "Il reddito complessivo deve essere positivo"}
 
+    anno = anno_fiscale if anno_fiscale > 0 else None
     imponibile = max(reddito_complessivo - deduzioni, 0)
-    imposta_lorda, dettaglio_scaglioni = _calcola_imposta_lorda(imponibile)
+    imposta_lorda, dettaglio_scaglioni = _calcola_imposta_lorda(imponibile, anno=anno)
 
     # Detrazioni lavoro
     if tipo_reddito == "dipendente":
@@ -133,7 +144,8 @@ def calcolo_irpef(
         "totale_imposte": totale_imposte,
         "reddito_netto": reddito_netto,
         "aliquota_effettiva_pct": round(totale_imposte / reddito_complessivo * 100, 2),
-        "riferimento_normativo": "TUIR — D.P.R. 917/1986, art. 11-13 (scaglioni 2026 ex L. 199/2025)",
+        "anno_fiscale": anno or date.today().year,
+        "riferimento_normativo": "TUIR — D.P.R. 917/1986, art. 11-13",
     }
 
 
