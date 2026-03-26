@@ -16,6 +16,20 @@ from src.lib.consob.client import (
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _resolve_consob_filters(
+    tipologia: str, argomento: str,
+) -> tuple[str, str]:
+    """Resolve human-friendly tipologia/argomento keys to Liferay values."""
+    tipologia_val = TIPOLOGIE.get(tipologia.lower(), tipologia) if tipologia else ""
+    argomento_id = ARGOMENTI.get(argomento.lower().replace(" ", "_"), argomento) if argomento else ""
+    return tipologia_val, argomento_id
+
+
+# ---------------------------------------------------------------------------
 # Impl functions (testable without MCP context)
 # ---------------------------------------------------------------------------
 
@@ -29,11 +43,7 @@ async def _cerca_delibere_consob_impl(
 ) -> str:
     max_risultati = min(max_risultati, 100)
 
-    # Resolve tipologia key to Liferay value
-    tipologia_val = TIPOLOGIE.get(tipologia.lower(), tipologia) if tipologia else ""
-
-    # Resolve argomento key to Liferay ID
-    argomento_id = ARGOMENTI.get(argomento.lower().replace(" ", "_"), argomento) if argomento else ""
+    tipologia_val, argomento_id = _resolve_consob_filters(tipologia, argomento)
 
     try:
         docs = await search_delibere(
@@ -72,8 +82,7 @@ async def _ultime_delibere_consob_impl(
 ) -> str:
     max_risultati = min(max_risultati, 100)
 
-    tipologia_val = TIPOLOGIE.get(tipologia.lower(), tipologia) if tipologia else ""
-    argomento_id = ARGOMENTI.get(argomento.lower().replace(" ", "_"), argomento) if argomento else ""
+    tipologia_val, argomento_id = _resolve_consob_filters(tipologia, argomento)
 
     try:
         docs = await search_delibere(
