@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "mcp-legal-it",
   "display_name": "Legal IT — Diritto Italiano",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "177 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione, CeRDEF tributario, TAR/CdS, CGUE), delibere CONSOB e compliance GDPR.",
   "author": {
     "name": "capazme",

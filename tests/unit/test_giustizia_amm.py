@@ -571,10 +571,13 @@ class TestGASession:
     @pytest.mark.asyncio
     async def test_aenter_fetches_page_and_extracts_p_auth(self):
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=_make_mock_response(_PAUTH_HTML))
         mock_client.aclose = AsyncMock()
 
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client):
+        async def _mock_retry(client, method, url, **kwargs):
+            return _make_mock_response(_PAUTH_HTML)
+
+        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
             async with GASession() as session:
                 assert session._p_auth == "testToken123"
                 assert session._client is not None
@@ -582,10 +585,13 @@ class TestGASession:
     @pytest.mark.asyncio
     async def test_aexit_closes_client(self):
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=_make_mock_response(_PAUTH_HTML))
         mock_client.aclose = AsyncMock()
 
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client):
+        async def _mock_retry(client, method, url, **kwargs):
+            return _make_mock_response(_PAUTH_HTML)
+
+        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
             session = GASession()
             async with session:
                 pass
@@ -595,32 +601,43 @@ class TestGASession:
     @pytest.mark.asyncio
     async def test_search_calls_post(self):
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=_make_mock_response(_PAUTH_HTML))
-        mock_client.post = AsyncMock(return_value=_make_mock_response(_SEARCH_HTML))
         mock_client.aclose = AsyncMock()
 
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client):
+        call_log = []
+
+        async def _mock_retry(client, method, url, **kwargs):
+            call_log.append((method, url))
+            if method == "GET":
+                return _make_mock_response(_PAUTH_HTML)
+            return _make_mock_response(_SEARCH_HTML)
+
+        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
             async with GASession() as session:
                 html = await session.search({"key": "val"})
                 assert "ricerca--item" in html
-                mock_client.post.assert_called_once()
+                assert ("POST", "https://www.giustizia-amministrativa.it/web/guest/-/ricerca-giurisprudenza") in call_log
 
     @pytest.mark.asyncio
     async def test_fetch_text_calls_get_on_mdp(self):
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=_make_mock_response(_PAUTH_HTML))
         mock_client.aclose = AsyncMock()
 
-        # After initial GET, next GET should be for mdp
         mock_mdp_resp = MagicMock()
         mock_mdp_resp.content = _MDP_XML
         mock_mdp_resp.raise_for_status = MagicMock()
-        mock_client.get = AsyncMock(side_effect=[
-            _make_mock_response(_PAUTH_HTML),  # Initial page
-            mock_mdp_resp,                      # mdp fetch
-        ])
 
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client):
+        call_count = 0
+
+        async def _mock_retry(client, method, url, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return _make_mock_response(_PAUTH_HTML)
+            return mock_mdp_resp
+
+        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
             async with GASession() as session:
                 content = await session.fetch_text("202301234_11.xml")
                 assert content == _MDP_XML
