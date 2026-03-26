@@ -10,6 +10,8 @@ import re
 from dataclasses import dataclass
 
 import httpx
+
+from src.lib._http import retry_request
 from bs4 import BeautifulSoup
 
 _BASE = "https://www.consob.it"
@@ -225,8 +227,7 @@ async def search_delibere(
                 delta=delta,
                 cur=cur,
             )
-            resp = await client.get(_BASE + _SEARCH_PATH, params=params)
-            resp.raise_for_status()
+            resp = await retry_request(client, "GET", _BASE + _SEARCH_PATH, params=params)
 
             page_results = _parse_results(resp.text)
             if not page_results:
@@ -247,6 +248,5 @@ async def fetch_delibera(numero: str) -> tuple[str, str]:
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
-        resp = await client.get(url)
-        resp.raise_for_status()
+        resp = await retry_request(client, "GET", url)
         return _parse_doc(resp.text, numero)
