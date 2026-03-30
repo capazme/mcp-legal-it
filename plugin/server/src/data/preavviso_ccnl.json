@@ -1,0 +1,53 @@
+{
+  "_descrizione": "Periodi di preavviso per CCNL principali (giorni di calendario)",
+  "ccnl": {
+    "commercio": {
+      "nome": "CCNL Terziario Confcommercio",
+      "fonte": "Art. 254 CCNL Terziario",
+      "licenziamento": {
+        "quadri_1": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
+        "2_3": {"fino_5": 30, "5_10": 45, "oltre_10": 60},
+        "4_5": {"fino_5": 20, "5_10": 30, "oltre_10": 45},
+        "6_7": {"fino_5": 15, "5_10": 20, "oltre_10": 20}
+      },
+      "dimissioni": {
+        "quadri_1": {"fino_5": 45, "5_10": 60, "oltre_10": 90},
+        "2_3": {"fino_5": 20, "5_10": 30, "oltre_10": 45},
+        "4_5": {"fino_5": 15, "5_10": 20, "oltre_10": 30},
+        "6_7": {"fino_5": 10, "5_10": 15, "oltre_10": 15}
+      }
+    },
+    "metalmeccanici": {
+      "nome": "CCNL Metalmeccanici Industria Federmeccanica",
+      "fonte": "Art. 1 CCNL Metalmeccanici",
+      "licenziamento": {
+        "A1_B2_B3": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
+        "B1_C2_C3": {"fino_5": 45, "5_10": 60, "oltre_10": 75},
+        "C1_D1_D2": {"fino_5": 10, "5_10": 20, "oltre_10": 30}
+      },
+      "dimissioni": {
+        "A1_B2_B3": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
+        "B1_C2_C3": {"fino_5": 45, "5_10": 60, "oltre_10": 75},
+        "C1_D1_D2": {"fino_5": 10, "5_10": 20, "oltre_10": 30}
+      }
+    },
+    "studi_professionali": {
+      "nome": "CCNL Studi Professionali",
+      "fonte": "CCNL Studi Professionali",
+      "licenziamento": {
+        "1": {"fino_5": 90, "5_10": 120, "oltre_10": 150},
+        "2": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
+        "3S_3": {"fino_5": 30, "5_10": 40, "oltre_10": 50},
+        "4S_4": {"fino_5": 20, "5_10": 30, "oltre_10": 30},
+        "5": {"fino_5": 15, "5_10": 20, "oltre_10": 20}
+      },
+      "dimissioni": {
+        "1": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
+        "2": {"fino_5": 45, "5_10": 60, "oltre_10": 90},
+        "3S_3": {"fino_5": 20, "5_10": 30, "oltre_10": 40},
+        "4S_4": {"fino_5": 15, "5_10": 20, "oltre_10": 20},
+        "5": {"fino_5": 10, "5_10": 15, "oltre_10": 15}
+      }
+    }
+  }
+}
