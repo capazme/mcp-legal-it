@@ -6,6 +6,7 @@ annullamento atti amministrativi, ricorso al TAR, CGARS.
 """
 
 from src.server import mcp
+from src.lib._result import SearchResult
 from src.lib.giustizia_amm.client import (
     fetch_provvedimento_text,
     format_full,
@@ -38,24 +39,27 @@ async def _cerca_giurisprudenza_amministrativa_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nella ricerca Giustizia Amministrativa: {exc}"
+        return SearchResult(success=False, source="giustizia_amm", error_type="source_down", error_message=str(exc))
 
     if not docs:
-        return f"Nessun provvedimento amministrativo trovato per: _{query}_"
+        return SearchResult(success=False, source="giustizia_amm", error_type="no_results",
+                          results_text=f"Nessun provvedimento amministrativo trovato per: _{query}_")
 
     lines = [f"**Trovati {len(docs)} provvedimenti TAR/CdS per**: _{query}_\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="giustizia_amm", num_found=len(docs), results_text="\n".join(lines))
 
 
 async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str) -> str:
     try:
         title, text = await fetch_provvedimento_text(sede, nrg, nome_file)
-        return format_full(title, text, sede, nrg)
+        return SearchResult(success=True, source="giustizia_amm", num_found=1,
+                          results_text=format_full(title, text, sede, nrg))
     except Exception as exc:
-        return f"Errore nel recupero del provvedimento {sede} NRG {nrg}: {exc}"
+        return SearchResult(success=False, source="giustizia_amm", error_type="source_down",
+                          error_message=str(exc))
 
 
 async def _giurisprudenza_amm_su_norma_impl(
@@ -74,16 +78,17 @@ async def _giurisprudenza_amm_su_norma_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nella ricerca giurisprudenza amministrativa su norma: {exc}"
+        return SearchResult(success=False, source="giustizia_amm", error_type="source_down", error_message=str(exc))
 
     if not docs:
-        return f"Nessun provvedimento amministrativo trovato per la norma: _{riferimento}_"
+        return SearchResult(success=False, source="giustizia_amm", error_type="no_results",
+                          results_text=f"Nessun provvedimento amministrativo trovato per la norma: _{riferimento}_")
 
     lines = [f"**Provvedimenti TAR/CdS che citano**: _{riferimento}_\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="giustizia_amm", num_found=len(docs), results_text="\n".join(lines))
 
 
 async def _ultimi_provvedimenti_amm_impl(
@@ -100,16 +105,17 @@ async def _ultimi_provvedimenti_amm_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nel recupero degli ultimi provvedimenti amministrativi: {exc}"
+        return SearchResult(success=False, source="giustizia_amm", error_type="source_down", error_message=str(exc))
 
     if not docs:
-        return "Nessun provvedimento amministrativo recente trovato."
+        return SearchResult(success=False, source="giustizia_amm", error_type="no_results",
+                          results_text="Nessun provvedimento amministrativo recente trovato.")
 
     lines = ["**Ultimi provvedimenti TAR/Consiglio di Stato**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="giustizia_amm", num_found=len(docs), results_text="\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -145,9 +151,10 @@ async def cerca_giurisprudenza_amministrativa(
         numero: Numero del provvedimento (es. "1234") per ricerca per numero specifico
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
-    return await _cerca_giurisprudenza_amministrativa_impl(
+    result = await _cerca_giurisprudenza_amministrativa_impl(
         query=query, sede=sede, tipo=tipo, anno=anno, numero=numero, max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza_amm", "normativa"})
@@ -164,7 +171,8 @@ async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str) -> str:
         nrg: Numero registro generale (es. "202301234") — da risultati ricerca
         nome_file: Nome file XML sul sottodominio mdp (es. "202301234_11.xml") — da risultati ricerca
     """
-    return await _leggi_provvedimento_amm_impl(sede, nrg, nome_file)
+    result = await _leggi_provvedimento_amm_impl(sede, nrg, nome_file)
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza_amm", "normativa"})
@@ -188,9 +196,10 @@ async def giurisprudenza_amm_su_norma(
         anno_da: Anno di partenza della ricerca (es. "2022")
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
-    return await _giurisprudenza_amm_su_norma_impl(
+    result = await _giurisprudenza_amm_su_norma_impl(
         riferimento=riferimento, sede=sede, anno_da=anno_da, max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza_amm", "normativa"})
@@ -209,6 +218,7 @@ async def ultimi_provvedimenti_amm(
         tipo: Filtra per tipo (es. "sentenza", "ordinanza", "decreto", "parere")
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
-    return await _ultimi_provvedimenti_amm_impl(
+    result = await _ultimi_provvedimenti_amm_impl(
         sede=sede, tipo=tipo, max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
