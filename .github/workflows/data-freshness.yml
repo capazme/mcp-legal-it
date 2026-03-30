@@ -1,0 +1,41 @@
+name: Data Freshness Check
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'  # 1st of each month at 9:00 UTC
+  workflow_dispatch:  # allow manual trigger
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check data freshness
+        run: python scripts/update-data.py --strict
+
+      - name: Create issue if stale
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '⚠️ Legal data files need update';
+            const {data: issues} = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'data-update',
+            });
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: 'Run `python scripts/update-data.py` locally for details on which files need updating.',
+                labels: ['data-update'],
+              });
+            }
