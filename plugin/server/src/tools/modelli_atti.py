@@ -146,6 +146,103 @@ def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
 
 
 @mcp.tool(tags={"atti"})
+def esporta_atto_docx(
+    testo: str,
+    titolo: str = "Atto",
+    autore: str = "",
+) -> str:
+    """Esporta un testo (atto, parere, bozza) in formato DOCX (Microsoft Word).
+
+    Accetta testo in formato Markdown semplice e produce un file .docx formattato.
+    Usare dopo aver generato un atto con genera_modello_atto() o un parere con il prompt parere_legale.
+    Il file viene salvato nella directory temporanea e il percorso restituito.
+
+    Args:
+        testo: Testo dell'atto in formato Markdown (supporta: # titoli, **grassetto**, *corsivo*, - elenchi, paragrafi)
+        titolo: Titolo del documento (usato come nome file e intestazione)
+        autore: Nome dell'autore (opzionale, inserito nei metadati del documento)
+    """
+    try:
+        from docx import Document
+        from docx.opc.constants import RELATIONSHIP_TYPE as RT  # noqa: F401
+    except ImportError:
+        return "Errore: python-docx non installato. Eseguire: pip install python-docx"
+
+    if not testo or not testo.strip():
+        return "Errore: il testo dell'atto è vuoto."
+
+    import re
+
+    def _sanitize_filename(name: str) -> str:
+        name = name.lower().replace(" ", "_")
+        name = re.sub(r"[^a-z0-9_\-]", "", name)
+        return name[:50] or "atto"
+
+    def _add_formatted_paragraph(doc, text, style=None):
+        if style:
+            para = doc.add_paragraph(style=style)
+        else:
+            para = doc.add_paragraph()
+
+        # Split on bold (**...**) and italic (*...*) markers
+        # Pattern: **bold**, *italic* (bold checked first to avoid conflict)
+        parts = re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", text)
+        for part in parts:
+            if part.startswith("**") and part.endswith("**"):
+                run = para.add_run(part[2:-2])
+                run.bold = True
+            elif part.startswith("*") and part.endswith("*"):
+                run = para.add_run(part[1:-1])
+                run.italic = True
+            else:
+                para.add_run(part)
+        return para
+
+    doc = Document()
+
+    # Set core properties
+    props = doc.core_properties
+    props.title = titolo
+    if autore:
+        props.author = autore
+
+    lines = testo.split("\n")
+    for line in lines:
+        stripped = line.rstrip()
+
+        if stripped.startswith("### "):
+            doc.add_heading(stripped[4:], level=3)
+        elif stripped.startswith("## "):
+            doc.add_heading(stripped[3:], level=2)
+        elif stripped.startswith("# "):
+            doc.add_heading(stripped[2:], level=1)
+        elif re.match(r"^[-*] ", stripped):
+            _add_formatted_paragraph(doc, stripped[2:], style="List Bullet")
+        elif re.match(r"^\d+\. ", stripped):
+            content = re.sub(r"^\d+\. ", "", stripped)
+            _add_formatted_paragraph(doc, content, style="List Number")
+        elif stripped.startswith("> "):
+            para = _add_formatted_paragraph(doc, stripped[2:])
+            for run in para.runs:
+                run.italic = True
+        elif stripped == "":
+            doc.add_paragraph()
+        else:
+            _add_formatted_paragraph(doc, stripped)
+
+    # Save to temp file
+    import os
+    tmp_dir = "/tmp/mcp-legal-it"
+    os.makedirs(tmp_dir, exist_ok=True)
+    filename = _sanitize_filename(titolo) + ".docx"
+    filepath = os.path.join(tmp_dir, filename)
+    doc.save(filepath)
+
+    size_kb = round(os.path.getsize(filepath) / 1024, 1)
+    return f"File salvato: {filepath} ({size_kb} KB)"
+
+
+@mcp.tool(tags={"atti"})
 def lista_categorie_atti() -> dict:
     """Restituisce le categorie di atti disponibili con il conteggio per ciascuna.
     Utile per orientare l'utente nella scelta del tipo di atto.
