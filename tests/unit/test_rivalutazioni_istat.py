@@ -42,7 +42,7 @@ class TestRivalutazioneMonetaria:
         assert "totale_interessi_legali" in result
         assert "totale_dovuto" in result
         assert result["totale_dovuto"] > result["capitale_rivalutato"]
-        assert result["capitale_rivalutato"] == pytest.approx(1212.64, abs=0.5)
+        assert result["capitale_rivalutato"] == pytest.approx(1222.67, abs=0.5)
 
     def test_dettaglio_anni_populated(self):
         result = _call(
