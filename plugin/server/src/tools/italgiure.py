@@ -5,6 +5,7 @@ Non fare web search per sentenze già identificate — il testo ufficiale è su 
 """
 
 from src.server import mcp
+from src.lib._result import SearchResult
 from src.lib.italgiure.client import (
     TIPO_PROV,
     SolrSession,
@@ -57,16 +58,16 @@ async def _leggi_sentenza_impl(
     anno: int,
     sezione: str = "",
     archivio: str = "tutti",
-) -> str:
+) -> SearchResult:
     params = build_lookup_params(numero, anno, archivio=archivio, sezione=sezione or None)
     try:
         data = await solr_query(params)
         docs = data.get("response", {}).get("docs", [])
         if docs:
-            return format_full_text(docs[0])
+            return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
     except Exception as exc:
-        return f"Errore nel recupero della decisione n. {numero}/{anno}: {exc}"
-    return f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione."
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
+    return SearchResult(success=False, source="italgiure", error_type="no_results", results_text=f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione.")
 
 
 async def _cerca_giurisprudenza_impl(
@@ -83,8 +84,8 @@ async def _cerca_giurisprudenza_impl(
     pagina: int = 0,
     campo: str = "tutto",
     modalita: str = "cerca",
-) -> str:
-    # --- Explore mode: facets only, no documents ---
+) -> SearchResult | str:
+    # --- Explore mode: facets only, no documents — returns plain str ---
     if modalita == "esplora":
         return await _esplora_impl(query, archivio=archivio, campo=campo)
 
@@ -107,7 +108,7 @@ async def _cerca_giurisprudenza_impl(
     try:
         data = await solr_query(params)
     except Exception as exc:
-        return f"Errore nella ricerca: {exc}"
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
 
     num_found = data.get("response", {}).get("numFound", 0)
     facet_counts = data.get("facet_counts", {})
@@ -124,11 +125,12 @@ async def _cerca_giurisprudenza_impl(
             num_found, facet_counts, data,
         )
         if refined is not None:
-            return refined
+            return SearchResult(success=True, source="italgiure", num_found=num_found, results_text=refined)
 
-    return _format_search_results(
+    text = _format_search_results(
         data, query, ordinamento, pagina, max_risultati, num_found, facet_counts,
     )
+    return SearchResult(success=True, source="italgiure", num_found=num_found, results_text=text)
 
 
 async def _esplora_impl(
@@ -274,7 +276,7 @@ async def _giurisprudenza_su_norma_impl(
     anno_a: int = 0,
     max_risultati: int = 5,
     pagina: int = 0,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 50)
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
@@ -304,12 +306,12 @@ async def _giurisprudenza_su_norma_impl(
     try:
         data = await solr_query(params)
     except Exception as exc:
-        return f"Errore nella ricerca per norma: {exc}"
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
     docs = data.get("response", {}).get("docs", [])
     num_found = data.get("response", {}).get("numFound", 0)
     highlighting = data.get("highlighting", {})
     if not docs:
-        return f"Nessuna decisione trovata per il riferimento: {riferimento}"
+        return SearchResult(success=False, source="italgiure", error_type="no_results", results_text=f"Nessuna decisione trovata per il riferimento: {riferimento}")
     start_idx = pagina * max_risultati + 1
     end_idx = start_idx + len(docs) - 1
     lines = [f"**Trovate {num_found} decisioni su**: _{riferimento}_ (mostro {start_idx}-{end_idx})\n"]
@@ -318,7 +320,7 @@ async def _giurisprudenza_su_norma_impl(
         hl = highlighting.get(doc_id)
         lines.append(format_summary(doc, hl))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="italgiure", num_found=num_found, results_text="\n".join(lines))
 
 
 async def _ultime_pronunce_impl(
@@ -328,7 +330,7 @@ async def _ultime_pronunce_impl(
     tipo_provvedimento: str = "",
     solo_sezioni_unite: bool = False,
     max_risultati: int = 5,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 50)
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
@@ -352,16 +354,16 @@ async def _ultime_pronunce_impl(
     try:
         data = await solr_query(params)
     except Exception as exc:
-        return f"Errore nel recupero ultime pronunce: {exc}"
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
     docs = data.get("response", {}).get("docs", [])
     num_found = data.get("response", {}).get("numFound", 0)
     if not docs:
-        return "Nessuna decisione recente trovata con i filtri specificati."
+        return SearchResult(success=False, source="italgiure", error_type="no_results", results_text="Nessuna decisione recente trovata con i filtri specificati.")
     lines = [f"**Ultime pronunce della Cassazione** ({num_found} totali)\n"]
     for doc in docs:
         lines.append(format_summary(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="italgiure", num_found=num_found, results_text="\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +390,8 @@ async def leggi_sentenza(
         sezione: Sezione della Corte (opzionale: 1-6, L=lavoro, T=tributaria, SU=sezioni unite)
         archivio: "civile", "penale", o "tutti" (default)
     """
-    return await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio)
+    result = await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio)
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza"})
@@ -440,12 +443,13 @@ async def cerca_giurisprudenza(
         campo: "tutto" (testo+dispositivo, default) o "dispositivo" (cerca solo nel dispositivo — più preciso, meno recall)
         modalita: "cerca" (default — restituisce documenti) o "esplora" (solo distribuzione facet, nessun documento)
     """
-    return await _cerca_giurisprudenza_impl(
+    result = await _cerca_giurisprudenza_impl(
         query, archivio=archivio, materia=materia, sezione=sezione,
         anno_da=anno_da, anno_a=anno_a, tipo_provvedimento=tipo_provvedimento,
         solo_sezioni_unite=solo_sezioni_unite, ordinamento=ordinamento,
         max_risultati=max_risultati, pagina=pagina, campo=campo, modalita=modalita,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza"})
@@ -474,10 +478,11 @@ async def giurisprudenza_su_norma(
         max_risultati: Numero massimo di risultati per pagina (default 5)
         pagina: Pagina dei risultati, 0-indexed (default 0 = prima pagina)
     """
-    return await _giurisprudenza_su_norma_impl(
+    result = await _giurisprudenza_su_norma_impl(
         riferimento, archivio=archivio, solo_sezioni_unite=solo_sezioni_unite,
         anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati, pagina=pagina,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza"})
@@ -502,8 +507,9 @@ async def ultime_pronunce(
         solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
         max_risultati: Numero massimo di risultati (default 5)
     """
-    return await _ultime_pronunce_impl(
+    result = await _ultime_pronunce_impl(
         materia=materia, sezione=sezione, archivio=archivio,
         tipo_provvedimento=tipo_provvedimento, solo_sezioni_unite=solo_sezioni_unite,
         max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result

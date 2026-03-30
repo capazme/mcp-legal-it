@@ -722,9 +722,10 @@ class TestLeggiSentenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(24003, 2025, archivio="civile")
 
-        assert "24003/2025" in result
-        assert "Cass. civ." in result
-        assert "REVOCATORIA ORDINARIA" in result
+        assert result.success
+        assert "24003/2025" in result.results_text
+        assert "Cass. civ." in result.results_text
+        assert "REVOCATORIA ORDINARIA" in result.results_text
 
     @pytest.mark.asyncio
     async def test_not_found(self):
@@ -733,7 +734,9 @@ class TestLeggiSentenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(99999, 2099)
 
-        assert "non trovata" in result.lower()
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "non trovata" in result.results_text.lower()
 
     @pytest.mark.asyncio
     async def test_error_returns_message(self):
@@ -748,7 +751,8 @@ class TestLeggiSentenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(1, 2024)
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
 
 # ---------------------------------------------------------------------------
@@ -766,8 +770,9 @@ class TestCercaGiurisprudenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("danno biologico")
 
-        assert "Trovate" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Trovate" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_result(self):
@@ -776,7 +781,8 @@ class TestCercaGiurisprudenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("xyz nessun risultato")
 
-        assert "Nessuna" in result
+        assert result.success
+        assert "Nessuna" in result.results_text
 
     @pytest.mark.asyncio
     async def test_max_risultati_capped(self):
@@ -815,12 +821,12 @@ class TestCercaGiurisprudenzaImpl:
 
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", ordinamento="rilevanza")
-        assert "per rilevanza" in result
+        assert "per rilevanza" in result.results_text
 
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", ordinamento="data")
-        assert "per data" in result
+        assert "per data" in result.results_text
 
     @pytest.mark.asyncio
     async def test_tipo_provvedimento_sentenza(self):
@@ -946,7 +952,9 @@ class TestGiurisprudenzaSuNormaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 9999 c.c.")
 
-        assert "Nessuna" in result
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.results_text
 
     @pytest.mark.asyncio
     async def test_solo_sezioni_unite(self):
@@ -1009,8 +1017,9 @@ class TestGiurisprudenzaSuNormaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
-        assert "Trovate 50 decisioni" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Trovate 50 decisioni" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_fq_when_no_filters(self):
@@ -1036,7 +1045,8 @@ class TestGiurisprudenzaSuNormaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
 
 # ---------------------------------------------------------------------------
@@ -1052,8 +1062,9 @@ class TestUltimePronunceImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_pronunce_impl()
 
-        assert "Ultime pronunce" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Ultime pronunce" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty(self):
@@ -1062,7 +1073,9 @@ class TestUltimePronunceImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_pronunce_impl()
 
-        assert "Nessuna" in result
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.results_text
 
     @pytest.mark.asyncio
     async def test_fq_with_materia(self):
@@ -1543,9 +1556,10 @@ class TestAutoRefinement:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("responsabilità medica")
 
-        assert "Raffinamento automatico" in result
-        assert "15000" in result
-        assert "30" in result
+        assert result.success
+        assert "Raffinamento automatico" in result.results_text
+        assert "15000" in result.results_text
+        assert "30" in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_trigger_below_threshold(self):
@@ -1561,8 +1575,9 @@ class TestAutoRefinement:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test specifico")
-        assert "Raffinamento" not in result
-        assert "Trovate 30" in result
+        assert result.success
+        assert "Raffinamento" not in result.results_text
+        assert "Trovate 30" in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_trigger_with_explicit_filters(self):
@@ -1600,7 +1615,7 @@ class TestAutoRefinement:
 
         # Only 1 POST (no refinement calls)
         assert call_count == 1
-        assert "Raffinamento" not in result
+        assert "Raffinamento" not in result.results_text
 
     @pytest.mark.asyncio
     async def test_early_exit_on_success(self):
@@ -1638,7 +1653,8 @@ class TestAutoRefinement:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test generico")
 
-        assert "Raffinamento automatico" in result
+        assert result.success
+        assert "Raffinamento automatico" in result.results_text
         # 1 initial + 1 homepage + 1 successful refinement = max 3 posts
         # (homepage is a GET, so only 2 POSTs expected)
         assert call_count <= 3
@@ -1688,8 +1704,9 @@ class TestAutoRefinement:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test ampio")
 
-        assert "Raffinamento automatico" in result
-        assert "200" in result  # Should use the best (200)
+        assert result.success
+        assert "Raffinamento automatico" in result.results_text
+        assert "200" in result.results_text  # Should use the best (200)
 
 
 # ---------------------------------------------------------------------------
@@ -1722,8 +1739,9 @@ class TestCercaGiurisprudenzaEnhanced:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test")
-        assert "Trovate" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Trovate" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_score_filtering_applied(self):
@@ -1742,9 +1760,10 @@ class TestCercaGiurisprudenzaEnhanced:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test")
-        assert "2 ad alta rilevanza" in result
-        assert "1001" in result
-        assert "1002" in result
+        assert result.success
+        assert "2 ad alta rilevanza" in result.results_text
+        assert "1001" in result.results_text
+        assert "1002" in result.results_text
 
     @pytest.mark.asyncio
     async def test_facets_shown_when_many_results(self):
@@ -1768,8 +1787,9 @@ class TestCercaGiurisprudenzaEnhanced:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             # Use explicit filter to avoid auto-refinement
             result = await _cerca_giurisprudenza_impl("test", materia="contratti")
-        assert "Distribuzione risultati" in result
-        assert "Suggerimento" in result
+        assert result.success
+        assert "Distribuzione risultati" in result.results_text
+        assert "Suggerimento" in result.results_text
 
     @pytest.mark.asyncio
     async def test_facets_not_shown_when_few_results(self):
@@ -1785,7 +1805,8 @@ class TestCercaGiurisprudenzaEnhanced:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test specifico")
-        assert "Distribuzione" not in result
+        assert result.success
+        assert "Distribuzione" not in result.results_text
 
     @pytest.mark.asyncio
     async def test_include_facets_in_params(self):

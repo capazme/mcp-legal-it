@@ -5,6 +5,7 @@ Cassazione tributaria, IVA, IRES, IRPEF, accertamento, riscossione, contenzioso 
 """
 
 from src.server import mcp
+from src.lib._result import SearchResult
 from src.lib.cerdef.client import (
     search_giurisprudenza,
     fetch_provvedimento,
@@ -28,7 +29,7 @@ async def _cerca_giurisprudenza_tributaria_impl(
     criterio: str = "tutti",
     ordinamento: str = "rilevanza",
     max_risultati: int = 10,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 250)
 
     try:
@@ -44,31 +45,31 @@ async def _cerca_giurisprudenza_tributaria_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nella ricerca CeRDEF: {exc}"
+        return SearchResult(success=False, source="cerdef", error_type="source_down", error_message=str(exc))
 
     if not docs:
-        return f"Nessun provvedimento CeRDEF trovato per: _{query}_"
+        return SearchResult(success=False, source="cerdef", error_type="no_results", results_text=f"Nessun provvedimento CeRDEF trovato per: _{query}_")
 
     lines = [f"**Trovati {len(docs)} provvedimenti CeRDEF per**: _{query}_\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="cerdef", num_found=len(docs), results_text="\n".join(lines))
 
 
-async def _cerdef_leggi_provvedimento_impl(guid: str) -> str:
+async def _cerdef_leggi_provvedimento_impl(guid: str) -> SearchResult:
     try:
         detail = await fetch_provvedimento(guid)
-        return format_detail(detail)
+        return SearchResult(success=True, source="cerdef", num_found=1, results_text=format_detail(detail))
     except Exception as exc:
-        return f"Errore nel recupero del provvedimento CeRDEF (GUID {guid}): {exc}"
+        return SearchResult(success=False, source="cerdef", error_type="source_down", error_message=str(exc))
 
 
 async def _ultime_sentenze_tributarie_impl(
     ente: str = "",
     tipo_provvedimento: str = "",
     max_risultati: int = 10,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 250)
 
     try:
@@ -79,16 +80,16 @@ async def _ultime_sentenze_tributarie_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nel recupero delle ultime sentenze tributarie CeRDEF: {exc}"
+        return SearchResult(success=False, source="cerdef", error_type="source_down", error_message=str(exc))
 
     if not docs:
-        return "Nessuna sentenza tributaria recente trovata su CeRDEF."
+        return SearchResult(success=False, source="cerdef", error_type="no_results", results_text="Nessuna sentenza tributaria recente trovata su CeRDEF.")
 
     lines = ["**Ultime sentenze tributarie CeRDEF**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="cerdef", num_found=len(docs), results_text="\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +128,7 @@ async def cerca_giurisprudenza_tributaria(
         ordinamento: Ordinamento risultati ("rilevanza" o "data")
         max_risultati: Numero massimo di risultati (default 10, max 250)
     """
-    return await _cerca_giurisprudenza_tributaria_impl(
+    result = await _cerca_giurisprudenza_tributaria_impl(
         query=query,
         tipo_provvedimento=tipo_provvedimento,
         ente=ente,
@@ -138,6 +139,7 @@ async def cerca_giurisprudenza_tributaria(
         ordinamento=ordinamento,
         max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza", "fiscale"})
@@ -152,7 +154,8 @@ async def cerdef_leggi_provvedimento(guid: str) -> str:
     Args:
         guid: GUID del provvedimento (es. "abc-123-def-456")
     """
-    return await _cerdef_leggi_provvedimento_impl(guid)
+    result = await _cerdef_leggi_provvedimento_impl(guid)
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza", "fiscale"})
@@ -171,8 +174,9 @@ async def ultime_sentenze_tributarie(
         tipo_provvedimento: Filtra per tipo (es. "sentenza", "ordinanza", "decreto")
         max_risultati: Numero massimo di risultati (default 10, max 250)
     """
-    return await _ultime_sentenze_tributarie_impl(
+    result = await _ultime_sentenze_tributarie_impl(
         ente=ente,
         tipo_provvedimento=tipo_provvedimento,
         max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
