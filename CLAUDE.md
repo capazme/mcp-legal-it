@@ -436,19 +436,195 @@ cerca_giurisprudenza_cgue("imposta sul valore aggiunto")
   └─> cite_law("art. 168 direttiva 2006/112/CE") ← norma UE citata nella sentenza
 ```
 
-## Docker
+## Setup per provider
 
-Il server supporta due transport: **stdio** (default, per Claude Desktop/Code) e **SSE** (HTTP, per deployment remoti).
+Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
+
+### Compatibilità cross-provider
+
+| Feature | Claude Desktop/Code | ChatGPT | Manus |
+|---------|--------------------:|--------:|------:|
+| 177 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
+| 19 prompt guidati | ✓ | — | — |
+| 15 risorse `legal://` | ✓ | — | — |
+| 19 skills + 8 comandi + 5 agenti | ✓ (plugin) | — | — |
+| Transport stdio (locale) | ✓ | — | — |
+| Transport Streamable HTTP | ✓ | ✓ | ✓ |
+| Transport SSE (legacy) | ✓ | ✓ | ? |
+
+> I 177 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
+> sono feature Claude-only — gli altri provider li ignorano silenziosamente.
+
+---
+
+### Setup 1 — Claude Desktop (locale, stdio)
+
+Il modo più semplice. Il server gira come subprocess locale, nessun Docker necessario.
+
+**Opzione A — Plugin marketplace (consigliato)**
+```
+/plugin marketplace add capazme/mcp-legal-it
+/plugin install legal-it@mcp-legal-it
+```
+Include: 177 tool + 19 skills + 8 comandi + 5 agenti + hooks.
+
+**Opzione B — Desktop Extension (.mcpb)**
+
+Scaricare `legal-it-X.Y.Z.mcpb` dalla [GitHub Release](https://github.com/capazme/mcp-legal-it/releases/latest) → doppio click su Mac.
+Al primo avvio, `start_server.sh` crea un venv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
+Requisiti: Python 3.10+.
+
+**Opzione C — Configurazione manuale**
+
+In `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "legal-it": {
+      "command": "bash",
+      "args": ["/path/to/mcp-legal-it/plugin/start_server.sh"]
+    }
+  }
+}
+```
+
+---
+
+### Setup 2 — Claude Code (locale, stdio)
+
+**Opzione A — Plugin marketplace**
+```bash
+/plugin marketplace add capazme/mcp-legal-it
+/plugin install legal-it@mcp-legal-it
+```
+
+**Opzione B — .mcp.json nel progetto**
+
+Creare `.mcp.json` nella root del progetto:
+```json
+{
+  "mcpServers": {
+    "legal-it": {
+      "command": "bash",
+      "args": ["/path/to/mcp-legal-it/plugin/start_server.sh"]
+    }
+  }
+}
+```
+
+---
+
+### Setup 3 — ChatGPT (remoto, HTTPS obbligatorio)
+
+ChatGPT richiede un endpoint HTTPS pubblico. Due opzioni:
+
+**Opzione A — Server remoto (produzione)**
+
+1. Deployare il server su un host con HTTPS (VPS, Cloud Run, Railway, ecc.):
+   ```bash
+   docker run -p 8000:8000 mcp-legal-it
+   # oppure: docker compose up
+   ```
+2. Configurare un reverse proxy HTTPS (nginx, Caddy) davanti alla porta 8000.
+3. In ChatGPT:
+   ```
+   Settings → Apps → Developer Mode → Create
+   Nome: Legal IT
+   URL:  https://tuo-server.example.com/mcp
+   ```
+
+**Opzione B — Tunnel locale (sviluppo)**
+
+1. Avviare il server localmente:
+   ```bash
+   MCP_TRANSPORT=http python run_server.py
+   ```
+2. Creare un tunnel HTTPS:
+   ```bash
+   ngrok http 8000
+   # oppure: cloudflared tunnel --url http://localhost:8000
+   ```
+3. In ChatGPT:
+   ```
+   Settings → Apps → Developer Mode → Create
+   Nome: Legal IT
+   URL:  https://xxxx.ngrok-free.app/mcp
+   ```
+
+> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 177 tool sono visibili.
+
+---
+
+### Setup 4 — Manus (remoto, HTTPS obbligatorio)
+
+Stessa architettura di ChatGPT — serve un endpoint HTTPS pubblico.
+
+1. Deployare il server (vedi Setup 3, Opzione A).
+2. In Manus:
+   ```
+   Settings → Integrations → Custom MCP Servers → Add Server
+   Nome:  Legal IT
+   URL:   https://tuo-server.example.com/mcp
+   Auth:  (nessuna — l'API è pubblica)
+   ```
+
+> **Nota**: Manus ha timeout brevi. I tool che interrogano siti governativi lenti
+> (Italgiure, CeRDEF) potrebbero andare in timeout su Manus.
+
+---
+
+### Setup 5 — Qualsiasi client MCP (Streamable HTTP)
+
+Per qualsiasi client MCP compatibile con il transport Streamable HTTP:
+
+```bash
+# Avviare il server
+MCP_TRANSPORT=http MCP_PORT=8000 python run_server.py
+
+# Endpoint: http://localhost:8000/mcp (POST)
+```
+
+Configurazione generica per il client:
+```json
+{
+  "url": "http://localhost:8000/mcp",
+  "transport": "streamable-http"
+}
+```
+
+---
+
+## Docker
 
 ### Env vars
 
 | Variabile | Default | Descrizione |
 |-----------|---------|-------------|
-| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` o `sse` |
-| `MCP_HOST` | `0.0.0.0` | Bind address (solo SSE) |
-| `MCP_PORT` | `8000` | Porta (solo SSE) |
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio`, `http` (Streamable HTTP) o `sse` (legacy) |
+| `MCP_HOST` | `0.0.0.0` | Bind address (solo http/sse) |
+| `MCP_PORT` | `8000` | Porta (solo http/sse) |
+| `MCP_PATH` | `/mcp` | Path endpoint (solo http) |
 | `LEGAL_PROFILE` | `full` | Profilo tool da caricare (vedi tabella sotto) |
 | `MCP_CACHE_DIR` | — | Directory cache Brocardi |
+
+### Comandi
+
+```bash
+# Build
+docker build -t mcp-legal-it .
+
+# Run Streamable HTTP (default Docker, porta 8000)
+docker run -p 8000:8000 mcp-legal-it
+
+# Run con docker-compose
+docker compose up
+
+# Run con profilo ridotto
+docker run -p 8000:8000 -e LEGAL_PROFILE=fiscale mcp-legal-it
+
+# Run legacy SSE (retrocompatibilità)
+docker run -p 8000:8000 -e MCP_TRANSPORT=sse mcp-legal-it
+```
 
 ### Profili disponibili
 
@@ -470,31 +646,3 @@ Il server supporta due transport: **stdio** (default, per Claude Desktop/Code) e
 |--------|---------|---------|------|
 | Italgiure, CONSOB, GA | 30s | 10s | Standard |
 | CeRDEF, CGUE | 45s | 15s | Endpoint più lenti |
-
-### Comandi
-
-```bash
-# Build
-docker build -t mcp-legal-it .
-
-# Run SSE (porta 8000)
-docker run -p 8000:8000 mcp-legal-it
-
-# Run con docker-compose
-docker compose up
-
-# Test endpoint SSE
-curl http://localhost:8000/sse
-```
-
-### Configurazione client MCP (SSE)
-
-```json
-{
-  "mcpServers": {
-    "legal-it": {
-      "url": "http://localhost:8000/sse"
-    }
-  }
-}
-```
