@@ -25,8 +25,10 @@ from src.lib.italgiure.client import (
 from src.tools.italgiure import (
     _cerca_giurisprudenza_impl,
     _filter_by_score,
+    _giurisprudenza_articolo_impl,
     _giurisprudenza_su_norma_impl,
     _leggi_sentenza_impl,
+    _parse_articolo_riferimento,
     _ultime_pronunce_impl,
 )
 
@@ -1815,3 +1817,175 @@ class TestCercaGiurisprudenzaEnhanced:
             await _cerca_giurisprudenza_impl("test")
         body = captured.get("body", "")
         assert "facet=true" in body
+
+
+# ---------------------------------------------------------------------------
+# _parse_articolo_riferimento
+# ---------------------------------------------------------------------------
+
+class TestParseArticoloRiferimento:
+    def test_codice_civile(self):
+        art, atto = _parse_articolo_riferimento("art. 2043 c.c.")
+        assert art == "2043"
+        assert atto == "c.c."
+
+    def test_dlgs_number(self):
+        art, atto = _parse_articolo_riferimento("art. 6 D.Lgs. 231/2001")
+        assert art == "6"
+        assert atto == "D.Lgs. 231/2001"
+
+    def test_codice_procedura_civile(self):
+        art, atto = _parse_articolo_riferimento("art. 132 c.p.c.")
+        assert art == "132"
+        assert atto == "c.p.c."
+
+    def test_no_art_prefix_returns_empty_article(self):
+        art, atto = _parse_articolo_riferimento("codice civile")
+        assert art == ""
+        assert atto == "codice civile"
+
+    def test_articolo_extended(self):
+        art, atto = _parse_articolo_riferimento("art. 2-ter D.Lgs. 196/2003")
+        assert art == "2-ter"
+        assert atto == "D.Lgs. 196/2003"
+
+
+# ---------------------------------------------------------------------------
+# _giurisprudenza_articolo_impl
+# ---------------------------------------------------------------------------
+
+def _make_massima(autorita: str, numero: str | None, anno: str | None, testo: str) -> "object":
+    from src.lib.brocardi.client import Massima
+    return Massima(autorita=autorita, numero=numero, anno=anno, testo=testo)
+
+
+def _make_brocardi_result(massime: list) -> "object":
+    from src.lib.brocardi.client import BrocardiResult
+    return BrocardiResult(url="https://brocardi.it/codice-civile/art2043.html", massime=massime)
+
+
+class TestGiurisprudenzaArticoloImpl:
+
+    @pytest.mark.asyncio
+    async def test_happy_path_brocardi_plus_italgiure(self):
+        """Brocardi returns 2 massime; one Cassazione with number → direct lookup + text search."""
+        m_cass = _make_massima("Cass. civ.", "12345", "2023", "Il danno ingiusto richiede la prova del nesso causale.")
+        m_other = _make_massima("Trib. Milano", None, None, "Responsabilità extracontrattuale art 2043 cc.")
+        brocardi_result = _make_brocardi_result([m_cass, m_other])
+
+        doc = _civile_doc(num="12345", anno="2023")
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.", max_risultati=3)
+
+        assert result.success
+        assert "Brocardi" in result.results_text
+        assert "2 massime" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_brocardi_fails_falls_back_to_norma_search(self):
+        """When fetch_brocardi raises an exception, fall back to _giurisprudenza_su_norma_impl."""
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", side_effect=Exception("timeout")),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.success
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_brocardi_empty_massime_falls_back(self):
+        """BrocardiResult with empty massime list falls back to _giurisprudenza_su_norma_impl."""
+        brocardi_result = _make_brocardi_result([])
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=2)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.success
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_brocardi_error_field_falls_back(self):
+        """BrocardiResult with error field set falls back to _giurisprudenza_su_norma_impl."""
+        from src.lib.brocardi.client import BrocardiResult
+        brocardi_result = BrocardiResult(error="articolo non trovato")
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_italgiure_down_returns_source_down(self):
+        """When Italgiure is unreachable, all lookups fail and no_results is returned."""
+        m_cass = _make_massima("Cass. civ.", "99999", "2022", "Principio di diritto test.")
+        brocardi_result = _make_brocardi_result([m_cass])
+
+        mock_client = _mock_httpx_client()
+
+        async def failing_post(url, **kwargs):
+            raise Exception("connection refused")
+
+        mock_client.post = failing_post
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert not result.success
+
+    @pytest.mark.asyncio
+    async def test_unresolvable_act_falls_back_to_norma(self):
+        """When resolve_atto returns None, falls back to _giurisprudenza_su_norma_impl."""
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("src.tools.italgiure.resolve_atto", return_value=None),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_no_article_prefix_falls_back(self):
+        """Reference without 'art.' prefix: resolve_atto path used with empty article → fallback."""
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _giurisprudenza_articolo_impl("danno biologico")
+
+        assert result.source == "italgiure"

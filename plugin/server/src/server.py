@@ -71,6 +71,7 @@ from src.tools import (  # noqa: E402, F401
     cerdef,
     giustizia_amm,
     cgue,
+    giurisprudenza_unificata,
     privacy_gdpr,
     modelli_atti,
     procedura_civile,
