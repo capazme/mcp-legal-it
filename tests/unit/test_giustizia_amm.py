@@ -466,6 +466,16 @@ class TestCercaGiurisprudenzaAmministrativaImpl:
 
         assert "Errore" in result
 
+    @pytest.mark.asyncio
+    async def test_numero_param_passed_through(self):
+        mock_session = _make_ga_session_mock(_SEARCH_HTML)
+        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
+            result = await _cerca_giurisprudenza_amministrativa_impl(
+                "appalto", numero="1234"
+            )
+
+        assert "Trovati" in result or "Nessun" in result
+
 
 class TestLeggiProvvedimentoAmmImpl:
     @pytest.mark.asyncio
