@@ -1,0 +1,34 @@
+{
+  "_descrizione": "Materie soggette a mediazione obbligatoria ex art. 5 D.Lgs. 28/2010 (aggiornato Cartabia D.Lgs. 149/2022)",
+  "_fonte": "Art. 5, co. 1, D.Lgs. 28/2010 come modificato da D.Lgs. 149/2022",
+  "materie": [
+    {"nome": "condominio", "fonte": "originaria (2010)", "note": "Controversie condominiali"},
+    {"nome": "diritti_reali", "fonte": "originaria (2010)", "note": "Proprietà, servitù, usufrutto, superficie, enfiteusi"},
+    {"nome": "divisione", "fonte": "originaria (2010)", "note": "Divisione ereditaria e non"},
+    {"nome": "successioni_ereditarie", "fonte": "originaria (2010)", "note": "Controversie tra eredi/legatari"},
+    {"nome": "patti_di_famiglia", "fonte": "originaria (2010)", "note": "Art. 768-bis ss. c.c."},
+    {"nome": "locazione", "fonte": "originaria (2010)", "note": "Tutti i contratti di locazione"},
+    {"nome": "comodato", "fonte": "originaria (2010)", "note": "Contratto di comodato"},
+    {"nome": "affitto_aziende", "fonte": "originaria (2010)", "note": "Affitto di azienda o ramo"},
+    {"nome": "responsabilita_medica", "fonte": "originaria (2010)", "note": "Risarcimento danno da responsabilità medico-sanitaria"},
+    {"nome": "diffamazione_stampa", "fonte": "originaria (2010)", "note": "Diffamazione a mezzo stampa o altro mezzo di pubblicità"},
+    {"nome": "contratti_assicurativi", "fonte": "originaria (2010)", "note": "Polizze assicurative"},
+    {"nome": "contratti_bancari", "fonte": "originaria (2010)", "note": "Conti correnti, mutui, fidi"},
+    {"nome": "contratti_finanziari", "fonte": "originaria (2010)", "note": "Strumenti finanziari, investimenti"},
+    {"nome": "associazione_in_partecipazione", "fonte": "Cartabia (2022)", "note": "Art. 2549 ss. c.c."},
+    {"nome": "consorzio", "fonte": "Cartabia (2022)", "note": "Art. 2602 ss. c.c."},
+    {"nome": "franchising", "fonte": "Cartabia (2022)", "note": "L. 129/2004"},
+    {"nome": "contratti_opera", "fonte": "Cartabia (2022)", "note": "Art. 2222 ss. c.c."},
+    {"nome": "reti_impresa", "fonte": "Cartabia (2022)", "note": "DL 5/2009 art. 3"},
+    {"nome": "somministrazione", "fonte": "Cartabia (2022)", "note": "Art. 1559 ss. c.c."},
+    {"nome": "societa_di_persone", "fonte": "Cartabia (2022)", "note": "SNC, SAS — controversie tra soci"},
+    {"nome": "subfornitura", "fonte": "Cartabia (2022)", "note": "L. 192/1998"}
+  ],
+  "esclusioni": [
+    "Procedimenti cautelari e d'urgenza (art. 700 c.p.c.)",
+    "Procedimenti di ingiunzione fino alla pronuncia sulle istanze cautelari",
+    "Procedimenti di sfratto e convalida fino al mutamento del rito",
+    "Azione civile nel processo penale",
+    "Procedimenti in camera di consiglio"
+  ]
+}

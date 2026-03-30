@@ -719,3 +719,43 @@ class TestRateizzazioneImposte:
                   data_prima_rata="2025-06-30")
         for key in ("piano_rate", "totale_interessi", "totale_versato", "n_rate"):
             assert key in r
+
+
+# ---------------------------------------------------------------------------
+# cerca_codice_tributo
+# ---------------------------------------------------------------------------
+
+class TestCercaCodiceTributo:
+
+    def test_by_exact_code(self):
+        r = _call("cerca_codice_tributo", query="4001")
+        assert "4001" in r
+        assert "IRPEF" in r
+        assert "Saldo" in r
+
+    def test_by_description(self):
+        r = _call("cerca_codice_tributo", query="IMU")
+        assert "3918" in r
+        assert "3912" in r
+        assert "IMU" in r
+
+    def test_by_category(self):
+        r = _call("cerca_codice_tributo", query="IVA")
+        assert "6001" in r
+        assert "6099" in r
+
+    def test_case_insensitive(self):
+        r_upper = _call("cerca_codice_tributo", query="IRPEF")
+        r_lower = _call("cerca_codice_tributo", query="irpef")
+        assert r_upper == r_lower
+
+    def test_not_found(self):
+        r = _call("cerca_codice_tributo", query="xyz123")
+        assert "Nessun codice tributo trovato" in r
+
+    def test_partial_match(self):
+        r = _call("cerca_codice_tributo", query="ravvedimento")
+        assert "1989" in r
+        assert "8901" in r
+        assert "8904" in r
+        assert "1991" in r
