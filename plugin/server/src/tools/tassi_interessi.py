@@ -396,8 +396,32 @@ def verifica_usura(
     with open(_DATA / "tegm.json") as f:
         tegm_data = json.load(f)
 
-    trimestre = trimestre or tegm_data["trimestre"]
-    categorie = tegm_data["categorie"]
+    # Support both old flat format and new multi-quarter format
+    if "trimestri" in tegm_data:
+        trimestri = tegm_data["trimestri"]
+        if trimestre and trimestre in trimestri:
+            quarter = trimestri[trimestre]
+        else:
+            # Auto-detect quarter from today's date; fallback to last available
+            today = date.today()
+            quarter = None
+            for q_key in sorted(trimestri):
+                q = trimestri[q_key]
+                if _parse_date(q["dal"]) <= today <= _parse_date(q["al"]):
+                    trimestre = q_key
+                    quarter = q
+                    break
+            if quarter is None:
+                # Use last available quarter
+                last_key = sorted(trimestri)[-1]
+                trimestre = last_key
+                quarter = trimestri[last_key]
+        categorie = quarter["categorie"]
+    else:
+        # Legacy flat format
+        trimestre = trimestre or tegm_data["trimestre"]
+        categorie = tegm_data["categorie"]
+
     info = categorie.get(tipo_operazione, categorie["credito_personale"])
     tegm = info["tegm"]
 

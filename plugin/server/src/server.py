@@ -57,6 +57,7 @@ from src.tools import (  # noqa: E402, F401
     parcelle_professionisti,
     risarcimento_danni,
     diritto_penale,
+    diritto_lavoro,
     proprieta_successioni,
     investimenti,
     dichiarazione_redditi,
@@ -70,6 +71,7 @@ from src.tools import (  # noqa: E402, F401
     cgue,
     privacy_gdpr,
     modelli_atti,
+    procedura_civile,
 )
 
 from src import prompts, resources  # noqa: E402, F401
@@ -86,7 +88,7 @@ _PROFILES: dict[str, set[str]] = {
     "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti"},
     "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob"},
     "privacy": {"privacy", "normativa", "giurisprudenza"},
-    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti"},
+    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro"},
     "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
 }
 
