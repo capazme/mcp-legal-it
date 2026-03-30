@@ -7,8 +7,6 @@ annullamento atti amministrativi, ricorso al TAR, CGARS.
 
 from src.server import mcp
 from src.lib.giustizia_amm.client import (
-    SEDI,
-    TIPI_PROVVEDIMENTO,
     fetch_provvedimento_text,
     format_full,
     format_result,
@@ -25,6 +23,7 @@ async def _cerca_giurisprudenza_amministrativa_impl(
     sede: str = "",
     tipo: str = "",
     anno: str = "",
+    numero: str = "",
     max_risultati: int = 10,
 ) -> str:
     max_risultati = min(max_risultati, 50)
@@ -35,6 +34,7 @@ async def _cerca_giurisprudenza_amministrativa_impl(
             tipo=tipo,
             sede=sede,
             anno=anno,
+            numero=numero,
             rows=max_risultati,
         )
     except Exception as exc:
@@ -122,6 +122,7 @@ async def cerca_giurisprudenza_amministrativa(
     sede: str = "",
     tipo: str = "",
     anno: str = "",
+    numero: str = "",
     max_risultati: int = 10,
 ) -> str:
     """Cerca sentenze e provvedimenti di TAR e Consiglio di Stato.
@@ -141,10 +142,11 @@ async def cerca_giurisprudenza_amministrativa(
             tar_marche, tar_umbria, tar_molise, tar_basilicata e altri TARs regionali
         tipo: Filtra per tipo (es. "sentenza", "ordinanza", "decreto", "parere")
         anno: Filtra per anno (es. "2024", "2023")
+        numero: Numero del provvedimento (es. "1234") per ricerca per numero specifico
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
     return await _cerca_giurisprudenza_amministrativa_impl(
-        query=query, sede=sede, tipo=tipo, anno=anno, max_risultati=max_risultati,
+        query=query, sede=sede, tipo=tipo, anno=anno, numero=numero, max_risultati=max_risultati,
     )
 
 

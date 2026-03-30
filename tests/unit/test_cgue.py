@@ -21,6 +21,7 @@ from src.lib.cgue.client import (
     format_full,
 )
 
+from src.lib._result import SearchResult
 from src.tools.cgue import (
     _cerca_giurisprudenza_cgue_impl,
     _leggi_sentenza_cgue_impl,
@@ -561,8 +562,10 @@ class TestCercaGiurisprudenzaCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA")
 
-        assert "Trovate" in result
-        assert "C-8/2024" in result
+        assert isinstance(result, SearchResult)
+        assert result.success
+        assert "Trovate" in result.results_text
+        assert "C-8/2024" in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
@@ -570,7 +573,10 @@ class TestCercaGiurisprudenzaCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("inesistente")
 
-        assert "Nessuna" in result
+        assert isinstance(result, SearchResult)
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_http_error_returns_message(self):
@@ -582,7 +588,10 @@ class TestCercaGiurisprudenzaCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA")
 
-        assert "Errore" in result
+        assert isinstance(result, SearchResult)
+        assert not result.success
+        assert result.error_type == "source_down"
+        assert "Errore" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_max_risultati_capped_at_50(self):
@@ -590,8 +599,9 @@ class TestCercaGiurisprudenzaCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA", max_risultati=100)
 
-        # Should succeed, capped to 50
-        assert "Trovate" in result
+        assert isinstance(result, SearchResult)
+        assert result.success
+        assert "Trovate" in result.results_text
 
     @pytest.mark.asyncio
     async def test_with_corte_filter(self):
@@ -599,7 +609,8 @@ class TestCercaGiurisprudenzaCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA", corte="corte_di_giustizia")
 
-        assert "Trovate" in result or "Nessuna" in result
+        assert isinstance(result, SearchResult)
+        assert "Trovate" in result.to_str() or "Nessuna" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_empty_query_still_works(self):
@@ -607,7 +618,8 @@ class TestCercaGiurisprudenzaCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("")
 
-        assert "Trovate" in result or "Nessuna" in result
+        assert isinstance(result, SearchResult)
+        assert "Trovate" in result.to_str() or "Nessuna" in result.to_str()
 
 
 # ---------------------------------------------------------------------------
@@ -631,8 +643,10 @@ class TestLeggiSentenzaCgueImpl:
                 "http://publications.europa.eu/resource/cellar/abc123.0006"
             )
 
-        assert "CORTE" in result
-        assert "articolo 168" in result
+        assert isinstance(result, SearchResult)
+        assert result.success
+        assert "CORTE" in result.results_text
+        assert "articolo 168" in result.results_text
 
     @pytest.mark.asyncio
     async def test_http_error_returns_message(self):
@@ -650,7 +664,9 @@ class TestLeggiSentenzaCgueImpl:
                 "http://publications.europa.eu/resource/cellar/notfound.0006"
             )
 
-        assert "Errore" in result
+        assert isinstance(result, SearchResult)
+        assert not result.success
+        assert "Errore" in result.to_str()
 
 
 # ---------------------------------------------------------------------------
@@ -664,8 +680,10 @@ class TestGiurisprudenzaCgueSuNormaImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("art. 101 TFUE")
 
-        assert "Sentenze CGUE che citano" in result
-        assert "art. 101 TFUE" in result
+        assert isinstance(result, SearchResult)
+        assert result.success
+        assert "Sentenze CGUE che citano" in result.results_text
+        assert "art. 101 TFUE" in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
@@ -673,7 +691,10 @@ class TestGiurisprudenzaCgueSuNormaImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("art. 999 TFUE")
 
-        assert "Nessuna" in result
+        assert isinstance(result, SearchResult)
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_http_error_returns_message(self):
@@ -685,7 +706,10 @@ class TestGiurisprudenzaCgueSuNormaImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("art. 101 TFUE")
 
-        assert "Errore" in result
+        assert isinstance(result, SearchResult)
+        assert not result.success
+        assert result.error_type == "source_down"
+        assert "Errore" in result.to_str()
 
 
 # ---------------------------------------------------------------------------
@@ -699,7 +723,9 @@ class TestUltimeSentenzeCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl()
 
-        assert "Ultime sentenze CGUE" in result
+        assert isinstance(result, SearchResult)
+        assert result.success
+        assert "Ultime sentenze CGUE" in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
@@ -707,7 +733,10 @@ class TestUltimeSentenzeCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl()
 
-        assert "Nessuna" in result
+        assert isinstance(result, SearchResult)
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_http_error_returns_message(self):
@@ -719,7 +748,10 @@ class TestUltimeSentenzeCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl()
 
-        assert "Errore" in result
+        assert isinstance(result, SearchResult)
+        assert not result.success
+        assert result.error_type == "source_down"
+        assert "Errore" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_with_court_filter(self):
@@ -727,7 +759,8 @@ class TestUltimeSentenzeCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl(corte="tribunale")
 
-        assert "Ultime sentenze CGUE" in result or "Nessuna" in result
+        assert isinstance(result, SearchResult)
+        assert "Ultime sentenze CGUE" in result.to_str() or "Nessuna" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_with_materia_filter(self):
@@ -735,4 +768,5 @@ class TestUltimeSentenzeCgueImpl:
         with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl(materia="iva")
 
-        assert "Ultime sentenze CGUE" in result or "Nessuna" in result
+        assert isinstance(result, SearchResult)
+        assert "Ultime sentenze CGUE" in result.to_str() or "Nessuna" in result.to_str()

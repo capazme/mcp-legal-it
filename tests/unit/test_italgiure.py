@@ -480,6 +480,69 @@ class TestBuildNormaVariants:
         assert q.startswith("ocr:(")
 
 
+
+# ---------------------------------------------------------------------------
+# build_norma_variants — expanded codes and act types
+# ---------------------------------------------------------------------------
+
+class TestBuildNormaVariantsExpanded:
+    def test_dlgs_231_produces_decreto_legislativo_variant(self):
+        q = build_norma_variants("art. 6 D.Lgs. 231/2001")
+        assert '"art. 6"' in q
+        assert '"articolo 6"' in q
+        assert "decreto legislativo" in q.lower()
+
+    def test_dlgs_numeric_identifier_included(self):
+        q = build_norma_variants("art. 6 D.Lgs. 231/2001")
+        assert "231" in q
+
+    def test_regression_codice_civile(self):
+        q = build_norma_variants("art. 2043 c.c.")
+        assert '"art. 2043"' in q
+        assert '"articolo 2043"' in q
+        assert "codice civile" in q.lower() or "c.c." in q
+
+    def test_codice_della_strada(self):
+        q = build_norma_variants("art. 37 c.d.s.")
+        assert '"art. 37"' in q
+        assert "codice della strada" in q.lower() or "cod. strada" in q.lower()
+
+    def test_testo_unico_bancario(self):
+        q = build_norma_variants("art. 5 t.u.b.")
+        assert '"art. 5"' in q
+        assert "testo unico bancario" in q.lower() or "t.u.b." in q
+
+    def test_legge_reference(self):
+        q = build_norma_variants("art. 21 L. 241/1990")
+        assert '"art. 21"' in q
+        assert "legge" in q.lower() or "L." in q
+
+    def test_decreto_legge_reference(self):
+        q = build_norma_variants("art. 1 D.L. 78/2010")
+        assert '"art. 1"' in q
+        assert "decreto legge" in q.lower() or "D.L." in q
+
+    def test_cpa_codice_del_processo_amministrativo(self):
+        q = build_norma_variants("art. 120 c.p.a.")
+        assert '"art. 120"' in q
+        assert "codice del processo amministrativo" in q.lower() or "c.p.a." in q
+
+    def test_tuf_testo_unico_finanza(self):
+        q = build_norma_variants("art. 94 t.u.f.")
+        assert '"art. 94"' in q
+        assert "testo unico finanza" in q.lower() or "t.u.f." in q
+
+    def test_ccii_codice_della_crisi(self):
+        q = build_norma_variants("art. 7 c.c.i.i.")
+        assert '"art. 7"' in q
+        assert "codice della crisi" in q.lower() or "c.c.i.i." in q or "CCII" in q
+
+    def test_returns_ocr_prefix_for_all_new_codes(self):
+        for ref in ["art. 5 t.u.b.", "art. 37 c.d.s.", "art. 120 c.p.a.", "art. 94 t.u.f."]:
+            q = build_norma_variants(ref)
+            assert q.startswith("ocr:("), f"Expected ocr:( prefix for {ref!r}, got: {q}"
+
+
 # ---------------------------------------------------------------------------
 # format_estremi
 # ---------------------------------------------------------------------------
