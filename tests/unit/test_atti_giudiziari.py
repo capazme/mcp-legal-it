@@ -1155,3 +1155,61 @@ class TestCercaUfficioGiudiziario:
             assert "suggerimenti" in r
         else:
             assert r["trovato"] is True
+
+
+# ---------------------------------------------------------------------------
+# esporta_atto_docx (modelli_atti)
+# ---------------------------------------------------------------------------
+
+
+def _call_modelli(fn_name, **kwargs):
+    import importlib
+    mod = importlib.import_module("src.tools.modelli_atti")
+    fn = getattr(mod, fn_name)
+    fn = getattr(fn, "fn", fn)
+    return fn(**kwargs)
+
+
+class TestEsportaAttoDocx:
+
+    def test_basic_export(self):
+        result = _call_modelli("esporta_atto_docx", testo="# Titolo\n\nParagrafo di testo.", titolo="Test")
+        assert "docx" in result.lower()
+        assert "errore" not in result.lower()
+
+    def test_empty_text_error(self):
+        result = _call_modelli("esporta_atto_docx", testo="", titolo="Vuoto")
+        assert "errore" in result.lower()
+
+    def test_markdown_formatting(self):
+        md = "# Intestazione\n\n## Sottotitolo\n\n**Grassetto** e *corsivo*.\n\n- Punto 1\n- Punto 2"
+        result = _call_modelli("esporta_atto_docx", testo=md, titolo="Format Test")
+        assert "docx" in result.lower()
+
+    def test_file_created(self):
+        import os
+        result = _call_modelli("esporta_atto_docx", testo="# Atto\n\nContenuto.", titolo="Atto Prova")
+        # Result contains the file path
+        assert "File salvato" in result
+        path = result.split("File salvato: ")[1].split(" (")[0]
+        assert os.path.isfile(path)
+
+    def test_numbered_list(self):
+        md = "1. Prima voce\n2. Seconda voce\n3. Terza voce"
+        result = _call_modelli("esporta_atto_docx", testo=md, titolo="Lista Numerata")
+        assert "docx" in result.lower()
+
+    def test_blockquote(self):
+        md = "> Citazione normativa art. 2043 c.c."
+        result = _call_modelli("esporta_atto_docx", testo=md, titolo="Blockquote Test")
+        assert "docx" in result.lower()
+
+    def test_autore_nei_metadati(self):
+        result = _call_modelli(
+            "esporta_atto_docx",
+            testo="# Test\n\nTesto.",
+            titolo="Parere",
+            autore="Avv. Mario Rossi",
+        )
+        assert "docx" in result.lower()
+        assert "errore" not in result.lower()
