@@ -36,8 +36,14 @@ BUILD_WEB_SKILLS = PROJECT_DIR / "plugin" / "build-web-skills.py"
 CHANGELOG_ROOT = PROJECT_DIR / "CHANGELOG.md"
 CHANGELOG_PLUGIN = PROJECT_DIR / "plugin" / "CHANGELOG.md"
 
+SERVER_PYPROJECT = PROJECT_DIR / "plugin" / "server" / "pyproject.toml"
+MARKETPLACE_JSON = PROJECT_DIR / ".claude-plugin" / "marketplace.json"
+DXT_MANIFEST = PROJECT_DIR / "dxt" / "manifest.json"
+SERVER_MANIFEST = PROJECT_DIR / "plugin" / "server" / "manifest.json"
+
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 PYPROJECT_VERSION_RE = re.compile(r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE)
+TOOL_COUNT_RE = re.compile(r'\b\d+(?=\s+(?:Italian\s+legal\s+)?tool)')
 
 # Conventional commit type → Keep a Changelog section
 _CC_MAP = {
@@ -208,6 +214,160 @@ def build_web_skills(*, dry_run: bool) -> None:
         warn(f"build-web-skills.py failed: {result.stderr[:200]}")
     else:
         success("Web skills ZIP rebuilt")
+
+
+# ---------------------------------------------------------------------------
+# Manifest sync (version + tool count in ALL 6 files)
+# ---------------------------------------------------------------------------
+
+def count_tools() -> int:
+    """Count @mcp.tool() decorators across all tool files."""
+    for tools_dir in [
+        PROJECT_DIR / "src" / "tools",
+        PROJECT_DIR / "plugin" / "server" / "src" / "tools",
+    ]:
+        if tools_dir.is_dir():
+            total = sum(
+                f.read_text().count("@mcp.tool")
+                for f in tools_dir.glob("*.py")
+            )
+            if total > 0:
+                return total
+    return 0
+
+
+def bump_extra_manifests(
+    version: str, tool_count: int, *, dry_run: bool
+) -> list[str]:
+    """Bump version + tool count in the 4 manifests NOT handled by
+    write_pyproject_version / write_plugin_version, and update tool
+    count in descriptions of pyproject.toml and plugin.json."""
+    modified: list[str] = []
+    tc = str(tool_count)
+
+    # 1. plugin/server/pyproject.toml — version + description
+    if SERVER_PYPROJECT.exists():
+        text = SERVER_PYPROJECT.read_text()
+        text = PYPROJECT_VERSION_RE.sub(rf'\g<1>{version}\3', text)
+        text = TOOL_COUNT_RE.sub(tc, text)
+        if dry_run:
+            info(f"[DRY RUN] plugin/server/pyproject.toml → v{version}, {tc} tool")
+        else:
+            SERVER_PYPROJECT.write_text(text)
+            success(f"plugin/server/pyproject.toml → v{version}, {tc} tool")
+        modified.append(str(SERVER_PYPROJECT))
+
+    # 2-3. dxt/manifest.json, plugin/server/manifest.json — version + description
+    for label, path in [
+        ("dxt/manifest.json", DXT_MANIFEST),
+        ("plugin/server/manifest.json", SERVER_MANIFEST),
+    ]:
+        if path.exists():
+            data = json.loads(path.read_text())
+            data["version"] = version
+            for key in ("description", "long_description"):
+                if key in data:
+                    data[key] = TOOL_COUNT_RE.sub(tc, data[key])
+            if dry_run:
+                info(f"[DRY RUN] {label} → v{version}, {tc} tool")
+            else:
+                path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+                success(f"{label} → v{version}, {tc} tool")
+            modified.append(str(path))
+
+    # 4. marketplace.json — version + description inside plugins[0]
+    if MARKETPLACE_JSON.exists():
+        data = json.loads(MARKETPLACE_JSON.read_text())
+        if "plugins" in data and data["plugins"]:
+            data["plugins"][0]["version"] = version
+            desc = data["plugins"][0].get("description", "")
+            data["plugins"][0]["description"] = TOOL_COUNT_RE.sub(tc, desc)
+        if dry_run:
+            info(f"[DRY RUN] marketplace.json → v{version}, {tc} tool")
+        else:
+            MARKETPLACE_JSON.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+            )
+            success(f"marketplace.json → v{version}, {tc} tool")
+        modified.append(str(MARKETPLACE_JSON))
+
+    # 5-6. Description-only updates (version already set by dedicated functions)
+    if PYPROJECT_TOML.exists():
+        text = PYPROJECT_TOML.read_text()
+        new_text = TOOL_COUNT_RE.sub(tc, text)
+        if text != new_text:
+            if dry_run:
+                info(f"[DRY RUN] pyproject.toml description → {tc} tool")
+            else:
+                PYPROJECT_TOML.write_text(new_text)
+                success(f"pyproject.toml description → {tc} tool")
+
+    if PLUGIN_JSON.exists():
+        data = json.loads(PLUGIN_JSON.read_text())
+        desc = data.get("description", "")
+        new_desc = TOOL_COUNT_RE.sub(tc, desc)
+        if desc != new_desc:
+            data["description"] = new_desc
+            if dry_run:
+                info(f"[DRY RUN] plugin.json description → {tc} tool")
+            else:
+                PLUGIN_JSON.write_text(
+                    json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+                )
+                success(f"plugin.json description → {tc} tool")
+
+    return modified
+
+
+def verify_all_versions(version: str) -> None:
+    """Pre-tag gate: verify ALL 6 manifest files have the target version.
+    Calls fatal() and aborts if any file is misaligned."""
+    step(f"Pre-tag gate — verifica versione '{version}' in tutti i manifest")
+    issues: list[str] = []
+
+    for label, path in [
+        ("pyproject.toml", PYPROJECT_TOML),
+        ("plugin/server/pyproject.toml", SERVER_PYPROJECT),
+    ]:
+        if path.exists():
+            m = PYPROJECT_VERSION_RE.search(path.read_text())
+            found = m.group(2) if m else "NOT FOUND"
+            if found == version:
+                success(f"{label}: {found}")
+            else:
+                error(f"{label}: {found} (atteso {version})")
+                issues.append(label)
+
+    for label, path in [
+        ("dxt/manifest.json", DXT_MANIFEST),
+        ("plugin/server/manifest.json", SERVER_MANIFEST),
+        ("plugin.json", PLUGIN_JSON),
+    ]:
+        if path.exists():
+            data = json.loads(path.read_text())
+            found = data.get("version", "NOT FOUND")
+            if found == version:
+                success(f"{label}: {found}")
+            else:
+                error(f"{label}: {found} (atteso {version})")
+                issues.append(label)
+
+    if MARKETPLACE_JSON.exists():
+        data = json.loads(MARKETPLACE_JSON.read_text())
+        found = "NOT FOUND"
+        if "plugins" in data and data["plugins"]:
+            found = data["plugins"][0].get("version", "NOT FOUND")
+        if found == version:
+            success(f"marketplace.json: {found}")
+        else:
+            error(f"marketplace.json: {found} (atteso {version})")
+            issues.append("marketplace.json")
+
+    if issues:
+        fatal(
+            f"Versione non allineata in {len(issues)} file: {', '.join(issues)}\n"
+            f"       Il tag NON verrà creato. Correggi e riprova."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -881,6 +1041,13 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
             step("Rigenerazione ZIP web skills per upload Claude Web")
             build_web_skills(dry_run=dry)
 
+        # --- Bump extra manifests (version + tool count in all 6 files) ---
+        section("Manifest sync")
+
+        tool_count = count_tools()
+        step(f"Rilevati {tool_count} tool — aggiornamento manifest aggiuntivi")
+        extra_files = bump_extra_manifests(version, tool_count, dry_run=dry)
+
         # --- CHANGELOG ---
         section("CHANGELOG")
 
@@ -915,6 +1082,7 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
 
         step(f"Commit delle versioni aggiornate sul branch di release")
         files_to_add = [str(PYPROJECT_TOML)]
+        files_to_add.extend(extra_files)
         if not args.no_plugin_bump:
             files_to_add.append(str(PLUGIN_JSON))
             dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
@@ -943,6 +1111,10 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
                 f"merge: {release_branch} into main", dry_run=dry)
         if not dry:
             success(f"Release mergiata in main")
+
+        # --- Pre-tag verification ---
+        if not dry:
+            verify_all_versions(version)
 
         step(f"Creazione tag annotato '{tag}' su main")
         run_git("tag", "-a", tag, "-m", f"Release {tag}", dry_run=dry)
@@ -1071,6 +1243,15 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
             build_web_skills(dry_run=dry)
             needs_commit = True
 
+        # --- Bump extra manifests ---
+        section("Manifest sync")
+
+        tool_count = count_tools()
+        step(f"Rilevati {tool_count} tool — aggiornamento manifest aggiuntivi")
+        extra_files = bump_extra_manifests(version, tool_count, dry_run=dry)
+        if extra_files:
+            needs_commit = True
+
         # --- CHANGELOG ---
         section("CHANGELOG")
 
@@ -1095,6 +1276,7 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
         if needs_commit:
             step("Commit delle versioni aggiornate su main")
             files_to_add = [str(PYPROJECT_TOML)]
+            files_to_add.extend(extra_files)
             if not args.no_plugin_bump:
                 files_to_add.append(str(PLUGIN_JSON))
                 dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
@@ -1113,6 +1295,10 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
 
         # --- Tag ---
         section("Tagging")
+
+        # Pre-tag verification gate
+        if not dry:
+            verify_all_versions(version)
 
         step(f"Creazione tag annotato '{tag}' su main")
         run_git("tag", "-a", tag, "-m", f"Release {tag}", dry_run=dry)
@@ -1198,6 +1384,42 @@ def run_plugin_only(version: str, args: argparse.Namespace) -> None:
     step("Rigenerazione ZIP web skills per upload Claude Web")
     build_web_skills(dry_run=dry)
 
+    # --- Manifest sync (description update with tool count) ---
+    section("Manifest sync")
+
+    tool_count = count_tools()
+    step(f"Rilevati {tool_count} tool — aggiornamento descrizioni")
+    # In plugin-only mode, only update marketplace.json and plugin.json descriptions
+    tc = str(tool_count)
+    extra_files: list[str] = []
+    if MARKETPLACE_JSON.exists():
+        data = json.loads(MARKETPLACE_JSON.read_text())
+        if "plugins" in data and data["plugins"]:
+            data["plugins"][0]["version"] = version
+            desc = data["plugins"][0].get("description", "")
+            data["plugins"][0]["description"] = TOOL_COUNT_RE.sub(tc, desc)
+        if dry:
+            info(f"[DRY RUN] marketplace.json → v{version}, {tc} tool")
+        else:
+            MARKETPLACE_JSON.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+            )
+            success(f"marketplace.json → v{version}, {tc} tool")
+        extra_files.append(str(MARKETPLACE_JSON))
+    if PLUGIN_JSON.exists():
+        data = json.loads(PLUGIN_JSON.read_text())
+        desc = data.get("description", "")
+        new_desc = TOOL_COUNT_RE.sub(tc, desc)
+        if desc != new_desc:
+            data["description"] = new_desc
+            if dry:
+                info(f"[DRY RUN] plugin.json description → {tc} tool")
+            else:
+                PLUGIN_JSON.write_text(
+                    json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+                )
+                success(f"plugin.json description → {tc} tool")
+
     # --- CHANGELOG ---
     section("CHANGELOG")
 
@@ -1221,6 +1443,7 @@ def run_plugin_only(version: str, args: argparse.Namespace) -> None:
 
     step(f"Commit plugin bump su branch corrente")
     files_to_add = [str(PLUGIN_JSON)]
+    files_to_add.extend(extra_files)
     if CHANGELOG_PLUGIN.exists():
         files_to_add.append(str(CHANGELOG_PLUGIN))
     dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
