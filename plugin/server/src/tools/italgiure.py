@@ -4,7 +4,13 @@ TRIGGER: usa questi tool quando l'utente menziona una sentenza con numero e anno
 Non fare web search per sentenze già identificate — il testo ufficiale è su Italgiure.
 """
 
+import asyncio
+import re
+
 from src.server import mcp
+from src.lib._result import SearchResult
+from src.lib.brocardi.client import fetch_brocardi, parse_massime_references
+from src.lib.visualex import resolve_atto
 from src.lib.italgiure.client import (
     TIPO_PROV,
     SolrSession,
@@ -57,16 +63,16 @@ async def _leggi_sentenza_impl(
     anno: int,
     sezione: str = "",
     archivio: str = "tutti",
-) -> str:
+) -> SearchResult:
     params = build_lookup_params(numero, anno, archivio=archivio, sezione=sezione or None)
     try:
         data = await solr_query(params)
         docs = data.get("response", {}).get("docs", [])
         if docs:
-            return format_full_text(docs[0])
+            return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
     except Exception as exc:
-        return f"Errore nel recupero della decisione n. {numero}/{anno}: {exc}"
-    return f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione."
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
+    return SearchResult(success=False, source="italgiure", error_type="no_results", results_text=f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione.")
 
 
 async def _cerca_giurisprudenza_impl(
@@ -83,8 +89,8 @@ async def _cerca_giurisprudenza_impl(
     pagina: int = 0,
     campo: str = "tutto",
     modalita: str = "cerca",
-) -> str:
-    # --- Explore mode: facets only, no documents ---
+) -> SearchResult | str:
+    # --- Explore mode: facets only, no documents — returns plain str ---
     if modalita == "esplora":
         return await _esplora_impl(query, archivio=archivio, campo=campo)
 
@@ -107,7 +113,7 @@ async def _cerca_giurisprudenza_impl(
     try:
         data = await solr_query(params)
     except Exception as exc:
-        return f"Errore nella ricerca: {exc}"
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
 
     num_found = data.get("response", {}).get("numFound", 0)
     facet_counts = data.get("facet_counts", {})
@@ -124,11 +130,12 @@ async def _cerca_giurisprudenza_impl(
             num_found, facet_counts, data,
         )
         if refined is not None:
-            return refined
+            return SearchResult(success=True, source="italgiure", num_found=num_found, results_text=refined)
 
-    return _format_search_results(
+    text = _format_search_results(
         data, query, ordinamento, pagina, max_risultati, num_found, facet_counts,
     )
+    return SearchResult(success=True, source="italgiure", num_found=num_found, results_text=text)
 
 
 async def _esplora_impl(
@@ -274,7 +281,7 @@ async def _giurisprudenza_su_norma_impl(
     anno_a: int = 0,
     max_risultati: int = 5,
     pagina: int = 0,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 50)
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
@@ -304,12 +311,12 @@ async def _giurisprudenza_su_norma_impl(
     try:
         data = await solr_query(params)
     except Exception as exc:
-        return f"Errore nella ricerca per norma: {exc}"
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
     docs = data.get("response", {}).get("docs", [])
     num_found = data.get("response", {}).get("numFound", 0)
     highlighting = data.get("highlighting", {})
     if not docs:
-        return f"Nessuna decisione trovata per il riferimento: {riferimento}"
+        return SearchResult(success=False, source="italgiure", error_type="no_results", results_text=f"Nessuna decisione trovata per il riferimento: {riferimento}")
     start_idx = pagina * max_risultati + 1
     end_idx = start_idx + len(docs) - 1
     lines = [f"**Trovate {num_found} decisioni su**: _{riferimento}_ (mostro {start_idx}-{end_idx})\n"]
@@ -318,7 +325,7 @@ async def _giurisprudenza_su_norma_impl(
         hl = highlighting.get(doc_id)
         lines.append(format_summary(doc, hl))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="italgiure", num_found=num_found, results_text="\n".join(lines))
 
 
 async def _ultime_pronunce_impl(
@@ -328,7 +335,7 @@ async def _ultime_pronunce_impl(
     tipo_provvedimento: str = "",
     solo_sezioni_unite: bool = False,
     max_risultati: int = 5,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 50)
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
@@ -352,16 +359,16 @@ async def _ultime_pronunce_impl(
     try:
         data = await solr_query(params)
     except Exception as exc:
-        return f"Errore nel recupero ultime pronunce: {exc}"
+        return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
     docs = data.get("response", {}).get("docs", [])
     num_found = data.get("response", {}).get("numFound", 0)
     if not docs:
-        return "Nessuna decisione recente trovata con i filtri specificati."
+        return SearchResult(success=False, source="italgiure", error_type="no_results", results_text="Nessuna decisione recente trovata con i filtri specificati.")
     lines = [f"**Ultime pronunce della Cassazione** ({num_found} totali)\n"]
     for doc in docs:
         lines.append(format_summary(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="italgiure", num_found=num_found, results_text="\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +395,8 @@ async def leggi_sentenza(
         sezione: Sezione della Corte (opzionale: 1-6, L=lavoro, T=tributaria, SU=sezioni unite)
         archivio: "civile", "penale", o "tutti" (default)
     """
-    return await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio)
+    result = await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio)
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza"})
@@ -440,12 +448,13 @@ async def cerca_giurisprudenza(
         campo: "tutto" (testo+dispositivo, default) o "dispositivo" (cerca solo nel dispositivo — più preciso, meno recall)
         modalita: "cerca" (default — restituisce documenti) o "esplora" (solo distribuzione facet, nessun documento)
     """
-    return await _cerca_giurisprudenza_impl(
+    result = await _cerca_giurisprudenza_impl(
         query, archivio=archivio, materia=materia, sezione=sezione,
         anno_da=anno_da, anno_a=anno_a, tipo_provvedimento=tipo_provvedimento,
         solo_sezioni_unite=solo_sezioni_unite, ordinamento=ordinamento,
         max_risultati=max_risultati, pagina=pagina, campo=campo, modalita=modalita,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza"})
@@ -474,9 +483,160 @@ async def giurisprudenza_su_norma(
         max_risultati: Numero massimo di risultati per pagina (default 5)
         pagina: Pagina dei risultati, 0-indexed (default 0 = prima pagina)
     """
-    return await _giurisprudenza_su_norma_impl(
+    result = await _giurisprudenza_su_norma_impl(
         riferimento, archivio=archivio, solo_sezioni_unite=solo_sezioni_unite,
         anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati, pagina=pagina,
+    )
+    return result.to_str() if isinstance(result, SearchResult) else result
+
+
+def _parse_articolo_riferimento(riferimento: str) -> tuple[str, str]:
+    """Extract (articolo, atto) from a legal reference like 'art. 2043 c.c.'.
+
+    Returns (article_number, act_name_remainder) or ("", riferimento) on failure.
+    """
+    m = re.match(
+        r"(?:articol[oi]|art)\.?\s*(\d+(?:[-/.]\w+)*)\s+(.+)",
+        riferimento.strip(),
+        re.IGNORECASE,
+    )
+    if m:
+        return m.group(1).strip(), m.group(2).strip()
+    return "", riferimento.strip()
+
+
+async def _giurisprudenza_articolo_impl(
+    riferimento: str,
+    archivio: str = "tutti",
+    anno_da: int = 0,
+    anno_a: int = 0,
+    max_risultati: int = 5,
+) -> SearchResult:
+    articolo, atto_str = _parse_articolo_riferimento(riferimento)
+
+    # Attempt Brocardi lookup only when we can resolve act + article
+    brocardi_result = None
+    if articolo and atto_str:
+        act_info = resolve_atto(atto_str)
+        if act_info:
+            try:
+                brocardi_result = await fetch_brocardi(
+                    act_info["tipo_atto"],
+                    articolo,
+                    act_info.get("numero_atto", ""),
+                )
+                if brocardi_result.error:
+                    brocardi_result = None
+            except Exception:
+                brocardi_result = None
+
+    # Fallback: no Brocardi data → delegate to _giurisprudenza_su_norma_impl
+    if brocardi_result is None or not brocardi_result.massime:
+        return await _giurisprudenza_su_norma_impl(
+            riferimento,
+            archivio=archivio,
+            anno_da=anno_da,
+            anno_a=anno_a,
+            max_risultati=max_risultati,
+        )
+
+    # --- Direct references from parse_massime_references ---
+    cass_refs = parse_massime_references(brocardi_result.massime)[:3]
+
+    # --- Text queries from massima testo (up to 3 non-Cassazione massime first,
+    #     then Cassazione ones, to get diverse signals) ---
+    query_massime = [m for m in brocardi_result.massime if m.testo][:3]
+
+    # Launch all lookups in parallel
+    async def _safe_lookup(numero: int, anno: int) -> SearchResult:
+        try:
+            return await _leggi_sentenza_impl(numero, anno, archivio=archivio)
+        except Exception as exc:
+            return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
+
+    async def _safe_search(query: str) -> SearchResult:
+        try:
+            result = await _cerca_giurisprudenza_impl(
+                query,
+                archivio=archivio,
+                anno_da=anno_da,
+                anno_a=anno_a,
+                max_risultati=max_risultati,
+            )
+            return result if isinstance(result, SearchResult) else SearchResult(success=False, source="italgiure", error_type="no_results")
+        except Exception as exc:
+            return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
+
+    lookup_coros = [_safe_lookup(ref["numero"], ref["anno"]) for ref in cass_refs]
+    search_coros = [_safe_search(m.testo[:300]) for m in query_massime]
+
+    all_results = await asyncio.gather(*lookup_coros, *search_coros, return_exceptions=False)
+    lookup_results = list(all_results[:len(lookup_coros)])
+    search_results = list(all_results[len(lookup_coros):])
+
+    # Deduplicate by (numdec, anno)
+    seen_keys: set[str] = set()
+
+    def _collect_docs_from_result(sr: SearchResult) -> list[str]:
+        """Return formatted summary lines from a successful SearchResult, deduped."""
+        if not sr.success or not sr.results_text:
+            return []
+        return [sr.results_text]
+
+    direct_lines: list[str] = []
+    for i, sr in enumerate(lookup_results):
+        if not sr.success:
+            continue
+        ref = cass_refs[i]
+        key = f"{ref['numero']}/{ref['anno']}"
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        direct_lines.append(sr.results_text or "")
+
+    # For search results, extract individual docs to deduplicate
+    search_lines: list[str] = []
+    for sr in search_results:
+        if not sr.success or not sr.results_text:
+            continue
+        # The results_text may contain multiple docs; append whole block
+        # Dedup at block level by a simple hash
+        block_key = sr.results_text[:80]
+        if block_key in seen_keys:
+            continue
+        seen_keys.add(block_key)
+        search_lines.append(sr.results_text)
+
+    if not direct_lines and not search_lines:
+        return SearchResult(
+            success=False,
+            source="italgiure",
+            error_type="no_results",
+            results_text=f"Nessuna sentenza trovata per {riferimento} (Brocardi: {len(brocardi_result.massime)} massime, nessuna risolubile su Italgiure).",
+        )
+
+    parts: list[str] = [
+        f"## Giurisprudenza sull'{riferimento}\n",
+        f"**Fonte Brocardi**: {len(brocardi_result.massime)} massime trovate per {riferimento}\n",
+    ]
+
+    if direct_lines:
+        parts.append("### Sentenze con riferimento diretto")
+        parts.extend(direct_lines)
+        parts.append("")
+
+    if search_lines:
+        parts.append("### Sentenze per principio di diritto")
+        parts.extend(search_lines)
+
+    total = len(direct_lines) + sum(
+        (sr.num_found or 0) for sr in search_results if sr.success
+    )
+    return SearchResult(
+        success=True,
+        source="italgiure",
+        num_found=total,
+        results_text="\n".join(parts),
     )
 
 
@@ -502,8 +662,40 @@ async def ultime_pronunce(
         solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
         max_risultati: Numero massimo di risultati (default 5)
     """
-    return await _ultime_pronunce_impl(
+    result = await _ultime_pronunce_impl(
         materia=materia, sezione=sezione, archivio=archivio,
         tipo_provvedimento=tipo_provvedimento, solo_sezioni_unite=solo_sezioni_unite,
         max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
+
+
+@mcp.tool(tags={"giurisprudenza"})
+async def giurisprudenza_articolo(
+    riferimento: str,
+    archivio: str = "tutti",
+    anno_da: int = 0,
+    anno_a: int = 0,
+    max_risultati: int = 5,
+) -> str:
+    """Cerca giurisprudenza su un articolo usando le massime Brocardi come guida.
+
+    Workflow: recupera le massime giurisprudenziali da Brocardi per l'articolo indicato,
+    poi usa il testo dei principi di diritto come query di ricerca su Italgiure per trovare
+    sentenze pertinenti. Inoltre cerca direttamente le sentenze Cassazione citate nelle massime.
+
+    USARE quando il tema riguarda un articolo specifico (es. "art. 2043 c.c.").
+    Per ricerche generiche per tema, usare cerca_giurisprudenza.
+
+    Args:
+        riferimento: Riferimento normativo (es. "art. 2043 c.c.", "art. 6 D.Lgs. 231/2001")
+        archivio: Collezione Italgiure: 'civile', 'penale' o 'tutti' (default)
+        anno_da: Anno minimo (es. 2020). 0 = nessun filtro.
+        anno_a: Anno massimo (es. 2025). 0 = nessun filtro.
+        max_risultati: Numero massimo sentenze per tipo di ricerca (default 5)
+    """
+    result = await _giurisprudenza_articolo_impl(
+        riferimento=riferimento, archivio=archivio,
+        anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati,
+    )
+    return result.to_str() if isinstance(result, SearchResult) else result

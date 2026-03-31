@@ -23,6 +23,14 @@ from src.lib.brocardi.client import fetch_brocardi, BrocardiResult, parse_massim
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+# Strips paragraph/point/comma indicators from the start of the act name
+# so that "art. 4 n. 11 GDPR" → article="4", act="GDPR".
+_PARAGRAPH_PATTERN = re.compile(
+    r"^(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?\s*)\s*",
+    re.IGNORECASE,
+)
+
+
 def _parse_reference(reference: str) -> tuple[str, str]:
     """Parse a legal reference like 'art. 13 GDPR' into (article, act_name).
 
@@ -32,8 +40,20 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     - "ART 117 Costituzione"
     - "art. 2043 c.c."
     - "art. 6 D.Lgs. 231/2001"
+    - "art. 4 n. 11 GDPR"  → paragraph stripped → ("4", "GDPR")
+    - "considerando 42 GDPR" → ("rec_42", "GDPR")
+    - "recital 47 GDPR"     → ("rec_47", "GDPR")
     """
     reference = reference.strip()
+
+    # Considerando / recital — must be checked before "art." pattern
+    rec_match = re.match(
+        r"(?:considerando|recital)\s+(\d+)\s+(.+)",
+        reference,
+        re.IGNORECASE,
+    )
+    if rec_match:
+        return f"rec_{rec_match.group(1)}", rec_match.group(2).strip()
 
     # Pattern: art[.] <number[-ext]> <act_name>
     match = re.match(
@@ -42,7 +62,16 @@ def _parse_reference(reference: str) -> tuple[str, str]:
         re.IGNORECASE,
     )
     if match:
-        return match.group(1).strip(), match.group(2).strip()
+        article = match.group(1).strip()
+        rest = match.group(2).strip()
+        # Strip leading paragraph/point/comma indicators, applied repeatedly
+        # to handle chains like "comma 1 lett. a) GDPR" → "GDPR".
+        while True:
+            stripped = _PARAGRAPH_PATTERN.sub("", rest).strip()
+            if stripped == rest:
+                break
+            rest = stripped
+        return article, rest
 
     # No "art." prefix — try to parse as just act name (no article)
     return "", reference
@@ -259,9 +288,20 @@ async def cite_law(reference: str, include_annotations: bool = False) -> str:
     Dopo questo tool: cerca_brocardi() per approfondimenti dottrinali, cerca_giurisprudenza() per precedenti.
     Restituisce: testo ufficiale dell'articolo da Normattiva/EUR-Lex con URL fonte.
 
+    Esempi di riferimenti validi:
+      - "art. 2043 c.c." — articolo del codice civile
+      - "art. 4 GDPR" — articolo del regolamento UE 2016/679
+      - "art. 6 D.Lgs. 231/2001" — articolo di decreto legislativo
+      - "considerando 42 GDPR" — considerando (recital) di regolamento UE
+      - "art. 13 regolamento UE 2016/679" — riferimento con nome completo
+
+    I numeri di paragrafo (n. N, co. N, comma N) vengono automaticamente
+    ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR".
+
     Args:
         reference: Riferimento normativo, es. "art. 13 GDPR", "art. 2043 c.c.",
-                   "art. 6 D.Lgs. 231/2001", "art. 117 Costituzione"
+                   "art. 6 D.Lgs. 231/2001", "art. 117 Costituzione",
+                   "considerando 42 GDPR", "art. 4 n. 11 GDPR"
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
                              massime giurisprudenziali). Default False.
     """
