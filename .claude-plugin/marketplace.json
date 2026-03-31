@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "legal-it",
-      "version": "2.3.0",
+      "version": "2.3.1",
       "source": "./plugin",
       "description": "Plugin legale italiano completo: 198 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi), giurisprudenza (Cassazione, CeRDEF tributario, TAR/CdS, CGUE), CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX. 20 skill, 8 slash command, 5 agenti specializzati."
     }
