@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2026-04-01
+
+### Fixed
+- All 6 manifest files now correctly report 198 tool count (dxt/manifest.json, plugin/server/manifest.json, plugin/server/pyproject.toml were stuck at "177 tool" since v2.2.0)
+- release.py: `bump_extra_manifests()` syncs version + tool count across all manifests
+- release.py: `verify_all_versions()` pre-tag gate prevents releasing with misaligned versions
+- release.py: `count_tools()` auto-detects @mcp.tool count from source files
+- /release command: added Step 9 mandatory pre-tag verification
+
 ## [2.1.0] - 2026-03-17
 
 ### Added
