@@ -5,11 +5,9 @@ rinvio pregiudiziale, diritto UE, direttive europee interpretate, regolamenti UE
 conclusioni avvocato generale, ECLI europeo.
 """
 
+from src.lib._result import SearchResult
 from src.server import mcp
 from src.lib.cgue.client import (
-    CORTI,
-    MATERIE_KEYWORDS,
-    TIPI_DOCUMENTO,
     fetch_sentenza_text,
     format_full,
     format_result,
@@ -29,7 +27,7 @@ async def _cerca_giurisprudenza_cgue_impl(
     anno_a: str = "",
     materia: str = "",
     max_risultati: int = 10,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 50)
     keywords = [kw.strip() for kw in query.split(",") if kw.strip()] if query else []
 
@@ -44,26 +42,37 @@ async def _cerca_giurisprudenza_cgue_impl(
             limit=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nella ricerca CGUE: {exc}"
+        return SearchResult(success=False, source="cgue", error_type="source_down", error_message=str(exc))
 
     if not docs:
         q_desc = query or materia or "recenti"
-        return f"Nessuna sentenza CGUE trovata per: _{q_desc}_"
+        return SearchResult(
+            success=False,
+            source="cgue",
+            error_type="no_results",
+            results_text=f"Nessuna sentenza CGUE trovata per: _{q_desc}_",
+        )
 
     lines = [f"**Trovate {len(docs)} sentenze CGUE**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="cgue", num_found=len(docs), results_text="\n".join(lines))
 
 
-async def _leggi_sentenza_cgue_impl(cellar_uri: str) -> str:
+async def _leggi_sentenza_cgue_impl(cellar_uri: str) -> SearchResult:
     try:
         text = await fetch_sentenza_text(cellar_uri)
         # Extract ECLI from URI if not already available — just use cellar_uri as reference
-        return format_full(cellar_uri.split("/")[-1], text, "")
+        return SearchResult(success=True, source="cgue", num_found=1, results_text=format_full(cellar_uri.split("/")[-1], text, ""))
     except Exception as exc:
-        return f"Errore nel recupero del testo da CELLAR ({cellar_uri}): {exc}"
+        return SearchResult(
+            success=False,
+            source="cgue",
+            error_type="source_down",
+            error_message=str(exc),
+            results_text=f"Errore nel recupero del testo da CELLAR ({cellar_uri}): {exc}",
+        )
 
 
 async def _giurisprudenza_cgue_su_norma_impl(
@@ -71,7 +80,7 @@ async def _giurisprudenza_cgue_su_norma_impl(
     corte: str = "",
     anno_da: str = "",
     max_risultati: int = 10,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 50)
 
     # Normalize reference to keywords: "art. 101 TFUE" → ["art. 101", "tfue"] or similar
@@ -85,16 +94,21 @@ async def _giurisprudenza_cgue_su_norma_impl(
             limit=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nella ricerca CGUE su norma '{riferimento}': {exc}"
+        return SearchResult(success=False, source="cgue", error_type="source_down", error_message=str(exc))
 
     if not docs:
-        return f"Nessuna sentenza CGUE trovata per la norma: _{riferimento}_"
+        return SearchResult(
+            success=False,
+            source="cgue",
+            error_type="no_results",
+            results_text=f"Nessuna sentenza CGUE trovata per la norma: _{riferimento}_",
+        )
 
     lines = [f"**Sentenze CGUE che citano**: _{riferimento}_\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="cgue", num_found=len(docs), results_text="\n".join(lines))
 
 
 async def _ultime_sentenze_cgue_impl(
@@ -102,7 +116,7 @@ async def _ultime_sentenze_cgue_impl(
     tipo_documento: str = "",
     materia: str = "",
     max_risultati: int = 10,
-) -> str:
+) -> SearchResult:
     max_risultati = min(max_risultati, 50)
 
     try:
@@ -114,16 +128,21 @@ async def _ultime_sentenze_cgue_impl(
             limit=max_risultati,
         )
     except Exception as exc:
-        return f"Errore nel recupero delle ultime sentenze CGUE: {exc}"
+        return SearchResult(success=False, source="cgue", error_type="source_down", error_message=str(exc))
 
     if not docs:
-        return "Nessuna sentenza CGUE recente trovata."
+        return SearchResult(
+            success=False,
+            source="cgue",
+            error_type="no_results",
+            results_text="Nessuna sentenza CGUE recente trovata.",
+        )
 
     lines = ["**Ultime sentenze CGUE**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
-    return "\n".join(lines)
+    return SearchResult(success=True, source="cgue", num_found=len(docs), results_text="\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -158,10 +177,11 @@ async def cerca_giurisprudenza_cgue(
             "protezione_dati", "appalti", "consumatori")
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
-    return await _cerca_giurisprudenza_cgue_impl(
+    result = await _cerca_giurisprudenza_cgue_impl(
         query=query, corte=corte, tipo_documento=tipo_documento,
         anno_da=anno_da, anno_a=anno_a, materia=materia, max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza_ue", "normativa"})
@@ -177,7 +197,8 @@ async def leggi_sentenza_cgue(cellar_uri: str) -> str:
         cellar_uri: URI CELLAR della sentenza
             (es. "http://publications.europa.eu/resource/cellar/abc123.0006")
     """
-    return await _leggi_sentenza_cgue_impl(cellar_uri)
+    result = await _leggi_sentenza_cgue_impl(cellar_uri)
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza_ue", "normativa"})
@@ -201,9 +222,10 @@ async def giurisprudenza_cgue_su_norma(
         anno_da: Anno di inizio in formato YYYY (es. "2020")
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
-    return await _giurisprudenza_cgue_su_norma_impl(
+    result = await _giurisprudenza_cgue_su_norma_impl(
         riferimento=riferimento, corte=corte, anno_da=anno_da, max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result
 
 
 @mcp.tool(tags={"giurisprudenza_ue", "normativa"})
@@ -225,6 +247,7 @@ async def ultime_sentenze_cgue(
             "protezione_dati", "appalti", "consumatori")
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
-    return await _ultime_sentenze_cgue_impl(
+    result = await _ultime_sentenze_cgue_impl(
         corte=corte, tipo_documento=tipo_documento, materia=materia, max_risultati=max_risultati,
     )
+    return result.to_str() if isinstance(result, SearchResult) else result

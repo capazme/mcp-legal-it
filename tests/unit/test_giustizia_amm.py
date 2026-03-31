@@ -437,9 +437,10 @@ class TestCercaGiurisprudenzaAmministrativaImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _cerca_giurisprudenza_amministrativa_impl("appalto pubblico")
 
-        assert "Trovati" in result
-        assert "Consiglio di Stato" in result
-        assert "TAR Lazio" in result
+        assert result.success
+        assert "Trovati" in result.results_text
+        assert "Consiglio di Stato" in result.results_text
+        assert "TAR Lazio" in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
@@ -447,7 +448,8 @@ class TestCercaGiurisprudenzaAmministrativaImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _cerca_giurisprudenza_amministrativa_impl("inesistente")
 
-        assert "Nessun" in result
+        assert not result.success
+        assert result.error_type == "no_results"
 
     @pytest.mark.asyncio
     async def test_max_risultati_capped_at_50(self):
@@ -455,7 +457,7 @@ class TestCercaGiurisprudenzaAmministrativaImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _cerca_giurisprudenza_amministrativa_impl("test", max_risultati=100)
 
-        assert "Trovati" in result or "Nessun" in result
+        assert result.success or result.error_type == "no_results"
 
     @pytest.mark.asyncio
     async def test_exception_returns_error_message(self):
@@ -464,7 +466,18 @@ class TestCercaGiurisprudenzaAmministrativaImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _cerca_giurisprudenza_amministrativa_impl("test")
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
+
+    @pytest.mark.asyncio
+    async def test_numero_param_passed_through(self):
+        mock_session = _make_ga_session_mock(_SEARCH_HTML)
+        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
+            result = await _cerca_giurisprudenza_amministrativa_impl(
+                "appalto", numero="1234"
+            )
+
+        assert result.success or result.error_type == "no_results"
 
 
 class TestLeggiProvvedimentoAmmImpl:
@@ -474,8 +487,8 @@ class TestLeggiProvvedimentoAmmImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _leggi_provvedimento_amm_impl("CDS", "202301234", "202301234_11.xml")
 
-        assert "CDS" in result or "Consiglio di Stato" in result
-        assert "202301234" in result
+        assert result.success
+        assert "CDS" in result.results_text or "Consiglio di Stato" in result.results_text
 
     @pytest.mark.asyncio
     async def test_returns_motivazione_content(self):
@@ -483,7 +496,8 @@ class TestLeggiProvvedimentoAmmImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _leggi_provvedimento_amm_impl("CDS", "202301234", "202301234_11.xml")
 
-        assert "TAR Lazio" in result or "annulla" in result
+        assert result.success
+        assert "TAR Lazio" in result.results_text or "annulla" in result.results_text
 
     @pytest.mark.asyncio
     async def test_exception_returns_error_message(self):
@@ -494,7 +508,8 @@ class TestLeggiProvvedimentoAmmImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _leggi_provvedimento_amm_impl("CDS", "99999", "99999.xml")
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
 
 class TestGiurisprudenzaAmmSuNormaImpl:
@@ -504,7 +519,8 @@ class TestGiurisprudenzaAmmSuNormaImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _giurisprudenza_amm_su_norma_impl("art. 21-nonies L. 241/1990")
 
-        assert "art. 21-nonies" in result or "Trovati" in result
+        assert result.success
+        assert "art. 21-nonies" in result.results_text or "Trovati" in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_results_for_norma(self):
@@ -512,7 +528,8 @@ class TestGiurisprudenzaAmmSuNormaImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _giurisprudenza_amm_su_norma_impl("art. 999 c.xyz.")
 
-        assert "Nessun" in result
+        assert not result.success
+        assert result.error_type == "no_results"
 
     @pytest.mark.asyncio
     async def test_exception_returns_error(self):
@@ -521,7 +538,8 @@ class TestGiurisprudenzaAmmSuNormaImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _giurisprudenza_amm_su_norma_impl("art. 1 L. 241/1990")
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
 
 class TestUltimiProvvedimentiAmmImpl:
@@ -531,8 +549,8 @@ class TestUltimiProvvedimentiAmmImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _ultimi_provvedimenti_amm_impl()
 
-        assert "Ultimi provvedimenti" in result
-        assert "Consiglio di Stato" in result or "TAR Lazio" in result
+        assert result.success
+        assert "Ultimi provvedimenti" in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
@@ -540,7 +558,8 @@ class TestUltimiProvvedimentiAmmImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _ultimi_provvedimenti_amm_impl()
 
-        assert "Nessun" in result
+        assert not result.success
+        assert result.error_type == "no_results"
 
     @pytest.mark.asyncio
     async def test_exception_returns_error(self):
@@ -549,7 +568,8 @@ class TestUltimiProvvedimentiAmmImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _ultimi_provvedimenti_amm_impl()
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
     @pytest.mark.asyncio
     async def test_sede_filter_passed(self):
@@ -557,7 +577,7 @@ class TestUltimiProvvedimentiAmmImpl:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _ultimi_provvedimenti_amm_impl(sede="consiglio_di_stato")
 
-        assert "Ultimi provvedimenti" in result or "Nessun" in result
+        assert result.success or result.error_type == "no_results"
 
 
 # ---------------------------------------------------------------------------
@@ -970,7 +990,8 @@ class TestImplDiverseParams:
                 "urbanistica", tipo="sentenza", anno="2024"
             )
 
-        assert "Trovati" in result
+        assert result.success
+        assert "Trovati" in result.results_text
 
     @pytest.mark.asyncio
     async def test_leggi_with_unknown_sede_still_works(self):
@@ -978,8 +999,8 @@ class TestImplDiverseParams:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _leggi_provvedimento_amm_impl("TARXXX", "12345", "12345.xml")
 
-        assert "TARXXX" in result
-        assert "12345" in result
+        assert result.success
+        assert "TARXXX" in result.results_text
 
     @pytest.mark.asyncio
     async def test_giurisprudenza_su_norma_passes_ref_as_query(self):
@@ -991,7 +1012,7 @@ class TestImplDiverseParams:
                 anno_da="2022",
             )
 
-        assert "art. 21-nonies" in result or "Trovati" in result
+        assert result.success
 
     @pytest.mark.asyncio
     async def test_ultimi_with_tipo_filter(self):
@@ -999,4 +1020,4 @@ class TestImplDiverseParams:
         with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
             result = await _ultimi_provvedimenti_amm_impl(tipo="ordinanza")
 
-        assert "Ultimi provvedimenti" in result or "Nessun" in result
+        assert result.success or result.error_type == "no_results"

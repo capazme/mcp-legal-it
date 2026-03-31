@@ -64,12 +64,30 @@ _TIPO_LABELS = {
 
 _RAMO = {"snciv": "civ.", "snpen": "pen."}
 
+# Keys ordered longest-first to avoid short-prefix false matches (e.g. "c.p." before "c.p.a.").
 _CODICI = {
-    "c.c.": ["c.c.", "cod. civ.", "codice civile"],
-    "c.p.": ["c.p.", "cod. pen.", "codice penale"],
+    "c.c.i.i.": ["c.c.i.i.", "CCII", "codice della crisi"],
     "c.p.c.": ["c.p.c.", "cod. proc. civ."],
     "c.p.p.": ["c.p.p.", "cod. proc. pen."],
+    "c.p.a.": ["c.p.a.", "codice del processo amministrativo"],
+    "c.d.s.": ["c.d.s.", "cod. strada", "codice della strada"],
+    "c.cons.": ["c.cons.", "codice del consumo"],
+    "t.u.b.": ["t.u.b.", "testo unico bancario"],
+    "t.u.f.": ["t.u.f.", "testo unico finanza", "testo unico intermediazione finanziaria"],
     "cost.": ["cost.", "costituzione"],
+    "c.c.": ["c.c.", "cod. civ.", "codice civile"],
+    "c.p.": ["c.p.", "cod. pen.", "codice penale"],
+    "c.n.": ["c.n.", "cod. nav.", "codice della navigazione"],
+}
+
+# Keys ordered longest-first to avoid "l." matching inside "d.l." or "d.lgs.".
+_TIPI_ATTO = {
+    "d.lgs.": ["D.Lgs.", "decreto legislativo", "d.lgs."],
+    "d.p.r.": ["DPR", "D.P.R.", "decreto del Presidente della Repubblica"],
+    "d.l.": ["D.L.", "decreto legge", "d.l."],
+    "d.m.": ["D.M.", "decreto ministeriale", "d.m."],
+    "reg.": ["Reg.", "regolamento"],
+    "l.": ["L.", "legge", "l."],
 }
 
 
@@ -312,7 +330,24 @@ def build_norma_variants(riferimento: str) -> str:
             break
 
     if not matched_code and rest:
-        variants.append(f'"art. {num} {rest}"')
+        # Check for legislative act type references (e.g., "D.Lgs. 231/2001")
+        # Extract numeric identifier like "231/2001" or "231" from rest
+        num_year_match = re.search(r"(\d+(?:/\d+)?)", rest)
+        act_num_str = num_year_match.group(1) if num_year_match else ""
+
+        matched_tipo = False
+        for abbrev, tipo_variants in _TIPI_ATTO.items():
+            if rest.startswith(abbrev) or any(rest.startswith(v.lower()) for v in tipo_variants):
+                for v in tipo_variants:
+                    variants.append(f'"art. {num} {v}"')
+                    if act_num_str:
+                        variants.append(f'"art. {num} {v} {act_num_str}"')
+                        variants.append(f'"art. {num} {v} n. {act_num_str}"')
+                matched_tipo = True
+                break
+
+        if not matched_tipo:
+            variants.append(f'"art. {num} {rest}"')
 
     return "ocr:(" + " OR ".join(variants) + ")"
 

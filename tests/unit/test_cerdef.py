@@ -361,8 +361,9 @@ class TestCercaGiurisprudenzaTributariaImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_tributaria_impl("IVA")
 
-        assert "Trovati" in result
-        assert "abc-123" in result
+        assert result.success
+        assert "Trovati" in result.results_text
+        assert "abc-123" in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
@@ -375,7 +376,9 @@ class TestCercaGiurisprudenzaTributariaImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_tributaria_impl("inesistente")
 
-        assert "Nessun provvedimento" in result
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessun provvedimento" in result.results_text
 
     @pytest.mark.asyncio
     async def test_http_error_returns_message(self):
@@ -387,7 +390,8 @@ class TestCercaGiurisprudenzaTributariaImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_tributaria_impl("test")
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
     @pytest.mark.asyncio
     async def test_max_risultati_respected(self):
@@ -401,7 +405,7 @@ class TestCercaGiurisprudenzaTributariaImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_tributaria_impl("IVA", max_risultati=1)
 
-        assert "Trovati 1" in result
+        assert "Trovati 1" in result.results_text
 
 
 # ---------------------------------------------------------------------------
@@ -421,8 +425,9 @@ class TestCerdefLeggiProvvedimentoImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerdef_leggi_provvedimento_impl("abc-123")
 
-        assert "1234/2024" in result
-        assert "IVA" in result
+        assert result.success
+        assert "1234/2024" in result.results_text
+        assert "IVA" in result.results_text
 
     @pytest.mark.asyncio
     async def test_http_error_returns_message(self):
@@ -438,7 +443,8 @@ class TestCerdefLeggiProvvedimentoImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerdef_leggi_provvedimento_impl("guid-nonexistent")
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
     @pytest.mark.asyncio
     async def test_returns_massima_section(self):
@@ -451,7 +457,7 @@ class TestCerdefLeggiProvvedimentoImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerdef_leggi_provvedimento_impl("abc-123")
 
-        assert "Massima" in result
+        assert "Massima" in result.results_text
 
 
 # ---------------------------------------------------------------------------
@@ -472,8 +478,9 @@ class TestUltimeSentenzeTributarieImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_tributarie_impl()
 
-        assert "Ultime sentenze tributarie" in result
-        assert "abc-123" in result
+        assert result.success
+        assert "Ultime sentenze tributarie" in result.results_text
+        assert "abc-123" in result.results_text
 
     @pytest.mark.asyncio
     async def test_http_error_returns_message(self):
@@ -485,7 +492,8 @@ class TestUltimeSentenzeTributarieImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_tributarie_impl()
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
@@ -498,7 +506,9 @@ class TestUltimeSentenzeTributarieImpl:
         with patch("src.lib.cerdef.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_tributarie_impl()
 
-        assert "Nessuna" in result
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.results_text
 
 
 # ---------------------------------------------------------------------------
@@ -895,7 +905,8 @@ class TestImplFilterCombinations:
                 "IVA", ente="corte_suprema"
             )
 
-        assert "Trovati" in result
+        assert result.success
+        assert "Trovati" in result.results_text
         call_kwargs = mock_client.post.call_args
         form = call_kwargs.kwargs.get("data", {})
         assert "Cassazione" in form["ente"]
@@ -914,7 +925,8 @@ class TestImplFilterCombinations:
                 "soggettività passiva IVA", criterio="frase_esatta"
             )
 
-        assert "Trovati" in result
+        assert result.success
+        assert "Trovati" in result.results_text
         call_kwargs = mock_client.post.call_args
         form = call_kwargs.kwargs.get("data", {})
         assert form["tipoCriterio"] == "E"
@@ -933,7 +945,8 @@ class TestImplFilterCombinations:
                 ente="cgt_secondo_grado", tipo_provvedimento="ordinanza"
             )
 
-        assert "Ultime sentenze" in result
+        assert result.success
+        assert "Ultime sentenze" in result.results_text
         call_kwargs = mock_client.post.call_args
         form = call_kwargs.kwargs.get("data", {})
         assert form["ordinamento"] == "data"
@@ -954,4 +967,4 @@ class TestImplFilterCombinations:
             result = await _cerca_giurisprudenza_tributaria_impl("IVA", max_risultati=999)
 
         # Should still work but with capped results
-        assert "Trovati" in result or "Nessun" in result
+        assert "Trovati" in result.results_text or "Nessun" in result.results_text
