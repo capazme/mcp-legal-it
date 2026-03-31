@@ -7,6 +7,10 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 
 # Comando /release
 
+> **Alternativa automatizzata**: `python3 release.py --from-develop` esegue tutti questi
+> step con bump automatico di tutti i 6 manifest, conteggio tool, verifica pre-tag e rollback
+> in caso di errore. Usalo se possibile.
+
 Segui questi step ESATTAMENTE nell'ordine indicato. Non saltare nessun passaggio.
 
 ## Step 1 — Determina la versione
@@ -81,7 +85,32 @@ git commit -m "chore: bump all manifests to vX.Y.Z"
 git push -u origin release/X.Y.Z
 ```
 
-## Step 9 — Merge in main e tag
+## Step 9 — Verifica pre-tag (GATE OBBLIGATORIO)
+
+**Prima di taggare**, verifica che TUTTI i 6 file abbiano la versione corretta E le description aggiornate:
+
+```bash
+# Versione in tutti i manifest
+echo "--- Versioni ---"
+grep -m1 'version' pyproject.toml
+grep -m1 'version' plugin/server/pyproject.toml
+python3 -c "import json; print('dxt:', json.load(open('dxt/manifest.json'))['version'])"
+python3 -c "import json; print('server:', json.load(open('plugin/server/manifest.json'))['version'])"
+python3 -c "import json; print('plugin:', json.load(open('plugin/.claude-plugin/plugin.json'))['version'])"
+python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); print('marketplace:', d['plugins'][0]['version'])"
+
+# Tool count nelle description
+echo "--- Tool count ---"
+EXPECTED=$(grep -c "@mcp.tool" src/tools/*.py | awk -F: '{sum+=$2} END {print sum}')
+echo "Attesi: $EXPECTED tool"
+grep -o '[0-9]* tool' plugin/.claude-plugin/plugin.json
+grep -o '[0-9]* tool' .claude-plugin/marketplace.json
+```
+
+Se una versione non corrisponde o il conteggio tool è sbagliato, correggi PRIMA di procedere.
+Il tag DEVE puntare a un commit dove tutti i manifest sono allineati.
+
+## Step 10 — Merge in main e tag
 
 ```bash
 git checkout main
@@ -91,7 +120,7 @@ git tag vX.Y.Z
 git push origin main --tags
 ```
 
-## Step 10 — Sync develop e pulizia
+## Step 11 — Sync develop e pulizia
 
 ```bash
 git checkout develop
@@ -100,7 +129,7 @@ git push origin develop
 git branch -d release/X.Y.Z
 ```
 
-## Step 11 — Verifica release
+## Step 12 — Verifica release
 
 ```bash
 gh run list --limit 1
@@ -119,6 +148,7 @@ Deve mostrare `legal-it-X.Y.Z.mcpb` e `legal-it-plugin-X.Y.Z.zip`.
 - [ ] 4 description con conteggio tool aggiornato
 - [ ] 2 changelog aggiornati
 - [ ] Test tutti verdi
+- [ ] **Pre-tag gate**: tutti i manifest verificati (Step 9) ← CRITICO
 - [ ] Tag pushato
 - [ ] GitHub Release con 2 asset (.mcpb + .zip)
-- [ ] marketplace.json su main con versione corretta
+- [ ] marketplace.json su main con versione e description corrette
