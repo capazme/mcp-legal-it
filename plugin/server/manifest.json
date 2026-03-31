@@ -2,8 +2,8 @@
   "manifest_version": "0.4",
   "name": "mcp-legal-it",
   "display_name": "Legal IT — Diritto Italiano",
-  "version": "2.3.0",
-  "description": "177 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione, CeRDEF tributario, TAR/CdS, CGUE), delibere CONSOB e compliance GDPR.",
+  "version": "2.3.1",
+  "description": "198 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione, CeRDEF tributario, TAR/CdS, CGUE), delibere CONSOB e compliance GDPR.",
   "author": {
     "name": "capazme",
     "url": "https://github.com/capazme"
@@ -13,15 +13,33 @@
     "entry_point": "src/__main__.py",
     "mcp_config": {
       "command": "uv",
-      "args": ["run", "--directory", "${__dirname}", "python", "-m", "src"]
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "python",
+        "-m",
+        "src"
+      ]
     }
   },
   "compatibility": {
-    "platforms": ["darwin", "linux", "win32"],
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ],
     "runtimes": {
       "python": ">=3.10"
     }
   },
-  "keywords": ["legal", "italian-law", "GDPR", "normattiva", "cassazione", "avvocato"],
+  "keywords": [
+    "legal",
+    "italian-law",
+    "GDPR",
+    "normattiva",
+    "cassazione",
+    "avvocato"
+  ],
   "license": "Apache-2.0"
 }
