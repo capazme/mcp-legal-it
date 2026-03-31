@@ -1,40 +1,112 @@
 {
-  "_descrizione": "TEGM (Tasso Effettivo Globale Medio) — Banca d'Italia, ultimo aggiornamento 2025-Q1",
-  "_fonte": "Decreto MEF trimestrale ex L. 108/1996 art. 2 — Gazzetta Ufficiale",
+  "_descrizione": "TEGM storico trimestrale — Banca d'Italia / Decreti MEF ex L. 108/1996",
+  "_fonte": "CSV Banca d'Italia + DM trimestrali in Gazzetta Ufficiale",
   "_formula_soglia": "min(TEGM × 1.25 + 4, TEGM + 8)",
-  "trimestre": "2025-Q1",
-  "categorie": {
-    "mutuo_prima_casa": {
-      "tegm": 4.41,
-      "descrizione": "Mutui ipotecari a tasso fisso"
+  "trimestri": {
+    "2025-Q1": {
+      "dal": "2025-01-01",
+      "al": "2025-03-31",
+      "categorie": {
+        "mutuo_prima_casa": {"tegm": 3.39, "descrizione": "Mutui ipotecari a tasso fisso"},
+        "mutuo_tasso_variabile": {"tegm": 5.21, "descrizione": "Mutui ipotecari a tasso variabile"},
+        "credito_personale": {"tegm": 10.94, "descrizione": "Prestiti personali"},
+        "apertura_credito": {"tegm": 10.17, "descrizione": "Aperture di credito in c/c (fino a 5.000€)"},
+        "apertura_credito_oltre_5000": {"tegm": 9.27, "descrizione": "Aperture di credito in c/c (oltre 5.000€)"},
+        "leasing": {"tegm": 7.44, "descrizione": "Leasing strumentale (fino a 25.000€)"},
+        "factoring": {"tegm": 6.08, "descrizione": "Factoring (fino a 50.000€)"},
+        "carte_revolving": {"tegm": 15.12, "descrizione": "Credito revolving"},
+        "cessione_quinto": {"tegm": 13.19, "descrizione": "Cessione del quinto (fino a 15.000€)"},
+        "cessione_quinto_oltre_15000": {"tegm": 9.20, "descrizione": "Cessione del quinto (oltre 15.000€)"},
+        "credito_finalizzato": {"tegm": 10.27, "descrizione": "Credito finalizzato rateale"},
+        "leasing_immobiliare_fisso": {"tegm": 5.43, "descrizione": "Leasing immobiliare a tasso fisso"},
+        "leasing_immobiliare_variabile": {"tegm": 5.98, "descrizione": "Leasing immobiliare a tasso variabile"},
+        "leasing_auto": {"tegm": 9.04, "descrizione": "Leasing autoveicoli (fino a 25.000€)"},
+        "scoperti_senza_affidamento": {"tegm": 15.31, "descrizione": "Scoperti senza affidamento (fino a 1.500€)"}
+      }
     },
-    "mutuo_tasso_variabile": {
-      "tegm": 4.87,
-      "descrizione": "Mutui ipotecari a tasso variabile"
+    "2025-Q2": {
+      "dal": "2025-04-01",
+      "al": "2025-06-30",
+      "categorie": {
+        "mutuo_prima_casa": {"tegm": 3.35, "descrizione": "Mutui ipotecari a tasso fisso"},
+        "mutuo_tasso_variabile": {"tegm": 4.92, "descrizione": "Mutui ipotecari a tasso variabile"},
+        "credito_personale": {"tegm": 10.90, "descrizione": "Prestiti personali"},
+        "apertura_credito": {"tegm": 10.35, "descrizione": "Aperture di credito in c/c (fino a 5.000€)"},
+        "apertura_credito_oltre_5000": {"tegm": 9.24, "descrizione": "Aperture di credito in c/c (oltre 5.000€)"},
+        "leasing": {"tegm": 9.86, "descrizione": "Leasing strumentale (fino a 25.000€)"},
+        "factoring": {"tegm": 5.81, "descrizione": "Factoring (fino a 50.000€)"},
+        "carte_revolving": {"tegm": 15.36, "descrizione": "Credito revolving"},
+        "cessione_quinto": {"tegm": 13.32, "descrizione": "Cessione del quinto (fino a 15.000€)"},
+        "cessione_quinto_oltre_15000": {"tegm": 9.23, "descrizione": "Cessione del quinto (oltre 15.000€)"},
+        "credito_finalizzato": {"tegm": 10.36, "descrizione": "Credito finalizzato rateale"},
+        "leasing_immobiliare_fisso": {"tegm": 5.52, "descrizione": "Leasing immobiliare a tasso fisso"},
+        "leasing_immobiliare_variabile": {"tegm": 5.93, "descrizione": "Leasing immobiliare a tasso variabile"},
+        "leasing_auto": {"tegm": 9.11, "descrizione": "Leasing autoveicoli (fino a 25.000€)"},
+        "scoperti_senza_affidamento": {"tegm": 15.51, "descrizione": "Scoperti senza affidamento (fino a 1.500€)"}
+      }
     },
-    "credito_personale": {
-      "tegm": 10.78,
-      "descrizione": "Prestiti personali e finalizzati"
+    "2025-Q3": {
+      "dal": "2025-07-01",
+      "al": "2025-09-30",
+      "categorie": {
+        "mutuo_prima_casa": {"tegm": 3.21, "descrizione": "Mutui ipotecari a tasso fisso"},
+        "mutuo_tasso_variabile": {"tegm": 4.37, "descrizione": "Mutui ipotecari a tasso variabile"},
+        "credito_personale": {"tegm": 11.02, "descrizione": "Prestiti personali"},
+        "apertura_credito": {"tegm": 10.18, "descrizione": "Aperture di credito in c/c (fino a 5.000€)"},
+        "apertura_credito_oltre_5000": {"tegm": 8.91, "descrizione": "Aperture di credito in c/c (oltre 5.000€)"},
+        "leasing": {"tegm": 9.47, "descrizione": "Leasing strumentale (fino a 25.000€)"},
+        "factoring": {"tegm": 6.13, "descrizione": "Factoring (fino a 50.000€)"},
+        "carte_revolving": {"tegm": 15.34, "descrizione": "Credito revolving"},
+        "cessione_quinto": {"tegm": 13.13, "descrizione": "Cessione del quinto (fino a 15.000€)"},
+        "cessione_quinto_oltre_15000": {"tegm": 9.03, "descrizione": "Cessione del quinto (oltre 15.000€)"},
+        "credito_finalizzato": {"tegm": 10.25, "descrizione": "Credito finalizzato rateale"},
+        "leasing_immobiliare_fisso": {"tegm": 5.51, "descrizione": "Leasing immobiliare a tasso fisso"},
+        "leasing_immobiliare_variabile": {"tegm": 5.64, "descrizione": "Leasing immobiliare a tasso variabile"},
+        "leasing_auto": {"tegm": 8.80, "descrizione": "Leasing autoveicoli (fino a 25.000€)"},
+        "scoperti_senza_affidamento": {"tegm": 15.11, "descrizione": "Scoperti senza affidamento (fino a 1.500€)"}
+      }
     },
-    "apertura_credito": {
-      "tegm": 11.82,
-      "descrizione": "Aperture di credito in conto corrente"
+    "2025-Q4": {
+      "dal": "2025-10-01",
+      "al": "2025-12-31",
+      "categorie": {
+        "mutuo_prima_casa": {"tegm": 3.58, "descrizione": "Mutui ipotecari a tasso fisso"},
+        "mutuo_tasso_variabile": {"tegm": 4.22, "descrizione": "Mutui ipotecari a tasso variabile"},
+        "credito_personale": {"tegm": 11.10, "descrizione": "Prestiti personali"},
+        "apertura_credito": {"tegm": 10.36, "descrizione": "Aperture di credito in c/c (fino a 5.000€)"},
+        "apertura_credito_oltre_5000": {"tegm": 8.84, "descrizione": "Aperture di credito in c/c (oltre 5.000€)"},
+        "leasing": {"tegm": 9.56, "descrizione": "Leasing strumentale (fino a 25.000€)"},
+        "factoring": {"tegm": 6.41, "descrizione": "Factoring (fino a 50.000€)"},
+        "carte_revolving": {"tegm": 15.52, "descrizione": "Credito revolving"},
+        "cessione_quinto": {"tegm": 13.37, "descrizione": "Cessione del quinto (fino a 15.000€)"},
+        "cessione_quinto_oltre_15000": {"tegm": 9.19, "descrizione": "Cessione del quinto (oltre 15.000€)"},
+        "credito_finalizzato": {"tegm": 10.78, "descrizione": "Credito finalizzato rateale"},
+        "leasing_immobiliare_fisso": {"tegm": 5.66, "descrizione": "Leasing immobiliare a tasso fisso"},
+        "leasing_immobiliare_variabile": {"tegm": 5.54, "descrizione": "Leasing immobiliare a tasso variabile"},
+        "leasing_auto": {"tegm": 8.82, "descrizione": "Leasing autoveicoli (fino a 25.000€)"},
+        "scoperti_senza_affidamento": {"tegm": 15.59, "descrizione": "Scoperti senza affidamento (fino a 1.500€)"}
+      }
     },
-    "leasing": {
-      "tegm": 7.35,
-      "descrizione": "Leasing immobiliare e strumentale"
-    },
-    "factoring": {
-      "tegm": 6.12,
-      "descrizione": "Factoring"
-    },
-    "carte_revolving": {
-      "tegm": 16.53,
-      "descrizione": "Carte di credito revolving"
-    },
-    "cessione_quinto": {
-      "tegm": 10.02,
-      "descrizione": "Cessione del quinto dello stipendio/pensione"
+    "2026-Q1": {
+      "dal": "2026-01-01",
+      "al": "2026-03-31",
+      "categorie": {
+        "mutuo_prima_casa": {"tegm": 3.96, "descrizione": "Mutui ipotecari a tasso fisso"},
+        "mutuo_tasso_variabile": {"tegm": 4.13, "descrizione": "Mutui ipotecari a tasso variabile"},
+        "credito_personale": {"tegm": 11.46, "descrizione": "Prestiti personali"},
+        "apertura_credito": {"tegm": 10.54, "descrizione": "Aperture di credito in c/c (fino a 5.000€)"},
+        "apertura_credito_oltre_5000": {"tegm": 8.88, "descrizione": "Aperture di credito in c/c (oltre 5.000€)"},
+        "leasing": {"tegm": 9.88, "descrizione": "Leasing strumentale (fino a 25.000€)"},
+        "factoring": {"tegm": 6.39, "descrizione": "Factoring (fino a 50.000€)"},
+        "carte_revolving": {"tegm": 15.77, "descrizione": "Credito revolving"},
+        "cessione_quinto": {"tegm": 13.73, "descrizione": "Cessione del quinto (fino a 15.000€)"},
+        "cessione_quinto_oltre_15000": {"tegm": 9.46, "descrizione": "Cessione del quinto (oltre 15.000€)"},
+        "credito_finalizzato": {"tegm": 11.03, "descrizione": "Credito finalizzato rateale"},
+        "leasing_immobiliare_fisso": {"tegm": 5.77, "descrizione": "Leasing immobiliare a tasso fisso"},
+        "leasing_immobiliare_variabile": {"tegm": 5.28, "descrizione": "Leasing immobiliare a tasso variabile"},
+        "leasing_auto": {"tegm": 9.26, "descrizione": "Leasing autoveicoli (fino a 25.000€)"},
+        "scoperti_senza_affidamento": {"tegm": 15.65, "descrizione": "Scoperti senza affidamento (fino a 1.500€)"}
+      }
     }
   }
 }

@@ -883,6 +883,15 @@ Produci una sintesi che includa:
 5. **Norme di riferimento**: disposizioni normative rilevanti
 6. **Decisioni citate**: elenco con estremi (Cass. civ./pen., sez., n./anno)
 
+**IMPORTANTE — Human-in-the-loop**: DOPO la ricerca, presenta i risultati all'utente in formato tabella e chiedi "Quali sentenze vuoi approfondire?" PRIMA di chiamare leggi_sentenza. Non leggere mai il testo integrale senza la scelta esplicita dell'utente.
+
+**Nuovi tool disponibili**:
+- giurisprudenza_articolo(riferimento): ricerca guidata da massime Brocardi — usare quando il tema riguarda un articolo specifico
+- cerca_giurisprudenza_unificata(query, fonti): ricerca su tutte le fonti in parallelo — usare per temi cross-giurisdizione
+- leggi_sentenza_cgue_ecli(ecli): lettura sentenza CGUE per codice ECLI
+
+**Fallback web**: Se fonti istituzionali non raggiungibili, comunicarlo e chiedere se cercare sul web.
+
 REGOLE:
 - Non citare mai numeri di sentenza a memoria — usa esclusivamente i risultati dei tool.
 - Ogni affermazione deve essere supportata da una sentenza o norma verificata.

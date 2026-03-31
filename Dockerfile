@@ -15,9 +15,10 @@ COPY plugin/server/run_server.py plugin/server/run_server.py
 COPY run_server.py .
 
 ENV LEGAL_PROFILE=full
-ENV MCP_TRANSPORT=sse
+ENV MCP_TRANSPORT=http
 ENV MCP_HOST=0.0.0.0
 ENV MCP_PORT=8000
+ENV MCP_PATH=/mcp
 EXPOSE 8000
 
 # Cache and temp directories

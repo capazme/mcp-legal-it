@@ -325,22 +325,27 @@ class TestCalcoloAmmortamento:
 
 class TestVerificaUsura:
     def test_non_usurario(self):
-        # mutuo_prima_casa TEGM=4.41, soglia=min(4.41*1.25+4, 4.41+8)=min(9.5125, 12.41)=9.5125
+        # mutuo_prima_casa 2026-Q1: TEGM=3.96, soglia=min(3.96*1.25+4, 3.96+8)=min(8.95, 11.96)=8.95
         r = _call("verifica_usura", tasso_applicato=5.0, tipo_operazione="mutuo_prima_casa")
         assert r["usurario"] is False
         assert r["tasso_applicato_pct"] == 5.0
         assert r["tasso_soglia_pct"] > 5.0
 
     def test_usurario(self):
-        # carte_revolving TEGM=16.53, soglia=min(16.53*1.25+4, 16.53+8)=min(24.6625, 24.53)=24.53
+        # carte_revolving 2026-Q1: TEGM=15.77, soglia=min(15.77*1.25+4, 15.77+8)=min(23.7125, 23.77)=23.7125
         r = _call("verifica_usura", tasso_applicato=30.0, tipo_operazione="carte_revolving")
         assert r["usurario"] is True
         assert r["margine"] < 0
 
     def test_prossimo_a_usura(self):
-        # credito_personale TEGM=10.78, soglia=min(10.78*1.25+4,10.78+8)=min(17.475,18.78)=17.475
-        # 90% of 17.475 = 15.7275 → tasso 16.0 > 90% threshold but < soglia
-        r = _call("verifica_usura", tasso_applicato=16.0, tipo_operazione="credito_personale")
+        # credito_personale 2025-Q3: TEGM=11.02, soglia=17.775, 90%=15.9975
+        # tasso 16.0 > 90% threshold but < soglia → prossimo_a_usura
+        r = _call(
+            "verifica_usura",
+            tasso_applicato=16.0,
+            tipo_operazione="credito_personale",
+            trimestre="2025-Q3",
+        )
         assert r["usurario"] is False
         assert r["prossimo_a_usura"] is True
 
@@ -359,6 +364,45 @@ class TestVerificaUsura:
         r = _call("verifica_usura", tasso_applicato=8.0, tipo_operazione="leasing")
         for key in ("tasso_applicato_pct", "tipo_operazione", "tegm_pct", "tasso_soglia_pct", "usurario", "margine", "riferimento_normativo"):
             assert key in r
+
+    def test_explicit_trimestre_q3_2025(self):
+        # credito_personale 2025-Q3: TEGM=11.02, soglia=min(11.02*1.25+4, 11.02+8)=min(17.775, 19.02)=17.775
+        r = _call(
+            "verifica_usura",
+            tasso_applicato=10.0,
+            tipo_operazione="credito_personale",
+            trimestre="2025-Q3",
+        )
+        assert r["trimestre"] == "2025-Q3"
+        assert r["tegm_pct"] == 11.02
+        assert r["tasso_soglia_pct"] == pytest.approx(17.775, abs=0.01)
+        assert r["usurario"] is False
+
+    def test_different_quarters_yield_different_rates(self):
+        r_q1 = _call(
+            "verifica_usura",
+            tasso_applicato=5.0,
+            tipo_operazione="mutuo_prima_casa",
+            trimestre="2025-Q1",
+        )
+        r_q4 = _call(
+            "verifica_usura",
+            tasso_applicato=5.0,
+            tipo_operazione="mutuo_prima_casa",
+            trimestre="2025-Q4",
+        )
+        # Q1 2025: TEGM=3.39, Q4 2025: TEGM=3.58 — different rates
+        assert r_q1["tegm_pct"] != r_q4["tegm_pct"]
+        assert r_q1["tasso_soglia_pct"] != r_q4["tasso_soglia_pct"]
+
+    def test_default_trimestre_resolves_to_current_quarter(self):
+        # No trimestre provided — should auto-detect and return a valid quarter key
+        r = _call("verifica_usura", tasso_applicato=5.0, tipo_operazione="mutuo_prima_casa")
+        assert "trimestre" in r
+        assert r["trimestre"].startswith("20")
+        # Should resolve to 2026-Q1 (current date: 2026-03-30)
+        assert r["trimestre"] == "2026-Q1"
+        assert r["tegm_pct"] == 3.96
 
 
 # ---------------------------------------------------------------------------

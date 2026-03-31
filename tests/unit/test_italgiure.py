@@ -25,8 +25,10 @@ from src.lib.italgiure.client import (
 from src.tools.italgiure import (
     _cerca_giurisprudenza_impl,
     _filter_by_score,
+    _giurisprudenza_articolo_impl,
     _giurisprudenza_su_norma_impl,
     _leggi_sentenza_impl,
+    _parse_articolo_riferimento,
     _ultime_pronunce_impl,
 )
 
@@ -480,6 +482,69 @@ class TestBuildNormaVariants:
         assert q.startswith("ocr:(")
 
 
+
+# ---------------------------------------------------------------------------
+# build_norma_variants — expanded codes and act types
+# ---------------------------------------------------------------------------
+
+class TestBuildNormaVariantsExpanded:
+    def test_dlgs_231_produces_decreto_legislativo_variant(self):
+        q = build_norma_variants("art. 6 D.Lgs. 231/2001")
+        assert '"art. 6"' in q
+        assert '"articolo 6"' in q
+        assert "decreto legislativo" in q.lower()
+
+    def test_dlgs_numeric_identifier_included(self):
+        q = build_norma_variants("art. 6 D.Lgs. 231/2001")
+        assert "231" in q
+
+    def test_regression_codice_civile(self):
+        q = build_norma_variants("art. 2043 c.c.")
+        assert '"art. 2043"' in q
+        assert '"articolo 2043"' in q
+        assert "codice civile" in q.lower() or "c.c." in q
+
+    def test_codice_della_strada(self):
+        q = build_norma_variants("art. 37 c.d.s.")
+        assert '"art. 37"' in q
+        assert "codice della strada" in q.lower() or "cod. strada" in q.lower()
+
+    def test_testo_unico_bancario(self):
+        q = build_norma_variants("art. 5 t.u.b.")
+        assert '"art. 5"' in q
+        assert "testo unico bancario" in q.lower() or "t.u.b." in q
+
+    def test_legge_reference(self):
+        q = build_norma_variants("art. 21 L. 241/1990")
+        assert '"art. 21"' in q
+        assert "legge" in q.lower() or "L." in q
+
+    def test_decreto_legge_reference(self):
+        q = build_norma_variants("art. 1 D.L. 78/2010")
+        assert '"art. 1"' in q
+        assert "decreto legge" in q.lower() or "D.L." in q
+
+    def test_cpa_codice_del_processo_amministrativo(self):
+        q = build_norma_variants("art. 120 c.p.a.")
+        assert '"art. 120"' in q
+        assert "codice del processo amministrativo" in q.lower() or "c.p.a." in q
+
+    def test_tuf_testo_unico_finanza(self):
+        q = build_norma_variants("art. 94 t.u.f.")
+        assert '"art. 94"' in q
+        assert "testo unico finanza" in q.lower() or "t.u.f." in q
+
+    def test_ccii_codice_della_crisi(self):
+        q = build_norma_variants("art. 7 c.c.i.i.")
+        assert '"art. 7"' in q
+        assert "codice della crisi" in q.lower() or "c.c.i.i." in q or "CCII" in q
+
+    def test_returns_ocr_prefix_for_all_new_codes(self):
+        for ref in ["art. 5 t.u.b.", "art. 37 c.d.s.", "art. 120 c.p.a.", "art. 94 t.u.f."]:
+            q = build_norma_variants(ref)
+            assert q.startswith("ocr:("), f"Expected ocr:( prefix for {ref!r}, got: {q}"
+
+
 # ---------------------------------------------------------------------------
 # format_estremi
 # ---------------------------------------------------------------------------
@@ -659,9 +724,10 @@ class TestLeggiSentenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(24003, 2025, archivio="civile")
 
-        assert "24003/2025" in result
-        assert "Cass. civ." in result
-        assert "REVOCATORIA ORDINARIA" in result
+        assert result.success
+        assert "24003/2025" in result.results_text
+        assert "Cass. civ." in result.results_text
+        assert "REVOCATORIA ORDINARIA" in result.results_text
 
     @pytest.mark.asyncio
     async def test_not_found(self):
@@ -670,7 +736,9 @@ class TestLeggiSentenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(99999, 2099)
 
-        assert "non trovata" in result.lower()
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "non trovata" in result.results_text.lower()
 
     @pytest.mark.asyncio
     async def test_error_returns_message(self):
@@ -685,7 +753,8 @@ class TestLeggiSentenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(1, 2024)
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
 
 # ---------------------------------------------------------------------------
@@ -703,8 +772,9 @@ class TestCercaGiurisprudenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("danno biologico")
 
-        assert "Trovate" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Trovate" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty_result(self):
@@ -713,7 +783,8 @@ class TestCercaGiurisprudenzaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("xyz nessun risultato")
 
-        assert "Nessuna" in result
+        assert result.success
+        assert "Nessuna" in result.results_text
 
     @pytest.mark.asyncio
     async def test_max_risultati_capped(self):
@@ -752,12 +823,12 @@ class TestCercaGiurisprudenzaImpl:
 
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", ordinamento="rilevanza")
-        assert "per rilevanza" in result
+        assert "per rilevanza" in result.results_text
 
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", ordinamento="data")
-        assert "per data" in result
+        assert "per data" in result.results_text
 
     @pytest.mark.asyncio
     async def test_tipo_provvedimento_sentenza(self):
@@ -883,7 +954,9 @@ class TestGiurisprudenzaSuNormaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 9999 c.c.")
 
-        assert "Nessuna" in result
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.results_text
 
     @pytest.mark.asyncio
     async def test_solo_sezioni_unite(self):
@@ -946,8 +1019,9 @@ class TestGiurisprudenzaSuNormaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
-        assert "Trovate 50 decisioni" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Trovate 50 decisioni" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_fq_when_no_filters(self):
@@ -973,7 +1047,8 @@ class TestGiurisprudenzaSuNormaImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
-        assert "Errore" in result
+        assert not result.success
+        assert result.error_type == "source_down"
 
 
 # ---------------------------------------------------------------------------
@@ -989,8 +1064,9 @@ class TestUltimePronunceImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_pronunce_impl()
 
-        assert "Ultime pronunce" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Ultime pronunce" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_empty(self):
@@ -999,7 +1075,9 @@ class TestUltimePronunceImpl:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_pronunce_impl()
 
-        assert "Nessuna" in result
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "Nessuna" in result.results_text
 
     @pytest.mark.asyncio
     async def test_fq_with_materia(self):
@@ -1480,9 +1558,10 @@ class TestAutoRefinement:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("responsabilità medica")
 
-        assert "Raffinamento automatico" in result
-        assert "15000" in result
-        assert "30" in result
+        assert result.success
+        assert "Raffinamento automatico" in result.results_text
+        assert "15000" in result.results_text
+        assert "30" in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_trigger_below_threshold(self):
@@ -1498,8 +1577,9 @@ class TestAutoRefinement:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test specifico")
-        assert "Raffinamento" not in result
-        assert "Trovate 30" in result
+        assert result.success
+        assert "Raffinamento" not in result.results_text
+        assert "Trovate 30" in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_trigger_with_explicit_filters(self):
@@ -1537,7 +1617,7 @@ class TestAutoRefinement:
 
         # Only 1 POST (no refinement calls)
         assert call_count == 1
-        assert "Raffinamento" not in result
+        assert "Raffinamento" not in result.results_text
 
     @pytest.mark.asyncio
     async def test_early_exit_on_success(self):
@@ -1575,7 +1655,8 @@ class TestAutoRefinement:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test generico")
 
-        assert "Raffinamento automatico" in result
+        assert result.success
+        assert "Raffinamento automatico" in result.results_text
         # 1 initial + 1 homepage + 1 successful refinement = max 3 posts
         # (homepage is a GET, so only 2 POSTs expected)
         assert call_count <= 3
@@ -1625,8 +1706,9 @@ class TestAutoRefinement:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test ampio")
 
-        assert "Raffinamento automatico" in result
-        assert "200" in result  # Should use the best (200)
+        assert result.success
+        assert "Raffinamento automatico" in result.results_text
+        assert "200" in result.results_text  # Should use the best (200)
 
 
 # ---------------------------------------------------------------------------
@@ -1659,8 +1741,9 @@ class TestCercaGiurisprudenzaEnhanced:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test")
-        assert "Trovate" in result
-        assert "Cass. civ." in result
+        assert result.success
+        assert "Trovate" in result.results_text
+        assert "Cass. civ." in result.results_text
 
     @pytest.mark.asyncio
     async def test_score_filtering_applied(self):
@@ -1679,9 +1762,10 @@ class TestCercaGiurisprudenzaEnhanced:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test")
-        assert "2 ad alta rilevanza" in result
-        assert "1001" in result
-        assert "1002" in result
+        assert result.success
+        assert "2 ad alta rilevanza" in result.results_text
+        assert "1001" in result.results_text
+        assert "1002" in result.results_text
 
     @pytest.mark.asyncio
     async def test_facets_shown_when_many_results(self):
@@ -1705,8 +1789,9 @@ class TestCercaGiurisprudenzaEnhanced:
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             # Use explicit filter to avoid auto-refinement
             result = await _cerca_giurisprudenza_impl("test", materia="contratti")
-        assert "Distribuzione risultati" in result
-        assert "Suggerimento" in result
+        assert result.success
+        assert "Distribuzione risultati" in result.results_text
+        assert "Suggerimento" in result.results_text
 
     @pytest.mark.asyncio
     async def test_facets_not_shown_when_few_results(self):
@@ -1722,7 +1807,8 @@ class TestCercaGiurisprudenzaEnhanced:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
         with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test specifico")
-        assert "Distribuzione" not in result
+        assert result.success
+        assert "Distribuzione" not in result.results_text
 
     @pytest.mark.asyncio
     async def test_include_facets_in_params(self):
@@ -1731,3 +1817,175 @@ class TestCercaGiurisprudenzaEnhanced:
             await _cerca_giurisprudenza_impl("test")
         body = captured.get("body", "")
         assert "facet=true" in body
+
+
+# ---------------------------------------------------------------------------
+# _parse_articolo_riferimento
+# ---------------------------------------------------------------------------
+
+class TestParseArticoloRiferimento:
+    def test_codice_civile(self):
+        art, atto = _parse_articolo_riferimento("art. 2043 c.c.")
+        assert art == "2043"
+        assert atto == "c.c."
+
+    def test_dlgs_number(self):
+        art, atto = _parse_articolo_riferimento("art. 6 D.Lgs. 231/2001")
+        assert art == "6"
+        assert atto == "D.Lgs. 231/2001"
+
+    def test_codice_procedura_civile(self):
+        art, atto = _parse_articolo_riferimento("art. 132 c.p.c.")
+        assert art == "132"
+        assert atto == "c.p.c."
+
+    def test_no_art_prefix_returns_empty_article(self):
+        art, atto = _parse_articolo_riferimento("codice civile")
+        assert art == ""
+        assert atto == "codice civile"
+
+    def test_articolo_extended(self):
+        art, atto = _parse_articolo_riferimento("art. 2-ter D.Lgs. 196/2003")
+        assert art == "2-ter"
+        assert atto == "D.Lgs. 196/2003"
+
+
+# ---------------------------------------------------------------------------
+# _giurisprudenza_articolo_impl
+# ---------------------------------------------------------------------------
+
+def _make_massima(autorita: str, numero: str | None, anno: str | None, testo: str) -> "object":
+    from src.lib.brocardi.client import Massima
+    return Massima(autorita=autorita, numero=numero, anno=anno, testo=testo)
+
+
+def _make_brocardi_result(massime: list) -> "object":
+    from src.lib.brocardi.client import BrocardiResult
+    return BrocardiResult(url="https://brocardi.it/codice-civile/art2043.html", massime=massime)
+
+
+class TestGiurisprudenzaArticoloImpl:
+
+    @pytest.mark.asyncio
+    async def test_happy_path_brocardi_plus_italgiure(self):
+        """Brocardi returns 2 massime; one Cassazione with number → direct lookup + text search."""
+        m_cass = _make_massima("Cass. civ.", "12345", "2023", "Il danno ingiusto richiede la prova del nesso causale.")
+        m_other = _make_massima("Trib. Milano", None, None, "Responsabilità extracontrattuale art 2043 cc.")
+        brocardi_result = _make_brocardi_result([m_cass, m_other])
+
+        doc = _civile_doc(num="12345", anno="2023")
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.", max_risultati=3)
+
+        assert result.success
+        assert "Brocardi" in result.results_text
+        assert "2 massime" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_brocardi_fails_falls_back_to_norma_search(self):
+        """When fetch_brocardi raises an exception, fall back to _giurisprudenza_su_norma_impl."""
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", side_effect=Exception("timeout")),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.success
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_brocardi_empty_massime_falls_back(self):
+        """BrocardiResult with empty massime list falls back to _giurisprudenza_su_norma_impl."""
+        brocardi_result = _make_brocardi_result([])
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=2)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.success
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_brocardi_error_field_falls_back(self):
+        """BrocardiResult with error field set falls back to _giurisprudenza_su_norma_impl."""
+        from src.lib.brocardi.client import BrocardiResult
+        brocardi_result = BrocardiResult(error="articolo non trovato")
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_italgiure_down_returns_source_down(self):
+        """When Italgiure is unreachable, all lookups fail and no_results is returned."""
+        m_cass = _make_massima("Cass. civ.", "99999", "2022", "Principio di diritto test.")
+        brocardi_result = _make_brocardi_result([m_cass])
+
+        mock_client = _mock_httpx_client()
+
+        async def failing_post(url, **kwargs):
+            raise Exception("connection refused")
+
+        mock_client.post = failing_post
+
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert not result.success
+
+    @pytest.mark.asyncio
+    async def test_unresolvable_act_falls_back_to_norma(self):
+        """When resolve_atto returns None, falls back to _giurisprudenza_su_norma_impl."""
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with (
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("src.tools.italgiure.resolve_atto", return_value=None),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+
+        assert result.source == "italgiure"
+
+    @pytest.mark.asyncio
+    async def test_no_article_prefix_falls_back(self):
+        """Reference without 'art.' prefix: resolve_atto path used with empty article → fallback."""
+        doc = _civile_doc()
+        solr_resp = _make_solr_response([doc], num_found=1)
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _giurisprudenza_articolo_impl("danno biologico")
+
+        assert result.source == "italgiure"

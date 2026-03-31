@@ -8,7 +8,7 @@ services:
       - "8000:8000"
     environment:
       - LEGAL_PROFILE=full
-      - MCP_TRANSPORT=sse
+      - MCP_TRANSPORT=http
     volumes:
       - mcp-cache:/app/.cache/mcp-legal-it
     restart: unless-stopped

@@ -57,6 +57,9 @@ from src.tools import (  # noqa: E402, F401
     parcelle_professionisti,
     risarcimento_danni,
     diritto_penale,
+    diritto_societario,
+    diritto_lavoro,
+    crisi_impresa,
     proprieta_successioni,
     investimenti,
     dichiarazione_redditi,
@@ -68,8 +71,10 @@ from src.tools import (  # noqa: E402, F401
     cerdef,
     giustizia_amm,
     cgue,
+    giurisprudenza_unificata,
     privacy_gdpr,
     modelli_atti,
+    procedura_civile,
 )
 
 from src import prompts, resources  # noqa: E402, F401
@@ -83,10 +88,10 @@ _PROFILES: dict[str, set[str]] = {
     "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro"},
     "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
     "penale": {"penale", "normativa", "giurisprudenza"},
-    "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti"},
+    "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario"},
     "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob"},
     "privacy": {"privacy", "normativa", "giurisprudenza"},
-    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti"},
+    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro"},
     "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
 }
 

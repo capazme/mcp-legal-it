@@ -1,70 +1,80 @@
 ---
 name: analisi-giurisprudenziale
-description: Analisi strutturata degli orientamenti giurisprudenziali su un tema con ricerca sentenze Cassazione su Italgiure, lettura testo completo delle decisioni chiave e sintesi degli orientamenti. Usa quando l'utente chiede giurisprudenza su un argomento, orientamenti della Cassazione, precedenti, o sentenze su un tema specifico.
-argument-hint: "[tema giuridico]"
-allowed-tools: mcp__legal-it__cerca_giurisprudenza, mcp__legal-it__giurisprudenza_su_norma, mcp__legal-it__leggi_sentenza, mcp__legal-it__cerca_brocardi, mcp__legal-it__cite_law
+description: Analisi degli orientamenti giurisprudenziali su un tema con sintesi delle sentenze principali. Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione, o precedenti.
+argument-hint: "[tema giuridico o riferimento normativo]"
+allowed-tools: legal-it:cerca_giurisprudenza, legal-it:giurisprudenza_su_norma, legal-it:giurisprudenza_articolo, legal-it:cerca_giurisprudenza_unificata, legal-it:leggi_sentenza, legal-it:cerca_brocardi, legal-it:cite_law, legal-it:cerca_giurisprudenza_tributaria, legal-it:cerdef_leggi_provvedimento, legal-it:cerca_giurisprudenza_amministrativa, legal-it:leggi_provvedimento_amm, legal-it:cerca_giurisprudenza_cgue, legal-it:leggi_sentenza_cgue, legal-it:leggi_sentenza_cgue_ecli, mcp__perplexity-mcp__search
 ---
 
-# Analisi Giurisprudenziale
+# Analisi giurisprudenziale
 
-Ricerca Italgiure, lettura decisioni chiave, sintesi orientamenti.
+Sei un ricercatore giuridico specializzato. Conduci un'analisi degli orientamenti giurisprudenziali seguendo questo workflow.
 
-## Regola fondamentale
+## Fase 1 — Ricerca iniziale
 
-**Non citare mai numeri di sentenza a memoria**. Usa esclusivamente i risultati dei tool.
+### Se il tema riguarda un articolo specifico (es. "art. 2043 c.c.")
+1. Chiama `legal-it:giurisprudenza_articolo(riferimento="art. 2043 c.c.")` — questo tool recupera le massime Brocardi, usa il testo come query Italgiure e recupera direttamente le sentenze Cassazione citate.
 
-## Workflow
+### Se il tema e' generico (es. "responsabilita' del medico")
+1. **Esplora**: `legal-it:cerca_giurisprudenza(query="...", modalita="esplora")` per distribuzione materia/sezione/anno.
+2. **Filtra**: applica i filtri piu' mirati basati sui facets.
+3. **Cerca**: `legal-it:cerca_giurisprudenza(query="...", materia="...", tipo_provvedimento="sentenza", max_risultati=10)`.
 
-### Fase 1 — Esplora la distribuzione
+### Per ricerche cross-fonte
+Se il tema coinvolge piu' giurisdizioni, usa `legal-it:cerca_giurisprudenza_unificata(query="...", fonti="tutte")`.
 
-Chiama `legal-it:cerca_giurisprudenza` con `modalita="esplora"` per vedere quante decisioni esistono e come sono distribuite per materia, sezione, anno e tipo.
+## Fase 2 — Presentazione risultati e scelta utente (OBBLIGATORIA)
 
-```
-cerca_giurisprudenza(query="\"tema specifico\"", modalita="esplora")
-```
+**STOP. NON chiamare `leggi_sentenza` prima di completare questa fase.**
 
-**Usa virgolette** per frasi esatte (es. `"responsabilita' medica"` non `responsabilita' medica`).
+Presenta i risultati in tabella:
 
-### Fase 2 — Cerca con filtri mirati
+| # | Estremi | Materia | Tipo | Anno |
+|---|---------|---------|------|------|
+| 1 | Cass. civ., sez. III, n. 10787/2024 | resp. civile | sentenza | 2024 |
+| 2 | Cass. civ., sez. un., n. 5678/2023 | resp. civile | sentenza | 2023 |
 
-In base ai facets del Passo 1, applica filtri per restringere i risultati:
+Chiedi:
 
-```
-cerca_giurisprudenza(
-    query="\"tema specifico\"",
-    materia="...",
-    sezione="...",
-    tipo_provvedimento="sentenza",
-    max_risultati=10
-)
-```
+> **Quali sentenze vuoi approfondire?** Indica i numeri (es. 1, 3, 5) oppure scrivi "tutte" per leggere le prime 3.
 
-Se il tema riguarda una norma specifica, usa anche `legal-it:giurisprudenza_su_norma`.
+**Attendi la risposta dell'utente prima di procedere.**
 
-Per cercare solo nel dispositivo (piu' preciso): `campo="dispositivo"`.
+## Fase 3 — Approfondimento selettivo
 
-**Sintassi query Solr**: `"frase esatta"`, `AND`/`OR`, `-esclusione`, `"frase"~3` (prossimita'), `termin*` (wildcard).
+Leggi SOLO le sentenze selezionate:
+- Cassazione: `legal-it:leggi_sentenza(numero, anno)`
+- CeRDEF: `legal-it:cerdef_leggi_provvedimento(guid)`
+- GA: `legal-it:leggi_provvedimento_amm(sede, nrg, nome_file)`
+- CGUE: `legal-it:leggi_sentenza_cgue(cellar_uri)` o `legal-it:leggi_sentenza_cgue_ecli(ecli)`
 
-### Fase 3 — Approfondimento
+Per articoli specifici: `legal-it:cerca_brocardi(reference)` per ratio legis.
 
-Seleziona 2-4 decisioni significative (privilegia Sezioni Unite e sentenze recenti).
-Per ciascuna: `legal-it:leggi_sentenza` con numero e anno.
+## Fase 4 — Fallback web (se necessario)
 
-**Non fare web search per sentenze gia identificate.**
+Se fonti istituzionali restituiscono errore o zero risultati:
+1. Comunica: "La ricerca su [fonte] non ha prodotto risultati / non e' raggiungibile."
+2. Chiedi: "Vuoi che cerchi informazioni tramite ricerca web?"
+3. Se accetta: `mcp__perplexity-mcp__search(query="giurisprudenza italiana Cassazione [tema]")`
+4. **Avvertenza obbligatoria**: "Risultati da fonti web non ufficiali. Numeri e principi devono essere verificati su fonti primarie."
 
-### Fase 4 — Annotazioni Brocardi
+## Fase 5 — Fondamento normativo
 
-Se il tema ruota attorno a un articolo specifico: `legal-it:cerca_brocardi` per ratio legis, spiegazione e massime strutturate.
+Verifica norme con `legal-it:cite_law(reference)`. Mai citare a memoria.
 
-### Fase 5 — Fondamento normativo
+## Fase 6 — Sintesi strutturata
 
-Per le norme citate nelle decisioni: `legal-it:cite_law` per testo vigente.
+Basandoti ESCLUSIVAMENTE sulle sentenze lette:
+1. **Orientamento prevalente** con sentenze a supporto
+2. **Evoluzione** nel tempo
+3. **Contrasti** tra sezioni
+4. **Sezioni Unite** se intervento risolutivo
+5. **Norme di riferimento** verificate
+6. **Tabella decisioni**: estremi, massima, orientamento
 
-### Fase 6 — Sintesi
+## Regole
 
-1. **Orientamento prevalente**: principio di diritto
-2. **Evoluzione**: cambiamenti nel tempo
-3. **Contrasti**: divergenze tra sezioni
-4. **Sezioni Unite**: principio di diritto (se pronunciate)
-5. **Norme di riferimento**
-6. **Decisioni citate**: elenco con estremi
+1. Mai citare numeri di sentenza a memoria
+2. Mai web search per sentenze senza consenso esplicito
+3. Sempre esplorare prima di cercare
+4. Sempre chiedere all'utente quali sentenze approfondire
+5. Sempre leggere prima di sintetizzare

@@ -13,6 +13,9 @@ _DATA = Path(__file__).resolve().parent.parent / "data"
 with open(_DATA / "irpef_scaglioni.json") as f:
     _IRPEF = json.load(f)
 
+with open(_DATA / "codici_tributo.json") as f:
+    _CODICI_TRIBUTO: list[dict] = json.load(f)["codici"]
+
 
 def _get_scaglioni(anno: int | None = None) -> list[dict]:
     """Return IRPEF brackets for the given fiscal year (default: current year)."""
@@ -889,3 +892,40 @@ def rateizzazione_imposte(
         "totale_versato": totale_versato,
         "riferimento_normativo": "Art. 20 D.Lgs. 241/1997",
     }
+
+
+@mcp.tool(tags={"fiscale"})
+def cerca_codice_tributo(query: str) -> str:
+    """Cerca un codice tributo F24 per codice o descrizione.
+
+    Usare quando serve il codice tributo per compilare un modello F24.
+    Restituisce: codice, descrizione, sezione e categoria per ogni risultato trovato.
+
+    Args:
+        query: Codice tributo (es. '4001') o testo da cercare (es. 'IRPEF saldo', 'IMU', 'IVA mensile')
+    """
+    q = query.strip()
+
+    # Exact code match (case-insensitive for robustness)
+    exact = [c for c in _CODICI_TRIBUTO if c["codice"].lower() == q.lower()]
+    if exact:
+        results = exact
+    else:
+        q_lower = q.lower()
+        results = [
+            c for c in _CODICI_TRIBUTO
+            if q_lower in c["descrizione"].lower() or q_lower in c["categoria"].lower()
+        ]
+
+    if not results:
+        return f"Nessun codice tributo trovato per: {query}"
+
+    lines = [
+        "| Codice | Descrizione | Sezione | Categoria |",
+        "|--------|-------------|---------|-----------|",
+    ]
+    for c in results:
+        lines.append(
+            f"| {c['codice']} | {c['descrizione']} | {c['sezione']} | {c['categoria']} |"
+        )
+    return "\n".join(lines)
