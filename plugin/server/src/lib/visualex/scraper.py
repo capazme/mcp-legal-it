@@ -248,6 +248,16 @@ def _extract_eurlex_article(html: str, article: str) -> str:
     if not article:
         return soup.get_text(separator="\n", strip=True)
 
+    # Recital / considerando — encoded as "rec_N" by _parse_reference
+    if article.startswith("rec_"):
+        recital_num = article[4:]
+        pat = re.compile(rf"^\(\s*{re.escape(recital_num)}\s*\)")
+        for p in soup.find_all("p"):
+            text = p.get_text(strip=True)
+            if pat.match(text):
+                return text
+        return f"[Considerando {recital_num} non trovato nel documento EUR-Lex]"
+
     # Strategy 1: semantic id — div#art_N (most reliable on Cellar XHTML)
     art_id = f"art_{article}"
     article_div = soup.find("div", id=art_id)

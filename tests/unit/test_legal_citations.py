@@ -59,6 +59,63 @@ class TestParseReference:
 
 
 # ---------------------------------------------------------------------------
+# _parse_reference — extended (paragraph stripping + recitals)
+# ---------------------------------------------------------------------------
+
+class TestParseReferenceExtended:
+    def test_art_with_paragraph_number(self):
+        article, act = _parse_reference("art. 4 n. 11 GDPR")
+        assert article == "4"
+        assert act.lower() == "gdpr"
+
+    def test_art_with_comma(self):
+        article, act = _parse_reference("art. 13 co. 2 GDPR")
+        assert article == "13"
+        assert act.lower() == "gdpr"
+
+    def test_art_with_comma_full(self):
+        article, act = _parse_reference("art. 6 comma 1 lett. a) GDPR")
+        assert article == "6"
+        assert act.lower() == "gdpr"
+
+    def test_considerando(self):
+        article, act = _parse_reference("considerando 42 GDPR")
+        assert article == "rec_42"
+        assert act.lower() == "gdpr"
+
+    def test_recital_english(self):
+        article, act = _parse_reference("recital 47 GDPR")
+        assert article == "rec_47"
+        assert act.lower() == "gdpr"
+
+    def test_standard_art_unchanged(self):
+        article, act = _parse_reference("art. 2043 c.c.")
+        assert article == "2043"
+        assert "c.c." in act
+
+    def test_art_with_punto(self):
+        article, act = _parse_reference("art. 4 punto 11 GDPR")
+        assert article == "4"
+        assert act.lower() == "gdpr"
+
+    def test_art_with_par(self):
+        article, act = _parse_reference("art. 82 par. 1 GDPR")
+        assert article == "82"
+        assert act.lower() == "gdpr"
+
+
+# ---------------------------------------------------------------------------
+# _resolve_act — GDPR after paragraph stripping
+# ---------------------------------------------------------------------------
+
+class TestResolveActGDPR:
+    def test_gdpr_resolves(self):
+        result = _resolve_act("GDPR")
+        assert result is not None
+        assert str(result["numero_atto"]) == "679"
+
+
+# ---------------------------------------------------------------------------
 # _resolve_act
 # ---------------------------------------------------------------------------
 
