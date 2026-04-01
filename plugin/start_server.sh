@@ -18,8 +18,20 @@ VENV="$CACHE_DIR/venv"
 mkdir -p "$CACHE_DIR"
 
 # Create venv and install deps on first run (cached after that)
+PYTHON=""
+for candidate in python3.12 python3.11 python3.10 python3; do
+  if command -v "$candidate" &>/dev/null; then
+    PYTHON="$candidate"
+    break
+  fi
+done
+if [ -z "$PYTHON" ]; then
+  echo "ERROR: Python 3.10+ not found. Install Python from python.org" >&2
+  exit 1
+fi
+
 if [ ! -f "$VENV/bin/python" ]; then
-  python3 -m venv "$VENV"
+  "$PYTHON" -m venv "$VENV"
   "$VENV/bin/pip" install -q --disable-pip-version-check \
     "fastmcp>=2.0.0" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0"
 fi
