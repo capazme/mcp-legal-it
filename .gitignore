@@ -22,6 +22,7 @@ plugin/server/__pycache__/
 *.mcpb
 dist/dxt-build/
 dist/plugin-build/
+plugin/dist/
 plugin.zip
 
 # Local MCP config (dev machine — absolute paths)
