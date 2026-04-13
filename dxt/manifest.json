@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.1",
   "name": "legal-it",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "display_name": "Legal IT — Diritto Italiano",
   "description": "198 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex), giurisprudenza (Cassazione, CeRDEF tributario, TAR/CdS, CGUE), delibere CONSOB, compliance GDPR e generazione atti (100 tipi).",
   "long_description": "Server MCP completo per il diritto italiano. Include: calcoli rivalutazione/interessi, scadenze processuali, parcelle avvocati, risarcimento danni, decreto ingiuntivo, IRPEF/TFR, successioni, codice fiscale, privacy GDPR. Consultazione normativa da Normattiva e EUR-Lex, giurisprudenza di Cassazione da Italgiure, giurisprudenza tributaria da CeRDEF, sentenze TAR e Consiglio di Stato, sentenze CGUE via CELLAR SPARQL, annotazioni da Brocardi, delibere CONSOB.",

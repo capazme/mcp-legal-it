@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.3] - 2026-04-13
+
+### Added
+- `_normalize_query()`: preprocesses LLM queries — strips quotes from normative references, removes single-word quotes, drops Italian stopwords from long queries
+- `_auto_relax()`: progressive fallback when search returns 0 results (strip quotes → relax minimum-match → reduce terms → explore suggestion)
+- `leggi_sentenza` fallback chain: retries without sezione, without zero-padding, then full-text search before giving up with actionable suggestion
+- `_smart_suggestions()`: generates concrete filter suggestions from facet data when explore returns >10k results
+- 38 new unit tests (224 total)
+
+### Changed
+- `cerca_giurisprudenza` docstring: anti-patterns, CORRECT vs WRONG examples, emphasis on structured filters over query terms
+- `giurisprudenza_su_norma` docstring: clarified when to use vs `cerca_giurisprudenza`
+
 ## [2.3.2] - 2026-04-01
 
 ### Fixed

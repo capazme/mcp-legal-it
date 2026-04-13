@@ -34,6 +34,69 @@ _REFINEMENT_STEPS = [
     {"tipo_provvedimento": "sentenza", "label": "solo sentenze"},
 ]
 
+_IT_STOPWORDS = frozenset({
+    "di", "del", "della", "dello", "delle", "dei", "degli",
+    "per", "con", "in", "da", "dal", "dalla", "dalle",
+    "che", "il", "la", "lo", "le", "li", "un", "una", "uno",
+    "al", "alla", "alle", "allo", "ai", "agli",
+    "su", "sul", "sulla", "sulle", "sullo", "sui", "sugli",
+    "tra", "fra", "nel", "nella", "nelle", "nello", "nei", "negli",
+    "ed", "si", "se", "non", "come", "anche", "sono", "essere",
+    "ha", "hanno", "è", "e", "o", "a",
+})
+
+
+def _normalize_query(query: str) -> str:
+    """Preprocess LLM query for better Solr matching.
+
+    Addresses common LLM query patterns that cause zero results:
+    - Quotes around normative references force exact OCR match (often fails)
+    - Single-word quotes are pointless
+    - Too many terms with default mm cause over-filtering
+    - Stopwords dilute relevance in long queries
+    """
+    if not query or not query.strip():
+        return query
+
+    q = query.strip()
+
+    # 1. Remove quotes around normative references like "art. 1-bis"
+    q = re.sub(
+        r'"((?:art(?:icol[oi])?\.?\s+\d+(?:-\w+)?))"',
+        r'\1',
+        q,
+    )
+    # Remove quotes around D.Lgs./D.L./L. references
+    q = re.sub(
+        r'"((?:D\.?(?:Lgs|L|P\.R|M)\.?|[Ll]egge|[Dd]ecreto\s+legislativo)\s*(?:n\.?\s*)?\d+(?:/\d+)?)"',
+        r'\1',
+        q,
+    )
+
+    # 2. Remove quotes around single words (pointless, same as unquoted)
+    q = re.sub(r'"(\w+)"', r'\1', q)
+
+    # 3. Drop Italian stopwords if query has 6+ terms (to reduce mm pressure)
+    terms = q.split()
+    if len(terms) >= 6:
+        filtered = []
+        for t in terms:
+            # Keep quoted phrases intact, keep operators, keep non-stopwords
+            if t.startswith('"') or t in ("AND", "OR", "NOT") or t.startswith("-"):
+                filtered.append(t)
+            elif t.lower().rstrip(".,;:") not in _IT_STOPWORDS:
+                filtered.append(t)
+        # Ensure we keep at least 3 terms
+        if len(filtered) >= 3:
+            terms = filtered
+
+    q = " ".join(terms)
+
+    # 4. Collapse multiple spaces
+    q = re.sub(r"\s{2,}", " ", q).strip()
+
+    return q
+
 
 # ---------------------------------------------------------------------------
 # Score filtering
@@ -64,15 +127,60 @@ async def _leggi_sentenza_impl(
     sezione: str = "",
     archivio: str = "tutti",
 ) -> SearchResult:
-    params = build_lookup_params(numero, anno, archivio=archivio, sezione=sezione or None)
     try:
-        data = await solr_query(params)
-        docs = data.get("response", {}).get("docs", [])
-        if docs:
-            return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+        async with SolrSession() as session:
+            # Step 1: Standard lookup (zero-padded + sezione)
+            params = build_lookup_params(numero, anno, archivio=archivio, sezione=sezione or None)
+            data = await solr_query(params, session=session)
+            docs = data.get("response", {}).get("docs", [])
+            if docs:
+                return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+
+            # Step 2: Retry without sezione filter (if provided)
+            if sezione:
+                params = build_lookup_params(numero, anno, archivio=archivio, sezione=None)
+                data = await solr_query(params, session=session)
+                docs = data.get("response", {}).get("docs", [])
+                if docs:
+                    return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+
+            # Step 3: Retry with raw number (no zero-padding)
+            kinds = get_kind_filter(archivio)
+            kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
+            raw_params = {
+                "q": f"({kind_clause}) AND numdec:{numero} AND anno:{anno}",
+                "rows": 5,
+                "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocr,ocrdis,relatore,presidente,kind",
+            }
+            data = await solr_query(raw_params, session=session)
+            docs = data.get("response", {}).get("docs", [])
+            if docs:
+                return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+
+            # Step 4: Full-text search for "n. {numero}/{anno}"
+            ft_query = f'"n. {numero}/{anno}" OR "n. {numero} del {anno}"'
+            ft_params = build_search_params(
+                ft_query, archivio=archivio, rows=3, start=0, campo="tutto",
+            )
+            data = await solr_query(ft_params, session=session)
+            docs = data.get("response", {}).get("docs", [])
+            if docs:
+                return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
-    return SearchResult(success=False, source="italgiure", error_type="no_results", results_text=f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione.")
+
+    return SearchResult(
+        success=False,
+        source="italgiure",
+        error_type="no_results",
+        results_text=(
+            f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione.\n\n"
+            f"**Possibili cause**: sentenza non ancora indicizzata (lag archivio), "
+            f"numero o anno errato, o sentenza antecedente al 2020.\n"
+            f"**Suggerimento**: prova `cerca_giurisprudenza()` con il tema della sentenza."
+        ),
+    )
 
 
 async def _cerca_giurisprudenza_impl(
@@ -93,6 +201,9 @@ async def _cerca_giurisprudenza_impl(
     # --- Explore mode: facets only, no documents — returns plain str ---
     if modalita == "esplora":
         return await _esplora_impl(query, archivio=archivio, campo=campo)
+
+    # Normalize query to improve Solr matching
+    query = _normalize_query(query)
 
     max_risultati = min(max_risultati, 50)
     params = build_search_params(
@@ -118,6 +229,15 @@ async def _cerca_giurisprudenza_impl(
     num_found = data.get("response", {}).get("numFound", 0)
     facet_counts = data.get("facet_counts", {})
 
+    # --- Auto-relaxation when zero results ---
+    if num_found == 0 and pagina == 0:
+        relaxed = await _auto_relax(
+            query, archivio, materia, sezione, anno_da, anno_a,
+            tipo_provvedimento, solo_sezioni_unite, max_risultati, campo,
+        )
+        if relaxed is not None:
+            return SearchResult(success=True, source="italgiure", num_found=0, results_text=relaxed)
+
     # --- Auto-refinement when too many results ---
     if (
         num_found > _REFINEMENT_THRESHOLD
@@ -136,6 +256,55 @@ async def _cerca_giurisprudenza_impl(
         data, query, ordinamento, pagina, max_risultati, num_found, facet_counts,
     )
     return SearchResult(success=True, source="italgiure", num_found=num_found, results_text=text)
+
+
+_SEZIONE_NAMES = {
+    "L": "Lavoro", "T": "Tributaria", "SU": "Sezioni Unite", "U": "Sez. Unica",
+    "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII",
+}
+
+_BROAD_THRESHOLD = 10000
+
+
+def _smart_suggestions(facet_counts: dict, num_found: int) -> list[str]:
+    """Generate actionable filter suggestions from facet data."""
+    facet_fields = facet_counts.get("facet_fields", {})
+    suggestions = []
+
+    # Suggest top sezione if discriminant
+    sez_raw = facet_fields.get("szdec", [])
+    sez_pairs = list(zip(sez_raw[0::2], sez_raw[1::2]))
+    if sez_pairs:
+        top_sez, top_count = sez_pairs[0]
+        sez_name = _SEZIONE_NAMES.get(str(top_sez), str(top_sez))
+        if top_count < num_found * 0.8:  # Only suggest if it filters out >20%
+            suggestions.append(
+                f'Aggiungi `sezione="{top_sez}"` per filtrare Sezione {sez_name} ({top_count} risultati)'
+            )
+
+    # Suggest anno range
+    anno_raw = facet_fields.get("anno", [])
+    anno_pairs = list(zip(anno_raw[0::2], anno_raw[1::2]))
+    if len(anno_pairs) >= 3:
+        recent_count = sum(c for _, c in anno_pairs[:2])
+        suggestions.append(
+            f"Aggiungi `anno_da={anno_pairs[0][0]}` per limitare agli ultimi 2 anni ({recent_count} risultati)"
+        )
+
+    # Suggest tipo provvedimento
+    tipo_raw = facet_fields.get("tipoprov", [])
+    tipo_pairs = list(zip(tipo_raw[0::2], tipo_raw[1::2]))
+    for tipo_code, tipo_count in tipo_pairs:
+        if str(tipo_code) == "Sentenza" and tipo_count < num_found * 0.5:
+            suggestions.append(
+                f'Aggiungi `tipo_provvedimento="sentenza"` per solo sentenze ({tipo_count} risultati)'
+            )
+            break
+
+    # Always suggest query reform
+    suggestions.append("Riformula la query con 2-3 termini specifici e usa i filtri strutturati")
+
+    return suggestions
 
 
 async def _esplora_impl(
@@ -158,8 +327,123 @@ async def _esplora_impl(
     if facets_text:
         lines.append(facets_text)
     lines.append("")
-    lines.append("> **Suggerimento**: usa `modalita=\"cerca\"` con filtri specifici (materia, sezione, anno, tipo_provvedimento) per ottenere risultati mirati.")
+
+    # Smart suggestions for broad queries
+    if num_found > _BROAD_THRESHOLD:
+        suggestions = _smart_suggestions(facet_counts, num_found)
+        lines.append(f"> **Query troppo generica** ({num_found} risultati). Suggerimenti per restringere:")
+        for s in suggestions:
+            lines.append(f"> - {s}")
+    else:
+        lines.append("> **Suggerimento**: usa `modalita=\"cerca\"` con filtri specifici (materia, sezione, anno, tipo_provvedimento) per ottenere risultati mirati.")
+
     return "\n".join(lines)
+
+
+_RELAXATION_STEPS = [
+    {"strip_quotes": True, "label": "senza virgolette"},
+    {"mm": "2<50% 5<40%", "label": "corrispondenza rilassata"},
+    {"max_terms": 4, "label": "termini chiave ridotti"},
+]
+
+
+def _strip_all_quotes(query: str) -> str:
+    """Remove all double quotes from query."""
+    return query.replace('"', '')
+
+
+def _keep_top_terms(query: str, n: int) -> str:
+    """Keep only the first N non-stopword, non-operator terms."""
+    terms = query.split()
+    kept = []
+    for t in terms:
+        if t in ("AND", "OR", "NOT") or t.startswith("-"):
+            continue
+        if t.lower().rstrip(".,;:") in _IT_STOPWORDS:
+            continue
+        kept.append(t)
+        if len(kept) >= n:
+            break
+    return " ".join(kept) if kept else query
+
+
+async def _auto_relax(
+    query: str,
+    archivio: str,
+    materia: str,
+    sezione: str,
+    anno_da: int,
+    anno_a: int,
+    tipo_provvedimento: str,
+    solo_sezioni_unite: bool,
+    max_risultati: int,
+    campo: str,
+) -> str | None:
+    """Try progressive query relaxation when num_found == 0.
+
+    Returns formatted output if relaxation found results, None otherwise.
+    """
+    try:
+        async with SolrSession() as session:
+            for step in _RELAXATION_STEPS:
+                step_query = query
+                step_mm = None
+                step_campo = campo
+
+                if step.get("strip_quotes"):
+                    step_query = _strip_all_quotes(step_query)
+                    if step_query == query:
+                        continue  # No quotes to strip, skip
+                if step.get("mm"):
+                    step_mm = step["mm"]
+                if step.get("max_terms"):
+                    step_query = _keep_top_terms(step_query, step["max_terms"])
+                    if step_query == query:
+                        continue  # Query unchanged, skip
+
+                step_params = build_search_params(
+                    step_query,
+                    archivio=archivio,
+                    materia=materia or None,
+                    sezione=sezione or None,
+                    anno_da=anno_da or None,
+                    anno_a=anno_a or None,
+                    tipo_provvedimento=tipo_provvedimento or None,
+                    solo_sezioni_unite=solo_sezioni_unite,
+                    rows=max_risultati,
+                    start=0,
+                    campo=step_campo,
+                    mm=step_mm,
+                    include_facets=True,
+                )
+                step_data = await solr_query(step_params, session=session)
+                step_count = step_data.get("response", {}).get("numFound", 0)
+                if step_count > 0:
+                    return _format_search_results(
+                        step_data, step_query, "rilevanza", 0, max_risultati,
+                        step_count,
+                        step_data.get("facet_counts", {}),
+                        refinement_note=f"Rilassamento automatico: {step['label']} (0 → {step_count} risultati)",
+                    )
+    except Exception:
+        return None
+
+    # All relaxation steps failed — return explore suggestion
+    try:
+        explore_result = await _esplora_impl(
+            _keep_top_terms(query, 3), archivio=archivio, campo=campo,
+        )
+        if "decisioni trovate" in explore_result:
+            return (
+                "Nessuna decisione trovata con la query originale.\n\n"
+                f"**Suggerimento**: prova a riformulare con 2-3 termini chiave e usa i filtri strutturati "
+                f"(sezione, anno_da, tipo_provvedimento).\n\n"
+                f"Distribuzione con termini ridotti:\n{explore_result}"
+            )
+    except Exception:
+        pass
+
+    return None
 
 
 async def _auto_refine(
@@ -417,35 +701,40 @@ async def cerca_giurisprudenza(
 ) -> str:
     """Ricerca full-text nelle sentenze della Cassazione su Italgiure (fonte ufficiale, archivio 2020+).
 
+    **BEST PRACTICE per query efficaci**:
+    - Usa 2-4 termini chiave, NON frasi lunghe o riferimenti normativi completi
+    - EVITA virgolette salvo per espressioni fisse consolidate ("danno biologico", "legittimo affidamento")
+    - USA i filtri strutturati (sezione, anno_da, tipo_provvedimento) invece di aggiungere termini alla query
+    - Il sistema normalizza automaticamente la query (rimuove virgolette da riferimenti normativi, stopwords)
+    - Se 0 risultati, il sistema tenta automaticamente rilassamento progressivo della query
+
+    **Esempi**:
+    - SBAGLIATO: query='"art. 1-bis" D.Lgs. 152/1997 collaboratori coordinati etero-organizzati'
+    - CORRETTO: query="collaboratori coordinati monitoraggio automatizzato", sezione="L", anno_da=2022
+    - SBAGLIATO: query='"art. 4" L. 300/1970 collaboratori autonomi monitoraggio controllo'
+    - CORRETTO: query="controllo distanza lavoratori piattaforma", sezione="L", tipo_provvedimento="sentenza"
+
     **Strategia consigliata**:
-    1. Prima esplora: `modalita="esplora"` per vedere distribuzione risultati (materia, sezione, anno, tipo)
-    2. Poi cerca con filtri: usa i filtri suggeriti per restringere a <50 risultati
-    3. Leggi i testi: `leggi_sentenza()` per il testo completo delle decisioni trovate
+    1. Prima esplora: `modalita="esplora"` con 2-3 termini → distribuzione risultati
+    2. Poi cerca con filtri strutturati → risultati mirati (<50)
+    3. Poi `leggi_sentenza()` → testo completo
 
-    **Sintassi query Solr** (campo `query`):
-    - `"frase esatta"` — virgolette per match esatto
-    - `AND` / `OR` — operatori booleani (default: OR tra i termini)
-    - `-termine` — esclude termine
-    - `"frase esatta"~3` — prossimità (termini entro 3 parole)
-    - `termin*` — wildcard (prefisso)
-
-    Con query generiche (es. "responsabilità medica") il sistema tenta un raffinamento automatico
-    per ridurre i risultati. Se i risultati sono >50, mostra anche la distribuzione per facet.
+    Con query generiche il sistema tenta raffinamento automatico.
     Con `modalita="esplora"` non restituisce documenti, solo la distribuzione.
 
     Args:
-        query: Testo da cercare nel corpo delle decisioni (supporta sintassi Solr eDisMax)
+        query: 2-4 termini chiave (il sistema normalizza automaticamente). Supporta: "frase esatta", AND/OR, -esclusione, "frase"~3 prossimità, termin* wildcard
         archivio: "civile", "penale", o "tutti" (default)
         materia: Filtro per materia (es. "contratti", "responsabilita' civile")
-        sezione: Filtro sezione (1-6, L=lavoro, T=tributaria, SU=sezioni unite)
-        anno_da: Anno di inizio (incluso)
+        sezione: Filtro sezione (1-6, L=lavoro, T=tributaria, SU=sezioni unite). PREFERIRE questo ai termini nella query
+        anno_da: Anno di inizio (incluso). PREFERIRE questo a scrivere l'anno nella query
         anno_a: Anno di fine (incluso)
-        tipo_provvedimento: "sentenza", "ordinanza", o "decreto" (default: tutti)
+        tipo_provvedimento: "sentenza", "ordinanza", o "decreto" (default: tutti). PREFERIRE questo a "solo sentenze" nella query
         solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
         ordinamento: "rilevanza" (score desc, default) o "data" (più recenti prima)
         max_risultati: Numero massimo di risultati per pagina (default 5, max 50)
         pagina: Pagina dei risultati, 0-indexed (default 0 = prima pagina)
-        campo: "tutto" (testo+dispositivo, default) o "dispositivo" (cerca solo nel dispositivo — più preciso, meno recall)
+        campo: "tutto" (testo+dispositivo, default) o "dispositivo" (solo dispositivo — più preciso, meno recall)
         modalita: "cerca" (default — restituisce documenti) o "esplora" (solo distribuzione facet, nessun documento)
     """
     result = await _cerca_giurisprudenza_impl(
@@ -469,13 +758,15 @@ async def giurisprudenza_su_norma(
 ) -> str:
     """Trova sentenze della Cassazione che citano uno specifico articolo di legge.
 
-    Workflow Brocardi→Italgiure: usa cerca_brocardi() per ottenere le massime con
-    riferimenti strutturati, poi questo tool per leggere le sentenze complete.
-    Dopo questo tool: leggi_sentenza() per il testo completo delle decisioni trovate.
-    Restituisce: decisioni della Cassazione che citano la norma, con numero e snippet.
+    Genera automaticamente varianti del riferimento per massimizzare i risultati
+    (es. "art. 2043 c.c." → cerca anche "articolo 2043", "2043 codice civile", "2043 cod. civ.").
+
+    **Quando usare**: per trovare giurisprudenza su un articolo specifico.
+    **Quando NON usare**: per ricerche per tema/concetto → usa cerca_giurisprudenza.
+    **Dopo**: leggi_sentenza() per il testo completo delle decisioni trovate.
 
     Args:
-        riferimento: Riferimento normativo (es. "art. 2043 c.c.", "art. 13 GDPR", "art. 6 D.Lgs. 231/2001")
+        riferimento: Riferimento normativo breve (es. "art. 2043 c.c.", "art. 13 GDPR", "art. 6 D.Lgs. 231/2001"). NON aggiungere tema o parole chiave
         archivio: "civile", "penale", o "tutti" (default)
         solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
         anno_da: Anno di inizio (incluso, es. 2020)
