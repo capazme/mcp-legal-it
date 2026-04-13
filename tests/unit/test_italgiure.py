@@ -22,13 +22,20 @@ from src.lib.italgiure.client import (
 )
 
 # Import _impl functions at module level to avoid metaclass conflict when patching httpx
+from src.lib._result import SearchResult
 from src.tools.italgiure import (
+    _auto_relax,
     _cerca_giurisprudenza_impl,
+    _esplora_impl,
     _filter_by_score,
     _giurisprudenza_articolo_impl,
     _giurisprudenza_su_norma_impl,
+    _keep_top_terms,
     _leggi_sentenza_impl,
+    _normalize_query,
     _parse_articolo_riferimento,
+    _smart_suggestions,
+    _strip_all_quotes,
     _ultime_pronunce_impl,
 )
 
@@ -98,7 +105,12 @@ def _mock_httpx_client(homepage_resp: dict | None = None, solr_resp: dict | None
 
 
 def _capturing_mock_client(solr_resp: dict | None = None) -> tuple[AsyncMock, dict]:
-    """Return (mock_client, captured) where captured['body'] has the POST body."""
+    """Return (mock_client, captured) where captured['body'] has the POST body.
+
+    Default response includes 1 doc (num_found=1) so that auto_relax is not triggered.
+    Pass explicit solr_resp to override (e.g. empty results for zero-result tests).
+    """
+    _default_resp = _make_solr_response([_civile_doc()], num_found=1)
     captured: dict = {}
 
     async def mock_get(url, **kwargs):
@@ -110,7 +122,7 @@ def _capturing_mock_client(solr_resp: dict | None = None) -> tuple[AsyncMock, di
         captured["body"] = content or ""
         resp = AsyncMock()
         resp.raise_for_status = MagicMock()
-        resp.json = MagicMock(return_value=solr_resp or _make_solr_response([]))
+        resp.json = MagicMock(return_value=solr_resp if solr_resp is not None else _default_resp)
         return resp
 
     mock_client = AsyncMock()
@@ -1473,7 +1485,7 @@ class TestModalitaEsplora:
             result = await _cerca_giurisprudenza_impl("responsabilità medica", modalita="esplora")
         assert "Esplorazione" in result
         assert "15000" in result
-        assert "Suggerimento" in result
+        assert "Suggeriment" in result  # "Suggerimento" or "Suggerimenti"
         assert "contratti" in result
 
     @pytest.mark.asyncio
@@ -1989,3 +2001,463 @@ class TestGiurisprudenzaArticoloImpl:
             result = await _giurisprudenza_articolo_impl("danno biologico")
 
         assert result.source == "italgiure"
+
+
+# ---------------------------------------------------------------------------
+# _normalize_query
+# ---------------------------------------------------------------------------
+
+class TestNormalizeQuery:
+    def test_empty_passthrough(self):
+        assert _normalize_query("") == ""
+        assert _normalize_query("  ") == "  "
+
+    def test_short_query_unchanged(self):
+        assert _normalize_query("danno biologico") == "danno biologico"
+
+    def test_strips_quotes_from_art_references(self):
+        assert _normalize_query('"art. 1-bis" D.Lgs. 152/1997') == "art. 1-bis D.Lgs. 152/1997"
+
+    def test_strips_quotes_from_articolo(self):
+        assert _normalize_query('"articolo 2043" codice civile') == "articolo 2043 codice civile"
+
+    def test_strips_quotes_from_dlgs_reference(self):
+        q = _normalize_query('"D.Lgs. 152/1997" monitoraggio')
+        assert "D.Lgs. 152/1997" in q
+        assert q.startswith("D.Lgs.")
+
+    def test_strips_quotes_from_legge_reference(self):
+        q = _normalize_query('"legge 300/1970" lavoratori')
+        assert "legge 300/1970" in q
+        assert not q.startswith('"')
+
+    def test_strips_single_word_quotes(self):
+        assert _normalize_query('"collaboratori" coordinati') == "collaboratori coordinati"
+
+    def test_preserves_multi_word_quotes(self):
+        q = _normalize_query('"danno biologico" risarcimento')
+        assert '"danno biologico"' in q
+
+    def test_drops_stopwords_long_query(self):
+        q = _normalize_query("art. 1-bis del D.Lgs. 152 del 1997 per i collaboratori coordinati nella gestione")
+        assert "del" not in q.lower().split()
+        assert "per" not in q.lower().split()
+        assert "art." in q
+        assert "1-bis" in q
+        assert "collaboratori" in q
+
+    def test_keeps_operators(self):
+        q = _normalize_query("responsabilità AND medica OR civile NOT penale del codice per la parte")
+        assert "AND" in q
+        assert "OR" in q
+        assert "NOT" in q
+
+    def test_keeps_exclusion_prefix(self):
+        q = _normalize_query("-penale civile danno biologico per il risarcimento del danno")
+        assert "-penale" in q
+
+    def test_keeps_minimum_three_terms(self):
+        q = _normalize_query("il la lo del della per con in da")
+        terms = q.split()
+        assert len(terms) >= 3
+
+    def test_collapses_whitespace(self):
+        q = _normalize_query("danno   biologico    responsabilità")
+        assert "  " not in q
+
+    def test_real_trace_query_art1bis(self):
+        """Query from real trace that returned 0 results."""
+        q = _normalize_query('"art. 1-bis" D.Lgs. 152/1997 collaboratori coordinati etero-organizzati')
+        assert not q.startswith('"')
+        assert "art. 1-bis" in q
+        assert "collaboratori" in q
+
+    def test_real_trace_query_dlgs104(self):
+        """Another trace query that returned 0."""
+        q = _normalize_query('"D.Lgs. 104/2022" diritti lavoratori autonomi collaboratori')
+        assert "D.Lgs. 104/2022" in q
+        assert not q.startswith('"')
+
+
+# ---------------------------------------------------------------------------
+# _strip_all_quotes / _keep_top_terms helpers
+# ---------------------------------------------------------------------------
+
+class TestStripAllQuotes:
+    def test_removes_all(self):
+        assert _strip_all_quotes('"danno" "biologico"') == "danno biologico"
+
+    def test_no_quotes(self):
+        assert _strip_all_quotes("danno biologico") == "danno biologico"
+
+
+class TestKeepTopTerms:
+    def test_keeps_n_terms(self):
+        q = _keep_top_terms("responsabilità medica grave colpa danno biologico", 3)
+        assert len(q.split()) == 3
+
+    def test_skips_stopwords(self):
+        q = _keep_top_terms("il danno del paziente per la colpa medica", 3)
+        assert "il" not in q.split()
+        assert "del" not in q.split()
+        assert len(q.split()) == 3
+
+    def test_skips_operators(self):
+        q = _keep_top_terms("danno AND biologico OR medico colpa", 3)
+        assert "AND" not in q.split()
+        assert "OR" not in q.split()
+
+    def test_fallback_if_all_stopwords(self):
+        q = _keep_top_terms("il la lo del", 3)
+        # Should return original since no substantive terms
+        assert q == "il la lo del"
+
+
+# ---------------------------------------------------------------------------
+# _auto_relax
+# ---------------------------------------------------------------------------
+
+class TestAutoRelax:
+    @pytest.mark.asyncio
+    async def test_strip_quotes_finds_results(self):
+        """If stripping quotes yields results, return them."""
+        doc = _civile_doc()
+        call_count = {"n": 0}
+
+        async def mock_solr_query(params, session=None):
+            call_count["n"] += 1
+            q = params.get("q", "")
+            # First call (with quotes) → 0, second (without) → 1
+            if '"' in q:
+                return _make_solr_response([], num_found=0)
+            return _make_solr_response([doc], num_found=1)
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=False)
+            mock_session_cls.return_value = mock_session
+
+            result = await _auto_relax(
+                '"danno biologico" risarcimento', "tutti", "", "", 0, 0, "", False, 5, "tutto",
+            )
+
+        assert result is not None
+        assert "Rilassamento automatico" in result
+
+    @pytest.mark.asyncio
+    async def test_relaxed_mm_finds_results(self):
+        """If lowering mm yields results, return them."""
+        doc = _civile_doc()
+
+        async def mock_solr_query(params, session=None):
+            mm = params.get("mm", "")
+            if "40%" in mm:
+                return _make_solr_response([doc], num_found=3)
+            return _make_solr_response([], num_found=0)
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=False)
+            mock_session_cls.return_value = mock_session
+
+            # Query without quotes (so strip_quotes step is skipped)
+            result = await _auto_relax(
+                "monitoraggio automatizzato sistemi decisionali lavoro autonomo",
+                "tutti", "", "", 0, 0, "", False, 5, "tutto",
+            )
+
+        assert result is not None
+        assert "Rilassamento automatico" in result
+
+    @pytest.mark.asyncio
+    async def test_all_steps_fail_returns_explore(self):
+        """If all steps fail, fallback to explore suggestion."""
+        async def mock_solr_query(params, session=None):
+            # Relaxation steps: always 0
+            if params.get("rows", 5) > 0:
+                return _make_solr_response([], num_found=0)
+            # Explore query (rows=0): return facets
+            return {
+                "responseHeader": {"status": 0},
+                "response": {"numFound": 500, "start": 0, "docs": []},
+                "facet_counts": {
+                    "facet_fields": {
+                        "materia": ["LAVORO", 200, "PREVIDENZA", 100],
+                        "szdec": ["L", 300, "1", 200],
+                        "anno": ["2024", 250, "2023", 250],
+                        "tipoprov": ["Ordinanza", 400, "Sentenza", 100],
+                    }
+                },
+            }
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=False)
+            mock_session_cls.return_value = mock_session
+
+            result = await _auto_relax(
+                "query impossibile che non trova nulla mai",
+                "tutti", "", "", 0, 0, "", False, 5, "tutto",
+            )
+
+        assert result is not None
+        assert "Suggerimento" in result
+        assert "riformulare" in result
+
+    @pytest.mark.asyncio
+    async def test_exception_returns_none(self):
+        """Network errors should return None gracefully."""
+        with patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+            mock_session_cls.return_value.__aenter__ = AsyncMock(side_effect=Exception("network"))
+
+            result = await _auto_relax(
+                "test query", "tutti", "", "", 0, 0, "", False, 5, "tutto",
+            )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_integration_cerca_zero_triggers_relax(self):
+        """cerca_giurisprudenza with 0 results should trigger auto_relax."""
+        doc = _civile_doc()
+        call_count = {"n": 0}
+
+        async def mock_solr_query(params, session=None):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                # Initial search: 0 results
+                return _make_solr_response([], num_found=0)
+            # Relaxation steps: return results
+            return _make_solr_response([doc], num_found=1)
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=False)
+            mock_session_cls.return_value = mock_session
+
+            result = await _cerca_giurisprudenza_impl(
+                '"art. 1-bis" D.Lgs. 152/1997 collaboratori',
+            )
+
+        assert isinstance(result, SearchResult)
+        assert result.success is True
+        assert "Rilassamento" in (result.results_text or "")
+
+
+# ---------------------------------------------------------------------------
+# _leggi_sentenza_impl fallback chain
+# ---------------------------------------------------------------------------
+
+class TestLeggiSentenzaFallback:
+    @pytest.mark.asyncio
+    async def test_found_on_first_try(self):
+        """Standard lookup succeeds."""
+        doc = _civile_doc(num="30822", anno="2025")
+        solr_resp = _make_solr_response([doc], num_found=1)
+
+        async def mock_solr_query(params, session=None):
+            return solr_resp
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_cls:
+            mock_s = AsyncMock()
+            mock_s.__aenter__ = AsyncMock(return_value=mock_s)
+            mock_s.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_s
+
+            result = await _leggi_sentenza_impl(30822, 2025)
+
+        assert result.success is True
+        assert "30822" in (result.results_text or "")
+
+    @pytest.mark.asyncio
+    async def test_found_without_sezione(self):
+        """First try with sezione fails, retry without succeeds."""
+        doc = _civile_doc(num="30822", anno="2025")
+        call_count = {"n": 0}
+
+        async def mock_solr_query(params, session=None):
+            call_count["n"] += 1
+            q = params.get("q", "")
+            if "szdec" in q:
+                return _make_solr_response([], num_found=0)
+            return _make_solr_response([doc], num_found=1)
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_cls:
+            mock_s = AsyncMock()
+            mock_s.__aenter__ = AsyncMock(return_value=mock_s)
+            mock_s.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_s
+
+            result = await _leggi_sentenza_impl(30822, 2025, sezione="L")
+
+        assert result.success is True
+        assert call_count["n"] >= 2
+
+    @pytest.mark.asyncio
+    async def test_found_via_fulltext(self):
+        """All lookup steps fail, full-text search succeeds."""
+        doc = _civile_doc(num="30822", anno="2025")
+        call_count = {"n": 0}
+
+        async def mock_solr_query(params, session=None):
+            call_count["n"] += 1
+            # Lookup queries (no defType) → empty
+            if "defType" not in params:
+                return _make_solr_response([], num_found=0)
+            # Full-text search (has defType=edismax) → found
+            return _make_solr_response([doc], num_found=1)
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_cls:
+            mock_s = AsyncMock()
+            mock_s.__aenter__ = AsyncMock(return_value=mock_s)
+            mock_s.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_s
+
+            result = await _leggi_sentenza_impl(30822, 2025)
+
+        assert result.success is True
+        assert call_count["n"] >= 3
+
+    @pytest.mark.asyncio
+    async def test_all_fail_gives_suggestion(self):
+        """When all steps fail, error message includes suggestions."""
+        async def mock_solr_query(params, session=None):
+            return _make_solr_response([], num_found=0)
+
+        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.italgiure.SolrSession") as mock_cls:
+            mock_s = AsyncMock()
+            mock_s.__aenter__ = AsyncMock(return_value=mock_s)
+            mock_s.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_s
+
+            result = await _leggi_sentenza_impl(99999, 2025)
+
+        assert result.success is False
+        assert "Suggerimento" in (result.results_text or "")
+        assert "cerca_giurisprudenza" in (result.results_text or "")
+
+    @pytest.mark.asyncio
+    async def test_network_error(self):
+        """Network error returns source_down."""
+        with patch("src.tools.italgiure.SolrSession") as mock_cls:
+            mock_s = AsyncMock()
+            mock_s.__aenter__ = AsyncMock(side_effect=Exception("timeout"))
+            mock_cls.return_value = mock_s
+
+            result = await _leggi_sentenza_impl(10787, 2024)
+
+        assert result.success is False
+        assert result.error_type == "source_down"
+
+
+# ---------------------------------------------------------------------------
+# _smart_suggestions / _esplora_impl improvements
+# ---------------------------------------------------------------------------
+
+class TestSmartSuggestions:
+    def _make_facets(self, sez=None, anno=None, tipo=None):
+        fields = {}
+        if sez:
+            flat = [item for pair in sez for item in pair]
+            fields["szdec"] = flat
+        if anno:
+            flat = [item for pair in anno for item in pair]
+            fields["anno"] = flat
+        if tipo:
+            flat = [item for pair in tipo for item in pair]
+            fields["tipoprov"] = flat
+        return {"facet_fields": fields}
+
+    def test_suggests_sezione(self):
+        facets = self._make_facets(
+            sez=[("L", 3000), ("1", 2000), ("5", 1000)],
+        )
+        suggestions = _smart_suggestions(facets, 30000)
+        assert any('sezione="L"' in s for s in suggestions)
+
+    def test_no_sezione_if_dominant(self):
+        """Don't suggest sezione if top one has >80% of results."""
+        facets = self._make_facets(
+            sez=[("L", 9000)],
+        )
+        suggestions = _smart_suggestions(facets, 10000)
+        assert not any('sezione=' in s for s in suggestions)
+
+    def test_suggests_anno(self):
+        facets = self._make_facets(
+            anno=[("2025", 5000), ("2024", 4000), ("2023", 3000)],
+        )
+        suggestions = _smart_suggestions(facets, 30000)
+        assert any("anno_da" in s for s in suggestions)
+
+    def test_suggests_sentenza(self):
+        facets = self._make_facets(
+            tipo=[("Ordinanza", 20000), ("Sentenza", 8000)],
+        )
+        suggestions = _smart_suggestions(facets, 30000)
+        assert any("sentenza" in s for s in suggestions)
+
+    def test_always_includes_reform_suggestion(self):
+        suggestions = _smart_suggestions({"facet_fields": {}}, 30000)
+        assert any("Riformula" in s for s in suggestions)
+
+
+class TestEsploraSmartSuggestions:
+    @pytest.mark.asyncio
+    async def test_broad_query_gets_smart_suggestions(self):
+        """Queries with >10000 results should get actionable suggestions."""
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 30000, "start": 0, "docs": []},
+            "facet_counts": {
+                "facet_fields": {
+                    "materia": ["LAVORO", 8000, "PREVIDENZA", 5000],
+                    "szdec": ["L", 9000, "5", 7000, "1", 3000],
+                    "anno": ["2025", 8000, "2024", 7000, "2023", 6000],
+                    "tipoprov": ["Ordinanza", 20000, "Sentenza", 8000],
+                }
+            },
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _esplora_impl("collaboratori coordinati monitoraggio")
+
+        assert "troppo generica" in result
+        assert "sezione" in result.lower()
+        assert "anno_da" in result
+
+    @pytest.mark.asyncio
+    async def test_narrow_query_gets_standard_suggestion(self):
+        """Queries with <10000 results should get standard suggestion."""
+        solr_resp = {
+            "responseHeader": {"status": 0},
+            "response": {"numFound": 500, "start": 0, "docs": []},
+            "facet_counts": {
+                "facet_fields": {
+                    "materia": ["LAVORO", 300],
+                    "szdec": ["L", 400],
+                    "anno": ["2024", 300],
+                    "tipoprov": ["Sentenza", 200],
+                }
+            },
+        }
+        mock_client = _mock_httpx_client(solr_resp=solr_resp)
+
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            result = await _esplora_impl("etero-organizzazione lavoro")
+
+        assert "troppo generica" not in result
+        assert "Suggerimento" in result
