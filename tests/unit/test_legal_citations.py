@@ -267,7 +267,10 @@ class TestMapFunctions:
 
 class TestCiteLaw:
     @pytest.mark.asyncio
-    async def test_cite_law_normattiva(self):
+    async def test_cite_law_normattiva(self, monkeypatch):
+        # Exercise the HTML path deterministically: disable the AKN-first branch
+        # so the mocked scraper.httpx client (not akn_fetch.httpx) is used.
+        monkeypatch.setenv("AKN_DISABLED", "1")
         mock_html = """
         <html><body>
         <div class="bodyTesto">
@@ -425,8 +428,11 @@ class TestDownloadLawPdf:
             assert "GDPR" in result
 
     @pytest.mark.asyncio
-    async def test_normattiva_pdf_generation(self):
+    async def test_normattiva_pdf_generation(self, monkeypatch):
         """Normattiva: mock full text fetch and PDF generation for codice civile."""
+        # Disable the AKN-first branch so the mocked scraper.httpx client is used
+        # (the AJAX full-text walker), not the unmocked akn_fetch network path.
+        monkeypatch.setenv("AKN_DISABLED", "1")
         mock_act_html = """
         <html><body>
         <a href="/esporta/attoCompleto?atto.dataPubblicazioneGazzetta=1942-04-04&amp;atto.codiceRedazionale=042U0262">Esporta</a>
