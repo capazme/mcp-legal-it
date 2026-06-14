@@ -1,6 +1,7 @@
 """Unified scraper for Normattiva, EUR-Lex, and Brocardi using httpx."""
 
 import asyncio
+import os
 import re
 import warnings
 from urllib.parse import urljoin
@@ -12,6 +13,16 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .models import NormaVisitata
 from .map import find_brocardi_url
+
+
+def _akn_disabled() -> bool:
+    """Whether the AKN-first path is disabled (read at call time).
+
+    Set ``AKN_DISABLED=1`` to skip AKN entirely and use the HTML path — used by
+    the benchmark to measure the HTML baseline and by tests that exercise the
+    HTML fallback deterministically.
+    """
+    return os.environ.get("AKN_DISABLED", "").strip().lower() in {"1", "true", "yes"}
 
 # In-memory cache for Brocardi article URLs (base_url + article_num → article_url)
 _brocardi_url_cache: dict[str, str] = {}
@@ -46,6 +57,17 @@ async def fetch_article(nv: NormaVisitata) -> dict:
         url = nv.url()
         if not url:
             return {"text": "", "url": "", "source": "", "error": "Could not generate URL for this act"}
+
+        # AKN-first: try the official Akoma Ntoso XML export, fall back to HTML.
+        if not _akn_disabled():
+            from .akn_fetch import fetch_act_akn
+
+            act = await fetch_act_akn(nv.norma)
+            if act is not None:
+                akn_text = act.article(nv.numero_articolo)
+                if akn_text:
+                    return {"text": akn_text, "url": url, "source": "normattiva-akn"}
+
         async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
@@ -581,6 +603,23 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     act_url = norma.url()
     if not act_url:
         return {"text": "", "title": "", "url": "", "error": "Could not generate URL"}
+
+    # AKN-first: try the whole-act Akoma Ntoso XML export, fall back to the
+    # per-article AJAX walker below.
+    if not _akn_disabled():
+        from .akn_fetch import fetch_act_akn
+
+        act = await fetch_act_akn(norma)
+        if act is not None:
+            full_text = act.full_text()
+            if full_text:
+                return {
+                    "text": full_text,
+                    "title": act.title or str(norma),
+                    "url": act_url,
+                    "article_count": act.article_count,
+                    "source": "normattiva-akn",
+                }
 
     ajax_headers = {**_HEADERS, "X-Requested-With": "XMLHttpRequest"}
 
