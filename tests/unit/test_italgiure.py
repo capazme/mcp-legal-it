@@ -580,6 +580,14 @@ class TestFormatEstremi:
         result = format_estremi(doc)
         assert "SS.UU." in result
 
+    def test_sezioni_unite_u_no_double_sez(self):
+        # szdec "U" maps to "sez. un." (already carries the "sez." prefix);
+        # the output must not double it into "sez. sez. un.".
+        doc = {**_civile_doc(), "szdec": "U"}
+        result = format_estremi(doc)
+        assert "sez. un." in result
+        assert "sez. sez. un." not in result
+
     def test_missing_datdep(self):
         doc = {**_civile_doc(), "datdep": []}
         result = format_estremi(doc)
