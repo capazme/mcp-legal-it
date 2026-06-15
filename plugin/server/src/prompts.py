@@ -1320,3 +1320,171 @@ REGOLE:
 - Usare `cite_law` per TUTTE le norme citate.
 - Non citare mai numeri di sentenza a memoria.
 """
+
+
+# ---------------------------------------------------------------------------
+# Prompt per Corte Costituzionale
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Analisi delle pronunce della Corte Costituzionale su un tema: ricerca, lettura sentenze/ordinanze chiave, parametri costituzionali invocati"
+)
+def analisi_costituzionale(tema: str, tipo: str = "") -> str:
+    return f"""Esegui un'analisi delle pronunce della Corte Costituzionale sul tema indicato.
+
+TEMA: {tema}
+TIPO: {tipo} (sentenza / ordinanza / vuoto = entrambi)
+
+PROCEDURA:
+
+### Fase 1 — Ricerca pronunce
+Chiama `cerca_pronuncia_costituzionale(query="{tema}", tipo="{tipo}")` per individuare le
+pronunce rilevanti (numero/anno, ECLI, tipo, snippet).
+Se il tema riguarda un parametro costituzionale o una norma specifica (es. "art. 3 Costituzione",
+"art. 23 legge 87/1953"), chiama `pronunce_cost_su_norma(riferimento="art. ...")` per le pronunce
+che lo invocano come parametro.
+
+### Fase 2 — Lettura pronunce chiave
+Presenta i risultati in tabella e chiedi all'utente quali approfondire (human-in-the-loop).
+Per ciascuna scelta, chiama `leggi_pronuncia_costituzionale(numero, anno)` per epigrafe, testo,
+dispositivo, collegio ed ECLI.
+
+### Fase 3 — Fondamento normativo
+Per le norme oggetto/parametro citate nelle pronunce, chiama `cite_law(reference)` per il testo
+vigente dalla fonte ufficiale.
+
+### Fase 4 — Sintesi
+Produci una sintesi che includa: principio affermato dalla Consulta, tipo di decisione
+(accoglimento / rigetto / inammissibilità / interpretativa / additiva), parametri costituzionali
+invocati, ed effetti sulla norma impugnata.
+
+REGOLE:
+- Usare esclusivamente `cerca_pronuncia_costituzionale` / `leggi_pronuncia_costituzionale` /
+  `pronunce_cost_su_norma` — mai numeri di pronuncia a memoria né web search.
+- Citare le pronunce con gli estremi ufficiali (Corte cost., sent./ord. n./anno, ECLI).
+"""
+
+
+# ---------------------------------------------------------------------------
+# Prompt per Gazzetta Ufficiale
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Ricerca e lettura di atti pubblicati in Gazzetta Ufficiale: novità per serie, ricerca parametrica, testo as-published + PDF ufficiale"
+)
+def ricerca_gazzetta(tema: str, serie: str = "serie_generale") -> str:
+    return f"""Esegui una ricerca sulla Gazzetta Ufficiale per il tema indicato.
+
+TEMA: {tema}
+SERIE: {serie} (serie_generale / unione_europea / regioni / corte_costituzionale / parte_seconda / contratti / concorsi)
+
+PROCEDURA:
+
+### Fase 1 — Novità o ricerca mirata
+Per le ultime pubblicazioni, chiama `ultime_gazzette(serie="{serie}")` (fonte: feed RSS).
+Per una ricerca mirata, chiama `cerca_gazzetta_ufficiale(titolo="{tema}", serie="{serie}")`
+(usa anche `testo=`, `tipo_provvedimento=`, `emettitore=`, `materia=`, `anno_da=`, `anno_a=` se utile).
+
+### Fase 2 — Lettura atto
+Presenta i risultati e, per l'atto scelto, chiama
+`leggi_atto_gazzetta(codice_redazionale, data_pubblicazione, serie="{serie}")` per metadati ELI +
+testo as-published. Per il PDF ufficiale firmato usa `scarica_pdf_gazzetta(...)`.
+Per l'intero sommario di un numero di GU usa `sommario_gazzetta(numero_gazzetta, data_pubblicazione)`.
+
+### Fase 3 — Testo vigente vs as-published
+La Gazzetta dà il testo ORIGINALE come pubblicato. Per il testo CONSOLIDATO/VIGENTE chiama
+`cite_law(reference)` (Normattiva). Distingui sempre le due cose nella risposta.
+
+REGOLE:
+- La Gazzetta è la fonte dell'atto come pubblicato (con PDF/ELI citabile); Normattiva è la fonte del
+  vigente. Non confonderle.
+- Usare i tool, mai estremi a memoria.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Prompt per orientamento giurisprudenziale
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Mappa descrittiva degli orientamenti di legittimità su una norma o un principio: conformi vs contrasti, Sezioni Unite, evoluzione temporale"
+)
+def orientamento_giurisprudenziale(riferimento: str, archivio: str = "tutti") -> str:
+    return f"""Costruisci una mappa DESCRITTIVA degli orientamenti della Cassazione.
+
+RIFERIMENTO: {riferimento} (una norma, es. "art. 2043 c.c.", oppure un principio/massima)
+ARCHIVIO: {archivio} (civile / penale / tutti)
+
+PROCEDURA:
+
+### Fase 1 — Mappa orientamenti
+Se il riferimento è una NORMA, chiama `mappa_orientamento(riferimento="{riferimento}", archivio="{archivio}")`
+(orchestratore: ancora le massime Brocardi, recupera le decisioni successive, isola le Sezioni Unite).
+In alternativa: `orientamento_su_norma(...)` per una norma o `orientamento_su_principio(principio="...")`
+per un principio espresso a parole.
+
+### Fase 2 — Lettura decisioni rappresentative
+Presenta la distribuzione (Sezioni Unite, cluster per sezione, trend per anno, segnali testuali di
+contrasto/conformità) e chiedi all'utente quali decisioni leggere. Per ciascuna scelta usa
+`leggi_sentenza(numero, anno)`.
+
+### Fase 3 — Fondamento normativo
+Per le norme rilevanti chiama `cite_law(reference)`.
+
+### Fase 4 — Sintesi
+Riporta: orientamento prevalente, eventuali contrasti segnalati, intervento delle Sezioni Unite (se
+presente) ed evoluzione temporale.
+
+REGOLE — IMPORTANTE:
+- La mappa è DESCRITTIVA (distribuzioni, segnali testuali "contrasto/consolidato"), NON una previsione
+  di overruling né una classifica dell'indirizzo "vincente" (art. ... L. 132/2025 — l'interpretazione è
+  riservata al giudice).
+- I segnali di (dis)conformità indicano che la decisione DISCUTE il contrasto/la conformità, non che essa
+  conforma/diverge in fatto. Etichettali come "decisioni che segnalano...".
+- Copertura full-text Italgiure ~dal 2020; segnalare il limite temporale.
+- Mai numeri di sentenza a memoria.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Prompt per recepimento direttive UE -> Italia
+# ---------------------------------------------------------------------------
+
+
+@mcp.prompt(
+    description="Recepimento di una direttiva UE in Italia: dalla direttiva all'atto di attuazione (Normattiva) e alla giurisprudenza CGUE collegata"
+)
+def attuazione_direttiva(direttiva: str) -> str:
+    return f"""Ricostruisci il recepimento italiano della direttiva UE indicata.
+
+DIRETTIVA: {direttiva} (CELEX es. "32019L0790" oppure "direttiva (UE) 2019/790")
+
+PROCEDURA:
+
+### Fase 1 — Atto di attuazione italiano
+Chiama `get_italian_implementation(direttiva="{direttiva}")` per gli atti italiani di trasposizione
+(tipo, numero, GU n./data, entrata in vigore, titolo, CELEX MNE). Se la direttiva è in realtà un
+REGOLAMENTO, il tool lo segnala: i regolamenti sono direttamente applicabili e NON hanno atto di
+recepimento — riportalo.
+
+### Fase 2 — Testo dell'atto italiano
+Per ciascun atto di attuazione chiama `cite_law(reference)` (es. "D.Lgs. 177/2021") per il testo
+vigente da Normattiva. (CELLAR fornisce solo i metadati del recepimento, non il testo nazionale.)
+
+### Fase 3 — Base UE e giurisprudenza
+Per la direttiva, chiama `cite_law` sul testo UE e `giurisprudenza_cgue_su_norma(riferimento=...)` per
+le pronunce della Corte di Giustizia che la interpretano. (Percorso inverso: da un atto italiano alla
+direttiva, usa `get_eu_basis(atto="...")`.)
+
+### Fase 4 — Sintesi
+Riporta: direttiva → atto/i italiano/i di attuazione (con estremi e GU), termine di trasposizione,
+eventuale ritardo/incompletezza emersa, e principali pronunce CGUE collegate.
+
+REGOLE:
+- Un atto nazionale può recepire più direttive e viceversa: riportarli tutti, senza assumere 1:1.
+- Distinguere metadati di recepimento (CELLAR) dal testo vigente (Normattiva).
+- Usare i tool, mai estremi a memoria.
+"""
