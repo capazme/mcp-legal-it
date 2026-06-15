@@ -477,7 +477,9 @@ def format_estremi(doc: dict) -> str:
 
     parts = [f"Cass. {ramo}"]
     if sez_fmt:
-        parts.append(f"sez. {sez_fmt}")
+        # Some _SEZIONI values already carry the "sez." prefix (e.g. "U" -> "sez. un.");
+        # avoid producing "sez. sez. un.".
+        parts.append(sez_fmt if sez_fmt.lower().startswith("sez") else f"sez. {sez_fmt}")
     parts.append(f"n. {num}/{anno}")
     if datdep:
         parts.append(f"dep. {datdep}")
