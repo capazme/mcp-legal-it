@@ -2,11 +2,13 @@
 
 import os
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.tools.legal_citations import (
     _parse_reference, _resolve_act, _build_nv, _cite_law_impl,
     _download_law_pdf_impl, _generate_pdf_from_text, _sanitize_for_pdf, _safe_filename,
+    _split_citazioni, _starts_new_reference, _classify_citazione, _sentenza_num_anno,
+    _normalize_sezione, _parse_resolved_estremi, _norma_misquote, _verifica_citazioni_impl,
 )
 from src.lib.visualex.models import Norma, NormaVisitata
 from src.lib.visualex.map import resolve_atto, normalize_act_type, find_brocardi_url
@@ -507,6 +509,287 @@ class TestDownloadLawPdf:
             result = await _download_law_pdf_impl("art. 13 GDPR")
             assert "PDF scaricato" in result
             assert "EUR-Lex" in result
+
+
+# ---------------------------------------------------------------------------
+# verifica_citazioni — input splitting & classification (pure helpers)
+# ---------------------------------------------------------------------------
+
+class TestVerificaSplit:
+    def test_split_newlines(self):
+        refs = _split_citazioni("art. 2043 c.c.\nart. 13 GDPR")
+        assert refs == ["art. 2043 c.c.", "art. 13 GDPR"]
+
+    def test_split_blank_lines_ignored(self):
+        refs = _split_citazioni("art. 2043 c.c.\n\n  \nart. 13 GDPR\n")
+        assert refs == ["art. 2043 c.c.", "art. 13 GDPR"]
+
+    def test_split_comma_separated_list(self):
+        refs = _split_citazioni("art. 2043 c.c., art. 13 GDPR")
+        assert refs == ["art. 2043 c.c.", "art. 13 GDPR"]
+
+    def test_comma_inside_sentenza_not_broken(self):
+        # The comma separates section from number — must stay one reference.
+        refs = _split_citazioni("Cass. sez. III, n. 12345/2024")
+        assert refs == ["Cass. sez. III, n. 12345/2024"]
+
+    def test_mixed_list_with_internal_comma(self):
+        refs = _split_citazioni("Cass. sez. III, n. 12345/2024, art. 2043 c.c.")
+        assert refs == ["Cass. sez. III, n. 12345/2024", "art. 2043 c.c."]
+
+    def test_empty_input(self):
+        assert _split_citazioni("") == []
+        assert _split_citazioni("\n  \n") == []
+
+    def test_starts_new_reference(self):
+        assert _starts_new_reference("art. 2043 c.c.")
+        assert _starts_new_reference("Cass. n. 1/2024")
+        assert _starts_new_reference("considerando 42 GDPR")
+        assert _starts_new_reference("12345/2024")
+        assert not _starts_new_reference("n. 12345/2024")
+        assert not _starts_new_reference("del 22 aprile 2024")
+
+
+class TestVerificaClassify:
+    def test_sentenza_full_form(self):
+        assert _classify_citazione("Cass. sez. III n. 12345/2024") == "sentenza"
+
+    def test_sentenza_bare_with_marker(self):
+        assert _classify_citazione("Cass. 12345/2024") == "sentenza"
+
+    def test_sentenza_n_del_anno(self):
+        assert _classify_citazione("Cass. n. 12345 del 2024") == "sentenza"
+
+    def test_norma(self):
+        assert _classify_citazione("art. 2043 c.c.") == "norma"
+
+    def test_norma_gdpr(self):
+        assert _classify_citazione("art. 13 GDPR") == "norma"
+
+    def test_non_interpretabile(self):
+        assert _classify_citazione("una frase qualsiasi senza riferimento") == "non interpretabile"
+
+    def test_dlgs_number_not_a_sentenza(self):
+        # "D.Lgs. 196/2003" must classify as norma-ish, never as a sentenza:
+        # the bare 196/2003 has no Cass. marker so the sentenza regex is skipped.
+        assert _classify_citazione("art. 1 D.Lgs. 196/2003") == "norma"
+        # Without article it is non-interpretabile (no Cass. marker → not sentenza).
+        assert _classify_citazione("D.Lgs. 196/2003") == "non interpretabile"
+
+    def test_sentenza_num_anno_extraction(self):
+        assert _sentenza_num_anno("Cass. sez. III n. 12345/2024") == (12345, 2024)
+        assert _sentenza_num_anno("Cass. 999 del 2021") == (999, 2021)
+        assert _sentenza_num_anno("art. 2043 c.c.") is None
+        # bare number/year without court marker → not a sentenza
+        assert _sentenza_num_anno("196/2003") is None
+
+
+class TestVerificaHelpers:
+    def test_normalize_sezione_roman(self):
+        assert _normalize_sezione("III") == "3"
+
+    def test_normalize_sezione_unite(self):
+        assert _normalize_sezione("Unite") == "SU"
+        assert _normalize_sezione("U") == "SU"
+
+    def test_normalize_sezione_lavoro(self):
+        assert _normalize_sezione("Lavoro") == "L"
+
+    def test_parse_resolved_estremi(self):
+        text = "# Cass. civ., sez. III, n. 12345/2024, dep. 22/04/2024\n**Materia**: x"
+        out = _parse_resolved_estremi(text)
+        assert out["numero"] == 12345
+        assert out["anno"] == 2024
+        assert out["sezione"] == "3"
+
+    def test_parse_resolved_estremi_ssuu(self):
+        text = "# Cass. civ., sez. SS.UU., n. 500/2023, dep. 01/02/2023"
+        out = _parse_resolved_estremi(text)
+        assert out["numero"] == 500
+        assert out["sezione"] == "SU"
+
+    def test_norma_misquote_comma_present(self):
+        # Article text with comma "2." present → no misquote.
+        text = "**Fonte**: Normattiva\n1. Primo comma.\n2. Secondo comma."
+        assert _norma_misquote("art. 13 co. 2 GDPR", text) is False
+
+    def test_norma_misquote_comma_absent(self):
+        text = "**Fonte**: Normattiva\n1. Unico comma presente."
+        assert _norma_misquote("art. 13 co. 5 GDPR", text) is True
+
+    def test_norma_misquote_lettera_present(self):
+        text = "**Fonte**: Normattiva\nIl titolare fornisce: a) i dati; b) le finalità."
+        assert _norma_misquote("art. 6 comma 1 lett. b) GDPR", text) is False
+
+    def test_norma_misquote_no_marker(self):
+        # No comma/lettera named in the reference → never a misquote.
+        text = "**Fonte**: Normattiva\nTesto qualsiasi."
+        assert _norma_misquote("art. 2043 c.c.", text) is False
+
+
+# ---------------------------------------------------------------------------
+# verifica_citazioni — end-to-end (mocked fetch_article + solr_query)
+# ---------------------------------------------------------------------------
+
+def _solr_doc(numero: int, anno: int, sez: str = "3", kind: str = "snciv") -> dict:
+    return {
+        "id": f"{kind}{anno}{sez}{numero}S",
+        "numdec": str(numero),
+        "anno": str(anno),
+        "datdep": ["20240422"],
+        "szdec": sez,
+        "materia": ["RESPONSABILITA CIVILE"],
+        "tipoprov": "Sentenza",
+        "kind": kind,
+        "ocr": ["Testo della sentenza " + "x" * 50],
+        "ocrdis": ["P.Q.M. La Corte rigetta il ricorso."],
+    }
+
+
+def _solr_response(docs: list[dict]) -> dict:
+    return {
+        "responseHeader": {"status": 0},
+        "response": {"numFound": len(docs), "start": 0, "docs": docs},
+    }
+
+
+def _patch_solr(response_by_call):
+    """Build an AsyncMock for solr_query that returns canned responses in order.
+
+    response_by_call: a single dict (always returned) or a list of dicts
+    (returned in sequence per call).
+    """
+    if isinstance(response_by_call, list):
+        return AsyncMock(side_effect=response_by_call)
+    return AsyncMock(return_value=response_by_call)
+
+
+def _fake_session():
+    """A no-op async context manager standing in for SolrSession."""
+    sess = MagicMock()
+    sess.__aenter__ = AsyncMock(return_value=sess)
+    sess.__aexit__ = AsyncMock(return_value=False)
+    return sess
+
+
+class TestVerificaCitazioniE2E:
+    @pytest.mark.asyncio
+    async def test_norma_exists(self):
+        async def fake_fetch_article(nv):
+            return {
+                "text": "Qualunque fatto doloso o colposo obbliga a risarcire il danno.",
+                "url": "https://normattiva.it/art2043",
+                "source": "normattiva",
+            }
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _verifica_citazioni_impl("art. 2043 c.c.")
+        assert "| 1 |" in out
+        assert "Norma" in out
+        assert "verificata" in out
+        assert "esistenza" in out  # disclaimer present
+
+    @pytest.mark.asyncio
+    async def test_norma_not_found(self):
+        async def fake_fetch_article(nv):
+            return {"text": "", "url": "https://normattiva.it/x", "source": "", "error": "404"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001")
+        assert "non trovata" in out
+
+    @pytest.mark.asyncio
+    async def test_norma_misquote_comma_absent(self):
+        async def fake_fetch_article(nv):
+            return {
+                "text": "1. Unico comma dell'articolo.",
+                "url": "https://normattiva.it/art13",
+                "source": "normattiva",
+            }
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _verifica_citazioni_impl("art. 13 co. 7 D.Lgs. 196/2003")
+        assert "metadati discordanti" in out
+
+    @pytest.mark.asyncio
+    async def test_sentenza_exists(self):
+        resp = _solr_response([_solr_doc(12345, 2024, sez="3")])
+        with patch("src.tools.italgiure.solr_query", _patch_solr(resp)), \
+             patch("src.tools.italgiure.SolrSession", return_value=_fake_session()):
+            out = await _verifica_citazioni_impl("Cass. sez. III n. 12345/2024")
+        assert "Sentenza" in out
+        assert "verificata" in out
+
+    @pytest.mark.asyncio
+    async def test_sentenza_not_found(self):
+        empty = _solr_response([])
+        # leggi_sentenza tries up to 4 queries — all empty → no_results
+        with patch("src.tools.italgiure.solr_query", _patch_solr(empty)), \
+             patch("src.tools.italgiure.SolrSession", return_value=_fake_session()):
+            out = await _verifica_citazioni_impl("Cass. n. 99999/2024")
+        assert "inesistente" in out
+
+    @pytest.mark.asyncio
+    async def test_sentenza_pre_2020_not_verifiable(self):
+        # No HTTP should be touched: the year gate short-circuits.
+        out = await _verifica_citazioni_impl("Cass. n. 5000/2015")
+        assert "non verificabile" in out
+        assert "2020" in out
+        assert "inesistente" not in out
+
+    @pytest.mark.asyncio
+    async def test_sentenza_metadata_mismatch_sezione(self):
+        # User says sez. I, but resolved decision is sez. III → discordanti.
+        resp = _solr_response([_solr_doc(12345, 2024, sez="3")])
+        with patch("src.tools.italgiure.solr_query", _patch_solr(resp)), \
+             patch("src.tools.italgiure.SolrSession", return_value=_fake_session()):
+            out = await _verifica_citazioni_impl("Cass. sez. I n. 12345/2024")
+        assert "metadati discordanti" in out
+
+    @pytest.mark.asyncio
+    async def test_sentenza_fallback_returns_different_decision(self):
+        # The 4-step fallback can surface a DIFFERENT decision — must be inesistente.
+        # First two lookups empty, then step-4 full-text returns n. 88888/2024.
+        wrong = _solr_response([_solr_doc(88888, 2024, sez="3")])
+        empty = _solr_response([])
+        # leggi_sentenza(numero=12345): step1 empty (no sezione passed → step2 skipped),
+        # step3 empty, step4 returns the wrong doc.
+        with patch("src.tools.italgiure.solr_query", _patch_solr([empty, empty, wrong])), \
+             patch("src.tools.italgiure.SolrSession", return_value=_fake_session()):
+            out = await _verifica_citazioni_impl("Cass. n. 12345/2024")
+        assert "inesistente" in out
+        assert "88888" in out
+
+    @pytest.mark.asyncio
+    async def test_non_interpretabile(self):
+        out = await _verifica_citazioni_impl("questo non e un riferimento valido")
+        assert "Non interpretabile" in out
+
+    @pytest.mark.asyncio
+    async def test_empty_input_error(self):
+        out = await _verifica_citazioni_impl("   \n  ")
+        assert "Errore" in out
+
+    @pytest.mark.asyncio
+    async def test_mixed_batch_table_shape(self):
+        async def fake_fetch_article(nv):
+            return {
+                "text": "Testo articolo.",
+                "url": "https://normattiva.it/x",
+                "source": "normattiva",
+            }
+
+        resp = _solr_response([_solr_doc(12345, 2024, sez="3")])
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article), \
+             patch("src.tools.italgiure.solr_query", _patch_solr(resp)), \
+             patch("src.tools.italgiure.SolrSession", return_value=_fake_session()):
+            out = await _verifica_citazioni_impl(
+                "Cass. sez. III n. 12345/2024\nart. 2043 c.c.\nfrase non valida"
+            )
+        # Header + 3 data rows
+        assert out.count("\n| ") >= 3
+        assert "| 1 |" in out and "| 2 |" in out and "| 3 |" in out
+        assert "Sentenza" in out and "Norma" in out and "Non interpretabile" in out
 
 
 # ---------------------------------------------------------------------------

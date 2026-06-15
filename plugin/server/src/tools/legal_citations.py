@@ -2,6 +2,7 @@
 e Brocardi (annotazioni dottrinali e giurisprudenziali). Usare cite_law() come punto di ingresso
 principale prima di citare qualsiasi norma in un parere o documento legale."""
 
+import asyncio
 import os
 import re
 import tempfile
@@ -660,3 +661,391 @@ async def download_law_pdf(reference: str) -> str:
                    "codice civile", "art. 13 GDPR"
     """
     return await _download_law_pdf_impl(reference)
+
+
+# ---------------------------------------------------------------------------
+# verifica_citazioni — citation existence + metadata verifier
+# ---------------------------------------------------------------------------
+
+# Earliest year covered by the Italgiure archive. Decisions before this cannot
+# be confirmed as existent or not — they are simply outside the searchable index.
+_ITALGIURE_MIN_YEAR = 2020
+
+# Hard cap on the number of references resolved in a single call, to bound
+# concurrency against the slow government sources.
+_MAX_CITAZIONI = 20
+
+# Cassazione decision shape: a decision number followed by a 4-digit year,
+# in either "n. 12345/2024" / "12345/2024" or "n. 12345 del 2024" form,
+# optionally preceded by "Cass." / "sez. ...". The presence of an explicit
+# court/section marker OR the "n. .../YYYY" pattern marks a SENTENZA.
+_SENTENZA_NUM_ANNO = re.compile(
+    r"n\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})",
+    re.IGNORECASE,
+)
+_SENTENZA_BARE = re.compile(
+    r"(?<!\d)(\d{1,6})\s*/\s*((?:19|20)\d{2})(?!\d)",
+)
+_CASS_MARKER = re.compile(r"\b(?:cass(?:azione)?|sez(?:ione)?|ss?\.?\s*uu)\b", re.IGNORECASE)
+
+# Section parsing from the user's citation (e.g. "sez. III", "Sezioni Unite").
+_USER_SEZIONE = re.compile(
+    r"sez(?:ione|\.)?\s*"
+    r"(unite|un\.?|u|s\.?u\.?|lavoro|lav\.?|l|trib(?:utaria)?\.?|t|"
+    r"[ivx]+|\d+)",
+    re.IGNORECASE,
+)
+
+# Section parsing from the resolved estremi heading (uses _SEZIONI labels:
+# "I".."VII", "lav.", "trib.", "SS.UU.", "sez. un.").
+_RESOLVED_ESTREMI = re.compile(
+    r"n\.\s*(\d+)\s*/\s*(\d+)",
+)
+_RESOLVED_SEZIONE = re.compile(
+    r"sez\.\s*([^,\n]+?)\s*,",
+)
+
+# comma / lettera markers in the user's citation
+_USER_COMMA = re.compile(r"\b(?:co(?:mma)?|c)\.?\s*(\d+)", re.IGNORECASE)
+_USER_LETTERA = re.compile(r"\blett(?:era)?\.?\s*([a-z])\b", re.IGNORECASE)
+
+# Roman numeral / arabic mapping for section comparison.
+_ROMAN_TO_INT = {
+    "i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7,
+}
+
+
+def _split_citazioni(citazioni: str) -> list[str]:
+    """Split raw input into individual references.
+
+    Primary separator is the newline. Within a line, comma-separated lists are
+    supported, but a comma that merely separates a section from its number
+    (e.g. "Cass. sez. III, n. 12345/2024") must NOT break the reference. A
+    fragment starts a NEW reference only when it begins with a known opener
+    (art./articolo, considerando/recital, Cass./sez., or a bare digit); any
+    other fragment is a continuation and is re-joined to the previous one.
+    """
+    refs: list[str] = []
+    for line in citazioni.replace("\r", "").split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        if "," not in line:
+            refs.append(line)
+            continue
+        fragments = [f.strip() for f in line.split(",")]
+        current = ""
+        for frag in fragments:
+            if not frag:
+                continue
+            if current and _starts_new_reference(frag):
+                refs.append(current)
+                current = frag
+            elif current:
+                current = f"{current}, {frag}"
+            else:
+                current = frag
+        if current:
+            refs.append(current)
+    return refs
+
+
+def _starts_new_reference(fragment: str) -> bool:
+    """True if a comma-fragment begins a fresh citation (not a continuation)."""
+    low = fragment.lstrip().lower()
+    if re.match(r"(?:art(?:icol[oi])?\.?\s*\d|considerando\s+\d|recital\s+\d)", low):
+        return True
+    if re.match(r"(?:cass|sez|ss?\.?\s*uu)", low):
+        return True
+    if re.match(r"\d", low):
+        return True
+    return False
+
+
+def _classify_citazione(reference: str) -> str:
+    """Classify a reference as 'sentenza', 'norma', or 'non interpretabile'."""
+    if _sentenza_num_anno(reference) is not None:
+        return "sentenza"
+    article, act_name = _parse_reference(reference)
+    if article and act_name:
+        return "norma"
+    return "non interpretabile"
+
+
+def _sentenza_num_anno(reference: str) -> tuple[int, int] | None:
+    """Extract (numero, anno) if the reference has a Cassazione decision shape.
+
+    Recognised forms:
+      - "Cass. n. 12345/2024", "sez. III n. 12345/2024", "n. 12345 del 2024"
+      - "12345/2024" only when an explicit court/section marker is present,
+        to avoid mistaking "196/2003" (a D.Lgs. number) for a decision.
+    """
+    m = _SENTENZA_NUM_ANNO.search(reference)
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    if _CASS_MARKER.search(reference):
+        m = _SENTENZA_BARE.search(reference)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+        # "Cass. 999 del 2021" — number + year without the "n." prefix.
+        m = re.search(r"(?<!\d)(\d{1,6})\s+del\s+((?:19|20)\d{2})", reference, re.IGNORECASE)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+    return None
+
+
+def _normalize_sezione(raw: str) -> str:
+    """Normalise a section token (roman/arabic/word) to a comparable code."""
+    s = raw.strip().lower().rstrip(".")
+    if s in ("unite", "un", "u", "su", "s.u", "ss.uu", "ssuu"):
+        return "SU"
+    if s in ("lavoro", "lav", "l"):
+        return "L"
+    if s in ("tributaria", "trib", "t"):
+        return "T"
+    if s in _ROMAN_TO_INT:
+        return str(_ROMAN_TO_INT[s])
+    if s.isdigit():
+        return s
+    return s
+
+
+def _parse_resolved_estremi(results_text: str) -> dict:
+    """Parse the resolved decision metadata from a leggi_sentenza heading.
+
+    The first line is the estremi heading produced by format_full_text, e.g.
+    "# Cass. civ., sez. III, n. 12345/2024, dep. 22/04/2024". Returns
+    {"numero", "anno", "sezione"} with whatever could be extracted.
+    """
+    first_line = results_text.splitlines()[0] if results_text else ""
+    out: dict = {}
+    m = _RESOLVED_ESTREMI.search(first_line)
+    if m:
+        out["numero"] = int(m.group(1))
+        out["anno"] = int(m.group(2))
+    sez_m = _RESOLVED_SEZIONE.search(first_line)
+    if sez_m:
+        # The resolved label uses _SEZIONI values: I..VII, lav., trib., SS.UU.
+        out["sezione"] = _normalize_resolved_sezione(sez_m.group(1))
+    return out
+
+
+def _normalize_resolved_sezione(raw: str) -> str:
+    """Normalise the section as rendered in the estremi (I, lav., SS.UU., ...)."""
+    s = raw.strip().lower().rstrip(".")
+    if s in ("ss.uu", "ssuu", "sez. un", "sez un", "un"):
+        return "SU"
+    if s == "lav":
+        return "L"
+    if s == "trib":
+        return "T"
+    if s in _ROMAN_TO_INT:
+        return str(_ROMAN_TO_INT[s])
+    if s.isdigit():
+        return s
+    return s
+
+
+def _norma_misquote(reference: str, article_text: str) -> bool:
+    """True if the citation names a comma/lettera absent from the article text.
+
+    Conservative: only flags when a comma/lettera marker is explicitly named in
+    the reference AND no corresponding marker is found in the article body.
+    """
+    text = article_text or ""
+
+    comma_m = _USER_COMMA.search(reference)
+    if comma_m:
+        n = int(comma_m.group(1))
+        # An article comma is rendered as a leading "N." (e.g. "2. Il titolare…")
+        # or referenced as "comma N" inside the text.
+        comma_present = bool(
+            re.search(rf"(?m)^\s*{n}\s*\.", text)
+            or re.search(rf"\bcomma\s+{n}\b", text, re.IGNORECASE)
+        )
+        # Only flag a missing comma when the text actually numbers its commas
+        # (i.e. other leading "K." markers exist): a single-comma article rarely
+        # prints "1.", so absence there is not a reliable misquote signal.
+        numbered_commas = {
+            int(x) for x in re.findall(r"(?m)^\s*(\d{1,2})\s*\.", text)
+        }
+        text_is_numbered = len(numbered_commas) >= 1
+        if not comma_present and text_is_numbered:
+            return True
+
+    lettera_m = _USER_LETTERA.search(reference)
+    if lettera_m:
+        letter = lettera_m.group(1).lower()
+        # A lettera is rendered as "a)" / "lettera a)".
+        lettera_present = bool(
+            re.search(rf"(?<![a-z]){letter}\)", text, re.IGNORECASE)
+            or re.search(rf"\blett(?:era)?\.?\s*{letter}\b", text, re.IGNORECASE)
+        )
+        if not lettera_present:
+            return True
+
+    return False
+
+
+async def _verifica_norma(reference: str) -> tuple[str, str]:
+    """Verify a NORMA reference. Returns (verdetto, nota)."""
+    markdown = await _cite_law_impl(reference)
+    if markdown.startswith("**Errore**") or markdown.startswith("**Nessun testo trovato**"):
+        return "non trovata", "Atto o articolo non reperibile su Normattiva/EUR-Lex."
+
+    # Source line: "**Fonte**: <Source> — <url>"
+    fonte = ""
+    fonte_m = re.search(r"\*\*Fonte\*\*:\s*(.+)", markdown)
+    if fonte_m:
+        fonte = fonte_m.group(1).strip()
+
+    if _norma_misquote(reference, markdown):
+        nota = "Comma/lettera citato non riscontrato nel testo dell'articolo."
+        if fonte:
+            nota += f" Fonte: {fonte}"
+        return "metadati discordanti", nota
+
+    return "verificata", f"Fonte: {fonte}" if fonte else "Testo ufficiale reperito."
+
+
+async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
+    """Verify a SENTENZA reference. Returns (verdetto, nota)."""
+    num_anno = _sentenza_num_anno(reference)
+    if num_anno is None:  # pragma: no cover - guarded by classification
+        return "non interpretabile", "Numero/anno della decisione non riconosciuti."
+    numero, anno = num_anno
+
+    if anno < _ITALGIURE_MIN_YEAR:
+        return (
+            "non verificabile",
+            f"Decisione n. {numero}/{anno} anteriore al {_ITALGIURE_MIN_YEAR}, "
+            "fuori archivio Italgiure.",
+        )
+
+    from src.tools.italgiure import _leggi_sentenza_impl
+
+    sezione_req = ""
+    sez_m = _USER_SEZIONE.search(reference)
+    if sez_m:
+        sezione_req = _normalize_sezione(sez_m.group(1))
+
+    result = await _leggi_sentenza_impl(numero, anno, archivio=archivio)
+
+    if not result.success:
+        if result.error_type == "source_down":
+            return (
+                "non verificata",
+                f"Italgiure non raggiungibile: {result.error_message}",
+            )
+        return (
+            "inesistente",
+            f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione.",
+        )
+
+    # The 4-step fallback can return a DIFFERENT decision — re-check identity.
+    resolved = _parse_resolved_estremi(result.results_text)
+    res_num = resolved.get("numero")
+    res_anno = resolved.get("anno")
+    if res_num is not None and res_anno is not None and (res_num != numero or res_anno != anno):
+        return (
+            "inesistente",
+            f"La ricerca ha restituito Cass. n. {res_num}/{res_anno}, "
+            f"diversa da quella citata (n. {numero}/{anno}).",
+        )
+
+    # Metadata cross-check: requested section vs resolved section.
+    res_sez = resolved.get("sezione", "")
+    if sezione_req and res_sez and sezione_req != res_sez:
+        return (
+            "metadati discordanti",
+            f"Sezione citata ({sezione_req}) diversa dalla sezione effettiva ({res_sez}). "
+            f"Cass. n. {numero}/{anno}.",
+        )
+
+    return "verificata", f"Cass. n. {numero}/{anno} reperita su Italgiure."
+
+
+async def _verifica_citazioni_impl(citazioni: str, archivio: str = "tutti") -> str:
+    """Implementation of verifica_citazioni (testable without MCP wrapper)."""
+    refs = _split_citazioni(citazioni)
+    if not refs:
+        return "**Errore**: nessuna citazione fornita. Inserire un riferimento per riga."
+
+    truncated = len(refs) > _MAX_CITAZIONI
+    refs = refs[:_MAX_CITAZIONI]
+
+    tipi = [_classify_citazione(r) for r in refs]
+
+    async def _resolve_one(reference: str, tipo: str) -> tuple[str, str, str]:
+        try:
+            if tipo == "sentenza":
+                verdetto, nota = await _verifica_sentenza(reference, archivio)
+            elif tipo == "norma":
+                verdetto, nota = await _verifica_norma(reference)
+            else:
+                return ("Non interpretabile", "—", "Formato non riconosciuto.")
+        except Exception as exc:  # fail-safe: never crash the whole batch
+            return (tipo.capitalize(), "non verificata", f"Errore durante la verifica: {exc}")
+        return (tipo.capitalize(), verdetto, nota)
+
+    results = await asyncio.gather(
+        *(_resolve_one(r, t) for r, t in zip(refs, tipi))
+    )
+
+    lines = [
+        "| # | Citazione | Tipo | Verdetto | Note/Fonte |",
+        "|---|-----------|------|----------|------------|",
+    ]
+    for i, (reference, (tipo_label, verdetto, nota)) in enumerate(zip(refs, results), start=1):
+        cit = reference.replace("|", "\\|")
+        nota_clean = (nota or "—").replace("|", "\\|").replace("\n", " ")
+        lines.append(f"| {i} | {cit} | {tipo_label} | {verdetto} | {nota_clean} |")
+
+    if truncated:
+        lines.append("")
+        lines.append(
+            f"> *Verificate solo le prime {_MAX_CITAZIONI} citazioni "
+            "(limite per chiamata).*"
+        )
+
+    lines.append("")
+    lines.append(
+        "> **Nota**: la verifica accerta l'**esistenza** della fonte e la coerenza "
+        "dei **metadati** (numero, anno, sezione, comma/lettera citati). NON verifica "
+        "l'esattezza del **principio di diritto** o del contenuto citato."
+    )
+    return "\n".join(lines)
+
+
+@mcp.tool(tags={"normativa"})
+async def verifica_citazioni(citazioni: str, archivio: str = "tutti") -> str:
+    """Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali.
+
+    Accetta un insieme di riferimenti — sentenze della Cassazione e/o articoli di legge —
+    uno per riga (oppure separati da virgola) e, per ciascuno, controlla che la fonte
+    esista realmente e che i metadati citati (numero, anno, sezione per le sentenze;
+    comma/lettera per le norme) siano coerenti con la fonte ufficiale.
+
+    Le sentenze sono risolte su Italgiure (`leggi_sentenza`), le norme su Normattiva/EUR-Lex
+    (`cite_law`). Utile per controllare le citazioni di un atto, un parere o un testo prodotto
+    da un altro modello prima di farne uso.
+
+    ATTENZIONE: questo tool verifica l'**esistenza** della fonte e i **metadati**, NON
+    l'esattezza del principio di diritto o del contenuto sostanziale citato.
+
+    Verdetti possibili:
+      - **verificata** — la fonte esiste e i metadati coincidono
+      - **inesistente** — la decisione non risulta negli archivi (o la ricerca ha restituito
+        una decisione diversa da quella citata)
+      - **non trovata** — l'atto/articolo non è reperibile
+      - **metadati discordanti** — la fonte esiste ma sezione/comma/lettera non coincidono
+      - **non verificabile** — sentenza anteriore al 2020 (fuori archivio Italgiure)
+      - **non verificata** — fonte temporaneamente non raggiungibile
+      - **Non interpretabile** — formato del riferimento non riconosciuto
+
+    Args:
+        citazioni: Elenco di riferimenti, uno per riga (o separati da virgola), es.
+                   "Cass. sez. III n. 12345/2024\\nart. 2043 c.c.\\nart. 13 GDPR"
+        archivio: Archivio Italgiure per le sentenze: "civile", "penale" o "tutti" (default)
+    """
+    return await _verifica_citazioni_impl(citazioni, archivio)
