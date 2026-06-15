@@ -485,6 +485,55 @@ class TestFetchBrocardi:
             assert result.error
             assert "non trovato" in result.error.lower()
 
+    @pytest.mark.asyncio
+    async def test_self_healing_poisoned_cache(self):
+        """A stale cache entry pointing at a 404 URL is dropped and re-resolved."""
+        import httpx
+        from src.lib.brocardi.client import _url_cache
+
+        base = "https://www.brocardi.it/codice-civile/"
+        poisoned = "https://www.brocardi.it/codice-civile/art2043.html"  # 404
+        correct = "https://www.brocardi.it/codice-civile/libro-quarto/titolo-ix/art2043.html"
+        index_html = '<a href="libro-quarto/titolo-ix/art2043.html">Art. 2043</a>'
+
+        _url_cache.clear()
+        _url_cache[f"{base}#2043"] = poisoned  # poison the cache
+
+        def make_resp(url, text, status=200):
+            resp = AsyncMock()
+            resp.url = url
+            resp.text = text
+            if status == 404:
+                req = httpx.Request("GET", url)
+                resp.raise_for_status = MagicMock(
+                    side_effect=httpx.HTTPStatusError(
+                        "404", request=req, response=httpx.Response(404, request=req)
+                    )
+                )
+            else:
+                resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_get(url, **kwargs):
+            if url == poisoned:
+                return make_resp(url, "Not Found", status=404)
+            if url == base:
+                return make_resp(url, index_html)
+            return make_resp(url, _BROCARDI_HTML)
+
+        mock_client = AsyncMock()
+        mock_client.get = mock_get
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("src.lib.brocardi.client.httpx.AsyncClient", return_value=mock_client):
+            result = await fetch_brocardi("codice civile", "2043")
+
+        assert not result.error
+        assert result.url == correct
+        assert len(result.massime) == 2
+        assert _url_cache[f"{base}#2043"] == correct  # cache healed
+
 
 # ---------------------------------------------------------------------------
 # cerca_brocardi tool (mocked HTTP)
