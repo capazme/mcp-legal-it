@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2026-06-15
+
+### Fixed
+- **Brocardi annotations 404**: `fetch_brocardi` now self-heals a stale/poisoned URL cache — when a cached article URL returns 404 (left over from an older version), it is dropped and re-resolved once, instead of failing permanently (e.g. annotations for `art. 2043 c.c.`).
+- **Orientamento output**: removed the duplicated `sez.` for Sezioni Unite (`szdec="U"` now renders `Cass. civ., sez. un., ...` instead of `sez. sez. un.`).
+
 ## [2.6.0] - 2026-06-15
 
 ### Added
