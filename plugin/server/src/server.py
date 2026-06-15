@@ -1,4 +1,4 @@
-"""MCP Legal IT — 177 Italian legal tools: calculations, normative citations, case law (Cassazione, CeRDEF, TAR/CdS, CGUE), GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 214 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 
@@ -19,13 +19,18 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - INVESTIMENTI: BOT, BTP, buoni postali, rendimento
 - UTILITÀ: codice fiscale, IBAN, scorporo IVA, patente, alcolemico, ATECO
 - NORMATIVA: cite_law() per testo vigente, Brocardi per dottrina, PDF norme
+- VERIFICA CITAZIONI: verifica_citazioni() controlla esistenza e metadati di un elenco di norme e sentenze citate (NON verifica il merito)
+- GAZZETTA UFFICIALE: cerca_gazzetta_ufficiale, leggi_atto_gazzetta, sommario_gazzetta, ultime_gazzette, scarica_pdf_gazzetta — atti pubblicati in GU (leggi, decreti, ELI)
 - GIURISPRUDENZA: sentenze Cassazione (Italgiure, archivio 2020+). Strategia: esplora → filtra → leggi
+- CORTE COSTITUZIONALE: cerca_pronuncia_costituzionale, leggi_pronuncia_costituzionale, pronunce_cost_su_norma, ultime_pronunce_cost — sentenze/ordinanze Consulta, massime, parametri costituzionali
+- ORIENTAMENTO GIURISPRUDENZIALE: orientamento_su_norma, orientamento_su_principio, mappa_orientamento — conformi vs contrasti, interventi Sezioni Unite (descrittivo, non predittivo)
 - GIURISPRUDENZA TRIBUTARIA: sentenze CTP/CTR/CGT, Cassazione tributaria, IVA, IRES, accertamento, riscossione (CeRDEF)
 - GARANTE PRIVACY: provvedimenti GPDP, ricerca sanzioni, linee guida
 - GDPR/PRIVACY COMPLIANCE: informative privacy (art. 13-14), cookie policy, DPA (art. 28), registro trattamenti (art. 30), DPIA (art. 35), data breach (art. 33-34), sanzioni (art. 83), base giuridica (art. 6)
 - CONSOB: delibere, provvedimenti, regolamenti mercati finanziari, intermediari, abusi di mercato
 - GIUSTIZIA AMMINISTRATIVA: sentenze TAR, Consiglio di Stato, appalti, urbanistica, PA, edilizia, accesso atti
 - GIURISPRUDENZA UE: sentenze CGUE, Corte di Giustizia UE, Tribunale UE, rinvio pregiudiziale, conclusioni AG, ECLI
+- ATTUAZIONE UE→IT: get_italian_implementation()/elenco_misure_nazionali() per le misure nazionali di recepimento di una direttiva, get_eu_basis() per la base UE di un atto italiano (CELLAR/SPARQL)
 - REDAZIONE ATTI: genera_modello_atto() per catalogo 100 tipi atti (DI, precetto, procura, relata, attestazione, citazione, pignoramento, preventivo, privacy)
 
 REGOLE: cite_law() PRIMA di citare norme. leggi_sentenza() DIRETTO per sentenze note.
@@ -35,6 +40,10 @@ WORKFLOW:
 Sinistro → danno_biologico_* → danno_non_patrimoniale → rivalutazione_monetaria → interessi_legali
 Credito → interessi_mora → rivalutazione_monetaria → decreto_ingiuntivo → parcella_avvocato_civile
 Norma → cite_law → cerca_brocardi → giurisprudenza_su_norma → leggi_sentenza
+Orientamento → orientamento_su_norma/orientamento_su_principio → mappa_orientamento (conformi/contrasti/SS.UU.)
+Costituzionale → cerca_pronuncia_costituzionale → leggi_pronuncia_costituzionale | pronunce_cost_su_norma → cite_law
+Gazzetta → ultime_gazzette/cerca_gazzetta_ufficiale → leggi_atto_gazzetta → cite_law
+Recepimento UE → get_italian_implementation(direttiva) → cite_law | get_eu_basis(atto IT) → cite_law
 Giurisprudenza → cerca_giurisprudenza(modalita="esplora") → cerca_giurisprudenza(filtri) → leggi_sentenza
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
 Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
@@ -75,6 +84,10 @@ from src.tools import (  # noqa: E402, F401
     privacy_gdpr,
     modelli_atti,
     procedura_civile,
+    corte_cost,
+    gazzetta,
+    orientamento,
+    eu_implementation,
 )
 
 from src import prompts, resources  # noqa: E402, F401
@@ -89,10 +102,11 @@ _PROFILES: dict[str, set[str]] = {
     "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
     "penale": {"penale", "normativa", "giurisprudenza"},
     "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario"},
-    "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob"},
+    "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob", "costituzionale"},
     "privacy": {"privacy", "normativa", "giurisprudenza"},
     "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro"},
     "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
+    "cowork": {"normativa", "giurisprudenza", "privacy", "parcelle_avv"},
 }
 
 _profile = os.environ.get("LEGAL_PROFILE", "full")
