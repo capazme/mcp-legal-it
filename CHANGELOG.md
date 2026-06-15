@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-06-15
+
+### Added
+- 4 guided `@mcp.prompt` workflows (19 → 23) for the sources added in 2.5.0: `analisi_costituzionale` (Corte Costituzionale), `ricerca_gazzetta` (Gazzetta Ufficiale, RSS + as-published vs vigente), `orientamento_giurisprudenziale` (descriptive, with the L. 132/2025 disclaimer), `attuazione_direttiva` (EU directive → Italian implementing act → Normattiva text → CGUE case law).
+
 ## [2.5.0] - 2026-06-15
 
 ### Added

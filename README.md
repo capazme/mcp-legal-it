@@ -117,7 +117,7 @@ Configurazione in `claude_desktop_config.json`:
 
 ---
 
-## Skill — 19 workflow guidati
+## Skill — 23 workflow guidati
 
 Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base al contesto.
 
