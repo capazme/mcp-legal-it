@@ -42,6 +42,19 @@ _MAX_OCR_LENGTH = 30000
 
 _FACET_FIELDS = ["materia", "szdec", "anno", "tipoprov"]
 
+# Textual signals a decision uses to FLAG a divergence in the case law.
+# These are SELF-DECLARED markers in the decision text — NOT a holding classifier.
+CONFLICT_SIGNALS = [
+    "contrasto giurisprudenziale",
+    "difforme orientamento",
+    "discostarsi",
+]
+# Textual signals a decision uses to ALIGN with settled case law.
+CONFORMITY_SIGNALS = [
+    "orientamento consolidato",
+    "in senso conforme",
+]
+
 _SEZIONI = {
     "1": "I",
     "2": "II",
@@ -252,6 +265,89 @@ def build_explore_params(
         "facet.limit": 15,
         "facet.mincount": 1,
     }
+
+
+def _signal_facet_query(phrase: str) -> str:
+    """Return the Solr facet.query string for a self-flag signal phrase."""
+    return f'ocr:"{phrase}"'
+
+
+def build_orientamento_params(
+    q: str,
+    archivio: str = "tutti",
+    anno_da: int = 0,
+    sezione: str = "",
+    rows: int = 10,
+    campo: str = "tutto",
+    field_query: bool = False,
+) -> dict:
+    """Build ONE faceted query for a descriptive orientation map.
+
+    Single round-trip: returns the LATER decisions sorted by deposit date (newest
+    first via the sortable `pd` field) plus three facet axes computed server-side
+    in the same request:
+      - facet.field szdec  → per-sezione clustering (incl. szdec:U = Sezioni Unite)
+      - facet.field anno   → temporal trend
+      - facet.query × N    → count of decisions whose text SELF-FLAGS a
+        contrasto/difforme signal vs an orientamento consolidato/conforme signal
+
+    The facet.query counts are a TEXTUAL SIGNAL, never a holdings classifier
+    (L. 132/2025 reserves legal interpretation to magistrates — descriptive only).
+
+    Two query modes:
+      - *field_query=False* (default, free-text principle): edismax over qf, with
+        the kind clause as an fq. Use for `orientamento_su_principio`.
+      - *field_query=True* (fielded norma query, e.g. `ocr:("art. 2043" OR ...)`
+        from `build_norma_variants`): plain lucene `q` with the kind clause AND-ed
+        in; no defType/qf/mm (passing a fielded ocr:(...) clause as the edismax q
+        triggers a 400 on Italgiure). Use for `orientamento_su_norma`.
+
+    *q* is passed verbatim (caller normalises / builds variants). *campo*
+    "dispositivo" narrows the qf to the operative part (free-text mode only).
+    Faceting (incl. facet.query) is independent of defType, so it works in both
+    modes. Never issues N separate requests.
+    """
+    kinds = get_kind_filter(archivio)
+    kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
+    facet_queries = (
+        [_signal_facet_query(p) for p in CONFLICT_SIGNALS]
+        + [_signal_facet_query(p) for p in CONFORMITY_SIGNALS]
+    )
+    params: dict = {
+        "rows": rows,
+        "start": 0,
+        "sort": "pd desc",
+        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
+        "facet": "true",
+        "facet.field": ["szdec", "anno"],
+        "facet.limit": 30,
+        "facet.mincount": 1,
+        "facet.query": facet_queries,
+    }
+    if field_query:
+        # Lucene mode: embed kind clause in q, fielded query AND-ed in.
+        params["q"] = f"({kind_clause}) AND {q}"
+        fq: list[str] = []
+    else:
+        # Edismax mode: free-text scored over qf, kind clause as fq.
+        if campo == "dispositivo":
+            qf = "ocrdis^1"
+        else:
+            qf = "ocrdis^5 ocr^1"
+        params.update({
+            "defType": "edismax",
+            "q": q,
+            "qf": qf,
+            "mm": "2<75% 5<60%",
+        })
+        fq = [f"({kind_clause})"]
+    if sezione:
+        fq.append(f"szdec:{sezione}")
+    if anno_da:
+        fq.append(f"anno:[{anno_da} TO *]")
+    if fq:
+        params["fq"] = fq
+    return params
 
 
 def format_facets(facet_counts: dict, num_found: int) -> str:
