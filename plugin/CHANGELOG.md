@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-06-15
+
+### Fixed
+- Version metadata consistency across all distribution manifests and changelogs (the 2.4.0 `.mcpb` was built from stale 2.3.3 manifests).
+
+## [2.4.0] - 2026-06-15
+
+### Added
+- AKN XML fetch path for Normattiva (`akn_parser.py`, `akn_fetch.py`): official Akoma Ntoso 3.0 export via `caricaAKN` instead of per-article HTML scraping, with automatic HTML fallback. Handles flat and component (codici) structures, resolves `<ins>`/`<del>`, strips `(( ))` markers.
+- Bounded LRU + on-disk parsed-act cache with a URL→params index so warm hits skip the landing page (0 network for the 2nd+ article of the same act).
+- `AKN_DISABLED` env var to force the legacy HTML path; 60 new unit tests + benchmark harness.
+
+### Changed
+- `fetch_article` and `fetch_normattiva_full_text` route AKN-first with HTML fallback (public tool signatures unchanged).
+
+### Performance
+- Full-text retrieval 8–37x faster (1 request vs 33–158) and more complete than the HTML walker (e.g. L. 241/1990: 51 vs 32 articles).
+
 ## [2.3.3] - 2026-04-13
 
 ### Added
