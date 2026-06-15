@@ -1,9 +1,12 @@
 from .client import (
+    CONFLICT_SIGNALS,
+    CONFORMITY_SIGNALS,
     TIPO_PROV,
     SolrSession,
     build_explore_params,
     build_lookup_params,
     build_norma_variants,
+    build_orientamento_params,
     build_search_params,
     format_estremi,
     format_facets,
@@ -14,11 +17,14 @@ from .client import (
 )
 
 __all__ = [
+    "CONFLICT_SIGNALS",
+    "CONFORMITY_SIGNALS",
     "TIPO_PROV",
     "SolrSession",
     "build_explore_params",
     "build_lookup_params",
     "build_norma_variants",
+    "build_orientamento_params",
     "build_search_params",
     "format_estremi",
     "format_facets",

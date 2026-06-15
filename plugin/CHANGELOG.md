@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-06-15
+
+### Added
+- `verifica_citazioni` — verifies a list of references (sentenze + articoli), flagging non-existent / not-verifiable / metadata-mismatch citations.
+- Corte Costituzionale (4 tools) via the official open-data dumps; Gazzetta Ufficiale (5 tools, RSS + HTML + ELI + PDF); `orientamento_giurisprudenziale` (3 tools, descriptive, L. 132/2025); EU→IT implementation mapping (3 tools, CELLAR).
+- Cowork: `digest-giuridico` weekly briefing (agent + command + skill); `esporta-documento` (DOCX/PDF) skill; `parere`/`giurisprudenza`/`compliance` slash commands; `cowork` profile.
+
+### Changed
+- 198 → 214 tools; manifests re-tallied to 214 tools / 22 skills / 13 commands / 6 agents.
+
 ## [2.4.1] - 2026-06-15
 
 ### Fixed
