@@ -224,8 +224,27 @@ async def fetch_brocardi(
                 error=f"Articolo {articolo} non trovato su Brocardi",
             )
 
-        resp = await client.get(article_url)
-        resp.raise_for_status()
+        try:
+            resp = await client.get(article_url)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # Self-healing cache: a stale/poisoned entry can point at a 404 URL.
+            # Drop it and re-resolve once from scratch before giving up.
+            if exc.response is not None and exc.response.status_code == 404:
+                _url_cache.pop(f"{base_url}#{article_num}", None)
+                _save_url_cache(_url_cache)
+                article_url = await find_article_url(
+                    client, base_url, article_num, force_refresh=True
+                )
+                if not article_url:
+                    return BrocardiResult(
+                        url=base_url,
+                        error=f"Articolo {articolo} non trovato su Brocardi",
+                    )
+                resp = await client.get(article_url)
+                resp.raise_for_status()
+            else:
+                raise
         soup = BeautifulSoup(resp.text, "lxml")
 
     result = BrocardiResult(url=article_url)
@@ -235,15 +254,16 @@ async def fetch_brocardi(
 
 
 async def find_article_url(
-    client: httpx.AsyncClient, base_url: str, article_num: str
+    client: httpx.AsyncClient, base_url: str, article_num: str, force_refresh: bool = False
 ) -> str | None:
     """Navigate Brocardi to find the article page URL.
 
     Uses persistent JSON cache to avoid repeated HTTP requests across sessions.
     Searches sub-pages without a fixed limit — stops as soon as the article is found.
+    Set ``force_refresh`` to bypass (and overwrite) a stale cache entry.
     """
     cache_key = f"{base_url}#{article_num}"
-    if cache_key in _url_cache:
+    if not force_refresh and cache_key in _url_cache:
         return _url_cache[cache_key]
 
     resp = await client.get(base_url)
