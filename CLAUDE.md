@@ -33,7 +33,7 @@ Se un agente non vede `leggi_sentenza`, è perché sta guardando il server sbagl
 mcp-legal-it/
 ├── src/
 │   ├── server.py              # FastMCP entry point — registra tutti i tool
-│   ├── prompts.py             # 19 workflow guidati (@mcp.prompt)
+│   ├── prompts.py             # 23 workflow guidati (@mcp.prompt)
 │   ├── resources.py           # 13 risorse statiche (@mcp.resource)
 │   ├── lib/
 │   │   ├── visualex/          # Normattiva + EUR-Lex scraper
@@ -445,7 +445,7 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 | Feature | Claude Desktop/Code | ChatGPT | Manus |
 |---------|--------------------:|--------:|------:|
 | 177 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
-| 19 prompt guidati | ✓ | — | — |
+| 23 prompt guidati | ✓ | — | — |
 | 15 risorse `legal://` | ✓ | — | — |
 | 19 skills + 8 comandi + 5 agenti | ✓ (plugin) | — | — |
 | Transport stdio (locale) | ✓ | — | — |
