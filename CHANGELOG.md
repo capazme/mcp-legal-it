@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-06-15
+
+### Added
+- **`verifica_citazioni`** — verifies a list of legal references (sentenze Cassazione + articoli) by resolving each via `cite_law`/`leggi_sentenza`; flags non-existent, pre-2020-not-verifiable, and metadata-mismatch citations (existence + metadata only, not holding accuracy).
+- **Corte Costituzionale** (4 tools: `cerca_pronuncia_costituzionale`, `leggi_pronuncia_costituzionale`, `pronunce_cost_su_norma`, `ultime_pronunce_cost`) — reads the `dati.cortecostituzionale.it` open-data dumps (the main site is bot-blocked) with a cached download-and-parse model (latin-1, weekly TTL).
+- **Gazzetta Ufficiale** (5 tools: `cerca_gazzetta_ufficiale`, `leggi_atto_gazzetta`, `sommario_gazzetta`, `ultime_gazzette`, `scarica_pdf_gazzetta`) — RSS feeds for "latest", HTML + ELI RDFa metadata for full text, official PDF link. No XML/AKN is exposed by the source.
+- **`orientamento_giurisprudenziale`** (3 tools: `orientamento_su_norma`, `orientamento_su_principio`, `mappa_orientamento`) — descriptive map of conforming vs conflict-flagging Cassazione decisions + Sezioni Unite, over Italgiure + Brocardi. Strictly descriptive per L. 132/2025; no overruling prediction.
+- **EU→Italy implementation mapping** (3 tools: `get_italian_implementation`, `get_eu_basis`, `elenco_misure_nazionali`) — CELLAR national-implementing-measures, reusing the CGUE SPARQL client.
+- **Plugin / Cowork**: `digest-giuridico` weekly-briefing agent + command + skill; `esporta-documento` skill (DOCX via docx-js/SAPG canon, PDF via fpdf2); ported `parere`/`giurisprudenza`/`compliance` slash commands; new `cowork` `LEGAL_PROFILE`.
+- ~300 new unit tests (full suite 2321 passing).
+
+### Changed
+- Tool count 198 → 214; `costituzionale` tag added to the `normativa` profile; manifests re-tallied to 214 tools / 22 skills / 13 commands / 6 agents.
+
+### Fixed
+- `orientamento`/Sezioni Unite detection uses `szdec:U` (the previous `szdec:SU` matched nothing).
+
 ## [2.4.1] - 2026-06-15
 
 ### Fixed
