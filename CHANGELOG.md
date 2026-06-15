@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-06-15
+
+### Fixed
+- Version metadata consistency: bumped all distribution manifests (`.claude-plugin/marketplace.json`, `dxt/manifest.json`, `plugin/server/manifest.json`, `plugin/server/pyproject.toml`) and the plugin changelog to the package version. The 2.4.0 `.mcpb` was built from stale 2.3.3 manifests.
+
 ## [2.4.0] - 2026-06-15
 
 ### Added
