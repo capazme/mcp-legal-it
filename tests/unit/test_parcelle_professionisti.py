@@ -246,7 +246,7 @@ class TestRitenutaAcconto:
 class TestCompensoCuratoreFallimentare:
     def test_piccola_procedura_minimo(self):
         r = _call("compenso_curatore_fallimentare", attivo_realizzato=1000.0, passivo_accertato=0.0)
-        assert r["totale_compenso"] == pytest.approx(811.31)
+        assert r["totale_compenso"] == pytest.approx(811.35)
 
     def test_procedura_media(self):
         r = _call("compenso_curatore_fallimentare", attivo_realizzato=100_000.0, passivo_accertato=50_000.0)

@@ -56,6 +56,8 @@ def rendimento_bot(
         return {"errore": "giorni_scadenza deve essere positivo"}
     if prezzo_acquisto <= 0:
         return {"errore": "prezzo_acquisto deve essere positivo"}
+    if valore_nominale <= 0:
+        return {"errore": "valore_nominale deve essere positivo"}
 
     plusvalenza = valore_nominale - prezzo_acquisto
     commissione = valore_nominale * commissione_pct / 100
@@ -104,6 +106,10 @@ def rendimento_btp(
         return {"errore": "anni_scadenza deve essere positivo"}
     if prezzo_acquisto <= 0:
         return {"errore": "prezzo_acquisto deve essere positivo"}
+    if valore_nominale <= 0:
+        return {"errore": "valore_nominale deve essere positivo"}
+    if frequenza_cedola <= 0:
+        return {"errore": "frequenza_cedola deve essere positiva (es. 1 annuale, 2 semestrale)"}
 
     # Cedole
     cedola_singola_lorda = valore_nominale * (cedola_annua_pct / 100) / frequenza_cedola
@@ -169,6 +175,8 @@ def pronti_termine(
         return {"errore": "giorni deve essere positivo"}
     if capitale <= 0:
         return {"errore": "capitale deve essere positivo"}
+    if tipo_sottostante not in ("titoli_stato", "altro"):
+        return {"errore": "tipo_sottostante deve essere 'titoli_stato' (12,5%) o 'altro' (26%)"}
 
     aliquota = _aliquota(tipo_sottostante)
     interessi_lordi = capitale * (tasso_lordo_pct / 100) * giorni / 365
@@ -289,9 +297,12 @@ def confronto_investimenti(
     risultati = []
     for inv in investimenti:
         nome = inv.get("nome", "N/D")
-        rend_lordo = inv.get("rendimento_lordo_pct", 0.0)
         tipo_tax = inv.get("tipo_tassazione", "altro")
-        durata = inv.get("durata_anni", 1)
+        try:
+            rend_lordo = float(inv.get("rendimento_lordo_pct", 0.0))
+            durata = int(inv.get("durata_anni", 1))
+        except (TypeError, ValueError):
+            return {"errore": f"valori numerici non validi per investimento '{inv.get('nome', 'N/D')}'"}
 
         aliquota = _aliquota(tipo_tax)
         rend_netto = rend_lordo * (1 - aliquota / 100)
@@ -304,6 +315,7 @@ def confronto_investimenti(
         risultati.append({
             "nome": nome,
             "rendimento_lordo_pct": rend_lordo,
+            "tipo_tassazione_riconosciuto": tipo_tax in ("titoli_stato", "altro"),
             "aliquota_pct": aliquota,
             "rendimento_netto_pct": round(rend_netto, 4),
             "durata_anni": durata,

@@ -17,6 +17,13 @@ _FASI_VOLONTARIA = ["studio", "trattazione"]
 _COMPETENZE_PENALE = [c["tipo"] for c in _PARAMETRI["penale"]["competenze"]]
 
 
+def _scaglione_label(scaglione: dict, scaglioni: list[dict]) -> str:
+    if not scaglione.get("oltre"):
+        return f"fino a {scaglione['fino_a']}€"
+    finite = [s["fino_a"] for s in scaglioni if not s.get("oltre")]
+    return f"oltre {finite[-1]}€" if finite else "oltre"
+
+
 def _find_scaglione_civile(valore_causa: float) -> dict:
     for s in _PARAMETRI["civile"]["scaglioni"]:
         if s.get("oltre"):
@@ -63,6 +70,9 @@ def parcella_avvocato_civile(
     if livello not in ("min", "medio", "max"):
         return {"errore": f"Livello non valido: {livello}. Usare: min, medio, max"}
 
+    if valore_causa < 0:
+        return {"errore": "valore_causa non può essere negativo"}
+
     if fasi is None:
         fasi = list(_FASI_CIVILE)
     else:
@@ -71,7 +81,7 @@ def parcella_avvocato_civile(
             return {"errore": f"Fasi non valide: {invalid}. Ammesse: {_FASI_CIVILE}"}
 
     scaglione = _find_scaglione_civile(valore_causa)
-    scaglione_label = f"fino a {scaglione['fino_a']}€" if not scaglione.get("oltre") else "oltre 520.000€"
+    scaglione_label = _scaglione_label(scaglione, _PARAMETRI["civile"]["scaglioni"])
 
     dettaglio = []
     totale = 0.0
@@ -156,8 +166,11 @@ def parcella_stragiudiziale(
     if livello not in ("min", "medio", "max"):
         return {"errore": f"Livello non valido: {livello}. Usare: min, medio, max"}
 
+    if valore_pratica < 0:
+        return {"errore": "valore_pratica non può essere negativo"}
+
     scaglione = _find_scaglione_stragiudiziale(valore_pratica)
-    scaglione_label = f"fino a {scaglione['fino_a']}€" if not scaglione.get("oltre") else "oltre 520.000€"
+    scaglione_label = _scaglione_label(scaglione, _PARAMETRI["stragiudiziale"]["scaglioni"])
     compenso = scaglione[livello]
 
     return {
@@ -191,6 +204,9 @@ def parcella_volontaria_giurisdizione(
     if livello not in ("min", "medio", "max"):
         return {"errore": f"Livello non valido: {livello}. Usare: min, medio, max"}
 
+    if valore_causa < 0:
+        return {"errore": "valore_causa non può essere negativo"}
+
     if fasi is None:
         fasi = list(_FASI_VOLONTARIA)
     else:
@@ -199,7 +215,7 @@ def parcella_volontaria_giurisdizione(
             return {"errore": f"Fasi non valide: {invalid}. Ammesse: {_FASI_VOLONTARIA}"}
 
     scaglione = _find_scaglione_volontaria(valore_causa)
-    scaglione_label = f"fino a {scaglione['fino_a']}€" if not scaglione.get("oltre") else "oltre 520.000€"
+    scaglione_label = _scaglione_label(scaglione, _PARAMETRI["volontaria_giurisdizione"]["scaglioni"])
 
     dettaglio = []
     totale = 0.0
@@ -245,6 +261,9 @@ def preventivo_volontaria_giurisdizione(
     if livello not in ("min", "medio", "max"):
         return {"errore": f"Livello non valido: {livello}. Usare: min, medio, max"}
 
+    if valore_causa < 0:
+        return {"errore": "valore_causa non può essere negativo"}
+
     if fasi is None:
         fasi = list(_FASI_VOLONTARIA)
     else:
@@ -253,7 +272,7 @@ def preventivo_volontaria_giurisdizione(
             return {"errore": f"Fasi non valide: {invalid}. Ammesse: {_FASI_VOLONTARIA}"}
 
     scaglione = _find_scaglione_volontaria(valore_causa)
-    scaglione_label = f"fino a {scaglione['fino_a']}€" if not scaglione.get("oltre") else "oltre 520.000€"
+    scaglione_label = _scaglione_label(scaglione, _PARAMETRI["volontaria_giurisdizione"]["scaglioni"])
 
     dettaglio_fasi = []
     totale_compensi = 0.0
@@ -324,6 +343,9 @@ def fattura_avvocato(
     if regime not in ("ordinario", "forfettario"):
         return {"errore": f"Regime non valido: {regime}. Usare: ordinario, forfettario"}
 
+    if imponibile < 0:
+        return {"errore": "imponibile non può essere negativo"}
+
     voci = [{"descrizione": "Compenso professionale", "importo": round(imponibile, 2)}]
 
     cpa_importo = 0.0
@@ -374,6 +396,8 @@ def nota_spese(
     for v in voci:
         if v.get("tipo") not in tipi_validi:
             return {"errore": f"Tipo voce non valido: {v.get('tipo')}. Ammessi: {sorted(tipi_validi)}"}
+        if "importo" not in v or "descrizione" not in v:
+            return {"errore": f"Voce incompleta: {v}. Richiesti 'descrizione' e 'importo'."}
 
     dettaglio = []
     totale_compensi = 0.0
@@ -464,6 +488,9 @@ def preventivo_civile(
     if livello not in ("min", "medio", "max"):
         return {"errore": f"Livello non valido: {livello}. Usare: min, medio, max"}
 
+    if valore_causa < 0:
+        return {"errore": "valore_causa non può essere negativo"}
+
     if fasi is None:
         fasi = list(_FASI_CIVILE)
     else:
@@ -472,7 +499,7 @@ def preventivo_civile(
             return {"errore": f"Fasi non valide: {invalid}. Ammesse: {_FASI_CIVILE}"}
 
     scaglione = _find_scaglione_civile(valore_causa)
-    scaglione_label = f"fino a {scaglione['fino_a']}€" if not scaglione.get("oltre") else "oltre 520.000€"
+    scaglione_label = _scaglione_label(scaglione, _PARAMETRI["civile"]["scaglioni"])
 
     dettaglio_fasi = []
     totale_compensi = 0.0
@@ -569,8 +596,11 @@ def preventivo_stragiudiziale(
     if livello not in ("min", "medio", "max"):
         return {"errore": f"Livello non valido: {livello}. Usare: min, medio, max"}
 
+    if valore_pratica < 0:
+        return {"errore": "valore_pratica non può essere negativo"}
+
     scaglione = _find_scaglione_stragiudiziale(valore_pratica)
-    scaglione_label = f"fino a {scaglione['fino_a']}€" if not scaglione.get("oltre") else "oltre 520.000€"
+    scaglione_label = _scaglione_label(scaglione, _PARAMETRI["stragiudiziale"]["scaglioni"])
     compenso = scaglione[livello]
 
     sg_importo = round(compenso * 0.15, 2) if spese_generali else 0.0
@@ -632,6 +662,12 @@ def spese_trasferta_avvocati(
     """
     if mezzo not in ("auto", "treno", "aereo"):
         return {"errore": f"Mezzo non valido: {mezzo}. Usare: auto, treno, aereo"}
+
+    if km_distanza < 0:
+        return {"errore": "km_distanza non può essere negativo"}
+
+    if ore_assenza < 0:
+        return {"errore": "ore_assenza non può essere negativo"}
 
     # Rimborso chilometrico (solo auto)
     rimborso_km = round(km_distanza * 0.30, 2) if mezzo == "auto" else 0.0
@@ -732,6 +768,8 @@ def modello_notula(
         return {"errore": f"Tipo non valido: {tipo_procedimento}. Ammessi: {list(_NOTULA_PROCEDIMENTI.keys())}"}
     if livello not in ("min", "medio", "max"):
         return {"errore": f"Livello non valido: {livello}. Usare: min, medio, max"}
+    if valore_causa < 0:
+        return {"errore": "valore_causa non può essere negativo"}
 
     proc = _NOTULA_PROCEDIMENTI[tipo_procedimento]
     if fasi is None:
@@ -852,6 +890,9 @@ def calcolo_notula_penale(
         invalid = [f for f in fasi if f not in _FASI_PENALE]
         if invalid:
             return {"errore": f"Fasi non valide: {invalid}. Ammesse: {_FASI_PENALE}"}
+        unavailable = [f for f in fasi if comp_data[f] is None]
+        if unavailable:
+            return {"errore": f"Fasi non disponibili per {competenza}: {unavailable}"}
 
     dettaglio_fasi = []
     totale_compensi = 0.0

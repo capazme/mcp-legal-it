@@ -28,7 +28,7 @@ async def _cerca_giurisprudenza_cgue_impl(
     materia: str = "",
     max_risultati: int = 10,
 ) -> SearchResult:
-    max_risultati = min(max_risultati, 50)
+    max_risultati = max(1, min(max_risultati, 50))
     keywords = [kw.strip() for kw in query.split(",") if kw.strip()] if query else []
 
     try:
@@ -63,6 +63,14 @@ async def _cerca_giurisprudenza_cgue_impl(
 async def _leggi_sentenza_cgue_impl(cellar_uri: str) -> SearchResult:
     try:
         text = await fetch_sentenza_text(cellar_uri)
+        stripped = text.strip()
+        if not stripped or len(stripped) < 200:
+            return SearchResult(
+                success=False,
+                source="cgue",
+                error_type="no_results",
+                results_text=f"Testo non disponibile da CELLAR per {cellar_uri} (risposta vuota o pagina non valida).",
+            )
         # Extract ECLI from URI if not already available — just use cellar_uri as reference
         return SearchResult(success=True, source="cgue", num_found=1, results_text=format_full(cellar_uri.split("/")[-1], text, ""))
     except Exception as exc:
@@ -81,7 +89,7 @@ async def _giurisprudenza_cgue_su_norma_impl(
     anno_da: str = "",
     max_risultati: int = 10,
 ) -> SearchResult:
-    max_risultati = min(max_risultati, 50)
+    max_risultati = max(1, min(max_risultati, 50))
 
     # Normalize reference to keywords: "art. 101 TFUE" → ["art. 101", "tfue"] or similar
     keywords = [riferimento.strip()] if riferimento.strip() else []
@@ -117,7 +125,7 @@ async def _ultime_sentenze_cgue_impl(
     materia: str = "",
     max_risultati: int = 10,
 ) -> SearchResult:
-    max_risultati = min(max_risultati, 50)
+    max_risultati = max(1, min(max_risultati, 50))
 
     try:
         docs = await search_giurisprudenza(

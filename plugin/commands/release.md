@@ -59,7 +59,7 @@ Sostituisci la versione precedente con la nuova in OGNUNO di questi file:
 
 Aggiorna il numero di tool nelle description di questi 4 file (usa il conteggio dello Step 2):
 
-1. `dxt/manifest.json` → campo `"description"` e `"long_description"`
+1. `dxt/manifest.json` → campo `"description"`
 2. `plugin/server/manifest.json` → campo `"description"`
 3. `plugin/.claude-plugin/plugin.json` → campo `"description"`
 4. `.claude-plugin/marketplace.json` → campo `"description"` dentro `plugins[0]`

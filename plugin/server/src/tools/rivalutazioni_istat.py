@@ -85,6 +85,9 @@ def rivalutazione_monetaria(
         data_fine: Data di liquidazione/calcolo (formato YYYY-MM-DD)
         con_interessi_legali: Se True, calcola interessi legali (art. 1284 c.c.) anno per anno sul rivalutato
     """
+    if capitale < 0:
+        return {"errore": "capitale deve essere maggiore o uguale a zero"}
+
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
 
@@ -105,10 +108,6 @@ def rivalutazione_monetaria(
 
     for anno in range(dt_inizio.year, dt_fine.year + 1):
         # FOI at start and end of this year-segment
-        if anno == dt_inizio.year:
-            m_start = dt_inizio.month
-        else:
-            m_start = 1
         if anno == dt_fine.year:
             m_end = dt_fine.month
         else:
@@ -129,7 +128,9 @@ def rivalutazione_monetaria(
         if con_interessi_legali:
             tasso = _get_tasso_legale(date(anno, 1, 1))
             # Fraction of year covered
-            if anno == dt_inizio.year:
+            if anno == dt_inizio.year and anno == dt_fine.year:
+                giorni = (dt_fine - dt_inizio).days
+            elif anno == dt_inizio.year:
                 giorni = (date(anno, 12, 31) - dt_inizio).days
             elif anno == dt_fine.year:
                 giorni = (dt_fine - date(anno, 1, 1)).days
@@ -179,6 +180,9 @@ def rivalutazione_mensile(
         data_inizio: Data della prima mensilità (formato YYYY-MM-DD)
         data_fine: Data di riferimento finale per la rivalutazione (formato YYYY-MM-DD)
     """
+    if importo_mensile < 0:
+        return {"errore": "importo_mensile deve essere maggiore o uguale a zero"}
+
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
 
@@ -254,6 +258,11 @@ def adeguamento_canone_locazione(
         data_adeguamento: Data per cui calcolare il nuovo canone (formato YYYY-MM-DD)
         percentuale_istat: Percentuale della variazione FOI da applicare (0.0-100.0; default 75% per concordati, 100% per liberi)
     """
+    if canone_annuo < 0:
+        return {"errore": "canone_annuo deve essere maggiore o uguale a zero"}
+    if not 0 <= percentuale_istat <= 100:
+        return {"errore": "percentuale_istat deve essere compresa tra 0 e 100"}
+
     dt_stipula = _parse_date(data_stipula)
     dt_adeguamento = _parse_date(data_adeguamento)
 
@@ -355,6 +364,8 @@ def rivalutazione_tfr(
     """
     if anni_servizio <= 0:
         return {"errore": "anni_servizio deve essere maggiore di zero"}
+    if retribuzione_annua < 0:
+        return {"errore": "retribuzione_annua deve essere maggiore o uguale a zero"}
 
     anno_inizio = anno_cessazione - anni_servizio
     accantonamento_annuo = retribuzione_annua / 13.5
@@ -433,6 +444,9 @@ def interessi_vari_capitale_rivalutato(
         data_fine: Data di liquidazione (formato YYYY-MM-DD)
         tasso_personalizzato: Tasso annuo percentuale da applicare (es. 3.5); se None usa tasso legale vigente
     """
+    if capitale < 0:
+        return {"errore": "capitale deve essere maggiore o uguale a zero"}
+
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
 
@@ -456,7 +470,9 @@ def interessi_vari_capitale_rivalutato(
         coeff_anno = foi_b / foi_inizio
         capitale_anno = capitale * coeff_anno
 
-        if anno == dt_inizio.year:
+        if anno == dt_inizio.year and anno == dt_fine.year:
+            giorni = (dt_fine - dt_inizio).days
+        elif anno == dt_inizio.year:
             giorni = (date(anno, 12, 31) - dt_inizio).days
         elif anno == dt_fine.year:
             giorni = (dt_fine - date(anno, 1, 1)).days
@@ -515,6 +531,11 @@ def lettera_adeguamento_canone(
         data_adeguamento: Data di decorrenza del nuovo canone (formato YYYY-MM-DD)
         percentuale_istat: Percentuale della variazione FOI da applicare (0.0-100.0; default 75%)
     """
+    if canone_attuale < 0:
+        return {"errore": "canone_attuale deve essere maggiore o uguale a zero"}
+    if not 0 <= percentuale_istat <= 100:
+        return {"errore": "percentuale_istat deve essere compresa tra 0 e 100"}
+
     dt_stipula = _parse_date(data_stipula)
     dt_adeguamento = _parse_date(data_adeguamento)
 
@@ -814,6 +835,9 @@ def inflazione_titoli_stato(
         data_inizio: Data di inizio dell'investimento (formato YYYY-MM-DD)
         data_fine: Data di fine dell'investimento (formato YYYY-MM-DD)
     """
+    if capitale_investito < 0:
+        return {"errore": "capitale_investito deve essere maggiore o uguale a zero"}
+
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
 
