@@ -757,8 +757,9 @@ class TestVerificaCitazioniE2E:
         with patch("src.tools.italgiure.solr_query", _patch_solr([empty, empty, wrong])), \
              patch("src.tools.italgiure.SolrSession", return_value=_fake_session()):
             out = await _verifica_citazioni_impl("Cass. n. 12345/2024")
+        # Step-4 now rejects a full-text hit whose numdec/anno don't match the requested
+        # decision, so the citing-but-different ruling (88888) is NOT surfaced as authoritative.
         assert "inesistente" in out
-        assert "88888" in out
 
     @pytest.mark.asyncio
     async def test_non_interpretabile(self):

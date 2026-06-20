@@ -1,4 +1,4 @@
-"""MCP Resources — 13 static legal reference documents."""
+"""MCP Resources — 15 static legal reference documents."""
 
 from src.server import mcp
 
@@ -190,7 +190,7 @@ PROCEDIMENTI SPECIALI (art. 13, co. 1 e 3)
 | Volontaria giurisdizione | € 98,00 |
 | Procedimenti di sfratto | € 98,00 |
 | Procedimenti esecutivi immobiliari | € 278,00 |
-| Procedimenti esecutivi mobiliari | CU per valore (min. € 43) |
+| Procedimenti esecutivi mobiliari | € 43 (valore < € 2.500) / € 139 (valore ≥ € 2.500) |
 | Separazione/divorzio consensuale | € 43,00 |
 | Separazione/divorzio giudiziale | € 98,00 (se senza domande economiche) |
 
@@ -351,10 +351,10 @@ Tasso = tasso BCE + 8 punti percentuali (art. 5, D.Lgs. 231/2002)
 
 | Semestre | Tasso BCE | Tasso mora |
 |----------|-----------|------------|
-| II sem. 2024 | 4,50% | 12,50% |
-| I sem. 2025 | 3,40% | 11,40% |
-| II sem. 2025 | 2,65% | 10,65% |
-| I sem. 2026 | da definire | da definire |
+| II sem. 2024 | 4,25% | 12,25% |
+| I sem. 2025 | 3,15% | 11,15% |
+| II sem. 2025 | 2,15% | 10,15% |
+| I sem. 2026 | 2,15% | 10,15% |
 
 ═══════════════════════════════════════════════════════════
 NOTE APPLICATIVE
@@ -1225,7 +1225,7 @@ TIER E ROUTING
 Tier 1 — Tool diretto (27 tipi): l'atto è generato chiamando un tool esistente.
 Tier 2 — Tool enhance (25 tipi): richiede enhancement dei tool esistenti (Fase 2).
 Tier 3 — Resource + LLM (34 tipi): l'LLM compone l'atto leggendo un modello da resource (Fase 3).
-Tier 4 — Preventivo parametrico (14 tipi): generato dal tool preventivo_procedura (Fase 4).
+Tier 4 — Preventivo parametrico (14 tipi): pianificato per la Fase 4 via preventivo_procedura (NON ancora disponibile); usare preventivo_civile come approssimazione nel frattempo.
 
 ═══════════════════════════════════════════════════════════
 WORKFLOW TIPO

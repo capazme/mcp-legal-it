@@ -157,14 +157,23 @@ def _cache_fresh(path: Path) -> bool:
 
 
 def _read_cache(path: Path) -> list[dict]:
-    with path.open("r", encoding="utf-8") as fh:
-        return json.load(fh)
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except (json.JSONDecodeError, OSError):
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        raise
 
 
 def _write_cache(path: Path, records: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as fh:
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    with tmp.open("w", encoding="utf-8") as fh:
         json.dump(records, fh, ensure_ascii=False)
+    os.replace(tmp, path)
 
 
 # ---------------------------------------------------------------------------
@@ -199,9 +208,14 @@ def _unzip_decade(
     (extracted from the JSON root_key).
     """
     out: dict[int, list[dict]] = {}
+    # Anchor the year on the known token (e.g. "Pronunce_2024" / "Massime_2024")
+    # derived from year_zip_tmpl, so an incidental 4-digit run earlier in the
+    # entry name can't misfile records under a bogus year.
+    prefix = year_zip_tmpl.split("{year}")[0]
+    anchored = re.compile(re.escape(prefix) + r"(\d{4})", re.IGNORECASE)
     outer = zipfile.ZipFile(io.BytesIO(bundle_bytes))
     for entry in outer.namelist():
-        m = re.search(r"(\d{4})", entry)
+        m = anchored.search(entry) or re.search(r"(\d{4})", entry)
         if not m:
             continue
         year = int(m.group(1))
@@ -237,7 +251,10 @@ async def _load_year(
     """
     path = _cache_path(kind, year)
     if _cache_fresh(path):
-        return _read_cache(path)
+        try:
+            return _read_cache(path)
+        except (json.JSONDecodeError, OSError):
+            pass  # corrupt cache invalidated by _read_cache; fall through to re-download
 
     bundle = _decade_for_year(year, decades)
     if not bundle:
@@ -247,6 +264,12 @@ async def _load_year(
     by_year = _unzip_decade(bundle_bytes, year_zip_tmpl, year_json_tmpl, root_key)
     for yr, records in by_year.items():
         _write_cache(_cache_path(kind, yr), records)
+
+    if year not in by_year:
+        # Cache the negative result so a year absent from the decade bundle
+        # (post-2015 massime, future years, upstream omissions) doesn't trigger
+        # a full decade re-download on every subsequent call.
+        _write_cache(_cache_path(kind, year), [])
 
     return by_year.get(year, [])
 

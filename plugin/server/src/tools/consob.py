@@ -41,7 +41,7 @@ async def _cerca_delibere_consob_impl(
     data_a: str = "",
     max_risultati: int = 20,
 ) -> str:
-    max_risultati = min(max_risultati, 100)
+    max_risultati = max(1, min(max_risultati, 100))
 
     tipologia_val, argomento_id = _resolve_consob_filters(tipologia, argomento)
 
@@ -80,7 +80,7 @@ async def _ultime_delibere_consob_impl(
     argomento: str = "",
     max_risultati: int = 10,
 ) -> str:
-    max_risultati = min(max_risultati, 100)
+    max_risultati = max(1, min(max_risultati, 100))
 
     tipologia_val, argomento_id = _resolve_consob_filters(tipologia, argomento)
 

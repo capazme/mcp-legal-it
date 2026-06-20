@@ -135,7 +135,7 @@ In qualità di interessato, Lei ha il diritto di:
 {diritti_text}
 
 Per esercitare i Suoi diritti, può inviare una richiesta scritta al Titolare del trattamento.
-Il Titolare risponderà entro 30 giorni dalla ricezione della richiesta (art. 12 GDPR).
+Il Titolare risponderà entro un mese dalla ricezione della richiesta, prorogabile di due mesi per richieste complesse o numerose (art. 12(3) GDPR).
 
 9. DIRITTO DI PROPORRE RECLAMO
 Lei ha il diritto di proporre reclamo all'Autorità di controllo competente.
@@ -158,8 +158,10 @@ come modificato dal D.Lgs. 101/2018.
         "periodo_conservazione": bool(periodo_conservazione),
         "diritti_interessato": len(diritti_esercitabili) > 0,
         "diritto_reclamo": True,
-        "dpo_se_nominato": bool(dpo) if dpo else True,
-        "trasferimento_extra_ue_se_presente": bool(trasferimento_extra_ue) if trasferimento_extra_ue else True,
+        # Elementi condizionalmente obbligatori (solo se presenti): sempre soddisfatti qui,
+        # nessuna verifica di contenuto viene effettuata.
+        "dpo_se_nominato": True,
+        "trasferimento_extra_ue_se_presente": True,
     }
 
     if tipo == "art14":
@@ -550,8 +552,8 @@ In qualità di interessato, Lei ha il diritto di:
   - Limitazione del trattamento (art. 18 GDPR)
   - Opposizione al trattamento per motivi legittimi (art. 21 GDPR)
 
-Nota: il diritto alla portabilità (art. 20) è limitato ai trattamenti basati su consenso o contratto
-e non si applica al trattamento basato su obbligo legale.
+Nota: il diritto alla portabilità (art. 20) si applica solo ai trattamenti basati su consenso o contratto
+ED effettuati con mezzi automatizzati; non si applica ai trattamenti basati su obbligo legale.
 
 7. DIRITTO DI PROPORRE RECLAMO
 Può proporre reclamo al Garante per la protezione dei dati personali (www.garanteprivacy.it).
@@ -1075,6 +1077,11 @@ _LIVELLO_LABELS = {1: "Basso", 2: "Medio", 3: "Alto", 4: "Molto alto"}
 
 
 def _calcola_livello_rischio(probabilita: str, gravita: str) -> dict:
+    avvisi = []
+    if probabilita.lower() not in _LIVELLO_MAP:
+        avvisi.append(f"valore probabilità '{probabilita}' non riconosciuto, assunto 'media'")
+    if gravita.lower() not in _LIVELLO_MAP:
+        avvisi.append(f"valore gravità '{gravita}' non riconosciuto, assunto 'media'")
     p = _LIVELLO_MAP.get(probabilita.lower(), 2)
     g = _LIVELLO_MAP.get(gravita.lower(), 2)
     score = p * g
@@ -1086,7 +1093,7 @@ def _calcola_livello_rischio(probabilita: str, gravita: str) -> dict:
         livello = "alto"
     else:
         livello = "molto_alto"
-    return {"score": score, "livello": livello, "probabilita_num": p, "gravita_num": g}
+    return {"score": score, "livello": livello, "probabilita_num": p, "gravita_num": g, "avvisi": avvisi}
 
 
 def _genera_dpia_impl(
@@ -1106,6 +1113,7 @@ def _genera_dpia_impl(
             "gravita": r.get("gravita", "media"),
             "score": analisi["score"],
             "livello_rischio": analisi["livello"],
+            "avvisi": analisi["avvisi"],
         })
 
     # Rischio residuo = livello massimo dopo mitigazione
@@ -1550,6 +1558,9 @@ def _valutazione_data_breach_impl(
     if impatto not in impatti_validi:
         return {"errore": f"impatto deve essere uno tra: {', '.join(impatti_validi)}"}
 
+    if n_interessati < 0:
+        return {"errore": "n_interessati deve essere >= 0"}
+
     # Mapping impatto a punteggio numerico
     impatto_score = {"basso": 1, "medio": 2, "alto": 3, "molto_alto": 4}[impatto]
 
@@ -1724,8 +1735,7 @@ def _calcolo_sanzione_gdpr_impl(
 
     # Range stimato come % del massimale
     pct_min = base_min_pct * moltiplicatore
-    pct_max = base_media_pct * moltiplicatore
-    pct_max = min(pct_max, base_max_pct * moltiplicatore)
+    pct_max = min(base_media_pct * moltiplicatore, base_max_pct)
 
     range_min_euro = round(max_euro * pct_min, 0)
     range_max_euro = round(max_euro * pct_max, 0)
@@ -1845,11 +1855,18 @@ def _genera_notifica_data_breach_impl(
         dt_scoperta = datetime.fromisoformat(data_scoperta)
     except ValueError:
         return {"errore": "data_scoperta non valida, usare formato YYYY-MM-DDTHH:MM o YYYY-MM-DD"}
+    if dt_scoperta.tzinfo is not None:
+        dt_scoperta = dt_scoperta.astimezone().replace(tzinfo=None)
 
     try:
         dt_violazione = datetime.fromisoformat(data_violazione)
     except ValueError:
         return {"errore": "data_violazione non valida, usare formato YYYY-MM-DDTHH:MM o YYYY-MM-DD"}
+    if dt_violazione.tzinfo is not None:
+        dt_violazione = dt_violazione.astimezone().replace(tzinfo=None)
+
+    if n_interessati < 0:
+        return {"errore": "n_interessati deve essere >= 0"}
 
     scadenza_72h = dt_scoperta + timedelta(hours=72)
     termine_scadenza = scadenza_72h.strftime("%d/%m/%Y ore %H:%M")
@@ -1874,7 +1891,7 @@ def _genera_notifica_data_breach_impl(
 
     elementi_art33_3 = {
         "a_natura_violazione": bool(descrizione),
-        "b_contatti_dpo": bool(dpo or True),
+        "b_contatti_dpo": bool(dpo),
         "c_probabili_conseguenze": bool(conseguenze),
         "d_misure_adottate": len(misure_adottate) > 0,
     }

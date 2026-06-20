@@ -14,9 +14,9 @@ Calcolo termine prescrizione civile o penale.
 ### Civile
 
 Chiama `legal-it:prescrizione_diritti`:
-- **10 anni**: ordinario (art. 2946 c.c.)
-- **5 anni**: risarcimento (art. 2947)
-- **2 anni**: assicurazione (art. 2952)
+- **10 anni**: ordinaria (tipo_diritto='ordinaria', art. 2946 c.c.)
+- **5 anni**: risarcimento danni (tipo_diritto='risarcimento_danni', art. 2947 c.c.)
+- **2 anni**: danno da circolazione veicoli / RCA (tipo_diritto='risarcimento_rca', art. 2947 c.2 c.c.)
 
 Verifica sospensione (artt. 2941-2942) e interruzione (art. 2943).
 

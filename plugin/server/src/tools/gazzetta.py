@@ -62,7 +62,7 @@ async def _cerca_gazzetta_ufficiale_impl(
     anno_a: str = "",
     max_risultati: int = 20,
 ) -> SearchResult:
-    max_risultati = min(max_risultati, 100)
+    max_risultati = max(1, min(max_risultati, 100))
     serie_path = _resolve_serie_path(serie)
 
     # `query` is a convenience alias: search it in the title unless `titolo`/`testo`
@@ -119,6 +119,12 @@ async def _leggi_atto_gazzetta_impl(
             serie_path, data_pubblicazione, codice_redazionale,
             metadata_only=solo_metadati,
         )
+    except ValueError as exc:
+        return SearchResult(
+            success=False, source=_SOURCE, error_type="bad_input",
+            error_message=f"Data non valida: {exc}",
+            results_text=f"**Errore**: data non valida. {exc}",
+        )
     except Exception as exc:
         return SearchResult(
             success=False, source=_SOURCE, error_type="source_down",
@@ -147,6 +153,12 @@ async def _sommario_gazzetta_impl(
 ) -> SearchResult:
     try:
         heading, atti = await fetch_sommario(data_pubblicazione, numero_gazzetta)
+    except ValueError as exc:
+        return SearchResult(
+            success=False, source=_SOURCE, error_type="bad_input",
+            error_message=f"Data non valida: {exc}",
+            results_text=f"**Errore**: data non valida. {exc}",
+        )
     except Exception as exc:
         return SearchResult(
             success=False, source=_SOURCE, error_type="source_down",
@@ -172,7 +184,7 @@ async def _ultime_gazzette_impl(
     serie: str = "serie_generale",
     max_risultati: int = 10,
 ) -> SearchResult:
-    max_risultati = min(max_risultati, 100)
+    max_risultati = max(1, min(max_risultati, 100))
     rss_code = _resolve_rss_code(serie)
     try:
         docs = await fetch_latest(rss_code, rows=max_risultati)

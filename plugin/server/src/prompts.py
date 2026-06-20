@@ -1,4 +1,4 @@
-"""MCP Prompts — 16 guided legal workflow prompts for Claude."""
+"""MCP Prompts — 23 guided legal workflow prompts for Claude."""
 
 from src.server import mcp
 
@@ -888,7 +888,6 @@ Produci una sintesi che includa:
 **Nuovi tool disponibili**:
 - giurisprudenza_articolo(riferimento): ricerca guidata da massime Brocardi — usare quando il tema riguarda un articolo specifico
 - cerca_giurisprudenza_unificata(query, fonti): ricerca su tutte le fonti in parallelo — usare per temi cross-giurisdizione
-- leggi_sentenza_cgue_ecli(ecli): lettura sentenza CGUE per codice ECLI
 
 **Fallback web**: Se fonti istituzionali non raggiungibili, comunicarlo e chiedere se cercare sul web.
 
