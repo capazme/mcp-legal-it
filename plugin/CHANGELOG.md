@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.6] - 2026-06-23
+
+### Fixed
+- **Marketplace install on Claude Desktop Cowork — the actual regression.** Bisected from "≤2.6.1 worked": the only breaking change was 2.6.2 switching the marketplace `.mcp.json` command from `bash start_server.sh` to `uv`. Cowork accepts `bash` but not `uv`, so every sync since 2.6.2 returned `failed_content`. Reverted `.mcp.json` to `command: bash` and hardened `start_server.sh` to prefer `uv` when present (Mac/Linux/Git-Bash, Python 3.12) and fall back to a system-Python venv (the Cowork-compatible 2.6.1 path). Smoke-tested: boots and registers all 214 tools.
+- **Windows** keeps the `uv` path via the `.mcpb` Desktop Extension (unchanged) — install via the `.mcpb`, not the marketplace.
+
+### Note
+- The 2.7.3–2.7.5 changes were real corrections but **not** the Cowork blocker (those fields/hooks were already present at 2.6.1 when Cowork worked). Kept as hygiene / CLI-schema improvements.
+
 ## [2.7.5] - 2026-06-23
 
 ### Fixed
