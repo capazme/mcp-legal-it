@@ -550,51 +550,53 @@ def calcolo_valore_catastale(
     rendita_catastale: float,
     categoria: str,
     tipo: str = "successione",
+    prima_casa: bool = False,
 ) -> dict:
     """Calcola valore catastale rivalutato dell'immobile per successione, compravendita o IMU.
-    Il coefficiente applicato varia per categoria e finalità (successione/compravendita/IMU).
-    Vigenza: DPR 131/1986; L. 160/2019 — Coefficienti valore catastale.
-    Precisione: ESATTO (rivalutazione 5% + coefficiente tabellare per categoria).
+    Formula: rendita × 1,05 × moltiplicatore-base (il moltiplicatore-base si applica alla rendita
+    GIÀ rivalutata del 5%). Per la compravendita di immobili strumentali/non abitativi diversi
+    dalla prima casa si applica il +20% ex art. 1-bis DL 168/2004 (NON per successioni/donazioni).
+    Vigenza: DPR 131/1986 art. 52; D.Lgs. 346/1990 art. 34; DL 168/2004 art. 1-bis; DL 262/2006 art. 2 c.45.
+    Precisione: ESATTO (rivalutazione 5% + moltiplicatore-base per categoria + maggiorazione registro).
 
     Args:
         rendita_catastale: Rendita catastale non rivalutata dell'immobile in euro (€)
-        categoria: Categoria catastale (es. 'A/2', 'A/10', 'B/1', 'C/1', 'D/1', 'D/8')
+        categoria: Categoria catastale (es. 'A/2', 'A/10', 'B/1', 'C/1', 'D/1', 'E/1')
         tipo: Finalità del calcolo: 'successione', 'compravendita', 'imu'
+        prima_casa: True se prima casa (moltiplicatore agevolato e nessun +20% di registro)
     """
     tipo = tipo.lower()
     cat = categoria.upper().strip()
 
     rendita_rivalutata = rendita_catastale * 1.05
 
-    # Coefficienti per successione/compravendita
+    # Moltiplicatore-BASE applicato alla rendita GIÀ rivalutata del 5% (rendita × 1,05 × base).
+    # NB: i valori "effettivi" (es. 126 = 120×1,05; 63 = 60×1,05; 42,84 = 40,8×1,05) NON vanno
+    # applicati alla rendita rivalutata, pena la doppia rivalutazione (bug corretto qui).
     if cat == "A/10":
-        coeff_succ = 63.0
-        coeff_comp = 63.0
-    elif cat.startswith("A/"):
-        coeff_succ = 120.0
-        coeff_comp = 126.0
+        base = 60.0
     elif cat.startswith("B"):
-        coeff_succ = 140.0
-        coeff_comp = 140.0
+        base = 140.0  # gruppo B: +40% ex DL 262/2006 già incorporato nel 140
     elif cat == "C/1":
-        coeff_succ = 42.84
-        coeff_comp = 42.84
-    elif cat.startswith("C/"):
-        coeff_succ = 120.0
-        coeff_comp = 126.0
-    elif cat == "D/5":
-        coeff_succ = 63.0
-        coeff_comp = 63.0
+        base = 40.8
+    elif cat.startswith("E"):
+        base = 40.8
+    elif cat.startswith("A"):
+        base = 110.0 if prima_casa else 120.0
+    elif cat.startswith("C"):
+        base = 110.0 if prima_casa else 120.0
     elif cat.startswith("D"):
-        coeff_succ = 63.0
-        coeff_comp = 63.0
+        base = 60.0
     else:
         return {"errore": f"Categoria catastale '{categoria}' non riconosciuta"}
 
     if tipo == "successione":
-        coeff = coeff_succ
+        coeff = base  # successioni/donazioni: nessuna maggiorazione +20%
     elif tipo == "compravendita":
-        coeff = coeff_comp
+        # +20% ex art. 1-bis DL 168/2004 ai soli fini di registro, per immobili
+        # strumentali/non abitativi diversi dalla prima casa (A/10, B, C/1, D, E).
+        strumentale = cat == "A/10" or cat.startswith(("B", "D")) or cat == "C/1" or cat.startswith("E")
+        coeff = round(base * 1.20, 4) if (strumentale and not prima_casa) else base
     elif tipo == "imu":
         # IMU uses different multipliers (handled by calcolo_imu tool)
         if cat == "A/10":
@@ -627,7 +629,7 @@ def calcolo_valore_catastale(
         "tipo": tipo,
         "coefficiente": coeff,
         "valore_catastale": valore_catastale,
-        "riferimento_normativo": "DPR 131/1986; L. 160/2019 — Coefficienti valore catastale",
+        "riferimento_normativo": "DPR 131/1986 art. 52; D.Lgs. 346/1990 art. 34; DL 168/2004 art. 1-bis; DL 262/2006 art. 2 c.45",
     }
 
 
