@@ -190,6 +190,9 @@ def calcolo_usufrutto(
         valore_piena_proprieta: Valore della piena proprietà in euro (€)
         eta_usufruttuario: Età dell'usufruttuario in anni compiuti (0-120)
     """
+    if valore_piena_proprieta <= 0:
+        return {"errore": "valore_piena_proprieta deve essere positivo"}
+
     tasso_legale = _USUFRUTTO["tasso_legale"]
     coefficiente = None
 
@@ -238,13 +241,6 @@ def calcolo_imu(
         prima_casa: True se l'immobile è abitazione principale (esente salvo A/1, A/8, A/9)
     """
     cat_upper = categoria.upper().strip()
-
-    moltiplicatori = {
-        "A/10": 80,
-        "B": 140,
-        "C/1": 55,
-        "D/5": 80,
-    }
 
     if cat_upper == "A/10":
         molt = 80
@@ -508,6 +504,13 @@ def grado_parentela(
         passi = info["passi"]
     elif "," in rel:
         passi = [p.strip() for p in rel.split(",")]
+        passi_validi = {"genitore", "padre", "madre", "figlio", "figlia"}
+        if not passi or any(p not in passi_validi for p in passi):
+            return {
+                "errore": f"Relazione '{relazione}' non riconosciuta",
+                "relazioni_disponibili": sorted(relazioni_note.keys()),
+                "suggerimento": "Oppure usa catena di passi separati da virgola: 'genitore,figlio' = fratello (grado 2)",
+            }
         grado = len(passi)
         # Determine linea: retta if all same direction, collaterale otherwise
         has_up = any(p in ("genitore", "padre", "madre") for p in passi)
@@ -767,6 +770,9 @@ def imposta_registro_locazioni(
         tipo_contratto: Tipo di contratto: 'libero' (aliquota 2%) o 'concordato' (aliquota 1%)
         prima_registrazione: True per prima registrazione (minimo €67), False per annualità successive
     """
+    if durata_anni < 1:
+        return {"errore": "durata_anni deve essere >= 1"}
+
     tipo = tipo_contratto.lower()
     if tipo not in ("libero", "concordato"):
         return {"errore": "tipo_contratto deve essere 'libero' o 'concordato'"}

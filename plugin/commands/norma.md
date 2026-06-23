@@ -1,6 +1,7 @@
 ---
 name: norma
-description: Cerca il testo vigente di un articolo di legge
+description: Cerca il testo vigente di un articolo di legge. Usa quando l'utente chiede di consultare, leggere o citare una norma (codice, legge, GDPR, ecc.).
+argument-hint: "[riferimento normativo, es. 'art. 2043 c.c.' | 'art. 6 GDPR']"
 allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__legal-it__giurisprudenza_su_norma
 ---
 

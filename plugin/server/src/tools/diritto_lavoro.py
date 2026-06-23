@@ -27,16 +27,19 @@ def _add_days(d: date, giorni: int) -> date:
 
 def _calcola_irpef_semplificata(imponibile: float) -> float:
     """Stima IRPEF lorda su imponibile annuo usando scaglioni vigenti."""
-    scaglioni = _IRPEF.get("scaglioni_per_anno", {}).get("2026", _IRPEF["scaglioni"])
+    scaglioni = _IRPEF.get("scaglioni_per_anno", {}).get(str(date.today().year), _IRPEF["scaglioni"])
     imposta = 0.0
+    residuo = imponibile
+    prev_limit = 0
     for s in scaglioni:
-        limite_inf = s.get("da", 0)
-        limite_sup = s.get("a")
         aliquota = s["aliquota"] / 100
-        if imponibile <= limite_inf:
+        limite = s.get("fino_a", float("inf"))
+        base = min(residuo, limite - prev_limit)
+        if base <= 0:
             break
-        tetto = min(imponibile, limite_sup) if limite_sup else imponibile
-        imposta += (tetto - limite_inf) * aliquota
+        imposta += base * aliquota
+        residuo -= base
+        prev_limit = limite
     return round(imposta, 2)
 
 
@@ -84,11 +87,11 @@ def indennita_licenziamento(
         formula = f"anni_servizio ({anni_servizio}) × 2 = {round(mensilita_raw, 2)} → clamp [{floor_val}, {cap_val}]"
         nota = "Azienda con >15 dipendenti: regime ordinario D.Lgs. 23/2015 art. 3"
     else:
-        mensilita_raw = anni_servizio * 2
+        mensilita_raw = anni_servizio * 1
         floor_val = 3
         cap_val = 18
         mensilita = max(floor_val, min(mensilita_raw, cap_val))
-        formula = f"anni_servizio ({anni_servizio}) × 2 = {round(mensilita_raw, 2)} → clamp [{floor_val}, {cap_val}]"
+        formula = f"anni_servizio ({anni_servizio}) × 1 = {round(mensilita_raw, 2)} → clamp [{floor_val}, {cap_val}]"
         nota = "Azienda con ≤15 dipendenti: regime ridotto post C.Cost. 118/2025"
 
     importo = round(mensilita * retribuzione_mensile, 2)
@@ -184,7 +187,7 @@ def calcolo_naspi(
 
     Applica la formula 2026 con soglia, massimale, durata proporzionale alle settimane
     contributive degli ultimi 4 anni e decalage mensile dal 6° mese (o 8° se età ≥ 55).
-    Vigenza: D.Lgs. 22/2015 artt. 4-8 — Circ. INPS 16/2026.
+    Vigenza: D.Lgs. 22/2015 artt. 4-8 — Circ. INPS n. 4/2026.
     Precisione: INDICATIVO (il calcolo INPS considera le retribuzioni imponibili effettive dei 4 anni precedenti).
     Chaining: → scadenze_licenziamento() per le scadenze di impugnazione collegate al licenziamento.
 
@@ -226,8 +229,7 @@ def calcolo_naspi(
 
     for mese in range(1, n_mesi + 1):
         if mese > decalage_da_mese:
-            riduzioni = mese - decalage_da_mese
-            importo_corrente = round(naspi_base * (1 - decalage_pct * riduzioni), 2)
+            importo_corrente = round(naspi_base * (1 - decalage_pct) ** (mese - decalage_da_mese), 2)
             importo_corrente = max(importo_corrente, 0.0)
 
         # Last month may be partial
@@ -258,7 +260,7 @@ def calcolo_naspi(
         "decalage_da_mese": decalage_da_mese,
         "totale_stimato": totale,
         "piano_mensile": piano_ridotto,
-        "riferimento_normativo": "D.Lgs. 22/2015 artt. 4-8 — Circ. INPS 16/2026",
+        "riferimento_normativo": "D.Lgs. 22/2015 artt. 4-8 — Circ. INPS n. 4/2026",
     }
 
 
@@ -277,7 +279,10 @@ def scadenze_licenziamento(
     Args:
         data_licenziamento: Data di efficacia del licenziamento (formato YYYY-MM-DD)
     """
-    dt_lic = _parse_date(data_licenziamento)
+    try:
+        dt_lic = _parse_date(data_licenziamento)
+    except ValueError:
+        raise ValueError("data_licenziamento deve essere in formato YYYY-MM-DD")
 
     dt_impugnazione = _add_days(dt_lic, 60)
     dt_deposito = _add_days(dt_impugnazione, 180)
@@ -426,7 +431,7 @@ def offerta_conciliativa(
     lavoratore estingue il rapporto e l'impugnazione. L'importo è completamente detassato
     (non soggetto a IRPEF né a contributi previdenziali).
     Vigenza: D.Lgs. 23/2015 art. 6.
-    Precisione: ESATTO per la formula legale (1 mensilità/anno nei limiti floor/cap).
+    Precisione: ESATTO per la formula legale (1 mensilità/anno per le aziende grandi, 0,5 mensilità/anno per le piccole, nei limiti floor/cap).
     Chaining: → indennita_licenziamento() per confronto con indennità giudiziale standard.
 
     Args:
@@ -444,11 +449,11 @@ def offerta_conciliativa(
     if dimensione_azienda == "grande":
         floor_val = 3.0
         cap_val = 27.0
+        mensilita = max(floor_val, min(anni_servizio, cap_val))
     else:
         floor_val = 1.5
-        cap_val = 13.5
-
-    mensilita = max(floor_val, min(anni_servizio, cap_val))
+        cap_val = 6.0
+        mensilita = max(floor_val, min(anni_servizio * 0.5, cap_val))
     importo = round(mensilita * retribuzione_mensile, 2)
 
     return {

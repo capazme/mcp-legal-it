@@ -66,29 +66,29 @@ def quorum_assembleari(
     # ---- SPA ----------------------------------------------------------------
     if tipo_societa == "spa":
         if tipo_delibera == "ordinaria":
-            quorum_cost_1a = "50%+1 del capitale (art. 2368 c.c.)"
+            quorum_cost_1a = "Almeno la metà del capitale (art. 2368 c.c.)"
             quorum_cost_2a = "Nessun quorum costitutivo (art. 2369 c.c.)"
             quorum_delib = "Maggioranza assoluta dei voti sui presenti (art. 2368 c.c.)"
 
-            cost_raggiunto = (pct_presente is not None and pct_presente > 50)
-            delib_raggiunto = (pct_favorevoli_su_presenti is not None and pct_favorevoli_su_presenti > 50)
+            cost_raggiunto = None if pct_presente is None else (capitale_presente * 2 >= capitale_totale)
+            delib_raggiunto = None if pct_favorevoli_su_presenti is None else (voti_favorevoli * 2 > capitale_presente)
             nota = "In seconda convocazione non è richiesto il quorum costitutivo; deliberativo rimane invariato."
             rif = "Artt. 2368-2369 c.c."
         elif tipo_delibera in ("straordinaria", "modifica_statuto"):
-            quorum_cost_1a = "50%+1 del capitale (art. 2368 c.c.)"
+            quorum_cost_1a = "Almeno la metà del capitale (art. 2368 c.c.)"
             quorum_cost_2a = "Più di 1/3 del capitale (art. 2369 c.c.)"
             quorum_delib = "2/3 del capitale rappresentato in assemblea (art. 2368 c.c.)"
 
-            cost_raggiunto = (pct_presente is not None and pct_presente > 50)
-            delib_raggiunto = (pct_favorevoli_su_presenti is not None and pct_favorevoli_su_presenti >= 66.67)
+            cost_raggiunto = None if pct_presente is None else (capitale_presente * 2 >= capitale_totale)
+            delib_raggiunto = None if pct_favorevoli_su_presenti is None else (voti_favorevoli * 3 >= capitale_presente * 2)
             nota = "In seconda convocazione: costitutivo > 1/3 del capitale; deliberativo invariato (2/3 presenti)."
             rif = "Artt. 2368-2369 c.c."
         else:  # scioglimento
-            quorum_cost_1a = "50%+1 del capitale (art. 2368 c.c.)"
-            quorum_cost_2a = "50%+1 del capitale (nessuna deroga per scioglimento)"
+            quorum_cost_1a = "Almeno la metà del capitale (art. 2368 c.c.)"
+            quorum_cost_2a = "Almeno la metà del capitale (nessuna deroga per scioglimento)"
             quorum_delib = "Maggioranza assoluta del capitale (art. 2484 c.c.)"
-            cost_raggiunto = (pct_presente is not None and pct_presente > 50)
-            delib_raggiunto = (pct_favorevoli_su_totale is not None and pct_favorevoli_su_totale > 50)
+            cost_raggiunto = None if pct_presente is None else (capitale_presente * 2 >= capitale_totale)
+            delib_raggiunto = None if pct_favorevoli_su_totale is None else (voti_favorevoli * 2 > capitale_totale)
             nota = "Per lo scioglimento anticipato il quorum deliberativo è sulla maggioranza del capitale, non solo dei presenti."
             rif = "Artt. 2368-2369, 2484 c.c."
 
@@ -99,13 +99,13 @@ def quorum_assembleari(
         cost_raggiunto = True  # No costitutivo required
         if tipo_delibera == "ordinaria":
             quorum_delib = "Maggioranza del capitale (>50%) (art. 2479 c.c.)"
-            delib_raggiunto = (pct_favorevoli_su_totale is not None and pct_favorevoli_su_totale > 50)
+            delib_raggiunto = None if pct_favorevoli_su_totale is None else (voti_favorevoli * 2 > capitale_totale)
         elif tipo_delibera in ("straordinaria", "modifica_statuto"):
             quorum_delib = "Maggioranza del capitale (>50%) (art. 2479 c.c.)"
-            delib_raggiunto = (pct_favorevoli_su_totale is not None and pct_favorevoli_su_totale > 50)
+            delib_raggiunto = None if pct_favorevoli_su_totale is None else (voti_favorevoli * 2 > capitale_totale)
         else:  # scioglimento
             quorum_delib = "Almeno 2/3 del capitale (art. 2484 c.c.)"
-            delib_raggiunto = (pct_favorevoli_su_totale is not None and pct_favorevoli_su_totale >= 66.67)
+            delib_raggiunto = None if pct_favorevoli_su_totale is None else (voti_favorevoli * 3 >= capitale_totale * 2)
         nota = "Lo statuto SRL può prevedere quorum diversi (maggiori o minori nei limiti di legge). Non vi è seconda convocazione automatica."
         rif = "Artt. 2479, 2479-bis, 2484 c.c."
 
@@ -114,8 +114,8 @@ def quorum_assembleari(
         quorum_cost_1a = "Metà più uno dei soci (art. 2538 c.c.) — voto per teste"
         quorum_cost_2a = "Nessun quorum costitutivo in seconda convocazione"
         quorum_delib = "Maggioranza dei soci presenti (art. 2538 c.c.) — voto per teste"
-        cost_raggiunto = (pct_presente is not None and pct_presente > 50)
-        delib_raggiunto = (pct_favorevoli_su_presenti is not None and pct_favorevoli_su_presenti > 50)
+        cost_raggiunto = None if pct_presente is None else (pct_presente > 50)
+        delib_raggiunto = None if pct_favorevoli_su_presenti is None else (pct_favorevoli_su_presenti > 50)
         nota = "Nelle cooperative il voto è per teste (ciascun socio = 1 voto), indipendentemente dalla quota di capitale."
         rif = "Art. 2538 c.c."
 
@@ -131,9 +131,9 @@ def quorum_assembleari(
         "quorum_costitutivo_prima_conv": quorum_cost_1a,
         "quorum_costitutivo_seconda_conv": quorum_cost_2a,
         "quorum_deliberativo": quorum_delib,
-        "raggiunto_costitutivo": cost_raggiunto,
-        "raggiunto_deliberativo": delib_raggiunto if delib_raggiunto is not None else "dati insufficienti",
-        "delibera_valida": (cost_raggiunto and bool(delib_raggiunto)) if delib_raggiunto is not None else False,
+        "raggiunto_costitutivo": bool(cost_raggiunto),
+        "raggiunto_deliberativo": bool(delib_raggiunto),
+        "delibera_valida": bool(cost_raggiunto) and bool(delib_raggiunto),
         "note": nota,
         "riferimento_normativo": rif,
     }
@@ -267,15 +267,15 @@ def scadenze_societarie(
             },
             "convocazione_assemblea_spa": {
                 "data": dt_convocazione_spa.isoformat(),
-                "nota": "Termine entro cui inviare la convocazione ai soci SPA — 15 giorni prima (art. 2366 c.c.)",
+                "nota": "Data ultima utile per inviare la convocazione ai soci SPA assumendo l'assemblea all'ultimo giorno utile di approvazione — 15 giorni prima (art. 2366 c.c.). Se l'assemblea è anticipata, ricalcolare 15 giorni prima della data effettiva.",
             },
             "convocazione_assemblea_srl": {
                 "data": dt_convocazione_srl.isoformat(),
-                "nota": "Termine entro cui inviare la convocazione ai soci SRL — 8 giorni prima (art. 2479-bis c.c.)",
+                "nota": "Data ultima utile per inviare la convocazione ai soci SRL assumendo l'assemblea all'ultimo giorno utile di approvazione — 8 giorni prima (art. 2479-bis c.c.). Se l'assemblea è anticipata, ricalcolare 8 giorni prima della data effettiva.",
             },
             "deposito_bilancio_sede_sociale": {
                 "data": dt_deposito_sede.isoformat(),
-                "nota": "Bilancio e relazioni disponibili in sede — 15 giorni prima dell'assemblea (art. 2429 c.c.)",
+                "nota": "Data ultima utile per il deposito di bilancio e relazioni in sede assumendo l'assemblea all'ultimo giorno utile di approvazione — 15 giorni prima (art. 2429 c.c.). Se l'assemblea è anticipata, ricalcolare 15 giorni prima della data effettiva.",
             },
             "deposito_cciaa": {
                 "data": dt_deposito_cciaa.isoformat(),
@@ -396,7 +396,7 @@ def costi_costituzione(
         "voci_costo": voci,
         "totale_stimato_min": totale_min,
         "totale_stimato_max": totale_max,
-        "totale_stimato_formato": f"€{totale_min:,.2f} – €{totale_max:,.2f}".replace(",", "."),
+        "totale_stimato_formato": f"€{f'{totale_min:,.2f}'.replace(',', ' ').replace('.', ',').replace(' ', '.')} – €{f'{totale_max:,.2f}'.replace(',', ' ').replace('.', ',').replace(' ', '.')}",
         "capitale_minimo": capitale_minimo,
         "capitale_consigliato": capitale_consigliato,
         "note": note_extra,

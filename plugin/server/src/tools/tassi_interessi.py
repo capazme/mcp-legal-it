@@ -1,5 +1,6 @@
-"""Calcolo interessi legali (art. 1284 c.c., tasso vigente 2024: 2.5%), interessi di mora
-(D.Lgs. 231/2002, BCE+8pp), ammortamento mutui, TAEG (Dir. 2008/48/CE), verifica usura."""
+"""Calcolo interessi legali (art. 1284 c.c., tasso legale variabile per anno, letto dalla tabella
+ministeriale aggiornata), interessi di mora (D.Lgs. 231/2002, BCE+8pp), ammortamento mutui,
+TAEG (Dir. 2008/48/CE), verifica usura."""
 
 import json
 from datetime import date, timedelta
@@ -54,8 +55,10 @@ def _calc_interessi_periodo(capitale: float, dt_inizio: date, dt_fine: date) -> 
         tasso, al = _get_rate_period(current)
         year_end = date(current.year, 12, 31)
         periodo_end = min(al, year_end, dt_fine)
+        if periodo_end < current:
+            break
         giorni = (periodo_end - current).days + 1
-        totale += capitale * (tasso / 100) * giorni / _days_in_year(current.year)
+        totale += capitale * (tasso / 100) * giorni / 365
         current = periodo_end + timedelta(days=1)
 
     return totale
@@ -97,9 +100,11 @@ def _calc_interessi_mora_periodo(capitale: float, dt_inizio: date, dt_fine: date
         info, al = _get_mora_period(current)
         year_end = date(current.year, 12, 31)
         periodo_end = min(al, year_end, dt_fine)
+        if periodo_end < current:
+            break
         giorni = (periodo_end - current).days + 1
         mora_rate = info["mora"]
-        totale += capitale * (mora_rate / 100) * giorni / _days_in_year(current.year)
+        totale += capitale * (mora_rate / 100) * giorni / 365
         periodi_detail.append({
             "dal": current.isoformat(),
             "al": periodo_end.isoformat(),
@@ -126,7 +131,7 @@ def interessi_legali(
     """Calcola interessi legali art. 1284 c.c. tra due date, con cambio automatico di tasso per periodo.
 
     Applica la regola "dies a quo non computatur": il giorno iniziale non matura interessi.
-    Tasso legale vigente 2024: 2.5% — per interessi in corso di causa usare interessi_corso_causa.
+    Tasso legale variabile per anno, letto dalla tabella ministeriale aggiornata — per interessi in corso di causa usare interessi_corso_causa.
     Vigenza: Art. 1284 c.c.; tassi aggiornati annualmente con DM MEF (dal 1° gennaio di ogni anno).
     Precisione: ESATTO per tassi legali storici (dati tabellari ministeriali).
     Spesso chiamato come ultimo step nel workflow sinistro dopo rivalutazione_monetaria().
@@ -157,6 +162,8 @@ def interessi_legali(
         # Split at rate boundary and year boundary
         year_end = date(current.year, 12, 31)
         periodo_end = min(al, year_end, dt_fine)
+        if periodo_end < current:
+            break
 
         giorni = (periodo_end - current).days + 1  # inclusive of both ends
         anno = 365  # site uses 365 always (anno civile)
@@ -224,6 +231,8 @@ def interessi_mora(
     while current <= dt_fine:
         info, al = _get_mora_period(current)
         periodo_end = min(al, dt_fine)
+        if periodo_end < current:
+            break
 
         giorni = (periodo_end - current).days + 1  # inclusive
         interessi_periodo = capitale * (info["mora"] / 100) * giorni / 365
@@ -319,6 +328,9 @@ def calcolo_ammortamento(
         durata_mesi: Durata del mutuo in mesi (es. 240 per 20 anni)
         tipo: Metodo di ammortamento: 'francese' (rata costante) o 'italiano' (quota capitale costante)
     """
+    if durata_mesi <= 0:
+        return {"errore": "durata_mesi deve essere maggiore di zero"}
+
     tasso_mensile = tasso_annuo / 100 / 12
     rate = []
 
@@ -504,7 +516,7 @@ def interessi_acconti(
 
         periodi.append({
             "dal": current.isoformat(),
-            "al": (dt_boundary - timedelta(days=1)).isoformat() if dt_boundary != dt_fine else dt_fine.isoformat(),
+            "al": dt_boundary.isoformat(),
             "capitale_residuo": round(capitale_residuo, 2),
             "interessi": round(interessi_periodo, 2),
             "acconto_successivo": importo_acconto if importo_acconto > 0 else None,

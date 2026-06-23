@@ -55,6 +55,9 @@ async def _cerca_giurisprudenza_amministrativa_impl(
 async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str) -> str:
     try:
         title, text = await fetch_provvedimento_text(sede, nrg, nome_file)
+        if not text.strip():
+            return SearchResult(success=False, source="giustizia_amm", error_type="no_results",
+                              results_text=f"Provvedimento {sede}/{nrg} trovato ma testo vuoto o non interpretabile (possibile blocco WAF o formato non riconosciuto).")
         return SearchResult(success=True, source="giustizia_amm", num_found=1,
                           results_text=format_full(title, text, sede, nrg))
     except Exception as exc:

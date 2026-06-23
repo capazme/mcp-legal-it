@@ -22,6 +22,13 @@ def _get_fonti() -> dict:
     }
 
 
+def _safe_year(v) -> int:
+    try:
+        return int(v) if str(v).strip() else 0
+    except ValueError:
+        return 0
+
+
 async def _cerca_giurisprudenza_unificata_impl(
     query: str,
     fonti: str = "tutte",
@@ -30,6 +37,11 @@ async def _cerca_giurisprudenza_unificata_impl(
     tipo_provvedimento: str = "",
     max_risultati: int = 5,
 ) -> str:
+    # Clamp max_risultati to the documented contract (default 5, max 20)
+    max_risultati = max(1, min(max_risultati, 20))
+    # Parse years defensively so an invalid value cannot crash the whole search
+    anno_da_int = _safe_year(anno_da)
+    anno_a_int = _safe_year(anno_a)
     # Determine which sources to query
     _FONTI = _get_fonti()
     if fonti.strip().lower() == "tutte":
@@ -48,16 +60,16 @@ async def _cerca_giurisprudenza_unificata_impl(
         if chiave == "cassazione":
             coros.append(fn(
                 query,
-                anno_da=int(anno_da) if anno_da else 0,
-                anno_a=int(anno_a) if anno_a else 0,
+                anno_da=anno_da_int,
+                anno_a=anno_a_int,
                 tipo_provvedimento=tipo_provvedimento,
                 max_risultati=max_risultati,
             ))
         elif chiave == "tributaria":
             coros.append(fn(
                 query,
-                data_da=f"{anno_da}-01-01" if anno_da else "",
-                data_a=f"{anno_a}-12-31" if anno_a else "",
+                data_da=f"01/01/{anno_da}" if anno_da else "",
+                data_a=f"31/12/{anno_a}" if anno_a else "",
                 tipo_provvedimento=tipo_provvedimento,
                 max_risultati=max_risultati,
             ))
@@ -93,6 +105,11 @@ async def _cerca_giurisprudenza_unificata_impl(
             elif not outcome.success and outcome.error_type == "no_results":
                 body = "0 risultati"
                 footer_parts.append(f"{label} (0 risultati)")
+            elif outcome.success and outcome.num_found == 0 and outcome.results_text.strip():
+                # Source auto-relaxed a zero-hit query (e.g. Italgiure): body has results
+                # despite num_found==0, so avoid the misleading "(0 risultati)" footer.
+                body = outcome.results_text
+                footer_parts.append(f"{label} (risultati con criteri ampliati)")
             else:
                 body = outcome.results_text
                 footer_parts.append(f"{label} ({outcome.num_found} risultati)")
