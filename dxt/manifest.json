@@ -19,13 +19,18 @@
     "type": "python",
     "entry_point": "run_server.py",
     "mcp_config": {
-      "command": "bash",
+      "command": "uv",
       "args": [
-        "${__dirname}/start_server.sh"
-      ],
-      "env": {
-        "MCP_CACHE_DIR": "${HOME}/.cache/mcp-legal-it"
-      }
+        "run",
+        "--python", "3.12",
+        "--with", "fastmcp>=2.0,<4",
+        "--with", "httpx>=0.27",
+        "--with", "beautifulsoup4>=4.12",
+        "--with", "lxml>=5.0",
+        "--with", "fpdf2>=2.7",
+        "--with", "python-docx>=1.0",
+        "${__dirname}/run_server.py"
+      ]
     }
   },
   "compatibility": {
