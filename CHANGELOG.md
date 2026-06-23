@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.2] - 2026-06-23
+
+### Removed
+- Obsolete duplicate project-level skills (`.claude/skills/`, 5) and agents (`.claude/agents/`, 3) that shadowed the canonical `plugin/` versions — notably a stale `sinistro` skill still carrying the pre-2.7.1 double-counting workflow. The `.claude/settings*.json` are kept.
+- Stale, unreferenced `plugin/skills/resources/tool-catalog.md`. Skill count corrected to 21 in the manifests (the `resources/` helper dir was miscounted as a skill).
+
 ## [2.7.1] - 2026-06-23
 
 ### Fixed
