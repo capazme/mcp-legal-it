@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.4] - 2026-06-23
+
+### Fixed
+- **Marketplace install `failed_content` — real root cause.** `commands/parcella.md` carried an invalid YAML frontmatter: the `argument-hint` value used unquoted `[...]` brackets (`argument-hint: [civile|penale|stragiudiziale] [valore causa in euro]`), which YAML parses as a malformed flow sequence. Introduced by the 2.7.0 content audit (commit `353b8c2`); it was the only one of 13 commands / 21 skills not quoting the value. The account-scoped marketplace validator parses every command's frontmatter as YAML, so this single file failed the whole-plugin content validation on every fresh sync. Quoted the value to match the rest. The 2.7.3 `.gitattributes` `export-ignore` change stays as archive hygiene but was not the cause.
+
 ## [2.7.3] - 2026-06-23
 
 ### Fixed
