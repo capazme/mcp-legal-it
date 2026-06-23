@@ -2,7 +2,7 @@
 name: genera-atto
 description: Genera atti legali italiani (citazione, ricorso, decreto ingiuntivo, precetto, procura, relata, attestazione, pignoramento, sfratto, preventivo). Usa quando l'utente chiede di redigere, generare, preparare o creare un atto, documento legale, bozza processuale, relata di notifica, attestazione di conformita, procura alle liti, preventivo legale o fascicolo digitale. Copre 100 tipi di atti tra giudiziari, stragiudiziali, esecutivi, PCT e privacy.
 argument-hint: "[tipo atto o descrizione situazione]"
-allowed-tools: mcp__legal-it__genera_modello_atto, mcp__legal-it__lista_categorie_atti, mcp__legal-it__cite_law
+allowed-tools: mcp__legal-it__genera_modello_atto, mcp__legal-it__lista_categorie_atti, mcp__legal-it__cite_law, mcp__legal-it__esporta_atto_docx, mcp__legal-it__contributo_unificato, mcp__legal-it__interessi_mora, mcp__legal-it__interessi_legali, mcp__legal-it__rivalutazione_monetaria, mcp__legal-it__variazioni_istat, mcp__legal-it__conta_giorni, mcp__legal-it__scadenza_processuale, mcp__legal-it__scadenze_impugnazioni, mcp__legal-it__decreto_ingiuntivo, mcp__legal-it__atto_di_precetto, mcp__legal-it__pignoramento_stipendio, mcp__legal-it__sfratto_morosita, mcp__legal-it__procura_alle_liti, mcp__legal-it__relata_notifica_pec, mcp__legal-it__attestazione_conformita, mcp__legal-it__calcolo_hash, mcp__legal-it__dichiarazione_553_cpc, mcp__legal-it__nota_precisazione_credito, mcp__legal-it__sollecito_pagamento, mcp__legal-it__spese_mediazione, mcp__legal-it__calcolo_valore_catastale, mcp__legal-it__compenso_ctu, mcp__legal-it__parcella_avvocato_civile, mcp__legal-it__preventivo_civile, mcp__legal-it__preventivo_stragiudiziale, mcp__legal-it__preventivo_volontaria_giurisdizione, mcp__legal-it__genera_informativa_privacy, mcp__legal-it__genera_informativa_cookie, mcp__legal-it__genera_informativa_dipendenti, mcp__legal-it__genera_informativa_videosorveglianza, mcp__legal-it__genera_dpa, mcp__legal-it__genera_dpia, mcp__legal-it__genera_registro_trattamenti, mcp__legal-it__genera_notifica_data_breach, mcp__legal-it__valutazione_data_breach, ReadMcpResourceTool
 ---
 
 # Genera Atto Legale
@@ -40,7 +40,7 @@ In base al routing restituito:
 Chiama il tool indicato con i parametri dell'utente + `parametri_fissi` dal catalogo.
 
 **Se `resource_modello` presente:**
-Leggi la resource indicata, compila i placeholder `{campo}` con i dati, includi i calcoli.
+Leggi la resource indicata con ReadMcpResourceTool (server `legal-it`, uri = `resource_modello`), compila i placeholder `{campo}` con i dati, includi i calcoli.
 
 **Se `disponibile_da_fase` > 1:**
 Usa il tool suggerito nelle `istruzioni` come approssimazione.
@@ -57,6 +57,7 @@ Presenta l'atto completo con:
 - Riferimenti normativi verificati
 - Checklist allegati necessari
 - Avvertenze
+- Su richiesta, esporta l'atto in .docx con `esporta_atto_docx(testo=..., titolo=..., autore=...)` e comunica il percorso file restituito.
 
 ## Mapping parole chiave → tipo_atto
 

@@ -43,13 +43,12 @@
   "addizionale_comunale_media": 0.8,
   "forfettario": {
     "coefficienti_redditivita": {
-      "47.73": ["commercio_ingrosso_dettaglio"],
-      "54.00": ["commercio_ambulante_alimentari"],
-      "40.00": ["commercio_ambulante_non_alimentari"],
-      "62.00": ["costruzioni_immobiliari", "intermediari_commercio"],
-      "67.00": ["alloggio_ristorazione"],
-      "78.00": ["attivita_professionali_scientifiche"],
-      "86.00": ["agenti_rappresentanti"]
+      "40.00": ["industrie_alimentari", "commercio_ingrosso_dettaglio", "commercio_ambulante_alimentari", "alloggio_ristorazione"],
+      "54.00": ["commercio_ambulante_altri"],
+      "62.00": ["intermediari_commercio"],
+      "67.00": ["altre_attivita"],
+      "78.00": ["professionali_scientifiche"],
+      "86.00": ["costruzioni_immobiliari"]
     },
     "aliquota_startup": 5,
     "aliquota_ordinaria": 15,

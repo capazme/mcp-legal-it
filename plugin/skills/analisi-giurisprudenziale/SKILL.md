@@ -2,7 +2,7 @@
 name: analisi-giurisprudenziale
 description: Analisi degli orientamenti giurisprudenziali su un tema con sintesi delle sentenze principali. Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione, o precedenti.
 argument-hint: "[tema giuridico o riferimento normativo]"
-allowed-tools: legal-it:cerca_giurisprudenza, legal-it:giurisprudenza_su_norma, legal-it:giurisprudenza_articolo, legal-it:cerca_giurisprudenza_unificata, legal-it:leggi_sentenza, legal-it:cerca_brocardi, legal-it:cite_law, legal-it:cerca_giurisprudenza_tributaria, legal-it:cerdef_leggi_provvedimento, legal-it:cerca_giurisprudenza_amministrativa, legal-it:leggi_provvedimento_amm, legal-it:cerca_giurisprudenza_cgue, legal-it:leggi_sentenza_cgue, legal-it:leggi_sentenza_cgue_ecli, mcp__perplexity-mcp__search
+allowed-tools: mcp__legal-it__cerca_giurisprudenza, mcp__legal-it__giurisprudenza_su_norma, mcp__legal-it__giurisprudenza_articolo, mcp__legal-it__cerca_giurisprudenza_unificata, mcp__legal-it__leggi_sentenza, mcp__legal-it__cerca_brocardi, mcp__legal-it__cite_law, mcp__legal-it__cerca_giurisprudenza_tributaria, mcp__legal-it__cerdef_leggi_provvedimento, mcp__legal-it__cerca_giurisprudenza_amministrativa, mcp__legal-it__leggi_provvedimento_amm, mcp__legal-it__cerca_giurisprudenza_cgue, mcp__legal-it__leggi_sentenza_cgue, mcp__perplexity-mcp__search
 ---
 
 # Analisi giurisprudenziale
@@ -45,7 +45,7 @@ Leggi SOLO le sentenze selezionate:
 - Cassazione: `legal-it:leggi_sentenza(numero, anno)`
 - CeRDEF: `legal-it:cerdef_leggi_provvedimento(guid)`
 - GA: `legal-it:leggi_provvedimento_amm(sede, nrg, nome_file)`
-- CGUE: `legal-it:leggi_sentenza_cgue(cellar_uri)` o `legal-it:leggi_sentenza_cgue_ecli(ecli)`
+- CGUE: `legal-it:leggi_sentenza_cgue(cellar_uri)`
 
 Per articoli specifici: `legal-it:cerca_brocardi(reference)` per ratio legis.
 

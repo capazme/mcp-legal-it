@@ -76,7 +76,7 @@ def danno_biologico_micro(
         giorni_itp75: Giorni di invalidità temporanea parziale al 75%
         giorni_itp50: Giorni di invalidità temporanea parziale al 50%
         giorni_itp25: Giorni di invalidità temporanea parziale al 25%
-        personalizzazione_pct: Percentuale di personalizzazione per danno morale (0-33.33)
+        personalizzazione_pct: Percentuale di personalizzazione per danno morale (0-20)
     """
     if not 1 <= percentuale_invalidita <= 9:
         return {"errore": "Micropermanenti: percentuale deve essere tra 1 e 9"}
@@ -336,6 +336,9 @@ def risarcimento_inail(
     if percentuale_invalidita < 0 or percentuale_invalidita > 100:
         return {"errore": "percentuale_invalidita deve essere tra 0 e 100"}
 
+    if retribuzione_annua < 0:
+        return {"errore": "retribuzione_annua non puo essere negativa"}
+
     if tipo == "temporanea":
         retribuzione_giornaliera = retribuzione_annua / 365
         # Primi 3 giorni: a carico del datore (100%)
@@ -451,6 +454,12 @@ def danno_non_patrimoniale(
     if danno_esistenziale_pct < 0 or danno_esistenziale_pct > 50:
         return {"errore": "danno_esistenziale_pct deve essere tra 0 e 50"}
 
+    if giorni_itt < 0:
+        return {"errore": "giorni_itt non puo essere negativo"}
+
+    if spese_mediche < 0:
+        return {"errore": "spese_mediche non puo essere negativo"}
+
     # Calcolo componente biologica (micro o macro)
     if percentuale_invalidita <= 9:
         punto_base = _MICRO["punto_base"]
@@ -493,6 +502,7 @@ def danno_non_patrimoniale(
     return {
         "percentuale_invalidita": percentuale_invalidita,
         "eta_vittima": eta_vittima,
+        "voce_principale_richiesta": tipo_danno,
         "tipo_calcolo": tipo_calcolo,
         "componenti": {
             "danno_biologico": round(danno_biologico, 2),
@@ -554,6 +564,12 @@ def equo_indennizzo(
     cat = str(categoria_tabella).strip()
     if cat not in coefficienti:
         return {"errore": f"Categoria non valida. Valori ammessi: 1-8 (trovato: {categoria_tabella})"}
+
+    if percentuale_invalidita < 0 or percentuale_invalidita > 100:
+        return {"errore": "percentuale_invalidita deve essere tra 0 e 100"}
+
+    if stipendio_annuo < 0:
+        return {"errore": "stipendio_annuo non puo essere negativo"}
 
     info = coefficienti[cat]
     base = stipendio_annuo * info["coefficiente"] * (percentuale_invalidita / 100)

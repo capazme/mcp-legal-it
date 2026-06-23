@@ -675,6 +675,10 @@ _ITALGIURE_MIN_YEAR = 2020
 # concurrency against the slow government sources.
 _MAX_CITAZIONI = 20
 
+# Max references resolved in parallel, to avoid rate-limiting/connection resets
+# from the slow government endpoints (Normattiva, EUR-Lex, Italgiure).
+_MAX_CONCURRENT_VERIFICHE = 4
+
 # Cassazione decision shape: a decision number followed by a 4-digit year,
 # in either "n. 12345/2024" / "12345/2024" or "n. 12345 del 2024" form,
 # optionally preceded by "Cass." / "sez. ...". The presence of an explicit
@@ -690,7 +694,7 @@ _CASS_MARKER = re.compile(r"\b(?:cass(?:azione)?|sez(?:ione)?|ss?\.?\s*uu)\b", r
 
 # Section parsing from the user's citation (e.g. "sez. III", "Sezioni Unite").
 _USER_SEZIONE = re.compile(
-    r"sez(?:ione|\.)?\s*"
+    r"sez(?:ion[ei]|\.)?\s*"
     r"(unite|un\.?|u|s\.?u\.?|lavoro|lav\.?|l|trib(?:utaria)?\.?|t|"
     r"[ivx]+|\d+)",
     re.IGNORECASE,
@@ -764,11 +768,11 @@ def _starts_new_reference(fragment: str) -> bool:
 
 def _classify_citazione(reference: str) -> str:
     """Classify a reference as 'sentenza', 'norma', or 'non interpretabile'."""
-    if _sentenza_num_anno(reference) is not None:
-        return "sentenza"
     article, act_name = _parse_reference(reference)
     if article and act_name:
         return "norma"
+    if _sentenza_num_anno(reference) is not None:
+        return "sentenza"
     return "non interpretabile"
 
 
@@ -976,17 +980,20 @@ async def _verifica_citazioni_impl(citazioni: str, archivio: str = "tutti") -> s
 
     tipi = [_classify_citazione(r) for r in refs]
 
+    semaphore = asyncio.Semaphore(_MAX_CONCURRENT_VERIFICHE)
+
     async def _resolve_one(reference: str, tipo: str) -> tuple[str, str, str]:
-        try:
-            if tipo == "sentenza":
-                verdetto, nota = await _verifica_sentenza(reference, archivio)
-            elif tipo == "norma":
-                verdetto, nota = await _verifica_norma(reference)
-            else:
-                return ("Non interpretabile", "—", "Formato non riconosciuto.")
-        except Exception as exc:  # fail-safe: never crash the whole batch
-            return (tipo.capitalize(), "non verificata", f"Errore durante la verifica: {exc}")
-        return (tipo.capitalize(), verdetto, nota)
+        async with semaphore:
+            try:
+                if tipo == "sentenza":
+                    verdetto, nota = await _verifica_sentenza(reference, archivio)
+                elif tipo == "norma":
+                    verdetto, nota = await _verifica_norma(reference)
+                else:
+                    return ("Non interpretabile", "—", "Formato non riconosciuto.")
+            except Exception as exc:  # fail-safe: never crash the whole batch
+                return (tipo.capitalize(), "non verificata", f"Errore durante la verifica: {exc}")
+            return (tipo.capitalize(), verdetto, nota)
 
     results = await asyncio.gather(
         *(_resolve_one(r, t) for r, t in zip(refs, tipi))

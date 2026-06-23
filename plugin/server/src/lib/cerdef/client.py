@@ -99,13 +99,20 @@ class CerdefSession:
 
 
 def _unescape_js_string(raw: str) -> str:
-    """Unescape JS string escapes: \\/ → / and \\uXXXX → char (4-digit standard JS)."""
-    result = raw.replace("\\/", "/")
+    """Unescape JS single-quote-string escapes: \\uXXXX → char, \\' → ', \\" → ", \\/ → /, \\\\ → \\.
+
+    Order matters: \\uXXXX first, then the specific single-char escapes, with the
+    literal backslash (\\\\) handled LAST to avoid double-processing.
+    """
     result = re.sub(
         r"\\u([0-9a-fA-F]{4})",
         lambda m: chr(int(m.group(1), 16)),
-        result,
+        raw,
     )
+    result = result.replace("\\'", "'")
+    result = result.replace('\\"', '"')
+    result = result.replace("\\/", "/")
+    result = result.replace("\\\\", "\\")
     return result
 
 
@@ -251,13 +258,24 @@ async def search_giurisprudenza(
     }
 
     results: list[ProvvedimentoResult] = []
+    seen: set[str] = set()
+
+    def _add_new(page_results: list[ProvvedimentoResult]) -> int:
+        added = 0
+        for doc in page_results:
+            if doc.guid in seen:
+                continue
+            seen.add(doc.guid)
+            results.append(doc)
+            added += 1
+        return added
 
     async with CerdefSession() as session:
         resp = await retry_request(session.client, "POST", _SEARCH_URL, data=form_data)
 
         xml_str = _extract_xml_from_js(resp.text, "xmlResult")
         page_results = _parse_search_xml(xml_str)
-        results.extend(page_results)
+        _add_new(page_results)
 
         page = 2
         while len(results) < rows and len(page_results) > 0:
@@ -270,7 +288,8 @@ async def search_giurisprudenza(
             page_results = _parse_search_xml(xml_str)
             if not page_results:
                 break
-            results.extend(page_results)
+            if _add_new(page_results) == 0:
+                break
             page += 1
 
     return results[:rows]

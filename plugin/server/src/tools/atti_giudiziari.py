@@ -37,7 +37,9 @@ def _get_tasso_mora(d: date) -> dict:
     for t in _TASSI_MORA:
         if _parse_date(t["dal"]) <= d <= _parse_date(t["al"]):
             return t
-    return _TASSI_MORA[-1]
+    if d > _parse_date(_TASSI_MORA[-1]["al"]):
+        return _TASSI_MORA[-1]
+    return None
 
 
 def _lookup_scaglione(scaglioni: list, valore: float) -> float:
@@ -110,6 +112,9 @@ def contributo_unificato(
                            'lavoro' (primo grado esente), 'tributario', 'tar'
         grado: Grado del giudizio: 'primo', 'appello', 'cassazione'
     """
+    if valore_causa < 0:
+        return {"errore": "valore_causa non può essere negativo"}
+
     cu_base = _calcola_cu_base(valore_causa, tipo_procedimento)
 
     moltiplicatore = 1.0
@@ -163,6 +168,8 @@ def diritti_copia(
         return {"errore": "formato deve essere 'digitale' o 'cartaceo'"}
     if tipo not in ("semplice", "autentica", "esecutiva"):
         return {"errore": "tipo deve essere 'semplice', 'autentica' o 'esecutiva'"}
+    if n_pagine <= 0:
+        return {"errore": "n_pagine deve essere un intero positivo"}
 
     if formato == "digitale":
         if tipo == "semplice":
@@ -235,6 +242,9 @@ def pignoramento_stipendio(
                       'fiscale' (scaglioni per Equitalia: 1/10, 1/7, 1/5),
                       'concorso_crediti' (fino a 1/2 in caso di concorso)
     """
+    if stipendio_netto_mensile < 0:
+        return {"errore": "stipendio_netto_mensile non può essere negativo"}
+
     # Assegno sociale 2024 come minimo vitale per pensioni
     minimo_vitale = 534.41
 
@@ -316,16 +326,26 @@ def sollecito_pagamento(
         tasso_applicato = tasso_mora
         base_giuridica_tasso = f"Tasso convenzionale {tasso_mora}%"
     else:
+        # Reject scadenze before the mora rate table starts (no fallback rate applicable)
+        primo_dal = _parse_date(_TASSI_MORA[0]["dal"])
+        if dt_scadenza < primo_dal:
+            return {
+                "errore": f"Tasso di mora D.Lgs. 231/2002 non disponibile per scadenze anteriori al {primo_dal.strftime('%d/%m/%Y')}; indicare manualmente tasso_mora"
+            }
         # Split by mora rate periods like interessi_mora()
         interessi_totali = 0.0
         current = dt_scadenza + timedelta(days=1)
         dt_sollecito_end = dt_sollecito
         while current <= dt_sollecito_end:
             info_mora = _get_tasso_mora(current)
+            if info_mora is None:
+                break
             period_end_raw = _parse_date(info_mora["al"])
             periodo_end = min(period_end_raw, dt_sollecito_end)
             giorni_periodo = (periodo_end - current).days + 1
             interessi_totali += importo * (info_mora["mora"] / 100) * giorni_periodo / _days_in_year(current.year)
+            if periodo_end < current:
+                break
             current = periodo_end + timedelta(days=1)
         interessi = round(interessi_totali, 2)
         info_mora = _get_tasso_mora(dt_scadenza)
@@ -567,6 +587,9 @@ def copie_processo_tributario(
         tipo: Tipo di copia: 'semplice' (€0,25/pag) o 'autentica' (€0,50/pag)
         urgente: True per maggiorazione urgenza +50%
     """
+    if n_pagine <= 0:
+        return {"errore": "n_pagine deve essere un intero positivo"}
+
     tariffe = {"semplice": 0.25, "autentica": 0.50}
     tariffa = tariffe.get(tipo, 0.25)
     subtotale = round(n_pagine * tariffa, 2)
@@ -623,12 +646,24 @@ def note_iscrizione_ruolo(
     }
 
     cu_tipo = mapping_cu.get(tipo_procedimento, "cognizione")
-    cu_importo = _calcola_cu_base(valore_causa or 0, cu_tipo)
+    cu_value_based = cu_tipo in ("cognizione", "monitorio")
 
     materia = mapping_materia.get(tipo_procedimento)
     codici_suggeriti = []
     if materia:
         codici_suggeriti = [c for c in _CODICI_RUOLO if c["materia"] == materia]
+
+    if valore_causa is None and cu_value_based:
+        return {
+            "tipo_procedimento": tipo_procedimento,
+            "valore_causa": valore_causa,
+            "contributo_unificato": None,
+            "codici_oggetto_suggeriti": codici_suggeriti,
+            "note": f"Iscrivere a ruolo come '{tipo_procedimento}'. valore_causa richiesto per il calcolo del CU.",
+            "riferimento_normativo": "DPR 115/2002 — Provvedimenti DGSIA per codici oggetto",
+        }
+
+    cu_importo = _calcola_cu_base(valore_causa or 0, cu_tipo)
 
     return {
         "tipo_procedimento": tipo_procedimento,
@@ -923,7 +958,7 @@ def indice_documenti(documenti: list[dict]) -> dict:
     for doc in documenti:
         num = doc.get("numero", 0)
         desc = doc.get("descrizione", "")
-        pag = doc.get("pagine", 0)
+        pag = int(doc.get("pagine", 0) or 0)
         totale_pagine += pag
         righe.append(f"Doc. {num:>3}  —  {desc:<60s}  (pagg. {pag})")
 

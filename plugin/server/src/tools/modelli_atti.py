@@ -12,7 +12,7 @@ from src.server import mcp
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "modelli_atti.json") as f:
+with open(_DATA / "modelli_atti.json", encoding="utf-8") as f:
     _CATALOGO: dict[str, dict] = json.load(f)
 
 # Reverse index: map tool names and keywords to tipo_atto entries
@@ -120,20 +120,22 @@ def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
         result["parametri_fissi"] = routing.get("parametri_fissi", {})
         fase = routing.get("fase", 2)
         result["istruzioni"] = (
-            f"Questo tipo di atto sarà supportato nella Fase {fase}. "
-            f"Nel frattempo, usare il tool `{routing['tool']}` come base e adattare l'output."
+            f"Usare il tool `{routing['tool']}` per generare la base, "
+            "poi adattare l'output ai campi specifici di questo tipo di atto."
         )
         result["disponibile_da_fase"] = fase
     elif routing["tipo"] == "resource":
         result["resource_modello"] = routing["resource"]
-        result["istruzioni"] = (
-            f"Leggere il modello dalla resource `{routing['resource']}`, "
-            "compilare i campi con i dati forniti, e chiamare i tool di calcolo indicati."
-        )
         fase = routing.get("fase", 3)
+        result["istruzioni"] = (
+            f"Resource `{routing['resource']}` non ancora disponibile (Fase {fase}); "
+            "comporre l'atto manualmente seguendo la struttura e i campi indicati, "
+            "e chiamare i tool di calcolo indicati."
+        )
         result["disponibile_da_fase"] = fase
     elif routing["tipo"] == "preventivo_procedura":
-        result["tool_diretto"] = "preventivo_procedura"
+        result["tool_diretto"] = "preventivo_civile"
+        result["tool_non_ancora_disponibile"] = "preventivo_procedura"
         result["parametri_fissi"] = routing.get("parametri_fissi", {})
         fase = routing.get("fase", 4)
         result["istruzioni"] = (
@@ -232,9 +234,10 @@ def esporta_atto_docx(
 
     # Save to temp file
     import os
+    import uuid
     tmp_dir = "/tmp/mcp-legal-it"
     os.makedirs(tmp_dir, exist_ok=True)
-    filename = _sanitize_filename(titolo) + ".docx"
+    filename = f"{_sanitize_filename(titolo)}_{uuid.uuid4().hex[:8]}.docx"
     filepath = os.path.join(tmp_dir, filename)
     doc.save(filepath)
 

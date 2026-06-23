@@ -59,9 +59,10 @@ def competenza_giudice(
             "soglia_gdp_euro": None,
         }
 
-    # Materia circolazione stradale: GdP ≤ 20.000 (art. 7 co. 2 c.p.c.)
+    # Materia circolazione stradale: GdP ≤ 25.000 (art. 7 co. 2 c.p.c., post-Cartabia).
+    # La soglia di €50.000 (D.Lgs. 116/2017) ha decorrenza 31/10/2026.
     if materia_norm == "circolazione_stradale":
-        soglia = 20_000.0
+        soglia = 25_000.0
         if valore_causa <= soglia:
             return {
                 "giudice_competente": "Giudice di Pace",
@@ -83,8 +84,9 @@ def competenza_giudice(
                 "soglia_gdp_euro": soglia,
             }
 
-    # Beni mobili o default civile: GdP ≤ 5.000 (art. 7 co. 1 c.p.c.)
-    soglia = 5_000.0
+    # Beni mobili o default civile: GdP ≤ 10.000 (art. 7 co. 1 c.p.c., post-Cartabia).
+    # La soglia di €30.000 (D.Lgs. 116/2017) ha decorrenza 31/10/2026.
+    soglia = 10_000.0
     if valore_causa <= soglia:
         return {
             "giudice_competente": "Giudice di Pace",
@@ -186,6 +188,8 @@ def gratuito_patrocinio(
 
     if redditi_familiari is None:
         redditi_familiari = []
+
+    ambito = ambito.lower().strip()
 
     SOGLIA_BASE = 13_659.64
     MAGGIORAZIONE_PENALE_PER_FAMILIARE = 1_032.91

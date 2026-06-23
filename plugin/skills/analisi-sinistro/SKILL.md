@@ -16,9 +16,9 @@ Quantificazione completa del danno da sinistro stradale, sanitario o lavorativo.
 Determina lo strumento in base alla percentuale di invalidita:
 
 - **<= 9%**: chiama `legal-it:danno_biologico_micro` (tabelle art. 139 CdA)
-- **> 9%**: chiama `legal-it:danno_biologico_macro` (tabelle Milano)
+- **>= 10%**: chiama `legal-it:danno_biologico_macro` (tabella unica nazionale art. 138 CdA, valori Milano per interpolazione — INDICATIVO)
 
-Parametri: `percentuale`, `eta`.
+Parametri: `percentuale_invalidita` (intero), `eta_vittima` (intero). La percentuale va indicata come intero (1-9 micro, 10-100 macro).
 
 ### 2. Danno non patrimoniale
 
@@ -52,7 +52,7 @@ Tabella riepilogativa:
 
 ## Avvertenze da includere
 
-- Valori su tabelle Milano (macro) o art. 139 CdA (micro <= 9%) — INDICATIVI
+- Valori su tabella unica nazionale art. 138 CdA, valori Milano per interpolazione (macro >= 10%) o art. 139 CdA (micro <= 9%) — INDICATIVI
 - Non sostituisce la valutazione medico-legale
 - Per ITT/ITP, danno emergente e lucro cessante servono dati aggiuntivi
 - Citare sempre la fonte tabellare e normativa

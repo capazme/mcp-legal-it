@@ -113,7 +113,9 @@ def _filter_by_score(docs: list[dict]) -> tuple[list[dict], int]:
     if max_score == 0:
         return docs, 0
     threshold = max_score * _SCORE_RATIO_THRESHOLD
-    filtered = [d for d in docs if float(d.get("score", 0)) >= threshold]
+    # Treat docs with a missing/None score as passthrough rather than coercing to 0,
+    # aligning the per-doc filter with the None-skipping max computation above.
+    filtered = [d for d in docs if d.get("score") is None or float(d["score"]) >= threshold]
     return filtered, len(docs) - len(filtered)
 
 
@@ -165,7 +167,13 @@ async def _leggi_sentenza_impl(
             data = await solr_query(ft_params, session=session)
             docs = data.get("response", {}).get("docs", [])
             if docs:
-                return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+                # Validate that a returned doc actually IS the requested decision —
+                # a full-text hit merely citing "n. {numero}/{anno}" in its OCR text
+                # would otherwise be returned as the authoritative text (wrong ruling).
+                numdec_candidates = {str(numero), str(numero).zfill(5)}
+                for doc in docs:
+                    if str(doc.get("numdec")) in numdec_candidates and str(doc.get("anno")) == str(anno):
+                        return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(doc))
 
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))

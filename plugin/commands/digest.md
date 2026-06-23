@@ -2,7 +2,7 @@
 name: digest
 description: Briefing giuridico settimanale dalle ultime novita di tutte le fonti (Cassazione, tributario, TAR/CdS, CGUE, Garante, CONSOB); opzionalmente pianificabile come cron settimanale
 argument-hint: "[tema o settore opzionale, es. 'privacy' | 'schedule' per pianificare]"
-allowed-tools: mcp__legal-it__ultime_pronunce, mcp__legal-it__ultime_sentenze_tributarie, mcp__legal-it__ultimi_provvedimenti_amm, mcp__legal-it__ultime_sentenze_cgue, mcp__legal-it__ultimi_provvedimenti_garante, mcp__legal-it__ultime_delibere_consob, mcp__legal-it__leggi_sentenza, mcp__legal-it__cite_law
+allowed-tools: mcp__legal-it__ultime_pronunce, mcp__legal-it__ultime_sentenze_tributarie, mcp__legal-it__ultimi_provvedimenti_amm, mcp__legal-it__ultime_sentenze_cgue, mcp__legal-it__ultimi_provvedimenti_garante, mcp__legal-it__ultime_delibere_consob, mcp__legal-it__leggi_sentenza, mcp__legal-it__cite_law, CronCreate, CronDelete
 ---
 
 # Digest giuridico settimanale

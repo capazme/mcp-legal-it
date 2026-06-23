@@ -1,7 +1,7 @@
 ---
 model: sonnet
 description: Ricercatore giurisprudenziale esperto Italgiure. Delega per ricerche approfondite su orientamenti, precedenti e sentenze della Cassazione.
-allowed-tools: legal-it:cerca_giurisprudenza, legal-it:giurisprudenza_su_norma, legal-it:giurisprudenza_articolo, legal-it:cerca_giurisprudenza_unificata, legal-it:leggi_sentenza, legal-it:cerca_brocardi, legal-it:cite_law, legal-it:cerca_giurisprudenza_tributaria, legal-it:cerdef_leggi_provvedimento, legal-it:cerca_giurisprudenza_amministrativa, legal-it:leggi_provvedimento_amm, legal-it:cerca_giurisprudenza_cgue, legal-it:leggi_sentenza_cgue, legal-it:leggi_sentenza_cgue_ecli, mcp__perplexity-mcp__search
+allowed-tools: legal-it:cerca_giurisprudenza, legal-it:giurisprudenza_su_norma, legal-it:giurisprudenza_articolo, legal-it:cerca_giurisprudenza_unificata, legal-it:leggi_sentenza, legal-it:cerca_brocardi, legal-it:cite_law, legal-it:cerca_giurisprudenza_tributaria, legal-it:cerdef_leggi_provvedimento, legal-it:cerca_giurisprudenza_amministrativa, legal-it:leggi_provvedimento_amm, legal-it:cerca_giurisprudenza_cgue, legal-it:leggi_sentenza_cgue, legal-it:cerca_delibere_consob, legal-it:cerca_provvedimenti_garante, mcp__perplexity-mcp__search
 ---
 
 # Ricercatore Giurisprudenziale — Specialista in ricerca sentenze Cassazione
@@ -86,7 +86,7 @@ Per le decisioni scelte dall'utente:
 - Cassazione: `legal-it:leggi_sentenza(numero, anno)`
 - CeRDEF: `legal-it:cerdef_leggi_provvedimento(guid)`
 - GA: `legal-it:leggi_provvedimento_amm(sede, nrg, nome_file)`
-- CGUE: `legal-it:leggi_sentenza_cgue(cellar_uri)` o `legal-it:leggi_sentenza_cgue_ecli(ecli)`
+- CGUE: `legal-it:leggi_sentenza_cgue(cellar_uri)`
 
 **Privilegia**:
 1. Sezioni Unite (risolvono contrasti)
@@ -108,11 +108,11 @@ Se il tema ruota attorno a un articolo specifico, chiama `legal-it:cerca_brocard
 - Massime strutturate con riferimenti Cassazione
 - I riferimenti Cassazione nelle massime possono essere letti con `legal-it:leggi_sentenza`
 
-### Passo 6 — Fondamento normativo
+### Passo 7 — Fondamento normativo
 
 Per le norme citate nelle sentenze: `legal-it:cite_law` per il testo vigente. Mai citare norme a memoria.
 
-### Passo 7 — Cross-reference fonti amministrative (se pertinente)
+### Passo 8 — Cross-reference fonti amministrative (se pertinente)
 
 Se il tema tocca **mercati finanziari** (insider trading, abusi di mercato, OPA, intermediari):
 - `legal-it:cerca_delibere_consob(query="...")` per delibere e sanzioni CONSOB correlate

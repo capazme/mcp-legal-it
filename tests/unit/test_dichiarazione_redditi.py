@@ -317,7 +317,9 @@ class TestDetrazioneFigli:
     def test_multiple_figli_proportional(self):
         r1 = _call("detrazione_figli", reddito_complessivo=30000, n_figli_over21=1)
         r2 = _call("detrazione_figli", reddito_complessivo=30000, n_figli_over21=2)
-        assert r2["detrazione_totale"] == pytest.approx(r1["detrazione_totale"] * 2, abs=0.01)
+        # La soglia reddito sale di 15.000€ per ogni figlio oltre il primo (art. 12 TUIR):
+        # con 2 figli il coefficiente è più alto, quindi il totale supera il doppio di 1 figlio.
+        assert r2["detrazione_totale"] > r1["detrazione_totale"] * 2
 
     def test_zero_figli_error(self):
         r = _call("detrazione_figli", reddito_complessivo=30000, n_figli_over21=0)

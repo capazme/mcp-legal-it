@@ -9,18 +9,18 @@ from src.server import mcp
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "comuni.json") as f:
+with open(_DATA / "comuni.json", encoding="utf-8") as f:
     _COMUNI_DATA = json.load(f)
     _COMUNI = _COMUNI_DATA["comuni"]
     _STATI_ESTERI = _COMUNI_DATA["stati_esteri"]
 
-with open(_DATA / "festivita.json") as f:
+with open(_DATA / "festivita.json", encoding="utf-8") as f:
     _FESTIVITA = json.load(f)["fisse"]
 
-with open(_DATA / "codici_ateco.json") as f:
+with open(_DATA / "codici_ateco.json", encoding="utf-8") as f:
     _ATECO = json.load(f)
 
-with open(_DATA / "violazioni_patente.json") as f:
+with open(_DATA / "violazioni_patente.json", encoding="utf-8") as f:
     _VIOLAZIONI = json.load(f)
 
 
@@ -50,6 +50,18 @@ _EVEN_MAP = {
     "K": 10, "L": 11, "M": 12, "N": 13, "O": 14, "P": 15, "Q": 16, "R": 17, "S": 18, "T": 19,
     "U": 20, "V": 21, "W": 22, "X": 23, "Y": 24, "Z": 25,
 }
+
+# Omocodia substitution table (Agenzia delle Entrate): letters replace digits
+# in the numeric positions of a CF to resolve omonymy.
+_OMOCODIA_MAP = {
+    "L": "0", "M": "1", "N": "2", "P": "3", "Q": "4",
+    "R": "5", "S": "6", "T": "7", "U": "8", "V": "9",
+}
+
+
+def _deomocodia(s: str) -> str:
+    """De-omocodify a numeric CF segment, mapping substitution letters back to digits."""
+    return "".join(_OMOCODIA_MAP.get(c, c) for c in s)
 
 
 def _extract_consonants(s: str) -> str:
@@ -130,6 +142,10 @@ def codice_fiscale(
 
     part_cognome = _cf_cognome(cognome)
     part_nome = _cf_nome(nome)
+    if not any(c.isalpha() for c in cognome):
+        return {"errore": "cognome non valido"}
+    if not any(c.isalpha() for c in nome):
+        return {"errore": "nome non valido"}
     part_anno = f"{dt.year % 100:02d}"
     part_mese = _MESE_CF[dt.month]
     giorno = dt.day if sesso == "M" else dt.day + 40
@@ -163,17 +179,22 @@ def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
     Args:
         codice_fiscale: Codice fiscale di 16 caratteri (lettere e cifre, spazi ignorati)
     """
-    cf = codice_fiscale.upper().strip()
+    cf = "".join(codice_fiscale.upper().split())
     if len(cf) != 16:
         return {"errore": "Il codice fiscale deve essere di 16 caratteri"}
+    if not cf.isalnum():
+        return {"errore": "Il codice fiscale contiene caratteri non validi"}
 
     # Validate check character
     expected_check = _cf_check_char(cf[:15])
     check_valido = cf[15] == expected_check
 
-    # Extract year
-    anno_part = cf[6:8]
-    anno = int(anno_part)
+    # Extract year (de-omocodify substitution letters to digits)
+    anno_part = _deomocodia(cf[6:8])
+    try:
+        anno = int(anno_part)
+    except ValueError:
+        return {"errore": "Anno di nascita non valido nel codice fiscale"}
     # Heuristic: 00-29 -> 2000s, 30-99 -> 1900s
     anno_completo = 2000 + anno if anno <= 29 else 1900 + anno
 
@@ -183,8 +204,11 @@ def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
     if not mese:
         return {"errore": f"Carattere mese '{mese_char}' non valido"}
 
-    # Day and sex
-    giorno_raw = int(cf[9:11])
+    # Day and sex (de-omocodify substitution letters to digits)
+    try:
+        giorno_raw = int(_deomocodia(cf[9:11]))
+    except ValueError:
+        return {"errore": "Giorno di nascita non valido nel codice fiscale"}
     if giorno_raw > 40:
         sesso = "F"
         giorno = giorno_raw - 40
@@ -198,8 +222,8 @@ def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
     except ValueError:
         return {"errore": "Data di nascita non valida nel codice fiscale"}
 
-    # Comune lookup (reverse)
-    codice_catastale = cf[11:15]
+    # Comune lookup (reverse); de-omocodify the numeric part of the cadastral code
+    codice_catastale = cf[11] + _deomocodia(cf[12:15])
     comune = None
     for nome, cod in _COMUNI.items():
         if cod == codice_catastale:
@@ -327,8 +351,14 @@ def conta_giorni(
         data_fine: Data di fine del periodo (formato YYYY-MM-DD)
         tipo: Tipo di conteggio: 'calendario' (tutti i giorni), 'lavorativi' (esclusi weekend e festivi), 'festivi' (solo giorni festivi nel periodo)
     """
-    dt_inizio = _parse_date(data_inizio)
-    dt_fine = _parse_date(data_fine)
+    try:
+        dt_inizio = _parse_date(data_inizio)
+    except ValueError:
+        return {"errore": "data_inizio non valida, usare formato YYYY-MM-DD"}
+    try:
+        dt_fine = _parse_date(data_fine)
+    except ValueError:
+        return {"errore": "data_fine non valida, usare formato YYYY-MM-DD"}
 
     if dt_fine < dt_inizio:
         return {"errore": "data_fine deve essere uguale o successiva a data_inizio"}
@@ -468,6 +498,8 @@ def tasso_alcolemico(
         return {"errore": "sesso deve essere 'M' o 'F'"}
     if peso_kg <= 0 or unita_alcoliche < 0:
         return {"errore": "peso_kg e unita_alcoliche devono essere positivi"}
+    if ore_trascorse < 0:
+        return {"errore": "ore_trascorse non puo essere negativo"}
 
     GRAMMI_PER_UA = 12
     COEFF_WIDMARK = 0.70 if sesso == "M" else 0.60
@@ -494,7 +526,7 @@ def tasso_alcolemico(
         sanzione = None
     elif tasso_attuale < 0.8:
         fascia = "art. 186 co. 2 lett. a)"
-        sanzione = "Ammenda 500-2000€, sospensione patente 3-6 mesi"
+        sanzione = "Sanzione amministrativa 543-2.170€, sospensione patente 3-6 mesi (illecito amministrativo, non reato)"
     elif tasso_attuale < 1.5:
         fascia = "art. 186 co. 2 lett. b)"
         sanzione = "Ammenda 800-3200€, arresto fino a 6 mesi, sospensione patente 6-12 mesi"
