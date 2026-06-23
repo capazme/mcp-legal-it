@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.2] - 2026-06-15
+
+### Fixed
+- **Plugin MCP server did not start on Windows / Python 3.14**: the marketplace plugin (and `.mcpb`) launched the server via `bash start_server.sh`, which fails on Windows (no `bash`; venv uses `Scripts\` not `bin/`) and was fragile on macOS (first-run install timeout, non-self-healing venv). The skill loaded but the tools (`cerca_giurisprudenza`, `leggi_sentenza`, …) never connected. Now launched via `uv run --python 3.12 --with <deps> run_server.py` — one command identical on Windows/macOS/Linux; `uv` auto-provisions Python 3.12 and manages deps in its own cache. **New prerequisite: [`uv`](https://docs.astral.sh/uv/)** (one-line install, see README).
+
 ## [2.6.1] - 2026-06-15
 
 ### Fixed
