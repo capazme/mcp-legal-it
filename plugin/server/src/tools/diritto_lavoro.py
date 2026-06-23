@@ -452,7 +452,10 @@ def offerta_conciliativa(
         mensilita = max(floor_val, min(anni_servizio, cap_val))
     else:
         floor_val = 1.5
-        cap_val = 6.0
+        # Il tetto di 6 mensilità (art. 9 c.1 D.Lgs. 23/2015, richiamato anche per l'art. 6)
+        # è stato dichiarato illegittimo da Corte Cost. 118/2025; ricostruito come 27/2.
+        # Il dimezzamento (×0,5) NON è stato toccato dalla Corte e resta in vigore.
+        cap_val = 13.5
         mensilita = max(floor_val, min(anni_servizio * 0.5, cap_val))
     importo = round(mensilita * retribuzione_mensile, 2)
 
@@ -465,7 +468,7 @@ def offerta_conciliativa(
         "cap_mensilita": cap_val,
         "importo": importo,
         "detassato": True,
-        "nota": "Importo esente da IRPEF e da contributi previdenziali se accettato in sede conciliativa (art. 6 D.Lgs. 23/2015)",
+        "nota": "Importo esente da IRPEF e da contributi previdenziali se accettato in sede conciliativa (art. 6 D.Lgs. 23/2015). Piccole imprese: dimezzamento ex art. 9 c.1 ancora vigente; tetto di 6 mensilità abrogato da Corte Cost. 118/2025 (la formula agevolata è ricostruita con cap 13,5; il datore può comunque offrire di più).",
         "confronto_giudiziale": "Indennità giudiziale standard: 2 mensilità/anno (floor 6, cap 36 per aziende grandi) — usare indennita_licenziamento() per il confronto",
-        "riferimento_normativo": "D.Lgs. 23/2015 art. 6",
+        "riferimento_normativo": "D.Lgs. 23/2015 artt. 6, 9 — Corte Cost. 118/2025",
     }

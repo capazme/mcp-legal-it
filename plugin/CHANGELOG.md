@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-06-23
+
+### Fixed
+- Legal-figures audit (fonti: avvocatoandreani.it + ufficiali): valore catastale (corretto il doppio 5% + `prima_casa` + `+20%` DL 168/2004 compravendita); `offerta_conciliativa` (cap 6 abrogato da Corte Cost. 118/2025 → 13,5, dimezzamento mantenuto); disclaimer L. 132/2025 → art. 15; `analisi_sinistro` (danno non patrimoniale unitario SU 26972/2008 + interessi su base media SU 1712/1995).
+
 ## [2.7.0] - 2026-06-18
 
 ### Changed

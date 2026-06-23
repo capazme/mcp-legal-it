@@ -1,58 +1,64 @@
 ---
 name: analisi-sinistro
-description: Analizza sinistri stradali, sanitari e lavorativi con quantificazione completa del danno biologico, morale/esistenziale, rivalutazione ISTAT e interessi legali. Usa quando l'utente descrive un incidente, un sinistro, chiede risarcimento danni per invalidita o quantificazione danni da lesioni personali.
+description: Analizza sinistri stradali, sanitari e lavorativi con quantificazione del danno non patrimoniale (unitario, ex art. 2059 c.c.), rivalutazione ISTAT e interessi compensativi. Usa quando l'utente descrive un incidente, un sinistro, chiede risarcimento danni per invalidita o quantificazione danni da lesioni personali.
 argument-hint: "[descrizione sinistro, percentuale invalidità, data]"
 allowed-tools: mcp__legal-it__danno_biologico_micro, mcp__legal-it__danno_biologico_macro, mcp__legal-it__danno_non_patrimoniale, mcp__legal-it__rivalutazione_monetaria, mcp__legal-it__interessi_legali
 ---
 
 # Analisi Sinistro
 
-Quantificazione completa del danno da sinistro stradale, sanitario o lavorativo.
+Quantificazione del danno NON PATRIMONIALE da sinistro stradale, sanitario o lavorativo.
+
+**Principio (Cass. SS.UU. 26972/2008, «San Martino»)**: il danno non patrimoniale è UNITARIO
+(art. 2059 c.c.). Biologico, morale ed esistenziale sono aspetti di un unico pregiudizio, NON
+poste autonome da sommare. Le Tabelle di Milano liquidano un valore COMPLESSIVO che già incorpora
+la componente morale.
 
 ## Workflow
 
-### 1. Danno biologico
+### 1. Danno non patrimoniale (valore complessivo, unitario)
 
-Determina lo strumento in base alla percentuale di invalidita:
+Chiama UNA SOLA VOLTA `legal-it:danno_non_patrimoniale` con `percentuale_invalidita` (intero) e
+`eta_vittima` (intero). Usa le Tabelle di Milano (macro >9%) o l'art. 139 Cod. Ass. (micro ≤9%).
+Il valore restituito è GIÀ comprensivo del danno morale.
 
-- **<= 9%**: chiama `legal-it:danno_biologico_micro` (tabelle art. 139 CdA)
-- **>= 10%**: chiama `legal-it:danno_biologico_macro` (tabella unica nazionale art. 138 CdA, valori Milano per interpolazione — INDICATIVO)
+NON chiamare in aggiunta un tool di "danno morale" da sommare: duplicherebbe la componente già
+inclusa (unitarietà del danno non patrimoniale).
 
-Parametri: `percentuale_invalidita` (intero), `eta_vittima` (intero). La percentuale va indicata come intero (1-9 micro, 10-100 macro).
+### 2. Personalizzazione (solo se motivata da circostanze eccezionali)
 
-### 2. Danno non patrimoniale
+Solo in presenza di circostanze peculiari documentate, applica una personalizzazione ENTRO i tetti
+massimi della tabella (calcolata sulla componente biologica), tramite `personalizzazione_pct`. NON
+è una seconda voce cumulata: è un incremento del valore tabellare entro i limiti. In base al tipo:
+- **Stradale**: dinamica relazionale (mobilità, lavoro, sport)
+- **Sanitario**: sofferenza iatrogena da errore medico
+- **Lavoro**: incidenza sulla capacità lavorativa specifica
 
-Chiama `legal-it:danno_non_patrimoniale` per la componente morale/esistenziale.
+### 3. Rivalutazione monetaria (debito di valore)
 
-Personalizza in base al tipo di sinistro:
-- **Stradale**: incidenza su mobilita, lavoro, sport
-- **Sanitario**: sofferenza da errore medico (componente iatrogena)
-- **Lavoro**: incidenza sulla capacita lavorativa specifica
+Chiama `legal-it:rivalutazione_monetaria` dalla data del sinistro a oggi.
 
-### 3. Rivalutazione monetaria
+### 4. Interessi compensativi (Cass. SS.UU. 1712/1995)
 
-Chiama `legal-it:rivalutazione_monetaria` sugli importi dalla data del sinistro a oggi.
-
-### 4. Interessi legali
-
-Chiama `legal-it:interessi_legali` sul capitale rivalutato, dalla data del sinistro a oggi.
+NON calcolare gli interessi sul capitale INTERAMENTE rivalutato all'attualità: sarebbe la
+sovra-compensazione censurata dalle SS.UU. Calcolali sulla somma PROGRESSIVAMENTE rivalutata anno
+per anno o, in via semplificata, sul VALORE MEDIO tra somma originaria e somma finale rivalutata:
+chiama `legal-it:interessi_legali` sulla base `(somma_originaria + somma_rivalutata) / 2`.
 
 ## Output atteso
 
-Tabella riepilogativa:
-
 | Voce | Importo |
 |------|---------|
-| Danno biologico (base tabellare) | ... |
-| Personalizzazione (morale/esistenziale) | ... |
-| Totale danno non patrimoniale | ... |
+| Danno non patrimoniale (valore complessivo, morale incluso) | ... |
+| Personalizzazione (se ricorrente, entro i tetti) | ... |
 | Rivalutazione monetaria | ... |
-| Interessi legali | ... |
+| Interessi compensativi (su base media/progressiva) | ... |
 | **TOTALE RISARCIMENTO** | **...** |
 
 ## Avvertenze da includere
 
-- Valori su tabella unica nazionale art. 138 CdA, valori Milano per interpolazione (macro >= 10%) o art. 139 CdA (micro <= 9%) — INDICATIVI
-- Non sostituisce la valutazione medico-legale
-- Per ITT/ITP, danno emergente e lucro cessante servono dati aggiuntivi
-- Citare sempre la fonte tabellare e normativa
+- Danno non patrimoniale UNITARIO: una sola voce comprensiva del morale (SS.UU. 26972/2008) — non sommare biologico e morale come poste distinte.
+- Interessi compensativi sulla somma progressivamente rivalutata / valore medio, MAI sul capitale già interamente rivalutato (SS.UU. 1712/1995).
+- Valori INDICATIVI (Tabelle di Milano macro >9% / art. 139 Cod. Ass. micro ≤9%) — non sostituiscono la valutazione medico-legale.
+- Per ITT/ITP, danno emergente e lucro cessante servono dati aggiuntivi.
+- Citare sempre la fonte tabellare e normativa.
