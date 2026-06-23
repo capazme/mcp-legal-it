@@ -75,6 +75,8 @@ def fattura_professionista(
         tipo: Tipo professionista: 'ingegnere', 'architetto', 'geometra', 'commercialista', 'consulente_lavoro', 'psicologo', 'medico'
         regime: Regime fiscale: 'ordinario' (IVA 22% + ritenuta 20%) o 'forfettario' (no IVA, no ritenuta, bollo se >77.47€)
     """
+    if imponibile < 0:
+        return {"errore": "Imponibile deve essere positivo"}
     if tipo not in _RIVALSA_INPS:
         return {"errore": f"Tipo professionista non valido. Valori: {list(_RIVALSA_INPS.keys())}"}
     if regime not in ("ordinario", "forfettario"):
@@ -208,6 +210,8 @@ def spese_mediazione(
     """
     if esito not in ("positivo", "negativo"):
         return {"errore": "Esito deve essere 'positivo' o 'negativo'"}
+    if valore_controversia <= 0:
+        return {"errore": "Valore controversia deve essere positivo"}
 
     # Find scaglione
     for soglia, ind_negativo, ind_positivo in _SCAGLIONI_MEDIAZIONE:
@@ -236,9 +240,17 @@ def spese_mediazione(
     }
 
     if esito == "negativo":
+        iva_ridotta_per_parte = round(indennita_ridotta * 22 / 100, 2)
+        totale_ridotto_per_parte = round(indennita_ridotta + iva_ridotta_per_parte, 2)
+        risultato["indennita_ridotta_per_parte"] = indennita_ridotta
+        risultato["iva_22_ridotta_per_parte"] = iva_ridotta_per_parte
+        risultato["totale_ridotto_per_parte"] = totale_ridotto_per_parte
+        risultato["totale_organismo_2_parti_ridotto"] = round(totale_ridotto_per_parte * 2, 2)
         risultato["nota_riduzione"] = (
-            f"Dopo il primo incontro informativo senza accordo, l'indennità può ridursi di 1/3 "
-            f"(riduzione: €{riduzione}, indennità ridotta: €{indennita_ridotta})"
+            f"I campi 'indennita_per_parte', 'totale_per_parte' e 'totale_organismo_2_parti' indicano "
+            f"l'importo massimo (non ridotto). Dopo il primo incontro informativo senza accordo, "
+            f"l'indennità può ridursi di 1/3 (riduzione: €{riduzione}, indennità ridotta: €{indennita_ridotta}); "
+            f"in tal caso valgono i campi '*_ridotto'"
         )
 
     risultato["agevolazioni"] = [
@@ -270,6 +282,8 @@ def compenso_orario(
         return {"errore": "Arrotondamento deve essere 'quarto_ora', 'mezz_ora' o 'ora'"}
     if not 0 <= minuti <= 59:
         return {"errore": "Minuti deve essere tra 0 e 59"}
+    if ore < 0:
+        return {"errore": "Ore deve essere un intero non negativo"}
 
     totale_minuti = ore * 60 + minuti
 
@@ -305,6 +319,9 @@ def ritenuta_acconto(
         compenso_lordo: Compenso lordo in euro (€, base imponibile per la ritenuta)
         aliquota: Aliquota ritenuta in percentuale (default 20%; range tipico: 20.0-30.0)
     """
+    if compenso_lordo < 0:
+        return {"errore": "Compenso lordo deve essere positivo"}
+
     ritenuta = round(compenso_lordo * aliquota / 100, 2)
     netto = round(compenso_lordo - ritenuta, 2)
 
@@ -337,7 +354,7 @@ _SCAGLIONI_CURATORE = [
     (162_262.72, 2.8),
     (float("inf"), 1.5),
 ]
-_CURATORE_MIN = 811.31
+_CURATORE_MIN = 811.35
 _CURATORE_MAX = 405_656.80
 
 
@@ -347,7 +364,7 @@ def compenso_curatore_fallimentare(
     passivo_accertato: float,
 ) -> dict:
     """Calcola compenso del curatore fallimentare su scaglioni progressivi.
-    Vigenza: DM 30/2012 — compenso minimo €811,31 e massimo €405.656,80.
+    Vigenza: DM 30/2012 — compenso minimo €811,35 e massimo €405.656,80.
     Precisione: ESATTO (scaglioni percentuali tabellari DM 30/2012).
 
     Args:
@@ -381,9 +398,23 @@ def compenso_curatore_fallimentare(
     det_passivo = _calcola_scaglioni(passivo_accertato, _SCAGLIONI_CURATORE, 0.5)
     comp_passivo = sum(d["compenso"] for d in det_passivo)
 
-    totale = round(comp_attivo + comp_passivo, 2)
-    totale = max(totale, _CURATORE_MIN)
+    totale_prima_dei_limiti = round(comp_attivo + comp_passivo, 2)
+    totale = max(totale_prima_dei_limiti, _CURATORE_MIN)
     totale = min(totale, _CURATORE_MAX)
+
+    note = [
+        "Compenso su attivo: scaglioni progressivi DM 30/2012",
+        "Compenso su passivo: metà delle percentuali su attivo",
+        f"Limiti: minimo €{_CURATORE_MIN:,.2f}, massimo €{_CURATORE_MAX:,.2f}",
+        "Al compenso si aggiungono IVA e CPA se dovute",
+    ]
+    if totale != totale_prima_dei_limiti:
+        differenza = round(totale - totale_prima_dei_limiti, 2)
+        limite = "minimo" if totale == _CURATORE_MIN else "massimo"
+        note.append(
+            f"Totale portato al {limite} di legge: somma dei parziali €{totale_prima_dei_limiti:,.2f}, "
+            f"differenza dai parziali €{differenza:,.2f}"
+        )
 
     return {
         "attivo_realizzato": attivo_realizzato,
@@ -392,15 +423,11 @@ def compenso_curatore_fallimentare(
         "dettaglio_attivo": det_attivo,
         "compenso_su_passivo": round(comp_passivo, 2),
         "dettaglio_passivo": det_passivo,
+        "totale_prima_dei_limiti": totale_prima_dei_limiti,
         "totale_compenso": totale,
         "minimo": _CURATORE_MIN,
         "massimo": _CURATORE_MAX,
-        "note": [
-            "Compenso su attivo: scaglioni progressivi DM 30/2012",
-            "Compenso su passivo: metà delle percentuali su attivo",
-            f"Limiti: minimo €{_CURATORE_MIN:,.2f}, massimo €{_CURATORE_MAX:,.2f}",
-            "Al compenso si aggiungono IVA e CPA se dovute",
-        ],
+        "note": note,
         "riferimento_normativo": "DM 30/2012 — Compensi curatore fallimentare",
     }
 
@@ -416,6 +443,9 @@ def compenso_delegati_vendite(
     Args:
         prezzo_aggiudicazione: Prezzo di aggiudicazione dell'immobile in euro (€)
     """
+    if prezzo_aggiudicazione <= 0:
+        return {"errore": "Prezzo aggiudicazione deve essere positivo"}
+
     if prezzo_aggiudicazione <= 100_000:
         pct = 2.6
         compenso = round(prezzo_aggiudicazione * pct / 100, 2)
@@ -508,6 +538,8 @@ def fattura_enasarco(
     """
     if tipo_agente not in ("monocommittente", "pluricommittente"):
         return {"errore": f"Tipo agente non valido: {tipo_agente}. Usare: monocommittente, pluricommittente"}
+    if provvigioni < 0:
+        return {"errore": "Provvigioni deve essere positivo"}
 
     contributo_totale = round(provvigioni * _ENASARCO_ALIQUOTA / 100, 2)
     quota_agente = round(contributo_totale / 2, 2)
@@ -566,6 +598,9 @@ def ricevuta_prestazione_occasionale(
         prestatore: Nome e cognome del prestatore della prestazione
         descrizione: Descrizione sintetica della prestazione svolta
     """
+    if compenso_lordo < 0:
+        return {"errore": "Compenso lordo deve essere positivo"}
+
     ritenuta = round(compenso_lordo * 20 / 100, 2)
     netto = round(compenso_lordo - ritenuta, 2)
     bollo = 2.0 if compenso_lordo > 77.47 else 0.0
@@ -611,15 +646,15 @@ def ricevuta_prestazione_occasionale(
 # Tabella indennità mediazione DM 150/2023 completa
 _TABELLA_MEDIAZIONE_DM150 = [
     {"fino_a": 1_000, "spese_avvio": 40, "indennita_negativo": 60, "indennita_positivo": 120},
-    {"fino_a": 5_000, "spese_avvio": 40, "indennita_negativo": 100, "indennita_positivo": 200},
-    {"fino_a": 10_000, "spese_avvio": 40, "indennita_negativo": 170, "indennita_positivo": 340},
-    {"fino_a": 25_000, "spese_avvio": 40, "indennita_negativo": 240, "indennita_positivo": 480},
-    {"fino_a": 50_000, "spese_avvio": 40, "indennita_negativo": 360, "indennita_positivo": 720},
-    {"fino_a": 250_000, "spese_avvio": 40, "indennita_negativo": 530, "indennita_positivo": 1_060},
-    {"fino_a": 500_000, "spese_avvio": 40, "indennita_negativo": 880, "indennita_positivo": 1_760},
-    {"fino_a": 2_500_000, "spese_avvio": 40, "indennita_negativo": 1_250, "indennita_positivo": 2_500},
-    {"fino_a": 5_000_000, "spese_avvio": 40, "indennita_negativo": 2_000, "indennita_positivo": 4_000},
-    {"oltre": True, "spese_avvio": 40, "indennita_negativo": 2_800, "indennita_positivo": 5_600},
+    {"fino_a": 5_000, "spese_avvio": 75, "indennita_negativo": 100, "indennita_positivo": 200},
+    {"fino_a": 10_000, "spese_avvio": 75, "indennita_negativo": 170, "indennita_positivo": 340},
+    {"fino_a": 25_000, "spese_avvio": 75, "indennita_negativo": 240, "indennita_positivo": 480},
+    {"fino_a": 50_000, "spese_avvio": 75, "indennita_negativo": 360, "indennita_positivo": 720},
+    {"fino_a": 250_000, "spese_avvio": 110, "indennita_negativo": 530, "indennita_positivo": 1_060},
+    {"fino_a": 500_000, "spese_avvio": 110, "indennita_negativo": 880, "indennita_positivo": 1_760},
+    {"fino_a": 2_500_000, "spese_avvio": 110, "indennita_negativo": 1_250, "indennita_positivo": 2_500},
+    {"fino_a": 5_000_000, "spese_avvio": 110, "indennita_negativo": 2_000, "indennita_positivo": 4_000},
+    {"oltre": True, "spese_avvio": 110, "indennita_negativo": 2_800, "indennita_positivo": 5_600},
 ]
 
 
@@ -635,6 +670,9 @@ def tariffe_mediazione(
     Args:
         valore_controversia: Valore della controversia in euro (€)
     """
+    if valore_controversia <= 0:
+        return {"errore": "Valore controversia deve essere positivo"}
+
     scaglione_applicabile = None
     for s in _TABELLA_MEDIAZIONE_DM150:
         if s.get("oltre") or valore_controversia <= s["fino_a"]:
@@ -679,7 +717,7 @@ def tariffe_mediazione(
             for s in _TABELLA_MEDIAZIONE_DM150
         ],
         "note": [
-            "Spese di avvio: €40 per ciascuna parte, dovute all'atto della presentazione della domanda",
+            "Spese di avvio (art. 28 DM 150/2023) per ciascuna parte, dovute all'atto della presentazione della domanda: €40 fino a €1.000, €75 da €1.000,01 a €50.000, €110 oltre €50.000",
             "Indennità: dovuta per ciascuna parte a ciascun organismo",
             "Esito positivo = accordo raggiunto; esito negativo = mancato accordo",
             "Incontri successivi al primo: maggiorazione fino al 25% dell'indennità",

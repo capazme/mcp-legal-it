@@ -7,4 +7,4 @@ allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__lega
 
 Esegui il workflow della skill `parere-legale`.
 
-Al termine, proponi `/esporta-documento` per salvare il parere in Word/PDF.
+Al termine, proponi all'utente di esportare il parere in Word/PDF tramite la skill `esporta-documento` (es. "esporta in word" / "esporta in pdf").

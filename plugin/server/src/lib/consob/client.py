@@ -209,8 +209,9 @@ async def search_delibere(
     rows: int = 20,
 ) -> list[DocResult]:
     """Search CONSOB bollettino. Fetches multiple pages if rows > 50."""
-    rows = min(rows, 100)
+    rows = max(1, min(rows, 100))
     results: list[DocResult] = []
+    seen: set[str] = set()
     cur = 1
     delta = min(rows, _RESULTS_PER_PAGE)
 
@@ -233,7 +234,11 @@ async def search_delibere(
             if not page_results:
                 break
 
-            results.extend(page_results)
+            for doc in page_results:
+                if doc.numero in seen:
+                    continue
+                seen.add(doc.numero)
+                results.append(doc)
             cur += 1
 
             if len(page_results) < delta:

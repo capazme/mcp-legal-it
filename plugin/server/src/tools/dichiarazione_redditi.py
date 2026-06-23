@@ -16,6 +16,9 @@ with open(_DATA / "irpef_scaglioni.json") as f:
 with open(_DATA / "codici_tributo.json") as f:
     _CODICI_TRIBUTO: list[dict] = json.load(f)["codici"]
 
+with open(_DATA / "tassi_legali.json") as f:
+    _TASSI_LEGALI: list[dict] = json.load(f)["tassi"]
+
 
 def _get_scaglioni(anno: int | None = None) -> list[dict]:
     """Return IRPEF brackets for the given fiscal year (default: current year)."""
@@ -175,6 +178,13 @@ def regime_forfettario(
     forfettario = _IRPEF["forfettario"]
     limite = forfettario["limite_ricavi"]
 
+    if ricavi <= 0:
+        return {"errore": "I ricavi devono essere positivi"}
+    if not 0 < coefficiente_redditivita <= 100:
+        return {"errore": "Il coefficiente di redditività deve essere tra 0 e 100"}
+    if anni_attivita < 1:
+        return {"errore": "Gli anni di attività devono essere almeno 1"}
+
     if ricavi > limite:
         return {
             "errore": f"Ricavi {ricavi}€ superano il limite di {limite}€ per il regime forfettario",
@@ -327,10 +337,8 @@ def ravvedimento_operoso(
 
     sanzione = round(imposta_dovuta * sanzione_pct / 100, 2)
 
-    # Interessi legali pro rata (caricato da tassi_legali.json)
-    with open(_DATA / "tassi_legali.json") as f:
-        tassi = json.load(f)["tassi"]
-    tasso_legale = tassi[-1]["tasso"]  # ultimo tasso vigente
+    # Interessi legali pro rata (caricato da tassi_legali.json a livello di modulo)
+    tasso_legale = _TASSI_LEGALI[-1]["tasso"]  # ultimo tasso vigente
     interessi = round(imposta_dovuta * tasso_legale / 100 * giorni_ritardo / 365, 2)
 
     totale_dovuto = round(imposta_dovuta + sanzione + interessi, 2)
@@ -447,7 +455,7 @@ def assegno_unico(
         "maggiorazione_genitore_solo": maggiorazione_genitore,
         "totale_mensile": totale_mensile,
         "totale_annuo": totale_annuo,
-        "riferimento_normativo": "D.Lgs. 230/2021 — Importi 2024 (DPCM 16/02/2023)",
+        "riferimento_normativo": "D.Lgs. 230/2021 — Importi 2026 (rivalutazione ISTAT)",
     }
 
 
@@ -460,7 +468,8 @@ def detrazione_figli(
     """Calcola la detrazione IRPEF per figli a carico con età ≥21 anni (art. 12 TUIR).
     I figli under 21 rientrano nell'Assegno Unico Universale — non generano detrazione IRPEF.
     Vigenza: art. 12 TUIR — D.P.R. 917/1986 (mod. D.Lgs. 230/2021 che ha spostato i figli
-    under 21 all'AUU); soglia reddito 95.000€.
+    under 21 all'AUU); soglia reddito 95.000€, aumentata di 15.000€ per ogni figlio
+    successivo al primo (uguale per tutti i figli).
     Precisione: ESATTO (formula di legge; detrazione proporzionale al reddito).
 
     Args:
@@ -475,20 +484,20 @@ def detrazione_figli(
     if n_figli_normali < 0:
         return {"errore": "I figli disabili non possono superare il totale figli over 21"}
 
-    soglia = 95000
+    soglia = 95000 + 15000 * (n_figli_over21 - 1)
     dettaglio = []
     totale = 0.0
 
     for i in range(n_figli_normali):
         detrazione_base = 950
-        coefficiente = max((soglia - reddito_complessivo) / soglia, 0)
+        coefficiente = min(max((soglia - reddito_complessivo) / soglia, 0), 1)
         importo = round(detrazione_base * coefficiente, 2)
         dettaglio.append({"figlio": i + 1, "tipo": "ordinario", "detrazione_teorica": detrazione_base, "importo": importo})
         totale += importo
 
     for i in range(n_figli_disabili):
         detrazione_base = 1350
-        coefficiente = max((soglia - reddito_complessivo) / soglia, 0)
+        coefficiente = min(max((soglia - reddito_complessivo) / soglia, 0), 1)
         importo = round(detrazione_base * coefficiente, 2)
         dettaglio.append({"figlio": n_figli_normali + i + 1, "tipo": "disabile", "detrazione_teorica": detrazione_base, "importo": importo})
         totale += importo
@@ -560,7 +569,7 @@ def detrazione_altri_familiari(
 
     soglia = 80000
     detrazione_unitaria = 750
-    coefficiente = max((soglia - reddito_complessivo) / soglia, 0)
+    coefficiente = min(max((soglia - reddito_complessivo) / soglia, 0), 1)
     importo_per_familiare = round(detrazione_unitaria * coefficiente, 2)
     totale = round(importo_per_familiare * n_familiari, 2)
 
@@ -748,7 +757,8 @@ def acconto_irpef(
     """Calcola l'acconto IRPEF (primo e secondo acconto) con importi e scadenze.
     Vigenza: art. 17 D.P.R. 435/2001; art. 4 D.L. 69/1989; acconto totale = 100% dell'imposta
     dell'anno precedente (con metodo storico).
-    Precisione: ESATTO (40% primo acconto, 60% secondo; soglia esenzione €51,65).
+    Precisione: ESATTO (soglia esenzione €51,65; tra €51,65 e €257,52 versamento in unica
+    soluzione entro il 30 novembre; oltre €257,52 in due rate: 40% primo acconto, 60% secondo).
 
     Args:
         imposta_anno_precedente: Imposta netta IRPEF risultante dalla dichiarazione dell'anno
@@ -768,6 +778,23 @@ def acconto_irpef(
         }
 
     acconto_totale = round(imposta_anno_precedente, 2)
+
+    if imposta_anno_precedente <= 257.52:
+        return {
+            "imposta_anno_precedente": imposta_anno_precedente,
+            "metodo": metodo,
+            "acconto_dovuto": True,
+            "acconto_totale": acconto_totale,
+            "unica_soluzione": {
+                "importo": acconto_totale,
+                "percentuale": 100,
+                "scadenza": "30 novembre",
+            },
+            "motivo": "Acconto tra 51,65€ e 257,52€: versamento in unica soluzione entro il 30 novembre",
+            "nota_previsionale": "Con metodo previsionale, gli importi vanno calcolati sull'imposta stimata per l'anno corrente" if metodo == "previsionale" else None,
+            "riferimento_normativo": "Art. 17 D.P.R. 435/2001 — Art. 4 D.L. 69/1989",
+        }
+
     primo_acconto = round(acconto_totale * 0.40, 2)
     secondo_acconto = round(acconto_totale - primo_acconto, 2)
 
@@ -796,7 +823,8 @@ def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
     """Calcola l'acconto cedolare secca (primo e secondo acconto) con importi e scadenze.
     Vigenza: art. 3, comma 4, D.Lgs. 23/2011; acconto totale = 100% della cedolare secca
     dell'anno precedente; stesse scadenze dell'IRPEF (giugno/luglio e novembre).
-    Precisione: ESATTO (40% primo acconto, 60% secondo; soglia esenzione €51,65).
+    Precisione: ESATTO (soglia esenzione €51,65; tra €51,65 e €257,52 versamento in unica
+    soluzione entro il 30 novembre; oltre €257,52 in due rate: 40% primo acconto, 60% secondo).
 
     Args:
         imposta_anno_precedente: Imposta da cedolare secca risultante dalla dichiarazione
@@ -810,6 +838,21 @@ def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
         }
 
     acconto_totale = round(imposta_anno_precedente, 2)
+
+    if imposta_anno_precedente <= 257.52:
+        return {
+            "imposta_anno_precedente": imposta_anno_precedente,
+            "acconto_dovuto": True,
+            "acconto_totale": acconto_totale,
+            "unica_soluzione": {
+                "importo": acconto_totale,
+                "percentuale": 100,
+                "scadenza": "30 novembre",
+            },
+            "motivo": "Acconto tra 51,65€ e 257,52€: versamento in unica soluzione entro il 30 novembre",
+            "riferimento_normativo": "Art. 3, comma 4, D.Lgs. 23/2011",
+        }
+
     primo_acconto = round(acconto_totale * 0.40, 2)
     secondo_acconto = round(acconto_totale - primo_acconto, 2)
 
@@ -836,7 +879,7 @@ def rateizzazione_imposte(
     importo_totale: float,
     n_rate: int,
     data_prima_rata: str,
-    tasso_interesse_annuo: float = 2.0,
+    tasso_interesse_annuo: float = 4.0,
 ) -> dict:
     """Calcola il piano di rateizzazione delle imposte IRPEF e addizionali da dichiarazione.
     Vigenza: art. 20 D.Lgs. 241/1997; la rateizzazione è consentita da 2 a 7 rate mensili
@@ -847,7 +890,9 @@ def rateizzazione_imposte(
         importo_totale: Importo totale da rateizzare in euro (€)
         n_rate: Numero di rate mensili (2-7; oltre luglio si aggiunge maggiorazione 0,40%)
         data_prima_rata: Data della prima rata — di norma 30 giugno (YYYY-MM-DD)
-        tasso_interesse_annuo: Tasso di interesse annuo in percentuale (default 2,0%)
+        tasso_interesse_annuo: Tasso di interesse annuo in percentuale (default 4,0%, fissato
+                               per legge — D.M. 21/05/2009 — per la rateizzazione delle imposte
+                               da dichiarazione; pari allo 0,33% mensile)
     """
     from datetime import date as _date
 

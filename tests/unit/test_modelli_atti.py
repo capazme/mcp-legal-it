@@ -139,7 +139,9 @@ class TestGeneraModelloAttoLookup:
 
     def test_tier4_preventivo(self):
         result = genera_modello_atto(tipo_atto="preventivo_mediazione")
-        assert result["tool_diretto"] == "preventivo_procedura"
+        # preventivo_procedura non è ancora implementato: si instrada al fallback reale preventivo_civile.
+        assert result["tool_diretto"] == "preventivo_civile"
+        assert result["tool_non_ancora_disponibile"] == "preventivo_procedura"
         assert "disponibile_da_fase" in result
         assert result["disponibile_da_fase"] == 4
 

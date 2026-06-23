@@ -541,6 +541,7 @@ class TestGeneraNotificaDataBreach:
             n_interessati=1200,
             conseguenze="Possibile utilizzo dei dati per phishing e furto d'identità",
             misure_adottate=["reset credenziali", "blocco accessi", "notifica interessati"],
+            dpo="Mario Rossi — dpo@example.com",
         )
         params.update(kwargs)
         return _genera_notifica_data_breach_impl(**params)

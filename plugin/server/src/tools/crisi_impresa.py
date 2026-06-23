@@ -32,6 +32,14 @@ def test_crisi_impresa(
     """
     if dscr < 0:
         raise ValueError("dscr non può essere negativo")
+    if giorni_ritardo_inps < 0:
+        raise ValueError("giorni_ritardo_inps non può essere negativo")
+    if giorni_ritardo_ade < 0:
+        raise ValueError("giorni_ritardo_ade non può essere negativo")
+    if not (0 <= esposizioni_scadute_pct <= 100):
+        raise ValueError("esposizioni_scadute_pct deve essere compresa tra 0 e 100")
+    if debiti_vs_attivo_pct < 0:
+        raise ValueError("debiti_vs_attivo_pct non può essere negativo")
 
     indicatori_attivati = []
 
@@ -185,7 +193,7 @@ def composizione_negoziata(
         "tipo_impresa": tipo_impresa,
         "requisiti_soddisfatti": requisiti_soddisfatti,
         "indicatori": indicatori,
-        "durata_max": "180 giorni + proroga di ulteriori 180 giorni (art. 13 CCII)",
+        "durata_max": "180 giorni + proroga di ulteriori 180 giorni (art. 17 CCII)",
         "misure_protettive": misure_protettive,
         "riferimento_normativo": "Artt. 12-25-undecies D.Lgs. 14/2019 (CCII) — Composizione negoziata",
     }
@@ -232,7 +240,11 @@ def concordato_preventivo(
         ammissibile = proposta_pct_chirografari >= soglia_minima
         nota_soglia = (
             f"Concordato liquidatorio: soddisfazione chirografari {proposta_pct_chirografari:.1f}% "
-            f"{'≥' if ammissibile else '<'} soglia minima {soglia_minima}% (art. 84 co. 4 CCII)"
+            f"{'≥' if ammissibile else '<'} soglia minima {soglia_minima}% (art. 84 co. 4 CCII). "
+            "ATTENZIONE: l'ammissibilità richiede ANCHE l'apporto di risorse esterne che incrementi "
+            "di almeno il 10% il soddisfacimento dei chirografari rispetto alla liquidazione giudiziale "
+            "(art. 84 co. 4 CCII) — condizione non verificabile da questo tool: l'esito 'ammissibile' "
+            "è subordinato alla sussistenza di tale apporto esterno."
         )
     elif tipo == "continuita":
         soglia_minima = 0.0
@@ -331,7 +343,7 @@ def compenso_occ(
         compenso_calcolato += importo_fascia
         dettaglio_fasce.append({
             "fascia": (
-                f"fino a €{precedente + ampiezza:,.0f}" if i == 0
+                f"fino a €{limite:,.0f}" if i == 0
                 else f"€{precedente + 1:,.0f} – €{limite:,.0f}" if limite != float("inf")
                 else f"oltre €{precedente:,.0f}"
             ),

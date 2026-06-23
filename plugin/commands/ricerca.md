@@ -19,4 +19,4 @@ In base alla richiesta dell'utente, scegli il tipo di ricerca:
 
 **CONSOB**: Usa `legal-it:cerca_delibere_consob` per delibere e provvedimenti.
 
-Se la richiesta e generica, chiedi se vuole cercare giurisprudenza, normativa, provvedimenti Garante o delibere CONSOB.
+Se la richiesta è generica, chiedi se vuole cercare giurisprudenza, normativa, provvedimenti Garante o delibere CONSOB.

@@ -8,7 +8,10 @@ from src.server import mcp
 
 
 def _parse_date(d: str) -> date:
-    return date.fromisoformat(d)
+    try:
+        return date.fromisoformat(d)
+    except ValueError:
+        raise ValueError(f"data non valida: '{d}', usare il formato YYYY-MM-DD")
 
 
 def _add_months(d: date, months: int) -> date:
@@ -43,6 +46,9 @@ def aumenti_riduzioni_pena(
         attenuanti: Lista di attenuanti, ciascuna con {'tipo': str, 'riduzione_pct': float} (es. riduzione_pct: 33.33 per -1/3)
         recidiva: True per applicare recidiva semplice art. 99 c.p. (+1/3 sulla pena base)
     """
+    if pena_base_mesi < 0:
+        raise ValueError("pena_base_mesi non può essere negativa")
+
     pena = pena_base_mesi
     dettaglio = [{"step": "Pena base", "mesi": round(pena, 2)}]
 
@@ -57,24 +63,33 @@ def aumenti_riduzioni_pena(
 
     if aggravanti:
         for agg in aggravanti:
-            aumento = pena * agg["aumento_pct"] / 100
+            pct = agg.get("aumento_pct")
+            if pct is None:
+                raise ValueError("ogni aggravante deve avere il campo 'aumento_pct'")
+            tipo = agg.get("tipo", "aggravante")
+            aumento = pena * pct / 100
             pena += aumento
             dettaglio.append({
-                "step": f"Aggravante: {agg['tipo']} (+{agg['aumento_pct']}%)",
+                "step": f"Aggravante: {tipo} (+{pct}%)",
                 "aumento_mesi": round(aumento, 2),
                 "mesi": round(pena, 2),
             })
 
     if attenuanti:
         for att in attenuanti:
-            riduzione = pena * att["riduzione_pct"] / 100
+            pct = att.get("riduzione_pct")
+            if pct is None:
+                raise ValueError("ogni attenuante deve avere il campo 'riduzione_pct'")
+            tipo = att.get("tipo", "attenuante")
+            riduzione = pena * pct / 100
             pena -= riduzione
             dettaglio.append({
-                "step": f"Attenuante: {att['tipo']} (-{att['riduzione_pct']}%)",
+                "step": f"Attenuante: {tipo} (-{pct}%)",
                 "riduzione_mesi": round(riduzione, 2),
                 "mesi": round(pena, 2),
             })
 
+    pena = max(0.0, pena)
     anni = int(pena // 12)
     mesi_residui = round(pena % 12, 2)
 
@@ -104,6 +119,13 @@ def conversione_pena(
         direzione: Direzione della conversione: 'detentiva_a_pecuniaria' o 'pecuniaria_a_detentiva'
         tipo_pena: Tipo di pena detentiva: 'reclusione' (delitti) o 'arresto' (contravvenzioni)
     """
+    if direzione not in {"detentiva_a_pecuniaria", "pecuniaria_a_detentiva"}:
+        raise ValueError(
+            "direzione non valida: usare 'detentiva_a_pecuniaria' o 'pecuniaria_a_detentiva'"
+        )
+    if importo < 0:
+        raise ValueError("importo non può essere negativo")
+
     tasso_giornaliero = 250  # €250 per giorno (art. 135 c.p.)
 
     if direzione == "detentiva_a_pecuniaria":
@@ -151,6 +173,11 @@ def fine_pena(
         liberazione_anticipata: True per calcolare lo sconto di 45 giorni ogni semestre (default: True)
         giorni_presofferto: Giorni di custodia cautelare già scontati da sottrarre (default 0)
     """
+    if pena_totale_mesi < 0:
+        raise ValueError("pena_totale_mesi non può essere negativa")
+    if giorni_presofferto < 0:
+        raise ValueError("giorni_presofferto non può essere negativo")
+
     dt_inizio = _parse_date(data_inizio_pena)
 
     # Subtract presofferto
@@ -212,10 +239,23 @@ def prescrizione_reato(
         sospensioni_giorni: Giorni totali di sospensione della prescrizione (spostano la data in avanti)
         tipo_reato: Tipo di reato: 'delitto' (minimo 6 anni) o 'contravvenzione' (minimo 4 anni)
     """
+    if pena_massima_anni < 0:
+        raise ValueError("pena_massima_anni non può essere negativa")
+    if interruzioni_giorni < 0:
+        raise ValueError("interruzioni_giorni non può essere negativo")
+    if sospensioni_giorni < 0:
+        raise ValueError("sospensioni_giorni non può essere negativo")
+
+    tr = tipo_reato.strip().lower()
+    if tr not in {"delitto", "contravvenzione"}:
+        raise ValueError(
+            "tipo_reato non valido: usare 'delitto' o 'contravvenzione'"
+        )
+
     dt_commissione = _parse_date(data_commissione)
 
     # Base term: max sentence, with minimums (art. 157 c.p.)
-    if tipo_reato == "delitto":
+    if tr == "delitto":
         termine_base_anni = max(pena_massima_anni, 6)
     else:
         termine_base_anni = max(pena_massima_anni, 4)
@@ -228,8 +268,10 @@ def prescrizione_reato(
         termine_con_interruzione_anni = termine_base_anni + aumento_interruzione_anni
 
     # Calculate prescription date
-    mesi_totali = int(termine_con_interruzione_anni * 12)
-    dt_prescrizione = _add_months(dt_commissione, mesi_totali)
+    mesi_esatti = termine_con_interruzione_anni * 12
+    mesi_interi = int(mesi_esatti)
+    giorni_frazionari = round((mesi_esatti - mesi_interi) * 30)
+    dt_prescrizione = _add_months(dt_commissione, mesi_interi) + timedelta(days=giorni_frazionari)
 
     # Add suspension days
     if sospensioni_giorni > 0:
@@ -273,6 +315,9 @@ def pena_concordata(
         attenuanti_generiche: True per applicare attenuanti generiche art. 62-bis c.p. (-1/3 sulla pena base)
         diminuente_rito: True per applicare diminuente di rito art. 444 c.p.p. (-1/3 sulla pena dopo attenuanti)
     """
+    if pena_base_mesi < 0:
+        raise ValueError("pena_base_mesi non può essere negativa")
+
     pena = pena_base_mesi
     dettaglio = [{"step": "Pena base", "mesi": round(pena, 2)}]
 
@@ -294,7 +339,7 @@ def pena_concordata(
             "mesi": round(pena, 2),
         })
 
-    pena = round(pena, 2)
+    pena = round(max(0.0, pena), 2)
     anni = int(pena // 12)
     mesi_residui = round(pena % 12, 2)
 

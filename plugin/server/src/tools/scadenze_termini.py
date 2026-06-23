@@ -18,6 +18,15 @@ def _parse_date(d: str) -> date:
     return date.fromisoformat(d)
 
 
+def _validate_date(d: str) -> dict | None:
+    """Return a structured error dict if d is not a valid YYYY-MM-DD date, else None."""
+    try:
+        date.fromisoformat(d)
+        return None
+    except (ValueError, TypeError):
+        return {"errore": f"data non valida: {d!r} (formato atteso YYYY-MM-DD)"}
+
+
 def _easter(year: int) -> date:
     """Gauss algorithm for Easter Sunday."""
     a = year % 19
@@ -138,6 +147,16 @@ def scadenza_processuale(
         giorni: Numero di giorni del termine (interi positivi)
         tipo: Tipo di conteggio: 'calendario' (dies a quo escluso, art. 155 c.p.c.) o 'lavorativi'
     """
+    err = _validate_date(data_evento)
+    if err:
+        return err
+    if not isinstance(giorni, int) or giorni < 1:
+        return {"errore": "giorni deve essere un intero positivo"}
+    if tipo not in ("calendario", "lavorativi"):
+        return {
+            "errore": f"tipo non valido: {tipo}",
+            "valori_ammessi": ["calendario", "lavorativi"],
+        }
     dt_evento = _parse_date(data_evento)
 
     if tipo == "lavorativi":
@@ -176,6 +195,9 @@ def termini_processuali_civili(
                       'replica' (80gg dopo udienza PC, cioè 20gg dopo la conclusionale)
         sospensione_feriale: Applica sospensione feriale agosto ex L. 742/1969 (default True)
     """
+    err = _validate_date(data_udienza)
+    if err:
+        return err
     dt_udienza = _parse_date(data_udienza)
 
     termini_config = {
@@ -271,6 +293,9 @@ def termini_separazione_divorzio(
               'separazione_giudiziale' (12 mesi), 'negoziazione_assistita' (6 mesi),
               'ricorso_modifica' (nessun termine — proponibile in qualsiasi momento)
     """
+    err = _validate_date(data_evento)
+    if err:
+        return err
     dt_evento = _parse_date(data_evento)
 
     config = {
@@ -356,6 +381,9 @@ def scadenze_impugnazioni(
                            'opposizione_terzo' (30gg, senza termine lungo), 'regolamento_competenza' (30gg / 6 mesi)
         notificata: True = termine breve dalla notifica; False = termine lungo dalla pubblicazione
     """
+    err = _validate_date(data_pubblicazione)
+    if err:
+        return err
     dt_pub = _parse_date(data_pubblicazione)
 
     config = {
@@ -456,6 +484,9 @@ def scadenze_multe(
                       'pagamento_ridotto' (60gg, sanzione minima prevista),
                       'pagamento_ridotto_5gg' (5gg, sconto 30% sulla sanzione minima)
     """
+    err = _validate_date(data_notifica)
+    if err:
+        return err
     dt_notifica = _parse_date(data_notifica)
 
     config = {
@@ -528,6 +559,9 @@ def termini_memorie_repliche(data_udienza: str) -> dict:
     Args:
         data_udienza: Data dell'udienza di trattazione fissata dal giudice (YYYY-MM-DD)
     """
+    err = _validate_date(data_udienza)
+    if err:
+        return err
     dt_udienza = _parse_date(data_udienza)
 
     termini = [
@@ -572,6 +606,9 @@ def termini_procedimento_semplificato(data_udienza: str) -> dict:
     Args:
         data_udienza: Data dell'udienza fissata dal giudice (YYYY-MM-DD)
     """
+    err = _validate_date(data_udienza)
+    if err:
+        return err
     dt_udienza = _parse_date(data_udienza)
 
     termini = [
@@ -618,6 +655,9 @@ def termini_183_190_cpc(data_udienza: str) -> dict:
         data_udienza: Data dell'udienza di trattazione ex art. 183 c.p.c. oppure, per le
                       conclusionali e repliche, data dell'udienza di precisazione conclusioni (YYYY-MM-DD)
     """
+    err = _validate_date(data_udienza)
+    if err:
+        return err
     dt_udienza = _parse_date(data_udienza)
 
     # Memorie ex art. 183 comma 6 — termini calcolati dall'udienza
@@ -704,6 +744,9 @@ def termini_esecuzioni(
               'pignoramento_presso_terzi' (tutti: minimo 10gg e max 90gg dall'efficacia del precetto),
               'opposizione_esecuzione' (20gg per opposizione agli atti esecutivi ex art. 617 c.p.c.)
     """
+    err = _validate_date(data_notifica_titolo)
+    if err:
+        return err
     dt_notifica = _parse_date(data_notifica_titolo)
 
     config = {
@@ -805,6 +848,15 @@ def termini_deposito_atti_appello(
             "errore": "Specificare almeno uno tra data_notifica_sentenza e data_pubblicazione",
         }
 
+    if data_notifica_sentenza:
+        err = _validate_date(data_notifica_sentenza)
+        if err:
+            return err
+    if data_pubblicazione:
+        err = _validate_date(data_pubblicazione)
+        if err:
+            return err
+
     result = {
         "riferimento_normativo": "Artt. 325, 327, 347, 166 c.p.c.",
         "termini": [],
@@ -877,6 +929,11 @@ def termini_deposito_ctu(
         data_conferimento: Data del conferimento dell'incarico al CTU da parte del giudice (YYYY-MM-DD)
         giorni_termine: Giorni concessi al CTU per il deposito della bozza di relazione (default 60)
     """
+    err = _validate_date(data_conferimento)
+    if err:
+        return err
+    if not isinstance(giorni_termine, int) or giorni_termine < 1:
+        return {"errore": "giorni deve essere un intero positivo"}
     dt_conf = _parse_date(data_conferimento)
 
     # Deposito CTU
