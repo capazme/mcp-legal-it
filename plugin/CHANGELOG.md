@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-06-18
+
+### Changed
+- Content audit & refine: skill/command/agent markdown realigned to the real 214 tools; legal figures verified against official sources (decision register in `docs/_audit/TRIAGE-RESOLUTION.md`). 3 items flagged for the lawyer's sign-off.
+
+### Fixed
+- `verifica_citazioni` number/year mismatch rejection; data-breach DPO checklist truthfulness; quorum fail-closed; CeRDEF date format; input validations.
+- Security: Brocardi cache dir created `mode=0o700` (owner-only).
+
 ## [2.6.2] - 2026-06-15
 
 ### Fixed
