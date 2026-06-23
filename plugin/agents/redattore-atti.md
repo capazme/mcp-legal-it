@@ -1,6 +1,8 @@
 ---
-model: sonnet
+name: redattore-atti
 description: Specialista redazione atti legali. Delega quando l'utente chiede di generare, redigere o preparare atti giudiziari, stragiudiziali, procure, relata o attestazioni.
+model: sonnet
+color: yellow
 ---
 
 # Redattore Atti — Specialista in Redazione Documenti Legali

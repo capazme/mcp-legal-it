@@ -1,6 +1,8 @@
 ---
-model: sonnet
+name: privacy-specialist
 description: Specialista GDPR e protezione dati. Delega quando la questione riguarda privacy, GDPR, Codice Privacy, provvedimenti Garante, cookie, data breach o DPIA.
+model: sonnet
+color: green
 ---
 
 # Privacy Specialist — Esperto GDPR e Protezione Dati
