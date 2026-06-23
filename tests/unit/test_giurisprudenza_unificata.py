@@ -199,10 +199,10 @@ async def test_anno_da_anno_a_forwarded():
     assert kwargs.get("anno_da") == 2020
     assert kwargs.get("anno_a") == 2024
 
-    # CeRDEF receives ISO date strings
+    # CeRDEF receives DD/MM/YYYY date strings (the format its web form expects)
     _, kwargs = mock_cer.call_args
-    assert kwargs.get("data_da") == "2020-01-01"
-    assert kwargs.get("data_a") == "2024-12-31"
+    assert kwargs.get("data_da") == "01/01/2020"
+    assert kwargs.get("data_a") == "31/12/2024"
 
     # GA receives anno string
     _, kwargs = mock_amm.call_args

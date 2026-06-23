@@ -295,9 +295,10 @@ class TestOffertaConciliativa:
         assert r["importo"] == 3000.0
 
     def test_piccola_cap(self):
+        # Piccole imprese (<15 dip.): importo dimezzato, cap 6 mensilità (art. 9 D.Lgs. 23/2015)
         r = _call("offerta_conciliativa", anni_servizio=20.0, retribuzione_mensile=1000.0, dimensione_azienda="piccola")
-        assert r["mensilita"] == 13.5
-        assert r["importo"] == 13500.0
+        assert r["mensilita"] == 6.0
+        assert r["importo"] == 6000.0
 
     def test_errore_anni_zero(self):
         with pytest.raises(ValueError, match="anni_servizio"):

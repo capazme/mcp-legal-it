@@ -31,5 +31,5 @@ Chiama `legal-it:nota_spese` per il prospetto: compenso per fase, spese generali
 | Studio | ... | ... | ... |
 | Introduttiva | ... | ... | ... |
 | Istruttoria | ... | ... | ... |
-| Decisoria | ... | ... | ... |
+| Decisionale | ... | ... | ... |
 | **Totale** | **...** | **...** | **...** |

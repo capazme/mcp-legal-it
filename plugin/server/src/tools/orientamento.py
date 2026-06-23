@@ -153,26 +153,38 @@ def _cluster_by_sezione(docs: list[dict]) -> dict[str, list[dict]]:
     return clusters
 
 
-def _format_sezione_clusters(docs: list[dict]) -> list[str]:
-    """Render per-sezione clusters of LATER decisions (SS.UU. excluded — own block)."""
+def _format_sezione_clusters(docs: list[dict], szdec_raw: list | None = None) -> list[str]:
+    """Render per-sezione clusters of LATER decisions (SS.UU. excluded — own block).
+
+    Per-section counts come from the szdec facet (true distribution), while the
+    sample docs per section are illustrative examples drawn from the limited
+    document sample.
+    """
+    sez_counts = {
+        sez: count
+        for sez, count in _pairs(szdec_raw or [])
+        if sez not in ("U", "SU")
+    }
     clusters = _cluster_by_sezione(docs)
+    sample_clusters = {s: d for s, d in clusters.items() if s not in ("U", "SU")}
     lines = ["## Cluster per sezione (decisioni successive)"]
-    if not clusters:
-        lines.append("_Nessuna decisione successiva trovata negli archivi._")
-        return lines
-    # Order sezioni by cluster size desc, but keep SS.UU. out (handled separately).
-    ordered = sorted(
-        ((s, d) for s, d in clusters.items() if s not in ("U", "SU")),
-        key=lambda kv: len(kv[1]),
-        reverse=True,
-    )
-    if not ordered:
+    # The full section set is the union of facet sections and sampled sections.
+    all_sez = set(sez_counts) | set(sample_clusters)
+    if not all_sez:
         lines.append("_Solo decisioni delle Sezioni Unite (vedi blocco dedicato)._")
         return lines
-    for sez, sez_docs in ordered:
+    # Order sezioni by facet count desc (fall back to sample size), keeping SS.UU. out.
+    ordered = sorted(
+        all_sez,
+        key=lambda s: sez_counts.get(s, len(sample_clusters.get(s, []))),
+        reverse=True,
+    )
+    for sez in ordered:
+        sample = sample_clusters.get(sez, [])
+        count = sez_counts.get(sez, len(sample))
         label = _SEZIONI_LABELS.get(sez, f"Sezione {sez}")
-        lines.append(f"### {label} ({len(sez_docs)})")
-        for doc in sez_docs[:_PER_SEZIONE_SAMPLE]:
+        lines.append(f"### {label} ({count})")
+        for doc in sample[:_PER_SEZIONE_SAMPLE]:
             lines.append(format_summary(doc))
             lines.append("")
     return lines
@@ -186,14 +198,17 @@ def _format_ss_uu_block(num: int, docs: list[dict]) -> list[str]:
             "_Nessuna pronuncia delle Sezioni Unite trovata negli archivi per questo tema._"
         )
         return lines
-    lines.append(f"**{num} pronunce delle Sezioni Unite** (mostro {min(len(docs), _SS_UU_ROWS)}):")
-    lines.append("")
     seen: set[str] = set()
+    deduped: list[dict] = []
     for doc in docs:
         key = _doc_key(doc)
         if key in seen:
             continue
         seen.add(key)
+        deduped.append(doc)
+    lines.append(f"**{num} pronunce delle Sezioni Unite** (mostro {min(len(deduped), _SS_UU_ROWS)}):")
+    lines.append("")
+    for doc in deduped:
         lines.append(f"- {format_estremi(doc)}")
     return lines
 
@@ -218,7 +233,7 @@ def _assemble_map(
     parts.extend(_format_ss_uu_block(ss_uu_num, ss_uu_docs))
     parts.append("")
     # (2) per-sezione clusters of LATER decisions
-    parts.extend(_format_sezione_clusters(docs))
+    parts.extend(_format_sezione_clusters(docs, facet_fields.get("szdec", [])))
     parts.append("")
     # (3) anno trend
     parts.extend(_format_anno_trend(facet_fields))
@@ -248,7 +263,7 @@ async def _orientamento_su_norma_impl(
     Builds Solr norma variants then issues ONE faceted query for the LATER
     decisions, plus ONE more for the dedicated SS.UU. block.
     """
-    max_risultati = min(max_risultati, 50)
+    max_risultati = max(1, min(max_risultati, 50))
     norma_q = build_norma_variants(riferimento)
     try:
         async with SolrSession() as session:
@@ -301,7 +316,7 @@ async def _orientamento_su_principio_impl(
     max_risultati: int = 10,
 ) -> SearchResult:
     """Descriptive orientation map for a legal principle (free-text)."""
-    max_risultati = min(max_risultati, 50)
+    max_risultati = max(1, min(max_risultati, 50))
     # Reuse italgiure query normalization for principle text.
     from src.tools.italgiure import _normalize_query
 
@@ -398,10 +413,6 @@ async def _mappa_orientamento_impl(
         riferimento, archivio=archivio, anno_da=anno_da,
     )
 
-    if not base.success:
-        # Still attach the Brocardi anchor info if any, but propagate no_results.
-        return base
-
     parts: list[str] = []
     if anchor_refs:
         parts.append("## Ancoraggio Brocardi (massime consolidate)")
@@ -413,6 +424,16 @@ async def _mappa_orientamento_impl(
             autorita = ref.get("autorita") or "Cass."
             parts.append(f"- {autorita} n. {ref['numero']}/{ref['anno']}")
         parts.append("")
+
+    if not base.success:
+        # Still attach the Brocardi anchor info if any, but propagate no_results.
+        if parts:
+            anchor_block = "\n".join(parts)
+            base_text = base.results_text or ""
+            base.results_text = (
+                f"{anchor_block}\n{base_text}" if base_text else anchor_block
+            )
+        return base
 
     if parts:
         # Inject the anchor block right after the title line of the base map.

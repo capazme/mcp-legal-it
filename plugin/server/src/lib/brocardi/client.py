@@ -51,7 +51,7 @@ def _load_url_cache() -> dict[str, str]:
 
 def _save_url_cache(cache: dict[str, str]) -> None:
     try:
-        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
         _CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False))
     except OSError:
         pass

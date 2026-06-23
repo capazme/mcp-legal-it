@@ -21,12 +21,13 @@ class TestCompetenzaGiudice:
         assert "7" in result["articolo"]
         assert result["materia_riservata"] is False
 
-    def test_valore_esatto_soglia_5000_gdp(self):
-        result = _call("competenza_giudice", valore_causa=5000.0)
+    def test_valore_esatto_soglia_10000_gdp(self):
+        # Soglia GdP beni mobili: €10.000 (art. 7 c.p.c., riforma Cartabia D.Lgs. 149/2022)
+        result = _call("competenza_giudice", valore_causa=10_000.0)
         assert result["giudice_competente"] == "Giudice di Pace"
 
-    def test_valore_10000_civile_tribunale(self):
-        result = _call("competenza_giudice", valore_causa=10_000.0)
+    def test_valore_oltre_10000_civile_tribunale(self):
+        result = _call("competenza_giudice", valore_causa=10_001.0)
         assert result["giudice_competente"] == "Tribunale"
         assert "9" in result["articolo"]
 
@@ -35,12 +36,13 @@ class TestCompetenzaGiudice:
         assert result["giudice_competente"] == "Giudice di Pace"
         assert "7" in result["articolo"]
 
-    def test_circolazione_esatta_soglia_gdp(self):
-        result = _call("competenza_giudice", valore_causa=20_000.0, materia="circolazione_stradale")
+    def test_circolazione_esatta_soglia_25000_gdp(self):
+        # Soglia GdP circolazione: €25.000 (art. 7 c.p.c., riforma Cartabia D.Lgs. 149/2022)
+        result = _call("competenza_giudice", valore_causa=25_000.0, materia="circolazione_stradale")
         assert result["giudice_competente"] == "Giudice di Pace"
 
-    def test_circolazione_25000_tribunale(self):
-        result = _call("competenza_giudice", valore_causa=25_000.0, materia="circolazione_stradale")
+    def test_circolazione_oltre_25000_tribunale(self):
+        result = _call("competenza_giudice", valore_causa=25_001.0, materia="circolazione_stradale")
         assert result["giudice_competente"] == "Tribunale"
 
     def test_lavoro_tribunale_sezione_lavoro(self):

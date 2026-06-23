@@ -1,6 +1,7 @@
 ---
 name: sentenza
 description: Leggi il testo integrale di una sentenza di Cassazione
+argument-hint: "[numero e anno della sentenza, es. Cass. 100/2024]"
 allowed-tools: mcp__legal-it__leggi_sentenza
 ---
 
