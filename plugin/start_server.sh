@@ -1,23 +1,33 @@
 #!/usr/bin/env bash
-# Bootstrap script: ensures dependencies are installed, then starts the MCP server (stdio).
-# Venv is created in MCP_CACHE_DIR (writable) — plugin dir may be read-only in Cowork.
+# Bootstrap: starts the MCP server (stdio). Prefers `uv` when available
+# (cross-platform, pins Python 3.12, no manual venv); falls back to a
+# system-Python venv — the path that works in the Cowork sandbox, which
+# does not provide `uv`. Venv lives in MCP_CACHE_DIR because the plugin
+# dir may be read-only in Cowork.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Detect server location
+# Detect server location (plugin/server/ in the marketplace layout)
 if [ -d "$DIR/server" ]; then
   SERVER="$DIR/server"
 else
   SERVER="$(cd "$DIR/.." && pwd)"
 fi
 
-# Use writable cache dir for venv (plugin dir is read-only in Cowork)
+# Preferred path: uv (handles Python 3.12 + deps without a manual venv)
+if command -v uv &>/dev/null; then
+  exec uv run --python 3.12 \
+    --with "fastmcp>=2.0,<4" --with "httpx>=0.27" --with "beautifulsoup4>=4.12" \
+    --with "lxml>=5.0" --with "fpdf2>=2.7" --with "python-docx>=1.0" \
+    "$SERVER/run_server.py"
+fi
+
+# Fallback: system Python + venv (the 2.6.1 path; works in the Cowork sandbox)
 CACHE_DIR="${MCP_CACHE_DIR:-${HOME}/.cache/mcp-legal-it}"
 VENV="$CACHE_DIR/venv"
 mkdir -p "$CACHE_DIR"
 
-# Create venv and install deps on first run (cached after that)
 PYTHON=""
 for candidate in python3.12 python3.11 python3.10 python3; do
   if command -v "$candidate" &>/dev/null; then
@@ -26,7 +36,7 @@ for candidate in python3.12 python3.11 python3.10 python3; do
   fi
 done
 if [ -z "$PYTHON" ]; then
-  echo "ERROR: Python 3.10+ not found. Install Python from python.org" >&2
+  echo "ERROR: neither uv nor Python 3.10+ found. Install uv (https://astral.sh/uv) or Python 3.12." >&2
   exit 1
 fi
 
