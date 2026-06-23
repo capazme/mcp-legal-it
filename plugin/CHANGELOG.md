@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.3] - 2026-06-23
+
+### Fixed
+- Marketplace remote sync `failed_content` on Claude Desktop (Cowork): the validator rejected the repo tarball over the tracked root `src` symlink (sandboxed extractors refuse symlinks) and the 14 MB AKN test fixtures (archive 19 MB, 6× the working peers). Added `.gitattributes` `export-ignore` for `/src` and `/tests` — GitHub's generated tarball now excludes both (2.0 MB → 0.5 MB, symlink-free). No impact on local dev/test/Docker: real checkouts ignore `export-ignore`.
+
 ## [2.7.2] - 2026-06-23
 
 ### Removed
