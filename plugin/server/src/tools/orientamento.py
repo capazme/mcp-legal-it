@@ -1,7 +1,9 @@
 """MCP tools per la MAPPATURA DESCRITTIVA degli orientamenti giurisprudenziali.
 
-LIMITE NORMATIVO (L. 132/2025): è vietata la "giustizia predittiva" — questi tool
-NON prevedono esiti, overruling o probabilità di accoglimento. Producono solo una
+LIMITE NORMATIVO (art. 15, L. 132/2025): nell'attività giudiziaria ogni decisione
+sull'interpretazione e applicazione della legge e sulla valutazione di fatti e prove è
+riservata al magistrato — questi tool NON prevedono esiti, overruling o probabilità di
+accoglimento. Producono solo una
 MAPPA DESCRITTIVA di ciò che gli archivi della Cassazione contengono: intervento
 delle Sezioni Unite, distribuzione per sezione, andamento temporale e il NUMERO di
 decisioni che SEGNALANO nel proprio testo un contrasto/difformità oppure un
@@ -31,7 +33,7 @@ from src.lib.italgiure.client import (
 
 _DISCLAIMER = (
     "_Mappa descrittiva degli orientamenti, NON una previsione di overruling "
-    "(art. 13, L. 132/2025)._"
+    "(art. 15, L. 132/2025)._"
 )
 _ARCHIVE_NOTE = "_Orizzonte archivio Italgiure: decisioni dal ~2020 in poi._"
 

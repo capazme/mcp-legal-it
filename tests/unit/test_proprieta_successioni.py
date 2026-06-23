@@ -457,18 +457,23 @@ class TestCalcoloValoreCatastale:
         assert r["valore_catastale"] == pytest.approx(126000.0)
 
     def test_a2_compravendita(self):
-        # coeff_comp = 126
+        # A/2 (abitazione) seconda casa: moltiplicatore-base 120, NESSUN +20% (solo strumentali
+        # ex DL 168/2004); valore = 1000 × 1,05 × 120 = 126000. Il vecchio 132300 raddoppiava il 5%.
         r = _call("calcolo_valore_catastale", rendita_catastale=1000, categoria="A/2", tipo="compravendita")
-        assert r["coefficiente"] == 126.0
-        assert r["valore_catastale"] == pytest.approx(132300.0)
+        assert r["coefficiente"] == 120.0
+        assert r["valore_catastale"] == pytest.approx(126000.0)
 
     def test_a10_successione(self):
+        # A/10: moltiplicatore-base 60 (su rendita rivalutata 5%); valore = 1000 × 1,05 × 60 = 63000.
         r = _call("calcolo_valore_catastale", rendita_catastale=1000, categoria="A/10", tipo="successione")
-        assert r["coefficiente"] == 63.0
+        assert r["coefficiente"] == 60.0
+        assert r["valore_catastale"] == pytest.approx(63000.0)
 
     def test_c1_successione(self):
+        # C/1: moltiplicatore-base 40,8 (su rendita rivalutata 5%); valore = 1000 × 1,05 × 40,8 = 42840.
         r = _call("calcolo_valore_catastale", rendita_catastale=1000, categoria="C/1", tipo="successione")
-        assert r["coefficiente"] == pytest.approx(42.84)
+        assert r["coefficiente"] == pytest.approx(40.8)
+        assert r["valore_catastale"] == pytest.approx(42840.0)
 
     def test_b_successione(self):
         r = _call("calcolo_valore_catastale", rendita_catastale=1000, categoria="B/1", tipo="successione")

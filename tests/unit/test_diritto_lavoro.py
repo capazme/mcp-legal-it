@@ -295,10 +295,13 @@ class TestOffertaConciliativa:
         assert r["importo"] == 3000.0
 
     def test_piccola_cap(self):
-        # Piccole imprese (<15 dip.): importo dimezzato, cap 6 mensilità (art. 9 D.Lgs. 23/2015)
-        r = _call("offerta_conciliativa", anni_servizio=20.0, retribuzione_mensile=1000.0, dimensione_azienda="piccola")
-        assert r["mensilita"] == 6.0
-        assert r["importo"] == 6000.0
+        # Piccole imprese: dimezzamento ×0,5 (art. 9 c.1, NON toccato dalla Corte). Il tetto di
+        # 6 mensilità è stato abrogato da Corte Cost. 118/2025 e ricostruito come 13,5 (=27/2).
+        # 30 anni × 0,5 = 15 → cap 13,5.
+        r = _call("offerta_conciliativa", anni_servizio=30.0, retribuzione_mensile=1000.0, dimensione_azienda="piccola")
+        assert r["mensilita"] == 13.5
+        assert r["importo"] == 13500.0
+        assert r["cap_mensilita"] == 13.5
 
     def test_errore_anni_zero(self):
         with pytest.raises(ValueError, match="anni_servizio"):
@@ -314,4 +317,5 @@ class TestOffertaConciliativa:
 
     def test_riferimento_normativo(self):
         r = _call("offerta_conciliativa", anni_servizio=5.0, retribuzione_mensile=2000.0)
-        assert "D.Lgs. 23/2015 art. 6" in r["riferimento_normativo"]
+        assert "D.Lgs. 23/2015" in r["riferimento_normativo"]
+        assert "118/2025" in r["riferimento_normativo"]
