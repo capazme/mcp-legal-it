@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.1",
   "name": "legal-it",
-  "version": "2.7.6",
+  "version": "2.7.7",
   "display_name": "Legal IT — Diritto Italiano",
   "description": "214 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti, recepimento UE→IT, verifica citazioni, delibere CONSOB, compliance GDPR e generazione atti.",
   "long_description": "Server MCP completo per il diritto italiano. Include: calcoli rivalutazione/interessi, scadenze processuali, parcelle avvocati, risarcimento danni, decreto ingiuntivo, IRPEF/TFR, successioni, codice fiscale, privacy GDPR. Consultazione normativa da Normattiva e EUR-Lex, giurisprudenza di Cassazione da Italgiure, giurisprudenza tributaria da CeRDEF, sentenze TAR e Consiglio di Stato, sentenze CGUE via CELLAR SPARQL, annotazioni da Brocardi, delibere CONSOB.",
@@ -17,7 +17,7 @@
   "license": "Apache-2.0",
   "server": {
     "type": "python",
-    "entry_point": "run_server.py",
+    "entry_point": "server/run_server.py",
     "mcp_config": {
       "command": "uv",
       "args": [
@@ -29,7 +29,7 @@
         "--with", "lxml>=5.0",
         "--with", "fpdf2>=2.7",
         "--with", "python-docx>=1.0",
-        "${__dirname}/run_server.py"
+        "${__dirname}/server/run_server.py"
       ]
     }
   },
