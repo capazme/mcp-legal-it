@@ -38,15 +38,18 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 > **Prerequisito unico: [`uv`](https://docs.astral.sh/uv/).** Gestisce automaticamente
 > Python 3.12 e le dipendenze, identico su Windows/macOS/Linux.
 > macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh` ·
-> Windows (PowerShell): `irm https://astral.sh/uv/install.ps1 | iex`.
+> Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
 > Riavvia il client dopo l'installazione. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
 
-### Claude Desktop (Cowork) — consigliato
+> [!IMPORTANT]
+> **Claude Desktop "Cowork" (l'agente cloud) non è supportato.** Da giugno 2026 Cowork esegue i plugin in una VM cloud che non può avviare server MCP locali, quindi il marketplace lo rifiuta (`failed_content: local/stdio server`). Per Claude Desktop usa il file **`.mcpb`** qui sotto (gira in locale, nessuna dipendenza). Per l'agente Cowork servirebbe un server remoto HTTPS.
 
-1. Installa `uv` (vedi sopra) e **riavvia** Claude Desktop
-2. Apri Claude Desktop &rarr; **Personalizza** &rarr; **+**
-3. **Aggiungi marketplace da GitHub** &rarr; `capazme/mcp-legal-it`
-4. Installa il plugin **legal-it**
+### Claude Desktop — file `.mcpb` (consigliato)
+
+1. Installa `uv` (vedi sopra).
+2. Scarica **`legal-it-X.Y.Z.mcpb`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
+3. In Claude Desktop: **doppio click sul file** — oppure **Impostazioni → Estensioni → Impostazioni avanzate → Sviluppatore estensioni → Installa file `.mcpb`**.
+4. Riavvia Claude. I 214 tool girano in locale.
 
 ### Claude Code CLI
 
