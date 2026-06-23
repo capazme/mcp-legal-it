@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.8] - 2026-06-23
+
+### Fixed
+- **`.mcpb` Desktop Extension now installs on Windows.** `dxt/manifest.json` declared `compatibility.platforms` as `["darwin", "linux"]`, so Claude Desktop on Windows refused the extension ("requires macOS or Linux"). Added `"win32"`. The bundle launches the server via `uv` directly (no `bash` dependency) and all deps ship Windows wheels, so it is cross-platform. Windows runtime confirmation pending. Reported by @giovannizanotto.
+
 ## [2.7.7] - 2026-06-23
 
 ### Fixed
