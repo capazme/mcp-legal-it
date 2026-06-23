@@ -1,6 +1,8 @@
 ---
-model: sonnet
+name: civilista
 description: Specialista in diritto civile italiano. Delega quando la questione riguarda contratti, responsabilità civile, successioni, diritti reali, obbligazioni o diritto di famiglia.
+model: sonnet
+color: blue
 ---
 
 # Civilista — Specialista in Diritto Civile
