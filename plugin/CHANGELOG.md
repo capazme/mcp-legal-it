@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.7] - 2026-06-23
+
+### Fixed
+- **`.mcpb` Desktop Extension was broken — never started.** The bundle ships the server under `server/`, but `dxt/manifest.json` ran `${__dirname}/run_server.py` (root) → `Failed to spawn … No such file or directory`. Fixed to `${__dirname}/server/run_server.py`. Rebuilt + smoke-tested: 214 tools. **Use 2.7.7+; the 2.7.6 `.mcpb` is unusable.**
+
+### Docs
+- Windows `uv` command corrected (needs `powershell -ExecutionPolicy ByPass -c "…"`). Documented that Cowork (cloud agent) doesn't run local MCP servers → use the `.mcpb` or the CLI. Refreshed counts (214/21/13/6).
+
 ## [2.7.6] - 2026-06-23
 
 ### Fixed
