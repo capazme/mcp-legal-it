@@ -18,7 +18,7 @@
 
 ## Cos'e mcp-legal-it
 
-Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **177 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
+Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **214 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
 - **Normativa verificata** — testi vigenti da Normattiva, EUR-Lex e Brocardi (no allucinazioni)
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
@@ -28,7 +28,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 - **Delibere CONSOB** — ricerca e testo integrale dal Bollettino ufficiale
 - **Calcoli giuridici** — interessi, rivalutazione ISTAT, parcelle, contributo unificato, IRPEF, successioni, danni e altro
 - **GDPR compliance** — informative, DPIA, DPA, registro trattamenti, data breach, sanzioni
-- **19 skill + 5 agenti** — workflow guidati per pareri, cause civili, sinistri, recupero crediti
+- **21 skill + 6 agenti** — workflow guidati per pareri, cause civili, sinistri, recupero crediti
 - **Legal Grounding Protocol** — hook che verificano che ogni norma citata sia supportata da `cite_law()`
 
 ---
@@ -98,7 +98,7 @@ Configurazione in `claude_desktop_config.json`:
 
 ---
 
-## Tool disponibili — 177 tool, 19 categorie
+## Tool disponibili — 214 tool, 30 moduli
 
 | # | Categoria | Tool | Esempi |
 |---|-----------|:----:|--------|
@@ -429,7 +429,7 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 | Profilo | Tool caricati |
 |---------|---------------|
-| `full` | Tutti i 177 tool |
+| `full` | Tutti i 214 tool |
 | `calcoli` | Solo tool di calcolo (nessuna connessione HTTP) |
 | `normativa` | Normattiva + EUR-Lex + Brocardi + Italgiure + TAR/CdS + CGUE + CONSOB |
 | `fiscale` | Calcoli fiscali + IRPEF + investimenti + CeRDEF + CONSOB |

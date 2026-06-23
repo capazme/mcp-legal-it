@@ -1,0 +1,9 @@
+# Exclude dev-only paths from the archive GitHub generates (codeload tarball /
+# "Download ZIP"). The Claude plugin-marketplace backend ingests that archive and
+# validates it in a sandbox that rejects symlinks (path-traversal) and bloated
+# content. Keeping these out of the tarball fixes the marketplace sync
+# `failed_content` error without touching local dev/test/Docker: real checkouts
+# (git clone) ignore `export-ignore`, so the `src` symlink and the test suite
+# remain available locally.
+/src   export-ignore
+/tests export-ignore
