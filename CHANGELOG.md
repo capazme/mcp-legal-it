@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.7] - 2026-06-23
+
+### Fixed
+- **`.mcpb` Desktop Extension was broken — the server never started.** `build-dxt.sh` places the server code under `server/`, but `dxt/manifest.json` pointed the runtime at `${__dirname}/run_server.py` (bundle root) → `Failed to spawn … No such file or directory (os error 2)`. Fixed the path to `${__dirname}/server/run_server.py` (and `entry_point` to `server/run_server.py`). Rebuilt and smoke-tested: the `.mcpb` now boots and registers all 214 tools. **The 2.7.6 `.mcpb` and earlier are unusable — use 2.7.7+.**
+
+### Docs
+- README: corrected the Windows `uv` install command — it needs the `powershell -ExecutionPolicy ByPass -c "…"` wrapper, otherwise PowerShell's execution policy blocks the script. Thanks @giovannizanotto.
+- README: documented that Claude Desktop **Cowork** (the cloud agent) no longer runs local/stdio MCP servers (since the June 2026 cloud-backend migration), so the marketplace rejects this plugin with `failed_content`. The supported self-contained channels are the **`.mcpb`** Desktop Extension and the **Claude Code CLI** (both run locally). Refreshed stale counts in `plugin/README.md` (214 tool / 21 skill / 13 command / 6 agent).
+
 ## [2.7.6] - 2026-06-23
 
 ### Fixed

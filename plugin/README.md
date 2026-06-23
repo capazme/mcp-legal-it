@@ -1,14 +1,16 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude (Cowork e Claude Code): **177 tool** MCP, **19 skill**, **8 slash command**, **5 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **214 tool** MCP, **21 skill**, **13 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
-### Claude Desktop (Cowork)
+### Claude Desktop (file `.mcpb`)
 
-1. Personalizza → **+** → **Aggiungi marketplace da GitHub**
-2. `capazme/mcp-legal-it`
-3. Installa **legal-it**
+> L'agente **Cowork** (cloud) non supporta i server MCP locali: usa il `.mcpb`, che gira in locale.
+
+1. Installa [`uv`](https://docs.astral.sh/uv/).
+2. Scarica `legal-it-X.Y.Z.mcpb` dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
+3. Doppio click sul file (o **Impostazioni → Estensioni → Impostazioni avanzate → Installa `.mcpb`**).
 
 ### Claude Code CLI
 
@@ -19,7 +21,7 @@ claude plugin install legal-it@mcp-legal-it
 
 ## Cosa include
 
-### Server MCP (177 tool)
+### Server MCP (214 tool)
 
 Il plugin avvia automaticamente il server MCP locale — nessun server remoto richiesto. Al primo avvio crea un virtualenv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
 
