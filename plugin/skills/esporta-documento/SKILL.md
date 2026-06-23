@@ -1,7 +1,6 @@
 ---
 name: esporta-documento
 description: Esporta un deliverable legale (parere, informativa privacy, DPA, DPIA, registro trattamenti, parcella, atto, analisi giurisprudenziale) in un file Word (.docx) e/o PDF nella cartella attiva. Usa quando l'utente chiede di "esporta in word", "esporta in pdf", "salva il documento", "genera docx", "genera pdf", "metti in word", oppure "informativa/DPA/parere/parcella in word/pdf". Lavora sul markdown del documento gia' prodotto nella conversazione, oppure sul campo "testo" restituito da un tool (es. genera_informativa_privacy, genera_dpa).
-allowed-tools: Bash, Read, Write
 ---
 
 # esporta-documento — Word/PDF di un deliverable legale

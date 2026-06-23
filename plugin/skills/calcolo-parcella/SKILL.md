@@ -1,8 +1,6 @@
 ---
 name: calcolo-parcella
 description: Calcola la parcella dell'avvocato per attivita civile, penale o stragiudiziale secondo il D.M. 55/2014 con nota spese completa. Usa quando l'utente chiede compenso avvocato, notula, preventivo legale, parcella professionale o fattura per prestazione legale.
-argument-hint: "[tipo: civile/penale/stragiudiziale] [valore causa]"
-allowed-tools: mcp__legal-it__parcella_avvocato_civile, mcp__legal-it__parcella_avvocato_penale, mcp__legal-it__parcella_stragiudiziale, mcp__legal-it__parcella_volontaria_giurisdizione, mcp__legal-it__nota_spese, mcp__legal-it__fattura_avvocato
 ---
 
 # Calcolo Parcella
