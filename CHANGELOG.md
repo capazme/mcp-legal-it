@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-06-18
+
+### Changed
+- **Content audit & refine** (`docs/_audit/`): full consistency pass over the 214 tools / 21 skills / 13 commands / 6 agents / 23 prompts / 15 resources. Skill/command/agent markdown realigned to the real tools (removed a reference to a non-existent tool, corrected parameter names + frontmatter). Legal figures touched by the audit were each verified against official sources and either kept (tests updated to the source) or reverted where unconfirmed — per-item decision register in [`docs/_audit/TRIAGE-RESOLUTION.md`](docs/_audit/TRIAGE-RESOLUTION.md). Three items remain flagged for the lawyer's sign-off (cadastral coefficients, `offerta_conciliativa` cap vs C. Cost. 118/2025, L. 132/2025 article number).
+
+### Fixed
+- `verifica_citazioni`/Italgiure step-4 fallback: reject a decision whose number/year don't match the cited one.
+- `genera_notifica_data_breach`: the art. 33(3) DPO checklist is now truthful (was always-True).
+- `diritto_societario` quorum: fail-closed (`False`) when data is insufficient.
+- CeRDEF date format (`GG/MM/AAAA`) and other input validations (negative amounts, inconsistent dates, codice fiscale omocodia).
+- **Security**: Brocardi URL cache directory created with `mode=0o700` (owner-only) — recovered from the orphaned `fix/cache-permissions` branch.
+
 ## [2.6.2] - 2026-06-15
 
 ### Fixed
