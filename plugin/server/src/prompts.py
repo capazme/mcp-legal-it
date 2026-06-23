@@ -9,51 +9,62 @@ from src.server import mcp
 def analisi_sinistro(
     tipo_sinistro: str, percentuale_invalidita: float, eta_vittima: int
 ) -> str:
-    tool_biologico = (
-        "danno_biologico_micro"
-        if percentuale_invalidita <= 9
-        else "danno_biologico_macro"
-    )
-    return f"""Analizza questo sinistro e produci una quantificazione completa del danno.
+    return f"""Analizza questo sinistro e produci una quantificazione del danno non patrimoniale.
 
 DATI:
 - Tipo sinistro: {tipo_sinistro} (stradale / sanitario / lavoro)
 - Invalidità permanente: {percentuale_invalidita}%
 - Età vittima: {eta_vittima} anni
 
+PRINCIPIO (Cass. SS.UU. 26972/2008, «San Martino»): il danno non patrimoniale è UNITARIO
+(art. 2059 c.c.). Biologico, morale ed esistenziale sono aspetti di un unico pregiudizio, NON
+poste autonome da sommare. Le Tabelle di Milano liquidano un valore COMPLESSIVO che già
+incorpora la componente morale.
+
 PROCEDURA (segui nell'ordine):
 
-1. DANNO BIOLOGICO
-   Chiama `{tool_biologico}` con percentuale={percentuale_invalidita} e eta={eta_vittima}.
-   Annota il risultato come "danno biologico base".
+1. DANNO NON PATRIMONIALE (valore complessivo, unitario)
+   Chiama UNA SOLA VOLTA `danno_non_patrimoniale` con percentuale={percentuale_invalidita} e
+   eta={eta_vittima} (macro >9% = Tabelle di Milano; micro ≤9% = art. 139 Cod. Ass.). Il
+   risultato è GIÀ comprensivo del danno morale.
+   NON chiamare in aggiunta un tool di "danno morale" da sommare: sarebbe una duplicazione
+   vietata (unitarietà del danno non patrimoniale).
 
-2. DANNO NON PATRIMONIALE
-   Chiama `danno_non_patrimoniale` per calcolare la componente di danno morale/esistenziale.
-   Applica la personalizzazione in base al tipo di sinistro ({tipo_sinistro}):
-   - Stradale: valuta dinamica relazionale (incidenza su mobilità, lavoro, sport)
-   - Sanitario: valuta sofferenza da errore medico (componente iatrogena)
-   - Lavoro: valuta incidenza sulla capacità lavorativa specifica
+2. PERSONALIZZAZIONE (solo se motivata da circostanze eccezionali e specifiche)
+   Solo in presenza di circostanze peculiari documentate, applica una personalizzazione ENTRO i
+   tetti massimi della tabella (calcolata sulla componente biologica), tramite il parametro
+   `personalizzazione_pct`. NON è una seconda voce cumulata: è un incremento del valore tabellare
+   entro i limiti. In base al tipo di sinistro ({tipo_sinistro}):
+   - Stradale: dinamica relazionale (mobilità, lavoro, sport)
+   - Sanitario: sofferenza iatrogena da errore medico
+   - Lavoro: incidenza sulla capacità lavorativa specifica
 
-3. RIVALUTAZIONE MONETARIA
-   Chiama `rivalutazione_monetaria` sugli importi dalla data del sinistro a oggi.
+3. RIVALUTAZIONE MONETARIA (debito di valore)
+   Chiama `rivalutazione_monetaria` dalla data del sinistro a oggi.
 
-4. INTERESSI LEGALI
-   Chiama `interessi_legali` sul capitale rivalutato, dalla data del sinistro a oggi.
+4. INTERESSI COMPENSATIVI (Cass. SS.UU. 1712/1995)
+   ATTENZIONE — NON calcolare gli interessi sul capitale INTERAMENTE rivalutato all'attualità:
+   sarebbe la sovra-compensazione censurata dalle SS.UU. Vanno calcolati sulla somma
+   PROGRESSIVAMENTE rivalutata anno per anno o, in via semplificata, sul VALORE MEDIO tra la
+   somma originaria e quella finale rivalutata: chiama `interessi_legali` sulla base
+   `(somma_originaria + somma_rivalutata) / 2`. Il saggio è equitativo (il tasso legale è un
+   proxy accettabile; l'errore da evitare è la BASE di calcolo, non il tasso).
 
 FORMATO OUTPUT:
-Presenta i risultati in una tabella riepilogativa con:
 | Voce | Importo |
 |------|---------|
-| Danno biologico (base tabellare) | € ... |
-| Personalizzazione (morale/esistenziale) | € ... |
-| Totale danno non patrimoniale | € ... |
+| Danno non patrimoniale (valore complessivo, morale incluso) | € ... |
+| Personalizzazione (se ricorrente, entro i tetti) | € ... |
 | Rivalutazione monetaria | € ... |
-| Interessi legali | € ... |
+| Interessi compensativi (su base media/progressiva) | € ... |
 | **TOTALE RISARCIMENTO** | **€ ...** |
 
 AVVERTENZE:
-- I valori sono calcolati sulle tabelle di Milano (danno biologico macro) o tabelle ex art. 139 CdA (danno micro ≤9%).
-- La quantificazione è INDICATIVA e non sostituisce la valutazione medico-legale.
+- Il danno non patrimoniale è UNITARIO: una sola voce comprensiva del morale (SS.UU. 26972/2008).
+  NON sommare biologico e morale come poste distinte.
+- Gli interessi compensativi vanno sulla somma progressivamente rivalutata / valore medio, MAI sul
+  capitale già interamente rivalutato (SS.UU. 1712/1995).
+- I valori sono INDICATIVI e non sostituiscono la valutazione medico-legale.
 - Per invalidità temporanea, danno emergente e lucro cessante servono dati aggiuntivi.
 - Citare sempre la fonte tabellare e normativa utilizzata.
 """
@@ -1439,8 +1450,8 @@ presente) ed evoluzione temporale.
 
 REGOLE — IMPORTANTE:
 - La mappa è DESCRITTIVA (distribuzioni, segnali testuali "contrasto/consolidato"), NON una previsione
-  di overruling né una classifica dell'indirizzo "vincente" (art. ... L. 132/2025 — l'interpretazione è
-  riservata al giudice).
+  di overruling né una classifica dell'indirizzo "vincente" (art. 15 L. 132/2025 — ogni decisione su
+  interpretazione, fatti e prove è riservata al magistrato).
 - I segnali di (dis)conformità indicano che la decisione DISCUTE il contrasto/la conformità, non che essa
   conforma/diverge in fatto. Etichettali come "decisioni che segnalano...".
 - Copertura full-text Italgiure ~dal 2020; segnalare il limite temporale.
