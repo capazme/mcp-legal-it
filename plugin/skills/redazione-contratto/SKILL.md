@@ -1,8 +1,6 @@
 ---
 name: redazione-contratto
 description: Supporto alla redazione contrattuale con verifica normativa, clausole tipo e compliance GDPR. Usa quando l'utente chiede di redigere, revisionare, analizzare un contratto, verificare clausole o predisporre un accordo.
-argument-hint: "[tipo contratto]"
-allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__legal-it__analisi_base_giuridica, mcp__legal-it__genera_dpa
 ---
 
 # Redazione Contratto

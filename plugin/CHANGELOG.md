@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.5] - 2026-06-23
+
+### Fixed
+- **Marketplace install `failed_content` — schema conformance (the actual blocker).** Components carried fields outside their closed schema, rejecting the whole bundle:
+  - **Skills (21):** dropped `argument-hint` (command-only field, not in the Agent Skills schema) and `allowed-tools` from every `SKILL.md` → canonical `name` + `description`.
+  - **Agents (6):** added required `name` + `color`; removed invalid `allowed-tools` (agent schema uses `tools`).
+  - **Hooks:** removed the unsupported `SessionStart` prompt hook and the undocumented `model` key on the Stop hook (Legal Grounding Stop hook otherwise unchanged).
+  - **Command:** `release.md` `argument-hint` `<versione>` → `[versione]`.
+
 ## [2.7.4] - 2026-06-23
 
 ### Fixed

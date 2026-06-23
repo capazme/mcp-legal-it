@@ -1,8 +1,6 @@
 ---
 name: causa-civile
 description: Pianifica una causa civile con calcolo contributo unificato, scadenze processuali post-Cartabia, termini impugnazione e preventivo costi. Usa quando l'utente chiede di avviare una causa, calcolare costi giudiziali, verificare termini processuali o preparare un preventivo per il cliente.
-argument-hint: "[valore causa] [tipo procedimento: cognizione/lavoro/monitorio]"
-allowed-tools: mcp__legal-it__contributo_unificato, mcp__legal-it__scadenza_processuale, mcp__legal-it__scadenze_impugnazioni, mcp__legal-it__preventivo_civile
 ---
 
 # Causa Civile

@@ -1,7 +1,8 @@
 ---
-model: sonnet
+name: digest-giuridico
 description: Redattore del briefing giuridico settimanale. Delega per produrre un riepilogo delle ultime novita da tutte le fonti (Cassazione, tributario, TAR/CdS, CGUE, Garante Privacy, CONSOB) raggruppato per fonte. Usa per il digest periodico o su richiesta di "novita della settimana".
-allowed-tools: legal-it:ultime_pronunce, legal-it:ultime_sentenze_tributarie, legal-it:ultimi_provvedimenti_amm, legal-it:ultime_sentenze_cgue, legal-it:ultimi_provvedimenti_garante, legal-it:ultime_delibere_consob, legal-it:leggi_sentenza, legal-it:cite_law
+model: sonnet
+color: cyan
 ---
 
 # Digest Giuridico — Redattore del briefing settimanale

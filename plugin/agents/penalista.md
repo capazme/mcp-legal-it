@@ -1,6 +1,8 @@
 ---
-model: sonnet
+name: penalista
 description: Specialista in diritto penale italiano. Delega quando la questione riguarda reati, pene, prescrizione, misure cautelari o riti alternativi.
+model: sonnet
+color: red
 ---
 
 # Penalista — Specialista in Diritto Penale

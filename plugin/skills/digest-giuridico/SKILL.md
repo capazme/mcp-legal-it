@@ -1,8 +1,6 @@
 ---
 name: digest-giuridico
 description: Briefing giuridico settimanale dalle ultime novita di tutte le fonti istituzionali (Cassazione, tributario, TAR/CdS, CGUE, Garante Privacy, CONSOB), deduplicato e raggruppato per fonte. Usa quando l'utente chiede le novita della settimana, un riepilogo periodico, un digest giuridico, le ultime decisioni o un aggiornamento complessivo su piu fonti.
-argument-hint: "[tema o settore opzionale, es. 'privacy']"
-allowed-tools: mcp__legal-it__ultime_pronunce, mcp__legal-it__ultime_sentenze_tributarie, mcp__legal-it__ultimi_provvedimenti_amm, mcp__legal-it__ultime_sentenze_cgue, mcp__legal-it__ultimi_provvedimenti_garante, mcp__legal-it__ultime_delibere_consob, mcp__legal-it__leggi_sentenza, mcp__legal-it__cite_law
 ---
 
 # Digest Giuridico

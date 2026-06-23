@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.5] - 2026-06-23
+
+### Fixed
+- **Marketplace install `failed_content` — schema conformance (the actual blocker).** The Cowork/Desktop marketplace validator enforces a closed schema on packaged plugin components; several components carried fields outside their schema and were rejecting the whole bundle on every fresh sync:
+  - **Skills (21):** removed `argument-hint` (a slash-command field, **not** part of the Agent Skills schema) and `allowed-tools` from every `SKILL.md` frontmatter — reduced to the canonical `name` + `description`.
+  - **Agents (6):** added the required `name` and `color` fields (the files had only `model` + `description`); removed the invalid `allowed-tools` field (the subagent schema uses `tools`).
+  - **Hooks:** removed the unsupported `SessionStart` prompt hook (prompt hooks are only valid on Stop/SubagentStop/UserPromptSubmit/PreToolUse) and the undocumented `model` key from the Stop prompt hook. The Legal Grounding Stop hook is unchanged.
+  - **Command:** `release.md` `argument-hint` `<versione>` → `[versione]` (avoid angle brackets in frontmatter values).
+
+### Note
+- The previous 2.7.3 (`.gitattributes`) and 2.7.4 (`parcella.md` YAML) fixes were real hygiene/parse corrections but were not the blocker; this schema conformance pass is.
+
 ## [2.7.4] - 2026-06-23
 
 ### Fixed
