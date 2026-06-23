@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.6] - 2026-06-23
+
+### Fixed
+- **Marketplace install on Claude Desktop Cowork — the actual regression.** Bisected from the report that ≤2.6.1 worked: the only breaking change was 2.6.2 switching the marketplace `.mcp.json` command from `bash start_server.sh` to `uv`. Cowork's sandbox/validator accepts `bash` (and runs the bundled bootstrap with system Python) but not `uv` (not on its command allowlist / not in the sandbox), so every sync since 2.6.2 failed with `failed_content`. Reverted the marketplace `.mcp.json` to `command: bash` and hardened `start_server.sh` to **prefer `uv` when available** (Mac/Linux/Git-Bash, pins Python 3.12) and **fall back to a system-Python venv** (the 2.6.1 path that works in the Cowork sandbox). Smoke-tested: `bash start_server.sh` boots the server and registers all 214 tools.
+- **Windows** keeps the `uv` path via the `.mcpb` Desktop Extension (`dxt/manifest.json` / `server/manifest.json` unchanged) — install via the `.mcpb` rather than the marketplace.
+
+### Note
+- The 2.7.3–2.7.5 changes (`.gitattributes` archive hygiene, `parcella.md` YAML, skill/agent/hook schema conformance) were real corrections but were **not** the Cowork blocker: at 2.6.1 the skills already carried `argument-hint`, the hooks already had a `SessionStart` prompt hook, and the agents lacked `name`/`color`, yet Cowork worked. They are kept as genuine hygiene / CLI-schema improvements.
+
 ## [2.7.5] - 2026-06-23
 
 ### Fixed
