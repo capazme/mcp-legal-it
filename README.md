@@ -35,11 +35,18 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 
 ## Installazione
 
+> **Prerequisito unico: [`uv`](https://docs.astral.sh/uv/).** Gestisce automaticamente
+> Python 3.12 e le dipendenze, identico su Windows/macOS/Linux.
+> macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh` ·
+> Windows (PowerShell): `irm https://astral.sh/uv/install.ps1 | iex`.
+> Riavvia il client dopo l'installazione. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
+
 ### Claude Desktop (Cowork) — consigliato
 
-1. Apri Claude Desktop &rarr; **Personalizza** &rarr; **+**
-2. **Aggiungi marketplace da GitHub** &rarr; `capazme/mcp-legal-it`
-3. Installa il plugin **legal-it**
+1. Installa `uv` (vedi sopra) e **riavvia** Claude Desktop
+2. Apri Claude Desktop &rarr; **Personalizza** &rarr; **+**
+3. **Aggiungi marketplace da GitHub** &rarr; `capazme/mcp-legal-it`
+4. Installa il plugin **legal-it**
 
 ### Claude Code CLI
 

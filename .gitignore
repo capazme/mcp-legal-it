@@ -42,3 +42,6 @@ benchmarks/_*
 # Capture them locally with the benchmark corpus if needed.
 tests/fixtures/akn/dlgs_152_2006.xml
 tests/fixtures/akn/dlgs_196_2003.xml
+
+# uv ephemeral lock (uv run --with)
+uv.lock

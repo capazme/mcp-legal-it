@@ -461,28 +461,43 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 
 Il modo più semplice. Il server gira come subprocess locale, nessun Docker necessario.
 
+**Prerequisito unico: `uv`** (gestisce automaticamente Python 3.12 e le dipendenze,
+identico su Windows/macOS/Linux — niente più problemi di `bash`/percorsi venv/Python troppo recente):
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+Riavvia il client dopo l'installazione di `uv`. Il primo avvio del server scarica Python 3.12 +
+le dipendenze (~1 min); gli avvii successivi sono immediati (cache di `uv`).
+
 **Opzione A — Plugin marketplace (consigliato)**
 ```
 /plugin marketplace add capazme/mcp-legal-it
 /plugin install legal-it@mcp-legal-it
 ```
-Include: 177 tool + 19 skills + 8 comandi + 5 agenti + hooks.
+Include: 214 tool + skills + comandi + agenti + hooks. Il server MCP parte via `uv` (vedi `plugin/.mcp.json`).
 
 **Opzione B — Desktop Extension (.mcpb)**
 
 Scaricare `legal-it-X.Y.Z.mcpb` dalla [GitHub Release](https://github.com/capazme/mcp-legal-it/releases/latest) → doppio click su Mac.
-Al primo avvio, `start_server.sh` crea un venv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
-Requisiti: Python 3.10+.
 
 **Opzione C — Configurazione manuale**
 
-In `~/Library/Application Support/Claude/claude_desktop_config.json`:
+In `~/Library/Application Support/Claude/claude_desktop_config.json` (richiede `uv`):
 ```json
 {
   "mcpServers": {
     "legal-it": {
-      "command": "bash",
-      "args": ["/path/to/mcp-legal-it/plugin/start_server.sh"]
+      "command": "uv",
+      "args": [
+        "run", "--python", "3.12",
+        "--with", "fastmcp>=2.0,<4", "--with", "httpx>=0.27",
+        "--with", "beautifulsoup4>=4.12", "--with", "lxml>=5.0",
+        "--with", "fpdf2>=2.7", "--with", "python-docx>=1.0",
+        "/path/to/mcp-legal-it/plugin/server/run_server.py"
+      ]
     }
   }
 }
@@ -498,15 +513,21 @@ In `~/Library/Application Support/Claude/claude_desktop_config.json`:
 /plugin install legal-it@mcp-legal-it
 ```
 
-**Opzione B — .mcp.json nel progetto**
+**Opzione B — .mcp.json nel progetto** (richiede `uv`)
 
 Creare `.mcp.json` nella root del progetto:
 ```json
 {
   "mcpServers": {
     "legal-it": {
-      "command": "bash",
-      "args": ["/path/to/mcp-legal-it/plugin/start_server.sh"]
+      "command": "uv",
+      "args": [
+        "run", "--python", "3.12",
+        "--with", "fastmcp>=2.0,<4", "--with", "httpx>=0.27",
+        "--with", "beautifulsoup4>=4.12", "--with", "lxml>=5.0",
+        "--with", "fpdf2>=2.7", "--with", "python-docx>=1.0",
+        "/path/to/mcp-legal-it/plugin/server/run_server.py"
+      ]
     }
   }
 }
