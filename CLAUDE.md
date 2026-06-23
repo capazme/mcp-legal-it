@@ -1,6 +1,6 @@
 # mcp-legal-it — Project Context
 
-> MCP server con 177 tool di calcolo legale italiano, consultazione normativa
+> MCP server con 214 tool di calcolo legale italiano, consultazione normativa
 > (Normattiva, EUR-Lex, Brocardi), ricerca giurisprudenziale (Italgiure, CeRDEF,
 > TAR/CdS, CGUE), delibere CONSOB.
 
@@ -34,7 +34,7 @@ mcp-legal-it/
 ├── src/
 │   ├── server.py              # FastMCP entry point — registra tutti i tool
 │   ├── prompts.py             # 23 workflow guidati (@mcp.prompt)
-│   ├── resources.py           # 13 risorse statiche (@mcp.resource)
+│   ├── resources.py           # 15 risorse statiche (@mcp.resource)
 │   ├── lib/
 │   │   ├── visualex/          # Normattiva + EUR-Lex scraper
 │   │   │   ├── scraper.py     # fetch_article(), fetch_annotations(), fetch_normattiva_full_text()
@@ -99,7 +99,7 @@ mcp-legal-it/
         └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
 ```
 
-## Tool disponibili (19 categorie, 177 tool)
+## Tool disponibili (30 moduli, 214 tool)
 
 ### Consultazione Normativa
 | Tool | Descrizione |
@@ -444,15 +444,15 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 
 | Feature | Claude Desktop/Code | ChatGPT | Manus |
 |---------|--------------------:|--------:|------:|
-| 177 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
+| 214 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — |
 | 15 risorse `legal://` | ✓ | — | — |
-| 19 skills + 8 comandi + 5 agenti | ✓ (plugin) | — | — |
+| 21 skills + 13 comandi + 6 agenti | ✓ (plugin) | — | — |
 | Transport stdio (locale) | ✓ | — | — |
 | Transport Streamable HTTP | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? |
 
-> I 177 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
+> I 214 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
 > sono feature Claude-only — gli altri provider li ignorano silenziosamente.
 
 ---
@@ -572,7 +572,7 @@ ChatGPT richiede un endpoint HTTPS pubblico. Due opzioni:
    URL:  https://xxxx.ngrok-free.app/mcp
    ```
 
-> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 177 tool sono visibili.
+> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 214 tool sono visibili.
 
 ---
 
