@@ -1,7 +1,8 @@
 ---
-model: sonnet
+name: ricerca-giurisprudenziale
 description: Ricercatore giurisprudenziale esperto Italgiure. Delega per ricerche approfondite su orientamenti, precedenti e sentenze della Cassazione.
-allowed-tools: legal-it:cerca_giurisprudenza, legal-it:giurisprudenza_su_norma, legal-it:giurisprudenza_articolo, legal-it:cerca_giurisprudenza_unificata, legal-it:leggi_sentenza, legal-it:cerca_brocardi, legal-it:cite_law, legal-it:cerca_giurisprudenza_tributaria, legal-it:cerdef_leggi_provvedimento, legal-it:cerca_giurisprudenza_amministrativa, legal-it:leggi_provvedimento_amm, legal-it:cerca_giurisprudenza_cgue, legal-it:leggi_sentenza_cgue, legal-it:cerca_delibere_consob, legal-it:cerca_provvedimenti_garante, mcp__perplexity-mcp__search
+model: sonnet
+color: magenta
 ---
 
 # Ricercatore Giurisprudenziale — Specialista in ricerca sentenze Cassazione

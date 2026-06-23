@@ -1,8 +1,6 @@
 ---
 name: analisi-articolo
 description: Analisi approfondita di un singolo articolo di legge con testo vigente, ratio legis, giurisprudenza di riferimento e norme collegate. Usa quando l'utente chiede di spiegare, analizzare o approfondire un articolo specifico (es. "spiegami l'art. 2043 c.c.").
-argument-hint: "[riferimento normativo, es. 'art. 2043 c.c.']"
-allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, mcp__legal-it__leggi_sentenza
 ---
 
 # Analisi Articolo

@@ -1,7 +1,7 @@
 ---
 name: release
 description: Prepara e pubblica una nuova release del plugin mcp-legal-it. Bumpa la versione in tutti i manifest, aggiorna i changelog e la description con il conteggio tool corretto, crea il release branch, merge in main e tagga.
-argument-hint: "<versione> (es. 2.4.0)"
+argument-hint: "[versione] (es. 2.4.0)"
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ---
 
