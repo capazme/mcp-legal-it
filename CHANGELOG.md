@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-06-23
+
+### Fixed
+Legal-figures audit (resolution of the 3 open items + the sinistro workflow), verified against avvocatoandreani.it + official sources:
+- **Valore catastale** (`calcolo_valore_catastale`): fixed double 5% revaluation — the coefficients 126/63/42.84 are already `base×1.05` and were applied to an already-revalued rendita. Now uses base multipliers (120/60/140/40.8) on `rendita×1.05`, adds a `prima_casa` parameter, and the **+20% surcharge ex DL 168/2004** on non-prima-casa strumentali for *compravendita* (not for successioni). Group E is now handled. (Refs: DPR 131/1986 art. 52; D.Lgs. 346/1990 art. 34; DL 168/2004 art. 1-bis; DL 262/2006 art. 2 c.45.)
+- **`offerta_conciliativa`**: the 6-mensilità cap (art. 9 c.1, projected onto art. 6) was struck down by **Corte Cost. 118/2025** → cap rebuilt as 13.5 (=27/2). The ×0.5 halving is untouched (the Court did not strike it) and kept. Realigned with `indennita_licenziamento` (already updated to 118/2025).
+- **`orientamento` disclaimer**: the L. 132/2025 article on AI in justice is **art. 15** ("Impiego dei sistemi di IA nell'attività giudiziaria"), not art. 13 (professioni intellettuali).
+- **`analisi_sinistro` prompt + skill**: removed the double-counting of non-pecuniary damage (unitary per Cass. SU 26972/2008 «San Martino») and the interest computed on the fully-revalued capital (now on the progressively-revalued / average base per Cass. SU 1712/1995).
+
 ## [2.7.0] - 2026-06-18
 
 ### Changed
