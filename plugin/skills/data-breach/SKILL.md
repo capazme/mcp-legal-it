@@ -1,8 +1,6 @@
 ---
 name: data-breach
 description: Gestione data breach GDPR con valutazione rischio, notifica al Garante entro 72h e stima sanzioni. Usa quando l'utente segnala una violazione di dati personali, chiede come gestire un data breach o deve notificare al Garante.
-argument-hint: "[descrizione violazione]"
-allowed-tools: mcp__legal-it__valutazione_data_breach, mcp__legal-it__genera_notifica_data_breach, mcp__legal-it__calcolo_sanzione_gdpr, mcp__legal-it__cite_law
 ---
 
 # Data Breach
