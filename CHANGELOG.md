@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.9] - 2026-07-01
+
+### Fixed
+- **Citation `Stop` hook rewritten — no more over-firing, no wasted tokens.** The previous hook was a `type: prompt` (LLM) gate that ran on every stop: it hallucinated citations (flagging acronyms, concepts and template-file content as norms) and re-flagged norms already verified earlier in the session, spending tokens on an LLM call per turn. Replaced with a deterministic `plugin/hooks/citation-gate.py` that extracts article-level citations from the last assistant message and dedups them against the `cite_law()` calls already present in the transcript. Conservative (anti-nag bias); the strong enforcement of the merits stays on the pre-export gate and human review.
+
 ## [2.7.8] - 2026-06-23
 
 ### Fixed

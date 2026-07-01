@@ -5,8 +5,9 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Verifica che ogni norma citata nella risposta (articoli di legge, codici, decreti, regolamenti) abbia una corrispondente chiamata cite_law() nel transcript della conversazione. Se trovi norme citate senza cite_law(), elenca quelle mancanti con il formato: 'ATTENZIONE: le seguenti norme sono state citate senza verifica con cite_law(): [elenco]. Richiamare cite_law() per ciascuna prima di finalizzare la risposta.' Se tutte le norme sono verificate, rispondi 'OK'. Ignora: norme citate all'interno di risultati di tool (già verificate), riferimenti generici senza numero di articolo, calcoli (i tool di calcolo applicano le norme internamente), e riferimenti normativi restituiti da genera_modello_atto() (sono metadata del catalogo, non citazioni nel testo)."
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py\"",
+            "timeout": 15000
           }
         ]
       }
