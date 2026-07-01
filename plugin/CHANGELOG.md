@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.9] - 2026-07-01
+
+### Fixed
+- **Citation `Stop` hook: from `prompt` (LLM) to deterministic.** The LLM gate over-fired (hallucinated citations, re-flagged already-verified norms) and cost tokens every turn. Replaced with `hooks/citation-gate.py` that dedups article-level citations against the session's `cite_law()` calls.
+
 ## [2.7.8] - 2026-06-23
 
 ### Fixed
