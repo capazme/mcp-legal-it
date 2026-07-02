@@ -27,7 +27,7 @@ Se l'argomento NON e' `schedule` (o e' vuoto / un tema), esegui subito il briefi
 5. **Norme citate**: recupera il testo vigente con `legal-it:cite_law`. Mai a memoria.
 6. Intesta con `# Briefing settimanale — settimana del <data corrente>`.
 
-Per il workflow dettagliato e la struttura completa dell'output, delega all'agente `digest-giuridico` o usa la skill omonima.
+Per il workflow dettagliato e la struttura completa dell'output, delega all'agente `digest-giuridico`.
 
 ## Pianificazione settimanale (one-time setup)
 
