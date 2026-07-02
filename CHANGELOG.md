@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-07-01
+
+### Removed
+- **Consolidated the redundant command/skill surface.** Removed 5 slash-commands that were mere aliases of existing skills — `/parere` (→ `parere-legale`), `/compliance` (→ `compliance-privacy`), `/giurisprudenza` (→ `analisi-giurisprudenziale`), `/parcella` (→ `calcolo-parcella`), `/ricerca` (→ `ricerca-normativa` / `analisi-giurisprudenziale`) — and the `digest-giuridico` skill (superseded by the `/digest` command + the `digest-giuridico` agent; `/digest` now points to the agent only). No functionality lost: every removed workflow stays available via its skill/agent. Surface is now **214 tool / 20 skill / 8 slash command / 6 agent**.
+
 ## [2.7.9] - 2026-07-01
 
 ### Fixed
