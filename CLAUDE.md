@@ -447,7 +447,7 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 | 214 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — |
 | 15 risorse `legal://` | ✓ | — | — |
-| 21 skills + 13 comandi + 6 agenti | ✓ (plugin) | — | — |
+| 20 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
 | Transport stdio (locale) | ✓ | — | — |
 | Transport Streamable HTTP | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? |
