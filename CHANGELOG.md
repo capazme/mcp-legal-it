@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-07-14
+
+### Added
+- **`cookie-audit` skill** — forensic in-browser cookie/tracker audit. Captures pre- and post-consent state in a clean context, fingerprints the CMP and third-party trackers, inspects the real server-side Google Tag Manager container (bypassing ad-blockers), builds the full cookie table, assesses compliance (Provv. Garante 10 giugno 2021, GDPR, art. 122 Codice Privacy, ePrivacy 2002/58/CE), exports a Word report and proposes remediation. Surface is now **214 tool / 21 skill / 8 slash command / 6 agent**.
+
+### Fixed
+- **`cite_law()` / `fetch_law_article()` now resolve the *preleggi* (Disposizioni sulla legge in generale).** `art. 12 preleggi` returned the abrogated art. 12 of the civil-code body (ex persone giuridiche) instead of the interpretation rule. The codice civile AKN export bundles the preleggi as a separate component part that the parser discarded in favour of the ~3249-article code body; the parser now exposes every component part and selects the preleggi part when `tipo_atto=preleggi`, leaving the c.c./c.p. and flat-act lookups unchanged. Added the aliases `disp. prel. c.c.`, `disposizioni sulla legge in generale`, `disposizioni preliminari (al/del) codice civile`. Verified live against Normattiva: `art. 12 preleggi` → "significato proprio delle parole" (art. 12 co. 1).
+
 ## [2.8.0] - 2026-07-01
 
 ### Removed

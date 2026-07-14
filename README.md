@@ -28,7 +28,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 - **Delibere CONSOB** — ricerca e testo integrale dal Bollettino ufficiale
 - **Calcoli giuridici** — interessi, rivalutazione ISTAT, parcelle, contributo unificato, IRPEF, successioni, danni e altro
 - **GDPR compliance** — informative, DPIA, DPA, registro trattamenti, data breach, sanzioni
-- **20 skill + 6 agenti** — workflow guidati per pareri, cause civili, sinistri, recupero crediti
+- **21 skill + 6 agenti** — workflow guidati per pareri, cause civili, sinistri, recupero crediti
 - **Legal Grounding Protocol** — hook che verificano che ogni norma citata sia supportata da `cite_law()`
 
 ---

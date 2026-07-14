@@ -24,6 +24,19 @@ def _akn_disabled() -> bool:
     """
     return os.environ.get("AKN_DISABLED", "").strip().lower() in {"1", "true", "yes"}
 
+
+def _akn_part_hint(norma) -> "str | None":
+    """Which component part of a multi-part AKN act to select (None = dominant).
+
+    Only the preleggi need a non-dominant part: the codice civile AKN export
+    bundles them as a separate "Disposizioni sulla legge in generale" part that
+    the parser would otherwise discard in favour of the ~3249-article code body.
+    """
+    if norma.tipo_atto_normalized.strip().lower() == "preleggi":
+        return "preleggi"
+    return None
+
+
 # In-memory cache for Brocardi article URLs (base_url + article_num → article_url)
 _brocardi_url_cache: dict[str, str] = {}
 
@@ -64,7 +77,7 @@ async def fetch_article(nv: NormaVisitata) -> dict:
 
             act = await fetch_act_akn(nv.norma)
             if act is not None:
-                akn_text = act.article(nv.numero_articolo)
+                akn_text = act.article(nv.numero_articolo, part=_akn_part_hint(nv.norma))
                 if akn_text:
                     return {"text": akn_text, "url": url, "source": "normattiva-akn"}
 
@@ -611,13 +624,14 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
 
         act = await fetch_act_akn(norma)
         if act is not None:
-            full_text = act.full_text()
+            part = _akn_part_hint(norma)
+            full_text = act.full_text(part=part)
             if full_text:
                 return {
                     "text": full_text,
-                    "title": act.title or str(norma),
+                    "title": act.part_title(part) or str(norma),
                     "url": act_url,
-                    "article_count": act.article_count,
+                    "article_count": act.part_article_count(part),
                     "source": "normattiva-akn",
                 }
 
