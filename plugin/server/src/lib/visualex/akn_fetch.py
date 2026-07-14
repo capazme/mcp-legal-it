@@ -27,7 +27,7 @@ from pathlib import Path
 
 import httpx
 
-from .akn_parser import ParsedAct, parse_akn
+from .akn_parser import ParsedAct, ParsedPart, parse_akn
 
 _CARICA_AKN_BASE = "https://www.normattiva.it/do/atto/caricaAKN"
 
@@ -142,15 +142,28 @@ def _act_to_dict(act: ParsedAct) -> dict:
         "articles": act.articles,
         "order": act.order,
         "structure": act.structure,
+        "parts": {
+            name: {"name": p.name, "articles": p.articles, "order": p.order}
+            for name, p in act.parts.items()
+        },
     }
 
 
 def _act_from_dict(data: dict) -> ParsedAct:
+    parts = {
+        name: ParsedPart(
+            name=pd.get("name", name),
+            articles=dict(pd.get("articles", {})),
+            order=list(pd.get("order", [])),
+        )
+        for name, pd in (data.get("parts") or {}).items()
+    }
     return ParsedAct(
         title=data.get("title", ""),
         articles=dict(data.get("articles", {})),
         order=list(data.get("order", [])),
         structure=data.get("structure", "flat"),
+        parts=parts,
     )
 
 

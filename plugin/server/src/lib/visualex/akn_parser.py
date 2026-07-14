@@ -67,6 +67,34 @@ def normalize_article_key(numero_articolo: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Component parts
+# ---------------------------------------------------------------------------
+
+# A component act can bundle more than one PART (see ``_parse_component``). The
+# default lookup targets the dominant part (the code body); a caller may request
+# another part by name. ``_PART_ALIASES`` maps a caller-facing hint to a
+# substring of the real AKN PART name.
+_PART_ALIASES = {
+    # The codice civile AKN export bundles the preleggi as a separate part named
+    # "Disposizioni sulla legge in generale".
+    "preleggi": "disposizioni sulla legge in generale",
+}
+
+
+@dataclass
+class ParsedPart:
+    """One PART of a component act (e.g. the code body, or the preleggi)."""
+
+    name: str
+    articles: dict[str, str] = field(default_factory=dict)
+    order: list[str] = field(default_factory=list)
+
+    @property
+    def article_count(self) -> int:
+        return len(self.order)
+
+
+# ---------------------------------------------------------------------------
 # ParsedAct
 # ---------------------------------------------------------------------------
 
@@ -76,23 +104,76 @@ class ParsedAct:
     articles: dict[str, str] = field(default_factory=dict)
     order: list[str] = field(default_factory=list)
     structure: str = "flat"
+    # All component parts keyed by their AKN PART name. Empty for flat acts and
+    # for single-part component acts. ``articles``/``order`` mirror the dominant
+    # part so the default (part-less) lookup is unchanged.
+    parts: dict[str, ParsedPart] = field(default_factory=dict)
 
-    def article(self, numero_articolo: str) -> str | None:
+    def article(self, numero_articolo: str, part: str | None = None) -> str | None:
         """Return the markdown text of an article, or ``None`` if absent.
 
-        Accepts ``"2043"``, ``"art. 2043"``, ``"2-bis"``, ``"2 bis"``.
+        Accepts ``"2043"``, ``"art. 2043"``, ``"2-bis"``, ``"2 bis"``. When
+        ``part`` is given (e.g. ``"preleggi"``), the lookup targets that
+        component part instead of the dominant one, and ``None`` is returned if
+        the part is unknown.
         """
         key = normalize_article_key(numero_articolo)
+        if part:
+            matched = self._resolve_part(part)
+            return matched.articles.get(key) if matched is not None else None
         return self.articles.get(key)
 
-    def full_text(self) -> str:
-        """Return all articles joined as markdown, prefixed by the act title."""
-        parts: list[str] = []
-        if self.title:
-            parts.append(f"# {self.title}")
-        for key in self.order:
-            parts.append(self.articles[key])
-        return "\n\n".join(parts).strip()
+    def full_text(self, part: str | None = None) -> str:
+        """Return all articles joined as markdown, prefixed by the act title.
+
+        When ``part`` is given, only that component part is rendered (headed by
+        the part's own name); an empty string is returned if the part is unknown.
+        """
+        if part:
+            matched = self._resolve_part(part)
+            if matched is None:
+                return ""
+            title = matched.name
+            source_order, source_articles = matched.order, matched.articles
+        else:
+            title = self.title
+            source_order, source_articles = self.order, self.articles
+        out: list[str] = []
+        if title:
+            out.append(f"# {title}")
+        for key in source_order:
+            out.append(source_articles[key])
+        return "\n\n".join(out).strip()
+
+    def _resolve_part(self, query: str) -> "ParsedPart | None":
+        """Resolve a part hint to a :class:`ParsedPart` (exact then substring)."""
+        q = (query or "").strip().lower()
+        if not q:
+            return None
+        q = _PART_ALIASES.get(q, q)
+        for name, part in self.parts.items():
+            if name.lower() == q:
+                return part
+        for name, part in self.parts.items():
+            if q in name.lower():
+                return part
+        return None
+
+    def part_article_count(self, part: str | None = None) -> int:
+        """Article count of a component part (dominant part when ``part`` is None)."""
+        if part:
+            matched = self._resolve_part(part)
+            return matched.article_count if matched is not None else 0
+        return len(self.order)
+
+    def part_title(self, part: str | None = None) -> str:
+        """Display title: the selected part's name (falling back to the act
+        title if the part is unknown), or the act title when ``part`` is None."""
+        if part:
+            matched = self._resolve_part(part)
+            if matched is not None:
+                return matched.name
+        return self.title
 
     @property
     def article_count(self) -> int:
@@ -278,11 +359,13 @@ def _render_component_doc(doc, num_label: str) -> str:
     return _clean_text("\n\n".join(parts))
 
 
-def _parse_component(root) -> tuple[dict[str, str], list[str], str]:
-    """Parse component ``<doc name="PART-art. N">`` elements.
+def _parse_component(root) -> tuple[dict[str, ParsedPart], str]:
+    """Parse component ``<doc name="PART-art. N">`` elements into parts.
 
-    For codici with multiple parts (e.g. preleggi + main code), prefer the part
-    with the most articles (the main code).
+    Returns ``(parts, main_part_name)`` where ``parts`` maps each PART name to a
+    :class:`ParsedPart`. For codici with multiple parts (e.g. the preleggi plus
+    the main code), every part is kept and the dominant one (most articles) is
+    reported as ``main_part_name`` — it becomes the act's default lookup.
     """
     docs = root.xpath(f"//{_local('attachments')}//{_local('doc')}")
 
@@ -298,23 +381,29 @@ def _parse_component(root) -> tuple[dict[str, str], list[str], str]:
         by_part.setdefault(part, []).append((num_raw, doc))
 
     if not by_part:
-        return {}, [], ""
+        return {}, ""
 
-    # Choose the dominant part (largest), which is the main code.
-    main_part = max(by_part, key=lambda p: len(by_part[p]))
+    parts: dict[str, ParsedPart] = {}
+    for part_name, entries in by_part.items():
+        articles: dict[str, str] = {}
+        order: list[str] = []
+        for num_raw, doc in entries:
+            key = normalize_article_key(num_raw)
+            if not key or key in articles:
+                continue
+            rendered = _render_component_doc(doc, num_raw)
+            if rendered:
+                articles[key] = rendered
+                order.append(key)
+        if articles:
+            parts[part_name] = ParsedPart(name=part_name, articles=articles, order=order)
 
-    articles: dict[str, str] = {}
-    order: list[str] = []
-    for num_raw, doc in by_part[main_part]:
-        key = normalize_article_key(num_raw)
-        if not key or key in articles:
-            continue
-        rendered = _render_component_doc(doc, num_raw)
-        if rendered:
-            articles[key] = rendered
-            order.append(key)
+    if not parts:
+        return {}, ""
 
-    return articles, order, main_part
+    # The dominant part (largest) is the main code; it is the default lookup.
+    main_part = max(parts, key=lambda p: parts[p].article_count)
+    return parts, main_part
 
 
 # ---------------------------------------------------------------------------
@@ -356,13 +445,15 @@ def parse_akn(xml: str) -> ParsedAct:
 
     title = _extract_title(root)
 
-    comp_articles, comp_order, _ = _parse_component(root)
-    if comp_articles:
+    parts, main_part = _parse_component(root)
+    if parts:
+        main = parts[main_part]
         return ParsedAct(
             title=title,
-            articles=comp_articles,
-            order=comp_order,
+            articles=main.articles,
+            order=main.order,
             structure="component",
+            parts=parts,
         )
 
     flat_articles, flat_order = _parse_flat(root)
