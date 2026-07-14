@@ -296,3 +296,54 @@ class TestFailures:
         monkeypatch.setattr(akn_fetch.httpx, "AsyncClient", boom)
         act = await fetch_act_akn(norma, data_vigenza="20260614")
         assert act is None
+
+
+# ---------------------------------------------------------------------------
+# Multi-part serialization (component acts carry >1 part, e.g. c.c. + preleggi)
+# ---------------------------------------------------------------------------
+
+class TestPartsSerialization:
+    """A component act's ``parts`` must survive the on-disk cache round trip;
+    otherwise a disk cache hit would silently drop the preleggi part.
+    """
+
+    def test_act_dict_round_trip_preserves_parts(self):
+        from src.lib.visualex.akn_parser import ParsedAct, ParsedPart
+        from src.lib.visualex.akn_fetch import _act_to_dict, _act_from_dict
+
+        act = ParsedAct(
+            title="Codice civile",
+            articles={"12": "body 12"},
+            order=["12"],
+            structure="component",
+            parts={
+                "CODICE CIVILE": ParsedPart("CODICE CIVILE", {"12": "body 12"}, ["12"]),
+                "Disposizioni sulla legge in generale": ParsedPart(
+                    "Disposizioni sulla legge in generale",
+                    {"12": "significato proprio delle parole"},
+                    ["12"],
+                ),
+            },
+        )
+
+        restored = _act_from_dict(_act_to_dict(act))
+        assert set(restored.parts) == set(act.parts)
+        assert restored.article("12", part="preleggi") == "significato proprio delle parole"
+        assert restored.article("12") == "body 12"
+
+    def test_act_from_dict_legacy_entry_without_parts(self):
+        # Cache files written before multi-part support have no "parts" key: they
+        # must load without crashing and simply expose no parts (the article
+        # lookup then falls back to the HTML path in the caller).
+        from src.lib.visualex.akn_fetch import _act_from_dict
+
+        legacy = {
+            "title": "Codice civile",
+            "articles": {"12": "body 12"},
+            "order": ["12"],
+            "structure": "component",
+        }
+        act = _act_from_dict(legacy)
+        assert act.parts == {}
+        assert act.article("12") == "body 12"
+        assert act.article("12", part="preleggi") is None

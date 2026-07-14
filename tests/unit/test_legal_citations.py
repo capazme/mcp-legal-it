@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.tools.legal_citations import (
-    _parse_reference, _resolve_act, _build_nv, _cite_law_impl,
+    _parse_reference, _resolve_act, _build_nv, _cite_law_impl, _fetch_law_article_impl,
     _download_law_pdf_impl, _generate_pdf_from_text, _sanitize_for_pdf, _safe_filename,
     _split_citazioni, _starts_new_reference, _classify_citazione, _sentenza_num_anno,
     _normalize_sezione, _parse_resolved_estremi, _norma_misquote, _verifica_citazioni_impl,
@@ -697,6 +697,114 @@ class TestVerificaCitazioniE2E:
         with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
             out = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001")
         assert "non trovata" in out
+
+
+# ---------------------------------------------------------------------------
+# Preleggi — alias resolution
+# ---------------------------------------------------------------------------
+
+class TestResolveActPreleggi:
+    """'Disposizioni sulla legge in generale' (preleggi) must resolve to the
+    preleggi act (R.D. 262/1942) under all its common written forms.
+    """
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "preleggi",
+            "prel.",
+            "disp. prel.",
+            "disp. prel. c.c.",
+            "disposizioni sulla legge in generale",
+            "disposizioni preliminari codice civile",
+            "disposizioni preliminari al codice civile",
+        ],
+    )
+    def test_resolves_to_preleggi(self, name):
+        result = _resolve_act(name)
+        assert result is not None, f"{name!r} did not resolve"
+        assert result["tipo_atto"] == "preleggi"
+        assert result["numero_atto"] == "262"
+
+    def test_reference_disp_prel_cc(self):
+        # The natural-language reference must parse + resolve end to end.
+        article, act = _parse_reference("art. 12 disp. prel. c.c.")
+        assert article == "12"
+        assert _resolve_act(act)["tipo_atto"] == "preleggi"
+
+
+# ---------------------------------------------------------------------------
+# Preleggi — AKN component-part selection
+# ---------------------------------------------------------------------------
+
+class TestAknPartHint:
+    def test_preleggi_gets_part_hint(self):
+        from src.lib.visualex.scraper import _akn_part_hint
+        assert _akn_part_hint(Norma(tipo_atto="preleggi")) == "preleggi"
+
+    def test_codice_civile_has_no_part_hint(self):
+        from src.lib.visualex.scraper import _akn_part_hint
+        assert _akn_part_hint(Norma(tipo_atto="codice civile")) is None
+
+    def test_flat_act_has_no_part_hint(self):
+        from src.lib.visualex.scraper import _akn_part_hint
+        assert _akn_part_hint(Norma(tipo_atto="decreto legislativo", data="2003", numero_atto="196")) is None
+
+
+class TestPreleggiRegression:
+    """Regression for the preleggi bug: 'art. 12 preleggi' must return the
+    interpretation rule (art. 12 co. 1), NOT the abrogated code-body art. 12.
+
+    The c.c. AKN export bundles both parts; the tool must select the preleggi
+    part. We mock the (networked) AKN fetch with a two-part act.
+    """
+
+    def _two_part_act(self):
+        from src.lib.visualex.akn_parser import ParsedAct, ParsedPart
+        body = "### Art. 12\n\nArt. 12.\n\nARTICOLO ABROGATO DAL D.P.R. 10 FEBBRAIO 2000, N. 361"
+        prel = (
+            "### Art. 12\n\nArt. 12. (Interpretazione della legge)\n\n"
+            "Nell'applicare la legge non si puo' ad essa attribuire altro senso "
+            "che quello fatto palese dal significato proprio delle parole secondo "
+            "la connessione di esse, e dalla intenzione del legislatore."
+        )
+        return ParsedAct(
+            title="Codice civile",
+            articles={"12": body},
+            order=["12"],
+            structure="component",
+            parts={
+                "CODICE CIVILE": ParsedPart("CODICE CIVILE", {"12": body}, ["12"]),
+                "Disposizioni sulla legge in generale": ParsedPart(
+                    "Disposizioni sulla legge in generale", {"12": prel}, ["12"]
+                ),
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_fetch_law_article_preleggi(self):
+        act = self._two_part_act()
+        with patch("src.lib.visualex.akn_fetch.fetch_act_akn", AsyncMock(return_value=act)):
+            result = await _fetch_law_article_impl(act_type="preleggi", article="12")
+        assert "significato proprio delle parole" in result.lower()
+        assert "abrogato" not in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_cite_law_preleggi(self):
+        act = self._two_part_act()
+        with patch("src.lib.visualex.akn_fetch.fetch_act_akn", AsyncMock(return_value=act)):
+            result = await _cite_law_impl("art. 12 preleggi")
+        assert "significato proprio delle parole" in result.lower()
+        assert "abrogato" not in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_codice_civile_still_returns_body_article(self):
+        # Guard against over-correction: 'art. 12 c.c.' must STILL be the body art.
+        act = self._two_part_act()
+        with patch("src.lib.visualex.akn_fetch.fetch_act_akn", AsyncMock(return_value=act)):
+            result = await _cite_law_impl("art. 12 c.c.")
+        assert "abrogato" in result.lower()
+        assert "significato proprio delle parole" not in result.lower()
 
     @pytest.mark.asyncio
     async def test_norma_misquote_comma_absent(self):
