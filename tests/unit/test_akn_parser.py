@@ -38,6 +38,11 @@ def costituzione() -> ParsedAct:
     return parse_akn(_load("costituzione.xml"))
 
 
+@pytest.fixture(scope="module")
+def cc() -> ParsedAct:
+    return parse_akn(_load("codice_civile.xml"))
+
+
 # ---------------------------------------------------------------------------
 # normalize_article_key
 # ---------------------------------------------------------------------------
@@ -227,3 +232,71 @@ class TestParsedActApi:
         act = parse_akn("<akomaNtoso xmlns='http://docs.oasis-open.org/legaldocml/ns/akn/3.0'></akomaNtoso>")
         assert act.article_count == 0
         assert act.full_text() == ""
+
+
+# ---------------------------------------------------------------------------
+# Component multi-part exposure (codice civile bundles the preleggi)
+# ---------------------------------------------------------------------------
+
+class TestComponentMultiPart:
+    """The c.c. AKN export bundles TWO component parts: the code body
+    ('CODICE CIVILE', ~3249 art.) and the preleggi ('Disposizioni sulla legge
+    in generale', ~31 art.). The parser must expose both and let a caller select
+    the preleggi part, while keeping the code body as the default lookup so
+    'art. 12 c.c.' and 'art. 12 preleggi' resolve to different texts.
+    """
+
+    def test_both_parts_exposed(self, cc):
+        names = [n.lower() for n in cc.parts]
+        assert any("codice civile" in n for n in names)
+        assert any("disposizioni sulla legge in generale" in n for n in names)
+
+    def test_default_article_is_code_body(self, cc):
+        # art. 12 of the code body is abrogated (ex persone giuridiche).
+        art12 = cc.article("12")
+        assert art12 is not None
+        assert "abrogato" in art12.lower()
+
+    def test_preleggi_part_selects_disposizioni(self, cc):
+        # art. 12 preleggi = interpretazione della legge (art. 12 co. 1).
+        art12 = cc.article("12", part="preleggi")
+        assert art12 is not None
+        assert "significato proprio delle parole" in art12.lower()
+
+    def test_code_body_articles_absent_from_preleggi(self, cc):
+        # art. 2043 exists only in the code body, not in the 31-article preleggi.
+        assert cc.article("2043") is not None
+        assert cc.article("2043", part="preleggi") is None
+
+    def test_preleggi_part_is_small(self, cc):
+        prel = next(
+            (p for n, p in cc.parts.items()
+             if "disposizioni sulla legge in generale" in n.lower()),
+            None,
+        )
+        assert prel is not None
+        assert 15 <= prel.article_count < 100  # ~31, not the ~3249 code body
+
+    def test_unknown_part_returns_none(self, cc):
+        assert cc.article("12", part="questa parte non esiste") is None
+
+    def test_full_text_of_preleggi_part(self, cc):
+        txt = cc.full_text(part="preleggi")
+        assert "significato proprio delle parole" in txt.lower()
+
+    def test_part_article_count(self, cc):
+        assert cc.part_article_count() == cc.article_count  # default = dominant part
+        assert 15 <= cc.part_article_count("preleggi") < 100
+        assert cc.part_article_count("questa parte non esiste") == 0
+
+    def test_full_text_of_preleggi_uses_part_title(self, cc):
+        # The whole-part text must be headed by the preleggi's own title, not
+        # the bundling act's title ("Codice civile").
+        first_line = cc.full_text(part="preleggi").splitlines()[0].lower()
+        assert "disposizioni sulla legge in generale" in first_line
+        assert "codice civile" not in first_line
+
+    def test_part_title(self, cc):
+        assert "disposizioni sulla legge in generale" in cc.part_title("preleggi").lower()
+        assert cc.part_title() == cc.title  # default = act title
+        assert cc.part_title("questa parte non esiste") == cc.title  # fallback
