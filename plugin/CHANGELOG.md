@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-07-14
+
+### Added
+- **Skill `cookie-audit`** — audit forense dei cookie/tracker di un sito: stato pre/post-consenso in contesto pulito, fingerprint di CMP e tracker di terze parti, ispezione del container GTM reale lato server, tabella cookie completa, valutazione di conformità (Provv. Garante 10/6/2021, GDPR, art. 122 Codice Privacy, ePrivacy), report Word + remediation. Ora: **214 tool / 21 skill / 8 slash command / 6 agenti**.
+
+### Fixed
+- **`cite_law` / `fetch_law_article`: risolte le preleggi.** `art. 12 preleggi` restituiva l'art. 12 (abrogato) del corpo del codice civile invece della regola di interpretazione. L'export AKN del c.c. contiene le preleggi come parte component separata che il parser scartava a favore del corpo (~3249 art.); ora il parser espone tutte le parti e seleziona quella delle preleggi quando `tipo_atto=preleggi`, senza toccare i lookup c.c./c.p. Aggiunti gli alias `disp. prel. c.c.`, `disposizioni sulla legge in generale`, `disposizioni preliminari (al/del) codice civile`.
+
 ## [2.8.0] - 2026-07-01
 
 ### Removed
