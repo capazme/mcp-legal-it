@@ -1,6 +1,6 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude Code e Claude Desktop: **214 tool** MCP, **20 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **214 tool** MCP, **21 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
