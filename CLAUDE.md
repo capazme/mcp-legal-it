@@ -181,7 +181,7 @@ mcp-legal-it/
 | `calcolo_sanzione_gdpr(tipo_violazione, ...)` | Stima range sanzioni con analisi criteri art. 83(2) |
 | `genera_notifica_data_breach(titolare, ...)` | Modulo notifica al Garante con scadenza 72h |
 
-## Prompt guidati (19)
+## Prompt guidati (23)
 
 - `analisi_sinistro` — danno biologico + rivalutazione + interessi
 - `recupero_credito` — interessi mora + decreto ingiuntivo + parcella
@@ -192,18 +192,22 @@ mcp-legal-it/
 - `calcolo_parcella` — D.M. 55/2014 per attività civile/penale/stragiudiziale
 - `verifica_prescrizione` — civile (artt. 2941-2946 c.c.) e penale
 - `ricerca_normativa` — fonti primarie + norme collegate + giurisprudenza + CONSOB per settore finanziario
+- `ricerca_gazzetta` — atti in Gazzetta Ufficiale: novità per serie, ricerca parametrica, testo as-published + PDF ufficiale
 - `analisi_articolo` — testo vigente + ratio + massime + norme collegate
 - `confronto_norme` — specialità, gerarchia, coordinamento
 - `mappatura_normativa` — mappa completa per settore/attività + fonti autorità vigilanza
+- `attuazione_direttiva` — recepimento direttiva UE: atto italiano di attuazione (Normattiva) + giurisprudenza CGUE collegata
 - `analisi_giurisprudenziale` — workflow: cerca_giurisprudenza → leggi_sentenza → cite_law → sintesi
+- `orientamento_giurisprudenziale` — mappa descrittiva orientamenti di legittimità: conformi vs contrasti, Sezioni Unite, evoluzione temporale
 - `analisi_tributaria` — workflow: cerca_giurisprudenza_tributaria → cerdef_leggi_provvedimento → cite_law
 - `analisi_giurisprudenza_amministrativa` — workflow: cerca_giurisprudenza_amministrativa → leggi_provvedimento_amm → cite_law
 - `analisi_giurisprudenza_europea` — workflow: cerca_giurisprudenza_cgue → leggi_sentenza_cgue → cite_law
+- `analisi_costituzionale` — workflow: cerca_pronuncia_costituzionale → leggi_pronuncia_costituzionale → cite_law, con parametri costituzionali invocati
 - `compliance_privacy` — workflow GDPR: base giuridica → DPIA → registro → informativa → DPA
 - `analisi_delibere_consob` — ricerca e analisi delibere CONSOB su un tema: provvedimenti, sanzioni, normativa
 - `novita_consob` — ultime delibere CONSOB con sintesi orientamenti per tipologia/argomento
 
-## Risorse statiche (legal://) — 13
+## Risorse statiche (legal://) — 15
 
 - `legal://riferimenti/procedura-civile` — fasi e termini post-Cartabia
 - `legal://riferimenti/termini-processuali` — quadro sinottico termini
@@ -215,7 +219,9 @@ mcp-legal-it/
 - `legal://riferimenti/codici-e-leggi-principali` — indice ragionato codici e leggi UE
 - `legal://riferimenti/gdpr-checklist` — checklist compliance GDPR con tool disponibili
 - `legal://riferimenti/consob-delibere` — guida tool CONSOB: tipologie, argomenti, normativa mercati finanziari
+- `legal://riferimenti/ricerca-giurisprudenziale` — guida Italgiure: strategia esplora→filtra→leggi, sintassi Solr, facets
 - `legal://riferimenti/cerdef-giurisprudenza` — guida CeRDEF: enti, criteri di ricerca, norme fiscali principali
+- `legal://riferimenti/modelli-atti-catalogo` — catalogo 100 tipi di atti generabili: routing, tool, resource e campi obbligatori
 - `legal://riferimenti/giustizia-amministrativa` — guida TAR/CdS: 28 sedi, tipi provvedimento, norme amministrative
 - `legal://riferimenti/cgue-giurisprudenza` — guida CGUE: corti, materie, formato CELEX/ECLI, workflow SPARQL
 
