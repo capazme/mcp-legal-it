@@ -1,6 +1,6 @@
 # mcp-legal-it — Project Context
 
-> MCP server con 214 tool di calcolo legale italiano, consultazione normativa
+> MCP server con 216 tool di calcolo legale italiano, consultazione normativa
 > (Normattiva, EUR-Lex, Brocardi), ricerca giurisprudenziale (Italgiure, CeRDEF,
 > TAR/CdS, CGUE), delibere CONSOB.
 
@@ -71,7 +71,8 @@ mcp-legal-it/
 │       ├── cerdef.py          # cerca_giurisprudenza_tributaria, cerdef_leggi_provvedimento, ultime_sentenze_tributarie
 │       ├── giustizia_amm.py   # cerca_giurisprudenza_amministrativa, leggi_provvedimento_amm, giurisprudenza_amm_su_norma, ultimi_provvedimenti_amm
 │       ├── cgue.py            # cerca_giurisprudenza_cgue, leggi_sentenza_cgue, giurisprudenza_cgue_su_norma, ultime_sentenze_cgue
-│       └── privacy_gdpr.py
+│       ├── privacy_gdpr.py
+│       └── procure_quotazioni.py  # genera_procura_liti_docx, genera_quotazione_docx
 └── tests/
     ├── unit/
     │   ├── test_calculations.py     # Test calcoli numerici
@@ -99,7 +100,7 @@ mcp-legal-it/
         └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
 ```
 
-## Tool disponibili (30 moduli, 214 tool)
+## Tool disponibili (31 moduli, 216 tool)
 
 ### Consultazione Normativa
 | Tool | Descrizione |
@@ -162,6 +163,7 @@ mcp-legal-it/
 11. Dichiarazione redditi (14 tool) — IRPEF, regime forfettario, TFR
 12. Varie (12 tool) — codice fiscale, IBAN, ATECO, prescrizione diritti
 13. Privacy/GDPR (12 tool) — informative privacy, cookie, DPA, DPIA, data breach, sanzioni
+14. Recupero crediti seriale (2 tool) — `genera_procura_liti_docx` (procura art. 83 c.p.c. DOCX pronta-firma), `genera_quotazione_docx` (lettera quotazione D.M. 55/2014: monitorio fase unica / esecuzione / opposizione, con accettazione cliente)
 
 ### Privacy/GDPR Compliance
 | Tool | Descrizione |
@@ -179,7 +181,7 @@ mcp-legal-it/
 | `calcolo_sanzione_gdpr(tipo_violazione, ...)` | Stima range sanzioni con analisi criteri art. 83(2) |
 | `genera_notifica_data_breach(titolare, ...)` | Modulo notifica al Garante con scadenza 72h |
 
-## Prompt guidati (19)
+## Prompt guidati (23)
 
 - `analisi_sinistro` — danno biologico + rivalutazione + interessi
 - `recupero_credito` — interessi mora + decreto ingiuntivo + parcella
@@ -190,18 +192,22 @@ mcp-legal-it/
 - `calcolo_parcella` — D.M. 55/2014 per attività civile/penale/stragiudiziale
 - `verifica_prescrizione` — civile (artt. 2941-2946 c.c.) e penale
 - `ricerca_normativa` — fonti primarie + norme collegate + giurisprudenza + CONSOB per settore finanziario
+- `ricerca_gazzetta` — atti in Gazzetta Ufficiale: novità per serie, ricerca parametrica, testo as-published + PDF ufficiale
 - `analisi_articolo` — testo vigente + ratio + massime + norme collegate
 - `confronto_norme` — specialità, gerarchia, coordinamento
 - `mappatura_normativa` — mappa completa per settore/attività + fonti autorità vigilanza
+- `attuazione_direttiva` — recepimento direttiva UE: atto italiano di attuazione (Normattiva) + giurisprudenza CGUE collegata
 - `analisi_giurisprudenziale` — workflow: cerca_giurisprudenza → leggi_sentenza → cite_law → sintesi
+- `orientamento_giurisprudenziale` — mappa descrittiva orientamenti di legittimità: conformi vs contrasti, Sezioni Unite, evoluzione temporale
 - `analisi_tributaria` — workflow: cerca_giurisprudenza_tributaria → cerdef_leggi_provvedimento → cite_law
 - `analisi_giurisprudenza_amministrativa` — workflow: cerca_giurisprudenza_amministrativa → leggi_provvedimento_amm → cite_law
 - `analisi_giurisprudenza_europea` — workflow: cerca_giurisprudenza_cgue → leggi_sentenza_cgue → cite_law
+- `analisi_costituzionale` — workflow: cerca_pronuncia_costituzionale → leggi_pronuncia_costituzionale → cite_law, con parametri costituzionali invocati
 - `compliance_privacy` — workflow GDPR: base giuridica → DPIA → registro → informativa → DPA
 - `analisi_delibere_consob` — ricerca e analisi delibere CONSOB su un tema: provvedimenti, sanzioni, normativa
 - `novita_consob` — ultime delibere CONSOB con sintesi orientamenti per tipologia/argomento
 
-## Risorse statiche (legal://) — 13
+## Risorse statiche (legal://) — 15
 
 - `legal://riferimenti/procedura-civile` — fasi e termini post-Cartabia
 - `legal://riferimenti/termini-processuali` — quadro sinottico termini
@@ -213,7 +219,9 @@ mcp-legal-it/
 - `legal://riferimenti/codici-e-leggi-principali` — indice ragionato codici e leggi UE
 - `legal://riferimenti/gdpr-checklist` — checklist compliance GDPR con tool disponibili
 - `legal://riferimenti/consob-delibere` — guida tool CONSOB: tipologie, argomenti, normativa mercati finanziari
+- `legal://riferimenti/ricerca-giurisprudenziale` — guida Italgiure: strategia esplora→filtra→leggi, sintassi Solr, facets
 - `legal://riferimenti/cerdef-giurisprudenza` — guida CeRDEF: enti, criteri di ricerca, norme fiscali principali
+- `legal://riferimenti/modelli-atti-catalogo` — catalogo 100 tipi di atti generabili: routing, tool, resource e campi obbligatori
 - `legal://riferimenti/giustizia-amministrativa` — guida TAR/CdS: 28 sedi, tipi provvedimento, norme amministrative
 - `legal://riferimenti/cgue-giurisprudenza` — guida CGUE: corti, materie, formato CELEX/ECLI, workflow SPARQL
 
@@ -444,15 +452,15 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 
 | Feature | Claude Desktop/Code | ChatGPT | Manus |
 |---------|--------------------:|--------:|------:|
-| 214 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
+| 216 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — |
 | 15 risorse `legal://` | ✓ | — | — |
-| 21 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
+| 22 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
 | Transport stdio (locale) | ✓ | — | — |
 | Transport Streamable HTTP | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? |
 
-> I 214 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
+> I 216 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
 > sono feature Claude-only — gli altri provider li ignorano silenziosamente.
 
 ---
@@ -477,7 +485,7 @@ le dipendenze (~1 min); gli avvii successivi sono immediati (cache di `uv`).
 /plugin marketplace add capazme/mcp-legal-it
 /plugin install legal-it@mcp-legal-it
 ```
-Include: 214 tool + skills + comandi + agenti + hooks. Il server MCP parte via `uv` (vedi `plugin/.mcp.json`).
+Include: 216 tool + skills + comandi + agenti + hooks. Il server MCP parte via `uv` (vedi `plugin/.mcp.json`).
 
 **Opzione B — Desktop Extension (.mcpb)**
 
@@ -572,7 +580,7 @@ ChatGPT richiede un endpoint HTTPS pubblico. Due opzioni:
    URL:  https://xxxx.ngrok-free.app/mcp
    ```
 
-> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 214 tool sono visibili.
+> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 216 tool sono visibili.
 
 ---
 
