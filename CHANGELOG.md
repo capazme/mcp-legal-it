@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.10.0] - 2026-07-23
+## [2.10.0] - 2026-07-27
 
 ### Added
 - **`genera_procura_liti_docx()` + `genera_quotazione_docx()`** — new `procure_quotazioni` tool module for serial debt-collection paperwork. The first produces a signature-ready one-page power of attorney (art. 83, co. 3, c.p.c.) with the full declaration set (mediation ex art. 4 D.Lgs. 28/2010, assisted negotiation ex D.L. 132/2014, fee estimate, insurance, GDPR consent) and counsel authentication block; the second produces the client-facing fee-quotation letter (D.M. 55/2014 as amended by D.M. 147/2022) with the full liquidation table (30% PCT uplift ex art. 4, co. 1-bis, 15% general expenses, 4% CPA, 22% VAT, 20% withholding), automatic contributo unificato (halved for monitorio ex art. 13, co. 3, DPR 115/2002), registration-tax note and a client-acceptance block. Three quotation types matching the actual procedural phase: `monitorio` (single-phase table), `esecuzione` (introductory + conclusion phases, enforcement disbursements), `opposizione` (full four-phase litigation table). Figures validated against real filed prospetti.
