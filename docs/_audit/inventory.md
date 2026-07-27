@@ -1,10 +1,10 @@
 # mcp-legal-it — Tool Inventory (audit)
 
-**Totals:** 30 modules · 214 tools · 23 prompts · 15 resources
+**Totals:** 31 modules · 216 tools · 23 prompts · 15 resources
 
 > This inventory supersedes the stale counts in `CLAUDE.md`, which still report
 > 177 tools / 19 prompts / 19 skills / 13–15 resources. The authoritative figure is
-> **214 tools across 30 modules** (see per-module breakdown below). Update `CLAUDE.md`
+> **216 tools across 31 modules** (see per-module breakdown below). Update `CLAUDE.md`
 > to match. Raw machine-readable catalog: [`inventory.json`](./inventory.json).
 
 ## Tools per module
@@ -35,6 +35,7 @@
 | `parcelle_professionisti.py` | 11 |
 | `privacy_gdpr.py` | 12 |
 | `procedura_civile.py` | 3 |
+| `procure_quotazioni.py` | 2 |
 | `proprieta_successioni.py` | 12 |
 | `risarcimento_danni.py` | 7 |
 | `rivalutazioni_istat.py` | 12 |
@@ -409,3 +410,7 @@
 | `calcolo_eta_anagrafica` | `calcolo_eta_anagrafica(data_nascita: str, data_riferimento: str \| None = None) -> dict` | Calcola l'eta anagrafica esatta in anni, mesi e giorni con data del prossimo compleanno. |
 | `ricerca_codici_ateco` | `ricerca_codici_ateco(keyword: str) -> dict` | Ricerca codici ATECO per parola chiave, con coefficiente di redditivita per il regime forfettario. |
 
+## `procure_quotazioni.py` (2 tools)
+
+- `genera_procura_liti_docx` — procura alle liti ex art. 83, co. 3, c.p.c. in DOCX pronta-firma
+- `genera_quotazione_docx` — lettera quotazione compensi D.M. 55/2014 (monitorio / esecuzione / opposizione) con accettazione cliente

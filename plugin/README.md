@@ -1,6 +1,6 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude Code e Claude Desktop: **214 tool** MCP, **21 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **216 tool** MCP, **22 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
@@ -21,7 +21,7 @@ claude plugin install legal-it@mcp-legal-it
 
 ## Cosa include
 
-### Server MCP (214 tool)
+### Server MCP (216 tool)
 
 Il plugin avvia automaticamente il server MCP locale — nessun server remoto richiesto. Al primo avvio crea un virtualenv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
 
@@ -67,6 +67,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 | `data-breach` | Gestione data breach: valutazione + notifica |
 | `redazione-contratto` | Supporto redazione contrattuale |
 | `genera-atto` | Generazione atti giudiziari (100 modelli) |
+| `procure-quotazioni` | Procure alle liti + quotazioni D.M. 55/2014 in serie (DOCX) |
 | `analisi-delibere-consob` | Ricerca e analisi delibere CONSOB |
 | `novita-consob` | Ultime delibere CONSOB |
 
