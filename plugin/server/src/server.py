@@ -1,4 +1,4 @@
-"""MCP Legal IT — 214 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 216 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 
@@ -32,6 +32,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - GIURISPRUDENZA UE: sentenze CGUE, Corte di Giustizia UE, Tribunale UE, rinvio pregiudiziale, conclusioni AG, ECLI
 - ATTUAZIONE UE→IT: get_italian_implementation()/elenco_misure_nazionali() per le misure nazionali di recepimento di una direttiva, get_eu_basis() per la base UE di un atto italiano (CELLAR/SPARQL)
 - REDAZIONE ATTI: genera_modello_atto() per catalogo 100 tipi atti (DI, precetto, procura, relata, attestazione, citazione, pignoramento, preventivo, privacy)
+- RECUPERO CREDITI SERIALE: genera_procura_liti_docx() procura ex art. 83 c.p.c. pronta-firma; genera_quotazione_docx() lettera quotazione compensi D.M. 55/2014 (monitorio/esecuzione/opposizione) con accettazione cliente
 
 REGOLE: cite_law() PRIMA di citare norme. leggi_sentenza() DIRETTO per sentenze note.
 OUTPUT: € 1.234,56 | GG/MM/AAAA | segnalare INDICATIVO se stimato.
@@ -39,6 +40,7 @@ OUTPUT: € 1.234,56 | GG/MM/AAAA | segnalare INDICATIVO se stimato.
 WORKFLOW:
 Sinistro → danno_biologico_* → danno_non_patrimoniale → rivalutazione_monetaria → interessi_legali
 Credito → interessi_mora → rivalutazione_monetaria → decreto_ingiuntivo → parcella_avvocato_civile
+Procure/quotazioni seriali → genera_procura_liti_docx + genera_quotazione_docx (tipo in base alla fase: monitorio | esecuzione | opposizione)
 Norma → cite_law → cerca_brocardi → giurisprudenza_su_norma → leggi_sentenza
 Orientamento → orientamento_su_norma/orientamento_su_principio → mappa_orientamento (conformi/contrasti/SS.UU.)
 Costituzionale → cerca_pronuncia_costituzionale → leggi_pronuncia_costituzionale | pronunce_cost_su_norma → cite_law
@@ -88,6 +90,7 @@ from src.tools import (  # noqa: E402, F401
     gazzetta,
     orientamento,
     eu_implementation,
+    procure_quotazioni,
 )
 
 from src import prompts, resources  # noqa: E402, F401
