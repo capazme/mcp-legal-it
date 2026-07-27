@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-07-23
+
+### Added
+- **Tool `genera_procura_liti_docx` + `genera_quotazione_docx`** (nuovo modulo `procure_quotazioni`) — recupero crediti seriale: procura alle liti ex art. 83, co. 3, c.p.c. in DOCX pronta-firma (una pagina, dichiarazioni mediazione/negoziazione/privacy, autentica difensori) e lettera di quotazione compensi D.M. 55/2014 (agg. D.M. 147/2022) con prospetto completo (+30% PCT, SG 15%, CPA 4%, IVA 22%, R.A. 20%), contributo unificato automatico dalla tabella canonica (monitorio dimezzato ex art. 13, co. 3, DPR 115/2002), nota imposta di registro e blocco di accettazione del cliente. Tre tipi per fase reale: `monitorio` (fase unica), `esecuzione` (con oneri pignoramento), `opposizione` (quattro fasi di cognizione).
+- **Skill `procure-quotazioni`** — orchestrazione del flusso seriale: lettura Excel posizioni, normalizzazione importi, classificazione della fase processuale, clausola debitore verbatim dagli atti, generazione per posizione e report finale. Config studio locale (`studio.json`, esempio incluso). Ora: **216 tool / 22 skill / 8 slash command / 6 agenti**.
+
 ## [2.9.0] - 2026-07-14
 
 ### Added
