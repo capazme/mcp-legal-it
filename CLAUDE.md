@@ -503,7 +503,7 @@ In `~/Library/Application Support/Claude/claude_desktop_config.json` (richiede `
         "run", "--python", "3.12",
         "--with", "fastmcp>=2.0,<4", "--with", "httpx>=0.27",
         "--with", "beautifulsoup4>=4.12", "--with", "lxml>=5.0",
-        "--with", "fpdf2>=2.7", "--with", "python-docx>=1.0",
+        "--with", "fpdf2>=2.7", "--with", "python-docx>=1.0", "--with", "openpyxl>=3.1",
         "/path/to/mcp-legal-it/plugin/server/run_server.py"
       ]
     }
@@ -533,7 +533,7 @@ Creare `.mcp.json` nella root del progetto:
         "run", "--python", "3.12",
         "--with", "fastmcp>=2.0,<4", "--with", "httpx>=0.27",
         "--with", "beautifulsoup4>=4.12", "--with", "lxml>=5.0",
-        "--with", "fpdf2>=2.7", "--with", "python-docx>=1.0",
+        "--with", "fpdf2>=2.7", "--with", "python-docx>=1.0", "--with", "openpyxl>=3.1",
         "/path/to/mcp-legal-it/plugin/server/run_server.py"
       ]
     }
