@@ -1,6 +1,6 @@
 # Guida agli strumenti
 
-mcp-legal-it espone 146 tool MCP in 15 categorie. Questo documento descrive ogni tool con parametri, uso tipico ed esempio concreto.
+mcp-legal-it espone 218 tool MCP (questo documento ne descrive 148; le voci mancanti sono in riallineamento su un branch dedicato). Questo documento descrive ogni tool con parametri, uso tipico ed esempio concreto.
 
 ## Workflow rapidi
 
@@ -1936,3 +1936,20 @@ _Ultimi provvedimenti depositati dal Garante Privacy, con filtro opzionale per t
 
 **Esempio**: `ultimi_provvedimenti_garante(tipologia="linee guida", max_risultati=5)` → ultime 5 linee guida pubblicate dal GPDP
 
+## Analisi fornitori (privacy)
+
+### verifica_partita_iva_vies
+
+Verifica una partita IVA sul VIES: validità + denominazione/indirizzo registrati quando lo stato membro li fornisce. Checksum locale preventivo per l'Italia.
+
+- **Parametri**: `partita_iva` (senza prefisso paese), `codice_paese` (default `IT`)
+- **Uso tipico**: agganciare con certezza l'identità di un fornitore durante lo screening del mastrino (skill `analisi-fornitori`)
+- **Esempio**: `verifica_partita_iva_vies(partita_iva="00159560366")` → valida, denominazione registrata
+
+### genera_report_fornitori
+
+Genera l'Excel standard dell'analisi privacy fornitori (foglio Avvertenze + 11 colonne, responsabili senza DPA in cima). Input: record canonici già classificati (vedi skill `analisi-fornitori`).
+
+- **Parametri**: `fornitori` (lista record), `cliente`, `data_analisi`, `file_sorgente`, `nome_file`
+- **Uso tipico**: passo finale dello screening del mastrino; il file è scritto in `$TMPDIR/mcp-legal-it/`
+- **Esempio**: `genera_report_fornitori(fornitori=[...], cliente="Cliente S.r.l.")` → `File salvato: /tmp/mcp-legal-it/analisi_fornitori_cliente_srl_ab12cd34.xlsx (12.3 KB)`

@@ -78,7 +78,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from src.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (16 moduli, 161 tool totali)
+       └─ ... (32 moduli, 218 tool totali)
        └─ from src import prompts
             └─ @mcp.prompt() → 13 prompt registrati
        └─ from src import resources
