@@ -131,7 +131,7 @@ caricare i tool on-demand senza saturare il context window.
 
 ## 4. Pattern architetturale tool/impl
 
-**Tutti** i 16 moduli tool seguono il pattern `_impl` + wrapper `@mcp.tool()`:
+I moduli tool seguono di norma il pattern `_impl` + wrapper `@mcp.tool()`:
 
 ```python
 # Logica pura — testabile in isolamento, senza dipendenze FastMCP
