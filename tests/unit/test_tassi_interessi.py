@@ -1,4 +1,7 @@
 import importlib
+import json
+from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -396,13 +399,21 @@ class TestVerificaUsura:
         assert r_q1["tasso_soglia_pct"] != r_q4["tasso_soglia_pct"]
 
     def test_default_trimestre_resolves_to_current_quarter(self):
-        # No trimestre provided — should auto-detect and return a valid quarter key
+        # No trimestre provided — resolves to the quarter containing today,
+        # falling back to the latest available one. Data-driven (not pinned
+        # to a hardcoded quarter) so it stays valid across quarter rollovers
+        # as long as the data-freshness workflow keeps tegm.json current.
         r = _call("verifica_usura", tasso_applicato=5.0, tipo_operazione="mutuo_prima_casa")
-        assert "trimestre" in r
-        assert r["trimestre"].startswith("20")
-        # Should resolve to 2026-Q1 (current date: 2026-03-30)
-        assert r["trimestre"] == "2026-Q1"
-        assert r["tegm_pct"] == 3.96
+        trimestri = json.loads(
+            (Path(__file__).parents[2] / "src" / "data" / "tegm.json").read_text()
+        )["trimestri"]
+        today = date.today().isoformat()
+        expected = next(
+            (key for key, q in trimestri.items() if q["dal"] <= today <= q["al"]),
+            max(trimestri),
+        )
+        assert r["trimestre"] == expected
+        assert r["tegm_pct"] == trimestri[expected]["categorie"]["mutuo_prima_casa"]["tegm"]
 
 
 # ---------------------------------------------------------------------------
