@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-legal-it"
-version = "2.10.0"
+version = "2.10.1"
 description = "MCP server with 216 Italian legal tools: calculations, legislation (incl. Gazzetta Ufficiale), case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), orientamento, EU→IT implementation mapping, citation verification, CONSOB, GDPR, document generation"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.0.0",
+    "fastmcp>=2.0,<4",
     "httpx>=0.27",
     "beautifulsoup4>=4.12",
     "lxml>=5.0",

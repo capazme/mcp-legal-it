@@ -268,12 +268,22 @@ Le funzioni `_impl` vengono importate **dopo** aver applicato il patch, oppure i
 
 | Pacchetto | Uso |
 |-----------|-----|
-| `fastmcp>=2.0.0` | Framework MCP: `@mcp.tool()`, `@mcp.prompt()`, `@mcp.resource()` |
+| `fastmcp>=2.0,<4` | Framework MCP: `@mcp.tool()`, `@mcp.prompt()`, `@mcp.resource()` |
 | `httpx>=0.27` | Client HTTP async per tutte le chiamate esterne |
 | `beautifulsoup4` + `lxml` | Parsing HTML (Normattiva, Brocardi, GPDP) |
 | `fpdf2` | Generazione PDF per alcuni tool di redazione atti |
 
-Per la lista completa vedere `pyproject.toml` o `requirements.txt`.
+Per la lista completa vedere `pyproject.toml`, unica fonte di verità per le
+dipendenze runtime. Gli altri percorsi di installazione (`plugin/start_server.sh`,
+`dxt/manifest.json`) ridichiarano lo stesso set: `scripts/check_deps_sync.py` —
+eseguito in CI — verifica che non divergano.
+
+Le dipendenze dichiarano solo il vincolo inferiore (`>=`), così le correzioni di
+sicurezza upstream arrivano agli utenti senza richiedere una release. L'unica
+eccezione è `fastmcp`, limitato a `<4` perché i bump major ne cambiano l'API.
+Il rovescio della medaglia è che una risoluzione pulita oggi può diventare
+vulnerabile domani senza modifiche al repository: a questo serve il workflow
+schedulato `security-audit.yml` (`pip-audit`, settimanale).
 
 ---
 
