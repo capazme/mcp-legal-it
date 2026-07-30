@@ -104,3 +104,141 @@ class TestValidazione:
         assert errs
         assert any("probabilita_responsabile" in e for e in errs)
         assert any("dpa_proprio" in e for e in errs)
+
+
+# ---------------------------------------------------------------------------
+# Rendering xlsx
+# ---------------------------------------------------------------------------
+
+from openpyxl import load_workbook
+
+from src.tools.analisi_fornitori import _ordina
+
+_HEADER_ATTESO = [
+    "Denominazione (da mastrino)",
+    "P.IVA / CF",
+    "Attività / servizi",
+    "Categorie di dati presumibilmente trattate",
+    "Qualificazione ipotizzata",
+    "Motivazione sintetica",
+    "Probabilità che tratti dati come responsabile",
+    "DPA proprio del fornitore disponibile?",
+    "Confidenza dell'identificazione",
+    "Fonte (URL)",
+    "Note / flag",
+]
+
+
+def _fuori(nome="CARTOLERIA ROSSI"):
+    riga = _riga_ok(
+        denominazione_mastrino=nome,
+        qualificazione="fuori_perimetro",
+        motivazione="Fornitore di soli beni",
+    )
+    riga.pop("probabilita_responsabile")
+    riga.pop("dpa_proprio")
+    return riga
+
+
+def _titolare(nome="STUDIO BIANCHI COMMERCIALISTI"):
+    riga = _riga_ok(
+        denominazione_mastrino=nome,
+        qualificazione="titolare_autonomo",
+        motivazione="Determina autonomamente finalità e mezzi",
+    )
+    riga.pop("probabilita_responsabile")
+    riga.pop("dpa_proprio")
+    return riga
+
+
+class TestOrdina:
+    def test_ordinamento_gruppi_e_alfabetico(self):
+        righe = [
+            _fuori("ZETA CANCELLERIA"),
+            _titolare(),
+            _riga_ok(denominazione_mastrino="B-CLOUD", dpa_proprio="si"),
+            _riga_ok(denominazione_mastrino="A-CLOUD", dpa_proprio="no"),
+            _riga_ok(denominazione_mastrino="C-CLOUD", dpa_proprio="da_verificare"),
+            _riga_ok(denominazione_mastrino="AA-CLOUD", dpa_proprio="no"),
+        ]
+        ordinate = [r["denominazione_mastrino"] for r in _ordina(righe)]
+        assert ordinate == [
+            "A-CLOUD", "AA-CLOUD",              # responsabili dpa=no, alfabetico
+            "C-CLOUD",                            # dpa=da_verificare
+            "B-CLOUD",                            # dpa=si
+            "STUDIO BIANCHI COMMERCIALISTI",      # titolari autonomi
+            "ZETA CANCELLERIA",                   # fuori perimetro
+        ]
+
+
+class TestGeneraReport:
+    def test_errore_validazione_non_scrive_file(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        out = _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(confidenza="x")], cliente="Cliente Srl"
+        )
+        assert out.startswith("Errore di validazione: riga 1:")
+        assert list(tmp_path.iterdir()) == []
+
+    def test_file_generato_struttura(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        out = _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(), _titolare(), _fuori()],
+            cliente="Cliente Srl",
+            data_analisi="30/07/2026",
+            file_sorgente="mastrino.xlsx",
+        )
+        assert out.startswith("File salvato: ")
+        files = list(tmp_path.glob("analisi_fornitori_cliente_srl_*.xlsx"))
+        assert len(files) == 1
+
+        wb = load_workbook(files[0])
+        assert wb.sheetnames == ["Avvertenze", "Analisi fornitori"]
+
+        ws = wb["Analisi fornitori"]
+        header = [c.value for c in ws[1]]
+        assert header == _HEADER_ATTESO
+        assert ws.freeze_panes == "A2"
+
+        prima_riga = [c.value for c in ws[2]]
+        assert prima_riga[0] == "ACME CLOUD SRL"
+        assert prima_riga[4] == "Responsabile del trattamento"
+        assert prima_riga[6] == "Alta"
+        assert prima_riga[7] == "No"
+        assert prima_riga[8] == "Medio"
+        assert prima_riga[9] == "https://esempio.it"
+
+        riga_titolare = [c.value for c in ws[3]]
+        assert riga_titolare[4] == "Titolare autonomo"
+        assert riga_titolare[6] == "—"
+        assert riga_titolare[7] == "—"
+
+        riga_fuori = [c.value for c in ws[4]]
+        assert riga_fuori[4] == "Fuori perimetro privacy"
+
+    def test_avvertenze_contenuto(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(), _titolare(), _fuori()],
+            cliente="Cliente Srl",
+            data_analisi="30/07/2026",
+            file_sorgente="mastrino.xlsx",
+        )
+        wb = load_workbook(next(tmp_path.glob("*.xlsx")))
+        testo = " ".join(str(c.value) for row in wb["Avvertenze"].iter_rows() for c in row if c.value)
+        assert "Cliente Srl" in testo
+        assert "30/07/2026" in testo
+        assert "mastrino.xlsx" in testo
+        assert "3" in testo                      # totale fornitori
+        assert "validare" in testo               # disclaimer
+        assert "Basso" in testo                  # review warning
+
+    def test_fonti_multiple_su_piu_righe(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(fonti=["https://a.it", "https://b.it"])],
+            cliente="X",
+        )
+        wb = load_workbook(next(tmp_path.glob("*.xlsx")))
+        cella = wb["Analisi fornitori"].cell(row=2, column=10).value
+        assert cella == "https://a.it\nhttps://b.it"
