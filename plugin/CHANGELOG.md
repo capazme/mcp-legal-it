@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.1] - 2026-07-30
+
+### Removed
+- **Rimossi tre file di dipendenze orfani** — `requirements.txt`, `requirements.lock`, `dxt/start_server.sh`. Nessun percorso di installazione li usava, ma due avevano perso `python-docx`: chi installava da lì otteneva i tool procura/quotazione rotti all'import. `pyproject.toml` è ora l'unica fonte di verità. Verificato con `pip-audit`: tutti i percorsi reali risolvono a 0 vulnerabilità note (issue #25).
+
+### Fixed
+- **Vincolo `fastmcp` uniformato a `>=2.0,<4`** in tutti e cinque i punti di dichiarazione. Era illimitato in tre di essi: l'uscita di fastmcp 4.0 avrebbe rotto Docker e il fallback venv (sandbox Cowork) lasciando il plugin fermo. Nessuna modifica funzionale — 216 tool e 23 prompt registrati su fastmcp 3.4.5.
+
+### Added
+- **Controlli automatici sulle dipendenze in CI** — `scripts/check_deps_sync.py` blocca la PR quando un launcher diverge da `pyproject.toml`, e il workflow `security-audit.yml` esegue `pip-audit` su ogni PR e ogni lunedì.
+
 ## [2.10.0] - 2026-07-23
 
 ### Added
