@@ -91,6 +91,7 @@ from src.tools import (  # noqa: E402, F401
     orientamento,
     eu_implementation,
     procure_quotazioni,
+    analisi_fornitori,
 )
 
 from src import prompts, resources  # noqa: E402, F401

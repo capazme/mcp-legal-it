@@ -130,6 +130,59 @@ class TestCheckVat:
         assert "ValueError" in out["errore"]
 
 
+# ---------------------------------------------------------------------------
+# Tool: verifica_partita_iva_vies
+# ---------------------------------------------------------------------------
+
+import importlib
+
+
+def _tool(fn_name: str):
+    mod = importlib.import_module("src.tools.analisi_fornitori")
+    fn = getattr(mod, fn_name)
+    return fn.fn if hasattr(fn, "fn") else fn
+
+
+class TestVerificaPartitaIvaViesTool:
+    async def test_checksum_failure_skips_network(self):
+        with patch("src.tools.analisi_fornitori.check_vat", new=AsyncMock()) as mocked:
+            out = await _tool("verifica_partita_iva_vies")(partita_iva="12345670018")
+        mocked.assert_not_awaited()
+        assert out["checksum_valido"] is False
+        assert out["valido"] is False
+        assert out["disponibile"] is None
+        assert "checksum" in out["errore"]
+
+    async def test_valid_flow_merges_lib_result(self):
+        lib_result = {
+            "disponibile": True,
+            "valido": True,
+            "denominazione": "ACME SRL",
+            "indirizzo": "VIA ROMA 1",
+            "errore": None,
+        }
+        with patch("src.tools.analisi_fornitori.check_vat", new=AsyncMock(return_value=lib_result)):
+            out = await _tool("verifica_partita_iva_vies")(partita_iva=" 12345670017 ")
+        assert out["partita_iva"] == "12345670017"
+        assert out["codice_paese"] == "IT"
+        assert out["checksum_valido"] is True
+        assert out["valido"] is True
+        assert out["denominazione"] == "ACME SRL"
+
+    async def test_non_it_skips_checksum(self):
+        lib_result = {
+            "disponibile": True,
+            "valido": True,
+            "denominazione": "GMBH",
+            "indirizzo": None,
+            "errore": None,
+        }
+        with patch("src.tools.analisi_fornitori.check_vat", new=AsyncMock(return_value=lib_result)) as mocked:
+            out = await _tool("verifica_partita_iva_vies")(partita_iva="DE123456789", codice_paese="DE")
+        mocked.assert_awaited_once()
+        assert out["checksum_valido"] is None
+
+
 @pytest.mark.live
 class TestLive:
     async def test_real_vies_roundtrip(self):
