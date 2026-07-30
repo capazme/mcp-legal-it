@@ -29,6 +29,7 @@
         "--with", "lxml>=5.0",
         "--with", "fpdf2>=2.7",
         "--with", "python-docx>=1.0",
+        "--with", "openpyxl>=3.1",
         "${__dirname}/server/run_server.py"
       ]
     }
