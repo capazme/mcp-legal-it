@@ -11,6 +11,11 @@ Data files checked:
 - tassi_legali.json: legal interest rates, updated annually (DM MEF)
 - tassi_mora.json: late payment rates, updated semi-annually (BCE + 8pp)
 
+Staleness windows are calibrated on the official publication calendars AND
+on the monthly cron (1st of each month, data-freshness.yml): a window
+tighter than the source's publication lag would flag data as stale even
+when no newer figure exists yet, making the check permanently red.
+
 This script does NOT auto-update data — government sources are too
 unreliable for automated scraping. It alerts maintainers to update manually.
 """
@@ -81,7 +86,13 @@ def check_tegm(today: date) -> bool:
 
 
 def check_foi(today: date) -> bool:
-    """Returns True if stale. FOI is stale if we are 2+ months past latest entry."""
+    """Returns True if stale. FOI is stale if we are 3+ months past latest entry.
+
+    ISTAT publishes month M final FOI data around mid M+1, so on the 1st of
+    M+2 (cron day) the newest obtainable entry is still M. A 2-month window
+    would therefore be permanently stale; 3 months means: fail only when a
+    published month has been left out for a full cycle.
+    """
     path = DATA_DIR / "indici_foi.json"
     data = json.loads(path.read_text())
     indici = data["indici"]
@@ -92,17 +103,8 @@ def check_foi(today: date) -> bool:
     latest_value = latest_months[latest_month]
 
     latest_date = date(int(latest_year), int(latest_month), 1)
-    # ISTAT publishes the previous month's data with ~1 month delay.
-    # We consider stale if today is more than 2 full months past the latest entry.
-    stale_threshold = date(
-        latest_date.year + (latest_date.month // 12),
-        ((latest_date.month % 12) + 2) or 12,
-        1,
-    )
-    # Simpler: add 60 days as approximation
-    stale_threshold = date(latest_date.year, latest_date.month, 1)
-    # advance by 2 months
-    m = latest_date.month + 2
+    # advance by 3 months
+    m = latest_date.month + 3
     y = latest_date.year + (m - 1) // 12
     m = ((m - 1) % 12) + 1
     stale_threshold = date(y, m, 1)
@@ -170,7 +172,12 @@ def check_tassi_mora(today: date) -> bool:
         current_sem_start = date(today.year, 7, 1)
         current_sem_end = date(today.year, 12, 31)
 
-    is_stale = latest_dal < current_sem_start
+    # The MEF comunicato with the semester's rate lands mid-month (e.g. GU
+    # 20 Jan 2026 / 16 Jul 2026), after the cron of the 1st. Grant a 25-day
+    # grace window so the first run of each semester doesn't flag a rate
+    # that has not been published yet.
+    grace_until = current_sem_start + timedelta(days=25)
+    is_stale = latest_dal < current_sem_start and today >= grace_until
 
     sem_label = f"{latest_dal.year}/{'H1' if latest_dal.month <= 6 else 'H2'}"
     print(f"\n{BOLD}Tassi Mora — D.Lgs. 231/2002 (BCE semestrali){RESET}")
