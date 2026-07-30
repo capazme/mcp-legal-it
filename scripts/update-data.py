@@ -13,6 +13,8 @@ Data files checked:
 - irpef_scaglioni.json: IRPEF brackets, updated annually (legge di bilancio)
 - tabella_danno_bio.json: art. 139 CAP micropermanenti amounts, revalued
   annually by MIMIT decree (tracked via micropermanenti.anno_ultimo_dm)
+- usufrutto_coefficienti.json: usufruct coefficients — legal rate with a
+  2.5% floor (D.Lgs. 139/2015), confirmed by the December MEF decree
 
 Staleness windows are calibrated on the official publication calendars AND
 on the monthly cron (1st of each month, data-freshness.yml): a window
@@ -36,6 +38,11 @@ TASSI_LEGALI_SOURCE = "https://www.mef.gov.it/it/atti-normative/Decreti-Minister
 TASSI_MORA_SOURCE = "https://www.mef.gov.it/it/atti-normative/Decreti-Ministeriali/"
 IRPEF_SOURCE = "https://www.gazzettaufficiale.it (legge di bilancio, GU di fine dicembre)"
 DANNO_BIO_SOURCE = "https://www.mimit.gov.it/it/normativa/decreti-ministeriali"
+USUFRUTTO_SOURCE = "https://www.finanze.gov.it (decreto direttoriale annuale, fine dicembre)"
+
+# Floor rate for usufruct/annuity computations (D.Lgs. 139/2015): below this
+# the 2.5%-based coefficient table stays valid regardless of the legal rate.
+USUFRUTTO_FLOOR = 2.5
 
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
@@ -263,6 +270,48 @@ def check_danno_bio(today: date) -> bool:
     return False
 
 
+def check_usufrutto(today: date) -> bool:
+    """Returns True if stale.
+
+    A legal-rate drop below the 2.5% floor does not invalidate the table.
+    Stale when the current legal rate exceeds the floor but differs from
+    the rate the table was built on (new prospetto annexed to the December
+    DM), or when the annual MEF confirmation has not been acknowledged
+    (anno_verifica behind, flagged from Feb 1 — January is grace for the
+    late-December decreto direttoriale).
+    """
+    path = DATA_DIR / "usufrutto_coefficienti.json"
+    data = json.loads(path.read_text())
+    tasso_tabella = data["tasso_legale"]
+    anno_verifica = data["anno_verifica"]
+
+    legali = json.loads((DATA_DIR / "tassi_legali.json").read_text())["tassi"]
+    tasso_corrente = max(legali, key=lambda t: t["al"])["tasso"]
+    tasso_richiesto = max(tasso_corrente, USUFRUTTO_FLOOR)
+
+    rate_mismatch = tasso_tabella != tasso_richiesto
+    behind = anno_verifica < today.year
+    is_stale = rate_mismatch or (behind and today >= date(today.year, 2, 1))
+
+    print(f"\n{BOLD}Coefficienti usufrutto — DPR 131/1986 (pavimento 2,5%){RESET}")
+    print(f"  Tabella basata su: {tasso_tabella}% (verificata {anno_verifica})")
+    print(f"  Tasso legale     : {tasso_corrente}% → applicabile {tasso_richiesto}%")
+
+    if is_stale:
+        if rate_mismatch:
+            print(stale(f"Coefficienti calcolati al {tasso_tabella}% ma tasso applicabile {tasso_richiesto}% — servono i coefficienti del nuovo DM"))
+        else:
+            print(stale(f"Conferma annuale {today.year} non recepita (decreto direttoriale MEF di fine dicembre)"))
+        print(f"  Fonte : {USUFRUTTO_SOURCE}")
+        print(f"  Azione: aggiornare src/data/usufrutto_coefficienti.json (coefficienti, tasso_legale, anno_verifica)")
+        return True
+    if behind:
+        print(warn(f"Conferma annuale {today.year} da recepire — finestra di grazia fino al 1° febbraio"))
+        return False
+    print(ok(f"Tabella al {tasso_tabella}% valida (tasso legale {tasso_corrente}% sotto il pavimento)" if tasso_corrente < USUFRUTTO_FLOOR else f"Tabella allineata al tasso {tasso_tabella}%"))
+    return False
+
+
 def main() -> int:
     strict = "--strict" in sys.argv
     today = date.today()
@@ -277,6 +326,7 @@ def main() -> int:
         check_tassi_mora(today),
         check_irpef(today),
         check_danno_bio(today),
+        check_usufrutto(today),
     ]
 
     stale_count = sum(stale_flags)
