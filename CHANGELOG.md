@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - 2026-07-30
+
+### Added
+- add analisi-fornitori supplier screening skill
+- add genera_report_fornitori xlsx report generator
+- add canonical supplier record validation (collect-all)
+- add verifica_partita_iva_vies (VIES lookup)
+- extend freshness check to IRPEF brackets and art. 139 danno bio
+- auto-refresh FOI/mora with monthly PR; recalibrate staleness windows
+- add VIES REST client with IT checksum pre-check
+
+### Fixed
+- harden analisi-fornitori xlsx output and VIES parsing edge cases
+- guard supplier validation against unhashable field values
+- document usufruct 2.5% floor and correct stale IRPEF resource
+- harden check_vat never-raises contract (payload + JSON decode)
+- refresh TEGM/FOI/mora to July 2026 and correct February FOI index
+
+### Changed
+- render CU, interessi/mora and IRPEF brackets from datasets
+
+### Other
+- fix stale module count in architecture pattern note
+- align README and tool catalogs with the 218-tool set
+- Merge feature/analisi-fornitori into develop
+- Merge pull request #29 from capazme/fix/usufrutto-floor-irpef-resource
+- update remaining tool-count mentions in CLAUDE.md setup notes
+- register analisi-fornitori tools in server instructions and CLAUDE.md
+- Merge pull request #28 from capazme/claude/data-refresher-update-cf6963
+- add openpyxl dependency for supplier report generation
+- add analisi-fornitori implementation plan
+- add analisi-fornitori (supplier ledger privacy screening) design spec
+- Merge develop into main (issue routing config)
+- Merge pull request #27 from capazme/chore/issue-routing
+- route security reports and questions off the issue tracker
+
 ## [2.10.1] - 2026-07-30
 
 ### Removed
