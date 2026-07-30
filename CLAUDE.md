@@ -493,7 +493,7 @@ le dipendenze (~1 min); gli avvii successivi sono immediati (cache di `uv`).
 /plugin marketplace add capazme/mcp-legal-it
 /plugin install legal-it@mcp-legal-it
 ```
-Include: 216 tool + skills + comandi + agenti + hooks. Il server MCP parte via `uv` (vedi `plugin/.mcp.json`).
+Include: 218 tool + skills + comandi + agenti + hooks. Il server MCP parte via `uv` (vedi `plugin/.mcp.json`).
 
 **Opzione B — Desktop Extension (.mcpb)**
 
@@ -588,7 +588,7 @@ ChatGPT richiede un endpoint HTTPS pubblico. Due opzioni:
    URL:  https://xxxx.ngrok-free.app/mcp
    ```
 
-> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 216 tool sono visibili.
+> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 218 tool sono visibili.
 
 ---
 
