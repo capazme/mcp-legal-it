@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.10.1] - 2026-07-30
 
 ### Removed
 - **Deleted three orphaned dependency files: `requirements.txt`, `requirements.lock`, `dxt/start_server.sh`.** No install path referenced any of them — Docker installs from `pyproject.toml`, the plugin and `.mcpb` bootstrap through `plugin/start_server.sh`, and both build scripts copy that file, not the `dxt/` one. They were nonetheless a real problem in two ways. `requirements.lock` had been frozen since the first commit and static scanners flagged 20 packages / 62 advisories against it (issue #25) — genuine CVEs, but in a file nothing installs. And `requirements.txt` and `dxt/start_server.sh` had both silently drifted, losing `python-docx`, so anyone who did install from them got a server whose procura/quotazione tools failed at import. `pyproject.toml` is now the single source of truth. Verified with `pip-audit 2.10.1`: every real install path resolves clean, 0 known vulnerabilities.
