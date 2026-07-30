@@ -19,7 +19,7 @@ fi
 if command -v uv &>/dev/null; then
   exec uv run --python 3.12 \
     --with "fastmcp>=2.0,<4" --with "httpx>=0.27" --with "beautifulsoup4>=4.12" \
-    --with "lxml>=5.0" --with "fpdf2>=2.7" --with "python-docx>=1.0" \
+    --with "lxml>=5.0" --with "fpdf2>=2.7" --with "python-docx>=1.0" --with "openpyxl>=3.1" \
     "$SERVER/run_server.py"
 fi
 
@@ -43,7 +43,7 @@ fi
 if [ ! -f "$VENV/bin/python" ]; then
   "$PYTHON" -m venv "$VENV"
   "$VENV/bin/pip" install -q --disable-pip-version-check \
-    "fastmcp>=2.0,<4" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0"
+    "fastmcp>=2.0,<4" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0" "openpyxl>=3.1"
 fi
 
 exec "$VENV/bin/python" "$SERVER/run_server.py"
