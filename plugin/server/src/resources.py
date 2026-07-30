@@ -219,27 +219,31 @@ NOTE
 
 @mcp.resource(
     "legal://riferimenti/irpef-detrazioni",
-    name="IRPEF 2025-2026 — Scaglioni e Detrazioni",
+    name="IRPEF 2026 — Scaglioni e Detrazioni",
     description="Schema IRPEF vigente: scaglioni, aliquote e principali detrazioni",
 )
 def irpef_detrazioni() -> str:
-    return """IRPEF 2025-2026 — SCAGLIONI, ALIQUOTE E DETRAZIONI PRINCIPALI
-(D.Lgs. 216/2023 — Riforma fiscale, confermato dalla Legge di Bilancio 2025)
+    return """IRPEF 2026 — SCAGLIONI, ALIQUOTE E DETRAZIONI PRINCIPALI
+(D.Lgs. 216/2023 — Riforma fiscale; L. 199/2025 — Legge di Bilancio 2026)
 
 ═══════════════════════════════════════════════════════════
-SCAGLIONI E ALIQUOTE (dal 2024)
+SCAGLIONI E ALIQUOTE (dal 2026)
 ═══════════════════════════════════════════════════════════
 
 | Scaglione di reddito | Aliquota | Imposta su scaglione |
 |----------------------|----------|---------------------|
 | Fino a € 28.000 | 23% | max € 6.440 |
-| Da € 28.001 a € 50.000 | 35% | max € 7.700 |
+| Da € 28.001 a € 50.000 | 33% | max € 7.260 |
 | Oltre € 50.000 | 43% | — |
 
-Imposta lorda = 23% su primi € 28.000 + 35% su fascia € 28.001-50.000 + 43% sull'eccedente
+Imposta lorda = 23% su primi € 28.000 + 33% su fascia € 28.001-50.000 + 43% sull'eccedente
 
 Esempio: reddito € 60.000
-→ € 6.440 + € 7.700 + 43% × € 10.000 = € 6.440 + € 7.700 + € 4.300 = € 18.440
+→ € 6.440 + € 7.260 + 43% × € 10.000 = € 6.440 + € 7.260 + € 4.300 = € 18.000
+
+Nota: nel 2024-2025 l'aliquota del secondo scaglione era il 35% (max € 7.700).
+La riduzione al 33% (L. 199/2025, art. 1, c. 3) è neutralizzata per i redditi
+complessivi oltre € 200.000 tramite una corrispondente riduzione delle detrazioni.
 
 ═══════════════════════════════════════════════════════════
 DETRAZIONI PER LAVORO DIPENDENTE (art. 13 TUIR)

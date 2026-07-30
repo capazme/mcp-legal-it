@@ -150,3 +150,41 @@ def test_danno_bio_stale_from_september(data_dir):
 def test_danno_bio_fresh_when_current_dm_recepito(data_dir):
     _write(data_dir, "tabella_danno_bio.json", _danno_bio(2026))
     assert ud.check_danno_bio(date(2026, 9, 1)) is False
+
+
+# --- Usufrutto: 2.5% floor (D.Lgs. 139/2015) + annual confirmation --------
+
+
+def _usufrutto_fixtures(data_dir: Path, tasso_legale: float, tabella: float, anno: int) -> None:
+    _write(
+        data_dir,
+        "tassi_legali.json",
+        {"tassi": [{"dal": "2026-01-01", "al": "2026-12-31", "tasso": tasso_legale}]},
+    )
+    _write(
+        data_dir,
+        "usufrutto_coefficienti.json",
+        {"tasso_legale": tabella, "anno_verifica": anno, "coefficienti": []},
+    )
+
+
+def test_usufrutto_valid_below_floor(data_dir):
+    # Legal rate 1.6% is under the 2.5% floor: the 2.5% table stays valid.
+    _usufrutto_fixtures(data_dir, tasso_legale=1.6, tabella=2.5, anno=2026)
+    assert ud.check_usufrutto(date(2026, 7, 30)) is False
+
+
+def test_usufrutto_stale_when_rate_above_floor_diverges(data_dir):
+    _usufrutto_fixtures(data_dir, tasso_legale=3.0, tabella=2.5, anno=2026)
+    assert ud.check_usufrutto(date(2026, 7, 30)) is True
+
+
+def test_usufrutto_fresh_when_table_matches_rate_above_floor(data_dir):
+    _usufrutto_fixtures(data_dir, tasso_legale=3.0, tabella=3.0, anno=2026)
+    assert ud.check_usufrutto(date(2026, 7, 30)) is False
+
+
+def test_usufrutto_annual_confirmation_grace_then_stale(data_dir):
+    _usufrutto_fixtures(data_dir, tasso_legale=1.6, tabella=2.5, anno=2025)
+    assert ud.check_usufrutto(date(2026, 1, 15)) is False
+    assert ud.check_usufrutto(date(2026, 2, 1)) is True
