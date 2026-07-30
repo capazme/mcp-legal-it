@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+- **Deleted three orphaned dependency files: `requirements.txt`, `requirements.lock`, `dxt/start_server.sh`.** No install path referenced any of them — Docker installs from `pyproject.toml`, the plugin and `.mcpb` bootstrap through `plugin/start_server.sh`, and both build scripts copy that file, not the `dxt/` one. They were nonetheless a real problem in two ways. `requirements.lock` had been frozen since the first commit and static scanners flagged 20 packages / 62 advisories against it (issue #25) — genuine CVEs, but in a file nothing installs. And `requirements.txt` and `dxt/start_server.sh` had both silently drifted, losing `python-docx`, so anyone who did install from them got a server whose procura/quotazione tools failed at import. `pyproject.toml` is now the single source of truth. Verified with `pip-audit 2.10.1`: every real install path resolves clean, 0 known vulnerabilities.
+
+### Fixed
+- **`fastmcp` version bound is now `>=2.0,<4` everywhere.** It was unbounded (`>=2.0.0`) in `pyproject.toml`, `plugin/server/pyproject.toml` and the no-`uv` venv fallback, but capped at `<4` in the `uv` path and `dxt/manifest.json`. The two sets happened to resolve to the same version today, so nothing was broken yet — but the release of fastmcp 4.0 would have broken Docker and the Cowork sandbox fallback while leaving the plugin pinned, a divergence that only shows up in production. Smoke-tested on fastmcp 3.4.5: 216 tools and 23 prompts register, 2366 tests pass.
+
+### Added
+- **`scripts/check_deps_sync.py` + CI gate.** The runtime dependency set is necessarily declared in five places, because each install path resolves it independently; nothing kept the copies aligned, and two of them had already drifted. The script treats `pyproject.toml` as authoritative and fails with an explicit per-file delta when a launcher disagrees, normalizing package names per PEP 503 so `python_docx >= 1.0` and `python-docx>=1.0` compare equal. Wired into `ci.yml` as the `deps-sync` job.
+- **`security-audit.yml` workflow — `pip-audit` on PRs, pushes and weekly.** Dependencies declare lower bounds only, so upstream security fixes reach users without a release here; the cost is that a clean resolution can rot with no change to the repository. The Monday schedule catches that, and opens a labelled `security` issue when a scheduled run fails, mirroring the existing `data-freshness.yml` pattern. Workflow permissions are least-privilege (`contents: read`, `issues: write` only on the reporting job) and the third-party action is pinned to a commit SHA.
+
 ## [2.10.0] - 2026-07-27
 
 ### Added

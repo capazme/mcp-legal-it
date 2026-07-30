@@ -6,7 +6,26 @@ on:
   push:
     branches: [develop]
 
+permissions:
+  contents: read
+
 jobs:
+  # Every install path (Docker, plugin, .mcpb) declares the runtime dependency
+  # set on its own. Guard against the copies drifting apart — that drift has
+  # already shipped a launcher missing python-docx.
+  deps-sync:
+    name: Dependency declarations in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'  # script needs tomllib (3.11+)
+
+      - name: Check launchers against pyproject.toml
+        run: python scripts/check_deps_sync.py
+
   test:
     runs-on: ubuntu-latest
     strategy:
