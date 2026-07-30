@@ -1,0 +1,81 @@
+name: Security Audit
+
+# Runtime dependencies are declared with lower bounds only (`>=`), so each
+# install resolves them fresh. That is deliberate — it lets upstream security
+# fixes reach users without a release here — but it means a resolution that is
+# clean today can become vulnerable tomorrow with no change to this repository.
+# Hence the schedule: auditing only on pull requests would never catch it.
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Audits the project's resolved dependency tree — i.e. what `pip install .`
+      # actually produces, which is what users get.
+      - name: Audit resolved dependencies
+        uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266  # v1.1.0
+        with:
+          inputs: .
+
+  report:
+    name: Open issue on scheduled failure
+    needs: audit
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '⚠️ Vulnerable dependency detected by pip-audit';
+            const {data: issues} = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security',
+            });
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: [
+                  'The scheduled `pip-audit` run found a known vulnerability in the',
+                  'resolved dependency tree.',
+                  '',
+                  `Run log: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                  '',
+                  'Reproduce locally:',
+                  '',
+                  '```bash',
+                  'uvx pip-audit .',
+                  '```',
+                  '',
+                  'Fix by raising the lower bound of the affected package in',
+                  '`pyproject.toml`, then run `python scripts/check_deps_sync.py`',
+                  'to propagate the change to every launcher.',
+                ].join('\n'),
+                labels: ['security'],
+              });
+            }
