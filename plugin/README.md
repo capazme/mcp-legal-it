@@ -1,6 +1,6 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude Code e Claude Desktop: **216 tool** MCP, **22 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **218 tool** MCP, **23 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
@@ -21,7 +21,7 @@ claude plugin install legal-it@mcp-legal-it
 
 ## Cosa include
 
-### Server MCP (216 tool)
+### Server MCP (218 tool)
 
 Il plugin avvia automaticamente il server MCP locale — nessun server remoto richiesto. Al primo avvio crea un virtualenv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
 
@@ -44,7 +44,7 @@ Il plugin avvia automaticamente il server MCP locale — nessun server remoto ri
 | Investimenti e fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `scorporo_iva` |
 
-### Skill (19 workflow guidati)
+### Skill (23 workflow guidati)
 
 Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 
@@ -56,6 +56,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 | `recupero-credito` | Interessi mora + decreto ingiuntivo + parcella |
 | `analisi-sinistro` | Quantificazione danni da sinistro con rivalutazione |
 | `causa-civile` | Pianificazione causa: costi, scadenze, preventivo |
+| `analisi-fornitori` | Screening privacy del mastrino fornitori (art. 28) con report Excel e nomine |
 | `pianificazione-successione` | Quote ereditarie, imposte, adempimenti |
 | `quantificazione-danni` | Calcolo danno biologico/patrimoniale/morale |
 | `calcolo-parcella` | Parcella avvocato D.M. 55/2014 |

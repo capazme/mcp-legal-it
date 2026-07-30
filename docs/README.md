@@ -1,6 +1,6 @@
 # mcp-legal-it — Documentazione
 
-MCP server con 161 tool di calcolo e consultazione per il diritto italiano.
+MCP server con 218 tool di calcolo e consultazione per il diritto italiano.
 Copre calcoli numerici (danni, interessi, fiscale, parcelle), consultazione normativa
 (Normattiva, EUR-Lex, Brocardi) e ricerca giurisprudenziale (Italgiure/Cassazione).
 
@@ -29,7 +29,7 @@ Client MCP (Claude Desktop / Claude Code)
         │
         │  import a livello di modulo → registrazione @mcp.tool()
         ▼
-  src/tools/           16 moduli tool (161 tool totali)
+  src/tools/           32 moduli tool (218 tool totali)
   ├── rivalutazioni_istat     ├── proprieta_successioni
   ├── tassi_interessi         ├── investimenti
   ├── scadenze_termini        ├── dichiarazione_redditi
@@ -77,7 +77,7 @@ Client MCP (Claude Desktop / Claude Code)
 | File | Descrizione |
 |------|-------------|
 | [architecture.md](architecture.md) | Dettaglio layer, pattern `_impl`, profili, come aggiungere tool |
-| [tools-catalog.md](tools-catalog.md) | Catalogo completo dei 161 tool divisi per 16 categorie |
+| [tools-catalog.md](tools-catalog.md) | Catalogo dei 218 tool divisi per categoria |
 | [lib-reference.md](lib-reference.md) | Reference delle 4 librerie interne (visualex, brocardi, italgiure, gpdp) |
 | [prompts-resources.md](prompts-resources.md) | 13 prompt guidati e 9 risorse statiche `legal://` |
 | [plugin.md](plugin.md) | Plugin Claude Code: 17 skill, 3 agenti, hook, installazione |

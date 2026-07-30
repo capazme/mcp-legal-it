@@ -3,7 +3,10 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 161** in 16 categorie.
+**Totale tool: 218.**
+
+> ⚠️ Riallineamento in corso: le sezioni sotto coprono 163 tool; le voci mancanti
+> (moduli aggiunti tra la v2.6 e la v2.10) sono in rigenerazione su un branch dedicato.
 
 ---
 
@@ -25,6 +28,7 @@ descrizione di ogni tool.
 14. [Investimenti](#14-investimenti) — 5 tool
 15. [Dichiarazione redditi](#15-dichiarazione-redditi) — 14 tool
 16. [Utilità generali](#16-utilità-generali) — 12 tool
+17. [Analisi fornitori (privacy)](#17-analisi-fornitori-privacy) — 2 tool
 
 ---
 
@@ -422,3 +426,12 @@ I tool indicano nella docstring il livello di affidabilità del calcolo:
 
 I tool che generano documenti (bozze atti, notule, lettere) producono testo da revisionare
 prima dell'uso — non sono documenti legali pronti alla firma.
+
+---
+
+## 17. Analisi fornitori (privacy)
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `verifica_partita_iva_vies` | `verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT")` | Verifica una P.IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati. Per le P.IVA italiane esegue prima il checksum locale (niente rete se fallisce). |
+| `genera_report_fornitori` | `genera_report_fornitori(fornitori: list, cliente: str, data_analisi: str = "", file_sorgente: str = "", nome_file: str = "")` | Genera l'Excel standard dell'analisi privacy del mastrino fornitori: foglio Avvertenze + 11 colonne, responsabili senza DPA proprio in cima. Valida i record canonici (collect-all) e non scrive file parziali. |
