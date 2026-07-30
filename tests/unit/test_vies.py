@@ -114,6 +114,15 @@ class TestCheckVat:
         assert out["errore"]
         assert "AttributeError" in out["errore"]
 
+    async def test_non_dict_json_response(self):
+        # VIES occasionally returns a JSON list/string/null instead of an object.
+        payload = ["unexpected", "list", "payload"]
+        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
+            out = await check_vat("12345670017")
+        assert out["disponibile"] is False
+        assert out["valido"] is None
+        assert out["errore"]
+
     async def test_json_decode_error(self):
         # resp.json() raises ValueError (JSONDecodeError subclass)
         resp = MagicMock(spec=httpx.Response)

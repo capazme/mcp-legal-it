@@ -74,6 +74,13 @@ def _valida_fornitori(fornitori) -> list[str]:
         fonti = riga.get("fonti", [])
         if fonti is not None and not isinstance(fonti, list):
             errori.append(f"riga {i}: 'fonti' deve essere una lista di URL")
+        elif isinstance(fonti, list) and not all(isinstance(elem, str) for elem in fonti):
+            errori.append(f"riga {i}: 'fonti' deve contenere solo stringhe (URL)")
+
+        for campo in ("piva_cf", "fonte_piva", "attivita", "categorie_dati", "note"):
+            valore_campo = riga.get(campo)
+            if valore_campo is not None and not isinstance(valore_campo, str):
+                errori.append(f"riga {i}: campo '{campo}' deve essere una stringa")
     return errori
 
 
@@ -110,6 +117,14 @@ _DISCLAIMER = (
 )
 
 _ORDINE_DPA = {"no": 0, "da_verificare": 1, "si": 2}
+
+
+def _neutralizza_formula(cella) -> None:
+    """openpyxl treats a string starting with '=' as a live formula. Ledger data
+    (denominazione_mastrino, note, etc.) is third-party-controlled text, so force
+    such cells back to a plain string type to prevent formula injection on open."""
+    if isinstance(cella.value, str) and cella.value.startswith("="):
+        cella.data_type = "s"
 
 
 def _chiave_ordinamento(riga: dict) -> tuple:
@@ -160,6 +175,7 @@ def _scrivi_avvertenze(ws, cliente: str, data_analisi: str, file_sorgente: str, 
     for r, (etichetta, valore) in enumerate(righe, start=1):
         ws.cell(row=r, column=1, value=etichetta).font = Font(bold=True)
         cella = ws.cell(row=r, column=2, value=valore)
+        _neutralizza_formula(cella)
         cella.alignment = Alignment(wrap_text=True, vertical="top")
 
 
@@ -191,6 +207,7 @@ def _scrivi_analisi(ws, fornitori: list[dict]) -> None:
         )
         for col, valore in enumerate(valori, start=1):
             cella = ws.cell(row=r, column=col, value=valore)
+            _neutralizza_formula(cella)
             cella.alignment = Alignment(wrap_text=True, vertical="top")
 
 
@@ -239,10 +256,11 @@ def genera_report_fornitori(
     _scrivi_analisi(wb.create_sheet("Analisi fornitori"), ordinate)
 
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
-    if not nome_file.strip():
+    nome_file = nome_file.strip()
+    if not nome_file:
         nome_file = f"analisi_fornitori_{_sanitize_filename(cliente)}_{uuid.uuid4().hex[:8]}.xlsx"
-    elif not nome_file.endswith(".xlsx"):
-        nome_file = nome_file.strip() + ".xlsx"
+    elif not nome_file.lower().endswith(".xlsx"):
+        nome_file = nome_file + ".xlsx"
     filepath = os.path.join(_OUTPUT_DIR, os.path.basename(nome_file))
     wb.save(filepath)
     size_kb = round(os.path.getsize(filepath) / 1024, 1)

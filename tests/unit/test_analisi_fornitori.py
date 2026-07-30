@@ -2,8 +2,6 @@
 
 import importlib
 
-import pytest
-
 from src.tools.analisi_fornitori import _valida_fornitori
 
 
@@ -104,6 +102,18 @@ class TestValidazione:
         assert errs
         assert any("probabilita_responsabile" in e for e in errs)
         assert any("dpa_proprio" in e for e in errs)
+
+    def test_fonti_con_elemento_non_stringa(self):
+        """A non-str item in 'fonti' must be a collected error, not a raw TypeError at render time."""
+        errs = _valida_fornitori([_riga_ok(fonti=["https://esempio.it", 42])])
+        assert errs
+        assert any("riga 1" in e and "fonti" in e and "stringhe" in e for e in errs)
+
+    def test_note_dict_e_campo_non_stringa(self):
+        """A dict in 'note' (or any optional scalar field) must be a collected error."""
+        errs = _valida_fornitori([_riga_ok(note={"flag": "controverso"})])
+        assert errs
+        assert any("riga 1" in e and "note" in e for e in errs)
 
 
 # ---------------------------------------------------------------------------
@@ -225,13 +235,16 @@ class TestGeneraReport:
             file_sorgente="mastrino.xlsx",
         )
         wb = load_workbook(next(tmp_path.glob("*.xlsx")))
-        testo = " ".join(str(c.value) for row in wb["Avvertenze"].iter_rows() for c in row if c.value)
+        ws = wb["Avvertenze"]
+        testo = " ".join(str(c.value) for row in ws.iter_rows() for c in row if c.value)
         assert "Cliente Srl" in testo
         assert "30/07/2026" in testo
         assert "mastrino.xlsx" in testo
-        assert "3" in testo                      # totale fornitori
         assert "validare" in testo               # disclaimer
         assert "Basso" in testo                  # review warning
+
+        riga_totale = next(row for row in ws.iter_rows() if row[0].value == "Totale fornitori analizzati")
+        assert riga_totale[1].value == 3
 
     def test_fonti_multiple_su_piu_righe(self, tmp_path, monkeypatch):
         monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
@@ -242,3 +255,17 @@ class TestGeneraReport:
         wb = load_workbook(next(tmp_path.glob("*.xlsx")))
         cella = wb["Analisi fornitori"].cell(row=2, column=10).value
         assert cella == "https://a.it\nhttps://b.it"
+
+    def test_denominazione_formula_neutralizzata(self, tmp_path, monkeypatch):
+        """A ledger-supplied denominazione starting with '=' must never become a live
+        Excel formula — it must be stored as a literal string cell."""
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        formula_payload = '=HYPERLINK("http://evil","x")'
+        _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(denominazione_mastrino=formula_payload)],
+            cliente="X",
+        )
+        wb = load_workbook(next(tmp_path.glob("*.xlsx")))
+        cella = wb["Analisi fornitori"].cell(row=2, column=1)
+        assert cella.data_type != "f"
+        assert cella.value == formula_payload

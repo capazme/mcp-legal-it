@@ -57,6 +57,15 @@ async def check_vat(vat_number: str, country_code: str = "IT") -> dict:
             "errore": f"VIES non raggiungibile: {exc.__class__.__name__}",
         }
 
+    if not isinstance(data, dict):
+        return {
+            "disponibile": False,
+            "valido": None,
+            "denominazione": None,
+            "indirizzo": None,
+            "errore": "VIES: risposta in formato inatteso",
+        }
+
     valid = data.get("valid", data.get("isValid"))
     user_error = data.get("userError", "")
     if valid is None:
