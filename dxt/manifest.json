@@ -1,9 +1,9 @@
 {
   "manifest_version": "0.1",
   "name": "legal-it",
-  "version": "2.10.1",
+  "version": "2.11.0",
   "display_name": "Legal IT — Diritto Italiano",
-  "description": "216 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti, recepimento UE→IT, verifica citazioni, delibere CONSOB, compliance GDPR e generazione atti.",
+  "description": "218 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti, recepimento UE→IT, verifica citazioni, delibere CONSOB, compliance GDPR e generazione atti.",
   "long_description": "Server MCP completo per il diritto italiano. Include: calcoli rivalutazione/interessi, scadenze processuali, parcelle avvocati, risarcimento danni, decreto ingiuntivo, IRPEF/TFR, successioni, codice fiscale, privacy GDPR. Consultazione normativa da Normattiva e EUR-Lex, giurisprudenza di Cassazione da Italgiure, giurisprudenza tributaria da CeRDEF, sentenze TAR e Consiglio di Stato, sentenze CGUE via CELLAR SPARQL, annotazioni da Brocardi, delibere CONSOB.",
   "author": {
     "name": "capazme",
@@ -22,14 +22,22 @@
       "command": "uv",
       "args": [
         "run",
-        "--python", "3.12",
-        "--with", "fastmcp>=2.0,<4",
-        "--with", "httpx>=0.27",
-        "--with", "beautifulsoup4>=4.12",
-        "--with", "lxml>=5.0",
-        "--with", "fpdf2>=2.7",
-        "--with", "python-docx>=1.0",
-        "--with", "openpyxl>=3.1",
+        "--python",
+        "3.12",
+        "--with",
+        "fastmcp>=2.0,<4",
+        "--with",
+        "httpx>=0.27",
+        "--with",
+        "beautifulsoup4>=4.12",
+        "--with",
+        "lxml>=5.0",
+        "--with",
+        "fpdf2>=2.7",
+        "--with",
+        "python-docx>=1.0",
+        "--with",
+        "openpyxl>=3.1",
         "${__dirname}/server/run_server.py"
       ]
     }
