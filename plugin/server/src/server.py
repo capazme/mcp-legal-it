@@ -1,4 +1,4 @@
-"""MCP Legal IT — 216 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 218 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 
@@ -26,7 +26,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - ORIENTAMENTO GIURISPRUDENZIALE: orientamento_su_norma, orientamento_su_principio, mappa_orientamento — conformi vs contrasti, interventi Sezioni Unite (descrittivo, non predittivo)
 - GIURISPRUDENZA TRIBUTARIA: sentenze CTP/CTR/CGT, Cassazione tributaria, IVA, IRES, accertamento, riscossione (CeRDEF)
 - GARANTE PRIVACY: provvedimenti GPDP, ricerca sanzioni, linee guida
-- GDPR/PRIVACY COMPLIANCE: informative privacy (art. 13-14), cookie policy, DPA (art. 28), registro trattamenti (art. 30), DPIA (art. 35), data breach (art. 33-34), sanzioni (art. 83), base giuridica (art. 6)
+- GDPR/PRIVACY COMPLIANCE: informative privacy (art. 13-14), cookie policy, DPA (art. 28), registro trattamenti (art. 30), DPIA (art. 35), data breach (art. 33-34), sanzioni (art. 83), base giuridica (art. 6), analisi mastrino fornitori (verifica_partita_iva_vies per VIES, genera_report_fornitori per l'Excel standard)
 - CONSOB: delibere, provvedimenti, regolamenti mercati finanziari, intermediari, abusi di mercato
 - GIUSTIZIA AMMINISTRATIVA: sentenze TAR, Consiglio di Stato, appalti, urbanistica, PA, edilizia, accesso atti
 - GIURISPRUDENZA UE: sentenze CGUE, Corte di Giustizia UE, Tribunale UE, rinvio pregiudiziale, conclusioni AG, ECLI
@@ -49,6 +49,7 @@ Recepimento UE → get_italian_implementation(direttiva) → cite_law | get_eu_b
 Giurisprudenza → cerca_giurisprudenza(modalita="esplora") → cerca_giurisprudenza(filtri) → leggi_sentenza
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
 Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
+Analisi fornitori → verifica_partita_iva_vies → genera_report_fornitori → genera_dpa (nomine per i responsabili senza DPA)
 Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
 CONSOB → cerca_delibere_consob → leggi_delibera_consob
 Tributario → cerca_giurisprudenza_tributaria → cerdef_leggi_provvedimento → cite_law
