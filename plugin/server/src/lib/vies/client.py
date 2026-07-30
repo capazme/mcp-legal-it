@@ -43,12 +43,12 @@ async def check_vat(vat_number: str, country_code: str = "IT") -> dict:
 
     Returns: {disponibile, valido, denominazione, indirizzo, errore}.
     """
-    payload = {"countryCode": country_code.upper(), "vatNumber": vat_number.strip().replace(" ", "")}
     try:
+        payload = {"countryCode": country_code.upper(), "vatNumber": vat_number.strip().replace(" ", "")}
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             resp = await retry_request(client, "post", VIES_ENDPOINT, json=payload)
             data = resp.json()
-    except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+    except (httpx.TransportError, httpx.HTTPStatusError, ValueError, AttributeError) as exc:
         return {
             "disponibile": False,
             "valido": None,

@@ -106,6 +106,29 @@ class TestCheckVat:
             out = await check_vat("12345670017")
         assert out["disponibile"] is False
 
+    async def test_bad_input_none(self):
+        # None input → AttributeError on .upper() or .strip()
+        out = await check_vat(None)
+        assert out["disponibile"] is False
+        assert out["valido"] is None
+        assert out["errore"]
+        assert "AttributeError" in out["errore"]
+
+    async def test_json_decode_error(self):
+        # resp.json() raises ValueError (JSONDecodeError subclass)
+        resp = MagicMock(spec=httpx.Response)
+        resp.status_code = 200
+        resp.json.side_effect = ValueError("Invalid JSON")
+        client = MagicMock()
+        client.post = AsyncMock(return_value=resp)
+        client.__aenter__ = AsyncMock(return_value=client)
+        client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=client):
+            out = await check_vat("12345670017")
+        assert out["disponibile"] is False
+        assert out["valido"] is None
+        assert "ValueError" in out["errore"]
+
 
 @pytest.mark.live
 class TestLive:
