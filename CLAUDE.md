@@ -1,6 +1,6 @@
 # mcp-legal-it — Project Context
 
-> MCP server con 216 tool di calcolo legale italiano, consultazione normativa
+> MCP server con 218 tool di calcolo legale italiano, consultazione normativa
 > (Normattiva, EUR-Lex, Brocardi), ricerca giurisprudenziale (Italgiure, CeRDEF,
 > TAR/CdS, CGUE), delibere CONSOB.
 
@@ -50,8 +50,10 @@ mcp-legal-it/
 │   │   │   └── client.py      # search_giurisprudenza(), fetch_provvedimento(), format_*()
 │   │   ├── giustizia_amm/     # Client Giustizia Amministrativa (TAR/CdS)
 │   │   │   └── client.py      # search_provvedimenti(), fetch_provvedimento_text(), format_*()
-│   │   └── cgue/              # Client CGUE (CELLAR SPARQL + EUR-Lex)
-│   │       └── client.py      # search_giurisprudenza(), fetch_sentenza_text(), format_*()
+│   │   ├── cgue/              # Client CGUE (CELLAR SPARQL + EUR-Lex)
+│   │   │   └── client.py      # search_giurisprudenza(), fetch_sentenza_text(), format_*()
+│   │   └── vies/                  # Client VIES (validazione P.IVA UE)
+│   │       └── client.py          # check_vat(), checksum_partita_iva()
 │   └── tools/
 │       ├── legal_citations.py # cite_law, fetch_law_article, fetch_law_annotations, cerca_brocardi, download_law_pdf
 │       ├── italgiure.py       # leggi_sentenza, cerca_giurisprudenza, giurisprudenza_su_norma, ultime_pronunce
@@ -72,7 +74,8 @@ mcp-legal-it/
 │       ├── giustizia_amm.py   # cerca_giurisprudenza_amministrativa, leggi_provvedimento_amm, giurisprudenza_amm_su_norma, ultimi_provvedimenti_amm
 │       ├── cgue.py            # cerca_giurisprudenza_cgue, leggi_sentenza_cgue, giurisprudenza_cgue_su_norma, ultime_sentenze_cgue
 │       ├── privacy_gdpr.py
-│       └── procure_quotazioni.py  # genera_procura_liti_docx, genera_quotazione_docx
+│       ├── procure_quotazioni.py  # genera_procura_liti_docx, genera_quotazione_docx
+│       └── analisi_fornitori.py   # verifica_partita_iva_vies, genera_report_fornitori
 └── tests/
     ├── unit/
     │   ├── test_calculations.py     # Test calcoli numerici
@@ -95,12 +98,14 @@ mcp-legal-it/
     │   ├── test_parcelle_professionisti.py # Test 11 tool parcelle professionisti (79 test)
     │   ├── test_risarcimento_danni.py    # Test 7 tool risarcimento danni (75 test)
     │   ├── test_investimenti.py          # Test 5 tool investimenti (48 test)
-    │   └── test_diritto_penale.py        # Test 5 tool diritto penale (49 test)
+    │   ├── test_diritto_penale.py        # Test 5 tool diritto penale (49 test)
+    │   ├── test_vies.py               # Test client VIES + tool verifica_partita_iva_vies
+    │   └── test_analisi_fornitori.py  # Test validazione + report xlsx fornitori
     └── comparison/                  # Test di confronto con valori attesi
         └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
 ```
 
-## Tool disponibili (31 moduli, 216 tool)
+## Tool disponibili (32 moduli, 218 tool)
 
 ### Consultazione Normativa
 | Tool | Descrizione |
@@ -164,6 +169,7 @@ mcp-legal-it/
 12. Varie (12 tool) — codice fiscale, IBAN, ATECO, prescrizione diritti
 13. Privacy/GDPR (12 tool) — informative privacy, cookie, DPA, DPIA, data breach, sanzioni
 14. Recupero crediti seriale (2 tool) — `genera_procura_liti_docx` (procura art. 83 c.p.c. DOCX pronta-firma), `genera_quotazione_docx` (lettera quotazione D.M. 55/2014: monitorio fase unica / esecuzione / opposizione, con accettazione cliente)
+15. Analisi fornitori (2 tool) — `verifica_partita_iva_vies` (VIES), `genera_report_fornitori` (Excel standard screening privacy mastrino)
 
 ### Privacy/GDPR Compliance
 | Tool | Descrizione |
@@ -180,6 +186,8 @@ mcp-legal-it/
 | `valutazione_data_breach(tipo_violazione, ...)` | Valutazione rischio e obblighi di notifica/comunicazione |
 | `calcolo_sanzione_gdpr(tipo_violazione, ...)` | Stima range sanzioni con analisi criteri art. 83(2) |
 | `genera_notifica_data_breach(titolare, ...)` | Modulo notifica al Garante con scadenza 72h |
+| `verifica_partita_iva_vies(partita_iva, codice_paese?)` | Verifica P.IVA sul VIES: validità + denominazione/indirizzo registrati |
+| `genera_report_fornitori(fornitori, cliente, ...)` | Excel standard dell'analisi privacy del mastrino fornitori (11 colonne + Avvertenze) |
 
 ## Prompt guidati (23)
 
@@ -452,15 +460,15 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 
 | Feature | Claude Desktop/Code | ChatGPT | Manus |
 |---------|--------------------:|--------:|------:|
-| 216 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
+| 218 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — |
 | 15 risorse `legal://` | ✓ | — | — |
-| 22 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
+| 23 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
 | Transport stdio (locale) | ✓ | — | — |
 | Transport Streamable HTTP | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? |
 
-> I 216 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
+> I 218 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
 > sono feature Claude-only — gli altri provider li ignorano silenziosamente.
 
 ---
