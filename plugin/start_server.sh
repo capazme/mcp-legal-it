@@ -43,7 +43,7 @@ fi
 if [ ! -f "$VENV/bin/python" ]; then
   "$PYTHON" -m venv "$VENV"
   "$VENV/bin/pip" install -q --disable-pip-version-check \
-    "fastmcp>=2.0.0" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0"
+    "fastmcp>=2.0,<4" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0"
 fi
 
 exec "$VENV/bin/python" "$SERVER/run_server.py"
