@@ -223,13 +223,43 @@ In `src/resources.py`, aggiungi tramite `@mcp.resource()` con URI nel formato `l
 | Importi | `€ 1.234,56` (punto migliaia, virgola decimale) |
 | Date | `GG/MM/AAAA` |
 | Precisione | Indicare sempre se il risultato è ESATTO o INDICATIVO nella docstring |
-| Dipendenze | Non aggiungere pacchetti senza consenso — `httpx`, `beautifulsoup4`, `lxml`, `fpdf2` sono già disponibili |
+| Dipendenze | Non aggiungere pacchetti senza consenso — `httpx`, `beautifulsoup4`, `lxml`, `fpdf2`, `python-docx` sono già disponibili |
+
+### Aggiungere una dipendenza runtime
+
+`pyproject.toml` è l'unica fonte di verità, ma ogni percorso di installazione
+risolve le dipendenze per conto proprio, quindi il set va ridichiarato in 4 punti:
+
+| File | Percorso di installazione |
+|---|---|
+| `pyproject.toml` | Docker (`pip install .`), sviluppo |
+| `plugin/server/pyproject.toml` | server impacchettato nel plugin |
+| `plugin/start_server.sh` (riga `--with`) | plugin Claude Code con `uv` |
+| `plugin/start_server.sh` (riga `pip install`) | fallback senza `uv` (sandbox Cowork) |
+| `dxt/manifest.json` (`mcp_config.args`) | Desktop Extension `.mcpb` |
+
+Dopo la modifica:
+
+```bash
+python scripts/check_deps_sync.py
+```
+
+Lo script confronta ogni launcher con `pyproject.toml` e fallisce indicando cosa
+manca o diverge. Gira in CI: dimenticare un file blocca la PR. È nato perché il
+drift era già andato in produzione — `requirements.txt` e `dxt/start_server.sh`
+avevano entrambi perso `python-docx`, rompendo i tool procura/quotazione per chi
+installava da lì (issue #25).
+
+Dichiarare solo il vincolo inferiore (`>=`): le correzioni di sicurezza upstream
+devono poter arrivare agli utenti senza una release. L'unica eccezione è
+`fastmcp`, limitato a `<4` perché i bump major ne cambiano l'API.
 
 ---
 
 ## 8. Checklist prima di aprire una PR
 
 - [ ] `pytest` passa completamente (senza `-m live`)
+- [ ] Se hai toccato le dipendenze, `python scripts/check_deps_sync.py` passa
 - [ ] I nuovi tool hanno docstring con sezione `Args:` e nota su vigenza/precisione
 - [ ] Le funzioni `_impl` hanno test dedicati con mock httpx
 - [ ] Se è un modulo nuovo, `server.py` è aggiornato (import + instructions)
