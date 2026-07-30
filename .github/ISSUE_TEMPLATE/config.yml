@@ -1,0 +1,21 @@
+# Configures the chooser shown at /issues/new/choose.
+# The bug_report.md and feature_request.md templates appear automatically;
+# these entries add destinations OUTSIDE the issue tracker.
+#
+# This is routing, not enforcement: /issues/new still bypasses the chooser.
+# blank_issues_enabled stays true on purpose — a first-time user whose problem
+# fits neither template should be able to report it anyway rather than give up.
+blank_issues_enabled: true
+
+contact_links:
+  - name: Segnalare una vulnerabilità (privato)
+    url: https://github.com/capazme/mcp-legal-it/security/advisories/new
+    about: Segnalazione privata al maintainer, non visibile pubblicamente. Non aprire una issue per problemi di sicurezza — usa questo canale.
+
+  - name: Domanda sull'uso dei tool
+    url: https://github.com/capazme/mcp-legal-it/discussions/new?category=q-a
+    about: Come si usa un tool, come si legge un output, problemi di installazione o configurazione del plugin. Le domande vanno qui, non nelle issue.
+
+  - name: Idee e proposte di nuovi tool
+    url: https://github.com/capazme/mcp-legal-it/discussions/new?category=ideas
+    about: Proposte da discutere prima che diventino una feature request — nuove fonti, nuovi calcoli, nuovi modelli di atti.
