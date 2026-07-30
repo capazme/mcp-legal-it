@@ -78,7 +78,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from src.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (16 moduli, 161 tool totali)
+       └─ ... (32 moduli, 218 tool totali)
        └─ from src import prompts
             └─ @mcp.prompt() → 13 prompt registrati
        └─ from src import resources
@@ -131,7 +131,7 @@ caricare i tool on-demand senza saturare il context window.
 
 ## 4. Pattern architetturale tool/impl
 
-**Tutti** i 16 moduli tool seguono il pattern `_impl` + wrapper `@mcp.tool()`:
+I moduli tool seguono di norma il pattern `_impl` + wrapper `@mcp.tool()`:
 
 ```python
 # Logica pura — testabile in isolamento, senza dipendenze FastMCP

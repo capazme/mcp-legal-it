@@ -8,6 +8,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write       # push the data-refresh branch
+      pull-requests: write  # open the auto-refresh PR
+      issues: write         # required by the "Create issue if stale" step
     steps:
       - uses: actions/checkout@v4
 
@@ -15,6 +19,30 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Auto-refresh data from official sources (FOI, tassi mora)
+        run: python scripts/refresh_data.py
+
+      - name: Open PR with refreshed data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "No data changes to propose"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B data-refresh/auto
+          git add plugin/server/src/data/indici_foi.json plugin/server/src/data/tassi_mora.json
+          git commit -m "chore(data): auto-refresh FOI / tassi mora from official sources"
+          git push -f origin data-refresh/auto
+          gh pr create --base develop --head data-refresh/auto \
+            --title "chore(data): auto-refresh legal data (FOI / tassi mora)" \
+            --body "Monthly automated refresh from official sources (ISTAT rivalutazioni page, ECB Data Portal MRO series). Review the values against the sources cited in scripts/refresh_data.py before merging." \
+            || echo "PR already open — branch updated in place"
+
+      # Runs on the refreshed tree: fails (and opens the issue) only for
+      # what auto-refresh cannot cover — TEGM quarters and tassi legali.
       - name: Check data freshness
         run: python scripts/update-data.py --strict
 
