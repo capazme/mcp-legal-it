@@ -45,15 +45,15 @@ def _valida_fornitori(fornitori) -> list[str]:
         probabilita = riga.get("probabilita_responsabile")
         dpa = riga.get("dpa_proprio")
         if qualificazione == "responsabile":
-            if probabilita not in PROBABILITA:
+            if not isinstance(probabilita, str) or probabilita not in PROBABILITA:
                 errori.append(
                     f"riga {i}: 'probabilita_responsabile' obbligatoria per i responsabili; ammessi: {sorted(PROBABILITA)}"
                 )
-            if dpa not in DPA_VALORI:
+            if not isinstance(dpa, str) or dpa not in DPA_VALORI:
                 errori.append(
                     f"riga {i}: 'dpa_proprio' obbligatorio per i responsabili; ammessi: {sorted(DPA_VALORI)}"
                 )
-        elif qualificazione in QUALIFICAZIONI:
+        elif isinstance(qualificazione, str) and qualificazione in QUALIFICAZIONI:
             if probabilita is not None:
                 errori.append(
                     f"riga {i}: 'probabilita_responsabile' presente ma la qualificazione non è 'responsabile'"
