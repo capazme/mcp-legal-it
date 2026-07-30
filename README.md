@@ -18,7 +18,7 @@
 
 ## Cos'e mcp-legal-it
 
-Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **216 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
+Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **218 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
 - **Normativa verificata** — testi vigenti da Normattiva, EUR-Lex e Brocardi (no allucinazioni)
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
@@ -28,7 +28,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 - **Delibere CONSOB** — ricerca e testo integrale dal Bollettino ufficiale
 - **Calcoli giuridici** — interessi, rivalutazione ISTAT, parcelle, contributo unificato, IRPEF, successioni, danni e altro
 - **GDPR compliance** — informative, DPIA, DPA, registro trattamenti, data breach, sanzioni
-- **22 skill + 6 agenti** — workflow guidati per pareri, cause civili, sinistri, recupero crediti
+- **23 skill + 6 agenti** — workflow guidati per pareri, cause civili, sinistri, recupero crediti
 - **Legal Grounding Protocol** — hook che verificano che ogni norma citata sia supportata da `cite_law()`
 
 ---
@@ -49,7 +49,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 1. Installa `uv` (vedi sopra).
 2. Scarica **`legal-it-X.Y.Z.mcpb`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
 3. In Claude Desktop: **doppio click sul file** — oppure **Impostazioni → Estensioni → Impostazioni avanzate → Sviluppatore estensioni → Installa file `.mcpb`**.
-4. Riavvia Claude. I 216 tool girano in locale.
+4. Riavvia Claude. I 218 tool girano in locale.
 
 ### Claude Code CLI
 
@@ -101,7 +101,7 @@ Configurazione in `claude_desktop_config.json`:
 
 ---
 
-## Tool disponibili — 216 tool, 31 moduli
+## Tool disponibili — 218 tool, 32 moduli
 
 | # | Categoria | Tool | Esempi |
 |---|-----------|:----:|--------|
@@ -125,6 +125,7 @@ Configurazione in `claude_desktop_config.json`:
 | 18 | Investimenti e Fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
 | 19 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `prescrizione_diritti` |
 | 20 | Recupero Crediti Seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
+| 21 | Analisi Fornitori (privacy) | 2 | `verifica_partita_iva_vies`, `genera_report_fornitori` |
 
 ---
 
@@ -434,7 +435,7 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 | Profilo | Tool caricati |
 |---------|---------------|
-| `full` | Tutti i 216 tool |
+| `full` | Tutti i 218 tool |
 | `calcoli` | Solo tool di calcolo (nessuna connessione HTTP) |
 | `normativa` | Normattiva + EUR-Lex + Brocardi + Italgiure + TAR/CdS + CGUE + CONSOB |
 | `fiscale` | Calcoli fiscali + IRPEF + investimenti + CeRDEF + CONSOB |
