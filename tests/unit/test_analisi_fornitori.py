@@ -91,3 +91,16 @@ class TestValidazione:
         errs = _valida_fornitori([_riga_ok(), _riga_ok(confidenza="x"), _riga_ok(qualificazione="y")])
         assert any(e.startswith("riga 2:") for e in errs)
         assert any(e.startswith("riga 3:") for e in errs)
+
+    def test_qualificazione_unhashable(self):
+        """qualificazione as list → 'campo obbligatorio' error, no TypeError."""
+        errs = _valida_fornitori([_riga_ok(qualificazione=["responsabile"])])
+        assert errs
+        assert any("qualificazione" in e and "mancante o vuoto" in e for e in errs)
+
+    def test_probabilita_dpa_unhashable(self):
+        """probabilita and dpa as unhashable types → errors, no TypeError."""
+        errs = _valida_fornitori([_riga_ok(probabilita_responsabile=["alta"], dpa_proprio={"si"})])
+        assert errs
+        assert any("probabilita_responsabile" in e for e in errs)
+        assert any("dpa_proprio" in e for e in errs)
