@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/tool-177-green?style=flat-square" alt="Tools">
 </p>
 
+
 ---
 
 ## Cos'e mcp-legal-it
@@ -472,6 +473,7 @@ Contributi benvenuti! Leggi [CONTRIBUTING.md](CONTRIBUTING.md) per i dettagli su
 
 [Apache License 2.0](LICENSE) — Copyright 2025-2026 [capazme](https://github.com/capazme).
 
+[![MCP Badge](https://lobehub.com/badge/mcp/capazme-mcp-legal-it)](https://lobehub.com/mcp/capazme-mcp-legal-it)
 ---
 
 > I calcoli sono indicativi e non sostituiscono il parere di un professionista abilitato. Verificare sempre l'aggiornamento delle norme.
