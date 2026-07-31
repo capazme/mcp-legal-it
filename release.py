@@ -126,19 +126,41 @@ def fatal(msg: str) -> None:
     sys.exit(1)
 
 
-def ask(prompt: str, default: str = "") -> str:
+_NON_INTERACTIVE = False
+
+
+def set_non_interactive(value: bool) -> None:
+    """All prompts return their default without reading stdin (--non-interactive)."""
+    global _NON_INTERACTIVE
+    _NON_INTERACTIVE = bool(value)
+
+
+def ask(prompt: str, default: str = "", unattended_default: str | None = None) -> str:
+    """Prompt with a default. `unattended_default`, when set, is the answer used
+    whenever stdin is unavailable (--non-interactive or EOF) instead of `default`
+    — for prompts whose interactive default is too permissive to auto-apply."""
+    fallback = default if unattended_default is None else unattended_default
+    if _NON_INTERACTIVE:
+        return fallback
     suffix = f" [{default}]" if default else ""
     try:
         answer = input(f"  {c(BOLD, '?')} {prompt}{suffix}: ").strip()
-    except (EOFError, KeyboardInterrupt):
+    except EOFError:
+        # Piped/closed stdin: degrade to the fallback. Exiting here is unsafe —
+        # a SystemExit inside a RollbackContext would trigger rollback even
+        # after a successful push (observed in the v2.11.0 release).
         print()
-        sys.exit(0)
+        return fallback
+    except KeyboardInterrupt:
+        print()
+        sys.exit(130)
     return answer or default
 
 
-def ask_yes_no(prompt: str, default: bool = True) -> bool:
+def ask_yes_no(prompt: str, default: bool = True, unattended: bool | None = None) -> bool:
     hint = "S/n" if default else "s/N"
-    answer = ask(f"{prompt} ({hint})", "s" if default else "n")
+    unattended_str = None if unattended is None else ("s" if unattended else "n")
+    answer = ask(f"{prompt} ({hint})", "s" if default else "n", unattended_default=unattended_str)
     return answer.lower() in ("s", "si", "sì", "y", "yes")
 
 
@@ -725,9 +747,14 @@ class RollbackContext:
     def __init__(self, *, dry_run: bool):
         self._stack: list[tuple[str, callable]] = []
         self._dry_run = dry_run
+        self._armed = True
 
     def register(self, description: str, fn: callable) -> None:
         self._stack.append((description, fn))
+
+    def disarm(self) -> None:
+        """Stop rolling back: the release is on origin, local undo would only diverge."""
+        self._armed = False
 
     def __enter__(self):
         return self
@@ -736,6 +763,8 @@ class RollbackContext:
         if exc_type is None:
             return False
         if self._dry_run:
+            return False
+        if not self._armed:
             return False
         print()
         error(f"Errore durante la release: {exc_val}")
@@ -760,6 +789,11 @@ class RollbackContext:
 
 def interactive_setup() -> argparse.Namespace:
     """Gather release parameters interactively."""
+    if not sys.stdin.isatty():
+        fatal(
+            "Modalità interattiva richiede un terminale (stdin non è una TTY). "
+            "Per esecuzioni automatiche: release.py X.Y.Z --from-develop [--push] [--non-interactive]"
+        )
     print()
     print(c(BOLD, "  MCP Legal IT — Release interattiva"))
     print(c(DIM, "  " + "-" * 55))
@@ -986,6 +1020,34 @@ def interactive_setup() -> argparse.Namespace:
     )
 
 
+def _push_release(rb: RollbackContext, *, dry: bool, branches: tuple[str, ...],
+                  tag: str, release_branch: str | None) -> None:
+    """Push the release to origin (shared by --from-develop and --tag-only).
+
+    The FIRST successful branch push is the point of no return: origin already
+    has the release commits, so any later failure (tag push, cleanup) must NOT
+    trigger the local rollback — it would only diverge local from remote.
+    """
+    label = " e ".join(branches)
+    step(f"Push branch {label} su origin")
+    run_git("push", "origin", *branches, dry_run=dry)
+    if not dry:
+        rb.disarm()
+    success(f"Branch {label} pushat{'i' if len(branches) > 1 else 'o'}")
+
+    step(f"Push tag {tag} su origin")
+    run_git("push", "origin", "--tags", dry_run=dry)
+    success(f"Tag {tag} pushato")
+
+    if release_branch:
+        step(f"Pulizia branch remoto '{release_branch}' (se presente)")
+        try:
+            run_git("push", "origin", "--delete", release_branch, dry_run=dry)
+            success(f"Branch remoto {release_branch} eliminato")
+        except RuntimeError:
+            info("Branch remoto non presente — nulla da eliminare")
+
+
 # ---------------------------------------------------------------------------
 # Flow: --from-develop
 # ---------------------------------------------------------------------------
@@ -1151,7 +1213,7 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
         else:
             if not args.push:
                 print()
-                if not ask_yes_no(f"Pushare main, develop e tag {tag} su origin?"):
+                if not ask_yes_no(f"Pushare main, develop e tag {tag} su origin?", unattended=False):
                     warn("Push annullato — esegui manualmente:")
                     info("git push origin main develop && git push origin --tags")
                     print_summary(version, effective_plugin, current_pyproject, current_plugin,
@@ -1159,20 +1221,8 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
                     return
                 print()
 
-            step("Push branch main e develop su origin")
-            run_git("push", "origin", "main", "develop", dry_run=dry)
-            success("Branch main e develop pushati")
-
-            step(f"Push tag {tag} su origin")
-            run_git("push", "origin", "--tags", dry_run=dry)
-            success(f"Tag {tag} pushato")
-
-            step(f"Pulizia branch remoto '{release_branch}' (se presente)")
-            try:
-                run_git("push", "origin", "--delete", release_branch, dry_run=dry)
-                success(f"Branch remoto {release_branch} eliminato")
-            except RuntimeError:
-                info("Branch remoto non presente — nulla da eliminare")
+            _push_release(rb, dry=dry, branches=("main", "develop"),
+                          tag=tag, release_branch=release_branch)
 
         # --- Post-release ---
         if not dry:
@@ -1322,7 +1372,7 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
         else:
             if not args.push:
                 print()
-                if not ask_yes_no(f"Pushare main e tag {tag} su origin?"):
+                if not ask_yes_no(f"Pushare main e tag {tag} su origin?", unattended=False):
                     warn("Push annullato — esegui manualmente:")
                     info("git push origin main && git push origin --tags")
                     print_summary(version, effective_plugin, current_pyproject, current_plugin,
@@ -1330,13 +1380,7 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
                     return
                 print()
 
-            step("Push branch main su origin")
-            run_git("push", "origin", "main", dry_run=dry)
-            success("Branch main pushato")
-
-            step(f"Push tag {tag} su origin")
-            run_git("push", "origin", "--tags", dry_run=dry)
-            success(f"Tag {tag} pushato")
+            _push_release(rb, dry=dry, branches=("main",), tag=tag, release_branch=None)
 
         # --- Post-release ---
         if not dry:
@@ -1600,6 +1644,11 @@ def parse_args() -> argparse.Namespace | None:
         action="store_true",
         help="Push without asking for confirmation",
     )
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Never read stdin: every prompt takes its default (for CI/piped runs)",
+    )
 
     return parser.parse_args()
 
@@ -1614,6 +1663,9 @@ def main() -> None:
     # Interactive mode
     if args is None:
         args = interactive_setup()
+
+    if getattr(args, "non_interactive", False):
+        set_non_interactive(True)
 
     if getattr(args, "plugin_version", None) and getattr(args, "no_plugin_bump", False):
         fatal("--plugin-version and --no-plugin-bump are mutually exclusive")
