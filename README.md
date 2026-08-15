@@ -43,7 +43,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 > Riavvia il client dopo l'installazione. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
 
 > [!IMPORTANT]
-> **Claude Desktop "Cowork" (l'agente cloud) non è supportato.** Da giugno 2026 Cowork esegue i plugin in una VM cloud che non può avviare server MCP locali, quindi il marketplace lo rifiuta (`failed_content: local/stdio server`). Per Claude Desktop usa il file **`.mcpb`** qui sotto (gira in locale, nessuna dipendenza). Per l'agente Cowork servirebbe un server remoto HTTPS.
+> **Claude Desktop "Cowork" (l'agente cloud) non è supportato.** Da giugno 2026 Cowork esegue i plugin in una VM cloud che non può avviare server MCP locali, quindi il marketplace lo rifiuta (`failed_content: local/stdio server`). Per Claude Desktop usa il file **`.mcpb`** qui sotto (gira in locale; l'unico prerequisito è `uv`). Per l'agente Cowork servirebbe un server remoto HTTPS.
 
 ### Claude Desktop — file `.mcpb` (consigliato)
 
@@ -51,6 +51,24 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 2. Scarica **`legal-it-X.Y.Z.mcpb`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
 3. In Claude Desktop: **doppio click sul file** — oppure **Impostazioni → Estensioni → Impostazioni avanzate → Sviluppatore estensioni → Installa file `.mcpb`**.
 4. Riavvia Claude. I 218 tool girano in locale.
+
+> **Il primo avvio è lento** (~1 min: scarica Python 3.12 e le dipendenze) e Claude Desktop
+> può mostrare il server come *disconnesso* mentre sta ancora scaricando. Attendi un minuto
+> e riavvia Claude: al secondo avvio parte in pochi secondi.
+
+<details>
+<summary><strong>Il server resta "disconnesso"</strong></summary>
+
+I log stanno in `~/Library/Logs/Claude/` (macOS) — file `mcp-server-*.log` — e
+`%APPDATA%\Claude\logs\` (Windows). Cerca l'ultima riga di errore:
+
+| Nel log compare | Causa | Rimedio |
+|---|---|---|
+| `spawn uv ENOENT` / `uv: command not found` | `uv` non installato | Installa `uv` (vedi sopra) e riavvia Claude con ⌘Q |
+| `Failed to build cryptography` + `Could not find directory of OpenSSL` | Mac Intel (x86_64) con `mcp-legal-it` ≤ 2.11.0: `cryptography` ≥ 49 non pubblica più wheel per macOS Intel e prova a compilarsi dai sorgenti | Aggiorna alla versione ≥ 2.11.1, che pinna `cryptography < 49` sui soli Mac Intel |
+| `notifications/cancelled` dopo ~60 s, senza errori | Timeout del primo avvio mentre scarica | Riavvia Claude: la cache di `uv` è già popolata |
+
+</details>
 
 ### Claude Code CLI
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.1] - 2026-08-15
+
+### Fixed
+- the Desktop Extension (`.mcpb`) never started on Intel Macs: `cryptography` no longer
+  ships macOS x86_64 wheels, so the install tried to compile it from source and the
+  server stayed "disconnected". Pinned below 49 on that platform only
+- corrected the 2025 FOI index series, which was about one point too high and made every
+  rivalutazione and rent adjustment disagree with the official ISTAT figures published
+  in Gazzetta Ufficiale
+- TAR/CdS search works again after the 2026 reorganisation of the giustizia-amministrativa
+  portal
+- documentation now matches the code: the tool catalogue was missing 56 of the 218 tools,
+  and the skill, agent and hook lists named entries that no longer exist
+
 ## [2.11.0] - 2026-07-30
 
 ### Added

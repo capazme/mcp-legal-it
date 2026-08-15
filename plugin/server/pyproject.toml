@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-legal-it"
-version = "2.11.0"
+version = "2.11.1"
 description = "MCP server with 218 Italian legal tools: calculations, legislation (incl. Gazzetta Ufficiale), case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), orientamento, EU→IT implementation mapping, citation verification, CONSOB, GDPR, document generation"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
@@ -16,6 +16,11 @@ dependencies = [
     "fpdf2>=2.7",
     "python-docx>=1.0",
     "openpyxl>=3.1",
+    # cryptography arrives transitively (fastmcp -> fastmcp-slim[server] -> joserfc).
+    # From 49.0.0 it ships no macOS Intel wheel (arm64 only), so x86_64 Macs fall back
+    # to a source build that needs Rust + OpenSSL and fails. 48.x still ships
+    # macosx_10_9_universal2. Drop this pin once joserfc/cryptography restore Intel wheels.
+    "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
 ]
 
 [project.optional-dependencies]

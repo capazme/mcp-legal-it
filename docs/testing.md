@@ -21,23 +21,58 @@
 
 ## Struttura directory
 
+> Stato attuale: **2452 test** in 44 file (43 unit + 1 comparison). Il default di `pytest` esclude i test `live` (vedi `addopts` in `pyproject.toml`).
+
 ```
 tests/
 ├── __init__.py
 ├── test-queries.md             # Query manuali di riferimento (non eseguiti da pytest)
 ├── unit/                       # Test senza connessione di rete
 │   ├── __init__.py
-│   ├── test_calculations.py    # Calcoli numerici: interessi, IRPEF, danni, parcelle
-│   ├── test_legal_citations.py # cite_law: parse, resolve, build_nv, fetch (mock HTTP)
-│   ├── test_brocardi.py        # Scraper Brocardi e tool cerca_brocardi (mock HTTP)
-│   ├── test_italgiure.py       # Client Solr Italgiure e tool (mock HTTP)
-│   ├── test_gpdp.py            # Client GPDP Garante e tool (mock HTTP)
-│   └── test_privacy_gdpr.py    # 12 tool GDPR/Privacy: output, struttura, obbligatorietà
-└── comparison/                 # Test contro valori attesi / servizi reali
-    ├── __init__.py
-    ├── conftest.py             # Fixture browser Playwright + marcatura @live
-    ├── test_privacy_docs.py    # Verifica parametri normativi documenti GDPR (no live)
-    └── test_*.py               # Test live contro avvocatoandreani.it e altri (skip default)
+│   ├── test_akn_fetch.py                    18 test
+│   ├── test_akn_parser.py                   54 test
+│   ├── test_analisi_fornitori.py            22 test
+│   ├── test_atti_giudiziari.py              141 test
+│   ├── test_brocardi.py                     41 test
+│   ├── test_calculations.py                 18 test
+│   ├── test_cerdef.py                       88 test
+│   ├── test_cgue.py                         76 test
+│   ├── test_consob.py                       38 test
+│   ├── test_corte_cost.py                   67 test
+│   ├── test_crisi_impresa.py                47 test
+│   ├── test_dichiarazione_redditi.py        127 test
+│   ├── test_diritto_lavoro.py               52 test
+│   ├── test_diritto_penale.py               49 test
+│   ├── test_diritto_societario.py           38 test
+│   ├── test_eu_implementation.py            66 test
+│   ├── test_fatturazione_avvocati.py        100 test
+│   ├── test_gazzetta.py                     60 test
+│   ├── test_giurisprudenza_unificata.py     11 test
+│   ├── test_giustizia_amm.py                71 test
+│   ├── test_gpdp.py                         30 test
+│   ├── test_http_retry.py                   7 test
+│   ├── test_investimenti.py                 48 test
+│   ├── test_italgiure.py                    225 test
+│   ├── test_legal_citations.py              108 test
+│   ├── test_modelli_atti.py                 30 test
+│   ├── test_orientamento.py                 33 test
+│   ├── test_parcelle_professionisti.py      79 test
+│   ├── test_privacy_gdpr.py                 45 test
+│   ├── test_procedura_civile.py             42 test
+│   ├── test_procure_quotazioni.py           17 test
+│   ├── test_prompts.py                      4 test
+│   ├── test_proprieta_successioni.py        110 test
+│   ├── test_refresh_data.py                 17 test
+│   ├── test_release_script.py               18 test
+│   ├── test_resources_dynamic.py            12 test
+│   ├── test_risarcimento_danni.py           75 test
+│   ├── test_rivalutazioni_istat.py          70 test
+│   ├── test_scadenze_termini.py             91 test
+│   ├── test_tassi_interessi.py              62 test
+│   ├── test_update_data.py                  19 test
+│   ├── test_varie.py                        79 test
+│   └── test_vies.py                         18 test
+    └── test_privacy_docs.py    29 test (no live)
 ```
 
 ---

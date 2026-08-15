@@ -34,11 +34,11 @@ I file JSON in `src/data/` contengono le tabelle normative e i dati di riferimen
 | `tassi_mora.json` | `tassi_interessi`, `atti_giudiziari` | Tassi di mora (BCE + 8pp) per semestre | D.Lgs. 231/2002, BCE |
 | `tegm.json` | `tassi_interessi` | TEGM (Tasso Effettivo Globale Medio) per categoria | Banca d'Italia, D.L. 394/2000 |
 | `festivita.json` | `scadenze_termini`, `varie` | Festività nazionali fisse e variabili per anno | L. 260/1949 e successive |
-| `contributo_unificato.json` | `atti_giudiziari`, `fatturazione_avvocati` | Scaglioni CU per tipo procedimento e valore | D.P.R. 115/2002 |
-| `parametri_forensi.json` | `fatturazione_avvocati` | Parametri D.M. 55/2014 per scaglione e fase | D.M. 55/2014, agg. D.M. 147/2022 |
+| `contributo_unificato.json` | `atti_giudiziari`, `procure_quotazioni` | Scaglioni CU per tipo procedimento e valore | D.P.R. 115/2002 |
+| `parametri_forensi.json` | `fatturazione_avvocati`, `procure_quotazioni` | Parametri D.M. 55/2014 per scaglione e fase | D.M. 55/2014, agg. D.M. 147/2022 |
 | `tribunali_competenti.json` | `atti_giudiziari` | Circoscrizioni tribunali per comune | Ord. giudiziario, D.Lgs. 155/2012 |
 | `codici_ruolo.json` | `atti_giudiziari` | Codici ruolo ministeriali per tipo procedimento | Ministero della Giustizia |
-| `irpef_scaglioni.json` | `dichiarazione_redditi` | Scaglioni IRPEF, aliquote e detrazioni per anno | D.Lgs. 216/2023, L. 207/2024 |
+| `irpef_scaglioni.json` | `dichiarazione_redditi`, `diritto_lavoro` | Scaglioni IRPEF, aliquote e detrazioni per anno | D.Lgs. 216/2023, L. 207/2024 |
 | `imposte_successione.json` | `proprieta_successioni` | Aliquote e franchigie imposta di successione | D.Lgs. 346/1990, L. 383/2001 |
 | `usufrutto_coefficienti.json` | `proprieta_successioni` | Coefficienti usufrutto per età (tabella ministeriale) | D.M. MEF (agg. periodica) |
 | `tabella_danno_bio.json` | `risarcimento_danni` | Tabelle art. 139 CdA (micro-permanente ≤9%) | D.Lgs. 209/2005, art. 139 CdA |
@@ -49,6 +49,10 @@ I file JSON in `src/data/` contengono le tabelle normative e i dati di riferimen
 | `gdpr_sanzioni.json` | `privacy_gdpr` | Parametri sanzioni GDPR per tipo violazione | Reg. UE 2016/679, art. 83 |
 | `gdpr_basi_giuridiche.json` | `privacy_gdpr` | Basi giuridiche GDPR con condizioni e casistica | Reg. UE 2016/679, art. 6 + art. 9 |
 | `gdpr_dpia_criteri.json` | `privacy_gdpr` | 9 criteri WP248 per valutazione necessità DPIA | WP248 rev.01, EDPB |
+| `codici_tributo.json` | `dichiarazione_redditi` | Codici tributo F24 con descrizione e sezione di versamento | Agenzia delle Entrate |
+| `mediazione_obbligatoria.json` | `procedura_civile` | Materie soggette a mediazione obbligatoria come condizione di procedibilità | Art. 5 D.Lgs. 28/2010, rif. D.Lgs. 149/2022 |
+| `modelli_atti.json` | `modelli_atti` | Catalogo dei 100 modelli di atti: categoria, struttura, campi obbligatori | Codici di rito e prassi forense |
+| `preavviso_ccnl.json` | `diritto_lavoro` | Termini di preavviso per i CCNL principali per qualifica e anzianità | CCNL di categoria vigenti |
 
 ---
 
