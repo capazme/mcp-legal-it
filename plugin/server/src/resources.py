@@ -1511,7 +1511,7 @@ NOTE TECNICHE
 
 - Il portale usa Liferay Portal — ricerca pubblica, nessuna autenticazione
 - Testi integrali sul sottodominio mdp in formato XML <GA> (epigrafe + motivazione + dispositivo)
-- Certificato SSL non valido → verify=False (necessario, come Italgiure)
+- Certificato SSL valido su entrambi i domini → verifica TLS attiva
 - Il testo è troncato a 15000 caratteri per evitare saturazione del contesto
 - I parametri sede, nrg e nome_file per leggi_provvedimento_amm vengono dai risultati di ricerca
 - Adunanza Plenaria: massima autorità del CdS — privilegiare nelle ricerche
