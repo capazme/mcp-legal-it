@@ -1,6 +1,16 @@
 # Guida agli strumenti
 
-mcp-legal-it espone 218 tool MCP (questo documento ne descrive 148; le voci mancanti sono in riallineamento su un branch dedicato). Questo documento descrive ogni tool con parametri, uso tipico ed esempio concreto.
+mcp-legal-it espone 218 tool MCP. Questo documento è la guida discorsiva: per ogni tool
+trattato riporta parametri, uso tipico ed esempio concreto.
+
+> **Copertura**: 147 tool su 218. Mancano le schede dei moduli aggiunti dalla v2.6 in poi —
+> Gazzetta Ufficiale, Corte Costituzionale, giurisprudenza tributaria (CeRDEF), giustizia
+> amministrativa (TAR/CdS), CGUE, CONSOB, orientamenti, recepimento UE→IT, diritto del lavoro,
+> diritto societario, crisi d'impresa, procedura civile, modelli di atti, procure e quotazioni,
+> analisi fornitori e la generazione di documenti GDPR.
+>
+> L'elenco **completo e verificato** dei 218 tool, con firma e descrizione di ciascuno, è in
+> [tools-catalog.md](tools-catalog.md), che è la fonte di verità.
 
 ## Workflow rapidi
 

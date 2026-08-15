@@ -1,6 +1,6 @@
 # Claude Code Plugin — mcp-legal-it
 
-> Documentazione del plugin per Claude Code: 17 skills, 3 agenti specializzati, hooks.
+> Documentazione del plugin per Claude Code: 23 skills, 8 slash command, 6 agenti specializzati, hooks.
 
 ## Indice
 
@@ -19,9 +19,10 @@
 
 Il plugin `legal-it` aggiunge a Claude Code:
 
-- **17 skills** invocabili con `/skill-name` — ogni skill orchestra una sequenza di tool MCP
-- **3 agenti** configurati come sub-agenti specializzati con istruzioni di sistema e tool preferiti
-- **2 hooks** automatici: verifica legal grounding e reminder post-compactação
+- **23 skills** invocabili con `/skill-name` — ogni skill orchestra una sequenza di tool MCP
+- **6 agenti** configurati come sub-agenti specializzati con istruzioni di sistema e tool preferiti
+- **8 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/release`)
+- **1 hook** automatico: verifica del legal grounding a fine risposta
 
 **Marketplace**: `.claude-plugin/marketplace.json`
 
@@ -42,17 +43,26 @@ Il plugin `legal-it` aggiunge a Claude Code:
 
 ```
 plugin/
-├── skills/                     # 17 directory, una per skill
-│   ├── sinistro/SKILL.md
+├── skills/                     # 23 directory, una per skill
+│   ├── analisi-sinistro/SKILL.md
 │   ├── recupero-credito/SKILL.md
 │   ├── causa-civile/SKILL.md
-│   └── ... (14 altre)
-├── agents/                     # 3 agenti specializzati
+│   └── ... (20 altre)
+├── commands/                   # 8 slash command
+│   ├── norma.md
+│   ├── sentenza.md
+│   └── ... (6 altri)
+├── agents/                     # 6 agenti specializzati
 │   ├── civilista.md
 │   ├── penalista.md
-│   └── privacy-specialist.md
+│   ├── privacy-specialist.md
+│   ├── ricerca-giurisprudenziale.md
+│   ├── redattore-atti.md
+│   └── digest-giuridico.md
+├── server/                     # server MCP (src/, run_server.py)
 ├── hooks/
-│   └── hooks.json              # Stop hook + SessionStart hook
+│   ├── hooks.json              # registra lo Stop hook
+│   └── citation-gate.py        # implementazione del gate citazioni
 └── settings.json               # Permessi MCP
 ```
 
@@ -62,11 +72,13 @@ Ogni skill è una directory con un file `SKILL.md` in formato frontmatter YAML +
 
 ## Skills — Workflow guidati
 
-### Tabella delle 17 skills
+### Tabella delle 23 skills
+
+Fonte: `plugin/skills/*/SKILL.md` (una directory per skill).
 
 | Nome | Frasi trigger | Tool principali usati |
 |------|--------------|----------------------|
-| `sinistro` | "sinistro", "risarcimento danni", "invalidità", "danno biologico" | `danno_biologico_micro/macro`, `danno_non_patrimoniale`, `rivalutazione_monetaria`, `interessi_legali` |
+| `analisi-sinistro` | "sinistro", "risarcimento danni", "invalidità", "danno biologico" | `danno_biologico_micro/macro`, `danno_non_patrimoniale`, `rivalutazione_monetaria`, `interessi_legali` |
 | `recupero-credito` | "recupero credito", "interessi di mora", "decreto ingiuntivo", "creditore" | `interessi_mora`, `rivalutazione_monetaria`, `decreto_ingiuntivo`, `parcella_avvocato_civile` |
 | `causa-civile` | "causa civile", "giudizio", "contributo unificato", "scadenze processuali" | `contributo_unificato`, `scadenza_processuale`, `scadenze_impugnazioni`, `preventivo_civile` |
 | `pianificazione-successione` | "successione", "eredità", "quote ereditarie", "imposta successione" | `calcolo_eredita`, `imposte_successione`, `imposte_compravendita` |
@@ -75,14 +87,20 @@ Ogni skill è una directory con un file `SKILL.md` in formato frontmatter YAML +
 | `calcolo-parcella` | "parcella avvocato", "compenso", "nota spese", "D.M. 55/2014" | `parcella_avvocato_civile/penale/stragiudiziale`, `nota_spese` |
 | `verifica-prescrizione` | "prescrizione", "termine prescritto", "quando scade" | `prescrizione_diritti`, `prescrizione_reato` |
 | `ricerca-normativa` | "normativa su", "quali norme", "quadro normativo", "leggi applicabili" | `cite_law` (multiplo con `include_annotations=true`) |
-| `analisi-norma` | "analizza norma", "spiega articolo", "cosa dice l'art." | `cite_law`, `cerca_brocardi` |
-| `analisi-articolo` | "analisi approfondita", "ratio legis", "evoluzione storica" | `cite_law`, `cerca_brocardi`, `cite_law` (norme collegate) |
+| `analisi-articolo` | "analisi approfondita", "ratio legis", "spiega l'articolo" | `cite_law`, `cerca_brocardi`, `cite_law` (norme collegate) |
 | `analisi-giurisprudenziale` | "giurisprudenza su", "orientamenti Cassazione", "precedenti" | `cerca_giurisprudenza`, `leggi_sentenza`, `cerca_brocardi`, `cite_law` |
 | `confronto-norme` | "confronta norme", "quale prevale", "specialità" | `cite_law` × 2 (con annotations) |
 | `mappatura-normativa` | "mappa normativa", "normativa di settore", "fonti applicabili" | `cite_law` (per livello gerarchico) |
 | `compliance-privacy` | "compliance GDPR", "assessment privacy", "adeguamento GDPR" | `analisi_base_giuridica`, `verifica_necessita_dpia`, `genera_dpia`, `genera_registro_trattamenti`, `genera_informativa_privacy`, `genera_dpa` |
 | `data-breach` | "data breach", "violazione dati", "notifica Garante" | `valutazione_data_breach`, `genera_notifica_data_breach`, `calcolo_sanzione_gdpr` |
 | `redazione-contratto` | "redigi contratto", "revisione contratto", "clausole" | `cite_law`, `cerca_brocardi`, tool GDPR (se contratto con dati personali) |
+| `genera-atto` | "redigi atto", "prepara ricorso", "citazione", "precetto", "relata" | `genera_modello_atto`, `esporta_atto_docx`, `lista_categorie_atti` |
+| `esporta-documento` | "esporta in word", "salva in pdf", "genera docx" | `esporta_atto_docx` |
+| `procure-quotazioni` | "procure e quotazioni", "quotazioni monitori", "preventivi decreti ingiuntivi" | `genera_procura_liti_docx`, `genera_quotazione_docx` |
+| `analisi-fornitori` | "mastrino fornitori", "screening fornitori GDPR", "nomina responsabile art. 28" | `verifica_partita_iva_vies`, `genera_report_fornitori`, `genera_dpa` |
+| `cookie-audit` | "analisi cookie", "audit cookie", "banner consenso", "che cookie usa il sito" | browser + `genera_informativa_cookie` |
+| `analisi-delibere-consob` | "delibere CONSOB", "provvedimenti mercati finanziari", "sanzioni CONSOB" | `cerca_delibere_consob`, `leggi_delibera_consob`, `cite_law` |
+| `novita-consob` | "ultime novità CONSOB", "delibere recenti" | `ultime_delibere_consob`, `leggi_delibera_consob` |
 
 ### Formato SKILL.md
 
@@ -108,7 +126,8 @@ Il frontmatter YAML è obbligatorio. Il campo `description` è usato per il matc
 
 ## Agenti — Specialisti legali
 
-I 3 agenti sono sub-agenti Claude Code con prompt di sistema specializzati e lista esplicita dei tool preferiti.
+I 6 agenti sono sub-agenti Claude Code con prompt di sistema specializzati e lista esplicita dei tool preferiti:
+`civilista`, `penalista`, `privacy-specialist`, `ricerca-giurisprudenziale`, `redattore-atti`, `digest-giuridico`.
 
 ### `civilista`
 
@@ -188,15 +207,7 @@ Si attiva al termine di ogni risposta Claude.
 
 ---
 
-### Hook `SessionStart` — Context Recovery
-
-Si attiva all'inizio di ogni sessione (inclusa dopo compactazione del contesto).
-
-**Modello**: Haiku
-
-**Funzione**: Inietta il Legal Grounding Protocol dopo la compactazione del contesto, quando le istruzioni originali potrebbero essere state perse:
-
-> "LEGAL GROUNDING PROTOCOL — chiama cite_law() PRIMA di citare qualunque norma. Mai usare la conoscenza pregressa per il contenuto di articoli di legge. Per sentenze con numero noto: leggi_sentenza() DIRETTO, no web search. Per provvedimenti Garante con docweb noto: leggi_provvedimento_garante() DIRETTO."
+Il plugin non registra altri hook: `hooks.json` dichiara il solo evento `Stop`.
 
 ---
 
@@ -242,7 +253,7 @@ Verifica l'installazione:
 
 ```bash
 claude plugin list
-# → legal-it  v1.x.x  17 skills  3 agents
+# → legal-it  v2.x.x  23 skills  6 agents
 ```
 
 ### Utilizzo delle skills
