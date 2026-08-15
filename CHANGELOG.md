@@ -5,14 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.11.1] - 2026-08-15
 
 ### Fixed
 - pin `cryptography < 49` on Intel Macs: from 49.0.0 upstream ships arm64-only macOS
   wheels, so x86_64 Macs attempted a source build requiring Rust + OpenSSL and the
   `.mcpb` extension never started ("server disconnected")
+- correct the 2025 FOI series: the published values were about one point too high, so
+  every year-on-year figure disagreed with the official ISTAT variations in Gazzetta
+  Ufficiale (0.00% against a published 0.8% for January 2026, 1.71% against 2.9% for
+  June). Rivalutazione monetaria and rent adjustments under art. 32 L. 392/1978 were
+  understating the change. The corrected series reproduces all six published
+  variations to the cent
+- carry the ISTAT 2025=100 rebasing explicitly: keep the original base-2025 series
+  next to the linked one, record the official 1.214 linking coefficient with its
+  Gazzetta Ufficiale source, and store the official art. 81 L. 392/1978 variations,
+  which prevail over recomputing across the rebasing boundary
+- fail closed on a missing FOI year instead of silently falling back to the closest
+  one available, which could swallow whole years of inflation; a substituted month is
+  now always reported in the result's `avvertenza`
+- restore TAR/CdS search after the 2026 reorganisation of the giustizia-amministrativa
+  portal, and replace the test suite that had been asserting against the old endpoints
 - README: the `.mcpb` was described as having "nessuna dipendenza" while it requires
   `uv`; added a troubleshooting table for the disconnected-server case
+
+### Changed
+- realign the documentation with the actual codebase: the tool catalogue listed 162
+  entries while claiming 218, and the prompt, resource, skill, agent, module and test
+  counts were stale across `CLAUDE.md` and `docs/`
 
 ## [2.11.0] - 2026-07-30
 
