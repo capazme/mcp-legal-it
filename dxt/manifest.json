@@ -38,6 +38,8 @@
         "python-docx>=1.0",
         "--with",
         "openpyxl>=3.1",
+        "--with",
+        "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
         "${__dirname}/server/run_server.py"
       ]
     }
