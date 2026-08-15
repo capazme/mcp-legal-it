@@ -1,7 +1,12 @@
 """Unit tests for Giustizia Amministrativa (TAR/CdS) scraper.
 
-Tests are written against mocked httpx responses — no real network calls.
-HTML/XML fixtures mirror the expected structure of the giustizia-amministrativa.it portal.
+Tests are written against mocked httpx responses — no real network calls, except
+the @pytest.mark.live tests at the bottom (skipped by default).
+
+The HTML/XML fixtures below are trimmed copies of the REAL markup served by
+giustizia-amministrativa.it after the 2026 portal reorganisation (issue #32).
+Do not "simplify" them: the previous fixtures were invented, matched nothing on
+the live site, and let a total outage of both tools pass CI unnoticed.
 """
 
 import pytest
@@ -13,9 +18,16 @@ from src.lib.giustizia_amm.client import (
     TIPI_PROVVEDIMENTO,
     ProvvedimentoResult,
     _build_search_params,
+    _compose_numero,
+    _extract_form_action,
     _extract_p_auth,
+    _extract_portlet_id,
+    _is_error_page,
     _parse_results,
     _parse_xml_text,
+    _resolve_schema,
+    _SEARCH_PATH,
+    build_document_url,
     format_full,
     format_result,
 )
@@ -29,95 +41,144 @@ from src.tools.giustizia_amm import (
 
 
 # ---------------------------------------------------------------------------
-# HTML/XML fixtures
+# HTML/XML fixtures — trimmed from live responses
 # ---------------------------------------------------------------------------
 
-_PAUTH_HTML = """
+_PORTLET = "decisioni_pareri_web_DecisioniPareriWebPortlet_INSTANCE_XKc17mrB8J10"
+_ACTION = (
+    "https://www.giustizia-amministrativa.it/web/guest/dcsnprr"
+    f"?p_p_id={_PORTLET}&p_p_lifecycle=1&p_p_state=normal&p_p_mode=view"
+    f"&_{_PORTLET}_javax.portlet.action=search&p_auth=6O8im78W"
+)
+
+# The real search page: the portlet id and p_auth live only in the form action.
+_SEARCH_PAGE_HTML = f"""
 <html><body>
-<form id="search-form" action="/web/guest/-/ricerca-giurisprudenza?p_auth=testToken123" method="post">
-<input type="hidden" name="p_auth" value="testToken123">
-<input type="text" name="query">
+<form id="_{_PORTLET}_provvedimentiForm" action="{_ACTION}" method="post">
+<input type="text" name="_{_PORTLET}_searchtextProvvedimenti" value="">
+<select name="_{_PORTLET}_sedeProvvedimenti"><option value=""></option>
+<option value="Roma">Roma</option></select>
 </form>
 </body></html>
 """
 
-_PAUTH_HTML_ACTION_ONLY = """
+_PAUTH_HTML_HIDDEN_INPUT = """
 <html><body>
-<form action="/web/guest/-/ricerca-giurisprudenza?p_auth=actionToken456" method="post">
-<input type="text" name="query">
+<form action="/web/guest/dcsnprr" method="post">
+<input type="hidden" name="p_auth" value="testToken123">
 </form>
 </body></html>
 """
 
 _PAUTH_HTML_NONE = """
-<html><body>
-<form action="/web/guest/-/ricerca-giurisprudenza" method="post">
-<input type="text" name="query">
-</form>
-</body></html>
+<html><body><form action="/web/guest/dcsnprr" method="post"></form></body></html>
 """
 
+# Two real result items (TAR Roma + Consiglio di Stato) plus the pagination
+# footer, which is ALSO an <article class="ricerca--item"> and must be skipped.
 _SEARCH_HTML = """
 <html><body>
-<form action="/web/guest/-/ricerca-giurisprudenza?p_auth=abc123XYZ" method="post">
-<input type="hidden" name="p_auth" value="abc123XYZ">
-</form>
-<div class="risultati">
-<article class="ricerca--item" data-sede="CDS" data-nrg="202301234" data-tipo="Sentenza" data-anno="2023" data-nomefile="202301234_11.xml" data-datadeposito="15/06/2023" data-oggetto="Appalto pubblico - Esclusione - Requisiti">
-<h3><a href="#">Consiglio di Stato, Sez. V, Sent. n. 1234/2023</a></h3>
-<p class="sede">Consiglio di Stato</p>
-<p class="oggetto">Appalto pubblico - Esclusione - Requisiti di partecipazione</p>
-</article>
-<article class="ricerca--item" data-sede="TARLAZ" data-nrg="202405678" data-tipo="Sentenza" data-anno="2024" data-nomefile="202405678_11.xml" data-datadeposito="20/03/2024" data-oggetto="Urbanistica - Piano regolatore - Variante">
-<h3><a href="#">TAR Lazio, Sez. II, Sent. n. 5678/2024</a></h3>
-<p class="sede">TAR Lazio</p>
-<p class="oggetto">Urbanistica - Piano regolatore - Variante</p>
-</article>
-</div>
-</body></html>
-"""
-
-_SEARCH_HTML_EMPTY = """
-<html><body>
-<div class="risultati">
-</div>
-</body></html>
-"""
-
-_SEARCH_HTML_MALFORMED = """
-<html><body>
-<div class="risultati">
 <article class="ricerca--item">
-<p>No data attributes</p>
+ <div class="ricerca--item__footer row">
+  <div class="col-sm-12">
+   <a class="visited-provvedimenti clickable" data-idprovv="Ob28x58BHkNp04hX6Cof"
+      data-nrg="202510565" data-sede="tar_rm"
+      href="https://mdp.giustizia-amministrativa.it/visualizza/?nodeRef=&amp;schema=tar_rm&amp;nrg=202510565&amp;nomeFile=202614035_01.html&amp;subDir=Provvedimenti"
+      target="_blank"><img alt="Apri il documento html originale"/></a>
+   <a class="visited-provvedimenti clickable visualizza-provvedimento-h" href="#">
+    202614035 (ROMA, SEZIONE 3Q) html
+   </a>
+  </div>
+  <div class="col-sm-12">
+   <b>SENTENZA</b> sede di <b>ROMA</b>, sezione <b>SEZIONE 3Q</b>, numero provv.: <b>202614035</b>
+  </div>
+  <div class="col-sm-12 snippet">
+   ...Si tratterebbe di criticit&agrave; rilevanti anche dal punto di vista degli operatori
+   economici e non solo dell'interesse <em>pubblico</em>. 2....
+  </div>
+  <div class="col-sm-12">Numero ricorso: <b>202510565</b></div>
+  <div class="col-sm-12"><b>ECLI:IT:TARLAZ:2026:14035SENT</b></div>
+ </div>
 </article>
-</div>
+<article class="ricerca--item">
+ <div class="ricerca--item__footer row">
+  <div class="col-sm-12">
+   <a class="visited-provvedimenti clickable" data-nrg="202401476" data-sede="cds"
+      href="https://mdp.giustizia-amministrativa.it/visualizza/?nodeRef=&amp;schema=cds&amp;nrg=202401476&amp;nomeFile=202605674_18.html&amp;subDir=Provvedimenti"
+      target="_blank"><img alt="Apri il documento html originale"/></a>
+   <a class="visited-provvedimenti clickable visualizza-provvedimento-h" href="#">
+    202605674 (CONSIGLIO DI STATO, SEZIONE 5) html
+   </a>
+  </div>
+  <div class="col-sm-12">
+   <b>ORDINANZA</b> sede di <b>CONSIGLIO DI STATO</b>, sezione <b>SEZIONE 5</b>, numero provv.: <b>202605674</b>
+  </div>
+  <div class="col-sm-12 snippet">...appalto di servizi e <em>esclusione</em> dalla gara...</div>
+  <div class="col-sm-12">Numero ricorso: <b>202401476</b></div>
+  <div class="col-sm-12"><b>ECLI:IT:CDS:2026:5674ORD</b></div>
+ </div>
+</article>
+<article class="ricerca--item">
+ <div class="ricerca--item__footer row">
+  <div class="col-sm-12">Risultati da 1 a 20 di 16297 totali</div>
+  <div class="col-sm-12"><a href="#">Primo</a><a href="#">Successivo</a></div>
+ </div>
+</article>
 </body></html>
 """
 
-_MDP_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
-<GA>
-<epigrafe>
-<intestazione>REPUBBLICA ITALIANA</intestazione>
-<intestazione>IN NOME DEL POPOLO ITALIANO</intestazione>
-<intestazione>Il Consiglio di Stato in sede giurisdizionale (Sezione Quinta)</intestazione>
-</epigrafe>
-<motivazione>
-<paragrafo>Con ricorso proposto dinanzi al TAR Lazio, la societa ricorrente ha impugnato il provvedimento di esclusione dalla gara per l'affidamento dei lavori.</paragrafo>
-<paragrafo>Il Collegio ritiene fondato il primo motivo di ricorso.</paragrafo>
-</motivazione>
-<dispositivo>
-<paragrafo>P.Q.M.</paragrafo>
-<paragrafo>Il Consiglio di Stato accoglie il ricorso in appello e, per l'effetto, annulla il provvedimento impugnato.</paragrafo>
-</dispositivo>
-</GA>
-"""
+_SEARCH_HTML_EMPTY = """<html><body><div class="risultati"></div></body></html>"""
 
-_MDP_XML_EMPTY_SECTIONS = b"""<?xml version="1.0" encoding="UTF-8"?>
-<GA>
-<epigrafe></epigrafe>
+# Real <GA> shape: sections are nested under <Provvedimento>, never direct
+# children of the root, and their text sits inside namespaced HTML <div>s.
+_H = 'xmlns:h="http://www.w3.org/HTML/1998/html4"'
+_MDP_XML = f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<GA {_H}>
+<Provvedimento>
+<meta id="2025105652026" descrizione="appalto equivalenza" ricorrente="-OMISSIS-">
+<descrittori><registro anno="2025" n="10565"/><fascicolo anno="2026" n="14035"/></descrittori>
+<tipologia>Sentenza</tipologia>
+<dataPubblicazione>03/08/2026</dataPubblicazione>
+</meta>
+<epigrafe>
+<adunanza>Il Tribunale Amministrativo Regionale per il Lazio (Sezione Terza Quater)
+ha pronunciato la presente SENTENZA</adunanza>
+<oggetto>per l'annullamento della procedura di gara aperta ex art. 71 del D.Lgs. n. 36/2023</oggetto>
+<ricorrenti>sul ricorso numero di registro generale 10565 del 2025 proposto da Roche Diagnostics s.p.a.</ricorrenti>
+</epigrafe>
+<premessa>
+<h:div>FATTO e DIRITTO</h:div>
+<h:div>1. Con l'atto introduttivo del giudizio la Societa ha impugnato il bando di gara.</h:div>
+<h:div><h:span>13.5 Il secondo ricorso per motivi aggiunti si rivela pertanto infondato.</h:span></h:div>
+</premessa>
 <motivazione></motivazione>
-<dispositivo></dispositivo>
+<dispositivo>
+<h:div>P.Q.M.</h:div>
+<h:div>Il Tribunale Amministrativo Regionale per il Lazio respinge il ricorso.</h:div>
+</dispositivo>
+</Provvedimento>
 </GA>
+""".encode()
+
+# Older/other provvedimenti do carry <motivazione> instead of <premessa>.
+_MDP_XML_MOTIVAZIONE = f"""<?xml version="1.0" encoding="UTF-8"?>
+<GA {_H}>
+<Provvedimento>
+<epigrafe><adunanza>Il Consiglio di Stato (Sezione Quinta)</adunanza></epigrafe>
+<motivazione><h:div>Il Collegio ritiene fondato il primo motivo di appello.</h:div></motivazione>
+<dispositivo><h:div>P.Q.M.</h:div><h:div>accoglie l'appello e annulla il provvedimento.</h:div></dispositivo>
+</Provvedimento>
+</GA>
+""".encode()
+
+_MDP_XML_EMPTY_SECTIONS = f"""<?xml version="1.0" encoding="UTF-8"?>
+<GA {_H}><Provvedimento><epigrafe></epigrafe><dispositivo></dispositivo></Provvedimento></GA>
+""".encode()
+
+# What mdp now serves for a stale URL: HTTP 200 with a 404 page in the body.
+_MDP_404_PAGE = b"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"><title>404 - Pagina non trovata</title></head>
+<body><div class="container"><h1>404</h1><p>La pagina che stai cercando non esiste.</p></div></body></html>
 """
 
 
@@ -128,32 +189,55 @@ _MDP_XML_EMPTY_SECTIONS = b"""<?xml version="1.0" encoding="UTF-8"?>
 def _make_mock_response(html_or_bytes, status: int = 200):
     resp = MagicMock()
     resp.status_code = status
-    resp.text = html_or_bytes if isinstance(html_or_bytes, str) else ""
+    resp.text = html_or_bytes if isinstance(html_or_bytes, str) else html_or_bytes.decode()
     resp.content = html_or_bytes if isinstance(html_or_bytes, bytes) else html_or_bytes.encode()
     resp.raise_for_status = MagicMock()
     return resp
 
 
 # ---------------------------------------------------------------------------
-# Tests: _extract_p_auth
+# Tests: endpoint constants (the actual regression of issue #32)
 # ---------------------------------------------------------------------------
 
-class TestExtractPAuth:
-    def test_extracts_from_hidden_input(self):
-        token = _extract_p_auth(_PAUTH_HTML)
-        assert token == "testToken123"
+class TestEndpoint:
+    def test_search_path_is_dcsnprr(self):
+        """The old /web/guest/-/ricerca-giurisprudenza path 404s since 2026."""
+        assert _SEARCH_PATH == "/web/guest/dcsnprr"
 
+    def test_search_path_is_not_the_dead_one(self):
+        assert "ricerca-giurisprudenza" not in _SEARCH_PATH
+
+
+# ---------------------------------------------------------------------------
+# Tests: _extract_portlet_id / _extract_form_action / _extract_p_auth
+# ---------------------------------------------------------------------------
+
+class TestExtractPortletId:
+    def test_extracts_instance_scoped_portlet_id(self):
+        assert _extract_portlet_id(_SEARCH_PAGE_HTML) == _PORTLET
+
+    def test_falls_back_to_default_when_absent(self):
+        # Must never return "" — callers build parameter names from it.
+        assert _extract_portlet_id("<html></html>").startswith("decisioni_pareri_web")
+
+
+class TestExtractFormAction:
+    def test_extracts_absolute_action_url(self):
+        assert _extract_form_action(_SEARCH_PAGE_HTML) == _ACTION
+
+    def test_returns_empty_when_no_form(self):
+        assert _extract_form_action("<html></html>") == ""
+
+
+class TestExtractPAuth:
     def test_extracts_from_form_action_url(self):
-        token = _extract_p_auth(_PAUTH_HTML_ACTION_ONLY)
-        assert token == "actionToken456"
+        assert _extract_p_auth(_SEARCH_PAGE_HTML) == "6O8im78W"
+
+    def test_extracts_from_hidden_input(self):
+        assert _extract_p_auth(_PAUTH_HTML_HIDDEN_INPUT) == "testToken123"
 
     def test_returns_empty_when_not_found(self):
-        token = _extract_p_auth(_PAUTH_HTML_NONE)
-        assert token == ""
-
-    def test_returns_empty_for_empty_html(self):
-        token = _extract_p_auth("<html></html>")
-        assert token == ""
+        assert _extract_p_auth(_PAUTH_HTML_NONE) == ""
 
 
 # ---------------------------------------------------------------------------
@@ -161,49 +245,98 @@ class TestExtractPAuth:
 # ---------------------------------------------------------------------------
 
 class TestBuildSearchParams:
-    def test_basic_query(self):
-        params = _build_search_params(query="appalto pubblico")
-        portlet_key = [k for k in params if "testolibero" in k]
-        assert portlet_key
-        assert params[portlet_key[0]] == "appalto pubblico"
+    def test_query_uses_searchtext_field(self):
+        params = _build_search_params(_PORTLET, query="appalto pubblico")
+        assert params[f"_{_PORTLET}_searchtextProvvedimenti"] == "appalto pubblico"
 
-    def test_p_p_id_present(self):
-        params = _build_search_params()
-        assert "p_p_id" in params
-        from src.lib.giustizia_amm.client import _PORTLET
-        assert params["p_p_id"] == _PORTLET
+    def test_no_legacy_testolibero_field(self):
+        params = _build_search_params(_PORTLET, query="x")
+        assert not any("testolibero" in k for k in params)
 
-    def test_sede_filter(self):
-        params = _build_search_params(sede="CDS")
-        sede_key = [k for k in params if k.endswith("sede")]
-        assert sede_key
-        assert params[sede_key[0]] == "CDS"
+    def test_sede_uses_city_name(self):
+        params = _build_search_params(_PORTLET, sede="Roma")
+        assert params[f"_{_PORTLET}_sedeProvvedimenti"] == "Roma"
 
-    def test_tipo_filter(self):
-        params = _build_search_params(tipo="Sentenza")
-        tipo_key = [k for k in params if "tipoProvvedimento" in k]
-        assert tipo_key
-        assert params[tipo_key[0]] == "Sentenza"
+    def test_tipo_field(self):
+        params = _build_search_params(_PORTLET, tipo="Sentenza")
+        assert params[f"_{_PORTLET}_TipoProvvedimentoItem"] == "Sentenza"
 
-    def test_anno_filter(self):
-        params = _build_search_params(anno="2024")
-        anno_key = [k for k in params if k.endswith("anno")]
-        assert anno_key
-        assert params[anno_key[0]] == "2024"
+    def test_page_size_field(self):
+        params = _build_search_params(_PORTLET, page_size=40)
+        assert params[f"_{_PORTLET}_pageSize"] == "40"
 
-    def test_rows_param(self):
-        params = _build_search_params(page_size=15)
-        rows_key = [k for k in params if k.endswith("rows")]
-        assert rows_key
-        assert params[rows_key[0]] == "15"
+    def test_numero_field(self):
+        params = _build_search_params(_PORTLET, numero="202301234")
+        assert params[f"_{_PORTLET}_numeroProvvedimenti"] == "202301234"
 
-    def test_p_auth_included_when_set(self):
-        params = _build_search_params(p_auth="myToken")
-        assert params.get("p_auth") == "myToken"
+    def test_mandatory_mode_fields_always_present(self):
+        params = _build_search_params(_PORTLET)
+        assert params[f"_{_PORTLET}_searchModeRadio"] == "provv"
+        assert params[f"_{_PORTLET}_isAdvancedSearch"] == "false"
 
-    def test_p_auth_omitted_when_empty(self):
-        params = _build_search_params()
-        assert "p_auth" not in params
+    def test_all_keys_are_portlet_scoped(self):
+        params = _build_search_params(_PORTLET, query="x")
+        assert all(k.startswith(f"_{_PORTLET}_") for k in params)
+
+
+# ---------------------------------------------------------------------------
+# Tests: _compose_numero — the portal matches the full YYYYNNNNN number
+# ---------------------------------------------------------------------------
+
+class TestComposeNumero:
+    def test_pads_and_prefixes_with_year(self):
+        assert _compose_numero("2023", "1234") == "202301234"
+
+    def test_passes_through_full_number(self):
+        assert _compose_numero("2023", "202301234") == "202301234"
+
+    def test_numero_alone_is_kept(self):
+        assert _compose_numero("", "1234") == "1234"
+
+    def test_anno_alone_yields_nothing(self):
+        """The portal dropped the standalone year filter; don't fake it."""
+        assert _compose_numero("2023", "") == ""
+
+    def test_non_numeric_numero_passes_through(self):
+        assert _compose_numero("2023", "abc") == "abc"
+
+
+# ---------------------------------------------------------------------------
+# Tests: _resolve_schema / build_document_url
+# ---------------------------------------------------------------------------
+
+class TestResolveSchema:
+    def test_schema_code_passes_through(self):
+        assert _resolve_schema("tar_rm") == "tar_rm"
+        assert _resolve_schema("cds") == "cds"
+
+    def test_legacy_code_is_translated(self):
+        """Old results (and LLM memory) still use TARLAZ/CDS."""
+        assert _resolve_schema("TARLAZ") == "tar_rm"
+        assert _resolve_schema("CDS") == "cds"
+
+    def test_friendly_key_is_translated(self):
+        assert _resolve_schema("tar_lazio") == "tar_rm"
+        assert _resolve_schema("consiglio_di_stato") == "cds"
+
+
+class TestBuildDocumentUrl:
+    def test_uses_visualizza_endpoint(self):
+        url = build_document_url("tar_rm", "202510565", "202614035_01.html")
+        assert url.startswith("https://mdp.giustizia-amministrativa.it/visualizza/")
+
+    def test_does_not_use_dead_mdp_atti_path(self):
+        url = build_document_url("tar_rm", "202510565", "202614035_01.html")
+        assert "/mdp/atti/" not in url
+
+    def test_carries_all_required_params(self):
+        url = build_document_url("cds", "202401476", "202605674_18.html")
+        for frag in ("schema=cds", "nrg=202401476", "nomeFile=202605674_18.html",
+                     "subDir=Provvedimenti"):
+            assert frag in url
+
+    def test_legacy_sede_code_resolved_in_url(self):
+        assert "schema=tar_rm" in build_document_url("TARLAZ", "1", "f.html")
 
 
 # ---------------------------------------------------------------------------
@@ -211,48 +344,54 @@ class TestBuildSearchParams:
 # ---------------------------------------------------------------------------
 
 class TestParseResults:
-    def test_parses_two_results(self):
+    def test_parses_two_results_and_skips_pagination_footer(self):
         results = _parse_results(_SEARCH_HTML)
         assert len(results) == 2
 
-    def test_first_result_cds(self):
-        results = _parse_results(_SEARCH_HTML)
-        doc = results[0]
-        assert doc.sede == "CDS"
-        assert doc.sede_label == "Consiglio di Stato"
-        assert doc.nrg == "202301234"
-        assert doc.tipo == "Sentenza"
-        assert doc.anno == "2023"
-        assert doc.nome_file == "202301234_11.xml"
-        assert doc.data_deposito == "15/06/2023"
-        assert "Appalto" in doc.oggetto
+    def test_first_result_tar_roma(self):
+        doc = _parse_results(_SEARCH_HTML)[0]
+        assert doc.sede == "tar_rm"
+        assert doc.sede_label == "TAR Lazio - Roma"
+        assert doc.nrg == "202510565"
+        assert doc.nome_file == "202614035_01.html"
+        assert doc.numero == "202614035"
+        assert doc.tipo == "SENTENZA"
+        assert doc.anno == "2026"
+        assert doc.sezione == "SEZIONE 3Q"
+        assert doc.ecli == "ECLI:IT:TARLAZ:2026:14035SENT"
+        assert "operatori" in doc.oggetto
 
-    def test_second_result_tarlaz(self):
-        results = _parse_results(_SEARCH_HTML)
-        doc = results[1]
-        assert doc.sede == "TARLAZ"
-        assert doc.sede_label == "TAR Lazio"
-        assert doc.nrg == "202405678"
-        assert doc.anno == "2024"
-        assert "Urbanistica" in doc.oggetto
+    def test_second_result_consiglio_di_stato(self):
+        doc = _parse_results(_SEARCH_HTML)[1]
+        assert doc.sede == "cds"
+        assert doc.sede_label == "Consiglio di Stato"
+        assert doc.nrg == "202401476"
+        assert doc.nome_file == "202605674_18.html"
+        assert doc.tipo == "ORDINANZA"
 
     def test_empty_html_returns_empty_list(self):
-        results = _parse_results(_SEARCH_HTML_EMPTY)
-        assert results == []
+        assert _parse_results(_SEARCH_HTML_EMPTY) == []
 
-    def test_malformed_articles_skipped(self):
-        results = _parse_results(_SEARCH_HTML_MALFORMED)
-        assert results == []
-
-    def test_unknown_sede_uses_code_as_label(self):
-        html = """
-        <html><body>
-        <article class="ricerca--item" data-sede="TARXXX" data-nrg="12345">
-        </article></body></html>
-        """
+    def test_unknown_schema_uses_code_as_label(self):
+        html = """<html><body><article class="ricerca--item">
+        <a data-sede="tar_zz" data-nrg="1"
+           href="https://mdp.giustizia-amministrativa.it/visualizza/?schema=tar_zz&nrg=1&nomeFile=x.html"></a>
+        </article></body></html>"""
         results = _parse_results(html)
         assert len(results) == 1
-        assert results[0].sede_label == "TARXXX"
+        assert results[0].sede_label == "tar_zz"
+
+
+# ---------------------------------------------------------------------------
+# Tests: _is_error_page — mdp answers 200 with a 404 body
+# ---------------------------------------------------------------------------
+
+class TestIsErrorPage:
+    def test_detects_404_html_body(self):
+        assert _is_error_page(_MDP_404_PAGE) is True
+
+    def test_real_xml_is_not_an_error_page(self):
+        assert _is_error_page(_MDP_XML) is False
 
 
 # ---------------------------------------------------------------------------
@@ -260,764 +399,283 @@ class TestParseResults:
 # ---------------------------------------------------------------------------
 
 class TestParseXmlText:
-    def test_extracts_title_from_epigrafe(self):
+    def test_extracts_title_from_nested_epigrafe(self):
+        """<epigrafe> lives under <Provvedimento>, not directly under <GA>."""
         title, _ = _parse_xml_text(_MDP_XML)
-        assert "REPUBBLICA ITALIANA" in title or "Consiglio di Stato" in title
+        assert "Tribunale Amministrativo Regionale" in title
 
-    def test_extracts_motivazione(self):
+    def test_extracts_premessa_body(self):
         _, body = _parse_xml_text(_MDP_XML)
-        assert "TAR Lazio" in body
-        assert "primo motivo" in body
+        assert "FATTO e DIRITTO" in body
+        assert "impugnato il bando" in body
+
+    def test_extracts_text_nested_deeper_than_one_level(self):
+        _, body = _parse_xml_text(_MDP_XML)
+        assert "motivi aggiunti si rivela pertanto infondato" in body
 
     def test_extracts_dispositivo(self):
         _, body = _parse_xml_text(_MDP_XML)
         assert "P.Q.M." in body
-        assert "annulla" in body
+        assert "respinge il ricorso" in body
 
-    def test_empty_sections(self):
+    def test_extracts_oggetto_from_epigrafe(self):
+        _, body = _parse_xml_text(_MDP_XML)
+        assert "D.Lgs. n. 36/2023" in body
+
+    def test_supports_motivazione_variant(self):
+        _, body = _parse_xml_text(_MDP_XML_MOTIVAZIONE)
+        assert "primo motivo di appello" in body
+        assert "annulla il provvedimento" in body
+
+    def test_empty_sections_return_strings(self):
         title, body = _parse_xml_text(_MDP_XML_EMPTY_SECTIONS)
-        assert isinstance(title, str)
-        assert isinstance(body, str)
+        assert isinstance(title, str) and isinstance(body, str)
 
     def test_invalid_xml_fallback(self):
         title, body = _parse_xml_text(b"<not valid xml <<>>")
-        assert isinstance(title, str)
-        assert isinstance(body, str)
+        assert isinstance(title, str) and isinstance(body, str)
 
-    def test_returns_tuple_of_strings(self):
-        result = _parse_xml_text(_MDP_XML)
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        assert all(isinstance(x, str) for x in result)
+    def test_error_page_yields_empty_body(self):
+        _, body = _parse_xml_text(_MDP_404_PAGE)
+        assert body.strip() == ""
 
 
 # ---------------------------------------------------------------------------
-# Tests: format_result
+# Tests: format_result / format_full
 # ---------------------------------------------------------------------------
+
+def _sample_doc(**over) -> ProvvedimentoResult:
+    base = dict(
+        sede="tar_rm", sede_label="TAR Lazio - Roma", nrg="202510565", tipo="SENTENZA",
+        anno="2026", nome_file="202614035_01.html", data_deposito="", numero="202614035",
+        sezione="SEZIONE 3Q", ecli="ECLI:IT:TARLAZ:2026:14035SENT",
+        oggetto="Appalto pubblico - Esclusione",
+    )
+    base.update(over)
+    return ProvvedimentoResult(**base)
+
 
 class TestFormatResult:
-    def test_contains_sede_label(self):
-        doc = ProvvedimentoResult(
-            sede="CDS",
-            sede_label="Consiglio di Stato",
-            nrg="202301234",
-            tipo="Sentenza",
-            anno="2023",
-            nome_file="202301234_11.xml",
-            data_deposito="15/06/2023",
-            oggetto="Appalto pubblico - Esclusione",
-        )
-        text = format_result(doc)
-        assert "Consiglio di Stato" in text
-        assert "202301234" in text
-        assert "2023" in text
+    def test_contains_sede_label_and_numero(self):
+        text = format_result(_sample_doc())
+        assert "TAR Lazio - Roma" in text
+        assert "202614035" in text
 
     def test_contains_oggetto(self):
-        doc = ProvvedimentoResult(
-            sede="TARLAZ",
-            sede_label="TAR Lazio",
-            nrg="123",
-            tipo="Sentenza",
-            anno="2024",
-            nome_file="123.xml",
-            data_deposito="01/01/2024",
-            oggetto="Urbanistica - Variante PRG",
-        )
-        text = format_result(doc)
-        assert "Urbanistica" in text
+        assert "Esclusione" in format_result(_sample_doc())
 
-    def test_contains_data_deposito(self):
-        doc = ProvvedimentoResult(
-            sede="CDS",
-            sede_label="Consiglio di Stato",
-            nrg="999",
-            tipo="Ordinanza",
-            anno="2023",
-            nome_file="999.xml",
-            data_deposito="20/03/2024",
-            oggetto="",
-        )
-        text = format_result(doc)
-        assert "20/03/2024" in text
+    def test_exposes_params_needed_to_read_full_text(self):
+        """An LLM must be able to call leggi_provvedimento_amm from this block."""
+        text = format_result(_sample_doc())
+        assert "tar_rm" in text
+        assert "202510565" in text
+        assert "202614035_01.html" in text
+
+    def test_contains_sezione_and_ecli(self):
+        text = format_result(_sample_doc())
+        assert "SEZIONE 3Q" in text
+        assert "ECLI:IT:TARLAZ:2026:14035SENT" in text
 
     def test_long_oggetto_truncated(self):
-        doc = ProvvedimentoResult(
-            sede="CDS",
-            sede_label="Consiglio di Stato",
-            nrg="1",
-            tipo="Sentenza",
-            anno="2024",
-            nome_file="1.xml",
-            data_deposito="",
-            oggetto="x" * 500,
-        )
-        text = format_result(doc)
-        # oggetto is truncated to 300
-        assert len(text) < 700
+        assert len(format_result(_sample_doc(oggetto="x" * 900))) < 900
 
-
-# ---------------------------------------------------------------------------
-# Tests: format_full
-# ---------------------------------------------------------------------------
 
 class TestFormatFull:
     def test_basic_formatting(self):
-        result = format_full("CdS Sez. V Sent. 1234/2023", "Testo del provvedimento.", "CDS", "202301234")
+        result = format_full("CdS Sez. V", "Testo.", "cds", "202401476")
         assert "CdS Sez. V" in result
-        assert "Testo del provvedimento." in result
-        assert "CDS" in result
-        assert "202301234" in result
+        assert "Testo." in result
+        assert "202401476" in result
 
     def test_truncation_at_15000(self):
-        long_text = "a" * 16000
-        result = format_full("Title", long_text, "CDS", "123")
+        result = format_full("Title", "a" * 16000, "cds", "123")
         assert "Testo troncato" in result
         assert "15000" in result
 
     def test_no_truncation_for_short_text(self):
-        result = format_full("Title", "breve testo", "CDS", "123")
-        assert "troncato" not in result
+        assert "troncato" not in format_full("Title", "breve", "cds", "123")
 
     def test_sede_label_resolved(self):
-        result = format_full("Title", "testo", "TARLAZ", "456")
-        assert "TAR Lazio" in result
+        assert "TAR Lazio" in format_full("Title", "testo", "tar_rm", "456")
 
 
 # ---------------------------------------------------------------------------
-# Tests: SEDI and TIPI_PROVVEDIMENTO constants
+# Tests: SEDI / TIPI_PROVVEDIMENTO constants
 # ---------------------------------------------------------------------------
 
 class TestConstants:
-    def test_sedi_has_at_least_27_entries(self):
-        assert len(SEDI) >= 27
+    def test_sedi_covers_all_31_portal_seats(self):
+        assert len(SEDI) >= 31
 
-    def test_sedi_contains_cds(self):
-        assert "consiglio_di_stato" in SEDI
-        assert SEDI["consiglio_di_stato"] == "CDS"
+    def test_sedi_values_are_portal_city_names(self):
+        assert SEDI["consiglio_di_stato"] == "Consiglio di Stato"
+        assert SEDI["tar_lazio"] == "Roma"
+        assert SEDI["tar_lombardia"] == "Milano"
+        assert SEDI["cgars"] == "C.G.A.R.S"
 
-    def test_sedi_contains_cgars(self):
-        assert "cgars" in SEDI
-        assert SEDI["cgars"] == "CGARS"
+    def test_sedi_has_no_legacy_codes(self):
+        assert "TARLAZ" not in SEDI.values()
 
-    def test_sedi_contains_tar_lazio(self):
-        assert "tar_lazio" in SEDI
-        assert SEDI["tar_lazio"] == "TARLAZ"
-
-    def test_tipi_provvedimento_has_4_entries(self):
-        assert len(TIPI_PROVVEDIMENTO) == 4
-
-    def test_tipi_provvedimento_keys(self):
-        for key in ("sentenza", "ordinanza", "decreto", "parere"):
-            assert key in TIPI_PROVVEDIMENTO
+    def test_second_seat_tars_are_addressable(self):
+        assert SEDI["tar_lazio_latina"] == "Latina"
+        assert SEDI["tar_lombardia_brescia"] == "Brescia"
 
     def test_tipi_provvedimento_values(self):
         assert TIPI_PROVVEDIMENTO["sentenza"] == "Sentenza"
         assert TIPI_PROVVEDIMENTO["ordinanza"] == "Ordinanza"
+        assert TIPI_PROVVEDIMENTO["parere"] == "Parere"
 
 
 # ---------------------------------------------------------------------------
-# Tests: _impl functions (mocked httpx via GASession)
+# Tests: _impl functions (mocked network)
 # ---------------------------------------------------------------------------
 
-def _make_ga_session_mock(search_html: str, xml_bytes: bytes = b""):
-    """Build a mock GASession that returns predefined responses."""
-    mock_session = AsyncMock()
-    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-    mock_session.__aexit__ = AsyncMock(return_value=None)
-    mock_session._p_auth = "mockToken"
-    mock_session.search = AsyncMock(return_value=search_html)
-    mock_session.fetch_text = AsyncMock(return_value=xml_bytes)
-    return mock_session
+def _patch_session(search_html=_SEARCH_HTML, doc_bytes=_MDP_XML):
+    """Patch GASession so no socket is opened."""
+    session = AsyncMock()
+    session.search = AsyncMock(return_value=search_html)
+    session.fetch_text = AsyncMock(return_value=doc_bytes)
+    session.portlet_id = _PORTLET
+    session.__aenter__ = AsyncMock(return_value=session)
+    session.__aexit__ = AsyncMock(return_value=None)
+    return patch("src.lib.giustizia_amm.client.GASession", return_value=session)
 
 
-class TestCercaGiurisprudenzaAmministrativaImpl:
+class TestCercaImpl:
     @pytest.mark.asyncio
     async def test_returns_results(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _cerca_giurisprudenza_amministrativa_impl("appalto pubblico")
-
-        assert result.success
-        assert "Trovati" in result.results_text
-        assert "Consiglio di Stato" in result.results_text
-        assert "TAR Lazio" in result.results_text
+        with _patch_session():
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="appalto")
+        text = result.to_str()
+        assert result.success is True
+        assert "TAR Lazio - Roma" in text
+        assert "Consiglio di Stato" in text
 
     @pytest.mark.asyncio
-    async def test_empty_results(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML_EMPTY)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _cerca_giurisprudenza_amministrativa_impl("inesistente")
-
-        assert not result.success
+    async def test_no_results_message(self):
+        with _patch_session(search_html=_SEARCH_HTML_EMPTY):
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="xyzzy")
+        assert result.success is False
         assert result.error_type == "no_results"
 
     @pytest.mark.asyncio
-    async def test_max_risultati_capped_at_50(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _cerca_giurisprudenza_amministrativa_impl("test", max_risultati=100)
-
-        assert result.success or result.error_type == "no_results"
-
-    @pytest.mark.asyncio
-    async def test_exception_returns_error_message(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        mock_session.search = AsyncMock(side_effect=httpx.RequestError("timeout"))
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _cerca_giurisprudenza_amministrativa_impl("test")
-
-        assert not result.success
+    async def test_network_error_surfaces_as_source_down(self):
+        with patch("src.lib.giustizia_amm.client.GASession") as mock:
+            mock.return_value.__aenter__ = AsyncMock(
+                side_effect=httpx.HTTPStatusError("boom", request=MagicMock(), response=MagicMock())
+            )
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="appalto")
+        assert result.success is False
         assert result.error_type == "source_down"
 
+
+class TestYearFiltering:
     @pytest.mark.asyncio
-    async def test_numero_param_passed_through(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
+    async def test_matching_year_kept_and_flagged(self):
+        with _patch_session():
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="appalto", anno="2026")
+        text = result.to_str()
+        assert result.success is True
+        assert "202614035" in text
+        assert "non espone più un filtro per anno" in text
+
+    @pytest.mark.asyncio
+    async def test_non_matching_year_explains_why(self):
+        """Silently returning 'nessun provvedimento' would look like a data gap."""
+        with _patch_session():
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="appalto", anno="1999")
+        assert result.success is False
+        assert "non espone più un filtro per anno" in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_year_with_numero_goes_server_side(self):
+        """anno+numero is a real portal filter — no client-side note needed."""
+        with _patch_session():
             result = await _cerca_giurisprudenza_amministrativa_impl(
-                "appalto", numero="1234"
+                query="", anno="2026", numero="14035"
             )
+        assert "non espone più un filtro per anno" not in result.to_str()
 
-        assert result.success or result.error_type == "no_results"
+    @pytest.mark.asyncio
+    async def test_anno_da_keeps_newer_provvedimenti(self):
+        with _patch_session():
+            result = await _giurisprudenza_amm_su_norma_impl(riferimento="art. 71", anno_da="2020")
+        assert result.success is True
+        assert "202614035" in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_anno_da_in_the_future_drops_everything(self):
+        with _patch_session():
+            result = await _giurisprudenza_amm_su_norma_impl(riferimento="art. 71", anno_da="2099")
+        assert result.success is False
 
 
-class TestLeggiProvvedimentoAmmImpl:
+class TestLeggiProvvedimentoImpl:
     @pytest.mark.asyncio
     async def test_returns_full_text(self):
-        mock_session = _make_ga_session_mock("", _MDP_XML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _leggi_provvedimento_amm_impl("CDS", "202301234", "202301234_11.xml")
-
-        assert result.success
-        assert "CDS" in result.results_text or "Consiglio di Stato" in result.results_text
+        with _patch_session():
+            result = await _leggi_provvedimento_amm_impl("tar_rm", "202510565", "202614035_01.html")
+        assert result.success is True
+        assert "P.Q.M." in result.to_str()
 
     @pytest.mark.asyncio
-    async def test_returns_motivazione_content(self):
-        mock_session = _make_ga_session_mock("", _MDP_XML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _leggi_provvedimento_amm_impl("CDS", "202301234", "202301234_11.xml")
+    async def test_stale_url_error_page_is_reported_not_silently_empty(self):
+        with _patch_session(doc_bytes=_MDP_404_PAGE):
+            result = await _leggi_provvedimento_amm_impl("tar_rm", "1", "stale.html")
+        assert result.success is False
 
-        assert result.success
-        assert "TAR Lazio" in result.results_text or "annulla" in result.results_text
 
+class TestGiurisprudenzaSuNormaImpl:
     @pytest.mark.asyncio
-    async def test_exception_returns_error_message(self):
-        mock_session = _make_ga_session_mock("")
-        mock_session.fetch_text = AsyncMock(side_effect=httpx.HTTPStatusError(
-            "404", request=MagicMock(), response=MagicMock()
-        ))
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _leggi_provvedimento_amm_impl("CDS", "99999", "99999.xml")
-
-        assert not result.success
-        assert result.error_type == "source_down"
+    async def test_returns_results(self):
+        with _patch_session():
+            result = await _giurisprudenza_amm_su_norma_impl(riferimento="art. 71 D.Lgs. 36/2023")
+        assert result.success is True
+        assert "202614035" in result.to_str()
 
 
-class TestGiurisprudenzaAmmSuNormaImpl:
+class TestUltimiProvvedimentiImpl:
     @pytest.mark.asyncio
-    async def test_returns_results_for_norma(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _giurisprudenza_amm_su_norma_impl("art. 21-nonies L. 241/1990")
-
-        assert result.success
-        assert "art. 21-nonies" in result.results_text or "Trovati" in result.results_text
-
-    @pytest.mark.asyncio
-    async def test_empty_results_for_norma(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML_EMPTY)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _giurisprudenza_amm_su_norma_impl("art. 999 c.xyz.")
-
-        assert not result.success
-        assert result.error_type == "no_results"
-
-    @pytest.mark.asyncio
-    async def test_exception_returns_error(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        mock_session.search = AsyncMock(side_effect=Exception("network error"))
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _giurisprudenza_amm_su_norma_impl("art. 1 L. 241/1990")
-
-        assert not result.success
-        assert result.error_type == "source_down"
-
-
-class TestUltimiProvvedimentiAmmImpl:
-    @pytest.mark.asyncio
-    async def test_returns_latest_provvedimenti(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
+    async def test_returns_results(self):
+        with _patch_session():
             result = await _ultimi_provvedimenti_amm_impl()
-
-        assert result.success
-        assert "Ultimi provvedimenti" in result.results_text
-
-    @pytest.mark.asyncio
-    async def test_empty_results(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML_EMPTY)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _ultimi_provvedimenti_amm_impl()
-
-        assert not result.success
-        assert result.error_type == "no_results"
-
-    @pytest.mark.asyncio
-    async def test_exception_returns_error(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        mock_session.search = AsyncMock(side_effect=httpx.RequestError("connection refused"))
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _ultimi_provvedimenti_amm_impl()
-
-        assert not result.success
-        assert result.error_type == "source_down"
-
-    @pytest.mark.asyncio
-    async def test_sede_filter_passed(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _ultimi_provvedimenti_amm_impl(sede="consiglio_di_stato")
-
-        assert result.success or result.error_type == "no_results"
+        assert result.success is True
+        assert "TAR Lazio - Roma" in result.to_str()
 
 
 # ---------------------------------------------------------------------------
-# Extended tests: GASession
+# Live tests — hit the real portal. Run with: pytest -m live
+# These are the guard-rail for issue #32: a silent endpoint move must fail here.
 # ---------------------------------------------------------------------------
 
-from src.lib.giustizia_amm.client import GASession, _SEDE_LABELS
-
-
-class TestGASession:
-    @pytest.mark.asyncio
-    async def test_aenter_fetches_page_and_extracts_p_auth(self):
-        mock_client = AsyncMock()
-        mock_client.aclose = AsyncMock()
-
-        async def _mock_retry(client, method, url, **kwargs):
-            return _make_mock_response(_PAUTH_HTML)
-
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
-            async with GASession() as session:
-                assert session._p_auth == "testToken123"
-                assert session._client is not None
-
-    @pytest.mark.asyncio
-    async def test_aexit_closes_client(self):
-        mock_client = AsyncMock()
-        mock_client.aclose = AsyncMock()
-
-        async def _mock_retry(client, method, url, **kwargs):
-            return _make_mock_response(_PAUTH_HTML)
-
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
-            session = GASession()
-            async with session:
-                pass
-            assert session._client is None
-            mock_client.aclose.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_search_calls_post(self):
-        mock_client = AsyncMock()
-        mock_client.aclose = AsyncMock()
-
-        call_log = []
-
-        async def _mock_retry(client, method, url, **kwargs):
-            call_log.append((method, url))
-            if method == "GET":
-                return _make_mock_response(_PAUTH_HTML)
-            return _make_mock_response(_SEARCH_HTML)
-
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
-            async with GASession() as session:
-                html = await session.search({"key": "val"})
-                assert "ricerca--item" in html
-                assert ("POST", "https://www.giustizia-amministrativa.it/web/guest/-/ricerca-giurisprudenza") in call_log
-
-    @pytest.mark.asyncio
-    async def test_fetch_text_calls_get_on_mdp(self):
-        mock_client = AsyncMock()
-        mock_client.aclose = AsyncMock()
-
-        mock_mdp_resp = MagicMock()
-        mock_mdp_resp.content = _MDP_XML
-        mock_mdp_resp.raise_for_status = MagicMock()
-
-        call_count = 0
-
-        async def _mock_retry(client, method, url, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                return _make_mock_response(_PAUTH_HTML)
-            return mock_mdp_resp
-
-        with patch("src.lib.giustizia_amm.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.giustizia_amm.client.retry_request", side_effect=_mock_retry):
-            async with GASession() as session:
-                content = await session.fetch_text("202301234_11.xml")
-                assert content == _MDP_XML
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: _extract_p_auth edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestExtractPAuthExtended:
-    def test_multiple_forms_picks_first_with_token(self):
-        html = """
-        <html><body>
-        <form action="/no-token" method="post">
-            <input type="text" name="q">
-        </form>
-        <form action="/has-token?p_auth=secondForm" method="post">
-            <input type="text" name="q">
-        </form>
-        </body></html>
-        """
-        token = _extract_p_auth(html)
-        assert token == "secondForm"
-
-    def test_p_auth_with_other_query_params(self):
-        html = """
-        <html><body>
-        <form action="/search?foo=bar&p_auth=inMiddle&baz=qux" method="post">
-        </form>
-        </body></html>
-        """
-        token = _extract_p_auth(html)
-        assert token == "inMiddle"
-
-    def test_hidden_input_takes_priority_over_action(self):
-        html = """
-        <html><body>
-        <form action="/search?p_auth=fromAction" method="post">
-            <input type="hidden" name="p_auth" value="fromInput">
-        </form>
-        </body></html>
-        """
-        token = _extract_p_auth(html)
-        assert token == "fromInput"
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: _build_search_params edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestBuildSearchParamsExtended:
-    def test_all_params_set(self):
-        params = _build_search_params(
-            query="appalto",
-            tipo="Sentenza",
-            sede="CDS",
-            anno="2024",
-            numero="1234",
-            page_size=30,
-            p_auth="token123",
-        )
-        prefix = f"_{_PORTLET}_"
-        assert params[f"{prefix}testolibero"] == "appalto"
-        assert params[f"{prefix}tipoProvvedimento"] == "Sentenza"
-        assert params[f"{prefix}sede"] == "CDS"
-        assert params[f"{prefix}anno"] == "2024"
-        assert params[f"{prefix}numero"] == "1234"
-        assert params[f"{prefix}rows"] == "30"
-        assert params["p_auth"] == "token123"
-
-    def test_empty_query_no_testolibero_key(self):
-        params = _build_search_params()
-        testolibero_keys = [k for k in params if "testolibero" in k]
-        assert testolibero_keys == []
-
-    def test_empty_tipo_no_tipo_key(self):
-        params = _build_search_params(query="test")
-        tipo_keys = [k for k in params if "tipoProvvedimento" in k]
-        assert tipo_keys == []
-
-    def test_empty_sede_no_sede_key(self):
-        params = _build_search_params(query="test")
-        sede_keys = [k for k in params if k.endswith("sede")]
-        assert sede_keys == []
-
-
-from src.lib.giustizia_amm.client import _PORTLET
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: _parse_results edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestParseResultsExtended:
-    def test_article_with_sede_but_no_nrg_skipped(self):
-        html = """
-        <html><body>
-        <article class="ricerca--item" data-sede="CDS" data-tipo="Sentenza">
-        </article></body></html>
-        """
-        results = _parse_results(html)
-        assert results == []
-
-    def test_article_with_nrg_but_no_sede_skipped(self):
-        html = """
-        <html><body>
-        <article class="ricerca--item" data-nrg="12345" data-tipo="Sentenza">
-        </article></body></html>
-        """
-        results = _parse_results(html)
-        assert results == []
-
-    def test_article_with_partial_data_attributes(self):
-        """Missing optional fields should still parse."""
-        html = """
-        <html><body>
-        <article class="ricerca--item" data-sede="CDS" data-nrg="99999">
-        </article></body></html>
-        """
-        results = _parse_results(html)
-        assert len(results) == 1
-        assert results[0].sede == "CDS"
-        assert results[0].nrg == "99999"
-        assert results[0].tipo == ""
-        assert results[0].anno == ""
-        assert results[0].nome_file == ""
-
-    def test_non_article_elements_ignored(self):
-        html = """
-        <html><body>
-        <div class="ricerca--item" data-sede="CDS" data-nrg="12345">
-        </div></body></html>
-        """
-        results = _parse_results(html)
-        assert results == []
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: _parse_xml_text edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestParseXmlTextExtended:
-    def test_xml_with_only_epigrafe(self):
-        xml = b"""<?xml version="1.0" encoding="UTF-8"?>
-<GA>
-<epigrafe><intestazione>REPUBBLICA ITALIANA</intestazione></epigrafe>
-</GA>"""
-        title, body = _parse_xml_text(xml)
-        assert "REPUBBLICA" in title
-        assert "REPUBBLICA" in body
-
-    def test_xml_with_only_dispositivo(self):
-        xml = b"""<?xml version="1.0" encoding="UTF-8"?>
-<GA>
-<dispositivo><paragrafo>P.Q.M. Rigetta il ricorso.</paragrafo></dispositivo>
-</GA>"""
-        title, body = _parse_xml_text(xml)
-        assert "P.Q.M." in body
-        assert "DISPOSITIVO" in body
-
-    def test_xml_with_empty_children_text(self):
-        xml = b"""<?xml version="1.0" encoding="UTF-8"?>
-<GA>
-<motivazione><paragrafo></paragrafo><paragrafo>Testo valido</paragrafo></motivazione>
-</GA>"""
-        _, body = _parse_xml_text(xml)
-        assert "Testo valido" in body
-
-    def test_plain_text_fallback_on_invalid_xml(self):
-        bad_xml = b"Questo non e XML ma testo semplice"
-        title, body = _parse_xml_text(bad_xml)
-        assert isinstance(body, str)
-
-    def test_utf8_encoding_in_xml(self):
-        xml = """<?xml version="1.0" encoding="UTF-8"?>
-<GA>
-<epigrafe><intestazione>Provvedimento con accento: è à ù</intestazione></epigrafe>
-</GA>""".encode("utf-8")
-        title, body = _parse_xml_text(xml)
-        assert "accento" in body
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: format_result edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestFormatResultExtended:
-    def test_empty_oggetto_not_in_output(self):
-        doc = ProvvedimentoResult(
-            sede="CDS", sede_label="Consiglio di Stato", nrg="1",
-            tipo="Sentenza", anno="2024", nome_file="1.xml",
-            data_deposito="01/01/2024", oggetto="",
-        )
-        text = format_result(doc)
-        assert "Oggetto" not in text
-
-    def test_empty_data_deposito_not_in_output(self):
-        doc = ProvvedimentoResult(
-            sede="CDS", sede_label="Consiglio di Stato", nrg="1",
-            tipo="Sentenza", anno="2024", nome_file="1.xml",
-            data_deposito="", oggetto="test",
-        )
-        text = format_result(doc)
-        assert "Data deposito" not in text
-
-    def test_empty_nome_file_not_in_output(self):
-        doc = ProvvedimentoResult(
-            sede="CDS", sede_label="Consiglio di Stato", nrg="1",
-            tipo="Sentenza", anno="2024", nome_file="",
-            data_deposito="01/01/2024", oggetto="test",
-        )
-        text = format_result(doc)
-        assert "File" not in text
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: format_full edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestFormatFullExtended:
-    def test_unknown_sede_code(self):
-        result = format_full("Title", "testo", "TARXXX", "456")
-        assert "TARXXX" in result
-
-    def test_empty_text(self):
-        result = format_full("Title", "", "CDS", "123")
-        assert "Title" in result
-        assert "troncato" not in result
-
-    def test_truncation_boundary(self):
-        """Exactly at the limit — no truncation note."""
-        result = format_full("Title", "a" * 15000, "CDS", "123")
-        assert "troncato" not in result
-
-    def test_truncation_at_limit_plus_one(self):
-        result = format_full("Title", "a" * 15001, "CDS", "123")
-        assert "troncato" in result
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: _SEDE_LABELS consistency
-# ---------------------------------------------------------------------------
-
-
-class TestSedeLabelsConsistency:
-    def test_all_sedi_codes_have_labels(self):
-        """Every SEDI value (code) should have a corresponding label."""
-        for key, code in SEDI.items():
-            assert code in _SEDE_LABELS, f"SEDI[{key!r}] = {code!r} has no label in _SEDE_LABELS"
-
-    def test_labels_are_nonempty_strings(self):
-        for code, label in _SEDE_LABELS.items():
-            assert isinstance(label, str) and label, f"_SEDE_LABELS[{code!r}] is empty"
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: search_provvedimenti resolution
-# ---------------------------------------------------------------------------
-
-from src.lib.giustizia_amm.client import search_provvedimenti
-
-
-class TestSearchProvvedimentiResolution:
-    @pytest.mark.asyncio
-    async def test_resolves_sede_key_to_code(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            await search_provvedimenti(sede="consiglio_di_stato")
-
-        call_args = mock_session.search.call_args
-        params = call_args.args[0] if call_args.args else call_args.kwargs.get("params", {})
-        sede_key = [k for k in params if k.endswith("sede")]
-        if sede_key:
-            assert params[sede_key[0]] == "CDS"
-
-    @pytest.mark.asyncio
-    async def test_resolves_tipo_key_to_value(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            await search_provvedimenti(tipo="sentenza")
-
-        call_args = mock_session.search.call_args
-        params = call_args.args[0] if call_args.args else call_args.kwargs.get("params", {})
-        tipo_key = [k for k in params if "tipoProvvedimento" in k]
-        if tipo_key:
-            assert params[tipo_key[0]] == "Sentenza"
-
-    @pytest.mark.asyncio
-    async def test_rows_capped_at_50(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            await search_provvedimenti(rows=100)
-
-        call_args = mock_session.search.call_args
-        params = call_args.args[0] if call_args.args else call_args.kwargs.get("params", {})
-        rows_key = [k for k in params if k.endswith("rows")]
-        if rows_key:
-            assert params[rows_key[0]] == "50"
-
-    @pytest.mark.asyncio
-    async def test_passes_raw_sede_code_if_not_in_dict(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            await search_provvedimenti(sede="CDS")  # Already a code
-
-        call_args = mock_session.search.call_args
-        params = call_args.args[0] if call_args.args else call_args.kwargs.get("params", {})
-        sede_key = [k for k in params if k.endswith("sede")]
-        if sede_key:
-            assert params[sede_key[0]] == "CDS"
-
-
-# ---------------------------------------------------------------------------
-# Extended tests: _impl with diverse parameters
-# ---------------------------------------------------------------------------
-
-
-class TestImplDiverseParams:
-    @pytest.mark.asyncio
-    async def test_cerca_with_anno_and_tipo(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _cerca_giurisprudenza_amministrativa_impl(
-                "urbanistica", tipo="sentenza", anno="2024"
-            )
-
-        assert result.success
-        assert "Trovati" in result.results_text
-
-    @pytest.mark.asyncio
-    async def test_leggi_with_unknown_sede_still_works(self):
-        mock_session = _make_ga_session_mock("", _MDP_XML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _leggi_provvedimento_amm_impl("TARXXX", "12345", "12345.xml")
-
-        assert result.success
-        assert "TARXXX" in result.results_text
-
-    @pytest.mark.asyncio
-    async def test_giurisprudenza_su_norma_passes_ref_as_query(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _giurisprudenza_amm_su_norma_impl(
-                "art. 21-nonies L. 241/1990",
-                sede="consiglio_di_stato",
-                anno_da="2022",
-            )
-
-        assert result.success
-
-    @pytest.mark.asyncio
-    async def test_ultimi_with_tipo_filter(self):
-        mock_session = _make_ga_session_mock(_SEARCH_HTML)
-        with patch("src.lib.giustizia_amm.client.GASession", return_value=mock_session):
-            result = await _ultimi_provvedimenti_amm_impl(tipo="ordinanza")
-
-        assert result.success or result.error_type == "no_results"
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_search_returns_results():
+    from src.lib.giustizia_amm.client import search_provvedimenti
+
+    docs = await search_provvedimenti(query="appalto pubblico esclusione", rows=10)
+    assert docs, "il portale non ha restituito provvedimenti"
+    doc = docs[0]
+    assert doc.sede and doc.nrg and doc.nome_file
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_full_text_roundtrip():
+    from src.lib.giustizia_amm.client import fetch_provvedimento_text, search_provvedimenti
+
+    docs = await search_provvedimenti(query="silenzio assenso", rows=5)
+    assert docs
+    doc = docs[0]
+    title, body = await fetch_provvedimento_text(doc.sede, doc.nrg, doc.nome_file)
+    assert len(body) > 500, f"testo troppo corto: {body[:200]!r}"
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_sede_filter():
+    from src.lib.giustizia_amm.client import search_provvedimenti
+
+    docs = await search_provvedimenti(query="", sede="consiglio_di_stato", rows=10)
+    assert docs
+    assert all(d.sede == "cds" for d in docs)
