@@ -114,7 +114,6 @@ romperebbe la registrazione dei tool senza preavviso.
 | File | Descrizione |
 |------|-------------|
 | [architecture.md](architecture.md) | Dettaglio layer, pattern `_impl`, profili, come aggiungere tool |
-| [architettura.md](architettura.md) | Variante estesa di `architecture.md` (schema generale, flussi interni) |
 | [tools-catalog.md](tools-catalog.md) | Catalogo dei 218 tool divisi per categoria |
 | [strumenti.md](strumenti.md) | Scheda per tool con parametri ed esempi (copertura parziale, vedi nota nel file) |
 | [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `src/lib/` (12 moduli, 4 documentati in dettaglio) |
