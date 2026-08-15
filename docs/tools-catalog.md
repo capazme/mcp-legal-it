@@ -5,18 +5,15 @@ descrizione di ogni tool.
 
 **Totale tool: 218.**
 
-> ⚠️ Riallineamento in corso: le sezioni sotto coprono 163 tool; le voci mancanti
-> (moduli aggiunti tra la v2.6 e la v2.10) sono in rigenerazione su un branch dedicato.
-
 ---
 
 ## Indice
 
-1. [Consultazione normativa](#1-consultazione-normativa) — 7 tool
-2. [Giurisprudenza Cassazione](#2-giurisprudenza-cassazione) — 4 tool
+1. [Consultazione normativa](#1-consultazione-normativa) — 8 tool
+2. [Giurisprudenza Cassazione](#2-giurisprudenza-cassazione) — 5 tool
 3. [Provvedimenti Garante Privacy (GPDP)](#3-provvedimenti-garante-privacy-gpdp) — 3 tool
 4. [Privacy / GDPR Compliance](#4-privacy--gdpr-compliance) — 12 tool
-5. [Rivalutazioni ISTAT](#5-rivalutazioni-istat) — 11 tool
+5. [Rivalutazioni ISTAT](#5-rivalutazioni-istat) — 12 tool
 6. [Tassi e interessi](#6-tassi-e-interessi) — 10 tool
 7. [Scadenze processuali](#7-scadenze-processuali) — 11 tool
 8. [Atti giudiziari](#8-atti-giudiziari) — 23 tool
@@ -26,9 +23,24 @@ descrizione di ogni tool.
 12. [Diritto penale](#12-diritto-penale) — 5 tool
 13. [Proprietà e successioni](#13-proprietà-e-successioni) — 12 tool
 14. [Investimenti](#14-investimenti) — 5 tool
-15. [Dichiarazione redditi](#15-dichiarazione-redditi) — 14 tool
-16. [Utilità generali](#16-utilità-generali) — 12 tool
+15. [Dichiarazione redditi](#15-dichiarazione-redditi) — 15 tool
+16. [Utilità generali](#16-utilità-generali) — 13 tool
 17. [Analisi fornitori (privacy)](#17-analisi-fornitori-privacy) — 2 tool
+18. [Gazzetta Ufficiale](#18-gazzetta-ufficiale) — 5 tool
+19. [Corte Costituzionale](#19-corte-costituzionale) — 4 tool
+20. [Giurisprudenza tributaria (CeRDEF)](#20-giurisprudenza-tributaria-cerdef) — 3 tool
+21. [Giustizia amministrativa (TAR/CdS)](#21-giustizia-amministrativa-tarcds) — 4 tool
+22. [Giurisprudenza CGUE](#22-giurisprudenza-cgue) — 4 tool
+23. [Delibere CONSOB](#23-delibere-consob) — 3 tool
+24. [Orientamenti giurisprudenziali](#24-orientamenti-giurisprudenziali) — 3 tool
+25. [Ricerca giurisprudenziale unificata](#25-ricerca-giurisprudenziale-unificata) — 1 tool
+26. [Recepimento UE -> Italia](#26-recepimento-ue---italia) — 3 tool
+27. [Diritto del lavoro](#27-diritto-del-lavoro) — 6 tool
+28. [Diritto societario](#28-diritto-societario) — 4 tool
+29. [Crisi d'impresa](#29-crisi-dimpresa) — 4 tool
+30. [Procedura civile](#30-procedura-civile) — 3 tool
+31. [Modelli di atti](#31-modelli-di-atti) — 3 tool
+32. [Procure e quotazioni (recupero crediti)](#32-procure-e-quotazioni-recupero-crediti) — 2 tool
 
 ---
 
@@ -47,6 +59,7 @@ descrizione di ogni tool.
 | `fetch_act_index` | `fetch_act_index(reference: str)` | Indice degli articoli di un atto normativo. |
 | `fetch_full_act` | `fetch_full_act(reference: str)` | Testo integrale di un atto normativo. |
 | `download_law_pdf` | `download_law_pdf(reference: str)` | PDF ufficiale (EUR-Lex) o generato (Normattiva) della norma. |
+| `verifica_citazioni` | `verifica_citazioni(citazioni: str, archivio: str = "tutti")` | Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali (non entra nel merito). |
 
 ---
 
@@ -63,6 +76,7 @@ descrizione di ogni tool.
 | `cerca_giurisprudenza` | `cerca_giurisprudenza(query: str, archivio: str = "tutti", materia: str = "", sezione: str = "", anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10, pagina: int = 0)` | Ricerca full-text nelle sentenze della Cassazione. |
 | `giurisprudenza_su_norma` | `giurisprudenza_su_norma(riferimento: str, archivio: str = "tutti", max_risultati: int = 10, pagina: int = 0)` | Sentenze della Cassazione che citano uno specifico articolo di legge. |
 | `ultime_pronunce` | `ultime_pronunce(materia: str = "", sezione: str = "", archivio: str = "tutti", tipo_provvedimento: str = "", max_risultati: int = 10)` | Ultime decisioni depositate dalla Cassazione, con filtri opzionali. |
+| `giurisprudenza_articolo` | `giurisprudenza_articolo(riferimento: str, archivio: str = "tutti", anno_da: int = 0, anno_a: int = 0, max_risultati: int = 5)` | Cerca giurisprudenza su un articolo usando le massime Brocardi come guida. |
 
 ---
 
@@ -120,6 +134,7 @@ descrizione di ogni tool.
 | `lettera_adeguamento_canone` | `lettera_adeguamento_canone(locatore: str, conduttore: str, indirizzo_immobile: str, canone_attuale: float, data_stipula: str, data_adeguamento: str, percentuale_istat: float = 75.0)` | Genera testo della lettera di adeguamento ISTAT del canone. |
 | `calcolo_devalutazione` | `calcolo_devalutazione(importo_attuale: float, data_attuale: str, data_passata: str)` | Calcola il valore passato equivalente a un importo attuale (devalutazione). |
 | `rivalutazione_storica` | `rivalutazione_storica(importo: float, anno_partenza: int, anno_arrivo: int)` | Rivalutazione ISTAT per anno intero, senza granularità mensile. |
+| `inflazione_titoli_stato` | `inflazione_titoli_stato(capitale_investito: float, rendimento_lordo_annuo_pct: float, data_inizio: str, data_fine: str)` | Confronta il rendimento nominale di un investimento con l'inflazione FOI nello stesso periodo. |
 | `variazioni_istat` | `variazioni_istat(anno_inizio: int, anno_fine: int)` | Serie storica delle variazioni ISTAT annuali tra due anni. |
 | `rivalutazione_annuale_media` | `rivalutazione_annuale_media(importo: float, data_inizio: str, data_fine: str)` | Rivalutazione con indice medio annuale (anziché puntuale). |
 
@@ -369,51 +384,309 @@ descrizione di ogni tool.
 | `verifica_partita_iva` | `verifica_partita_iva(partita_iva: str)` | Valida formalmente una partita IVA italiana (11 cifre, algoritmo di controllo). |
 | `calcolo_eta_anagrafica` | `calcolo_eta_anagrafica(data_nascita: str, data_riferimento: str \| None = None)` | Età anagrafica esatta in anni, mesi e giorni con prossimo compleanno. |
 | `ricerca_codici_ateco` | `ricerca_codici_ateco(keyword: str)` | Ricerca codici ATECO per parola chiave con coefficiente regime forfettario. |
+| `cerca_codice_tributo` | `cerca_codice_tributo(query: str)` | Cerca un codice tributo F24 per codice o descrizione. |
 
 ---
 
-## Riepilogo per tag
+## 17. Analisi fornitori (privacy)
 
-| Tag | Categoria | N. tool |
-|-----|-----------|---------|
-| `normativa` | Consultazione normativa | 7 |
-| `giurisprudenza` | Giurisprudenza Cassazione | 4 |
-| `privacy` | Garante GPDP + GDPR Compliance | 15 |
-| `rivalutazione` | Rivalutazioni ISTAT | 11 |
-| `interessi` | Tassi e interessi | 10 |
-| `scadenze` | Scadenze processuali | 11 |
-| `giudiziario` | Atti giudiziari | 23 |
-| `parcelle_avv` | Parcelle avvocati | 12 |
-| `parcelle_prof` | Parcelle professionisti | 11 |
-| `danni` | Risarcimento danni | 7 |
-| `penale` | Diritto penale | 5 |
-| `proprieta` | Proprietà e successioni | 12 |
-| `investimenti` | Investimenti | 5 |
-| `fiscale` | Dichiarazione redditi | 15 |
-| `utility` | Utilità generali | 12 |
-| **Totale** | | **160+** |
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `verifica_partita_iva_vies` | `verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT")` | Verifica una P.IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati. Per le P.IVA italiane esegue prima il checksum locale (niente rete se fallisce). |
+| `genera_report_fornitori` | `genera_report_fornitori(fornitori: list, cliente: str, data_analisi: str = "", file_sorgente: str = "", nome_file: str = "")` | Genera l'Excel standard dell'analisi privacy del mastrino fornitori: foglio Avvertenze + 11 colonne, responsabili senza DPA proprio in cima. Valida i record canonici (collect-all) e non scrive file parziali. |
+
+---
+
+## 18. Gazzetta Ufficiale
+
+**Modulo:** `src/tools/gazzetta.py`
+**Tag:** `normativa`
+**API esterne:** gazzettaufficiale.it (ricerca parametrica + RSS)
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_gazzetta_ufficiale` | `cerca_gazzetta_ufficiale(query: str = '', titolo: str = '', testo: str = '', tipo_provvedimento: str = '', emettitore: str = '', materia: str = '', serie: str = 'serie_generale', anno_da: str = '', anno_a: str = '', max_risultati: int = 20)` | Cerca atti pubblicati nella Gazzetta Ufficiale (ricerca parametrica/full-text). |
+| `leggi_atto_gazzetta` | `leggi_atto_gazzetta(codice_redazionale: str, data_pubblicazione: str, serie: str = 'serie_generale', solo_metadati: bool = False)` | Legge il testo completo di un atto pubblicato in Gazzetta Ufficiale. |
+| `scarica_pdf_gazzetta` | `scarica_pdf_gazzetta(numero_gazzetta: str, data_pubblicazione: str, serie: str = 'serie_generale')` | Restituisce l'URL del PDF ufficiale di un fascicolo di Gazzetta Ufficiale. |
+| `sommario_gazzetta` | `sommario_gazzetta(numero_gazzetta: str, data_pubblicazione: str, serie: str = 'serie_generale')` | Restituisce il sommario (indice degli atti) di un fascicolo di Gazzetta Ufficiale. |
+| `ultime_gazzette` | `ultime_gazzette(serie: str = 'serie_generale', max_risultati: int = 10)` | Ultimi atti pubblicati nella Gazzetta Ufficiale (novita normative, via RSS). |
+
+---
+
+## 19. Corte Costituzionale
+
+**Modulo:** `src/tools/corte_cost.py`
+**Tag:** `giurisprudenza`, `normativa`
+**API esterne:** cortecostituzionale.it
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_pronuncia_costituzionale` | `cerca_pronuncia_costituzionale(query: str, tipo: str = '', anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10)` | Cerca sentenze e ordinanze della Corte Costituzionale per parole chiave. |
+| `leggi_pronuncia_costituzionale` | `leggi_pronuncia_costituzionale(numero: int, anno: int)` | Legge il testo completo di una pronuncia della Corte Costituzionale. |
+| `pronunce_cost_su_norma` | `pronunce_cost_su_norma(riferimento: str, anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10)` | Cerca pronunce costituzionali che invocano una norma come parametro. |
+| `ultime_pronunce_cost` | `ultime_pronunce_cost(tipo: str = '', max_risultati: int = 10)` | Ultime pronunce depositate dalla Corte Costituzionale (anno corrente). |
+
+---
+
+## 20. Giurisprudenza tributaria (CeRDEF)
+
+**Modulo:** `src/tools/cerdef.py`
+**Tag:** `giurisprudenza`, `fiscale`
+**API esterne:** def.finanze.it (MEF)
+**Note:** Ricerca POST con XML embeddato; paginazione via cookie di sessione; max 25.000 caratteri.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_giurisprudenza_tributaria` | `cerca_giurisprudenza_tributaria(query: str, tipo_provvedimento: str = '', ente: str = '', data_da: str = '', data_a: str = '', numero: str = '', criterio: str = 'tutti', ordinamento: str = 'rilevanza', max_risultati: int = 10)` | Cerca sentenze e provvedimenti nella banca dati CeRDEF (MEF — def.finanze.it). |
+| `cerdef_leggi_provvedimento` | `cerdef_leggi_provvedimento(guid: str)` | Legge il testo completo di un provvedimento CeRDEF tramite GUID. |
+| `ultime_sentenze_tributarie` | `ultime_sentenze_tributarie(ente: str = '', tipo_provvedimento: str = '', max_risultati: int = 10)` | Ultime sentenze e provvedimenti tributari da CeRDEF (MEF), con filtro opzionale. |
+
+---
+
+## 21. Giustizia amministrativa (TAR/CdS)
+
+**Modulo:** `src/tools/giustizia_amm.py`
+**Tag:** `giurisprudenza_amm`, `normativa`
+**API esterne:** giustizia-amministrativa.it + mdp.giustizia-amministrativa.it
+**Note:** Portlet Liferay con id d'istanza letto a runtime; sedi indicate per citta; il filtro per anno vale solo insieme al numero.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_giurisprudenza_amministrativa` | `cerca_giurisprudenza_amministrativa(query: str, sede: str = '', tipo: str = '', anno: str = '', numero: str = '', max_risultati: int = 10)` | Cerca sentenze e provvedimenti di TAR e Consiglio di Stato. |
+| `giurisprudenza_amm_su_norma` | `giurisprudenza_amm_su_norma(riferimento: str, sede: str = '', anno_da: str = '', max_risultati: int = 10)` | Trova provvedimenti TAR/CdS che citano una norma specifica. |
+| `leggi_provvedimento_amm` | `leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str)` | Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp. |
+| `ultimi_provvedimenti_amm` | `ultimi_provvedimenti_amm(sede: str = '', tipo: str = '', max_risultati: int = 10)` | Ultimi provvedimenti depositati da TAR e Consiglio di Stato, con filtro opzionale. |
+
+---
+
+## 22. Giurisprudenza CGUE
+
+**Modulo:** `src/tools/cgue.py`
+**Tag:** `giurisprudenza_ue`, `normativa`
+**API esterne:** publications.europa.eu (CELLAR SPARQL)
+**Note:** CELEX case law `6{anno}{corte}{numero}`; literal CELEX con `^^xsd:string`; max 25.000 caratteri.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_giurisprudenza_cgue` | `cerca_giurisprudenza_cgue(query: str, corte: str = '', tipo_documento: str = '', anno_da: str = '', anno_a: str = '', materia: str = '', max_risultati: int = 10)` | Cerca sentenze e decisioni della Corte di Giustizia UE (CGUE) e del Tribunale UE via SPARQL CELLAR. |
+| `giurisprudenza_cgue_su_norma` | `giurisprudenza_cgue_su_norma(riferimento: str, corte: str = '', anno_da: str = '', max_risultati: int = 10)` | Cerca sentenze CGUE e Tribunale UE che interpretano una specifica norma del diritto UE. |
+| `leggi_sentenza_cgue` | `leggi_sentenza_cgue(cellar_uri: str)` | Legge il testo completo di una sentenza CGUE tramite CELLAR URI. |
+| `ultime_sentenze_cgue` | `ultime_sentenze_cgue(corte: str = '', tipo_documento: str = '', materia: str = '', max_risultati: int = 10)` | Ultime sentenze e decisioni pubblicate dalla Corte di Giustizia UE e dal Tribunale UE. |
+
+---
+
+## 23. Delibere CONSOB
+
+**Modulo:** `src/tools/consob.py`
+**Tag:** `consob`
+**API esterne:** consob.it (Liferay)
+**Note:** Max 8.000 caratteri per delibera.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_delibere_consob` | `cerca_delibere_consob(query: str, tipologia: str = '', argomento: str = '', data_da: str = '', data_a: str = '', max_risultati: int = 20)` | Cerca delibere e provvedimenti CONSOB nel bollettino ufficiale. |
+| `leggi_delibera_consob` | `leggi_delibera_consob(numero: str)` | Legge il testo completo di una delibera CONSOB tramite numero. |
+| `ultime_delibere_consob` | `ultime_delibere_consob(tipologia: str = '', argomento: str = '', max_risultati: int = 10)` | Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale. |
+
+---
+
+## 24. Orientamenti giurisprudenziali
+
+**Modulo:** `src/tools/orientamento.py`
+**Tag:** `giurisprudenza`
+**API esterne:** Italgiure + Brocardi
+**Note:** Output DESCRITTIVO: mappa conformi/contrasti e interventi delle Sezioni Unite, non predittivo.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `mappa_orientamento` | `mappa_orientamento(riferimento: str, archivio: str = 'tutti', anno_da: int = 0)` | Mappa DESCRITTIVA completa: ancoraggio Brocardi + orientamenti Cassazione su un articolo. |
+| `orientamento_su_norma` | `orientamento_su_norma(riferimento: str, archivio: str = 'tutti', anno_da: int = 0, max_risultati: int = 10)` | Mappa DESCRITTIVA degli orientamenti della Cassazione su un articolo di legge. |
+| `orientamento_su_principio` | `orientamento_su_principio(principio: str, archivio: str = 'tutti', anno_da: int = 0, sezione: str = '', max_risultati: int = 10)` | Mappa DESCRITTIVA degli orientamenti della Cassazione su un principio di diritto. |
+
+---
+
+## 25. Ricerca giurisprudenziale unificata
+
+**Modulo:** `src/tools/giurisprudenza_unificata.py`
+**Tag:** `giurisprudenza`
+**API esterne:** tutte le fonti giurisprudenziali in parallelo
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_giurisprudenza_unificata` | `cerca_giurisprudenza_unificata(query: str, fonti: str = 'tutte', anno_da: str = '', anno_a: str = '', tipo_provvedimento: str = '', max_risultati: int = 5)` | Cerca giurisprudenza su tutte le fonti disponibili in parallelo. |
+
+---
+
+## 26. Recepimento UE -> Italia
+
+**Modulo:** `src/tools/eu_implementation.py`
+**Tag:** `normativa`
+**API esterne:** EUR-Lex (misure nazionali di recepimento)
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `elenco_misure_nazionali` | `elenco_misure_nazionali(direttiva: str, paese: str = 'ITA')` | Elenca le misure nazionali di recepimento di una direttiva UE in un Paese. |
+| `get_eu_basis` | `get_eu_basis(atto: str)` | Trova la direttiva UE recepita da un atto italiano (mappatura Italia -> UE). |
+| `get_italian_implementation` | `get_italian_implementation(direttiva: str)` | Trova l'atto italiano che recepisce una direttiva UE (mappatura UE -> Italia). |
+
+---
+
+## 27. Diritto del lavoro
+
+**Modulo:** `src/tools/diritto_lavoro.py`
+**Tag:** `lavoro`
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `calcolo_naspi` | `calcolo_naspi(retribuzione_media_mensile: float, settimane_contributive: int, eta_anni: int)` | Calcola l'importo e la durata della NASpI (indennità di disoccupazione). |
+| `costo_lavoro` | `costo_lavoro(retribuzione_lorda_annua: float, tipo_contratto: str = 'dipendente')` | Stima il costo totale del lavoro per l'azienda e il netto per il dipendente. |
+| `indennita_licenziamento` | `indennita_licenziamento(anni_servizio: float, retribuzione_mensile: float, dimensione_azienda: str = 'grande', tipo: str = 'indennitario')` | Calcola l'indennità di licenziamento per tutele crescenti (D.Lgs. 23/2015). |
+| `indennita_preavviso` | `indennita_preavviso(ccnl: str, livello: str, anzianita_anni: float, retribuzione_mensile: float, tipo: str = 'licenziamento')` | Calcola l'indennità sostitutiva del preavviso per CCNL principali. |
+| `offerta_conciliativa` | `offerta_conciliativa(anni_servizio: float, retribuzione_mensile: float, dimensione_azienda: str = 'grande')` | Calcola l'offerta conciliativa esente da IRPEF e contributi (art. 6 D.Lgs. 23/2015). |
+| `scadenze_licenziamento` | `scadenze_licenziamento(data_licenziamento: str)` | Calcola le scadenze perentorie per l'impugnazione del licenziamento. |
+
+---
+
+## 28. Diritto societario
+
+**Modulo:** `src/tools/diritto_societario.py`
+**Tag:** `societario`
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `costi_costituzione` | `costi_costituzione(tipo_societa: str)` | Stima i costi di costituzione di una società o impresa individuale (valori 2025-2026). |
+| `quorum_assembleari` | `quorum_assembleari(tipo_societa: str, tipo_delibera: str, capitale_totale: float, capitale_presente: float = 0, voti_favorevoli: float = 0)` | Verifica i quorum costitutivi e deliberativi per assemblee societarie. |
+| `scadenze_societarie` | `scadenze_societarie(data_chiusura_esercizio: str, bilancio_differito: bool = False)` | Calcola le principali scadenze societarie annuali a partire dalla chiusura dell'esercizio. |
+| `soglie_organo_controllo_srl` | `soglie_organo_controllo_srl(ricavi: float, attivo: float, dipendenti: int)` | Verifica se una SRL supera le soglie che obbligano alla nomina di organo di controllo o revisore. |
+
+---
+
+## 29. Crisi d'impresa
+
+**Modulo:** `src/tools/crisi_impresa.py`
+**Tag:** `crisi`
+**Note:** Codice della crisi d'impresa e dell'insolvenza (D.Lgs. 14/2019).
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `compenso_occ` | `compenso_occ(passivo: float, tipo: str = 'ristrutturazione')` | Calcola il compenso dell'Organismo di Composizione della Crisi (OCC) ex D.M. 202/2014. |
+| `composizione_negoziata` | `composizione_negoziata(fatturato: float, attivo: float, dipendenti: int, debito_totale: float, tipo_impresa: str = 'commerciale')` | Verifica l'ammissibilità alla composizione negoziata della crisi e valuta gli indicatori finanziari. |
+| `concordato_preventivo` | `concordato_preventivo(creditori_privilegiati: float, creditori_chirografari: float, proposta_pct_chirografari: float, proposta_pct_privilegiati: float = 100.0, tipo: str = 'continuita')` | Verifica l'ammissibilità e calcola i parametri del concordato preventivo (artt. 84-120 CCII). |
+| `test_crisi_impresa` | `test_crisi_impresa(dscr: float, giorni_ritardo_inps: int = 0, giorni_ritardo_ade: int = 0, esposizioni_scadute_pct: float = 0.0, debiti_vs_attivo_pct: float = 0.0)` | Verifica la presenza di indicatori di crisi d'impresa ai sensi dell'art. 3 CCII (D.Lgs. 14/2019). |
+
+---
+
+## 30. Procedura civile
+
+**Modulo:** `src/tools/procedura_civile.py`
+**Tag:** `giudiziario`
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `competenza_giudice` | `competenza_giudice(valore_causa: float, materia: str = 'civile')` | Determina il giudice competente per valore e materia (artt. 7-17 c.p.c.). |
+| `gratuito_patrocinio` | `gratuito_patrocinio(reddito_richiedente: float, n_familiari_conviventi: int = 0, redditi_familiari: list[float] \| None = None, ambito: str = 'civile', vittima_violenza: bool = False)` | Verifica l'ammissibilità al patrocinio a spese dello Stato (DPR 115/2002). |
+| `verifica_mediazione_obbligatoria` | `verifica_mediazione_obbligatoria(materia: str)` | Verifica se una materia è soggetta a mediazione obbligatoria (art. 5 D.Lgs. 28/2010). |
+
+---
+
+## 31. Modelli di atti
+
+**Modulo:** `src/tools/modelli_atti.py`
+**Tag:** `atti`
+**Note:** 100 tipi di atti; vedere `legal://riferimenti/modelli-atti-catalogo`.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `esporta_atto_docx` | `esporta_atto_docx(testo: str, titolo: str = 'Atto', autore: str = '')` | Esporta un testo (atto, parere, bozza) in formato DOCX (Microsoft Word). |
+| `genera_modello_atto` | `genera_modello_atto(tipo_atto: str, parametri: dict \| None = None)` | Restituisce i metadati per comporre un atto legale: struttura, campi obbligatori, |
+| `lista_categorie_atti` | `lista_categorie_atti()` | Restituisce le categorie di atti disponibili con il conteggio per ciascuna. |
+
+---
+
+## 32. Procure e quotazioni (recupero crediti)
+
+**Modulo:** `src/tools/procure_quotazioni.py`
+**Tag:** `credito`, `atti`
+**Note:** Output DOCX pronto-firma.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `genera_procura_liti_docx` | `genera_procura_liti_docx(mandante_denominazione: str, mandante_sede: str, mandante_cf_piva: str, firmatario_nome: str, firmatario_cf: str, controparte: str, difensori: list[dict], domicilio_studio: str, pec: str, firmatario_qualifica: str = 'legale rappresentante', fax: str = '', luogo: str = 'Milano', data_documento: str = '')` | Genera la procura alle liti ex art. 83, co. 3, c.p.c. in DOCX pronto-firma (una pagina). |
+| `genera_quotazione_docx` | `genera_quotazione_docx(tipo: str, valore_causa: float, debitore: str, cliente_denominazione: str, cliente_indirizzo: str, difensori: list[str], livello: str = 'minimi', accettazione_denominazione: str = '', luogo: str = 'Milano', data_documento: str = '', contributo_unificato: float = -1, compenso_fase_introduttiva: float = 166, compenso_fase_trattazione: float = 284)` | Genera la lettera di quotazione compensi (D.M. 55/2014 agg. D.M. 147/2022) in DOCX. |
+
+---
+
+
+## Riepilogo per sezione
+
+| # | Categoria | N. tool |
+|---|-----------|---------|
+| 1 | Consultazione normativa | 8 |
+| 2 | Giurisprudenza Cassazione | 5 |
+| 3 | Provvedimenti Garante Privacy (GPDP) | 3 |
+| 4 | Privacy / GDPR Compliance | 12 |
+| 5 | Rivalutazioni ISTAT | 12 |
+| 6 | Tassi e interessi | 10 |
+| 7 | Scadenze processuali | 11 |
+| 8 | Atti giudiziari | 23 |
+| 9 | Parcelle avvocati | 12 |
+| 10 | Parcelle professionisti | 11 |
+| 11 | Risarcimento danni | 7 |
+| 12 | Diritto penale | 5 |
+| 13 | Proprietà e successioni | 12 |
+| 14 | Investimenti | 5 |
+| 15 | Dichiarazione redditi | 15 |
+| 16 | Utilità generali | 13 |
+| 17 | Analisi fornitori (privacy) | 2 |
+| 18 | Gazzetta Ufficiale | 5 |
+| 19 | Corte Costituzionale | 4 |
+| 20 | Giurisprudenza tributaria (CeRDEF) | 3 |
+| 21 | Giustizia amministrativa (TAR/CdS) | 4 |
+| 22 | Giurisprudenza CGUE | 4 |
+| 23 | Delibere CONSOB | 3 |
+| 24 | Orientamenti giurisprudenziali | 3 |
+| 25 | Ricerca giurisprudenziale unificata | 1 |
+| 26 | Recepimento UE -> Italia | 3 |
+| 27 | Diritto del lavoro | 6 |
+| 28 | Diritto societario | 4 |
+| 29 | Crisi d'impresa | 4 |
+| 30 | Procedura civile | 3 |
+| 31 | Modelli di atti | 3 |
+| 32 | Procure e quotazioni (recupero crediti) | 2 |
+| | **Totale** | **218** |
 
 ---
 
 ## File dati (`src/data/`)
 
+24 file JSON. Struttura e fonte normativa di ciascuno in [data-files.md](data-files.md).
+
 | File | Usato da | Contenuto |
 |------|----------|-----------|
-| `indici_foi.json` | `rivalutazioni_istat` | Serie storica indici FOI ISTAT |
-| `tassi_legali.json` | `tassi_interessi`, `dichiarazione_redditi` | Tassi legali art. 1284 c.c. dal 2000 |
-| `tassi_mora.json` | `tassi_interessi` | Tassi BCE per interessi di mora D.Lgs. 231/2002 |
-| `tegm.json` | `tassi_interessi` | TEGM per categoria operazione (anti-usura) |
-| `contributo_unificato.json` | `atti_giudiziari` | Tabella scaglioni contributo unificato 2025 |
-| `parametri_forensi.json` | `fatturazione_avvocati` | Tabelle D.M. 55/2014 per fasi e scaglioni |
-| `festivita.json` | `scadenze_termini`, `varie` | Festività nazionali fisse (L. 260/1949) |
-| `tribunali_competenti.json` | `atti_giudiziari` | Mappa comuni → circondario giudiziario |
+| `indici_foi.json` | `rivalutazioni_istat, tassi_interessi` | Serie storica indici FOI ISTAT |
+| `tassi_legali.json` | `tassi_interessi, dichiarazione_redditi, rivalutazioni_istat` | Tassi legali art. 1284 c.c. dal 2000 |
+| `tassi_mora.json` | `tassi_interessi, atti_giudiziari` | Tassi BCE per interessi di mora D.Lgs. 231/2002 |
+| `tegm.json` | `tassi_interessi` | TEGM per categoria di operazione (anti-usura) |
+| `contributo_unificato.json` | `atti_giudiziari, procure_quotazioni` | Tabella scaglioni contributo unificato |
+| `parametri_forensi.json` | `fatturazione_avvocati, procure_quotazioni` | Tabelle D.M. 55/2014 per fasi e scaglioni |
+| `festivita.json` | `scadenze_termini, varie` | Festivita nazionali fisse (L. 260/1949) |
+| `tribunali_competenti.json` | `atti_giudiziari` | Mappa comuni a circondario giudiziario |
 | `codici_ruolo.json` | `atti_giudiziari` | Codici materia per iscrizione a ruolo |
 | `imposte_successione.json` | `proprieta_successioni` | Aliquote e franchigie D.Lgs. 346/1990 |
-| `usufrutto_coefficienti.json` | `proprieta_successioni` | Coefficienti usufrutto per fascia d'età (DPR 131/1986) |
-| `irpef_scaglioni.json` | `dichiarazione_redditi` | Scaglioni IRPEF 2026 (L. 199/2025) e detrazioni |
-| `comuni.json` | `varie` | Codici catastali comuni italiani e stati esteri |
-| `codici_ateco.json` | `varie` | Codici ATECO 2007 con coefficienti forfettario |
+| `usufrutto_coefficienti.json` | `proprieta_successioni` | Coefficienti usufrutto per fascia d'eta (DPR 131/1986) |
+| `irpef_scaglioni.json` | `dichiarazione_redditi, diritto_lavoro` | Scaglioni IRPEF e detrazioni per anno |
+| `codici_tributo.json` | `dichiarazione_redditi` | Codici tributo F24 con descrizione |
+| `comuni.json` | `varie` | Codici catastali dei comuni italiani e stati esteri |
+| `codici_ateco.json` | `varie` | Codici ATECO con coefficienti regime forfettario |
 | `violazioni_patente.json` | `varie` | Violazioni CdS con punti e sanzioni |
+| `tabella_danno_bio.json` | `risarcimento_danni` | Tabella danno biologico lesioni micropermanenti |
+| `tabella_milano_roma.json` | `risarcimento_danni` | Tabelle milanesi e romane per danno non patrimoniale |
+| `gdpr_basi_giuridiche.json` | `privacy_gdpr` | Basi giuridiche artt. 6 e 9 GDPR |
+| `gdpr_dpia_criteri.json` | `privacy_gdpr` | 9 criteri WP248 rev.01 per la necessita di DPIA |
+| `gdpr_sanzioni.json` | `privacy_gdpr` | Massimali e criteri sanzionatori art. 83 GDPR |
+| `mediazione_obbligatoria.json` | `procedura_civile` | Materie soggette a mediazione obbligatoria (art. 5 D.Lgs. 28/2010) |
+| `modelli_atti.json` | `modelli_atti` | Catalogo dei 100 modelli di atti con campi obbligatori |
+| `preavviso_ccnl.json` | `diritto_lavoro` | Termini di preavviso per i CCNL principali |
 
 ---
 
@@ -428,10 +701,3 @@ I tool che generano documenti (bozze atti, notule, lettere) producono testo da r
 prima dell'uso — non sono documenti legali pronti alla firma.
 
 ---
-
-## 17. Analisi fornitori (privacy)
-
-| Tool | Firma | Descrizione |
-|------|-------|-------------|
-| `verifica_partita_iva_vies` | `verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT")` | Verifica una P.IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati. Per le P.IVA italiane esegue prima il checksum locale (niente rete se fallisce). |
-| `genera_report_fornitori` | `genera_report_fornitori(fornitori: list, cliente: str, data_analisi: str = "", file_sorgente: str = "", nome_file: str = "")` | Genera l'Excel standard dell'analisi privacy del mastrino fornitori: foglio Avvertenze + 11 colonne, responsabili senza DPA proprio in cima. Valida i record canonici (collect-all) e non scrive file parziali. |

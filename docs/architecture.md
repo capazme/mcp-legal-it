@@ -47,12 +47,15 @@ Costruisce l'istanza `mcp` e registra tutti i moduli:
 ```python
 mcp = FastMCP("Legal IT", instructions="...")
 
-from src.tools import (
+from src.tools import (  # 32 moduli — l'elenco completo è in src/server.py
     rivalutazioni_istat, tassi_interessi, scadenze_termini,
     atti_giudiziari, fatturazione_avvocati, parcelle_professionisti,
-    risarcimento_danni, diritto_penale, proprieta_successioni,
-    investimenti, dichiarazione_redditi, varie,
-    legal_citations, italgiure, gpdp, privacy_gdpr,
+    risarcimento_danni, diritto_penale, diritto_societario, diritto_lavoro,
+    crisi_impresa, proprieta_successioni, investimenti, dichiarazione_redditi,
+    varie, procedura_civile, legal_citations, italgiure, gpdp, privacy_gdpr,
+    cerdef, giustizia_amm, cgue, consob, gazzetta, corte_cost, orientamento,
+    eu_implementation, giurisprudenza_unificata, modelli_atti,
+    procure_quotazioni, analisi_fornitori,
 )
 from src import prompts, resources
 ```
@@ -80,9 +83,9 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
        └─ ... (32 moduli, 218 tool totali)
        └─ from src import prompts
-            └─ @mcp.prompt() → 13 prompt registrati
+            └─ @mcp.prompt() → 23 prompt registrati
        └─ from src import resources
-            └─ @mcp.resource() → 9 resource statiche registrate
+            └─ @mcp.resource() → 15 resource statiche registrate
 ```
 
 L'ordine degli import non è significativo per la correttezza, ma è mantenuto
@@ -102,10 +105,12 @@ _PROFILES: dict[str, set[str]] = {
     "sinistro":  {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro"},
     "credito":   {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
     "penale":    {"penale", "normativa", "giurisprudenza"},
-    "fiscale":   {"fiscale", "proprieta", "utility"},
-    "normativa": {"normativa", "giurisprudenza", "privacy"},
+    "fiscale":   {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario"},
+    "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob", "costituzionale"},
     "privacy":   {"privacy", "normativa", "giurisprudenza"},
-    "studio":    {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof"},
+    "studio":    {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro"},
+    "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
+    "cowork":    {"normativa", "giurisprudenza", "privacy", "parcelle_avv"},
 }
 
 _profile = os.environ.get("LEGAL_PROFILE", "full")
@@ -115,14 +120,16 @@ if _profile != "full" and _profile in _PROFILES:
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 161 | Claude Code con Tool Search |
-| `sinistro` | ~44 | Risarcimento danni e sinistri |
-| `credito` | ~52 | Recupero crediti |
-| `penale` | ~16 | Diritto penale |
-| `fiscale` | ~39 | Calcoli fiscali e immobiliari |
-| `normativa` | ~26 | Ricerca normativa e giurisprudenziale |
-| `privacy` | ~26 | GDPR e privacy compliance |
-| `studio` | ~57 | Gestione studio legale |
+| `full` | 218 | Claude Code con Tool Search |
+| `sinistro` | 73 | Risarcimento danni e sinistri |
+| `credito` | 83 | Recupero crediti |
+| `penale` | 45 | Diritto penale |
+| `fiscale` | 62 | Calcoli fiscali, immobiliari, societari e di crisi |
+| `normativa` | 60 | Ricerca normativa e giurisprudenziale (tutte le corti) |
+| `privacy` | 57 | GDPR e privacy compliance |
+| `studio` | 73 | Gestione studio legale |
+| `redattore` | 78 | Redazione di atti giudiziari |
+| `cowork` | 70 | Sessioni Cowork (set ridotto) |
 
 Il profilo `full` è consigliato per Claude Code, che usa Tool Search per
 caricare i tool on-demand senza saturare il context window.
@@ -170,6 +177,28 @@ sia per `_impl` che per il wrapper. FastMCP gestisce entrambi correttamente.
 
 ## 5. Layer lib/ — client esterni
 
+`src/lib/` contiene 12 moduli, uno per fonte esterna. Nessuno di essi importa
+`src.server`: dipendono solo da httpx, BeautifulSoup e dalla stdlib, così restano
+testabili senza il server MCP.
+
+| Modulo | Fonte | Trasporto | Note |
+|--------|-------|-----------|------|
+| `visualex/` | Normattiva, EUR-Lex | HTML scraping | Vedi dettaglio sotto |
+| `brocardi/` | Brocardi.it | HTML scraping | Massime strutturate, cache URL su disco |
+| `italgiure/` | Cassazione | API Solr | `verify=False`, cookie anti-bot |
+| `corte_cost/` | Corte Costituzionale | HTML scraping | Sentenze e ordinanze, parametri costituzionali |
+| `cerdef/` | CeRDEF (MEF) | POST + XML embeddato | Paginazione via cookie di sessione |
+| `giustizia_amm/` | TAR e Consiglio di Stato | Liferay + XML | Portlet con id d'istanza letto a runtime |
+| `cgue/` | Corte di Giustizia UE | SPARQL su CELLAR | CELEX literal con `^^xsd:string` |
+| `gpdp/` | Garante Privacy | Liferay scraping | Lettura via endpoint "stampa" |
+| `consob/` | CONSOB | Liferay scraping | Bollettino delibere |
+| `gazzetta/` | Gazzetta Ufficiale | HTML + RSS | Ricerca parametrica e sommari |
+| `eu_implementation/` | EUR-Lex | HTML scraping | Misure nazionali di recepimento |
+| `vies/` | VIES (Commissione UE) | SOAP | Validazione P.IVA intracomunitaria |
+
+I quattro moduli storici sono documentati in dettaglio qui sotto; per gli altri il
+riferimento è il rispettivo `client.py`, che espone le funzioni pubbliche via `__init__.py`.
+
 ### `src/lib/visualex/` — Normattiva, EUR-Lex, Brocardi
 
 Tre file distinti:
@@ -214,14 +243,19 @@ Dataclass `DocResult` con `docweb_id`, `title`, `date`, `tipologia`, `argomenti`
 
 ## 6. Prompts e Resources
 
-### `src/prompts.py` — 13 prompt guidati (`@mcp.prompt()`)
+### `src/prompts.py` — 23 prompt guidati (`@mcp.prompt()`)
 
 Workflow pre-definiti che l'LLM può attivare: `analisi_sinistro`, `recupero_credito`,
 `causa_civile`, `pianificazione_successione`, `parere_legale`, `quantificazione_danni`,
 `calcolo_parcella`, `verifica_prescrizione`, `ricerca_normativa`, `analisi_articolo`,
-`confronto_norme`, `mappatura_normativa`, `analisi_giurisprudenziale`, `compliance_privacy`.
+`confronto_norme`, `mappatura_normativa`, `analisi_giurisprudenziale`, `compliance_privacy`,
+`orientamento_giurisprudenziale`, `analisi_tributaria`, `analisi_giurisprudenza_amministrativa`,
+`analisi_giurisprudenza_europea`, `analisi_costituzionale`, `attuazione_direttiva`,
+`ricerca_gazzetta`, `analisi_delibere_consob`, `novita_consob`.
 
-### `src/resources.py` — 9 resource statiche (`@mcp.resource("legal://...")`)
+Elenco con parametri e catena di tool in [prompts-resources.md](prompts-resources.md).
+
+### `src/resources.py` — 15 resource statiche (`@mcp.resource("legal://...")`)
 
 Dati di riferimento sempre disponibili:
 - `legal://riferimenti/procedura-civile`
@@ -233,6 +267,12 @@ Dati di riferimento sempre disponibili:
 - `legal://riferimenti/fonti-diritto-italiano`
 - `legal://riferimenti/codici-e-leggi-principali`
 - `legal://riferimenti/gdpr-checklist`
+- `legal://riferimenti/ricerca-giurisprudenziale`
+- `legal://riferimenti/cerdef-giurisprudenza`
+- `legal://riferimenti/giustizia-amministrativa`
+- `legal://riferimenti/cgue-giurisprudenza`
+- `legal://riferimenti/consob-delibere`
+- `legal://riferimenti/modelli-atti-catalogo`
 
 ---
 

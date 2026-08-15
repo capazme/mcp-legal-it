@@ -2,6 +2,11 @@
 
 Documento tecnico per sviluppatori e LLM che operano sul codebase.
 
+> **Documento secondario.** Il riferimento architetturale canonico e' [architecture.md](architecture.md),
+> che copre anche profili, prompts/resources e la procedura per aggiungere un tool.
+> Questo file ne e' la variante estesa in italiano e ripete gli stessi contenuti:
+> in caso di divergenza fa fede `architecture.md`.
+
 ---
 
 ## 1. Schema generale
@@ -15,22 +20,17 @@ Client MCP (Claude Desktop / altro LLM)
         │
         │  import a livello di modulo
         ▼
-  src/tools/             15 moduli — ogni file registra i propri tool
-  ├── rivalutazioni_istat.py
-  ├── tassi_interessi.py
-  ├── scadenze_termini.py
-  ├── atti_giudiziari.py
-  ├── fatturazione_avvocati.py
-  ├── parcelle_professionisti.py
-  ├── risarcimento_danni.py
-  ├── diritto_penale.py
-  ├── proprieta_successioni.py
-  ├── investimenti.py
-  ├── dichiarazione_redditi.py
-  ├── varie.py
-  ├── legal_citations.py     ← chiama visualex/
-  ├── italgiure.py           ← chiama italgiure/
-  └── gpdp.py                ← chiama gpdp/
+  src/tools/             32 moduli — ogni file registra i propri tool
+  ├── calcolo (16): rivalutazioni_istat, tassi_interessi, scadenze_termini,
+  │       atti_giudiziari, fatturazione_avvocati, parcelle_professionisti,
+  │       risarcimento_danni, diritto_penale, proprieta_successioni,
+  │       investimenti, dichiarazione_redditi, varie, diritto_lavoro,
+  │       diritto_societario, crisi_impresa, procedura_civile
+  ├── consultazione (12): legal_citations, italgiure, cerdef, cgue, gpdp,
+  │       eu_implementation, gazzetta, corte_cost, giustizia_amm, consob,
+  │       orientamento, giurisprudenza_unificata
+  └── documenti (4): privacy_gdpr, modelli_atti, procure_quotazioni,
+          analisi_fornitori
         │
         │  chiamate HTTP async (httpx)
         ▼
@@ -102,7 +102,7 @@ from src import prompts, resources
 
 ## 3. Layer tools/ — pattern architetturale
 
-**Tutti** i 15 moduli tool seguono lo stesso pattern: funzione `_impl` separata dal wrapper MCP.
+**Tutti** i 32 moduli tool seguono lo stesso pattern: funzione `_impl` separata dal wrapper MCP.
 
 ```python
 # Funzione _impl: logica pura, testabile senza contesto MCP
@@ -139,7 +139,10 @@ async def test_fetch_article(mock_client):
 
 ---
 
-## 4. Layer lib/ — tre client esterni
+## 4. Layer lib/ — 12 client esterni
+
+Elenco completo e tabella riassuntiva in [architecture.md](architecture.md#5-layer-lib--client-esterni).
+Qui sotto il dettaglio dei quattro client storici.
 
 ### 4.1 visualex/ — Normattiva, EUR-Lex, Brocardi
 
@@ -272,6 +275,8 @@ Le funzioni `_impl` vengono importate **dopo** aver applicato il patch, oppure i
 | `httpx>=0.27` | Client HTTP async per tutte le chiamate esterne |
 | `beautifulsoup4` + `lxml` | Parsing HTML (Normattiva, Brocardi, GPDP) |
 | `fpdf2` | Generazione PDF per alcuni tool di redazione atti |
+| `python-docx` | Generazione DOCX (atti, procure, quotazioni) |
+| `openpyxl` | Generazione XLSX (report fornitori) |
 
 Per la lista completa vedere `pyproject.toml`, unica fonte di verità per le
 dipendenze runtime. Gli altri percorsi di installazione (`plugin/start_server.sh`,

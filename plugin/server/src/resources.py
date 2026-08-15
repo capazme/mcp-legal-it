@@ -1391,39 +1391,45 @@ TOOL DISPONIBILI
 | `ultimi_provvedimenti_amm` | Ultimi depositati | sede, tipo, max_risultati |
 
 ═══════════════════════════════════════════════════════════
-SEDI DISPONIBILI (28 sedi)
+SEDI DISPONIBILI (31 sedi)
 ═══════════════════════════════════════════════════════════
+
+La colonna "Codice" è quella restituita dalla ricerca e va passata a
+`leggi_provvedimento_amm(sede=...)`.
 
 | Chiave | Codice | Sede |
 |--------|--------|------|
-| `consiglio_di_stato` | CDS | Consiglio di Stato |
-| `cgars` | CGARS | CGARS (Consiglio di Giustizia Amministrativa per la Regione Siciliana) |
-| `tar_lazio` | TARLAZ | TAR Lazio |
-| `tar_lombardia` | TARLOM | TAR Lombardia |
-| `tar_campania_napoli` | TARCAM | TAR Campania - Napoli |
-| `tar_campania_salerno` | TARCAMSAL | TAR Campania - Salerno |
-| `tar_sicilia_palermo` | TARSIC | TAR Sicilia - Palermo |
-| `tar_sicilia_catania` | TARSICCAT | TAR Sicilia - Catania |
-| `tar_veneto` | TARVEN | TAR Veneto |
-| `tar_piemonte` | TARPIE | TAR Piemonte |
-| `tar_emilia_romagna` | TAREMI | TAR Emilia-Romagna |
-| `tar_toscana` | TARTOS | TAR Toscana |
-| `tar_puglia_bari` | TARPUG | TAR Puglia - Bari |
-| `tar_puglia_lecce` | TARPUGLEC | TAR Puglia - Lecce |
-| `tar_calabria_catanzaro` | TARCAL | TAR Calabria - Catanzaro |
-| `tar_calabria_reggio` | TARCALREG | TAR Calabria - Reggio |
-| `tar_liguria` | TARLIG | TAR Liguria |
-| `tar_sardegna` | TARSAR | TAR Sardegna |
-| `tar_friuli` | TARFRI | TAR Friuli-Venezia Giulia |
-| `tar_marche` | TARMAR | TAR Marche |
-| `tar_abruzzo_pescara` | TARABR | TAR Abruzzo - Pescara |
-| `tar_abruzzo_laquila` | TARABRLAQ | TAR Abruzzo - L'Aquila |
-| `tar_umbria` | TARUMB | TAR Umbria |
-| `tar_molise` | TARMOL | TAR Molise |
-| `tar_basilicata` | TARBAS | TAR Basilicata |
-| `tar_trentino_bolzano` | TARBOL | TAR Trentino-Alto Adige - Bolzano |
-| `tar_trentino_trento` | TARTRETN | TAR Trentino-Alto Adige - Trento |
-| `tar_valle_aosta` | TARVDA | TAR Valle d'Aosta |
+| `consiglio_di_stato` | cds | Consiglio di Stato |
+| `cgars` | cgagiur | CGARS (Consiglio di Giustizia Amministrativa per la Regione Siciliana) |
+| `tar_lazio` | tar_rm | TAR Lazio - Roma |
+| `tar_lazio_latina` | tar_lt | TAR Lazio - Latina |
+| `tar_lombardia` | tar_mi | TAR Lombardia - Milano |
+| `tar_lombardia_brescia` | tar_bs | TAR Lombardia - Brescia |
+| `tar_campania_napoli` | tar_na | TAR Campania - Napoli |
+| `tar_campania_salerno` | tar_sa | TAR Campania - Salerno |
+| `tar_sicilia_palermo` | tar_pa | TAR Sicilia - Palermo |
+| `tar_sicilia_catania` | tar_ct | TAR Sicilia - Catania |
+| `tar_veneto` | tar_ve | TAR Veneto |
+| `tar_piemonte` | tar_to | TAR Piemonte |
+| `tar_emilia_romagna` | tar_bo | TAR Emilia-Romagna - Bologna |
+| `tar_emilia_romagna_parma` | tar_pr | TAR Emilia-Romagna - Parma |
+| `tar_toscana` | tar_fi | TAR Toscana |
+| `tar_puglia_bari` | tar_ba | TAR Puglia - Bari |
+| `tar_puglia_lecce` | tar_le | TAR Puglia - Lecce |
+| `tar_calabria_catanzaro` | tar_cz | TAR Calabria - Catanzaro |
+| `tar_calabria_reggio` | tar_rc | TAR Calabria - Reggio Calabria |
+| `tar_liguria` | tar_ge | TAR Liguria |
+| `tar_sardegna` | tar_ca | TAR Sardegna |
+| `tar_friuli` | tar_ts | TAR Friuli-Venezia Giulia |
+| `tar_marche` | tar_an | TAR Marche |
+| `tar_abruzzo_laquila` | tar_aq | TAR Abruzzo - L'Aquila |
+| `tar_abruzzo_pescara` | tar_pe | TAR Abruzzo - Pescara |
+| `tar_umbria` | tar_pg | TAR Umbria |
+| `tar_molise` | tar_cb | TAR Molise |
+| `tar_basilicata` | tar_pz | TAR Basilicata |
+| `tar_trentino_trento` | tar_tn | TRGA Trentino-Alto Adige - Trento |
+| `tar_trentino_bolzano` | tar_bz | TRGA Trentino-Alto Adige - Bolzano |
+| `tar_valle_aosta` | tar_ao | TAR Valle d'Aosta |
 
 ═══════════════════════════════════════════════════════════
 TIPI DI PROVVEDIMENTO
@@ -1435,6 +1441,18 @@ TIPI DI PROVVEDIMENTO
 | `ordinanza` | Ordinanza (cautelare, istruttoria) |
 | `decreto` | Decreto monocratico (cautelare urgente) |
 | `parere` | Parere del Consiglio di Stato |
+| `adunanza_plenaria` | Adunanza Plenaria del Consiglio di Stato |
+| `adunanza_generale` | Adunanza Generale del Consiglio di Stato |
+
+═══════════════════════════════════════════════════════════
+FILTRO PER ANNO — LIMITE DELLA FONTE
+═══════════════════════════════════════════════════════════
+
+Il portale non espone più un filtro per anno indipendente: l'anno è onorato
+lato server solo insieme al numero del provvedimento
+(es. anno="2023" + numero="1234" → provvedimento 1234/2023).
+Da solo, l'anno viene applicato sui risultati restituiti, che sono ordinati
+dal più recente: per anni remoti indicare anche `numero` o restringere la query.
 
 ═══════════════════════════════════════════════════════════
 WORKFLOW CONSIGLIATI
@@ -1442,7 +1460,8 @@ WORKFLOW CONSIGLIATI
 
 Ricerca tematica:
 1. cerca_giurisprudenza_amministrativa(query="appalto esclusione requisiti")
-2. leggi_provvedimento_amm(sede="CDS", nrg="...", nome_file="...")
+2. leggi_provvedimento_amm(sede="cds", nrg="202401476", nome_file="202605674_18.html")
+   → sede, nrg e nome_file sono riportati in ogni risultato della ricerca
 3. cite_law("art. 83 D.Lgs. 36/2023") → norma di riferimento
 
 Ricerca su norma:
