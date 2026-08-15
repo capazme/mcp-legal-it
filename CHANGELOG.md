@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- pin `cryptography < 49` on Intel Macs: from 49.0.0 upstream ships arm64-only macOS
+  wheels, so x86_64 Macs attempted a source build requiring Rust + OpenSSL and the
+  `.mcpb` extension never started ("server disconnected")
+- README: the `.mcpb` was described as having "nessuna dipendenza" while it requires
+  `uv`; added a troubleshooting table for the disconnected-server case
+
 ## [2.11.0] - 2026-07-30
 
 ### Added
