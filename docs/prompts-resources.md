@@ -1,6 +1,6 @@
 # Prompts e Resources — mcp-legal-it
 
-> Documentazione dei 13 workflow guidati (`@mcp.prompt`) e delle 9 risorse statiche (`@mcp.resource`).
+> Documentazione dei 23 workflow guidati (`@mcp.prompt`) e delle 15 risorse statiche (`@mcp.resource`).
 
 ## Indice
 
@@ -37,6 +37,15 @@ I prompt MCP sono workflow strutturati che guidano il modello LLM in sequenze di
 | `mappatura_normativa` | `settore`, `attivita_specifica?` | Mappa normativa completa per settore: Costituzione → UE → Nazionale → Secondario | `cite_law` (multiplo per livello) |
 | `analisi_giurisprudenziale` | `tema`, `archivio?` | Analisi orientamenti giurisprudenziali con lettura sentenze chiave | `cerca_giurisprudenza` → `leggi_sentenza` → `cerca_brocardi` → `cite_law` |
 | `compliance_privacy` | `titolare`, `tipo_trattamento`, `contesto` | Assessment GDPR completo | `analisi_base_giuridica` → `verifica_necessita_dpia` → `genera_dpia?` → `genera_registro_trattamenti` → `genera_informativa_privacy` → `genera_dpa?` |
+| `orientamento_giurisprudenziale` | `riferimento`, `archivio?` | Mappa descrittiva degli orientamenti di legittimità: conformi vs contrasti, interventi delle Sezioni Unite, evoluzione temporale | `orientamento_su_norma` → `mappa_orientamento` → `leggi_sentenza` |
+| `analisi_tributaria` | `tema`, `ente?` | Giurisprudenza tributaria (Cassazione, CGT I e II grado) | `cerca_giurisprudenza_tributaria` → `cerdef_leggi_provvedimento` → `cite_law` |
+| `analisi_giurisprudenza_amministrativa` | `tema`, `sede?` | Giurisprudenza TAR e Consiglio di Stato | `cerca_giurisprudenza_amministrativa` → `leggi_provvedimento_amm` → `cite_law` |
+| `analisi_giurisprudenza_europea` | `tema`, `corte?` | Giurisprudenza Corte di Giustizia UE e Tribunale UE | `cerca_giurisprudenza_cgue` → `leggi_sentenza_cgue` → `cite_law` |
+| `analisi_costituzionale` | `tema`, `tipo?` | Pronunce della Consulta con i parametri costituzionali invocati | `cerca_pronuncia_costituzionale` → `leggi_pronuncia_costituzionale` → `cite_law` |
+| `attuazione_direttiva` | `direttiva` | Recepimento di una direttiva UE: atto italiano di attuazione e giurisprudenza CGUE collegata | `get_italian_implementation` → `cite_law` → `cerca_giurisprudenza_cgue` |
+| `ricerca_gazzetta` | `tema`, `serie?` | Atti pubblicati in Gazzetta Ufficiale: ricerca parametrica, testo as-published, PDF ufficiale | `cerca_gazzetta_ufficiale` → `leggi_atto_gazzetta` → `scarica_pdf_gazzetta` |
+| `analisi_delibere_consob` | `tema`, `tipologia?`, `argomento?` | Delibere e provvedimenti CONSOB su un tema, con quadro TUF/MiFID | `cerca_delibere_consob` → `leggi_delibera_consob` → `cite_law` |
+| `novita_consob` | `tipologia?`, `argomento?` | Ultime delibere CONSOB con sintesi degli orientamenti | `ultime_delibere_consob` → `leggi_delibera_consob` |
 
 ### Dettaglio per prompt
 
@@ -89,6 +98,12 @@ Le risorse MCP sono documenti di riferimento statici accessibili tramite URI `le
 | `legal://riferimenti/fonti-diritto-italiano` | Gerarchia Fonti del Diritto Italiano | Gerarchia 5 livelli (Costituzione → UE → Primarie → Secondarie → Usi), criteri antinomie, tipi di abrogazione, guida formato citazione |
 | `legal://riferimenti/codici-e-leggi-principali` | Codici e Leggi Principali — Riferimento Rapido | Indice ragionato: codici classici, testi unici, leggi fondamentali, normativa UE chiave (GDPR, AI Act, DORA, DSA, NIS2, EHDS) |
 | `legal://riferimenti/gdpr-checklist` | GDPR Compliance — Checklist Operativa | 8 sezioni: mappatura trattamenti, basi giuridiche, informative, DPA (art. 28), DPIA, data breach, sanzioni (art. 83), scadenze |
+| `legal://riferimenti/ricerca-giurisprudenziale` | Italgiure — Guida alla Ricerca | Strategia esplora → filtra → leggi, sintassi Solr, facet, campi degli archivi `snciv` e `snpen` |
+| `legal://riferimenti/cerdef-giurisprudenza` | CeRDEF — Giurisprudenza Tributaria | Enti (Cassazione, CGT I e II grado), criteri di ricerca, norme fiscali principali |
+| `legal://riferimenti/giustizia-amministrativa` | Giustizia Amministrativa — Guida TAR/CdS | 31 sedi con i codici restituiti dalla ricerca, tipi di provvedimento, limite del filtro per anno, workflow |
+| `legal://riferimenti/cgue-giurisprudenza` | CGUE — Guida alla Ricerca | Corti, materie, formato CELEX/ECLI, workflow SPARQL su CELLAR |
+| `legal://riferimenti/consob-delibere` | CONSOB — Guida alle Delibere | Tipologie, argomenti, normativa dei mercati finanziari (TUF, MiFID) |
+| `legal://riferimenti/modelli-atti-catalogo` | Catalogo Modelli di Atti | 100 tipi di atti generabili: routing, tool e resource di riferimento, campi obbligatori |
 
 ---
 

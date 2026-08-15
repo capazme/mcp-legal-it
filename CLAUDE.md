@@ -20,10 +20,11 @@ Se un agente non vede `leggi_sentenza`, è perché sta guardando il server sbagl
 
 | Layer | Tecnologia |
 |-------|-----------|
-| Framework MCP | FastMCP >= 2.0 (`@mcp.tool()`, `@mcp.prompt()`, `@mcp.resource()`) |
+| Framework MCP | FastMCP >= 2.0, < 4 (`@mcp.tool()`, `@mcp.prompt()`, `@mcp.resource()`) |
 | HTTP client | httpx >= 0.27 (async) |
 | HTML scraping | BeautifulSoup4 + lxml |
 | PDF generation | fpdf2 |
+| DOCX / XLSX | python-docx, openpyxl |
 | Python | >= 3.10, venv in `.venv/` |
 | Test | pytest + pytest-asyncio |
 
@@ -52,8 +53,16 @@ mcp-legal-it/
 │   │   │   └── client.py      # search_provvedimenti(), fetch_provvedimento_text(), format_*()
 │   │   ├── cgue/              # Client CGUE (CELLAR SPARQL + EUR-Lex)
 │   │   │   └── client.py      # search_giurisprudenza(), fetch_sentenza_text(), format_*()
-│   │   └── vies/                  # Client VIES (validazione P.IVA UE)
-│   │       └── client.py          # check_vat(), checksum_partita_iva()
+│   │   ├── corte_cost/        # Client Corte Costituzionale
+│   │   │   └── client.py      # search_pronunce(), fetch_pronuncia(), format_*()
+│   │   ├── gazzetta/          # Client Gazzetta Ufficiale (ricerca + RSS)
+│   │   │   └── client.py      # search_atti(), fetch_atto(), sommario(), format_*()
+│   │   ├── gpdp/              # Client Garante Privacy (Liferay scraper)
+│   │   │   └── client.py      # search_provvedimenti(), fetch_provvedimento(), format_*()
+│   │   ├── eu_implementation/ # Recepimento direttive UE -> Italia (EUR-Lex)
+│   │   │   └── client.py      # get_national_measures(), format_*()
+│   │   └── vies/              # Client VIES (validazione P.IVA UE)
+│   │       └── client.py      # check_vat(), checksum_partita_iva()
 │   └── tools/
 │       ├── legal_citations.py # cite_law, fetch_law_article, fetch_law_annotations, cerca_brocardi, download_law_pdf
 │       ├── italgiure.py       # leggi_sentenza, cerca_giurisprudenza, giurisprudenza_su_norma, ultime_pronunce
@@ -73,36 +82,25 @@ mcp-legal-it/
 │       ├── cerdef.py          # cerca_giurisprudenza_tributaria, cerdef_leggi_provvedimento, ultime_sentenze_tributarie
 │       ├── giustizia_amm.py   # cerca_giurisprudenza_amministrativa, leggi_provvedimento_amm, giurisprudenza_amm_su_norma, ultimi_provvedimenti_amm
 │       ├── cgue.py            # cerca_giurisprudenza_cgue, leggi_sentenza_cgue, giurisprudenza_cgue_su_norma, ultime_sentenze_cgue
+│       ├── gazzetta.py       # cerca_gazzetta_ufficiale, leggi_atto_gazzetta, sommario_gazzetta, ultime_gazzette, scarica_pdf_gazzetta
+│       ├── corte_cost.py     # cerca_pronuncia_costituzionale, leggi_pronuncia_costituzionale, pronunce_cost_su_norma, ultime_pronunce_cost
+│       ├── gpdp.py           # cerca_provvedimenti_garante, leggi_provvedimento_garante, ultimi_provvedimenti_garante
+│       ├── orientamento.py   # orientamento_su_norma, orientamento_su_principio, mappa_orientamento
+│       ├── eu_implementation.py      # get_italian_implementation, get_eu_basis, elenco_misure_nazionali
+│       ├── giurisprudenza_unificata.py # cerca_giurisprudenza_unificata
+│       ├── diritto_lavoro.py         # licenziamento, preavviso, NASpI, costo lavoro
+│       ├── diritto_societario.py     # quorum, soglie organo di controllo, scadenze societarie
+│       ├── crisi_impresa.py          # test crisi, composizione negoziata, concordato, compenso OCC
+│       ├── procedura_civile.py       # competenza_giudice, mediazione obbligatoria, gratuito patrocinio
+│       ├── modelli_atti.py           # genera_modello_atto, esporta_atto_docx, lista_categorie_atti
 │       ├── privacy_gdpr.py
 │       ├── procure_quotazioni.py  # genera_procura_liti_docx, genera_quotazione_docx
 │       └── analisi_fornitori.py   # verifica_partita_iva_vies, genera_report_fornitori
-└── tests/
-    ├── unit/
-    │   ├── test_calculations.py     # Test calcoli numerici
-    │   ├── test_legal_citations.py  # Test cite_law, resolve_act, PDF helpers
-    │   ├── test_brocardi.py         # Test scraper Brocardi e tool cerca_brocardi
-    │   ├── test_consob.py          # Test scraper CONSOB e 3 tool delibere
-    │   ├── test_privacy_gdpr.py   # Test 12 tool GDPR/Privacy compliance
-    │   ├── test_cerdef.py         # Test CeRDEF scraper e 3 tool tributari (88 test)
-    │   ├── test_giustizia_amm.py  # Test GA scraper e 4 tool TAR/CdS (90 test)
-    │   ├── test_cgue.py           # Test CGUE SPARQL client e 4 tool (76 test)
-    │   ├── test_http_retry.py     # Test retry helper con backoff
-    │   ├── test_atti_giudiziari.py     # Test 23 tool atti giudiziari (134 test)
-    │   ├── test_scadenze_termini.py    # Test 11 tool scadenze processuali (91 test)
-    │   ├── test_fatturazione_avvocati.py # Test 12 tool parcelle DM 55/2014 (100 test)
-    │   ├── test_dichiarazione_redditi.py # Test 15 tool IRPEF/fiscale (121 test)
-    │   ├── test_proprieta_successioni.py # Test 12 tool proprietà/successioni (110 test)
-    │   ├── test_rivalutazioni_istat.py   # Test 11 tool rivalutazione ISTAT (70 test)
-    │   ├── test_tassi_interessi.py       # Test 10 tool interessi/tassi (59 test)
-    │   ├── test_varie.py                 # Test 12 tool utility varie (79 test)
-    │   ├── test_parcelle_professionisti.py # Test 11 tool parcelle professionisti (79 test)
-    │   ├── test_risarcimento_danni.py    # Test 7 tool risarcimento danni (75 test)
-    │   ├── test_investimenti.py          # Test 5 tool investimenti (48 test)
-    │   ├── test_diritto_penale.py        # Test 5 tool diritto penale (49 test)
-    │   ├── test_vies.py               # Test client VIES + tool verifica_partita_iva_vies
-    │   └── test_analisi_fornitori.py  # Test validazione + report xlsx fornitori
-    └── comparison/                  # Test di confronto con valori attesi
-        └── test_privacy_docs.py   # Test parametri e riferimenti normativi privacy
+└── tests/                     # 2452 test in 44 file (43 unit + 1 comparison)
+    ├── unit/                  # mock HTTP, nessuna connessione esterna
+    │   └── test_<modulo>.py   # un file per modulo tool o lib
+    └── comparison/            # valori numerici attesi, senza mock
+        └── test_privacy_docs.py
 ```
 
 ## Tool disponibili (32 moduli, 218 tool)
@@ -155,21 +153,32 @@ mcp-legal-it/
 | `ultime_sentenze_cgue(corte?, tipo_documento?, materia?)` | Ultime decisioni CGUE depositate |
 
 ### Calcoli (tool numerici, non richiedono cite_law)
-1. Rivalutazione monetaria (11 tool) — ISTAT, TFR, canoni
+1. Rivalutazione monetaria (12 tool) — ISTAT, TFR, canoni
 2. Interessi e tassi (10 tool) — legali, mora, TAEG, ammortamento
 3. Scadenze processuali (11 tool) — Cartabia, impugnazioni, esecuzioni
-4. Atti giudiziari (15 tool) — contributo unificato, pignoramento, decreto ingiuntivo
-5. Parcelle avvocati (11 tool) — D.M. 55/2014, civile, penale, stragiudiziale
+4. Atti giudiziari (23 tool) — contributo unificato, pignoramento, decreto ingiuntivo
+5. Parcelle avvocati (12 tool) — D.M. 55/2014, civile, penale, stragiudiziale
 6. Parcelle professionisti (11 tool) — CTU, mediazione, compenso orario
 7. Risarcimento danni (7 tool) — biologico micro/macro, parentale, INAIL
 8. Diritto penale (5 tool) — pena, prescrizione, conversione
-9. Proprietà e successioni (11 tool) — eredità, IMU, usufrutto
+9. Proprietà e successioni (12 tool) — eredità, IMU, usufrutto
 10. Investimenti (5 tool) — BOT, BTP, buoni postali
-11. Dichiarazione redditi (14 tool) — IRPEF, regime forfettario, TFR
+11. Dichiarazione redditi (16 tool) — IRPEF, regime forfettario, TFR
 12. Varie (12 tool) — codice fiscale, IBAN, ATECO, prescrizione diritti
 13. Privacy/GDPR (12 tool) — informative privacy, cookie, DPA, DPIA, data breach, sanzioni
 14. Recupero crediti seriale (2 tool) — `genera_procura_liti_docx` (procura art. 83 c.p.c. DOCX pronta-firma), `genera_quotazione_docx` (lettera quotazione D.M. 55/2014: monitorio fase unica / esecuzione / opposizione, con accettazione cliente)
 15. Analisi fornitori (2 tool) — `verifica_partita_iva_vies` (VIES), `genera_report_fornitori` (Excel standard screening privacy mastrino)
+16. Diritto del lavoro (6 tool) — licenziamento, preavviso, NASpI, costo del lavoro, offerta conciliativa
+17. Diritto societario (4 tool) — quorum assembleari, soglie organo di controllo SRL, scadenze societarie, costi di costituzione
+18. Crisi d'impresa (4 tool) — test indicatori (art. 3 CCII), composizione negoziata, concordato preventivo, compenso OCC
+19. Procedura civile (3 tool) — competenza per valore e materia, mediazione obbligatoria, gratuito patrocinio
+20. Modelli di atti (3 tool) — `genera_modello_atto`, `esporta_atto_docx`, `lista_categorie_atti` (100 tipi di atti)
+
+Consultazione e ricerca, oltre alle tabelle sopra: Gazzetta Ufficiale (5),
+Corte Costituzionale (4), Garante Privacy (3), orientamenti giurisprudenziali (3),
+recepimento UE→IT (3), ricerca giurisprudenziale unificata (1).
+
+Elenco completo e verificato dei 218 tool, con firma e descrizione: `docs/tools-catalog.md`.
 
 ### Privacy/GDPR Compliance
 | Tool | Descrizione |
@@ -402,13 +411,37 @@ cerca_brocardi("art. 2043 c.c.")
 
 ## Giustizia Amministrativa — note tecniche
 
+> **Portale riorganizzato nel 2026 (issue #32)** — il vecchio path
+> `/web/guest/-/ricerca-giurisprudenza` risponde 404 e il vecchio path del testo
+> integrale `/mdp/atti/<file>` risponde **200 con una pagina di errore HTML**.
+> I test unitari precedenti usavano fixture inventate e non hanno intercettato la
+> rottura: le fixture attuali sono copie del markup reale e i test `@pytest.mark.live`
+> in `tests/unit/test_giustizia_amm.py` sono il guard-rail contro il prossimo spostamento.
+
 - **Sito**: `https://www.giustizia-amministrativa.it`
-- **Framework**: Liferay Portal (stesso di CONSOB) — portlet `decisioni_pareri_web_WAR_decisioni_pareri_webportlet`
-- **CSRF**: `p_auth` token da estrarre con GET iniziale (input hidden o form action URL)
-- **Risultati**: HTML `<article class="ricerca--item">` con attributi `data-sede`, `data-nrg`, `nomeFile`
-- **Testo completo**: sottodominio `mdp.giustizia-amministrativa.it` — XML strutturato `<GA>` con `<epigrafe>`, `<motivazione>`, `<dispositivo>`
-- **SSL**: `verify=False` necessario (come Italgiure)
-- **Sedi**: 28 (CdS, CGARS, tutti i TAR regionali)
+- **Ricerca**: `/web/guest/dcsnprr` — POST all'`action` del form `provvedimentiForm`
+- **Framework**: Liferay Portal (stesso di CONSOB) — portlet `decisioni_pareri_web_DecisioniPareriWebPortlet_INSTANCE_<hash>`.
+  L'id contiene un hash d'istanza che può cambiare: viene **letto a runtime** dalla pagina
+  (`_extract_portlet_id`), la costante nel client è solo fallback
+- **CSRF**: `p_auth` token nell'URL dell'`action` del form (o input hidden). Il client
+  riusa l'action verbatim, così un rename di lifecycle/action continua a funzionare
+- **Parametri**: `searchtextProvvedimenti` (query), `sedeProvvedimenti`, `TipoProvvedimentoItem`,
+  `pageSize`, `numeroProvvedimenti`. Vanno inviati **tutti** i campi del form
+- **Sedi sul filo**: nomi di città (`Roma`, `Milano`), non più codici (`TARLAZ`).
+  `SEDI` mappa le chiavi parlanti → città; `_LEGACY_SEDE_CODES` accetta ancora i vecchi codici
+- **Filtro anno**: non esiste più lato server se non abbinato al numero
+  (`numeroProvvedimenti` = `YYYYNNNNN`, es. `202301234`). Da solo è applicato client-side
+- **Risultati**: `<article class="ricerca--item">`; gli attributi `data-sede`/`data-nrg` stanno
+  su un `<a>` **interno**, non sull'article. Il footer di paginazione ha la stessa classe ma
+  nessun link: richiedere il link lo esclude
+- **Testo completo**: `mdp.giustizia-amministrativa.it/visualizza/?schema=<code>&nrg=<nrg>&nomeFile=<file>&subDir=Provvedimenti`
+- **Formato**: XML `<GA><Provvedimento>` — le sezioni sono **annidate**, quindi serve `.//`;
+  il corpo spesso sta in `<premessa>` (non `<motivazione>`, che può essere vuota) e il testo
+  è dentro `<div>` HTML namespaced → estrarre con `itertext()`. Ignorare le varianti `*Ted` (bilingue Bolzano)
+- **URL stantii**: rispondono 200 con HTML "404 - Pagina non trovata" → `_is_error_page()`
+- **SSL**: `verify=False` nel client — **non più necessario**: dal 2026-08 entrambi i domini
+  presentano certificati validi (verificato). Rimuoverlo è un miglioramento di sicurezza pendente
+- **Sedi**: 31 (CdS, CGARS, tutti i TAR incl. sezioni staccate Latina/Brescia/Parma)
 - **Max text**: 15000 caratteri (motivazioni CdS molto lunghe)
 - **Tag MCP**: `"giurisprudenza_amm"`, `"normativa"`
 
@@ -676,6 +709,7 @@ docker run -p 8000:8000 -e MCP_TRANSPORT=sse mcp-legal-it
 | `privacy` | privacy, normativa, giurisprudenza | GDPR/Privacy |
 | `studio` | scadenze, giudiziario, parcelle_avv, parcelle_prof, investimenti | Studio legale generico |
 | `redattore` | atti, giudiziario, parcelle_avv, scadenze, normativa | Redazione atti giudiziari |
+| `cowork` | normativa, giurisprudenza, privacy, parcelle_avv | Sessioni Cowork (set ridotto) |
 
 ### Timeout HTTP differenziati
 
