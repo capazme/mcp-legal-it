@@ -8,6 +8,13 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# cryptography >= 49 ships no macOS Intel wheel (arm64 only); an x86_64 Mac would
+# fall back to a source build needing Rust + OpenSSL and fail. Pin it there only.
+INTEL_MAC_PIN=()
+if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "x86_64" ]; then
+  INTEL_MAC_PIN=(--with "cryptography<49")
+fi
+
 # Detect server location (plugin/server/ in the marketplace layout)
 if [ -d "$DIR/server" ]; then
   SERVER="$DIR/server"
@@ -20,6 +27,7 @@ if command -v uv &>/dev/null; then
   exec uv run --python 3.12 \
     --with "fastmcp>=2.0,<4" --with "httpx>=0.27" --with "beautifulsoup4>=4.12" \
     --with "lxml>=5.0" --with "fpdf2>=2.7" --with "python-docx>=1.0" --with "openpyxl>=3.1" \
+    ${INTEL_MAC_PIN[@]+"${INTEL_MAC_PIN[@]}"} \
     "$SERVER/run_server.py"
 fi
 
@@ -43,7 +51,8 @@ fi
 if [ ! -f "$VENV/bin/python" ]; then
   "$PYTHON" -m venv "$VENV"
   "$VENV/bin/pip" install -q --disable-pip-version-check \
-    "fastmcp>=2.0,<4" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0" "openpyxl>=3.1"
+    "fastmcp>=2.0,<4" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0" "openpyxl>=3.1" \
+    "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'"
 fi
 
 exec "$VENV/bin/python" "$SERVER/run_server.py"
