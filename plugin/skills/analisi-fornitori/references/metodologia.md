@@ -8,6 +8,7 @@
   "piva_cf": "11 cifre P.IVA o 16 caratteri CF, oppure null",
   "fonte_piva": "mastrino | vies | web | null",
   "attivita": "sintesi dalla ricerca (con fonte)",
+  "classe_attivita": "obbligatorio — etichetta breve minuscola del TIPO di fornitore (es. giornalista, social media manager, hosting/cloud, ristorazione). Riusa SEMPRE, identica, un'etichetta già in uso quando il fornitore vi rientra: mai un sinonimo o una variante più specifica (`giornalista`, non `giornalista freelance`). Fornitori dello stesso tipo DEVONO avere la stessa qualificazione: il tool rifiuta il lotto se una classe ne porta due — ma confronta le etichette per stringa esatta, quindi un sinonimo gli nasconde l'incoerenza.",
   "categorie_dati": "categorie di dati presumibilmente trattate",
   "qualificazione": "responsabile | titolare_autonomo | fuori_perimetro",
   "motivazione": "obbligatoria, sintetica",

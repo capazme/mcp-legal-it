@@ -1,7 +1,7 @@
 ---
 name: analisi-fornitori
 description: Usa questa skill quando il cliente invia il mastrino fornitori (o un elenco fatture/fornitori) e serve lo screening privacy — es. «analizza il mastrino fornitori», «chi dobbiamo nominare responsabile ex art. 28», «screening fornitori GDPR», «analisi fornitori per la nomina», «il cliente ci ha mandato l'elenco dei fornitori/fatture». Estrae i fornitori da qualunque formato (Excel, CSV, PDF, scansioni, corpo mail), li deduplica, li identifica via web e VIES, ipotizza il ruolo privacy di ciascuno (Responsabile art. 28 / Titolare autonomo / Fuori perimetro) con confidenza tarata, produce l'Excel standard con genera_report_fornitori e, su conferma, le bozze di nomina ex art. 28 con genera_dpa per i responsabili senza DPA proprio.
-tools: [genera_dpa, genera_report_fornitori, verifica_partita_iva_vies]
+tools: [genera_dpa, genera_report_fornitori, verifica_dpa_fornitore, verifica_partita_iva_vies]
 ---
 
 # Analisi fornitori — screening privacy del mastrino
@@ -75,9 +75,30 @@ A blocchi di ~15 fornitori. Per ciascuno:
    `references/metodologia.md` §Identificazione). Cita sempre la fonte in `fonti`.
 3. **Classificazione**: applica `references/classificazione.md` (3 categorie,
    casi controversi con default e flag).
-4. **DPA** (solo responsabili): consulta `references/dpa-whitelist.md`; se non in
-   lista, ricerca mirata «{fornitore} data processing agreement / DPA / nomina
-   responsabile»; esito `si`/`no`/`da_verificare`.
+4. **DPA** (solo responsabili): chiama `verifica_dpa_fornitore(dominio=...)` con
+   il dominio del sito ufficiale già trovato al passo 2. Mappatura dell'esito:
+   - `dpa_dedicato` → `dpa_proprio: "si"`; l'URL dell'evidenza va in `fonti`.
+   - `clausola_in_condizioni` → `dpa_proprio: "si"` **e annota obbligatoriamente
+     in `note`** che la nomina è una clausola interna alle condizioni del
+     servizio, quindi la copertura dipende dal servizio effettivamente
+     acquistato (caso Aruba).
+   - `non_trovato` / `bloccato` / `dominio_irraggiungibile` → NON sono un «no»:
+     fai la ricerca mirata «{fornitore} data processing agreement / DPA / nomina
+     responsabile». Se anche la ricerca non trova nulla: PMI locale o fornitore
+     senza DPA pubblicato → `dpa_proprio: "no"` (serve la nomina del titolare,
+     tool `genera_dpa`); nel dubbio → `da_verificare`.
+
+   **In entrambi i casi `si`**, la pubblicazione non equivale alla copertura:
+   la nomina risulta di norma superflua solo se il DPA pubblicato è
+   effettivamente accettato o richiamato nel contratto stipulato con quel
+   fornitore — la pubblicazione da sola non basta. È una verifica che il tool
+   non esegue (accerta che il DPA esiste pubblicato, non che il cliente lo
+   abbia accettato).
+
+   **Una pagina che parla di GDPR non è un DPA.** Prima di scrivere `si` il
+   riferimento deve portare a un testo contrattuale che designa il fornitore
+   responsabile ex art. 28 — non all'informativa privacy del sito, non a una
+   pagina divulgativa sulla conformità.
 5. **Confidenza**: tabella in `references/metodologia.md` §Confidenza.
 
 Appendi ogni record completato ad `analisi` nel checkpoint a fine blocco.
@@ -92,13 +113,14 @@ Elabora a blocchi di ~15 fornitori; se il tuo ambiente supporta l'esecuzione par
 > di record canonici, nessun altro testo. Per ogni fornitore: (1) se ha P.IVA
 > usa il tool verifica_partita_iva_vies per confermare l'identità; (2) ricerca
 > web per attività/servizi, cita gli URL in `fonti`, non inventare nulla; (3)
-> classifica secondo le regole che seguono; (4) per i responsabili valuta se il
-> fornitore pubblica un proprio DPA standard; (5) taratura confidenza: `alto`
+> classifica secondo le regole che seguono; (4) per i responsabili chiama
+> verifica_dpa_fornitore col dominio del sito ufficiale e applica la mappatura
+> del passo 4 della skill, ricadendo sulla ricerca mirata se l'esito è
+> non_trovato/bloccato/dominio_irraggiungibile; (5) taratura confidenza: `alto`
 > solo con P.IVA confermata, nel dubbio abbassa. Fornitore non identificabile o
 > omonimia → categoria più probabile, confidenza `basso`, alternative in `note`.
 > REGOLE DI CLASSIFICAZIONE: {contenuto integrale di references/classificazione.md}
 > CONTRATTO RECORD: {sezione Contratto di references/metodologia.md}
-> WHITELIST DPA: {contenuto di references/dpa-whitelist.md}
 > FORNITORI DA ANALIZZARE: {blocco JSON da fornitori_unici}
 
 Al merge di ogni blocco applica i **guardrail**:

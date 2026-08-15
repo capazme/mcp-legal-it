@@ -396,6 +396,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `verifica_partita_iva_vies` | `verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT")` | Verifica una P.IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati. Per le P.IVA italiane esegue prima il checksum locale (niente rete se fallisce). |
 | `genera_report_fornitori` | `genera_report_fornitori(fornitori: list, cliente: str, data_analisi: str = "", file_sorgente: str = "", nome_file: str = "")` | Genera l'Excel standard dell'analisi privacy del mastrino fornitori: foglio Avvertenze + 11 colonne, responsabili senza DPA proprio in cima. Valida i record canonici (collect-all) e non scrive file parziali. |
+| `verifica_dpa_fornitore` | `verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "")` | Sonda il dominio del fornitore sui percorsi convenzionali per accertare se pubblica una nomina a responsabile ex art. 28 GDPR. Esiti: `dpa_dedicato`, `clausola_in_condizioni`, `non_trovato`, `bloccato`, `dominio_irraggiungibile`. Sostituisce la whitelist statica; le determinazioni sono in cache 90 giorni, i fallimenti mai. |
 
 ---
 
