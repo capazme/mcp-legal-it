@@ -2,7 +2,7 @@
 
 import importlib
 
-from src.tools.analisi_fornitori import _valida_fornitori
+from src.tools.analisi_fornitori import _valida_fornitori, genera_report_fornitori
 
 
 def _tool(fn_name: str):
@@ -18,6 +18,7 @@ def _riga_ok(**overrides) -> dict:
         "piva_cf": "01234567890",
         "fonte_piva": "mastrino",
         "attivita": "Hosting e SaaS gestionale",
+        "classe_attivita": "hosting/cloud",
         "categorie_dati": "Dati di clienti/utenti del titolare",
         "qualificazione": "responsabile",
         "motivazione": "SaaS che tratta dati per conto del titolare",
@@ -144,6 +145,7 @@ def _fuori(nome="CARTOLERIA ROSSI"):
         denominazione_mastrino=nome,
         qualificazione="fuori_perimetro",
         motivazione="Fornitore di soli beni",
+        classe_attivita="cancelleria",
     )
     riga.pop("probabilita_responsabile")
     riga.pop("dpa_proprio")
@@ -155,6 +157,7 @@ def _titolare(nome="STUDIO BIANCHI COMMERCIALISTI"):
         denominazione_mastrino=nome,
         qualificazione="titolare_autonomo",
         motivazione="Determina autonomamente finalità e mezzi",
+        classe_attivita="commercialista",
     )
     riga.pop("probabilita_responsabile")
     riga.pop("dpa_proprio")
@@ -269,3 +272,84 @@ class TestGeneraReport:
         cella = wb["Analisi fornitori"].cell(row=2, column=1)
         assert cella.data_type != "f"
         assert cella.value == formula_payload
+
+
+class TestCoerenzaClassi:
+    """A well-formed but incoherent set must not produce a report.
+
+    Regression guard for the Stand out run: 16 journalists qualified two
+    different ways depending only on which parallel block saw them.
+    """
+
+    def _rec(self, nome, qual, classe, **extra):
+        base = {
+            "denominazione_mastrino": nome,
+            "qualificazione": qual,
+            "motivazione": "test",
+            "confidenza": "medio",
+            "classe_attivita": classe,
+        }
+        if qual == "responsabile":
+            base["probabilita_responsabile"] = "media"
+            base["dpa_proprio"] = "no"
+        base.update(extra)
+        return base
+
+    def test_missing_classe_attivita_is_rejected(self):
+        r = self._rec("ACME SRL", "fuori_perimetro", "cancelleria")
+        del r["classe_attivita"]
+        errori = _valida_fornitori([r])
+        assert any("classe_attivita" in e for e in errori)
+
+    def test_coherent_class_passes(self):
+        recs = [
+            self._rec("NERI VALENTINA", "titolare_autonomo", "giornalista"),
+            self._rec("GAGLIANO GIULIA", "titolare_autonomo", "giornalista"),
+        ]
+        assert _valida_fornitori(recs) == []
+
+    def test_same_class_two_qualifications_is_rejected(self):
+        recs = [
+            self._rec("NERI VALENTINA", "fuori_perimetro", "giornalista"),
+            self._rec("DIGIACOMO ERIKA", "titolare_autonomo", "giornalista"),
+        ]
+        errori = _valida_fornitori(recs)
+        assert len(errori) == 1
+        assert "giornalista" in errori[0]
+        assert "fuori_perimetro" in errori[0]
+        assert "titolare_autonomo" in errori[0]
+        assert "NERI VALENTINA" in errori[0]
+        assert "DIGIACOMO ERIKA" in errori[0]
+
+    def test_class_label_is_normalised(self):
+        """'Giornalista ' and 'giornalista' are the same class."""
+        recs = [
+            self._rec("A", "fuori_perimetro", "Giornalista "),
+            self._rec("B", "titolare_autonomo", "  giornalista"),
+        ]
+        assert len(_valida_fornitori(recs)) == 1
+
+    def test_distinct_classes_may_differ(self):
+        recs = [
+            self._rec("A", "fuori_perimetro", "ristorazione"),
+            self._rec("B", "responsabile", "hosting/cloud"),
+        ]
+        assert _valida_fornitori(recs) == []
+
+    def test_long_conflict_reports_a_count_not_a_truncation(self):
+        """Never silently drop names: say how many were not listed."""
+        recs = [self._rec(f"FP{i}", "fuori_perimetro", "giornalista") for i in range(9)]
+        recs.append(self._rec("TA1", "titolare_autonomo", "giornalista"))
+        errori = _valida_fornitori(recs)
+        assert len(errori) == 1
+        assert "+4 altri" in errori[0]
+
+    def test_report_is_not_written_on_incoherence(self, tmp_path):
+        recs = [
+            self._rec("A", "fuori_perimetro", "giornalista"),
+            self._rec("B", "titolare_autonomo", "giornalista"),
+        ]
+        fn = getattr(genera_report_fornitori, "fn", genera_report_fornitori)
+        esito = fn(fornitori=recs, cliente="Test Srl")
+        assert esito.startswith("Errore di validazione")
+        assert "giornalista" in esito

@@ -54,7 +54,7 @@ Recepimento UE → get_italian_implementation(direttiva) → cite_law | get_eu_b
 Giurisprudenza → cerca_giurisprudenza(modalita="esplora") → cerca_giurisprudenza(filtri) → leggi_sentenza
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
 Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
-Analisi fornitori → verifica_partita_iva_vies → genera_report_fornitori → genera_dpa (nomine per i responsabili senza DPA)
+Analisi fornitori → verifica_partita_iva_vies → verifica_dpa_fornitore (dominio del fornitore; non_trovato/bloccato/dominio_irraggiungibile NON sono un "no": segue ricerca mirata) → genera_report_fornitori → genera_dpa (nomine per i responsabili senza DPA)
 Marchi → cerca_marchi | verifica_anteriorita_marchio(nome, classi) → leggi_marchio(st13)
 Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
 CONSOB → cerca_delibere_consob → leggi_delibera_consob
