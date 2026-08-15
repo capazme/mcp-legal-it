@@ -1,7 +1,28 @@
 {
-  "_description": "Indici FOI (Famiglie Operai e Impiegati) ISTAT — base 2015=100. Valori mensili. Usati per rivalutazione monetaria e adeguamento canoni.",
-  "_note": "Dati reali ISTAT (FOI senza tabacchi, base 2015=100) aggiornati a febbraio 2026. Da gennaio 2026 ISTAT usa base 2025=100 — i valori sono convertiti con coefficiente di raccordo 1.214. Fonte: ISTAT / rivaluta.it. Aggiornare mensilmente.",
+  "_description": "Indici FOI (Famiglie Operai e Impiegati) ISTAT senza tabacchi — serie storica raccordata in base 2015=100 (dal 2026 conversione dalla base 2025=100). Valori mensili. Usati per rivalutazione monetaria e adeguamento canoni.",
+  "_note": "Serie 1990-2025 in base 2015=100: valori ufficiali, riga 2025 verificata sui comunicati ISTAT in GU (n. 175 del 30-07-2025, cod. 25A04202; n. 43 del 21-02-2026, cod. 26A00824). Dal 2026: valori originali base 2025=100 in 'indici_base_2025', raccordati in 'indici' col coefficiente 1,214 (v. 'raccordo_basi'). Le variazioni ufficiali ex art. 81 L. 392/1978 sono in 'variazioni_ufficiali' e prevalgono sul calcolo per i periodi di 12/24 mesi a cavallo del ribasamento. Aggiornare mensilmente dopo ogni comunicato ISTAT in GU.",
   "base": "2015=100",
+  "raccordo_basi": {
+    "coefficiente": 1.214,
+    "da_base": "2025=100",
+    "a_base": "2015=100",
+    "fonte": "GU Serie Generale n. 144 del 24-06-2026, comunicato ISTAT 26A03169",
+    "nota": "Da gennaio 2026 ISTAT pubblica l'indice FOI in base 2025=100 (classificazione ECOICOP v2). I valori 2026 in 'indici' sono raccordati alla base 2015=100 moltiplicando per il coefficiente ufficiale 1,214 e arrotondando a 1 decimale."
+  },
+  "indici_base_2025": {
+    "2026": {"01": 100.4, "02": 100.9, "03": 101.5, "04": 102.5, "05": 102.8, "06": 102.8}
+  },
+  "variazioni_ufficiali": {
+    "_descrizione": "Variazioni percentuali ufficiali dell'indice FOI rispetto allo stesso mese dell'anno precedente (annuale_pct) e di due anni precedenti (biennale_pct), come pubblicate nei comunicati ISTAT in GU ex art. 81 L. 392/1978. Fanno fede per l'adeguamento dei canoni di locazione (art. 32 L. 392/1978).",
+    "2026": {
+      "01": {"annuale_pct": 0.8, "biennale_pct": 2.2, "gu": "GU Serie Generale n. 50 del 02-03-2026, comunicato ISTAT 26A00955"},
+      "02": {"annuale_pct": 1.1, "biennale_pct": 2.7, "gu": "GU Serie Generale n. 71 del 26-03-2026, comunicato ISTAT 26A01487"},
+      "03": {"annuale_pct": 1.5, "biennale_pct": 3.2, "gu": "GU Serie Generale n. 97 del 28-04-2026, comunicato ISTAT 26A02007"},
+      "04": {"annuale_pct": 2.6, "biennale_pct": 4.3, "gu": "GU Serie Generale n. 117 del 22-05-2026, comunicato ISTAT 26A02523"},
+      "05": {"annuale_pct": 3.0, "biennale_pct": 4.4, "gu": "GU Serie Generale n. 144 del 24-06-2026, comunicato ISTAT 26A03169"},
+      "06": {"annuale_pct": 2.9, "biennale_pct": 4.4, "gu": null, "fonte": "ISTAT, indice definitivo giugno 2026 pubblicato il 16-07-2026; comunicato ex art. 81 L. 392/1978 in attesa di pubblicazione in GU"}
+    }
+  },
   "indici": {
     "1990": {"01": 60.1, "02": 60.4, "03": 60.6, "04": 60.8, "05": 61.0, "06": 61.2, "07": 61.5, "08": 61.8, "09": 62.1, "10": 62.5, "11": 62.9, "12": 63.1},
     "1991": {"01": 63.8, "02": 64.3, "03": 64.7, "04": 65.1, "05": 65.4, "06": 65.7, "07": 66.0, "08": 66.3, "09": 66.7, "10": 67.1, "11": 67.4, "12": 67.7},
@@ -38,7 +59,7 @@
     "2022": {"01": 107.7, "02": 108.8, "03": 109.9, "04": 109.7, "05": 110.6, "06": 111.9, "07": 112.3, "08": 113.2, "09": 113.5, "10": 117.2, "11": 117.9, "12": 118.2},
     "2023": {"01": 118.3, "02": 118.5, "03": 118.0, "04": 118.4, "05": 118.6, "06": 118.6, "07": 118.7, "08": 119.1, "09": 119.3, "10": 119.2, "11": 118.7, "12": 118.9},
     "2024": {"01": 119.3, "02": 119.3, "03": 119.4, "04": 119.3, "05": 119.5, "06": 119.5, "07": 120.0, "08": 120.1, "09": 120.0, "10": 120.1, "11": 120.1, "12": 120.2},
-    "2025": {"01": 121.9, "02": 122.1, "03": 122.5, "04": 122.6, "05": 122.5, "06": 122.7, "07": 123.2, "08": 123.3, "09": 123.1, "10": 122.7, "11": 122.4, "12": 122.6},
-    "2026": {"01": 121.9, "02": 122.7}
+    "2025": {"01": 120.9, "02": 121.1, "03": 121.4, "04": 121.3, "05": 121.2, "06": 121.3, "07": 121.8, "08": 121.8, "09": 121.7, "10": 121.4, "11": 121.3, "12": 121.5},
+    "2026": {"01": 121.9, "02": 122.5, "03": 123.2, "04": 124.4, "05": 124.8, "06": 124.8}
   }
 }

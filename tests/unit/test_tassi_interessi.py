@@ -764,3 +764,35 @@ class TestCalcoloTaeg:
             importi_rate=430.0,
         )
         assert "TUB" in r["riferimento_normativo"] or "2008/48" in r["riferimento_normativo"]
+
+
+class TestMaggiorDannoAvvertenza:
+    def test_avvertenza_mese_non_pubblicato(self):
+        r = _call(
+            "calcolo_maggior_danno",
+            capitale=10000.0,
+            data_inizio="2024-01-01",
+            data_fine="2026-09-01",
+        )
+        assert "09/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
+
+    def test_senza_avvertenza_su_mesi_pubblicati(self):
+        r = _call(
+            "calcolo_maggior_danno",
+            capitale=10000.0,
+            data_inizio="2024-01-01",
+            data_fine="2026-06-01",
+        )
+        assert r["avvertenza"] is None
+
+    def test_pre_1990_errore_esplicito(self):
+        # prima della serie (1990) il tool deve fallire, non troncare la
+        # rivalutazione al 1990 mentre gli interessi corrono dal 1985
+        r = _call(
+            "calcolo_maggior_danno",
+            capitale=10000.0,
+            data_inizio="1985-01-01",
+            data_fine="2020-01-01",
+        )
+        assert "errore" in r
