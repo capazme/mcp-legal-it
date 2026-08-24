@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Copy to .mcp.json (git-ignored) to run the server from this checkout.",
+    "Paths resolve from the repository, so nothing here is machine-specific.",
+    "start_server.sh picks uv when available and falls back to a cached venv;",
+    "it is also the single place the runtime dependencies are declared, so this",
+    "file never has to repeat them. Drop the LEGAL_PROFILE entry to load all",
+    "tools, or set it to one of the profiles listed in README.md."
+  ],
+  "mcpServers": {
+    "legal-it": {
+      "command": "bash",
+      "args": ["plugin/start_server.sh"]
+    },
+    "legal-it-privacy": {
+      "command": "bash",
+      "args": ["plugin/start_server.sh"],
+      "env": {
+        "LEGAL_PROFILE": "privacy"
+      }
+    }
+  }
+}

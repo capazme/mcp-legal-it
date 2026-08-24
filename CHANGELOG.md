@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2026-08-24
+### Fixed
+- stop tracking `.mcp.json`: it carried the author's absolute paths into every
+  clone, so it resolved to nothing on any other machine and asked a third party
+  to approve a nested config on trust. `.mcp.json.example` replaces it, resolving
+  everything from the checkout via `plugin/start_server.sh`
+- `esporta-documento` told users to run the author's local venv for the PDF path,
+  which exists on no other machine — the skill now uses `uv`, the prerequisite the
+  plugin already declares
+- the Stop-hook citation gate matched `cost` as a bare substring, so "costi",
+  "costo" and "costante" read as a citation of the Costituzione and any nearby
+  `art. N` tripped it. Anchored to `cost.`/`costituzion...`; covered by
+  `tests/unit/test_citation_gate.py`
+- the citation gate only recognised the abbreviated `art. N`, so `articolo 2043
+  del codice civile`, `artt. 536 e 544 c.c.` and `articoli 2941 e 2946` — forms
+  Italian legal writing uses interchangeably — passed unchecked. The article
+  pattern is now shared with the `cite_law()` dedup, which previously failed to
+  match a reference written out in full, and the law-token list covers the named
+  codes (consumo, strada, crisi, navigazione, privacy, assicurazioni, contratti,
+  CCII, TUIR, TUF). Codes enumerated one by one on purpose: a bare `codice`
+  would have fired on codice fiscale, codice tributo and codice ATECO, which
+  this project handles as data. Norms asserted with no article number at all
+  stay out of reach of a regex and are deliberately not attempted
+- the citation gate also fired on norms quoted inside fenced code blocks and
+  inline spans — a sample tool payload or a fixture value is not the assistant
+  asserting what an article says. Caught red-handed while writing up this very
+  change: the gate nagged about an `art. 1284 c.c.` that appeared only inside a
+  block showing what a tool returns
+- the repo's own `.claude/settings.json` declared a Stop hook the plugin already
+  registers, so the gate fired twice with an identical message. It ran the LLM
+  `prompt` variant that `citation-gate.py` was written to replace for
+  over-firing; the plugin owns the hook, so the repo no longer declares it
+- the README badge advertised 177 tools against the 218 the server registers
+- the test counts in `CLAUDE.md` and `docs/testing.md` had not moved since the
+  comparison suite grew from 1 file to 30. Replaced with the file count and the
+  command that prints the current figure: an exact number in prose goes stale on
+  the next test added, which is the drift it was supposed to expose
+
+### Added
+- every table in `src/data/` declares a `_vintage` block (source, covered period,
+  who verifies it), `src/lib/_data.py` reads it, and the 65 tools that consume a
+  table now print it next to the number they derived from it. 16 tables are
+  declared; the 8 whose provenance is not yet established say so explicitly in
+  the tool output rather than staying silent
+- `scripts/update-data.py --strict` fails on a table with no `_vintage` or an
+  elapsed covered period, and warns on the ones still marked `da_verificare` —
+  new drift is blocked, known gaps stay visible without a permanently red build
+
+- `SECURITY.md` answers the questions an auditor asks before running this on
+  client matters: no telemetry, the full egress host list, what the nested
+  configs contain, how to fork and stay independent. `src/lib/_egress.py` holds
+  the allowlist as code and `tests/unit/test_egress_allowlist.py` fails the
+  build both on an undeclared host in `src/` and on a declared host missing
+  from `SECURITY.md`, so the document cannot drift from the code
+
+### Changed
+- CI also runs on pushes to `main`, which previously went unverified between
+  releases — `check_deps_sync` stayed red on `main` for days without a signal
+
 ## [2.11.1] - 2026-08-15
 
 ### Fixed

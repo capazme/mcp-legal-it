@@ -1,4 +1,8 @@
 {
+  "_vintage": {
+    "fonte": "art. 139 Cod. Ass. (DM 2025) e tabella unica nazionale macropermanenti (DM 2024)",
+    "verifica": "manuale"
+  },
   "_description": "Tabelle danno biologico — micropermanenti art. 139 CdA (DM 2025) e macropermanenti (tabella unica nazionale DM 2024)",
   "micropermanenti": {
     "_note": "Art. 139 Cod. Assicurazioni — DM 18/07/2025 (GU n.176 31/07/2025), in vigore da aprile 2025. Coefficienti progressione: Allegato A, art. 5 L.57/2001. anno_ultimo_dm alimenta il freshness check (scripts/update-data.py).",

@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -130,6 +131,7 @@ def _add_months(d: date, months: int) -> date:
 
 
 @mcp.tool(tags={"scadenze", "sinistro"})
+@sourced("festivita")
 def scadenza_processuale(
     data_evento: str,
     giorni: int,
@@ -178,6 +180,7 @@ def scadenza_processuale(
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_processuali_civili(
     data_udienza: str,
     tipo_termine: str,
@@ -278,6 +281,7 @@ def termini_processuali_civili(
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_separazione_divorzio(
     data_evento: str,
     tipo: str,
@@ -363,6 +367,7 @@ def termini_separazione_divorzio(
 
 
 @mcp.tool(tags={"scadenze", "sinistro"})
+@sourced("festivita")
 def scadenze_impugnazioni(
     data_pubblicazione: str,
     tipo_impugnazione: str,
@@ -469,6 +474,7 @@ def scadenze_impugnazioni(
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def scadenze_multe(
     data_notifica: str,
     tipo_ricorso: str,
@@ -548,6 +554,7 @@ def scadenze_multe(
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_memorie_repliche(data_udienza: str) -> dict:
     """Calcola in un'unica risposta tutte le scadenze per memorie e repliche ex art. 171-ter c.p.c.
     Vigenza: rito ordinario post-Cartabia (D.Lgs. 149/2022, in vigore dal 28/02/2023).
@@ -592,6 +599,7 @@ def termini_memorie_repliche(data_udienza: str) -> dict:
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_procedimento_semplificato(data_udienza: str) -> dict:
     """Calcola i termini per il procedimento semplificato di cognizione (rito Cartabia).
     Vigenza: artt. 281-decies, 281-undecies, 281-duodecies c.p.c. introdotti dal D.Lgs. 149/2022,
@@ -640,6 +648,7 @@ def termini_procedimento_semplificato(data_udienza: str) -> dict:
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_183_190_cpc(data_udienza: str) -> dict:
     """Calcola i termini ex art. 183 co. 6 e art. 190 c.p.c. (rito civile ordinario PRE-Cartabia).
     Vigenza: artt. 183 co. 6 e 190 c.p.c. nel testo previgente — applicabile SOLO a cause
@@ -730,6 +739,7 @@ def termini_183_190_cpc(data_udienza: str) -> dict:
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_esecuzioni(
     data_notifica_titolo: str,
     tipo: str = "pignoramento_mobiliare",
@@ -827,6 +837,7 @@ def termini_esecuzioni(
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_deposito_atti_appello(
     data_notifica_sentenza: str | None = None,
     data_pubblicazione: str | None = None,
@@ -914,6 +925,7 @@ def termini_deposito_atti_appello(
 
 
 @mcp.tool(tags={"scadenze"})
+@sourced("festivita")
 def termini_deposito_ctu(
     data_conferimento: str,
     giorni_termine: int = 60,

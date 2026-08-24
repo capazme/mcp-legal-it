@@ -4,7 +4,13 @@ Search:    https://www.giustizia-amministrativa.it/web/guest/dcsnprr
 Full text: https://mdp.giustizia-amministrativa.it/visualizza/ (XML <GA> format)
 
 Il sito usa Liferay Portal — nessuna API pubblica JSON. Scraping HTML via BeautifulSoup.
-SSL non valido su entrambi i domini — verify=False necessario (come Italgiure).
+
+TLS: entrambi i domini presentano una catena valida verificabile con il bundle di
+certifi, quindi la verifica resta ATTIVA. Storicamente era disabilitata (come per
+Italgiure, dove serve tuttora perché la sua CA non è in certifi): non reintrodurre
+verify=False senza aver prima verificato che il certificato sia davvero
+irrecuperabile — senza verifica un intermediario può sostituire l'XML dei
+provvedimenti che il client tratta come autentici.
 
 NOTA (issue #32) — il portale è stato riorganizzato nel 2026:
   - il vecchio path `/web/guest/-/ricerca-giurisprudenza` restituisce 404;
@@ -569,7 +575,6 @@ class GASession:
 
     async def __aenter__(self) -> "GASession":
         self._client = httpx.AsyncClient(
-            verify=False,
             timeout=_TIMEOUT,
             headers=_HEADERS,
             follow_redirects=True,

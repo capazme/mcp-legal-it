@@ -30,6 +30,9 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from src.lib._data import UNVERIFIED, all_datasets, vintage  # noqa: E402
+
 DATA_DIR = Path(__file__).parent.parent / "src" / "data"
 
 TEGM_SOURCE = "https://www.bancaditalia.it/compiti/vigilanza/compiti-vigilanza/tegm/"
@@ -312,6 +315,53 @@ def check_usufrutto(today: date) -> bool:
     return False
 
 
+# The seven tables above own their staleness logic, calibrated on each source's
+# publication calendar. This covers the other seventeen, which had no freshness
+# signal at all: a calculation resting on a hand-typed table that nobody has
+# dated is the failure mode a reader of this project called out in public.
+#
+# Deliberately asymmetric. A table that ships no `_vintage`, or one whose
+# declared period has elapsed, FAILS: that is new drift, and blocking it is the
+# whole point. A table already marked `da_verificare` only WARNS: eight of them
+# exist today, and a check that is red from the first run gets muted, which
+# would leave us exactly where we started.
+DEDICATED = {
+    "tegm", "indici_foi", "tassi_legali", "tassi_mora",
+    "irpef_scaglioni", "tabella_danno_bio", "usufrutto_coefficienti",
+}
+
+
+def check_vintages(today: date) -> bool:
+    """Returns True if stale. Covers every table's `_vintage` declaration."""
+    print(f"\n{BOLD}[vintage] Dichiarazione di freschezza di tutte le tabelle{RESET}")
+
+    mancanti, scadute, da_verificare = [], [], []
+    for name in all_datasets():
+        payload = json.loads((DATA_DIR / f"{name}.json").read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or "_vintage" not in payload:
+            mancanti.append(name)
+            continue
+        v = vintage(name)
+        if v.verifica == UNVERIFIED:
+            da_verificare.append(name)
+        elif name not in DEDICATED and v.scaduto(today):
+            scadute.append(f"{name} (copriva fino al {v.copre_fino_a})")
+
+    for name in mancanti:
+        print(stale(f"{name}.json non dichiara `_vintage`"))
+        print("  Azione: aggiungere il blocco (aggiornato_al / copre_fino_a / fonte / verifica)")
+    for voce in scadute:
+        print(stale(f"{voce} — periodo elapsed"))
+        print("  Azione: riconciliare con la fonte e spostare `copre_fino_a`")
+    if da_verificare:
+        print(warn(f"{len(da_verificare)} tabelle marcate `da_verificare`: {', '.join(da_verificare)}"))
+        print("  Non bloccante. Ognuna espone l'avviso nell'output dei tool finche' resta cosi'.")
+    if not mancanti and not scadute:
+        print(ok(f"{len(all_datasets()) - len(da_verificare)} tabelle con provenienza dichiarata"))
+
+    return bool(mancanti or scadute)
+
+
 def main() -> int:
     strict = "--strict" in sys.argv
     today = date.today()
@@ -327,6 +377,7 @@ def main() -> int:
         check_irpef(today),
         check_danno_bio(today),
         check_usufrutto(today),
+        check_vintages(today),
     ]
 
     stale_count = sum(stale_flags)
