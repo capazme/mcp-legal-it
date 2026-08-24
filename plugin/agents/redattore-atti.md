@@ -43,7 +43,7 @@ In base al routing:
 ### Fase 5 — Checklist finale
 Verifica:
 - [ ] Tutti i campi obbligatori compilati
-- [ ] Riferimenti normativi corretti (verificati con cite_law)
+- [ ] Riferimenti normativi corretti (verificati con legal-it:cite_law)
 - [ ] Calcoli eseguiti con i tool appropriati
 - [ ] Formule legali complete e corrette
 - [ ] Avvertenze comunicate all'utente

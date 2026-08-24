@@ -33,7 +33,7 @@ Chiama **tutte e sei** le `ultime_*`. Se l'utente ha indicato un tema o un setto
 
 ### 2. Deduplica
 
-Una stessa decisione puo' comparire in piu' liste (es. una sentenza tributaria della Cassazione presente sia in `ultime_pronunce` sia in `ultime_sentenze_tributarie`). Deduplica per estremi (numero + anno + organo) tenendo una sola occorrenza e annotando le fonti incrociate.
+Una stessa decisione puo' comparire in piu' liste (es. una sentenza tributaria della Cassazione presente sia in `legal-it:ultime_pronunce` sia in `legal-it:ultime_sentenze_tributarie`). Deduplica per estremi (numero + anno + organo) tenendo una sola occorrenza e annotando le fonti incrociate.
 
 ### 3. Raggruppamento per fonte
 
@@ -91,7 +91,7 @@ Produci un unico documento markdown con questa struttura:
 | ... | ... | ... |
 
 ## Norme citate
-- **<articolo>** — <testo vigente sintetico via cite_law>
+- **<articolo>** — <testo vigente sintetico via legal-it:cite_law>
 ```
 
 ## Regole fondamentali

@@ -36,7 +36,7 @@ legal-it:cerca_giurisprudenza_unificata(query="...", fonti="tutte")
 Chiama `legal-it:cerca_giurisprudenza` con `modalita="esplora"` per ottenere la distribuzione senza documenti:
 
 ```
-cerca_giurisprudenza(query="...", modalita="esplora")
+legal-it:cerca_giurisprudenza(query="...", modalita="esplora")
 ```
 
 Analizza i facets restituiti (materia, sezione, anno, tipo provvedimento) per capire dove si concentrano i risultati.
@@ -53,7 +53,7 @@ In base ai facets, scegli i filtri piu' efficaci. Regole:
 ### Passo 3 — Cerca con filtri
 
 ```
-cerca_giurisprudenza(
+legal-it:cerca_giurisprudenza(
     query="\"frase esatta\"",
     materia="...",        # dal Passo 1
     sezione="...",        # dal Passo 1
@@ -66,7 +66,7 @@ Se i risultati sono ancora troppi, aggiungi filtri (anno, archivio) o usa `campo
 
 ### Passo 4 — HITL: presenta e chiedi (OBBLIGATORIO)
 
-**STOP. NON chiamare `leggi_sentenza` prima di completare questo passo.**
+**STOP. NON chiamare `legal-it:leggi_sentenza` prima di completare questo passo.**
 
 Presenta i risultati in tabella:
 
@@ -162,6 +162,6 @@ Restituisci un report strutturato:
 
 1. **Non citare mai numeri di sentenza a memoria** — usa solo risultati dei tool
 2. **Non fare web search per sentenze** — Italgiure e' la fonte ufficiale; web solo con consenso esplicito dell'utente e con avvertenza
-3. **Esplora PRIMA di cercare** — il Passo 1 e' obbligatorio (tranne con `giurisprudenza_articolo`)
+3. **Esplora PRIMA di cercare** — il Passo 1 e' obbligatorio (tranne con `legal-it:giurisprudenza_articolo`)
 4. **Virgolette per frasi esatte** — sempre, per query di 2+ parole correlate
 5. **Presenta e chiedi** — non leggere sentenze senza la scelta esplicita dell'utente

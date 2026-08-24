@@ -61,7 +61,7 @@ Lo script recupera `gtm.js`, verifica che sia il container reale (non uno stub) 
 Apri la **cookie policy** del sito (di norma linkata nel footer / nel banner) ed estrai la tabella dei cookie dichiarati. Confronta col reale: le policy auto-scansionate spesso elencano cookie di **CMP diverse** (es. `OptanonConsent` di OneTrust, `CookieConsent` di Cookiebot) o plugin **non in uso** (Elementor, WPML) → sono voci **spurie** da segnalare come difetto di trasparenza (art. 13 GDPR).
 
 ### Fase 4 — Sintesi, tabella e valutazione
-Consolida tutto in **una tabella unica** (vedi «Formato tabella»). Poi redigi la valutazione di conformità seguendo `references/compliance-checklist.md`. **Verifica le norme citate con `cite_law()`** (plugin legal-it) prima di finalizzare — es. `art. 13 GDPR`, `art. 5 GDPR`, `art. 122 D.Lgs. 196/2003`; segnala come fuori copertura la Dir. ePrivacy e il Provvedimento del Garante (soft law, non recuperabili).
+Consolida tutto in **una tabella unica** (vedi «Formato tabella»). Poi redigi la valutazione di conformità seguendo `references/compliance-checklist.md`. **Verifica le norme citate con `legal-it:cite_law()`** (plugin legal-it) prima di finalizzare — es. `art. 13 GDPR`, `art. 5 GDPR`, `art. 122 D.Lgs. 196/2003`; segnala come fuori copertura la Dir. ePrivacy e il Provvedimento del Garante (soft law, non recuperabili).
 
 ---
 
@@ -84,7 +84,7 @@ Richiede il pacchetto npm globale `docx` (`npm i -g docx`) — la stessa dipende
 
 ## Remediation (su richiesta)
 Quando emergono criticità, produci — vedi `references/compliance-checklist.md` § Remediation:
-1. **Bozza di cookie policy corretta** allineata allo stack reale (puoi usare `genera_informativa_cookie` del plugin legal-it come base, poi correggere l'inventario coi dati raccolti).
+1. **Bozza di cookie policy corretta** allineata allo stack reale (puoi usare `legal-it:genera_informativa_cookie` del plugin legal-it come base, poi correggere l'inventario coi dati raccolti).
 2. **Checklist di adeguamento** al Provvedimento del Garante, prioritizzata per gravità.
 
 ## Onestà del risultato
