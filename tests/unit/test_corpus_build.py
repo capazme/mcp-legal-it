@@ -7,7 +7,9 @@ from pathlib import Path
 REPO = Path(__file__).parents[2]
 
 def _assert_trees_equal(a: Path, b: Path) -> None:
-    cmp = filecmp.dircmp(a, b)
+    # OS metadata (Finder's .DS_Store) is outside the projection contract:
+    # it lives untracked in browsed checkouts and must not fail the gate.
+    cmp = filecmp.dircmp(a, b, ignore=filecmp.DEFAULT_IGNORES + [".DS_Store"])
     assert not cmp.left_only and not cmp.right_only and not cmp.diff_files, (
         f"{a} vs {b}: only_in_committed={cmp.left_only} only_in_fresh={cmp.right_only} "
         f"diff={cmp.diff_files}"
