@@ -1,6 +1,6 @@
 # Claude Code Plugin — mcp-legal-it
 
-> Documentazione del plugin per Claude Code: 23 skills, 8 slash command, 6 agenti specializzati, hooks.
+> Documentazione del plugin per Claude Code: 30 skills, 8 slash command, 6 agenti specializzati, hooks.
 
 ## Indice
 
@@ -19,7 +19,7 @@
 
 Il plugin `legal-it` aggiunge a Claude Code:
 
-- **23 skills** invocabili con `/skill-name` — ogni skill orchestra una sequenza di tool MCP
+- **30 skills** invocabili con `/skill-name` — ogni skill orchestra una sequenza di tool MCP
 - **6 agenti** configurati come sub-agenti specializzati con istruzioni di sistema e tool preferiti
 - **8 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/release`)
 - **1 hook** automatico: verifica del legal grounding a fine risposta
@@ -32,7 +32,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
   "plugins": [{
     "name": "legal-it",
     "source": "./plugin",
-    "description": "Plugin legale italiano completo: 218 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), compliance GDPR, export DOCX/PDF. 23 skill, 8 slash command, 6 agenti specializzati."
+    "description": "Plugin legale italiano completo: 218 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), compliance GDPR, export DOCX/PDF. 30 skill, 8 slash command, 6 agenti specializzati."
   }]
 }
 ```
@@ -72,7 +72,7 @@ Ogni skill è una directory con un file `SKILL.md` in formato frontmatter YAML +
 
 ## Skills — Workflow guidati
 
-### Tabella delle 23 skills
+### Tabella delle 30 skills
 
 Fonte: `plugin/skills/*/SKILL.md` (una directory per skill).
 
@@ -101,6 +101,13 @@ Fonte: `plugin/skills/*/SKILL.md` (una directory per skill).
 | `cookie-audit` | "analisi cookie", "audit cookie", "banner consenso", "che cookie usa il sito" | browser + `genera_informativa_cookie` |
 | `analisi-delibere-consob` | "delibere CONSOB", "provvedimenti mercati finanziari", "sanzioni CONSOB" | `cerca_delibere_consob`, `leggi_delibera_consob`, `cite_law` |
 | `novita-consob` | "ultime novità CONSOB", "delibere recenti" | `ultime_delibere_consob`, `leggi_delibera_consob` |
+| `analisi-tributaria` | Giurisprudenza tributaria: ricerca CeRDEF, lettura provvedimenti, sintesi orientamenti |
+| `analisi-giurisprudenza-amministrativa` | Giurisprudenza TAR/CdS: ricerca, lettura provvedimenti, sintesi orientamenti |
+| `analisi-giurisprudenza-europea` | Giurisprudenza CGUE: ricerca, lettura sentenze chiave, sintesi orientamenti |
+| `analisi-costituzionale` | Pronunce della Corte Costituzionale: ricerca, lettura, parametri invocati |
+| `ricerca-gazzetta` | Atti in Gazzetta Ufficiale: novità per serie, ricerca, testo e PDF ufficiale |
+| `orientamento-giurisprudenziale` | Orientamenti di legittimità: conformi vs contrasti, Sezioni Unite, evoluzione |
+| `attuazione-direttiva` | Recepimento direttive UE: misure nazionali, testo vigente, giurisprudenza CGUE |
 
 ### Formato SKILL.md
 
@@ -253,7 +260,7 @@ Verifica l'installazione:
 
 ```bash
 claude plugin list
-# → legal-it  v2.x.x  23 skills  6 agents
+# → legal-it  v2.x.x  30 skills  6 agents
 ```
 
 ### Utilizzo delle skills

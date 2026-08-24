@@ -243,7 +243,11 @@ Dataclass `DocResult` con `docweb_id`, `title`, `date`, `tipologia`, `argomenti`
 
 ## 6. Prompts e Resources
 
-### `src/prompts.py` — 23 prompt guidati (`@mcp.prompt()`)
+### `src/prompts.py` — 23 prompt guidati (`@mcp.prompt()`), GENERATED dal corpus
+
+> Dal 2026-08 questo file è generato da `scripts/corpus/generate_prompts.py` a
+> partire dai blocchi `prompt:` delle skill in `content/skills/`. Non modificarlo
+> a mano — vedi CONTRIBUTING.md § Generated files.
 
 Workflow pre-definiti che l'LLM può attivare: `analisi_sinistro`, `recupero_credito`,
 `causa_civile`, `pianificazione_successione`, `parere_legale`, `quantificazione_danni`,

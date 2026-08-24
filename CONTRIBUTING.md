@@ -1,5 +1,20 @@
 # Contribuire a mcp-legal-it
 
+## Generated files — edit the corpus, not the projections
+
+`content/` is the single source of truth for skills, agents, commands and
+static references. These paths are GENERATED from it and committed:
+
+- `plugin/skills/`, `plugin/agents/`, `plugin/commands/` — run `python scripts/corpus/project_claude.py`
+- `src/prompts.py` — run `python scripts/corpus/generate_prompts.py`
+- `src/data/references/` — copied by the projector
+
+Never edit those paths by hand: `tests/unit/test_corpus_build.py` fails the
+suite when a committed projection drifts from the corpus. After ANY edit under
+`content/`, run both scripts and commit source + projections together.
+
+---
+
 ## 1. Setup ambiente
 
 ```bash

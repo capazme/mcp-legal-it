@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Corpus consolidation (v3 phase 1): skills/agents/commands moved to `content/`
+  as the single source; `plugin/` subtrees and `src/prompts.py` are now
+  generated projections (`scripts/corpus/`). 7 prompt-only workflows promoted
+  to skills (23 → 30). 12 of 15 static resources extracted to
+  `content/references/`. MCP surface unchanged: 218 tools, 23 prompts,
+  15 resources.
+
 ## [2.12.1] - 2026-08-24
 
 ### Added

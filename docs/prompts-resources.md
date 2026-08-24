@@ -1,6 +1,8 @@
 # Prompts e Resources — mcp-legal-it
 
 > Documentazione dei 23 workflow guidati (`@mcp.prompt`) e delle 15 risorse statiche (`@mcp.resource`).
+>
+> Dal 2026-08 i prompt sono GENERATI dai blocchi `prompt:` delle skill (scripts/corpus/generate_prompts.py) e 12 delle 15 risorse sono file in content/references/.
 
 ## Indice
 
