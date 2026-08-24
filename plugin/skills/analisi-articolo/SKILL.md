@@ -37,7 +37,7 @@ Dalle annotazioni: versioni precedenti, leggi di modifica, motivazioni.
 ## Output atteso
 
 ### Testo vigente
-> [da cite_law]
+> [da legal-it:cite_law]
 
 ### Ratio legis
 Scopo e funzione nell'ordinamento.

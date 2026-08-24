@@ -19,7 +19,7 @@
 }
 ```
 
-Valori in snake_case minuscolo: il tool `genera_report_fornitori` valida e
+Valori in snake_case minuscolo: il tool `legal-it:genera_report_fornitori` valida e
 rifiuta tutto il lotto elencando le righe errate.
 
 ## Estrazione per formato
@@ -55,7 +55,7 @@ rifiuta tutto il lotto elencando le righe errate.
 - Fonti preferite, in ordine: sito ufficiale del fornitore; directory camerali
   (ufficiocamerale.it, registroimprese.it e derivati); pagine social aziendali
   solo in mancanza d'altro.
-- Se trovi una P.IVA via web: confermala con `verifica_partita_iva_vies` e, se
+- Se trovi una P.IVA via web: confermala con `legal-it:verifica_partita_iva_vies` e, se
   valida e compatibile con la denominazione, imposta `fonte_piva: "web"` (o
   `"vies"` se è il VIES a fornire la denominazione decisiva).
 - **Omonimia** (più soggetti plausibili) o nome generico: NON scegliere a caso.

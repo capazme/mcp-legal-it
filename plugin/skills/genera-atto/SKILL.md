@@ -55,20 +55,20 @@ Presenta l'atto completo con:
 - Riferimenti normativi verificati
 - Checklist allegati necessari
 - Avvertenze
-- Su richiesta, esporta l'atto in .docx con `esporta_atto_docx(testo=..., titolo=..., autore=...)` e comunica il percorso file restituito.
+- Su richiesta, esporta l'atto in .docx con `legal-it:esporta_atto_docx(testo=..., titolo=..., autore=...)` e comunica il percorso file restituito.
 
 ## Mapping parole chiave → tipo_atto
 
 | L'utente dice... | tipo_atto |
 |---|---|
 | decreto ingiuntivo, DI, ingiunzione | decreto_ingiuntivo_ordinario |
-| precetto, intimazione pagamento | atto_di_precetto |
-| sfratto, morosita locazione | sfratto_morosita |
+| precetto, intimazione pagamento | legal-it:atto_di_precetto |
+| sfratto, morosita locazione | legal-it:sfratto_morosita |
 | procura, mandato avvocato | procura_generale |
 | attestazione, conformita PCT | attestazione_estratto |
 | relata, notifica PEC | relata_pec_generica |
-| sollecito, messa in mora | sollecito_pagamento |
+| sollecito, messa in mora | legal-it:sollecito_pagamento |
 | citazione, atto introduttivo | citazione_ordinaria |
 | pignoramento, esecuzione | pignoramento_presso_terzi |
-| preventivo, costi causa | preventivo_civile |
+| preventivo, costi causa | legal-it:preventivo_civile |
 | informativa privacy | informativa_privacy_art13 |

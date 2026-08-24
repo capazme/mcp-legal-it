@@ -32,13 +32,13 @@ def _get_prompt_text(fn, **kwargs):
         pytest.param(
             ricerca_normativa,
             {"tema": "test", "area_diritto": "civile"},
-            ["esplora"],
+            ["Mai citare a memoria"],
             id="ricerca_normativa",
         ),
         pytest.param(
             analisi_delibere_consob,
             {"tema": "test"},
-            ["esplora"],
+            ["TUF (D.Lgs. 58/1998)"],
             id="analisi_delibere_consob",
         ),
         pytest.param(

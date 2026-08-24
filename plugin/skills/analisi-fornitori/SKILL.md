@@ -66,7 +66,7 @@ chiedi: *«N fornitori unici (da M righe). Procedo con la ricerca? [tempo stimat
 
 A blocchi di ~15 fornitori. Per ciascuno:
 
-1. **Aggancio**: se ha P.IVA → `verifica_partita_iva_vies(partita_iva=...)`. Se
+1. **Aggancio**: se ha P.IVA → `legal-it:verifica_partita_iva_vies(partita_iva=...)`. Se
    `valido` e `denominazione` compatibile → identità confermata (`fonte_piva`
    resta `"mastrino"`; annota la conferma). Se il VIES è indisponibile
    (`disponibile: false`) → prosegui web-only e annotalo in `note`.
@@ -89,7 +89,7 @@ compilando i placeholder:
 > Sei un DPO esperto di GDPR e prassi del Garante. Analizza questi fornitori del
 > cliente «{CLIENTE}» (titolare del trattamento) e restituisci SOLO un array JSON
 > di record canonici, nessun altro testo. Per ogni fornitore: (1) se ha P.IVA
-> usa il tool verifica_partita_iva_vies per confermare l'identità; (2) ricerca
+> usa il tool legal-it:verifica_partita_iva_vies per confermare l'identità; (2) ricerca
 > web per attività/servizi, cita gli URL in `fonti`, non inventare nulla; (3)
 > classifica secondo le regole che seguono; (4) per i responsabili valuta se il
 > fornitore pubblica un proprio DPA standard; (5) taratura confidenza: `alto`
@@ -107,7 +107,7 @@ Al merge di ogni blocco applica i **guardrail**:
 
 ## Fase 4 — Report
 
-Chiama `genera_report_fornitori(fornitori=<analisi dal checkpoint>,
+Chiama `legal-it:genera_report_fornitori(fornitori=<analisi dal checkpoint>,
 cliente=..., data_analisi=..., file_sorgente=...)`. Se restituisce errori di
 validazione, correggi i record indicati e richiama. Consegna il file all'utente
 e imposta `fase: "completata"` (report e nomine sono rigenerabili in qualsiasi
@@ -116,7 +116,7 @@ momento dai dati del checkpoint).
 ## Fase 5 — Nomine ex art. 28 (su conferma)
 
 Elenca i responsabili con `dpa_proprio: "no"` e chiedi UNA conferma per
-generarle tutte. Per ciascuno chiama `genera_dpa` con titolare = cliente,
+generarle tutte. Per ciascuno chiama `legal-it:genera_dpa` con titolare = cliente,
 responsabile = fornitore (usa denominazione confermata e P.IVA se nota) e la
 descrizione del trattamento derivata da `attivita`/`categorie_dati`. Un DOCX
 per fornitore. Ricorda all'utente che per i responsabili `da_verificare` va

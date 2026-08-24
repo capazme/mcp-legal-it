@@ -8,7 +8,7 @@ valore del credito. Classificare OGNI posizione prima di generare i documenti.
 Esaminare, nell'ordine, le colonne/informazioni di stato della posizione (es. in un
 foglio di controllo: "Esecutorietà", "Note", "Azione"):
 
-| Segnale | Fase | tipo per genera_quotazione_docx |
+| Segnale | Fase | tipo per legal-it:genera_quotazione_docx |
 |---------|------|--------------------------------|
 | Decreto dichiarato esecutivo (es. Esecutorietà = "V"), cartella "Esecuzione Forzata" in fascicolo, precetto notificato | Esecuzione forzata | `esecuzione` |
 | Note tipo "decreto ingiuntivo opposto" (anche "opposto ma non ancora notificato"), atto di opposizione in fascicolo | Opposizione a D.I. (art. 645 c.p.c.) | `opposizione` |

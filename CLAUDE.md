@@ -32,10 +32,24 @@ Se un agente non vede `leggi_sentenza`, è perché sta guardando il server sbagl
 
 ```
 mcp-legal-it/
+├── content/                    # sorgente unico skill/agent/command/reference — vedi scripts/corpus/
+│   ├── skills/                 # 30 skill (frontmatter + blocco prompt:)
+│   ├── agents/                 # 6 agenti
+│   ├── commands/                # 8 comandi
+│   ├── references/              # 12 delle 15 risorse legal:// (le altre 3 restano in resources.py)
+│   └── tool-vocabulary.json     # tassonomia tool usata dai generatori
+├── scripts/
+│   └── corpus/                  # generatori: project_claude.py, generate_prompts.py, extract_references.py, migrate_corpus.py, dump_vocabulary.py
+├── plugin/
+│   ├── skills/                  # GENERATED — proiezione di content/skills/ (project_claude.py)
+│   ├── agents/                  # GENERATED — proiezione di content/agents/ (project_claude.py)
+│   └── commands/                 # GENERATED — proiezione di content/commands/ (project_claude.py)
 ├── src/
 │   ├── server.py              # FastMCP entry point — registra tutti i tool
-│   ├── prompts.py             # 23 workflow guidati (@mcp.prompt)
+│   ├── prompts.py             # GENERATED — 23 prompt dal corpus (scripts/corpus/generate_prompts.py)
 │   ├── resources.py           # 15 risorse statiche (@mcp.resource)
+│   ├── data/
+│   │   └── references/        # GENERATED — copiato da content/references/ (project_claude.py)
 │   ├── lib/
 │   │   ├── visualex/          # Normattiva + EUR-Lex scraper
 │   │   │   ├── scraper.py     # fetch_article(), fetch_annotations(), fetch_normattiva_full_text()
@@ -550,7 +564,7 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 | 218 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — |
 | 15 risorse `legal://` | ✓ | — | — |
-| 23 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
+| 30 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
 | Transport stdio (locale) | ✓ | — | — |
 | Transport Streamable HTTP | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? |
