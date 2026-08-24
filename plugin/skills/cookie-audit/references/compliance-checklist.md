@@ -6,7 +6,7 @@
 - **Provvedimento del Garante 10 giugno 2021, «Linee guida cookie e altri strumenti di tracciamento»** [doc. web 9677876, reg. n. 231] — soft law che detta i requisiti operativi del banner.
 - **Trasferimenti USA**: dopo Schrems II, i tool Google (GA4, Ads) implicano trasferimento a Google LLC (USA); base attuale = **EU-US Data Privacy Framework** (decisione di adeguatezza 10.7.2023), di cui Google LLC è certificata. Da dichiarare in informativa.
 
-> **Verifica delle citazioni**: prima di finalizzare, richiama `cite_law()` (plugin legal-it) per gli articoli citati come norme di legge (es. `art. 13 GDPR`, `art. 5 GDPR`, `art. 122 D.Lgs. 196/2003`). La Direttiva ePrivacy e il Provvedimento del Garante sono **fuori copertura** di `cite_law()` (direttiva UE / atto amministrativo): segnalali esplicitamente come tali.
+> **Verifica delle citazioni**: prima di finalizzare, richiama `legal-it:cite_law()` (plugin legal-it) per gli articoli citati come norme di legge (es. `art. 13 GDPR`, `art. 5 GDPR`, `art. 122 D.Lgs. 196/2003`). La Direttiva ePrivacy e il Provvedimento del Garante sono **fuori copertura** di `legal-it:cite_law()` (direttiva UE / atto amministrativo): segnalali esplicitamente come tali.
 
 ## Checklist del banner (Provv. Garante 231/2021)
 Per ciascun punto: Conforme / Non conforme / Da verificare, con evidenza osservata.
@@ -37,7 +37,7 @@ Per ciascun punto: Conforme / Non conforme / Da verificare, con evidenza osserva
 ## Remediation (quando richiesta)
 
 ### 1. Bozza di cookie policy corretta
-Genera una base con `genera_informativa_cookie` (plugin legal-it), poi **sostituisci l'inventario** con i cookie realmente rilevati (tabella della Fase 4), rimuovendo le voci spurie e allineando durate/terze parti/categorie al comportamento osservato. L'informativa deve riflettere lo stack reale (CMP, tema, analytics), non un template generico.
+Genera una base con `legal-it:genera_informativa_cookie` (plugin legal-it), poi **sostituisci l'inventario** con i cookie realmente rilevati (tabella della Fase 4), rimuovendo le voci spurie e allineando durate/terze parti/categorie al comportamento osservato. L'informativa deve riflettere lo stack reale (CMP, tema, analytics), non un template generico.
 
 ### 2. Checklist di adeguamento (prioritizzata)
 Ordina gli interventi per gravità:

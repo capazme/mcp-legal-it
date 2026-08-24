@@ -22,7 +22,7 @@ Se il tema coinvolge piu' giurisdizioni, usa `legal-it:cerca_giurisprudenza_unif
 
 ## Fase 2 — Presentazione risultati e scelta utente (OBBLIGATORIA)
 
-**STOP. NON chiamare `leggi_sentenza` prima di completare questa fase.**
+**STOP. NON chiamare `legal-it:leggi_sentenza` prima di completare questa fase.**
 
 Presenta i risultati in tabella:
 
