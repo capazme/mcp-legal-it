@@ -1,4 +1,7 @@
-"""ONE-SHOT: extract the 12 inline-literal resources to content/references/*.md."""
+"""ONE-SHOT: extract the 12 inline-literal resources to content/references/*.md.
+
+Non ri-eseguibile dopo il Task 9: le 12 funzioni statiche non esistono più come attributi di modulo — conservato come audit record.
+"""
 from __future__ import annotations
 
 import sys

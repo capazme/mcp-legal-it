@@ -1622,3 +1622,14 @@ Report to the user (in Italian): counts before/after, the 4 normalized files, th
 3. **`plugin/` is partially generated**: `plugin/server/`, `plugin/hooks/`, `plugin/settings.json`, `plugin/.mcp.json`, `plugin/start_server.sh`, `plugin/.claude-plugin/` remain hand-maintained (the server itself lives inside `plugin/server/` — full generation was never possible). Generated subtrees: `skills/`, `agents/`, `commands/`, plus `src/prompts.py` and `src/data/references/`.
 4. **`release.py` is not modified** in Phase 1: the drift gate lives in pytest, which `release.py`'s existing `run_tests` gate already enforces. Builder integration happens in Phase 2.
 5. **Shared-reference wiring into individual skills** (spec: "skills that need them reference them by path") is deferred: the extraction + loader land now; no current skill embeds a shared reference, and the Phase 2 manifest is the right place for the wiring key.
+6. **Generated prompt bodies are the skill bodies** — thinner than the retired
+   hand-written prompts for 13 of the 16 de-duplicated workflows (31%-63% of the
+   old character count; e.g. `verifica_prescrizione` lost its FORMATO OUTPUT
+   table and the Bonafede/Cartabia regime warning; only `analisi_sinistro`,
+   `analisi_giurisprudenziale`, `parere_legale` are at parity). Names,
+   signatures and descriptions are unchanged (frozen-surface test). Back-fill
+   of the lost substantive material into the skill bodies is scheduled BEFORE
+   the 3.0.0 release, with the user reviewing what to reintegrate.
+7. **Resources runtime path**: `resources.py` reads the projected copies at
+   `src/data/references/`, not `content/references/` directly — the projected
+   copy is what keeps Docker/mcpb/marketplace distributions working unchanged.
