@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -50,6 +51,7 @@ def _interpola_punto_base(percentuale: int) -> float:
 
 
 @mcp.tool(tags={"danni"})
+@sourced("tabella_danno_bio")
 def danno_biologico_micro(
     percentuale_invalidita: int,
     eta_vittima: int,
@@ -145,6 +147,7 @@ def danno_biologico_micro(
 
 
 @mcp.tool(tags={"danni"})
+@sourced("tabella_danno_bio")
 def danno_biologico_macro(
     percentuale_invalidita: int,
     eta_vittima: int,
@@ -197,6 +200,7 @@ def danno_biologico_macro(
 
 
 @mcp.tool(tags={"danni"})
+@sourced("tabella_milano_roma")
 def danno_parentale(
     vittima: str,
     superstite: str,
@@ -413,6 +417,7 @@ def risarcimento_inail(
 
 
 @mcp.tool(tags={"danni"})
+@sourced("tabella_danno_bio")
 def danno_non_patrimoniale(
     percentuale_invalidita: int,
     eta_vittima: int,

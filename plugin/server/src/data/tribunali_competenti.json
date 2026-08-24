@@ -1,4 +1,8 @@
 {
+  "_vintage": {
+    "fonte": "circoscrizioni giudiziarie",
+    "verifica": "da_verificare"
+  },
   "roma": {"tribunale": "Tribunale di Roma", "giudice_pace": "Giudice di Pace di Roma"},
   "milano": {"tribunale": "Tribunale di Milano", "giudice_pace": "Giudice di Pace di Milano"},
   "napoli": {"tribunale": "Tribunale di Napoli", "giudice_pace": "Giudice di Pace di Napoli"},
