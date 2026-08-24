@@ -26,3 +26,13 @@ def test_claude_projection_matches_committed(tmp_path):
     refs = REPO / "plugin/server/src/data/references"
     if refs.is_dir():  # exists from Task 9 onward
         _assert_trees_equal(refs, tmp_path / "plugin/server/src/data/references")
+
+def test_generated_prompts_match_committed(tmp_path):
+    out = tmp_path / "prompts.py"
+    r = subprocess.run(
+        [sys.executable, str(REPO / "scripts/corpus/generate_prompts.py"), "--out", str(out)],
+        capture_output=True, text=True,
+    )
+    assert r.returncode == 0, r.stderr
+    committed = (REPO / "plugin/server/src/prompts.py").read_bytes()
+    assert out.read_bytes() == committed, "src/prompts.py drifted from the corpus — rerun generate_prompts.py"
