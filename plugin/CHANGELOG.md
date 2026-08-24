@@ -13,7 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   generated projections (`scripts/corpus/`). 7 prompt-only workflows promoted
   to skills (23 → 30). 12 of 15 static resources extracted to
   `content/references/`. MCP surface unchanged: 218 tools, 23 prompts,
-  15 resources.
+  15 resources. I corpi dei 23 prompt MCP derivano ora dai corpi delle skill
+  e per 13 workflow sono più sintetici dei precedenti; nomi, firme e
+  descrizioni sono invariati. I web-skills ZIP non sono più versionati
+  (plugin/dist è build output; si rigenerano con plugin/build-web-skills.py).
 
 ## [2.12.1] - 2026-08-24
 

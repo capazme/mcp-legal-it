@@ -32,7 +32,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
   "plugins": [{
     "name": "legal-it",
     "source": "./plugin",
-    "description": "Plugin legale italiano completo: 218 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), compliance GDPR, export DOCX/PDF. 30 skill, 8 slash command, 6 agenti specializzati."
+    "description": "Plugin legale italiano completo: 218 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 30 skill, 8 slash command, 6 agenti specializzati."
   }]
 }
 ```
@@ -74,7 +74,7 @@ Ogni skill è una directory con un file `SKILL.md` in formato frontmatter YAML +
 
 ### Tabella delle 30 skills
 
-Fonte: `plugin/skills/*/SKILL.md` (una directory per skill).
+Fonte: `content/skills/*/SKILL.md` (una directory per skill; `plugin/skills/` è una proiezione generata).
 
 | Nome | Frasi trigger | Tool principali usati |
 |------|--------------|----------------------|
@@ -138,7 +138,7 @@ I 6 agenti sono sub-agenti Claude Code con prompt di sistema specializzati e lis
 
 ### `civilista`
 
-**File**: `plugin/agents/civilista.md`
+**File**: `content/agents/civilista.md`
 **Modello**: `sonnet`
 
 Avvocato civilista esperto in contratti, responsabilità civile, successioni, diritti reali, obbligazioni e famiglia.
@@ -158,7 +158,7 @@ Avvocato civilista esperto in contratti, responsabilità civile, successioni, di
 
 ### `penalista`
 
-**File**: `plugin/agents/penalista.md`
+**File**: `content/agents/penalista.md`
 **Modello**: `sonnet`
 
 Avvocato penalista esperto in reati, pene, prescrizione, misure cautelari, riti alternativi e procedura penale.
@@ -181,7 +181,7 @@ Avvocato penalista esperto in reati, pene, prescrizione, misure cautelari, riti 
 
 ### `privacy-specialist`
 
-**File**: `plugin/agents/privacy-specialist.md`
+**File**: `content/agents/privacy-specialist.md`
 **Modello**: `sonnet`
 
 Specialista in protezione dei dati: GDPR (Reg. UE 2016/679), Codice Privacy (D.Lgs. 196/2003), provvedimenti Garante, normativa ePrivacy.
@@ -278,19 +278,25 @@ claude plugin list
 
 ## Creare una nuova skill
 
+Dalla consolidazione del corpus (v3), `content/` è la sorgente unica: `plugin/skills/`,
+`plugin/agents/` e `plugin/commands/` sono proiezioni **generate** da
+`scripts/corpus/project_claude.py` e vengono ricreate da zero (`rmtree` + rigenerazione)
+a ogni esecuzione — qualunque modifica fatta a mano dentro `plugin/skills/` viene persa
+alla prossima proiezione. La skill si crea e si modifica sempre sotto `content/skills/`.
+
 ### Template
 
 ```bash
-mkdir -p plugin/skills/nome-skill
+mkdir -p content/skills/nome-skill
 ```
 
-Creare `plugin/skills/nome-skill/SKILL.md`:
+Creare `content/skills/nome-skill/SKILL.md`:
 
 ```markdown
 ---
 name: nome-skill
 description: Descrizione concisa (una riga). Seconda frase con le frasi trigger che attivano la skill.
-argument-hint: "[param1: opzione1|opzione2] [param2 opzionale]"
+tools: [nome_tool, altro_tool]
 ---
 
 # Nome Skill — Titolo
@@ -323,9 +329,28 @@ Presenta i risultati in formato tabellare:
 - Avvertenza 2
 ```
 
+Il campo `tools:` elenca i nomi bare (senza prefisso `legal-it:`) dei tool MCP usati dalla
+skill: il projector li verifica contro `content/tool-vocabulary.json` e aggiunge il prefisso
+`mcp__legal-it__` solo alle proiezioni generate, mai al corpus sorgente.
+
+### Proiezione e commit
+
+Dopo aver scritto o modificato `content/skills/nome-skill/SKILL.md`, rigenerare le
+proiezioni:
+
+```bash
+python scripts/corpus/project_claude.py
+```
+
+Il comando rigenera `plugin/skills/`, `plugin/agents/`, `plugin/commands/` e
+`plugin/server/src/data/references/` da `content/`. Committare **sia** il file sorgente
+sotto `content/skills/` **sia** l'intero output rigenerato sotto `plugin/` nello stesso
+commit — la CI verifica che le due copie siano allineate.
+
 ### Registrazione
 
-La skill viene rilevata automaticamente da Claude Code se si trova nella directory `plugin/skills/`. Non è necessario modificare file di configurazione.
+La skill viene rilevata automaticamente da Claude Code se si trova (dopo la proiezione)
+nella directory `plugin/skills/`. Non è necessario modificare file di configurazione.
 
 ### Test manuale
 

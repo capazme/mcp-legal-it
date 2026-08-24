@@ -35,3 +35,17 @@ def test_registration_surface():
     assert len(tools) == 218, f"tool count changed: {len(tools)}"
     assert {p.name for p in prompts} == set(EXPECTED_PROMPTS)
     assert {str(r.uri) for r in resources} == EXPECTED_RESOURCE_URIS
+
+
+def test_tool_vocabulary_matches_server():
+    import json
+
+    from fastmcp import Client
+    from src.server import mcp
+
+    async def run():
+        async with Client(mcp) as c:
+            return sorted(t.name for t in await c.list_tools())
+
+    vocab = json.loads((Path(__file__).parents[2] / "content" / "tool-vocabulary.json").read_text())
+    assert asyncio.run(run()) == vocab, "content/tool-vocabulary.json drifted — rerun scripts/corpus/dump_vocabulary.py"
