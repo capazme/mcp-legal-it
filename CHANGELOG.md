@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.1] - 2026-08-24
+
+### Added
+- `cite_law()` — and every tool sharing its resolver (`cerca_brocardi`,
+  `fetch_full_act`, `download_law_pdf`, `giurisprudenza_su_norma`,
+  `orientamento_su_norma`, `verifica_citazioni`) — now resolves acts cited by
+  name rather than by number. The new `ATTI_DENOMINATI` table carries 80 acts
+  and ~200 aliases: Statuto dei lavoratori, legge fallimentare, TUEL, TULPS,
+  statuto del contribuente, the testi unici, and eponyms such as legge
+  Gelli-Bianco, legge Cirinna, legge Biagi, legge Pinto, Jobs Act.
+- EU treaties are citable: `art. 101 TFUE`, `art. 6 TUE`, `art. 8 CDFUE`,
+  also under "Carta di Nizza" and the treaties' full names.
+- 21 EU compliance acts by their usual acronym: DSA, DMA, Data Act, Data
+  Governance Act, eIDAS and eIDAS2, Cyber Resilience Act, MiCA, CSRD, CSDDD,
+  PSD2, the NIS, whistleblowing and ePrivacy directives, Machinery Regulation,
+  European Accessibility Act.
+- More citation forms: spelled-out act types (`legge 241/1990`, `decreto
+  legislativo 231/2001`), `n. X del YYYY`, EU variants (`reg. (UE) 2016/679`,
+  `direttiva 95/46/CE`), leading prepositions (`art. 111 della Costituzione`),
+  dotted acronyms (`t.u.e.l.`, `c.p.a.`), and paragraph chains
+  (`art. 2, comma 1, lett. a), del d.lgs. 231/2001`).
+- An unrecognised act now reports the closest known names instead of a dead
+  end. The resolver still returns nothing rather than guessing: citing the
+  wrong act silently is worse than not citing it at all.
+- `tests/unit/test_atti_denominati_live.py` (marker `live`) asks Normattiva and
+  EUR-Lex whether every act in the tables exists with the date and number
+  claimed. Run it before each release.
+- `scripts/generate_atti_denominati.py --check` reports Brocardi acts the
+  resolver cannot handle (currently 94/94).
+
+### Fixed
+- EUR-Lex articles were truncated to their heading: a substring test for
+  `ti-art` also matched `sti-art`, the class of the article's own subtitle, so
+  collection stopped on the first line. This affected every article carrying a
+  separate rubric, not only the treaties.
+- EU treaties could not be fetched at all — EUR-Lex answers automated requests
+  with a WAF challenge (HTTP 202 and an empty body). They now come from CELLAR
+  by CELEX, while the citable eur-lex.europa.eu URL stays the reported source.
+- `codice del Terzo settore` was unreachable and produced a wrong URN: its key
+  in `NORMATTIVA_URN_CODICI` carries a capital letter while every lookup
+  arrives lowercased. Codici URNs are now matched case-insensitively.
+
+### Changed
+- Resolution order is explicit and documented in CLAUDE.md: the hand-verified
+  tables (`ATTI_NOTI`, `NORMATTIVA_URN_CODICI`) take precedence over
+  `ATTI_DENOMINATI`, whose base was generated from Brocardi labels. Act names
+  are tried literal first, so normalization can only add resolutions, never
+  change an existing one.
+
+Diagnostic battery: 29/64 to 64/64 references resolved. 80 Italian acts and
+21 EU acts verified live against Normattiva and EUR-Lex.
+
 ## [2.12.0] - 2026-08-24
 ### Fixed
 - stop tracking `.mcp.json`: it carried the author's absolute paths into every
