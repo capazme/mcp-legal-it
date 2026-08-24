@@ -1,4 +1,10 @@
 {
+  "_vintage": {
+    "aggiornato_al": "2026-02-19",
+    "fonte": "DM 55/2014 come modificato dal DM 147/2022",
+    "verifica": "manuale",
+    "nota": "trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale"
+  },
   "_description": "Parametri compensi forensi — DM 55/2014 aggiornato DM 147/2022 (in vigore dal 23/10/2022)",
   "_source": "Scraped da avvocatoandreani.it/servizi/tabelle-parametri-forensi.php il 2026-02-19",
   "_note": "Valori medio con variazione -50%/+50% per min/max (Art. 4, comma 1, DM 55/2014). Civile = Giudizi di cognizione innanzi al tribunale (competenza 110).",

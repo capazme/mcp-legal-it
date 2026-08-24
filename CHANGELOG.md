@@ -39,6 +39,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   over-firing; the plugin owns the hook, so the repo no longer declares it
 - the README badge advertised 177 tools against the 218 the server registers
 
+### Added
+- every table in `src/data/` declares a `_vintage` block (source, covered period,
+  who verifies it), `src/lib/_data.py` reads it, and the 65 tools that consume a
+  table now print it next to the number they derived from it. 16 tables are
+  declared; the 8 whose provenance is not yet established say so explicitly in
+  the tool output rather than staying silent
+- `scripts/update-data.py --strict` fails on a table with no `_vintage` or an
+  elapsed covered period, and warns on the ones still marked `da_verificare` —
+  new drift is blocked, known gaps stay visible without a permanently red build
+
 ### Changed
 - CI also runs on pushes to `main`, which previously went unverified between
   releases — `check_deps_sync` stayed red on `main` for days without a signal

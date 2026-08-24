@@ -1,4 +1,9 @@
 {
+  "_vintage": {
+    "fonte": "Codice della Strada",
+    "verifica": "da_verificare",
+    "nota": "il Codice della Strada è stato riformato di recente: riconciliare importi e decurtazioni"
+  },
   "cellulare": {"punti": 5, "articolo": "Art. 173 CdS", "descrizione": "Uso del telefono alla guida", "sanzione_accessoria": "Sospensione patente in caso di recidiva"},
   "cintura": {"punti": 5, "articolo": "Art. 172 CdS", "descrizione": "Mancato uso della cintura di sicurezza"},
   "semaforo_rosso": {"punti": 6, "articolo": "Art. 146 CdS", "descrizione": "Passaggio con semaforo rosso", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},

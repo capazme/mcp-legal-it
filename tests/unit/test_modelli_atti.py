@@ -64,10 +64,17 @@ class TestCatalogoIntegrity:
         assert cats == expected_cats, f"Unexpected categories: {cats - expected_cats}"
 
     def test_json_file_matches_loaded_data(self):
+        """Every record in the file reaches the catalogue, and nothing else does.
+
+        The loader drops `_`-prefixed keys because those carry the table's
+        vintage (see src/lib/_data.py), not an atto. Comparing raw lengths would
+        now fail for a reason that has nothing to do with a missing model.
+        """
         data_path = Path(__file__).resolve().parent.parent.parent / "src" / "data" / "modelli_atti.json"
         with open(data_path) as f:
             raw = json.load(f)
-        assert len(raw) == len(_CATALOGO)
+        records = {k for k in raw if not k.startswith("_")}
+        assert records == set(_CATALOGO)
 
 
 # ---------------------------------------------------------------------------

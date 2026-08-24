@@ -12,6 +12,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -280,6 +281,7 @@ def genera_procura_liti_docx(
 
 
 @mcp.tool(tags={"atti", "credito", "parcelle_avv"})
+@sourced("contributo_unificato", "parametri_forensi")
 def genera_quotazione_docx(
     tipo: str,
     valore_causa: float,

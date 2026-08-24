@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -18,10 +19,12 @@ with open(_DATA / "festivita.json", encoding="utf-8") as f:
     _FESTIVITA = json.load(f)["fisse"]
 
 with open(_DATA / "codici_ateco.json", encoding="utf-8") as f:
-    _ATECO = json.load(f)
+    _ATECO = json.load(f)["voci"]
 
 with open(_DATA / "violazioni_patente.json", encoding="utf-8") as f:
-    _VIOLAZIONI = json.load(f)
+    _VIOLAZIONI = {
+        k: v for k, v in json.load(f).items() if not k.startswith("_")
+    }  # `_`-prefixed keys are metadata (see src/lib/_data.py), not records
 
 
 def _parse_date(d: str) -> date:
@@ -108,6 +111,7 @@ def _lookup_codice_catastale(comune: str) -> str | None:
 
 
 @mcp.tool(tags={"utility"})
+@sourced("comuni")
 def codice_fiscale(
     cognome: str,
     nome: str,
@@ -169,6 +173,7 @@ def codice_fiscale(
 
 
 @mcp.tool(tags={"utility"})
+@sourced("comuni")
 def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
     """Decodifica un codice fiscale italiano a 16 caratteri estraendo i dati anagrafici.
 
@@ -334,6 +339,7 @@ def _get_holidays(year: int) -> dict[date, str]:
 
 
 @mcp.tool(tags={"utility"})
+@sourced("festivita")
 def conta_giorni(
     data_inizio: str,
     data_fine: str,
@@ -439,6 +445,7 @@ def scorporo_iva(
 
 
 @mcp.tool(tags={"utility"})
+@sourced("violazioni_patente")
 def decurtazione_punti_patente(violazione: str) -> dict:
     """Restituisce punti decurtati, sanzione pecuniaria e sospensione patente per violazione CdS.
 
@@ -797,6 +804,7 @@ def calcolo_eta_anagrafica(
 
 
 @mcp.tool(tags={"utility"})
+@sourced("codici_ateco")
 def ricerca_codici_ateco(keyword: str) -> dict:
     """Ricerca codici ATECO per parola chiave, con coefficiente di redditività per il regime forfettario.
 

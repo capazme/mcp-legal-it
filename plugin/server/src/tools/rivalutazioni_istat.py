@@ -18,6 +18,7 @@ from datetime import date
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -202,6 +203,7 @@ def _days_in_year(year: int) -> int:
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi", "tassi_legali")
 def rivalutazione_monetaria(
     capitale: float,
     data_inizio: str,
@@ -303,6 +305,7 @@ def rivalutazione_monetaria(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def rivalutazione_mensile(
     importo_mensile: float,
     data_inizio: str,
@@ -383,6 +386,7 @@ def rivalutazione_mensile(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def adeguamento_canone_locazione(
     canone_annuo: float,
     data_stipula: str,
@@ -466,6 +470,7 @@ def adeguamento_canone_locazione(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def calcolo_inflazione(
     data_inizio: str,
     data_fine: str,
@@ -529,6 +534,7 @@ def calcolo_inflazione(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def rivalutazione_tfr(
     retribuzione_annua: float,
     anni_servizio: int,
@@ -612,6 +618,7 @@ def rivalutazione_tfr(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi", "tassi_legali")
 def interessi_vari_capitale_rivalutato(
     capitale: float,
     data_inizio: str,
@@ -699,6 +706,7 @@ def interessi_vari_capitale_rivalutato(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def lettera_adeguamento_canone(
     locatore: str,
     conduttore: str,
@@ -813,6 +821,7 @@ def lettera_adeguamento_canone(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def calcolo_devalutazione(
     importo_attuale: float,
     data_attuale: str,
@@ -861,6 +870,7 @@ def calcolo_devalutazione(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def rivalutazione_storica(
     importo: float,
     anno_partenza: int,
@@ -933,6 +943,7 @@ def rivalutazione_storica(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def variazioni_istat(
     anno_inizio: int,
     anno_fine: int,
@@ -1011,6 +1022,7 @@ def variazioni_istat(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def rivalutazione_annuale_media(
     importo: float,
     data_inizio: str,
@@ -1073,6 +1085,7 @@ def rivalutazione_annuale_media(
 
 
 @mcp.tool(tags={"rivalutazione"})
+@sourced("indici_foi")
 def inflazione_titoli_stato(
     capitale_investito: float,
     rendimento_lordo_annuo_pct: float,
