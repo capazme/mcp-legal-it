@@ -24,8 +24,8 @@ le skill appropriate; questo skill prende quel testo e lo trasforma in un file c
   `parere-legale`, `analisi-giurisprudenziale`, `compliance-privacy`) quando l'utente vuole
   il deliverable come file.
 - L'utente ha appena ricevuto da un tool un dict con un campo `testo`
-  (es. `genera_informativa_privacy`, `genera_dpa`, `genera_dpia`,
-  `genera_registro_trattamenti`, `genera_notifica_data_breach`) e vuole il file finito.
+  (es. `legal-it:genera_informativa_privacy`, `legal-it:genera_dpa`, `legal-it:genera_dpia`,
+  `legal-it:genera_registro_trattamenti`, `legal-it:genera_notifica_data_breach`) e vuole il file finito.
 
 ## Sorgente del contenuto
 

@@ -29,7 +29,7 @@ Verificare sempre la versione vigente al link.
 | Zucchetti | https://www.zucchetti.com/privacy/Data_Processing_Agreement.pdf (designazione a responsabile ex art. 28; il registro del trattamento del servizio è nell'area riservata) |
 
 PMI locale / fornitore non in lista e senza DPA pubblicato → quasi sempre
-`dpa_proprio: "no"` (serve la nomina del titolare, tool `genera_dpa`).
+`dpa_proprio: "no"` (serve la nomina del titolare, tool `legal-it:genera_dpa`).
 Nel dubbio: `da_verificare`.
 
 **Attenzione**: una pagina che parla di GDPR non è un DPA. Prima di impostare

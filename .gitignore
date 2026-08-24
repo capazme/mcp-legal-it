@@ -37,7 +37,7 @@ credentials.json
 # Real firm/client data for the procure-quotazioni skill: counsel names, fiscal
 # codes, PEC addresses. The skill tells the user to place this in the working
 # directory, which may be this repo. The bundled example
-# (plugin/skills/procure-quotazioni/references/studio.esempio.json) has a
+# (content/skills/procure-quotazioni/references/studio.esempio.json) has a
 # different filename and stays tracked.
 studio.json
 
