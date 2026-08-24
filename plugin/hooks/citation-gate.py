@@ -14,6 +14,30 @@ e sul giudizio umano dell'avvocato.
 import sys, json, re
 
 
+_INLINE_CODE = re.compile(r"`[^`\n]*`")
+
+# One pattern for both the prose scan and the cite_law() dedup: when they
+# disagreed, a `cite_law("articolo 2043 c.c.")` failed to cover the very
+# citation it had verified. Covers art. / art / artt. / articolo / articoli,
+# because Italian legal writing uses all of them interchangeably.
+_ARTICOLO = r"\bart(?:icol[oi]|t)?\.?\s*(\d+)"
+
+
+def strip_code(text: str) -> str:
+    """Drop fenced blocks and inline spans before looking for citations.
+
+    Code quotes things; it does not assert them. A sample tool payload, a
+    fixture value or a snippet of documentation that happens to contain
+    "art. 1284 c.c." is not the assistant claiming what that article says, and
+    nagging about it is what got this gate called too eager in public.
+
+    Splitting on the fence rather than matching pairs also discards a block
+    left unterminated at the end of a message.
+    """
+    prosa = "\n".join(text.split("```")[::2])
+    return _INLINE_CODE.sub(" ", prosa)
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -55,23 +79,33 @@ def main():
         if joined.strip():
             last_text = joined
 
-    if not last_text:
+    last_text = strip_code(last_text)
+    if not last_text.strip():
         return 0
 
     verified_nums = set()
     for r in cite_refs:
-        for m in re.finditer(r"art\.?\s*(\d+)", r, re.I):
+        for m in re.finditer(_ARTICOLO, r, re.I):
             verified_nums.add(m.group(1))
 
     lawtoken = re.compile(
-        r"c\.p\.c\.|c\.p\.p\.|c\.p\.|c\.c\.|cost|codice civile|codice penale|"
-        r"codice di procedura|g\.?d\.?p\.?r|gdpr|\bcdf\b|deontolog|"
+        # `cost` has to stay anchored: as a bare substring it matched "costi",
+        # "costo" and "costante", so any nearby `art. N` tripped the gate.
+        r"c\.p\.c\.|c\.p\.p\.|c\.p\.|c\.c\.|\bcost\b\.?|\bcostituzion|"
+        # Named codes are enumerated rather than matched as a bare "codice":
+        # this project handles codice fiscale, codice tributo and codice ATECO
+        # as data, and none of them is a source of law.
+        r"codice\s+(?:civile|penale|di\s+procedura|del\s+consumo|della\s+strada|"
+        r"della\s+crisi|dell'?\s?ambiente|della\s+navigazione|della\s+privacy|"
+        r"delle\s+assicurazioni|dei\s+contratti)|"
+        r"\bc\.d\.s\.|\bccii\b|\btuir\b|\bt\.u\.f\.|\bcod\.?\s*ass\.|"
+        r"g\.?d\.?p\.?r|gdpr|\bcdf\b|deontolog|"
         r"\bl\.\s*\d|legge\s*\d|d\.?\s*lgs|reg(?:olamento)?\.?\s*(?:ue)?\s*\d|"
         r"2024/1689|ai act|direttiva\s*\d",
         re.I,
     )
     art = re.compile(
-        r"art\.?\s*(\d+)(?:[\s-]*(?:bis|ter|quater|quinquies|sexies|septies|octies))?",
+        _ARTICOLO + r"(?:[\s-]*(?:bis|ter|quater|quinquies|sexies|septies|octies))?",
         re.I,
     )
 
