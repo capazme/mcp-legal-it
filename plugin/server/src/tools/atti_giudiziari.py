@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -19,10 +20,12 @@ with open(_DATA / "tassi_mora.json") as f:
     _TASSI_MORA = json.load(f)["tassi"]
 
 with open(_DATA / "tribunali_competenti.json") as f:
-    _TRIBUNALI_COMPETENTI = json.load(f)
+    _TRIBUNALI_COMPETENTI = {
+        k: v for k, v in json.load(f).items() if not k.startswith("_")
+    }  # `_`-prefixed keys are metadata (see src/lib/_data.py), not records
 
 with open(_DATA / "codici_ruolo.json") as f:
-    _CODICI_RUOLO = json.load(f)
+    _CODICI_RUOLO = json.load(f)["codici"]
 
 
 def _parse_date(d: str) -> date:
@@ -93,6 +96,7 @@ def _calcola_cu_base(valore_causa: float, tipo_procedimento: str) -> float:
 
 
 @mcp.tool(tags={"giudiziario", "credito", "sinistro"})
+@sourced("contributo_unificato")
 def contributo_unificato(
     valore_causa: float,
     tipo_procedimento: str = "cognizione",
@@ -291,6 +295,7 @@ def pignoramento_stipendio(
 
 
 @mcp.tool(tags={"giudiziario", "credito"})
+@sourced("tassi_mora")
 def sollecito_pagamento(
     creditore: str,
     debitore: str,
@@ -387,6 +392,7 @@ Distinti saluti,
 
 
 @mcp.tool(tags={"giudiziario", "credito"})
+@sourced("contributo_unificato")
 def decreto_ingiuntivo(
     creditore: str,
     debitore: str,
@@ -611,6 +617,7 @@ def copie_processo_tributario(
 
 
 @mcp.tool(tags={"giudiziario"})
+@sourced("codici_ruolo", "contributo_unificato")
 def note_iscrizione_ruolo(
     tipo_procedimento: str,
     valore_causa: float | None = None,
@@ -676,6 +683,7 @@ def note_iscrizione_ruolo(
 
 
 @mcp.tool(tags={"giudiziario"})
+@sourced("codici_ruolo")
 def codici_iscrizione_ruolo(materia: str) -> dict:
     """Ricerca il codice oggetto per l'iscrizione a ruolo di cause civili.
     Vigenza: provvedimenti DGSIA — Codici oggetto iscrizione a ruolo (tabella aggiornata).
@@ -1510,6 +1518,7 @@ Avv. {avvocato}
 
 
 @mcp.tool(tags={"giudiziario"})
+@sourced("tribunali_competenti")
 def cerca_ufficio_giudiziario(
     comune: str,
     tipo: str = "tribunale",

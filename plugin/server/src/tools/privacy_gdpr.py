@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -1358,6 +1359,7 @@ def _analisi_base_giuridica_impl(
 
 
 @mcp.tool(tags={"privacy"})
+@sourced("gdpr_basi_giuridiche")
 def analisi_base_giuridica(
     tipo_trattamento: str,
     contesto: str,
@@ -1488,6 +1490,7 @@ def _verifica_necessita_dpia_impl(
 
 
 @mcp.tool(tags={"privacy"})
+@sourced("gdpr_dpia_criteri")
 def verifica_necessita_dpia(
     tipo_trattamento: str,
     profilazione: bool = False,
@@ -1804,6 +1807,7 @@ def _calcolo_sanzione_gdpr_impl(
 
 
 @mcp.tool(tags={"privacy"})
+@sourced("gdpr_sanzioni")
 def calcolo_sanzione_gdpr(
     tipo_violazione: str,
     fatturato_annuo: float | None = None,

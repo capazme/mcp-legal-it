@@ -91,10 +91,11 @@ printf '%s' "$CONTENUTO_MARKDOWN" | NODE_PATH=$(npm root -g) node \
 
 ### PDF (.pdf)
 
-Usa la **venv del progetto** (Python 3.12 con fpdf2); il system python NON funziona:
+Serve un Python 3.12 con `fpdf2`; il system python NON funziona. Usa `uv`, che il
+plugin richiede gia' come prerequisito:
 
 ```bash
-/Users/gpuzio/Desktop/CODE/server-infra2.0/mcp-legal-it/.venv/bin/python \
+uv run --python 3.12 --with "fpdf2>=2.7" python \
   "${CLAUDE_PLUGIN_ROOT}/skills/esporta-documento/scripts/render_legal_pdf.py" \
   --input /percorso/deliverable.md \
   --title "Parere — responsabilità medica" \
@@ -127,7 +128,8 @@ cartella attiva, e i casi limite sono in **`references/mapping.md`**.
 ## Dipendenze
 
 - `node` con il pacchetto globale `docx` (`npm install -g docx`) — per il .docx.
-- La venv del progetto (`.venv/bin/python`, 3.12) con `fpdf2` — per il .pdf.
+- `uv` con `fpdf2` — per il .pdf. Senza `uv`, la venv che `start_server.sh` crea
+  al primo avvio va bene: `"${MCP_CACHE_DIR:-$HOME/.cache/mcp-legal-it}/venv/bin/python"`.
 - (Opzionale) `~/.claude/skills/docx-sapg/assets/sapg_styles.js` per il canone SAPG;
   in sua assenza il .docx usa il fallback plain.
 - **Niente LibreOffice** (non installato): il PDF e' generato direttamente con fpdf2, non per

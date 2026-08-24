@@ -1,4 +1,9 @@
 {
+  "_vintage": {
+    "copre_fino_a": "2026-12-31",
+    "fonte": "DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.",
+    "verifica": "manuale"
+  },
   "_description": "Tassi di interesse legale art. 1284 c.c. — dal 1942 a oggi",
   "tassi": [
     {"dal": "1942-04-21", "al": "1990-04-15", "tasso": 5.0},

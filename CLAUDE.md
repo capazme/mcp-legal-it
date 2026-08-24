@@ -96,7 +96,8 @@ mcp-legal-it/
 │       ├── privacy_gdpr.py
 │       ├── procure_quotazioni.py  # genera_procura_liti_docx, genera_quotazione_docx
 │       └── analisi_fornitori.py   # verifica_partita_iva_vies, genera_report_fornitori
-└── tests/                     # 2452 test in 44 file (43 unit + 1 comparison)
+└── tests/                     # 76 file (46 unit + 30 comparison); per il conteggio
+                               # corrente: pytest tests/ --collect-only -q | tail -1
     ├── unit/                  # mock HTTP, nessuna connessione esterna
     │   └── test_<modulo>.py   # un file per modulo tool o lib
     └── comparison/            # valori numerici attesi, senza mock
