@@ -7,6 +7,7 @@ from datetime import date
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -80,6 +81,7 @@ def _detrazione_pensione(reddito: float) -> float:
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("irpef_scaglioni")
 def calcolo_irpef(
     reddito_complessivo: float,
     tipo_reddito: str = "dipendente",
@@ -156,6 +158,7 @@ def calcolo_irpef(
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("irpef_scaglioni")
 def regime_forfettario(
     ricavi: float,
     coefficiente_redditivita: float = 78,
@@ -223,6 +226,7 @@ def regime_forfettario(
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("irpef_scaglioni")
 def calcolo_tfr(
     retribuzione_annua_lorda: float,
     anni_servizio: int,
@@ -585,6 +589,7 @@ def detrazione_altri_familiari(
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("irpef_scaglioni")
 def detrazione_lavoro_dipendente(
     reddito_complessivo: float,
     giorni_lavoro: int = 365,

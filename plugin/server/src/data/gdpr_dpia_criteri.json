@@ -1,4 +1,8 @@
 {
+  "_vintage": {
+    "fonte": "linee guida WP248 rev.01 e lista del Garante italiano",
+    "verifica": "manuale"
+  },
   "criteri_wp248": [
     {
       "id": 1,

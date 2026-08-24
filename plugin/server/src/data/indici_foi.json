@@ -1,4 +1,11 @@
 {
+  "_vintage": {
+    "copre_fino_a": "2026-06-30",
+    "fonte": "ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale",
+    "verifica": "automatica",
+    "nota": "rinfrescata da scripts/refresh_data.py",
+    "tolleranza_giorni": 92
+  },
   "_description": "Indici FOI (Famiglie Operai e Impiegati) ISTAT senza tabacchi — serie storica raccordata in base 2015=100 (dal 2026 conversione dalla base 2025=100). Valori mensili. Usati per rivalutazione monetaria e adeguamento canoni.",
   "_note": "Serie 1990-2025 in base 2015=100: valori ufficiali, riga 2025 verificata sui comunicati ISTAT in GU (n. 175 del 30-07-2025, cod. 25A04202; n. 43 del 21-02-2026, cod. 26A00824). Dal 2026: valori originali base 2025=100 in 'indici_base_2025', raccordati in 'indici' col coefficiente 1,214 (v. 'raccordo_basi'). Le variazioni ufficiali ex art. 81 L. 392/1978 sono in 'variazioni_ufficiali' e prevalgono sul calcolo per i periodi di 12/24 mesi a cavallo del ribasamento. Aggiornare mensilmente dopo ogni comunicato ISTAT in GU.",
   "base": "2015=100",

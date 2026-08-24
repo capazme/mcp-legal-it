@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 # Shared FOI index access (single load, same fallback and warning semantics).
 from src.tools import rivalutazioni_istat as _rivalutazioni
@@ -125,6 +126,7 @@ def _days_in_year(year: int) -> int:
 
 
 @mcp.tool(tags={"interessi"})
+@sourced("tassi_legali")
 def interessi_legali(
     capitale: float,
     data_inizio: str,
@@ -200,6 +202,7 @@ def interessi_legali(
 
 
 @mcp.tool(tags={"interessi"})
+@sourced("tassi_mora")
 def interessi_mora(
     capitale: float,
     data_inizio: str,
@@ -390,6 +393,7 @@ def calcolo_ammortamento(
 
 
 @mcp.tool(tags={"interessi"})
+@sourced("tegm")
 def verifica_usura(
     tasso_applicato: float,
     tipo_operazione: str = "mutuo_prima_casa",
@@ -464,6 +468,7 @@ def verifica_usura(
 
 
 @mcp.tool(tags={"interessi"})
+@sourced("tassi_legali")
 def interessi_acconti(
     capitale: float,
     data_inizio: str,
@@ -544,6 +549,7 @@ def interessi_acconti(
 
 
 @mcp.tool(tags={"interessi"})
+@sourced("tassi_legali")
 def calcolo_maggior_danno(
     capitale: float,
     data_inizio: str,
@@ -610,6 +616,7 @@ def calcolo_maggior_danno(
 
 
 @mcp.tool(tags={"interessi"})
+@sourced("tassi_mora")
 def interessi_corso_causa(
     capitale: float,
     data_citazione: str,

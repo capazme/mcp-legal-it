@@ -1,4 +1,9 @@
 {
+  "_vintage": {
+    "fonte": "CCNL di categoria",
+    "verifica": "da_verificare",
+    "nota": "i CCNL si rinnovano: verificare sempre il contratto applicabile"
+  },
   "_descrizione": "Periodi di preavviso per CCNL principali (giorni di calendario)",
   "ccnl": {
     "commercio": {

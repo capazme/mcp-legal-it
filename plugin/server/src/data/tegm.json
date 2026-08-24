@@ -1,4 +1,9 @@
 {
+  "_vintage": {
+    "copre_fino_a": "2026-09-30",
+    "fonte": "decreti MEF trimestrali ex L. 108/1996, CSV Banca d'Italia",
+    "verifica": "manuale"
+  },
   "_descrizione": "TEGM storico trimestrale — Banca d'Italia / Decreti MEF ex L. 108/1996",
   "_fonte": "CSV Banca d'Italia + DM trimestrali in Gazzetta Ufficiale",
   "_formula_soglia": "min(TEGM × 1.25 + 4, TEGM + 8)",

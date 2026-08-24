@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -115,6 +116,7 @@ def calcolo_eredita(
 
 
 @mcp.tool(tags={"proprieta"})
+@sourced("imposte_successione")
 def imposte_successione(
     valore_beni: float,
     parentela: str,
@@ -178,6 +180,7 @@ def imposte_successione(
 
 
 @mcp.tool(tags={"proprieta"})
+@sourced("usufrutto_coefficienti")
 def calcolo_usufrutto(
     valore_piena_proprieta: float,
     eta_usufruttuario: int,
@@ -297,6 +300,7 @@ def calcolo_imu(
 
 
 @mcp.tool(tags={"proprieta"})
+@sourced("imposte_successione")
 def imposte_compravendita(
     prezzo: float,
     tipo_immobile: str = "abitazione",

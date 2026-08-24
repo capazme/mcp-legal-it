@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -52,6 +53,7 @@ def _find_scaglione_volontaria(valore_causa: float) -> dict:
 
 
 @mcp.tool(tags={"parcelle_avv", "sinistro", "credito"})
+@sourced("parametri_forensi")
 def parcella_avvocato_civile(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -101,6 +103,7 @@ def parcella_avvocato_civile(
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def parcella_avvocato_penale(
     competenza: str,
     fasi: list[str] | None = None,
@@ -151,6 +154,7 @@ def parcella_avvocato_penale(
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def parcella_stragiudiziale(
     valore_pratica: float,
     livello: str = "medio",
@@ -183,6 +187,7 @@ def parcella_stragiudiziale(
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def parcella_volontaria_giurisdizione(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -235,6 +240,7 @@ def parcella_volontaria_giurisdizione(
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def preventivo_volontaria_giurisdizione(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -465,6 +471,7 @@ def _contributo_unificato(valore_causa: float) -> float:
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def preventivo_civile(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -575,6 +582,7 @@ def preventivo_civile(
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def preventivo_stragiudiziale(
     valore_pratica: float,
     livello: str = "medio",
@@ -744,6 +752,7 @@ _NOTULA_PROCEDIMENTI = {
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def modello_notula(
     tipo_procedimento: str,
     avvocato: str,
@@ -860,6 +869,7 @@ def modello_notula(
 
 
 @mcp.tool(tags={"parcelle_avv"})
+@sourced("parametri_forensi")
 def calcolo_notula_penale(
     competenza: str,
     fasi: list[str] | None = None,

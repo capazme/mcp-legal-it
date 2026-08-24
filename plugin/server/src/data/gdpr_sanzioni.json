@@ -1,4 +1,8 @@
 {
+  "_vintage": {
+    "fonte": "art. 83 Reg. UE 2016/679",
+    "verifica": "manuale"
+  },
   "massimali": {
     "art83_4": {
       "euro": 10000000,
