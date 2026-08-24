@@ -2,6 +2,7 @@
 name: mappatura-normativa
 description: Costruisce la mappa normativa completa di un settore o attivita con fonti organizzate per livello gerarchico e matrice adempimenti. Usa quando l'utente chiede il quadro normativo completo di un settore, tutte le leggi applicabili a un'attivita, o una checklist di obblighi normativi.
 tools: [cerca_delibere_consob, cerca_provvedimenti_garante, cite_law]
+prompt: {"name": "mappatura_normativa", "description": "Mappatura del quadro normativo completo per un settore o attività: tutte le fonti applicabili organizzate per livello", "args": [{"name": "settore", "type": "str"}, {"name": "attivita_specifica", "type": "str", "default": ""}]}
 ---
 
 # Mappatura Normativa

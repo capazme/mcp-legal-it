@@ -2,6 +2,7 @@
 name: analisi-sinistro
 description: Analizza sinistri stradali, sanitari e lavorativi con quantificazione del danno non patrimoniale (unitario, ex art. 2059 c.c.), rivalutazione ISTAT e interessi compensativi. Usa quando l'utente descrive un incidente, un sinistro, chiede risarcimento danni per invalidita o quantificazione danni da lesioni personali.
 tools: [danno_non_patrimoniale, interessi_legali, rivalutazione_monetaria]
+prompt: {"name": "analisi_sinistro", "description": "Analisi completa sinistro stradale/sanitario/lavoro con quantificazione danni", "args": [{"name": "tipo_sinistro", "type": "str"}, {"name": "percentuale_invalidita", "type": "float"}, {"name": "eta_vittima", "type": "int"}]}
 ---
 
 # Analisi Sinistro
