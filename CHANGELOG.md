@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `prompt` variant that `citation-gate.py` was written to replace for
   over-firing; the plugin owns the hook, so the repo no longer declares it
 - the README badge advertised 177 tools against the 218 the server registers
+- the test counts in `CLAUDE.md` and `docs/testing.md` had not moved since the
+  comparison suite grew from 1 file to 30. Replaced with the file count and the
+  command that prints the current figure: an exact number in prose goes stale on
+  the next test added, which is the drift it was supposed to expose
 
 ### Added
 - every table in `src/data/` declares a `_vintage` block (source, covered period,
@@ -48,6 +52,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/update-data.py --strict` fails on a table with no `_vintage` or an
   elapsed covered period, and warns on the ones still marked `da_verificare` —
   new drift is blocked, known gaps stay visible without a permanently red build
+
+- `SECURITY.md` answers the questions an auditor asks before running this on
+  client matters: no telemetry, the full egress host list, what the nested
+  configs contain, how to fork and stay independent. `src/lib/_egress.py` holds
+  the allowlist as code and `tests/unit/test_egress_allowlist.py` fails the
+  build both on an undeclared host in `src/` and on a declared host missing
+  from `SECURITY.md`, so the document cannot drift from the code
 
 ### Changed
 - CI also runs on pushes to `main`, which previously went unverified between
