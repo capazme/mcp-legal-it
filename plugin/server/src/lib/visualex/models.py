@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass, field
 
-from .map import NORMATTIVA_URN_CODICI, EURLEX, normalize_act_type
+from .map import EURLEX, codice_urn, normalize_act_type
 
 
 _NORMATTIVA_BASE = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
@@ -44,8 +44,8 @@ class Norma:
             return f"{_EURLEX_BASE}/{val}/{year}/{self.numero_atto}/oj/ita"
 
         # Normattiva: check codici first
-        if norm in NORMATTIVA_URN_CODICI:
-            urn = NORMATTIVA_URN_CODICI[norm]
+        urn = codice_urn(norm)
+        if urn:
             # Keep allegato suffix (e.g. :2 for codice civile) — it must precede ~artNNN
             if article:
                 urn = _append_article(urn, article)
