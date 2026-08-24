@@ -1,4 +1,9 @@
 {
+  "_vintage": {
+    "fonte": "TU 346/1990",
+    "verifica": "da_verificare",
+    "nota": "la disciplina di successioni e donazioni è stata riformata di recente: riconciliare aliquote e franchigie"
+  },
   "_description": "Imposte di successione e donazione — TU 346/1990",
   "aliquote": [
     {"parentela": "coniuge_linea_retta", "aliquota": 4, "franchigia": 1000000},

@@ -1,4 +1,8 @@
 {
+  "_vintage": {
+    "fonte": "festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente",
+    "verifica": "manuale"
+  },
   "_description": "Festività nazionali italiane (fisse). La Pasqua e il Lunedì dell'Angelo si calcolano algoritmicamente.",
   "fisse": [
     {"giorno": 1, "mese": 1, "nome": "Capodanno"},

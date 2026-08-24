@@ -13,7 +13,9 @@ from src.server import mcp
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
 with open(_DATA / "modelli_atti.json", encoding="utf-8") as f:
-    _CATALOGO: dict[str, dict] = json.load(f)
+    _CATALOGO: dict[str, dict] = {
+        k: v for k, v in json.load(f).items() if not k.startswith("_")
+    }  # `_`-prefixed keys are metadata (see src/lib/_data.py), not records
 
 # Reverse index: map tool names and keywords to tipo_atto entries
 _CATEGORIE = sorted({v["categoria"] for v in _CATALOGO.values()})

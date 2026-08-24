@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA_DIR = Path(__file__).parent.parent / "data"
 
@@ -110,6 +111,7 @@ def competenza_giudice(
 
 
 @mcp.tool(tags={"giudiziario"})
+@sourced("mediazione_obbligatoria")
 def verifica_mediazione_obbligatoria(materia: str) -> dict:
     """Verifica se una materia è soggetta a mediazione obbligatoria (art. 5 D.Lgs. 28/2010).
 

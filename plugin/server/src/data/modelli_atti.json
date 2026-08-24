@@ -1,4 +1,8 @@
 {
+  "_vintage": {
+    "fonte": "modelli redazionali interni, non una fonte normativa",
+    "verifica": "manuale"
+  },
   "decreto_ingiuntivo_ordinario": {
     "categoria": "atti_introduttivi",
     "descrizione": "Ricorso per decreto ingiuntivo — credito ordinario",

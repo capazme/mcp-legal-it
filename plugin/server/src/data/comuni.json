@@ -1,4 +1,9 @@
 {
+  "_vintage": {
+    "fonte": "codici catastali ISTAT",
+    "verifica": "da_verificare",
+    "nota": "sottoinsieme di ~500 comuni, non il dataset ISTAT completo"
+  },
   "_description": "Codici catastali comuni italiani — dataset ampliato (500+ comuni). Fonte: ISTAT. Per dataset completo (8000+ comuni) usare dataset ufficiale ISTAT.",
   "_note": "Aggiornato con 500+ comuni principali italiani per calcolo codice fiscale.",
   "comuni": {

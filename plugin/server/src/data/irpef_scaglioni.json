@@ -1,4 +1,9 @@
 {
+  "_vintage": {
+    "copre_fino_a": "2026-12-31",
+    "fonte": "TUIR art. 11, scaglioni per anno d'imposta",
+    "verifica": "manuale"
+  },
   "_description": "Scaglioni IRPEF storicizzati per anno fiscale. Default: anno corrente.",
   "scaglioni_per_anno": {
     "2024": [

@@ -1,4 +1,10 @@
 {
+  "_vintage": {
+    "copre_fino_a": "2026-12-31",
+    "fonte": "prospetto allegato al DPR 131/1986, tasso minimo 2,5%",
+    "verifica": "manuale",
+    "nota": "anno di verifica dichiarato in tabella: 2026"
+  },
   "_description": "Coefficienti per calcolo valore usufrutto/nuda proprietà — Prospetto allegato DPR 131/1986, calcolati sul tasso applicabile 2,5%",
   "_note": "Ai fini del calcolo non può essere assunto un tasso inferiore al 2,5% (D.Lgs. 139/2015): finché il tasso legale resta sotto tale soglia (2025: 2,0%; 2026: 1,6%) valgono i coefficienti basati sul 2,5%, confermati annualmente dal decreto direttoriale MEF di fine dicembre (ultimo: 24/12/2025). Se il tasso legale supera il 2,5%, aggiornare tasso_legale e coefficienti dal prospetto allegato al DM e bumpare anno_verifica (alimenta scripts/update-data.py). Valore usufrutto = valore piena proprietà × tasso × coefficiente.",
   "anno_verifica": 2026,
