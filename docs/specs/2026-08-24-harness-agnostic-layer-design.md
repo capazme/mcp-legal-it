@@ -298,6 +298,16 @@ Per decision 7, we operate no public MCP endpoint.
   their own HTTPS endpoint (the existing Docker path) and registers it as a
   custom connector in Developer Mode. We publish the procedure and the caveats;
   we do not run the endpoint.
+- **Docker as the universal remote path** (added 2026-08-24, user request): the
+  existing image (Streamable HTTP on :8000) already serves every remote-capable
+  harness, and Phase 1 keeps it working by construction — generated artifacts
+  live inside `plugin/server/src/`, which the Dockerfile copies; `content/` is
+  never needed at runtime. Phase 3 therefore documents ONE self-hosted endpoint
+  with per-harness connection snippets: ChatGPT (Developer Mode connector),
+  Codex CLI (`config.toml` with `url =` — streamable HTTP, not only stdio),
+  Manus and generic MCP clients. Deliverables: a compose example with an HTTPS
+  reverse proxy in front, and `LEGAL_PROFILE` guidance to shrink the exposed
+  surface per use case.
 
 This removes the abuse question entirely: nobody can burn our IP against
 Normattiva, Italgiure or CeRDEF, because there is no shared address to burn. It
