@@ -3,13 +3,20 @@ e Brocardi (annotazioni dottrinali e giurisprudenziali). Usare cite_law() come p
 principale prima di citare qualsiasi norma in un parere o documento legale."""
 
 import asyncio
+import difflib
 import os
 import re
 import tempfile
 import time
 
 from src.server import mcp
-from src.lib.visualex import Norma, NormaVisitata, resolve_atto
+from src.lib.visualex import (
+    Norma,
+    NormaVisitata,
+    resolve_atto,
+    strip_leading_particles,
+    known_act_names,
+)
 from src.lib.visualex.scraper import (
     fetch_article,
     fetch_annotations,
@@ -27,7 +34,7 @@ from src.lib.brocardi.client import fetch_brocardi, BrocardiResult, parse_massim
 # Strips paragraph/point/comma indicators from the start of the act name
 # so that "art. 4 n. 11 GDPR" → article="4", act="GDPR".
 _PARAGRAPH_PATTERN = re.compile(
-    r"^(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?\s*)\s*",
+    r"^[,;\s]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?)\s*[,;]?\s*",
     re.IGNORECASE,
 )
 
@@ -58,7 +65,7 @@ def _parse_reference(reference: str) -> tuple[str, str]:
 
     # Pattern: art[.] <number[-ext]> <act_name>
     match = re.match(
-        r"(?:articol[oi]|art)\.?\s*(\d+(?:[-/.]\w+)*)\s+(.+)",
+        r"(?:articol[oi]|art)\.?\s*(\d+(?:[-/.]\w+)*)\s*[,;]?\s+(.+)",
         reference,
         re.IGNORECASE,
     )
@@ -78,95 +85,150 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     return "", reference
 
 
+# Act types as they appear in citations, spelled-out forms first so the
+# alternation never settles for the "L." inside "legge".
+_TIPO_ALT = (
+    r"decreto\s+del\s+presidente\s+della\s+repubblica"
+    r"|decreto\s+del\s+presidente\s+del\s+consiglio(?:\s+dei\s+ministri)?"
+    r"|decreto\s+legislativo|decreto[-\s]legge|decreto\s+ministeriale"
+    r"|regio\s+decreto|legge"
+    r"|D\.?\s?Lgs\.?|D\.?P\.?C\.?M\.?|D\.?P\.?R\.?|DPR|R\.?D\.?"
+    r"|D\.?\s?M\.?|D\.?\s?L\.?|L\.?"
+)
+
+# Canonical name per act type, keyed on the citation stripped of dots, spaces
+# and hyphens ("D. Lgs." and "decreto legislativo" both land on one entry).
+_TIPO_CANONICO = {
+    "dlgs": "decreto legislativo",
+    "decretolegislativo": "decreto legislativo",
+    "dl": "decreto legge",
+    "decretolegge": "decreto legge",
+    "dm": "decreto ministeriale",
+    "decretoministeriale": "decreto ministeriale",
+    "dpcm": "decreto del presidente del consiglio dei ministri",
+    "decretodelpresidentedelconsiglio": "decreto del presidente del consiglio dei ministri",
+    "decretodelpresidentedelconsigliodeiministri": "decreto del presidente del consiglio dei ministri",
+    "dpr": "decreto del presidente della repubblica",
+    "decretodelpresidentedellarepubblica": "decreto del presidente della repubblica",
+    "rd": "regio decreto",
+    "regiodecreto": "regio decreto",
+    "l": "legge",
+    "legge": "legge",
+}
+
+_MESI_IT = {
+    "gennaio": "01", "febbraio": "02", "marzo": "03", "aprile": "04",
+    "maggio": "05", "giugno": "06", "luglio": "07", "agosto": "08",
+    "settembre": "09", "ottobre": "10", "novembre": "11", "dicembre": "12",
+}
+
+# "regolamento (UE) 2016/679", "reg. UE n. 679/2016", "direttiva 95/46/CE"
+_EU_PATTERN = re.compile(
+    r"^(reg(?:olamento)?|dir(?:ettiva)?)\.?\s*"
+    r"(?:\(?\s*(?:UE|EU|CE|CEE)\s*\)?)?\s*"
+    r"(?:n\.?\s*)?(\d{1,4})\s*/\s*(\d{1,4})"
+    r"(?:\s*/\s*(?:UE|EU|CE|CEE))?",
+    re.IGNORECASE,
+)
+
+# "D.Lgs. 30 giugno 2003, n. 196"
+_IT_LONG_PATTERN = re.compile(
+    rf"^({_TIPO_ALT})\s+(\d{{1,2}})\s+"
+    r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+    r"\s+(\d{4})[,]?\s*n\.?\s*(\d+)",
+    re.IGNORECASE,
+)
+
+# "D.Lgs. 196/2003", "legge n. 241 del 1990", "legge n. 241/1990"
+_IT_SHORT_PATTERN = re.compile(
+    rf"^({_TIPO_ALT})\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{{4}})",
+    re.IGNORECASE,
+)
+
+
+def _canonical_tipo(raw: str) -> str:
+    """Map a cited act type to its canonical Normattiva name."""
+    key = re.sub(r"[.\s-]", "", raw.lower())
+    return _TIPO_CANONICO.get(key, raw.lower().strip())
+
+
+def _split_eu_year_number(first: str, second: str) -> tuple[str, str]:
+    """Decide which half of an EU act's "NNNN/NNNN" is the year.
+
+    Directives switched notation in 2015: "95/46/CE" is year/number with a
+    two-digit year, "2019/1937" is year/number with a four-digit one, and some
+    citations still invert it as "679/2016". The four-digit plausible year wins;
+    a leading two-digit group is a 20th-century year.
+    """
+    def is_year(v: str) -> bool:
+        return len(v) == 4 and 1950 <= int(v) <= 2099
+
+    if is_year(first):
+        return first, second
+    if is_year(second):
+        return second, first
+    if len(first) == 2:
+        return f"19{first}", second
+    return first, second
+
+
 def _resolve_act(act_name: str) -> dict | None:
-    """Resolve act name to scraper parameters {tipo_atto, data, numero_atto}.
+    """Resolve an act name to scraper parameters {tipo_atto, data, numero_atto}.
 
     Resolution chain:
-    1. resolve_atto() — ATTI_NOTI + codici + abbreviations
-    2. Pattern: "D.Lgs. NNN/YYYY" or "L. NNN/YYYY" — direct parse
+    1. resolve_atto() — hand-verified tables (ATTI_NOTI, codici, ATTI_DENOMINATI)
+    2. citation patterns — EU acts, then Italian acts in long and short form
+
+    Returns None rather than guessing: a caller that cannot resolve an act must
+    say so, never cite a different one.
     """
-    # 1. Try the resolution chain
     result = resolve_atto(act_name)
     if result:
         return result
 
-    # 2. Pattern: "regolamento UE 2025/327", "direttiva UE 2022/2555"
-    eu_match = re.match(
-        r"(regolamento|direttiva)\s+UE\s+(\d{4})/(\d+)",
-        act_name,
-        re.IGNORECASE,
-    )
-    if eu_match:
-        tipo_raw, anno, numero = eu_match.groups()
-        tipo_ue = {"regolamento": "regolamento ue", "direttiva": "direttiva ue"}
-        return {"tipo_atto": tipo_ue[tipo_raw.lower()], "data": anno, "numero_atto": numero}
+    # Patterns run against the name stripped of any leading preposition
+    # ("del D.Lgs. 231/2001"), which resolve_atto has already normalized away.
+    candidate = strip_leading_particles(act_name)
 
-    # 3a. Long form with Italian date: "D.M. 10 marzo 2014 n. 55", "D.Lgs. 30 giugno 2003, n. 196"
-    _MESI_IT = {
-        "gennaio": "01", "febbraio": "02", "marzo": "03", "aprile": "04",
-        "maggio": "05", "giugno": "06", "luglio": "07", "agosto": "08",
-        "settembre": "09", "ottobre": "10", "novembre": "11", "dicembre": "12",
-    }
-    long_match = re.match(
-        r"(D\.?Lgs\.?|D\.?L\.?|D\.?M\.?|D\.?P\.?C\.?M\.?|L\.?|DPR|D\.?P\.?R\.?|R\.?D\.?)"
-        r"\s+(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
-        r"\s+(\d{4})[,]?\s*n\.?\s*(\d+)",
-        act_name,
-        re.IGNORECASE,
-    )
+    eu_match = _EU_PATTERN.match(candidate)
+    if eu_match:
+        tipo_raw, first, second = eu_match.groups()
+        anno, numero = _split_eu_year_number(first, second)
+        tipo = "regolamento ue" if tipo_raw.lower().startswith("reg") else "direttiva ue"
+        return {"tipo_atto": tipo, "data": anno, "numero_atto": numero}
+
+    long_match = _IT_LONG_PATTERN.match(candidate)
     if long_match:
         tipo_raw, giorno, mese_it, anno, numero = long_match.groups()
-        mese = _MESI_IT[mese_it.lower()]
-        data = f"{anno}-{mese}-{giorno.zfill(2)}"
-        tipo_map_local = {
-            "dlgs": "decreto legislativo", "d.lgs.": "decreto legislativo", "d.lgs": "decreto legislativo",
-            "dl": "decreto legge", "d.l.": "decreto legge", "d.l": "decreto legge",
-            "dm": "decreto ministeriale", "d.m.": "decreto ministeriale", "d.m": "decreto ministeriale",
-            "dpcm": "decreto del presidente del consiglio dei ministri",
-            "d.p.c.m.": "decreto del presidente del consiglio dei ministri",
-            "d.p.c.m": "decreto del presidente del consiglio dei ministri",
-            "l": "legge", "l.": "legge",
-            "dpr": "decreto del presidente della repubblica",
-            "d.p.r.": "decreto del presidente della repubblica", "d.p.r": "decreto del presidente della repubblica",
-            "rd": "regio decreto", "r.d.": "regio decreto", "r.d": "regio decreto",
-        }
-        tipo_normalized = tipo_map_local.get(tipo_raw.lower().rstrip("."), tipo_raw.lower())
-        return {"tipo_atto": tipo_normalized, "data": data, "numero_atto": numero}
+        data = f"{anno}-{_MESI_IT[mese_it.lower()]}-{giorno.zfill(2)}"
+        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": data, "numero_atto": numero}
 
-    # 3b. Short form: "D.Lgs. 196/2003", "L. 241/1990", "DPR 380/2001", "D.M. 55/2014"
-    match = re.match(
-        r"(D\.?Lgs\.?|D\.?L\.?|D\.?M\.?|D\.?P\.?C\.?M\.?|L\.?|DPR|D\.?P\.?R\.?|R\.?D\.?)\s*(\d+)/(\d{4})",
-        act_name,
-        re.IGNORECASE,
-    )
-    if match:
-        tipo_raw, numero, anno = match.groups()
-        tipo_map = {
-            "dlgs": "decreto legislativo",
-            "d.lgs.": "decreto legislativo",
-            "d.lgs": "decreto legislativo",
-            "dl": "decreto legge",
-            "d.l.": "decreto legge",
-            "d.l": "decreto legge",
-            "dm": "decreto ministeriale",
-            "d.m.": "decreto ministeriale",
-            "d.m": "decreto ministeriale",
-            "dpcm": "decreto del presidente del consiglio dei ministri",
-            "d.p.c.m.": "decreto del presidente del consiglio dei ministri",
-            "d.p.c.m": "decreto del presidente del consiglio dei ministri",
-            "l": "legge",
-            "l.": "legge",
-            "dpr": "decreto del presidente della repubblica",
-            "d.p.r.": "decreto del presidente della repubblica",
-            "d.p.r": "decreto del presidente della repubblica",
-            "rd": "regio decreto",
-            "r.d.": "regio decreto",
-            "r.d": "regio decreto",
-        }
-        tipo_normalized = tipo_map.get(tipo_raw.lower().rstrip("."), tipo_raw.lower())
-        return {"tipo_atto": tipo_normalized, "data": anno, "numero_atto": numero}
+    short_match = _IT_SHORT_PATTERN.match(candidate)
+    if short_match:
+        tipo_raw, numero, anno = short_match.groups()
+        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": anno, "numero_atto": numero}
 
     return None
+
+
+def _suggest_acts(act_name: str, limit: int = 3) -> list[str]:
+    """Names close to an unrecognised one, so the caller can retry knowingly."""
+    return difflib.get_close_matches(
+        strip_leading_particles(act_name), known_act_names(), n=limit, cutoff=0.7
+    )
+
+
+def _unresolved_act_error(act_name: str) -> str:
+    """Error text for an act the resolver could not identify, with near misses."""
+    message = f"**Errore**: atto '{act_name}' non riconosciuto."
+    suggestions = _suggest_acts(act_name)
+    if suggestions:
+        message += " Forse intendevi: " + ", ".join(f"'{s}'" for s in suggestions) + "."
+    message += (
+        " Prova con il nome completo (es. 'D.Lgs. 196/2003')"
+        " o usa fetch_law_article() con parametri espliciti."
+    )
+    return message
 
 
 def _build_nv(act_info: dict, article: str) -> NormaVisitata:
@@ -233,7 +295,7 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False) -> s
 
     act_info = _resolve_act(act_name)
     if not act_info:
-        return f"**Errore**: atto '{act_name}' non riconosciuto. Prova con il nome completo (es. 'D.Lgs. 196/2003') o usa fetch_law_article() con parametri espliciti."
+        return _unresolved_act_error(act_name)
 
     nv = _build_nv(act_info, article)
 
@@ -352,7 +414,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
 
     act_info = _resolve_act(act_name)
     if not act_info:
-        return f"**Errore**: atto '{act_name}' non riconosciuto."
+        return _unresolved_act_error(act_name)
 
     try:
         result = await fetch_brocardi(
@@ -406,7 +468,7 @@ async def _fetch_act_index_impl(reference: str) -> str:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
     act_info = _resolve_act(act_name)
     if not act_info:
-        return f"**Errore**: atto '{act_name}' non riconosciuto."
+        return _unresolved_act_error(act_name)
 
     norma = Norma(
         tipo_atto=act_info["tipo_atto"],
@@ -453,7 +515,7 @@ async def _fetch_full_act_impl(reference: str) -> str:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
     act_info = _resolve_act(act_name)
     if not act_info:
-        return f"**Errore**: atto '{act_name}' non riconosciuto."
+        return _unresolved_act_error(act_name)
 
     norma = Norma(
         tipo_atto=act_info["tipo_atto"],
@@ -586,7 +648,7 @@ async def _download_law_pdf_impl(reference: str) -> str:
 
     act_info = _resolve_act(act_name)
     if not act_info:
-        return f"**Errore**: atto '{act_name}' non riconosciuto. Prova con il nome completo (es. 'D.Lgs. 196/2003')."
+        return _unresolved_act_error(act_name)
 
     norma = Norma(
         tipo_atto=act_info["tipo_atto"],
