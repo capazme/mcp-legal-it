@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- stop tracking `.mcp.json`: it carried the author's absolute paths into every
+  clone, so it resolved to nothing on any other machine and asked a third party
+  to approve a nested config on trust. `.mcp.json.example` replaces it, resolving
+  everything from the checkout via `plugin/start_server.sh`
+- `esporta-documento` told users to run the author's local venv for the PDF path,
+  which exists on no other machine — the skill now uses `uv`, the prerequisite the
+  plugin already declares
+- the Stop-hook citation gate matched `cost` as a bare substring, so "costi",
+  "costo" and "costante" read as a citation of the Costituzione and any nearby
+  `art. N` tripped it. Anchored to `cost.`/`costituzion...`; covered by
+  `tests/unit/test_citation_gate.py`
+- the citation gate only recognised the abbreviated `art. N`, so `articolo 2043
+  del codice civile`, `artt. 536 e 544 c.c.` and `articoli 2941 e 2946` — forms
+  Italian legal writing uses interchangeably — passed unchecked. The article
+  pattern is now shared with the `cite_law()` dedup, which previously failed to
+  match a reference written out in full, and the law-token list covers the named
+  codes (consumo, strada, crisi, navigazione, privacy, assicurazioni, contratti,
+  CCII, TUIR, TUF). Codes enumerated one by one on purpose: a bare `codice`
+  would have fired on codice fiscale, codice tributo and codice ATECO, which
+  this project handles as data. Norms asserted with no article number at all
+  stay out of reach of a regex and are deliberately not attempted
+- the citation gate also fired on norms quoted inside fenced code blocks and
+  inline spans — a sample tool payload or a fixture value is not the assistant
+  asserting what an article says. Caught red-handed while writing up this very
+  change: the gate nagged about an `art. 1284 c.c.` that appeared only inside a
+  block showing what a tool returns
+- the repo's own `.claude/settings.json` declared a Stop hook the plugin already
+  registers, so the gate fired twice with an identical message. It ran the LLM
+  `prompt` variant that `citation-gate.py` was written to replace for
+  over-firing; the plugin owns the hook, so the repo no longer declares it
+- the README badge advertised 177 tools against the 218 the server registers
+
+### Changed
+- CI also runs on pushes to `main`, which previously went unverified between
+  releases — `check_deps_sync` stayed red on `main` for days without a signal
+
 ## [2.11.1] - 2026-08-15
 
 ### Fixed
