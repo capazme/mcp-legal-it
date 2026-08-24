@@ -2,6 +2,7 @@
 name: ricerca-normativa
 description: Ricerca normativa completa su un tema giuridico con tutte le fonti applicabili ordinate per gerarchia, giurisprudenza e quadro sanzionatorio. Usa quando l'utente chiede quali norme si applicano, il quadro normativo di un settore, le fonti di una materia o una ricerca legislativa.
 tools: [cerca_brocardi, cerca_delibere_consob, cerca_giurisprudenza, cerca_provvedimenti_garante, cite_law]
+prompt: {"name": "ricerca_normativa", "description": "Ricerca normativa completa su un tema giuridico: norme applicabili, gerarchia delle fonti e coordinamento", "args": [{"name": "tema", "type": "str"}, {"name": "area_diritto", "type": "str"}]}
 ---
 
 # Ricerca Normativa
