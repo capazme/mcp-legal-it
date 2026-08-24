@@ -357,6 +357,59 @@ Segue [Semantic Versioning](https://semver.org/):
 - **MINOR** (Y): nuovi tool, nuove feature, nuovi scraper
 - **PATCH** (Z): bug fix, miglioramenti interni, aggiornamenti dati
 
+## Risoluzione degli estremi normativi — note tecniche
+
+`cite_law()` e i tool che condividono il resolver (`giurisprudenza_su_norma`,
+`orientamento_su_norma`, `verifica_citazioni`, `cerca_brocardi`, `fetch_full_act`,
+`download_law_pdf`) risolvono il nome dell'atto tramite `resolve_atto()` in
+`src/lib/visualex/map.py`. La catena è, in ordine di affidabilità decrescente:
+
+1. `ATTI_NOTI` — nomi comuni e sigle verificati a mano (GDPR, AI Act, TUB, TUF,
+   TUIR, trattati UE, atti UE di compliance)
+2. `NORMATTIVA_URN_CODICI` — i codici, tramite `extract_codice_details()`
+3. `ATTI_DENOMINATI` — ~80 atti citati per nome (Statuto dei lavoratori, legge
+   fallimentare, TUEL, TULPS, statuto del contribuente, eponimi come legge
+   Gelli-Bianco o legge Cirinnà), ~200 alias
+4. `NORMATTIVA_SEARCH` — abbreviazioni → nome esteso, poi di nuovo 1-3
+5. pattern di citazione in `_resolve_act()` (`src/tools/legal_citations.py`) —
+   forme `D.Lgs. 196/2003`, `legge n. 241 del 1990`, `regolamento (UE) 2016/679`,
+   `direttiva 95/46/CE`
+
+**L'ordine è deliberato**: le tabelle verificate a mano precedono `ATTI_DENOMINATI`,
+la cui base è stata generata da `BROCARDI_CODICI`. Non invertirlo.
+
+Ogni nome viene provato in più varianti (`_candidate_keys`): letterale, normalizzato,
+senza articoli/preposizioni iniziali (`art. 111 della Costituzione`), e senza punti
+se è un acronimo puntato (`t.u.e.l.` → `tuel`). La variante letterale è sempre la
+prima, così la normalizzazione può solo aggiungere risoluzioni, mai cambiarne una.
+
+**`ATTI_DENOMINATI` è dato, non codice generato**: `scripts/generate_atti_denominati.py`
+ha prodotto la base una volta sola dagli estremi contenuti nelle chiavi di
+`BROCARDI_CODICI`; la tabella committata è la fonte di verità, così un atto sbagliato
+si corregge lì senza toccare una label di display. `--check` segnala gli atti Brocardi
+che il resolver non sa gestire (deve restare a 94/94).
+
+**Il gate contro il numero sbagliato è `tests/unit/test_atti_denominati_live.py`**
+(marker `live`, escluso dalla run di default): interroga Normattiva su ogni atto
+della tabella e verifica che data e numero dell'atto restituito coincidano, e
+EUR-Lex/CELLAR su ogni CELEX degli atti UE. **Da lanciare prima di ogni release.**
+Non intercetta un numero errato che cada su un atto della stessa data: quello lo
+vede solo la lettura.
+
+```bash
+.venv/bin/pytest tests/unit/test_atti_denominati_live.py -m live -q
+```
+
+**`resolve_atto()` non tira mai a indovinare**: un nome non riconosciuto restituisce
+`None` e i tool rispondono con un errore che elenca i nomi più vicini
+(`_suggest_acts`, `difflib`). Citare l'atto sbagliato in silenzio è peggio che non
+citarlo — non introdurre fuzzy matching che *risolve* invece di *suggerire*.
+
+**Trattati UE**: `TUE`, `TFUE` e `CDFUE` hanno come URL citabile la pagina
+eur-lex.europa.eu (in `EURLEX`), ma vanno **scaricati da CELLAR** per CELEX
+(`EURLEX_TREATY_CELEX`): EUR-Lex risponde alle richieste automatiche con una sfida
+WAF (HTTP 202 e corpo vuoto). Vedi `_eurlex_urls()` in `scraper.py`.
+
 ## Italgiure — note tecniche
 
 - **API**: Solr REST su `https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr`
