@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2026-08-24
+
+### Added
+- ogni tabella di dati dichiara la propria provenienza e il periodo che copre, e
+  i 65 tool che ne usano una la stampano accanto al risultato: «tassi legali:
+  copre fino al 31/12/2026 (DM MEF 10 dicembre 2025)». Le 8 tabelle la cui
+  provenienza non e' ancora accertata lo dicono esplicitamente invece di tacere
+- `SECURITY.md` risponde alle domande di chi valuta il plugin prima di usarlo su
+  pratiche vere: nessuna telemetria, elenco completo degli host contattati, cosa
+  contengono le configurazioni annidate, come forkare e restare indipendenti
+
+### Fixed
+- la skill `esporta-documento` indicava per il PDF il venv locale dell'autore,
+  che su nessun'altra macchina esiste: ora usa `uv`, gia' prerequisito del plugin
+- il gate citazioni scattava su «costi», «costo» e «costante», letti come
+  Costituzione, e su norme citate dentro blocchi di codice — un esempio di output
+  non e' un'affermazione giuridica
+- il gate riconosceva solo `art. N`: `articolo 2043 del codice civile` e
+  `artt. 536 e 544 c.c.` passavano inosservati, e una `cite_law()` scritta per
+  esteso non copriva la citazione che aveva appena verificato
+
 ## [2.11.1] - 2026-08-15
 
 ### Fixed
