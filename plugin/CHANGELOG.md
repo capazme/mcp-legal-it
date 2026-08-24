@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.1] - 2026-08-24
+
+### Added
+- `cite_law()` resolves far more references: acts cited by name (Statuto dei
+  lavoratori, legge fallimentare, TUEL, statuto del contribuente, legge
+  Gelli-Bianco, Jobs Act and ~75 more), the EU treaties (TFUE, TUE, CDFUE),
+  and 21 EU compliance acts by acronym (DSA, DMA, Data Act, eIDAS, MiCA,
+  CSRD, CSDDD, PSD2, NIS...).
+- More ways to write a citation: `legge 241/1990`, `legge n. 241 del 1990`,
+  `reg. (UE) 2016/679`, `direttiva 95/46/CE`, `art. 111 della Costituzione`,
+  `t.u.e.l.`, `art. 2, comma 1, lett. a), del d.lgs. 231/2001`.
+- An unrecognised act name now comes back with the closest matches instead of
+  a bare error.
+
+### Fixed
+- Articles carrying a separate rubric came back as the heading alone.
+- EU treaties could not be retrieved at all.
+- `codice del Terzo settore` resolved to a wrong URN.
+
 ## [2.12.0] - 2026-08-24
 
 ### Added
