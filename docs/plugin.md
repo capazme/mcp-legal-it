@@ -101,13 +101,13 @@ Fonte: `plugin/skills/*/SKILL.md` (una directory per skill).
 | `cookie-audit` | "analisi cookie", "audit cookie", "banner consenso", "che cookie usa il sito" | browser + `genera_informativa_cookie` |
 | `analisi-delibere-consob` | "delibere CONSOB", "provvedimenti mercati finanziari", "sanzioni CONSOB" | `cerca_delibere_consob`, `leggi_delibera_consob`, `cite_law` |
 | `novita-consob` | "ultime novità CONSOB", "delibere recenti" | `ultime_delibere_consob`, `leggi_delibera_consob` |
-| `analisi-tributaria` | Giurisprudenza tributaria: ricerca CeRDEF, lettura provvedimenti, sintesi orientamenti |
-| `analisi-giurisprudenza-amministrativa` | Giurisprudenza TAR/CdS: ricerca, lettura provvedimenti, sintesi orientamenti |
-| `analisi-giurisprudenza-europea` | Giurisprudenza CGUE: ricerca, lettura sentenze chiave, sintesi orientamenti |
-| `analisi-costituzionale` | Pronunce della Corte Costituzionale: ricerca, lettura, parametri invocati |
-| `ricerca-gazzetta` | Atti in Gazzetta Ufficiale: novità per serie, ricerca, testo e PDF ufficiale |
-| `orientamento-giurisprudenziale` | Orientamenti di legittimità: conformi vs contrasti, Sezioni Unite, evoluzione |
-| `attuazione-direttiva` | Recepimento direttive UE: misure nazionali, testo vigente, giurisprudenza CGUE |
+| `analisi-tributaria` | "giurisprudenza tributaria", "sentenze IVA/IRES", "accertamento e riscossione", "contenzioso fiscale CGT" | `cerca_giurisprudenza`, `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `cite_law` |
+| `analisi-giurisprudenza-amministrativa` | "sentenze TAR o CdS", "appalti pubblici", "urbanistica ed edilizia", "accesso agli atti" | `cerca_giurisprudenza_amministrativa`, `cite_law`, `giurisprudenza_amm_su_norma`, `leggi_provvedimento_amm` |
+| `analisi-giurisprudenza-europea` | "sentenze CGUE", "rinvio pregiudiziale", "interpretazione direttive/regolamenti UE", "conclusioni Avvocato generale" | `cerca_giurisprudenza_cgue`, `cite_law`, `giurisprudenza_cgue_su_norma`, `leggi_sentenza_cgue` |
+| `analisi-costituzionale` | "sentenze della Consulta", "legittimità costituzionale", "pronunce additive/interpretative" | `cerca_pronuncia_costituzionale`, `cite_law`, `leggi_pronuncia_costituzionale`, `pronunce_cost_su_norma` |
+| `ricerca-gazzetta` | "cosa è uscito in Gazzetta", "testo di un decreto pubblicato", "estremi di pubblicazione", "sommario della GU" | `cerca_gazzetta_ufficiale`, `cite_law`, `leggi_atto_gazzetta`, `scarica_pdf_gazzetta`, `sommario_gazzetta`, `ultime_gazzette` |
+| `orientamento-giurisprudenziale` | "orientamento consolidato", "contrasto in Cassazione", "evoluzione della giurisprudenza" | `cite_law`, `leggi_sentenza`, `mappa_orientamento`, `orientamento_su_norma`, `orientamento_su_principio` |
+| `attuazione-direttiva` | "recepimento di una direttiva UE", "atto italiano di attuazione", "base UE di un atto nazionale" | `cite_law`, `get_eu_basis`, `get_italian_implementation`, `giurisprudenza_cgue_su_norma` |
 
 ### Formato SKILL.md
 
