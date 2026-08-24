@@ -1,0 +1,129 @@
+"""Project the content/ corpus onto the Claude target tree.
+
+content/skills   -> <out>/plugin/skills    (strip 'tools:'/'prompt:', prefix tool names)
+content/agents   -> <out>/plugin/agents    (strip 'tools:', prefix tool names)
+content/commands -> <out>/plugin/commands  ('tools:' line -> 'allowed-tools:' line, prefix)
+content/references -> <out>/plugin/server/src/data/references (verbatim copy)
+
+Run from the repo root:  python scripts/corpus/project_claude.py [--out DIR]
+Without --out it writes into the working tree (the generated dirs are committed:
+the Claude marketplace installs the plugin/ tree straight from git).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import sys
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+import frontmatter as fm  # noqa: E402
+import toolnames as tn  # noqa: E402
+
+ROOT = _HERE.parents[1]
+
+
+def _parse_tools(fm_lines: list[str]) -> list[str]:
+    rng = fm.block_range(fm_lines, "tools")
+    if rng is None:
+        return []
+    raw = fm_lines[rng[0]].split(":", 1)[1].strip()
+    if raw.startswith("[") and raw.endswith("]"):
+        raw = raw[1:-1]
+    return [t.strip() for t in raw.split(",") if t.strip()]
+
+
+def _check_no_prefix(path: Path, text: str) -> None:
+    if "legal-it:" in text:
+        raise SystemExit(f"{path}: corpus files must use bare tool names, found 'legal-it:'")
+
+
+def _load_vocab(root: Path) -> set[str]:
+    return set(json.loads((root / "content" / "tool-vocabulary.json").read_text(encoding="utf-8")))
+
+
+def _project_doc(text: str, vocab: set[str], *, command: bool) -> str:
+    lines, body = fm.split(text)
+    tools = _parse_tools(lines)
+    # allowed-tools may carry NON-MCP entries (Bash, CronCreate, ...): only
+    # vocabulary members get the legal-it namespace; the rest pass through
+    # verbatim, in both the allowed-tools line and the body rewrite.
+    mcp_tools = [t for t in tools if t in vocab]
+    if command and tools:
+        allowed = ", ".join(f"mcp__legal-it__{t}" if t in vocab else t for t in tools)
+        lines = fm.replace_line(lines, "tools", f"allowed-tools: {allowed}")
+    else:
+        lines = fm.strip_keys(lines, ["tools"])
+    lines = fm.strip_keys(lines, ["prompt"])
+    return fm.join(lines, tn.add_prefixes(body, mcp_tools))
+
+
+def project(root: Path, out: Path) -> None:
+    content = root / "content"
+    vocab = _load_vocab(root)
+
+    skills_out = out / "plugin" / "skills"
+    if skills_out.exists():
+        shutil.rmtree(skills_out)
+    for skill_dir in sorted((content / "skills").iterdir()):
+        if not skill_dir.is_dir():
+            continue
+        dest = skills_out / skill_dir.name
+        skill_text = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+        _check_no_prefix(skill_dir / "SKILL.md", skill_text)
+        fm_lines, _ = fm.split(skill_text)
+        tools = _parse_tools(fm_lines)
+        for src_file in sorted(skill_dir.rglob("*")):
+            if not src_file.is_file():
+                continue
+            rel = src_file.relative_to(skill_dir)
+            target = dest / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if rel == Path("SKILL.md"):
+                target.write_text(_project_doc(skill_text, vocab, command=False), encoding="utf-8")
+            elif src_file.suffix == ".md":
+                text = src_file.read_text(encoding="utf-8")
+                _check_no_prefix(src_file, text)
+                target.write_text(
+                    tn.add_prefixes(text, [t for t in tools if t in vocab]), encoding="utf-8"
+                )
+            else:
+                shutil.copy2(src_file, target)
+
+    for kind, is_command in (("agents", False), ("commands", True)):
+        kind_out = out / "plugin" / kind
+        if kind_out.exists():
+            shutil.rmtree(kind_out)
+        kind_out.mkdir(parents=True, exist_ok=True)
+        src_kind = content / kind
+        if not src_kind.is_dir():
+            continue
+        for src_file in sorted(src_kind.glob("*.md")):
+            text = src_file.read_text(encoding="utf-8")
+            _check_no_prefix(src_file, text)
+            (kind_out / src_file.name).write_text(
+                _project_doc(text, vocab, command=is_command), encoding="utf-8"
+            )
+
+    refs_src = content / "references"
+    if refs_src.is_dir():
+        refs_out = out / "plugin" / "server" / "src" / "data" / "references"
+        if refs_out.exists():
+            shutil.rmtree(refs_out)
+        refs_out.mkdir(parents=True, exist_ok=True)
+        for src_file in sorted(refs_src.glob("*.md")):
+            shutil.copy2(src_file, refs_out / src_file.name)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=ROOT)
+    args = parser.parse_args()
+    project(ROOT, args.out)
+    print(f"projected content/ -> {args.out}")
+
+
+if __name__ == "__main__":
+    main()
