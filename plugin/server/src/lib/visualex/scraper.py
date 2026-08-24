@@ -236,26 +236,41 @@ def _build_celex(norma) -> str | None:
     return f"3{year}{type_letter}{number}"
 
 
+def _eurlex_urls(norma) -> tuple[str, str]:
+    """Return (fetch_url, display_url) for an EU act, or ("", "") if not an EU act.
+
+    Everything is fetched from CELLAR by CELEX id: EUR-Lex answers automated
+    requests with a WAF challenge (HTTP 202 and an empty body). Treaties keep
+    their eur-lex.europa.eu page as the citable URL shown to the reader, since
+    a browser passes that challenge and the CELLAR URL is not quotable.
+    """
+    from .map import EURLEX, EURLEX_TREATY_CELEX
+    from urllib.parse import quote
+
+    norm = norma.tipo_atto_normalized.lower()
+    eurlex_val = EURLEX.get(norm)
+    if not eurlex_val:
+        return "", ""
+
+    treaty_celex = EURLEX_TREATY_CELEX.get(norm)
+    if treaty_celex:
+        return f"{_CELLAR_BASE}{quote(treaty_celex, safe='')}", eurlex_val
+
+    celex = _build_celex(norma)
+    if not celex:
+        return "", ""
+    return f"{_CELLAR_BASE}{celex}", ""
+
+
 async def _fetch_eurlex_html(norma) -> tuple[str, str]:
     """Fetch EUR-Lex HTML via EU Publications Office Cellar (bypasses WAF).
 
     For treaties (TUE, TFUE, CDFUE) falls back to direct EUR-Lex URL.
     Returns (html, url). On failure returns ("", url).
     """
-    from .map import EURLEX
-    norm = norma.tipo_atto_normalized.lower()
-    eurlex_val = EURLEX.get(norm)
-    if not eurlex_val:
+    url, display_url = _eurlex_urls(norma)
+    if not url:
         return "", ""
-
-    # Treaties: direct URL (no CELEX)
-    if eurlex_val.startswith("https"):
-        url = eurlex_val
-    else:
-        celex = _build_celex(norma)
-        if not celex:
-            return "", ""
-        url = f"{_CELLAR_BASE}{celex}"
 
     async with httpx.AsyncClient(
         headers={
@@ -274,7 +289,7 @@ async def _fetch_eurlex_html(norma) -> tuple[str, str]:
     if resp.status_code == 202 or (len(html) < 5000 and "WAF" in html):
         return "", url
 
-    final_url = str(resp.url) if hasattr(resp, "url") else url
+    final_url = display_url or (str(resp.url) if hasattr(resp, "url") else url)
     return html, final_url
 
 
@@ -360,6 +375,11 @@ def _extract_eurlex_subdivision(div: Tag) -> str:
     return "\n".join(parts)
 
 
+# Article-heading class, exactly: "sti-art" is the *subtitle* of the same
+# article ("(ex articolo 81 del TCE)"), not the start of the next one.
+_TI_ART_CLASS = re.compile(r"^(?:oj-)?ti-art$")
+
+
 def _extract_eurlex_siblings(start_tag: Tag) -> str:
     """Collect text from start_tag and siblings until next article header."""
     full_text = [start_tag.get_text(strip=True)]
@@ -367,7 +387,7 @@ def _extract_eurlex_siblings(start_tag: Tag) -> str:
     element = start_tag.find_next_sibling()
     while element:
         classes = element.get("class", []) if hasattr(element, "get") else []
-        if any("ti-art" in c for c in classes):
+        if any(_TI_ART_CLASS.match(c) for c in classes):
             break
         elem_text = element.get_text(strip=True) if hasattr(element, "get_text") else ""
         if next_article_pat.match(elem_text):
