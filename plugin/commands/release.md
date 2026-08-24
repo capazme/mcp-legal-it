@@ -124,10 +124,16 @@ git push origin main --tags
 
 ```bash
 git checkout develop
-git merge main -m "Merge main into develop (vX.Y.Z release)"
+git merge --no-ff main -m "Merge main into develop (vX.Y.Z release)"
 git push origin develop
 git branch -d release/X.Y.Z
 ```
+
+> `--no-ff` è obbligatorio anche qui, benché a questo punto `main` sia discendente
+> di `develop` e un fast-forward funzionerebbe. CLAUDE.md lo impone su ogni merge
+> per tenere i branch visibili nel grafo, e `release.py` lo usa già: senza, il
+> back-merge sparirebbe e dalla storia non si vedrebbe che la release è rientrata
+> in develop. Il commit non porta contenuto — `git diff main develop` resta vuoto.
 
 ## Step 12 — Verifica release
 
