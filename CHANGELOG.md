@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   15 resources. I corpi dei 23 prompt MCP derivano ora dai corpi delle skill
   e per 13 workflow sono più sintetici dei precedenti; nomi, firme e
   descrizioni sono invariati. I web-skills ZIP non sono più versionati
-  (plugin/dist è build output; si rigenerano con plugin/build-web-skills.py).
+  (plugin/dist è build output; si rigenerano con `python scripts/build_targets.py claude-web`).
+- `scripts/build_targets.py` is now the single builder for every distribution
+  target (`claude-code`, `claude-web`, `plugin-zip`, `mcpb`), replacing
+  `scripts/build-all.sh`, `scripts/build-plugin.sh`, `scripts/build-dxt.sh`
+  and `plugin/build-web-skills.py`, which are removed.
 
 ## [2.12.1] - 2026-08-24
 

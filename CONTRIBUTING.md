@@ -14,6 +14,25 @@ Never edit those paths by hand: `tests/unit/test_corpus_build.py` fails the
 suite when a committed projection drifts from the corpus. After ANY edit under
 `content/`, run both scripts and commit source + projections together.
 
+### Building distribution artifacts
+
+`scripts/build_targets.py` is the single canonical entry point for every
+packaging target — it reads `content/targets.yaml` and replaces the old
+per-target shell scripts:
+
+```bash
+python scripts/build_targets.py claude-code   # project content/ + regenerate prompts.py
+python scripts/build_targets.py claude-web    # per-skill ZIPs for Claude Web
+python scripts/build_targets.py plugin-zip    # Claude Code Plugin marketplace ZIP
+python scripts/build_targets.py mcpb          # Desktop Extension (.mcpb)
+python scripts/build_targets.py all           # all four, in that order
+```
+
+It imports PyYAML (via `scripts/corpus/targets.py`), which lives in the `dev`
+extra — run it with `uv run --python 3.12 --extra dev python
+scripts/build_targets.py ...` (or any environment with `pip install -e
+".[dev]"`) rather than a bare system `python3`.
+
 ---
 
 ## 1. Setup ambiente

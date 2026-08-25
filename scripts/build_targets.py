@@ -8,7 +8,7 @@ Targets:
   mcpb         package dxt/ + plugin/server as a Desktop Extension (.mcpb)
   all          the four targets above, in that order
 
-Replaces (do not delete — Task 6 retires them once this is proven at parity):
+Replaces (removed):
   scripts/build-plugin.sh, scripts/build-dxt.sh, scripts/build-all.sh,
   plugin/build-web-skills.py
 
