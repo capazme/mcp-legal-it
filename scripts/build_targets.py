@@ -243,7 +243,7 @@ _OPENAI_CONFIG_TOML_EXAMPLE = """\
 # mcp-legal-it server — this bundle ships skills only, no server.
 #
 # The server key MUST be `legal_it` (underscore, not hyphen): Codex rejects
-# hyphenated MCP server names (see mcp-legal-it issue #15832).
+# hyphenated MCP server names (see Codex issue #15832).
 
 [mcp_servers.legal_it]
 command = "uv"
@@ -303,7 +303,7 @@ Bundle di skill Legal IT in formato AGENTS/Codex, generato dal corpus di
 
 ## Approfondimenti
 
-Guida completa: `docs/openai.md`.
+Guida completa: https://github.com/capazme/mcp-legal-it/blob/main/docs/openai.md
 """
 
 
@@ -316,7 +316,11 @@ def build_openai(root: Path) -> None:
     # this order would wipe them on every rebuild.
     pc.project(root, root, cfg)
 
-    bundle_root = root / "dist" / "openai"
+    # Bundle root derived from the manifest's own out.skills path — two path
+    # segments above the skills dir (<bundle_root>/.agents/skills) — rather
+    # than a hardcoded "dist/openai": a manifest edit to out.skills is the
+    # only place that then needs to change.
+    bundle_root = root / Path(cfg["out"]["skills"]).parents[1]
     (bundle_root / "AGENTS.md").write_text(am.generate(root), encoding="utf-8")
     (bundle_root / "config.toml.example").write_text(_OPENAI_CONFIG_TOML_EXAMPLE, encoding="utf-8")
     (bundle_root / "README.md").write_text(_OPENAI_README, encoding="utf-8")
@@ -329,7 +333,7 @@ def build_openai_zip(root: Path, version: str | None = None) -> Path:
         version = pyproject["project"]["version"]
 
     output = root / cfg["artifact"].format(version=version)
-    bundle_root = root / "dist" / "openai"
+    bundle_root = root / cfg["root"]
     _zip_dir(bundle_root, output)
     return output
 

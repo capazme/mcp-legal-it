@@ -124,7 +124,7 @@ Il server MCP funziona anche fuori da Claude — ma Codex CLI e ChatGPT non
 leggono i prompt guidati né le risorse `legal://`. Al posto delle skill del
 plugin Claude Code, usa il **bundle OpenAI** generato dallo stesso corpus:
 
-1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 41 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
+1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 40 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
 2. **Codex CLI**: estrai `.agents/skills/` in `$HOME/.agents/skills/` (globale) o nella root del progetto; copia `AGENTS.md`; aggiungi il blocco `config.toml.example` a `~/.codex/config.toml` (server MCP separato, via `uv`).
 3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 218 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
 
@@ -160,7 +160,7 @@ Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Cl
 
 ---
 
-## Skill — 22 workflow guidati
+## Skill — 30 workflow guidati
 
 Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base al contesto.
 
@@ -420,7 +420,7 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 
 ---
 
-## Agenti — 5 specialisti
+## Agenti — 6 specialisti
 
 | Agente | Specializzazione | Aree coperte |
 |--------|------------------|--------------|

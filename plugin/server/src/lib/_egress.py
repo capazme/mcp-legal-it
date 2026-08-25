@@ -59,6 +59,7 @@ NON_NETWORK_HOSTS: dict[str, str] = {
     "www.w3.org": "namespace XMLSchema nei PREFIX SPARQL",
     "docs.oasis-open.org": "namespace Akoma Ntoso citato in un docstring",
     "www.esempio.it": "dominio segnaposto negli esempi dei docstring",
+    "github.com": "link doc nel README generato del bundle openai (scripts/build_targets.py) — mai richiesto dallo script",
 }
 
 

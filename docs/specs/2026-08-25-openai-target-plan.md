@@ -128,7 +128,7 @@ Pin tests: openai out dir under dist/ (gitignored — assert `git check-ignore d
 - `_TARGET_NAMES` += `openai`, `openai-zip` (in that order, before nothing that consumes them); main() dispatch; `all` includes both.
 - Tests (`test_openai_target.py`, running the real projection into tmp via direct `project(root, tmp, cfg)`): 41 skill dirs exactly; `release`/`digest`/`cookie-audit` absent; every SKILL.md frontmatter = name+description only, description ≤153 chars; agent skills carry the standalone description; ZERO occurrences of `legal-it:` or `mcp__` in any body (satisfiable after Task 1's twin fix + the cookie-audit exclusion — both measured); AGENTS.md contains «REGOLE» + «cite_law» + «legal_it__»; config example contains `[mcp_servers.legal_it]`; zip member count = file count.
 
-- [ ] Steps: failing tests → implement → full suite → `build_targets.py openai openai-zip` smoke (artifacts exist, tree clean) → commit `feat(build): openai bundle target — 42 skills, AGENTS.md, config example, zip`.
+- [ ] Steps: failing tests → implement → full suite → `build_targets.py openai openai-zip` smoke (artifacts exist, tree clean) → commit `feat(build): openai bundle target — 41 skills, AGENTS.md, config example, zip`.
 
 ---
 
@@ -152,8 +152,10 @@ Pin tests: openai out dir under dist/ (gitignored — assert `git check-ignore d
 ## Deviations from the spec (measured, deliberate)
 
 1. **Tool naming**: spec anticipated measuring `legal-it:`-style qualified names on a live Codex; current Codex uses `__`-separated forms varying by mode (PR #21576), so bodies ship BARE names — correct under every mode — and the config pins server name `legal_it`. The live-probe task is replaced by a documented `/mcp` verification step in docs/openai.md (Codex CLI not installed on this machine; a probe would also age instantly across Codex versions, the bare-name choice doesn't).
-2. **`agents/openai.yaml` NOT emitted** (spec item 7): measured as fully optional with no required fields; 42 boilerplate files add maintenance for cosmetic UI metadata. Revisit on user demand.
+2. **`agents/openai.yaml` NOT emitted** (spec item 7): measured as fully optional with no required fields; 41 boilerplate files add maintenance for cosmetic UI metadata. Revisit on user demand.
 3. **No committed projection for openai**: dist/openai is build output; determinism is test-asserted, not drift-gated (no marketplace-equivalent consumes the committed tree). A committed repo-root `.agents/skills/` (zero-install for cloners via Codex discovery) is recorded as a FUTURE option for the user to opt into.
 4. **`commands/release` and `commands/digest` excluded** from the bundle (maintainer-only / harness-scheduling-bound); spec said "map the 8 slash commands" — 6 ship (both exclusions are corpus-measured, not concessions to effort).
 5. **`skills/cookie-audit` excluded from the bundle**: its workflow drives Claude-specific browser MCPs (`mcp__chrome-devtools__*`, `mcp__claude-in-chrome__*`) and Claude's ToolSearch — not portable; shipping it would advertise a broken skill. Claude keeps it unchanged.
 6. **Role-skills instead of `~/.agents/` multi-agent roles** (spec item 5's optional variant): Codex multi-agent is behind a feature flag and version-dependent; role-skills work everywhere. Variant deferred.
+7. **Single `openai` projection block instead of the spec's separate `codex-cli` + `chatgpt` blocks**: both harnesses consume the same `.agents/skills/` SKILL.md format (bare tool names, capped `name`+`description` frontmatter) with no divergence measured — one bundle, one manifest block, documented for both in `docs/openai.md`.
+8. **`skills/esporta-documento` excluded post-final-review** (fix-wave after Task 6): its body shipped `${CLAUDE_PLUGIN_ROOT}`-based paths (SKILL.md:77,88,99) — a Claude-only runtime env var, unresolved and structurally broken on Codex, the same portability criterion already applied to `cookie-audit` (Deviation 5). Bundle count: 41 → 40 skills (28 corpus + 6 agents + 6 commands).

@@ -127,13 +127,19 @@ def test_openai_projection_out_dir_is_under_dist():
 
 
 def test_openai_projection_exclude_list():
-    # openai projection explicitly excludes these three items from projection.
+    # openai projection explicitly excludes these four items from projection.
     openai = tg.get_target(REPO, "openai")
-    assert openai["exclude"] == ["commands/release", "commands/digest", "skills/cookie-audit"]
+    assert openai["exclude"] == [
+        "commands/release",
+        "commands/digest",
+        "skills/cookie-audit",
+        "skills/esporta-documento",
+    ]
 
 
 def test_openai_zip_artifact_matches_release_glob():
-    # release.py packs all dist/*.zip files into a release artifact.
+    # .github/workflows/release.yml:46 globs dist/*.zip into the release
+    # artifact set (NOT release.py, which never reads dist/openai output).
     # artifact name must match that glob pattern.
     openai_zip = tg.get_target(REPO, "openai-zip")
     artifact = openai_zip["artifact"]

@@ -10,10 +10,13 @@ Il bundle è generato da `python scripts/build_targets.py openai openai-zip`
 a partire dallo stesso corpus (`content/`) da cui viene proiettato il plugin
 Claude Code — non è un prodotto separato mantenuto a mano. Contiene:
 
-- **`.agents/skills/`** — 41 skill in formato SKILL.md (29 skill del corpus +
+- **`.agents/skills/`** — 40 skill in formato SKILL.md (28 skill del corpus +
   6 skill derivate dagli agenti specialisti + 6 derivate dagli slash command;
-  `cookie-audit` è esclusa perché il suo workflow pilota tool browser
-  specifici di Claude e non funzionerebbe fuori da quell'ambiente). Ogni
+  `cookie-audit` ed `esporta-documento` sono escluse — la prima perché il suo
+  workflow pilota tool browser specifici di Claude, la seconda perché il suo
+  corpo cita percorsi `${CLAUDE_PLUGIN_ROOT}`, non risolvibili fuori da un
+  processo plugin Claude — entrambe non funzionerebbero fuori da
+  quell'ambiente). Ogni
   `SKILL.md` ha un frontmatter ridotto a `name` + `description` (Codex tollera
   chiavi extra ma non le richiede); i tool nel corpo sono citati con il nome
   **bare** (es. `cite_law`, non `mcp__legal_it__cite_law`) — l'unica forma
@@ -25,6 +28,10 @@ Claude Code — non è un prodotto separato mantenuto a mano. Contiene:
   stdio (via `uv`, nessuna installazione locale) e variante Streamable HTTP
   commentata.
 - **`README.md`** — riepilogo rapido dentro al bundle stesso.
+
+Dei 8 slash command del plugin Claude Code solo 6 diventano skill: i comandi
+`release` e `digest` — maintainer-only e legati allo scheduling dell'harness —
+sono esclusi, come `cookie-audit` ed `esporta-documento`.
 
 Il bundle **non include il server MCP**: le skill sono istruzioni per
 l'agente, il server (218 tool) resta un checkout separato di questo repository
@@ -55,7 +62,7 @@ Tre vie, in ordine di comodità:
    l'artifact:
    ```bash
    uv run --python 3.12 --extra dev python scripts/build_targets.py openai
-   cp -r dist/openai/.agents/skills ~/.agents/skills
+   cp -r dist/openai/.agents/skills/. ~/.agents/skills/
    ```
 3. **Skill-installer** — Codex ha in programma un meccanismo di installazione
    guidato delle skill (analogo a `codex mcp add` per i server MCP); finché
@@ -63,23 +70,23 @@ Tre vie, in ordine di comodità:
 
 ### Dove Codex cerca le skill
 
-Codex risolve le skill cercando, **in quest'ordine**, e fermandosi alla prima
-directory `.agents/skills` che trova:
+Codex cerca in quest'ordine la directory `.agents/skills`:
 
 ```
 $CWD/.agents/skills → directory padri, risalendo → root del repository
   → $HOME/.agents/skills → /etc/codex/skills → skill incluse in Codex stesso
 ```
 
-Una copia locale al progetto (via 1) ha quindi sempre priorità su una copia
-globale in `$HOME`; se hai bisogno di skill diverse per progetti diversi, usa
-la copia locale.
+se più directory sono presenti, verifica quale copia viene effettivamente
+caricata (con `/mcp` o l'equivalente diagnostica di Codex): se hai bisogno di
+skill diverse per progetti diversi, usa la copia locale al progetto.
 
-Le 41 skill del bundle restano ampiamente sotto il budget che Codex riserva
+Le 40 skill del bundle restano ampiamente sotto il budget che Codex riserva
 alla lista delle skill nel contesto (2% del contesto disponibile, o 8.000
 caratteri se il contesto non è noto): le descrizioni sono tagliate in fase di
-build a 150 caratteri proprio per restare comodamente sotto quel limite senza
-che Codex debba scartare skill.
+build a 185 caratteri, e il totale nome+descrizione dell'intero bundle è
+verificato in test a restare sotto la soglia degli 8.000 caratteri, così
+Codex non deve mai scartare o troncare silenziosamente una skill.
 
 ---
 

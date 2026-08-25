@@ -83,8 +83,8 @@ Appendi ogni record completato ad `analisi` nel checkpoint a fine blocco.
 
 ### Modalità parallela (>~40 fornitori, su conferma dell'utente)
 
-Dispatch di un subagent generico per blocco (~15 fornitori) con questo prompt,
-compilando i placeholder:
+Elabora a blocchi di ~15 fornitori; se il tuo ambiente supporta l'esecuzione parallela
+(subagent), lancia un blocco per subagent con questo prompt, compilando i placeholder:
 
 > Sei un DPO esperto di GDPR e prassi del Garante. Analizza questi fornitori del
 > cliente «{CLIENTE}» (titolare del trattamento) e restituisci SOLO un array JSON
