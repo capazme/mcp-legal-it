@@ -119,7 +119,7 @@ romperebbe la registrazione dei tool senza preavviso.
 | [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `src/lib/` (12 moduli, 4 documentati in dettaglio) |
 | [prompts-resources.md](prompts-resources.md) | 23 prompt guidati e 15 risorse statiche `legal://` |
 | [plugin.md](plugin.md) | Plugin Claude Code: 30 skill, 8 slash command, 6 agenti, hook, installazione |
-| [openai.md](openai.md) | Bundle OpenAI (Codex CLI / ChatGPT): 41 skill, AGENTS.md, config MCP, limiti |
+| [openai.md](openai.md) | Bundle OpenAI (Codex CLI / ChatGPT): 40 skill, AGENTS.md, config MCP, limiti |
 | [data-files.md](data-files.md) | 24 file JSON dati: contenuto, fonte normativa, aggiornamento |
 | [testing.md](testing.md) | Strategia test, comandi, copertura, come aggiungere test |
 | [deployment.md](deployment.md) | install.py, setup manuale, Docker, variabili d'ambiente, troubleshooting |

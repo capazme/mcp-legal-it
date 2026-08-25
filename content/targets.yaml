@@ -21,8 +21,8 @@ projections:
     strip_frontmatter_keys: [tools, prompt, standalone-description]
     supports: [skills]
     merge_into_skills: [agents, commands]
-    exclude: [commands/release, commands/digest, skills/cookie-audit]
-    description_max_chars: 150
+    exclude: [commands/release, commands/digest, skills/cookie-audit, skills/esporta-documento]
+    description_max_chars: 185
     out:
       skills: dist/openai/.agents/skills
 
@@ -46,4 +46,5 @@ packaging:
     version_manifest: "manifest.json"
   openai-zip:
     artifact: "dist/legal-it-openai-skills-{version}.zip"
-    root: dist/openai   # no from:: nothing reads it on packaging targets (phase-2 review: dead config)
+    root: dist/openai   # no from:: read directly by build_openai_zip() (build_openai() derives the
+                        # same root from the openai projection's out.skills instead of a literal)
