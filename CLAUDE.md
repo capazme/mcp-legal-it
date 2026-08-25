@@ -557,7 +557,7 @@ cerca_giurisprudenza_cgue("imposta sul valore aggiunto")
 
 ## Setup per provider
 
-Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
+Il server MCP supporta tre transport e funziona con Claude, Codex CLI, ChatGPT e Manus.
 
 ### Compatibilità cross-provider
 
