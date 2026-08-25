@@ -4,6 +4,7 @@ description: Specialista GDPR e protezione dati. Delega quando la questione rigu
 model: sonnet
 color: green
 tools: [cerca_giurisprudenza, cerca_provvedimenti_garante, cite_law, leggi_provvedimento_garante, leggi_sentenza]
+standalone-description: Metodologia GDPR e protezione dati — Codice Privacy, provvedimenti del Garante, cookie, data breach, DPIA, con verifica delle fonti.
 ---
 
 # Privacy Specialist — Esperto GDPR e Protezione Dati
