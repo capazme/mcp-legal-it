@@ -16,6 +16,15 @@ projections:
       agents: plugin/agents
       commands: plugin/commands
       references: plugin/server/src/data/references
+  openai:
+    tool_namespace: "{tool}"
+    strip_frontmatter_keys: [tools, prompt, standalone-description]
+    supports: [skills]
+    merge_into_skills: [agents, commands]
+    exclude: [commands/release, commands/digest, skills/cookie-audit]
+    description_max_chars: 150
+    out:
+      skills: dist/openai/.agents/skills
 
 packaging:
   claude-web:
@@ -35,3 +44,6 @@ packaging:
     from: claude-code
     artifact: "dist/legal-it-{version}.mcpb"
     version_manifest: "manifest.json"
+  openai-zip:
+    artifact: "dist/legal-it-openai-skills-{version}.zip"
+    root: dist/openai
