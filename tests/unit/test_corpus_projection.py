@@ -29,11 +29,27 @@ COMMAND = (
 AGENT = "---\nname: civilista\ndescription: Civilista.\nmodel: sonnet\ntools: [cite_law]\n---\n\nUsa `cite_law`.\n"
 REF = "Riferimento condiviso senza frontmatter.\n"
 
+TARGETS_YAML = (
+    "version: 1\n"
+    "projections:\n"
+    "  claude-code:\n"
+    '    tool_namespace: "legal-it:{tool}"\n'
+    '    command_tool_namespace: "mcp__legal-it__{tool}"\n'
+    "    strip_frontmatter_keys: [tools, prompt]\n"
+    "    supports: [skills, agents, commands, mcp_prompts, mcp_resources, hooks]\n"
+    "    out:\n"
+    "      skills: plugin/skills\n"
+    "      agents: plugin/agents\n"
+    "      commands: plugin/commands\n"
+    "      references: plugin/server/src/data/references\n"
+)
+
 def _make_content(root: Path):
     (root / "content/skills/demo/references").mkdir(parents=True)
     (root / "content/tool-vocabulary.json").write_text(
         '["cerca_brocardi", "cite_law", "leggi_sentenza"]', encoding="utf-8"
     )
+    (root / "content/targets.yaml").write_text(TARGETS_YAML, encoding="utf-8")
     (root / "content/skills/demo/SKILL.md").write_text(SKILL, encoding="utf-8")
     (root / "content/skills/demo/references/nota.md").write_text("Vedi `cite_law`.\n", encoding="utf-8")
     (root / "content/agents").mkdir(parents=True)
@@ -87,3 +103,45 @@ def test_cli_runs_against_real_corpus_once_it_exists(tmp_path):
         capture_output=True, text=True,
     )
     assert r.returncode == 0, r.stderr
+
+def test_multiline_tools_block_is_rejected(tmp_path):
+    pc = _load("project_claude")
+    src_root = tmp_path / "repo"
+    _make_content(src_root)
+    bad = src_root / "content/skills/demo/SKILL.md"
+    bad.write_text(SKILL.replace(
+        "tools: [cite_law, leggi_sentenza]",
+        "tools:\n  - cite_law\n  - leggi_sentenza",
+    ), encoding="utf-8")
+    import pytest
+    with pytest.raises(SystemExit, match="single-line"):
+        pc.project(src_root, tmp_path / "out")
+
+
+def test_undeclared_vocabulary_name_is_rejected(tmp_path):
+    pc = _load("project_claude")
+    src_root = tmp_path / "repo"
+    _make_content(src_root)
+    skill = src_root / "content/skills/demo/SKILL.md"
+    skill.write_text(
+        skill.read_text(encoding="utf-8").replace(
+            "Usa `cite_law`", "Usa `cite_law` e poi `cerca_brocardi`"
+        ),
+        encoding="utf-8",
+    )  # cerca_brocardi is in the fixture vocabulary but NOT in demo's tools:
+    import pytest
+    with pytest.raises(SystemExit, match="undeclared"):
+        pc.project(src_root, tmp_path / "out")
+
+
+def test_tool_namespace_placeholder_conversion(tmp_path):
+    """The manifest spells the placeholder as NAMED {tool}; toolnames.add_prefixes
+    formats POSITIONALLY. project() must convert once when reading cfg, or every
+    projected doc raises KeyError on the first str.format() call."""
+    pc = _load("project_claude")
+    src_root = tmp_path / "repo"
+    _make_content(src_root)
+    out = tmp_path / "out"
+    pc.project(src_root, out)
+    skill = (out / "plugin/skills/demo/SKILL.md").read_text(encoding="utf-8")
+    assert "`legal-it:cite_law`" in skill
