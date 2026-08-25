@@ -31,3 +31,10 @@ def test_validation_rejects_missing_namespace(tmp_path):
     )
     with pytest.raises(ValueError, match="tool_namespace"):
         tg.load_targets(tmp_path)
+
+
+def test_claude_web_out_dir_matches_release_py_consumer():
+    # release.py stages this EXACT path with `git add -f` at release time
+    # (three dist_dir sites). Changing out_dir here without updating release.py
+    # silently ships stale web-skills zips into release commits.
+    assert tg.get_target(REPO, "claude-web")["out_dir"] == "plugin/dist/web-skills"

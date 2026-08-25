@@ -17,7 +17,8 @@ suite when a committed projection drifts from the corpus. After ANY edit under
 ### Building distribution artifacts
 
 `scripts/build_targets.py` is the single canonical entry point for every
-packaging target — it reads `content/targets.yaml` and replaces the old
+packaging target — it reads `content/targets.yaml` (except mcpb's file
+staging, still code — see the manifest's header) and replaces the old
 per-target shell scripts:
 
 ```bash

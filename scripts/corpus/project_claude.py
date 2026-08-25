@@ -73,6 +73,10 @@ def _project_doc(
     # verbatim, in both the allowed-tools line and the body rewrite.
     mcp_tools = [t for t in tools if t in vocab]
     if command and tools:
+        if mcp_tools and not command_template:
+            raise SystemExit(
+                f"{path}: target declares commands but no command_tool_namespace in targets.yaml"
+            )
         allowed = ", ".join(command_template.format(t) if t in vocab else t for t in tools)
         lines = fm.replace_line(lines, "tools", f"allowed-tools: {allowed}")
         remaining_keys = [k for k in strip_keys if k != "tools"]
@@ -88,7 +92,7 @@ def project(root: Path, out: Path, cfg: dict | None = None) -> None:
     # The manifest spells the placeholder as NAMED ({tool}) for readability;
     # toolnames.add_prefixes formats POSITIONALLY. Convert once here.
     tool_template = cfg["tool_namespace"].replace("{tool}", "{}")
-    command_template = cfg["command_tool_namespace"].replace("{tool}", "{}")
+    command_template = (cfg.get("command_tool_namespace") or "").replace("{tool}", "{}")
     strip_keys = cfg["strip_frontmatter_keys"]
     out_map = cfg["out"]
 

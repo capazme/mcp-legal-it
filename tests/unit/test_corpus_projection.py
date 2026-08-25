@@ -1,4 +1,5 @@
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -35,6 +36,21 @@ TARGETS_YAML = (
     "  claude-code:\n"
     '    tool_namespace: "legal-it:{tool}"\n'
     '    command_tool_namespace: "mcp__legal-it__{tool}"\n'
+    "    strip_frontmatter_keys: [tools, prompt]\n"
+    "    supports: [skills, agents, commands, mcp_prompts, mcp_resources, hooks]\n"
+    "    out:\n"
+    "      skills: plugin/skills\n"
+    "      agents: plugin/agents\n"
+    "      commands: plugin/commands\n"
+    "      references: plugin/server/src/data/references\n"
+)
+
+# Same shape, but WITHOUT command_tool_namespace — exercises the lazy read.
+TARGETS_YAML_NO_COMMAND_NS = (
+    "version: 1\n"
+    "projections:\n"
+    "  claude-code:\n"
+    '    tool_namespace: "legal-it:{tool}"\n'
     "    strip_frontmatter_keys: [tools, prompt]\n"
     "    supports: [skills, agents, commands, mcp_prompts, mcp_resources, hooks]\n"
     "    out:\n"
@@ -145,3 +161,27 @@ def test_tool_namespace_placeholder_conversion(tmp_path):
     pc.project(src_root, out)
     skill = (out / "plugin/skills/demo/SKILL.md").read_text(encoding="utf-8")
     assert "`legal-it:cite_law`" in skill
+
+
+def test_missing_command_tool_namespace_with_command_tools_raises(tmp_path):
+    """Without command_tool_namespace, a command declaring vocab tools must
+    fail loudly instead of silently emitting an un-namespaced allowed-tools
+    line."""
+    pc = _load("project_claude")
+    src_root = tmp_path / "repo"
+    _make_content(src_root)
+    (src_root / "content/targets.yaml").write_text(TARGETS_YAML_NO_COMMAND_NS, encoding="utf-8")
+    import pytest
+    with pytest.raises(SystemExit, match="command_tool_namespace"):
+        pc.project(src_root, tmp_path / "out")
+
+
+def test_missing_command_tool_namespace_without_commands_succeeds(tmp_path):
+    """The same manifest gap is harmless when the corpus has no commands at
+    all — command_tool_namespace is never read/formatted."""
+    pc = _load("project_claude")
+    src_root = tmp_path / "repo"
+    _make_content(src_root)
+    (src_root / "content/targets.yaml").write_text(TARGETS_YAML_NO_COMMAND_NS, encoding="utf-8")
+    shutil.rmtree(src_root / "content/commands")
+    pc.project(src_root, tmp_path / "out")

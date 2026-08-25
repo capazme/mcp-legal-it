@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -199,6 +200,8 @@ def build_plugin_zip(root: Path, version: str | None = None) -> Path:
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, dst)
 
+        os.chmod(stage / "start_server.sh", 0o755)
+
         _purge_caches(stage)
 
         if explicit_version:
@@ -233,6 +236,8 @@ def build_mcpb(root: Path, version: str | None = None) -> Path:
         shutil.copy2(root / "pyproject.toml", stage / "pyproject.toml")
         shutil.copy2(root / "plugin" / "start_server.sh", stage / "start_server.sh")
         shutil.copytree(root / "plugin" / "server", stage / "server")
+
+        os.chmod(stage / "start_server.sh", 0o755)
 
         _purge_caches(stage)
 
@@ -287,7 +292,7 @@ def main(argv: list[str] | None = None) -> int:
                 print("==> mcpb")
                 path = build_mcpb(ROOT, version=args.version)
                 print(f"Built: {path}")
-        except Exception as exc:  # noqa: BLE001 — surface any build failure, no silent partials
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 — surface any build failure, no silent partials
             print(f"build_targets: target {name!r} failed: {exc}", file=sys.stderr)
             return 1
     return 0
