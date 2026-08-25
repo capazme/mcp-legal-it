@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Install guide: `docs/openai.md`.
 
 ### Changed
+- The pending-reforms rule in `ricerca-normativa` and `mappatura-normativa`
+  is re-enabled: with the parliamentary tools available, pending bills may
+  now be reported when anchored to `ddl_su_norma`/`cerca_ddl`/`iter_ddl`
+  output — always citing atto number, dated status and official scheda link.
+  It had been restricted to Gazzetta-published changes only (2026-08-25
+  prompt back-fill) because no verifiable parliamentary source existed.
+  `analisi-articolo` gains a pending-DDL check in its evolution step.
+  Prompt names, signatures and count (23) unchanged.
 - Corpus consolidation (v3 phase 1): skills/agents/commands moved to `content/`
   as the single source; `plugin/` subtrees and `src/prompts.py` are now
   generated projections (`scripts/corpus/`). 7 prompt-only workflows promoted

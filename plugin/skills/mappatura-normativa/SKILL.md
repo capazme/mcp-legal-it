@@ -75,5 +75,5 @@ Elenco ordinato per priorita degli adempimenti da verificare.
 
 - Usare `legal-it:cite_law` per TUTTI gli articoli citati nella mappa.
 - Indicare la data di entrata in vigore di ciascuna fonte.
-- Segnalare le norme in fase di modifica o revisione solo se la modifica risulta gia pubblicata in Gazzetta Ufficiale (verificabile con i tool); non segnalare riforme pendenti o de lege ferenda.
+- Segnalare le norme in fase di modifica o revisione se la modifica risulta gia pubblicata in Gazzetta Ufficiale (verificabile con i tool), oppure se pende un DDL verificato con `legal-it:ddl_su_norma` o `legal-it:cerca_ddl` (stato dell'iter con `legal-it:iter_ddl`): in tal caso citare numero atto, stato, data e scheda ufficiale. Mai de lege ferenda senza estremi verificati; l'assenza di DDL trovati non prova l'assenza di riforme, perche la ricerca copre i soli titoli.
 - Per settori regolati (privacy, bancario, sanitario), includere sempre le fonti dell'autorita di vigilanza.
