@@ -1,6 +1,6 @@
 ---
 name: analisi-giurisprudenza-amministrativa
-description: Analisi della giurisprudenza amministrativa su un tema — ricerca TAR/Consiglio di Stato, lettura dei provvedimenti e sintesi degli orientamenti. Usa quando l'utente chiede sentenze TAR o CdS, appalti, urbanistica, edilizia, accesso agli atti, provvedimenti della PA o Adunanza Plenaria.
+description: Usa quando l'utente chiede sentenze TAR o CdS su appalti, urbanistica, edilizia, accesso agli atti o Adunanza Plenaria — ricerca TAR/Consiglio di Stato, lettura dei provvedimenti e sintesi.
 ---
 
 # Analisi Giurisprudenza Amministrativa

@@ -1,6 +1,6 @@
 ---
 name: procure-quotazioni
-description: Genera in serie procure alle liti (art. 83 c.p.c.) e lettere di quotazione compensi D.M. 55/2014 in DOCX per posizioni di recupero crediti, partendo da un Excel di posizioni o dai dati forniti, con rilevamento della fase processuale (monitorio, esecuzione forzata, opposizione a decreto ingiuntivo). Usa quando l'utente deve preparare, rifare o aggiornare procure e quotazioni/preventivi per pratiche di recupero crediti — anche dopo una rinuncia al mandato o un cambio di difensore o di firmatario — o quando dice "procure e quotazioni", "quotazioni monitori", "preventivi per i decreti ingiuntivi", "rifai le procure per i clienti di X".
+description: Usa quando l'utente deve preparare, rifare o aggiornare procure e quotazioni/preventivi per pratiche di recupero crediti — anche dopo una rinuncia al mandato o un cambio di difensore o di firmatario — o quando dice "procure e quotazioni", "quotazioni monitori", "preventivi per i decreti ingiuntivi", "rifai le procure per i clienti di X". Genera in serie procure alle liti (art. 83 c.p.c.) e lettere di quotazione compensi D.M. 55/2014 in DOCX, partendo da un Excel di posizioni o dai dati forniti, con rilevamento della fase processuale (monitorio, esecuzione forzata, opposizione a decreto ingiuntivo).
 tools: [genera_procura_liti_docx, genera_quotazione_docx, parcella_avvocato_civile]
 ---
 

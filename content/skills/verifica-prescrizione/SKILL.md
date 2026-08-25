@@ -1,6 +1,6 @@
 ---
 name: verifica-prescrizione
-description: Verifica la prescrizione di un diritto civile o di un reato penale con calcolo termine, analisi cause di sospensione/interruzione e stato attuale. Usa quando l'utente chiede se un diritto e prescritto, i termini di prescrizione, o la decadenza di un'azione.
+description: Usa quando l'utente chiede se un diritto è prescritto, i termini di prescrizione o la decadenza di un'azione — calcolo del termine civile o penale con cause di sospensione/interruzione e stato attuale.
 tools: [prescrizione_diritti, prescrizione_reato]
 prompt: {"name": "verifica_prescrizione", "description": "Verifica prescrizione di un diritto civile o di un reato penale", "args": [{"name": "tipo", "type": "str"}, {"name": "descrizione_fatto", "type": "str"}, {"name": "data_fatto", "type": "str"}]}
 ---

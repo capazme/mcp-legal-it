@@ -1,6 +1,6 @@
 ---
 name: genera-atto
-description: Genera atti legali italiani (citazione, ricorso, decreto ingiuntivo, precetto, procura, relata, attestazione, pignoramento, sfratto, preventivo). Usa quando l'utente chiede di redigere, generare, preparare o creare un atto, documento legale, bozza processuale, relata di notifica, attestazione di conformita, procura alle liti, preventivo legale o fascicolo digitale. Copre 100 tipi di atti tra giudiziari, stragiudiziali, esecutivi, PCT e privacy.
+description: Usa quando l'utente chiede di redigere, generare o preparare un atto, documento legale, bozza processuale, relata di notifica, attestazione di conformità, procura alle liti o preventivo legale — genera atti legali italiani (citazione, ricorso, decreto ingiuntivo, precetto, procura, relata, attestazione, pignoramento, sfratto, preventivo) tra 100 tipi giudiziari, stragiudiziali, esecutivi, PCT e privacy.
 ---
 
 # Genera Atto Legale

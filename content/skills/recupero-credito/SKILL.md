@@ -1,6 +1,6 @@
 ---
 name: recupero-credito
-description: Workflow completo per recupero crediti insoluti con calcolo interessi di mora, rivalutazione ISTAT, predisposizione decreto ingiuntivo e parcella avvocato. Usa quando l'utente ha un credito da recuperare, una fattura non pagata, chiede interessi di mora o vuole procedere con decreto ingiuntivo.
+description: Usa quando l'utente ha un credito da recuperare, una fattura non pagata o vuole procedere con decreto ingiuntivo — interessi di mora, rivalutazione ISTAT, decreto ingiuntivo e parcella avvocato.
 tools: [decreto_ingiuntivo, interessi_legali, interessi_mora, parcella_avvocato_civile, rivalutazione_monetaria]
 prompt: {"name": "recupero_credito", "description": "Workflow completo per recupero credito: interessi, rivalutazione, decreto ingiuntivo e parcella", "args": [{"name": "importo", "type": "float"}, {"name": "tipo_credito", "type": "str"}, {"name": "data_scadenza", "type": "str"}]}
 ---

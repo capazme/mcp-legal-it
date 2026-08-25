@@ -1,6 +1,6 @@
 ---
 name: analisi-giurisprudenziale
-description: Analisi degli orientamenti giurisprudenziali su un tema con sintesi delle sentenze principali. Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione, o precedenti.
+description: Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione o precedenti su un tema — analisi degli orientamenti con sintesi delle sentenze principali.
 tools: [cerca_brocardi, cerca_giurisprudenza, cerca_giurisprudenza_unificata, cerdef_leggi_provvedimento, cite_law, giurisprudenza_articolo, leggi_provvedimento_amm, leggi_sentenza, leggi_sentenza_cgue]
 prompt: {"name": "analisi_giurisprudenziale", "description": "Analisi giurisprudenziale strutturata su un tema: ricerca su Italgiure, lettura decisioni chiave e sintesi orientamenti", "args": [{"name": "tema", "type": "str"}, {"name": "archivio", "type": "str", "default": "tutti"}]}
 ---
