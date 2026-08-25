@@ -37,8 +37,10 @@ mcp-legal-it/
 │   ├── agents/                 # 6 agenti
 │   ├── commands/                # 8 comandi
 │   ├── references/              # 12 delle 15 risorse legal:// (le altre 3 restano in resources.py)
-│   └── tool-vocabulary.json     # tassonomia tool usata dai generatori
+│   ├── tool-vocabulary.json     # tassonomia tool usata dai generatori
+│   └── targets.yaml             # manifest dei target di build (claude-code, claude-web, plugin-zip, mcpb)
 ├── scripts/
+│   ├── build_targets.py         # builder unificato — sostituisce build-all.sh/build-plugin.sh/build-dxt.sh/build-web-skills.py
 │   └── corpus/                  # generatori: project_claude.py, generate_prompts.py, extract_references.py, migrate_corpus.py, dump_vocabulary.py
 ├── plugin/
 │   ├── skills/                  # GENERATED — proiezione di content/skills/ (project_claude.py)
