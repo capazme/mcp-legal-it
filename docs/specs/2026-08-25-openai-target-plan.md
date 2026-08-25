@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Branch: `feature/openai-target` (exists, from develop @ d193039). Conventional Commits + trailer `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
-- Claude projections stay byte-identical EXCEPT the four deliberate source fixes in Task 1 (three agent/command lines + ONE line in content/skills/analisi-giurisprudenziale/SKILL.md — the only skill-body edit this plan allows; everything else drift-gated green at every commit).
+- Claude projections stay byte-identical EXCEPT the four deliberate source fixes in Task 1 and their deterministic propagation into the generated prompts.py (three agent/command lines + ONE line in content/skills/analisi-giurisprudenziale/SKILL.md — the only skill-body edit this plan allows; everything else drift-gated green at every commit).
 - Test command: `uv run --python 3.12 --extra dev pytest <path> -q`; full suite before each commit that touches engine/builder.
 - MCP surface unchanged: 218 tools / 23 prompts / 15 resources. Claude skills stay 30 / agents 6 / commands 8.
 - release.py NOT touched. content/skills bodies NOT touched — sole exception: the enumerated one-line harness-neutral fix in `analisi-giurisprudenziale/SKILL.md` (Task 1). The pre-release back-fill remains a separate workstream.
@@ -52,7 +52,7 @@ docs/openai.md                    # NEW — install guide (Codex CLI + ChatGPT)
 
 ### Task 1: Source hygiene — 4 fixes + standalone descriptions
 
-**Files:** Modify `content/agents/redattore-atti.md`, `content/agents/ricerca-giurisprudenziale.md`, `content/skills/analisi-giurisprudenziale/SKILL.md` (one line), `content/commands/sentenza.md` (body line + `tools:` line), all 6 `content/agents/*.md` (new frontmatter key), `content/targets.yaml` (claude-code strips `standalone-description`), regenerated `plugin/` (4 files change — the ONLY allowed projection diffs, one of which also changes its `allowed-tools:` line).
+**Files:** Modify `content/agents/redattore-atti.md`, `content/agents/ricerca-giurisprudenziale.md`, `content/skills/analisi-giurisprudenziale/SKILL.md` (one line), `content/commands/sentenza.md` (body line + `tools:` line), all 6 `content/agents/*.md` (new frontmatter key), `content/targets.yaml` (claude-code strips `standalone-description`), regenerated `plugin/` (5 files change — the 4 corpus projections, one of which also changes its `allowed-tools:` line, PLUS `plugin/server/src/prompts.py`: the analisi-giurisprudenziale skill has a prompt: block, so its body fix deterministically regenerates the MCP prompt too).
 
 **The four body fixes (exact old→new):**
 1. `redattore-atti.md:40` — «- **resource**: leggi il modello dalla resource, compila i placeholder con i dati» → «- **modello**: recupera il modello con `genera_modello_atto` (su Claude puoi leggerlo anche dalla resource `legal://riferimenti/modelli-atti-catalogo`), compila i placeholder con i dati»
@@ -70,7 +70,7 @@ docs/openai.md                    # NEW — install guide (Codex CLI + ChatGPT)
 
 Claude projector: add `standalone-description` to the keys stripped for the claude-code target (manifest `strip_frontmatter_keys` gains it — a manifest edit, not code). YAML rule check: none of the six texts may contain `: ` (colon+space) — the three that did have been reworded with «—» above.
 
-- [ ] Steps: edits → regenerate claude (`build_targets.py claude-code`) → `git diff -- plugin/` shows EXACTLY 4 files (agents ×2, skills ×1, commands ×1 — the command diff includes both the body line and the `allowed-tools:` gain), nothing else → full suite green → commit `fix(corpus): harness-neutral wording for resource/web-search/slash references; standalone descriptions for agents`.
+- [ ] Steps: edits → regenerate claude (`build_targets.py claude-code`) → `git diff -- plugin/` shows EXACTLY 5 files (agents ×2, skills ×1, commands ×1 with body+allowed-tools, prompts.py whose diff contains ONLY the analisi_giurisprudenziale hunk), nothing else → full suite green → commit `fix(corpus): harness-neutral wording for resource/web-search/slash references; standalone descriptions for agents`.
 
 ---
 
@@ -146,7 +146,7 @@ Pin tests: openai out dir under dist/ (gitignored — assert `git check-ignore d
 
 - Full non-live suite → 0 failures (paste tail).
 - `build_targets.py all` → 6 targets; tree clean; openai bundle: 41 skills, zip present, AGENTS.md sane (eyeball 20 lines in report).
-- Claude regression: registration snapshot 218/23/15; drift gates green; `git diff develop..HEAD --stat -- plugin/` shows ONLY the 4 Task-1 files.
+- Claude regression: registration snapshot 218/23/15; drift gates green; `git diff develop..HEAD --stat -- plugin/` shows ONLY the 5 Task-1 files.
 - `git log --oneline develop..HEAD` in report. NO merge/push/release.
 
 ## Deviations from the spec (measured, deliberate)
