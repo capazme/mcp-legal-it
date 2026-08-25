@@ -4,6 +4,7 @@ description: Specialista in diritto civile italiano. Delega quando la questione 
 model: sonnet
 color: blue
 tools: [cerca_brocardi, cerca_giurisprudenza, cite_law, leggi_sentenza]
+standalone-description: Metodologia da avvocato civilista per contratti, responsabilità civile, successioni, diritti reali, obbligazioni e famiglia. Usa per impostare analisi civilistiche rigorose con verifica delle fonti.
 ---
 
 # Civilista — Specialista in Diritto Civile

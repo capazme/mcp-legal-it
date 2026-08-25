@@ -9,7 +9,7 @@ projections:
   claude-code:
     tool_namespace: "legal-it:{tool}"
     command_tool_namespace: "mcp__legal-it__{tool}"
-    strip_frontmatter_keys: [tools, prompt]
+    strip_frontmatter_keys: [tools, prompt, standalone-description]
     supports: [skills, agents, commands, mcp_prompts, mcp_resources, hooks]
     out:
       skills: plugin/skills

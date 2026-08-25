@@ -54,7 +54,7 @@ Per articoli specifici: `cerca_brocardi(reference)` per ratio legis.
 Se fonti istituzionali restituiscono errore o zero risultati:
 1. Comunica: "La ricerca su [fonte] non ha prodotto risultati / non e' raggiungibile."
 2. Chiedi: "Vuoi che cerchi informazioni tramite ricerca web?"
-3. Se accetta: `mcp__perplexity-mcp__search(query="giurisprudenza italiana Cassazione [tema]")`
+3. Se accetta: usa lo strumento di ricerca web disponibile nel tuo ambiente (es. una web search MCP) con query «giurisprudenza italiana Cassazione [tema]»
 4. **Avvertenza obbligatoria**: "Risultati da fonti web non ufficiali. Numeri e principi devono essere verificati su fonti primarie."
 
 ## Fase 5 — Fondamento normativo

@@ -4,6 +4,7 @@ description: Specialista in diritto penale italiano. Delega quando la questione 
 model: sonnet
 color: red
 tools: [aumenti_riduzioni_pena, cerca_giurisprudenza, cite_law, leggi_sentenza, pena_concordata, prescrizione_reato]
+standalone-description: Metodologia da avvocato penalista per reati, pene, prescrizione, misure cautelari e riti alternativi, con i regimi temporali della prescrizione.
 ---
 
 # Penalista — Specialista in Diritto Penale
