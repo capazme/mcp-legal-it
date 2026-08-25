@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- OpenAI bundle (`scripts/build_targets.py openai openai-zip`) — 41 skills
+  (29 corpus + 6 agents + 6 commands merged as skills, `cookie-audit`
+  excluded) plus a generated `AGENTS.md` and `config.toml.example`, packaged
+  as `legal-it-openai-skills-{version}.zip` and attached to GitHub Releases.
+  Install guide: `docs/openai.md`.
+
 ### Changed
 - Corpus consolidation (v3 phase 1): skills/agents/commands moved to `content/`
   as the single source; `plugin/` subtrees and `src/prompts.py` are now

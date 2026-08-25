@@ -26,7 +26,9 @@ python scripts/build_targets.py claude-code   # project content/ + regenerate pr
 python scripts/build_targets.py claude-web    # per-skill ZIPs for Claude Web
 python scripts/build_targets.py plugin-zip    # Claude Code Plugin marketplace ZIP
 python scripts/build_targets.py mcpb          # Desktop Extension (.mcpb)
-python scripts/build_targets.py all           # all four, in that order
+python scripts/build_targets.py openai        # OpenAI bundle (Codex CLI / ChatGPT skills)
+python scripts/build_targets.py openai-zip    # zip of the OpenAI bundle
+python scripts/build_targets.py all           # all six, in that order
 ```
 
 It imports PyYAML (via `scripts/corpus/targets.py`), which lives in the `dev`
