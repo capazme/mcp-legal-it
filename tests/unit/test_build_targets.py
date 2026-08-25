@@ -20,6 +20,40 @@ bt = _load("build_targets")
 
 
 # ---------------------------------------------------------------------------
+# Test 0 — build_claude_code wiring (monkeypatched, no in-tree execution)
+# ---------------------------------------------------------------------------
+
+def test_build_claude_code_wires_projection_and_prompts(monkeypatch):
+    calls: dict = {}
+
+    def fake_project(root, out, cfg):
+        calls["project"] = (root, out, cfg)
+
+    def fake_run(cmd, **kwargs):
+        calls["run"] = (cmd, kwargs)
+
+        class _Result:
+            returncode = 0
+
+        return _Result()
+
+    monkeypatch.setattr(bt.pc, "project", fake_project)
+    monkeypatch.setattr(bt.subprocess, "run", fake_run)
+
+    bt.build_claude_code(REPO)
+
+    root, out, cfg = calls["project"]
+    assert root == REPO
+    assert out == REPO
+    assert cfg == bt.tg.get_target(REPO, "claude-code")
+
+    cmd, kwargs = calls["run"]
+    assert cmd == [sys.executable, str(REPO / "scripts" / "corpus" / "generate_prompts.py")]
+    assert kwargs["cwd"] == REPO
+    assert kwargs["check"] is True
+
+
+# ---------------------------------------------------------------------------
 # fake-root fixtures
 # ---------------------------------------------------------------------------
 
@@ -175,10 +209,44 @@ def test_plugin_zip_stages_and_excludes(tmp_path):
         staged_manifest = json.loads(zf.read(".claude-plugin/plugin.json"))
         assert staged_manifest["version"] == "9.9.9"
 
+        info = zf.getinfo("start_server.sh")
+        mode = (info.external_attr >> 16) & 0o777
+        assert mode == 0o755, oct(mode)
+
     source_manifest = json.loads(
         (tmp_path / "plugin" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
     assert source_manifest["version"] == "1.0.0"
+
+
+# ---------------------------------------------------------------------------
+# Test 2b — plugin-zip default version (no --version override)
+# ---------------------------------------------------------------------------
+
+def test_plugin_zip_default_version(tmp_path):
+    _write_targets_yaml(
+        tmp_path,
+        "packaging:\n"
+        "  plugin-zip:\n"
+        "    from: claude-code\n"
+        '    artifact: "dist/legal-it-plugin-{version}.zip"\n'
+        "    include: [.claude-plugin, skills, agents, commands, hooks, settings.json, start_server.sh, .mcp.json, server]\n"
+        "    root: plugin\n"
+        '    version_manifest: ".claude-plugin/plugin.json"\n',
+    )
+    _write_fake_plugin_tree(tmp_path)
+
+    output = bt.build_plugin_zip(tmp_path)  # no version override -> read from source manifest
+    assert output == tmp_path / "dist" / "legal-it-plugin-1.0.0.zip"
+    assert output.exists()
+
+    with zipfile.ZipFile(output) as zf:
+        staged_manifest_bytes = zf.read(".claude-plugin/plugin.json")
+
+    source_manifest_bytes = (
+        tmp_path / "plugin" / ".claude-plugin" / "plugin.json"
+    ).read_bytes()
+    assert staged_manifest_bytes == source_manifest_bytes
 
 
 # ---------------------------------------------------------------------------
@@ -232,8 +300,48 @@ def test_mcpb_fallback_zip(tmp_path, monkeypatch):
         staged_manifest = json.loads(zf.read("manifest.json"))
         assert staged_manifest["version"] == "1.2.3"
 
+        info = zf.getinfo("start_server.sh")
+        mode = (info.external_attr >> 16) & 0o777
+        assert mode == 0o755, oct(mode)
+
     source_manifest = json.loads((tmp_path / "dxt" / "manifest.json").read_text(encoding="utf-8"))
     assert source_manifest["version"] == "1.0.0"
+
+
+# ---------------------------------------------------------------------------
+# Test 3b — mcpb fallback default version (no --version override)
+# ---------------------------------------------------------------------------
+
+def test_mcpb_fallback_default_version(tmp_path, monkeypatch):
+    _write_targets_yaml(
+        tmp_path,
+        "packaging:\n"
+        "  mcpb:\n"
+        "    from: claude-code\n"
+        '    artifact: "dist/legal-it-{version}.mcpb"\n'
+        '    version_manifest: "manifest.json"\n',
+    )
+    _write_fake_dxt_tree(tmp_path)
+
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
+
+    output = bt.build_mcpb(tmp_path)  # no version override -> read from source manifest
+    assert output == tmp_path / "dist" / "legal-it-1.0.0.mcpb"
+    assert output.exists()
+
+    with zipfile.ZipFile(output) as zf:
+        staged_manifest_bytes = zf.read("manifest.json")
+
+    source_manifest_bytes = (tmp_path / "dxt" / "manifest.json").read_bytes()
+    assert staged_manifest_bytes == source_manifest_bytes
+
+
+# ---------------------------------------------------------------------------
+# Test 3c — 'all' expands to the four targets, in order
+# ---------------------------------------------------------------------------
+
+def test_expand_all_order():
+    assert bt._expand(["all"]) == ["claude-code", "claude-web", "plugin-zip", "mcpb"]
 
 
 # ---------------------------------------------------------------------------
