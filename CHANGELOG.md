@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Parliamentary sources module (`src/lib/parlamento/` + `src/tools/parlamento.py`,
+  3 tools — total now 221): `cerca_ddl` (keyword search over bill titles,
+  both chambers via dati.senato.it), `iter_ddl` (full bicameral navette from
+  a fase number or idDdl, enriched with the Camera statoIter timeline and
+  stampato PDFs from dati.camera.it), `ddl_su_norma` (pending-reform lookup
+  for a given act, resolver-expanded, explicitly best-effort on titles only).
+  Senato is queried via GET only (its WAF 403s POST) and title search uses
+  plain `FILTER(CONTAINS(...))` because the WAF also blocks `bif:contains`
+  expressions with quoted or/and operators. New egress hosts declared:
+  `dati.senato.it`, `dati.camera.it` (SECURITY.md updated); scheda links to
+  `www.senato.it` / `www.camera.it` are emitted, never fetched.
 - OpenAI bundle (`scripts/build_targets.py openai openai-zip`) — 40 skills
   (28 corpus + 6 agents + 6 commands merged as skills; `cookie-audit` and
   `esporta-documento` excluded — the latter ships `${CLAUDE_PLUGIN_ROOT}`

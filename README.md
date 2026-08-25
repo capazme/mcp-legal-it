@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/python-%3E%3D3.10-3776ab?style=flat-square" alt="Python">
   <a href="https://github.com/capazme/mcp-legal-it/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/capazme/mcp-legal-it/ci.yml?branch=develop&style=flat-square&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tool-218-green?style=flat-square" alt="Tools">
+  <img src="https://img.shields.io/badge/tool-221-green?style=flat-square" alt="Tools">
 </p>
 
 
@@ -19,7 +19,7 @@
 
 ## Cos'e mcp-legal-it
 
-Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **218 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
+Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **221 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
 - **Normativa verificata** — testi vigenti da Normattiva, EUR-Lex e Brocardi (no allucinazioni)
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
@@ -50,7 +50,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 1. Installa `uv` (vedi sopra).
 2. Scarica **`legal-it-X.Y.Z.mcpb`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
 3. In Claude Desktop: **doppio click sul file** — oppure **Impostazioni → Estensioni → Impostazioni avanzate → Sviluppatore estensioni → Installa file `.mcpb`**.
-4. Riavvia Claude. I 218 tool girano in locale.
+4. Riavvia Claude. I 221 tool girano in locale.
 
 > **Il primo avvio è lento** (~1 min: scarica Python 3.12 e le dipendenze) e Claude Desktop
 > può mostrare il server come *disconnesso* mentre sta ancora scaricando. Attendi un minuto
@@ -126,13 +126,13 @@ plugin Claude Code, usa il **bundle OpenAI** generato dallo stesso corpus:
 
 1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 40 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
 2. **Codex CLI**: estrai `.agents/skills/` in `$HOME/.agents/skills/` (globale) o nella root del progetto; copia `AGENTS.md`; aggiungi il blocco `config.toml.example` a `~/.codex/config.toml` (server MCP separato, via `uv`).
-3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 218 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
+3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 221 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
 
 Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Claude Code): [`docs/openai.md`](docs/openai.md).
 
 ---
 
-## Tool disponibili — 218 tool, 32 moduli
+## Tool disponibili — 221 tool, 33 moduli
 
 | # | Categoria | Tool | Esempi |
 |---|-----------|:----:|--------|
@@ -157,6 +157,7 @@ Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Cl
 | 19 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `prescrizione_diritti` |
 | 20 | Recupero Crediti Seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
 | 21 | Analisi Fornitori (privacy) | 2 | `verifica_partita_iva_vies`, `genera_report_fornitori` |
+| 22 | DDL e Iter Parlamentare | 3 | `cerca_ddl`, `iter_ddl`, `ddl_su_norma` |
 
 ---
 
@@ -466,7 +467,7 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 | Profilo | Tool caricati |
 |---------|---------------|
-| `full` | Tutti i 218 tool |
+| `full` | Tutti i 221 tool |
 | `calcoli` | Solo tool di calcolo (nessuna connessione HTTP) |
 | `normativa` | Normattiva + EUR-Lex + Brocardi + Italgiure + TAR/CdS + CGUE + CONSOB |
 | `fiscale` | Calcoli fiscali + IRPEF + investimenti + CeRDEF + CONSOB |

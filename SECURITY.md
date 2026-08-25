@@ -18,7 +18,7 @@ necessarie per rispondere alla domanda che hai posto.
 Verificabile in un comando:
 
 ```bash
-grep -rnE "https?://" --include="*.py" src/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|europa\.eu|brocardi|w3\.org|oasis-open|esempio\.it"
+grep -rnE "https?://" --include="*.py" src/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|senato\.it|camera\.it|europa\.eu|brocardi|w3\.org|oasis-open|esempio\.it"
 ```
 
 Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
@@ -40,6 +40,8 @@ questo documento. Le due liste non possono divergere.
 | `www.giustizia-amministrativa.it` | Giustizia amministrativa (TAR e Consiglio di Stato) |
 | `mdp.giustizia-amministrativa.it` | Giustizia amministrativa — testi integrali |
 | `dati.cortecostituzionale.it` | Corte costituzionale — open data |
+| `dati.senato.it` | Senato della Repubblica — open data (SPARQL) |
+| `dati.camera.it` | Camera dei deputati — open data (SPARQL) |
 | `def.finanze.it` | CeRDEF — Ministero dell'economia e delle finanze |
 | `www.garanteprivacy.it` | Garante per la protezione dei dati personali |
 | `servizi.gpdp.it` | Garante privacy — servizi |
