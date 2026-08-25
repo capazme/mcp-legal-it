@@ -26,17 +26,10 @@ jobs:
       - name: Run tests
         run: pytest tests/ -m "not live" -q
 
-      - name: Build Desktop Extension (.mcpb)
+      - name: Build artifacts (mcpb + plugin zip)
         run: |
           VERSION="${TAG_VERSION#v}"
-          chmod +x scripts/build-dxt.sh
-          scripts/build-dxt.sh "$VERSION"
-
-      - name: Build Claude Code Plugin (.zip)
-        run: |
-          VERSION="${TAG_VERSION#v}"
-          chmod +x scripts/build-plugin.sh
-          scripts/build-plugin.sh "$VERSION"
+          python scripts/build_targets.py mcpb plugin-zip --version "$VERSION"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

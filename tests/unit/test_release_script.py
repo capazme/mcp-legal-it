@@ -222,3 +222,29 @@ class TestRollbackDisarm:
             with rel.RollbackContext(dry_run=False) as ctx:
                 ctx.disarm()
                 raise RuntimeError("failure after push")
+
+
+# ---------------------------------------------------------------------------
+# build_web_skills() — must delegate to the unified builder (scripts/build_targets.py)
+# ---------------------------------------------------------------------------
+
+class TestBuildWebSkills:
+    def test_build_web_skills_invokes_unified_builder(self, monkeypatch):
+        calls = []
+
+        def fake_run(cmd, **kw):
+            calls.append((cmd, kw))
+
+            class R:
+                returncode = 0
+                stdout = b""
+                stderr = b""
+
+            return R()
+
+        monkeypatch.setattr(rel.subprocess, "run", fake_run)
+        rel.build_web_skills(dry_run=False)
+        (cmd, kw), = calls
+        assert cmd[1].endswith("scripts/build_targets.py")
+        assert cmd[2] == "claude-web"
+        assert kw["cwd"] == str(rel.PROJECT_DIR)
