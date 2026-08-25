@@ -1,6 +1,6 @@
 ---
 name: ricerca-normativa
-description: Ricerca normativa completa su un tema giuridico con tutte le fonti applicabili ordinate per gerarchia, giurisprudenza e quadro sanzionatorio. Usa quando l'utente chiede quali norme si applicano, il quadro normativo di un settore, le fonti di una materia o una ricerca legislativa.
+description: Usa quando l'utente chiede quali norme si applicano, il quadro normativo di un settore o una ricerca legislativa — tutte le fonti applicabili per gerarchia, giurisprudenza e quadro sanzionatorio.
 ---
 
 # Ricerca Normativa

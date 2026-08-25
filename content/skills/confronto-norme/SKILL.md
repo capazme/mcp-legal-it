@@ -1,6 +1,6 @@
 ---
 name: confronto-norme
-description: Confronta due o piu norme evidenziando differenze, sovrapposizioni, criteri di prevalenza e coordinamento. Usa quando l'utente chiede di confrontare articoli, verificare quale norma prevale, risolvere un conflitto normativo o capire il rapporto tra due disposizioni.
+description: Usa quando l'utente chiede di confrontare articoli, verificare quale norma prevale o risolvere un conflitto normativo — differenze, sovrapposizioni, criteri di prevalenza e coordinamento.
 tools: [cerca_brocardi, cite_law]
 prompt: {"name": "confronto_norme", "description": "Confronto tra due o più norme: differenze, sovrapposizioni, prevalenza e coordinamento", "args": [{"name": "norma_1", "type": "str"}, {"name": "norma_2", "type": "str"}, {"name": "contesto", "type": "str", "default": ""}]}
 ---

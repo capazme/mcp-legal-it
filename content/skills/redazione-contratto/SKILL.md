@@ -1,6 +1,6 @@
 ---
 name: redazione-contratto
-description: Supporto alla redazione contrattuale con verifica normativa, clausole tipo e compliance GDPR. Usa quando l'utente chiede di redigere, revisionare, analizzare un contratto, verificare clausole o predisporre un accordo.
+description: Usa quando l'utente chiede di redigere, revisionare o analizzare un contratto, verificare clausole o predisporre un accordo — supporto con verifica normativa, clausole tipo e compliance GDPR.
 tools: [analisi_base_giuridica, cerca_brocardi, cite_law, genera_dpa]
 ---
 

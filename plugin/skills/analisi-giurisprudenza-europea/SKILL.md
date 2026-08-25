@@ -1,6 +1,6 @@
 ---
 name: analisi-giurisprudenza-europea
-description: Analisi della giurisprudenza della Corte di Giustizia UE su un tema — ricerca CGUE/Tribunale UE, lettura delle sentenze chiave e sintesi degli orientamenti. Usa quando l'utente chiede sentenze CGUE, rinvio pregiudiziale, interpretazione di direttive o regolamenti UE o conclusioni dell'Avvocato generale.
+description: Usa quando l'utente chiede sentenze CGUE, rinvio pregiudiziale, interpretazione di direttive o regolamenti UE o conclusioni dell'Avvocato generale — ricerca CGUE/Tribunale UE, lettura e sintesi.
 ---
 
 # Analisi Giurisprudenza Europea

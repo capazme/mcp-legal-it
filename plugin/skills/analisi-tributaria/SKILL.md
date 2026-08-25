@@ -1,6 +1,6 @@
 ---
 name: analisi-tributaria
-description: Analisi della giurisprudenza tributaria su un tema fiscale — ricerca CeRDEF (CGT e Cassazione tributaria), lettura dei provvedimenti chiave e sintesi degli orientamenti con quadro normativo. Usa quando l'utente chiede giurisprudenza tributaria, sentenze su IVA, IRES, accertamento, riscossione, contenzioso fiscale o CGT.
+description: Usa quando l'utente chiede giurisprudenza tributaria, sentenze su IVA, IRES, accertamento, riscossione o contenzioso CGT — ricerca CeRDEF, lettura dei provvedimenti chiave e sintesi con quadro normativo.
 ---
 
 # Analisi Tributaria

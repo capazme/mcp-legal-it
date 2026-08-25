@@ -1,7 +1,6 @@
 ---
 name: parere-legale
-description: Redazione parere legale strutturato con citazioni normative verificate e giurisprudenza.
-  Usa quando l'utente chiede un parere, un'opinione legale o un'analisi giuridica su una questione.
+description: Usa quando l'utente chiede un parere, un'opinione legale o un'analisi giuridica su una questione — redige un parere strutturato con citazioni normative verificate e giurisprudenza.
 tools: [cerca_brocardi, cerca_giurisprudenza, cite_law, leggi_sentenza]
 prompt: {"name": "parere_legale", "description": "Struttura per parere legale: fatto, diritto, normativa e conclusioni con citazione norme", "args": [{"name": "area_diritto", "type": "str"}, {"name": "quesito", "type": "str"}]}
 ---

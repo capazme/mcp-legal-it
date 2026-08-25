@@ -1,6 +1,6 @@
 ---
 name: analisi-giurisprudenza-amministrativa
-description: Analisi della giurisprudenza amministrativa su un tema — ricerca TAR/Consiglio di Stato, lettura dei provvedimenti e sintesi degli orientamenti. Usa quando l'utente chiede sentenze TAR o CdS, appalti, urbanistica, edilizia, accesso agli atti, provvedimenti della PA o Adunanza Plenaria.
+description: Usa quando l'utente chiede sentenze TAR o CdS su appalti, urbanistica, edilizia, accesso agli atti o Adunanza Plenaria — ricerca TAR/Consiglio di Stato, lettura dei provvedimenti e sintesi.
 tools: [cerca_giurisprudenza_amministrativa, cite_law, giurisprudenza_amm_su_norma, leggi_provvedimento_amm]
 prompt: {"name": "analisi_giurisprudenza_amministrativa", "description": "Analisi giurisprudenza amministrativa: ricerca TAR/CdS, lettura provvedimenti e sintesi orientamenti", "args": [{"name": "tema", "type": "str"}, {"name": "sede", "type": "str", "default": ""}]}
 ---

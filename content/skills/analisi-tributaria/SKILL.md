@@ -1,6 +1,6 @@
 ---
 name: analisi-tributaria
-description: Analisi della giurisprudenza tributaria su un tema fiscale — ricerca CeRDEF (CGT e Cassazione tributaria), lettura dei provvedimenti chiave e sintesi degli orientamenti con quadro normativo. Usa quando l'utente chiede giurisprudenza tributaria, sentenze su IVA, IRES, accertamento, riscossione, contenzioso fiscale o CGT.
+description: Usa quando l'utente chiede giurisprudenza tributaria, sentenze su IVA, IRES, accertamento, riscossione o contenzioso CGT — ricerca CeRDEF, lettura dei provvedimenti chiave e sintesi con quadro normativo.
 tools: [cerca_giurisprudenza, cerca_giurisprudenza_tributaria, cerdef_leggi_provvedimento, cite_law]
 prompt: {"name": "analisi_tributaria", "description": "Analisi giurisprudenza tributaria: ricerca CeRDEF, lettura provvedimenti e sintesi orientamenti fiscali", "args": [{"name": "tema", "type": "str"}, {"name": "ente", "type": "str", "default": ""}]}
 ---

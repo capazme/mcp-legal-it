@@ -1,6 +1,6 @@
 ---
 name: analisi-delibere-consob
-description: Ricerca e analisi delibere CONSOB su un tema con lettura provvedimenti, quadro normativo TUF/MiFID e sintesi orientamenti. Usa quando l'utente chiede delibere CONSOB, provvedimenti su mercati finanziari, sanzioni CONSOB, intermediari, emittenti, OPA, abusi di mercato, crowdfunding o cripto-attivita.
+description: Usa quando l'utente chiede delibere CONSOB su mercati finanziari, sanzioni, intermediari, emittenti, OPA, abusi di mercato o cripto-attività — lettura provvedimenti, quadro TUF/MiFID e orientamenti.
 ---
 
 # Analisi Delibere CONSOB

@@ -1,6 +1,6 @@
 ---
 name: analisi-sinistro
-description: Analizza sinistri stradali, sanitari e lavorativi con quantificazione del danno non patrimoniale (unitario, ex art. 2059 c.c.), rivalutazione ISTAT e interessi compensativi. Usa quando l'utente descrive un incidente, un sinistro, chiede risarcimento danni per invalidita o quantificazione danni da lesioni personali.
+description: Usa quando l'utente descrive un incidente o sinistro, chiede risarcimento per invalidità o danni da lesioni — danno non patrimoniale ex art. 2059 c.c., rivalutazione ISTAT e interessi compensativi.
 ---
 
 # Analisi Sinistro

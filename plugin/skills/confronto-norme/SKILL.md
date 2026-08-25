@@ -1,6 +1,6 @@
 ---
 name: confronto-norme
-description: Confronta due o piu norme evidenziando differenze, sovrapposizioni, criteri di prevalenza e coordinamento. Usa quando l'utente chiede di confrontare articoli, verificare quale norma prevale, risolvere un conflitto normativo o capire il rapporto tra due disposizioni.
+description: Usa quando l'utente chiede di confrontare articoli, verificare quale norma prevale o risolvere un conflitto normativo — differenze, sovrapposizioni, criteri di prevalenza e coordinamento.
 ---
 
 # Confronto Norme
