@@ -26,10 +26,10 @@ jobs:
       - name: Run tests
         run: pytest tests/ -m "not live" -q
 
-      - name: Build artifacts (mcpb + plugin zip)
+      - name: Build artifacts (mcpb + plugin zip + openai bundle)
         run: |
           VERSION="${TAG_VERSION#v}"
-          python scripts/build_targets.py mcpb plugin-zip --version "$VERSION"
+          python scripts/build_targets.py mcpb plugin-zip openai openai-zip --version "$VERSION"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

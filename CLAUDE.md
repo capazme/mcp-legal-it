@@ -561,18 +561,23 @@ Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
 
 ### Compatibilità cross-provider
 
-| Feature | Claude Desktop/Code | ChatGPT | Manus |
-|---------|--------------------:|--------:|------:|
-| 218 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
-| 23 prompt guidati | ✓ | — | — |
-| 15 risorse `legal://` | ✓ | — | — |
-| 30 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
-| Transport stdio (locale) | ✓ | — | — |
-| Transport Streamable HTTP | ✓ | ✓ | ✓ |
-| Transport SSE (legacy) | ✓ | ✓ | ? |
+| Feature | Claude Desktop/Code | ChatGPT | Codex CLI | Manus |
+|---------|--------------------:|--------:|----------:|------:|
+| 218 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
+| 23 prompt guidati | ✓ | — | — | — |
+| 15 risorse `legal://` | ✓ | — | — | — |
+| 30 skills + 8 comandi + 6 agenti (plugin Claude) | ✓ (plugin) | ✓ 41 skill¹ | ✓ 41 skill¹ | — |
+| Transport stdio (locale) | ✓ | — | ✓ | — |
+| Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
+| Transport SSE (legacy) | ✓ | ✓ | ? | ? |
 
-> I 218 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
-> sono feature Claude-only — gli altri provider li ignorano silenziosamente.
+> I 218 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano feature
+> Claude-only. ¹ Le skill invece raggiungono anche ChatGPT e Codex CLI tramite il **bundle
+> OpenAI** (41 skill: 29 del corpus + 6 agenti + 6 comandi fusi come skill aggiuntive,
+> `cookie-audit` esclusa perché pilota tool browser Claude-specific) — vedi `docs/openai.md`.
+> Su ChatGPT/Codex CLI comandi e agenti non esistono come costrutti separati: solo il plugin
+> Claude Code li mantiene nativi. Il bundle non porta prompt MCP né risorse `legal://` — Codex
+> e ChatGPT non hanno un equivalente di questi due meccanismi.
 
 ---
 
@@ -691,7 +696,9 @@ ChatGPT richiede un endpoint HTTPS pubblico. Due opzioni:
    URL:  https://xxxx.ngrok-free.app/mcp
    ```
 
-> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 218 tool sono visibili.
+> **Nota**: ChatGPT non supporta prompt MCP né risorse — restano assenti anche con il
+> connector. Le skill sono comunque disponibili separatamente: carica `.agents/skills/` dal
+> **bundle OpenAI** (`docs/openai.md`) nella Skills UI di ChatGPT.
 
 ---
 
