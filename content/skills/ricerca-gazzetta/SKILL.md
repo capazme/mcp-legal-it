@@ -1,6 +1,6 @@
 ---
 name: ricerca-gazzetta
-description: Ricerca e lettura di atti pubblicati in Gazzetta Ufficiale — novità per serie, ricerca parametrica, testo as-published e PDF ufficiale. Usa quando l'utente chiede cosa è uscito in Gazzetta, il testo di un decreto appena pubblicato, un atto per estremi di pubblicazione o il sommario di una GU.
+description: Usa quando l'utente chiede cosa è uscito in Gazzetta Ufficiale, il testo di un decreto appena pubblicato o il sommario di una GU — novità per serie, ricerca parametrica, testo as-published e PDF.
 tools: [cerca_gazzetta_ufficiale, cite_law, leggi_atto_gazzetta, scarica_pdf_gazzetta, sommario_gazzetta, ultime_gazzette]
 prompt: {"name": "ricerca_gazzetta", "description": "Ricerca e lettura di atti pubblicati in Gazzetta Ufficiale: novità per serie, ricerca parametrica, testo as-published + PDF ufficiale", "args": [{"name": "tema", "type": "str"}, {"name": "serie", "type": "str", "default": "serie_generale"}]}
 ---

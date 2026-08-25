@@ -1,6 +1,6 @@
 ---
 name: orientamento-giurisprudenziale
-description: Mappa descrittiva degli orientamenti di legittimità su una norma o un principio — conformi vs contrasti, interventi delle Sezioni Unite, evoluzione temporale. Usa quando l'utente chiede se un orientamento è consolidato, se c'è contrasto in Cassazione o come si è evoluta la giurisprudenza su una norma.
+description: Usa quando l'utente chiede se un orientamento è consolidato, se c'è contrasto in Cassazione o come si è evoluta la giurisprudenza su una norma — conformi vs contrasti, Sezioni Unite, evoluzione.
 ---
 
 # Orientamento Giurisprudenziale

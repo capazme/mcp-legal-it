@@ -1,7 +1,6 @@
 ---
 name: parere-legale
-description: Redazione parere legale strutturato con citazioni normative verificate e giurisprudenza.
-  Usa quando l'utente chiede un parere, un'opinione legale o un'analisi giuridica su una questione.
+description: Usa quando l'utente chiede un parere, un'opinione legale o un'analisi giuridica su una questione — redige un parere strutturato con citazioni normative verificate e giurisprudenza.
 ---
 
 # Workflow Parere Legale

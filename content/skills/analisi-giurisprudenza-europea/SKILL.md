@@ -1,6 +1,6 @@
 ---
 name: analisi-giurisprudenza-europea
-description: Analisi della giurisprudenza della Corte di Giustizia UE su un tema — ricerca CGUE/Tribunale UE, lettura delle sentenze chiave e sintesi degli orientamenti. Usa quando l'utente chiede sentenze CGUE, rinvio pregiudiziale, interpretazione di direttive o regolamenti UE o conclusioni dell'Avvocato generale.
+description: Usa quando l'utente chiede sentenze CGUE, rinvio pregiudiziale, interpretazione di direttive o regolamenti UE o conclusioni dell'Avvocato generale — ricerca CGUE/Tribunale UE, lettura e sintesi.
 tools: [cerca_giurisprudenza_cgue, cite_law, giurisprudenza_cgue_su_norma, leggi_sentenza_cgue]
 prompt: {"name": "analisi_giurisprudenza_europea", "description": "Analisi giurisprudenziale europea strutturata: ricerca CGUE/Tribunale UE, lettura sentenze chiave e sintesi orientamenti", "args": [{"name": "tema", "type": "str"}, {"name": "corte", "type": "str", "default": "tutte"}]}
 ---

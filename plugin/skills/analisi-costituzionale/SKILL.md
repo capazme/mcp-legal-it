@@ -1,6 +1,6 @@
 ---
 name: analisi-costituzionale
-description: Analisi delle pronunce della Corte Costituzionale su un tema o una norma — ricerca, lettura delle pronunce chiave e sintesi con i parametri costituzionali invocati. Usa quando l'utente chiede sentenze della Consulta, questioni di legittimità costituzionale o pronunce additive/interpretative.
+description: Usa quando l'utente chiede sentenze della Consulta, questioni di legittimità costituzionale o pronunce additive/interpretative — ricerca, lettura delle pronunce chiave e parametri invocati.
 ---
 
 # Analisi Costituzionale

@@ -1,6 +1,6 @@
 ---
 name: attuazione-direttiva
-description: Recepimento di una direttiva UE in Italia — individua le misure nazionali di attuazione, il testo italiano vigente e la giurisprudenza CGUE collegata. Usa quando l'utente chiede come è stata recepita una direttiva, quale atto italiano la attua o la base UE di un atto nazionale.
+description: Usa quando l'utente chiede come è stata recepita una direttiva UE, quale atto italiano la attua o la base UE di un atto nazionale — misure di attuazione, testo vigente e giurisprudenza CGUE collegata.
 tools: [cite_law, get_eu_basis, get_italian_implementation, giurisprudenza_cgue_su_norma]
 prompt: {"name": "attuazione_direttiva", "description": "Recepimento di una direttiva UE in Italia: dalla direttiva all'atto di attuazione (Normattiva) e alla giurisprudenza CGUE collegata", "args": [{"name": "direttiva", "type": "str"}]}
 ---

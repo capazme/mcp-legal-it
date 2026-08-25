@@ -1,6 +1,6 @@
 ---
 name: mappatura-normativa
-description: Costruisce la mappa normativa completa di un settore o attivita con fonti organizzate per livello gerarchico e matrice adempimenti. Usa quando l'utente chiede il quadro normativo completo di un settore, tutte le leggi applicabili a un'attivita, o una checklist di obblighi normativi.
+description: Usa quando l'utente chiede il quadro normativo completo di un settore, le leggi applicabili a un'attività o una checklist di obblighi — mappa delle fonti per livello gerarchico con matrice adempimenti.
 ---
 
 # Mappatura Normativa

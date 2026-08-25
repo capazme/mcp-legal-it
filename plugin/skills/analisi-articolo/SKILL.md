@@ -1,6 +1,6 @@
 ---
 name: analisi-articolo
-description: Analisi approfondita di un singolo articolo di legge con testo vigente, ratio legis, giurisprudenza di riferimento e norme collegate. Usa quando l'utente chiede di spiegare, analizzare o approfondire un articolo specifico (es. "spiegami l'art. 2043 c.c.").
+description: Usa quando l'utente chiede di spiegare, analizzare o approfondire un articolo specifico (es. "spiegami l'art. 2043 c.c.") — testo vigente, ratio legis, giurisprudenza e norme collegate.
 ---
 
 # Analisi Articolo

@@ -1,6 +1,6 @@
 ---
 name: novita-consob
-description: Riepilogo delle ultime delibere e provvedimenti CONSOB con sintesi orientamenti per tipologia o argomento. Usa quando l'utente chiede le ultime novita CONSOB, delibere recenti, aggiornamenti sui mercati finanziari o provvedimenti recenti dell'autorita di vigilanza.
+description: Usa quando l'utente chiede le ultime novità CONSOB, delibere recenti o aggiornamenti sui mercati finanziari — riepilogo delle ultime delibere con sintesi orientamenti per tipologia o argomento.
 tools: [cite_law, leggi_delibera_consob, ultime_delibere_consob]
 prompt: {"name": "novita_consob", "description": "Ultime novità CONSOB: delibere recenti per tipologia o argomento con sintesi degli orientamenti", "args": [{"name": "tipologia", "type": "str", "default": ""}, {"name": "argomento", "type": "str", "default": ""}]}
 ---
