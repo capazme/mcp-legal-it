@@ -114,3 +114,29 @@ def test_supports_absent_is_backward_compatible(tmp_path):
 def test_real_manifest_supports_out_keys_are_consistent():
     # claude-code's own supports/out must satisfy the same validation it enforces.
     tg.load_targets(REPO)  # must NOT raise
+
+
+# ---------------------------------------------------------------------------
+# openai projection and openai-zip packaging (Phase 3 Task 3)
+# ---------------------------------------------------------------------------
+
+def test_openai_projection_out_dir_is_under_dist():
+    # dist/openai is gitignored (see .gitignore). openai projection stages skills there.
+    openai = tg.get_target(REPO, "openai")
+    assert openai["out"]["skills"] == "dist/openai/.agents/skills"
+
+
+def test_openai_projection_exclude_list():
+    # openai projection explicitly excludes these three items from projection.
+    openai = tg.get_target(REPO, "openai")
+    assert openai["exclude"] == ["commands/release", "commands/digest", "skills/cookie-audit"]
+
+
+def test_openai_zip_artifact_matches_release_glob():
+    # release.py packs all dist/*.zip files into a release artifact.
+    # artifact name must match that glob pattern.
+    openai_zip = tg.get_target(REPO, "openai-zip")
+    artifact = openai_zip["artifact"]
+    # Verify it matches the dist/*.zip pattern (will be dist/legal-it-openai-skills-{version}.zip)
+    assert artifact.startswith("dist/")
+    assert artifact.endswith(".zip")
