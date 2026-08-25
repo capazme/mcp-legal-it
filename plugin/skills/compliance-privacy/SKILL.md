@@ -1,6 +1,6 @@
 ---
 name: compliance-privacy
-description: Assessment completo di compliance GDPR con analisi base giuridica, verifica DPIA, registro trattamenti, informativa privacy e DPA. Usa quando l'utente chiede compliance privacy, adeguamento GDPR, informativa privacy, registro trattamenti, DPIA, valutazione impatto, data breach o contratto con responsabile del trattamento.
+description: Usa quando l'utente chiede compliance privacy, adeguamento GDPR, informativa, registro trattamenti, DPIA, data breach o DPA — assessment completo con base giuridica, verifica DPIA e contratto ex art. 28.
 ---
 
 # Compliance Privacy GDPR

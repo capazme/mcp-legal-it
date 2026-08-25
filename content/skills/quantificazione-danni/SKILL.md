@@ -1,6 +1,6 @@
 ---
 name: quantificazione-danni
-description: Quantifica danni biologici, patrimoniali o morali con personalizzazione e attualizzazione monetaria. Usa quando l'utente chiede di calcolare un risarcimento, quantificare danni da invalidita, danno emergente, lucro cessante o danno morale/esistenziale.
+description: Usa quando l'utente chiede di calcolare un risarcimento o quantificare danni da invalidità, danno emergente, lucro cessante o danno morale — quantificazione con personalizzazione e attualizzazione.
 tools: [danno_biologico_macro, danno_biologico_micro, danno_non_patrimoniale, interessi_legali, rivalutazione_monetaria]
 prompt: {"name": "quantificazione_danni", "description": "Quantificazione danni: biologico, patrimoniale o morale con personalizzazione e attualizzazione", "args": [{"name": "tipo_danno", "type": "str"}, {"name": "importo_o_percentuale", "type": "float"}, {"name": "eta_vittima", "type": "int"}]}
 ---

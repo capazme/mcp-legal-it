@@ -1,6 +1,6 @@
 ---
 name: analisi-giurisprudenziale
-description: Analisi degli orientamenti giurisprudenziali su un tema con sintesi delle sentenze principali. Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione, o precedenti.
+description: Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione o precedenti su un tema — analisi degli orientamenti con sintesi delle sentenze principali.
 ---
 
 # Analisi giurisprudenziale

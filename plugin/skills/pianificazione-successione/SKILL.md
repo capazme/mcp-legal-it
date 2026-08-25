@@ -1,6 +1,6 @@
 ---
 name: pianificazione-successione
-description: Pianifica una successione ereditaria con calcolo quote legittime, imposte di successione, franchigie e adempimenti. Usa quando l'utente chiede di calcolare quote ereditarie, imposte successione, eredita, testamento, franchigia o donazione.
+description: Usa quando l'utente chiede quote ereditarie, imposte di successione, eredità, testamento, franchigie o donazioni — pianifica la successione con calcolo quote legittime, imposte e adempimenti.
 ---
 
 # Pianificazione Successione

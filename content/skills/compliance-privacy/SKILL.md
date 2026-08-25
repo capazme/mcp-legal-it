@@ -1,6 +1,6 @@
 ---
 name: compliance-privacy
-description: Assessment completo di compliance GDPR con analisi base giuridica, verifica DPIA, registro trattamenti, informativa privacy e DPA. Usa quando l'utente chiede compliance privacy, adeguamento GDPR, informativa privacy, registro trattamenti, DPIA, valutazione impatto, data breach o contratto con responsabile del trattamento.
+description: Usa quando l'utente chiede compliance privacy, adeguamento GDPR, informativa, registro trattamenti, DPIA, data breach o DPA — assessment completo con base giuridica, verifica DPIA e contratto ex art. 28.
 tools: [analisi_base_giuridica, genera_dpa, genera_dpia, genera_informativa_cookie, genera_informativa_dipendenti, genera_informativa_privacy, genera_informativa_videosorveglianza, genera_registro_trattamenti, verifica_necessita_dpia]
 prompt: {"name": "compliance_privacy", "description": "Workflow completo compliance privacy GDPR: analisi base giuridica, DPIA, registro, informativa e DPA", "args": [{"name": "titolare", "type": "str"}, {"name": "tipo_trattamento", "type": "str"}, {"name": "contesto", "type": "str"}]}
 ---

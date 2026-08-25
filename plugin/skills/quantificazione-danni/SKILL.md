@@ -1,6 +1,6 @@
 ---
 name: quantificazione-danni
-description: Quantifica danni biologici, patrimoniali o morali con personalizzazione e attualizzazione monetaria. Usa quando l'utente chiede di calcolare un risarcimento, quantificare danni da invalidita, danno emergente, lucro cessante o danno morale/esistenziale.
+description: Usa quando l'utente chiede di calcolare un risarcimento o quantificare danni da invalidità, danno emergente, lucro cessante o danno morale — quantificazione con personalizzazione e attualizzazione.
 ---
 
 # Quantificazione Danni
