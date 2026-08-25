@@ -1,4 +1,4 @@
-"""Frozen registration surface: 218 tools, 23 prompts, 15 resources.
+"""Frozen registration surface: 221 tools, 23 prompts, 15 resources.
 
 Uses the in-process fastmcp Client (FastMCP 3.4.7 — get_tools() no longer exists).
 Requires LEGAL_PROFILE unset/full (the default test environment).
@@ -32,7 +32,7 @@ def test_registration_surface():
             )
 
     tools, prompts, resources = asyncio.run(run())
-    assert len(tools) == 218, f"tool count changed: {len(tools)}"
+    assert len(tools) == 221, f"tool count changed: {len(tools)}"
     assert {p.name for p in prompts} == set(EXPECTED_PROMPTS)
     assert {str(r.uri) for r in resources} == EXPECTED_RESOURCE_URIS
 

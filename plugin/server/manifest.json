@@ -3,7 +3,7 @@
   "name": "mcp-legal-it",
   "display_name": "Legal IT — Diritto Italiano",
   "version": "2.12.1",
-  "description": "218 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti, recepimento UE→IT, verifica citazioni, delibere CONSOB e compliance GDPR.",
+  "description": "221 tool di calcolo legale italiano, normativa (Normattiva/EUR-Lex/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti, recepimento UE→IT, verifica citazioni, delibere CONSOB e compliance GDPR.",
   "author": {
     "name": "capazme",
     "url": "https://github.com/capazme"

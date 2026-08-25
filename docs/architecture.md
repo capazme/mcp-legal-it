@@ -47,7 +47,7 @@ Costruisce l'istanza `mcp` e registra tutti i moduli:
 ```python
 mcp = FastMCP("Legal IT", instructions="...")
 
-from src.tools import (  # 32 moduli — l'elenco completo è in src/server.py
+from src.tools import (  # 33 moduli — l'elenco completo è in src/server.py
     rivalutazioni_istat, tassi_interessi, scadenze_termini,
     atti_giudiziari, fatturazione_avvocati, parcelle_professionisti,
     risarcimento_danni, diritto_penale, diritto_societario, diritto_lavoro,
@@ -81,7 +81,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from src.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (32 moduli, 218 tool totali)
+       └─ ... (33 moduli, 221 tool totali)
        └─ from src import prompts
             └─ @mcp.prompt() → 23 prompt registrati
        └─ from src import resources
@@ -120,7 +120,7 @@ if _profile != "full" and _profile in _PROFILES:
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 218 | Claude Code con Tool Search |
+| `full` | 221 | Claude Code con Tool Search |
 | `sinistro` | 73 | Risarcimento danni e sinistri |
 | `credito` | 83 | Recupero crediti |
 | `penale` | 45 | Diritto penale |
