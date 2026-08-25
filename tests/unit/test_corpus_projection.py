@@ -100,6 +100,52 @@ def test_projection_shapes_all_four_asset_kinds(tmp_path):
     shared = (out / "plugin/server/src/data/references/fonti.md").read_text(encoding="utf-8")
     assert shared == REF
 
+def test_project_runtime_fallback_for_absent_supports(tmp_path):
+    """Runtime pin (not just load_targets()) for 'absent supports = full claude
+    behavior': a raw cfg dict with NO 'supports' key at all — full claude-shaped
+    out map, namespaces, strip keys, no merge/exclude/cap — must still project
+    all four asset kinds exactly like the pre-Task-2 unconditional behavior:
+    skill with prefixed tools, agent with tools stripped, command WITH the
+    allowed-tools line, shared reference copied verbatim."""
+    pc = _load("project_claude")
+    src_root = tmp_path / "repo"
+    out = tmp_path / "out"
+    _make_content(src_root)
+
+    cfg = {
+        "tool_namespace": "legal-it:{tool}",
+        "command_tool_namespace": "mcp__legal-it__{tool}",
+        "strip_frontmatter_keys": ["tools", "prompt"],
+        "out": {
+            "skills": "plugin/skills",
+            "agents": "plugin/agents",
+            "commands": "plugin/commands",
+            "references": "plugin/server/src/data/references",
+        },
+    }
+    assert "supports" not in cfg
+
+    pc.project(src_root, out, cfg=cfg)
+
+    skill = (out / "plugin/skills/demo/SKILL.md").read_text(encoding="utf-8")
+    assert "tools:" not in skill and "prompt:" not in skill
+    assert "`legal-it:cite_law`" in skill and "legal-it:leggi_sentenza(n, a)" in skill
+
+    ref = (out / "plugin/skills/demo/references/nota.md").read_text(encoding="utf-8")
+    assert "`legal-it:cite_law`" in ref
+
+    cmd = (out / "plugin/commands/norma.md").read_text(encoding="utf-8")
+    assert "allowed-tools: mcp__legal-it__cite_law, mcp__legal-it__cerca_brocardi, Bash" in cmd
+    assert not any(l.startswith("tools:") for l in cmd.splitlines())
+    assert "`legal-it:cite_law`" in cmd and "legal-it:Bash" not in cmd
+
+    ag = (out / "plugin/agents/civilista.md").read_text(encoding="utf-8")
+    assert "model: sonnet" in ag and "tools:" not in ag and "`legal-it:cite_law`" in ag
+
+    shared = (out / "plugin/server/src/data/references/fonti.md").read_text(encoding="utf-8")
+    assert shared == REF
+
+
 def test_projection_fails_on_leftover_prefix_in_content(tmp_path):
     pc = _load("project_claude")
     src_root = tmp_path / "repo"
