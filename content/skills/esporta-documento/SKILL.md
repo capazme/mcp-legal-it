@@ -21,9 +21,8 @@ le skill appropriate; questo skill prende quel testo e lo trasforma in un file c
 ## Quando usare lo skill
 
 - L'utente chiede esplicitamente di **esportare / salvare** un documento in Word o PDF.
-- Al termine di un workflow (`/parere`, `/giurisprudenza`, `/compliance`, oppure le skill
-  `parere-legale`, `analisi-giurisprudenziale`, `compliance-privacy`) quando l'utente vuole
-  il deliverable come file.
+- Al termine di un workflow con le skill `parere-legale`, `analisi-giurisprudenziale`,
+  `compliance-privacy` quando l'utente vuole il deliverable come file.
 - L'utente ha appena ricevuto da un tool un dict con un campo `testo`
   (es. `genera_informativa_privacy`, `genera_dpa`, `genera_dpia`,
   `genera_registro_trattamenti`, `genera_notifica_data_breach`) e vuole il file finito.

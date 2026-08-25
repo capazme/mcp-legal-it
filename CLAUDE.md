@@ -41,7 +41,7 @@ mcp-legal-it/
 │   └── targets.yaml             # manifest dei target di build (claude-code, claude-web, plugin-zip, mcpb)
 ├── scripts/
 │   ├── build_targets.py         # builder unificato — sostituisce build-all.sh/build-plugin.sh/build-dxt.sh/build-web-skills.py
-│   └── corpus/                  # generatori: project_claude.py, generate_prompts.py, extract_references.py, migrate_corpus.py, dump_vocabulary.py
+│   └── corpus/                  # generatori: project_claude.py, generate_prompts.py, extract_references.py, migrate_corpus.py, dump_vocabulary.py, agents_md.py
 ├── plugin/
 │   ├── skills/                  # GENERATED — proiezione di content/skills/ (project_claude.py)
 │   ├── agents/                  # GENERATED — proiezione di content/agents/ (project_claude.py)
@@ -112,6 +112,10 @@ mcp-legal-it/
 │       ├── privacy_gdpr.py
 │       ├── procure_quotazioni.py  # genera_procura_liti_docx, genera_quotazione_docx
 │       └── analisi_fornitori.py   # verifica_partita_iva_vies, genera_report_fornitori
+├── docs/
+│   └── openai.md               # guida installazione bundle OpenAI (Codex CLI / ChatGPT)
+├── dist/                       # BUILD OUTPUT (gitignored)
+│   └── openai/                 # bundle OpenAI proiettato — .agents/skills/, AGENTS.md, config.toml.example, README.md
 └── tests/                     # 76 file (46 unit + 30 comparison); per il conteggio
                                # corrente: pytest tests/ --collect-only -q | tail -1
     ├── unit/                  # mock HTTP, nessuna connessione esterna
@@ -557,22 +561,28 @@ cerca_giurisprudenza_cgue("imposta sul valore aggiunto")
 
 ## Setup per provider
 
-Il server MCP supporta tre transport e funziona con Claude, ChatGPT e Manus.
+Il server MCP supporta tre transport e funziona con Claude, Codex CLI, ChatGPT e Manus.
 
 ### Compatibilità cross-provider
 
-| Feature | Claude Desktop/Code | ChatGPT | Manus |
-|---------|--------------------:|--------:|------:|
-| 218 tool di calcolo e ricerca | ✓ | ✓ | ✓ |
-| 23 prompt guidati | ✓ | — | — |
-| 15 risorse `legal://` | ✓ | — | — |
-| 30 skills + 8 comandi + 6 agenti | ✓ (plugin) | — | — |
-| Transport stdio (locale) | ✓ | — | — |
-| Transport Streamable HTTP | ✓ | ✓ | ✓ |
-| Transport SSE (legacy) | ✓ | ✓ | ? |
+| Feature | Claude Desktop/Code | ChatGPT | Codex CLI | Manus |
+|---------|--------------------:|--------:|----------:|------:|
+| 218 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
+| 23 prompt guidati | ✓ | — | — | — |
+| 15 risorse `legal://` | ✓ | — | — | — |
+| 30 skills + 8 comandi + 6 agenti (plugin Claude) | ✓ (plugin) | ✓ 40 skill¹ | ✓ 40 skill¹ | — |
+| Transport stdio (locale) | ✓ | — | ✓ | — |
+| Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
+| Transport SSE (legacy) | ✓ | ✓ | ? | ? |
 
-> I 218 tool funzionano su tutti i provider. Prompt, risorse e plugin (skills/comandi/agenti)
-> sono feature Claude-only — gli altri provider li ignorano silenziosamente.
+> I 218 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano feature
+> Claude-only. ¹ Le skill invece raggiungono anche ChatGPT e Codex CLI tramite il **bundle
+> OpenAI** (40 skill: 28 del corpus + 6 agenti + 6 comandi fusi come skill aggiuntive;
+> escluse `cookie-audit`, che pilota tool browser Claude-specific, ed `esporta-documento`,
+> che nel corpo cita percorsi `${CLAUDE_PLUGIN_ROOT}` non risolvibili fuori da Claude) — vedi
+> `docs/openai.md`. Su ChatGPT/Codex CLI comandi e agenti non esistono come costrutti separati:
+> solo il plugin Claude Code li mantiene nativi. Il bundle non porta prompt MCP né risorse
+> `legal://` — Codex e ChatGPT non hanno un equivalente di questi due meccanismi.
 
 ---
 
@@ -691,7 +701,9 @@ ChatGPT richiede un endpoint HTTPS pubblico. Due opzioni:
    URL:  https://xxxx.ngrok-free.app/mcp
    ```
 
-> **Nota**: ChatGPT non supporta prompt MCP né risorse. Solo i 218 tool sono visibili.
+> **Nota**: ChatGPT non supporta prompt MCP né risorse — restano assenti anche con il
+> connector. Le skill sono comunque disponibili separatamente: carica `.agents/skills/` dal
+> **bundle OpenAI** (`docs/openai.md`) nella Skills UI di ChatGPT.
 
 ---
 

@@ -6,7 +6,9 @@ Targets:
   claude-web   package plugin/skills/*/SKILL.md as per-skill ZIPs for Claude Web
   plugin-zip   package plugin/ as a Claude Code Plugin marketplace ZIP
   mcpb         package dxt/ + plugin/server as a Desktop Extension (.mcpb)
-  all          the four targets above, in that order
+  openai       project content/ into a Codex/AGENTS-style skill bundle (dist/openai/)
+  openai-zip   zip dist/openai/ for distribution
+  all          the six targets above, in that order
 
 Replaces (removed):
   scripts/build-plugin.sh, scripts/build-dxt.sh, scripts/build-all.sh,
@@ -24,19 +26,21 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import zipfile
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 _CORPUS = _HERE / "corpus"
 sys.path.insert(0, str(_CORPUS))
+import agents_md as am  # noqa: E402
 import frontmatter as fm  # noqa: E402
 import project_claude as pc  # noqa: E402
 import targets as tg  # noqa: E402
 
 ROOT = _HERE.parent
 
-_TARGET_NAMES = ["claude-code", "claude-web", "plugin-zip", "mcpb"]
+_TARGET_NAMES = ["claude-code", "claude-web", "plugin-zip", "mcpb", "openai", "openai-zip"]
 
 
 # ---------------------------------------------------------------------------
@@ -56,33 +60,6 @@ def build_claude_code(root: Path) -> None:
 # ---------------------------------------------------------------------------
 # claude-web — port of plugin/build-web-skills.py
 # ---------------------------------------------------------------------------
-
-def _read_field(fm_lines: list[str], key: str) -> str | None:
-    """Extract a (possibly multi-line) frontmatter field's raw value.
-
-    Reuses frontmatter.py's block_range() for the split; the value assembly
-    mirrors the legacy script's generic per-line field parser.
-    """
-    rng = fm.block_range(fm_lines, key)
-    if rng is None:
-        return None
-    first = fm_lines[rng[0]]
-    _, _, after = first.partition(":")
-    val_lines = [after.lstrip()] + list(fm_lines[rng[0] + 1 : rng[1]])
-    return "\n".join(val_lines).strip()
-
-
-def _truncate_description(desc: str, max_chars: int) -> str:
-    """Normalize whitespace UNCONDITIONALLY, then truncate at a word boundary."""
-    desc = " ".join(desc.split())
-    if len(desc) <= max_chars:
-        return desc
-    truncated = desc[: max_chars - 3]
-    last_space = truncated.rfind(" ")
-    if last_space > 0:
-        truncated = truncated[:last_space]
-    return truncated + "..."
-
 
 def _emit_web_frontmatter(fields: dict[str, str], keep: list[str]) -> str:
     """A value with a newline or >80 chars becomes a folded scalar; else plain."""
@@ -107,11 +84,11 @@ def _convert_skill_md(text: str, cfg: dict) -> str:
     max_chars = cfg["description_max_chars"]
     fields: dict[str, str] = {}
     for key in keep:
-        val = _read_field(fm_lines, key)
+        val = fm.read_field(fm_lines, key)
         if val is None:
             continue
         if key == "description":
-            val = _truncate_description(val, max_chars)
+            val = fm.truncate_description(val, max_chars)
         fields[key] = val
     return _emit_web_frontmatter(fields, keep) + body
 
@@ -255,6 +232,113 @@ def build_mcpb(root: Path, version: str | None = None) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# openai — Codex/AGENTS-style skill bundle
+# ---------------------------------------------------------------------------
+
+_OPENAI_CONFIG_TOML_EXAMPLE = """\
+# Codex config.toml — MCP Legal IT (stdio, via uv)
+#
+# Copy this block into your Codex config.toml (usually ~/.codex/config.toml).
+# Replace /path/to/mcp-legal-it with the path to a checkout of the
+# mcp-legal-it server — this bundle ships skills only, no server.
+#
+# The server key MUST be `legal_it` (underscore, not hyphen): Codex rejects
+# hyphenated MCP server names (see Codex issue #15832).
+
+[mcp_servers.legal_it]
+command = "uv"
+args = [
+  "run", "--python", "3.12",
+  "--with", "fastmcp>=2.0,<4",
+  "--with", "httpx>=0.27",
+  "--with", "beautifulsoup4>=4.12",
+  "--with", "lxml>=5.0",
+  "--with", "fpdf2>=2.7",
+  "--with", "python-docx>=1.0",
+  "--with", "openpyxl>=3.1",
+  "--with", "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "/path/to/mcp-legal-it/plugin/server/run_server.py",
+]
+
+# Variante server remoto (Streamable HTTP), se preferisci non lanciare uv in
+# locale (sostituisci www.esempio.it con il tuo host):
+# [mcp_servers.legal_it]
+# url = "https://www.esempio.it/mcp"
+"""
+
+_OPENAI_README = """\
+# Legal IT — bundle OpenAI (Codex / ChatGPT)
+
+Bundle di skill Legal IT in formato AGENTS/Codex, generato dal corpus di
+`mcp-legal-it`. Contiene:
+
+- `.agents/skills/` — le skill (una directory per skill, `SKILL.md` con
+  frontmatter ridotto a `name` + `description`; i tool sono citati col nome
+  bare nel testo)
+- `AGENTS.md` — istruzioni del server, protocollo di grounding legale,
+  workflow consigliati
+- `config.toml.example` — configurazione MCP per Codex (stdio via `uv`, più
+  variante Streamable HTTP commentata)
+
+## Installazione — Codex
+
+1. Copia `.agents/skills/` nella root del repository su cui lavori (Codex la
+   legge da lì), oppure in `$HOME/.agents/skills/` per renderla disponibile
+   globalmente.
+2. Copia `AGENTS.md` nella root del progetto (o unisci il contenuto al tuo
+   `AGENTS.md` esistente).
+3. Aggiungi il blocco di `config.toml.example` al tuo `~/.codex/config.toml`
+   (o esegui `codex mcp add`), sostituendo `/path/to/mcp-legal-it` con il
+   percorso reale di un checkout del server MCP — il bundle non include il
+   server, solo le skill.
+
+## Installazione — ChatGPT
+
+- **Skill**: carica il contenuto di `.agents/skills/` come istruzioni/
+  knowledge personalizzate — upload manuale, ChatGPT non legge `AGENTS.md`
+  nativamente.
+- **Tool MCP**: serve un connector self-hosted con endpoint HTTPS pubblico
+  (`MCP_TRANSPORT=http`). ChatGPT non supporta prompt MCP né risorse: solo i
+  tool sono visibili.
+
+## Approfondimenti
+
+Guida completa: https://github.com/capazme/mcp-legal-it/blob/main/docs/openai.md
+"""
+
+
+def build_openai(root: Path) -> None:
+    cfg = tg.get_target(root, "openai")
+    # Projection FIRST: its rmtree only ever touches the projected skills
+    # out-dir (dist/openai/.agents/skills). AGENTS.md / config.toml.example /
+    # README.md live at dist/openai/ root, outside that subdir, so writing
+    # them afterwards means they survive the projection's rmtree. Reversing
+    # this order would wipe them on every rebuild.
+    pc.project(root, root, cfg)
+
+    # Bundle root derived from the manifest's own out.skills path — two path
+    # segments above the skills dir (<bundle_root>/.agents/skills) — rather
+    # than a hardcoded "dist/openai": a manifest edit to out.skills is the
+    # only place that then needs to change.
+    bundle_root = root / Path(cfg["out"]["skills"]).parents[1]
+    (bundle_root / "AGENTS.md").write_text(am.generate(root), encoding="utf-8")
+    (bundle_root / "config.toml.example").write_text(_OPENAI_CONFIG_TOML_EXAMPLE, encoding="utf-8")
+    (bundle_root / "README.md").write_text(_OPENAI_README, encoding="utf-8")
+
+
+def build_openai_zip(root: Path, version: str | None = None) -> Path:
+    cfg = tg.get_target(root, "openai-zip")
+    if version is None:
+        pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+        version = pyproject["project"]["version"]
+
+    output = root / cfg["artifact"].format(version=version)
+    bundle_root = root / cfg["root"]
+    _zip_dir(bundle_root, output)
+    return output
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -291,6 +375,13 @@ def main(argv: list[str] | None = None) -> int:
             elif name == "mcpb":
                 print("==> mcpb")
                 path = build_mcpb(ROOT, version=args.version)
+                print(f"Built: {path}")
+            elif name == "openai":
+                print("==> openai")
+                build_openai(ROOT)
+            elif name == "openai-zip":
+                print("==> openai-zip")
+                path = build_openai_zip(ROOT, version=args.version)
                 print(f"Built: {path}")
         except (Exception, SystemExit) as exc:  # noqa: BLE001 — surface any build failure, no silent partials
             print(f"build_targets: target {name!r} failed: {exc}", file=sys.stderr)

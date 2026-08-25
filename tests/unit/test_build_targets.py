@@ -337,11 +337,138 @@ def test_mcpb_fallback_default_version(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Test 3c — 'all' expands to the four targets, in order
+# Test 4 — openai bundle: projection + AGENTS.md + config example + README,
+# and openai-zip packaging (wiring only — fake fixtures, no real corpus).
+# The real-corpus content assertions live in tests/unit/test_openai_target.py.
+# ---------------------------------------------------------------------------
+
+_OPENAI_TARGETS_YAML = (
+    "version: 1\n"
+    "projections:\n"
+    "  openai:\n"
+    '    tool_namespace: "{tool}"\n'
+    "    strip_frontmatter_keys: [tools, prompt, standalone-description]\n"
+    "    supports: [skills]\n"
+    "    merge_into_skills: [agents, commands]\n"
+    "    exclude: [commands/release, commands/digest, skills/cookie-audit]\n"
+    "    description_max_chars: 150\n"
+    "    out:\n"
+    "      skills: dist/openai/.agents/skills\n"
+    "packaging:\n"
+    "  openai-zip:\n"
+    '    artifact: "dist/legal-it-openai-skills-{version}.zip"\n'
+    "    root: dist/openai\n"
+)
+
+_FAKE_SERVER_PY = (
+    '"""Fake server module for build_openai tests."""\n'
+    "instructions = \"\"\"\\\n"
+    "Scope descrittivo di prova.\n"
+    "\n"
+    "REGOLE: cite_law() PRIMA di citare norme. leggi_sentenza() DIRETTO per sentenze note.\n"
+    "OUTPUT: formato di prova.\n"
+    "\n"
+    "WORKFLOW:\n"
+    "Norma -> cite_law -> cerca_brocardi\n"
+    '"""\n'
+)
+
+
+def _write_fake_openai_root(root: Path) -> None:
+    (root / "content").mkdir(parents=True, exist_ok=True)
+    (root / "content" / "targets.yaml").write_text(_OPENAI_TARGETS_YAML, encoding="utf-8")
+    (root / "content" / "tool-vocabulary.json").write_text("[]\n", encoding="utf-8")
+
+    skill_dir = root / "content" / "skills" / "test-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\n"
+        "name: test-skill\n"
+        "description: A skill about testing, used to exercise build_openai wiring end to end.\n"
+        "---\n\n"
+        "Body text with no MCP prefixes.\n",
+        encoding="utf-8",
+    )
+
+    server_dir = root / "plugin" / "server" / "src"
+    server_dir.mkdir(parents=True)
+    (server_dir / "server.py").write_text(_FAKE_SERVER_PY, encoding="utf-8")
+
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "legal-it-test"\nversion = "3.4.5"\n', encoding="utf-8"
+    )
+
+
+def test_build_openai_projects_and_writes_bundle_files(tmp_path):
+    _write_fake_openai_root(tmp_path)
+
+    bt.build_openai(tmp_path)
+
+    bundle_root = tmp_path / "dist" / "openai"
+    skill_md = bundle_root / ".agents" / "skills" / "test-skill" / "SKILL.md"
+    assert skill_md.is_file()
+    assert "name: test-skill" in skill_md.read_text(encoding="utf-8")
+
+    agents_text = (bundle_root / "AGENTS.md").read_text(encoding="utf-8")
+    assert "REGOLE" in agents_text
+    assert "cite_law" in agents_text
+    assert "legal_it__" in agents_text
+
+    config_text = (bundle_root / "config.toml.example").read_text(encoding="utf-8")
+    assert "[mcp_servers.legal_it]" in config_text
+
+    assert (bundle_root / "README.md").is_file()
+
+
+def test_build_openai_rebuild_preserves_bundle_root_files(tmp_path):
+    # Regression guard for the mandated order of operations: projection's
+    # rmtree only ever touches dist/openai/.agents/skills, so a second build
+    # must not wipe AGENTS.md / config.toml.example / README.md.
+    _write_fake_openai_root(tmp_path)
+    bt.build_openai(tmp_path)
+    bt.build_openai(tmp_path)
+
+    bundle_root = tmp_path / "dist" / "openai"
+    assert (bundle_root / "AGENTS.md").is_file()
+    assert (bundle_root / "config.toml.example").is_file()
+    assert (bundle_root / "README.md").is_file()
+    assert (bundle_root / ".agents" / "skills" / "test-skill" / "SKILL.md").is_file()
+
+
+def test_build_openai_zip_default_version_and_member_count(tmp_path):
+    _write_fake_openai_root(tmp_path)
+    bt.build_openai(tmp_path)
+
+    output = bt.build_openai_zip(tmp_path)
+    assert output == tmp_path / "dist" / "legal-it-openai-skills-3.4.5.zip"
+    assert output.exists()
+
+    bundle_root = tmp_path / "dist" / "openai"
+    expected_files = [p for p in bundle_root.rglob("*") if p.is_file()]
+    with zipfile.ZipFile(output) as zf:
+        names = zf.namelist()
+    assert len(names) == len(expected_files), names
+    assert "AGENTS.md" in names
+    assert ".agents/skills/test-skill/SKILL.md" in names
+
+
+def test_build_openai_zip_version_override(tmp_path):
+    _write_fake_openai_root(tmp_path)
+    bt.build_openai(tmp_path)
+
+    output = bt.build_openai_zip(tmp_path, version="9.9.9")
+    assert output == tmp_path / "dist" / "legal-it-openai-skills-9.9.9.zip"
+    assert output.exists()
+
+
+# ---------------------------------------------------------------------------
+# Test 3c — 'all' expands to the six targets, in order
 # ---------------------------------------------------------------------------
 
 def test_expand_all_order():
-    assert bt._expand(["all"]) == ["claude-code", "claude-web", "plugin-zip", "mcpb"]
+    assert bt._expand(["all"]) == [
+        "claude-code", "claude-web", "plugin-zip", "mcpb", "openai", "openai-zip",
+    ]
 
 
 # ---------------------------------------------------------------------------

@@ -36,7 +36,7 @@ Sei un avvocato esperto nella redazione di atti giudiziari, stragiudiziali e doc
 ### Fase 4 — Composizione
 In base al routing:
 - **tool_diretto**: chiama il tool indicato con i parametri
-- **resource**: leggi il modello dalla resource, compila i placeholder con i dati
+- **modello**: recupera il modello con `legal-it:genera_modello_atto` (su Claude puoi leggerlo anche dalla resource `legal://riferimenti/modelli-atti-catalogo`), compila i placeholder con i dati
 - **tool_enhance** (futuro): usa il tool base e adatta l'output
 - **preventivo_procedura** (futuro): usa `legal-it:preventivo_civile` come approssimazione
 
