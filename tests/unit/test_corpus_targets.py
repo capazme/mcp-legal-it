@@ -38,3 +38,79 @@ def test_claude_web_out_dir_matches_release_py_consumer():
     # (three dist_dir sites). Changing out_dir here without updating release.py
     # silently ships stale web-skills zips into release commits.
     assert tg.get_target(REPO, "claude-web")["out_dir"] == "plugin/dist/web-skills"
+
+
+# ---------------------------------------------------------------------------
+# supports: + out-subkey validation (Phase 3 Task 2)
+# ---------------------------------------------------------------------------
+
+def _write(tmp_path, text):
+    (tmp_path / "content").mkdir(exist_ok=True)
+    (tmp_path / "content" / "targets.yaml").write_text(text, encoding="utf-8")
+
+
+def test_supports_missing_fs_kind_out_key_raises_naming_the_kind(tmp_path):
+    _write(
+        tmp_path,
+        "version: 1\n"
+        "projections:\n"
+        "  broken:\n"
+        '    tool_namespace: "{tool}"\n'
+        "    strip_frontmatter_keys: []\n"
+        "    supports: [skills, agents]\n"
+        "    out:\n"
+        "      skills: out/skills\n",  # 'agents' out key missing
+    )
+    with pytest.raises(ValueError, match="agents"):
+        tg.load_targets(tmp_path)
+
+
+def test_supports_mcp_resources_requires_references_out_key(tmp_path):
+    _write(
+        tmp_path,
+        "version: 1\n"
+        "projections:\n"
+        "  broken:\n"
+        '    tool_namespace: "{tool}"\n'
+        "    strip_frontmatter_keys: []\n"
+        "    supports: [skills, mcp_resources]\n"
+        "    out:\n"
+        "      skills: out/skills\n",  # 'references' out key missing
+    )
+    with pytest.raises(ValueError, match="references"):
+        tg.load_targets(tmp_path)
+
+
+def test_supports_mcp_prompts_and_hooks_demand_no_out_key(tmp_path):
+    _write(
+        tmp_path,
+        "version: 1\n"
+        "projections:\n"
+        "  minimal:\n"
+        '    tool_namespace: "{tool}"\n'
+        "    strip_frontmatter_keys: []\n"
+        "    supports: [mcp_prompts, hooks]\n"
+        "    out: {}\n",
+    )
+    data = tg.load_targets(tmp_path)  # must NOT raise
+    assert data["projections"]["minimal"]["supports"] == ["mcp_prompts", "hooks"]
+
+
+def test_supports_absent_is_backward_compatible(tmp_path):
+    _write(
+        tmp_path,
+        "version: 1\n"
+        "projections:\n"
+        "  legacy:\n"
+        '    tool_namespace: "{tool}"\n'
+        "    strip_frontmatter_keys: []\n"
+        "    out:\n"
+        "      skills: out/skills\n",  # no agents/commands/references, no supports key at all
+    )
+    data = tg.load_targets(tmp_path)  # must NOT raise — absent supports = full claude behavior
+    assert "supports" not in data["projections"]["legacy"]
+
+
+def test_real_manifest_supports_out_keys_are_consistent():
+    # claude-code's own supports/out must satisfy the same validation it enforces.
+    tg.load_targets(REPO)  # must NOT raise
