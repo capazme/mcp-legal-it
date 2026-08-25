@@ -7,9 +7,15 @@ description: Ricerca normativa completa su un tema giuridico con tutte le fonti 
 
 Fonti primarie, norme collegate, giurisprudenza e sanzioni.
 
+Inquadra la ricerca nell'area di diritto indicata dall'utente (civile / penale / amministrativo / lavoro / tributario / privacy / commerciale) prima di individuare le fonti.
+
 ## Regola fondamentale
 
 **Ogni norma citata DEVE essere verificata con `legal-it:cite_law`**. Mai citare a memoria.
+
+Regole ulteriori:
+- Indicare espressamente se una norma è stata modificata o abrogata.
+- Segnalare le modifiche normative già pubblicate in Gazzetta Ufficiale e verificabili con i tool. Non segnalare riforme pendenti o proposte de lege ferenda, per le quali il server non dispone di una fonte verificabile.
 
 ## Workflow
 
@@ -31,7 +37,51 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 `legal-it:cerca_brocardi` per massime. `legal-it:cerca_giurisprudenza` per approfondimento.
 
+Per le norme chiave, chiama `legal-it:cite_law` con `include_annotations=true` per recuperare da Brocardi:
+- Massime di Cassazione e Corte Costituzionale
+- Orientamenti consolidati vs. questioni aperte
+- Posizioni dottrinali prevalenti
+
+Per trovare giurisprudenza recente (ultimi 5 anni), chiama `legal-it:cerca_giurisprudenza` con la query tra virgolette (es. `query="\"art. ... codice\""`) e `modalita="esplora"` per vedere la distribuzione, poi ripeti la ricerca con filtri per le decisioni più rilevanti.
+
 ### 4. Fonti autorita vigilanza
 
 - Finanza/mercati: `legal-it:cerca_delibere_consob`
 - Privacy: `legal-it:cerca_provvedimenti_garante`
+
+Se il tema riguarda mercati finanziari, intermediari, emittenti, OPA, crowdfunding o cripto-attività, chiama `legal-it:cerca_delibere_consob` con il tema come query per recuperare le delibere e i provvedimenti CONSOB rilevanti; per le delibere più significative, recupera anche il testo integrale della delibera.
+
+Per le materie finanziarie includere sempre i provvedimenti delle autorità di vigilanza. Per Banca d'Italia non esiste un tool dedicato: indicare al lettore la fonte da consultare, senza riportarne il contenuto a memoria.
+
+### 5. Quadro sanzionatorio
+
+Se pertinente, identifica:
+- Sanzioni penali (contravvenzioni, delitti)
+- Sanzioni amministrative (pecuniarie, interdittive)
+- Responsabilità civile (risarcimento danni)
+- Sanzioni disciplinari (ordini professionali, PA)
+
+## Formato output
+
+```markdown
+## Ricerca Normativa su [tema]
+
+### 1. Fonti Primarie
+| Fonte | Norma | Oggetto |
+|-------|-------|---------|
+| Costituzione | art. ... | ... |
+| Reg. UE | ... | ... |
+| Legge | ... | ... |
+
+### 2. Articoli Chiave
+Per ciascun articolo: testo (da legal-it:cite_law), commento sintetico, nessi con altri articoli.
+
+### 3. Evoluzione Normativa
+Timeline delle modifiche rilevanti.
+
+### 4. Orientamenti Interpretativi
+Giurisprudenza consolidata e questioni aperte.
+
+### 5. Quadro Sanzionatorio
+Tabella delle sanzioni applicabili.
+```
