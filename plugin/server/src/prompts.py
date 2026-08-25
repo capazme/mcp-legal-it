@@ -1677,7 +1677,8 @@ Elenca eventuali cause note che potrebbero aver modificato il decorso.
 
 - La prescrizione può essere interrotta o sospesa da atti non noti al momento dell'analisi: ogni verdetto PRESCRITTA è provvisorio rispetto alla completezza dei fatti forniti.
 - Prescrizione penale — regime intertemporale, da individuare in base alla data del fatto:
-  - **Fatti ante 1.1.2020**: disciplina ex-Orlando — la prescrizione corre anche in appello, con le sospensioni introdotte dalla L. 103/2017.
+  - **Fatti fino al 2.8.2017**: regime pre-Orlando — la prescrizione corre in ogni grado e stato, senza le sospensioni della L. 103/2017 (norme sostanziali sfavorevoli, irretroattive ex art. 2 c.p.); rilevano solo gli aumenti da interruzione ex art. 161 c.p.
+  - **Fatti dal 3.8.2017 al 31.12.2019**: riforma Orlando — la prescrizione corre anche in appello, con le sospensioni fino a 18 mesi dopo la condanna di primo grado e altri 18 dopo quella d'appello (art. 159, co. 2 c.p. come modificato dalla L. 103/2017).
   - **Fatti dal 1.1.2020**: blocco Bonafede (L. 3/2019) — il corso della prescrizione cessa dopo la sentenza di primo grado; per i giudizi di impugnazione opera l'improcedibilità Cartabia ex art. 344-bis c.p.p. (introdotto dalla L. 134/2021, con attuazione nel D.Lgs. 150/2022).
 - In ambito civile, il decorso della prescrizione può essere interrotto con atto stragiudiziale (raccomandata/PEC di messa in mora) — rimedio economico da suggerire quando lo stato è IN SCADENZA.
 """
