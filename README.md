@@ -440,6 +440,7 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 | Agente | Specializzazione | Aree coperte |
 |--------|------------------|--------------|
 | `civilista` | Contratti, responsabilita, successioni, diritti reali, obbligazioni, famiglia | Artt. 1321-1469 c.c. (contratti), art. 2043 ss. (resp. extracontrattuale), artt. 456-768 (successioni), artt. 832-1172 (diritti reali) |
+| `digest-giuridico` | Briefing giuridico settimanale: ultime novita da tutte le fonti, raggruppate per fonte | Cassazione, tributario (CeRDEF), TAR/CdS, CGUE, Garante Privacy, CONSOB — workflow: raccolta &rarr; deduplica &rarr; top 3 in evidenza &rarr; norme citate |
 | `penalista` | Reati, pene, prescrizione, misure cautelari, riti alternativi | Gestione automatica regime prescrizione: Bonafede (fatti 2020-2024), Cartabia (dal 2025) |
 | `privacy-specialist` | GDPR, Codice Privacy, provvedimenti Garante | Struttura: Quadro normativo &rarr; Analisi &rarr; Rischi e sanzioni &rarr; Raccomandazioni |
 | `redattore-atti` | Redazione atti giudiziari, stragiudiziali, procure, relate, attestazioni | Accesso a tutti i 100 modelli di atti + tool di calcolo (CU, interessi, parcelle) |
