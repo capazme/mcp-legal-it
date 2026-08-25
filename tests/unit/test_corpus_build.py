@@ -1,21 +1,33 @@
 """Drift gate: the committed generated artifacts must match a fresh projection."""
-import filecmp
 import subprocess
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).parents[2]
 
+# OS metadata (Finder's .DS_Store) is outside the projection contract: it
+# lives untracked in browsed checkouts and must not fail the gate.
+_IGNORE_NAMES = {".DS_Store"}
+
+def _relative_files(root: Path) -> set[Path]:
+    return {
+        p.relative_to(root)
+        for p in root.rglob("*")
+        if p.is_file() and p.name not in _IGNORE_NAMES
+    }
+
 def _assert_trees_equal(a: Path, b: Path) -> None:
-    # OS metadata (Finder's .DS_Store) is outside the projection contract:
-    # it lives untracked in browsed checkouts and must not fail the gate.
-    cmp = filecmp.dircmp(a, b, ignore=filecmp.DEFAULT_IGNORES + [".DS_Store"])
-    assert not cmp.left_only and not cmp.right_only and not cmp.diff_files, (
-        f"{a} vs {b}: only_in_committed={cmp.left_only} only_in_fresh={cmp.right_only} "
-        f"diff={cmp.diff_files}"
+    a_files = _relative_files(a)
+    b_files = _relative_files(b)
+    only_in_committed = sorted(a_files - b_files)
+    only_in_fresh = sorted(b_files - a_files)
+    assert not only_in_committed and not only_in_fresh, (
+        f"{a} vs {b}: only_in_committed={only_in_committed} only_in_fresh={only_in_fresh}"
     )
-    for sub in cmp.common_dirs:
-        _assert_trees_equal(a / sub, b / sub)
+    for rel in sorted(a_files):
+        a_bytes = (a / rel).read_bytes()
+        b_bytes = (b / rel).read_bytes()
+        assert a_bytes == b_bytes, f"{a} vs {b}: content differs in {rel}"
 
 def test_claude_projection_matches_committed(tmp_path):
     r = subprocess.run(

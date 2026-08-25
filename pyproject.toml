@@ -28,6 +28,7 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "playwright>=1.40",
+    "pyyaml>=6.0",
 ]
 
 [tool.setuptools.packages.find]

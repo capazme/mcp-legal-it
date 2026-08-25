@@ -17,10 +17,10 @@ import frontmatter as fm  # noqa: E402
 ROOT = _HERE.parents[1]
 _TYPES = {"str": "str", "float": "float", "int": "int"}
 
-_HEADER = '''"""MCP Prompts — GENERATED from content/skills/*/SKILL.md 'prompt:' blocks.
+_HEADER_TEMPLATE = '''"""MCP Prompts — GENERATED from content/skills/*/SKILL.md 'prompt:' blocks.
 
 Do not edit by hand: run  python scripts/corpus/generate_prompts.py
-23 guided legal workflow prompts, for MCP clients that support prompts.
+{count} guided legal workflow prompts, for MCP clients that support prompts.
 """
 
 from src.server import mcp
@@ -76,7 +76,8 @@ def main() -> None:
     )
     args = parser.parse_args()
     items = _collect()
-    code = _HEADER + "\n\n".join(_emit(m, b) for m, b in items)
+    header = _HEADER_TEMPLATE.format(count=len(items))
+    code = header + "\n\n".join(_emit(m, b) for m, b in items)
     args.out.write_text(code, encoding="utf-8")
     print(f"{len(items)} prompts -> {args.out}")
 
