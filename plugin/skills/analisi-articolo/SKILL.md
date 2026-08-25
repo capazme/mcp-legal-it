@@ -40,6 +40,10 @@ Dalle annotazioni:
 - Leggi di modifica con date
 - Motivazioni delle modifiche (relazioni illustrative)
 
+Se rilevante, verifica con `legal-it:ddl_su_norma` se pendono DDL sull'atto: segnalali
+solo con estremi verificati (atto, stato, data, scheda ufficiale), ricordando
+che la ricerca copre i soli titoli dei DDL.
+
 ## Output atteso
 
 ### Testo vigente

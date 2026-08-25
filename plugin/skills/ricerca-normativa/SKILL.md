@@ -15,7 +15,8 @@ Inquadra la ricerca nell'area di diritto indicata dall'utente (civile / penale /
 
 Regole ulteriori:
 - Indicare espressamente se una norma è stata modificata o abrogata.
-- Segnalare le modifiche normative già pubblicate in Gazzetta Ufficiale e verificabili con i tool. Non segnalare riforme pendenti o proposte de lege ferenda, per le quali il server non dispone di una fonte verificabile.
+- Segnalare le modifiche normative già pubblicate in Gazzetta Ufficiale e verificabili con i tool.
+- Le riforme pendenti si segnalano SOLO se ancorate a fonte parlamentare: `legal-it:ddl_su_norma` sulla norma (o `legal-it:cerca_ddl` sul tema), poi `legal-it:iter_ddl` per lo stato dell'iter. Ogni segnalazione cita numero atto (es. S.1939, C.3053), stato, data dello stato e scheda ufficiale. Mai segnalare riforme a memoria; l'assenza di risultati non prova l'assenza di riforme, perché la ricerca copre i soli titoli dei DDL.
 
 ## Workflow
 
@@ -61,6 +62,13 @@ Se pertinente, identifica:
 - Responsabilità civile (risarcimento danni)
 - Sanzioni disciplinari (ordini professionali, PA)
 
+### 6. Riforme in corso
+
+Se il tema è oggetto di dibattito legislativo o l'utente chiede prospettive:
+`legal-it:ddl_su_norma` sulle norme chiave e `legal-it:cerca_ddl` sul tema; per i DDL rilevanti,
+`legal-it:iter_ddl` per lo stato aggiornato della navette. Riportare solo DDL con
+estremi verificati (atto, stato, data, scheda).
+
 ## Formato output
 
 ```markdown
@@ -84,4 +92,7 @@ Giurisprudenza consolidata e questioni aperte.
 
 ### 5. Quadro Sanzionatorio
 Tabella delle sanzioni applicabili.
+
+### 6. Riforme in Corso (se rilevanti)
+Per ciascun DDL: atto, stato alla data, link alla scheda ufficiale.
 ```

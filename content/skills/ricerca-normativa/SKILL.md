@@ -1,7 +1,7 @@
 ---
 name: ricerca-normativa
 description: Ricerca normativa completa su un tema giuridico con tutte le fonti applicabili ordinate per gerarchia, giurisprudenza e quadro sanzionatorio. Usa quando l'utente chiede quali norme si applicano, il quadro normativo di un settore, le fonti di una materia o una ricerca legislativa.
-tools: [cerca_brocardi, cerca_delibere_consob, cerca_giurisprudenza, cerca_provvedimenti_garante, cite_law]
+tools: [cerca_brocardi, cerca_ddl, cerca_delibere_consob, cerca_giurisprudenza, cerca_provvedimenti_garante, cite_law, ddl_su_norma, iter_ddl]
 prompt: {"name": "ricerca_normativa", "description": "Ricerca normativa completa su un tema giuridico: norme applicabili, gerarchia delle fonti e coordinamento", "args": [{"name": "tema", "type": "str"}, {"name": "area_diritto", "type": "str"}]}
 ---
 
@@ -17,7 +17,8 @@ Inquadra la ricerca nell'area di diritto indicata dall'utente (civile / penale /
 
 Regole ulteriori:
 - Indicare espressamente se una norma è stata modificata o abrogata.
-- Segnalare le modifiche normative già pubblicate in Gazzetta Ufficiale e verificabili con i tool. Non segnalare riforme pendenti o proposte de lege ferenda, per le quali il server non dispone di una fonte verificabile.
+- Segnalare le modifiche normative già pubblicate in Gazzetta Ufficiale e verificabili con i tool.
+- Le riforme pendenti si segnalano SOLO se ancorate a fonte parlamentare: `ddl_su_norma` sulla norma (o `cerca_ddl` sul tema), poi `iter_ddl` per lo stato dell'iter. Ogni segnalazione cita numero atto (es. S.1939, C.3053), stato, data dello stato e scheda ufficiale. Mai segnalare riforme a memoria; l'assenza di risultati non prova l'assenza di riforme, perché la ricerca copre i soli titoli dei DDL.
 
 ## Workflow
 
@@ -63,6 +64,13 @@ Se pertinente, identifica:
 - Responsabilità civile (risarcimento danni)
 - Sanzioni disciplinari (ordini professionali, PA)
 
+### 6. Riforme in corso
+
+Se il tema è oggetto di dibattito legislativo o l'utente chiede prospettive:
+`ddl_su_norma` sulle norme chiave e `cerca_ddl` sul tema; per i DDL rilevanti,
+`iter_ddl` per lo stato aggiornato della navette. Riportare solo DDL con
+estremi verificati (atto, stato, data, scheda).
+
 ## Formato output
 
 ```markdown
@@ -86,4 +94,7 @@ Giurisprudenza consolidata e questioni aperte.
 
 ### 5. Quadro Sanzionatorio
 Tabella delle sanzioni applicabili.
+
+### 6. Riforme in Corso (se rilevanti)
+Per ciascun DDL: atto, stato alla data, link alla scheda ufficiale.
 ```

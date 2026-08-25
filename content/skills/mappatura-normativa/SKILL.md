@@ -1,7 +1,7 @@
 ---
 name: mappatura-normativa
 description: Costruisce la mappa normativa completa di un settore o attivita con fonti organizzate per livello gerarchico e matrice adempimenti. Usa quando l'utente chiede il quadro normativo completo di un settore, tutte le leggi applicabili a un'attivita, o una checklist di obblighi normativi.
-tools: [cerca_delibere_consob, cerca_provvedimenti_garante, cite_law, leggi_delibera_consob]
+tools: [cerca_ddl, cerca_delibere_consob, cerca_provvedimenti_garante, cite_law, ddl_su_norma, iter_ddl, leggi_delibera_consob]
 prompt: {"name": "mappatura_normativa", "description": "Mappatura del quadro normativo completo per un settore o attività: tutte le fonti applicabili organizzate per livello", "args": [{"name": "settore", "type": "str"}, {"name": "attivita_specifica", "type": "str", "default": ""}]}
 ---
 
@@ -77,5 +77,5 @@ Elenco ordinato per priorita degli adempimenti da verificare.
 
 - Usare `cite_law` per TUTTI gli articoli citati nella mappa.
 - Indicare la data di entrata in vigore di ciascuna fonte.
-- Segnalare le norme in fase di modifica o revisione solo se la modifica risulta gia pubblicata in Gazzetta Ufficiale (verificabile con i tool); non segnalare riforme pendenti o de lege ferenda.
+- Segnalare le norme in fase di modifica o revisione se la modifica risulta gia pubblicata in Gazzetta Ufficiale (verificabile con i tool), oppure se pende un DDL verificato con `ddl_su_norma` o `cerca_ddl` (stato dell'iter con `iter_ddl`): in tal caso citare numero atto, stato, data e scheda ufficiale. Mai de lege ferenda senza estremi verificati; l'assenza di DDL trovati non prova l'assenza di riforme, perche la ricerca copre i soli titoli.
 - Per settori regolati (privacy, bancario, sanitario), includere sempre le fonti dell'autorita di vigilanza.
