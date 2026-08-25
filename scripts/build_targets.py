@@ -57,33 +57,6 @@ def build_claude_code(root: Path) -> None:
 # claude-web — port of plugin/build-web-skills.py
 # ---------------------------------------------------------------------------
 
-def _read_field(fm_lines: list[str], key: str) -> str | None:
-    """Extract a (possibly multi-line) frontmatter field's raw value.
-
-    Reuses frontmatter.py's block_range() for the split; the value assembly
-    mirrors the legacy script's generic per-line field parser.
-    """
-    rng = fm.block_range(fm_lines, key)
-    if rng is None:
-        return None
-    first = fm_lines[rng[0]]
-    _, _, after = first.partition(":")
-    val_lines = [after.lstrip()] + list(fm_lines[rng[0] + 1 : rng[1]])
-    return "\n".join(val_lines).strip()
-
-
-def _truncate_description(desc: str, max_chars: int) -> str:
-    """Normalize whitespace UNCONDITIONALLY, then truncate at a word boundary."""
-    desc = " ".join(desc.split())
-    if len(desc) <= max_chars:
-        return desc
-    truncated = desc[: max_chars - 3]
-    last_space = truncated.rfind(" ")
-    if last_space > 0:
-        truncated = truncated[:last_space]
-    return truncated + "..."
-
-
 def _emit_web_frontmatter(fields: dict[str, str], keep: list[str]) -> str:
     """A value with a newline or >80 chars becomes a folded scalar; else plain."""
     out = "---\n"
@@ -107,11 +80,11 @@ def _convert_skill_md(text: str, cfg: dict) -> str:
     max_chars = cfg["description_max_chars"]
     fields: dict[str, str] = {}
     for key in keep:
-        val = _read_field(fm_lines, key)
+        val = fm.read_field(fm_lines, key)
         if val is None:
             continue
         if key == "description":
-            val = _truncate_description(val, max_chars)
+            val = fm.truncate_description(val, max_chars)
         fields[key] = val
     return _emit_web_frontmatter(fields, keep) + body
 
