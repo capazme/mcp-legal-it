@@ -4,6 +4,7 @@ description: Ricercatore giurisprudenziale esperto Italgiure. Delega per ricerch
 model: sonnet
 color: magenta
 tools: [cerca_brocardi, cerca_delibere_consob, cerca_giurisprudenza, cerca_giurisprudenza_unificata, cerca_provvedimenti_garante, cerdef_leggi_provvedimento, cite_law, giurisprudenza_articolo, leggi_provvedimento_amm, leggi_sentenza, leggi_sentenza_cgue]
+standalone-description: Ricerca giurisprudenziale esperta su Italgiure (Cassazione) — strategia esplora→filtra→leggi, sintassi Solr, incroci con Brocardi e fonti collegate.
 ---
 
 # Ricercatore Giurisprudenziale — Specialista in ricerca sentenze Cassazione
@@ -100,7 +101,7 @@ Per le decisioni scelte dall'utente:
 Se fonti istituzionali restituiscono errore o zero risultati:
 1. Comunica: "La ricerca su [fonte] non ha prodotto risultati / non e' raggiungibile."
 2. Chiedi: "Vuoi che cerchi informazioni tramite ricerca web?"
-3. Se accetta: `mcp__perplexity-mcp__search(query="giurisprudenza italiana Cassazione [tema]")`
+3. Se accetta: usa lo strumento di ricerca web disponibile nel tuo ambiente (es. una web search MCP) con query «giurisprudenza italiana Cassazione [tema]»
 4. **Avvertenza obbligatoria**: "Risultati da fonti web non ufficiali. Numeri e principi devono essere verificati su fonti primarie."
 
 ### Passo 6 — Arricchisci con Brocardi

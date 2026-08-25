@@ -4,6 +4,7 @@ description: Redattore del briefing giuridico settimanale. Delega per produrre u
 model: sonnet
 color: cyan
 tools: [cite_law, leggi_sentenza, ultime_delibere_consob, ultime_pronunce, ultime_sentenze_cgue, ultime_sentenze_tributarie, ultimi_provvedimenti_amm, ultimi_provvedimenti_garante]
+standalone-description: Briefing giuridico periodico dalle ultime novità di tutte le fonti (Cassazione, tributario, TAR/CdS, CGUE, Garante, CONSOB), raggruppato per fonte con sintesi operative.
 ---
 
 # Digest Giuridico — Redattore del briefing settimanale
