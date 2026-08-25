@@ -1,6 +1,6 @@
 # mcp-legal-it — Project Context
 
-> MCP server con 218 tool di calcolo legale italiano, consultazione normativa
+> MCP server con 221 tool di calcolo legale italiano, consultazione normativa
 > (Normattiva, EUR-Lex, Brocardi), ricerca giurisprudenziale (Italgiure, CeRDEF,
 > TAR/CdS, CGUE), delibere CONSOB.
 
@@ -77,6 +77,8 @@ mcp-legal-it/
 │   │   │   └── client.py      # search_provvedimenti(), fetch_provvedimento(), format_*()
 │   │   ├── eu_implementation/ # Recepimento direttive UE -> Italia (EUR-Lex)
 │   │   │   └── client.py      # get_national_measures(), format_*()
+│   │   ├── parlamento/        # Client open data parlamentari (Senato/Camera, SPARQL)
+│   │   │   └── client.py      # search_ddl(), fetch_iter(), fetch_camera_iter(), format_*()
 │   │   └── vies/              # Client VIES (validazione P.IVA UE)
 │   │       └── client.py      # check_vat(), checksum_partita_iva()
 │   └── tools/
@@ -100,6 +102,7 @@ mcp-legal-it/
 │       ├── cgue.py            # cerca_giurisprudenza_cgue, leggi_sentenza_cgue, giurisprudenza_cgue_su_norma, ultime_sentenze_cgue
 │       ├── gazzetta.py       # cerca_gazzetta_ufficiale, leggi_atto_gazzetta, sommario_gazzetta, ultime_gazzette, scarica_pdf_gazzetta
 │       ├── corte_cost.py     # cerca_pronuncia_costituzionale, leggi_pronuncia_costituzionale, pronunce_cost_su_norma, ultime_pronunce_cost
+│       ├── parlamento.py     # cerca_ddl, iter_ddl, ddl_su_norma
 │       ├── gpdp.py           # cerca_provvedimenti_garante, leggi_provvedimento_garante, ultimi_provvedimenti_garante
 │       ├── orientamento.py   # orientamento_su_norma, orientamento_su_principio, mappa_orientamento
 │       ├── eu_implementation.py      # get_italian_implementation, get_eu_basis, elenco_misure_nazionali
@@ -124,7 +127,7 @@ mcp-legal-it/
         └── test_privacy_docs.py
 ```
 
-## Tool disponibili (32 moduli, 218 tool)
+## Tool disponibili (33 moduli, 221 tool)
 
 ### Consultazione Normativa
 | Tool | Descrizione |
@@ -173,6 +176,13 @@ mcp-legal-it/
 | `giurisprudenza_cgue_su_norma(riferimento, corte?, anno_da?)` | Sentenze che citano una norma UE (TFUE, direttive, regolamenti) |
 | `ultime_sentenze_cgue(corte?, tipo_documento?, materia?)` | Ultime decisioni CGUE depositate |
 
+### Iter parlamentare — DDL (dati.senato.it / dati.camera.it)
+| Tool | Descrizione |
+|------|-------------|
+| `cerca_ddl(query, legislatura?, ramo?, stato?, solo_pendenti?)` | Ricerca DDL per parole chiave nei titoli — l'endpoint Senato copre le fasi di entrambi i rami |
+| `iter_ddl(atto, legislatura?)` | **Navette completa** da "S.1939"/"C.3053"/idDdl: fasi, stati datati, estremi legge, timeline Camera + PDF stampati |
+| `ddl_su_norma(riferimento, legislatura?)` | DDL che citano una norma nel titolo (riforme in corso) — best-effort dichiarato: cerca solo nei TITOLI |
+
 ### Calcoli (tool numerici, non richiedono cite_law)
 1. Rivalutazione monetaria (12 tool) — ISTAT, TFR, canoni
 2. Interessi e tassi (10 tool) — legali, mora, TAEG, ammortamento
@@ -197,9 +207,10 @@ mcp-legal-it/
 
 Consultazione e ricerca, oltre alle tabelle sopra: Gazzetta Ufficiale (5),
 Corte Costituzionale (4), Garante Privacy (3), orientamenti giurisprudenziali (3),
-recepimento UE→IT (3), ricerca giurisprudenziale unificata (1).
+recepimento UE→IT (3), ricerca giurisprudenziale unificata (1),
+iter parlamentare DDL (3: `cerca_ddl`, `iter_ddl`, `ddl_su_norma`).
 
-Elenco completo e verificato dei 218 tool, con firma e descrizione: `docs/tools-catalog.md`.
+Elenco completo e verificato dei 221 tool, con firma e descrizione: `docs/tools-catalog.md`.
 
 ### Privacy/GDPR Compliance
 | Tool | Descrizione |
@@ -559,6 +570,31 @@ cerca_giurisprudenza_cgue("imposta sul valore aggiunto")
   └─> cite_law("art. 168 direttiva 2006/112/CE") ← norma UE citata nella sentenza
 ```
 
+## Parlamento (Senato/Camera) — note tecniche
+
+- **Endpoint**: `https://dati.senato.it/sparql` (ontologia OSR) + `https://dati.camera.it/sparql` (ontologia OCD) — entrambi Virtuoso, pubblici, senza autenticazione
+- **Senato: SOLO GET** — il POST riceve una pagina di errore 403 dal WAF con qualunque User-Agent. Il client usa GET con `query` e `format` in query string
+- **Niente `bif:contains`**: il WAF del Senato blocca (403, euristiche SQL-injection) le espressioni che combinano termini quotati con `or`/`and`, e Virtuoso rifiuta i workaround in UNION (SP031/5xx). La ricerca sui titoli usa `FILTER(CONTAINS(LCASE(...)))` con `&&`/`||` — ~2-3s su una legislatura
+- **Modello dati**: ogni risorsa `osr:Ddl` è una *fase* (una lettura in un ramo: `osr:fase` = "S.1939"/"C.3053", `osr:ramo`); `osr:idDdl` è l'identità condivisa che collega le fasi della navette. Il dataset del Senato indicizza le fasi di ENTRAMBI i rami → basta da solo per l'iter bicamerale
+- **DDL gemelli ≠ navette**: proposte identiche depositate nei due rami hanno `idDdl` diversi — solo `idDdl` fa fede
+- **Suffissi di navette e testi unificati**: `osr:fase` porta valori come `S.562-B`, `C.813-B`, `S.93-338-353-B`; la Camera identifica la lettura -B come `dc:identifier "813-B"` (atto distinto) — mai strippare il suffisso
+- **Literal tipati `xsd:string`** (anche le date): un match con literal semplice restituisce zero righe in silenzio — sempre `^^xsd:string` o `STR()`
+- **Sentinella `dataLegge = 2100-01-01`** per leggi costituzionali in attesa di conferma/referendum: da azzerare, mai ordinarci sopra
+- **Stati**: 19 valori distinti di `osr:statoDdl`; i "pendenti" sono la whitelist `STATI_PENDENTI` nel client (es. `esame in comm.`, `all'esame assemblea`)
+- **Schede ufficiali**: `senato.it/leg/{leg}/BGT/Schede/Ddliter/{idFase}.htm` risponde **202** alle richieste automatiche (WAF, come EUR-Lex) → link emesso, mai fetchato; il resolver URN della Camera (`camera.it/uri-res/N2Ls?urn:camera-it:...`) risponde 200
+- **Camera**: `dc:date` in formato `YYYYMMDD`; `dc:title` contiene prefisso fase, virgolette ed entità HTML (ripuliti dal client); `ocd:rif_statoIter` → timeline etichettata per data; `dc:relation` → PDF degli stampati
+- **Copertura**: Senato legislature XIII–XIX (dal 1996, ~58k fasi); aggiornamento osservato in giornata nei periodi di attività (non documentato ufficialmente)
+- **Tag MCP**: `"parlamento"`, `"normativa"`
+
+## Workflow Iter parlamentare
+
+```
+ddl_su_norma("codice della strada")           ← riforme in corso su una norma
+  └─> [DdlFase(fase="C.1522", stato="esame in comm.", ...)]
+  └─> iter_ddl("C.1522")                      ← navette completa con stati datati
+  └─> citare: numero atto + stato + data + scheda ufficiale (Legal Grounding)
+```
+
 ## Setup per provider
 
 Il server MCP supporta tre transport e funziona con Claude, Codex CLI, ChatGPT e Manus.
@@ -567,7 +603,7 @@ Il server MCP supporta tre transport e funziona con Claude, Codex CLI, ChatGPT e
 
 | Feature | Claude Desktop/Code | ChatGPT | Codex CLI | Manus |
 |---------|--------------------:|--------:|----------:|------:|
-| 218 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
+| 221 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — | — |
 | 15 risorse `legal://` | ✓ | — | — | — |
 | 30 skills + 8 comandi + 6 agenti (plugin Claude) | ✓ (plugin) | ✓ 40 skill¹ | ✓ 40 skill¹ | — |
@@ -575,7 +611,7 @@ Il server MCP supporta tre transport e funziona con Claude, Codex CLI, ChatGPT e
 | Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? | ? |
 
-> I 218 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano feature
+> I 221 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano feature
 > Claude-only. ¹ Le skill invece raggiungono anche ChatGPT e Codex CLI tramite il **bundle
 > OpenAI** (40 skill: 28 del corpus + 6 agenti + 6 comandi fusi come skill aggiuntive;
 > escluse `cookie-audit`, che pilota tool browser Claude-specific, ed `esporta-documento`,
@@ -606,7 +642,7 @@ le dipendenze (~1 min); gli avvii successivi sono immediati (cache di `uv`).
 /plugin marketplace add capazme/mcp-legal-it
 /plugin install legal-it@mcp-legal-it
 ```
-Include: 218 tool + skills + comandi + agenti + hooks. Il server MCP parte via `uv` (vedi `plugin/.mcp.json`).
+Include: 221 tool + skills + comandi + agenti + hooks. Il server MCP parte via `uv` (vedi `plugin/.mcp.json`).
 
 **Opzione B — Desktop Extension (.mcpb)**
 

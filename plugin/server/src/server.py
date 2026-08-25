@@ -1,4 +1,4 @@
-"""MCP Legal IT — 218 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 221 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 
@@ -21,6 +21,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - NORMATIVA: cite_law() per testo vigente, Brocardi per dottrina, PDF norme
 - VERIFICA CITAZIONI: verifica_citazioni() controlla esistenza e metadati di un elenco di norme e sentenze citate (NON verifica il merito)
 - GAZZETTA UFFICIALE: cerca_gazzetta_ufficiale, leggi_atto_gazzetta, sommario_gazzetta, ultime_gazzette, scarica_pdf_gazzetta — atti pubblicati in GU (leggi, decreti, ELI)
+- DDL E ITER PARLAMENTARE: cerca_ddl, iter_ddl, ddl_su_norma — disegni di legge pendenti, navette Senato/Camera, riforme in corso (dati.senato.it + dati.camera.it; ddl_su_norma cerca solo nei TITOLI, best-effort dichiarato)
 - GIURISPRUDENZA: sentenze Cassazione (Italgiure, archivio 2020+). Strategia: esplora → filtra → leggi
 - CORTE COSTITUZIONALE: cerca_pronuncia_costituzionale, leggi_pronuncia_costituzionale, pronunce_cost_su_norma, ultime_pronunce_cost — sentenze/ordinanze Consulta, massime, parametri costituzionali
 - ORIENTAMENTO GIURISPRUDENZIALE: orientamento_su_norma, orientamento_su_principio, mappa_orientamento — conformi vs contrasti, interventi Sezioni Unite (descrittivo, non predittivo)
@@ -45,6 +46,7 @@ Norma → cite_law → cerca_brocardi → giurisprudenza_su_norma → leggi_sent
 Orientamento → orientamento_su_norma/orientamento_su_principio → mappa_orientamento (conformi/contrasti/SS.UU.)
 Costituzionale → cerca_pronuncia_costituzionale → leggi_pronuncia_costituzionale | pronunce_cost_su_norma → cite_law
 Gazzetta → ultime_gazzette/cerca_gazzetta_ufficiale → leggi_atto_gazzetta → cite_law
+Riforme pendenti → ddl_su_norma(norma)/cerca_ddl(tema) → iter_ddl(atto) → citare numero atto + stato + data + scheda
 Recepimento UE → get_italian_implementation(direttiva) → cite_law | get_eu_basis(atto IT) → cite_law
 Giurisprudenza → cerca_giurisprudenza(modalita="esplora") → cerca_giurisprudenza(filtri) → leggi_sentenza
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
@@ -89,6 +91,7 @@ from src.tools import (  # noqa: E402, F401
     procedura_civile,
     corte_cost,
     gazzetta,
+    parlamento,
     orientamento,
     eu_implementation,
     procure_quotazioni,
