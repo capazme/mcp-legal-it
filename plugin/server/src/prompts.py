@@ -11,6 +11,8 @@ _BODY_ANALISI_ARTICOLO = """\
 
 Testo, ratio, giurisprudenza e collegamenti per un articolo di legge.
 
+Formati accettati per il riferimento: "art. 13 GDPR", "art. 2043 c.c.", "art. 6 D.Lgs. 231/2001".
+
 ## Workflow
 
 ### 1. Testo vigente
@@ -33,10 +35,14 @@ Con `cite_law` recupera:
 - Articoli precedenti/successivi (contesto sistematico)
 - Norme richiamate nel testo
 - Disposizioni di attuazione
+- Norme che richiamano questo articolo
 
 ### 4. Evoluzione storica
 
-Dalle annotazioni: versioni precedenti, leggi di modifica, motivazioni.
+Dalle annotazioni:
+- Versioni precedenti del testo
+- Leggi di modifica con date
+- Motivazioni delle modifiche (relazioni illustrative)
 
 ## Output atteso
 
@@ -60,7 +66,16 @@ Scopo e funzione nell'ordinamento.
 ### Norme collegate
 | Norma | Relazione | Contenuto |
 |-------|-----------|-----------|
-| ... | ... | ... |
+| art. ... | richiamo espresso / sistematico | ... |
+
+### Note operative
+Indicazioni pratiche per l'applicazione della norma.
+
+## Regole
+
+- Il testo dell'articolo DEVE provenire da `cite_law`, non dalla memoria.
+- Se Brocardi non ha annotazioni per questa norma, indicarlo espressamente.
+- Distinguere tra interpretazione consolidata e orientamenti minoritari.
 """
 
 
@@ -136,6 +151,11 @@ Ricerca, lettura e analisi delibere/provvedimenti CONSOB.
 ### 1. Ricerca delibere
 
 Chiama `cerca_delibere_consob` con query e filtri (tipologia, argomento, date).
+
+Valori ammessi per i filtri:
+- Tipologia: delibere / comunicazioni / provvedimenti_urgenti / opa
+- Argomento: abusi_di_mercato / intermediari / emittenti / mercati / cripto_attivita / crowdfunding
+
 Se il tema e ampio, esegui piu ricerche con query diverse.
 
 ### 2. Lettura delibere chiave
@@ -146,24 +166,34 @@ Per ciascuna: `leggi_delibera_consob` con numero.
 Privilegia:
 - Delibere recenti (ultimo biennio)
 - Delibere con principi generali o sanzioni rilevanti
+- Provvedimenti che riguardano fattispecie analoghe al tema richiesto
 
 ### 3. Quadro normativo
 
 Per le norme richiamate: `cite_law`.
 
 Fonti tipiche:
-- TUF (D.Lgs. 58/1998)
-- Reg. Emittenti (11971/1999)
-- Reg. Intermediari (20307/2018)
-- MAR (Reg. UE 596/2014)
-- MiFID II / MiFIR
-- MiCA (Reg. UE 2023/1114)
+- TUF (D.Lgs. 58/1998) — Testo Unico della Finanza
+- Reg. Emittenti (Reg. CONSOB 11971/1999)
+- Reg. Intermediari (Reg. CONSOB 20307/2018)
+- Regolamento Mercati (Reg. CONSOB 20249/2017)
+- MAR (Reg. UE 596/2014) — abusi di mercato
+- MiFID II (Dir. 2014/65/UE) / MiFIR (Reg. UE 600/2014)
+- Reg. UE 2020/1503 — crowdfunding
+- MiCA (Reg. UE 2023/1114) — cripto-attivita
 
 ### 4. Giurisprudenza (se pertinente)
 
-Chiama `cerca_giurisprudenza` per verificare sentenze correlate.
+Se le delibere citano pronunce giurisdizionali o se il tema ha risvolti contenziosi:
+1. Esplora la distribuzione: `cerca_giurisprudenza` con il tema tra virgolette e `modalita` esplora.
+2. Filtra con materia/sezione dai facets, poi leggi il testo completo delle decisioni chiave (tool leggi_sentenza, se disponibile).
+
+Usa virgolette per frasi esatte.
 
 ## Output atteso
+
+### Quadro regolatorio
+Norme primarie e secondarie applicabili (testo da `cite_law`).
 
 ### Orientamento CONSOB
 | Delibera | Data | Principio/Esito |
@@ -171,8 +201,20 @@ Chiama `cerca_giurisprudenza` per verificare sentenze correlate.
 | ... | ... | ... |
 
 ### Sanzioni e misure
+Tabella delle sanzioni comminate o delle misure adottate nei provvedimenti esaminati.
+
 ### Principi consolidati
+Sintesi dei principi ricorrenti nelle delibere CONSOB sul tema.
+
 ### Indicazioni operative
+Raccomandazioni pratiche derivanti dall'analisi.
+
+## Regole
+
+- Usare `cerca_delibere_consob` e `leggi_delibera_consob` per i provvedimenti CONSOB.
+- Usare `cite_law` per TUTTE le norme citate — mai citare a memoria.
+- Indicare espressamente il numero e la data di ogni delibera citata.
+- Segnalare se l'orientamento e consolidato o in evoluzione.
 """
 
 
@@ -637,9 +679,23 @@ Compenso avvocato D.M. 55/2014 con nota spese.
 | Stragiudiziale | `parcella_stragiudiziale` |
 | Vol. giurisdizione | `parcella_volontaria_giurisdizione` |
 
+Le fasi compensate variano con il tipo di attività — la tabella di output va adeguata di conseguenza.
+
+Per attività **penale** (D.M. 55/2014):
+- Fase di studio
+- Fase introduttiva
+- Fase istruttoria
+- Fase dibattimentale
+- Fase decisoria
+
+Per attività **stragiudiziale**:
+- Assistenza/consulenza
+- Redazione atti e diffide
+- Negoziazione
+
 ### 2. Nota spese
 
-Chiama `nota_spese` per il prospetto: compenso per fase, spese generali (15%), CPA (4%), IVA (22%).
+Chiama `nota_spese` per il prospetto: compenso per fase, spese generali (15%), CPA (4%), IVA (22%), contributo unificato e bolli (se giudiziale).
 
 ## Output atteso
 
@@ -650,6 +706,23 @@ Chiama `nota_spese` per il prospetto: compenso per fase, spese generali (15%), C
 | Istruttoria | ... | ... | ... |
 | Decisionale | ... | ... | ... |
 | **Totale** | **...** | **...** | **...** |
+
+### Nota Spese (su compenso medio)
+
+| Voce | Importo |
+|------|---------|
+| Compenso | € ... |
+| Spese generali (15%) | € ... |
+| CPA (4%) | € ... |
+| Imponibile IVA | € ... |
+| IVA (22%) | € ... |
+| **Totale parcella** | **€ ...** |
+
+## Note
+
+- I compensi si riferiscono al D.M. 55/2014 come da ultimo aggiornato dal D.M. 147/2022.
+- Indicare sempre lo scaglione di valore applicato.
+- In sede di liquidazione giudiziale i massimi sono derogabili in casi di particolare complessità, ma i minimi sono inderogabili (D.M. 55/2014 come modificato dal D.M. 147/2022).
 """
 
 
@@ -675,28 +748,51 @@ Pianificazione completa: costi, scadenze, preventivo.
 
 Chiama `contributo_unificato` con valore_causa, tipo_procedimento (es. cognizione, lavoro, monitorio) e grado (primo/appello/cassazione).
 
+Verifica eventuali esenzioni (es. cause di lavoro sotto soglia, procedimenti di volontaria giurisdizione).
+
 ### 2. Scadenze processuali
 
 Chiama `scadenza_processuale` per i termini in base al rito:
 - **Ordinario**: comparsa risposta (70gg), memorie art. 171-ter c.p.c.
 - **Sommario**: costituzione resistente, mutamento rito
-- **Lavoro**: ricorso, memoria difensiva
+- **Lavoro**: ricorso, memoria difensiva, note autorizzate
 
-Sospensione feriale: 1-31 agosto.
+Sospensione feriale (1-31 agosto): indicala solo se il rito o la materia vi è soggetto — non opera, tra l'altro, in materia di lavoro, procedimenti cautelari e alimenti.
 
 ### 3. Impugnazioni
 
 Chiama `scadenze_impugnazioni`:
 - Primo -> appello: 30gg (breve) / 6 mesi (lungo)
 - Appello -> cassazione: 60gg (breve) / 6 mesi (lungo)
+- Revocazione, opposizione di terzo se pertinenti
 
 ### 4. Preventivo
 
 Chiama `preventivo_civile` con range compenso per fase.
 
+## Formato output
+
+```markdown
+## Quadro Economico
+| Voce | Importo |
+|------|---------|
+| Contributo unificato | € ... |
+| Marca da bollo (iscrizione a ruolo) | € 27,00 |
+| Compenso avvocato (range min-max) | € ... — € ... |
+| Spese generali (15%) | € ... |
+| CPA (4%) + IVA (22%) | € ... |
+| **Budget stimato (medio)** | **€ ...** |
+
+## Scadenze Chiave
+| Termine | Scadenza | Norma |
+|---------|----------|-------|
+| ... | ... | ... |
+```
+
 ## Note
-- Mediazione obbligatoria (D.Lgs. 28/2010)
-- Negoziazione assistita (D.L. 132/2014)
+- Indicare i rischi di soccombenza e regime spese (art. 91 c.p.c.)
+- Valutare la mediazione obbligatoria se applicabile (D.Lgs. 28/2010, materie estese dalla riforma Cartabia)
+- Segnalare se il rito è soggetto a negoziazione assistita (D.L. 132/2014)
 """
 
 
@@ -722,7 +818,9 @@ Assessment completo: base giuridica, DPIA, registro, informativa, DPA.
 ### 1. Analisi base giuridica
 
 Chiama `analisi_base_giuridica` con tipo_trattamento e contesto.
+Valori ammessi per `contesto`: B2C / B2B / dipendenti / pubblica_amministrazione / sanita / profilazione.
 Identifica la base ex art. 6 GDPR. Se dati particolari (art. 9), attiva flag.
+Annota la base consigliata per i passi successivi.
 
 ### 2. Verifica necessita DPIA
 
@@ -734,14 +832,17 @@ Se >= 2 criteri soddisfatti (WP248): DPIA obbligatoria.
 ### 2b. DPIA (se necessaria)
 
 Chiama `genera_dpia` con rischi e misure di mitigazione.
+Documenta la matrice dei rischi e il rischio residuo.
 
 ### 3. Registro trattamenti
 
 Chiama `genera_registro_trattamenti` per scheda art. 30 GDPR.
+Usa la base giuridica identificata al passo 1.
 
 ### 4. Informativa privacy
 
 Chiama `genera_informativa_privacy` per informativa art. 13 GDPR.
+Includi tutte le finalità, basi giuridiche, categorie di dati e destinatari.
 
 Varianti disponibili:
 - `genera_informativa_cookie` (cookie policy)
@@ -750,18 +851,49 @@ Varianti disponibili:
 
 ### 5. DPA (se responsabili esterni)
 
-Chiama `genera_dpa` per contratto art. 28 GDPR.
+Se il trattamento coinvolge responsabili esterni (fornitori IT, cloud, commercialista, ecc.),
+chiama `genera_dpa` per contratto art. 28 GDPR.
 
 ## Output atteso
+
+Report intestato «Assessment Compliance GDPR — `titolare`», con le sezioni seguenti.
+
+### 1. Base Giuridica
+| Elemento | Dettaglio |
+|----------|----------|
+| Base consigliata | ... |
+| Articolo | ... |
+| Motivazione | ... |
+
+### 2. DPIA
+| Criterio | Soddisfatto | Descrizione |
+|----------|-------------|-------------|
+| ... | Sì/No | ... |
+| **DPIA necessaria** | **Sì/No** | ... |
+
+### 3. Registro Trattamenti
+Scheda art. 30 con tutti i campi obbligatori.
+
+### 4. Informativa Privacy
+Testo completo dell'informativa art. 13 GDPR pronto per l'uso.
+
+### 5. DPA
+Contratto art. 28 GDPR (se applicabile).
 
 ### Checklist compliance
 - [ ] Base giuridica identificata e documentata
 - [ ] DPIA eseguita (se necessaria)
 - [ ] Registro trattamenti aggiornato
-- [ ] Informativa privacy redatta
+- [ ] Informativa privacy redatta e pubblicata
 - [ ] DPA stipulati con responsabili
 - [ ] Misure di sicurezza (art. 32)
 - [ ] Procedura data breach (artt. 33-34)
+
+## Avvertenze
+
+- Il presente assessment è uno strumento di supporto e non sostituisce la consulenza legale specializzata.
+- Verificare sempre la normativa nazionale integrativa (D.Lgs. 196/2003 come modificato dal D.Lgs. 101/2018).
+- Per trattamenti su larga scala o ad alto rischio, consultare il DPO e valutare una consultazione preventiva (art. 36 GDPR).
 """
 
 
@@ -794,15 +926,52 @@ Confronta su: ambito oggettivo, soggettivo, presupposti, effetti, sanzioni.
 
 ### 3. Rapporto tra le norme
 
-- **Specialita** (lex specialis)
-- **Successione** (lex posterior)
-- **Gerarchia** (rango)
-- **Concorso** (applicazione contemporanea)
-- **Complementarieta**
+- **Specialita** (art. 15 c.p. / lex specialis): una e speciale rispetto all'altra?
+- **Successione** (lex posterior): una ha abrogato l'altra?
+- **Gerarchia**: una prevale per rango (Costituzione > legge > regolamento)?
+- **Concorso**: si applicano entrambe contemporaneamente?
+- **Complementarieta**: disciplinano aspetti diversi della stessa materia?
 
 ### 4. Giurisprudenza sul coordinamento
 
 Dalle annotazioni, individua pronunce sul rapporto tra le norme.
+
+## Formato output
+
+Apri con il titolo «Confronto: `norma_1` vs. `norma_2`», poi:
+
+### Testi a confronto
+
+| Elemento | `norma_1` | `norma_2` |
+|----------|-----------|-----------|
+| Fonte | ... | ... |
+| Ambito oggettivo | ... | ... |
+| Ambito soggettivo | ... | ... |
+| Presupposti | ... | ... |
+| Effetti | ... | ... |
+| Sanzioni | ... | ... |
+
+### Rapporto tra le norme
+
+Analisi del criterio di prevalenza applicabile.
+
+### Aree di sovrapposizione
+
+Casi in cui entrambe le norme sono potenzialmente applicabili e come si coordinano.
+
+### Orientamento giurisprudenziale
+
+Come la giurisprudenza ha risolto i conflitti tra queste norme.
+
+### Conclusioni operative
+
+Indicazione pratica su quale norma applicare e in quali circostanze.
+
+## Regole
+
+- Entrambi i testi DEVONO provenire da `cite_law`.
+- Non dare per scontata la prevalenza di una norma — argomentare il criterio.
+- Se il rapporto e controverso, esporre le diverse tesi.
 """
 
 
@@ -828,21 +997,71 @@ Mappa completa delle fonti per settore/attivita, organizzata per gerarchia.
 ### 1. Fonti per livello
 
 Per ogni livello, chiama `cite_law` su ogni articolo fondamentale:
-1. **Costituzione** — articoli rilevanti
-2. **UE** — regolamenti e direttive con D.Lgs. di recepimento
-3. **Nazionale** — codici, testi unici, leggi, D.Lgs.
-4. **Secondarie** — D.M., autorita indipendenti, linee guida
+1. **Costituzione** — identifica gli articoli della Costituzione rilevanti e chiama `cite_law` per ciascuno (es. art. 41, 42, 117 Cost.)
+2. **UE** — regolamenti e direttive con D.Lgs. di recepimento: per i regolamenti (direttamente applicabili) chiama `cite_law` per gli articoli chiave; per le direttive identifica il D.Lgs. di recepimento italiano
+3. **Nazionale** — mappa: codici applicabili (civile, penale, procedura, settoriali), testi unici / codici di settore, leggi ordinarie e decreti legislativi, decreti legge convertiti
+4. **Secondarie** — decreti ministeriali (D.M.), regolamenti di autorita indipendenti (Garante Privacy, AGCM, CONSOB, ecc.), linee guida e provvedimenti generali, standard tecnici (ISO, UNI) se vincolanti
 
 ### 2. Fonti autorita vigilanza
 
 - Settori finanziari: `cerca_delibere_consob`
 - Privacy: `cerca_provvedimenti_garante`
 
+Per le delibere CONSOB chiave, approfondisci leggendone il testo integrale con `leggi_delibera_consob`.
+
 ### 3. Matrice adempimenti
+
+Per ogni fonte, estrai gli obblighi concreti:
+- Adempimenti documentali
+- Obblighi di comunicazione / notifica
+- Registri e tenuta documentale
+- Formazione e designazioni
+- Termini e scadenze
 
 | Obbligo | Fonte | Soggetto | Termine | Sanzione |
 |---------|-------|----------|---------|----------|
 | ... | ... | ... | ... | ... |
+
+## Formato output
+
+Intitola l'output `Mappa Normativa:` seguito dal `settore` indicato.
+
+### Livello 1 — Costituzione
+
+| Articolo | Principio | Rilevanza |
+|----------|-----------|-----------|
+| art. ... | ... | ... |
+
+### Livello 2 — Diritto UE
+
+| Fonte | Tipo | Articoli chiave | Recepimento IT |
+|-------|------|-----------------|----------------|
+| ... | Reg./Dir. | artt. ... | D.Lgs. .../... |
+
+### Livello 3 — Legislazione Nazionale
+
+| Fonte | Materia | Articoli chiave |
+|-------|---------|-----------------|
+| ... | ... | artt. ... |
+
+### Livello 4 — Fonti Secondarie
+
+| Fonte | Autorita | Oggetto |
+|-------|----------|---------|
+| ... | ... | ... |
+
+Segue la Matrice adempimenti (tabella del punto 3 del workflow), poi:
+
+### Checklist Operativa
+
+Elenco ordinato per priorita degli adempimenti da verificare.
+
+## Regole
+
+- Usare `cite_law` per TUTTI gli articoli citati nella mappa.
+- Indicare la data di entrata in vigore di ciascuna fonte.
+- Segnalare le norme in fase di modifica o revisione solo se la modifica risulta gia pubblicata in Gazzetta Ufficiale (verificabile con i tool); non segnalare riforme pendenti o de lege ferenda.
+- Per settori regolati (privacy, bancario, sanitario), includere sempre le fonti dell'autorita di vigilanza.
 """
 
 
@@ -882,6 +1101,8 @@ Per le norme richiamate: `cite_law`.
 Tendenze emergenti dai provvedimenti recenti.
 
 ### Per ciascuna delibera letta:
+
+#### Delibera n. ... del GG/MM/AAAA
 - **Oggetto**
 - **Norme di riferimento**
 - **Decisione/Sanzione**
@@ -889,6 +1110,12 @@ Tendenze emergenti dai provvedimenti recenti.
 
 ### Tendenze e indicazioni
 Sintesi orientamenti dalle delibere piu recenti.
+
+## Regole
+
+- Usare esclusivamente i tool CONSOB per i provvedimenti — mai citare a memoria.
+- Per le norme, usare sempre `cite_law`.
+- Indicare data e numero di ogni delibera.
 """
 
 
@@ -1034,22 +1261,57 @@ Quote ereditarie, imposte e adempimenti.
 
 Chiama `calcolo_eredita` con massa_ereditaria (valore totale dell'asse in €) ed eredi (dict: {'coniuge': bool, 'figli': int, 'ascendenti': bool, 'fratelli': int}).
 
+Distingui tra:
+- Successione legittima (senza testamento): quote ex artt. 565-586 c.c.
+- Quote di legittima (con testamento): riserva ex artt. 536-564 c.c.
+
+Indica la quota disponibile.
+
 ### 2. Imposte di successione
 
 Chiama `imposte_successione` con valore_beni, parentela (uno tra 'coniuge_linea_retta', 'fratelli_sorelle', 'parenti_fino_4_grado_affini_fino_3', 'altri'), immobili (bool), prima_casa (bool).
 - Aliquota per grado di parentela
-- Franchigia (1M coniuge/figli, 100K fratelli)
+- Franchigia (€ 1M coniuge/figli, € 100K fratelli, nessuna franchigia per gli altri soggetti)
 - Imposte ipotecaria (2%) e catastale (1%) se immobili
+- Segnala che oltre a quanto calcolato dal tool si applicano tributi minori (imposta di bollo, tassa ipotecaria) non inclusi nell'output
 
 ### 3. Imposte compravendita (se immobili da vendere)
 
 Chiama `imposte_compravendita`.
 
+## Formato output
+
+```markdown
+## Quote Ereditarie
+| Erede | Quota | Valore |
+|-------|-------|--------|
+| ... | ... | € ... |
+| Disponibile | ... | € ... |
+
+## Imposte di Successione
+| Voce | Importo |
+|------|---------|
+| Base imponibile | € ... |
+| Franchigia | € ... |
+| Imposta di successione | € ... |
+| Imposta ipotecaria (2%) | € ... |
+| Imposta catastale (1%) | € ... |
+| **Totale imposte** | **€ ...** |
+```
+
 ## Adempimenti da indicare
 
-- Dichiarazione successione: entro 12 mesi
-- Voltura catastale: entro 30 giorni
-- Accettazione eredita: con beneficio d'inventario se opportuno
+- Dichiarazione di successione: entro 12 mesi dall'apertura
+- Voltura catastale: entro 30 giorni dalla dichiarazione
+- Accettazione eredità: espressa o tacita, con beneficio d'inventario se opportuno
+- Pubblicazione testamento olografo (se presente): tribunale competente
+
+## Avvertenze
+
+- I calcoli sono indicativi; la situazione patrimoniale completa potrebbe variare le imposte.
+- Franchigie e aliquote vanno lette alla luce della riforma del D.Lgs. 139/2024, che ha introdotto l'autoliquidazione dell'imposta di successione.
+- Per successioni internazionali si applica il Reg. UE 650/2012.
+- Valutare l'opportunità del beneficio d'inventario (art. 484 c.c.).
 """
 
 
@@ -1077,9 +1339,11 @@ Calcolo base, personalizzazione e attualizzazione.
 **Biologico** (percentuale invalidita):
 - <= 9%: `danno_biologico_micro` (tabelle art. 139 CdA)
 - > 9%: `danno_biologico_macro` (tabelle Milano)
+- Parametri richiesti: percentuale di invalidita ed eta della vittima (l'eta incide sul demoltiplicatore tabellare)
 
 **Patrimoniale** (importo):
 - Danno emergente + lucro cessante
+- Lucro cessante: calcola in base alla durata della privazione
 - `interessi_legali` dalla data evento
 
 **Morale/esistenziale**:
@@ -1089,10 +1353,35 @@ Calcolo base, personalizzazione e attualizzazione.
 
 Criteri Cass. SS.UU. 26972/2008: sofferenza soggettiva, vita di relazione, specificita del caso.
 
+Indica una percentuale di personalizzazione motivata.
+
 ### 3. Attualizzazione
 
 1. `rivalutazione_monetaria` dalla data evento
 2. `interessi_legali` sulla somma rivalutata
+
+## Formato output
+
+Intestazione `## Quantificazione Danno` con il tipo di danno tra parentesi, poi la tabella a componenti:
+
+| Componente | Importo |
+|------------|---------|
+| Danno base (tabellare/documentale) | € ... |
+| Personalizzazione (±...%) | € ... |
+| Subtotale | € ... |
+| Rivalutazione ISTAT | € ... |
+| Interessi legali | € ... |
+| **TOTALE** | **€ ...** |
+
+### Motivazione
+
+Spiega i criteri di personalizzazione adottati e la giurisprudenza di riferimento.
+
+## Avvertenze
+
+- Quantificazione indicativa basata sulle tabelle vigenti. Per le macropermanenti (> 9%) in ambito RC auto e responsabilita sanitaria la liquidazione segue la Tabella Unica Nazionale ex art. 138 CdA (vincolante); le tabelle Milano restano il riferimento per i danni fuori dal perimetro del Codice delle Assicurazioni.
+- La prova del danno patrimoniale richiede documentazione specifica.
+- Per il danno biologico serve una perizia medico-legale.
 """
 
 
@@ -1124,17 +1413,49 @@ Chiama `interessi_mora` con capitale, data_inizio (decorrenza della mora) e data
 
 ### 2. Rivalutazione monetaria
 
-Chiama `rivalutazione_monetaria`.
+Chiama `rivalutazione_monetaria` con l'importo del credito, dalla data di scadenza a oggi.
 
 **Nota**: mora e rivalutazione NON si cumulano (Cass. SS.UU. 16601/2017). Presenta entrambi, indica il piu favorevole.
 
 ### 3. Decreto ingiuntivo
 
-Chiama `decreto_ingiuntivo`: competenza, CU, requisiti, provvisoria esecutivita.
+Chiama `decreto_ingiuntivo` con l'importo del credito per verificare:
+
+- Competenza — Giudice di Pace fino a € 10.000 per i procedimenti instaurati dal 28/2/2023 (riforma Cartabia, D.Lgs. 149/2022); fino a € 5.000 per quelli anteriori. Oltre la soglia, Tribunale.
+- Contributo unificato dovuto
+- Requisiti documentali (fatture, contratto, estratto autentico notarile)
+- Possibilità di provvisoria esecutività (art. 642 c.p.c.)
 
 ### 4. Parcella
 
-Chiama `parcella_avvocato_civile` per fase monitoria.
+Chiama `parcella_avvocato_civile` con valore della causa pari all'importo del credito, per fase monitoria. Indica il range compenso (minimo/medio/massimo) da D.M. 55/2014.
+
+## Formato output
+
+### Riepilogo Recupero Credito
+
+| Voce | Importo |
+|------|---------|
+| Capitale | € `importo` |
+| Interessi di mora (da `data_scadenza` a oggi) | € ... |
+| Rivalutazione ISTAT (alternativa) | € ... |
+| **Totale dovuto** | **€ ...** |
+
+### Costi procedura
+
+| Voce | Importo |
+|------|---------|
+| Contributo unificato | € ... |
+| Marca da bollo | € 27,00 |
+| Diritti di notifica | € ... |
+| Compenso avvocato (medio) | € ... |
+| **Costo totale procedura** | **€ ...** |
+
+## Raccomandazioni
+
+- Indicare se conviene la diffida stragiudiziale prima del ricorso
+- Valutare la provvisoria esecutività
+- Tempi medi della procedura
 """
 
 
@@ -1201,9 +1522,15 @@ _BODY_RICERCA_NORMATIVA = """\
 
 Fonti primarie, norme collegate, giurisprudenza e sanzioni.
 
+Inquadra la ricerca nell'area di diritto indicata dall'utente (civile / penale / amministrativo / lavoro / tributario / privacy / commerciale) prima di individuare le fonti.
+
 ## Regola fondamentale
 
 **Ogni norma citata DEVE essere verificata con `cite_law`**. Mai citare a memoria.
+
+Regole ulteriori:
+- Indicare espressamente se una norma è stata modificata o abrogata.
+- Segnalare le modifiche normative già pubblicate in Gazzetta Ufficiale e verificabili con i tool. Non segnalare riforme pendenti o proposte de lege ferenda, per le quali il server non dispone di una fonte verificabile.
 
 ## Workflow
 
@@ -1225,10 +1552,54 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 `cerca_brocardi` per massime. `cerca_giurisprudenza` per approfondimento.
 
+Per le norme chiave, chiama `cite_law` con `include_annotations=true` per recuperare da Brocardi:
+- Massime di Cassazione e Corte Costituzionale
+- Orientamenti consolidati vs. questioni aperte
+- Posizioni dottrinali prevalenti
+
+Per trovare giurisprudenza recente (ultimi 5 anni), chiama `cerca_giurisprudenza` con la query tra virgolette (es. `query="\\"art. ... codice\\""`) e `modalita="esplora"` per vedere la distribuzione, poi ripeti la ricerca con filtri per le decisioni più rilevanti.
+
 ### 4. Fonti autorita vigilanza
 
 - Finanza/mercati: `cerca_delibere_consob`
 - Privacy: `cerca_provvedimenti_garante`
+
+Se il tema riguarda mercati finanziari, intermediari, emittenti, OPA, crowdfunding o cripto-attività, chiama `cerca_delibere_consob` con il tema come query per recuperare le delibere e i provvedimenti CONSOB rilevanti; per le delibere più significative, recupera anche il testo integrale della delibera.
+
+Per le materie finanziarie includere sempre i provvedimenti delle autorità di vigilanza. Per Banca d'Italia non esiste un tool dedicato: indicare al lettore la fonte da consultare, senza riportarne il contenuto a memoria.
+
+### 5. Quadro sanzionatorio
+
+Se pertinente, identifica:
+- Sanzioni penali (contravvenzioni, delitti)
+- Sanzioni amministrative (pecuniarie, interdittive)
+- Responsabilità civile (risarcimento danni)
+- Sanzioni disciplinari (ordini professionali, PA)
+
+## Formato output
+
+```markdown
+## Ricerca Normativa su [tema]
+
+### 1. Fonti Primarie
+| Fonte | Norma | Oggetto |
+|-------|-------|---------|
+| Costituzione | art. ... | ... |
+| Reg. UE | ... | ... |
+| Legge | ... | ... |
+
+### 2. Articoli Chiave
+Per ciascun articolo: testo (da cite_law), commento sintetico, nessi con altri articoli.
+
+### 3. Evoluzione Normativa
+Timeline delle modifiche rilevanti.
+
+### 4. Orientamenti Interpretativi
+Giurisprudenza consolidata e questioni aperte.
+
+### 5. Quadro Sanzionatorio
+Tabella delle sanzioni applicabili.
+```
 """
 
 
@@ -1252,21 +1623,64 @@ Calcolo termine prescrizione civile o penale.
 
 ### Civile
 
+Identifica anzitutto il tipo di diritto (contrattuale, extracontrattuale, reale, etc.): è la classificazione che determina quale termine si applica.
+
 Chiama `prescrizione_diritti`:
 - **10 anni**: ordinaria (tipo_diritto='ordinaria', art. 2946 c.c.)
 - **5 anni**: risarcimento danni (tipo_diritto='risarcimento_danni', art. 2947 c.c.)
 - **2 anni**: danno da circolazione veicoli / RCA (tipo_diritto='risarcimento_rca', art. 2947 c.2 c.c.)
+- **2 anni**: diritti derivanti dal contratto di assicurazione (art. 2952 c.c.)
+- **1 anno**: trasporti e spedizioni
 
-Verifica sospensione (artt. 2941-2942) e interruzione (art. 2943).
+Verifica sospensione (artt. 2941-2942) e interruzione (art. 2943 c.c.): messa in mora, ricorso, riconoscimento del debito.
 
 ### Penale
 
+Identifica anzitutto il reato (titolo e articolo c.p.): è il presupposto per calcolare il massimo edittale.
+
 Chiama `prescrizione_reato`:
 - Termine = massimo edittale (min 6 anni delitto, 4 contravvenzione)
-- Sospensione (art. 159 c.p.) e interruzione (art. 160 c.p.)
-- Riforma Cartabia: improcedibilita in appello/cassazione
+- Sospensione (art. 159 c.p.), interruzione (art. 160 c.p.) e termine massimo con interruzioni (art. 161 c.p.)
+- Riforma Cartabia: improcedibilita in appello/cassazione — per il regime applicabile in base alla data del fatto, vedi «Avvertenze»
 
-## Output: stato PRESCRITTA / NON PRESCRITTA / IN SCADENZA con data esatta.
+### Analisi temporale
+
+- Data decorrenza: la data del fatto indicata
+- Data odierna: calcola il tempo trascorso
+- Data prescrizione: indica la scadenza esatta
+- Stato: PRESCRITTA / NON PRESCRITTA / IN SCADENZA (ultimi 6 mesi)
+
+## Formato output
+
+Stato PRESCRITTA / NON PRESCRITTA / IN SCADENZA con data esatta, presentato in tabella:
+
+### Verifica Prescrizione — civile o penale
+
+| Elemento | Dettaglio |
+|----------|----------|
+| Fatto | descrizione del fatto |
+| Data fatto | data indicata |
+| Tipo diritto/reato | ... |
+| Norma applicabile | art. ... |
+| Termine prescrizione | ... anni |
+| Data decorrenza | data del fatto |
+| Data scadenza prescrizione | GG/MM/AAAA |
+| Tempo trascorso | ... anni, ... mesi, ... giorni |
+| Tempo residuo | ... anni, ... mesi, ... giorni |
+| **STATO** | **PRESCRITTA / NON PRESCRITTA / IN SCADENZA** |
+
+### Cause di Sospensione/Interruzione
+
+Elenca eventuali cause note che potrebbero aver modificato il decorso.
+
+## Avvertenze
+
+- La prescrizione può essere interrotta o sospesa da atti non noti al momento dell'analisi: ogni verdetto PRESCRITTA è provvisorio rispetto alla completezza dei fatti forniti.
+- Prescrizione penale — regime intertemporale, da individuare in base alla data del fatto:
+  - **Fatti fino al 2.8.2017**: regime pre-Orlando — la prescrizione corre in ogni grado e stato, senza le sospensioni della L. 103/2017 (norme sostanziali sfavorevoli, irretroattive ex art. 2 c.p.); rilevano solo gli aumenti da interruzione ex art. 161 c.p.
+  - **Fatti dal 3.8.2017 al 31.12.2019**: riforma Orlando — la prescrizione corre anche in appello, con le sospensioni fino a 18 mesi dopo la condanna di primo grado e altri 18 dopo quella d'appello (art. 159, co. 2 c.p. come modificato dalla L. 103/2017).
+  - **Fatti dal 1.1.2020**: blocco Bonafede (L. 3/2019) — il corso della prescrizione cessa dopo la sentenza di primo grado; per i giudizi di impugnazione opera l'improcedibilità Cartabia ex art. 344-bis c.p.p. (introdotto dalla L. 134/2021, con attuazione nel D.Lgs. 150/2022).
+- In ambito civile, il decorso della prescrizione può essere interrotto con atto stragiudiziale (raccomandata/PEC di messa in mora) — rimedio economico da suggerire quando lo stato è IN SCADENZA.
 """
 
 

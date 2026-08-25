@@ -27,6 +27,8 @@ Per le norme richiamate: `legal-it:cite_law`.
 Tendenze emergenti dai provvedimenti recenti.
 
 ### Per ciascuna delibera letta:
+
+#### Delibera n. ... del GG/MM/AAAA
 - **Oggetto**
 - **Norme di riferimento**
 - **Decisione/Sanzione**
@@ -34,3 +36,9 @@ Tendenze emergenti dai provvedimenti recenti.
 
 ### Tendenze e indicazioni
 Sintesi orientamenti dalle delibere piu recenti.
+
+## Regole
+
+- Usare esclusivamente i tool CONSOB per i provvedimenti — mai citare a memoria.
+- Per le norme, usare sempre `legal-it:cite_law`.
+- Indicare data e numero di ogni delibera.
