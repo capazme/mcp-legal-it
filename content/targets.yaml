@@ -1,0 +1,37 @@
+# Capability manifest — the harness-agnostic layer.
+# Each projection target declares what the harness supports and how tool
+# names are spelled there. Packaging targets bundle a projection's output.
+# Adding a harness is a new block here; today the builder still keeps mcpb
+# staging in code (plugin/server → server/ remap) — see scripts/build_targets.py.
+version: 1
+
+projections:
+  claude-code:
+    tool_namespace: "legal-it:{tool}"
+    command_tool_namespace: "mcp__legal-it__{tool}"
+    strip_frontmatter_keys: [tools, prompt]
+    supports: [skills, agents, commands, mcp_prompts, mcp_resources, hooks]
+    out:
+      skills: plugin/skills
+      agents: plugin/agents
+      commands: plugin/commands
+      references: plugin/server/src/data/references
+
+packaging:
+  claude-web:
+    from: claude-code
+    out_dir: plugin/dist/web-skills
+    description_max_chars: 200
+    keep_frontmatter: [name, description]
+    zip_member: "{name}/Skill.md"
+  plugin-zip:
+    from: claude-code
+    artifact: "dist/legal-it-plugin-{version}.zip"
+    include: [.claude-plugin, skills, agents, commands, hooks, settings.json, start_server.sh, .mcp.json, server]
+    root: plugin
+    version_manifest: ".claude-plugin/plugin.json"
+  # staging file-set kept in code: the server→server/ remap doesn't fit a flat include list
+  mcpb:
+    from: claude-code
+    artifact: "dist/legal-it-{version}.mcpb"
+    version_manifest: "manifest.json"

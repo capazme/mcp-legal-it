@@ -31,7 +31,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent
 PYPROJECT_TOML = PROJECT_DIR / "pyproject.toml"
 PLUGIN_JSON = PROJECT_DIR / "plugin" / ".claude-plugin" / "plugin.json"
-BUILD_WEB_SKILLS = PROJECT_DIR / "plugin" / "build-web-skills.py"
+BUILD_TARGETS = PROJECT_DIR / "scripts" / "build_targets.py"
 
 CHANGELOG_ROOT = PROJECT_DIR / "CHANGELOG.md"
 CHANGELOG_PLUGIN = PROJECT_DIR / "plugin" / "CHANGELOG.md"
@@ -220,20 +220,20 @@ def auto_bump_patch(current: str) -> str:
 
 
 def build_web_skills(*, dry_run: bool) -> None:
-    if not BUILD_WEB_SKILLS.exists():
-        warn(f"build-web-skills.py not found, skipping")
+    if not BUILD_TARGETS.exists():
+        warn(f"build_targets.py not found, skipping")
         return
     if dry_run:
-        info(f"[DRY RUN] python3 {BUILD_WEB_SKILLS.name}")
+        info(f"[DRY RUN] python3 {BUILD_TARGETS.name} claude-web")
         return
     result = subprocess.run(
-        [sys.executable, str(BUILD_WEB_SKILLS)],
+        [sys.executable, str(BUILD_TARGETS), "claude-web"],
         capture_output=True,
         text=True,
-        cwd=str(BUILD_WEB_SKILLS.parent),
+        cwd=str(PROJECT_DIR),
     )
     if result.returncode != 0:
-        warn(f"build-web-skills.py failed: {result.stderr[:200]}")
+        warn(f"build_targets.py failed: {result.stderr[:200]}")
     else:
         success("Web skills ZIP rebuilt")
 
@@ -1147,7 +1147,7 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
         files_to_add.extend(extra_files)
         if not args.no_plugin_bump:
             files_to_add.append(str(PLUGIN_JSON))
-            dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
+            dist_dir = PROJECT_DIR / "plugin" / "dist" / "web-skills"
             if dist_dir.exists():
                 files_to_add.append(str(dist_dir))
         if CHANGELOG_ROOT.exists():
@@ -1329,7 +1329,7 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
             files_to_add.extend(extra_files)
             if not args.no_plugin_bump:
                 files_to_add.append(str(PLUGIN_JSON))
-                dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
+                dist_dir = PROJECT_DIR / "plugin" / "dist" / "web-skills"
                 if dist_dir.exists():
                     files_to_add.append(str(dist_dir))
             if CHANGELOG_ROOT.exists():
@@ -1490,7 +1490,7 @@ def run_plugin_only(version: str, args: argparse.Namespace) -> None:
     files_to_add.extend(extra_files)
     if CHANGELOG_PLUGIN.exists():
         files_to_add.append(str(CHANGELOG_PLUGIN))
-    dist_dir = BUILD_WEB_SKILLS.parent / "dist" / "web-skills"
+    dist_dir = PROJECT_DIR / "plugin" / "dist" / "web-skills"
     if dist_dir.exists():
         files_to_add.append(str(dist_dir))
 
