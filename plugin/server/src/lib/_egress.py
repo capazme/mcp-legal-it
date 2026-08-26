@@ -65,6 +65,12 @@ NON_NETWORK_HOSTS: dict[str, str] = {
     "www.camera.it": "link scheda atto (resolver URN) emesso per l'utente — mai richiesto dal server",
     "docs.oasis-open.org": "namespace Akoma Ntoso citato in un docstring",
     "www.esempio.it": "dominio segnaposto negli esempi dei docstring",
+}
+
+#: Like NON_NETWORK_HOSTS, but scoped to `scripts/` only. Kept separate so the
+#: server-side tripwire stays armed: a URL for one of these hosts appearing in
+#: `src/` must still fail the build.
+SCRIPT_ONLY_NON_NETWORK_HOSTS: dict[str, str] = {
     "github.com": "link doc nel README generato del bundle openai (scripts/build_targets.py) — mai richiesto dallo script",
 }
 
