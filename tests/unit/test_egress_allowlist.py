@@ -21,6 +21,7 @@ from src.lib._egress import (
     ALLOWED_HOSTS,
     CI_ONLY_HOSTS,
     NON_NETWORK_HOSTS,
+    SCRIPT_ONLY_NON_NETWORK_HOSTS,
     is_allowed,
 )
 
@@ -54,7 +55,9 @@ def test_server_contacts_only_declared_hosts(host):
 
 @pytest.mark.parametrize("host", SCRIPT_HOSTS)
 def test_maintenance_scripts_contact_only_declared_hosts(host):
-    consentiti = ALLOWED_HOSTS | CI_ONLY_HOSTS | NON_NETWORK_HOSTS
+    consentiti = (
+        ALLOWED_HOSTS | CI_ONLY_HOSTS | NON_NETWORK_HOSTS | SCRIPT_ONLY_NON_NETWORK_HOSTS
+    )
     assert host in consentiti, f"'{host}' compare in scripts/ ma non è dichiarato"
 
 
