@@ -158,7 +158,7 @@ class TestPushRelease:
 
         def fake_run_git(*args, dry_run=False):
             calls.append(args)
-            if "--tags" in args:
+            if "v9.9.9" in args:
                 raise RuntimeError("network error")
 
         monkeypatch.setattr(rel, "run_git", fake_run_git)
@@ -184,7 +184,7 @@ class TestPushRelease:
             )
         assert calls == [
             ("push", "origin", "main"),
-            ("push", "origin", "--tags"),
+            ("push", "origin", "v9.9.9"),
         ]
 
 
