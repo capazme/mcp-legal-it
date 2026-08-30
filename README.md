@@ -130,6 +130,20 @@ plugin Claude Code, usa il **bundle OpenAI** generato dallo stesso corpus:
 
 Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Claude Code): [`docs/openai.md`](docs/openai.md).
 
+### Canale beta
+
+| Canale | Tag | Dove | Cosa ottieni |
+|---|---|---|---|
+| **Stabile** | `vX.Y.Z` | [`releases/latest`](https://github.com/capazme/mcp-legal-it/releases/latest), marketplace Claude Code | La linea in uso oggi (2.x) |
+| **Beta** | `vX.Y.Z-beta.N` | [Releases](https://github.com/capazme/mcp-legal-it/releases) marcate **Pre-release** | Anteprima della prossima major/minor (es. 3.0.0) prima del rilascio definitivo |
+
+`releases/latest` e il marketplace continuano a servire sempre la linea stabile: una beta non li tocca mai.
+
+Per provare una beta:
+
+1. Scarica gli artefatti dalla release Pre-release specifica (`.mcpb`, plugin zip, bundle OpenAI — stessa build della release stabile, versione beta stampata dentro) dalla pagina [Releases](https://github.com/capazme/mcp-legal-it/releases).
+2. In alternativa, da sorgente: `git checkout vX.Y.Z-beta.N`.
+
 ---
 
 ## Tool disponibili — 221 tool, 33 moduli

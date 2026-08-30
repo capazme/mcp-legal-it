@@ -2,12 +2,14 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, "release/**"]
   # main is included so its state is never unverified between releases. It was
   # left failing check_deps_sync for days because CI only ran on develop, and a
-  # push to main (the release merge) triggered nothing.
+  # push to main (the release merge) triggered nothing. release/** is included
+  # so long-lived beta release branches (cut by `release.py X.Y.Z-beta.N
+  # --beta`) get the same gate as develop/main between beta tags.
   push:
-    branches: [develop, main]
+    branches: [develop, main, "release/**"]
 
 permissions:
   contents: read
