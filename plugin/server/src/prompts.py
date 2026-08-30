@@ -617,7 +617,10 @@ Tabella sanzioni applicabili.
 REGOLE:
 - OGNI norma citata DEVE essere verificata con cite_law — mai citare a memoria.
 - Indicare espressamente se una norma è stata modificata o abrogata.
-- Segnalare norme in corso di modifica o proposte di riforma pendenti.
+- Segnalare le riforme pendenti SOLO se ancorate a fonte parlamentare: `ddl_su_norma`
+  sulla norma (o `cerca_ddl` sul tema), poi `iter_ddl` per lo stato dell'iter. Citare
+  sempre numero atto (es. S.1939, C.3053), stato, data e scheda ufficiale. Mai a
+  memoria; l'assenza di risultati non prova l'assenza di riforme (ricerca sui soli titoli).
 - Per materie finanziarie, includere sempre i provvedimenti delle autorità di vigilanza (CONSOB, Banca d'Italia).
 """
 
@@ -841,7 +844,9 @@ Elenco ordinato per priorità degli adempimenti da verificare.
 REGOLE:
 - Usare `cite_law` per TUTTI gli articoli citati nella mappa.
 - Indicare la data di entrata in vigore di ciascuna fonte.
-- Segnalare norme in fase di modifica o revisione.
+- Segnalare le norme in fase di modifica se la modifica è già in Gazzetta Ufficiale o se
+  pende un DDL verificato con `ddl_su_norma`/`cerca_ddl` (iter con `iter_ddl`): citare
+  numero atto, stato, data e scheda ufficiale. Mai de lege ferenda senza estremi.
 - Per settori regolati (privacy, bancario, sanitario), includere sempre le fonti dell'autorità di vigilanza.
 """
 

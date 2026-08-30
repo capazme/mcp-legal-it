@@ -32,7 +32,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
   "plugins": [{
     "name": "legal-it",
     "source": "./plugin",
-    "description": "Plugin legale italiano completo: 218 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), compliance GDPR, export DOCX/PDF. 23 skill, 8 slash command, 6 agenti specializzati."
+    "description": "Plugin legale italiano completo: 221 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), compliance GDPR, export DOCX/PDF. 23 skill, 8 slash command, 6 agenti specializzati."
   }]
 }
 ```
