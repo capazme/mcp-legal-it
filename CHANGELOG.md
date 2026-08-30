@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0-beta.1] - 2026-08-30
+
+First beta of the v3 harness-agnostic line, published as a GitHub
+Pre-release: `releases/latest` and the plugin marketplace keep serving the
+stable 2.x line.
+
 ### Added
 - Parliamentary sources module (`src/lib/parlamento/` + `src/tools/parlamento.py`,
   3 tools — total now 221): `cerca_ddl` (keyword search over bill titles,
@@ -18,7 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plain `FILTER(CONTAINS(...))` because the WAF also blocks `bif:contains`
   expressions with quoted or/and operators. New egress hosts declared:
   `dati.senato.it`, `dati.camera.it` (SECURITY.md updated); scheda links to
-  `www.senato.it` / `www.camera.it` are emitted, never fetched.
+  `www.senato.it` / `www.camera.it` are emitted, never fetched. First
+  shipped on the stable 2.x line in v2.13.0 (backport).
 - OpenAI bundle (`scripts/build_targets.py openai openai-zip`) — 40 skills
   (28 corpus + 6 agents + 6 commands merged as skills; `cookie-audit` and
   `esporta-documento` excluded — the latter ships `${CLAUDE_PLUGIN_ROOT}`
@@ -26,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `config.toml.example`, packaged as
   `legal-it-openai-skills-{version}.zip` and attached to GitHub Releases.
   Install guide: `docs/openai.md`.
+- Capability manifest `content/targets.yaml`: every projection and packaging
+  target (claude-code, claude-web, plugin-zip, mcpb, openai) is declared as
+  data and consumed by the unified builder.
+- Beta release channel: `release.py X.Y.Z-beta.N --beta` cuts beta tags on a
+  long-lived `release/X.Y.Z` branch — `main` is never touched. CI publishes
+  tags containing `-` as Pre-releases (`prerelease: true`,
+  `make_latest: false`) and now also runs on `release/**` branches.
+- `digest-giuridico` agent listed in the README agents tables.
 
 ### Changed
 - The pending-reforms rule in `ricerca-normativa` and `mappatura-normativa`
@@ -49,6 +64,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   target (`claude-code`, `claude-web`, `plugin-zip`, `mcpb`), replacing
   `scripts/build-all.sh`, `scripts/build-plugin.sh`, `scripts/build-dxt.sh`
   and `plugin/build-web-skills.py`, which are removed.
+- Trigger-first skill descriptions: the «Usa quando…» routing clause now
+  opens every description, so the 185/200-char caps of the openai and
+  claude-web targets only ever trim the descriptive tail.
+- 13 skill bodies back-filled from the retired prompt corpus (output tables,
+  guardrails, updated legal references — including the three-band
+  intertemporal regime for criminal prescription: pre-Orlando, Orlando,
+  Bonafede/Cartabia).
+- Every release flow now pushes only the tag it created — never
+  `git push --tags` — so mixed 2.x/3.x local tags can no longer leak into a
+  release of the other line.
+
+### Fixed
+- Egress tripwire: the `github.com` exemption is scoped to `scripts/` only
+  (`SCRIPT_ONLY_NON_NETWORK_HOSTS`) — a `github.com` URL appearing in `src/`
+  fails the build again.
+- Drift gate ignores OS metadata files (`.DS_Store`).
+
+### Notes
+- MCP surface: 221 tools / 23 prompts / 15 resources.
 
 ## [2.12.1] - 2026-08-24
 
