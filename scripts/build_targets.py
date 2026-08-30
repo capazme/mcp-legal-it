@@ -22,11 +22,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 import zipfile
 from pathlib import Path
 
@@ -326,11 +326,24 @@ def build_openai(root: Path) -> None:
     (bundle_root / "README.md").write_text(_OPENAI_README, encoding="utf-8")
 
 
+# Same regex approach as release.py's PYPROJECT_VERSION_RE: tomllib is stdlib
+# only from Python 3.11, and the test suite still runs this module on 3.10.
+_PYPROJECT_VERSION_RE = re.compile(r'^version\s*=\s*"([^"]+)"', re.MULTILINE)
+
+
+def _pyproject_version(root: Path) -> str:
+    match = _PYPROJECT_VERSION_RE.search(
+        (root / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    if not match:
+        raise RuntimeError("version not found in pyproject.toml")
+    return match.group(1)
+
+
 def build_openai_zip(root: Path, version: str | None = None) -> Path:
     cfg = tg.get_target(root, "openai-zip")
     if version is None:
-        pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
-        version = pyproject["project"]["version"]
+        version = _pyproject_version(root)
 
     output = root / cfg["artifact"].format(version=version)
     bundle_root = root / cfg["root"]
