@@ -85,11 +85,12 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 | `/legal-it:scadenza` | Calcolo scadenza processuale |
 | `/legal-it:privacy` | Genera informativa privacy |
 
-### Agenti (5 specialisti)
+### Agenti (6 specialisti)
 
 | Agente | Specializzazione |
 |--------|------------------|
 | `civilista` | Contratti, responsabilita, successioni, obbligazioni, famiglia |
+| `digest-giuridico` | Briefing settimanale delle novita da tutte le fonti |
 | `penalista` | Reati, pene, prescrizione, misure cautelari |
 | `privacy-specialist` | GDPR, Codice Privacy, provvedimenti Garante |
 | `redattore-atti` | Redazione atti giudiziari e stragiudiziali |
