@@ -3,7 +3,7 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 218.**
+**Totale tool: 221.**
 
 ---
 
@@ -41,6 +41,7 @@ descrizione di ogni tool.
 30. [Procedura civile](#30-procedura-civile) — 3 tool
 31. [Modelli di atti](#31-modelli-di-atti) — 3 tool
 32. [Procure e quotazioni (recupero crediti)](#32-procure-e-quotazioni-recupero-crediti) — 2 tool
+33. [Iter parlamentare (DDL)](#33-iter-parlamentare-ddl) — 3 tool
 
 ---
 
@@ -617,6 +618,20 @@ descrizione di ogni tool.
 ---
 
 
+## 33. Iter parlamentare (DDL)
+
+**Modulo:** `src/tools/parlamento.py`
+**Tag:** `parlamento`, `normativa`
+**Note:** Fonti: SPARQL open data del Senato (dati.senato.it, copre le fasi di entrambi i rami) e della Camera (dati.camera.it, dettaglio statoIter e PDF stampati). `ddl_su_norma` cerca solo nei TITOLI dei DDL — best-effort dichiarato nell'output.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_ddl` | `cerca_ddl(query: str, legislatura: int = 19, ramo: str = '', stato: str = '', solo_pendenti: bool = False, max_risultati: int = 10)` | Cerca disegni di legge (DDL) per parole chiave nei titoli — dati.senato.it (entrambi i rami). |
+| `iter_ddl` | `iter_ddl(atto: str, legislatura: int = 19)` | Ricostruisce l'iter parlamentare completo (navette) di un disegno di legge. |
+| `ddl_su_norma` | `ddl_su_norma(riferimento: str, legislatura: int = 19, max_risultati: int = 10)` | Cerca DDL pendenti o conclusi che citano una norma nel titolo (riforme in corso). |
+
+---
+
 ## Riepilogo per sezione
 
 | # | Categoria | N. tool |
@@ -653,7 +668,8 @@ descrizione di ogni tool.
 | 30 | Procedura civile | 3 |
 | 31 | Modelli di atti | 3 |
 | 32 | Procure e quotazioni (recupero crediti) | 2 |
-| | **Totale** | **218** |
+| 33 | Iter parlamentare (DDL) | 3 |
+| | **Totale** | **221** |
 
 ---
 

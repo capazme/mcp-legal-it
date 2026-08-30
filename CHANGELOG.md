@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2026-08-30
+
+### Added
+- Parliamentary sources module (`src/lib/parlamento/` + `src/tools/parlamento.py`,
+  3 tools — total now 221): `cerca_ddl` (keyword search over bill titles, both
+  chambers via dati.senato.it), `iter_ddl` (full bicameral navette from a fase
+  number or idDdl, enriched with the Camera statoIter timeline and stampato
+  PDFs from dati.camera.it), `ddl_su_norma` (pending-reform lookup for a given
+  act, resolver-expanded, explicitly best-effort on titles only). Senato is
+  queried via GET only (its WAF 403s POST) and title search uses plain
+  `FILTER(CONTAINS(...))` because the WAF also blocks `bif:contains`
+  expressions with quoted or/and operators. Navette suffixes handled
+  (`S.562-B`, lowercase stralci `S.926-bis`, unified texts `S.93-338-353-B`).
+  New egress hosts declared: `dati.senato.it`, `dati.camera.it` (SECURITY.md
+  updated); scheda links to `www.senato.it` / `www.camera.it` are emitted,
+  never fetched. Real-capture fixtures + 4 live guard-rail tests.
+
+### Changed
+- The pending-reforms rule in the `ricerca_normativa` and
+  `mappatura_normativa` prompts is now GROUNDED: it used to say "report
+  pending reforms" with no verifiable source behind it; it now requires
+  anchoring every mention to `ddl_su_norma`/`cerca_ddl`/`iter_ddl` output —
+  atto number, dated status and official scheda link — and states that no
+  results never proves no reforms (titles-only search).
+
 ## [2.12.1] - 2026-08-24
 
 ### Added

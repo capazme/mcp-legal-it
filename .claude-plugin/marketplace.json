@@ -8,9 +8,9 @@
   "plugins": [
     {
       "name": "legal-it",
-      "version": "2.12.1",
+      "version": "2.13.0",
       "source": "./plugin",
-      "description": "Plugin legale italiano completo: 218 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 22 skill, 8 slash command, 6 agenti specializzati."
+      "description": "Plugin legale italiano completo: 221 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 22 skill, 8 slash command, 6 agenti specializzati."
     }
   ]
 }
