@@ -26,6 +26,9 @@ ALLOWED_HOSTS: dict[str, str] = {
     "mdp.giustizia-amministrativa.it": "Giustizia amministrativa — testi integrali",
     "dati.cortecostituzionale.it": "Corte costituzionale — open data",
     "def.finanze.it": "CeRDEF — Ministero dell'economia e delle finanze",
+    # --- Italian State: parliament ---
+    "dati.senato.it": "Senato della Repubblica — open data (SPARQL)",
+    "dati.camera.it": "Camera dei deputati — open data (SPARQL)",
     # --- Italian State: authorities ---
     "www.garanteprivacy.it": "Garante per la protezione dei dati personali",
     "servizi.gpdp.it": "Garante privacy — servizi",
@@ -57,6 +60,9 @@ CI_ONLY_HOSTS: dict[str, str] = {
 #: identifiers and placeholder domains inside docstrings.
 NON_NETWORK_HOSTS: dict[str, str] = {
     "www.w3.org": "namespace XMLSchema nei PREFIX SPARQL",
+    "purl.org": "namespace Dublin Core nei PREFIX SPARQL (dati.camera.it)",
+    "www.senato.it": "link scheda DDL emesso per l'utente — mai richiesto dal server (il sito risponde 202/WAF alle richieste automatiche)",
+    "www.camera.it": "link scheda atto (resolver URN) emesso per l'utente — mai richiesto dal server",
     "docs.oasis-open.org": "namespace Akoma Ntoso citato in un docstring",
     "www.esempio.it": "dominio segnaposto negli esempi dei docstring",
 }
