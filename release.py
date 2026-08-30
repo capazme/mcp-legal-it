@@ -2,10 +2,12 @@
 """
 Release automation for mcp-legal-it.
 
-Supports three modes:
+Supports four modes:
   --from-develop   Git Flow: release branch → merge main → tag → back-merge develop
   --tag-only       Tag current main + push
   --plugin-only    Bump plugin only (no git tag, no pyproject, no Git Flow)
+  --beta           Beta pre-release (X.Y.Z-beta.N) tagged on a long-lived
+                   release/X.Y.Z branch — main is never touched
 
 Usage:
   python3 release.py                                # interactive
@@ -13,6 +15,7 @@ Usage:
   python3 release.py 0.4.0 --from-develop --push
   python3 release.py 0.3.1 --tag-only --no-plugin-bump
   python3 release.py 1.1.0 --plugin-only --dry-run
+  python3 release.py 3.0.0-beta.1 --beta --dry-run
 """
 import argparse
 import json
@@ -42,6 +45,7 @@ DXT_MANIFEST = PROJECT_DIR / "dxt" / "manifest.json"
 SERVER_MANIFEST = PROJECT_DIR / "plugin" / "server" / "manifest.json"
 
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
+BETA_RE = re.compile(r"^\d+\.\d+\.\d+-beta\.[1-9]\d*$")
 PYPROJECT_VERSION_RE = re.compile(r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE)
 TOOL_COUNT_RE = re.compile(r'\b\d+(?=\s+(?:Italian\s+legal\s+)?tool)')
 
@@ -203,9 +207,37 @@ def write_plugin_version(version: str, *, dry_run: bool) -> None:
     success(f"plugin.json version → {version}")
 
 
+_VERSION_KEY_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-beta\.([1-9]\d*))?$")
+
+
+def version_key(version: str) -> tuple[int, int, int, int, int]:
+    """Ordering key for stable and beta versions: (X, Y, Z, is_final, beta_n).
+
+    `is_final=1, beta_n=0` for a stable X.Y.Z; `is_final=0, beta_n=N` for a
+    X.Y.Z-beta.N. This is the single ordering authority used across the
+    script: a stable release always sorts after its own betas, and betas
+    sort by N. Raises ValueError on any other shape.
+    """
+    m = _VERSION_KEY_RE.match(version)
+    if not m:
+        raise ValueError(
+            f"Formato versione non valido: '{version}' — atteso X.Y.Z o X.Y.Z-beta.N"
+        )
+    major, minor, patch, beta = m.groups()
+    if beta is None:
+        return (int(major), int(minor), int(patch), 1, 0)
+    return (int(major), int(minor), int(patch), 0, int(beta))
+
+
 def bump_part(current: str, part: str) -> str:
-    """Bump a specific semver part: 'major', 'minor', or 'patch'."""
-    parts = [int(x) for x in current.split(".")]
+    """Bump a specific semver part: 'major', 'minor', or 'patch'.
+
+    Prerelease-tolerant: a `-beta.N` suffix is stripped before parsing, so
+    bumping from a beta base bumps the underlying X.Y.Z (e.g.
+    "3.0.0-beta.5" --patch--> "3.0.1") — it never produces another beta.
+    """
+    base = current.split("-", 1)[0]
+    parts = [int(x) for x in base.split(".")]
     if part == "major":
         parts = [parts[0] + 1, 0, 0]
     elif part == "minor":
@@ -541,9 +573,7 @@ def check_branch(expected: str) -> None:
     success(f"Branch corretto: {current}")
 
 
-def check_remote_sync(branch: str) -> None:
-    step(f"Sincronizzazione con origin/{branch} — fetch + confronto commit")
-    run_git("fetch", "origin")
+def _compare_with_remote(branch: str) -> None:
     behind = run_git("rev-list", "--count", f"HEAD..origin/{branch}")
     ahead = run_git("rev-list", "--count", f"origin/{branch}..HEAD")
     if int(behind) > 0:
@@ -557,18 +587,47 @@ def check_remote_sync(branch: str) -> None:
         success(f"In sync con origin/{branch}")
 
 
+def check_remote_sync(branch: str) -> None:
+    step(f"Sincronizzazione con origin/{branch} — fetch + confronto commit")
+    run_git("fetch", "origin")
+    _compare_with_remote(branch)
+
+
+def check_remote_sync_if_exists(branch: str) -> None:
+    """Same semantics as check_remote_sync, but tolerant of a branch with no
+    remote counterpart yet (e.g. a release/X.Y.Z not pushed for its first
+    beta, or a develop that was never mirrored to origin)."""
+    step(f"Sincronizzazione con origin/{branch} — fetch + confronto commit")
+    run_git("fetch", "origin")
+    probe = subprocess.run(
+        ["git", "rev-parse", "--verify", f"origin/{branch}"],
+        capture_output=True, text=True, cwd=str(PROJECT_DIR),
+    )
+    if probe.returncode != 0:
+        warn(f"origin/{branch} non esiste ancora — skip controllo sync")
+        return
+    _compare_with_remote(branch)
+
+
 def check_semver(version: str) -> None:
     step(f"Validazione formato semver — '{version}'")
     if not SEMVER_RE.match(version):
-        fatal(f"Versione '{version}' non valida — formato atteso: X.Y.Z (es. 0.4.0)")
+        fatal(
+            f"Versione '{version}' non valida — formato atteso: X.Y.Z (es. 0.4.0)\n"
+            f"       Per una beta: release.py X.Y.Z-beta.N --beta"
+        )
     success(f"Formato valido: {version}")
 
 
 def check_version_gt(new: str, current: str) -> None:
     step(f"Confronto versioni — {new} deve essere > {current} (pyproject.toml)")
-    new_parts = tuple(int(x) for x in new.split("."))
-    cur_parts = tuple(int(x) for x in current.split("."))
-    if new_parts <= cur_parts:
+    try:
+        new_key = version_key(new)
+        cur_key = version_key(current)
+    except ValueError as e:
+        fatal(str(e))
+        return
+    if new_key <= cur_key:
         warn(f"{new} non è maggiore di {current} — procedo comunque (potrebbe essere un re-tag)")
     else:
         success(f"Upgrade confermato: {current} → {new}")
@@ -1036,7 +1095,7 @@ def _push_release(rb: RollbackContext, *, dry: bool, branches: tuple[str, ...],
     success(f"Branch {label} pushat{'i' if len(branches) > 1 else 'o'}")
 
     step(f"Push tag {tag} su origin")
-    run_git("push", "origin", "--tags", dry_run=dry)
+    run_git("push", "origin", tag, dry_run=dry)
     success(f"Tag {tag} pushato")
 
     if release_branch:
@@ -1206,16 +1265,16 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
         section("Push")
 
         if dry:
-            step("Push main + develop + tags (dry run)")
+            step("Push main + develop + tag (dry run)")
             info("[DRY RUN] git push origin main develop")
-            info(f"[DRY RUN] git push origin --tags")
+            info(f"[DRY RUN] git push origin {tag}")
             info(f"[DRY RUN] git push origin --delete {release_branch}")
         else:
             if not args.push:
                 print()
                 if not ask_yes_no(f"Pushare main, develop e tag {tag} su origin?", unattended=False):
                     warn("Push annullato — esegui manualmente:")
-                    info("git push origin main develop && git push origin --tags")
+                    info(f"git push origin main develop && git push origin {tag}")
                     print_summary(version, effective_plugin, current_pyproject, current_plugin,
                                   "from-develop", dry, pushed=False)
                     return
@@ -1231,6 +1290,194 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
 
     print_summary(version, effective_plugin, current_pyproject, current_plugin,
                   "from-develop", dry, pushed=not dry)
+
+
+# ---------------------------------------------------------------------------
+# Flow: --beta
+# ---------------------------------------------------------------------------
+
+def run_beta(version: str, args: argparse.Namespace) -> None:
+    """Cut a beta pre-release on a long-lived release/X.Y.Z branch.
+
+    Never touches main/develop, never runs the local `claude plugin`
+    marketplace update (marketplace.json IS version-bumped, but only on the
+    release branch, which never reaches main during the beta), never deletes
+    the remote branch (it is long-lived — more betas land on it later).
+    Plugin follows the server version in lockstep (no --plugin-version, no
+    --no-plugin-bump — rejected earlier in main()).
+    """
+    global _step_counter
+    _step_counter = 0
+    dry = args.dry_run
+    tag = f"v{version}"
+    current_pyproject = read_pyproject_version()
+    current_plugin = read_plugin_version()
+
+    banner(version, "beta", dry)
+
+    # --- Preflight ---
+    section("Preflight checks")
+
+    check_clean_tree()
+
+    step(f"Validazione formato beta — '{version}'")
+    if not BETA_RE.match(version):
+        fatal(
+            f"Versione '{version}' non valida per --beta — formato atteso: "
+            f"X.Y.Z-beta.N con N ≥ 1 (es. 3.0.0-beta.1)"
+        )
+    success(f"Formato beta valido: {version}")
+
+    base = version.split("-")[0]
+    release_branch = f"release/{base}"
+
+    step(f"Verifica branch corrente — deve essere 'develop' o '{release_branch}'")
+    current_branch = git_current_branch()
+    creating_release_branch = False
+    if current_branch == release_branch:
+        success(f"Branch corretto: {current_branch} (beta successiva sul branch esistente)")
+    elif current_branch == "develop":
+        creating_release_branch = True
+        success(f"Branch corretto: {current_branch} (prima beta — verrà creato '{release_branch}')")
+    else:
+        fatal(
+            f"Branch corrente: {current_branch} — una beta si taglia da develop o da {release_branch}"
+        )
+
+    check_remote_sync_if_exists(current_branch)
+    check_version_gt(version, current_pyproject)
+    check_tag_not_exists(version)
+    run_tests(skip=args.skip_tests)
+
+    with RollbackContext(dry_run=dry) as rb:
+        orig_pyproject = PYPROJECT_TOML.read_text()
+        orig_plugin = PLUGIN_JSON.read_text() if PLUGIN_JSON.exists() else None
+        head_before = run_git("rev-parse", "HEAD").strip()
+        # Registered FIRST so it runs LAST in LIFO order: after every other
+        # undo it hard-resets to the pre-run commit, dropping the release
+        # commit and any leftover bump edits (the extra manifests have no
+        # per-file restore). In the first-beta case HEAD is back on develop
+        # == head_before by then, so the reset is a harmless no-op.
+        rb.register("reset to pre-run HEAD", lambda: run_git("reset", "--hard", head_before))
+
+        # --- Release branch ---
+        section("Release branch")
+
+        if creating_release_branch:
+            step(f"Creazione branch '{release_branch}' da develop")
+            run_git("checkout", "-b", release_branch, dry_run=dry)
+            # -f: on rollback the file restores may have dirtied the tree
+            # against the release commit — a plain checkout would abort there.
+            rb.register(f"delete branch {release_branch}", lambda: (
+                run_git("checkout", "-f", "develop"),
+                run_git("branch", "-D", release_branch),
+            ))
+            if not dry:
+                success(f"Branch {release_branch} creato")
+        else:
+            info(f"Già sul branch di release '{release_branch}' — nessuna creazione necessaria")
+
+        # --- Version bump (lockstep: plugin segue sempre la versione server) ---
+        section("Version bump")
+
+        step(f"Aggiornamento pyproject.toml — versione {current_pyproject} → {version}")
+        write_pyproject_version(version, dry_run=dry)
+        rb.register("restore pyproject.toml", lambda: PYPROJECT_TOML.write_text(orig_pyproject))
+
+        step(f"Aggiornamento plugin.json — versione {current_plugin} → {version} (lockstep)")
+        write_plugin_version(version, dry_run=dry)
+        if orig_plugin:
+            rb.register("restore plugin.json", lambda: PLUGIN_JSON.write_text(orig_plugin))
+
+        # --- Bump extra manifests (version + tool count in all 6 files) ---
+        section("Manifest sync")
+
+        tool_count = count_tools()
+        step(f"Rilevati {tool_count} tool — aggiornamento manifest aggiuntivi")
+        extra_files = bump_extra_manifests(version, tool_count, dry_run=dry)
+
+        # --- CHANGELOG ---
+        section("CHANGELOG")
+
+        latest_tag = git_latest_tag()
+        step("Generazione entry CHANGELOG da conventional commits")
+        entry = generate_changelog_entry(version, latest_tag)
+        print()
+        print(c(DIM, "    --- CHANGELOG preview ---"))
+        for line in entry.strip().split("\n"):
+            print(f"    {c(DIM, line)}")
+        print(c(DIM, "    --- fine preview ---"))
+        print()
+
+        if ask_yes_no("Scrivere il CHANGELOG?"):
+            write_changelog(CHANGELOG_ROOT, entry, dry_run=dry)
+            write_changelog(CHANGELOG_PLUGIN, entry, dry_run=dry)
+        else:
+            info("CHANGELOG non scritto — puoi aggiornarlo manualmente")
+
+        # --- Pre-tag verification ---
+        if not dry:
+            verify_all_versions(version)
+
+        # --- Commit ---
+        section("Commit")
+
+        step(f"Commit delle versioni aggiornate su '{release_branch}'")
+        files_to_add = [str(PYPROJECT_TOML), str(PLUGIN_JSON)]
+        files_to_add.extend(extra_files)
+        if CHANGELOG_ROOT.exists():
+            files_to_add.append(str(CHANGELOG_ROOT))
+        if CHANGELOG_PLUGIN.exists():
+            files_to_add.append(str(CHANGELOG_PLUGIN))
+        if not dry:
+            run_git("add", "-f", *files_to_add)
+            run_git("commit", "-m", f"chore(release): v{version}")
+            success(f"Commit: chore(release): v{version}")
+        else:
+            info(f"[DRY RUN] git add + commit 'chore(release): v{version}'")
+
+        # --- Tag ---
+        section("Tagging")
+
+        step(f"Creazione tag annotato '{tag}' su {release_branch}")
+        run_git("tag", "-a", tag, "-m", f"Release {tag}", dry_run=dry)
+        rb.register(f"delete tag {tag}", lambda: run_git("tag", "-d", tag))
+        if not dry:
+            success(f"Tag {tag} creato")
+
+        # --- Push ---
+        section("Push")
+
+        if dry:
+            step(f"Push {release_branch} + tag (dry run)")
+            info(f"[DRY RUN] git push -u origin {release_branch}")
+            info(f"[DRY RUN] git push origin {tag}")
+        else:
+            if not args.push:
+                print()
+                if not ask_yes_no(f"Pushare {release_branch} e tag {tag} su origin?", unattended=False):
+                    warn("Push annullato — esegui manualmente:")
+                    info(f"git push -u origin {release_branch} && git push origin {tag}")
+                    print_summary(version, version, current_pyproject, current_plugin,
+                                  "beta", dry, pushed=False, release_branch=release_branch)
+                    return
+                print()
+
+            # The FIRST successful branch push is the point of no return (same
+            # rationale as _push_release): origin already has the release
+            # commits, so a later tag-push failure must not roll back locally.
+            step(f"Push branch {release_branch} su origin")
+            run_git("push", "-u", "origin", release_branch, dry_run=dry)
+            if not dry:
+                rb.disarm()
+            success(f"Branch {release_branch} pushato")
+
+            step(f"Push tag {tag} su origin")
+            run_git("push", "origin", tag, dry_run=dry)
+            success(f"Tag {tag} pushato")
+
+    print_summary(version, version, current_pyproject, current_plugin,
+                  "beta", dry, pushed=not dry, release_branch=release_branch)
 
 
 # ---------------------------------------------------------------------------
@@ -1366,15 +1613,15 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
         section("Push")
 
         if dry:
-            step("Push main + tags (dry run)")
+            step("Push main + tag (dry run)")
             info("[DRY RUN] git push origin main")
-            info("[DRY RUN] git push origin --tags")
+            info(f"[DRY RUN] git push origin {tag}")
         else:
             if not args.push:
                 print()
                 if not ask_yes_no(f"Pushare main e tag {tag} su origin?", unattended=False):
                     warn("Push annullato — esegui manualmente:")
-                    info("git push origin main && git push origin --tags")
+                    info(f"git push origin main && git push origin {tag}")
                     print_summary(version, effective_plugin, current_pyproject, current_plugin,
                                   "tag-only", dry, pushed=False)
                     return
@@ -1409,10 +1656,24 @@ def run_plugin_only(version: str, args: argparse.Namespace) -> None:
     check_clean_tree()
     check_semver(version)
 
+    try:
+        current_is_beta = version_key(current_plugin)[3] == 0
+    except ValueError:
+        current_is_beta = False  # forme non standard: le gestisce il confronto sotto
+    if current_is_beta:
+        fatal(
+            f"plugin.json è a {current_plugin} — linea beta attiva: il plugin "
+            "segue la versione server in lockstep, usa --beta"
+        )
+
     step(f"Confronto versioni plugin — {version} deve essere > {current_plugin}")
-    new_parts = tuple(int(x) for x in version.split("."))
-    cur_parts = tuple(int(x) for x in current_plugin.split("."))
-    if new_parts <= cur_parts:
+    try:
+        new_key = version_key(version)
+        cur_key = version_key(current_plugin)
+    except ValueError as e:
+        fatal(str(e))
+        return
+    if new_key <= cur_key:
         warn(f"{version} non è maggiore di {current_plugin} — procedo comunque")
     else:
         success(f"Upgrade plugin confermato: {current_plugin} → {version}")
@@ -1539,6 +1800,7 @@ def print_summary(
     dry_run: bool,
     *,
     pushed: bool,
+    release_branch: str | None = None,
 ) -> None:
     print()
     print(c(DIM, "  " + "-" * 55))
@@ -1562,15 +1824,17 @@ def print_summary(
 
     if pushed:
         print()
-        info(f"GitHub: https://github.com/gpuzio/mcp-legal-it/releases/tag/v{version}")
+        info(f"GitHub: https://github.com/capazme/mcp-legal-it/releases/tag/v{version}")
 
     if not pushed and not dry_run:
         print()
         info("Per completare manualmente:")
         if mode == "from-develop":
-            info("  git push origin main develop && git push origin --tags")
+            info(f"  git push origin main develop && git push origin v{version}")
+        elif mode == "beta":
+            info(f"  git push -u origin {release_branch} && git push origin v{version}")
         else:
-            info("  git push origin main && git push origin --tags")
+            info(f"  git push origin main && git push origin v{version}")
 
     print()
 
@@ -1595,11 +1859,12 @@ def parse_args() -> argparse.Namespace | None:
               python3 release.py 0.3.1 --tag-only --no-plugin-bump
               python3 release.py 0.4.0 --from-develop --plugin-version 1.1.0
               python3 release.py 1.1.0 --plugin-only --dry-run
+              python3 release.py 3.0.0-beta.1 --beta --dry-run
         """),
     )
     parser.add_argument(
         "version",
-        help="Release version in semver format (X.Y.Z)",
+        help="Release version: X.Y.Z, or X.Y.Z-beta.N with --beta",
     )
 
     mode_group = parser.add_mutually_exclusive_group(required=True)
@@ -1617,6 +1882,14 @@ def parse_args() -> argparse.Namespace | None:
         "--plugin-only",
         action="store_true",
         help="Bump plugin only (no git tag, no pyproject bump, no Git Flow)",
+    )
+    mode_group.add_argument(
+        "--beta",
+        action="store_true",
+        help=(
+            "Cut a beta pre-release (X.Y.Z-beta.N) on a long-lived "
+            "release/X.Y.Z branch, cut from develop; main is never touched"
+        ),
     )
 
     parser.add_argument(
@@ -1670,8 +1943,18 @@ def main() -> None:
     if getattr(args, "plugin_version", None) and getattr(args, "no_plugin_bump", False):
         fatal("--plugin-version and --no-plugin-bump are mutually exclusive")
 
+    if getattr(args, "beta", False) and (
+        getattr(args, "plugin_version", None) or getattr(args, "no_plugin_bump", False)
+    ):
+        fatal(
+            "--plugin-version e --no-plugin-bump non supportati in --beta: "
+            "il plugin segue la versione server in lockstep"
+        )
+
     if getattr(args, "plugin_only", False):
         run_plugin_only(args.version, args)
+    elif getattr(args, "beta", False):
+        run_beta(args.version, args)
     elif args.from_develop:
         run_from_develop(args.version, getattr(args, "plugin_version", None), args)
     else:
