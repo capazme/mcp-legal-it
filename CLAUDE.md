@@ -342,7 +342,7 @@ Questo progetto usa **Git Flow classico**. Le regole sono tassative.
 |----------|----|-------------|-------|
 | `feature/<nome>` | `develop` | `develop` | Nuova funzionalità o miglioramento |
 | `fix/<nome>` | `develop` | `develop` | Bug fix non urgente |
-| `release/<versione>` | `develop` | `main` + `develop` | Preparazione rilascio (bump version, changelog, fix finali) |
+| `release/<versione>` | `develop` | `main` + `develop` | Preparazione rilascio (bump version, changelog, fix finali). Durante una beta è long-lived e non tocca `main` — vedi «Canale beta» |
 | `hotfix/<nome>` | `main` | `main` + `develop` | Fix critico in produzione |
 
 ### Regole operative
@@ -387,6 +387,35 @@ Segue [Semantic Versioning](https://semver.org/):
 - **MAJOR** (X): breaking change nelle API dei tool (signature, output format)
 - **MINOR** (Y): nuovi tool, nuove feature, nuovi scraper
 - **PATCH** (Z): bug fix, miglioramenti interni, aggiornamenti dati
+
+### Canale beta
+
+Una major/minor rischiosa (es. 3.0.0) può uscire come **linea beta** prima
+della GA, senza toccare `main` (che resta sulla linea stabile per tutta la
+durata della beta):
+
+- Tag `vX.Y.Z-beta.N` (rigido: solo `beta`, N ≥ 1), pubblicati come **GitHub
+  Pre-release** — `releases/latest` e il marketplace continuano a servire la
+  linea stabile.
+- Branch long-lived `release/X.Y.Z` creato da `develop`: **tutte** le beta di
+  quella X.Y.Z si taggano su quel branch, mai su `main`.
+- Si taglia con `release.py X.Y.Z-beta.N --beta` (prima beta: da `develop`;
+  beta successive: da `release/X.Y.Z` già esistente). Il plugin segue sempre
+  la versione server in lockstep — `--plugin-version` e `--no-plugin-bump`
+  non sono supportati in `--beta`.
+- **GA** (manuale): merge `release/X.Y.Z` in `develop` → elimina il branch
+  (locale E remoto — il flusso standard ne ricrea uno con lo stesso nome) →
+  release standard `release.py X.Y.Z --from-develop --plugin-version X.Y.Z`.
+  Il `--plugin-version` esplicito è obbligatorio: dopo il merge-back
+  `plugin.json` è a `X.Y.Z-beta.N` e l'auto-bump patch produrrebbe
+  `X.Y.(Z+1)`, facendo fallire il gate `verify_all_versions` a metà flusso.
+- `check_semver`/`SEMVER_RE` restano rigorosi nei flussi stabili (rifiutano
+  sempre le prerelease) — `--beta` è l'unico modo di produrre un tag
+  `-beta.N`.
+
+`release.py` pusha **solo il tag della release corrente** (mai `git push
+origin --tags`), in tutti i modi — evita di trascinare su origin tag di
+un'altra linea (es. beta 3.x insieme a stabili 2.x) per errore.
 
 ## Risoluzione degli estremi normativi — note tecniche
 
