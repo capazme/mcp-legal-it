@@ -1,6 +1,6 @@
 # mcp-legal-it — Documentazione
 
-MCP server con 218 tool di calcolo e consultazione per il diritto italiano.
+MCP server con 221 tool di calcolo e consultazione per il diritto italiano.
 Copre calcoli numerici (danni, interessi, fiscale, parcelle), consultazione normativa
 (Normattiva, EUR-Lex, Brocardi, Gazzetta Ufficiale) e ricerca giurisprudenziale
 (Cassazione, Corte Costituzionale, tributaria, TAR/CdS, CGUE, Garante Privacy, CONSOB).
@@ -30,7 +30,7 @@ Client MCP (Claude Desktop / Claude Code)
         │
         │  import a livello di modulo → registrazione @mcp.tool()
         ▼
-  src/tools/           32 moduli tool (218 tool totali)
+  src/tools/           33 moduli tool (221 tool totali)
   │
   ├─ calcolo (16 moduli)
   │  ├── rivalutazioni_istat     ├── proprieta_successioni
@@ -114,7 +114,7 @@ romperebbe la registrazione dei tool senza preavviso.
 | File | Descrizione |
 |------|-------------|
 | [architecture.md](architecture.md) | Dettaglio layer, pattern `_impl`, profili, come aggiungere tool |
-| [tools-catalog.md](tools-catalog.md) | Catalogo dei 218 tool divisi per categoria |
+| [tools-catalog.md](tools-catalog.md) | Catalogo dei 221 tool divisi per categoria |
 | [strumenti.md](strumenti.md) | Scheda per tool con parametri ed esempi (copertura parziale, vedi nota nel file) |
 | [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `src/lib/` (12 moduli, 4 documentati in dettaglio) |
 | [prompts-resources.md](prompts-resources.md) | 23 prompt guidati e 15 risorse statiche `legal://` |
