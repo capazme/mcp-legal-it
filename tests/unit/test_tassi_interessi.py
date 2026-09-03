@@ -777,7 +777,10 @@ class TestCalcoloTaeg:
         assert "TUB" in r["riferimento_normativo"] or "2008/48" in r["riferimento_normativo"]
 
 
+@pytest.mark.usefixtures("foi_serie_fissa")
 class TestMaggiorDannoAvvertenza:
+    """Runs on the FOI series frozen at 06/2026 (see conftest.foi_serie_fissa)."""
+
     def test_avvertenza_mese_non_pubblicato(self):
         r = _call(
             "calcolo_maggior_danno",
