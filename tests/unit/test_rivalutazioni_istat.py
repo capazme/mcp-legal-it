@@ -906,17 +906,17 @@ class TestSerieFoiUfficiale:
         assert _mod()._INDICI_FOI["2025"] == attesi
 
     def test_serie_2026_raccordata(self):
-        # Base 2025=100 (GU n.144 del 24-6-2026 + ISTAT 16-7-2026) x 1.214
+        # Base 2025=100 (GU n.144 del 24-6-2026, GU n.201 del 31-8-2026) x 1.214
         attesi = {
             "01": 121.9, "02": 122.5, "03": 123.2,
-            "04": 124.4, "05": 124.8, "06": 124.8,
+            "04": 124.4, "05": 124.8, "06": 124.8, "07": 125.2,
         }
         assert _mod()._INDICI_FOI["2026"] == attesi
 
     def test_indici_base_2025(self):
         attesi = {
             "01": 100.4, "02": 100.9, "03": 101.5,
-            "04": 102.5, "05": 102.8, "06": 102.8,
+            "04": 102.5, "05": 102.8, "06": 102.8, "07": 103.1,
         }
         assert _mod()._FOI_DATA["indici_base_2025"]["2026"] == attesi
 
@@ -933,7 +933,7 @@ class TestSerieFoiUfficiale:
     def test_variazioni_ufficiali_2026(self):
         attese = {
             "01": (0.8, 2.2), "02": (1.1, 2.7), "03": (1.5, 3.2),
-            "04": (2.6, 4.3), "05": (3.0, 4.4), "06": (2.9, 4.4),
+            "04": (2.6, 4.3), "05": (3.0, 4.4), "06": (2.9, 4.4), "07": (2.8, 4.3),
         }
         var = _mod()._FOI_DATA["variazioni_ufficiali"]["2026"]
         for mese, (annuale, biennale) in attese.items():
@@ -945,9 +945,9 @@ class TestSerieFoiUfficiale:
         # gennaio-maggio pubblicati in GU con codice redazionale
         assert "26A00955" in var["01"]["gu"]
         assert "26A03169" in var["05"]["gu"]
-        # giugno 2026: indice ISTAT pubblicato (16-7-2026), GU in attesa
-        assert var["06"]["gu"] is None
-        assert "ISTAT" in var["06"]["fonte"]
+        # giugno e luglio 2026 pubblicati insieme in GU n.201 del 31-8-2026
+        assert "26A04494" in var["06"]["gu"]
+        assert "26A04495" in var["07"]["gu"]
 
     def test_media_2025_ufficiale(self):
         # media annua 2025 = 121,4 (GU n.43 del 21-2-2026)
@@ -966,11 +966,34 @@ class TestAdeguamentoCanoneRaccordo:
             data_adeguamento="2026-06-01",
             percentuale_istat=100.0,
         )
-        # ufficiale +2,9% (ISTAT 16-7-2026), NON 124.8/121.3-1=2.89
+        # ufficiale +2,9% (GU n.201 del 31-8-2026, 26A04494), NON 124.8/121.3-1=2.89
         assert result["variazione_foi_piena_pct"] == pytest.approx(2.9)
         assert "ufficiale" in result["metodo_variazione"]
-        assert "attesa" in result["nota"]  # GU non ancora pubblicata per giugno
+        assert "26A04494" in result["fonte_variazione"]
         assert result["canone_annuo_aggiornato"] == pytest.approx(12348.0, abs=0.5)
+
+    def test_annuale_ufficiale_con_gu_in_attesa(self, monkeypatch):
+        # indice ISTAT gia' diffuso, comunicato ex art. 81 non ancora in GU:
+        # la variazione ufficiale prevale, ma la nota deve dirlo
+        mod = _mod()
+        var_2026 = dict(mod._VARIAZIONI_UFFICIALI["2026"])
+        var_2026["08"] = {
+            "annuale_pct": 3.1, "biennale_pct": 4.6, "gu": None,
+            "fonte": "ISTAT, indice definitivo agosto 2026 pubblicato il 16-09-2026; "
+                     "comunicato ex art. 81 L. 392/1978 in attesa di pubblicazione in GU",
+        }
+        monkeypatch.setitem(mod._VARIAZIONI_UFFICIALI, "2026", var_2026)
+        result = _call(
+            "adeguamento_canone_locazione",
+            canone_annuo=12000.0,
+            data_stipula="2025-08-01",
+            data_adeguamento="2026-08-01",
+            percentuale_istat=100.0,
+        )
+        assert result["variazione_foi_piena_pct"] == pytest.approx(3.1)
+        assert "ufficiale" in result["metodo_variazione"]
+        assert "attesa" in result["nota"]
+        assert "ISTAT" in result["fonte_variazione"]
 
     def test_annuale_ufficiale_maggio_2026_fonte_gu(self):
         result = _call(
@@ -1088,8 +1111,12 @@ class TestCalcoloInflazioneRaccordo:
         assert result.get("nota") is None
 
 
+@pytest.mark.usefixtures("foi_serie_fissa")
 class TestVariazioniIstatAnnoParziale:
+    """Runs on the FOI series frozen at 06/2026 (see conftest.foi_serie_fissa)."""
+
     def test_2026_marcato_parziale(self):
+        # frozen series: 2026 has exactly 6 published months
         result = _call("variazioni_istat", anno_inizio=2024, anno_fine=2026)
         righe = {r["anno"]: r for r in result["tabella"]}
         assert righe[2026]["mesi_disponibili"] == 6
@@ -1121,8 +1148,14 @@ class TestRivalutazioneTfrDatiCorretti:
         assert riga_2025["variazione_foi_pct"] == pytest.approx(1.08, abs=0.01)
 
 
+@pytest.mark.usefixtures("foi_serie_fissa")
 class TestAvvertenzaIndiceMancante:
-    """Fallback on missing months must surface in tool output, never silently."""
+    """Fallback on missing months must surface in tool output, never silently.
+
+    Runs on the FOI series frozen at 06/2026 (conftest.foi_serie_fissa): 07/2026
+    is always the first missing month, whatever the live table currently holds,
+    so the requested and substitute months below never move with a data refresh.
+    """
 
     def test_adeguamento_mese_non_pubblicato(self):
         # 07/2026 non pubblicato: niente variazione ufficiale, serie raccordata
@@ -1155,6 +1188,7 @@ class TestAvvertenzaIndiceMancante:
         # foi 08/2026 -> fallback 06/2026: (124.8-121.9)/121.9 = 2.38
         assert r["variazione_percentuale"] == pytest.approx(2.38, abs=0.01)
         assert "08/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
 
     def test_rivalutazione_monetaria_avvertenza(self):
         r = _call(
@@ -1185,6 +1219,7 @@ class TestAvvertenzaIndiceMancante:
             data_fine="2026-08-01",
         )
         assert "07/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
         # 08/2026 e' richiesto due volte (mese finale + mensilita'): una sola voce
         assert r["avvertenza"].count("08/2026") == 1
 
@@ -1197,6 +1232,7 @@ class TestAvvertenzaIndiceMancante:
         )
         # 6 mesi mancanti (07-12): elencati i primi 3, il resto compattato
         assert "12/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
         assert "altri 3 mesi" in r["avvertenza"]
         assert "10/2026" not in r["avvertenza"]
 
@@ -1225,6 +1261,7 @@ class TestAvvertenzaIndiceMancante:
             anno_cessazione=2027,
         )
         assert "12/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
 
     def test_devalutazione_avvertenza(self):
         r = _call(
@@ -1234,6 +1271,7 @@ class TestAvvertenzaIndiceMancante:
             data_passata="2020-01-01",
         )
         assert "09/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
 
     def test_interessi_vari_avvertenza(self):
         r = _call(
@@ -1244,6 +1282,7 @@ class TestAvvertenzaIndiceMancante:
             tasso_personalizzato=2.0,
         )
         assert "09/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
 
     def test_inflazione_titoli_avvertenza(self):
         r = _call(
@@ -1254,6 +1293,7 @@ class TestAvvertenzaIndiceMancante:
             data_fine="2026-09-01",
         )
         assert "09/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
 
     def test_anno_fuori_serie_errore_esplicito(self):
         # la serie parte dal 1990: oltre 1 anno di distanza niente approssimazione
@@ -1288,10 +1328,14 @@ class TestAvvertenzaIndiceMancante:
             data_adeguamento="2026-07-01",
         )
         assert "07/2026" in r["avvertenza"]
+        assert "06/2026" in r["avvertenza"]
         assert "07/2026" in r["lettera"]
 
 
+@pytest.mark.usefixtures("foi_serie_fissa")
 class TestAvvertenzaMediaParziale:
+    """Runs on the FOI series frozen at 06/2026 (see conftest.foi_serie_fissa)."""
+
     def test_rivalutazione_annuale_media_2026_parziale(self):
         r = _call(
             "rivalutazione_annuale_media",
@@ -1299,8 +1343,8 @@ class TestAvvertenzaMediaParziale:
             data_inizio="2024-03-15",
             data_fine="2026-03-15",
         )
-        assert "2026" in r["avvertenza"]
-        assert "6" in r["avvertenza"]  # parziale sui primi 6 mesi
+        assert "anno 2026 parziale" in r["avvertenza"]
+        assert "primi 6 mesi" in r["avvertenza"]
 
     def test_rivalutazione_annuale_media_anni_completi(self):
         r = _call(
@@ -1318,4 +1362,5 @@ class TestAvvertenzaMediaParziale:
             anno_partenza=2024,
             anno_arrivo=2026,
         )
-        assert "2026" in r["avvertenza"]
+        assert "anno 2026 parziale" in r["avvertenza"]
+        assert "primi 6 mesi" in r["avvertenza"]

@@ -19,10 +19,10 @@ class TestDannoBiologicoMicro:
         res = _call("danno_biologico_micro", percentuale_invalidita=1, eta_vittima=30)
         assert res["percentuale_invalidita"] == 1
         assert res["eta_vittima"] == 30
-        # punto_base=963.40, coeff[1]=1.0, riduzione=0.90 (eta 30 → anni_sopra=20 → 1-0.005*20) → 867.06
-        assert res["danno_permanente"] == pytest.approx(867.06, abs=0.01)
+        # punto_base=988.45 (DM 20/07/2026), coeff[1]=1.0, riduzione=0.90 (eta 30 → anni_sopra=20 → 1-0.005*20) → 889.61
+        assert res["danno_permanente"] == pytest.approx(889.61, abs=0.01)
         assert res["danno_temporaneo"]["totale"] == 0.0
-        assert res["totale_risarcimento"] == pytest.approx(867.06, abs=0.01)
+        assert res["totale_risarcimento"] == pytest.approx(889.61, abs=0.01)
         assert "Art. 139" in res["riferimento_normativo"]
 
     def test_invalidita_5_eta_10_con_itt(self):
@@ -34,8 +34,8 @@ class TestDannoBiologicoMicro:
             giorni_itt=10,
         )
         assert res["riduzione_eta"] == pytest.approx(1.0)
-        # ITT: 10 * 56.18 = 561.80
-        assert res["danno_temporaneo"]["itt"]["importo"] == pytest.approx(561.80, abs=0.01)
+        # ITT: 10 * 57.64 = 576.40
+        assert res["danno_temporaneo"]["itt"]["importo"] == pytest.approx(576.40, abs=0.01)
 
     def test_invalidita_9_eta_0_tutte_componenti_temporanee(self):
         res = _call(
@@ -51,8 +51,8 @@ class TestDannoBiologicoMicro:
         assert res["danno_temporaneo"]["itp_75"]["giorni"] == 3
         assert res["danno_temporaneo"]["itp_50"]["giorni"] == 2
         assert res["danno_temporaneo"]["itp_25"]["giorni"] == 1
-        # itp_25 = 1 * 14.05
-        assert res["danno_temporaneo"]["itp_25"]["importo"] == pytest.approx(14.05, abs=0.01)
+        # itp_25 = 1 * 14.41
+        assert res["danno_temporaneo"]["itp_25"]["importo"] == pytest.approx(14.41, abs=0.01)
 
     def test_riduzione_eta_oltre_decremento(self):
         # età 30 → anni_sopra=20, riduzione = 1 - 0.005*20 = 0.90
@@ -491,8 +491,8 @@ class TestDannoNonPatrimoniale:
             eta_vittima=30,
             giorni_itt=20,
         )
-        # ITT 20 * 56.18 = 1123.6
-        assert res["componenti"]["danno_patrimoniale_emergente"]["itt"]["importo"] == pytest.approx(1123.6, abs=0.01)
+        # ITT 20 * 57.64 = 1152.8
+        assert res["componenti"]["danno_patrimoniale_emergente"]["itt"]["importo"] == pytest.approx(1152.8, abs=0.01)
 
     def test_danno_morale_percentuale(self):
         res = _call(

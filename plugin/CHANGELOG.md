@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.1] - 2026-09-03
+
+### Fixed
+- Data refresh (issue #36): FOI index for July 2026 (ISTAT, 12-08-2026: 103,1
+  in base 2025=100 → 125,2 linked to 2015=100; official variations +2,8% /
+  +4,3%) and the Gazzetta references for the June and July comunicati, both
+  in GU n.201 of 31-08-2026 (26A04494, 26A04495). Art. 139 CAP
+  micropermanenti amounts revalued by DM MIMIT 20 July 2026 (GU n.173 of
+  28-07-2026, cod. 26A03765): first-point value €988,45, ITT €57,64/day,
+  +2,6% on the April 2026 FOI, applying from April 2026 (`_vintage` now
+  carries `aggiornato_al`; `docs/strumenti.md` follows).
+- `scripts/refresh_data.py`: the monthly FOI append matched the first
+  `"<year>": {` of the file, which since the 2025=100 rebasing belongs to
+  `indici_base_2025`; the safety check refused the rewrite every month and
+  the September cron opened issue #36 instead of a PR. The append is now
+  anchored to its block, mirrors the published base-2025 value and moves
+  `_vintage.copre_fino_a` (the one field it rewrites; the dead `_note`
+  stamp is gone); the rewrite must equal the original plus exactly those
+  edits.
+- Tests probing the "index not yet published" fallback run on a FOI series
+  frozen at 06/2026 (`tests/unit/conftest.py:foi_serie_fissa`) instead of
+  the live table, so a data refresh — including the monthly auto-refresh
+  PR — no longer turns them red by construction.
+
 ## [2.13.0] - 2026-08-30
 
 ### Added
