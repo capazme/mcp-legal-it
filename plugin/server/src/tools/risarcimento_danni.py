@@ -63,7 +63,7 @@ def danno_biologico_micro(
 ) -> dict:
     """Calcola il danno biologico per MICROPERMANENTI (≤9% di invalidità).
     Applica art. 139 Codice delle Assicurazioni (D.Lgs. 209/2005).
-    Vigenza: tabelle aggiornate al DM 18/07/2025.
+    Vigenza: tabelle aggiornate al DM 20/07/2026 (importi dal mese di aprile 2026).
     Precisione: ESATTO (formula di legge applicata ai valori tabellari vigenti).
 
     Usa questo quando: sinistro stradale o sanitario con invalidità permanente tra 1% e 9%.
@@ -142,7 +142,7 @@ def danno_biologico_micro(
         "maggiorazione_morale": round(maggiorazione_morale, 2),
         "totale_risarcimento": round(totale, 2),
         "dettaglio_punti": dettaglio_punti,
-        "riferimento_normativo": "Art. 139 Cod. Assicurazioni (D.Lgs. 209/2005) — DM 18/07/2025",
+        "riferimento_normativo": "Art. 139 Cod. Assicurazioni (D.Lgs. 209/2005) — DM 20/07/2026",
     }
 
 
