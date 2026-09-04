@@ -1,13 +1,14 @@
 {
   "_vintage": {
-    "fonte": "art. 139 Cod. Ass. (DM 2025) e tabella unica nazionale macropermanenti (DM 2024)",
+    "aggiornato_al": "2026-09-03",
+    "fonte": "art. 139 Cod. Ass. (DM MIMIT 20 luglio 2026, GU n.173 del 28/07/2026) e tabella unica nazionale macropermanenti (DM 2024)",
     "verifica": "manuale"
   },
-  "_description": "Tabelle danno biologico — micropermanenti art. 139 CdA (DM 2025) e macropermanenti (tabella unica nazionale DM 2024)",
+  "_description": "Tabelle danno biologico — micropermanenti art. 139 CdA (DM 2026) e macropermanenti (tabella unica nazionale DM 2024)",
   "micropermanenti": {
-    "_note": "Art. 139 Cod. Assicurazioni — DM 18/07/2025 (GU n.176 31/07/2025), in vigore da aprile 2025. Coefficienti progressione: Allegato A, art. 5 L.57/2001. anno_ultimo_dm alimenta il freshness check (scripts/update-data.py).",
-    "anno_ultimo_dm": 2025,
-    "punto_base": 963.40,
+    "_note": "Art. 139 Cod. Assicurazioni — DM MIMIT 20/07/2026 (GU n.173 del 28/07/2026, cod. 26A03765): importi rivalutati del 2,6% (FOI aprile 2026, GU n.117 del 22/05/2026), a decorrere dal mese di aprile 2026. Precedente: DM 18/07/2025 (963,40 / 56,18). Coefficienti progressione: Allegato A, art. 5 L.57/2001. anno_ultimo_dm alimenta il freshness check (scripts/update-data.py).",
+    "anno_ultimo_dm": 2026,
+    "punto_base": 988.45,
     "coefficienti_punto": {
       "1": 1.0,
       "2": 1.1,
@@ -22,10 +23,10 @@
     "decremento_eta_pct_per_anno": 0.5,
     "eta_decremento_da": 10,
     "maggiorazione_morale_max_pct": 20.0,
-    "invalidita_temporanea_totale_giornaliera": 56.18,
-    "invalidita_temporanea_parziale_75_pct": 42.14,
-    "invalidita_temporanea_parziale_50_pct": 28.09,
-    "invalidita_temporanea_parziale_25_pct": 14.05
+    "invalidita_temporanea_totale_giornaliera": 57.64,
+    "invalidita_temporanea_parziale_75_pct": 43.23,
+    "invalidita_temporanea_parziale_50_pct": 28.82,
+    "invalidita_temporanea_parziale_25_pct": 14.41
   },
   "macropermanenti": {
     "_note": "Tabella unica nazionale ex art. 138 CdA (DM 2024). Valori punto per percentuale invalidità. I valori reali variano per età — qui riportati i valori medi indicativi.",
