@@ -104,21 +104,22 @@ def test_foi_to_base2015_known_values():
 
 
 def test_append_foi_month_already_present():
-    assert rd.append_foi(FOI_JSON, 2026, 5, "124.8", "maggio") is None
+    assert rd.append_foi(FOI_JSON, 2026, 5, "124.8") is None
 
 
 def test_append_foi_new_month_same_year():
-    out = rd.append_foi(FOI_JSON, 2026, 6, "124.8", "giugno")
+    out = rd.append_foi(FOI_JSON, 2026, 6, "124.8")
     data = json.loads(out)
     assert data["indici"]["2026"]["06"] == 124.8
     assert data["indici"]["2026"]["05"] == 124.8
-    assert "aggiornati a giugno 2026" in data["_note"]
+    # the prose note is not a freshness marker (that is `_vintage`): left alone
+    assert data["_note"] == json.loads(FOI_JSON)["_note"]
     # single-line row style preserved
     assert '"2026": {"01": 121.9' in out
 
 
 def test_append_foi_new_year_rollover():
-    out = rd.append_foi(FOI_JSON, 2027, 1, "125.3", "gennaio")
+    out = rd.append_foi(FOI_JSON, 2027, 1, "125.3")
     data = json.loads(out)
     assert data["indici"]["2027"] == {"01": 125.3}
     assert data["indici"]["2026"]["05"] == 124.8
@@ -127,7 +128,88 @@ def test_append_foi_new_year_rollover():
 
 def test_append_foi_rejects_unknown_structure():
     with pytest.raises(ValueError):
-        rd.append_foi('{"indici": {}}', 2026, 6, "124.8", "giugno")
+        rd.append_foi('{"indici": {}}', 2026, 6, "124.8")
+
+
+# Mirrors the shipped file since the 2025=100 rebasing: two other year-keyed
+# blocks precede `indici`, and `_vintage` carries the covered period.
+FOI_JSON_REBASED = (
+    '{\n'
+    '  "_vintage": {\n'
+    '    "copre_fino_a": "2026-06-30",\n'
+    '    "verifica": "automatica",\n'
+    '    "tolleranza_giorni": 92\n'
+    '  },\n'
+    '  "indici_base_2025": {\n'
+    '    "2026": {"05": 102.8, "06": 102.8}\n'
+    '  },\n'
+    '  "variazioni_ufficiali": {\n'
+    '    "2026": {\n'
+    '      "06": {"annuale_pct": 2.9, "biennale_pct": 4.4, "gu": null}\n'
+    '    }\n'
+    '  },\n'
+    '  "indici": {\n'
+    '    "2025": {"11": 121.3, "12": 121.5},\n'
+    '    "2026": {"05": 124.8, "06": 124.8}\n'
+    '  }\n'
+    '}\n'
+)
+
+
+def test_append_foi_targets_indici_not_the_first_year_block():
+    # Regression: the first '"2026": {' of the file belongs to indici_base_2025.
+    # The September 2026 cron appended there, the safety check refused the
+    # rewrite, and the workflow opened an issue instead of a PR (#36).
+    out = rd.append_foi(FOI_JSON_REBASED, 2026, 7, "125.2", value_2025="103.1")
+    data = json.loads(out)
+    assert data["indici"]["2026"] == {"05": 124.8, "06": 124.8, "07": 125.2}
+    assert data["indici_base_2025"]["2026"] == {"05": 102.8, "06": 102.8, "07": 103.1}
+    assert data["variazioni_ufficiali"] == json.loads(FOI_JSON_REBASED)["variazioni_ufficiali"]
+    assert data["_vintage"]["copre_fino_a"] == "2026-07-31"
+    assert data["_vintage"]["tolleranza_giorni"] == 92
+    # one-row-per-year style preserved in both blocks
+    assert '"2026": {"05": 124.8, "06": 124.8, "07": 125.2}' in out
+    assert '"2026": {"05": 102.8, "06": 102.8, "07": 103.1}' in out
+
+
+def test_append_foi_without_base_2025_value_leaves_mirror_untouched():
+    out = rd.append_foi(FOI_JSON_REBASED, 2026, 7, "125.2")
+    data = json.loads(out)
+    assert data["indici"]["2026"]["07"] == 125.2
+    assert "07" not in data["indici_base_2025"]["2026"]
+    assert data["_vintage"]["copre_fino_a"] == "2026-07-31"
+
+
+def test_append_foi_new_year_in_rebased_layout():
+    out = rd.append_foi(FOI_JSON_REBASED, 2027, 1, "126.0", value_2025="103.8")
+    data = json.loads(out)
+    assert data["indici"]["2027"] == {"01": 126.0}
+    assert data["indici_base_2025"]["2027"] == {"01": 103.8}
+    assert data["_vintage"]["copre_fino_a"] == "2027-01-31"
+
+
+def test_append_foi_accepts_the_shipped_file():
+    # The surgery must keep recognising the file actually in the repository:
+    # the next month after the latest one must append cleanly.
+    path = Path(__file__).parents[2] / "src" / "data" / "indici_foi.json"
+    text = path.read_text(encoding="utf-8")
+    data = json.loads(text)
+    year = max(data["indici"], key=int)
+    y, m = int(year), int(max(data["indici"][year], key=int)) + 1
+    if m == 13:
+        y, m = y + 1, 1
+    out = rd.append_foi(text, y, m, "999.9", value_2025="888.8")
+    new = json.loads(out)
+    assert new["indici"][str(y)][f"{m:02d}"] == 999.9
+    assert new["indici_base_2025"][str(y)][f"{m:02d}"] == 888.8
+    assert new["_vintage"]["copre_fino_a"] == rd._last_day_of_month(y, m).isoformat()
+    assert new["variazioni_ufficiali"] == data["variazioni_ufficiali"]
+
+
+def test_last_day_of_month():
+    assert rd._last_day_of_month(2026, 7) == date(2026, 7, 31)
+    assert rd._last_day_of_month(2026, 2) == date(2026, 2, 28)
+    assert rd._last_day_of_month(2026, 12) == date(2026, 12, 31)
 
 
 # --- ECB csv parsing ----------------------------------------------------

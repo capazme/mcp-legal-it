@@ -7,7 +7,10 @@ Usage:
 Automated (appended by this script, never rewritten):
 - indici_foi.json: latest monthly FOI index from the ISTAT "rivalutazioni
   monetarie" page, converted to base 2015=100 with the official linking
-  coefficient (1.214, itself re-parsed from the page and sanity-checked)
+  coefficient (1.214, itself re-parsed from the page and sanity-checked);
+  the published base-2025 value is mirrored into `indici_base_2025` and
+  `_vintage.copre_fino_a` follows the month. The official 12/24-month
+  variations (`variazioni_ufficiali`) need a Gazzetta reference: manual.
 - tassi_mora.json: current-semester rate from the ECB Data Portal MRO
   series (D.Lgs. 231/2002 art. 5: ECB main refinancing rate in force on
   the first calendar day of the semester, plus 8 percentage points)
@@ -16,13 +19,14 @@ Still manual (alerted by update-data.py / the monthly workflow issue):
 - tegm.json: quarterly MEF decree table, published as a PDF annex
 - tassi_legali.json: annual MEF decree published mid-December
 
-Safety model: entries are only appended, existing values are never
-modified; every rewrite is re-parsed and the structural delta is checked
-to be exactly the intended addition, otherwise nothing is written.
+Safety model: entries are only appended and the one field rewritten is
+`_vintage.copre_fino_a`; every rewrite is re-parsed and must equal the
+original plus exactly the intended edits, otherwise nothing is written.
 A source that cannot be fetched or parsed is skipped with a warning —
 update-data.py --strict remains the authority on staleness.
 """
 
+import copy
 import html as html_lib
 import json
 import re
@@ -117,33 +121,81 @@ def foi_to_base2015(value_2025: Decimal, raccordo: Decimal) -> str:
     return str(converted)
 
 
-def append_foi(text: str, year: int, month: int, value: str, month_name: str) -> str | None:
-    """Appends a month to indici_foi.json content; None if already present."""
+def _last_day_of_month(year: int, month: int) -> date:
+    first_of_next = date(year + month // 12, month % 12 + 1, 1)
+    return first_of_next - timedelta(days=1)
+
+
+def _append_month(text: str, block: str, y_key: str, m_key: str, value: str) -> str:
+    """Textual append inside one year-keyed block, keeping the one-row-per-year style.
+
+    Anchored to the named block: the file carries three blocks keyed by year
+    (`indici`, `indici_base_2025`, `variazioni_ufficiali`), so matching the
+    first `"<year>": {` in the whole file lands in the wrong one — that is
+    exactly how the monthly refresh went quiet after the 2025=100 rebasing.
+    """
+    start = text.find(f'"{block}": {{')
+    if start < 0:
+        raise ValueError(f"blocco {block} di indici_foi.json non riconosciuto")
+    head, tail = text[:start], text[start:]
+    end = tail.find("\n  }")  # the block closes on a two-space-indented brace
+    if end < 0:
+        raise ValueError(f"chiusura del blocco {block} di indici_foi.json non riconosciuta")
+    body, rest = tail[:end], tail[end:]
+
+    if re.search(rf'"{y_key}": \{{', body):
+        pattern = rf'("{y_key}": \{{[^}}]*)\}}'
+        replacement = rf'\g<1>, "{m_key}": {value}}}'
+    else:
+        # First month of a new year: a new row after the last one of the block.
+        pattern = r"\}\s*$"
+        replacement = f'}},\n    "{y_key}": {{"{m_key}": {value}}}'
+    body, n = re.subn(pattern, replacement, body, count=1)
+    if n != 1:
+        raise ValueError(f"struttura del blocco {block} di indici_foi.json non riconosciuta")
+    return head + body + rest
+
+
+def append_foi(
+    text: str,
+    year: int,
+    month: int,
+    value: str,
+    value_2025: str | None = None,
+) -> str | None:
+    """Appends a month to indici_foi.json content; None if already present.
+
+    Writes the base-2015 value into `indici`, mirrors the value as ISTAT
+    publishes it (base 2025=100) into `indici_base_2025` when the file has
+    that block, and moves `_vintage.copre_fino_a` to the end of the month.
+    The official 12/24-month variations need a Gazzetta reference and stay
+    manual. The rewrite is re-parsed and must equal the original plus
+    exactly these edits, otherwise nothing is returned.
+    """
     data = json.loads(text)
     y_key, m_key = str(year), f"{month:02d}"
     if m_key in data["indici"].get(y_key, {}):
         return None
+    expected = copy.deepcopy(data)
 
-    if y_key in data["indici"]:
-        pattern = rf'("{y_key}": \{{[^}}]*)\}}'
-        replacement = rf'\g<1>, "{m_key}": {value}}}'
-    else:
-        # First month of a new year: add a new row after the last year line.
-        pattern = r"\}\n  \}\n\}"
-        replacement = f'}},\n    "{y_key}": {{"{m_key}": {value}}}\n  }}\n}}'
-    new_text, n = re.subn(pattern, replacement, text, count=1)
-    if n != 1:
-        raise ValueError("struttura di indici_foi.json non riconosciuta")
+    new_text = _append_month(text, "indici", y_key, m_key, value)
+    expected["indici"].setdefault(y_key, {})[m_key] = json.loads(value)
 
-    new_text = re.sub(
-        r"aggiornati a \w+ \d{4}", f"aggiornati a {month_name} {year}", new_text, count=1
-    )
+    if value_2025 is not None and "indici_base_2025" in data:
+        new_text = _append_month(new_text, "indici_base_2025", y_key, m_key, value_2025)
+        expected["indici_base_2025"].setdefault(y_key, {})[m_key] = json.loads(value_2025)
 
-    # The rewrite must parse and differ from the original by exactly one entry.
-    new_data = json.loads(new_text)
-    expected = {y: dict(months) for y, months in data["indici"].items()}
-    expected.setdefault(y_key, {})[m_key] = json.loads(value)
-    if new_data["indici"] != expected:
+    copre = data.get("_vintage", {}).get("copre_fino_a")
+    if copre:
+        fino = _last_day_of_month(year, month).isoformat()
+        new_text, n = re.subn(
+            rf'("copre_fino_a":\s*"){re.escape(copre)}(")', rf"\g<1>{fino}\g<2>", new_text, count=1
+        )
+        if n != 1:
+            raise ValueError("blocco _vintage di indici_foi.json non riconosciuto")
+        expected["_vintage"]["copre_fino_a"] = fino
+
+    if json.loads(new_text) != expected:
         raise ValueError("la modifica a indici_foi.json non corrisponde al solo mese atteso")
     return new_text
 
@@ -208,7 +260,7 @@ def refresh_foi() -> bool:
     month_name = [k for k, v in MESI.items() if v == month][0]
 
     path = DATA_DIR / "indici_foi.json"
-    new_text = append_foi(path.read_text(), year, month, value, month_name)
+    new_text = append_foi(path.read_text(), year, month, value, value_2025=str(value_2025))
     if new_text is None:
         print(ok(f"{month_name} {year} già presente (indice {value})"))
         return False
