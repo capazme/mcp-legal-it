@@ -110,7 +110,8 @@ class TestDannoBiologicoMicro:
     def test_basic(self):
         r = _call("src.tools.risarcimento_danni", "danno_biologico_micro",
                   percentuale_invalidita=3, eta_vittima=30)
-        assert r["danno_permanente"] == pytest.approx(2861.3, abs=5.0)
+        # 988.45 (DM 20/07/2026) x (1.0+1.1+1.2) x 0.90 = 2935.70
+        assert r["danno_permanente"] == pytest.approx(2935.7, abs=5.0)
         assert r["totale_risarcimento"] > 0
 
     def test_out_of_range_error(self):

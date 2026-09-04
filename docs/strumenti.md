@@ -1175,7 +1175,7 @@ _Restituisce la tabella completa degli scaglioni DM 150/2023 per il valore indic
 _Strumenti per quantificare il risarcimento del danno non patrimoniale e patrimoniale: danno biologico micropermanente (art. 139 CdA) e macropermanente (art. 138 CdA), danno parentale, menomazioni plurime, indennizzo INAIL e equo indennizzo per causa di servizio._
 
 ### `danno_biologico_micro`
-_Calcola il danno biologico per invalidità permanente tra 1% e 9% (micropermanenti) applicando le tabelle DM 18/07/2025, con invalidità temporanea e personalizzazione morale._
+_Calcola il danno biologico per invalidità permanente tra 1% e 9% (micropermanenti) applicando le tabelle DM 20/07/2026, con invalidità temporanea e personalizzazione morale._
 
 **Parametri**: `percentuale_invalidita` (int, obbligatorio, 1-9). `eta_vittima` (int, obbligatorio, 0-120). `giorni_itt` (int, opzionale, default `0`) — giorni ITT al 100%. `giorni_itp75` / `giorni_itp50` / `giorni_itp25` (int, opzionale, default `0`) — giorni ITP al 75%, 50%, 25%. `personalizzazione_pct` (float, opzionale, default `0`) — maggiorazione morale (0-33,33%).
 
