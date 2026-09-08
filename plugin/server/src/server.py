@@ -4,8 +4,11 @@ import os
 
 from fastmcp import FastMCP
 
+from src.cli_version import package_version
+
 mcp = FastMCP(
     "Legal IT",
+    version=package_version(),
     instructions="""\
 Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chiede:
 - CALCOLI DANNI/SINISTRI: risarcimento, danno biologico, invalidità, ITT/ITP
