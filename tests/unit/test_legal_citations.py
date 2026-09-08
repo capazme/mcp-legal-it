@@ -5,7 +5,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.tools.legal_citations import (
-    _parse_reference, _resolve_act, _build_nv, _cite_law_impl, _fetch_law_article_impl,
+    _parse_reference, _resolve_act, _build_nv, _cite_law_impl, _cite_law_struct,
+    _fetch_law_article_impl,
     _download_law_pdf_impl, _generate_pdf_from_text, _sanitize_for_pdf, _safe_filename,
     _split_citazioni, _starts_new_reference, _classify_citazione, _sentenza_num_anno,
     _normalize_sezione, _parse_resolved_estremi, _norma_misquote, _verifica_citazioni_impl,
@@ -996,3 +997,43 @@ class TestVerificaCitazioniJSON:
         data = json.loads(out)
         assert data["formato"] == "json" and data["citazioni"] == []
         assert "nessuna citazione" in data["errore"]
+
+
+class TestCiteLawJSON:
+    @pytest.mark.asyncio
+    async def test_struct_success(self, monkeypatch):
+        monkeypatch.setenv("AKN_DISABLED", "1")
+
+        async def fake_fetch_article(nv):
+            return {"text": "1. Qualunque fatto doloso o colposo...", "url": "https://normattiva.it/art2043",
+                    "source": "normattiva"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _cite_law_struct("art. 2043 c.c.")
+        assert out["formato"] == "json"
+        assert out["riferimento"] == "art. 2043 c.c."
+        assert out["articolo"] == "2043"
+        assert out["atto"]["tipo_atto"] == "codice civile"
+        assert out["url"] == "https://normattiva.it/art2043"
+        assert out["fonte"] == "normattiva"
+        assert out["testo"].startswith("1. Qualunque")
+        assert out["errore"] is None
+        assert len(out["data_consultazione"]) == 10
+
+    @pytest.mark.asyncio
+    async def test_struct_unresolved_act(self):
+        out = await _cite_law_struct("art. 1 atto inesistente xyz")
+        assert out["testo"] == "" and out["errore"] and "non riconosciuto" in out["errore"]
+
+    @pytest.mark.asyncio
+    async def test_impl_json_and_markdown(self, monkeypatch):
+        monkeypatch.setenv("AKN_DISABLED", "1")
+
+        async def fake_fetch_article(nv):
+            return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            as_json = await _cite_law_impl("art. 2043 c.c.", formato="json")
+            as_md = await _cite_law_impl("art. 2043 c.c.")
+        assert json.loads(as_json)["testo"] == "testo"
+        assert as_md.startswith("**Fonte**: Normattiva — https://normattiva.it/a")
