@@ -96,6 +96,16 @@ Client MCP:
 }
 ```
 
+### Qualunque client MCP — entry point (richiede `uv`)
+
+Il pacchetto espone il comando `mcp-legal-it` (stdio di default; `MCP_TRANSPORT=http|sse` con `MCP_HOST`, `MCP_PORT`, `MCP_PATH`):
+
+```bash
+uvx --from git+https://github.com/capazme/mcp-legal-it@main mcp-legal-it
+```
+
+Il server dichiara la propria versione ai client MCP (`serverInfo.version`). Le release vanno agganciate a un tag (`@vX.Y.Z`) invece che a `@main`.
+
 ### Manuale (sviluppatori)
 
 ```bash

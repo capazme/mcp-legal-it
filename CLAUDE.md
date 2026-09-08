@@ -132,7 +132,7 @@ mcp-legal-it/
 ### Consultazione Normativa
 | Tool | Descrizione |
 |------|-------------|
-| `cite_law(reference, include_annotations?)` | Testo ufficiale da Normattiva/EUR-Lex. Entry point principale. |
+| `cite_law(reference, include_annotations?, formato?)` | Testo ufficiale da Normattiva/EUR-Lex. Entry point principale. |
 | `fetch_law_article(act_type, article, date?, act_number?)` | Basso livello: parametri espliciti |
 | `fetch_law_annotations(act_type, article, ...)` | Solo annotazioni Brocardi |
 | `cerca_brocardi(reference)` | Annotazioni complete: ratio, spiegazione, massime strutturate + riferimenti Cassazione |
