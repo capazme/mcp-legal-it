@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `verifica_citazioni(..., formato="json")` and `cite_law(..., formato="json")`:
+  structured output for programmatic clients (LibreLex-IT). Markdown output
+  unchanged.
+- Console entry point `mcp-legal-it` (`src.cli:main`), so the server starts
+  with `uvx --from git+https://github.com/capazme/mcp-legal-it@vX.Y.Z mcp-legal-it`.
+- The server now declares its package version to MCP clients
+  (`serverInfo.version`).
+
 ### Fixed
 - Data refresh (issue #36): FOI index for July 2026 (ISTAT, 12-08-2026: 103,1
   in base 2025=100 → 125,2 linked to 2015=100; official variations +2,8% /
