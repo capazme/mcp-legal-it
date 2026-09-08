@@ -9,6 +9,7 @@ import os
 import re
 import tempfile
 import time
+from datetime import date
 
 from src.server import mcp
 from src.lib.visualex import (
@@ -288,8 +289,50 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 # MCP Tools
 # ---------------------------------------------------------------------------
 
-async def _cite_law_impl(reference: str, include_annotations: bool = False) -> str:
+async def _cite_law_struct(reference: str) -> dict:
+    """Structured article lookup (no Brocardi): the JSON face of cite_law."""
+    today = date.today().isoformat()
+    base = {
+        "formato": "json", "riferimento": reference, "articolo": "",
+        "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
+        "url": "", "fonte": "", "testo": "", "errore": None, "data_consultazione": today,
+    }
+    article, act_name = _parse_reference(reference)
+    if not act_name:
+        base["errore"] = (f"impossibile interpretare il riferimento '{reference}'. "
+                          "Formato atteso: 'art. <numero> <atto>'")
+        return base
+    act_info = _resolve_act(act_name)
+    if not act_info:
+        base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
+        return base
+
+    nv = _build_nv(act_info, article)
+    base["articolo"] = article or ""
+    base["atto"] = {
+        "tipo_atto": nv.norma.tipo_atto_normalized,
+        "data": act_info.get("data", ""),
+        "numero_atto": act_info.get("numero_atto", ""),
+        "descrizione": str(nv.norma),
+    }
+    try:
+        result = await fetch_article(nv)
+    except Exception as e:
+        result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+    base["url"] = result.get("url", "") or nv.url()
+    base["fonte"] = result.get("source", "") or ""
+    base["testo"] = result.get("text", "") or ""
+    if result.get("error"):
+        base["errore"] = result["error"]
+    elif not base["testo"]:
+        base["errore"] = "nessun testo trovato"
+    return base
+
+
+async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
     """Implementation of cite_law (testable without MCP wrapper)."""
+    if formato == "json":
+        return json.dumps(await _cite_law_struct(reference), ensure_ascii=False)
     article, act_name = _parse_reference(reference)
     if not act_name:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'. Formato atteso: 'art. <numero> <atto>'"
@@ -344,7 +387,7 @@ async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "
 
 
 @mcp.tool(tags={"normativa"})
-async def cite_law(reference: str, include_annotations: bool = False) -> str:
+async def cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
     Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), Brocardi (annotazioni).
@@ -368,8 +411,12 @@ async def cite_law(reference: str, include_annotations: bool = False) -> str:
                    "considerando 42 GDPR", "art. 4 n. 11 GDPR"
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
                              massime giurisprudenziali). Default False.
+        formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
+                 atto{tipo_atto, data, numero_atto, descrizione}, url, fonte, testo,
+                 errore, data_consultazione. In modalità json le annotazioni Brocardi
+                 non sono incluse (include_annotations viene ignorato).
     """
-    return await _cite_law_impl(reference, include_annotations)
+    return await _cite_law_impl(reference, include_annotations, formato)
 
 
 @mcp.tool(tags={"normativa"})
