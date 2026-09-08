@@ -34,9 +34,15 @@ dev = [
 [project.scripts]
 mcp-legal-it = "src.cli:main"
 
+[tool.setuptools.package-data]
+src = ["data/*.json", "data/references/*.md"]
+
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["plugin/server"]
 include = ["src*"]
+
+[tool.setuptools.package-dir]
+"" = "plugin/server"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
