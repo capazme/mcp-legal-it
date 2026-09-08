@@ -53,14 +53,14 @@ descrizione di ogni tool.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `cite_law` | `cite_law(reference: str, include_annotations: bool = False)` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni. |
+| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato. |
 | `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti. |
 | `fetch_law_annotations` | `fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "")` | Solo annotazioni Brocardi per un articolo specifico. |
 | `cerca_brocardi` | `cerca_brocardi(reference: str)` | Annotazioni complete Brocardi: ratio, spiegazione, massime strutturate con riferimenti Cassazione. |
 | `fetch_act_index` | `fetch_act_index(reference: str)` | Indice degli articoli di un atto normativo. |
 | `fetch_full_act` | `fetch_full_act(reference: str)` | Testo integrale di un atto normativo. |
 | `download_law_pdf` | `download_law_pdf(reference: str)` | PDF ufficiale (EUR-Lex) o generato (Normattiva) della norma. |
-| `verifica_citazioni` | `verifica_citazioni(citazioni: str, archivio: str = "tutti")` | Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali (non entra nel merito). |
+| `verifica_citazioni` | `verifica_citazioni(citazioni: str, archivio: str = "tutti", formato: str = "markdown")` | Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali (non entra nel merito); formato="json" per output strutturato. |
 
 ---
 

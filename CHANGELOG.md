@@ -306,6 +306,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the undeclared-source flag; the golden fails if a local answer's shape
   changes, and the audit pins which tool may name which source.
 
+### Added
+- `verifica_citazioni(..., formato="json")` and `cite_law(..., formato="json")`:
+  structured output for programmatic clients (LibreLex-IT). Markdown output
+  unchanged.
+- Console entry point `mcp-legal-it` (`src.cli:main`), so the server starts
+  with `uvx --from git+https://github.com/capazme/mcp-legal-it@vX.Y.Z mcp-legal-it`.
+- The server now declares its package version to MCP clients
+  (`serverInfo.version`).
+
 ### Fixed
 - Brocardi annotations for every act that is not a codice. `find_brocardi_url`
   matched the act name as a substring of the table labels, so a resolved
