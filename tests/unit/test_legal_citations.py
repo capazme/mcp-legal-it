@@ -9,6 +9,7 @@ from src.tools.legal_citations import (
     _download_law_pdf_impl, _generate_pdf_from_text, _sanitize_for_pdf, _safe_filename,
     _split_citazioni, _starts_new_reference, _classify_citazione, _sentenza_num_anno,
     _normalize_sezione, _parse_resolved_estremi, _norma_misquote, _verifica_citazioni_impl,
+    _verifica_citazioni_struct,
 )
 from src.lib.visualex.models import Norma, NormaVisitata
 from src.lib.visualex.map import resolve_atto, normalize_act_type, find_brocardi_url
@@ -936,3 +937,62 @@ class TestLive:
         """Live test: generate PDF for codice civile from Normattiva."""
         result = await _download_law_pdf_impl("codice civile")
         assert "PDF generato" in result or "PDF" in result
+
+
+import json
+
+
+class TestVerificaCitazioniJSON:
+    @pytest.mark.asyncio
+    async def test_struct_norma_verificata(self):
+        async def fake_fetch_article(nv):
+            return {"text": "Qualunque fatto doloso o colposo...", "url": "https://normattiva.it/art2043",
+                    "source": "normattiva"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _verifica_citazioni_struct("art. 2043 c.c.")
+        assert out["formato"] == "json"
+        assert out["troncato"] is False and out["limite"] == 20
+        c = out["citazioni"][0]
+        assert c == {"n": 1, "citazione": "art. 2043 c.c.", "tipo": "norma",
+                     "verdetto": "verificata", "nota": c["nota"]}
+        assert "normattiva.it" in c["nota"]
+        assert "esistenza" in out["avvertenza"]
+
+    @pytest.mark.asyncio
+    async def test_json_output_is_parseable_and_markdown_unchanged(self):
+        async def fake_fetch_article(nv):
+            return {"text": "", "url": "https://normattiva.it/x", "source": "", "error": "404"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            as_json = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001", formato="json")
+            as_md = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001")
+        data = json.loads(as_json)
+        assert data["citazioni"][0]["verdetto"] == "non trovata"
+        assert as_md.startswith("| # | Citazione | Tipo | Verdetto | Note/Fonte |")
+        assert "non trovata" in as_md
+
+    @pytest.mark.asyncio
+    async def test_non_interpretabile_is_lowercase_in_json(self):
+        out = await _verifica_citazioni_struct("una frase qualsiasi")
+        c = out["citazioni"][0]
+        assert c["tipo"] == "non interpretabile"
+        assert c["verdetto"] == "non interpretabile"
+
+    @pytest.mark.asyncio
+    async def test_truncation_flag(self):
+        async def fake_fetch_article(nv):
+            return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
+
+        refs = "\n".join(f"art. {i} c.c." for i in range(1, 23))  # 22 references
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _verifica_citazioni_struct(refs)
+        assert out["troncato"] is True
+        assert len(out["citazioni"]) == 20
+
+    @pytest.mark.asyncio
+    async def test_empty_input_json_error(self):
+        out = await _verifica_citazioni_impl("", formato="json")
+        data = json.loads(out)
+        assert data["formato"] == "json" and data["citazioni"] == []
+        assert "nessuna citazione" in data["errore"]
