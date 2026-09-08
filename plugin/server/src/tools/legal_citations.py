@@ -289,13 +289,25 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 # MCP Tools
 # ---------------------------------------------------------------------------
 
+def _urn_from_url(url: str) -> str | None:
+    """Extract the URN from a Normattiva ``uri-res`` URL, else None.
+
+    Normattiva citable URLs look like
+    ``https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:...`` — the URN is
+    the substring after the ``?``. Any other URL (EUR-Lex, etc.) has no URN.
+    """
+    if "normattiva.it/uri-res/N2Ls?" not in url:
+        return None
+    return url.split("?", 1)[1] or None
+
+
 async def _cite_law_struct(reference: str) -> dict:
     """Structured article lookup (no Brocardi): the JSON face of cite_law."""
     today = date.today().isoformat()
     base = {
         "formato": "json", "riferimento": reference, "articolo": "",
         "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
-        "url": "", "fonte": "", "testo": "", "errore": None, "data_consultazione": today,
+        "url": "", "urn": None, "fonte": "", "testo": "", "errore": None, "data_consultazione": today,
     }
     article, act_name = _parse_reference(reference)
     if not act_name:
@@ -320,6 +332,7 @@ async def _cite_law_struct(reference: str) -> dict:
     except Exception as e:
         result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
     base["url"] = result.get("url", "") or nv.url()
+    base["urn"] = _urn_from_url(base["url"])
     base["fonte"] = result.get("source", "") or ""
     base["testo"] = result.get("text", "") or ""
     if result.get("error"):
@@ -412,9 +425,10 @@ async def cite_law(reference: str, include_annotations: bool = False, formato: s
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
                              massime giurisprudenziali). Default False.
         formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
-                 atto{tipo_atto, data, numero_atto, descrizione}, url, fonte, testo,
-                 errore, data_consultazione. In modalità json le annotazioni Brocardi
-                 non sono incluse (include_annotations viene ignorato).
+                 atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, testo,
+                 errore, data_consultazione. "urn" è l'estremo URN Normattiva quando la
+                 fonte è Normattiva, altrimenti null. In modalità json le annotazioni
+                 Brocardi non sono incluse (include_annotations viene ignorato).
     """
     return await _cite_law_impl(reference, include_annotations, formato)
 
@@ -1122,6 +1136,7 @@ async def _verifica_citazioni_struct(citazioni: str, archivio: str = "tutti") ->
         "troncato": truncated,
         "limite": _MAX_CITAZIONI,
         "avvertenza": _VERIFICA_AVVERTENZA,
+        "errore": None,
     }
 
 
@@ -1195,7 +1210,8 @@ async def verifica_citazioni(citazioni: str, archivio: str = "tutti", formato: s
         archivio: Archivio Italgiure per le sentenze: "civile", "penale" o "tutti" (default)
         formato: "markdown" (default, tabella leggibile) oppure "json" (oggetto con
                  chiavi formato, citazioni[n, citazione, tipo, verdetto, nota], troncato,
-                 limite, avvertenza; in caso di input vuoto anche "errore"). Usare "json"
+                 limite, avvertenza, errore). "errore" è sempre presente: null in caso
+                 di successo, messaggio di errore in caso di input vuoto. Usare "json"
                  quando il risultato va elaborato da un programma.
     """
     return await _verifica_citazioni_impl(citazioni, archivio, formato)
