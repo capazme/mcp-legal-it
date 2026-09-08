@@ -36,6 +36,14 @@ def test_server_declares_version():
     assert mcp.version == cli.package_version()
 
 
+def test_main_version_flag(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["--version"])
+    assert exc_info.value.code == 0
+    out = capsys.readouterr().out
+    assert cli.package_version() in out
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv not installed")
 @pytest.mark.asyncio
 async def test_uv_run_entry_point_handshake():
