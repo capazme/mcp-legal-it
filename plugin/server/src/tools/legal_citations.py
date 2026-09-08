@@ -10,6 +10,7 @@ import re
 import tempfile
 import time
 from datetime import date
+from typing import Literal
 
 from src.server import mcp
 from src.lib.visualex import (
@@ -400,7 +401,11 @@ async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "
 
 
 @mcp.tool(tags={"normativa"})
-async def cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
+async def cite_law(
+    reference: str,
+    include_annotations: bool = False,
+    formato: Literal["markdown", "json"] = "markdown",
+) -> str:
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
     Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), Brocardi (annotazioni).
@@ -1179,7 +1184,11 @@ async def _verifica_citazioni_impl(
 
 
 @mcp.tool(tags={"normativa"})
-async def verifica_citazioni(citazioni: str, archivio: str = "tutti", formato: str = "markdown") -> str:
+async def verifica_citazioni(
+    citazioni: str,
+    archivio: str = "tutti",
+    formato: Literal["markdown", "json"] = "markdown",
+) -> str:
     """Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali.
 
     Accetta un insieme di riferimenti — sentenze della Cassazione e/o articoli di legge —
