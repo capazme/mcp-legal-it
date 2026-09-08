@@ -4,6 +4,7 @@ principale prima di citare qualsiasi norma in un parere o documento legale."""
 
 import asyncio
 import difflib
+import json
 import os
 import re
 import tempfile
@@ -1031,52 +1032,71 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
     return "verificata", f"Cass. n. {numero}/{anno} reperita su Italgiure."
 
 
-async def _verifica_citazioni_impl(citazioni: str, archivio: str = "tutti") -> str:
-    """Implementation of verifica_citazioni (testable without MCP wrapper)."""
+_VERIFICA_AVVERTENZA = (
+    "La verifica accerta l'esistenza della fonte e la coerenza dei metadati "
+    "(numero, anno, sezione, comma/lettera citati). NON verifica l'esattezza "
+    "del principio di diritto o del contenuto citato."
+)
+
+
+async def _verifica_citazioni_struct(citazioni: str, archivio: str = "tutti") -> dict:
+    """Structured result of verifica_citazioni; both output formats are built from it."""
     refs = _split_citazioni(citazioni)
     if not refs:
-        return "**Errore**: nessuna citazione fornita. Inserire un riferimento per riga."
+        return {
+            "formato": "json", "citazioni": [], "troncato": False, "limite": _MAX_CITAZIONI,
+            "avvertenza": _VERIFICA_AVVERTENZA,
+            "errore": "nessuna citazione fornita. Inserire un riferimento per riga.",
+        }
 
     truncated = len(refs) > _MAX_CITAZIONI
     refs = refs[:_MAX_CITAZIONI]
-
     tipi = [_classify_citazione(r) for r in refs]
-
     semaphore = asyncio.Semaphore(_MAX_CONCURRENT_VERIFICHE)
 
-    async def _resolve_one(reference: str, tipo: str) -> tuple[str, str, str]:
+    async def _resolve_one(reference: str, tipo: str) -> tuple[str, str]:
         async with semaphore:
             try:
                 if tipo == "sentenza":
-                    verdetto, nota = await _verifica_sentenza(reference, archivio)
-                elif tipo == "norma":
-                    verdetto, nota = await _verifica_norma(reference)
-                else:
-                    return ("Non interpretabile", "—", "Formato non riconosciuto.")
+                    return await _verifica_sentenza(reference, archivio)
+                if tipo == "norma":
+                    return await _verifica_norma(reference)
+                return ("non interpretabile", "Formato non riconosciuto.")
             except Exception as exc:  # fail-safe: never crash the whole batch
-                return (tipo.capitalize(), "non verificata", f"Errore durante la verifica: {exc}")
-            return (tipo.capitalize(), verdetto, nota)
+                return ("non verificata", f"Errore durante la verifica: {exc}")
 
-    results = await asyncio.gather(
-        *(_resolve_one(r, t) for r, t in zip(refs, tipi))
-    )
+    results = await asyncio.gather(*(_resolve_one(r, t) for r, t in zip(refs, tipi)))
+    return {
+        "formato": "json",
+        "citazioni": [
+            {"n": i, "citazione": ref, "tipo": tipo, "verdetto": verdetto, "nota": nota}
+            for i, (ref, tipo, (verdetto, nota)) in enumerate(zip(refs, tipi, results), start=1)
+        ],
+        "troncato": truncated,
+        "limite": _MAX_CITAZIONI,
+        "avvertenza": _VERIFICA_AVVERTENZA,
+    }
 
+
+def _format_verifica_markdown(data: dict) -> str:
+    """Render the structured result exactly as the pre-JSON markdown table."""
+    if data.get("errore"):
+        return f"**Errore**: {data['errore']}"
     lines = [
         "| # | Citazione | Tipo | Verdetto | Note/Fonte |",
         "|---|-----------|------|----------|------------|",
     ]
-    for i, (reference, (tipo_label, verdetto, nota)) in enumerate(zip(refs, results), start=1):
-        cit = reference.replace("|", "\\|")
-        nota_clean = (nota or "—").replace("|", "\\|").replace("\n", " ")
-        lines.append(f"| {i} | {cit} | {tipo_label} | {verdetto} | {nota_clean} |")
-
-    if truncated:
+    for c in data["citazioni"]:
+        cit = c["citazione"].replace("|", "\\|")
+        if c["tipo"] == "non interpretabile":
+            tipo_label, verdetto = "Non interpretabile", "—"
+        else:
+            tipo_label, verdetto = c["tipo"].capitalize(), c["verdetto"]
+        nota_clean = (c["nota"] or "—").replace("|", "\\|").replace("\n", " ")
+        lines.append(f"| {c['n']} | {cit} | {tipo_label} | {verdetto} | {nota_clean} |")
+    if data["troncato"]:
         lines.append("")
-        lines.append(
-            f"> *Verificate solo le prime {_MAX_CITAZIONI} citazioni "
-            "(limite per chiamata).*"
-        )
-
+        lines.append(f"> *Verificate solo le prime {data['limite']} citazioni (limite per chiamata).*")
     lines.append("")
     lines.append(
         "> **Nota**: la verifica accerta l'**esistenza** della fonte e la coerenza "
@@ -1086,8 +1106,18 @@ async def _verifica_citazioni_impl(citazioni: str, archivio: str = "tutti") -> s
     return "\n".join(lines)
 
 
+async def _verifica_citazioni_impl(
+    citazioni: str, archivio: str = "tutti", formato: str = "markdown"
+) -> str:
+    """Implementation of verifica_citazioni (testable without MCP wrapper)."""
+    data = await _verifica_citazioni_struct(citazioni, archivio)
+    if formato == "json":
+        return json.dumps(data, ensure_ascii=False)
+    return _format_verifica_markdown(data)
+
+
 @mcp.tool(tags={"normativa"})
-async def verifica_citazioni(citazioni: str, archivio: str = "tutti") -> str:
+async def verifica_citazioni(citazioni: str, archivio: str = "tutti", formato: str = "markdown") -> str:
     """Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali.
 
     Accetta un insieme di riferimenti — sentenze della Cassazione e/o articoli di legge —
@@ -1116,5 +1146,9 @@ async def verifica_citazioni(citazioni: str, archivio: str = "tutti") -> str:
         citazioni: Elenco di riferimenti, uno per riga (o separati da virgola), es.
                    "Cass. sez. III n. 12345/2024\\nart. 2043 c.c.\\nart. 13 GDPR"
         archivio: Archivio Italgiure per le sentenze: "civile", "penale" o "tutti" (default)
+        formato: "markdown" (default, tabella leggibile) oppure "json" (oggetto con
+                 chiavi formato, citazioni[n, citazione, tipo, verdetto, nota], troncato,
+                 limite, avvertenza; in caso di input vuoto anche "errore"). Usare "json"
+                 quando il risultato va elaborato da un programma.
     """
-    return await _verifica_citazioni_impl(citazioni, archivio)
+    return await _verifica_citazioni_impl(citazioni, archivio, formato)
