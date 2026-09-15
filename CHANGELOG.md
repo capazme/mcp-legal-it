@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `start_server.sh` is PATH-independent. GUI hosts (Claude Desktop, Cowork,
+  Freebuff) spawn MCP servers with launchd's bare PATH
+  (`/usr/bin:/bin:/usr/sbin:/sbin`), which hides Homebrew, `~/.local/bin` and
+  cargo installs: `command -v uv` failed there and the launch silently fell
+  through to the venv path. The bootstrap now prepends the usual install
+  locations and probes `uv` by absolute path as well.
+- The venv fallback no longer trusts `command -v`. Each Python candidate is run
+  and the first one that reports 3.10+ wins: an unaccepted Xcode licence turns
+  the CLT `python3` into a shim that only prints a licence error, and it used
+  to be selected. A cached venv is now reused only if its interpreter is 3.10+
+  **and** imports every runtime dependency, so a half-built venv (deps added in
+  a later release, interrupted install) is rebuilt instead of starting a server
+  that dies on its first import. `MCP_FORCE_VENV=1` skips `uv` to exercise the
+  fallback deliberately.
+
 ## [3.0.0-beta.1] - 2026-08-30
 
 First beta of the v3 harness-agnostic line, published as a GitHub
