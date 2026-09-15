@@ -99,6 +99,13 @@ from src.tools import (  # noqa: E402, F401
 )
 
 from src import prompts, resources  # noqa: E402, F401
+from src.tool_annotations import apply_tool_annotations  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Tool annotations: readOnlyHint/openWorldHint per tool, so hosts can tell a
+# lookup from a file writer (see src/tool_annotations.py for the audit rule).
+# ---------------------------------------------------------------------------
+apply_tool_annotations(mcp)
 
 # ---------------------------------------------------------------------------
 # Profile-based tool filtering (for Desktop/Browser — lighter context)

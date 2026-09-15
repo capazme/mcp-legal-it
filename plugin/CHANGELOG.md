@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Annotazioni sui tool: tutti i 221 tool dichiarano ora `readOnlyHint` /
+  `openWorldHint`, così gli host che pre-approvano i tool sicuri possono
+  proporre le 204 letture senza una spunta per tool, mentre i 17 che scrivono
+  un file restano dietro un'approvazione esplicita. La classificazione è
+  ricavata dal grafo delle chiamate (funzione decorata → helper → client
+  importati: `open(..., "w")`, `write_text`, i costruttori di documenti, i
+  verbi HTTP che mutano). Vive in `src/tool_annotations.py`, generato da
+  `scripts/audit_tool_annotations.py` (`--check` fallisce la suite in caso di
+  drift, `--json` stampa l'evidenza per tool); un middleware la applica su
+  `tools/list` e `tests/unit/test_tool_annotations.py` fallisce se un tool esce
+  dalla policy.
+- I 12 che scrivono una cache sono segnalati come tali (`CACHE_WRITES`): la
+  loro unica scrittura è sotto `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (atti
+  parsati, URL degli articoli Brocardi, massime della Consulta), cosa diversa
+  dai 5 che producono un documento. La cache è best-effort e rilocabile, non
+  esiste un interruttore per disattivarla.
+- `tests/unit/test_read_only_contract.py` dimostra la promessa read-only a
+  runtime: il server viene avviato con `HOME` e `MCP_CACHE_DIR` propri, tutti i
+  168 tool read-only locali vengono chiamati con argomenti generati dal loro
+  input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
+  un file creato, cancellato o modificato fa fallire il test. Tutti e 168 hanno
+  risposto e nulla è cambiato.
+
 ### Fixed
 - `start_server.sh` è indipendente dal PATH: gli host GUI (Claude Desktop,
   Cowork, Freebuff) avviano i server MCP con il PATH minimo di launchd
@@ -21,7 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   interprete è 3.10+ **e** importa tutte le dipendenze runtime: un venv
   incompleto viene ricreato invece di avviare un server che muore al primo
   import. `MCP_FORCE_VENV=1` salta `uv` per esercitare il fallback.
-
 ## [3.0.0-beta.1] - 2026-08-30
 
 First beta of the v3 harness-agnostic line, published as a GitHub
