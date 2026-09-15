@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Tool annotations: all 221 tools now declare `readOnlyHint` / `openWorldHint`,
+  so hosts that pre-approve safe tools (Claude Desktop, Freebuff) can offer the
+  204 read-only lookups without a per-tool click, while the 17 that write a file
+  stay behind an explicit approval. The classification is audited from the call
+  graph — decorated function → helpers → imported clients, looking for
+  `open(..., "w")`, `write_text`, the document constructors and mutating HTTP
+  verbs — and lives in `src/tool_annotations.py`; a middleware stamps it on
+  `tools/list` and `tests/unit/test_tool_annotations.py` fails if a tool is
+  renamed out of the policy.
+
 ### Fixed
 - `start_server.sh` is PATH-independent. GUI hosts (Claude Desktop, Cowork,
   Freebuff) spawn MCP servers with launchd's bare PATH
