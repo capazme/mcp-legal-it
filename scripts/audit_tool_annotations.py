@@ -22,6 +22,13 @@ this server ever writes on its own, and they are enumerated in
 `CACHE_LOCATIONS`: for each one the entry names the module, the literals that
 must still be in it, and the switch that turns it off.
 
+The calendar is audited as well: `date.today()`/`datetime.now()` may only be
+called in `src/lib/_clock.py`, which honours `LEGAL_TODAY`/`LEGAL_NOW`. Without
+that, the tools that are "as of today" could not be frozen in
+`tests/fixtures/golden/calcoli_locali.json`, and a test on their numbers would
+drift with the calendar instead of failing when a rate or a forensic parameter
+changes.
+
 Usage:
 
     python scripts/audit_tool_annotations.py            # --check (default)
@@ -68,8 +75,9 @@ WRITE_OPEN_MODES = set("wax+")
 NET_READ_ATTRS = {"get", "request", "stream", "head", "Client", "AsyncClient"}
 NET_BASES = {"httpx", "client", "_client", "http", "_http", "session", "async_client"}
 # src/lib modules that only hold in-process helpers: reaching one of these is
-# not reaching outside the process. `_cache` resolves the local cache directory.
-LOCAL_LIB_MODULES = {"_cache", "_data", "_egress", "_http", "_result"}
+# not reaching outside the process. `_cache` resolves the local cache directory
+# and `_clock` reads the (pinnable) wall clock.
+LOCAL_LIB_MODULES = {"_cache", "_clock", "_data", "_egress", "_http", "_result"}
 # Evidence that a tool produces something for the user rather than refreshing a
 # cache: a document, a spreadsheet or a PDF handle.
 ARTIFACT_SIGNALS = {
@@ -122,6 +130,12 @@ CACHE_LOCATIONS = (
 #: The module that reads the switch and resolves MCP_CACHE_DIR -- the one place
 #: both variables are read, so no tool can touch the disk without declaring it.
 CACHE_SWITCH_MODULE = "src/lib/_cache.py"
+#: The module that reads the wall clock, with `LEGAL_TODAY`/`LEGAL_NOW` to pin it.
+#: Tools that are "as of today" are only reproducible if every calendar read
+#: goes through here, so nothing else may call today()/now().
+CLOCK_MODULE = "src/lib/_clock.py"
+CLOCK_CALLS = {"today", "now", "utcnow"}
+CLOCK_BASES = {"date", "datetime"}
 CACHE_DOC = REPO / "docs/cache-inventory.md"
 
 TEMPLATE = '''"""MCP tool annotations, so hosts can tell a read-only lookup from a file writer.
@@ -592,6 +606,49 @@ def verify_caches(audit: "Audit") -> list[str]:
     return problems
 
 
+def verify_clock() -> list[str]:
+    """Calendar calls outside the clock module: those would escape pinning.
+
+    Found on the AST rather than on the text, so a docstring mentioning
+    `date.today()` is not a failure.
+    """
+    problems: list[str] = []
+    server_root = REPO / "plugin/server"
+    allowed = _dotted(CLOCK_MODULE)
+    for py in sorted((server_root / "src").rglob("*.py")):
+        if "__pycache__" in str(py):
+            continue
+        dotted = _dotted(str(py.relative_to(server_root)))
+        if dotted == allowed:
+            continue
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8"), filename=str(py))
+        except SyntaxError as exc:
+            problems.append("%s does not parse: %s" % (py.relative_to(server_root), exc))
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            base = node.func.value
+            if (
+                node.func.attr in CLOCK_CALLS
+                and isinstance(base, ast.Name)
+                and base.id in CLOCK_BASES
+            ):
+                problems.append(
+                    "%s:%d reads the wall clock (%s.%s); go through %s so "
+                    "LEGAL_TODAY/LEGAL_NOW can pin it"
+                    % (
+                        py.relative_to(server_root),
+                        node.lineno,
+                        base.id,
+                        node.func.attr,
+                        CLOCK_MODULE,
+                    )
+                )
+    return problems
+
+
 def render_cache_doc(audit: "Audit") -> str:
     """The generated cache inventory (`docs/cache-inventory.md`).
 
@@ -724,6 +781,9 @@ def main() -> int:
     failed = False
     for problem in verify_caches(audit):
         print("cache audit: %s" % problem, file=sys.stderr)
+        failed = True
+    for problem in verify_clock():
+        print("clock audit: %s" % problem, file=sys.stderr)
         failed = True
 
     current = TARGET.read_text(encoding="utf-8") if TARGET.exists() else ""

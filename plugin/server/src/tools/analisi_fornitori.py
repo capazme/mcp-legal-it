@@ -15,6 +15,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from src.lib import _clock
 from src.lib.vies import check_vat, checksum_partita_iva
 from src.server import mcp
 
@@ -246,7 +247,7 @@ def genera_report_fornitori(
     if not cliente or not cliente.strip():
         return "Errore di validazione: 'cliente' è obbligatorio"
 
-    data_analisi = data_analisi.strip() or date.today().strftime("%d/%m/%Y")
+    data_analisi = data_analisi.strip() or _clock.today().strftime("%d/%m/%Y")
     ordinate = _ordina(fornitori)
 
     wb = Workbook()

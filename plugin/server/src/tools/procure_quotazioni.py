@@ -11,6 +11,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
+from src.lib import _clock
 from src.server import mcp
 from src.lib._data import sourced
 
@@ -71,7 +72,7 @@ def _eur(value) -> str:
 def _data_lettere(data_doc: str) -> str:
     """Converte GG/MM/AAAA in forma estesa italiana; testo libero passa invariato."""
     if not data_doc:
-        oggi = date.today()
+        oggi = _clock.today()
         return f"{oggi.day} {_MESI[oggi.month - 1]} {oggi.year}"
     m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", data_doc.strip())
     if m:
