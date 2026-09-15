@@ -59,6 +59,13 @@ WRITE_OPEN_MODES = set("wax+")
 NET_READ_ATTRS = {"get", "request", "stream", "head", "Client", "AsyncClient"}
 NET_BASES = {"httpx", "client", "_client", "http", "_http", "session", "async_client"}
 LOCAL_LIB_MODULES = {"_data", "_result", "_egress", "_http"}
+# Evidence that a tool produces something for the user rather than refreshing a
+# cache: a document, a spreadsheet or a PDF handle.
+ARTIFACT_SIGNALS = {
+    "ctor Document()", "ctor Presentation()", "ctor Workbook()", "ctor FPDF()",
+    "ctor PDF()", "doc.save()", "wb.save()", "presentation.save()",
+}
+CACHE_BASES = ("cache", "disk_path", "hits_path", "url_params_path")
 
 TEMPLATE = '''"""MCP tool annotations, so hosts can tell a read-only lookup from a file writer.
 
@@ -75,6 +82,14 @@ The 17 tools that do write are listed in `WRITES_FILES` and get an explicit
 file, five of them write a document the user asked for. Neither group is
 `destructiveHint` -- they add or refresh files, they do not delete user data --
 so hosts that gate on destructiveness can still treat them as safe.
+
+The 12 cache writers are also in `CACHE_WRITES`: their only write goes under
+`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (`akn_acts/` for parsed acts,
+`brocardi_urls.json` for article URLs, `corte_cost/{kind}/{year}.json` for the
+Consulta massime, 7-day TTL). The writes are best-effort -- with an unwritable
+cache directory `cite_law()` still answers -- and relocating `MCP_CACHE_DIR` is
+the way to keep them out of a home directory; there is no switch that turns
+caching off entirely.
 
 `openWorldHint` marks the tools that reach outside the process (Normattiva,
 EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the %d
@@ -110,6 +125,12 @@ WRITES_FILES: frozenset[str] = frozenset({
 
 # Reaches an external service.
 OPEN_WORLD: frozenset[str] = frozenset({
+%s
+})
+
+# Subset of WRITES_FILES whose only write refreshes the local cache under
+# ${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}.
+CACHE_WRITES: frozenset[str] = frozenset({
 %s
 })
 
@@ -174,6 +195,7 @@ class Audit:
         self.imports: dict[str, dict[str, str]] = {}
         self.calls: dict[str, set[tuple[str, str]]] = {}
         self.evidence: dict[str, set[str]] = {}
+        self.sources: dict[str, str] = {}
         self.tools: dict[str, str] = {}
         self._collect()
 
@@ -233,6 +255,7 @@ class Audit:
                 if func.attr in WRITE_CTORS:
                     found.add("ctor %s()" % func.attr)
         self.calls[name] = body
+        self.sources[name] = ast.unparse(fn)
         if found:
             self.evidence[name] = found
         for child in fn.body:
@@ -289,33 +312,88 @@ class Audit:
 
         return self._reachable({fq: selector(fq)}, fq)
 
-    def writes_for(self, fq: str) -> list[str]:
-        def walk(name: str, seen: set[str], found: set[str]) -> None:
+    def chain(self, fq: str) -> list[str]:
+        """Every function reachable from `fq` inside src/, `fq` included."""
+        out: list[str] = []
+        seen: set[str] = set()
+
+        def walk(name: str) -> None:
             if name in seen:
                 return
             seen.add(name)
-            found |= self.evidence.get(name, set())
+            out.append(name)
             module = name.rsplit(".", 1)[0]
             for target, _ in self.calls.get(name, set()):
                 candidate = self._resolve(module, target)
                 if candidate:
-                    walk(candidate, seen, found)
+                    walk(candidate)
 
-        found: set[str] = set()
-        walk(fq, set(), found)
-        return sorted(found)
+        walk(fq)
+        return out
+
+    def write_sites(self, fq: str) -> list[tuple[str, str]]:
+        """(owning function, evidence) for every write reachable from `fq`."""
+        return [
+            (name, item)
+            for name in self.chain(fq)
+            for item in sorted(self.evidence.get(name, set()))
+        ]
+
+    def writes_for(self, fq: str) -> list[str]:
+        return sorted({item for _, item in self.write_sites(fq)})
+
+    def _module_has_cache_root(self, module: str) -> bool:
+        return any(
+            name.startswith(module + ".")
+            and ("MCP_CACHE_DIR" in source or "_cache_root" in source)
+            for name, source in self.sources.items()
+        )
+
+    def _site_is_cache(self, owner: str, item: str) -> bool:
+        """A write that only refreshes the cache under MCP_CACHE_DIR.
+
+        Document and archive constructors are artifacts whatever else the
+        module does with the cache, so they never count as cache writes.
+        """
+        if item.startswith("open(") or item in ARTIFACT_SIGNALS:
+            return False
+        lowered = item.lower()
+        if any(marker in lowered for marker in CACHE_BASES):
+            return True
+        source = self.sources.get(owner, "")
+        if "MCP_CACHE_DIR" in source or "_cache_root" in source:
+            return True
+        # The path often comes from a helper in the same client module
+        # (`_cache_root() / ...` assigned elsewhere, then written here).
+        return self._module_has_cache_root(owner.rsplit(".", 1)[0])
+
+    def cache_sources(self, fq: str) -> list[str]:
+        """Functions in the chain that resolve the MCP cache directory."""
+        return sorted(
+            name
+            for name in self.chain(fq)
+            if "MCP_CACHE_DIR" in self.sources.get(name, "") or "_cache_root" in self.sources.get(name, "")
+        )
+
+    def is_cache_only(self, fq: str) -> bool:
+        """True when every reachable write refreshes the local cache."""
+        sites = self.write_sites(fq)
+        return bool(sites) and all(self._site_is_cache(owner, item) for owner, item in sites)
 
     def policy(self) -> dict[str, list[str]]:
-        read_only, writes, open_world = [], [], []
+        read_only, writes, open_world, cache = [], [], [], []
         for fq in self.tools:
             evidence = self.writes_for(fq)
             (writes if evidence else read_only).append(self.tools[fq])
+            if evidence and self.is_cache_only(fq):
+                cache.append(self.tools[fq])
             if self._net(fq):
                 open_world.append(self.tools[fq])
         return {
             "read_only": sorted(read_only),
             "writes_files": sorted(writes),
             "open_world": sorted(open_world),
+            "cache_writes": sorted(cache),
         }
 
     def report(self) -> dict[str, dict]:
@@ -327,6 +405,8 @@ class Audit:
                 "read_only": not evidence,
                 "evidence": evidence,
                 "open_world": self._net(fq),
+                "cache_only": self.is_cache_only(fq),
+                "cache_sources": self.cache_sources(fq),
             }
         return out
 
@@ -350,6 +430,7 @@ def render(policy: dict[str, list[str]]) -> str:
         block(policy["read_only"]),
         block(policy["writes_files"]),
         block(policy["open_world"] or {"none"}),
+        block(policy["cache_writes"] or {"none"}),
     )
 
 
@@ -366,12 +447,13 @@ def main() -> int:
     rendered = render(policy)
 
     print(
-        "tools: %d | read-only: %d (%d local-only) | writes files: %d | open world: %d"
+        "tools: %d | read-only: %d (%d local-only) | writes files: %d (%d cache-only) | open world: %d"
         % (
             len(audit.tools),
             len(policy["read_only"]),
             len(set(policy["read_only"]) - set(policy["open_world"])),
             len(policy["writes_files"]),
+            len(policy["cache_writes"]),
             len(policy["open_world"]),
         )
     )

@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drift, `--json` stampa l'evidenza per tool); un middleware la applica su
   `tools/list` e `tests/unit/test_tool_annotations.py` fallisce se un tool esce
   dalla policy.
+- I 12 che scrivono una cache sono segnalati come tali (`CACHE_WRITES`): la
+  loro unica scrittura è sotto `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (atti
+  parsati, URL degli articoli Brocardi, massime della Consulta), cosa diversa
+  dai 5 che producono un documento. La cache è best-effort e rilocabile, non
+  esiste un interruttore per disattivarla.
+- `tests/unit/test_read_only_contract.py` dimostra la promessa read-only a
+  runtime: il server viene avviato con `HOME` e `MCP_CACHE_DIR` propri, tutti i
+  168 tool read-only locali vengono chiamati con argomenti generati dal loro
+  input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
+  un file creato, cancellato o modificato fa fallire il test. Tutti e 168 hanno
+  risposto e nulla è cambiato.
 
 ### Fixed
 - `start_server.sh` è indipendente dal PATH: gli host GUI (Claude Desktop,

@@ -12,7 +12,7 @@ import sys
 
 from fastmcp import Client
 from src.server import mcp
-from src.tool_annotations import READ_ONLY, WRITES_FILES, annotations_for
+from src.tool_annotations import CACHE_WRITES, READ_ONLY, WRITES_FILES, annotations_for
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
@@ -64,6 +64,49 @@ def test_policy_matches_the_audit_script():
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+def _audit():
+    sys.path.insert(0, str(REPO / "scripts"))
+    try:
+        from audit_tool_annotations import Audit  # type: ignore[import-not-found]
+    finally:
+        sys.path.pop(0)
+    from pathlib import Path
+
+    return Audit(Path(REPO / "plugin/server/src"))
+
+
+def test_cache_writers_refresh_a_cache_and_nothing_else():
+    """Every cache writer must reach a directory resolved from MCP_CACHE_DIR.
+
+    A tool that claims to only refresh the cache but resolves a path some other
+    way would write wherever it likes without anyone noticing.
+    """
+    assert CACHE_WRITES <= WRITES_FILES
+    assert not (CACHE_WRITES & READ_ONLY)
+    audit = _audit()
+    for name in sorted(CACHE_WRITES):
+        fq = next(f for f, tool in audit.tools.items() if tool == name)
+        assert audit.is_cache_only(fq), name
+        documented = audit.cache_sources(fq) or [
+            owner
+            for owner, item in audit.write_sites(fq)
+            if "cache" in item.lower()
+        ]
+        assert documented, "%s refreshes a cache but never resolves one" % name
+
+
+def test_document_generators_are_not_cache_writes():
+    for name in (
+        "esporta_atto_docx",
+        "genera_quotazione_docx",
+        "genera_procura_liti_docx",
+        "genera_report_fornitori",
+        "download_law_pdf",
+    ):
+        assert name in WRITES_FILES
+        assert name not in CACHE_WRITES
 
 
 def test_audit_sees_the_write_in_a_document_generator():
