@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "tegm"
+ ],
+ "tools": {
+  "verifica_usura": {
+   "arguments": {
+    "tasso_applicato": 5.0
+   },
+   "expected": "{\"tasso_applicato_pct\":5.0,\"tipo_operazione\":\"mutuo_prima_casa\",\"descrizione\":\"Mutui ipotecari a tasso fisso\",\"trimestre\":\"2026-Q3\",\"tegm_pct\":4.21,\"tasso_soglia_pct\":9.26,\"formula\":\"min(TEGM×1.25+4, TEGM+8) = min(9.26, 12.21)\",\"usurario\":false,\"prossimo_a_usura\":false,\"margine\":4.26,\"riferimento_normativo\":\"Art. 644 c.p. — L. 108/1996 — DL 70/2011 conv. L. 106/2011\",\"dati_applicati\":[\"tegm: copre fino al 30/09/2026 (decreti MEF trimestrali ex L. 108/1996, CSV Banca d'Italia)\"]}"
+  }
+ }
+}

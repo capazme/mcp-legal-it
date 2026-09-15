@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "tribunali_competenti"
+ ],
+ "tools": {
+  "cerca_ufficio_giudiziario": {
+   "arguments": {
+    "comune": "x"
+   },
+   "expected": "{\"comune\":\"x\",\"tipo\":\"tribunale\",\"trovato\":false,\"nota\":\"Comune 'x' non presente nella tabella dei principali circondari. Consultare il sito del Ministero della Giustizia per la competenza territoriale.\",\"riferimento_normativo\":\"R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario\",\"dati_applicati\":[\"tribunali competenti: provenienza e data non verificate. Controllare la fonte prima dell'uso in un atto.\"]}"
+  }
+ }
+}

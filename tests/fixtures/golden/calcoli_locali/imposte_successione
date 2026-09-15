@@ -1,0 +1,20 @@
+{
+ "datasets": [
+  "imposte_successione"
+ ],
+ "tools": {
+  "imposte_compravendita": {
+   "arguments": {
+    "prezzo": 10000.0
+   },
+   "expected": "{\"prezzo\":10000.0,\"tipo_immobile\":\"abitazione\",\"prima_casa\":false,\"da_costruttore\":false,\"imposta_registro_aliquota_pct\":9,\"imposta_registro\":1000,\"imposta_ipotecaria\":50,\"imposta_catastale\":50,\"totale_imposte\":1100,\"riferimento_normativo\":\"DPR 131/1986 — TU Imposta di registro\",\"dati_applicati\":[\"imposte successione: provenienza e data non verificate — la disciplina di successioni e donazioni è stata riformata di recente: riconciliare aliquote e franchigie. Controllare la fonte prima dell'uso in un atto.\"]}"
+  },
+  "imposte_successione": {
+   "arguments": {
+    "parentela": "coniuge_linea_retta",
+    "valore_beni": 500000.0
+   },
+   "expected": "{\"valore_beni\":500000.0,\"parentela\":\"coniuge_linea_retta\",\"franchigia\":1000000,\"base_imponibile\":0,\"aliquota_pct\":4,\"imposta_successione\":0.0,\"totale_imposte\":0.0,\"riferimento_normativo\":\"TU 346/1990 — Imposta sulle successioni e donazioni\",\"dati_applicati\":[\"imposte successione: provenienza e data non verificate — la disciplina di successioni e donazioni è stata riformata di recente: riconciliare aliquote e franchigie. Controllare la fonte prima dell'uso in un atto.\"]}"
+  }
+ }
+}
