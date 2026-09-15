@@ -5,6 +5,7 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
+from src.lib import _clock
 from src.server import mcp
 from src.lib._data import sourced
 
@@ -602,7 +603,7 @@ def prescrizione_diritti(
         data_prescrizione = date(dt_evento.year + anni, dt_evento.month, dt_evento.day)
     except ValueError:
         data_prescrizione = date(dt_evento.year + anni, dt_evento.month, 28)
-    oggi = date.today()
+    oggi = _clock.today()
     prescritto = oggi > data_prescrizione
     giorni_mancanti = (data_prescrizione - oggi).days if not prescritto else 0
 
@@ -643,7 +644,7 @@ def calcolo_tempo_trascorso(
         except ValueError:
             return {"errore": "data_fine non valida, usare formato YYYY-MM-DD"}
     else:
-        dt_fine = date.today()
+        dt_fine = _clock.today()
 
     if dt_fine < dt_inizio:
         return {"errore": "data_fine deve essere uguale o successiva a data_inizio"}
@@ -752,7 +753,7 @@ def calcolo_eta_anagrafica(
         except ValueError:
             return {"errore": "data_riferimento non valida, usare formato YYYY-MM-DD"}
     else:
-        dt_rif = date.today()
+        dt_rif = _clock.today()
 
     if dt_rif < dt_nascita:
         return {"errore": "La data di riferimento deve essere successiva alla data di nascita"}

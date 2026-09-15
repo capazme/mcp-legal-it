@@ -26,96 +26,19 @@ Run just this file with:
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import pathlib
 import shutil
-import subprocess
-import sys
-import time
 
 import pytest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
-LAUNCHER_SERVER = REPO / "plugin/server/run_server.py"
-
-# Arguments the schema cannot express well enough: enums worth pinning, names
-# that look like dates but are not, free-form strings with a documented format.
-CURATED = {
-    "codice_fiscale": {"nome": "Mario", "cognome": "Rossi", "data_nascita": "1980-01-01",
-                       "sesso": "M", "comune_nascita": "Roma"},
-    "verifica_iban": {"iban": "IT60X0542811101000000123456"},
-    "verifica_partita_iva": {"partita_iva": "12345678903"},
-    "scorporo_iva": {"importo": 1220, "aliquota": 22},
-    "calcolo_hash": {"testo": "contratto"},
-    "cerca_codice_tributo": {"query": "1001"},
-    "cerca_gazzetta_ufficiale": {"query": "decreto"},
-    "verifica_mediazione_obbligatoria": {"materia": "condominio"},
-}
-# Free-form strings: an empty value usually makes the tool reject the call
-# before doing any work, which would prove nothing.
-STRING_HINTS = (
-    ("query", "condominio"), ("testo", "testo di prova"), ("riferimento", "art. 2043 c.c."),
-    ("articolo", "art. 2043 c.c."), ("norma", "art. 2043 c.c."), ("materia", "civile"),
-    ("tipo", "ordinario"), ("nome", "Mario"), ("cognome", "Rossi"), ("titolo", "Atto"),
-    ("descrizione", "descrizione"), ("iban", "IT60X0542811101000000123456"),
-    ("piva", "12345678903"), ("testo_contratto", "locazione"), ("query_text", "eredità"),
+from .mcp_harness import (
+    REPO,
+    arguments_for as _arguments,
+    call_tools as _call_tools,
+    server_env,
+    tools as _tools,
 )
-
-
-def _value_for(name: str, schema: dict):
-    if "enum" in schema:
-        return schema["enum"][0]
-    if "default" in schema:
-        return schema["default"]
-    kind = schema.get("type")
-    lowered = name.lower()
-    if kind == "boolean":
-        return True
-    if kind == "array":
-        item = schema.get("items") or {}
-        if item.get("type") in ("integer", "number"):
-            return [1]
-        return ["x"]
-    if kind in ("number", "integer"):
-        if any(key in lowered for key in ("percentuale", "tasso", "aliquota", "pct", "interesse")):
-            return 5.0 if kind == "number" else 5
-        if lowered.startswith("anno") or lowered.endswith("_anno"):
-            return 2024 if kind == "integer" else 2024.0
-        if "giorni" in lowered:
-            return 30 if kind == "integer" else 30.0
-        if "mesi" in lowered:
-            return 12 if kind == "integer" else 12.0
-        if "anni" in lowered:
-            return 10 if kind == "integer" else 10.0
-        if any(key in lowered for key in ("n_", "numero", "num_", "quantita", "count")):
-            return 2 if kind == "integer" else 2.0
-        return 10000.0 if kind == "number" else 10000
-    if kind == "string" or kind is None:
-        if lowered.startswith("data") or lowered.endswith("_data"):
-            return "2023-01-01"
-        for hint, value in STRING_HINTS:
-            if hint in lowered:
-                return value
-        return "x"
-    return None
-
-
-def _arguments(tool: dict) -> dict:
-    name = tool["name"]
-    if name in CURATED:
-        return CURATED[name]
-    schema = tool.get("inputSchema") or {}
-    properties = schema.get("properties") or {}
-    required = schema.get("required") or []
-    args = {}
-    for prop, spec in properties.items():
-        if prop not in required and "default" in spec:
-            continue
-        value = _value_for(prop, spec)
-        if value is not None:
-            args[prop] = value
-    return args
 
 
 def _fingerprint(paths) -> dict:
@@ -142,57 +65,6 @@ def _fingerprint(paths) -> dict:
     return out
 
 
-def _call_tools(env, tool_names, arguments_by_tool, timeout):
-    """Start the server in `env` and call every tool, one request per tool."""
-    proc = subprocess.Popen(
-        [sys.executable, str(LAUNCHER_SERVER)],
-        cwd=str(REPO),
-        env=env,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-    )
-    results = {}
-    try:
-        requests = [
-            {"jsonrpc": "2.0", "id": 1, "method": "initialize",
-             "params": {"protocolVersion": "2025-06-18", "capabilities": {},
-                        "clientInfo": {"name": "read-only-contract", "version": "1"}}},
-            {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
-        ]
-        request_id = 2
-        by_id = {}
-        for name in tool_names:
-            requests.append({"jsonrpc": "2.0", "id": request_id, "method": "tools/call",
-                             "params": {"name": name, "arguments": arguments_by_tool[name]}})
-            by_id[request_id] = name
-            request_id += 1
-        for request in requests:
-            proc.stdin.write(json.dumps(request) + "\n")
-            proc.stdin.flush()
-        deadline = time.time() + timeout
-        while len(results) < len(tool_names) and time.time() < deadline:
-            line = proc.stdout.readline()
-            if not line:
-                break
-            try:
-                message = json.loads(line)
-            except ValueError:
-                continue
-            name = by_id.get(message.get("id"))
-            if name:
-                results[name] = message
-    finally:
-        proc.terminate()
-        try:
-            proc.stderr.close()
-        except Exception:
-            pass
-    return results
-
-
 @pytest.mark.skipif(shutil.which("uv") is None, reason="no uv: cannot provision the server")
 def test_local_read_only_tools_do_not_touch_the_disk(tmp_path):
     tools = _tools()
@@ -209,23 +81,8 @@ def test_local_read_only_tools_do_not_touch_the_disk(tmp_path):
     watched = [tmp_path, REPO, real_cache]
     before = _fingerprint(watched)
 
-    env = {
-        "HOME": str(sandbox),
-        "XDG_CACHE_HOME": str(sandbox / ".cache"),
-        "MCP_CACHE_DIR": str(sandbox / "mcp-cache"),
-        "USER": os.environ.get("USER", "user"),
-        "LOGNAME": os.environ.get("LOGNAME", "user"),
-        "SHELL": "/bin/zsh",
-        "TMPDIR": str(tmp_path),
-        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-        "PYTHONDONTWRITEBYTECODE": "1",
-        # FastMCP itself would otherwise phone home to PyPI and drop a
-        # version_cache.json in the (sandboxed) user data dir, which this test
-        # would report as a write by a legal tool.
-        "FASTMCP_CHECK_FOR_UPDATES": "off",
-        "FASTMCP_SHOW_SERVER_BANNER": "false",
-    }
-    arguments = {tool["name"]: _arguments(tool) for tool in local}
+    env = server_env(sandbox, tmp_path)
+    arguments = {tool['name']: _arguments(tool) for tool in local}
     results = _call_tools(env, [tool["name"] for tool in local], arguments, timeout=600)
 
     after = _fingerprint(watched)
@@ -278,22 +135,3 @@ def test_cache_writers_survive_an_unwritable_cache(tmp_path):
         os.chmod(locked, 0o700)
 
 
-def _tools():
-    """The tool manifest, read from the server in a throwaway sandbox."""
-    import asyncio
-
-    from fastmcp import Client
-    from src.server import mcp
-
-    async def run():
-        async with Client(mcp) as client:
-            return await client.list_tools()
-
-    return [
-        {
-            "name": tool.name,
-            "inputSchema": tool.inputSchema,
-            "annotations": tool.annotations.model_dump() if tool.annotations else None,
-        }
-        for tool in asyncio.run(run())
-    ]

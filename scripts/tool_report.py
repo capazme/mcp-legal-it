@@ -208,8 +208,12 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "one of the <code>src/lib</code> clients. "
         "<code>scripts/audit_tool_annotations.py --check</code> fails the suite when the "
         "committed policy drifts from the source, and "
-        "<code>tests/unit/test_read_only_contract.py</code> runs the read-only tools and "
-        "asserts the filesystem did not change. "
+        "<code>tests/unit/test_read_only_contract.py</code> calls all 168 local ones and "
+        "asserts the filesystem did not change, and "
+        "<code>tests/unit/test_golden_calcoli.py</code> pins what they answer "
+        "(<code>tests/fixtures/golden/calcoli_locali.json</code>) with the clock frozen "
+        "via <code>LEGAL_TODAY</code>/<code>LEGAL_NOW</code>, so a refreshed rate or a "
+        "corrected parameter fails the suite instead of silently changing the advice. "
         "<code>LEGAL_CACHE=off</code> keeps the cache writers off the disk entirely.</p>"
     )
     if problems:

@@ -6,6 +6,7 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
+from src.lib import _clock
 from src.server import mcp
 
 _DATA = Path(__file__).parent.parent / "data"
@@ -27,7 +28,7 @@ def _add_days(d: date, giorni: int) -> date:
 
 def _calcola_irpef_semplificata(imponibile: float) -> float:
     """Stima IRPEF lorda su imponibile annuo usando scaglioni vigenti."""
-    scaglioni = _IRPEF.get("scaglioni_per_anno", {}).get(str(date.today().year), _IRPEF["scaglioni"])
+    scaglioni = _IRPEF.get("scaglioni_per_anno", {}).get(str(_clock.today().year), _IRPEF["scaglioni"])
     imposta = 0.0
     residuo = imponibile
     prev_limit = 0
@@ -288,7 +289,7 @@ def scadenze_licenziamento(
     dt_deposito = _add_days(dt_impugnazione, 180)
     dt_post_conciliazione = _add_days(dt_deposito, 60)
 
-    oggi = date.today()
+    oggi = _clock.today()
 
     def _stato(dt: date) -> str:
         delta = (dt - oggi).days
