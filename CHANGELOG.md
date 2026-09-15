@@ -22,8 +22,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The 12 cache writers are flagged as such (`CACHE_WRITES`): their only write
   refreshes `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (parsed acts, Brocardi
   article URLs, Consulta massime), which is worth telling apart from the 5 tools
-  that produce a document. Caching is best-effort and relocatable, with no
-  switch that turns it off.
+  that produce a document.
+- `LEGAL_CACHE=off` (also `no`, `false`, `0`, `none`, `disabled`) keeps the
+  server off the disk entirely: the cache directory is then never read and never
+  created, and the caches live in memory for the life of the process (the parses
+  still work, they are just not persisted). `src/lib/_cache.py` is the single
+  module that reads the switch and resolves `MCP_CACHE_DIR`; `MCP_CACHE_DIR`
+  alone only relocates the files.
+- The cache side is audited too. `scripts/audit_tool_annotations.py` declares
+  every cache location (`CACHE_LOCATIONS`) and fails when a module starts
+  resolving a cache directory without being declared, when a declared cache
+  loses its literals, or when a cache writer stops consulting the switch; the
+  generated inventory is `docs/cache-inventory.md` (location, files, retention,
+  writer module and the tools that can touch it), compared by `--check` just
+  like the annotation policy. `tests/unit/test_cache_switch.py` proves the
+  switch, including that with `LEGAL_CACHE=off` not even the directory appears.
+- `scripts/tool_report.py` renders the surface as a single self-contained page
+  (`docs/tool-report.html`): the 221 tools split into 168 read-only local, 36
+  read-only external, 12 cache refreshers and 5 document generators, with the
+  service each external tool reaches and the cache directory each writer can
+  touch. It is built from the same audit as the annotations, so the page and the
+  policy cannot disagree.
 - `tests/unit/test_read_only_contract.py` proves the read-only claim at runtime:
   the server is started with its own `HOME` and `MCP_CACHE_DIR`, all 168 local
   read-only tools are called with arguments generated from their input schema,
