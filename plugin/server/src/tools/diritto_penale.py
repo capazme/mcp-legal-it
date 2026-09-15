@@ -4,6 +4,7 @@
 from datetime import date, timedelta
 from math import ceil
 
+from src.lib import _clock
 from src.server import mcp
 
 
@@ -277,7 +278,7 @@ def prescrizione_reato(
     if sospensioni_giorni > 0:
         dt_prescrizione += timedelta(days=sospensioni_giorni)
 
-    oggi = date.today()
+    oggi = _clock.today()
     prescritto = oggi >= dt_prescrizione
 
     return {

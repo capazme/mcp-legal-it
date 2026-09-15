@@ -37,6 +37,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   writer module and the tools that can touch it), compared by `--check` just
   like the annotation policy. `tests/unit/test_cache_switch.py` proves the
   switch, including that with `LEGAL_CACHE=off` not even the directory appears.
+- The wall clock has one reader (`src/lib/_clock.py`) and `LEGAL_TODAY` /
+  `LEGAL_NOW` pin it. Several tools are "as of today" by design (prescriptions,
+  deadlines, the current IRPEF brackets, the running year for the Consulta
+  dumps): without an override they cannot be reproduced, so a test on their
+  numbers could either rot with the calendar or skip the most interesting half
+  of the surface. The audit fails on any `date.today()`/`datetime.now()` call
+  outside that module, so a new tool cannot opt out of being pinnable.
+- `tests/unit/test_golden_calcoli.py` freezes what the 168 local read-only tools
+  answer in `tests/fixtures/golden/calcoli_locali.json` (arguments + expected
+  answer, pinned to `LEGAL_TODAY`/`LEGAL_NOW`, truncated at 4000 characters where
+  an answer is a whole document). A refreshed table (`indici_foi.json`,
+  `tassi_legali.json`, `parametri_forensi.json`, `tabella_danno_bio.json`) or a
+  mistyped bracket now fails with the tool name and the numbers that moved:
+  changing a single FOI index flags 12 of the 168. Regenerate deliberately with
+  `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`; the reference is
+  also checked for being pinned, complete, free of error payloads and free of
+  local paths.
+- The stdio harness the runtime tests share now lives in
+  `tests/unit/mcp_harness.py`, and its argument generation fills object-shaped
+  parameters (rows like `eredi`, `acconti`, `voci`, `rischi`) and picks dates by
+  role (`data_inizio`/`data_fine`, `anno_partenza`/`anno_arrivo`) instead of one
+  value for every `data_*`. All 168 local read-only tools now answer with a real
+  result, where 12 previously came back with a validation error.
 - `scripts/tool_report.py` renders the surface as a single self-contained page
   (`docs/tool-report.html`): the 221 tools split into 168 read-only local, 36
   read-only external, 12 cache refreshers and 5 document generators, with the

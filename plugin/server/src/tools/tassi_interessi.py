@@ -6,6 +6,7 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
+from src.lib import _clock
 from src.server import mcp
 from src.lib._data import sourced
 
@@ -422,7 +423,7 @@ def verifica_usura(
             quarter = trimestri[trimestre]
         else:
             # Auto-detect quarter from today's date; fallback to last available
-            today = date.today()
+            today = _clock.today()
             quarter = None
             for q_key in sorted(trimestri):
                 q = trimestri[q_key]
