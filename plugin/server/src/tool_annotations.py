@@ -1,11 +1,12 @@
 """MCP tool annotations, so hosts can tell a read-only lookup from a file writer.
 
 `readOnlyHint` is asserted only for tools whose implementation cannot reach any
-filesystem or network write: the call graph of every implementation in `src/`
-was walked (decorated function -> helpers -> imported clients) looking for
-`open(..., "w"/"a"/"x")`, `Path.write_text/write_bytes`, `mkdir`, `unlink`,
-`replace`, `shutil.*`, the document constructors (`Document`, `Workbook`,
-`FPDF`, `ZipFile`) and HTTP verbs that mutate (`post`, `put`, `patch`).
+filesystem or network write: `scripts/audit_tool_annotations.py` walks the call
+graph of every `@mcp.tool()` function in `src/` (helpers and imported clients
+included) looking for `open(..., "w"/"a"/"x")`, `Path.write_text/write_bytes`,
+`mkdir`, `unlink`, `replace`, `shutil.*`, the document constructors
+(`Document`, `Workbook`, `FPDF`, `ZipFile`) and HTTP verbs that mutate
+(`post`, `put`, `patch`).
 
 The 17 tools that do write are listed in `WRITES_FILES` and get an explicit
 `readOnlyHint=False` instead of being left blank: most of them write a cache
@@ -22,6 +23,9 @@ local-only ones are pure calculations over the bundled JSON tables.
 be a diff nobody can review, and the audit rule is easier to re-run than to
 re-derive. The policy is checked against the registered tools on the first
 listing, so a renamed tool is reported instead of silently losing its hint.
+
+Regenerate this file with `python scripts/audit_tool_annotations.py --write`;
+`--check` fails the suite when it drifts from the source.
 """
 
 from __future__ import annotations

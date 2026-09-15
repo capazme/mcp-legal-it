@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   un file restano dietro un'approvazione esplicita. La classificazione è
   ricavata dal grafo delle chiamate (funzione decorata → helper → client
   importati: `open(..., "w")`, `write_text`, i costruttori di documenti, i
-  verbi HTTP che mutano) e vive in `src/tool_annotations.py`; un middleware la
-  applica su `tools/list` e `tests/unit/test_tool_annotations.py` fallisce se un
-  tool esce dalla policy.
+  verbi HTTP che mutano). Vive in `src/tool_annotations.py`, generato da
+  `scripts/audit_tool_annotations.py` (`--check` fallisce la suite in caso di
+  drift, `--json` stampa l'evidenza per tool); un middleware la applica su
+  `tools/list` e `tests/unit/test_tool_annotations.py` fallisce se un tool esce
+  dalla policy.
 
 ### Fixed
 - `start_server.sh` è indipendente dal PATH: gli host GUI (Claude Desktop,
