@@ -26,7 +26,7 @@ Upstream casing is inconsistent ('Cc_Opendata_Pronunce_*' vs
 below, NEVER derived.
 
 Cache: (MCP_CACHE_DIR or ~/.cache/mcp-legal-it)/corte_cost/{kind}/{year}.json,
-7-day TTL. On a miss the relevant DECADE bundle is downloaded once, every
+7-day TTL; `LEGAL_CACHE=off` disables it (see lib/_cache.py). On a miss the relevant DECADE bundle is downloaded once, every
 nested year ZIP is unzipped in-memory, latin-1-decoded, and written to the
 per-year cache. Downloads are lazy per decade.
 """
@@ -42,6 +42,7 @@ from pathlib import Path
 
 import httpx
 
+from src.lib._cache import cache_enabled, cache_root
 from src.lib._http import retry_request
 
 _BASE = "https://dati.cortecostituzionale.it/opendata/distribuzione"
@@ -141,9 +142,7 @@ class PronunciaCost:
 # ---------------------------------------------------------------------------
 
 def _cache_root() -> Path:
-    base = os.environ.get("MCP_CACHE_DIR")
-    root = Path(base) if base else Path.home() / ".cache" / "mcp-legal-it"
-    return root / "corte_cost"
+    return cache_root() / "corte_cost"
 
 
 def _cache_path(kind: str, year: int) -> Path:
@@ -151,12 +150,14 @@ def _cache_path(kind: str, year: int) -> Path:
 
 
 def _cache_fresh(path: Path) -> bool:
-    if not path.exists():
+    if not cache_enabled() or not path.exists():
         return False
     return (time.time() - path.stat().st_mtime) < _CACHE_TTL_SECONDS
 
 
 def _read_cache(path: Path) -> list[dict]:
+    if not cache_enabled():
+        return []
     try:
         with path.open("r", encoding="utf-8") as fh:
             return json.load(fh)
@@ -169,6 +170,8 @@ def _read_cache(path: Path) -> list[dict]:
 
 
 def _write_cache(path: Path, records: list[dict]) -> None:
+    if not cache_enabled():
+        return
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
     with tmp.open("w", encoding="utf-8") as fh:

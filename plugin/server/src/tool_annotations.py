@@ -15,12 +15,14 @@ file, five of them write a document the user asked for. Neither group is
 so hosts that gate on destructiveness can still treat them as safe.
 
 The 12 cache writers are also in `CACHE_WRITES`: their only write goes under
-`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (`akn_acts/` for parsed acts,
-`brocardi_urls.json` for article URLs, `corte_cost/{kind}/{year}.json` for the
-Consulta massime, 7-day TTL). The writes are best-effort -- with an unwritable
-cache directory `cite_law()` still answers -- and relocating `MCP_CACHE_DIR` is
-the way to keep them out of a home directory; there is no switch that turns
-caching off entirely.
+`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (`akn_acts/` for parsed acts, the hit
+counter and the URL-params index, `brocardi_urls.json` for article URLs,
+`corte_cost/{kind}/{year}.json` for the Consulta massime, 7-day TTL). The
+writes are best-effort -- with an unwritable cache directory `cite_law()` still
+answers -- and `LEGAL_CACHE=off` keeps the server off the disk entirely: the
+directory is then never read nor created (`src/lib/_cache.py` is the one module
+that reads the switch, and the only one that resolves `MCP_CACHE_DIR`).
+`docs/cache-inventory.md` carries the per-cache and per-tool detail.
 
 `openWorldHint` marks the tools that reach outside the process (Normattiva,
 EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 168
