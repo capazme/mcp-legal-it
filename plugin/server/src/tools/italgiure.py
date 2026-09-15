@@ -823,6 +823,7 @@ async def _giurisprudenza_articolo_impl(
                     act_info["tipo_atto"],
                     articolo,
                     act_info.get("numero_atto", ""),
+                    act_info.get("data", ""),
                 )
                 if brocardi_result.error:
                     brocardi_result = None

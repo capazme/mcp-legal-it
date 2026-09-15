@@ -403,6 +403,7 @@ async def _mappa_orientamento_impl(
                     act_info["tipo_atto"],
                     articolo,
                     act_info.get("numero_atto", ""),
+                    act_info.get("data", ""),
                 )
                 if brocardi_result and not brocardi_result.error and brocardi_result.massime:
                     n_massime = len(brocardi_result.massime)
