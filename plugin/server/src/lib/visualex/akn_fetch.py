@@ -28,6 +28,7 @@ from pathlib import Path
 
 import httpx
 
+from .. import _clock
 from .._cache import cache_enabled, cache_root
 from .akn_parser import ParsedAct, ParsedPart, parse_akn
 
@@ -305,7 +306,7 @@ def _extract_params(html: str) -> "tuple[str, str] | None":
 # ---------------------------------------------------------------------------
 
 def _today_vigenza() -> str:
-    return date.today().strftime("%Y%m%d")
+    return _clock.today().strftime("%Y%m%d")
 
 
 async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct | None":

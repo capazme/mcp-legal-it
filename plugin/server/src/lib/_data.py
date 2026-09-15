@@ -24,6 +24,8 @@ from datetime import date, timedelta
 from functools import lru_cache, wraps
 from pathlib import Path
 
+from . import _clock
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 #: Nobody has established this table's currency yet.
@@ -68,7 +70,7 @@ class Vintage:
         if self.copre_fino_a is None:
             return False
         limite = self.copre_fino_a + timedelta(days=self.tolleranza_giorni)
-        return limite < (oggi or date.today())
+        return limite < (oggi or _clock.today())
 
     def to_line(self) -> str:
         """One human-readable line, in Italian, for a tool's answer."""

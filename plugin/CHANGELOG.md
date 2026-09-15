@@ -38,6 +38,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   come fa con la policy. `tests/unit/test_cache_switch.py` dimostra
   l'interruttore, incluso il fatto che con `LEGAL_CACHE=off` non compare
   nemmeno la directory.
+- L'orologio di sistema ha un solo lettore (`src/lib/_clock.py`) e
+  `LEGAL_TODAY` / `LEGAL_NOW` lo bloccano. Diversi tool sono "alla data odierna"
+  per natura (prescrizioni, scadenze, scaglioni IRPEF correnti, anno in corso
+  per i dump della Consulta): senza un override non sono riproducibili, quindi
+  un test sui loro numeri o marcisce col calendario o rinuncia alla metà più
+  interessante della superficie. L'audit fallisce su qualunque chiamata a
+  `date.today()`/`datetime.now()` fuori da quel modulo, così un tool nuovo non
+  può sottrarsi all'essere bloccabile.
+- `tests/unit/test_golden_calcoli.py` congela quello che rispondono i 168 tool
+  di calcolo locali in `tests/fixtures/golden/calcoli_locali.json` (argomenti +
+  risposta attesa, bloccati su `LEGAL_TODAY`/`LEGAL_NOW`, troncati a 4000
+  caratteri dove la risposta è un documento intero). Una tabella rinfrescata
+  (`indici_foi.json`, `tassi_legali.json`, `parametri_forensi.json`,
+  `tabella_danno_bio.json`) o uno scaglione digitato male ora fanno fallire il
+  test con il nome del tool e i numeri che si sono mossi: cambiare un singolo
+  indice FOI ne segnala 12 su 168. Si rigenera deliberatamente con
+  `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`; il riferimento
+  viene anche verificato come bloccato, completo, senza payload di errore e
+  senza path locali.
+- L'harness stdio condiviso dai test di runtime vive ora in
+  `tests/unit/mcp_harness.py` e la generazione degli argomenti riempie i
+  parametri a oggetto (righe come `eredi`, `acconti`, `voci`, `rischi`) e
+  sceglie le date per ruolo (`data_inizio`/`data_fine`,
+  `anno_partenza`/`anno_arrivo`) invece di un unico valore per ogni `data_*`.
+  Tutti e 168 i tool di calcolo locali rispondono ora con un risultato vero,
+  mentre prima 12 tornavano con un errore di validazione.
 - `scripts/tool_report.py` rende la superficie una pagina autonoma
   (`docs/tool-report.html`): i 221 tool divisi in 168 read-only locali, 36
   read-only esterni, 12 che aggiornano la cache e 5 che generano documenti, con

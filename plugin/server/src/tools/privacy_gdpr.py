@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from src.lib import _clock
 from src.server import mcp
 from src.lib._data import sourced
 
@@ -1876,7 +1877,7 @@ def _genera_notifica_data_breach_impl(
     termine_scadenza = scadenza_72h.strftime("%d/%m/%Y ore %H:%M")
 
     # Ore trascorse dalla scoperta
-    ora_attuale = datetime.now()
+    ora_attuale = _clock.now()
     ore_trascorse = (ora_attuale - dt_scoperta).total_seconds() / 3600
     scadenza_superata = ore_trascorse > 72
 
