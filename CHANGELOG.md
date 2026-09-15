@@ -307,6 +307,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes, and the audit pins which tool may name which source.
 
 ### Fixed
+- Brocardi annotations for every act that is not a codice. `find_brocardi_url`
+  matched the act name as a substring of the table labels, so a resolved
+  `("decreto legislativo", 2001-06-08, 231)` never found `"(D.lgs. 8 giugno
+  2001, n. 231)"` (46 of the 100 Brocardi sources had no page) and every
+  `legge` fell into the first label containing the word — `art. 18 Statuto
+  dei lavoratori` returned the massime of art. 18 legge fallimentare, legge
+  Gelli those of L. 241/1990, legge Pinto those of the divorce law (13 wrong
+  pages). The table labels are now parsed once into the identity (tipo,
+  anno, numero) — `parse_brocardi_estremi` — and a citation matches only its
+  own identity, by name for the labels without extremes (Costituzione,
+  Preleggi, CCNL); a citation without a year matches only when the number is
+  unique for that tipo; a Brocardi name paired with extremes resolves only
+  if they are its own, and explicit extremes that contradict a codice's URN
+  name the act themselves (`codice dei contratti pubblici` + 50/2016 is the
+  abrogated code). The act date now travels from the resolver to the
+  Brocardi client at every call site (`fetch_brocardi(..., data=)` from
+  `cite_law`, `cerca_brocardi`, `fetch_law_annotations`, `mappa_orientamento`,
+  `giurisprudenza_articolo`; `fetch_annotations`), which is what tells
+  D.lgs. 81/2008 from D.lgs. 81/2015. No substring fallback remains: an act
+  that is not on Brocardi says so. 97/101 of the sources listed at
+  brocardi.it/fonti.html now resolve by name (was 35).
+- Brocardi table completed against the fonti index: disposizioni di
+  attuazione c.p.p. (D.lgs. 271/1989) and the abrogated codice dei contratti
+  pubblici (D.lgs. 50/2016, reachable only by explicit citation — the name
+  still resolves to D.lgs. 36/2023); D.L. 18/2020 "Cura Italia" reaches the
+  page Brocardi files under its conversion law; the TU maternità label
+  carries its estremi (D.lgs. 151/2001). Resolver aliases for the GDPR's full
+  name, disp. att. c.p.p., and the quoted nicknames `Decreto "Sostegni"` etc.
+  `scripts/generate_atti_denominati.py` reuses the same parser. New live gate
+  `tests/unit/test_brocardi_codici_live.py` fetches every table URL and diffs
+  the table against the fonti index.
 - Data refresh: FOI index for August 2026 (ISTAT, 16-09-2026: 103,7 in base
   2025=100 → 125,9 linked to 2015=100; official variations +3,4% / +4,8%,
   recorded without a Gazzetta reference until the comunicato is published).

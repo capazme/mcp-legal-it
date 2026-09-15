@@ -308,7 +308,7 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False) -> s
     if include_annotations and article:
         try:
             brocardi = await fetch_brocardi(
-                act_info["tipo_atto"], article, act_info.get("numero_atto", "")
+                act_info["tipo_atto"], article, act_info.get("numero_atto", ""), act_info.get("data", "")
             )
             if not brocardi.error:
                 brocardi_md = "\n\n---\n" + brocardi.to_markdown()
@@ -336,7 +336,7 @@ async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", a
 async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Implementation of fetch_law_annotations (testable without MCP wrapper)."""
     try:
-        result = await fetch_brocardi(act_type, article, act_number)
+        result = await fetch_brocardi(act_type, article, act_number, date)
         return result.to_markdown()
     except Exception as e:
         return f"**Errore Brocardi**: {e}"
@@ -418,7 +418,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
 
     try:
         result = await fetch_brocardi(
-            act_info["tipo_atto"], article, act_info.get("numero_atto", "")
+            act_info["tipo_atto"], article, act_info.get("numero_atto", ""), act_info.get("data", "")
         )
     except Exception as e:
         return f"**Errore Brocardi**: {e}"
