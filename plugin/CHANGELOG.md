@@ -22,8 +22,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - I 12 che scrivono una cache sono segnalati come tali (`CACHE_WRITES`): la
   loro unica scrittura è sotto `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (atti
   parsati, URL degli articoli Brocardi, massime della Consulta), cosa diversa
-  dai 5 che producono un documento. La cache è best-effort e rilocabile, non
-  esiste un interruttore per disattivarla.
+  dai 5 che producono un documento.
+- `LEGAL_CACHE=off` (anche `no`, `false`, `0`, `none`, `disabled`) tiene il
+  server completamente fuori dal disco: la directory della cache non viene più
+  né letta né creata e le cache restano in memoria per la vita del processo (i
+  parse funzionano lo stesso, semplicemente non vengono persistiti).
+  `src/lib/_cache.py` è l'unico modulo che legge l'interruttore e risolve
+  `MCP_CACHE_DIR`; `MCP_CACHE_DIR` da solo si limita a spostare i file.
+- Anche la parte cache è verificata: `scripts/audit_tool_annotations.py`
+  dichiara ogni posizione (`CACHE_LOCATIONS`) e fallisce se un modulo inizia a
+  risolvere una directory di cache senza essere dichiarato, se una cache
+  dichiarata perde i suoi letterali o se chi scrive smette di consultare
+  l'interruttore. L'inventario generato è `docs/cache-inventory.md` (posizione,
+  file, ritenzione, modulo e tool che possono toccarla) e `--check` lo confronta
+  come fa con la policy. `tests/unit/test_cache_switch.py` dimostra
+  l'interruttore, incluso il fatto che con `LEGAL_CACHE=off` non compare
+  nemmeno la directory.
+- `scripts/tool_report.py` rende la superficie una pagina autonoma
+  (`docs/tool-report.html`): i 221 tool divisi in 168 read-only locali, 36
+  read-only esterni, 12 che aggiornano la cache e 5 che generano documenti, con
+  il servizio raggiunto da ogni tool esterno e la directory di cache che ogni
+  writer può toccare. È costruita dallo stesso audit delle annotazioni, quindi
+  pagina e policy non possono divergere.
 - `tests/unit/test_read_only_contract.py` dimostra la promessa read-only a
   runtime: il server viene avviato con `HOME` e `MCP_CACHE_DIR` propri, tutti i
   168 tool read-only locali vengono chiamati con argomenti generati dal loro
