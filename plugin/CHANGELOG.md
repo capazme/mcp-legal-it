@@ -47,16 +47,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `date.today()`/`datetime.now()` fuori da quel modulo, così un tool nuovo non
   può sottrarsi all'essere bloccabile.
 - `tests/unit/test_golden_calcoli.py` congela quello che rispondono i 168 tool
-  di calcolo locali in `tests/fixtures/golden/calcoli_locali.json` (argomenti +
+  di calcolo locali in `tests/fixtures/golden/calcoli_locali/` (argomenti +
   risposta attesa, bloccati su `LEGAL_TODAY`/`LEGAL_NOW`, troncati a 4000
-  caratteri dove la risposta è un documento intero). Una tabella rinfrescata
-  (`indici_foi.json`, `tassi_legali.json`, `parametri_forensi.json`,
-  `tabella_danno_bio.json`) o uno scaglione digitato male ora fanno fallire il
-  test con il nome del tool e i numeri che si sono mossi: cambiare un singolo
-  indice FOI ne segnala 12 su 168. Si rigenera deliberatamente con
-  `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`; il riferimento
-  viene anche verificato come bloccato, completo, senza payload di errore e
-  senza path locali.
+  caratteri dove la risposta è un documento intero). Il riferimento è **un file
+  per insieme di tabelle**, ricavato dal codice (dichiarazioni `@sourced(...)`
+  più le tabelle module-level che il codice raggiungibile di ogni tool legge,
+  costanti derivate incluse): `indici_foi`, `indici_foi+tassi_legali`,
+  `tabella_danno_bio`, `nessuna_tabella` (104 algoritmi puri) e altre 20. Una
+  tabella rinfrescata o uno scaglione digitato male fallisce nominando prima il
+  dataset — cambiare un singolo indice FOI riporta "tables involved: indici_foi
+  (12/12 tools), tassi_legali (3/12)", elenca solo i due file di gruppo
+  coinvolti e tagga ogni tool cambiato con le tabelle che legge. Si rigenera
+  deliberatamente con `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`;
+  il riferimento viene anche verificato come bloccato, completo, partizionato per
+  tabella (nessun tool due volte, nessuno mancante), senza payload di errore e
+  senza path locali, e il footer `dati_applicati` di ogni risposta deve
+  concordare con il gruppo in cui è archiviata.
 - L'harness stdio condiviso dai test di runtime vive ora in
   `tests/unit/mcp_harness.py` e la generazione degli argomenti riempie i
   parametri a oggetto (righe come `eredi`, `acconti`, `voci`, `rischi`) e

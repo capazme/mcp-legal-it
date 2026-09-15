@@ -1,0 +1,14 @@
+{
+ "datasets": [
+  "usufrutto_coefficienti"
+ ],
+ "tools": {
+  "calcolo_usufrutto": {
+   "arguments": {
+    "eta_usufruttuario": 65,
+    "valore_piena_proprieta": 200000.0
+   },
+   "expected": "{\"valore_piena_proprieta\":200000.0,\"eta_usufruttuario\":65,\"tasso_legale_pct\":2.5,\"coefficiente\":20.0,\"rendita_annua\":5000.0,\"valore_usufrutto\":100000.0,\"valore_nuda_proprieta\":100000.0,\"percentuale_usufrutto\":50.0,\"percentuale_nuda_proprieta\":50.0,\"riferimento_normativo\":\"DPR 131/1986 — Prospetto coefficienti usufrutto\",\"dati_applicati\":[\"usufrutto coefficienti: copre fino al 31/12/2026 (prospetto allegato al DPR 131/1986, tasso minimo 2,5%) — anno di verifica dichiarato in tabella: 2026\"]}"
+  }
+ }
+}

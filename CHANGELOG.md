@@ -45,15 +45,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the surface. The audit fails on any `date.today()`/`datetime.now()` call
   outside that module, so a new tool cannot opt out of being pinnable.
 - `tests/unit/test_golden_calcoli.py` freezes what the 168 local read-only tools
-  answer in `tests/fixtures/golden/calcoli_locali.json` (arguments + expected
-  answer, pinned to `LEGAL_TODAY`/`LEGAL_NOW`, truncated at 4000 characters where
-  an answer is a whole document). A refreshed table (`indici_foi.json`,
-  `tassi_legali.json`, `parametri_forensi.json`, `tabella_danno_bio.json`) or a
-  mistyped bracket now fails with the tool name and the numbers that moved:
-  changing a single FOI index flags 12 of the 168. Regenerate deliberately with
-  `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`; the reference is
-  also checked for being pinned, complete, free of error payloads and free of
-  local paths.
+  answer in `tests/fixtures/golden/calcoli_locali/` (arguments + expected answer,
+  pinned to `LEGAL_TODAY`/`LEGAL_NOW`, truncated at 4000 characters where an
+  answer is a whole document). The reference is **one file per set of data
+  tables**, derived from the code (`@sourced(...)` declarations plus the
+  module-level tables each tool's reachable code reads, derived constants
+  included): `indici_foi`, `indici_foi+tassi_legali`, `tabella_danno_bio`,
+  `nessuna_tabella` (104 pure algorithms) and 20 more. A refreshed table or a
+  mistyped bracket fails with the dataset named first — changing a single FOI
+  index reports "tables involved: indici_foi (12/12 tools), tassi_legali
+  (3/12)", lists only the two affected group files, and tags every changed tool
+  with the tables it read. Regenerate deliberately with `GOLDEN_UPDATE=1 pytest
+  tests/unit/test_golden_calcoli.py`; the reference is also checked for being
+  pinned, complete, partitioned by table (no tool twice, none missing), free of
+  error payloads and free of local paths, and each answer's own `dati_applicati`
+  footer must agree with the group it is filed under.
 - The stdio harness the runtime tests share now lives in
   `tests/unit/mcp_harness.py`, and its argument generation fills object-shaped
   parameters (rows like `eredi`, `acconti`, `voci`, `rischi`) and picks dates by

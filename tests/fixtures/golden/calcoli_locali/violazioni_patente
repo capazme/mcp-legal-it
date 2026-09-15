@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "violazioni_patente"
+ ],
+ "tools": {
+  "decurtazione_punti_patente": {
+   "arguments": {
+    "violazione": "cellulare"
+   },
+   "expected": "{\"violazione\":\"cellulare\",\"punti\":5,\"articolo\":\"Art. 173 CdS\",\"descrizione\":\"Uso del telefono alla guida\",\"sanzione_accessoria\":\"Sospensione patente in caso di recidiva\",\"dati_applicati\":[\"violazioni patente: provenienza e data non verificate — il Codice della Strada è stato riformato di recente: riconciliare importi e decurtazioni. Controllare la fonte prima dell'uso in un atto.\"]}"
+  }
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "codici_ateco"
+ ],
+ "tools": {
+  "ricerca_codici_ateco": {
+   "arguments": {
+    "keyword": "x"
+   },
+   "expected": "{\"keyword\":\"x\",\"n_risultati\":1,\"risultati\":[{\"codice\":\"49.32.10\",\"descrizione\":\"Trasporto con taxi\",\"coefficiente\":67}],\"nota\":\"Il coefficiente di redditivita e usato nel regime forfettario per determinare il reddito imponibile (ricavi * coefficiente / 100)\",\"dati_applicati\":[\"codici ateco: provenienza e data non verificate — la classificazione è stata rivista di recente: verificare la corrispondenza dei codici. Controllare la fonte prima dell'uso in un atto.\"]}"
+  }
+ }
+}

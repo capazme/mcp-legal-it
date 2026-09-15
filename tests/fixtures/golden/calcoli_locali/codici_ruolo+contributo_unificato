@@ -1,0 +1,14 @@
+{
+ "datasets": [
+  "codici_ruolo",
+  "contributo_unificato"
+ ],
+ "tools": {
+  "note_iscrizione_ruolo": {
+   "arguments": {
+    "tipo_procedimento": "ordinario"
+   },
+   "expected": "{\"tipo_procedimento\":\"ordinario\",\"valore_causa\":null,\"contributo_unificato\":null,\"codici_oggetto_suggeriti\":[],\"note\":\"Iscrivere a ruolo come 'ordinario'. valore_causa richiesto per il calcolo del CU.\",\"riferimento_normativo\":\"DPR 115/2002 — Provvedimenti DGSIA per codici oggetto\",\"dati_applicati\":[\"codici ruolo: provenienza e data non verificate. Controllare la fonte prima dell'uso in un atto.\",\"contributo unificato: provenienza e data non verificate — importi non riconciliati con l'ultima legge di bilancio. Controllare la fonte prima dell'uso in un atto.\"]}"
+  }
+ }
+}
