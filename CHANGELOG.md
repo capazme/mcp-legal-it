@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--json` prints the per-tool evidence); a middleware stamps it on
   `tools/list`, and `tests/unit/test_tool_annotations.py` fails if a tool is
   renamed out of the policy.
+- The 12 cache writers are flagged as such (`CACHE_WRITES`): their only write
+  refreshes `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (parsed acts, Brocardi
+  article URLs, Consulta massime), which is worth telling apart from the 5 tools
+  that produce a document. Caching is best-effort and relocatable, with no
+  switch that turns it off.
+- `tests/unit/test_read_only_contract.py` proves the read-only claim at runtime:
+  the server is started with its own `HOME` and `MCP_CACHE_DIR`, all 168 local
+  read-only tools are called with arguments generated from their input schema,
+  and the sandbox, the checkout and the real MCP cache are fingerprinted before
+  and after — any file created, deleted or modified fails the test. All 168
+  answered and nothing changed.
 
 ### Fixed
 - `start_server.sh` is PATH-independent. GUI hosts (Claude Desktop, Cowork,

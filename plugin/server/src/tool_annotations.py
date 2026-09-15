@@ -14,6 +14,14 @@ file, five of them write a document the user asked for. Neither group is
 `destructiveHint` -- they add or refresh files, they do not delete user data --
 so hosts that gate on destructiveness can still treat them as safe.
 
+The 12 cache writers are also in `CACHE_WRITES`: their only write goes under
+`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (`akn_acts/` for parsed acts,
+`brocardi_urls.json` for article URLs, `corte_cost/{kind}/{year}.json` for the
+Consulta massime, 7-day TTL). The writes are best-effort -- with an unwritable
+cache directory `cite_law()` still answers -- and relocating `MCP_CACHE_DIR` is
+the way to keep them out of a home directory; there is no switch that turns
+caching off entirely.
+
 `openWorldHint` marks the tools that reach outside the process (Normattiva,
 EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 168
 local-only ones are pure calculations over the bundled JSON tables.
@@ -115,6 +123,14 @@ OPEN_WORLD: frozenset[str] = frozenset({
     "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce", "ultime_pronunce_cost",
     "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante",
     "verifica_citazioni", "verifica_partita_iva_vies",
+})
+
+# Subset of WRITES_FILES whose only write refreshes the local cache under
+# ${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}.
+CACHE_WRITES: frozenset[str] = frozenset({
+    "cerca_brocardi", "cerca_pronuncia_costituzionale", "cite_law", "fetch_full_act", "fetch_law_annotations",
+    "fetch_law_article", "giurisprudenza_articolo", "leggi_pronuncia_costituzionale", "mappa_orientamento",
+    "pronunce_cost_su_norma", "ultime_pronunce_cost", "verifica_citazioni",
 })
 
 
