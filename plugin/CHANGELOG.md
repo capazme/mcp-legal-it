@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `start_server.sh` è indipendente dal PATH: gli host GUI (Claude Desktop,
+  Cowork, Freebuff) avviano i server MCP con il PATH minimo di launchd
+  (`/usr/bin:/bin:/usr/sbin:/sbin`), dove Homebrew, `~/.local/bin` e cargo non
+  esistono, quindi `command -v uv` falliva e si finiva nel ramo venv. Ora il
+  bootstrap antepone le directory di installazione usuali e cerca `uv` anche
+  per path assoluto.
+- Il fallback venv non si fida più di `command -v`: ogni candidato viene
+  eseguito e vince il primo che dichiara 3.10+. Una licenza Xcode non accettata
+  trasforma il `python3` dei CLT in uno shim che stampa solo l'errore di
+  licenza, e veniva scelto. Un venv in cache viene riusato solo se il suo
+  interprete è 3.10+ **e** importa tutte le dipendenze runtime: un venv
+  incompleto viene ricreato invece di avviare un server che muore al primo
+  import. `MCP_FORCE_VENV=1` salta `uv` per esercitare il fallback.
+
 ## [2.13.0] - 2026-08-30
 
 ### Added
