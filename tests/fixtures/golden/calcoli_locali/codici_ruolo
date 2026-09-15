@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "codici_ruolo"
+ ],
+ "tools": {
+  "codici_iscrizione_ruolo": {
+   "arguments": {
+    "materia": "civile"
+   },
+   "expected": "{\"ricerca\":\"civile\",\"risultati\":[],\"totale\":0,\"riferimento_normativo\":\"Provvedimenti DGSIA — Codici oggetto iscrizione a ruolo\",\"dati_applicati\":[\"codici ruolo: provenienza e data non verificate. Controllare la fonte prima dell'uso in un atto.\"]}"
+  }
+ }
+}

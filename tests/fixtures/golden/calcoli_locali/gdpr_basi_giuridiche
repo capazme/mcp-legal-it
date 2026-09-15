@@ -1,0 +1,15 @@
+{
+ "datasets": [
+  "gdpr_basi_giuridiche"
+ ],
+ "tools": {
+  "analisi_base_giuridica": {
+   "arguments": {
+    "contesto": "B2C",
+    "finalita": "marketing diretto via email a clienti esistenti",
+    "tipo_trattamento": "invio newsletter"
+   },
+   "expected": "{\"tipo_trattamento\":\"invio newsletter\",\"contesto\":\"B2C\",\"finalita\":\"marketing diretto via email a clienti esistenti\",\"dati_particolari\":false,\"basi_giuridiche_applicabili\":[{\"base\":\"consenso\",\"articolo\":\"Art. 6(1)(a) GDPR\",\"descrizione\":\"L'interessato ha espresso il consenso al trattamento per una o più specifiche finalità\",\"pro\":[\"Massima flessibilità per il titolare\",\"Applicabile a qualsiasi finalità\",\"Valorizza l'autodeterminazione informativa\"],\"contro\":[\"Revocabile in qualsiasi momento (art. 7(3))\",\"Onere della prova sul titolare (art. 7(1))\",\"Requisiti stringenti di validità (libero, specifico, informato, inequivocabile)\",\"Non idoneo se squilibrio di potere (es. datore-dipendente)\"],\"consigliata\":true,\"nota_contesto\":\"Per marketing diretto via email, il consenso è richiesto anche dalla Dir. ePrivacy (art. 130 D.Lgs. 196/2003). Il legittimo interesse è ammesso solo per soft spam (clienti esistenti, prodotti analoghi, con opt-out).\"},{\"base\":\"legittimo_interesse\",\"articolo\":\"Art. 6(1)(f) GDPR\",\"descrizione\":\"Trattamento necessario per il perseguimento del legittimo interesse del titolare o di terzi, a condizione che non prevalgano gli interessi o i diritti dell'interessato\",\"pro\":[\"Flessibile e adattabile\",\"Non richiede consenso\",\"Copre molte finalità aziendali legittime\"],\"contro\":[\"Richiede test di bilanciamento (LIA)\",\"L'interessato può opporsi (art. 21)\",\"NON applicabile a PA (art. 6(1) ultimo comma)\",\"Maggiore esposizione a contestazioni\",\"Onere documentale (LIA assessment)\"],\"consigliata\":false,\"nota_contesto\":\"Alternativa per invio newsletter\"}],\"base_consigliata\":\"consenso\",\"motivazione\":\"Per marketing diretto via email, il consenso è richiesto anche dalla Dir. ePrivacy (art. 130 D.Lgs. 196/2003). Il legittimo interesse è ammesso solo per soft spam (clienti esistenti, prodotti analoghi, con opt-out).\",\"note_dati_particolari_art9\":\"\",\"condizioni_art9_disponibili\":[],\"riferimento_normativo\":\"Art. 6 Reg. UE 2016/679 (GDPR) — Basi giuridiche per il trattamento\",\"dati_applicati\":[\"gdpr basi giuridiche: artt. 6 e 9 Reg. UE 2016/679 — periodo di validità non dichiarato\"]}"
+  }
+ }
+}

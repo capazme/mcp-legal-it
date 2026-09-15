@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "mediazione_obbligatoria"
+ ],
+ "tools": {
+  "verifica_mediazione_obbligatoria": {
+   "arguments": {
+    "materia": "condominio"
+   },
+   "expected": "{\"obbligatoria\":true,\"materia_input\":\"condominio\",\"materia_trovata\":\"condominio\",\"fonte\":\"originaria (2010)\",\"note\":\"Controversie condominiali\",\"esclusioni_applicabili\":[\"Procedimenti cautelari e d'urgenza (art. 700 c.p.c.)\",\"Procedimenti di ingiunzione fino alla pronuncia sulle istanze cautelari\",\"Procedimenti di sfratto e convalida fino al mutamento del rito\",\"Azione civile nel processo penale\",\"Procedimenti in camera di consiglio\"],\"riferimento_normativo\":\"Art. 5 co. 1 D.Lgs. 28/2010 (mod. D.Lgs. 149/2022)\",\"dati_applicati\":[\"mediazione obbligatoria: art. 5 D.Lgs. 28/2010 come modificato dal D.Lgs. 149/2022 — periodo di validità non dichiarato\"]}"
+  }
+ }
+}
