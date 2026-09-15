@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "gdpr_dpia_criteri"
+ ],
+ "tools": {
+  "verifica_necessita_dpia": {
+   "arguments": {
+    "tipo_trattamento": "ordinario"
+   },
+   "expected": "{\"tipo_trattamento\":\"ordinario\",\"dpia_necessaria\":false,\"criteri_soddisfatti\":[],\"n_criteri\":0,\"soglia\":2,\"motivazione\":\"La DPIA non appare obbligatoria (0 criteri su 2 richiesti). Tuttavia, è sempre consigliata come buona pratica di accountability (art. 5(2) GDPR) per documentare la valutazione dei rischi.\",\"lista_garante_match\":[],\"esenzioni_possibili\":[\"Trattamento necessario per obblighi legali con base giuridica specifica\",\"Trattamento già sottoposto a DPIA con esito positivo senza modifiche\",\"Trattamento inserito nell'elenco delle esenzioni dell'autorità di controllo\"],\"riferimento_normativo\":\"Art. 35 Reg. UE 2016/679 (GDPR); WP248 rev.01 (Linee Guida DPIA); Provvedimento Garante 11/10/2018 [doc. web 9058979]\",\"dati_applicati\":[\"gdpr dpia criteri: linee guida WP248 rev.01 e lista del Garante italiano — periodo di validità non dichiarato\"]}"
+  }
+ }
+}

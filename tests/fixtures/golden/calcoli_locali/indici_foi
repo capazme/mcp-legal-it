@@ -1,0 +1,89 @@
+{
+ "datasets": [
+  "indici_foi"
+ ],
+ "tools": {
+  "adeguamento_canone_locazione": {
+   "arguments": {
+    "canone_annuo": 10000.0,
+    "data_adeguamento": "2024-06-30",
+    "data_stipula": "2021-01-01"
+   },
+   "expected": "{\"canone_annuo_originario\":10000.0,\"canone_mensile_originario\":833.33,\"data_stipula\":\"2021-01-01\",\"data_adeguamento\":\"2024-06-30\",\"foi_stipula\":102.9,\"foi_adeguamento\":119.5,\"variazione_foi_piena_pct\":16.13,\"metodo_variazione\":\"calcolata (serie FOI raccordata, base 2015=100)\",\"fonte_variazione\":null,\"nota\":null,\"avvertenza\":null,\"percentuale_istat_applicata\":75.0,\"variazione_applicata_pct\":12.1,\"canone_annuo_aggiornato\":11209.91,\"canone_mensile_aggiornato\":934.16,\"aumento_annuo\":1209.91,\"riferimento_normativo\":\"L. 392/1978, art. 32 — L. 431/1998\",\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "calcolo_devalutazione": {
+   "arguments": {
+    "data_attuale": "2024-06-30",
+    "data_passata": "2021-01-01",
+    "importo_attuale": 10000.0
+   },
+   "expected": "{\"importo_attuale\":10000.0,\"data_attuale\":\"2024-06-30\",\"data_passata\":\"2021-01-01\",\"foi_attuale\":119.5,\"foi_passata\":102.9,\"coefficiente_devalutazione\":0.861088,\"importo_in_data_passata\":8610.88,\"perdita_potere_acquisto_pct\":13.89,\"avvertenza\":null,\"esempio\":\"€ 10000.00 del 2024-06-30 equivalevano a € 8610.88 del 2021-01-01\",\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "calcolo_inflazione": {
+   "arguments": {
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"foi_inizio\":102.9,\"foi_fine\":119.5,\"variazione_percentuale\":16.13,\"coefficiente_rivalutazione\":1.161322,\"anni\":3.49,\"inflazione_media_annua_pct\":4.37,\"base_indici\":\"2015=100\",\"esempio\":\"100€ del 2021-01-01 equivalgono a 116.13€ del 2024-06-30\",\"nota\":null,\"avvertenza\":null,\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "inflazione_titoli_stato": {
+   "arguments": {
+    "capitale_investito": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01",
+    "rendimento_lordo_annuo_pct": 5.0
+   },
+   "expected": "{\"capitale_investito\":10000.0,\"rendimento_lordo_annuo_pct\":5.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"anni\":3.49,\"inflazione_totale_pct\":16.13,\"inflazione_media_annua_pct\":4.37,\"montante_nominale\":11858.36,\"rendimento_nominale_totale\":1858.36,\"rendimento_reale_annuo_pct\":0.6,\"montante_reale\":10211.09,\"rendimento_reale_totale\":211.09,\"potere_acquisto_preservato\":true,\"avvertenza\":null,\"nota\":\"Rendimento reale calcolato con equazione di Fisher\",\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "lettera_adeguamento_canone": {
+   "arguments": {
+    "canone_attuale": 10000.0,
+    "conduttore": "x",
+    "data_adeguamento": "2024-06-30",
+    "data_stipula": "2021-01-01",
+    "indirizzo_immobile": "x",
+    "locatore": "x"
+   },
+   "expected": "{\"lettera\":\"Egr. Sig./Sig.ra x\\n\\nOGGETTO: Comunicazione adeguamento ISTAT canone di locazione — Immobile sito in x\\n\\nIl/La sottoscritto/a x, in qualità di locatore dell'immobile sopra indicato, con la presente comunica che, ai sensi dell'art. 32 della Legge n. 392/1978 e dell'art. 1 della Legge n. 431/1998, il canone di locazione verrà adeguato sulla base della variazione dell'indice ISTAT FOI (Famiglie di Operai e Impiegati).\\n\\nDATI DI CALCOLO:\\n- Canone mensile attuale: € 10000.00\\n- Indice FOI alla stipula (2021-01-01): 102.9\\n- Indice FOI all'adeguamento (2024-06-30): 119.5\\n- Variazione ISTAT piena: 16.13%\\n- Percentuale applicata: 75.0%\\n- Variazione applicata: 12.10%\\n\\nNUOVO CANONE MENSILE: € 11209.91\\n(con decorrenza dal 2024-06-30)\\n\\nSi invita pertanto a corrispondere il canone aggiornato a partire dalla data sopra indicata.\\n\\nDistinti saluti,\\nx\",\"canone_attuale\":10000.0,\"canone_nuovo\":11209.91,\"variazione_piena_pct\":16.13,\"metodo_variazione\":\"calcolata (serie FOI raccordata, base 2015=100)\",\"fonte_variazione\":null,\"nota\":null,\"avvertenza\":null,\"variazione_applicata_pct\":12.1,\"aumento_mensile\":1209.91,\"riferimento_normativo\":\"L. 392/1978, art. 32 — L. 431/1998\",\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "rivalutazione_annuale_media": {
+   "arguments": {
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01",
+    "importo": 10000.0
+   },
+   "expected": "{\"importo_originario\":10000.0,\"anno_inizio\":2021,\"anno_fine\":2024,\"media_foi_inizio\":104.23,\"media_foi_fine\":119.73,\"coefficiente_rivalutazione\":1.148797,\"importo_rivalutato\":11487.97,\"differenza\":1487.97,\"avvertenza\":null,\"nota\":\"Calcolo basato su media annua FOI (non mese specifico)\",\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "rivalutazione_mensile": {
+   "arguments": {
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01",
+    "importo_mensile": 10000.0
+   },
+   "expected": "{\"importo_mensile\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"foi_riferimento_finale\":119.5,\"numero_mensilita\":42,\"totale_nominale\":420000.0,\"totale_rivalutato\":445974.81,\"differenza_totale\":25974.81,\"avvertenza\":null,\"dettaglio_mensile\":[{\"anno\":2021,\"mese\":1,\"foi\":102.9,\"coefficiente\":1.161322,\"importo_nominale\":10000.0,\"importo_rivalutato\":11613.22,\"differenza\":1613.22},{\"anno\":2021,\"mese\":2,\"foi\":103.0,\"coefficiente\":1.160194,\"importo_nominale\":10000.0,\"importo_rivalutato\":11601.94,\"differenza\":1601.94},{\"anno\":2021,\"mese\":3,\"foi\":103.3,\"coefficiente\":1.156825,\"importo_nominale\":10000.0,\"importo_rivalutato\":11568.25,\"differenza\":1568.25},{\"anno\":2021,\"mese\":4,\"foi\":103.7,\"coefficiente\":1.152363,\"importo_nominale\":10000.0,\"importo_rivalutato\":11523.63,\"differenza\":1523.63},{\"anno\":2021,\"mese\":5,\"foi\":103.6,\"coefficiente\":1.153475,\"importo_nominale\":10000.0,\"importo_rivalutato\":11534.75,\"differenza\":1534.75},{\"anno\":2021,\"mese\":6,\"foi\":103.8,\"coefficiente\":1.151252,\"importo_nominale\":10000.0,\"importo_rivalutato\":11512.52,\"differenza\":1512.52},{\"anno\":2021,\"mese\":7,\"foi\":104.2,\"coefficiente\":1.146833,\"importo_nominale\":10000.0,\"importo_rivalutato\":11468.33,\"differenza\":1468.33},{\"anno\":2021,\"mese\":8,\"foi\":104.7,\"coefficiente\":1.141356,\"importo_nominale\":10000.0,\"importo_rivalutato\":11413.56,\"differenza\":1413.56},{\"anno\":2021,\"mese\":9,\"foi\":104.5,\"coefficiente\":1.143541,\"importo_nominale\":10000.0,\"importo_rivalutato\":11435.41,\"differenza\":1435.41},{\"anno\":2021,\"mese\":10,\"foi\":105.1,\"coefficiente\":1.137012,\"importo_nominale\":10000.0,\"importo_rivalutato\":11370.12,\"differenza\":1370.12},{\"anno\":2021,\"mese\":11,\"foi\":105.7,\"coefficiente\":1.130558,\"importo_nominale\":10000.0,\"importo_rivalutato\":11305.58,\"differenza\":1305.58},{\"anno\":2021,\"mese\":12,\"foi\":106.2,\"coefficiente\":1.125235,\"importo_nominale\":10000.0,\"importo_rivalutato\":11252.35,\"differenza\":1252.35},{\"anno\":2022,\"mese\":1,\"foi\":107.7,\"coefficiente\":1.109564,\"importo_nominale\":10000.0,\"importo_rivalutato\":11095.64,\"differenza\":1095.64},{\"anno\":2022,\"mese\":2,\"foi\":108.8,\"coefficiente\":1.098346,\"importo_nominale\":10000.0,\"importo_rivalutato\":10983.46,\"differenza\":983.46},{\"anno\":2022,\"mese\":3,\"foi\":109.9,\"coefficiente\":1.087352,\"importo_nominale\":10000.0,\"importo_rivalutato\":10873.52,\"differenza\":873.52},{\"anno\":2022,\"mese\":4,\"foi\":109.7,\"coefficiente\":1.089335,\"importo_nominale\":10000.0,\"importo_rivalutato\":10893.35,\"differenza\":893.35},{\"anno\":2022,\"mese\":5,\"foi\":110.6,\"coefficiente\":1.08047,\"importo_nominale\":10000.0,\"importo_rivalutato\":10804.7,\"differenza\":804.7},{\"anno\":2022,\"mese\":6,\"foi\":111.9,\"coefficiente\":1.067918,\"importo_nominale\":10000.0,\"importo_rivalutato\":10679.18,\"differenza\":679.18},{\"anno\":2022,\"mese\":7,\"foi\":112.3,\"coefficiente\":1.064114,\"importo_nominale\":10000.0,\"importo_rivalutato\":10641.14,\"differenza\":641.14},{\"anno\":2022,\"mese\":8,\"foi\":113.2,\"coefficiente\":1.055654,\"importo_nominale\":10000.0,\"importo_rivalutato\":10556.54,\"differenza\":556.54},{\"anno\":2022,\"mese\":9,\"foi\":113.5,\"coefficiente\":1.052863,\"importo_nominale\":10000.0,\"importo_rivalutato\":10528.63,\"differenza\":528.63},{\"anno\":2022,\"mese\":10,\"foi\":117.2,\"coefficiente\":1.019625,\"importo_nominale\":10000.0,\"importo_rivalutato\":10196.25,\"differenza\":196.25},{\"anno\":2022,\"mese\":11,\"foi\":117.9,\"coefficiente\":1.013571,\"importo_nominale\":10000.0,\"importo_rivalutato\":10135.71,\"differenza\":135.71},{\"anno\":2022,\"mese\":12,\"foi\":118.2,\"coefficiente\":1.010998,\"importo_nominale\":10000.0,\"importo_rivalutato\":10109.98,\"differenza\":109.98},{\"anno\":2023,\"mese\":1,\"foi\":118.3,\"coefficiente\":1.010144,\"importo_nominale\":10000.0,\"importo_rivalutato\":10101.44,\"differenza\":101.44},{\"anno\":2023,\"mese\":2,\"foi\":118.5,\"coefficiente\":1.008439,\"importo_nominale\":10000.0,\"importo_rivalutato\":10084.39,\"differenza\":84.39},{\"anno\":2023,\"mese\":3,\"foi\":118.0,\"coefficiente\":1.012712,\"importo_nominale\":10000.0,\"importo_rivalutato\":10127.12,\"differenza\":127.12},{\"anno\":2023,\"mese\":4,\"foi\":118.4,\"coefficiente\":1.00929"
+  },
+  "rivalutazione_storica": {
+   "arguments": {
+    "anno_arrivo": 2024,
+    "anno_partenza": 2020,
+    "importo": 10000.0
+   },
+   "expected": "{\"importo_originario\":10000.0,\"anno_partenza\":2020,\"anno_arrivo\":2024,\"media_foi_partenza\":102.33,\"media_foi_arrivo\":119.73,\"coefficiente_rivalutazione\":1.170033,\"importo_rivalutato\":11700.33,\"differenza\":1700.33,\"avvertenza\":null,\"dettaglio_anni\":[{\"anno\":2020,\"media_foi\":102.33,\"coefficiente\":1.0,\"importo_rivalutato\":10000.0},{\"anno\":2021,\"media_foi\":104.23,\"coefficiente\":1.018485,\"importo_rivalutato\":10184.85},{\"anno\":2022,\"media_foi\":112.58,\"coefficiente\":1.100081,\"importo_rivalutato\":11000.81},{\"anno\":2023,\"media_foi\":118.69,\"coefficiente\":1.159853,\"importo_rivalutato\":11598.53},{\"anno\":2024,\"media_foi\":119.73,\"coefficiente\":1.170033,\"importo_rivalutato\":11700.33}],\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "rivalutazione_tfr": {
+   "arguments": {
+    "anni_servizio": 10,
+    "anno_cessazione": 2024,
+    "retribuzione_annua": 10000.0
+   },
+   "expected": "{\"retribuzione_annua\":10000.0,\"anni_servizio\":10,\"anno_inizio\":2014,\"anno_cessazione\":2024,\"accantonamento_annuo\":740.74,\"tfr_lordo\":8744.12,\"totale_rivalutazioni\":1336.72,\"imposta_sostitutiva_17_pct\":227.24,\"tfr_netto_rivalutazione\":8516.88,\"riferimento_normativo\":\"Art. 2120 c.c. — rivalutazione 1.5% fisso + 75% FOI ISTAT\",\"avvertenza\":null,\"dettaglio_anni\":[{\"anno\":2014,\"accantonamento\":740.74,\"variazione_foi_pct\":0.0,\"coefficiente_rivalutazione_pct\":0.0,\"rivalutazione\":0.0,\"tfr_accumulato\":740.74},{\"anno\":2015,\"accantonamento\":740.74,\"variazione_foi_pct\":0.1,\"coefficiente_rivalutazione_pct\":1.58,\"rivalutazione\":11.67,\"tfr_accumulato\":1493.15},{\"anno\":2016,\"accantonamento\":740.74,\"variazione_foi_pct\":0.0,\"coefficiente_rivalutazione_pct\":1.5,\"rivalutazione\":22.4,\"tfr_accumulato\":2256.29},{\"anno\":2017,\"accantonamento\":740.74,\"variazione_foi_pct\":0.5,\"coefficiente_rivalutazione_pct\":1.88,\"rivalutazione\":42.31,\"tfr_accumulato\":3039.33},{\"anno\":2018,\"accantonamento\":740.74,\"variazione_foi_pct\":0.8,\"coefficiente_rivalutazione_pct\":2.1,\"rivalutazione\":63.74,\"tfr_accumulato\":3843.81},{\"anno\":2019,\"accantonamento\":740.74,\"variazione_foi_pct\":0.3,\"coefficiente_rivalutazione_pct\":1.72,\"rivalutazione\":66.19,\"tfr_accumulato\":4650.74},{\"anno\":2020,\"accantonamento\":740.74,\"variazione_foi_pct\":0.69,\"coefficiente_rivalutazione_pct\":2.02,\"rivalutazione\":93.79,\"tfr_accumulato\":5485.28},{\"anno\":2021,\"accantonamento\":740.74,\"variazione_foi_pct\":3.81,\"coefficiente_rivalutazione_pct\":4.36,\"rivalutazione\":239.12,\"tfr_accumulato\":6465.14},{\"anno\":2022,\"accantonamento\":740.74,\"variazione_foi_pct\":11.3,\"coefficiente_rivalutazione_pct\":9.97,\"rivalutazione\":644.87,\"tfr_accumulato\":7850.75},{\"anno\":2023,\"accantonamento\":740.74,\"variazione_foi_pct\":0.59,\"coefficiente_rivalutazione_pct\":1.94,\"rivalutazione\":152.63,\"tfr_accumulato\":8744.12}],\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  },
+  "variazioni_istat": {
+   "arguments": {
+    "anno_fine": 2024,
+    "anno_inizio": 2020
+   },
+   "expected": "{\"anno_inizio\":2020,\"anno_fine\":2024,\"variazione_cumulata_pct\":17.0,\"base_indici\":\"2015=100\",\"tabella\":[{\"anno\":2020,\"media_foi\":102.33,\"variazione_pct\":null},{\"anno\":2021,\"media_foi\":104.23,\"variazione_pct\":1.85},{\"anno\":2022,\"media_foi\":112.58,\"variazione_pct\":8.01},{\"anno\":2023,\"media_foi\":118.69,\"variazione_pct\":5.43},{\"anno\":2024,\"media_foi\":119.73,\"variazione_pct\":0.88}],\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\"]}"
+  }
+ }
+}

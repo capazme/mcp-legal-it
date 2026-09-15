@@ -1,0 +1,33 @@
+{
+ "datasets": [
+  "tassi_mora"
+ ],
+ "tools": {
+  "interessi_corso_causa": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_citazione": "2021-01-01",
+    "data_sentenza": "2024-06-30"
+   },
+   "expected": "{\"capitale\":10000.0,\"data_citazione\":\"2021-01-01\",\"data_sentenza\":\"2024-06-30\",\"data_pagamento\":\"2024-06-30\",\"totale_interessi\":3346.71,\"totale_dovuto\":13346.71,\"tasso_applicato\":\"mora D.Lgs. 231/2002 (art. 1284 co. 4 c.c.)\",\"riferimento_normativo\":\"Art. 1284, co. 4 c.c. (L. 162/2014) — tasso mora D.Lgs. 231/2002 BCE+8pp\",\"periodi\":[{\"tipo\":\"in_corso_causa\",\"dal\":\"2021-01-01\",\"al\":\"2024-06-30\",\"tasso_tipo\":\"mora D.Lgs. 231/2002\",\"interessi\":3346.71}],\"dati_applicati\":[\"tassi mora: copre fino al 31/12/2026 (tasso BCE MRO + 8 punti, D.Lgs. 231/2002) — rinfrescata da scripts/refresh_data.py sul Data Portal BCE\"]}"
+  },
+  "interessi_mora": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"capitale\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"totale_interessi\":3346.71,\"totale_dovuto\":13346.71,\"riferimento_normativo\":\"D.Lgs. 231/2002 — tasso BCE + 8 punti percentuali\",\"periodi\":[{\"dal\":\"2021-01-01\",\"al\":\"2021-06-30\",\"giorni\":180,\"tasso_bce_pct\":0.0,\"tasso_mora_pct\":8.0,\"interessi\":394.52},{\"dal\":\"2021-07-01\",\"al\":\"2021-12-31\",\"giorni\":184,\"tasso_bce_pct\":0.0,\"tasso_mora_pct\":8.0,\"interessi\":403.29},{\"dal\":\"2022-01-01\",\"al\":\"2022-06-30\",\"giorni\":181,\"tasso_bce_pct\":0.0,\"tasso_mora_pct\":8.0,\"interessi\":396.71},{\"dal\":\"2022-07-01\",\"al\":\"2022-12-31\",\"giorni\":184,\"tasso_bce_pct\":0.0,\"tasso_mora_pct\":8.0,\"interessi\":403.29},{\"dal\":\"2023-01-01\",\"al\":\"2023-06-30\",\"giorni\":181,\"tasso_bce_pct\":2.5,\"tasso_mora_pct\":10.5,\"interessi\":520.68},{\"dal\":\"2023-07-01\",\"al\":\"2023-12-31\",\"giorni\":184,\"tasso_bce_pct\":4.0,\"tasso_mora_pct\":12.0,\"interessi\":604.93},{\"dal\":\"2024-01-01\",\"al\":\"2024-06-30\",\"giorni\":182,\"tasso_bce_pct\":4.5,\"tasso_mora_pct\":12.5,\"interessi\":623.29}],\"dati_applicati\":[\"tassi mora: copre fino al 31/12/2026 (tasso BCE MRO + 8 punti, D.Lgs. 231/2002) — rinfrescata da scripts/refresh_data.py sul Data Portal BCE\"]}"
+  },
+  "sollecito_pagamento": {
+   "arguments": {
+    "creditore": "x",
+    "data_scadenza": "2021-01-01",
+    "data_sollecito": "2024-06-30",
+    "debitore": "x",
+    "importo": 10000.0
+   },
+   "expected": "{\"testo_lettera\":\"Egr. x,\\n\\ncon la presente siamo a ricordarVi che alla data odierna risulta ancora insoluto il pagamento di Euro 10,000.00 (diconsi euro 10,000.00), scaduto in data 01/01/2021.\\n\\nAd oggi il ritardo ammonta a 1276 giorni.\\n\\nVi invitiamo pertanto a provvedere al pagamento dell'importo complessivo di Euro 13,345.01, così composto:\\n- Capitale: Euro 10,000.00\\n- Interessi di mora (8.0% annuo, 1276 gg): Euro 3,345.01\\n\\nIl pagamento dovrà pervenire entro e non oltre 15 giorni dal ricevimento della presente.\\n\\nIn difetto, ci vedremo costretti ad adire le vie legali per il recupero del credito, con aggravio di spese a Vostro carico.\\n\\nDistinti saluti,\\nx\",\"calcoli\":{\"importo_originale\":10000.0,\"data_scadenza\":\"2021-01-01\",\"data_sollecito\":\"2024-06-30\",\"giorni_ritardo\":1276,\"tasso_mora_pct\":8.0,\"interessi_mora\":3345.01,\"totale_dovuto\":13345.01,\"base_giuridica\":\"D.Lgs. 231/2002 — tasso BCE variabile per semestre (tasso iniziale 0.0% + 8 pp = 8.0%)\"},\"dati_applicati\":[\"tassi mora: copre fino al 31/12/2026 (tasso BCE MRO + 8 punti, D.Lgs. 231/2002) — rinfrescata da scripts/refresh_data.py sul Data Portal BCE\"]}"
+  }
+ }
+}

@@ -25,9 +25,16 @@ must still be in it, and the switch that turns it off.
 The calendar is audited as well: `date.today()`/`datetime.now()` may only be
 called in `src/lib/_clock.py`, which honours `LEGAL_TODAY`/`LEGAL_NOW`. Without
 that, the tools that are "as of today" could not be frozen in
-`tests/fixtures/golden/calcoli_locali.json`, and a test on their numbers would
+`tests/fixtures/golden/calcoli_locali/`, and a test on their numbers would
 drift with the calendar instead of failing when a rate or a forensic parameter
 changes.
+
+The same walk yields `datasets(fq)`: the hand-maintained tables a tool's answer
+depends on, read from its `@sourced(...)` declaration and from the module-level
+tables its reachable code touches (including derived constants such as
+`_INDICI_FOI = _FOI_DATA["indici"]`). That is what the golden reference is split
+by -- one file per set of tables -- so a refreshed rate shows up as a diff in
+the tools that read it and nowhere else.
 
 Usage:
 
@@ -270,6 +277,14 @@ class Audit:
         self.evidence: dict[str, set[str]] = {}
         self.sources: dict[str, str] = {}
         self.tools: dict[str, str] = {}
+        #: module -> {module-level constant: data table it was loaded from}
+        self.eager_tables: dict[str, dict[str, str]] = {}
+        #: function -> names it references (to tie a tool to those constants)
+        self.referenced: dict[str, set[str]] = {}
+        #: hand-maintained tables actually shipped in src/data
+        self.available_datasets: set[str] = {
+            path.stem for path in (src / "data").glob("*.json")
+        }
         self._collect()
 
     def _collect(self) -> None:
@@ -287,6 +302,7 @@ class Audit:
                     for alias in node.names:
                         aliases[alias.asname or alias.name] = "%s.%s" % (node.module, alias.name)
             self.imports[module] = aliases
+            self.eager_tables[module] = _module_tables(tree)
             for node in tree.body:
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     self._visit(module, node, "")
@@ -329,6 +345,9 @@ class Audit:
                     found.add("ctor %s()" % func.attr)
         self.calls[name] = body
         self.sources[name] = ast.unparse(fn)
+        self.referenced[name] = {
+            node.id for node in ast.walk(fn) if isinstance(node, ast.Name)
+        }
         if found:
             self.evidence[name] = found
         for child in fn.body:
@@ -461,6 +480,34 @@ class Audit:
                 clients.add(parts[2])
         return sorted(clients)
 
+    def datasets(self, fq: str) -> list[str]:
+        """Hand-maintained tables this tool's answer depends on.
+
+        Two sources, both in the code rather than in a list here: the
+        `@sourced(...)` declaration on the tool (which is also what writes the
+        `dati_applicati` line in its answer) and the module-level table a
+        reachable function references (`_IRPEF`, `_TABELLA`, ...). This is the
+        key the golden reference is split by, so a refreshed table shows up as
+        a diff in the tools that actually read it.
+        """
+        out: set[str] = set()
+        for name in self.chain(fq):
+            module = name.rsplit(".", 1)[0]
+            fn = self.functions.get(name)
+            for decorator in getattr(fn, "decorator_list", []):
+                if isinstance(decorator, ast.Call) and "sourced" in ast.unparse(decorator.func):
+                    out.update(
+                        arg.value
+                        for arg in decorator.args
+                        if isinstance(arg, ast.Constant) and isinstance(arg.value, str)
+                    )
+            referenced = self.referenced.get(name, set())
+            for constant, dataset in self.eager_tables.get(module, {}).items():
+                if constant in referenced:
+                    out.add(dataset)
+            # `sourced` may also be applied to nested helpers in the chain.
+        return sorted(out)
+
     def cache_locations(self, fq: str) -> list[str]:
         """Declared cache directories this tool can write to."""
         reached = self.modules(fq)
@@ -500,8 +547,72 @@ class Audit:
                 "cache_sources": self.cache_sources(fq),
                 "caches": self.cache_locations(fq),
                 "clients": self.upstream_clients(fq),
+                "datasets": self.datasets(fq),
             }
         return out
+
+
+def _module_tables(tree: ast.Module) -> dict[str, str]:
+    """Module-level constants tied to a `src/data/*.json` file, transitively.
+
+    Both loading styles in this codebase are covered: the declared one
+    (`@sourced("indici_foi")` + `lib._data.load`) and the eager one
+    (`with open(_DATA / "irpef_scaglioni.json") as f: _IRPEF = json.load(f)`),
+    which is how several tool modules preload their tables at import.
+
+    A table also reaches a tool through a derived constant
+    (`_INDICI_FOI = _FOI_DATA["indici"]`), so bindings propagate: a constant
+    whose value mentions a constant already tied to a table inherits it. Without
+    this, a tool reading FOI through a helper would be filed under no table and
+    a refreshed FOI series would not point at it.
+
+    Returns `{constant_name: dataset_stem}` for the module.
+    """
+    tables: dict[str, str] = {}
+
+    def json_literals(node: ast.AST) -> list[str]:
+        return [
+            child.value
+            for child in ast.walk(node)
+            if isinstance(child, ast.Constant)
+            and isinstance(child.value, str)
+            and child.value.endswith(".json")
+        ]
+
+    assignments: list[tuple[list[ast.AST], str | None, set[str]]] = []
+
+    def collect(targets: list[ast.AST], value: ast.AST | None) -> None:
+        literals = json_literals(value) if value is not None else []
+        stem = pathlib.PurePosixPath(literals[0]).stem if literals else None
+        names = {node.id for node in ast.walk(value) if isinstance(node, ast.Name)} if value else set()
+        assignments.append((targets, stem, names))
+
+    for node in tree.body:
+        if isinstance(node, ast.With):
+            literals = json_literals(node)
+            for statement in node.body:
+                if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Call):
+                    if "load" in ast.unparse(statement.value.func):
+                        collect(statement.targets, statement.value)
+                        if literals:
+                            assignments[-1] = (statement.targets, pathlib.PurePosixPath(literals[0]).stem,
+                                               assignments[-1][2])
+        elif isinstance(node, ast.Assign):
+            collect(node.targets, node.value)
+
+    for _ in range(len(assignments) + 1):
+        grew = False
+        for targets, stem, names in assignments:
+            inherited = stem or next((tables[name] for name in names if name in tables), None)
+            if inherited is None:
+                continue
+            for target in targets:
+                if isinstance(target, ast.Name) and tables.get(target.id) != inherited:
+                    tables[target.id] = inherited
+                    grew = True
+        if not grew:
+            break
+    return tables
 
 
 def _dotted(module: str) -> str:

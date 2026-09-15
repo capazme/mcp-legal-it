@@ -1,0 +1,29 @@
+{
+ "datasets": [
+  "tassi_legali"
+ ],
+ "tools": {
+  "interessi_acconti": {
+   "arguments": {
+    "acconti": [
+     {
+      "data": "2022-06-30",
+      "importo": 5000.0
+     }
+    ],
+    "capitale": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"capitale_iniziale\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"numero_acconti\":1,\"totale_acconti\":5000.0,\"capitale_residuo_finale\":5000.0,\"totale_interessi\":406.82,\"totale_dovuto\":5406.82,\"periodi\":[{\"dal\":\"2021-01-01\",\"al\":\"2022-06-30\",\"capitale_residuo\":10000.0,\"interessi\":62.98,\"acconto_successivo\":5000.0},{\"dal\":\"2022-06-30\",\"al\":\"2024-06-30\",\"capitale_residuo\":5000.0,\"interessi\":343.84,\"acconto_successivo\":null}],\"dati_applicati\":[\"tassi legali: copre fino al 31/12/2026 (DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.)\"]}"
+  },
+  "interessi_legali": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"capitale\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"tipo\":\"semplici\",\"totale_interessi\":750.65,\"montante\":10750.65,\"periodi\":[{\"dal\":\"2021-01-01\",\"al\":\"2021-12-31\",\"giorni\":364,\"tasso_pct\":0.01,\"interessi\":1.0},{\"dal\":\"2022-01-01\",\"al\":\"2022-12-31\",\"giorni\":365,\"tasso_pct\":1.25,\"interessi\":125.0},{\"dal\":\"2023-01-01\",\"al\":\"2023-12-31\",\"giorni\":365,\"tasso_pct\":5.0,\"interessi\":500.0},{\"dal\":\"2024-01-01\",\"al\":\"2024-06-30\",\"giorni\":182,\"tasso_pct\":2.5,\"interessi\":124.66}],\"dati_applicati\":[\"tassi legali: copre fino al 31/12/2026 (DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.)\"]}"
+  }
+ }
+}
