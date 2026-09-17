@@ -1343,11 +1343,18 @@ TABLE_CONSTANTS: dict[str, dict[str, str]] = {
 TOOL_TABLES: dict[str, tuple[str, ...]] = {
 %s
 }
+
+#: tool -> the parameter that replaces its table. A call that supplies it reads no
+#: table by construction, so the middleware must not fall back to the declaration
+#: and flag the vintage of a table the call deliberately did not open.
+TOOL_ALTERNATIVES: dict[str, str] = {
+%s
+}
 '''
 
 
 def render_table_bindings(audit: "Audit") -> str:
-    """The runtime binding maps: tables per constant, and tables per tool."""
+    """The runtime binding maps: tables per constant, tables per tool, alternatives."""
     lines: list[str] = []
     for module in sorted(audit.eager_tables):
         constants = audit.eager_tables[module]
@@ -1369,7 +1376,15 @@ def render_table_bindings(audit: "Audit") -> str:
         )
     if not tools:
         tools.append("    # no tool reads a hand-maintained table")
-    return BINDINGS_TEMPLATE % ("\n".join(lines), "\n".join(tools))
+
+    alternatives = [
+        '    "%s": "%s",' % (tool, parameter)
+        for fq, tool in sorted(audit.tools.items(), key=lambda item: item[1])
+        if (parameter := alternative_parameter(audit.functions[fq]))
+    ]
+    if not alternatives:
+        alternatives.append("    # no tool offers a datum in place of its table")
+    return BINDINGS_TEMPLATE % ("\n".join(lines), "\n".join(tools), "\n".join(alternatives))
 
 
 def verify_lib_modules(audit: "Audit") -> list[str]:
@@ -1445,6 +1460,18 @@ def verify_ledger(audit: "Audit") -> list[str]:
                 problems.append("src/lib/_tables_open.py: %s is gone" % marker)
     if "TOOL_TABLES: dict[str, tuple[str, ...]] = {}" in bindings:
         problems.append("no tool was tied to a table: the ledger fallback is empty")
+    if "TOOL_ALTERNATIVES: dict[str, str] = {}" in bindings:
+        problems.append(
+            "no tool declares a parameter in place of its table: either the escapes "
+            "are gone or the generator stopped reading them"
+        )
+    else:
+        text = ledger.read_text(encoding="utf-8") if ledger.exists() else ""
+        if "tool_alternatives" not in text:
+            problems.append(
+                "src/lib/_ledger.py does not consult the tool alternatives: a call "
+                "that supplied its own datum would still be flagged on its table"
+            )
     data = audit.src / "lib" / "_data.py"
     for marker in ("def effective", "def warnings", "avvisi_dati"):
         if marker not in data.read_text(encoding="utf-8"):
@@ -1462,6 +1489,35 @@ def declared_precision(fn: ast.AST) -> str | None:
     """The grade a tool declares in its docstring, or None when it declares none."""
     found = PRECISION_RE.search(ast.get_docstring(fn) or "")
     return found.group(1).upper() if found else None
+
+
+#: `@sourced(..., alternativa="parametro")`: the escape a refusal points the
+#: caller at, and therefore a promise that the parameter exists.
+ALTERNATIVA_RE = re.compile(r"alternativa\s*=\s*[\"']([A-Za-z_][A-Za-z0-9_]*)[\"']")
+
+
+def alternative_parameter(fn: ast.AST) -> str | None:
+    """The parameter a tool offers in place of a table it cannot vouch for."""
+    for decorator in getattr(fn, "decorator_list", []):
+        found = ALTERNATIVA_RE.search(ast.unparse(decorator))
+        if found:
+            return found.group(1)
+    return None
+
+
+def _parameters(fn: ast.AST) -> dict[str, ast.arg | None]:
+    """{parameter: its default node, or None when it is required}."""
+    spec = getattr(fn, "args", None)
+    if spec is None:
+        return {}
+    defaults = [None] * (len(spec.posonlyargs) + len(spec.args) - len(spec.defaults))
+    defaults += list(spec.defaults)
+    out: dict[str, ast.arg | None] = {}
+    for argument, default in zip([*spec.posonlyargs, *spec.args], defaults):
+        out[argument.arg] = default
+    for argument, default in zip(spec.kwonlyargs, spec.kw_defaults):
+        out[argument.arg] = default
+    return out
 
 
 def runtime_grades() -> list[str]:
@@ -1534,6 +1590,24 @@ def verify_precision(audit: "Audit") -> list[str]:
                 % (name, grado, ", ".join(gradi), gradi[0] if gradi else "ESATTO")
             )
 
+    for fq, name in sorted(audit.tools.items(), key=lambda kv: kv[1]):
+        alternatively = alternative_parameter(audit.functions[fq])
+        if not alternatively:
+            continue
+        parameters = _parameters(audit.functions[fq])
+        if alternatively not in parameters:
+            problems.append(
+                "%s says a refusal can be answered with `%s`, which is not one of its "
+                "parameters: the escape a refusal points at has to exist"
+                % (name, alternatively)
+            )
+        elif parameters[alternatively] is None:
+            problems.append(
+                "%s declares `%s` as required, so the table is never the thing that "
+                "decides: the alternative is meant to be optional"
+                % (name, alternatively)
+            )
+
     precision = audit.src / "lib" / "_precision.py"
     if not precision.exists():
         problems.append(
@@ -1552,6 +1626,12 @@ def verify_precision(audit: "Audit") -> list[str]:
             problems.append(
                 "src/lib/_data.py: %s is gone, so the declared grade no longer "
                 "changes the answer" % marker
+            )
+    for marker in ("CONSENT_PARAM", "accetta_precisione", "__signature__", "_documented"):
+        if marker not in data:
+            problems.append(
+                "src/lib/_data.py: %s is gone, so a refusal can no longer be "
+                "answered by accepting a lower grade" % marker
             )
     ledger = (audit.src / "lib" / "_ledger.py").read_text(encoding="utf-8")
     for marker in ("PRECISION_KEY", "_precision.recording", "_clock.recording"):

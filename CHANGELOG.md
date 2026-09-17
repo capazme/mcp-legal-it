@@ -155,6 +155,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   declares a word `_precision.py` does not know -- an unknown grade would be
   read as the strongest claim. `tests/unit/test_precision_policy.py` covers both
   states on the wire and at the seam.
+- A refusal is negotiable, not final. Every tool that reads a table now also
+  takes `accetta_precisione` (`INDICATIVO` or `STIMATO`), declared in its
+  signature and documented in the `Args:` block like any other parameter: the
+  caller names the grade it will settle for, the answer is given at that grade,
+  and both the body (`precisione.accettata`) and `mcp-legal-it/precisione` in
+  `_meta` say the acceptance is what allowed it. The claim itself is not for
+  sale -- asking for `ESATTO` on a table nobody sources is refused, and the
+  refusal carries `concedibile` so the retry is a decision -- and no acceptance
+  unlocks an expired table under a figure about today: a stale rate is wrong, not
+  imprecise, and the refusal says `negoziabile: false` instead of offering a
+  grade that would not help.
+- Two tools can do without the table altogether, which is the other half of the
+  answer. `@sourced(..., alternativa="parametro")` names the parameter that
+  provides what the table would have: `codice_fiscale` accepts the catastal code
+  (`codice_catastale`, so the algorithm is exact on an input instead of a lookup)
+  and `indennita_preavviso` accepts the notice period (`giorni_preavviso`, which
+  is the part of a CCNL table that no vintage can ever be right about, since the
+  contracts get renewed). Such a call reads no table at all, so nothing about a
+  vintage enters the answer: the footer is empty, no warning is emitted, and the
+  answer says `dati_forniti_dal_chiamante: {parametro, al_posto_di}` rather than
+  leaving the reader to guess what backs the number. The middleware knows the
+  same map (`TOOL_ALTERNATIVES`, generated) so it does not fall back to the
+  declaration and flag a table the call deliberately did not open.
+- `scripts/update-data.py` says what each unverified table costs, and it is no
+  longer a warning: the per-table block now lists the tools that apply it with
+  their declared grade and whether they refuse or merely degrade, derived from
+  the audit and the same rule the server runs. The eight `da_verificare` tables
+  block seven tools outright (`comuni` two, `imposte_successione` two,
+  `contributo_unificato`, `preavviso_ccnl`, `violazioni_patente` one each) and
+  degrade nine, which is what makes the check a to-do list rather than a note.
 - The audit fails when a literal restates a shipped table, which is how
   `preventivo_civile`'s contributo unificato bands lived in
   `fatturazione_avvocati.py` while `contributo_unificato.json` was updated next to

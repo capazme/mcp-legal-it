@@ -33,6 +33,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "plugin/
 from audit_tool_annotations import (  # noqa: E402
     REPO,
     Audit,
+    alternative_parameter,
     cache_inventory,
     declared_precision,
     verify_caches,
@@ -200,6 +201,15 @@ def group_tools(audit: Audit) -> dict[str, list[dict]]:
         entry["grado"] = grado
         entry["esito"] = esito.esito
         entry["effettiva"] = esito.effettiva
+        # A refusal the caller can answer with a grade instead of a file edit,
+        # and the grade that would work -- the difference between "reconcile
+        # this table" and "answer me at a lower claim".
+        entry["negoziabile"] = esito.negoziabile
+        entry["concedibile"] = esito.concedibile
+        # The escape the refusal points at, when the tool can do without the table
+        # altogether -- the difference between "reconcile the file" and "answer me
+        # now".
+        entry["alternativa"] = alternative_parameter(audit.functions[fq])
         if evidence:
             # Same rule the annotations use: a cache refresh is a write, but not
             # a destructive one, and everything else that writes is producing a
@@ -249,6 +259,16 @@ def _cells(entry: dict) -> str:
         claim = "precisione dichiarata: <code>%s</code>" % html.escape(entry["grado"])
         if entry["esito"] != "piena":
             claim += " &rarr; effettiva: <code>%s</code>" % html.escape(entry["effettiva"])
+        if entry["esito"] == "rifiuta":
+            claim += (
+                " &middot; negoziabile: <code>%s</code>" % html.escape(entry["concedibile"])
+                if entry["negoziabile"]
+                else " &middot; non negoziabile (tabella scaduta sotto una cifra di oggi)"
+            )
+        if entry["alternativa"]:
+            claim += " &middot; al posto della tabella: <code>%s</code>" % html.escape(
+                entry["alternativa"]
+            )
         tables = "<br>".join(part for part in (tables, claim) if part)
     why = "<br>".join(part for part in (detail, tables) if part) or "&mdash;"
     return (
@@ -305,6 +325,19 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
     out.append(
         '<div class="card"><b>%d</b><span>tools at reduced precision</span></div>'
         % sum(1 for rows in grouped.values() for entry in rows if entry["esito"] == "ridotta")
+    )
+    out.append(
+        '<div class="card"><b>%d</b><span>refusals a caller can negotiate</span></div>'
+        % sum(
+            1
+            for rows in grouped.values()
+            for entry in rows
+            if entry["esito"] == "rifiuta" and entry["negoziabile"]
+        )
+    )
+    out.append(
+        '<div class="card"><b>%d</b><span>tools that can do without a table</span></div>'
+        % sum(1 for rows in grouped.values() for entry in rows if entry["alternativa"])
     )
     out.append(
         '<div class="card"><b>%s</b><span>cache audit</span></div>'
@@ -379,7 +412,15 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "decision, computed from the tables and the docstrings as they stand now; "
         "<code>tests/unit/test_precision_policy.py</code> covers both states on "
         "the wire and the audit fails when a tool applies a table without "
-        "declaring a grade.</p>"
+        "declaring a grade. A refusal is negotiable rather than final: the caller "
+        "can accept a lower grade for one call (<code>accetta_precisione</code>, "
+        "declared in every tool's schema), and where the table can be done without "
+        "(`codice_catastale`, `giorni_preavviso` -- the right-hand note in the "
+        "column above) the caller brings the datum and the table is never opened, "
+        "which the answer records in <code>dati_forniti_dal_chiamante</code>. What "
+        "no acceptance buys is a wrong number: an expired table under a figure "
+        "about today stays refused, because less precise and out of date are not "
+        "the same failure.</p>"
     )
     if problems:
         out.append("<details open><summary>Cache audit problems</summary><ul>")
