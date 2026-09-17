@@ -11,13 +11,13 @@
     "nome": "Mario",
     "sesso": "M"
    },
-   "expected": "{\"codice_fiscale\":\"RSSMRA80A01H501U\",\"dettaglio\":{\"cognome\":\"RSS\",\"nome\":\"MRA\",\"anno\":\"80\",\"mese\":\"A\",\"giorno\":\"01\",\"codice_catastale\":\"H501\",\"carattere_controllo\":\"U\"},\"dati_applicati\":[\"comuni: provenienza e data non verificate — sottoinsieme di ~500 comuni, non il dataset ISTAT completo. Controllare la fonte prima dell'uso in un atto.\"]}"
+   "expected": "{\"codice_fiscale\":\"RSSMRA80A01H501U\",\"dettaglio\":{\"cognome\":\"RSS\",\"nome\":\"MRA\",\"anno\":\"80\",\"mese\":\"A\",\"giorno\":\"01\",\"codice_catastale\":\"H501\",\"carattere_controllo\":\"U\"},\"dati_applicati\":[\"comuni: provenienza e data non verificate — sottoinsieme di ~500 comuni, non il dataset ISTAT completo. Controllare la fonte prima dell'uso in un atto.\"],\"avvisi_dati\":[{\"tabella\":\"comuni\",\"stato\":\"non_verificata\",\"verificata\":false,\"messaggio\":\"comuni: provenienza e data non verificate — sottoinsieme di ~500 comuni, non il dataset ISTAT completo. Controllare la fonte prima dell'uso in un atto.\",\"fonte\":\"codici catastali ISTAT\",\"aggiornato_al\":null,\"copre_fino_a\":null}]}"
   },
   "decodifica_codice_fiscale": {
    "arguments": {
     "codice_fiscale": "RSSMRA80A01H501U"
    },
-   "expected": "{\"codice_fiscale\":\"RSSMRA80A01H501U\",\"carattere_controllo_valido\":true,\"dati\":{\"sesso\":\"M\",\"data_nascita\":\"1980-01-01\",\"anno_nascita_stimato\":1980,\"comune_nascita\":\"ROMA\",\"codice_catastale\":\"H501\"},\"nota\":\"L'anno di nascita è stimato (ambiguità secolo). I caratteri cognome/nome non sono reversibili.\",\"dati_applicati\":[\"comuni: provenienza e data non verificate — sottoinsieme di ~500 comuni, non il dataset ISTAT completo. Controllare la fonte prima dell'uso in un atto.\"]}"
+   "expected": "{\"codice_fiscale\":\"RSSMRA80A01H501U\",\"carattere_controllo_valido\":true,\"dati\":{\"sesso\":\"M\",\"data_nascita\":\"1980-01-01\",\"anno_nascita_stimato\":1980,\"comune_nascita\":\"ROMA\",\"codice_catastale\":\"H501\"},\"nota\":\"L'anno di nascita è stimato (ambiguità secolo). I caratteri cognome/nome non sono reversibili.\",\"dati_applicati\":[\"comuni: provenienza e data non verificate — sottoinsieme di ~500 comuni, non il dataset ISTAT completo. Controllare la fonte prima dell'uso in un atto.\"],\"avvisi_dati\":[{\"tabella\":\"comuni\",\"stato\":\"non_verificata\",\"verificata\":false,\"messaggio\":\"comuni: provenienza e data non verificate — sottoinsieme di ~500 comuni, non il dataset ISTAT completo. Controllare la fonte prima dell'uso in un atto.\",\"fonte\":\"codici catastali ISTAT\",\"aggiornato_al\":null,\"copre_fino_a\":null}]}"
   }
  }
 }

@@ -16,7 +16,9 @@ import types
 
 from fastmcp import Client, FastMCP
 
+from src.lib import _data
 from src.lib._ledger import (
+    DATA_WARNINGS_KEY,
     OPENED_TABLES_KEY,
     TableDict,
     TableList,
@@ -101,6 +103,66 @@ def test_the_real_bindings_wrapped_the_real_constants():
     assert isinstance(varie._COMUNI, TableDict), "the server stopped installing the ledger"
     assert "_COMUNI" in TABLE_CONSTANTS["src.tools.varie"]
     assert install(TABLE_CONSTANTS) == 0, "the constants were already wrapped once"
+
+
+def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():
+    """Which tables the warning is about: observed when possible, declared when blind.
+
+    Three cases, and the third is the one that is easy to get wrong. A call that
+    read an unverified table is flagged for it; a call the ledger could not see
+    (a table behind a scalar computed at import) is flagged from the tool's
+    declared tables, because silence there would report a clean answer; and a
+    tool that rests on no table gets no key at all, so the field means something
+    whenever it appears.
+    """
+    server = FastMCP("ledger-vintage-probe")
+
+    @server.tool()
+    def reads_an_unverified_table() -> dict:
+        return {"valore": _data.load("contributo_unificato")["civile"]}
+
+    @server.tool()
+    def reads_nothing_but_declares_one() -> dict:
+        return {"valore": 1.0}
+
+    @server.tool()
+    def rests_on_nothing() -> dict:
+        return {"valore": 2.0}
+
+    assert apply_table_ledger(
+        server,
+        {},
+        {"reads_nothing_but_declares_one": ("contributo_unificato",)},
+    ) == 0
+
+    async def run():
+        async with Client(server) as client:
+            return {
+                name: await client.call_tool(name, {})
+                for name in (
+                    "reads_an_unverified_table",
+                    "reads_nothing_but_declares_one",
+                    "rests_on_nothing",
+                )
+            }
+
+    results = asyncio.run(run())
+    observed = results["reads_an_unverified_table"].meta[DATA_WARNINGS_KEY]
+    assert [entry["tabella"] for entry in observed] == ["contributo_unificato"]
+    assert observed[0]["stato"] == "non_verificata"
+    assert results["reads_an_unverified_table"].meta[OPENED_TABLES_KEY] == [
+        "contributo_unificato"
+    ]
+
+    blind = results["reads_nothing_but_declares_one"].meta
+    assert OPENED_TABLES_KEY not in blind, "nothing was observed, so nothing is claimed"
+    assert [entry["tabella"] for entry in blind[DATA_WARNINGS_KEY]] == [
+        "contributo_unificato"
+    ], "the declaration is what the warning falls back to when the ledger is blind"
+
+    assert DATA_WARNINGS_KEY not in (results["rests_on_nothing"].meta or {}), (
+        "an answer that rests on no table must not carry an empty warning list"
+    )
 
 
 def test_the_middleware_declares_only_what_the_call_read():
