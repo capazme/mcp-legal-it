@@ -46,8 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   interessante della superficie. L'audit fallisce su qualunque chiamata a
   `date.today()`/`datetime.now()` fuori da quel modulo, così un tool nuovo non
   può sottrarsi all'essere bloccabile.
-- `tests/unit/test_golden_calcoli.py` congela quello che rispondono i 168 tool
-  di calcolo locali in `tests/fixtures/golden/calcoli_locali/` (argomenti +
+- `tests/unit/test_golden_calcoli.py` congela quello che rispondono i tool di
+  calcolo locali (167) in `tests/fixtures/golden/calcoli_locali/` (argomenti +
   risposta attesa, bloccati su `LEGAL_TODAY`/`LEGAL_NOW`, troncati a 4000
   caratteri dove la risposta è un documento intero). Il riferimento è **un file
   per insieme di tabelle**, ricavato dal codice (dichiarazioni `@sourced(...)`
@@ -68,20 +68,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parametri a oggetto (righe come `eredi`, `acconti`, `voci`, `rischi`) e
   sceglie le date per ruolo (`data_inizio`/`data_fine`,
   `anno_partenza`/`anno_arrivo`) invece di un unico valore per ogni `data_*`.
-  Tutti e 168 i tool di calcolo locali rispondono ora con un risultato vero,
+  Tutti i tool di calcolo locali rispondono ora con un risultato vero,
   mentre prima 12 tornavano con un errore di validazione.
 - `scripts/tool_report.py` rende la superficie una pagina autonoma
-  (`docs/tool-report.html`): i 221 tool divisi in 168 read-only locali, 36
+  (`docs/tool-report.html`): i 221 tool divisi in 167 read-only locali, 37
   read-only esterni, 12 che aggiornano la cache e 5 che generano documenti, con
-  il servizio raggiunto da ogni tool esterno e la directory di cache che ogni
-  writer può toccare. È costruita dallo stesso audit delle annotazioni, quindi
+  il servizio raggiunto da ogni tool esterno, la directory di cache che ogni
+  writer può toccare e — dalla modifica qui sotto — le tabelle che ognuno applica
+  e se il loro vintage richiede un'azione. È costruita dallo stesso audit delle annotazioni, quindi
   pagina e policy non possono divergere.
-- `tests/unit/test_read_only_contract.py` dimostra la promessa read-only a
-  runtime: il server viene avviato con `HOME` e `MCP_CACHE_DIR` propri, tutti i
-  168 tool read-only locali vengono chiamati con argomenti generati dal loro
-  input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
-  un file creato, cancellato o modificato fa fallire il test. Tutti e 168 hanno
-  risposto e nulla è cambiato.
 - `tests/unit/test_provenance_datasets.py` dimostra la mappa tabella → tool
   invece di riderivarla: la tabella viene perturbata in una copia usa-e-getta
   del server e le risposte sono confrontate con una base pulita, in entrambe le
@@ -99,6 +94,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   due lo dice. I wrapper sono superficiali e trasparenti: i valori annidati
   restano normali, quindi `json.dumps`, `==` e la serializzazione dell'host
   vedono gli stessi oggetti di prima.
+- Il footer `dati_applicati` è scritto da quello che la chiamata ha letto, non
+  dalla dichiarazione `@sourced(...)`: `_data.effective()` interseca le due, così
+  un tool che sceglie fra due tabelle nomina la tabella che ha usato. Chiamato
+  con i soli parametri obbligatori, `note_iscrizione_ruolo` dichiara
+  `codici_ruolo` + `contributo_unificato` ma applica solo la prima, e ora è
+  questo che la sua risposta dice. L'osservazione vale quanto la sua copertura,
+  quindi le due tabelle lette *dentro il corpo di una funzione*
+  (`mediazione_obbligatoria` in `procedura_civile`, `tegm` in `verifica_usura`)
+  passano ora dall'accessor `_data.load(nome)`, che registra la lettura; l'audit
+  riconosce la stessa chiamata come lettura, così la mappa statica e
+  l'osservazione descrivono un solo atto. Renderizzare un vintage passa invece
+  dal `_read` in cache sottostante: un footer che contasse come applicare le
+  tabelle che descrive renderebbe ogni osservazione uguale alla sua
+  dichiarazione e nessuna risposta potrebbe mai restringersi. La dichiarazione
+  resta il fallback per ciò che non si può avvolgere (una tabella raggiunta
+  attraverso uno scalare calcolato all'import), e con le due letture in corpo
+  osservate è ormai l'*unico* fallback rimasto: nessun tool della superficie
+  locale risponde da una tabella che il ledger non ha visto.
+- Un periodo coperto scaduto e una provenienza non verificata sono campi
+  strutturati, non solo una riga in fondo alla risposta. Una risposta a
+  dizionario porta `avvisi_dati` accanto a `dati_applicati`, ogni risposta porta
+  `mcp-legal-it/data_warnings` nel `_meta` del risultato -- l'unico canale che ha
+  un tool che restituisce una stringa -- e i due sono la stessa frase del footer,
+  quindi non possono divergere. Gli stati sono distinti: `scaduta` significa che
+  il periodo coperto è finito (`tassi_legali` dal 2027-01-01; `indici_foi` oltre
+  il proprio periodo *più* i 92 giorni di tolleranza per i comunicati ISTAT in
+  ritardo, quindi dal 2026-09-30 e non dal 2026-06-30), `non_verificata`
+  significa che nessuno ha stabilito da dove
+  viene la tabella (`contributo_unificato`, `comuni`, `codici_ateco` e altre 11),
+  e una tabella che non è né l'una né l'altra non segnala nulla -- così il campo
+  significa qualcosa ogni volta che compare, invece di essere una lista che si
+  impara a ignorare. Anche su quali tabelle verte l'avviso decide la stessa
+  osservazione del footer, non la dichiarazione.
 - L'audit fallisce quando un letterale riscrive una tabella del repository: è
   così che le fasce del contributo unificato vivevano dentro
   `fatturazione_avvocati.py` mentre `contributo_unificato.json` veniva aggiornato
@@ -114,8 +142,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   footer `dati_applicati`, ed è così che i vintage non verificati di
   `preavviso_ccnl` e `contributo_unificato` arrivano al lettore come avviso
   esplicito invece di non arrivare affatto.
+- `tests/unit/test_read_only_contract.py` dimostra la promessa read-only a
+  runtime: il server viene avviato con `HOME` e `MCP_CACHE_DIR` propri, tutti i
+  tool read-only locali vengono chiamati con argomenti generati dal loro
+  input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
+  un file creato, cancellato o modificato fa fallire il test. Tutti hanno
+  risposto e nulla è cambiato.
 
 ### Fixed
+- Un modulo di supporto in `src/lib/` finiva classificato come *servizio
+  esterno*. `upstream_clients()` restituisce `src/lib/<nome>` a meno che il nome
+  non sia dichiarato un helper in-process, e il `_tables_open` del ledger non lo
+  era. I 71 tool che lo importano (70 calcoli read-only e un generatore di
+  documenti) risultavano raggiungere un servizio esterno: i 70 sono finiti nella
+  colonna "esterni" del report e il conteggio open-world della pagina è passato
+  da 50 a 121, mentre ogni annotazione restava corretta (`openWorldHint` legge il grafo delle
+  chiamate e quel modulo non lo vedeva come client). Due lettori dello stesso
+  albero erano in disaccordo e nulla falliva: è questa la parte da sistemare.
+  `_ledger` e `_tables_open` sono ora dichiarati, e un nuovo controllo
+  `verify_lib_modules` fallisce su qualunque modulo sotto `src/lib` non
+  dichiarato in nessuno dei due modi -- un modulo è un helper in-process, un
+  pacchetto è un client -- con `tests/unit/test_tool_annotations.py` che sabota
+  entrambe le direzioni.
+- Il grafo delle chiamate non aveva un arco per una funzione passata come
+  *valore*. `_get_fonti()` in `giurisprudenza_unificata.py` restituisce un
+  dizionario con le quattro implementazioni di giurisprudenza e il chiamante
+  chiama attraverso di esso: non c'era nessun nodo `Call` da seguire e la
+  camminata si fermava alla tabella di dispatch.
+  `cerca_giurisprudenza_unificata` interroga Italgiure, CeRDEF, Giustizia
+  Amministrativa e CGUE, ed era annotato read-only *e* locale -- cioè quello che
+  un host pre-approva senza una spunta, e che chi revisiona legge come "una
+  semplice lettura". Ora un riferimento nudo a una funzione importata conta come
+  arco; cambia classificazione un solo tool (read-only locali 168 → 167,
+  open-world 49 → 50) e non si muove nient'altro: nessuna attribuzione di
+  tabella, nessuna scrittura, nessuna cache. La stessa via cieca era anche
+  l'ultimo valore vivo della fixture congelata: il tool rispondeva dalla rete,
+  quindi il valore registrato seguiva l'archivio della Cassazione (il conteggio
+  del raffinamento è passato da 3866 a 3863 fra due esecuzioni). Ora è fuori
+  dalla superficie riproducibile, che resta di 167 tool.
 - Tre tabelle precaricate all'import erano invisibili all'audit: `_CODICI_TRIBUTO`
   si lega attraverso un indice (`json.load(f)["codici"]`), `_CATALOGO`
   attraverso una dict comprehension, `_PREAVVISO` attraverso un'annotazione, e

@@ -101,7 +101,7 @@ def test_local_read_only_tools_do_not_touch_the_disk(tmp_path):
         % (len(local), len(answered), len(errored), errored[:12])
     )
     # A coverage floor, not a correctness claim: the generated arguments must
-    # keep actually exercising the tools. All 168 answered when this was
+    # keep actually exercising the tools. Every local tool answered when this was
     # written, so a drop below 90% means the argument generation went stale.
     assert len(answered) >= 0.9 * len(local), (
         "only %d/%d read-only tools answered: %s" % (len(answered), len(local), errored[:8])
