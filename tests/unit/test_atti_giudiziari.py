@@ -4,12 +4,12 @@ import importlib
 
 import pytest
 
+from .mcp_harness import tool_body
+
 
 def _call(fn_name, **kwargs):
     mod = importlib.import_module("src.tools.atti_giudiziari")
-    fn = getattr(mod, fn_name)
-    fn = getattr(fn, "fn", fn)
-    return fn(**kwargs)
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -1165,9 +1165,7 @@ class TestCercaUfficioGiudiziario:
 def _call_modelli(fn_name, **kwargs):
     import importlib
     mod = importlib.import_module("src.tools.modelli_atti")
-    fn = getattr(mod, fn_name)
-    fn = getattr(fn, "fn", fn)
-    return fn(**kwargs)
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 class TestEsportaAttoDocx:

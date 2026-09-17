@@ -31,6 +31,8 @@ def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
     Chiamare PRIMA di redigere un atto per conoscere struttura e requisiti.
     Per l'elenco completo dei tipi disponibili, chiamare con tipo_atto="catalogo".
     Per cercare per categoria, chiamare con tipo_atto="cerca" e parametri={"query": "termine"}.
+    Precisione: INDICATIVO (catalogo redazionale interno: struttura e campi vanno
+    adattati al caso concreto e alle prassi del giudice adito).
 
     Args:
         tipo_atto: Identificativo del tipo di atto. Usare "catalogo" per l'elenco completo,
@@ -254,6 +256,8 @@ def esporta_atto_docx(
 def lista_categorie_atti() -> dict:
     """Restituisce le categorie di atti disponibili con il conteggio per ciascuna.
     Utile per orientare l'utente nella scelta del tipo di atto.
+    Precisione: INDICATIVO (catalogo redazionale interno: la categoria orienta la
+    scelta, non sostituisce la qualificazione dell'atto).
     """
     conteggio: dict[str, int] = {}
     for v in _CATALOGO.values():

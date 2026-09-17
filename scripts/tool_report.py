@@ -28,8 +28,18 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "plugin/server/src/lib"))
 
-from audit_tool_annotations import REPO, Audit, cache_inventory, verify_caches  # noqa: E402
+from audit_tool_annotations import (  # noqa: E402
+    REPO,
+    Audit,
+    cache_inventory,
+    declared_precision,
+    verify_caches,
+)
+# The rule, not a copy of it: the page says what a tool would *answer* today, and
+# a second implementation of the same decision is a second thing to keep in step.
+from _precision import decide  # noqa: E402
 
 DEFAULT_OUT = REPO / "docs/tool-report.html"
 
@@ -62,10 +72,12 @@ STYLE = """
 :root {
   --bg: #0f1115; --panel: #171a21; --line: #262b36; --ink: #e8eaf0;
   --dim: #9aa3b2; --accent: #7aa2f7; --warn: #e0af68; --ok: #9ece6a;
+  --bad: #f7768e;
 }
 @media (prefers-color-scheme: light) {
   :root { --bg: #f7f8fa; --panel: #fff; --line: #e2e6ee; --ink: #1a1d24;
-          --dim: #5c6575; --accent: #3b5bdb; --warn: #b8860b; --ok: #2f7a2f; }
+          --dim: #5c6575; --accent: #3b5bdb; --warn: #b8860b; --ok: #2f7a2f;
+          --bad: #c02d3f; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; padding: 2rem clamp(1rem, 4vw, 3rem) 4rem; background: var(--bg);
@@ -175,6 +187,19 @@ def group_tools(audit: Audit) -> dict[str, list[dict]]:
                 (name, warnings[name]) for name in audit.reads(fq) if name in warnings
             ],
         }
+        # What the answer is worth today: the grade the tool declares in its own
+        # docstring, what the flagged tables among the ones it applies do to that
+        # claim, and whether it consults the clock (an expired table is fatal to a
+        # figure about today and a caveat to one about a closed period).
+        grado = declared_precision(audit.functions[fq])
+        esito = decide(
+            grado,
+            [state for _, state in entry["warned"]],
+            ancorata_al_presente=audit.reads_clock(fq),
+        )
+        entry["grado"] = grado
+        entry["esito"] = esito.esito
+        entry["effettiva"] = esito.effettiva
         if evidence:
             # Same rule the annotations use: a cache refresh is a write, but not
             # a destructive one, and everything else that writes is producing a
@@ -197,6 +222,10 @@ def _cells(entry: dict) -> str:
     if entry["warned"]:
         states = sorted({state for _, state in entry["warned"]})
         tags.append('<span class="tag warn">%s</span>' % html.escape(", ".join(states)))
+    if entry["esito"] == "rifiuta":
+        tags.append('<span class="tag bad">rifiuta il calcolo</span>')
+    elif entry["esito"] == "ridotta":
+        tags.append('<span class="tag warn">precisione ridotta</span>')
     detail = ""
     if entry["clients"]:
         detail = "; ".join(
@@ -216,6 +245,11 @@ def _cells(entry: dict) -> str:
         tables += '<br><span class="why">avvisi_dati: %s</span>' % html.escape(
             ", ".join("%s (%s)" % (name, state) for name, state in entry["warned"])
         )
+    if entry["grado"]:
+        claim = "precisione dichiarata: <code>%s</code>" % html.escape(entry["grado"])
+        if entry["esito"] != "piena":
+            claim += " &rarr; effettiva: <code>%s</code>" % html.escape(entry["effettiva"])
+        tables = "<br>".join(part for part in (tables, claim) if part)
     why = "<br>".join(part for part in (detail, tables) if part) or "&mdash;"
     return (
         '<td class="tool"><code>%s</code>%s</td><td><code>%s</code></td>'
@@ -263,6 +297,14 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
     out.append(
         '<div class="card"><b>%d</b><span>tools whose tables warn</span></div>'
         % sum(1 for rows in grouped.values() for entry in rows if entry["warned"])
+    )
+    out.append(
+        '<div class="card"><b>%d</b><span>tools that refuse to compute</span></div>'
+        % sum(1 for rows in grouped.values() for entry in rows if entry["esito"] == "rifiuta")
+    )
+    out.append(
+        '<div class="card"><b>%d</b><span>tools at reduced precision</span></div>'
+        % sum(1 for rows in grouped.values() for entry in rows if entry["esito"] == "ridotta")
     )
     out.append(
         '<div class="card"><b>%s</b><span>cache audit</span></div>'
@@ -319,7 +361,25 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "<code>mcp-legal-it/data_warnings</code> in its <code>_meta</code>, the same "
         "sentence as the footer, so a host can mark the answer without parsing it. "
         "The <span class=\"tag warn\">scaduta / non_verificata</span> tag above is "
-        "that field, worked out from the tables as they stand now.</p>"
+        "that field, worked out from the tables as they stand now. "
+        "Naming a state is not acting on it, so it also changes what the tool "
+        "answers. Every tool declares a grade in its own docstring "
+        "(<code>Precisione: ESATTO ...</code>), and "
+        "<code>src/lib/_precision.py</code> decides what an unsourced or expired "
+        "table does to that claim: an exact claim resting on a table nobody "
+        "sources is withdrawn -- the tool returns "
+        "<code>errore: dati_non_affidabili</code>, a figure-free refusal naming "
+        "the table and what would unblock it -- while an indicative one drops a "
+        "step and says so in <code>precisione</code>, in the body and in "
+        "<code>mcp-legal-it/precisione</code>. An expired table is the milder "
+        "case: it stops an answer anchored to today (the tool read the clock) and "
+        "only downgrades one about a period already closed. The "
+        "<span class=\"tag bad\">rifiuta il calcolo</span> and "
+        "<span class=\"tag warn\">precisione ridotta</span> tags are that "
+        "decision, computed from the tables and the docstrings as they stand now; "
+        "<code>tests/unit/test_precision_policy.py</code> covers both states on "
+        "the wire and the audit fails when a tool applies a table without "
+        "declaring a grade.</p>"
     )
     if problems:
         out.append("<details open><summary>Cache audit problems</summary><ul>")

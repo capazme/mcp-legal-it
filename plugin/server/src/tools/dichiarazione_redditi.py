@@ -953,6 +953,8 @@ def cerca_codice_tributo(query: str) -> str:
 
     Usare quando serve il codice tributo per compilare un modello F24.
     Restituisce: codice, descrizione, sezione e categoria per ogni risultato trovato.
+    Precisione: INDICATIVO (ricerca per codice o descrizione su tabella delle
+    risoluzioni AdE; verificare il codice sulla risoluzione prima del versamento).
 
     Args:
         query: Codice tributo (es. '4001') o testo da cercare (es. 'IRPEF saldo', 'IMU', 'IVA mensile')

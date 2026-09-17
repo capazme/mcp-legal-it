@@ -272,6 +272,24 @@ def tools() -> list[dict]:
     ]
 
 
+def tool_body(fn):
+    """The tool's own function, under the wrappers the framework and the policy add.
+
+    Two wrappers sit between a unit test and a tool's arithmetic: the registered
+    MCP tool object (`.fn`), and `@sourced(...)`, which turns a table's vintage
+    into a refusal when the tables a tool rests on cannot support the grade it
+    declares. A test of the *computation* wants the function -- the policy is
+    covered end to end by `tests/unit/test_precision_policy.py` and by the frozen
+    reference in `tests/unit/test_golden_calcoli.py`, which both run the whole
+    stack. `__wrapped__` is only followed for a wrapper this project put there.
+    """
+    if hasattr(fn, "fn"):
+        fn = fn.fn
+    if getattr(fn, "__sourced_datasets__", None) is not None:
+        fn = fn.__wrapped__
+    return fn
+
+
 def local_read_only(tools_: list[dict]) -> list[dict]:
     """Tools that neither write nor reach the network: the reproducible surface."""
     return [

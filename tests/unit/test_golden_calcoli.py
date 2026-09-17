@@ -35,6 +35,10 @@ Regenerate the reference deliberately, after reading the diff:
 
     GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py -q
 
+The answers are not all values: a tool whose declared grade an unsourced table
+cannot support refuses, and the refusal is part of what is frozen here (see
+`test_the_reference_stores_results_not_failures`).
+
 Run just this file with:
 
     pytest tests/unit/test_golden_calcoli.py -q
@@ -52,6 +56,8 @@ import sys
 import tempfile
 
 import pytest
+
+from src.lib import _data
 
 from .mcp_harness import (
     REPO,
@@ -346,7 +352,7 @@ def test_the_reference_partitions_the_surface_by_table(surface):
     )
 
 
-def test_the_reference_stores_results_not_failures(surface):
+def test_the_reference_stores_results_not_failures(surface, monkeypatch):
     """A frozen error is not a value: it means the arguments need fixing.
 
     The harness generates arguments from the schema, and the schema does not
@@ -354,19 +360,65 @@ def test_the_reference_stores_results_not_failures(surface):
     categories are validated inside the tools). When one of those drifts, the
     tool answers with an error -- and an error is not something to freeze as
     the expected answer.
+
+    One error *is* an answer: `dati_non_affidabili`, the refusal a tool gives
+    when the tables it rests on cannot support the grade it declares in its
+    docstring (`src/lib/_precision.py`). It is checked rather than merely
+    allowed, because "the reference may contain errors" would otherwise be a
+    licence for any argument drift: a refusal is only legitimate for a tool
+    whose tables are actually flagged, it must say the grade is `nessuna`, and
+    its record must still name the tables it refused on.
     """
     recorded = {
         tool: entry["expected"]
         for entries in _load_groups(_load_manifest()).values()
         for tool, entry in entries.items()
     }
+    refusals = {
+        name: text
+        for name, text in recorded.items()
+        if '"dati_non_affidabili"' in text
+    }
     markers = ('"errore"', "Error calling tool", "validation error", '"valido": false')
     broken = {
         name: next(m for m in markers if m in text)
         for name, text in recorded.items()
-        if any(m in text for m in markers)
+        if name not in refusals and any(m in text for m in markers)
     }
     assert not broken, "recorded answers are failures, not results: %s" % broken
+
+    assert refusals, (
+        "no refusal in the reference: either the policy stopped acting on the "
+        "tables that are still unsourced, or the recorded answers were taken "
+        "from a run that never reached it"
+    )
+    # The same date the reference was taken at: whether a table is flagged is a
+    # property of the clock, and this check has to ask the same clock.
+    monkeypatch.setenv("LEGAL_TODAY", PINNED_TODAY)
+    tables = _datasets_by_tool()
+    for name, text in refusals.items():
+        assert '"effettiva":"nessuna"' in text, (
+            "%s refuses without declaring that it claims no precision" % name
+        )
+        assert '"dati_applicati"' in text, (
+            "%s refuses without naming the tables it refused on" % name
+        )
+        flagged = [
+            dataset
+            for dataset in tables.get(name, [])
+            if _data.warnings([dataset])
+        ]
+        assert flagged, (
+            "%s refused, but none of the tables it declares is flagged: %s"
+            % (name, tables.get(name, []))
+        )
+    # Every tool the shipped tables take out of service has to be in the
+    # reference, or a refusal could sit in the code without a frozen answer.
+    assert len(refusals) >= 5, (
+        "only %d refusals recorded: a refusal that no longer happens is a change "
+        "to inspect, and one that happens without being frozen is invisible"
+        % len(refusals)
+    )
 
 
 def _opened_tables(reply: dict) -> set[str]:

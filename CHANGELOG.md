@@ -136,6 +136,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whenever it appears, instead of being a list everybody learns to ignore.
   Which tables a warning is about follows the same observation as the footer,
   not the declaration.
+- A stale or unsourced table now changes the answer, not only the footer.
+  Every tool already declares a grade in its own docstring (`Precisione:
+  ESATTO|INDICATIVO|STIMATO`, 144 of them, parsed from the line the calling
+  model reads), and `src/lib/_precision.py` decides what the vintage does to
+  that claim: an exact claim resting on a table nobody sources is **withdrawn**
+  -- the tool returns `errore: "dati_non_affidabili"` with no figure at all,
+  naming the table, its state and the file that would unblock it -- while an
+  indicative one steps down to `STIMATO` and says so in `precisione`, in the
+  answer body and in `mcp-legal-it/precisione` in `_meta`. An expired table is
+  the milder case, because coverage is not provenance: it stops an answer
+  anchored to today (the tool read the clock, observed per call through
+  `_clock.consulted()`) and only downgrades one about a period that has already
+  closed. With the shipped tables that is 7 refusals (`contributo_unificato`,
+  `codice_fiscale`, `imposte_*`, `indennita_preavviso`, ...) and 8 downgrades
+  (`preventivo_civile`, `decreto_ingiuntivo`, `ricerca_codici_ateco`, ...), and
+  the audit fails when a tool applies a table without declaring a grade, or
+  declares a word `_precision.py` does not know -- an unknown grade would be
+  read as the strongest claim. `tests/unit/test_precision_policy.py` covers both
+  states on the wire and at the seam.
 - The audit fails when a literal restates a shipped table, which is how
   `preventivo_civile`'s contributo unificato bands lived in
   `fatturazione_avvocati.py` while `contributo_unificato.json` was updated next to
