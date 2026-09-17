@@ -6,9 +6,10 @@
  "tools": {
   "note_iscrizione_ruolo": {
    "arguments": {
-    "tipo_procedimento": "ordinario"
+    "tipo_procedimento": "cognizione_ordinaria",
+    "valore_causa": 10000.0
    },
-   "expected": "{\"tipo_procedimento\":\"ordinario\",\"valore_causa\":null,\"contributo_unificato\":null,\"codici_oggetto_suggeriti\":[],\"note\":\"Iscrivere a ruolo come 'ordinario'. valore_causa richiesto per il calcolo del CU.\",\"riferimento_normativo\":\"DPR 115/2002 — Provvedimenti DGSIA per codici oggetto\",\"dati_applicati\":[\"codici ruolo: provenienza e data non verificate. Controllare la fonte prima dell'uso in un atto.\",\"contributo unificato: provenienza e data non verificate — importi non riconciliati con l'ultima legge di bilancio. Controllare la fonte prima dell'uso in un atto.\"]}"
+   "expected": "{\"tipo_procedimento\":\"cognizione_ordinaria\",\"valore_causa\":10000.0,\"contributo_unificato\":237,\"codici_oggetto_suggeriti\":[{\"codice\":\"1.01.001\",\"materia\":\"contratto\",\"descrizione\":\"Inadempimento contrattuale\"},{\"codice\":\"1.01.002\",\"materia\":\"contratto\",\"descrizione\":\"Risoluzione contrattuale\"},{\"codice\":\"1.01.003\",\"materia\":\"contratto\",\"descrizione\":\"Annullamento contratto\"}],\"note\":\"Iscrivere a ruolo come 'cognizione_ordinaria'. CU calcolato: EUR 237.00.\",\"riferimento_normativo\":\"DPR 115/2002 — Provvedimenti DGSIA per codici oggetto\",\"dati_applicati\":[\"codici ruolo: provenienza e data non verificate. Controllare la fonte prima dell'uso in un atto.\",\"contributo unificato: provenienza e data non verificate — importi non riconciliati con l'ultima legge di bilancio. Controllare la fonte prima dell'uso in un atto.\"]}"
   }
  }
 }

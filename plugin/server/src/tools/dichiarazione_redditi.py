@@ -286,6 +286,7 @@ def calcolo_tfr(
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("tassi_legali")
 def ravvedimento_operoso(
     imposta_dovuta: float,
     giorni_ritardo: int,
@@ -946,6 +947,7 @@ def rateizzazione_imposte(
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("codici_tributo")
 def cerca_codice_tributo(query: str) -> str:
     """Cerca un codice tributo F24 per codice o descrizione.
 

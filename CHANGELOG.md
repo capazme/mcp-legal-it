@@ -78,8 +78,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the sandbox, the checkout and the real MCP cache are fingerprinted before
   and after — any file created, deleted or modified fails the test. All 168
   answered and nothing changed.
+- `tests/unit/test_provenance_datasets.py` demonstrates the table → tool mapping
+  instead of re-deriving it: a table is perturbed in a throwaway copy of the
+  server and the answers are compared with a clean baseline, in both directions.
+  An answer that moves with a table whose footer does not name it is a silent
+  reader; an answer that names a table and does not move with it is a decorative
+  footer. The caller set comes from the tools' own footers, the controls are
+  tools that read other tables — the two oracles are independent of the audit.
+- Every table a tool reads now says so *and* says how current it is, including
+  the tables preloaded at import: six tools that answered in silence
+  (`cerca_codice_tributo`, `genera_modello_atto`, `lista_categorie_atti`,
+  `indennita_preavviso`, `costo_lavoro`, `ravvedimento_operoso`) carry their
+  `dati_applicati` footer, which is how the unverified vintages of
+  `preavviso_ccnl` and `contributo_unificato` now reach the reader as an explicit
+  warning instead of not reaching them at all.
+- The audit fails when a shipped table is applied by no tool: either it is dead
+  data or its reader is a load the walk cannot follow, and in the second case
+  the tool answering from it reports no vintage. That check is what found
+  `codici_tributo`, `modelli_atti` and `preavviso_ccnl`.
 
 ### Fixed
+- Three import-preloaded tables were invisible to the audit: `_CODICI_TRIBUTO`
+  binds through a subscript (`json.load(f)["codici"]`), `_CATALOGO` through a
+  dict comprehension, `_PREAVVISO` through an annotated assignment, and the walk
+  only recognised a bare `X = json.load(f)`. All three are now attributed to the
+  tools that read them, and a load inside a function body is seen too.
+- `preventivo_civile` and `modello_notula` estimated the contributo unificato
+  from a hand-kept copy of the bands instead of the shipped table: the copy does
+  not age with `contributo_unificato.json`, could diverge from what
+  `contributo_unificato` and `decreto_ingiuntivo` answer without anything
+  failing, and left the estimate with no vintage. Both now read
+  `civile.cognizione` and declare the table (the numbers are unchanged).
+- `verify_provenance` compared the declaration against a `datasets()` that
+  already contained it, so "declares a table the code never reads" could never
+  fire. The code-derived set is now `reads()` and the comparison is real in both
+  directions; `tests/unit/test_tool_annotations.py` sabotages a copy of the tree
+  to check the three cases (dropped declaration, invented declaration, renamed
+  loader) actually fail.
+- The stdio harness passed no `valore_causa` to `note_iscrizione_ruolo` — the
+  parameter is optional *with a default of null* — so the recorded answer was
+  the "valore_causa richiesto per il calcolo del CU" branch and the table the
+  tool declares was never applied. The curated arguments now compute it.
 - `start_server.sh` is PATH-independent. GUI hosts (Claude Desktop, Cowork,
   Freebuff) spawn MCP servers with launchd's bare PATH
   (`/usr/bin:/bin:/usr/sbin:/sbin`), which hides Homebrew, `~/.local/bin` and

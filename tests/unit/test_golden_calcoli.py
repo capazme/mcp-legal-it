@@ -195,14 +195,28 @@ def _write_reference(arguments: dict, current: dict, datasets: dict[str, list[st
 
 
 def _datasets_in_answer(text: str, known: set[str]) -> set[str]:
-    """Tables an answer declares, read from its own `dati_applicati` footer."""
+    """Tables an answer declares, read from its own footer.
+
+    Two renderings reach a host and both count: a dict answer carries the lines
+    under a `dati_applicati` key, a string answer carries the markdown block. A
+    reader that understood only the first would call the string-returning tools
+    silent while they do declare their tables.
+    """
+
+    def label(line: str) -> str:
+        return line.split(":")[0].strip().replace(" ", "_")
+
     declared: set[str] = set()
     for footer in re.findall(r'"dati_applicati":\s*\[(.*?)\]', text, re.S):
-        for item in re.findall(r'"([^"]+)"', footer):
-            label = item.split(":")[0].strip().replace(" ", "_")
-            if label in known:
-                declared.add(label)
-    return declared
+        declared.update(label(item) for item in re.findall(r'"([^"]+)"', footer))
+    marker = "**Dati applicati**"
+    if marker in text:
+        declared.update(
+            label(line[4:])
+            for line in text.split(marker, 1)[1].splitlines()
+            if line.startswith("> - ")
+        )
+    return {name for name in declared if name in known}
 
 
 def test_local_calculation_tools_answer_the_recorded_values(surface):
@@ -355,19 +369,43 @@ def test_the_reference_stores_results_not_failures(surface):
     assert not broken, "recorded answers are failures, not results: %s" % broken
 
 
-def test_answers_only_claim_tables_the_mapping_knows(surface):
-    """An answer's `dati_applicati` footer must agree with the derived grouping."""
+def test_answers_declare_the_tables_they_read(surface):
+    """An answer's `dati_applicati` footer is the provenance a reader checks.
+
+    For every tool whose answer carries a footer, the tables it names must be
+    exactly the tables the code reads: a missing one hides a table's vintage
+    (the tool gives advice whose currency is invisible), an extra one claims a
+    table the tool never opened.
+    """
     _, _, replies = surface
     datasets = _datasets_by_tool()
     audit_stems = _audit().available_datasets
     disagreements = {}
+    declaring, silent = [], sorted(
+        tool
+        for tool, tables in datasets.items()
+        if tables and tool in replies and not _datasets_in_answer(answer_text(replies[tool]), audit_stems)
+    )
     for tool, reply in replies.items():
         declared = _datasets_in_answer(answer_text(reply), audit_stems)
-        unknown = declared - set(datasets.get(tool, []))
-        if unknown:
-            disagreements[tool] = sorted(unknown)
+        if not declared:
+            continue
+        declaring.append(tool)
+        if declared != set(datasets.get(tool, [])):
+            disagreements[tool] = {
+                "declared": sorted(declared),
+                "reads": sorted(datasets.get(tool, [])),
+            }
+    assert len(declaring) > 50, (
+        "only %d answers carry a provenance footer; they are what makes the "
+        "tables' vintage visible" % len(declaring)
+    )
+    assert not silent, (
+        "these tools answer from a hand-maintained table and say nothing about "
+        "its vintage: %s" % silent
+    )
     assert not disagreements, (
-        "answers declare tables the grouping does not attribute to them: %s" % disagreements
+        "answers and code disagree about which tables were used: %s" % disagreements
     )
 
 
