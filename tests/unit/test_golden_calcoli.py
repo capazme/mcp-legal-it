@@ -369,6 +369,55 @@ def test_the_reference_stores_results_not_failures(surface):
     assert not broken, "recorded answers are failures, not results: %s" % broken
 
 
+def _opened_tables(reply: dict) -> set[str]:
+    """Tables a call declared it opened, from the result `_meta`."""
+    meta = ((reply or {}).get("result") or {}).get("_meta") or {}
+    return set(meta.get("mcp-legal-it/opened_tables") or ())
+
+
+def test_the_server_declares_the_tables_each_call_opened(surface):
+    """The runtime oracle: what the process read, not what the walk thinks.
+
+    `@sourced(...)` and the audit are both static -- they say which tables a
+    tool's code *can* read. Every call now also reports, in its result `_meta`,
+    which tables it *did* read, observed by the ledger that wraps the table
+    constants (`src/lib/_ledger.py`). Comparing the two is the only check here
+    that a reader the walk cannot follow fails: a table seen at runtime and not
+    attributed to the tool by the audit means the audit is missing a path, which
+    is exactly how three preloaded tables stayed invisible while six tools
+    answered with no provenance at all.
+    """
+    _, _, replies = surface
+    known = _datasets_by_tool()
+    stamps = _audit().available_datasets
+    undeclared: dict[str, list[str]] = {}
+    opened_anywhere: set[str] = set()
+    for tool, reply in replies.items():
+        seen = _opened_tables(reply)
+        if not seen:
+            continue
+        opened_anywhere |= seen
+        unattributed = sorted(seen - set(known.get(tool, [])))
+        if unattributed:
+            undeclared[tool] = unattributed
+        # What the call used has to be in the footer it handed the reader, or the
+        # vintage the reader checks does not cover the numbers they were given.
+        named = _datasets_in_answer(answer_text(reply), stamps)
+        if seen - named:
+            undeclared.setdefault(tool, []).extend(
+                "%s (footer names %s)" % (t, ",".join(sorted(named)) or "nothing")
+                for t in sorted(seen - named)
+            )
+    assert not undeclared, (
+        "the audit and the running server disagree about which tables were read: %s"
+        % undeclared
+    )
+    assert len(opened_anywhere) >= 15, (
+        "only %d tables were observed at runtime; the ledger is not observing "
+        "anything" % len(opened_anywhere)
+    )
+
+
 def test_answers_declare_the_tables_they_read(surface):
     """An answer's `dati_applicati` footer is the provenance a reader checks.
 
