@@ -41,6 +41,13 @@ IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".venv")
 
 MARKER = "**Dati applicati**"
 
+#: The error a tool answers with when the tables it rests on cannot support the
+#: grade it declares (`src/lib/_data.py`). Such an answer is about the table's
+#: *state*, so perturbing the table's values leaves it identical -- which is why
+#: the mapping for those tables is demonstrated the other way round, by giving the
+#: table a source and watching the refusal turn into a computation.
+REFUSAL = "dati_non_affidabili"
+
 #: Tables whose mapping is demonstrated. The whole table is perturbed, not one
 #: field: readers use different halves of it — `contributo_unificato` answers
 #: from the cognizione bands, `decreto_ingiuntivo` from the monitorio ones — so a
@@ -164,6 +171,16 @@ def perturb(root: pathlib.Path, table: str) -> None:
     )
 
 
+def give_source(root: pathlib.Path, table: str) -> None:
+    """Give a table a declared source, so tools may stop refusing it."""
+    path = root / "plugin/server/src/data" / f"{table}.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    block = payload.setdefault("_vintage", {})
+    block["verifica"] = "manuale"
+    block["fonte"] = "fonte di prova (perturbazione del test)"
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def call(root: pathlib.Path, names: list[str], arguments: dict) -> dict:
     """Answers of `names`, read from the server in `root`."""
     tmp = pathlib.Path(tempfile.mkdtemp())
@@ -213,12 +230,41 @@ def test_footer_mapping_is_demonstrated_and_not_just_derived(tmp_path):
         moved = {
             name for name in watchers if content_text(current[name]) != answers[name]
         }
+        refused = {
+            name for name in declares[table] if REFUSAL in answers[name]
+        }
         for name in sorted(moved - set(declares[table])):
             failures.append(
                 "%s moved with %s but its answer does not name it" % (name, table)
             )
-        for name in sorted(set(declares[table]) - moved):
+        for name in sorted((set(declares[table]) - moved) - refused):
             failures.append(
                 "%s names %s but its answer did not move with it" % (name, table)
             )
+        # The other direction, for the tools whose answer is a refusal: their
+        # text cannot move when the values do, because it is about the table's
+        # state. Two copies, both with the table given a source -- one with its
+        # values shaken -- settle both halves: the refusal has to become a
+        # computation (so it really depended on this table), and that computation
+        # has to move with the values (so the table's content reaches the answer
+        # for these tools too).
+        if refused:
+            intact = checkout(tmp_path / ("sourced-" + table))
+            give_source(intact, table)
+            shaken = checkout(tmp_path / ("sourced-mutated-" + table))
+            give_source(shaken, table)
+            perturb(shaken, table)
+            answered = call(intact, sorted(refused), arguments)
+            with_values = call(shaken, sorted(refused), arguments)
+            for name in sorted(refused):
+                if REFUSAL in content_text(answered.get(name)):
+                    failures.append(
+                        "%s kept refusing %s after the table declared a source: the "
+                        "refusal does not depend on the state it names" % (name, table)
+                    )
+                elif content_text(with_values.get(name)) == content_text(answered.get(name)):
+                    failures.append(
+                        "%s answers the same thing with %s's values shaken: it "
+                        "refuses on the table but never reads it" % (name, table)
+                    )
     assert not failures, "\n".join(failures)

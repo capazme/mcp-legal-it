@@ -127,6 +127,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   significa qualcosa ogni volta che compare, invece di essere una lista che si
   impara a ignorare. Anche su quali tabelle verte l'avviso decide la stessa
   osservazione del footer, non la dichiarazione.
+- Una tabella scaduta o non verificata ora cambia la risposta, non solo il
+  footer. Ogni tool dichiara già un grado nella propria docstring (`Precisione:
+  ESATTO|INDICATIVO|STIMATO`, 144 su 221, letto dalla riga che il modello
+  chiamante vede) e `src/lib/_precision.py` decide cosa fa il vintage a quella
+  dichiarazione: un'affermazione esatta che poggia su una tabella senza fonte
+  viene **ritirata** -- il tool risponde `errore: "dati_non_affidabili"`, senza
+  alcun importo, nominando la tabella, il suo stato e il file che sbloccherebbe
+  il calcolo -- mentre una indicativa scende a `STIMATO` e lo dichiara in
+  `precisione`, nel corpo della risposta e in `mcp-legal-it/precisione` nel
+  `_meta`. Una tabella scaduta è il caso più mite, perché copertura non è
+  provenienza: ferma una risposta ancorata a oggi (il tool ha letto l'orologio,
+  osservato per chiamata con `_clock.consulted()`) e degrada soltanto quella su
+  un periodo già chiuso. Con le tabelle attuali sono 7 rifiuti
+  (`contributo_unificato`, `codice_fiscale`, `imposte_*`,
+  `indennita_preavviso`, ...) e 8 degradi (`preventivo_civile`,
+  `decreto_ingiuntivo`, `ricerca_codici_ateco`, ...), e l'audit fallisce quando
+  un tool applica una tabella senza dichiarare un grado, o dichiara una parola
+  che `_precision.py` non conosce -- un grado sconosciuto verrebbe letto come
+  l'affermazione più forte. `tests/unit/test_precision_policy.py` copre i due
+  stati sul filo e alla giuntura.
 - L'audit fallisce quando un letterale riscrive una tabella del repository: è
   così che le fasce del contributo unificato vivevano dentro
   `fatturazione_avvocati.py` mentre `contributo_unificato.json` veniva aggiornato

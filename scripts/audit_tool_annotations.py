@@ -84,6 +84,7 @@ import ast
 import difflib
 import json
 import pathlib
+import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -120,6 +121,7 @@ LOCAL_LIB_MODULES = {
     "_egress",
     "_http",
     "_ledger",
+    "_precision",
     "_result",
     "_tables_open",
 }
@@ -442,22 +444,38 @@ class Audit:
             parts = target.split(".")
             return (parts[2] if len(parts) > 2 else "") not in LOCAL_LIB_MODULES
 
+        #: Answered once per function, and marked before it is explored: the
+        #: static graph does contain cycles (`_clock.now()` resolves to the
+        #: module's own `now` by suffix, which is how `_now_value -> now ->
+        #: _now_value` appeared), and a walk that follows them without a marker
+        #: ends in a RecursionError instead of an answer. Marking a function as
+        #: False while it is in progress is safe because it can only be reached
+        #: through itself: a cycle contributes no new evidence.
+        memo: dict[str, bool] = {}
+
         def selector(name: str) -> bool:
+            if name in memo:
+                return memo[name]
             if name not in self.calls:
+                memo[name] = False
                 return False
+            memo[name] = False
             module = name.rsplit(".", 1)[0]
             for target, short in self.calls[name]:
                 base = target.rsplit(".", 1)[0] if "." in target else ""
                 if short in NET_READ_ATTRS and base.split(".")[-1] in NET_BASES:
+                    memo[name] = True
                     return True
                 if is_net_target(target):
+                    memo[name] = True
                     return True
                 candidate = self._resolve(module, target)
                 if candidate and candidate != name and selector(candidate):
+                    memo[name] = True
                     return True
-            return False
+            return memo[name]
 
-        return self._reachable({fq: selector(fq)}, fq)
+        return selector(fq)
 
     def chain(self, fq: str) -> list[str]:
         """Every function reachable from `fq` inside src/, `fq` included."""
@@ -477,6 +495,22 @@ class Audit:
 
         walk(fq)
         return out
+
+    def reads_clock(self, fq: str) -> bool:
+        """True when anything reachable from `fq` asks what day it is.
+
+        The runtime answers this more precisely -- `_clock.consulted()` records the
+        reads of a single call -- but a page rendered without starting a server
+        can still answer it from the source, and that is the difference between
+        an answer anchored to today (which an expired table stops) and one about a
+        period already closed (which it only downgrades).
+        """
+        for name in self.chain(fq):
+            for target, _ in self.calls.get(name, set()):
+                parts = target.split(".")
+                if len(parts) >= 2 and parts[-1] in ("today", "now") and parts[-2] == "_clock":
+                    return True
+        return False
 
     def write_sites(self, fq: str) -> list[tuple[str, str]]:
         """(owning function, evidence) for every write reachable from `fq`."""
@@ -1418,6 +1452,114 @@ def verify_ledger(audit: "Audit") -> list[str]:
     return problems
 
 
+#: The line that declares a grade, e.g. `Precisione: ESATTO per indici FOI`.
+#: Kept in step with `src/lib/_precision.py`'s own pattern by
+#: `verify_precision`, so a docstring the audit accepts is one the runtime reads.
+PRECISION_RE = re.compile(r"^[ \t]*Precisione:[ \t]*([A-Za-zÀ-ÿ]+)", re.MULTILINE)
+
+
+def declared_precision(fn: ast.AST) -> str | None:
+    """The grade a tool declares in its docstring, or None when it declares none."""
+    found = PRECISION_RE.search(ast.get_docstring(fn) or "")
+    return found.group(1).upper() if found else None
+
+
+def runtime_grades() -> list[str]:
+    """The grades `src/lib/_precision.py` knows, read from its own source.
+
+    Read rather than imported: the audit walks the source and must keep working
+    without the server's dependencies installed, but a second copy of this
+    vocabulary is exactly the kind of drift that lets the audit accept a word the
+    runtime reads as the strongest claim. The tuple holds names, so the constants
+    it points at are resolved too -- and a `GRADI` the module spells some other
+    way is reported as empty, which `verify_precision` fails on rather than
+    silently accepting every grade.
+    """
+    source = REPO / "plugin/server/src/lib/_precision.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+    constants: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+            if isinstance(node.value.value, str):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        constants[target.id] = node.value.value
+    gradi: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == "GRADI" for t in node.targets):
+            continue
+        if not isinstance(node.value, ast.Tuple):
+            continue
+        for element in node.value.elts:
+            if isinstance(element, ast.Constant) and isinstance(element.value, str):
+                gradi.append(element.value)
+            elif isinstance(element, ast.Name) and element.id in constants:
+                gradi.append(constants[element.id])
+    return gradi
+
+
+def verify_precision(audit: "Audit") -> list[str]:
+    """A tool that rests on a table has to declare how precise its answer is.
+
+    That grade is what the vintage acts on: `src/lib/_precision.py` withdraws an
+    exact claim an unverified table cannot support and steps an indicative one
+    down, and a tool that declares nothing would be read as claiming exactness.
+    So the declaration is a condition of applying a table, and the mechanism has
+    to be installed where the answers are built, not merely described.
+    """
+    problems: list[str] = []
+    gradi = runtime_grades()
+    if not gradi:
+        problems.append(
+            "src/lib/_precision.py declares no GRADI: nothing says which words a "
+            "docstring may claim"
+        )
+    for fq, name in sorted(audit.tools.items(), key=lambda kv: kv[1]):
+        datasets = audit.datasets(fq)
+        if not datasets:
+            continue
+        grado = declared_precision(audit.functions[fq])
+        if grado is None:
+            problems.append(
+                "%s applies %s but declares no `Precisione:` grade: with nothing "
+                "declared, a stale table has no claim to withdraw"
+                % (name, ", ".join(datasets))
+            )
+        elif grado not in gradi:
+            problems.append(
+                "%s declares `Precisione: %s`, which src/lib/_precision.py does not "
+                "know (it knows %s): an unknown grade is read as %s"
+                % (name, grado, ", ".join(gradi), gradi[0] if gradi else "ESATTO")
+            )
+
+    precision = audit.src / "lib" / "_precision.py"
+    if not precision.exists():
+        problems.append(
+            "src/lib/_precision.py is missing: a table's vintage would no longer "
+            "change what an answer claims"
+        )
+    else:
+        text = precision.read_text(encoding="utf-8")
+        for marker in ("def declared", "def decide", "def to_dict", "ridotta", "rifiuta"):
+            if marker not in text:
+                problems.append("src/lib/_precision.py: %s is gone" % marker)
+
+    data = (audit.src / "lib" / "_data.py").read_text(encoding="utf-8")
+    for marker in ("_precision.decide", "dati_non_affidabili", "come_sbloccare"):
+        if marker not in data:
+            problems.append(
+                "src/lib/_data.py: %s is gone, so the declared grade no longer "
+                "changes the answer" % marker
+            )
+    ledger = (audit.src / "lib" / "_ledger.py").read_text(encoding="utf-8")
+    for marker in ("PRECISION_KEY", "_precision.recording", "_clock.recording"):
+        if marker not in ledger:
+            problems.append("src/lib/_ledger.py: %s is gone" % marker)
+    return problems
+
+
 def render_cache_doc(audit: "Audit") -> str:
     """The generated cache inventory (`docs/cache-inventory.md`).
 
@@ -1565,6 +1707,9 @@ def main() -> int:
         failed = True
     for problem in verify_lib_modules(audit):
         print("lib module audit: %s" % problem, file=sys.stderr)
+        failed = True
+    for problem in verify_precision(audit):
+        print("precision audit: %s" % problem, file=sys.stderr)
         failed = True
 
     bindings = render_table_bindings(audit)

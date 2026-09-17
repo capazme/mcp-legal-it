@@ -15,6 +15,14 @@ carry weight -- an expired covered period and an unverified provenance -- are
 repeated as `avvisi_dati`, a structured field next to the prose, so a client can
 act on them without parsing the footer.
 
+Telling a reader that a number may be stale is not the same as doing something
+about it, so the state also changes the answer. Every tool declares a precision
+grade in its docstring (`Precisione: ESATTO ...`), `src/lib/_precision.py` decides
+what an expired or unverified table does to that claim, and this module applies
+the outcome: the grade drops and the answer carries `precisione` in its body, or
+the tool refuses to compute and returns `errore: "dati_non_affidabili"` with the
+tables that caused it and what would unblock it. No grade is silently kept.
+
 `verifica: "da_verificare"` is a deliberate value, not an oversight: it means
 nobody has established the table's currency yet, and it renders as an explicit
 warning. Inventing a plausible date would be worse than admitting the gap.
@@ -32,7 +40,7 @@ from datetime import date, timedelta
 from functools import lru_cache, wraps
 from pathlib import Path
 
-from . import _clock, _tables_open
+from . import _clock, _precision, _tables_open
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -230,21 +238,96 @@ def all_datasets() -> list[str]:
     return sorted(p.stem for p in DATA_DIR.glob("*.json"))
 
 
-def _attach(result: object, declared: tuple[str, ...]) -> object:
+#: How each state reads in prose. The structured field keeps the machine word
+#: (`non_verificata`), because a client matches on it; the sentence a model reads
+#: says what it means.
+_STATO_IN_PROSA = {
+    "non_verificata": "priva di una provenienza verificata",
+    "scaduta": "con il periodo coperto già scaduto",
+}
+
+
+def _rifiuto(
+    esito: _precision.Esito,
+    datasets: tuple[str, ...],
+    avvisi: list[dict],
+    nota: str = "",
+) -> dict:
+    """The answer a tool gives when it must not compute.
+
+    No figure, no partial result: the tool declares a grade and, when the tables
+    it rests on cannot support that grade, the honest answer is to say so. The
+    payload is structured (`errore`, `tabelle`, `come_sbloccare`) so a calling
+    agent can explain the block to its user instead of guessing at a number, and
+    it names the claim being withdrawn -- `ESATTO per indici FOI` is a specific
+    assertion, and the reader deserves to know which one failed.
+
+    It carries `avvisi_dati` as well, the same key a warning-only answer has: a
+    refusal is what the two states lead to, not a third state, and a client that
+    reads one key for "tables to act on" keeps reading one key.
+    """
+    qualificatore = (
+        f" «{esito.dichiarata} {nota}»" if nota else f" «{esito.dichiarata}»"
+    )
+    tabelle = ", ".join(a["tabella"] for a in avvisi)
+    stati = " e ".join(_STATO_IN_PROSA.get(stato, stato) for stato in esito.motivi)
+    return {
+        "errore": "dati_non_affidabili",
+        "messaggio": (
+            f"Calcolo non eseguito: la risposta dichiarerebbe{qualificatore} su "
+            f"{tabelle}, che risulta {stati}. Nessun importo o termine viene "
+            "fornito su una base non verificata."
+        ),
+        "precisione": esito.to_dict(nota),
+        "tabelle": avvisi,
+        # The same key an answer carries when it merely warns: a refusal is the
+        # strongest form of "these tables need acting on", and one key with one
+        # meaning is what lets a client look in one place.
+        "avvisi_dati": avvisi,
+        "dati_applicati": [vintage(d).to_line() for d in datasets],
+        "come_sbloccare": (
+            "Dichiarare la tabella in src/data/" + ", ".join(a["tabella"] for a in avvisi)
+            + ".json (`_vintage`: fonte, copre_fino_a, verifica) con "
+            "scripts/update-data.py, poi rieseguire il calcolo."
+        ),
+    }
+
+
+def _attach(result: object, declared: tuple[str, ...], grado: _precision.Dichiarata | None) -> object:
     """Carry the vintage alongside whatever shape a tool returns.
 
     The tables named are the ones the call read (`effective`), and the ones that
     are expired or unverified are repeated in a structured field, so a client
     does not have to read the footer to find out that a number may be stale.
+
+    Naming them is not enough: the same state decides what the answer is worth
+    (`_precision.decide`). Either the tool's declared grade drops a step and the
+    body says so, or the tool refuses. `_clock.consulted()` is read before
+    anything else touches the clock, because computing each vintage's age reads
+    it and would otherwise make every call look anchored to the present.
     """
     datasets = effective(declared)
+    ancorata = bool(_clock.consulted())
     avvisi = warnings(datasets)
+    esito = _precision.decide(
+        grado.grado if grado else None,
+        [a["stato"] for a in avvisi],
+        ancorata_al_presente=ancorata,
+    )
+    nota = grado.qualificatore if grado else ""
+    if esito.esito != "piena":
+        _precision.note(esito)
+    if esito.rifiuta:
+        return _rifiuto(esito, datasets, avvisi, nota)
+
     if isinstance(result, str):
         return result + footer(*datasets)
     if isinstance(result, dict):
         out = {**result, "dati_applicati": [vintage(d).to_line() for d in datasets]}
         if avvisi:
             out["avvisi_dati"] = avvisi
+        if esito.esito == "ridotta":
+            out["precisione"] = esito.to_dict(nota)
         return out
     return result  # a bare float/int/date has nowhere to put it; left untouched
 
@@ -262,14 +345,18 @@ def sourced(*datasets: str):
             ...
     """
     def decorate(fn):
+        # The grade comes from the docstring the model reads, captured here so
+        # the runtime and the audit read the same words.
+        grado = _precision.declared(fn)
         if inspect.iscoroutinefunction(fn):
             @wraps(fn)
             async def wrapper(*args, **kwargs):
-                return _attach(await fn(*args, **kwargs), datasets)
+                return _attach(await fn(*args, **kwargs), datasets, grado)
         else:
             @wraps(fn)
             def wrapper(*args, **kwargs):
-                return _attach(fn(*args, **kwargs), datasets)
+                return _attach(fn(*args, **kwargs), datasets, grado)
         wrapper.__sourced_datasets__ = datasets  # read by the coverage test
+        wrapper.__precisione_dichiarata__ = grado
         return wrapper
     return decorate
