@@ -164,3 +164,11 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "verifica_necessita_dpia": ("gdpr_dpia_criteri",),
     "verifica_usura": ("tegm",),
 }
+
+#: tool -> the parameter that replaces its table. A call that supplies it reads no
+#: table by construction, so the middleware must not fall back to the declaration
+#: and flag the vintage of a table the call deliberately did not open.
+TOOL_ALTERNATIVES: dict[str, str] = {
+    "codice_fiscale": "codice_catastale",
+    "indennita_preavviso": "giorni_preavviso",
+}

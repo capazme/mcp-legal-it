@@ -325,10 +325,65 @@ def check_usufrutto(today: date) -> bool:
 # whole point. A table already marked `da_verificare` only WARNS: eight of them
 # exist today, and a check that is red from the first run gets muted, which
 # would leave us exactly where we started.
+#
+# The warning is not cosmetic any more, so it now says what it costs. A table
+# marked `da_verificare` takes every tool that declares an exact grade out of
+# service (`src/lib/_precision.py`: the answer is refused, not annotated), and a
+# caller can only get past that by supplying the datum the table provides or by
+# accepting a lower grade. Those are the two things printed next to each table,
+# derived from the audit rather than kept by hand -- this file is the to-do list,
+# and a to-do list that does not say what is blocked is a list nobody works on.
 DEDICATED = {
     "tegm", "indici_foi", "tassi_legali", "tassi_mora",
     "irpef_scaglioni", "tabella_danno_bio", "usufrutto_coefficienti",
 }
+
+#: This file is `<repo>/scripts/update-data.py`, so the repository is one level up
+#: from the directory that holds it.
+REPO = Path(__file__).resolve().parents[1]
+
+
+def _who_needs(table: str) -> list[tuple[str, str, str]]:
+    """`(tool, declared grade, outcome)` for every tool that applies `table`.
+
+    The outcome comes from the same rule the server runs (`_precision.decide`),
+    asked of the source as it stands: a table gaining a source, or a tool
+    declaring a different grade, changes this list instead of outdating it.
+    """
+    sys.path.insert(0, str(REPO / "scripts"))
+    sys.path.insert(0, str(REPO / "plugin/server/src/lib"))
+    try:
+        from audit_tool_annotations import Audit, declared_precision  # noqa: E402
+        from _precision import decide  # noqa: E402
+
+        audit = Audit(REPO / "plugin/server/src")
+        out = []
+        for fq, name in sorted(audit.tools.items(), key=lambda item: item[1]):
+            if table not in audit.reads(fq):
+                continue
+            grado = declared_precision(audit.functions[fq]) or "?"
+            esito = decide(grado, ["non_verificata"], audit.reads_clock(fq))
+            out.append((name, grado, esito.esito if esito.esito != "piena" else "ok"))
+        return out
+    except Exception as exc:  # pragma: no cover - a broken tree is not this check's job
+        print(warn(f"  (non riesco a chiedere all'audit chi usa {table}: {exc})"))
+        return []
+
+
+def _report_blockers(table: str) -> None:
+    """What a flagged table costs, and the two ways a caller can still be served."""
+    users = _who_needs(table)
+    if not users:
+        return
+    refused = [name for name, _, esito in users if esito == "rifiuta"]
+    reduced = [name for name, _, esito in users if esito == "ridotta"]
+    print(
+        f"  Uso                : {len(users)} tool ({len(refused)} rifiutano, {len(reduced)} degradano)"
+    )
+    if refused:
+        print(f"  {RED}RIFIUTA{RESET}             : {', '.join(refused)}")
+    if reduced:
+        print(f"  degrada            : {', '.join(reduced)}")
 
 
 def check_vintages(today: date) -> bool:
@@ -355,7 +410,22 @@ def check_vintages(today: date) -> bool:
         print("  Azione: riconciliare con la fonte e spostare `copre_fino_a`")
     if da_verificare:
         print(warn(f"{len(da_verificare)} tabelle marcate `da_verificare`: {', '.join(da_verificare)}"))
-        print("  Non bloccante. Ognuna espone l'avviso nell'output dei tool finche' resta cosi'.")
+        print(
+            "  Bloccante, non solo informativo: un tool che dichiara un grado esatto "
+            "RIFIUTA di calcolare invece di annotare. Chi chiama puo' comunque ottenere il "
+            "numero accettando un grado piu' basso (`accetta_precisione`) o fornendo il "
+            "dato che la tabella darebbe, dove il tool lo prevede. Per tabella:"
+        )
+        for name in da_verificare:
+            info = vintage(name)
+            print(f"\n  {BOLD}{name}{RESET}")
+            print(f"  fonte dichiarata   : {info.fonte}")
+            print(f"  da riconciliare    : {info.nota or '(non dichiarato)'}")
+            _report_blockers(name)
+            print(
+                "  Azione             : verificare la fonte sopra e aggiornare i valori, poi "
+                f"`verifica: manuale` e `aggiornato_al` in src/data/{name}.json"
+            )
     if not mancanti and not scadute:
         print(ok(f"{len(all_datasets()) - len(da_verificare)} tabelle con provenienza dichiarata"))
 

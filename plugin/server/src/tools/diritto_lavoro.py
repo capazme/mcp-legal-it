@@ -114,13 +114,14 @@ def indennita_licenziamento(
 
 
 @mcp.tool(tags={"lavoro"})
-@sourced("preavviso_ccnl")
+@sourced("preavviso_ccnl", alternativa="giorni_preavviso")
 def indennita_preavviso(
     ccnl: str,
     livello: str,
     anzianita_anni: float,
     retribuzione_mensile: float,
     tipo: str = "licenziamento",
+    giorni_preavviso: float | None = None,
 ) -> dict:
     """Calcola l'indennità sostitutiva del preavviso per CCNL principali.
 
@@ -136,6 +137,9 @@ def indennita_preavviso(
         anzianita_anni: Anni di anzianità aziendale (es. 7.0; valore >= 0)
         retribuzione_mensile: Retribuzione mensile lorda in euro (es. 2000.00; valore > 0)
         tipo: Tipo di recesso: 'licenziamento' o 'dimissioni'
+        giorni_preavviso: Giorni di preavviso che il CCNL applicabile prevede, se li conosci: al posto
+                          della tabella inclusa, che i contratti rinnovano. Il calcolo dell'indennità
+                          non dipende allora dalla tabella
     """
     if retribuzione_mensile <= 0:
         raise ValueError("retribuzione_mensile deve essere > 0")
@@ -144,17 +148,6 @@ def indennita_preavviso(
     if tipo not in ("licenziamento", "dimissioni"):
         raise ValueError("tipo deve essere 'licenziamento' o 'dimissioni'")
 
-    ccnl_data = _PREAVVISO["ccnl"].get(ccnl)
-    if ccnl_data is None:
-        ccnl_disponibili = list(_PREAVVISO["ccnl"].keys())
-        raise ValueError(f"CCNL '{ccnl}' non trovato. Disponibili: {ccnl_disponibili}")
-
-    tabella_tipo = ccnl_data[tipo]
-    livello_data = tabella_tipo.get(livello)
-    if livello_data is None:
-        livelli_disponibili = list(tabella_tipo.keys())
-        raise ValueError(f"Livello '{livello}' non trovato nel CCNL '{ccnl}' per '{tipo}'. Disponibili: {livelli_disponibili}")
-
     if anzianita_anni <= 5:
         fascia = "fino_5"
     elif anzianita_anni <= 10:
@@ -162,7 +155,28 @@ def indennita_preavviso(
     else:
         fascia = "oltre_10"
 
-    giorni_preavviso = livello_data[fascia]
+    # The notice period is what the CCNL table provides, and it is the part that
+    # goes stale: a caller who has the applicable contract in hand can supply it
+    # and the calculation no longer rests on the bundled table at all (which is
+    # why it is then never read, and its vintage never enters the answer).
+    dal_chiamante = giorni_preavviso is not None
+    if dal_chiamante:
+        ccnl_data = {"nome": ccnl, "fonte": "giorni di preavviso forniti dal chiamante"}
+    else:
+        ccnl_data = _PREAVVISO["ccnl"].get(ccnl)
+        if ccnl_data is None:
+            ccnl_disponibili = list(_PREAVVISO["ccnl"].keys())
+            raise ValueError(f"CCNL '{ccnl}' non trovato. Disponibili: {ccnl_disponibili}")
+
+        tabella_tipo = ccnl_data[tipo]
+        livello_data = tabella_tipo.get(livello)
+        if livello_data is None:
+            livelli_disponibili = list(tabella_tipo.keys())
+            raise ValueError(f"Livello '{livello}' non trovato nel CCNL '{ccnl}' per '{tipo}'. Disponibili: {livelli_disponibili}")
+        giorni_preavviso = livello_data[fascia]
+
+    if giorni_preavviso < 0:
+        raise ValueError("giorni_preavviso deve essere >= 0")
     retribuzione_giornaliera = round(retribuzione_mensile / 30, 4)
     importo = round(retribuzione_giornaliera * giorni_preavviso, 2)
 
@@ -174,6 +188,7 @@ def indennita_preavviso(
         "fascia_anzianita": fascia,
         "tipo": tipo,
         "giorni_preavviso": giorni_preavviso,
+        "giorni_preavviso_fonte": "forniti dal chiamante" if dal_chiamante else "tabella CCNL inclusa",
         "retribuzione_giornaliera": retribuzione_giornaliera,
         "importo": importo,
         "riferimento_normativo": f"Artt. 2118-2119 c.c. — {ccnl_data['fonte']}",

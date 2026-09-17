@@ -112,13 +112,14 @@ def _lookup_codice_catastale(comune: str) -> str | None:
 
 
 @mcp.tool(tags={"utility"})
-@sourced("comuni")
+@sourced("comuni", alternativa="codice_catastale")
 def codice_fiscale(
     cognome: str,
     nome: str,
     data_nascita: str,
     sesso: str,
     comune_nascita: str,
+    codice_catastale: str | None = None,
 ) -> dict:
     """Genera il codice fiscale italiano a 16 caratteri secondo l'algoritmo ufficiale.
 
@@ -131,6 +132,9 @@ def codice_fiscale(
         data_nascita: Data di nascita (formato YYYY-MM-DD)
         sesso: Sesso della persona: 'M' o 'F'
         comune_nascita: Nome del comune italiano o dello stato estero di nascita (es. 'ROMA', 'GERMANIA')
+        codice_catastale: Codice catastale da usare al posto della tabella inclusa (es. 'H501'). Se lo
+                          fornisci, il calcolo non dipende dal database dei comuni: utile quando il
+                          comune non è nel sottoinsieme incluso o quando il codice è già noto dal documento
     """
     sesso = sesso.upper().strip()
     if sesso not in ("M", "F"):
@@ -141,7 +145,10 @@ def codice_fiscale(
     except ValueError:
         return {"errore": "data_nascita non valida, usare formato YYYY-MM-DD"}
 
-    catastale = _lookup_codice_catastale(comune_nascita)
+    # A code supplied by the caller makes the lookup unnecessary, so the table is
+    # never read and nothing about its provenance enters the answer: the exactness
+    # of the algorithm is the only claim left to make.
+    catastale = (codice_catastale or "").strip().upper() or _lookup_codice_catastale(comune_nascita)
     if not catastale:
         return {"errore": f"Comune o stato estero '{comune_nascita}' non trovato nel database"}
 
@@ -169,6 +176,7 @@ def codice_fiscale(
             "giorno": part_giorno,
             "codice_catastale": catastale,
             "carattere_controllo": check,
+            "catastale_dal_chiamante": bool(codice_catastale),
         },
     }
 

@@ -177,8 +177,13 @@ class TableLedgerMiddleware(Middleware):
     using an expired table, while one about a closed period can say so and go on.
     """
 
-    def __init__(self, tool_tables: dict[str, tuple[str, ...]] | None = None) -> None:
+    def __init__(
+        self,
+        tool_tables: dict[str, tuple[str, ...]] | None = None,
+        tool_alternatives: dict[str, str] | None = None,
+    ) -> None:
         self.tool_tables = tool_tables or {}
+        self.tool_alternatives = tool_alternatives or {}
 
     async def on_call_tool(self, context, call_next):
         with recording() as opened, _clock.recording(), _precision.recording():
@@ -187,9 +192,16 @@ class TableLedgerMiddleware(Middleware):
         if not hasattr(result, "meta"):
             return result
 
-        name = getattr(getattr(context, "message", None), "name", None)
+        message = getattr(context, "message", None)
+        name = getattr(message, "name", None)
         seen = sorted(opened)
-        effective = seen or sorted(self.tool_tables.get(name, ()))
+        # A call that supplied the datum its table would have provided read no
+        # table *because it needed none*: falling back to the declaration here
+        # would flag the vintage of a table the call deliberately did not open.
+        arguments = getattr(message, "arguments", None) or {}
+        alternativa = self.tool_alternatives.get(name)
+        fornita = bool(alternativa) and arguments.get(alternativa) is not None
+        effective = seen or ([] if fornita else sorted(self.tool_tables.get(name, ())))
         meta = dict(result.meta or {})
         if seen:
             meta[OPENED_TABLES_KEY] = seen
@@ -207,6 +219,7 @@ def apply_table_ledger(
     server,
     bindings: dict[str, dict[str, str]],
     tool_tables: dict[str, tuple[str, ...]] | None = None,
+    tool_alternatives: dict[str, str] | None = None,
 ) -> int:
     """Wrap the table constants and install the ledger middleware.
 
@@ -214,5 +227,5 @@ def apply_table_ledger(
     a bindings file that matches no imported module is visible instead of silent.
     """
     wrapped = install(bindings)
-    server.add_middleware(TableLedgerMiddleware(tool_tables))
+    server.add_middleware(TableLedgerMiddleware(tool_tables, tool_alternatives))
     return wrapped
