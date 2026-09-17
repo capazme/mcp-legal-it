@@ -147,6 +147,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   che `_precision.py` non conosce -- un grado sconosciuto verrebbe letto come
   l'affermazione più forte. `tests/unit/test_precision_policy.py` copre i due
   stati sul filo e alla giuntura.
+- Un rifiuto è negoziabile, non definitivo. Ogni tool che legge una tabella
+  accetta ora anche `accetta_precisione` (`INDICATIVO` o `STIMATO`), dichiarato
+  nella firma e documentato nel blocco `Args:` come qualunque altro parametro:
+  chi chiama dice il grado con cui si accontenta, la risposta viene data a quel
+  grado, e sia il corpo (`precisione.accettata`) sia
+  `mcp-legal-it/precisione` nel `_meta` dicono che è l'accettazione ad averla
+  permessa. L'affermazione non è in vendita -- chiedere `ESATTO` su una tabella
+  senza fonte viene rifiutato, e il rifiuto porta `concedibile` così il secondo
+  tentativo è una decisione -- e nessuna accettazione sblocca una tabella scaduta
+  sotto una cifra che riguarda oggi: un tasso vecchio è sbagliato, non impreciso,
+  e il rifiuto lo dice con `negoziabile: false` invece di offrire un grado che non
+  aiuterebbe.
+- Due tool possono fare a meno della tabella, ed è l'altra metà della risposta.
+  `@sourced(..., alternativa="parametro")` nomina il parametro che fornisce ciò
+  che la tabella darebbe: `codice_fiscale` accetta il codice catastale
+  (`codice_catastale`, così l'algoritmo è esatto su un input invece che su una
+  ricerca) e `indennita_preavviso` accetta il periodo di preavviso
+  (`giorni_preavviso`, che è la parte di una tabella CCNL su cui nessun vintage
+  potrà mai essere giusto, perché i contratti si rinnovano). Una chiamata così
+  non legge nessuna tabella, quindi nessun vintage entra nella risposta: il
+  footer è vuoto, nessun avviso viene emesso, e la risposta dice
+  `dati_forniti_dal_chiamante: {parametro, al_posto_di}` invece di lasciare al
+  lettore il compito di indovinare cosa sostiene il numero. Il middleware conosce
+  la stessa mappa (`TOOL_ALTERNATIVES`, generata) e quindi non ripiega sulla
+  dichiarazione segnalando una tabella che la chiamata non ha aperto.
+- `scripts/update-data.py` dice quanto costa ogni tabella non verificata, e non
+  è più un avviso: il blocco per tabella elenca ora i tool che la applicano con
+  il loro grado dichiarato e se rifiutano o degradano soltanto, ricavato
+  dall'audit e dalla stessa regola che esegue il server. Le otto tabelle
+  `da_verificare` bloccano sette tool (`comuni` due, `imposte_successione` due,
+  `contributo_unificato`, `preavviso_ccnl`, `violazioni_patente` uno a testa) e ne
+  degradano nove, ed è questo che rende il controllo una lista di cose da fare
+  invece di una nota.
 - L'audit fallisce quando un letterale riscrive una tabella del repository: è
   così che le fasce del contributo unificato vivevano dentro
   `fatturazione_avvocati.py` mentre `contributo_unificato.json` veniva aggiornato

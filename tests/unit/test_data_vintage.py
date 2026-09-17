@@ -12,6 +12,7 @@ from datetime import date
 
 import pytest
 
+from src.lib import _data
 from src.lib._data import (
     AUTOMATIC,
     MANUAL,
@@ -105,8 +106,17 @@ def test_sourced_keeps_the_signature_fastmcp_builds_its_schema_from():
         return {}
 
     sig = inspect.signature(tool)
-    assert list(sig.parameters) == ["capitale", "tasso"]
+    assert list(sig.parameters) == ["capitale", "tasso", _data.CONSENT_PARAM], (
+        "the tool's own parameters, in order, plus the one by which a caller can "
+        "settle for a lower grade instead of being refused"
+    )
+    assert sig.parameters[_data.CONSENT_PARAM].default is None, (
+        "it is optional: a call that says nothing gets the refusal it always got"
+    )
     assert tool.__doc__.startswith("Docstring")
+    assert f"{_data.CONSENT_PARAM}:" in tool.__doc__, (
+        "and documented, because a model reads the schema this docstring builds"
+    )
     assert tool.__sourced_datasets__ == ("tegm",)
 
 

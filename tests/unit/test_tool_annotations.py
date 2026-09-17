@@ -7,6 +7,7 @@ live registry rather than against a hand-kept list.
 
 import asyncio
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -88,11 +89,15 @@ def test_the_provenance_gate_is_not_vacuous(tmp_path):
 
     varie = src / "tools" / "varie.py"
     text = varie.read_text(encoding="utf-8")
-    assert '@sourced("comuni")' in text
-    varie.write_text(
-        text.replace('@sourced("comuni")\ndef codice_fiscale(', "def codice_fiscale(", 1),
-        encoding="utf-8",
+    assert re.search(r'@sourced\("comuni"', text), "the tool no longer declares its table"
+    sabotaged, changed = re.subn(
+        r'@sourced\("comuni"[^)]*\)\ndef codice_fiscale\(',
+        "def codice_fiscale(",
+        text,
+        count=1,
     )
+    assert changed == 1, "the sabotage has to remove the declaration, not miss it"
+    varie.write_text(sabotaged, encoding="utf-8")
     problems = verify_provenance(Audit(src))
     assert any("codice_fiscale reads comuni" in problem for problem in problems), problems
 

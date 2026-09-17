@@ -19,6 +19,17 @@ it declared. Two things can happen, and neither is a footnote: the grade drops a
 step and the answer says so structurally, or the tool refuses to compute at all
 and explains what would unblock it.
 
+A refusal is also a starting point, not a wall. The caller can accept a lower
+grade for that call (`accetta_precisione`): the answer is then given at the grade
+the table can support, and it says the acceptance is what allowed it. What the
+acceptance cannot do is restore the withdrawn claim -- asking to keep `ESATTO` on
+a table nobody sources is refused with the highest grade that *is* available --
+and it cannot make a wrong number right: an expired table under a figure about
+today stays a refusal whatever grade the caller accepts, because "less precise"
+and "computed from a period that has ended" are not the same failure. That is the
+line this module draws, and it is the reason `decide` takes the acceptance as an
+input rather than the caller taking the answer as an output.
+
 The two states are deliberately not symmetric, because they fail differently:
 
 * an unverified table is a hole in provenance and no date can fill it, so an
@@ -51,6 +62,9 @@ INDICATIVO = "INDICATIVO"
 STIMATO = "STIMATO"
 
 GRADI = (ESATTO, INDICATIVO, STIMATO)
+
+#: Strongest first: what a lower grade costs, and what an acceptance may grant.
+SCALA: dict[str, int] = {ESATTO: 3, INDICATIVO: 2, STIMATO: 1}
 
 #: The next honest grade down, or None when there is nothing left to claim.
 _DECLINO: dict[str, str | None] = {ESATTO: INDICATIVO, INDICATIVO: STIMATO, STIMATO: None}
@@ -87,6 +101,13 @@ class Esito:
     esito: str
     #: The states that caused it, e.g. `("non_verificata",)`.
     motivi: tuple[str, ...] = ()
+    #: False when no acceptance can unlock the computation -- a stale table under
+    #: a figure about today is wrong, not imprecise.
+    negoziabile: bool = False
+    #: The highest grade a caller's acceptance can buy, when there is a refusal.
+    concedibile: str | None = None
+    #: The grade the caller accepted, when that is what let the answer stand.
+    accettata: str | None = None
 
     @property
     def rifiuta(self) -> bool:
@@ -98,6 +119,10 @@ class Esito:
             out["motivo"] = "una tabella applicata risulta " + " e ".join(self.motivi)
         if nota:
             out["nota"] = nota
+        if self.concedibile:
+            out["concedibile"] = self.concedibile
+        if self.accettata:
+            out["accettata"] = self.accettata
         return out
 
 
@@ -116,17 +141,68 @@ def declared(fn: object) -> Dichiarata | None:
     return Dichiarata(grado=grado, qualificatore=qualificatore, riga=found.group(0).strip())
 
 
+def _tetto(effettiva: str, accettata: str | None) -> str:
+    """An acceptance also acts as a ceiling on what the answer claims.
+
+    A caller who says "I only want this at `STIMATO`" gets `STIMATO` even where the
+    table would have supported `INDICATIVO`: being more cautious than necessary is
+    always allowed, and the field that records the answer's worth should say what
+    the caller asked for.
+    """
+    if accettata in SCALA and SCALA[accettata] < SCALA[effettiva]:
+        return accettata
+    return effettiva
+
+
+def _concedibile(grado: str) -> str:
+    """The highest grade an acceptance can buy for a table that stays as it is.
+
+    One step below the declared claim, and never below `STIMATO` -- past that
+    there is no word left for "this is a guess", and a tool that already offers a
+    forecast has nothing to trade.
+    """
+    return _DECLINO.get(grado) or STIMATO
+
+
+def _negoziato(grado: str, flag: tuple[str, ...], accettata: str | None) -> Esito:
+    """A refusal, or the reduced answer an explicit acceptance buys.
+
+    The caller cannot buy back the claim: an acceptance above what the table
+    supports is itself refused, and the answer names the grade that would have
+    worked, so the caller retries with something the server can honour. An
+    acceptance *below* what is available is honoured as given -- being more
+    cautious than necessary is always allowed.
+    """
+    concedibile = _concedibile(grado)
+    if accettata is not None and accettata in SCALA:
+        if SCALA[accettata] <= SCALA[concedibile]:
+            return Esito(grado, accettata, "ridotta", flag, accettata=accettata)
+    return Esito(
+        grado,
+        "nessuna",
+        "rifiuta",
+        flag,
+        negoziabile=True,
+        concedibile=concedibile,
+        accettata=accettata,
+    )
+
+
 def decide(
     dichiarata: str | None,
     stati: "list[str] | tuple[str, ...]",
     ancorata_al_presente: bool = False,
+    accettata: str | None = None,
 ) -> Esito:
     """What the answer is worth, given the states of the tables it applied.
 
     `stati` are the states among the applied tables that go beyond "in order"
     (`_data.warnings`), and `ancorata_al_presente` says whether the call read the
     clock. No state means the declared grade stands, and the caller adds nothing
-    to the answer.
+    to the answer. `accettata` is the grade the caller declared acceptable for
+    this call; it only matters where the answer would otherwise be refused, and
+    only where the failure is about *how well* the table is known rather than
+    about whether it is out of date for the question being asked.
     """
     grado = dichiarata if dichiarata in GRADI else _UNKNOWN
     flag = tuple(sorted(set(stati)))
@@ -135,19 +211,19 @@ def decide(
 
     if "non_verificata" in flag:
         # Nobody vouched for the table: an exact claim is withdrawn, an
-        # indicative one steps down, and a forecast has nowhere left to go.
+        # indicative one steps down, and a forecast has nothing left to trade.
         if grado == INDICATIVO:
-            return Esito(grado, STIMATO, "ridotta", flag)
-        return Esito(grado, "nessuna", "rifiuta", flag)
+            return Esito(grado, _tetto(STIMATO, accettata), "ridotta", flag, accettata=accettata)
+        return _negoziato(grado, flag, accettata)
 
     # Only coverage: a stale table is fatal for a figure about today, and merely
     # a caveat for a figure about a period that has already closed.
     if ancorata_al_presente:
-        return Esito(grado, "nessuna", "rifiuta", flag)
+        return Esito(grado, "nessuna", "rifiuta", flag, negoziabile=False)
     piu_basso = _DECLINO.get(grado)
     if piu_basso is None:
-        return Esito(grado, "nessuna", "rifiuta", flag)
-    return Esito(grado, piu_basso, "ridotta", flag)
+        return _negoziato(grado, flag, accettata)
+    return Esito(grado, _tetto(piu_basso, accettata), "ridotta", flag, accettata=accettata)
 
 
 @dataclass

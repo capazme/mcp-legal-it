@@ -53,6 +53,16 @@ IN_FORCE = "tassi_legali"
 PRESENT = {"LEGAL_TODAY": "2026-09-15", "LEGAL_NOW": "2026-09-15T12:00:00", "TZ": "UTC"}
 
 PRECISION_KEY = "mcp-legal-it/precisione"
+#: The tool that can do without `comuni` if the caller brings the catastal code,
+#: and the parameter it brings it in.
+SUPPLYING_TOOL = "codice_fiscale"
+SUPPLYING_PARAM = "codice_catastale"
+#: The table that parameter makes unnecessary.
+SUPPLIED_TABLE = "comuni"
+#: The tool whose table is a contract that gets renewed: no vintage can be right
+#: for every case, so the notice period travels in the call.
+CCNL_TOOL = "indennita_preavviso"
+CCNL_PARAM = "giorni_preavviso"
 
 
 def _audit_module():
@@ -192,6 +202,58 @@ def test_a_downgraded_answer_keeps_its_numbers_and_declares_the_lower_grade():
     assert esito is not None and esito.effettiva == "STIMATO"
 
 
+def test_an_acceptance_buys_a_lower_grade_and_never_the_withdrawn_claim():
+    """Negotiation, in both directions: what it grants and what it refuses to.
+
+    The claim itself is not for sale. A caller who accepts `INDICATIVO` gets an
+    indicative answer; a caller who insists on `ESATTO` is refused *and told* what
+    would have worked, so the retry is a decision rather than another guess.
+    """
+    granted = _precision.decide("ESATTO", ["non_verificata"], accettata="INDICATIVO")
+    assert (granted.esito, granted.effettiva) == ("ridotta", "INDICATIVO")
+    assert granted.accettata == "INDICATIVO", (
+        "the answer says the acceptance is what let it stand"
+    )
+
+    stricter = _precision.decide("ESATTO", ["non_verificata"], accettata="STIMATO")
+    assert stricter.effettiva == "STIMATO", (
+        "being more cautious than the rule requires is always allowed"
+    )
+
+    for word in ("ESATTO", "VARIABILE"):
+        refused = _precision.decide("ESATTO", ["non_verificata"], accettata=word)
+        assert refused.esito == "rifiuta", word
+        assert refused.negoziabile is True
+        assert refused.concedibile == "INDICATIVO", (
+            "a refusal has to name the grade that would have been granted"
+        )
+        assert refused.accettata == word
+
+    silent = _precision.decide("ESATTO", ["non_verificata"])
+    assert silent.concedibile == "INDICATIVO", "the offer is there before it is asked for"
+
+    forever = _precision.decide("STIMATO", ["non_verificata"], accettata="STIMATO")
+    assert forever.esito == "ridotta", (
+        "a forecast has nothing to trade: accepting it costs nothing and buys the answer"
+    )
+
+
+def test_an_expired_table_under_a_figure_about_today_is_not_negotiable():
+    """An acceptance lowers a claim; it cannot make a wrong number right."""
+    stale = _precision.decide("ESATTO", ["scaduta"], True, accettata="STIMATO")
+    assert stale.esito == "rifiuta"
+    assert stale.negoziabile is False, (
+        "a rate table that stopped being refreshed cannot compute today's interest "
+        "at any grade, so there is nothing to concede"
+    )
+    assert stale.concedibile is None
+
+    closed = _precision.decide("ESATTO", ["scaduta"], False, accettata="STIMATO")
+    assert (closed.esito, closed.effettiva) == ("ridotta", "STIMATO"), (
+        "the same table on a closed period is a caveat, and the caller may tighten it"
+    )
+
+
 def test_a_table_expired_under_a_call_that_read_the_clock_stops_it(monkeypatch):
     """The clock is what makes the difference, and it is observed, not guessed."""
     monkeypatch.setenv("LEGAL_TODAY", "2027-06-01")
@@ -259,10 +321,12 @@ def test_the_audit_and_the_runtime_read_the_same_line_the_same_way():
 
 @pytest.fixture(scope="module")
 def answers():
-    """The two tools that show the two outcomes, called once each, over stdio."""
+    """The tools that show every outcome, called once each, over stdio."""
     manifest = {tool["name"]: tool for tool in tools()}
-    names = [REFUSING_TOOL, DOWNGRADED_TOOL]
+    names = [REFUSING_TOOL, DOWNGRADED_TOOL, SUPPLYING_TOOL, CCNL_TOOL]
     arguments = {name: arguments_for(manifest[name]) for name in names}
+    arguments[SUPPLYING_TOOL] = {**arguments[SUPPLYING_TOOL], SUPPLYING_PARAM: "H501"}
+    arguments[CCNL_TOOL] = {**arguments[CCNL_TOOL], CCNL_PARAM: 60}
     sandbox = pathlib.Path(tempfile.mkdtemp(prefix="precision-sandbox-"))
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="precision-tmp-"))
     env = server_env(sandbox, scratch, extra={**PRESENT, "LEGAL_CACHE": "off"})
@@ -281,6 +345,95 @@ def test_an_exact_tool_refuses_over_the_wire_and_a_host_can_see_it(answers):
     text = answer_text(reply)
     assert UNVERIFIED_TABLE in text, "the refusal names the table it is about"
     assert "non verificata" in text
+
+
+def test_every_table_reading_tool_declares_the_negotiation_parameter():
+    """Declared in the schema, documented in the description, never required.
+
+    The parameter is added by `sourced`, which means the tool's own docstring is
+    what describes it: a docstring shape the injector mishandles would leave a
+    parameter a model cannot interpret, and this is the check that notices.
+    """
+    audit = _audit_module().Audit(pathlib.Path(REPO / "plugin/server/src"))
+    readers = sorted(
+        name for fq, name in audit.tools.items() if audit.datasets(fq)
+    )
+    assert len(readers) > 50, "only %d tools read a table" % len(readers)
+    schemas = {tool["name"]: tool.get("inputSchema") or {} for tool in tools()}
+    problems = {}
+    for name in readers:
+        schema = schemas.get(name) or {}
+        consent = (schema.get("properties") or {}).get(_data.CONSENT_PARAM)
+        if consent is None:
+            problems[name] = "no %s in its schema" % _data.CONSENT_PARAM
+        elif not consent.get("description"):
+            problems[name] = "%s is not documented" % _data.CONSENT_PARAM
+        elif _data.CONSENT_PARAM in (schema.get("required") or ()):
+            problems[name] = "%s is required" % _data.CONSENT_PARAM
+    assert not problems, "tools that cannot be negotiated with: %s" % problems
+
+
+def test_a_supplied_datum_replaces_the_table_instead_of_being_refused(answers):
+    """The other escape: the caller brings the datum the table would provide."""
+    supplied = answers[SUPPLYING_TOOL]
+    payload = _payload(supplied)
+    assert "errore" not in payload, (
+        "supplying the datum the table provides must not be refused: %s" % payload.get("errore")
+    )
+    assert payload["codice_fiscale"] == "RSSMRA80A01H501U", (
+        "the algorithm is exact once the catastal code is an input"
+    )
+    assert payload["dettaglio"]["catastale_dal_chiamante"] is True
+    assert payload["dati_applicati"] == [], (
+        "the table was not read, so naming its vintage would claim a source this "
+        "answer does not rest on"
+    )
+    assert payload["dati_forniti_dal_chiamante"] == {
+        "parametro": SUPPLYING_PARAM,
+        "al_posto_di": [SUPPLIED_TABLE],
+    }, "the substitution is named, or the reader cannot tell what backs the number"
+    assert _meta(supplied).get(PRECISION_KEY) is None, (
+        "nothing is unverified in this answer: there is no claim to lower"
+    )
+    assert _meta(supplied).get("mcp-legal-it/data_warnings") is None, (
+        "a host must not be warned about a table the call deliberately did not open"
+    )
+
+
+def test_an_acceptance_over_the_wire_lowers_the_grade_and_says_so(answers):
+    """The same tool, the same arguments, one word more: a number instead of a block."""
+    manifest = {tool["name"]: tool for tool in tools()}
+    arguments = arguments_for(manifest[REFUSING_TOOL])
+    arguments[_data.CONSENT_PARAM] = _precision.INDICATIVO
+    sandbox = pathlib.Path(tempfile.mkdtemp(prefix="consent-sandbox-"))
+    scratch = pathlib.Path(tempfile.mkdtemp(prefix="consent-tmp-"))
+    env = server_env(sandbox, scratch, extra={**PRESENT, "LEGAL_CACHE": "off"})
+    reply = call_tools(env, [REFUSING_TOOL], {REFUSING_TOOL: arguments}, timeout=300)[REFUSING_TOOL]
+
+    payload, meta = _payload(reply), _meta(reply)
+    assert "errore" not in payload, "the acceptance did not unlock the calculation"
+    assert payload["precisione"]["effettiva"] == _precision.INDICATIVO
+    assert payload["precisione"]["accettata"] == _precision.INDICATIVO, (
+        "the answer names the acceptance as what let it stand"
+    )
+    assert meta.get(PRECISION_KEY, {}).get("accettata") == _precision.INDICATIVO, (
+        "and a host that reads only the meta is told the same thing"
+    )
+    assert payload["dati_applicati"], "the table is still named, with its vintage"
+    assert payload["avvisi_dati"], (
+        "an accepted answer still carries the warning: the acceptance is not amnesia"
+    )
+
+
+def test_the_notice_period_can_come_from_the_contract_in_hand(answers):
+    """The table nobody can ever finish sourcing: a CCNL that gets renewed."""
+    payload = _payload(answers[CCNL_TOOL])
+    assert "errore" not in payload
+    assert payload["giorni_preavviso"] == 60
+    assert payload["giorni_preavviso_fonte"] == "forniti dal chiamante"
+    assert payload["importo"] == round(2500.0 / 30 * 60, 2), (
+        "the arithmetic is still the tool's; only the days came from outside"
+    )
 
 
 def test_a_downgraded_tool_still_computes_over_the_wire(answers):
