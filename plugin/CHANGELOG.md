@@ -84,6 +84,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   muove è un footer decorativo. L'insieme dei tool chiamati viene dai loro
   footer, i controlli sono tool che leggono altre tabelle: i due oracoli sono
   indipendenti dall'audit.
+- Ogni chiamata dichiara ora nel `_meta` del risultato (`mcp-legal-it/opened_tables`)
+  quali tabelle a mano ha **davvero** letto: osservato, non derivato.
+  `src/lib/_ledger.py` avvolge le costanti che portano una tabella
+  (`src/table_bindings.py`, generato dall'audit) in sottoclassi di dict e list che
+  annotano il dataset quando vengono lette, quindi una chiamata che non apre
+  nessuna tabella — un algoritmo puro — non dichiara nulla, e una che ne applica
+  due lo dice. I wrapper sono superficiali e trasparenti: i valori annidati
+  restano normali, quindi `json.dumps`, `==` e la serializzazione dell'host
+  vedono gli stessi oggetti di prima.
+- L'audit fallisce quando un letterale riscrive una tabella del repository: è
+  così che le fasce del contributo unificato vivevano dentro
+  `fatturazione_avvocati.py` mentre `contributo_unificato.json` veniva aggiornato
+  accanto — una copia non legge nessun file, non dichiara provenienza e diverge
+  in silenzio. Il confronto è sul contenuto e attraverso le forme (le fasce erano
+  copiate come lista di coppie mentre la tabella le tiene come dict), con
+  `TABLE_COPIES_ALLOWED` per una copia giustificata (oggi vuoto, e l'audit
+  fallisce su un'esenzione che non corrisponde più a nulla).
 - Ogni tabella letta da un tool ora lo dice *e* dice quanto è recente, incluse
   quelle precaricate all'import: sei tool che rispondevano in silenzio
   (`cerca_codice_tributo`, `genera_modello_atto`, `lista_categorie_atti`,

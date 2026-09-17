@@ -99,6 +99,8 @@ from src.tools import (  # noqa: E402, F401
 )
 
 from src import prompts, resources  # noqa: E402, F401
+from src.lib._ledger import apply_table_ledger  # noqa: E402
+from src.table_bindings import TABLE_CONSTANTS  # noqa: E402
 from src.tool_annotations import apply_tool_annotations  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -106,6 +108,12 @@ from src.tool_annotations import apply_tool_annotations  # noqa: E402
 # lookup from a file writer (see src/tool_annotations.py for the audit rule).
 # ---------------------------------------------------------------------------
 apply_tool_annotations(mcp)
+
+# ---------------------------------------------------------------------------
+# Table ledger: every call declares in its result `_meta` which hand-maintained
+# tables it actually read, observed rather than derived (see src/lib/_ledger.py).
+# ---------------------------------------------------------------------------
+_TABLES_WRAPPED = apply_table_ledger(mcp, TABLE_CONSTANTS)
 
 # ---------------------------------------------------------------------------
 # Profile-based tool filtering (for Desktop/Browser — lighter context)
