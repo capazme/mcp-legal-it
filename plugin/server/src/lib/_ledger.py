@@ -21,7 +21,8 @@ The same observation drives the answer itself: `src/lib/_data.py` names in the
 declaration only when the ledger saw nothing (a table reached through a bare
 scalar computed at import cannot be wrapped). And a call that rests on a table
 which is expired or unverified says so structurally, in `_meta`, not only in the
-prose of the footer.
+prose of the footer -- including what `src/lib/_precision.py` did to the claim
+the tool declares in its docstring: the grade it kept, or the refusal it earned.
 
 The wrapping is shallow on purpose. Reaching the top of a table is what proves
 the call consulted it, and leaving nested values plain keeps `json.dumps`, `==`
@@ -38,6 +39,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware
 
+from . import _clock, _precision
 from ._data import warnings as data_warnings
 from ._tables_open import CURRENT, note, opened, recording
 
@@ -45,11 +47,15 @@ from ._tables_open import CURRENT, note, opened, recording
 OPENED_TABLES_KEY = "mcp-legal-it/opened_tables"
 #: Key under which it flags the tables that are expired or unverified.
 DATA_WARNINGS_KEY = "mcp-legal-it/data_warnings"
+#: Key under which it reports what the answer is worth, when that is less than
+#: the tool declared.
+PRECISION_KEY = "mcp-legal-it/precisione"
 
 __all__ = [
     "CURRENT",
     "DATA_WARNINGS_KEY",
     "OPENED_TABLES_KEY",
+    "PRECISION_KEY",
     "TableDict",
     "TableLedgerMiddleware",
     "TableList",
@@ -155,19 +161,29 @@ class TableLedgerMiddleware(Middleware):
     honest report for a pure algorithm, and an empty list would look like a
     declaration nobody could distinguish from a missing one.
 
-    Two keys, two facts. `opened_tables` is the raw observation. `data_warnings`
+    Three keys, three facts. `opened_tables` is the raw observation. `data_warnings`
     is the part a reader has to act on -- the tables in play whose vintage is
     expired or unverified -- and it is computed from the tables the answer
     actually rests on, which is the observed set when there is one and the
-    tool's declared set when the ledger could not see anything.
+    tool's declared set when the ledger could not see anything. `precisione` is
+    what those states did to the answer's claim: the grade the tool declared and
+    the grade the answer can sustain, or `nessuna` when the tool refused to
+    compute. It is reported here as well as in the body because a tool that
+    answers with a string has nowhere else to say it.
+
+    The block also collects the two observations the decision needs, so that a
+    single call is observed once: which tables were opened, and whether the call
+    asked the clock what day it is -- an answer anchored to today cannot keep
+    using an expired table, while one about a closed period can say so and go on.
     """
 
     def __init__(self, tool_tables: dict[str, tuple[str, ...]] | None = None) -> None:
         self.tool_tables = tool_tables or {}
 
     async def on_call_tool(self, context, call_next):
-        with recording() as opened:
+        with recording() as opened, _clock.recording(), _precision.recording():
             result = await call_next(context)
+            esito = _precision.current()
         if not hasattr(result, "meta"):
             return result
 
@@ -180,6 +196,8 @@ class TableLedgerMiddleware(Middleware):
         avvisi = data_warnings(effective)
         if avvisi:
             meta[DATA_WARNINGS_KEY] = avvisi
+        if esito is not None:
+            meta[PRECISION_KEY] = esito.to_dict()
         if meta:
             result.meta = meta
         return result

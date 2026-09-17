@@ -2,12 +2,12 @@ import importlib
 
 import pytest
 
+from .mcp_harness import tool_body
+
 
 def _call(fn_name, **kwargs):
     mod = importlib.import_module("src.tools.diritto_lavoro")
-    fn = getattr(mod, fn_name)
-    actual = fn.fn if hasattr(fn, "fn") else fn
-    return actual(**kwargs)
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 # ---------------------------------------------------------------------------

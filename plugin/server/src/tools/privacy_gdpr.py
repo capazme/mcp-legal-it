@@ -1376,6 +1376,8 @@ def analisi_base_giuridica(
     orientamento sessuale) impostare dati_particolari=True per avere anche l'analisi art. 9.
     Chaining: → genera_informativa_privacy() con la base giuridica identificata
               → verifica_necessita_dpia() per trattamenti con consenso o legittimo interesse su larga scala
+    Precisione: INDICATIVO (catalogo interno delle basi giuridiche ex art. 6; la
+    qualificazione del caso concreto resta una valutazione del titolare).
 
     Args:
         tipo_trattamento: Descrizione del trattamento (es. 'invio newsletter', 'gestione ordini e-commerce')
@@ -1510,6 +1512,8 @@ def verifica_necessita_dpia(
     Usa questo tool quando: stai progettando un nuovo trattamento o revisioni uno esistente
     e devi stabilire se la DPIA sia obbligatoria. Si basa sui 9 criteri WP248 rev.01 e
     sull'elenco del Garante italiano (Provvedimento 11/10/2018). Soglia: ≥2 criteri.
+    Precisione: INDICATIVO (criteri WP248 rev.01 e provvedimento Garante; il conteggio
+    dei criteri non sostituisce la valutazione del titolare).
     Chaining: se dpia_necessaria=True → genera_dpia() per redigere la valutazione d'impatto
 
     Args:
@@ -1824,6 +1828,8 @@ def calcolo_sanzione_gdpr(
     art83_5: violazioni principi base, diritti interessati, trasferimenti (massimale 20M€ o 4%).
     art83_6: inosservanza ordine di limitazione/sospensione (massimale 20M€ o 4%).
     NON usare per stime definitive: la sanzione è sempre determinata dal Garante caso per caso.
+    Precisione: STIMATO (modulazione percentuale dei massimali di legge; non è il
+    quantum irrogato, che dipende dalla valutazione del Garante).
 
     Args:
         tipo_violazione: Livello della violazione: 'art83_4' (massimale minore), 'art83_5' o 'art83_6' (massimale maggiore)
