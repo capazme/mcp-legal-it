@@ -10,7 +10,7 @@
     "data_fine": "2024-06-30",
     "data_inizio": "2021-01-01"
    },
-   "expected": "{\"capitale\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"rivalutazione_istat\":1613.22,\"capitale_rivalutato\":11613.22,\"interessi_legali\":750.65,\"maggior_danno\":862.56,\"criterio_applicato\":\"rivalutazione\",\"importo_spettante\":1613.22,\"totale_dovuto\":11613.22,\"avvertenza\":null,\"riferimento_normativo\":\"Art. 1224, co. 2 c.c. — Cass. SU 19499/2008\",\"dati_applicati\":[\"tassi legali: copre fino al 31/12/2026 (DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.)\"]}"
+   "expected": "{\"capitale\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"rivalutazione_istat\":1613.22,\"capitale_rivalutato\":11613.22,\"interessi_legali\":750.65,\"maggior_danno\":862.56,\"criterio_applicato\":\"rivalutazione\",\"importo_spettante\":1613.22,\"totale_dovuto\":11613.22,\"avvertenza\":null,\"riferimento_normativo\":\"Art. 1224, co. 2 c.c. — Cass. SU 19499/2008\",\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\",\"tassi legali: copre fino al 31/12/2026 (DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.)\"]}"
   },
   "interessi_vari_capitale_rivalutato": {
    "arguments": {

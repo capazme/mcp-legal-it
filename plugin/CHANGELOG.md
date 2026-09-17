@@ -82,8 +82,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
   un file creato, cancellato o modificato fa fallire il test. Tutti e 168 hanno
   risposto e nulla è cambiato.
+- `tests/unit/test_provenance_datasets.py` dimostra la mappa tabella → tool
+  invece di riderivarla: la tabella viene perturbata in una copia usa-e-getta
+  del server e le risposte sono confrontate con una base pulita, in entrambe le
+  direzioni. Una risposta che si muove con una tabella che il suo footer non
+  nomina è un lettore silenzioso; una risposta che nomina una tabella e non si
+  muove è un footer decorativo. L'insieme dei tool chiamati viene dai loro
+  footer, i controlli sono tool che leggono altre tabelle: i due oracoli sono
+  indipendenti dall'audit.
+- Ogni tabella letta da un tool ora lo dice *e* dice quanto è recente, incluse
+  quelle precaricate all'import: sei tool che rispondevano in silenzio
+  (`cerca_codice_tributo`, `genera_modello_atto`, `lista_categorie_atti`,
+  `indennita_preavviso`, `costo_lavoro`, `ravvedimento_operoso`) portano il
+  footer `dati_applicati`, ed è così che i vintage non verificati di
+  `preavviso_ccnl` e `contributo_unificato` arrivano al lettore come avviso
+  esplicito invece di non arrivare affatto.
 
 ### Fixed
+- Tre tabelle precaricate all'import erano invisibili all'audit: `_CODICI_TRIBUTO`
+  si lega attraverso un indice (`json.load(f)["codici"]`), `_CATALOGO`
+  attraverso una dict comprehension, `_PREAVVISO` attraverso un'annotazione, e
+  la camminata riconosceva solo la forma nuda `X = json.load(f)`. Ora tutte e
+  tre sono attribuite ai tool che le leggono, e anche un caricamento dentro il
+  corpo di una funzione viene visto.
+- `preventivo_civile` e `modello_notula` stimavano il contributo unificato da
+  una copia a mano delle fasce invece che dalla tabella condivisa: la copia non
+  invecchia con `contributo_unificato.json`, poteva divergere in silenzio da
+  quello che rispondono `contributo_unificato` e `decreto_ingiuntivo` e lasciava
+  la stima senza vintage. Ora leggono `civile.cognizione` e dichiarano la
+  tabella (i numeri non cambiano).
+- `verify_provenance` confrontava la dichiarazione con un `datasets()` che la
+  conteneva già, quindi «dichiara una tabella che il codice non legge» non
+  poteva mai scattare. L'insieme derivato dal codice è ora `reads()` e il
+  confronto funziona in entrambe le direzioni; `tests/unit/test_tool_annotations.py`
+  sabota una copia dell'albero per verificare che i tre casi (dichiarazione
+  tolta, dichiarazione inventata, caricamento rinominato) falliscano davvero.
 - `start_server.sh` è indipendente dal PATH: gli host GUI (Claude Desktop,
   Cowork, Freebuff) avviano i server MCP con il PATH minimo di launchd
   (`/usr/bin:/bin:/usr/sbin:/sbin`), dove Homebrew, `~/.local/bin` e cargo non
