@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -22,6 +23,7 @@ _CATEGORIE = sorted({v["categoria"] for v in _CATALOGO.values()})
 
 
 @mcp.tool(tags={"atti"})
+@sourced("modelli_atti")
 def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
     """Restituisce i metadati per comporre un atto legale: struttura, campi obbligatori,
     tool di calcolo da chiamare, resource modello da leggere, e riferimenti normativi.
@@ -248,6 +250,7 @@ def esporta_atto_docx(
 
 
 @mcp.tool(tags={"atti"})
+@sourced("modelli_atti")
 def lista_categorie_atti() -> dict:
     """Restituisce le categorie di atti disponibili con il conteggio per ciascuna.
     Utile per orientare l'utente nella scelta del tipo di atto.

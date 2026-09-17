@@ -8,6 +8,7 @@ from pathlib import Path
 
 from src.lib import _clock
 from src.server import mcp
+from src.lib._data import sourced
 
 _DATA = Path(__file__).parent.parent / "data"
 
@@ -113,6 +114,7 @@ def indennita_licenziamento(
 
 
 @mcp.tool(tags={"lavoro"})
+@sourced("preavviso_ccnl")
 def indennita_preavviso(
     ccnl: str,
     livello: str,
@@ -338,6 +340,7 @@ def scadenze_licenziamento(
 
 
 @mcp.tool(tags={"lavoro"})
+@sourced("irpef_scaglioni")
 def costo_lavoro(
     retribuzione_lorda_annua: float,
     tipo_contratto: str = "dipendente",

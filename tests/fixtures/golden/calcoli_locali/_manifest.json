@@ -25,6 +25,14 @@
     "note_iscrizione_ruolo"
    ]
   },
+  "codici_tributo": {
+   "datasets": [
+    "codici_tributo"
+   ],
+   "tools": [
+    "cerca_codice_tributo"
+   ]
+  },
   "comuni": {
    "datasets": [
     "comuni"
@@ -41,6 +49,16 @@
    "tools": [
     "contributo_unificato",
     "decreto_ingiuntivo"
+   ]
+  },
+  "contributo_unificato+parametri_forensi": {
+   "datasets": [
+    "contributo_unificato",
+    "parametri_forensi"
+   ],
+   "tools": [
+    "modello_notula",
+    "preventivo_civile"
    ]
   },
   "festivita": {
@@ -130,6 +148,7 @@
    "tools": [
     "calcolo_irpef",
     "calcolo_tfr",
+    "costo_lavoro",
     "detrazione_lavoro_dipendente",
     "regime_forfettario"
    ]
@@ -140,6 +159,15 @@
    ],
    "tools": [
     "verifica_mediazione_obbligatoria"
+   ]
+  },
+  "modelli_atti": {
+   "datasets": [
+    "modelli_atti"
+   ],
+   "tools": [
+    "genera_modello_atto",
+    "lista_categorie_atti"
    ]
   },
   "nessuna_tabella": {
@@ -163,7 +191,6 @@
     "calcolo_tempo_trascorso",
     "calcolo_valore_catastale",
     "cedolare_secca",
-    "cerca_codice_tributo",
     "cerca_giurisprudenza_unificata",
     "compenso_ctu",
     "compenso_curatore_fallimentare",
@@ -178,7 +205,6 @@
     "conversione_pena",
     "copie_processo_tributario",
     "costi_costituzione",
-    "costo_lavoro",
     "detrazione_altri_familiari",
     "detrazione_assegno_coniuge",
     "detrazione_canone_locazione",
@@ -199,18 +225,15 @@
     "genera_informativa_dipendenti",
     "genera_informativa_privacy",
     "genera_informativa_videosorveglianza",
-    "genera_modello_atto",
     "genera_notifica_data_breach",
     "genera_registro_trattamenti",
     "grado_parentela",
     "gratuito_patrocinio",
     "imposta_registro_locazioni",
     "indennita_licenziamento",
-    "indennita_preavviso",
     "indice_documenti",
     "interessi_tasso_fisso",
     "istanza_visibilita_fascicolo",
-    "lista_categorie_atti",
     "menomazioni_plurime",
     "nota_precisazione_credito",
     "nota_spese",
@@ -225,7 +248,6 @@
     "pronti_termine",
     "quorum_assembleari",
     "rateizzazione_imposte",
-    "ravvedimento_operoso",
     "relata_notifica_pec",
     "rendimento_bot",
     "rendimento_btp",
@@ -257,14 +279,20 @@
    ],
    "tools": [
     "calcolo_notula_penale",
-    "modello_notula",
     "parcella_avvocato_civile",
     "parcella_avvocato_penale",
     "parcella_stragiudiziale",
     "parcella_volontaria_giurisdizione",
-    "preventivo_civile",
     "preventivo_stragiudiziale",
     "preventivo_volontaria_giurisdizione"
+   ]
+  },
+  "preavviso_ccnl": {
+   "datasets": [
+    "preavviso_ccnl"
+   ],
+   "tools": [
+    "indennita_preavviso"
    ]
   },
   "tabella_danno_bio": {
@@ -291,7 +319,8 @@
    ],
    "tools": [
     "interessi_acconti",
-    "interessi_legali"
+    "interessi_legali",
+    "ravvedimento_operoso"
    ]
   },
   "tassi_mora": {
@@ -390,7 +419,9 @@
   ],
   "calcolo_valore_catastale": [],
   "cedolare_secca": [],
-  "cerca_codice_tributo": [],
+  "cerca_codice_tributo": [
+   "codici_tributo"
+  ],
   "cerca_giurisprudenza_unificata": [],
   "cerca_ufficio_giudiziario": [
    "tribunali_competenti"
@@ -420,7 +451,9 @@
   "conversione_pena": [],
   "copie_processo_tributario": [],
   "costi_costituzione": [],
-  "costo_lavoro": [],
+  "costo_lavoro": [
+   "irpef_scaglioni"
+  ],
   "danno_biologico_macro": [
    "tabella_danno_bio"
   ],
@@ -465,7 +498,9 @@
   "genera_informativa_dipendenti": [],
   "genera_informativa_privacy": [],
   "genera_informativa_videosorveglianza": [],
-  "genera_modello_atto": [],
+  "genera_modello_atto": [
+   "modelli_atti"
+  ],
   "genera_notifica_data_breach": [],
   "genera_registro_trattamenti": [],
   "grado_parentela": [],
@@ -478,7 +513,9 @@
    "imposte_successione"
   ],
   "indennita_licenziamento": [],
-  "indennita_preavviso": [],
+  "indennita_preavviso": [
+   "preavviso_ccnl"
+  ],
   "indice_documenti": [],
   "inflazione_titoli_stato": [
    "indici_foi"
@@ -504,9 +541,12 @@
   "lettera_adeguamento_canone": [
    "indici_foi"
   ],
-  "lista_categorie_atti": [],
+  "lista_categorie_atti": [
+   "modelli_atti"
+  ],
   "menomazioni_plurime": [],
   "modello_notula": [
+   "contributo_unificato",
    "parametri_forensi"
   ],
   "nota_precisazione_credito": [],
@@ -535,6 +575,7 @@
   "prescrizione_diritti": [],
   "prescrizione_reato": [],
   "preventivo_civile": [
+   "contributo_unificato",
    "parametri_forensi"
   ],
   "preventivo_stragiudiziale": [
@@ -547,7 +588,9 @@
   "pronti_termine": [],
   "quorum_assembleari": [],
   "rateizzazione_imposte": [],
-  "ravvedimento_operoso": [],
+  "ravvedimento_operoso": [
+   "tassi_legali"
+  ],
   "regime_forfettario": [
    "irpef_scaglioni"
   ],

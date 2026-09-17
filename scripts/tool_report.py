@@ -79,7 +79,12 @@ h2 { font-size: 1.1rem; margin: 2.4rem 0 .2rem; }
 .card b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .card span { color: var(--dim); font-size: .82rem; }
 table { width: 100%; border-collapse: collapse; background: var(--panel);
-        border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: .6rem; }
+        table-layout: fixed; border: 1px solid var(--line); border-radius: 10px;
+        overflow: hidden; margin-top: .6rem; }
+td, th { overflow-wrap: anywhere; }
+th:nth-child(1), td:nth-child(1) { width: 21%; }
+th:nth-child(2), td:nth-child(2) { width: 17%; }
+th:nth-child(3), td:nth-child(3) { width: 13%; }
 th, td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--line);
          vertical-align: top; font-size: .88rem; }
 th { color: var(--dim); font-weight: 600; font-size: .78rem; text-transform: uppercase;
@@ -91,7 +96,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .tag.net { color: var(--warn); border-color: var(--warn); }
 .tag.disk { color: var(--accent); border-color: var(--accent); }
 .tag.ro { color: var(--ok); border-color: var(--ok); }
-.tool { font-weight: 600; white-space: nowrap; }
+.tool { font-weight: 600; }
 .why { color: var(--dim); }
 details { margin-top: .8rem; }
 summary { cursor: pointer; color: var(--accent); }
@@ -99,8 +104,32 @@ footer { margin-top: 3rem; color: var(--dim); font-size: .8rem; }
 """
 
 
+def vintage_lines(src: pathlib.Path) -> dict[str, str]:
+    """One line per shipped table, read from its own `_vintage` block.
+
+    Read from the JSON rather than through `src.lib._data`, so the report needs
+    no running server and shows exactly what an answer would append.
+    """
+    lines: dict[str, str] = {}
+    for path in sorted((src / "data").glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        block = payload.get("_vintage") if isinstance(payload, dict) else None
+        block = block or {}
+        fonte = block.get("fonte", "fonte non dichiarata")
+        if block.get("verifica", "da_verificare") == "da_verificare":
+            lines[path.stem] = "%s — PROVENIENZA E DATA NON VERIFICATE" % fonte
+        elif block.get("copre_fino_a"):
+            lines[path.stem] = "%s — copre fino al %s" % (fonte, block["copre_fino_a"])
+        elif block.get("aggiornato_al"):
+            lines[path.stem] = "%s — aggiornati al %s" % (fonte, block["aggiornato_al"])
+        else:
+            lines[path.stem] = "%s — periodo di validità non dichiarato" % fonte
+    return lines
+
+
 def group_tools(audit: Audit) -> dict[str, list[dict]]:
     """Split the surface into the four groups the report renders."""
+    vintages = vintage_lines(audit.src)
     grouped: dict[str, list[dict]] = {key: [] for key, _, _ in GROUPS}
     for fq, tool in sorted(audit.tools.items(), key=lambda item: item[1]):
         evidence = audit.writes_for(fq)
@@ -111,6 +140,10 @@ def group_tools(audit: Audit) -> dict[str, list[dict]]:
             "clients": clients,
             "caches": audit.cache_locations(fq),
             "evidence": evidence,
+            "tables": [
+                (name, vintages.get(name, "vintage non dichiarato"))
+                for name in audit.reads(fq)
+            ],
         }
         if evidence:
             # Same rule the annotations use: a cache refresh is a write, but not
@@ -140,6 +173,11 @@ def _cells(entry: dict) -> str:
     elif entry["group"] in ("cache", "document"):
         detail = ", ".join("`%s`" % html.escape(item) for item in entry["evidence"])
     cache = "<br>".join("<code>%s</code>" % html.escape(c) for c in entry["caches"]) or "&mdash;"
+    tables = "<br>".join(
+        '<code>%s</code> <span class="dim">%s</span>' % (html.escape(name), html.escape(fonte))
+        for name, fonte in entry["tables"]
+    )
+    why = "<br>".join(part for part in (detail, tables) if part) or "&mdash;"
     return (
         '<td class="tool"><code>%s</code>%s</td><td><code>%s</code></td>'
         "<td>%s</td><td class=\"why\">%s</td>"
@@ -148,7 +186,7 @@ def _cells(entry: dict) -> str:
             (" " + "".join(tags)) if tags else "",
             html.escape(entry["module"]),
             cache,
-            detail or "&mdash;",
+            why,
         )
     )
 
@@ -178,6 +216,10 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
     out.append(
         '<div class="card"><b>%d</b><span>open-world tools</span></div>'
         % len({e["tool"] for rows in grouped.values() for e in rows if e["clients"]})
+    )
+    out.append(
+        '<div class="card"><b>%d</b><span>tools with provenance</span></div>'
+        % sum(1 for rows in grouped.values() for entry in rows if entry["tables"])
     )
     out.append(
         '<div class="card"><b>%s</b><span>cache audit</span></div>'
@@ -215,7 +257,12 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "with the clock frozen "
         "via <code>LEGAL_TODAY</code>/<code>LEGAL_NOW</code>, so a refreshed rate or a "
         "corrected parameter fails the suite instead of silently changing the advice. "
-        "<code>LEGAL_CACHE=off</code> keeps the cache writers off the disk entirely.</p>"
+        "<code>LEGAL_CACHE=off</code> keeps the cache writers off the disk entirely. "
+        "The tables listed for a tool are the provenance a host sees in the answer: "
+        "every tool that opens a hand-maintained table carries the table and its "
+        "vintage in <code>dati_applicati</code>, and the audit fails when a tool reads "
+        "a table without declaring it, declares one its code never reads, or leaves a "
+        "shipped table that no tool applies.</p>"
     )
     if problems:
         out.append("<details open><summary>Cache audit problems</summary><ul>")

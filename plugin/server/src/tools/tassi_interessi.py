@@ -550,7 +550,7 @@ def interessi_acconti(
 
 
 @mcp.tool(tags={"interessi"})
-@sourced("tassi_legali")
+@sourced("indici_foi", "tassi_legali")
 def calcolo_maggior_danno(
     capitale: float,
     data_inizio: str,

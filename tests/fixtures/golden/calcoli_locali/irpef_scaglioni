@@ -16,6 +16,12 @@
    },
    "expected": "{\"retribuzione_annua_lorda\":10000.0,\"anni_servizio\":10,\"accantonamento_annuo\":740.74,\"tasso_rivalutazione_pct\":3.0,\"tfr_lordo\":8491.76,\"tassazione_separata\":{\"reddito_riferimento\":10190.11,\"aliquota_media_pct\":23.0,\"imposta\":1953.11},\"tfr_netto\":6538.65,\"riferimento_normativo\":\"Art. 2120 c.c. — Tassazione separata ex art. 17, 19 TUIR\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
   },
+  "costo_lavoro": {
+   "arguments": {
+    "retribuzione_lorda_annua": 10000.0
+   },
+   "expected": "{\"tipo_contratto\":\"dipendente\",\"lordo_annuo\":10000.0,\"contributi_dipendente\":919.0,\"aliquota_contributi_dipendente_pct\":9.19,\"imponibile_irpef\":9081.0,\"irpef_stimata\":133.63,\"netto_stimato\":8947.37,\"contributi_datore\":3000.0,\"aliquota_contributi_datore_pct\":30.0,\"tfr_annuo\":691.0,\"irap_stimata\":390.0,\"costo_azienda_totale\":14081.0,\"cuneo_fiscale_pct\":36.5,\"nota\":\"Aliquote medie dipendente ordinario — variano per settore e dimensione\",\"avvertimento\":\"INDICATIVO — le aliquote variano per settore INAIL, dimensione, regione e agevolazioni. Verificare con consulente del lavoro.\",\"riferimento_normativo\":\"D.P.R. 917/1986 (IRPEF) — L. 153/1969 (contributi) — D.Lgs. 446/1997 (IRAP) — Art. 2120 c.c. (TFR)\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+  },
   "detrazione_lavoro_dipendente": {
    "arguments": {
     "reddito_complessivo": 10000.0

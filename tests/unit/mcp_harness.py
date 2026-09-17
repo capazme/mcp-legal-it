@@ -101,6 +101,13 @@ CURATED = {
                           "data_fine": "2024-06-30",
                           "acconti": [{"data": "2022-06-30", "importo": 5000.0}]},
     "termini_deposito_atti_appello": {"data_pubblicazione": "2021-01-01"},
+    # `valore_causa` is optional *with a default of null*, so the generated
+    # arguments leave it out and the tool takes its "valore_causa richiesto per
+    # il calcolo del CU" branch: the answer then contains no contributo
+    # unificato at all, and the table it declares never gets applied. Passing a
+    # value is what makes the recorded answer an actual computation.
+    "note_iscrizione_ruolo": {"tipo_procedimento": "cognizione_ordinaria",
+                             "valore_causa": 10000.0},
 }
 # Free-form strings: an empty value usually makes the tool reject the call
 # before doing any work, which would prove nothing.
@@ -298,11 +305,17 @@ def server_env(sandbox: pathlib.Path, tmp_path: pathlib.Path, extra: dict | None
     return env
 
 
-def call_tools(env: dict, tool_names, arguments_by_tool, timeout: int) -> dict:
-    """Start the server in `env` and call every tool, one request per tool."""
+def call_tools(env: dict, tool_names, arguments_by_tool, timeout: int, repo=None) -> dict:
+    """Start the server in `env` and call every tool, one request per tool.
+
+    `repo` runs the server from another checkout of the same tree, which is how
+    the provenance test perturbs a data table without touching the working copy.
+    """
+    root = pathlib.Path(repo) if repo is not None else REPO
+    launcher = root / "plugin/server/run_server.py"
     proc = subprocess.Popen(
-        [sys.executable, str(LAUNCHER_SERVER)],
-        cwd=str(REPO),
+        [sys.executable, str(launcher)],
+        cwd=str(root),
         env=env,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,

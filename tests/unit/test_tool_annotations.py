@@ -66,6 +66,100 @@ def test_policy_matches_the_audit_script():
     assert result.returncode == 0, result.stderr
 
 
+def test_the_provenance_gate_is_not_vacuous(tmp_path):
+    """Every table a tool reads must be declared, or its vintage stays hidden.
+
+    Checked on a copy of the source tree, sabotaged in both directions: a
+    dropped `@sourced` (the answer would lose the provenance line) and an
+    invented one (the answer would claim a table it never opens).
+    """
+    import shutil
+
+    src = tmp_path / "src"
+    shutil.copytree(REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__"))
+    sys.path.insert(0, str(REPO / "scripts"))
+    try:
+        from audit_tool_annotations import (  # type: ignore[import-not-found]
+            Audit,
+            verify_provenance,
+        )
+    finally:
+        sys.path.pop(0)
+
+    varie = src / "tools" / "varie.py"
+    text = varie.read_text(encoding="utf-8")
+    assert '@sourced("comuni")' in text
+    varie.write_text(
+        text.replace('@sourced("comuni")\ndef codice_fiscale(', "def codice_fiscale(", 1),
+        encoding="utf-8",
+    )
+    problems = verify_provenance(Audit(src))
+    assert any("codice_fiscale reads comuni" in problem for problem in problems), problems
+
+    redditi = src / "tools" / "dichiarazione_redditi.py"
+    text = redditi.read_text(encoding="utf-8")
+    redditi.write_text(
+        text.replace("@sourced(", '@sourced("tegm")\n@sourced(', 1), encoding="utf-8"
+    )
+    problems = verify_provenance(Audit(src))
+    assert any("never reads" in problem for problem in problems), problems
+
+
+def test_a_table_nobody_reads_is_a_failure(tmp_path):
+    """A shipped table applied by no tool is either dead data or a missed load.
+
+    Sabotage: point a loader at a name the repository does not ship. The file is
+    then applied by nobody, which is exactly how `codici_tributo`,
+    `modelli_atti` and `preavviso_ccnl` were invisible while three tools were
+    answering from them.
+    """
+    import shutil
+
+    from audit_tool_annotations import (  # type: ignore[import-not-found]
+        Audit,
+        verify_provenance,
+    )
+
+    src = tmp_path / "src"
+    shutil.copytree(
+        REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__")
+    )
+    redditi = src / "tools" / "dichiarazione_redditi.py"
+    text = redditi.read_text(encoding="utf-8")
+    assert '"codici_tributo.json"' in text
+    redditi.write_text(
+        text.replace('"codici_tributo.json"', '"codici_tributo_archivio.json"', 1),
+        encoding="utf-8",
+    )
+    problems = verify_provenance(Audit(src))
+    assert any(
+        "codici_tributo.json is applied by no tool" in problem for problem in problems
+    ), problems
+
+
+def test_import_preloaded_tables_reach_the_tool_that_reads_them():
+    """The three loader shapes a bare `X = json.load(f)` rule used to miss.
+
+    `_CODICI_TRIBUTO` binds through a subscript, `_CATALOGO` through a dict
+    comprehension, `_PREAVVISO` through an annotated assignment. Each is read at
+    import and answers for a tool that, before this, carried no provenance at
+    all.
+    """
+    audit = _audit()
+    expected = {
+        "cerca_codice_tributo": "codici_tributo",
+        "genera_modello_atto": "modelli_atti",
+        "lista_categorie_atti": "modelli_atti",
+        "indennita_preavviso": "preavviso_ccnl",
+        "costo_lavoro": "irpef_scaglioni",
+        "ravvedimento_operoso": "tassi_legali",
+    }
+    for tool, dataset in expected.items():
+        fq = next(f for f, name in audit.tools.items() if name == tool)
+        assert dataset in audit.datasets(fq), tool
+        assert dataset in audit.declared(fq), tool
+
+
 def _audit():
     sys.path.insert(0, str(REPO / "scripts"))
     try:
