@@ -1,0 +1,17 @@
+{
+ "datasets": [
+  "modelli_atti"
+ ],
+ "tools": {
+  "genera_modello_atto": {
+   "arguments": {
+    "tipo_atto": "decreto_ingiuntivo_ordinario"
+   },
+   "expected": "{\"tipo_atto\":\"decreto_ingiuntivo_ordinario\",\"categoria\":\"atti_introduttivi\",\"descrizione\":\"Ricorso per decreto ingiuntivo — credito ordinario\",\"campi_obbligatori\":[\"creditore\",\"debitore\",\"importo\"],\"campi_opzionali\":[\"provvisoria_esecuzione\"],\"campi_mancanti\":[\"creditore\",\"debitore\",\"importo\"],\"tool_calcolo\":[\"contributo_unificato\",\"parcella_avvocato_civile\"],\"riferimenti_normativi\":[\"artt. 633-656 c.p.c.\",\"DPR 115/2002\"],\"avvertenze\":[\"Bozza indicativa, richiede completamento con dati specifici del caso\"],\"tool_diretto\":\"decreto_ingiuntivo\",\"parametri_fissi\":{\"tipo_credito\":\"ordinario\"},\"istruzioni\":\"Chiamare il tool `decreto_ingiuntivo` con i parametri indicati.\",\"dati_applicati\":[\"modelli atti: modelli redazionali interni, non una fonte normativa — periodo di validità non dichiarato\"]}"
+  },
+  "lista_categorie_atti": {
+   "arguments": {},
+   "expected": "{\"categorie\":[{\"nome\":\"esecuzione\",\"totale\":19},{\"nome\":\"preventivi\",\"totale\":17},{\"nome\":\"atti_introduttivi\",\"totale\":12},{\"nome\":\"attestazioni\",\"totale\":11},{\"nome\":\"notifiche\",\"totale\":9},{\"nome\":\"stragiudiziale\",\"totale\":8},{\"nome\":\"procure\",\"totale\":8},{\"nome\":\"privacy\",\"totale\":8},{\"nome\":\"istanze\",\"totale\":6},{\"nome\":\"pct\",\"totale\":2}],\"totale_atti\":100,\"dati_applicati\":[\"modelli atti: modelli redazionali interni, non una fonte normativa — periodo di validità non dichiarato\"]}"
+  }
+ }
+}

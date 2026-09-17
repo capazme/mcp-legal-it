@@ -29,12 +29,17 @@ that, the tools that are "as of today" could not be frozen in
 drift with the calendar instead of failing when a rate or a forensic parameter
 changes.
 
-The same walk yields `datasets(fq)`: the hand-maintained tables a tool's answer
-depends on, read from its `@sourced(...)` declaration and from the module-level
-tables its reachable code touches (including derived constants such as
-`_INDICI_FOI = _FOI_DATA["indici"]`). That is what the golden reference is split
-by -- one file per set of tables -- so a refreshed rate shows up as a diff in
-the tools that read it and nowhere else.
+The same walk yields two views of the hand-maintained tables: `reads(fq)`, the
+tables the reachable code opens (including derived constants such as
+`_INDICI_FOI = _FOI_DATA["indici"]`, preloaded ones bound through a subscript
+or a comprehension, and loads inside a function body), and `datasets(fq)`, that
+set joined with the tool's `@sourced(...)` declaration -- which is what writes
+the `dati_applicati` line into the answer. `reads` is what `verify_provenance`
+compares the declaration against, in both directions: a table read without being
+declared answers without provenance, a table declared but never read advertises a
+vintage that has nothing to do with the numbers. `datasets` is what the golden
+reference is split by -- one file per set of tables -- so a refreshed rate shows
+up as a diff in the tools that read it and nowhere else.
 
 Usage:
 
@@ -48,7 +53,9 @@ Usage:
 instead of quietly keeping the read-only hint. It also verifies the caches: an
 undeclared module resolving a cache directory, a declared cache that lost its
 literals, or a cache writer that stopped consulting the switch are all failures,
-and the generated `docs/cache-inventory.md` has to match too.
+and the generated `docs/cache-inventory.md` has to match too. The provenance is
+checked the same way: a tool whose code reads a table it does not declare, a
+declaration no code backs, and a shipped table no tool opens at all.
 
 Run it with an environment that has fastmcp-free access -- it only parses
 source, so the standard library is enough.
@@ -281,6 +288,8 @@ class Audit:
         self.eager_tables: dict[str, dict[str, str]] = {}
         #: function -> names it references (to tie a tool to those constants)
         self.referenced: dict[str, set[str]] = {}
+        #: function -> datasets it opens itself (function-local table loads)
+        self.loaded: dict[str, set[str]] = {}
         #: hand-maintained tables actually shipped in src/data
         self.available_datasets: set[str] = {
             path.stem for path in (src / "data").glob("*.json")
@@ -302,7 +311,7 @@ class Audit:
                     for alias in node.names:
                         aliases[alias.asname or alias.name] = "%s.%s" % (node.module, alias.name)
             self.imports[module] = aliases
-            self.eager_tables[module] = _module_tables(tree)
+            self.eager_tables[module] = _module_tables(tree, self.available_datasets)
             for node in tree.body:
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     self._visit(module, node, "")
@@ -348,6 +357,7 @@ class Audit:
         self.referenced[name] = {
             node.id for node in ast.walk(fn) if isinstance(node, ast.Name)
         }
+        self.loaded[name] = _loaded_datasets(fn, self.available_datasets)
         if found:
             self.evidence[name] = found
         for child in fn.body:
@@ -480,32 +490,51 @@ class Audit:
                 clients.add(parts[2])
         return sorted(clients)
 
-    def datasets(self, fq: str) -> list[str]:
-        """Hand-maintained tables this tool's answer depends on.
+    def reads(self, fq: str) -> list[str]:
+        """Tables the code reachable from `fq` opens, declarations aside.
 
-        Two sources, both in the code rather than in a list here: the
-        `@sourced(...)` declaration on the tool (which is also what writes the
-        `dati_applicati` line in its answer) and the module-level table a
-        reachable function references (`_IRPEF`, `_TABELLA`, ...). This is the
-        key the golden reference is split by, so a refreshed table shows up as
-        a diff in the tools that actually read it.
+        Kept separate from `declared` on purpose: `verify_provenance` has to
+        compare the two, and a `datasets()` that folded the declaration in would
+        make "declares a table it never reads" unprovable -- `derived` would
+        contain everything declared by construction.
         """
         out: set[str] = set()
         for name in self.chain(fq):
             module = name.rsplit(".", 1)[0]
-            fn = self.functions.get(name)
-            for decorator in getattr(fn, "decorator_list", []):
+            out.update(self.loaded.get(name, set()))
+            referenced = self.referenced.get(name, set())
+            for constant, dataset in self.eager_tables.get(module, {}).items():
+                if constant in referenced:
+                    out.add(dataset)
+        return sorted(out)
+
+    def datasets(self, fq: str) -> list[str]:
+        """Hand-maintained tables this tool's answer rests on.
+
+        What the code reads (`reads`) plus what the tool declares it applies --
+        the declaration is what writes the `dati_applicati` line into the
+        answer, so for grouping the golden reference and for reporting what a
+        tool applies, both belong here. This is the key the golden fixture is
+        split by, so a refreshed table shows up as a diff in the tools that
+        actually read it.
+        """
+        return sorted(set(self.declared(fq)) | set(self.reads(fq)))
+
+    def declared(self, fq: str) -> list[str]:
+        """Datasets named by the `@sourced(...)` decorators in a tool's chain.
+
+        A declaration may sit on the tool or on a helper it calls, and it is
+        what writes the `dati_applicati` line into the answer.
+        """
+        out: set[str] = set()
+        for name in self.chain(fq):
+            for decorator in getattr(self.functions.get(name), "decorator_list", []):
                 if isinstance(decorator, ast.Call) and "sourced" in ast.unparse(decorator.func):
                     out.update(
                         arg.value
                         for arg in decorator.args
                         if isinstance(arg, ast.Constant) and isinstance(arg.value, str)
                     )
-            referenced = self.referenced.get(name, set())
-            for constant, dataset in self.eager_tables.get(module, {}).items():
-                if constant in referenced:
-                    out.add(dataset)
-            # `sourced` may also be applied to nested helpers in the chain.
         return sorted(out)
 
     def cache_locations(self, fq: str) -> list[str]:
@@ -552,7 +581,147 @@ class Audit:
         return out
 
 
-def _module_tables(tree: ast.Module) -> dict[str, str]:
+LOADING_CALLS = ("open", "load", "loads", "read_text", "read_bytes")
+
+
+def _loaded_datasets(fn: ast.AST, allowed: set[str]) -> set[str]:
+    """Datasets a function loads itself, from the literals in its load calls.
+
+    Covers `with open(_DATA / "tegm.json")` inside a tool body, which the
+    module-level pass cannot see. A literal only counts when it sits in a call
+    that opens or parses something: `data["comuni"]` is a dictionary key, not a
+    file.
+    """
+    found: set[str] = set()
+    for node in ast.walk(fn):
+        if not isinstance(node, ast.Call):
+            continue
+        if not any(word in ast.unparse(node.func) for word in LOADING_CALLS):
+            continue
+        for child in ast.walk(node):
+            if (
+                isinstance(child, ast.Constant)
+                and isinstance(child.value, str)
+                and child.value.endswith(".json")
+                and pathlib.PurePosixPath(child.value).stem in allowed
+            ):
+                found.add(pathlib.PurePosixPath(child.value).stem)
+    return found
+
+
+def _module_bindings(
+    tree: ast.Module, allowed: set[str]
+) -> Iterator[tuple[list[ast.AST], ast.AST, str | None]]:
+    """Every module-level assignment, with the table it loads if it loads one.
+
+    Module scope here means "not inside a function or a class": the tool modules
+    preload their tables inside a `with` block, and several derive a second
+    constant from the first in the same block:
+
+        with open(_DATA / "comuni.json") as f:
+            _COMUNI_DATA = json.load(f)
+            _COMUNI = _COMUNI_DATA["comuni"]
+
+    Every binding in such a block that mentions the open handle *is* a binding
+    of that file, whatever shape the load takes: `json.load(f)`, but also
+    `json.load(f)["codici"]`, `{k: v for k, v in json.load(f).items()}` and an
+    annotated `_X: dict = json.load(f)`. Anchoring on the handle rather than on a
+    bare `X = json.load(f)` call is what keeps a constant like
+    `_CODICI_TRIBUTO` — and therefore the tool that answers from it — from being
+    filed under no table at all, i.e. answering without provenance.
+
+    A constant derived from a tied one inherits the table by propagation in
+    `_module_tables`. Walking past `tree.body` is what keeps `_COMUNI` in play,
+    and stopping at function bodies is what keeps a *local* table load from being
+    attributed to the module.
+
+    Yields `(targets, value, dataset_stem_or_None)`.
+    """
+    loaded_under: dict[int, str] = {}
+    seen: list[tuple[int, list[ast.AST], ast.AST | None]] = []
+
+    def binds(statement: ast.stmt, handles: set[str]) -> bool:
+        """True when the statement's right-hand side reads one of the handles.
+
+        The test is on what the right-hand side *reads*, not on the shape of the
+        statement: a constant that happens to sit in the same block but never
+        touches the handle is not a binding of the file.
+        """
+        value = getattr(statement, "value", None)
+        if value is None:
+            return False
+        if any(
+            isinstance(node, ast.Name) and node.id in handles for node in ast.walk(value)
+        ):
+            return True
+        return any(
+            isinstance(node, ast.Call)
+            and any(word in ast.unparse(node.func) for word in LOADING_CALLS)
+            for node in ast.walk(value)
+        )
+
+    def record(statement: ast.Assign | ast.AnnAssign, stem: str | None) -> None:
+        if stem and binds(statement, handles_within.get(id(statement), set())):
+            loaded_under[id(statement)] = stem
+        seen.append(
+            (id(statement), statement.targets, statement.value)
+            if isinstance(statement, ast.Assign)
+            else (id(statement), [statement.target], statement.value)
+        )
+
+    #: statement -> handle names it may read (the enclosing `with` blocks)
+    handles_within: dict[int, set[str]] = {}
+
+    def walk(node: ast.AST, stem: str | None, handles: set[str]) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(
+                child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+            ):
+                continue
+            if isinstance(child, (ast.With, ast.AsyncWith)):
+                inner, inner_handles = stem, set(handles)
+                for item in child.items:
+                    literals = _json_dataset_literals(item.context_expr, allowed)
+                    if literals:
+                        inner = pathlib.PurePosixPath(literals[0]).stem
+                    if isinstance(item.optional_vars, ast.Name):
+                        inner_handles.add(item.optional_vars.id)
+                for statement in ast.walk(child):
+                    if isinstance(statement, (ast.Assign, ast.AnnAssign)):
+                        handles_within[id(statement)] = inner_handles
+                walk(child, inner, inner_handles)
+            elif isinstance(child, (ast.Assign, ast.AnnAssign)):
+                handles_within.setdefault(id(child), handles)
+                record(child, stem)
+            else:
+                walk(child, stem, handles)
+
+    walk(tree, None, set())
+    for statement_id, targets, value in seen:
+        if value is None:
+            continue
+        yield targets, value, loaded_under.get(statement_id)
+
+
+def _json_dataset_literals(node: ast.AST, allowed: set[str]) -> list[str]:
+    """Filenames inside `node` that name a table this repository ships.
+
+    A real filename, not merely a string equal to a dataset name: the bands of
+    `contributo_unificato` are a hardcoded dict key in
+    fatturazione_avvocati.py, and treating that key as a table would demand a
+    declaration for a file the tool never opens.
+    """
+    return [
+        child.value
+        for child in ast.walk(node)
+        if isinstance(child, ast.Constant)
+        and isinstance(child.value, str)
+        and child.value.endswith(".json")
+        and pathlib.PurePosixPath(child.value).stem in allowed
+    ]
+
+
+def _module_tables(tree: ast.Module, allowed: set[str]) -> dict[str, str]:
     """Module-level constants tied to a `src/data/*.json` file, transitively.
 
     Both loading styles in this codebase are covered: the declared one
@@ -566,18 +735,16 @@ def _module_tables(tree: ast.Module) -> dict[str, str]:
     this, a tool reading FOI through a helper would be filed under no table and
     a refreshed FOI series would not point at it.
 
+    Only literals naming a dataset this repository actually ships count: the
+    clients build remote archive members with the same suffix
+    (`Cc_Opendata_Pronunce_{year}.json`), and those are not tables.
+
     Returns `{constant_name: dataset_stem}` for the module.
     """
     tables: dict[str, str] = {}
 
     def json_literals(node: ast.AST) -> list[str]:
-        return [
-            child.value
-            for child in ast.walk(node)
-            if isinstance(child, ast.Constant)
-            and isinstance(child.value, str)
-            and child.value.endswith(".json")
-        ]
+        return _json_dataset_literals(node, allowed)
 
     assignments: list[tuple[list[ast.AST], str | None, set[str]]] = []
 
@@ -587,18 +754,10 @@ def _module_tables(tree: ast.Module) -> dict[str, str]:
         names = {node.id for node in ast.walk(value) if isinstance(node, ast.Name)} if value else set()
         assignments.append((targets, stem, names))
 
-    for node in tree.body:
-        if isinstance(node, ast.With):
-            literals = json_literals(node)
-            for statement in node.body:
-                if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Call):
-                    if "load" in ast.unparse(statement.value.func):
-                        collect(statement.targets, statement.value)
-                        if literals:
-                            assignments[-1] = (statement.targets, pathlib.PurePosixPath(literals[0]).stem,
-                                               assignments[-1][2])
-        elif isinstance(node, ast.Assign):
-            collect(node.targets, node.value)
+    for targets, value, stem in _module_bindings(tree, allowed):
+        collect(targets, value)
+        if stem is not None:
+            assignments[-1] = (targets, stem, assignments[-1][2])
 
     for _ in range(len(assignments) + 1):
         grew = False
@@ -714,6 +873,56 @@ def verify_caches(audit: "Audit") -> list[str]:
 
     if not cache_inventory(audit):
         problems.append("no cache is declared at all")
+    return problems
+
+
+def verify_provenance(audit: "Audit") -> list[str]:
+    """Every table a tool reads must be declared, and every declaration true.
+
+    The declaration is what puts `dati_applicati` (and the table's vintage) in
+    the answer: a tool that reads a table without declaring it gives advice
+    whose currency nobody can check. Both directions are failures -- a missing
+    declaration silently drops the provenance, an extra one claims a table the
+    tool does not use.
+
+    A table that no tool declares is a failure for the same reason, from the
+    other side: either the file is dead data (and should not be shipped as a
+    table) or its reader is a path this walk cannot see, in which case the tool
+    answering from it says nothing about the vintage. That check is what caught
+    `codici_tributo`, `modelli_atti` and `preavviso_ccnl`, which three tools were
+    answering from in complete silence: their loaders bind through a subscript
+    and a dict comprehension, not through a bare `X = json.load(f)`.
+    """
+    problems: list[str] = []
+    applied: dict[str, list[str]] = {}
+    for fq, tool in audit.tools.items():
+        for dataset in audit.reads(fq):
+            applied.setdefault(dataset, []).append(tool)
+    for dataset in sorted(audit.available_datasets):
+        if dataset not in applied:
+            problems.append(
+                "src/data/%s.json is applied by no tool: either it is dead data "
+                "or the tool that reads it does so through a load this walk does "
+                "not follow, and then its answer carries no vintage" % dataset
+            )
+    for fq, tool in sorted(audit.tools.items(), key=lambda item: item[1]):
+        derived = audit.reads(fq)
+        declared = audit.declared(fq)
+        unknown = [name for name in declared + derived if name not in audit.available_datasets]
+        for name in unknown:
+            problems.append("%s: %r is not a table shipped in src/data" % (tool, name))
+        missing = sorted(set(derived) - set(declared))
+        if missing:
+            problems.append(
+                "%s reads %s but does not declare it; add @sourced(%s) under @mcp.tool"
+                % (tool, "+".join(missing), ", ".join('"%s"' % m for m in derived))
+            )
+        extra = sorted(set(declared) - set(derived))
+        if extra:
+            problems.append(
+                "%s declares %s but its reachable code never reads %s"
+                % (tool, "+".join(extra), "+".join(extra))
+            )
     return problems
 
 
@@ -895,6 +1104,9 @@ def main() -> int:
         failed = True
     for problem in verify_clock():
         print("clock audit: %s" % problem, file=sys.stderr)
+        failed = True
+    for problem in verify_provenance(audit):
+        print("provenance audit: %s" % problem, file=sys.stderr)
         failed = True
 
     current = TARGET.read_text(encoding="utf-8") if TARGET.exists() else ""

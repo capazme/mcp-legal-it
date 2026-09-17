@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "codici_tributo"
+ ],
+ "tools": {
+  "cerca_codice_tributo": {
+   "arguments": {
+    "query": "1001"
+   },
+   "expected": "| Codice | Descrizione | Sezione | Categoria |\n|--------|-------------|---------|-----------|\n| 1001 | Ritenute su retribuzioni, pensioni, trasferte, mensilità aggiuntive e conguagli — Lav. dipendente | erario | ritenute |\n\n> **Dati applicati**\n> - codici tributo: risoluzioni Agenzia delle Entrate, aggiornamento dichiarato in tabella: 2026 — periodo di validità non dichiarato"
+  }
+ }
+}
