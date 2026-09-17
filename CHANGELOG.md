@@ -44,8 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   numbers could either rot with the calendar or skip the most interesting half
   of the surface. The audit fails on any `date.today()`/`datetime.now()` call
   outside that module, so a new tool cannot opt out of being pinnable.
-- `tests/unit/test_golden_calcoli.py` freezes what the 168 local read-only tools
-  answer in `tests/fixtures/golden/calcoli_locali/` (arguments + expected answer,
+- `tests/unit/test_golden_calcoli.py` freezes what the local read-only tools
+  answer (167 of them) in `tests/fixtures/golden/calcoli_locali/` (arguments + expected answer,
   pinned to `LEGAL_TODAY`/`LEGAL_NOW`, truncated at 4000 characters where an
   answer is a whole document). The reference is **one file per set of data
   tables**, derived from the code (`@sourced(...)` declarations plus the
@@ -64,19 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/unit/mcp_harness.py`, and its argument generation fills object-shaped
   parameters (rows like `eredi`, `acconti`, `voci`, `rischi`) and picks dates by
   role (`data_inizio`/`data_fine`, `anno_partenza`/`anno_arrivo`) instead of one
-  value for every `data_*`. All 168 local read-only tools now answer with a real
+  value for every `data_*`. Every local read-only tool now answers with a real
   result, where 12 previously came back with a validation error.
 - `scripts/tool_report.py` renders the surface as a single self-contained page
-  (`docs/tool-report.html`): the 221 tools split into 168 read-only local, 36
+  (`docs/tool-report.html`): the 221 tools split into 167 read-only local, 37
   read-only external, 12 cache refreshers and 5 document generators, with the
-  service each external tool reaches and the cache directory each writer can
-  touch. It is built from the same audit as the annotations, so the page and the
+  service each external tool reaches, the cache directory each writer can touch,
+  and — as of the change below — the tables each one applies and whether their
+  vintage needs acting on. It is built from the same audit as the annotations, so the page and the
   policy cannot disagree.
 - `tests/unit/test_read_only_contract.py` proves the read-only claim at runtime:
-  the server is started with its own `HOME` and `MCP_CACHE_DIR`, all 168 local
-  read-only tools are called with arguments generated from their input schema,
+  the server is started with its own `HOME` and `MCP_CACHE_DIR`, every local
+  read-only tool is called with arguments generated from its input schema,
   and the sandbox, the checkout and the real MCP cache are fingerprinted before
-  and after — any file created, deleted or modified fails the test. All 168
+  and after — any file created, deleted or modified fails the test. All of them
   answered and nothing changed.
 - `tests/unit/test_provenance_datasets.py` demonstrates the table → tool mapping
   instead of re-deriving it: a table is perturbed in a throwaway copy of the
@@ -104,6 +105,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   algorithm — declares nothing, and one that applies two tables says so. The
   wrappers are shallow and transparent: nested values stay plain, so `json.dumps`,
   `==` and the host's serialization see the same objects as before.
+- The `dati_applicati` footer is written from what the call read rather than
+  from the `@sourced(...)` declaration: `_data.effective()` intersects the two,
+  so a tool that branches between tables names the branch it took. Called with
+  the required parameters alone, `note_iscrizione_ruolo` declares
+  `codici_ruolo` + `contributo_unificato` but applies only the first, and that
+  is now what its answer says. The observation is only worth as much as its
+  coverage, so the two tables a tool reads inside a *function body*
+  (`mediazione_obbligatoria` in `procedura_civile`, `tegm` in `verifica_usura`)
+  now go through the accessor `_data.load(name)`, which records the read; the
+  audit recognises the same call as a read, keeping the static map and the
+  observation describing one act. Rendering a vintage goes to the cached `_read`
+  underneath instead, because a footer that counted as applying the tables it
+  describes would make every observation equal its declaration and no answer
+  could ever narrow. The declaration remains the fallback for what cannot be
+  wrapped (a table reached through a scalar computed at import), and with the
+  two in-body reads observed it is now the *only* fallback left: no tool in the
+  local surface answers from a table the ledger could not see.
+- An expired covered period and an unverified provenance are structured fields,
+  not only a line at the end of an answer. A dict answer carries `avvisi_dati`
+  next to `dati_applicati`, every answer carries
+  `mcp-legal-it/data_warnings` in its result `_meta` -- the only channel a tool
+  returning a string has -- and both are the same sentence as the footer, so the
+  two cannot drift. The states are told apart: `scaduta` means the covered
+  period has ended (`tassi_legali` from 2027-01-01; `indici_foi` past its own
+  period *plus* the 92-day tolerance for ISTAT publishing in arrears, so
+  2026-09-30 and not 2026-06-30), `non_verificata` means nobody has established where the table
+  comes from (`contributo_unificato`, `comuni`, `codici_ateco`, and 11 more), and
+  a table that is neither raises nothing -- so the field means something
+  whenever it appears, instead of being a list everybody learns to ignore.
+  Which tables a warning is about follows the same observation as the footer,
+  not the declaration.
 - The audit fails when a literal restates a shipped table, which is how
   `preventivo_civile`'s contributo unificato bands lived in
   `fatturazione_avvocati.py` while `contributo_unificato.json` was updated next to
@@ -114,6 +146,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer matches anything).
 
 ### Fixed
+- A helper module in `src/lib/` was classified as an *upstream service*.
+  `upstream_clients()` returns `src/lib/<name>` unless the name is declared an
+  in-process helper, and the ledger's own `_tables_open` was not. The 71 tools
+  that import it (70 read-only calculations and one document generator) were
+  counted as reaching an upstream service: the 70 moved into the report's
+  "external" column and the page's open-world count went from 50 to 121, while
+  every annotation stayed correct
+  (`openWorldHint` reads the call graph instead and never saw the module as a
+  client). Two readers of the same tree disagreed and nothing failed, which is
+  the part worth fixing: `_ledger` and `_tables_open` are declared now, and a new
+  `verify_lib_modules` check fails on any module under `src/lib` that is declared
+  neither way -- a module is an in-process helper, a package is a client -- with
+  `tests/unit/test_tool_annotations.py` sabotaging both directions.
+- The call graph had no edge for a function handed over as a *value*.
+  `_get_fonti()` in `giurisprudenza_unificata.py` returns a dict of the four
+  jurisprudence implementations and the caller calls through it, so there was no
+  `Call` node to follow and the walk stopped at the dispatch table.
+  `cerca_giurisprudenza_unificata` searches Italgiure, CeRDEF, Giustizia
+  Amministrativa and CGUE, and was annotated read-only *and* local -- which is
+  what a host pre-approves without a click, and what a reviewer reads as "a pure
+  lookup". A bare reference to an imported function now counts as an edge;
+  exactly one tool changes classification (read-only local 168 -> 167, open world
+  49 -> 50) and nothing else moves: no table attribution, no write, no cache.
+  The same blind path was also the last live value in the pinned fixture -- the
+  tool answered from the network, so its recorded expectation drifted with the
+  Cassazione archive (the refinement count moved 3866 -> 3863 between two runs).
+  It is out of the reproducible surface now, leaving 167 tools that are.
 - Three import-preloaded tables were invisible to the audit: `_CODICI_TRIBUTO`
   binds through a subscript (`json.load(f)["codici"]`), `_CATALOGO` through a
   dict comprehension, `_PREAVVISO` through an annotated assignment, and the walk

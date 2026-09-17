@@ -16,6 +16,13 @@ not attribute to the tool means the walk misses a reader -- the failure mode tha
 hid `codici_tributo`, `modelli_atti` and `preavviso_ccnl` -- and the suite fails
 on it instead of trusting the derivation.
 
+The same observation drives the answer itself: `src/lib/_data.py` names in the
+`dati_applicati` footer the tables the call actually read, falling back to the
+declaration only when the ledger saw nothing (a table reached through a bare
+scalar computed at import cannot be wrapped). And a call that rests on a table
+which is expired or unverified says so structurally, in `_meta`, not only in the
+prose of the footer.
+
 The wrapping is shallow on purpose. Reaching the top of a table is what proves
 the call consulted it, and leaving nested values plain keeps `json.dumps`, `==`
 and the host's serialization working on exactly the same objects as before.
@@ -26,26 +33,32 @@ import-time projections cost nothing.
 
 from __future__ import annotations
 
-import contextvars
 import sys
-from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 from fastmcp.server.middleware import Middleware
 
+from ._data import warnings as data_warnings
+from ._tables_open import CURRENT, note, opened, recording
+
 #: Key under which a call declares the tables it opened, in the result `_meta`.
 OPENED_TABLES_KEY = "mcp-legal-it/opened_tables"
+#: Key under which it flags the tables that are expired or unverified.
+DATA_WARNINGS_KEY = "mcp-legal-it/data_warnings"
 
-#: The set being filled by the current tool call, or None outside one.
-CURRENT: contextvars.ContextVar[set[str] | None] = contextvars.ContextVar(
-    "legal_it_opened_tables", default=None
-)
-
-
-def _note(dataset: str) -> None:
-    active = CURRENT.get()
-    if active is not None and dataset:
-        active.add(dataset)
+__all__ = [
+    "CURRENT",
+    "DATA_WARNINGS_KEY",
+    "OPENED_TABLES_KEY",
+    "TableDict",
+    "TableLedgerMiddleware",
+    "TableList",
+    "apply_table_ledger",
+    "install",
+    "note",
+    "opened",
+    "recording",
+]
 
 
 class TableDict(dict):
@@ -56,31 +69,31 @@ class TableDict(dict):
         self.dataset = dataset
 
     def __getitem__(self, key: Any) -> Any:
-        _note(self.dataset)
+        note(self.dataset)
         return super().__getitem__(key)
 
     def get(self, key: Any, default: Any = None) -> Any:
-        _note(self.dataset)
+        note(self.dataset)
         return super().get(key, default)
 
     def keys(self):  # type: ignore[override]
-        _note(self.dataset)
+        note(self.dataset)
         return super().keys()
 
     def values(self):  # type: ignore[override]
-        _note(self.dataset)
+        note(self.dataset)
         return super().values()
 
     def items(self):  # type: ignore[override]
-        _note(self.dataset)
+        note(self.dataset)
         return super().items()
 
     def __iter__(self):
-        _note(self.dataset)
+        note(self.dataset)
         return super().__iter__()
 
     def __contains__(self, key: Any) -> bool:
-        _note(self.dataset)
+        note(self.dataset)
         return super().__contains__(key)
 
 
@@ -92,33 +105,16 @@ class TableList(list):
         self.dataset = dataset
 
     def __getitem__(self, index: Any) -> Any:
-        _note(self.dataset)
+        note(self.dataset)
         return super().__getitem__(index)
 
     def __iter__(self):
-        _note(self.dataset)
+        note(self.dataset)
         return super().__iter__()
 
     def __contains__(self, item: Any) -> bool:
-        _note(self.dataset)
+        note(self.dataset)
         return super().__contains__(item)
-
-
-@contextmanager
-def recording() -> Iterator[set[str]]:
-    """Collect, for the duration of the block, the tables read inside it."""
-    opened: set[str] = set()
-    token = CURRENT.set(opened)
-    try:
-        yield opened
-    finally:
-        CURRENT.reset(token)
-
-
-def opened() -> list[str]:
-    """Tables noted so far in the current recording, sorted."""
-    active = CURRENT.get()
-    return sorted(active or ())
 
 
 def install(bindings: dict[str, dict[str, str]]) -> int:
@@ -158,25 +154,47 @@ class TableLedgerMiddleware(Middleware):
     the source. An answer that reads nothing carries no key: absence is the
     honest report for a pure algorithm, and an empty list would look like a
     declaration nobody could distinguish from a missing one.
+
+    Two keys, two facts. `opened_tables` is the raw observation. `data_warnings`
+    is the part a reader has to act on -- the tables in play whose vintage is
+    expired or unverified -- and it is computed from the tables the answer
+    actually rests on, which is the observed set when there is one and the
+    tool's declared set when the ledger could not see anything.
     """
+
+    def __init__(self, tool_tables: dict[str, tuple[str, ...]] | None = None) -> None:
+        self.tool_tables = tool_tables or {}
 
     async def on_call_tool(self, context, call_next):
         with recording() as opened:
             result = await call_next(context)
-        meta = getattr(result, "meta", None)
-        if opened and meta is not None:
-            result.meta = {**meta, OPENED_TABLES_KEY: sorted(opened)}
-        elif opened and hasattr(result, "meta"):
-            result.meta = {OPENED_TABLES_KEY: sorted(opened)}
+        if not hasattr(result, "meta"):
+            return result
+
+        name = getattr(getattr(context, "message", None), "name", None)
+        seen = sorted(opened)
+        effective = seen or sorted(self.tool_tables.get(name, ()))
+        meta = dict(result.meta or {})
+        if seen:
+            meta[OPENED_TABLES_KEY] = seen
+        avvisi = data_warnings(effective)
+        if avvisi:
+            meta[DATA_WARNINGS_KEY] = avvisi
+        if meta:
+            result.meta = meta
         return result
 
 
-def apply_table_ledger(server, bindings: dict[str, dict[str, str]]) -> int:
+def apply_table_ledger(
+    server,
+    bindings: dict[str, dict[str, str]],
+    tool_tables: dict[str, tuple[str, ...]] | None = None,
+) -> int:
     """Wrap the table constants and install the ledger middleware.
 
     Returns how many constants were wrapped, which the server logs on startup so
     a bindings file that matches no imported module is visible instead of silent.
     """
     wrapped = install(bindings)
-    server.add_middleware(TableLedgerMiddleware())
+    server.add_middleware(TableLedgerMiddleware(tool_tables))
     return wrapped

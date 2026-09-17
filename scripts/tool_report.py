@@ -96,6 +96,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .tag.net { color: var(--warn); border-color: var(--warn); }
 .tag.disk { color: var(--accent); border-color: var(--accent); }
 .tag.ro { color: var(--ok); border-color: var(--ok); }
+.tag.warn { color: var(--bad); border-color: var(--bad); }
 .tool { font-weight: 600; }
 .why { color: var(--dim); }
 details { margin-top: .8rem; }
@@ -127,9 +128,35 @@ def vintage_lines(src: pathlib.Path) -> dict[str, str]:
     return lines
 
 
+def table_warnings(src: pathlib.Path, today: datetime.date) -> dict[str, str]:
+    """Which of the two states that carry weight each shipped table is in.
+
+    The same rule as `src.lib._data.warnings`, and read from the JSON here so the
+    page needs no running server. It is a snapshot taken when the page is
+    generated: a table listed as `scaduta` is one whose covered period had
+    already ended at that moment, which is exactly what an answer would say.
+    """
+    states: dict[str, str] = {}
+    for path in sorted((src / "data").glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        block = (payload.get("_vintage") if isinstance(payload, dict) else None) or {}
+        if block.get("verifica", "da_verificare") == "da_verificare":
+            states[path.stem] = "non_verificata"
+            continue
+        if not block.get("copre_fino_a"):
+            continue
+        limit = datetime.date.fromisoformat(block["copre_fino_a"]) + datetime.timedelta(
+            days=int(block.get("tolleranza_giorni", 0))
+        )
+        if limit < today:
+            states[path.stem] = "scaduta"
+    return states
+
+
 def group_tools(audit: Audit) -> dict[str, list[dict]]:
     """Split the surface into the four groups the report renders."""
     vintages = vintage_lines(audit.src)
+    warnings = table_warnings(audit.src, datetime.date.today())
     grouped: dict[str, list[dict]] = {key: [] for key, _, _ in GROUPS}
     for fq, tool in sorted(audit.tools.items(), key=lambda item: item[1]):
         evidence = audit.writes_for(fq)
@@ -143,6 +170,9 @@ def group_tools(audit: Audit) -> dict[str, list[dict]]:
             "tables": [
                 (name, vintages.get(name, "vintage non dichiarato"))
                 for name in audit.reads(fq)
+            ],
+            "warned": [
+                (name, warnings[name]) for name in audit.reads(fq) if name in warnings
             ],
         }
         if evidence:
@@ -164,6 +194,9 @@ def _cells(entry: dict) -> str:
         tags.append('<span class="tag disk">cache</span>')
     if entry["group"] == "local":
         tags.append('<span class="tag ro">read-only</span>')
+    if entry["warned"]:
+        states = sorted({state for _, state in entry["warned"]})
+        tags.append('<span class="tag warn">%s</span>' % html.escape(", ".join(states)))
     detail = ""
     if entry["clients"]:
         detail = "; ".join(
@@ -177,6 +210,12 @@ def _cells(entry: dict) -> str:
         '<code>%s</code> <span class="dim">%s</span>' % (html.escape(name), html.escape(fonte))
         for name, fonte in entry["tables"]
     )
+    if entry["warned"]:
+        # The structured field the answer carries, named here so the page shows
+        # what a host would see without having to call the tool.
+        tables += '<br><span class="why">avvisi_dati: %s</span>' % html.escape(
+            ", ".join("%s (%s)" % (name, state) for name, state in entry["warned"])
+        )
     why = "<br>".join(part for part in (detail, tables) if part) or "&mdash;"
     return (
         '<td class="tool"><code>%s</code>%s</td><td><code>%s</code></td>'
@@ -222,6 +261,10 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         % sum(1 for rows in grouped.values() for entry in rows if entry["tables"])
     )
     out.append(
+        '<div class="card"><b>%d</b><span>tools whose tables warn</span></div>'
+        % sum(1 for rows in grouped.values() for entry in rows if entry["warned"])
+    )
+    out.append(
         '<div class="card"><b>%s</b><span>cache audit</span></div>'
         % ("clean" if not problems else "%d issues" % len(problems))
     )
@@ -250,8 +293,8 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "one of the <code>src/lib</code> clients. "
         "<code>scripts/audit_tool_annotations.py --check</code> fails the suite when the "
         "committed policy drifts from the source, and "
-        "<code>tests/unit/test_read_only_contract.py</code> calls all 168 local ones and "
-        "asserts the filesystem did not change, and "
+        "<code>tests/unit/test_read_only_contract.py</code> calls all %d local ones and "
+        "asserts the filesystem did not change, and " % len(grouped["local"]) +
         "<code>tests/unit/test_golden_calcoli.py</code> pins what they answer "
         "(<code>tests/fixtures/golden/calcoli_locali/</code>, one file per data table) "
         "with the clock frozen "
@@ -266,7 +309,17 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "At runtime the server goes further: <code>src/lib/_ledger.py</code> wraps "
         "the table constants, so every call declares in its result "
         "<code>_meta</code> which tables it actually read, and a test compares that "
-        "with this page's own mapping.</p>"
+        "with this page's own mapping. The footer is written from that observation "
+        "rather than from the declaration, so an answer names the tables it "
+        "<em>applied</em>: a tool that branches between two tables no longer "
+        "attaches the vintage of the branch it did not take. And the two states "
+        "that need acting on -- a covered period that has ended, a provenance nobody "
+        "has established -- are also a structured field: "
+        "<code>avvisi_dati</code> in the answer and "
+        "<code>mcp-legal-it/data_warnings</code> in its <code>_meta</code>, the same "
+        "sentence as the footer, so a host can mark the answer without parsing it. "
+        "The <span class=\"tag warn\">scaduta / non_verificata</span> tag above is "
+        "that field, worked out from the tables as they stand now.</p>"
     )
     if problems:
         out.append("<details open><summary>Cache audit problems</summary><ul>")

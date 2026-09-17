@@ -421,10 +421,17 @@ def test_the_server_declares_the_tables_each_call_opened(surface):
 def test_answers_declare_the_tables_they_read(surface):
     """An answer's `dati_applicati` footer is the provenance a reader checks.
 
-    For every tool whose answer carries a footer, the tables it names must be
-    exactly the tables the code reads: a missing one hides a table's vintage
-    (the tool gives advice whose currency is invisible), an extra one claims a
-    table the tool never opened.
+    The tables it names are the ones this call read, observed by the ledger, not
+    every table the tool's code could read: a tool that branches between two
+    tables must not attach the vintage of the branch it did not take. Where the
+    ledger saw nothing -- a table reached through a value computed at import,
+    which cannot be wrapped -- the declaration is what the footer falls back to,
+    and `test_the_server_declares_the_tables_each_call_opened` is what keeps that
+    fallback from hiding a read the walk missed.
+
+    Two failures are possible in either direction: naming one table fewer than
+    the call used hides a vintage the reader needed, naming one more claims a
+    table this answer does not rest on.
     """
     _, _, replies = surface
     datasets = _datasets_by_tool()
@@ -440,9 +447,14 @@ def test_answers_declare_the_tables_they_read(surface):
         if not declared:
             continue
         declaring.append(tool)
-        if declared != set(datasets.get(tool, [])):
+        opened = _opened_tables(reply)
+        # What the footer must name: the observation when there is one, the
+        # declaration when the ledger could not see the read at all.
+        expected = opened or set(datasets.get(tool, []))
+        if declared != expected:
             disagreements[tool] = {
                 "declared": sorted(declared),
+                "opened": sorted(opened),
                 "reads": sorted(datasets.get(tool, [])),
             }
     assert len(declaring) > 50, (
@@ -454,7 +466,7 @@ def test_answers_declare_the_tables_they_read(surface):
         "its vintage: %s" % silent
     )
     assert not disagreements, (
-        "answers and code disagree about which tables were used: %s" % disagreements
+        "answers and the tables they applied disagree: %s" % disagreements
     )
 
 

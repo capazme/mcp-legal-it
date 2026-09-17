@@ -107,7 +107,22 @@ NET_BASES = {"httpx", "client", "_client", "http", "_http", "session", "async_cl
 # src/lib modules that only hold in-process helpers: reaching one of these is
 # not reaching outside the process. `_cache` resolves the local cache directory
 # and `_clock` reads the (pinnable) wall clock.
-LOCAL_LIB_MODULES = {"_cache", "_clock", "_data", "_egress", "_http", "_result"}
+# src/lib modules that only hold in-process helpers: reaching one of these is
+# not reaching outside the process. `_cache` resolves the local cache directory,
+# `_clock` reads the (pinnable) wall clock, `_ledger` and `_tables_open` are the
+# runtime half of the provenance. Every module directly under src/lib belongs
+# here -- the clients are packages -- and `verify_lib_modules` fails when one is
+# missing, so a new helper cannot quietly become an "external service".
+LOCAL_LIB_MODULES = {
+    "_cache",
+    "_clock",
+    "_data",
+    "_egress",
+    "_http",
+    "_ledger",
+    "_result",
+    "_tables_open",
+}
 # Evidence that a tool produces something for the user rather than refreshing a
 # cache: a document, a spreadsheet or a PDF handle.
 ARTIFACT_SIGNALS = {
@@ -368,6 +383,20 @@ class Audit:
                     found.add("%s.%s()" % (base, func.attr))
                 if func.attr in WRITE_CTORS:
                     found.add("ctor %s()" % func.attr)
+        # A function handed over as a *value* is still reached. `_get_fonti()`
+        # returns a dict of the four jurisprudence implementations
+        # (`{"cassazione": (..., _cerca_giurisprudenza_impl), ...}`) and the
+        # caller calls through it, so there is no `Call` node to follow -- the
+        # edge is the bare name. Without it the walk stops at the dispatch table
+        # and reports a tool that searches Italgiure, CeRDEF, Giustizia
+        # Amministrativa and CGUE as if it read nothing: `cerca_giurisprudenza_
+        # unificata` was annotated local, and pinned in the reproducible fixture,
+        # on the strength of exactly that missing path.
+        for node in ast.walk(fn):
+            if isinstance(node, ast.Name) and node.id in aliases:
+                target = aliases[node.id]
+                if target.startswith("src.") and "." in target:
+                    body.add((target, node.id))
         self.calls[name] = body
         self.sources[name] = ast.unparse(fn)
         self.referenced[name] = {
@@ -598,6 +627,11 @@ class Audit:
 
 
 LOADING_CALLS = ("open", "load", "loads", "read_text", "read_bytes")
+#: The one accessor that reads a table by name and records it (`src/lib/_data.py`).
+#: A read through it is what the runtime ledger observes, so the static map has to
+#: recognise the same call -- `_data.load("tegm")` names its table without the
+#: `.json` suffix a filename carries.
+TABLE_ACCESSOR = ("_data", "load")
 
 
 def _loaded_datasets(fn: ast.AST, allowed: set[str]) -> set[str]:
@@ -607,6 +641,11 @@ def _loaded_datasets(fn: ast.AST, allowed: set[str]) -> set[str]:
     module-level pass cannot see. A literal only counts when it sits in a call
     that opens or parses something: `data["comuni"]` is a dictionary key, not a
     file.
+
+    Two shapes name a table, and both are reads: a filename, and
+    `_data.load("tegm")`, which names the stem directly. The second is the one
+    the runtime ledger observes, so leaving it out here would let the
+    observation and the static map drift apart on a tool that uses it.
     """
     found: set[str] = set()
     for node in ast.walk(fn):
@@ -622,6 +661,37 @@ def _loaded_datasets(fn: ast.AST, allowed: set[str]) -> set[str]:
                 and pathlib.PurePosixPath(child.value).stem in allowed
             ):
                 found.add(pathlib.PurePosixPath(child.value).stem)
+        found.update(_accessor_datasets(node, allowed))
+    return found
+
+
+def _accessor_datasets(node: ast.AST, allowed: set[str]) -> list[str]:
+    """Tables named by `_data.load("stem")` inside `node`.
+
+    Only the canonical accessor counts, and only a string that names a table this
+    repository ships: `load` is a common method name, and a bare string is
+    otherwise indistinguishable from any other argument.
+    """
+    receiver, method = TABLE_ACCESSOR
+    found: list[str] = []
+    for call in ast.walk(node):
+        if not isinstance(call, ast.Call):
+            continue
+        func = call.func
+        if not (
+            isinstance(func, ast.Attribute)
+            and func.attr == method
+            and isinstance(func.value, ast.Name)
+            and func.value.id == receiver
+        ):
+            continue
+        found.extend(
+            argument.value
+            for argument in call.args
+            if isinstance(argument, ast.Constant)
+            and isinstance(argument.value, str)
+            and argument.value in allowed
+        )
     return found
 
 
@@ -720,12 +790,13 @@ def _module_bindings(
 
 
 def _json_dataset_literals(node: ast.AST, allowed: set[str]) -> list[str]:
-    """Filenames inside `node` that name a table this repository ships.
+    """Tables inside `node` that this repository ships, as filenames or stems.
 
     A real filename, not merely a string equal to a dataset name: the bands of
     `contributo_unificato` are a hardcoded dict key in
     fatturazione_avvocati.py, and treating that key as a table would demand a
-    declaration for a file the tool never opens.
+    declaration for a file the tool never opens. The exception is a bare stem
+    handed to the canonical accessor, where naming the table *is* the read.
     """
     return [
         child.value
@@ -734,7 +805,7 @@ def _json_dataset_literals(node: ast.AST, allowed: set[str]) -> list[str]:
         and isinstance(child.value, str)
         and child.value.endswith(".json")
         and pathlib.PurePosixPath(child.value).stem in allowed
-    ]
+    ] + _accessor_datasets(node, allowed)
 
 
 def _module_tables(tree: ast.Module, allowed: set[str]) -> dict[str, str]:
@@ -1229,11 +1300,20 @@ from __future__ import annotations
 TABLE_CONSTANTS: dict[str, dict[str, str]] = {
 %s
 }
+
+#: tool -> tables its code reads. The ledger observes the wrapped constants, so
+#: this is not what the answer names; it is the fallback for the case where the
+#: observation is blind (a table reached through a scalar computed at import),
+#: where the declaration stays the best available statement -- and it is what
+#: lets the middleware flag the vintage of a table it could not see being read.
+TOOL_TABLES: dict[str, tuple[str, ...]] = {
+%s
+}
 '''
 
 
 def render_table_bindings(audit: "Audit") -> str:
-    """The runtime binding map, module by module."""
+    """The runtime binding maps: tables per constant, and tables per tool."""
     lines: list[str] = []
     for module in sorted(audit.eager_tables):
         constants = audit.eager_tables[module]
@@ -1243,7 +1323,55 @@ def render_table_bindings(audit: "Audit") -> str:
         for name in sorted(constants):
             lines.append('        "%s": "%s",' % (name, constants[name]))
         lines.append("    },")
-    return BINDINGS_TEMPLATE % "\n".join(lines)
+
+    tools: list[str] = []
+    for fq, tool in sorted(audit.tools.items(), key=lambda item: item[1]):
+        reads = audit.reads(fq)
+        if not reads:
+            continue
+        items = ['"%s"' % name for name in reads]
+        tools.append(
+            '    "%s": (%s%s),' % (tool, ", ".join(items), "," if len(items) == 1 else "")
+        )
+    if not tools:
+        tools.append("    # no tool reads a hand-maintained table")
+    return BINDINGS_TEMPLATE % ("\n".join(lines), "\n".join(tools))
+
+
+def verify_lib_modules(audit: "Audit") -> list[str]:
+    """Every in-process helper under `src/lib` has to be declared as one.
+
+    A module the policy does not know is classified by `upstream_clients` as an
+    upstream service, so a tool that merely imports it stops looking local: this
+    is what happened to the ledger's own `_tables_open`, which put 71 read-only
+    calculations in the report's "external" column and inflated its open-world
+    count from 50 to 121 while every annotation stayed correct. The distinction
+    is structural -- modules are helpers, packages are clients -- so it can be
+    checked instead of remembered.
+    """
+    problems: list[str] = []
+    lib = audit.src / "lib"
+    declared = set(LOCAL_LIB_MODULES)
+    for path in sorted(lib.iterdir()):
+        if path.name.startswith("__") or path.name in {"__pycache__"}:
+            continue
+        if path.is_dir():
+            if path.name in declared:
+                problems.append(
+                    "src/lib/%s is a client package and cannot be declared local" % path.name
+                )
+            continue
+        if path.suffix != ".py":
+            continue
+        if path.stem not in declared:
+            problems.append(
+                "src/lib/%s is an in-process helper but is not in LOCAL_LIB_MODULES: "
+                "tools that import it count as reaching an upstream service" % path.name
+            )
+    for name in sorted(declared):
+        if not (lib / (name + ".py")).exists():
+            problems.append("LOCAL_LIB_MODULES declares src/lib/%s.py, which does not exist" % name)
+    return problems
 
 
 def verify_ledger(audit: "Audit") -> list[str]:
@@ -1270,9 +1398,23 @@ def verify_ledger(audit: "Audit") -> list[str]:
         problems.append("src/lib/_ledger.py is missing: nothing records table reads")
     else:
         text = ledger.read_text(encoding="utf-8")
-        for marker in ("def recording", "def install", "TableDict", "TableList"):
+        for marker in ("def install", "TableDict", "TableList", "DATA_WARNINGS_KEY"):
             if marker not in text:
                 problems.append("src/lib/_ledger.py: %s is gone" % marker)
+    recorder = audit.src / "lib" / "_tables_open.py"
+    if not recorder.exists():
+        problems.append("src/lib/_tables_open.py is missing: nothing records table reads")
+    else:
+        text = recorder.read_text(encoding="utf-8")
+        for marker in ("def recording", "def opened", "def note", "ContextVar"):
+            if marker not in text:
+                problems.append("src/lib/_tables_open.py: %s is gone" % marker)
+    if "TOOL_TABLES: dict[str, tuple[str, ...]] = {}" in bindings:
+        problems.append("no tool was tied to a table: the ledger fallback is empty")
+    data = audit.src / "lib" / "_data.py"
+    for marker in ("def effective", "def warnings", "avvisi_dati"):
+        if marker not in data.read_text(encoding="utf-8"):
+            problems.append("src/lib/_data.py: %s is gone" % marker)
     return problems
 
 
@@ -1420,6 +1562,9 @@ def main() -> int:
         failed = True
     for problem in verify_ledger(audit):
         print("ledger audit: %s" % problem, file=sys.stderr)
+        failed = True
+    for problem in verify_lib_modules(audit):
+        print("lib module audit: %s" % problem, file=sys.stderr)
         failed = True
 
     bindings = render_table_bindings(audit)

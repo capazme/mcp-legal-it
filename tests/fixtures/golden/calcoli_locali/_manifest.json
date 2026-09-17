@@ -191,7 +191,6 @@
     "calcolo_tempo_trascorso",
     "calcolo_valore_catastale",
     "cedolare_secca",
-    "cerca_giurisprudenza_unificata",
     "compenso_ctu",
     "compenso_curatore_fallimentare",
     "compenso_delegati_vendite",
@@ -422,7 +421,6 @@
   "cerca_codice_tributo": [
    "codici_tributo"
   ],
-  "cerca_giurisprudenza_unificata": [],
   "cerca_ufficio_giudiziario": [
    "tribunali_competenti"
   ],
