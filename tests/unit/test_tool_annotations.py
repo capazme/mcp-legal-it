@@ -160,6 +160,57 @@ def test_import_preloaded_tables_reach_the_tool_that_reads_them():
         assert dataset in audit.declared(fq), tool
 
 
+def test_a_hand_kept_copy_of_a_table_is_a_failure(tmp_path):
+    """A literal that restates a shipped table is invisible to every other check.
+
+    The tool reads no file, so it declares no provenance and the golden
+    reference never sees the table move -- while the copy drifts from the table
+    it was taken from. The two shapes below are the ones that actually happened:
+    the contributo unificato bands kept as a list of two-tuples (from a table
+    that stores them as dicts) and a series pasted as a plain list.
+    """
+    import json as _json
+    import shutil
+
+    from audit_tool_annotations import (  # type: ignore[import-not-found]
+        Audit,
+        verify_table_copies,
+    )
+
+    src = tmp_path / "src"
+    shutil.copytree(
+        REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__")
+    )
+    assert verify_table_copies(Audit(src)) == [], "the tree already contains a copy"
+
+    varie = src / "tools" / "varie.py"
+    original = varie.read_text(encoding="utf-8")
+    varie.write_text(
+        original
+        + "\n_CONTRIBUTO_COPIATO = [\n"
+        "    (1_100, 43), (5_200, 98), (26_000, 237), (52_000, 518),\n"
+        "    (260_000, 759), (520_000, 1_214), (float(\"inf\"), 1_686),\n"
+        "]\n",
+        encoding="utf-8",
+    )
+    problems = verify_table_copies(Audit(src))
+    assert any("restates src/data/contributo_unificato.json" in p for p in problems), problems
+
+    series = _json.loads((src / "data" / "indici_foi.json").read_text(encoding="utf-8"))["indici"]
+    year = list(series.values())[-1]
+    varie.write_text(
+        original + "\n_FOI_COPIATO = %r\n" % (list(year.values()),), encoding="utf-8"
+    )
+    problems = verify_table_copies(Audit(src))
+    assert any("restates src/data/indici_foi.json" in p for p in problems), problems
+
+    # An exemption that no longer matches anything is a failure too, so the
+    # allow-list cannot outlive the code it excused.
+    from audit_tool_annotations import TABLE_COPIES_ALLOWED  # type: ignore[import-not-found]
+
+    assert TABLE_COPIES_ALLOWED == (), "declare exemptions only with a live copy behind them"
+
+
 def _audit():
     sys.path.insert(0, str(REPO / "scripts"))
     try:

@@ -44,7 +44,8 @@ up as a diff in the tools that read it and nowhere else.
 Usage:
 
     python scripts/audit_tool_annotations.py            # --check (default)
-    python scripts/audit_tool_annotations.py --write    # regenerate the policy
+    python scripts/audit_tool_annotations.py --write    # regenerate the policy,
+                                                        # cache inventory, bindings
     python scripts/audit_tool_annotations.py --json     # full per-tool report
     python scripts/audit_tool_annotations.py --caches   # cache inventory (md)
 
@@ -56,6 +57,21 @@ literals, or a cache writer that stopped consulting the switch are all failures,
 and the generated `docs/cache-inventory.md` has to match too. The provenance is
 checked the same way: a tool whose code reads a table it does not declare, a
 declaration no code backs, and a shipped table no tool opens at all.
+
+The same walk also emits the runtime side of that claim. `src/table_bindings.py`
+(names, per module, which constant holds which table) is generated here and
+installed by `src/lib/_ledger.py`, which wraps the payloads so a call can declare
+in its result `_meta` the tables it actually read. The audit only checks that the
+bindings match the source and that the server still installs them; the comparison
+with `reads(fq)` happens in `tests/unit/test_golden_calcoli.py`, on the wire, so
+a reader the walk cannot follow fails there instead of being assumed away.
+
+One last check closes the other direction: a literal that restates a shipped
+table. A hand-kept copy reads no file, so it declares no provenance, the golden
+reference never sees the table move, and it drifts from the table it was taken
+from without a single test failing. The comparison is on content and across
+shapes, because the bands of `contributo_unificato` were copied as a list of
+two-tuples while the table stores them as dicts.
 
 Run it with an environment that has fastmcp-free access -- it only parses
 source, so the standard library is enough.
@@ -969,6 +985,297 @@ def verify_clock() -> list[str]:
     return problems
 
 
+#: How many rows of a table a literal has to reproduce before it counts as a
+#: copy. Below this, a short list of numbers is as likely to be a coincidence as
+#: a duplicate (three IRPEF rates, five step names).
+TABLE_COPY_MIN_ROWS = 4
+
+#: Literals that reproduce a shipped table on purpose, each with the reason. The
+#: audit fails on an entry that no longer matches anything, so an exemption
+#: cannot outlive the code it excuses. Empty today: no copy is justified, one was
+#: removed (see `TABLE_COPY_MIN_ROWS`).
+TABLE_COPIES_ALLOWED: tuple[dict, ...] = ()
+
+_INF = float("inf")
+
+
+def _row(value: object) -> tuple | None:
+    """A `(threshold, amount)` pair from any of the shapes a copy takes."""
+    if isinstance(value, dict):
+        keys = set(value)
+        if "importo" in keys and ("fino_a" in keys or "oltre" in keys):
+            threshold = value.get("fino_a")
+            if value.get("oltre") and threshold is None:
+                return None, float(value["importo"])
+            if isinstance(threshold, (int, float)):
+                return float(threshold), float(value["importo"])
+        return None
+    if isinstance(value, (list, tuple)) and len(value) == 2:
+        threshold, amount = value
+        if isinstance(amount, (int, float)) and not isinstance(amount, bool):
+            # The open-ended band is written `float("inf")` in a copy and
+            # `{"oltre": true}` in the table: both mean "no ceiling", and a copy
+            # that differs only there must still match.
+            if threshold is None or threshold == _INF:
+                return None, float(amount)
+            if isinstance(threshold, (int, float)) and not isinstance(threshold, bool):
+                return float(threshold), float(amount)
+    return None
+
+
+def _signatures(value: object, out: set | None = None) -> set:
+    """Content fingerprints of a table payload, or of a literal in a module.
+
+    Four shapes, because a copy does not have to be shaped like its source: the
+    bands of `contributo_unificato` were copied as a list of two-tuples while the
+    table stores them as dicts, and a diff of the two would have shown nothing.
+    """
+    out = set() if out is None else out
+
+    def scalar(item: object) -> bool:
+        return isinstance(item, (int, float)) and not isinstance(item, bool)
+
+    if isinstance(value, (list, tuple)):
+        rows = [_row(item) for item in value]
+        if len(value) >= TABLE_COPY_MIN_ROWS and all(row is not None for row in rows):
+            out.add(("pairs", tuple(rows)))
+        elif (
+            len(value) >= TABLE_COPY_MIN_ROWS + 1
+            and all(scalar(item) for item in value)
+        ):
+            out.add(("numbers", tuple(float(item) for item in value)))
+        elif (
+            len(value) >= TABLE_COPY_MIN_ROWS + 1
+            and all(isinstance(item, str) for item in value)
+        ):
+            out.add(("strings", frozenset(value)))
+        for item in value:
+            _signatures(item, out)
+    elif isinstance(value, dict):
+        if (
+            len(value) >= TABLE_COPY_MIN_ROWS + 1
+            and all(isinstance(key, str) for key in value)
+            and all(scalar(item) for item in value.values())
+        ):
+            # A series stored as `{"01": 118.2, ...}` and copied as a plain list
+            # of the same numbers in the same order still has to match, which is
+            # why the values are compared in key order rather than as a set.
+            out.add(("numbers", tuple(float(item) for _, item in sorted(value.items()))))
+        if len(value) >= TABLE_COPY_MIN_ROWS and all(scalar(key) for key in value) and all(
+            scalar(item) for item in value.values()
+        ):
+            out.add(
+                (
+                    "pairs",
+                    tuple(
+                        (None if key == _INF else float(key), float(item))
+                        for key, item in sorted(value.items())
+                    ),
+                )
+            )
+        for item in value.values():
+            _signatures(item, out)
+    return out
+
+
+def _literal_value(node: ast.AST):
+    """The Python value of a literal, or `_UNKNOWN` when it needs the interpreter.
+
+    Written out rather than delegated to `ast.literal_eval` because the copy
+    this is meant to catch used `float("inf")` for its last band and `1_686` for
+    an amount, and `literal_eval` refuses the first.
+    """
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.List):
+        items = [_literal_value(item) for item in node.elts]
+        return _UNKNOWN if _UNKNOWN in items else items
+    if isinstance(node, ast.Tuple):
+        items = [_literal_value(item) for item in node.elts]
+        return _UNKNOWN if _UNKNOWN in items else tuple(items)
+    if isinstance(node, ast.Dict):
+        keys = [_literal_value(key) for key in node.keys]
+        values = [_literal_value(item) for item in node.values]
+        if _UNKNOWN in keys or _UNKNOWN in values:
+            return _UNKNOWN
+        return dict(zip(keys, values))
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        inner = _literal_value(node.operand)
+        return -inner if isinstance(inner, (int, float)) else _UNKNOWN
+    if isinstance(node, ast.Name) and node.id in ("inf", "nan"):
+        return float(node.id)
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in ("float", "int")
+        and len(node.args) == 1
+    ):
+        inner = _literal_value(node.args[0])
+        if isinstance(inner, str) and inner in ("inf", "nan", "-inf"):
+            return float(inner)
+        if isinstance(inner, (int, float)):
+            return float(inner) if node.func.id == "float" else int(inner)
+    return _UNKNOWN
+
+
+class _Unknown:
+    def __repr__(self) -> str:  # pragma: no cover - diagnostics only
+        return "<not a literal>"
+
+
+_UNKNOWN = _Unknown()
+
+
+def _matches(kind: str, copy: tuple | frozenset, table: tuple | frozenset) -> bool:
+    """True when `copy` reproduces `table`, whole or as its first rows.
+
+    A partial copy counts (up to the minimum), because that is what a copy looks
+    like after someone updates the table and only notices the first rows. An
+    unordered signature can only be compared whole.
+    """
+    if copy == table:
+        return True
+    if kind == "strings" or not isinstance(copy, tuple) or not isinstance(table, tuple):
+        return False
+    return len(copy) >= TABLE_COPY_MIN_ROWS and copy == table[: len(copy)]
+
+
+def verify_table_copies(audit: "Audit") -> list[str]:
+    """No module may restate a table that ships in `src/data`.
+
+    A hand-kept copy is invisible to every other check in this file: the tool
+    reads no file, so it declares no provenance, the golden reference does not
+    see the table move, and the copy drifts from the table it was taken from
+    without a single test failing. That is how the contributo unificato bands
+    lived in `fatturazione_avvocati.py` while `contributo_unificato.json` was
+    updated next to them.
+
+    The comparison is on content, not on shape: a table of dicts copied as a
+    list of two-tuples has to match, otherwise it is not detected exactly when
+    it is hardest to notice.
+    """
+    problems: list[str] = []
+    server_root = audit.src.parent
+    tables: dict[str, set] = {}
+    for path in sorted((audit.src / "data").glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        tables[path.stem] = _signatures(payload)
+
+    allowed = {(entry["module"], entry["dataset"]) for entry in TABLE_COPIES_ALLOWED}
+    used: set[tuple[str, str]] = set()
+    #: (module, dataset) -> first line that restates it, so one copy is one
+    #: finding even though the literal nesting shows up as several nodes.
+    seen: dict[tuple[str, str], int] = {}
+
+    for py in sorted(audit.src.rglob("*.py")):
+        if "__pycache__" in str(py):
+            continue
+        relative = str(py.relative_to(server_root))
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8"), filename=str(py))
+        except SyntaxError as exc:
+            problems.append("%s does not parse: %s" % (relative, exc))
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.List, ast.Tuple, ast.Dict)):
+                continue
+            value = _literal_value(node)
+            if isinstance(value, _Unknown):
+                continue
+            for kind, signature in _signatures(value):
+                for dataset, signatures in tables.items():
+                    for other_kind, other in signatures:
+                        if other_kind != kind:
+                            continue
+                        if not _matches(kind, signature, other):
+                            continue
+                        if (relative, dataset) in allowed:
+                            used.add((relative, dataset))
+                            continue
+                        seen.setdefault((relative, dataset), node.lineno)
+    for (relative, dataset), lineno in sorted(seen.items(), key=lambda item: (item[0][0], item[1])):
+        problems.append(
+            "%s:%d restates src/data/%s.json as a literal; read the table instead, "
+            "or its vintage cannot travel and the copy drifts from it in silence"
+            % (relative, lineno, dataset)
+        )
+    for module, dataset in sorted(allowed - used):
+        problems.append(
+            "TABLE_COPIES_ALLOWED exempts %s in %s, but nothing there reproduces it "
+            "any more" % (dataset, module)
+        )
+    return problems
+
+
+BINDINGS_TARGET = REPO / "plugin/server/src/table_bindings.py"
+
+BINDINGS_TEMPLATE = '''"""Which module-level constant holds which hand-maintained table.
+
+Generated by `scripts/audit_tool_annotations.py --write`; do not edit.
+
+`src/lib/_ledger.py` wraps every constant named here so a tool call can declare,
+at runtime, which tables it actually read -- the other half of what
+`@sourced(...)` promises statically. A constant that disappears from this file is
+a table whose reader stops being observable, so `--check` regenerates and
+compares rather than trusting the version on disk.
+"""
+
+from __future__ import annotations
+
+#: module -> {module-level constant: dataset stem it was loaded from or derived
+#: from}. Derived constants are included on purpose: a projection computed at
+#: import (`_CATEGORIE = sorted({v["categoria"] for v in _CATALOGO.values()})`) is
+#: still the table, and reading it during a call means the call applied it.
+TABLE_CONSTANTS: dict[str, dict[str, str]] = {
+%s
+}
+'''
+
+
+def render_table_bindings(audit: "Audit") -> str:
+    """The runtime binding map, module by module."""
+    lines: list[str] = []
+    for module in sorted(audit.eager_tables):
+        constants = audit.eager_tables[module]
+        if not constants:
+            continue
+        lines.append('    "%s": {' % module)
+        for name in sorted(constants):
+            lines.append('        "%s": "%s",' % (name, constants[name]))
+        lines.append("    },")
+    return BINDINGS_TEMPLATE % "\n".join(lines)
+
+
+def verify_ledger(audit: "Audit") -> list[str]:
+    """The generated bindings have to be installed, or they observe nothing.
+
+    A bindings file nobody imports is worse than none: the audit would keep
+    generating it, `--check` would keep passing, and the runtime declaration
+    would silently stop existing.
+    """
+    problems: list[str] = []
+    server = (audit.src / "server.py").read_text(encoding="utf-8")
+    if "apply_table_ledger" not in server:
+        problems.append(
+            "src/server.py no longer calls apply_table_ledger: the table ledger is "
+            "generated but never installed, so no call declares what it read"
+        )
+    bindings = render_table_bindings(audit)
+    if "TABLE_CONSTANTS: dict[str, dict[str, str]] = {\n}" in bindings:
+        problems.append(
+            "no module-level table constant was found: the ledger would record nothing"
+        )
+    ledger = audit.src / "lib" / "_ledger.py"
+    if not ledger.exists():
+        problems.append("src/lib/_ledger.py is missing: nothing records table reads")
+    else:
+        text = ledger.read_text(encoding="utf-8")
+        for marker in ("def recording", "def install", "TableDict", "TableList"):
+            if marker not in text:
+                problems.append("src/lib/_ledger.py: %s is gone" % marker)
+    return problems
+
+
 def render_cache_doc(audit: "Audit") -> str:
     """The generated cache inventory (`docs/cache-inventory.md`).
 
@@ -1108,9 +1415,19 @@ def main() -> int:
     for problem in verify_provenance(audit):
         print("provenance audit: %s" % problem, file=sys.stderr)
         failed = True
+    for problem in verify_table_copies(audit):
+        print("table copy audit: %s" % problem, file=sys.stderr)
+        failed = True
+    for problem in verify_ledger(audit):
+        print("ledger audit: %s" % problem, file=sys.stderr)
+        failed = True
 
+    bindings = render_table_bindings(audit)
     current = TARGET.read_text(encoding="utf-8") if TARGET.exists() else ""
     current_doc = CACHE_DOC.read_text(encoding="utf-8") if CACHE_DOC.exists() else ""
+    current_bindings = (
+        BINDINGS_TARGET.read_text(encoding="utf-8") if BINDINGS_TARGET.exists() else ""
+    )
     if args.write:
         TARGET.write_text(rendered, encoding="utf-8")
         print("%s %s" %("rewrote" if rendered != current else "unchanged", TARGET.relative_to(REPO)))
@@ -1120,9 +1437,31 @@ def main() -> int:
             "%s %s"
             % ("rewrote" if cache_doc != current_doc else "unchanged", CACHE_DOC.relative_to(REPO))
         )
+        BINDINGS_TARGET.write_text(bindings, encoding="utf-8")
+        print(
+            "%s %s"
+            % (
+                "rewrote" if bindings != current_bindings else "unchanged",
+                BINDINGS_TARGET.relative_to(REPO),
+            )
+        )
         return 1 if failed else 0
 
     if failed:
+        return 1
+
+    if bindings != current_bindings:
+        print(
+            "table bindings have drifted -- run "
+            "`python scripts/audit_tool_annotations.py --write`",
+            file=sys.stderr,
+        )
+        diff = difflib.unified_diff(
+            current_bindings.splitlines(), bindings.splitlines(), "committed", "audited",
+            lineterm="", n=1,
+        )
+        for line in list(diff)[:40]:
+            print(line, file=sys.stderr)
         return 1
 
     if cache_doc != current_doc:

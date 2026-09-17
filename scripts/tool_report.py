@@ -261,8 +261,12 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "The tables listed for a tool are the provenance a host sees in the answer: "
         "every tool that opens a hand-maintained table carries the table and its "
         "vintage in <code>dati_applicati</code>, and the audit fails when a tool reads "
-        "a table without declaring it, declares one its code never reads, or leaves a "
-        "shipped table that no tool applies.</p>"
+        "a table without declaring it, declares one its code never reads, leaves a "
+        "shipped table that no tool applies, or keeps a hand-written copy of one. "
+        "At runtime the server goes further: <code>src/lib/_ledger.py</code> wraps "
+        "the table constants, so every call declares in its result "
+        "<code>_meta</code> which tables it actually read, and a test compares that "
+        "with this page's own mapping.</p>"
     )
     if problems:
         out.append("<details open><summary>Cache audit problems</summary><ul>")
