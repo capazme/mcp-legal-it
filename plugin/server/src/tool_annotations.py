@@ -25,7 +25,7 @@ that reads the switch, and the only one that resolves `MCP_CACHE_DIR`).
 `docs/cache-inventory.md` carries the per-cache and per-tool detail.
 
 `openWorldHint` marks the tools that reach outside the process (Normattiva,
-EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 168
+EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 167
 local-only ones are pure calculations over the bundled JSON tables.
 
 `apply_tool_annotations` installs a middleware that stamps these annotations on
@@ -114,17 +114,17 @@ WRITES_FILES: frozenset[str] = frozenset({
 OPEN_WORLD: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_ddl", "cerca_delibere_consob", "cerca_gazzetta_ufficiale", "cerca_giurisprudenza",
     "cerca_giurisprudenza_amministrativa", "cerca_giurisprudenza_cgue", "cerca_giurisprudenza_tributaria",
-    "cerca_pronuncia_costituzionale", "cerca_provvedimenti_garante", "cerdef_leggi_provvedimento",
-    "cite_law", "ddl_su_norma", "download_law_pdf", "elenco_misure_nazionali", "fetch_act_index",
-    "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "get_eu_basis", "get_italian_implementation",
-    "giurisprudenza_amm_su_norma", "giurisprudenza_articolo", "giurisprudenza_cgue_su_norma",
-    "giurisprudenza_su_norma", "iter_ddl", "leggi_atto_gazzetta", "leggi_delibera_consob",
-    "leggi_pronuncia_costituzionale", "leggi_provvedimento_amm", "leggi_provvedimento_garante",
-    "leggi_sentenza", "leggi_sentenza_cgue", "mappa_orientamento", "orientamento_su_norma",
-    "orientamento_su_principio", "pronunce_cost_su_norma", "scarica_pdf_gazzetta", "sommario_gazzetta",
-    "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce", "ultime_pronunce_cost",
-    "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante",
-    "verifica_citazioni", "verifica_partita_iva_vies",
+    "cerca_giurisprudenza_unificata", "cerca_pronuncia_costituzionale", "cerca_provvedimenti_garante",
+    "cerdef_leggi_provvedimento", "cite_law", "ddl_su_norma", "download_law_pdf", "elenco_misure_nazionali",
+    "fetch_act_index", "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "get_eu_basis",
+    "get_italian_implementation", "giurisprudenza_amm_su_norma", "giurisprudenza_articolo",
+    "giurisprudenza_cgue_su_norma", "giurisprudenza_su_norma", "iter_ddl", "leggi_atto_gazzetta",
+    "leggi_delibera_consob", "leggi_pronuncia_costituzionale", "leggi_provvedimento_amm",
+    "leggi_provvedimento_garante", "leggi_sentenza", "leggi_sentenza_cgue", "mappa_orientamento",
+    "orientamento_su_norma", "orientamento_su_principio", "pronunce_cost_su_norma", "scarica_pdf_gazzetta",
+    "sommario_gazzetta", "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce",
+    "ultime_pronunce_cost", "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm",
+    "ultimi_provvedimenti_garante", "verifica_citazioni", "verifica_partita_iva_vies",
 })
 
 # Subset of WRITES_FILES whose only write refreshes the local cache under

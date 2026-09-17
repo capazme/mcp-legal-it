@@ -137,6 +137,46 @@ def test_a_table_nobody_reads_is_a_failure(tmp_path):
     ), problems
 
 
+def test_a_lib_helper_missing_from_the_policy_is_a_failure(monkeypatch, tmp_path):
+    """A `src/lib` module the policy does not know becomes an "external service".
+
+    Sabotage: add a plain helper to `src/lib`, which is how the ledger's own
+    `_tables_open` arrived. `upstream_clients` then reported it as an upstream
+    client for every tool that imported it -- 71 read-only calculations moved to
+    the report's "external" column and its open-world count went from 50 to 121,
+    while every annotation stayed correct, because `openWorldHint` reads the call
+    graph instead and never saw the module as a client. Two readers of one tree
+    disagreed and nothing failed.
+    """
+    import shutil
+
+    import audit_tool_annotations as audit_module  # type: ignore[import-not-found]
+    from audit_tool_annotations import (  # type: ignore[import-not-found]
+        Audit,
+        verify_lib_modules,
+    )
+
+    src = tmp_path / "src"
+    shutil.copytree(
+        REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__")
+    )
+    assert verify_lib_modules(Audit(src)) == [], "the real tree is already undeclared"
+
+    (src / "lib" / "_nuovo_helper.py").write_text("VALORE = 1\n", encoding="utf-8")
+    problems = verify_lib_modules(Audit(src))
+    assert any("_nuovo_helper.py" in p for p in problems), problems
+    assert any("upstream service" in p for p in problems), problems
+
+    # The other direction: a client is a package and cannot be declared local.
+    monkeypatch.setattr(
+        audit_module,
+        "LOCAL_LIB_MODULES",
+        set(audit_module.LOCAL_LIB_MODULES) | {"brocardi"},
+    )
+    problems = verify_lib_modules(Audit(src))
+    assert any("client package" in p for p in problems), problems
+
+
 def test_import_preloaded_tables_reach_the_tool_that_reads_them():
     """The three loader shapes a bare `X = json.load(f)` rule used to miss.
 

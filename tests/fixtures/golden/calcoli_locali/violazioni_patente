@@ -7,7 +7,7 @@
    "arguments": {
     "violazione": "cellulare"
    },
-   "expected": "{\"violazione\":\"cellulare\",\"punti\":5,\"articolo\":\"Art. 173 CdS\",\"descrizione\":\"Uso del telefono alla guida\",\"sanzione_accessoria\":\"Sospensione patente in caso di recidiva\",\"dati_applicati\":[\"violazioni patente: provenienza e data non verificate — il Codice della Strada è stato riformato di recente: riconciliare importi e decurtazioni. Controllare la fonte prima dell'uso in un atto.\"]}"
+   "expected": "{\"violazione\":\"cellulare\",\"punti\":5,\"articolo\":\"Art. 173 CdS\",\"descrizione\":\"Uso del telefono alla guida\",\"sanzione_accessoria\":\"Sospensione patente in caso di recidiva\",\"dati_applicati\":[\"violazioni patente: provenienza e data non verificate — il Codice della Strada è stato riformato di recente: riconciliare importi e decurtazioni. Controllare la fonte prima dell'uso in un atto.\"],\"avvisi_dati\":[{\"tabella\":\"violazioni_patente\",\"stato\":\"non_verificata\",\"verificata\":false,\"messaggio\":\"violazioni patente: provenienza e data non verificate — il Codice della Strada è stato riformato di recente: riconciliare importi e decurtazioni. Controllare la fonte prima dell'uso in un atto.\",\"fonte\":\"Codice della Strada\",\"aggiornato_al\":null,\"copre_fino_a\":null}]}"
   }
  }
 }
