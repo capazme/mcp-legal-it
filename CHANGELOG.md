@@ -148,9 +148,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the milder case, because coverage is not provenance: it stops an answer
   anchored to today (the tool read the clock, observed per call through
   `_clock.consulted()`) and only downgrades one about a period that has already
-  closed. With the shipped tables that is 7 refusals (`contributo_unificato`,
-  `codice_fiscale`, `imposte_*`, `indennita_preavviso`, ...) and 8 downgrades
-  (`preventivo_civile`, `decreto_ingiuntivo`, `ricerca_codici_ateco`, ...), and
+  closed. With the shipped tables that is 6 refusals (`codice_fiscale`,
+  `imposte_*`, `indennita_preavviso`, ...) and 4 downgrades
+  (`ricerca_codici_ateco`, `cerca_ufficio_giudiziario`, ...), and
   the audit fails when a tool applies a table without declaring a grade, or
   declares a word `_precision.py` does not know -- an unknown grade would be
   read as the strongest claim. `tests/unit/test_precision_policy.py` covers both
@@ -193,6 +193,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   two-tuples while the table stores them as dicts — with `TABLE_COPIES_ALLOWED`
   for a justified copy (empty today, and the audit fails on an exemption that no
   longer matches anything).
+- `contributo_unificato.json` is reconciled with the DPR 115/2002 in force
+  (verified against the reference table updated to D.L. 132/2014 and D.L.
+  90/2014), and the table now declares it: `aggiornato_al` + `verifica:
+  manuale`. Three entries carried values or shapes the source contradicts, and
+  the reconciliation fixes them rather than vouching for them: `cautelari` was a
+  flat €147 but the procedurali cautelari are *50% of the ordinary bands by
+  value* (`cautelari.riduzione`); `esecuzione_mobiliare` was a flat €43 but is
+  €43 *below €2,500 and €139 above* (scaglioni, with the boundary at 2499.99 —
+  the largest two-decimal amount the "inferiore a €2.500" rule admits, since
+  the band lookup is inclusive); `ottemperanza` was €650, the source says €300;
+  the never-read `opposizione_esecutiva` key (full bands, where the rule halves
+  them) is replaced by `opposizione_decreto_ingiuntivo` at half bands. The
+  refusal of `contributo_unificato` disappears and the five tools that were
+  degraded by its unverified vintage (`decreto_ingiuntivo`, `modello_notula`,
+  `note_iscrizione_ruolo`, `preventivo_civile`, `genera_quotazione_docx`) answer
+  at their full declared grade again — which is the mechanism working, and the
+  reason the tests pinning the gap moved to tables still unverified.
+- Refusals are put on record, so a reconciliation backlog can be ordered by
+  what *did* block and not only by what could. With `LEGAL_REFUSAL_LEDGER=on`
+  the ledger middleware appends one JSONL line per refusal and one per
+  acceptance to `refusals.jsonl` under the cache root: the tool, the tables
+  that caused it, the state, the grade claimed and what happened — a counter,
+  not a log of the studio's work, so no case data ever reaches the file. It is
+  opt-in (a read-only tool that refuses must not start writing files the host
+  never asked for) and best-effort exactly like the cache: an unwritable ledger
+  never turns a refusal into an error. The audit declares the ledger as a cache
+  location, and its timestamps go through `_clock.now()`, so a pinned
+  `LEGAL_NOW` pins the tally too (`tests/unit/test_refusal_ledger.py`).
+- Every table the vintage policy can block now has a *supplying* alternative,
+  not only a cheaper grade: `@sourced(..., alternativa=...)` is extended from
+  two tools to all seven readers of the blocking tables. `contributo_unificato`
+  takes `tabella_contributo_unificato` (a replacement table with the same
+  shape, consumed by the whole computation including the appello/cassazione
+  multipliers), `imposte_successione` takes `aliquote_franchigie` (the bracket
+  list, read per `parentela` and tolerant of malformed entries),
+  `imposte_compravendita` takes `aliquote_registro` (the registro section),
+  `decurtazione_punti_patente` takes `tabella_violazioni` (the violation map),
+  and `decodifica_codice_fiscale` takes `mappa_comuni` (a reverse catastal-code
+  map). A call that supplies its datum reads no table, so the answer carries no
+  vintage it does not rest on — and a caller who *can* vouch for a value no
+  longer has to buy back a grade the table never supported.
+- `backlog_riconciliazione` (the 222nd tool) is the read-out: the tables still
+  unverified or expired, each with its source, its static cost (who reads it,
+  at what declared grade, refusing or degrading — the audit walk, computed once
+  per process and shared with `scripts/update-data.py`) and the action to take;
+  when the ledger is on, the observed tally re-ranks the list, so the table
+  that actually blocked twice outranks the one that only could have. With the
+  ledger off it says so (`disponibile: false`) instead of staying silent, and
+  the answer is frozen in the golden reference like every other tool's. The
+  same derivation is what `/dati` (new plugin command) reads, so refreshing a
+  table — verify the source, update the values, set `verifica: manuale` and
+  `aggiornato_al`, re-run the suite — is a guided flow that never opens the
+  code.
 
 ### Fixed
 - A helper module in `src/lib/` was classified as an *upstream service*.

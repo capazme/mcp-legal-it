@@ -116,12 +116,13 @@ def calcolo_eredita(
 
 
 @mcp.tool(tags={"proprieta"})
-@sourced("imposte_successione")
+@sourced("imposte_successione", alternativa="aliquote_franchigie")
 def imposte_successione(
     valore_beni: float,
     parentela: str,
     immobili: bool = False,
     prima_casa: bool = False,
+    aliquote_franchigie: list[dict] | None = None,
 ) -> dict:
     """Calcola imposta di successione con franchigie, aliquote e imposte ipocatastali.
     Vigenza: D.Lgs. 346/1990 (TU successioni e donazioni); aliquote: 4% (linea retta), 6% (fratelli/altri parenti), 8% (estranei).
@@ -133,10 +134,18 @@ def imposte_successione(
         parentela: Grado di parentela: 'coniuge_linea_retta', 'fratelli_sorelle', 'parenti_fino_4_grado_affini_fino_3', 'altri'
         immobili: True se l'eredità comprende beni immobili (aggiunge imposte ipotecaria e catastale)
         prima_casa: True se almeno un erede beneficia dell'agevolazione prima casa (imposte fisse ridotte)
+        aliquote_franchigie: Lista sostitutiva fornita dal chiamante con le stesse voci di
+                          src/data/imposte_successione.json → aliquote: [{'parentela':
+                          'coniuge_linea_retta', 'aliquota': 4, 'franchigia': 1000000}, ...].
+                          Se la fornisci, il calcolo delle aliquote e franchigie non legge la
+                          tabella inclusa: utile se vuoi garantire tu i valori applicati
     """
+    aliquote = aliquote_franchigie if aliquote_franchigie else _SUCCESSIONE["aliquote"]
     aliquota_info = None
-    for a in _SUCCESSIONE["aliquote"]:
-        if a["parentela"] == parentela:
+    for a in aliquote:
+        # Tolerant of caller-supplied garbage: a malformed entry is skipped and
+        # falls through to the not-recognized error below, not to a crash.
+        if isinstance(a, dict) and a.get("parentela") == parentela:
             aliquota_info = a
             break
 
@@ -300,13 +309,14 @@ def calcolo_imu(
 
 
 @mcp.tool(tags={"proprieta"})
-@sourced("imposte_successione")
+@sourced("imposte_successione", alternativa="aliquote_registro")
 def imposte_compravendita(
     prezzo: float,
     tipo_immobile: str = "abitazione",
     prima_casa: bool = False,
     da_costruttore: bool = False,
     rendita_catastale: float | None = None,
+    aliquote_registro: dict | None = None,
 ) -> dict:
     """Calcola imposte per acquisto immobile: registro, ipotecaria, catastale e IVA.
     Se da_costruttore=True si applica IVA (4%, 10% o 22%); altrimenti imposta di registro (2% o 9%).
@@ -319,8 +329,12 @@ def imposte_compravendita(
         prima_casa: True se si beneficia dell'agevolazione prima casa (riduce le aliquote)
         da_costruttore: True se acquisto da impresa costruttrice soggetta IVA
         rendita_catastale: Rendita catastale dell'immobile in euro (€, opzionale — abilita calcolo prezzo-valore)
+        aliquote_registro: Sezione sostitutiva fornita dal chiamante con la struttura di
+                          src/data/imposte_successione.json → imposta_registro_compravendita
+                          ('prima_casa', 'seconda_casa', 'terreno_agricolo', 'da_costruttore_iva',
+                          'lusso'...). Se la fornisci, il calcolo non legge la tabella inclusa
     """
-    reg = _SUCCESSIONE["imposta_registro_compravendita"]
+    reg = aliquote_registro if aliquote_registro else _SUCCESSIONE["imposta_registro_compravendita"]
     imposte = {}
 
     if da_costruttore:

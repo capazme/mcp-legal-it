@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the 221-tool surface as a self-contained HTML page.
+"""Render the 222-tool surface as a self-contained HTML page.
 
 The page groups every tool by what a host needs to know before running it:
 

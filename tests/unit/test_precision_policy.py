@@ -42,11 +42,14 @@ from .mcp_harness import (
 )
 
 #: A table nobody sources: the provenance gap, whichever tool reads it.
-UNVERIFIED_TABLE = "contributo_unificato"
+#: (`contributo_unificato` used to be the pin; it was reconciled with the
+#: DPR 115/2002 in force on 2026-09-18 and its refusal went away -- which is the
+#: mechanism working, not the test breaking.)
+UNVERIFIED_TABLE = "imposte_successione"
 #: The tool that declares `ESATTO` on it, and must therefore refuse.
-REFUSING_TOOL = "contributo_unificato"
-#: The tool that declares `INDICATIVO` on it, and can therefore step down.
-DOWNGRADED_TOOL = "preventivo_civile"
+REFUSING_TOOL = "imposte_successione"
+#: The tool that declares `INDICATIVO` on a table still unverified.
+DOWNGRADED_TOOL = "ricerca_codici_ateco"
 #: A table under way at the pinned present, expired a year later.
 IN_FORCE = "tassi_legali"
 
@@ -287,7 +290,7 @@ def test_the_audit_and_the_runtime_read_the_same_line_the_same_way():
 
     The audit decides whether a tool may answer from a table; the wrapper decides
     what happens when it does. Both parse the `Precisione:` line, with two
-    independent implementations, over all 221 docstrings.
+    independent implementations, over all 222 docstrings.
     """
     module = _audit_module()
     audit = module.Audit(pathlib.Path(REPO / "plugin/server/src"))
