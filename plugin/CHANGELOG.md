@@ -129,7 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   osservazione del footer, non la dichiarazione.
 - Una tabella scaduta o non verificata ora cambia la risposta, non solo il
   footer. Ogni tool dichiara già un grado nella propria docstring (`Precisione:
-  ESATTO|INDICATIVO|STIMATO`, 144 su 221, letto dalla riga che il modello
+  ESATTO|INDICATIVO|STIMATO`, 144 su 222, letto dalla riga che il modello
   chiamante vede) e `src/lib/_precision.py` decide cosa fa il vintage a quella
   dichiarazione: un'affermazione esatta che poggia su una tabella senza fonte
   viene **ritirata** -- il tool risponde `errore: "dati_non_affidabili"`, senza
@@ -139,10 +139,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `_meta`. Una tabella scaduta è il caso più mite, perché copertura non è
   provenienza: ferma una risposta ancorata a oggi (il tool ha letto l'orologio,
   osservato per chiamata con `_clock.consulted()`) e degrada soltanto quella su
-  un periodo già chiuso. Con le tabelle attuali sono 7 rifiuti
-  (`contributo_unificato`, `codice_fiscale`, `imposte_*`,
-  `indennita_preavviso`, ...) e 8 degradi (`preventivo_civile`,
-  `decreto_ingiuntivo`, `ricerca_codici_ateco`, ...), e l'audit fallisce quando
+  un periodo già chiuso. Con le tabelle attuali sono 6 rifiuti
+  (`codice_fiscale`, `imposte_*`,
+  `indennita_preavviso`, ...) e 4 degradi (`ricerca_codici_ateco`,
+  `cerca_ufficio_giudiziario`, ...), e l'audit fallisce quando
   un tool applica una tabella senza dichiarare un grado, o dichiara una parola
   che `_precision.py` non conosce -- un grado sconosciuto verrebbe letto come
   l'affermazione più forte. `tests/unit/test_precision_policy.py` copre i due
@@ -201,6 +201,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
   un file creato, cancellato o modificato fa fallire il test. Tutti hanno
   risposto e nulla è cambiato.
+- `contributo_unificato.json` è riconciliato con il DPR 115/2002 vigente
+  (verificato sulla tabella di riferimento aggiornata a D.L. 132/2014 e D.L.
+  90/2014) e la tabella lo dichiara: `aggiornato_al` + `verifica: manuale`.
+  Tre voci riportavano valori o forme che la fonte contraddice, e la
+  riconciliazione li corregge invece di garantirli: `cautelari` era un fisso di
+  147 € ma i procedimenti cautelari sono il *50% degli scaglioni ordinari per
+  valore* (`cautelari.riduzione`); `esecuzione_mobiliare` era un fisso di 43 €
+  ma è 43 € *sotto i 2.500 € e 139 € sopra* (scaglioni, con il confine a
+  2499,99 — il massimo con due decimali ammesso dalla regola "inferiore a
+  2.500 €", perché la ricerca per scaglioni è inclusiva); `ottemperanza` era
+  650 €, la fonte dice 300 €; la chiave mai letta `opposizione_esecutiva`
+  (scaglioni pieni, dove la regola li dimezza) diventa
+  `opposizione_decreto_ingiuntivo` a scaglioni dimezzati. Il rifiuto di
+  `contributo_unificato` sparisce e i cinque tool degradati dal suo vintage non
+  verificato (`decreto_ingiuntivo`, `modello_notula`, `note_iscrizione_ruolo`,
+  `preventivo_civile`, `genera_quotazione_docx`) tornano a dichiarare il grado
+  pieno — è il meccanismo che funziona, e per questo i test che inchiodavano il
+  buco si sono spostati su tabelle ancora non verificate.
+- I rifiuti vanno a verbale, così il backlog di riconciliazione si ordina per
+  quanto ha bloccato *davvero* e non solo per quanto potrebbe. Con
+  `LEGAL_REFUSAL_LEDGER=on` il middleware del ledger aggiunge una riga JSONL per
+  ogni rifiuto e una per ogni accettazione a `refusals.jsonl` sotto la root
+  della cache: il tool, le tabelle in causa, lo stato, il grado dichiarato e
+  l'esito — un contatore, non un log del lavoro dello studio, così nessun dato
+  del caso finisce nel file. È opt-in (un tool read-only che rifiuta non deve
+  mettersi a scrivere file che l'host non ha chiesto) e best-effort esattamente
+  come la cache: un verbale non scrivibile non trasforma mai un rifiuto in un
+  errore. L'audit dichiara il verbale come posizione di cache e i suoi timestamp
+  passano da `_clock.now()`, quindi un `LEGAL_NOW` pinnato pina anche il
+  verbale (`tests/unit/test_refusal_ledger.py`).
+- Ogni tabella che la policy del vintage può bloccare ha ora un'
+  *alternativa fornita*, non solo un grado più economico:
+  `@sourced(..., alternativa=...)` passa da due tool a tutti e sette i lettori
+  delle tabelle bloccanti. `contributo_unificato` prende
+  `tabella_contributo_unificato` (tabella sostitutiva della stessa forma,
+  consumata dall'intero calcolo, moltiplicatori di appello e cassazione
+  inclusi), `imposte_successione` prende `aliquote_franchigie` (la lista degli
+  scaglioni, letta per `parentela` e tollerante verso voci malformate),
+  `imposte_compravendita` prende `aliquote_registro` (la sezione registro),
+  `decurtazione_punti_patente` prende `tabella_violazioni` (la mappa delle
+  violazioni) e `decodifica_codice_fiscale` prende `mappa_comuni` (mappa inversa
+  dei codici catastali). Una chiamata che fornisce il suo dato non legge nessuna
+  tabella, quindi la risposta non porta vintage che non poggia su di esso — e
+  chi *può* garantire un valore non deve più ricomprare un grado che la tabella
+  non sosteneva.
+- `backlog_riconciliazione` (il tool numero 222) è il pannello di lettura: le
+  tabelle ancora non verificate o scadute, ciascuna con la sua fonte, il costo
+  statico (chi la legge, a quale grado dichiarato, rifiutando o degradando — la
+  passeggiata dell'audit, calcolata una volta per processo e condivisa con
+  `scripts/update-data.py`) e l'azione da compiere; col verbale attivo, il
+  conteggio osservato riordina la lista, così la tabella che ha bloccato due
+  volte precede quella che avrebbe solo potuto. Col verbale spento lo dice
+  (`disponibile: false`) invece di tacere, e la risposta è congelata nel
+  riferimento golden come quella di ogni altro tool. La stessa derivazione è
+  quella che legge `/dati` (nuovo comando del plugin), così l'aggiornamento di
+  una tabella — verificare la fonte, aggiornare i valori, mettere `verifica:
+  manuale` e `aggiornato_al`, rieseguire la suite — è un flusso guidato che non
+  apre mai il codice.
 
 ### Fixed
 - Un modulo di supporto in `src/lib/` finiva classificato come *servizio

@@ -122,6 +122,7 @@ LOCAL_LIB_MODULES = {
     "_http",
     "_ledger",
     "_precision",
+    "_refusals",
     "_result",
     "_tables_open",
 }
@@ -172,6 +173,15 @@ CACHE_LOCATIONS = (
         "retention": "7 days (_CACHE_TTL_SECONDS)",
         "markers": ("corte_cost",),
         "switch": "cache_enabled()",
+    },
+    {
+        "module": "src/lib/_refusals.py",
+        "label": "refusal ledger",
+        "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
+        "files": ["refusals.jsonl -- refusal/acceptance tally per day, opt-in (LEGAL_REFUSAL_LEDGER)"],
+        "retention": "append-only; the host trims or resets it whenever it wants",
+        "markers": ("refusals.jsonl",),
+        "switch": "ledger_enabled()",
     },
 )
 #: The module that reads the switch and resolves MCP_CACHE_DIR -- the one place

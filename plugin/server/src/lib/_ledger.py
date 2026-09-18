@@ -39,7 +39,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware
 
-from . import _clock, _precision
+from . import _clock, _precision, _refusals
 from ._data import warnings as data_warnings
 from ._tables_open import CURRENT, note, opened, recording
 
@@ -50,12 +50,15 @@ DATA_WARNINGS_KEY = "mcp-legal-it/data_warnings"
 #: Key under which it reports what the answer is worth, when that is less than
 #: the tool declared.
 PRECISION_KEY = "mcp-legal-it/precisione"
+#: Key under which a tool result reports the refusal ledger, when asked for.
+REFUSALS_KEY = "mcp-legal-it/verbale_rifiuti"
 
 __all__ = [
     "CURRENT",
     "DATA_WARNINGS_KEY",
     "OPENED_TABLES_KEY",
     "PRECISION_KEY",
+    "REFUSALS_KEY",
     "TableDict",
     "TableLedgerMiddleware",
     "TableList",
@@ -210,6 +213,31 @@ class TableLedgerMiddleware(Middleware):
             meta[DATA_WARNINGS_KEY] = avvisi
         if esito is not None:
             meta[PRECISION_KEY] = esito.to_dict()
+            # The refusal ledger: what the vintage policy blocked, as data. Only
+            # the two outcomes worth ordering a backlog by are recorded -- the
+            # refusal the caller hit, and the acceptance that bought the answer
+            # anyway. Best-effort and opt-in (`LEGAL_REFUSAL_LEDGER=on`).
+            if esito.rifiuta:
+                _refusals.record(
+                    {
+                        "evento": "rifiuto",
+                        "tool": name,
+                        "tables": sorted({a["tabella"] for a in avvisi}),
+                        "stati": sorted(esito.motivi),
+                        "dichiarata": esito.dichiarata,
+                        "concedibile": esito.concedibile,
+                    }
+                )
+            elif esito.accettata:
+                _refusals.record(
+                    {
+                        "evento": "accettazione",
+                        "tool": name,
+                        "accettata": esito.accettata,
+                        "dichiarata": esito.dichiarata,
+                        "tables": sorted({a["tabella"] for a in avvisi}),
+                    }
+                )
         if meta:
             result.meta = meta
         return result

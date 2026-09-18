@@ -170,5 +170,10 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
 #: and flag the vintage of a table the call deliberately did not open.
 TOOL_ALTERNATIVES: dict[str, str] = {
     "codice_fiscale": "codice_catastale",
+    "contributo_unificato": "tabella_contributo_unificato",
+    "decodifica_codice_fiscale": "mappa_comuni",
+    "decurtazione_punti_patente": "tabella_violazioni",
+    "imposte_compravendita": "aliquote_registro",
+    "imposte_successione": "aliquote_franchigie",
     "indennita_preavviso": "giorni_preavviso",
 }

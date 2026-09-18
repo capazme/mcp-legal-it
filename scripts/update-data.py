@@ -410,6 +410,7 @@ def check_vintages(today: date) -> bool:
         print("  Azione: riconciliare con la fonte e spostare `copre_fino_a`")
     if da_verificare:
         print(warn(f"{len(da_verificare)} tabelle marcate `da_verificare`: {', '.join(da_verificare)}"))
+        _report_osservazioni(da_verificare)
         print(
             "  Bloccante, non solo informativo: un tool che dichiara un grado esatto "
             "RIFIUTA di calcolare invece di annotare. Chi chiama puo' comunque ottenere il "
@@ -430,6 +431,41 @@ def check_vintages(today: date) -> bool:
         print(ok(f"{len(all_datasets()) - len(da_verificare)} tabelle con provenienza dichiarata"))
 
     return bool(mancanti or scadute)
+
+
+def _report_osservazioni(tabelle: list[str]) -> None:
+    """What the refusal ledger observed, when the host was watching.
+
+    The static ranking above says what *could* block; the ledger (opt-in,
+    `LEGAL_REFUSAL_LEDGER=on`, written by the server's middleware) says what
+    *did* block: refusals a caller actually hit, and the acceptances that bought
+    the answer anyway. When the ledger is off or empty this prints nothing but
+    the hint -- silence must not look like "no refusals happened".
+    """
+    sys.path.insert(0, str(REPO / "plugin/server"))
+    try:
+        from src.lib._refusals import ledger_enabled, ledger_path, summarize  # noqa: E402
+    finally:
+        sys.path.pop(0)
+    if not ledger_enabled():
+        print(
+            "  Verbale           : non attivo. Con LEGAL_REFUSAL_LEDGER=on il server "
+            "registra rifiuti e accettazioni, e il backlog si ordina da quanto blocca davvero."
+        )
+        return
+    sommario = summarize()
+    osservate = sommario.get("tabelle") or {}
+    incidenti = {t: osservate[t] for t in tabelle if osservate.get(t)}
+    if not incidenti:
+        print("  Verbale           : attivo, nessun rifiuto osservato finora.")
+        return
+    print("  Verbale           : rifiuti osservati (dal piu' bloccante):")
+    for tabella, conteggio in sorted(incidenti.items(), key=lambda kv: -kv[1]):
+        print(f"    {tabella}: {conteggio}")
+    acc = sommario.get("accettazioni") or {}
+    if acc:
+        print(f"  Accettazioni      : {sum(acc.values())} chiamate hanno accettato un grado ridotto ({', '.join(sorted(acc))})")
+    print(f"  Verbale su disco  : {ledger_path()}")
 
 
 def main() -> int:
