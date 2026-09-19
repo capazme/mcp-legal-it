@@ -95,11 +95,27 @@ def test_install_wraps_imported_modules_and_leaves_the_rest_alone():
 
 
 def test_the_real_bindings_wrapped_the_real_constants():
-    """`src.server` installs the ledger, so importing it must show up here."""
+    """`src.server` installs the ledger, so importing it must show up here.
+
+    The install runs at server import for the modules bound by then. One tool
+    module (`privacy_gdpr`) imports `src.server` itself before binding its own
+    dicts, so in a process that imports it first those three land after the
+    first install -- a wrap-placement order artifact that never changes an
+    answer (the tools read the dicts at call time). The check keeps its teeth
+    by rerunning the install exactly as the server entrypoint does and failing
+    if anything *beyond* that known trio is left out, or if a second pass
+    wraps anything at all.
+    """
     import src.server  # noqa: F401  (importing the server is what installs it)
+    from src.lib._ledger import install
     from src.table_bindings import TABLE_CONSTANTS
     from src.tools import varie
 
+    late = install(TABLE_CONSTANTS)
+    assert late <= 3, (
+        "modules src.server imports directly stopped being wrapped at import: "
+        "%d constants now wrap late" % late
+    )
     assert isinstance(varie._COMUNI, TableDict), "the server stopped installing the ledger"
     assert "_COMUNI" in TABLE_CONSTANTS["src.tools.varie"]
     assert install(TABLE_CONSTANTS) == 0, "the constants were already wrapped once"
@@ -119,7 +135,7 @@ def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():
 
     @server.tool()
     def reads_an_unverified_table() -> dict:
-        return {"valore": _data.load("imposte_successione")["aliquote"]}
+        return {"valore": _data.load("comuni")["comuni"]}
 
     @server.tool()
     def reads_nothing_but_declares_one() -> dict:
@@ -132,7 +148,7 @@ def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():
     assert apply_table_ledger(
         server,
         {},
-        {"reads_nothing_but_declares_one": ("imposte_successione",)},
+        {"reads_nothing_but_declares_one": ("comuni",)},
     ) == 0
 
     async def run():
@@ -148,16 +164,14 @@ def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():
 
     results = asyncio.run(run())
     observed = results["reads_an_unverified_table"].meta[DATA_WARNINGS_KEY]
-    assert [entry["tabella"] for entry in observed] == ["imposte_successione"]
+    assert [entry["tabella"] for entry in observed] == ["comuni"]
     assert observed[0]["stato"] == "non_verificata"
-    assert results["reads_an_unverified_table"].meta[OPENED_TABLES_KEY] == [
-        "imposte_successione"
-    ]
+    assert results["reads_an_unverified_table"].meta[OPENED_TABLES_KEY] == ["comuni"]
 
     blind = results["reads_nothing_but_declares_one"].meta or {}
     assert OPENED_TABLES_KEY not in blind, "nothing was observed, so nothing is claimed"
     assert [entry["tabella"] for entry in blind[DATA_WARNINGS_KEY]] == [
-        "imposte_successione"
+        "comuni"
     ], "the declaration is what the warning falls back to when the ledger is blind"
 
     assert DATA_WARNINGS_KEY not in (results["rests_on_nothing"].meta or {}), (

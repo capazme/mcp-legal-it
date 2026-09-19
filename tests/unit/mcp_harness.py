@@ -61,12 +61,19 @@ CURATED = {
     "compenso_ctu": {"tipo_incarico": "perizia_immobiliare", "valore_causa": 50000.0,
                      "ore_lavoro": 20},
     "danno_parentale": {"vittima": "figlio", "superstite": "genitore"},
-    "decurtazione_punti_patente": {"violazione": "cellulare"},
+    "decurtazione_punti_patente": {"violazione": "sorpasso"},
     "equo_indennizzo": {"categoria_tabella": "1", "percentuale_invalidita": 85.0,
                         "stipendio_annuo": 35000.0},
     "genera_modello_atto": {"tipo_atto": "decreto_ingiuntivo_ordinario"},
     "grado_parentela": {"relazione": "figlio"},
     "imposte_successione": {"valore_beni": 500000.0, "parentela": "coniuge_linea_retta"},
+    # `comuni` is unverified and `codice_fiscale` declares ESATTO on it: without
+    # the catastal code the harness call would refuse. This pin is complete
+    # (CURATED replaces the schema-derived arguments, it does not merge), and it
+    # deliberately omits `codice_catastale`: the refusal is the recorded answer,
+    # and the escape is proven separately by the precision-policy tests.
+    "codice_fiscale": {"nome": "Mario", "cognome": "Rossi", "data_nascita": "1980-01-01",
+                       "comune_nascita": "Roma", "sesso": "M"},
     "modello_notula": {"tipo_procedimento": "decreto_ingiuntivo", "avvocato": "Avv. Mario Rossi",
                        "cliente": "Alfa Srl", "valore_causa": 25000.0},
     "parcella_avvocato_penale": {"competenza": "tribunale_monocratico"},

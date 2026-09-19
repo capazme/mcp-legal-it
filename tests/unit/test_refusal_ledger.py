@@ -34,7 +34,12 @@ from .mcp_harness import (
 )
 
 PRESENT = {"LEGAL_TODAY": "2026-09-15", "LEGAL_NOW": "2026-09-15T12:00:00", "TZ": "UTC"}
-REFUSING_TOOL = "imposte_successione"
+#: (`imposte_successione` used to be the pin; it was reconciled with the
+#: Agenzia delle Entrate schedule on 2026-09-19 and its refusal went away.
+#: `comuni` is the strongest refusal left: two tools, and one of them now
+#: proves both halves of the ledger in a single wire run -- refuse without the
+#: catastal code, answer with it.)
+REFUSING_TOOL = "codice_fiscale"
 #: `call_tools` fires one call per tool, so one refusal per run here.
 CALLS = 1
 
@@ -89,7 +94,7 @@ def test_a_refusal_and_an_acceptance_land_in_the_ledger_over_the_wire():
     assert len(rifiuti) >= CALLS, lines
     voce = rifiuti[0]
     assert voce["tool"] == REFUSING_TOOL
-    assert "imposte_successione" in voce["tables"]
+    assert "comuni" in voce["tables"]
     assert voce["stati"] == ["non_verificata"]
     assert voce["dichiarata"] == "ESATTO"
     assert voce["concedibile"] == "INDICATIVO"
@@ -127,7 +132,7 @@ def test_the_backlog_readout_reports_the_ledger_and_reranks():
     )
     payload = _payload(replies["backlog_riconciliazione"])
 
-    assert payload["n_tabelle"] >= 6, "the shipped tables still carry unverified ones"
+    assert payload["n_tabelle"] >= 5, "the shipped tables still carry unverified ones"
     assert payload["tabelle"], "the list itself cannot be empty"
     stati = {voce["stato"] for voce in payload["tabelle"]}
     assert stati <= {"non_verificata", "scaduta"}
@@ -135,7 +140,7 @@ def test_the_backlog_readout_reports_the_ledger_and_reranks():
     # The static half comes from the audit: `imposte_successione` blocks two
     # tools, `comuni` two, and a table with only indicative readers blocks none.
     per_tabella = {voce["tabella"]: voce for voce in payload["tabelle"]}
-    assert len(per_tabella["imposte_successione"]["uso_statico"]["rifiutano"]) == 2
+    assert len(per_tabella["comuni"]["uso_statico"]["rifiutano"]) == 2
     assert per_tabella["preavviso_ccnl"]["uso_statico"]["rifiutano"] == ["indennita_preavviso"]
 
     # The observed tally names the table the refusals were about, and the
@@ -143,9 +148,9 @@ def test_the_backlog_readout_reports_the_ledger_and_reranks():
     verbale = payload["verbale_rifiuti"]
     assert verbale.get("disponibile") is True
     assert verbale.get("rifiuti", {}).get(REFUSING_TOOL) == CALLS
-    assert verbale.get("tabelle", {}).get("imposte_successione") == CALLS
+    assert verbale.get("tabelle", {}).get("comuni") == CALLS
     first = payload["tabelle"][0]["tabella"]
-    assert first == "imposte_successione", (
+    assert first == "comuni", (
         "the table that actually blocked twice outranks the static order"
     )
     # And the action tells the caller what to do without opening any code.
@@ -178,6 +183,11 @@ def test_the_readout_names_every_alternative_the_server_declares():
         "decurtazione_punti_patente",
         "decodifica_codice_fiscale",
     }, "a blocking table without an escape is a wall, not a negotiation"
+    # Reconciled tables keep their escape: the alternative is not a crutch the
+    # code drops once the shipped file is verified, it is the permanent contract
+    # for whoever brings fresher data than the repo has.
+    for name in ("contributo_unificato", "imposte_successione", "decurtazione_punti_patente"):
+        assert name in alternatives, "%s lost its escape after the reconciliation" % name
 
 
 def test_every_blocking_table_has_a_working_escape_over_the_wire():
@@ -237,9 +247,9 @@ def test_every_blocking_table_has_a_working_escape_over_the_wire():
         },
         "decurtazione_punti_patente": {
             "tabella_violazioni": {
-                "cellulare": {"punti": 5, "articolo": "Art. 173 CdS", "descrizione": "Uso del telefono alla guida"},
+                "sorpasso": {"punti": 3, "articolo": "Art. 148 c.15 CdS", "descrizione": "Sorpasso vietato"},
             },
-            "violazione": "cellulare",
+            "violazione": "sorpasso",
         },
         "decodifica_codice_fiscale": {
             "mappa_comuni": {"ROMA": "H501"},
@@ -265,5 +275,5 @@ def test_every_blocking_table_has_a_working_escape_over_the_wire():
     # And the supplied values really reached the answers.
     assert _payload(replies["contributo_unificato"])["importo_dovuto"] == 250
     assert _payload(replies["imposte_successione"])["imposta_successione"] == 0.0
-    assert _payload(replies["decurtazione_punti_patente"])["punti"] == 5
+    assert _payload(replies["decurtazione_punti_patente"])["punti"] == 3
     assert "ROMA" in _payload(replies["decodifica_codice_fiscale"])["dati"]["comune_nascita"]
