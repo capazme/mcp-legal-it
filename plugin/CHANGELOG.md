@@ -259,6 +259,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   una tabella — verificare la fonte, aggiornare i valori, mettere `verifica:
   manuale` e `aggiornato_al`, rieseguire la suite — è un flusso guidato che non
   apre mai il codice.
+- `imposte_successione` e `violazioni_patente` sono riconciliate con le fonti
+  vigenti: la scheda dell'Agenzia delle Entrate per aliquote e franchigie
+  successorie (ogni valore combaciava — la correzione era di provenienza, non
+  di numeri) e la tabella allegata all'art. 126-bis per i punti della patente,
+  dove tre valori erano sbagliati e sono corretti (mancata precedenza 6 punti,
+  non 8; sorpasso 3, non 4; circolazione senza assicurazione 5 punti, non 0),
+  con le fasce di velocità legate ai commi giusti dell'art. 142 e le sanzioni
+  pecuniarie accanto ai punti. I loro rifiuti spariscono: le tabelle incluse
+  bloccano ora tre tool (`codice_fiscale`, `decodifica_codice_fiscale`,
+  `indennita_preavviso`) invece di sei, e il riferimento golden mostra il diff
+  invece di fidarsi della modifica.
 
 ### Fixed
 - Un modulo di supporto in `src/lib/` finiva classificato come *servizio
