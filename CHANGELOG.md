@@ -246,6 +246,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   table — verify the source, update the values, set `verifica: manuale` and
   `aggiornato_al`, re-run the suite — is a guided flow that never opens the
   code.
+- `imposte_successione` and `violazioni_patente` are reconciled with their
+  sources in force: the Agenzia delle Entrate schedule for the succession
+  brackets and franchises (every value matched -- the fix was provenance, not
+  numbers) and the art. 126-bis attached table for the licence points, where
+  three values were wrong and are corrected (failing to yield 6 points, not 8;
+  overtaking 3, not 4; driving uninsured 5 points, not 0), with the speeding
+  bands tied to the right subsections of art. 142 and the pecuniary ranges
+  alongside the points. Their refusals go away: the shipped tables now block
+  three tools (`codice_fiscale`, `decodifica_codice_fiscale`,
+  `indennita_preavviso`) instead of six, and the golden reference shows the
+  diff instead of trusting the edit.
 
 ### Fixed
 - A helper module in `src/lib/` was classified as an *upstream service*.

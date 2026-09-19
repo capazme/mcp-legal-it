@@ -65,7 +65,10 @@ def test_declared_coverage_has_not_elapsed(dataset):
 
 
 def test_unverified_table_says_so_instead_of_staying_silent():
-    v = vintage("violazioni_patente")
+    # `violazioni_patente` was reconciled with the art. 126-bis table in force
+    # on 2026-09-19; the gap this file watches moved to the next unverified
+    # table (see test_precision_policy for the full history of the pin).
+    v = vintage("comuni")
     assert v.verifica == UNVERIFIED
     assert "non verificate" in v.to_line()
     assert "prima dell'uso in un atto" in v.to_line()
