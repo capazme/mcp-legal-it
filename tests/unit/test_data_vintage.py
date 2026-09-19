@@ -65,10 +65,10 @@ def test_declared_coverage_has_not_elapsed(dataset):
 
 
 def test_unverified_table_says_so_instead_of_staying_silent():
-    # `violazioni_patente` was reconciled with the art. 126-bis table in force
-    # on 2026-09-19; the gap this file watches moved to the next unverified
-    # table (see test_precision_policy for the full history of the pin).
-    v = vintage("comuni")
+    # The reconciliation run of 2026-09-20 (ISTAT catastal codes, DM 32/2012
+    # role codes, the three CCNL notice tables) left only two hand-maintained
+    # tables without an established source: this pin watches one of them.
+    v = vintage("codici_ateco")
     assert v.verifica == UNVERIFIED
     assert "non verificate" in v.to_line()
     assert "prima dell'uso in un atto" in v.to_line()

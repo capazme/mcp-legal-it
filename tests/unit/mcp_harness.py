@@ -67,11 +67,10 @@ CURATED = {
     "genera_modello_atto": {"tipo_atto": "decreto_ingiuntivo_ordinario"},
     "grado_parentela": {"relazione": "figlio"},
     "imposte_successione": {"valore_beni": 500000.0, "parentela": "coniuge_linea_retta"},
-    # `comuni` is unverified and `codice_fiscale` declares ESATTO on it: without
-    # the catastal code the harness call would refuse. This pin is complete
-    # (CURATED replaces the schema-derived arguments, it does not merge), and it
-    # deliberately omits `codice_catastale`: the refusal is the recorded answer,
-    # and the escape is proven separately by the precision-policy tests.
+    # `comuni` is ISTAT-verified now, so this call computes and stamps a full
+    # footer. The pin stays complete (CURATED replaces the schema-derived
+    # arguments, it does not merge); the historical refusal it used to record
+    # is exercised on the probe server by the precision-policy tests.
     "codice_fiscale": {"nome": "Mario", "cognome": "Rossi", "data_nascita": "1980-01-01",
                        "comune_nascita": "Roma", "sesso": "M"},
     "modello_notula": {"tipo_procedimento": "decreto_ingiuntivo", "avvocato": "Avv. Mario Rossi",
@@ -330,14 +329,18 @@ def server_env(sandbox: pathlib.Path, tmp_path: pathlib.Path, extra: dict | None
     return env
 
 
-def call_tools(env: dict, tool_names, arguments_by_tool, timeout: int, repo=None) -> dict:
+def call_tools(env: dict, tool_names, arguments_by_tool, timeout: int, repo=None,
+               script: str = "plugin/server/run_server.py") -> dict:
     """Start the server in `env` and call every tool, one request per tool.
 
     `repo` runs the server from another checkout of the same tree, which is how
     the provenance test perturbs a data table without touching the working copy.
+    `script` swaps the entry point: the precision-policy tests launch the probe
+    server (`plugin/server/probe_precision.py`) through the same JSON-RPC pipe,
+    so a refusal is exercised over the wire exactly as a host would see it.
     """
     root = pathlib.Path(repo) if repo is not None else REPO
-    launcher = root / "plugin/server/run_server.py"
+    launcher = root / script
     proc = subprocess.Popen(
         [sys.executable, str(launcher)],
         cwd=str(root),

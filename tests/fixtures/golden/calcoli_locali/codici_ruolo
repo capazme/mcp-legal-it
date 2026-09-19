@@ -7,7 +7,7 @@
    "arguments": {
     "materia": "civile"
    },
-   "expected": "{\"ricerca\":\"civile\",\"risultati\":[],\"totale\":0,\"riferimento_normativo\":\"Provvedimenti DGSIA — Codici oggetto iscrizione a ruolo\",\"dati_applicati\":[\"codici ruolo: provenienza e data non verificate. Controllare la fonte prima dell'uso in un atto.\"],\"avvisi_dati\":[{\"tabella\":\"codici_ruolo\",\"stato\":\"non_verificata\",\"verificata\":false,\"messaggio\":\"codici ruolo: provenienza e data non verificate. Controllare la fonte prima dell'uso in un atto.\",\"fonte\":\"codici materia per iscrizione a ruolo\",\"aggiornato_al\":null,\"copre_fino_a\":null}],\"precisione\":{\"dichiarata\":\"INDICATIVO\",\"effettiva\":\"STIMATO\",\"motivo\":\"una tabella applicata risulta non_verificata\",\"nota\":\"(ricerca per keyword nella materia e descrizione).\"}}"
+   "expected": "{\"ricerca\":\"civile\",\"risultati\":[],\"totale\":0,\"riferimento_normativo\":\"Provvedimenti DGSIA — Codici oggetto iscrizione a ruolo\",\"dati_applicati\":[\"codici ruolo: aggiornati al 19/09/2026 (D.M. 32/2012 e provvedimenti DGSIA — tabella codici oggetto per l'iscrizione a ruolo (riferimento: Ministero della Giustizia)) — sottoinsieme delle materie civili piu' ricorrenti, ricavato dalla tabella ufficiale dei codici oggetto; la classificazione viene rinnovata dal Ministero: verificare a ogni aggiornamento del PCT\"]}"
   }
  }
 }
