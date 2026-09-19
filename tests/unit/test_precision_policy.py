@@ -42,12 +42,13 @@ from .mcp_harness import (
 )
 
 #: A table nobody sources: the provenance gap, whichever tool reads it.
-#: (`contributo_unificato` used to be the pin; it was reconciled with the
-#: DPR 115/2002 in force on 2026-09-18 and its refusal went away -- which is the
-#: mechanism working, not the test breaking.)
-UNVERIFIED_TABLE = "imposte_successione"
+#: (`contributo_unificato` was reconciled with the DPR 115/2002 in force on
+#: 2026-09-18 and `imposte_successione` with the Agenzia delle Entrate schedule
+#: on 2026-09-19; their refusals went away -- which is the mechanism working,
+#: not the test breaking.)
+UNVERIFIED_TABLE = "comuni"
 #: The tool that declares `ESATTO` on it, and must therefore refuse.
-REFUSING_TOOL = "imposte_successione"
+REFUSING_TOOL = "codice_fiscale"
 #: The tool that declares `INDICATIVO` on a table still unverified.
 DOWNGRADED_TOOL = "ricerca_codici_ateco"
 #: A table under way at the pinned present, expired a year later.
@@ -324,21 +325,41 @@ def test_the_audit_and_the_runtime_read_the_same_line_the_same_way():
 
 @pytest.fixture(scope="module")
 def answers():
-    """The tools that show every outcome, called once each, over stdio."""
+    """The tools that show every outcome, called once each, over stdio.
+
+    `codice_fiscale` shows two of them with two argument sets, so it gets two
+    calls: bare it refuses, with the catastal code it answers. The results are
+    keyed by outcome, not by tool name -- one tool, two stories.
+    """
     manifest = {tool["name"]: tool for tool in tools()}
-    names = [REFUSING_TOOL, DOWNGRADED_TOOL, SUPPLYING_TOOL, CCNL_TOOL]
-    arguments = {name: arguments_for(manifest[name]) for name in names}
-    arguments[SUPPLYING_TOOL] = {**arguments[SUPPLYING_TOOL], SUPPLYING_PARAM: "H501"}
+    arguments = {
+        name: arguments_for(manifest[name])
+        for name in (REFUSING_TOOL, DOWNGRADED_TOOL, CCNL_TOOL)
+    }
     arguments[CCNL_TOOL] = {**arguments[CCNL_TOOL], CCNL_PARAM: 60}
     sandbox = pathlib.Path(tempfile.mkdtemp(prefix="precision-sandbox-"))
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="precision-tmp-"))
     env = server_env(sandbox, scratch, extra={**PRESENT, "LEGAL_CACHE": "off"})
-    return call_tools(env, names, arguments, timeout=300)
+    replies = call_tools(
+        env, [REFUSING_TOOL, DOWNGRADED_TOOL, CCNL_TOOL], arguments, timeout=300
+    )
+    supplied = call_tools(
+        env,
+        [REFUSING_TOOL],
+        {REFUSING_TOOL: {**arguments[REFUSING_TOOL], SUPPLYING_PARAM: "H501"}},
+        timeout=300,
+    )
+    return {
+        "refusal": replies[REFUSING_TOOL],
+        "supplied": supplied[REFUSING_TOOL],
+        "downgraded": replies[DOWNGRADED_TOOL],
+        "ccnl": replies[CCNL_TOOL],
+    }
 
 
 def test_an_exact_tool_refuses_over_the_wire_and_a_host_can_see_it(answers):
     """The same fact in the body and in `_meta`, on a real call."""
-    reply = answers[REFUSING_TOOL]
+    reply = answers["refusal"]
     payload, meta = _payload(reply), _meta(reply)
     assert payload.get("errore") == "dati_non_affidabili"
     assert meta.get(PRECISION_KEY, {}).get("effettiva") == "nessuna", (
@@ -348,6 +369,24 @@ def test_an_exact_tool_refuses_over_the_wire_and_a_host_can_see_it(answers):
     text = answer_text(reply)
     assert UNVERIFIED_TABLE in text, "the refusal names the table it is about"
     assert "non verificata" in text
+
+
+def test_the_same_tool_answers_once_the_caller_brings_the_catastal_code(answers):
+    """The escape is inside the refusal: one parameter turns it into an answer."""
+    reply = answers["supplied"]
+    payload, meta = _payload(reply), _meta(reply)
+    assert payload.get("codice_fiscale") == "RSSMRA80A01H501U", (
+        "the algorithm is exact once the catastal code is an input"
+    )
+    assert payload["dettaglio"]["catastale_dal_chiamante"] is True
+    assert payload["dati_applicati"] == [], (
+        "the table was not read, so naming its vintage would claim a source this "
+        "answer does not rest on"
+    )
+    assert _meta(reply).get(PRECISION_KEY) is None, (
+        "nothing is unverified in this answer: there is no claim to lower"
+    )
+    assert _meta(reply).get("mcp-legal-it/data_warnings") is None
 
 
 def test_every_table_reading_tool_declares_the_negotiation_parameter():
@@ -378,7 +417,7 @@ def test_every_table_reading_tool_declares_the_negotiation_parameter():
 
 def test_a_supplied_datum_replaces_the_table_instead_of_being_refused(answers):
     """The other escape: the caller brings the datum the table would provide."""
-    supplied = answers[SUPPLYING_TOOL]
+    supplied = answers["supplied"]
     payload = _payload(supplied)
     assert "errore" not in payload, (
         "supplying the datum the table provides must not be refused: %s" % payload.get("errore")
@@ -406,6 +445,7 @@ def test_a_supplied_datum_replaces_the_table_instead_of_being_refused(answers):
 def test_an_acceptance_over_the_wire_lowers_the_grade_and_says_so(answers):
     """The same tool, the same arguments, one word more: a number instead of a block."""
     manifest = {tool["name"]: tool for tool in tools()}
+    assert REFUSING_TOOL in manifest
     arguments = arguments_for(manifest[REFUSING_TOOL])
     arguments[_data.CONSENT_PARAM] = _precision.INDICATIVO
     sandbox = pathlib.Path(tempfile.mkdtemp(prefix="consent-sandbox-"))
@@ -430,7 +470,7 @@ def test_an_acceptance_over_the_wire_lowers_the_grade_and_says_so(answers):
 
 def test_the_notice_period_can_come_from_the_contract_in_hand(answers):
     """The table nobody can ever finish sourcing: a CCNL that gets renewed."""
-    payload = _payload(answers[CCNL_TOOL])
+    payload = _payload(answers["ccnl"])
     assert "errore" not in payload
     assert payload["giorni_preavviso"] == 60
     assert payload["giorni_preavviso_fonte"] == "forniti dal chiamante"
@@ -440,7 +480,7 @@ def test_the_notice_period_can_come_from_the_contract_in_hand(answers):
 
 
 def test_a_downgraded_tool_still_computes_over_the_wire(answers):
-    reply = answers[DOWNGRADED_TOOL]
+    reply = answers["downgraded"]
     payload, meta = _payload(reply), _meta(reply)
     assert "errore" not in payload, "an indicative tool keeps answering"
     assert payload["precisione"]["effettiva"] == "STIMATO"

@@ -414,7 +414,9 @@ def test_the_reference_stores_results_not_failures(surface, monkeypatch):
         )
     # Every tool the shipped tables take out of service has to be in the
     # reference, or a refusal could sit in the code without a frozen answer.
-    assert len(refusals) >= 5, (
+    # (Five before the TUS 346/1990 and CdS 126-bis reconciliations; three
+    # remain -- codice_fiscale, decodifica_codice_fiscale, indennita_preavviso.)
+    assert len(refusals) >= 3, (
         "only %d refusals recorded: a refusal that no longer happens is a change "
         "to inspect, and one that happens without being frozen is invisible"
         % len(refusals)

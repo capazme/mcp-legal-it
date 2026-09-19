@@ -42,10 +42,11 @@ from .mcp_harness import (
 #: A table whose source is known and whose covered period is still running.
 IN_FORCE = "tassi_legali"
 #: A table whose source and period nobody has established.
-#: (`contributo_unificato` used to be the pin; it was reconciled with the DPR
-#: 115/2002 on 2026-09-18, and the gap this file watches moved to the next
-#: table still unverified.)
-UNVERIFIED_TABLE = "imposte_successione"
+#: (`contributo_unificato` was reconciled with the DPR 115/2002 on 2026-09-18,
+#: `imposte_successione` with the Agenzia delle Entrate schedule and
+#: `violazioni_patente` with the art. 126-bis table on 2026-09-19; the gap this
+#: file watches moved to the next table still unverified.)
+UNVERIFIED_TABLE = "comuni"
 #: A table with a source and no recurring update: not stale, and not flagged.
 STABLE = "festivita"
 
@@ -56,9 +57,9 @@ FUTURE = {"LEGAL_TODAY": "2027-06-01", "LEGAL_NOW": "2027-06-01T12:00:00", "TZ":
 #: stable dictionary of catastal codes.
 WATCHED = (
     "interessi_legali",
+    "codice_fiscale",
     "imposte_successione",
     "conta_giorni",
-    "codice_fiscale",
     "danno_biologico_micro",
     "parcella_avvocato_civile",
 )
@@ -234,7 +235,7 @@ def test_an_unverified_provenance_is_flagged_whenever_it_is_asked(sessions):
     """Not clock-dependent: this table is a gap in the data, not a stale number."""
     _, runs = sessions
     for label in ("present", "future"):
-        reply = runs[label]["imposte_successione"]
+        reply = runs[label]["codice_fiscale"]
         entry = _payload(reply).get("avvisi_dati") or []
         assert _states(entry) == [(UNVERIFIED_TABLE, "non_verificata")], label
         assert entry[0]["verificata"] is False
@@ -252,7 +253,7 @@ def test_a_table_with_a_stable_source_raises_nothing(sessions):
     and one reconciled to a date with no end in sight (`parametri_forensi`).
     """
     _, runs = sessions
-    for name in ("conta_giorni", "danno_biologico_micro", "parcella_avvocato_civile"):
+    for name in ("conta_giorni", "danno_biologico_micro", "parcella_avvocato_civile", "imposte_successione"):
         reply = runs["present"][name]
         tables = _footer_tables(reply) | _footer_tables(runs["future"][name])
         assert tables, "%s stopped declaring its tables" % name
@@ -289,7 +290,11 @@ def test_the_structured_warning_is_the_footer_line_of_the_table_it_names(session
             assert _states(entries) == _states(_meta(reply).get(DATA_WARNINGS_KEY)), (
                 "%s/%s: the payload and the meta disagree" % (label, name)
             )
-    assert checked >= 4, "only %d warned answers were inspected" % checked
+    # Three warned answers, not a rounded number: the refusal of
+    # `codice_fiscale` at both dates and the expired `tassi_legali` in the
+    # future run. (`imposte_successione` used to warn in both runs too, before
+    # its reconciliation on 2026-09-19.)
+    assert checked >= 3, "only %d warned answers were inspected" % checked
 
 
 def test_the_warnings_follow_the_call_and_not_the_declaration():
