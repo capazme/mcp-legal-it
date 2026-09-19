@@ -129,7 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   osservazione del footer, non la dichiarazione.
 - Una tabella scaduta o non verificata ora cambia la risposta, non solo il
   footer. Ogni tool dichiara già un grado nella propria docstring (`Precisione:
-  ESATTO|INDICATIVO|STIMATO`, 144 su 221, letto dalla riga che il modello
+  ESATTO|INDICATIVO|STIMATO`, 144 su 222, letto dalla riga che il modello
   chiamante vede) e `src/lib/_precision.py` decide cosa fa il vintage a quella
   dichiarazione: un'affermazione esatta che poggia su una tabella senza fonte
   viene **ritirata** -- il tool risponde `errore: "dati_non_affidabili"`, senza
@@ -139,10 +139,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `_meta`. Una tabella scaduta è il caso più mite, perché copertura non è
   provenienza: ferma una risposta ancorata a oggi (il tool ha letto l'orologio,
   osservato per chiamata con `_clock.consulted()`) e degrada soltanto quella su
-  un periodo già chiuso. Con le tabelle attuali sono 7 rifiuti
-  (`contributo_unificato`, `codice_fiscale`, `imposte_*`,
-  `indennita_preavviso`, ...) e 8 degradi (`preventivo_civile`,
-  `decreto_ingiuntivo`, `ricerca_codici_ateco`, ...), e l'audit fallisce quando
+  un periodo già chiuso. Con le tabelle attuali sono 6 rifiuti
+  (`codice_fiscale`, `imposte_*`,
+  `indennita_preavviso`, ...) e 4 degradi (`ricerca_codici_ateco`,
+  `cerca_ufficio_giudiziario`, ...), e l'audit fallisce quando
   un tool applica una tabella senza dichiarare un grado, o dichiara una parola
   che `_precision.py` non conosce -- un grado sconosciuto verrebbe letto come
   l'affermazione più forte. `tests/unit/test_precision_policy.py` copre i due
@@ -201,6 +201,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
   un file creato, cancellato o modificato fa fallire il test. Tutti hanno
   risposto e nulla è cambiato.
+- `contributo_unificato.json` è riconciliato con il DPR 115/2002 vigente
+  (verificato sulla tabella di riferimento aggiornata a D.L. 132/2014 e D.L.
+  90/2014) e la tabella lo dichiara: `aggiornato_al` + `verifica: manuale`.
+  Tre voci riportavano valori o forme che la fonte contraddice, e la
+  riconciliazione li corregge invece di garantirli: `cautelari` era un fisso di
+  147 € ma i procedimenti cautelari sono il *50% degli scaglioni ordinari per
+  valore* (`cautelari.riduzione`); `esecuzione_mobiliare` era un fisso di 43 €
+  ma è 43 € *sotto i 2.500 € e 139 € sopra* (scaglioni, con il confine a
+  2499,99 — il massimo con due decimali ammesso dalla regola "inferiore a
+  2.500 €", perché la ricerca per scaglioni è inclusiva); `ottemperanza` era
+  650 €, la fonte dice 300 €; la chiave mai letta `opposizione_esecutiva`
+  (scaglioni pieni, dove la regola li dimezza) diventa
+  `opposizione_decreto_ingiuntivo` a scaglioni dimezzati. Il rifiuto di
+  `contributo_unificato` sparisce e i cinque tool degradati dal suo vintage non
+  verificato (`decreto_ingiuntivo`, `modello_notula`, `note_iscrizione_ruolo`,
+  `preventivo_civile`, `genera_quotazione_docx`) tornano a dichiarare il grado
+  pieno — è il meccanismo che funziona, e per questo i test che inchiodavano il
+  buco si sono spostati su tabelle ancora non verificate.
+- I rifiuti vanno a verbale, così il backlog di riconciliazione si ordina per
+  quanto ha bloccato *davvero* e non solo per quanto potrebbe. Con
+  `LEGAL_REFUSAL_LEDGER=on` il middleware del ledger aggiunge una riga JSONL per
+  ogni rifiuto e una per ogni accettazione a `refusals.jsonl` sotto la root
+  della cache: il tool, le tabelle in causa, lo stato, il grado dichiarato e
+  l'esito — un contatore, non un log del lavoro dello studio, così nessun dato
+  del caso finisce nel file. È opt-in (un tool read-only che rifiuta non deve
+  mettersi a scrivere file che l'host non ha chiesto) e best-effort esattamente
+  come la cache: un verbale non scrivibile non trasforma mai un rifiuto in un
+  errore. L'audit dichiara il verbale come posizione di cache e i suoi timestamp
+  passano da `_clock.now()`, quindi un `LEGAL_NOW` pinnato pina anche il
+  verbale (`tests/unit/test_refusal_ledger.py`).
+- Ogni tabella che la policy del vintage può bloccare ha ora un'
+  *alternativa fornita*, non solo un grado più economico:
+  `@sourced(..., alternativa=...)` passa da due tool a tutti e sette i lettori
+  delle tabelle bloccanti. `contributo_unificato` prende
+  `tabella_contributo_unificato` (tabella sostitutiva della stessa forma,
+  consumata dall'intero calcolo, moltiplicatori di appello e cassazione
+  inclusi), `imposte_successione` prende `aliquote_franchigie` (la lista degli
+  scaglioni, letta per `parentela` e tollerante verso voci malformate),
+  `imposte_compravendita` prende `aliquote_registro` (la sezione registro),
+  `decurtazione_punti_patente` prende `tabella_violazioni` (la mappa delle
+  violazioni) e `decodifica_codice_fiscale` prende `mappa_comuni` (mappa inversa
+  dei codici catastali). Una chiamata che fornisce il suo dato non legge nessuna
+  tabella, quindi la risposta non porta vintage che non poggia su di esso — e
+  chi *può* garantire un valore non deve più ricomprare un grado che la tabella
+  non sosteneva.
+- `backlog_riconciliazione` (il tool numero 222) è il pannello di lettura: le
+  tabelle ancora non verificate o scadute, ciascuna con la sua fonte, il costo
+  statico (chi la legge, a quale grado dichiarato, rifiutando o degradando — la
+  passeggiata dell'audit, calcolata una volta per processo e condivisa con
+  `scripts/update-data.py`) e l'azione da compiere; col verbale attivo, il
+  conteggio osservato riordina la lista, così la tabella che ha bloccato due
+  volte precede quella che avrebbe solo potuto. Col verbale spento lo dice
+  (`disponibile: false`) invece di tacere, e la risposta è congelata nel
+  riferimento golden come quella di ogni altro tool. La stessa derivazione è
+  quella che legge `/dati` (nuovo comando del plugin), così l'aggiornamento di
+  una tabella — verificare la fonte, aggiornare i valori, mettere `verifica:
+  manuale` e `aggiornato_al`, rieseguire la suite — è un flusso guidato che non
+  apre mai il codice.
 
 ### Fixed
 - Un modulo di supporto in `src/lib/` finiva classificato come *servizio
@@ -264,82 +322,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   interprete è 3.10+ **e** importa tutte le dipendenze runtime: un venv
   incompleto viene ricreato invece di avviare un server che muore al primo
   import. `MCP_FORCE_VENV=1` salta `uv` per esercitare il fallback.
-## [3.0.0-beta.1] - 2026-08-30
 
-First beta of the v3 harness-agnostic line, published as a GitHub
-Pre-release: `releases/latest` and the plugin marketplace keep serving the
-stable 2.x line.
+## [2.13.0] - 2026-08-30
 
 ### Added
 - Parliamentary sources module (`src/lib/parlamento/` + `src/tools/parlamento.py`,
-  3 tools — total now 221): `cerca_ddl` (keyword search over bill titles,
-  both chambers via dati.senato.it), `iter_ddl` (full bicameral navette from
-  a fase number or idDdl, enriched with the Camera statoIter timeline and
-  stampato PDFs from dati.camera.it), `ddl_su_norma` (pending-reform lookup
-  for a given act, resolver-expanded, explicitly best-effort on titles only).
-  Senato is queried via GET only (its WAF 403s POST) and title search uses
-  plain `FILTER(CONTAINS(...))` because the WAF also blocks `bif:contains`
-  expressions with quoted or/and operators. New egress hosts declared:
-  `dati.senato.it`, `dati.camera.it` (SECURITY.md updated); scheda links to
-  `www.senato.it` / `www.camera.it` are emitted, never fetched. First
-  shipped on the stable 2.x line in v2.13.0 (backport).
-- OpenAI bundle (`scripts/build_targets.py openai openai-zip`) — 40 skills
-  (28 corpus + 6 agents + 6 commands merged as skills; `cookie-audit` and
-  `esporta-documento` excluded — the latter ships `${CLAUDE_PLUGIN_ROOT}`
-  paths, structurally broken outside Claude) plus a generated `AGENTS.md`
-  and `config.toml.example`, packaged as
-  `legal-it-openai-skills-{version}.zip` and attached to GitHub Releases.
-  Install guide: `docs/openai.md`.
-- Capability manifest `content/targets.yaml`: every projection and packaging
-  target (claude-code, claude-web, plugin-zip, mcpb, openai) is declared as
-  data and consumed by the unified builder.
-- Beta release channel: `release.py X.Y.Z-beta.N --beta` cuts beta tags on a
-  long-lived `release/X.Y.Z` branch — `main` is never touched. CI publishes
-  tags containing `-` as Pre-releases (`prerelease: true`,
-  `make_latest: false`) and now also runs on `release/**` branches.
-- `digest-giuridico` agent listed in the README agents tables.
+  3 tools — total now 221): `cerca_ddl` (keyword search over bill titles, both
+  chambers via dati.senato.it), `iter_ddl` (full bicameral navette from a fase
+  number or idDdl, enriched with the Camera statoIter timeline and stampato
+  PDFs from dati.camera.it), `ddl_su_norma` (pending-reform lookup for a given
+  act, resolver-expanded, explicitly best-effort on titles only). Senato is
+  queried via GET only (its WAF 403s POST) and title search uses plain
+  `FILTER(CONTAINS(...))` because the WAF also blocks `bif:contains`
+  expressions with quoted or/and operators. Navette suffixes handled
+  (`S.562-B`, lowercase stralci `S.926-bis`, unified texts `S.93-338-353-B`).
+  New egress hosts declared: `dati.senato.it`, `dati.camera.it` (SECURITY.md
+  updated); scheda links to `www.senato.it` / `www.camera.it` are emitted,
+  never fetched. Real-capture fixtures + 4 live guard-rail tests.
 
 ### Changed
-- The pending-reforms rule in `ricerca-normativa` and `mappatura-normativa`
-  is re-enabled: with the parliamentary tools available, pending bills may
-  now be reported when anchored to `ddl_su_norma`/`cerca_ddl`/`iter_ddl`
-  output — always citing atto number, dated status and official scheda link.
-  It had been restricted to Gazzetta-published changes only (2026-08-25
-  prompt back-fill) because no verifiable parliamentary source existed.
-  `analisi-articolo` gains a pending-DDL check in its evolution step.
-  Prompt names, signatures and count (23) unchanged.
-- Corpus consolidation (v3 phase 1): skills/agents/commands moved to `content/`
-  as the single source; `plugin/` subtrees and `src/prompts.py` are now
-  generated projections (`scripts/corpus/`). 7 prompt-only workflows promoted
-  to skills (23 → 30). 12 of 15 static resources extracted to
-  `content/references/`. MCP surface unchanged: 218 tools, 23 prompts,
-  15 resources. I corpi dei 23 prompt MCP derivano ora dai corpi delle skill
-  e per 13 workflow sono più sintetici dei precedenti; nomi, firme e
-  descrizioni sono invariati. I web-skills ZIP non sono più versionati
-  (plugin/dist è build output; si rigenerano con `python scripts/build_targets.py claude-web`).
-- `scripts/build_targets.py` is now the single builder for every distribution
-  target (`claude-code`, `claude-web`, `plugin-zip`, `mcpb`), replacing
-  `scripts/build-all.sh`, `scripts/build-plugin.sh`, `scripts/build-dxt.sh`
-  and `plugin/build-web-skills.py`, which are removed.
-- Trigger-first skill descriptions: the «Usa quando…» routing clause now
-  opens every description, so the 185/200-char caps of the openai and
-  claude-web targets only ever trim the descriptive tail.
-- 13 skill bodies back-filled from the retired prompt corpus (output tables,
-  guardrails, updated legal references — including the three-band
-  intertemporal regime for criminal prescription: pre-Orlando, Orlando,
-  Bonafede/Cartabia).
-- Every release flow now pushes only the tag it created — never
-  `git push --tags` — so mixed 2.x/3.x local tags can no longer leak into a
-  release of the other line.
-
-### Fixed
-- Egress tripwire: the `github.com` exemption is scoped to `scripts/` only
-  (`SCRIPT_ONLY_NON_NETWORK_HOSTS`) — a `github.com` URL appearing in `src/`
-  fails the build again.
-- Drift gate ignores OS metadata files (`.DS_Store`).
-
-### Notes
-- MCP surface: 221 tools / 23 prompts / 15 resources.
+- The pending-reforms rule in the `ricerca_normativa` and
+  `mappatura_normativa` prompts is now GROUNDED: it used to say "report
+  pending reforms" with no verifiable source behind it; it now requires
+  anchoring every mention to `ddl_su_norma`/`cerca_ddl`/`iter_ddl` output —
+  atto number, dated status and official scheda link — and states that no
+  results never proves no reforms (titles-only search).
 
 ## [2.12.1] - 2026-08-24
 
