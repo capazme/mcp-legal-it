@@ -42,7 +42,10 @@ from .mcp_harness import (
 #: A table whose source is known and whose covered period is still running.
 IN_FORCE = "tassi_legali"
 #: A table whose source and period nobody has established.
-UNVERIFIED_TABLE = "contributo_unificato"
+#: (`contributo_unificato` used to be the pin; it was reconciled with the DPR
+#: 115/2002 on 2026-09-18, and the gap this file watches moved to the next
+#: table still unverified.)
+UNVERIFIED_TABLE = "imposte_successione"
 #: A table with a source and no recurring update: not stale, and not flagged.
 STABLE = "festivita"
 
@@ -53,7 +56,7 @@ FUTURE = {"LEGAL_TODAY": "2027-06-01", "LEGAL_NOW": "2027-06-01T12:00:00", "TZ":
 #: stable dictionary of catastal codes.
 WATCHED = (
     "interessi_legali",
-    "contributo_unificato",
+    "imposte_successione",
     "conta_giorni",
     "codice_fiscale",
     "danno_biologico_micro",
@@ -231,7 +234,7 @@ def test_an_unverified_provenance_is_flagged_whenever_it_is_asked(sessions):
     """Not clock-dependent: this table is a gap in the data, not a stale number."""
     _, runs = sessions
     for label in ("present", "future"):
-        reply = runs[label]["contributo_unificato"]
+        reply = runs[label]["imposte_successione"]
         entry = _payload(reply).get("avvisi_dati") or []
         assert _states(entry) == [(UNVERIFIED_TABLE, "non_verificata")], label
         assert entry[0]["verificata"] is False

@@ -15,6 +15,7 @@ when a declared cache stops honouring the `LEGAL_CACHE=off` switch.
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts` | `{codice}_{data_gu}_{data_vigenza}.json -- parsed act`<br>`akn_hits.json -- access counter per act`<br>`akn_url_params.json -- act URL -> export parameters` | in-memory LRU capped at AKN_CACHE_MAX_ACTS (50); the disk copy has no TTL | `src/lib/visualex/akn_fetch.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` | `brocardi_urls.json -- article URL map` | no TTL; an entry is dropped when the article 404s | `src/lib/brocardi/client.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` | `{kind}/{year}.json -- Consulta pronunce and massime` | 7 days (_CACHE_TTL_SECONDS) | `src/lib/corte_cost/client.py` | `cache_enabled()` |
+| `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` | `refusals.jsonl -- refusal/acceptance tally per day, opt-in (LEGAL_REFUSAL_LEDGER)` | append-only; the host trims or resets it whenever it wants | `src/lib/_refusals.py` | `ledger_enabled()` |
 
 ## Tools that can write them
 

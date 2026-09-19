@@ -4,7 +4,7 @@ tmp dir so the committed tree is never touched.
 
 These are the actual release gate for the openai bundle deliverable: unlike
 tests/unit/test_corpus_projection.py (engine mechanics, fake fixtures), this
-file asserts on the real 40-skill corpus.
+file asserts on the real 41-skill corpus.
 """
 import importlib.util
 import re
@@ -35,10 +35,10 @@ def _project_real_openai(tmp_path):
 # Skill count + exclusions
 # ---------------------------------------------------------------------------
 
-def test_openai_projection_has_40_skills(tmp_path):
+def test_openai_projection_has_41_skills(tmp_path):
     skills_dir = _project_real_openai(tmp_path)
     dirs = sorted(p.name for p in skills_dir.iterdir() if p.is_dir())
-    assert len(dirs) == 40, dirs
+    assert len(dirs) == 41, dirs
 
 
 def test_excluded_names_absent(tmp_path):

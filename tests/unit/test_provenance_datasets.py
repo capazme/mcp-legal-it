@@ -49,11 +49,11 @@ MARKER = "**Dati applicati**"
 REFUSAL = "dati_non_affidabili"
 
 #: Tables whose mapping is demonstrated. The whole table is perturbed, not one
-#: field: readers use different halves of it — `contributo_unificato` answers
-#: from the cognizione bands, `decreto_ingiuntivo` from the monitorio ones — so a
+#: field: readers use different halves of it — `imposte_successione` answers from
+#: the aliquote, `imposte_compravendita` from the registro ones — so a
 #: single-field mutation would look like a decorative footer in the other half.
 PERTURBATIONS = (
-    "contributo_unificato",
+    "imposte_successione",
     "modelli_atti",
     "preavviso_ccnl",
     "codici_tributo",
