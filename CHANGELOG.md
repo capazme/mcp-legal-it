@@ -257,6 +257,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   three tools (`codice_fiscale`, `decodifica_codice_fiscale`,
   `indennita_preavviso`) instead of six, and the golden reference shows the
   diff instead of trusting the edit.
+- `comuni`, `codici_ruolo` and `preavviso_ccnl` are reconciled with their
+  official sources, and with them the backlog reaches **zero refusals** on the
+  shipped surface: every table an exact-grade tool applies is now verified.
+  `comuni` is checked name-by-name against the ISTAT catastal-code list
+  (7,899 comuni): 143 catastal codes were wrong and are corrected, official
+  denominations come first so the reverse lookup answers with them instead of
+  an alias, unverifiable entries are dropped, and the table re-declares
+  itself. `codici_ruolo` is rebuilt on the official DM 32/2012 / DGSIA
+  object-code table. `preavviso_ccnl` is verified against the three contracts
+  (metalmeccanici and commercio matched cell-by-cell; studi professionali had
+  14 wrong cells, corrected). What is left unverified -- `codici_ateco`,
+  `tribunali_competenti` -- has only INDICATIVO readers, so nothing refuses:
+  answers degrade and say so. The refusal path keeps its wire coverage on a
+  probe server (`plugin/server/probe_precision.py`, the same `sourced`
+  wrapper, launched through the harness), so the policy's teeth are tested
+  against a real refusal instead of against a gap the data work has closed.
 
 ### Fixed
 - A helper module in `src/lib/` was classified as an *upstream service*.

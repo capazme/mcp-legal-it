@@ -368,6 +368,15 @@ def test_the_reference_stores_results_not_failures(surface, monkeypatch):
     licence for any argument drift: a refusal is only legitimate for a tool
     whose tables are actually flagged, it must say the grade is `nessuna`, and
     its record must still name the tables it refused on.
+
+    The shipped reference froze no refusal since the 2026-09-20
+    reconciliations (ISTAT catastal codes, DM 32/2012 role codes, CCNL notice
+    tables): every exact reader now rests on verified data, so a non-empty
+    `refusals` would no longer be an invariant of a healthy surface. The
+    refusal path is exercised over the wire on the probe server by
+    `test_precision_policy.py` and `test_refusal_ledger.py`; if a future
+    regeneration reintroduces one here, the checks below still verify its
+    shape.
     """
     recorded = {
         tool: entry["expected"]
@@ -387,11 +396,8 @@ def test_the_reference_stores_results_not_failures(surface, monkeypatch):
     }
     assert not broken, "recorded answers are failures, not results: %s" % broken
 
-    assert refusals, (
-        "no refusal in the reference: either the policy stopped acting on the "
-        "tables that are still unsourced, or the recorded answers were taken "
-        "from a run that never reached it"
-    )
+    # No "there must be refusals" assert: the shipped surface legitimately has
+    # none left, and the policy's teeth live in the probe wire tests.
     # The same date the reference was taken at: whether a table is flagged is a
     # property of the clock, and this check has to ask the same clock.
     monkeypatch.setenv("LEGAL_TODAY", PINNED_TODAY)
@@ -414,13 +420,10 @@ def test_the_reference_stores_results_not_failures(surface, monkeypatch):
         )
     # Every tool the shipped tables take out of service has to be in the
     # reference, or a refusal could sit in the code without a frozen answer.
-    # (Five before the TUS 346/1990 and CdS 126-bis reconciliations; three
-    # remain -- codice_fiscale, decodifica_codice_fiscale, indennita_preavviso.)
-    assert len(refusals) >= 3, (
-        "only %d refusals recorded: a refusal that no longer happens is a change "
-        "to inspect, and one that happens without being frozen is invisible"
-        % len(refusals)
-    )
+    # (Three before the 2026-09-20 reconciliations -- codice_fiscale,
+    # decodifica_codice_fiscale, indennita_preavviso; none since, because
+    # every exact reader now rests on verified data. The loop above stays: if
+    # a regeneration reintroduces a refusal, its shape is verified here.)
 
 
 def _opened_tables(reply: dict) -> set[str]:
