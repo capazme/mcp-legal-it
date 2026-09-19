@@ -11,13 +11,23 @@ Prima regola: **il rifiuto elenca sempre la via d'uscita**. Nel corpo arriva
 sblocca la singola chiamata; nel `_meta` arriva `mcp-legal-it/precisione` con
 `concedibile`, il grado che sarebbe stato concesso.
 
+> **Dove siamo.** Dalle riconciliazioni del 2026-09-20 (codici catastali ISTAT,
+> tabella codici ruolo DM 32/2012, preavvisi CCNL) nessun tool incluso rifiuta:
+> ogni tabella applicata da un tool a grado ESATTO è verificata, e le due
+> tabelle ancora non verificate (`codici_ateco`, `tribunali_competenti`) hanno
+> solo lettori indicativi, che rispondono a grado ridotto dicendolo. Le quattro
+> vie qui sotto restano il contratto permanente per quando serviranno: una
+> tabella **scade** (un tasso con periodo coperto — la cifra su *oggi* rifiuta
+> invece di mentire), arriva una tabella nuova non verificata, o avete un dato
+> **più fresco** del repository e volete la risposta sul vostro.
+
 ---
 
 ## 1. Portare il codice catastale (al posto della tabella `comuni`)
 
-`comuni` è un sottoinsieme di ~500 codici catastali, non il dataset ISTAT
-completo: è il buco più difficile da chiudere in repository e il più facile da
-chiudere in chiamata, perché il codice è stampato sulla documentazione del
+`comuni` è verificata sull'elenco ISTAT ma resta deliberatamente un sottoinsieme
+dei comuni principali: un comune che non c'è non è un errore, è ciò a cui serve
+il parametro `codice_catastale` — il codice è stampato sulla documentazione del
 cliente.
 
 **`codice_fiscale`** — senza codice il tool rifiuta; con il codice l'algoritmo
