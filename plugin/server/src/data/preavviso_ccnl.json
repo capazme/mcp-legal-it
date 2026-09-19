@@ -1,8 +1,9 @@
 {
   "_vintage": {
-    "fonte": "CCNL di categoria",
-    "verifica": "da_verificare",
-    "nota": "i CCNL si rinnovano: verificare sempre il contratto applicabile"
+    "fonte": "CCNL Terziario art. 254 (dimissioni) e tabelle del preavviso di licenziamento; CCNL Metalmeccanici Industria art. 1; CCNL Studi Professionali (tabelle preavviso)",
+    "aggiornato_al": "2026-09-19",
+    "verifica": "manuale",
+    "nota": "valori verificati sui testi ufficiali dei contratti; i rinnovi cambiano i periodi: per il contratto applicabile usare giorni_preavviso"
   },
   "_descrizione": "Periodi di preavviso per CCNL principali (giorni di calendario)",
   "ccnl": {
@@ -10,48 +11,144 @@
       "nome": "CCNL Terziario Confcommercio",
       "fonte": "Art. 254 CCNL Terziario",
       "licenziamento": {
-        "quadri_1": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
-        "2_3": {"fino_5": 30, "5_10": 45, "oltre_10": 60},
-        "4_5": {"fino_5": 20, "5_10": 30, "oltre_10": 45},
-        "6_7": {"fino_5": 15, "5_10": 20, "oltre_10": 20}
+        "quadri_1": {
+          "fino_5": 60,
+          "5_10": 90,
+          "oltre_10": 120
+        },
+        "2_3": {
+          "fino_5": 30,
+          "5_10": 45,
+          "oltre_10": 60
+        },
+        "4_5": {
+          "fino_5": 20,
+          "5_10": 30,
+          "oltre_10": 45
+        },
+        "6_7": {
+          "fino_5": 15,
+          "5_10": 20,
+          "oltre_10": 20
+        }
       },
       "dimissioni": {
-        "quadri_1": {"fino_5": 45, "5_10": 60, "oltre_10": 90},
-        "2_3": {"fino_5": 20, "5_10": 30, "oltre_10": 45},
-        "4_5": {"fino_5": 15, "5_10": 20, "oltre_10": 30},
-        "6_7": {"fino_5": 10, "5_10": 15, "oltre_10": 15}
+        "quadri_1": {
+          "fino_5": 45,
+          "5_10": 60,
+          "oltre_10": 90
+        },
+        "2_3": {
+          "fino_5": 20,
+          "5_10": 30,
+          "oltre_10": 45
+        },
+        "4_5": {
+          "fino_5": 15,
+          "5_10": 20,
+          "oltre_10": 30
+        },
+        "6_7": {
+          "fino_5": 10,
+          "5_10": 15,
+          "oltre_10": 15
+        }
       }
     },
     "metalmeccanici": {
       "nome": "CCNL Metalmeccanici Industria Federmeccanica",
       "fonte": "Art. 1 CCNL Metalmeccanici",
       "licenziamento": {
-        "A1_B2_B3": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
-        "B1_C2_C3": {"fino_5": 45, "5_10": 60, "oltre_10": 75},
-        "C1_D1_D2": {"fino_5": 10, "5_10": 20, "oltre_10": 30}
+        "A1_B2_B3": {
+          "fino_5": 60,
+          "5_10": 90,
+          "oltre_10": 120
+        },
+        "B1_C2_C3": {
+          "fino_5": 45,
+          "5_10": 60,
+          "oltre_10": 75
+        },
+        "C1_D1_D2": {
+          "fino_5": 10,
+          "5_10": 20,
+          "oltre_10": 30
+        }
       },
       "dimissioni": {
-        "A1_B2_B3": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
-        "B1_C2_C3": {"fino_5": 45, "5_10": 60, "oltre_10": 75},
-        "C1_D1_D2": {"fino_5": 10, "5_10": 20, "oltre_10": 30}
+        "A1_B2_B3": {
+          "fino_5": 60,
+          "5_10": 90,
+          "oltre_10": 120
+        },
+        "B1_C2_C3": {
+          "fino_5": 45,
+          "5_10": 60,
+          "oltre_10": 75
+        },
+        "C1_D1_D2": {
+          "fino_5": 10,
+          "5_10": 20,
+          "oltre_10": 30
+        }
       }
     },
     "studi_professionali": {
       "nome": "CCNL Studi Professionali",
-      "fonte": "CCNL Studi Professionali",
+      "fonte": "CCNL Studi Professionali — tabelle del preavviso",
       "licenziamento": {
-        "1": {"fino_5": 90, "5_10": 120, "oltre_10": 150},
-        "2": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
-        "3S_3": {"fino_5": 30, "5_10": 40, "oltre_10": 50},
-        "4S_4": {"fino_5": 20, "5_10": 30, "oltre_10": 30},
-        "5": {"fino_5": 15, "5_10": 20, "oltre_10": 20}
+        "1": {
+          "fino_5": 90,
+          "5_10": 120,
+          "oltre_10": 150
+        },
+        "2": {
+          "fino_5": 60,
+          "5_10": 90,
+          "oltre_10": 120
+        },
+        "3S_3": {
+          "fino_5": 30,
+          "5_10": 40,
+          "oltre_10": 50
+        },
+        "4S_4": {
+          "fino_5": 20,
+          "5_10": 30,
+          "oltre_10": 40
+        },
+        "5": {
+          "fino_5": 15,
+          "5_10": 20,
+          "oltre_10": 25
+        }
       },
       "dimissioni": {
-        "1": {"fino_5": 60, "5_10": 90, "oltre_10": 120},
-        "2": {"fino_5": 45, "5_10": 60, "oltre_10": 90},
-        "3S_3": {"fino_5": 20, "5_10": 30, "oltre_10": 40},
-        "4S_4": {"fino_5": 15, "5_10": 20, "oltre_10": 20},
-        "5": {"fino_5": 10, "5_10": 15, "oltre_10": 15}
+        "1": {
+          "fino_5": 75,
+          "5_10": 105,
+          "oltre_10": 135
+        },
+        "2": {
+          "fino_5": 60,
+          "5_10": 90,
+          "oltre_10": 120
+        },
+        "3S_3": {
+          "fino_5": 28,
+          "5_10": 35,
+          "oltre_10": 42
+        },
+        "4S_4": {
+          "fino_5": 15,
+          "5_10": 25,
+          "oltre_10": 30
+        },
+        "5": {
+          "fino_5": 10,
+          "5_10": 15,
+          "oltre_10": 25
+        }
       }
     }
   }

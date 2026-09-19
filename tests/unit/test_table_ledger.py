@@ -135,7 +135,7 @@ def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():
 
     @server.tool()
     def reads_an_unverified_table() -> dict:
-        return {"valore": _data.load("comuni")["comuni"]}
+        return {"valore": _data.load("codici_ateco")["voci"]}
 
     @server.tool()
     def reads_nothing_but_declares_one() -> dict:
@@ -148,7 +148,7 @@ def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():
     assert apply_table_ledger(
         server,
         {},
-        {"reads_nothing_but_declares_one": ("comuni",)},
+        {"reads_nothing_but_declares_one": ("codici_ateco",)},
     ) == 0
 
     async def run():
@@ -164,14 +164,14 @@ def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():
 
     results = asyncio.run(run())
     observed = results["reads_an_unverified_table"].meta[DATA_WARNINGS_KEY]
-    assert [entry["tabella"] for entry in observed] == ["comuni"]
+    assert [entry["tabella"] for entry in observed] == ["codici_ateco"]
     assert observed[0]["stato"] == "non_verificata"
-    assert results["reads_an_unverified_table"].meta[OPENED_TABLES_KEY] == ["comuni"]
+    assert results["reads_an_unverified_table"].meta[OPENED_TABLES_KEY] == ["codici_ateco"]
 
     blind = results["reads_nothing_but_declares_one"].meta or {}
     assert OPENED_TABLES_KEY not in blind, "nothing was observed, so nothing is claimed"
     assert [entry["tabella"] for entry in blind[DATA_WARNINGS_KEY]] == [
-        "comuni"
+        "codici_ateco"
     ], "the declaration is what the warning falls back to when the ledger is blind"
 
     assert DATA_WARNINGS_KEY not in (results["rests_on_nothing"].meta or {}), (

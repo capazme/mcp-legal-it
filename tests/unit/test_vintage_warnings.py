@@ -44,20 +44,22 @@ IN_FORCE = "tassi_legali"
 #: A table whose source and period nobody has established.
 #: (`contributo_unificato` was reconciled with the DPR 115/2002 on 2026-09-18,
 #: `imposte_successione` with the Agenzia delle Entrate schedule and
-#: `violazioni_patente` with the art. 126-bis table on 2026-09-19; the gap this
-#: file watches moved to the next table still unverified.)
-UNVERIFIED_TABLE = "comuni"
+#: `violazioni_patente` with the art. 126-bis table on 2026-09-19, `comuni`
+#: with the ISTAT catastal codes on 2026-09-20; the gap this file watches moved
+#: to the next table still unverified.)
+UNVERIFIED_TABLE = "codici_ateco"
 #: A table with a source and no recurring update: not stale, and not flagged.
 STABLE = "festivita"
 
 PRESENT = {"LEGAL_TODAY": "2026-09-15", "LEGAL_NOW": "2026-09-15T12:00:00", "TZ": "UTC"}
 FUTURE = {"LEGAL_TODAY": "2027-06-01", "LEGAL_NOW": "2027-06-01T12:00:00", "TZ": "UTC"}
-#: Tools that answer from one of the three tables above, plus `codice_fiscale`,
-#: which reads an unverified table (`comuni`) that is easy to mistake for a
-#: stable dictionary of catastal codes.
+#: Tools that answer from one of the three tables above, plus
+#: `ricerca_codici_ateco`, which reads an unverified table (`codici_ateco`) and
+#: answers at a lowered grade -- the shape an unverified provenance takes now
+#: that every exact reader sits on verified data.
 WATCHED = (
     "interessi_legali",
-    "codice_fiscale",
+    "ricerca_codici_ateco",
     "imposte_successione",
     "conta_giorni",
     "danno_biologico_micro",
@@ -235,7 +237,7 @@ def test_an_unverified_provenance_is_flagged_whenever_it_is_asked(sessions):
     """Not clock-dependent: this table is a gap in the data, not a stale number."""
     _, runs = sessions
     for label in ("present", "future"):
-        reply = runs[label]["codice_fiscale"]
+        reply = runs[label]["ricerca_codici_ateco"]
         entry = _payload(reply).get("avvisi_dati") or []
         assert _states(entry) == [(UNVERIFIED_TABLE, "non_verificata")], label
         assert entry[0]["verificata"] is False
@@ -263,8 +265,8 @@ def test_a_table_with_a_stable_source_raises_nothing(sessions):
 
     # The counterpart, in the same run: a table whose source nobody has
     # established is flagged even though nothing about it looks stale.
-    flagged = runs["present"]["codice_fiscale"]
-    assert _states(_payload(flagged).get("avvisi_dati")) == [("comuni", "non_verificata")]
+    flagged = runs["present"]["ricerca_codici_ateco"]
+    assert _states(_payload(flagged).get("avvisi_dati")) == [(UNVERIFIED_TABLE, "non_verificata")]
 
 
 def test_the_structured_warning_is_the_footer_line_of_the_table_it_names(sessions):
@@ -290,10 +292,10 @@ def test_the_structured_warning_is_the_footer_line_of_the_table_it_names(session
             assert _states(entries) == _states(_meta(reply).get(DATA_WARNINGS_KEY)), (
                 "%s/%s: the payload and the meta disagree" % (label, name)
             )
-    # Three warned answers, not a rounded number: the refusal of
-    # `codice_fiscale` at both dates and the expired `tassi_legali` in the
-    # future run. (`imposte_successione` used to warn in both runs too, before
-    # its reconciliation on 2026-09-19.)
+    # Three warned answers, not a rounded number: the unverified `codici_ateco`
+    # behind `ricerca_codici_ateco` at both dates and the expired `tassi_legali`
+    # in the future run. (`codice_fiscale` used to warn at both dates too,
+    # before the ISTAT reconciliation of 2026-09-20 left `comuni` verified.)
     assert checked >= 3, "only %d warned answers were inspected" % checked
 
 

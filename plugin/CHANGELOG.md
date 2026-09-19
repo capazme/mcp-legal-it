@@ -270,6 +270,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bloccano ora tre tool (`codice_fiscale`, `decodifica_codice_fiscale`,
   `indennita_preavviso`) invece di sei, e il riferimento golden mostra il diff
   invece di fidarsi della modifica.
+- `comuni`, `codici_ruolo` e `preavviso_ccnl` sono riconciliate con le fonti
+  ufficiali, e con loro il backlog arriva a **zero rifiuti** sulla superficie
+  inclusa: ogni tabella applicata da un tool a grado ESATTO è ora verificata.
+  `comuni` è verificata voce per voce sull'elenco ISTAT dei codici catastali
+  (7.899 comuni): 143 codici catastali erano sbagliati (Ercolano, Olbia,
+  Cortona, Bitetto e Bitonto scambiati tra loro, ...) e sono corretti, le
+  denominazioni ufficiali vengono prima così la ricerca inversa risponde con
+  loro invece che con un alias, le voci non verificabili (stati esteri,
+  frazioni senza codice garantito) sono eliminate, e la tabella si ridichiara
+  (`aggiornato_al`, `verifica: manuale`, l'elenco ISTAT come fonte).
+  `codici_ruolo` è ricostruita sulla tabella ufficiale DM 32/2012 / DGSIA dei
+  codici oggetto. `preavviso_ccnl` è verificata sui tre contratti
+  (metalmeccanici e commercio combaciavano cella per cella; studi
+  professionali aveva 14 celle sbagliate, corrette). Ciò che resta non
+  verificato — `codici_ateco`, `tribunali_competenti` — ha solo lettori
+  INDICATIVO, quindi nessuno rifiuta: le risposte degradano e lo dicono. La
+  via del rifiuto conserva la sua copertura wire su un server sonda
+  (`plugin/server/probe_precision.py`, lo stesso wrapper `sourced`, lanciato
+  attraverso l'harness), così i denti della policy sono provati su un rifiuto
+  reale invece che su un buco che il lavoro sui dati ha chiuso.
 
 ### Fixed
 - Un modulo di supporto in `src/lib/` finiva classificato come *servizio
