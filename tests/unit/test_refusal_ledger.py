@@ -34,12 +34,16 @@ from .mcp_harness import (
 )
 
 PRESENT = {"LEGAL_TODAY": "2026-09-15", "LEGAL_NOW": "2026-09-15T12:00:00", "TZ": "UTC"}
-#: (`imposte_successione` used to be the pin; it was reconciled with the
-#: Agenzia delle Entrate schedule on 2026-09-19 and its refusal went away.
-#: `comuni` is the strongest refusal left: two tools, and one of them now
-#: proves both halves of the ledger in a single wire run -- refuse without the
-#: catastal code, answer with it.)
-REFUSING_TOOL = "codice_fiscale"
+#: Every shipped table is verified or has only indicative readers, so the
+#: refusal that feeds the ledger runs on the probe server
+#: (`plugin/server/probe_precision.py`), where `sourced` declares ESATTO on a
+#: table that ships unverified. History of the pin: `codice_fiscale` (comuni,
+#: until the ISTAT reconciliation of 2026-09-20 left no shipped tool refusing).
+REFUSING_TOOL = "sonda_rifiuto"
+REFUSING_TABLE = "codici_ateco"
+#: The probe only registers the refusing tool; the readback runs on the shipped
+#: server, which reads the same ledger because both runs share `MCP_CACHE_DIR`.
+PROBE_SCRIPT = "plugin/server/probe_precision.py"
 #: `call_tools` fires one call per tool, so one refusal per run here.
 CALLS = 1
 
@@ -66,8 +70,7 @@ def test_the_ledger_is_opt_in_and_silent_by_default(monkeypatch):
 
 def test_a_refusal_and_an_acceptance_land_in_the_ledger_over_the_wire():
     """One JSONL line per blocked call, one per negotiated call, nothing else."""
-    manifest = {tool["name"]: tool for tool in tools()}
-    arguments = {name: arguments_for(manifest[name]) for name in (REFUSING_TOOL,)}
+    arguments = {REFUSING_TOOL: {"keyword": "commercio"}}
     sandbox = pathlib.Path(tempfile.mkdtemp(prefix="ledger-sandbox-"))
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="ledger-tmp-"))
     env = server_env(
@@ -79,11 +82,13 @@ def test_a_refusal_and_an_acceptance_land_in_the_ledger_over_the_wire():
             _refusals.ENABLE_ENV: "on",
         },
     )
-    call_tools(env, [REFUSING_TOOL], arguments, timeout=300)
+    call_tools(env, [REFUSING_TOOL], arguments, timeout=300,
+               script=PROBE_SCRIPT)
     # The same tool, negotiated: the acceptance is the other event the tally
     # exists to count, so the ledger gets both halves from one run.
     accepted = {**arguments[REFUSING_TOOL], "accetta_precisione": "INDICATIVO"}
-    call_tools(env, [REFUSING_TOOL], {REFUSING_TOOL: accepted}, timeout=300)
+    call_tools(env, [REFUSING_TOOL], {REFUSING_TOOL: accepted}, timeout=300,
+               script=PROBE_SCRIPT)
 
     # The ledger lives where the *server's* env put it, not where this test
     # process would resolve it: the path is read back from the same env dict.
@@ -94,7 +99,7 @@ def test_a_refusal_and_an_acceptance_land_in_the_ledger_over_the_wire():
     assert len(rifiuti) >= CALLS, lines
     voce = rifiuti[0]
     assert voce["tool"] == REFUSING_TOOL
-    assert "comuni" in voce["tables"]
+    assert REFUSING_TABLE in voce["tables"]
     assert voce["stati"] == ["non_verificata"]
     assert voce["dichiarata"] == "ESATTO"
     assert voce["concedibile"] == "INDICATIVO"
@@ -111,8 +116,7 @@ def test_a_refusal_and_an_acceptance_land_in_the_ledger_over_the_wire():
 
 
 def test_the_backlog_readout_reports_the_ledger_and_reranks():
-    manifest = {tool["name"]: tool for tool in tools()}
-    arguments = {name: arguments_for(manifest[name]) for name in (REFUSING_TOOL,)}
+    arguments = {REFUSING_TOOL: {"keyword": "commercio"}}
     sandbox = pathlib.Path(tempfile.mkdtemp(prefix="backlog-sandbox-"))
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="backlog-tmp-"))
     env = server_env(
@@ -124,34 +128,40 @@ def test_the_backlog_readout_reports_the_ledger_and_reranks():
             _refusals.ENABLE_ENV: "on",
         },
     )
+    # The refusal lands in the ledger from the probe run; the readback runs on
+    # the shipped server, which shares `MCP_CACHE_DIR` with it.
+    call_tools(env, [REFUSING_TOOL], arguments, timeout=300, script=PROBE_SCRIPT)
     replies = call_tools(
         env,
-        [REFUSING_TOOL, "backlog_riconciliazione"],
-        {**arguments, "backlog_riconciliazione": {}},
+        ["backlog_riconciliazione"],
+        {"backlog_riconciliazione": {}},
         timeout=300,
     )
     payload = _payload(replies["backlog_riconciliazione"])
 
-    assert payload["n_tabelle"] >= 5, "the shipped tables still carry unverified ones"
+    assert payload["n_tabelle"] >= 2, "the shipped tables still carry unverified ones"
     assert payload["tabelle"], "the list itself cannot be empty"
     stati = {voce["stato"] for voce in payload["tabelle"]}
     assert stati <= {"non_verificata", "scaduta"}
 
-    # The static half comes from the audit: `imposte_successione` blocks two
-    # tools, `comuni` two, and a table with only indicative readers blocks none.
+    # The static half comes from the audit: `codici_ateco` and
+    # `tribunali_competenti` are the only unverified tables left, and a table
+    # whose only readers are indicative blocks none of them.
     per_tabella = {voce["tabella"]: voce for voce in payload["tabelle"]}
-    assert len(per_tabella["comuni"]["uso_statico"]["rifiutano"]) == 2
-    assert per_tabella["preavviso_ccnl"]["uso_statico"]["rifiutano"] == ["indennita_preavviso"]
+    assert set(per_tabella) <= {"codici_ateco", "tribunali_competenti"}, sorted(per_tabella)
+    assert all(voce["uso_statico"]["rifiutano"] == [] for voce in per_tabella.values()), (
+        "only indicative readers are left: nothing refuses statically"
+    )
 
     # The observed tally names the table the refusals were about, and the
     # ranking says so: observed tables first, ordered by tally.
     verbale = payload["verbale_rifiuti"]
     assert verbale.get("disponibile") is True
     assert verbale.get("rifiuti", {}).get(REFUSING_TOOL) == CALLS
-    assert verbale.get("tabelle", {}).get("comuni") == CALLS
+    assert verbale.get("tabelle", {}).get(REFUSING_TABLE) == CALLS
     first = payload["tabelle"][0]["tabella"]
-    assert first == "comuni", (
-        "the table that actually blocked twice outranks the static order"
+    assert first == REFUSING_TABLE, (
+        "the table that actually blocked outranks the static order"
     )
     # And the action tells the caller what to do without opening any code.
     assert "verifica: manuale" in per_tabella[first]["azione"]
