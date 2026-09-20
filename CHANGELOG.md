@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file is missing -- the same two directions the marketplace sandbox enforces
   as `failed_content`, checked before the backend can see the release.
 
-## [2.13.1] - 2026-09-20
+## [2.14.0] - 2026-09-20
 
 ### Added
 - Tool annotations: all 221 tools now declare `readOnlyHint` / `openWorldHint`,
