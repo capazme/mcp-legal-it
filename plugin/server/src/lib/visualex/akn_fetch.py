@@ -10,7 +10,8 @@ Two-request flow (required — see ``tests/fixtures/akn/STRUCTURE.md``):
 
 The parsed act is cached: an in-memory LRU keyed by
 ``(codiceRedaz, dataGU, dataVigenza)`` plus optional best-effort on-disk JSON
-persistence under ``${MCP_CACHE_DIR or ~/.cache/mcp-legal-it}/akn_acts/``.
+persistence under ``${MCP_CACHE_DIR or ~/.cache/mcp-legal-it}/akn_acts/``
+(disable it entirely with ``LEGAL_CACHE=off``).
 ``dataVigenza`` defaults to today, giving natural daily expiry.
 
 Any failure (no params, HTTP error, non-XML response, parser exception) returns
@@ -27,6 +28,9 @@ from pathlib import Path
 
 import httpx
 
+from .. import _clock
+from .._cache import cache_enabled, cache_root
+from .._http import note_source
 from .akn_parser import ParsedAct, ParsedPart, parse_akn
 
 _CARICA_AKN_BASE = "https://www.normattiva.it/do/atto/caricaAKN"
@@ -55,8 +59,7 @@ _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
 
 
 def _cache_root() -> Path:
-    base = os.environ.get("MCP_CACHE_DIR") or (Path.home() / ".cache" / "mcp-legal-it")
-    return Path(base) / "akn_acts"
+    return cache_root() / "akn_acts"
 
 
 def _hits_path() -> Path:
@@ -80,6 +83,8 @@ def _load_url_params() -> None:
     if _url_params_loaded:
         return
     _url_params_loaded = True
+    if not cache_enabled():
+        return
     try:
         path = _url_params_path()
         if path.exists():
@@ -101,6 +106,8 @@ def _set_url_params(url: str, codice: str, data_gu: str) -> None:
     if _url_params.get(url) == (codice, data_gu):
         return
     _url_params[url] = (codice, data_gu)
+    if not cache_enabled():
+        return
     try:
         path = _url_params_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -120,6 +127,8 @@ def _disk_path(key: tuple[str, str, str]) -> Path:
 
 def _bump_hits(key: tuple[str, str, str]) -> None:
     """Increment the persisted access counter for a key (best-effort)."""
+    if not cache_enabled():
+        return
     try:
         path = _hits_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -168,6 +177,8 @@ def _act_from_dict(data: dict) -> ParsedAct:
 
 
 def _disk_load(key: tuple[str, str, str]) -> "ParsedAct | None":
+    if not cache_enabled():
+        return None
     try:
         path = _disk_path(key)
         if not path.exists():
@@ -180,6 +191,8 @@ def _disk_load(key: tuple[str, str, str]) -> "ParsedAct | None":
 
 
 def _disk_store(key: tuple[str, str, str], act: ParsedAct) -> None:
+    if not cache_enabled():
+        return
     try:
         path = _disk_path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -294,7 +307,7 @@ def _extract_params(html: str) -> "tuple[str, str] | None":
 # ---------------------------------------------------------------------------
 
 def _today_vigenza() -> str:
-    return date.today().strftime("%Y%m%d")
+    return _clock.today().strftime("%Y%m%d")
 
 
 async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct | None":
@@ -335,6 +348,7 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             # Step 1 — landing page: establishes the session + yields params.
             landing_resp = await client.get(landing_url)
             landing_resp.raise_for_status()
+            note_source("normattiva", str(landing_resp.url) if hasattr(landing_resp, "url") else "")
             params = _extract_params(landing_resp.text)
             if not params:
                 return None
@@ -356,6 +370,7 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             )
             akn_resp = await client.get(akn_url)
             akn_resp.raise_for_status()
+            note_source("normattiva", str(akn_resp.url) if hasattr(akn_resp, "url") else "")
             xml = akn_resp.text
 
         # Validate: real XML export, not the ~32 KB error page.

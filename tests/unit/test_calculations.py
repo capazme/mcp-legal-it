@@ -2,13 +2,13 @@
 
 import pytest
 
+from .mcp_harness import tool_body
+
 
 def _call(module_path, fn_name, **kwargs):
     import importlib
     mod = importlib.import_module(module_path)
-    fn = getattr(mod, fn_name)
-    fn = getattr(fn, "fn", fn)
-    return fn(**kwargs)
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 class TestInteressiLegali:

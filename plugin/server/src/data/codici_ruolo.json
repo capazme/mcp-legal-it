@@ -1,49 +1,456 @@
 {
   "_vintage": {
-    "fonte": "codici materia per iscrizione a ruolo",
-    "verifica": "da_verificare"
+    "fonte": "D.M. 32/2012 e provvedimenti DGSIA — tabella codici oggetto per l'iscrizione a ruolo (riferimento: Ministero della Giustizia)",
+    "aggiornato_al": "2026-09-19",
+    "verifica": "manuale",
+    "nota": "sottoinsieme delle materie civili piu' ricorrenti, ricavato dalla tabella ufficiale dei codici oggetto; la classificazione viene rinnovata dal Ministero: verificare a ogni aggiornamento del PCT"
   },
+  "_descrizione": "Codici oggetto per l'iscrizione a ruolo delle cause civili — sottoinsieme ricavato dalla tabella ufficiale (D.M. 32/2012 e provvedimenti DGSIA). Il codice completo va sempre confermato nel software di deposito telematico PCT.",
   "codici": [
-    {"codice": "1.01.001", "materia": "contratto", "descrizione": "Inadempimento contrattuale"},
-    {"codice": "1.01.002", "materia": "contratto", "descrizione": "Risoluzione contrattuale"},
-    {"codice": "1.01.003", "materia": "contratto", "descrizione": "Annullamento contratto"},
-    {"codice": "1.01.010", "materia": "compravendita", "descrizione": "Compravendita immobiliare"},
-    {"codice": "1.01.011", "materia": "compravendita", "descrizione": "Compravendita mobiliare"},
-    {"codice": "1.02.001", "materia": "locazione", "descrizione": "Locazione — sfratto per morosità"},
-    {"codice": "1.02.002", "materia": "locazione", "descrizione": "Locazione — sfratto per finita locazione"},
-    {"codice": "1.02.003", "materia": "locazione", "descrizione": "Locazione — determinazione canone"},
-    {"codice": "1.02.010", "materia": "locazione", "descrizione": "Locazione — altro"},
-    {"codice": "1.03.001", "materia": "responsabilità", "descrizione": "Responsabilità extracontrattuale — risarcimento danni"},
-    {"codice": "1.03.002", "materia": "responsabilità", "descrizione": "Responsabilità professionale — medica"},
-    {"codice": "1.03.003", "materia": "responsabilità", "descrizione": "Responsabilità professionale — avvocato"},
-    {"codice": "1.03.010", "materia": "responsabilità", "descrizione": "Responsabilità da circolazione stradale"},
-    {"codice": "1.04.001", "materia": "condominio", "descrizione": "Impugnazione delibera condominiale"},
-    {"codice": "1.04.002", "materia": "condominio", "descrizione": "Ripartizione spese condominiali"},
-    {"codice": "1.05.001", "materia": "famiglia", "descrizione": "Separazione giudiziale"},
-    {"codice": "1.05.002", "materia": "famiglia", "descrizione": "Separazione consensuale"},
-    {"codice": "1.05.003", "materia": "famiglia", "descrizione": "Divorzio giudiziale"},
-    {"codice": "1.05.004", "materia": "famiglia", "descrizione": "Divorzio congiunto"},
-    {"codice": "1.05.010", "materia": "famiglia", "descrizione": "Modifica condizioni separazione/divorzio"},
-    {"codice": "1.05.020", "materia": "famiglia", "descrizione": "Affidamento e mantenimento figli"},
-    {"codice": "1.06.001", "materia": "successione", "descrizione": "Petizione di eredità"},
-    {"codice": "1.06.002", "materia": "successione", "descrizione": "Divisione ereditaria"},
-    {"codice": "1.06.003", "materia": "successione", "descrizione": "Impugnazione testamento"},
-    {"codice": "1.07.001", "materia": "lavoro", "descrizione": "Lavoro subordinato — impugnazione licenziamento"},
-    {"codice": "1.07.002", "materia": "lavoro", "descrizione": "Lavoro subordinato — differenze retributive"},
-    {"codice": "1.07.003", "materia": "lavoro", "descrizione": "Lavoro subordinato — mobbing"},
-    {"codice": "1.07.010", "materia": "lavoro", "descrizione": "Previdenza e assistenza obbligatoria"},
-    {"codice": "1.08.001", "materia": "societario", "descrizione": "Impugnazione delibera assembleare"},
-    {"codice": "1.08.002", "materia": "societario", "descrizione": "Azione di responsabilità vs amministratori"},
-    {"codice": "1.09.001", "materia": "proprietà", "descrizione": "Rivendicazione proprietà"},
-    {"codice": "1.09.002", "materia": "proprietà", "descrizione": "Azione negatoria servitù"},
-    {"codice": "1.09.003", "materia": "proprietà", "descrizione": "Regolamento confini"},
-    {"codice": "1.09.010", "materia": "proprietà", "descrizione": "Usucapione"},
-    {"codice": "1.10.001", "materia": "possesso", "descrizione": "Azione di reintegrazione (spoglio)"},
-    {"codice": "1.10.002", "materia": "proprietà", "descrizione": "Azione di manutenzione"},
-    {"codice": "1.11.001", "materia": "consumatore", "descrizione": "Tutela del consumatore — clausole vessatorie"},
-    {"codice": "1.11.002", "materia": "consumatore", "descrizione": "Tutela del consumatore — prodotto difettoso"},
-    {"codice": "1.12.001", "materia": "bancario", "descrizione": "Contratti bancari — anatocismo"},
-    {"codice": "1.12.002", "materia": "bancario", "descrizione": "Contratti bancari — usura"},
-    {"codice": "1.12.003", "materia": "bancario", "descrizione": "Contratti bancari — fideiussione"}
+    {
+      "codice": "140001",
+      "materia": "contratto",
+      "descrizione": "Cessione dei crediti"
+    },
+    {
+      "codice": "140021",
+      "materia": "contratto",
+      "descrizione": "Appalto di opere pubbliche"
+    },
+    {
+      "codice": "140022",
+      "materia": "contratto",
+      "descrizione": "Appalto: altre ipotesi ex art. 1655 e ss. c.c. (ivi compresa l'azione ex art. 1669 c.c.)"
+    },
+    {
+      "codice": "140032",
+      "materia": "contratto",
+      "descrizione": "Locazione di beni mobili"
+    },
+    {
+      "codice": "140034",
+      "materia": "contratto",
+      "descrizione": "Mandato"
+    },
+    {
+      "codice": "140038",
+      "materia": "contratto",
+      "descrizione": "Mutuo"
+    },
+    {
+      "codice": "140039",
+      "materia": "contratto",
+      "descrizione": "Transazione"
+    },
+    {
+      "codice": "140111",
+      "materia": "contratto",
+      "descrizione": "Indebito soggettivo - Indebito oggettivo"
+    },
+    {
+      "codice": "140112",
+      "materia": "contratto",
+      "descrizione": "Arricchimento senza causa"
+    },
+    {
+      "codice": "140999",
+      "materia": "contratto",
+      "descrizione": "Altri contratti tipici ed obbligazioni non rientranti nelle altre materie"
+    },
+    {
+      "codice": "140011",
+      "materia": "compravendita",
+      "descrizione": "Vendita di cose immobili"
+    },
+    {
+      "codice": "140012",
+      "materia": "compravendita",
+      "descrizione": "Vendita di cose mobili"
+    },
+    {
+      "codice": "030001",
+      "materia": "locazione",
+      "descrizione": "Intimazione di licenza o di sfratto per finita locazione (art. 657 c.p.c.) - uso abitativo"
+    },
+    {
+      "codice": "030002",
+      "materia": "locazione",
+      "descrizione": "Intimazione di licenza o di sfratto per finita locazione (art. 657 c.p.c.) - uso diverso"
+    },
+    {
+      "codice": "030011",
+      "materia": "locazione",
+      "descrizione": "Intimazione di sfratto per morosita' (art. 658 c.p.c.) - uso abitativo"
+    },
+    {
+      "codice": "030012",
+      "materia": "locazione",
+      "descrizione": "Intimazione di licenza o di sfratto per morosita' (art. 658 c.p.c.) - uso diverso"
+    },
+    {
+      "codice": "030021",
+      "materia": "locazione",
+      "descrizione": "Intimazione di licenza o di sfratto per cessazione del rapporto di locazione d'opera (art. 659 c.p.c.)"
+    },
+    {
+      "codice": "144001",
+      "materia": "locazione",
+      "descrizione": "Cessazione del contratto di locazione alla scadenza, uso abitativo"
+    },
+    {
+      "codice": "144021",
+      "materia": "locazione",
+      "descrizione": "Risoluzione del contratto di locazione per inadempimento uso abitativo"
+    },
+    {
+      "codice": "144022",
+      "materia": "locazione",
+      "descrizione": "Risoluzione del contratto di locazione per inadempimento uso diverso"
+    },
+    {
+      "codice": "144999",
+      "materia": "locazione",
+      "descrizione": "Altri istituti del diritto delle locazioni"
+    },
+    {
+      "codice": "145001",
+      "materia": "responsabilità",
+      "descrizione": "solo danni a cose"
+    },
+    {
+      "codice": "145002",
+      "materia": "responsabilità",
+      "descrizione": "lesione personale"
+    },
+    {
+      "codice": "145003",
+      "materia": "responsabilità",
+      "descrizione": "Morte"
+    },
+    {
+      "codice": "145011",
+      "materia": "responsabilità",
+      "descrizione": "Responsabilita dei genitori, dei tutori e dei maestri (art. 2048 c.c.)"
+    },
+    {
+      "codice": "145012",
+      "materia": "responsabilità",
+      "descrizione": "Responsabilita per l'esercizio di attivita pericolose (art. 2050 c.c.)"
+    },
+    {
+      "codice": "145013",
+      "materia": "responsabilità",
+      "descrizione": "Responsabilita' ex artt. 2049 - 2051 - 2052 c.c."
+    },
+    {
+      "codice": "145021",
+      "materia": "responsabilità",
+      "descrizione": "Responsabilita del produttore"
+    },
+    {
+      "codice": "145999",
+      "materia": "responsabilità",
+      "descrizione": "Altre ipotesi di responsabilita Extracontrattuale non ricomprese nelle altre materie (art. 2043 c.c. e norme speciali)"
+    },
+    {
+      "codice": "130051",
+      "materia": "condominio",
+      "descrizione": "Comunione e Condominio, impugnazione di delibera assembleare - spese condominiali"
+    },
+    {
+      "codice": "130052",
+      "materia": "condominio",
+      "descrizione": "tabelle millesimali"
+    },
+    {
+      "codice": "130099",
+      "materia": "condominio",
+      "descrizione": "altri rapporti condominiali"
+    },
+    {
+      "codice": "400271",
+      "materia": "condominio",
+      "descrizione": "Nomina di amministratore di condominio (art. 1 1 29, 1 ' comma c.c.)"
+    },
+    {
+      "codice": "400272",
+      "materia": "condominio",
+      "descrizione": "Revoca di amministratore di comunione o condominio (artt. 1105 e 1129, 3' comma c.c.) (COLLEGIO)"
+    },
+    {
+      "codice": "111002",
+      "materia": "famiglia",
+      "descrizione": "Separazione giudiziale"
+    },
+    {
+      "codice": "411706",
+      "materia": "famiglia",
+      "descrizione": "Separazione consensuale"
+    },
+    {
+      "codice": "111012",
+      "materia": "famiglia",
+      "descrizione": "Divorzio contenzioso - Cessazione effetti civili"
+    },
+    {
+      "codice": "111022",
+      "materia": "famiglia",
+      "descrizione": "Divorzio contenzioso - Scioglimento matrimonio"
+    },
+    {
+      "codice": "411674",
+      "materia": "famiglia",
+      "descrizione": "Divorzio congiunto (cessazione effetti civili)"
+    },
+    {
+      "codice": "411676",
+      "materia": "famiglia",
+      "descrizione": "Divorzio congiunto (scioglimento)"
+    },
+    {
+      "codice": "411673",
+      "materia": "famiglia",
+      "descrizione": "Modifica delle condizioni di separazione (congiunto)"
+    },
+    {
+      "codice": "411675",
+      "materia": "famiglia",
+      "descrizione": "Modifica delle condizioni di divorzio (congiunto)"
+    },
+    {
+      "codice": "412400",
+      "materia": "famiglia",
+      "descrizione": "Affidamento minori"
+    },
+    {
+      "codice": "111301",
+      "materia": "famiglia",
+      "descrizione": "Alimenti"
+    },
+    {
+      "codice": "411640",
+      "materia": "famiglia",
+      "descrizione": "Fondo patrimoniale (artt. 167 e ss. c.c.)"
+    },
+    {
+      "codice": "120001",
+      "materia": "successione",
+      "descrizione": "Cause di impugnazione dei testamenti e di riduzione per lesione di legittima"
+    },
+    {
+      "codice": "120011",
+      "materia": "successione",
+      "descrizione": "Divisione di beni caduti in successione"
+    },
+    {
+      "codice": "420300",
+      "materia": "successione",
+      "descrizione": "Accettazione eredità con beneficio di inventario (art. 484 cc)"
+    },
+    {
+      "codice": "420303",
+      "materia": "successione",
+      "descrizione": "Autorizzazioni al curatore dell'eredita giacente per gli atti eccedenti l'ordinaria amministrazione (artt. 782 c.p.c. e 530 c.c.)"
+    },
+    {
+      "codice": "420340",
+      "materia": "successione",
+      "descrizione": "Rinunzia all'eredità (art. 519 cc)"
+    },
+    {
+      "codice": "420999",
+      "materia": "successione",
+      "descrizione": "Altri istituti di volontaria giurisdizione e procedimenti camerali in materia di successioni"
+    },
+    {
+      "codice": "220100",
+      "materia": "lavoro",
+      "descrizione": "Licenziamento individuale per giust. motivo soggettivo"
+    },
+    {
+      "codice": "220101",
+      "materia": "lavoro",
+      "descrizione": "Licenziamento individuale per giust. motivo oggettivo"
+    },
+    {
+      "codice": "220102",
+      "materia": "lavoro",
+      "descrizione": "Licenziamento individuale per giusta causa"
+    },
+    {
+      "codice": "220103",
+      "materia": "lavoro",
+      "descrizione": "Licenziamento individuale del dirigente"
+    },
+    {
+      "codice": "220110",
+      "materia": "lavoro",
+      "descrizione": "Licenziamento collettivo e mobilita"
+    },
+    {
+      "codice": "220050",
+      "materia": "lavoro",
+      "descrizione": "retribuzione"
+    },
+    {
+      "codice": "220070",
+      "materia": "lavoro",
+      "descrizione": "Risarcimento danni da infortunio"
+    },
+    {
+      "codice": "220071",
+      "materia": "lavoro",
+      "descrizione": "Risarcimento danni da dequalificazione"
+    },
+    {
+      "codice": "220072",
+      "materia": "lavoro",
+      "descrizione": "Risarcimento danni:altre ipotesi"
+    },
+    {
+      "codice": "220040",
+      "materia": "lavoro",
+      "descrizione": "sanzione disciplinare conservativa"
+    },
+    {
+      "codice": "230010",
+      "materia": "lavoro",
+      "descrizione": "Obbligo contributivo del datore di lavoro"
+    },
+    {
+      "codice": "230002",
+      "materia": "lavoro",
+      "descrizione": "Prestazione: pensione - assegno di invalidita INPS - Inpdai - Enpals, etc."
+    },
+    {
+      "codice": "230999",
+      "materia": "lavoro",
+      "descrizione": "Altre controversie in materia di previdenza obbligatoria"
+    },
+    {
+      "codice": "151110",
+      "materia": "societario",
+      "descrizione": "Cause di responsabilita contro gli organi amministrativi e di controllo, i direttori generali e i liquidatori delle societa, delle mutue assicuratrici e societa cooperative, e dei consorzi (COLLEGIO) e contro le societa di revisione"
+    },
+    {
+      "codice": "151112",
+      "materia": "societario",
+      "descrizione": "Impugnazione delle deliberazioni dell'assemblea e del consiglio di amministrazione delle societa, delle mutue assicuratrici e societa cooperative, e dei consorzi (COLLEGIO)"
+    },
+    {
+      "codice": "151120",
+      "materia": "societario",
+      "descrizione": "Rapporti sociali e cessione di partecipazione nelle societa di fatto, di persone, di capitali, di cooperative e mutue assicuratrici"
+    },
+    {
+      "codice": "152110",
+      "materia": "societario",
+      "descrizione": "Cause di responsabilità contro gli organi amministrativi e di controllo, i direttori generali e i liquidatori delle associazioni in partecipazione e dei consorzi (COLLEGIO)"
+    },
+    {
+      "codice": "152112",
+      "materia": "societario",
+      "descrizione": "Impugnazione delle deliberazioni dell'assemblea e del consiglio di amministrazione delle associazioni in partecipazione e dei consorzi (COLLEGIO)"
+    },
+    {
+      "codice": "153110",
+      "materia": "societario",
+      "descrizione": "Cause di responsabilità contro gli organi aministrativi e di controllo, i liquidatori e i direttori generali di società, delle mutue assicuratrici e delle società cooperative e i revisori"
+    },
+    {
+      "codice": "153112",
+      "materia": "societario",
+      "descrizione": "Impugnazione delle deliberazioni dell'assemblea e del c.d.a. delle società, delle mutue assicuratrici e delle società cooperative"
+    },
+    {
+      "codice": "153121",
+      "materia": "societario",
+      "descrizione": "Cause in materia di trasferimento di partecipazioni sociali e di negozi o diritti inerenti"
+    },
+    {
+      "codice": "153999",
+      "materia": "societario",
+      "descrizione": "Altri istituti di diritto societario soggetti al d.l.vo n. 5/2003"
+    },
+    {
+      "codice": "130001",
+      "materia": "proprietà",
+      "descrizione": "Proprieta"
+    },
+    {
+      "codice": "130011",
+      "materia": "proprietà",
+      "descrizione": "Superficie"
+    },
+    {
+      "codice": "130021",
+      "materia": "proprietà",
+      "descrizione": "Enfiteusi"
+    },
+    {
+      "codice": "130031",
+      "materia": "proprietà",
+      "descrizione": "Usufrutto"
+    },
+    {
+      "codice": "130032",
+      "materia": "proprietà",
+      "descrizione": "Abitazione - Uso"
+    },
+    {
+      "codice": "130041",
+      "materia": "proprietà",
+      "descrizione": "Servitu"
+    },
+    {
+      "codice": "131002",
+      "materia": "proprietà",
+      "descrizione": "Usucapione - 1159"
+    },
+    {
+      "codice": "131003",
+      "materia": "proprietà",
+      "descrizione": "Usucapione - 1159 bis"
+    },
+    {
+      "codice": "131011",
+      "materia": "proprietà",
+      "descrizione": "Divisione di beni non caduti in successione"
+    },
+    {
+      "codice": "020001",
+      "materia": "possesso",
+      "descrizione": "Azione di reintegrazione nel possesso (artt. 703 c.p.c., 1168 - 1169 c.c.)"
+    },
+    {
+      "codice": "020011",
+      "materia": "possesso",
+      "descrizione": "Azione di manutenzione nel possesso (artt. 703 c.p.c. e 1170 c.c.)"
+    },
+    {
+      "codice": "131001",
+      "materia": "possesso",
+      "descrizione": "Diritti ed obblighi del possessore non riconducibili alle azioni di reintegrazione e manutenzione)"
+    },
+    {
+      "codice": "140041",
+      "materia": "bancario",
+      "descrizione": "Bancari (deposito bancario, cassetta di sicurezza, apertura di credito bancario, anticipazione bancaria, conto corrente bancario, sconto bancario)"
+    },
+    {
+      "codice": "140061",
+      "materia": "bancario",
+      "descrizione": "Fideiussione - Polizza fideiussoria"
+    },
+    {
+      "codice": "146041",
+      "materia": "bancario",
+      "descrizione": "Contratti bancari (deposito bancario, cassetta di sicurezza, apertura di credito bancario, anticipazione bancaria, conto corrente bancario, sconto bancario) cui non si applica il d.l.vo n. 5/2003"
+    },
+    {
+      "codice": "146239",
+      "materia": "bancario",
+      "descrizione": "Altri contratti bancari e controversie in genere di cui alla lettera e) art. 1 d.l.vo n. 5/2003"
+    }
   ]
 }

@@ -1,0 +1,802 @@
+{
+ "datasets": [],
+ "tools": {
+  "acconto_cedolare_secca": {
+   "arguments": {
+    "imposta_anno_precedente": 10000.0
+   },
+   "expected": "{\"imposta_anno_precedente\":10000.0,\"acconto_dovuto\":true,\"acconto_totale\":10000.0,\"primo_acconto\":{\"importo\":4000.0,\"percentuale\":40,\"scadenza\":\"30 giugno (o 30 luglio con maggiorazione 0.40%)\"},\"secondo_acconto\":{\"importo\":6000.0,\"percentuale\":60,\"scadenza\":\"30 novembre\"},\"riferimento_normativo\":\"Art. 3, comma 4, D.Lgs. 23/2011\"}"
+  },
+  "acconto_irpef": {
+   "arguments": {
+    "imposta_anno_precedente": 10000.0
+   },
+   "expected": "{\"imposta_anno_precedente\":10000.0,\"metodo\":\"storico\",\"acconto_dovuto\":true,\"acconto_totale\":10000.0,\"primo_acconto\":{\"importo\":4000.0,\"percentuale\":40,\"scadenza\":\"30 giugno (o 30 luglio con maggiorazione 0.40%)\"},\"secondo_acconto\":{\"importo\":6000.0,\"percentuale\":60,\"scadenza\":\"30 novembre\"},\"nota_previsionale\":null,\"riferimento_normativo\":\"Art. 17 D.P.R. 435/2001 — Art. 4 D.L. 69/1989\"}"
+  },
+  "assegno_unico": {
+   "arguments": {
+    "isee": 10000.0,
+    "n_figli": 2
+   },
+   "expected": "{\"isee\":10000.0,\"n_figli\":2,\"importo_base_per_figlio\":203.8,\"dettaglio_figli\":[{\"figlio\":1,\"eta\":10,\"importo_base\":203.8,\"maggiorazioni\":[],\"importo_mensile\":203.8},{\"figlio\":2,\"eta\":10,\"importo_base\":203.8,\"maggiorazioni\":[],\"importo_mensile\":203.8}],\"genitore_solo\":false,\"maggiorazione_genitore_solo\":0,\"totale_mensile\":407.6,\"totale_annuo\":4891.2,\"riferimento_normativo\":\"D.Lgs. 230/2021 — Importi 2026 (rivalutazione ISTAT)\"}"
+  },
+  "attestazione_conformita": {
+   "arguments": {
+    "avvocato": "x",
+    "estremi_originale": "x",
+    "tipo_documento": "ordinario"
+   },
+   "expected": "{\"testo\":\"ATTESTAZIONE DI CONFORMITA'\\n(Art. 16-bis co. 9-bis DL 179/2012 — Art. 16-undecies DL 179/2012)\\n\\nIl sottoscritto Avv. x, in qualità di difensore di parte nel procedimento indicato in atti,\\n\\nATTESTA\\n\\nai sensi dell'art. 16-bis co. 9-bis DL 179/2012, conv. L. 221/2012, che la copia informatica estratta dal fascicolo informatico del seguente documento:\\n\\nordinario\\n\\nEstremi: x\\n\\nè conforme all'originale contenuto nel fascicolo informatico.\\n\\nLa presente attestazione è resa ai sensi dell'art. 16-undecies del DL 18 ottobre 2012, n. 179, convertito con modificazioni dalla L. 17 dicembre 2012, n. 221.\\n\\nLuogo e data _______________\\n\\nAvv. x\\n(firmato digitalmente)\",\"tipo_atto\":\"attestazione_conformita\",\"modalita\":\"estratto\",\"riferimento_normativo\":\"Art. 16-bis co. 9-bis DL 179/2012 — Art. 16-undecies DL 179/2012\"}"
+  },
+  "atto_di_precetto": {
+   "arguments": {
+    "creditore": "x",
+    "debitore": "x",
+    "importo_capitale": 10000.0,
+    "titolo_esecutivo": "Atto"
+   },
+   "expected": "{\"testo\":\"ATTO DI PRECETTO\\n(Art. 480 c.p.c.)\\n\\nIl/La sottoscritto/a x, C.F. ___, residente/con sede in ___, rappresentato/a e difeso/a dall'Avv. ___, giusta procura in calce/a margine,\\n\\nPREMESSO\\n\\n— che è in possesso del seguente titolo esecutivo: Atto;\\n— che il predetto titolo è stato ritualmente notificato in forma esecutiva;\\n— che il/la debitore/trice non ha ancora provveduto al pagamento delle somme dovute;\\n\\nINTIMA\\n\\na x, C.F. ___, residente/con sede in ___,\\n\\ndi pagare, entro il termine di dieci giorni dalla notificazione del presente atto, la complessiva somma di Euro 10,000.00, così composta:\\n\\n— Capitale:                Euro    10,000.00\\n— Interessi:               Euro         0.00\\n— Spese legali:            Euro         0.00\\n— TOTALE:                  Euro    10,000.00\\n\\noltre interessi dalla data odierna al saldo effettivo, oltre spese del presente atto di precetto e successive occorrende.\\n\\nAVVERTE\\n\\nil debitore che, ai sensi dell'art. 480 co. 2 c.p.c., può proporre opposizione al precetto ai sensi dell'art. 615 c.p.c. nel termine perentorio di venti giorni dalla notificazione del presente atto, e che, in mancanza di pagamento nel termine suindicato, si procederà ad esecuzione forzata.\\n\\nCon riserva di ogni ulteriore diritto e azione.\\n\\n[Luogo], [Data]\\n\\nAvv. _______________\\n(per x)\",\"tipo_atto\":\"atto_di_precetto\",\"importo_capitale\":10000.0,\"interessi\":0,\"spese\":0,\"totale_intimato\":10000.0,\"riferimento_normativo\":\"Art. 480 c.p.c. — Forma del precetto\"}"
+  },
+  "aumenti_riduzioni_pena": {
+   "arguments": {
+    "pena_base_mesi": 12.0
+   },
+   "expected": "{\"pena_base_mesi\":12.0,\"pena_risultante_mesi\":12.0,\"pena_risultante_formato\":\"1 anni e 0.0 mesi\",\"recidiva_applicata\":false,\"dettaglio\":[{\"step\":\"Pena base\",\"mesi\":12.0}],\"riferimento_normativo\":\"Artt. 63-69, 99 c.p.\"}"
+  },
+  "backlog_riconciliazione": {
+   "arguments": {},
+   "expected": "{\"tabelle\":[{\"tabella\":\"codici_ateco\",\"stato\":\"non_verificata\",\"fonte\":\"classificazione ATECO\",\"nota\":\"la classificazione è stata rivista di recente: verificare la corrispondenza dei codici\",\"uso_statico\":{\"n_tool\":1,\"rifiutano\":[],\"degradano\":[\"ricerca_codici_ateco\"],\"ok\":[]},\"azione\":\"Verificare la fonte dichiarata, aggiornare i valori se servono, poi in src/data/codici_ateco.json: `verifica: manuale` e `aggiornato_al` di oggi. Rieseguire la suite per rigenerare i golden interessati.\"},{\"tabella\":\"tribunali_competenti\",\"stato\":\"non_verificata\",\"fonte\":\"circoscrizioni giudiziarie\",\"nota\":\"\",\"uso_statico\":{\"n_tool\":1,\"rifiutano\":[],\"degradano\":[\"cerca_ufficio_giudiziario\"],\"ok\":[]},\"azione\":\"Verificare la fonte dichiarata, aggiornare i valori se servono, poi in src/data/tribunali_competenti.json: `verifica: manuale` e `aggiornato_al` di oggi. Rieseguire la suite per rigenerare i golden interessati.\"}],\"n_tabelle\":2,\"ordinamento\":\"rifiuti osservati dal verbale, poi uso statico (n. tool che rifiutano, n. tool degradati), infine nome\",\"verbale_rifiuti\":{\"disponibile\":false,\"motivo\":\"verbale non attivo: impostare LEGAL_REFUSAL_LEDGER=on\"},\"nota\":\"uso_statico deriva dall'audit del codice (cosa puo' bloccare); rifiuti_osservati viene dal verbale LEGAL_REFUSAL_LEDGER (cosa ha bloccato davvero). Sono misure diverse: leggile entrambe.\"}"
+  },
+  "calcolo_ammortamento": {
+   "arguments": {
+    "capitale": 10000.0,
+    "durata_mesi": 12,
+    "tasso_annuo": 5.0
+   },
+   "expected": "{\"capitale\":10000.0,\"tasso_annuo_pct\":5.0,\"durata_mesi\":12,\"tipo\":\"francese\",\"rata_iniziale\":856.07,\"totale_interessi\":272.9,\"totale_pagato\":10272.9,\"piano\":[{\"rata_n\":1,\"rata\":856.07,\"quota_capitale\":814.41,\"quota_interessi\":41.67,\"debito_residuo\":9185.59},{\"rata_n\":2,\"rata\":856.07,\"quota_capitale\":817.8,\"quota_interessi\":38.27,\"debito_residuo\":8367.79},{\"rata_n\":3,\"rata\":856.07,\"quota_capitale\":821.21,\"quota_interessi\":34.87,\"debito_residuo\":7546.58},{\"rata_n\":4,\"rata\":856.07,\"quota_capitale\":824.63,\"quota_interessi\":31.44,\"debito_residuo\":6721.95},{\"rata_n\":5,\"rata\":856.07,\"quota_capitale\":828.07,\"quota_interessi\":28.01,\"debito_residuo\":5893.88},{\"rata_n\":6,\"rata\":856.07,\"quota_capitale\":831.52,\"quota_interessi\":24.56,\"debito_residuo\":5062.37},{\"rata_n\":7,\"rata\":856.07,\"quota_capitale\":834.98,\"quota_interessi\":21.09,\"debito_residuo\":4227.39},{\"rata_n\":8,\"rata\":856.07,\"quota_capitale\":838.46,\"quota_interessi\":17.61,\"debito_residuo\":3388.92},{\"rata_n\":9,\"rata\":856.07,\"quota_capitale\":841.95,\"quota_interessi\":14.12,\"debito_residuo\":2546.97},{\"rata_n\":10,\"rata\":856.07,\"quota_capitale\":845.46,\"quota_interessi\":10.61,\"debito_residuo\":1701.51},{\"rata_n\":11,\"rata\":856.07,\"quota_capitale\":848.99,\"quota_interessi\":7.09,\"debito_residuo\":852.52},{\"rata_n\":12,\"rata\":856.07,\"quota_capitale\":852.52,\"quota_interessi\":3.55,\"debito_residuo\":0}]}"
+  },
+  "calcolo_eredita": {
+   "arguments": {
+    "eredi": {},
+    "massa_ereditaria": 10000.0
+   },
+   "expected": "{\"massa_ereditaria\":10000.0,\"eredi\":{},\"quote\":[],\"quota_disponibile\":10000.0,\"percentuale_disponibile\":\"100.0%\",\"riferimento_normativo\":\"Art. 536 ss. c.c. — Successione necessaria (legittima)\"}"
+  },
+  "calcolo_eta_anagrafica": {
+   "arguments": {
+    "data_nascita": "2021-01-01"
+   },
+   "expected": "{\"data_nascita\":\"2021-01-01\",\"data_riferimento\":\"2026-09-15\",\"eta_anni\":5,\"eta_mesi\":8,\"eta_giorni\":14,\"descrizione\":\"5 anni, 8 mesi, 14 giorni\",\"prossimo_compleanno\":\"2027-01-01\",\"giorni_al_compleanno\":108}"
+  },
+  "calcolo_hash": {
+   "arguments": {
+    "testo": "contratto"
+   },
+   "expected": "{\"algoritmo\":\"SHA-256\",\"hash\":\"a72c479e834af13a7ffb7765d2275b7eb884fef6a2d2939236204ea3b10e2378\",\"lunghezza_input\":9,\"nota\":\"Impronta digitale conforme alle specifiche tecniche PCT (DM 44/2011)\"}"
+  },
+  "calcolo_imu": {
+   "arguments": {
+    "categoria": "A/2",
+    "prima_casa": false,
+    "rendita_catastale": 900.0
+   },
+   "expected": "{\"rendita_catastale\":900.0,\"categoria\":\"A/2\",\"moltiplicatore\":160,\"rendita_rivalutata\":945.0,\"base_imponibile\":151200.0,\"aliquota_comunale_pct\":0.86,\"imu_annua\":1300.32,\"imu_semestrale\":650.16,\"riferimento_normativo\":\"L. 160/2019 art. 1 co. 738-783 — IMU\"}"
+  },
+  "calcolo_naspi": {
+   "arguments": {
+    "eta_anni": 10,
+    "retribuzione_media_mensile": 10000.0,
+    "settimane_contributive": 10000
+   },
+   "expected": "{\"retribuzione_media_mensile\":10000.0,\"settimane_contributive\":10000,\"eta_anni\":10,\"importo_mensile_iniziale\":1584.7,\"soglia_2026\":1456.72,\"massimale_2026\":1584.7,\"durata_mesi\":24,\"decalage_da_mese\":6,\"totale_stimato\":31133.41,\"piano_mensile\":[{\"mese\":1,\"importo\":1584.7},{\"mese\":2,\"importo\":1584.7},{\"mese\":3,\"importo\":1584.7},{\"mese\":4,\"importo\":1584.7},{\"mese\":5,\"importo\":1584.7},{\"mese\":6,\"importo\":1584.7},{\"mese\":24,\"importo\":915.88,\"nota\":\"ultimo mese\"}],\"riferimento_normativo\":\"D.Lgs. 22/2015 artt. 4-8 — Circ. INPS n. 4/2026\"}"
+  },
+  "calcolo_superficie_commerciale": {
+   "arguments": {
+    "superficie_calpestabile": 10000.0
+   },
+   "expected": "{\"superficie_commerciale\":10000.0,\"dettaglio\":{\"calpestabile\":{\"mq_reali\":10000.0,\"coefficiente\":1.0,\"mq_commerciali\":10000.0}},\"coefficienti_applicati\":{\"calpestabile\":1.0,\"balconi\":0.33,\"terrazzi\":0.25,\"giardino\":0.1,\"cantina\":0.25,\"garage\":0.5},\"riferimento_normativo\":\"DPR 138/1998 — Standard dimensionali catastali\"}"
+  },
+  "calcolo_surroga_mutuo": {
+   "arguments": {
+    "debito_residuo": 10000.0,
+    "mesi_residui": 12,
+    "rata_attuale": 10000.0,
+    "tasso_attuale": 5.0,
+    "tasso_nuovo": 5.0
+   },
+   "expected": "{\"debito_residuo\":10000.0,\"mesi_residui\":12,\"mutuo_attuale\":{\"tasso_annuo_pct\":5.0,\"rata_mensile\":10000.0,\"totale_restituito\":120000.0,\"interessi_residui\":110000.0},\"mutuo_surrogato\":{\"tasso_annuo_pct\":5.0,\"rata_mensile\":856.07,\"totale_restituito\":10272.9,\"interessi_residui\":272.9},\"risparmio_rata_mensile\":9143.93,\"risparmio_totale_interessi\":109727.1,\"break_even_mesi\":0,\"conviene\":true,\"riferimento_normativo\":\"Art. 120-quater TUB — D.L. 7/2007 (Legge Bersani)\"}"
+  },
+  "calcolo_taeg": {
+   "arguments": {
+    "capitale": 10000.0,
+    "importi_rate": 900.0,
+    "rate": 12,
+    "spese_iniziali": 100.0,
+    "spese_periodiche": 2.0
+   },
+   "expected": "{\"capitale\":10000.0,\"netto_erogato\":9900.0,\"rate\":12,\"importo_rata\":900.0,\"spese_iniziali\":100.0,\"spese_periodiche\":2.0,\"rata_effettiva\":902.0,\"totale_pagato\":10824.0,\"costo_totale_credito\":924.0,\"tan_pct\":16.8026,\"taeg_pct\":18.159,\"riferimento_normativo\":\"Art. 121 TUB — Dir. 2008/48/CE (CCD)\"}"
+  },
+  "calcolo_tempo_trascorso": {
+   "arguments": {
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2026-09-15\",\"anni\":5,\"mesi\":8,\"giorni\":14,\"giorni_totali\":2083,\"descrizione\":\"5 anni, 8 mesi, 14 giorni\"}"
+  },
+  "calcolo_valore_catastale": {
+   "arguments": {
+    "categoria": "A/2",
+    "rendita_catastale": 900.0
+   },
+   "expected": "{\"rendita_catastale\":900.0,\"rendita_rivalutata\":945.0,\"categoria\":\"A/2\",\"tipo\":\"successione\",\"coefficiente\":120.0,\"valore_catastale\":113400.0,\"riferimento_normativo\":\"DPR 131/1986 art. 52; D.Lgs. 346/1990 art. 34; DL 168/2004 art. 1-bis; DL 262/2006 art. 2 c.45\"}"
+  },
+  "cedolare_secca": {
+   "arguments": {
+    "canone_annuo": 10000.0
+   },
+   "expected": "{\"canone_annuo\":10000.0,\"tipo_contratto\":\"libero\",\"cedolare_secca\":{\"aliquota_pct\":21.0,\"imposta\":2100.0},\"irpef_ordinaria\":{\"base_imponibile_95_pct\":9500.0,\"aliquota_marginale_pct\":38,\"imposta_irpef\":3610.0,\"addizionali_stimate\":190.0,\"totale\":3800.0},\"risparmio_cedolare\":1700.0,\"opzione_conveniente\":\"cedolare_secca\",\"nota\":\"Con cedolare secca: nessun adeguamento ISTAT, no addizionali, no imposta registro\",\"riferimento_normativo\":\"D.Lgs. 23/2011 art. 3 — Cedolare secca sugli affitti\"}"
+  },
+  "compenso_ctu": {
+   "arguments": {
+    "ore_lavoro": 20,
+    "tipo_incarico": "perizia_immobiliare",
+    "valore_causa": 50000.0
+   },
+   "expected": "{\"tipo_incarico\":\"perizia_immobiliare\",\"descrizione\":\"Perizia estimativa immobiliare\",\"calcolo_a_percentuale\":{\"valore_causa\":50000.0,\"percentuale_min\":0.5,\"percentuale_max\":2.0,\"compenso_min\":250.0,\"compenso_max\":1000.0},\"calcolo_orario\":{\"ore_lavoro\":20.0,\"tariffa_oraria_min\":80,\"tariffa_oraria_max\":150,\"compenso_min\":1600.0,\"compenso_max\":3000.0},\"note\":[\"Compensi indicativi — il giudice liquida secondo DPR 115/2002 e DM 30/05/2002\",\"Al compenso si aggiungono spese vive, IVA e CPA 4%\",\"Il CTU può chiedere anticipo spese ex art. 146 DPR 115/2002\"],\"riferimento_normativo\":\"DPR 115/2002 — DM 30/05/2002\"}"
+  },
+  "compenso_curatore_fallimentare": {
+   "arguments": {
+    "attivo_realizzato": 10000.0,
+    "passivo_accertato": 10000.0
+   },
+   "expected": "{\"attivo_realizzato\":10000.0,\"passivo_accertato\":10000.0,\"compenso_su_attivo\":1400.0,\"dettaglio_attivo\":[{\"fascia\":\"€0.00 - €10,000.00\",\"percentuale\":14.0,\"base\":10000.0,\"compenso\":1400.0}],\"compenso_su_passivo\":700.0,\"dettaglio_passivo\":[{\"fascia\":\"€0.00 - €10,000.00\",\"percentuale\":7.0,\"base\":10000.0,\"compenso\":700.0}],\"totale_prima_dei_limiti\":2100.0,\"totale_compenso\":2100.0,\"minimo\":811.35,\"massimo\":405656.8,\"note\":[\"Compenso su attivo: scaglioni progressivi DM 30/2012\",\"Compenso su passivo: metà delle percentuali su attivo\",\"Limiti: minimo €811.35, massimo €405,656.80\",\"Al compenso si aggiungono IVA e CPA se dovute\"],\"riferimento_normativo\":\"DM 30/2012 — Compensi curatore fallimentare\"}"
+  },
+  "compenso_delegati_vendite": {
+   "arguments": {
+    "prezzo_aggiudicazione": 10000.0
+   },
+   "expected": "{\"prezzo_aggiudicazione\":10000.0,\"compenso\":1100.0,\"percentuale_effettiva\":2.6,\"scaglioni\":[{\"fascia\":\"fino a €100.000\",\"percentuale\":2.6,\"minimo\":1100},{\"fascia\":\"€100.001 - €500.000\",\"percentuale\":1.5},{\"fascia\":\"oltre €500.000\",\"percentuale\":0.75}],\"note\":[\"Compenso minimo: €1.100 (per aggiudicazioni fino a €100.000)\",\"Al compenso si aggiungono IVA e CPA/rivalsa se dovute\",\"Rimborso spese forfettario: 10% del compenso\"],\"riferimento_normativo\":\"DM 227/2015 — Compensi professionisti delegati vendite giudiziarie\"}"
+  },
+  "compenso_mediatore_familiare": {
+   "arguments": {
+    "n_incontri": 2
+   },
+   "expected": "{\"n_incontri_totali\":2,\"primo_incontro\":\"gratuito (informativo)\",\"incontri_a_pagamento\":1,\"tariffa_incontro\":120.0,\"compenso_totale\":120.0,\"note\":[\"Il primo incontro informativo è gratuito\",\"Percorso tipico: 8-12 incontri\",\"Tariffa indicativa — varia per professionista e territorio\",\"La mediazione familiare non è regolata da tariffe ministeriali\"]}"
+  },
+  "compenso_occ": {
+   "arguments": {
+    "passivo": 10000.0
+   },
+   "expected": "{\"compenso\":1500.0,\"passivo\":10000.0,\"tipo\":\"ristrutturazione\",\"compenso_calcolato\":500.0,\"minimo_applicato\":true,\"minimo_di_legge\":1500.0,\"dettaglio_fasce\":[{\"fascia\":\"fino a €100,000\",\"imponibile\":10000.0,\"aliquota_pct\":5.0,\"importo\":500.0}],\"riferimento_normativo\":\"D.M. 202/2014 — Compensi OCC ex art. 15 co. 9 D.Lgs. 14/2019\"}"
+  },
+  "compenso_orario": {
+   "arguments": {
+    "ore": 10000,
+    "tariffa_oraria": 10000.0
+   },
+   "expected": "{\"tariffa_oraria\":10000.0,\"tempo_effettivo\":\"10000h 0min\",\"tempo_effettivo_minuti\":600000,\"arrotondamento\":\"mezz_ora\",\"tempo_arrotondato\":\"10000h 0min\",\"tempo_arrotondato_ore\":10000.0,\"compenso\":100000000.0,\"nota\":\"Arrotondamento per eccesso a 30 minuti\"}"
+  },
+  "competenza_giudice": {
+   "arguments": {
+    "valore_causa": 10000.0
+   },
+   "expected": "{\"giudice_competente\":\"Giudice di Pace\",\"articolo\":\"Art. 7 co. 1 c.p.c.\",\"valore_causa\":10000.0,\"materia\":\"civile\",\"materia_riservata\":false,\"note\":\"Cause relative a beni mobili di valore ≤ €10,000.00: competenza GdP\",\"soglia_gdp_euro\":10000.0}"
+  },
+  "composizione_negoziata": {
+   "arguments": {
+    "attivo": 10000.0,
+    "debito_totale": 10000.0,
+    "dipendenti": 10000,
+    "fatturato": 10000.0
+   },
+   "expected": "{\"ammissibile\":true,\"tipo_impresa\":\"commerciale\",\"requisiti_soddisfatti\":[\"Impresa commerciale: accesso diretto (art. 12 co. 1 CCII)\"],\"indicatori\":{\"rapporto_debito_fatturato\":1.0,\"rapporto_debito_attivo_pct\":100.0,\"risanamento_ragionevole\":true,\"nota_risanamento\":\"Rapporto debito/fatturato < 2: risanamento potenzialmente ragionevole\"},\"durata_max\":\"180 giorni + proroga di ulteriori 180 giorni (art. 17 CCII)\",\"misure_protettive\":[\"Sospensione azioni esecutive e cautelari (art. 18 CCII)\",\"Sospensione obbligo di scioglimento per perdita capitale (art. 20 CCII)\",\"Prededuzione dei finanziamenti interinali (art. 22 CCII)\",\"Sospensione revocatoria per atti in esecuzione del piano (art. 24 CCII)\"],\"riferimento_normativo\":\"Artt. 12-25-undecies D.Lgs. 14/2019 (CCII) — Composizione negoziata\"}"
+  },
+  "concordato_preventivo": {
+   "arguments": {
+    "creditori_chirografari": 10000.0,
+    "creditori_privilegiati": 10000.0,
+    "proposta_pct_chirografari": 5.0
+   },
+   "expected": "{\"ammissibile\":true,\"tipo\":\"continuita\",\"totale_debito\":20000.0,\"creditori_privilegiati\":10000.0,\"creditori_chirografari\":10000.0,\"proposta_privilegiati_euro\":10000.0,\"proposta_chirografari_euro\":500.0,\"proposta_totale\":10500.0,\"percentuale_chirografari\":5.0,\"percentuale_privilegiati\":100.0,\"soglia_minima_pct\":0.0,\"nota_soglia\":\"Concordato in continuità: nessuna soglia minima ex lege (art. 84 co. 2 CCII) — il piano deve tuttavia essere migliorativo rispetto alla liquidazione\",\"nota_privilegiati\":\"Privilegiati: soddisfatti integralmente (conforme all'art. 84 CCII)\",\"voto_requisito\":\"Maggioranza dei crediti ammessi per ciascuna classe (art. 109 CCII). In mancanza di classi: maggioranza dei crediti chirografari.\",\"riferimento_normativo\":\"Artt. 84-120 D.Lgs. 14/2019 (CCII) — Concordato preventivo\"}"
+  },
+  "confronto_investimenti": {
+   "arguments": {
+    "importo": 10000.0,
+    "investimenti": [
+     {}
+    ]
+   },
+   "expected": "{\"importo\":10000.0,\"classifica\":[{\"nome\":\"N/D\",\"rendimento_lordo_pct\":0.0,\"tipo_tassazione_riconosciuto\":true,\"aliquota_pct\":26.0,\"rendimento_netto_pct\":0.0,\"durata_anni\":1,\"montante_lordo\":10000.0,\"imposta\":0.0,\"montante_netto\":10000.0,\"guadagno_netto\":0.0}],\"migliore\":\"N/D\",\"nota\":\"Confronto indicativo — non considera costi di gestione, inflazione o rischio\"}"
+  },
+  "conversione_pena": {
+   "arguments": {
+    "importo": 10000.0
+   },
+   "expected": "{\"direzione\":\"detentiva_a_pecuniaria\",\"tipo_pena\":\"reclusione\",\"giorni_detentivi\":10000.0,\"importo_pecuniario_euro\":2500000.0,\"tasso_conversione\":\"€250/giorno\",\"riferimento_normativo\":\"Art. 135 c.p.\"}"
+  },
+  "copie_processo_tributario": {
+   "arguments": {
+    "n_pagine": 2
+   },
+   "expected": "{\"n_pagine\":2,\"tipo\":\"semplice\",\"tariffa_pagina\":0.25,\"subtotale\":0.5,\"urgente\":false,\"totale\":0.5,\"riferimento_normativo\":\"DPR 115/2002 — Tariffe processo tributario\"}"
+  },
+  "costi_costituzione": {
+   "arguments": {
+    "tipo_societa": "srl"
+   },
+   "expected": "{\"tipo_societa\":\"srl\",\"voci_costo\":[{\"voce\":\"Onorario notarile\",\"min\":1500.0,\"max\":2500.0,\"note\":\"Varia per zona e complessità statuto\"},{\"voce\":\"Imposta di registro\",\"min\":200.0,\"max\":200.0,\"note\":\"Fissa (DPR 131/1986)\"},{\"voce\":\"Bolli e diritti\",\"min\":156.0,\"max\":156.0,\"note\":\"Marche da bollo su atto e copia\"},{\"voce\":\"Diritto CCIAA (annuale)\",\"min\":120.0,\"max\":120.0,\"note\":\"Diritto annuale — varia per provincia\"},{\"voce\":\"Diritti MiSE (pratiche Registro Imprese)\",\"min\":90.0,\"max\":90.0,\"note\":\"Diritti di segreteria\"},{\"voce\":\"Tassa di concessione governativa\",\"min\":309.87,\"max\":309.87,\"note\":\"Art. 23 Tariffa TCG\"}],\"totale_stimato_min\":2375.87,\"totale_stimato_max\":3375.87,\"totale_stimato_formato\":\"€2.375,87 – €3.375,87\",\"capitale_minimo\":1.0,\"capitale_consigliato\":10000.0,\"note\":\"Il capitale minimo legale è €1, ma è consigliato almeno €10.000 per operatività e credibilità.\",\"avvertenza\":\"INDICATIVO — i costi notarili variano per zona geografica e complessità dell'operazione. Richiedere preventivo al notaio.\",\"riferimento_normativo\":\"Art. 2463 c.c. — D.M. 55/2014 — DPR 131/1986\"}"
+  },
+  "detrazione_altri_familiari": {
+   "arguments": {
+    "n_familiari": 2,
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"n_familiari\":2,\"soglia_reddito\":80000,\"detrazione_unitaria_teorica\":750,\"detrazione_per_familiare\":656.25,\"detrazione_totale\":1312.5,\"riferimento_normativo\":\"Art. 12, comma 1, lett. d) TUIR — D.P.R. 917/1986\"}"
+  },
+  "detrazione_assegno_coniuge": {
+   "arguments": {
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"fascia\":\"5.501-28.000€\",\"detrazione\":1112.0,\"nota\":\"L'assegno periodico al coniuge e reddito assimilato al lavoro dipendente per il percipiente e onere deducibile per chi lo versa.\",\"riferimento_normativo\":\"Art. 13, comma 5-bis, TUIR — Art. 10, comma 1, lett. c) TUIR\"}"
+  },
+  "detrazione_canone_locazione": {
+   "arguments": {
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"tipo_contratto\":\"libero\",\"detrazione\":300,\"nota_giovani\":null,\"riferimento_normativo\":\"Art. 16 TUIR — D.P.R. 917/1986\"}"
+  },
+  "detrazione_coniuge": {
+   "arguments": {
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"fascia\":\"fino a 15.000€\",\"detrazione\":726.67,\"limite_reddito_coniuge\":2840.51,\"limite_reddito_coniuge_under24\":4000,\"riferimento_normativo\":\"Art. 12, comma 1, lett. a) TUIR — D.P.R. 917/1986\"}"
+  },
+  "detrazione_figli": {
+   "arguments": {
+    "n_figli_over21": 2,
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"n_figli_over21\":2,\"n_figli_disabili\":0,\"soglia_reddito\":110000,\"dettaglio\":[{\"figlio\":1,\"tipo\":\"ordinario\",\"detrazione_teorica\":950,\"importo\":863.64},{\"figlio\":2,\"tipo\":\"ordinario\",\"detrazione_teorica\":950,\"importo\":863.64}],\"detrazione_totale\":1727.28,\"riferimento_normativo\":\"Art. 12 TUIR — D.P.R. 917/1986 (mod. D.Lgs. 230/2021)\"}"
+  },
+  "detrazione_pensione": {
+   "arguments": {
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"giorni\":365,\"fascia\":\"8.501-28.000€\",\"detrazione_annua_piena\":1858.46,\"detrazione_rapportata\":1858.46,\"riferimento_normativo\":\"Art. 13, comma 3, TUIR — D.P.R. 917/1986\"}"
+  },
+  "dichiarazione_553_cpc": {
+   "arguments": {
+    "debitore": "x",
+    "procedura": "x",
+    "terzo_pignorato": "x"
+   },
+   "expected": "{\"testo\":\"DICHIARAZIONE DEL TERZO PIGNORATO\\n(Art. 547 c.p.c.)\\n\\nTRIBUNALE DI _______________\\n\\nProcedura esecutiva n. x\\n\\n***\\n\\nIl/La sottoscritto/a, in qualità di legale rappresentante / responsabile dell'ufficio competente di:\\n\\nx\\n\\nin relazione all'atto di pignoramento presso terzi notificato in data ___________, su istanza di ___________ nei confronti di x,\\n\\nDICHIARA\\n\\n1. Che alla data di notifica del pignoramento, il/la Sig./Sig.ra x risulta titolare dei seguenti rapporti:\\n\\n   [ ] Conto corrente n. ___________ — Saldo alla data del pignoramento: Euro ___________\\n   [ ] Conto deposito n. ___________ — Saldo: Euro ___________\\n   [ ] Deposito titoli n. ___________ — Controvalore: Euro ___________\\n   [ ] Cassetta di sicurezza n. ___________\\n   [ ] Altro: ___________\\n\\n2. Che il saldo disponibile, al netto delle somme impignorabili, è pari a Euro ___________.\\n\\n3. Che le somme sono state vincolate ai sensi dell'art. 546 c.p.c.\\n\\n4. [ ] Che non risultano sequestri, pignoramenti precedenti o cessioni su detti rapporti.\\n   [ ] Che risultano i seguenti vincoli preesistenti: ___________\\n\\nAi sensi dell'art. 547 co. 3 c.p.c., in caso di mancata comparizione all'udienza o mancato invio della presente dichiarazione, il credito pignorato si considera non contestato nei termini indicati dal creditore procedente.\\n\\n[Luogo], [Data]\\n\\nx\\n(Firma e timbro)\",\"tipo_atto\":\"dichiarazione_terzo_pignorato\",\"tipo_rapporto\":\"conto_corrente\",\"riferimento_normativo\":\"Art. 547 c.p.c. — Dichiarazione del terzo\"}"
+  },
+  "diritti_copia": {
+   "arguments": {
+    "n_pagine": 2
+   },
+   "expected": "{\"n_pagine\":2,\"tipo\":\"semplice\",\"formato\":\"digitale\",\"totale\":0.0,\"nota\":\"Copia semplice digitale gratuita (art. 40 DPR 115/2002 mod. DL 90/2014)\",\"riferimento_normativo\":\"DPR 115/2002, art. 267-270, Tabella 8 — DL 90/2014 conv. L. 114/2014\"}"
+  },
+  "equo_indennizzo": {
+   "arguments": {
+    "categoria_tabella": "1",
+    "percentuale_invalidita": 85.0,
+    "stipendio_annuo": 35000.0
+   },
+   "expected": "{\"categoria_tabella\":\"1\",\"range_invalidita\":\"81-100%\",\"percentuale_invalidita\":85.0,\"stipendio_annuo\":35000.0,\"coefficiente\":8.0,\"equo_indennizzo\":238000.0,\"pensione_privilegiata\":true,\"nota_pensione\":\"Categoria 1ª-5ª: diritto a pensione privilegiata se cessazione dal servizio per infermità\",\"attenzione\":\"Istituto ABROGATO per eventi successivi al 06/12/2011 (art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero). Il calcolo è valido solo per pratiche relative a fatti anteriori a tale data.\",\"riferimento_normativo\":\"DPR 461/2001; DPR 834/1981 — Tabella A. Abrogato per nuovi eventi da art. 6 DL 201/2011 (L. 214/2011)\"}"
+  },
+  "fascicolo_di_parte": {
+   "arguments": {
+    "avvocato": "x",
+    "controparte": "x",
+    "parte": "x",
+    "tribunale": "x"
+   },
+   "expected": "{\"testo\":\"X\\n\\nFASCICOLO DI PARTE\\n\\nR.G. n. ___/____\\n\\nX\\n(parte attrice/ricorrente)\\n\\nrappresentata e difesa dall'Avv. x\\n\\nCONTRO\\n\\nX\\n(parte convenuta/resistente)\\n\\nOGGETTO: _______________________________________________\\n\\nGIUDICE: _______________________________________________\\n\\nUDIENZA: _______________________________________________\\n\\nINDICE DOCUMENTI:\\n1. Procura alle liti\\n2. Atto introduttivo\\n3. _______________________________________________\\n\",\"tipo_atto\":\"fascicolo_di_parte\",\"riferimento_normativo\":\"Art. 165 c.p.c. — Costituzione dell'attore\"}"
+  },
+  "fattura_avvocato": {
+   "arguments": {
+    "imponibile": 10000.0
+   },
+   "expected": "{\"regime\":\"ordinario\",\"imponibile\":10000.0,\"cpa_4pct\":400.0,\"imponibile_iva\":10400.0,\"iva_22pct\":2288.0,\"ritenuta_acconto_20pct\":2000.0,\"totale_fattura\":10688.0,\"netto_a_pagare\":10688.0,\"voci\":[{\"descrizione\":\"Compenso professionale\",\"importo\":10000.0},{\"descrizione\":\"CPA 4% (Cassa Previdenza Avvocati)\",\"importo\":400.0},{\"descrizione\":\"IVA 22%\",\"importo\":2288.0},{\"descrizione\":\"Ritenuta d'acconto 20% (su compenso)\",\"importo\":-2000.0}]}"
+  },
+  "fattura_enasarco": {
+   "arguments": {
+    "provvigioni": 10000.0
+   },
+   "expected": "{\"provvigioni\":10000.0,\"tipo_agente\":\"monocommittente\",\"anno\":2026,\"contributo_enasarco\":{\"aliquota_totale\":17.0,\"contributo_totale\":1700.0,\"quota_agente\":850.0,\"quota_preponente\":850.0,\"minimale_trimestrale\":443.0,\"massimale_annuo\":27000.0},\"iva_22pct\":2200.0,\"ritenuta_acconto\":{\"base\":5000.0,\"aliquota\":23.0,\"importo\":1150.0,\"nota\":\"23% sul 50% delle provvigioni (art. 25-bis DPR 600/1973)\"},\"totale_fattura\":12200.0,\"netto_a_pagare\":10200.0,\"nota\":\"Il preponente versa la propria quota Enasarco (€850.0) e trattiene dalla fattura la quota agente (€850.0) + ritenuta (€1150.0)\",\"riferimento_normativo\":\"D.Lgs. 303/1996 — Regolamento Enasarco\"}"
+  },
+  "fattura_professionista": {
+   "arguments": {
+    "imponibile": 10000.0
+   },
+   "expected": "{\"tipo_professionista\":\"ingegnere\",\"regime\":\"ordinario\",\"imponibile\":10000.0,\"rivalsa_inps\":400.0,\"base_imponibile_iva\":10400.0,\"iva\":2288.0,\"ritenuta_acconto\":2000.0,\"totale_fattura\":12688.0,\"netto_a_pagare\":10688.0,\"voci\":[{\"voce\":\"Compenso professionale\",\"importo\":10000.0},{\"voce\":\"Rivalsa INPS 4.0%\",\"importo\":400.0},{\"voce\":\"IVA 22%\",\"importo\":2288.0},{\"voce\":\"Ritenuta d'acconto 20% (-)\",\"importo\":-2000.0}],\"nota\":\"Il committente versa la ritenuta d'acconto con F24 (codice tributo 1040)\"}"
+  },
+  "fine_pena": {
+   "arguments": {
+    "data_inizio_pena": "2021-01-01",
+    "pena_totale_mesi": 12.0
+   },
+   "expected": "{\"data_inizio_pena\":\"2021-01-01\",\"pena_totale_mesi\":12.0,\"giorni_presofferto\":0,\"data_inizio_effettiva\":\"2021-01-01\",\"data_fine_pena\":\"2022-01-01\",\"liberazione_anticipata\":{\"semestri_scontati\":2,\"sconto_giorni\":90,\"data_fine_con_liberazione\":\"2021-10-03\"},\"riferimento_normativo\":\"Art. 54 L. 354/1975 (Ordinamento penitenziario)\"}"
+  },
+  "genera_dpa": {
+   "arguments": {
+    "categorie_dati": [
+     "x"
+    ],
+    "categorie_interessati": [
+     "x"
+    ],
+    "durata": "x",
+    "misure_sicurezza": [
+     "x"
+    ],
+    "oggetto": "x",
+    "responsabile": "x",
+    "titolare": "x"
+   },
+   "expected": "{\"testo\":\"ACCORDO SUL TRATTAMENTO DEI DATI PERSONALI\\nData Processing Agreement (DPA)\\nai sensi dell'art. 28 Reg. UE 2016/679 (GDPR)\\n\\nTra:\\nTITOLARE DEL TRATTAMENTO: x\\n(di seguito \\\"Titolare\\\")\\n\\ne\\n\\nRESPONSABILE DEL TRATTAMENTO: x\\n(di seguito \\\"Responsabile\\\")\\n\\nPREMESSE\\nIl Titolare si avvale del Responsabile per la fornitura di servizi descritti all'art. 1.\\nIl Responsabile tratterà dati personali per conto del Titolare nell'ambito di tali servizi.\\nLe parti, riconoscendo gli obblighi derivanti dall'art. 28 GDPR, stipulano il presente accordo.\\n\\nART. 1 — OGGETTO E DURATA DEL TRATTAMENTO\\n1.1 Il Responsabile fornisce al Titolare i seguenti servizi:\\n    x\\n\\n1.2 Nell'ambito di detti servizi, il Responsabile tratterà dati personali per conto del Titolare.\\n\\n1.3 Durata del trattamento: x. Il presente accordo cessa automaticamente al termine\\n    del contratto di servizio e produce effetti, per quanto riguarda la restituzione/cancellazione\\n    dei dati, anche dopo tale cessazione.\\n\\nART. 2 — CATEGORIE DI INTERESSATI E DATI TRATTATI\\n2.1 Categorie di interessati:\\n  - x\\n\\n2.2 Categorie di dati personali trattati:\\n  - x\\n\\nART. 3 — NATURA E FINALITÀ DEL TRATTAMENTO\\nIl Responsabile tratta i dati personali esclusivamente per le finalità necessarie\\nall'esecuzione del contratto di servizio e secondo le istruzioni documentate del Titolare.\\nIl Responsabile non tratta i dati per finalità proprie o diverse da quelle contrattualmente\\ndefinite senza previa istruzione documentata del Titolare.\\n\\nART. 4 — OBBLIGHI DEL RESPONSABILE (art. 28(3) GDPR)\\n\\n4.1 Istruzioni documentate [art. 28(3)(a)]\\nIl Responsabile tratta i dati personali soltanto su istruzione documentata del Titolare,\\nanche per quanto riguarda i trasferimenti di dati personali verso un paese terzo o\\nun'organizzazione internazionale, a meno che non vi sia tenuto dal diritto dell'Unione\\no dello Stato membro cui è soggetto; in tal caso il Responsabile informa il Titolare\\nprima del trattamento, salvo che il diritto vieti tale informazione per motivi di\\nrilevante interesse pubblico.\\n\\n4.2 Riservatezza [art. 28(3)(b)]\\nIl Responsabile si impegna a garantire che le persone autorizzate al trattamento si\\nsiano impegnate alla riservatezza o abbiano un obbligo legale di riservatezza.\\n\\n4.3 Misure di sicurezza [art. 28(3)(c)]\\nIl Responsabile adotta tutte le misure di sicurezza richieste dall'art. 32 GDPR.\\nLe misure tecniche e organizzative adottate includono:\\n  - x\\n\\n4.4 Sub-responsabili\\nIl Responsabile non è autorizzato ad avvalersi di altri responsabili del trattamento\\n(sub-responsabili) senza la previa autorizzazione scritta specifica o generale del Titolare.\\n\\n4.5 Assistenza nell'esercizio dei diritti degli interessati [art. 28(3)(e)]\\nIl Responsabile assiste il Titolare, con misure tecniche e organizzative adeguate,\\nnel soddisfare l'obbligo di dare seguito alle richieste per l'esercizio dei diritti\\ndell'interessato (artt. 15-22 GDPR) entro i termini previsti dall'art. 12 GDPR.\\n\\n4.6 Assistenza in materia di sicurezza, violazione e DPIA [art. 28(3)(f)]\\nIl Responsabile assiste il Titolare nel garantire il rispetto degli obblighi di cui\\nagli artt. 32-36 GDPR, tenendo conto della natura del trattamento e delle informazioni\\na sua disposizione. In particolare:\\n  - notifica al Titolare, senza ingiustificato ritardo e comunque entro 24 ore dalla scoperta,\\n    qualsiasi violazione dei dati personali (data breach)\\n  - fornisce al Titolare le informazioni necessarie per la valutazione d'impatto (DPIA)\\n\\n4.7 Cancellazione o restituzione dei dati alla cessazione [art. 28(3)(g)]\\nSu scelta del Titolare, il Responsabile cancella o restituisce al Titolare tutti i dati\\npersonali dopo la fine della prestazione dei servizi relativi al trattamento e cancella\\nle copie esistenti, salvo che il diritto dell'Unione o degli Stati membri preveda la\\nconservazione dei dati.\\n\\n4.8 Diritto di audit e ispezioni [art. 28(3)(h)]\\nIl Responsabile mette a disposizione del T"
+  },
+  "genera_dpia": {
+   "arguments": {
+    "descrizione": "descrizione",
+    "finalita": "x",
+    "misure_mitigazione": [
+     {}
+    ],
+    "necessita_proporzionalita": "x",
+    "rischi": [
+     {}
+    ],
+    "titolare": "x"
+   },
+   "expected": "{\"testo\":\"VALUTAZIONE D'IMPATTO SULLA PROTEZIONE DEI DATI (DPIA)\\nai sensi dell'art. 35 Reg. UE 2016/679 (GDPR) — WP248 rev.01\\n\\nTitolare del trattamento: x\\nData DPIA: _______________  Revisione prevista: _______________\\nRedatta da: _______________\\n\\n1. DESCRIZIONE SISTEMATICA DEL TRATTAMENTO\\ndescrizione\\n\\n2. FINALITÀ DEL TRATTAMENTO\\nx\\n\\n3. VALUTAZIONE DELLA NECESSITÀ E PROPORZIONALITÀ\\nx\\n\\nPrincipi GDPR verificati:\\n  □ Limitazione delle finalità (art. 5(1)(b))\\n  □ Minimizzazione dei dati (art. 5(1)(c))\\n  □ Limitazione della conservazione (art. 5(1)(e))\\n  □ Privacy by design e by default (art. 25)\\n  □ Base giuridica adeguata (art. 6)\\n  □ Trasparenza verso gli interessati (art. 13/14)\\n  □ Possibilità di esercizio dei diritti (artt. 15-22)\\n\\n4. ANALISI DEI RISCHI PER I DIRITTI E LE LIBERTÀ DEGLI INTERESSATI\\nScala: Probabilità e Gravità: bassa=1, media=2, alta=3, molto_alta=4\\nScore = Probabilità × Gravità: ≤2=basso, ≤4=medio, ≤6=alto, >6=molto_alto\\n\\n  1. \\n     Probabilità: media | Gravità: media | Livello: MEDIO (score: 4)\\n\\n\\n5. MISURE DI MITIGAZIONE ADOTTATE\\n  1. \\n     Rischio mitigato:  | Efficacia: \\n\\n\\n6. RISCHIO RESIDUO\\nmedio — accettabile con le misure di mitigazione adottate\\n\\n7. CONSULTAZIONE DPO\\n□ Il DPO è stato consultato nella redazione della presente DPIA\\n□ Il parere del DPO è allegato alla presente valutazione\\n\\n8. APPROVAZIONE E MONITORAGGIO\\nIl trattamento è approvato: □ Sì □ No □ Condizionato\\nLa DPIA sarà riesaminata: □ Ogni 2 anni □ In caso di variazioni significative\\n\\nFirma del Titolare / DPO: _______________________  Data: _______________\\n\\nRiferimento normativo: Art. 35 Reg. UE 2016/679 (GDPR); WP248 rev.01 (Linee Guida DPIA)\",\"matrice_rischi\":[{\"descrizione\":\"\",\"probabilita\":\"media\",\"gravita\":\"media\",\"score\":4,\"livello_rischio\":\"medio\",\"avvisi\":[]}],\"rischio_residuo\":\"medio — accettabile con le misure di mitigazione adottate\",\"consultazione_preventiva_necessaria\":false,\"riferimento_normativo\":\"Art. 35 Reg. UE 2016/679 (GDPR); WP248 rev.01 — Linee Guida DPIA EDPB\"}"
+  },
+  "genera_informativa_cookie": {
+   "arguments": {
+    "cookie_tecnici": [
+     "x"
+    ],
+    "sito_web": "x",
+    "titolare": "x"
+   },
+   "expected": "{\"testo\":\"COOKIE POLICY\\nx\\n\\nInformativa ai sensi dell'art. 122 D.Lgs. 196/2003 e delle Linee Guida del Garante per\\nla protezione dei dati personali del 10 giugno 2021 (doc. web 9677876)\\n\\nTITOLARE DEL TRATTAMENTO\\nx\\n\\n1. COSA SONO I COOKIE\\nI cookie sono piccoli file di testo che i siti visitati dall'utente inviano al suo terminale\\n(computer, tablet, smartphone), dove vengono memorizzati per essere poi ritrasmessi agli stessi\\nsiti in occasione di visite successive.\\n\\n2. COOKIE TECNICI (non richiedono consenso)\\nI cookie tecnici sono necessari per il corretto funzionamento del sito e per la fornitura\\ndel servizio richiesto dall'utente. Non richiedono il consenso dell'utente (art. 122(1) D.Lgs. 196/2003).\\nUtilizziamo i seguenti cookie tecnici:\\n  x\\n\\n5. COME GESTIRE I COOKIE\\nLei può gestire le proprie preferenze relative ai cookie mediante le impostazioni del browser\\nche utilizza. Tuttavia, la disabilitazione dei cookie tecnici potrebbe pregiudicare il\\ncorretto funzionamento del sito.\\n\\nBrowser principali:\\n  - Chrome: Impostazioni > Privacy e sicurezza > Cookie e altri dati dei siti\\n  - Firefox: Opzioni > Privacy e sicurezza > Cookie e dati dei siti\\n  - Safari: Preferenze > Privacy > Gestisci dati siti web\\n  - Edge: Impostazioni > Privacy, ricerca e servizi > Cookie\\n\\n6. TITOLARE DEL TRATTAMENTO E CONTATTI\\nTitolare: x\\nPer esercitare i diritti ex artt. 15-22 GDPR o per informazioni sui cookie:\\ninviare richiesta scritta al Titolare del trattamento.\\nDiritto di reclamo: Garante per la protezione dei dati personali — www.garanteprivacy.it\\n\\nCookie Policy aggiornata ai sensi del Reg. UE 2016/679 (GDPR), dell'art. 122 D.Lgs. 196/2003\\ne delle Linee Guida del Garante del 10/06/2021.\",\"tabella_cookie\":[{\"nome\":\"x\",\"tipo\":\"Tecnico\",\"finalita\":\"Funzionamento del sito, navigazione, sessione utente\",\"durata\":\"Sessione / fino a 12 mesi\",\"fornitore\":\"x\",\"base_giuridica\":\"Art. 6(1)(b) GDPR — necessario per erogare il servizio; non richiede consenso (art. 122(1) D.Lgs. 196/2003)\"}],\"banner_testo_suggerito\":\"Questo sito utilizza cookie tecnici necessari al funzionamento. Non utilizziamo cookie di profilazione o marketing.\",\"consenso_richiesto_analytics\":false,\"consenso_richiesto_profilazione\":false,\"riferimento_normativo\":\"Art. 122 D.Lgs. 196/2003; Linee Guida Garante 10/06/2021 (doc. web 9677876); Art. 6(1)(a) GDPR\"}"
+  },
+  "genera_informativa_dipendenti": {
+   "arguments": {
+    "titolare": "x"
+   },
+   "expected": "{\"testo\":\"INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI DEI DIPENDENTI\\nai sensi dell'art. 13 Reg. UE 2016/679 (GDPR), dell'art. 111-bis D.Lgs. 196/2003\\ne dell'art. 4 L. 300/1970\\n\\nGentile Dipendente/Collaboratore,\\nin qualità di Titolare del trattamento, x La informa che, nel contesto del rapporto\\ndi lavoro, tratta dati personali che La riguardano. La presente informativa descrive le modalità\\ndi raccolta, utilizzo e protezione dei Suoi dati personali.\\n\\n1. TITOLARE DEL TRATTAMENTO\\nx\\n\\n2. FINALITÀ E BASI GIURIDICHE DEL TRATTAMENTO\\n\\na) Gestione del rapporto di lavoro — Base: art. 6(1)(b) GDPR (esecuzione del contratto di lavoro)\\n   Finalità: amministrazione del personale, pagamento retribuzioni, gestione presenze/assenze,\\n   gestione ferie, permessi e trasferte, valutazione delle prestazioni.\\n\\nb) Adempimenti di legge — Base: art. 6(1)(c) GDPR (obbligo legale)\\n   Finalità: obblighi fiscali e previdenziali (INPS, INAIL, Agenzia delle Entrate), sicurezza sul\\n   lavoro (D.Lgs. 81/2008), comunicazioni obbligatorie ai centri per l'impiego, adempimenti\\n   contrattuali e di legge sul lavoro.\\n\\nc) Dati sanitari (se presenti) — Base: art. 9(2)(b) GDPR + art. 6(1)(c) GDPR\\n   Finalità: sorveglianza sanitaria obbligatoria ex D.Lgs. 81/2008, gestione malattia/infortunio,\\n   valutazione idoneità alla mansione. Trattamento effettuato dal medico competente.\\n\\nd) Tutela del patrimonio aziendale e sicurezza — Base: art. 6(1)(f) GDPR (legittimo interesse)\\n   Finalità: sicurezza degli accessi ai locali aziendali, tutela del patrimonio, prevenzione illeciti.\\n\\n3. CATEGORIE DI DATI PERSONALI TRATTATI\\n  - Dati anagrafici e di identificazione (nome, cognome, CF, data/luogo di nascita)\\n  - Dati di contatto (indirizzo, telefono, email)\\n  - Dati del documento di identità e/o permesso di soggiorno\\n  - Dati bancari (IBAN per accredito stipendio)\\n  - Dati relativi al rapporto di lavoro (posizione, qualifica, livello, retribuzione)\\n  - Dati di presenze, assenze, ferie e permessi\\n  - Dati fiscali e previdenziali (codice fiscale, partita IVA se autonomi, posizione INPS/INAIL)\\n  - Dati sanitari (in capo al medico competente, con accesso limitato al datore ex D.Lgs. 81/2008)\\n  - Dati relativi a provvedimenti disciplinari\\n\\n4. DESTINATARI\\nI dati potranno essere comunicati a:\\n  - Consulente del lavoro / studio paghe\\n  - Commercialista / revisore contabile\\n  - INPS, INAIL, Agenzia delle Entrate e altri enti pubblici previdenziali/fiscali\\n  - Istituto bancario (per accredito retribuzioni)\\n  - Medico competente (per sorveglianza sanitaria)\\n  - Fornitori di servizi IT (gestione paghe, HR software) — in qualità di responsabili del trattamento\\n  - Autorità giudiziaria in caso di contenzioso\\n\\n5. PERIODO DI CONSERVAZIONE\\n  - Dati del rapporto di lavoro: per tutta la durata e per 10 anni successivi alla cessazione\\n    (prescrizione ordinaria art. 2946 c.c.)\\n  - Buste paga e documenti contabili: 10 anni (obblighi fiscali)\\n  - Dati di sorveglianza sanitaria: 40 anni (art. 25(1)(a) D.Lgs. 81/2008 per esposizione ad\\n    agenti chimici/fisici/biologici)\\n  - Riprese videosorveglianza: 24-72 ore salvo diverse esigenze documentate\\n\\n6. DIRITTI DELL'INTERESSATO\\nIn qualità di interessato, Lei ha il diritto di:\\n  - Accesso ai dati che La riguardano (art. 15 GDPR)\\n  - Rettifica dei dati inesatti (art. 16 GDPR)\\n  - Cancellazione (\\\"diritto all'oblio\\\") ove applicabile (art. 17 GDPR)\\n  - Limitazione del trattamento (art. 18 GDPR)\\n  - Opposizione al trattamento per motivi legittimi (art. 21 GDPR)\\n\\nNota: il diritto alla portabilità (art. 20) si applica solo ai trattamenti basati su consenso o contratto\\nED effettuati con mezzi automatizzati; non si applica ai trattamenti basati su obbligo legale.\\n\\n7. DIRITTO DI PROPORRE RECLAMO\\nPuò proporre reclamo al Garante per la protezione dei dati personali (www.garanteprivacy.it).\\n\\nInformativa resa ai sensi dell'art. 13 GDPR, dell'art. 111-bis D.Lgs. 196/2003 e dell'art. 4 L. 300/1970.\\nD"
+  },
+  "genera_informativa_privacy": {
+   "arguments": {
+    "basi_giuridiche": [
+     "x"
+    ],
+    "categorie_dati": [
+     "x"
+    ],
+    "destinatari": [
+     "x"
+    ],
+    "finalita": [
+     "x"
+    ],
+    "periodo_conservazione": "x",
+    "titolare": "x"
+   },
+   "expected": "{\"testo\":\"INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI\\nai sensi Art. 13 Reg. UE 2016/679 (GDPR)\\n\\nGentile Interessato/a,\\nin ottemperanza a quanto previsto dal Regolamento (UE) 2016/679 (di seguito \\\"GDPR\\\"), La informiamo\\nche x (di seguito \\\"Titolare\\\"), raccogliendo i Suoi dati personali direttamente da Lei, tratta i Suoi dati personali.\\n\\n1. TITOLARE DEL TRATTAMENTO\\nx\\nPer esercitare i Suoi diritti o per qualsiasi informazione sul trattamento dei Suoi dati personali,\\npuò contattare il Titolare agli indirizzi sopra indicati.\\n\\n2. FINALITÀ E BASI GIURIDICHE DEL TRATTAMENTO\\nIl Titolare tratta i Suoi dati personali per le seguenti finalità e sulla base delle\\ncorrispondenti basi giuridiche (art. 6 GDPR):\\n\\n  1. x\\n\\nLe basi giuridiche del trattamento sono:\\n  1. x\\n\\n3. CATEGORIE DI DATI PERSONALI TRATTATI\\nIl Titolare tratta le seguenti categorie di dati personali:\\n  - x\\n\\n4. DESTINATARI O CATEGORIE DI DESTINATARI\\nI Suoi dati personali potranno essere comunicati alle seguenti categorie di destinatari:\\n  - x\\n\\nI dati non saranno diffusi, salvo espressa previsione di legge o Suo consenso.\\nI soggetti appartenenti alle categorie sopra indicate svolgono la funzione di responsabili\\ndel trattamento (art. 28 GDPR), incaricati del trattamento ovvero operano in autonomia\\ncome distinti titolari del trattamento.\\n\\n7. PERIODO DI CONSERVAZIONE\\nI Suoi dati personali saranno conservati per il seguente periodo:\\n  x\\n\\nDecorso tale termine, i dati saranno cancellati o resi anonimi in modo irreversibile,\\nsalvo obblighi di conservazione previsti dalla legge.\\n\\n8. DIRITTI DELL'INTERESSATO\\nIn qualità di interessato, Lei ha il diritto di:\\n  - accesso (art. 15)\\n  - rettifica (art. 16)\\n  - cancellazione (art. 17)\\n  - limitazione del trattamento (art. 18)\\n  - portabilità dei dati (art. 20)\\n  - opposizione al trattamento (art. 21)\\n  - revoca del consenso (art. 7(3))\\n\\nPer esercitare i Suoi diritti, può inviare una richiesta scritta al Titolare del trattamento.\\nIl Titolare risponderà entro un mese dalla ricezione della richiesta, prorogabile di due mesi per richieste complesse o numerose (art. 12(3) GDPR).\\n\\n9. DIRITTO DI PROPORRE RECLAMO\\nLei ha il diritto di proporre reclamo all'Autorità di controllo competente.\\nIn Italia: Garante per la protezione dei dati personali\\nSito web: www.garanteprivacy.it\\nE-mail: garante@gpdp.it\\nIndirizzo: Piazza Venezia n. 11, 00187 Roma\\n\\nInformativa aggiornata ai sensi del Reg. UE 2016/679 (GDPR) e del D.Lgs. 196/2003\\ncome modificato dal D.Lgs. 101/2018.\",\"elementi_obbligatori_verificati\":{\"identita_titolare\":true,\"finalita_trattamento\":true,\"base_giuridica\":true,\"categorie_dati\":true,\"destinatari\":true,\"periodo_conservazione\":true,\"diritti_interessato\":true,\"diritto_reclamo\":true,\"dpo_se_nominato\":true,\"trasferimento_extra_ue_se_presente\":true},\"tutti_elementi_presenti\":true,\"tipo\":\"art13\",\"riferimento_normativo\":\"Art. 13 Reg. UE 2016/679 (GDPR)\"}"
+  },
+  "genera_informativa_videosorveglianza": {
+   "arguments": {
+    "aree_riprese": [
+     "x"
+    ],
+    "finalita": [
+     "x"
+    ],
+    "tempo_conservazione": "x",
+    "titolare": "x"
+   },
+   "expected": "{\"informativa_breve\":\"[AREA VIDEOSORVEGLIATA]\\nIl titolare x effettua riprese video in questa area per: x.\\nLe immagini sono conservate per x e sono trattate ai sensi dell'art. 13 GDPR.\\nTitolare del trattamento: x\\nPer maggiori informazioni e per esercitare i Suoi diritti: [recapiti titolare]\",\"informativa_estesa\":\"INFORMATIVA SUL SISTEMA DI VIDEOSORVEGLIANZA\\nai sensi dell'art. 13 Reg. UE 2016/679 (GDPR) e delle Linee Guida EDPB 3/2019\\n\\n1. TITOLARE DEL TRATTAMENTO\\nx\\n\\n2. FINALITÀ DEL TRATTAMENTO E BASE GIURIDICA\\nIl sistema di videosorveglianza è installato per le seguenti finalità:\\n  - x\\n\\nBase giuridica del trattamento: art. 6(1)(f) GDPR — legittimo interesse del titolare alla\\nsicurezza delle persone, alla tutela del patrimonio e alla prevenzione di atti illeciti,\\nbilanciato con i diritti degli interessati.\\n\\nNei luoghi di lavoro, il sistema opera previa stipula di accordo sindacale (art. 4(1) L. 300/1970)\\novvero previa autorizzazione dell'Ispettorato Territoriale del Lavoro competente (art. 4(2) L. 300/1970).\\nIl sistema non è utilizzabile per il controllo a distanza dell'attività lavorativa dei dipendenti.\\n\\n3. AREE SOTTOPOSTE A RIPRESA\\nLe riprese video sono effettuate nelle seguenti aree:\\n  - x\\n\\nNon sono riprese aree dove è ragionevole attendersi riservatezza (bagni, spogliatoi, locali\\nsindacali). Le telecamere non sono orientate verso aree pubbliche esterne ai locali, salvo\\nstretta necessità documentata.\\n\\n4. PERIODO DI CONSERVAZIONE\\nLe immagini registrate sono conservate per: x\\n\\nDecorso tale termine, le immagini sono cancellate automaticamente in modo irreversibile.\\nLa conservazione oltre tale limite è possibile solo su richiesta dell'autorità giudiziaria\\no di polizia giudiziaria, in relazione a specifici eventi già verificatisi.\\n\\n5. DESTINATARI\\nLe immagini sono accessibili esclusivamente al personale autorizzato dal titolare per\\nfinalità di sicurezza. Potranno essere comunicate a:\\n  - Forze dell'ordine / autorità giudiziaria, su richiesta o in caso di reati\\n  - Fornitore del servizio di videosorveglianza (in qualità di responsabile del trattamento, art. 28 GDPR)\\n\\n6. DIRITTI DELL'INTERESSATO\\nPotrà esercitare i diritti di cui agli artt. 15-22 GDPR (accesso, rettifica, cancellazione,\\nlimitazione, opposizione) inviando richiesta scritta al titolare.\\nIl diritto di accesso alle riprese dovrà essere motivato da un interesse personale all'accesso\\n(es. identificazione di autori di illeciti subiti) e sarà soddisfatto garantendo la tutela\\ndella privacy degli altri soggetti eventualmente presenti nelle immagini.\\n\\n7. RECLAMO\\nGarante per la protezione dei dati personali — www.garanteprivacy.it\",\"adempimenti_preventivi\":[\"Accordo sindacale (art. 4(1) L. 300/1970) se il sistema controlla lavoratori dipendenti, OPPURE\",\"Autorizzazione dell'Ispettorato Territoriale del Lavoro (ITL) ex art. 4(2) L. 300/1970 (in mancanza di accordo sindacale)\",\"Esposizione del cartello informativo EDPB all'ingresso delle aree videosorvegliate\",\"Inserimento nel Registro dei trattamenti (art. 30 GDPR)\",\"Valutazione della necessità di DPIA se monitoraggio sistematico su larga scala (art. 35 GDPR)\",\"Verifica proporzionalità: le riprese devono limitarsi alle aree strettamente necessarie\",\"Configurazione sistema per cancellazione automatica dopo il termine di conservazione\",\"Accesso limitato alle immagini: solo soggetti autorizzati e per le finalità dichiarate\"],\"riferimento_normativo\":\"Art. 13 Reg. UE 2016/679 (GDPR); Linee Guida EDPB 3/2019 sul trattamento di dati personali tramite dispositivi video; Art. 4 L. 300/1970 (Statuto dei Lavoratori)\"}"
+  },
+  "genera_notifica_data_breach": {
+   "arguments": {
+    "categorie_dati": [
+     "x"
+    ],
+    "conseguenze": "x",
+    "data_scoperta": "2024-06-30",
+    "data_violazione": "2021-01-01",
+    "descrizione": "descrizione",
+    "misure_adottate": [
+     "x"
+    ],
+    "n_interessati": 2,
+    "titolare": "x"
+   },
+   "expected": "{\"testo\":\"NOTIFICA DI VIOLAZIONE DEI DATI PERSONALI (DATA BREACH)\\nai sensi dell'art. 33 Reg. UE 2016/679 (GDPR)\\n\\nAl Garante per la protezione dei dati personali\\nPiazza Venezia n. 11, 00187 Roma\\ndatibreach@gpdp.it — garante@gpdp.it\\n\\n======================================================================\\nNOTA: Questa notifica deve essere inviata tramite il portale telematico del Garante\\ndisponibile all'indirizzo: https://servizi.gpdp.it/databreach/\\n======================================================================\\n\\n1. IDENTITÀ E RECAPITI DEL TITOLARE DEL TRATTAMENTO [art. 33(3)(a)]\\nTitolare: x\\nDPO: [Non nominato / indicare se presente]\\n\\n2. NATURA DELLA VIOLAZIONE [art. 33(3)(a)]\\ndescrizione\\n\\nData e ora della violazione (stimata): 01/01/2021 ore 00:00\\nData e ora della scoperta: 30/06/2024 ore 00:00\\nData e ora della presente notifica: _______________\\n\\nATTENZIONE: Sono trascorse circa 19380 ore dalla scoperta. Il termine di 72 ore è probabilmente superato. Notificare immediatamente al Garante indicando i motivi del ritardo (art. 33(1) GDPR).\\n\\n3. CATEGORIE E NUMERO APPROSSIMATIVO DI INTERESSATI COINVOLTI [art. 33(3)(a)]\\nNumero approssimativo di interessati: 2\\nCategorie di dati coinvolti:\\n  - x\\n\\nCategorie di dati particolari (art. 9) coinvolti: □ Sì □ No\\nDati di minori coinvolti: □ Sì □ No\\n\\n4. PROBABILI CONSEGUENZE DELLA VIOLAZIONE [art. 33(3)(c)]\\nx\\n\\nImpatto stimato sugli interessati:\\n  □ Discriminazione\\n  □ Furto d'identità o frode\\n  □ Perdite finanziarie\\n  □ Danno alla reputazione\\n  □ Perdita della riservatezza di dati protetti da segreto professionale\\n  □ Altro: _______________\\n\\n5. MISURE ADOTTATE O PROPOSTE PER PORRE RIMEDIO [art. 33(3)(d)]\\n  - x\\n\\nMisure per attenuare i possibili effetti negativi:\\n  □ Notifica agli interessati ai sensi dell'art. 34 GDPR\\n  □ Blocco degli accessi non autorizzati\\n  □ Ripristino dei sistemi compromessi\\n  □ Rafforzamento delle misure di sicurezza\\n  □ Coinvolgimento delle autorità competenti (Polizia Postale, CERT)\\n  □ Altro: _______________\\n\\n6. COMUNICAZIONE AGLI INTERESSATI (art. 34 GDPR)\\n  □ Comunicazione effettuata agli interessati (allegare copia)\\n  □ Comunicazione non ancora effettuata (motivare)\\n  □ Comunicazione non obbligatoria (indicare motivo, es. dati cifrati ex art. 34(3)(a))\\n\\n7. INFORMAZIONI AGGIUNTIVE\\nLa presente notifica è:\\n  □ Notifica iniziale (entro 72 ore, con possibilità di integrazioni)\\n  □ Notifica integrativa (in aggiunta a notifica iniziale del _______________)\\n\\nNumero di riferimento notifica precedente (se integrativa): _______________\\n\\nDocumenti allegati:\\n  □ Log di sistema\\n  □ Report tecnico dell'incidente\\n  □ Comunicazione agli interessati\\n  □ Altro: _______________\\n\\n======================================================================\\nFirma del Titolare / DPO: ___________________________\\nLuogo e data: ___________________________\\n======================================================================\\n\\nTERMINE SCADENZA NOTIFICA: 03/07/2024 ore 00:00\\n(72 ore dalla scoperta — art. 33(1) GDPR)\\n\\nRiferimento normativo: Art. 33 Reg. UE 2016/679 (GDPR) — Notifica all'autorità di controllo\",\"termine_scadenza\":\"03/07/2024 ore 00:00\",\"scadenza_72h_superata\":true,\"ore_dalla_scoperta\":19380.0,\"elementi_art33_3\":{\"a_natura_violazione\":true,\"b_contatti_dpo\":false,\"c_probabili_conseguenze\":true,\"d_misure_adottate\":true},\"tutti_elementi_presenti\":false,\"riferimento_normativo\":\"Art. 33 Reg. UE 2016/679 (GDPR) — Notifica di una violazione dei dati personali all'autorità di controllo\"}"
+  },
+  "genera_registro_trattamenti": {
+   "arguments": {
+    "base_giuridica": "x",
+    "categorie_dati": [
+     "x"
+    ],
+    "categorie_interessati": [
+     "x"
+    ],
+    "destinatari": [
+     "x"
+    ],
+    "finalita": "x",
+    "misure_sicurezza": [
+     "x"
+    ],
+    "termine_cancellazione": "x",
+    "titolare": "x",
+    "trattamento": "x"
+   },
+   "expected": "{\"scheda\":{\"titolare\":\"x\",\"nome_trattamento\":\"x\",\"finalita\":\"x\",\"base_giuridica_art6\":\"x\",\"categorie_interessati\":[\"x\"],\"categorie_dati_personali\":[\"x\"],\"dati_categorie_particolari_art9\":false,\"dati_giudiziari_art10\":false,\"destinatari_terzi\":[\"x\"],\"trasferimenti_paesi_terzi\":\"Nessuno (da verificare)\",\"termine_cancellazione\":\"x\",\"misure_sicurezza_art32\":[\"x\"]},\"testo\":\"REGISTRO DEI TRATTAMENTI — SCHEDA TRATTAMENTO\\nai sensi dell'art. 30 Reg. UE 2016/679 (GDPR)\\n\\nTitolare del trattamento: x\\nData ultima revisione: _______________\\n\\n┌─────────────────────────────────────────────────────────────────────┐\\n│ SCHEDA TRATTAMENTO: x\\n└─────────────────────────────────────────────────────────────────────┘\\n\\n1. TITOLARE DEL TRATTAMENTO (art. 30(1)(a))\\n   x\\n\\n2. FINALITÀ DEL TRATTAMENTO (art. 30(1)(b))\\n   x\\n\\n3. BASE GIURIDICA (art. 30(1)(b) — da indicare per documentazione interna)\\n   x\\n\\n4. CATEGORIE DI INTERESSATI (art. 30(1)(c))\\n  - x\\n\\n5. CATEGORIE DI DATI PERSONALI (art. 30(1)(c))\\n  - x\\n   Dati particolari (art. 9): No — da aggiornare se presenti\\n   Dati giudiziari (art. 10): No — da aggiornare se presenti\\n\\n6. DESTINATARI O CATEGORIE DI DESTINATARI (art. 30(1)(d))\\n  - x\\n\\n7. TRASFERIMENTI VERSO PAESI TERZI (art. 30(1)(e))\\n   Nessun trasferimento verso paesi terzi o organizzazioni internazionali\\n   (verificare e aggiornare se presenti trasferimenti extra-UE)\\n\\n8. TERMINE DI CANCELLAZIONE (art. 30(1)(f))\\n   x\\n\\n9. MISURE DI SICUREZZA (art. 30(1)(g))\\n  - x\\n\\nNote aggiuntive: _______________________________________________\\nData aggiornamento: _______________   A cura di: ________________\",\"riferimento_normativo\":\"Art. 30 Reg. UE 2016/679 (GDPR)\"}"
+  },
+  "grado_parentela": {
+   "arguments": {
+    "relazione": "figlio"
+   },
+   "expected": "{\"relazione\":\"figlio\",\"grado\":1,\"linea\":\"retta\",\"passi\":[\"figlio\"],\"rilevanza_successoria\":\"Parentela rilevante per successione\",\"imposta_successione\":\"Franchigia €1.000.000 + aliquota 4%\",\"riferimento_normativo\":\"Art. 74-77 c.c. — Parentela e affinità\"}"
+  },
+  "gratuito_patrocinio": {
+   "arguments": {
+    "reddito_richiedente": 10000.0
+   },
+   "expected": "{\"ammesso\":true,\"vittima_violenza\":false,\"reddito_richiedente\":10000.0,\"redditi_familiari\":[],\"n_familiari_conviventi\":0,\"reddito_totale_nucleo\":10000.0,\"soglia_applicata\":13659.64,\"margine\":3659.64,\"ambito\":\"civile\",\"note\":\"Reddito nucleo familiare: €10,000.00 — Soglia civile: €13,659.64 — AMMESSO (margine: +3,659.64 €)\",\"riferimento_normativo\":\"DPR 115/2002 artt. 76, 92 — D.M. 22 aprile 2025 (soglia €13.659,64)\"}"
+  },
+  "imposta_registro_locazioni": {
+   "arguments": {
+    "canone_annuo": 10000.0
+   },
+   "expected": "{\"canone_annuo\":10000.0,\"durata_anni\":4,\"tipo_contratto\":\"libero\",\"aliquota_pct\":2.0,\"imposta_prima_annualita\":200.0,\"imposta_annualita_successive\":200.0,\"totale_durata_contratto\":800.0,\"opzione_intera_durata\":800.0,\"minimo_applicato\":false,\"nota\":\"Imposta a carico 50% locatore e 50% conduttore (salvo patto contrario)\",\"riferimento_normativo\":\"DPR 131/1986 art. 5 Tariffa Parte I — Imposta registro locazioni\"}"
+  },
+  "indennita_licenziamento": {
+   "arguments": {
+    "anni_servizio": 10.0,
+    "retribuzione_mensile": 10000.0
+   },
+   "expected": "{\"anni_servizio\":10.0,\"retribuzione_mensile\":10000.0,\"tipo\":\"indennitario\",\"dimensione_azienda\":\"grande\",\"mensilita\":20.0,\"importo\":200000.0,\"minimo_mensilita\":6,\"massimo_mensilita\":36,\"dettaglio_formula\":\"anni_servizio (10.0) × 2 = 20.0 → clamp [6, 36]\",\"nota\":\"Azienda con >15 dipendenti: regime ordinario D.Lgs. 23/2015 art. 3\",\"riferimento_normativo\":\"D.Lgs. 23/2015 artt. 3, 9 — C.Cost. 194/2018, 128/2024, 118/2025\"}"
+  },
+  "indice_documenti": {
+   "arguments": {
+    "documenti": [
+     {}
+    ]
+   },
+   "expected": "{\"testo\":\"INDICE DEI DOCUMENTI ALLEGATI\\n================================================================================\\n\\nDoc.   0  —                                                                (pagg. 0)\\n================================================================================\\nTotale documenti: 1 — Totale pagine: 0\",\"tipo_atto\":\"indice_documenti\",\"totale_documenti\":1,\"totale_pagine\":0,\"riferimento_normativo\":\"Specifiche tecniche PCT — DM 44/2011\"}"
+  },
+  "interessi_tasso_fisso": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01",
+    "tasso_annuo": 5.0
+   },
+   "expected": "{\"capitale\":10000.0,\"tasso_annuo_pct\":5.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"giorni\":1276,\"tipo\":\"semplici\",\"interessi\":1747.95,\"montante\":11747.95}"
+  },
+  "istanza_visibilita_fascicolo": {
+   "arguments": {
+    "avvocato": "x",
+    "parte": "x",
+    "rg_numero": "x",
+    "tribunale": "x"
+   },
+   "expected": "{\"testo\":\"ISTANZA DI VISIBILITA' DEL FASCICOLO TELEMATICO\\n\\nAl Sig. x\\nUfficio _______________\\n\\nR.G. n. x\\n\\n***\\n\\nIl sottoscritto Avv. x, C.F. ___, del Foro di ___, con studio in ___, PEC: ___,\\n\\nnell'interesse di x, C.F. ___,\\n\\nESPONE\\n\\ndi doversi costituire nel procedimento sopra indicato in qualità di difensore della parte convenuta/resistente e necessitando pertanto di prendere visione degli atti contenuti nel fascicolo telematico per predisporre la propria difesa;\\n\\nche allo stato attuale il fascicolo telematico non risulta visibile al sottoscritto difensore, non essendosi ancora costituito in giudizio;\\n\\nCHIEDE\\n\\nche venga concessa la visibilità del fascicolo telematico relativo al procedimento R.G. n. x, al fine di consentire al sottoscritto difensore di prendere visione degli atti e documenti in esso contenuti.\\n\\nSi allega copia del mandato difensivo.\\n\\nCon osservanza.\\n\\n[Luogo], [Data]\\n\\nAvv. x\\n(firmato digitalmente)\",\"tipo_atto\":\"istanza_visibilita_fascicolo\",\"motivo\":\"costituzione\",\"rg_numero\":\"x\",\"riferimento_normativo\":\"Art. 16-bis DL 179/2012 — Specifiche tecniche PCT (DM 44/2011)\"}"
+  },
+  "menomazioni_plurime": {
+   "arguments": {
+    "percentuali": [
+     15,
+     10,
+     5
+    ]
+   },
+   "expected": "{\"percentuali_input\":[15.0,10.0,5.0],\"invalidita_complessiva_pct\":27.32,\"somma_aritmetica_pct\":30.0,\"riduzione_pct\":2.68,\"formula\":\"IT = 1 - Π(1 - pi/100) × 100\",\"passi_calcolo\":[{\"menomazione\":1,\"percentuale\":15.0,\"fattore_residuo\":0.85,\"prodotto_parziale\":0.85},{\"menomazione\":2,\"percentuale\":10.0,\"fattore_residuo\":0.9,\"prodotto_parziale\":0.765},{\"menomazione\":3,\"percentuale\":5.0,\"fattore_residuo\":0.95,\"prodotto_parziale\":0.72675}],\"riferimento_normativo\":\"Formula Balthazard — riduzione proporzionale per invalidità concorrenti\"}"
+  },
+  "nota_precisazione_credito": {
+   "arguments": {
+    "capitale": 10000.0,
+    "creditore": "x",
+    "debitore": "x",
+    "interessi": 10000.0,
+    "procedura_esecutiva": "x",
+    "spese_esecuzione": 10000.0,
+    "spese_legali": 10000.0
+   },
+   "expected": "{\"testo\":\"NOTA DI PRECISAZIONE DEL CREDITO\\n(Art. 547 c.p.c.)\\n\\nTRIBUNALE DI _______________\\n\\nProcedura esecutiva n. x\\n\\nPromossa da: x\\nContro: x\\n\\n***\\n\\nIl/La sottoscritto/a Avv. ___, quale difensore di x, ai sensi dell'art. 547 c.p.c.,\\n\\nPRECISA\\n\\nil proprio credito come segue, aggiornato alla data odierna:\\n\\n1. Capitale:                  Euro    10,000.00\\n2. Interessi maturati:        Euro    10,000.00\\n3. Spese legali:              Euro    10,000.00\\n4. Spese di esecuzione:       Euro    10,000.00\\n   ——————————————————————————————————————\\n   TOTALE:                    Euro    40,000.00\\n\\nOltre ulteriori interessi dalla data odierna al saldo effettivo al tasso legale vigente.\\n\\nSi allegano:\\n1. Conteggio analitico degli interessi\\n2. Nota spese\\n3. Titolo esecutivo e precetto\\n\\nCon osservanza.\\n\\n[Luogo], [Data]\\n\\nAvv. _______________\",\"tipo_atto\":\"nota_precisazione_credito\",\"capitale\":10000.0,\"interessi\":10000.0,\"spese_legali\":10000.0,\"spese_esecuzione\":10000.0,\"totale_credito\":40000.0,\"riferimento_normativo\":\"Art. 547 c.p.c. — Dichiarazione del terzo e precisazione credito\"}"
+  },
+  "nota_spese": {
+   "arguments": {
+    "voci": [
+     {
+      "descrizione": "attività di studio",
+      "importo": 2000.0,
+      "tipo": "compenso"
+     }
+    ]
+   },
+   "expected": "{\"dettaglio_voci\":[{\"descrizione\":\"attività di studio\",\"tipo\":\"compenso\",\"importo\":2000.0}],\"totale_compensi\":2000.0,\"totale_spese_generali_15pct\":0.0,\"subtotale_compensi\":2000.0,\"cpa_4pct\":80.0,\"imponibile_iva\":2080.0,\"iva_22pct\":457.6,\"totale_spese_vive\":0.0,\"totale_nota_spese\":2537.6,\"riferimento_normativo\":\"DM 55/2014 — Art. 2 c. 2 spese generali 15%\"}"
+  },
+  "note_trattazione_scritta": {
+   "arguments": {
+    "avvocato": "x",
+    "conclusioni": "x",
+    "giudice": "x",
+    "parte": "x",
+    "rg_numero": "x",
+    "tribunale": "x"
+   },
+   "expected": "{\"testo\":\"X\\nSezione ___\\n\\nR.G. n. x\\nGiudice: x\\n\\nNOTE DI TRATTAZIONE SCRITTA\\n(Art. 127-ter c.p.c.)\\n\\nNell'interesse di: x\\nDifeso da: Avv. x\\n\\n***\\n\\nIl sottoscritto difensore, ai sensi dell'art. 127-ter c.p.c., in sostituzione dell'udienza fissata per il giorno ___, deposita le seguenti\\n\\nNOTE SCRITTE\\n\\nPremesso che la causa verte su _______________,\\n\\nsi osserva quanto segue:\\n\\n_______________________________________________\\n_______________________________________________\\n\\nCONCLUSIONI\\n\\nx\\n\\n***\\n\\nSi chiede che il Giudice voglia provvedere come in conclusioni.\\n\\nSi producono i seguenti documenti:\\n_______________________________________________\\n\\nCon osservanza.\\n\\nLuogo e data _______________\\n\\nAvv. x\",\"tipo_atto\":\"note_trattazione_scritta\",\"rg_numero\":\"x\",\"riferimento_normativo\":\"Art. 127-ter c.p.c. — Deposito di note scritte in sostituzione dell'udienza\"}"
+  },
+  "offerta_conciliativa": {
+   "arguments": {
+    "anni_servizio": 10.0,
+    "retribuzione_mensile": 10000.0
+   },
+   "expected": "{\"anni_servizio\":10.0,\"retribuzione_mensile\":10000.0,\"dimensione_azienda\":\"grande\",\"mensilita\":10.0,\"floor_mensilita\":3.0,\"cap_mensilita\":27.0,\"importo\":100000.0,\"detassato\":true,\"nota\":\"Importo esente da IRPEF e da contributi previdenziali se accettato in sede conciliativa (art. 6 D.Lgs. 23/2015). Piccole imprese: dimezzamento ex art. 9 c.1 ancora vigente; tetto di 6 mensilità abrogato da Corte Cost. 118/2025 (la formula agevolata è ricostruita con cap 13,5; il datore può comunque offrire di più).\",\"confronto_giudiziale\":\"Indennità giudiziale standard: 2 mensilità/anno (floor 6, cap 36 per aziende grandi) — usare indennita_licenziamento() per il confronto\",\"riferimento_normativo\":\"D.Lgs. 23/2015 artt. 6, 9 — Corte Cost. 118/2025\"}"
+  },
+  "pena_concordata": {
+   "arguments": {
+    "pena_base_mesi": 12.0
+   },
+   "expected": "{\"pena_base_mesi\":12.0,\"pena_finale_mesi\":5.33,\"pena_finale_formato\":\"5.33 mesi\",\"attenuanti_generiche\":true,\"diminuente_rito\":true,\"patteggiamento_possibile\":true,\"sospendibile\":true,\"nota_sospensione\":\"Pena ≤ 2 anni: sospensione condizionale possibile\",\"dettaglio\":[{\"step\":\"Pena base\",\"mesi\":12.0},{\"step\":\"Attenuanti generiche art. 62-bis c.p. (-1/3)\",\"riduzione_mesi\":4.0,\"mesi\":8.0},{\"step\":\"Diminuente rito art. 444 c.p.p. (-1/3)\",\"riduzione_mesi\":2.67,\"mesi\":5.33}],\"riferimento_normativo\":\"Art. 444 c.p.p. — Art. 62-bis c.p.\"}"
+  },
+  "pensione_reversibilita": {
+   "arguments": {
+    "beneficiari": {
+     "coniuge": true,
+     "figli": 1,
+     "figli_minori": 1,
+     "genitori": 0
+    },
+    "pensione_de_cuius": 18000.0,
+    "reddito_beneficiario": 20000.0
+   },
+   "expected": "{\"pensione_de_cuius\":18000.0,\"beneficiari\":{\"coniuge\":true,\"figli\":1,\"figli_minori\":1,\"genitori\":0},\"descrizione_quota\":\"Coniuge + 1 figlio\",\"quota_pct\":80,\"pensione_lorda_annua\":14400.0,\"pensione_lorda_mensile\":1107.69,\"riduzione_cumulo\":{\"reddito_beneficiario\":20000.0,\"trattamento_minimo\":7781.93,\"riduzione_pct\":0},\"pensione_netta_annua\":14400.0,\"pensione_netta_mensile\":1107.69,\"riferimento_normativo\":\"L. 335/1995 art. 1 co. 41; L. 335/1995 Tabella F\"}"
+  },
+  "pignoramento_stipendio": {
+   "arguments": {
+    "stipendio_netto_mensile": 10000.0
+   },
+   "expected": "{\"stipendio_netto_mensile\":10000.0,\"tipo_credito\":\"ordinario\",\"quota_pignorabile\":0.2,\"importo_pignorabile\":2000.0,\"importo_non_pignorabile\":8000.0,\"minimo_vitale_pensioni\":534.41,\"nota_pensioni\":\"Per le pensioni, è impignorabile l'importo pari al doppio dell'assegno sociale (€1068.82)\",\"descrizione\":\"1/5 dello stipendio netto (art. 545 co. 4 c.p.c.)\",\"riferimento_normativo\":\"Art. 545 c.p.c. — DL 83/2015\"}"
+  },
+  "prescrizione_diritti": {
+   "arguments": {
+    "data_evento": "2021-01-01",
+    "tipo_diritto": "risarcimento_danni"
+   },
+   "expected": "{\"tipo_diritto\":\"risarcimento_danni\",\"data_evento\":\"2021-01-01\",\"termine_anni\":5,\"data_prescrizione\":\"2026-01-01\",\"prescritto\":true,\"giorni_mancanti\":0,\"nota\":\"I termini possono essere sospesi o interrotti da atti specifici (diffida, citazione, riconoscimento del debito).\",\"riferimento_normativo\":\"Art. 2947 c.c.\"}"
+  },
+  "prescrizione_reato": {
+   "arguments": {
+    "data_commissione": "2023-01-01",
+    "pena_massima_anni": 10.0
+   },
+   "expected": "{\"tipo_reato\":\"delitto\",\"pena_massima_anni\":10.0,\"data_commissione\":\"2023-01-01\",\"termine_base_anni\":10.0,\"aumento_interruzione_anni\":0.0,\"termine_totale_anni\":10.0,\"sospensioni_giorni\":0,\"data_prescrizione\":\"2033-01-01\",\"prescritto\":false,\"giorni_alla_prescrizione\":2300,\"riferimento_normativo\":\"Art. 157-161 c.p.\"}"
+  },
+  "procura_alle_liti": {
+   "arguments": {
+    "avvocato": "x",
+    "cf_avvocato": "x",
+    "foro": "x",
+    "oggetto_causa": "x",
+    "parte": "x"
+   },
+   "expected": "{\"testo\":\"PROCURA ALLE LITI\\n\\nIl/La sottoscritto/a x, nato/a a ___ il ___, C.F. ___, residente in ___,\\n\\nDELEGA\\n\\nl'Avv. x, C.F. x, del Foro di x, con studio in ___, PEC: ___, a rappresentarlo/a e difenderlo/a nel giudizio avente ad oggetto: x,\\n\\ncon ogni più ampio potere in ogni stato e grado del giudizio, ivi compreso il potere di conciliare, transigere, incassare, rinunciare agli atti e accettare la rinuncia, chiamare in causa terzi, proporre domande riconvenzionali e impugnare.\\n\\nElegge domicilio presso lo studio del predetto difensore e, ai fini delle comunicazioni e notificazioni, all'indirizzo PEC dello stesso risultante da pubblici elenchi.\\n\\nDichiara di essere stato/a informato/a, ai sensi dell'art. 4 co. 3 del D.Lgs. 231/2007, che il difensore è tenuto ad effettuare la verifica dell'identità del cliente e all'adeguata verifica ai fini antiriciclaggio.\\n\\nPresta il consenso al trattamento dei dati personali ai sensi del Reg. UE 2016/679 (GDPR) per le finalità connesse al conferimento dell'incarico professionale.\\n\\nDichiara di aver ricevuto l'informativa ai sensi dell'art. 13 del Reg. UE 2016/679.\\n\\nLuogo e data _______________\\n\\nFirma _______________\\n(x)\\n\\nÈ vera la firma apposta in mia presenza.\\nAvv. x\",\"tipo_atto\":\"procura_alle_liti\",\"tipo_procura\":\"generale\",\"riferimento_normativo\":\"Art. 83 c.p.c. — Procura alle liti\"}"
+  },
+  "pronti_termine": {
+   "arguments": {
+    "capitale": 10000.0,
+    "giorni": 30,
+    "tasso_lordo_pct": 5.0
+   },
+   "expected": "{\"capitale\":10000.0,\"tasso_lordo_pct\":5.0,\"giorni\":30,\"tipo_sottostante\":\"titoli_stato\",\"interessi_lordi\":41.1,\"aliquota_pct\":12.5,\"imposta\":5.14,\"interessi_netti\":35.96,\"rendimento_netto_annuo_pct\":4.375,\"riferimento_normativo\":\"D.Lgs. 239/1996 (titoli di Stato 12,5%) — D.L. 66/2014 (altri strumenti 26%)\"}"
+  },
+  "quorum_assembleari": {
+   "arguments": {
+    "capitale_presente": 60000.0,
+    "capitale_totale": 100000.0,
+    "tipo_delibera": "ordinaria",
+    "tipo_societa": "srl",
+    "voti_favorevoli": 40000.0
+   },
+   "expected": "{\"tipo_societa\":\"srl\",\"tipo_delibera\":\"ordinaria\",\"capitale_totale\":100000.0,\"capitale_presente\":60000.0,\"voti_favorevoli\":40000.0,\"percentuale_presente\":\"60.0%\",\"percentuale_favorevoli_su_presenti\":\"66.67%\",\"percentuale_favorevoli_su_totale\":\"40.0%\",\"quorum_costitutivo_prima_conv\":\"Nessun quorum costitutivo (art. 2479 c.c.)\",\"quorum_costitutivo_seconda_conv\":\"N/A — la SRL non ha seconda convocazione per legge\",\"quorum_deliberativo\":\"Maggioranza del capitale (>50%) (art. 2479 c.c.)\",\"raggiunto_costitutivo\":true,\"raggiunto_deliberativo\":false,\"delibera_valida\":false,\"note\":\"Lo statuto SRL può prevedere quorum diversi (maggiori o minori nei limiti di legge). Non vi è seconda convocazione automatica.\",\"riferimento_normativo\":\"Artt. 2479, 2479-bis, 2484 c.c.\"}"
+  },
+  "rateizzazione_imposte": {
+   "arguments": {
+    "data_prima_rata": "2023-01-01",
+    "importo_totale": 10000.0,
+    "n_rate": 2
+   },
+   "expected": "{\"importo_totale\":10000.0,\"n_rate\":2,\"tasso_interesse_annuo_pct\":4.0,\"piano_rate\":[{\"rata\":1,\"data_scadenza\":\"2023-01-01\",\"importo_capitale\":5000.0,\"interessi\":0,\"rata_totale\":5000.0},{\"rata\":2,\"data_scadenza\":\"2023-02-01\",\"importo_capitale\":5000.0,\"interessi\":16.67,\"rata_totale\":5016.67}],\"totale_interessi\":16.67,\"totale_versato\":10016.67,\"riferimento_normativo\":\"Art. 20 D.Lgs. 241/1997\"}"
+  },
+  "relata_notifica_pec": {
+   "arguments": {
+    "atto_notificato": "x",
+    "avvocato": "x",
+    "data_invio": "2023-01-01",
+    "destinatario": "x",
+    "pec_destinatario": "x"
+   },
+   "expected": "{\"testo\":\"RELATA DI NOTIFICAZIONE A MEZZO PEC\\n(L. 21 gennaio 1994, n. 53, come modificata dalla L. 228/2012)\\n\\nIl sottoscritto Avv. x, autorizzato dal Consiglio dell'Ordine ai sensi dell'art. 1 della L. 53/1994,\\n\\nCERTIFICA\\n\\ndi aver notificato in data 01/01/2023 a mezzo posta elettronica certificata il seguente atto:\\n\\nx\\n\\nal seguente destinatario:\\n\\nx\\nIndirizzo PEC: x\\n\\nL'indirizzo PEC del destinatario è stato estratto da pubblici elenchi (INI-PEC / ReGIndE / Registro Imprese), come previsto dall'art. 3-bis co. 1 della L. 53/1994.\\n\\nDICHIARA\\n\\n1. Che il messaggio di posta elettronica certificata è stato inviato dall'indirizzo PEC del sottoscritto risultante da pubblici elenchi;\\n2. Che l'atto notificato è stato trasmesso in formato PDF conforme all'originale;\\n3. Che si è provveduto a inserire nella busta di trasporto la relazione di notificazione sottoscritta digitalmente;\\n4. Che la ricevuta di accettazione e la ricevuta di avvenuta consegna sono state conservate agli atti.\\n\\nAi sensi dell'art. 3-bis co. 3 della L. 53/1994, la notifica si intende perfezionata nel momento in cui è generata la ricevuta di avvenuta consegna (RdAC).\\n\\nLuogo e data _______________\\n\\nAvv. x\\n(firmato digitalmente)\",\"tipo_atto\":\"relata_notifica_pec\",\"data_invio\":\"2023-01-01\",\"destinatario\":\"x\",\"pec_destinatario\":\"x\",\"riferimento_normativo\":\"L. 53/1994 — Art. 3-bis, Notificazioni a mezzo PEC\"}"
+  },
+  "rendimento_bot": {
+   "arguments": {
+    "giorni_scadenza": 30,
+    "prezzo_acquisto": 10000.0,
+    "valore_nominale": 10000.0
+   },
+   "expected": "{\"valore_nominale\":10000.0,\"prezzo_acquisto\":10000.0,\"giorni_scadenza\":30,\"plusvalenza_lorda\":0.0,\"imposta_sostitutiva_pct\":12.5,\"imposta\":0.0,\"commissione\":0.0,\"guadagno_netto\":0.0,\"rendimento_lordo_annuo_pct\":0.0,\"rendimento_netto_annuo_pct\":0.0,\"riferimento_normativo\":\"D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato\"}"
+  },
+  "rendimento_btp": {
+   "arguments": {
+    "anni_scadenza": 10,
+    "cedola_annua_pct": 5.0,
+    "prezzo_acquisto": 10000.0,
+    "valore_nominale": 10000.0
+   },
+   "expected": "{\"valore_nominale\":10000.0,\"prezzo_acquisto\":10000.0,\"cedola_annua_pct\":5.0,\"anni_scadenza\":10,\"frequenza_cedola\":2,\"totale_cedole_lordo\":5000.0,\"imposta_cedole\":625.0,\"totale_cedole_netto\":4375.0,\"plusvalenza_lorda\":0.0,\"imposta_plusvalenza\":0.0,\"plusvalenza_netta\":0.0,\"guadagno_netto_totale\":4375.0,\"rendimento_netto_annuo_pct\":4.375,\"flusso_cedole\":[{\"cedola_n\":1,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":2,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":3,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":4,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":5,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":6,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":7,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":8,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":9,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":10,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":11,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":12,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":13,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":14,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":15,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":16,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":17,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":18,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":19,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":20,\"lorda\":250.0,\"netta\":218.75}],\"riferimento_normativo\":\"D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato\"}"
+  },
+  "rendimento_buoni_postali": {
+   "arguments": {
+    "importo": 10000.0
+   },
+   "expected": "{\"importo\":10000.0,\"tipo\":\"ordinario\",\"anni\":10,\"montante_lordo\":11045.54,\"interessi_lordi\":1045.54,\"imposta_sostitutiva_pct\":12.5,\"imposta\":130.69,\"montante_netto\":10914.85,\"interessi_netti\":914.85,\"rendimento_netto_annuo_pct\":0.8792,\"dettaglio_annuale\":[{\"anno\":1,\"tasso_lordo_pct\":0.5,\"montante_lordo\":10050.0},{\"anno\":2,\"tasso_lordo_pct\":0.5,\"montante_lordo\":10100.25},{\"anno\":3,\"tasso_lordo_pct\":0.75,\"montante_lordo\":10176.0},{\"anno\":4,\"tasso_lordo_pct\":0.75,\"montante_lordo\":10252.32},{\"anno\":5,\"tasso_lordo_pct\":1.0,\"montante_lordo\":10354.85},{\"anno\":6,\"tasso_lordo_pct\":1.0,\"montante_lordo\":10458.39},{\"anno\":7,\"tasso_lordo_pct\":1.25,\"montante_lordo\":10589.12},{\"anno\":8,\"tasso_lordo_pct\":1.25,\"montante_lordo\":10721.49},{\"anno\":9,\"tasso_lordo_pct\":1.5,\"montante_lordo\":10882.31},{\"anno\":10,\"tasso_lordo_pct\":1.5,\"montante_lordo\":11045.54}],\"nota\":\"Tassi indicativi — verificare condizioni aggiornate su poste.it\",\"riferimento_normativo\":\"D.Lgs. 239/1996 — imposta sostitutiva 12,5% (equiparati a titoli di Stato)\"}"
+  },
+  "ricevuta_prestazione_occasionale": {
+   "arguments": {
+    "committente": "x",
+    "compenso_lordo": 10000.0,
+    "descrizione": "descrizione",
+    "prestatore": "x"
+   },
+   "expected": "{\"testo_ricevuta\":\"RICEVUTA PER PRESTAZIONE OCCASIONALE\\nArt. 2222 c.c. — Art. 67, comma 1, lett. l) TUIR\\n\\nPrestatore: x\\nCommittente: x\\n\\nDescrizione: descrizione\\n\\n  Compenso lordo: €10,000.00\\n  Ritenuta d'acconto 20%: -€2,000.00\\n  Netto a pagare: €8,000.00\\n  Imposta di bollo: €2.00 (importo > €77,47)\\n\\nOperazione fuori campo IVA ex art. 5 DPR 633/1972\",\"calcoli\":{\"compenso_lordo\":10000.0,\"ritenuta_acconto_20pct\":2000.0,\"netto_a_pagare\":8000.0,\"bollo\":2.0},\"committente\":\"x\",\"prestatore\":\"x\",\"descrizione\":\"descrizione\",\"note\":[\"Il committente versa la ritenuta con F24 (codice tributo 1040) entro il 16 del mese successivo\",\"Il prestatore dichiara il reddito nella dichiarazione dei redditi (quadro RL)\",\"Limite annuo: €5.000 lordi per non incorrere in obbligo contributivo INPS Gestione Separata\"],\"riferimento_normativo\":\"Art. 2222 c.c. — Art. 67 co. 1 lett. l) TUIR — Art. 25 DPR 600/1973\"}"
+  },
+  "risarcimento_inail": {
+   "arguments": {
+    "percentuale_invalidita": 5.0,
+    "retribuzione_annua": 10000.0
+   },
+   "expected": "{\"tipo\":\"permanente\",\"percentuale_invalidita\":5.0,\"esito\":\"Nessun indennizzo\",\"nota\":\"Invalidità inferiore al 6%: nessun indennizzo INAIL erogabile\",\"riferimento_normativo\":\"D.Lgs. 38/2000 art. 13\"}"
+  },
+  "ritenuta_acconto": {
+   "arguments": {
+    "compenso_lordo": 10000.0
+   },
+   "expected": "{\"compenso_lordo\":10000.0,\"aliquota_ritenuta_pct\":20.0,\"ritenuta\":2000.0,\"netto_percepito\":8000.0,\"certificazione_unica\":{\"punto_4_compensi\":10000.0,\"punto_8_ritenute\":2000.0,\"punto_9_netto\":8000.0,\"codice_tributo_f24\":\"1040\",\"periodo_versamento\":\"Entro il 16 del mese successivo al pagamento\"},\"nota\":\"Il committente (sostituto d'imposta) trattiene la ritenuta e la versa con F24. Rilascia la CU entro il 16/03 dell'anno successivo.\",\"riferimento_normativo\":\"Art. 25 DPR 600/1973\"}"
+  },
+  "scadenze_licenziamento": {
+   "arguments": {
+    "data_licenziamento": "2023-01-01"
+   },
+   "expected": "{\"data_licenziamento\":\"2023-01-01\",\"scadenze\":{\"impugnazione_stragiudiziale\":{\"data\":\"2023-03-02\",\"termine_giorni\":60,\"stato\":\"SCADUTA (1293 giorni fa)\",\"descrizione\":\"Comunicazione scritta di impugnazione (raccomandata/PEC) — art. 6 co. 1 L. 604/1966\"},\"deposito_ricorso\":{\"data\":\"2023-08-29\",\"termine_giorni\":180,\"decorre_da\":\"impugnazione stragiudiziale\",\"stato\":\"SCADUTA (1113 giorni fa)\",\"descrizione\":\"Deposito ricorso in Tribunale (rito Fornero) — art. 6 co. 2 L. 604/1966\"},\"post_conciliazione\":{\"data\":\"2023-10-28\",\"termine_giorni\":60,\"decorre_da\":\"deposito ricorso\",\"stato\":\"SCADUTA (1053 giorni fa)\",\"descrizione\":\"Termine residuo in caso di tentativo di conciliazione — art. 32 L. 183/2010\"}},\"avvertimenti\":[\"ATTENZIONE: termine per il deposito del ricorso già scaduto\"],\"nota\":\"I termini sono perentori e di calendario. La sospensione feriale (1-31 agosto) non si applica ai procedimenti con rito urgente Fornero.\",\"riferimento_normativo\":\"L. 604/1966 art. 6 — L. 183/2010 art. 32\"}"
+  },
+  "scadenze_societarie": {
+   "arguments": {
+    "data_chiusura_esercizio": "2023-01-01"
+   },
+   "expected": "{\"data_chiusura_esercizio\":\"2023-01-01\",\"bilancio_differito\":false,\"scadenze\":{\"termine_approvazione_bilancio\":{\"data\":\"2023-05-01\",\"giorni_dalla_chiusura\":120,\"nota\":\"120 giorni — termine ordinario (art. 2364 c.c.)\"},\"convocazione_assemblea_spa\":{\"data\":\"2023-04-16\",\"nota\":\"Data ultima utile per inviare la convocazione ai soci SPA assumendo l'assemblea all'ultimo giorno utile di approvazione — 15 giorni prima (art. 2366 c.c.). Se l'assemblea è anticipata, ricalcolare 15 giorni prima della data effettiva.\"},\"convocazione_assemblea_srl\":{\"data\":\"2023-04-23\",\"nota\":\"Data ultima utile per inviare la convocazione ai soci SRL assumendo l'assemblea all'ultimo giorno utile di approvazione — 8 giorni prima (art. 2479-bis c.c.). Se l'assemblea è anticipata, ricalcolare 8 giorni prima della data effettiva.\"},\"deposito_bilancio_sede_sociale\":{\"data\":\"2023-04-16\",\"nota\":\"Data ultima utile per il deposito di bilancio e relazioni in sede assumendo l'assemblea all'ultimo giorno utile di approvazione — 15 giorni prima (art. 2429 c.c.). Se l'assemblea è anticipata, ricalcolare 15 giorni prima della data effettiva.\"},\"deposito_cciaa\":{\"data\":\"2023-05-31\",\"giorni_dall_approvazione\":30,\"nota\":\"Deposito bilancio approvato al Registro Imprese — 30 giorni dall'approvazione (art. 2435 c.c.)\"},\"iscrizione_verbale_assemblea\":{\"data\":\"2023-05-31\",\"nota\":\"Iscrizione verbale assemblea al Registro Imprese — 30 giorni dall'assemblea (art. 2436 c.c.)\"}},\"riferimento_normativo\":\"Artt. 2364, 2366, 2429, 2435, 2436, 2479-bis c.c.\"}"
+  },
+  "scorporo_iva": {
+   "arguments": {
+    "aliquota": 22,
+    "importo_ivato": 1220
+   },
+   "expected": "{\"importo_ivato\":1220.0,\"aliquota_pct\":22.0,\"imponibile\":1000.0,\"iva\":220.0,\"verifica\":1220.0}"
+  },
+  "sfratto_morosita": {
+   "arguments": {
+    "canone_mensile": 10000.0,
+    "conduttore": "x",
+    "data_contratto": "2023-01-01",
+    "immobile": "x",
+    "locatore": "x",
+    "mensilita_insolute": 10000
+   },
+   "expected": "{\"testo\":\"ATTO DI INTIMAZIONE DI SFRATTO PER MOROSITA'\\nCON CONTESTUALE CITAZIONE PER LA CONVALIDA\\n(Artt. 658 e ss. c.p.c.)\\n\\nTRIBUNALE DI _______________\\n\\nIl/La sottoscritto/a x, C.F. ___, residente in ___, rappresentato/a e difeso/a dall'Avv. ___, giusta procura in calce/a margine,\\n\\nPREMESSO\\n\\n— che in data 01/01/2023 è stato stipulato un contratto di locazione avente ad oggetto l'immobile sito in x;\\n— che il canone mensile pattuito ammonta ad Euro 10,000.00;\\n— che il/la conduttore/trice x si è reso/a moroso/a nel pagamento di n. 10000 mensilità, per un importo complessivo di Euro 100,000,000.00;\\n— che, nonostante i solleciti, il/la conduttore/trice non ha provveduto al pagamento;\\n\\nINTIMA\\n\\na x, C.F. ___, residente in ___,\\n\\nlo sfratto dall'immobile sopra descritto per morosità nel pagamento del canone, e contestualmente\\n\\nCITA\\n\\nil/la medesimo/a x a comparire avanti al Tribunale di ___, all'udienza del ___ ore ___, per ivi sentir convalidare lo sfratto ai sensi dell'art. 663 c.p.c.\\n\\nCon espresso avvertimento che:\\n1. Se il/la convenuto/a non comparirà o comparendo non si opporrà, il Giudice convaliderà lo sfratto (art. 663 co. 1 c.p.c.);\\n2. Il/La convenuto/a potrà evitare la convalida pagando, prima dell'udienza, tutti i canoni scaduti e le spese del procedimento;\\n3. Il Giudice potrà concedere al conduttore un termine non superiore a 90 giorni (cd. \\\"termine di grazia\\\") per il pagamento dei canoni scaduti (art. 55 L. 392/1978).\\n\\nSi chiede inoltre la condanna del/la convenuto/a al pagamento di:\\n— Euro 100,000,000.00 per canoni scaduti e non pagati;\\n— canoni a scadere fino all'effettivo rilascio;\\n— spese e competenze del procedimento.\\n\\nSi allegano:\\n1. Contratto di locazione\\n2. Diffida al pagamento\\n3. Procura alle liti\\n\\n[Luogo], [Data]\\nAvv. _______________\",\"tipo_atto\":\"sfratto_morosita\",\"canone_mensile\":10000.0,\"mensilita_insolute\":10000,\"totale_dovuto\":100000000.0,\"riferimento_normativo\":\"Artt. 658-669 c.p.c. — Art. 55 L. 392/1978\"}"
+  },
+  "soglie_organo_controllo_srl": {
+   "arguments": {
+    "attivo": 10000.0,
+    "dipendenti": 10000,
+    "ricavi": 10000.0
+   },
+   "expected": "{\"obbligo_nomina\":true,\"limiti_superati\":[\"dipendenti\"],\"numero_limiti_superati\":1,\"dettaglio\":[{\"parametro\":\"ricavi\",\"valore\":10000.0,\"soglia\":4000000.0,\"superato\":false},{\"parametro\":\"attivo\",\"valore\":10000.0,\"soglia\":4000000.0,\"superato\":false},{\"parametro\":\"dipendenti\",\"valore\":10000,\"soglia\":20,\"superato\":true}],\"soglie\":{\"ricavi_euro\":4000000.0,\"attivo_euro\":4000000.0,\"dipendenti\":20},\"note\":\"ATTENZIONE: l'obbligo di nomina scatta solo se almeno uno dei limiti è superato per DUE ESERCIZI CONSECUTIVI (art. 2477 c.c. come modificato da D.Lgs. 14/2019). Il calcolo verifica i valori dell'esercizio fornito: confrontare con l'esercizio precedente.\",\"riferimento_normativo\":\"Art. 2477 c.c. — D.Lgs. 14/2019 (Codice della Crisi d'Impresa)\"}"
+  },
+  "spese_condominiali": {
+   "arguments": {
+    "importo_totale": 10000.0,
+    "millesimi_proprietario": 10000.0
+   },
+   "expected": "{\"importo_totale\":10000.0,\"millesimi\":10000.0,\"tipo_spesa\":\"ordinaria\",\"metodo_ripartizione\":\"Millesimi: 10000.0/1000\",\"quota_unita\":100000.0,\"riferimento_normativo\":\"Art. 1123-1124 c.c.; L. 392/1978 art. 9 — Ripartizione spese condominiali\"}"
+  },
+  "spese_mediazione": {
+   "arguments": {
+    "valore_controversia": 10000.0
+   },
+   "expected": "{\"valore_controversia\":10000.0,\"esito\":\"positivo\",\"indennita_per_parte\":340,\"iva_22_per_parte\":74.8,\"totale_per_parte\":414.8,\"totale_organismo_2_parti\":829.6,\"agevolazioni\":[\"Credito d'imposta fino a €600 per ciascuna parte in caso di accordo (art. 20 D.Lgs. 28/2010)\",\"Esenzione imposta di registro fino a €100.000 per accordi di mediazione\",\"Gratuito patrocinio: le parti ammesse non pagano indennità\"],\"riferimento_normativo\":\"DM 150/2023 — D.Lgs. 28/2010 (Riforma Cartabia)\"}"
+  },
+  "spese_trasferta_avvocati": {
+   "arguments": {
+    "km_distanza": 10000.0,
+    "ore_assenza": 10000.0
+   },
+   "expected": "{\"km_distanza\":10000.0,\"ore_assenza\":10000.0,\"mezzo\":\"auto\",\"pernottamento\":false,\"indennita_trasferta\":216.0,\"percentuale_indennita\":40,\"rimborso_km\":3000.0,\"totale_stimato\":3216.0,\"voci\":[{\"voce\":\"Indennità trasferta (40% su €540.0)\",\"importo\":216.0},{\"voce\":\"Rimborso km (10000.0 km × €0.30)\",\"importo\":3000.0}],\"nota_pernottamento\":null,\"note\":[\"L'indennità è calcolata come percentuale dell'onorario medio (scaglione €26.000, fase studio)\",\"Per treno/aereo il rimborso è a piè di lista su documentazione\",\"Il pernottamento è sempre rimborsato a piè di lista\"],\"riferimento_normativo\":\"DM 55/2014 art. 27 — Spese di trasferta avvocati\"}"
+  },
+  "tariffe_mediazione": {
+   "arguments": {
+    "valore_controversia": 10000.0
+   },
+   "expected": "{\"valore_controversia\":10000.0,\"scaglione\":\"fino a €10,000\",\"spese_avvio_per_parte\":75,\"esito_negativo\":{\"indennita_per_parte\":170,\"iva_22pct\":37.4,\"totale_per_parte\":282.4,\"totale_2_parti\":564.8},\"esito_positivo\":{\"indennita_per_parte\":340,\"iva_22pct\":74.8,\"totale_per_parte\":489.8,\"totale_2_parti\":979.6},\"tabella_completa\":[{\"scaglione\":\"fino a €1,000\",\"spese_avvio\":40,\"indennita_negativo\":60,\"indennita_positivo\":120},{\"scaglione\":\"fino a €5,000\",\"spese_avvio\":75,\"indennita_negativo\":100,\"indennita_positivo\":200},{\"scaglione\":\"fino a €10,000\",\"spese_avvio\":75,\"indennita_negativo\":170,\"indennita_positivo\":340},{\"scaglione\":\"fino a €25,000\",\"spese_avvio\":75,\"indennita_negativo\":240,\"indennita_positivo\":480},{\"scaglione\":\"fino a €50,000\",\"spese_avvio\":75,\"indennita_negativo\":360,\"indennita_positivo\":720},{\"scaglione\":\"fino a €250,000\",\"spese_avvio\":110,\"indennita_negativo\":530,\"indennita_positivo\":1060},{\"scaglione\":\"fino a €500,000\",\"spese_avvio\":110,\"indennita_negativo\":880,\"indennita_positivo\":1760},{\"scaglione\":\"fino a €2,500,000\",\"spese_avvio\":110,\"indennita_negativo\":1250,\"indennita_positivo\":2500},{\"scaglione\":\"fino a €5,000,000\",\"spese_avvio\":110,\"indennita_negativo\":2000,\"indennita_positivo\":4000},{\"scaglione\":\"oltre €5.000.000\",\"spese_avvio\":110,\"indennita_negativo\":2800,\"indennita_positivo\":5600}],\"note\":[\"Spese di avvio (art. 28 DM 150/2023) per ciascuna parte, dovute all'atto della presentazione della domanda: €40 fino a €1.000, €75 da €1.000,01 a €50.000, €110 oltre €50.000\",\"Indennità: dovuta per ciascuna parte a ciascun organismo\",\"Esito positivo = accordo raggiunto; esito negativo = mancato accordo\",\"Incontri successivi al primo: maggiorazione fino al 25% dell'indennità\",\"Per più di 2 parti: aumento indennità per ciascuna parte ulteriore\"],\"agevolazioni\":[\"Credito d'imposta fino a €600 per parte in caso di accordo (art. 20 D.Lgs. 28/2010)\",\"Esenzione imposta di registro fino a €100.000\",\"Gratuito patrocinio: parti ammesse non pagano indennità\"],\"riferimento_normativo\":\"DM 150/2023 — D.Lgs. 28/2010 (Riforma Cartabia)\"}"
+  },
+  "tassazione_atti": {
+   "arguments": {
+    "tipo_atto": "sentenza_condanna",
+    "valore": 10000.0
+   },
+   "expected": "{\"tipo_atto\":\"sentenza_condanna\",\"valore\":10000.0,\"prima_casa\":false,\"aliquota_pct\":3.0,\"imposta_registro\":300.0,\"descrizione\":\"Imposta proporzionale 3% su sentenze di condanna al pagamento\",\"riferimento_normativo\":\"DPR 131/1986 — TU Imposta di Registro, Tariffa Parte I\"}"
+  },
+  "tasso_alcolemico": {
+   "arguments": {
+    "ore_trascorse": 2.0,
+    "peso_kg": 80.0,
+    "sesso": "M",
+    "unita_alcoliche": 3.0
+   },
+   "expected": "{\"sesso\":\"M\",\"peso_kg\":80.0,\"unita_alcoliche\":3.0,\"ore_trascorse\":2.0,\"stomaco_pieno\":false,\"alcol_assorbito_grammi\":36.0,\"tasso_picco_g_l\":0.64,\"tasso_attuale_g_l\":0.34,\"ore_smaltimento_totale\":4.3,\"ore_residue_smaltimento\":2.3,\"fascia_sanzione_cds\":\"nessuna (< 0.5 g/l)\",\"sanzione\":null,\"avvertenza\":\"Calcolo puramente indicativo basato su formula di Widmark. Il tasso reale dipende da metabolismo individuale, farmaci, condizioni fisiche.\",\"riferimento_normativo\":\"Art. 186 D.Lgs. 285/1992 (Codice della Strada)\"}"
+  },
+  "test_crisi_impresa": {
+   "arguments": {
+    "dscr": 10000.0
+   },
+   "expected": "{\"alert\":false,\"severita\":\"nessuno\",\"indicatori_attivati\":[],\"numero_indicatori\":0,\"dscr\":10000.0,\"raccomandazione\":\"Nessun indicatore di crisi rilevato. Continuare il monitoraggio periodico ai sensi dell'art. 3 co. 3 CCII.\",\"riferimento_normativo\":\"Art. 3 D.Lgs. 14/2019 (CCII) — Indicatori della crisi\"}"
+  },
+  "testimonianza_scritta": {
+   "arguments": {
+    "capitoli_prova": [
+     "x"
+    ],
+    "teste": "x"
+   },
+   "expected": "{\"testo\":\"MODULO PER TESTIMONIANZA SCRITTA\\n(Art. 257-bis c.p.c.)\\n\\nTRIBUNALE DI _______________\\nR.G. n. _______________\\nGiudice: _______________\\n\\n***\\n\\nDATI DEL TESTE\\n\\nNome e Cognome: x\\nNato/a a: _______________  il: _______________\\nResidente in: _______________\\nC.F.: _______________\\nProfessione: _______________\\n\\n***\\n\\nAMMONIZIONE (art. 251 c.p.c.)\\n\\nIl/La teste è ammonito/a dal Giudice sull'importanza religiosa e morale del giuramento e sulle conseguenze penali delle dichiarazioni false o reticenti, e presta il seguente\\n\\nGIURAMENTO\\n\\n\\\"Consapevole della responsabilità morale e giuridica che assumo con la mia deposizione, mi impegno a dire tutta la verità e a non nascondere nulla di quanto è a mia conoscenza.\\\"\\n\\nFirma del teste: _______________\\n\\n***\\n\\nRISPOSTE AI CAPITOLI DI PROVA\\n\\nCapitolo 1: \\\"x\\\"\\n   Risposta: [ ] Vero  [ ] Non vero  [ ] Non so\\n   Specificazioni: _______________________________________________\\n\\n***\\n\\nISTRUZIONI PER IL TESTE:\\n1. Rispondere a ciascun capitolo barrando la casella corrispondente.\\n2. Se si risponde \\\"Vero\\\" o \\\"Non vero\\\", specificare nelle righe sottostanti i fatti a propria conoscenza.\\n3. Non è possibile deporre su fatti appresi da terzi (testimonianza de relato).\\n4. Il modulo deve essere restituito compilato e firmato entro il termine assegnato dal Giudice.\\n5. La mancata restituzione può comportare le sanzioni di cui all'art. 255 c.p.c.\\n\\nData compilazione: _______________\\n\\nFirma del teste: _______________\\n\\nAUTENTICAZIONE\\n(a cura del segretario comunale o di altro pubblico ufficiale)\\n\\nCertifico che la firma è stata apposta in mia presenza da persona della cui identità mi sono accertato.\\n\\nTimbro e firma: _______________\",\"tipo_atto\":\"testimonianza_scritta\",\"numero_capitoli\":1,\"riferimento_normativo\":\"Art. 257-bis c.p.c. — Testimonianza scritta\"}"
+  },
+  "valutazione_data_breach": {
+   "arguments": {
+    "categorie_dati": [
+     "email",
+     "password hash"
+    ],
+    "impatto": "medio",
+    "misure_protezione": [
+     "cifratura AES-256"
+    ],
+    "n_interessati": 500,
+    "tipo_violazione": "confidenzialita"
+   },
+   "expected": "{\"tipo_violazione\":\"confidenzialita\",\"n_interessati\":500,\"dati_particolari\":false,\"misure_protezione_attive\":[\"cifratura AES-256\"],\"cifratura_attiva\":true,\"fattori_gravita\":[\"Violazione di confidenzialità: dati acceduti da soggetti non autorizzati\"],\"livello_rischio\":\"possibile\",\"notifica_garante\":true,\"comunicazione_interessati\":false,\"motivo_no_comunicazione\":\"Dati cifrati/pseudonimizzati: comunicazione agli interessati non obbligatoria (art. 34(3)(a) GDPR)\",\"ore_rimanenti\":\"72 ore dalla scoperta dell'evento (art. 33(1) GDPR)\",\"azioni_consigliate\":[\"Isolare immediatamente il sistema compromesso e bloccare ulteriori accessi non autorizzati\",\"Documentare immediatamente: natura dell'incidente, sistemi coinvolti, dati esposti, ora di scoperta\",\"Avviare indagine interna per determinare portata e cause della violazione\",\"NOTIFICARE AL GARANTE entro 72 ore dalla scoperta (art. 33 GDPR) — usare il tool genera_notifica_data_breach() per redigere la notifica\",\"Registrare la violazione nel registro interno dei data breach (art. 33(5) GDPR)\",\"Valutare misure correttive per prevenire violazioni future\",\"Valutare necessità di consulenza legale per responsabilità civili verso gli interessati\",\"La cifratura attiva ha ridotto l'obbligo di comunicazione agli interessati (art. 34(3)(a)): documentarlo\"],\"riferimento_normativo\":\"Art. 33 GDPR (notifica all'autorità di controllo); Art. 34 GDPR (comunicazione agli interessati); Art. 4(12) GDPR (definizione di violazione dei dati)\"}"
+  },
+  "verbale_mensile": {
+   "arguments": {},
+   "expected": "{\"disponibile\":false,\"motivo\":\"verbale non attivo: impostare LEGAL_REFUSAL_LEDGER=on\"}"
+  },
+  "verifica_iban": {
+   "arguments": {
+    "iban": "IT60X0542811101000000123456"
+   },
+   "expected": "{\"iban\":\"IT60X0542811101000000123456\",\"valido\":true,\"componenti\":{\"paese\":\"IT\",\"check_digits\":\"60\",\"cin\":\"X\",\"abi\":\"05428\",\"cab\":\"11101\",\"conto_corrente\":\"000000123456\"}}"
+  },
+  "verifica_partita_iva": {
+   "arguments": {
+    "partita_iva": "12345678903"
+   },
+   "expected": "{\"partita_iva\":\"12345678903\",\"valido\":true,\"codice_ufficio\":\"12\",\"cifra_controllo_attesa\":3,\"cifra_controllo_presente\":3}"
+  }
+ }
+}

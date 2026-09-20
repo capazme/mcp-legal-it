@@ -15,7 +15,6 @@ Extracts from each article page:
 """
 
 import json
-import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +23,8 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup, Tag
 
+from .._cache import cache_enabled, cache_root
+from .._http import note_source
 from ..visualex.map import find_brocardi_url
 
 BASE_URL = "https://www.brocardi.it"
@@ -35,24 +36,31 @@ _HEADERS = {
 }
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
-# Persistent JSON cache for article URLs
-_CACHE_DIR = Path(os.environ.get("MCP_CACHE_DIR", Path.home() / ".cache" / "mcp-legal-it"))
-_CACHE_FILE = _CACHE_DIR / "brocardi_urls.json"
+# Persistent JSON cache for article URLs. `LEGAL_CACHE=off` keeps it in memory
+# only (see lib/_cache.py) -- the directory is then never read or created.
+def _cache_file() -> Path:
+    return cache_root() / "brocardi_urls.json"
 
 
 def _load_url_cache() -> dict[str, str]:
+    if not cache_enabled():
+        return {}
     try:
-        if _CACHE_FILE.exists():
-            return json.loads(_CACHE_FILE.read_text())
+        path = _cache_file()
+        if path.exists():
+            return json.loads(path.read_text())
     except (json.JSONDecodeError, OSError):
         pass
     return {}
 
 
 def _save_url_cache(cache: dict[str, str]) -> None:
+    if not cache_enabled():
+        return
     try:
-        _CACHE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
-        _CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False))
+        path = _cache_file()
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path.write_text(json.dumps(cache, ensure_ascii=False))
     except OSError:
         pass
 
@@ -227,6 +235,7 @@ async def fetch_brocardi(
         try:
             resp = await client.get(article_url)
             resp.raise_for_status()
+            note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
         except httpx.HTTPStatusError as exc:
             # Self-healing cache: a stale/poisoned entry can point at a 404 URL.
             # Drop it and re-resolve once from scratch before giving up.
@@ -243,6 +252,7 @@ async def fetch_brocardi(
                     )
                 resp = await client.get(article_url)
                 resp.raise_for_status()
+                note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
             else:
                 raise
         soup = BeautifulSoup(resp.text, "lxml")
@@ -268,6 +278,7 @@ async def find_article_url(
 
     resp = await client.get(base_url)
     resp.raise_for_status()
+    note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
 
     # Word-boundary pattern: match artNNN.html but not artNNNx.html
     pattern = re.compile(
@@ -299,6 +310,7 @@ async def find_article_url(
         try:
             sub_resp = await client.get(sub_url)
             sub_resp.raise_for_status()
+            note_source("brocardi", str(sub_resp.url) if hasattr(sub_resp, "url") else "")
             sub_page_url = str(sub_resp.url) if hasattr(sub_resp, "url") else sub_url
             if not sub_page_url.endswith("/"):
                 sub_page_url += "/"

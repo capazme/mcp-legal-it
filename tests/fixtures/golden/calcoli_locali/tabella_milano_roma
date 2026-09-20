@@ -1,0 +1,14 @@
+{
+ "datasets": [
+  "tabella_milano_roma"
+ ],
+ "tools": {
+  "danno_parentale": {
+   "arguments": {
+    "superstite": "genitore",
+    "vittima": "figlio"
+   },
+   "expected": "{\"vittima\":\"figlio\",\"superstite\":\"genitore\",\"tabella\":\"milano\",\"importo_minimo\":195551.59,\"importo_massimo\":391103.18,\"personalizzazione_pct\":50,\"importo_liquidato\":293327.39,\"riferimento\":\"Tribunale di Milano — Osservatorio sulla giustizia civile, edizione giugno 2024. Rivalutazione ISTAT +16.2268% al 01/01/2024. Range min-max.\",\"dati_applicati\":[\"tabella milano roma: Tabelle di Milano e di Roma, edizione 2024 — periodo di validità non dichiarato\"]}"
+  }
+ }
+}

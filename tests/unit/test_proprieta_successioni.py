@@ -4,11 +4,12 @@ import inspect
 
 import pytest
 
+from .mcp_harness import tool_body
+
 
 def _call(fn_name: str, **kwargs):
     mod = importlib.import_module("src.tools.proprieta_successioni")
-    fn = getattr(mod, fn_name)
-    actual = fn.fn if hasattr(fn, "fn") else fn
+    actual = tool_body(getattr(mod, fn_name))
     if inspect.iscoroutinefunction(actual):
         return asyncio.get_event_loop().run_until_complete(actual(**kwargs))
     return actual(**kwargs)

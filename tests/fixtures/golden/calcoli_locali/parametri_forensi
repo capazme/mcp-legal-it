@@ -1,0 +1,49 @@
+{
+ "datasets": [
+  "parametri_forensi"
+ ],
+ "tools": {
+  "calcolo_notula_penale": {
+   "arguments": {
+    "competenza": "tribunale_monocratico"
+   },
+   "expected": "{\"competenza\":\"tribunale_monocratico\",\"label\":\"Tribunale monocratico\",\"livello\":\"medio\",\"fasi\":[{\"fase\":\"studio\",\"importo\":473},{\"fase\":\"introduttiva\",\"importo\":567},{\"fase\":\"istruttoria\",\"importo\":1134},{\"fase\":\"decisionale\",\"importo\":1418}],\"totale_compensi\":3592.0,\"spese_generali_15pct\":538.8,\"subtotale\":4130.8,\"cpa_4pct\":165.23,\"imponibile_iva\":4296.03,\"iva_22pct\":945.13,\"totale\":5241.16,\"riferimento_normativo\":\"DM 55/2014 aggiornato DM 147/2022 — Parametri forensi penale\",\"dati_applicati\":[\"parametri forensi: aggiornati al 19/02/2026 (DM 55/2014 come modificato dal DM 147/2022) — trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale\"]}"
+  },
+  "parcella_avvocato_civile": {
+   "arguments": {
+    "valore_causa": 10000.0
+   },
+   "expected": "{\"valore_causa\":10000.0,\"scaglione\":\"fino a 26000€\",\"livello\":\"medio\",\"fasi\":[{\"fase\":\"studio\",\"importo\":919},{\"fase\":\"introduttiva\",\"importo\":777},{\"fase\":\"istruttoria\",\"importo\":1680},{\"fase\":\"decisionale\",\"importo\":1701}],\"totale_compenso\":5077.0,\"riferimento_normativo\":\"DM 55/2014 aggiornato DM 147/2022 — Parametri forensi contenzioso civile\",\"dati_applicati\":[\"parametri forensi: aggiornati al 19/02/2026 (DM 55/2014 come modificato dal DM 147/2022) — trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale\"]}"
+  },
+  "parcella_avvocato_penale": {
+   "arguments": {
+    "competenza": "tribunale_monocratico"
+   },
+   "expected": "{\"competenza\":\"tribunale_monocratico\",\"label\":\"Tribunale monocratico\",\"livello\":\"medio\",\"fasi\":[{\"fase\":\"studio\",\"importo\":473},{\"fase\":\"introduttiva\",\"importo\":567},{\"fase\":\"istruttoria\",\"importo\":1134},{\"fase\":\"decisionale\",\"importo\":1418}],\"totale_compenso\":3592.0,\"riferimento_normativo\":\"DM 55/2014 aggiornato DM 147/2022 — Parametri forensi penale\",\"dati_applicati\":[\"parametri forensi: aggiornati al 19/02/2026 (DM 55/2014 come modificato dal DM 147/2022) — trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale\"]}"
+  },
+  "parcella_stragiudiziale": {
+   "arguments": {
+    "valore_pratica": 10000.0
+   },
+   "expected": "{\"valore_pratica\":10000.0,\"scaglione\":\"fino a 26000€\",\"livello\":\"medio\",\"compenso\":1985,\"riferimento_normativo\":\"DM 55/2014 aggiornato DM 147/2022 — Parametri forensi attività stragiudiziale\",\"dati_applicati\":[\"parametri forensi: aggiornati al 19/02/2026 (DM 55/2014 come modificato dal DM 147/2022) — trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale\"]}"
+  },
+  "parcella_volontaria_giurisdizione": {
+   "arguments": {
+    "valore_causa": 10000.0
+   },
+   "expected": "{\"valore_causa\":10000.0,\"scaglione\":\"fino a 26000€\",\"livello\":\"medio\",\"fasi\":[{\"fase\":\"studio\",\"importo\":709},{\"fase\":\"trattazione\",\"importo\":709}],\"totale_compenso\":1418.0,\"riferimento_normativo\":\"DM 55/2014 aggiornato DM 147/2022 — Tab. 7 Volontaria giurisdizione\",\"dati_applicati\":[\"parametri forensi: aggiornati al 19/02/2026 (DM 55/2014 come modificato dal DM 147/2022) — trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale\"]}"
+  },
+  "preventivo_stragiudiziale": {
+   "arguments": {
+    "valore_pratica": 10000.0
+   },
+   "expected": "{\"testo_preventivo\":\"PREVENTIVO ATTIVITÀ STRAGIUDIZIALE — Valore pratica: €10,000.00\\nScaglione: fino a 26000€ | Livello: medio\\n\\n  Compenso base: €1,985.00\\n  Spese generali 15%: €297.75\\n  Subtotale: €2,282.75\\n  CPA 4%: €91.31\\n  IVA 22%: €522.29\\n  TOTALE: €2,896.35\",\"dettaglio_calcoli\":{\"valore_pratica\":10000.0,\"scaglione\":\"fino a 26000€\",\"livello\":\"medio\",\"compenso_base\":1985,\"spese_generali_15pct\":297.75,\"subtotale\":2282.75,\"cpa_4pct\":91.31,\"imponibile_iva\":2374.06,\"iva_22pct\":522.29,\"totale\":2896.35},\"riferimento_normativo\":\"DM 55/2014 aggiornato DM 147/2022 — Parametri forensi attività stragiudiziale\",\"dati_applicati\":[\"parametri forensi: aggiornati al 19/02/2026 (DM 55/2014 come modificato dal DM 147/2022) — trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale\"]}"
+  },
+  "preventivo_volontaria_giurisdizione": {
+   "arguments": {
+    "valore_causa": 10000.0
+   },
+   "expected": "{\"testo_preventivo\":\"PREVENTIVO VOLONTARIA GIURISDIZIONE — Valore causa: €10,000.00\\nScaglione: fino a 26000€ | Livello: medio\\n\\nCOMPENSI PROFESSIONALI (DM 55/2014 agg. DM 147/2022, Tab. 7):\\n  - Fase studio: €709.00\\n  - Fase trattazione: €709.00\\n  Totale compensi: €1,418.00\\n  Spese generali 15%: €212.70\\n  Subtotale: €1,630.70\\n  CPA 4%: €65.23\\n  IVA 22%: €373.10\\n  TOTALE ONORARI: €2,069.03\",\"dettaglio_calcoli\":{\"valore_causa\":10000.0,\"scaglione\":\"fino a 26000€\",\"livello\":\"medio\",\"fasi\":[{\"fase\":\"studio\",\"importo\":709},{\"fase\":\"trattazione\",\"importo\":709}],\"totale_compensi\":1418.0,\"spese_generali_15pct\":212.7,\"subtotale\":1630.7,\"cpa_4pct\":65.23,\"imponibile_iva\":1695.93,\"iva_22pct\":373.1,\"totale_onorari\":2069.03},\"riferimento_normativo\":\"DM 55/2014 aggiornato DM 147/2022 — Tab. 7 Volontaria giurisdizione\",\"dati_applicati\":[\"parametri forensi: aggiornati al 19/02/2026 (DM 55/2014 come modificato dal DM 147/2022) — trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale\"]}"
+  }
+ }
+}

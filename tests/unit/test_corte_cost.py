@@ -13,6 +13,7 @@ optional E2E verification.
 
 import io
 import json
+import os
 import zipfile
 from unittest.mock import AsyncMock, patch
 
@@ -667,16 +668,9 @@ class TestSuNormaImpl:
 class TestUltimeImpl:
     @pytest.mark.asyncio
     async def test_returns_latest(self):
-        # Force current_year to 1956 (our fixture year) via patching date in tool module.
-        import src.tools.corte_cost as tool_mod
-
-        class _FakeDate:
-            @staticmethod
-            def today():
-                import datetime
-                return datetime.date(1956, 12, 31)
-
-        with patch.object(tool_mod, "date", _FakeDate), patch(
+        # Pin the clock to the fixture year. The tool reads the calendar through
+        # src/lib/_clock.py, so LEGAL_TODAY is what freezes it.
+        with patch.dict(os.environ, {"LEGAL_TODAY": "1956-12-31"}), patch(
             "src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)
         ):
             result = await _ultime_pronunce_cost_impl()

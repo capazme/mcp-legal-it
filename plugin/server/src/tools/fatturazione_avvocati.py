@@ -12,6 +12,13 @@ _DATA = Path(__file__).resolve().parent.parent / "data"
 with open(_DATA / "parametri_forensi.json") as f:
     _PARAMETRI = json.load(f)
 
+#: Contributo unificato di cognizione, read from the shared table rather than
+#: copied here: a hand-kept copy does not age with the table, diverges from the
+#: answer of `contributo_unificato` without anything failing, and cannot report
+#: its own vintage to the reader.
+with open(_DATA / "contributo_unificato.json") as f:
+    _CU_CIVILE: list[dict] = json.load(f)["civile"]["cognizione"]
+
 _FASI_CIVILE = ["studio", "introduttiva", "istruttoria", "decisionale"]
 _FASI_PENALE = ["studio", "introduttiva", "istruttoria", "decisionale"]
 _FASI_VOLONTARIA = ["studio", "trattazione"]
@@ -447,15 +454,6 @@ def nota_spese(
 
 # --- Spese vive stimate per tipo procedimento civile ---
 _SPESE_VIVE_STIMATE = {
-    "contributo_unificato": [
-        (1_100, 43),
-        (5_200, 98),
-        (26_000, 237),
-        (52_000, 518),
-        (260_000, 759),
-        (520_000, 1_214),
-        (float("inf"), 1_686),
-    ],
     "marca_da_bollo": 27.0,
     "notifica_pec": 3.54,
     "notifica_ufficiale_giudiziario": 27.0,
@@ -464,14 +462,21 @@ _SPESE_VIVE_STIMATE = {
 
 
 def _contributo_unificato(valore_causa: float) -> float:
-    for soglia, importo in _SPESE_VIVE_STIMATE["contributo_unificato"]:
-        if valore_causa <= soglia:
-            return importo
-    return _SPESE_VIVE_STIMATE["contributo_unificato"][-1][1]
+    """Contributo unificato di cognizione for a claim of this value.
+
+    The bands come from `contributo_unificato.json` (DPR 115/2002), the same
+    table `contributo_unificato` and `decreto_ingiuntivo` answer from, so an
+    update to the table moves this estimate too and the vintage line below
+    describes the numbers actually applied.
+    """
+    for scaglione in _CU_CIVILE:
+        if scaglione.get("oltre") or valore_causa <= scaglione["fino_a"]:
+            return float(scaglione["importo"])
+    return float(_CU_CIVILE[-1]["importo"])
 
 
 @mcp.tool(tags={"parcelle_avv"})
-@sourced("parametri_forensi")
+@sourced("contributo_unificato", "parametri_forensi")
 def preventivo_civile(
     valore_causa: float,
     fasi: list[str] | None = None,
@@ -752,7 +757,7 @@ _NOTULA_PROCEDIMENTI = {
 
 
 @mcp.tool(tags={"parcelle_avv"})
-@sourced("parametri_forensi")
+@sourced("contributo_unificato", "parametri_forensi")
 def modello_notula(
     tipo_procedimento: str,
     avvocato: str,

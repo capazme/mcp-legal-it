@@ -1,0 +1,23 @@
+{
+ "datasets": [
+  "comuni"
+ ],
+ "tools": {
+  "codice_fiscale": {
+   "arguments": {
+    "cognome": "Rossi",
+    "comune_nascita": "Roma",
+    "data_nascita": "1980-01-01",
+    "nome": "Mario",
+    "sesso": "M"
+   },
+   "expected": "{\"codice_fiscale\":\"RSSMRA80A01H501U\",\"dettaglio\":{\"cognome\":\"RSS\",\"nome\":\"MRA\",\"anno\":\"80\",\"mese\":\"A\",\"giorno\":\"01\",\"codice_catastale\":\"H501\",\"carattere_controllo\":\"U\",\"catastale_dal_chiamante\":false},\"dati_applicati\":[\"comuni: aggiornati al 19/09/2026 (ISTAT — Elenco comuni italiani (codici catastali), riscontro su Agenzia delle Entrate) — sottoinsieme dei comuni principali, verificato voce per voce contro l'elenco ISTAT; i comuni assenti si gestiscono con codice_catastale fornito dal chiamante\"]}"
+  },
+  "decodifica_codice_fiscale": {
+   "arguments": {
+    "codice_fiscale": "RSSMRA80A01H501U"
+   },
+   "expected": "{\"codice_fiscale\":\"RSSMRA80A01H501U\",\"carattere_controllo_valido\":true,\"dati\":{\"sesso\":\"M\",\"data_nascita\":\"1980-01-01\",\"anno_nascita_stimato\":1980,\"comune_nascita\":\"ROMA\",\"codice_catastale\":\"H501\"},\"nota\":\"L'anno di nascita è stimato (ambiguità secolo). I caratteri cognome/nome non sono reversibili.\",\"dati_applicati\":[\"comuni: aggiornati al 19/09/2026 (ISTAT — Elenco comuni italiani (codici catastali), riscontro su Agenzia delle Entrate) — sottoinsieme dei comuni principali, verificato voce per voce contro l'elenco ISTAT; i comuni assenti si gestiscono con codice_catastale fornito dal chiamante\"]}"
+  }
+ }
+}

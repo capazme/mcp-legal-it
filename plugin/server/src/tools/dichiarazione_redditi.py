@@ -6,6 +6,7 @@ import json
 from datetime import date
 from pathlib import Path
 
+from src.lib import _clock
 from src.server import mcp
 from src.lib._data import sourced
 
@@ -24,7 +25,7 @@ with open(_DATA / "tassi_legali.json") as f:
 def _get_scaglioni(anno: int | None = None) -> list[dict]:
     """Return IRPEF brackets for the given fiscal year (default: current year)."""
     if anno is None:
-        anno = date.today().year
+        anno = _clock.today().year
     per_anno = _IRPEF.get("scaglioni_per_anno", {})
     return per_anno.get(str(anno), _IRPEF["scaglioni"])
 
@@ -152,7 +153,7 @@ def calcolo_irpef(
         "totale_imposte": totale_imposte,
         "reddito_netto": reddito_netto,
         "aliquota_effettiva_pct": round(totale_imposte / reddito_complessivo * 100, 2),
-        "anno_fiscale": anno or date.today().year,
+        "anno_fiscale": anno or _clock.today().year,
         "riferimento_normativo": "TUIR — D.P.R. 917/1986, art. 11-13",
     }
 
@@ -285,6 +286,7 @@ def calcolo_tfr(
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("tassi_legali")
 def ravvedimento_operoso(
     imposta_dovuta: float,
     giorni_ritardo: int,
@@ -945,11 +947,14 @@ def rateizzazione_imposte(
 
 
 @mcp.tool(tags={"fiscale"})
+@sourced("codici_tributo")
 def cerca_codice_tributo(query: str) -> str:
     """Cerca un codice tributo F24 per codice o descrizione.
 
     Usare quando serve il codice tributo per compilare un modello F24.
     Restituisce: codice, descrizione, sezione e categoria per ogni risultato trovato.
+    Precisione: INDICATIVO (ricerca per codice o descrizione su tabella delle
+    risoluzioni AdE; verificare il codice sulla risoluzione prima del versamento).
 
     Args:
         query: Codice tributo (es. '4001') o testo da cercare (es. 'IRPEF saldo', 'IMU', 'IVA mensile')

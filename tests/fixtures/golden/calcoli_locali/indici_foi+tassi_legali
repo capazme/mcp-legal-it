@@ -1,0 +1,32 @@
+{
+ "datasets": [
+  "indici_foi",
+  "tassi_legali"
+ ],
+ "tools": {
+  "calcolo_maggior_danno": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"capitale\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"rivalutazione_istat\":1613.22,\"capitale_rivalutato\":11613.22,\"interessi_legali\":750.65,\"maggior_danno\":862.56,\"criterio_applicato\":\"rivalutazione\",\"importo_spettante\":1613.22,\"totale_dovuto\":11613.22,\"avvertenza\":null,\"riferimento_normativo\":\"Art. 1224, co. 2 c.c. — Cass. SU 19499/2008\",\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\",\"tassi legali: copre fino al 31/12/2026 (DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.)\"]}"
+  },
+  "interessi_vari_capitale_rivalutato": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"capitale_originario\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"coefficiente_rivalutazione\":1.161322,\"capitale_rivalutato\":11613.22,\"totale_interessi\":865.94,\"totale_dovuto\":12479.16,\"tasso_utilizzato\":\"tasso legale variabile\",\"avvertenza\":null,\"dettaglio_anni\":[{\"anno\":2021,\"coefficiente\":1.03207,\"capitale_rivalutato\":10320.7,\"tasso_pct\":0.01,\"tipo_tasso\":\"legale\",\"giorni\":364,\"interessi\":1.03},{\"anno\":2022,\"coefficiente\":1.148688,\"capitale_rivalutato\":11486.88,\"tasso_pct\":1.25,\"tipo_tasso\":\"legale\",\"giorni\":365,\"interessi\":143.59},{\"anno\":2023,\"coefficiente\":1.155491,\"capitale_rivalutato\":11554.91,\"tasso_pct\":5.0,\"tipo_tasso\":\"legale\",\"giorni\":365,\"interessi\":577.75},{\"anno\":2024,\"coefficiente\":1.161322,\"capitale_rivalutato\":11613.22,\"tasso_pct\":2.5,\"tipo_tasso\":\"legale\",\"giorni\":181,\"interessi\":143.58}],\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\",\"tassi legali: copre fino al 31/12/2026 (DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.)\"]}"
+  },
+  "rivalutazione_monetaria": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"capitale_originario\":10000.0,\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"foi_inizio\":102.9,\"foi_fine\":119.5,\"coefficiente_rivalutazione\":1.161322,\"capitale_rivalutato\":11613.22,\"avvertenza\":null,\"dettaglio_anni\":[{\"anno\":2021,\"foi_riferimento\":106.2,\"coefficiente\":1.03207,\"capitale_rivalutato\":10320.7,\"tasso_legale_pct\":0.01,\"giorni\":364,\"interessi_legali\":1.03},{\"anno\":2022,\"foi_riferimento\":118.2,\"coefficiente\":1.148688,\"capitale_rivalutato\":11486.88,\"tasso_legale_pct\":1.25,\"giorni\":365,\"interessi_legali\":143.59},{\"anno\":2023,\"foi_riferimento\":118.9,\"coefficiente\":1.155491,\"capitale_rivalutato\":11554.91,\"tasso_legale_pct\":5.0,\"giorni\":365,\"interessi_legali\":577.75},{\"anno\":2024,\"foi_riferimento\":119.5,\"coefficiente\":1.161322,\"capitale_rivalutato\":11613.22,\"tasso_legale_pct\":2.5,\"giorni\":181,\"interessi_legali\":143.58}],\"totale_interessi_legali\":865.94,\"totale_dovuto\":12479.16,\"dati_applicati\":[\"indici foi: copre fino al 30/06/2026 (ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale) — rinfrescata da scripts/refresh_data.py\",\"tassi legali: copre fino al 31/12/2026 (DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.)\"]}"
+  }
+ }
+}
