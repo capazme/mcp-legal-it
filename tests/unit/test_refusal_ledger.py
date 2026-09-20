@@ -333,6 +333,46 @@ def test_monthly_rolls_up_by_month_and_compares(monkeypatch, tmp_path):
     assert settembre["top_tool"] == "contributo_unificato"
 
 
+def test_monthly_carries_a_chart_of_the_series(monkeypatch, tmp_path):
+    """`grafico`: one bar per month, scaled to the window's max, zero visible."""
+    monkeypatch.setenv(_refusals.ENABLE_ENV, "on")
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("LEGAL_NOW", "2026-09-15T12:00:00")
+    _write_ledger(
+        _refusals.ledger_path(),
+        [
+            {"ts": "2026-09-03T10:00:00", "evento": "rifiuto", "tool": "contributo_unificato", "tables": ["comuni"]},
+            {"ts": "2026-09-04T10:00:00", "evento": "rifiuto", "tool": "contributo_unificato", "tables": ["comuni"]},
+            {"ts": "2026-09-05T10:00:00", "evento": "rifiuto", "tool": "codice_fiscale", "tables": ["comuni"]},
+            {"ts": "2026-08-20T10:00:00", "evento": "rifiuto", "tool": "contributo_unificato", "tables": ["comuni"]},
+        ],
+    )
+    report = _refusals.monthly(3)
+    grafico = report["grafico"]
+    assert len(grafico) == 3
+    luglio, agosto, settembre = grafico
+    # scaled to the window's max: the worst month fills the width
+    assert agosto.count(_refusals.BAR_FILL) == round(1 / 3 * _refusals.BAR_WIDTH)
+    assert settembre.count(_refusals.BAR_FILL) == _refusals.BAR_WIDTH
+    assert agosto.startswith("2026-08 \u258f")
+    # a silent month shows the zero mark, not a blank line
+    assert luglio.endswith("0")
+    assert _refusals.ZERO_MARK in luglio and _refusals.BAR_FILL not in luglio
+    # the current month is marked
+    assert settembre.endswith("<-- corrente")
+    # month labels match the series, so chart and table cannot disagree
+    assert [r["mese"] for r in report["serie"]] == [g.split(" ")[0] for g in grafico]
+
+
+def test_monthly_chart_is_all_zero_marks_without_events(monkeypatch):
+    """An empty window draws every month at the zero mark: no blank chart."""
+    monkeypatch.setenv(_refusals.ENABLE_ENV, "on")
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_ledger_dir()))
+    report = _refusals.monthly(3)
+    assert all(_refusals.ZERO_MARK in g for g in report["grafico"])
+    assert not any(_refusals.BAR_FILL in g for g in report["grafico"])
+
+
 def test_monthly_reports_zeros_when_the_ledger_file_is_missing(monkeypatch):
     """No file yet: a zeroed series, not an error -- absence is a valid month."""
     monkeypatch.setenv(_refusals.ENABLE_ENV, "on")

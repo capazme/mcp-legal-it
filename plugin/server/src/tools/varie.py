@@ -886,8 +886,10 @@ def verbale_mensile(months: int = 6) -> dict:
             default 6).
 
     Returns:
-        Dizionario con: `serie` (una riga per mese), `mesi` coperti, `nota`
-        sulla semantica; `{"disponibile": False}` quando il verbale e' spento.
+        Dizionario con: `serie` (una riga per mese), `grafico` (la stessa serie
+        in barre ASCII, una riga per mese, pronta da mostrare), `mesi` coperti,
+        `nota` sulla semantica; `{"disponibile": False}` quando il verbale e'
+        spento.
     """
     return _refusals.monthly(months)
 
