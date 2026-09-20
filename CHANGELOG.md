@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0-beta.2] - 2026-09-20
+
+### Added
+- The refusal series as a picture: `verbale_mensile` and the CLI report carry a
+  `grafico` block now -- one bar per month, scaled to the window's maximum,
+  the zero mark for a silent month, the current month marked -- so "is this
+  month worse than the last one?" reads at a glance in `/verbale` too, from
+  the same data the table mirrors.
+
+### Changed
+- CI also verifies the release tarball on every push and on every tag
+  (`tarball-sync` job): `scripts/verify_tarball.py` compares `git archive` of
+  the revision against the tree itself and fails when something forbidden
+  (`/src`, `/tests`, any symlink) is inside, or when a tracked non-ignored
+  file is missing -- the same two directions the marketplace sandbox enforces
+  as `failed_content`, checked before the backend can see the release.
+
 ## [Unreleased]
 
 ### Added

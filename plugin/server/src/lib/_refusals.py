@@ -150,6 +150,38 @@ def _ranked(tally: dict, limit: int) -> dict:
     return out
 
 
+#: Chart geometry: bar length, in blocks, at the window's maximum.
+BAR_WIDTH = 32
+#: One-row mark for a month with no events: visible, not empty.
+ZERO_MARK = "·"
+#: The fill block. Plain ASCII `#` would work; a full block reads as a bar.
+BAR_FILL = "█"
+
+
+def _bars(righe: list[dict], width: int = BAR_WIDTH) -> list[str]:
+    """The series at a glance: one bar per month, scaled to the window's max.
+
+    Bars carry no more information than the rows they mirror — the same
+    totals, scaled so the worst month fills the width — so the chart can never
+    contradict the table it illustrates, and a month at zero shows the zero
+    mark instead of a blank line. Deterministic: a function of the data only,
+    no clock, no locale.
+    """
+    massimo = max((riga["totale"] for riga in righe), default=0)
+    out: list[str] = []
+    for indice, riga in enumerate(righe):
+        totale = riga["totale"]
+        if massimo <= 0:
+            barra = ZERO_MARK
+        elif totale <= 0:
+            barra = ZERO_MARK
+        else:
+            barra = BAR_FILL * round(totale / massimo * width)
+        marker = "  <-- corrente" if indice == len(righe) - 1 else ""
+        out.append("%s ▏%s %d%s" % (riga["mese"], barra, totale, marker))
+    return out
+
+
 def summarize(limit: int = 50) -> dict:
     """What the ledger says, if the host asked for it.
 
@@ -250,9 +282,12 @@ def monthly(months: int = 6) -> dict:
         "disponibile": True,
         "mesi": months,
         "serie": righe,
+        "grafico": _bars(righe),
         "nota": (
             "conteggi per mese solare dal timestamp di ciascun evento; un mese "
             "senza eventi compare con zero, non scompare. `delta_mese_precedente` "
-            "e' il confronto col mese prima; None per il primo della finestra."
+            "e' il confronto col mese prima; None per il primo della finestra. "
+            "`grafico` e' la stessa serie in barre, una riga per mese, scala sul "
+            "massimo della finestra: da mostrare cosi' com'e'."
         ),
     }

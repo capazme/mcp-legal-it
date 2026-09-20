@@ -33,7 +33,7 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "plugin" / "server" / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "plugin" / "server"))
 
 from src.lib import _refusals  # noqa: E402
 
@@ -41,6 +41,12 @@ from src.lib import _refusals  # noqa: E402
 def _render_markdown(report: dict) -> str:
     righe = report.get("serie") or []
     out = ["# Verbale dei rifiuti — serie mensile", ""]
+    grafico = report.get("grafico") or []
+    if grafico:
+        out.append("```")
+        out.extend(grafico)
+        out.append("```")
+        out.append("")
     out.append("| mese | rifiuti | accettazioni | Δ | top tool | top tabella |")
     out.append("|------|---------|--------------|---|----------|-------------|")
     for riga in righe:
@@ -82,19 +88,20 @@ def _render_markdown(report: dict) -> str:
 def _render_terminal(report: dict) -> str:
     righe = report.get("serie") or []
     out = ["Verbale dei rifiuti — serie mensile (%d mesi)" % len(righe)]
+    for riga in report.get("grafico") or []:
+        out.append("  " + riga)
+    out.append("")
     for riga in righe:
         delta = riga.get("delta_mese_precedente")
         delta_s = "·" if delta is None else ("%+d" % delta)
-        marker = " <-- corrente" if riga is righe[-1] else ""
         out.append(
-            "  %s  rifiuti=%-3d accett=%-3d Δ=%-4s top=%s%s"
+            "  %s  rifiuti=%-3d accett=%-3d Δ=%-4s top=%s"
             % (
                 riga["mese"],
                 sum(riga.get("rifiuti", {}).values()),
                 sum(riga.get("accettazioni", {}).values()),
                 delta_s,
                 riga.get("top_tool") or "—",
-                marker,
             )
         )
     out.append("(registra solo rifiuti/accettazioni: mai dati di causa)")
