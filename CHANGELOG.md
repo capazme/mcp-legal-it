@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.13.1] - 2026-09-20
 
 ### Added
 - Tool annotations: all 221 tools now declare `readOnlyHint` / `openWorldHint`,
@@ -276,6 +276,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`plugin/server/probe_precision.py`, the same `sourced` wrapper, launched
   through the harness), so the policy's teeth are tested against a real
   refusal instead of against a gap the data work has closed.
+- Monthly refusal report: `verbale_mensile` (the 223rd tool) reads the ledger
+  the middleware writes (`${MCP_CACHE_DIR:-~/...cache/mcp-legal-it}/refusals.jsonl`,
+  opt-in with `LEGAL_REFUSAL_LEDGER=on`) and compares the current month with
+  the previous ones — refusals and accepted downgrades per tool, which table
+  blocked, and whether the callers are negotiating past the policy. The
+  aggregation lives in `src/lib/_refusals.monthly()`, the recurring habit in
+  `scripts/verbale-report.py` (cron line or pre-release check), and the host
+  command `/verbale` reads the same numbers inside a conversation; `/dati`
+  points there from the data side. `tests/unit/test_refusal_ledger.py` covers
+  the aggregation and the wire surface.
+- Online-source provenance: every open-world answer now declares *when it
+  consulted the web*. The shared HTTP wrapper and the direct `httpx` sites
+  (`retry_request(dataset=...)`, `note_source(...)`) record the consult in a
+  contextvar (`src/lib/_sources.py`); the same middleware pass that stamps
+  tables and precision attaches `mcp-legal-it/fonti_consultate` to the result
+  `_meta` — dataset name, `scheme://host//path` prefix (never a query string,
+  so the caller's search terms stay out of the provenance), and a call-level
+  timestamp from the unrecorded clock. The committed policy is
+  `src/source_bindings.py`, derived by the audit from the call graph: a client
+  that starts fetching a new dataset fails the suite until the policy is
+  regenerated, and the CI runs that check (`policy-sync` job) on every push.
+  `tests/unit/test_online_sources.py` proves the middleware, the URL privacy
+  and the undeclared-source flag; the golden fails if a local answer's shape
+  changes, and the audit pins which tool may name which source.
 
 ### Fixed
 - A helper module in `src/lib/` was classified as an *upstream service*.
