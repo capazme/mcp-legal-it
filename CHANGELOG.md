@@ -312,6 +312,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as `failed_content`, checked before the backend can see the release.
 
 ### Fixed
+
+- Data refresh: FOI index for August 2026 (ISTAT, 16-09-2026: 103,7 in base
+  2025=100 → 125,9 linked to 2015=100; official variations +3,4% / +4,8%,
+  recorded without a Gazzetta reference until the comunicato is published).
+  Verified against the sources on 2026-09-20: TEGM Q3 2026 (DM 23-06-2026,
+  GU n.149; the Q4 decree is not out yet), late-payment rate H2 2026 10,40%
+  (MRO 2,40% + 8, GU n.163 of 16-07-2026), legal rate 2026 1,60% (DM
+  10-12-2025, GU n.289), IRPEF 2026 brackets 23/33/43 (L. 199/2025).
 - Data refresh (issue #36): FOI index for July 2026 (ISTAT, 12-08-2026: 103,1
   in base 2025=100 → 125,2 linked to 2015=100; official variations +2,8% /
   +4,3%) and the Gazzetta references for the June and July comunicati, both

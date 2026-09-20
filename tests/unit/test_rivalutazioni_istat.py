@@ -906,17 +906,18 @@ class TestSerieFoiUfficiale:
         assert _mod()._INDICI_FOI["2025"] == attesi
 
     def test_serie_2026_raccordata(self):
-        # Base 2025=100 (GU n.144 del 24-6-2026, GU n.201 del 31-8-2026) x 1.214
+        # Base 2025=100 (GU n.144 del 24-6-2026, GU n.201 del 31-8-2026,
+        # ISTAT 16-9-2026 per agosto) x 1.214
         attesi = {
             "01": 121.9, "02": 122.5, "03": 123.2,
-            "04": 124.4, "05": 124.8, "06": 124.8, "07": 125.2,
+            "04": 124.4, "05": 124.8, "06": 124.8, "07": 125.2, "08": 125.9,
         }
         assert _mod()._INDICI_FOI["2026"] == attesi
 
     def test_indici_base_2025(self):
         attesi = {
             "01": 100.4, "02": 100.9, "03": 101.5,
-            "04": 102.5, "05": 102.8, "06": 102.8, "07": 103.1,
+            "04": 102.5, "05": 102.8, "06": 102.8, "07": 103.1, "08": 103.7,
         }
         assert _mod()._FOI_DATA["indici_base_2025"]["2026"] == attesi
 
