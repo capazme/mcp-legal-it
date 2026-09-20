@@ -328,6 +328,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   anche in `/verbale`, dagli stessi dati che specchia la tabella. Il comando
   `/verbale` mostra prima il grafico, poi la tabella dei dettagli.
 
+### Changed
+- Regole di grounding normalizzate: le sei skill agente riformulavano la
+  stessa regola di Legal Grounding in sette varianti divergenti -- ora
+  condividono una sola forma canonica. La convenzione OUTPUT del server
+  aggiunge la clausola di provenienza (`dati_applicati` col vintage e
+  `mcp-legal-it/fonti_consultate` dal `_meta`).
+
 ### Fixed
 - Two of the reconciled tables re-read against the primary source
   (2026-09-20). `violazioni_patente`: generic failure to yield is art. 145
