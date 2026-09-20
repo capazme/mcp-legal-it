@@ -31,6 +31,12 @@ dev = [
     "pyyaml>=6.0",
 ]
 
+[project.scripts]
+mcp-legal-it = "src.cli:main"
+
+[tool.setuptools.package-data]
+src = ["data/*.json", "data/references/*.md"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]

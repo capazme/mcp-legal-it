@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `verifica_citazioni(..., formato="json")` and `cite_law(..., formato="json")`:
+  structured output for programmatic clients (LibreLex-IT). Markdown output
+  unchanged.
+- Console entry point `mcp-legal-it` (`src.cli:main`), so the server starts
+  with `uvx --from git+https://github.com/capazme/mcp-legal-it@vX.Y.Z mcp-legal-it`.
+- The server now declares its package version to MCP clients
+  (`serverInfo.version`).
 - The refusal series as a picture: `verbale_mensile` and the CLI report carry a
   `grafico` block now -- one bar per month, scaled to the window's maximum,
   the zero mark for a silent month, the current month marked -- so "is this
