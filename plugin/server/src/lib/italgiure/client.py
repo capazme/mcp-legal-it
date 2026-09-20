@@ -135,7 +135,7 @@ class SolrSession:
         if self._client is None:
             raise RuntimeError("SolrSession not entered — use `async with`")
         body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
-        resp = await retry_request(self._client, "POST", _SOLR_URL, content=body)
+        resp = await retry_request(self._client, "POST", _SOLR_URL, dataset="italgiure", content=body)
         return resp.json()
 
 
@@ -153,7 +153,7 @@ async def solr_query(params: dict, session: SolrSession | None = None) -> dict:
     async with httpx.AsyncClient(verify=False, timeout=_TIMEOUT, headers=_HEADERS) as client:
         await client.get(_HOMEPAGE)
         body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
-        resp = await retry_request(client, "POST", _SOLR_URL, content=body)
+        resp = await retry_request(client, "POST", _SOLR_URL, dataset="italgiure", content=body)
         return resp.json()
 
 

@@ -31,6 +31,28 @@ jobs:
       - name: Check launchers against pyproject.toml
         run: python scripts/check_deps_sync.py
 
+  # The committed annotations (tool_annotations.py, source_bindings.py,
+  # table_bindings.py, docs/cache-inventory.md) are generated from the source
+  # with `scripts/audit_tool_annotations.py --write`. A push whose code moved
+  # without regenerating them fails here, so a reviewer never has to run the
+  # audit to know the policy matches the tool surface it describes.
+  policy-sync:
+    name: Annotation policy in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Regenerate the policy and require no diff
+        run: |
+          python scripts/audit_tool_annotations.py --write
+          git diff --exit-code plugin/server/src/tool_annotations.py \
+            plugin/server/src/source_bindings.py \
+            plugin/server/src/table_bindings.py docs/cache-inventory.md
+
   test:
     runs-on: ubuntu-latest
     strategy:

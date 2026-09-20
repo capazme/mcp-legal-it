@@ -30,6 +30,7 @@ import httpx
 
 from .. import _clock
 from .._cache import cache_enabled, cache_root
+from .._http import note_source
 from .akn_parser import ParsedAct, ParsedPart, parse_akn
 
 _CARICA_AKN_BASE = "https://www.normattiva.it/do/atto/caricaAKN"
@@ -347,6 +348,7 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             # Step 1 — landing page: establishes the session + yields params.
             landing_resp = await client.get(landing_url)
             landing_resp.raise_for_status()
+            note_source("normattiva", str(landing_resp.url) if hasattr(landing_resp, "url") else "")
             params = _extract_params(landing_resp.text)
             if not params:
                 return None
@@ -368,6 +370,7 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             )
             akn_resp = await client.get(akn_url)
             akn_resp.raise_for_status()
+            note_source("normattiva", str(akn_resp.url) if hasattr(akn_resp, "url") else "")
             xml = akn_resp.text
 
         # Validate: real XML export, not the ~32 KB error page.
