@@ -13,6 +13,7 @@ Workflow tipico:
 """
 
 from src.lib._result import SearchResult
+from src.lib._sources import note
 from src.server import mcp
 from src.lib.gazzetta.client import (
     RSS_CODE,
@@ -225,6 +226,9 @@ async def _scarica_pdf_gazzetta_impl(
         f"**PDF ufficiale Gazzetta Ufficiale n. {numero_gazzetta} "
         f"del {data_pubblicazione}**\n\n[Scarica il PDF]({url})\n\n{url}"
     )
+    #: The answer names a Gazzetta URL for the caller to download: that link is
+    #: the consult, even though nothing is fetched server-side.
+    note("gazzetta", url)
     return SearchResult(success=True, source=_SOURCE, num_found=1, results_text=text)
 
 

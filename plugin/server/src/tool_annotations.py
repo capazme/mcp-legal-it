@@ -25,8 +25,14 @@ that reads the switch, and the only one that resolves `MCP_CACHE_DIR`).
 `docs/cache-inventory.md` carries the per-cache and per-tool detail.
 
 `openWorldHint` marks the tools that reach outside the process (Normattiva,
-EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 168
+EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 169
 local-only ones are pure calculations over the bundled JSON tables.
+
+`ONLINE_SOURCES` names those same tools from the provenance side: every one of
+them records what it consulted while answering (`src/lib/_sources.py`), and
+the answer carries a `fonti_consultate` block in `_meta` with the dataset
+names and the moment of the consult. The per-tool dataset map is
+`source_bindings.py`, regenerated together with this policy.
 
 `apply_tool_annotations` installs a middleware that stamps these annotations on
 `tools/list`. It lives in one place on purpose: annotating 221 decorators would
@@ -98,8 +104,8 @@ READ_ONLY: frozenset[str] = frozenset({
     "termini_separazione_divorzio", "test_crisi_impresa", "testimonianza_scritta", "ultime_delibere_consob",
     "ultime_gazzette", "ultime_pronunce", "ultime_sentenze_cgue", "ultime_sentenze_tributarie",
     "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante", "valutazione_data_breach",
-    "variazioni_istat", "verifica_iban", "verifica_mediazione_obbligatoria", "verifica_necessita_dpia",
-    "verifica_partita_iva", "verifica_partita_iva_vies", "verifica_usura",
+    "variazioni_istat", "verbale_mensile", "verifica_iban", "verifica_mediazione_obbligatoria",
+    "verifica_necessita_dpia", "verifica_partita_iva", "verifica_partita_iva_vies", "verifica_usura",
 })
 
 # Reachable write: cache refresh (12) or document generation (5).
@@ -133,6 +139,25 @@ CACHE_WRITES: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_pronuncia_costituzionale", "cite_law", "fetch_full_act", "fetch_law_annotations",
     "fetch_law_article", "giurisprudenza_articolo", "leggi_pronuncia_costituzionale", "mappa_orientamento",
     "pronunce_cost_su_norma", "ultime_pronunce_cost", "verifica_citazioni",
+})
+
+# Reachable code that consults an online source (provenance recorded per call
+# in `_meta` as `fonti_consultate`; the per-tool datasets are in
+# `source_bindings.py`).
+ONLINE_SOURCES: frozenset[str] = frozenset({
+    "cerca_brocardi", "cerca_ddl", "cerca_delibere_consob", "cerca_gazzetta_ufficiale", "cerca_giurisprudenza",
+    "cerca_giurisprudenza_amministrativa", "cerca_giurisprudenza_cgue", "cerca_giurisprudenza_tributaria",
+    "cerca_giurisprudenza_unificata", "cerca_pronuncia_costituzionale", "cerca_provvedimenti_garante",
+    "cerdef_leggi_provvedimento", "cite_law", "ddl_su_norma", "download_law_pdf", "elenco_misure_nazionali",
+    "fetch_act_index", "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "get_eu_basis",
+    "get_italian_implementation", "giurisprudenza_amm_su_norma", "giurisprudenza_articolo",
+    "giurisprudenza_cgue_su_norma", "giurisprudenza_su_norma", "iter_ddl", "leggi_atto_gazzetta",
+    "leggi_delibera_consob", "leggi_pronuncia_costituzionale", "leggi_provvedimento_amm",
+    "leggi_provvedimento_garante", "leggi_sentenza", "leggi_sentenza_cgue", "mappa_orientamento",
+    "orientamento_su_norma", "orientamento_su_principio", "pronunce_cost_su_norma", "scarica_pdf_gazzetta",
+    "sommario_gazzetta", "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce",
+    "ultime_pronunce_cost", "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm",
+    "ultimi_provvedimenti_garante", "verifica_citazioni", "verifica_partita_iva_vies",
 })
 
 

@@ -253,7 +253,7 @@ async def _execute_sparql_senato(query: str) -> list[dict]:
     """GET only: dati.senato.it answers POST with a 403 WAF page."""
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
         resp = await retry_request(
-            client, "GET", SENATO_SPARQL_URL,
+            client, "GET", SENATO_SPARQL_URL, dataset="parlamento_senato",
             params={"query": query, "format": "application/sparql-results+json"},
         )
         return resp.json()["results"]["bindings"]
@@ -262,7 +262,7 @@ async def _execute_sparql_senato(query: str) -> list[dict]:
 async def _execute_sparql_camera(query: str) -> list[dict]:
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
         resp = await retry_request(
-            client, "POST", CAMERA_SPARQL_URL, data={"query": query},
+            client, "POST", CAMERA_SPARQL_URL, dataset="parlamento_camera", data={"query": query},
         )
         return resp.json()["results"]["bindings"]
 

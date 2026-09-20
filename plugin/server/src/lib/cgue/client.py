@@ -151,7 +151,7 @@ LIMIT {limit}"""
 
 async def _execute_sparql(query: str) -> list[dict]:
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS_SPARQL) as client:
-        resp = await retry_request(client, "POST", _SPARQL_URL, data={"query": query})
+        resp = await retry_request(client, "POST", _SPARQL_URL, dataset="cgue", data={"query": query})
         data = resp.json()
         return data["results"]["bindings"]
 
@@ -226,7 +226,7 @@ def _parse_title(raw_title: str) -> tuple[str, str, str]:
 
 async def _fetch_html(cellar_uri: str) -> str:
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS_HTML, follow_redirects=True) as client:
-        resp = await retry_request(client, "GET", cellar_uri)
+        resp = await retry_request(client, "GET", cellar_uri, dataset="cgue")
         return resp.text
 
 
