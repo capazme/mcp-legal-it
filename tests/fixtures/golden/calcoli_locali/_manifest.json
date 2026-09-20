@@ -269,6 +269,7 @@
     "test_crisi_impresa",
     "testimonianza_scritta",
     "valutazione_data_breach",
+    "verbale_mensile",
     "verifica_iban",
     "verifica_partita_iva"
    ]
@@ -673,6 +674,7 @@
   "variazioni_istat": [
    "indici_foi"
   ],
+  "verbale_mensile": [],
   "verifica_iban": [],
   "verifica_mediazione_obbligatoria": [
    "mediazione_obbligatoria"

@@ -39,7 +39,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware
 
-from . import _clock, _precision, _refusals
+from . import _clock, _precision, _refusals, _sources
 from ._data import warnings as data_warnings
 from ._tables_open import CURRENT, note, opened, recording
 
@@ -52,8 +52,12 @@ DATA_WARNINGS_KEY = "mcp-legal-it/data_warnings"
 PRECISION_KEY = "mcp-legal-it/precisione"
 #: Key under which a tool result reports the refusal ledger, when asked for.
 REFUSALS_KEY = "mcp-legal-it/verbale_rifiuti"
+#: Key under which a call declares the online sources it consulted. Same meta,
+#: same pass, so a host reads one place to know what an answer rests on.
+CONSULTED_SOURCES_KEY = "mcp-legal-it/fonti_consultate"
 
 __all__ = [
+    "CONSULTED_SOURCES_KEY",
     "CURRENT",
     "DATA_WARNINGS_KEY",
     "OPENED_TABLES_KEY",
@@ -184,20 +188,46 @@ class TableLedgerMiddleware(Middleware):
         self,
         tool_tables: dict[str, tuple[str, ...]] | None = None,
         tool_alternatives: dict[str, str] | None = None,
+        tool_sources: dict[str, tuple[str, ...]] | None = None,
     ) -> None:
         self.tool_tables = tool_tables or {}
         self.tool_alternatives = tool_alternatives or {}
+        # The committed policy of which tool may reach which online source (the
+        # same names the audit collects). A source the observation saw but the
+        # policy does not list means the walk missed a fetcher -- the suite
+        # fails on it, exactly like the table half.
+        self.tool_sources = tool_sources or {}
 
     async def on_call_tool(self, context, call_next):
-        with recording() as opened, _clock.recording(), _precision.recording():
+        with (
+            recording() as opened,
+            _clock.recording(),
+            _precision.recording(),
+            _sources.recording(),
+        ):
             result = await call_next(context)
             esito = _precision.current()
+            # Read inside the recording block: once it exits, the contextvar is
+            # cleared and the observation would be lost. `opened` survives the
+            # block because it is the yielded set; the sources need the same
+            # care, stamp included (the moment of the readback is still within
+            # seconds of the fetches).
+            consultate = _sources.consulted()
+            consultate_al = _sources.now_stamp()
         if not hasattr(result, "meta"):
             return result
 
         message = getattr(context, "message", None)
         name = getattr(message, "name", None)
         seen = sorted(opened)
+        politiche = self.tool_sources.get(name) or ()
+        non_dichiarate = sorted({f["fonte"] for f in consultate} - set(politiche))
+        if non_dichiarate:
+            print(
+                "[_ledger] %s consulted undeclared online sources: %s "
+                "(add them to TOOL_SOURCES in table_bindings.py)" % (name, non_dichiarate),
+                flush=True,
+            )
         # A call that supplied the datum its table would have provided read no
         # table *because it needed none*: falling back to the declaration here
         # would flag the vintage of a table the call deliberately did not open.
@@ -208,6 +238,13 @@ class TableLedgerMiddleware(Middleware):
         meta = dict(result.meta or {})
         if seen:
             meta[OPENED_TABLES_KEY] = seen
+        if consultate:
+            blocco = {
+                "consultate_al": consultate_al,
+                "fonti": consultate,
+                "non_dichiarate": non_dichiarate,
+            }
+            meta[CONSULTED_SOURCES_KEY] = blocco
         avvisi = data_warnings(effective)
         if avvisi:
             meta[DATA_WARNINGS_KEY] = avvisi
@@ -240,6 +277,15 @@ class TableLedgerMiddleware(Middleware):
                 )
         if meta:
             result.meta = meta
+        if name == "verbale_mensile":
+            # The readback names the file the report came from, so a host can
+            # tell "empty because nobody used the server" from "empty because
+            # the report is reading somewhere else". The result may carry no
+            # meta at all: create it rather than stay silent.
+            meta = getattr(result, "meta", None)
+            if not isinstance(meta, dict):
+                result.meta = meta = dict(meta or {})
+            meta[REFUSALS_KEY] = {"ledger": str(_refusals.ledger_path())}
         return result
 
 
@@ -248,12 +294,18 @@ def apply_table_ledger(
     bindings: dict[str, dict[str, str]],
     tool_tables: dict[str, tuple[str, ...]] | None = None,
     tool_alternatives: dict[str, str] | None = None,
+    tool_sources: dict[str, tuple[str, ...]] | None = None,
 ) -> int:
     """Wrap the table constants and install the ledger middleware.
 
     Returns how many constants were wrapped, which the server logs on startup so
     a bindings file that matches no imported module is visible instead of silent.
+    `tool_sources` is the committed online-source policy (TOOL_SOURCES): the
+    middleware compares it with what the calls really fetched and the suite
+    fails on the difference.
     """
     wrapped = install(bindings)
-    server.add_middleware(TableLedgerMiddleware(tool_tables, tool_alternatives))
+    server.add_middleware(
+        TableLedgerMiddleware(tool_tables, tool_alternatives, tool_sources)
+    )
     return wrapped

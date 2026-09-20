@@ -864,6 +864,35 @@ def ricerca_codici_ateco(keyword: str) -> dict:
 
 
 @mcp.tool(tags={"utility", "normativa"})
+def verbale_mensile(months: int = 6) -> dict:
+    """Report mensile dei rifiuti osservati dal verbale, con confronto mese su mese.
+
+    La serie storica di `LEGAL_REFUSAL_LEDGER`: una riga per mese con il totale
+    dei rifiuti e delle accettazioni, i conteggi per tool e per tabella, il
+    `delta_mese_precedente` e il tool/tabella che ha guidato il mese (`top_tool`,
+    `top_tabella`). Un mese senza eventi compare con zero: il silenzio e' un
+    dato, non un buco. E' il lato osservato del backlog
+    (`backlog_riconciliazione` e' quello statico): se un mese peggiora, la prima
+    riga della classifica dice cosa e' cambiato nello studio prima ancora di
+    aprire il codice. Attivare il verbale con `LEGAL_REFUSAL_LEDGER=on`.
+
+    Vigenza: sorgente dei dati — `<cache root>/refusals.jsonl`, scritto dal
+    middleware a ogni rifiuto/accettazione; il mese corrente arriva da
+    src/lib/_clock.py (rispetta LEGAL_TODAY/LEGAL_NOW). Precisione: ESATTO sui
+    conteggi (letti dal file), nessuna inferenza.
+
+    Args:
+        months: finestra da riportare, dal mese corrente all'indietro (1-24,
+            default 6).
+
+    Returns:
+        Dizionario con: `serie` (una riga per mese), `mesi` coperti, `nota`
+        sulla semantica; `{"disponibile": False}` quando il verbale e' spento.
+    """
+    return _refusals.monthly(months)
+
+
+@mcp.tool(tags={"utility", "normativa"})
 def backlog_riconciliazione() -> dict:
     """Elenca le tabelle dati ancora da riconciliare, ordinate per quanto bloccano davvero.
 

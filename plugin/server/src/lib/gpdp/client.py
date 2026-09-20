@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 import httpx
 from bs4 import BeautifulSoup
 
+from .._http import note_source
+
 _BASE = "https://www.garanteprivacy.it"
 _SEARCH_PATH = "/web/guest/home/ricerca"
 _PRINT_PATH = "/web/guest/home/docweb/-/docweb-display/print"
@@ -226,6 +228,7 @@ async def search_docs(
             )
             resp = await client.get(_BASE + _SEARCH_PATH, params=params)
             resp.raise_for_status()
+            note_source("gpdp", str(resp.url) if hasattr(resp, "url") else "")
 
             page_results = _parse_results(resp.text)
             if not page_results:
@@ -248,4 +251,5 @@ async def fetch_doc(docweb_id: int) -> tuple[str, str]:
     ) as client:
         resp = await client.get(url)
         resp.raise_for_status()
+        note_source("gpdp", str(resp.url) if hasattr(resp, "url") else "")
         return _parse_doc(resp.text, docweb_id)

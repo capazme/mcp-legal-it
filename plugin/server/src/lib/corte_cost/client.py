@@ -194,7 +194,7 @@ async def _download(url: str) -> bytes:
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
-        resp = await retry_request(client, "GET", url)
+        resp = await retry_request(client, "GET", url, dataset="corte_cost")
         return resp.content
 
 

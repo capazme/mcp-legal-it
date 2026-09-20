@@ -287,3 +287,93 @@ def test_every_blocking_table_has_a_working_escape_over_the_wire():
     assert _payload(replies["imposte_successione"])["imposta_successione"] == 0.0
     assert _payload(replies["decurtazione_punti_patente"])["punti"] == 3
     assert "ROMA" in _payload(replies["decodifica_codice_fiscale"])["dati"]["comune_nascita"]
+
+
+def _write_ledger(path: pathlib.Path, voci: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(json.dumps(v, ensure_ascii=False, sort_keys=True) + "\n" for v in voci),
+        encoding="utf-8",
+    )
+
+
+def test_monthly_rolls_up_by_month_and_compares(monkeypatch, tmp_path):
+    """The series: one row per month, zero for silent months, delta vs previous."""
+    monkeypatch.setenv(_refusals.ENABLE_ENV, "on")
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("LEGAL_NOW", "2026-09-15T12:00:00")  # the window ends here
+    _write_ledger(
+        _refusals.ledger_path(),
+        [
+            {"ts": "2026-09-03T10:00:00", "evento": "rifiuto", "tool": "contributo_unificato", "tables": ["comuni"]},
+            {"ts": "2026-09-04T10:00:00", "evento": "accettazione", "tool": "codice_fiscale", "accettata": "INDICATIVO"},
+            {"ts": "2026-08-20T10:00:00", "evento": "rifiuto", "tool": "contributo_unificato", "tables": ["comuni"]},
+            {"ts": "2026-08-21T10:00:00", "evento": "rifiuto", "tool": "codice_fiscale", "tables": ["comuni"]},
+            # July has no events: a silent month is a row with zeroes, not a hole.
+            {"ts": "2026-06-10T10:00:00", "evento": "rifiuto", "tool": "interessi_legali", "tables": ["tassi_mora"]},
+        ],
+    )
+    report = _refusals.monthly(4)
+    assert report["disponibile"] is True
+    serie = report["serie"]
+    assert [r["mese"] for r in serie] == ["2026-06", "2026-07", "2026-08", "2026-09"], (
+        "oldest first, silent months included"
+    )
+    giugno, luglio, agosto, settembre = serie
+    assert giugno["totale"] == 1 and luglio["totale"] == 0
+    assert agosto["totale"] == 2 and settembre["totale"] == 2
+    assert luglio["delta_mese_precedente"] == -1
+    assert agosto["delta_mese_precedente"] == 2
+    # September's first delta compares against August, not against June.
+    assert settembre["delta_mese_precedente"] == 0
+    assert settembre["rifiuti"] == {"contributo_unificato": 1}
+    assert settembre["accettazioni"] == {"codice_fiscale": 1}
+    assert agosto["tabelle"] == {"comuni": 2}
+    assert agosto["top_tabella"] == "comuni"
+    assert settembre["top_tool"] == "contributo_unificato"
+
+
+def test_monthly_reports_zeros_when_the_ledger_file_is_missing(monkeypatch):
+    """No file yet: a zeroed series, not an error -- absence is a valid month."""
+    monkeypatch.setenv(_refusals.ENABLE_ENV, "on")
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_ledger_dir()))
+    report = _refusals.monthly(3)
+    assert report["disponibile"] is True
+    assert report["serie"][-1]["totale"] == 0, "no file: zeros, not an error"
+
+
+def tmp_ledger_dir() -> pathlib.Path:
+    return pathlib.Path(tempfile.mkdtemp(prefix="monthly-ledger-"))
+
+
+def test_monthly_is_honest_when_the_ledger_is_off(monkeypatch):
+    monkeypatch.delenv(_refusals.ENABLE_ENV, raising=False)
+    report = _refusals.monthly(3)
+    assert report["disponibile"] is False
+    assert "LEGAL_REFUSAL_LEDGER" in report["motivo"]
+
+
+def test_the_monthly_readback_arrives_over_the_wire():
+    """`verbale_mensile` reads the same file the middleware writes, from the wire."""
+    arguments = {REFUSING_TOOL: {"keyword": "commercio"}}
+    sandbox = pathlib.Path(tempfile.mkdtemp(prefix="mensile-sandbox-"))
+    scratch = pathlib.Path(tempfile.mkdtemp(prefix="mensile-tmp-"))
+    env = server_env(
+        sandbox,
+        scratch,
+        extra={**PRESENT, "LEGAL_CACHE": "off", _refusals.ENABLE_ENV: "on"},
+    )
+    call_tools(env, [REFUSING_TOOL], arguments, timeout=300, script=PROBE_SCRIPT)
+    replies = call_tools(
+        env, ["verbale_mensile"], {"verbale_mensile": {}}, timeout=300
+    )
+    payload = _payload(replies["verbale_mensile"])
+    assert payload.get("disponibile") is True
+    serie = payload.get("serie") or []
+    assert serie, "the probe's refusal happened this month: the series cannot be empty"
+    corrente = serie[-1]
+    assert corrente["rifiuti"].get(REFUSING_TOOL) == 1
+    # And the meta names the ledger, so a host can tell an empty window from a
+    # misdirected one.
+    meta = _meta(replies["verbale_mensile"]).get("mcp-legal-it/verbale_rifiuti") or {}
+    assert meta.get("ledger", "").endswith(_refusals.LEDGER_NAME)
