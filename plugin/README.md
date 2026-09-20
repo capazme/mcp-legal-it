@@ -1,6 +1,6 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude Code e Claude Desktop: **218 tool** MCP, **30 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **221 tool** MCP, **30 skill**, **8 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
@@ -21,7 +21,7 @@ claude plugin install legal-it@mcp-legal-it
 
 ## Cosa include
 
-### Server MCP (218 tool)
+### Server MCP (221 tool)
 
 Il plugin avvia automaticamente il server MCP locale — nessun server remoto richiesto. Al primo avvio crea un virtualenv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
 
@@ -43,6 +43,7 @@ Il plugin avvia automaticamente il server MCP locale — nessun server remoto ri
 | Proprieta e successioni | 11 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
 | Investimenti e fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `scorporo_iva` |
+| Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
 
 ### Skill (23 workflow guidati)
 

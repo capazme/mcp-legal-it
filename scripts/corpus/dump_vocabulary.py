@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 
 
 async def main() -> None:
-    from src.server import mcp  # imports all 32 tool modules
+    from src.server import mcp  # imports all 33 tool modules
 
     tools = await mcp.list_tools()
     names = sorted(t.name for t in tools)

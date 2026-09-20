@@ -81,7 +81,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from src.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (32 moduli, 218 tool totali)
+       └─ ... (33 moduli, 221 tool totali)
        └─ from src import prompts
             └─ @mcp.prompt() → 23 prompt registrati
        └─ from src import resources
@@ -120,16 +120,16 @@ if _profile != "full" and _profile in _PROFILES:
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 218 | Claude Code con Tool Search |
-| `sinistro` | 73 | Risarcimento danni e sinistri |
-| `credito` | 83 | Recupero crediti |
-| `penale` | 45 | Diritto penale |
+| `full` | 221 | Claude Code con Tool Search |
+| `sinistro` | 76 | Risarcimento danni e sinistri |
+| `credito` | 86 | Recupero crediti |
+| `penale` | 48 | Diritto penale |
 | `fiscale` | 62 | Calcoli fiscali, immobiliari, societari e di crisi |
-| `normativa` | 60 | Ricerca normativa e giurisprudenziale (tutte le corti) |
-| `privacy` | 57 | GDPR e privacy compliance |
+| `normativa` | 63 | Ricerca normativa e giurisprudenziale (tutte le corti) |
+| `privacy` | 60 | GDPR e privacy compliance |
 | `studio` | 73 | Gestione studio legale |
-| `redattore` | 78 | Redazione di atti giudiziari |
-| `cowork` | 70 | Sessioni Cowork (set ridotto) |
+| `redattore` | 81 | Redazione di atti giudiziari |
+| `cowork` | 73 | Sessioni Cowork (set ridotto) |
 
 Il profilo `full` è consigliato per Claude Code, che usa Tool Search per
 caricare i tool on-demand senza saturare il context window.

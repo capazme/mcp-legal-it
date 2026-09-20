@@ -34,6 +34,7 @@ ALLOWED_HOSTS: dict[str, str] = {
     "eur-lex.europa.eu": "EUR-Lex — Ufficio delle pubblicazioni UE",
     "publications.europa.eu": "CELLAR/SPARQL — Ufficio delle pubblicazioni UE",
     "ec.europa.eu": "VIES — Commissione europea (validazione partite IVA)",
+    "www.tmdn.org": "TMview — EUIPO / EU Intellectual Property Network (banca dati marchi)",
     # --- Private ---
     # The only non-institutional source. Brocardi supplies doctrinal notes and
     # case-law abstracts, never the text of a norm: that always comes from

@@ -18,7 +18,7 @@ necessarie per rispondere alla domanda che hai posto.
 Verificabile in un comando:
 
 ```bash
-grep -rnE "https?://" --include="*.py" src/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|europa\.eu|brocardi|w3\.org|oasis-open|esempio\.it"
+grep -rnE "https?://" --include="*.py" src/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|europa\.eu|tmdn\.org|brocardi|w3\.org|oasis-open|esempio\.it"
 ```
 
 Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
@@ -47,6 +47,7 @@ questo documento. Le due liste non possono divergere.
 | `eur-lex.europa.eu` | EUR-Lex — Ufficio delle pubblicazioni UE |
 | `publications.europa.eu` | CELLAR / SPARQL — Ufficio delle pubblicazioni UE |
 | `ec.europa.eu` | VIES — Commissione europea (validazione partite IVA) |
+| `www.tmdn.org` | TMview — EUIPO / EU Intellectual Property Network (banca dati marchi) |
 | `www.brocardi.it` | **Brocardi.it — fonte privata** (vedi sotto) |
 
 **Brocardi è l'unica fonte non istituzionale**, ed è una scelta deliberata da

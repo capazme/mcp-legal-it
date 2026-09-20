@@ -3,7 +3,7 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 218.**
+**Totale tool: 221.**
 
 ---
 
@@ -41,6 +41,7 @@ descrizione di ogni tool.
 30. [Procedura civile](#30-procedura-civile) — 3 tool
 31. [Modelli di atti](#31-modelli-di-atti) — 3 tool
 32. [Procure e quotazioni (recupero crediti)](#32-procure-e-quotazioni-recupero-crediti) — 2 tool
+33. [Marchi (TMview)](#33-marchi-tmview) — 3 tool
 
 ---
 
@@ -616,6 +617,21 @@ descrizione di ogni tool.
 
 ---
 
+## 33. Marchi (TMview)
+
+**Modulo:** `src/tools/tmview.py`
+**Tag:** `marchi`, `normativa`
+**API esterne:** tmdn.org (TMview — EUIPO/TMDN, JSON API)
+**Note:** Aggrega UIBM, EUIPO, WIPO e ~75 uffici nazionali (140M+ marchi). WAF anti-bot: richieste distanziate (min 1s); su blocco, riprovare dopo ~1 minuto.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_marchi` | `cerca_marchi(query: str, uffici: str = '', classi_nizza: str = '', stato: str = '', max_risultati: int = 20)` | Cerca marchi registrati o depositati su TMview (UIBM, EUIPO, WIPO e uffici nazionali). |
+| `leggi_marchio` | `leggi_marchio(st13: str)` | Legge la scheda completa di un marchio da TMview tramite identificativo ST13. |
+| `verifica_anteriorita_marchio` | `verifica_anteriorita_marchio(nome: str, classi_nizza: str = '', uffici: str = '', max_risultati: int = 50)` | Verifica preliminare di anteriorità: marchi identici o simili a un nome, con classi di Nizza. |
+
+---
+
 
 ## Riepilogo per sezione
 
@@ -653,7 +669,8 @@ descrizione di ogni tool.
 | 30 | Procedura civile | 3 |
 | 31 | Modelli di atti | 3 |
 | 32 | Procure e quotazioni (recupero crediti) | 2 |
-| | **Totale** | **218** |
+| 33 | Marchi (TMview) | 3 |
+| | **Totale** | **221** |
 
 ---
 
