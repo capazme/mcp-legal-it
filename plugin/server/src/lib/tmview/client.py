@@ -309,7 +309,7 @@ async def search_trademarks(
     await _throttle()
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         await _warm_up(client)
-        resp = await retry_request(client, "POST", _SEARCH_URL, json=payload)
+        resp = await retry_request(client, "POST", _SEARCH_URL, dataset="tmview", json=payload)
         return _parse_search_response(_json_or_blocked(resp))
 
 
@@ -319,6 +319,6 @@ async def fetch_trademark(st13: str) -> TrademarkDetail:
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         await _warm_up(client)
         resp = await retry_request(
-            client, "GET", _DETAIL_URL.format(st13=st13), params={"translate": "false"}
+            client, "GET", _DETAIL_URL.format(st13=st13), dataset="tmview", params={"translate": "false"}
         )
         return _parse_detail_response(_json_or_blocked(resp))

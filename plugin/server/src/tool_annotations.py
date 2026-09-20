@@ -63,7 +63,7 @@ READ_ONLY: frozenset[str] = frozenset({
     "calcolo_tfr", "calcolo_usufrutto", "calcolo_valore_catastale", "cedolare_secca", "cerca_codice_tributo",
     "cerca_ddl", "cerca_delibere_consob", "cerca_gazzetta_ufficiale", "cerca_giurisprudenza",
     "cerca_giurisprudenza_amministrativa", "cerca_giurisprudenza_cgue", "cerca_giurisprudenza_tributaria",
-    "cerca_giurisprudenza_unificata", "cerca_provvedimenti_garante", "cerca_ufficio_giudiziario",
+    "cerca_giurisprudenza_unificata", "cerca_marchi", "cerca_provvedimenti_garante", "cerca_ufficio_giudiziario",
     "cerdef_leggi_provvedimento", "codice_fiscale", "codici_iscrizione_ruolo", "compenso_ctu",
     "compenso_curatore_fallimentare", "compenso_delegati_vendite", "compenso_mediatore_familiare",
     "compenso_occ", "compenso_orario", "competenza_giudice", "composizione_negoziata", "concordato_preventivo",
@@ -83,9 +83,9 @@ READ_ONLY: frozenset[str] = frozenset({
     "indennita_preavviso", "indice_documenti", "inflazione_titoli_stato", "interessi_acconti",
     "interessi_corso_causa", "interessi_legali", "interessi_mora", "interessi_tasso_fisso",
     "interessi_vari_capitale_rivalutato", "istanza_visibilita_fascicolo", "iter_ddl", "leggi_atto_gazzetta",
-    "leggi_delibera_consob", "leggi_provvedimento_amm", "leggi_provvedimento_garante", "leggi_sentenza",
-    "leggi_sentenza_cgue", "lettera_adeguamento_canone", "lista_categorie_atti", "menomazioni_plurime",
-    "modello_notula", "nota_precisazione_credito", "nota_spese", "note_iscrizione_ruolo",
+    "leggi_delibera_consob", "leggi_marchio", "leggi_provvedimento_amm", "leggi_provvedimento_garante",
+    "leggi_sentenza", "leggi_sentenza_cgue", "lettera_adeguamento_canone", "lista_categorie_atti",
+    "menomazioni_plurime", "modello_notula", "nota_precisazione_credito", "nota_spese", "note_iscrizione_ruolo",
     "note_trattazione_scritta", "offerta_conciliativa", "orientamento_su_norma", "orientamento_su_principio",
     "parcella_avvocato_civile", "parcella_avvocato_penale", "parcella_stragiudiziale", "parcella_volontaria_giurisdizione",
     "pena_concordata", "pensione_reversibilita", "pignoramento_stipendio", "prescrizione_diritti",
@@ -104,8 +104,9 @@ READ_ONLY: frozenset[str] = frozenset({
     "termini_separazione_divorzio", "test_crisi_impresa", "testimonianza_scritta", "ultime_delibere_consob",
     "ultime_gazzette", "ultime_pronunce", "ultime_sentenze_cgue", "ultime_sentenze_tributarie",
     "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante", "valutazione_data_breach",
-    "variazioni_istat", "verbale_mensile", "verifica_iban", "verifica_mediazione_obbligatoria",
-    "verifica_necessita_dpia", "verifica_partita_iva", "verifica_partita_iva_vies", "verifica_usura",
+    "variazioni_istat", "verbale_mensile", "verifica_anteriorita_marchio", "verifica_iban",
+    "verifica_mediazione_obbligatoria", "verifica_necessita_dpia", "verifica_partita_iva",
+    "verifica_partita_iva_vies", "verifica_usura",
 })
 
 # Reachable write: cache refresh (12) or document generation (5).
@@ -120,17 +121,18 @@ WRITES_FILES: frozenset[str] = frozenset({
 OPEN_WORLD: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_ddl", "cerca_delibere_consob", "cerca_gazzetta_ufficiale", "cerca_giurisprudenza",
     "cerca_giurisprudenza_amministrativa", "cerca_giurisprudenza_cgue", "cerca_giurisprudenza_tributaria",
-    "cerca_giurisprudenza_unificata", "cerca_pronuncia_costituzionale", "cerca_provvedimenti_garante",
+    "cerca_giurisprudenza_unificata", "cerca_marchi", "cerca_pronuncia_costituzionale", "cerca_provvedimenti_garante",
     "cerdef_leggi_provvedimento", "cite_law", "ddl_su_norma", "download_law_pdf", "elenco_misure_nazionali",
     "fetch_act_index", "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "get_eu_basis",
     "get_italian_implementation", "giurisprudenza_amm_su_norma", "giurisprudenza_articolo",
     "giurisprudenza_cgue_su_norma", "giurisprudenza_su_norma", "iter_ddl", "leggi_atto_gazzetta",
-    "leggi_delibera_consob", "leggi_pronuncia_costituzionale", "leggi_provvedimento_amm",
+    "leggi_delibera_consob", "leggi_marchio", "leggi_pronuncia_costituzionale", "leggi_provvedimento_amm",
     "leggi_provvedimento_garante", "leggi_sentenza", "leggi_sentenza_cgue", "mappa_orientamento",
     "orientamento_su_norma", "orientamento_su_principio", "pronunce_cost_su_norma", "scarica_pdf_gazzetta",
     "sommario_gazzetta", "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce",
     "ultime_pronunce_cost", "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm",
-    "ultimi_provvedimenti_garante", "verifica_citazioni", "verifica_partita_iva_vies",
+    "ultimi_provvedimenti_garante", "verifica_anteriorita_marchio", "verifica_citazioni",
+    "verifica_partita_iva_vies",
 })
 
 # Subset of WRITES_FILES whose only write refreshes the local cache under
@@ -147,17 +149,18 @@ CACHE_WRITES: frozenset[str] = frozenset({
 ONLINE_SOURCES: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_ddl", "cerca_delibere_consob", "cerca_gazzetta_ufficiale", "cerca_giurisprudenza",
     "cerca_giurisprudenza_amministrativa", "cerca_giurisprudenza_cgue", "cerca_giurisprudenza_tributaria",
-    "cerca_giurisprudenza_unificata", "cerca_pronuncia_costituzionale", "cerca_provvedimenti_garante",
+    "cerca_giurisprudenza_unificata", "cerca_marchi", "cerca_pronuncia_costituzionale", "cerca_provvedimenti_garante",
     "cerdef_leggi_provvedimento", "cite_law", "ddl_su_norma", "download_law_pdf", "elenco_misure_nazionali",
     "fetch_act_index", "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "get_eu_basis",
     "get_italian_implementation", "giurisprudenza_amm_su_norma", "giurisprudenza_articolo",
     "giurisprudenza_cgue_su_norma", "giurisprudenza_su_norma", "iter_ddl", "leggi_atto_gazzetta",
-    "leggi_delibera_consob", "leggi_pronuncia_costituzionale", "leggi_provvedimento_amm",
+    "leggi_delibera_consob", "leggi_marchio", "leggi_pronuncia_costituzionale", "leggi_provvedimento_amm",
     "leggi_provvedimento_garante", "leggi_sentenza", "leggi_sentenza_cgue", "mappa_orientamento",
     "orientamento_su_norma", "orientamento_su_principio", "pronunce_cost_su_norma", "scarica_pdf_gazzetta",
     "sommario_gazzetta", "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce",
     "ultime_pronunce_cost", "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm",
-    "ultimi_provvedimenti_garante", "verifica_citazioni", "verifica_partita_iva_vies",
+    "ultimi_provvedimenti_garante", "verifica_anteriorita_marchio", "verifica_citazioni",
+    "verifica_partita_iva_vies",
 })
 
 
