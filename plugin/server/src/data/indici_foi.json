@@ -1,6 +1,6 @@
 {
   "_vintage": {
-    "copre_fino_a": "2026-07-31",
+    "copre_fino_a": "2026-08-31",
     "fonte": "ISTAT, comunicati FOI senza tabacchi in Gazzetta Ufficiale",
     "verifica": "automatica",
     "nota": "rinfrescata da scripts/refresh_data.py",
@@ -17,7 +17,7 @@
     "nota": "Da gennaio 2026 ISTAT pubblica l'indice FOI in base 2025=100 (classificazione ECOICOP v2). I valori 2026 in 'indici' sono raccordati alla base 2015=100 moltiplicando per il coefficiente ufficiale 1,214 e arrotondando a 1 decimale."
   },
   "indici_base_2025": {
-    "2026": {"01": 100.4, "02": 100.9, "03": 101.5, "04": 102.5, "05": 102.8, "06": 102.8, "07": 103.1}
+    "2026": {"01": 100.4, "02": 100.9, "03": 101.5, "04": 102.5, "05": 102.8, "06": 102.8, "07": 103.1, "08": 103.7}
   },
   "variazioni_ufficiali": {
     "_descrizione": "Variazioni percentuali ufficiali dell'indice FOI rispetto allo stesso mese dell'anno precedente (annuale_pct) e di due anni precedenti (biennale_pct), come pubblicate nei comunicati ISTAT in GU ex art. 81 L. 392/1978. Fanno fede per l'adeguamento dei canoni di locazione (art. 32 L. 392/1978).",
@@ -28,7 +28,8 @@
       "04": {"annuale_pct": 2.6, "biennale_pct": 4.3, "gu": "GU Serie Generale n. 117 del 22-05-2026, comunicato ISTAT 26A02523"},
       "05": {"annuale_pct": 3.0, "biennale_pct": 4.4, "gu": "GU Serie Generale n. 144 del 24-06-2026, comunicato ISTAT 26A03169"},
       "06": {"annuale_pct": 2.9, "biennale_pct": 4.4, "gu": "GU Serie Generale n. 201 del 31-08-2026, comunicato ISTAT 26A04494"},
-      "07": {"annuale_pct": 2.8, "biennale_pct": 4.3, "gu": "GU Serie Generale n. 201 del 31-08-2026, comunicato ISTAT 26A04495"}
+      "07": {"annuale_pct": 2.8, "biennale_pct": 4.3, "gu": "GU Serie Generale n. 201 del 31-08-2026, comunicato ISTAT 26A04495"},
+      "08": {"annuale_pct": 3.4, "biennale_pct": 4.8, "fonte": "ISTAT, indice FOI di agosto 2026 pubblicato il 16-09-2026 (comunicato in GU non ancora pubblicato)"}
     }
   },
   "indici": {
@@ -68,6 +69,6 @@
     "2023": {"01": 118.3, "02": 118.5, "03": 118.0, "04": 118.4, "05": 118.6, "06": 118.6, "07": 118.7, "08": 119.1, "09": 119.3, "10": 119.2, "11": 118.7, "12": 118.9},
     "2024": {"01": 119.3, "02": 119.3, "03": 119.4, "04": 119.3, "05": 119.5, "06": 119.5, "07": 120.0, "08": 120.1, "09": 120.0, "10": 120.1, "11": 120.1, "12": 120.2},
     "2025": {"01": 120.9, "02": 121.1, "03": 121.4, "04": 121.3, "05": 121.2, "06": 121.3, "07": 121.8, "08": 121.8, "09": 121.7, "10": 121.4, "11": 121.3, "12": 121.5},
-    "2026": {"01": 121.9, "02": 122.5, "03": 123.2, "04": 124.4, "05": 124.8, "06": 124.8, "07": 125.2}
+    "2026": {"01": 121.9, "02": 122.5, "03": 123.2, "04": 124.4, "05": 124.8, "06": 124.8, "07": 125.2, "08": 125.9}
   }
 }
