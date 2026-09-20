@@ -55,6 +55,7 @@ Giurisprudenza → cerca_giurisprudenza(modalita="esplora") → cerca_giurisprud
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
 Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
 Analisi fornitori → verifica_partita_iva_vies → genera_report_fornitori → genera_dpa (nomine per i responsabili senza DPA)
+Marchi → cerca_marchi | verifica_anteriorita_marchio(nome, classi) → leggi_marchio(st13)
 Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
 CONSOB → cerca_delibere_consob → leggi_delibera_consob
 Tributario → cerca_giurisprudenza_tributaria → cerdef_leggi_provvedimento → cite_law
@@ -99,6 +100,7 @@ from src.tools import (  # noqa: E402, F401
     eu_implementation,
     procure_quotazioni,
     analisi_fornitori,
+    tmview,
 )
 
 from src import prompts, resources  # noqa: E402, F401

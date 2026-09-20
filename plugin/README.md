@@ -43,6 +43,7 @@ Il plugin avvia automaticamente il server MCP locale — nessun server remoto ri
 | Proprieta e successioni | 11 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
 | Investimenti e fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `scorporo_iva` |
+| Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
 
 ### Skill (23 workflow guidati)
 
