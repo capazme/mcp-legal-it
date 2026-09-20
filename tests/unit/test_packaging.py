@@ -33,9 +33,10 @@ def test_wheel_ships_data_and_entry_point(tmp_path):
         names = z.namelist()
 
         assert "src/data/indici_foi.json" in names
-        assert any(
-            n.startswith("src/data/references/") and n.endswith(".md") for n in names
-        ), "no src/data/references/*.md shipped in the wheel"
+        # the 2.x line keeps the legal:// resources inline in src/resources.py;
+        # the src/data/references/*.md layout belongs to the 3.x corpus projection
+        assert "src/resources.py" in names
+        assert "src/data/tabella_danno_bio.json" in names
         assert "src/cli.py" in names
 
         entry_points_name = next(n for n in names if n.endswith(".dist-info/entry_points.txt"))

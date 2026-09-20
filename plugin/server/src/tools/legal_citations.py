@@ -9,10 +9,10 @@ import os
 import re
 import tempfile
 import time
-from datetime import date
 from typing import Literal
 
 from src.server import mcp
+from src.lib import _clock
 from src.lib.visualex import (
     Norma,
     NormaVisitata,
@@ -304,7 +304,7 @@ def _urn_from_url(url: str) -> str | None:
 
 async def _cite_law_struct(reference: str) -> dict:
     """Structured article lookup (no Brocardi): the JSON face of cite_law."""
-    today = date.today().isoformat()
+    today = _clock.today().isoformat()
     base = {
         "formato": "json", "riferimento": reference, "articolo": "",
         "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
