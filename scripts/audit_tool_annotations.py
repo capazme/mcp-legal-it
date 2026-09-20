@@ -124,6 +124,7 @@ LOCAL_LIB_MODULES = {
     "_precision",
     "_refusals",
     "_result",
+    "_sources",
     "_tables_open",
 }
 # Evidence that a tool produces something for the user rather than refreshing a
@@ -225,6 +226,12 @@ that reads the switch, and the only one that resolves `MCP_CACHE_DIR`).
 EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the %d
 local-only ones are pure calculations over the bundled JSON tables.
 
+`ONLINE_SOURCES` names those same tools from the provenance side: every one of
+them records what it consulted while answering (`src/lib/_sources.py`), and
+the answer carries a `fonti_consultate` block in `_meta` with the dataset
+names and the moment of the consult. The per-tool dataset map is
+`source_bindings.py`, regenerated together with this policy.
+
 `apply_tool_annotations` installs a middleware that stamps these annotations on
 `tools/list`. It lives in one place on purpose: annotating 221 decorators would
 be a diff nobody can review, and the audit rule is easier to re-run than to
@@ -261,6 +268,13 @@ OPEN_WORLD: frozenset[str] = frozenset({
 # Subset of WRITES_FILES whose only write refreshes the local cache under
 # ${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}.
 CACHE_WRITES: frozenset[str] = frozenset({
+%s
+})
+
+# Reachable code that consults an online source (provenance recorded per call
+# in `_meta` as `fonti_consultate`; the per-tool datasets are in
+# `source_bindings.py`).
+ONLINE_SOURCES: frozenset[str] = frozenset({
 %s
 })
 
@@ -318,6 +332,29 @@ def apply_tool_annotations(server) -> None:
 '''
 
 
+def _noted_datasets(node: ast.Call) -> set[str]:
+    """The dataset names a provenance call passes literally.
+
+    Two shapes reach a note: `note_source("dataset", url)` (the direct fetch
+    sites) and `retry_request(client, verb, url, dataset="dataset", ...)` (the
+    shared retry wrapper). The dataset is the first positional constant of the
+    former and the `dataset=` keyword of the latter; a dynamic value would make
+    the source map unreviewable, so only literals count and a call that passes
+    one dynamically is a failure the map's absence will surface.
+    """
+    out: set[str] = set()
+    if node.args:
+        first = node.args[0]
+        if isinstance(first, ast.Constant) and isinstance(first.value, str) and first.value:
+            out.add(first.value)
+    for kw in node.keywords:
+        if kw.arg == "dataset" and isinstance(kw.value, ast.Constant):
+            value = kw.value.value
+            if isinstance(value, str) and value:
+                out.add(value)
+    return out
+
+
 class Audit:
     def __init__(self, src: pathlib.Path) -> None:
         self.src = src
@@ -327,10 +364,15 @@ class Audit:
         self.evidence: dict[str, set[str]] = {}
         self.sources: dict[str, str] = {}
         self.tools: dict[str, str] = {}
+        #: function -> online datasets it notes as consulted (see _noted_datasets)
+        self.source_notes: dict[str, set[str]] = {}
         #: module -> {module-level constant: data table it was loaded from}
         self.eager_tables: dict[str, dict[str, str]] = {}
         #: function -> names it references (to tie a tool to those constants)
         self.referenced: dict[str, set[str]] = {}
+        #: package re-exports (__init__.py aliases), e.g. "src.lib.vies.check_vat"
+        #: -> "src.lib.vies.client.check_vat"
+        self.reexports: dict[str, str] = {}
         #: function -> datasets it opens itself (function-local table loads)
         self.loaded: dict[str, set[str]] = {}
         #: hand-maintained tables actually shipped in src/data
@@ -346,18 +388,46 @@ class Audit:
             module = ".".join(py.relative_to(self.src.parent).with_suffix("").parts)
             tree = ast.parse(py.read_text(encoding="utf-8"), filename=str(py))
             aliases: dict[str, str] = {}
+            #: Relative imports ("from .akn_fetch import fetch_act_akn") resolve
+            #: against the current module's package -- level 1 is the package the
+            #: file lives in, level 2 its parent, and so on. Ignoring the level
+            #: silently mis-aliased every relative import to a non-existent
+            #: module, which the old cross-module suffix fallback then rescued
+            #: by accident; the module-scoped fallback needs the real name.
+            package = module.rsplit(".", 1)[0]
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         aliases[alias.asname or alias.name.split(".")[0]] = alias.name
-                elif isinstance(node, ast.ImportFrom) and node.module:
+                elif isinstance(node, ast.ImportFrom) and (node.module or node.level):
+                    if node.level:
+                        base = package
+                        for _ in range(node.level - 1):
+                            base = base.rsplit(".", 1)[0]
+                        origin = "%s.%s" % (base, node.module) if node.module else base
+                    else:
+                        origin = node.module
                     for alias in node.names:
-                        aliases[alias.asname or alias.name] = "%s.%s" % (node.module, alias.name)
+                        aliases[alias.asname or alias.name] = "%s.%s" % (origin, alias.name)
             self.imports[module] = aliases
+            #: A package __init__ re-exports its submodules' names ("from .client
+            #: import check_vat"), so callers import "src.lib.vies.check_vat" --
+            #: a name that exists nowhere as a function. Record those aliases so
+            #: _resolve can follow re-exports without falling back to loose
+            #: cross-module name matching.
+            if module.endswith(".__init__"):
+                pkg = module[: -len(".__init__")]
+                for local, target in aliases.items():
+                    if target.startswith(pkg + "."):
+                        self.reexports.setdefault("%s.%s" % (pkg, local), target)
             self.eager_tables[module] = _module_tables(tree, self.available_datasets)
             for node in tree.body:
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     self._visit(module, node, "")
+                elif isinstance(node, ast.ClassDef):
+                    for member in node.body:
+                        if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            self._visit(module, member, "%s." % node.name)
 
     def _visit(self, module: str, fn: ast.AST, prefix: str) -> None:
         name = "%s.%s%s" % (module, prefix, fn.name)
@@ -367,6 +437,7 @@ class Audit:
             self.tools[name] = fn.name
         body: set[tuple[str, str]] = set()
         found: set[str] = set()
+        noted: set[str] = set()
         for node in ast.walk(fn):
             if not isinstance(node, ast.Call):
                 continue
@@ -374,6 +445,10 @@ class Audit:
             if isinstance(func, ast.Name):
                 target = aliases.get(func.id, func.id)
                 body.add((target, func.id))
+                if target.endswith((
+                    "_http.note_source", "_http.retry_request", "_sources.note"
+                )):
+                    noted |= _noted_datasets(node)
                 if func.id in WRITE_CTORS:
                     found.add("ctor %s()" % func.id)
                 if func.id == "open":
@@ -415,6 +490,7 @@ class Audit:
             node.id for node in ast.walk(fn) if isinstance(node, ast.Name)
         }
         self.loaded[name] = _loaded_datasets(fn, self.available_datasets)
+        self.source_notes[name] = noted
         if found:
             self.evidence[name] = found
         for child in fn.body:
@@ -422,14 +498,20 @@ class Audit:
                 self._visit(module, child, "%s." % fn.name)
 
     def _resolve(self, module: str, target: str) -> str | None:
+        target = self.reexports.get(target, target)
         if target in self.functions:
             return target
         short = target.split(".")[-1]
         candidate = "%s.%s" % (module, short)
         if candidate in self.functions:
             return candidate
+        #: Unqualified names ("session.search", "self.clean") may be bound to a
+        #: class method; follow them only inside the calling module, never across
+        #: modules -- a cross-module suffix match would drag unrelated functions
+        #: (and with them their source notes, cache writes, clock reads) into
+        #: every caller sharing the name.
         for name in self.functions:
-            if name.endswith("." + short):
+            if name.startswith(module + ".") and name.endswith("." + short):
                 return name
         return None
 
@@ -532,6 +614,20 @@ class Audit:
 
     def writes_for(self, fq: str) -> list[str]:
         return sorted({item for _, item in self.write_sites(fq)})
+
+    def sources_for(self, fq: str) -> list[str]:
+        """The online datasets anything reachable from `fq` notes as consulted.
+
+        Same walk that derives the table reads, applied to the provenance
+        notes: a tool is open-world exactly because some code below it fetches
+        over HTTP, and every fetch site now records which dataset it serves.
+        The union is what `fonti_consultate` may contain for a call of this
+        tool, and the committed map in `source_bindings.py` must equal it.
+        """
+        datasets: set[str] = set()
+        for name in self.chain(fq):
+            datasets |= self.source_notes.get(name, set())
+        return sorted(datasets)
 
     def _module_has_cache_root(self, module: str) -> bool:
         return any(
@@ -637,7 +733,7 @@ class Audit:
         return bool(sites) and all(self._site_is_cache(owner, item) for owner, item in sites)
 
     def policy(self) -> dict[str, list[str]]:
-        read_only, writes, open_world, cache = [], [], [], []
+        read_only, writes, open_world, cache, online = [], [], [], [], []
         for fq in self.tools:
             evidence = self.writes_for(fq)
             (writes if evidence else read_only).append(self.tools[fq])
@@ -645,11 +741,14 @@ class Audit:
                 cache.append(self.tools[fq])
             if self._net(fq):
                 open_world.append(self.tools[fq])
+            if self.sources_for(fq):
+                online.append(self.tools[fq])
         return {
             "read_only": sorted(read_only),
             "writes_files": sorted(writes),
             "open_world": sorted(open_world),
             "cache_writes": sorted(cache),
+            "online_sources": sorted(online),
         }
 
     def report(self) -> dict[str, dict]:
@@ -662,6 +761,7 @@ class Audit:
                 "evidence": evidence,
                 "open_world": self._net(fq),
                 "cache_only": self.is_cache_only(fq),
+                "online_sources": self.sources_for(fq),
                 "cache_sources": self.cache_sources(fq),
                 "caches": self.cache_locations(fq),
                 "clients": self.upstream_clients(fq),
@@ -1057,6 +1157,36 @@ def verify_provenance(audit: "Audit") -> list[str]:
     return problems
 
 
+def verify_sources(audit: "Audit") -> list[str]:
+    """Online answers must record what they consulted, and only those may.
+
+    The open-world half of the server gets the same two-sided rule the tables
+    get from `verify_provenance`: a tool that reaches the network through a
+    fetch site that notes nothing produces answers whose provenance nobody can
+    check, and a tool that notes a consult while its reachable code never
+    fetches (a stale copy-pasted note) declares a visit that never happened.
+    The equality between `open_world` (network reached) and `online_sources`
+    (consult noted) is what makes the `fonti_consultate` block trustworthy:
+    complete for every online answer, empty for every offline one.
+    """
+    problems: list[str] = []
+    policy = audit.policy()
+    noted = set(policy["online_sources"])
+    open_world = set(policy["open_world"])
+    for tool in sorted(open_world - noted):
+        problems.append(
+            "%s reaches the network but no reachable fetch site notes a "
+            "consult; wrap its fetches in `retry_request(dataset=...)` or call "
+            "`note_source(...)` so `fonti_consultate` can name the source" % tool
+        )
+    for tool in sorted(noted - open_world):
+        problems.append(
+            "%s notes an online consult but its reachable code never reaches "
+            "the network; drop the stale note or fix the reachability walk" % tool
+        )
+    return problems
+
+
 def verify_clock() -> list[str]:
     """Calendar calls outside the clock module: those would escape pinning.
 
@@ -1323,6 +1453,7 @@ def verify_table_copies(audit: "Audit") -> list[str]:
 
 
 BINDINGS_TARGET = REPO / "plugin/server/src/table_bindings.py"
+SOURCE_BINDINGS_TARGET = REPO / "plugin/server/src/source_bindings.py"
 
 BINDINGS_TEMPLATE = '''"""Which module-level constant holds which hand-maintained table.
 
@@ -1361,6 +1492,40 @@ TOOL_ALTERNATIVES: dict[str, str] = {
 %s
 }
 '''
+
+
+SOURCE_BINDINGS_TEMPLATE = '''"""The online-source bindings: which dataset each tool may consult.
+
+`scripts/audit_tool_annotations.py` derives this from the call graph: every
+`note_source("dataset", ...)` or `retry_request(..., dataset="dataset")` a
+tool can reach at runtime is a dataset its `fonti_consultate` block may name.
+The runtime record stays dynamic (`src/lib/_sources.py` notes per call); this
+file is the committed surface a reviewer reads and the audit re-derives on
+every run, so a client that starts fetching a new dataset fails the suite
+until the policy is regenerated -- the same discipline as the table bindings
+and the egress allowlist.
+
+Regenerate with `python scripts/audit_tool_annotations.py --write`.
+"""
+
+TOOL_SOURCES: dict[str, tuple[str, ...]] = {
+%s
+}
+'''
+
+
+def render_source_bindings(audit: "Audit") -> str:
+    """The committed tool -> consulted-datasets map, sorted and reviewable."""
+    rows: list[str] = []
+    for fq, tool in sorted(audit.tools.items(), key=lambda item: item[1]):
+        datasets = audit.sources_for(fq)
+        if not datasets:
+            continue
+        items = ", ".join('"%s"' % name for name in datasets)
+        rows.append('    "%s": (%s%s),' % (tool, items, "," if len(datasets) == 1 else ""))
+    if not rows:
+        rows.append("    # no tool consults an online source")
+    return SOURCE_BINDINGS_TEMPLATE % "\n".join(rows)
 
 
 def render_table_bindings(audit: "Audit") -> str:
@@ -1746,6 +1911,7 @@ def render(policy: dict[str, list[str]]) -> str:
         block(policy["writes_files"]),
         block(policy["open_world"] or {"none"}),
         block(policy["cache_writes"] or {"none"}),
+        block(policy["online_sources"] or {"none"}),
     )
 
 
@@ -1789,6 +1955,9 @@ def main() -> int:
     for problem in verify_provenance(audit):
         print("provenance audit: %s" % problem, file=sys.stderr)
         failed = True
+    for problem in verify_sources(audit):
+        print("sources audit: %s" % problem, file=sys.stderr)
+        failed = True
     for problem in verify_table_copies(audit):
         print("table copy audit: %s" % problem, file=sys.stderr)
         failed = True
@@ -1803,10 +1972,16 @@ def main() -> int:
         failed = True
 
     bindings = render_table_bindings(audit)
+    source_bindings = render_source_bindings(audit)
     current = TARGET.read_text(encoding="utf-8") if TARGET.exists() else ""
     current_doc = CACHE_DOC.read_text(encoding="utf-8") if CACHE_DOC.exists() else ""
     current_bindings = (
         BINDINGS_TARGET.read_text(encoding="utf-8") if BINDINGS_TARGET.exists() else ""
+    )
+    current_sources = (
+        SOURCE_BINDINGS_TARGET.read_text(encoding="utf-8")
+        if SOURCE_BINDINGS_TARGET.exists()
+        else ""
     )
     if args.write:
         TARGET.write_text(rendered, encoding="utf-8")
@@ -1825,6 +2000,14 @@ def main() -> int:
                 BINDINGS_TARGET.relative_to(REPO),
             )
         )
+        SOURCE_BINDINGS_TARGET.write_text(source_bindings, encoding="utf-8")
+        print(
+            "%s %s"
+            % (
+                "rewrote" if source_bindings != current_sources else "unchanged",
+                SOURCE_BINDINGS_TARGET.relative_to(REPO),
+            )
+        )
         return 1 if failed else 0
 
     if failed:
@@ -1839,6 +2022,20 @@ def main() -> int:
         diff = difflib.unified_diff(
             current_bindings.splitlines(), bindings.splitlines(), "committed", "audited",
             lineterm="", n=1,
+        )
+        for line in list(diff)[:40]:
+            print(line, file=sys.stderr)
+        return 1
+
+    if source_bindings != current_sources:
+        print(
+            "online-source bindings have drifted -- run "
+            "`python scripts/audit_tool_annotations.py --write`",
+            file=sys.stderr,
+        )
+        diff = difflib.unified_diff(
+            current_sources.splitlines(), source_bindings.splitlines(),
+            "committed", "audited", lineterm="", n=1,
         )
         for line in list(diff)[:40]:
             print(line, file=sys.stderr)

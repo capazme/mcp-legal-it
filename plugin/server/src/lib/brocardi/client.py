@@ -24,6 +24,7 @@ import httpx
 from bs4 import BeautifulSoup, Tag
 
 from .._cache import cache_enabled, cache_root
+from .._http import note_source
 from ..visualex.map import find_brocardi_url
 
 BASE_URL = "https://www.brocardi.it"
@@ -234,6 +235,7 @@ async def fetch_brocardi(
         try:
             resp = await client.get(article_url)
             resp.raise_for_status()
+            note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
         except httpx.HTTPStatusError as exc:
             # Self-healing cache: a stale/poisoned entry can point at a 404 URL.
             # Drop it and re-resolve once from scratch before giving up.
@@ -250,6 +252,7 @@ async def fetch_brocardi(
                     )
                 resp = await client.get(article_url)
                 resp.raise_for_status()
+                note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
             else:
                 raise
         soup = BeautifulSoup(resp.text, "lxml")
@@ -275,6 +278,7 @@ async def find_article_url(
 
     resp = await client.get(base_url)
     resp.raise_for_status()
+    note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
 
     # Word-boundary pattern: match artNNN.html but not artNNNx.html
     pattern = re.compile(
@@ -306,6 +310,7 @@ async def find_article_url(
         try:
             sub_resp = await client.get(sub_url)
             sub_resp.raise_for_status()
+            note_source("brocardi", str(sub_resp.url) if hasattr(sub_resp, "url") else "")
             sub_page_url = str(sub_resp.url) if hasattr(sub_resp, "url") else sub_url
             if not sub_page_url.endswith("/"):
                 sub_page_url += "/"

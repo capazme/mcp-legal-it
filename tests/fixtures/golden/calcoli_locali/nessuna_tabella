@@ -782,6 +782,10 @@
    },
    "expected": "{\"tipo_violazione\":\"confidenzialita\",\"n_interessati\":500,\"dati_particolari\":false,\"misure_protezione_attive\":[\"cifratura AES-256\"],\"cifratura_attiva\":true,\"fattori_gravita\":[\"Violazione di confidenzialità: dati acceduti da soggetti non autorizzati\"],\"livello_rischio\":\"possibile\",\"notifica_garante\":true,\"comunicazione_interessati\":false,\"motivo_no_comunicazione\":\"Dati cifrati/pseudonimizzati: comunicazione agli interessati non obbligatoria (art. 34(3)(a) GDPR)\",\"ore_rimanenti\":\"72 ore dalla scoperta dell'evento (art. 33(1) GDPR)\",\"azioni_consigliate\":[\"Isolare immediatamente il sistema compromesso e bloccare ulteriori accessi non autorizzati\",\"Documentare immediatamente: natura dell'incidente, sistemi coinvolti, dati esposti, ora di scoperta\",\"Avviare indagine interna per determinare portata e cause della violazione\",\"NOTIFICARE AL GARANTE entro 72 ore dalla scoperta (art. 33 GDPR) — usare il tool genera_notifica_data_breach() per redigere la notifica\",\"Registrare la violazione nel registro interno dei data breach (art. 33(5) GDPR)\",\"Valutare misure correttive per prevenire violazioni future\",\"Valutare necessità di consulenza legale per responsabilità civili verso gli interessati\",\"La cifratura attiva ha ridotto l'obbligo di comunicazione agli interessati (art. 34(3)(a)): documentarlo\"],\"riferimento_normativo\":\"Art. 33 GDPR (notifica all'autorità di controllo); Art. 34 GDPR (comunicazione agli interessati); Art. 4(12) GDPR (definizione di violazione dei dati)\"}"
   },
+  "verbale_mensile": {
+   "arguments": {},
+   "expected": "{\"disponibile\":false,\"motivo\":\"verbale non attivo: impostare LEGAL_REFUSAL_LEDGER=on\"}"
+  },
   "verifica_iban": {
    "arguments": {
     "iban": "IT60X0542811101000000123456"

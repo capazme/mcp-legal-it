@@ -104,3 +104,18 @@ def today() -> date:
     _note("today")
     override = _parse(os.environ.get(TODAY_ENV, ""))
     return override.date() if override is not None else now().date()
+
+
+def now_unrecorded() -> datetime:
+    """The pinned or real time, WITHOUT registering a consult.
+
+    For stamps that describe *when the process looked outward* -- the moment an
+    HTTP fetch was attempted, recorded as source provenance -- as opposed to
+    *when the answer is anchored to the present*. A recorded read would make
+    every online call count as clock-anchored, which would change what an
+    expired table means for any tool that also reads one: provenance is a
+    timestamp of an event, not a claim about "today". Same env vars, same
+    parsing, different bookkeeping.
+    """
+    pinned = _parse(os.environ.get(NOW_ENV, ""))
+    return pinned if pinned is not None else datetime.now()

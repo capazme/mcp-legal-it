@@ -43,5 +43,7 @@ tool bloccati, o più rifiuti osservati dal verbale).
   `LEGAL_REFUSAL_LEDGER=on` nell'ambiente del server.
 - Lo stesso comando esiste per la manutenzione da terminale:
   `python3 scripts/update-data.py` (stessa derivazione, vista da CLI).
+- La serie storica dei rifiuti osservati (mese su mese) è il comando `/verbale`
+  (`legal-it:verbale_mensile`, `scripts/verbale-report.py` da terminale).
 - Non modificare mai il codice dei tool per cambiare un importo: gli importi
   vivono solo in `src/data/*.json`, e la suite segnala ogni effetto collaterale.

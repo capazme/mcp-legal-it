@@ -81,23 +81,19 @@ def record(entry: dict) -> None:
         pass
 
 
-def summarize(limit: int = 50) -> dict:
-    """What the ledger says, if the host asked for it.
+def _bump(counter: dict[str, int], key: str) -> None:
+    counter[key] = counter.get(key, 0) + 1
 
-    Reads `<cache root>/refusals.jsonl` (the same file `record` writes, wherever
-    `MCP_CACHE_DIR` points it), counts refusals per tool and per table, and
-    counts the acceptances that bought a number anyway. Returns
-    `{"disponibile": False, "motivo": ...}` when the ledger is off or absent,
-    so a reader can tell "nothing happened" from "nobody was watching".
+
+def _tally(path: Path, per_month: dict[str, dict] | None = None) -> dict:
+    """Read the ledger once and count it.
+
+    `per_month`, when a dict is passed, additionally receives one bucket per
+    calendar month (`"2026-09"`), each shaped like the overall tally. The
+    bucket key comes from each entry's own timestamp -- the same one `record`
+    wrote through `_clock` -- so a ledger written under a pinned `LEGAL_NOW`
+    aggregates deterministically too.
     """
-    if not ledger_enabled():
-        return {
-            "disponibile": False,
-            "motivo": "verbale non attivo: impostare LEGAL_REFUSAL_LEDGER=on",
-        }
-    path = ledger_path()
-    if not path.exists():
-        return {"disponibile": True, "rifiuti": {}, "accettazioni": {}, "totale": 0}
     rifiuti: dict[str, int] = {}
     accettazioni: dict[str, int] = {}
     tabelle: dict[str, int] = {}
@@ -114,20 +110,149 @@ def summarize(limit: int = 50) -> dict:
                     continue  # a truncated line is skipped, not fatal
                 totale += 1
                 tool = voce.get("tool") or "?"
+                mese = str(voce.get("ts") or "")[:7]
                 if voce.get("evento") == "accettazione":
-                    accettazioni[tool] = accettazioni.get(tool, 0) + 1
+                    _bump(accettazioni, tool)
+                    if per_month is not None and mese:
+                        _bump(per_month.setdefault(
+                            mese, {"rifiuti": {}, "tabelle": {}, "accettazioni": {}, "totale": 0}
+                        )["accettazioni"], tool)
+                        per_month[mese]["totale"] += 1
                     continue
-                rifiuti[tool] = rifiuti.get(tool, 0) + 1
-                for tabella in voce.get("tables") or []:
-                    tabelle[tabella] = tabelle.get(tabella, 0) + 1
+                _bump(rifiuti, tool)
+                tables = voce.get("tables") or []
+                for tabella in tables:
+                    _bump(tabelle, tabella)
+                if per_month is not None and mese:
+                    bucket = per_month.setdefault(
+                        mese, {"rifiuti": {}, "tabelle": {}, "accettazioni": {}, "totale": 0}
+                    )
+                    _bump(bucket["rifiuti"], tool)
+                    for tabella in tables:
+                        _bump(bucket["tabelle"], tabella)
+                    bucket["totale"] += 1
     except OSError:
         return {"disponibile": False, "motivo": "verbale illeggibile"}
-    top_rifiuti = dict(sorted(rifiuti.items(), key=lambda kv: -kv[1])[:limit])
-    top_tabelle = dict(sorted(tabelle.items(), key=lambda kv: -kv[1])[:limit])
     return {
         "disponibile": True,
         "totale": totale,
-        "rifiuti": top_rifiuti,
-        "tabelle": top_tabelle,
+        "rifiuti": rifiuti,
+        "tabelle": tabelle,
         "accettazioni": accettazioni,
+    }
+
+
+def _ranked(tally: dict, limit: int) -> dict:
+    """Sort the tallied counters most-requested-first, capped at `limit`."""
+    out = dict(tally)
+    for key in ("rifiuti", "tabelle", "accettazioni"):
+        out[key] = dict(sorted(out[key].items(), key=lambda kv: -kv[1])[:limit])
+    return out
+
+
+def summarize(limit: int = 50) -> dict:
+    """What the ledger says, if the host asked for it.
+
+    Reads `<cache root>/refusals.jsonl` (the same file `record` writes, wherever
+    `MCP_CACHE_DIR` points it), counts refusals per tool and per table, counts
+    the acceptances that bought a number anyway, and aggregates the same events
+    per calendar month (`per_mese`) so a host can answer "is this month worse
+    than the last one?" without reading the file itself. Returns
+    `{"disponibile": False, "motivo": ...}` when the ledger is off or absent,
+    so a reader can tell "nothing happened" from "nobody was watching".
+    """
+    if not ledger_enabled():
+        return {
+            "disponibile": False,
+            "motivo": "verbale non attivo: impostare LEGAL_REFUSAL_LEDGER=on",
+        }
+    path = ledger_path()
+    if not path.exists():
+        return {
+            "disponibile": True,
+            "totale": 0,
+            "rifiuti": {},
+            "tabelle": {},
+            "accettazioni": {},
+            "per_mese": {},
+        }
+    per_month: dict[str, dict] = {}
+    tally = _tally(path, per_month)
+    if not tally.get("disponibile"):
+        return tally
+    out = _ranked(tally, limit)
+    out["per_mese"] = {
+        mese: _ranked(bucket, limit)
+        for mese, bucket in sorted(per_month.items(), reverse=True)
+    }
+    return out
+
+
+def monthly(months: int = 6) -> dict:
+    """The ledger rolled up by month, oldest first, ready to compare.
+
+    The host-facing shape a monthly review needs: one row per month, the total
+    and per-tool/per-table counts, each month side by side with the previous
+    one (`delta`), and the `top_tool`/`top_tabella` that led each month. Months with no events are listed too, with zeroes: a silent
+    month is a finding, not an absence. Reads the same file `record` writes,
+    wherever `MCP_CACHE_DIR` points, so the report and the ledger never
+    disagree about what happened.
+    """
+    months = max(1, min(int(months), 24))
+    if not ledger_enabled():
+        return {
+            "disponibile": False,
+            "motivo": "verbale non attivo: impostare LEGAL_REFUSAL_LEDGER=on",
+        }
+    path = ledger_path()
+    per_month: dict[str, dict] = {}
+    if path.exists():
+        tally = _tally(path, per_month)
+        if not tally.get("disponibile"):
+            return tally
+    else:
+        per_month = {}
+    # The covered window is the last `months` calendar months up to and
+    # including the current one, from `_clock` like every date in the server.
+    oggi = _clock.today()
+    finestra: list[str] = []
+    anno, mese = oggi.year, oggi.month
+    for _ in range(months):
+        finestra.append("%04d-%02d" % (anno, mese))
+        mese -= 1
+        if mese == 0:
+            anno, mese = anno - 1, 12
+    finestra.reverse()
+    righe: list[dict] = []
+    for indice, mese_key in enumerate(finestra):
+        bucket = per_month.get(mese_key) or {}
+        rifiuti = bucket.get("rifiuti") or {}
+        tabelle = bucket.get("tabelle") or {}
+        accettazioni = bucket.get("accettazioni") or {}
+        totale = bucket.get("totale") or 0
+        precedente = righe[-1] if righe else None
+        delta = None
+        if precedente is not None:
+            delta = totale - precedente["totale"]
+        righe.append(
+            {
+                "mese": mese_key,
+                "totale": totale,
+                "delta_mese_precedente": delta,
+                "rifiuti": dict(sorted(rifiuti.items(), key=lambda kv: -kv[1])),
+                "tabelle": dict(sorted(tabelle.items(), key=lambda kv: -kv[1])),
+                "accettazioni": dict(sorted(accettazioni.items(), key=lambda kv: -kv[1])),
+                "top_tool": next(iter(rifiuti), None),
+                "top_tabella": next(iter(tabelle), None),
+            }
+        )
+    return {
+        "disponibile": True,
+        "mesi": months,
+        "serie": righe,
+        "nota": (
+            "conteggi per mese solare dal timestamp di ciascun evento; un mese "
+            "senza eventi compare con zero, non scompare. `delta_mese_precedente` "
+            "e' il confronto col mese prima; None per il primo della finestra."
+        ),
     }

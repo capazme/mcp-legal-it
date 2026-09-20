@@ -326,7 +326,7 @@ LIMIT 5"""
 
 async def _execute_sparql(query: str) -> list[dict]:
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS_SPARQL) as client:
-        resp = await retry_request(client, "POST", _SPARQL_URL, data={"query": query})
+        resp = await retry_request(client, "POST", _SPARQL_URL, dataset="eur_lex", data={"query": query})
         data = resp.json()
         return data["results"]["bindings"]
 
