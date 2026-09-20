@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.13.1] - 2026-09-20
 
 ### Added
 - Annotazioni sui tool: tutti i 221 tool dichiarano ora `readOnlyHint` /
@@ -290,6 +290,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`plugin/server/probe_precision.py`, lo stesso wrapper `sourced`, lanciato
   attraverso l'harness), così i denti della policy sono provati su un rifiuto
   reale invece che su un buco che il lavoro sui dati ha chiuso.
+- Report mensile dei rifiuti: `verbale_mensile` (il 223° tool) legge il verbale
+  che il middleware scrive (`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/refusals.jsonl`,
+  opt-in con `LEGAL_REFUSAL_LEDGER=on`) e confronta il mese corrente con i
+  precedenti — rifiuti e degradi accettati per tool, quale tabella ha bloccato,
+  e se i chiamanti stanno negoziando oltre la policy. L'aggregazione vive in
+  `src/lib/_refusals.monthly()`, l'abitudine ricorrente in
+  `scripts/verbale-report.py` (riga di cron o controllo pre-rilascio), e il
+  comando `/verbale` legge gli stessi numeri in conversazione; `/dati` rimanda
+  lato dati. `tests/unit/test_refusal_ledger.py` copre aggregazione e
+  superficie wire.
+- Provenienza delle fonti online: ogni risposta open-world dichiara ora
+  *quando ha consultato il web*. Il wrapper HTTP condiviso e i siti `httpx`
+  diretti (`retry_request(dataset=...)`, `note_source(...)`) registrano la
+  consultazione in una contextvar (`src/lib/_sources.py`); lo stesso passaggio
+  di middleware che timbra tabelle e precisione attacca
+  `mcp-legal-it/fonti_consultate` al `_meta` del risultato — nome del dataset,
+  prefisso `scheme://host//path` (mai la query string: i termini di ricerca del
+  chiamante restano fuori dalla provenienza) e un timestamp a livello di
+  chiamata dall'orologio non registrato. La policy commessa è
+  `src/source_bindings.py`, derivata dall'audit dal grafo delle chiamate: un
+  client che inizia a interrogare un nuovo dataset fa fallire la suite finché
+  la policy non è rigenerata, e il CI esegue quel controllo (job `policy-sync`)
+  a ogni push. `tests/unit/test_online_sources.py` prova il middleware, la
+  privacy degli URL e il flag sulle fonti non dichiarate.
 
 ### Fixed
 - Un modulo di supporto in `src/lib/` finiva classificato come *servizio
