@@ -2,11 +2,12 @@ import importlib
 
 import pytest
 
+from .mcp_harness import tool_body
+
 
 def _call(fn_name: str, **kwargs):
     mod = importlib.import_module("src.tools.varie")
-    fn = getattr(mod, fn_name)
-    actual = fn.fn if hasattr(fn, "fn") else fn
+    actual = tool_body(getattr(mod, fn_name))
     return actual(**kwargs)
 
 

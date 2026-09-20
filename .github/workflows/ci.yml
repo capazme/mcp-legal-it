@@ -10,6 +10,9 @@ on:
   # --beta`) get the same gate as develop/main between beta tags.
   push:
     branches: [develop, main, "release/**"]
+    # A tag push runs the same battery plus the tarball check, before the
+    # marketplace backend can ingest the codeload archive of that tag.
+    tags: ['*']
 
 permissions:
   contents: read
@@ -30,6 +33,49 @@ jobs:
 
       - name: Check launchers against pyproject.toml
         run: python scripts/check_deps_sync.py
+
+  # The committed annotations (tool_annotations.py, source_bindings.py,
+  # table_bindings.py, docs/cache-inventory.md) are generated from the source
+  # with `scripts/audit_tool_annotations.py --write`. A push whose code moved
+  # without regenerating them fails here, so a reviewer never has to run the
+  # audit to know the policy matches the tool surface it describes.
+  policy-sync:
+    name: Annotation policy in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Regenerate the policy and require no diff
+        run: |
+          python scripts/audit_tool_annotations.py --write
+          git diff --exit-code plugin/server/src/tool_annotations.py \
+            plugin/server/src/source_bindings.py \
+            plugin/server/src/table_bindings.py docs/cache-inventory.md
+
+  # The release tarball is what the marketplace backend ingests (the codeload
+  # archive of a tag), and its exclusions are hand-maintained in
+  # .gitattributes. scripts/verify_tarball.py checks both directions from the
+  # repository itself: nothing forbidden (/src, /tests, any symlink) inside,
+  # and every tracked non-ignored file present -- so a new runtime file that
+  # lands under an excluded path, or a widened pattern that swallows one,
+  # fails here instead of shipping as marketplace `failed_content`. Stdlib +
+  # git: no install step.
+  tarball-sync:
+    name: Release tarball exclusions hold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify the export-ignore contract on this revision
+        run: python scripts/verify_tarball.py
 
   test:
     runs-on: ubuntu-latest

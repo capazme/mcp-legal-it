@@ -520,7 +520,7 @@ async def fetch_latest(rss_code: str, rows: int = 10) -> list[AttoResult]:
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_RSS_HEADERS, follow_redirects=True
     ) as client:
-        resp = await retry_request(client, "GET", url)
+        resp = await retry_request(client, "GET", url, dataset="gazzetta")
         return _parse_rss(resp.text)[:rows]
 
 
@@ -564,11 +564,11 @@ async def search_atti(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         # Seed the jsessionid on the same client first.
-        await retry_request(client, "GET", _BASE + _RICERCA_SEED_PATH)
+        await retry_request(client, "GET", _BASE + _RICERCA_SEED_PATH, dataset="gazzetta")
 
         while len(results) < rows:
             url = f"{_BASE}/do/ricerca/atto/{serie_path}/originario/{page}"
-            resp = await retry_request(client, "POST", url, data=data)
+            resp = await retry_request(client, "POST", url, dataset="gazzetta", data=data)
             if page == 0:
                 total = _search_result_count(resp.text)
             page_results = _parse_search_results(resp.text)
@@ -601,7 +601,7 @@ async def fetch_atto(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         # 1. ELI permalink head -> RDFa metadata + body header.
-        head_resp = await retry_request(client, "GET", detail.eli_url)
+        head_resp = await retry_request(client, "GET", detail.eli_url, dataset="gazzetta")
         meta = _parse_eli_metadata(head_resp.text)
         detail.tipo = meta.get("type_document", "")
         detail.emettitore = meta.get("passed_by", "")
@@ -618,7 +618,8 @@ async def fetch_atto(
 
         # 2. Menu page -> harvest exact caricaArticolo URLs.
         menu_resp = await retry_request(
-            client, "GET", _menu_url(serie_path, data_pubblicazione, codice_redazionale)
+            client, "GET", _menu_url(serie_path, data_pubblicazione, codice_redazionale),
+            dataset="gazzetta",
         )
         article_urls = _parse_menu_article_urls(menu_resp.text)
         detail.article_urls = article_urls
@@ -626,7 +627,7 @@ async def fetch_atto(
         # 3. Fetch each article and assemble.
         parts: list[str] = []
         for art_url in article_urls:
-            art_resp = await retry_request(client, "GET", art_url)
+            art_resp = await retry_request(client, "GET", art_url, dataset="gazzetta")
             art_text = _parse_article_text(art_resp.text)
             if art_text:
                 parts.append(art_text)
@@ -644,5 +645,5 @@ async def fetch_sommario(
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
-        resp = await retry_request(client, "GET", url)
+        resp = await retry_request(client, "GET", url, dataset="gazzetta")
         return _parse_sommario(resp.text)

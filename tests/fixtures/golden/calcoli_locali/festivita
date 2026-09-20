@@ -1,0 +1,86 @@
+{
+ "datasets": [
+  "festivita"
+ ],
+ "tools": {
+  "conta_giorni": {
+   "arguments": {
+    "data_fine": "2024-06-30",
+    "data_inizio": "2021-01-01"
+   },
+   "expected": "{\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"tipo\":\"calendario\",\"giorni\":1276,\"giorni_calendario_totali\":1276,\"festivita_nel_periodo\":[{\"data\":\"2021-01-06\",\"nome\":\"Epifania\",\"giorno_settimana\":\"mercoledì\"},{\"data\":\"2021-04-04\",\"nome\":\"Pasqua\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2021-04-05\",\"nome\":\"Lunedì dell'Angelo\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2021-04-25\",\"nome\":\"Festa della Liberazione\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2021-05-01\",\"nome\":\"Festa dei Lavoratori\",\"giorno_settimana\":\"sabato\"},{\"data\":\"2021-06-02\",\"nome\":\"Festa della Repubblica\",\"giorno_settimana\":\"mercoledì\"},{\"data\":\"2021-08-15\",\"nome\":\"Ferragosto\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2021-11-01\",\"nome\":\"Tutti i Santi\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2021-12-08\",\"nome\":\"Immacolata Concezione\",\"giorno_settimana\":\"mercoledì\"},{\"data\":\"2021-12-25\",\"nome\":\"Natale\",\"giorno_settimana\":\"sabato\"},{\"data\":\"2021-12-26\",\"nome\":\"Santo Stefano\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2022-01-01\",\"nome\":\"Capodanno\",\"giorno_settimana\":\"sabato\"},{\"data\":\"2022-01-06\",\"nome\":\"Epifania\",\"giorno_settimana\":\"giovedì\"},{\"data\":\"2022-04-17\",\"nome\":\"Pasqua\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2022-04-18\",\"nome\":\"Lunedì dell'Angelo\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2022-04-25\",\"nome\":\"Festa della Liberazione\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2022-05-01\",\"nome\":\"Festa dei Lavoratori\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2022-06-02\",\"nome\":\"Festa della Repubblica\",\"giorno_settimana\":\"giovedì\"},{\"data\":\"2022-08-15\",\"nome\":\"Ferragosto\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2022-11-01\",\"nome\":\"Tutti i Santi\",\"giorno_settimana\":\"martedì\"},{\"data\":\"2022-12-08\",\"nome\":\"Immacolata Concezione\",\"giorno_settimana\":\"giovedì\"},{\"data\":\"2022-12-25\",\"nome\":\"Natale\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2022-12-26\",\"nome\":\"Santo Stefano\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2023-01-01\",\"nome\":\"Capodanno\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2023-01-06\",\"nome\":\"Epifania\",\"giorno_settimana\":\"venerdì\"},{\"data\":\"2023-04-09\",\"nome\":\"Pasqua\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2023-04-10\",\"nome\":\"Lunedì dell'Angelo\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2023-04-25\",\"nome\":\"Festa della Liberazione\",\"giorno_settimana\":\"martedì\"},{\"data\":\"2023-05-01\",\"nome\":\"Festa dei Lavoratori\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2023-06-02\",\"nome\":\"Festa della Repubblica\",\"giorno_settimana\":\"venerdì\"},{\"data\":\"2023-08-15\",\"nome\":\"Ferragosto\",\"giorno_settimana\":\"martedì\"},{\"data\":\"2023-11-01\",\"nome\":\"Tutti i Santi\",\"giorno_settimana\":\"mercoledì\"},{\"data\":\"2023-12-08\",\"nome\":\"Immacolata Concezione\",\"giorno_settimana\":\"venerdì\"},{\"data\":\"2023-12-25\",\"nome\":\"Natale\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2023-12-26\",\"nome\":\"Santo Stefano\",\"giorno_settimana\":\"martedì\"},{\"data\":\"2024-01-01\",\"nome\":\"Capodanno\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2024-01-06\",\"nome\":\"Epifania\",\"giorno_settimana\":\"sabato\"},{\"data\":\"2024-03-31\",\"nome\":\"Pasqua\",\"giorno_settimana\":\"domenica\"},{\"data\":\"2024-04-01\",\"nome\":\"Lunedì dell'Angelo\",\"giorno_settimana\":\"lunedì\"},{\"data\":\"2024-04-25\",\"nome\":\"Festa della Liberazione\",\"giorno_settimana\":\"giovedì\"},{\"data\":\"2024-05-01\",\"nome\":\"Festa dei Lavoratori\",\"giorno_settimana\":\"mercoledì\"},{\"data\":\"2024-06-02\",\"nome\":\"Festa della Repubblica\",\"giorno_settimana\":\"domenica\"}],\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "scadenza_processuale": {
+   "arguments": {
+    "data_evento": "2021-01-01",
+    "giorni": 30
+   },
+   "expected": "{\"data_evento\":\"2021-01-01\",\"giorni\":30,\"tipo\":\"calendario\",\"scadenza\":\"2021-02-01\",\"prorogata_art_155\":true,\"giorno_settimana\":\"Monday\",\"riferimento_normativo\":\"Art. 155 c.p.c. — se il termine scade in giorno festivo, è prorogato al primo giorno seguente non festivo\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "scadenze_impugnazioni": {
+   "arguments": {
+    "data_pubblicazione": "2021-01-01",
+    "notificata": false,
+    "tipo_impugnazione": "appello_sentenza"
+   },
+   "expected": "{\"data_pubblicazione\":\"2021-01-01\",\"tipo_impugnazione\":\"appello_sentenza\",\"descrizione\":\"Appello sentenza di primo grado\",\"notificata\":false,\"tipo_termine\":\"lungo (6 mesi da pubblicazione)\",\"giorni_termine\":181,\"scadenza\":\"2021-07-01\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\",\"riferimento_normativo\":\"Art. 325-327 c.p.c.\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "scadenze_multe": {
+   "arguments": {
+    "data_notifica": "2021-01-01",
+    "tipo_ricorso": "prefetto"
+   },
+   "expected": "{\"data_notifica\":\"2021-01-01\",\"tipo_ricorso\":\"prefetto\",\"descrizione\":\"Ricorso al Prefetto\",\"giorni_termine\":60,\"scadenza\":\"2021-03-02\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Tuesday\",\"riferimento_normativo\":\"Art. 203 D.Lgs. 285/1992 (Codice della Strada)\",\"riepilogo_opzioni\":{\"prefetto\":{\"scadenza\":\"2021-03-02\",\"giorni\":60},\"giudice_pace\":{\"scadenza\":\"2021-02-01\",\"giorni\":30},\"pagamento_ridotto\":{\"scadenza\":\"2021-03-02\",\"giorni\":60},\"pagamento_ridotto_5gg\":{\"scadenza\":\"2021-01-07\",\"giorni\":5}},\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_183_190_cpc": {
+   "arguments": {
+    "data_udienza": "2023-01-01"
+   },
+   "expected": "{\"data_udienza\":\"2023-01-01\",\"rito\":\"ordinario pre-Cartabia (ante 28/02/2023)\",\"riferimento_normativo\":\"Artt. 183, co. 6 e 190 c.p.c. (testo previgente)\",\"scadenze\":[{\"termine\":\"memoria_183_n1\",\"descrizione\":\"Art. 183, co. 6, n. 1 — precisazione/modificazione domande, eccezioni, conclusioni\",\"scadenza\":\"2023-01-31\",\"giorni_da_udienza\":30,\"prorogata_art_155\":false,\"giorno_settimana\":\"Tuesday\"},{\"termine\":\"memoria_183_n2\",\"descrizione\":\"Art. 183, co. 6, n. 2 — replica e prova diretta\",\"scadenza\":\"2023-03-02\",\"giorni_da_udienza\":60,\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\"},{\"termine\":\"memoria_183_n3\",\"descrizione\":\"Art. 183, co. 6, n. 3 — indicazione prova contraria\",\"scadenza\":\"2023-03-22\",\"giorni_da_udienza\":80,\"prorogata_art_155\":false,\"giorno_settimana\":\"Wednesday\"},{\"termine\":\"comparsa_conclusionale\",\"descrizione\":\"Comparsa conclusionale art. 190 c.p.c.\",\"scadenza\":\"2023-03-02\",\"giorni_da_udienza_pc\":60,\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\"},{\"termine\":\"memoria_replica_190\",\"descrizione\":\"Memoria di replica art. 190 c.p.c.\",\"scadenza\":\"2023-03-22\",\"giorni_da_udienza_pc\":80,\"prorogata_art_155\":false,\"giorno_settimana\":\"Wednesday\"}],\"nota\":\"Applicabile solo a cause iscritte a ruolo prima del 28/02/2023. Le memorie 183 decorrono dall'udienza di trattazione; conclusionali e repliche dall'udienza di PC.\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_deposito_atti_appello": {
+   "arguments": {
+    "data_pubblicazione": "2021-01-01"
+   },
+   "expected": "{\"riferimento_normativo\":\"Artt. 325, 327, 347, 166 c.p.c.\",\"termini\":[{\"termine\":\"appello_termine_lungo\",\"descrizione\":\"Termine lungo per proporre appello dalla pubblicazione della sentenza\",\"mesi\":6,\"decorrenza\":\"2021-01-01\",\"scadenza\":\"2021-07-01\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\",\"normativa\":\"Art. 327 c.p.c.\"},{\"termine\":\"iscrizione_a_ruolo\",\"descrizione\":\"Iscrizione a ruolo entro 30gg dalla notifica della citazione in appello\",\"giorni\":30,\"nota\":\"Decorre dalla notifica della citazione in appello (non dalla sentenza)\",\"normativa\":\"Art. 347 c.p.c.\"},{\"termine\":\"comparsa_risposta_appellato\",\"descrizione\":\"Costituzione dell'appellato con comparsa di risposta almeno 20gg prima dell'udienza\",\"giorni_prima_udienza\":20,\"nota\":\"Termine a ritroso dall'udienza fissata — specificare data_udienza per il calcolo esatto\",\"normativa\":\"Art. 166 c.p.c.\"}],\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_deposito_ctu": {
+   "arguments": {
+    "data_conferimento": "2023-01-01"
+   },
+   "expected": "{\"data_conferimento\":\"2023-01-01\",\"giorni_termine_ctu\":60,\"riferimento_normativo\":\"Art. 195, co. 3 c.p.c.\",\"scadenze\":[{\"termine\":\"deposito_bozza_ctu\",\"descrizione\":\"Deposito bozza relazione CTU\",\"giorni_da_conferimento\":60,\"scadenza\":\"2023-03-02\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\"},{\"termine\":\"osservazioni_parti\",\"descrizione\":\"Termine per le osservazioni delle parti alla bozza CTU\",\"giorni_da_deposito_ctu\":15,\"scadenza\":\"2023-03-17\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Friday\"},{\"termine\":\"replica_ctu\",\"descrizione\":\"Termine per la replica del CTU alle osservazioni delle parti e deposito relazione definitiva\",\"giorni_da_osservazioni\":15,\"scadenza\":\"2023-04-03\",\"prorogata_art_155\":true,\"giorno_settimana\":\"Monday\"}],\"nota\":\"I termini di 15gg per osservazioni e replica sono quelli previsti dall'art. 195, co. 3 c.p.c. Il giudice può disporre termini diversi. Art. 155 c.p.c. si applica a tutti i termini.\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_esecuzioni": {
+   "arguments": {
+    "data_notifica_titolo": "2024-06-30"
+   },
+   "expected": "{\"data_notifica_precetto\":\"2024-06-30\",\"tipo\":\"pignoramento_mobiliare\",\"descrizione\":\"Pignoramento mobiliare — il precetto perde efficacia se non si inizia l'esecuzione entro 90gg\",\"termine_minimo_10gg\":{\"data\":\"2024-07-10\",\"nota\":\"Il pignoramento non può essere eseguito prima di 10gg dalla notifica del precetto (art. 482 c.p.c.)\",\"prorogata_art_155\":false},\"scadenza_efficacia_precetto\":{\"data\":\"2024-09-30\",\"nota\":\"Il precetto perde efficacia se l'esecuzione non è iniziata entro 90gg dalla notifica (art. 481 c.p.c.)\",\"prorogata_art_155\":true},\"finestra_utile\":\"dal 2024-07-10 al 2024-09-30\",\"riferimento_normativo\":\"Artt. 480, 481, 513 ss. c.p.c.\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_memorie_repliche": {
+   "arguments": {
+    "data_udienza": "2023-01-01"
+   },
+   "expected": "{\"data_udienza\":\"2023-01-01\",\"rito\":\"ordinario post-Cartabia (D.Lgs. 149/2022)\",\"riferimento_normativo\":\"Art. 171-ter c.p.c.\",\"scadenze\":[{\"termine\":\"memoria_integrativa\",\"giorni_prima_udienza\":40,\"descrizione\":\"Memoria integrativa art. 171-ter, co. 1, n. 1 — precisazione/modificazione domande, eccezioni, conclusioni\",\"scadenza\":\"2022-11-22\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Tuesday\"},{\"termine\":\"replica\",\"giorni_prima_udienza\":20,\"descrizione\":\"Replica art. 171-ter, co. 1, n. 2 — replica ed eccezioni nuove conseguenti\",\"scadenza\":\"2022-12-12\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Monday\"},{\"termine\":\"prova_contraria\",\"giorni_prima_udienza\":10,\"descrizione\":\"Prova contraria art. 171-ter, co. 1, n. 3 — indicazione prova contraria\",\"scadenza\":\"2022-12-22\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\"}],\"nota\":\"I termini sono a ritroso rispetto alla data di udienza. Se cadono in giorno festivo, slittano al primo giorno non festivo successivo (art. 155 c.p.c.).\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_procedimento_semplificato": {
+   "arguments": {
+    "data_udienza": "2023-01-01"
+   },
+   "expected": "{\"data_udienza\":\"2023-01-01\",\"rito\":\"semplificato di cognizione (D.Lgs. 149/2022)\",\"riferimento_normativo\":\"Artt. 281-decies, 281-undecies, 281-duodecies c.p.c.\",\"scadenze\":[{\"termine\":\"comparsa_risposta\",\"giorni_prima_udienza\":70,\"descrizione\":\"Comparsa di costituzione e risposta art. 281-undecies, co. 2 c.p.c.\",\"scadenza\":\"2022-10-21\",\"prorogata_art_155\":true,\"giorno_settimana\":\"Friday\"},{\"termine\":\"memoria_integrativa\",\"giorni_prima_udienza\":40,\"descrizione\":\"Memoria integrativa art. 281-duodecies, co. 3 — precisazione domande, eccezioni, conclusioni\",\"scadenza\":\"2022-11-22\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Tuesday\"},{\"termine\":\"replica\",\"giorni_prima_udienza\":20,\"descrizione\":\"Replica art. 281-duodecies, co. 3 — replica e nuove eccezioni\",\"scadenza\":\"2022-12-12\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Monday\"},{\"termine\":\"prova_contraria\",\"giorni_prima_udienza\":10,\"descrizione\":\"Prova contraria art. 281-duodecies, co. 3 — indicazione prova contraria\",\"scadenza\":\"2022-12-22\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\"}],\"nota\":\"Il procedimento semplificato è applicabile quando i fatti di causa non sono controversi, o la domanda è fondata su prova documentale, o è di pronta soluzione.\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_processuali_civili": {
+   "arguments": {
+    "data_udienza": "2022-03-15",
+    "tipo_termine": "memoria_I"
+   },
+   "expected": "{\"data_udienza\":\"2022-03-15\",\"tipo_termine\":\"memoria_I\",\"descrizione\":\"Memoria art. 171-ter, co. 1, n. 1 — precisazione/modificazione domande, eccezioni, conclusioni\",\"scadenza\":\"2022-02-03\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\",\"sospensione_feriale_applicata\":true,\"riferimento_normativo\":\"Art. 171-ter c.p.c. (D.Lgs. 149/2022 — Riforma Cartabia); L. 742/1969 sospensione feriale agosto\",\"riepilogo_termini_memorie\":{\"memoria_I\":\"2022-02-03\",\"memoria_II\":\"2022-02-23\",\"memoria_III\":\"2022-03-04\"},\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  },
+  "termini_separazione_divorzio": {
+   "arguments": {
+    "data_evento": "2021-01-01",
+    "tipo": "separazione_consensuale"
+   },
+   "expected": "{\"data_evento\":\"2021-01-01\",\"tipo\":\"separazione_consensuale\",\"descrizione\":\"Termine per presentare ricorso di divorzio dopo separazione consensuale\",\"mesi_termine\":6,\"scadenza\":\"2021-07-01\",\"prorogata_art_155\":false,\"giorno_settimana\":\"Thursday\",\"riferimento_normativo\":\"Art. 3, co. 2, lett. b), L. 898/1970 (mod. L. 55/2015)\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+  }
+ }
+}

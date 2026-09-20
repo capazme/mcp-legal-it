@@ -66,10 +66,11 @@ def _render_contributo_unificato() -> str:
 
     speciali = [
         f"| Opposizione a decreto ingiuntivo | CU pieno per valore |",
-        f"| Procedimenti cautelari | € {_eur(civ['cautelari'])} |",
+        f"| Procedimenti cautelari | 50% degli scaglioni ordinari per valore |",
         f"| Volontaria giurisdizione | € {_eur(civ['volontaria_giurisdizione'])} |",
         f"| Procedimenti esecutivi immobiliari | € {_eur(civ['esecuzione_immobiliare'])} |",
-        f"| Procedimenti esecutivi mobiliari | € {_eur(civ['esecuzione_mobiliare'])} |",
+        f"| Procedimenti esecutivi mobiliari fino a € {_soglia(2500)} | € {_eur(civ['esecuzione_mobiliare']['scaglioni'][0]['importo'])} |",
+        f"| Procedimenti esecutivi mobiliari oltre | € {_eur(civ['esecuzione_mobiliare']['scaglioni'][1]['importo'])} |",
         f"| Separazione consensuale / divorzio congiunto | € {_eur(civ['separazione_consensuale'])} |",
         f"| Separazione giudiziale / divorzio giudiziale | € {_eur(civ['separazione_giudiziale'])} |",
     ]

@@ -228,7 +228,7 @@ async def search_delibere(
                 delta=delta,
                 cur=cur,
             )
-            resp = await retry_request(client, "GET", _BASE + _SEARCH_PATH, params=params)
+            resp = await retry_request(client, "GET", _BASE + _SEARCH_PATH, dataset="consob", params=params)
 
             page_results = _parse_results(resp.text)
             if not page_results:
@@ -253,5 +253,5 @@ async def fetch_delibera(numero: str) -> tuple[str, str]:
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
-        resp = await retry_request(client, "GET", url)
+        resp = await retry_request(client, "GET", url, dataset="consob")
         return _parse_doc(resp.text, numero)

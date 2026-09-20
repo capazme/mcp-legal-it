@@ -1,4 +1,4 @@
-"""MCP Legal IT — 221 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 222 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 
@@ -99,6 +99,23 @@ from src.tools import (  # noqa: E402, F401
 )
 
 from src import prompts, resources  # noqa: E402, F401
+from src.lib._ledger import apply_table_ledger  # noqa: E402
+from src.table_bindings import TABLE_CONSTANTS, TOOL_ALTERNATIVES, TOOL_TABLES  # noqa: E402
+from src.tool_annotations import apply_tool_annotations  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Tool annotations: readOnlyHint/openWorldHint per tool, so hosts can tell a
+# lookup from a file writer (see src/tool_annotations.py for the audit rule).
+# ---------------------------------------------------------------------------
+apply_tool_annotations(mcp)
+
+# ---------------------------------------------------------------------------
+# Table ledger: every call declares in its result `_meta` which hand-maintained
+# tables it actually read, observed rather than derived, and flags the ones whose
+# vintage is expired or unverified (see src/lib/_ledger.py). The same observation
+# is what `src/lib/_data.py` names in the `dati_applicati` footer.
+# ---------------------------------------------------------------------------
+_TABLES_WRAPPED = apply_table_ledger(mcp, TABLE_CONSTANTS, TOOL_TABLES, TOOL_ALTERNATIVES)
 
 # ---------------------------------------------------------------------------
 # Profile-based tool filtering (for Desktop/Browser — lighter context)

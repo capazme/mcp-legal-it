@@ -4,12 +4,12 @@ import importlib
 
 import pytest
 
+from .mcp_harness import tool_body
+
 
 def _call(fn_name, **kwargs):
     mod = importlib.import_module("src.tools.atti_giudiziari")
-    fn = getattr(mod, fn_name)
-    fn = getattr(fn, "fn", fn)
-    return fn(**kwargs)
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -41,6 +41,11 @@ class TestContributoUnificato:
         r = _call("contributo_unificato", valore_causa=0, tipo_procedimento="esecuzione_mobiliare", grado="primo")
         assert r["importo_dovuto"] == 43
 
+    def test_esecuzione_mobiliare_oltre_2500(self):
+        # art. 13, c. 2: fisso 139 per valore superiore o uguale a 2.500 euro
+        r = _call("contributo_unificato", valore_causa=2500, tipo_procedimento="esecuzione_mobiliare", grado="primo")
+        assert r["importo_dovuto"] == 139
+
     def test_separazione_consensuale_fisso(self):
         r = _call("contributo_unificato", valore_causa=0, tipo_procedimento="separazione_consensuale", grado="primo")
         assert r["importo_dovuto"] == 43
@@ -49,9 +54,13 @@ class TestContributoUnificato:
         r = _call("contributo_unificato", valore_causa=0, tipo_procedimento="divorzio_giudiziale", grado="primo")
         assert r["importo_dovuto"] == 98
 
-    def test_cautelari_fisso(self):
-        r = _call("contributo_unificato", valore_causa=0, tipo_procedimento="cautelari", grado="primo")
-        assert r["importo_dovuto"] == 147
+    def test_cautelari_ridotti_per_valore(self):
+        # I procedimenti cautelari sono ridotti del 50% degli scaglioni ordinari
+        # per valore (art. 13, c. 2): 5.200 -> 98 * 0,5; 26.000 -> 237 * 0,5.
+        r = _call("contributo_unificato", valore_causa=5200, tipo_procedimento="cautelari", grado="primo")
+        assert r["importo_dovuto"] == 49
+        r = _call("contributo_unificato", valore_causa=26000, tipo_procedimento="cautelari", grado="primo")
+        assert r["importo_dovuto"] == 118.5
 
     def test_lavoro_primo_grado_esente(self):
         r = _call("contributo_unificato", valore_causa=50000, tipo_procedimento="lavoro", grado="primo")
@@ -1165,9 +1174,7 @@ class TestCercaUfficioGiudiziario:
 def _call_modelli(fn_name, **kwargs):
     import importlib
     mod = importlib.import_module("src.tools.modelli_atti")
-    fn = getattr(mod, fn_name)
-    fn = getattr(fn, "fn", fn)
-    return fn(**kwargs)
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 class TestEsportaAttoDocx:

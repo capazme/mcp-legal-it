@@ -2,13 +2,19 @@
 prescrizione diritti civili, tasso alcolemico (art. 186 CdS), ATECO, scorporo IVA."""
 
 import json
+import sys
 from datetime import date, timedelta
 from pathlib import Path
 
+from src.lib import _clock, _data, _refusals
 from src.server import mcp
 from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
+#: The source tree the static half of the backlog audits, and the repo root its
+#: scripts directory hangs from (the audit module is imported lazily from there).
+REPO_SRC = Path(__file__).resolve().parent.parent
+REPO = REPO_SRC.parents[2]
 
 with open(_DATA / "comuni.json", encoding="utf-8") as f:
     _COMUNI_DATA = json.load(f)
@@ -111,13 +117,14 @@ def _lookup_codice_catastale(comune: str) -> str | None:
 
 
 @mcp.tool(tags={"utility"})
-@sourced("comuni")
+@sourced("comuni", alternativa="codice_catastale")
 def codice_fiscale(
     cognome: str,
     nome: str,
     data_nascita: str,
     sesso: str,
     comune_nascita: str,
+    codice_catastale: str | None = None,
 ) -> dict:
     """Genera il codice fiscale italiano a 16 caratteri secondo l'algoritmo ufficiale.
 
@@ -130,6 +137,9 @@ def codice_fiscale(
         data_nascita: Data di nascita (formato YYYY-MM-DD)
         sesso: Sesso della persona: 'M' o 'F'
         comune_nascita: Nome del comune italiano o dello stato estero di nascita (es. 'ROMA', 'GERMANIA')
+        codice_catastale: Codice catastale da usare al posto della tabella inclusa (es. 'H501'). Se lo
+                          fornisci, il calcolo non dipende dal database dei comuni: utile quando il
+                          comune non è nel sottoinsieme incluso o quando il codice è già noto dal documento
     """
     sesso = sesso.upper().strip()
     if sesso not in ("M", "F"):
@@ -140,7 +150,10 @@ def codice_fiscale(
     except ValueError:
         return {"errore": "data_nascita non valida, usare formato YYYY-MM-DD"}
 
-    catastale = _lookup_codice_catastale(comune_nascita)
+    # A code supplied by the caller makes the lookup unnecessary, so the table is
+    # never read and nothing about its provenance enters the answer: the exactness
+    # of the algorithm is the only claim left to make.
+    catastale = (codice_catastale or "").strip().upper() or _lookup_codice_catastale(comune_nascita)
     if not catastale:
         return {"errore": f"Comune o stato estero '{comune_nascita}' non trovato nel database"}
 
@@ -168,13 +181,14 @@ def codice_fiscale(
             "giorno": part_giorno,
             "codice_catastale": catastale,
             "carattere_controllo": check,
+            "catastale_dal_chiamante": bool(codice_catastale),
         },
     }
 
 
 @mcp.tool(tags={"utility"})
-@sourced("comuni")
-def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
+@sourced("comuni", alternativa="mappa_comuni")
+def decodifica_codice_fiscale(codice_fiscale: str, mappa_comuni: dict | None = None) -> dict:
     """Decodifica un codice fiscale italiano a 16 caratteri estraendo i dati anagrafici.
 
     Nota: l'anno di nascita è stimato (ambiguità di secolo); i caratteri cognome/nome non sono reversibili.
@@ -183,6 +197,10 @@ def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
 
     Args:
         codice_fiscale: Codice fiscale di 16 caratteri (lettere e cifre, spazi ignorati)
+        mappa_comuni: Mappa sostitutiva fornita dal chiamante {'nome comune': 'codice
+                          catastale', ...} (o {'stato estero': codice, ...}) usata al posto
+                          della tabella inclusa per risalire al comune dal codice catastale:
+                          utile per garantire tu la copertura geografica della decodifica
     """
     cf = "".join(codice_fiscale.upper().split())
     if len(cf) != 16:
@@ -230,11 +248,12 @@ def decodifica_codice_fiscale(codice_fiscale: str) -> dict:
     # Comune lookup (reverse); de-omocodify the numeric part of the cadastral code
     codice_catastale = cf[11] + _deomocodia(cf[12:15])
     comune = None
-    for nome, cod in _COMUNI.items():
+    comuni = mappa_comuni if mappa_comuni else _COMUNI
+    for nome, cod in comuni.items():
         if cod == codice_catastale:
             comune = nome
             break
-    if not comune:
+    if not comune and not mappa_comuni:
         for nome, cod in _STATI_ESTERI.items():
             if cod == codice_catastale:
                 comune = nome + " (stato estero)"
@@ -445,8 +464,8 @@ def scorporo_iva(
 
 
 @mcp.tool(tags={"utility"})
-@sourced("violazioni_patente")
-def decurtazione_punti_patente(violazione: str) -> dict:
+@sourced("violazioni_patente", alternativa="tabella_violazioni")
+def decurtazione_punti_patente(violazione: str, tabella_violazioni: dict | None = None) -> dict:
     """Restituisce punti decurtati, sanzione pecuniaria e sospensione patente per violazione CdS.
 
     Accetta parola chiave e restituisce tutte le violazioni corrispondenti con i relativi punti decurtati.
@@ -455,17 +474,23 @@ def decurtazione_punti_patente(violazione: str) -> dict:
 
     Args:
         violazione: Parola chiave della violazione (es. 'cellulare', 'cintura', 'semaforo_rosso', 'eccesso_velocita_10', 'guida_ebbra', 'sorpasso_divieto')
+        tabella_violazioni: Mappa sostitutiva fornita dal chiamante {'chiave_violazione':
+                          {'punti': int, 'articolo': str, 'descrizione': str, ...}, ...} con la
+                          stessa struttura di src/data/violazioni_patente.json (senza _vintage).
+                          Se la fornisci, la ricerca non legge la tabella inclusa: utile per
+                          garantire tu l'aggiornamento alle riforme del Codice della Strada
     """
     violazione_lower = violazione.lower().strip()
+    violazioni = tabella_violazioni if tabella_violazioni else _VIOLAZIONI
 
     # Exact match
-    if violazione_lower in _VIOLAZIONI:
-        v = _VIOLAZIONI[violazione_lower]
+    if violazione_lower in violazioni:
+        v = violazioni[violazione_lower]
         return {"violazione": violazione_lower, **v}
 
     # Keyword search
     risultati = []
-    for key, v in _VIOLAZIONI.items():
+    for key, v in violazioni.items():
         if violazione_lower in key or violazione_lower in v["descrizione"].lower():
             risultati.append({"violazione": key, **v})
 
@@ -474,7 +499,7 @@ def decurtazione_punti_patente(violazione: str) -> dict:
 
     return {
         "errore": f"Violazione '{violazione}' non trovata",
-        "violazioni_disponibili": sorted(_VIOLAZIONI.keys()),
+        "violazioni_disponibili": sorted(violazioni.keys()),
     }
 
 
@@ -602,7 +627,7 @@ def prescrizione_diritti(
         data_prescrizione = date(dt_evento.year + anni, dt_evento.month, dt_evento.day)
     except ValueError:
         data_prescrizione = date(dt_evento.year + anni, dt_evento.month, 28)
-    oggi = date.today()
+    oggi = _clock.today()
     prescritto = oggi > data_prescrizione
     giorni_mancanti = (data_prescrizione - oggi).days if not prescritto else 0
 
@@ -643,7 +668,7 @@ def calcolo_tempo_trascorso(
         except ValueError:
             return {"errore": "data_fine non valida, usare formato YYYY-MM-DD"}
     else:
-        dt_fine = date.today()
+        dt_fine = _clock.today()
 
     if dt_fine < dt_inizio:
         return {"errore": "data_fine deve essere uguale o successiva a data_inizio"}
@@ -752,7 +777,7 @@ def calcolo_eta_anagrafica(
         except ValueError:
             return {"errore": "data_riferimento non valida, usare formato YYYY-MM-DD"}
     else:
-        dt_rif = date.today()
+        dt_rif = _clock.today()
 
     if dt_rif < dt_nascita:
         return {"errore": "La data di riferimento deve essere successiva alla data di nascita"}
@@ -836,3 +861,184 @@ def ricerca_codici_ateco(keyword: str) -> dict:
         "risultati": risultati,
         "nota": "Il coefficiente di redditivita e usato nel regime forfettario per determinare il reddito imponibile (ricavi * coefficiente / 100)",
     }
+
+
+@mcp.tool(tags={"utility", "normativa"})
+def verbale_mensile(months: int = 6) -> dict:
+    """Report mensile dei rifiuti osservati dal verbale, con confronto mese su mese.
+
+    La serie storica di `LEGAL_REFUSAL_LEDGER`: una riga per mese con il totale
+    dei rifiuti e delle accettazioni, i conteggi per tool e per tabella, il
+    `delta_mese_precedente` e il tool/tabella che ha guidato il mese (`top_tool`,
+    `top_tabella`). Un mese senza eventi compare con zero: il silenzio e' un
+    dato, non un buco. E' il lato osservato del backlog
+    (`backlog_riconciliazione` e' quello statico): se un mese peggiora, la prima
+    riga della classifica dice cosa e' cambiato nello studio prima ancora di
+    aprire il codice. Attivare il verbale con `LEGAL_REFUSAL_LEDGER=on`.
+
+    Vigenza: sorgente dei dati — `<cache root>/refusals.jsonl`, scritto dal
+    middleware a ogni rifiuto/accettazione; il mese corrente arriva da
+    src/lib/_clock.py (rispetta LEGAL_TODAY/LEGAL_NOW). Precisione: ESATTO sui
+    conteggi (letti dal file), nessuna inferenza.
+
+    Args:
+        months: finestra da riportare, dal mese corrente all'indietro (1-24,
+            default 6).
+
+    Returns:
+        Dizionario con: `serie` (una riga per mese), `grafico` (la stessa serie
+        in barre ASCII, una riga per mese, pronta da mostrare), `mesi` coperti,
+        `nota` sulla semantica; `{"disponibile": False}` quando il verbale e'
+        spento.
+    """
+    return _refusals.monthly(months)
+
+
+@mcp.tool(tags={"utility", "normativa"})
+def backlog_riconciliazione() -> dict:
+    """Elenca le tabelle dati ancora da riconciliare, ordinate per quanto bloccano davvero.
+
+    Il backlog non si mantiene a mano: lo genera il server unendo due misure.
+    Quella statica viene dall'audit delle annotazioni (per ogni tabella non
+    verificata: chi la legge, a quale grado dichiarato, con quale esito), quella
+    osservata dal verbale dei rifiuti (`LEGAL_REFUSAL_LEDGER=on`: quanti rifiuti
+    ha davvero subìto il chiamante, per tool e per tabella, e quante volte ha
+    accettato un grado più basso per ottenerlo comunque). Le due misure sono
+    indipendenti e lo dicono: `uso_statico` e' quello che potrebbe bloccare,
+    `rifiuti_osservati` e' quello che ha bloccato. Un aggiornamento dei dati si
+    fa così: si legge la lista, si parte dalla prima tabella, si verifica la
+    fonte indicata e si mette `verifica: manuale` nel file — senza aprire il
+    codice. Attenzione: il tool dichiara il proprio stato, non modifica nulla.
+    Vigenza: sorgente dei dati — src/data/*.json, blocco `_vintage` per tabella.
+    Precisione: ESATTO per la lista delle tabelle e i loro stati (è letta dai
+    file, non dedotta); INDICATIVO l'ordinamento osservato quando il verbale ha
+    copertura parziale.
+
+    Returns:
+        Dizionario con: tabelle da riconciliare con stati, uso statico (tool,
+        gradi, esiti previsti), azione per ciascuna; verbale dei rifiuti quando
+        il ledger è attivo, con conteggi per tool e per tabella; ordine suggerito.
+    """
+    da_verificare: list[dict] = []
+    for name in _data.all_datasets():
+        info = _data.vintage(name)
+        if info.verificato:
+            continue
+        da_verificare.append(
+            {
+                "tabella": name,
+                "stato": "non_verificata",
+                "fonte": info.fonte,
+                "nota": info.nota,
+                "uso_statico": _uso_statico(name),
+                "azione": (
+                    "Verificare la fonte dichiarata, aggiornare i valori se servono, poi "
+                    f"in src/data/{name}.json: `verifica: manuale` e `aggiornato_al` di oggi. "
+                    "Rieseguire la suite per rigenerare i golden interessati."
+                ),
+            }
+        )
+    for name in _data.all_datasets():
+        info = _data.vintage(name)
+        if info.verificato and info.scaduto():
+            da_verificare.append(
+                {
+                    "tabella": name,
+                    "stato": "scaduta",
+                    "fonte": info.fonte,
+                    "nota": info.nota,
+                    "uso_statico": _uso_statico(name),
+                    "azione": (
+                        f"Riconciliare con la fonte e spostare `copre_fino_a` in "
+                        f"src/data/{name}.json."
+                    ),
+                }
+            )
+    da_verificare.sort(
+        key=lambda v: (
+            -len(v["uso_statico"]["rifiutano"]),
+            -len(v["uso_statico"]["degradano"]),
+            v["tabella"],
+        )
+    )
+    verbale = _refusals.summarize()
+    if verbale.get("disponibile") and verbale.get("totale"):
+        # The observed tally is the ranking the static walk cannot give: a table
+        # whose refusals were all negotiated away matters less than the static
+        # walk says, so the observed tally re-ranks the static order (stable).
+        osservate = verbale.get("tabelle") or {}
+        osservate_prima = [v for v in da_verificare if osservate.get(v["tabella"])]
+        resto = [v for v in da_verificare if not osservate.get(v["tabella"])]
+        osservate_prima.sort(key=lambda v: -osservate[v["tabella"]])
+        da_verificare = osservate_prima + resto
+    return {
+        "tabelle": da_verificare,
+        "n_tabelle": len(da_verificare),
+        "ordinamento": (
+            "rifiuti osservati dal verbale, poi uso statico (n. tool che rifiutano, "
+            "n. tool degradati), infine nome"
+        ),
+        "verbale_rifiuti": verbale,
+        "nota": (
+            "uso_statico deriva dall'audit del codice (cosa puo' bloccare); "
+            "rifiuti_osservati viene dal verbale LEGAL_REFUSAL_LEDGER (cosa ha "
+            "bloccato davvero). Sono misure diverse: leggile entrambe."
+        ),
+    }
+
+
+def _uso_statico(table: str) -> dict:
+    """What would block, from the same rule the server runs.
+
+    `_who_needs` in scripts/update-data.py asks the audit the same question for
+    the CLI; this is the tool-side twin, so the answer a caller reads and the
+    report a maintainer runs come from one derivation. The static half is
+    deliberately optimistic about nothing: it runs `decide` for every reader,
+    so a table that only feeds indicative tools shows no refusals at all.
+    """
+    rifiutano, degradano, ok = [], [], []
+    for name, grado, esito in _lettori_statici().get(table, []):
+        if esito == "rifiuta":
+            rifiutano.append(name)
+        elif esito == "ridotta":
+            degradano.append(name)
+        else:
+            ok.append(name)
+    return {
+        "n_tool": len(rifiutano) + len(degradano) + len(ok),
+        "rifiutano": rifiutano,
+        "degradano": degradano,
+        "ok": ok,
+    }
+
+
+#: The audit walk, computed at most once per process: parsing the whole source
+#: tree for every backlog call would make the readout slower than the walk it
+#: describes. The cache lives on the module, not the tool, and the audit itself
+#: is what update-data.py runs -- one derivation, two readers of it.
+_LETTORI: dict[str, list] = {}
+
+
+def _lettori_statici() -> dict[str, list]:
+    """`{table: [(tool, grade, outcome), ...]}` from the audit, computed once."""
+    if _LETTORI:
+        return _LETTORI
+    try:
+        sys.path.insert(0, str(REPO / "scripts"))
+        try:
+            from audit_tool_annotations import Audit, declared_precision  # type: ignore
+        finally:
+            sys.path.pop(0)
+        from src.lib._precision import decide  # type: ignore
+
+        audit = Audit(REPO_SRC)
+        for fq, name in audit.tools.items():
+            grado = declared_precision(audit.functions[fq]) or "?"
+            esito = decide(grado, ["non_verificata"], audit.reads_clock(fq)).esito
+            if esito == "piena":
+                esito = "ok"
+            for table in audit.reads(fq):
+                _LETTORI.setdefault(table, []).append((name, grado, esito))
+    except Exception as exc:  # pragma: no cover - a broken tree is not the tool's job
+        _LETTORI["__errore__"] = [(str(exc), "?", "errore")]
+    return _LETTORI

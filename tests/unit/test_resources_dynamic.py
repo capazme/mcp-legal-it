@@ -37,11 +37,12 @@ def test_cu_monitorio_and_tributario_tables_present():
 
 
 def test_cu_cautelari_matches_dataset_not_old_prose():
-    # The old hardcoded prose said €98.00 while the dataset (used by the
-    # tools) says otherwise: the resource must follow the dataset.
+    # The old hardcoded prose said €98.00; the dataset now carries the DPR rule
+    # (cautelari ridotti del 50%) and the resource renders that rule, not a sum.
     out = res._render_contributo_unificato()
     cautelari = _load("contributo_unificato.json")["civile"]["cautelari"]
-    assert f"| Procedimenti cautelari | € {res._eur(cautelari)} |" in out
+    assert cautelari.get("riduzione") == 0.5
+    assert "| Procedimenti cautelari | 50% degli scaglioni ordinari per valore |" in out
 
 
 def test_cu_static_notes_preserved():

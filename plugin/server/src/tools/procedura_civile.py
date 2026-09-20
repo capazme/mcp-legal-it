@@ -1,17 +1,13 @@
 """Strumenti di procedura civile: competenza del giudice (artt. 7-17 c.p.c.), verifica mediazione obbligatoria (art. 5 D.Lgs. 28/2010), ammissione al gratuito patrocinio (DPR 115/2002)."""
 
-import json
-from pathlib import Path
-
 from src.server import mcp
+from src.lib import _data
 from src.lib._data import sourced
-
-_DATA_DIR = Path(__file__).parent.parent / "data"
 
 
 def _load_mediazione() -> dict:
-    with open(_DATA_DIR / "mediazione_obbligatoria.json", encoding="utf-8") as f:
-        return json.load(f)
+    """The mediation matters table, read lazily and observed by the ledger."""
+    return _data.load("mediazione_obbligatoria")
 
 
 @mcp.tool(tags={"giudiziario"})

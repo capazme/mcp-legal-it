@@ -1,0 +1,15 @@
+{
+ "datasets": [
+  "codici_ruolo",
+  "contributo_unificato"
+ ],
+ "tools": {
+  "note_iscrizione_ruolo": {
+   "arguments": {
+    "tipo_procedimento": "cognizione_ordinaria",
+    "valore_causa": 10000.0
+   },
+   "expected": "{\"tipo_procedimento\":\"cognizione_ordinaria\",\"valore_causa\":10000.0,\"contributo_unificato\":237,\"codici_oggetto_suggeriti\":[{\"codice\":\"140001\",\"materia\":\"contratto\",\"descrizione\":\"Cessione dei crediti\"},{\"codice\":\"140021\",\"materia\":\"contratto\",\"descrizione\":\"Appalto di opere pubbliche\"},{\"codice\":\"140022\",\"materia\":\"contratto\",\"descrizione\":\"Appalto: altre ipotesi ex art. 1655 e ss. c.c. (ivi compresa l'azione ex art. 1669 c.c.)\"},{\"codice\":\"140032\",\"materia\":\"contratto\",\"descrizione\":\"Locazione di beni mobili\"},{\"codice\":\"140034\",\"materia\":\"contratto\",\"descrizione\":\"Mandato\"},{\"codice\":\"140038\",\"materia\":\"contratto\",\"descrizione\":\"Mutuo\"},{\"codice\":\"140039\",\"materia\":\"contratto\",\"descrizione\":\"Transazione\"},{\"codice\":\"140111\",\"materia\":\"contratto\",\"descrizione\":\"Indebito soggettivo - Indebito oggettivo\"},{\"codice\":\"140112\",\"materia\":\"contratto\",\"descrizione\":\"Arricchimento senza causa\"},{\"codice\":\"140999\",\"materia\":\"contratto\",\"descrizione\":\"Altri contratti tipici ed obbligazioni non rientranti nelle altre materie\"}],\"note\":\"Iscrivere a ruolo come 'cognizione_ordinaria'. CU calcolato: EUR 237.00.\",\"riferimento_normativo\":\"DPR 115/2002 — Provvedimenti DGSIA per codici oggetto\",\"dati_applicati\":[\"codici ruolo: aggiornati al 19/09/2026 (D.M. 32/2012 e provvedimenti DGSIA — tabella codici oggetto per l'iscrizione a ruolo (riferimento: Ministero della Giustizia)) — sottoinsieme delle materie civili piu' ricorrenti, ricavato dalla tabella ufficiale dei codici oggetto; la classificazione viene rinnovata dal Ministero: verificare a ogni aggiornamento del PCT\",\"contributo unificato: aggiornati al 18/09/2026 (DPR 115/2002, art. 13 e tabelle — vigenti (D.L. 90/2014 e D.L. 132/2014)) — Riconciliato con la tabella di riferimento Avvocato Andreani aggiornata a D.L. 132/2014 e D.L. 90/2014\"]}"
+  }
+ }
+}
