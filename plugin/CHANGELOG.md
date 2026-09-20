@@ -5,45 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2026-09-20
-
-### Added
-- La serie dei rifiuti come immagine: `verbale_mensile` e il report CLI
-  portano ora un blocco `grafico` — una barra per mese, in scala sul massimo
-  della finestra, il segno di zero per il mese muto, il mese corrente marcato
-  — così "questo mese è andato peggio del precedente?" si legge a colpo d'occhio
-  anche in `/verbale`, dagli stessi dati che specchia la tabella. Il comando
-  `/verbale` mostra prima il grafico, poi la tabella dei dettagli.
-
-### Fixed
-- Data refresh: FOI index for August 2026 (ISTAT, 16-09-2026: 103,7 in base
-  2025=100 → 125,9 linked to 2015=100; official variations +3,4% / +4,8%,
-  recorded without a Gazzetta reference until the comunicato is published).
-  Verified against the sources on 2026-09-20: TEGM Q3 2026 (DM 23-06-2026,
-  GU n.149; the Q4 decree is not out yet), late-payment rate H2 2026 10,40%
-  (MRO 2,40% + 8, GU n.163 of 16-07-2026), legal rate 2026 1,60% (DM
-  10-12-2025, GU n.289), IRPEF 2026 brackets 23/33/43 (L. 199/2025).
-- Data refresh (issue #36): FOI index for July 2026 (ISTAT, 12-08-2026: 103,1
-  in base 2025=100 → 125,2 linked to 2015=100; official variations +2,8% /
-  +4,3%) and the Gazzetta references for the June and July comunicati, both
-  in GU n.201 of 31-08-2026 (26A04494, 26A04495). Art. 139 CAP
-  micropermanenti amounts revalued by DM MIMIT 20 July 2026 (GU n.173 of
-  28-07-2026, cod. 26A03765): first-point value €988,45, ITT €57,64/day,
-  +2,6% on the April 2026 FOI, applying from April 2026 (`_vintage` now
-  carries `aggiornato_al`; `docs/strumenti.md` follows).
-- `scripts/refresh_data.py`: the monthly FOI append matched the first
-  `"<year>": {` of the file, which since the 2025=100 rebasing belongs to
-  `indici_base_2025`; the safety check refused the rewrite every month and
-  the September cron opened issue #36 instead of a PR. The append is now
-  anchored to its block, mirrors the published base-2025 value and moves
-  `_vintage.copre_fino_a` (the one field it rewrites; the dead `_note`
-  stamp is gone); the rewrite must equal the original plus exactly those
-  edits.
-- Tests probing the "index not yet published" fallback run on a FOI series
-  frozen at 06/2026 (`tests/unit/conftest.py:foi_serie_fissa`) instead of
-  the live table, so a data refresh — including the monthly auto-refresh
-  PR — no longer turns them red by construction.
-
 ## [Unreleased]
 
 ### Added
@@ -350,6 +311,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   la policy non è rigenerata, e il CI esegue quel controllo (job `policy-sync`)
   a ogni push. `tests/unit/test_online_sources.py` prova il middleware, la
   privacy degli URL e il flag sulle fonti non dichiarate.
+- La serie dei rifiuti come immagine: `verbale_mensile` e il report CLI
+  portano ora un blocco `grafico` — una barra per mese, in scala sul massimo
+  della finestra, il segno di zero per il mese muto, il mese corrente marcato
+  — così "questo mese è andato peggio del precedente?" si legge a colpo d'occhio
+  anche in `/verbale`, dagli stessi dati che specchia la tabella. Il comando
+  `/verbale` mostra prima il grafico, poi la tabella dei dettagli.
 
 ### Fixed
   esterno*. `upstream_clients()` restituisce `src/lib/<nome>` a meno che il nome
@@ -412,6 +379,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   interprete è 3.10+ **e** importa tutte le dipendenze runtime: un venv
   incompleto viene ricreato invece di avviare un server che muore al primo
   import. `MCP_FORCE_VENV=1` salta `uv` per esercitare il fallback.
+- Data refresh: FOI index for August 2026 (ISTAT, 16-09-2026: 103,7 in base
+  2025=100 → 125,9 linked to 2015=100; official variations +3,4% / +4,8%,
+  recorded without a Gazzetta reference until the comunicato is published).
+  Verified against the sources on 2026-09-20: TEGM Q3 2026 (DM 23-06-2026,
+  GU n.149; the Q4 decree is not out yet), late-payment rate H2 2026 10,40%
+  (MRO 2,40% + 8, GU n.163 of 16-07-2026), legal rate 2026 1,60% (DM
+  10-12-2025, GU n.289), IRPEF 2026 brackets 23/33/43 (L. 199/2025).
+- Data refresh (issue #36): FOI index for July 2026 (ISTAT, 12-08-2026: 103,1
+  in base 2025=100 → 125,2 linked to 2015=100; official variations +2,8% /
+  +4,3%) and the Gazzetta references for the June and July comunicati, both
+  in GU n.201 of 31-08-2026 (26A04494, 26A04495). Art. 139 CAP
+  micropermanenti amounts revalued by DM MIMIT 20 July 2026 (GU n.173 of
+  28-07-2026, cod. 26A03765): first-point value €988,45, ITT €57,64/day,
+  +2,6% on the April 2026 FOI, applying from April 2026 (`_vintage` now
+  carries `aggiornato_al`; `docs/strumenti.md` follows).
+- `scripts/refresh_data.py`: the monthly FOI append matched the first
+  `"<year>": {` of the file, which since the 2025=100 rebasing belongs to
+  `indici_base_2025`; the safety check refused the rewrite every month and
+  the September cron opened issue #36 instead of a PR. The append is now
+  anchored to its block, mirrors the published base-2025 value and moves
+  `_vintage.copre_fino_a` (the one field it rewrites; the dead `_note`
+  stamp is gone); the rewrite must equal the original plus exactly those
+  edits.
+- Tests probing the "index not yet published" fallback run on a FOI series
+  frozen at 06/2026 (`tests/unit/conftest.py:foi_serie_fissa`) instead of
+  the live table, so a data refresh — including the monthly auto-refresh
+  PR — no longer turns them red by construction.
 
 ## [2.13.0] - 2026-08-30
 

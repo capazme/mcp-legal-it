@@ -12,51 +12,23 @@ display label, and every row stays reviewable in a diff.
 """
 
 import json
-import re
 import sys
 
 sys.path.insert(0, ".")
 
-from src.lib.visualex.map import BROCARDI_CODICI  # noqa: E402
-
-MESI = {
-    m: f"{i + 1:02d}"
-    for i, m in enumerate(
-        "gennaio febbraio marzo aprile maggio giugno luglio agosto "
-        "settembre ottobre novembre dicembre".split()
-    )
-}
-
-TIPI = {
-    "r.d.": "regio decreto",
-    "d.p.r.": "decreto del presidente della repubblica",
-    "d.lgs.": "decreto legislativo",
-    "d. lgs.": "decreto legislativo",
-    "d.l.": "decreto legge",
-    "l.": "legge",
-}
-
-EXTREMES = re.compile(
-    r"\((R\.D\.|D\.P\.R\.|D\.\s?Lgs\.|D\.L\.|L\.|Reg\.\s*UE)\s*"
-    r"(\d{1,2})\s+([A-Za-zà]+)\s+(\d{4}),?\s*n\.\s*(\d+)\)",
-    re.IGNORECASE,
-)
+from src.lib.visualex.map import BROCARDI_CODICI, parse_brocardi_estremi  # noqa: E402
 
 
 def parse(key: str) -> dict | None:
-    matches = list(EXTREMES.finditer(key))
-    if not matches:
-        return None
-    tipo_raw, giorno, mese_raw, anno, numero = matches[-1].groups()
-    tipo = TIPI.get(tipo_raw.lower().replace("d. lgs.", "d.lgs."))
-    mese = MESI.get(mese_raw.lower())
-    if not tipo or not mese:
+    """One spec row from a Brocardi label; None for labels without extremes."""
+    estremi = parse_brocardi_estremi(key)
+    if not estremi or estremi["tipo_atto"] == "regolamento ue":
         return None  # EU acts live in ATTI_NOTI, not here
     label = key.split("(")[0].strip().replace('"', "").replace("[ABROGATO]", "").strip()
     return {
-        "tipo_atto": tipo,
-        "data": f"{anno}-{mese}-{int(giorno):02d}",
-        "numero": numero,
+        "tipo_atto": estremi["tipo_atto"],
+        "data": estremi["data"],
+        "numero": estremi["numero_atto"],
         "alias": label.lower(),
     }
 

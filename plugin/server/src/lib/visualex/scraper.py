@@ -97,7 +97,7 @@ async def fetch_annotations(nv: NormaVisitata) -> dict:
 
     Returns: {"annotations": dict, "url": str, "source": "brocardi"}
     """
-    brocardi_url = find_brocardi_url(nv.norma.tipo_atto_normalized, nv.norma.numero_atto)
+    brocardi_url = find_brocardi_url(nv.norma.tipo_atto_normalized, nv.norma.numero_atto, nv.norma.data)
     if not brocardi_url:
         return {"annotations": {}, "url": "", "source": "brocardi",
                 "error": f"No Brocardi mapping for '{nv.norma.tipo_atto_normalized}'"}

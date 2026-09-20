@@ -206,6 +206,7 @@ async def fetch_brocardi(
     tipo_atto: str,
     articolo: str,
     numero_atto: str = "",
+    data: str = "",
 ) -> BrocardiResult:
     """Fetch full Brocardi annotations for an article.
 
@@ -213,8 +214,9 @@ async def fetch_brocardi(
         tipo_atto: Normalized act type (e.g. "codice civile", "codice penale")
         articolo: Article number (e.g. "2043", "13", "640-bis")
         numero_atto: Act number for disambiguation (e.g. "196", "231")
+        data: Act date or year — D.lgs. 81/2008 and 81/2015 differ only by it
     """
-    base_url = find_brocardi_url(tipo_atto, numero_atto)
+    base_url = find_brocardi_url(tipo_atto, numero_atto, data)
     if not base_url:
         return BrocardiResult(error=f"Nessun mapping Brocardi per '{tipo_atto}'")
 
