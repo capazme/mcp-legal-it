@@ -22,6 +22,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "cerca_giurisprudenza_cgue": ("cgue",),
     "cerca_giurisprudenza_tributaria": ("cerdef",),
     "cerca_giurisprudenza_unificata": ("cerdef", "cgue", "giustizia_amm", "italgiure"),
+    "cerca_marchi": ("tmview",),
     "cerca_pronuncia_costituzionale": ("corte_cost",),
     "cerca_provvedimenti_garante": ("gpdp",),
     "cerdef_leggi_provvedimento": ("cerdef",),
@@ -42,6 +43,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "iter_ddl": ("parlamento_camera", "parlamento_senato"),
     "leggi_atto_gazzetta": ("gazzetta",),
     "leggi_delibera_consob": ("consob",),
+    "leggi_marchio": ("tmview",),
     "leggi_pronuncia_costituzionale": ("corte_cost",),
     "leggi_provvedimento_amm": ("giustizia_amm",),
     "leggi_provvedimento_garante": ("gpdp",),
@@ -61,6 +63,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "ultime_sentenze_tributarie": ("cerdef",),
     "ultimi_provvedimenti_amm": ("giustizia_amm",),
     "ultimi_provvedimenti_garante": ("gpdp",),
+    "verifica_anteriorita_marchio": ("tmview",),
     "verifica_citazioni": ("brocardi", "eur_lex", "italgiure", "normattiva"),
     "verifica_partita_iva_vies": ("vies",),
 }
