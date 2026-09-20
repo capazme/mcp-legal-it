@@ -182,6 +182,7 @@ Per provare una beta:
 | 20 | Recupero Crediti Seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
 | 21 | Analisi Fornitori (privacy) | 2 | `verifica_partita_iva_vies`, `genera_report_fornitori` |
 | 22 | DDL e Iter Parlamentare | 3 | `cerca_ddl`, `iter_ddl`, `ddl_su_norma` |
+| 23 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
 
 ---
 

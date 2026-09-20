@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- TMview (EUIPO/TMDN trademark database) as a new source — module
+  `src/tools/tmview.py` with 3 tools (218 → 221): `cerca_marchi` (search across
+  UIBM, EUIPO, WIPO and ~75 national offices with office/Nice-class/status
+  filters), `leggi_marchio` (full record by ST13: owner, representatives,
+  goods and services per Nice class, publications), and
+  `verifica_anteriorita_marchio` (preliminary prior-rights screening that
+  separates identical from similar marks, with an explicit disclaimer that it
+  does not replace a professional availability search). The client
+  (`src/lib/tmview/`) talks to TMview's public JSON API with browser-like
+  headers, a session warm-up request and a minimum interval between calls to
+  coexist with the site's F5 anti-bot gate; a challenge response surfaces as
+  a clear "retry in a minute" error instead of garbage output. New egress
+  host `www.tmdn.org` declared in `src/lib/_egress.py` and SECURITY.md.
 - `verifica_citazioni(..., formato="json")` and `cite_law(..., formato="json")`:
   structured output for programmatic clients (LibreLex-IT). Markdown output
   unchanged.
