@@ -8,8 +8,11 @@ allowed-tools: mcp__legal-it__verbale_mensile, Bash, Read
 # Comando /verbale — la serie storica dei rifiuti
 
 Chiama `legal-it:verbale_mensile` (con `months: $ARGUMENTS` se indicato) e
-mostra la serie: una riga per mese con rifiuti, accettazioni, il delta col mese
-precedente e il tool/tabella che ha guidato il mese.
+mostra prima il **grafico** della serie (il campo `grafico`: una barra per
+mese, scala sul massimo della finestra, il mese corrente marcato) — è il
+confronto fra i mesi, a colpo d'occhio. Poi la tabella: una riga per mese con
+rifiuti, accettazioni, il delta col mese precedente e il tool/tabella che ha
+guidato il mese.
 
 ## Cosa leggere nella serie
 
