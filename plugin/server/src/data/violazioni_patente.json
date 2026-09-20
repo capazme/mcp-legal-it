@@ -1,9 +1,9 @@
 {
   "_vintage": {
     "fonte": "Codice della Strada (D.Lgs. 285/1992), art. 126-bis e tabella allegata — vigenti",
-    "aggiornato_al": "2026-09-19",
+    "aggiornato_al": "2026-09-20",
     "verifica": "manuale",
-    "nota": "Punteggi verificati sulla tabella allegata all'art. 126-bis aggiornata 2025 (certifico e prontuario CdS concordi): mancata precedenza 6 punti (art. 145 c.5), sorpasso 3 punti (art. 148 c.15 con riferimento al c.2), circolazione senza assicurazione 5 punti (art. 193 c.2); eccessi di velocità riferiti ai commi 7 (fino a 10 km/h, nessun punto), 8 (oltre 10-40, 3), 9 (oltre 40-60, 6) e 9-bis (oltre 60, 10). Massimo decurtabile 15 punti per violazioni contestuali (art. 126-bis c.1-bis); punti raddoppiati per i neopatentati nei primi tre anni"
+    "nota": "Punteggi verificati sulla tabella allegata all'art. 126-bis aggiornata 2025 (certifico e prontuario CdS concordi): mancata precedenza 5 punti (art. 145 c.10; lo stop, c.5, vale 6), distanza di sicurezza e contromano sul comma base (3 e 4 punti) con le ipotesi aggravate come voci separate, fuga con danni alle persone 10 (art. 189 c.6) e alle sole cose 4 (c.5), sorpasso 3 punti (art. 148 c.15 con riferimento al c.2), circolazione senza assicurazione 5 punti (art. 193 c.2); eccessi di velocità riferiti ai commi 7 (fino a 10 km/h, nessun punto), 8 (oltre 10-40, 3), 9 (oltre 40-60, 6) e 9-bis (oltre 60, 10). Massimo decurtabile 15 punti per violazioni contestuali (art. 126-bis c.1-bis); punti raddoppiati per i neopatentati nei primi tre anni"
   },
   "_description": "Decurtazioni patente a punti — tabella allegata all'art. 126-bis CdS",
   "cellulare": {"punti": 5, "articolo": "Art. 173 c.3-bis CdS", "descrizione": "Uso del telefono alla guida", "sanzione_accessoria": "Sospensione patente 1-3 mesi, in caso di recidiva 3-6 mesi"},
@@ -15,13 +15,17 @@
   "eccesso_velocita_oltre_60": {"punti": 10, "articolo": "Art. 142 c.9-bis CdS", "descrizione": "Eccesso di velocita oltre 60 km/h", "sanzione_accessoria": "Sospensione patente 6-12 mesi", "sanzione_pecuniaria": "845-3.382 euro"},
   "guida_ebbra": {"punti": 10, "articolo": "Art. 186 c.2 e 7 CdS", "descrizione": "Guida in stato di ebbrezza (tasso > 0.5 g/l)", "sanzione_accessoria": "Sospensione/revoca patente"},
   "sorpasso": {"punti": 3, "articolo": "Art. 148 c.15, con riferimento al c.2 CdS", "descrizione": "Sorpasso vietato o pericoloso"},
-  "precedenza": {"punti": 6, "articolo": "Art. 145 c.5 CdS", "descrizione": "Mancata precedenza", "sanzione_accessoria": "Sospensione patente 1-3 mesi in caso di incidente"},
+  "precedenza": {"punti": 5, "articolo": "Art. 145 c.10 (con riferimento ai commi 2, 3, 4, 6, 7, 8 e 9) CdS", "descrizione": "Mancata precedenza", "sanzione_accessoria": "Sospensione patente 1-3 mesi in caso di incidente"},
   "stop": {"punti": 6, "articolo": "Art. 145 c.5 CdS", "descrizione": "Mancato arresto al segnale di stop"},
-  "contromano": {"punti": 10, "articolo": "Art. 143 c.12 CdS", "descrizione": "Circolazione contromano", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
+  "contromano": {"punti": 4, "articolo": "Art. 143 c.11 CdS", "descrizione": "Circolazione contromano"},
+  "contromano_curve_dossi": {"punti": 10, "articolo": "Art. 143 c.12 CdS", "descrizione": "Circolazione contromano in curva, dosso o con visibilità limitata", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
   "strisce_pedonali": {"punti": 8, "articolo": "Art. 191 c.1 CdS", "descrizione": "Mancata precedenza ai pedoni sulle strisce"},
-  "distanza_sicurezza": {"punti": 5, "articolo": "Art. 149 c.5, secondo periodo CdS", "descrizione": "Mancato rispetto della distanza di sicurezza"},
+  "distanza_sicurezza": {"punti": 3, "articolo": "Art. 149 c.4 CdS", "descrizione": "Mancato rispetto della distanza di sicurezza"},
+  "distanza_sicurezza_collisione": {"punti": 5, "articolo": "Art. 149 c.5, secondo periodo CdS", "descrizione": "Mancato rispetto della distanza di sicurezza con collisione e danni gravi ai veicoli", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
+  "distanza_sicurezza_lesioni": {"punti": 8, "articolo": "Art. 149 c.6 CdS", "descrizione": "Mancato rispetto della distanza di sicurezza con collisione e lesioni gravi alle persone", "sanzione_accessoria": "Sospensione patente 1-3 mesi"},
   "casco": {"punti": 5, "articolo": "Art. 171 c.2 CdS", "descrizione": "Mancato uso del casco"},
-  "fuga_incidente": {"punti": 10, "articolo": "Art. 189 c.5, secondo periodo CdS", "descrizione": "Fuga dopo incidente con danni", "sanzione_accessoria": "Sospensione/revoca patente"},
+  "fuga_incidente": {"punti": 10, "articolo": "Art. 189 c.6 CdS", "descrizione": "Fuga dopo incidente con danni alle persone", "sanzione_accessoria": "Sospensione/revoca patente"},
+  "fuga_incidente_cose": {"punti": 4, "articolo": "Art. 189 c.5, primo periodo CdS", "descrizione": "Mancato arresto dopo incidente con danni alle sole cose"},
   "patente_scaduta": {"punti": 0, "articolo": "Art. 126 CdS", "descrizione": "Guida con patente scaduta"},
   "revisione_scaduta": {"punti": 0, "articolo": "Art. 80 CdS", "descrizione": "Circolazione con revisione scaduta"},
   "assicurazione": {"punti": 5, "articolo": "Art. 193 c.2 CdS", "descrizione": "Circolazione senza assicurazione", "sanzione_accessoria": "Sequestro del veicolo e sanzione pecuniaria da 849 a 3.387 euro"}

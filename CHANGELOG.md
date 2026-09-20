@@ -314,6 +314,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes, and the audit pins which tool may name which source.
 
 ### Fixed
+- Two of the reconciled tables re-read against the primary source
+  (2026-09-20). `violazioni_patente`: generic failure to yield is art. 145
+  c.10 (5 points; the stop line, c.5, keeps its 6), safety distance and
+  wrong-way driving now rest on their base commi (art. 149 c.4: 3, art. 143
+  c.11: 4) with the aggravated cases as separate keys
+  (`distanza_sicurezza_collisione` 5, `distanza_sicurezza_lesioni` 8,
+  `contromano_curve_dossi` 10), hit-and-run split into injuries (art. 189
+  c.6: 10) and damage to things only (`fuga_incidente_cose`, c.5: 4).
+  `contributo_unificato`: sourced from art. 13 DPR 115/2002 on Normattiva
+  instead of a secondary table; adds the fixed 168 for oppositions to
+  enforcement acts (c.2), the three public-contract tiers up to 6.000 above
+  1 M (c.6-bis lett. d), the 1.800 abbreviated rite, the 300 for citizenship
+  and residence cases, and the Consiglio di Stato amounts raised by half
+  (art. 1 c.27 L. 228/2012); the note records that the labour-court
+  exemption only covers parties under twice the art. 76 threshold.
 - Brocardi annotations for every act that is not a codice. `find_brocardi_url`
   matched the act name as a substring of the table labels, so a resolved
   `("decreto legislativo", 2001-06-08, 231)` never found `"(D.lgs. 8 giugno
