@@ -1,6 +1,6 @@
 # Claude Code Plugin — mcp-legal-it
 
-> Documentazione del plugin per Claude Code: 23 skills, 8 slash command, 6 agenti specializzati, hooks.
+> Documentazione del plugin per Claude Code: 23 skills, 10 slash command, 6 agenti specializzati, hooks.
 
 ## Indice
 
@@ -21,8 +21,8 @@ Il plugin `legal-it` aggiunge a Claude Code:
 
 - **23 skills** invocabili con `/skill-name` — ogni skill orchestra una sequenza di tool MCP
 - **6 agenti** configurati come sub-agenti specializzati con istruzioni di sistema e tool preferiti
-- **8 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/release`)
-- **1 hook** automatico: verifica del legal grounding a fine risposta
+- **10 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/dati`, `/verbale`, `/release`)
+- **1 hook** automatico (`Stop`): gate deterministico sulle citazioni normative a fine risposta
 
 **Marketplace**: `.claude-plugin/marketplace.json`
 
@@ -32,7 +32,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
   "plugins": [{
     "name": "legal-it",
     "source": "./plugin",
-    "description": "Plugin legale italiano completo: 222 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), compliance GDPR, export DOCX/PDF. 23 skill, 8 slash command, 6 agenti specializzati."
+    "description": "Plugin legale italiano completo: 227 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), compliance GDPR, export DOCX/PDF. 23 skill, 10 slash command, 6 agenti specializzati."
   }]
 }
 ```
@@ -48,10 +48,10 @@ plugin/
 │   ├── recupero-credito/SKILL.md
 │   ├── causa-civile/SKILL.md
 │   └── ... (20 altre)
-├── commands/                   # 8 slash command
+├── commands/                   # 10 slash command
 │   ├── norma.md
 │   ├── sentenza.md
-│   └── ... (6 altri)
+│   └── ... (8 altri: interessi, scadenza, privacy, codice-fiscale, digest, dati, verbale, release)
 ├── agents/                     # 6 agenti specializzati
 │   ├── civilista.md
 │   ├── penalista.md
@@ -193,17 +193,26 @@ Specialista in protezione dei dati: GDPR (Reg. UE 2016/679), Codice Privacy (D.L
 
 **File**: `plugin/hooks/hooks.json`
 
-### Hook `Stop` — Legal Grounding Verifier
+### Hook `Stop` — gate sulle citazioni
 
-Si attiva al termine di ogni risposta Claude.
+Si attiva al termine di ogni risposta di Claude.
 
-**Modello**: Haiku (veloce, economico)
+**Tipo**: hook `command` — esegue `hooks/citation-gate.py` (Python 3, stdlib, nessun
+modello: deterministico e senza costo). Sostituisce il precedente hook di tipo
+`prompt` (Haiku), che segnalava falsi positivi e ripeteva avvisi su norme già verificate.
 
-**Funzione**: Verifica che ogni norma citata nella risposta abbia una corrispondente chiamata `cite_law()` nel transcript. Se trova norme citate senza verifica, elenca quelle mancanti e chiede di richiamare `cite_law()` prima di finalizzare.
+**Funzione**: estrae le citazioni a livello di articolo dall'ultimo messaggio
+dell'assistente (`art.`, `artt.`, `articolo`) e le considera coperte se lo stesso
+numero di articolo compare in una qualunque `cite_law()` già presente nel transcript
+(dedup di sessione). Segnala **solo** le citazioni nuove e non coperte; altrimenti
+resta in silenzio.
 
-**Ignora**: norme all'interno dei risultati di tool (già verificate), riferimenti generici senza numero di articolo, calcoli numerici (i tool applicano le norme internamente).
+**Ignora**: blocchi di codice e span inline (citano, non affermano), norme senza
+numero di articolo, contenuto dei risultati dei tool.
 
-**Output**: `"OK"` se tutto verificato, oppure `"ATTENZIONE: le seguenti norme sono state citate senza verifica con cite_law(): [elenco]."`.
+**Output**: nessun messaggio se tutto è coperto, altrimenti un avviso con l'elenco
+delle norme citate senza `cite_law()`. È volutamente conservativo: l'enforcement
+forte resta sul gate pre-export delle skill e sul giudizio dell'avvocato.
 
 ---
 

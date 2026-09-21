@@ -3,7 +3,7 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 221.**
+**Totale tool: 227.**
 
 ---
 
@@ -23,9 +23,9 @@ descrizione di ogni tool.
 12. [Diritto penale](#12-diritto-penale) — 5 tool
 13. [Proprietà e successioni](#13-proprietà-e-successioni) — 12 tool
 14. [Investimenti](#14-investimenti) — 5 tool
-15. [Dichiarazione redditi](#15-dichiarazione-redditi) — 15 tool
-16. [Utilità generali](#16-utilità-generali) — 13 tool
-17. [Analisi fornitori (privacy)](#17-analisi-fornitori-privacy) — 2 tool
+15. [Dichiarazione redditi](#15-dichiarazione-redditi) — 16 tool
+16. [Utilità generali](#16-utilità-generali) — 14 tool (+ 2 di provenienza dei dati)
+17. [Analisi fornitori (privacy)](#17-analisi-fornitori-privacy) — 3 tool
 18. [Gazzetta Ufficiale](#18-gazzetta-ufficiale) — 5 tool
 19. [Corte Costituzionale](#19-corte-costituzionale) — 4 tool
 20. [Giurisprudenza tributaria (CeRDEF)](#20-giurisprudenza-tributaria-cerdef) — 3 tool
@@ -387,6 +387,8 @@ descrizione di ogni tool.
 | `calcolo_eta_anagrafica` | `calcolo_eta_anagrafica(data_nascita: str, data_riferimento: str \| None = None)` | Età anagrafica esatta in anni, mesi e giorni con prossimo compleanno. |
 | `ricerca_codici_ateco` | `ricerca_codici_ateco(keyword: str)` | Ricerca codici ATECO per parola chiave con coefficiente regime forfettario. |
 | `cerca_codice_tributo` | `cerca_codice_tributo(query: str)` | Cerca un codice tributo F24 per codice o descrizione. |
+| `verbale_mensile` | `verbale_mensile(months: int = 6)` | Report mensile dei rifiuti osservati dal verbale (`LEGAL_REFUSAL_LEDGER=on`), con confronto mese su mese, grafico e classifica di cosa ha bloccato. |
+| `backlog_riconciliazione` | `backlog_riconciliazione()` | Elenca le tabelle dati ancora da riconciliare (`da_verificare` o scadute), ordinate per quanto bloccano davvero. |
 
 ---
 
@@ -619,7 +621,6 @@ descrizione di ogni tool.
 
 ---
 
-
 ## 33. Iter parlamentare (DDL)
 
 **Modulo:** `src/tools/parlamento.py`
@@ -633,6 +634,7 @@ descrizione di ogni tool.
 | `ddl_su_norma` | `ddl_su_norma(riferimento: str, legislatura: int = 19, max_risultati: int = 10)` | Cerca DDL pendenti o conclusi che citano una norma nel titolo (riforme in corso). |
 
 ---
+
 
 ## Riepilogo per sezione
 
@@ -652,9 +654,9 @@ descrizione di ogni tool.
 | 12 | Diritto penale | 5 |
 | 13 | Proprietà e successioni | 12 |
 | 14 | Investimenti | 5 |
-| 15 | Dichiarazione redditi | 15 |
-| 16 | Utilità generali | 13 |
-| 17 | Analisi fornitori (privacy) | 2 |
+| 15 | Dichiarazione redditi | 16 |
+| 16 | Utilità generali | 14 |
+| 17 | Analisi fornitori (privacy) | 3 |
 | 18 | Gazzetta Ufficiale | 5 |
 | 19 | Corte Costituzionale | 4 |
 | 20 | Giurisprudenza tributaria (CeRDEF) | 3 |
@@ -671,7 +673,8 @@ descrizione di ogni tool.
 | 31 | Modelli di atti | 3 |
 | 32 | Procure e quotazioni (recupero crediti) | 2 |
 | 33 | Iter parlamentare (DDL) | 3 |
-| | **Totale** | **221** |
+| 34 | Marchi (TMview) | 3 |
+| | **Totale** | **227** |
 
 ---
 
