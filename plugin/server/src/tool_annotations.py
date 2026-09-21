@@ -115,6 +115,7 @@ WRITES_FILES: frozenset[str] = frozenset({
     "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "genera_procura_liti_docx",
     "genera_quotazione_docx", "genera_report_fornitori", "giurisprudenza_articolo", "leggi_pronuncia_costituzionale",
     "mappa_orientamento", "pronunce_cost_su_norma", "ultime_pronunce_cost", "verifica_citazioni",
+    "verifica_dpa_fornitore",
 })
 
 # Reaches an external service.
@@ -132,7 +133,7 @@ OPEN_WORLD: frozenset[str] = frozenset({
     "sommario_gazzetta", "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce",
     "ultime_pronunce_cost", "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm",
     "ultimi_provvedimenti_garante", "verifica_anteriorita_marchio", "verifica_citazioni",
-    "verifica_partita_iva_vies",
+    "verifica_dpa_fornitore", "verifica_partita_iva_vies",
 })
 
 # Subset of WRITES_FILES whose only write refreshes the local cache under
@@ -140,7 +141,7 @@ OPEN_WORLD: frozenset[str] = frozenset({
 CACHE_WRITES: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_pronuncia_costituzionale", "cite_law", "fetch_full_act", "fetch_law_annotations",
     "fetch_law_article", "giurisprudenza_articolo", "leggi_pronuncia_costituzionale", "mappa_orientamento",
-    "pronunce_cost_su_norma", "ultime_pronunce_cost", "verifica_citazioni",
+    "pronunce_cost_su_norma", "ultime_pronunce_cost", "verifica_citazioni", "verifica_dpa_fornitore",
 })
 
 # Reachable code that consults an online source (provenance recorded per call
@@ -160,7 +161,7 @@ ONLINE_SOURCES: frozenset[str] = frozenset({
     "sommario_gazzetta", "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce",
     "ultime_pronunce_cost", "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm",
     "ultimi_provvedimenti_garante", "verifica_anteriorita_marchio", "verifica_citazioni",
-    "verifica_partita_iva_vies",
+    "verifica_dpa_fornitore", "verifica_partita_iva_vies",
 })
 
 

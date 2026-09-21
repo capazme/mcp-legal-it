@@ -15,11 +15,12 @@ when a declared cache stops honouring the `LEGAL_CACHE=off` switch.
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts` | `{codice}_{data_gu}_{data_vigenza}.json -- parsed act`<br>`akn_hits.json -- access counter per act`<br>`akn_url_params.json -- act URL -> export parameters` | in-memory LRU capped at AKN_CACHE_MAX_ACTS (50); the disk copy has no TTL | `src/lib/visualex/akn_fetch.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` | `brocardi_urls.json -- article URL map` | no TTL; an entry is dropped when the article 404s | `src/lib/brocardi/client.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` | `{kind}/{year}.json -- Consulta pronunce and massime` | 7 days (_CACHE_TTL_SECONDS) | `src/lib/corte_cost/client.py` | `cache_enabled()` |
+| `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` | `dpa_probe.json -- supplier DPA determinations, keyed by domain` | 90 days (TTL_GIORNI); transient failures are never written | `src/lib/dpa_probe/cache.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` | `refusals.jsonl -- refusal/acceptance tally per day, opt-in (LEGAL_REFUSAL_LEDGER)` | append-only; the host trims or resets it whenever it wants | `src/lib/_refusals.py` | `ledger_enabled()` |
 
 ## Tools that can write them
 
-These are the 12 tools of the `CACHE_WRITES` subset of the annotation
+These are the 13 tools of the `CACHE_WRITES` subset of the annotation
 policy, i.e. the tools whose only reachable write is a cache refresh; they
 are annotated `readOnlyHint: false` for exactly this reason. A tool that also
 writes a document is listed as a writer of the document, not of the cache.
@@ -38,6 +39,7 @@ writes a document is listed as a writer of the document, not of the cache.
 | `pronunce_cost_su_norma` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `ultime_pronunce_cost` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `verifica_citazioni` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
+| `verifica_dpa_fornitore` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 
 ## Turning the caches off
 

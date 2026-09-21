@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `verifica_dpa_fornitore(dominio)`: probes a supplier's site on a fixed list
+  of conventional paths for a published art. 28 DPA, judges the HTML or PDF
+  it finds against GDPR markers and caches the determination for 90 days
+  (`src/lib/dpa_probe/`; the hand-maintained DPA whitelist is gone). The probe
+  is the one tool that contacts a host chosen by the caller, so it is fenced:
+  public registrable names only (no addresses, ports, local or reserved
+  names), every name resolved and refused when any address is not public,
+  the same check on every redirect, the consult declared in
+  `fonti_consultate` and the cache under `LEGAL_CACHE`. `SECURITY.md`
+  documents the exception.
 - TMview (EUIPO/TMDN trademark database) as a new source — module
   `src/tools/tmview.py` with 3 tools (218 → 221): `cerca_marchi` (search across
   UIBM, EUIPO, WIPO and ~75 national offices with office/Nice-class/status

@@ -15,7 +15,10 @@ import pytest
 from bs4 import BeautifulSoup
 
 from src.lib.dpa_probe import cache as dpa_cache
+from src.lib.dpa_probe import client as dpa_client
 from src.lib.dpa_probe.client import (
+    DestinazioneNonPubblica,
+    motivo_rifiuto_dominio,
     PERCORSI,
     VERDETTO_BLOCCATO,
     VERDETTO_IRRAGGIUNGIBILE,
@@ -461,6 +464,14 @@ def _resp(status=200, text="", content_type="text/html", url="https://x.test/leg
     return r
 
 
+
+@pytest.fixture(autouse=True)
+def _dns_pubblico(monkeypatch):
+    """Unit tests never touch the resolver: every name is a public address."""
+    async def risolvi(host):
+        return ["93.184.216.34"]
+    monkeypatch.setattr(dpa_client, "_risolvi", risolvi)
+
 def _client_with(handler):
     """Patch httpx.AsyncClient so every request is served by `handler(url)`."""
     client = MagicMock()
@@ -652,6 +663,89 @@ class TestSondaDominio:
 
 
 @pytest.mark.live
+class TestDestinazionePubblica:
+    """The probe reaches public registrable names only: never an address, a port,
+    a local name, or a public name that resolves to a private address."""
+
+    @pytest.mark.parametrize("host", [
+        "localhost", "127.0.0.1", "10.0.0.5:8080", "192.168.1.1", "169.254.169.254",
+        "[::1]", "intranet", "nas.local", "vault.internal", "evil.test", "-bad.com",
+        "bad-.com", "user@example.com", "1.2.3.4.5", "",
+    ])
+    def test_rejected_before_any_request(self, host):
+        assert motivo_rifiuto_dominio(host)
+
+    @pytest.mark.parametrize("host", ["example.com", "sub.example.co.uk", "x-y.example.org"])
+    def test_public_names_pass_the_syntactic_check(self, host):
+        assert motivo_rifiuto_dominio(host) is None
+
+    @pytest.mark.asyncio
+    async def test_no_request_for_a_refused_host(self):
+        handler = MagicMock(side_effect=AssertionError("must not be called"))
+        with patch("httpx.AsyncClient", return_value=_client_with(handler)):
+            esito = await sonda_dominio("http://169.254.169.254/latest/meta-data/")
+        assert esito.verdetto == VERDETTO_IRRAGGIUNGIBILE
+        assert esito.errore == "indirizzo IP invece di un dominio"
+        handler.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_public_name_resolving_to_private_address_is_refused(self, monkeypatch):
+        async def risolvi(host):
+            return ["93.184.216.34", "10.0.0.7"]
+        monkeypatch.setattr(dpa_client, "_risolvi", risolvi)
+        handler = MagicMock(side_effect=AssertionError("must not be called"))
+        with patch("httpx.AsyncClient", return_value=_client_with(handler)):
+            esito = await sonda_dominio("example.com")
+        assert esito.verdetto == VERDETTO_IRRAGGIUNGIBILE
+        assert esito.errore == "il dominio risolve a un indirizzo non pubblico"
+        handler.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_unresolvable_name_is_unreachable(self, monkeypatch):
+        import socket
+
+        async def risolvi(host):
+            raise socket.gaierror(8, "nodename nor servname provided")
+        monkeypatch.setattr(dpa_client, "_risolvi", risolvi)
+        esito = await sonda_dominio("example.com")
+        assert esito.verdetto == VERDETTO_IRRAGGIUNGIBILE
+        assert esito.errore == "dominio non risolvibile"
+
+    @pytest.mark.asyncio
+    async def test_request_hook_blocks_redirects_off_the_public_internet(self, monkeypatch):
+        seen = []
+
+        async def risolvi(host):
+            seen.append(host)
+            return ["10.1.1.1"] if host == "cdn.example.net" else ["93.184.216.34"]
+        monkeypatch.setattr(dpa_client, "_risolvi", risolvi)
+        hook = dpa_client._guardia_destinazioni({})
+        await hook(httpx.Request("GET", "https://example.com/legal/dpa"))          # public: passes
+        with pytest.raises(DestinazioneNonPubblica):
+            await hook(httpx.Request("GET", "http://10.0.0.1/admin"))               # literal address
+        with pytest.raises(DestinazioneNonPubblica):
+            await hook(httpx.Request("GET", "https://cdn.example.net/dpa.pdf"))     # resolves privately
+        with pytest.raises(DestinazioneNonPubblica):
+            await hook(httpx.Request("GET", "ftp://example.com/dpa"))               # scheme
+        # the refusal is what the probe reports, not a crash
+        assert issubclass(DestinazioneNonPubblica, httpx.TransportError)
+
+    @pytest.mark.asyncio
+    async def test_resolution_is_memoised_per_probe(self, monkeypatch):
+        calls = []
+
+        async def risolvi(host):
+            calls.append(host)
+            return ["93.184.216.34"]
+        monkeypatch.setattr(dpa_client, "_risolvi", risolvi)
+        memo = {}
+        hook = dpa_client._guardia_destinazioni(memo)
+        for _ in range(3):
+            await hook(httpx.Request("GET", "https://example.com/a"))
+        assert calls == ["example.com"]
+        assert memo == {"example.com": None}
+
+
 class TestSondaLive:
     """Canary on URL conventions. Excluded from the default suite.
 

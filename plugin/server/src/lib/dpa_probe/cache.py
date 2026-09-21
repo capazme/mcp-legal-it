@@ -5,11 +5,11 @@ timeout today must not become a truth for 90 days.
 """
 
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
+from src.lib._cache import cache_enabled, cache_root
 from src.lib.dpa_probe.client import EsitoSonda, normalizza_dominio
 from src.lib.dpa_probe.judge import (
     VERDETTO_CLAUSOLA,
@@ -23,12 +23,19 @@ VERDETTI_PERSISTIBILI = frozenset({VERDETTO_DEDICATO, VERDETTO_CLAUSOLA, VERDETT
 _NOME_FILE = "dpa_probe.json"
 
 
+#: Determinations kept for the life of the process when the disk cache is off
+#: (`LEGAL_CACHE=off`, see lib/_cache.py): the probe still remembers what it
+#: found, it just leaves nothing behind.
+_MEMORIA: dict = {}
+
+
 def percorso_cache() -> Path:
-    base = Path(os.environ.get("MCP_CACHE_DIR", Path.home() / ".cache" / "mcp-legal-it"))
-    return base / _NOME_FILE
+    return cache_root() / _NOME_FILE
 
 
 def _carica() -> dict:
+    if not cache_enabled():
+        return _MEMORIA
     percorso = percorso_cache()
     if not percorso.exists():
         return {}
@@ -72,6 +79,8 @@ def scrivi(dominio: str, esito: EsitoSonda, adesso: datetime) -> None:
         "evidenza": esito.evidenza,
         "verificato_il": adesso.date().isoformat(),
     }
+    if not cache_enabled():
+        return
     try:
         percorso.parent.mkdir(parents=True, exist_ok=True)
         percorso.write_text(json.dumps(dati, ensure_ascii=False, indent=1), encoding="utf-8")

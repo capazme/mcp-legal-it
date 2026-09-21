@@ -176,6 +176,15 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
+        "module": "src/lib/dpa_probe/cache.py",
+        "label": "dpa_probe",
+        "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
+        "files": ["dpa_probe.json -- supplier DPA determinations, keyed by domain"],
+        "retention": "90 days (TTL_GIORNI); transient failures are never written",
+        "markers": ("dpa_probe.json",),
+        "switch": "cache_enabled()",
+    },
+    {
         "module": "src/lib/_refusals.py",
         "label": "refusal ledger",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
