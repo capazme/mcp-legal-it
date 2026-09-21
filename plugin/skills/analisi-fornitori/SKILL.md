@@ -74,7 +74,7 @@ A blocchi di ~15 fornitori. Per ciascuno:
    `references/metodologia.md` §Identificazione). Cita sempre la fonte in `fonti`.
 3. **Classificazione**: applica `references/classificazione.md` (3 categorie,
    casi controversi con default e flag).
-4. **DPA** (solo responsabili): chiama `verifica_dpa_fornitore(dominio=...)` con
+4. **DPA** (solo responsabili): chiama `legal-it:verifica_dpa_fornitore(dominio=...)` con
    il dominio del sito ufficiale già trovato al passo 2. Mappatura dell'esito:
    - `dpa_dedicato` → `dpa_proprio: "si"`; l'URL dell'evidenza va in `fonti`.
    - `clausola_in_condizioni` → `dpa_proprio: "si"` **e annota obbligatoriamente
@@ -113,7 +113,7 @@ Elabora a blocchi di ~15 fornitori; se il tuo ambiente supporta l'esecuzione par
 > usa il tool legal-it:verifica_partita_iva_vies per confermare l'identità; (2) ricerca
 > web per attività/servizi, cita gli URL in `fonti`, non inventare nulla; (3)
 > classifica secondo le regole che seguono; (4) per i responsabili chiama
-> verifica_dpa_fornitore col dominio del sito ufficiale e applica la mappatura
+> legal-it:verifica_dpa_fornitore col dominio del sito ufficiale e applica la mappatura
 > del passo 4 della skill, ricadendo sulla ricerca mirata se l'esito è
 > non_trovato/bloccato/dominio_irraggiungibile; (5) taratura confidenza: `alto`
 > solo con P.IVA confermata, nel dubbio abbassa. Fornitore non identificabile o
