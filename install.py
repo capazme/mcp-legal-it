@@ -40,42 +40,52 @@ PROFILES = {
     "sinistro": {
         "desc": "Sinistri e risarcimento danni",
         "detail": "danno biologico, rivalutazione, interessi, normativa, giurisprudenza",
-        "tools": 44,
+        "tools": 81,
     },
     "credito": {
         "desc": "Recupero crediti",
         "detail": "interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato",
-        "tools": 52,
+        "tools": 91,
     },
     "penale": {
         "desc": "Diritto penale",
         "detail": "prescrizione, calcolo pena, patteggiamento, giurisprudenza",
-        "tools": 16,
+        "tools": 53,
     },
     "fiscale": {
         "desc": "Fiscale e immobiliare",
         "detail": "IRPEF, detrazioni, TFR, successioni, IMU, compravendite",
-        "tools": 39,
+        "tools": 65,
     },
     "normativa": {
         "desc": "Ricerca normativa e giurisprudenziale",
         "detail": "testo leggi, sentenze Cassazione, provvedimenti Garante Privacy",
-        "tools": 26,
+        "tools": 69,
     },
     "privacy": {
         "desc": "Privacy e GDPR",
         "detail": "informative, DPIA, registro trattamenti, data breach, normativa, giurisprudenza",
-        "tools": 26,
+        "tools": 66,
     },
     "studio": {
         "desc": "Gestione studio legale",
         "detail": "scadenze processuali, atti giudiziari, parcelle, contributo unificato",
-        "tools": 57,
+        "tools": 73,
+    },
+    "redattore": {
+        "desc": "Redazione atti giudiziari",
+        "detail": "modelli di atti, atti giudiziari, parcelle, scadenze, normativa",
+        "tools": 86,
+    },
+    "cowork": {
+        "desc": "Set ridotto per host con contesto limitato",
+        "detail": "normativa, giurisprudenza, privacy, parcelle avvocato",
+        "tools": 79,
     },
     "full": {
         "desc": "Tutti gli strumenti",
         "detail": "consigliato per Claude Code (usa Tool Search per caricarli on-demand)",
-        "tools": 161,
+        "tools": 227,
     },
 }
 
