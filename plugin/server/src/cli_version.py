@@ -12,11 +12,15 @@ from pathlib import Path
 
 
 def package_version() -> str:
-    """Version from installed metadata, else from the pyproject next to this package."""
-    try:
-        return metadata.version("mcp-legal-it")
-    except metadata.PackageNotFoundError:
-        pass
+    """Version of the code that is actually running.
+
+    A source checkout wins over installed metadata: an editable install keeps
+    the version of whatever branch was checked out when it was installed, so
+    `metadata.version()` lies as soon as the tree moves (it reported 2.14.0
+    while develop was at 3.0.0). The pyproject next to the package is the
+    truth for a checkout; the metadata is the truth for an installed wheel,
+    where no pyproject ships.
+    """
     # ``src`` is a tracked symlink to ``plugin/server/src`` on this branch, so
     # __file__ resolves under plugin/server/src/ and parent.parent is
     # plugin/server/ (which ships its own pyproject.toml). The extra
@@ -31,4 +35,7 @@ def package_version() -> str:
         m = re.search(r'^version = "([^"]+)"', text, re.M)
         if m:
             return m.group(1)
-    return "0.0.0"
+    try:
+        return metadata.version("mcp-legal-it")
+    except metadata.PackageNotFoundError:
+        return "0.0.0"
