@@ -12,8 +12,9 @@ from src import cli
 
 
 def test_package_version_matches_pyproject():
-    # Installed metadata is PEP 440-normalised ("3.0.0b2"), the pyproject keeps
-    # the semver spelling ("3.0.0-beta.2"): compare as versions, not as strings.
+    # From a checkout the version is the pyproject's own spelling; an installed
+    # wheel would report PEP 440-normalised metadata ("3.0.0b2"), so compare as
+    # versions to stay valid in both cases.
     text = (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text(encoding="utf-8")
     expected = re.search(r'^version = "([^"]+)"', text, re.M).group(1)
     assert Version(cli.package_version()) == Version(expected)
