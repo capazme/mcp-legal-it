@@ -1,6 +1,6 @@
 # mcp-legal-it — Documentazione
 
-MCP server con 222 tool di calcolo e consultazione per il diritto italiano.
+MCP server con 227 tool di calcolo e consultazione per il diritto italiano.
 Copre calcoli numerici (danni, interessi, fiscale, parcelle), consultazione normativa
 (Normattiva, EUR-Lex, Brocardi, Gazzetta Ufficiale) e ricerca giurisprudenziale
 (Cassazione, Corte Costituzionale, tributaria, TAR/CdS, CGUE, Garante Privacy, CONSOB).
@@ -21,7 +21,7 @@ Copre calcoli numerici (danni, interessi, fiscale, parcelle), consultazione norm
 ```
 Client MCP (Claude Desktop / Claude Code)
         │
-        │  protocollo MCP  (stdio o SSE)
+        │  protocollo MCP  (stdio, Streamable HTTP o SSE)
         ▼
   run_server.py        Entry point — seleziona transport
         │
@@ -30,7 +30,7 @@ Client MCP (Claude Desktop / Claude Code)
         │
         │  import a livello di modulo → registrazione @mcp.tool()
         ▼
-  src/tools/           33 moduli tool (222 tool totali)
+  src/tools/           34 moduli tool (227 tool totali)
   │
   ├─ calcolo (16 moduli)
   │  ├── rivalutazioni_istat     ├── proprieta_successioni
@@ -42,13 +42,14 @@ Client MCP (Claude Desktop / Claude Code)
   │  ├── diritto_lavoro          ├── crisi_impresa
   │  ├── diritto_societario      └── procedura_civile
   │
-  ├─ consultazione e ricerca (12 moduli)
+  ├─ consultazione e ricerca (14 moduli)
   │  ├── legal_citations         ├── gazzetta
   │  ├── italgiure               ├── corte_cost
   │  ├── cerdef                  ├── giustizia_amm
   │  ├── cgue                    ├── consob
   │  ├── gpdp                    ├── orientamento
-  │  └── eu_implementation       └── giurisprudenza_unificata
+  │  ├── eu_implementation       ├── giurisprudenza_unificata
+  │  └── parlamento              └── tmview
   │
   └─ documenti e compliance (4 moduli)
      ├── privacy_gdpr            ├── modelli_atti
@@ -56,7 +57,7 @@ Client MCP (Claude Desktop / Claude Code)
         │
         │  chiamate HTTP async (httpx)
         ▼
-  src/lib/             12 client HTTP e parser
+  src/lib/             15 client HTTP e parser
   ├── visualex/        Normattiva + EUR-Lex
   ├── brocardi/        scraper standalone Brocardi
   ├── italgiure/       Solr API Cassazione
@@ -68,6 +69,9 @@ Client MCP (Claude Desktop / Claude Code)
   ├── consob/          bollettino delibere CONSOB
   ├── gazzetta/        Gazzetta Ufficiale
   ├── eu_implementation/ recepimento direttive UE → IT
+  ├── parlamento/      open data Senato/Camera (SPARQL)
+  ├── tmview/          banca dati marchi TMview (EUIPO/TMDN)
+  ├── dpa_probe/       sonda del DPA pubblicato dal fornitore
   └── vies/            validazione P.IVA intracomunitaria
         │
         │  HTTPS
@@ -84,7 +88,10 @@ Client MCP (Claude Desktop / Claude Code)
   ├── publications.europa.eu         CGUE via CELLAR SPARQL
   ├── garanteprivacy.it              provvedimenti Garante (Liferay)
   ├── consob.it                      bollettino delibere (Liferay)
-  └── ec.europa.eu/taxation_customs  VIES (P.IVA UE)
+  ├── dati.senato.it / dati.camera.it iter dei DDL (SPARQL)
+  ├── www.tmdn.org                   marchi (TMview)
+  ├── ec.europa.eu/taxation_customs  VIES (P.IVA UE)
+  └── sito del fornitore indicato    verifica_dpa_fornitore (solo host pubblici, vedi SECURITY.md)
 ```
 
 ---
@@ -114,14 +121,17 @@ romperebbe la registrazione dei tool senza preavviso.
 | File | Descrizione |
 |------|-------------|
 | [architecture.md](architecture.md) | Dettaglio layer, pattern `_impl`, profili, come aggiungere tool |
-| [tools-catalog.md](tools-catalog.md) | Catalogo dei 222 tool divisi per categoria |
+| [tools-catalog.md](tools-catalog.md) | Catalogo dei 227 tool divisi per categoria |
 | [strumenti.md](strumenti.md) | Scheda per tool con parametri ed esempi (copertura parziale, vedi nota nel file) |
-| [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `src/lib/` (12 moduli, 4 documentati in dettaglio) |
+| [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `src/lib/` (15 moduli, 4 documentati in dettaglio) |
 | [prompts-resources.md](prompts-resources.md) | 23 prompt guidati e 15 risorse statiche `legal://` |
-| [plugin.md](plugin.md) | Plugin Claude Code: 23 skill, 8 slash command, 6 agenti, hook, installazione |
+| [plugin.md](plugin.md) | Plugin Claude Code: 23 skill, 10 slash command, 6 agenti, hook, installazione |
 | [data-files.md](data-files.md) | 24 file JSON dati: contenuto, fonte normativa, aggiornamento |
 | [testing.md](testing.md) | Strategia test, comandi, copertura, come aggiungere test |
 | [deployment.md](deployment.md) | install.py, setup manuale, Docker, variabili d'ambiente, troubleshooting |
+| [guida-precisione.md](guida-precisione.md) / [precision-guide.md](precision-guide.md) | Provenienza dei dati in ogni risposta (`dati_applicati`, `fonti_consultate`), gradi di precisione, rifiuto negoziabile (`accetta_precisione`) |
+| [cache-inventory.md](cache-inventory.md) | Inventario generato delle cache su disco (`LEGAL_CACHE=off` le disattiva) — non modificare a mano |
+| [../SECURITY.md](../SECURITY.md) | Host contattati dal server (allowlist verificata in CI) e l'eccezione `verifica_dpa_fornitore` |
 | [specs/](specs/) | Design e piani delle feature (uno per feature, datati) |
 
 ---
