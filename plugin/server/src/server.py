@@ -1,4 +1,4 @@
-"""MCP Legal IT — 222 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 227 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 
@@ -141,5 +141,10 @@ _PROFILES: dict[str, set[str]] = {
 
 _profile = os.environ.get("LEGAL_PROFILE", "full")
 if _profile != "full" and _profile in _PROFILES:
-    mcp.include_tags = _PROFILES[_profile]
+    # FastMCP 3 replaced the `include_tags` attribute with a visibility transform:
+    # `only=True` disables every component whose tags do not intersect the
+    # profile; prompts and resources carry no tags, so the second transform
+    # (the later one wins) keeps them available in every profile.
+    mcp.enable(tags=_PROFILES[_profile], only=True)
+    mcp.enable(components={"prompt", "resource", "template"})
 

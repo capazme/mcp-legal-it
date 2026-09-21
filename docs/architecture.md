@@ -12,6 +12,7 @@ Per la panoramica ad alto livello vedere [README.md](README.md).
 3. [Sistema dei profili](#3-sistema-dei-profili)
 4. [Pattern architetturale tool/impl](#4-pattern-architetturale-toolimpl)
 5. [Layer lib/ — client esterni](#5-layer-lib----client-esterni)
+5-bis. [Layer trasversale — provenienza, precisione, cache, orologio](#5-bis-layer-trasversale--provenienza-precisione-cache-orologio)
 6. [Prompts e Resources](#6-prompts-e-resources)
 7. [Come aggiungere un nuovo tool](#7-come-aggiungere-un-nuovo-tool)
 8. [Navigazione rapida del codebase](#8-navigazione-rapida-del-codebase)
@@ -36,9 +37,10 @@ else:
     mcp.run(transport="stdio")
 ```
 
-Gestisce anche `MCP_PATH_PREFIX` per deployment SSE dietro reverse proxy:
-se impostato, propaga `FASTMCP_SSE_PATH` e `FASTMCP_MESSAGE_PATH` prima
-di importare `src.server` (FastMCP legge le env var all'inizializzazione).
+Con `MCP_TRANSPORT=http` l'endpoint Streamable HTTP è `MCP_PATH` (default
+`/mcp`); `sse` resta come transport legacy. La logica vive in `src/cli.py`
+(`run_server.py` è un guscio che vi delega), che è anche l'entry point
+`mcp-legal-it` della wheel.
 
 ### `src/server.py` — FastMCP init
 
@@ -47,7 +49,7 @@ Costruisce l'istanza `mcp` e registra tutti i moduli:
 ```python
 mcp = FastMCP("Legal IT", instructions="...")
 
-from src.tools import (  # 33 moduli — l'elenco completo è in src/server.py
+from src.tools import (  # 34 moduli — l'elenco completo è in src/server.py
     rivalutazioni_istat, tassi_interessi, scadenze_termini,
     atti_giudiziari, fatturazione_avvocati, parcelle_professionisti,
     risarcimento_danni, diritto_penale, diritto_societario, diritto_lavoro,
@@ -81,7 +83,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from src.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (33 moduli, 221 tool totali)
+       └─ ... (34 moduli, 227 tool totali)
        └─ from src import prompts
             └─ @mcp.prompt() → 23 prompt registrati
        └─ from src import resources
@@ -95,9 +97,13 @@ stabile per la leggibilità del codice.
 
 ## 3. Sistema dei profili
 
-Il profilo controlla quali tool vengono esposti all'LLM client tramite il
-meccanismo `include_tags` di FastMCP. Solo i tool decorati con i tag inclusi
-nel profilo vengono resi visibili.
+Il profilo controlla quali tool vengono esposti all'LLM client. Solo i tool
+decorati con almeno uno dei tag del profilo restano visibili; prompt e risorse
+non hanno tag e restano disponibili in ogni profilo. Con FastMCP 3 il filtro è
+una *visibility transform* (`mcp.enable(tags=..., only=True)`): l'attributo
+`include_tags` di FastMCP 2 non esiste più e, fino alla 2.14.0 inclusa, la
+vecchia assegnazione era un no-op che esponeva tutti i tool in ogni profilo.
+`tests/unit/test_profiles.py` fa fallire la suite se il filtro smette di agire.
 
 ```python
 # src/server.py
@@ -115,21 +121,22 @@ _PROFILES: dict[str, set[str]] = {
 
 _profile = os.environ.get("LEGAL_PROFILE", "full")
 if _profile != "full" and _profile in _PROFILES:
-    mcp.include_tags = _PROFILES[_profile]
+    mcp.enable(tags=_PROFILES[_profile], only=True)
+    mcp.enable(components={"prompt", "resource", "template"})
 ```
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 221 | Claude Code con Tool Search |
-| `sinistro` | 73 | Risarcimento danni e sinistri |
-| `credito` | 83 | Recupero crediti |
-| `penale` | 45 | Diritto penale |
-| `fiscale` | 62 | Calcoli fiscali, immobiliari, societari e di crisi |
-| `normativa` | 60 | Ricerca normativa e giurisprudenziale (tutte le corti) |
-| `privacy` | 57 | GDPR e privacy compliance |
+| `full` | 227 | Claude Code con Tool Search |
+| `sinistro` | 81 | Risarcimento danni e sinistri |
+| `credito` | 91 | Recupero crediti |
+| `penale` | 53 | Diritto penale |
+| `fiscale` | 65 | Calcoli fiscali, immobiliari, societari e di crisi |
+| `normativa` | 69 | Ricerca normativa e giurisprudenziale (tutte le corti) |
+| `privacy` | 66 | GDPR e privacy compliance |
 | `studio` | 73 | Gestione studio legale |
-| `redattore` | 78 | Redazione di atti giudiziari |
-| `cowork` | 70 | Sessioni Cowork (set ridotto) |
+| `redattore` | 86 | Redazione di atti giudiziari |
+| `cowork` | 79 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
 
 Il profilo `full` è consigliato per Claude Code, che usa Tool Search per
 caricare i tool on-demand senza saturare il context window.
@@ -177,7 +184,8 @@ sia per `_impl` che per il wrapper. FastMCP gestisce entrambi correttamente.
 
 ## 5. Layer lib/ — client esterni
 
-`src/lib/` contiene 12 moduli, uno per fonte esterna. Nessuno di essi importa
+`src/lib/` contiene 15 client, uno per fonte esterna, più i moduli trasversali
+descritti nella sezione 5-bis. Nessun client importa
 `src.server`: dipendono solo da httpx, BeautifulSoup e dalla stdlib, così restano
 testabili senza il server MCP.
 
@@ -195,6 +203,9 @@ testabili senza il server MCP.
 | `gazzetta/` | Gazzetta Ufficiale | HTML + RSS | Ricerca parametrica e sommari |
 | `eu_implementation/` | EUR-Lex | HTML scraping | Misure nazionali di recepimento |
 | `vies/` | VIES (Commissione UE) | SOAP | Validazione P.IVA intracomunitaria |
+| `parlamento/` | dati.senato.it, dati.camera.it | SPARQL (Virtuoso, solo GET al Senato) | Iter dei DDL, fasi di entrambi i rami |
+| `tmview/` | TMview (EUIPO/TMDN) | JSON API | Marchi UIBM/EUIPO/WIPO, WAF anti-bot: richieste distanziate |
+| `dpa_probe/` | sito del fornitore indicato dal chiamante | HTTP | Sonda i percorsi convenzionali del DPA; solo host pubblici (vedi SECURITY.md) |
 
 I quattro moduli storici sono documentati in dettaglio qui sotto; per gli altri il
 riferimento è il rispettivo `client.py`, che espone le funzioni pubbliche via `__init__.py`.
@@ -238,6 +249,32 @@ Espone `BrocardiResult` con `massime: list[Massima]` e property `cassazione_refe
 Scraping Liferay Portal (nessuna API JSON). Ricerca tramite GET su `/web/guest/home/ricerca`
 con parametri portlet. Lettura documento via endpoint "stampa" (`/docweb-display/print/{ID}`).
 Dataclass `DocResult` con `docweb_id`, `title`, `date`, `tipologia`, `argomenti`, `abstract`.
+
+---
+
+## 5-bis. Layer trasversale — provenienza, precisione, cache, orologio
+
+Dalla 2.14.0 ogni risposta dichiara su cosa poggia. I moduli `src/lib/_*.py`
+non parlano con fonti esterne: osservano le chiamate.
+
+| Modulo | Ruolo |
+|--------|-------|
+| `_data.py` | Carica le tabelle di `src/data/*.json` con il loro `_vintage` (fonte, `copre_fino_a`/`aggiornato_al`, `verifica`: `manuale`, `automatica`, `da_verificare`) e scrive il footer `dati_applicati` |
+| `_tables_open.py`, `_ledger.py` | Registrano, per chiamata, quali tabelle il tool ha *davvero* letto (wrapper trasparenti sulle costanti di `table_bindings.py`); il risultato finisce in `_meta` come `mcp-legal-it/opened_tables` |
+| `_precision.py` | Trasforma la riga `Precisione: ESATTO / INDICATIVO / STIMATO` del docstring in una regola: una tabella `da_verificare` ritira la pretesa di esattezza, una tabella scaduta blocca solo i calcoli ancorati a oggi; il rifiuto è negoziabile con `accetta_precisione` |
+| `_clock.py` | Unico lettore dell'orologio (`LEGAL_TODAY`/`LEGAL_NOW` lo pinnano); chi lo consulta è "ancorato al presente" ai fini della regola sopra; l'audit vieta `date.today()`/`datetime.now()` altrove |
+| `_cache.py` | Unico lettore di `MCP_CACHE_DIR` e dello switch `LEGAL_CACHE=off`; le cache su disco dichiarate sono in `docs/cache-inventory.md` (generato) |
+| `_sources.py`, `_http.py` | Provenienza delle fonti online: ogni fetch con `dataset=` viene annotato e la risposta espone `mcp-legal-it/fonti_consultate` (host e momento, URL senza query string) |
+| `_refusals.py` | Verbale JSONL opt-in (`LEGAL_REFUSAL_LEDGER=on`) dei rifiuti e delle accettazioni — solo tool, tabelle, stati e timestamp, mai dati di causa; letto da `verbale_mensile` e `backlog_riconciliazione` |
+| `_egress.py` | Allowlist degli host contattabili, verificata da `tests/unit/test_egress_allowlist.py` e pubblicata in `SECURITY.md` |
+
+Tre file in `src/` sono **generati** da `scripts/audit_tool_annotations.py --write`
+e verificati in CI (`policy-sync`): `tool_annotations.py` (`readOnlyHint`/`openWorldHint`
+per ciascuno dei 227 tool, derivati dal grafo delle chiamate), `table_bindings.py`
+(tabella → costante) e `source_bindings.py` (tool → dataset online). Modificarli a
+mano è inutile: la rigenerazione li sovrascrive e `--check` fallisce sul drift.
+`tests/unit/test_golden_calcoli.py` congela le risposte dei calcolatori locali per
+gruppo di tabelle: dopo un refresh dati si rigenera con `GOLDEN_UPDATE=1`.
 
 ---
 
@@ -353,4 +390,6 @@ async def test_mio_calcolo_base():
 | Debug scraping GPDP | `src/lib/gpdp/client.py` → `_parse_results()`, `_parse_doc()` |
 | Aggiungere prompt guidato | `src/prompts.py` → `@mcp.prompt()` |
 | Aggiungere resource statica | `src/resources.py` → `@mcp.resource()` |
-| Configurare un profilo | `src/server.py` → `_PROFILES` dict |
+| Configurare un profilo | `src/server.py` → `_PROFILES` dict (+ `tests/unit/test_profiles.py`) |
+| Dichiarare una nuova cache o fonte online | `scripts/audit_tool_annotations.py` → `CACHE_LOCATIONS`; fetch con `dataset=` in `retry_request` |
+| Rigenerare policy annotazioni / binding | `python scripts/audit_tool_annotations.py --write` |

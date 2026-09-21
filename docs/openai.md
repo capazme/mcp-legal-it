@@ -10,8 +10,8 @@ Il bundle è generato da `python scripts/build_targets.py openai openai-zip`
 a partire dallo stesso corpus (`content/`) da cui viene proiettato il plugin
 Claude Code — non è un prodotto separato mantenuto a mano. Contiene:
 
-- **`.agents/skills/`** — 40 skill in formato SKILL.md (28 skill del corpus +
-  6 skill derivate dagli agenti specialisti + 6 derivate dagli slash command;
+- **`.agents/skills/`** — 42 skill in formato SKILL.md (28 skill del corpus +
+  6 skill derivate dagli agenti specialisti + 8 derivate dagli slash command;
   `cookie-audit` ed `esporta-documento` sono escluse — la prima perché il suo
   workflow pilota tool browser specifici di Claude, la seconda perché il suo
   corpo cita percorsi `${CLAUDE_PLUGIN_ROOT}`, non risolvibili fuori da un
@@ -29,18 +29,34 @@ Claude Code — non è un prodotto separato mantenuto a mano. Contiene:
   commentata.
 - **`README.md`** — riepilogo rapido dentro al bundle stesso.
 
-Dei 8 slash command del plugin Claude Code solo 6 diventano skill: i comandi
+Dei 10 slash command del plugin Claude Code solo 8 diventano skill: i comandi
 `release` e `digest` — maintainer-only e legati allo scheduling dell'harness —
 sono esclusi, come `cookie-audit` ed `esporta-documento`.
 
 Il bundle **non include il server MCP**: le skill sono istruzioni per
-l'agente, il server (221 tool) resta un checkout separato di questo repository
+l'agente, il server (227 tool) resta un checkout separato di questo repository
 o un endpoint remoto — vedi «Server MCP» sotto.
 
 > Nota sui numeri: prompt MCP (23) e risorse `legal://` (15) restano feature
-> Claude-only (vedi tabella di compatibilità in `CLAUDE.md`). Il bundle porta
+> Claude-only (vedi la tabella di compatibilità qui sotto). Il bundle porta
 > le skill fuori da Claude; non porta prompt né risorse, perché Codex e
 > ChatGPT non hanno un equivalente di questi due meccanismi MCP.
+
+
+### Compatibilità per provider
+
+| Feature | Claude Desktop/Code | ChatGPT | Codex CLI | Manus |
+|---------|--------------------:|--------:|----------:|------:|
+| 227 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
+| 23 prompt guidati | ✓ | — | — | — |
+| 15 risorse `legal://` | ✓ | — | — | — |
+| 30 skill + 10 comandi + 6 agenti (plugin Claude) | ✓ | ✓ 42 skill via bundle | ✓ 42 skill via bundle | — |
+| Transport stdio (locale) | ✓ | — | ✓ | — |
+| Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
+| Transport SSE (legacy) | ✓ | ✓ | ? | ? |
+
+I 227 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano
+feature Claude-only; le skill raggiungono ChatGPT e Codex tramite il bundle.
 
 ---
 
@@ -81,7 +97,7 @@ se più directory sono presenti, verifica quale copia viene effettivamente
 caricata (con `/mcp` o l'equivalente diagnostica di Codex): se hai bisogno di
 skill diverse per progetti diversi, usa la copia locale al progetto.
 
-Le 40 skill del bundle restano ampiamente sotto il budget che Codex riserva
+Le 42 skill del bundle restano ampiamente sotto il budget che Codex riserva
 alla lista delle skill nel contesto (2% del contesto disponibile, o 8.000
 caratteri se il contesto non è noto): le descrizioni sono tagliate in fase di
 build a 185 caratteri, e il totale nome+descrizione dell'intero bundle è
@@ -166,7 +182,7 @@ due vie separate.
 - **Tool MCP** — servono un endpoint HTTPS pubblico: ChatGPT si collega via
   connector in **Developer Mode** (Settings → Apps → Developer Mode → Create)
   a un server self-hosted (Docker, `MCP_TRANSPORT=http`) — vedi le opzioni di
-  deploy già documentate in `CLAUDE.md` (sezione "Setup 3 — ChatGPT").
+  deploy documentate in [`deployment.md`](deployment.md) (Docker, `MCP_TRANSPORT=http`, endpoint `/mcp`).
 
 ChatGPT **non** supporta prompt MCP né risorse MCP: solo i tool del server
 sono visibili una volta collegato il connector, indipendentemente dal bundle.
@@ -195,7 +211,7 @@ Il bundle porta fuori da Claude solo ciò che Codex e ChatGPT sanno leggere:
 ## Verifica dell'installazione
 
 In Codex CLI, digita `/mcp`: deve comparire il server `legal_it` con la sua
-lista di tool (221, meno quelli esclusi dal profilo se ne usi uno ridotto via
+lista di tool (227, meno quelli esclusi dal profilo se ne usi uno ridotto via
 `LEGAL_PROFILE`). Se la lista risulta **vuota** (`Tools: (none)`), la causa
 quasi sempre è il nome del server nel `config.toml`: controlla che sia
 `legal_it` con l'underscore, non `legal-it` (vedi sopra, issue #15832).

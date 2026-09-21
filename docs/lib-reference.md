@@ -2,6 +2,30 @@
 
 > Documentazione delle librerie interne (`src/lib/`): API pubbliche, dataclass, dettagli tecnici.
 
+`src/lib/` contiene 15 client, uno per fonte esterna, più i moduli trasversali
+(`_data`, `_ledger`, `_precision`, `_clock`, `_cache`, `_sources`, `_http`, `_refusals`,
+`_egress`) descritti in [architecture.md §5-bis](architecture.md#5-bis-layer-trasversale--provenienza-precisione-cache-orologio).
+Quattro client sono documentati in dettaglio qui sotto; per gli altri il riferimento è
+il rispettivo `client.py`, che espone le funzioni pubbliche via `__init__.py`:
+
+| Client | Fonte | Funzioni principali |
+|--------|-------|---------------------|
+| `visualex/` | Normattiva, EUR-Lex | `fetch_article`, `fetch_annotations`, `fetch_normattiva_full_text`, `resolve_atto` (dettaglio sotto) |
+| `brocardi/` | Brocardi.it | `fetch_brocardi`, `parse_massime_references` (dettaglio sotto) |
+| `italgiure/` | Cassazione (Solr) | `solr_query`, `build_*_params`, `format_*` (dettaglio sotto) |
+| `gpdp/` | Garante Privacy | `search_provvedimenti`, `fetch_provvedimento` (dettaglio sotto) |
+| `corte_cost/` | Corte Costituzionale | `search_pronunce`, `fetch_pronuncia` |
+| `cerdef/` | CeRDEF (MEF) | `search_giurisprudenza`, `fetch_provvedimento` |
+| `giustizia_amm/` | TAR / Consiglio di Stato | `search_provvedimenti`, `fetch_provvedimento_text` |
+| `cgue/` | CGUE (CELLAR SPARQL) | `search_giurisprudenza`, `fetch_sentenza_text` |
+| `consob/` | CONSOB | `search_delibere`, `fetch_delibera` |
+| `gazzetta/` | Gazzetta Ufficiale | `search_atti`, `fetch_atto`, `fetch_sommario`, `fetch_latest` |
+| `eu_implementation/` | EUR-Lex | `get_national_measures` |
+| `parlamento/` | dati.senato.it, dati.camera.it | `search_ddl`, `fetch_iter`, `fetch_camera_iter` |
+| `vies/` | VIES | `check_vat`, `checksum_partita_iva` |
+| `tmview/` | TMview (EUIPO/TMDN) | `search_trademarks`, `fetch_trademark` |
+| `dpa_probe/` | sito del fornitore (solo host pubblici) | `sonda_dominio`, `normalizza_dominio`, `giudica_html`/`giudica_pdf`, cache 90 giorni |
+
 ## Indice
 
 - [visualex — Normattiva & EUR-Lex](#visualex--normattiva--eur-lex)
