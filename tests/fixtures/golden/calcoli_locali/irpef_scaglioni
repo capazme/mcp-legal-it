@@ -1,0 +1,38 @@
+{
+ "datasets": [
+  "irpef_scaglioni"
+ ],
+ "tools": {
+  "calcolo_irpef": {
+   "arguments": {
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"deduzioni\":0,\"reddito_imponibile\":10000.0,\"tipo_reddito\":\"dipendente\",\"imposta_lorda\":2300.0,\"dettaglio_scaglioni\":[{\"scaglione\":\"0-28000\",\"aliquota_pct\":23,\"base_imponibile\":10000.0,\"imposta\":2300.0}],\"detrazioni\":{\"lavoro\":1955,\"extra\":0,\"totale\":1955},\"imposta_netta\":345.0,\"addizionali\":{\"regionale\":173.0,\"regionale_pct\":1.73,\"comunale\":80.0,\"comunale_pct\":0.8,\"totale\":253.0},\"totale_imposte\":598.0,\"reddito_netto\":9402.0,\"aliquota_effettiva_pct\":5.98,\"anno_fiscale\":2026,\"riferimento_normativo\":\"TUIR — D.P.R. 917/1986, art. 11-13\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+  },
+  "calcolo_tfr": {
+   "arguments": {
+    "anni_servizio": 10,
+    "retribuzione_annua_lorda": 10000.0
+   },
+   "expected": "{\"retribuzione_annua_lorda\":10000.0,\"anni_servizio\":10,\"accantonamento_annuo\":740.74,\"tasso_rivalutazione_pct\":3.0,\"tfr_lordo\":8491.76,\"tassazione_separata\":{\"reddito_riferimento\":10190.11,\"aliquota_media_pct\":23.0,\"imposta\":1953.11},\"tfr_netto\":6538.65,\"riferimento_normativo\":\"Art. 2120 c.c. — Tassazione separata ex art. 17, 19 TUIR\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+  },
+  "costo_lavoro": {
+   "arguments": {
+    "retribuzione_lorda_annua": 10000.0
+   },
+   "expected": "{\"tipo_contratto\":\"dipendente\",\"lordo_annuo\":10000.0,\"contributi_dipendente\":919.0,\"aliquota_contributi_dipendente_pct\":9.19,\"imponibile_irpef\":9081.0,\"irpef_stimata\":133.63,\"netto_stimato\":8947.37,\"contributi_datore\":3000.0,\"aliquota_contributi_datore_pct\":30.0,\"tfr_annuo\":691.0,\"irap_stimata\":390.0,\"costo_azienda_totale\":14081.0,\"cuneo_fiscale_pct\":36.5,\"nota\":\"Aliquote medie dipendente ordinario — variano per settore e dimensione\",\"avvertimento\":\"INDICATIVO — le aliquote variano per settore INAIL, dimensione, regione e agevolazioni. Verificare con consulente del lavoro.\",\"riferimento_normativo\":\"D.P.R. 917/1986 (IRPEF) — L. 153/1969 (contributi) — D.Lgs. 446/1997 (IRAP) — Art. 2120 c.c. (TFR)\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+  },
+  "detrazione_lavoro_dipendente": {
+   "arguments": {
+    "reddito_complessivo": 10000.0
+   },
+   "expected": "{\"reddito_complessivo\":10000.0,\"giorni_lavoro\":365,\"fascia\":\"fino a 15.000€\",\"detrazione_annua_piena\":1955,\"detrazione_rapportata\":1955.0,\"riferimento_normativo\":\"Art. 13, comma 1, TUIR — D.P.R. 917/1986 (scaglioni 2026 ex L. 199/2025)\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+  },
+  "regime_forfettario": {
+   "arguments": {
+    "ricavi": 10000.0
+   },
+   "expected": "{\"ricavi\":10000.0,\"coefficiente_redditivita_pct\":78,\"reddito_lordo\":7800.0,\"contributi_inps_dedotti\":0,\"reddito_imponibile\":7800.0,\"aliquota_pct\":5,\"tipo_aliquota\":\"startup (primi 5 anni)\",\"imposta_sostitutiva\":390.0,\"reddito_netto\":9610.0,\"confronto_ordinario\":{\"stima_irpef_addizionali\":1991.34,\"risparmio_forfettario\":1601.34},\"riferimento_normativo\":\"Art. 1, commi 54-89, L. 190/2014 (mod. L. 208/2015, L. 145/2018)\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+  }
+ }
+}

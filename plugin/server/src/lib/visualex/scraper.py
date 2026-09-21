@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
+from .._http import note_source
 from .models import NormaVisitata
 from .map import find_brocardi_url
 
@@ -84,6 +85,7 @@ async def fetch_article(nv: NormaVisitata) -> dict:
         async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
+            note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
             html = resp.text
         text = _extract_normattiva_article(html)
 
@@ -95,7 +97,7 @@ async def fetch_annotations(nv: NormaVisitata) -> dict:
 
     Returns: {"annotations": dict, "url": str, "source": "brocardi"}
     """
-    brocardi_url = find_brocardi_url(nv.norma.tipo_atto_normalized, nv.norma.numero_atto)
+    brocardi_url = find_brocardi_url(nv.norma.tipo_atto_normalized, nv.norma.numero_atto, nv.norma.data)
     if not brocardi_url:
         return {"annotations": {}, "url": "", "source": "brocardi",
                 "error": f"No Brocardi mapping for '{nv.norma.tipo_atto_normalized}'"}
@@ -115,6 +117,7 @@ async def fetch_annotations(nv: NormaVisitata) -> dict:
         # Step 2: fetch article page and extract sections
         resp = await client.get(article_url)
         resp.raise_for_status()
+        note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
         soup = BeautifulSoup(resp.text, "lxml")
 
     annotations = _extract_brocardi_sections(soup)
@@ -283,6 +286,7 @@ async def _fetch_eurlex_html(norma) -> tuple[str, str]:
     ) as client:
         resp = await client.get(url)
         resp.raise_for_status()
+        note_source("eur_lex", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
 
     # Detect WAF challenge (202 + tiny body)
@@ -417,6 +421,7 @@ async def _find_brocardi_article_url(client: httpx.AsyncClient, base_url: str, a
 
     resp = await client.get(base_url)
     resp.raise_for_status()
+    note_source("brocardi", str(resp.url) if hasattr(resp, "url") else "")
     html = resp.text
 
     pattern = re.compile(rf'href=["\']([^"\']*art{re.escape(article_num)}\.html)["\']')
@@ -450,6 +455,7 @@ async def _find_brocardi_article_url(client: httpx.AsyncClient, base_url: str, a
             try:
                 sub_resp = await client.get(sub_url)
                 sub_resp.raise_for_status()
+                note_source("brocardi", str(sub_resp.url) if hasattr(sub_resp, "url") else "")
                 sub_page_url = str(sub_resp.url) if hasattr(sub_resp, "url") else sub_url
                 if not sub_page_url.endswith("/"):
                     sub_page_url += "/"
@@ -551,6 +557,7 @@ async def download_eurlex_pdf(norma: "Norma") -> bytes:
     ) as client:
         resp = await client.get(url)
         resp.raise_for_status()
+        note_source("eur_lex", str(resp.url) if hasattr(resp, "url") else "")
         if not resp.content[:5] == b"%PDF-":
             raise ValueError("EUR-Lex did not return a PDF")
         return resp.content
@@ -573,6 +580,7 @@ async def fetch_act_index(norma: "Norma") -> dict:
     ) as client:
         resp = await client.get(act_url)
         resp.raise_for_status()
+        note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
 
         # Extract codiceRedazionale from ELI meta tags
@@ -603,6 +611,7 @@ async def fetch_act_index(norma: "Norma") -> dict:
         rub_url = f"https://www.normattiva.it/atto/vediRubriche?atto.dataPubblicazioneGazzetta={data_gu}&atto.codiceRedazionale={codice_redaz}"
         resp2 = await client.get(rub_url)
         resp2.raise_for_status()
+        note_source("normattiva", str(resp2.url) if hasattr(resp2, "url") else "")
 
     rub_soup = BeautifulSoup(resp2.text, "lxml")
     entries: list[str] = []
@@ -664,6 +673,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     ) as client:
         resp = await client.get(act_url)
         resp.raise_for_status()
+        note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
         soup = BeautifulSoup(html, "lxml")
 
@@ -695,6 +705,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
             try:
                 art_resp = await client.get(ajax_url, headers=ajax_headers)
                 art_resp.raise_for_status()
+                note_source("normattiva", str(art_resp.url) if hasattr(art_resp, "url") else "")
                 art_html = art_resp.text
                 # Skip error pages
                 if "Normattiva - Errore" in art_html or len(art_html) < 50:

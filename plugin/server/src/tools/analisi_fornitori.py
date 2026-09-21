@@ -9,12 +9,20 @@ import os
 import re
 import tempfile
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from src.lib import _clock
+from src.lib.dpa_probe import cache as dpa_cache
+from src.lib.dpa_probe.client import (
+    VERDETTO_IRRAGGIUNGIBILE,
+    EsitoSonda,
+    normalizza_dominio,
+    sonda_dominio,
+)
 from src.lib.vies import check_vat, checksum_partita_iva
 from src.server import mcp
 
@@ -24,7 +32,61 @@ CONFIDENZE = {"alto", "medio", "basso"}
 PROBABILITA = {"alta", "media", "bassa"}
 DPA_VALORI = {"si", "no", "da_verificare"}
 
-_CAMPI_OBBLIGATORI = ("denominazione_mastrino", "qualificazione", "motivazione", "confidenza")
+_CAMPI_OBBLIGATORI = ("denominazione_mastrino", "qualificazione", "motivazione", "confidenza", "classe_attivita")
+
+_MAX_NOMI_PER_QUALIFICA = 5
+
+
+def _normalizza_classe(valore: str) -> str:
+    return re.sub(r"\s+", " ", valore).strip().lower()
+
+
+def _elenca(nomi: list[str]) -> str:
+    """List names, and say how many were left out — never truncate silently."""
+    if len(nomi) <= _MAX_NOMI_PER_QUALIFICA:
+        return ", ".join(nomi)
+    mostrati = ", ".join(nomi[:_MAX_NOMI_PER_QUALIFICA])
+    return f"{mostrati} (+{len(nomi) - _MAX_NOMI_PER_QUALIFICA} altri)"
+
+
+def _verifica_coerenza_classi(fornitori: list[dict]) -> list[str]:
+    """Reject sets where the same kind of supplier carries different roles.
+
+    Parallel analysis splits suppliers across blocks that cannot see each
+    other, so the same profile can come back qualified two ways with no
+    reconciliation. Every such record is individually well-formed, which is
+    exactly why the per-record validation above cannot catch it.
+    """
+    classi: dict[str, dict[str, list[str]]] = {}
+    for riga in fornitori:
+        if not isinstance(riga, dict):
+            continue
+        classe = riga.get("classe_attivita")
+        qualificazione = riga.get("qualificazione")
+        nome = riga.get("denominazione_mastrino")
+        if not isinstance(classe, str) or not classe.strip():
+            continue
+        if not isinstance(qualificazione, str) or qualificazione not in QUALIFICAZIONI or not isinstance(nome, str):
+            continue
+        classi.setdefault(_normalizza_classe(classe), {}).setdefault(qualificazione, []).append(nome)
+
+    errori: list[str] = []
+    for classe, per_qualifica in sorted(classi.items()):
+        if len(per_qualifica) < 2:
+            continue
+        dettaglio = "; ".join(
+            f"{qual}: {_elenca(nomi)}" for qual, nomi in sorted(per_qualifica.items())
+        )
+        # The primary instruction must be to align: splitting the class is the
+        # path of least resistance for a model under pressure to produce the
+        # file, and it makes the incoherence disappear without resolving it.
+        errori.append(
+            f"classe '{classe}': qualificazioni incoerenti fra blocchi diversi ({dettaglio}). "
+            "Decidi UNA qualificazione corretta per l'intera classe e riallinea i record. "
+            "Separa la classe in sottoclassi distinte SOLO se quei fornitori rendono "
+            "prestazioni realmente diverse — mai per far passare la validazione."
+        )
+    return errori
 
 
 def _valida_fornitori(fornitori) -> list[str]:
@@ -81,6 +143,8 @@ def _valida_fornitori(fornitori) -> list[str]:
             valore_campo = riga.get(campo)
             if valore_campo is not None and not isinstance(valore_campo, str):
                 errori.append(f"riga {i}: campo '{campo}' deve essere una stringa")
+
+    errori.extend(_verifica_coerenza_classi(fornitori))
     return errori
 
 
@@ -232,9 +296,13 @@ def genera_report_fornitori(
 
     Args:
         fornitori: Lista di record canonici (denominazione_mastrino, qualificazione,
-            motivazione, confidenza obbligatori; probabilita_responsabile e
-            dpa_proprio solo per i responsabili; piva_cf, attivita, categorie_dati,
-            fonti, note opzionali)
+            motivazione, confidenza, classe_attivita obbligatori; probabilita_responsabile
+            e dpa_proprio solo per i responsabili; piva_cf, attivita, categorie_dati,
+            fonti, note opzionali). Fornitori della stessa classe_attivita devono avere
+            la stessa qualificazione: il tool rifiuta il lotto se una classe ne porta due.
+            Il confronto è per etichetta esatta: riconcilia PRIMA le etichette sinonime
+            (es. "giornalista" e "giornalista freelance") in una sola, altrimenti il
+            controllo di coerenza non le vede come la stessa classe.
         cliente: Denominazione del titolare (il cliente dello studio)
         data_analisi: Data dell'analisi in formato gg/mm/aaaa (default: oggi)
         file_sorgente: Nome del file mastrino analizzato (mostrato in Avvertenze)
@@ -246,7 +314,7 @@ def genera_report_fornitori(
     if not cliente or not cliente.strip():
         return "Errore di validazione: 'cliente' è obbligatorio"
 
-    data_analisi = data_analisi.strip() or date.today().strftime("%d/%m/%Y")
+    data_analisi = data_analisi.strip() or _clock.today().strftime("%d/%m/%Y")
     ordinate = _ordina(fornitori)
 
     wb = Workbook()
@@ -306,4 +374,76 @@ async def verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT") 
         "codice_paese": paese,
         "checksum_valido": checksum,
         **esito,
+    }
+
+
+@mcp.tool(tags={"privacy", "utility"})
+async def verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "") -> dict:
+    """Verifica se un fornitore pubblica un proprio atto di nomina a responsabile ex art. 28 GDPR, sondandone il dominio.
+
+    Sostituisce la vecchia whitelist statica: l'esito è accertato al momento
+    dell'analisi, non letto da una tabella. Usare durante l'analisi del mastrino
+    fornitori, passando il dominio del sito ufficiale già individuato in fase di
+    identificazione.
+
+    Esiti: `dpa_dedicato` (documento autonomo) e `clausola_in_condizioni`
+    (art. 28 dentro le condizioni generali di servizio: la copertura dipende dal
+    servizio effettivamente acquistato) → `dpa_proprio: "si"`. `non_trovato`,
+    `bloccato` e `dominio_irraggiungibile` NON sono un "no": vanno seguiti da
+    ricerca mirata prima di concludere.
+
+    Vigenza: art. 28 GDPR (nomina responsabile).
+    Precisione: INDICATIVO (indiziaria) — accerta che il fornitore pubblichi un DPA, non che
+    quel DPA sia richiamato nel contratto del cliente.
+
+    Args:
+        dominio: Dominio o URL del sito ufficiale del fornitore (es. "example.com")
+        nome_fornitore: Denominazione, solo per leggibilità dell'output
+    """
+    host = normalizza_dominio(dominio)
+    adesso = _clock.now()
+
+    if not host:
+        return {
+            "dominio": "",
+            "nome_fornitore": nome_fornitore.strip() or None,
+            "verdetto": VERDETTO_IRRAGGIUNGIBILE,
+            "url_evidenza": None,
+            "marcatori": [],
+            "evidenza": None,
+            "verificato_il": adesso.date().isoformat(),
+            "da_cache": False,
+            "errore": "dominio mancante",
+        }
+
+    voce = dpa_cache.leggi(host, adesso)
+    # A cache entry without a verdict is unusable, not fatal: treat it as a
+    # miss and re-probe. This tool is specified as never raising, so a
+    # malformed entry must not escape as a KeyError.
+    verdetto_cache = voce.get("verdetto") if voce is not None else None
+    if verdetto_cache:
+        return {
+            "dominio": host,
+            "nome_fornitore": nome_fornitore.strip() or None,
+            "verdetto": verdetto_cache,
+            "url_evidenza": voce.get("url_evidenza"),
+            "marcatori": voce.get("marcatori", []),
+            "evidenza": voce.get("evidenza"),
+            "verificato_il": voce["verificato_il"],
+            "da_cache": True,
+            "errore": None,
+        }
+
+    esito: EsitoSonda = await sonda_dominio(host)
+    dpa_cache.scrivi(host, esito, adesso)
+    return {
+        "dominio": host,
+        "nome_fornitore": nome_fornitore.strip() or None,
+        "verdetto": esito.verdetto,
+        "url_evidenza": esito.url_evidenza,
+        "marcatori": esito.marcatori,
+        "evidenza": esito.evidenza,
+        "verificato_il": adesso.date().isoformat(),
+        "da_cache": False,
+        "errore": esito.errore,
     }

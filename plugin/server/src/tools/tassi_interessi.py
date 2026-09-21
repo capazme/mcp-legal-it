@@ -6,6 +6,7 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
+from src.lib import _clock, _data
 from src.server import mcp
 from src.lib._data import sourced
 
@@ -411,9 +412,9 @@ def verifica_usura(
         tipo_operazione: Categoria di finanziamento: 'mutuo_prima_casa', 'credito_personale', 'apertura_credito', 'leasing', 'factoring', 'carte_revolving', 'cessione_quinto', 'mutuo_tasso_variabile'
         trimestre: Trimestre di riferimento MEF (es. '2024-Q1'); se None usa l'ultimo disponibile
     """
-    # Load TEGM from data file (updated quarterly)
-    with open(_DATA / "tegm.json") as f:
-        tegm_data = json.load(f)
+    # Load TEGM from data file (updated quarterly). Through `_data.load` so the
+    # ledger sees the read and the answer can declare its vintage.
+    tegm_data = _data.load("tegm")
 
     # Support both old flat format and new multi-quarter format
     if "trimestri" in tegm_data:
@@ -422,7 +423,7 @@ def verifica_usura(
             quarter = trimestri[trimestre]
         else:
             # Auto-detect quarter from today's date; fallback to last available
-            today = date.today()
+            today = _clock.today()
             quarter = None
             for q_key in sorted(trimestri):
                 q = trimestri[q_key]
@@ -549,7 +550,7 @@ def interessi_acconti(
 
 
 @mcp.tool(tags={"interessi"})
-@sourced("tassi_legali")
+@sourced("indici_foi", "tassi_legali")
 def calcolo_maggior_danno(
     capitale: float,
     data_inizio: str,

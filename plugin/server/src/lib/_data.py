@@ -7,6 +7,33 @@ that prints a number without saying how old its source is leaves the reader no
 way to notice. So each table declares a `_vintage` block, this module reads it,
 and `footer()` renders it as a line the tool appends to its answer.
 
+Which tables that line names is observed rather than declared: `effective()` uses
+what `src/lib/_ledger.py` saw the call read, falling back to the `@sourced(...)`
+declaration only when the ledger could see nothing. A tool that branches between
+two tables therefore names the one it used, not both. And the two states that
+carry weight -- an expired covered period and an unverified provenance -- are
+repeated as `avvisi_dati`, a structured field next to the prose, so a client can
+act on them without parsing the footer.
+
+Telling a reader that a number may be stale is not the same as doing something
+about it, so the state also changes the answer. Every tool declares a precision
+grade in its docstring (`Precisione: ESATTO ...`), `src/lib/_precision.py` decides
+what an expired or unverified table does to that claim, and this module applies
+the outcome: the grade drops and the answer carries `precisione` in its body, or
+the tool refuses to compute and returns `errore: "dati_non_affidabili"` with the
+tables that caused it and what would unblock it. No grade is silently kept.
+
+A refusal is a starting point rather than a wall. Every tool decorated with
+`@sourced(...)` also takes `accetta_precisione`, declared in its signature and
+documented in its `Args:` block like any other parameter: the caller names the
+grade it will settle for, the answer is given at that grade, and the answer says
+the acceptance is what allowed it. What the acceptance cannot do is buy back the
+withdrawn claim (asking for `ESATTO` on an unsourced table is refused, and the
+refusal names the grade that *would* be granted) or make a wrong number right (an
+expired table under a figure about today stays refused). Where a tool can do
+without the table altogether, `@sourced(..., alternativa="parametro")` names the
+parameter that replaces it, and the refusal points at it.
+
 `verifica: "da_verificare"` is a deliberate value, not an oversight: it means
 nobody has established the table's currency yet, and it renders as an explicit
 warning. Inventing a plausible date would be worse than admitting the gap.
@@ -23,6 +50,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from functools import lru_cache, wraps
 from pathlib import Path
+
+from . import _clock, _precision, _tables_open
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -68,7 +97,7 @@ class Vintage:
         if self.copre_fino_a is None:
             return False
         limite = self.copre_fino_a + timedelta(days=self.tolleranza_giorni)
-        return limite < (oggi or date.today())
+        return limite < (oggi or _clock.today())
 
     def to_line(self) -> str:
         """One human-readable line, in Italian, for a tool's answer."""
@@ -95,9 +124,32 @@ def _parse_date(raw: object) -> date | None:
 
 
 @lru_cache(maxsize=None)
-def load(dataset: str) -> dict | list:
-    """Read `<dataset>.json` from the data directory."""
+def _read(dataset: str) -> dict | list:
+    """Read `<dataset>.json` from the data directory, cached.
+
+    Says nothing about who read it, which is what `load` and `vintage` disagree
+    about.
+    """
     return json.loads((DATA_DIR / f"{dataset}.json").read_text(encoding="utf-8"))
+
+
+def load(dataset: str) -> dict | list:
+    """Read a table *and* record that the current call applies it.
+
+    The accessor a tool should read a table through. The bytes come from the
+    cached `_read`, and the call tells `src/lib/_tables_open.py` which table is
+    in play, so a table read inside a tool body is observed exactly like one read
+    from a constant preloaded at import. A table read through a raw `open()` is
+    invisible to the ledger, which is why `scripts/audit_tool_annotations.py`
+    recognises this call as a read and keeps the two in step.
+
+    `vintage()` deliberately goes to `_read` instead: rendering the
+    `dati_applicati` line must not count as applying the table it names, or every
+    footer would feed itself into the very observation it exists to describe and
+    no answer could ever name fewer tables than its declaration.
+    """
+    _tables_open.note(dataset)
+    return _read(dataset)
 
 
 @lru_cache(maxsize=None)
@@ -108,7 +160,7 @@ def vintage(dataset: str) -> Vintage:
     a table never breaks a tool at runtime — `scripts/update-data.py --strict`
     is what refuses to let it stay undeclared.
     """
-    payload = load(dataset)
+    payload = _read(dataset)
     block = payload.get("_vintage", {}) if isinstance(payload, dict) else {}
     return Vintage(
         dataset=dataset,
@@ -133,41 +185,327 @@ def footer(*datasets: str) -> str:
     return f"\n\n> **Dati applicati**\n{righe}"
 
 
+def warnings(datasets: "tuple[str, ...] | list[str]") -> list[dict]:
+    """The tables that need acting on, as data rather than as a sentence.
+
+    Two states carry weight, and they are different failures:
+
+    * `scaduta` -- the table declares a covered period and it has ended, so the
+      numbers may simply be wrong today (a rate, a bracket, an index series);
+    * `non_verificata` -- nobody has established where the table comes from or
+      how current it is, which the table itself says with
+      `verifica: "da_verificare"`.
+
+    A table that declares a source and no period is *not* flagged: that is the
+    shape of a statute or an internal catalogue, where "no recurring update" is
+    the honest description and the footer already says so. Flagging it would
+    bury the two states above in noise.
+
+    The footer is prose for a human; this is the same fact shaped for a client,
+    so a host can mark the answer instead of hoping the reader reaches the last
+    line of it.
+    """
+    out: list[dict] = []
+    for dataset in datasets:
+        info = vintage(dataset)
+        if info.scaduto():
+            stato = "scaduta"
+        elif not info.verificato:
+            stato = "non_verificata"
+        else:
+            continue
+        out.append(
+            {
+                "tabella": dataset,
+                "stato": stato,
+                "verificata": info.verificato,
+                "messaggio": info.to_line(),
+                "fonte": info.fonte,
+                "aggiornato_al": info.aggiornato_al.isoformat() if info.aggiornato_al else None,
+                "copre_fino_a": info.copre_fino_a.isoformat() if info.copre_fino_a else None,
+            }
+        )
+    return out
+
+
+def effective(datasets: tuple[str, ...], fiducia: bool = True) -> tuple[str, ...]:
+    """The tables this call actually read, or the declaration when unseen.
+
+    The ledger sees reads of the wrapped constants, so an answer names the
+    tables it applied instead of every table its code could apply -- a tool that
+    branches between two tables no longer claims both. The fallback matters as
+    much as the mechanism: a table reached through a value computed at import
+    (a bare scalar) cannot be wrapped, and there the declaration stays the best
+    available statement of what the answer rests on.
+
+    `fiducia=False` turns the fallback off, which is what a call that supplied its
+    own datum needs. There, nothing was read *because nothing was needed*: falling
+    back to the declaration would put the declared table's vintage back into an
+    answer that no longer rests on it -- and refuse, on the strength of a table the
+    call deliberately did not open.
+    """
+    seen = set(_tables_open.opened())
+    if not seen:
+        return datasets if fiducia else ()
+    applied = tuple(name for name in datasets if name in seen)
+    return applied or (datasets if fiducia else ())
+
+
 def all_datasets() -> list[str]:
     """Every table shipped with the server, by name."""
     return sorted(p.stem for p in DATA_DIR.glob("*.json"))
 
 
-def _attach(result: object, datasets: tuple[str, ...]) -> object:
-    """Carry the vintage alongside whatever shape a tool returns."""
+#: The parameter every table-reading tool exposes so a caller can accept a lower
+#: grade for one call instead of being refused. Declared in the signature (or it
+#: could not be passed) and documented in the docstring (or a model reading the
+#: schema would not know what it is for).
+CONSENT_PARAM = "accetta_precisione"
+CONSENT_DESC = (
+    "Grado che accetti per questa chiamata ('INDICATIVO' o 'STIMATO') quando la "
+    "tabella su cui poggia il tool non \u00e8 verificata: senza, il tool rifiuta di "
+    "calcolare invece di darti un numero su una base non verificata. Non concede "
+    "mai un grado pi\u00f9 alto di quello che la tabella sostiene, e non sblocca una "
+    "tabella scaduta quando il calcolo riguarda oggi."
+)
+
+#: How each state reads in prose. The structured field keeps the machine word
+#: (`non_verificata`), because a client matches on it; the sentence a model reads
+#: says what it means.
+_STATO_IN_PROSA = {
+    "non_verificata": "priva di una provenienza verificata",
+    "scaduta": "con il periodo coperto già scaduto",
+}
+
+
+def _rifiuto(
+    esito: _precision.Esito,
+    datasets: tuple[str, ...],
+    avvisi: list[dict],
+    nota: str = "",
+    alternativa: str | None = None,
+) -> dict:
+    """The answer a tool gives when it must not compute.
+
+    No figure, no partial result: the tool declares a grade and, when the tables
+    it rests on cannot support that grade, the honest answer is to say so. The
+    payload is structured (`errore`, `tabelle`, `come_sbloccare`) so a calling
+    agent can explain the block to its user instead of guessing at a number, and
+    it names the claim being withdrawn -- `ESATTO per indici FOI` is a specific
+    assertion, and the reader deserves to know which one failed.
+
+    It carries `avvisi_dati` as well, the same key a warning-only answer has: a
+    refusal is what the two states lead to, not a third state, and a client that
+    reads one key for "tables to act on" keeps reading one key.
+    """
+    qualificatore = (
+        f" «{esito.dichiarata} {nota}»" if nota else f" «{esito.dichiarata}»"
+    )
+    tabelle = ", ".join(a["tabella"] for a in avvisi)
+    stati = " e ".join(_STATO_IN_PROSA.get(stato, stato) for stato in esito.motivi)
+    # A refusal has to say what would change the answer, in the order a caller can
+    # act on it: the datum that makes the table unnecessary, then the grade the
+    # server is willing to guarantee.
+    ripieghi = []
+    if alternativa:
+        ripieghi.append(f"fornire `{alternativa}` per questa chiamata")
+    if esito.negoziabile and esito.concedibile:
+        ripieghi.append(
+            f"accettare il grado {esito.concedibile} con "
+            f"`{CONSENT_PARAM}: \"{esito.concedibile}\"`"
+        )
+    come_sbloccare = [
+        "Dichiarare la tabella in src/data/" + ", ".join(a["tabella"] for a in avvisi)
+        + ".json (`_vintage`: fonte, copre_fino_a, verifica) con "
+        "scripts/update-data.py, poi rieseguire il calcolo."
+    ]
+    if ripieghi:
+        come_sbloccare.append("Oppure, per il calcolo che serve adesso: " + "; ".join(ripieghi) + ".")
+    return {
+        "errore": "dati_non_affidabili",
+        "messaggio": (
+            f"Calcolo non eseguito: la risposta dichiarerebbe{qualificatore} su "
+            f"{tabelle}, che risulta {stati}. Nessun importo o termine viene "
+            "fornito su una base non verificata."
+        ),
+        "precisione": esito.to_dict(nota),
+        "tabelle": avvisi,
+        # The same key an answer carries when it merely warns: a refusal is the
+        # strongest form of "these tables need acting on", and one key with one
+        # meaning is what lets a client look in one place.
+        "avvisi_dati": avvisi,
+        "dati_applicati": [vintage(d).to_line() for d in datasets],
+        "come_sbloccare": " ".join(come_sbloccare),
+    }
+
+
+def _attach(
+    result: object,
+    declared: tuple[str, ...],
+    grado: _precision.Dichiarata | None,
+    accettata: str | None = None,
+    alternativa: str | None = None,
+    fornita: bool = False,
+) -> object:
+    """Carry the vintage alongside whatever shape a tool returns.
+
+    The tables named are the ones the call read (`effective`), and the ones that
+    are expired or unverified are repeated in a structured field, so a client
+    does not have to read the footer to find out that a number may be stale.
+
+    Naming them is not enough: the same state decides what the answer is worth
+    (`_precision.decide`). Either the tool's declared grade drops a step and the
+    body says so, or the tool refuses. `_clock.consulted()` is read before
+    anything else touches the clock, because computing each vintage's age reads
+    it and would otherwise make every call look anchored to the present.
+    """
+    datasets = effective(declared, fiducia=not fornita)
+    ancorata = bool(_clock.consulted())
+    avvisi = warnings(datasets)
+    esito = _precision.decide(
+        grado.grado if grado else None,
+        [a["stato"] for a in avvisi],
+        ancorata_al_presente=ancorata,
+        accettata=accettata,
+    )
+    nota = grado.qualificatore if grado else ""
+    if esito.esito != "piena":
+        _precision.note(esito)
+    if esito.rifiuta:
+        return _rifiuto(esito, datasets, avvisi, nota, alternativa)
+
+    # The substitution is named in the answer: a reader has to know that what
+    # backs the number is the caller's datum, not the table the tool declares.
+    sostituzione = (
+        {"parametro": alternativa, "al_posto_di": list(declared)}
+        if fornita and alternativa and declared
+        else None
+    )
     if isinstance(result, str):
+        if sostituzione:
+            return result + footer(*datasets) + (
+                "\n\n> **Dati forniti dal chiamante**: `%s` al posto di %s"
+                % (sostituzione["parametro"], ", ".join(sostituzione["al_posto_di"]))
+            )
         return result + footer(*datasets)
     if isinstance(result, dict):
-        return {**result, "dati_applicati": [vintage(d).to_line() for d in datasets]}
+        out = {**result, "dati_applicati": [vintage(d).to_line() for d in datasets]}
+        if avvisi:
+            out["avvisi_dati"] = avvisi
+        if sostituzione:
+            out["dati_forniti_dal_chiamante"] = sostituzione
+        if esito.esito == "ridotta":
+            out["precisione"] = esito.to_dict(nota)
+        return out
     return result  # a bare float/int/date has nowhere to put it; left untouched
 
 
-def sourced(*datasets: str):
+def _with_consent(signature: inspect.Signature) -> inspect.Signature:
+    """The tool's own signature plus the negotiation parameter.
+
+    Declared, not just documented: a host builds the argument list from the
+    signature it inspects, so a parameter missing from it would be rejected
+    before the tool ever ran. `inspect.signature` prefers `__signature__`, which
+    is what FastMCP reads even though `functools.wraps` exposes the original.
+    """
+    if CONSENT_PARAM in signature.parameters:
+        return signature
+    extra = inspect.Parameter(
+        CONSENT_PARAM,
+        inspect.Parameter.KEYWORD_ONLY,
+        default=None,
+        annotation=str | None,
+    )
+    return signature.replace(parameters=[*signature.parameters.values(), extra])
+
+
+def _documented(doc: str) -> str:
+    """A docstring with the negotiation parameter described under `Args:`.
+
+    The host builds the schema from this text, so a parameter that exists to be
+    used deliberately cannot arrive with no explanation. The entry goes at the
+    end of the existing `Args:` block -- reusing its indentation -- or opens a
+    block of its own when the tool documents no parameters at all.
+    """
+    entry = f"{CONSENT_PARAM}: {CONSENT_DESC}"
+    lines = (doc or "").rstrip().splitlines()
+    if not lines:
+        return f"Args:\n    {entry}"
+    for index, line in enumerate(lines):
+        if line.strip() != "Args:":
+            continue
+        base = len(line) - len(line.lstrip())
+        indent, end = None, index + 1
+        while end < len(lines):
+            following = lines[end]
+            if not following.strip():
+                end += 1
+                continue
+            spaces = len(following) - len(following.lstrip())
+            if spaces <= base:
+                break
+            if indent is None:
+                indent = " " * spaces
+            end += 1
+        lines.insert(end, (indent or " " * (base + 4)) + entry)
+        return "\n".join(lines)
+    return "\n".join([*lines, "", "Args:", "    " + entry])
+
+
+def sourced(*datasets: str, alternativa: str | None = None):
     """Declare which hand-maintained tables a tool reads, and say so in its answer.
 
     Applied under `@mcp.tool(...)` so FastMCP registers the wrapper; `wraps`
-    keeps the signature it builds the schema from. Every return path is covered,
-    which a footer appended by hand at each `return` would not be.
+    keeps the signature it builds the schema from, plus `accetta_precisione`,
+    which is added to it here so a caller can settle for a lower grade instead of
+    taking a refusal. Every return path is covered, which a footer appended by
+    hand at each `return` would not be.
 
         @mcp.tool(tags={"interessi"})
         @sourced("tassi_legali")
         def interessi_legali(...) -> dict:
             ...
+
+    `alternativa` names a parameter of the tool that supplies what the table would
+    have provided, so the refusal can point at the escape instead of only at the
+    file to reconcile.
     """
     def decorate(fn):
+        # The grade comes from the docstring the model reads, captured here so
+        # the runtime and the audit read the same words. The parameters the
+        # negotiation needs are declared on the wrapper, since a tool's own
+        # signature is the only place a host reads its schema from.
+        grado = _precision.declared(fn)
+        def _fornita(kwargs: dict) -> bool:
+            return bool(alternativa) and kwargs.get(alternativa) is not None
+
         if inspect.iscoroutinefunction(fn):
             @wraps(fn)
             async def wrapper(*args, **kwargs):
-                return _attach(await fn(*args, **kwargs), datasets)
+                fornita = _fornita(kwargs)
+                accettata = kwargs.pop(CONSENT_PARAM, None)
+                return _attach(
+                    await fn(*args, **kwargs), datasets, grado, accettata, alternativa, fornita
+                )
         else:
             @wraps(fn)
             def wrapper(*args, **kwargs):
-                return _attach(fn(*args, **kwargs), datasets)
+                fornita = _fornita(kwargs)
+                accettata = kwargs.pop(CONSENT_PARAM, None)
+                return _attach(
+                    fn(*args, **kwargs), datasets, grado, accettata, alternativa, fornita
+                )
+        wrapper.__signature__ = _with_consent(inspect.signature(fn))
+        # The signature with the extra parameter is not enough: the framework builds
+        # the schema from the resolved type hints, and a parameter the annotations
+        # do not mention is a KeyError at registration rather than a loud mistake.
+        wrapper.__annotations__ = {
+            **getattr(fn, "__annotations__", {}),
+            CONSENT_PARAM: str | None,
+        }
+        wrapper.__doc__ = _documented(getattr(fn, "__doc__", "") or "")
         wrapper.__sourced_datasets__ = datasets  # read by the coverage test
+        wrapper.__precisione_dichiarata__ = grado
+        wrapper.__sourced_alternativa__ = alternativa
         return wrapper
     return decorate

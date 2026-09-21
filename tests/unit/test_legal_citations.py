@@ -5,10 +5,12 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.tools.legal_citations import (
-    _parse_reference, _resolve_act, _build_nv, _cite_law_impl, _fetch_law_article_impl,
+    _parse_reference, _resolve_act, _build_nv, _cite_law_impl, _cite_law_struct,
+    _fetch_law_article_impl,
     _download_law_pdf_impl, _generate_pdf_from_text, _sanitize_for_pdf, _safe_filename,
     _split_citazioni, _starts_new_reference, _classify_citazione, _sentenza_num_anno,
     _normalize_sezione, _parse_resolved_estremi, _norma_misquote, _verifica_citazioni_impl,
+    _verifica_citazioni_struct,
 )
 from src.lib.visualex.models import Norma, NormaVisitata
 from src.lib.visualex.map import resolve_atto, normalize_act_type, find_brocardi_url
@@ -936,3 +938,133 @@ class TestLive:
         """Live test: generate PDF for codice civile from Normattiva."""
         result = await _download_law_pdf_impl("codice civile")
         assert "PDF generato" in result or "PDF" in result
+
+
+import json
+
+
+class TestVerificaCitazioniJSON:
+    @pytest.mark.asyncio
+    async def test_struct_norma_verificata(self):
+        async def fake_fetch_article(nv):
+            return {"text": "Qualunque fatto doloso o colposo...", "url": "https://normattiva.it/art2043",
+                    "source": "normattiva"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _verifica_citazioni_struct("art. 2043 c.c.")
+        assert out["formato"] == "json"
+        assert out["troncato"] is False and out["limite"] == 20
+        c = out["citazioni"][0]
+        assert c == {"n": 1, "citazione": "art. 2043 c.c.", "tipo": "norma",
+                     "verdetto": "verificata", "nota": c["nota"]}
+        assert "normattiva.it" in c["nota"]
+        assert "esistenza" in out["avvertenza"]
+        assert out["errore"] is None
+
+    @pytest.mark.asyncio
+    async def test_json_output_is_parseable_and_markdown_unchanged(self):
+        async def fake_fetch_article(nv):
+            return {"text": "", "url": "https://normattiva.it/x", "source": "", "error": "404"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            as_json = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001", formato="json")
+            as_md = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001")
+        data = json.loads(as_json)
+        assert data["citazioni"][0]["verdetto"] == "non trovata"
+        assert as_md.startswith("| # | Citazione | Tipo | Verdetto | Note/Fonte |")
+        assert "non trovata" in as_md
+
+    @pytest.mark.asyncio
+    async def test_non_interpretabile_is_lowercase_in_json(self):
+        out = await _verifica_citazioni_struct("una frase qualsiasi")
+        c = out["citazioni"][0]
+        assert c["tipo"] == "non interpretabile"
+        assert c["verdetto"] == "non interpretabile"
+
+    @pytest.mark.asyncio
+    async def test_truncation_flag(self):
+        async def fake_fetch_article(nv):
+            return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
+
+        refs = "\n".join(f"art. {i} c.c." for i in range(1, 23))  # 22 references
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _verifica_citazioni_struct(refs)
+        assert out["troncato"] is True
+        assert len(out["citazioni"]) == 20
+
+    @pytest.mark.asyncio
+    async def test_empty_input_json_error(self):
+        out = await _verifica_citazioni_impl("", formato="json")
+        data = json.loads(out)
+        assert data["formato"] == "json" and data["citazioni"] == []
+        assert "nessuna citazione" in data["errore"]
+
+
+class TestCiteLawJSON:
+    @pytest.mark.asyncio
+    async def test_struct_success(self, monkeypatch):
+        monkeypatch.setenv("AKN_DISABLED", "1")
+        fake_url = (
+            "https://www.normattiva.it/uri-res/N2Ls?"
+            "urn:nir:stato:regio.decreto:1942-03-16;262:2~art2043"
+        )
+
+        async def fake_fetch_article(nv):
+            return {"text": "1. Qualunque fatto doloso o colposo...", "url": fake_url,
+                    "source": "normattiva"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _cite_law_struct("art. 2043 c.c.")
+        assert out["formato"] == "json"
+        assert out["riferimento"] == "art. 2043 c.c."
+        assert out["articolo"] == "2043"
+        assert out["atto"]["tipo_atto"] == "codice civile"
+        assert out["url"] == fake_url
+        assert out["urn"] == "urn:nir:stato:regio.decreto:1942-03-16;262:2~art2043"
+        assert out["fonte"] == "normattiva"
+        assert out["testo"].startswith("1. Qualunque")
+        assert out["errore"] is None
+        assert len(out["data_consultazione"]) == 10
+
+    @pytest.mark.asyncio
+    async def test_struct_unresolved_act(self):
+        out = await _cite_law_struct("art. 1 atto inesistente xyz")
+        assert out["testo"] == "" and out["errore"] and "non riconosciuto" in out["errore"]
+
+    @pytest.mark.asyncio
+    async def test_struct_fetch_exception(self, monkeypatch):
+        monkeypatch.setenv("AKN_DISABLED", "1")
+
+        async def fake_fetch_article(nv):
+            raise RuntimeError("network down")
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _cite_law_struct("art. 2043 c.c.")
+        assert out["errore"] == "network down"
+        assert out["testo"] == ""
+        assert out["url"]
+        assert out["urn"].startswith("urn:nir:")
+
+    @pytest.mark.asyncio
+    async def test_struct_empty_text(self, monkeypatch):
+        monkeypatch.setenv("AKN_DISABLED", "1")
+
+        async def fake_fetch_article(nv):
+            return {"text": "", "url": "https://normattiva.it/art2043", "source": "normattiva"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            out = await _cite_law_struct("art. 2043 c.c.")
+        assert out["errore"] == "nessun testo trovato"
+
+    @pytest.mark.asyncio
+    async def test_impl_json_and_markdown(self, monkeypatch):
+        monkeypatch.setenv("AKN_DISABLED", "1")
+
+        async def fake_fetch_article(nv):
+            return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
+
+        with patch("src.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+            as_json = await _cite_law_impl("art. 2043 c.c.", formato="json")
+            as_md = await _cite_law_impl("art. 2043 c.c.")
+        assert json.loads(as_json)["testo"] == "testo"
+        assert as_md.startswith("**Fonte**: Normattiva — https://normattiva.it/a")

@@ -4,12 +4,15 @@ principale prima di citare qualsiasi norma in un parere o documento legale."""
 
 import asyncio
 import difflib
+import json
 import os
 import re
 import tempfile
 import time
+from typing import Literal
 
 from src.server import mcp
+from src.lib import _clock
 from src.lib.visualex import (
     Norma,
     NormaVisitata,
@@ -287,8 +290,63 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 # MCP Tools
 # ---------------------------------------------------------------------------
 
-async def _cite_law_impl(reference: str, include_annotations: bool = False) -> str:
+def _urn_from_url(url: str) -> str | None:
+    """Extract the URN from a Normattiva ``uri-res`` URL, else None.
+
+    Normattiva citable URLs look like
+    ``https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:...`` — the URN is
+    the substring after the ``?``. Any other URL (EUR-Lex, etc.) has no URN.
+    """
+    if "normattiva.it/uri-res/N2Ls?" not in url:
+        return None
+    return url.split("?", 1)[1] or None
+
+
+async def _cite_law_struct(reference: str) -> dict:
+    """Structured article lookup (no Brocardi): the JSON face of cite_law."""
+    today = _clock.today().isoformat()
+    base = {
+        "formato": "json", "riferimento": reference, "articolo": "",
+        "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
+        "url": "", "urn": None, "fonte": "", "testo": "", "errore": None, "data_consultazione": today,
+    }
+    article, act_name = _parse_reference(reference)
+    if not act_name:
+        base["errore"] = (f"impossibile interpretare il riferimento '{reference}'. "
+                          "Formato atteso: 'art. <numero> <atto>'")
+        return base
+    act_info = _resolve_act(act_name)
+    if not act_info:
+        base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
+        return base
+
+    nv = _build_nv(act_info, article)
+    base["articolo"] = article or ""
+    base["atto"] = {
+        "tipo_atto": nv.norma.tipo_atto_normalized,
+        "data": act_info.get("data", ""),
+        "numero_atto": act_info.get("numero_atto", ""),
+        "descrizione": str(nv.norma),
+    }
+    try:
+        result = await fetch_article(nv)
+    except Exception as e:
+        result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+    base["url"] = result.get("url", "") or nv.url()
+    base["urn"] = _urn_from_url(base["url"])
+    base["fonte"] = result.get("source", "") or ""
+    base["testo"] = result.get("text", "") or ""
+    if result.get("error"):
+        base["errore"] = result["error"]
+    elif not base["testo"]:
+        base["errore"] = "nessun testo trovato"
+    return base
+
+
+async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
     """Implementation of cite_law (testable without MCP wrapper)."""
+    if formato == "json":
+        return json.dumps(await _cite_law_struct(reference), ensure_ascii=False)
     article, act_name = _parse_reference(reference)
     if not act_name:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'. Formato atteso: 'art. <numero> <atto>'"
@@ -308,7 +366,7 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False) -> s
     if include_annotations and article:
         try:
             brocardi = await fetch_brocardi(
-                act_info["tipo_atto"], article, act_info.get("numero_atto", "")
+                act_info["tipo_atto"], article, act_info.get("numero_atto", ""), act_info.get("data", "")
             )
             if not brocardi.error:
                 brocardi_md = "\n\n---\n" + brocardi.to_markdown()
@@ -336,14 +394,18 @@ async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", a
 async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Implementation of fetch_law_annotations (testable without MCP wrapper)."""
     try:
-        result = await fetch_brocardi(act_type, article, act_number)
+        result = await fetch_brocardi(act_type, article, act_number, date)
         return result.to_markdown()
     except Exception as e:
         return f"**Errore Brocardi**: {e}"
 
 
 @mcp.tool(tags={"normativa"})
-async def cite_law(reference: str, include_annotations: bool = False) -> str:
+async def cite_law(
+    reference: str,
+    include_annotations: bool = False,
+    formato: Literal["markdown", "json"] = "markdown",
+) -> str:
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
     Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), Brocardi (annotazioni).
@@ -367,8 +429,13 @@ async def cite_law(reference: str, include_annotations: bool = False) -> str:
                    "considerando 42 GDPR", "art. 4 n. 11 GDPR"
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
                              massime giurisprudenziali). Default False.
+        formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
+                 atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, testo,
+                 errore, data_consultazione. "urn" è l'estremo URN Normattiva quando la
+                 fonte è Normattiva, altrimenti null. In modalità json le annotazioni
+                 Brocardi non sono incluse (include_annotations viene ignorato).
     """
-    return await _cite_law_impl(reference, include_annotations)
+    return await _cite_law_impl(reference, include_annotations, formato)
 
 
 @mcp.tool(tags={"normativa"})
@@ -418,7 +485,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
 
     try:
         result = await fetch_brocardi(
-            act_info["tipo_atto"], article, act_info.get("numero_atto", "")
+            act_info["tipo_atto"], article, act_info.get("numero_atto", ""), act_info.get("data", "")
         )
     except Exception as e:
         return f"**Errore Brocardi**: {e}"
@@ -1031,52 +1098,72 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
     return "verificata", f"Cass. n. {numero}/{anno} reperita su Italgiure."
 
 
-async def _verifica_citazioni_impl(citazioni: str, archivio: str = "tutti") -> str:
-    """Implementation of verifica_citazioni (testable without MCP wrapper)."""
+_VERIFICA_AVVERTENZA = (
+    "La verifica accerta l'esistenza della fonte e la coerenza dei metadati "
+    "(numero, anno, sezione, comma/lettera citati). NON verifica l'esattezza "
+    "del principio di diritto o del contenuto citato."
+)
+
+
+async def _verifica_citazioni_struct(citazioni: str, archivio: str = "tutti") -> dict:
+    """Structured result of verifica_citazioni; both output formats are built from it."""
     refs = _split_citazioni(citazioni)
     if not refs:
-        return "**Errore**: nessuna citazione fornita. Inserire un riferimento per riga."
+        return {
+            "formato": "json", "citazioni": [], "troncato": False, "limite": _MAX_CITAZIONI,
+            "avvertenza": _VERIFICA_AVVERTENZA,
+            "errore": "nessuna citazione fornita. Inserire un riferimento per riga.",
+        }
 
     truncated = len(refs) > _MAX_CITAZIONI
     refs = refs[:_MAX_CITAZIONI]
-
     tipi = [_classify_citazione(r) for r in refs]
-
     semaphore = asyncio.Semaphore(_MAX_CONCURRENT_VERIFICHE)
 
-    async def _resolve_one(reference: str, tipo: str) -> tuple[str, str, str]:
+    async def _resolve_one(reference: str, tipo: str) -> tuple[str, str]:
         async with semaphore:
             try:
                 if tipo == "sentenza":
-                    verdetto, nota = await _verifica_sentenza(reference, archivio)
-                elif tipo == "norma":
-                    verdetto, nota = await _verifica_norma(reference)
-                else:
-                    return ("Non interpretabile", "—", "Formato non riconosciuto.")
+                    return await _verifica_sentenza(reference, archivio)
+                if tipo == "norma":
+                    return await _verifica_norma(reference)
+                return ("non interpretabile", "Formato non riconosciuto.")
             except Exception as exc:  # fail-safe: never crash the whole batch
-                return (tipo.capitalize(), "non verificata", f"Errore durante la verifica: {exc}")
-            return (tipo.capitalize(), verdetto, nota)
+                return ("non verificata", f"Errore durante la verifica: {exc}")
 
-    results = await asyncio.gather(
-        *(_resolve_one(r, t) for r, t in zip(refs, tipi))
-    )
+    results = await asyncio.gather(*(_resolve_one(r, t) for r, t in zip(refs, tipi)))
+    return {
+        "formato": "json",
+        "citazioni": [
+            {"n": i, "citazione": ref, "tipo": tipo, "verdetto": verdetto, "nota": nota}
+            for i, (ref, tipo, (verdetto, nota)) in enumerate(zip(refs, tipi, results), start=1)
+        ],
+        "troncato": truncated,
+        "limite": _MAX_CITAZIONI,
+        "avvertenza": _VERIFICA_AVVERTENZA,
+        "errore": None,
+    }
 
+
+def _format_verifica_markdown(data: dict) -> str:
+    """Render the structured result exactly as the pre-JSON markdown table."""
+    if data.get("errore"):
+        return f"**Errore**: {data['errore']}"
     lines = [
         "| # | Citazione | Tipo | Verdetto | Note/Fonte |",
         "|---|-----------|------|----------|------------|",
     ]
-    for i, (reference, (tipo_label, verdetto, nota)) in enumerate(zip(refs, results), start=1):
-        cit = reference.replace("|", "\\|")
-        nota_clean = (nota or "—").replace("|", "\\|").replace("\n", " ")
-        lines.append(f"| {i} | {cit} | {tipo_label} | {verdetto} | {nota_clean} |")
-
-    if truncated:
+    for c in data["citazioni"]:
+        cit = c["citazione"].replace("|", "\\|")
+        if c["tipo"] == "non interpretabile":
+            tipo_label, verdetto = "Non interpretabile", "—"
+        else:
+            tipo_label, verdetto = c["tipo"].capitalize(), c["verdetto"]
+        nota_clean = (c["nota"] or "—").replace("|", "\\|").replace("\n", " ")
+        lines.append(f"| {c['n']} | {cit} | {tipo_label} | {verdetto} | {nota_clean} |")
+    if data["troncato"]:
         lines.append("")
-        lines.append(
-            f"> *Verificate solo le prime {_MAX_CITAZIONI} citazioni "
-            "(limite per chiamata).*"
-        )
-
+        lines.append(f"> *Verificate solo le prime {data['limite']} citazioni (limite per chiamata).*")
     lines.append("")
     lines.append(
         "> **Nota**: la verifica accerta l'**esistenza** della fonte e la coerenza "
@@ -1086,8 +1173,22 @@ async def _verifica_citazioni_impl(citazioni: str, archivio: str = "tutti") -> s
     return "\n".join(lines)
 
 
+async def _verifica_citazioni_impl(
+    citazioni: str, archivio: str = "tutti", formato: str = "markdown"
+) -> str:
+    """Implementation of verifica_citazioni (testable without MCP wrapper)."""
+    data = await _verifica_citazioni_struct(citazioni, archivio)
+    if formato == "json":
+        return json.dumps(data, ensure_ascii=False)
+    return _format_verifica_markdown(data)
+
+
 @mcp.tool(tags={"normativa"})
-async def verifica_citazioni(citazioni: str, archivio: str = "tutti") -> str:
+async def verifica_citazioni(
+    citazioni: str,
+    archivio: str = "tutti",
+    formato: Literal["markdown", "json"] = "markdown",
+) -> str:
     """Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali.
 
     Accetta un insieme di riferimenti — sentenze della Cassazione e/o articoli di legge —
@@ -1116,5 +1217,10 @@ async def verifica_citazioni(citazioni: str, archivio: str = "tutti") -> str:
         citazioni: Elenco di riferimenti, uno per riga (o separati da virgola), es.
                    "Cass. sez. III n. 12345/2024\\nart. 2043 c.c.\\nart. 13 GDPR"
         archivio: Archivio Italgiure per le sentenze: "civile", "penale" o "tutti" (default)
+        formato: "markdown" (default, tabella leggibile) oppure "json" (oggetto con
+                 chiavi formato, citazioni[n, citazione, tipo, verdetto, nota], troncato,
+                 limite, avvertenza, errore). "errore" è sempre presente: null in caso
+                 di successo, messaggio di errore in caso di input vuoto. Usare "json"
+                 quando il risultato va elaborato da un programma.
     """
-    return await _verifica_citazioni_impl(citazioni, archivio)
+    return await _verifica_citazioni_impl(citazioni, archivio, formato)

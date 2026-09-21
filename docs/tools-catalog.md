@@ -42,6 +42,7 @@ descrizione di ogni tool.
 31. [Modelli di atti](#31-modelli-di-atti) — 3 tool
 32. [Procure e quotazioni (recupero crediti)](#32-procure-e-quotazioni-recupero-crediti) — 2 tool
 33. [Iter parlamentare (DDL)](#33-iter-parlamentare-ddl) — 3 tool
+34. [Marchi (TMview)](#34-marchi-tmview) — 3 tool
 
 ---
 
@@ -53,14 +54,14 @@ descrizione di ogni tool.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `cite_law` | `cite_law(reference: str, include_annotations: bool = False)` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni. |
+| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato. |
 | `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti. |
 | `fetch_law_annotations` | `fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "")` | Solo annotazioni Brocardi per un articolo specifico. |
 | `cerca_brocardi` | `cerca_brocardi(reference: str)` | Annotazioni complete Brocardi: ratio, spiegazione, massime strutturate con riferimenti Cassazione. |
 | `fetch_act_index` | `fetch_act_index(reference: str)` | Indice degli articoli di un atto normativo. |
 | `fetch_full_act` | `fetch_full_act(reference: str)` | Testo integrale di un atto normativo. |
 | `download_law_pdf` | `download_law_pdf(reference: str)` | PDF ufficiale (EUR-Lex) o generato (Normattiva) della norma. |
-| `verifica_citazioni` | `verifica_citazioni(citazioni: str, archivio: str = "tutti")` | Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali (non entra nel merito). |
+| `verifica_citazioni` | `verifica_citazioni(citazioni: str, archivio: str = "tutti", formato: str = "markdown")` | Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali (non entra nel merito); formato="json" per output strutturato. |
 
 ---
 
@@ -395,6 +396,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `verifica_partita_iva_vies` | `verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT")` | Verifica una P.IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati. Per le P.IVA italiane esegue prima il checksum locale (niente rete se fallisce). |
 | `genera_report_fornitori` | `genera_report_fornitori(fornitori: list, cliente: str, data_analisi: str = "", file_sorgente: str = "", nome_file: str = "")` | Genera l'Excel standard dell'analisi privacy del mastrino fornitori: foglio Avvertenze + 11 colonne, responsabili senza DPA proprio in cima. Valida i record canonici (collect-all) e non scrive file parziali. |
+| `verifica_dpa_fornitore` | `verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "")` | Sonda il dominio del fornitore sui percorsi convenzionali per accertare se pubblica una nomina a responsabile ex art. 28 GDPR. Esiti: `dpa_dedicato`, `clausola_in_condizioni`, `non_trovato`, `bloccato`, `dominio_irraggiungibile`. Sostituisce la whitelist statica; le determinazioni sono in cache 90 giorni, i fallimenti mai. |
 
 ---
 
@@ -715,5 +717,20 @@ I tool indicano nella docstring il livello di affidabilità del calcolo:
 
 I tool che generano documenti (bozze atti, notule, lettere) producono testo da revisionare
 prima dell'uso — non sono documenti legali pronti alla firma.
+
+---
+
+## 34. Marchi (TMview)
+
+**Modulo:** `src/tools/tmview.py`
+**Tag:** `marchi`, `normativa`
+**API esterne:** tmdn.org (TMview — EUIPO/TMDN, JSON API)
+**Note:** Aggrega UIBM, EUIPO, WIPO e ~75 uffici nazionali (140M+ marchi). WAF anti-bot: richieste distanziate (min 1s); su blocco, riprovare dopo ~1 minuto.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_marchi` | `cerca_marchi(query: str, uffici: str = '', classi_nizza: str = '', stato: str = '', max_risultati: int = 20)` | Cerca marchi registrati o depositati su TMview (UIBM, EUIPO, WIPO e uffici nazionali). |
+| `leggi_marchio` | `leggi_marchio(st13: str)` | Legge la scheda completa di un marchio da TMview tramite identificativo ST13. |
+| `verifica_anteriorita_marchio` | `verifica_anteriorita_marchio(nome: str, classi_nizza: str = '', uffici: str = '', max_risultati: int = 50)` | Verifica preliminare di anteriorità: marchi identici o simili a un nome, con classi di Nizza. |
 
 ---

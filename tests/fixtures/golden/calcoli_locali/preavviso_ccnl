@@ -1,0 +1,17 @@
+{
+ "datasets": [
+  "preavviso_ccnl"
+ ],
+ "tools": {
+  "indennita_preavviso": {
+   "arguments": {
+    "anzianita_anni": 7.0,
+    "ccnl": "commercio",
+    "livello": "2_3",
+    "retribuzione_mensile": 2500.0,
+    "tipo": "licenziamento"
+   },
+   "expected": "{\"ccnl\":\"commercio\",\"ccnl_nome\":\"CCNL Terziario Confcommercio\",\"livello\":\"2_3\",\"anzianita_anni\":7.0,\"fascia_anzianita\":\"5_10\",\"tipo\":\"licenziamento\",\"giorni_preavviso\":45,\"giorni_preavviso_fonte\":\"tabella CCNL inclusa\",\"retribuzione_giornaliera\":83.3333,\"importo\":3750.0,\"riferimento_normativo\":\"Artt. 2118-2119 c.c. — Art. 254 CCNL Terziario\",\"dati_applicati\":[\"preavviso ccnl: aggiornati al 19/09/2026 (CCNL Terziario art. 254 (dimissioni) e tabelle del preavviso di licenziamento; CCNL Metalmeccanici Industria art. 1; CCNL Studi Professionali (tabelle preavviso)) — valori verificati sui testi ufficiali dei contratti; i rinnovi cambiano i periodi: per il contratto applicabile usare giorni_preavviso\"]}"
+  }
+ }
+}

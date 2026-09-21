@@ -12,6 +12,7 @@ from datetime import date
 
 import pytest
 
+from src.lib import _data
 from src.lib._data import (
     AUTOMATIC,
     MANUAL,
@@ -64,7 +65,10 @@ def test_declared_coverage_has_not_elapsed(dataset):
 
 
 def test_unverified_table_says_so_instead_of_staying_silent():
-    v = vintage("violazioni_patente")
+    # The reconciliation run of 2026-09-20 (ISTAT catastal codes, DM 32/2012
+    # role codes, the three CCNL notice tables) left only two hand-maintained
+    # tables without an established source: this pin watches one of them.
+    v = vintage("codici_ateco")
     assert v.verifica == UNVERIFIED
     assert "non verificate" in v.to_line()
     assert "prima dell'uso in un atto" in v.to_line()
@@ -105,8 +109,17 @@ def test_sourced_keeps_the_signature_fastmcp_builds_its_schema_from():
         return {}
 
     sig = inspect.signature(tool)
-    assert list(sig.parameters) == ["capitale", "tasso"]
+    assert list(sig.parameters) == ["capitale", "tasso", _data.CONSENT_PARAM], (
+        "the tool's own parameters, in order, plus the one by which a caller can "
+        "settle for a lower grade instead of being refused"
+    )
+    assert sig.parameters[_data.CONSENT_PARAM].default is None, (
+        "it is optional: a call that says nothing gets the refusal it always got"
+    )
     assert tool.__doc__.startswith("Docstring")
+    assert f"{_data.CONSENT_PARAM}:" in tool.__doc__, (
+        "and documented, because a model reads the schema this docstring builds"
+    )
     assert tool.__sourced_datasets__ == ("tegm",)
 
 

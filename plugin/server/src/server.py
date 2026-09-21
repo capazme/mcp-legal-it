@@ -1,11 +1,14 @@
-"""MCP Legal IT — 221 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 222 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 
 from fastmcp import FastMCP
 
+from src.cli_version import package_version
+
 mcp = FastMCP(
     "Legal IT",
+    version=package_version(),
     instructions="""\
 Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chiede:
 - CALCOLI DANNI/SINISTRI: risarcimento, danno biologico, invalidità, ITT/ITP
@@ -51,7 +54,8 @@ Recepimento UE → get_italian_implementation(direttiva) → cite_law | get_eu_b
 Giurisprudenza → cerca_giurisprudenza(modalita="esplora") → cerca_giurisprudenza(filtri) → leggi_sentenza
 Privacy → cite_law (GDPR) → cerca_provvedimenti_garante → leggi_provvedimento_garante
 Compliance GDPR → analisi_base_giuridica → verifica_necessita_dpia → genera_registro_trattamenti → genera_informativa_privacy → genera_dpa
-Analisi fornitori → verifica_partita_iva_vies → genera_report_fornitori → genera_dpa (nomine per i responsabili senza DPA)
+Analisi fornitori → verifica_partita_iva_vies → verifica_dpa_fornitore (dominio del fornitore; non_trovato/bloccato/dominio_irraggiungibile NON sono un "no": segue ricerca mirata) → genera_report_fornitori → genera_dpa (nomine per i responsabili senza DPA)
+Marchi → cerca_marchi | verifica_anteriorita_marchio(nome, classi) → leggi_marchio(st13)
 Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
 CONSOB → cerca_delibere_consob → leggi_delibera_consob
 Tributario → cerca_giurisprudenza_tributaria → cerdef_leggi_provvedimento → cite_law
@@ -96,9 +100,27 @@ from src.tools import (  # noqa: E402, F401
     eu_implementation,
     procure_quotazioni,
     analisi_fornitori,
+    tmview,
 )
 
 from src import prompts, resources  # noqa: E402, F401
+from src.lib._ledger import apply_table_ledger  # noqa: E402
+from src.table_bindings import TABLE_CONSTANTS, TOOL_ALTERNATIVES, TOOL_TABLES  # noqa: E402
+from src.tool_annotations import apply_tool_annotations  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Tool annotations: readOnlyHint/openWorldHint per tool, so hosts can tell a
+# lookup from a file writer (see src/tool_annotations.py for the audit rule).
+# ---------------------------------------------------------------------------
+apply_tool_annotations(mcp)
+
+# ---------------------------------------------------------------------------
+# Table ledger: every call declares in its result `_meta` which hand-maintained
+# tables it actually read, observed rather than derived, and flags the ones whose
+# vintage is expired or unverified (see src/lib/_ledger.py). The same observation
+# is what `src/lib/_data.py` names in the `dati_applicati` footer.
+# ---------------------------------------------------------------------------
+_TABLES_WRAPPED = apply_table_ledger(mcp, TABLE_CONSTANTS, TOOL_TABLES, TOOL_ALTERNATIVES)
 
 # ---------------------------------------------------------------------------
 # Profile-based tool filtering (for Desktop/Browser — lighter context)

@@ -1,0 +1,18 @@
+{
+ "datasets": [
+  "gdpr_sanzioni"
+ ],
+ "tools": {
+  "calcolo_sanzione_gdpr": {
+   "arguments": {
+    "fattori_aggravanti": [
+     "larga scala"
+    ],
+    "fatturato_annuo": 10000000.0,
+    "precedenti": false,
+    "tipo_violazione": "art83_5"
+   },
+   "expected": "{\"tipo_violazione\":\"art83_5\",\"descrizione_violazione\":\"Violazioni principi base, diritti interessati, trasferimenti, ordini autorità (art. 83(5) GDPR)\",\"massimale\":{\"euro\":20000000,\"pct_fatturato\":4,\"descrizione\":\"Fino a 20,000,000€ o 4% del fatturato mondiale annuo (il maggiore)\"},\"range_stimato\":{\"minimo\":125000.0,\"massimo\":1250000.0,\"nota\":\"Con fatturato 10,000,000€: massimale basato su % fatturato = 400,000€ (4% fatturato). Massimale effettivo applicato (maggiore tra i due): 20,000,000€. Range stimato con fatturato: 125,000€ — 1,250,000€\"},\"criteri_art83_2\":[{\"id\":\"a\",\"criterio\":\"Natura, gravità e durata della violazione\",\"parametro\":\"numero interessati, entità danno, durata, categorie dati\"},{\"id\":\"b\",\"criterio\":\"Carattere doloso o colposo della violazione\",\"parametro\":\"intenzionalità, negligenza, errore scusabile\"},{\"id\":\"c\",\"criterio\":\"Misure adottate per attenuare il danno\",\"parametro\":\"azioni correttive, notifiche, cooperazione con interessati\"},{\"id\":\"d\",\"criterio\":\"Grado di responsabilità (misure tecniche e organizzative)\",\"parametro\":\"adeguatezza misure ex art. 25 e 32 GDPR\"},{\"id\":\"e\",\"criterio\":\"Precedenti violazioni\",\"parametro\":\"recidiva, storico sanzioni, ammonimenti precedenti\"},{\"id\":\"f\",\"criterio\":\"Grado di cooperazione con l'autorità di controllo\",\"parametro\":\"collaborazione durante indagini, trasparenza, tempestività\"},{\"id\":\"g\",\"criterio\":\"Categorie di dati personali interessate\",\"parametro\":\"dati particolari (art. 9), dati giudiziari (art. 10), dati minori\"},{\"id\":\"h\",\"criterio\":\"Modo in cui l'autorità ha preso conoscenza della violazione\",\"parametro\":\"autonotifica, reclamo, indagine d'ufficio, stampa\"},{\"id\":\"i\",\"criterio\":\"Rispetto di provvedimenti precedenti\",\"parametro\":\"ottemperanza a ordini, prescrizioni, sanzioni precedenti\"},{\"id\":\"j\",\"criterio\":\"Adesione a codici di condotta o meccanismi di certificazione\",\"parametro\":\"certificazioni ex art. 40-42, codici di condotta approvati\"}],\"fattori_analisi\":{\"aggravanti_rilevati\":[\"Trattamento su larga scala\"],\"attenuanti_rilevati\":[],\"precedenti\":false,\"moltiplicatore_applicato\":1.25},\"avvertenza\":\"Stima orientativa basata sulla modulazione percentuale dei massimali. La sanzione effettiva è determinata dal Garante caso per caso ai sensi dell'art. 83(2) GDPR.\",\"riferimento_normativo\":\"Art. 83 Reg. UE 2016/679 (GDPR) — Condizioni generali per l'imposizione di sanzioni amministrative pecuniarie\",\"dati_applicati\":[\"gdpr sanzioni: art. 83 Reg. UE 2016/679 — periodo di validità non dichiarato\"]}"
+  }
+ }
+}

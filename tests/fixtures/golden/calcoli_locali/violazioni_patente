@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "violazioni_patente"
+ ],
+ "tools": {
+  "decurtazione_punti_patente": {
+   "arguments": {
+    "violazione": "sorpasso"
+   },
+   "expected": "{\"violazione\":\"sorpasso\",\"punti\":3,\"articolo\":\"Art. 148 c.15, con riferimento al c.2 CdS\",\"descrizione\":\"Sorpasso vietato o pericoloso\",\"dati_applicati\":[\"violazioni patente: aggiornati al 20/09/2026 (Codice della Strada (D.Lgs. 285/1992), art. 126-bis e tabella allegata — vigenti) — Punteggi verificati sulla tabella allegata all'art. 126-bis aggiornata 2025 (certifico e prontuario CdS concordi): mancata precedenza 5 punti (art. 145 c.10; lo stop, c.5, vale 6), distanza di sicurezza e contromano sul comma base (3 e 4 punti) con le ipotesi aggravate come voci separate, fuga con danni alle persone 10 (art. 189 c.6) e alle sole cose 4 (c.5), sorpasso 3 punti (art. 148 c.15 con riferimento al c.2), circolazione senza assicurazione 5 punti (art. 193 c.2); eccessi di velocità riferiti ai commi 7 (fino a 10 km/h, nessun punto), 8 (oltre 10-40, 3), 9 (oltre 40-60, 6) e 9-bis (oltre 60, 10). Massimo decurtabile 15 punti per violazioni contestuali (art. 126-bis c.1-bis); punti raddoppiati per i neopatentati nei primi tre anni\"]}"
+  }
+ }
+}

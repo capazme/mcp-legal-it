@@ -12,6 +12,7 @@ decennio, con cache locale di 7 giorni). Il sito www.cortecostituzionale.it
 
 from datetime import date
 
+from src.lib import _clock
 from src.lib._result import SearchResult
 from src.server import mcp
 from src.lib.corte_cost.client import (
@@ -42,7 +43,7 @@ async def _cerca_pronuncia_costituzionale_impl(
     max_risultati = min(max_risultati, 50)
     terms = [t.strip().lower() for t in query.split(",") if t.strip()] if query else []
     tipo_code = TIPOLOGIE.get(tipo, "")
-    current_year = date.today().year
+    current_year = _clock.today().year
 
     try:
         docs = await search_pronunce(
@@ -138,7 +139,7 @@ async def _ultime_pronunce_cost_impl(
 ) -> SearchResult:
     max_risultati = min(max_risultati, 50)
     tipo_code = TIPOLOGIE.get(tipo, "")
-    current_year = date.today().year
+    current_year = _clock.today().year
 
     try:
         docs = await ultime_pronunce(

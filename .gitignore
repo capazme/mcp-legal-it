@@ -53,6 +53,10 @@ tests/fixtures/akn/dlgs_196_2003.xml
 # uv ephemeral lock (uv run --with)
 uv.lock
 
+# Generated tool report (`python scripts/tool_report.py`); the page is built
+# from the annotation audit, so it is regenerated rather than reviewed.
+docs/tool-report.html
+
 # Local Claude Code server config. This used to be tracked, carrying the
 # author's absolute paths (/Users/<author>/...) into every clone: broken for
 # everyone else, and a nested config a third party is asked to approve on

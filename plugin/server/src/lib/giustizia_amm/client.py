@@ -579,7 +579,7 @@ class GASession:
             headers=_HEADERS,
             follow_redirects=True,
         )
-        resp = await retry_request(self._client, "GET", _BASE_SEARCH + _SEARCH_PATH)
+        resp = await retry_request(self._client, "GET", _BASE_SEARCH + _SEARCH_PATH, dataset="giustizia_amm")
         html = resp.text
         self.portlet_id = _extract_portlet_id(html)
         self._p_auth = _extract_p_auth(html)
@@ -598,14 +598,14 @@ class GASession:
     async def search(self, params: dict) -> str:
         if self._client is None:
             raise RuntimeError("GASession not entered — use `async with`")
-        resp = await retry_request(self._client, "POST", self._action, data=params)
+        resp = await retry_request(self._client, "POST", self._action, dataset="giustizia_amm", data=params)
         return resp.text
 
     async def fetch_text(self, sede: str, nrg: str, nome_file: str) -> bytes:
         if self._client is None:
             raise RuntimeError("GASession not entered — use `async with`")
         url = build_document_url(sede, nrg, nome_file)
-        resp = await retry_request(self._client, "GET", url)
+        resp = await retry_request(self._client, "GET", url, dataset="giustizia_amm")
         return resp.content
 
 

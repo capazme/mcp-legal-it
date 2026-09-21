@@ -59,6 +59,7 @@ ATTI_NOTI = {
     "rgpd": {"tipo_atto": "regolamento ue", "data": "2016", "numero_atto": "679"},
     "regolamento privacy": {"tipo_atto": "regolamento ue", "data": "2016", "numero_atto": "679"},
     "regolamento generale protezione dati": {"tipo_atto": "regolamento ue", "data": "2016", "numero_atto": "679"},
+    "regolamento generale sulla protezione dei dati": {"tipo_atto": "regolamento ue", "data": "2016", "numero_atto": "679"},
     "dora": {"tipo_atto": "regolamento ue", "data": "2022", "numero_atto": "2554"},
     "ai act": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "1689"},
     "regolamento ia": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "1689"},
@@ -151,6 +152,8 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
         "disposizioni transitorie codice penale"]),
     ("decreto del presidente della repubblica", "1988-09-22", "448", [
         "codice processo penale minorile", "processo penale minorile", "cppm", "c.p.p.m."]),
+    ("decreto legislativo", "1989-07-28", "271", [
+        "disposizioni di attuazione del codice di procedura penale", "disp. att. cpp"]),
     ("decreto legislativo", "2003-06-30", "196", ["codice della privacy"]),
     ("decreto legislativo", "2006-04-03", "152", [
         "codice dell'ambiente", "codice ambiente", "testo unico ambientale", "tua"]),
@@ -521,6 +524,7 @@ BROCARDI_CODICI = {
     "Codice di procedura civile(R.D. 28 ottobre 1940, n. 1443)": "https://www.brocardi.it/codice-di-procedura-civile/",
     "Codice Penale(R.D. 19 ottobre 1930, n. 1398)": "https://www.brocardi.it/codice-penale/",
     "Codice di procedura penale(D.P.R. 22 settembre 1988, n. 447)": "https://www.brocardi.it/codice-di-procedura-penale/",
+    "Disposizioni di attuazione del codice di procedura penale(D.lgs. 28 luglio 1989, n. 271)": "https://www.brocardi.it/disposizioni-per-attuazione-codice-procedura-penale/",
     "Codice della strada(D.lgs. 30 aprile 1992, n. 285)": "https://www.brocardi.it/codice-della-strada/",
     "Codice del processo tributario(D.lgs. 31 dicembre 1992, n. 546)": "https://www.brocardi.it/codice-del-processo-tributario/",
     "Codice della privacy(D.lgs. 30 giugno 2003, n. 196)": "https://www.brocardi.it/codice-della-privacy/",
@@ -574,7 +578,7 @@ BROCARDI_CODICI = {
     "Disposizioni per il riordino della normativa in materia di ammortizzatori sociali(D.lgs. 4 marzo 2015, n. 22)": "https://www.brocardi.it/ammortizzatori-sociali/",
     "Norme sui licenziamenti individuali(L. 15 luglio 1966, n. 604)": "https://www.brocardi.it/norme-sui-licenziamenti-individuali/",
     "Norme in materia di orario di lavoro(D.lgs. 8 aprile 2003, n. 66)": "https://www.brocardi.it/organizzazione-orario-lavoro/",
-    "Testo unico in materia di tutela e sostegno della maternità e della paternità": "https://www.brocardi.it/testo-unico-sostegno-maternita-paternita/",
+    "Testo unico in materia di tutela e sostegno della maternità e della paternità(D.lgs. 26 marzo 2001, n. 151)": "https://www.brocardi.it/testo-unico-sostegno-maternita-paternita/",
     "Contratto Collettivo Nazionale del Lavoro Domestico": "https://www.brocardi.it/contratto-collettivo-colf-badanti/",
     "Contratto Collettivo Nazionale del Turismo, Pubblici esercizi, Ristorazione collettiva e commerciale, Alberghi": "https://www.brocardi.it/contratto-collettivo-turismo/",
     # Professioni e responsabilità
@@ -620,24 +624,99 @@ BROCARDI_CODICI = {
     "Semplificazione dei procedimenti in materia di ricorsi amministrativi(D.P.R. 24 novembre 1971, n. 1199)": "https://www.brocardi.it/ricorsi-amministrativi/",
     # Informatica pubblica
     "Regolamento posta elettronica certificata(D.P.R. 11 febbraio 2005, n. 68)": "https://www.brocardi.it/regolamento-posta-elettronica-certificata/",
-    # Appalti abrogato
+    # Appalti abrogati — Brocardi keeps the old name on the D.lgs. 50/2016 page;
+    # "codice dei contratti pubblici" resolves to the current D.lgs. 36/2023
+    # through its URN, so only an explicit 50/2016 citation lands here.
     "Codice degli appalti [ABROGATO](D.lgs. 12 aprile 2006, n. 163)": "https://www.brocardi.it/codice-degli-appalti/",
+    "Codice dei contratti pubblici [ABROGATO](D.lgs. 18 aprile 2016, n. 50)": "https://www.brocardi.it/codice-dei-contratti-pubblici/",
     # Decreti emergenza/economia (recenti)
     "Decreto lavoro 2023(D.L. 4 maggio 2023, n. 48)": "https://www.brocardi.it/decreto-lavoro-2023/",
     "Decreto \"Semplificazioni bis\"(D.L. 31 maggio 2021, n. 77)": "https://www.brocardi.it/decreto-semplificazioni-bis/",
     "Decreto \"Sostegni\"(D.L. 22 marzo 2021, n. 41)": "https://www.brocardi.it/decreto-sostegni/",
     "Decreto \"Rilancio\"(D.L. 19 maggio 2020, n. 34)": "https://www.brocardi.it/decreto-rilancio/",
     "Decreto \"Cura Italia\"(L. 24 aprile 2020, n. 27)": "https://www.brocardi.it/decreto-cura-italia/",
+    # Same page as its conversion law above: the resolver names the decree.
+    "Decreto \"Cura Italia\"(D.L. 17 marzo 2020, n. 18)": "https://www.brocardi.it/decreto-cura-italia/",
 }
 
-# Simplified lookup: lowercase act type → Brocardi URL
-_BROCARDI_LOOKUP: dict[str, str] = {}
+# Every label carries the act's extremes — "Statuto dei lavoratori(L. 20 maggio
+# 1970, n. 300)". They are parsed once here into the identity a citation is
+# matched against: (tipo esteso, anno, numero). Matching on the label text
+# instead ("legge" in key) once handed the legge fallimentare page to every
+# other legge, which for a lawyer is worse than no page at all.
+_MESI_IT = {
+    m: f"{i + 1:02d}"
+    for i, m in enumerate(
+        "gennaio febbraio marzo aprile maggio giugno luglio agosto "
+        "settembre ottobre novembre dicembre".split()
+    )
+}
+
+_ESTREMI_TIPI = {
+    "r.d.": "regio decreto",
+    "d.p.r.": "decreto del presidente della repubblica",
+    "d.lgs.": "decreto legislativo",
+    "d.l.": "decreto legge",
+    "l.": "legge",
+    "reg. ue": "regolamento ue",
+}
+
+_ESTREMI_RE = re.compile(
+    r"\((R\.D\.|D\.P\.R\.|D\.\s?Lgs\.|D\.L\.|L\.|Reg\.\s*UE)\s*"
+    r"(\d{1,2})\s+([A-Za-zà]+)\s+(\d{4}),?\s*n\.\s*(\d+)\)",
+    re.IGNORECASE,
+)
+
+
+def parse_brocardi_estremi(label: str) -> dict | None:
+    """Act identity embedded in a Brocardi label, or None for labels without one.
+
+    "Legge fallimentare(R.D. 16 marzo 1942, n. 267)" →
+    {"tipo_atto": "regio decreto", "data": "1942-03-16", "numero_atto": "267"}.
+    The last parenthesis wins: a few labels open with a display name in brackets.
+    """
+    matches = list(_ESTREMI_RE.finditer(label))
+    if not matches:
+        return None
+    tipo_raw, giorno, mese_raw, anno, numero = matches[-1].groups()
+    tipo = _ESTREMI_TIPI.get(re.sub(r"\s+", " ", tipo_raw.lower()).replace("d. lgs.", "d.lgs."))
+    mese = _MESI_IT.get(mese_raw.lower())
+    if not tipo or not mese:
+        return None
+    return {"tipo_atto": tipo, "data": f"{anno}-{mese}-{int(giorno):02d}", "numero_atto": numero}
+
+
+def _brocardi_label_name(label: str) -> str:
+    """The display name of a label: text before the extremes, tidied for lookup."""
+    name = label.split("(")[0]
+    return re.sub(r"\s+", " ", name.replace("[ABROGATO]", "").replace('"', "")).strip().lower()
+
+
+# (tipo esteso, anno, numero) → URL, and (tipo esteso, numero) → set of URLs for
+# citations that carry no year: those resolve only when the number is unique.
+_BROCARDI_BY_IDENTITY: dict[tuple[str, str, str], str] = {}
+_BROCARDI_BY_TIPO_NUMERO: dict[tuple[str, str], set[str]] = {}
+# display name → URL for callers that pass the act by its Brocardi name; the
+# labels without extremes (Costituzione, Preleggi…) have no other way in and
+# are consulted before any identity — Preleggi share the codice civile's R.D.
+_BROCARDI_BY_NAME: dict[str, str] = {}
+_BROCARDI_BARE_NAMES: dict[str, str] = {}
+# display name → its label's (tipo, anno, numero), to refuse a name paired with
+# somebody else's extremes ("statuto dei lavoratori", n. 267).
+_BROCARDI_NAME_ESTREMI: dict[str, tuple[str, str, str]] = {}
 for _key, _url in BROCARDI_CODICI.items():
-    _BROCARDI_LOOKUP[_key.lower()] = _url
-    # Also index by the first part before parenthesis
-    _short = _key.split("(")[0].strip().lower()
-    if _short and _short not in _BROCARDI_LOOKUP:
-        _BROCARDI_LOOKUP[_short] = _url
+    _BROCARDI_BY_NAME.setdefault(_brocardi_label_name(_key), _url)
+    _estremi = parse_brocardi_estremi(_key)
+    if _estremi:
+        _BROCARDI_NAME_ESTREMI.setdefault(
+            _brocardi_label_name(_key),
+            (_estremi["tipo_atto"], _estremi["data"][:4], _estremi["numero_atto"]),
+        )
+        _anno = _estremi["data"][:4]
+        _BROCARDI_BY_IDENTITY[(_estremi["tipo_atto"], _anno, _estremi["numero_atto"])] = _url
+        _BROCARDI_BY_TIPO_NUMERO.setdefault((_estremi["tipo_atto"], _estremi["numero_atto"]), set()).add(_url)
+    else:
+        _BROCARDI_BARE_NAMES.setdefault(_brocardi_label_name(_key), _url)
 
 
 # ---------------------------------------------------------------------------
@@ -714,6 +793,8 @@ def _normalize_key(name: str) -> str:
     """
     key = name.strip().lower()
     key = key.replace("\u2019", "'").replace("\u02bc", "'")
+    # Nicknames arrive quoted the way Brocardi prints them: Decreto "Sostegni".
+    key = key.replace('"', "").replace("\u201c", "").replace("\u201d", "")
     key = re.sub(r"\s+", " ", key)
     return key.strip(" ,;:")
 
@@ -815,31 +896,73 @@ def known_act_names() -> list[str]:
     return sorted(set(ATTI_NOTI) | set(ATTI_DENOMINATI) | set(NORMATTIVA_SEARCH) | set(NORMATTIVA_URN_CODICI))
 
 
-def find_brocardi_url(tipo_atto: str, numero_atto: str = "") -> str | None:
-    """Find the Brocardi base URL for a given act type."""
-    tipo_lower = tipo_atto.lower().strip()
+def _brocardi_by_identity(tipo_atto: str, numero_atto: str, data: str) -> str | None:
+    """URL for (tipo, numero[, anno]); None when the year is missing and ambiguous."""
+    if not numero_atto:
+        return None
+    anno = data.strip()[:4] if data else ""
+    if anno:
+        return _BROCARDI_BY_IDENTITY.get((tipo_atto, anno, numero_atto))
+    candidates = _BROCARDI_BY_TIPO_NUMERO.get((tipo_atto, numero_atto), set())
+    return next(iter(candidates)) if len(candidates) == 1 else None
 
-    # Direct match
-    if tipo_lower in _BROCARDI_LOOKUP:
-        return _BROCARDI_LOOKUP[tipo_lower]
 
-    # Normalize and try
-    normalized = normalize_act_type(tipo_lower)
-    if normalized in _BROCARDI_LOOKUP:
-        return _BROCARDI_LOOKUP[normalized]
+def _brocardi_by_name(tipo_lower: str, numero_atto: str, data: str) -> str | None:
+    """URL for a Brocardi display name, provided any extremes given agree with it."""
+    url = _BROCARDI_BY_NAME.get(tipo_lower)
+    if url is None:
+        return None
+    if not numero_atto:
+        return url
+    own = _BROCARDI_NAME_ESTREMI.get(tipo_lower)
+    if own is None or own[2] != numero_atto:
+        return None
+    anno = data.strip()[:4] if data else ""
+    return url if not anno or anno == own[1] else None
 
-    # Search with number in parenthesis
-    if numero_atto:
-        for key, url in _BROCARDI_LOOKUP.items():
-            if tipo_lower in key and f"n. {numero_atto}" in key:
-                return url
 
-    # Fuzzy: search by substring
-    for key, url in _BROCARDI_LOOKUP.items():
-        if tipo_lower in key:
-            return url
+def find_brocardi_url(tipo_atto: str, numero_atto: str = "", data: str = "") -> str | None:
+    """Brocardi base URL for an act, matched by identity — never by substring.
 
-    return None
+    Order: the labels without extremes by name (Preleggi share the codice
+    civile's R.D. 262/1942); a codice through the extremes of its Normattiva
+    URN, which is how "codice in materia di protezione dei dati personali"
+    reaches the page Brocardi calls "Codice della privacy" — unless the caller
+    passed extremes of its own, which then must match; the identity (tipo,
+    anno, numero) — without a year only if the number is unique for that tipo;
+    finally the plain Brocardi name, again only if any extremes given agree
+    with it. An act that is not on Brocardi yields None rather than the
+    nearest label.
+    """
+    tipo_lower = re.sub(r"\s+", " ", tipo_atto.lower().strip())
+    if not tipo_lower:
+        return None
+
+    if tipo_lower in _BROCARDI_BARE_NAMES:
+        return _BROCARDI_BARE_NAMES[tipo_lower]
+
+    anno = data.strip()[:4] if data else ""
+    codice = extract_codice_details(tipo_lower)
+    if codice:
+        same_numero = not numero_atto or numero_atto == codice["numero_atto"]
+        same_anno = not anno or anno == codice["data"][:4]
+        if same_numero and same_anno:
+            found = _brocardi_by_identity(codice["tipo_atto_reale"], codice["numero_atto"], codice["data"])
+            if found:
+                return found
+        elif numero_atto:
+            # Explicit extremes that contradict the URN name the act themselves:
+            # "codice dei contratti pubblici" + 50/2016 is the abrogated code.
+            return _brocardi_by_identity(codice["tipo_atto_reale"], numero_atto, data)
+
+    tipo_esteso = normalize_act_type(tipo_lower).lower()
+    if tipo_esteso in ("reg. ue", "regolamento (ue)"):
+        tipo_esteso = "regolamento ue"
+    found = _brocardi_by_identity(tipo_esteso, numero_atto, data)
+    if found:
+        return found
+
+    return _brocardi_by_name(tipo_lower, numero_atto, data)
 
 
 # ---------------------------------------------------------------------------
@@ -867,3 +990,4 @@ FONTI_PRINCIPALI = [
     "codice del terzo settore", "codice della protezione civile",
     "codice della crisi d'impresa e dell'insolvenza",
 ]
+

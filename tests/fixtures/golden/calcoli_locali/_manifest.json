@@ -1,0 +1,691 @@
+{
+ "groups": {
+  "codici_ateco": {
+   "datasets": [
+    "codici_ateco"
+   ],
+   "tools": [
+    "ricerca_codici_ateco"
+   ]
+  },
+  "codici_ruolo": {
+   "datasets": [
+    "codici_ruolo"
+   ],
+   "tools": [
+    "codici_iscrizione_ruolo"
+   ]
+  },
+  "codici_ruolo+contributo_unificato": {
+   "datasets": [
+    "codici_ruolo",
+    "contributo_unificato"
+   ],
+   "tools": [
+    "note_iscrizione_ruolo"
+   ]
+  },
+  "codici_tributo": {
+   "datasets": [
+    "codici_tributo"
+   ],
+   "tools": [
+    "cerca_codice_tributo"
+   ]
+  },
+  "comuni": {
+   "datasets": [
+    "comuni"
+   ],
+   "tools": [
+    "codice_fiscale",
+    "decodifica_codice_fiscale"
+   ]
+  },
+  "contributo_unificato": {
+   "datasets": [
+    "contributo_unificato"
+   ],
+   "tools": [
+    "contributo_unificato",
+    "decreto_ingiuntivo"
+   ]
+  },
+  "contributo_unificato+parametri_forensi": {
+   "datasets": [
+    "contributo_unificato",
+    "parametri_forensi"
+   ],
+   "tools": [
+    "modello_notula",
+    "preventivo_civile"
+   ]
+  },
+  "festivita": {
+   "datasets": [
+    "festivita"
+   ],
+   "tools": [
+    "conta_giorni",
+    "scadenza_processuale",
+    "scadenze_impugnazioni",
+    "scadenze_multe",
+    "termini_183_190_cpc",
+    "termini_deposito_atti_appello",
+    "termini_deposito_ctu",
+    "termini_esecuzioni",
+    "termini_memorie_repliche",
+    "termini_procedimento_semplificato",
+    "termini_processuali_civili",
+    "termini_separazione_divorzio"
+   ]
+  },
+  "gdpr_basi_giuridiche": {
+   "datasets": [
+    "gdpr_basi_giuridiche"
+   ],
+   "tools": [
+    "analisi_base_giuridica"
+   ]
+  },
+  "gdpr_dpia_criteri": {
+   "datasets": [
+    "gdpr_dpia_criteri"
+   ],
+   "tools": [
+    "verifica_necessita_dpia"
+   ]
+  },
+  "gdpr_sanzioni": {
+   "datasets": [
+    "gdpr_sanzioni"
+   ],
+   "tools": [
+    "calcolo_sanzione_gdpr"
+   ]
+  },
+  "imposte_successione": {
+   "datasets": [
+    "imposte_successione"
+   ],
+   "tools": [
+    "imposte_compravendita",
+    "imposte_successione"
+   ]
+  },
+  "indici_foi": {
+   "datasets": [
+    "indici_foi"
+   ],
+   "tools": [
+    "adeguamento_canone_locazione",
+    "calcolo_devalutazione",
+    "calcolo_inflazione",
+    "inflazione_titoli_stato",
+    "lettera_adeguamento_canone",
+    "rivalutazione_annuale_media",
+    "rivalutazione_mensile",
+    "rivalutazione_storica",
+    "rivalutazione_tfr",
+    "variazioni_istat"
+   ]
+  },
+  "indici_foi+tassi_legali": {
+   "datasets": [
+    "indici_foi",
+    "tassi_legali"
+   ],
+   "tools": [
+    "calcolo_maggior_danno",
+    "interessi_vari_capitale_rivalutato",
+    "rivalutazione_monetaria"
+   ]
+  },
+  "irpef_scaglioni": {
+   "datasets": [
+    "irpef_scaglioni"
+   ],
+   "tools": [
+    "calcolo_irpef",
+    "calcolo_tfr",
+    "costo_lavoro",
+    "detrazione_lavoro_dipendente",
+    "regime_forfettario"
+   ]
+  },
+  "mediazione_obbligatoria": {
+   "datasets": [
+    "mediazione_obbligatoria"
+   ],
+   "tools": [
+    "verifica_mediazione_obbligatoria"
+   ]
+  },
+  "modelli_atti": {
+   "datasets": [
+    "modelli_atti"
+   ],
+   "tools": [
+    "genera_modello_atto",
+    "lista_categorie_atti"
+   ]
+  },
+  "nessuna_tabella": {
+   "datasets": [],
+   "tools": [
+    "acconto_cedolare_secca",
+    "acconto_irpef",
+    "assegno_unico",
+    "attestazione_conformita",
+    "atto_di_precetto",
+    "aumenti_riduzioni_pena",
+    "backlog_riconciliazione",
+    "calcolo_ammortamento",
+    "calcolo_eredita",
+    "calcolo_eta_anagrafica",
+    "calcolo_hash",
+    "calcolo_imu",
+    "calcolo_naspi",
+    "calcolo_superficie_commerciale",
+    "calcolo_surroga_mutuo",
+    "calcolo_taeg",
+    "calcolo_tempo_trascorso",
+    "calcolo_valore_catastale",
+    "cedolare_secca",
+    "compenso_ctu",
+    "compenso_curatore_fallimentare",
+    "compenso_delegati_vendite",
+    "compenso_mediatore_familiare",
+    "compenso_occ",
+    "compenso_orario",
+    "competenza_giudice",
+    "composizione_negoziata",
+    "concordato_preventivo",
+    "confronto_investimenti",
+    "conversione_pena",
+    "copie_processo_tributario",
+    "costi_costituzione",
+    "detrazione_altri_familiari",
+    "detrazione_assegno_coniuge",
+    "detrazione_canone_locazione",
+    "detrazione_coniuge",
+    "detrazione_figli",
+    "detrazione_pensione",
+    "dichiarazione_553_cpc",
+    "diritti_copia",
+    "equo_indennizzo",
+    "fascicolo_di_parte",
+    "fattura_avvocato",
+    "fattura_enasarco",
+    "fattura_professionista",
+    "fine_pena",
+    "genera_dpa",
+    "genera_dpia",
+    "genera_informativa_cookie",
+    "genera_informativa_dipendenti",
+    "genera_informativa_privacy",
+    "genera_informativa_videosorveglianza",
+    "genera_notifica_data_breach",
+    "genera_registro_trattamenti",
+    "grado_parentela",
+    "gratuito_patrocinio",
+    "imposta_registro_locazioni",
+    "indennita_licenziamento",
+    "indice_documenti",
+    "interessi_tasso_fisso",
+    "istanza_visibilita_fascicolo",
+    "menomazioni_plurime",
+    "nota_precisazione_credito",
+    "nota_spese",
+    "note_trattazione_scritta",
+    "offerta_conciliativa",
+    "pena_concordata",
+    "pensione_reversibilita",
+    "pignoramento_stipendio",
+    "prescrizione_diritti",
+    "prescrizione_reato",
+    "procura_alle_liti",
+    "pronti_termine",
+    "quorum_assembleari",
+    "rateizzazione_imposte",
+    "relata_notifica_pec",
+    "rendimento_bot",
+    "rendimento_btp",
+    "rendimento_buoni_postali",
+    "ricevuta_prestazione_occasionale",
+    "risarcimento_inail",
+    "ritenuta_acconto",
+    "scadenze_licenziamento",
+    "scadenze_societarie",
+    "scorporo_iva",
+    "sfratto_morosita",
+    "soglie_organo_controllo_srl",
+    "spese_condominiali",
+    "spese_mediazione",
+    "spese_trasferta_avvocati",
+    "tariffe_mediazione",
+    "tassazione_atti",
+    "tasso_alcolemico",
+    "test_crisi_impresa",
+    "testimonianza_scritta",
+    "valutazione_data_breach",
+    "verbale_mensile",
+    "verifica_iban",
+    "verifica_partita_iva"
+   ]
+  },
+  "parametri_forensi": {
+   "datasets": [
+    "parametri_forensi"
+   ],
+   "tools": [
+    "calcolo_notula_penale",
+    "parcella_avvocato_civile",
+    "parcella_avvocato_penale",
+    "parcella_stragiudiziale",
+    "parcella_volontaria_giurisdizione",
+    "preventivo_stragiudiziale",
+    "preventivo_volontaria_giurisdizione"
+   ]
+  },
+  "preavviso_ccnl": {
+   "datasets": [
+    "preavviso_ccnl"
+   ],
+   "tools": [
+    "indennita_preavviso"
+   ]
+  },
+  "tabella_danno_bio": {
+   "datasets": [
+    "tabella_danno_bio"
+   ],
+   "tools": [
+    "danno_biologico_macro",
+    "danno_biologico_micro",
+    "danno_non_patrimoniale"
+   ]
+  },
+  "tabella_milano_roma": {
+   "datasets": [
+    "tabella_milano_roma"
+   ],
+   "tools": [
+    "danno_parentale"
+   ]
+  },
+  "tassi_legali": {
+   "datasets": [
+    "tassi_legali"
+   ],
+   "tools": [
+    "interessi_acconti",
+    "interessi_legali",
+    "ravvedimento_operoso"
+   ]
+  },
+  "tassi_mora": {
+   "datasets": [
+    "tassi_mora"
+   ],
+   "tools": [
+    "interessi_corso_causa",
+    "interessi_mora",
+    "sollecito_pagamento"
+   ]
+  },
+  "tegm": {
+   "datasets": [
+    "tegm"
+   ],
+   "tools": [
+    "verifica_usura"
+   ]
+  },
+  "tribunali_competenti": {
+   "datasets": [
+    "tribunali_competenti"
+   ],
+   "tools": [
+    "cerca_ufficio_giudiziario"
+   ]
+  },
+  "usufrutto_coefficienti": {
+   "datasets": [
+    "usufrutto_coefficienti"
+   ],
+   "tools": [
+    "calcolo_usufrutto"
+   ]
+  },
+  "violazioni_patente": {
+   "datasets": [
+    "violazioni_patente"
+   ],
+   "tools": [
+    "decurtazione_punti_patente"
+   ]
+  }
+ },
+ "note": "Expected answers of the local read-only tools, split by the data tables they read, pinned to LEGAL_TODAY/LEGAL_NOW and truncated at 4000 characters. One file per set of tables: a refreshed table shows up as a diff in the groups whose name lists it. Regenerate with: GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py",
+ "pinned_now": "2026-09-15T12:00:00",
+ "pinned_today": "2026-09-15",
+ "tool_datasets": {
+  "acconto_cedolare_secca": [],
+  "acconto_irpef": [],
+  "adeguamento_canone_locazione": [
+   "indici_foi"
+  ],
+  "analisi_base_giuridica": [
+   "gdpr_basi_giuridiche"
+  ],
+  "assegno_unico": [],
+  "attestazione_conformita": [],
+  "atto_di_precetto": [],
+  "aumenti_riduzioni_pena": [],
+  "backlog_riconciliazione": [],
+  "calcolo_ammortamento": [],
+  "calcolo_devalutazione": [
+   "indici_foi"
+  ],
+  "calcolo_eredita": [],
+  "calcolo_eta_anagrafica": [],
+  "calcolo_hash": [],
+  "calcolo_imu": [],
+  "calcolo_inflazione": [
+   "indici_foi"
+  ],
+  "calcolo_irpef": [
+   "irpef_scaglioni"
+  ],
+  "calcolo_maggior_danno": [
+   "indici_foi",
+   "tassi_legali"
+  ],
+  "calcolo_naspi": [],
+  "calcolo_notula_penale": [
+   "parametri_forensi"
+  ],
+  "calcolo_sanzione_gdpr": [
+   "gdpr_sanzioni"
+  ],
+  "calcolo_superficie_commerciale": [],
+  "calcolo_surroga_mutuo": [],
+  "calcolo_taeg": [],
+  "calcolo_tempo_trascorso": [],
+  "calcolo_tfr": [
+   "irpef_scaglioni"
+  ],
+  "calcolo_usufrutto": [
+   "usufrutto_coefficienti"
+  ],
+  "calcolo_valore_catastale": [],
+  "cedolare_secca": [],
+  "cerca_codice_tributo": [
+   "codici_tributo"
+  ],
+  "cerca_ufficio_giudiziario": [
+   "tribunali_competenti"
+  ],
+  "codice_fiscale": [
+   "comuni"
+  ],
+  "codici_iscrizione_ruolo": [
+   "codici_ruolo"
+  ],
+  "compenso_ctu": [],
+  "compenso_curatore_fallimentare": [],
+  "compenso_delegati_vendite": [],
+  "compenso_mediatore_familiare": [],
+  "compenso_occ": [],
+  "compenso_orario": [],
+  "competenza_giudice": [],
+  "composizione_negoziata": [],
+  "concordato_preventivo": [],
+  "confronto_investimenti": [],
+  "conta_giorni": [
+   "festivita"
+  ],
+  "contributo_unificato": [
+   "contributo_unificato"
+  ],
+  "conversione_pena": [],
+  "copie_processo_tributario": [],
+  "costi_costituzione": [],
+  "costo_lavoro": [
+   "irpef_scaglioni"
+  ],
+  "danno_biologico_macro": [
+   "tabella_danno_bio"
+  ],
+  "danno_biologico_micro": [
+   "tabella_danno_bio"
+  ],
+  "danno_non_patrimoniale": [
+   "tabella_danno_bio"
+  ],
+  "danno_parentale": [
+   "tabella_milano_roma"
+  ],
+  "decodifica_codice_fiscale": [
+   "comuni"
+  ],
+  "decreto_ingiuntivo": [
+   "contributo_unificato"
+  ],
+  "decurtazione_punti_patente": [
+   "violazioni_patente"
+  ],
+  "detrazione_altri_familiari": [],
+  "detrazione_assegno_coniuge": [],
+  "detrazione_canone_locazione": [],
+  "detrazione_coniuge": [],
+  "detrazione_figli": [],
+  "detrazione_lavoro_dipendente": [
+   "irpef_scaglioni"
+  ],
+  "detrazione_pensione": [],
+  "dichiarazione_553_cpc": [],
+  "diritti_copia": [],
+  "equo_indennizzo": [],
+  "fascicolo_di_parte": [],
+  "fattura_avvocato": [],
+  "fattura_enasarco": [],
+  "fattura_professionista": [],
+  "fine_pena": [],
+  "genera_dpa": [],
+  "genera_dpia": [],
+  "genera_informativa_cookie": [],
+  "genera_informativa_dipendenti": [],
+  "genera_informativa_privacy": [],
+  "genera_informativa_videosorveglianza": [],
+  "genera_modello_atto": [
+   "modelli_atti"
+  ],
+  "genera_notifica_data_breach": [],
+  "genera_registro_trattamenti": [],
+  "grado_parentela": [],
+  "gratuito_patrocinio": [],
+  "imposta_registro_locazioni": [],
+  "imposte_compravendita": [
+   "imposte_successione"
+  ],
+  "imposte_successione": [
+   "imposte_successione"
+  ],
+  "indennita_licenziamento": [],
+  "indennita_preavviso": [
+   "preavviso_ccnl"
+  ],
+  "indice_documenti": [],
+  "inflazione_titoli_stato": [
+   "indici_foi"
+  ],
+  "interessi_acconti": [
+   "tassi_legali"
+  ],
+  "interessi_corso_causa": [
+   "tassi_mora"
+  ],
+  "interessi_legali": [
+   "tassi_legali"
+  ],
+  "interessi_mora": [
+   "tassi_mora"
+  ],
+  "interessi_tasso_fisso": [],
+  "interessi_vari_capitale_rivalutato": [
+   "indici_foi",
+   "tassi_legali"
+  ],
+  "istanza_visibilita_fascicolo": [],
+  "lettera_adeguamento_canone": [
+   "indici_foi"
+  ],
+  "lista_categorie_atti": [
+   "modelli_atti"
+  ],
+  "menomazioni_plurime": [],
+  "modello_notula": [
+   "contributo_unificato",
+   "parametri_forensi"
+  ],
+  "nota_precisazione_credito": [],
+  "nota_spese": [],
+  "note_iscrizione_ruolo": [
+   "codici_ruolo",
+   "contributo_unificato"
+  ],
+  "note_trattazione_scritta": [],
+  "offerta_conciliativa": [],
+  "parcella_avvocato_civile": [
+   "parametri_forensi"
+  ],
+  "parcella_avvocato_penale": [
+   "parametri_forensi"
+  ],
+  "parcella_stragiudiziale": [
+   "parametri_forensi"
+  ],
+  "parcella_volontaria_giurisdizione": [
+   "parametri_forensi"
+  ],
+  "pena_concordata": [],
+  "pensione_reversibilita": [],
+  "pignoramento_stipendio": [],
+  "prescrizione_diritti": [],
+  "prescrizione_reato": [],
+  "preventivo_civile": [
+   "contributo_unificato",
+   "parametri_forensi"
+  ],
+  "preventivo_stragiudiziale": [
+   "parametri_forensi"
+  ],
+  "preventivo_volontaria_giurisdizione": [
+   "parametri_forensi"
+  ],
+  "procura_alle_liti": [],
+  "pronti_termine": [],
+  "quorum_assembleari": [],
+  "rateizzazione_imposte": [],
+  "ravvedimento_operoso": [
+   "tassi_legali"
+  ],
+  "regime_forfettario": [
+   "irpef_scaglioni"
+  ],
+  "relata_notifica_pec": [],
+  "rendimento_bot": [],
+  "rendimento_btp": [],
+  "rendimento_buoni_postali": [],
+  "ricerca_codici_ateco": [
+   "codici_ateco"
+  ],
+  "ricevuta_prestazione_occasionale": [],
+  "risarcimento_inail": [],
+  "ritenuta_acconto": [],
+  "rivalutazione_annuale_media": [
+   "indici_foi"
+  ],
+  "rivalutazione_mensile": [
+   "indici_foi"
+  ],
+  "rivalutazione_monetaria": [
+   "indici_foi",
+   "tassi_legali"
+  ],
+  "rivalutazione_storica": [
+   "indici_foi"
+  ],
+  "rivalutazione_tfr": [
+   "indici_foi"
+  ],
+  "scadenza_processuale": [
+   "festivita"
+  ],
+  "scadenze_impugnazioni": [
+   "festivita"
+  ],
+  "scadenze_licenziamento": [],
+  "scadenze_multe": [
+   "festivita"
+  ],
+  "scadenze_societarie": [],
+  "scorporo_iva": [],
+  "sfratto_morosita": [],
+  "soglie_organo_controllo_srl": [],
+  "sollecito_pagamento": [
+   "tassi_mora"
+  ],
+  "spese_condominiali": [],
+  "spese_mediazione": [],
+  "spese_trasferta_avvocati": [],
+  "tariffe_mediazione": [],
+  "tassazione_atti": [],
+  "tasso_alcolemico": [],
+  "termini_183_190_cpc": [
+   "festivita"
+  ],
+  "termini_deposito_atti_appello": [
+   "festivita"
+  ],
+  "termini_deposito_ctu": [
+   "festivita"
+  ],
+  "termini_esecuzioni": [
+   "festivita"
+  ],
+  "termini_memorie_repliche": [
+   "festivita"
+  ],
+  "termini_procedimento_semplificato": [
+   "festivita"
+  ],
+  "termini_processuali_civili": [
+   "festivita"
+  ],
+  "termini_separazione_divorzio": [
+   "festivita"
+  ],
+  "test_crisi_impresa": [],
+  "testimonianza_scritta": [],
+  "valutazione_data_breach": [],
+  "variazioni_istat": [
+   "indici_foi"
+  ],
+  "verbale_mensile": [],
+  "verifica_iban": [],
+  "verifica_mediazione_obbligatoria": [
+   "mediazione_obbligatoria"
+  ],
+  "verifica_necessita_dpia": [
+   "gdpr_dpia_criteri"
+  ],
+  "verifica_partita_iva": [],
+  "verifica_usura": [
+   "tegm"
+  ]
+ },
+ "truncated_at": 4000
+}

@@ -1,8 +1,9 @@
 {
   "_vintage": {
-    "fonte": "TU 346/1990",
-    "verifica": "da_verificare",
-    "nota": "la disciplina di successioni e donazioni è stata riformata di recente: riconciliare aliquote e franchigie"
+    "fonte": "TU D.Lgs. 346/1990, artt. 2, 7, 8-bis, 13 e 15 — vigenti",
+    "aggiornato_al": "2026-09-19",
+    "verifica": "manuale",
+    "nota": "Aliquote e franchigie verificate sulla scheda ufficiale dell'Agenzia delle Entrate (4%/1M coniuge e linea retta, 6%/100k fratelli, 6%/0 altri parenti, 8%/0 altri; 1,5M handicap grave L. 104/92); imposte ipotecaria 2% e catastale 1% con minimi 200 euro (artt. 13 e 15)"
   },
   "_description": "Imposte di successione e donazione — TU 346/1990",
   "aliquote": [

@@ -271,7 +271,7 @@ async def search_giurisprudenza(
         return added
 
     async with CerdefSession() as session:
-        resp = await retry_request(session.client, "POST", _SEARCH_URL, data=form_data)
+        resp = await retry_request(session.client, "POST", _SEARCH_URL, dataset="cerdef", data=form_data)
 
         xml_str = _extract_xml_from_js(resp.text, "xmlResult")
         page_results = _parse_search_xml(xml_str)
@@ -280,7 +280,7 @@ async def search_giurisprudenza(
         page = 2
         while len(results) < rows and len(page_results) > 0:
             resp = await retry_request(
-                session.client, "GET", _PAGINATOR_URL,
+                session.client, "GET", _PAGINATOR_URL, dataset="cerdef",
                 params={"paginaRichiesta": page},
             )
 
@@ -300,6 +300,6 @@ async def fetch_provvedimento(guid: str) -> ProvvedimentoDetail:
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
-        resp = await retry_request(client, "GET", _DETAIL_URL, params={"id": guid})
+        resp = await retry_request(client, "GET", _DETAIL_URL, dataset="cerdef", params={"id": guid})
         xml_str = _extract_xml_from_js(resp.text, "xmlDettaglio")
         return _parse_detail_xml(xml_str)

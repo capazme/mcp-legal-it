@@ -96,6 +96,16 @@ Client MCP:
 }
 ```
 
+### Qualunque client MCP — entry point (richiede `uv`)
+
+Il pacchetto espone il comando `mcp-legal-it` (stdio di default; `MCP_TRANSPORT=http|sse` con `MCP_HOST`, `MCP_PORT`, `MCP_PATH`):
+
+```bash
+uvx --from git+https://github.com/capazme/mcp-legal-it@main mcp-legal-it
+```
+
+Il server dichiara la propria versione ai client MCP (`serverInfo.version`). Le release vanno agganciate a un tag (`@vX.Y.Z`) invece che a `@main`.
+
 ### Manuale (sviluppatori)
 
 ```bash
@@ -144,8 +154,9 @@ Configurazione in `claude_desktop_config.json`:
 | 18 | Investimenti e Fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
 | 19 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `prescrizione_diritti` |
 | 20 | Recupero Crediti Seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
-| 21 | Analisi Fornitori (privacy) | 2 | `verifica_partita_iva_vies`, `genera_report_fornitori` |
+| 21 | Analisi Fornitori (privacy) | 3 | `verifica_partita_iva_vies`, `genera_report_fornitori`, `verifica_dpa_fornitore` |
 | 22 | DDL e Iter Parlamentare | 3 | `cerca_ddl`, `iter_ddl`, `ddl_su_norma` |
+| 23 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
 
 ---
 

@@ -54,23 +54,37 @@ def _lookup_scaglione(scaglioni: list, valore: float) -> float:
     return scaglioni[-1]["importo"]
 
 
-def _calcola_cu_base(valore_causa: float, tipo_procedimento: str) -> float:
-    """Calcola CU base primo grado."""
-    civile = _CU["civile"]
+def _calcola_cu_base(valore_causa: float, tipo_procedimento: str, tabella: dict | None = None) -> float:
+    """Calcola CU base primo grado.
+
+    `tabella` is a replacement table supplied by the caller (the `alternativa`
+    parameter of the `contributo_unificato` tool): when given, nothing is read
+    from the shipped file, so the answer rests entirely on the caller's data.
+    """
+    cu = tabella if tabella is not None else _CU
+    civile = cu["civile"]
 
     # Procedimenti a importo fisso
     fissi = {
         "esecuzione_immobiliare": civile["esecuzione_immobiliare"],
-        "esecuzione_mobiliare": civile["esecuzione_mobiliare"],
         "volontaria_giurisdizione": civile["volontaria_giurisdizione"],
         "separazione_consensuale": civile["separazione_consensuale"],
         "separazione_giudiziale": civile["separazione_giudiziale"],
         "divorzio_congiunto": civile["divorzio_congiunto"],
         "divorzio_giudiziale": civile["divorzio_giudiziale"],
-        "cautelari": civile["cautelari"],
     }
     if tipo_procedimento in fissi:
         return fissi[tipo_procedimento]
+
+    # Esecuzione mobiliare: fisso 43 fino a 2.500 euro, 139 oltre (art. 13, c. 2)
+    if tipo_procedimento == "esecuzione_mobiliare":
+        return _lookup_scaglione(civile["esecuzione_mobiliare"]["scaglioni"], valore_causa)
+
+    # Cautelari: ridotti del 50% della tabella ordinaria per valore
+    if tipo_procedimento == "cautelari":
+        return _lookup_scaglione(civile["cognizione"], valore_causa) * civile["cautelari"][
+            "riduzione"
+        ]
 
     # Cognizione (scaglioni per valore)
     if tipo_procedimento == "cognizione":
@@ -86,7 +100,7 @@ def _calcola_cu_base(valore_causa: float, tipo_procedimento: str) -> float:
 
     # Tributario
     if tipo_procedimento == "tributario":
-        return _lookup_scaglione(_CU["tributario"]["scaglioni"], valore_causa)
+        return _lookup_scaglione(cu["tributario"]["scaglioni"], valore_causa)
 
     # TAR
     if tipo_procedimento == "tar":
@@ -96,11 +110,12 @@ def _calcola_cu_base(valore_causa: float, tipo_procedimento: str) -> float:
 
 
 @mcp.tool(tags={"giudiziario", "credito", "sinistro"})
-@sourced("contributo_unificato")
+@sourced("contributo_unificato", alternativa="tabella_contributo_unificato")
 def contributo_unificato(
     valore_causa: float,
     tipo_procedimento: str = "cognizione",
     grado: str = "primo",
+    tabella_contributo_unificato: dict | None = None,
 ) -> dict:
     """Calcola il Contributo Unificato per valore della causa, tipo di procedimento e grado.
     Vigenza: DPR 115/2002 — Testo Unico Spese di Giustizia (tabelle aggiornate al 2024).
@@ -115,16 +130,23 @@ def contributo_unificato(
                            'divorzio_congiunto', 'divorzio_giudiziale', 'cautelari',
                            'lavoro' (primo grado esente), 'tributario', 'tar'
         grado: Grado del giudizio: 'primo', 'appello', 'cassazione'
+        tabella_contributo_unificato: Tabella sostitutiva fornita dal chiamante, con la
+                          stessa struttura di src/data/contributo_unificato.json (almeno
+                          'civile', 'tributario', 'appello', 'cassazione'). Se la fornisci,
+                          il calcolo non legge la tabella inclusa: utile se vuoi garantire
+                          tu la vigenza degli importi o applicare una tabella aggiornata di
+                          cui disponi
     """
     if valore_causa < 0:
         return {"errore": "valore_causa non può essere negativo"}
 
-    cu_base = _calcola_cu_base(valore_causa, tipo_procedimento)
+    cu_base = _calcola_cu_base(valore_causa, tipo_procedimento, tabella_contributo_unificato)
 
     moltiplicatore = 1.0
     if grado == "appello":
         if tipo_procedimento == "lavoro":
-            lavoro_appello = _CU["lavoro"]["appello"]
+            lavoro = (tabella_contributo_unificato or _CU)["lavoro"]
+            lavoro_appello = lavoro["appello"]
             if valore_causa <= lavoro_appello["fino_a"]:
                 cu_base = lavoro_appello["importo"]
             elif valore_causa <= 50000:
@@ -133,9 +155,9 @@ def contributo_unificato(
                 cu_base = lavoro_appello["oltre"]
             moltiplicatore = 1.0
         else:
-            moltiplicatore = _CU["appello"]["moltiplicatore"]
+            moltiplicatore = (tabella_contributo_unificato or _CU)["appello"]["moltiplicatore"]
     elif grado == "cassazione":
-        moltiplicatore = _CU["cassazione"]["moltiplicatore"]
+        moltiplicatore = (tabella_contributo_unificato or _CU)["cassazione"]["moltiplicatore"]
 
     importo = round(cu_base * moltiplicatore, 2)
 

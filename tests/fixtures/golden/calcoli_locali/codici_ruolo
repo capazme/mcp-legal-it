@@ -1,0 +1,13 @@
+{
+ "datasets": [
+  "codici_ruolo"
+ ],
+ "tools": {
+  "codici_iscrizione_ruolo": {
+   "arguments": {
+    "materia": "civile"
+   },
+   "expected": "{\"ricerca\":\"civile\",\"risultati\":[],\"totale\":0,\"riferimento_normativo\":\"Provvedimenti DGSIA — Codici oggetto iscrizione a ruolo\",\"dati_applicati\":[\"codici ruolo: aggiornati al 19/09/2026 (D.M. 32/2012 e provvedimenti DGSIA — tabella codici oggetto per l'iscrizione a ruolo (riferimento: Ministero della Giustizia)) — sottoinsieme delle materie civili piu' ricorrenti, ricavato dalla tabella ufficiale dei codici oggetto; la classificazione viene rinnovata dal Ministero: verificare a ogni aggiornamento del PCT\"]}"
+  }
+ }
+}

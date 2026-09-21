@@ -14,16 +14,6 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.server import mcp  # noqa: E402
+from src.cli import main  # noqa: E402
 
-transport = os.environ.get("MCP_TRANSPORT", "stdio")
-host = os.environ.get("MCP_HOST", "0.0.0.0")
-port = int(os.environ.get("MCP_PORT", "8000"))
-path = os.environ.get("MCP_PATH", "/mcp")
-
-if transport == "http":
-    mcp.run(transport="http", host=host, port=port, path=path)
-elif transport == "sse":
-    mcp.run(transport="sse", host=host, port=port)
-else:
-    mcp.run(transport="stdio")
+main([])

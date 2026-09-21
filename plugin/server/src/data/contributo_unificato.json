@@ -1,8 +1,9 @@
 {
   "_vintage": {
-    "fonte": "DPR 115/2002 e successive modifiche",
-    "verifica": "da_verificare",
-    "nota": "importi non riconciliati con l'ultima legge di bilancio"
+    "fonte": "DPR 115/2002, art. 13 (testo vigente su Normattiva, letto il 20-09-2026)",
+    "aggiornato_al": "2026-09-20",
+    "verifica": "manuale",
+    "nota": "Importi riscontrati sul testo vigente dell'art. 13: scaglioni civili (c.1), esecuzioni e opposizione agli atti esecutivi (c.2), riduzione alla meta' per monitorio, opposizione a d.i., cautelari e lavoro (c.3), tributario (c.6-quater), amministrativo (c.6-bis) con aumento della meta' in appello (art. 1 c.27 L. 228/2012). Lavoro: l'esenzione del primo grado vale solo per le parti con reddito non superiore a due volte la soglia dell'art. 76 (art. 9 c.1-bis); oltre, si applica il c.3"
   },
   "_description": "Contributo Unificato — DPR 115/2002 e successive modifiche",
   "civile": {
@@ -16,18 +17,16 @@
       {"oltre": true, "importo": 1686}
     ],
     "esecuzione_immobiliare": 278,
-    "esecuzione_mobiliare": 43,
-    "opposizione_esecutiva": [
-      {"fino_a": 1100, "importo": 43},
-      {"fino_a": 5200, "importo": 98},
-      {"fino_a": 26000, "importo": 237},
-      {"fino_a": 52000, "importo": 518},
-      {"fino_a": 260000, "importo": 759},
-      {"fino_a": 520000, "importo": 1214},
-      {"oltre": true, "importo": 1686}
-    ],
-    "procedimento_monitorio": {
-      "_note": "Dimezzato rispetto a cognizione",
+    "opposizione_atti_esecutivi": {"_note": "Art. 13, comma 2, ultimo periodo: importo fisso per le opposizioni agli atti esecutivi (art. 617 c.p.c.)", "importo": 168},
+    "esecuzione_mobiliare": {
+      "_note": "Fisso 43 per valore inferiore a 2.500 euro, 139 per valore superiore o uguale (art. 13, comma 2); il confine a 2499,99 e' l'importo massimo con due decimali sotto la soglia di legge",
+      "scaglioni": [
+        {"fino_a": 2499.99, "importo": 43},
+        {"oltre": true, "importo": 139}
+      ]
+    },
+    "opposizione_decreto_ingiuntivo": {
+      "_note": "Giudizio di opposizione a decreto ingiuntivo in primo grado: ridotto della meta' rispetto agli scaglioni ordinari",
       "scaglioni": [
         {"fino_a": 1100, "importo": 21.5},
         {"fino_a": 5200, "importo": 49},
@@ -38,12 +37,27 @@
         {"oltre": true, "importo": 843}
       ]
     },
+    "procedimento_monitorio": {
+      "_note": "Dimezzato rispetto a cognizione (procedimenti per ingiunzione, riduzione 50%)",
+      "scaglioni": [
+        {"fino_a": 1100, "importo": 21.5},
+        {"fino_a": 5200, "importo": 49},
+        {"fino_a": 26000, "importo": 118.5},
+        {"fino_a": 52000, "importo": 259},
+        {"fino_a": 260000, "importo": 379.5},
+        {"fino_a": 520000, "importo": 607},
+        {"oltre": true, "importo": 843}
+      ]
+    },
+    "cautelari": {
+      "_note": "Procedimenti cautelari: ridotti del 50% rispetto agli scaglioni ordinari per valore",
+      "riduzione": 0.5
+    },
     "volontaria_giurisdizione": 98,
     "separazione_consensuale": 43,
     "separazione_giudiziale": 98,
     "divorzio_congiunto": 43,
     "divorzio_giudiziale": 98,
-    "cautelari": 147,
     "valore_indeterminabile": 518
   },
   "appello": {
@@ -73,14 +87,22 @@
     ]
   },
   "amministrativo": {
+    "_note": "Art. 13, comma 6-bis: primo grado davanti al TAR; in appello al Consiglio di Stato gli importi sono aumentati della meta' (art. 1, comma 27, L. 228/2012)",
     "tar_ordinario": 650,
     "tar_appalti": 2000,
     "tar_appalti_sopra_soglia": 4000,
-    "consiglio_stato": 650,
-    "consiglio_stato_appalti": 2000,
+    "tar_appalti_scaglioni": [
+      {"fino_a": 200000, "importo": 2000},
+      {"fino_a": 1000000, "importo": 4000},
+      {"oltre": true, "importo": 6000}
+    ],
+    "tar_rito_abbreviato": 1800,
+    "consiglio_stato": 975,
+    "consiglio_stato_appalti": 3000,
     "decreto_ingiuntivo_tar": 650,
     "silenzio_inadempimento": 300,
     "accesso_atti": 300,
-    "ottemperanza": 650
+    "cittadinanza_soggiorno": 300,
+    "ottemperanza": 300
   }
 }
