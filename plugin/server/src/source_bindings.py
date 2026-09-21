@@ -65,5 +65,6 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "ultimi_provvedimenti_garante": ("gpdp",),
     "verifica_anteriorita_marchio": ("tmview",),
     "verifica_citazioni": ("brocardi", "eur_lex", "italgiure", "normattiva"),
+    "verifica_dpa_fornitore": ("dpa_probe",),
     "verifica_partita_iva_vies": ("vies",),
 }

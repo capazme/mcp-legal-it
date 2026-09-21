@@ -59,6 +59,32 @@ dipendenza non ti va bene, i tool che la usano sono isolati in
 `src/tools/legal_citations.py` (`cerca_brocardi`, `fetch_law_annotations`) e nel
 profilo che li carica.
 
+### L'unico host scelto da chi chiama: `verifica_dpa_fornitore`
+
+Un solo tool contatta un host che non è nell'elenco qui sopra:
+`verifica_dpa_fornitore(dominio)` (modulo `src/lib/dpa_probe/`) visita il sito
+del fornitore che il chiamante indica, su un elenco fisso di percorsi
+convenzionali (`/legal/dpa`, `/privacy/dpa`, `/gdpr`, …), per accertare se
+pubblica un DPA ex art. 28 GDPR. È l'eccezione dichiarata alla regola, e ha
+i suoi limiti scritti nel codice, con test che li fanno rispettare
+(`tests/unit/test_dpa_probe.py::TestDestinazionePubblica`):
+
+- il bersaglio deve essere un **nome di dominio pubblico registrabile**: mai un
+  indirizzo IP, una porta, credenziali, `localhost` o un nome locale/riservato
+  (`.local`, `.internal`, `.lan`, `.test`, …);
+- il nome viene **risolto prima di ogni richiesta** e rifiutato se anche uno
+  solo degli indirizzi non è pubblico (loopback, reti private, link-local e
+  quindi l'endpoint dei metadata cloud, riservati);
+- la stessa verifica vale per **ogni redirect**: un sito pubblico che rimanda a
+  un indirizzo interno viene fermato prima che la richiesta parta;
+- il verdetto viene messo in cache (`dpa_probe.json`, 90 giorni, disattivabile
+  con `LEGAL_CACHE=off`) e ogni risposta dichiara l'host consultato in
+  `fonti_consultate`.
+
+Un rifiuto è riportato come `dominio_irraggiungibile` con il motivo, mai come
+un errore silenzioso. `test_egress_allowlist.py` continua a valere per tutto il
+resto: nel codice non esiste alcun altro URL verso host non dichiarati.
+
 ### Host contattati solo dagli script di manutenzione
 
 Girano in CI, mai nel server:

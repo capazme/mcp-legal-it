@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -393,7 +393,7 @@ async def verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "") -> dict
     ricerca mirata prima di concludere.
 
     Vigenza: art. 28 GDPR (nomina responsabile).
-    Precisione: INDIZIARIO — accerta che il fornitore pubblichi un DPA, non che
+    Precisione: INDICATIVO (indiziaria) — accerta che il fornitore pubblichi un DPA, non che
     quel DPA sia richiamato nel contratto del cliente.
 
     Args:
@@ -401,7 +401,7 @@ async def verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "") -> dict
         nome_fornitore: Denominazione, solo per leggibilità dell'output
     """
     host = normalizza_dominio(dominio)
-    adesso = datetime.now(timezone.utc).replace(tzinfo=None)
+    adesso = _clock.now()
 
     if not host:
         return {
