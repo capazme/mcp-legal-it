@@ -21,60 +21,123 @@
 
 ## Struttura directory
 
-> Stato attuale: **76 file di test** (46 unit + 30 comparison). Il numero di test
-> cambia a ogni aggiunta, quindi non e' fissato qui: per averlo aggiornato usa
+> Stato attuale: **107 file di test** (77 unit + 30 comparison), 3580 test raccolti inclusi i `live`. Il numero di test
+> cambia a ogni aggiunta: per il numero aggiornato usa
 > `pytest tests/ --collect-only -q | tail -1` (aggiungi `-m ""` per includere i `live`). Il default di `pytest` esclude i test `live` (vedi `addopts` in `pyproject.toml`).
 
 ```
 tests/
 ├── __init__.py
 ├── test-queries.md             # Query manuali di riferimento (non eseguiti da pytest)
-├── unit/                       # Test senza connessione di rete
-│   ├── __init__.py
-│   ├── test_akn_fetch.py                    18 test
-│   ├── test_akn_parser.py                   54 test
-│   ├── test_analisi_fornitori.py            22 test
-│   ├── test_atti_giudiziari.py              141 test
-│   ├── test_brocardi.py                     41 test
-│   ├── test_calculations.py                 18 test
-│   ├── test_cerdef.py                       88 test
-│   ├── test_cgue.py                         76 test
-│   ├── test_consob.py                       38 test
-│   ├── test_corte_cost.py                   67 test
-│   ├── test_crisi_impresa.py                47 test
-│   ├── test_dichiarazione_redditi.py        127 test
-│   ├── test_diritto_lavoro.py               52 test
-│   ├── test_diritto_penale.py               49 test
-│   ├── test_diritto_societario.py           38 test
-│   ├── test_eu_implementation.py            66 test
-│   ├── test_fatturazione_avvocati.py        100 test
-│   ├── test_gazzetta.py                     60 test
-│   ├── test_giurisprudenza_unificata.py     11 test
-│   ├── test_giustizia_amm.py                71 test
-│   ├── test_gpdp.py                         30 test
-│   ├── test_http_retry.py                   7 test
-│   ├── test_investimenti.py                 48 test
-│   ├── test_italgiure.py                    225 test
-│   ├── test_legal_citations.py              108 test
-│   ├── test_modelli_atti.py                 30 test
-│   ├── test_orientamento.py                 33 test
-│   ├── test_parcelle_professionisti.py      79 test
-│   ├── test_privacy_gdpr.py                 45 test
-│   ├── test_procedura_civile.py             42 test
-│   ├── test_procure_quotazioni.py           17 test
-│   ├── test_prompts.py                      4 test
-│   ├── test_proprieta_successioni.py        110 test
-│   ├── test_refresh_data.py                 17 test
-│   ├── test_release_script.py               18 test
-│   ├── test_resources_dynamic.py            12 test
-│   ├── test_risarcimento_danni.py           75 test
-│   ├── test_rivalutazioni_istat.py          70 test
-│   ├── test_scadenze_termini.py             91 test
-│   ├── test_tassi_interessi.py              62 test
-│   ├── test_update_data.py                  19 test
-│   ├── test_varie.py                        79 test
-│   └── test_vies.py                         18 test
-    └── test_privacy_docs.py    29 test (no live)
+├── unit/                       # Test senza connessione di rete (tranne i *_live.py, marker `live`)
+│   ├── test_akn_fetch.py                            18 test
+│   ├── test_akn_parser.py                           54 test
+│   ├── test_analisi_fornitori.py                    29 test
+│   ├── test_atti_denominati_live.py                  2 test  ← gate live: ogni atto della tabella risolve al numero giusto su Normattiva (-m live)
+│   ├── test_atti_giudiziari.py                     142 test
+│   ├── test_brocardi.py                             43 test
+│   ├── test_brocardi_codici_live.py                  2 test  ← gate live: ogni URL Brocardi risponde e ogni fonte è mappata (-m live)
+│   ├── test_brocardi_identity.py                    46 test
+│   ├── test_build_targets.py                        12 test
+│   ├── test_cache_switch.py                         18 test
+│   ├── test_calculations.py                         18 test
+│   ├── test_cerdef.py                               88 test
+│   ├── test_cgue.py                                 76 test
+│   ├── test_citation_gate.py                        28 test
+│   ├── test_cli.py                                   6 test
+│   ├── test_consob.py                               38 test
+│   ├── test_corpus_build.py                          2 test
+│   ├── test_corpus_frontmatter.py                    5 test
+│   ├── test_corpus_projection.py                    19 test  ← plugin/ è la proiezione byte-identica di content/
+│   ├── test_corpus_targets.py                       12 test
+│   ├── test_corpus_toolnames.py                      7 test
+│   ├── test_corte_cost.py                           69 test
+│   ├── test_crisi_impresa.py                        47 test
+│   ├── test_data_vintage.py                         78 test
+│   ├── test_dichiarazione_redditi.py               127 test
+│   ├── test_diritto_lavoro.py                       52 test
+│   ├── test_diritto_penale.py                       49 test
+│   ├── test_diritto_societario.py                   38 test
+│   ├── test_dpa_probe.py                           112 test
+│   ├── test_egress_allowlist.py                     57 test  ← nessun URL in src/ verso host non dichiarati in _egress.py
+│   ├── test_eu_implementation.py                    69 test
+│   ├── test_fatturazione_avvocati.py               100 test
+│   ├── test_gazzetta.py                             62 test
+│   ├── test_giurisprudenza_unificata.py             11 test
+│   ├── test_giustizia_amm.py                        74 test
+│   ├── test_golden_calcoli.py                        6 test  ← risposte congelate dei calcolatori locali, per gruppo di tabelle (GOLDEN_UPDATE=1 per rigenerare)
+│   ├── test_gpdp.py                                 30 test
+│   ├── test_http_retry.py                            7 test
+│   ├── test_investimenti.py                         48 test
+│   ├── test_italgiure.py                           225 test
+│   ├── test_legal_citations.py                     123 test
+│   ├── test_modelli_atti.py                         30 test
+│   ├── test_online_sources.py                        5 test
+│   ├── test_openai_target.py                         9 test
+│   ├── test_orientamento.py                         34 test
+│   ├── test_packaging.py                             1 test  ← la wheel contiene dati ed entry point (richiede uv)
+│   ├── test_parcelle_professionisti.py              79 test
+│   ├── test_parlamento.py                           79 test
+│   ├── test_precision_policy.py                     16 test  ← tabella scaduta/non verificata → degrado o rifiuto negoziabile
+│   ├── test_privacy_gdpr.py                         45 test
+│   ├── test_procedura_civile.py                     42 test
+│   ├── test_procure_quotazioni.py                   17 test
+│   ├── test_profiles.py                              4 test  ← LEGAL_PROFILE restringe i tool e lascia prompt e risorse
+│   ├── test_prompt_surface.py                        2 test
+│   ├── test_prompts.py                               4 test
+│   ├── test_proprieta_successioni.py               110 test
+│   ├── test_provenance_datasets.py                   1 test  ← ogni tabella dichiarata muove davvero la risposta, e viceversa
+│   ├── test_read_only_contract.py                    2 test  ← i tool read-only non toccano filesystem né cache (server in sandbox)
+│   ├── test_refresh_data.py                         22 test
+│   ├── test_refusal_ledger.py                       12 test
+│   ├── test_release_script.py                       19 test
+│   ├── test_release_versioning.py                   28 test
+│   ├── test_resolver_coverage.py                   118 test
+│   ├── test_resources_dynamic.py                    12 test
+│   ├── test_resources_static.py                      1 test
+│   ├── test_risarcimento_danni.py                   75 test
+│   ├── test_rivalutazioni_istat.py                 110 test
+│   ├── test_scadenze_termini.py                     91 test
+│   ├── test_server_registration.py                   2 test  ← superficie registrata: 227 tool, 23 prompt, 15 risorse
+│   ├── test_table_ledger.py                          6 test
+│   ├── test_tassi_interessi.py                      65 test
+│   ├── test_tmview.py                               45 test
+│   ├── test_tool_annotations.py                     13 test  ← policy readOnlyHint/openWorldHint allineata all'audit (policy-sync in CI)
+│   ├── test_update_data.py                          19 test
+│   ├── test_varie.py                                79 test
+│   ├── test_vies.py                                 19 test
+│   └── test_vintage_warnings.py                      9 test
+└── comparison/                 # Valori attesi da fonti esterne; marcati `live` dal conftest (eccetto test_privacy_docs.py)
+    ├── test_acconti.py                              13 test
+    ├── test_ammortamento.py                          3 test
+    ├── test_codice_fiscale.py                        3 test
+    ├── test_conta_giorni.py                          3 test
+    ├── test_contributo_unificato.py                  4 test
+    ├── test_danno_biologico.py                       4 test
+    ├── test_detrazioni.py                           18 test
+    ├── test_diritto_penale.py                       17 test
+    ├── test_documenti.py                            42 test
+    ├── test_eredita.py                               3 test
+    ├── test_fattura_avvocato.py                      5 test
+    ├── test_interessi_legali.py                      6 test
+    ├── test_interessi_mora.py                        4 test
+    ├── test_investimenti.py                          8 test
+    ├── test_irpef.py                                 3 test
+    ├── test_parcella_civile.py                       5 test
+    ├── test_parcella_penale.py                       3 test
+    ├── test_parcella_stragiudiziale.py               4 test
+    ├── test_parcelle_prof.py                        14 test
+    ├── test_prescrizione.py                          2 test
+    ├── test_privacy_docs.py                         29 test
+    ├── test_proprieta.py                            25 test
+    ├── test_ravvedimento.py                          2 test
+    ├── test_risarcimento.py                         15 test
+    ├── test_rivalutazioni.py                        18 test
+    ├── test_scorporo_iva.py                          5 test
+    ├── test_tassi_extra.py                          17 test
+    ├── test_usufrutto.py                             4 test
+    ├── test_varie_extra.py                           9 test
+    └── test_volontaria.py                           18 test
 ```
 
 ---

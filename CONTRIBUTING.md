@@ -59,6 +59,14 @@ Il caso più semplice: il tool riceve parametri, calcola, restituisce una string
 1. Scegli il modulo in `src/tools/` in base alla categoria (es. `varie.py` per calcoli generali)
 2. Aggiungi la funzione con il decorator `@mcp.tool()` e una docstring chiara per l'LLM
 3. Nessuna modifica a `server.py` se il modulo esiste già
+4. Se il tool legge una tabella di `src/data/`, dichiarala con `@sourced("nome_tabella")`
+   (vedi `src/lib/_data.py`) e scrivi il grado nel docstring (`Precisione: ESATTO |
+   INDICATIVO | STIMATO`): l'audit fallisce sui tool che applicano una tabella senza grado
+5. Leggi la data solo tramite `src.lib._clock` (`_clock.today()` / `_clock.now()`):
+   `date.today()` altrove fa fallire l'audit, perché `LEGAL_TODAY` deve poter pinnare ogni tool
+6. Rigenera policy e binding: `python scripts/audit_tool_annotations.py --write`
+   (`--check` è il job `policy-sync` in CI) e, se il tool è locale e read-only, aggiornalo nel
+   golden con `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`
 
 **Esempio:**
 
@@ -300,5 +308,10 @@ devono poter arrivare agli utenti senza una release. L'unica eccezione è
 - [ ] Se hai toccato le dipendenze, `python scripts/check_deps_sync.py` passa
 - [ ] I nuovi tool hanno docstring con sezione `Args:` e nota su vigenza/precisione
 - [ ] Le funzioni `_impl` hanno test dedicati con mock httpx
-- [ ] Se è un modulo nuovo, `server.py` è aggiornato (import + instructions)
+- [ ] Se è un modulo nuovo, `server.py` è aggiornato (import + instructions) e il conteggio in
+      `tests/unit/test_server_registration.py` e nel vocabolario (`scripts/corpus/dump_vocabulary.py`)
+- [ ] `python scripts/audit_tool_annotations.py --check` passa (annotazioni, cache dichiarate, orologio, fonti online)
+- [ ] Se il tool contatta un host nuovo: aggiunto a `src/lib/_egress.py` e a `SECURITY.md`; il fetch passa da
+      `retry_request(..., dataset="...")` così la risposta dichiara `fonti_consultate`
+- [ ] Se hai toccato `src/data/`: golden rigenerato e `python scripts/update-data.py --strict` verde
 - [ ] L'output rispetta le convenzioni (importi, date, ESATTO/INDICATIVO)
