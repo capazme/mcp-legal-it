@@ -70,3 +70,4 @@ AGENTS.md
 .cursor/
 .claude/worktrees/
 .claude/settings.local.json
+CLAUDE.md
