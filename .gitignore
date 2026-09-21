@@ -62,3 +62,11 @@ docs/tool-report.html
 # everyone else, and a nested config a third party is asked to approve on
 # trust. Copy .mcp.json.example instead — it resolves paths from the checkout.
 .mcp.json
+
+# AI-assistant and host-app context artifacts (session state, never source)
+AGENTS.md
+.codex/
+.freebuff/
+.cursor/
+.claude/worktrees/
+.claude/settings.local.json
