@@ -62,3 +62,12 @@ uv.lock
 # Generated tool report (`python scripts/tool_report.py`); the page is built
 # from the annotation audit, so it is regenerated rather than reviewed.
 docs/tool-report.html
+
+# AI-assistant and host-app context artifacts (session state, never source)
+AGENTS.md
+CLAUDE.md
+.codex/
+.freebuff/
+.cursor/
+.claude/worktrees/
+.claude/settings.local.json
