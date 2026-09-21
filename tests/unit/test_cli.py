@@ -1,5 +1,8 @@
 """Console entry point and server version."""
 import re
+from pathlib import Path
+
+from packaging.version import Version
 import shutil
 from unittest.mock import patch
 
@@ -9,9 +12,11 @@ from src import cli
 
 
 def test_package_version_matches_pyproject():
-    text = open("pyproject.toml", encoding="utf-8").read()
+    # Installed metadata is PEP 440-normalised ("3.0.0b2"), the pyproject keeps
+    # the semver spelling ("3.0.0-beta.2"): compare as versions, not as strings.
+    text = (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text(encoding="utf-8")
     expected = re.search(r'^version = "([^"]+)"', text, re.M).group(1)
-    assert cli.package_version() == expected
+    assert Version(cli.package_version()) == Version(expected)
 
 
 def test_main_defaults_to_stdio(monkeypatch):
