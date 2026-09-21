@@ -2,6 +2,37 @@
 
 > Documentazione dei file JSON statici in `src/data/`: descrizione, fonte normativa, moduli che li usano.
 
+## Freschezza e provenienza (`_vintage`)
+
+Ogni file porta un blocco `_vintage` che il server legge a runtime (`src/lib/_data.py`):
+
+| Campo | Significato |
+|-------|-------------|
+| `fonte` | Da dove vengono i numeri (norma, comunicato, dataset ufficiale) |
+| `copre_fino_a` / `aggiornato_al` | Periodo coperto (tabelle periodiche) o data dell'ultimo riscontro (tabelle stabili) |
+| `verifica` | `automatica` (rinfrescata da `scripts/refresh_data.py`), `manuale` (trascritta e riscontrata a mano), `da_verificare` (nessuno ne ha ancora stabilito la provenienza) |
+| `tolleranza_giorni` | Per le tabelle periodiche: quanto oltre `copre_fino_a` la tabella resta valida |
+
+Il vintage **pesa sulle risposte**: il footer `dati_applicati` di ogni tool nomina le
+tabelle lette e la loro data; una tabella `da_verificare` ritira la pretesa
+`Precisione: ESATTO` del tool che la usa, una tabella scaduta blocca i calcoli
+ancorati a oggi (rifiuto negoziabile con `accetta_precisione`) — vedi
+[guida-precisione.md](guida-precisione.md).
+
+- `scripts/update-data.py --strict` è il controllo di freschezza: fallisce sulle tabelle
+  scadute o `da_verificare` e viene eseguito dal cron mensile `data-freshness.yml`.
+- `scripts/refresh_data.py` rinfresca da solo FOI (pagina ISTAT rivalutazioni) e tassi
+  di mora (Data Portal BCE); tutto il resto si aggiorna a mano seguendo la fonte.
+- Dopo ogni refresh: `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py` (i footer
+  cambiano) e, se cambiano valori pinnati, i test di integrità del modulo.
+
+Stato al 2026-09-21: 22 tabelle con provenienza dichiarata; `codici_ateco.json` è ancora
+sulla classificazione ATECO 2007/2022 (43 dei 73 codici non esistono in ATECO 2025:
+rigenerazione da ISTAT in corso) e `tribunali_competenti.json` è verificata solo per
+plausibilità — entrambe restano `da_verificare` e i relativi tool lo dichiarano.
+
+---
+
 ## Indice
 
 - [Panoramica](#panoramica)

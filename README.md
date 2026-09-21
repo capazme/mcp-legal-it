@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/python-%3E%3D3.10-3776ab?style=flat-square" alt="Python">
   <a href="https://github.com/capazme/mcp-legal-it/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/capazme/mcp-legal-it/ci.yml?branch=develop&style=flat-square&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tool-221-green?style=flat-square" alt="Tools">
+  <img src="https://img.shields.io/badge/tool-227-green?style=flat-square" alt="Tools">
 </p>
 
 
@@ -19,7 +19,7 @@
 
 ## Cos'e mcp-legal-it
 
-Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **221 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
+Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **227 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
 - **Normativa verificata** — testi vigenti da Normattiva, EUR-Lex e Brocardi (no allucinazioni)
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
@@ -50,7 +50,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 1. Installa `uv` (vedi sopra).
 2. Scarica **`legal-it-X.Y.Z.mcpb`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
 3. In Claude Desktop: **doppio click sul file** — oppure **Impostazioni → Estensioni → Impostazioni avanzate → Sviluppatore estensioni → Installa file `.mcpb`**.
-4. Riavvia Claude. I 221 tool girano in locale.
+4. Riavvia Claude. I 227 tool girano in locale.
 
 > **Il primo avvio è lento** (~1 min: scarica Python 3.12 e le dipendenze) e Claude Desktop
 > può mostrare il server come *disconnesso* mentre sta ancora scaricando. Attendi un minuto
@@ -134,9 +134,9 @@ Il server MCP funziona anche fuori da Claude — ma Codex CLI e ChatGPT non
 leggono i prompt guidati né le risorse `legal://`. Al posto delle skill del
 plugin Claude Code, usa il **bundle OpenAI** generato dallo stesso corpus:
 
-1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 40 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
+1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 42 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
 2. **Codex CLI**: estrai `.agents/skills/` in `$HOME/.agents/skills/` (globale) o nella root del progetto; copia `AGENTS.md`; aggiungi il blocco `config.toml.example` a `~/.codex/config.toml` (server MCP separato, via `uv`).
-3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 221 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
+3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 227 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
 
 Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Claude Code): [`docs/openai.md`](docs/openai.md).
 
@@ -156,33 +156,43 @@ Per provare una beta:
 
 ---
 
-## Tool disponibili — 221 tool, 33 moduli
+## Tool disponibili — 227 tool, 34 moduli
 
 | # | Categoria | Tool | Esempi |
 |---|-----------|:----:|--------|
-| 1 | Consultazione Normativa | 5 | `cite_law`, `cerca_brocardi`, `download_law_pdf` |
-| 2 | Giurisprudenza Cassazione | 4 | `leggi_sentenza`, `cerca_giurisprudenza`, `ultime_pronunce` |
-| 3 | Giurisprudenza Tributaria (CeRDEF) | 3 | `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `ultime_sentenze_tributarie` |
-| 4 | Giustizia Amministrativa (TAR/CdS) | 4 | `cerca_giurisprudenza_amministrativa`, `leggi_provvedimento_amm`, `giurisprudenza_amm_su_norma` |
-| 5 | Giurisprudenza CGUE | 4 | `cerca_giurisprudenza_cgue`, `leggi_sentenza_cgue`, `giurisprudenza_cgue_su_norma` |
-| 6 | Delibere CONSOB | 3 | `cerca_delibere_consob`, `leggi_delibera_consob` |
-| 7 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
-| 8 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
-| 9 | Rivalutazione Monetaria | 11 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
-| 10 | Interessi e Tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
-| 11 | Scadenze e Termini | 11 | `scadenza_processuale`, `termini_memorie_repliche` |
-| 12 | Atti Giudiziari | 15 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
-| 13 | Parcelle Avvocati | 11 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
-| 14 | Parcelle Professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
-| 15 | Risarcimento Danni | 7 | `danno_biologico_micro`, `danno_biologico_macro`, `danno_parentale` |
-| 16 | Diritto Penale | 5 | `prescrizione_reato`, `aumenti_riduzioni_pena` |
-| 17 | Proprieta e Successioni | 11 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
-| 18 | Investimenti e Fiscalita | 19 | `calcolo_irpef`, `regime_forfettario`, `rendimento_btp` |
-| 19 | Utilita | 12 | `codice_fiscale`, `verifica_iban`, `prescrizione_diritti` |
-| 20 | Recupero Crediti Seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
-| 21 | Analisi Fornitori (privacy) | 3 | `verifica_partita_iva_vies`, `genera_report_fornitori`, `verifica_dpa_fornitore` |
-| 22 | DDL e Iter Parlamentare | 3 | `cerca_ddl`, `iter_ddl`, `ddl_su_norma` |
-| 23 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
+| 1 | Consultazione normativa | 8 | `cite_law`, `cerca_brocardi`, `verifica_citazioni` |
+| 2 | Giurisprudenza Cassazione (Italgiure) | 5 | `leggi_sentenza`, `cerca_giurisprudenza`, `giurisprudenza_articolo` |
+| 3 | Giurisprudenza tributaria (CeRDEF) | 3 | `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento` |
+| 4 | Giustizia amministrativa (TAR/CdS) | 4 | `cerca_giurisprudenza_amministrativa`, `leggi_provvedimento_amm` |
+| 5 | Giurisprudenza CGUE | 4 | `cerca_giurisprudenza_cgue`, `leggi_sentenza_cgue` |
+| 6 | Corte Costituzionale | 4 | `cerca_pronuncia_costituzionale`, `leggi_pronuncia_costituzionale` |
+| 7 | Ricerca unificata e orientamenti | 4 | `cerca_giurisprudenza_unificata`, `orientamento_su_norma`, `mappa_orientamento` |
+| 8 | Gazzetta Ufficiale | 5 | `cerca_gazzetta_ufficiale`, `leggi_atto_gazzetta`, `ultime_gazzette` |
+| 9 | Iter parlamentare (DDL) | 3 | `cerca_ddl`, `iter_ddl`, `ddl_su_norma` |
+| 10 | Recepimento UE → Italia | 3 | `get_italian_implementation`, `get_eu_basis` |
+| 11 | Delibere CONSOB | 3 | `cerca_delibere_consob`, `leggi_delibera_consob` |
+| 12 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
+| 13 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
+| 14 | Analisi fornitori (privacy) | 3 | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori` |
+| 15 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
+| 16 | Rivalutazione monetaria | 12 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
+| 17 | Interessi e tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
+| 18 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche` |
+| 19 | Atti giudiziari | 23 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
+| 20 | Parcelle avvocati | 12 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
+| 21 | Parcelle professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
+| 22 | Risarcimento danni | 7 | `danno_biologico_micro`, `danno_biologico_macro`, `danno_parentale` |
+| 23 | Diritto penale | 5 | `prescrizione_reato`, `aumenti_riduzioni_pena` |
+| 24 | Proprietà e successioni | 12 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
+| 25 | Investimenti | 5 | `rendimento_bot`, `rendimento_btp`, `rendimento_buoni_postali` |
+| 26 | Dichiarazione dei redditi | 16 | `calcolo_irpef`, `regime_forfettario`, `calcolo_tfr` |
+| 27 | Diritto del lavoro | 6 | `indennita_licenziamento`, `calcolo_naspi`, `costo_lavoro` |
+| 28 | Diritto societario | 4 | `quorum_assembleari`, `soglie_organo_controllo_srl` |
+| 29 | Crisi d'impresa | 4 | `test_crisi_impresa`, `composizione_negoziata`, `compenso_occ` |
+| 30 | Procedura civile | 3 | `competenza_giudice`, `verifica_mediazione_obbligatoria`, `gratuito_patrocinio` |
+| 31 | Modelli di atti | 3 | `genera_modello_atto`, `esporta_atto_docx`, `lista_categorie_atti` |
+| 32 | Recupero crediti seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
+| 33 | Utilità e provenienza dei dati | 14 | `codice_fiscale`, `verifica_iban`, `verbale_mensile` |
 
 ---
 
@@ -201,6 +211,9 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base a
 | `confronto-norme` | Confronto sistematico tra norme: differenze, sovrapposizioni, criteri di specialita/posteriorita/gerarchia | `cite_law`, `cerca_brocardi`, `cerca_giurisprudenza` |
 | `mappatura-normativa` | Mappa normativa completa per settore con fonti per livello gerarchico e matrice adempimenti | `cite_law`, `cerca_delibere_consob`, `cerca_provvedimenti_garante`, `cerca_brocardi` |
 | `verifica-prescrizione` | Termine prescrizione civile (artt. 2941-2946 c.c.) o penale con sospensione/interruzione | `prescrizione_diritti`, `prescrizione_reato`, `cite_law` |
+| `orientamento-giurisprudenziale` | Mappa descrittiva dell'orientamento di legittimità: conformi vs contrasti, interventi delle Sezioni Unite, evoluzione nel tempo | `orientamento_su_norma`, `orientamento_su_principio`, `mappa_orientamento`, `leggi_sentenza` |
+| `ricerca-gazzetta` | Cosa è uscito in Gazzetta Ufficiale: novità per serie, ricerca parametrica, testo as-published e PDF ufficiale | `cerca_gazzetta_ufficiale`, `leggi_atto_gazzetta`, `sommario_gazzetta`, `scarica_pdf_gazzetta` |
+| `attuazione-direttiva` | Recepimento di una direttiva UE: atto italiano di attuazione, base giuridica europea, giurisprudenza CGUE collegata | `get_italian_implementation`, `get_eu_basis`, `giurisprudenza_cgue_su_norma`, `cite_law` |
 
 ### Contenzioso e calcoli
 
@@ -219,6 +232,8 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base a
 |-------|-------------|-----------------|
 | `compliance-privacy` | Assessment GDPR completo: base giuridica, check DPIA, registro, informativa, DPA, data breach | tutti i 12 tool GDPR + `cite_law` |
 | `data-breach` | Gestione incidente: valutazione rischio, modulo notifica Garante entro 72h, stima sanzioni art. 83 | `valutazione_data_breach`, `genera_notifica_data_breach`, `calcolo_sanzione_gdpr`, `cite_law` |
+| `analisi-fornitori` | Screening privacy del mastrino fornitori: identificazione via web e VIES, ruolo art. 28, DPA pubblicato dal fornitore, report Excel e bozze di nomina | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori`, `genera_dpa` |
+| `cookie-audit` | Audit forense dei cookie di un sito (pre/post consenso, CMP, tracker, GTM) con report Word e remediation — Provv. Garante 10/06/2021 | `genera_informativa_cookie`, `cite_law` (+ strumenti browser di Claude) |
 
 ### Redazione documenti
 
@@ -227,6 +242,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base a
 | `genera-atto` | Generazione atti legali — **100 modelli in 10 categorie** ([dettaglio sotto](#genera-atto--100-modelli-di-atti)) | `genera_modello_atto`, `lista_categorie_atti`, `cite_law` |
 | `redazione-contratto` | Supporto contrattuale: verifica norme, clausole tipo da Brocardi, check privacy/DPA se necessario | `cite_law`, `cerca_brocardi`, `analisi_base_giuridica`, `genera_dpa` |
 | `procure-quotazioni` | Procure alle liti e lettere di quotazione D.M. 55/2014 in serie da Excel di posizioni, con rilevamento fase (monitorio/esecuzione/opposizione) | `genera_procura_liti_docx`, `genera_quotazione_docx` |
+| `esporta-documento` | Esporta in DOCX o PDF il documento prodotto (informative, DPA, DPIA, registro, notifica) | `genera_informativa_privacy`, `genera_dpa`, `genera_dpia`, `genera_registro_trattamenti`, `genera_notifica_data_breach` |
 
 ### Giurisprudenza specializzata
 
@@ -235,6 +251,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base a
 | `analisi-tributaria` | Ricerca giurisprudenza tributaria CeRDEF, lettura provvedimenti, quadro normativo fiscale | `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `cite_law` |
 | `analisi-giurisprudenza-amministrativa` | Ricerca TAR/CdS, lettura sentenze, quadro CPA/L.241 | `cerca_giurisprudenza_amministrativa`, `leggi_provvedimento_amm`, `cite_law` |
 | `analisi-giurisprudenza-europea` | Ricerca CGUE via CELLAR SPARQL, lettura sentenze, quadro TFUE/direttive | `cerca_giurisprudenza_cgue`, `leggi_sentenza_cgue`, `cite_law` |
+| `analisi-costituzionale` | Ricerca e lettura delle pronunce della Consulta, parametri costituzionali invocati, quadro normativo | `cerca_pronuncia_costituzionale`, `leggi_pronuncia_costituzionale`, `pronunce_cost_su_norma`, `cite_law` |
 
 ### CONSOB
 
@@ -431,18 +448,20 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 
 ---
 
-## Slash command — 8
+## Slash command — 10
 
 | Comando | Descrizione | Logica di routing |
 |---------|-------------|-------------------|
 | `/legal-it:norma` | Cerca e cita una norma | Fetch testo vigente con `cite_law`, poi offre annotazioni Brocardi o giurisprudenza collegata |
-| `/legal-it:sentenza` | Leggi una sentenza di Cassazione | Testo integrale con `leggi_sentenza` se numero+anno noti, altrimenti suggerisce `/ricerca` |
-| `/legal-it:ricerca` | Ricerca giurisprudenziale | Routing per contesto: Italgiure, Garante Privacy, CONSOB o normativa |
+| `/legal-it:sentenza` | Leggi una sentenza di Cassazione | Testo integrale con `leggi_sentenza` se numero e anno sono noti, altrimenti `cerca_giurisprudenza` |
 | `/legal-it:interessi` | Calcolo interessi legali o di mora | Distingue legali (art. 1284 c.c.) da mora commerciale (BCE+8pp, D.Lgs. 231/2002) |
-| `/legal-it:parcella` | Calcolo parcella avvocato | Civile/penale/stragiudiziale con dettaglio per fase D.M. 55/2014 (min/medio/max) |
 | `/legal-it:codice-fiscale` | Calcolo o decodifica CF | Se riceve un CF lo decodifica, se riceve dati anagrafici lo calcola |
 | `/legal-it:scadenza` | Calcolo scadenza processuale | Routing: memorie 183/190, impugnazioni, esecuzioni, prescrizione civile/penale |
-| `/legal-it:privacy` | Genera informativa privacy | Routing per tipo: art. 13, cookie, dipendenti, videosorveglianza, DPA, DPIA, data breach |
+| `/legal-it:privacy` | Genera documenti GDPR | Routing per tipo: informativa art. 13, cookie, dipendenti, videosorveglianza, DPA, registro, DPIA, data breach |
+| `/legal-it:digest` | Briefing giuridico settimanale | Ultime novità da tutte le fonti (Cassazione, tributario, TAR/CdS, CGUE, Garante, CONSOB), raggruppate per fonte; pianificabile come cron |
+| `/legal-it:dati` | Stato delle tabelle dati | Freschezza e provenienza di ogni tabella del server e backlog di riconciliazione ordinato per quanto ha bloccato |
+| `/legal-it:verbale` | Verbale mensile dei rifiuti | Report mese su mese dei calcoli rifiutati o degradati per tabelle scadute o non verificate (`verbale_mensile`) |
+| `/legal-it:release` | Rilascio del plugin | Bump di tutti i manifest, changelog, release branch, merge in `main` e tag — solo per il maintainer |
 
 ---
 
@@ -493,7 +512,7 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 | Profilo | Tool caricati |
 |---------|---------------|
-| `full` | Tutti i 221 tool |
+| `full` | Tutti i 227 tool |
 | `calcoli` | Solo tool di calcolo (nessuna connessione HTTP) |
 | `normativa` | Normattiva + EUR-Lex + Brocardi + Italgiure + TAR/CdS + CGUE + CONSOB |
 | `fiscale` | Calcoli fiscali + IRPEF + investimenti + CeRDEF + CONSOB |

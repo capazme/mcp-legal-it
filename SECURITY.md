@@ -18,7 +18,7 @@ necessarie per rispondere alla domanda che hai posto.
 Verificabile in un comando:
 
 ```bash
-grep -rnE "https?://" --include="*.py" src/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|senato\.it|camera\.it|europa\.eu|brocardi|w3\.org|oasis-open|esempio\.it"
+grep -rnE "https?://" --include="*.py" src/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it"
 ```
 
 Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
@@ -128,7 +128,7 @@ diffidenza, sempre. Ecco cosa contiene questo:
   una norma è stata citata senza passare da `cite_law()`. Non fa rete, non
   scrive file. Leggilo prima di approvarlo — è breve apposta.
 - **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto.
-- Le 23 skill e i 6 agenti sono file markdown di istruzioni. Non eseguono nulla
+- Le 30 skill, i 10 comandi e i 6 agenti sono file markdown di istruzioni. Non eseguono nulla
   da soli.
 
 ## Dipendere da un solo manutentore

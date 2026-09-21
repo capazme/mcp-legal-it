@@ -35,16 +35,22 @@ python3 install.py --uninstall                  # rimuove tutte le configurazion
 
 ### Profili disponibili
 
+Conteggi reali (`tests/unit/test_profiles.py` li tiene allineati al codice):
+
 | Profilo | Tool | Descrizione |
 |---------|------|-------------|
-| `sinistro` | 44 | Danno biologico, rivalutazione, interessi, normativa |
-| `credito` | 52 | Interessi mora, decreto ingiuntivo, parcella avvocato |
-| `penale` | 16 | Prescrizione, calcolo pena, giurisprudenza |
-| `fiscale` | 39 | IRPEF, detrazioni, TFR, successioni, IMU |
-| `normativa` | 26 | Testo leggi, sentenze Cassazione, provvedimenti Garante |
-| `privacy` | 26 | DPIA, registro trattamenti, data breach, normativa |
-| `studio` | 57 | Scadenze, atti giudiziari, parcelle, contributo unificato |
-| `full` | 161 | Tutti gli strumenti (consigliato per Claude Code) |
+| `sinistro` | 81 | Danno biologico, rivalutazione, interessi, normativa, giurisprudenza |
+| `credito` | 91 | Interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato |
+| `penale` | 53 | Prescrizione, calcolo pena, normativa, giurisprudenza |
+| `fiscale` | 65 | IRPEF, detrazioni, TFR, successioni, IMU, CONSOB, crisi d'impresa, societario |
+| `normativa` | 69 | Testo leggi, giurisprudenza di tutte le corti, Garante, CONSOB, privacy |
+| `privacy` | 66 | GDPR, DPIA, registro, data breach, normativa e giurisprudenza |
+| `studio` | 73 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
+| `redattore` | 86 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
+| `cowork` | 79 | Set ridotto (normativa, giurisprudenza, privacy, parcelle) per host con contesto limitato |
+| `full` | 227 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
+
+Prompt guidati (23) e risorse `legal://` (15) restano disponibili in ogni profilo.
 
 ### Target di installazione
 
@@ -153,8 +159,11 @@ Aprire una nuova sessione Claude Code nella cartella del progetto per attivare.
 # Build immagine
 docker build -t mcp-legal-it .
 
-# Run SSE su porta 8000
+# Run Streamable HTTP su porta 8000 (endpoint /mcp — default dell'immagine)
 docker run -p 8000:8000 mcp-legal-it
+
+# Run legacy SSE (deprecato, retrocompatibilità)
+docker run -p 8000:8000 -e MCP_TRANSPORT=sse mcp-legal-it
 
 # Run con profilo specifico
 docker run -p 8000:8000 -e LEGAL_PROFILE=privacy mcp-legal-it
@@ -207,22 +216,28 @@ volumes:
   mcp-cache:
 ```
 
-### Configurazione client MCP per SSE
+### Configurazione client MCP (Streamable HTTP)
 
 ```json
 {
   "mcpServers": {
     "legal-it": {
-      "url": "http://localhost:8000/sse"
+      "url": "http://localhost:8000/mcp",
+      "transport": "streamable-http"
     }
   }
 }
 ```
 
-### Test endpoint SSE
+Con `MCP_TRANSPORT=sse` l'endpoint legacy è `http://localhost:8000/sse`.
+
+### Test endpoint
 
 ```bash
-curl http://localhost:8000/sse
+# Streamable HTTP: un POST di inizializzazione risponde 200 con un JSON-RPC
+curl -s -X POST http://localhost:8000/mcp -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
 ```
 
 ---
@@ -231,12 +246,19 @@ curl http://localhost:8000/sse
 
 | Variabile | Default | Descrizione |
 |-----------|---------|-------------|
-| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` (Claude Desktop/Code) o `sse` (Docker/remoto) |
-| `MCP_HOST` | `0.0.0.0` | Bind address — solo per transport SSE |
-| `MCP_PORT` | `8000` | Porta HTTP — solo per transport SSE |
-| `MCP_PATH_PREFIX` | *(vuoto)* | Path prefix per reverse proxy (es. `/legal-it`). Imposta automaticamente `FASTMCP_SSE_PATH` e `FASTMCP_MESSAGE_PATH`. |
-| `LEGAL_PROFILE` | `full` | Profilo tool: `full`, `sinistro`, `credito`, `penale`, `fiscale`, `normativa`, `privacy`, `studio` |
-| `MCP_CACHE_DIR` | `~/.cache/mcp-legal-it` | Directory per la cache persistente degli URL Brocardi |
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` (Claude Desktop/Code), `http` (Streamable HTTP — ChatGPT, Manus, qualunque client; default dell'immagine Docker) o `sse` (legacy) |
+| `MCP_HOST` | `0.0.0.0` | Bind address — solo `http`/`sse` |
+| `MCP_PORT` | `8000` | Porta — solo `http`/`sse` |
+| `MCP_PATH` | `/mcp` | Path dell'endpoint Streamable HTTP |
+| `LEGAL_PROFILE` | `full` | Profilo tool: vedi tabella sopra |
+| `MCP_CACHE_DIR` | `~/.cache/mcp-legal-it` | Directory delle cache su disco (atti AKN, URL Brocardi, massime Consulta, determinazioni DPA, verbale) |
+| `LEGAL_CACHE` | *(attiva)* | `off` (anche `no`, `false`, `0`, `none`, `disabled`): nessuna lettura o scrittura su disco, cache solo in memoria per la vita del processo |
+| `LEGAL_TODAY` / `LEGAL_NOW` | *(orologio reale)* | Pinnano la data/ora vista dal server (`YYYY-MM-DD` / ISO 8601): riproducibilità dei calcoli «a oggi», usati dai golden test |
+| `LEGAL_REFUSAL_LEDGER` | *(spento)* | `on`: verbale JSONL dei rifiuti/accettazioni della policy di precisione in `MCP_CACHE_DIR/refusals.jsonl` (solo tool, tabelle, stati, timestamp) |
+| `AKN_CACHE_MAX_ACTS` | `50` | Atti Normattiva (AKN) tenuti in memoria |
+| `AKN_DISABLED` | *(spento)* | `1`: salta l'export Akoma Ntoso di Normattiva e usa il fallback HTML |
+
+`MCP_PATH_PREFIX` non esiste più: per un reverse proxy si imposta `MCP_PATH`.
 
 ---
 
