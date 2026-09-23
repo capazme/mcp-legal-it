@@ -71,3 +71,6 @@ AGENTS.md
 .claude/worktrees/
 .claude/settings.local.json
 CLAUDE.md
+
+# LIMES private item bank (held locally, never published to public git — DESIGN §8.5)
+benchmarks/limes/bank/private/

@@ -1,0 +1,17 @@
+# Configurazione `plugin-legalit@v2.14.0` — superficie plugin (DESIGN §3, §7.3).
+#
+# Enhancement pinnato: stesso manifest schema di mcp e bare, cambia solo la
+# superficie. `parity` identica a tutte le config della wave: ciò che varia
+# fra le celle della matrice è dichiarato qui, niente nel codice del runner.
+id: plugin-legalit-v2.14.0
+surface: plugin
+ref: v2.14.0
+model: any
+
+isolation:
+  scratch_config_dir: true
+  profile: normativa
+
+parity:
+  max_turns: 30
+  system_prompt: default

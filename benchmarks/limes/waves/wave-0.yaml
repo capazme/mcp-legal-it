@@ -1,0 +1,37 @@
+# Wave 0 (DESIGN §7): entrambi gli strati, matrice 2 modelli x 4 config.
+#
+# Il protocollo d'analisi è congelato PER WAVE: margini di non-inferiorità,
+# pesi di eventuali indici compositi e seed vivono QUI, nel file che il tag
+# limes-wave-0 include — mai scelti dopo aver visto i dati (Gelman & Loken).
+id: wave-0
+tag: "limes-{id}"
+description: >-
+  Prima scorecard completa: bank duale (anchor + private), protocollo
+  meccanico-only, 4 configurazioni (bare, mcp-legalit v2.14.0,
+  plugin-legalit v2.14.0, plugin-legalit v3.0.0-beta.3), 2 modelli pinnati.
+
+# Modelli pinnati (model_sha = stringa esplicita, DESIGN §2). "any" delle
+# config si accoppia a ciascuno: la matrice è il prodotto.
+models:
+  - claude-opus-4-6
+  - claude-sonnet-4-6
+
+configs:
+  - bare
+  - mcp-legalit-v2.14.0
+  - plugin-legalit-v2.14.0
+  - plugin-legalit-v3.0.0-beta.3
+
+# Protocollo d'analisi pre-registrato della wave.
+analysis:
+  alpha: 0.05
+  bootstrap_resamples: 2000
+  non_inferiority:
+    # Serie temporale v2.14.0 -> v3.0.0-beta.3: la beta non deve essere
+    # inferiore oltre il margine, per dimensione.
+    margin: 0.10
+    treated: plugin-legalit-v3.0.0-beta.3
+    control: plugin-legalit-v2.14.0
+  composite:
+    # Solo comunicazione; pesi dichiarati PRIMA dei dati.
+    weights: { C: 0.25, P: 0.15, H: 0.15, A: 0.15, U: 0.15, M: 0.15 }

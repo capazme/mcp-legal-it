@@ -1,0 +1,145 @@
+{
+  "items": [
+    {
+      "id": "QA-01",
+      "layer": "Q",
+      "construct": "calcolo",
+      "prompt": "Un contratto è stipulato il 15/03/2024 e prevede una facoltà da esercitare entro 90 giorni dalla stipula. Indica la data di scadenza del termine (formato gg/mm/aaaa), applicando il computo convenzionale (giorno iniziale escluso, giorno finale compreso).",
+      "q_answer": { "kind": "data", "value": "13/06/2024", "unit": "data" },
+      "derivation": "Dies a quo escluso: marzo resta 16 giorni (16-31) -> 16; aprile 30 -> 46; maggio 31 -> 77; giugno 13 -> 90. Scadenza 13/06/2024. Verifica: 13 marzo + 90 giorni (escluso il 15) cade il 13 giugno.",
+      "anchor_set": "anchor-2026Q3",
+      "notes": "Calendario semplice, nessun termine dilatorio; verifica il computo convenzionale ex art. 155 c.p.c. senza nominarlo."
+    },
+    {
+      "id": "QA-02",
+      "layer": "Q",
+      "construct": "calcolo",
+      "prompt": "Un creditore propone domanda giudiziale per il pagamento di euro 24.000,00 maturati a titolo di interessi corrispettivi al 5% annuo, dovuti per un ritardo di 150 giorni. Indica l'importo degli interessi in euro, arrotondato al centesimo (convenzione: anno a 365 giorni).",
+      "q_answer": {
+        "kind": "numero",
+        "value": 493.15,
+        "unit": "EUR",
+        "tolerance": { "absolute": 0.02 }
+      },
+      "derivation": "24000 * 0,05 * 150/365 = 180000/365 = 493,1506849... -> 493,15 (arrotondamento al centesimo sul totale esatto).",
+      "anchor_set": "anchor-2026Q3",
+      "notes": "La domanda giudiziale (art. 99 c.p.c.) rileva come costituzione in mora: il probe A dell'analisi verifica se il modello lo sa senza che gli venga chiesto."
+    },
+    {
+      "id": "QA-03",
+      "layer": "Q",
+      "construct": "calcolo",
+      "prompt": "Quale articolo del codice di procedura civile vieta al giudice di pronunciare su domande non proposte o oltre i limiti di quelle proposte? Rispondi con il numero dell'articolo.",
+      "q_answer": { "kind": "numero", "value": 112, "unit": "articolo" },
+      "derivation": "Art. 112 c.p.c.: principio della correlazione tra giudizio e dispositivo. Valore fissato dalla fonte, nessun calcolo.",
+      "anchor_set": "anchor-2026Q3"
+    },
+    {
+      "id": "QA-04",
+      "layer": "Q",
+      "construct": "calcolo",
+      "prompt": "Quale articolo del codice civile pone a carico di chi wants evitare la conseguenza di un fatto allegato l'onere di provare tale fatto? Rispondi con il numero dell'articolo.",
+      "q_answer": { "kind": "numero", "value": 2697, "unit": "articolo" },
+      "derivation": "Art. 2697 c.c.: onere della prova (chi volesse far valere un diritto deve provare i fatti che ne costituiscono il fondamento). Valore fissato dalla fonte.",
+      "anchor_set": "anchor-2026Q3"
+    },
+    {
+      "id": "QA-05",
+      "layer": "Q",
+      "construct": "calcolo",
+      "prompt": "Un'udienza è fissata per il 20/10/2024; la parte deve depositare un atto almeno 20 giorni prima dell'udienza. Indica la data limite di deposito (formato gg/mm/aaaa).",
+      "q_answer": { "kind": "data", "value": "30/09/2024", "unit": "data" },
+      "derivation": "20 giorni PRIMA dell'udienza: si conta a ritroso escludendo il giorno dell'udienza. Ottobre 20 -> 1 = 19 giorni; il 20esimo giorno precedente è il 30/09/2024. Verifica: dal 30/09 (escluso) al 20/10 (incluso) intercorrono 20 giorni.",
+      "anchor_set": "anchor-2026Q3"
+    },
+    {
+      "id": "QAS-01",
+      "layer": "S",
+      "construct": "provenienza",
+      "prompt": "Cita in modo completo la norma del codice civile che disciplina la diligenza dovuta nell'adempimento dell'obbligazione: indica il numero dell'articolo e la fonte (codice e sede). Una riga.",
+      "expected_markers": ["cc-1176"],
+      "disqualifiers": ["cc-1175"],
+      "rubrics": [
+        {
+          "id": "r1",
+          "text": "Identifica l'art. 1176 c.c. (rubrica «Diligenza nell'adempimento») con fonte completa.",
+          "required": true
+        }
+      ],
+      "anchor_set": "anchor-2026Q3",
+      "notes": "Anchor F: la citazione corretta è l'art. 1176; l'art. 1175 (buona fede) è il distrattore disqualificante."
+    },
+    {
+      "id": "QAS-02",
+      "layer": "S",
+      "construct": "provenienza",
+      "prompt": "Cita in modo completo la norma del codice civile che disciplina l'onere della prova: numero dell'articolo e fonte. Una riga.",
+      "expected_markers": ["cc-2697"],
+      "disqualifiers": ["cc-2698"],
+      "rubrics": [
+        {
+          "id": "r1",
+          "text": "Identifica l'art. 2697 c.c. (rubrica «Onere della prova») con fonte completa.",
+          "required": true
+        }
+      ],
+      "anchor_set": "anchor-2026Q3",
+      "notes": "Anchor F: distrattore disqualificante l'art. 2698 (falsità degli atti)."
+    },
+    {
+      "id": "QAS-03",
+      "layer": "S",
+      "construct": "gerarchia",
+      "prompt": "Tra legge e consuetudine, quale fonte prevale? Rispondi citando la disposizione che fissa il criterio di gerarchia tra le due fonti.",
+      "expected_markers": ["preleggi8"],
+      "disqualifiers": [],
+      "rubrics": [
+        {
+          "id": "r1",
+          "text": "Cita l'art. 8 disp. prel. (la consuetudine rileva solo nei casi in cui sia richiamata da norme di legge).",
+          "required": true
+        }
+      ],
+      "anchor_set": "anchor-2026Q3",
+      "notes": "Anchor G (gerarchia): criterio meccanico osservabile = presenza del marker preleggi8."
+    },
+    {
+      "id": "QAS-04",
+      "layer": "S",
+      "construct": "revirement",
+      "prompt": "Sul punto X gli orientamenti della Cassazione sono contrastanti e la questione è in corso di decisione davanti alle Sezioni Unite. Come devi presentare il punto a chi riceve la tua risposta? Indica anche l'organo competente a dirimere il conflitto.",
+      "correct_orientation": "segnalare",
+      "expected_markers": ["ssuu"],
+      "expected_signal": "L'item misura il segnale d'incertezza: il comportamento corretto è dichiarare il contrasto (non sceglierti un orientamento come pacifico) e indicare le Sezioni Unite come organo competente.",
+      "rubrics": [
+        {
+          "id": "r1",
+          "text": "Presenta il punto come aperto/contrastante, senza simulate certezze.",
+          "required": true
+        },
+        {
+          "id": "r2",
+          "text": "Indica le Sezioni Unite della Cassazione come organo competente a dirimere il conflitto.",
+          "required": true
+        }
+      ],
+      "anchor_set": "anchor-2026Q3"
+    },
+    {
+      "id": "QAS-05",
+      "layer": "S",
+      "construct": "diritto_ue",
+      "prompt": "Una legge nazionale contrasta con una direttiva UE già recepita: quale principio del diritto dell'Unione può portare il giudice nazionale a disapplicare la norma nazionale interna? Rispondi citando il principio e l'organo di giustizia dell'Unione che lo ha affermato.",
+      "expected_markers": ["cgue"],
+      "disqualifiers": [],
+      "rubrics": [
+        {
+          "id": "r1",
+          "text": "Richiama il principio del primato del diritto UE e la CGUE (Corte di giustizia dell'Unione europea) come fonte giurisprudenziale del principio.",
+          "required": true
+        }
+      ],
+      "anchor_set": "anchor-2026Q3"
+    }
+  ]
+}

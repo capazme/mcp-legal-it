@@ -1,0 +1,22 @@
+# Configurazione `mcp-legalit@v2.14.0` — superficie MCP (DESIGN §3, §7.3).
+#
+# Lo stesso protocollo sulla superficie server MCP del legalit pinnato a
+# v2.14.0. `ref` è la lezione di `variant_sha`: pin che non si cancella.
+# I segreti (comando server, env) vivono nel template, mai nel manifest.
+id: mcp-legalit-v2.14.0
+surface: mcp
+ref: v2.14.0
+model: any
+
+isolation:
+  scratch_config_dir: true
+  profile: normativa          # env del server, parte della config
+
+mcp:
+  # Template con segnaposto ${VAR} risolti dall'ambiente al momento del run;
+  # il runner rifiuta un template con segnaposto non risolti (fail-closed).
+  server_template: mcp/legalit-mcp.template.json
+
+parity:
+  max_turns: 30
+  system_prompt: default

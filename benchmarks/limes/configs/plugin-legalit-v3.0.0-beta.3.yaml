@@ -1,0 +1,17 @@
+# Configurazione `plugin-legalit@v3.0.0-beta.3` — stessa superficie, ref nuovo.
+#
+# Serie temporale sulla stessa config (DESIGN §5): il confronto fra le due
+# release del plugin è paired, stesso item set, stesso protocollo — l'unica
+# differenza dichiarata è `ref`. Test di non-inferiorità pre-registrato.
+id: plugin-legalit-v3.0.0-beta.3
+surface: plugin
+ref: v3.0.0-beta.3
+model: any
+
+isolation:
+  scratch_config_dir: true
+  profile: normativa
+
+parity:
+  max_turns: 30
+  system_prompt: default

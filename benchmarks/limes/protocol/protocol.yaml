@@ -1,0 +1,41 @@
+# LIMES protocol — wave 0 (congelato nel tag `limes-wave-0`, DESIGN §2).
+#
+# Ogni numero uscito da LIMES dipende da questo file tramite protocol_sha:
+# nessuna regola di punteggio vive altrove.
+
+protocol_version: 0
+seed: 20260922
+
+conventions:
+  # Computo dei termini: giorno iniziale escluso, giorno finale compreso
+  # (art. 155 c.p.c.). Per gli interessi: anno convenzionale a 365 giorni
+  # (actual/365), somma esatta dei periodi poi arrotondamento al centesimo
+  # per eccesso. Gli item Q con `derivation` seguono queste convenzioni.
+  day_count: "actual/365"
+  term_computation: "dies a quo escluso"
+  rounding: "due decimali, half-up, sul totale esatto"
+  date_format: "gg/mm/aaaa"
+
+# Tolleranza pre-registrata quando l'item non ne dichiara una propria:
+# assorbe le differenze di arrotondamento senza aprire la porta al
+# "quasi giusto".
+tolerance_defaults:
+  absolute: 0.05
+
+retry_budget: 2          # tentativi oltre il primo (DESIGN §6: budget pre-registrato)
+timeout_s: 900
+
+# Esclusioni fail-closed: una run esclusa non entra nei denominatori e
+# l'error rate resta metrica pubblicata, non rumore da cancellare (§6).
+exclusions:
+  - errore_init_tool_shape
+  - hook_stop
+  - risposta_vuota
+
+judge:
+  # Pannello giudicante: riservato. Wave 0 gira solo sul meccanico; i
+  # giudici entrano in una wave successiva con il proprio judge_sha
+  # (anti-bias di famiglia e ordine criteri rimescolato, DESIGN §6).
+  models: []
+  family_blind: true
+  tiebreak: human

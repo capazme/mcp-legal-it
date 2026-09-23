@@ -1,0 +1,6 @@
+# I risultati sono dati di run, non sorgenti: restano fuori dal controllo
+# versioni. L'identità di un run vive nei record (i cinque SHA), non nel
+# filesystem — cf. DESIGN §2 (lezione di variant_sha).
+*
+!.gitignore
+!README.md

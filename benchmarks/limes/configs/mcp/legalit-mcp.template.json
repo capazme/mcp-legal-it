@@ -1,0 +1,13 @@
+{
+  "$comment": "Template del server MCP legalit (DESIGN §3). I segnaposto ${VAR} sono risolti dall'ambiente al momento del run; il runner rifiuta il run finché un segnaposto resta irrisolto (fail-closed). Questo file è parte di config_sha.",
+  "mcpServers": {
+    "legalit": {
+      "type": "stdio",
+      "command": "${LIMES_LEGALIT_CMD}",
+      "args": ["serve", "--profile", "${LIMES_LEGALIT_PROFILE}"],
+      "env": {
+        "LEGALIT_PROFILE": "${LIMES_LEGALIT_PROFILE}"
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# Configurazione `bare` — baseline senza utensili (DESIGN §3, §7.3).
+#
+# Nessun tool, nessun rinvio: la stessa matrice item × modello gira a vuoto.
+# Ogni dimensione della scorecard su `bare` è il pavimento rispetto a cui le
+# superfici potenziate si confrontano (P in n/d: senza transcript di tool la
+# fidelity non è definita — `citations.provenance_answer`).
+id: bare
+surface: bare            # bare | system-prompt | mcp | plugin | rag | agent
+model: any               # si accoppia a ogni modello della matrice
+
+isolation:
+  scratch_config_dir: true   # CLAUDE_CONFIG_DIR pulito, plugin estranei fuori
+  # nessun profile: nessun server da configurare
+
+parity:
+  max_turns: 30              # controlli di parità, uguali per tutte le config
+  system_prompt: default
