@@ -77,9 +77,18 @@ class TestDannoBiologicoMicro:
             res_si["danno_base"] * 0.10, abs=0.01
         )
 
-    def test_dettaglio_punti_lunghezza(self):
-        res = _call("danno_biologico_micro", percentuale_invalidita=4, eta_vittima=25)
-        assert len(res["dettaglio_punti"]) == 4
+    def test_formula_art_139_valore_punto_per_punti(self):
+        # Art. 139 co. 2 lett. a) e co. 6: valore punto = base x coefficiente del grado,
+        # totale = valore punto x punti (come nelle tabelle allegate ai DM annuali)
+        res = _call("danno_biologico_micro", percentuale_invalidita=9, eta_vittima=0)
+        assert res["coefficiente_grado"] == 2.3
+        assert res["valore_punto"] == pytest.approx(res["punto_base"] * 2.3, abs=0.01)
+        assert res["danno_permanente"] == pytest.approx(res["punto_base"] * 2.3 * 9, abs=0.05)
+        res4 = _call("danno_biologico_micro", percentuale_invalidita=4, eta_vittima=25)
+        assert len(res4["dettaglio_punti"]) == 1
+        assert res4["danno_permanente"] == pytest.approx(
+            res4["punto_base"] * 1.3 * 4 * (1 - 0.005 * 15), abs=0.05
+        )
 
     def test_errore_percentuale_zero(self):
         res = _call("danno_biologico_micro", percentuale_invalidita=0, eta_vittima=30)
@@ -137,15 +146,19 @@ class TestDannoBiologicoMacro:
         res = _call("danno_biologico_macro", percentuale_invalidita=12, eta_vittima=35)
         assert res["punto_base_interpolato"] == pytest.approx(3128.0, abs=1.0)
 
-    def test_personalizzazione_50pct(self):
+    def test_personalizzazione_30pct_tetto_art_138(self):
         res = _call(
             "danno_biologico_macro",
             percentuale_invalidita=20,
             eta_vittima=30,
-            personalizzazione_pct=50.0,
+            personalizzazione_pct=30.0,
         )
-        assert res["maggiorazione_morale"] == pytest.approx(res["danno_base"] * 0.50, abs=0.01)
-        assert res["totale_risarcimento"] == pytest.approx(res["danno_base"] * 1.50, abs=0.01)
+        assert res["maggiorazione_morale"] == pytest.approx(res["danno_base"] * 0.30, abs=0.01)
+        assert res["totale_risarcimento"] == pytest.approx(res["danno_base"] * 1.30, abs=0.01)
+        assert "avvertenza" in res
+        oltre = _call("danno_biologico_macro", percentuale_invalidita=20, eta_vittima=30,
+                      personalizzazione_pct=50.0)
+        assert "errore" in oltre
 
     def test_coefficiente_eta_0_10(self):
         res = _call("danno_biologico_macro", percentuale_invalidita=10, eta_vittima=5)

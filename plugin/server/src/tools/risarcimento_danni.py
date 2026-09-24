@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from src.server import mcp
+from src.lib._regime import previgente
 from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -64,7 +65,9 @@ def danno_biologico_micro(
     """Calcola il danno biologico per MICROPERMANENTI (≤9% di invalidità).
     Applica art. 139 Codice delle Assicurazioni (D.Lgs. 209/2005).
     Vigenza: tabelle aggiornate al DM 20/07/2026 (importi dal mese di aprile 2026).
-    Precisione: ESATTO (formula di legge applicata ai valori tabellari vigenti).
+    Precisione: ESATTO (formula di legge applicata ai valori tabellari vigenti: il coefficiente
+    del grado di invalidità accertato si applica a ciascun punto — art. 139 co. 2 lett. a) e co. 6 —
+    e il risultato si riduce dello 0,5% per ogni anno di età a partire dall'undicesimo).
 
     Usa questo quando: sinistro stradale o sanitario con invalidità permanente tra 1% e 9%.
     NON usare per: invalidità ≥10% → usa danno_biologico_macro().
@@ -102,13 +105,23 @@ def danno_biologico_micro(
     else:
         riduzione = 1.0
 
-    danno_permanente = 0.0
-    dettaglio_punti = []
-    for p in range(1, percentuale_invalidita + 1):
-        coeff = coefficienti[str(p)]
-        valore_punto = punto_base * coeff * riduzione
-        danno_permanente += valore_punto
-        dettaglio_punti.append({"percentuale": p, "coefficiente": coeff, "valore": round(valore_punto, 2)})
+    # Art. 139 co. 2 lett. a) e co. 6 Cod. Ass.: il coefficiente moltiplicatore corrisponde al
+    # grado di invalidità accertato e si applica a ciascun punto percentuale; il valore del
+    # punto (base x coefficiente, ridotto per età) va quindi moltiplicato per i punti, come
+    # nelle tabelle allegate ai decreti annuali. Sommare i valori dei gradi inferiori (1+1,1+...)
+    # sottostimava il danno fino a un terzo al 9%.
+    coeff = coefficienti[str(percentuale_invalidita)]
+    valore_punto = punto_base * coeff * riduzione
+    danno_permanente = valore_punto * percentuale_invalidita
+    dettaglio_punti = [
+        {
+            "percentuale": percentuale_invalidita,
+            "coefficiente": coeff,
+            "valore_punto": round(valore_punto, 2),
+            "punti": percentuale_invalidita,
+            "formula": "valore punto (base x coefficiente x riduzione età) x punti",
+        }
+    ]
 
     # Invalidità temporanea
     itt = giorni_itt * _MICRO["invalidita_temporanea_totale_giornaliera"]
@@ -128,6 +141,8 @@ def danno_biologico_micro(
         "percentuale_invalidita": percentuale_invalidita,
         "eta_vittima": eta_vittima,
         "punto_base": punto_base,
+        "coefficiente_grado": coeff,
+        "valore_punto": round(valore_punto, 2),
         "riduzione_eta": round(riduzione, 4),
         "danno_permanente": round(danno_permanente, 2),
         "danno_temporaneo": {
@@ -154,10 +169,14 @@ def danno_biologico_macro(
     personalizzazione_pct: float = 0,
 ) -> dict:
     """Calcola il danno biologico per MACROPERMANENTI (≥10% di invalidità).
-    Applica art. 138 Codice delle Assicurazioni (D.Lgs. 209/2005) con tabella unica nazionale.
-    Vigenza: Tabella unica nazionale DM 2024 — valori Milano per interpolazione.
-    Precisione: INDICATIVO (interpolazione lineare sui punti tabellari; il valore esatto
-    dipende dalla tabella unica nazionale definitiva ex art. 138 CdA, ancora in via di adozione).
+    Applica art. 138 Codice delle Assicurazioni (D.Lgs. 209/2005).
+    Vigenza: art. 138 Cod. Ass.; la tabella unica nazionale per le lesioni dal 10 al 100% è stata
+    adottata con DPR 13 gennaio 2025 n. 12 (in vigore dal 2025) e NON è trascritta in questo
+    server: i valori inclusi sono medie indicative non riconducibili alla TUN né alle tabelle di
+    Milano, e per gradi elevati producono importi non attendibili.
+    Precisione: STIMATO (ordine di grandezza; per la liquidazione usare la tabella unica nazionale
+    DPR 12/2025 o le tabelle del tribunale competente, per età e grado). Il tetto di
+    personalizzazione è il 30% (art. 138 co. 3).
 
     Usa questo quando: sinistro stradale o sanitario con invalidità permanente tra 10% e 100%.
     NON usare per: invalidità <10% → usa danno_biologico_micro().
@@ -167,7 +186,7 @@ def danno_biologico_macro(
     Args:
         percentuale_invalidita: Percentuale di invalidità permanente (10-100)
         eta_vittima: Età della vittima al momento del sinistro (0-120)
-        personalizzazione_pct: Percentuale di personalizzazione per danno morale (0-50)
+        personalizzazione_pct: Percentuale di personalizzazione (0-30, art. 138 co. 3 Cod. Ass.)
     """
     if not 10 <= percentuale_invalidita <= 100:
         return {"errore": "Macropermanenti: percentuale deve essere tra 10 e 100"}
@@ -175,8 +194,8 @@ def danno_biologico_macro(
     if not 0 <= eta_vittima <= 120:
         return {"errore": "Età non valida"}
 
-    if personalizzazione_pct < 0 or personalizzazione_pct > 50:
-        return {"errore": "Personalizzazione macropermanenti deve essere tra 0 e 50%"}
+    if personalizzazione_pct < 0 or personalizzazione_pct > 30:
+        return {"errore": "Personalizzazione macropermanenti deve essere tra 0 e 30% (art. 138 co. 3 Cod. Ass.)"}
 
     punto_base = _interpola_punto_base(percentuale_invalidita)
     coeff_eta = _coefficiente_eta(eta_vittima)
@@ -195,7 +214,13 @@ def danno_biologico_macro(
         "personalizzazione_pct": personalizzazione_pct,
         "maggiorazione_morale": round(maggiorazione_morale, 2),
         "totale_risarcimento": round(totale, 2),
-        "riferimento_normativo": "Art. 138 Cod. Assicurazioni (D.Lgs. 209/2005) — Tabella unica nazionale DM 2024",
+        "avvertenza": (
+            "STIMA di ordine di grandezza: i valori punto inclusi non sono la tabella unica "
+            "nazionale (DPR 13/01/2025 n. 12) né una tabella di tribunale, e per gradi elevati "
+            "risultano sovrastimati. Per la liquidazione usare la TUN o la tabella del tribunale "
+            "competente per età e grado."
+        ),
+        "riferimento_normativo": "Art. 138 Cod. Assicurazioni (D.Lgs. 209/2005) — tabella unica nazionale DPR 12/2025 (da trascrivere)",
     }
 
 
@@ -209,8 +234,9 @@ def danno_parentale(
 ) -> dict:
     """Calcola il danno da perdita del rapporto parentale (danno morale da morte del congiunto).
     Vigenza: Tabelle di Milano 2024 e Roma 2024 (aggiornate con Cass. SU 26972/2008 e successive).
-    Precisione: INDICATIVO (forchetta min-max; il valore finale dipende dalla personalizzazione
-    giudiziale sulle concrete circostanze del rapporto e del lutto).
+    Precisione: INDICATIVO (range minimo-massimo derivati dalle edizioni precedenti delle tabelle;
+        dal 2022 la tabella di Milano liquida il danno da perdita del rapporto parentale a punti, in
+        linea con Cass. 10579/2021, e i valori di Roma inclusi sono una stima)
 
     Usa questo quando: richiesta risarcimento per morte del congiunto in sinistro o illecito.
     NON usare per: danno biologico del superstite (es. disturbo dell'adattamento) → usa danno_biologico_micro/macro().
@@ -530,13 +556,17 @@ def danno_non_patrimoniale(
     }
 
 
-@mcp.tool(tags={"danni"})
+@mcp.tool(tags={"danni", "previgente"})
+@previgente
 def equo_indennizzo(
     categoria_tabella: str,
     percentuale_invalidita: float,
     stipendio_annuo: float,
 ) -> dict:
     """Calcola l'equo indennizzo per causa di servizio per dipendenti pubblici (istituto abrogato).
+    Regime: PREVIGENTE — infermità da causa di servizio di dipendenti pubblici per fatti anteriori
+    al 06/12/2011 (istituto abrogato dall'art. 6 DL 201/2011 conv. L. 214/2011; nessun tool
+    vigente equivalente: per gli infortuni dei lavoratori privati → risarcimento_inail)
 
     ATTENZIONE: Istituto ABROGATO per eventi successivi al 06/12/2011
     (art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero). Il calcolo resta valido

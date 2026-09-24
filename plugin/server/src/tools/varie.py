@@ -469,7 +469,8 @@ def decurtazione_punti_patente(violazione: str, tabella_violazioni: dict | None 
     """Restituisce punti decurtati, sanzione pecuniaria e sospensione patente per violazione CdS.
 
     Accetta parola chiave e restituisce tutte le violazioni corrispondenti con i relativi punti decurtati.
-    Vigenza: D.Lgs. 285/1992 (Codice della Strada) — aggiornato al D.Lgs. 36/2023 (Riforma CdS 2023).
+    Vigenza: art. 126-bis D.Lgs. 285/1992 e tabella allegata, come aggiornati dalla L. 25 novembre
+        2024 n. 177 (riforma del Codice della Strada).
     Precisione: ESATTO per violazioni presenti nel database; verificare aggiornamenti per riforme recenti.
 
     Args:

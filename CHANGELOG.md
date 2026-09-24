@@ -5,6 +5,141 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Flag `Regime: PREVIGENTE` for tools that compute under a rule that no longer
+  governs new cases (`src/lib/_regime.py`): declared once in the docstring
+  (`Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>`), enforced by
+  the tag `previgente` in `@mcp.tool(tags=...)` and by the wrapper
+  `@previgente`, which puts a `regime_normativo` block in every answer. The
+  audit renders the group into `tool_annotations.py` (`PREVIGENTE`), the
+  middleware stamps `mcp-legal-it/regime` in the `_meta` of `tools/list` and of
+  every result, and `LEGAL_PREVIGENTE=off` hides the group. Applied to
+  `termini_183_190_cpc` (cause iscritte a ruolo prima del 28/02/2023) and
+  `equo_indennizzo` (fatti anteriori al 06/12/2011). `verify_regime` fails the
+  suite when the three declarations disagree or a successor is not a registered
+  tool (`tests/unit/test_regime.py`).
+- `tests/unit/test_cartabia_live.py`: live gate that reads artt. 171-ter, 189,
+  190, 165, 166, 343, 347, 325, 327, 47, 281-undecies, 281-duodecies, 155, 7
+  c.p.c., art. 1 L. 742/1969, art. 5 D.Lgs. 28/2010, artt. 161-bis c.p. e
+  344-bis c.p.p., art. 545 c.p.c., artt. 9 e 13 DPR 115/2002 through `cite_law`
+  and checks the day counts and amounts the tools hard-code (`-m live`).
+- `docs/001_mcp-legal-it_AuditNormativa_RV_SAPG.md`: report of the legal
+  currency audit of the 227 tools (Cartabia procedure, benchmark status,
+  open items with confidence).
+
+### Fixed
+- Sospensione feriale (L. 742/1969) in every deadline tool: the days 1-31
+  August are now skipped one by one, both forward and backward. The previous
+  arithmetic added only the overlap of the raw period with August, so a term
+  ending in August was extended by too little (20/07 + 30 days gave 07/09
+  instead of 19/09), a backward term could land inside August (udienza 01/10,
+  40 days before gave 12/08 instead of 22/07) and a term starting in August
+  was one day late (10/08 + 30 gave 01/10 instead of 30/09). A term in months
+  that includes August slides by 31 days; a dies a quo in August is deferred
+  to the end of the suspension (prudential reading: 6 months from 31/08 end
+  on 28/02). `scadenze_impugnazioni`, `termini_deposito_atti_appello`,
+  `termini_memorie_repliche`, `termini_deposito_ctu` and `termini_183_190_cpc`
+  now take `sospensione_feriale` (default True); `scadenza_processuale` takes
+  it too (default False, it also serves substantive terms).
+- `termini_processuali_civili`: `comparsa_conclusionale` and `replica` applied
+  the abrogated art. 190 c.p.c. (60 and 80 days after the udienza di
+  precisazione delle conclusioni) under a post-Cartabia label. They are now
+  the art. 189 c.p.c. terms, 30 and 15 days before the udienza di rimessione
+  della causa in decisione, plus `note_conclusioni` (60 days before) and an
+  optional `giorni` for a shorter term assigned by the judge.
+- `termini_procedimento_semplificato`: applied the rito ordinario terms (70
+  days for the comparsa, 40/20/10 for the memorie) to the rito semplificato.
+  Now: last day for the notifica (termini liberi of 40/60 days, art.
+  281-undecies co. 2), costituzione del convenuto not later than 10 days
+  before the udienza (co. 3), memoria integrativa and replica only if granted
+  by the judge, within 20 and a further 10 days (art. 281-duodecies co. 3).
+- `termini_deposito_atti_appello`: the appellant's costituzione is 10 days from
+  the notifica of the citazione (art. 165 via art. 347 c.p.c.), not 30, and the
+  appellee's comparsa is 70 days before the udienza (art. 166 via art. 347,
+  post-Cartabia), not 20; both are computed from `data_notifica_citazione` and
+  `data_udienza` when given.
+- `scadenze_impugnazioni`: the regolamento di competenza has no 6-month term
+  (art. 47 c.p.c.: 30 days from the comunicazione).
+- `scadenze_multe`: the 30% discount for payment within 5 days comes from art.
+  20 DL 69/2013 conv. L. 98/2013, not from L. 120/2010.
+- `termini_separazione_divorzio`: the 6/12 months run from the comparizione
+  dei coniugi in udienza (art. 3 n. 2 lett. b L. 898/1970), not from the
+  omologa; note on the domanda cumulata ex art. 473-bis.49 c.p.c.
+- `danno_biologico_micro`: the art. 139 co. 2 lett. a) and co. 6 Cod. Ass.
+  formula applies the coefficient of the assessed degree to every point
+  (valore punto x punti, as in the ministerial tables); the tool summed the
+  values of the lower degrees and under-paid by up to a third at 9%.
+- `danno_biologico_macro`: graded STIMATO with an explicit warning, because the
+  bundled point values are not the tabella unica nazionale (DPR 13/01/2025
+  n. 12) nor a court table and overstate high degrees; personalisation capped
+  at 30% (art. 138 co. 3 Cod. Ass.).
+- `contributo_unificato`: lavoro and previdenza follow art. 9 co. 1-bis DPR
+  115/2002 (exempt up to three times the art. 76 threshold, otherwise 43 euro
+  for previdenza and half the scaglione for lavoro; full amount in Cassazione)
+  through `reddito_oltre_soglia_lavoro`; the untraceable lavoro-appello
+  amounts are gone; tributario keeps the art. 13 co. 6-quater amounts in
+  appello; new tipi `valore_indeterminabile`, `valore_indeterminabile_gdp`,
+  `opposizione_decreto_ingiuntivo`, `opposizione_atti_esecutivi`; an unknown
+  tipo is refused instead of silently priced as cognizione.
+- `pignoramento_stipendio`: the minimo impignorabile delle pensioni (double
+  the assegno sociale, at least 1.000 euro, art. 545 co. 7 c.p.c. as amended
+  by art. 21-bis DL 115/2022) was reported but never deducted; `pensione=True`
+  now applies the quota to the excess only, and `assegno_sociale_mensile`
+  lets the caller pass the current year's amount.
+- `decreto_ingiuntivo`: crediti di lavoro (`tipo_credito="retribuzioni"`) go
+  to the tribunale in funzione di giudice del lavoro (art. 413 c.p.c.) whatever
+  the value; the 10.000 euro threshold is attributed to art. 7 c.p.c.
+  post-Cartabia; the opposizione (art. 641) and notifica (art. 644) terms are
+  listed.
+- Templates: attestazione di conformità and istanza di visibilità cite artt.
+  196-quater ss. disp. att. c.p.c. instead of the repealed artt. 16-bis and
+  16-undecies DL 179/2012; art. 127-ter c.p.c. applies from 01/01/2023;
+  precetto without the abolished formula esecutiva and with the art. 617
+  (20 days) / art. 615 (no term) distinction and the art. 480 co. 2 warning;
+  relata PEC without the COA authorisation and with the art. 147 co. 3 c.p.c.
+  perfection rule; dichiarazione del terzo cites art. 548 for the mancata
+  dichiarazione; nota di precisazione del credito no longer cites art. 547;
+  testimonianza scritta uses the art. 251 formula after Corte cost. 149/1995;
+  `modelli_atti.json` notes (appello +50%, lavoro exemption, artt. 481/644,
+  DM 150/2023).
+- `fattura_professionista`: the rivalsa INPS 4% of the gestione separata is
+  subject to ritenuta d'acconto, the contributo integrativo of a cassa is not;
+  new `tipo="gestione_separata"`. `fattura_avvocato`: 2 euro bollo on
+  forfettario invoices above 77,47 euro. `genera_quotazione_docx`: the CU of
+  the esecuzione comes from the table (43 euro under 2.500).
+- `prescrizione_reato`: the regime now depends on the date of the offence
+  (ordinario until 02/08/2017; Orlando 03/08/2017-31/12/2019; from 01/01/2020
+  the prescription stops with the first-instance judgment, art. 161-bis c.p.,
+  and art. 344-bis c.p.p. improcedibilità terms apply, 3 years/18 months for
+  appeals filed by 31/12/2024, then 2 years/1 year); `recidiva` drives the
+  art. 161 co. 2 cap. The agent, prompt and docs that attributed these rules
+  to D.Lgs. 150/2022 and to "Bonafede 2020-2024 / Cartabia dal 2025" are
+  corrected.
+- `composizione_negoziata`: the impresa minore thresholds of art. 2 co. 1
+  lett. d CCII must all be met, not any one. `costi_costituzione`: 25% of
+  cash contributions at incorporation of a SpA (art. 2342 co. 2 c.c.), SRLS
+  exempt from diritti di segreteria (art. 3 co. 3 DL 1/2012).
+  `scadenze_licenziamento`: the 180 days run from the impugnazione
+  (`data_impugnazione`), the 60 days from the rifiuto della conciliazione
+  (`data_rifiuto_conciliazione`), rito Fornero references removed (abrogated
+  by D.Lgs. 149/2022). `calcolo_naspi`: the 3% reduction starts with the
+  sixth month (art. 4 co. 3 D.Lgs. 22/2015).
+- `decurtazione_punti_patente`: the 2024 road code reform is L. 177/2024, not
+  D.Lgs. 36/2023 (the public contracts code).
+
+### Changed
+- Precision grades lowered to INDICATIVO, with the reason in the docstring, for
+  tools whose figures cannot be traced to the decree they cite:
+  `spese_mediazione`, `tariffe_mediazione`, `compenso_mediatore_familiare`
+  (DM 151/2023 exists), `compenso_curatore_fallimentare`,
+  `compenso_delegati_vendite`, `compenso_ctu`, `fattura_enasarco`,
+  `spese_trasferta_avvocati`, `diritti_copia`, `copie_processo_tributario`,
+  `danno_parentale`, `indennita_licenziamento`, `costo_lavoro`,
+  `quorum_assembleari`, `test_crisi_impresa`, `compenso_occ`,
+  `calcolo_maggior_danno`, `ravvedimento_operoso`.
+
 ## [2.14.0] - 2026-09-20
 
 ### Added

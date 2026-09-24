@@ -13,8 +13,10 @@ def _call(fn_name, **kwargs):
 
 class TestFatturaProfessionista:
 
-    def test_ingegnere_ordinario(self):
-        r = _call("fattura_professionista", imponibile=1000, tipo="ingegnere", regime="ordinario")
+    def test_gestione_separata_ordinario(self):
+        # Rivalsa INPS 4% della gestione separata: concorre alla base della ritenuta (come il
+        # calcolatore di avvocatoandreani.it per il professionista senza cassa)
+        r = _call("fattura_professionista", imponibile=1000, tipo="gestione_separata", regime="ordinario")
         rivalsa = 1000 * 4 / 100  # 40
         base = 1000 + 40  # 1040
         iva = base * 22 / 100  # 228.80
@@ -24,6 +26,14 @@ class TestFatturaProfessionista:
         assert_close(r["iva"], 228.80, tolerance=0.01, label="iva")
         assert_close(r["ritenuta_acconto"], 208.0, tolerance=0.01, label="ritenuta")
         assert_close(r["netto_a_pagare"], round(netto, 2), tolerance=0.01, label="netto")
+
+    def test_ingegnere_ordinario(self):
+        # Contributo integrativo Inarcassa 4%: soggetto a IVA, escluso dalla ritenuta
+        r = _call("fattura_professionista", imponibile=1000, tipo="ingegnere", regime="ordinario")
+        assert_close(r["contributo_previdenziale"], 40.0, tolerance=0.01, label="contributo")
+        assert_close(r["iva"], 228.80, tolerance=0.01, label="iva")
+        assert_close(r["ritenuta_acconto"], 200.0, tolerance=0.01, label="ritenuta")
+        assert_close(r["netto_a_pagare"], 1040 + 228.80 - 200, tolerance=0.01, label="netto")
 
     def test_forfettario(self):
         r = _call("fattura_professionista", imponibile=1000, tipo="architetto", regime="forfettario")

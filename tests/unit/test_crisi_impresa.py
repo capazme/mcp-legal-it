@@ -124,7 +124,19 @@ class TestComposizioneNegoziata:
         assert result["ammissibile"] is True
         assert any("25-quater" in r for r in result["requisiti_soddisfatti"])
 
-    def test_sotto_soglia_attivo_ammissibile(self):
+    def test_sotto_soglia_requisiti_congiunti_ammissibile(self):
+        # Art. 2 co. 1 lett. d CCII: attivo, ricavi e debiti sotto soglia CONGIUNTAMENTE
+        result = _call(
+            "composizione_negoziata",
+            fatturato=180_000.0,
+            attivo=250_000.0,
+            dipendenti=2,
+            debito_totale=400_000.0,
+            tipo_impresa="sotto_soglia",
+        )
+        assert result["ammissibile"] is True
+
+    def test_sotto_soglia_un_solo_requisito_non_basta(self):
         result = _call(
             "composizione_negoziata",
             fatturato=250_000.0,
@@ -133,18 +145,7 @@ class TestComposizioneNegoziata:
             debito_totale=600_000.0,
             tipo_impresa="sotto_soglia",
         )
-        assert result["ammissibile"] is True
-
-    def test_sotto_soglia_ricavi_ammissibile(self):
-        result = _call(
-            "composizione_negoziata",
-            fatturato=180_000.0,
-            attivo=400_000.0,
-            dipendenti=2,
-            debito_totale=600_000.0,
-            tipo_impresa="sotto_soglia",
-        )
-        assert result["ammissibile"] is True
+        assert result["ammissibile"] is False
 
     def test_sotto_soglia_nessuna_soglia_non_ammissibile(self):
         result = _call(

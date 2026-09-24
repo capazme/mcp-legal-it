@@ -37,6 +37,7 @@ tests/
 │   ├── test_atti_giudiziari.py                     142 test
 │   ├── test_brocardi.py                             43 test
 │   ├── test_brocardi_codici_live.py                  2 test  ← gate live: ogni URL Brocardi risponde e ogni fonte è mappata (-m live)
+│   ├── test_cartabia_live.py                        14 test  ← gate live: i giorni e gli importi dei tool di procedura riscontrati sul testo vigente via cite_law (-m live)
 │   ├── test_brocardi_identity.py                    46 test
 │   ├── test_cache_switch.py                         18 test
 │   ├── test_calculations.py                         18 test

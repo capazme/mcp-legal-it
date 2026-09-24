@@ -113,6 +113,17 @@ def _cu_monitorio(valore: float) -> Decimal:
     return _d2(_CU["civile"]["procedimento_monitorio"]["scaglioni"][-1]["importo"])
 
 
+def _cu_esecuzione(valore) -> Decimal:
+    """CU dell'esecuzione mobiliare o presso terzi: 43 euro sotto 2.500 euro di credito, 139
+    oltre (art. 13 co. 2 DPR 115/2002); l'esecuzione immobiliare (278 euro) va passata con
+    `contributo_unificato`."""
+    valore = Decimal(str(valore))
+    for scaglione in _CU["civile"]["esecuzione_mobiliare"]["scaglioni"]:
+        if "fino_a" in scaglione and valore <= Decimal(str(scaglione["fino_a"])):
+            return _d2(scaglione["importo"])
+    return _d2(_CU["civile"]["esecuzione_mobiliare"]["scaglioni"][-1]["importo"])
+
+
 def _prospetto_importi(tabellare: Decimal, aumento_pct30: bool) -> dict:
     """Catena di calcolo validata: +30% PCT, SG 15%, CPA 4%, IVA 22%, RA 20%."""
     aumento = _d2(tabellare * Decimal("0.30")) if aumento_pct30 else Decimal("0.00")
@@ -322,7 +333,9 @@ def genera_quotazione_docx(
         accettazione_denominazione: Denominazione nel blocco di accettazione (default: cliente_denominazione)
         luogo: Luogo della lettera (default Milano)
         data_documento: Data GG/MM/AAAA (convertita in forma estesa) o testo libero; vuota = odierna
-        contributo_unificato: CU in euro; -1 = calcolo automatico (monitorio: metà DPR 115/2002; esecuzione: € 139,00)
+        contributo_unificato: CU in euro; -1 = calcolo automatico (monitorio: metà DPR 115/2002; esecuzione
+                              mobiliare o presso terzi: € 43,00 sotto 2.500 euro, € 139,00 oltre; per
+                              l'esecuzione immobiliare passare € 278,00)
         compenso_fase_introduttiva: Solo tipo 'esecuzione': compenso fase introduttiva. Il default € 166,00 vale SOLO per valore causa fino a € 5.200 a livello minimi; oltre, o a livello 'medi', va passato il valore corretto della tabella esecuzioni
         compenso_fase_trattazione: Solo tipo 'esecuzione': compenso fase trattazione/conclusiva. Il default € 284,00 vale SOLO per valore causa fino a € 5.200 a livello minimi; oltre, o a livello 'medi', va passato il valore corretto
     """
@@ -523,7 +536,7 @@ def genera_quotazione_docx(
             f"bollo, per un totale complessivo preventivato di {_eur(totale_complessivo)}."
         )
     elif tipo == "esecuzione":
-        cu = _d2(contributo_unificato) if contributo_unificato >= 0 else Decimal("139.00")
+        cu = _d2(contributo_unificato) if contributo_unificato >= 0 else _cu_esecuzione(valore_causa)
         marca = Decimal("27.00")
         forfait = Decimal("120.00")
         totale_complessivo = _d2(importi["liquidabile"] + cu + marca + forfait)

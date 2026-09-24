@@ -215,6 +215,44 @@ def fine_pena(
     return result
 
 
+#: Confini dei regimi di prescrizione per data del fatto.
+_ORLANDO_DAL = date(2017, 8, 3)      # L. 103/2017, art. 1 co. 11: art. 159 co. 2 c.p. (sospensioni post condanna)
+_BLOCCO_DAL = date(2020, 1, 1)       # L. 3/2019, art. 1 co. 1 lett. e): la prescrizione cessa dopo il primo grado
+_TRANSITORIO_FINO_AL = date(2024, 12, 31)  # L. 134/2021, art. 2 co. 5: termini di improcedibilita' allungati
+
+#: Art. 161 co. 2 c.p.: aumento massimo per interruzioni, per stato di recidiva.
+_AUMENTO_INTERRUZIONE = {
+    "nessuna": (0.25, "un quarto (art. 161 co. 2 c.p.)"),
+    "aggravata": (0.5, "la meta' (art. 161 co. 2 c.p. — recidiva ex art. 99 co. 2)"),
+    "reiterata": (2 / 3, "due terzi (art. 161 co. 2 c.p. — recidiva ex art. 99 co. 4)"),
+    "abituale": (1.0, "il doppio (art. 161 co. 2 c.p. — artt. 102, 103 e 105 c.p.)"),
+}
+
+
+def _regime_prescrizione(dt_commissione: date) -> dict:
+    """Il regime della prescrizione applicabile ai fatti commessi in una data."""
+    if dt_commissione < _ORLANDO_DAL:
+        return {
+            "nome": "ordinario (ex Cirielli)",
+            "fatti": "commessi fino al 02/08/2017",
+            "fonte": "artt. 157-161 c.p. nel testo della L. 251/2005",
+            "descrizione": "La prescrizione decorre in ogni grado del giudizio; le interruzioni prolungano il termine entro il massimo dell'art. 161 co. 2.",
+        }
+    if dt_commissione < _BLOCCO_DAL:
+        return {
+            "nome": "riforma Orlando",
+            "fatti": "commessi dal 03/08/2017 al 31/12/2019",
+            "fonte": "artt. 157-161 c.p.; art. 159 co. 2 c.p. nel testo della L. 103/2017",
+            "descrizione": "Come il regime ordinario, ma dopo la sentenza di condanna di primo grado il corso e' sospeso fino al deposito della sentenza di appello per non oltre 1 anno e 6 mesi, e dopo la condanna in appello fino alla sentenza definitiva per non oltre altri 1 anno e 6 mesi (art. 159 co. 2 nn. 1-2); la sospensione viene meno se il grado successivo assolve.",
+        }
+    return {
+        "nome": "blocco dopo il primo grado e improcedibilità (L. 3/2019 e L. 134/2021)",
+        "fatti": "commessi dal 01/01/2020",
+        "fonte": "art. 161-bis c.p. (L. 134/2021, gia' art. 159 co. 2 nel testo della L. 3/2019); art. 344-bis c.p.p.",
+        "descrizione": "La prescrizione decorre solo fino alla sentenza di primo grado (o al decreto penale di condanna), poi cessa definitivamente; nei gradi di impugnazione opera l'improcedibilita' per superamento dei termini di durata (2 anni in appello, 1 anno in Cassazione; 3 anni e 1 anno e 6 mesi per le impugnazioni proposte entro il 31/12/2024), prorogabili dal giudice nei casi dell'art. 344-bis co. 4 c.p.p.",
+    }
+
+
 @mcp.tool(tags={"penale"})
 def prescrizione_reato(
     pena_massima_anni: float,
@@ -222,23 +260,45 @@ def prescrizione_reato(
     interruzioni_giorni: int = 0,
     sospensioni_giorni: int = 0,
     tipo_reato: str = "delitto",
+    recidiva: str = "nessuna",
+    data_sentenza_primo_grado: str | None = None,
+    data_sentenza_appello: str | None = None,
+    data_impugnazione: str | None = None,
 ) -> dict:
-    """Calcola il termine di prescrizione del reato e la data di prescrizione.
+    """Calcola il termine e la data di prescrizione del reato applicando il regime che dipende
+    dalla data del fatto, e per i fatti dal 2020 i termini di improcedibilità dell'impugnazione.
 
-    Termine base: massimo edittale (min. 6 anni per delitti, 4 per contravvenzioni).
-    Le interruzioni estendono il termine di 1/4; le sospensioni lo spostano in avanti.
-    Attenzione: per reati con pena perpetua o con regimi speciali (es. mafia, corruzione post L. 3/2019)
-    il calcolo standard non è applicabile.
-    Vigenza: Art. 157-161 c.p. (post riforma L. 251/2005 — ex Cirielli; e L. 134/2021 — Riforma Cartabia).
-    Precisione: INDICATIVO (il calcolo esatto dipende da interruzioni e sospensioni specifiche del processo).
+    Termine base: massimo edittale (min. 6 anni per delitti, 4 per contravvenzioni, art. 157 c.p.).
+    Le interruzioni prolungano il termine fino al massimo dell'art. 161 co. 2 (un quarto; la metà,
+    due terzi o il doppio in caso di recidiva o abitualità); le sospensioni lo spostano in avanti.
+    Attenzione: per reati con pena perpetua, reati ex art. 51 co. 3-bis e 3-quater c.p.p. e ipotesi
+    di raddoppio ex art. 157 co. 6 c.p. il calcolo standard non è applicabile.
+    Vigenza: artt. 157-161 c.p. (L. 251/2005) per i fatti fino al 02/08/2017; art. 159 co. 2 c.p. nel
+    testo della L. 103/2017 per i fatti dal 03/08/2017 al 31/12/2019; art. 161-bis c.p. (L. 3/2019,
+    poi L. 134/2021) e art. 344-bis c.p.p. per i fatti dal 01/01/2020. Le riforme del 2019-2021 sono
+    di legge ordinaria, non del D.Lgs. 150/2022. Verificare con cite_law() eventuali modifiche
+    successive di artt. 159 e 161-bis c.p. e 344-bis c.p.p.
+    Precisione: INDICATIVO (il calcolo esatto dipende da interruzioni e sospensioni specifiche del
+    processo; la decorrenza dell'improcedibilità è stimata sul termine ordinario di deposito della
+    motivazione).
     Chaining: → cite_law() per verificare il testo della norma incriminatrice
 
     Args:
         pena_massima_anni: Pena massima edittale del reato in anni (es. 5.0; range tipico: 0.25-30)
         data_commissione: Data di commissione del reato (formato YYYY-MM-DD)
-        interruzioni_giorni: Giorni totali di atti interruttivi (estendono il termine di 1/4)
+        interruzioni_giorni: Giorni totali di atti interruttivi (> 0 fa scattare l'aumento massimo
+                             dell'art. 161 co. 2; il termine prolungato è quello massimo)
         sospensioni_giorni: Giorni totali di sospensione della prescrizione (spostano la data in avanti)
         tipo_reato: Tipo di reato: 'delitto' (minimo 6 anni) o 'contravvenzione' (minimo 4 anni)
+        recidiva: Stato dell'imputato ai fini dell'art. 161 co. 2: 'nessuna' (+1/4), 'aggravata'
+                  (art. 99 co. 2, +1/2), 'reiterata' (art. 99 co. 4, +2/3), 'abituale' (artt. 102,
+                  103, 105: doppio)
+        data_sentenza_primo_grado: Data della sentenza di primo grado (YYYY-MM-DD), opzionale: per i
+                  fatti dal 2020 ferma la prescrizione e fa decorrere l'improcedibilità in appello
+        data_sentenza_appello: Data della sentenza di appello (YYYY-MM-DD), opzionale: fa decorrere
+                  l'improcedibilità in Cassazione (fatti dal 2020)
+        data_impugnazione: Data di proposizione dell'impugnazione (YYYY-MM-DD), opzionale: entro il
+                  31/12/2024 valgono i termini transitori di 3 anni (appello) e 1 anno e 6 mesi (Cassazione)
     """
     if pena_massima_anni < 0:
         raise ValueError("pena_massima_anni non può essere negativa")
@@ -252,8 +312,15 @@ def prescrizione_reato(
         raise ValueError(
             "tipo_reato non valido: usare 'delitto' o 'contravvenzione'"
         )
+    rec = recidiva.strip().lower()
+    if rec not in _AUMENTO_INTERRUZIONE:
+        raise ValueError("recidiva non valida: usare 'nessuna', 'aggravata', 'reiterata' o 'abituale'")
 
     dt_commissione = _parse_date(data_commissione)
+    dt_primo = _parse_date(data_sentenza_primo_grado) if data_sentenza_primo_grado else None
+    dt_appello = _parse_date(data_sentenza_appello) if data_sentenza_appello else None
+    dt_impugnazione = _parse_date(data_impugnazione) if data_impugnazione else None
+    regime = _regime_prescrizione(dt_commissione)
 
     # Base term: max sentence, with minimums (art. 157 c.p.)
     if tr == "delitto":
@@ -261,11 +328,12 @@ def prescrizione_reato(
     else:
         termine_base_anni = max(pena_massima_anni, 4)
 
-    # With interruption: +1/4 of base term
+    # With interruption: up to +1/4 (or more with recidiva) of base term (art. 161 co. 2)
+    frazione, frazione_descr = _AUMENTO_INTERRUZIONE[rec]
     termine_con_interruzione_anni = termine_base_anni
     aumento_interruzione_anni = 0.0
     if interruzioni_giorni > 0:
-        aumento_interruzione_anni = termine_base_anni / 4
+        aumento_interruzione_anni = termine_base_anni * frazione
         termine_con_interruzione_anni = termine_base_anni + aumento_interruzione_anni
 
     # Calculate prescription date
@@ -279,21 +347,93 @@ def prescrizione_reato(
         dt_prescrizione += timedelta(days=sospensioni_giorni)
 
     oggi = _clock.today()
-    prescritto = oggi >= dt_prescrizione
+    avvertenze = []
+    prescrizione_cessata = False
+    improcedibilita = None
 
-    return {
+    if dt_commissione >= _BLOCCO_DAL:
+        # Art. 161-bis c.p.: il corso della prescrizione cessa con la sentenza di primo grado
+        if dt_primo is not None:
+            if dt_primo <= dt_prescrizione:
+                prescrizione_cessata = True
+                avvertenze.append(
+                    f"Fatto dal 01/01/2020: la sentenza di primo grado del {dt_primo.isoformat()} e' "
+                    "intervenuta prima della scadenza, quindi il corso della prescrizione e' cessato "
+                    "definitivamente (art. 161-bis c.p.); nei gradi successivi rileva solo "
+                    "l'improcedibilita' ex art. 344-bis c.p.p."
+                )
+            else:
+                avvertenze.append(
+                    f"La sentenza di primo grado del {dt_primo.isoformat()} e' successiva alla data di "
+                    "prescrizione calcolata: il reato risulta prescritto prima del primo grado."
+                )
+        else:
+            avvertenze.append(
+                "Fatto dal 01/01/2020: la data calcolata vale solo fino alla sentenza di primo grado; "
+                "dopo, la prescrizione non decorre piu' (art. 161-bis c.p.) e si applica "
+                "l'improcedibilita' ex art. 344-bis c.p.p. Passare data_sentenza_primo_grado."
+            )
+        # Improcedibilita' (art. 344-bis c.p.p.): i termini decorrono dal 90° giorno successivo
+        # alla scadenza del termine per il deposito della motivazione (art. 544 c.p.p.; qui il
+        # termine ordinario di 15 giorni), prorogabili ex co. 4.
+        transitorio = dt_impugnazione is not None and dt_impugnazione <= _TRANSITORIO_FINO_AL
+        termini = {"appello": (36 if transitorio else 24), "cassazione": (18 if transitorio else 12)}
+        improcedibilita = {
+            "riferimento": "Art. 344-bis c.p.p. (L. 134/2021)" + ("; termini transitori art. 2 co. 5 L. 134/2021" if transitorio else ""),
+            "regime_termini": "transitorio (impugnazione proposta entro il 31/12/2024)" if transitorio else "ordinario (impugnazioni dal 01/01/2025, o data di impugnazione non indicata)",
+            "durata_massima_mesi": termini,
+            "proroghe": "prorogabili con ordinanza motivata di 1 anno in appello e 6 mesi in Cassazione per giudizi complessi; per i reati ex art. 344-bis co. 4 le proroghe non hanno limite",
+            "nota_decorrenza": "decorrenza stimata: 90° giorno dopo la scadenza del termine ordinario di 15 giorni per il deposito della motivazione (art. 544 co. 2 c.p.p.); con termini piu' lunghi o prorogati (art. 154 disp. att.) la decorrenza slitta",
+        }
+        if dt_primo is not None:
+            decorrenza_app = dt_primo + timedelta(days=15 + 90)
+            scadenza_app = _add_months(decorrenza_app, termini["appello"])
+            improcedibilita["appello"] = {
+                "decorrenza_stimata": decorrenza_app.isoformat(),
+                "scadenza_stimata": scadenza_app.isoformat(),
+                "mesi": termini["appello"],
+            }
+        if dt_appello is not None:
+            decorrenza_cass = dt_appello + timedelta(days=15 + 90)
+            scadenza_cass = _add_months(decorrenza_cass, termini["cassazione"])
+            improcedibilita["cassazione"] = {
+                "decorrenza_stimata": decorrenza_cass.isoformat(),
+                "scadenza_stimata": scadenza_cass.isoformat(),
+                "mesi": termini["cassazione"],
+            }
+    elif dt_commissione >= _ORLANDO_DAL and dt_primo is not None:
+        sospesa_max = _add_months(dt_prescrizione, 18)
+        avvertenze.append(
+            "Fatto tra il 03/08/2017 e il 31/12/2019: se la sentenza di primo grado del "
+            f"{dt_primo.isoformat()} e' di condanna, il corso e' sospeso fino alla sentenza di appello "
+            f"per non oltre 18 mesi (art. 159 co. 2 n. 1): la prescrizione slitta al piu' tardi al "
+            f"{sospesa_max.isoformat()}, e di altri 18 mesi al massimo dopo una condanna in appello."
+        )
+
+    prescritto = (not prescrizione_cessata) and oggi >= dt_prescrizione
+
+    result = {
         "tipo_reato": tipo_reato,
         "pena_massima_anni": pena_massima_anni,
         "data_commissione": data_commissione,
+        "regime": regime,
         "termine_base_anni": termine_base_anni,
+        "recidiva": rec,
+        "aumento_massimo_interruzioni": frazione_descr,
         "aumento_interruzione_anni": round(aumento_interruzione_anni, 2),
         "termine_totale_anni": round(termine_con_interruzione_anni, 2),
         "sospensioni_giorni": sospensioni_giorni,
         "data_prescrizione": dt_prescrizione.isoformat(),
+        "prescrizione_cessata_con_primo_grado": prescrizione_cessata,
         "prescritto": prescritto,
-        "giorni_alla_prescrizione": (dt_prescrizione - oggi).days if not prescritto else 0,
-        "riferimento_normativo": "Art. 157-161 c.p.",
+        "giorni_alla_prescrizione": (dt_prescrizione - oggi).days if (not prescritto and not prescrizione_cessata) else 0,
+        "riferimento_normativo": "Art. 157-161 c.p." + ("; art. 161-bis c.p. e art. 344-bis c.p.p." if dt_commissione >= _BLOCCO_DAL else ""),
     }
+    if improcedibilita:
+        result["improcedibilita"] = improcedibilita
+    if avvertenze:
+        result["avvertenze"] = avvertenze
+    return result
 
 
 @mcp.tool(tags={"penale"})

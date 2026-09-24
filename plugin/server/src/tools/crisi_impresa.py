@@ -20,7 +20,9 @@ def test_crisi_impresa(
     incidenza debiti sull'attivo. Qualsiasi indicatore attivato comporta l'obbligo di adottare
     misure idonee al superamento della crisi o all'accesso a strumenti di regolazione.
     Vigenza: Art. 3 D.Lgs. 14/2019 (CCII) come modificato dal D.Lgs. 83/2022.
-    Precisione: INDICATIVO — il DSCR va calcolato su budget di cassa certificato da advisor.
+    Precisione: INDICATIVO (indicatori semplificati; l'art. 3 co. 3 CCII richiede la sostenibilità
+        dei debiti a 12 mesi e l'art. 3 co. 4 elenca i segnali di allarme su retribuzioni,
+        fornitori, banche ed esposizioni verso i creditori pubblici qualificati ex art. 25-novies)
     Chaining: → composizione_negoziata() per verificare l'accesso allo strumento di risanamento
 
     Args:
@@ -144,11 +146,12 @@ def composizione_negoziata(
         ammissibile = True
         requisiti_soddisfatti.append("Impresa agricola: accesso ex art. 25-quater CCII")
     elif tipo_impresa == "sotto_soglia":
-        # Art. 2 co. 1 lett. d: almeno uno dei tre parametri sotto soglia
+        # Art. 2 co. 1 lett. d CCII: impresa minore e' quella che presenta CONGIUNTAMENTE
+        # i tre requisiti (attivo, ricavi e debiti sotto soglia)
         sotto_attivo = attivo <= 300_000
         sotto_ricavi = fatturato <= 200_000
         sotto_debiti = debito_totale <= 500_000
-        if sotto_attivo or sotto_ricavi or sotto_debiti:
+        if sotto_attivo and sotto_ricavi and sotto_debiti:
             ammissibile = True
             if sotto_attivo:
                 requisiti_soddisfatti.append(f"Attivo ≤ €300.000 (attuale: €{attivo:,.2f})")
@@ -297,7 +300,8 @@ def compenso_occ(
     minimo garantito. L'OCC assiste l'imprenditore nelle procedure di composizione
     negoziata e di ristrutturazione dei debiti ai sensi del D.Lgs. 14/2019.
     Vigenza: D.M. 202/2014 — Compensi OCC ex art. 15 co. 9 D.Lgs. 14/2019.
-    Precisione: STIMATO — il compenso definitivo è determinato dal giudice delegato.
+    Precisione: INDICATIVO (gli scaglioni inclusi sono una semplificazione: l'art. 16 DM 202/2014
+        rinvia ai parametri del curatore con riduzioni; verificare sul decreto)
     Chaining: → concordato_preventivo() per la stima complessiva dei costi della procedura
 
     Args:

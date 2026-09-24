@@ -563,9 +563,10 @@ def calcolo_maggior_danno(
     il creditore ha diritto al maggior danno pari alla differenza.
     Vigenza: Art. 1224 co. 2 c.c. — Cass. SU 19499/2008; indici FOI ISTAT base 2015=100
     raccordata (dal 2026 base 2025=100, coefficiente ufficiale 1,214), serie dal 1990.
-    Precisione: ESATTO per tassi legali storici e indici FOI ufficiali; INDICATIVO se un
-    mese richiesto non è ancora pubblicato — approssimato col più vicino disponibile e
-    segnalato nel campo `avvertenza`.
+    Precisione: INDICATIVO (Cass. SS.UU. 19499/2008 presume il maggior danno ex art. 1224 co. 2 c.c.
+        nella differenza tra il rendimento medio annuo netto dei titoli di Stato di durata non
+        superiore a dodici mesi e il tasso legale; il confronto con l'indice FOI qui adottato è un
+        criterio diverso, da usare solo come stima)
 
     Args:
         capitale: Importo del credito originario in euro (€)

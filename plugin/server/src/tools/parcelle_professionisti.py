@@ -5,16 +5,24 @@ import math
 
 from src.server import mcp
 
-# Rivalsa INPS per tipo professionista
-_RIVALSA_INPS = {
-    "ingegnere": 4.0,
-    "architetto": 4.0,
-    "geometra": 4.0,
-    "commercialista": 4.0,
-    "consulente_lavoro": 4.0,
-    "psicologo": 5.0,
-    "medico": 4.0,
+# Contributo previdenziale addebitato in fattura per tipo di professionista.
+# Due regimi diversi: la rivalsa INPS 4% della gestione separata (professionisti senza cassa,
+# art. 1 co. 212 L. 662/1996) e' parte del compenso e quindi soggetta a ritenuta d'acconto;
+# il contributo integrativo delle casse di categoria (Inarcassa, CIPAG, CNPADC, ENPACL,
+# ENPAP, ENPAM) e' soggetto a IVA ma NON a ritenuta d'acconto. Le aliquote delle casse sono
+# quelle piu' diffuse e vanno verificate sul regolamento della cassa.
+_CONTRIBUTO_PREVIDENZIALE = {
+    "gestione_separata": {"cassa": "INPS Gestione separata (rivalsa)", "aliquota": 4.0, "ritenuta": True},
+    "ingegnere": {"cassa": "Inarcassa (contributo integrativo)", "aliquota": 4.0, "ritenuta": False},
+    "architetto": {"cassa": "Inarcassa (contributo integrativo)", "aliquota": 4.0, "ritenuta": False},
+    "geometra": {"cassa": "CIPAG (contributo integrativo)", "aliquota": 4.0, "ritenuta": False},
+    "commercialista": {"cassa": "CNPADC (contributo integrativo)", "aliquota": 4.0, "ritenuta": False},
+    "consulente_lavoro": {"cassa": "ENPACL (contributo integrativo)", "aliquota": 4.0, "ritenuta": False},
+    "psicologo": {"cassa": "ENPAP (contributo integrativo)", "aliquota": 5.0, "ritenuta": False},
+    "medico": {"cassa": "ENPAM (contributo integrativo)", "aliquota": 4.0, "ritenuta": False},
 }
+#: Compatibilita' con i lettori esterni della vecchia mappa.
+_RIVALSA_INPS = {k: v["aliquota"] for k, v in _CONTRIBUTO_PREVIDENZIALE.items()}
 
 # Scaglioni indennità mediazione DM 150/2023 (per ciascuna parte)
 _SCAGLIONI_MEDIAZIONE = [
@@ -66,34 +74,42 @@ def fattura_professionista(
     tipo: str = "ingegnere",
     regime: str = "ordinario",
 ) -> dict:
-    """Calcola fattura per professionista (non avvocato) con rivalsa INPS, IVA e ritenuta d'acconto.
-    Vigenza: DPR 633/1972 (IVA); DPR 600/1973 art. 25 (ritenuta); L. 190/2014 (forfettario).
-    Precisione: ESATTO (aliquote di legge: rivalsa INPS 4-5%, IVA 22%, ritenuta 20%).
+    """Calcola fattura per professionista (non avvocato) con contributo previdenziale, IVA e ritenuta.
+    Vigenza: DPR 633/1972 (IVA); DPR 600/1973 art. 25 (ritenuta d'acconto 20%); L. 190/2014
+    (forfettario); art. 1 co. 212 L. 662/1996 (rivalsa INPS 4% della gestione separata, soggetta
+    a ritenuta); leggi istitutive delle casse per il contributo integrativo (non soggetto a ritenuta).
+    Precisione: ESATTO per IVA 22%, ritenuta 20% e rivalsa INPS 4%; INDICATIVO per le aliquote del
+    contributo integrativo delle casse di categoria (4-5%), da verificare sul regolamento della cassa.
 
     Args:
         imponibile: Compenso professionale in euro (€, imponibile)
-        tipo: Tipo professionista: 'ingegnere', 'architetto', 'geometra', 'commercialista', 'consulente_lavoro', 'psicologo', 'medico'
+        tipo: Tipo professionista: 'gestione_separata' (senza cassa: rivalsa INPS 4%, soggetta a
+              ritenuta), 'ingegnere', 'architetto', 'geometra', 'commercialista', 'consulente_lavoro',
+              'psicologo', 'medico' (contributo integrativo della cassa, non soggetto a ritenuta)
         regime: Regime fiscale: 'ordinario' (IVA 22% + ritenuta 20%) o 'forfettario' (no IVA, no ritenuta, bollo se >77.47€)
     """
     if imponibile < 0:
         return {"errore": "Imponibile deve essere positivo"}
-    if tipo not in _RIVALSA_INPS:
-        return {"errore": f"Tipo professionista non valido. Valori: {list(_RIVALSA_INPS.keys())}"}
+    if tipo not in _CONTRIBUTO_PREVIDENZIALE:
+        return {"errore": f"Tipo professionista non valido. Valori: {list(_CONTRIBUTO_PREVIDENZIALE.keys())}"}
     if regime not in ("ordinario", "forfettario"):
         return {"errore": "Regime deve essere 'ordinario' o 'forfettario'"}
 
-    aliquota_rivalsa = _RIVALSA_INPS[tipo]
+    previdenza = _CONTRIBUTO_PREVIDENZIALE[tipo]
+    aliquota_rivalsa = previdenza["aliquota"]
     rivalsa = round(imponibile * aliquota_rivalsa / 100, 2)
     base_imponibile_iva = round(imponibile + rivalsa, 2)
+    # La rivalsa INPS e' compenso e sconta la ritenuta; il contributo integrativo di cassa no
+    base_ritenuta = base_imponibile_iva if previdenza["ritenuta"] else imponibile
 
     voci = [
         {"voce": "Compenso professionale", "importo": imponibile},
-        {"voce": f"Rivalsa INPS {aliquota_rivalsa}%", "importo": rivalsa},
+        {"voce": f"{previdenza['cassa']} {aliquota_rivalsa}%", "importo": rivalsa},
     ]
 
     if regime == "ordinario":
         iva = round(base_imponibile_iva * 22 / 100, 2)
-        ritenuta = round(imponibile * 20 / 100, 2)
+        ritenuta = round(base_ritenuta * 20 / 100, 2)
         totale = round(base_imponibile_iva + iva - ritenuta, 2)
 
         voci.append({"voce": "IVA 22%", "importo": iva})
@@ -101,16 +117,23 @@ def fattura_professionista(
 
         return {
             "tipo_professionista": tipo,
+            "cassa": previdenza["cassa"],
             "regime": regime,
             "imponibile": imponibile,
+            "contributo_previdenziale": rivalsa,
             "rivalsa_inps": rivalsa,
             "base_imponibile_iva": base_imponibile_iva,
             "iva": iva,
+            "base_ritenuta": base_ritenuta,
             "ritenuta_acconto": ritenuta,
             "totale_fattura": round(base_imponibile_iva + iva, 2),
             "netto_a_pagare": totale,
             "voci": voci,
-            "nota": "Il committente versa la ritenuta d'acconto con F24 (codice tributo 1040)",
+            "nota": (
+                "Il committente versa la ritenuta d'acconto con F24 (codice tributo 1040). "
+                + ("La rivalsa INPS concorre alla base della ritenuta." if previdenza["ritenuta"]
+                   else "Il contributo integrativo di cassa e' escluso dalla base della ritenuta.")
+            ),
         }
     else:
         # Forfettario: no IVA, no ritenuta, bollo €2 se importo > 77.47
@@ -122,8 +145,10 @@ def fattura_professionista(
 
         return {
             "tipo_professionista": tipo,
+            "cassa": previdenza["cassa"],
             "regime": regime,
             "imponibile": imponibile,
+            "contributo_previdenziale": rivalsa,
             "rivalsa_inps": rivalsa,
             "base_imponibile": base_imponibile_iva,
             "iva": 0.0,
@@ -144,7 +169,8 @@ def compenso_ctu(
 ) -> dict:
     """Calcola compenso indicativo del consulente tecnico d'ufficio (CTU) nominato dal giudice.
     Vigenza: DPR 115/2002 — DM 30/05/2002 — il giudice liquida il compenso definitivo.
-    Precisione: INDICATIVO (range min-max orientativo; il giudice può discostarsene).
+    Precisione: INDICATIVO (stime di mercato per tipologia; le tabelle del DM 30 maggio 2002 e le
+        vacazioni ex art. 4 L. 319/1980 non sono riprodotte)
 
     Args:
         tipo_incarico: Tipo incarico: 'perizia_immobiliare', 'perizia_contabile', 'perizia_medica', 'stima_danni', 'accertamenti_tecnici'
@@ -202,7 +228,10 @@ def spese_mediazione(
 ) -> dict:
     """Calcola indennità di mediazione civile e commerciale per scaglione di valore.
     Vigenza: DM 150/2023 — D.Lgs. 28/2010 (Riforma Cartabia).
-    Precisione: ESATTO (importi tabellari ministeriali).
+    Precisione: INDICATIVO (gli scaglioni e la riduzione di un terzo ricalcano lo schema del DM
+        180/2010; il DM 150/2023, artt. 28 e 30, prevede spese di avvio di 40/75/110 euro, spese di
+        mediazione fisse per il primo incontro e la Tabella A con gli aumenti in caso di accordo:
+        verificare gli importi sul decreto)
 
     Args:
         valore_controversia: Valore della controversia in euro (€)
@@ -365,7 +394,11 @@ def compenso_curatore_fallimentare(
 ) -> dict:
     """Calcola compenso del curatore fallimentare su scaglioni progressivi.
     Vigenza: DM 30/2012 — compenso minimo €811,35 e massimo €405.656,80.
-    Precisione: ESATTO (scaglioni percentuali tabellari DM 30/2012).
+    Precisione: INDICATIVO (il DM 25 gennaio 2012 n. 30 fissa per ogni scaglione una forbice di
+        percentuali sull'attivo realizzato, dal 12-14% fino a 16.227,08 euro allo 0,45-0,90% oltre
+        811.313,60 euro, e sul passivo accertato dello 0,19-0,94% fino a 81.131,38 euro e dello
+        0,06-0,46% oltre: il tool applica percentuali medie semplificate; l'art. 137 CCII rinvia a
+        un nuovo decreto)
 
     Args:
         attivo_realizzato: Attivo realizzato dalla procedura in euro (€)
@@ -438,7 +471,9 @@ def compenso_delegati_vendite(
 ) -> dict:
     """Calcola compenso del professionista delegato alle vendite giudiziarie immobiliari.
     Vigenza: DM 227/2015 — compenso minimo €1.100 per aggiudicazioni fino a €100.000.
-    Precisione: ESATTO (scaglioni percentuali tabellari DM 227/2015).
+    Precisione: INDICATIVO (il DM 227/2015, modificato dal DM 104/2021, prevede compensi fissi per
+        fase e per scaglione di prezzo di aggiudicazione, spese generali del 10% e adeguamenti del
+        giudice: lo schema percentuale del tool è una semplificazione da verificare sul decreto)
 
     Args:
         prezzo_aggiudicazione: Prezzo di aggiudicazione dell'immobile in euro (€)
@@ -487,8 +522,10 @@ def compenso_mediatore_familiare(
 ) -> dict:
     """Calcola compenso del mediatore familiare per percorso di mediazione.
     Il primo incontro informativo è gratuito; la mediazione familiare non è regolata da tariffe ministeriali.
-    Vigenza: nessuna tariffa ministeriale — importi di prassi professionale.
-    Precisione: INDICATIVO (tariffa varia per professionista e territorio; percorso tipico: 8-12 incontri).
+    Vigenza: DM 27 ottobre 2023 n. 151 (GU 31/10/2023), parametri del compenso del mediatore
+        familiare ex art. 473-bis.10 c.p.c., non trascritto in questo server.
+    Precisione: INDICATIVO (importi per incontro stimati; i parametri del DM 151/2023 vanno
+        verificati sul decreto)
 
     Args:
         n_incontri: Numero totale di incontri comprensivo del primo informativo gratuito (minimo 1)
@@ -529,7 +566,9 @@ def fattura_enasarco(
 ) -> dict:
     """Calcola struttura fattura agente di commercio con contributo Enasarco, IVA e ritenuta.
     Vigenza: D.Lgs. 303/1996 — Regolamento Enasarco; aliquota 2026: 17% totale (50% agente + 50% preponente).
-    Precisione: ESATTO per aliquote vigenti nell'anno indicato; verificare aggiornamenti annuali Enasarco.
+    Precisione: ESATTO per l'aliquota del 17% (8,5% + 8,5%) e per la ritenuta del 23% sul 50% delle
+        provvigioni (art. 25-bis DPR 600/1973); INDICATIVO per massimale e minimale, che non sono
+        applicati al calcolo e vanno verificati sulle tabelle Enasarco dell'anno
 
     Args:
         provvigioni: Importo provvigioni in euro (€, imponibile)
@@ -665,7 +704,9 @@ def tariffe_mediazione(
     """Restituisce la tabella completa delle indennità di mediazione DM 150/2023 per scaglione applicabile.
     A differenza di spese_mediazione, include anche le spese di avvio (€40) e la tabella per tutti gli scaglioni.
     Vigenza: DM 150/2023 — D.Lgs. 28/2010 (Riforma Cartabia).
-    Precisione: ESATTO (importi tabellari ministeriali).
+    Precisione: INDICATIVO (le spese di avvio di 40/75/110 euro sono quelle dell'art. 28 DM
+        150/2023; gli scaglioni e la riduzione di un terzo ricalcano il DM 180/2010 e vanno
+        verificati sulla Tabella A e sull'art. 30 del DM 150/2023)
 
     Args:
         valore_controversia: Valore della controversia in euro (€)
