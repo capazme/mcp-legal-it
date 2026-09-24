@@ -35,7 +35,8 @@ PROTOCOL_FILE = REPO_ROOT / "benchmarks" / "limes" / "protocol" / "protocol.yaml
 
 @pytest.fixture(scope="module")
 def bank():
-    return load_bank(BANK_DIR)
+    # The wave-0 slice these hand-computed expectations were written for.
+    return load_bank(BANK_DIR, ("anchors/anchors-wave-0.json", "private/private-wave-0.json"))
 
 
 class TestNormalize:
@@ -324,11 +325,16 @@ class TestJudges:
 class TestRules:
     def test_real_protocol_loads(self):
         protocol = load_protocol(PROTOCOL_FILE)
-        assert protocol.version == 0
+        # v1 (wave 1): conventions and knobs identical to v0 — waves are
+        # only comparable at constant conventions — plus the judge panel.
+        assert protocol.version == 1
         assert protocol.seed == 20260922
         assert protocol.retry_budget == 2
         assert protocol.default_tolerance() == {"absolute": 0.05}
-        assert protocol.judge_enabled is False  # wave 0: mechanical-only
+        assert protocol.conventions.day_count == "actual/365"
+        assert protocol.conventions.term_computation == "dies a quo escluso"
+        assert protocol.judge_enabled is True
+        assert protocol.judge.calibration["min_gold"] >= 30
         assert protocol.exclusions  # fail-closed exclusion ids declared
 
     @staticmethod

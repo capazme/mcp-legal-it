@@ -6,8 +6,10 @@
                                            [--models m1,m2] [--configs c1,c2]
                                            [--only-items id1,id2]
                                            [--allow-unfrozen]
+                                           [--with-judges]
     python -m benchmarks.limes.cli score   --cell results/wave-0/<model>/<config>
     python -m benchmarks.limes.cli compare --cell-a ... --cell-b ...
+    python -m benchmarks.limes.cli analyze --wave wave-1
 
 `run` computes the five SHA and enforces the freeze guard (DESIGN §2): no
 run without a tag freezing bank/protocol/configs. `--allow-unfrozen` is the
@@ -22,19 +24,25 @@ import json
 import sys
 from pathlib import Path
 
-from benchmarks.limes.analysis.compare import compare_cells
+from benchmarks.limes.analysis.compare import (
+    compare_cells,
+    contamination_report,
+    wave_analysis,
+)
+from benchmarks.limes.analysis.power import PowerError, enforce, power_check
 from benchmarks.limes.analysis.scorecard import (
     build_scorecard,
     construct_key,
     discrimination_report,
 )
 from benchmarks.limes.bank.schema.item import Bank, load_bank
-from benchmarks.limes.bank.schema.validate import validate_bank
+from benchmarks.limes.bank.schema.validate import print_wave_reports, validate_bank, validate_waves
 from benchmarks.limes.protocol.citations import provenance_answer
-from benchmarks.limes.protocol.gemelle import iter_mechanical_s
 from benchmarks.limes.protocol.rules import load_protocol
 from benchmarks.limes.protocol.scorers_q import score_q
-from benchmarks.limes.runner.executor import RunOutcome, build_argv, run_cell
+from benchmarks.limes.protocol import judges as judge_panel
+from benchmarks.limes.runner.executor import RateLimited, build_argv, plugin_mcp_config, run_cell
+from benchmarks.limes.runner.refs import materialize
 from benchmarks.limes.runner.manifests import Manifest, load_manifest
 from benchmarks.limes.runner.shas import Shas, collect
 from benchmarks.limes.runner.waves import (
@@ -67,10 +75,65 @@ def _wave_file(root: Path, wave_arg: str | None) -> Path | None:
 
 def _load_context(root: Path, wave_file: Path | None):
     protocol = load_protocol(root / "protocol" / "protocol.yaml")
-    bank = load_bank(root / "bank")
     wave = load_wave(wave_file) if wave_file else None
+    if wave is not None:
+        bank = load_bank(root / "bank", wave.bank_slices, wave.require_validity, wave.excluded)
+    else:
+        bank = load_bank(root / "bank")
     manifests = _load_manifests(root / "configs")
     return protocol, bank, wave, manifests
+
+
+def scored_items(bank: Bank) -> set[str]:
+    """Items that enter the dimensions and the primary endpoint: every item
+    except paraphrase probes, which restate another item and would count
+    the same question twice (they feed only the contamination report)."""
+    return {i.id for i in bank.items if not i.paraphrase_of}
+
+
+def _frozen_paths(root: Path, wave: Wave, manifests: dict[str, Manifest], cells) -> list[Path]:
+    """Everything a run reads that the tag must have frozen."""
+    bank_dir = root / "bank"
+    paths = [bank_dir / rel for rel in wave.bank_slices] or [bank_dir]
+    if (bank_dir / "validity").is_dir():
+        paths.append(bank_dir / "validity")
+    paths.append(root / "protocol")
+    for config_id in sorted({c for _, c in cells}):
+        manifest = manifests[config_id]
+        paths.append(manifest.source)
+        if manifest.mcp_template is not None:
+            paths.append(manifest.mcp_template)
+    return paths
+
+
+def _runner_commit(root: Path) -> dict:
+    """The instrument's own code (runner/analysis) is outside the five SHA:
+    record the commit and whether the worktree was clean, so a number can
+    always be traced to the code that produced it."""
+    import subprocess
+
+    def _q(args):
+        try:
+            return subprocess.run(["git", *args], cwd=root, capture_output=True,
+                                  text=True, check=True).stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return ""
+
+    return {"commit": _q(["rev-parse", "HEAD"]),
+            "dirty": bool(_q(["status", "--porcelain", "--", "."]))}
+
+
+def _coverage(bank: Bank) -> dict[str, dict]:
+    table: dict[str, dict] = {}
+    for item in bank.items:
+        if item.paraphrase_of:
+            continue
+        key = construct_key(item.construct)
+        row = table.setdefault(key, {"n": 0, "types": {}})
+        row["n"] += 1
+        if item.reasoning_type:
+            row["types"][item.reasoning_type] = row["types"].get(item.reasoning_type, 0) + 1
+    return table
 
 
 def _load_manifests(configs_dir: Path) -> dict[str, Manifest]:
@@ -103,8 +166,30 @@ def cmd_plan(args: argparse.Namespace) -> int:
           f"{len(bank.private_items())} private); "
           f"Q={len(bank.items_of_layer('Q'))} S={len(bank.items_of_layer('S'))}; "
           f"gemelle={len(bank.twin_families())} famiglie")
-    print(f"protocollo v{protocol.version} (seed {protocol.seed}); "
-          f"giudici: {'attivi' if protocol.judge_enabled else 'meccanico-only'}")
+    judges = (f"dichiarati {', '.join(protocol.judge.models)} (solo con --with-judges)"
+              if protocol.judge_enabled else "meccanico-only")
+    print(f"protocollo v{protocol.version} (seed {protocol.seed}); giudici: {judges}")
+    coverage = _coverage(bank)
+    print("copertura (item punteggiati per dimensione; tipi LegalBench):")
+    for key in ("C", "P", "H", "A", "U", "M"):
+        row = coverage.get(key, {"n": 0, "types": {}})
+        types = ", ".join(f"{t}={n}" for t, n in sorted(row["types"].items())) or "-"
+        print(f"  {key}  n={row['n']:<4} {types}")
+    probes = [i for i in bank.items if i.paraphrase_of]
+    if probes:
+        print(f"sonde contaminazione: {len(probes)} parafrasi (fuori dalle dimensioni)")
+    status_power = 0
+    if wave is not None:
+        report = power_check(wave.analysis.get("power"), len(scored_items(bank)))
+        if report["declared"]:
+            verdict = "OK" if report["satisfied"] else "INSUFFICIENTE"
+            print(f"potenza {verdict}: {report['n_items']} item punteggiati, richiesti "
+                  f"{report['required_items']} (NI appaiata); discordanti attesi "
+                  f"{report['expected_discordant']} (min {report['min_discordant']}); "
+                  f"McNemar esatto a split {report['mcnemar_split']}: "
+                  f"{report['mcnemar_power_at_split']}")
+            if not report["satisfied"]:
+                status_power = 1
     print(f"matrice: {len(cells)} celle")
     for model, config_id in cells:
         manifest = manifests[config_id]
@@ -114,7 +199,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
     for label, info in status.items():
         state = "FROZEN" if info["frozen"] else "pending (committare + tag, DESIGN §2)"
         print(f"freeze {label:<9} {info['path']:<28} {state}")
-    return 0
+    return status_power
 
 
 def cmd_check(args: argparse.Namespace) -> int:
@@ -123,6 +208,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     try:
         summary = validate_bank(root / "bank")
         print("bank OK:", ", ".join(f"{k}={v}" for k, v in sorted(summary.items())))
+        print_wave_reports(validate_waves(root / "bank"))
     except Exception as exc:  # ValidationError and JSON errors both fail the check
         print(f"bank INVALID: {exc}", file=sys.stderr)
         ok = False
@@ -158,6 +244,16 @@ def cmd_run(args: argparse.Namespace) -> int:
         raise SystemExit("--wave è obbligatorio per run")
     cells = _select(wave, manifests, args.models, args.configs)
     only_items = set(args.only_items.split(",")) if args.only_items else None
+    try:
+        enforce(wave.analysis.get("power"), len(scored_items(bank)))
+    except PowerError as exc:
+        if not (args.dry_run or args.allow_unfrozen):
+            raise SystemExit(f"run rifiutata: {exc}")
+        print(f"ATTENZIONE: {exc}")
+    if args.with_judges:
+        judge_panel.enforce_heterogeneous(protocol.judge.models, sorted({m for m, _ in cells}))
+        if not protocol.judge_enabled:
+            raise SystemExit("--with-judges: nessun giudice dichiarato nel protocollo")
 
     shas: Shas | None = None
     frozen = False
@@ -172,7 +268,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             print(f"ATTENZIONE: freeze PENDING su {', '.join(pending)} (dry-run: non bloccante)")
     else:
         shas = collect(root / "bank", root / "protocol", cells[0][0], manifests[cells[0][1]].source)
-        freeze_guard(wave, shas, root)
+        freeze_guard(wave, shas, root, _frozen_paths(root, wave, manifests, cells))
         frozen = True
         print(f"freeze OK: tag {wave.tag} @ {shas.bank_sha[:8]}…")
 
@@ -185,17 +281,34 @@ def cmd_run(args: argparse.Namespace) -> int:
             # per-item at run time, so a placeholder keeps the preview
             # usable without requiring the template's ${VARS} in env.
             mcp_preview = Path("<mcp-config>") if manifest.mcp_template is not None else None
+            plugin_preview = Path("<plugin-dir>") if manifest.surface == "plugin" else None
             argv = build_argv(manifest.surface, model, manifest.max_turns,
-                              manifest.system_prompt, mcp_preview, "<prompt>")
+                              manifest.system_prompt, mcp_preview, "<prompt>",
+                              plugin_dir=plugin_preview, tools=manifest.tools)
             print(f"[dry] {model} x {manifest.id}: {' '.join(argv)}")
             continue
-        mcp_config = (
-            manifest.resolve_mcp_config() if manifest.mcp_template is not None else None
-        )
+        plugin_dir = None
+        if manifest.ref is not None:
+            # The enhancement runs AT ITS REF (git archive), never from the
+            # working tree: v2.14 and v3-beta must be different programs.
+            plugin_dir = materialize(manifest.ref, root, root / "results" / ".refs")
+        mcp_config = None
+        if manifest.mcp_template is not None:
+            import os
+
+            mcp_config = manifest.resolve_mcp_config({
+                **os.environ,
+                "LIMES_REF_DIR": str(plugin_dir) if plugin_dir else "",
+                "LIMES_LEGALIT_PROFILE": manifest.profile or "full",
+            })
+        elif manifest.surface == "plugin" and plugin_dir is not None:
+            mcp_config = plugin_mcp_config(plugin_dir, manifest.profile)
         _run_matrix_cell(
             root=root, wave=wave, bank=bank, protocol=protocol, manifest=manifest,
             model=model, out_dir=out_dir, mcp_config=mcp_config,
             only_items=only_items, shas=shas, frozen=frozen,
+            plugin_dir=plugin_dir if manifest.surface == "plugin" else None,
+            with_judges=args.with_judges, resume=args.resume,
         )
     print("run completata." if not dry else "dry-run completata.")
     return 0
@@ -213,6 +326,9 @@ def _run_matrix_cell(
     only_items: set[str] | None,
     shas: Shas | None,
     frozen: bool,
+    plugin_dir: Path | None = None,
+    with_judges: bool = False,
+    resume: bool = False,
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "wave.json").write_text(
@@ -222,41 +338,60 @@ def _run_matrix_cell(
                 "tag": wave.tag,
                 "frozen": frozen,
                 "shas": shas.to_dict() if shas else None,
+                "runner": _runner_commit(root),
+                "ref": manifest.ref,
             },
             indent=2,
         ),
         encoding="utf-8",
     )
-    outcomes: dict[str, RunOutcome] = {}
+    outcomes: dict[str, dict] = {}
     for item in bank.items:
         if only_items and item.id not in only_items:
             continue
-        outcome = run_cell(
-            manifest=manifest, model=model, item_id=item.id, prompt=item.prompt,
-            protocol=protocol, out_dir=out_dir / item.id, mcp_config=mcp_config,
+        outcome_path = out_dir / item.id / "outcome.json"
+        if resume and outcome_path.is_file():
+            # Resume: an item already answered in THIS cell is not re-asked
+            # (a long matrix survives interruptions; re-asking would also
+            # change the sample the scorecard is computed on).
+            outcomes[item.id] = json.loads(outcome_path.read_text(encoding="utf-8"))
+            continue
+        try:
+            outcome = run_cell(
+                manifest=manifest, model=model, item_id=item.id, prompt=item.prompt,
+                protocol=protocol, out_dir=out_dir / item.id, mcp_config=mcp_config,
+                plugin_dir=plugin_dir,
+            )
+        except RateLimited as exc:
+            # Account quota, not a property of the cell: stop cleanly, the
+            # items answered so far are kept for --resume.
+            raise SystemExit(f"run sospesa: {exc}") from None
+        record = {**outcome.to_dict(), "answer": outcome.answer,
+                  "n_tool_results": len(outcome.tool_results),
+                  "tool_text": "\n".join(outcome.tool_results) if outcome.tool_results else None}
+        outcomes[item.id] = record
+        outcome_path.write_text(
+            json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8",
         )
-        outcomes[item.id] = outcome
-        (out_dir / item.id / "outcome.json").write_text(
-            json.dumps(
-                {**outcome.to_dict(), "answer": outcome.answer,
-                 "n_tool_results": len(outcome.tool_results)},
-                indent=2, ensure_ascii=False,
-            ),
-            encoding="utf-8",
-        )
-        print(f"  {item.id:<8} {'ok' if outcome.ok else 'EXCLUDED'} "
-              f"attempts={outcome.attempts}")
+        cost = f" ${outcome.cost_usd:.3f}" if outcome.cost_usd is not None else ""
+        print(f"  {item.id:<10} {'ok' if outcome.ok else 'EXCLUDED'} "
+              f"attempts={outcome.attempts} tools={len(outcome.tool_calls)}{cost}", flush=True)
 
-    answers = {iid: oc.answer for iid, oc in outcomes.items() if oc.ok}
-    tool_texts = {
-        iid: "\n".join(oc.tool_results) for iid, oc in outcomes.items() if oc.ok
-    }
+    answers = {iid: oc["answer"] for iid, oc in outcomes.items() if oc.get("ok")}
+    # No tool results -> fidelity n/d (None), never 0.0: the bare surface has
+    # nothing to be faithful to, and a tool surface that received nothing
+    # is a broken run, not an unfaithful one (citations.py contract).
+    tool_texts = {iid: oc.get("tool_text") for iid, oc in outcomes.items() if oc.get("ok")}
     _write_verdicts(bank, protocol, answers, tool_texts, out_dir)
+    if with_judges:
+        _judge_cell(bank, protocol, answers, out_dir)
     scorecard = build_scorecard(
         bank=bank, model=model, config_id=manifest.id, answers=answers,
         tool_texts=tool_texts, protocol=protocol,
-        attempts={iid: oc.attempts for iid, oc in outcomes.items()},
-        excluded=sum(1 for oc in outcomes.values() if oc.excluded),
+        attempts={iid: int(oc.get("attempts") or 0) for iid, oc in outcomes.items()},
+        excluded=sum(1 for oc in outcomes.values() if oc.get("excluded")),
+        run_meta=outcomes,
+        scored=scored_items(bank),
     )
     (out_dir / "scorecard.json").write_text(
         json.dumps(scorecard.to_dict(), indent=2, ensure_ascii=False),
@@ -295,6 +430,28 @@ def _write_verdicts(bank, protocol, answers, tool_texts, out_dir: Path) -> None:
         (out_dir / item.id / "verdict.json").write_text(
             json.dumps(verdict, indent=2, ensure_ascii=False, default=str),
             encoding="utf-8",
+        )
+
+
+def _residual_rubrics(item) -> dict[str, str]:
+    return {r.id: r.text for r in item.rubrics if not r.mechanical}
+
+
+def _judge_cell(bank: Bank, protocol, answers: dict[str, str], out_dir: Path) -> None:
+    """Residual-rubric judging for every answered S item (B2)."""
+    for item in bank.items:
+        if item.layer != "S" or item.id not in answers:
+            continue
+        rubrics = _residual_rubrics(item)
+        if not rubrics:
+            continue
+        result = judge_panel.judge_item(
+            item_id=item.id, question=item.prompt, answer=answers[item.id],
+            rubrics=rubrics, judges=protocol.judge.models, seed=protocol.seed,
+            replicas=protocol.judge.replicas,
+        )
+        (out_dir / item.id / "judge.json").write_text(
+            json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
 
@@ -363,6 +520,137 @@ def cmd_compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def _wave_cells(root: Path, wave: Wave) -> dict[tuple[str, str], Path]:
+    base = wave_paths(root)["results"] / wave.id
+    cells: dict[tuple[str, str], Path] = {}
+    for model in wave.models:
+        for config_id in wave.configs:
+            cell = base / model / config_id
+            if (cell / "scorecard.json").is_file():
+                cells[(model, config_id)] = cell
+    return cells
+
+
+def gold_key(item_id: str, rubric_id: str, answer: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(f"{item_id}|{rubric_id}|{answer}".encode("utf-8")).hexdigest()[:16]
+
+
+def _judge_consensus(cells: dict[tuple[str, str], Path]) -> dict[str, bool]:
+    consensus: dict[str, bool] = {}
+    for cell in cells.values():
+        for judge_path in cell.glob("*/judge.json"):
+            result = json.loads(judge_path.read_text(encoding="utf-8"))
+            outcome = json.loads((judge_path.parent / "outcome.json").read_text(encoding="utf-8"))
+            for rid, verdict in result.get("consensus", {}).items():
+                if verdict is not None:
+                    consensus[gold_key(result["item_id"], rid, outcome.get("answer", ""))] = verdict
+    return consensus
+
+
+def cmd_analyze(args: argparse.Namespace) -> int:
+    root = Path(args.root)
+    protocol, bank, wave, _manifests = _load_context(root, _wave_file(root, args.wave))
+    cells = _wave_cells(root, wave)
+    if not cells:
+        raise SystemExit(f"nessuna cella eseguita per {wave.id}")
+    verdicts = {key: _load_cell_verdicts(cell) for key, cell in cells.items()}
+    scored = scored_items(bank)
+    print(f"wave {wave.id}: {len(cells)} celle eseguite su {len(wave.models) * len(wave.configs)}")
+    print(f"{'modello':<20} {'config':<34} " + " ".join(f"{k:>6}" for k in "CPHAUM") + "   costo$")
+    for (model, config_id), cell in sorted(cells.items()):
+        card = json.loads((cell / "scorecard.json").read_text(encoding="utf-8"))
+        dims = card["dimensions"]
+        rates = []
+        for key in "CPHAUM":
+            rate = (dims.get(key) or {}).get("rate")
+            rates.append("   n/d" if rate is None else f"{rate:6.1%}")
+        cost = card["reliability"].get("cost_usd")
+        suffix = f"   {cost:.2f}" if cost is not None else "   n/d"
+        print(f"{model:<20} {config_id:<34} " + " ".join(rates) + suffix)
+    report = {"wave": wave.id, "analysis": wave_analysis(verdicts, wave.analysis, scored)}
+    for model, out in report["analysis"]["models"].items():
+        print(f"\n[{model}] famiglia primaria vs {wave.analysis.get('primary', {}).get('baseline')} (Holm):")
+        for treatment, row in out["primary"].items():
+            if "p" not in row:
+                print(f"  {treatment:<34} {row.get('state')}")
+                continue
+            print(f"  {treatment:<34} {row['baseline_rate']:.1%} -> {row['treatment_rate']:.1%}  "
+                  f"(+{row['treatment_only']}/-{row['baseline_only']})  p={row['p']:.4f}  "
+                  f"p_holm={row['p_holm']:.4f}  {'RIFIUTA H0' if row['rejected'] else 'non significativo'}")
+        ni = out["non_inferiority"]
+        if ni:
+            print(f"  NI {ni['treated']} vs {ni['control']}: delta={ni['risk_difference']:+.3f} "
+                  f"CI95=[{ni['ci_lower']:+.3f}, {ni['ci_upper']:+.3f}] margine -{ni['margin']} -> "
+                  f"{'NON INFERIORE' if ni['non_inferior'] else 'non dimostrata'}")
+    pairs = [(i.paraphrase_of, i.id) for i in bank.items if i.paraphrase_of]
+    if pairs and protocol.contamination_max_gap is not None:
+        report["contamination"] = {}
+        print("\ncontaminazione (originali vs parafrasi):")
+        for key, cell_verdicts in sorted(verdicts.items()):
+            c = contamination_report(cell_verdicts, pairs, protocol.contamination_max_gap)
+            report["contamination"]["/".join(key)] = c
+            if c["pairs"]:
+                print(f"  {'/'.join(key):<56} {c['original_rate']:.0%} vs {c['paraphrase_rate']:.0%} "
+                      f"gap={c['gap']:+.2f} {'SEGNALATO' if c['flag'] else 'ok'}")
+    gold_path = root / (protocol.judge.gold or "")
+    if protocol.judge.gold and gold_path.is_file():
+        gold = json.loads(gold_path.read_text(encoding="utf-8"))
+        cal = judge_panel.calibration(gold.get("rows", []), _judge_consensus(cells),
+                                      protocol.judge.calibration)
+        report["judge_calibration"] = cal
+        print(f"\ncalibrazione giudici: {'OK' if cal['calibrated'] else 'NON calibrati'} "
+              f"(riferimento n={cal['reference_n']}, kappa={cal['judge_kappa']}, EO gap={cal['eo_gap']})")
+    else:
+        print("\ngiudici: nessun gold set umano — verdetti residui NON inferenziali")
+    out_path = wave_paths(root)["results"] / wave.id / "analysis.json"
+    out_path.write_text(json.dumps(report, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    print(f"\nanalisi scritta in {out_path}")
+    return 0
+
+
+def cmd_gold_export(args: argparse.Namespace) -> int:
+    """Deterministic sample of (answer, residual rubric) pairs for two human
+    labellers. Group = the configuration that produced the answer (the
+    Equal Opportunity check compares the judge's recall across groups)."""
+    import random
+
+    root = Path(args.root)
+    protocol, bank, wave, _manifests = _load_context(root, _wave_file(root, args.wave))
+    cells = _wave_cells(root, wave)
+    candidates = []
+    for (model, config_id), cell in sorted(cells.items()):
+        for item in bank.items:
+            rubrics = _residual_rubrics(item) if item.layer == "S" else {}
+            outcome_path = cell / item.id / "outcome.json"
+            if not rubrics or not outcome_path.is_file():
+                continue
+            answer = json.loads(outcome_path.read_text(encoding="utf-8")).get("answer", "")
+            if not answer:
+                continue
+            for rid, text in sorted(rubrics.items()):
+                candidates.append({
+                    "key": gold_key(item.id, rid, answer), "item_id": item.id,
+                    "rubric_id": rid, "criterio": text, "domanda": item.prompt,
+                    "risposta": answer, "group": config_id, "model": model,
+                    "human": [],
+                })
+    rng = random.Random(protocol.seed)
+    rng.shuffle(candidates)
+    sample = candidates[: args.n]
+    out = root / "bank" / "gold" / "judge-gold.todo.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps({
+        "$comment": "Due giuristi etichettano ogni riga in modo indipendente: human = "
+                    "[etichetta_1, etichetta_2] con true/false. Rinominare in "
+                    "judge-gold.json a etichettatura completa.",
+        "rows": sample,
+    }, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"{len(sample)} righe da etichettare -> {out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="limes")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -390,6 +678,10 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--only-items", dest="only_items", default=None)
     p_run.add_argument("--dry-run", dest="dry_run", action="store_true")
     p_run.add_argument("--allow-unfrozen", dest="allow_unfrozen", action="store_true")
+    p_run.add_argument("--with-judges", dest="with_judges", action="store_true",
+                       help="giudica le rubriche residue col pannello del protocollo")
+    p_run.add_argument("--resume", action="store_true",
+                       help="non ripete gli item già risposti nella cella")
     p_run.set_defaults(func=cmd_run)
 
     p_score = sub.add_parser("score", help="scorecard da una cella eseguita")
@@ -402,6 +694,17 @@ def main(argv: list[str] | None = None) -> int:
     p_cmp.add_argument("--cell-a", required=True)
     p_cmp.add_argument("--cell-b", required=True)
     p_cmp.set_defaults(func=cmd_compare)
+
+    p_an = sub.add_parser("analyze", help="analisi pre-registrata di una wave eseguita")
+    add_common(p_an)
+    p_an.add_argument("--wave", required=True)
+    p_an.set_defaults(func=cmd_analyze)
+
+    p_gold = sub.add_parser("gold-export", help="campione di risposte da etichettare (gold set)")
+    add_common(p_gold)
+    p_gold.add_argument("--wave", required=True)
+    p_gold.add_argument("--n", type=int, default=40)
+    p_gold.set_defaults(func=cmd_gold_export)
 
     args = parser.parse_args(argv)
     return args.func(args)

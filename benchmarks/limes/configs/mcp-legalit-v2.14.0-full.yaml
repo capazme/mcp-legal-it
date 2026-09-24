@@ -1,0 +1,22 @@
+# Configurazione `mcp-legalit-v2.14.0-full` — wave 1 (DESIGN §3).
+#
+# Rispetto al manifest wave-0 omonimo senza `-full`: profilo `full` (il profilo
+# `normativa` escludeva i tool di calcolo, quindi la dimensione C veniva
+# misurata su un enhancement mutilato) e tool integrati dichiarati per
+# parità: nessuna superficie ha web o shell, varia solo l'enhancement.
+id: mcp-legalit-v2.14.0-full
+surface: mcp
+ref: v2.14.0
+model: any
+
+isolation:
+  scratch_config_dir: true
+  profile: full
+
+mcp:
+  server_template: mcp/legalit-ref.template.json
+
+parity:
+  max_turns: 30
+  system_prompt: default
+  tools: [ToolSearch]

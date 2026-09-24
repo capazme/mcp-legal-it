@@ -1,9 +1,13 @@
-# LIMES protocol — wave 0 (congelato nel tag `limes-wave-0`, DESIGN §2).
+# LIMES protocol — v1, wave 1 (congelato nel tag `limes-wave-1`, DESIGN §2).
+# La v0 resta congelata nel tag `limes-wave-0`. Le CONVENZIONI di calcolo
+# sotto sono identiche alla v0 (le wave si confrontano solo a convenzioni
+# costanti): la v1 aggiunge giudici, soglie di calibrazione e la soglia di
+# contaminazione, e amplia il registro dei marker (additivo).
 #
 # Ogni numero uscito da LIMES dipende da questo file tramite protocol_sha:
 # nessuna regola di punteggio vive altrove.
 
-protocol_version: 0
+protocol_version: 1
 seed: 20260922
 
 conventions:
@@ -33,9 +37,28 @@ exclusions:
   - risposta_vuota
 
 judge:
-  # Pannello giudicante: riservato. Wave 0 gira solo sul meccanico; i
-  # giudici entrano in una wave successiva con il proprio judge_sha
-  # (anti-bias di famiglia e ordine criteri rimescolato, DESIGN §6).
-  models: []
+  # Pannello giudicante (B2, DESIGN §6/§8). Tocca SOLO le rubriche residue
+  # (mechanical: false): le dimensioni meccaniche non cambiano mai per un
+  # giudice. Famiglie diverse dai modelli valutati (self-preference,
+  # Wataoka et al. 2024) e diverse tra loro; ordine dei criteri rimescolato
+  # col seed e doppio giudizio (replicas) per l'accordo intra-giudice.
+  models:
+    - openai/gpt-5.6-terra
+    - google/gemini-3.8-flash
   family_blind: true
   tiebreak: human
+  replicas: 2
+  # Gold set umano: item doppiamente etichettati da due giuristi. Finché la
+  # calibrazione non passa le soglie, i verdetti dei giudici sono
+  # registrati ma NON inferenziali (scorecard: judged.inferential=false).
+  gold: bank/gold/judge-gold.json
+  calibration:
+    min_gold: 30          # righe con accordo umano, minimo per la calibrazione
+    min_kappa: 0.60       # kappa di Cohen giudice vs consenso umano
+    max_eo_gap: 0.10      # Equal Opportunity: scarto massimo di TPR tra gruppi
+
+contamination:
+  # Sonda parafrasi/canarini (B4): scarto massimo tra pass rate sugli
+  # originali e sulle loro riformulazioni private prima di segnalare
+  # memorizzazione.
+  max_gap: 0.20

@@ -22,7 +22,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - dev dependency guard
         "(install the project dev extras: uv sync --extra dev)"
     ) from exc
 
-from benchmarks.limes.runner.shas import Shas, _git_root, _committed_sha, ShaError
+from benchmarks.limes.runner.shas import Shas, _git_root, ShaError
 
 
 class WaveError(ValueError):
@@ -37,6 +37,18 @@ class Wave:
     models: list[str]           # pinned model ids (model_sha)
     expected_cells: int         # items × models × configs, at plan time
     description: str = ""
+    # Bank slice: files under bank/ this wave loads (empty = every slice,
+    # the wave-0 behaviour). A later wave must name its slices, or the
+    # union of every wave's private items would leak into its denominators.
+    bank_slices: tuple[str, ...] = ()
+    # Validity cards (DESIGN §8) are mandatory from wave 1: an item without
+    # one does not enter the wave.
+    require_validity: bool = False
+    # Item ids excluded after human review, decided BEFORE the freeze by the
+    # pre-registered rule in `review` (never after seeing model answers).
+    excluded: tuple[str, ...] = ()
+    review: dict = field(default_factory=dict)
+    analysis: dict = field(default_factory=dict)
 
     def cells(self, n_items: int) -> list[tuple[str, str]]:
         return [(m, c) for m in self.models for c in self.configs]
@@ -58,6 +70,15 @@ def load_wave(path: Path) -> Wave:
     expected = raw.get("expected_cells")
     if expected is not None and (not isinstance(expected, int) or expected <= 0):
         raise WaveError(f"{path}: expected_cells must be a positive integer")
+    bank = raw.get("bank") or {}
+    if not isinstance(bank, dict):
+        raise WaveError(f"{path}: 'bank' must be a mapping")
+    slices = bank.get("slices") or []
+    if not isinstance(slices, list) or not all(isinstance(x, str) for x in slices):
+        raise WaveError(f"{path}: bank.slices must be a list of paths under bank/")
+    analysis = raw.get("analysis") or {}
+    if not isinstance(analysis, dict):
+        raise WaveError(f"{path}: 'analysis' must be a mapping")
     return Wave(
         id=wave_id,
         tag=tag,
@@ -65,6 +86,11 @@ def load_wave(path: Path) -> Wave:
         models=models,
         expected_cells=expected if expected is not None else 0,
         description=str(raw.get("description", "")),
+        bank_slices=tuple(slices),
+        require_validity=bool(bank.get("require_validity", False)),
+        excluded=tuple(str(x) for x in (bank.get("excluded") or [])),
+        review=dict(raw.get("review") or {}),
+        analysis=analysis,
     )
 
 
@@ -87,10 +113,12 @@ def tag_exists(tag: str, cwd: Path) -> bool:
         return False
 
 
-def freeze_guard(wave: Wave, frozen: Shas, repo: Path) -> dict:
-    """Verify the wave is frozen: the tag exists AND names a commit that
-    contains the bank, the protocol and every config manifest at the exact
-    content the run is about to use.
+def freeze_guard(
+    wave: Wave, frozen: Shas, repo: Path, paths: list[Path] | None = None
+) -> dict:
+    """Verify the wave is frozen: the tag exists AND the content the run is
+    about to use (bank, protocol, config manifests — `paths`) is identical
+    to what the tag froze, with nothing uncommitted or untracked on top.
 
     Returns a report dict; raises WaveError on any mismatch (fail-closed).
     """
@@ -105,19 +133,26 @@ def freeze_guard(wave: Wave, frozen: Shas, repo: Path) -> dict:
     if not tag_commit:
         raise WaveError(f"wave {wave.id}: tag {wave.tag!r} non risolve a un commit")
 
-    checked = []
-    for label, sha in (
-        ("bank_sha", frozen.bank_sha),
-        ("protocol_sha", frozen.protocol_sha),
-    ):
-        # The composite shas are derived from the same committed blobs; the
-        # tag-level check is that the directories exist at the tagged commit
-        # and are clean in the worktree (the composite sha is in the record).
-        _ = label, sha
-        checked.append(label)
-    for label in ("config_sha",):
-        _ = label
-        checked.append(label)
+    checked: list[str] = []
+    for path in paths or []:
+        rel = path.resolve().relative_to(root).as_posix()
+        if not _git(["ls-tree", f"{wave.tag}", "--", rel], root):
+            raise WaveError(
+                f"wave {wave.id}: {rel} assente dal tag {wave.tag!r} — il run "
+                f"userebbe contenuto mai congelato"
+            )
+        # Tag vs working tree: catches edits committed after the tag AND
+        # uncommitted edits (both would make the record lie about content).
+        changed = _git(["diff", "--name-only", wave.tag, "--", rel], root)
+        untracked = _git(["ls-files", "--others", "--exclude-standard", "--", rel], root)
+        if changed or untracked:
+            drift = (changed + "\n" + untracked).strip().splitlines()
+            raise WaveError(
+                f"wave {wave.id}: {rel} diverge dal tag {wave.tag!r} "
+                f"({', '.join(drift[:5])}{'…' if len(drift) > 5 else ''}) — "
+                f"eseguire la wave dal suo tag (git worktree) o congelarne una nuova"
+            )
+        checked.append(rel)
 
     return {
         "wave": wave.id,
@@ -130,8 +165,15 @@ def freeze_guard(wave: Wave, frozen: Shas, repo: Path) -> dict:
 
 def freeze_status(bank_dir: Path, protocol_dir: Path) -> dict:
     """Diagnostic for `limes check`: which paths are frozen (committed and
-    clean) vs pending. Never raises for pending paths — it reports them."""
-    root = _git_root(bank_dir)
+    clean) vs pending. Never raises for pending paths — it reports them;
+    outside a git repository every path is reported as not frozen."""
+    try:
+        root = _git_root(bank_dir)
+    except ShaError:
+        return {
+            label: {"path": str(path), "committed": False, "dirty": True, "frozen": False}
+            for label, path in (("bank", bank_dir), ("protocol", protocol_dir))
+        }
 
     def _git_soft(args: list[str]) -> str:
         # A path missing from HEAD (128) is a *status*, not an error.

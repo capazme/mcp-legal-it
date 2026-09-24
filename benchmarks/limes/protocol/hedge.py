@@ -84,8 +84,42 @@ _HEDGE_RE = [re.compile(p) for p in _HEDGE]
 _DENY_RE = [re.compile(p) for p in _DENY]
 
 
+# Explicit closed verdict (protocol v1). Wave-1 twin items ask the model to
+# close with one line `ESITO: <token>`; when present, that line IS the
+# observable — a declared conclusion is a far more valid measure of the
+# orientation than lexicon counts over free prose. Tokens map onto the
+# three orientations. Accent-free (matched after `normalize`).
+_ESITO_TOKENS = {
+    "si": "affermare",
+    "no": "negare",
+    "pacifico": "affermare",
+    "controverso": "segnalare",
+}
+# `normalize` collapses newlines, so the verdict is anchored on the word
+# `esito`, not on a line start; markdown emphasis around it is tolerated.
+_ESITO_RE = re.compile(r"\besito\W{0,6}:\W{0,6}(si|no|pacifico|controverso)\b")
+
+
+def explicit_verdict(answer: str) -> str | None:
+    """The orientation declared by `ESITO:` lines, `ambiguo` when the answer
+    declares contradictory verdicts, None when it declares none."""
+    found = {_ESITO_TOKENS[m.group(1)] for m in _ESITO_RE.finditer(normalize(answer))}
+    if not found:
+        return None
+    if len(found) > 1:
+        return "ambiguo"  # fail-closed: two different verdicts are no verdict
+    return found.pop()
+
+
 def detect_orientation(answer: str) -> str:
-    """Dominant orientation of an answer, or `ambiguo` (fail-closed)."""
+    """Dominant orientation of an answer, or `ambiguo` (fail-closed).
+
+    An explicit `ESITO:` verdict (protocol v1) takes precedence over the
+    lexicon; the lexicon remains the observable for items that do not ask
+    for a closed verdict (wave 0)."""
+    declared = explicit_verdict(answer)
+    if declared is not None:
+        return declared
     text = normalize(answer)
     scores = {
         "affermare": sum(1 for p in _AFFIRM_RE if p.search(text)),

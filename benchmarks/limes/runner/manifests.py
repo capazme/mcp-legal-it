@@ -44,6 +44,9 @@ class Manifest:
     ref: str | None               # pinned ref of the enhancement, if any
     mcp_template: Path | None
     source: Path
+    # Built-in tool allowlist override (parity.tools); None = surface default
+    # (executor.SURFACE_TOOLS). Part of the manifest, hence of config_sha.
+    tools: tuple[str, ...] | None = None
 
     def resolve_mcp_config(self, env: dict[str, str] | None = None) -> dict:
         """Render the MCP template, resolving `${VAR}` from `env`.
@@ -134,6 +137,12 @@ def load_manifest(path: Path) -> Manifest:
             f"{path}: parity.system_prompt must be one of {SYSTEM_PROMPT_MODES}"
         )
 
+    tools_raw = parity.get("tools")
+    if tools_raw is not None and (
+        not isinstance(tools_raw, list) or not all(isinstance(t, str) for t in tools_raw)
+    ):
+        raise ManifestError(f"{path}: parity.tools must be a list of tool names")
+
     mcp_template: Path | None = None
     mcp = raw.get("mcp") or {}
     if surface == "mcp":
@@ -157,6 +166,7 @@ def load_manifest(path: Path) -> Manifest:
         ref=str(ref) if ref else None,
         mcp_template=mcp_template,
         source=path.resolve(),
+        tools=tuple(tools_raw) if tools_raw is not None else None,
     )
 
 

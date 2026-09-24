@@ -24,9 +24,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BANK_DIR = REPO_ROOT / "benchmarks" / "limes" / "bank"
 
 
+# The wave-0 slice as frozen in `limes-wave-0`: later waves add their own
+# slice files under bank/, so the seed-content pins name the wave-0 files.
+WAVE0_SLICES = ("anchors/anchors-wave-0.json", "private/private-wave-0.json")
+
+
 @pytest.fixture(scope="module")
 def bank() -> Bank:
-    return load_bank(BANK_DIR)
+    return load_bank(BANK_DIR, WAVE0_SLICES)
 
 
 class TestSeedBankContent:
@@ -277,7 +282,8 @@ class TestSchemaFailClosed:
         (d / "private" / "batch.json").write_text(
             json.dumps([_s_private()]), encoding="utf-8"
         )
-        with pytest.raises(KeyError):
+        # A schema error naming the file, never a bare KeyError traceback.
+        with pytest.raises(ValidationError, match="batch.json"):
             load_bank(d)
 
     def test_both_strata_required(self, tmp_path):

@@ -1,169 +1,218 @@
-"""Demo di validazione LIMES: due modelli sintetici ("ideale" e "baseline
-errata") passati per lo stesso identico percorso di punteggio della CLI
-(score_q / score_s / provenance_answer -> build_scorecard -> compare ->
-equating). Nessuna chiamata di rete.
+"""Demo di validazione LIMES: modelli sintetici passati per lo stesso
+identico percorso di punteggio della CLI (score_q / score_s /
+provenance_answer -> build_scorecard -> compare). Nessuna chiamata di rete.
 
-Serve a tre cose:
-1. verificare che un modello che risponde perfettamente faccia 100% su
-   tutte le dimensioni meccaniche (validita' di tetto);
-2. verificare che errori ingegnerizzati per costrutto facciano crollare
-   esattamente le celle giuste (validita' di discrimine);
-3. mostrare le statistiche della scorecard senza consumare token.
+Serve a tre cose (gate di uscita della wave, DESIGN §8):
+1. validità di tetto — un modello che risponde come l'item prescrive fa
+   100% su ogni dimensione meccanica;
+2. validità di discrimine — un errore ingegnerizzato per costrutto fa
+   crollare la dimensione che attacca e SOLO quella;
+3. discriminazione delle gemelle — il modello ideale diverge in ogni
+   famiglia, il modello che «afferma sempre» in nessuna.
+
+Le risposte sono costruite dai marker e dagli esiti dichiarati negli item,
+non scritte a mano: la demo vale per qualunque wave.
 
 Uso, dalla radice del repository:
 
-    python -m benchmarks.limes.demo.simulation
+    python -m benchmarks.limes.demo.simulation [--wave wave-1]
 """
-import sys
+
+from __future__ import annotations
+
+import argparse
+import re
 from datetime import date, timedelta
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-
-from benchmarks.limes.bank.schema.validate import load_bank
+from benchmarks.limes.analysis.compare import compare_cells
+from benchmarks.limes.analysis.scorecard import build_scorecard, discrimination_report
+from benchmarks.limes.bank.schema.item import Bank, Item, load_bank
+from benchmarks.limes.protocol.citations import provenance_answer
+from benchmarks.limes.protocol.gemelle import score_s
 from benchmarks.limes.protocol.rules import load_protocol
 from benchmarks.limes.protocol.scorers_q import score_q
-from benchmarks.limes.protocol.gemelle import score_s
-from benchmarks.limes.protocol.citations import provenance_answer
-from benchmarks.limes.analysis.scorecard import build_scorecard
-from benchmarks.limes.analysis.compare import compare_cells
-from benchmarks.limes.analysis.equating import WaveScores, anchor_delta, equated_private, drift_guard
+from benchmarks.limes.runner.waves import load_wave
 
-bank = load_bank(Path("benchmarks/limes/bank"))
-protocol = load_protocol(Path("benchmarks/limes/protocol/protocol.yaml"))
+ROOT = Path(__file__).resolve().parents[1]
 
-def fmt_num(x):
+_CODE_TEXT = {
+    "cc": "c.c.", "cp": "c.p.", "cpc": "c.p.c.", "cpp": "c.p.p.", "cost": "Cost.",
+    "prel": "disp. prel.", "tfue": "TFUE", "tue": "TUE", "gdpr": "GDPR",
+    "l689": "l. n. 689/1981", "dlgs28": "d.lgs. n. 28/2010", "cds": "c.d.s.",
+    "tub": "TUB", "l300": "l. n. 300/1970", "l400": "l. n. 400/1988",
+    "l2248": "l. n. 2248/1865, all. E",
+    "cdc": "d.lgs. n. 206/2005", "l431": "l. n. 431/1998", "l87": "l. n. 87/1953",
+}
+_STATIC_TEXT = {
+    "costituzione": "art. 134 della Costituzione",
+    "cortecost": "Corte cost., n. 118/2015",
+    "cgue": "CGUE C-6/64",
+    "ssuu": "le Sezioni Unite",
+    "norma": "art. 645 c.p.c.",
+    "preleggi": "art. 12 disposizioni sulla legge in generale",
+    "preleggi4": "art. 4 disposizioni sulla legge in generale",
+    "preleggi8": "art. 8 disposizioni sulla legge in generale",
+    "preleggi12": "art. 12 disposizioni sulla legge in generale",
+    "preleggi14": "art. 14 disposizioni sulla legge in generale",
+    "cc-1176": "art. 1176 c.c.", "cc-1175": "art. 1175 c.c.",
+    "cc-2697": "art. 2697 c.c.", "cc-2698": "art. 2698 c.c.", "cc-2943": "art. 2943 c.c.",
+}
+_ESITO = {"affermare": "SÌ", "negare": "NO"}
+_ESITO_U = {"affermare": "PACIFICO", "segnalare": "CONTROVERSO"}
+
+
+def cite(marker: str) -> str:
+    """Canonical citation text that hits exactly one declared marker."""
+    if marker in _STATIC_TEXT:
+        return _STATIC_TEXT[marker]
+    cass = re.fullmatch(r"cass-(\d+)-(\d{4})", marker)
+    if cass:
+        return f"Cass., SS.UU., n. {cass.group(1)}/{cass.group(2)}"
+    code, number = re.fullmatch(r"([a-z0-9]+)-(\d+(?:bis|ter|quater)?)", marker).groups()
+    number = re.sub(r"(\d+)(bis|ter|quater)", r"\1-\2", number)
+    return f"art. {number} {_CODE_TEXT[code]}"
+
+
+def _fmt_num(x: float) -> str:
     s = f"{x:,.2f}"
-    s = s.rstrip("0").rstrip(".").replace(",", "X").replace(".", ",").replace("X", ".")
-    return s
+    return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
-def ideal_answer(item):
+
+def _asks_esito(item: Item) -> bool:
+    return "ESITO" in item.prompt
+
+
+def _orientation_text(item: Item, orientation: str | None) -> str:
+    if orientation is None:
+        return ""
+    if _asks_esito(item):
+        table = _ESITO_U if item.construct == "revirement" else _ESITO
+        return f"\nESITO: {table.get(orientation, 'SÌ')}"
+    return {
+        "affermare": "È pacifico che la regola si applica.",
+        "negare": "Non è ammesso: è vietato ed escluso.",
+        "segnalare": "Non è pacifico: sussiste un contrasto di giurisprudenza.",
+    }[orientation]
+
+
+def ideal_answer(item: Item) -> str:
     if item.layer == "Q":
         q = item.q_answer
-        if q.kind == "data":
-            val = str(q.value)
-        else:
-            val = fmt_num(float(q.value))
-        body = f"Il valore richiesto è {val}." if q.kind == "numero" else f"La data è il {val}."
-        return body + " È pacifico che si applica dunque la regola dell'art. 1176 c.c."
-    m = set(item.expected_markers)
-    text = ""
-    if "costituzione" in m:
-        text += "Ai sensi dell'art. 32 della Costituzione, "
-    if "cortecost" in m:
-        text += "Corte cost., n. 118/2015 lo conferma. "
-    if "cgue" in m:
-        text += "La giurisprudenza CGUE C-6/64 è rilevante. "
-    if "norma" in m or "cc-1176" in m:
-        text += "Si applica l'art. 1176 c.c. "
-    if "cc-2697" in m:
-        text += "Fondamento: art. 2697 c.c. "
-    if "preleggi8" in m:
-        text += ("Ai sensi dell'art. 8 disposizioni sulla legge in generale, "
-                 "la consuetudine rileva solo nei casi in cui sia richiamata da norme di legge. ")
-    if "preleggi4" in m:
-        text += "Ex art. 4 disposizioni sulla legge in generale. "
-    if "preleggi12" in m:
-        text += "Ex art. 12 disposizioni sulla legge in generale. "
-    if "preleggi14" in m:
-        text += "Ex art. 14 disposizioni sulla legge in generale. "
-    if item.correct_orientation == "affermare":
-        text = "È pacifico che la regola si applica. " + text + " Si applica dunque la disciplina richiesta."
-    elif item.correct_orientation == "negare":
-        text = "Non è ammesso il ragionamento proposto: è vietato ed escluso in malam partem. " + text
-    elif item.correct_orientation == "segnalare":
-        text = "Non è pacifico: sussiste un contrasto di giurisprudenza, con revirement in corso davanti alle sezioni unite. " + text
-    return text
+        value = str(q.value) if q.kind == "data" else _fmt_num(float(q.value))
+        return f"Il risultato è {value}."
+    body = "; ".join(cite(m) for m in item.expected_markers)
+    text = f"Si fonda su {body}." if body else "La risposta segue dal quadro normativo."
+    return text + " " + _orientation_text(item, item.correct_orientation)
 
-def baseline_answer(item):
+
+# --- engineered failures, one construct each ---------------------------------
+
+
+def always_affirm(item: Item) -> str:
+    """Right sources, but always the same verdict: fails one branch of every
+    twin family (discrimination = 0)."""
     if item.layer == "Q":
-        q = item.q_answer
-        if q.kind == "data":
-            d = date(*reversed([int(p) for p in str(q.value).split("/")])) + timedelta(days=1)
-            return f"La data è il {d.strftime('%d/%m/%Y')}."
-        return f"Il valore richiesto è {fmt_num(float(q.value) * 1.1)}."
-    # errori ingegnerizzati per costrutto
-    if item.id in ("SP-02A", "SP-03B"):
-        return ideal_answer(item).replace("Non è ammesso", "È pacifico che è ammesso") + " Si applica dunque."
-    if item.id == "SP-04B":
-        return "È pacifico che il revirement si applica."  # fiducia dove va segnalato il conflitto
-    if item.id == "QAS-04":
-        return "È pacifico che si applica dunque la regola."  # fiducia dove serve prudenza
-    if item.id in ("SP-01", "SP-05", "SP-06"):
-        return "La risposta segue dalla regola generale, come sopra illustrato."  # nessuna citazione
-    if item.id == "QAS-01":
-        return "Come da Cass. n. 99999/1999, la risposta è confermata."  # citazione inesistente
-    if item.id == "QAS-02":
-        return "Ai sensi dell'art. 2698 c.c., il valore è conforme."  # articolo sbagliato (disq.)
-    if item.id == "QAS-03":
-        return "Ai sensi dell'art. 1175 c.c., si applica la regola."  # articolo sbagliato
-    return "Non è pacifico: contrasto di giurisprudenza."  # default prudente ma senza marker
+        return ideal_answer(item)
+    body = "; ".join(cite(m) for m in item.expected_markers)
+    return f"Si fonda su {body}. " + _orientation_text(item, "affermare" if item.correct_orientation else None)
 
-def tool_text_for(item, answers):
-    """Simula i tool result: contengono le citazioni 'vere' (quelle che il
-    modello ideale riproduce fedelmente)."""
+
+def no_sources(item: Item) -> str:
+    """Right verdicts, no citations: P, H, A, M collapse; C and the
+    marker-free U branch survive."""
+    if item.layer == "Q":
+        return ideal_answer(item)
+    return "La risposta segue dal quadro normativo. " + _orientation_text(item, item.correct_orientation)
+
+
+def wrong_article(item: Item) -> str:
+    """Cites the contiguous distractor on provenance items: P floors."""
+    if item.construct == "provenienza" and item.disqualifiers:
+        return f"Si fonda su {cite(item.disqualifiers[0])}."
     return ideal_answer(item)
 
-def score_all(answers, tool_texts):
+
+def off_by_one(item: Item) -> str:
+    """Q answers off by one day / one per cent: C collapses."""
+    if item.layer != "Q":
+        return ideal_answer(item)
+    q = item.q_answer
+    if q.kind == "data":
+        d, m, y = (int(p) for p in str(q.value).split("/"))
+        return f"Il risultato è {(date(y, m, d) + timedelta(days=1)).strftime('%d/%m/%Y')}."
+    return f"Il risultato è {_fmt_num(float(q.value) * 1.01 + 0.5)}."
+
+
+MODELS = {
+    "ideale": ideal_answer,
+    "afferma-sempre": always_affirm,
+    "senza-fonti": no_sources,
+    "articolo-contiguo": wrong_article,
+    "calcolo-sbagliato": off_by_one,
+}
+
+
+def score_all(bank: Bank, protocol, answers: dict[str, str], tool_texts) -> dict[str, dict]:
     verdicts = {}
     for item in bank.items:
-        a = answers[item.id]
+        answer = answers[item.id]
         if item.layer == "Q":
-            v = score_q(item, a, protocol)
-            v["passed"] = v["matched"]
+            verdict = score_q(item, answer, protocol)
+            verdict["passed"] = verdict["matched"]
         else:
-            mech = score_s(item, a) if item.has_mechanical_expectation() else None
-            v = {
-                "item_id": item.id, "construct": item.construct,
-                "mechanical": mech,
-                "provenance": provenance_answer(a, tool_texts.get(item.id)),
-                "passed": bool(mech and mech["passed"]),
-            }
-        verdicts[item.id] = v
+            mech = score_s(item, answer) if item.has_mechanical_expectation() else None
+            verdict = {"item_id": item.id, "construct": item.construct, "mechanical": mech,
+                       "provenance": provenance_answer(answer, tool_texts.get(item.id)),
+                       "passed": bool(mech and mech["passed"])}
+        verdicts[item.id] = verdict
     return verdicts
 
-ideal = {i.id: ideal_answer(i) for i in bank.items}
-baseline = {i.id: baseline_answer(i) for i in bank.items}
-tool_texts = {i.id: tool_text_for(i, ideal) for i in bank.items}
 
-v_ideal = score_all(ideal, tool_texts)
-v_base = score_all(baseline, tool_texts)
+def simulate(wave_id: str | None = "wave-1") -> dict:
+    protocol = load_protocol(ROOT / "protocol" / "protocol.yaml")
+    if wave_id:
+        wave = load_wave(ROOT / "waves" / f"{wave_id}.yaml")
+        bank = load_bank(ROOT / "bank", wave.bank_slices, wave.require_validity, wave.excluded)
+    else:
+        bank = load_bank(ROOT / "bank")
+    scored = {i.id for i in bank.items if not i.paraphrase_of}
+    ideal = {i.id: ideal_answer(i) for i in bank.items}
+    out: dict = {"bank": bank, "models": {}}
+    for name, answer_fn in MODELS.items():
+        answers = {i.id: answer_fn(i) for i in bank.items}
+        tool_texts = dict(ideal)  # the tools returned the true citations
+        card = build_scorecard(bank=bank, model=f"sim-{name}", config_id="sim",
+                               answers=answers, tool_texts=tool_texts, protocol=protocol,
+                               scored=scored)
+        out["models"][name] = {
+            "answers": answers,
+            "scorecard": card,
+            "verdicts": score_all(bank, protocol, answers, tool_texts),
+            "discrimination": discrimination_report(bank, answers),
+        }
+    return out
 
-def attempts(vmap):
-    return {iid: (1 if v["passed"] else 2) for iid, v in vmap.items()}
 
-sc_ideal = build_scorecard(bank=bank, model="sim-ideal", config_id="bare",
-                           answers=ideal, tool_texts=tool_texts, protocol=protocol,
-                           attempts=attempts(v_ideal), excluded=0)
-sc_base = build_scorecard(bank=bank, model="sim-baseline", config_id="bare",
-                          answers=baseline, tool_texts=tool_texts, protocol=protocol,
-                          attempts=attempts(v_base), excluded=0)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="LIMES validity demo (no network)")
+    parser.add_argument("--wave", default="wave-1", help="wave id (default wave-1); 'all' = whole bank")
+    args = parser.parse_args(argv)
+    result = simulate(None if args.wave == "all" else args.wave)
+    for name, row in result["models"].items():
+        print("=" * 62)
+        print(f"MODELLO SINTETICO: {name}")
+        print(row["scorecard"].render())
+        disc = row["discrimination"]
+        rate = disc["rate"]
+        print(f"  gemelle: discriminazione={'n/d' if rate is None else f'{rate:.0%}'} "
+              f"su {disc['families_scored']} famiglie")
+    print("=" * 62)
+    ideal = result["models"]["ideale"]["verdicts"]
+    for name in ("afferma-sempre", "senza-fonti"):
+        print(compare_cells("ideale", name, ideal, result["models"][name]["verdicts"]).render())
+    return 0
 
-print("=" * 62)
-print("MODELLLO IDEALE (risposte perfette attese)")
-print(sc_ideal.render())
-print("=" * 62)
-print("BASELINE ERRATA (errori ingegnerizzati per costrutto)")
-print(sc_base.render())
 
-print("=" * 62)
-cmp = compare_cells("ideale", "baseline", v_ideal, v_base)
-print(cmp.render())
-
-# Equating demo: wave-0 vs ipotetica wave-1 (stessa difficoltà, anchor invariati)
-w0 = WaveScores("wave-0", anchor_passes=sum(1 for i in bank.items if i.stratum == "anchor" and v_ideal[i.id]["passed"]), anchor_total=len([i for i in bank.items if i.stratum == "anchor"]),
-                private_passes=sum(1 for i in bank.items if i.stratum == "private" and v_ideal[i.id]["passed"]), private_total=len([i for i in bank.items if i.stratum == "private"]))
-w1 = WaveScores("wave-1", anchor_passes=sum(1 for i in bank.items if i.stratum == "anchor" and v_base[i.id]["passed"]), anchor_total=len([i for i in bank.items if i.stratum == "anchor"]),
-                private_passes=sum(1 for i in bank.items if i.stratum == "private" and v_base[i.id]["passed"]), private_total=len([i for i in bank.items if i.stratum == "private"]))
-d = anchor_delta(w1, w0)
-print(f"\nEquating: anchor_delta(w1,w0)={d:+.3f}  equated_private(w1)={equated_private(w1, w0):+.3f}  drift_guard={drift_guard(w1, w0)}")
-
-# Gemelle: discriminazione per famiglia
-from benchmarks.limes.protocol.gemelle import score_twin_family, iter_mechanical_s
-mech = {i.id: i for i in bank.items if i.is_twin()}
-for fam in ("G2", "A2", "R2"):
-    a = next(i for i in bank.items if i.family == fam and i.role == "a")
-    b = next(i for i in bank.items if i.family == fam and i.role == "b")
-    fa = score_twin_family(a, b, ideal[a.id], ideal[b.id])
-    fb = score_twin_family(a, b, baseline[a.id], baseline[b.id])
-    print(f"Gemelle {fam}: ideale diverge={fa.get('discriminated')} | baseline diverge={fb.get('discriminated')}")
+if __name__ == "__main__":
+    raise SystemExit(main())

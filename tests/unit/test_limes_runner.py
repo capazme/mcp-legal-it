@@ -240,8 +240,13 @@ class TestShas:
         )
         assert bank_sha(repo / "bank") != first
 
-    def test_judge_sha_none_for_mechanical_wave(self):
-        assert judge_sha(LIMES_ROOT / "protocol") == "none"
+    def test_judge_sha_none_for_mechanical_protocol(self, tmp_path):
+        (tmp_path / "protocol.yaml").write_text("judge: {models: []}\n", encoding="utf-8")
+        assert judge_sha(tmp_path) == "none"
+
+    def test_judge_sha_pins_the_declared_panel(self):
+        sha = judge_sha(LIMES_ROOT / "protocol")
+        assert sha != "none" and len(sha) == 16
 
     def test_model_sha_pins_explicit_strings(self):
         assert model_sha("claude-opus-4-6") == "claude-opus-4-6"
@@ -440,7 +445,9 @@ class TestRunCell:
         # Artifacts of a previously-ok run, plus a stale scratch config.
         (item_dir / "verdict.json").write_text("{}", encoding="utf-8")
         (item_dir / "attempt-9.json").write_text("stale", encoding="utf-8")
-        scratch = item_dir / "config-dir"  # created by the first run
+        scratch = item_dir / "config-dir"
+        assert not scratch.exists()  # the login token never outlives the call
+        scratch.mkdir()
         (scratch / "stale.cfg").write_text("x", encoding="utf-8")
 
         second = run_cell(
@@ -473,7 +480,10 @@ class TestCredentialBootstrap:
 
         def fake_run(argv, **kwargs):
             seen.append(list(argv))
-            return self._completed(argv, stdout=b'{"oauth": "secret"}')
+            return self._completed(
+                argv,
+                stdout=b'{"claudeAiOauth": {"accessToken": "t"}, "mcpOAuth": {"slack": "x"}}',
+            )
 
         monkeypatch.setattr(
             __import__(
@@ -486,7 +496,8 @@ class TestCredentialBootstrap:
         scratch.mkdir()
         bootstrap_credentials(scratch)
         creds = scratch / ".credentials.json"
-        assert b'{"oauth": "secret"}' == creds.read_bytes()
+        # Only the Claude login is copied: connector tokens stay in the keychain.
+        assert json.loads(creds.read_bytes()) == {"claudeAiOauth": {"accessToken": "t"}}
         assert (creds.stat().st_mode & 0o777) == 0o600
         assert seen and seen[0][0] == "security"
 
@@ -496,7 +507,9 @@ class TestCredentialBootstrap:
 
         ambient = tmp_path / "ambient"
         ambient.mkdir()
-        (ambient / ".credentials.json").write_text('{"file": true}', encoding="utf-8")
+        (ambient / ".credentials.json").write_text(
+            '{"claudeAiOauth": {"file": true}, "other": 1}', encoding="utf-8"
+        )
         monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(ambient))
 
         def fake_run(argv, **kwargs):
@@ -506,7 +519,9 @@ class TestCredentialBootstrap:
         scratch = tmp_path / "scratch"
         scratch.mkdir()
         bootstrap_credentials(scratch)
-        assert (scratch / ".credentials.json").read_text(encoding="utf-8") == '{"file": true}'
+        assert json.loads((scratch / ".credentials.json").read_text(encoding="utf-8")) == {
+            "claudeAiOauth": {"file": True}
+        }
 
     def test_no_source_fails_closed(self, monkeypatch, tmp_path):
         from benchmarks.limes.runner import executor
@@ -543,8 +558,10 @@ class TestCredentialBootstrap:
 
         def fake_run(argv, **kwargs):
             if argv[0] == "security":
-                return self._completed(argv, stdout=b'{"oauth": "keychain"}')
-            scratch_seen.append(kwargs["env"]["CLAUDE_CONFIG_DIR"])
+                return self._completed(argv, stdout=b'{"claudeAiOauth": {"k": "keychain"}}')
+            config_dir = Path(kwargs["env"]["CLAUDE_CONFIG_DIR"])
+            # Observed DURING the call: the scratch dir is removed afterwards.
+            scratch_seen.append((config_dir / ".credentials.json").read_bytes())
             return self._completed(
                 argv, stdout=json.dumps(
                     {"type": "result", "subtype": "success", "result": "ok"}
@@ -558,5 +575,5 @@ class TestCredentialBootstrap:
         )
         assert outcome.ok
         assert len(scratch_seen) == 1
-        creds = Path(scratch_seen[0]) / ".credentials.json"
-        assert creds.read_bytes() == b'{"oauth": "keychain"}'
+        assert json.loads(scratch_seen[0]) == {"claudeAiOauth": {"k": "keychain"}}
+        assert not (tmp_path / "it" / "config-dir").exists()

@@ -79,18 +79,36 @@ def _committed_sha(root: Path, relpath: Path) -> str:
     return blob
 
 
+def _content_files(directory: Path, root: Path, rel: Path) -> list[Path]:
+    """The files that make up a content directory, relative to it.
+
+    Content = what git tracks plus what git WOULD track (untracked,
+    not ignored). Ignored files (`__pycache__`, editor droppings) are never
+    content: hashing them made every frozen run crash on a `.pyc`. An
+    untracked-but-not-ignored file IS content — a JSON slice the loader
+    would read — so it is listed here and `_committed_sha` refuses it.
+    """
+    listed = _git(
+        ["ls-files", "--cached", "--others", "--exclude-standard", "--", rel.as_posix()],
+        root,
+    )
+    base = directory.resolve()
+    files: list[Path] = []
+    for line in listed.splitlines():
+        path = (root / line).resolve()
+        if path.is_file():
+            files.append(path.relative_to(base))
+    return sorted(set(files))
+
+
 def bank_sha(bank_dir: Path) -> str:
-    """Identity of the bank slice: one sha over every tracked file."""
+    """Identity of the bank slice: one sha over every content file."""
     root = _git_root(bank_dir)
     rel = bank_dir.resolve().relative_to(root)
     # Paths relative to the scanned directory only: joining them onto `rel`
     # yields the repo-relative path without mixing absolute/relative bases
     # (an absolute prefix here breaks `relative_to` for any non-root cwd).
-    files = sorted(
-        p.relative_to(bank_dir.resolve())
-        for p in bank_dir.rglob("*")
-        if p.is_file()
-    )
+    files = _content_files(bank_dir, root, rel)
     if not files:
         raise ShaError(f"{bank_dir}: banca vuota")
     parts = [

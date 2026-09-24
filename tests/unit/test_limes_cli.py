@@ -27,8 +27,10 @@ class TestCli:
         assert code == 0
         # The plan prints the matrix the wave declares: 2 models x 4 configs.
         assert "matrice: 8 celle" in out
-        assert "bank:" in out and "27 item" in out
-        assert "meccanico-only" in out  # wave 0: no judges
+        # Default wave = the newest declared (wave-1), loaded on its slice.
+        assert "bank:" in out and "289 item" in out
+        assert "giudici: dichiarati" in out  # declared, run only on request
+        assert "potenza OK" in out  # B1: the bank meets the declared power
         # Freeze status is diagnostic, never an error while uncommitted.
         assert "freeze" in out
 
@@ -36,8 +38,10 @@ class TestCli:
         code, out = _run(["check", "--root", str(LIMES_ROOT)])
         assert code == 0
         assert "bank OK" in out
-        assert "twin_families=3" in out
-        assert "items=27" in out
+        # The whole bank (every wave's slices) validates; each wave that
+        # names its slice is validated under its own rules too.
+        assert "wave-1 slice OK" in out
+        assert "twin_families=34" in out
 
     def test_run_requires_wave(self):
         with pytest.raises(SystemExit):
@@ -52,7 +56,8 @@ class TestCli:
         assert code == 0
         assert out.count("[dry]") == 8  # 2 models x 4 configs
         assert "<mcp-config>" in out  # shape preview, no secrets resolved
-        assert "freeze PENDING" in out  # diagnostic, non-blocking here
+        assert "<plugin-dir>" in out  # plugin cells load the plugin at its ref
+        assert "--output-format stream-json" in out
 
     def test_score_requires_verdicts(self, tmp_path):
         empty = tmp_path / "wave-0" / "m" / "bare"

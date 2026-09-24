@@ -20,10 +20,8 @@ the wave tag, never here.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
-from benchmarks.limes.analysis.stats import pass_at_k
-from benchmarks.limes.bank.schema.item import Bank, Item
+from benchmarks.limes.bank.schema.item import Bank
 from benchmarks.limes.protocol.citations import has_marker, provenance_answer
 from benchmarks.limes.protocol.gemelle import iter_mechanical_s
 from benchmarks.limes.protocol.scorers_q import score_q
@@ -94,22 +92,38 @@ class Scorecard:
             f"mean_attempts={'n/d' if mean_att is None else f'{mean_att:.2f}'}  "
             f"pass^k={r.get('pass_k')}"
         )
+        if r.get("cost_usd") is not None:
+            lines.append(
+                f"     cost=${r['cost_usd']:.2f}  turns={r.get('mean_turns') or 0:.1f}  "
+                f"tool_calls/item={r.get('mean_tool_calls') or 0:.1f}  "
+                f"max_turns_hit={r.get('max_turns_hit', 0)}"
+            )
         return "\n".join(lines)
 
 
 def _q_dimension(bank: Bank, answers: dict[str, str], protocol=None) -> DimensionScore:
     q_items = bank.items_of_layer("Q")
+    # Per-kind breakdown: C.termine (dates) and C.importo (amounts) are two
+    # operational definitions of the same construct (protocol/validity.py).
     verdicts = [
         score_q(item, answers[item.id], protocol)
         for item in q_items
         if item.id in answers
     ]
+    by_kind: dict[str, list[int]] = {}
+    for v in verdicts:
+        row = by_kind.setdefault(v["kind"], [0, 0])
+        row[0] += 1
+        row[1] += 1 if v["matched"] else 0
     return DimensionScore(
         key="C",
         label="calcolo",
         n=len(verdicts),
         passed=sum(1 for v in verdicts if v["matched"]),
-        detail={"missing_answers": len(q_items) - len(verdicts)},
+        detail={
+            "missing_answers": len(q_items) - len(verdicts),
+            "by_kind": {k: {"n": n, "passed": ok} for k, (n, ok) in sorted(by_kind.items())},
+        },
     )
 
 
@@ -237,13 +251,26 @@ def build_scorecard(
     protocol=None,
     attempts: dict[str, int] | None = None,
     excluded: int = 0,
+    run_meta: dict[str, dict] | None = None,
+    scored: set[str] | None = None,
 ) -> Scorecard:
-    """The wave-0 scorecard for one matrix cell from persisted answers."""
+    """The scorecard for one matrix cell from persisted answers.
+
+    `scored` restricts the dimensions to measurement items (paraphrase
+    probes are excluded by the caller); `run_meta` carries the per-item
+    outcome records (cost, turns, tool calls) for the R dimension.
+    """
+    if scored is not None:
+        bank = Bank(items=[i for i in bank.items if i.id in scored])
+        answers = {k: v for k, v in answers.items() if k in scored}
     dimensions: dict[str, DimensionScore] = {
         "C": _q_dimension(bank, answers, protocol),
         "P": _provenance_dimension(bank, answers, tool_texts),
     }
-    for construct in ("gerarchia", "analogia", "revirement", "motivazione"):
+    # diritto_ue feeds H (EU primacy is a hierarchy conflict): it was mapped
+    # by construct_key but missing from this loop, so its items were never
+    # scored in wave 0.
+    for construct in ("gerarchia", "diritto_ue", "analogia", "revirement", "motivazione"):
         dim = _construct_dimension(bank, construct, answers)
         key = dim.key
         if key in dimensions:
@@ -275,6 +302,20 @@ def build_scorecard(
         ),
         "pass_k": None,  # filled by the runner when k repetitions exist
     }
+    if run_meta:
+        rows = [m for iid, m in run_meta.items() if scored is None or iid in scored]
+        costs = [m["cost_usd"] for m in rows if m.get("cost_usd") is not None]
+        turns = [m["num_turns"] for m in rows if m.get("num_turns") is not None]
+        durations = [m["duration_s"] for m in rows if m.get("duration_s")]
+        tool_calls = [len(m.get("tool_calls") or []) for m in rows]
+        reliability.update({
+            "cost_usd": sum(costs) if costs else None,
+            "mean_turns": sum(turns) / len(turns) if turns else None,
+            "mean_duration_s": sum(durations) / len(durations) if durations else None,
+            "mean_tool_calls": sum(tool_calls) / len(tool_calls) if tool_calls else None,
+            "items_with_tool_use": sum(1 for n in tool_calls if n),
+            "max_turns_hit": sum(1 for m in rows if m.get("stop") == "max_turns"),
+        })
     return Scorecard(
         model=model, config_id=config_id, dimensions=dimensions, reliability=reliability
     )

@@ -1,0 +1,19 @@
+# Configurazione `plugin-legalit-v3.0.0-beta.3-full` — wave 1 (DESIGN §3).
+#
+# Rispetto al manifest wave-0 omonimo senza `-full`: profilo `full` (il profilo
+# `normativa` escludeva i tool di calcolo, quindi la dimensione C veniva
+# misurata su un enhancement mutilato) e tool integrati dichiarati per
+# parità: nessuna superficie ha web o shell, varia solo l'enhancement.
+id: plugin-legalit-v3.0.0-beta.3-full
+surface: plugin
+ref: v3.0.0-beta.3
+model: any
+
+isolation:
+  scratch_config_dir: true
+  profile: full
+
+parity:
+  max_turns: 30
+  system_prompt: default
+  tools: [ToolSearch, Skill]

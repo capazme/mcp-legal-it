@@ -40,6 +40,10 @@ class JudgeConfig:
     models: list[str] = field(default_factory=list)
     family_blind: bool = True
     tiebreak: str = "human"
+    replicas: int = 2
+    # Human gold set + thresholds gating inferential use (B2 iv).
+    gold: str | None = None
+    calibration: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,8 @@ class Protocol:
     timeout_s: int
     exclusions: list[str]
     judge: JudgeConfig
+    # Contamination probe threshold (B4): max original-vs-paraphrase gap.
+    contamination_max_gap: float | None = None
 
     def default_tolerance(self) -> dict:
         return dict(self.tolerance_defaults)
@@ -110,11 +116,30 @@ def load_protocol(path: Path) -> Protocol:
         )
 
     judge_raw = _need(raw, "judge", "root")
+    calibration_raw = judge_raw.get("calibration") or {}
+    models = [str(m) for m in judge_raw.get("models", [])]
+    if models:
+        missing = [k for k in ("min_gold", "min_kappa", "max_eo_gap") if k not in calibration_raw]
+        if missing:
+            raise ProtocolError(
+                f"protocol: judges declared without calibration thresholds {missing} "
+                f"(no judge verdict is inferential without them)"
+            )
+    replicas = judge_raw.get("replicas", 2)
+    if not isinstance(replicas, int) or replicas < 1:
+        raise ProtocolError("protocol: judge.replicas must be a positive integer")
     judge = JudgeConfig(
-        models=[str(m) for m in judge_raw.get("models", [])],
+        models=models,
         family_blind=bool(judge_raw.get("family_blind", True)),
         tiebreak=str(judge_raw.get("tiebreak", "human")),
+        replicas=replicas,
+        gold=str(judge_raw["gold"]) if judge_raw.get("gold") else None,
+        calibration=dict(calibration_raw),
     )
+    contamination = raw.get("contamination") or {}
+    max_gap = contamination.get("max_gap")
+    if max_gap is not None and not (0 < float(max_gap) < 1):
+        raise ProtocolError("protocol: contamination.max_gap must be in (0, 1)")
 
     return Protocol(
         version=version,
@@ -125,4 +150,5 @@ def load_protocol(path: Path) -> Protocol:
         timeout_s=timeout_s,
         exclusions=list(exclusions),
         judge=judge,
+        contamination_max_gap=float(max_gap) if max_gap is not None else None,
     )

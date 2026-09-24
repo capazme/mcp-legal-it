@@ -1,0 +1,87 @@
+# Wave 1 (DESIGN §8): bank estesa, validità di costrutto per item, giudici
+# con contromisure, potenza a priori, analisi confermativa pre-registrata.
+#
+# Tutto ciò che decide un numero vive QUI o nel protocollo v1, nel tag
+# `limes-wave-1`, PRIMA di qualunque run (Gelman & Loken). La wave 0 resta
+# congelata nel suo tag: nulla di questo file la modifica.
+id: wave-1
+tag: "limes-{id}"
+description: >-
+  Bank estesa (anchor wave 0 + 110 Q generati + 159 S con 34 famiglie
+  gemelle a esito chiuso + 10 sonde di parafrasi), runner con isolamento corretto
+  (cwd neutra, plugin dal ref, parità dei tool), 4 configurazioni x 2 modelli.
+
+bank:
+  # Solo le slice di questa wave: la privata della wave 0 NON entra.
+  slices:
+    - anchors/anchors-wave-0.json
+    - private/q-wave-1.json
+    - private/private-wave-1.json
+  require_validity: true
+  # Item esclusi dalla revisione umana, compilati da `bank/review.py ingest`
+  # applicando la regola `review.inclusion` PRIMA del tag. Una coppia gemella
+  # si esclude intera; gli anchor non si escludono mai.
+  excluded: []
+
+# Revisione giuridica pre-registrata (DESIGN §8.2): la regola è fissata qui
+# prima di vedere le etichette e prima di qualunque risposta dei modelli.
+review:
+  reviewers_per_item: 2
+  inclusion: >-
+    Un item entra se ENTRAMBI i revisori assegnati lo approvano ("OK") e
+    nessuno lo segnala come "ERRORE" giuridico. "DA RIVEDERE" esclude l'item
+    salvo correzione prima del tag (la correzione rientra in revisione).
+  verdicts: [OK, DA RIVEDERE, ERRORE]
+  # Attrito atteso sugli S: 20%. La bank è dimensionata perché la potenza
+  # regga anche dopo le esclusioni (plan la ricontrolla sugli item rimasti).
+  expected_attrition: 0.20
+
+# Modelli pinnati (model_sha). DA CONFERMARE prima del tag.
+models:
+  - claude-sonnet-5
+  - claude-opus-5-5
+
+configs:
+  - bare
+  - mcp-legalit-v2.14.0-full
+  - plugin-legalit-v2.14.0-full
+  - plugin-legalit-v3.0.0-beta.3-full
+
+analysis:
+  alpha: 0.05
+  bootstrap_resamples: 2000
+  # Endpoint primario: esito binario appaiato su ogni item punteggiato (le
+  # sonde di parafrasi sono escluse: alimentano solo il report di
+  # contaminazione).
+  primary:
+    # Famiglia confermativa: ogni superficie contro bare, McNemar esatto,
+    # Holm entro ciascun modello (3 confronti). I due modelli sono repliche,
+    # non membri della stessa famiglia.
+    baseline: bare
+    treatments:
+      - mcp-legalit-v2.14.0-full
+      - plugin-legalit-v2.14.0-full
+      - plugin-legalit-v3.0.0-beta.3-full
+    correction: holm
+  non_inferiority:
+    # Serie temporale v2.14.0 -> v3.0.0-beta.3: un test per modello, fuori
+    # dalla famiglia Holm. Criterio: limite inferiore dell'IC 95% di
+    # Newcombe per dati APPAIATI (metodo 10) > -margin.
+    margin: 0.10
+    treated: plugin-legalit-v3.0.0-beta.3-full
+    control: plugin-legalit-v2.14.0-full
+  power:
+    # Potenza a priori (B1): plan/run rifiutano la wave se la bank non basta.
+    # expected_discordance è un'ipotesi dichiarata ORA (quota di item su cui
+    # le due celle divergono): si dichiara il caso PRUDENTE 0.25 (estremo
+    # alto dell'intervallo 0.15-0.25), che richiede 197 item — più
+    # discordanza significa più varianza della differenza appaiata.
+    margin: 0.10
+    alpha_one_sided: 0.025
+    power: 0.80
+    expected_discordance: 0.25
+    min_discordant: 30
+    mcnemar_split: 0.75
+  composite:
+    # Solo comunicazione; pesi dichiarati PRIMA dei dati (identici a wave 0).
+    weights: { C: 0.25, P: 0.15, H: 0.15, A: 0.15, U: 0.15, M: 0.15 }

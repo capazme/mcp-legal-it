@@ -1,0 +1,13 @@
+{
+  "$comment": "Server MCP legalit servito DAL REF pinnato (wave 1). ${LIMES_REF_DIR} è la directory plugin/ estratta con git archive dal ref del manifest (runner/refs.py); ${LIMES_LEGALIT_PROFILE} è il profile del manifest. Li imposta il runner, non l'ambiente: nessuna dipendenza da un'installazione locale.",
+  "mcpServers": {
+    "legal-it": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["${LIMES_REF_DIR}/start_server.sh"],
+      "env": {
+        "LEGAL_PROFILE": "${LIMES_LEGALIT_PROFILE}"
+      }
+    }
+  }
+}
