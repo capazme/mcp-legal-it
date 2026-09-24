@@ -67,7 +67,7 @@ Struttura rigida con sezioni: FATTO → QUESITO → DIRITTO (quadro normativo + 
 
 #### `verifica_prescrizione`
 
-Per la **prescrizione civile**: distinzione tra termine ordinario (10 anni, art. 2946 c.c.) e termini brevi (5 anni per risarcimento, 2 anni per assicurazione, 1 anno per trasporti). Per la **prescrizione penale**: applica automaticamente il regime corretto in base alla data del fatto (ordinario pre-2020, Bonafede 2020-2024, Cartabia dal 2025).
+Per la **prescrizione civile**: distinzione tra termine ordinario (10 anni, art. 2946 c.c.) e termini brevi (5 anni per risarcimento, 2 anni per assicurazione, 1 anno per trasporti). Per la **prescrizione penale**: applica il regime corretto in base alla data del fatto (ordinario fino al 02/08/2017; Orlando dal 03/08/2017 al 31/12/2019; dal 01/01/2020 blocco dopo il primo grado ex art. 161-bis c.p. e improcedibilità ex art. 344-bis c.p.p., L. 3/2019 e L. 134/2021).
 
 #### `analisi_giurisprudenziale`
 

@@ -105,8 +105,11 @@ from src.tools import (  # noqa: E402, F401
 
 from src import prompts, resources  # noqa: E402, F401
 from src.lib._ledger import apply_table_ledger  # noqa: E402
+from src.lib._regime import ENV_SWITCH as _PREVIGENTE_SWITCH  # noqa: E402
+from src.lib._regime import TAG as _PREVIGENTE_TAG  # noqa: E402
+from src.lib._regime import hidden_by_environment as _previgenti_nascosti  # noqa: E402
 from src.table_bindings import TABLE_CONSTANTS, TOOL_ALTERNATIVES, TOOL_TABLES  # noqa: E402
-from src.tool_annotations import apply_tool_annotations  # noqa: E402
+from src.tool_annotations import PREVIGENTE, apply_tool_annotations  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Tool annotations: readOnlyHint/openWorldHint per tool, so hosts can tell a
@@ -120,7 +123,9 @@ apply_tool_annotations(mcp)
 # vintage is expired or unverified (see src/lib/_ledger.py). The same observation
 # is what `src/lib/_data.py` names in the `dati_applicati` footer.
 # ---------------------------------------------------------------------------
-_TABLES_WRAPPED = apply_table_ledger(mcp, TABLE_CONSTANTS, TOOL_TABLES, TOOL_ALTERNATIVES)
+_TABLES_WRAPPED = apply_table_ledger(
+    mcp, TABLE_CONSTANTS, TOOL_TABLES, TOOL_ALTERNATIVES, tool_regimes=PREVIGENTE
+)
 
 # ---------------------------------------------------------------------------
 # Profile-based tool filtering (for Desktop/Browser — lighter context)
@@ -148,3 +153,12 @@ if _profile != "full" and _profile in _PROFILES:
     mcp.enable(tags=_PROFILES[_profile], only=True)
     mcp.enable(components={"prompt", "resource", "template"})
 
+# ---------------------------------------------------------------------------
+# Superseded-regime tools (`Regime: PREVIGENTE`, tag `previgente`): registered
+# and flagged by default, because they are right for the residual cases they
+# name; LEGAL_PREVIGENTE=off hides the whole group for hosts that would rather
+# not expose them at all (see src/lib/_regime.py). Applied after the profile so
+# it wins whatever the profile enabled.
+# ---------------------------------------------------------------------------
+if _previgenti_nascosti(os.environ.get(_PREVIGENTE_SWITCH)):
+    mcp.disable(tags={_PREVIGENTE_TAG})

@@ -70,10 +70,12 @@ class TestScadenzaProcessuale:
 class TestTerminiProcessualiCivili:
 
     def test_memoria_I_40_giorni_prima(self):
-        # Udienza 2025-10-01, 40gg prima con sospensione feriale → 2025-08-12
+        # Udienza 2025-10-01, 40gg a ritroso saltando l'1-31 agosto: 30/09..1/09 sono 30 giorni,
+        # poi 31/07..22/07 gli altri 10 → 2025-07-22 (una scadenza in agosto sarebbe impossibile)
         r = _call("termini_processuali_civili", data_udienza="2025-10-01", tipo_termine="memoria_I")
-        assert r["scadenza"] == "2025-08-12"
+        assert r["scadenza"] == "2025-07-22"
         assert r["sospensione_feriale_applicata"] is True
+        assert r["sospensione_feriale_incidente"] is True
 
     def test_memoria_I_no_feriale(self):
         # Senza sospensione feriale, 40gg prima di 2025-10-01 = 2025-08-22
@@ -89,9 +91,25 @@ class TestTerminiProcessualiCivili:
         r = _call("termini_processuali_civili", data_udienza="2025-10-01", tipo_termine="memoria_III")
         assert r["scadenza"] == "2025-09-19"
 
-    def test_comparsa_conclusionale_60_giorni_dopo(self):
+    def test_comparsa_conclusionale_30_giorni_prima_rimessione(self):
+        # Art. 189 c.p.c. post-Cartabia: 30gg prima dell'udienza di rimessione in decisione
         r = _call("termini_processuali_civili", data_udienza="2025-10-01", tipo_termine="comparsa_conclusionale")
-        assert r["scadenza"] == "2025-12-01"
+        assert r["scadenza"] == "2025-09-01"
+        assert r["giorni_prima_udienza"] == 30
+        assert "189" in r["riferimento_normativo"]
+        assert "riepilogo_termini_decisione" in r
+
+    def test_note_conclusioni_60_e_replica_15_giorni_prima(self):
+        note = _call("termini_processuali_civili", data_udienza="2025-10-01", tipo_termine="note_conclusioni")
+        assert note["scadenza"] == "2025-07-02"  # 60gg a ritroso saltando agosto
+        replica = _call("termini_processuali_civili", data_udienza="2025-10-01", tipo_termine="replica")
+        assert replica["scadenza"] == "2025-09-16"
+
+    def test_giorni_assegnati_dal_giudice(self):
+        r = _call("termini_processuali_civili", data_udienza="2025-10-01",
+                  tipo_termine="comparsa_conclusionale", giorni=20)
+        assert r["scadenza"] == "2025-09-11"
+        assert r["giorni_assegnati_dal_giudice"] is True
 
     def test_riepilogo_presente_per_memorie_prima(self):
         r = _call("termini_processuali_civili", data_udienza="2025-10-01", tipo_termine="memoria_I")
@@ -165,11 +183,31 @@ class TestScadenzeImpugnazioni:
         assert r["tipo_termine"] == "breve (da notifica)"
 
     def test_appello_lungo_6_mesi(self):
-        # 6 mesi da 2025-06-01 = 2025-12-01 (lunedì)
+        # 6 mesi da 2025-06-01 = 2025-12-01; il periodo comprende agosto → +31 = 2026-01-01
+        # (Capodanno) → proroga al 2026-01-02
         r = _call("scadenze_impugnazioni", data_pubblicazione="2025-06-01",
                   tipo_impugnazione="appello_sentenza", notificata=False)
-        assert r["scadenza"] == "2025-12-01"
+        assert r["scadenza"] == "2026-01-02"
+        assert r["sospensione_feriale_incidente"] is True
         assert "lungo" in r["tipo_termine"]
+
+    def test_appello_lungo_senza_sospensione_feriale(self):
+        r = _call("scadenze_impugnazioni", data_pubblicazione="2025-06-01",
+                  tipo_impugnazione="appello_sentenza", notificata=False,
+                  sospensione_feriale=False)
+        assert r["scadenza"] == "2025-12-01"
+
+    def test_appello_breve_attraversa_agosto(self):
+        # Notifica 2025-07-20: 21-31 luglio sono 11 giorni, agosto non conta, 1-19 settembre gli altri 19
+        r = _call("scadenze_impugnazioni", data_pubblicazione="2025-07-20",
+                  tipo_impugnazione="appello_sentenza", notificata=True)
+        assert r["scadenza"] == "2025-09-19"
+
+    def test_regolamento_competenza_nessun_termine_lungo(self):
+        r = _call("scadenze_impugnazioni", data_pubblicazione="2025-06-01",
+                  tipo_impugnazione="regolamento_competenza", notificata=False)
+        assert r["scadenza"] is None
+        assert "47" in r["riferimento_normativo"]
 
     def test_cassazione_breve_60_giorni(self):
         # 60gg da 2025-09-01 = 2025-10-31 (venerdì)
@@ -266,6 +304,18 @@ class TestTerminiMemorieRepliche:
         assert "prova_contraria" in nomi
 
     def test_memoria_integrativa_40_giorni(self):
+        # Udienza 2025-10-01: 40gg a ritroso saltando agosto → 2025-07-22
+        r = _call("termini_memorie_repliche", data_udienza="2025-10-01")
+        m = next(s for s in r["scadenze"] if s["termine"] == "memoria_integrativa")
+        assert m["scadenza"] == "2025-07-22"
+        assert m["giorni_prima_udienza"] == 40
+
+    def test_memoria_integrativa_senza_feriale(self):
+        r = _call("termini_memorie_repliche", data_udienza="2025-10-01", sospensione_feriale=False)
+        m = next(s for s in r["scadenze"] if s["termine"] == "memoria_integrativa")
+        assert m["scadenza"] == "2025-08-22"
+
+    def _test_memoria_integrativa_40_giorni_vecchio(self):
         r = _call("termini_memorie_repliche", data_udienza="2025-10-01")
         mem = next(s for s in r["scadenze"] if s["termine"] == "memoria_integrativa")
         assert mem["giorni_prima_udienza"] == 40
@@ -303,36 +353,49 @@ class TestTerminiMemorieRepliche:
 
 class TestTerminiProcedimentoSemplificato:
 
-    def test_quattro_scadenze_restituite(self):
+    def test_cinque_scadenze_restituite(self):
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
-        assert len(r["scadenze"]) == 4
+        assert len(r["scadenze"]) == 5
 
-    def test_comparsa_risposta_70_giorni(self):
+    def test_costituzione_convenuto_10_giorni_prima(self):
+        # Art. 281-undecies co. 3: 10gg prima dell'udienza; 2025-09-21 è domenica → anticipa a venerdì 19
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
-        comp = next(s for s in r["scadenze"] if s["termine"] == "comparsa_risposta")
-        assert comp["giorni_prima_udienza"] == 70
-        assert comp["scadenza"] == "2025-07-23"
+        comp = next(s for s in r["scadenze"] if s["termine"] == "costituzione_convenuto")
+        assert comp["giorni_prima_udienza"] == 10
+        assert comp["scadenza"] == "2025-09-19"
+        assert comp["prorogata_art_155"] is True
 
-    def test_tutti_termini_prima_udienza(self):
+    def test_notifica_ricorso_termini_liberi(self):
+        # 40 giorni liberi: ultimo giorno utile 41 giorni prima, saltando agosto → 2025-07-21
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
-        from datetime import date
-        udienza = date(2025, 10, 1)
-        for s in r["scadenze"]:
-            scad = date.fromisoformat(s["scadenza"])
-            assert scad < udienza
+        it = next(s for s in r["scadenze"] if s["termine"] == "notifica_ricorso_italia")
+        assert it["giorni_prima_udienza"] == 41
+        assert it["scadenza"] == "2025-07-21"
+        est = next(s for s in r["scadenze"] if s["termine"] == "notifica_ricorso_estero")
+        assert est["giorni_prima_udienza"] == 61
 
-    def test_nomi_termini_corretti(self):
+    def test_memorie_eventuali_in_avanti(self):
+        # Art. 281-duodecies co. 3: fino a 20gg + 10gg dall'udienza, solo se concesse
+        r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
+        mem = next(s for s in r["scadenze"] if s["termine"] == "memoria_integrativa")
+        assert mem["scadenza"] == "2025-10-21"
+        rep = next(s for s in r["scadenze"] if s["termine"] == "replica_prova_contraria")
+        assert rep["scadenza"] == "2025-10-31"
+
+    def test_giorni_concessi_oltre_il_massimo_rifiutati(self):
+        r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01", giorni_memoria=25)
+        assert "errore" in r
+
+    def test_nessun_termine_171_ter(self):
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
         nomi = [s["termine"] for s in r["scadenze"]]
-        assert "comparsa_risposta" in nomi
-        assert "memoria_integrativa" in nomi
-        assert "replica" in nomi
-        assert "prova_contraria" in nomi
+        assert "comparsa_risposta" not in nomi
+        assert "prova_contraria" not in nomi
 
     def test_returns_rito_e_normativa(self):
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
         assert "semplificato" in r["rito"].lower()
-        assert "riferimento_normativo" in r
+        assert "281-undecies" in r["riferimento_normativo"]
 
 
 # ---------------------------------------------------------------------------
@@ -378,6 +441,22 @@ class TestTermini183190Cpc:
         r = _call("termini_183_190_cpc", data_udienza="2025-05-01")
         assert "pre-Cartabia" in r["rito"] or "ante" in r["rito"]
         assert "183" in r["riferimento_normativo"]
+
+    def test_regime_previgente_dichiarato_nella_risposta(self):
+        r = _call("termini_183_190_cpc", data_udienza="2025-05-01")
+        regime = r["regime_normativo"]
+        assert regime["stato"] == "previgente"
+        assert "28/02/2023" in regime["applicabile_a"]
+        assert "termini_memorie_repliche" in regime["tool_vigenti"]
+
+    def test_memorie_183_con_sospensione_feriale(self):
+        # Udienza 2025-07-01: 30gg → 31/07 (30° giorno, agosto non conta) → 2025-07-31
+        # 60gg → 30 in luglio + 30 in settembre → 2025-09-30
+        r = _call("termini_183_190_cpc", data_udienza="2025-07-01")
+        m1 = next(s for s in r["scadenze"] if s["termine"] == "memoria_183_n1")
+        m2 = next(s for s in r["scadenze"] if s["termine"] == "memoria_183_n2")
+        assert m1["scadenza"] == "2025-07-31"
+        assert m2["scadenza"] == "2025-09-30"
 
 
 # ---------------------------------------------------------------------------
@@ -450,10 +529,11 @@ class TestTerminiDepositoAttiAppello:
         assert breve["giorni"] == 30
 
     def test_termine_lungo_6_mesi(self):
+        # 2025-12-01 + 31 giorni di agosto = 2026-01-01 (festivo) → 2026-01-02
         r = _call("termini_deposito_atti_appello",
                   data_pubblicazione="2025-06-01")
         lungo = next(t for t in r["termini"] if t["termine"] == "appello_termine_lungo")
-        assert lungo["scadenza"] == "2025-12-01"
+        assert lungo["scadenza"] == "2026-01-02"
         assert lungo["mesi"] == 6
 
     def test_solo_data_notifica(self):
@@ -474,11 +554,25 @@ class TestTerminiDepositoAttiAppello:
         r = _call("termini_deposito_atti_appello")
         assert "errore" in r
 
-    def test_iscrizione_ruolo_sempre_presente(self):
+    def test_costituzione_appellante_sempre_presente(self):
+        # Art. 165 c.p.c. (via art. 347): 10 giorni dalla notifica della citazione, non 30
         r = _call("termini_deposito_atti_appello",
                   data_notifica_sentenza="2025-06-01")
-        nomi = [t["termine"] for t in r["termini"]]
-        assert "iscrizione_a_ruolo" in nomi
+        cost = next(t for t in r["termini"] if t["termine"] == "costituzione_appellante")
+        assert cost["giorni"] == 10
+        assert "scadenza" not in cost
+
+    def test_costituzione_appellante_calcolata(self):
+        r = _call("termini_deposito_atti_appello", data_notifica_citazione="2025-06-01")
+        cost = next(t for t in r["termini"] if t["termine"] == "costituzione_appellante")
+        assert cost["scadenza"] == "2025-06-11"
+
+    def test_comparsa_appellato_70_giorni_prima_udienza(self):
+        # Art. 166 c.p.c. post-Cartabia (via art. 347): 70 giorni prima dell'udienza
+        r = _call("termini_deposito_atti_appello", data_udienza="2025-12-15")
+        comp = next(t for t in r["termini"] if t["termine"] == "comparsa_risposta_appellato")
+        assert comp["giorni_prima_udienza"] == 70
+        assert comp["scadenza"] == "2025-10-06"
 
     def test_comparsa_risposta_appellato_presente(self):
         r = _call("termini_deposito_atti_appello",
@@ -527,6 +621,19 @@ class TestTerminiDepositoCtu:
     def test_returns_normativa(self):
         r = _call("termini_deposito_ctu", data_conferimento="2025-05-01")
         assert "195" in r["riferimento_normativo"]
+
+    def test_sospensione_feriale_sui_termini_ctu(self):
+        # Conferimento 2025-07-01 + 60: 30 giorni in luglio, agosto non conta, 30 in settembre
+        r = _call("termini_deposito_ctu", data_conferimento="2025-07-01", giorni_termine=60)
+        dep = next(s for s in r["scadenze"] if s["termine"] == "deposito_bozza_ctu")
+        assert dep["scadenza"] == "2025-09-30"
+        assert r["sospensione_feriale_incidente"] is True
+
+    def test_giorni_osservazioni_parametrici(self):
+        r = _call("termini_deposito_ctu", data_conferimento="2025-05-01", giorni_termine=60,
+                  giorni_osservazioni=20, giorni_replica=10)
+        oss = next(s for s in r["scadenze"] if s["termine"] == "osservazioni_parti")
+        assert oss["scadenza"] == "2025-07-21"  # 30/06 + 20 = 20/07 (domenica) → 21/07
 
     def test_proroga_applicata_se_festivo(self):
         # Conferimento il 2025-06-01 + 60 = 2025-07-31 — Thursday, no proroga needed
@@ -599,3 +706,75 @@ class TestHelpers:
         mod = importlib.import_module("src.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2024, 10, 4)) is False
+
+
+# ---------------------------------------------------------------------------
+# Sospensione feriale (L. 742/1969): conteggio giorno per giorno
+# ---------------------------------------------------------------------------
+
+class TestSospensioneFeriale:
+    """Casi verificati a mano contando i giorni sul calendario.
+
+    Regola: i giorni dal 1° al 31 agosto non si contano (art. 1 co. 1 L. 742/1969);
+    se il dies a quo cade in agosto il decorso è differito al 1° settembre, che
+    vale come primo giorno (art. 1 co. 2).
+    """
+
+    def _mod(self):
+        return importlib.import_module("src.tools.scadenze_termini")
+
+    def test_avanti_termine_che_finisce_in_agosto(self):
+        # 20/07 + 30: 21-31 luglio = 11 giorni, poi 1-19 settembre = 19 → 19/09
+        from datetime import date
+        assert self._mod()._conta_avanti(date(2025, 7, 20), 30, True) == (date(2025, 9, 19), True)
+
+    def test_avanti_termine_che_scavalca_agosto(self):
+        # 20/07 + 60: 11 in luglio + 49 in settembre/ottobre → 19/10
+        from datetime import date
+        assert self._mod()._conta_avanti(date(2025, 7, 20), 60, True)[0] == date(2025, 10, 19)
+
+    def test_avanti_dies_a_quo_in_agosto(self):
+        # Notifica 10/08: decorrenza differita, 1° settembre è il primo giorno → 30/09
+        from datetime import date
+        assert self._mod()._conta_avanti(date(2025, 8, 10), 30, True)[0] == date(2025, 9, 30)
+
+    def test_avanti_senza_sospensione(self):
+        from datetime import date
+        assert self._mod()._conta_avanti(date(2025, 7, 20), 30, False) == (date(2025, 8, 19), False)
+
+    def test_ritroso_scavalcando_agosto(self):
+        from datetime import date
+        mod = self._mod()
+        assert mod._conta_ritroso(date(2025, 10, 1), 40, True)[0] == date(2025, 7, 22)
+        assert mod._conta_ritroso(date(2025, 9, 15), 40, True)[0] == date(2025, 7, 6)
+
+    def test_ritroso_senza_agosto_e_senza_sospensione(self):
+        from datetime import date
+        mod = self._mod()
+        assert mod._conta_ritroso(date(2025, 12, 15), 40, True) == (date(2025, 11, 5), False)
+        assert mod._conta_ritroso(date(2025, 10, 1), 40, False)[0] == date(2025, 8, 22)
+
+    def test_mesi_con_agosto_nel_periodo(self):
+        from datetime import date
+        mod = self._mod()
+        assert mod._mesi_avanti(date(2026, 3, 15), 6, True) == (date(2026, 10, 16), True)
+        assert mod._mesi_avanti(date(2026, 2, 10), 6, True)[0] == date(2026, 9, 10)
+
+    def test_mesi_senza_agosto_nel_periodo(self):
+        from datetime import date
+        mod = self._mod()
+        assert mod._mesi_avanti(date(2025, 9, 20), 6, True) == (date(2026, 3, 20), False)
+        assert mod._mesi_avanti(date(2026, 3, 15), 6, False) == (date(2026, 9, 15), False)
+
+    def test_mesi_dies_a_quo_in_agosto_lettura_prudenziale(self):
+        # Decorrenza differita alla fine della sospensione: 6 mesi dal 31/08 → 28/02
+        from datetime import date
+        assert self._mod()._mesi_avanti(date(2025, 8, 15), 6, True)[0] == date(2026, 2, 28)
+
+    def test_scadenza_processuale_con_sospensione_opzionale(self):
+        r = _call("scadenza_processuale", data_evento="2025-07-20", giorni=30, sospensione_feriale=True)
+        assert r["scadenza"] == "2025-09-19"
+        assert r["sospensione_feriale_incidente"] is True
+        r2 = _call("scadenza_processuale", data_evento="2025-07-20", giorni=30)
+        assert r2["scadenza"] == "2025-08-19"
+        assert r2["sospensione_feriale_applicata"] is False

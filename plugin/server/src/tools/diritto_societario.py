@@ -28,8 +28,11 @@ def quorum_assembleari(
     Calcola i quorum richiesti dalla legge per SPA (artt. 2368-2369 c.c.),
     SRL (art. 2479 c.c.) e cooperative (art. 2538 c.c.) in prima e seconda
     convocazione, verificando se i valori forniti li soddisfano.
-    Precisione: INDICATIVO — lo statuto può prevedere quorum più elevati o,
-    nei limiti di legge, più bassi.
+    Precisione: INDICATIVO (lo statuto può prevedere quorum diversi; verificare in particolare per
+        le s.p.a. non quotate l'art. 2368 co. 2, più della metà del capitale in prima convocazione
+        per l'assemblea straordinaria, e per le s.r.l. l'art. 2479-bis co. 3, metà del capitale e
+        maggioranza assoluta, con almeno la metà del capitale per le modifiche dell'atto
+        costitutivo)
 
     Args:
         tipo_societa: Tipo di società: 'spa', 'srl', 'cooperativa'
@@ -332,7 +335,7 @@ def costi_costituzione(
             {"voce": "Imposta di registro", "min": 200.0, "max": 200.0, "note": "Fissa (DPR 131/1986)"},
             {"voce": "Bolli e diritti", "min": 0.0, "max": 0.0, "note": "ESENTI per SRLS (art. 3 c. 1 D.L. 1/2012)"},
             {"voce": "Diritto CCIAA (annuale)", "min": 120.0, "max": 120.0, "note": "Diritto annuale — varia per provincia"},
-            {"voce": "Diritti MiSE", "min": 90.0, "max": 90.0, "note": "Diritti di segreteria Registro Imprese"},
+            {"voce": "Diritti di segreteria", "min": 0.0, "max": 0.0, "note": "ESENTI per SRLS (art. 3 c. 3 D.L. 1/2012: iscrizione esente da bollo e diritti di segreteria)"},
         ]
         capitale_minimo = 1.0
         capitale_consigliato = 9999.0
@@ -351,7 +354,7 @@ def costi_costituzione(
         capitale_minimo = 50000.0
         capitale_consigliato = 50000.0
         rif = "Art. 2327 c.c. — DPR 131/1986"
-        note_extra = "Capitale minimo €50.000; almeno 3/10 del conferimento in denaro va versato all'atto della costituzione."
+        note_extra = "Capitale minimo €50.000 (art. 2327 c.c.); almeno il 25% dei conferimenti in denaro va versato all'atto della costituzione (art. 2342 co. 2 c.c.)."
 
     elif tipo_societa == "sas":
         voci = [

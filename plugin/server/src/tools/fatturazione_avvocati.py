@@ -345,12 +345,14 @@ def fattura_avvocato(
     cpa: bool = True,
 ) -> dict:
     """Genera struttura fattura avvocato con CPA, IVA e ritenuta d'acconto.
-    Vigenza: L. 190/2014 (regime forfettario); DPR 633/1972 (IVA); DPR 600/1973 (ritenuta).
-    Precisione: ESATTO (importi di legge: CPA 4%, IVA 22%, ritenuta 20%).
+    Vigenza: L. 190/2014 (regime forfettario); DPR 633/1972 (IVA); DPR 600/1973 (ritenuta);
+    DPR 642/1972 (imposta di bollo di 2 euro sulle fatture senza IVA oltre 77,47 euro).
+    Precisione: ESATTO (importi di legge: CPA 4%, IVA 22%, ritenuta 20%, bollo 2 euro).
 
     Args:
         imponibile: Compenso professionale (imponibile) in euro (€)
-        regime: Regime fiscale: 'ordinario' (IVA 22% + ritenuta 20%) o 'forfettario' (no IVA, no ritenuta)
+        regime: Regime fiscale: 'ordinario' (IVA 22% + ritenuta 20%) o 'forfettario' (no IVA, no
+                ritenuta; bollo di 2 euro se l'importo supera 77,47 euro)
         cpa: Se applicare Cassa Previdenza Avvocati 4% sull'imponibile (default: True)
     """
     if regime not in ("ordinario", "forfettario"):
@@ -370,6 +372,7 @@ def fattura_avvocato(
 
     iva_importo = 0.0
     ritenuta_importo = 0.0
+    bollo = 0.0
 
     if regime == "ordinario":
         iva_importo = round(imponibile_iva * 0.22, 2)
@@ -378,8 +381,13 @@ def fattura_avvocato(
         voci.append({"descrizione": "Ritenuta d'acconto 20% (su compenso)", "importo": -ritenuta_importo})
         totale = round(imponibile_iva + iva_importo - ritenuta_importo, 2)
     else:
-        totale = imponibile_iva
         voci.append({"descrizione": "IVA: esente (regime forfettario art. 1 c. 54-89 L. 190/2014)", "importo": 0.0})
+        # Fattura senza IVA di importo superiore a 77,47 euro: imposta di bollo di 2 euro
+        # (art. 13 Tariffa parte I DPR 642/1972), a carico del cliente se addebitata in fattura
+        if imponibile_iva > 77.47:
+            bollo = 2.0
+            voci.append({"descrizione": "Imposta di bollo (DPR 642/1972)", "importo": bollo})
+        totale = round(imponibile_iva + bollo, 2)
 
     return {
         "regime": regime,
@@ -388,6 +396,7 @@ def fattura_avvocato(
         "imponibile_iva": imponibile_iva,
         "iva_22pct": iva_importo,
         "ritenuta_acconto_20pct": ritenuta_importo,
+        "bollo": bollo,
         "totale_fattura": totale,
         "netto_a_pagare": totale,
         "voci": voci,
@@ -665,7 +674,8 @@ def spese_trasferta_avvocati(
 ) -> dict:
     """Calcola indennità di trasferta e rimborso chilometrico per avvocati.
     Vigenza: DM 55/2014 art. 27 — Spese di trasferta avvocati.
-    Precisione: INDICATIVO (indennità calcolata come percentuale sull'onorario medio di riferimento).
+    Precisione: INDICATIVO (l'indennità di trasferta ex art. 27 DM 55/2014 è parametrata al compenso
+        della fase; l'importo base e le percentuali orarie incluse sono stime)
 
     Args:
         km_distanza: Distanza andata/ritorno in km (valore positivo)

@@ -39,7 +39,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware
 
-from . import _clock, _precision, _refusals, _sources
+from . import _clock, _precision, _refusals, _regime, _sources
 from ._data import warnings as data_warnings
 from ._tables_open import CURRENT, note, opened, recording
 
@@ -55,6 +55,9 @@ REFUSALS_KEY = "mcp-legal-it/verbale_rifiuti"
 #: Key under which a call declares the online sources it consulted. Same meta,
 #: same pass, so a host reads one place to know what an answer rests on.
 CONSULTED_SOURCES_KEY = "mcp-legal-it/fonti_consultate"
+#: Key under which a call declares that the tool computes under a superseded
+#: rule (`Regime: PREVIGENTE` in its docstring, see `src/lib/_regime.py`).
+REGIME_KEY = _regime.META_KEY
 
 __all__ = [
     "CONSULTED_SOURCES_KEY",
@@ -63,6 +66,7 @@ __all__ = [
     "OPENED_TABLES_KEY",
     "PRECISION_KEY",
     "REFUSALS_KEY",
+    "REGIME_KEY",
     "TableDict",
     "TableLedgerMiddleware",
     "TableList",
@@ -189,9 +193,14 @@ class TableLedgerMiddleware(Middleware):
         tool_tables: dict[str, tuple[str, ...]] | None = None,
         tool_alternatives: dict[str, str] | None = None,
         tool_sources: dict[str, tuple[str, ...]] | None = None,
+        tool_regimes: dict[str, dict] | None = None,
     ) -> None:
         self.tool_tables = tool_tables or {}
         self.tool_alternatives = tool_alternatives or {}
+        # The committed policy of which tool computes under a superseded rule
+        # (PREVIGENTE in tool_annotations.py): the answer's body already carries
+        # it, this stamps the same fact in `_meta` for a host that reads only that.
+        self.tool_regimes = tool_regimes or {}
         # The committed policy of which tool may reach which online source (the
         # same names the audit collects). A source the observation saw but the
         # policy does not list means the walk missed a fetcher -- the suite
@@ -248,6 +257,9 @@ class TableLedgerMiddleware(Middleware):
         avvisi = data_warnings(effective)
         if avvisi:
             meta[DATA_WARNINGS_KEY] = avvisi
+        regime = self.tool_regimes.get(name)
+        if regime:
+            meta[REGIME_KEY] = {"stato": _regime.PREVIGENTE.lower(), **regime}
         if esito is not None:
             meta[PRECISION_KEY] = esito.to_dict()
             # The refusal ledger: what the vintage policy blocked, as data. Only
@@ -295,6 +307,7 @@ def apply_table_ledger(
     tool_tables: dict[str, tuple[str, ...]] | None = None,
     tool_alternatives: dict[str, str] | None = None,
     tool_sources: dict[str, tuple[str, ...]] | None = None,
+    tool_regimes: dict[str, dict] | None = None,
 ) -> int:
     """Wrap the table constants and install the ledger middleware.
 
@@ -302,10 +315,11 @@ def apply_table_ledger(
     a bindings file that matches no imported module is visible instead of silent.
     `tool_sources` is the committed online-source policy (TOOL_SOURCES): the
     middleware compares it with what the calls really fetched and the suite
-    fails on the difference.
+    fails on the difference. `tool_regimes` is the committed map of the tools
+    that compute under a superseded rule (PREVIGENTE), stamped in `_meta` too.
     """
     wrapped = install(bindings)
     server.add_middleware(
-        TableLedgerMiddleware(tool_tables, tool_alternatives, tool_sources)
+        TableLedgerMiddleware(tool_tables, tool_alternatives, tool_sources, tool_regimes)
     )
     return wrapped

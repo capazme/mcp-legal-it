@@ -183,7 +183,9 @@ class TestGeneraQuotazioneDocx:
         testo = _leggi_docx(result)
         assert "€ 450,00" in testo          # 166 + 284
         assert "€ 656,60" in testo          # liquidabile
-        assert "€ 942,60" in testo          # con CU 139 + marca 27 + forfait 120
+        # CU esecuzione mobiliare sotto 2.500 euro: 43 (art. 13 co. 2 DPR 115/2002) + marca 27 + forfait 120
+        assert "€ 846,60" in testo
+        assert "€ 43,00" in testo
         assert "pignoramento" in testo
         assert "ritenuta" not in testo.lower()   # il prospetto esecuzione non ha RA
         assert "PCT" not in testo                # e nessun aumento 30%

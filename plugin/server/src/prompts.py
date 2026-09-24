@@ -524,9 +524,11 @@ Elenca eventuali cause note che potrebbero aver modificato il decorso.
 
 ## Avvertenze
 - La prescrizione può essere interrotta o sospesa da atti non noti al momento dell'analisi.
-- Per la prescrizione penale, la riforma Bonafede (L. 3/2019) e la riforma Cartabia
-  (D.Lgs. 150/2022) hanno modificato il regime — verificare la data del fatto
-  per applicare la disciplina corretta.
+- Per la prescrizione penale il regime dipende dalla data del fatto: ordinario
+  (artt. 157-161 c.p.) fino al 02/08/2017; riforma Orlando (L. 103/2017) dal
+  03/08/2017 al 31/12/2019; per i fatti dal 01/01/2020 la prescrizione cessa con
+  la sentenza di primo grado (art. 161-bis c.p., L. 3/2019 e L. 134/2021) e nei
+  gradi successivi opera l'improcedibilità ex art. 344-bis c.p.p.
 - In ambito civile, il decorso della prescrizione può essere interrotto con atto
   stragiudiziale (raccomandata/PEC di messa in mora).
 """

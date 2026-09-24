@@ -424,3 +424,51 @@ class TestPenaConcordata:
         result = _call("pena_concordata", pena_base_mesi=36)
         assert result["attenuanti_generiche"] is True
         assert result["diminuente_rito"] is True
+
+
+# ---------------------------------------------------------------------------
+# prescrizione_reato: regimi per data del fatto
+# ---------------------------------------------------------------------------
+
+class TestPrescrizioneRegimi:
+
+    def test_regime_ordinario_fino_al_2_agosto_2017(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2017-08-02")
+        assert r["regime"]["nome"].startswith("ordinario")
+        assert "improcedibilita" not in r
+
+    def test_regime_orlando_dal_3_agosto_2017(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2017-08-03",
+                  data_sentenza_primo_grado="2021-01-01")
+        assert r["regime"]["nome"] == "riforma Orlando"
+        assert any("18 mesi" in a for a in r["avvertenze"])
+
+    def test_regime_blocco_dal_2020_cessa_con_il_primo_grado(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2020-03-01",
+                  data_sentenza_primo_grado="2023-05-10", data_impugnazione="2023-07-01")
+        assert r["data_prescrizione"] == "2026-03-01"
+        assert r["prescrizione_cessata_con_primo_grado"] is True
+        assert r["prescritto"] is False
+        imp = r["improcedibilita"]
+        # Impugnazione entro il 31/12/2024: termini transitori di 3 anni in appello
+        assert imp["durata_massima_mesi"]["appello"] == 36
+        assert imp["appello"]["decorrenza_stimata"] == "2023-08-23"  # sentenza + 15 + 90 giorni
+        assert imp["appello"]["scadenza_stimata"] == "2026-08-23"
+
+    def test_regime_blocco_termini_ordinari_dal_2025(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2021-01-01",
+                  data_sentenza_primo_grado="2025-02-01", data_sentenza_appello="2026-03-01",
+                  data_impugnazione="2025-03-15")
+        imp = r["improcedibilita"]
+        assert imp["durata_massima_mesi"] == {"appello": 24, "cassazione": 12}
+        assert imp["cassazione"]["scadenza_stimata"] == "2027-06-14"
+
+    def test_recidiva_reiterata_aumento_due_terzi(self):
+        r = _call("prescrizione_reato", pena_massima_anni=6.0, data_commissione="2015-01-01",
+                  interruzioni_giorni=10, recidiva="reiterata")
+        assert r["aumento_interruzione_anni"] == pytest.approx(4.0, abs=0.01)
+        assert r["termine_totale_anni"] == pytest.approx(10.0, abs=0.01)
+
+    def test_recidiva_non_valida(self):
+        with pytest.raises(ValueError, match="recidiva"):
+            _call("prescrizione_reato", pena_massima_anni=6.0, data_commissione="2015-01-01", recidiva="boh")

@@ -151,7 +151,7 @@ Configurazione in `claude_desktop_config.json`:
 | 15 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
 | 16 | Rivalutazione monetaria | 12 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
 | 17 | Interessi e tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
-| 18 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche` |
+| 18 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche`, `termini_processuali_civili` (artt. 171-ter e 189 c.p.c., sospensione feriale contata giorno per giorno) |
 | 19 | Atti giudiziari | 23 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
 | 20 | Parcelle avvocati | 12 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
 | 21 | Parcelle professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
@@ -432,12 +432,31 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 | Agente | Specializzazione | Aree coperte |
 |--------|------------------|--------------|
 | `civilista` | Contratti, responsabilita, successioni, diritti reali, obbligazioni, famiglia | Artt. 1321-1469 c.c. (contratti), art. 2043 ss. (resp. extracontrattuale), artt. 456-768 (successioni), artt. 832-1172 (diritti reali) |
-| `penalista` | Reati, pene, prescrizione, misure cautelari, riti alternativi | Gestione automatica regime prescrizione: Bonafede (fatti 2020-2024), Cartabia (dal 2025) |
+| `penalista` | Reati, pene, prescrizione, misure cautelari, riti alternativi | Regime di prescrizione scelto dalla data del fatto: ordinario (fino al 02/08/2017), Orlando (2017-2019), blocco dopo il primo grado e improcedibilità ex art. 344-bis c.p.p. (fatti dal 2020) |
 | `privacy-specialist` | GDPR, Codice Privacy, provvedimenti Garante | Struttura: Quadro normativo &rarr; Analisi &rarr; Rischi e sanzioni &rarr; Raccomandazioni |
 | `redattore-atti` | Redazione atti giudiziari, stragiudiziali, procure, relate, attestazioni | Accesso a tutti i 100 modelli di atti + tool di calcolo (CU, interessi, parcelle) |
 | `ricerca-giurisprudenziale` | Ricerca sistematica su Italgiure, CeRDEF, TAR/CdS, CGUE, CONSOB, Garante | Strategia: esplora &rarr; filtra con facets &rarr; cerca con filtri &rarr; leggi decisioni chiave &rarr; Brocardi &rarr; fondamento normativo |
 
 ---
+
+## Tool a normativa previgente
+
+Due tool calcolano sotto una disciplina che non regola più i casi nuovi e servono solo per i
+casi residuali che ancora governa: `termini_183_190_cpc` (memorie ex artt. 183 co. 6 e 190
+c.p.c. nel testo anteriore alla Riforma Cartabia, per le cause iscritte a ruolo prima del
+28/02/2023) ed `equo_indennizzo` (DPR 834/1981, per i fatti anteriori al 06/12/2011). Sono
+marcati con una flag dichiarata una volta nel docstring e applicata in tre punti:
+
+| Dove | Cosa |
+|------|------|
+| Docstring | riga `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>`, la prima cosa che il modello legge prima di scegliere |
+| `tools/list` | tag `previgente` e blocco `mcp-legal-it/regime` in `_meta` (stato, casi residuali, tool vigenti) |
+| Ogni risposta | campo `regime_normativo` nel corpo e lo stesso blocco in `_meta` |
+
+Per impostazione predefinita i tool restano registrati e marcati; `LEGAL_PREVIGENTE=off` li
+nasconde del tutto. L'audit (`scripts/audit_tool_annotations.py`) fallisce se un tool dichiara
+il regime senza tag o senza wrapper `@previgente`, o se indica come tool vigente un nome non
+registrato. Dettagli in `src/lib/_regime.py`.
 
 ## Legal Grounding Protocol
 
@@ -467,6 +486,7 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 | `MCP_HOST` | `0.0.0.0` | Bind address (solo SSE) |
 | `MCP_PORT` | `8000` | Porta (solo SSE) |
 | `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
+| `LEGAL_PREVIGENTE` | `on` | `off` nasconde i tool a normativa previgente (tag `previgente`) |
 | `MCP_CACHE_DIR` | — | Directory cache Brocardi |
 
 ### Profili disponibili

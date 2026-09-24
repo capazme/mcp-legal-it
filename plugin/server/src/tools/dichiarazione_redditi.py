@@ -295,8 +295,9 @@ def ravvedimento_operoso(
     """Calcola sanzioni ridotte e interessi legali per il ravvedimento operoso.
     Vigenza: art. 13 D.Lgs. 472/1997 (mod. D.Lgs. 87/2024 — nuova sanzione base 25%);
     tasso di interesse legale aggiornato all'ultimo dato disponibile nei tassi_legali.json.
-    Precisione: ESATTO (formule di legge; sanzione base 25% per omesso versamento, 120%
-    per dichiarazione tardiva; riduzioni sprint/breve/intermedio/lungo/biennale/ultrannuale).
+    Precisione: INDICATIVO (riduzioni per le violazioni commesse dal 01/09/2024, D.Lgs. 87/2024; per
+        le violazioni anteriori la sanzione base è del 30% con le riduzioni previgenti, che il tool
+        non calcola)
 
     Args:
         imposta_dovuta: Importo dell'imposta originariamente dovuta in euro (€)

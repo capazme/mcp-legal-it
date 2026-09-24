@@ -268,16 +268,23 @@ class TestFatturaAvvocato:
         totale_atteso = round(1040.0 + 1040.0 * 0.22 - 200.0, 2)
         assert r["totale_fattura"] == pytest.approx(totale_atteso, abs=0.01)
 
-    def test_forfettario_no_iva_no_ritenuta(self):
+    def test_forfettario_no_iva_no_ritenuta_con_bollo(self):
         r = _call("fattura_avvocato", imponibile=1000.0, regime="forfettario")
         assert r["iva_22pct"] == 0.0
         assert r["ritenuta_acconto_20pct"] == 0.0
-        assert r["totale_fattura"] == pytest.approx(1040.0, abs=0.01)
+        # Fattura senza IVA oltre 77,47 euro: bollo di 2 euro (DPR 642/1972)
+        assert r["bollo"] == 2.0
+        assert r["totale_fattura"] == pytest.approx(1042.0, abs=0.01)
 
     def test_forfettario_no_cpa(self):
         r = _call("fattura_avvocato", imponibile=1000.0, regime="forfettario", cpa=False)
         assert r["cpa_4pct"] == 0.0
-        assert r["totale_fattura"] == pytest.approx(1000.0, abs=0.01)
+        assert r["totale_fattura"] == pytest.approx(1002.0, abs=0.01)
+
+    def test_forfettario_sotto_soglia_bollo(self):
+        r = _call("fattura_avvocato", imponibile=50.0, regime="forfettario", cpa=False)
+        assert r["bollo"] == 0.0
+        assert r["totale_fattura"] == pytest.approx(50.0, abs=0.01)
 
     def test_ordinario_no_cpa(self):
         r = _call("fattura_avvocato", imponibile=1000.0, cpa=False)

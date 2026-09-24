@@ -63,9 +63,19 @@ class TestFatturaProfessionista:
         r = _call("fattura_professionista", imponibile=1000.0)
         voci_nomi = [v["voce"] for v in r["voci"]]
         assert any("Compenso" in n for n in voci_nomi)
-        assert any("Rivalsa" in n for n in voci_nomi)
+        assert any("integrativo" in n for n in voci_nomi)  # ingegnere: Inarcassa
         assert any("IVA" in n for n in voci_nomi)
         assert any("Ritenuta" in n for n in voci_nomi)
+
+    def test_gestione_separata_ritenuta_sulla_rivalsa(self):
+        # Rivalsa INPS 4%: e' compenso, quindi concorre alla base della ritenuta (1040 x 20% = 208);
+        # il contributo integrativo di cassa invece no (1000 x 20% = 200)
+        inps = _call("fattura_professionista", imponibile=1000.0, tipo="gestione_separata")
+        assert inps["ritenuta_acconto"] == pytest.approx(208.0)
+        assert inps["base_ritenuta"] == pytest.approx(1040.0)
+        cassa = _call("fattura_professionista", imponibile=1000.0, tipo="ingegnere")
+        assert cassa["ritenuta_acconto"] == pytest.approx(200.0)
+        assert cassa["contributo_previdenziale"] == pytest.approx(40.0)
 
     def test_forfettario_bollo_esattamente_sulla_soglia(self):
         # base_imponibile_iva = 77.47 (not strictly greater) → no bollo

@@ -167,9 +167,9 @@ Avvocato penalista esperto in reati, pene, prescrizione, misure cautelari, riti 
 
 | Data fatto | Regime | Norma |
 |-----------|--------|-------|
-| Fino al 31/12/2019 | Ordinario | artt. 157-161 c.p. |
-| 01/01/2020 – 31/12/2024 | Bonafede (sospensione dopo primo grado) | L. 3/2019 |
-| Dal 01/01/2025 | Cartabia (improcedibilità per superamento termini) | D.Lgs. 150/2022 |
+| Fino al 02/08/2017 | Ordinario (decorre in ogni grado) | artt. 157-161 c.p. (L. 251/2005) |
+| 03/08/2017 – 31/12/2019 | Orlando (sospensione fino a 18 mesi dopo condanna di primo grado e di appello) | art. 159 co. 2 c.p. (L. 103/2017) |
+| Dal 01/01/2020 | Blocco dopo il primo grado e improcedibilità in appello/Cassazione (2 anni / 1 anno; 3 anni / 18 mesi per impugnazioni entro il 31/12/2024) | art. 161-bis c.p. e art. 344-bis c.p.p. (L. 3/2019, L. 134/2021) |
 
 **Struttura risposte**: FATTO → DIRITTO (norma incriminatrice + elementi) → ANALISI (pena, prescrizione, riti alternativi) → CONCLUSIONI (opzioni strategiche).
 

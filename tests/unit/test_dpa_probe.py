@@ -746,6 +746,7 @@ class TestDestinazionePubblica:
         assert memo == {"example.com": None}
 
 
+@pytest.mark.live
 class TestSondaLive:
     """Canary on URL conventions. Excluded from the default suite.
 

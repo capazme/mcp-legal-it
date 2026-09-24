@@ -90,13 +90,47 @@ class TestContributoUnificato:
         r = _call("contributo_unificato", valore_causa=2000, tipo_procedimento="lavoro", grado="appello")
         assert r["importo_dovuto"] == 0
 
-    def test_lavoro_appello_fascia_media(self):
+    def test_lavoro_esente_sotto_soglia_anche_in_appello(self):
+        # Art. 9 co. 1-bis DPR 115/2002: esente fino a tre volte la soglia dell'art. 76
         r = _call("contributo_unificato", valore_causa=10000, tipo_procedimento="lavoro", grado="appello")
-        assert r["importo_dovuto"] == 112.5
+        assert r["importo_dovuto"] == 0
+        assert r["reddito_oltre_soglia_lavoro"] is False
 
-    def test_lavoro_appello_fascia_alta(self):
-        r = _call("contributo_unificato", valore_causa=100000, tipo_procedimento="lavoro", grado="appello")
-        assert r["importo_dovuto"] == 225
+    def test_lavoro_oltre_soglia_meta_scaglione(self):
+        # Oltre soglia: meta' dello scaglione ordinario (art. 13 co. 3): 237 / 2 in primo grado,
+        # poi +50% in appello (co. 1-bis)
+        r = _call("contributo_unificato", valore_causa=10000, tipo_procedimento="lavoro",
+                  reddito_oltre_soglia_lavoro=True)
+        assert r["importo_dovuto"] == 118.5
+        r = _call("contributo_unificato", valore_causa=10000, tipo_procedimento="lavoro", grado="appello",
+                  reddito_oltre_soglia_lavoro=True)
+        assert r["importo_dovuto"] == 177.75
+
+    def test_previdenza_oltre_soglia_43_euro(self):
+        r = _call("contributo_unificato", valore_causa=100000, tipo_procedimento="previdenza",
+                  reddito_oltre_soglia_lavoro=True)
+        assert r["importo_dovuto"] == 43
+
+    def test_tributario_appello_stessi_importi(self):
+        # Art. 13 co. 6-quater: gli importi valgono per i ricorsi in primo e in secondo grado
+        r = _call("contributo_unificato", valore_causa=50000, tipo_procedimento="tributario", grado="appello")
+        assert r["importo_dovuto"] == 250
+
+    def test_opposizione_decreto_ingiuntivo_meta(self):
+        r = _call("contributo_unificato", valore_causa=20000, tipo_procedimento="opposizione_decreto_ingiuntivo")
+        assert r["importo_dovuto"] == 118.5
+
+    def test_opposizione_atti_esecutivi_fisso(self):
+        r = _call("contributo_unificato", valore_causa=20000, tipo_procedimento="opposizione_atti_esecutivi")
+        assert r["importo_dovuto"] == 168
+
+    def test_valore_indeterminabile(self):
+        assert _call("contributo_unificato", valore_causa=0, tipo_procedimento="valore_indeterminabile")["importo_dovuto"] == 518
+        assert _call("contributo_unificato", valore_causa=0, tipo_procedimento="valore_indeterminabile_gdp")["importo_dovuto"] == 237
+
+    def test_tipo_sconosciuto_rifiutato(self):
+        r = _call("contributo_unificato", valore_causa=1000, tipo_procedimento="inesistente")
+        assert "errore" in r and "valori_ammessi" in r
 
     def test_returns_normativo(self):
         r = _call("contributo_unificato", valore_causa=5000, tipo_procedimento="cognizione", grado="primo")
@@ -208,10 +242,29 @@ class TestPignoramentoStipendio:
         r = _call("pignoramento_stipendio", stipendio_netto_mensile=2000, tipo_credito="speciale")
         assert "errore" in r
 
-    def test_contiene_minimo_vitale(self):
+    def test_contiene_minimo_impignorabile_pensioni(self):
         r = _call("pignoramento_stipendio", stipendio_netto_mensile=1000, tipo_credito="ordinario")
-        assert "minimo_vitale_pensioni" in r
-        assert r["minimo_vitale_pensioni"] == 534.41
+        assert r["assegno_sociale_mensile"] == 534.41
+        # Art. 545 co. 7: doppio dell'assegno sociale, con un minimo di 1.000 euro
+        assert r["minimo_impignorabile_pensioni"] == round(2 * 534.41, 2)
+
+    def test_pensione_quota_solo_sull_eccedenza(self):
+        r = _call("pignoramento_stipendio", stipendio_netto_mensile=1500, tipo_credito="ordinario", pensione=True)
+        assert r["base_di_calcolo"] == round(1500 - 2 * 534.41, 2)
+        assert r["importo_pignorabile"] == round((1500 - 2 * 534.41) / 5, 2)
+        assert "avvertenza" in r
+
+    def test_pensione_sotto_il_minimo_impignorabile(self):
+        r = _call("pignoramento_stipendio", stipendio_netto_mensile=900, tipo_credito="ordinario", pensione=True)
+        assert r["importo_pignorabile"] == 0.0
+
+    def test_pensione_con_assegno_sociale_fornito(self):
+        r = _call("pignoramento_stipendio", stipendio_netto_mensile=2000, pensione=True,
+                  assegno_sociale_mensile=400.0)
+        # 2 x 400 = 800 < 1.000: vale il minimo di legge
+        assert r["minimo_impignorabile_pensioni"] == 1000.0
+        assert r["importo_pignorabile"] == 200.0
+        assert "avvertenza" not in r
 
 
 # ---------------------------------------------------------------------------

@@ -8,45 +8,117 @@
   "_description": "Contributo Unificato — DPR 115/2002 e successive modifiche",
   "civile": {
     "cognizione": [
-      {"fino_a": 1100, "importo": 43},
-      {"fino_a": 5200, "importo": 98},
-      {"fino_a": 26000, "importo": 237},
-      {"fino_a": 52000, "importo": 518},
-      {"fino_a": 260000, "importo": 759},
-      {"fino_a": 520000, "importo": 1214},
-      {"oltre": true, "importo": 1686}
+      {
+        "fino_a": 1100,
+        "importo": 43
+      },
+      {
+        "fino_a": 5200,
+        "importo": 98
+      },
+      {
+        "fino_a": 26000,
+        "importo": 237
+      },
+      {
+        "fino_a": 52000,
+        "importo": 518
+      },
+      {
+        "fino_a": 260000,
+        "importo": 759
+      },
+      {
+        "fino_a": 520000,
+        "importo": 1214
+      },
+      {
+        "oltre": true,
+        "importo": 1686
+      }
     ],
     "esecuzione_immobiliare": 278,
-    "opposizione_atti_esecutivi": {"_note": "Art. 13, comma 2, ultimo periodo: importo fisso per le opposizioni agli atti esecutivi (art. 617 c.p.c.)", "importo": 168},
+    "opposizione_atti_esecutivi": {
+      "_note": "Art. 13, comma 2, ultimo periodo: importo fisso per le opposizioni agli atti esecutivi (art. 617 c.p.c.)",
+      "importo": 168
+    },
     "esecuzione_mobiliare": {
       "_note": "Fisso 43 per valore inferiore a 2.500 euro, 139 per valore superiore o uguale (art. 13, comma 2); il confine a 2499,99 e' l'importo massimo con due decimali sotto la soglia di legge",
       "scaglioni": [
-        {"fino_a": 2499.99, "importo": 43},
-        {"oltre": true, "importo": 139}
+        {
+          "fino_a": 2499.99,
+          "importo": 43
+        },
+        {
+          "oltre": true,
+          "importo": 139
+        }
       ]
     },
     "opposizione_decreto_ingiuntivo": {
       "_note": "Giudizio di opposizione a decreto ingiuntivo in primo grado: ridotto della meta' rispetto agli scaglioni ordinari",
       "scaglioni": [
-        {"fino_a": 1100, "importo": 21.5},
-        {"fino_a": 5200, "importo": 49},
-        {"fino_a": 26000, "importo": 118.5},
-        {"fino_a": 52000, "importo": 259},
-        {"fino_a": 260000, "importo": 379.5},
-        {"fino_a": 520000, "importo": 607},
-        {"oltre": true, "importo": 843}
+        {
+          "fino_a": 1100,
+          "importo": 21.5
+        },
+        {
+          "fino_a": 5200,
+          "importo": 49
+        },
+        {
+          "fino_a": 26000,
+          "importo": 118.5
+        },
+        {
+          "fino_a": 52000,
+          "importo": 259
+        },
+        {
+          "fino_a": 260000,
+          "importo": 379.5
+        },
+        {
+          "fino_a": 520000,
+          "importo": 607
+        },
+        {
+          "oltre": true,
+          "importo": 843
+        }
       ]
     },
     "procedimento_monitorio": {
       "_note": "Dimezzato rispetto a cognizione (procedimenti per ingiunzione, riduzione 50%)",
       "scaglioni": [
-        {"fino_a": 1100, "importo": 21.5},
-        {"fino_a": 5200, "importo": 49},
-        {"fino_a": 26000, "importo": 118.5},
-        {"fino_a": 52000, "importo": 259},
-        {"fino_a": 260000, "importo": 379.5},
-        {"fino_a": 520000, "importo": 607},
-        {"oltre": true, "importo": 843}
+        {
+          "fino_a": 1100,
+          "importo": 21.5
+        },
+        {
+          "fino_a": 5200,
+          "importo": 49
+        },
+        {
+          "fino_a": 26000,
+          "importo": 118.5
+        },
+        {
+          "fino_a": 52000,
+          "importo": 259
+        },
+        {
+          "fino_a": 260000,
+          "importo": 379.5
+        },
+        {
+          "fino_a": 520000,
+          "importo": 607
+        },
+        {
+          "oltre": true,
+          "importo": 843
+        }
       ]
     },
     "cautelari": {
@@ -69,21 +141,35 @@
     "moltiplicatore": 2.0
   },
   "lavoro": {
-    "primo_grado": 0,
-    "appello": {
-      "fino_a": 2500, "importo": 0,
-      "fino_a_50000": 112.5,
-      "oltre": 225
-    }
+    "_note": "Art. 9 co. 1-bis: nei processi di lavoro e di previdenza il contributo e' dovuto solo dalle parti con reddito imponibile superiore a tre volte la soglia dell'art. 76; oltre soglia: previdenza 43 euro (art. 13 co. 1 lett. a), lavoro meta' dello scaglione (co. 3), Cassazione importo pieno del co. 1. Il tool contributo_unificato lo applica con il parametro reddito_oltre_soglia_lavoro.",
+    "esenzione_reddito_multiplo_soglia_art_76": 3
   },
   "tributario": {
     "scaglioni": [
-      {"fino_a": 2582.28, "importo": 30},
-      {"fino_a": 5000, "importo": 60},
-      {"fino_a": 25000, "importo": 120},
-      {"fino_a": 75000, "importo": 250},
-      {"fino_a": 200000, "importo": 500},
-      {"oltre": true, "importo": 1500}
+      {
+        "fino_a": 2582.28,
+        "importo": 30
+      },
+      {
+        "fino_a": 5000,
+        "importo": 60
+      },
+      {
+        "fino_a": 25000,
+        "importo": 120
+      },
+      {
+        "fino_a": 75000,
+        "importo": 250
+      },
+      {
+        "fino_a": 200000,
+        "importo": 500
+      },
+      {
+        "oltre": true,
+        "importo": 1500
+      }
     ]
   },
   "amministrativo": {
@@ -92,9 +178,18 @@
     "tar_appalti": 2000,
     "tar_appalti_sopra_soglia": 4000,
     "tar_appalti_scaglioni": [
-      {"fino_a": 200000, "importo": 2000},
-      {"fino_a": 1000000, "importo": 4000},
-      {"oltre": true, "importo": 6000}
+      {
+        "fino_a": 200000,
+        "importo": 2000
+      },
+      {
+        "fino_a": 1000000,
+        "importo": 4000
+      },
+      {
+        "oltre": true,
+        "importo": 6000
+      }
     ],
     "tar_rito_abbreviato": 1800,
     "consiglio_stato": 975,

@@ -57,7 +57,10 @@ def indennita_licenziamento(
     Applica le formule post C.Cost. 194/2018 (no più moltiplicatore fisso per anni)
     e C.Cost. 128/2024 / 118/2025 per le piccole imprese.
     Vigenza: D.Lgs. 23/2015 artt. 3, 9 — C.Cost. 194/2018, 128/2024, 118/2025.
-    Precisione: INDICATIVO (il giudice può discostarsi nei limiti floor/cap in base a criteri art. 8 L. 604/1966).
+    Precisione: INDICATIVO (dopo Corte cost. 194/2018 l'indennità non è commisurata automaticamente
+        a due mensilità per anno: il giudice la determina tra il minimo e il massimo tenendo conto
+        di anzianità, dimensioni dell'impresa e comportamento delle parti; il moltiplicatore per
+        anzianità è solo un punto di partenza)
     Chaining: → offerta_conciliativa() per la formula agevolata art. 6 D.Lgs. 23/2015.
 
     Args:
@@ -246,8 +249,10 @@ def calcolo_naspi(
     n_mesi = int(durata_mesi) + (1 if durata_mesi > int(durata_mesi) else 0)
 
     for mese in range(1, n_mesi + 1):
-        if mese > decalage_da_mese:
-            importo_corrente = round(naspi_base * (1 - decalage_pct) ** (mese - decalage_da_mese), 2)
+        # Art. 4 co. 3 D.Lgs. 22/2015 (L. 234/2021): riduzione del 3% ogni mese a decorrere dal
+        # primo giorno del sesto mese di fruizione (ottavo per chi ha compiuto 55 anni)
+        if mese >= decalage_da_mese:
+            importo_corrente = round(naspi_base * (1 - decalage_pct) ** (mese - decalage_da_mese + 1), 2)
             importo_corrente = max(importo_corrente, 0.0)
 
         # Last month may be partial
@@ -285,26 +290,44 @@ def calcolo_naspi(
 @mcp.tool(tags={"lavoro"})
 def scadenze_licenziamento(
     data_licenziamento: str,
+    data_impugnazione: str | None = None,
+    data_rifiuto_conciliazione: str | None = None,
 ) -> dict:
     """Calcola le scadenze perentorie per l'impugnazione del licenziamento.
 
     I termini di impugnazione sono perentori e si calcolano in giorni di calendario.
     Il mancato rispetto del termine di 60 giorni per l'impugnazione stragiudiziale
     determina la decadenza dall'azione, non sanabile.
-    Vigenza: L. 604/1966 art. 6 (60 gg impugnazione) — L. 183/2010 art. 32 (180 gg deposito ricorso).
-    Precisione: ESATTO per il computo dei termini di calendario; verificare festività e sospensioni feriali.
+    Vigenza: art. 6 L. 604/1966 nel testo dell'art. 32 L. 183/2010 e dell'art. 1 co. 38 L. 92/2012
+    (60 giorni per l'impugnazione stragiudiziale; 180 giorni dall'impugnazione per il deposito del
+    ricorso o per la richiesta di conciliazione/arbitrato; 60 giorni dal rifiuto o dal mancato
+    accordo). Il rito speciale "Fornero" (art. 1 co. 47 ss. L. 92/2012) è stato abrogato dal
+    D.Lgs. 149/2022 per i giudizi introdotti dal 28/02/2023.
+    Precisione: ESATTO per il computo dei termini di calendario (senza sospensione feriale, che non
+    si applica alle cause di lavoro ex art. 3 L. 742/1969); il termine di 180 giorni decorre
+    dall'impugnazione effettiva, passare `data_impugnazione` per il calcolo esatto.
 
     Args:
-        data_licenziamento: Data di efficacia del licenziamento (formato YYYY-MM-DD)
+        data_licenziamento: Data di ricezione della comunicazione di licenziamento (formato YYYY-MM-DD)
+        data_impugnazione: Data in cui l'impugnazione stragiudiziale è stata inviata (YYYY-MM-DD);
+                           se assente il deposito è calcolato dall'ultimo giorno utile (60° giorno)
+        data_rifiuto_conciliazione: Data del rifiuto o del mancato accordo sulla conciliazione o
+                           arbitrato richiesti (YYYY-MM-DD), per il termine residuo di 60 giorni
     """
     try:
         dt_lic = _parse_date(data_licenziamento)
     except ValueError:
         raise ValueError("data_licenziamento deve essere in formato YYYY-MM-DD")
+    for nome, valore in (("data_impugnazione", data_impugnazione), ("data_rifiuto_conciliazione", data_rifiuto_conciliazione)):
+        if valore is not None:
+            try:
+                _parse_date(valore)
+            except ValueError:
+                raise ValueError(f"{nome} deve essere in formato YYYY-MM-DD")
 
     dt_impugnazione = _add_days(dt_lic, 60)
-    dt_deposito = _add_days(dt_impugnazione, 180)
-    dt_post_conciliazione = _add_days(dt_deposito, 60)
+    dt_impugnazione_effettiva = _parse_date(data_impugnazione) if data_impugnazione else dt_impugnazione
+    dt_deposito = _add_days(dt_impugnazione_effettiva, 180)
 
     oggi = _clock.today()
 
@@ -323,34 +346,51 @@ def scadenze_licenziamento(
         avvertimenti.append("URGENTE: termine impugnazione stragiudiziale in scadenza imminente")
     if oggi > dt_deposito:
         avvertimenti.append("ATTENZIONE: termine per il deposito del ricorso già scaduto")
+    if data_impugnazione and dt_impugnazione_effettiva > dt_impugnazione:
+        avvertimenti.append("ATTENZIONE: l'impugnazione risulta inviata oltre i 60 giorni dalla comunicazione del licenziamento (decadenza)")
+
+    scadenze = {
+        "impugnazione_stragiudiziale": {
+            "data": dt_impugnazione.isoformat(),
+            "termine_giorni": 60,
+            "stato": _stato(dt_impugnazione),
+            "descrizione": "Comunicazione scritta di impugnazione (raccomandata/PEC) entro 60 giorni dalla ricezione del licenziamento — art. 6 co. 1 L. 604/1966",
+        },
+        "deposito_ricorso": {
+            "data": dt_deposito.isoformat(),
+            "termine_giorni": 180,
+            "decorre_da": data_impugnazione or f"ultimo giorno utile per l'impugnazione ({dt_impugnazione.isoformat()})",
+            "stato": _stato(dt_deposito),
+            "descrizione": "Deposito del ricorso al giudice del lavoro, o comunicazione della richiesta di conciliazione/arbitrato, entro 180 giorni dall'impugnazione — art. 6 co. 2 L. 604/1966",
+        },
+    }
+    if data_rifiuto_conciliazione:
+        dt_post = _add_days(_parse_date(data_rifiuto_conciliazione), 60)
+        scadenze["post_conciliazione"] = {
+            "data": dt_post.isoformat(),
+            "termine_giorni": 60,
+            "decorre_da": data_rifiuto_conciliazione,
+            "stato": _stato(dt_post),
+            "descrizione": "Deposito del ricorso entro 60 giorni dal rifiuto o dal mancato accordo sulla conciliazione o arbitrato — art. 6 co. 2 L. 604/1966",
+        }
+    else:
+        scadenze["post_conciliazione"] = {
+            "data": None,
+            "termine_giorni": 60,
+            "decorre_da": "rifiuto o mancato accordo sulla conciliazione o arbitrato (passare data_rifiuto_conciliazione)",
+            "descrizione": "Se la conciliazione o l'arbitrato richiesti sono rifiutati o non si raggiunge l'accordo, il ricorso va depositato entro 60 giorni — art. 6 co. 2 L. 604/1966",
+        }
 
     return {
         "data_licenziamento": data_licenziamento,
-        "scadenze": {
-            "impugnazione_stragiudiziale": {
-                "data": dt_impugnazione.isoformat(),
-                "termine_giorni": 60,
-                "stato": _stato(dt_impugnazione),
-                "descrizione": "Comunicazione scritta di impugnazione (raccomandata/PEC) — art. 6 co. 1 L. 604/1966",
-            },
-            "deposito_ricorso": {
-                "data": dt_deposito.isoformat(),
-                "termine_giorni": 180,
-                "decorre_da": "impugnazione stragiudiziale",
-                "stato": _stato(dt_deposito),
-                "descrizione": "Deposito ricorso in Tribunale (rito Fornero) — art. 6 co. 2 L. 604/1966",
-            },
-            "post_conciliazione": {
-                "data": dt_post_conciliazione.isoformat(),
-                "termine_giorni": 60,
-                "decorre_da": "deposito ricorso",
-                "stato": _stato(dt_post_conciliazione),
-                "descrizione": "Termine residuo in caso di tentativo di conciliazione — art. 32 L. 183/2010",
-            },
-        },
+        "scadenze": scadenze,
         "avvertimenti": avvertimenti,
-        "nota": "I termini sono perentori e di calendario. La sospensione feriale (1-31 agosto) non si applica ai procedimenti con rito urgente Fornero.",
-        "riferimento_normativo": "L. 604/1966 art. 6 — L. 183/2010 art. 32",
+        "nota": (
+            "I termini sono perentori e di calendario; la sospensione feriale non si applica alle "
+            "controversie di lavoro (art. 3 L. 742/1969). I 180 giorni decorrono dalla data in cui "
+            "l'impugnazione è stata inviata: senza `data_impugnazione` il calcolo assume l'ultimo giorno utile."
+        ),
+        "riferimento_normativo": "Art. 6 L. 604/1966 (testo ex art. 32 L. 183/2010 e art. 1 co. 38 L. 92/2012)",
     }
 
 
@@ -365,7 +405,9 @@ def costo_lavoro(
     Calcolo semplificato con aliquote medie di riferimento. Le aliquote variano per
     settore INAIL, dimensione aziendale, regione (IRAP), anzianità e agevolazioni.
     Vigenza: D.P.R. 917/1986 (IRPEF) — L. 153/1969 (contributi) — D.Lgs. 446/1997 (IRAP).
-    Precisione: INDICATIVO — usare per stime preliminari; il calcolo esatto richiede verifica con consulente del lavoro.
+    Precisione: INDICATIVO (aliquote contributive medie; l'IRAP sul costo del personale a tempo
+        indeterminato è deducibile dal 2015, art. 11 co. 4-octies D.Lgs. 446/1997; verificare le
+        aliquote del CCNL e dell'INPS applicabili)
     Chaining: → calcolo_naspi() per la stima NASpI in caso di licenziamento.
 
     Args:

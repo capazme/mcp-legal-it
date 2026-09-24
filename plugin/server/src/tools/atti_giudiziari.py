@@ -54,13 +54,35 @@ def _lookup_scaglione(scaglioni: list, valore: float) -> float:
     return scaglioni[-1]["importo"]
 
 
-def _calcola_cu_base(valore_causa: float, tipo_procedimento: str, tabella: dict | None = None) -> float:
+#: I tipi di procedimento che `_calcola_cu_base` conosce (docstring del tool e validazione).
+_TIPI_CU = (
+    "cognizione", "valore_indeterminabile", "valore_indeterminabile_gdp", "monitorio",
+    "opposizione_decreto_ingiuntivo", "opposizione_atti_esecutivi", "esecuzione_immobiliare",
+    "esecuzione_mobiliare", "cautelari", "volontaria_giurisdizione", "separazione_consensuale",
+    "separazione_giudiziale", "divorzio_congiunto", "divorzio_giudiziale", "lavoro", "previdenza",
+    "tributario", "tar",
+)
+
+
+def _calcola_cu_base(
+    valore_causa: float,
+    tipo_procedimento: str,
+    tabella: dict | None = None,
+    reddito_oltre_soglia: bool = False,
+) -> float:
     """Calcola CU base primo grado.
 
     `tabella` is a replacement table supplied by the caller (the `alternativa`
     parameter of the `contributo_unificato` tool): when given, nothing is read
     from the shipped file, so the answer rests entirely on the caller's data.
+    `reddito_oltre_soglia` is the art. 9 co. 1-bis condition for labour and
+    welfare cases: the contribution is due only above three times the art. 76
+    income threshold.
     """
+    if tipo_procedimento not in _TIPI_CU:
+        raise ValueError(
+            f"tipo_procedimento non valido: {tipo_procedimento!r}; valori ammessi: {', '.join(_TIPI_CU)}"
+        )
     cu = tabella if tabella is not None else _CU
     civile = cu["civile"]
 
@@ -90,21 +112,38 @@ def _calcola_cu_base(valore_causa: float, tipo_procedimento: str, tabella: dict 
     if tipo_procedimento == "cognizione":
         return _lookup_scaglione(civile["cognizione"], valore_causa)
 
-    # Monitorio (scaglioni dimezzati)
+    # Valore indeterminabile: 518 in tribunale (lett. d), 237 davanti al giudice di pace (lett. c)
+    if tipo_procedimento == "valore_indeterminabile":
+        return civile["valore_indeterminabile"]
+    if tipo_procedimento == "valore_indeterminabile_gdp":
+        return civile["cognizione"][2]["importo"]
+
+    # Monitorio e opposizione a decreto ingiuntivo (scaglioni dimezzati, art. 13 co. 3)
     if tipo_procedimento == "monitorio":
         return _lookup_scaglione(civile["procedimento_monitorio"]["scaglioni"], valore_causa)
+    if tipo_procedimento == "opposizione_decreto_ingiuntivo":
+        return _lookup_scaglione(civile["opposizione_decreto_ingiuntivo"]["scaglioni"], valore_causa)
 
-    # Lavoro — primo grado esente
+    # Opposizione agli atti esecutivi: importo fisso (art. 13 co. 2, ultimo periodo)
+    if tipo_procedimento == "opposizione_atti_esecutivi":
+        return civile["opposizione_atti_esecutivi"]["importo"]
+
+    # Lavoro e previdenza (art. 9 co. 1-bis): esenti fino a tre volte la soglia dell'art. 76;
+    # oltre, previdenza alla lett. a) (43 euro) e lavoro alla meta' dello scaglione (co. 3)
+    if tipo_procedimento == "previdenza":
+        return civile["cognizione"][0]["importo"] if reddito_oltre_soglia else 0.0
     if tipo_procedimento == "lavoro":
-        return 0.0
+        if not reddito_oltre_soglia:
+            return 0.0
+        return round(_lookup_scaglione(civile["cognizione"], valore_causa) / 2, 2)
 
-    # Tributario
+    # Tributario (art. 13 co. 6-quater: stessi importi in primo e secondo grado)
     if tipo_procedimento == "tributario":
         return _lookup_scaglione(cu["tributario"]["scaglioni"], valore_causa)
 
     # TAR
     if tipo_procedimento == "tar":
-        return _CU["amministrativo"]["tar_ordinario"]
+        return cu["amministrativo"]["tar_ordinario"]
 
     return _lookup_scaglione(civile["cognizione"], valore_causa)
 
@@ -116,20 +155,31 @@ def contributo_unificato(
     tipo_procedimento: str = "cognizione",
     grado: str = "primo",
     tabella_contributo_unificato: dict | None = None,
+    reddito_oltre_soglia_lavoro: bool = False,
 ) -> dict:
     """Calcola il Contributo Unificato per valore della causa, tipo di procedimento e grado.
-    Vigenza: DPR 115/2002 — Testo Unico Spese di Giustizia (tabelle aggiornate al 2024).
-    Precisione: ESATTO (scaglioni per valore; moltiplicatori per appello e cassazione).
+    Vigenza: DPR 115/2002, art. 13 (importi del testo vigente riscontrati su Normattiva il
+    20/09/2026), art. 9 co. 1-bis (lavoro e previdenza), art. 13 co. 6-quater (tributario).
+    Precisione: ESATTO (scaglioni per valore; +50% in appello e raddoppio in Cassazione ex art. 13
+    co. 1-bis; per lavoro/previdenza e tributario in Cassazione verificare con cite_law).
     Spesso chiamato insieme a decreto_ingiuntivo() o prima di avviare una causa civile.
 
     Args:
         valore_causa: Valore della causa in euro (€)
-        tipo_procedimento: Tipo di rito: 'cognizione', 'esecuzione_immobiliare',
-                           'esecuzione_mobiliare', 'monitorio', 'volontaria_giurisdizione',
-                           'separazione_consensuale', 'separazione_giudiziale',
-                           'divorzio_congiunto', 'divorzio_giudiziale', 'cautelari',
-                           'lavoro' (primo grado esente), 'tributario', 'tar'
+        tipo_procedimento: Tipo di rito: 'cognizione', 'valore_indeterminabile' (518 in tribunale),
+                           'valore_indeterminabile_gdp' (237 davanti al giudice di pace),
+                           'monitorio' e 'opposizione_decreto_ingiuntivo' (metà, art. 13 co. 3),
+                           'opposizione_atti_esecutivi' (168 fisso), 'esecuzione_immobiliare' (278),
+                           'esecuzione_mobiliare' (43 sotto 2.500, 139 oltre), 'cautelari' (metà),
+                           'volontaria_giurisdizione', 'separazione_consensuale',
+                           'separazione_giudiziale', 'divorzio_congiunto', 'divorzio_giudiziale',
+                           'lavoro' e 'previdenza' (esenti salvo reddito oltre tre volte la soglia
+                           dell'art. 76: allora previdenza 43 euro e lavoro metà scaglione),
+                           'tributario' (art. 13 co. 6-quater, stessi importi in appello), 'tar'
         grado: Grado del giudizio: 'primo', 'appello', 'cassazione'
+        reddito_oltre_soglia_lavoro: Solo per 'lavoro' e 'previdenza': True se la parte ha un reddito
+                           imponibile superiore a tre volte la soglia dell'art. 76 DPR 115/2002
+                           (art. 9 co. 1-bis); False (default) = esente
         tabella_contributo_unificato: Tabella sostitutiva fornita dal chiamante, con la
                           stessa struttura di src/data/contributo_unificato.json (almeno
                           'civile', 'tributario', 'appello', 'cassazione'). Se la fornisci,
@@ -139,37 +189,61 @@ def contributo_unificato(
     """
     if valore_causa < 0:
         return {"errore": "valore_causa non può essere negativo"}
+    if grado not in ("primo", "appello", "cassazione"):
+        return {"errore": f"grado non valido: {grado}", "valori_ammessi": ["primo", "appello", "cassazione"]}
 
-    cu_base = _calcola_cu_base(valore_causa, tipo_procedimento, tabella_contributo_unificato)
+    tabella = tabella_contributo_unificato or _CU
+    try:
+        cu_base = _calcola_cu_base(
+            valore_causa, tipo_procedimento, tabella_contributo_unificato, reddito_oltre_soglia_lavoro
+        )
+    except ValueError as exc:
+        return {"errore": str(exc), "valori_ammessi": list(_TIPI_CU)}
 
+    note = []
     moltiplicatore = 1.0
     if grado == "appello":
-        if tipo_procedimento == "lavoro":
-            lavoro = (tabella_contributo_unificato or _CU)["lavoro"]
-            lavoro_appello = lavoro["appello"]
-            if valore_causa <= lavoro_appello["fino_a"]:
-                cu_base = lavoro_appello["importo"]
-            elif valore_causa <= 50000:
-                cu_base = lavoro_appello["fino_a_50000"]
-            else:
-                cu_base = lavoro_appello["oltre"]
-            moltiplicatore = 1.0
+        if tipo_procedimento == "tributario":
+            # Art. 13 co. 6-quater: gli importi valgono per i ricorsi in primo e in secondo grado
+            note.append("Tributario in appello: stessi importi del primo grado (art. 13 co. 6-quater)")
+        elif tipo_procedimento in ("lavoro", "previdenza") and not reddito_oltre_soglia_lavoro:
+            note.append("Lavoro/previdenza: esente anche in appello sotto la soglia di reddito (art. 9 co. 1-bis)")
         else:
-            moltiplicatore = (tabella_contributo_unificato or _CU)["appello"]["moltiplicatore"]
+            moltiplicatore = tabella["appello"]["moltiplicatore"]
     elif grado == "cassazione":
-        moltiplicatore = (tabella_contributo_unificato or _CU)["cassazione"]["moltiplicatore"]
+        if tipo_procedimento in ("lavoro", "previdenza"):
+            if reddito_oltre_soglia_lavoro:
+                # Art. 9 co. 1-bis: in Cassazione il contributo e' dovuto nella misura dell'art. 13 co. 1
+                cu_base = _lookup_scaglione(tabella["civile"]["cognizione"], valore_causa)
+                moltiplicatore = tabella["cassazione"]["moltiplicatore"]
+                note.append("Lavoro/previdenza in Cassazione oltre soglia: importo pieno dell'art. 13 co. 1, raddoppiato ex co. 1-bis")
+            else:
+                note.append("Lavoro/previdenza: esente anche in Cassazione sotto la soglia di reddito (art. 9 co. 1-bis)")
+        elif tipo_procedimento == "tributario":
+            # Il co. 6-quater copre solo i gradi di merito: in Cassazione si applica la scala civile
+            cu_base = _lookup_scaglione(tabella["civile"]["cognizione"], valore_causa)
+            moltiplicatore = tabella["cassazione"]["moltiplicatore"]
+            note.append("Tributario in Cassazione: scala civile dell'art. 13 co. 1, raddoppiata ex co. 1-bis (verificare)")
+        else:
+            moltiplicatore = tabella["cassazione"]["moltiplicatore"]
 
     importo = round(cu_base * moltiplicatore, 2)
 
-    return {
+    result = {
         "valore_causa": valore_causa,
         "tipo_procedimento": tipo_procedimento,
         "grado": grado,
         "cu_base": cu_base,
         "moltiplicatore": moltiplicatore,
         "importo_dovuto": importo,
-        "riferimento_normativo": "DPR 115/2002 — Testo Unico Spese di Giustizia",
+        "riferimento_normativo": "DPR 115/2002, art. 13 — Testo Unico Spese di Giustizia",
     }
+    if tipo_procedimento in ("lavoro", "previdenza"):
+        result["reddito_oltre_soglia_lavoro"] = reddito_oltre_soglia_lavoro
+        result["riferimento_normativo"] += "; art. 9 co. 1-bis (esenzione fino a tre volte la soglia dell'art. 76)"
+    if note:
+        result["note"] = note
+    return result
 
 
 @mcp.tool(tags={"giudiziario"})
@@ -182,7 +256,10 @@ def diritti_copia(
     """Calcola i diritti di copia per atti giudiziari in formato cartaceo e digitale PCT.
     Vigenza: DPR 115/2002, artt. 267-270, Tabella 8; DL 90/2014 conv. L. 114/2014
     (copie semplici digitali gratuite).
-    Precisione: ESATTO (tariffe per pagina per cartaceo; forfettaria a scaglioni per digitale).
+    Precisione: INDICATIVO (gli importi degli allegati 6, 7 e 8 al DPR 115/2002 sono adeguati
+        periodicamente ex art. 274 e la maggiorazione per urgenza ex art. 270 va verificata sul
+        testo vigente: i valori inclusi sono indicativi; resta esatta la gratuità della copia
+        semplice digitale)
 
     Args:
         n_pagine: Numero di pagine dell'atto (intero positivo)
@@ -252,38 +329,62 @@ def diritti_copia(
     return result
 
 
+#: Assegno sociale mensile usato per il minimo impignorabile delle pensioni (art. 545 co. 7
+#: c.p.c.: il doppio dell'assegno sociale, con un minimo di 1.000 euro). L'importo e' quello
+#: del 2024 (534,41 euro) e va aggiornato ogni anno sulla circolare INPS: il chiamante puo'
+#: passare il valore corrente con `assegno_sociale_mensile`.
+_ASSEGNO_SOCIALE_MENSILE = 534.41
+_ASSEGNO_SOCIALE_ANNO = 2024
+_MINIMO_IMPIGNORABILE_PENSIONI = 1000.0
+
+
 @mcp.tool(tags={"giudiziario", "credito"})
 def pignoramento_stipendio(
     stipendio_netto_mensile: float,
     tipo_credito: str = "ordinario",
+    pensione: bool = False,
+    assegno_sociale_mensile: float | None = None,
 ) -> dict:
     """Calcola le quote pignorabili dello stipendio o della pensione ex art. 545 c.p.c.
-    Vigenza: art. 545 c.p.c. (mod. DL 83/2015); art. 72-ter DPR 602/1973 per crediti fiscali.
-    Precisione: ESATTO (quote fisse di legge: 1/5 ordinario, 1/3 alimentare, scaglioni fiscale).
+    Vigenza: art. 545 c.p.c. (co. 3-5 per stipendi; co. 7 per le pensioni nel testo dell'art.
+    21-bis DL 115/2022 conv. L. 142/2022: impignorabile il doppio dell'assegno sociale con un
+    minimo di 1.000 euro; co. 8 per le somme accreditate su conto); art. 72-ter DPR 602/1973 per
+    i crediti fiscali dell'agente della riscossione.
+    Precisione: ESATTO per le quote di legge (1/5 ordinario, fino a 1/3 alimentare, scaglioni
+    fiscali); INDICATIVO per le pensioni, perché il minimo impignorabile dipende dall'assegno
+    sociale dell'anno (incluso: 2024) — passare `assegno_sociale_mensile` aggiornato.
 
     Args:
         stipendio_netto_mensile: Stipendio o pensione netta mensile in euro (€)
         tipo_credito: Tipo di credito per cui si procede: 'ordinario' (1/5),
                       'alimentare' (fino a 1/3 — misura fissata dal giudice),
-                      'fiscale' (scaglioni per Equitalia: 1/10, 1/7, 1/5),
+                      'fiscale' (scaglioni dell'agente della riscossione: 1/10, 1/7, 1/5),
                       'concorso_crediti' (fino a 1/2 in caso di concorso)
+        pensione: True se la somma è una pensione: la quota si calcola solo sulla parte che
+                  eccede il minimo impignorabile (doppio dell'assegno sociale, minimo 1.000 euro)
+        assegno_sociale_mensile: Importo mensile dell'assegno sociale dell'anno corrente (facoltativo;
+                  default il valore 2024 incluso nel server)
     """
     if stipendio_netto_mensile < 0:
         return {"errore": "stipendio_netto_mensile non può essere negativo"}
+    if assegno_sociale_mensile is not None and assegno_sociale_mensile <= 0:
+        return {"errore": "assegno_sociale_mensile deve essere positivo"}
 
-    # Assegno sociale 2024 come minimo vitale per pensioni
-    minimo_vitale = 534.41
+    minimo_vitale = assegno_sociale_mensile if assegno_sociale_mensile is not None else _ASSEGNO_SOCIALE_MENSILE
+    impignorabile_pensioni = max(2 * minimo_vitale, _MINIMO_IMPIGNORABILE_PENSIONI)
+    # Art. 545 co. 7: la quota si applica alla sola parte eccedente il minimo impignorabile
+    base = stipendio_netto_mensile
+    if pensione:
+        base = max(stipendio_netto_mensile - impignorabile_pensioni, 0.0)
 
     if tipo_credito == "ordinario":
         quota = 1 / 5
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
         descrizione = "1/5 dello stipendio netto (art. 545 co. 4 c.p.c.)"
     elif tipo_credito == "alimentare":
         quota = 1 / 3
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
         descrizione = "Fino a 1/3 dello stipendio netto (art. 545 co. 3 c.p.c.) — misura fissata dal giudice"
     elif tipo_credito == "fiscale":
-        # Scaglioni art. 72-ter DPR 602/73 (riformato DL 83/2015)
+        # Scaglioni art. 72-ter DPR 602/1973 (introdotto dal DL 16/2012, conv. L. 44/2012)
         if stipendio_netto_mensile <= 2500:
             quota = 1 / 10
             descrizione = "1/10 — stipendio netto ≤ €2.500 (art. 72-ter DPR 602/73)"
@@ -293,27 +394,44 @@ def pignoramento_stipendio(
         else:
             quota = 1 / 5
             descrizione = "1/5 — stipendio netto > €5.000 (art. 72-ter DPR 602/73)"
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
     elif tipo_credito == "concorso_crediti":
         quota = 1 / 2
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
         descrizione = "Fino a 1/2 in caso di concorso di crediti (art. 545 co. 5 c.p.c.)"
     else:
         return {"errore": f"tipo_credito non riconosciuto: {tipo_credito}"}
 
+    pignorabile = round(base * quota, 2)
     non_pignorabile = round(stipendio_netto_mensile - pignorabile, 2)
 
-    return {
+    result = {
         "stipendio_netto_mensile": stipendio_netto_mensile,
+        "pensione": pensione,
         "tipo_credito": tipo_credito,
         "quota_pignorabile": round(quota, 4),
+        "base_di_calcolo": round(base, 2),
         "importo_pignorabile": pignorabile,
         "importo_non_pignorabile": non_pignorabile,
-        "minimo_vitale_pensioni": minimo_vitale,
-        "nota_pensioni": f"Per le pensioni, è impignorabile l'importo pari al doppio dell'assegno sociale (€{minimo_vitale * 2:.2f})",
+        "assegno_sociale_mensile": minimo_vitale,
+        "minimo_impignorabile_pensioni": round(impignorabile_pensioni, 2),
+        "nota_pensioni": (
+            f"Per le pensioni è impignorabile la parte fino al doppio dell'assegno sociale, con un "
+            f"minimo di 1.000 euro (€{impignorabile_pensioni:.2f} con l'assegno sociale indicato); la "
+            f"quota si applica solo all'eccedenza (art. 545 co. 7 c.p.c.). Assegno sociale incluso: "
+            f"anno {_ASSEGNO_SOCIALE_ANNO} — aggiornarlo con `assegno_sociale_mensile`."
+        ),
+        "nota_conto_corrente": (
+            "Somme accreditate su conto prima del pignoramento: pignorabili solo oltre il triplo "
+            "dell'assegno sociale (art. 545 co. 8 c.p.c.)"
+        ),
         "descrizione": descrizione,
-        "riferimento_normativo": "Art. 545 c.p.c. — DL 83/2015",
+        "riferimento_normativo": "Art. 545 c.p.c. (co. 7 nel testo dell'art. 21-bis DL 115/2022 conv. L. 142/2022); art. 72-ter DPR 602/1973",
     }
+    if pensione and assegno_sociale_mensile is None:
+        result["avvertenza"] = (
+            f"Minimo impignorabile calcolato sull'assegno sociale {_ASSEGNO_SOCIALE_ANNO}: "
+            "per l'anno in corso passare `assegno_sociale_mensile` dalla circolare INPS."
+        )
+    return result
 
 
 @mcp.tool(tags={"giudiziario", "credito"})
@@ -423,7 +541,10 @@ def decreto_ingiuntivo(
     provvisoria_esecuzione: bool = False,
 ) -> dict:
     """Genera bozza di ricorso per decreto ingiuntivo con calcolo della competenza per valore e CU.
-    Vigenza: artt. 633-656 c.p.c.; D.Lgs. 116/2017 (soglia GdP €10.000); DPR 115/2002 (CU monitorio).
+    Vigenza: artt. 633-656 c.p.c.; art. 7 c.p.c. nel testo del D.Lgs. 149/2022 (giudice di pace fino
+    a €10.000 dal 28/02/2023; l'innalzamento a €30.000 del D.Lgs. 116/2017 è stato più volte
+    differito e non è in vigore); art. 413 c.p.c. per i crediti di lavoro (sempre tribunale);
+    DPR 115/2002 (CU monitorio, metà ex art. 13 co. 3).
     Precisione: INDICATIVO per la bozza (richiede completamento con dati specifici del caso).
     Chaining: → contributo_unificato() per calcolare le spese di giustizia → parcella_avvocato_civile()
 
@@ -432,11 +553,15 @@ def decreto_ingiuntivo(
         debitore: Nome o ragione sociale del debitore
         importo: Importo del credito in euro (€)
         tipo_credito: Natura del credito: 'ordinario', 'professionale' (parcella vidimata),
-                      'condominiale' (delibera assembleare), 'cambiale'
+                      'condominiale' (delibera assembleare), 'cambiale', 'retribuzioni' (crediti di
+                      lavoro: competenza del tribunale in funzione di giudice del lavoro)
         provvisoria_esecuzione: True per richiedere la clausola ex art. 642 c.p.c.
     """
-    # Giudice competente per valore (D.Lgs. 116/2017: soglia GdP €10.000)
-    if importo <= 10000:
+    # Giudice competente: crediti di lavoro sempre al tribunale (art. 413 c.p.c.); per gli altri
+    # per valore (art. 7 co. 1 c.p.c. post-Cartabia: giudice di pace fino a €10.000)
+    if tipo_credito == "retribuzioni":
+        giudice = "Tribunale — Sezione Lavoro"
+    elif importo <= 10000:
         giudice = "Giudice di Pace"
     else:
         giudice = "Tribunale"
@@ -509,7 +634,11 @@ Avv. [LEGALE]"""
             "provvisoria_esecuzione": provvisoria_esecuzione,
             "motivi_pe": motivi_pe if provvisoria_esecuzione else None,
         },
-        "riferimento_normativo": "Artt. 633-656 c.p.c.",
+        "termini": {
+            "opposizione": "40 giorni dalla notifica del decreto (50 se l'ingiunto risiede in altro Stato UE, 60 fuori UE) — art. 641 c.p.c.",
+            "notifica_decreto": "entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti il decreto perde efficacia — art. 644 c.p.c.",
+        },
+        "riferimento_normativo": "Artt. 633-656 c.p.c.; art. 7 c.p.c. (competenza per valore); art. 413 c.p.c. (crediti di lavoro)",
     }
 
 
@@ -608,7 +737,8 @@ def copie_processo_tributario(
 ) -> dict:
     """Calcola i diritti di copia specifici per il processo tributario.
     Vigenza: DPR 115/2002 — tariffe processo tributario (€0,25/pagina semplice, €0,50 autentica).
-    Precisione: ESATTO (tariffe per pagina; maggiorazione urgenza +50%).
+    Precisione: INDICATIVO (tariffe per pagina non riscontrate sul testo vigente del DPR 115/2002:
+        verificare prima dell'uso)
 
     Args:
         n_pagine: Numero di pagine dell'atto (intero positivo)
@@ -858,8 +988,10 @@ def attestazione_conformita(
     modalita: str = "estratto",
 ) -> dict:
     """Genera bozza di attestazione di conformità per il deposito telematico PCT.
-    Vigenza: art. 16-bis co. 9-bis DL 179/2012 conv. L. 221/2012;
-    art. 16-undecies DL 179/2012 — DM 44/2011 specifiche tecniche PCT.
+    Vigenza: artt. 196-octies, 196-novies, 196-decies e 196-undecies disp. att. c.p.c., introdotti
+    dal D.Lgs. 149/2022 (Riforma Cartabia) in luogo degli artt. 16-bis co. 9-bis e 16-undecies
+    DL 179/2012 conv. L. 221/2012, che restano applicabili ai soli procedimenti pendenti al
+    28/02/2023; DM 44/2011 e specifiche tecniche DGSIA per le modalità.
 
     Args:
         avvocato: Nome e cognome dell'avvocato attestante
@@ -870,16 +1002,16 @@ def attestazione_conformita(
     """
     if modalita == "copia_informatica":
         tipo_attestazione = "copia informatica di documento analogico"
-        norma_specifica = "art. 16-bis co. 9-bis DL 179/2012, conv. L. 221/2012"
+        norma_specifica = "art. 196-decies disp. att. c.p.c. (copia informatica di atto analogico)"
     elif modalita == "duplicato":
         tipo_attestazione = "duplicato informatico"
-        norma_specifica = "art. 16-bis co. 9-bis DL 179/2012, conv. L. 221/2012"
+        norma_specifica = "art. 196-octies disp. att. c.p.c. (duplicato informatico)"
     else:
         tipo_attestazione = "copia informatica estratta dal fascicolo informatico"
-        norma_specifica = "art. 16-bis co. 9-bis DL 179/2012, conv. L. 221/2012"
+        norma_specifica = "art. 196-octies disp. att. c.p.c. (copia estratta dal fascicolo informatico)"
 
     testo = f"""ATTESTAZIONE DI CONFORMITA'
-(Art. 16-bis co. 9-bis DL 179/2012 — Art. 16-undecies DL 179/2012)
+(Artt. 196-octies, 196-decies e 196-undecies disp. att. c.p.c.)
 
 Il sottoscritto Avv. {avvocato}, in qualità di difensore di parte nel procedimento indicato in atti,
 
@@ -893,7 +1025,7 @@ Estremi: {estremi_originale}
 
 è conforme all'originale {("analogico" if modalita == "copia_informatica" else "contenuto nel fascicolo informatico")}.
 
-La presente attestazione è resa ai sensi dell'art. 16-undecies del DL 18 ottobre 2012, n. 179, convertito con modificazioni dalla L. 17 dicembre 2012, n. 221.
+La presente attestazione è resa ai sensi dell'art. 196-undecies delle disposizioni di attuazione del codice di procedura civile (D.Lgs. 10 ottobre 2022, n. 149).
 
 Luogo e data _______________
 
@@ -933,7 +1065,7 @@ def relata_notifica_pec(
     testo = f"""RELATA DI NOTIFICAZIONE A MEZZO PEC
 (L. 21 gennaio 1994, n. 53, come modificata dalla L. 228/2012)
 
-Il sottoscritto Avv. {avvocato}, autorizzato dal Consiglio dell'Ordine ai sensi dell'art. 1 della L. 53/1994,
+Il sottoscritto Avv. {avvocato}, ai sensi degli artt. 1 e 3-bis della L. 53/1994 (per la notificazione a mezzo PEC non occorre l'autorizzazione del Consiglio dell'Ordine, richiesta solo per la notifica a mezzo posta),
 
 CERTIFICA
 
@@ -955,7 +1087,7 @@ DICHIARA
 3. Che si è provveduto a inserire nella busta di trasporto la relazione di notificazione sottoscritta digitalmente;
 4. Che la ricevuta di accettazione e la ricevuta di avvenuta consegna sono state conservate agli atti.
 
-Ai sensi dell'art. 3-bis co. 3 della L. 53/1994, la notifica si intende perfezionata nel momento in cui è generata la ricevuta di avvenuta consegna (RdAC).
+Ai sensi dell'art. 3-bis co. 3 della L. 53/1994 e dell'art. 147 co. 3 c.p.c., la notifica si intende perfezionata, per il notificante, nel momento in cui è generata la ricevuta di accettazione e, per il destinatario, nel momento in cui è generata la ricevuta di avvenuta consegna; se quest'ultima è generata tra le ore 21 e le ore 7 del mattino del giorno successivo, la notificazione si intende perfezionata per il destinatario alle ore 7.
 
 Luogo e data _______________
 
@@ -1016,8 +1148,11 @@ def note_trattazione_scritta(
     conclusioni: str,
 ) -> dict:
     """Genera bozza di note di trattazione scritta in sostituzione dell'udienza.
-    Vigenza: art. 127-ter c.p.c. introdotto dalla Riforma Cartabia (D.Lgs. 149/2022,
-    in vigore dal 28/02/2023) — sostituzione dell'udienza con deposito di note scritte.
+    Vigenza: art. 127-ter c.p.c. introdotto dalla Riforma Cartabia (D.Lgs. 149/2022; applicabile
+    dal 01/01/2023 anche ai procedimenti pendenti, art. 35 co. 2 come modificato dalla L. 197/2022)
+    — sostituzione dell'udienza con deposito di note scritte contenenti le sole istanze e
+    conclusioni; il correttivo D.Lgs. 164/2024 esclude la sostituzione quando è richiesta la
+    presenza personale delle parti e consente alle parti di opporsi.
 
     Args:
         avvocato: Nome e cognome dell'avvocato depositante
@@ -1184,7 +1319,7 @@ Il/La sottoscritto/a {creditore}, C.F. ___, residente/con sede in ___, rappresen
 PREMESSO
 
 — che è in possesso del seguente titolo esecutivo: {titolo_esecutivo};
-— che il predetto titolo è stato ritualmente notificato in forma esecutiva;
+— che il predetto titolo è stato ritualmente notificato (art. 479 c.p.c.);
 — che il/la debitore/trice non ha ancora provveduto al pagamento delle somme dovute;
 
 INTIMA
@@ -1202,7 +1337,7 @@ oltre interessi dalla data odierna al saldo effettivo, oltre spese del presente 
 
 AVVERTE
 
-il debitore che, ai sensi dell'art. 480 co. 2 c.p.c., può proporre opposizione al precetto ai sensi dell'art. 615 c.p.c. nel termine perentorio di venti giorni dalla notificazione del presente atto, e che, in mancanza di pagamento nel termine suindicato, si procederà ad esecuzione forzata.
+il debitore che, in mancanza di pagamento nel termine suindicato, si procederà ad esecuzione forzata; che l'opposizione agli atti esecutivi per vizi del titolo o del precetto va proposta nel termine perentorio di venti giorni dalla notificazione del presente atto (art. 617 c.p.c.), mentre l'opposizione all'esecuzione ex art. 615 c.p.c. non è soggetta a termine; e che, ai sensi dell'art. 480 co. 2 c.p.c., può porre rimedio alla situazione di sovraindebitamento concludendo con i creditori un accordo di composizione della crisi o proponendo un piano del consumatore (D.Lgs. 14/2019).
 
 Con riserva di ogni ulteriore diritto e azione.
 
@@ -1233,8 +1368,9 @@ def nota_precisazione_credito(
     spese_esecuzione: float,
 ) -> dict:
     """Genera bozza di nota di precisazione del credito per procedure esecutive.
-    Vigenza: art. 547 c.p.c. — precisazione del credito nel pignoramento presso terzi
-    e nelle procedure esecutive mobiliari e immobiliari.
+    Vigenza: atto di prassi, non tipizzato dal codice: precisa il credito ai fini dell'assegnazione
+    o della distribuzione (artt. 510, 543 e 596 c.p.c.); l'art. 547 c.p.c. riguarda invece la
+    dichiarazione del terzo pignorato.
 
     Args:
         creditore: Nome o ragione sociale del creditore procedente
@@ -1248,7 +1384,7 @@ def nota_precisazione_credito(
     totale = round(capitale + interessi + spese_legali + spese_esecuzione, 2)
 
     testo = f"""NOTA DI PRECISAZIONE DEL CREDITO
-(Art. 547 c.p.c.)
+(Artt. 510, 543 e 596 c.p.c.)
 
 TRIBUNALE DI _______________
 
@@ -1259,7 +1395,7 @@ Contro: {debitore}
 
 ***
 
-Il/La sottoscritto/a Avv. ___, quale difensore di {creditore}, ai sensi dell'art. 547 c.p.c.,
+Il/La sottoscritto/a Avv. ___, quale difensore di {creditore}, ai fini dell'assegnazione o della distribuzione delle somme (artt. 510, 543 e 596 c.p.c.),
 
 PRECISA
 
@@ -1293,7 +1429,7 @@ Avv. _______________"""
         "spese_legali": spese_legali,
         "spese_esecuzione": spese_esecuzione,
         "totale_credito": totale,
-        "riferimento_normativo": "Art. 547 c.p.c. — Dichiarazione del terzo e precisazione credito",
+        "riferimento_normativo": "Artt. 510, 543 e 596 c.p.c. — precisazione del credito ai fini dell'assegnazione o distribuzione (atto di prassi)",
     }
 
 
@@ -1305,7 +1441,10 @@ def dichiarazione_553_cpc(
     tipo_rapporto: str = "conto_corrente",
 ) -> dict:
     """Genera bozza di dichiarazione del terzo pignorato ex art. 547 c.p.c.
-    Vigenza: art. 547 c.p.c. (mod. DL 132/2014 — dichiarazione anche per iscritto prima dell'udienza).
+    Vigenza: art. 547 c.p.c. (dichiarazione a mezzo PEC o raccomandata entro dieci giorni dalla
+    notifica del pignoramento, art. 543 co. 2 n. 3) e art. 548 c.p.c. (mancata dichiarazione:
+    credito non contestato). Il nome del tool richiama l'art. 553 c.p.c. sull'assegnazione,
+    che è l'esito della fase; il modello è la dichiarazione del terzo.
 
     Args:
         terzo_pignorato: Nome o ragione sociale del terzo pignorato (banca, datore di lavoro, etc.)
@@ -1372,7 +1511,7 @@ in relazione all'atto di pignoramento presso terzi notificato in data __________
 
 {sezione_rapporto}
 
-Ai sensi dell'art. 547 co. 3 c.p.c., in caso di mancata comparizione all'udienza o mancato invio della presente dichiarazione, il credito pignorato si considera non contestato nei termini indicati dal creditore procedente.
+Ai sensi dell'art. 548 c.p.c., in caso di mancata dichiarazione e di mancata comparizione all'udienza fissata dal giudice, il credito pignorato si considera non contestato nei termini indicati dal creditore procedente.
 
 [Luogo], [Data]
 
@@ -1383,7 +1522,7 @@ Ai sensi dell'art. 547 co. 3 c.p.c., in caso di mancata comparizione all'udienza
         "testo": testo,
         "tipo_atto": "dichiarazione_terzo_pignorato",
         "tipo_rapporto": tipo_rapporto,
-        "riferimento_normativo": "Art. 547 c.p.c. — Dichiarazione del terzo",
+        "riferimento_normativo": "Artt. 543, 547 e 548 c.p.c. — Dichiarazione del terzo",
     }
 
 
@@ -1429,7 +1568,7 @@ Professione: _______________
 
 AMMONIZIONE (art. 251 c.p.c.)
 
-Il/La teste è ammonito/a dal Giudice sull'importanza religiosa e morale del giuramento e sulle conseguenze penali delle dichiarazioni false o reticenti, e presta il seguente
+Il/La teste è ammonito/a dal Giudice sull'importanza morale del giuramento (art. 251 co. 2 c.p.c., nel testo risultante da Corte cost. n. 149/1995) e sulle conseguenze penali delle dichiarazioni false o reticenti, e presta il seguente
 
 GIURAMENTO
 
@@ -1480,7 +1619,8 @@ def istanza_visibilita_fascicolo(
     motivo: str = "costituzione",
 ) -> dict:
     """Genera bozza di istanza di visibilità del fascicolo telematico per avvocato non costituito.
-    Vigenza: art. 16-bis DL 179/2012 — specifiche tecniche PCT DM 44/2011.
+    Vigenza: art. 196-quater disp. att. c.p.c. (deposito telematico e fascicolo informatico,
+    D.Lgs. 149/2022, già art. 16-bis DL 179/2012) — DM 44/2011 e specifiche tecniche DGSIA.
 
     Args:
         avvocato: Nome e cognome dell'avvocato richiedente (con PEC e foro di appartenenza)

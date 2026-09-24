@@ -161,9 +161,10 @@ class TestCalcoloNaspi:
     def test_piano_mensile_decalage(self):
         r = _call("calcolo_naspi", retribuzione_media_mensile=1000.0, settimane_contributive=208, eta_anni=40)
         piano = r["piano_mensile"]
-        # First 6 months: no decalage
-        for entry in piano[:6]:
+        # Art. 4 co. 3 D.Lgs. 22/2015: intero fino al quinto mese, -3% dal primo giorno del sesto
+        for entry in piano[:5]:
             assert entry["importo"] == r["importo_mensile_iniziale"]
+        assert piano[5]["importo"] == pytest.approx(round(r["importo_mensile_iniziale"] * 0.97, 2), abs=0.01)
 
     def test_errore_retrib_zero(self):
         with pytest.raises(ValueError, match="retribuzione_media_mensile"):
@@ -197,12 +198,20 @@ class TestScadenzeLicenziamento:
         dt_dep = date.fromisoformat(r["scadenze"]["deposito_ricorso"]["data"])
         assert (dt_dep - dt_imp).days == 180
 
-    def test_post_conciliazione_decorre_da_deposito(self):
+    def test_post_conciliazione_solo_con_data_rifiuto(self):
         r = _call("scadenze_licenziamento", data_licenziamento="2025-06-01")
-        from datetime import date
-        dt_dep = date.fromisoformat(r["scadenze"]["deposito_ricorso"]["data"])
-        dt_post = date.fromisoformat(r["scadenze"]["post_conciliazione"]["data"])
-        assert (dt_post - dt_dep).days == 60
+        assert r["scadenze"]["post_conciliazione"]["data"] is None
+        r2 = _call("scadenze_licenziamento", data_licenziamento="2025-06-01",
+                   data_rifiuto_conciliazione="2025-10-01")
+        # Art. 6 co. 2 L. 604/1966: 60 giorni dal rifiuto o dal mancato accordo
+        assert r2["scadenze"]["post_conciliazione"]["data"] == "2025-11-30"
+
+    def test_deposito_decorre_dall_impugnazione_effettiva(self):
+        r = _call("scadenze_licenziamento", data_licenziamento="2025-06-01", data_impugnazione="2025-06-10")
+        assert r["scadenze"]["deposito_ricorso"]["data"] == "2025-12-07"
+        assert r["scadenze"]["deposito_ricorso"]["decorre_da"] == "2025-06-10"
+        tardiva = _call("scadenze_licenziamento", data_licenziamento="2025-06-01", data_impugnazione="2025-09-01")
+        assert any("decadenza" in a for a in tardiva["avvertimenti"])
 
     def test_struttura_output(self):
         r = _call("scadenze_licenziamento", data_licenziamento="2025-03-15")

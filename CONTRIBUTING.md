@@ -26,15 +26,14 @@ Il caso più semplice: il tool riceve parametri, calcola, restituisce una string
    INDICATIVO | STIMATO`): l'audit fallisce sui tool che applicano una tabella senza grado
 5. Leggi la data solo tramite `src.lib._clock` (`_clock.today()` / `_clock.now()`):
    `date.today()` altrove fa fallire l'audit, perché `LEGAL_TODAY` deve poter pinnare ogni tool
-6. Rigenera policy e binding: `python scripts/audit_tool_annotations.py --write`
-   (`--check` è il job `policy-sync` in CI) e, se il tool è locale e read-only, aggiornalo nel
-   golden con `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`
-4. Se il tool legge una tabella di `src/data/`, dichiarala con `@sourced("nome_tabella")`
-   (vedi `src/lib/_data.py`) e scrivi il grado nel docstring (`Precisione: ESATTO |
-   INDICATIVO | STIMATO`): l'audit fallisce sui tool che applicano una tabella senza grado
-5. Leggi la data solo tramite `src.lib._clock` (`_clock.today()` / `_clock.now()`):
-   `date.today()` altrove fa fallire l'audit, perché `LEGAL_TODAY` deve poter pinnare ogni tool
-6. Rigenera policy e binding: `python scripts/audit_tool_annotations.py --write`
+6. Se il tool calcola sotto una disciplina superata, che serve solo per casi residuali (una
+   causa iscritta prima della Riforma Cartabia, un istituto abrogato per i fatti successivi a
+   una data), dichiaralo in tre punti che l'audit tiene allineati: la riga
+   `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>` nel docstring, il tag
+   `previgente` in `@mcp.tool(tags=...)` e il wrapper `@previgente` di `src/lib/_regime.py`
+   (sotto `@mcp.tool`, sopra `@sourced`). Ogni risposta porta così `regime_normativo` e
+   `LEGAL_PREVIGENTE=off` può nascondere il gruppo. Un tool senza riga `Regime:` è vigente.
+7. Rigenera policy e binding: `python scripts/audit_tool_annotations.py --write`
    (`--check` è il job `policy-sync` in CI) e, se il tool è locale e read-only, aggiornalo nel
    golden con `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`
 

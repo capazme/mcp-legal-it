@@ -67,7 +67,7 @@
     "campi_opzionali": ["provvisoria_esecuzione"],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["artt. 633-656 c.p.c.", "art. 409 c.p.c.", "art. 442 c.p.c."],
-    "avvertenze": ["Competenza: sezione lavoro del Tribunale", "CU esente per cause di lavoro sotto €1.033,00"]
+    "avvertenze": ["Competenza: sezione lavoro del Tribunale", "CU esente nelle cause di lavoro per la parte con reddito fino a tre volte la soglia dell'art. 76 DPR 115/2002 (art. 9 co. 1-bis); oltre, metà scaglione"]
   },
   "atto_di_precetto": {
     "categoria": "esecuzione",
@@ -78,7 +78,7 @@
     "campi_opzionali": ["data_titolo", "interessi_dal"],
     "tool_calcolo": ["interessi_legali", "parcella_avvocato_civile"],
     "riferimenti_normativi": ["artt. 479-481 c.p.c."],
-    "avvertenze": ["Notificare entro 90 giorni dall'emissione"]
+    "avvertenze": ["Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.); il precetto perde efficacia se l'esecuzione non inizia entro 90 giorni (art. 481 c.p.c.)"]
   },
   "sfratto_morosita": {
     "categoria": "atti_introduttivi",
@@ -506,7 +506,7 @@
     "campi_obbligatori": ["valore_causa"],
     "campi_opzionali": ["livello"],
     "tool_calcolo": ["spese_mediazione"],
-    "riferimenti_normativi": ["DM 55/2014", "D.Lgs. 28/2010", "DM 180/2010"],
+    "riferimenti_normativi": ["DM 55/2014", "D.Lgs. 28/2010", "DM 150/2023"],
     "avvertenze": ["Include indennità organismo di mediazione"]
   },
   "preventivo_decreto_ingiuntivo": {
@@ -617,7 +617,7 @@
     "campi_opzionali": ["livello"],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["DM 55/2014", "artt. 409-447 c.p.c."],
-    "avvertenze": ["CU esente sotto €1.033,00"]
+    "avvertenze": ["CU esente nelle cause di lavoro per la parte con reddito fino a tre volte la soglia dell'art. 76 DPR 115/2002 (art. 9 co. 1-bis)"]
   },
   "preventivo_appello": {
     "categoria": "preventivi",
@@ -628,7 +628,7 @@
     "campi_opzionali": ["livello"],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["DM 55/2014", "artt. 339-359 c.p.c."],
-    "avvertenze": ["CU raddoppiato in appello"]
+    "avvertenze": ["CU aumentato della metà in appello (art. 13 co. 1-bis DPR 115/2002)"]
   },
   "preventivo_penale": {
     "categoria": "preventivi",
@@ -694,7 +694,7 @@
     "campi_opzionali": ["valore_causa", "sospensione_esecutivita"],
     "tool_calcolo": ["contributo_unificato", "scadenze_impugnazioni"],
     "riferimenti_normativi": ["artt. 339-359 c.p.c.", "D.Lgs. 149/2022"],
-    "avvertenze": ["CU raddoppiato in appello", "Termine 30 gg (breve) / 6 mesi (lungo)"]
+    "avvertenze": ["CU aumentato della metà in appello (art. 13 co. 1-bis DPR 115/2002)", "Termine 30 gg (breve) / 6 mesi (lungo), con sospensione feriale", "Costituzione dell'appellante entro 10 gg dalla notifica (artt. 165 e 347 c.p.c.); comparsa dell'appellato 70 gg prima dell'udienza (artt. 166 e 347 c.p.c.)"]
   },
   "opposizione_decreto_ingiuntivo": {
     "categoria": "atti_introduttivi",

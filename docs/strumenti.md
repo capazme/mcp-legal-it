@@ -384,16 +384,17 @@ _Calcola una scadenza generica (dies a quo escluso) con proroga automatica al pr
 ---
 
 ### `termini_processuali_civili`
-_Calcola un singolo termine ex art. 171-ter c.p.c. (rito post-Cartabia): memoria I (40gg), II (20gg), III (10gg), conclusionale, replica._
+_Calcola un singolo termine del rito ordinario post-Cartabia: memorie ex art. 171-ter c.p.c. (40/20/10 giorni prima dell'udienza ex art. 183) e atti per la decisione ex art. 189 c.p.c. (note di precisazione delle conclusioni fino a 60 giorni, comparsa conclusionale fino a 30, replica fino a 15 giorni prima dell'udienza di rimessione in decisione). L'art. 190 c.p.c. è abrogato: conclusionali e repliche "dopo l'udienza" valgono solo per le cause ante 28/02/2023 (`termini_183_190_cpc`)._
 
 **Parametri**:
-- `data_udienza` (str, obbligatorio) — data dell'udienza di trattazione (YYYY-MM-DD).
-- `tipo_termine` (str, obbligatorio) — `'memoria_I'`, `'memoria_II'`, `'memoria_III'`, `'comparsa_conclusionale'`, `'replica'`.
-- `sospensione_feriale` (bool, opzionale, default `True`) — applica sospensione agosto L. 742/1969.
+- `data_udienza` (str, obbligatorio) — udienza ex art. 183 per le memorie; udienza di rimessione in decisione ex art. 189 per note, conclusionale e replica (YYYY-MM-DD).
+- `tipo_termine` (str, obbligatorio) — `'memoria_I'`, `'memoria_II'`, `'memoria_III'`, `'note_conclusioni'`, `'comparsa_conclusionale'`, `'replica'`.
+- `sospensione_feriale` (bool, opzionale, default `True`) — sospensione 1-31 agosto L. 742/1969, contata giorno per giorno (False per le materie escluse dall'art. 3 L. 742/1969).
+- `giorni` (int, opzionale) — termine diverso assegnato dal giudice (l'art. 189 fissa solo i massimi).
 
 **Quando usare**: calcolare una singola scadenza per un procedimento iscritto a ruolo dopo il 28/02/2023.
 
-**Esempio**: `termini_processuali_civili(data_udienza="2025-09-15", tipo_termine="memoria_I")` → scadenza memoria integrativa con sospensione feriale agosto applicata.
+**Esempio**: `termini_processuali_civili(data_udienza="2025-10-01", tipo_termine="memoria_I")` → 2025-07-22 (40 giorni a ritroso saltando agosto; `sospensione_feriale_incidente: true`).
 
 ---
 
@@ -401,7 +402,7 @@ _Calcola un singolo termine ex art. 171-ter c.p.c. (rito post-Cartabia): memoria
 _Calcola i termini per divorzio dopo separazione consensuale (6 mesi), giudiziale (12 mesi) o negoziazione assistita (6 mesi)._
 
 **Parametri**:
-- `data_evento` (str, obbligatorio) — data dell'omologa o passaggio in giudicato (YYYY-MM-DD).
+- `data_evento` (str, obbligatorio) — data della comparizione dei coniugi in udienza (prima udienza; ante 28/02/2023 udienza presidenziale), da cui decorre il termine ex art. 3 L. 898/1970; per la negoziazione assistita la data certificata nell'accordo (YYYY-MM-DD).
 - `tipo` (str, obbligatorio) — `'separazione_consensuale'`, `'separazione_giudiziale'`, `'negoziazione_assistita'`, `'ricorso_modifica'`.
 
 **Quando usare**: verificare se è maturato il termine per presentare il ricorso di divorzio (divorzio breve L. 55/2015).
@@ -417,8 +418,9 @@ _Calcola il termine breve (da notifica) o lungo (da pubblicazione) per impugnare
 - `data_pubblicazione` (str, obbligatorio) — data di pubblicazione o notifica della sentenza (YYYY-MM-DD).
 - `tipo_impugnazione` (str, obbligatorio) — `'appello_sentenza'`, `'cassazione'`, `'revocazione'`, `'opposizione_terzo'`, `'regolamento_competenza'`.
 - `notificata` (bool, opzionale, default `False`) — `True` per termine breve dalla notifica; `False` per termine lungo dalla pubblicazione.
+- `sospensione_feriale` (bool, opzionale, default `True`) — sospensione 1-31 agosto L. 742/1969 (il termine lungo che comprende agosto slitta di 31 giorni).
 
-**Quando usare**: calcolare quando scade il termine per proporre appello o ricorso per cassazione dopo una sentenza.
+**Quando usare**: calcolare quando scade il termine per proporre appello o ricorso per cassazione dopo una sentenza. Il regolamento di competenza ha solo il termine di 30 giorni dalla comunicazione (art. 47 c.p.c.), nessun termine lungo.
 
 **Esempio**: `scadenze_impugnazioni(data_pubblicazione="2025-01-10", tipo_impugnazione="appello_sentenza", notificata=True)` → scadenza appello entro 30 giorni dalla notifica.
 
@@ -441,33 +443,37 @@ _Calcola i termini per ricorso al Prefetto (60gg), al Giudice di Pace (30gg), pa
 _Calcola in un'unica risposta tutte le scadenze per memorie e repliche ex art. 171-ter c.p.c. (memoria 40gg, replica 20gg, prova contraria 10gg)._
 
 **Parametri**:
-- `data_udienza` (str, obbligatorio) — data dell'udienza di trattazione (YYYY-MM-DD).
+- `data_udienza` (str, obbligatorio) — data dell'udienza di comparizione e trattazione ex art. 183 c.p.c. (YYYY-MM-DD).
+- `sospensione_feriale` (bool, opzionale, default `True`) — sospensione 1-31 agosto L. 742/1969, contata giorno per giorno.
 
 **Quando usare**: ottenere in un colpo solo tutti i termini a ritroso dall'udienza per il rito post-Cartabia.
 
-**Esempio**: `termini_memorie_repliche(data_udienza="2025-10-01")` → tre scadenze (40/20/10gg prima) con proroga festiva applicata.
+**Esempio**: `termini_memorie_repliche(data_udienza="2025-10-01")` → tre scadenze: 2025-07-22 (40gg, saltando agosto), 2025-09-11 (20gg), 2025-09-19 (10gg: il 21 settembre è domenica, anticipa a venerdì).
 
 ---
 
 ### `termini_procedimento_semplificato`
-_Calcola i termini per il procedimento semplificato di cognizione Cartabia (artt. 281-decies ss. c.p.c.): comparsa risposta 70gg, memorie 40/20/10gg prima dell'udienza._
+_Calcola i termini del procedimento semplificato di cognizione (artt. 281-decies ss. c.p.c.): ultimo giorno per la notifica del ricorso (termini liberi di 40 giorni, 60 all'estero, art. 281-undecies co. 2), costituzione del convenuto non oltre 10 giorni prima dell'udienza (co. 3), memoria integrativa e replica con prova contraria solo se concesse dal giudice, entro 20 e ulteriori 10 giorni (art. 281-duodecies co. 3). I 70 e 40/20/10 giorni del rito ordinario non si applicano._
 
 **Parametri**:
-- `data_udienza` (str, obbligatorio) — data dell'udienza fissata dal giudice (YYYY-MM-DD).
+- `data_udienza` (str, obbligatorio) — data della prima udienza fissata con il decreto (YYYY-MM-DD).
+- `giorni_memoria` (int, opzionale, default 20) e `giorni_replica` (int, opzionale, default 10) — giorni concessi dal giudice (massimi di legge).
+- `sospensione_feriale` (bool, opzionale, default `True`).
 
 **Quando usare**: procedimenti semplificati (fatti non controversi, prova documentale, pronta soluzione) iscritti dopo il 28/02/2023.
 
-**Esempio**: `termini_procedimento_semplificato(data_udienza="2025-06-15")` → quattro scadenze a ritroso con rito semplificato Cartabia.
+**Esempio**: `termini_procedimento_semplificato(data_udienza="2025-10-01")` → costituzione del convenuto entro il 2025-09-19, memoria entro il 2025-10-21, replica entro il 2025-10-31.
 
 ---
 
 ### `termini_183_190_cpc`
-_Calcola i termini ex art. 183 co. 6 e art. 190 c.p.c. nel testo previgente (cause iscritte prima del 28/02/2023)._
+_Calcola i termini ex art. 183 co. 6 e art. 190 c.p.c. nel testo previgente (cause iscritte prima del 28/02/2023). **Regime: PREVIGENTE** — tag `previgente`, ogni risposta porta `regime_normativo` con i tool vigenti (`termini_memorie_repliche`, `termini_processuali_civili`); `LEGAL_PREVIGENTE=off` lo nasconde._
 
 **Parametri**:
 - `data_udienza` (str, obbligatorio) — data dell'udienza di trattazione ex art. 183 c.p.c. (YYYY-MM-DD).
+- `sospensione_feriale` (bool, opzionale, default `True`).
 
-**Quando usare**: cause iscritte a ruolo prima della Riforma Cartabia; le memorie decorrono in avanti dall'udienza.
+**Quando usare**: solo cause iscritte a ruolo prima della Riforma Cartabia; le memorie decorrono in avanti dall'udienza.
 
 **Esempio**: `termini_183_190_cpc(data_udienza="2025-03-10")` → cinque scadenze: memorie n. 1/2/3 (30/60/80gg), conclusionale (60gg) e replica (80gg).
 
@@ -487,15 +493,18 @@ _Calcola i termini nelle procedure esecutive: finestra utile per pignorare (10-9
 ---
 
 ### `termini_deposito_atti_appello`
-_Calcola termini per proporre appello (breve 30gg e lungo 6 mesi), iscrizione a ruolo e comparsa di risposta dell'appellato._
+_Calcola i termini del giudizio di appello: impugnazione (breve 30gg e lungo 6 mesi, con sospensione feriale), costituzione dell'appellante entro 10 giorni dalla notifica della citazione (artt. 165 e 347 c.p.c.) e comparsa di risposta dell'appellato almeno 70 giorni prima dell'udienza (artt. 166 e 343 c.p.c. post-Cartabia; 20 giorni per le cause ante 28/02/2023)._
 
 **Parametri**:
 - `data_notifica_sentenza` (str, opzionale) — data di notifica della sentenza per il termine breve (YYYY-MM-DD).
 - `data_pubblicazione` (str, opzionale) — data di pubblicazione per il termine lungo (YYYY-MM-DD).
+- `data_notifica_citazione` (str, opzionale) — notifica della citazione in appello, per la costituzione dell'appellante.
+- `data_udienza` (str, opzionale) — udienza indicata nella citazione, per la comparsa dell'appellato.
+- `sospensione_feriale` (bool, opzionale, default `True`).
 
 **Quando usare**: pianificare le scadenze nell'arco temporale del giudizio di appello civile.
 
-**Esempio**: `termini_deposito_atti_appello(data_pubblicazione="2024-07-15")` → termine lungo appello: 2025-01-15.
+**Esempio**: `termini_deposito_atti_appello(data_pubblicazione="2024-07-15")` → termine lungo appello: 2025-02-17 (6 mesi più i 31 giorni di agosto danno sabato 15/02, prorogato a lunedì 17/02).
 
 ---
 
@@ -1242,7 +1251,7 @@ _Prospetto completo del danno non patrimoniale con tutte le componenti in un uni
 ---
 
 ### `equo_indennizzo`
-_Calcola l'equo indennizzo per causa di servizio per dipendenti pubblici. ATTENZIONE: istituto abrogato per eventi successivi al 06/12/2011._
+_Calcola l'equo indennizzo per causa di servizio per dipendenti pubblici. ATTENZIONE: istituto abrogato per eventi successivi al 06/12/2011. **Regime: PREVIGENTE** — tag `previgente`, ogni risposta porta `regime_normativo`; `LEGAL_PREVIGENTE=off` lo nasconde._
 
 **Parametri**: `categoria_tabella` (str, obbligatorio) — categoria Tabella A DPR 834/1981 da `"1"` (81-100%) a `"8"` (1-10%). `percentuale_invalidita` (float, obbligatorio). `stipendio_annuo` (float, obbligatorio) — ultimo stipendio annuo lordo in €.
 
