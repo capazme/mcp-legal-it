@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.14.1] - 2026-09-24
+
+### Fixed
+- `LEGAL_PROFILE` funziona di nuovo su FastMCP 3: FastMCP 3 ha rimosso
+  l'attributo `include_tags`, quindi l'assegnazione in `server.py` era un
+  no-op silenzioso e ogni profilo esponeva tutti i 227 tool (fino alla
+  2.14.0 inclusa). Il profilo è ora una trasformazione di visibilità
+  (`enable(tags=..., only=True)`) con prompt e risorse riabilitati;
+  `tests/unit/test_profiles.py` lo presidia e `install.py` riporta i
+  conteggi reali per profilo.
+- La versione dichiarata ai client MCP è quella del checkout, non quella
+  congelata nei metadati di un'installazione editable: vince il
+  `pyproject.toml` accanto al pacchetto, i metadati restano il ripiego per
+  una wheel installata.
 
 ### Changed
 - Regole di grounding normalizzate: le sei skill agente riformulavano la
@@ -13,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   condividono una sola forma canonica. La convenzione OUTPUT del server
   aggiunge la clausola di provenienza (`dati_applicati` col vintage e
   `mcp-legal-it/fonti_consultate` dal `_meta`).
+- Documentazione allineata alla superficie 2.x distribuita (227 tool, 34
+  moduli, 23 skill, 10 slash command, 6 agenti): README e plugin/README,
+  guide di architettura, deployment e test, manifest e snippet del
+  marketplace riallineati.
 
 ## [2.14.0] - 2026-09-20
 
