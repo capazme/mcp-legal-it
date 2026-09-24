@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Grounding rules normalized: the six agent skills carried seven diverging
+  restatements of the same Legal Grounding rule -- they now share one
+  canonical wording. The server's OUTPUT convention adds the provenance
+  clause (`dati_applicati` with their vintage, `mcp-legal-it/fonti_consultate`
+  from `_meta`), so every host surfaces where an answer's numbers come from.
+
 ## [2.14.0] - 2026-09-20
 
 ### Added
