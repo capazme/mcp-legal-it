@@ -113,7 +113,7 @@ Se il tema ruota attorno a un articolo specifico, chiama `cerca_brocardi` per:
 
 ### Passo 7 — Fondamento normativo
 
-Per le norme citate nelle sentenze: `cite_law` per il testo vigente. Mai citare norme a memoria.
+Per le norme citate nelle sentenze: `cite_law` per il testo vigente — mai a memoria (protocollo in `AGENTS.md`).
 
 ### Passo 8 — Cross-reference fonti amministrative (se pertinente)
 

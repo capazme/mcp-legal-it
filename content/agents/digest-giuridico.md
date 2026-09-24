@@ -50,7 +50,7 @@ Non leggere l'integrale di ogni decisione: il digest e' un briefing, non una ras
 
 ### 5. "Norme citate"
 
-Raccogli le norme richiamate dalle decisioni in evidenza e recuperane il testo vigente con `cite_law`. Mai citare norme a memoria.
+Raccogli le norme richiamate dalle decisioni in evidenza e recuperane il testo vigente con `cite_law` — mai a memoria (protocollo in `AGENTS.md`).
 
 ## Output atteso
 
@@ -101,5 +101,5 @@ Produci un unico documento markdown con questa struttura:
 1. **Tutte le sei fonti, sempre** — il briefing settimanale e' completo per definizione.
 2. **Degrado visibile** — una fonte non raggiungibile va dichiarata, non nascosta.
 3. **Sintesi prima di tutto** — un avvocato deve leggere il briefing in pochi minuti; niente integrali, solo estremi + una riga di rilevanza.
-4. **Legal grounding** — numeri di sentenza solo dai tool, norme solo via `cite_law`, mai a memoria.
+4. **Legal grounding** — numeri di sentenza solo dai tool, norme solo via `cite_law` (protocollo in `AGENTS.md`).
 5. **Datazione esplicita** — intesta sempre con "settimana del <data>" usando la data corrente.
