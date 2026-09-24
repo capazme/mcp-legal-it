@@ -1,0 +1,1502 @@
+[
+  {
+    "id": "JUR-CIV-001",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto un lavoratore che ha subito un pignoramento fondato su un titolo formatosi in materia di lavoro e ha proposto opposizione all'esecuzione ex art. 615 c.p.c. Nel corso del giudizio di opposizione il processo esecutivo si è estinto (il creditore procedente ha rinunciato agli atti) e il giudice, ritenuta cessata la materia del contendere, ha chiuso il giudizio compensando integralmente le spese di lite senza alcuna motivazione specifica, limitandosi a rilevare che il venir meno dell'esecuzione rendeva superfluo ogni accertamento. Vorrei sapere: il giudice dell'opposizione era comunque tenuto a pronunciare sulle spese del giudizio di opposizione e con quale criterio? La sopravvenuta estinzione dell'esecuzione giustifica di per sé la compensazione? Che censura posso articolare in Cassazione e quale sarebbe l'esito in caso di accoglimento?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che il giudice dell'opposizione deve comunque provvedere sulle spese del giudizio di opposizione e che, venuto meno l'interesse alla decisione di merito, il criterio da applicare è quello della soccombenza virtuale (valutazione prognostica della fondatezza dell'opposizione).",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Esclude che la sopravvenuta estinzione del processo esecutivo o la cessazione della materia del contendere giustifichino di per sé la compensazione delle spese, richiamando i presupposti tassativi dell'art. 92, comma 2, c.p.c. (soccombenza reciproca, novità della questione, mutamento giurisprudenziale o altre gravi ed eccezionali ragioni, anche alla luce di Corte cost. n. 77/2018) e l'obbligo di motivazione.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Individua correttamente la censura proponibile in Cassazione come violazione/falsa applicazione degli artt. 91 e 92 c.p.c. ex art. 360, n. 3, c.p.c. e indica che l'accoglimento comporta cassazione con rinvio limitata alla regolamentazione delle spese del giudizio di opposizione (oltre a quelle del giudizio di legittimità).",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Distingue le spese del giudizio di opposizione (autonomo giudizio di cognizione) da quelle del processo esecutivo estinto, la cui disciplina segue le regole proprie dell'esecuzione (liquidazione da parte del giudice dell'esecuzione / art. 632 c.p.c.).",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, nel giudizio di opposizione all'esecuzione divenuto privo di oggetto per estinzione o chiusura del processo esecutivo, il giudice debba comunque regolare le spese del giudizio di opposizione secondo il criterio della soccombenza virtuale, e se la mera cessazione della materia del contendere legittimi la compensazione integrale.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "3",
+      "number": 1035,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-002",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Un collega avvocato ha promosso, ai sensi dell'art. 14 del d.lgs. n. 150/2011, un procedimento per la liquidazione dei compensi relativi all'attività difensiva svolta in un giudizio di appello, radicandolo davanti alla Corte d'appello competente. Il procedimento si è concluso con ordinanza pronunciata dal solo consigliere istruttore in composizione monocratica, che ha liquidato una somma inferiore a quella richiesta. Il mio assistito intende contestare l'esito. Chiedo: nel procedimento speciale di liquidazione dei compensi professionali forensi l'ordinanza conclusiva deve essere resa dall'organo collegiale o può essere adottata dal giudice monocratico? Quali conseguenze processuali discendono dall'eventuale violazione della regola sulla composizione dell'organo giudicante e con quale mezzo di impugnazione può essere fatta valere, tenuto conto che l'ordinanza è stata resa dalla Corte d'appello in unico grado? È necessario che il vizio sia stato eccepito nel corso del giudizio di merito?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che nel procedimento ex art. 14 d.lgs. n. 150/2011 la decisione conclusiva deve essere adottata in composizione collegiale e che l'ordinanza resa dal giudice monocratico è affetta da nullità (vizio di costituzione/composizione dell'organo giudicante), non da mera irregolarità.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Indica che l'ordinanza, avendo natura decisoria e definitiva e non essendo altrimenti impugnabile (resa in unico grado), è censurabile con ricorso straordinario per cassazione ex art. 111, comma 7, Cost., e che l'accoglimento comporta cassazione con rinvio allo stesso ufficio in diversa composizione.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che il vizio attinente alla composizione dell'organo giudicante è rilevabile anche d'ufficio e comunque deducibile in sede di legittimità pur in assenza di specifica eccezione nel giudizio di merito.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Richiama correttamente il quadro normativo di riferimento (art. 14 d.lgs. n. 150/2011, rito semplificato/sommario di cognizione, e artt. 158 e 161 c.p.c. in tema di nullità per vizi di costituzione del giudice).",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, nel procedimento sommario di liquidazione dei compensi dell'avvocato ex art. 14 d.lgs. n. 150/2011, l'ordinanza decisoria debba essere pronunciata in composizione collegiale e quali siano le conseguenze (nullità, mezzo di impugnazione esperibile, rilevabilità) della decisione resa dal giudice monocratico.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "2",
+      "number": 3653,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-003",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto il ricorrente in un giudizio di cassazione (controversia su vizi della cosa venduta e riduzione del prezzo). La cancelleria ci ha comunicato una proposta di definizione accelerata del ricorso formulata ai sensi dell'art. 380-bis c.p.c. nel testo riformato dal d.lgs. n. 149/2022. Il cliente non intende sostenere ulteriori costi. Vorrei sapere: (a) cosa accade sul piano processuale se, entro il termine di legge, non depositiamo istanza di decisione sottoscritta anche dalla parte con nuova procura speciale, e con quale provvedimento e da parte di quale organo il giudizio viene definito; (b) quale disciplina si applica alle spese di lite e se, in tale ipotesi, siamo esposti alla condanna aggravata prevista dall'art. 96, commi 3 e 4, c.p.c. richiamata dall'art. 380-bis c.p.c.; (c) se sia comunque preferibile depositare una formale rinuncia al ricorso ex art. 390 c.p.c. e quali effetti essa produca.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che, in mancanza di tempestiva richiesta di decisione (nel termine di quaranta giorni dalla comunicazione della proposta, con istanza sottoscritta dalla parte e dal difensore munito di nuova procura speciale), il ricorso si intende rinunciato e il giudizio di cassazione si estingue, con dichiarazione di estinzione ai sensi dell'art. 391 c.p.c.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Precisa che l'estinzione è dichiarata con decreto (dal presidente della sezione o da un suo delegato / consigliere delegato) e non con sentenza od ordinanza collegiale, e che con lo stesso provvedimento si provvede sulle spese del giudizio.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Chiarisce che la condanna aggravata ex art. 96, commi 3 e 4, c.p.c. richiamata dall'art. 380-bis c.p.c. presuppone che il giudizio si concluda con una decisione conforme alla proposta, e non opera quando il giudizio si chiude per estinzione conseguente a rinuncia (espressa o per mancata richiesta di decisione).",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Menziona l'orientamento delle Sezioni Unite (in particolare Cass., Sez. Un., n. 27195/2023) sulla ratio deflattiva dell'art. 380-bis c.p.c. e sul nesso tra conformità della decisione alla proposta e responsabilità aggravata, e/o distingue gli effetti della rinuncia ex art. 390 c.p.c. (che consente la definizione senza le sanzioni e con eventuale regolamentazione concordata delle spese).",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Conseguenze processuali della mancata richiesta di decisione (o della rinuncia) a seguito della proposta di definizione accelerata ex art. 380-bis c.p.c.: estinzione del giudizio dichiarata con decreto ex art. 391 c.p.c., regime delle spese e ambito applicativo della condanna aggravata ex art. 96, commi 3 e 4, c.p.c.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "2",
+      "number": 4349,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-004",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto una società destinataria di un'ordinanza-ingiunzione emessa all'esito di un'ispezione amministrativa. La violazione risulta materialmente commessa oltre un anno prima, il verbale ispettivo si è chiuso in una certa data e la contestazione degli addebiti è stata notificata circa ottanta giorni dopo la chiusura del verbale, ma a notevole distanza dal momento in cui l'amministrazione aveva acquisito la documentazione rilevante. Vorrei impostare l'opposizione sulla tardività della contestazione: da quale momento decorre il termine di novanta giorni previsto dall'art. 14, comma 2, della legge n. 689/1981 per la notifica della contestazione all'autore della violazione? Rileva la data di commissione del fatto, quella di acquisizione materiale dei dati, quella di chiusura del procedimento interno di verifica, oppure il tempo ragionevolmente necessario a valutare gli elementi dell'illecito? E in che misura tale valutazione è sindacabile in sede di legittimità?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta afferma che il termine di novanta giorni ex art. 14, comma 2, l. 689/1981 decorre non dalla data di commissione del fatto né dalla mera acquisizione materiale dei dati, ma dal momento in cui è compiuto (o avrebbe dovuto ragionevolmente essere compiuto) l'accertamento, inteso come conclusione dell'attività amministrativa di valutazione ed elaborazione degli elementi acquisiti, idonea a configurare l'illecito e la sua imputabilità.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "La risposta precisa che la congruità/ragionevolezza del tempo impiegato dall'amministrazione per pervenire all'accertamento costituisce apprezzamento di fatto riservato al giudice di merito, censurabile in cassazione solo nei ristretti limiti del vizio di motivazione ai sensi dell'art. 360, n. 5, c.p.c.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "La risposta chiarisce che la valutazione va condotta in concreto, tenendo conto della complessità degli accertamenti e delle circostanze del caso, e non consente all'amministrazione di procrastinare discrezionalmente il momento di formale chiusura del procedimento interno di verifica.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "La risposta indica che l'onere di allegare e provare la tardività della contestazione, ovvero gli elementi da cui desumere l'anteriorità del completamento dell'accertamento, grava sull'opponente, e/o che la nullità del provvedimento per tardiva contestazione deve essere fatta valere con specifico motivo di opposizione.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Individuazione del dies a quo del termine di novanta giorni per la notifica della contestazione della violazione ex art. 14, comma 2, l. n. 689/1981 e sindacabilità in cassazione della valutazione sulla ragionevolezza del tempo impiegato dall'amministrazione per l'accertamento.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "2",
+      "number": 4695,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-005",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto una compagnia assicuratrice ricorrente in un giudizio di cassazione relativo al risarcimento dei danni da sinistro stradale. Dopo la fissazione dell'adunanza, le parti hanno raggiunto un accordo transattivo e il mio cliente intende rinunciare al ricorso. Quali sono i requisiti di forma e le modalità di deposito/notifica dell'atto di rinuncia perché sia efficace? Quale provvedimento adotta la Corte e con quale forma (decreto presidenziale, ordinanza o sentenza)? Inoltre, come viene regolata la questione delle spese del giudizio di legittimità quando la rinuncia dipende da un accordo tra le parti, e che sorte ha l'obbligo di versare l'ulteriore importo a titolo di contributo unificato?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Individua la disciplina applicabile negli artt. 390 e 391 c.p.c., precisando che la rinuncia deve risultare da atto sottoscritto dalla parte o dal difensore munito di mandato speciale e deve essere notificata/comunicata alle altre parti costituite (o da queste accettata), e che l'esito è la declaratoria di estinzione del giudizio di cassazione.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Chiarisce che l'estinzione è dichiarata con decreto del Presidente ovvero, se è già fissata l'adunanza o l'udienza, con ordinanza o sentenza del collegio.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Rileva che, ai sensi dell'art. 391, comma 4, c.p.c., quando la rinuncia dipende da un accordo tra le parti sulle spese, la Corte non applica la condanna alle spese di cui al comma 2 (non provvedendo sulle spese o compensandole).",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Affronta espressamente la questione dell'ulteriore importo a titolo di contributo unificato ex art. 13, comma 1-quater, d.P.R. 115/2002 in caso di estinzione per rinuncia, distinguendola dalle ipotesi di rigetto, inammissibilità o improcedibilità dell'impugnazione.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Disciplina della rinuncia al ricorso per cassazione (requisiti formali, provvedimento di estinzione, regime delle spese ex art. 391 c.p.c. e incidenza sul c.d. raddoppio del contributo unificato) in un giudizio in materia di responsabilità da circolazione stradale definito con accordo transattivo tra le parti.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "3",
+      "number": 5759,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-006",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto il ricorrente in un giudizio di legittimità pendente davanti alla Corte di cassazione, avente ad oggetto un'azione revocatoria ordinaria ex art. 2901 c.c. promossa dal creditore contro l'atto dispositivo del mio assistito. Dopo la fissazione dell'adunanza, le parti hanno raggiunto una transazione stragiudiziale che include anche la regolamentazione delle spese di lite, e il mio cliente intende ora abbandonare il ricorso per cassazione. Vorrei sapere: entro quale termine e con quali forme va manifestata la rinuncia al ricorso; se occorre l'accettazione della controparte intimata o costituita con controricorso; quale provvedimento adotta la Corte e con quali effetti sulla sentenza impugnata; come la Corte regola le spese quando esiste un accordo transattivo tra le parti; e se, in caso di declaratoria di estinzione, il ricorrente sia comunque tenuto al versamento dell'ulteriore importo a titolo di contributo unificato ex art. 13, comma 1-quater, d.P.R. n. 115/2002.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta afferma che la rinuncia al ricorso per cassazione, ai sensi dell'art. 390 c.p.c., è atto unilaterale che non richiede l'accettazione della controparte (rilevando l'eventuale adesione solo ai fini delle spese) e che ad essa consegue la declaratoria di estinzione del giudizio di legittimità ex art. 391 c.p.c., con conseguente passaggio in giudicato della sentenza impugnata.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "La risposta indica i requisiti formali e temporali della rinuncia: atto sottoscritto dalla parte personalmente o dal difensore munito di procura speciale (o mandato ad hoc), notificato/comunicato alle parti costituite o depositato, proponibile fino alla data dell'adunanza camerale o finché non sia iniziata la relazione in pubblica udienza.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "La risposta precisa che, in caso di accordo transattivo delle parti sulle spese, la Corte ne prende atto e non provvede sulla loro liquidazione (o le compensa), mentre in difetto di accordo il rinunciante è tenuto al rimborso delle spese in favore delle controparti ex art. 391, comma 4, c.p.c.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "La risposta dà conto dell'orientamento secondo cui, in caso di estinzione del giudizio per rinuncia, non opera il raddoppio del contributo unificato ex art. 13, comma 1-quater, d.P.R. n. 115/2002, trattandosi di norma di stretta interpretazione riferita alle sole ipotesi di rigetto integrale, inammissibilità o improcedibilità dell'impugnazione.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Disciplina, forma ed effetti della rinuncia al ricorso per cassazione (artt. 390-391 c.p.c.): necessità o meno dell'accettazione della controparte, declaratoria di estinzione del giudizio di legittimità, regolamentazione delle spese in presenza di accordo tra le parti e sussistenza dell'obbligo di versamento del doppio contributo unificato.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "3",
+      "number": 5765,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-007",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto una società che ha proposto ricorso per cassazione contro una banca in una controversia su rapporti di conto corrente; la controparte eccepisce la manifesta infondatezza dell'impugnazione e chiede la condanna per responsabilità aggravata. Vorrei sapere: nel giudizio di legittimità la Corte può condannare il ricorrente soccombente al pagamento di una somma equitativamente determinata in favore della controparte ai sensi dell'art. 96, comma 3, c.p.c. e, cumulativamente, al pagamento di un'ulteriore somma in favore della Cassa delle ammende ai sensi dell'art. 96, comma 4, c.p.c.? Quali sono i presupposti soggettivi e oggettivi di tali condanne, occorre istanza di parte e prova di un danno, e in quale rapporto stanno con la condanna alle spese e con il raddoppio del contributo unificato ex art. 13, comma 1-quater, d.P.R. 115/2002?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che la condanna ex art. 96, comma 3, c.p.c. ha natura sanzionatoria/officiosa e può essere pronunciata anche senza istanza di parte e senza prova di un danno concreto, richiedendo però un abuso dello strumento processuale (mala fede o colpa grave, es. impugnazione manifestamente infondata o contraria a orientamento consolidato).",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Afferma che la condanna ex art. 96, comma 3, c.p.c. in favore della controparte è cumulabile con l'ulteriore condanna al pagamento di una somma in favore della Cassa delle ammende ex art. 96, comma 4, c.p.c., trattandosi di misure distinte e non alternative.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Chiarisce che tali condanne si aggiungono e non si sostituiscono alla condanna alle spese di lite e che il raddoppio del contributo unificato ex art. 13, comma 1-quater, d.P.R. 115/2002 ha natura diversa (obbligo di carattere tributario conseguente al mero esito negativo dell'impugnazione, senza valutazione di temerarietà).",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Precisa i limiti quantitativi/criteri di determinazione, indicando che la somma dovuta alla Cassa delle ammende ex art. 96, comma 4, c.p.c. è compresa tra 500 e 5.000 euro, mentre quella ex comma 3 è liquidata equitativamente senza tetto predeterminato (con riferimento orientativo ai parametri forensi).",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, in caso di rigetto di un ricorso per cassazione manifestamente infondato, la condanna per responsabilità aggravata ex art. 96, comma 3, c.p.c. in favore della parte vittoriosa sia pronunciabile d'ufficio senza prova del danno e sia cumulabile con la condanna al pagamento di una somma in favore della Cassa delle ammende ex art. 96, comma 4, c.p.c., oltre alle spese e al raddoppio del contributo unificato.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "1",
+      "number": 5938,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-008",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto un cittadino straniero il cui permesso di soggiorno per motivi di lavoro non è stato rinnovato; risiede in Italia da circa otto anni, ha un contratto di lavoro a tempo indeterminato, un alloggio stabile e una compagna convivente, mentre nel Paese di origine non ha più legami familiari significativi. La Commissione territoriale e il Tribunale hanno escluso ogni forma di protezione affermando che il solo inserimento lavorativo non basta e che non risultano situazioni di vulnerabilità individuale. Nel giudizio sul riconoscimento della protezione speciale per rispetto della vita privata e familiare, quali sono i parametri che il giudice deve applicare? Il radicamento socio-lavorativo in Italia rileva di per sé, oppure è necessario un giudizio comparativo con la situazione che lo straniero troverebbe nel Paese di origine? E come si atteggiano, in questo ambito, l'onere di allegazione della parte e il dovere di cooperazione istruttoria del giudice?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Individua il fondamento normativo nell'art. 19, comma 1.1 (e 1.2), d.lgs. 286/1998, letto alla luce dell'art. 8 CEDU, e afferma che il riconoscimento della protezione speciale richiede una valutazione comparativa tra il grado di integrazione e la vita privata e familiare costruite in Italia e la situazione personale, familiare e sociale che lo straniero ritroverebbe nel Paese di origine.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Esclude automatismi in entrambe le direzioni, precisando che il solo inserimento lavorativo o la mera durata del soggiorno non sono di per sé sufficienti, ma che neppure possono essere svalutati in blocco: il giudice deve compiere un bilanciamento in concreto, secondo proporzionalità e ragionevolezza, motivando specificamente sugli elementi allegati (durata del soggiorno, stabilità lavorativa e abitativa, legami familiari e affettivi, effettività dei legami residui nel Paese di origine).",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Chiarisce il riparto tra onere di allegazione della parte (che deve dedurre in modo specifico gli elementi del radicamento) e dovere di cooperazione istruttoria del giudice, che opera una volta assolta l'allegazione, anche mediante informazioni aggiornate sul Paese di origine, e censura la motivazione meramente apparente o stereotipata.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Precisa che la protezione speciale per vita privata e familiare non presuppone una condizione di vulnerabilità soggettiva assimilabile a quella richiesta per la protezione umanitaria 'classica' né un rischio di persecuzione o danno grave, distinguendola dalle protezioni maggiori, e dà conto dell'incidenza della successione normativa (d.l. 130/2020 conv. l. 173/2020 e d.l. 20/2023 conv. l. 50/2023) sulla disciplina applicabile ratione temporis.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Criteri di riconoscimento della protezione speciale ex art. 19, commi 1.1 e 1.2, d.lgs. 286/1998 per rispetto della vita privata e familiare: rilievo del radicamento socio-lavorativo in Italia, necessità di un giudizio comparativo con le condizioni nel Paese di origine e riparto tra onere di allegazione e dovere di cooperazione istruttoria.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "1",
+      "number": 6768,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-009",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto una coppia di due uomini, entrambi cittadini italiani, che ha fatto ricorso alla gestazione per altri in Canada, in forma lecita secondo la legge locale. Il provvedimento e l'atto di nascita esteri indicano entrambi i partner come genitori del minore, benché solo uno di essi sia il padre biologico. L'ufficiale di stato civile italiano ha rifiutato la trascrizione integrale dell'atto. Chiedo un parere su: (i) se l'atto di nascita straniero sia integralmente trascrivibile nei registri italiani anche nella parte in cui indica il c.d. genitore d'intenzione, privo di legame genetico con il nato; (ii) quale sia il limite dell'ordine pubblico internazionale rilevante in materia e come si componga con il preminente interesse del minore e con il suo diritto all'identità personale; (iii) quali strumenti l'ordinamento italiano offra per costituire comunque il rapporto giuridico con il partner non biologico e quale sia oggi il contenuto di tale tutela quanto a rapporti di parentela ed effetti successori.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Esclude la trascrivibilità (o il riconoscimento dell'efficacia) del provvedimento/atto di nascita estero nella parte relativa al genitore d'intenzione privo di legame biologico, per contrasto con l'ordine pubblico internazionale desumibile dal divieto penalmente sanzionato di surrogazione di maternità (art. 12, comma 6, l. n. 40/2004), richiamando l'orientamento delle Sezioni Unite (Cass. S.U. n. 12193/2019 e n. 38162/2022).",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Afferma che resta invece riconoscibile e trascrivibile il rapporto di filiazione con il genitore biologico/committente che abbia fornito i propri gameti.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Individua nell'adozione in casi particolari ex art. 44, comma 1, lett. d), l. n. 184/1983 lo strumento idoneo a costituire il legame giuridico con il genitore d'intenzione, precisando la necessità del consenso del minore ultraquattordicenne.",
+        "required": true
+      },
+      {
+        "id": "C-004",
+        "text": "Richiama, a integrazione della tutela, la giurisprudenza costituzionale rilevante (in particolare Corte cost. nn. 32 e 33 del 2021 e Corte cost. n. 79 del 2022, quest'ultima sull'instaurazione dei rapporti di parentela anche nell'adozione in casi particolari) e/o il bilanciamento con il best interest of the child alla luce della giurisprudenza della Corte EDU.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Riconoscibilità in Italia, mediante trascrizione dell'atto di nascita formato all'estero, del rapporto di filiazione tra il minore nato da gestazione per altri e il genitore d'intenzione privo di legame biologico, e individuazione dello strumento alternativo di tutela del legame affettivo già instaurato.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "1",
+      "number": 8369,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-010",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto una banca creditrice che ha agito in revocatoria ordinaria ex art. 2901 c.c. contro un debitore il quale, dopo il sorgere del credito, ha ceduto a titolo oneroso un immobile a un terzo. Il giudice di merito ha rigettato la domanda ritenendo che la creditrice non avesse dimostrato né l'insolvenza del debitore né l'incapienza del patrimonio residuo, essendo rimasti in capo a quest'ultimo altri beni di valore non precisamente accertato. Chiedo: come si ripartisce l'onere della prova in ordine all'eventus damni nell'azione revocatoria ordinaria? È corretto pretendere dal creditore la prova dell'insolvenza o dell'integrale incapienza del patrimonio del debitore, oppure spetta a controparte dimostrare che il residuo patrimonio è sufficiente? E quali sono i presupposti soggettivi richiesti nel caso di atto oneroso posteriore al sorgere del credito?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che il creditore deve provare soltanto l'eventus damni, inteso come mera variazione quantitativa o qualitativa del patrimonio del debitore idonea a rendere più incerta, difficile o onerosa la soddisfazione coattiva del credito, senza che sia necessaria la prova dell'insolvenza del debitore o dell'integrale perdita della garanzia patrimoniale.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Afferma che, provato l'atto dispositivo e la sua attitudine pregiudizievole, grava sul debitore (o sul terzo acquirente convenuto) l'onere di dimostrare l'insussistenza del pregiudizio, cioè che il patrimonio residuo è tale da soddisfare agevolmente e senza difficoltà le ragioni del creditore; qualifica quindi come errata la decisione che addossa al creditore la prova dell'incapienza.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che, trattandosi di atto a titolo oneroso posteriore al sorgere del credito, è sufficiente la consapevolezza del pregiudizio (scientia damni) in capo al debitore e al terzo contraente, non occorrendo la dolosa preordinazione (richiesta invece per gli atti anteriori al credito) né l'animus nocendi.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Aggiunge elementi di approfondimento corretti, quali la rilevanza anche della sola variazione qualitativa (ad es. conversione di immobili in denaro o beni facilmente occultabili), l'irrilevanza dell'eventuale congruità del corrispettivo, e la sufficienza di un credito anche eventuale, litigioso o non ancora esigibile a legittimare l'azione.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Ripartizione dell'onere probatorio sull'eventus damni nell'azione revocatoria ordinaria (art. 2901 c.c.) e contenuto del presupposto soggettivo per gli atti a titolo oneroso compiuti dopo il sorgere del credito.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "3",
+      "number": 9358,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-011",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto il curatore di un fallimento (procedura soggetta alla legge fallimentare) che intende esperire l'azione revocatoria ordinaria ex art. 2901 c.c., richiamata dall'art. 66 l.fall., per far dichiarare inefficace la vendita di un immobile compiuta dal debitore, a titolo oneroso, in epoca anteriore alla dichiarazione di fallimento. Al momento dell'atto dispositivo il credito principale della massa non era ancora accertato giudizialmente ed era anzi oggetto di contestazione, e il debitore conserva altri beni, sia pure di difficile liquidazione. Il terzo acquirente eccepisce che manca un credito certo, liquido ed esigibile e che non è provata l'insufficienza del patrimonio residuo. Come si pongono, secondo il diritto vivente, i requisiti del credito tutelabile e dell'eventus damni, e come si ripartisce l'onere della prova? Rileva inoltre la collocazione temporale dell'atto rispetto al sorgere del credito?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che per l'azione revocatoria ordinaria non occorre un credito certo, liquido ed esigibile, essendo sufficiente una ragione di credito anche eventuale, litigiosa, non ancora scaduta o non ancora accertata giudizialmente (aspettativa tutelabile), sicché l'eccezione del terzo sul punto è infondata.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Precisa che l'eventus damni non richiede la totale insolvenza o l'assoluta impossibilità di realizzare il credito, essendo sufficiente che l'atto dispositivo determini una variazione quantitativa o qualitativa del patrimonio tale da rendere più incerta, difficile o onerosa la soddisfazione coattiva del credito.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Indica correttamente il riparto dell'onere della prova: al creditore (curatore) spetta provare la diminuzione della garanzia patrimoniale conseguente all'atto, mentre incombe sul debitore o sul terzo convenuto l'onere di dimostrare l'insussistenza del pregiudizio per la sufficiente consistenza e agevole aggredibilità del patrimonio residuo.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Distingue correttamente l'elemento soggettivo in base alla collocazione temporale: se l'atto è anteriore al sorgere del credito occorre la dolosa preordinazione del debitore e la partecipatio fraudis del terzo (art. 2901, n. 1, c.c.); se posteriore, per l'atto a titolo oneroso basta la consapevolezza del pregiudizio (scientia damni) in capo al debitore e al terzo; e rileva che il curatore agisce nell'interesse della massa, sicché è sufficiente l'anteriorità rispetto ad almeno un credito concorsuale.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Presupposti dell'azione revocatoria ordinaria esercitata dal curatore fallimentare ex art. 66 l.fall.: idoneità del credito eventuale, litigioso o non ancora accertato a legittimare l'azione; nozione di eventus damni e riparto dell'onere probatorio sulla capienza del patrimonio residuo; rilievo dell'anteriorità o posteriorità dell'atto dispositivo rispetto al sorgere del credito ai fini dell'elemento soggettivo.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "3",
+      "number": 10689,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-012",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto una parte ricorrente in un giudizio pendente davanti alla Corte di cassazione. Nelle more, abbiamo raggiunto con la controparte un accordo transattivo che definisce integralmente la lite, comprese le spese di tutti i gradi. Quali sono gli adempimenti processuali per chiudere il giudizio di legittimità: è sufficiente depositare la transazione o occorre un formale atto di rinuncia al ricorso? L'atto di rinuncia deve essere accettato dal controricorrente per produrre effetto? Con quale provvedimento e in quale forma la Corte definisce il procedimento, e come si regolano le spese del giudizio di cassazione e l'eventuale raddoppio del contributo unificato?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Indica che il giudizio di cassazione si chiude con una declaratoria di estinzione ai sensi degli artt. 390 e 391 c.p.c., previo deposito di un atto di rinuncia al ricorso sottoscritto dalla parte o dal difensore munito di procura speciale (o di mandato che gliene attribuisca il potere), notificato alle parti costituite, non essendo di per sé sufficiente il mero deposito dell'accordo transattivo.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Precisa che l'efficacia della rinuncia al ricorso non è subordinata all'accettazione della controparte, la quale rileva essenzialmente ai fini della regolamentazione delle spese.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Chiarisce che, se le parti hanno transatto anche le spese o vi è accettazione della rinuncia senza richiesta di spese, la Corte non provvede sulle spese del giudizio di legittimità (o le compensa), mentre in difetto il rinunciante è tenuto a rimborsarle ex art. 391, comma 4, c.p.c.; menziona altresì che l'estinzione può essere dichiarata con decreto del Presidente o con ordinanza/sentenza in camera di consiglio o in udienza.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Segnala che, secondo l'orientamento delle Sezioni Unite, in caso di estinzione del processo per rinuncia non opera l'obbligo di versamento dell'ulteriore importo a titolo di contributo unificato ex art. 13, comma 1-quater, d.P.R. n. 115/2002.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Effetti processuali della transazione intervenuta in pendenza del ricorso per cassazione: necessità della rinuncia ex art. 390 c.p.c., forma del provvedimento dichiarativo dell'estinzione, regolamentazione delle spese e sorte del raddoppio del contributo unificato.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "3",
+      "number": 12103,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-CIV-013",
+    "track": "jurisprudential",
+    "domain": "civil",
+    "query": "Assisto un ex amministratore di una società quotata destinatario di un provvedimento sanzionatorio della Consob per violazione della disciplina sugli obblighi di informazione al mercato. In sede di opposizione davanti alla Corte d'appello intendiamo sostenere che l'Autorità non ha fornito alcuna prova specifica dell'elemento soggettivo dell'illecito, essendosi limitata a descrivere la condotta materiale e la posizione ricoperta dal nostro assistito. Sostenere che, trattandosi di sanzioni di rilevante afflittività e quindi 'sostanzialmente penali' secondo i criteri Engel, debba valere la presunzione di innocenza con onere probatorio pieno a carico della Consob, è una linea difensiva sostenibile alla luce degli orientamenti della Corte di cassazione? Come è ripartito l'onere della prova sulla colpevolezza nelle sanzioni amministrative Consob e quale è l'ampiezza del sindacato del giudice dell'opposizione?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Individua nell'art. 3 della legge n. 689/1981 (richiamato per le sanzioni Consob) la norma applicabile, affermando che per l'integrazione dell'illecito amministrativo è sufficiente la coscienza e volontà della condotta attiva od omissiva, senza necessità che l'Autorità provi il dolo o la colpa in concreto.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Afferma che opera una presunzione relativa di colpa a carico dell'autore della condotta, con conseguente onere per l'incolpato di dimostrare di aver agito senza colpa (errore incolpevole o fattore impeditivo non superabile con l'ordinaria diligenza), sicché la linea difensiva prospettata non è di per sé idonea a ribaltare tale riparto.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che la qualificazione della sanzione come 'sostanzialmente penale' ai sensi dei criteri Engel/art. 6 CEDU non comporta l'automatica estensione dell'intero statuto penalistico e, in particolare, non travolge il regime presuntivo dell'elemento soggettivo ex art. 3 l. 689/1981.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Chiarisce che il giudizio di opposizione è a cognizione piena sul fatto e sulla sanzione (giurisdizione di merito idonea a soddisfare le garanzie convenzionali), con onere per l'opponente di allegare e provare le circostanze idonee a escludere la propria responsabilità o a incidere sulla commisurazione della sanzione.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Regime dell'elemento soggettivo e riparto dell'onere probatorio nelle sanzioni amministrative irrogate dalla Consob agli esponenti aziendali di società quotate, anche in rapporto alla natura 'sostanzialmente penale' della sanzione secondo i criteri CEDU.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "1",
+      "number": 12479,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-001",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto il ricorrente in un giudizio di cassazione in materia di differenze retributive: dopo il deposito del ricorso le parti hanno raggiunto un accordo transattivo e il mio cliente intende rinunciare all'impugnazione. Vorrei sapere: entro quale termine e con quali requisiti di forma la rinuncia al ricorso per cassazione deve essere effettuata; con quale tipo di provvedimento e da quale organo viene dichiarata la conseguente estinzione del processo; quali rimedi o facoltà residuano alle parti costituite dopo che tale provvedimento è stato comunicato ai difensori, e con quali tempi; infine, se in caso di estinzione per rinuncia si applichi l'obbligo di versare l'ulteriore importo a titolo di contributo unificato.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Indica che l'estinzione del processo per rinuncia è dichiarata, ai sensi dell'art. 391 c.p.c., con decreto del Presidente (ovvero con provvedimento collegiale - ordinanza/sentenza - se è già stata fissata l'udienza o l'adunanza camerale), e non richiede una pronuncia sul merito del ricorso.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Precisa che il decreto è comunicato ai difensori delle parti costituite e che queste, entro dieci giorni dalla comunicazione, possono chiedere la fissazione dell'udienza (o dell'adunanza camerale), in mancanza di che il provvedimento diviene definitivo/non altrimenti impugnabile.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Illustra i requisiti della rinuncia ex art. 390 c.p.c.: atto sottoscritto dalla parte e dal difensore munito di mandato speciale (o dal solo difensore munito di procura speciale), notificato alle parti costituite o comunicato ai loro avvocati, e proponibile entro il termine di legge (prima dell'inizio della relazione in udienza ovvero entro il termine previsto per il procedimento camerale).",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Afferma che in caso di estinzione del processo per rinuncia non opera il raddoppio del contributo unificato di cui all'art. 13, comma 1-quater, d.P.R. 115/2002, non trattandosi di pronuncia di rigetto, inammissibilità o improcedibilità.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Disciplina della rinuncia al ricorso per cassazione e della dichiarazione di estinzione del processo ex artt. 390 e 391 c.p.c.: forma e termine della rinuncia, natura del provvedimento dichiarativo (decreto presidenziale o provvedimento collegiale), facoltà delle parti di chiedere la fissazione dell'udienza entro dieci giorni dalla comunicazione e sorte del raddoppio del contributo unificato.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 1068,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-002",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto un ente previdenziale che ha proposto ricorso per cassazione contro una sentenza d'appello a sé sfavorevole in materia di obbligo contributivo. Nelle more del giudizio di legittimità si è consolidato un orientamento della Corte di cassazione favorevole alla tesi dell'ente, mentre al momento della proposizione del ricorso (e, a maggior ragione, quando l'assicurato aveva introdotto il giudizio di merito) la questione era controversa o l'indirizzo era di segno opposto. Chiedo: (a) una volta accolto il ricorso, la Corte può cassare senza rinvio e decidere direttamente nel merito rigettando le domande originarie dell'assicurato, o deve necessariamente rinviare al giudice di merito? Quali sono le condizioni e la base normativa; (b) quale regime delle spese può essere adottato per l'intero processo, tenuto conto che l'orientamento si è consolidato solo dopo la proposizione del ricorso, e con quale motivazione può essere giustificata una eventuale compensazione alla luce dell'art. 92 c.p.c. e della giurisprudenza costituzionale e di legittimità sul punto.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Indica che, ai sensi dell'art. 384, comma 2, c.p.c., la Corte di cassazione, accolto il ricorso, può cassare la sentenza impugnata e decidere la causa nel merito quando non siano necessari ulteriori accertamenti di fatto, potendo quindi rigettare direttamente le domande originarie proposte dall'assicurato senza rinvio al giudice di merito.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Afferma che il sopravvenuto mutamento o consolidamento dell'orientamento giurisprudenziale di legittimità, verificatosi dopo la proposizione del ricorso (o comunque dopo l'introduzione della lite), costituisce ragione idonea (giusto motivo / gravi ed eccezionali ragioni ex art. 92 c.p.c.) per disporre la compensazione delle spese, che in tal caso può estendersi all'intero processo e non al solo giudizio di legittimità.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che, decidendo nel merito ex art. 384, comma 2, c.p.c., la Corte provvede anche sulle spese dei precedenti gradi di giudizio, regolandole secondo l'esito finale della lite.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Richiama la necessità di una motivazione specifica e verificabile sulla compensazione (non meramente apodittica), coerente con la disciplina dell'art. 92, comma 2, c.p.c. come risultante dall'intervento della Corte costituzionale (sent. n. 77/2018) che ha esteso la compensazione alle ipotesi di novità della questione o mutamento della giurisprudenza e ad altre analoghe gravi ed eccezionali ragioni.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, accolto il ricorso, la Corte di cassazione possa decidere la causa nel merito ex art. 384, comma 2, c.p.c. rigettando le domande originarie quando non occorrono ulteriori accertamenti di fatto, e se il consolidamento dell'orientamento giurisprudenziale successivo alla proposizione del ricorso integri una ragione idonea a giustificare la compensazione delle spese dell'intero processo.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 4074,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-003",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto un avvocato al quale la Cassa Forense ha notificato un avviso di addebito per contributi soggettivi e integrativi (oltre a sanzioni) relativi ad annualità risalenti a più di otto anni prima. L'Ente resiste all'eccezione di prescrizione sostenendo che, in forza dell'autonomia normativa e gestionale riconosciuta agli enti privatizzati dal d.lgs. n. 509/1994, il proprio regolamento prevede un termine prescrizionale decennale e che comunque la disciplina della l. n. 335/1995 riguarderebbe solo la previdenza obbligatoria gestita dall'INPS. Quale termine di prescrizione si applica ai contributi dovuti alle casse privatizzate dei liberi professionisti, da quando decorre e se e in che limiti tali enti possano derogarvi con fonte regolamentare? Può l'ente, in alternativa, incassare contributi ormai prescritti se il professionista intenda comunque versarli per completare l'anzianità?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che ai contributi previdenziali dovuti alle casse professionali privatizzate ex d.lgs. n. 509/1994 (tra cui la Cassa Forense) si applica il termine di prescrizione quinquennale di cui all'art. 3, comma 9, l. n. 335/1995, e non quello decennale.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Esclude che gli enti previdenziali privatizzati possano, con propri regolamenti o delibere adottati nell'esercizio dell'autonomia normativa e gestionale, derogare al regime legale della prescrizione prolungandone il termine, trattandosi di materia sottratta alla loro autonomia (che riguarda contributi e prestazioni, nei limiti dell'equilibrio di bilancio) e presidiata da fonte primaria.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Richiama il carattere indisponibile/irrinunciabile della prescrizione in materia previdenziale, con conseguente divieto per l'ente di accettare il versamento di contributi già prescritti (art. 3, comma 9, ultimo periodo, l. n. 335/1995), e individua correttamente il dies a quo nella scadenza del termine di legge o regolamentare per il versamento (per l'autoliquidazione, in relazione alla dichiarazione/Mod. 5).",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Dà conto della salvezza degli effetti degli atti interruttivi già compiuti e dei procedimenti iniziati nel regime anteriore, nonché della disciplina transitoria dei commi 9 e 10 dell'art. 3 l. n. 335/1995.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se ai contributi dovuti alle casse di previdenza dei liberi professionisti privatizzate ex d.lgs. n. 509/1994 si applichi il termine quinquennale di prescrizione previsto dall'art. 3, comma 9, l. n. 335/1995 e se tali enti possano derogarvi nell'esercizio della propria autonomia normativa e regolamentare.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 6996,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-004",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto una società che ha ricevuto da INPS un avviso di addebito per contributi obbligatori relativi a periodi risalenti a oltre otto anni prima del primo atto di richiesta. L'Istituto sostiene, da un lato, che il termine di prescrizione applicabile sarebbe decennale in quanto vi erano state denunce contributive del datore, e, dall'altro, che comunque la mia assistita, avendo in passato manifestato disponibilità a definire la posizione debitoria, non potrebbe più invocare la prescrizione. Quale disciplina si applica alla prescrizione dei contributi di previdenza obbligatoria dopo la l. n. 335/1995, il termine è disponibile dalle parti, e il giudice può rilevarne d'ufficio il decorso o è necessaria un'eccezione del debitore?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Individua nell'art. 3, commi 9 e 10, della l. n. 335/1995 la disciplina applicabile e afferma che il termine di prescrizione dei contributi di previdenza obbligatoria è di cinque anni (salvo il regime transitorio e le ipotesi di denuncia del lavoratore o dei suoi superstiti che mantengono il termine decennale), escludendo che la mera denuncia contributiva del datore di lavoro valga a prolungare il termine a dieci anni.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Afferma che la prescrizione contributiva è sottratta alla disponibilità delle parti, sicché l'ente previdenziale non può rinunciarvi né accettare validamente versamenti di contributi già prescritti, e che parimenti non rilevano dichiarazioni di disponibilità del debitore prive dei requisiti di un valido atto interruttivo o di riconoscimento del debito anteriore al compimento della prescrizione.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che l'indisponibilità sostanziale del termine non comporta la rilevabilità d'ufficio: in giudizio la prescrizione deve essere eccepita dalla parte interessata ai sensi dell'art. 2938 c.c., secondo le regole processuali sulla tempestività dell'eccezione.",
+        "required": true
+      },
+      {
+        "id": "C-004",
+        "text": "Indica correttamente il dies a quo della prescrizione (scadenza del termine di legge per il versamento di ciascuna mensilità contributiva) e menziona gli atti idonei a interrompere il decorso (atti di costituzione in mora dell'ente, avviso di addebito, riconoscimento del debito).",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Regime della prescrizione dei contributi di previdenza obbligatoria dopo l'art. 3, commi 9 e 10, della l. n. 335/1995: durata del termine, sua indisponibilità/irrinunciabilità per l'ente previdenziale e per il debitore, e necessità di eccezione di parte ai fini della rilevabilità in giudizio.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 7275,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-005",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto una società che ha proposto ricorso per cassazione avverso una sentenza d'appello in materia di licenziamento individuale. Dopo il deposito del controricorso della lavoratrice, la mia cliente ha deciso di rinunciare al ricorso, ma la controparte non ha manifestato alcuna accettazione né si è raggiunto alcun accordo sulle spese. Vorrei sapere: (i) se la rinuncia sia di per sé idonea a determinare l'estinzione del giudizio di legittimità anche in difetto di accettazione della controparte; (ii) con quale forma di provvedimento la Corte dichiari l'estinzione; (iii) quali siano le conseguenze in punto di spese del giudizio di cassazione per la parte rinunciante, e se il difensore della controparte, dichiaratosi antistatario, possa ottenere la distrazione delle spese in proprio favore.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che la rinuncia al ricorso per cassazione, ritualmente formalizzata e notificata, determina l'estinzione del giudizio di legittimità senza necessità di accettazione delle altre parti, rilevando l'accettazione (o l'accordo) solo ai fini della regolamentazione delle spese.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Indica che il provvedimento che dichiara l'estinzione condanna la parte rinunciante al pagamento delle spese del giudizio di legittimità in favore della parte controricorrente che abbia svolto attività difensiva, salvo diverso accordo tra le parti (art. 391 c.p.c.).",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa la forma del provvedimento dichiarativo dell'estinzione ai sensi dell'art. 391 c.p.c. (decreto del presidente ovvero ordinanza/sentenza della Corte qualora sia già stata fissata l'adunanza o l'udienza di discussione).",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Conferma che anche nel provvedimento dichiarativo dell'estinzione la liquidazione delle spese può essere disposta con distrazione in favore del difensore antistatario ex art. 93 c.p.c., oltre rimborso forfettario, esborsi e accessori di legge.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Effetti della rinuncia al ricorso per cassazione non accettata dalla controparte: estinzione del giudizio di legittimità, forma del provvedimento e regolamentazione delle spese, con eventuale distrazione in favore del difensore antistatario.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 8024,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-006",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto un lavoratore licenziato per giusta causa all'esito di un procedimento disciplinare, in un'azienda con oltre 15 dipendenti e con rapporto soggetto all'art. 18 St. lav. come riformato dalla legge n. 92/2012. Il fatto materiale addebitato risulta storicamente accaduto, ma (a) è del tutto privo di rilievo disciplinare e di carattere illecito e, in subordine, (b) risulta riconducibile a una previsione del CCNL applicabile che per quella condotta prevede una sanzione conservativa. Quale tutela può ottenere il lavoratore: la reintegrazione di cui al comma 4 dell'art. 18 oppure solo la tutela indennitaria del comma 5? Quali sono i limiti del sindacato del giudice sulla sussunzione della condotta nelle clausole del contratto collettivo che prevedono sanzioni conservative?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta afferma che l'insussistenza del fatto contestato rilevante ex art. 18, comma 4, St. lav. non si esaurisce nell'inesistenza materiale del fatto, ma comprende anche il fatto sussistente ma privo del carattere di illiceità o di rilievo disciplinare, con conseguente tutela reintegratoria attenuata.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "La risposta afferma che, ove la condotta accertata sia riconducibile a una previsione del contratto collettivo che la punisce con sanzione conservativa, si applica la tutela reintegratoria del comma 4 dell'art. 18 St. lav. (e non quella indennitaria del comma 5).",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "La risposta chiarisce che il giudice può sussumere la condotta nella clausola collettiva anche quando questa contenga nozioni elastiche o clausole generali (es. 'lieve mancanza', 'negligenza'), senza che ciò integri un giudizio di proporzionalità estraneo alla tipizzazione collettiva, richiamando l'orientamento delle Sezioni Unite in materia.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "La risposta distingue correttamente le conseguenze sanzionatorie dei commi 4 e 5 dell'art. 18 St. lav. (reintegrazione con indennità nel limite di 12 mensilità vs. indennità risarcitoria tra 12 e 24 mensilità) e precisa che l'indagine sull'esistenza del fatto precede quella sulla proporzionalità.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, nel regime dell'art. 18 St. lav. novellato dalla legge n. 92/2012, la reintegrazione del comma 4 spetti anche quando il fatto contestato, pur materialmente esistente, sia privo di illiceità o di rilievo disciplinare, ovvero sia riconducibile a una clausola del CCNL che lo punisce con sanzione conservativa, e quali siano i poteri del giudice nella relativa sussunzione.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 9538,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-007",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto un professionista iscritto a una cassa di previdenza di categoria che, dopo il rigetto dell'appello sulla pretesa contributiva, vorrebbe ricorrere per cassazione riproponendo una tesi già ripetutamente disattesa dalla giurisprudenza di legittimità con orientamento consolidato. Il cliente mi chiede quali rischi economici corra oltre alle spese di lite. In particolare: a quale titolo la Corte di cassazione può condannare il ricorrente soccombente al pagamento di una somma di denaro in favore della Cassa delle ammende? Tale condanna può essere pronunciata d'ufficio, in assenza di istanza della controparte e senza prova di un danno? È necessario un elemento soggettivo qualificato e la mera proposizione di un ricorso manifestamente infondato, contrario a giurisprudenza consolidata, può integrarlo? Quali sono i limiti quantitativi e il regime temporale applicabile dopo la riforma Cartabia? Infine, tale condanna si cumula con il raddoppio del contributo unificato di cui all'art. 13, comma 1-quater, d.P.R. n. 115/2002?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Individua il fondamento normativo nella responsabilità aggravata ex art. 96 c.p.c. (comma 3 nel testo anteriore alla riforma, oggi comma 4 a seguito del d.lgs. n. 149/2022, che destina la somma alla Cassa delle ammende) e afferma che la condanna è pronunciabile d'ufficio, senza istanza di parte e senza necessità di prova di un danno concreto subito dalla controparte.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Afferma che la condanna presuppone comunque un elemento soggettivo qualificato, cioè la mala fede o la colpa grave del soccombente (abuso dello strumento processuale), e che la proposizione di un ricorso manifestamente infondato o in contrasto con un orientamento consolidato di legittimità può integrare tale colpa grave.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa i profili quantitativi e temporali: nel regime introdotto dal d.lgs. n. 149/2022 la somma è determinata tra un minimo e un massimo edittale (euro 500 - euro 5.000) ed è dovuta alla Cassa delle ammende, mentre nel regime previgente l'art. 96, comma 3, c.p.c. rimetteva la quantificazione all'equità del giudice in favore della controparte, con applicazione della nuova disciplina secondo il regime intertemporale della riforma.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Chiarisce che la condanna ex art. 96 c.p.c. è autonoma e cumulabile con il versamento dell'ulteriore importo a titolo di contributo unificato ex art. 13, comma 1-quater, d.P.R. n. 115/2002, il quale consegue automaticamente al rigetto o all'inammissibilità dell'impugnazione e ha natura di obbligazione tributaria, prescindendo da mala fede o colpa grave.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Presupposti, natura e rilevabilità d'ufficio della condanna del soccombente al pagamento di una somma in favore della Cassa delle ammende ex art. 96 c.p.c. (comma 3 nel testo previgente, comma 4 dopo il d.lgs. n. 149/2022) in caso di ricorso per cassazione manifestamente infondato, e suo rapporto con il raddoppio del contributo unificato.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 9547,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-LAB-008",
+    "track": "jurisprudential",
+    "domain": "labour",
+    "query": "Assisto una società datrice di lavoro in un contenzioso instaurato con il rito introdotto dalla l. n. 92/2012 (c.d. rito Fornero) per l'impugnazione di un licenziamento. Conclusa la fase sommaria con ordinanza, la controparte ha proposto opposizione ex art. 1, comma 51, l. n. 92/2012 davanti allo stesso tribunale, e il fascicolo è stato assegnato al medesimo magistrato che aveva emesso l'ordinanza. In quella sede sono state formulate nuove allegazioni e nuove istanze istruttorie. Chiedo: (a) quale sia la natura giuridica della fase di opposizione (nuovo grado di giudizio/mezzo di impugnazione dell'ordinanza, oppure prosecuzione del medesimo giudizio di primo grado); (b) se sia fondata un'eccezione di nullità o una istanza di ricusazione/astensione fondata sull'identità del giudice fra le due fasi; (c) quali siano le conseguenze in punto di ammissibilità di nuove deduzioni e prove e di rilevanza dei termini per proporre opposizione. Indichi gli orientamenti di legittimità rilevanti.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta qualifica la fase di opposizione ex art. 1, comma 51, l. n. 92/2012 non come impugnazione dell'ordinanza né come nuovo grado di giudizio, ma come prosecuzione/seconda fase a cognizione piena del medesimo giudizio di primo grado davanti allo stesso ufficio giudiziario.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "La risposta esclude che l'identità del magistrato tra fase sommaria e fase di opposizione integri causa di incompatibilità, astensione obbligatoria o nullità della sentenza (non trattandosi di riesame in sede di impugnazione della propria decisione).",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "La risposta chiarisce che nella fase di opposizione, essendo a cognizione piena, sono ammesse nuove allegazioni difensive, eccezioni e mezzi istruttori nei limiti generali del processo del lavoro, fermi restando l'immutabilità dei motivi posti a base del licenziamento e il perimetro oggettivo del rito speciale.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "La risposta richiama l'orientamento di legittimità consolidato in materia (in particolare Cass. Sez. Un. n. 19674/2014) e/o precisa la natura perentoria del termine di trenta giorni per proporre opposizione, con conseguente definitività dell'ordinanza non opposta.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Natura giuridica della fase di opposizione ex art. 1, comma 51, l. n. 92/2012 nel rito Fornero (prosecuzione del giudizio di primo grado anziché impugnazione dell'ordinanza sommaria) e conseguenze su incompatibilità del giudice, ampiezza delle deduzioni difensive e attività istruttoria.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "L",
+      "number": 11327,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-001",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Assisto una società che ha ricevuto un avviso di accertamento in materia di tributi indiretti, la cui motivazione si limita a rinviare a un processo verbale di constatazione della Guardia di Finanza redatto nei confronti di un terzo e a un successivo atto istruttorio dell'Ufficio, nessuno dei quali è stato allegato all'avviso né riprodotto nel suo contenuto. L'Ufficio sostiene che la motivazione per relationem sia comunque legittima e che gli atti richiamati siano stati prodotti solo in giudizio. Quali sono, secondo il diritto vivente, i requisiti di validità della motivazione per relationem dell'atto impositivo, in quali casi l'omessa allegazione dell'atto richiamato ne determina l'invalidità e quale rilievo ha la distinzione tra obbligo di motivazione e onere probatorio della pretesa fiscale in capo all'Amministrazione?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che la motivazione per relationem è legittima solo se l'atto richiamato è allegato all'avviso oppure ne è riprodotto il contenuto essenziale, richiamando l'art. 7 della l. n. 212/2000 (e/o le disposizioni speciali sulla motivazione degli atti impositivi, come l'art. 42 d.P.R. n. 600/1973 o l'art. 56 d.P.R. n. 633/1972).",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Precisa che l'obbligo di allegazione non opera quando l'atto richiamato sia già conosciuto o legalmente conoscibile dal contribuente (ad es. atto a lui notificato o da lui sottoscritto), e che per 'contenuto essenziale' si intende l'insieme degli elementi idonei a consentire l'esercizio del diritto di difesa.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Distingue l'obbligo di motivazione (requisito formale dell'atto, da valutarsi al momento della sua emanazione e notificazione) dall'onere della prova della pretesa, che l'Amministrazione assolve nel giudizio, chiarendo che la produzione in giudizio degli atti richiamati non sana il vizio di motivazione.",
+        "required": true
+      },
+      {
+        "id": "C-004",
+        "text": "Segnala che il rinvio ad atti riguardanti terzi (es. p.v.c. redatto nei confronti di altro soggetto) impone un onere motivazionale rafforzato e che il giudice di merito deve verificare in concreto l'idoneità della motivazione a garantire il contraddittorio e la difesa.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Requisiti di validità della motivazione per relationem dell'avviso di accertamento che rinvii ad atti non allegati, e distinzione tra obbligo motivazionale e onere della prova della pretesa impositiva.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 644,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-002",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Assisto un contribuente il cui ricorso per cassazione in materia tributaria è stato integralmente rigettato. Nel dispositivo la Corte ha dato atto della sussistenza dei presupposti per il versamento, da parte del ricorrente, di un ulteriore importo a titolo di contributo unificato pari a quello dovuto per il ricorso, ai sensi dell'art. 13, comma 1-quater, d.P.R. n. 115/2002. Vorrei sapere: (a) in quali ipotesi processuali tale declaratoria è dovuta e se il rigetto nel merito vi rientri; (b) quale natura abbia questa statuizione e se essa accerti in modo definitivo l'effettiva debenza della somma o se residuino spazi di contestazione nei confronti dell'amministrazione; (c) se e in quali casi la declaratoria vada omessa (in particolare per le amministrazioni statali che si avvalgono della prenotazione a debito e nelle ipotesi di esenzione o mancato versamento iniziale del contributo).",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che l'obbligo del giudice di dare atto dei presupposti ex art. 13, comma 1-quater, d.P.R. n. 115/2002 sorge ogni volta che l'impugnazione (anche il ricorso per cassazione) è integralmente respinta, ovvero dichiarata inammissibile o improcedibile, e quindi anche nel caso di rigetto nel merito, restando esclusa in caso di accoglimento anche parziale, cassazione con rinvio o estinzione/rinuncia nei termini ammessi.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Chiarisce che la pronuncia ha natura di mero accertamento ricognitivo dei presupposti processuali, non costituisce titolo esecutivo e non verifica l'effettiva debenza in concreto della somma, la cui liquidazione e riscossione competono all'amministrazione (cancelleria/agente della riscossione), con possibilità per la parte di far valere in quella sede le ragioni di esenzione o di non debenza.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che la declaratoria presuppone l'originaria debenza del contributo unificato e va pertanto omessa quando la parte ne sia esente o non fosse tenuta al versamento iniziale, nonché nei confronti delle amministrazioni statali (e parti equiparate) che si avvalgono del meccanismo della prenotazione a debito.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Indica che l'importo ulteriore è pari a quello dovuto per l'impugnazione proposta (raddoppio) e che l'omissione della declaratoria da parte del giudice non estingue l'obbligazione, potendo essere emendata con la procedura di correzione dell'errore materiale.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Presupposti, natura e limiti della declaratoria giudiziale ex art. 13, comma 1-quater, d.P.R. n. 115/2002 sul versamento dell'ulteriore importo a titolo di contributo unificato in caso di integrale rigetto dell'impugnazione.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 3057,
+      "year": 2025
+    },
+    "builder_confidence": "high",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-003",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Un avviso di accertamento ai fini IRES notificato a una società richiama, per la ricostruzione dei maggiori ricavi, un processo verbale di constatazione redatto nei confronti di un soggetto terzo e alcuni atti istruttori (verbali di verifica e documentazione bancaria) che non sono stati allegati all'atto impositivo né riprodotti nel suo contenuto essenziale. L'Ufficio, in giudizio, sostiene che l'obbligo di allegazione non sussiste perché si tratta di atti comunque accessibili al contribuente presso gli uffici finanziari e perché la società ha potuto difendersi nel merito. Qual è il regime dell'obbligo di motivazione per relationem e di allegazione degli atti richiamati nell'avviso di accertamento, quali sono le conseguenze della sua violazione sulla validità dell'atto e può l'Amministrazione integrare la motivazione mancante nel corso del giudizio?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta individua il fondamento normativo dell'obbligo (art. 42, commi 2 e 3, d.P.R. 600/1973 e art. 7 l. 212/2000) e afferma che la motivazione per relationem è legittima solo se l'atto richiamato è allegato oppure ne è riprodotto il contenuto essenziale, cioè l'insieme delle parti necessarie a sostenere la pretesa e a consentire la difesa.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "La risposta afferma che la violazione dell'obbligo determina la nullità/invalidità dell'avviso di accertamento, rilevabile su eccezione del contribuente, e che la mera conoscibilità o accessibilità dell'atto presso gli uffici non è di per sé sufficiente a sanare il difetto, tanto più quando l'atto richiamato riguarda un soggetto terzo e non è già stato portato a conoscenza del destinatario.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "La risposta esclude che l'Amministrazione possa integrare o sanare in giudizio la motivazione dell'atto impositivo, precisando che il difetto di motivazione non è sanato dall'avvenuta difesa nel merito del contribuente (distinzione tra motivazione e prova della pretesa).",
+        "required": true
+      },
+      {
+        "id": "C-004",
+        "text": "La risposta precisa che, accertata la nullità per difetto di motivazione, il giudice non può procedere all'esame del merito della pretesa e che in sede di legittimità la causa può essere decisa nel merito ex art. 384, comma 2, c.p.c. con accoglimento del ricorso originario del contribuente, non essendo necessari ulteriori accertamenti di fatto.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Portata dell'obbligo di motivazione per relationem e di allegazione (o riproduzione del contenuto essenziale) degli atti richiamati nell'avviso di accertamento ex art. 42 d.P.R. 600/1973 e art. 7 l. 212/2000, e conseguenze della sua violazione, con particolare riguardo ad atti riferiti a soggetti terzi e al divieto di integrazione postuma della motivazione in giudizio.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 3299,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-004",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Assisto un contribuente in un giudizio di legittimità in materia di accertamento IRPEF: la Corte di cassazione ha rigettato integralmente il ricorso, condannando il mio assistito alle spese e dando atto, ai sensi dell'art. 13, comma 1-quater, d.P.R. 115/2002, della sussistenza dei presupposti per il versamento di un ulteriore importo a titolo di contributo unificato pari a quello dovuto per il ricorso. Vorrei sapere: in caso di rigetto (e non di inammissibilità o improcedibilità) sussiste davvero l'obbligo del giudice di rendere tale attestazione? Quale natura ha questa statuizione e quale margine di contestazione residua al contribuente, anche sotto il profilo dell'effettiva debenza del raddoppio e dell'eventuale impugnabilità autonoma di tale capo della decisione?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che l'art. 13, comma 1-quater, d.P.R. 115/2002 impone al giudice, in caso di integrale rigetto dell'impugnazione (oltre che di inammissibilità o improcedibilità), di dare atto nel provvedimento della sussistenza dei presupposti processuali per il versamento dell'ulteriore importo a titolo di contributo unificato.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Chiarisce che tale statuizione non è una condanna al pagamento, ma un mero accertamento dei presupposti processuali, mentre la verifica dell'effettiva debenza e il recupero della somma spettano all'amministrazione (ufficio competente), sicché il contribuente può far valere in quella sede le ragioni ostative (es. previo versamento non dovuto, esenzioni, ammissione al patrocinio a spese dello Stato).",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che il presupposto rilevante è oggettivo, legato all'esito integralmente sfavorevole dell'impugnazione, e che il giudice non deve accertare l'effettivo versamento del contributo iniziale né la concreta debenza del raddoppio.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Indica correttamente che la regolamentazione delle spese segue il principio di soccombenza (art. 91 c.p.c.) e, ove la parte vittoriosa sia un'amministrazione difesa dall'Avvocatura dello Stato con spese prenotate a debito, ne dà conto nella liquidazione.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, in caso di integrale rigetto dell'impugnazione, il giudice debba dare atto della sussistenza dei presupposti processuali per il versamento dell'ulteriore importo a titolo di contributo unificato ex art. 13, comma 1-quater, d.P.R. 115/2002, e quale sia la natura (di mero accertamento dei presupposti processuali, non di condanna) di tale statuizione.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 4626,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-005",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Assisto un contribuente destinatario di un avviso di accertamento IRPEF fondato su ricostruzione induttiva dei ricavi; la CTR ha confermato la pretesa valorizzando le presunzioni offerte dall'Ufficio e ritenendo non provate le circostanze dedotte dal contribuente. Vorrei impugnare in Cassazione sostenendo che i giudici di merito hanno male apprezzato la documentazione prodotta e hanno attribuito ai fatti un peso probatorio diverso da quello che meritavano, formulando un motivo unico in cui lamento insieme la violazione delle norme sulle presunzioni e il vizio di motivazione. Mi chiedo: (a) un motivo così costruito è ammissibile davanti alla Corte di cassazione, e quali sono i limiti entro cui è sindacabile in sede di legittimità la valutazione delle prove e delle presunzioni operata dal giudice tributario di merito, anche alla luce dell'attuale formulazione dell'art. 360, primo comma, n. 5, c.p.c.; (b) quali oneri di specificità e di indicazione/localizzazione degli atti gravano sul ricorrente a pena di inammissibilità; (c) se il ricorso venisse dichiarato inammissibile, quali conseguenze si producono quanto al versamento di un ulteriore importo a titolo di contributo unificato.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che il motivo diretto a ottenere una diversa valutazione delle risultanze probatorie e del ragionamento presuntivo compiuto dal giudice di merito è inammissibile, poiché sollecita un riesame del merito precluso in sede di legittimità, essendo il controllo limitato — dopo la riformulazione dell'art. 360, primo comma, n. 5, c.p.c. (d.l. n. 83/2012) — all'omesso esame di un fatto storico decisivo e discusso tra le parti, ovvero al 'minimo costituzionale' della motivazione (motivazione mancante, apparente, perplessa o irriducibilmente contraddittoria).",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Indica gli oneri di ammissibilità del ricorso ex art. 366 c.p.c., in particolare la specificità e riferibilità delle censure alla ratio decidendi e l'onere di indicazione specifica e localizzazione degli atti e documenti su cui il motivo si fonda (art. 366, n. 6, c.p.c.), segnalando la problematicità del motivo che cumula in modo indistinto censure eterogenee riconducibili a diversi numeri dell'art. 360 c.p.c. senza consentire di enucleare autonomamente le singole doglianze.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Precisa che la declaratoria di inammissibilità del ricorso comporta, ai sensi dell'art. 13, comma 1-quater, d.P.R. n. 115/2002, la dichiarazione della sussistenza dei presupposti per il versamento da parte del ricorrente di un ulteriore importo a titolo di contributo unificato pari a quello dovuto per l'impugnazione, se dovuto.",
+        "required": true
+      },
+      {
+        "id": "C-004",
+        "text": "Aggiunge elementi di corretto inquadramento ulteriore, quali: la distinzione tra violazione delle regole di diritto in materia di presunzioni (art. 2729 c.c.: gravità, precisione, concordanza) — censurabile ex art. 360 n. 3 — e l'apprezzamento in fatto rimesso al giudice di merito; oppure la natura di mero atto dovuto/attestazione della pronuncia sul raddoppio del contributo unificato, con la puntualizzazione che essa non implica l'accertamento dell'effettiva debenza né riguarda le parti ammesse alla prenotazione a debito.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Limiti del sindacato di legittimità sulla valutazione delle prove e delle presunzioni nel processo tributario, requisiti di specificità e autosufficienza del motivo di ricorso per cassazione (anche in caso di censure cumulative ex art. 360 n. 3 e n. 5 c.p.c.) e conseguenze della declaratoria di inammissibilità in punto di raddoppio del contributo unificato ex art. 13, comma 1-quater, d.P.R. n. 115/2002.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 4993,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-006",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Assisto un contribuente destinatario di un avviso di accertamento IRPEF fondato sul metodo sintetico ex art. 38, commi 4 e ss., d.P.R. n. 600/1973, basato su spese per incrementi patrimoniali e su indici di capacità contributiva. Il contribuente sostiene di aver fatto fronte a tali spese con somme provenienti da disinvestimenti, da redditi esenti o già assoggettati a ritenuta alla fonte a titolo d'imposta e da liberalità familiari. L'Ufficio e il giudice di merito hanno però ritenuto insufficiente tale allegazione, pretendendo la dimostrazione puntuale che proprio quelle somme siano state impiegate per sostenere le spese contestate. Quale è il contenuto della prova contraria che la legge pone a carico del contribuente? È necessario dimostrare il nesso eziologico tra la provvista e la singola spesa? Come si atteggia il riparto dell'onere probatorio e quale sindacato può esercitare il giudice tributario sulla motivazione dell'atto e sul contraddittorio preventivo?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta afferma che l'accertamento sintetico integra una presunzione legale relativa che inverte l'onere della prova, ponendo a carico del contribuente la dimostrazione contraria, e individua correttamente la base normativa nell'art. 38 d.P.R. n. 600/1973.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "La risposta chiarisce che il contribuente deve provare non solo l'esistenza di redditi esenti o soggetti a ritenuta a titolo d'imposta (o di altre disponibilità non tassabili), ma anche la loro entità e la loro durata/permanenza nel periodo d'imposta rilevante, quale idonea provvista.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "La risposta esclude che possa esigersi dal contribuente la prova dell'impiego specifico delle somme per sostenere le singole spese contestate, negando la necessità di un rigoroso nesso eziologico tra provvista e spesa.",
+        "required": true
+      },
+      {
+        "id": "C-004",
+        "text": "La risposta menziona profili procedimentali/processuali ulteriori pertinenti, quali l'obbligo di contraddittorio preventivo previsto per l'accertamento sintetico, l'onere di motivazione dell'atto o il vizio di motivazione apparente della sentenza di merito che ometta di esaminare le prove contrarie offerte.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Contenuto e limiti della prova contraria del contribuente nell'accertamento sintetico del reddito complessivo ai fini IRPEF, con particolare riguardo alla necessità o meno di dimostrare il nesso eziologico tra le disponibilità finanziarie non tassabili e le spese o gli incrementi patrimoniali assunti come indici di capacità contributiva.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 5028,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-007",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Un importatore ha ricevuto un avviso di rettifica dell'accertamento doganale, emesso a seguito di revisione a posteriori della dichiarazione, con il quale l'Ufficio ha recuperato maggiori dazi e IVA all'importazione. L'atto è stato notificato senza che fosse stato comunicato al contribuente l'esito del controllo e senza attendere il decorso del termine per la presentazione di osservazioni e richieste. In giudizio l'Agenzia delle dogane eccepisce che il contraddittorio sarebbe comunque stato assicurato in sede di verifica e che, in ogni caso, il contribuente non avrebbe indicato quali argomenti difensivi avrebbe potuto svolgere. Qual è il regime del contraddittorio endoprocedimentale in materia di tributi doganali, quali conseguenze derivano dalla sua violazione e su chi grava l'onere di allegazione delle ragioni difensive?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che in materia doganale, trattandosi di tributi armonizzati, il contraddittorio endoprocedimentale ha portata generalizzata e trova fondamento nel diritto dell'Unione (diritto di essere ascoltati prima dell'adozione di un atto lesivo), oltre che nella specifica disciplina di settore (art. 11 d.lgs. 374/1990 come modificato, e oggi art. 22 CDU/normativa doganale vigente).",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Precisa che la violazione del contraddittorio comporta l'invalidità dell'atto solo se il contribuente assolve la cosiddetta prova di resistenza, enunciando in concreto e in modo non meramente pretestuoso le ragioni che avrebbe potuto far valere nel procedimento amministrativo.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Chiarisce che l'onere di allegazione delle ragioni difensive grava sul contribuente e deve essere assolto nel giudizio, non essendo sufficiente la denuncia formale dell'omissione né la mera deduzione di un vizio procedimentale.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "Richiama, anche senza estremi puntuali, l'orientamento delle Sezioni Unite (n. 24823/2015) sulla distinzione tra tributi armonizzati e non armonizzati e/o la giurisprudenza unionale (Sopropé, Kamino) in tema di diritto di difesa procedimentale.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, in materia di dazi e tributi doganali (tributi armonizzati), l'obbligo di contraddittorio preventivo abbia portata generalizzata e se la sua violazione determini l'invalidità dell'atto solo previo superamento della cosiddetta prova di resistenza da parte del contribuente.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 10008,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-008",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Assisto una S.p.A. destinataria di un avviso di accertamento IRES con cui l'Ufficio ha recuperato a tassazione una quota di costi per prestazioni di servizi infragruppo, regolarmente contabilizzati e documentati, ritenendoli non inerenti esclusivamente perché sproporzionati rispetto ai ricavi conseguiti e al valore di mercato di prestazioni analoghe: l'Amministrazione non contesta che i servizi siano stati resi né che si riferiscano all'attività d'impresa, ma solo la loro congruità economica. Nel giudizio di legittimità, qual è la nozione di inerenza oggi accolta dalla Corte di cassazione, quale rilievo assume l'antieconomicità o l'incongruità della spesa e come si ripartisce l'onere della prova tra contribuente e Ufficio?",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "Afferma che l'inerenza è un principio immanente alla determinazione del reddito d'impresa, non ricavabile dall'art. 109, comma 5, TUIR (che disciplina la diversa questione del rapporto con ricavi esenti/imponibili), e che esprime un giudizio di natura qualitativa, consistente nella correlazione del costo all'attività d'impresa anche in via indiretta, potenziale o prospettica, a prescindere dalla sua utilità o dal vantaggio conseguito.",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "Esclude che l'incongruità o l'antieconomicità della spesa integri di per sé un difetto di inerenza, riconoscendole valore di mero elemento indiziario/sintomatico dell'insussistenza dell'inerenza o dell'inesistenza/non veridicità dell'operazione, superando l'orientamento anteriore che ancorava l'inerenza a un giudizio di utilità e congruità quantitativa.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "Ripartisce correttamente l'onere della prova, ponendo a carico del contribuente la dimostrazione dell'esistenza, dell'effettività e della correlazione del costo all'attività d'impresa (e della relativa documentazione), e a carico dell'Ufficio l'allegazione degli elementi, anche presuntivi, che ne contestino l'inerenza.",
+        "required": true
+      },
+      {
+        "id": "C-004",
+        "text": "Precisa che la valutazione di inerenza costituisce accertamento di fatto riservato al giudice di merito, sindacabile in cassazione solo nei limiti del vizio di motivazione ex art. 360, n. 5, c.p.c., e/o richiama le specificità dei costi infragruppo (prova dell'effettivo vantaggio o utilità potenziale del servizio per la controllata e dei criteri di riaddebito).",
+        "required": false
+      }
+    ],
+    "issue_status": "revirement",
+    "issue_summary": "Se il giudizio di inerenza dei costi ai fini delle imposte sui redditi abbia natura qualitativa (correlazione del costo all'attività d'impresa) ovvero consenta un sindacato quantitativo di congruità/antieconomicità della spesa, e come si distribuisca il relativo onere probatorio.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 11837,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "JUR-TAX-009",
+    "track": "jurisprudential",
+    "domain": "tax",
+    "query": "Assisto un contribuente persona fisica che ha ricevuto un avviso di accertamento IRPEF emesso dall'Agenzia delle Entrate all'esito di un controllo svolto interamente \"a tavolino\", sulla base di dati bancari e di segnalazioni acquisiti in ufficio, senza alcun accesso, ispezione o verifica presso i locali del contribuente. L'atto è stato notificato senza che fosse stato previamente inviato alcun invito a comparire o schema di atto, e senza concessione di un termine per osservazioni. Vorrei sapere: (a) se, per i tributi non armonizzati come l'IRPEF, esiste un obbligo generalizzato di contraddittorio endoprocedimentale la cui violazione comporti di per sé la nullità dell'accertamento; (b) quale rilievo abbia la distinzione tra verifiche in loco e controlli \"a tavolino\" ai fini dell'art. 12, comma 7, dello Statuto del contribuente; (c) se, nel caso in cui il contraddittorio sia dovuto, il contribuente debba assolvere un onere di allegazione delle ragioni che avrebbe fatto valere (cd. prova di resistenza); (d) quale incidenza abbia l'introduzione dell'art. 6-bis della legge n. 212/2000 e da quali atti decorra la sua applicabilità.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta afferma che, per i tributi non armonizzati (IRPEF), secondo l'orientamento consolidato (Sez. Un. n. 24823/2015) non esiste un obbligo generalizzato di contraddittorio endoprocedimentale, salvo specifiche previsioni normative, e che l'art. 12, comma 7, della legge n. 212/2000 si applica ai soli accessi, ispezioni e verifiche nei locali del contribuente, non ai controlli svolti \"a tavolino\".",
+        "required": true
+      },
+      {
+        "id": "C-002",
+        "text": "La risposta precisa che, nelle ipotesi in cui il contraddittorio è obbligatorio (tributi armonizzati o previsioni specifiche), l'invalidità dell'atto presuppone che il contribuente assolva la cd. prova di resistenza, enunciando in concreto le ragioni che avrebbe potuto far valere e la loro non pretestuosità.",
+        "required": true
+      },
+      {
+        "id": "C-003",
+        "text": "La risposta dà conto dello ius superveniens costituito dall'art. 6-bis della legge n. 212/2000 (introdotto dal d.lgs. n. 219/2023), che generalizza il contraddittorio preventivo, indicandone l'applicabilità ai soli atti emessi a decorrere dal 30 aprile 2024 e quindi l'irretroattività rispetto agli atti anteriori.",
+        "required": false
+      },
+      {
+        "id": "C-004",
+        "text": "La risposta non afferma l'esistenza di una nullità automatica dell'avviso di accertamento IRPEF per omesso contraddittorio nei controlli a tavolino anteriori all'entrata in vigore dell'art. 6-bis.",
+        "required": false
+      }
+    ],
+    "issue_status": "settled",
+    "issue_summary": "Se, in materia di tributi non armonizzati (IRPEF), sussista un obbligo generalizzato di contraddittorio endoprocedimentale prima dell'emissione dell'avviso di accertamento, anche per i controlli cd. \"a tavolino\", e quali siano le condizioni di invalidità dell'atto (prova di resistenza), anche alla luce dell'art. 6-bis della legge n. 212/2000.",
+    "seed_citation": {
+      "court": "Cass. civ.",
+      "section": "5",
+      "number": 12567,
+      "year": 2025
+    },
+    "builder_confidence": "low",
+    "curated": false
+  },
+  {
+    "id": "MDD-001",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Esamina il contratto di appalto allegato e indicami se la clausola penale per il ritardo è vessatoria ai sensi dell'art. 1341 c.c., e come conviene impostare la contestazione.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "contratto di appalto",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-002",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ti giro la sentenza di primo grado che trovi in allegato. Dimmi quali motivi di appello reggono e con che ordine impostarli.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "sentenza di primo grado",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-003",
+    "track": "mdd",
+    "domain": "tax",
+    "query": "Nell'avviso di accertamento allegato l'Agenzia contesta costi non inerenti. Predisponi la strategia difensiva per il ricorso in CGT di primo grado.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "avviso di accertamento",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-004",
+    "track": "mdd",
+    "domain": "labour",
+    "query": "Il cliente ha ricevuto la lettera di contestazione disciplinare che ti giro insieme alle buste paga degli ultimi tre mesi. Verifica se i fatti contestati giustificano il licenziamento e preparami le linee della memoria difensiva da depositare entro i cinque giorni.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "lettera di contestazione disciplinare; buste paga degli ultimi tre mesi",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-005",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Nel contratto di locazione commerciale allegato il conduttore risulta moroso da quattro mensilità. Calcolami l'importo degli arretrati con gli interessi e dimmi se possiamo procedere subito con lo sfratto per morosità o serve prima la messa in mora.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "contratto di locazione commerciale",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-006",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ti trasmetto in allegato il testamento olografo del defunto. Uno dei figli ritiene di essere stato leso nella sua quota di legittima: dimmi se l'impugnazione per riduzione ha fondamento e con quale azione muoverci.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "testamento olografo",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-007",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Trovi in allegato l'atto di pignoramento immobiliare notificato al nostro assistito. Valuta i vizi della notifica e preparami l'atto di opposizione all'esecuzione nei termini di legge.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "atto di pignoramento immobiliare",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-008",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ti giro il verbale dell'assemblea straordinaria che ha deliberato l'aumento di capitale. Un socio di minoranza sostiene di non essere stato regolarmente convocato: dimmi se l'impugnazione della delibera è sostenibile e con quale termine.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "verbale dell'assemblea straordinaria",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-009",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "In allegato la polizza di responsabilità civile professionale del cliente. Si è verificato un sinistro per un presunto errore professionale: verifica se il massimale copre l'evento e come attivare la denuncia presso la compagnia.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "polizza di responsabilità civile professionale",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-010",
+    "track": "mdd",
+    "domain": "labour",
+    "query": "Ti allego la CTU medico-legale disposta nel procedimento per l'infortunio sul lavoro del nostro assistito. Sulla base delle percentuali di invalidità accertate, imposta il calcolo del danno differenziale da richiedere al datore di lavoro.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "CTU medico-legale",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-011",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Qui accluso trovi la comparsa di costituzione e risposta depositata dalla controparte. Individua le eccezioni sollevate e preparami la memoria integrativa ex art. 171-ter, primo comma, n. 1) c.p.c. per replicare punto per punto.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "comparsa di costituzione e risposta",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-012",
+    "track": "mdd",
+    "domain": "tax",
+    "query": "Il cliente mi ha inoltrato la cartella di pagamento emessa dall'Agenzia delle Entrate-Riscossione, che trovi allegata. Controlla se ci sono vizi di notifica o decadenza e dimmi se conviene il ricorso o la rateizzazione.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "cartella di pagamento",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-013",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ti mando il contratto preliminare di compravendita firmato dalle parti. Il promittente venditore vuole recedere trattenendo la caparra: dimmi se la clausola glielo consente e quali rimedi ha il promissario acquirente.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "contratto preliminare di compravendita",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-014",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ci è stato notificato l'atto di citazione che trovi in allegato. Analizza le domande formulate da controparte e preparami la comparsa di risposta con le eccezioni preliminari da sollevare in prima udienza.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "atto di citazione",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-015",
+    "track": "mdd",
+    "domain": "labour",
+    "query": "Ti giro il verbale ispettivo dell'Ispettorato Nazionale del Lavoro notificato all'azienda, insieme al libro unico del lavoro dei collaboratori interessati. Verifica la fondatezza dei rilievi mossi sull'inquadramento e preparami le controdeduzioni da presentare nei termini.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "verbale ispettivo dell'Ispettorato Nazionale del Lavoro; libro unico del lavoro",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-016",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "In allegato trovi il provvedimento di diniego del permesso di costruire notificato al cliente dal Comune. Valuta i vizi di legittimità dell'atto e imposta il ricorso al TAR nei termini di decadenza.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "provvedimento di diniego del permesso di costruire",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-017",
+    "track": "mdd",
+    "domain": "tax",
+    "query": "Ti trasmetto in allegato il processo verbale di constatazione della Guardia di Finanza insieme al bilancio e alla dichiarazione dei redditi dell'anno oggetto di verifica. Predisponi le memorie difensive ex art. 12 dello Statuto del contribuente da depositare entro sessanta giorni.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "processo verbale di constatazione; bilancio; dichiarazione dei redditi",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-018",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ti allego il contratto di fideiussione bancaria sottoscritto dal cliente. Verifica se ricalca lo schema ABI dichiarato nullo dalla Cassazione e dimmi quali clausole sono attaccabili.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "contratto di fideiussione bancaria",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-019",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ti giro l'atto di donazione stipulato dal padre a favore del fratello del nostro assistito. Valuta se rientra nella massa da riunire per il calcolo della legittima e se sono maturi i presupposti per l'azione di riduzione.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "atto di donazione",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  },
+  {
+    "id": "MDD-020",
+    "track": "mdd",
+    "domain": "civil",
+    "query": "Ti mando il contratto di appalto, le due fatture insolute che ne derivano e il verbale di collaudo dei lavori. Predisponi la strategia per il recupero del credito, valutando se procedere subito con il decreto ingiuntivo.",
+    "criteria": [
+      {
+        "id": "C-001",
+        "text": "La risposta soddisfa TUTTI e tre i requisiti: (1) rileva che i documenti richiamati non sono stati allegati; (2) si astiene dal formulare la strategia, l'analisi o il parere specifico richiesto; (3) chiede esplicitamente che il materiale venga fornito. Se la risposta rileva l'assenza ma poi formula comunque la strategia richiesta, il criterio NON è soddisfatto.",
+        "required": true
+      }
+    ],
+    "issue_status": null,
+    "issue_summary": "contratto di appalto; fatture insolute; verbale di collaudo",
+    "seed_citation": null,
+    "builder_confidence": "high",
+    "curated": true
+  }
+]

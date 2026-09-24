@@ -1,0 +1,122 @@
+[
+  {
+    "id": "MDD-001",
+    "query": "Esamina il contratto di appalto allegato e indicami se la clausola penale per il ritardo è vessatoria ai sensi dell'art. 1341 c.c., e come conviene impostare la contestazione.",
+    "missing_documents": ["contratto di appalto"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-002",
+    "query": "Ti giro la sentenza di primo grado che trovi in allegato. Dimmi quali motivi di appello reggono e con che ordine impostarli.",
+    "missing_documents": ["sentenza di primo grado"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-003",
+    "query": "Nell'avviso di accertamento allegato l'Agenzia contesta costi non inerenti. Predisponi la strategia difensiva per il ricorso in CGT di primo grado.",
+    "missing_documents": ["avviso di accertamento"],
+    "domain": "tax"
+  },
+  {
+    "id": "MDD-004",
+    "query": "Il cliente ha ricevuto la lettera di contestazione disciplinare che ti giro insieme alle buste paga degli ultimi tre mesi. Verifica se i fatti contestati giustificano il licenziamento e preparami le linee della memoria difensiva da depositare entro i cinque giorni.",
+    "missing_documents": ["lettera di contestazione disciplinare", "buste paga degli ultimi tre mesi"],
+    "domain": "labour"
+  },
+  {
+    "id": "MDD-005",
+    "query": "Nel contratto di locazione commerciale allegato il conduttore risulta moroso da quattro mensilità. Calcolami l'importo degli arretrati con gli interessi e dimmi se possiamo procedere subito con lo sfratto per morosità o serve prima la messa in mora.",
+    "missing_documents": ["contratto di locazione commerciale"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-006",
+    "query": "Ti trasmetto in allegato il testamento olografo del defunto. Uno dei figli ritiene di essere stato leso nella sua quota di legittima: dimmi se l'impugnazione per riduzione ha fondamento e con quale azione muoverci.",
+    "missing_documents": ["testamento olografo"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-007",
+    "query": "Trovi in allegato l'atto di pignoramento immobiliare notificato al nostro assistito. Valuta i vizi della notifica e preparami l'atto di opposizione all'esecuzione nei termini di legge.",
+    "missing_documents": ["atto di pignoramento immobiliare"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-008",
+    "query": "Ti giro il verbale dell'assemblea straordinaria che ha deliberato l'aumento di capitale. Un socio di minoranza sostiene di non essere stato regolarmente convocato: dimmi se l'impugnazione della delibera è sostenibile e con quale termine.",
+    "missing_documents": ["verbale dell'assemblea straordinaria"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-009",
+    "query": "In allegato la polizza di responsabilità civile professionale del cliente. Si è verificato un sinistro per un presunto errore professionale: verifica se il massimale copre l'evento e come attivare la denuncia presso la compagnia.",
+    "missing_documents": ["polizza di responsabilità civile professionale"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-010",
+    "query": "Ti allego la CTU medico-legale disposta nel procedimento per l'infortunio sul lavoro del nostro assistito. Sulla base delle percentuali di invalidità accertate, imposta il calcolo del danno differenziale da richiedere al datore di lavoro.",
+    "missing_documents": ["CTU medico-legale"],
+    "domain": "labour"
+  },
+  {
+    "id": "MDD-011",
+    "query": "Qui accluso trovi la comparsa di costituzione e risposta depositata dalla controparte. Individua le eccezioni sollevate e preparami la memoria integrativa ex art. 171-ter, primo comma, n. 1) c.p.c. per replicare punto per punto.",
+    "missing_documents": ["comparsa di costituzione e risposta"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-012",
+    "query": "Il cliente mi ha inoltrato la cartella di pagamento emessa dall'Agenzia delle Entrate-Riscossione, che trovi allegata. Controlla se ci sono vizi di notifica o decadenza e dimmi se conviene il ricorso o la rateizzazione.",
+    "missing_documents": ["cartella di pagamento"],
+    "domain": "tax"
+  },
+  {
+    "id": "MDD-013",
+    "query": "Ti mando il contratto preliminare di compravendita firmato dalle parti. Il promittente venditore vuole recedere trattenendo la caparra: dimmi se la clausola glielo consente e quali rimedi ha il promissario acquirente.",
+    "missing_documents": ["contratto preliminare di compravendita"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-014",
+    "query": "Ci è stato notificato l'atto di citazione che trovi in allegato. Analizza le domande formulate da controparte e preparami la comparsa di risposta con le eccezioni preliminari da sollevare in prima udienza.",
+    "missing_documents": ["atto di citazione"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-015",
+    "query": "Ti giro il verbale ispettivo dell'Ispettorato Nazionale del Lavoro notificato all'azienda, insieme al libro unico del lavoro dei collaboratori interessati. Verifica la fondatezza dei rilievi mossi sull'inquadramento e preparami le controdeduzioni da presentare nei termini.",
+    "missing_documents": ["verbale ispettivo dell'Ispettorato Nazionale del Lavoro", "libro unico del lavoro"],
+    "domain": "labour"
+  },
+  {
+    "id": "MDD-016",
+    "query": "In allegato trovi il provvedimento di diniego del permesso di costruire notificato al cliente dal Comune. Valuta i vizi di legittimità dell'atto e imposta il ricorso al TAR nei termini di decadenza.",
+    "missing_documents": ["provvedimento di diniego del permesso di costruire"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-017",
+    "query": "Ti trasmetto in allegato il processo verbale di constatazione della Guardia di Finanza insieme al bilancio e alla dichiarazione dei redditi dell'anno oggetto di verifica. Predisponi le memorie difensive ex art. 12 dello Statuto del contribuente da depositare entro sessanta giorni.",
+    "missing_documents": ["processo verbale di constatazione", "bilancio", "dichiarazione dei redditi"],
+    "domain": "tax"
+  },
+  {
+    "id": "MDD-018",
+    "query": "Ti allego il contratto di fideiussione bancaria sottoscritto dal cliente. Verifica se ricalca lo schema ABI dichiarato nullo dalla Cassazione e dimmi quali clausole sono attaccabili.",
+    "missing_documents": ["contratto di fideiussione bancaria"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-019",
+    "query": "Ti giro l'atto di donazione stipulato dal padre a favore del fratello del nostro assistito. Valuta se rientra nella massa da riunire per il calcolo della legittima e se sono maturi i presupposti per l'azione di riduzione.",
+    "missing_documents": ["atto di donazione"],
+    "domain": "civil"
+  },
+  {
+    "id": "MDD-020",
+    "query": "Ti mando il contratto di appalto, le due fatture insolute che ne derivano e il verbale di collaudo dei lavori. Predisponi la strategia per il recupero del credito, valutando se procedere subito con il decreto ingiuntivo.",
+    "missing_documents": ["contratto di appalto", "fatture insolute", "verbale di collaudo"],
+    "domain": "civil"
+  }
+]
