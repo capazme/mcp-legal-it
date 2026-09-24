@@ -111,7 +111,7 @@ Se il tema ruota attorno a un articolo specifico, chiama `legal-it:cerca_brocard
 
 ### Passo 7 — Fondamento normativo
 
-Per le norme citate nelle sentenze: `legal-it:cite_law` per il testo vigente. Mai citare norme a memoria.
+Per le norme citate nelle sentenze: `legal-it:cite_law` per il testo vigente — mai a memoria (protocollo in `AGENTS.md`).
 
 ### Passo 8 — Cross-reference fonti amministrative (se pertinente)
 
