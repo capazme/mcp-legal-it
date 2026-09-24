@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.14.1] - 2026-09-24
+
+### Fixed
+- `LEGAL_PROFILE` works again on FastMCP 3. FastMCP 3 removed the
+  `include_tags` attribute, so the assignment in `server.py` was a silent
+  no-op and every profile exposed all 227 tools (through 2.14.0). The
+  profile is now a visibility transform (`enable(tags=..., only=True)`) with
+  prompts and resources re-enabled; `tests/unit/test_profiles.py` guards it
+  and `install.py` carries the real per-profile counts.
+- `package_version()` reports the checkout's version, not stale editable
+  metadata: an editable install froze `importlib.metadata` at the version of
+  whatever branch was checked out when it was installed, so the server could
+  declare 2.14.0 to MCP clients from a tree that had moved on, and `test_cli`
+  failed every time it did. The `pyproject.toml` next to the package now
+  wins; metadata is the fallback for an installed wheel, where no pyproject
+  ships.
 
 ### Changed
 - Grounding rules normalized: the six agent skills carried seven diverging
@@ -13,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   canonical wording. The server's OUTPUT convention adds the provenance
   clause (`dati_applicati` with their vintage, `mcp-legal-it/fonti_consultate`
   from `_meta`), so every host surfaces where an answer's numbers come from.
+- Documentation aligned with the shipped 2.x surface (227 tools, 34 modules,
+  23 skills, 10 slash commands, 6 agents): tool table derived from the code,
+  the working profile mechanism with real counts, the provenance, precision,
+  cache and clock layer in `docs/architecture.md`, deployment and testing
+  pages regenerated, manifests and the marketplace snippet re-tallied.
+- `.gitignore` keeps AI-assistant and host-app context artifacts
+  (`AGENTS.md`, `CLAUDE.md`, `.codex/`, `.cursor/`, ...) out of the
+  repository.
 
 ## [2.14.0] - 2026-09-20
 
