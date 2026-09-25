@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the Scopus MCP servers; the declared total is derived from the audited
   annotation policy, so it cannot drift into a second handwritten count.
   Surface is now 228 tools (210 read-only, 170 local-only).
+- `server.json`: the server declares its own identity
+  (`io.github.capazme/mcp-legal-it`, stdio transport) in the official MCP
+  Registry schema, with the environment variables every host can pass
+  (`LEGAL_PROFILE`, `LEGAL_CACHE`, `MCP_CACHE_DIR`, `LEGAL_TODAY`, `LEGAL_NOW`).
+  The README carries the `mcp-name:` marker so aggregators can verify the
+  package/manifest association once a public distribution channel exists.
 
 ## [2.14.1] - 2026-09-24
 
