@@ -1,4 +1,4 @@
-"""MCP Legal IT — 227 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 228 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
 

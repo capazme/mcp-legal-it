@@ -3,7 +3,7 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 227.**
+**Totale tool: 228.**
 
 ---
 
@@ -24,7 +24,7 @@ descrizione di ogni tool.
 13. [Proprietà e successioni](#13-proprietà-e-successioni) — 12 tool
 14. [Investimenti](#14-investimenti) — 5 tool
 15. [Dichiarazione redditi](#15-dichiarazione-redditi) — 16 tool
-16. [Utilità generali](#16-utilità-generali) — 14 tool (+ 2 di provenienza dei dati)
+16. [Utilità generali](#16-utilità-generali) — 15 tool (+ 2 di provenienza dei dati)
 17. [Analisi fornitori (privacy)](#17-analisi-fornitori-privacy) — 3 tool
 18. [Gazzetta Ufficiale](#18-gazzetta-ufficiale) — 5 tool
 19. [Corte Costituzionale](#19-corte-costituzionale) — 4 tool
@@ -389,6 +389,7 @@ descrizione di ogni tool.
 | `cerca_codice_tributo` | `cerca_codice_tributo(query: str)` | Cerca un codice tributo F24 per codice o descrizione. |
 | `verbale_mensile` | `verbale_mensile(months: int = 6)` | Report mensile dei rifiuti osservati dal verbale (`LEGAL_REFUSAL_LEDGER=on`), con confronto mese su mese, grafico e classifica di cosa ha bloccato. |
 | `backlog_riconciliazione` | `backlog_riconciliazione()` | Elenca le tabelle dati ancora da riconciliare (`da_verificare` o scadute), ordinate per quanto bloccano davvero. |
+| `stato_server` | `stato_server()` | Diagnostica: versione del codice in esecuzione, tool attivi dopo il filtro `LEGAL_PROFILE`, orologio (pinnato o no), cache (percorso e accensione), hostname. Non consulta la rete. |
 
 ---
 
@@ -655,7 +656,7 @@ descrizione di ogni tool.
 | 13 | Proprietà e successioni | 12 |
 | 14 | Investimenti | 5 |
 | 15 | Dichiarazione redditi | 16 |
-| 16 | Utilità generali | 14 |
+| 16 | Utilità generali | 15 |
 | 17 | Analisi fornitori (privacy) | 3 |
 | 18 | Gazzetta Ufficiale | 5 |
 | 19 | Corte Costituzionale | 4 |
@@ -674,7 +675,7 @@ descrizione di ogni tool.
 | 32 | Procure e quotazioni (recupero crediti) | 2 |
 | 33 | Iter parlamentare (DDL) | 3 |
 | 34 | Marchi (TMview) | 3 |
-| | **Totale** | **227** |
+| | **Totale** | **228** |
 
 ---
 

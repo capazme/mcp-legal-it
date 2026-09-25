@@ -98,7 +98,7 @@ tests/
 │   ├── test_risarcimento_danni.py                   75 test
 │   ├── test_rivalutazioni_istat.py                 110 test
 │   ├── test_scadenze_termini.py                     91 test
-│   ├── test_server_registration.py                   2 test  ← superficie registrata: 227 tool, 23 prompt, 15 risorse
+│   ├── test_server_registration.py                   2 test  ← superficie registrata: 228 tool, 23 prompt, 15 risorse
 │   ├── test_table_ledger.py                          6 test
 │   ├── test_tassi_interessi.py                      65 test
 │   ├── test_tmview.py                               45 test
