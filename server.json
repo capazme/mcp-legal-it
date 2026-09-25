@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.capazme/mcp-legal-it",
+  "description": "Model Context Protocol server with 228 tools for Italian law: calculations (damages, interests, deadlines, parcels, taxes), legislation (Normattiva, EUR-Lex), case law (Cassazione, Corte Costituzionale, CGUE, TAR/CdS), Gazzetta Ufficiale, parliamentary bills, GDPR compliance and document generation. Every local calculation is audited, every online consult is declared in the answer's _meta.",
+  "version": "3.0.0",
+  "remotes": [],
+  "environmentVariables": [
+    {
+      "name": "LEGAL_PROFILE",
+      "description": "Restrict the exposed surface to a practice area (sinistro, credito, penale, fiscale, normativa, privacy, studio, redattore, cowork). Unset or 'full' exposes all 228 tools.",
+      "isRequired": false
+    },
+    {
+      "name": "LEGAL_CACHE",
+      "description": "Set to 'off' to keep the server entirely off disk: the cache directory is then never read nor created.",
+      "isRequired": false
+    },
+    {
+      "name": "MCP_CACHE_DIR",
+      "description": "Relocates the cache directory (default ~/.cache/mcp-legal-it). It only relocates the files; LEGAL_CACHE=off is the switch that stops them.",
+      "isRequired": false
+    },
+    {
+      "name": "LEGAL_TODAY",
+      "description": "Pins today's date (ISO) so every 'as of today' answer is reproducible.",
+      "isRequired": false
+    },
+    {
+      "name": "LEGAL_NOW",
+      "description": "Pins the current datetime (ISO); when both are set, LEGAL_TODAY derives from it.",
+      "isRequired": false
+    }
+  ]
+}

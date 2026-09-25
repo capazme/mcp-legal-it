@@ -25,7 +25,7 @@ that reads the switch, and the only one that resolves `MCP_CACHE_DIR`).
 `docs/cache-inventory.md` carries the per-cache and per-tool detail.
 
 `openWorldHint` marks the tools that reach outside the process (Normattiva,
-EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 169
+EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the 170
 local-only ones are pure calculations over the bundled JSON tables.
 
 `ONLINE_SOURCES` names those same tools from the provenance side: every one of
@@ -98,14 +98,14 @@ READ_ONLY: frozenset[str] = frozenset({
     "scadenze_impugnazioni", "scadenze_licenziamento", "scadenze_multe", "scadenze_societarie",
     "scarica_pdf_gazzetta", "scorporo_iva", "sfratto_morosita", "soglie_organo_controllo_srl",
     "sollecito_pagamento", "sommario_gazzetta", "spese_condominiali", "spese_mediazione",
-    "spese_trasferta_avvocati", "tariffe_mediazione", "tassazione_atti", "tasso_alcolemico",
-    "termini_183_190_cpc", "termini_deposito_atti_appello", "termini_deposito_ctu", "termini_esecuzioni",
-    "termini_memorie_repliche", "termini_procedimento_semplificato", "termini_processuali_civili",
-    "termini_separazione_divorzio", "test_crisi_impresa", "testimonianza_scritta", "ultime_delibere_consob",
-    "ultime_gazzette", "ultime_pronunce", "ultime_sentenze_cgue", "ultime_sentenze_tributarie",
-    "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante", "valutazione_data_breach",
-    "variazioni_istat", "verbale_mensile", "verifica_anteriorita_marchio", "verifica_iban",
-    "verifica_mediazione_obbligatoria", "verifica_necessita_dpia", "verifica_partita_iva",
+    "spese_trasferta_avvocati", "stato_server", "tariffe_mediazione", "tassazione_atti",
+    "tasso_alcolemico", "termini_183_190_cpc", "termini_deposito_atti_appello", "termini_deposito_ctu",
+    "termini_esecuzioni", "termini_memorie_repliche", "termini_procedimento_semplificato",
+    "termini_processuali_civili", "termini_separazione_divorzio", "test_crisi_impresa", "testimonianza_scritta",
+    "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce", "ultime_sentenze_cgue",
+    "ultime_sentenze_tributarie", "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante",
+    "valutazione_data_breach", "variazioni_istat", "verbale_mensile", "verifica_anteriorita_marchio",
+    "verifica_iban", "verifica_mediazione_obbligatoria", "verifica_necessita_dpia", "verifica_partita_iva",
     "verifica_partita_iva_vies", "verifica_usura",
 })
 

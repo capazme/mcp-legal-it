@@ -88,6 +88,13 @@ def _normalize(text: str) -> str:
 def _group_name(datasets: list[str]) -> str:
     return "+".join(datasets) if datasets else NO_TABLE_GROUP
 
+#: Introspection, not calculation: the answer reports the running process
+#: (package version, FastMCP build, hostname, live counters), so its values are
+#: a function of the machine, not of the arguments. Freezing them in the golden
+#: would pin every contributor's hostname; the tool's own contract lives in
+#: `test_stato_server.py`.
+NOT_CALCULATIONS = frozenset({"stato_server"})
+
 
 def _audit():
     sys.path.insert(0, str(REPO / "scripts"))
@@ -108,7 +115,7 @@ def _datasets_by_tool() -> dict[str, list[str]]:
 @pytest.fixture(scope="module")
 def surface():
     """The local read-only surface, called once, pinned and offline."""
-    local = local_read_only(tools())
+    local = [t for t in local_read_only(tools()) if t["name"] not in NOT_CALCULATIONS]
     arguments = {tool["name"]: arguments_for(tool) for tool in local}
     sandbox = pathlib.Path(tempfile.mkdtemp(prefix="golden-sandbox-"))
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="golden-tmp-"))
@@ -540,7 +547,7 @@ def test_the_reference_is_pinned_complete_and_readable(surface):
         for tool, entry in entries.items()
     }
     assert len(recorded) > 100, "the reference covers only %d tools" % len(recorded)
-    assert len(recorded) == len(local_read_only(tools()))
+    assert len(recorded) == len(local_read_only(tools())) - len(NOT_CALCULATIONS)
 
     too_long = {name: len(text) for name, text in recorded.items() if len(text) > TRUNCATED_AT}
     assert not too_long, "answers stored beyond the truncation limit: %s" % too_long

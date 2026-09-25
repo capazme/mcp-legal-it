@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `stato_server()`: the diagnostics tool that tells the caller WHAT it is
+  talking to — package version of the running code, active tool count after
+  the `LEGAL_PROFILE` filter, pinned clock, cache switch and directory,
+  hostname. Modeled on the `get_quota_status` / `check_capabilities` pattern
+  of the Scopus MCP servers; the declared total is derived from the audited
+  annotation policy, so it cannot drift into a second handwritten count.
+  Surface is now 228 tools (210 read-only, 170 local-only).
+- `server.json`: the server declares its own identity
+  (`io.github.capazme/mcp-legal-it`, stdio transport) in the official MCP
+  Registry schema, with the environment variables every host can pass
+  (`LEGAL_PROFILE`, `LEGAL_CACHE`, `MCP_CACHE_DIR`, `LEGAL_TODAY`, `LEGAL_NOW`).
+  The README carries the `mcp-name:` marker so aggregators can verify the
+  package/manifest association once a public distribution channel exists.
 - `verifica_dpa_fornitore(dominio)`: probes a supplier's site on a fixed list
   of conventional paths for a published art. 28 DPA, judges the HTML or PDF
   it finds against GDPR markers and caches the determination for 90 days

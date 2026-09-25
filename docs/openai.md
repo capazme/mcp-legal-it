@@ -34,7 +34,7 @@ Dei 10 slash command del plugin Claude Code solo 8 diventano skill: i comandi
 sono esclusi, come `cookie-audit` ed `esporta-documento`.
 
 Il bundle **non include il server MCP**: le skill sono istruzioni per
-l'agente, il server (227 tool) resta un checkout separato di questo repository
+l'agente, il server (228 tool) resta un checkout separato di questo repository
 o un endpoint remoto — vedi «Server MCP» sotto.
 
 > Nota sui numeri: prompt MCP (23) e risorse `legal://` (15) restano feature
@@ -47,7 +47,7 @@ o un endpoint remoto — vedi «Server MCP» sotto.
 
 | Feature | Claude Desktop/Code | ChatGPT | Codex CLI | Manus |
 |---------|--------------------:|--------:|----------:|------:|
-| 227 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
+| 228 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — | — |
 | 15 risorse `legal://` | ✓ | — | — | — |
 | 30 skill + 10 comandi + 6 agenti (plugin Claude) | ✓ | ✓ 42 skill via bundle | ✓ 42 skill via bundle | — |
@@ -55,7 +55,7 @@ o un endpoint remoto — vedi «Server MCP» sotto.
 | Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? | ? |
 
-I 227 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano
+I 228 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano
 feature Claude-only; le skill raggiungono ChatGPT e Codex tramite il bundle.
 
 ---
@@ -211,7 +211,7 @@ Il bundle porta fuori da Claude solo ciò che Codex e ChatGPT sanno leggere:
 ## Verifica dell'installazione
 
 In Codex CLI, digita `/mcp`: deve comparire il server `legal_it` con la sua
-lista di tool (227, meno quelli esclusi dal profilo se ne usi uno ridotto via
+lista di tool (228, meno quelli esclusi dal profilo se ne usi uno ridotto via
 `LEGAL_PROFILE`). Se la lista risulta **vuota** (`Tools: (none)`), la causa
 quasi sempre è il nome del server nel `config.toml`: controlla che sia
 `legal_it` con l'underscore, non `legal-it` (vedi sopra, issue #15832).
