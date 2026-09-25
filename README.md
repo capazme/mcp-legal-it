@@ -70,6 +70,11 @@ I log stanno in `~/Library/Logs/Claude/` (macOS) — file `mcp-server-*.log` —
 
 </details>
 
+> **MCP Registry**: questo server dichiara la propria identità in [`server.json`](server.json)
+> (`io.github.capazme/mcp-legal-it`, trasporto stdio). Il manifest segue lo schema ufficiale
+> del [MCP Registry](https://registry.modelcontextprotocol.io); il marker verificabile per gli
+> aggregatori è `mcp-name: io.github.capazme/mcp-legal-it`.
+
 ### Claude Code CLI
 
 ```bash
