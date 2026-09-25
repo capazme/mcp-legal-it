@@ -43,7 +43,7 @@ def _surface(profile: str, home: Path) -> dict:
 def test_profile_narrows_tools_and_keeps_prompts_and_resources(profile, must_have, must_not_have, tmp_path):
     full = _surface("full", tmp_path)
     narrowed = _surface(profile, tmp_path)
-    assert len(full["tools"]) == 227
+    assert len(full["tools"]) == 228
     assert 0 < len(narrowed["tools"]) < len(full["tools"]), f"{profile}: {len(narrowed['tools'])} tools"
     assert must_have in narrowed["tools"]
     assert must_not_have not in narrowed["tools"]
@@ -52,4 +52,4 @@ def test_profile_narrows_tools_and_keeps_prompts_and_resources(profile, must_hav
 
 
 def test_unknown_profile_falls_back_to_the_full_surface(tmp_path):
-    assert len(_surface("nonexistent", tmp_path)["tools"]) == 227
+    assert len(_surface("nonexistent", tmp_path)["tools"]) == 228
