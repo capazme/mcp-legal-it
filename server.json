@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.capazme/mcp-legal-it",
   "description": "Model Context Protocol server with 228 tools for Italian law: calculations (damages, interests, deadlines, parcels, taxes), legislation (Normattiva, EUR-Lex), case law (Cassazione, Corte Costituzionale, CGUE, TAR/CdS), Gazzetta Ufficiale, parliamentary bills, GDPR compliance and document generation. Every local calculation is audited, every online consult is declared in the answer's _meta.",
-  "version": "2.14.1",
+  "version": "3.0.0",
   "remotes": [],
   "environmentVariables": [
     {
