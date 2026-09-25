@@ -220,10 +220,10 @@ def _hook_feedback(messages: list[dict]) -> str | None:
     arm, but its EFFECT is not uniform: only arms that can reach the
     plugin's tools can satisfy it by calling `cite_law()`, so bare/web get
     a forced extra turn and a garbled answer whenever they attempt a
-    citation. `isolation_env()` neutralises the known case via
-    `LEGAL_IT_GATE_SKIP_PATHS`, but this detector is the backstop for that
-    suppression missing an edge case, or for an unrelated hook on someone
-    else's machine.
+    citation. `isolation_env()` sets `LEGAL_IT_GATE_SKIP_PATHS` for the
+    known case, but no released gate honours that variable (see
+    `isolation_env()`), so this detector is the actual guard, and the
+    backstop for an unrelated hook on someone else's machine.
 
     For a plugin arm the same signal means something different: the
     citation gate is part of the product under test (it ships in the
@@ -394,10 +394,15 @@ def isolation_env(workdir: Path) -> dict[str, str]:
     operator's Claude Code install has the `legal-it` plugin's Stop hook
     registered globally, and it must be neutralised the same way regardless
     of which arm is running, or the "arms differ only in tools" invariant
-    breaks. `LEGAL_IT_GATE_SKIP_PATHS` is a mechanism the hook has shipped
-    since legal-it v2.9.0 for exactly this domain-separation case; scoping
-    it to the run's own workdir keeps the effect local to the benchmark
-    without silencing the gate for the operator's real legal work elsewhere.
+    breaks. `LEGAL_IT_GATE_SKIP_PATHS` is the gate's switch for exactly this
+    domain-separation case, but no released gate honours it (as of
+    2026-09-25): the support written for it in July 2026 never reached
+    develop. Until the installed plugin carries it, this overlay is inert
+    and `_hook_feedback()` is the only guard. LIMES avoids the problem with
+    a scratch CLAUDE_CONFIG_DIR, where the global plugin never loads.
+    Scoping the variable to the run's own workdir keeps the effect local to
+    the benchmark without silencing the gate for the operator's real legal
+    work elsewhere.
     """
     return {"LEGAL_IT_GATE_SKIP_PATHS": str(workdir.resolve())}
 

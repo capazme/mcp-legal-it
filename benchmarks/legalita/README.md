@@ -139,7 +139,9 @@ discovery alone and ended `stop_reason=tool_use` with no answer at all.
 Hook policy, stated because it differs by arm: for `bare`/`web`/`mcp` a Stop
 hook firing mid-run is isolation contamination and the run is flagged as an
 error (the operator's global citation-gate registration is the known vector;
-`isolation_env` neutralises it). For a plugin arm the SAME signal is product
+`isolation_env` sets `LEGAL_IT_GATE_SKIP_PATHS` for it, but no released gate
+honours that variable, so the error flag is what actually catches it). For a
+plugin arm the SAME signal is product
 behaviour — the citation gate ships inside the plugin under test — so it is
 recorded as a `hook_interventions` event in the run's usage block and the run
 stays valid. Dropping those runs would bias the comparison against exactly
