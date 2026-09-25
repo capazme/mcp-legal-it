@@ -83,7 +83,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from src.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (34 moduli, 227 tool totali)
+       └─ ... (34 moduli, 228 tool totali)
        └─ from src import prompts
             └─ @mcp.prompt() → 23 prompt registrati
        └─ from src import resources
@@ -127,7 +127,7 @@ if _profile != "full" and _profile in _PROFILES:
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 227 | Claude Code con Tool Search |
+| `full` | 228 | Claude Code con Tool Search |
 | `sinistro` | 81 | Risarcimento danni e sinistri |
 | `credito` | 91 | Recupero crediti |
 | `penale` | 53 | Diritto penale |
@@ -270,7 +270,7 @@ non parlano con fonti esterne: osservano le chiamate.
 
 Tre file in `src/` sono **generati** da `scripts/audit_tool_annotations.py --write`
 e verificati in CI (`policy-sync`): `tool_annotations.py` (`readOnlyHint`/`openWorldHint`
-per ciascuno dei 227 tool, derivati dal grafo delle chiamate), `table_bindings.py`
+per ciascuno dei 228 tool, derivati dal grafo delle chiamate), `table_bindings.py`
 (tabella → costante) e `source_bindings.py` (tool → dataset online). Modificarli a
 mano è inutile: la rigenerazione li sovrascrive e `--check` fallisce sul drift.
 `tests/unit/test_golden_calcoli.py` congela le risposte dei calcolatori locali per

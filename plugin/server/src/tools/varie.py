@@ -2,13 +2,18 @@
 prescrizione diritti civili, tasso alcolemico (art. 186 CdS), ATECO, scorporo IVA."""
 
 import json
+import os
+import platform
 import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from src.lib import _clock, _data, _refusals
+import fastmcp
+from src.lib import _cache, _clock, _data, _refusals
+from src.cli_version import package_version
 from src.server import mcp
 from src.lib._data import sourced
+from src.tool_annotations import READ_ONLY, WRITES_FILES
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 #: The source tree the static half of the backlog audits, and the repo root its
@@ -1042,3 +1047,52 @@ def _lettori_statici() -> dict[str, list]:
     except Exception as exc:  # pragma: no cover - a broken tree is not the tool's job
         _LETTORI["__errore__"] = [(str(exc), "?", "errore")]
     return _LETTORI
+
+# --- Stato del server ---
+
+# Overhead per tool osservato sui profili correnti (~1 KB dichiarazione + schema
+# negli elenchi degli host con Tool Search): serve a far capire all'agente QUANTO
+# risparmia a nascondere i tool che non servono, non a promettere bytes esatti.
+_BYTES_PER_TOOL_STIMA = 1024
+
+
+@mcp.tool(tags={"utility"})
+async def stato_server() -> dict:
+    """Riporta versione, superficie attiva, orologio, cache e profilo del server.
+
+    Strumento di diagnostica per host e agenti: dice QUALE server stai usando
+    (versione del codice in esecuzione), QUANTI tool sono realmente esposti in
+    questa sessione (dopo l'eventuale filtro `LEGAL_PROFILE`), COME è configurato
+    (orologio pinnato, cache accesa/spenta, profilo) e l'hostname della macchina
+    — utile per accorgersi di due connettori che puntano a checkout diversi.
+    Non consulta la rete e non tocca il disco (il percorso cache è solo descritto).
+
+    Precisione: ESATTO (lettura dello stato del processo in esecuzione).
+    """
+    active = await mcp.list_tools()
+    active_names = sorted(t.name for t in active)
+    pinned = os.environ.get(_clock.TODAY_ENV, "") or os.environ.get(_clock.NOW_ENV, "")
+    profile = os.environ.get("LEGAL_PROFILE", "full").strip() or "full"
+    return {
+        "server": "mcp-legal-it",
+        "versione": package_version(),
+        "tools_attivi": len(active_names),
+        "tools_totali": len(READ_ONLY | WRITES_FILES),
+        "profilo": profile,
+        "orologio": {
+            "oggi": _clock.today().isoformat(),
+            "pinnato": bool(pinned.strip()),
+            "override": pinned.strip() or None,
+        },
+        "cache": {
+            "abilitata": _cache.cache_enabled(),
+            "percorso": _cache.cache_root_display(),
+            "sovrascritto": bool(os.environ.get(_cache.DIR_ENV, "").strip()),
+        },
+        "macchina": platform.node(),
+        "fastmcp": fastmcp.__version__,
+        "context_hint": {
+            "bytes_stima_per_tool_nascosto": _BYTES_PER_TOOL_STIMA,
+            "nota": "il conteggio `tools_attivi` è la superficie dopo il filtro LEGAL_PROFILE; il profilo si sceglie all'avvio, non a chiamata fatta",
+        },
+    }
