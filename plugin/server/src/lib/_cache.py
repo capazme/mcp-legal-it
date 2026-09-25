@@ -48,3 +48,8 @@ def cache_enabled() -> bool:
 def cache_root() -> Path:
     """Base cache directory; each client appends its own subdirectory."""
     return Path(os.environ.get(DIR_ENV) or DEFAULT_DIR)
+
+
+def cache_root_display() -> str:
+    """`str(cache_root())` for state reports: describes the directory, opens nothing."""
+    return str(cache_root())
