@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `stato_server()`: the self-report diagnostics tool — package version,
+  active tool count after the `LEGAL_PROFILE` filter, pinned clock, cache
+  switch and directory, hostname. Surface is now 228 tools.
 - `verifica_dpa_fornitore(dominio)`: probes a supplier's site on a fixed list
   of conventional paths for a published art. 28 DPA, judges the HTML or PDF
   it finds against GDPR markers and caches the determination for 90 days

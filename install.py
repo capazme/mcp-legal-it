@@ -55,7 +55,7 @@ PROFILES = {
     "fiscale": {
         "desc": "Fiscale e immobiliare",
         "detail": "IRPEF, detrazioni, TFR, successioni, IMU, compravendite",
-        "tools": 65,
+        "tools": 66,
     },
     "normativa": {
         "desc": "Ricerca normativa e giurisprudenziale",
@@ -85,7 +85,7 @@ PROFILES = {
     "full": {
         "desc": "Tutti gli strumenti",
         "detail": "consigliato per Claude Code (usa Tool Search per caricarli on-demand)",
-        "tools": 227,
+        "tools": 228,
     },
 }
 
