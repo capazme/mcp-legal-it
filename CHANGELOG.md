@@ -140,6 +140,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `quorum_assembleari`, `test_crisi_impresa`, `compenso_occ`,
   `calcolo_maggior_danno`, `ravvedimento_operoso`.
 
+## [2.14.2] - 2026-09-28
+
+### Added
+- `stato_server()`: the diagnostics tool that tells the caller WHAT it is
+  talking to — package version of the running code, active tool count after
+  the `LEGAL_PROFILE` filter, pinned clock, cache switch and directory,
+  hostname. Modeled on the `get_quota_status` / `check_capabilities` pattern
+  of the Scopus MCP servers; the declared total is derived from the audited
+  annotation policy, so it cannot drift into a second handwritten count.
+  Surface is now 228 tools (210 read-only, 170 local-only).
+- `server.json`: the server declares its own identity
+  (`io.github.capazme/mcp-legal-it`, stdio transport) in the official MCP
+  Registry schema, with the environment variables every host can pass
+  (`LEGAL_PROFILE`, `LEGAL_CACHE`, `MCP_CACHE_DIR`, `LEGAL_TODAY`, `LEGAL_NOW`).
+  The README carries the `mcp-name:` marker so aggregators can verify the
+  package/manifest association once a public distribution channel exists.
+
+### Fixed
+- CeRDEF (giurisprudenza tributaria) works again and a failure of the source
+  no longer reads as "no results" (#46). The portal changed its advanced
+  search form and its XML: it answered every request of the old client with
+  an HTTP 200 error page ("Ambito di ricerca non valido"), which the client
+  read as zero results, so `ultime_sentenze_tributarie` reported "nessuna
+  sentenza" to every call (and the weekly digest dropped the tax section),
+  `cerca_giurisprudenza_tributaria` found nothing on any query, and
+  `cerdef_leggi_provvedimento` returned an empty text as a success. The
+  client now posts the current form (field names and option values verified
+  against the live form by a unit test on a saved copy and by a live test),
+  reads the new result and detail XML, follows the portal's own paginator,
+  decodes the portal's JS escapes (`\à`, `\'`, `\u200B`) and keeps every
+  cited norm inside its sentence (the portal links each citation, which used
+  to split the text at every one of them). An error page,
+  an unrecognised payload (a result list or a detail without the elements the
+  client reads) or an empty list the portal's own counter does not confirm
+  raises a `source_error` that every tool renders as `**Errore**` (the unified
+  search labels it "errore", not "0 risultati"); an unknown filter is refused
+  before any request; an unknown GUID is reported as such, not as the source
+  being unreachable.
+- `ultime_sentenze_tributarie` covers the decisions issued in the last twelve
+  months (by issue date: CeRDEF exposes no publication date): the portal
+  refuses a search without criteria, and ordering a whole CGT group by date
+  takes 20-100 seconds. `ente="cgt_primo_grado"` is served by the group of all
+  tax courts filtered client-side (the portal has no first-instance group), so
+  `cerca_giurisprudenza_tributaria` requires `data_da` with it; the filter
+  reads at most 250 items and, when it stops with items left unread, says so
+  instead of reporting fewer results (or none) as if they were all. The
+  `codice` criterion no longer exists on the portal; `parole_adiacenti` and
+  `operatori_logici` are new.
+
+## [2.14.1] - 2026-09-24
+
+### Fixed
+- `LEGAL_PROFILE` works again on FastMCP 3. FastMCP 3 removed the
+  `include_tags` attribute, so the assignment in `server.py` was a silent
+  no-op and every profile exposed all 227 tools (through 2.14.0). The
+  profile is now a visibility transform (`enable(tags=..., only=True)`) with
+  prompts and resources re-enabled; `tests/unit/test_profiles.py` guards it
+  and `install.py` carries the real per-profile counts.
+- `package_version()` reports the checkout's version, not stale editable
+  metadata: an editable install froze `importlib.metadata` at the version of
+  whatever branch was checked out when it was installed, so the server could
+  declare 2.14.0 to MCP clients from a tree that had moved on, and `test_cli`
+  failed every time it did. The `pyproject.toml` next to the package now
+  wins; metadata is the fallback for an installed wheel, where no pyproject
+  ships.
+
+### Changed
+- Grounding rules normalized: the six agent skills carried seven diverging
+  restatements of the same Legal Grounding rule -- they now share one
+  canonical wording. The server's OUTPUT convention adds the provenance
+  clause (`dati_applicati` with their vintage, `mcp-legal-it/fonti_consultate`
+  from `_meta`), so every host surfaces where an answer's numbers come from.
+- Documentation aligned with the shipped 2.x surface (227 tools, 34 modules,
+  23 skills, 10 slash commands, 6 agents): tool table derived from the code,
+  the working profile mechanism with real counts, the provenance, precision,
+  cache and clock layer in `docs/architecture.md`, deployment and testing
+  pages regenerated, manifests and the marketplace snippet re-tallied.
+- `.gitignore` keeps AI-assistant and host-app context artifacts
+  (`AGENTS.md`, `CLAUDE.md`, `.codex/`, `.cursor/`, ...) out of the
+  repository.
+
 ## [2.14.0] - 2026-09-20
 
 ### Added
