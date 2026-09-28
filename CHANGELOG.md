@@ -360,6 +360,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- CeRDEF (giurisprudenza tributaria) works again and a failure of the source
+  no longer reads as "no results" (#46). The portal changed its advanced
+  search form and its XML: it answered every request of the old client with
+  an HTTP 200 error page ("Ambito di ricerca non valido"), which the client
+  read as zero results, so `ultime_sentenze_tributarie` reported "nessuna
+  sentenza" to every call (and the weekly digest dropped the tax section),
+  `cerca_giurisprudenza_tributaria` found nothing on any query, and
+  `cerdef_leggi_provvedimento` returned an empty text as a success. The
+  client now posts the current form (field names and option values verified
+  against the live form by a unit test on a saved copy and by a live test),
+  reads the new result and detail XML, follows the portal's own paginator,
+  decodes the portal's JS escapes (`\à`, `\'`, `\u200B`) and keeps every
+  cited norm inside its sentence (the portal links each citation, which used
+  to split the text at every one of them). An error page,
+  an unrecognised payload (a result list or a detail without the elements the
+  client reads) or an empty list the portal's own counter does not confirm
+  raises a `source_error` that every tool renders as `**Errore**` (the unified
+  search labels it "errore", not "0 risultati"); an unknown filter is refused
+  before any request; an unknown GUID is reported as such, not as the source
+  being unreachable.
+- `ultime_sentenze_tributarie` covers the decisions issued in the last twelve
+  months (by issue date: CeRDEF exposes no publication date): the portal
+  refuses a search without criteria, and ordering a whole CGT group by date
+  takes 20-100 seconds. `ente="cgt_primo_grado"` is served by the group of all
+  tax courts filtered client-side (the portal has no first-instance group), so
+  `cerca_giurisprudenza_tributaria` requires `data_da` with it; the filter
+  reads at most 250 items and, when it stops with items left unread, says so
+  instead of reporting fewer results (or none) as if they were all. The
+  `codice` criterion no longer exists on the portal; `parole_adiacenti` and
+  `operatori_logici` are new.
 - Two of the reconciled tables re-read against the primary source
   (2026-09-20). `violazioni_patente`: generic failure to yield is art. 145
   c.10 (5 points; the stop line, c.5, keeps its 6), safety distance and

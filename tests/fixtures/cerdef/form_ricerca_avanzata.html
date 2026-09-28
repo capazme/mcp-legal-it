@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="it">
+<body>
+<form id="formRicAvanzG" action="executeAdvancedGiurisprudenzaSearch.do" method="post" onsubmit="this.js_enabled.value=1;return true;" class="form">						
+<input type="hidden" name="js_enabled" value="0">
+<input type="hidden" name="tipoComplessitaRicerca" id="tipoComplessitaRicerca"  value="avanzata">
+<input type="hidden" name="ricercaAreaRiservata" id="ricercaAreaRiservata"  value="false">
+<input type="hidden" name="tipoRicerca" id="tipoRicerca" value="RA">
+<input type="hidden" name="device" id="device" value="D">
+<input type="hidden" name="ambitoRicerca" id="ambitoRicerca" value="G">
+<div class="blocco">
+<div class="riga">
+<label for="parole">Parole:</label>
+<span class="campo">
+<input type="text" name="parole" id="parole" value="" style="text-transform: lowercase;" class="parole-autocomplete full" autocomplete="off">
+</span><!--.campo-->
+</div><!--.riga-->						
+<div class="riga">							
+<span class="campo-check">
+<input type="checkbox" name="ricercaNelTitolo" value="on" id="ricercaNelTitolo">
+</span>		
+<label for="ricercaNelTitolo" class="label-check">
+<strong>Limita la ricerca alle sole epigrafi</strong>
+</label>
+<span class="campo-check">
+<input type="checkbox" name="ricercaPresenzaMassima" value="on" id="ricercaPresenzaMassima">
+</span>			
+<label for="ricercaPresenzaMassima" class="label-check">
+<strong>Ricerca sentenze massimate</strong>
+</label>			
+</div><!--.riga-->
+<div class="riga">
+<label for="tipoCriterioRicerca">Criterio:</label>
+<span class="campo">
+<select id="tipoCriterioRicerca"  name="tipoCriterioRicerca" size="1">
+<option value="0">Tutte le parole</option>
+<option value="1">Almeno una parola</option>
+<option value="2">Frase esatta</option>
+<option value="3">Parole adiacenti</option>
+<option value="4">Con operatori logici</option>
+</select>
+</span><!--.campo-->
+<a href="/DocTribFrontend/helpRicerca.do" onclick="openBrWindow('/DocTribFrontend/helpRicerca.do'); return false;" title="Aiuto ricerca per parole - apre una nuova finestra" class="web">
+<img src="stylesheet_3.0/img/ico-info.png" alt="Aiuto - apre una nuova finestra" style="width:19px;height:19px;"/>	
+</a>
+</div><!--.riga-->
+<div class="riga">
+<label for="tipo_ord">Ordina per:</label>
+<span class="campo">
+<select name="tipo_ord" size="1" id="tipo_ord" lang="it">
+<option value='DATA'>Data</option>
+<option value='RANK'>Rilevanza</option>
+</select> 
+</span><!--.campo-->
+</div><!--.riga-->
+</div><!--.blocco-->
+<div class="accordion">
+<div class="titolo">
+<h2>Estremi</h2>
+</div><!--.titolo-->
+<div class="contenuto">
+<div class="blocco">						
+<div class="riga">
+<label for="tipo">Tipo:</label>
+<span class="campo">
+<select id="tipo" name="tipoEstremi" >
+<option value="">&nbsp;</option>
+<option value='Conclusione'>
+Conclusione
+</option>
+<option value='Decisione'>
+Decisione
+</option>
+<option value='Decreto'>
+Decreto
+</option>
+<option value='Deliberazione'>
+Deliberazione
+</option>
+<option value='Lodo'>
+Lodo
+</option>
+<option value='Ordinanza'>
+Ordinanza
+</option>
+<option value='Parere'>
+Parere
+</option>
+<option value='Provvedimento'>
+Provvedimento
+</option>
+<option value='Ricorso alla Corte Costituzionale'>
+Ricorso alla Corte Costituzionale
+</option>
+<option value='Sentenza'>
+Sentenza
+</option>
+</select>
+</span><!--.campo-->
+<label for="numerodecr">Numero:</label>
+<span class="campo">					
+<input type="number" name="numero" value="" id="numerodecr" class="medio">							
+</span><!--.campo-->
+</div><!--.riga-->
+<div class="riga">
+<div class="sx">
+<fieldset>
+<legend>Data emissione *</legend>
+<span class="riga">
+<label for="datainizio">giorno:</label>
+<span class="campo">							
+<input type="number" name="giornoDataEmissioneDa" value="" id="datainizio" class="piccolo">
+</span><!--.campo-->
+</span><!--.riga-->
+<span class="riga">
+<label for="datainiziomese">mese:</label>
+<span class="campo">							
+<input type="number" name="meseDataEmissioneDa" value="" id="datainiziomese" class="piccolo">
+</span><!--.campo-->
+</span><!--.riga-->
+<span class="riga">
+<label for="datainizioanno">anno:</label>
+<span class="campo">
+<input type="number" name="annoDataEmissioneDa" value="" id="datainizioanno" class="medio">
+</span><!--.campo-->
+</span><!--.riga-->
+<p style='margin-top:2em'><strong>* &egrave; possibile inserire la data precisa, mese ed anno, o solo l'anno</strong></p>
+<input type="hidden" name="dataEmissioneDa" value="">
+</fieldset>
+</div><!--.sx-->
+<div class="dx">
+<fieldset>
+<legend>Data emissione fino a *</legend>
+<span class="riga">
+<label for="datafine">giorno:</label>
+<span class="campo">							
+<input type="number" name="giornoDataEmissioneA" value="" id="datafine" class="piccolo">
+</span><!--.campo-->
+</span><!--.riga-->
+<span class="riga">
+<label for="datafinemese">mese:</label>
+<span class="campo">											
+<input type="number" name="meseDataEmissioneA" value="" id="datafinemese" class="piccolo">
+</span><!--.campo-->
+</span><!--.riga-->
+<span class="riga">
+<label for="datafineanno">anno:</label>
+<span class="campo">											
+<input type="number" name="annoDataEmissioneA" value="" id="datafineanno" class="medio">													
+</span><!--.campo-->
+</span><!--.riga-->
+<p class="skipcontent" style='margin-top:2em'><strong>* &egrave; possibile inserire la data precisa, mese ed anno, o solo l'anno</strong></p>
+<input type="hidden" name="dataEmissioneA" value="">
+</fieldset>
+</div><!--.dx-->
+</div><!--.riga-->
+<div class="clear"></div>
+</div><!--.blocco-->
+</div><!--.contenuto-->
+</div><!--.accordion--> 
+<div class="accordion">
+<div class="titolo">
+<h2>Autorit&agrave; emanante</h2>
+</div><!--.titolo-->
+<div class="contenuto">
+<div class="blocco">
+<div class="riga">
+<label for="ente">Denominazione:</label>
+<span class="campo">					
+<select id="ente" name="ente">
+<option value="">&nbsp;</option>
+<option value='Abruzzo'>
+Abruzzo
+</option>
+<option value='Arbitro'>
+Arbitro
+</option>
+<option value='Avvocato Gen. Corte Giust. Europea'>
+Avvocato Gen. Corte Giust. Europea
+</option>
+<option value='Basilicata'>
+Basilicata
+</option>
+<option value='CTC Ancona'>
+CTC Ancona
+</option>
+<option value='CTC Aosta'>
+CTC Aosta
+</option>
+<option value='CTC Bari'>
+CTC Bari
+</option>
+<option value='CTC Bologna'>
+CTC Bologna
+</option>
+<option value='CTC Bolzano'>
+CTC Bolzano
+</option>
+<option value='CTC Cagliari'>
+CTC Cagliari
+</option>
+<option value='CTC Campobasso'>
+CTC Campobasso
+</option>
+<option value='CTC Catanzaro'>
+CTC Catanzaro
+</option>
+<option value='CTC Firenze'>
+CTC Firenze
+</option>
+<option value='CTC Genova'>
+CTC Genova
+</option>
+<option value='CTC L&#39;Aquila'>
+CTC L&#39;Aquila
+</option>
+<option value='CTC Milano'>
+CTC Milano
+</option>
+<option value='CTC Napoli'>
+CTC Napoli
+</option>
+<option value='CTC Palermo'>
+CTC Palermo
+</option>
+<option value='CTC Perugia'>
+CTC Perugia
+</option>
+<option value='CTC Potenza'>
+CTC Potenza
+</option>
+<option value='CTC Roma'>
+CTC Roma
+</option>
+<option value='CTC Torino'>
+CTC Torino
+</option>
+<option value='CTC Trento'>
+CTC Trento
+</option>
+<option value='CTC Trieste'>
+CTC Trieste
+</option>
+<option value='CTC Venezia'>
+CTC Venezia
+</option>
+<option value='Calabria'>
+Calabria
+</option>
+<option value='Campania'>
+Campania
+</option>
+<option value='Comitato Consult. norme antielusive'>
+Comitato Consult. norme antielusive
+</option>
+<option value='Comm. Trib.  I grado di Bolzano'>
+Comm. Trib.  I grado di Bolzano
+</option>
+<option value='Comm. Trib.  I grado di Trento'>
+Comm. Trib.  I grado di Trento
+</option>
+<option value='Comm. Trib. Centrale'>
+Comm. Trib. Centrale
+</option>
+<option value='Comm. Trib. II grado di Bolzano'>
+Comm. Trib. II grado di Bolzano
+</option>
+<option value='Comm. Trib. II grado di Trento'>
+Comm. Trib. II grado di Trento
+</option>
+<option value='Comm. Trib. Prov. Agrigento'>
+Comm. Trib. Prov. Agrigento
+</option>
+<option value='Comm. Trib. Prov. Alessandria'>
+Comm. Trib. Prov. Alessandria
+</option>
+<option value='Comm. Trib. Prov. Ancona'>
+Comm. Trib. Prov. Ancona
+</option>
+<option value='Comm. Trib. Prov. Aosta'>
+Comm. Trib. Prov. Aosta
+</option>
+<option value='Comm. Trib. Prov. Aquila'>
+Comm. Trib. Prov. Aquila
+</option>
+<option value='Comm. Trib. Prov. Arezzo'>
+Comm. Trib. Prov. Arezzo
+</option>
+<option value='Comm. Trib. Prov. Ascoli Piceno'>
+Comm. Trib. Prov. Ascoli Piceno
+</option>
+<option value='Comm. Trib. Prov. Asti'>
+Comm. Trib. Prov. Asti
+</option>
+<option value='Comm. Trib. Prov. Avellino'>
+Comm. Trib. Prov. Avellino
+</option>
+<option value='Comm. Trib. Prov. Bari'>
+Comm. Trib. Prov. Bari
+</option>
+<option value='Comm. Trib. Prov. Belluno'>
+Comm. Trib. Prov. Belluno
+</option>
+<option value='Comm. Trib. Prov. Benevento'>
+Comm. Trib. Prov. Benevento
+</option>
+<option value='Comm. Trib. Prov. Bergamo'>
+Comm. Trib. Prov. Bergamo
+</option>
+<option value='Comm. Trib. Prov. Biella'>
+Comm. Trib. Prov. Biella
+</option>
+<option value='Comm. Trib. Prov. Bologna'>
+Comm. Trib. Prov. Bologna
+</option>
+<option value='Comm. Trib. Prov. Brescia'>
+Comm. Trib. Prov. Brescia
+</option>
+<option value='Comm. Trib. Prov. Brindisi'>
+Comm. Trib. Prov. Brindisi
+</option>
+<option value='Comm. Trib. Prov. Cagliari'>
+Comm. Trib. Prov. Cagliari
+</option>
+<option value='Comm. Trib. Prov. Caltanissetta'>
+Comm. Trib. Prov. Caltanissetta
+</option>
+<option value='Comm. Trib. Prov. Campobasso'>
+Comm. Trib. Prov. Campobasso
+</option>
+<option value='Comm. Trib. Prov. Caserta'>
+Comm. Trib. Prov. Caserta
+</option>
+<option value='Comm. Trib. Prov. Catania'>
+Comm. Trib. Prov. Catania
+</option>
+<option value='Comm. Trib. Prov. Catanzaro'>
+Comm. Trib. Prov. Catanzaro
+</option>
+<option value='Comm. Trib. Prov. Chieti'>
+Comm. Trib. Prov. Chieti
+</option>
+<option value='Comm. Trib. Prov. Como'>
+Comm. Trib. Prov. Como
+</option>
+<option value='Comm. Trib. Prov. Cosenza'>
+Comm. Trib. Prov. Cosenza
+</option>
+<option value='Comm. Trib. Prov. Cremona'>
+Comm. Trib. Prov. Cremona
+</option>
+<option value='Comm. Trib. Prov. Crotone'>
+Comm. Trib. Prov. Crotone
+</option>
+<option value='Comm. Trib. Prov. Cuneo'>
+Comm. Trib. Prov. Cuneo
+</option>
+<option value='Comm. Trib. Prov. Enna'>
+Comm. Trib. Prov. Enna
+</option>
+<option value='Comm. Trib. Prov. Ferrara'>
+Comm. Trib. Prov. Ferrara
+</option>
+<option value='Comm. Trib. Prov. Firenze'>
+Comm. Trib. Prov. Firenze
+</option>
+<option value='Comm. Trib. Prov. Foggia'>
+Comm. Trib. Prov. Foggia
+</option>
+<option value='Comm. Trib. Prov. Forlì'>
+Comm. Trib. Prov. Forlì
+</option>
+<option value='Comm. Trib. Prov. Frosinone'>
+Comm. Trib. Prov. Frosinone
+</option>
+<option value='Comm. Trib. Prov. Genova'>
+Comm. Trib. Prov. Genova
+</option>
+<option value='Comm. Trib. Prov. Gorizia'>
+Comm. Trib. Prov. Gorizia
+</option>
+<option value='Comm. Trib. Prov. Grosseto'>
+Comm. Trib. Prov. Grosseto
+</option>
+<option value='Comm. Trib. Prov. Imperia'>
+Comm. Trib. Prov. Imperia
+</option>
+<option value='Comm. Trib. Prov. Isernia'>
+Comm. Trib. Prov. Isernia
+</option>
+<option value='Comm. Trib. Prov. La Spezia'>
+Comm. Trib. Prov. La Spezia
+</option>
+<option value='Comm. Trib. Prov. Latina'>
+Comm. Trib. Prov. Latina
+</option>
+<option value='Comm. Trib. Prov. Lecce'>
+Comm. Trib. Prov. Lecce
+</option>
+<option value='Comm. Trib. Prov. Lecco'>
+Comm. Trib. Prov. Lecco
+</option>
+<option value='Comm. Trib. Prov. Livorno'>
+Comm. Trib. Prov. Livorno
+</option>
+<option value='Comm. Trib. Prov. Lodi'>
+Comm. Trib. Prov. Lodi
+</option>
+<option value='Comm. Trib. Prov. Lucca'>
+Comm. Trib. Prov. Lucca
+</option>
+<option value='Comm. Trib. Prov. Macerata'>
+Comm. Trib. Prov. Macerata
+</option>
+<option value='Comm. Trib. Prov. Mantova'>
+Comm. Trib. Prov. Mantova
+</option>
+<option value='Comm. Trib. Prov. Massa Carrara'>
+Comm. Trib. Prov. Massa Carrara
+</option>
+<option value='Comm. Trib. Prov. Matera'>
+Comm. Trib. Prov. Matera
+</option>
+<option value='Comm. Trib. Prov. Messina'>
+Comm. Trib. Prov. Messina
+</option>
+<option value='Comm. Trib. Prov. Milano'>
+Comm. Trib. Prov. Milano
+</option>
+<option value='Comm. Trib. Prov. Modena'>
+Comm. Trib. Prov. Modena
+</option>
+<option value='Comm. Trib. Prov. Napoli'>
+Comm. Trib. Prov. Napoli
+</option>
+<option value='Comm. Trib. Prov. Novara'>
+Comm. Trib. Prov. Novara
+</option>
+<option value='Comm. Trib. Prov. Nuoro'>
+Comm. Trib. Prov. Nuoro
+</option>
+<option value='Comm. Trib. Prov. Oristano'>
+Comm. Trib. Prov. Oristano
+</option>
+<option value='Comm. Trib. Prov. Padova'>
+Comm. Trib. Prov. Padova
+</option>
+<option value='Comm. Trib. Prov. Palermo'>
+Comm. Trib. Prov. Palermo
+</option>
+<option value='Comm. Trib. Prov. Parma'>
+Comm. Trib. Prov. Parma
+</option>
+<option value='Comm. Trib. Prov. Pavia'>
+Comm. Trib. Prov. Pavia
+</option>
+<option value='Comm. Trib. Prov. Perugia'>
+Comm. Trib. Prov. Perugia
+</option>
+<option value='Comm. Trib. Prov. Pesaro'>
+Comm. Trib. Prov. Pesaro
+</option>
+<option value='Comm. Trib. Prov. Pescara'>
+Comm. Trib. Prov. Pescara
+</option>
+<option value='Comm. Trib. Prov. Piacenza'>
+Comm. Trib. Prov. Piacenza
+</option>
+<option value='Comm. Trib. Prov. Pisa'>
+Comm. Trib. Prov. Pisa
+</option>
+<option value='Comm. Trib. Prov. Pistoia'>
+Comm. Trib. Prov. Pistoia
+</option>
+<option value='Comm. Trib. Prov. Pordenone'>
+Comm. Trib. Prov. Pordenone
+</option>
+<option value='Comm. Trib. Prov. Potenza'>
+Comm. Trib. Prov. Potenza
+</option>
+<option value='Comm. Trib. Prov. Prato'>
+Comm. Trib. Prov. Prato
+</option>
+<option value='Comm. Trib. Prov. Ragusa'>
+Comm. Trib. Prov. Ragusa
+</option>
+<option value='Comm. Trib. Prov. Ravenna'>
+Comm. Trib. Prov. Ravenna
+</option>
+<option value='Comm. Trib. Prov. Reggio Calabria'>
+Comm. Trib. Prov. Reggio Calabria
+</option>
+<option value='Comm. Trib. Prov. Reggio Emilia'>
+Comm. Trib. Prov. Reggio Emilia
+</option>
+<option value='Comm. Trib. Prov. Rieti'>
+Comm. Trib. Prov. Rieti
+</option>
+<option value='Comm. Trib. Prov. Rimini'>
+Comm. Trib. Prov. Rimini
+</option>
+<option value='Comm. Trib. Prov. Roma'>
+Comm. Trib. Prov. Roma
+</option>
+<option value='Comm. Trib. Prov. Rovigo'>
+Comm. Trib. Prov. Rovigo
+</option>
+<option value='Comm. Trib. Prov. Salerno'>
+Comm. Trib. Prov. Salerno
+</option>
+<option value='Comm. Trib. Prov. Sassari'>
+Comm. Trib. Prov. Sassari
+</option>
+<option value='Comm. Trib. Prov. Savona'>
+Comm. Trib. Prov. Savona
+</option>
+<option value='Comm. Trib. Prov. Siena'>
+Comm. Trib. Prov. Siena
+</option>
+<option value='Comm. Trib. Prov. Siracusa'>
+Comm. Trib. Prov. Siracusa
+</option>
+<option value='Comm. Trib. Prov. Sondrio'>
+Comm. Trib. Prov. Sondrio
+</option>
+<option value='Comm. Trib. Prov. Taranto'>
+Comm. Trib. Prov. Taranto
+</option>
+<option value='Comm. Trib. Prov. Teramo'>
+Comm. Trib. Prov. Teramo
+</option>
+<option value='Comm. Trib. Prov. Terni'>
+Comm. Trib. Prov. Terni
+</option>
+<option value='Comm. Trib. Prov. Torino'>
+Comm. Trib. Prov. Torino
+</option>
+<option value='Comm. Trib. Prov. Trapani'>
+Comm. Trib. Prov. Trapani
+</option>
+<option value='Comm. Trib. Prov. Treviso'>
+Comm. Trib. Prov. Treviso
+</option>
+<option value='Comm. Trib. Prov. Trieste'>
+Comm. Trib. Prov. Trieste
+</option>
+<option value='Comm. Trib. Prov. Udine'>
+Comm. Trib. Prov. Udine
+</option>
+<option value='Comm. Trib. Prov. Varese'>
+Comm. Trib. Prov. Varese
+</option>
+<option value='Comm. Trib. Prov. Venezia'>
+Comm. Trib. Prov. Venezia
+</option>
+<option value='Comm. Trib. Prov. Verbania'>
+Comm. Trib. Prov. Verbania
+</option>
+<option value='Comm. Trib. Prov. Vercelli'>
+Comm. Trib. Prov. Vercelli
+</option>
+<option value='Comm. Trib. Prov. Verona'>
+Comm. Trib. Prov. Verona
+</option>
+<option value='Comm. Trib. Prov. Vibo Valentia'>
+Comm. Trib. Prov. Vibo Valentia
+</option>
+<option value='Comm. Trib. Prov. Vicenza'>
+Comm. Trib. Prov. Vicenza
+</option>
+<option value='Comm. Trib. Prov. Viterbo'>
+Comm. Trib. Prov. Viterbo
+</option>
+<option value='Comm. Trib. Reg. Emilia Romagna'>
+Comm. Trib. Reg. Emilia Romagna
+</option>
+<option value='Comm. Trib. Reg. Friuli Venezia Giulia'>
+Comm. Trib. Reg. Friuli Venezia Giulia
+</option>
+<option value='Comm. Trib. Reg. Valle d&#39;Aosta'>
+Comm. Trib. Reg. Valle d&#39;Aosta
+</option>
+<option value='Comm. Trib. Reg. per il Lazio'>
+Comm. Trib. Reg. per il Lazio
+</option>
+<option value='Comm. Trib. Reg. per il Molise'>
+Comm. Trib. Reg. per il Molise
+</option>
+<option value='Comm. Trib. Reg. per il Piemonte'>
+Comm. Trib. Reg. per il Piemonte
+</option>
+<option value='Comm. Trib. Reg. per il Veneto'>
+Comm. Trib. Reg. per il Veneto
+</option>
+<option value='Comm. Trib. Reg. per l&#39;Abruzzo'>
+Comm. Trib. Reg. per l&#39;Abruzzo
+</option>
+<option value='Comm. Trib. Reg. per l&#39;Umbria'>
+Comm. Trib. Reg. per l&#39;Umbria
+</option>
+<option value='Comm. Trib. Reg. per la Basilicata'>
+Comm. Trib. Reg. per la Basilicata
+</option>
+<option value='Comm. Trib. Reg. per la Calabria'>
+Comm. Trib. Reg. per la Calabria
+</option>
+<option value='Comm. Trib. Reg. per la Campania'>
+Comm. Trib. Reg. per la Campania
+</option>
+<option value='Comm. Trib. Reg. per la Liguria'>
+Comm. Trib. Reg. per la Liguria
+</option>
+<option value='Comm. Trib. Reg. per la Lombardia'>
+Comm. Trib. Reg. per la Lombardia
+</option>
+<option value='Comm. Trib. Reg. per la Puglia'>
+Comm. Trib. Reg. per la Puglia
+</option>
+<option value='Comm. Trib. Reg. per la Sardegna'>
+Comm. Trib. Reg. per la Sardegna
+</option>
+<option value='Comm. Trib. Reg. per la Sicilia'>
+Comm. Trib. Reg. per la Sicilia
+</option>
+<option value='Comm. Trib. Reg. per la Toscana'>
+Comm. Trib. Reg. per la Toscana
+</option>
+<option value='Comm. Trib. Reg. per le Marche'>
+Comm. Trib. Reg. per le Marche
+</option>
+<option value='Comm. Trib. primo grado Ivrea'>
+Comm. Trib. primo grado Ivrea
+</option>
+<option value='Cons. Giustizia Amm.va Reg. Sicilia'>
+Cons. Giustizia Amm.va Reg. Sicilia
+</option>
+<option value='Consiglio di Stato'>
+Consiglio di Stato
+</option>
+<option value='Corte Costituzionale'>
+Corte Costituzionale
+</option>
+<option value='Corte dei Conti'>
+Corte dei Conti
+</option>
+<option value='Corte di Appello'>
+Corte di Appello
+</option>
+<option value='Corte di Cassazione'>
+Corte di Cassazione
+</option>
+<option value='Corte di Giustizia CEE'>
+Corte di Giustizia CEE
+</option>
+<option value='Corte di Giustizia UE'>
+Corte di Giustizia UE
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Agrigento'>
+Corte di giustizia tributaria di primo grado di Agrigento
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Alessandria'>
+Corte di giustizia tributaria di primo grado di Alessandria
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Ancona'>
+Corte di giustizia tributaria di primo grado di Ancona
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Aosta'>
+Corte di giustizia tributaria di primo grado di Aosta
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Arezzo'>
+Corte di giustizia tributaria di primo grado di Arezzo
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Ascoli Piceno'>
+Corte di giustizia tributaria di primo grado di Ascoli Piceno
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Asti'>
+Corte di giustizia tributaria di primo grado di Asti
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Avellino'>
+Corte di giustizia tributaria di primo grado di Avellino
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Bari'>
+Corte di giustizia tributaria di primo grado di Bari
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Belluno'>
+Corte di giustizia tributaria di primo grado di Belluno
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Benevento'>
+Corte di giustizia tributaria di primo grado di Benevento
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Bergamo'>
+Corte di giustizia tributaria di primo grado di Bergamo
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Biella'>
+Corte di giustizia tributaria di primo grado di Biella
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Bologna'>
+Corte di giustizia tributaria di primo grado di Bologna
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Bolzano'>
+Corte di giustizia tributaria di primo grado di Bolzano
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Brescia'>
+Corte di giustizia tributaria di primo grado di Brescia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Brindisi'>
+Corte di giustizia tributaria di primo grado di Brindisi
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Cagliari'>
+Corte di giustizia tributaria di primo grado di Cagliari
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Caltanissetta'>
+Corte di giustizia tributaria di primo grado di Caltanissetta
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Campobasso'>
+Corte di giustizia tributaria di primo grado di Campobasso
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Caserta'>
+Corte di giustizia tributaria di primo grado di Caserta
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Catania'>
+Corte di giustizia tributaria di primo grado di Catania
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Catanzaro'>
+Corte di giustizia tributaria di primo grado di Catanzaro
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Chieti'>
+Corte di giustizia tributaria di primo grado di Chieti
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Como'>
+Corte di giustizia tributaria di primo grado di Como
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Cosenza'>
+Corte di giustizia tributaria di primo grado di Cosenza
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Cremona'>
+Corte di giustizia tributaria di primo grado di Cremona
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Crotone'>
+Corte di giustizia tributaria di primo grado di Crotone
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Cuneo'>
+Corte di giustizia tributaria di primo grado di Cuneo
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Enna'>
+Corte di giustizia tributaria di primo grado di Enna
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Ferrara'>
+Corte di giustizia tributaria di primo grado di Ferrara
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Firenze'>
+Corte di giustizia tributaria di primo grado di Firenze
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Foggia'>
+Corte di giustizia tributaria di primo grado di Foggia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Forlì'>
+Corte di giustizia tributaria di primo grado di Forlì
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Frosinone'>
+Corte di giustizia tributaria di primo grado di Frosinone
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Genova'>
+Corte di giustizia tributaria di primo grado di Genova
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Gorizia'>
+Corte di giustizia tributaria di primo grado di Gorizia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Grosseto'>
+Corte di giustizia tributaria di primo grado di Grosseto
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Imperia'>
+Corte di giustizia tributaria di primo grado di Imperia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Isernia'>
+Corte di giustizia tributaria di primo grado di Isernia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Ivrea'>
+Corte di giustizia tributaria di primo grado di Ivrea
+</option>
+<option value='Corte di giustizia tributaria di primo grado di L&#39;Aquila'>
+Corte di giustizia tributaria di primo grado di L&#39;Aquila
+</option>
+<option value='Corte di giustizia tributaria di primo grado di La Spezia'>
+Corte di giustizia tributaria di primo grado di La Spezia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Latina'>
+Corte di giustizia tributaria di primo grado di Latina
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Lecce'>
+Corte di giustizia tributaria di primo grado di Lecce
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Lecco'>
+Corte di giustizia tributaria di primo grado di Lecco
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Livorno'>
+Corte di giustizia tributaria di primo grado di Livorno
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Lodi'>
+Corte di giustizia tributaria di primo grado di Lodi
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Lucca'>
+Corte di giustizia tributaria di primo grado di Lucca
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Macerata'>
+Corte di giustizia tributaria di primo grado di Macerata
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Mantova'>
+Corte di giustizia tributaria di primo grado di Mantova
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Massa Carrara'>
+Corte di giustizia tributaria di primo grado di Massa Carrara
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Matera'>
+Corte di giustizia tributaria di primo grado di Matera
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Messina'>
+Corte di giustizia tributaria di primo grado di Messina
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Milano'>
+Corte di giustizia tributaria di primo grado di Milano
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Modena'>
+Corte di giustizia tributaria di primo grado di Modena
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Napoli'>
+Corte di giustizia tributaria di primo grado di Napoli
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Novara'>
+Corte di giustizia tributaria di primo grado di Novara
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Nuoro'>
+Corte di giustizia tributaria di primo grado di Nuoro
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Oristano'>
+Corte di giustizia tributaria di primo grado di Oristano
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Padova'>
+Corte di giustizia tributaria di primo grado di Padova
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Palermo'>
+Corte di giustizia tributaria di primo grado di Palermo
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Parma'>
+Corte di giustizia tributaria di primo grado di Parma
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Pavia'>
+Corte di giustizia tributaria di primo grado di Pavia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Perugia'>
+Corte di giustizia tributaria di primo grado di Perugia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Pesaro'>
+Corte di giustizia tributaria di primo grado di Pesaro
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Pescara'>
+Corte di giustizia tributaria di primo grado di Pescara
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Piacenza'>
+Corte di giustizia tributaria di primo grado di Piacenza
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Pisa'>
+Corte di giustizia tributaria di primo grado di Pisa
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Pistoia'>
+Corte di giustizia tributaria di primo grado di Pistoia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Pordenone'>
+Corte di giustizia tributaria di primo grado di Pordenone
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Potenza'>
+Corte di giustizia tributaria di primo grado di Potenza
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Prato'>
+Corte di giustizia tributaria di primo grado di Prato
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Ragusa'>
+Corte di giustizia tributaria di primo grado di Ragusa
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Ravenna'>
+Corte di giustizia tributaria di primo grado di Ravenna
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Reggio Calabria'>
+Corte di giustizia tributaria di primo grado di Reggio Calabria
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Reggio Emilia'>
+Corte di giustizia tributaria di primo grado di Reggio Emilia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Rieti'>
+Corte di giustizia tributaria di primo grado di Rieti
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Rimini'>
+Corte di giustizia tributaria di primo grado di Rimini
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Roma'>
+Corte di giustizia tributaria di primo grado di Roma
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Rovigo'>
+Corte di giustizia tributaria di primo grado di Rovigo
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Salerno'>
+Corte di giustizia tributaria di primo grado di Salerno
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Sassari'>
+Corte di giustizia tributaria di primo grado di Sassari
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Savona'>
+Corte di giustizia tributaria di primo grado di Savona
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Siena'>
+Corte di giustizia tributaria di primo grado di Siena
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Siracusa'>
+Corte di giustizia tributaria di primo grado di Siracusa
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Sondrio'>
+Corte di giustizia tributaria di primo grado di Sondrio
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Taranto'>
+Corte di giustizia tributaria di primo grado di Taranto
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Teramo'>
+Corte di giustizia tributaria di primo grado di Teramo
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Terni'>
+Corte di giustizia tributaria di primo grado di Terni
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Torino'>
+Corte di giustizia tributaria di primo grado di Torino
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Trapani'>
+Corte di giustizia tributaria di primo grado di Trapani
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Trento'>
+Corte di giustizia tributaria di primo grado di Trento
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Treviso'>
+Corte di giustizia tributaria di primo grado di Treviso
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Trieste'>
+Corte di giustizia tributaria di primo grado di Trieste
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Udine'>
+Corte di giustizia tributaria di primo grado di Udine
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Varese'>
+Corte di giustizia tributaria di primo grado di Varese
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Venezia'>
+Corte di giustizia tributaria di primo grado di Venezia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Verbania'>
+Corte di giustizia tributaria di primo grado di Verbania
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Vercelli'>
+Corte di giustizia tributaria di primo grado di Vercelli
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Verona'>
+Corte di giustizia tributaria di primo grado di Verona
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Vibo Valentia'>
+Corte di giustizia tributaria di primo grado di Vibo Valentia
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Vicenza'>
+Corte di giustizia tributaria di primo grado di Vicenza
+</option>
+<option value='Corte di giustizia tributaria di primo grado di Viterbo'>
+Corte di giustizia tributaria di primo grado di Viterbo
+</option>
+<option value='Corte di giustizia tributaria di secondo grado del Friuli Venezia Giulia'>
+Corte di giustizia tributaria di secondo grado del Friuli Venezia Giulia
+</option>
+<option value='Corte di giustizia tributaria di secondo grado del Lazio'>
+Corte di giustizia tributaria di secondo grado del Lazio
+</option>
+<option value='Corte di giustizia tributaria di secondo grado del Molise'>
+Corte di giustizia tributaria di secondo grado del Molise
+</option>
+<option value='Corte di giustizia tributaria di secondo grado del Piemonte'>
+Corte di giustizia tributaria di secondo grado del Piemonte
+</option>
+<option value='Corte di giustizia tributaria di secondo grado del Veneto'>
+Corte di giustizia tributaria di secondo grado del Veneto
+</option>
+<option value='Corte di giustizia tributaria di secondo grado dell&#39;Abruzzo'>
+Corte di giustizia tributaria di secondo grado dell&#39;Abruzzo
+</option>
+<option value='Corte di giustizia tributaria di secondo grado dell&#39;Emilia Romagna'>
+Corte di giustizia tributaria di secondo grado dell&#39;Emilia Romagna
+</option>
+<option value='Corte di giustizia tributaria di secondo grado dell&#39;Umbria'>
+Corte di giustizia tributaria di secondo grado dell&#39;Umbria
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Basilicata'>
+Corte di giustizia tributaria di secondo grado della Basilicata
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Calabria'>
+Corte di giustizia tributaria di secondo grado della Calabria
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Campania'>
+Corte di giustizia tributaria di secondo grado della Campania
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Liguria'>
+Corte di giustizia tributaria di secondo grado della Liguria
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Lombardia'>
+Corte di giustizia tributaria di secondo grado della Lombardia
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Puglia'>
+Corte di giustizia tributaria di secondo grado della Puglia
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Sardegna'>
+Corte di giustizia tributaria di secondo grado della Sardegna
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Sicilia'>
+Corte di giustizia tributaria di secondo grado della Sicilia
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Toscana'>
+Corte di giustizia tributaria di secondo grado della Toscana
+</option>
+<option value='Corte di giustizia tributaria di secondo grado della Valle d&#39;Aosta'>
+Corte di giustizia tributaria di secondo grado della Valle d&#39;Aosta
+</option>
+<option value='Corte di giustizia tributaria di secondo grado delle Marche'>
+Corte di giustizia tributaria di secondo grado delle Marche
+</option>
+<option value='Corte di giustizia tributaria di secondo grado di Bolzano'>
+Corte di giustizia tributaria di secondo grado di Bolzano
+</option>
+<option value='Corte di giustizia tributaria di secondo grado di Trento'>
+Corte di giustizia tributaria di secondo grado di Trento
+</option>
+<option value='Emilia Romagna'>
+Emilia Romagna
+</option>
+<option value='Friuli Venezia Giulia'>
+Friuli Venezia Giulia
+</option>
+<option value='Giudice di Pace'>
+Giudice di Pace
+</option>
+<option value='Lazio'>
+Lazio
+</option>
+<option value='Liguria'>
+Liguria
+</option>
+<option value='Lombardia'>
+Lombardia
+</option>
+<option value='Marche'>
+Marche
+</option>
+<option value='Molise'>
+Molise
+</option>
+<option value='Piemonte'>
+Piemonte
+</option>
+<option value='Presidente del Consiglio dei Ministri'>
+Presidente del Consiglio dei Ministri
+</option>
+<option value='Pretura'>
+Pretura
+</option>
+<option value='Provincia Autonoma Bolzano'>
+Provincia Autonoma Bolzano
+</option>
+<option value='Provincia Autonoma Trento'>
+Provincia Autonoma Trento
+</option>
+<option value='Puglia'>
+Puglia
+</option>
+<option value='Sardegna'>
+Sardegna
+</option>
+<option value='Sicilia'>
+Sicilia
+</option>
+<option value='Stato'>
+Stato
+</option>
+<option value='Toscana'>
+Toscana
+</option>
+<option value='Tr. Amm. Reg. Friuli Venezia Giulia'>
+Tr. Amm. Reg. Friuli Venezia Giulia
+</option>
+<option value='Trentino Alto Adige'>
+Trentino Alto Adige
+</option>
+<option value='Trib. Amm. Provincia Aut. Bolzano'>
+Trib. Amm. Provincia Aut. Bolzano
+</option>
+<option value='Trib. Amm. Provincia Aut. Trento'>
+Trib. Amm. Provincia Aut. Trento
+</option>
+<option value='Trib. Amm. Reg. Emilia Romagna'>
+Trib. Amm. Reg. Emilia Romagna
+</option>
+<option value='Trib. Amm. Reg. Valle d&#39;Aosta'>
+Trib. Amm. Reg. Valle d&#39;Aosta
+</option>
+<option value='Trib. Amm. Reg. per il Lazio'>
+Trib. Amm. Reg. per il Lazio
+</option>
+<option value='Trib. Amm. Reg. per il Molise'>
+Trib. Amm. Reg. per il Molise
+</option>
+<option value='Trib. Amm. Reg. per il Piemonte'>
+Trib. Amm. Reg. per il Piemonte
+</option>
+<option value='Trib. Amm. Reg. per il Puglia'>
+Trib. Amm. Reg. per il Puglia
+</option>
+<option value='Trib. Amm. Reg. per il Veneto'>
+Trib. Amm. Reg. per il Veneto
+</option>
+<option value='Trib. Amm. Reg. per l&#39;Abruzzo'>
+Trib. Amm. Reg. per l&#39;Abruzzo
+</option>
+<option value='Trib. Amm. Reg. per l&#39;Umbria'>
+Trib. Amm. Reg. per l&#39;Umbria
+</option>
+<option value='Trib. Amm. Reg. per la Basilicata'>
+Trib. Amm. Reg. per la Basilicata
+</option>
+<option value='Trib. Amm. Reg. per la Calabria'>
+Trib. Amm. Reg. per la Calabria
+</option>
+<option value='Trib. Amm. Reg. per la Campania'>
+Trib. Amm. Reg. per la Campania
+</option>
+<option value='Trib. Amm. Reg. per la Liguria'>
+Trib. Amm. Reg. per la Liguria
+</option>
+<option value='Trib. Amm. Reg. per la Lombardia'>
+Trib. Amm. Reg. per la Lombardia
+</option>
+<option value='Trib. Amm. Reg. per la Sardegna'>
+Trib. Amm. Reg. per la Sardegna
+</option>
+<option value='Trib. Amm. Reg. per la Sicilia'>
+Trib. Amm. Reg. per la Sicilia
+</option>
+<option value='Trib. Amm. Reg. per la Toscana'>
+Trib. Amm. Reg. per la Toscana
+</option>
+<option value='Trib. Amm. Reg. per le Marche'>
+Trib. Amm. Reg. per le Marche
+</option>
+<option value='Tribunale'>
+Tribunale
+</option>
+<option value='Tribunale I grado Corte Giust. CE'>
+Tribunale I grado Corte Giust. CE
+</option>
+<option value='Umbria'>
+Umbria
+</option>
+<option value='Valle d&#39;Aosta'>
+Valle d&#39;Aosta
+</option>
+<option value='Veneto'>
+Veneto
+</option>
+</select>
+</span><!--.campo-->
+</div><!--.riga-->
+<div class="riga">
+<label for="superEnte">Competenza:</label>
+<span class="campo">
+<select id="superEnte" name="superEnte" style="width: auto">
+<option value="">&nbsp;</option>
+<option value='Comm. Trib. Centrale'>
+Comm. Trib. Centrale
+</option>
+<option value='Corti di giustizia tributaria del Friuli Venezia Giulia'>
+Corti di giustizia tributaria del Friuli Venezia Giulia
+</option>
+<option value='Corti di giustizia tributaria del Lazio'>
+Corti di giustizia tributaria del Lazio
+</option>
+<option value='Corti di giustizia tributaria del Molise'>
+Corti di giustizia tributaria del Molise
+</option>
+<option value='Corti di giustizia tributaria del Piemonte'>
+Corti di giustizia tributaria del Piemonte
+</option>
+<option value='Corti di giustizia tributaria del Trentino Alto Adige'>
+Corti di giustizia tributaria del Trentino Alto Adige
+</option>
+<option value='Corti di giustizia tributaria del Veneto'>
+Corti di giustizia tributaria del Veneto
+</option>
+<option value='Corti di giustizia tributaria dell&#39;Abruzzo'>
+Corti di giustizia tributaria dell&#39;Abruzzo
+</option>
+<option value='Corti di giustizia tributaria dell&#39;Emilia Romagna'>
+Corti di giustizia tributaria dell&#39;Emilia Romagna
+</option>
+<option value='Corti di giustizia tributaria dell&#39;Umbria'>
+Corti di giustizia tributaria dell&#39;Umbria
+</option>
+<option value='Corti di giustizia tributaria della Basilicata'>
+Corti di giustizia tributaria della Basilicata
+</option>
+<option value='Corti di giustizia tributaria della Calabria'>
+Corti di giustizia tributaria della Calabria
+</option>
+<option value='Corti di giustizia tributaria della Campania'>
+Corti di giustizia tributaria della Campania
+</option>
+<option value='Corti di giustizia tributaria della Liguria'>
+Corti di giustizia tributaria della Liguria
+</option>
+<option value='Corti di giustizia tributaria della Lombardia'>
+Corti di giustizia tributaria della Lombardia
+</option>
+<option value='Corti di giustizia tributaria della Puglia'>
+Corti di giustizia tributaria della Puglia
+</option>
+<option value='Corti di giustizia tributaria della Sardegna'>
+Corti di giustizia tributaria della Sardegna
+</option>
+<option value='Corti di giustizia tributaria della Sicilia'>
+Corti di giustizia tributaria della Sicilia
+</option>
+<option value='Corti di giustizia tributaria della Toscana'>
+Corti di giustizia tributaria della Toscana
+</option>
+<option value='Corti di giustizia tributaria della Valle d&#39;Aosta'>
+Corti di giustizia tributaria della Valle d&#39;Aosta
+</option>
+<option value='Corti di giustizia tributaria delle Marche'>
+Corti di giustizia tributaria delle Marche
+</option>
+<option value='Tribunale'>
+Tribunale
+</option>	
+<option value='Tutte le Corti di giustizia tributaria di primo e secondo grado'>
+Tutte le Corti di giustizia tributaria di primo e secondo grado
+</option>
+<option value='Tutte le Corti di giustizia tributaria di secondo grado'>
+Tutte le Corti di giustizia tributaria di secondo grado
+</option>
+<option value='Tutte le Regioni'>
+Tutte le Regioni
+</option>
+<option value='Tutti i TAR'>
+Tutti i TAR
+</option>	
+<option value='Unione Europea'>
+Unione Europea
+</option>	
+</select>
+</span><!--.campo-->
+<a href="/DocTribFrontend/helpEnti.do" onclick="openBrWindow('/DocTribFrontend/helpEnti.do'); return false;" title="Aiuto ricerca per competenza - apre una nuova finestra" class="web">
+<img src="stylesheet_3.0/img/ico-info.png" alt="Aiuto - apre una nuova finestra" style="width:19px;height:19px;"/>	
+</a>
+</div><!--.riga-->
+<p><strong>N.B: Denominazione e Competenza sono mutuamente esclusivi.</strong></p>
+</div><!--.blocco-->
+</div><!--.contenuto-->
+</div><!--.accordion-->
+<div class="accordion">
+<div class="titolo">
+<h2>Argomento</h2>
+</div><!--.titolo-->
+<div class="contenuto">
+<div class="blocco">
+<div class="riga">
+<label for="materia">Materia:</label>
+<span class="campo">
+<select id="materia" name="materiaFiscale" onchange="callGetClassificazioni(this.value,'G')">
+<option value="">&nbsp;</option>
+</select>
+</span><!--.campo-->
+</div><!--.riga-->
+<div class="riga">
+<label for="classificazione">Classificazione:</label>
+<span class="campo">
+<select id="classificazione" name="classificazioneArgomento">
+<option value="">&nbsp;</option>
+</select>
+</span><!--.campo-->
+</div><!--.riga-->
+</div><!--.blocco-->
+</div><!--.contenuto-->
+</div><!--.accordion-->	
+<div class="riga bottoni">
+<button type="submit" class="bottone icon icon-lente">Ricerca</button>
+<button type="reset" class="link" onClick="javascript:document.getElementById('resetForm').submit();">Ripulisci</button>
+</div><!--.riga-->
+</form>
+</body>
+</html>
