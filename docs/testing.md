@@ -41,7 +41,7 @@ tests/
 │   ├── test_build_targets.py                        12 test
 │   ├── test_cache_switch.py                         18 test
 │   ├── test_calculations.py                         18 test
-│   ├── test_cerdef.py                               88 test
+│   ├── test_cerdef.py                              133 test  ← include il gate live (8 test, -m live): il modulo CeRDEF offre ancora i campi e i valori che il client invia
 │   ├── test_cgue.py                                 76 test
 │   ├── test_citation_gate.py                        28 test
 │   ├── test_cli.py                                   6 test

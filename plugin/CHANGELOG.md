@@ -329,6 +329,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/verbale` mostra prima il grafico, poi la tabella dei dettagli.
 
 ### Fixed
+- CeRDEF (giurisprudenza tributaria) funziona di nuovo e un guasto della
+  fonte non si legge più come "nessun risultato" (#46). Il portale ha
+  cambiato modulo di ricerca e formato XML e rispondeva a ogni richiesta del
+  vecchio client con una pagina di errore in HTTP 200 ("Ambito di ricerca non
+  valido"), letta come zero risultati: `ultime_sentenze_tributarie` diceva
+  "nessuna sentenza" a ogni chiamata (e il digest settimanale ometteva la
+  sezione tributaria), `cerca_giurisprudenza_tributaria` non trovava nulla e
+  `cerdef_leggi_provvedimento` restituiva un testo vuoto come successo. Ora
+  una pagina di errore o un formato non riconosciuto sono un **Errore**
+  esplicito; "Nessun provvedimento" significa che CeRDEF non ne ha trovati.
+- `ultime_sentenze_tributarie` copre i provvedimenti emessi negli ultimi 12
+  mesi (per data di emissione: il portale rifiuta una ricerca senza criteri e
+  non espone la data di pubblicazione). Con `ente="cgt_primo_grado"`,
+  `cerca_giurisprudenza_tributaria` richiede anche `data_da`, e se il filtro
+  si ferma prima di aver esaminato l'intero elenco lo dichiara; il criterio
+  `codice` non esiste più, si aggiungono `parole_adiacenti` e
+  `operatori_logici`.
 - Two of the reconciled tables re-read against the primary source
   (2026-09-20). `violazioni_patente`: generic failure to yield is art. 145
   c.10 (5 points; the stop line, c.5, keeps its 6), safety distance and
