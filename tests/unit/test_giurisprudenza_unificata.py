@@ -105,6 +105,25 @@ async def test_one_source_down():
 
 
 @pytest.mark.asyncio
+async def test_one_source_error_is_not_zero_results():
+    """A source that answered with an error page (source_error) is an error, not "0 risultati" (#46)."""
+    mock_cass = AsyncMock(return_value=_sr_ok("italgiure", 2, "Cass. results"))
+    mock_cer = AsyncMock(return_value=SearchResult(
+        success=False, source="cerdef", error_type="source_error",
+        error_message="il portale ha rifiutato la ricerca (Errore: Ambito di ricerca non valido)",
+    ))
+    mock_amm = AsyncMock(return_value=_sr_ok("giustizia_amm", 1, "TAR results"))
+    mock_cgue = AsyncMock(return_value=_sr_ok("cgue", 1, "CGUE results"))
+
+    with patch(_PATCH_GET_FONTI, return_value=_make_fonti(mock_cass, mock_cer, mock_amm, mock_cgue)):
+        result = await _cerca_giurisprudenza_unificata_impl("IVA")
+
+    assert "Tributaria (CeRDEF) (errore)" in result
+    assert "Tributaria (CeRDEF) (0 risultati)" not in result
+    assert "Ambito di ricerca non valido" in result
+
+
+@pytest.mark.asyncio
 async def test_single_source_filter_cassazione():
     """fonti='cassazione' — only Italgiure queried, others not called."""
     mock_cass = AsyncMock(return_value=_sr_ok("italgiure", 3, "Cass. results"))
