@@ -36,8 +36,16 @@ def _testo(reference: str) -> str:
 
 
 def _assert_words(reference: str, *words: str) -> None:
+    """Assert each phrase is in the vigente text; alternatives are separated by '|'.
+
+    Normattiva writes some numbers after the noun ("giorni sessanta") and uses the
+    ordinal indicator U+00BA ("1º agosto"): `tests/unit/_norme_live.contiene`
+    normalises both sides so a difference of form is not read as a change of law.
+    """
+    from tests.unit._norme_live import contiene
+
     testo = _testo(reference)
-    missing = [w for w in words if w.lower() not in testo]
+    missing = contiene(testo, *words)
     assert not missing, f"{reference}: il testo vigente non contiene {missing}"
 
 
@@ -71,7 +79,7 @@ def test_appello_347_rinvia_ai_termini_del_tribunale():
 
 
 def test_impugnazioni_325_327():
-    _assert_words("art. 325 c.p.c.", "trenta giorni", "sessanta giorni")
+    _assert_words("art. 325 c.p.c.", "trenta giorni", "sessanta giorni|giorni sessanta")
     _assert_words("art. 327 c.p.c.", "sei mesi")
     _assert_words("art. 47 c.p.c.", "trenta giorni")
 
@@ -82,7 +90,7 @@ def test_rito_semplificato_281_undecies_e_duodecies():
 
 
 def test_sospensione_feriale_1_31_agosto():
-    _assert_words("art. 1 L. 742/1969", "1° agosto", "31 agosto")
+    _assert_words("art. 1 L. 742/1969", "1° agosto|1° al 31 agosto", "31 agosto")
 
 
 def test_competenza_giudice_di_pace_art_7():
