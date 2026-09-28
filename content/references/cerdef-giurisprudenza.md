@@ -9,7 +9,7 @@ TOOL DISPONIBILI
 |------|-----|------------------|
 | `cerca_giurisprudenza_tributaria` | Ricerca nel database | query, tipo_provvedimento, ente, data_da, data_a, numero, criterio, ordinamento |
 | `cerdef_leggi_provvedimento` | Testo completo provvedimento | guid |
-| `ultime_sentenze_tributarie` | Ultime pubblicate | ente, tipo_provvedimento, max_risultati |
+| `ultime_sentenze_tributarie` | Più recenti degli ultimi 12 mesi (per data di emissione) | ente, tipo_provvedimento, max_risultati |
 
 ═══════════════════════════════════════════════════════════
 ENTI (filtro per organo giudicante)
@@ -17,22 +17,29 @@ ENTI (filtro per organo giudicante)
 
 | Chiave | Denominazione completa |
 |--------|------------------------|
-| `corte_suprema` | Corte Suprema di Cassazione |
-| `cgt_primo_grado` | CGT I grado (Corte di Giustizia Tributaria di primo grado) |
-| `cgt_secondo_grado` | CGT II grado (Corte di Giustizia Tributaria di secondo grado) |
+| `corte_suprema` | Corte di Cassazione |
+| `cgt_primo_grado` | Corti di giustizia tributaria di primo grado (ex CTP) |
+| `cgt_secondo_grado` | Corti di giustizia tributaria di secondo grado (ex CTR) |
 
 Nota: CGT = Commissioni Tributarie rinominate dalla L. 130/2022 (ex CTP/CTR).
+Il portale non ha un filtro per il solo primo grado: con `cgt_primo_grado`
+si interrogano tutte le CGT e si tengono quelle di primo grado, quindi in
+`cerca_giurisprudenza_tributaria` va indicato anche `data_da` (senza limite di
+date la ricerca impiega circa 100 secondi).
 
 ═══════════════════════════════════════════════════════════
 CRITERI DI RICERCA
 ═══════════════════════════════════════════════════════════
 
-| Chiave | Codice | Effetto |
-|--------|--------|---------|
-| `tutti` | T | Tutte le parole (default) |
-| `frase_esatta` | E | Frase esatta |
-| `almeno_uno` | O | Almeno una parola |
-| `codice` | C | Per codice/numero atto |
+| Chiave | Effetto |
+|--------|---------|
+| `tutti` | Tutte le parole (default) |
+| `almeno_uno` | Almeno una parola |
+| `frase_esatta` | Frase esatta |
+| `parole_adiacenti` | Parole adiacenti |
+| `operatori_logici` | Con operatori logici |
+
+Per cercare un provvedimento per numero usare il parametro `numero` (solo cifre).
 
 ═══════════════════════════════════════════════════════════
 TIPI PROVVEDIMENTO
@@ -73,7 +80,7 @@ Ricerca tematica:
 3. cite_law("art. N TUIR") → norma tributaria di riferimento
 
 Monitoraggio novità:
-1. ultime_sentenze_tributarie() → ultime pubblicate
+1. ultime_sentenze_tributarie() → provvedimenti degli ultimi 12 mesi, dal più recente
 2. ultime_sentenze_tributarie(ente="corte_suprema") → solo Cassazione
 3. cerdef_leggi_provvedimento(guid) → approfondimento
 
@@ -89,4 +96,6 @@ NOTE TECNICHE
 - Testo troncato a 25000 caratteri per evitare saturazione del contesto
 - Il GUID identifica univocamente ogni provvedimento
 - Date nei parametri di ricerca: formato DD/MM/YYYY
+- Una risposta anomala del portale è un **Errore** esplicito, mai "nessun
+  risultato": "Nessun provvedimento" significa che CeRDEF non ne ha trovati
 - Max risultati: 250 per richiesta (paginazione automatica via cookie di sessione)
