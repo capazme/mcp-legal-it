@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.14.2] - 2026-09-28
+
+### Added
+- `stato_server()`: the self-report diagnostics tool — package version,
+  active tool count after the `LEGAL_PROFILE` filter, pinned clock, cache
+  switch and directory, hostname. Surface is now 228 tools.
+
+### Fixed
+- CeRDEF (giurisprudenza tributaria) funziona di nuovo e un guasto della
+  fonte non si legge più come "nessun risultato" (#46). Il portale ha
+  cambiato modulo di ricerca e formato XML e rispondeva a ogni richiesta del
+  vecchio client con una pagina di errore in HTTP 200 ("Ambito di ricerca non
+  valido"), letta come zero risultati: `ultime_sentenze_tributarie` diceva
+  "nessuna sentenza" a ogni chiamata (e il digest settimanale ometteva la
+  sezione tributaria), `cerca_giurisprudenza_tributaria` non trovava nulla e
+  `cerdef_leggi_provvedimento` restituiva un testo vuoto come successo. Ora
+  una pagina di errore o un formato non riconosciuto sono un **Errore**
+  esplicito; "Nessun provvedimento" significa che CeRDEF non ne ha trovati.
+- `ultime_sentenze_tributarie` copre i provvedimenti emessi negli ultimi 12
+  mesi (per data di emissione: il portale rifiuta una ricerca senza criteri e
+  non espone la data di pubblicazione). Con `ente="cgt_primo_grado"`,
+  `cerca_giurisprudenza_tributaria` richiede anche `data_da`, e se il filtro
+  si ferma prima di aver esaminato l'intero elenco lo dichiara; il criterio
+  `codice` non esiste più, si aggiungono `parole_adiacenti` e
+  `operatori_logici`.
+
+## [2.14.1] - 2026-09-24
+
+### Fixed
+- `LEGAL_PROFILE` funziona di nuovo su FastMCP 3: FastMCP 3 ha rimosso
+  l'attributo `include_tags`, quindi l'assegnazione in `server.py` era un
+  no-op silenzioso e ogni profilo esponeva tutti i 227 tool (fino alla
+  2.14.0 inclusa). Il profilo è ora una trasformazione di visibilità
+  (`enable(tags=..., only=True)`) con prompt e risorse riabilitati;
+  `tests/unit/test_profiles.py` lo presidia e `install.py` riporta i
+  conteggi reali per profilo.
+- La versione dichiarata ai client MCP è quella del checkout, non quella
+  congelata nei metadati di un'installazione editable: vince il
+  `pyproject.toml` accanto al pacchetto, i metadati restano il ripiego per
+  una wheel installata.
+
+### Changed
+- Regole di grounding normalizzate: le sei skill agente riformulavano la
+  stessa regola di Legal Grounding in sette varianti divergenti -- ora
+  condividono una sola forma canonica. La convenzione OUTPUT del server
+  aggiunge la clausola di provenienza (`dati_applicati` col vintage e
+  `mcp-legal-it/fonti_consultate` dal `_meta`).
+- Documentazione allineata alla superficie 2.x distribuita (227 tool, 34
+  moduli, 23 skill, 10 slash command, 6 agenti): README e plugin/README,
+  guide di architettura, deployment e test, manifest e snippet del
+  marketplace riallineati.
+
 ## [2.14.0] - 2026-09-20
 
 ### Added

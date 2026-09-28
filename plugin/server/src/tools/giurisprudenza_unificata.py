@@ -105,6 +105,10 @@ async def _cerca_giurisprudenza_unificata_impl(
             elif not outcome.success and outcome.error_type == "no_results":
                 body = "0 risultati"
                 footer_parts.append(f"{label} (0 risultati)")
+            elif not outcome.success:
+                # A source that answered with something unreadable failed: it is not "0 risultati".
+                body = outcome.to_str()
+                footer_parts.append(f"{label} (errore)")
             elif outcome.success and outcome.num_found == 0 and outcome.results_text.strip():
                 # Source auto-relaxed a zero-hit query (e.g. Italgiure): body has results
                 # despite num_found==0, so avoid the misleading "(0 risultati)" footer.
