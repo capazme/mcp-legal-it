@@ -135,3 +135,9 @@ def test_limite_fine_mese_30_giugno_sei_mesi(page):
 def test_limite_31_agosto_2024_febbraio_venerdi(page):
     # Limite: 31/08/2024 + 6 mesi -> 28/02/2025 (venerdi, clamp senza slittamento).
     _confronta(page, "2024-08-31", "separazione_consensuale")
+
+
+# CONVENTION (phase 2-3): the only mismatch is 25/12/2025 -> Saturday 27/12 (site) vs Monday
+# 29/12 (tool), the same open question as termini_esecuzioni (art. 155 co. 4-6 c.p.c.). Also open:
+# the 6/12 months of art. 3 n. 2 lett. b) L. 898/1970 are a substantive minimum duration, so the
+# applicability of art. 155 is itself a convention. Tool is the later (prudent) date: no change.

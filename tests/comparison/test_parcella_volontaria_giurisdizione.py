@@ -200,6 +200,13 @@ class TestCasiPiano:
         parametri numerici previsti per le controversie di valore fino a euro
         520.000,00". The site applies the full 30% to the medium (4.536 x 1,3 =
         5.896,80 -> 5.897) and then +50% (art. 4): 8.845,50 -> 8.846.
+
+        CONVENTION (phase 3, 2026-09-29): a known, documented difference, not a tool
+        error. The official Tab. VII stops at 520.000 and art. 6 DM 55/2014 allows
+        only "fino al 30 per cento in piu'" (an option, not an obligation). The
+        tool applies no increase above 520.000 (floor of the range); the site
+        applies the full 30%. Both readings are defensible, so this case is
+        expected to differ. Documented in the tool docstring.
         """
         site = _site(page, 600000, "max")
         _compare(600000, "max", site, "600000_max")
@@ -241,6 +248,13 @@ class TestCasiLimite:
         Art. 6 DM 55/2014: "fino al 30 per cento in piu'" of the 520.000
         bracket. Site: 4.536 x 1,3 = 5.896,80 -> 5.897. The tool's "oltre
         520.000" row repeats the 520.000 values: 2.268 + 2.268 = 4.536.
+
+        CONVENTION (phase 3, 2026-09-29): a known, documented difference, not a tool
+        error. The official Tab. VII stops at 520.000 and art. 6 DM 55/2014 allows
+        only "fino al 30 per cento in piu'" (an option, not an obligation). The
+        tool applies no increase above 520.000 (floor of the range); the site
+        applies the full 30%. Both readings are defensible, so this case is
+        expected to differ. Documented in the tool docstring.
         """
         site = _site(page, 520000.01, "medio")
         _compare(520000.01, "medio", site, "520000.01_medio")

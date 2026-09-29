@@ -165,3 +165,10 @@ def test_memorie_2025_07_01_senza_feriale_prudenziale(page):
 
 def test_190_2022_01_04_comparsa_sabato_prudenziale(page):
     _compare(_tool("2022-01-04"), _site_190(page, "2022-01-04", prudenziale=True))
+
+
+# Benchmark phase 3 verdict (2026-09-29): CONVENTION. The site chains each term from the previous
+# one already prorogated (art. 155 co. 4-5), the tool counts 30/60/80 (and 60/80) days from the
+# hearing. Art. 183 co. 6 (pre-Cartabia) says "ulteriori" terms without settling the point; the
+# tool date is the earlier, prudential one. Failing cases differ only when an intermediate term
+# falls on a Saturday or holiday. No tool change.

@@ -184,10 +184,10 @@ def _assert_cents(tool_value: float, site_value: float | None, label: str) -> No
 
 
 def _tool_text_amount(testo: str, label: str) -> float:
-    """Amount printed by the tool after ``label`` (the tool uses '1,234.56' format)."""
-    m = re.search(rf"{re.escape(label)}:\s*-?€([\d,]+\.\d{{2}})", testo)
+    """Amount printed by the tool after ``label`` (Italian format '1.234,56' since phase 3)."""
+    m = re.search(rf"{re.escape(label)}:\s*-?€([\d.]+,\d{{2}})", testo)
     assert m, f"importo '{label}' non trovato nel testo del tool"
-    return float(m.group(1).replace(",", ""))
+    return float(m.group(1).replace(".", "").replace(",", "."))
 
 
 # --- Plan cases -------------------------------------------------------------------
@@ -254,6 +254,12 @@ def test_piano_7748_netto_senza_addebito_bollo(page):
 
 
 def test_piano_6000_oltre_franchigia_inps(page):
+    # Phase 3 verdict (sito_errato on the rate): INPS circular 8/2026, table row 09 "Rapporti
+    # occasionali autonomi (L. 326/2003 art. 44)", gives 33,72% (33% + 0,50% + 0,22%); the
+    # 1,31% DIS-COLL add-on (35,03%) belongs to the collaboratori rows (02, 05, 06, 11, ...) and
+    # is not due on row 09. The tool follows the circular; the site applies 35,03%, so the net
+    # differs by 1/3 x 1,31% x excess (4,37 on 6.000, 0,004 on 5.001). Hand check at 6.000:
+    # 1.000 x 33,72% / 3 = 112,40 -> net 4.687,60 (site 4.683,23).
     # Piano: 6.000 EUR -> ritenuta 1.200,00; netto 4.800,00 "prima dei contributi";
     # se nell'anno i compensi occasionali superano 5.000 EUR, sui 1.000 eccedenti sono
     # dovuti i contributi della gestione separata (aliquota 2026), un terzo a carico del
@@ -290,6 +296,12 @@ def test_limite_franchigia_5000_esatti(page):
 
 
 def test_limite_franchigia_5001(page):
+    # Phase 3 verdict (sito_errato on the rate): INPS circular 8/2026, table row 09 "Rapporti
+    # occasionali autonomi (L. 326/2003 art. 44)", gives 33,72% (33% + 0,50% + 0,22%); the
+    # 1,31% DIS-COLL add-on (35,03%) belongs to the collaboratori rows (02, 05, 06, 11, ...) and
+    # is not due on row 09. The tool follows the circular; the site applies 35,03%, so the net
+    # differs by 1/3 x 1,31% x excess (4,37 on 6.000, 0,004 on 5.001). Hand check at 6.000:
+    # 1.000 x 33,72% / 3 = 112,40 -> net 4.687,60 (site 4.683,23).
     # Caso al limite: 5.001,00 EUR, un euro oltre la franchigia. Atteso normativo:
     # ritenuta 1.000,20; quota INPS del prestatore = 1/3 x 35,03% x 1,00 = 0,12;
     # netto 4.000,68. Il tool (senza INPS) da' 4.000,80: scostamento atteso di 0,12.

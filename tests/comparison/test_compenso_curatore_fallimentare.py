@@ -25,7 +25,10 @@ import sys
 
 import pytest
 
-sys.path.insert(0, "/Users/gpuzio/Desktop/CODE/server-infra2.0/mcp-legal-it")
+from pathlib import Path  # noqa: E402
+
+# repository root of THIS checkout (a hard-coded path would import another working tree)
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import src.server  # noqa: E402,F401  (registers all tool modules)
 from src.tools.parcelle_professionisti import compenso_curatore_fallimentare  # noqa: E402
@@ -138,9 +141,10 @@ def test_confine_scaglione_passivo(page):
 
 
 def test_massimo_dichiarato_dal_tool(page):
-    """Limit case: very large procedure (attivo 100 mln). The tool caps the
-    fee at the 'massimo' 405.656,80 declared in its docstring; DM 30/2012
-    art. 1 has no such overall cap (only the art. 4 minimum), so the site is
-    expected to apply 0,45-0,90% beyond 2.434.061,37 without a ceiling.
+    """Limit case: very large procedure. DM 30/2012 art. 1 has no overall cap
+    (only the art. 4 minimum): 0,45-0,90% applies beyond 2.434.061,37 without
+    a ceiling. The site truncates the assets at 10.000.000 (with 100 mln it
+    returns the figures of 10 mln: 89.705,59 / 118.209,64 / 146.713,64, which
+    the decree does not justify), so the comparable case is 10 mln.
     """
-    _compare(page, 100_000_000, 0)
+    _compare(page, 10_000_000, 0)

@@ -283,7 +283,41 @@ class TestScadenzeMulte:
         # Notifica 2025-12-20, 5gg = 2025-12-25 (Natale) → slitta
         r = _call("scadenze_multe", data_notifica="2025-12-20", tipo_ricorso="pagamento_ridotto_5gg")
         assert r["prorogata_art_155"] is True
-        assert r["scadenza"] == "2025-12-29"
+        # Non-procedural term: Saturday is a working day, only Sunday and holidays roll
+        # the deadline over. 25/12 (Natale) and 26/12 (S. Stefano) -> Saturday 27/12.
+        assert r["scadenza"] == "2025-12-27"
+
+    def test_giudice_pace_sospensione_feriale(self):
+        # Art. 1 L. 742/1969 (Cass. 11478/2017, 30427/2022): the 30-day term of art. 7 co. 3
+        # D.Lgs. 150/2011 is suspended 1-31 August. Notifica 20/07/2025: 11 days to 31/07,
+        # August skipped, 19 more days from 1/09 -> Friday 19/09/2025.
+        r = _call("scadenze_multe", data_notifica="2025-07-20", tipo_ricorso="giudice_pace")
+        assert r["scadenza"] == "2025-09-19"
+        assert r["sospensione_feriale_incidente"] is True
+
+    def test_giudice_pace_sabato_prorogato(self):
+        # Processual term (art. 155 co. 5 c.p.c.): notifica 18/09/2025 + 30 = Saturday
+        # 18/10/2025 -> Monday 20/10/2025.
+        r = _call("scadenze_multe", data_notifica="2025-09-18", tipo_ricorso="giudice_pace")
+        assert r["scadenza"] == "2025-10-20"
+
+    def test_prefetto_sabato_non_prorogato(self):
+        # Non-procedural term (art. 203 CdS): 3/06/2025 + 60 = Saturday 2/08/2025, a working
+        # day (art. 155 co. 5 c.p.c. covers only procedural acts); no feriale suspension.
+        r = _call("scadenze_multe", data_notifica="2025-06-03", tipo_ricorso="prefetto")
+        assert r["scadenza"] == "2025-08-02"
+
+    def test_pagamento_festivo_poi_sabato(self):
+        # 2/03/2026 + 60 = Friday 1 May 2026 (holiday) -> Saturday 2 May, working day.
+        r = _call("scadenze_multe", data_notifica="2026-03-02", tipo_ricorso="pagamento_ridotto")
+        assert r["scadenza"] == "2026-05-02"
+
+    def test_pagamento_su_sabato_festivo_va_al_lunedi(self):
+        # 16/06/2026 + 60 = Saturday 15 August 2026 (Ferragosto, a public holiday, art. 2 L. 260/1949):
+        # art. 155 co. 4 c.p.c. rolls it over to the next non-holiday day. Sunday 16 is a holiday
+        # too, so the deadline is Monday 17 August. A plain Saturday is instead a working day.
+        r = _call("scadenze_multe", data_notifica="2026-06-16", tipo_ricorso="pagamento_ridotto")
+        assert r["scadenza"] == "2026-08-17"
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +392,7 @@ class TestTerminiProcedimentoSemplificato:
         assert len(r["scadenze"]) == 5
 
     def test_costituzione_convenuto_10_giorni_prima(self):
-        # Art. 281-undecies co. 3: 10gg prima dell'udienza; 2025-09-21 è domenica → anticipa a venerdì 19
+        # Art. 281-undecies co. 2 (second sentence): 10gg prima dell'udienza; 2025-09-21 è domenica → anticipa a venerdì 19
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
         comp = next(s for s in r["scadenze"] if s["termine"] == "costituzione_convenuto")
         assert comp["giorni_prima_udienza"] == 10
@@ -375,12 +409,25 @@ class TestTerminiProcedimentoSemplificato:
         assert est["giorni_prima_udienza"] == 61
 
     def test_memorie_eventuali_in_avanti(self):
-        # Art. 281-duodecies co. 3: fino a 20gg + 10gg dall'udienza, solo se concesse
+        # Art. 281-duodecies co. 4: fino a 20gg + 10gg dall'udienza, solo se concesse
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
         mem = next(s for s in r["scadenze"] if s["termine"] == "memoria_integrativa")
         assert mem["scadenza"] == "2025-10-21"
         rep = next(s for s in r["scadenze"] if s["termine"] == "replica_prova_contraria")
         assert rep["scadenza"] == "2025-10-31"
+
+    def test_riferimenti_commi_verificati_sul_testo(self):
+        # Verified on Normattiva: the 10-day filing term is art. 281-undecies co. 2,
+        # the 20+10 day briefs are art. 281-duodecies co. 4 (co. 3 is the counterclaim rule).
+        r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01")
+        comp = next(s for s in r["scadenze"] if s["termine"] == "costituzione_convenuto")
+        assert "281-undecies, co. 2" in comp["descrizione"]
+        mem = next(s for s in r["scadenze"] if s["termine"] == "memoria_integrativa")
+        rep = next(s for s in r["scadenze"] if s["termine"] == "replica_prova_contraria")
+        assert "281-duodecies, co. 4" in mem["descrizione"]
+        assert "281-duodecies, co. 4" in rep["descrizione"]
+        err = _call("termini_procedimento_semplificato", data_udienza="2025-10-01", giorni_memoria=25)
+        assert "281-duodecies co. 4" in err["errore"]
 
     def test_giorni_concessi_oltre_il_massimo_rifiutati(self):
         r = _call("termini_procedimento_semplificato", data_udienza="2025-10-01", giorni_memoria=25)

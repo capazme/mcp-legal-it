@@ -49,6 +49,8 @@ Tolerance: 0.01 EUR (brief), compared in integer cents.
 
 import re
 
+import pytest
+
 from tests.comparison.conftest import parse_euro
 
 URL = "https://www.avvocatoandreani.it/servizi/calcolo-compenso-onorario-ctu-liquidazione-tariffe.php"
@@ -405,12 +407,13 @@ def test_limite_perizia_medica_5_ore_mezza_vacazione(page):
     s = _site(page, periodo=PERIODO_2026, vacazioni=vac)
     assert s["errore"] is None, s["errore"]
     o = r["calcolo_orario"]
-    _confronta(
-        f"perizia_medica 5 ore (2,5 vacazioni; sito: {s['n_vacazioni']} vacazioni)",
-        [
-            ("orario min vs vacazioni", o["compenso_min"], s["vacazioni_totale"]),
-            ("orario max vs vacazioni", o["compenso_max"], s["vacazioni_totale"]),
-        ],
+    # Phase 3 verdict (sito_errato): the site rounds 2,5 up to 3 vacazioni (44,04), against
+    # art. 4 c. 4 L. 319/1980 (half a vacazione is due for the 1 hour left, not a whole one).
+    # The tool follows the norm: 2,5 x 14,68 = 36,70. The site figure is only recorded.
+    assert o["vacazioni"] == 2.5
+    assert o["compenso_min"] == o["compenso_max"] == pytest.approx(36.70, abs=0.01)
+    assert s["vacazioni_totale"] == pytest.approx(44.04, abs=0.01), (
+        f"the site changed its rounding of half vacazioni: {s['vacazioni_totale']}"
     )
 
 

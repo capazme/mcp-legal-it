@@ -163,14 +163,18 @@ def gratuito_patrocinio(
     redditi_familiari: list[float] | None = None,
     ambito: str = "civile",
     vittima_violenza: bool = False,
+    diritti_personalita: bool = False,
+    interessi_in_conflitto: bool = False,
 ) -> dict:
     """Verifica l'ammissibilità al patrocinio a spese dello Stato (DPR 115/2002).
 
     Calcola se il nucleo familiare rientra nei limiti di reddito per l'ammissione al
     gratuito patrocinio. Per le vittime di violenza domestica/di genere l'ammissione
     è automatica indipendentemente dal reddito. In ambito penale la soglia è maggiorata
-    di €1.032,91 per ogni familiare convivente.
-    Vigenza: DPR 115/2002 artt. 76, 92 — D.M. 22 aprile 2025 (soglia €13.659,64).
+    di €1.032,91 per ogni familiare convivente. Quando la causa ha per oggetto diritti
+    della personalità o gli interessi del richiedente sono in conflitto con quelli dei
+    conviventi si conta il solo reddito personale (art. 76 co. 4).
+    Vigenza: DPR 115/2002 artt. 76, 92 — D.M. 22 aprile 2025 (soglia €13.659,64), verificato al 2026-09-29.
     Precisione: INDICATIVO — la verifica definitiva compete al Consiglio dell'Ordine.
     Chaining: → competenza_giudice() per individuare il giudice, → calcolo_parcella() per stimare il compenso
 
@@ -180,6 +184,10 @@ def gratuito_patrocinio(
         redditi_familiari: Lista dei redditi imponibili annui dei familiari conviventi in euro. Default [].
         ambito: Ambito processuale: 'civile' (default) o 'penale'. In penale la soglia è maggiorata per familiari.
         vittima_violenza: True se vittima di violenza domestica/di genere/stalking (art. 76 co. 4-ter DPR 115/2002). Ammissione automatica.
+        diritti_personalita: True se la causa ha per oggetto diritti della personalità (art. 76 co. 4): conta il solo reddito del richiedente.
+        interessi_in_conflitto: True se gli interessi del richiedente sono in conflitto con quelli dei familiari conviventi (art. 76 co. 4): conta il solo reddito del richiedente.
+
+    Nota: il reddito da indicare comprende anche i redditi esenti IRPEF e quelli soggetti a ritenuta a titolo d'imposta o a imposta sostitutiva (art. 76 co. 3).
     """
     if reddito_richiedente < 0:
         raise ValueError("reddito_richiedente non può essere negativo")
@@ -206,7 +214,12 @@ def gratuito_patrocinio(
             "riferimento_normativo": "DPR 115/2002 artt. 76, 92 — D.M. 22 aprile 2025 (soglia €13.659,64)",
         }
 
-    reddito_totale = reddito_richiedente + sum(redditi_familiari)
+    # Art. 76 co. 4: solo reddito personale per diritti della personalità o conflitto di interessi
+    solo_personale = diritti_personalita or interessi_in_conflitto
+    if solo_personale:
+        reddito_totale = reddito_richiedente
+    else:
+        reddito_totale = reddito_richiedente + sum(redditi_familiari)
 
     # Calcolo soglia applicabile
     if ambito == "penale" and n_familiari_conviventi > 0:
@@ -222,8 +235,11 @@ def gratuito_patrocinio(
     ammesso = reddito_totale <= soglia
     margine = round(soglia - reddito_totale, 2)
 
+    etichetta_reddito = (
+        "Reddito personale (art. 76 co. 4 DPR 115/2002)" if solo_personale else "Reddito nucleo familiare"
+    )
     note_calc = (
-        f"Reddito nucleo familiare: €{reddito_totale:,.2f} — {nota_soglia} — "
+        f"{etichetta_reddito}: €{reddito_totale:,.2f} — {nota_soglia} — "
         f"{'AMMESSO' if ammesso else 'NON AMMESSO'} (margine: {'+' if margine >= 0 else ''}{margine:,.2f} €)"
     )
 
@@ -233,6 +249,7 @@ def gratuito_patrocinio(
         "reddito_richiedente": round(reddito_richiedente, 2),
         "redditi_familiari": [round(r, 2) for r in redditi_familiari],
         "n_familiari_conviventi": n_familiari_conviventi,
+        "solo_reddito_personale": solo_personale,
         "reddito_totale_nucleo": round(reddito_totale, 2),
         "soglia_applicata": round(soglia, 2),
         "margine": margine,

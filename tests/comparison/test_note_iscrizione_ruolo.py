@@ -57,16 +57,16 @@ def _pin_today(monkeypatch):
 # --------------------------------------------------------------------------- tool
 
 
-def _tool(tipo_procedimento: str, valore_causa: float | None) -> dict:
+def _tool(tipo_procedimento: str, valore_causa: float | None, **flags) -> dict:
     import src.server  # noqa: F401  registers every module (avoids circular imports)
     from src.tools.atti_giudiziari import note_iscrizione_ruolo
 
     fn = getattr(note_iscrizione_ruolo, "fn", note_iscrizione_ruolo)
-    return fn(tipo_procedimento=tipo_procedimento, valore_causa=valore_causa)
+    return fn(tipo_procedimento=tipo_procedimento, valore_causa=valore_causa, **flags)
 
 
-def _tool_cu(tipo_procedimento: str, valore_causa: float | None) -> float:
-    r = _tool(tipo_procedimento, valore_causa)
+def _tool_cu(tipo_procedimento: str, valore_causa: float | None, **flags) -> float:
+    r = _tool(tipo_procedimento, valore_causa, **flags)
     assert "errore" not in r, r
     return float(r["contributo_unificato"])
 
@@ -268,7 +268,8 @@ class TestContributoUnificato:
         # The eviction procedure (artt. 657-669 c.p.c.) is in book IV title I: halved CU.
         # The tool offers the eviction codes 030001-030021 under 'locazione' but prices the
         # case on the full scale, and has no parameter to tell the two apart.
-        ours = _tool_cu("locazione", 3000)
+        # Fixed: the tool now has `convalida_sfratto` (art. 13 co. 3 halving).
+        ours = _tool_cu("locazione", 3000, convalida_sfratto=True)
         site = _site_cu(page, 3000, riduzione=True)
         assert_close(ours, site, 0.01, "CU convalida di sfratto, canoni scaduti 3.000")
 
@@ -293,7 +294,8 @@ class TestContributoUnificato:
             "Procedimenti in materia di lavoro e rapporti di pubblico impiego quando il reddito"
         )]
         assert row and "50%" in row[0], f"site table row: {row}"
-        ours = _tool_cu("lavoro", 20000)
+        # Fixed: the tool now has `reddito_oltre_soglia_lavoro` (art. 9 co. 1-bis + art. 13 co. 3).
+        ours = _tool_cu("lavoro", 20000, reddito_oltre_soglia_lavoro=True)
         site = _site_cu(page, 20000, riduzione=True)
         assert_close(ours, site, 0.01, "CU lavoro, reddito oltre 3x soglia art. 76")
 
@@ -319,12 +321,15 @@ class TestContributoUnificato:
         # (art. 13 co. 2); il tool dà 43". The site cannot price a movable execution without
         # its value (two rows by value), so there is nothing to compare: the tool silently
         # takes value 0 (`valore_causa or 0`) instead of asking for it.
-        ours = _tool_cu("esecuzione_mobiliare", None)
+        # After the fix the tool returns contributo_unificato=None (value required), which is the
+        # correct behaviour: the case stays non-comparable.
+        ours = _tool("esecuzione_mobiliare", None)["contributo_unificato"]
+        assert ours is None, "the tool must ask for the value instead of assuming 0"
         _, sotto = _site_table_amount(page, "Procedimenti esecutivi mobiliari di valore inferiore")
         _, sopra = _site_table_amount(page, "Procedimenti esecutivi mobiliari di valore superiore")
         pytest.skip(
             f"sito_non_calcola: senza valore il sito non determina il CU "
-            f"({sotto:.2f} sotto 2.500, {sopra:.2f} da 2.500); il tool restituisce {ours:.2f}"
+            f"({sotto:.2f} sotto 2.500, {sopra:.2f} da 2.500); il tool chiede il valore (CU None)"
         )
 
     def test_esecuzione_immobiliare(self, page):

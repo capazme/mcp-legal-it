@@ -216,3 +216,11 @@ def test_pagina_art_352_non_confrontabile(page):
         "sito: la pagina omonima calcola i termini ex art. 352 c.p.c. (60/30/15 giorni "
         "prima dell'udienza), non calcolati dal tool"
     )
+
+
+# Benchmark phase 3 verdicts (2026-09-29).
+# - Appellant filing with raw date on Saturday: art. 155 co. 5 c.p.c. prorogues to Monday for procedural
+#   acts outside the hearing; the tool is right, the site treats Saturday as a working day (site wrong).
+# - 70-day term counted backwards, raw date on Sunday: CONVENTION. The tool anticipates to Friday
+#   (prudential, same as _slide_backward in every backward term); Saturday would also be defensible
+#   (art. 155 co. 6: Saturday is a working day). No tool change.

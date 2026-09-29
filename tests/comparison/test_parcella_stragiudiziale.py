@@ -189,6 +189,12 @@ _CASI_OLTRE = [
     # Extra (limite): 3.000.000 crosses the 2.000.000 band -> the two site methods diverge
     # (secca: 2,75% on the whole value; a scaglioni: 3% on 2M + 2,75% on 1M).
     pytest.param(3000000, "F", "medio", id="3000000-medio-percentuale-secca"),
+    # CONVENTION (phase 3, 2026-09-29): this "a scaglioni" case is expected to differ.
+    # Art. 22 DM 55/2014 speaks of "una percentuale progressivamente decrescente del valore
+    # dell'affare"; Tab. 25 lists one percentage per band of value, and the literal reading
+    # (the tool's) applies the band percentage to the whole value. The site itself calls
+    # the slice-by-slice method its own interpretation. Both are defensible; the tool
+    # follows the "secca" reading, documented in its docstring.
     pytest.param(3000000, "S", "medio", id="3000000-medio-a-scaglioni"),
 ]
 

@@ -123,10 +123,14 @@ def test_piano_cinque_incontri_default_totale_dm(page):
     # Norma: D.M. 151/2023 art. 8, c. 4, 5 e 6. Confronto con la complessita' media
     # (default del sito, e la sola di cui 120 = 80 x 1,5 riproduce il compenso): il tool
     # non aggiunge le spese forfettarie del 21% -> scostamento atteso di 100,80 EUR.
+    # Phase 3 verdict (test_errato): `compenso_totale` is the compenso WITHOUT the 21% flat
+    # expenses (art. 8 c. 1 DM 151/2023: the compenso of c. 4-5 does not include them), so it
+    # must be compared with the site's "Compenso spettante" (see the default-120 test below).
+    # The site's "Totale imponibile" corresponds to the tool's `totale_imponibile` (compenso + 21%).
     r = _tool(n_incontri=5, tariffa_incontro=120.0)
     assert "errore" not in r, r
     s = _site(page, "media", r["incontri_a_pagamento"])
-    _assert_cents(r["compenso_totale"], _PARTI * s["imponibile"], "5 incontri, 120 EUR vs imponibile DM media")
+    _assert_cents(r["totale_imponibile"], _PARTI * s["imponibile"], "5 incontri, 120 EUR vs imponibile DM media")
 
 
 def test_piano_tariffa_bassa_complessita(page):

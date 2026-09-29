@@ -60,6 +60,17 @@ def _easter(year: int) -> date:
     return date(year, month, day)
 
 
+def _is_public_holiday(d: date) -> bool:
+    """True when d is a fixed national holiday, Easter or Easter Monday (weekends ignored)."""
+    for f in _FESTIVITA_FISSE:
+        if f.get("dal_anno") and d.year < f["dal_anno"]:
+            continue
+        if d.day == f["giorno"] and d.month == f["mese"]:
+            return True
+    pasqua = _easter(d.year)
+    return d == pasqua or d == pasqua + timedelta(days=1)
+
+
 def _is_holiday(d: date) -> bool:
     """Check if date is a weekend or Italian public holiday."""
     if d.weekday() >= 5:  # Saturday=5, Sunday=6
@@ -79,6 +90,25 @@ def _slide_forward(d: date) -> tuple[date, bool]:
     """Art. 155 co. 4-5 c.p.c.: slide to next business day if holiday or Saturday."""
     original = d
     while _is_holiday(d):
+        d += timedelta(days=1)
+    return d, d != original
+
+
+def _slide_forward_festivi(d: date) -> tuple[date, bool]:
+    """Proroga al primo giorno seguente non festivo, con il sabato giorno lavorativo.
+
+    Per i termini NON processuali (ricorso al prefetto, pagamento in misura ridotta) la
+    proroga del sabato dell'art. 155 co. 5 c.p.c. (limitata agli atti processuali) non si
+    applica: vale solo la proroga del giorno festivo (domenica e festivita').
+    """
+    original = d
+
+    def _festivo(x: date) -> bool:
+        # A Saturday is a working day unless it is itself a public holiday (Ferragosto 2026,
+        # Natale 2027): art. 155 co. 4 c.p.c. rolls those over to the next non-holiday day.
+        return x.weekday() == 6 or _is_public_holiday(x)
+
+    while _festivo(d):
         d += timedelta(days=1)
     return d, d != original
 
@@ -571,6 +601,16 @@ def scadenze_impugnazioni(
     }
 
 
+def _multe_scadenza(dt_notifica: date, tipo: str, giorni: int) -> tuple[date, bool, bool]:
+    """Scadenza per opzione: (data, prorogata, sospensione feriale incidente)."""
+    if tipo == "giudice_pace":
+        raw, incisa = _conta_avanti(dt_notifica, giorni, True)
+        d, adj = _slide_forward(raw)
+        return d, adj, incisa
+    d, adj = _slide_forward_festivi(dt_notifica + timedelta(days=giorni))
+    return d, adj, False
+
+
 @mcp.tool(tags={"scadenze"})
 @sourced("festivita")
 def scadenze_multe(
@@ -580,8 +620,11 @@ def scadenze_multe(
     """Calcola i termini per ricorso o pagamento contro contravvenzioni al Codice della Strada.
     Vigenza: D.Lgs. 285/1992 Codice della Strada, artt. 202, 203 e 204-bis; sconto del 30% per il
     pagamento entro 5 giorni introdotto dall'art. 20 DL 69/2013 conv. L. 98/2013.
-    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c. se cadono in giorno festivo; la
-    sospensione feriale non viene applicata).
+    Precisione: ESATTO (termini di legge). Ricorso al giudice di pace: termine processuale, quindi
+    sospensione feriale 1-31 agosto (art. 1 L. 742/1969; Cass. 11478/2017, 30427/2022) e proroga
+    del sabato (art. 155 co. 5 c.p.c.). Ricorso al prefetto e pagamento: termini non processuali,
+    nessuna sospensione feriale; il sabato e' giorno lavorativo, si proroga solo se cade di
+    domenica o in festivita'.
 
     Args:
         data_notifica: Data di notifica del verbale di accertamento (YYYY-MM-DD)
@@ -625,8 +668,7 @@ def scadenze_multe(
         }
 
     cfg = config[tipo_ricorso]
-    scadenza_raw = dt_notifica + timedelta(days=cfg["giorni"])
-    scadenza, adjusted = _slide_forward(scadenza_raw)
+    scadenza, adjusted, incisa = _multe_scadenza(dt_notifica, tipo_ricorso, cfg["giorni"])
 
     result = {
         "data_notifica": data_notifica,
@@ -640,16 +682,17 @@ def scadenze_multe(
     if tipo_ricorso == "pagamento_ridotto_5gg":
         result["nota"] = "Lo sconto del 30% si applica solo al pagamento entro 5 giorni dalla notifica"
     if tipo_ricorso == "giudice_pace":
+        result["sospensione_feriale_applicata"] = True
+        result["sospensione_feriale_incidente"] = incisa
         result["nota"] = (
-            "Il termine non è stato sospeso per il periodo feriale: se il ricorso attraversa "
-            "il mese di agosto, verificare l'applicabilità della L. 742/1969"
+            f"Termine processuale: sospensione feriale 1-31 agosto applicata ({_RIF_FERIALE}); "
+            "proroga del sabato art. 155 co. 5 c.p.c."
         )
 
     # Show all options for context
     riepilogo = {}
     for nome, c in config.items():
-        d_raw = dt_notifica + timedelta(days=c["giorni"])
-        d, _ = _slide_forward(d_raw)
+        d, _, _ = _multe_scadenza(dt_notifica, nome, c["giorni"])
         riepilogo[nome] = {"scadenza": d.isoformat(), "giorni": c["giorni"]}
     result["riepilogo_opzioni"] = riepilogo
 
@@ -727,9 +770,9 @@ def termini_procedimento_semplificato(
     """Calcola i termini del procedimento semplificato di cognizione (artt. 281-decies ss. c.p.c.).
     Vigenza: artt. 281-undecies e 281-duodecies c.p.c. introdotti dal D.Lgs. 149/2022 (in vigore dal
     28/02/2023): costituzione del convenuto non oltre 10 giorni prima dell'udienza (art. 281-undecies
-    co. 3); termini liberi non minori di 40 giorni (60 se all'estero) tra notifica del ricorso e
+    co. 2); termini liberi non minori di 40 giorni (60 se all'estero) tra notifica del ricorso e
     udienza (co. 2); memorie solo se concesse dal giudice, entro un termine non superiore a 20 giorni
-    e un ulteriore termine non superiore a 10 giorni (art. 281-duodecies co. 3).
+    e un ulteriore termine non superiore a 10 giorni (art. 281-duodecies co. 4).
     Precisione: ESATTO (termini di legge; sospensione feriale contata giorno per giorno; proroga o
     anticipazione art. 155 c.p.c.). I 40/20/10 giorni delle memorie ex art. 171-ter NON si applicano
     al rito semplificato.
@@ -750,9 +793,9 @@ def termini_procedimento_semplificato(
     if err:
         return err
     if not isinstance(giorni_memoria, int) or not 1 <= giorni_memoria <= 20:
-        return {"errore": "giorni_memoria deve essere un intero tra 1 e 20 (art. 281-duodecies co. 3)"}
+        return {"errore": "giorni_memoria deve essere un intero tra 1 e 20 (art. 281-duodecies co. 4)"}
     if not isinstance(giorni_replica, int) or not 1 <= giorni_replica <= 10:
-        return {"errore": "giorni_replica deve essere un intero tra 1 e 10 (art. 281-duodecies co. 3)"}
+        return {"errore": "giorni_replica deve essere un intero tra 1 e 10 (art. 281-duodecies co. 4)"}
     dt_udienza = _parse_date(data_udienza)
 
     scadenze = []
@@ -775,7 +818,7 @@ def termini_procedimento_semplificato(
         (
             "costituzione_convenuto",
             10,
-            "Comparsa di costituzione e risposta del convenuto — art. 281-undecies, co. 3 (non oltre 10 giorni prima dell'udienza)",
+            "Comparsa di costituzione e risposta del convenuto — art. 281-undecies, co. 2 (non oltre 10 giorni prima dell'udienza)",
             "Domande riconvenzionali, chiamata di terzo ed eccezioni non rilevabili d'ufficio a pena di decadenza",
         ),
     ):
@@ -799,14 +842,14 @@ def termini_procedimento_semplificato(
     scadenze.append({
         "termine": "memoria_integrativa",
         "giorni_da_udienza": giorni_memoria,
-        "descrizione": "Memoria per precisare o modificare domande, eccezioni e conclusioni, indicare mezzi di prova e produrre documenti — art. 281-duodecies, co. 3 (termine perentorio non superiore a 20 giorni, solo se concesso dal giudice su richiesta e per giustificato motivo)",
+        "descrizione": "Memoria per precisare o modificare domande, eccezioni e conclusioni, indicare mezzi di prova e produrre documenti — art. 281-duodecies, co. 4 (termine perentorio non superiore a 20 giorni, solo se concesso dal giudice, su richiesta, quando l'esigenza sorge dalle difese della controparte)",
         **_voce_scadenza(memoria, adj_m),
         "nota": "Eventuale: il termine esiste solo se il giudice lo concede; qui è calcolato dall'udienza",
     })
     scadenze.append({
         "termine": "replica_prova_contraria",
         "giorni_da_memoria": giorni_replica,
-        "descrizione": "Replica e prova contraria — art. 281-duodecies, co. 3 (ulteriore termine perentorio non superiore a 10 giorni)",
+        "descrizione": "Replica e prova contraria — art. 281-duodecies, co. 4 (ulteriore termine perentorio non superiore a 10 giorni)",
         **_voce_scadenza(replica, adj_r),
         "nota": "Eventuale: decorre dalla scadenza del termine per la memoria integrativa",
     })

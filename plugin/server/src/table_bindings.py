@@ -34,6 +34,10 @@ TABLE_CONSTANTS: dict[str, dict[str, str]] = {
     "src.tools.fatturazione_avvocati": {
         "_COMPETENZE_PENALE": "parametri_forensi",
         "_CU_CIVILE": "contributo_unificato",
+        "_CU_CIVILE_TUTTO": "contributo_unificato",
+        "_CU_ESEC_IMMOBILIARE": "contributo_unificato",
+        "_CU_ESEC_MOBILIARE": "contributo_unificato",
+        "_NOTULA": "parametri_forensi",
         "_PARAMETRI": "parametri_forensi",
     },
     "src.tools.modelli_atti": {

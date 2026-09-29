@@ -229,6 +229,13 @@ class TestFatturaAvvocato:
     def test_forfettario_bollo_addebitato_sopra_soglia(self, page):
         """Piano, caso 3 - AL LIMITE: compenso 74,50, bollo addebitato al cliente.
 
+        CONVENZIONE (fase 3, verdetto convenzione, tool invariato): il sito calcola la CPA
+        anche sul bollo riaddebitato (4% di 76,50 = 3,06), il tool sul solo compenso (2,98).
+        AdE, risposta a interpello 428/2022: il bollo riaddebitato dal forfettario e' parte del
+        compenso ai fini del reddito, ma la rivalsa previdenziale e' facoltativa e non e' stata
+        trovata una norma primaria di Cassa Forense che imponga la base. Scostamento fisso di
+        0,08 euro; questo test resta rosso finche' non si decide la base della CPA.
+
         Atteso (piano): CPA 2,98; bollo 2,00; totale 79,48; nessuna IVA (art. 1
         co. 54-89 L. 190/2014), nessuna ritenuta (art. 1 co. 67). Il sito tratta
         il bollo riaddebitato come parte del compenso (richiama la risposta AdE
@@ -242,6 +249,13 @@ class TestFatturaAvvocato:
 
     def test_forfettario_importo_pieno(self, page):
         """Forfettario, compenso 2.000 con bollo addebitato (ex test aritmetico).
+
+        CONVENZIONE (fase 3, verdetto convenzione, tool invariato): il sito calcola la CPA
+        anche sul bollo riaddebitato (4% di 76,50 = 3,06), il tool sul solo compenso (2,98).
+        AdE, risposta a interpello 428/2022: il bollo riaddebitato dal forfettario e' parte del
+        compenso ai fini del reddito, ma la rivalsa previdenziale e' facoltativa e non e' stata
+        trovata una norma primaria di Cassa Forense che imponga la base. Scostamento fisso di
+        0,08 euro; questo test resta rosso finche' non si decide la base della CPA.
 
         Atteso (tool): CPA 80,00; bollo 2,00; totale 2.082,00; IVA e ritenuta
         zero (art. 1 co. 54-89 e 67 L. 190/2014; art. 13 Tariffa DPR 642/1972).

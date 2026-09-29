@@ -122,25 +122,26 @@ def test_accordo_dopo_primo_incontro(page):
     """Opzione enumerata: accordo raggiunto dopo il primo incontro (aumento 25%, art. 30 DM
     150/2023). Il tool non distingue il momento dell'accordo: 'positivo' = 146,40 per 1.000 euro.
     """
-    r = _tool(valore_controversia=1000, esito="positivo")
+    # Phase 3: the tool now has the 'momento' parameter (art. 30 co. 2: +25% on the integration).
+    r = _tool(valore_controversia=1000, esito="positivo", momento="incontri_successivi")
     s = _site(page, "100", incontri=2, accordo=1)
     assert_close(r["totale_per_parte"], _site_total(s), TOL, "totale per parte IVA inclusa")
 
 
 def test_tabella_a_componente_primo_scaglione(page):
     """Componente: importo della Tabella A (valore medio, DM 150/2023) fino a 1.000 euro
-    confrontato con l'indennita' 'positivo' del tool (120)."""
+    confrontato con la Tabella A del tool (medio 120; il totale indennita' e' una voce diversa)."""
     r = _tool(valore_controversia=1000, esito="positivo")
     s = _site(page, "100", incontri=1, accordo=1)
-    assert_close(r["indennita_per_parte"], s["tabella_a_medio"], TOL, "Tabella A valore medio")
+    assert_close(r["tabella_a"]["medio"], s["tabella_a_medio"], TOL, "Tabella A valore medio")
 
 
 def test_tabella_a_componente_150k_250k(page):
     """Caso al limite: 150.000,01 euro. Il DM 150/2023 distingue gli scaglioni 50-150k e
-    150-250k; il tool li fonde in un unico scaglione 50.000,01-250.000 (1.060 euro)."""
+    150-250k (medio 2.000, Tabella A 1.500-2.500); dopo la fase 3 il tool li distingue."""
     r = _tool(valore_controversia=150000.01, esito="positivo")
     s = _site(page, "160", incontri=1, accordo=1)
-    assert_close(r["indennita_per_parte"], s["tabella_a_medio"], TOL, "Tabella A valore medio")
+    assert_close(r["tabella_a"]["medio"], s["tabella_a_medio"], TOL, "Tabella A valore medio")
 
 
 def test_mediazione_obbligatoria(page):

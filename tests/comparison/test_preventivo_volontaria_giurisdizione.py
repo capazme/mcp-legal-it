@@ -347,6 +347,13 @@ class TestCasiLimite:
         increased "fino al 30 per cento". The tool returns the 520.000 bracket
         unchanged (medium 4.536 -> totale 6.618,57); the site's option
         "Da euro 520.001 a euro 1.000.000" shows the increase it applies.
+
+        CONVENTION (phase 3, 2026-09-29): a known, documented difference, not a tool
+        error. The official Tab. VII stops at 520.000 and art. 6 DM 55/2014 allows
+        only "fino al 30 per cento in piu'" (an option, not an obligation). The
+        tool applies no increase above 520.000 (floor of the range); the site
+        applies the full 30%. Both readings are defensible, so this case is
+        expected to differ. Documented in the tool docstring.
         """
         kw = dict(valore_causa=600000, livello="medio")
         site = _site(page, 600000, "medio", True, True, True)

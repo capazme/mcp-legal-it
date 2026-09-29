@@ -203,7 +203,9 @@ class TestFatturaEnasarco:
         parte1 = _site_values(_site_fattura(page, MASSIMALE_MONO_2026, enasarco=True))
         parte2 = _site_values(_site_fattura(page, 50000 - MASSIMALE_MONO_2026, enasarco=False))
         site = _somma(parte1, parte2)
-        _confronta(_tool_values(r), site, keys=("quota_agente", "iva", "totale_documento", "netto"))
+        # Tolerance 0,011 (one cent): the site sums two separately rounded invoices, the tool
+        # rounds once (61.000 - 5.750 - 3.885,95 = 51.364,05 vs 51.364,04). Convention, not an error.
+        _confronta(_tool_values(r), site, keys=("quota_agente", "iva", "totale_documento", "netto"), tolerance=0.011)
 
     def test_pluri_oltre_massimale_2026(self, page):
         """Piano, caso 3 - AL LIMITE: plurimandatario 2026, provvigioni annue 40.000.
@@ -217,7 +219,9 @@ class TestFatturaEnasarco:
         parte1 = _site_values(_site_fattura(page, MASSIMALE_PLURI_2026, enasarco=True))
         parte2 = _site_values(_site_fattura(page, 40000 - MASSIMALE_PLURI_2026, enasarco=False))
         site = _somma(parte1, parte2)
-        _confronta(_tool_values(r), site, keys=("quota_agente", "iva", "totale_documento", "netto"))
+        # Tolerance 0,011 (one cent): the site sums two separately rounded invoices, the tool
+        # rounds once (61.000 - 5.750 - 3.885,95 = 51.364,05 vs 51.364,04). Convention, not an error.
+        _confronta(_tool_values(r), site, keys=("quota_agente", "iva", "totale_documento", "netto"), tolerance=0.011)
 
     def test_pluri_al_massimale_2026(self, page):
         """AL LIMITE - plurimandatario 2026 esattamente al massimale (30.478).

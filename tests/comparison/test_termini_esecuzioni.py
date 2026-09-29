@@ -189,3 +189,11 @@ def test_pagina_primaria_termini_post_pignoramento_non_confrontabile():
     dilatorio (art. 482), efficacia del precetto (art. 481) e opposizione (art. 617)."""
     pytest.skip("La pagina primaria calcola termini diversi (post-pignoramento): nessun output "
                 "corrisponde a quelli del tool")
+
+
+# CONVENTION (phase 2-3): the failing cases are a deadline that art. 155 co. 4 moves from a
+# holiday (15/8, 26/12) onto a Saturday. Co. 5 extends only terms that "scadono nella giornata del
+# sabato" and co. 6 makes Saturday a working day, so whether the extended date needs a second
+# extension is not settled by the text. The tool goes to Monday, the site stops on Saturday.
+# Not decidable from the primary source: no change. Art. 482 (10 days) is a dilatory term whose
+# reading (last day vs first day to execute) is also open.

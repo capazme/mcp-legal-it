@@ -8,14 +8,16 @@ superseded, so the comparison uses the 2023 page.
 
 Mapping tool <-> site (materia facoltativa, no reductions, IVA 22%):
 - spese_avvio_per_parte           <-> "Spese di avvio" (art. 28 c. 1 DM 150/2023)
-- esito_negativo.indennita        <-> "Indennita' per il primo incontro"
+- spese_primo_incontro_per_parte  <-> "Indennita' per il primo incontro"
                                       (accordo = No, incontri = Uno)
-- esito_positivo.indennita        <-> 'Importo tabella "A" (valore medio)'
+- tabella_a.medio                 <-> 'Importo tabella "A" (valore medio)'
                                       (accordo = Si', incontri = Uno)
+(phase 3: the tool now exposes these two components separately; before it returned the
+DM 180/2010 indennity per bracket under esito_negativo/esito_positivo.indennita_per_parte)
 - esito_negativo.totale_per_parte <-> "TOTALE GENERALE" (no accordo, one meeting)
 - esito_positivo.totale_per_parte <-> "TOTALE GENERALE" (accordo at the first
-                                      meeting: the site adds the 10% of art. 30
-                                      DM 150/2023, the tool has no increase)
+                                      meeting: both add the 10% of art. 30
+                                      DM 150/2023 on Tabella A minus the first meeting)
 Tolerance: 0.01 EUR (brief). The site selects a bracket, not a value; the value
 field is shown only for the "oltre 5.000.000" bracket.
 """
@@ -96,12 +98,12 @@ def _compare(page, valore: float, scaglione: str, valore_sito: str | None = None
     pos = _site(page, scaglione, accordo=True, valore=valore_sito)
     pairs = [
         ("spese_avvio", r["spese_avvio_per_parte"], neg["avvio"]),
-        ("indennita_negativo (primo incontro)", r["esito_negativo"]["indennita_per_parte"], neg["primo"]),
+        ("indennita_negativo (primo incontro)", r["spese_primo_incontro_per_parte"], neg["primo"]),
         ("totale_negativo_per_parte", r["esito_negativo"]["totale_per_parte"], neg["totale"]),
     ]
     if compare_tab_a:
         pairs += [
-            ("indennita_positivo (tabella A)", r["esito_positivo"]["indennita_per_parte"], pos["tab_a"]),
+            ("indennita_positivo (tabella A)", r["tabella_a"]["medio"], pos["tab_a"]),
             ("totale_positivo_per_parte", r["esito_positivo"]["totale_per_parte"], pos["totale"]),
         ]
     print(f"\nvalore={valore} tool/site:", [(l, a, b) for l, a, b in pairs])
