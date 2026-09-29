@@ -158,6 +158,15 @@
     "calcolo_naspi"
    ]
   },
+  "inps_parametri+irpef_scaglioni": {
+   "datasets": [
+    "inps_parametri",
+    "irpef_scaglioni"
+   ],
+   "tools": [
+    "costo_lavoro"
+   ]
+  },
   "irpef_scaglioni": {
    "datasets": [
     "irpef_scaglioni"
@@ -165,7 +174,6 @@
    "tools": [
     "calcolo_irpef",
     "calcolo_tfr",
-    "costo_lavoro",
     "detrazione_lavoro_dipendente",
     "regime_forfettario"
    ]
@@ -469,6 +477,7 @@
   "copie_processo_tributario": [],
   "costi_costituzione": [],
   "costo_lavoro": [
+   "inps_parametri",
    "irpef_scaglioni"
   ],
   "danno_biologico_macro": [

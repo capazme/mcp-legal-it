@@ -16,12 +16,6 @@
    },
    "expected": "{\"retribuzione_annua_lorda\":10000.0,\"anni_servizio\":10,\"anno_cessazione\":2026,\"accantonamento_annuo\":740.74,\"contributo_aggiuntivo_annuo\":50.0,\"tasso_rivalutazione_pct\":3.0,\"tfr_lordo\":7904.61,\"rivalutazioni_lorde\":997.2,\"imposta_sostitutiva_rivalutazioni\":169.52,\"tfr_al_netto_imposta_sostitutiva\":7735.08,\"imponibile\":6737.88,\"tassazione_separata\":{\"reddito_riferimento\":8085.46,\"aliquota_media_pct\":23.0,\"imposta_lorda\":1549.71,\"detrazione_tempo_determinato\":0.0,\"imposta\":1549.71},\"tfr_netto\":6185.37,\"riferimento_normativo\":\"Art. 2120 c.c.; art. 3 L. 297/1982; art. 11 c. 3 D.Lgs. 47/2000; artt. 17 e 19 TUIR\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
   },
-  "costo_lavoro": {
-   "arguments": {
-    "retribuzione_lorda_annua": 10000.0
-   },
-   "expected": "{\"tipo_contratto\":\"dipendente\",\"lordo_annuo\":10000.0,\"contributi_dipendente\":919.0,\"aliquota_contributi_dipendente_pct\":9.19,\"imponibile_irpef\":9081.0,\"irpef_stimata\":133.63,\"netto_stimato\":8947.37,\"contributi_datore\":3000.0,\"aliquota_contributi_datore_pct\":30.0,\"tfr_annuo\":691.0,\"irap_stimata\":390.0,\"costo_azienda_totale\":14081.0,\"cuneo_fiscale_pct\":36.5,\"nota\":\"Aliquote medie dipendente ordinario — variano per settore e dimensione\",\"avvertimento\":\"INDICATIVO — le aliquote variano per settore INAIL, dimensione, regione e agevolazioni. Verificare con consulente del lavoro.\",\"riferimento_normativo\":\"D.P.R. 917/1986 (IRPEF) — L. 153/1969 (contributi) — D.Lgs. 446/1997 (IRAP) — Art. 2120 c.c. (TFR)\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
-  },
   "detrazione_lavoro_dipendente": {
    "arguments": {
     "reddito_complessivo": 10000.0

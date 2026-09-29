@@ -157,14 +157,17 @@ QUOT_MONITORIO_1000_MEDI = {
 #: Figures of the plan's "atteso" column (prose turned into numbers).
 ATTESO_PIANO = {
     "monitorio_10000_minimi": {
-        "Compenso tabellare": "284,00", "Totale variazioni in aumento": "85,20", "Compenso totale": "369,20",
-        "Spese generali": "55,38", "Cassa Avvocati": "16,98", "Totale imponibile": "441,56",
-        "IVA 22%": "97,14", "IPOTESI DI COMPENSO LIQUIDABILE": "538,70", "A dedurre ritenuta": "84,92",
-        "Totale documento": "453,78",
+        # Corrected against the norm: Tabella 8 medio 567, minimo = 567 x 50% = 283,50 exact
+        # (art. 4, co. 1, D.M. 55/2014). The plan's 284,00 was the euro-rounded minimum.
+        "Compenso tabellare": "283,50", "Totale variazioni in aumento": "85,05", "Compenso totale": "368,55",
+        "Spese generali": "55,28", "Cassa Avvocati": "16,95", "Totale imponibile": "440,78",
+        "IVA 22%": "96,97", "IPOTESI DI COMPENSO LIQUIDABILE": "537,75", "A dedurre ritenuta": "84,77",
+        "Totale documento": "452,98",
     },
     "esecuzione_2500": {
-        "Compenso tabellare": "450,00", "Spese generali": "67,50", "Cassa Avvocati": "20,70",
-        "Totale imponibile": "538,20", "IVA 22%": "118,40", "IPOTESI DI COMPENSO LIQUIDABILE": "656,60",
+        # Tabella 17, 1.100,01-5.200: minimi 165,50 + 283,50 = 449,00 (the plan's 450 was rounded)
+        "Compenso tabellare": "449,00", "Spese generali": "67,35", "Cassa Avvocati": "20,65",
+        "Totale imponibile": "537,00", "IVA 22%": "118,14", "IPOTESI DI COMPENSO LIQUIDABILE": "655,14",
     },
     "opposizione_26000_medi": {
         "Compenso tabellare": "5.077,00", "Totale variazioni in aumento": "1.523,10",
@@ -682,10 +685,10 @@ def test_quotazione_struttura_lettera(out_dir):
     for caso, oggetto, specifico in (
         (QUOT_MONITORIO_10000_MINIMI, "Oggetto: Quotazione giudiziaria procedimento monitorio Delta S.r.l.",
          ["€ 118,50 a titolo di contributo unificato ed € 27,00 per la marca da bollo, per un totale "
-          "complessivo preventivato di € 684,20", "misura fissa di € 200,00", "misura proporzionale del 3%"]),
+          "complessivo preventivato di € 683,25", "misura fissa di € 200,00", "misura proporzionale del 3%"]),
         (QUOT_ESECUZIONE_2500, "Oggetto: Quotazione giudiziaria esecuzione forzata Delta S.r.l.",
          ["€ 139,00 a titolo di contributo unificato, € 27,00 per la marca da bollo ed € 120,00 a titolo "
-          "forfettario", "totale complessivo preventivato di € 942,60", "atto di pignoramento"]),
+          "forfettario", "totale complessivo preventivato di € 941,14", "atto di pignoramento"]),
         (QUOT_OPPOSIZIONE_26000_MEDI,
          "Oggetto: Quotazione giudiziaria giudizio di opposizione a decreto ingiuntivo Gamma S.r.l.",
          ["(art. 645 c.p.c.) instaurato da Gamma S.r.l.",

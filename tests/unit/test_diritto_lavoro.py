@@ -404,6 +404,75 @@ class TestCostoLavoro:
         assert r["tipo_contratto"] == "dirigente"
         assert r["costo_azienda_totale"] > 80000.0
 
+    # Values below recomputed by hand on the 2026 rules; the clock is pinned to 2026 by the fixture.
+    @pytest.fixture(autouse=True)
+    def _anno_2026(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+
+    def test_apprendista_quota_lavoratore_5_84_circ_inps_128_2012(self):
+        # Circ. INPS 128/2012 par. 8: apprentice's share 5,84% (not 5,19%): 20.000 x 5,84% = 1.168,00.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=20000.0, tipo_contratto="apprendista")
+        assert r["aliquota_contributi_dipendente_pct"] == pytest.approx(5.84)
+        assert r["contributi_dipendente"] == pytest.approx(1168.00, abs=0.01)
+        # Art. 13 TUIR + art. 1 co. 4 lett. c L. 207/2024: IRPEF 1.582,17, somma non imponibile
+        # 4,8% x 18.832 = 903,94, netto 20.000 - 1.168 - 1.582,17 + 903,94 = 18.153,77.
+        assert r["irpef_stimata"] == pytest.approx(1582.17, abs=0.01)
+        assert r["somma_non_imponibile_l_207_2024"] == pytest.approx(903.94, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(18153.77, abs=0.01)
+        assert r["aliquota_contributi_datore_pct"] == pytest.approx(11.61)  # 10% + 1,61%: full rate
+
+    def test_dirigente_contributo_aggiuntivo_1_per_cento_circ_inps_6_2026(self):
+        # Art. 3-ter D.L. 384/1992, circ. INPS 6/2026: 1% above 56.224 euro (prima fascia 2026):
+        # 80.000 x 9,19% + 1% x (80.000 - 56.224) = 7.352,00 + 237,76 = 7.589,76.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=80000.0, tipo_contratto="dirigente")
+        assert r["contributi_dipendente"] == pytest.approx(7589.76, abs=0.01)
+        assert r["contributo_aggiuntivo_1_pct"] == pytest.approx(237.76, abs=0.01)
+        # Imponibile 72.410,24: imposta lorda 23.336,40 (23% / 33% / 43%), nessuna detrazione.
+        assert r["irpef_stimata"] == pytest.approx(23336.40, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(49073.84, abs=0.01)
+        assert "INPDAI" not in r["nota"]  # suppressed by art. 42 L. 289/2002
+
+    def test_nessun_contributo_aggiuntivo_sotto_la_prima_fascia(self):
+        r = _call("costo_lavoro", retribuzione_lorda_annua=56224.0)
+        assert r["contributo_aggiuntivo_1_pct"] == 0.0
+
+    def test_irap_zero_per_tempo_indeterminato_art_11_co_4_octies(self):
+        # Art. 11 co. 4-octies D.Lgs. 446/1997: the cost of permanent staff is fully deductible.
+        # Costo azienda 30.000 + 30% + TFR 2.072,22 = 41.072,22 (IRAP not added).
+        r = _call("costo_lavoro", retribuzione_lorda_annua=30000.0)
+        assert r["irap_stimata"] == 0
+        assert r["costo_azienda_totale"] == pytest.approx(41072.22, abs=0.01)
+
+    def test_tfr_quota_netta_art_2120_cc_e_art_3_l_297_1982(self):
+        # 30.000 / 13,5 = 2.222,22 minus 0,50% (150,00) = 2.072,22.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=30000.0)
+        assert r["tfr_annuo"] == pytest.approx(2072.22, abs=0.01)
+
+    def test_irpef_30000_detrazioni_art_13_e_l_207_2024(self):
+        # Imponibile 27.243; imposta lorda 6.265,89; detrazione art. 13 co. 1 lett. b 1.979,26
+        # (ratio 0,0582 truncated, co. 6) + 65 (co. 1.1) + 1.000 (art. 1 co. 6 lett. a L. 207/2024):
+        # IRPEF 3.221,63, netto 24.021,37.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=30000.0)
+        assert r["irpef_stimata"] == pytest.approx(3221.63, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(24021.37, abs=0.01)
+
+    def test_somma_non_imponibile_15000_art_1_co_4_l_207_2024(self):
+        # Reddito 13.621,50 (between 8.500 and 15.000): 5,3% = 721,94; IRPEF 1.177,95; netto 13.165,49.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=15000.0)
+        assert r["somma_non_imponibile_l_207_2024"] == pytest.approx(721.94, abs=0.01)
+        assert r["irpef_stimata"] == pytest.approx(1177.95, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(13165.49, abs=0.01)
+
+    def test_ulteriore_detrazione_decrescente_tra_32000_e_40000(self):
+        # Art. 1 co. 6 lett. b L. 207/2024: 1.000 x (40.000 - reddito) / 8.000. Lordo 38.000:
+        # contributi 3.492,20, reddito 34.507,80 -> 1.000 x 5.492,20 / 8.000 = 686,53.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=38000.0)
+        assert r["detrazione_ulteriore_l_207_2024"] == pytest.approx(686.53, abs=0.01)
+
+    def test_avvertenza_oltre_il_massimale_contributivo(self):
+        r = _call("costo_lavoro", retribuzione_lorda_annua=130000.0)
+        assert any("massimale" in a for a in r["avvertenze"])
+
     def test_errore_lordo_zero(self):
         with pytest.raises(ValueError, match="retribuzione_lorda_annua"):
             _call("costo_lavoro", retribuzione_lorda_annua=0.0)

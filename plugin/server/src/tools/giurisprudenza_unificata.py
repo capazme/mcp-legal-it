@@ -106,8 +106,9 @@ async def _cerca_ue(
         return outcome
     try:
         docs = await search_giurisprudenza(
-            keywords=words, doc_type=tipo, year_from=anno_da, year_to=anno_a,
-            limit=max(1, min(max_risultati, 50)), match_all=True,
+            # no OR keywords: every word is a required term (AND) of the same title
+            keywords=[], required_terms=words, doc_type=tipo, year_from=anno_da, year_to=anno_a,
+            limit=max(1, min(max_risultati, 50)),
         )
     except Exception:
         return outcome  # keep the original "no results" answer

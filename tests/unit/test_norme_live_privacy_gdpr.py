@@ -74,7 +74,9 @@ def _lettere(testo: str, inizio: str, fine: str) -> dict[str, str]:
 
 def _piu_frequenti(risultato: dict) -> str:
     nota = risultato["note_dati_particolari_art9"]
-    marker = "più frequenti"
+    # The wording was "più frequenti" (a fixed a-c list); after the fix the conditions are
+    # "pertinenti" to the matrix entry. Form change only: the letter check below is unchanged.
+    marker = "pertinenti"
     assert marker in nota, nota
     return nota[nota.index(marker):]
 

@@ -812,19 +812,38 @@ def _genera_informativa_videosorveglianza_impl(
     finalita: list[str],
     tempo_conservazione: str,
     aree_riprese: list[str],
+    dpo: str | None = None,
+    informativa_estesa_dove: str | None = None,
 ) -> dict:
     finalita_text = "; ".join(finalita)
     aree_text = ", ".join(aree_riprese)
+    dpo = (dpo or "").strip()
+    dove = (informativa_estesa_dove or "").strip()
+    # First-layer sign (EDPB 3/2019, par. 114; Garante FAQ on video surveillance): controller,
+    # purposes, rights, how and where to find the full notice, DPO contacts where designated.
+    riga_dpo = (
+        f"Responsabile della protezione dei dati (DPO): {dpo}"
+        if dpo
+        else "Contatti del responsabile della protezione dei dati (DPO), se nominato: [da inserire]"
+    )
+    riga_dove = (
+        f"L'informativa completa (secondo livello) è disponibile: {dove}"
+        if dove
+        else "L'informativa completa (secondo livello) è disponibile: [indicare dove, es. sito web, ufficio, reception]"
+    )
 
     informativa_breve = f"""[AREA VIDEOSORVEGLIATA]
 Il titolare {titolare} effettua riprese video in questa area per: {finalita_text}.
 Le immagini sono conservate per {tempo_conservazione} e sono trattate ai sensi dell'art. 13 GDPR.
 Titolare del trattamento: {titolare}
-Per maggiori informazioni e per esercitare i Suoi diritti: [recapiti titolare]"""
+{riga_dpo}
+Per maggiori informazioni e per esercitare i Suoi diritti: [recapiti titolare]
+{riga_dove}"""
 
     adempimenti_preventivi = [
         "Accordo sindacale (art. 4(1) L. 300/1970) se il sistema controlla lavoratori dipendenti, OPPURE",
-        "Autorizzazione dell'Ispettorato Territoriale del Lavoro (ITL) ex art. 4(2) L. 300/1970 (in mancanza di accordo sindacale)",
+        "Autorizzazione dell'Ispettorato nazionale del lavoro (sede territoriale competente; sede centrale per le imprese con unità in più regioni), art. 4(1) L. 300/1970, terzo periodo, in mancanza di accordo sindacale",
+        "Richiamo dell'art. 114 D.Lgs. 196/2003: resta fermo quanto disposto dall'art. 4 L. 300/1970 (garanzie in materia di controllo a distanza)",
         "Esposizione del cartello informativo EDPB all'ingresso delle aree videosorvegliate",
         "Inserimento nel Registro dei trattamenti (art. 30 GDPR)",
         "Valutazione della necessità di DPIA se monitoraggio sistematico su larga scala (art. 35 GDPR)",
@@ -841,6 +860,7 @@ ai sensi dell'art. 13 Reg. UE 2016/679 (GDPR) e delle Linee Guida EDPB 3/2019
 
 1. TITOLARE DEL TRATTAMENTO
 {titolare}
+{riga_dpo}
 
 2. FINALITÀ DEL TRATTAMENTO E BASE GIURIDICA
 Il sistema di videosorveglianza è installato per le seguenti finalità:
@@ -851,7 +871,7 @@ sicurezza delle persone, alla tutela del patrimonio e alla prevenzione di atti i
 bilanciato con i diritti degli interessati.
 
 Nei luoghi di lavoro, il sistema opera previa stipula di accordo sindacale (art. 4(1) L. 300/1970)
-ovvero previa autorizzazione dell'Ispettorato Territoriale del Lavoro competente (art. 4(2) L. 300/1970).
+ovvero previa autorizzazione dell'Ispettorato nazionale del lavoro (sede territoriale competente), prevista dall'art. 4(1) L. 300/1970, terzo periodo (art. 114 D.Lgs. 196/2003).
 Il sistema non è utilizzabile per il controllo a distanza dell'attività lavorativa dei dipendenti.
 
 3. AREE SOTTOPOSTE A RIPRESA
@@ -892,7 +912,8 @@ Garante per la protezione dei dati personali — www.garanteprivacy.it
         "adempimenti_preventivi": adempimenti_preventivi,
         "riferimento_normativo": (
             "Art. 13 Reg. UE 2016/679 (GDPR); Linee Guida EDPB 3/2019 sul trattamento "
-            "di dati personali tramite dispositivi video; Art. 4 L. 300/1970 (Statuto dei Lavoratori)"
+            "di dati personali tramite dispositivi video; Art. 4 L. 300/1970 (Statuto dei Lavoratori); "
+            "Art. 114 D.Lgs. 196/2003"
         ),
     }
 
@@ -903,6 +924,8 @@ def genera_informativa_videosorveglianza(
     finalita: list[str],
     tempo_conservazione: str,
     aree_riprese: list[str],
+    dpo: str | None = None,
+    informativa_estesa_dove: str | None = None,
 ) -> dict:
     """Genera l'informativa breve (cartello) ed estesa per sistemi di videosorveglianza.
 
@@ -910,20 +933,31 @@ def genera_informativa_videosorveglianza(
     di sicurezza e deve adempiere agli obblighi informativi GDPR e EDPB.
     L'informativa breve è il testo del cartello da esporre all'ingresso dell'area ripresa
     (formato EDPB "layered approach"). L'informativa estesa è il documento completo.
+    Il cartello riporta titolare, finalità, conservazione, diritti, contatti del DPO e il rinvio
+    all'informativa completa (dove trovarla), come richiesto dalle Linee guida EDPB 3/2019 e dalle
+    FAQ del Garante.
     Chaining: → verifica_necessita_dpia() se monitoraggio sistematico su larga scala
               → genera_dpa() per il fornitore del servizio di videosorveglianza
+    Vigenza: art. 13 Reg. UE 2016/679 (par. 1, lett. b, DPO); art. 4, co. 1-3, L. 300/1970 (testo
+    dopo il D.Lgs. 151/2015: l'autorizzazione INL è al co. 1, terzo periodo); art. 114 D.Lgs.
+    196/2003; Linee guida EDPB 3/2019 v2.0, letti il 28/09/2026.
+    Precisione: INDICATIVO (modello: base giuridica, tempi e aree vanno verificati sul caso).
 
     Args:
         titolare: Ragione sociale e recapiti del titolare che installa le telecamere
         finalita: Finalità del sistema (es. ['sicurezza persone', 'tutela patrimonio aziendale'])
         tempo_conservazione: Durata massima conservazione immagini (es. '24 ore', '72 ore')
         aree_riprese: Aree in cui sono installate le telecamere (es. ['ingresso principale', 'magazzino'])
+        dpo: Nome e contatti del DPO, se designato (art. 13(1)(b) GDPR); omesso: segnaposto nel cartello
+        informativa_estesa_dove: Dove si trova l'informativa completa (es. 'sul sito www..., alla reception')
     """
     return _genera_informativa_videosorveglianza_impl(
         titolare=titolare,
         finalita=finalita,
         tempo_conservazione=tempo_conservazione,
         aree_riprese=aree_riprese,
+        dpo=dpo,
+        informativa_estesa_dove=informativa_estesa_dove,
     )
 
 
@@ -1180,9 +1214,30 @@ def _genera_registro_trattamenti_impl(
     destinatari: list[str],
     termine_cancellazione: str,
     misure_sicurezza: list[str],
+    contatti_titolare: str | None = None,
+    contitolare: str | None = None,
+    rappresentante: str | None = None,
+    dpo: str | None = None,
+    trasferimenti: str | None = None,
 ) -> dict:
+    def _o(v: str | None, segnaposto: str) -> str:
+        return (v or "").strip() or segnaposto
+
+    contatti = _o(contatti_titolare, "[contatti del titolare: indirizzo, e-mail, telefono]")
+    contitolare_t = _o(contitolare, "[nome e contatti, se il trattamento ha un contitolare; altrimenti: non applicabile]")
+    rappresentante_t = _o(rappresentante, "[nome e contatti, se il titolare è extra-UE (art. 27); altrimenti: non applicabile]")
+    dpo_t = _o(dpo, "[nome e contatti, se designato; altrimenti: non designato]")
+    trasferimenti_t = _o(
+        trasferimenti,
+        "[da compilare: paese terzo o organizzazione internazionale destinataria e, per i trasferimenti "
+        "ex art. 49(1), co. 2, la documentazione delle garanzie adeguate; se non ne avvengono: nessuno]",
+    )
     scheda = {
         "titolare": titolare,
+        "contatti_titolare": contatti,
+        "contitolare": contitolare_t,
+        "rappresentante_titolare": rappresentante_t,
+        "dpo": dpo_t,
         "nome_trattamento": trattamento,
         "finalita": finalita,
         "base_giuridica_art6": base_giuridica,
@@ -1191,7 +1246,7 @@ def _genera_registro_trattamenti_impl(
         "dati_categorie_particolari_art9": False,
         "dati_giudiziari_art10": False,
         "destinatari_terzi": destinatari,
-        "trasferimenti_paesi_terzi": "Nessuno (da verificare)",
+        "trasferimenti_paesi_terzi": trasferimenti_t,
         "termine_cancellazione": termine_cancellazione,
         "misure_sicurezza_art32": misure_sicurezza,
     }
@@ -1211,13 +1266,17 @@ Data ultima revisione: _______________
 │ SCHEDA TRATTAMENTO: {trattamento}
 └─────────────────────────────────────────────────────────────────────┘
 
-1. TITOLARE DEL TRATTAMENTO (art. 30(1)(a))
-   {titolare}
+1. TITOLARE, CONTITOLARE, RAPPRESENTANTE E DPO: NOME E DATI DI CONTATTO (art. 30(1)(a))
+   Titolare: {titolare}
+   Contatti del titolare: {contatti}
+   Contitolare: {contitolare_t}
+   Rappresentante del titolare: {rappresentante_t}
+   Responsabile della protezione dei dati (DPO): {dpo_t}
 
 2. FINALITÀ DEL TRATTAMENTO (art. 30(1)(b))
    {finalita}
 
-3. BASE GIURIDICA (art. 30(1)(b) — da indicare per documentazione interna)
+3. BASE GIURIDICA (voce facoltativa, non prevista dall'art. 30: raccomandata dal Garante come documentazione di accountability, artt. 5(2) e 6 GDPR)
    {base_giuridica}
 
 4. CATEGORIE DI INTERESSATI (art. 30(1)(c))
@@ -1232,8 +1291,7 @@ Data ultima revisione: _______________
 {destinatari_text}
 
 7. TRASFERIMENTI VERSO PAESI TERZI (art. 30(1)(e))
-   Nessun trasferimento verso paesi terzi o organizzazioni internazionali
-   (verificare e aggiornare se presenti trasferimenti extra-UE)
+   {trasferimenti_t}
 
 8. TERMINE DI CANCELLAZIONE (art. 30(1)(f))
    {termine_cancellazione}
@@ -1243,12 +1301,15 @@ Data ultima revisione: _______________
 
 Note aggiuntive: _______________________________________________
 Data aggiornamento: _______________   A cura di: ________________
+
+Questa scheda è il registro del titolare (art. 30(1)). Chi tratta dati per conto di un titolare
+tiene un registro distinto delle categorie di attività svolte come responsabile (art. 30(2)).
 """
 
     return {
         "scheda": scheda,
         "testo": testo.strip(),
-        "riferimento_normativo": "Art. 30 Reg. UE 2016/679 (GDPR)",
+        "riferimento_normativo": "Art. 30, par. 1, Reg. UE 2016/679 (GDPR)",
     }
 
 
@@ -1263,15 +1324,26 @@ def genera_registro_trattamenti(
     destinatari: list[str],
     termine_cancellazione: str,
     misure_sicurezza: list[str],
+    contatti_titolare: str | None = None,
+    contitolare: str | None = None,
+    rappresentante: str | None = None,
+    dpo: str | None = None,
+    trasferimenti: str | None = None,
 ) -> dict:
-    """Genera la scheda di un trattamento per il Registro dei Trattamenti (art. 30 GDPR).
+    """Genera la scheda di un trattamento per il Registro dei Trattamenti (art. 30(1) GDPR).
 
-    Usa questo tool quando: devi creare o aggiornare il Registro dei Trattamenti, che è
-    obbligatorio per titolari con più di 250 dipendenti e per chiunque tratti dati sensibili,
-    dati in modo non occasionale o con rischio per gli interessati (art. 30(5) GDPR).
-    In pratica, è raccomandato per tutte le organizzazioni come strumento di accountability.
+    Usa questo tool quando: devi creare o aggiornare il Registro dei Trattamenti. L'art. 30(5)
+    esenta solo le imprese e organizzazioni con meno di 250 dipendenti, e non se il trattamento
+    presenta un rischio per i diritti e le libertà degli interessati, non è occasionale o include
+    categorie particolari (art. 9(1)) o dati giudiziari (art. 10): da 250 dipendenti in su il
+    registro è sempre dovuto. In pratica è raccomandato a tutte le organizzazioni.
+    La scheda riporta le voci dell'art. 30(1), lett. a)-g), compresi contitolare, rappresentante e DPO
+    alla lett. a). La base giuridica è una voce facoltativa di accountability, non dell'art. 30.
+    Il registro del responsabile (art. 30(2)) è un documento distinto, non generato da questo tool.
     Chaining: → genera_dpa() per i responsabili del trattamento identificati come destinatari
               → verifica_necessita_dpia() per trattamenti ad alto rischio
+    Vigenza: art. 30, parr. 1, 2 e 5, Reg. UE 2016/679, testo vigente letto il 28/09/2026.
+    Precisione: INDICATIVO (modello di scheda: i contenuti vanno compilati dal titolare).
 
     Args:
         titolare: Ragione sociale e sede del titolare del trattamento
@@ -1283,6 +1355,11 @@ def genera_registro_trattamenti(
         destinatari: Destinatari interni e responsabili del trattamento (es. ['ufficio commerciale', 'CRM provider'])
         termine_cancellazione: Periodo o criterio di conservazione e cancellazione
         misure_sicurezza: Misure tecniche e organizzative adottate (es. ['cifratura', 'controllo accessi', 'backup'])
+        contatti_titolare: Dati di contatto del titolare (art. 30(1)(a)); omesso: segnaposto
+        contitolare: Nome e contatti del contitolare, se presente (art. 30(1)(a))
+        rappresentante: Nome e contatti del rappresentante del titolare, se extra-UE (art. 30(1)(a))
+        dpo: Nome e contatti del DPO, se designato (art. 30(1)(a))
+        trasferimenti: Paese terzo o organizzazione internazionale e garanzie (art. 30(1)(e)); omesso: campo da compilare
     """
     return _genera_registro_trattamenti_impl(
         titolare=titolare,
@@ -1294,6 +1371,11 @@ def genera_registro_trattamenti(
         destinatari=destinatari,
         termine_cancellazione=termine_cancellazione,
         misure_sicurezza=misure_sicurezza,
+        contatti_titolare=contatti_titolare,
+        contitolare=contitolare,
+        rappresentante=rappresentante,
+        dpo=dpo,
+        trasferimenti=trasferimenti,
     )
 
 
@@ -1578,6 +1660,26 @@ _CONTESTI_MAP = {
     "profilazione": ["profilazione_online"],
 }
 
+#: Entries of the matrix that cut across every context: reached only when a keyword matches.
+_VOCI_TRASVERSALI = ["antifrode_sicurezza", "ricerca_scientifica"]
+
+
+def _seleziona_voce_matrice(contesto: str, tipo_trattamento: str, finalita: str, matrice: dict) -> tuple[str, bool]:
+    """Pick the matrix entry from the keywords of `tipo_trattamento` + `finalita`.
+
+    Returns (key, matched). With no keyword match the first entry of the context is used and
+    `matched` is False, so the answer can say the choice is a default.
+    """
+    testo = f"{tipo_trattamento} {finalita}".lower()
+    # cross-cutting entries first: their keywords are specific ("studio clinico"), those of the
+    # context are generic ("clinic", "cura")
+    candidate = _VOCI_TRASVERSALI + list(_CONTESTI_MAP[contesto])
+    for chiave in candidate:
+        for kw in matrice.get(chiave, {}).get("parole_chiave", []):
+            if re.search(r"(?<![a-zà-ù])" + re.escape(kw.lower()), testo):
+                return chiave, True
+    return _CONTESTI_MAP[contesto][0], False
+
 
 def _analisi_base_giuridica_impl(
     tipo_trattamento: str,
@@ -1592,53 +1694,50 @@ def _analisi_base_giuridica_impl(
     if contesto not in contesti_validi:
         return {"errore": f"contesto deve essere uno tra: {', '.join(contesti_validi)}"}
 
-    chiavi_contesto = _CONTESTI_MAP.get(contesto, [])
-    contesto_principale = chiavi_contesto[0] if chiavi_contesto else None
+    contesto_principale, per_parola_chiave = _seleziona_voce_matrice(
+        contesto, tipo_trattamento, finalita, matrice
+    )
+    info_matrice = matrice[contesto_principale]
 
     basi_giuridiche_applicabili = []
-
-    if contesto_principale and contesto_principale in matrice:
-        info_matrice = matrice[contesto_principale]
-        base_chiave = info_matrice["base_consigliata"]
-        if base_chiave in basi_art6:
-            b = basi_art6[base_chiave]
+    base_chiave = info_matrice["base_consigliata"]
+    if base_chiave in basi_art6:
+        b = basi_art6[base_chiave]
+        basi_giuridiche_applicabili.append({
+            "base": base_chiave,
+            "articolo": b["articolo"],
+            "descrizione": b["descrizione"],
+            "pro": b["pro"],
+            "contro": b["contro"],
+            "consigliata": True,
+            "nota_contesto": info_matrice.get("nota", ""),
+        })
+    for alt in info_matrice.get("alternative", []):
+        if alt in basi_art6:
+            b = basi_art6[alt]
             basi_giuridiche_applicabili.append({
-                "base": base_chiave,
+                "base": alt,
                 "articolo": b["articolo"],
                 "descrizione": b["descrizione"],
                 "pro": b["pro"],
                 "contro": b["contro"],
-                "consigliata": True,
-                "nota_contesto": info_matrice.get("nota", ""),
+                "consigliata": False,
+                "nota_contesto": f"Alternativa per {tipo_trattamento}",
             })
-        for alt in info_matrice.get("alternative", []):
-            if alt in basi_art6:
-                b = basi_art6[alt]
-                basi_giuridiche_applicabili.append({
-                    "base": alt,
-                    "articolo": b["articolo"],
-                    "descrizione": b["descrizione"],
-                    "pro": b["pro"],
-                    "contro": b["contro"],
-                    "consigliata": False,
-                    "nota_contesto": f"Alternativa per {tipo_trattamento}",
-                })
-
-    if not basi_giuridiche_applicabili:
-        for nome, b in basi_art6.items():
-            if tipo_trattamento.lower() in " ".join(b.get("contesti_tipici", [])).lower():
-                basi_giuridiche_applicabili.append({
-                    "base": nome,
-                    "articolo": b["articolo"],
-                    "descrizione": b["descrizione"],
-                    "pro": b["pro"],
-                    "contro": b["contro"],
-                    "consigliata": nome == list(basi_art6.keys())[0],
-                    "nota_contesto": "",
-                })
 
     base_consigliata = basi_giuridiche_applicabili[0]["base"] if basi_giuridiche_applicabili else "da valutare"
     motivazione_base = basi_giuridiche_applicabili[0].get("nota_contesto", "") if basi_giuridiche_applicabili else ""
+
+    if per_parola_chiave:
+        selezione = (
+            f"Voce della matrice '{contesto_principale}', scelta dalle parole del tipo di "
+            "trattamento e della finalità."
+        )
+    else:
+        selezione = (
+            f"Nessuna parola chiave riconosciuta: applicata la voce predefinita '{contesto_principale}' "
+            f"del contesto '{contesto}'. Verificare che corrisponda al trattamento."
+        )
 
     note_art9 = ""
     condizioni_art9 = []
@@ -1649,16 +1748,23 @@ def _analisi_base_giuridica_impl(
             f"Art. 9(2)({v['lettera']}) — {v['descrizione']}"
             for v in eccezioni.values()
         ]
+        lettere = info_matrice.get("condizioni_art9_pertinenti", [])
+        pertinenti = [c for c in condizioni_art9 if any(c.startswith(f"Art. 9(2)({x})") for x in lettere)]
+        garanzie = info_matrice.get("garanzie_art9", "")
         note_art9 = (
             f"DATI PARTICOLARI (art. 9 GDPR): {premessa}. "
             f"Oltre alla base ex art. 6, occorre individuare una condizione ex art. 9(2). "
-            f"Le condizioni più frequenti per il contesto '{contesto}': "
-            + "; ".join(condizioni_art9[:3])
+            f"Le condizioni pertinenti per il contesto '{contesto}' (voce '{contesto_principale}'): "
+            + "; ".join(pertinenti)
+            + (f". Riferimenti e garanzie: {garanzie}" if garanzie else "")
+            + ". La scelta resta una valutazione del titolare sul caso concreto."
         )
 
     return {
         "tipo_trattamento": tipo_trattamento,
         "contesto": contesto,
+        "voce_matrice": contesto_principale,
+        "selezione_voce": selezione,
         "finalita": finalita,
         "dati_particolari": dati_particolari,
         "basi_giuridiche_applicabili": basi_giuridiche_applicabili,
@@ -1688,8 +1794,13 @@ def analisi_base_giuridica(
     sono tra le violazioni più sanzionate dal Garante.
     Se i dati trattati includono categorie particolari (salute, etnia, religione, biometria,
     orientamento sessuale) impostare dati_particolari=True per avere anche l'analisi art. 9.
+    La voce della matrice si sceglie dalle parole di tipo_trattamento e finalita (es. ordini
+    e-commerce, videosorveglianza, ricerca scientifica, antifrode); senza corrispondenza si usa la
+    voce predefinita del contesto e la risposta lo dichiara (campo selezione_voce).
     Chaining: → genera_informativa_privacy() con la base giuridica identificata
               → verifica_necessita_dpia() per trattamenti con consenso o legittimo interesse su larga scala
+    Vigenza: artt. 6, 7, 9 e 22 Reg. UE 2016/679; artt. 2-ter, 2-sexies, 2-septies, 75, 114 D.Lgs.
+    196/2003; art. 4 L. 300/1970 (testo dopo il D.Lgs. 151/2015), riletti il 28/09/2026.
     Precisione: INDICATIVO (catalogo interno delle basi giuridiche ex art. 6; la
     qualificazione del caso concreto resta una valutazione del titolare).
 

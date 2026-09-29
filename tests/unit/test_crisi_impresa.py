@@ -576,6 +576,8 @@ class TestConcordatoPreventivo:
         assert result["proposta_totale"] == pytest.approx(200_000.0)
 
     def test_privilegiati_parziali_nota(self):
+        # Art. 84 co. 5 CCII: partial payment of the privileged needs no consent, only the attested
+        # liquidation value; the unpaid part is chirografario (art. 109 co. 4). Not a "consensual" downgrade.
         result = _call(
             "concordato_preventivo",
             creditori_privilegiati=200_000.0,
@@ -583,7 +585,86 @@ class TestConcordatoPreventivo:
             proposta_pct_chirografari=25.0,
             proposta_pct_privilegiati=80.0,
         )
-        assert "degradazione" in result["nota_privilegiati"].lower()
+        nota = result["nota_privilegiati"]
+        assert "degradata a chirografo" in nota and "art. 84 co. 5" in nota
+        assert "consensuale" not in nota
+
+    def test_liquidatorio_20_per_cento_su_chirografari_e_privilegiati_degradati(self):
+        # Art. 84 co. 4-5 CCII: privileged 200.000 paid at 70% leave 60.000 unpaid, treated as chirografari:
+        # the 20% is measured on 500.000 + 60.000 = 560.000. At 21% the offer is 117.600, the total
+        # 140.000 + 117.600 = 257.600 (not 245.000, which ignored the degraded share).
+        result = _call(
+            "concordato_preventivo",
+            creditori_privilegiati=200_000.0,
+            creditori_chirografari=500_000.0,
+            proposta_pct_chirografari=21.0,
+            proposta_pct_privilegiati=70.0,
+            tipo="liquidatorio",
+        )
+        assert result["quota_privilegiati_degradata"] == pytest.approx(60_000.0)
+        assert result["base_chirografaria_con_degradati"] == pytest.approx(560_000.0)
+        assert result["proposta_chirografari_euro"] == pytest.approx(117_600.0)
+        assert result["proposta_totale"] == pytest.approx(257_600.0)
+        assert result["ammissibile"] is True
+
+    def test_liquidatorio_19_99_per_cento_sui_degradati_non_ammissibile_e_nota_a_due_decimali(self):
+        # Art. 84 co. 4: "non inferiore al 20 per cento"; the note now shows two decimals (19,99 < 20,00).
+        result = _call(
+            "concordato_preventivo",
+            creditori_privilegiati=200_000.0,
+            creditori_chirografari=500_000.0,
+            proposta_pct_chirografari=19.99,
+            proposta_pct_privilegiati=70.0,
+            tipo="liquidatorio",
+        )
+        assert result["ammissibile"] is False
+        assert "19.99% < soglia minima 20.00%" in result["nota_soglia"]
+
+    def test_nota_apporto_esterno_10_per_cento_attivo_disponibile(self):
+        # Art. 84 co. 4 (text of D.Lgs. 83/2022): +10% of "l'attivo disponibile al momento della presentazione
+        # della domanda", not of the chirografari satisfaction as in the 2019 original.
+        result = _call(
+            "concordato_preventivo",
+            creditori_privilegiati=200_000.0,
+            creditori_chirografari=500_000.0,
+            proposta_pct_chirografari=20.0,
+            tipo="liquidatorio",
+        )
+        assert "attivo disponibile al momento della presentazione della domanda" in result["nota_soglia"]
+
+    def test_voto_continuita_tutte_le_classi_art_109_co_5(self):
+        # Art. 85 co. 3 (classes always mandatory in continuity), art. 109 co. 5 (all classes in favour),
+        # art. 112 co. 2 (cross-class cram-down otherwise).
+        result = _call(
+            "concordato_preventivo",
+            creditori_privilegiati=200_000.0,
+            creditori_chirografari=500_000.0,
+            proposta_pct_chirografari=5.0,
+            tipo="continuita",
+        )
+        voto = result["voto_requisito"]
+        assert "tutte le classi votano a favore" in voto and "art. 85 co. 3" in voto and "art. 112 co. 2" in voto
+        assert "art. 84 co. 3" in result["nota_soglia"] and "non inferiore" in result["nota_soglia"]
+
+    def test_voto_liquidatorio_maggior_numero_di_classi_e_teste_art_109_co_1(self):
+        result = _call(
+            "concordato_preventivo",
+            creditori_privilegiati=200_000.0,
+            creditori_chirografari=500_000.0,
+            proposta_pct_chirografari=25.0,
+            tipo="liquidatorio",
+        )
+        voto = result["voto_requisito"]
+        assert "maggior numero di classi" in voto and "per teste" in voto
+
+    def test_importi_negativi_errore(self):
+        with pytest.raises(ValueError):
+            _call(
+                "concordato_preventivo",
+                creditori_privilegiati=-1.0,
+                creditori_chirografari=200_000.0,
+                proposta_pct_chirografari=25.0,
+            )
 
     def test_percentuale_fuori_range_errore(self):
         with pytest.raises(ValueError):
@@ -630,76 +711,111 @@ class TestConcordatoPreventivo:
 # ---------------------------------------------------------------------------
 
 class TestCompensoOcc:
-    def test_passivo_piccolo_minimo_ristrutturazione(self):
-        result = _call("compenso_occ", passivo=10_000.0, tipo="ristrutturazione")
-        # 10.000 * 5% = 500 < minimo 1.500
-        assert result["compenso"] == 1_500.0
-        assert result["minimo_applicato"] is True
+    # Art. 16 co. 1-2 and 4 D.M. 202/2014 with art. 1 co. 1-2 D.M. 30/2012: fee = % of the attivo + % of
+    # the passivo (curatore percentages), reduced by 15% to 40%. Values recomputed by hand from the
+    # bracket table of art. 1 D.M. 30/2012.
 
-    def test_passivo_piccolo_minimo_liquidazione(self):
-        result = _call("compenso_occ", passivo=20_000.0, tipo="liquidazione")
-        # 20.000 * 7% = 1.400 < minimo 2.000
-        assert result["compenso"] == 2_000.0
-        assert result["minimo_applicato"] is True
+    def test_solo_passivo_100000_forbice_dopo_riduzione(self):
+        # Passivo band (art. 1 co. 2): min 81.131,38 x 0,19% + 18.868,62 x 0,06% = 165,47;
+        # max 81.131,38 x 0,94% + 18.868,62 x 0,46% = 849,43. Art. 16 co. 4: min x 0,60, max x 0,85.
+        result = _call("compenso_occ", passivo=100_000.0)
+        assert result["compenso_min"] == pytest.approx(99.28, abs=0.01)
+        assert result["compenso_max"] == pytest.approx(722.02, abs=0.01)
 
-    def test_passivo_50000_ristrutturazione(self):
-        result = _call("compenso_occ", passivo=50_000.0, tipo="ristrutturazione")
-        # 50.000 * 5% = 2.500
-        assert result["compenso"] == pytest.approx(2_500.0)
-        assert result["minimo_applicato"] is False
+    def test_attivo_e_passivo_uguali_a_20000(self):
+        # Attivo 20.000 (art. 1 co. 1 lett. a-b) + passivo 20.000, then -40% / -15% (art. 16 co. 4).
+        result = _call("compenso_occ", passivo=20_000.0, attivo=20_000.0)
+        assert result["compenso_min"] == pytest.approx(1_417.52, abs=0.01)
+        assert result["compenso_max"] == pytest.approx(2_475.66, abs=0.01)
 
-    def test_passivo_100000_ristrutturazione(self):
-        result = _call("compenso_occ", passivo=100_000.0, tipo="ristrutturazione")
-        # 100.000 * 5% = 5.000
-        assert result["compenso"] == pytest.approx(5_000.0)
-        assert result["minimo_applicato"] is False
+    def test_attivo_e_passivo_uguali_a_100000(self):
+        result = _call("compenso_occ", passivo=100_000.0, attivo=100_000.0)
+        assert result["compenso_min"] == pytest.approx(4_908.40, abs=0.01)
+        assert result["compenso_max"] == pytest.approx(8_591.83, abs=0.01)
 
-    def test_passivo_300000_progressivo_ristrutturazione(self):
-        result = _call("compenso_occ", passivo=300_000.0, tipo="ristrutturazione")
-        # 100.000 * 5% = 5.000
-        # 200.000 * 3% = 6.000
-        # totale = 11.000
-        assert result["compenso"] == pytest.approx(11_000.0)
-        assert len(result["dettaglio_fasce"]) == 2
+    def test_attivo_e_passivo_uguali_a_500000_liquidazione(self):
+        # Art. 18 co. 1 D.M. 202/2014: liquidation, attivo realizzato + passivo accertato, art. 16 applies.
+        result = _call("compenso_occ", passivo=500_000.0, attivo=500_000.0, tipo="liquidazione")
+        assert result["compenso_min"] == pytest.approx(17_403.49, abs=0.01)
+        assert result["compenso_max"] == pytest.approx(31_053.21, abs=0.01)
 
-    def test_passivo_600000_tre_fasce_ristrutturazione(self):
-        result = _call("compenso_occ", passivo=600_000.0, tipo="ristrutturazione")
-        # 100.000 * 5% = 5.000
-        # 400.000 * 3% = 12.000
-        # 100.000 * 1% = 1.000
-        # totale = 18.000
-        assert result["compenso"] == pytest.approx(18_000.0)
-        assert len(result["dettaglio_fasce"]) == 3
+    def test_attivo_e_passivo_uguali_a_1000000(self):
+        result = _call("compenso_occ", passivo=1_000_000.0, attivo=1_000_000.0)
+        assert result["compenso_min"] == pytest.approx(26_074.67, abs=0.01)
+        assert result["compenso_max"] == pytest.approx(49_127.03, abs=0.01)
 
-    def test_passivo_300000_liquidazione(self):
-        result = _call("compenso_occ", passivo=300_000.0, tipo="liquidazione")
-        # 100.000 * 7% = 7.000
-        # 200.000 * 4% = 8.000
-        # totale = 15.000
-        assert result["compenso"] == pytest.approx(15_000.0)
+    def test_nessun_minimo_di_legge(self):
+        # Artt. 14 and 16 D.M. 202/2014 fix no minimum fee (art. 14 co. 4: numeric thresholds not binding):
+        # the 1.500 / 2.000 euro floors of the old tool have no source.
+        result = _call("compenso_occ", passivo=10_000.0)
+        assert "minimo_di_legge" not in result and "minimo_applicato" not in result
+        assert result["compenso_max"] < 1_500.0
 
-    def test_passivo_zero_minimo(self):
-        result = _call("compenso_occ", passivo=0.0, tipo="ristrutturazione")
-        assert result["compenso"] == 1_500.0
-        assert result["minimo_applicato"] is True
+    def test_forbice_continua_al_confine_del_primo_scaglione_passivo(self):
+        # The bracket formula is continuous at 81.131,38 (art. 1 co. 2 D.M. 30/2012).
+        sotto = _call("compenso_occ", passivo=81_131.38)["compenso_max"]
+        sopra = _call("compenso_occ", passivo=81_131.39)["compenso_max"]
+        assert 0 <= sopra - sotto <= 0.01
+
+    def test_spese_generali_10_15_per_cento_art_14_co_3(self):
+        result = _call("compenso_occ", passivo=100_000.0, attivo=100_000.0)
+        assert result["spese_generali_min"] == pytest.approx(490.84, abs=0.01)  # 10% of 4.908,40
+        assert result["spese_generali_max"] == pytest.approx(1_288.77, abs=0.01)  # 15% of 8.591,83
+
+    def test_tetto_art_16_co_5_passivo_inferiore_a_un_milione(self):
+        # Passivo < 1.000.000: compensi + spese generali <= 10% of what is attributed to creditors.
+        # Attributed 50.000 -> cap 5.000 < 9.880,60 (max with spese generali).
+        result = _call(
+            "compenso_occ", passivo=100_000.0, attivo=100_000.0, importo_attribuito_creditori=50_000.0
+        )
+        assert result["tetto_art_16_co_5"] == pytest.approx(5_000.0)
+        assert result["tetto_applicato"] is True
+        assert result["totale_con_spese_generali_max"] == pytest.approx(5_000.0)
+
+    def test_tetto_art_16_co_5_passivo_oltre_un_milione_5_per_cento(self):
+        result = _call(
+            "compenso_occ", passivo=1_000_001.0, attivo=1_000_001.0, importo_attribuito_creditori=100_000.0
+        )
+        assert result["tetto_art_16_co_5"] == pytest.approx(5_000.0)
+
+    def test_tetto_non_si_applica_sotto_20000_attribuiti(self):
+        # Art. 16 co. 5, second sentence: no cap when what is attributed is below 20.000 euro.
+        result = _call(
+            "compenso_occ", passivo=100_000.0, attivo=100_000.0, importo_attribuito_creditori=19_999.0
+        )
+        assert result["tetto_art_16_co_5"] is None and result["tetto_applicato"] is False
+
+    def test_senza_attivo_avverte_che_e_limite_inferiore(self):
+        result = _call("compenso_occ", passivo=100_000.0)
+        assert result["attivo"] is None
+        assert any("limite inferiore" in a for a in result["avvertenze"])
+
+    def test_passivo_zero_compenso_zero(self):
+        result = _call("compenso_occ", passivo=0.0)
+        assert result["compenso_min"] == 0.0 and result["compenso_max"] == 0.0
 
     def test_passivo_negativo_errore(self):
         with pytest.raises(ValueError):
             _call("compenso_occ", passivo=-1.0)
 
+    def test_attivo_negativo_errore(self):
+        with pytest.raises(ValueError):
+            _call("compenso_occ", passivo=1.0, attivo=-1.0)
+
     def test_tipo_non_valido_errore(self):
         with pytest.raises(ValueError):
             _call("compenso_occ", passivo=100_000.0, tipo="invalido")
 
-    def test_dettaglio_fasce_struttura(self):
+    def test_dettaglio_passivo_struttura(self):
         result = _call("compenso_occ", passivo=300_000.0)
-        for fascia in result["dettaglio_fasce"]:
-            assert "fascia" in fascia
-            assert "imponibile" in fascia
-            assert "aliquota_pct" in fascia
-            assert "importo" in fascia
+        assert len(result["dettaglio_passivo"]) == 2
+        for fascia in result["dettaglio_passivo"]:
+            assert {"fascia", "base", "compenso_min", "compenso_max"} <= set(fascia)
 
-    def test_riferimento_normativo(self):
+    def test_riferimento_normativo_art_2_lett_t_ccii(self):
+        # Art. 15 CCII has a single comma on the piattaforma telematica; the link between the CCII and
+        # D.M. 202/2014 is art. 2 co. 1 lett. t) CCII. The old "art. 15 co. 9" belongs to L. 3/2012 (repealed).
         result = _call("compenso_occ", passivo=100_000.0)
         assert "D.M. 202/2014" in result["riferimento_normativo"]
-        assert "OCC" in result["riferimento_normativo"]
+        assert "art. 2 co. 1 lett. t)" in result["riferimento_normativo"].lower()
+        assert "art. 15" not in result["riferimento_normativo"]
