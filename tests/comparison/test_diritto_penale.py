@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 8 — Diritto Penale."""
+"""Arithmetic verification tests for Sezione 8 - Diritto Penale."""
 
 from tests.comparison.conftest import assert_close
 

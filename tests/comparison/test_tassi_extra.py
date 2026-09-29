@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 2 — Tassi e Interessi (extra tools)."""
+"""Arithmetic verification tests for Sezione 2 - Tassi e Interessi (extra tools)."""
 
 from tests.comparison.conftest import assert_close
 

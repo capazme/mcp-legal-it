@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 6 — Parcelle Professionisti."""
+"""Arithmetic verification tests for Sezione 6 - Parcelle Professionisti."""
 
 from tests.comparison.conftest import assert_close
 
