@@ -16,21 +16,16 @@ What it checks, one real call per case on a known document (reads are cached per
   the declared 6000-character truncation, and DocWeb 9870832 as the OpenAI/ChatGPT provvedimento;
 * the "latest" tool returns five documents in descending date order, none after today, recent.
 
-KNOWN DEFECTS (fail on purpose until fixed; verified on 2026-09-25):
+Defects found on 2026-09-25 and fixed in this branch (each case below is the regression guard):
 
-* `cerca_provvedimenti_garante` documents dates as GG/MM/AAAA and forwards them verbatim; the
-  portal ignores that format and answers "Nessun risultato trovato", so plan case 1
-  (linee guida cookie, 01/06/2021-30/06/2021) returns nothing;
-* the local tipologia filter compares the docstring's example value "provvedimento" with the
-  leaf tipologia of each card ("Prescrizioni del Garante", "Ordinanza ingiunzione o revoca",
-  "Provvedimenti", ...): no leaf contains "provvedimento", so the filter drops every real
-  provvedimento (plan case 2 of the search, plan case 2 of the latest tool);
-* the docstring of `leggi_provvedimento_garante` labels 9870832 "Linee guida AI 2023" (it is the
-  Provvedimento del 30 marzo 2023 on ChatGPT) and 10000069 "Provvedimento ChatGPT 2023" (the
-  portal answers "Il contenuto o il file richiesto non è disponibile");
-* an unavailable DocWeb id is returned as a pseudo-document ("# Documento DocWeb <id>") instead
-  of an error;
-* the DocWeb links are relative (/web/guest/home/...), not usable outside the portal.
+* dates: the tools document GG/MM/AAAA but the portal reads only AAAA-MM-GG, so the client now
+  converts them (any other format is an explicit error, not an empty result);
+* tipologia: the client no longer filters locally on the leaf label; it sends the portal's own
+  node ids (`idsTipologia`), and "provvedimento" expands to the "Provvedimenti" node and all its
+  descendants, which the portal does not do on its own;
+* `leggi_provvedimento_garante`: the docstring labels of 9870832 and 10000069 were wrong, an
+  unavailable DocWeb id is an error (not a pseudo-document), links are absolute and the page
+  toolbar is stripped from the text.
 
 Needs the network, so it is excluded from the default run. Launch it with:
 
@@ -53,7 +48,14 @@ from bs4 import BeautifulSoup
 
 import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
 from src.lib import _clock
-from src.lib.gpdp.client import _BASE, _HEADERS, _SEARCH_PATH, _build_search_params
+from src.lib.gpdp.client import (
+    _BASE,
+    _HEADERS,
+    _SEARCH_PATH,
+    TIPOLOGIE,
+    _build_search_params,
+    tipologie_provvedimenti,
+)
 from src.tools.gpdp import (
     cerca_provvedimenti_garante,
     leggi_provvedimento_garante,
@@ -138,9 +140,15 @@ def test_canary_modulo_ricerca_date_iso_e_tipologie():
     for foglia in ("Linee guida", "Ordinanza ingiunzione o revoca", "Parere del Garante",
                    "Prescrizioni del Garante"):
         assert foglia in figli, (foglia, sorted(figli))
-    # Fact the local filter depends on (see test_*_tipologia_provvedimento): the leaves are
-    # named after the kind of act, none contains the word "provvedimento".
-    assert not [nome(n) for n in per_id.values() if "provvedimento" in nome(n).lower()]
+    # The client keeps a copy of this tree (TIPOLOGIE) to build `idsTipologia`: it must match
+    # the portal exactly, otherwise "provvedimento" would silently miss or add a node.
+    live = {n["id"]: (nome(n), "" if n["parent"] == "#" else n["parent"]) for n in nodi}
+    copia = {i: (name, parent) for i, name, parent in TIPOLOGIE}
+    assert copia == live, {
+        "mancanti_nel_client": sorted(set(live) - set(copia)),
+        "in_piu_nel_client": sorted(set(copia) - set(live)),
+        "diversi": sorted(i for i in set(live) & set(copia) if live[i] != copia[i]),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -150,7 +158,7 @@ def test_canary_modulo_ricerca_date_iso_e_tipologie():
 def test_cerca_linee_guida_cookie_date_gg_mm_aaaa_documentate():
     """Plan case 1 as documented (GG/MM/AAAA): DocWeb 9677876 must be among the results.
 
-    KNOWN DEFECT: the portal ignores GG/MM/AAAA and answers "Nessun risultato trovato".
+    Regression: the portal ignores GG/MM/AAAA, so the client converts it to AAAA-MM-GG.
     """
     r = _run(cerca_provvedimenti_garante, query="linee guida cookie",
              data_da="01/06/2021", data_a="30/06/2021", max_risultati=10)
@@ -195,12 +203,18 @@ def test_cerca_openai_chatgpt_ordinato_per_data_trova_9870832():
 def test_cerca_openai_chatgpt_tipologia_provvedimento():
     """Plan case 2 as documented: tipologia "provvedimento" must keep the 30/03/2023 order.
 
-    KNOWN DEFECT: GG/MM/AAAA dates are ignored by the portal and, with any date format, the
-    local filter drops the order because its tipologia is "Prescrizioni del Garante".
+    Regression: its tipologia is "Prescrizioni del Garante", a child of "Provvedimenti"; the old
+    local substring filter dropped it. Both orders against OpenAI (9870832 of 30/03/2023 and
+    9874702 of 11/04/2023) are expected.
     """
     r = _run(cerca_provvedimenti_garante, query="OpenAI ChatGPT",
              data_da="01/03/2023", data_a="30/04/2023", tipologia="provvedimento")
-    assert 9870832 in _docweb_ids(r), r[:600]
+    ids = _docweb_ids(r)
+    assert 9870832 in ids, r[:600]
+    assert 9874702 in ids, r[:600]
+    famiglia = set(tipologie_provvedimenti()) | {"Provvedimenti"}
+    for b in _blocchi(r):
+        assert _campo(b, "Tipo") in famiglia, b[:200]
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +250,7 @@ def test_leggi_9870832_provvedimento_chatgpt_30_marzo_2023():
 def test_leggi_etichette_esempi_docstring():
     """Every DocWeb example in the docstring must resolve to a document matching its label.
 
-    KNOWN DEFECT: 9870832 is labelled "Linee guida AI 2023" (it is the ChatGPT order of
+    Regression: 9870832 was labelled "Linee guida AI 2023" (it is the ChatGPT order of
     30/03/2023) and 10000069 "Provvedimento ChatGPT 2023" (not available on the portal).
     """
     doc = inspect.getdoc(_fn(leggi_provvedimento_garante)) or ""
@@ -250,16 +264,19 @@ def test_leggi_etichette_esempi_docstring():
             errori.append(f"{docweb_id} ({etichetta!r}): documento non disponibile")
         elif etichetta.lower().startswith("linee guida") and "linee guida" not in titolo.lower():
             errori.append(f"{docweb_id} ({etichetta!r}): il titolo e' {titolo!r}")
+        elif etichetta.lower().startswith("provvedimento") and "provvedimento" not in titolo.lower():
+            errori.append(f"{docweb_id} ({etichetta!r}): il titolo e' {titolo!r}")
     assert not errori, errori
 
 
 def test_leggi_id_non_disponibile_e_un_errore():
     """An unavailable DocWeb id must come back as an error, not as a pseudo-document.
 
-    KNOWN DEFECT: the tool answers "# Documento DocWeb 10000069 ... Il contenuto o il file
+    Regression: the tool used to answer "# Documento DocWeb 10000069 ... Il contenuto o il file
     richiesto non è disponibile", formatted like a real document with a DocWeb link.
     """
     r = _leggi(10000069)
+    assert r.startswith("Errore: DocWeb 10000069 non disponibile"), r[:300]
     assert "non è disponibile" in r, r[:300]  # the portal's own message
     assert not r.startswith("# Documento DocWeb"), r[:300]
 
@@ -267,7 +284,7 @@ def test_leggi_id_non_disponibile_e_un_errore():
 def test_leggi_link_docweb_assoluto():
     """The DocWeb link must be absolute (plan case 1 expects the garanteprivacy.it URL).
 
-    KNOWN DEFECT: format_full/format_result emit the path only (/web/guest/home/docweb/...).
+    Regression: format_full/format_result used to emit the path only (/web/guest/home/docweb/...).
     """
     r = _leggi(9677876)
     assert _DOCWEB_URL.format(9677876) in r, r.splitlines()[1]
@@ -295,13 +312,21 @@ def test_ultimi_cinque_in_ordine_di_data():
 def test_ultimi_tipologia_provvedimento():
     """Plan case 2: tipologia "provvedimento" (docstring example) must return provvedimenti.
 
-    KNOWN DEFECT: the filter is applied locally to the 15 most recent cards (press reviews,
-    news, podcasts on 2026-09-25) and "provvedimento" matches no leaf tipologia, so the tool
-    answers "Nessun provvedimento recente trovato" although the portal published an
+    Regression: the filter used to run locally on the 15 most recent cards (press reviews,
+    news, podcasts on 2026-09-25) and "provvedimento" matched no leaf tipologia, so the tool
+    answered "Nessun provvedimento recente trovato" although the portal published an
     "Ordinanza ingiunzione o revoca" on 06/08/2026 and "Provvedimenti" on 14/07/2026.
+    "Provvedimenti" is a family of tipologie: every card must carry the parent node or one of
+    its children, in descending date order. (The earlier assertion looked for the substring
+    "provvediment" in the leaf label, which is wrong for children such as "Ordinanza
+    ingiunzione o revoca" or "Prescrizioni del Garante".)
     """
     r = _run(ultimi_provvedimenti_garante, tipologia="provvedimento", max_risultati=5)
     blocchi = _blocchi(r)
-    assert blocchi, r[:300]
+    assert len(blocchi) == 5, r[:300]
+    famiglia = set(tipologie_provvedimenti()) | {"Provvedimenti"}
     for b in blocchi:
-        assert "provvediment" in _campo(b, "Tipo").lower(), b[:200]
+        assert _campo(b, "Tipo") in famiglia, b[:200]
+    date_ = [_data(_campo(b, "Data")) for b in blocchi]
+    assert date_ == sorted(date_, reverse=True), date_
+    assert all(d <= _clock.today() for d in date_), date_

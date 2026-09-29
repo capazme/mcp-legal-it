@@ -44,9 +44,9 @@ _HEADERS = {
 
 _TIMEOUT = httpx.Timeout(60.0, connect=15.0)
 
-# The cold error page is exactly 32254 bytes; require a comfortable margin below
-# the smallest real export (legge_241 ≈ 250 KB) to reject error pages.
-_MIN_XML_BYTES = 40000
+# The root element must appear within this many leading characters of the export
+# (the <akomaNtoso> start tag carries the namespace declarations, ~700 bytes).
+_AKN_ROOT_WINDOW = 4000
 
 # ---------------------------------------------------------------------------
 # Cache
@@ -373,10 +373,13 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             note_source("normattiva", str(akn_resp.url) if hasattr(akn_resp, "url") else "")
             xml = akn_resp.text
 
-        # Validate: real XML export, not the ~32 KB error page.
+        # Validate by structure, not by size: a real Akoma Ntoso export (its root is
+        # <akomaNtoso>, and parse_akn must find at least one article) versus the ~32 KB
+        # HTML error page. A size floor also rejected valid exports of short acts
+        # (L. 742/1969 is 24,555 bytes), which then fell back to the HTML walker.
         if not xml.lstrip().startswith("<?xml"):
             return None
-        if len(xml) < _MIN_XML_BYTES:
+        if "akomaNtoso" not in xml[:_AKN_ROOT_WINDOW]:
             return None
 
         act = parse_akn(xml)

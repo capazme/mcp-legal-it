@@ -126,7 +126,8 @@ def test_cite_law_legge_742_1969_json_testo_vigente():
     missing = contiene(
         payload["testo"],
         "sospeso di diritto dal 1° al 31 agosto di ciascun anno",
-        "l'inizio stesso è differito alla fine di detto periodo",
+        # The Akoma Ntoso export writes the grave accent of old acts as "e'" (as the Gazzetta does).
+        "l'inizio stesso è differito alla fine di detto periodo|l'inizio stesso e' differito alla fine di detto periodo",
     )
     assert not missing, (missing, payload["testo"][:600])
 
@@ -512,8 +513,8 @@ def test_verifica_citazioni_cass_10579_2021_non_e_inesistente():
     """Cass. civ. sez. III n. 10579/2021 exists (ord. 21/04/2021) but is not in the Italgiure index.
 
     Italgiure's civil archive is a moving window that on 2026-09-25 starts on 17/02/2021 and holds
-    only part of 2021; `_ITALGIURE_MIN_YEAR = 2020` sends the lookup, the miss becomes
-    "inesistente". Later decisions in the same index cite it ("Cass. n. 10579 del 2021" in
+    only part of 2021; the former fixed `_ITALGIURE_MIN_YEAR = 2020` sent the lookup and the miss
+    became "inesistente" (the start is now read from the archive, `_italgiure_archive_start`). Later decisions in the same index cite it ("Cass. n. 10579 del 2021" in
     Cass. civ. sez. III nn. 10141/2022, 10901/2024, 26826/2025). Expected: "verificata" if found,
     otherwise "non verificabile" — never "inesistente".
     """

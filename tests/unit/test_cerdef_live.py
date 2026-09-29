@@ -167,6 +167,16 @@ async def test_cerdef_leggi_provvedimento_guid_inesistente():
     assert re.search(r"non trovat|inesistent|non valid", out, re.I), out[:400]
 
 
+async def test_cerdef_leggi_provvedimento_guid_ben_formato_ma_inesistente():
+    """A well-formed GUID the portal does not know (HTTP 500 + NullPointerException) is "not found".
+
+    Not an outage and not a malformed input: the portal is reachable and the id has the right shape.
+    """
+    out = await _fn(cerdef_leggi_provvedimento)(guid="{00000000-0000-0000-0000-000000000000}")
+    assert "provvedimento non trovato o GUID non valido" in out, out[:400]
+    assert "non raggiungibile" not in out.lower(), out[:400]
+
+
 # ---------------------------------------------------------------------------
 # ultime_sentenze_tributarie
 # ---------------------------------------------------------------------------

@@ -4,9 +4,9 @@ What it checks, on documents whose identifiers are fixed and public:
 
 - `get_italian_implementation`: directive (EU) 2019/790 (copyright in the
   digital single market, CELEX 32019L0790) -> D.Lgs. 8 novembre 2021, n. 177
-  (GU n. 283 del 27-11-2021, MNE CELEX 72019L0790ITA_202107973); the entry
-  into force the tool prints is compared with Normattiva's ("Entrata in vigore
-  del provvedimento: 12/12/2021"); the GDPR (32016R0679) is a regulation and
+  (GU n. 283 del 27-11-2021, MNE CELEX 72019L0790ITA_202107973); the GU date
+  that CELLAR repeats as "entry into force" must not be printed as such
+  (Normattiva: "Entrata in vigore del provvedimento: 12/12/2021"); the GDPR (32016R0679) is a regulation and
   must be answered without a query.
 - `get_eu_basis`: the reverse lookup from "D.Lgs. 177/2021" and from the MNE
   CELEX, with the transposition deadline checked against art. 29(1) of the
@@ -154,22 +154,28 @@ class TestGetItalianImplementation:
         assert _field(out, "Direttiva recepita") == [DSM_CELEX], out
         assert "Attuazione della direttiva (UE) 2019/790" in _field(out, "Titolo")[0], out
 
-    def test_dir_2019_790_entrata_in_vigore_come_normattiva(self):
-        """The 'Entrata in vigore' printed for D.Lgs. 177/2021 must be Normattiva's (12/12/2021).
+    def test_dir_2019_790_entrata_in_vigore_non_e_la_data_della_gu(self):
+        """The GU date must not be printed as the 'Entrata in vigore' of D.Lgs. 177/2021.
 
         CELLAR's `resource_legal_date_entry-into-force` for this MNE holds the GU
         publication date (2021-11-27); the act entered into force after the
         ordinary fifteen-day vacatio legis (art. 73, third paragraph, Cost.;
-        art. 10 preleggi), on 12 December 2021.
+        art. 10 preleggi), on 12 December 2021 (Normattiva). The tool cannot
+        derive the date (an act may set a different term), so it must either give
+        Normattiva's date or refuse to call the CELLAR date the entry into force
+        and point to art. 73 and Normattiva.
         """
         out = _call("get_italian_implementation", direttiva="direttiva 2019/790")
         attesa = _dmy_to_iso(_normattiva_eif_dlgs_177())
         assert attesa == _dmy_to_iso(DLGS_177_EIF_FROZEN), attesa
         eif = _field(out, "Entrata in vigore")
-        assert eif == [attesa], (
+        assert eif in ([], [attesa]), (
             f"il tool presenta come entrata in vigore {eif}, Normattiva dice {attesa} "
             f"(il dato CELLAR coincide con la data della GU {DLGS_177_GU_DATE_ISO})"
         )
+        if not eif:
+            assert any("non è l'entrata in vigore" in label for label in re.findall(r"\*\*([^*]+)\*\*:", out)), out
+            assert "art. 73 co. 3 Cost." in out and "Normattiva" in out, out
 
     def test_vacatio_legis_art_73_cost_da_la_data_di_normattiva(self):
         """Art. 73, third paragraph, Cost.: in force on the fifteenth day after publication.

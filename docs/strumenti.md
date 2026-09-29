@@ -1491,20 +1491,20 @@ _Calcola il rendimento netto di un pronti contro termine (PCT) con aliquota 12,5
 ---
 
 ### `rendimento_buoni_postali`
-_Calcola il rendimento netto dei buoni fruttiferi postali con capitalizzazione composta a scaglioni d'anno e imposta sostitutiva 12,5%._
+_Calcola montante e rendimento netto dei buoni fruttiferi postali con i coefficienti dei fogli informativi CDP della serie (interessi riconosciuti come da foglio: annuali per l'ordinario, a triennio o quadriennio compiuto per 3x4 e 4x4) e imposta sostitutiva 12,5%._
 
-**Parametri**: `importo` (float, obbligatorio) — importo sottoscritto in €. `tipo` (str, opzionale, default `"ordinario"`) — `"ordinario"` (max 20 anni), `"3x4"` (max 12), `"4x4"` (max 16), `"dedicato_minori"` (max 18). `anni` (int, opzionale, default `10`) — durata desiderata in anni.
+**Parametri**: `importo` (float, obbligatorio) — importo sottoscritto in €. `tipo` (str, opzionale, default `"ordinario"`) — `"ordinario"` (max 20 anni), `"3x4_con_premio"` (max 12, premio a scadenza), `"dedicato_minori"` (fino ai 18 anni), serie non più in emissione `"3x4"` (max 12) e `"4x4"` (max 16). `anni` (int, opzionale, default `10`) — anni di possesso al rimborso. `serie` (str, opzionale) — serie CDP; di default la più recente del tipo. `eta_minore` (int, opzionale, solo `dedicato_minori`) — età compiuta alla sottoscrizione, 0-16. `valore_portafoglio_buoni` (float, opzionale) — valore di rimborso complessivo dei buoni del titolare, per la soglia di 5.000 € del bollo.
 
-**Quando usare**: per confrontare i buoni postali con BOT/BTP a parità di orizzonte temporale, tenendo conto della capitalizzazione composta.
+**Quando usare**: per confrontare i buoni postali con BOT/BTP a parità di orizzonte temporale. Grado INDICATIVO: il tool non sa quale serie ha sottoscritto il cliente; l'imposta di bollo (0,20% annuo sul capitale se il portafoglio supera 5.000 €) è una stima esposta a parte in `imposta_bollo`, non inclusa nel montante netto.
 
-**Esempio**: `rendimento_buoni_postali(importo=20000, tipo="dedicato_minori", anni=18)` → montante lordo, imposta 12,5%, montante netto e rendimento netto annualizzato.
+**Esempio**: `rendimento_buoni_postali(importo=20000, tipo="dedicato_minori", anni=18)` → montante lordo, imposta 12,5%, montante netto, rendimento netto annualizzato e stima del bollo.
 
 ---
 
 ### `confronto_investimenti`
 _Confronta il rendimento netto tra più strumenti finanziari applicando la tassazione corretta (12,5% o 26%) e restituisce una classifica dal più al meno conveniente._
 
-**Parametri**: `importo` (float, obbligatorio) — capitale uguale per tutti gli strumenti in €. `investimenti` (list[dict], obbligatorio) — lista di `{"nome": str, "rendimento_lordo_pct": float, "tipo_tassazione": str, "durata_anni": int}`.
+**Parametri**: `importo` (float, obbligatorio) — capitale uguale per tutti gli strumenti in €. `investimenti` (list[dict], obbligatorio) — lista di `{"nome": str, "rendimento_lordo_pct": float (anche negativo: l'imposta è zero, mai un rimborso), "tipo_tassazione": str ("titoli_stato" o "altro"; ogni altro valore è rifiutato), "durata_anni": int (intero >= 1)}`. Ogni voce riporta anche `rendimento_netto_annualizzato_pct`, coerente con il montante netto: la classifica usa il rendimento netto annuo e ignora la durata.
 
 **Quando usare**: per prendere una decisione di investimento confrontando BOT, BTP, conto deposito e fondi con orizzonti temporali diversi su base netta omogenea.
 

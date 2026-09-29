@@ -28,6 +28,7 @@ from bs4 import BeautifulSoup
 from src.lib import _clock
 from src.lib._result import SearchResult
 from src.lib.cerdef.client import (
+    CerdefNonTrovato,
     CRITERI_RICERCA,
     ENTI,
     ORDINAMENTI,
@@ -738,10 +739,44 @@ class TestFetchProvvedimento:
         assert "Depositato in Cancelleria il 14 settembre 2026." in dettaglio.testo_integrale
         assert "\\" not in dettaglio.massima + dettaglio.testo_integrale
 
-    async def test_unknown_guid_http_500(self):
-        portale = _Portale(*[(500, _ERRORE_500)] * 3)
-        with portale.attiva(), _senza_attese(), pytest.raises(CerdefError, match="inesistente"):
+    async def test_unknown_guid_http_500_is_not_found_without_retry(self):
+        # CeRDEF answers a well-formed but unknown id with HTTP 500 + NullPointerException,
+        # deterministically: "not found", asked once (a retry cannot change the answer).
+        portale = _Portale((500, _ERRORE_500))
+        with portale.attiva(), pytest.raises(CerdefNonTrovato, match="non trovato o GUID non valido"):
             await fetch_provvedimento("{00000000-0000-4000-8000-000000000000}")
+        assert len(portale.richieste) == 1
+
+    async def test_other_http_500_is_retried_and_stays_a_source_error(self):
+        # A 500 without the NullPointerException body may be a real outage: retried,
+        # then reported as an unreadable answer, never as "not found".
+        portale = _Portale(*[(500, "Internal error")] * 3)
+        with portale.attiva(), _senza_attese(), pytest.raises(CerdefError, match="HTTP 500") as info:
+            await fetch_provvedimento(GUID_25285)
+        assert not isinstance(info.value, CerdefNonTrovato)
+        assert len(portale.richieste) == 3
+
+    async def test_transient_500_then_detail_succeeds(self):
+        portale = _Portale((500, "Internal error"), _pagina("dettaglio_ordinanza_25285_2026.html"))
+        with portale.attiva(), _senza_attese():
+            dettaglio = await fetch_provvedimento(GUID_25285)
+        assert dettaglio.guid == GUID_25285
+        assert len(portale.richieste) == 2
+
+    @pytest.mark.parametrize("guid", ["abc-123-def-456", "B0F76E21", "{B0F76E21-B5FA-4415-9D1D-44FF7B5741C}", "x" * 36])
+    async def test_malformed_guid_is_refused_before_any_request(self, guid):
+        portale = _Portale()
+        with portale.attiva(), pytest.raises(ValueError, match="non valido"):
+            await fetch_provvedimento(guid)
+        assert portale.richieste == []
+
+    @pytest.mark.parametrize("guid", [GUID_25285, GUID_25285.strip("{}"), GUID_25285.lower()])
+    async def test_guid_with_or_without_braces_is_accepted(self, guid):
+        portale = _Portale(_pagina("dettaglio_ordinanza_25285_2026.html"))
+        with portale.attiva():
+            dettaglio = await fetch_provvedimento(guid)
+        assert portale.richieste[0].url.params["id"] == guid
+        assert dettaglio.estremi.startswith("Ordinanza del 14/09/2026 n. 25285")
 
     async def test_error_page_instead_of_detail_raises(self):
         portale = _Portale(_pagina("errore_generico.html"))
@@ -795,15 +830,26 @@ class TestCerdefLeggiProvvedimentoImpl:
         assert "## Massima" in testo
         assert "## Testo Integrale" in testo
 
-    async def test_unknown_guid_is_not_an_outage(self):
-        portale = _Portale(*[(500, _ERRORE_500)] * 3)
-        with portale.attiva(), _senza_attese():
-            result = await _cerdef_leggi_provvedimento_impl("abc-123-def-456")
-        assert result.error_type == "source_error"
+    async def test_unknown_guid_is_not_found_not_an_outage(self):
+        portale = _Portale((500, _ERRORE_500))
+        with portale.attiva():
+            result = await _cerdef_leggi_provvedimento_impl("{00000000-0000-4000-8000-000000000000}")
+        assert result.error_type == "not_found"
         testo = result.to_str()
         assert testo.startswith("**Errore**")
-        assert "inesistente" in testo
+        assert "provvedimento non trovato o GUID non valido" in testo
         assert "non raggiungibile" not in testo
+        assert len(portale.richieste) == 1
+
+    async def test_docstring_example_guid_is_bad_input_without_request(self):
+        # The old docstring example was not a CeRDEF GUID; it must read as invalid, not as an outage.
+        portale = _Portale()
+        with portale.attiva():
+            result = await _cerdef_leggi_provvedimento_impl("abc-123-def-456")
+        assert result.error_type == "bad_input"
+        assert "GUID" in result.to_str() and "non valido" in result.to_str()
+        assert "non raggiungibile" not in result.to_str()
+        assert portale.richieste == []
 
     async def test_http_404_is_source_down(self):
         portale = _Portale((404, "Not Found"))

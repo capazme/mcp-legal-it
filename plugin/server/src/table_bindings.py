@@ -141,6 +141,7 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "preventivo_volontaria_giurisdizione": ("parametri_forensi",),
     "ravvedimento_operoso": ("tassi_legali",),
     "regime_forfettario": ("irpef_scaglioni",),
+    "rendimento_buoni_postali": ("buoni_postali",),
     "ricerca_codici_ateco": ("codici_ateco",),
     "rivalutazione_annuale_media": ("indici_foi",),
     "rivalutazione_mensile": ("indici_foi",),

@@ -21,6 +21,7 @@ from src.lib.visualex import (
     known_act_names,
 )
 from src.lib.visualex.scraper import (
+    _build_celex,
     fetch_article,
     fetch_annotations,
     download_eurlex_pdf,
@@ -334,6 +335,16 @@ async def _cite_law_struct(reference: str) -> dict:
         result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
     base["url"] = result.get("url", "") or nv.url()
     base["urn"] = _urn_from_url(base["url"])
+    # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
+    # with the act's real date (from the Normattiva page); when it could not, the URL still
+    # works but its date is a placeholder, so no URN is presented as the act's own.
+    full_date = result.get("data_atto") or ""
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", full_date):
+        base["atto"]["data"] = full_date
+        base["atto"]["descrizione"] = str(Norma(tipo_atto=nv.norma.tipo_atto, data=full_date,
+                                                numero_atto=nv.norma.numero_atto))
+    elif base["urn"] and re.fullmatch(r"\d{4}", act_info.get("data", "") or ""):
+        base["urn"] = None
     base["fonte"] = result.get("source", "") or ""
     base["testo"] = result.get("text", "") or ""
     if result.get("error"):
@@ -432,8 +443,11 @@ async def cite_law(
         formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
                  atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, testo,
                  errore, data_consultazione. "urn" è l'estremo URN Normattiva quando la
-                 fonte è Normattiva, altrimenti null. In modalità json le annotazioni
-                 Brocardi non sono incluse (include_annotations viene ignorato).
+                 fonte è Normattiva, altrimenti null; se l'atto è citato con il solo anno
+                 ("L. 742/1969") la data completa è letta dalla pagina Normattiva
+                 ("1969-10-07"), e se non è ricavabile "urn" è null (mai una data fittizia).
+                 In modalità json le annotazioni Brocardi non sono incluse
+                 (include_annotations viene ignorato).
     """
     return await _cite_law_impl(reference, include_annotations, formato)
 
@@ -459,7 +473,10 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
 async def fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupera le annotazioni Brocardi per un articolo: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali. Da usare per approfondire la norma già recuperata con cite_law().
-    Restituisce: ratio legis, spiegazione dottrinale, massime giurisprudenziali da Brocardi.
+    Restituisce: rubrica e testo dell'articolo come li riporta Brocardi (con i rinvii tra parentesi
+    quadre; il testo ufficiale resta quello di cite_law), ratio legis, spiegazione dottrinale,
+    massime giurisprudenziali. Le massime non sono troncate: per articoli molto annotati
+    (art. 2043 c.c.: circa 500) la risposta supera i 500.000 caratteri.
 
     Args:
         act_type: Tipo di atto normativo, es. "codice civile", "codice penale", "costituzione"
@@ -495,12 +512,29 @@ async def _cerca_brocardi_impl(reference: str) -> str:
 
     parts = [result.to_markdown()]
 
-    # Append Cassazione references for Italgiure cross-linking
+    # Append Cassazione references for Italgiure cross-linking. Italgiure indexes only a moving
+    # window of recent years: older decisions are listed apart, because leggi_sentenza cannot
+    # find them (answering "non trovata" for a decision that does exist).
     cass_refs = parse_massime_references(result.massime)
     if cass_refs:
+        first_year, first_date = 0, ""
+        if any(ref["anno"] <= _italgiure_window_year() for ref in cass_refs):
+            first_year, first_date = await _italgiure_archive_start("tutti")
+        leggibili = [ref for ref in cass_refs if ref["anno"] >= first_year]
+        fuori = [ref for ref in cass_refs if ref["anno"] < first_year]
         parts.append("\n---\n**Riferimenti Cassazione** (per approfondimento con `leggi_sentenza`):")
-        for ref in cass_refs:
+        for ref in leggibili:
             parts.append(f"- {ref['autorita']} n. {ref['numero']}/{ref['anno']}")
+        if not leggibili:
+            parts.append("- nessuno: tutte le decisioni citate sono anteriori all'archivio Italgiure")
+        if fuori:
+            since = f"anteriori al {_fmt_iso_date(first_date)}" if first_date else f"anteriori al {first_year}"
+            parts.append(
+                f"\n**Fuori archivio Italgiure** ({since}: `leggi_sentenza` non le trova, "
+                "il testo va cercato in altra fonte):"
+            )
+            for ref in fuori:
+                parts.append(f"- {ref['autorita']} n. {ref['numero']}/{ref['anno']}")
 
     return "\n".join(parts)
 
@@ -513,7 +547,9 @@ async def cerca_brocardi(reference: str) -> str:
 
     Rispetto a fetch_law_annotations, accetta un riferimento in formato naturale (come cite_law)
     e restituisce anche i riferimenti strutturati alle sentenze della Cassazione
-    (utilizzabili con leggi_sentenza per recuperare il testo completo).
+    (utilizzabili con leggi_sentenza per recuperare il testo completo). Italgiure indicizza solo
+    una finestra mobile di anni recenti (nel 2026 dal 2021): le decisioni anteriori sono elencate
+    a parte come "Fuori archivio Italgiure", perché leggi_sentenza non le trova.
     Dopo questo tool: leggi_sentenza() per il testo completo delle sentenze citate nelle massime.
     Restituisce: ratio legis, spiegazione, massime con numeri sentenza strutturati, relazioni storiche.
 
@@ -734,17 +770,15 @@ async def _download_law_pdf_impl(reference: str) -> str:
             with open(filepath, "wb") as f:
                 f.write(pdf_bytes)
 
-            from src.lib.visualex.map import EURLEX
-            eurlex_val = EURLEX.get(norma.tipo_atto_normalized.lower(), "reg")
-            type_letter = {"reg": "R", "dir": "L"}.get(eurlex_val, "R")
-            year = norma.data.split("-")[0] if "-" in norma.data else norma.data
-            number = norma.numero_atto.zfill(4)
-            pdf_url = f"https://eur-lex.europa.eu/legal-content/IT/TXT/PDF/?uri=CELEX:3{year}{type_letter}{number}"
+            # Quotable reference: the EUR-Lex PDF page of the act (the file itself comes from
+            # CELLAR, see download_eurlex_pdf).
+            pdf_url = f"https://eur-lex.europa.eu/legal-content/IT/TXT/PDF/?uri=CELEX:{_build_celex(norma)}"
 
             return (
                 f"**PDF scaricato** ({act_name})\n\n"
                 f"File: `{filepath}`\n"
                 f"Fonte: EUR-Lex — {pdf_url}\n"
+                f"Copia: CELLAR (Ufficio delle pubblicazioni dell'UE), versione italiana\n"
                 f"Dimensione: {len(pdf_bytes):,} bytes"
             )
         except Exception as e:
@@ -781,7 +815,9 @@ async def _download_law_pdf_impl(reference: str) -> str:
 async def download_law_pdf(reference: str) -> str:
     """Scarica o genera il PDF completo di una legge.
 
-    Per regolamenti/direttive UE: scarica il PDF ufficiale da EUR-Lex.
+    Per regolamenti/direttive UE: scarica il PDF ufficiale in italiano (edizione elettronica
+    della GU UE, servita dal repository CELLAR dell'Ufficio delle pubblicazioni; EUR-Lex
+    resta il riferimento citabile, il suo endpoint PDF blocca i client automatici).
     Per leggi italiane: genera un PDF dal testo ufficiale recuperato da Normattiva.
     Restituisce: path al file PDF salvato in /tmp con fonte e dimensione.
 
@@ -796,9 +832,70 @@ async def download_law_pdf(reference: str) -> str:
 # verifica_citazioni — citation existence + metadata verifier
 # ---------------------------------------------------------------------------
 
-# Earliest year covered by the Italgiure archive. Decisions before this cannot
-# be confirmed as existent or not — they are simply outside the searchable index.
-_ITALGIURE_MIN_YEAR = 2020
+# The Italgiure archive is a MOVING window, not "from 2020": on 2026-09-25 the civil archive
+# started on 17/02/2021 (2021 holds ~16k decisions against 35-38k of a full year, and nothing is
+# indexed for 2020), and the start advances every day. Decisions before the start cannot be
+# confirmed as existent or not; the first year is only partly covered, so a miss there proves
+# nothing either. The start is READ from the archive (oldest deposited decision, cached per day)
+# by `_italgiure_archive_start`, the single definition shared by verifica_citazioni and
+# cerca_brocardi. If that probe fails, the window is assumed to be at least this many years wide.
+_ITALGIURE_WINDOW_YEARS = 5
+
+_archive_start_cache: dict[tuple[str, str], tuple[int, str]] = {}
+
+
+def _italgiure_window_year() -> int:
+    """Newest year that can lie before, or on the edge of, the archive start.
+
+    A decision of a LATER year is always inside the archive window, so it needs no probe.
+    """
+    return _clock.today().year - _ITALGIURE_WINDOW_YEARS
+
+
+async def _italgiure_archive_start(archivio: str = "tutti") -> tuple[int, str]:
+    """First year and first deposit date ("YYYY-MM-DD") of the Italgiure archive.
+
+    Read as the oldest decision of the archive (sort by deposit date, one row) and cached for
+    the day. If the archive cannot be queried, returns the assumed window
+    (``today.year - 5``, no date) without caching it.
+    """
+    today = _clock.today()
+    key = (archivio, today.isoformat())
+    if key in _archive_start_cache:
+        return _archive_start_cache[key]
+    fallback = (_italgiure_window_year(), "")
+    try:
+        from src.lib.italgiure.client import get_kind_filter
+        from src.tools import italgiure as _italgiure
+
+        kind_clause = " OR ".join(f'kind:"{k}"' for k in get_kind_filter(archivio))
+        data = await _italgiure.solr_query(
+            {"q": f"({kind_clause})", "rows": 1, "sort": "pd asc", "fl": "id,anno,datdep,kind"}
+        )
+        docs = data.get("response", {}).get("docs", [])
+        if not docs:
+            return fallback
+        raw = docs[0].get("datdep")
+        raw = str(raw[0] if isinstance(raw, list) else raw or "").strip()
+        m = re.match(r"^(\d{4})-?(\d{2})-?(\d{2})", raw)
+        if not m:
+            return fallback
+        start = (int(m.group(1)), f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
+    except Exception:  # noqa: BLE001 - the probe is best effort; the caller keeps the fallback rule
+        return fallback
+    _archive_start_cache[key] = start
+    return start
+
+
+def _fmt_iso_date(iso: str) -> str:
+    """"2021-02-17" -> "17/02/2021"."""
+    y, m, d = iso.split("-")
+    return f"{d}/{m}/{y}"
+
+
+# Branch of the Cassazione named in a citation ("Cass. pen. ...", "Cassazione civile ...").
+# Lavoro and tributaria are chambers of the civil branch.
+_USER_RAMO = re.compile(r"\bcass(?:azione)?\.?\s*,?\s*(?:sez\.?\s*)?(civ|pen|lav|trib)", re.IGNORECASE)
 
 # Hard cap on the number of references resolved in a single call, to bound
 # concurrency against the slow government sources.
@@ -1048,12 +1145,26 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
         return "non interpretabile", "Numero/anno della decisione non riconosciuti."
     numero, anno = num_anno
 
-    if anno < _ITALGIURE_MIN_YEAR:
-        return (
-            "non verificabile",
-            f"Decisione n. {numero}/{anno} anteriore al {_ITALGIURE_MIN_YEAR}, "
-            "fuori archivio Italgiure.",
-        )
+    # "Cass. pen. ..." / "Cass. civ. ..." name the archive: with "tutti" a decision of the
+    # other branch with the same number and year (41994/2021 exists in both) must not be
+    # compared with the citation.
+    archivio_eff = archivio
+    ramo_m = _USER_RAMO.search(reference)
+    if archivio == "tutti" and ramo_m:
+        archivio_eff = "penale" if ramo_m.group(1).lower() == "pen" else "civile"
+
+    # Italgiure is a moving window: a decision before its start, or in the first (partly
+    # covered) year and not found, can be neither confirmed nor excluded.
+    first_year, first_date = 0, ""
+    if anno <= _italgiure_window_year():
+        first_year, first_date = await _italgiure_archive_start(archivio_eff)
+        if anno < first_year:
+            return (
+                "non verificabile",
+                f"Decisione n. {numero}/{anno} anteriore all'archivio Italgiure"
+                + (f", che parte dal {_fmt_iso_date(first_date)}" if first_date else f" (dal {first_year})")
+                + ": non si può stabilire se esista.",
+            )
 
     from src.tools.italgiure import _leggi_sentenza_impl
 
@@ -1062,13 +1173,24 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
     if sez_m:
         sezione_req = _normalize_sezione(sez_m.group(1))
 
-    result = await _leggi_sentenza_impl(numero, anno, archivio=archivio)
+    # The cited section narrows the lookup (Solr codes: 1-7, L, T, U = Sezioni Unite); the
+    # lookup itself retries without it, so a wrong section is still reported as a mismatch.
+    sezione_solr = {"SU": "U"}.get(sezione_req, sezione_req)
+    result = await _leggi_sentenza_impl(numero, anno, sezione=sezione_solr, archivio=archivio_eff)
 
     if not result.success:
         if result.error_type == "source_down":
             return (
                 "non verificata",
                 f"Italgiure non raggiungibile: {result.error_message}",
+            )
+        if first_year and anno == first_year:
+            return (
+                "non verificabile",
+                f"Decisione n. {numero}/{anno} non trovata su Italgiure, ma l'archivio copre il "
+                f"{anno} solo in parte"
+                + (f" (dal {_fmt_iso_date(first_date)})" if first_date else "")
+                + ": non si può escludere che esista.",
             )
         return (
             "inesistente",
@@ -1209,9 +1331,15 @@ async def verifica_citazioni(
         una decisione diversa da quella citata)
       - **non trovata** — l'atto/articolo non è reperibile
       - **metadati discordanti** — la fonte esiste ma sezione/comma/lettera non coincidono
-      - **non verificabile** — sentenza anteriore al 2020 (fuori archivio Italgiure)
+      - **non verificabile** — sentenza anteriore all'inizio dell'archivio Italgiure (finestra
+        mobile: nel 2026 parte dal 2021, letta dall'archivio stesso) o non trovata nel primo
+        anno, coperto solo in parte: non si può stabilire se esista
       - **non verificata** — fonte temporaneamente non raggiungibile
       - **Non interpretabile** — formato del riferimento non riconosciuto
+
+    Con "Cass. pen." / "Cass. civ." nella citazione e archivio "tutti" la ricerca è limitata
+    all'archivio corrispondente (lo stesso numero e anno può esistere in entrambi); la sezione
+    citata restringe la ricerca alla decisione di quella sezione.
 
     Args:
         citazioni: Elenco di riferimenti, uno per riga (o separati da virgola), es.

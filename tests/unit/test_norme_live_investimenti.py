@@ -14,10 +14,12 @@ tool is checked against the vigente text of the norms it applies (read on Normat
   "interessi, utili o altri proventi percepiti"), art. 3 co. 1 D.L. 66/2014 (ritenute and
   imposte sostitutive "sugli interessi, premi e ogni altro provento").
 
-Two tests are expected to FAIL while the tool keeps its current behaviour, because the
-divergence is genuine: a negative gross yield produces a negative tax (a refund no norm
-grants), and a titolo di Stato whose `tipo_tassazione` is not spelt exactly 'titoli_stato'
-is silently taxed at 26% instead of 12,50%. Do not soften them.
+Two divergences were genuine and are fixed in the tool (phase 3); their tests stay as
+regression guards: a negative gross yield used to produce a negative tax (a refund no norm
+grants), and a titolo di Stato whose `tipo_tassazione` was not spelt exactly 'titoli_stato'
+was silently taxed at 26% instead of 12,50%. Since the fix an unknown regime (e.g. 'esente')
+is refused with an `errore` instead of falling back to 26%, so the conto deposito case below
+uses the recognised 'altro'.
 
 Run:
     .venv/bin/pytest tests/unit/test_norme_live_investimenti.py -m live -q -p no:cacheprovider -rfEs
@@ -123,22 +125,27 @@ def test_aliquota_12_50_art2_co1_dlgs_239_1996_art3_co2_lett_a_dl_66_2014():
 
 
 def test_conto_deposito_26_art3_co7_lett_b_dl_66_2014():
-    """Plan case 3: 'Conto deposito' with tipo_tassazione 'esente'. Interest on bank and postal
-    deposits is taxed at 26% (art. 3 co. 7 lett. b D.L. 66/2014), so the fallback rate happens
-    to be the right one here: 10.000 x 1,03^2 = 10.609, imposta 158,34, netto 10.450,66. The
-    value is flagged as not recognised (`tipo_tassazione_riconosciuto` false)."""
+    """Plan case 3: 'Conto deposito'. Interest on bank and postal deposits is taxed at 26%
+    (art. 3 co. 7 lett. b D.L. 66/2014), i.e. tipo_tassazione 'altro': 10.000 x 1,03^2 =
+    10.609, imposta 158,34, netto 10.450,66. The plan wrote the regime as 'esente', which is
+    no regime the tool knows: it expects an explicit error or warning, and the tool now
+    refuses it instead of silently applying 26% (that would be wrong on a truly exempt
+    instrument)."""
     _assert_testo(
         DL_66_2014,
         "interessi e agli altri proventi derivanti da conti correnti e depositi bancari e postali",
     )
     r = _confronto(importo=10000, investimenti=[
-        {"nome": "Conto deposito", "rendimento_lordo_pct": 3.0, "tipo_tassazione": "esente", "durata_anni": 2},
+        {"nome": "Conto deposito", "rendimento_lordo_pct": 3.0, "tipo_tassazione": "altro", "durata_anni": 2},
     ])
     voce = _voce(r, "Conto deposito")
     assert voce["aliquota_pct"] == 26.0
-    assert voce["tipo_tassazione_riconosciuto"] is False
     _assert_voce(voce, _atteso(10000, 3.0, 26.0, 2))
     assert voce["montante_netto"] == pytest.approx(10450.66, abs=0.01)
+    esente = _confronto(importo=10000, investimenti=[
+        {"nome": "Conto deposito", "rendimento_lordo_pct": 3.0, "tipo_tassazione": "esente", "durata_anni": 2},
+    ])
+    assert "tipo_tassazione" in esente.get("errore", ""), esente
 
 
 # --- plan cases: arithmetic with the norm rates -----------------------------------------
@@ -212,7 +219,4 @@ def test_titolo_di_stato_tipo_tassazione_non_canonico_art2_co1_dlgs_239_1996():
     if "errore" in r:
         return
     voce = _voce(r, "BTP")
-    assert voce["aliquota_pct"] == 12.5, (
-        f"titolo di Stato tassato al {voce['aliquota_pct']}% "
-        f"(tipo_tassazione_riconosciuto={voce['tipo_tassazione_riconosciuto']})"
-    )
+    assert voce["aliquota_pct"] == 12.5, f"titolo di Stato tassato al {voce['aliquota_pct']}%"

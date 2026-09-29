@@ -954,8 +954,15 @@ def cerca_codice_tributo(query: str) -> str:
 
     Usare quando serve il codice tributo per compilare un modello F24.
     Restituisce: codice, descrizione, sezione e categoria per ogni risultato trovato.
-    Precisione: INDICATIVO (ricerca per codice o descrizione su tabella delle
-    risoluzioni AdE; verificare il codice sulla risoluzione prima del versamento).
+    Vigenza: sottoinsieme dei codici piu' usati, riletto il 2026-09-29 sulle tabelle
+    dell'Agenzia delle Entrate (erariali e regionali 23/09/2026; F24 ELIDE 27/07/2026;
+    tributi locali 27/03/2026). I codici 1500-1504 (registro locazioni) e GA01-GA05
+    (contributo unificato TAR/Consiglio di Stato) si versano con il modello F24 ELIDE;
+    il contributo unificato civile non ha codice F24. Il codice 1038 e' soppresso dal
+    1.1.2017 (ris. AdE 13/E del 17/3/2016): le ritenute su provvigioni usano il 1040.
+    Precisione: INDICATIVO (ricerca per codice o descrizione su un sottoinsieme delle
+    tabelle AdE, non sull'elenco completo; verificare il codice sulla tabella o sulla
+    risoluzione prima del versamento).
 
     Args:
         query: Codice tributo (es. '4001') o testo da cercare (es. 'IRPEF saldo', 'IMU', 'IVA mensile')

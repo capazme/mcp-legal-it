@@ -761,3 +761,53 @@ class TestCercaCodiceTributo:
         assert "8901" in r
         assert "8904" in r
         assert "1991" in r
+
+    # Codes below re-read on the AdE tables of 23/09/2026 (erariali e regionali),
+    # 27/07/2026 (F24 ELIDE); cedolare secca = art. 3 D.Lgs. 23/2011, forfetario =
+    # art. 1 c. 64 L. 190/2014.
+
+    @staticmethod
+    def _codes(query):
+        import re
+        r = _call("cerca_codice_tributo", query=query)
+        return re.findall(r"^\| ([0-9A-Z]{4}) \|", r, flags=re.M)
+
+    def test_cedolare_secca_codes_1840_1841_1842(self):
+        assert self._codes("cedolare") == ["1840", "1841", "1842"]
+        assert "acconto prima rata" in _call("cerca_codice_tributo", query="1840")
+        assert "unica soluzione" in _call("cerca_codice_tributo", query="1841")
+        assert "saldo" in _call("cerca_codice_tributo", query="1842")
+
+    def test_regime_forfetario_codes_1790_1791_1792_both_spellings(self):
+        assert self._codes("forfettario") == ["1790", "1791", "1792"]
+        assert self._codes("forfetario") == ["1790", "1791", "1792"]
+
+    def test_1550_1551_1552_are_atti_privati_not_cedolare(self):
+        for code in ("1550", "1551", "1552"):
+            r = _call("cerca_codice_tributo", query=code)
+            assert "Atti privati" in r
+            assert "edolare" not in r
+
+    def test_addizionale_comunale_3843_acconto_3844_saldo(self):
+        # ris. AdE 368/E del 12/12/2007
+        assert "acconto" in _call("cerca_codice_tributo", query="3843")
+        assert "saldo" in _call("cerca_codice_tributo", query="3844")
+
+    def test_iva_acconto_6013_mensili_6035_trimestrali(self):
+        assert "mensili" in _call("cerca_codice_tributo", query="6013")
+        assert "trimestrali" in _call("cerca_codice_tributo", query="6035")
+
+    def test_1668_interessi_pagamento_dilazionato_present(self):
+        assert self._codes("1668") == ["1668"]
+
+    def test_1038_suppressed_since_2017_and_merged_in_1040(self):
+        # ris. AdE 13/E del 17/3/2016
+        # searching "1038" no longer returns a 1038 row: it lands on 1040, whose text names it
+        assert self._codes("1038") == ["1040"]
+        assert "provvigioni" in _call("cerca_codice_tributo", query="1040")
+
+    def test_no_f24_code_for_civil_contributo_unificato(self):
+        # the tool must not invent 1630/1631/1632 as "contributo unificato" codes:
+        # only the administrative-justice GA01-GA05 (F24 ELIDE) exist
+        assert self._codes("contributo unificato") == ["GA01", "GA02", "GA03", "GA04", "GA05"]
+        assert "Nessun codice tributo trovato" in _call("cerca_codice_tributo", query="1632")

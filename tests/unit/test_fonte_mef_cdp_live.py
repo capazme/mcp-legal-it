@@ -337,7 +337,8 @@ def test_bfp_ordinario_montante_vs_foglio_informativo_cdp(anni):
     # Tabella A, tasso nominale annuo lordo: 0,75% (1-4), 1,50 (5), 1,75 (6-7), 2,00 (8),
     # 2,25 (9), 2,50 (10-12), 3,00 (13), 3,40 (14), 3,50 (15-16), 4,00 (17-19), 5,00 (20).
     # Coefficients: 1a 1,0075/1,0065625; 4a 1,03033919/1,02654679; 10a 1,15745056/1,13776924;
-    # 20a 1,63861891/1,55879154. The tool uses 0,50%...2,25% with no series reference.
+    # 20a 1,63861891/1,55879154. The tool used to apply 0,50%...2,25% with no
+    # series reference; it now reads these coefficients from src/data/buoni_postali.json.
     serie, url, testo = _foglio_corrente("buono-ordinario/")
     lordo, netto = _coefficienti_bimestrali(testo)[(anni, 0)]
     r = _bfp(importo=10000, tipo="ordinario", anni=anni)
@@ -355,7 +356,8 @@ def test_bfp_ordinario_durata_massima_venti_anni():
 def test_bfp_imposta_di_bollo_oltre_5000_euro_segnalata():
     """The foglio: esente from the imposta di bollo if the portfolio is <= 5.000 euro, above
     it 0,20% annuo (art. 13 co. 2-ter Tariffa DPR 642/1972, art. 19 D.L. 201/2011). The
-    tool's 'montante_netto' for 10.000 euro neither applies nor mentions it."""
+    tool used to apply nothing and say nothing; it now reports it apart in `imposta_bollo`
+    (a portfolio-level tax, so it is not folded into 'montante_netto')."""
     serie, url, testo = _foglio_corrente("buono-ordinario/")
     assert "imposta di bollo" in testo and "5.000" in testo, serie
     sintesi = _foglio_corrente("buono-ordinario/", "Scheda di Sintesi")[2]
@@ -365,22 +367,27 @@ def test_bfp_imposta_di_bollo_oltre_5000_euro_segnalata():
         "montante_netto senza imposta di bollo e senza avvertenza")
 
 
-@pytest.mark.parametrize("anni, anni_riconosciuti", [(2, 0), (7, 6)])
+@pytest.mark.parametrize("anni, anni_riconosciuti", [(2, 0), (7, 6), (12, 12)])
 def test_bfp_3x4_interessi_riconosciuti_solo_a_fine_triennio(anni, anni_riconosciuti):
     """Foglio 3x4 (con premio, in placement; same clause in the plain 3x4 series TF212A250211):
     'Gli interessi maturati nel corso del secondo triennio non sono corrisposti ... prima che
     siano trascorsi sei anni': the value at year 7 equals the value at year 6, and before year 3
-    no interest is paid. The tool compounds every year, also inside the running triennio."""
+    no interest is paid. The tool used to compound every year, also inside the running triennio;
+    it now reads the foglio's coefficients (tipo '3x4_con_premio') and the value is compared with
+    the foglio itself, for both the plain 3x4 series and the one with premio."""
     serie, url, testo = _foglio_corrente("buono-3x4-con-premio")
     coeff = _coefficienti_annui(testo)
     assert coeff[0] == (1.0, 1.0), serie
     assert coeff[anni] == coeff[anni_riconosciuti], (serie, coeff[anni], coeff[anni_riconosciuti])
-    if anni_riconosciuti == 0:
-        atteso = 5000.0
-    else:
-        atteso = _bfp(importo=5000, tipo="3x4", anni=anni_riconosciuti)["montante_lordo"]
-    r = _bfp(importo=5000, tipo="3x4", anni=anni)
-    assert r["montante_lordo"] == pytest.approx(atteso, abs=0.01), (serie, r["montante_lordo"])
+    lordo, netto = coeff[anni]
+    r = _bfp(importo=5000, tipo="3x4_con_premio", anni=anni)
+    assert r["serie"] == serie
+    assert r["montante_lordo"] == pytest.approx(round(5000 * lordo, 2), abs=0.01), (serie, r["montante_lordo"])
+    assert r["montante_netto"] == pytest.approx(round(5000 * netto, 2), abs=0.01), (serie, r["montante_netto"])
+    plain = _bfp(importo=5000, tipo="3x4", anni=anni)  # last plain series, same triennial rule
+    valore_precedente = 5000.0 if anni_riconosciuti == 0 else _bfp(
+        importo=5000, tipo="3x4", anni=anni_riconosciuti)["montante_lordo"]
+    assert plain["montante_lordo"] == pytest.approx(valore_precedente, abs=0.01)
 
 
 # Last plain Buono 3x4: serie TF212A250211, conditions from 11/02/2025, in placement until
@@ -419,7 +426,8 @@ def test_bfp_dedicato_minori_vs_foglio_informativo_cdp():
     # https://www.media.poste.it/67c59348-98ad-4eb7-aca9-455146fb5e7a/file/fi-TF118A260922
     # 5,00% annuo effettivo lordo a scadenza (18th birthday) for every age; 0,50% nominal on
     # early redemption. Newborn subscriber (18 years): coefficient 2,38712870 / 2,21373761.
-    # The tool: 1,50% -> 3,50% by 4-year brackets.
+    # The tool used to apply 1,50% -> 3,50% by 4-year brackets; it now reads Tabella A (maturity
+    # coefficient by bimester of the 18th birthday) from src/data/buoni_postali.json.
     serie, url, testo = _foglio_corrente("buono-minori")
     m = re.search(r"N\.A\.\s*\(4\)\s+(\d,\d{8})\s+(\d,\d{8})\s+(\d+,\d{2})%", testo)
     assert m, serie
@@ -434,3 +442,46 @@ def test_bfp_dedicato_minori_vs_foglio_informativo_cdp():
 def test_bfp_tipo_non_ammesso_errore():
     r = _bfp(importo=10000, tipo="inesistente", anni=5)
     assert "tipo non valido" in r.get("errore", "")
+
+
+# --- the shipped table against the foglio in placement ------------------------------------
+
+_MESI_IT = {m: i for i, m in enumerate(
+    ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
+     "settembre", "ottobre", "novembre", "dicembre"], start=1)}
+
+
+def test_tabella_buoni_postali_coincide_con_i_fogli_in_collocamento():
+    """src/data/buoni_postali.json holds the coefficients of the series in placement; when CDP
+    issues a new series poste.it links a different foglio and this test says the table must
+    gain that series (and `serie_corrente` move), instead of the tool going silently stale."""
+    from src.lib import _data
+
+    tipi = _data.load("buoni_postali")["tipi"]
+
+    serie, url, testo = _foglio_corrente("buono-ordinario/")
+    assert serie == tipi["ordinario"]["serie_corrente"], (serie, url)
+    for anni, (lordo, netto) in ((a, c) for (a, m), c in _coefficienti_bimestrali(testo).items() if m == 0):
+        assert tipi["ordinario"]["serie"][serie]["coefficienti"][str(anni)] == [lordo, netto], (serie, anni)
+
+    serie, url, testo = _foglio_corrente("buono-3x4-con-premio")
+    assert serie == tipi["3x4_con_premio"]["serie_corrente"], (serie, url)
+    for anno, (lordo, netto) in _coefficienti_annui(testo).items():
+        assert tipi["3x4_con_premio"]["serie"][serie]["coefficienti"][str(anno)] == [lordo, netto], (serie, anno)
+
+    serie, url, testo = _foglio_corrente("buono-minori")
+    assert serie == tipi["dedicato_minori"]["serie_corrente"], (serie, url)
+    tabella_a = testo[testo.index("TABELLA A"):testo.index("TABELLA B")]
+    letti = []
+    for g, m, a, lordo, netto in re.findall(
+            r"(\d{1,2}) ([a-z]+) (\d{4})\s+(?:\d{1,2} [a-z]+ \d{4}|N\.A\. \(4\))\s+(\d,\d{8})\s+(\d,\d{8})\s+"
+            r"\d,\d{2}%\s+\d,\d{2}%", tabella_a):
+        letti.append(["%04d-%02d-%02d" % (int(a), _MESI_IT[m], int(g)), _num(lordo), _num(netto)])
+    letti.sort()
+    assert len(letti) == 99, len(letti)  # bimesters from 1 aprile 2028 to 1 agosto 2044
+    assert tipi["dedicato_minori"]["serie"][serie]["maturita"] == letti, serie
+    tabella_c = testo[testo.index("TABELLA C"):]
+    anticipato = {int(a): [_num(lordo), _num(netto)] for a, m, lordo, netto in
+                  re.findall(r"(\d{1,2})\s+(\d{1,2})\s+(\d,\d{8})\s+(\d,\d{8})", tabella_c) if m == "0"}
+    for anno, coeff in anticipato.items():
+        assert tipi["dedicato_minori"]["serie"][serie]["rimborso_anticipato"][str(anno)] == coeff, (serie, anno)

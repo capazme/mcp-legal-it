@@ -17,7 +17,7 @@ What it checks, one real call per case on a known document:
   truncation, and reports an unknown number (99999, HTTP 404) as an error rather than as a
   delibera;
 * the "latest" tool returns five delibere in descending order of publication date, and recent;
-* KNOWN DEFECT (fails on purpose until fixed): results that are not delibere (Comunicazione
+* REGRESSION GUARD (defect fixed on 2026-09-29): results that are not delibere (Comunicazione
   n. 13/25, Richiamo di attenzione n. 14/25, protocol-numbered comunicazioni) are labelled
   "Delibera n. <n>" with a link to /delibera-n.-<n>, which the portal answers with 404.
 
@@ -163,7 +163,7 @@ def test_cerca_comunicazioni_etichetta_e_link_corretti():
     "Comunicazione n. 13/25"; their real pages are /-/richiamo-di-attenzione-n-14-25-del-7-luglio-2025
     and /-/comunicazione-n-13-25-del-4-luglio-2025. The tool labels them "Delibera n. 14" and
     "Delibera n. 13" and links /delibera-n.-14 and /delibera-n.-13, both HTTP 404.
-    KNOWN DEFECT: this test fails until format_result uses the href of the result.
+    Regression guard: fixed on 2026-09-29, format_result now uses the href of the result.
     """
     r = _run(
         cerca_delibere_consob,
@@ -255,7 +255,7 @@ def test_ultime_comunicazioni_non_etichettate_come_delibere():
     On 2026-09-25 the three latest comunicazioni are n. 0117520 dell'11/12/2025, n. 16/25 del
     04/12/2025 and n. 0086303 del 10/09/2025; the tool shows them as "Delibera n. 0117520",
     "Delibera n. 16", "Delibera n. 0086303", with /delibera-n.-<n> links that answer 404.
-    KNOWN DEFECT: this test fails until format_result uses the href of the result.
+    Regression guard: fixed on 2026-09-29, format_result now uses the href of the result.
     """
     r = _run(ultime_delibere_consob, tipologia="comunicazioni", max_risultati=3)
     assert not r.startswith("Errore"), r
