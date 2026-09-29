@@ -24,6 +24,11 @@ with open(_DATA / "irpef_scaglioni.json") as _f:
 _ALIAS_LIVELLO = {"quadri_1": "quadri", "quadri": "quadri_1"}
 
 
+def _it(valore: float) -> str:
+    """Italian number format: 122295.0 -> '122.295,00'."""
+    return f"{valore:,.2f}".replace(",", "\0").replace(".", ",").replace("\0", ".")
+
+
 def _parse_date(d: str) -> date:
     return date.fromisoformat(d)
 
@@ -512,78 +517,115 @@ def scadenze_licenziamento(
 
 
 @mcp.tool(tags={"lavoro"})
-@sourced("irpef_scaglioni")
+@sourced("irpef_scaglioni", "inps_parametri")
 def costo_lavoro(
     retribuzione_lorda_annua: float,
     tipo_contratto: str = "dipendente",
 ) -> dict:
     """Stima il costo totale del lavoro per l'azienda e il netto per il dipendente.
 
-    Calcolo semplificato con aliquote medie di riferimento. Le aliquote variano per
-    settore INAIL, dimensione aziendale, regione (IRAP), anzianità e agevolazioni.
-    Vigenza: D.P.R. 917/1986 (IRPEF) — L. 153/1969 (contributi) — D.Lgs. 446/1997 (IRAP).
-    Precisione: INDICATIVO (aliquote contributive medie; l'IRAP sul costo del personale a tempo
-        indeterminato è deducibile dal 2015, art. 11 co. 4-octies D.Lgs. 446/1997; verificare le
-        aliquote del CCNL e dell'INPS applicabili)
+    Calcolo semplificato per un rapporto a tempo indeterminato a tempo pieno per l'intero anno, con
+    aliquote medie del datore di lavoro (variano per settore INAIL, dimensione aziendale, anzianità e
+    agevolazioni). Quota del lavoratore: IVS 9,19% (5,84% per l'apprendista, circ. INPS n. 128/2012) più
+    l'1% sulla retribuzione eccedente la prima fascia pensionabile (art. 3-ter D.L. 384/1992, circ. INPS
+    n. 6/2026). IRPEF con le detrazioni dell'art. 13 TUIR (compreso il +65 euro del co. 1.1) e le misure
+    della L. 207/2024 (somma non imponibile fino a 20.000 euro di reddito, ulteriore detrazione oltre).
+    IRAP sul personale a tempo indeterminato pari a zero (costo interamente deducibile). TFR: quota annua
+    al netto dello 0,50% dell'art. 3 L. 297/1982.
+    Vigenza: art. 2120 c.c.; artt. 11 e 13 TUIR; art. 1 co. 4-6 L. 207/2024 (dal 2025); art. 11 co. 4-octies D.Lgs. 446/1997; art. 3-ter D.L. 384/1992; art. 1 co. 773 L. 296/2006 (apprendistato); art. 42 L. 289/2002 (dirigenti iscritti al FPLD INPS dal 2003); circ. INPS n. 128/2012 e n. 6/2026; testo vigente al 2026-09-29.
+    Precisione: INDICATIVO (aliquota del datore al 30% media non verificabile su fonte ufficiale; nessun massimale contributivo per gli iscritti dal 1996; rapporto a tempo pieno e indeterminato, senza addizionali locali, trattamento integrativo né detrazioni per carichi di famiglia; verificare le aliquote del CCNL e dell'INPS applicabili)
     Chaining: → calcolo_naspi() per la stima NASpI in caso di licenziamento.
 
     Args:
         retribuzione_lorda_annua: Retribuzione lorda annua in euro (es. 30000.0; valore > 0)
-        tipo_contratto: 'dipendente' (standard), 'apprendista' (contributi ridotti), 'dirigente' (INPDAI)
+        tipo_contratto: 'dipendente' (standard), 'apprendista' (quota del lavoratore 5,84%) o 'dirigente' (iscritti al FPLD INPS)
     """
     if retribuzione_lorda_annua <= 0:
         raise ValueError("retribuzione_lorda_annua deve essere > 0")
     if tipo_contratto not in ("dipendente", "apprendista", "dirigente"):
         raise ValueError("tipo_contratto deve essere 'dipendente', 'apprendista' o 'dirigente'")
 
+    from src.tools.dichiarazione_redditi import _detrazione_art13
+
     lordo = retribuzione_lorda_annua
+    anno, parametri = _parametri_inps()
+    prima_fascia = parametri["contributi"]["prima_fascia_pensionabile"]
+    massimale = parametri["contributi"]["massimale_base_contributiva"]
 
     # Employee INPS contributions
     if tipo_contratto == "dirigente":
-        aliq_dip = 0.0919  # INPDAI base (aliquota simile IVS)
-        aliq_datore = 0.2390  # INPSDAI + INAIL dirigenti
-        nota_contrib = "Aliquote dirigenti INPDAI — verificare con consulente"
+        aliq_dip = 0.0919  # IVS FPLD, quota del lavoratore (33% = 23,81% datore + 9,19% lavoratore)
+        aliq_datore = 0.2390  # IVS del datore più altri contributi (indicativa)
+        nota_contrib = "Aliquote medie dirigente: iscritti al FPLD INPS dal 2003 (art. 42 L. 289/2002) — verificare con consulente"
     elif tipo_contratto == "apprendista":
-        aliq_dip = 0.0519  # ridotta per apprendisti
-        aliq_datore = 0.1161  # ridotta per aziende < 9 dip (media indicativa)
-        nota_contrib = "Aliquote apprendisti ridotte — variano per dimensione aziendale e anno di apprendistato"
+        aliq_dip = 0.0584  # circ. INPS 128/2012 par. 8: quota del lavoratore per tutta la durata
+        aliq_datore = 0.1161  # 10% (art. 1 co. 773 L. 296/2006) + 1,61%: aliquota piena (oltre 9 dipendenti o dal 3° anno)
+        nota_contrib = (
+            "Aliquote apprendisti: datore 11,61% è l'aliquota piena (per le aziende fino a 9 dipendenti "
+            "3,11% nel 1° anno e 4,61% nel 2°, art. 1 co. 773 L. 296/2006)"
+        )
     else:
         aliq_dip = 0.0919
         aliq_datore = 0.3000  # IVS + CIGS + malattia + maternità + INAIL medio
         nota_contrib = "Aliquote medie dipendente ordinario — variano per settore e dimensione"
 
-    contributi_dip = round(lordo * aliq_dip, 2)
-    imponibile_irpef = lordo - contributi_dip
+    # Art. 3-ter D.L. 384/1992: 1% on the pay above the first pensionable band (circ. INPS 6/2026 par. 5).
+    contributo_aggiuntivo = _cent(max(Decimal(0), _dec(lordo) - _dec(prima_fascia)) * Decimal("0.01"))
+    contributi_dip_dec = _cent(_dec(lordo) * _dec(aliq_dip)) + contributo_aggiuntivo
+    contributi_dip = float(contributi_dip_dec)
+    imponibile_irpef = float(_dec(lordo) - contributi_dip_dec)
 
     irpef_lorda = _calcola_irpef_semplificata(imponibile_irpef)
-    # Detrazioni da lavoro dipendente stimate (semplificazione)
-    if imponibile_irpef <= 15000:
-        detrazione_lavoro = 1955.0
-    elif imponibile_irpef <= 28000:
-        detrazione_lavoro = round(1910 + 1190 * (28000 - imponibile_irpef) / 13000, 2)
-    elif imponibile_irpef <= 50000:
-        detrazione_lavoro = round(1910 * (50000 - imponibile_irpef) / 22000, 2)
-    else:
-        detrazione_lavoro = 0.0
-    irpef_netta = max(0.0, round(irpef_lorda - detrazione_lavoro, 2))
+    # Art. 13 TUIR co. 1 lett. a-b and co. 1.1 (+65 euro between 25.000 and 35.000), ratios to four decimals.
+    detrazione_lavoro = _detrazione_art13(imponibile_irpef, "dipendente")
 
-    netto = round(lordo - contributi_dip - irpef_netta, 2)
+    somma_esente = Decimal(0)
+    detrazione_ulteriore = Decimal(0)
+    if anno >= 2025:  # art. 1 co. 4-6 L. 207/2024, from the 2025 tax year
+        reddito = _dec(imponibile_irpef)
+        if reddito <= 20000:
+            # Co. 4: sum that does not form income, percentage on the employment income (co. 5: full year).
+            pct = Decimal("0.071") if reddito <= 8500 else Decimal("0.053") if reddito <= 15000 else Decimal("0.048")
+            somma_esente = _cent(reddito * pct)
+        elif reddito <= 32000:
+            detrazione_ulteriore = Decimal(1000)  # co. 6 lett. a
+        elif reddito <= 40000:
+            # Co. 6 lett. b: 1.000 x (40.000 - reddito) / 8.000 (exact ratio, no truncation stated by the norm).
+            detrazione_ulteriore = _cent(Decimal(1000) * (Decimal(40000) - reddito) / Decimal(8000))
+    irpef_netta = max(0.0, float(_cent(_dec(irpef_lorda) - _dec(detrazione_lavoro) - detrazione_ulteriore)))
+
+    netto = float(_cent(_dec(lordo) - contributi_dip_dec - _dec(irpef_netta) + somma_esente))
 
     # Employer cost
     contributi_datore = round(lordo * aliq_datore, 2)
-    tfr = round(lordo * 0.0691, 2)  # 6.91% TFR (art. 2120 c.c.)
-    irap = round(lordo * 0.039, 2)  # IRAP media 3.9% su costo lavoro
+    # Art. 2120 c.c.: quota = retribuzione / 13,5; art. 3 L. 297/1982: minus 0,50% (the tool's 6,9074%).
+    tfr = float(_cent(_dec(lordo) / Decimal("13.5") - _dec(lordo) * Decimal("0.005")))
+    # Art. 11 co. 4-octies D.Lgs. 446/1997: cost of permanent staff fully deductible from the IRAP base.
+    irap = 0.0
     costo_totale = round(lordo + contributi_datore + tfr + irap, 2)
 
     cuneo_fiscale = round((costo_totale - netto) / costo_totale * 100, 1) if costo_totale > 0 else 0.0
+
+    avvertenze = []
+    if lordo > massimale:
+        avvertenze.append(
+            f"Retribuzione oltre il massimale annuo della base contributiva ({_it(massimale)} euro nel {anno}): "
+            "per gli iscritti dal 1996 la contribuzione IVS non è dovuta sull'eccedenza; il tool non conosce "
+            "l'anzianità contributiva e applica le aliquote all'intera retribuzione"
+        )
 
     return {
         "tipo_contratto": tipo_contratto,
         "lordo_annuo": lordo,
         "contributi_dipendente": contributi_dip,
         "aliquota_contributi_dipendente_pct": round(aliq_dip * 100, 2),
+        "contributo_aggiuntivo_1_pct": float(contributo_aggiuntivo),
         "imponibile_irpef": round(imponibile_irpef, 2),
+        "irpef_lorda": irpef_lorda,
+        "detrazione_lavoro_dipendente": detrazione_lavoro,
+        "detrazione_ulteriore_l_207_2024": float(detrazione_ulteriore),
         "irpef_stimata": irpef_netta,
+        "somma_non_imponibile_l_207_2024": float(somma_esente),
         "netto_stimato": netto,
         "contributi_datore": contributi_datore,
         "aliquota_contributi_datore_pct": round(aliq_datore * 100, 2),
@@ -592,8 +634,9 @@ def costo_lavoro(
         "costo_azienda_totale": costo_totale,
         "cuneo_fiscale_pct": cuneo_fiscale,
         "nota": nota_contrib,
-        "avvertimento": "INDICATIVO — le aliquote variano per settore INAIL, dimensione, regione e agevolazioni. Verificare con consulente del lavoro.",
-        "riferimento_normativo": "D.P.R. 917/1986 (IRPEF) — L. 153/1969 (contributi) — D.Lgs. 446/1997 (IRAP) — Art. 2120 c.c. (TFR)",
+        "avvertenze": avvertenze,
+        "avvertimento": "INDICATIVO — le aliquote variano per settore INAIL, dimensione, regione e agevolazioni. Verificare con consulente del lavoro. IRAP sul personale a tempo indeterminato: costo deducibile (art. 11 co. 4-octies D.Lgs. 446/1997), non sommata.",
+        "riferimento_normativo": "D.P.R. 917/1986 artt. 11 e 13 (IRPEF) — L. 207/2024 art. 1 co. 4-6 — D.L. 384/1992 art. 3-ter e circ. INPS 128/2012 e 6/2026 (contributi) — D.Lgs. 446/1997 art. 11 co. 4-octies (IRAP) — Art. 2120 c.c. e art. 3 L. 297/1982 (TFR)",
     }
 
 

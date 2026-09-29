@@ -379,8 +379,9 @@ def test_costo_lavoro_tfr_art_2120_cc_e_contributo_0_50_l_297_1982():
 def test_costo_lavoro_scaglioni_irpef_2026_art_11_tuir():
     """Art. 11 TUIR vigente: 23% to 28.000, 33% to 50.000, 43% above (2026). The table
     `irpef_scaglioni` read by the tool must carry the same 2026 brackets. Plan case:
-    55.000 euro, imponibile 49.945,50, IRPEF 13.677,29 (tool 13.677,28: the tool rounds
-    the gross tax before the deduction, a one-cent difference within tolerance)."""
+    55.000 euro, imponibile 49.945,50, imposta lorda 13.682,02. Art. 13 co. 6 TUIR: the ratio
+    (50.000 - 49.945,50) / 22.000 = 0,002477 "si assume nelle prime quattro cifre decimali"
+    (0,0024), so the deduction is 4,58 euro (not 4,73) and the IRPEF 13.677,44."""
     assert_parole(
         "art. 11 TUIR",
         "fino a 28.000 euro, 23 per cento",
@@ -396,17 +397,19 @@ def test_costo_lavoro_scaglioni_irpef_2026_art_11_tuir():
     r = _tool("costo_lavoro")(retribuzione_lorda_annua=55000)
     imponibile = 55000 - _r2(55000 * 0.0919)
     lorda = _r2(28000 * 0.23 + (imponibile - 28000) * 0.33)  # 13.682,02
-    detrazione = _r2(1910 * (50000 - imponibile) / 22000)  # 4,73
-    atteso = _r2(lorda - detrazione)  # 13.677,29
+    # Art. 13 co. 6 TUIR: ratio truncated to four decimals (0,0024), deduction 4,58.
+    detrazione = _r2(1910 * (int((50000 - imponibile) / 22000 * 10000) / 10000))
+    atteso = _r2(lorda - detrazione)  # 13.677,44
     assert r["imponibile_irpef"] == pytest.approx(imponibile, abs=CENT)
     assert r["irpef_stimata"] == pytest.approx(atteso, abs=CENT)
 
 
 def test_costo_lavoro_irpef_30000_detrazioni_art_13_tuir_e_l_207_2024():
     """Plan case: dipendente, 30.000 euro. Imponibile 27.243 (30.000 - 9,19%), imposta
-    lorda 6.265,89; detrazione art. 13 co. 1 lett. b 1.979,29 + 65 euro (co. 1.1,
-    reddito tra 25.000 e 35.000) + ulteriore detrazione 1.000 euro (art. 1 co. 6 lett. a
-    L. 207/2024, reddito tra 20.000 e 32.000): IRPEF netta 3.221,60."""
+    lorda 6.265,89; detrazione art. 13 co. 1 lett. b 1.979,26 (rapporto 757/13.000 = 0,0582
+    troncato alla quarta cifra, art. 13 co. 6) + 65 euro (co. 1.1, reddito tra 25.000 e
+    35.000) + ulteriore detrazione 1.000 euro (art. 1 co. 6 lett. a L. 207/2024, reddito
+    tra 20.000 e 32.000): IRPEF netta 3.221,63."""
     assert_parole(
         "art. 13 TUIR",
         "aumentata di un importo pari a 65 euro",
@@ -419,9 +422,10 @@ def test_costo_lavoro_irpef_30000_detrazioni_art_13_tuir_e_l_207_2024():
     )
     imponibile = 30000 - 2757.00
     lorda = _r2(imponibile * 0.23)
-    detrazione = _r2(1910 + 1190 * (28000 - imponibile) / 13000) + 65 + 1000
+    # Art. 13 co. 6 TUIR: the ratio is truncated to four decimals (0,0582), not rounded at the cent.
+    detrazione = _r2(1910 + 1190 * (int((28000 - imponibile) / 13000 * 10000) / 10000)) + 65 + 1000
     atteso = _r2(lorda - detrazione)
-    assert atteso == pytest.approx(3221.60, abs=CENT)
+    assert atteso == pytest.approx(3221.63, abs=CENT)
     r = _tool("costo_lavoro")(retribuzione_lorda_annua=30000)
     assert r["irpef_stimata"] == pytest.approx(atteso, abs=CENT), (
         f"IRPEF del tool {r['irpef_stimata']} contro {atteso}: mancano i 65 euro dell'art. 13 "

@@ -401,8 +401,9 @@ async def test_cgue_phrase_without_commas_falls_back_to_all_words():
             tipo_provvedimento="sentenza", max_risultati=20,
         )
     kwargs = search.call_args.kwargs
-    assert kwargs["keywords"] == ["clausole", "abusive", "consumatori"]
-    assert kwargs["match_all"] is True
+    # the lib ANDs `required_terms` (each must be in the title); no OR keywords are passed
+    assert kwargs["required_terms"] == ["clausole", "abusive", "consumatori"]
+    assert kwargs["keywords"] == []
     assert (kwargs["year_from"], kwargs["year_to"], kwargs["doc_type"]) == ("2022", "2022", "sentenza")
     assert "cercate le parole clausole, abusive, consumatori tutte insieme nel titolo" in out
     assert "62019CJ0693" in out and "CGUE (2 risultati)" in out
@@ -416,7 +417,7 @@ async def test_cgue_fallback_drops_stopwords_and_skips_comma_queries():
     with patch(_PATCH_GET_FONTI, return_value=_fonti_only(cgue=cgue)), \
          patch(_PATCH_CGUE_SEARCH, new=AsyncMock(return_value=[_case()])) as search:
         await _cerca_giurisprudenza_unificata_impl("responsabilità dei produttori", fonti="ue")
-        assert search.call_args.kwargs["keywords"] == ["responsabilità", "produttori"]
+        assert search.call_args.kwargs["required_terms"] == ["responsabilità", "produttori"]
         search.reset_mock()
         # commas mean OR: the caller already chose the semantics, no fallback
         out = await _cerca_giurisprudenza_unificata_impl("clausole abusive, consumatori", fonti="ue")

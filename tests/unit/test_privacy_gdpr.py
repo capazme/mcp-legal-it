@@ -1334,3 +1334,151 @@ class TestGeneraNotificaDataBreach:
     def test_termine_72_ore_invariato(self):
         r = self._base(data_scoperta="2026-09-22T12:00", data_violazione="2026-09-20T22:00")
         assert r["termine_scadenza"] == "25/09/2026 ore 12:00"
+
+
+# ---------------------------------------------------------------------------
+# analisi_base_giuridica: the matrix entry follows the processing, not only the context
+# ---------------------------------------------------------------------------
+
+class TestAnalisiBaseGiuridicaVoce:
+
+    # Art. 6(1)(b) + art. 7(4) GDPR: executing an order rests on the contract, not on consent.
+    def test_b2c_ordine_ecommerce_base_contratto(self):
+        r = _analisi_base_giuridica_impl("gestione ordini e-commerce", "B2C", "esecuzione dell'ordine e consegna")
+        assert r["voce_matrice"] == "B2C_ecommerce"
+        assert r["base_consigliata"] == "contratto"
+
+    # Art. 130 D.Lgs. 196/2003: e-mail marketing stays on consent.
+    def test_b2c_newsletter_resta_consenso(self):
+        r = _analisi_base_giuridica_impl("invio newsletter", "B2C", "marketing diretto via email")
+        assert r["voce_matrice"] == "B2C_marketing" and r["base_consigliata"] == "consenso"
+
+    # Art. 4, co. 1, L. 300/1970 (art. 114 D.Lgs. 196/2003): cameras on employees are not
+    # "esecuzione del contratto di lavoro"; they need union agreement or INL authorisation.
+    def test_dipendenti_videosorveglianza_art4_statuto(self):
+        r = _analisi_base_giuridica_impl("videosorveglianza del magazzino", "dipendenti", "tutela del patrimonio aziendale")
+        assert r["voce_matrice"] == "dipendenti_videosorveglianza"
+        assert r["base_consigliata"] == "legittimo_interesse"
+        assert "art. 4, co. 1, L. 300/1970" in r["motivazione"]
+        assert "Vietato" not in r["motivazione"]
+
+    # Recital 47 GDPR: fraud prevention is a legitimate interest; the entry is reachable from any context.
+    def test_antifrode_voce_trasversale(self):
+        r = _analisi_base_giuridica_impl("prevenzione frodi", "B2B", "antifrode sui pagamenti")
+        assert r["voce_matrice"] == "antifrode_sicurezza"
+
+    # A keyword-less description falls back to the first entry of the context and says so.
+    def test_senza_parole_chiave_voce_predefinita_dichiarata(self):
+        r = _analisi_base_giuridica_impl("trattamento generico", "B2C", "altro")
+        assert r["voce_matrice"] == "B2C_marketing"
+        assert "Nessuna parola chiave" in r["selezione_voce"]
+
+    # "sicurezza" must not trigger the health keyword "cura" (word-start match only).
+    def test_parola_chiave_solo_a_inizio_parola(self):
+        r = _analisi_base_giuridica_impl("gestione della sicurezza", "B2B", "altro")
+        assert r["voce_matrice"] == "B2B_gestione_clienti"
+
+    # Art. 75 D.Lgs. 196/2003 + art. 9(2)(h)(i) and 9(3) GDPR (health).
+    def test_sanita_art9_h_i_e_par3(self):
+        r = _analisi_base_giuridica_impl("cartella clinica", "sanita", "diagnosi e cura", dati_particolari=True)
+        nota = r["note_dati_particolari_art9"]
+        assert "Art. 9(2)(h)" in nota and "Art. 9(2)(i)" in nota
+        assert "Art. 9(2)(a)" not in nota and "Art. 9(2)(c)" not in nota
+        assert "9(3)" in nota and "75" in nota
+
+    # Art. 9(2)(g) + art. 2-sexies D.Lgs. 196/2003 (public administration).
+    def test_pa_art9_g_e_2_sexies(self):
+        r = _analisi_base_giuridica_impl("pratiche di invalidità civile", "pubblica_amministrazione", "benefici", dati_particolari=True)
+        nota = r["note_dati_particolari_art9"]
+        assert "Art. 9(2)(g)" in nota and "2-sexies" in nota and "Art. 9(2)(a)" not in nota
+
+    # Art. 9(2)(j) + art. 89 GDPR; artt. 110 ss. D.Lgs. 196/2003 (research).
+    def test_ricerca_art9_j(self):
+        r = _analisi_base_giuridica_impl("studio clinico osservazionale", "sanita", "ricerca", dati_particolari=True)
+        assert r["voce_matrice"] == "ricerca_scientifica"
+        assert "Art. 9(2)(j)" in r["note_dati_particolari_art9"]
+
+    # Art. 22(2)(a)-(c) GDPR: three alternative exceptions, not consent only.
+    def test_art22_tre_eccezioni(self):
+        r = _analisi_base_giuridica_impl("scoring creditizio automatizzato", "profilazione", "decisione sul credito")
+        m = r["motivazione"]
+        assert "art. 22(2)(a)-(c)" in m and "contratto" in m and "autorizzate dal diritto" in m
+
+
+# ---------------------------------------------------------------------------
+# genera_informativa_videosorveglianza: first-layer sign and art. 4 L. 300/1970
+# ---------------------------------------------------------------------------
+
+class TestVideosorveglianzaCartelloEArt4:
+
+    def _r(self, **kw):
+        return _genera_informativa_videosorveglianza_impl(
+            titolare="Beta S.p.A.", finalita=["tutela del patrimonio aziendale"],
+            tempo_conservazione="72 ore", aree_riprese=["ingresso principale"], **kw,
+        )
+
+    # EDPB 3/2019 par. 114 / Garante FAQ: the sign says how and where to find the full notice.
+    def test_cartello_rinvia_all_informativa_estesa(self):
+        r = self._r(informativa_estesa_dove="sul sito www.beta.example e alla reception")
+        assert "secondo livello) è disponibile: sul sito www.beta.example e alla reception" in r["informativa_breve"]
+        assert "[indicare dove" in self._r()["informativa_breve"]
+
+    # Art. 13(1)(b) GDPR: DPO contact data, in the sign and in the full notice.
+    def test_dpo_nel_cartello_e_nell_estesa(self):
+        r = self._r(dpo="Avv. Rossi, dpo@beta.example")
+        assert "DPO): Avv. Rossi, dpo@beta.example" in r["informativa_breve"]
+        assert "DPO): Avv. Rossi, dpo@beta.example" in r["informativa_estesa"]
+        assert "DPO), se nominato: [da inserire]" in self._r()["informativa_breve"]
+
+    # Art. 4, co. 1, terzo periodo, L. 300/1970: the INL authorisation is in comma 1, not 2
+    # (comma 2 only excludes work tools and attendance recorders); art. 114 D.Lgs. 196/2003.
+    def test_autorizzazione_inl_al_comma_1_e_art_114(self):
+        r = self._r()
+        doc = r["informativa_estesa"] + "\n".join(r["adempimenti_preventivi"])
+        assert "art. 4(2)" not in doc
+        assert "art. 4(1) L. 300/1970, terzo periodo" in doc
+        assert "art. 114 D.Lgs. 196/2003" in doc
+        assert "Territoriale del Lavoro" not in doc
+
+
+# ---------------------------------------------------------------------------
+# genera_registro_trattamenti: art. 30(1) GDPR
+# ---------------------------------------------------------------------------
+
+class TestRegistroArt30:
+
+    def _r(self, **kw):
+        return _genera_registro_trattamenti_impl(
+            titolare="Acme S.r.l.", trattamento="CRM", finalita="gestione clienti",
+            base_giuridica="art. 6(1)(b)", categorie_interessati=["clienti"],
+            categorie_dati=["dati anagrafici"], destinatari=["CRM provider"],
+            termine_cancellazione="10 anni", misure_sicurezza=["cifratura"], **kw,
+        )
+
+    # Art. 30(1)(a): name and contact data of controller and, where applicable, joint controller,
+    # controller's representative and DPO.
+    def test_voce_a_contatti_contitolare_rappresentante_dpo(self):
+        r = self._r(contatti_titolare="info@acme.example", contitolare="Beta S.p.A.",
+                    rappresentante="Gamma Ltd", dpo="Avv. Rossi")
+        t = r["testo"]
+        for atteso in ("info@acme.example", "Contitolare: Beta S.p.A.", "Rappresentante del titolare: Gamma Ltd",
+                       "(DPO): Avv. Rossi"):
+            assert atteso in t
+        assert r["scheda"]["dpo"] == "Avv. Rossi"
+
+    # Art. 30(1)(b) covers only the purposes: the legal basis is an optional accountability item.
+    def test_base_giuridica_non_e_voce_art30_1_b(self):
+        riga = next(l for l in self._r()["testo"].splitlines() if "BASE GIURIDICA" in l)
+        assert "30(1)(b)" not in riga and "facoltativa" in riga
+
+    # Art. 30(1)(e): transfers are a field to fill in, not pre-filled with "none".
+    def test_trasferimenti_da_compilare_non_precompilati(self):
+        assert "Nessun trasferimento" not in self._r()["testo"]
+        assert "art. 49(1), co. 2" in self._r()["scheda"]["trasferimenti_paesi_terzi"]
+        assert self._r(trasferimenti="USA, SCC")["scheda"]["trasferimenti_paesi_terzi"] == "USA, SCC"
+
+    # Art. 30(5): the exemption is for FEWER than 250 employees.
+    def test_docstring_soglia_250(self):
+        from src.tools.privacy_gdpr import genera_registro_trattamenti
+        doc = getattr(genera_registro_trattamenti, "fn", genera_registro_trattamenti).__doc__
+        assert "più di 250" not in doc and "meno di 250" in doc

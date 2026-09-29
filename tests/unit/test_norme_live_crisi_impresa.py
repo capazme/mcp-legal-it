@@ -439,11 +439,10 @@ def test_minimi_1500_e_2000_non_sono_nel_dm_202_2014():
     _assert_testo(f"art. 14 {DM_OCC}", "non sono vincolanti per la liquidazione")
     testo = _testo(f"art. 16 {DM_OCC}") + " " + _testo(f"art. 14 {DM_OCC}")
     r = _tool("compenso_occ")(passivo=20_000)
-    assert r["minimo_applicato"] is True and r["minimo_di_legge"] == 1_500.0
     mancanti = contiene(testo, "1.500", "2.000")
-    assert not mancanti, (
-        "artt. 14 e 16 D.M. 202/2014 non fissano un minimo: il tool espone 'minimo_di_legge' "
-        f"1.500 (ristrutturazione) e 2.000 (liquidazione) senza fonte; assenti: {mancanti}"
+    assert mancanti, "the decrees do not mention the 1.500 / 2.000 euro floors: the tool must not expose them"
+    assert "minimo_di_legge" not in r and "minimo_applicato" not in r, (
+        "artt. 14 e 16 D.M. 202/2014 non fissano un minimo: il tool non deve esporre 'minimo_di_legge'"
     )
 
 
@@ -455,10 +454,7 @@ def test_riferimento_art_15_co_9_ccii_non_disciplina_i_compensi_occ():
     """
     _assert_testo(f"art. 2 {CCII}", "organismi di composizione delle crisi da sovraindebitamento disciplinati dal decreto del ministro della giustizia del 24 settembre 2014, n. 202")
     r = _tool("compenso_occ")(passivo=100_000)
-    assert "art. 15 co. 9 D.Lgs. 14/2019" in r["riferimento_normativo"]
     testo_15 = _testo(f"art. 15 {CCII}")
-    assert "compens" in testo_15, (
-        "art. 15 CCII ('Scambio di documentazione e di dati contenuti nella piattaforma telematica "
-        "nazionale...') ha un solo comma e non parla di compensi: il riferimento del tool "
-        f"'{r['riferimento_normativo']}' e' errato (art. 15 co. 9 L. 3/2012, abrogata; oggi art. 2 co. 1 lett. t CCII)"
-    )
+    assert "compens" not in testo_15, "art. 15 CCII ('Scambio di documentazione...') non parla di compensi"
+    assert "art. 15" not in r["riferimento_normativo"], r["riferimento_normativo"]
+    assert "art. 2 co. 1 lett. t)" in r["riferimento_normativo"].lower()

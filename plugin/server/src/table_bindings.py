@@ -114,7 +114,7 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "codici_iscrizione_ruolo": ("codici_ruolo",),
     "conta_giorni": ("festivita",),
     "contributo_unificato": ("contributo_unificato",),
-    "costo_lavoro": ("irpef_scaglioni",),
+    "costo_lavoro": ("inps_parametri", "irpef_scaglioni"),
     "danno_biologico_macro": ("tabella_danno_bio",),
     "danno_biologico_micro": ("tabella_danno_bio",),
     "danno_non_patrimoniale": ("tabella_danno_bio",),

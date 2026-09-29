@@ -1,7 +1,8 @@
 {
   "_vintage": {
     "fonte": "modelli redazionali interni, non una fonte normativa",
-    "verifica": "manuale"
+    "verifica": "manuale",
+    "nota": "riferimenti normativi e avvertenze riletti il 2026-09-29 sul testo vigente (Normattiva): norme PCT ex D.Lgs. 149/2022 (artt. 196-octies ss. disp. att. c.p.c.), art. 475 c.p.c., art. 347 c.p.c. come modificato dal D.Lgs. 164/2024"
   },
   "decreto_ingiuntivo_ordinario": {
     "categoria": "atti_introduttivi",
@@ -12,7 +13,7 @@
     "campi_opzionali": ["provvisoria_esecuzione"],
     "tool_calcolo": ["contributo_unificato", "parcella_avvocato_civile"],
     "riferimenti_normativi": ["artt. 633-656 c.p.c.", "DPR 115/2002"],
-    "avvertenze": ["Bozza indicativa, richiede completamento con dati specifici del caso"]
+    "avvertenze": ["Bozza indicativa, richiede completamento con dati specifici del caso", "Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.)"]
   },
   "decreto_ingiuntivo_professionale": {
     "categoria": "atti_introduttivi",
@@ -22,8 +23,8 @@
     "campi_obbligatori": ["creditore", "debitore", "importo"],
     "campi_opzionali": ["provvisoria_esecuzione"],
     "tool_calcolo": ["contributo_unificato", "parcella_avvocato_civile"],
-    "riferimenti_normativi": ["artt. 633-656 c.p.c.", "art. 642 co. 1 c.p.c."],
-    "avvertenze": ["Richiede parcella vidimata dall'Ordine per provvisoria esecuzione"]
+    "riferimenti_normativi": ["artt. 633-656 c.p.c.", "art. 636 c.p.c."],
+    "avvertenze": ["La parcella va sottoscritta dal ricorrente e corredata dal parere della competente associazione professionale (art. 636 c.p.c.), che vale come prova del credito; il parere non occorre se il compenso è determinato in base a tariffe obbligatorie; non serve per la provvisoria esecuzione", "Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.)"]
   },
   "decreto_ingiuntivo_condominiale": {
     "categoria": "atti_introduttivi",
@@ -34,7 +35,7 @@
     "campi_opzionali": ["provvisoria_esecuzione"],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["artt. 633-656 c.p.c.", "art. 63 disp. att. c.c."],
-    "avvertenze": ["Allegare delibera assembleare di approvazione spese"]
+    "avvertenze": ["Allegare delibera assembleare di approvazione spese", "Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.)"]
   },
   "decreto_ingiuntivo_cambiale": {
     "categoria": "atti_introduttivi",
@@ -45,7 +46,7 @@
     "campi_opzionali": ["provvisoria_esecuzione"],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["artt. 633-656 c.p.c.", "R.D. 1669/1933"],
-    "avvertenze": ["Allegare cambiale in originale"]
+    "avvertenze": ["Allegare cambiale in originale", "Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.)"]
   },
   "decreto_ingiuntivo_fatture": {
     "categoria": "atti_introduttivi",
@@ -56,7 +57,7 @@
     "campi_opzionali": ["provvisoria_esecuzione"],
     "tool_calcolo": ["contributo_unificato", "interessi_mora"],
     "riferimenti_normativi": ["artt. 633-656 c.p.c.", "D.Lgs. 231/2002"],
-    "avvertenze": ["Allegare tutte le fatture in originale o copia conforme"]
+    "avvertenze": ["Allegare tutte le fatture in originale o copia conforme", "Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.)"]
   },
   "decreto_ingiuntivo_retribuzioni": {
     "categoria": "atti_introduttivi",
@@ -67,15 +68,15 @@
     "campi_opzionali": ["provvisoria_esecuzione"],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["artt. 633-656 c.p.c.", "art. 409 c.p.c.", "art. 442 c.p.c."],
-    "avvertenze": ["Competenza: sezione lavoro del Tribunale", "CU esente nelle cause di lavoro per la parte con reddito fino a tre volte la soglia dell'art. 76 DPR 115/2002 (art. 9 co. 1-bis); oltre, metà scaglione"]
+    "avvertenze": ["Competenza: sezione lavoro del Tribunale", "CU esente nelle cause di lavoro per la parte con reddito fino a tre volte la soglia dell'art. 76 DPR 115/2002 (art. 9 co. 1-bis); oltre, metà scaglione", "Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.)"]
   },
   "atto_di_precetto": {
     "categoria": "esecuzione",
     "descrizione": "Atto di precetto con intimazione di pagamento e calcolo interessi",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "atto_di_precetto", "parametri_fissi": {}},
-    "campi_obbligatori": ["creditore", "debitore", "importo", "titolo_esecutivo"],
-    "campi_opzionali": ["data_titolo", "interessi_dal"],
+    "campi_obbligatori": ["creditore", "debitore", "titolo_esecutivo", "importo_capitale"],
+    "campi_opzionali": ["interessi", "spese"],
     "tool_calcolo": ["interessi_legali", "parcella_avvocato_civile"],
     "riferimenti_normativi": ["artt. 479-481 c.p.c."],
     "avvertenze": ["Notificare il decreto entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti perde efficacia (art. 644 c.p.c.); il precetto perde efficacia se l'esecuzione non inizia entro 90 giorni (art. 481 c.p.c.)"]
@@ -85,11 +86,11 @@
     "descrizione": "Intimazione di sfratto per morosità con calcolo canoni arretrati",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "sfratto_morosita", "parametri_fissi": {}},
-    "campi_obbligatori": ["locatore", "conduttore", "canone_mensile", "mesi_arretrati"],
-    "campi_opzionali": ["data_contratto", "spese_condominiali"],
+    "campi_obbligatori": ["locatore", "conduttore", "immobile", "canone_mensile", "mensilita_insolute", "data_contratto"],
+    "campi_opzionali": [],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["artt. 657-669 c.p.c.", "art. 5 L. 392/1978"],
-    "avvertenze": ["Per morosità qualificata (>= 2 canoni) è possibile chiedere provvedimento di rilascio"]
+    "avvertenze": ["Basta il mancato pagamento del canone decorsi 20 gg dalla scadenza (art. 5 L. 392/1978); la soglia di due mensilità vale solo per gli oneri accessori; se l'intimato si oppone il giudice può pronunciare ordinanza di rilascio (art. 665 c.p.c.)"]
   },
   "sollecito_pagamento": {
     "categoria": "stragiudiziale",
@@ -106,7 +107,7 @@
     "categoria": "stragiudiziale",
     "descrizione": "Messa in mora formale con costituzione in mora ex art. 1219 c.c. e interessi D.Lgs. 231/2002",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "sollecito_pagamento", "parametri_fissi": {"tipo_sollecito": "formale_mora"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "sollecito_pagamento", "parametri_fissi": {}, "variante": {"tipo_sollecito": "formale_mora"}, "fase": 2},
     "campi_obbligatori": ["creditore", "debitore", "importo", "data_scadenza", "data_sollecito"],
     "campi_opzionali": ["tasso_mora", "termine_adempimento"],
     "tool_calcolo": ["interessi_mora", "rivalutazione_monetaria"],
@@ -117,7 +118,7 @@
     "categoria": "stragiudiziale",
     "descrizione": "Prima richiesta di pagamento al cliente — tono cortese senza intimazione formale",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "sollecito_pagamento", "parametri_fissi": {"tipo_sollecito": "prima_richiesta_cliente"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "sollecito_pagamento", "parametri_fissi": {}, "variante": {"tipo_sollecito": "prima_richiesta_cliente"}, "fase": 2},
     "campi_obbligatori": ["creditore", "debitore", "importo", "data_scadenza", "data_sollecito"],
     "campi_opzionali": [],
     "tool_calcolo": [],
@@ -128,7 +129,7 @@
     "categoria": "stragiudiziale",
     "descrizione": "Sollecito di pagamento post-sentenza con intimazione esecuzione forzata",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "sollecito_pagamento", "parametri_fissi": {"tipo_sollecito": "post_sentenza"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "sollecito_pagamento", "parametri_fissi": {}, "variante": {"tipo_sollecito": "post_sentenza"}, "fase": 2},
     "campi_obbligatori": ["creditore", "debitore", "importo", "data_scadenza", "data_sollecito", "sentenza_riferimento"],
     "campi_opzionali": ["tasso_mora"],
     "tool_calcolo": ["interessi_legali"],
@@ -140,8 +141,8 @@
     "descrizione": "Nota di precisazione del credito con interessi aggiornati",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "nota_precisazione_credito", "parametri_fissi": {}},
-    "campi_obbligatori": ["creditore", "importo_capitale", "data_decorrenza"],
-    "campi_opzionali": ["spese_legali"],
+    "campi_obbligatori": ["creditore", "debitore", "procedura_esecutiva", "capitale", "interessi", "spese_legali", "spese_esecuzione"],
+    "campi_opzionali": [],
     "tool_calcolo": ["interessi_legali", "rivalutazione_monetaria"],
     "riferimenti_normativi": ["art. 547 c.p.c."],
     "avvertenze": []
@@ -151,8 +152,8 @@
     "descrizione": "Dichiarazione del terzo pignorato ex art. 547/553 c.p.c.",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "dichiarazione_553_cpc", "parametri_fissi": {}},
-    "campi_obbligatori": ["terzo_pignorato", "debitore", "creditore"],
-    "campi_opzionali": [],
+    "campi_obbligatori": ["terzo_pignorato", "debitore", "procedura"],
+    "campi_opzionali": ["tipo_rapporto"],
     "tool_calcolo": [],
     "riferimenti_normativi": ["artt. 547-553 c.p.c."],
     "avvertenze": []
@@ -253,8 +254,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-bis co. 9-bis DL 179/2012"],
-    "avvertenze": []
+    "riferimenti_normativi": ["art. 196-octies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c."],
+    "avvertenze": ["Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_copia_informatica": {
     "categoria": "attestazioni",
@@ -264,8 +265,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-bis co. 9-bis DL 179/2012"],
-    "avvertenze": []
+    "riferimenti_normativi": ["art. 196-novies disp. att. c.p.c.", "art. 196-decies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c."],
+    "avvertenze": ["Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_duplicato": {
     "categoria": "attestazioni",
@@ -275,8 +276,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-bis co. 9-bis DL 179/2012"],
-    "avvertenze": []
+    "riferimenti_normativi": ["art. 196-octies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c."],
+    "avvertenze": ["Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_margine_fascicolo": {
     "categoria": "attestazioni",
@@ -286,8 +287,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012"],
-    "avvertenze": ["Attestazione apposta direttamente in calce al documento"]
+    "riferimenti_normativi": ["art. 196-octies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c."],
+    "avvertenze": ["Attestazione apposta direttamente in calce al documento", "Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_separata_fascicolo": {
     "categoria": "attestazioni",
@@ -297,8 +298,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012"],
-    "avvertenze": ["Documento di attestazione separato da allegare"]
+    "riferimenti_normativi": ["art. 196-octies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c."],
+    "avvertenze": ["Documento di attestazione separato da allegare", "Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_margine_scanner": {
     "categoria": "attestazioni",
@@ -308,8 +309,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012", "art. 22 D.Lgs. 82/2005"],
-    "avvertenze": ["La scansione deve essere in formato PDF/A"]
+    "riferimenti_normativi": ["art. 196-novies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c.", "art. 22 D.Lgs. 82/2005"],
+    "avvertenze": ["La scansione deve essere in formato PDF/A", "Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_separata_scanner": {
     "categoria": "attestazioni",
@@ -319,8 +320,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012", "art. 22 D.Lgs. 82/2005"],
-    "avvertenze": []
+    "riferimenti_normativi": ["art. 196-novies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c.", "art. 22 D.Lgs. 82/2005"],
+    "avvertenze": ["Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_archivio_zip": {
     "categoria": "attestazioni",
@@ -330,8 +331,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": ["elenco_documenti"],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012", "specifiche tecniche PCT"],
-    "avvertenze": ["Elencare tutti i documenti contenuti nell'archivio"]
+    "riferimenti_normativi": ["art. 196-undecies disp. att. c.p.c.", "specifiche tecniche PCT"],
+    "avvertenze": ["Elencare tutti i documenti contenuti nell'archivio", "Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_stampe_pec": {
     "categoria": "attestazioni",
@@ -341,19 +342,19 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": ["pec_mittente", "pec_destinatario", "data_invio"],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012", "D.Lgs. 82/2005"],
-    "avvertenze": ["Includere ricevuta di accettazione e ricevuta di avvenuta consegna"]
+    "riferimenti_normativi": ["art. 196-octies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c.", "art. 3-bis L. 53/1994", "D.Lgs. 82/2005"],
+    "avvertenze": ["Includere ricevuta di accettazione e ricevuta di avvenuta consegna", "Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_composito_di": {
     "categoria": "attestazioni",
-    "descrizione": "Attestazione di conformità per decreto ingiuntivo (atto composito con formula esecutiva)",
+    "descrizione": "Attestazione di conformità per decreto ingiuntivo (atto composito: ricorso + decreto)",
     "tier": 2,
     "routing": {"tipo": "tool_enhance", "tool": "attestazione_conformita", "parametri_fissi": {"modalita": "composito_di"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": ["numero_decreto", "data_decreto"],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012", "artt. 633-656 c.p.c."],
-    "avvertenze": ["Deve includere ricorso + decreto + formula esecutiva"]
+    "riferimenti_normativi": ["art. 196-octies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c.", "artt. 633-656 c.p.c."],
+    "avvertenze": ["Deve includere ricorso + decreto; il titolo esecutivo è rilasciato in copia attestata conforme all'originale o in duplicato informatico (art. 475 c.p.c.; per i titoli messi in esecuzione dopo il 28/02/2023, art. 7 co. 4 D.Lgs. 164/2024)", "Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "attestazione_composito_decreto": {
     "categoria": "attestazioni",
@@ -363,8 +364,8 @@
     "campi_obbligatori": ["avvocato", "tipo_documento", "estremi_originale"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 16-undecies DL 179/2012"],
-    "avvertenze": []
+    "riferimenti_normativi": ["art. 196-octies disp. att. c.p.c.", "art. 196-undecies disp. att. c.p.c."],
+    "avvertenze": ["Artt. 16-bis co. 9-bis e 16-undecies DL 179/2012 sono abrogati dall'art. 11 D.Lgs. 149/2022: restano applicabili solo ai procedimenti pendenti al 28/02/2023 (art. 35 co. 1 D.Lgs. 149/2022)"]
   },
   "relata_pec_generica": {
     "categoria": "notifiche",
@@ -374,25 +375,25 @@
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["L. 53/1994", "art. 3-bis"],
+    "riferimenti_normativi": ["art. 3-bis L. 53/1994"],
     "avvertenze": ["Verificare indirizzo PEC su INI-PEC/ReGIndE/Registro Imprese"]
   },
   "relata_pec_decreto_ingiuntivo": {
     "categoria": "notifiche",
     "descrizione": "Relata di notificazione a mezzo PEC — decreto ingiuntivo",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {"tipo_relata": "decreto_ingiuntivo"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {}, "variante": {"tipo_relata": "decreto_ingiuntivo"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": ["numero_decreto"],
     "tool_calcolo": [],
     "riferimenti_normativi": ["L. 53/1994", "artt. 633-644 c.p.c."],
-    "avvertenze": ["Notificare decreto + ricorso + formula esecutiva"]
+    "avvertenze": ["Notificare decreto + ricorso; il titolo esecutivo è in copia attestata conforme o duplicato informatico (art. 475 c.p.c.)"]
   },
   "relata_pec_opposizione_di": {
     "categoria": "notifiche",
     "descrizione": "Relata di notificazione a mezzo PEC — atto di citazione in opposizione a DI",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {"tipo_relata": "opposizione_di"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {}, "variante": {"tipo_relata": "opposizione_di"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": [],
     "tool_calcolo": [],
@@ -403,7 +404,7 @@
     "categoria": "notifiche",
     "descrizione": "Relata di notificazione a mezzo PEC — atto di appello",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {"tipo_relata": "appello"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {}, "variante": {"tipo_relata": "appello"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": [],
     "tool_calcolo": ["scadenze_impugnazioni"],
@@ -414,7 +415,7 @@
     "categoria": "notifiche",
     "descrizione": "Relata di notificazione a mezzo PEC — sentenza ai fini del giudicato",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {"tipo_relata": "sentenza_giudicato"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {}, "variante": {"tipo_relata": "sentenza_giudicato"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": [],
     "tool_calcolo": ["scadenze_impugnazioni"],
@@ -425,12 +426,12 @@
     "categoria": "notifiche",
     "descrizione": "Relata di notificazione a mezzo PEC — atti penali (opposizione, impugnazione)",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {"tipo_relata": "penale"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {}, "variante": {"tipo_relata": "penale"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["L. 53/1994", "art. 148 c.p.p."],
-    "avvertenze": ["Verificare ammissibilità notifica PEC per atti penali"]
+    "riferimenti_normativi": ["art. 152 c.p.p.", "art. 148 c.p.p."],
+    "avvertenze": ["Notificazione telematica eseguita dal difensore a mezzo PEC (art. 152 co. 1 c.p.p.); la L. 53/1994 riguarda la materia civile, amministrativa e stragiudiziale (art. 1)"]
   },
   "relata_posta": {
     "categoria": "notifiche",
@@ -447,7 +448,7 @@
     "categoria": "notifiche",
     "descrizione": "Relata di notificazione tramite Ufficiale Giudiziario (UNEP)",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {"canale": "unep"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {}, "variante": {"canale": "unep"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": ["indirizzo_destinatario"],
     "tool_calcolo": [],
@@ -458,12 +459,12 @@
     "categoria": "notifiche",
     "descrizione": "Relata di notificazione per deposito telematico PAT (giustizia amministrativa)",
     "tier": 2,
-    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {"canale": "pat"}, "fase": 2},
+    "routing": {"tipo": "tool_enhance", "tool": "relata_notifica_pec", "parametri_fissi": {}, "variante": {"canale": "pat"}, "fase": 2},
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["D.Lgs. 104/2010", "D.P.C.M. 16/2/2016 n. 40"],
-    "avvertenze": ["Per ricorsi al TAR e Consiglio di Stato"]
+    "riferimenti_normativi": ["D.Lgs. 104/2010"],
+    "avvertenze": ["Per ricorsi al TAR e Consiglio di Stato", "Regole tecnico-operative PAT: art. 13 all. 2 D.Lgs. 104/2010 e decreto del Presidente del Consiglio di Stato 22/5/2020 (GU 27/5/2020 n. 135); il D.P.C.M. 16/2/2016 n. 40 è abrogato dall'art. 4 co. 3 DL 28/2020"]
   },
   "preventivo_civile": {
     "categoria": "preventivi",
@@ -694,7 +695,7 @@
     "campi_opzionali": ["valore_causa", "sospensione_esecutivita"],
     "tool_calcolo": ["contributo_unificato", "scadenze_impugnazioni"],
     "riferimenti_normativi": ["artt. 339-359 c.p.c.", "D.Lgs. 149/2022"],
-    "avvertenze": ["CU aumentato della metà in appello (art. 13 co. 1-bis DPR 115/2002)", "Termine 30 gg (breve) / 6 mesi (lungo), con sospensione feriale", "Costituzione dell'appellante entro 10 gg dalla notifica (artt. 165 e 347 c.p.c.); comparsa dell'appellato 70 gg prima dell'udienza (artt. 166 e 347 c.p.c.)"]
+    "avvertenze": ["CU aumentato della metà in appello (art. 13 co. 1-bis DPR 115/2002)", "Termine 30 gg (breve) / 6 mesi (lungo), con sospensione feriale", "Costituzione dell'appellante entro 10 gg dalla notifica (artt. 165 e 347 c.p.c.); costituzione dell'appellato almeno 20 gg prima dell'udienza (art. 347 co. 1 c.p.c.); termine a comparire non minore di 90 gg (150 se la notificazione è all'estero), art. 342 c.p.c."]
   },
   "opposizione_decreto_ingiuntivo": {
     "categoria": "atti_introduttivi",
@@ -716,7 +717,7 @@
     "campi_opzionali": [],
     "tool_calcolo": ["contributo_unificato"],
     "riferimenti_normativi": ["art. 492-bis c.p.c.", "DL 132/2014"],
-    "avvertenze": ["Richiede autorizzazione del Presidente del Tribunale"]
+    "avvertenze": ["L'istanza è proposta all'ufficiale giudiziario dal creditore munito di titolo e precetto, dopo il termine dell'art. 482 c.p.c.; l'autorizzazione del presidente del tribunale serve solo prima della notificazione del precetto o del decorso di quel termine, se vi è pericolo nel ritardo (art. 492-bis c.p.c.)"]
   },
   "pignoramento_presso_terzi": {
     "categoria": "esecuzione",
@@ -858,8 +859,8 @@
     "campi_obbligatori": ["debitore", "numero_esecuzione"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["art. 497 c.p.c."],
-    "avvertenze": ["Pignoramento perde efficacia dopo 45 gg senza iscrizione a ruolo"]
+    "riferimenti_normativi": ["art. 497 c.p.c.", "art. 518 c.p.c.", "art. 543 c.p.c.", "art. 557 c.p.c."],
+    "avvertenze": ["Il pignoramento perde efficacia dopo 45 giorni dal suo compimento se non è stata richiesta l'assegnazione o la vendita (art. 497 c.p.c.)", "L'iscrizione a ruolo va fatta entro 15 gg dalla consegna degli atti (artt. 518 co. 6 e 557 co. 2 c.p.c.) o entro 30 gg (art. 543 co. 4 c.p.c.), a pena di inefficacia del pignoramento"]
   },
   "assegnazione_510_cpc": {
     "categoria": "esecuzione",
@@ -913,7 +914,7 @@
     "campi_obbligatori": ["locatore", "conduttore", "canone_attuale", "data_contratto"],
     "campi_opzionali": [],
     "tool_calcolo": ["rivalutazione_monetaria", "variazioni_istat"],
-    "riferimenti_normativi": ["art. 32 L. 392/1978", "L. 449/1997 art. 2 co. 1"],
+    "riferimenti_normativi": ["art. 32 L. 392/1978"],
     "avvertenze": ["Adeguamento al 75% della variazione ISTAT FOI"]
   },
   "richiesta_nominativi_morosi": {
@@ -1020,8 +1021,8 @@
     "descrizione": "Informativa privacy completa art. 13 GDPR — raccolta dati presso l'interessato",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "genera_informativa_privacy", "parametri_fissi": {}},
-    "campi_obbligatori": ["titolare", "finalita"],
-    "campi_opzionali": ["basi_giuridiche", "destinatari", "periodo_conservazione", "trasferimento_extra_ue"],
+    "campi_obbligatori": ["titolare", "finalita", "basi_giuridiche", "categorie_dati", "destinatari", "periodo_conservazione"],
+    "campi_opzionali": ["tipo", "dpo", "diritti_esercitabili", "trasferimento_extra_ue", "legittimi_interessi", "conferimento", "decisioni_automatizzate", "fonte_dati", "garanzia_trasferimento"],
     "tool_calcolo": [],
     "riferimenti_normativi": ["art. 13 Reg. UE 2016/679 (GDPR)"],
     "avvertenze": []
@@ -1043,7 +1044,7 @@
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "genera_informativa_dipendenti", "parametri_fissi": {}},
     "campi_obbligatori": ["titolare"],
-    "campi_opzionali": ["categorie_dati", "videosorveglianza", "geolocalizzazione"],
+    "campi_opzionali": ["dpo", "videosorveglianza", "geolocalizzazione", "strumenti_aziendali"],
     "tool_calcolo": [],
     "riferimenti_normativi": ["art. 13 GDPR", "L. 300/1970", "D.Lgs. 196/2003"],
     "avvertenze": []
@@ -1053,8 +1054,8 @@
     "descrizione": "Cartello EDPB + informativa estesa per videosorveglianza",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "genera_informativa_videosorveglianza", "parametri_fissi": {}},
-    "campi_obbligatori": ["titolare", "finalita"],
-    "campi_opzionali": ["periodo_conservazione", "riconoscimento_facciale"],
+    "campi_obbligatori": ["titolare", "finalita", "tempo_conservazione", "aree_riprese"],
+    "campi_opzionali": [],
     "tool_calcolo": [],
     "riferimenti_normativi": ["art. 13 GDPR", "Linee Guida EDPB 3/2019"],
     "avvertenze": ["Verificare necessità DPIA per videosorveglianza sistematica"]
@@ -1064,8 +1065,8 @@
     "descrizione": "Contratto art. 28 GDPR — accordo con responsabile del trattamento",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "genera_dpa", "parametri_fissi": {}},
-    "campi_obbligatori": ["titolare", "responsabile"],
-    "campi_opzionali": ["trattamenti", "sub_responsabili"],
+    "campi_obbligatori": ["titolare", "responsabile", "oggetto", "durata", "categorie_interessati", "categorie_dati", "misure_sicurezza"],
+    "campi_opzionali": ["sub_responsabili"],
     "tool_calcolo": [],
     "riferimenti_normativi": ["art. 28 Reg. UE 2016/679 (GDPR)"],
     "avvertenze": []
@@ -1075,8 +1076,8 @@
     "descrizione": "Scheda registro trattamenti ex art. 30 GDPR",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "genera_registro_trattamenti", "parametri_fissi": {}},
-    "campi_obbligatori": ["titolare", "trattamento"],
-    "campi_opzionali": ["base_giuridica", "destinatari", "misure_sicurezza"],
+    "campi_obbligatori": ["titolare", "trattamento", "finalita", "base_giuridica", "categorie_interessati", "categorie_dati", "destinatari", "termine_cancellazione", "misure_sicurezza"],
+    "campi_opzionali": [],
     "tool_calcolo": [],
     "riferimenti_normativi": ["art. 30 Reg. UE 2016/679 (GDPR)"],
     "avvertenze": []
@@ -1086,8 +1087,8 @@
     "descrizione": "Valutazione d'impatto sulla protezione dei dati (DPIA) ex art. 35 GDPR",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "genera_dpia", "parametri_fissi": {}},
-    "campi_obbligatori": ["titolare", "descrizione", "rischi"],
-    "campi_opzionali": ["misure_mitigazione"],
+    "campi_obbligatori": ["titolare", "descrizione", "finalita", "necessita_proporzionalita", "rischi", "misure_mitigazione"],
+    "campi_opzionali": [],
     "tool_calcolo": [],
     "riferimenti_normativi": ["art. 35 Reg. UE 2016/679 (GDPR)", "WP248"],
     "avvertenze": []
@@ -1097,8 +1098,8 @@
     "descrizione": "Modulo notifica data breach al Garante — scadenza 72h",
     "tier": 1,
     "routing": {"tipo": "tool_diretto", "tool": "genera_notifica_data_breach", "parametri_fissi": {}},
-    "campi_obbligatori": ["titolare"],
-    "campi_opzionali": ["tipo_violazione", "dati_coinvolti", "numero_interessati"],
+    "campi_obbligatori": ["titolare", "data_violazione", "data_scoperta", "descrizione", "categorie_dati", "n_interessati", "conseguenze", "misure_adottate"],
+    "campi_opzionali": ["dpo", "punto_contatto", "n_registrazioni"],
     "tool_calcolo": ["valutazione_data_breach"],
     "riferimenti_normativi": ["artt. 33-34 Reg. UE 2016/679 (GDPR)"],
     "avvertenze": ["Notifica obbligatoria entro 72 ore dalla conoscenza della violazione"]

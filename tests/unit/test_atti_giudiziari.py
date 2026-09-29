@@ -461,6 +461,31 @@ class TestDecretoIngiuntivo:
         assert len(r["riepilogo"]["motivi_pe"]) == 1
         assert "parcella" in r["riepilogo"]["motivi_pe"][0]
 
+    def test_parcella_non_e_titolo_art_642_co_1(self):
+        # art. 636 c.p.c. (parere dell'Ordine) is the written proof; art. 642 co. 1 lists cambiale, assegni,
+        # certificato di borsa, atti pubblici: the clause rests on art. 642 co. 2
+        r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=5000,
+                  tipo_credito="professionale", provvisoria_esecuzione=True)
+        motivo = r["riepilogo"]["motivi_pe"][0]
+        assert "636" in motivo and "642 co. 2" in motivo and "642 co. 1" not in motivo
+
+    def test_retribuzioni_cu_condizionato_art_9_co_1bis(self):
+        # art. 9 co. 1-bis DPR 115/2002: labour credits pay the CU only above three times the art. 76 threshold
+        r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=8000, tipo_credito="retribuzioni")
+        assert r["riepilogo"]["contributo_unificato"] == 0
+        r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=8000, tipo_credito="retribuzioni",
+                  reddito_oltre_soglia_lavoro=True)
+        assert r["riepilogo"]["contributo_unificato"] == pytest.approx(118.5, abs=0.01)  # 237 / 2, art. 13 co. 3
+
+    def test_dichiarazione_di_valore_art_14(self):
+        # art. 14 co. 2 DPR 115/2002: value declared in the conclusions of the introductory act
+        r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=5000)
+        assert "art. 14 co. 2 DPR 115/2002" in r["bozza_ricorso"]
+
+    def test_tipo_credito_sconosciuto(self):
+        r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=5000, tipo_credito="inesistente")
+        assert "errore" in r
+
     def test_provvisoria_esecuzione_cambiale(self):
         r = _call(
             "decreto_ingiuntivo",
@@ -534,7 +559,9 @@ class TestTassazioneAtti:
         assert r["aliquota_pct"] == 3.0
 
     def test_sentenza_condanna_minimo(self):
-        r = _call("tassazione_atti", tipo_atto="sentenza_condanna", valore=100)
+        # 3% x 5.000 = 150 < minimo 200 (art. 41 co. 2 DPR 131/1986; art. 26 DL 104/2013);
+        # a value of 100 would be exempt (art. 46 L. 374/1991)
+        r = _call("tassazione_atti", tipo_atto="sentenza_condanna", valore=5000)
         assert r["imposta_registro"] == 200.0
 
     def test_sentenza_condanna_valore_zero(self):
@@ -556,13 +583,70 @@ class TestTassazioneAtti:
         assert r["imposta_registro"] == pytest.approx(2000.0, abs=0.01)
 
     def test_verbale_conciliazione_prima_casa_minimo(self):
-        r = _call("tassazione_atti", tipo_atto="verbale_conciliazione", valore=100, prima_casa=True)
+        # art. 8 lett. a Tariffa I + art. 10 co. 2 D.Lgs. 23/2011: 2% = 800 < minimo 1.000
+        r = _call("tassazione_atti", tipo_atto="verbale_conciliazione", valore=40000, prima_casa=True)
         assert r["imposta_registro"] == 1000.0
 
-    def test_ordinanza_fissa(self):
-        r = _call("tassazione_atti", tipo_atto="ordinanza", valore=999999)
+    def test_ordinanza_senza_condanna_fissa(self):
+        # Tariffa I art. 8 lett. d: no condanna, accertamento or transfer -> fixed 200 (art. 26 DL 104/2013)
+        r = _call("tassazione_atti", tipo_atto="ordinanza", valore=0)
         assert r["imposta_registro"] == 200.0
         assert r["aliquota_pct"] == 0
+
+    def test_ordinanza_con_condanna_3pct(self):
+        # Tariffa I art. 8 co. 1 lett. b: taxed by content, 3% x 20.000 = 600
+        r = _call("tassazione_atti", tipo_atto="ordinanza", valore=20000)
+        assert r["imposta_registro"] == pytest.approx(600.0, abs=0.01)
+
+    def test_ordinanza_contenuto_nessuno_fissa(self):
+        r = _call("tassazione_atti", tipo_atto="ordinanza", valore=999999, contenuto="nessuno")
+        assert r["imposta_registro"] == 200.0
+
+    def test_causa_fino_a_1033_esente(self):
+        # art. 46 co. 1 L. 374/1991: only contributo unificato up to 1.033,00 euro
+        for tipo in ("sentenza_condanna", "decreto_ingiuntivo"):
+            assert _call("tassazione_atti", tipo_atto=tipo, valore=1000)["imposta_registro"] == 0
+        assert _call("tassazione_atti", tipo_atto="decreto_ingiuntivo", valore=1033)["imposta_registro"] == 0
+        # 1.033,01: 3% = 30,99 -> minimum 200 (art. 41 co. 2 DPR 131/1986)
+        assert _call("tassazione_atti", tipo_atto="decreto_ingiuntivo", valore=1033.01)["imposta_registro"] == 200.0
+
+    def test_valore_causa_distinto_dal_valore(self):
+        # art. 46 refers to the value of the cause, not to the amount of the measure
+        r = _call("tassazione_atti", tipo_atto="sentenza_condanna", valore=5000, valore_causa=1000)
+        assert r["imposta_registro"] == 0
+
+    def test_nota_II_iva_misura_fissa(self):
+        # Nota II art. 8 Tariffa I + art. 40 DPR 131/1986: condanna for IVA consideration pays 200
+        r = _call("tassazione_atti", tipo_atto="decreto_ingiuntivo", valore=50000, credito_soggetto_iva=True)
+        assert r["imposta_registro"] == 200.0
+
+    def test_nota_I_decreto_sostitutivo_fisso(self):
+        # Nota I art. 8 Tariffa I: decree issued in substitution (art. 644 c.p.c.) pays the fixed tax
+        r = _call("tassazione_atti", tipo_atto="decreto_ingiuntivo", valore=50000, decreto_sostitutivo=True)
+        assert r["imposta_registro"] == 200.0
+
+    def test_trasferimento_non_prima_casa_9pct(self):
+        # art. 8 lett. a + art. 1 Tariffa I (art. 10 D.Lgs. 23/2011): 9% x 100.000 = 9.000
+        r = _call("tassazione_atti", tipo_atto="verbale_conciliazione", valore=100000, contenuto="trasferimento")
+        assert r["imposta_registro"] == pytest.approx(9000.0, abs=0.01)
+        # minimum 1.000 (art. 10 co. 2): 9% x 5.000 = 450
+        r = _call("tassazione_atti", tipo_atto="verbale_conciliazione", valore=5000, contenuto="trasferimento")
+        assert r["imposta_registro"] == 1000.0
+
+    def test_accertamento_1pct(self):
+        # art. 8 lett. c Tariffa I: 1% x 100.000 = 1.000
+        r = _call("tassazione_atti", tipo_atto="sentenza_condanna", valore=100000, contenuto="accertamento")
+        assert r["imposta_registro"] == pytest.approx(1000.0, abs=0.01)
+
+    def test_mediazione_esente_fino_a_100000(self):
+        # art. 17 co. 2 D.Lgs. 28/2010: exempt up to 100.000, tax on the excess only
+        r = _call("tassazione_atti", tipo_atto="verbale_conciliazione", valore=40000, mediazione=True)
+        assert r["imposta_registro"] == 0
+        r = _call("tassazione_atti", tipo_atto="verbale_conciliazione", valore=110000, mediazione=True)
+        assert r["imposta_registro"] == 300.0  # 3% x 10.000 = 300
+
+    def test_valore_negativo_errore(self):
+        assert "errore" in _call("tassazione_atti", tipo_atto="decreto_ingiuntivo", valore=-500)
 
     def test_tipo_invalido(self):
         r = _call("tassazione_atti", tipo_atto="inesistente", valore=1000)
@@ -869,6 +953,20 @@ class TestAttestazioneDiConformita:
         )
         assert "Avv. Anna Neri" in r["testo"]
 
+    def test_copia_informatica_art_196_novies(self):
+        # art. 196-novies disp. att. c.p.c.: copy of an analog act deposited by the lawyer
+        # (art. 196-decies is the copy sent to the ufficiale giudiziario)
+        r = _call("attestazione_conformita", avvocato="A", tipo_documento="d", estremi_originale="e",
+                  modalita="copia_informatica")
+        assert "196-novies" in r["testo"] and "196-decies" not in r["testo"]
+        assert "196-novies" in r["riferimento_normativo"]
+
+    def test_riferimento_senza_norme_abrogate(self):
+        # artt. 16-bis and 16-undecies DL 179/2012 are repealed by D.Lgs. 149/2022
+        r = _call("attestazione_conformita", avvocato="A", tipo_documento="d", estremi_originale="e")
+        assert "179/2012" not in r["riferimento_normativo"]
+        assert "196-octies" in r["riferimento_normativo"] and "196-undecies" in r["riferimento_normativo"]
+
 
 # ---------------------------------------------------------------------------
 # relata_notifica_pec
@@ -1112,6 +1210,15 @@ class TestAttoDiPrecetto:
         )
         assert r["tipo_atto"] == "atto_di_precetto"
 
+    def test_requisiti_art_480(self):
+        # art. 480 co. 2 c.p.c.: date of notification of the title (a pena di nullita') and the warning
+        # with the assistance of the OCC; art. 480 co. 3: the court competent for the execution
+        r = _call("atto_di_precetto", creditore="A", debitore="B", titolo_esecutivo="T", importo_capitale=1000.0)
+        t = r["testo"]
+        assert "notificato in data" in t
+        assert "organismo di composizione della crisi" in t
+        assert "Giudice competente per l'esecuzione" in t
+
 
 # ---------------------------------------------------------------------------
 # nota_precisazione_credito
@@ -1256,7 +1363,7 @@ class TestTestimonianzaScritta:
         r = _call(
             "testimonianza_scritta",
             teste="T",
-            capitoli_prova=[],
+            capitoli_prova=["Vero che..."],
         )
         assert r["tipo_atto"] == "testimonianza_scritta"
 
@@ -1266,7 +1373,9 @@ class TestTestimonianzaScritta:
             teste="T",
             capitoli_prova=[],
         )
-        assert r["numero_capitoli"] == 0
+        # Art. 257-bis co. 2 c.p.c.: the model must transcribe the admitted questions,
+        # so an empty list is a handled error.
+        assert "errore" in r
 
 
 # ---------------------------------------------------------------------------
@@ -1318,6 +1427,30 @@ class TestIstanzaVisibilitaFascicolo:
             rg_numero="777/2025",
         )
         assert "777/2025" in r["testo"]
+
+    def test_riferimento_senza_norma_abrogata(self):
+        # art. 16-bis DL 179/2012 is repealed; art. 76 co. 2 and art. 196-quater disp. att. c.p.c. apply
+        r = _call("istanza_visibilita_fascicolo", avvocato="A", parte="B", tribunale="T", rg_numero="1/2025")
+        assert "16-bis" not in r["riferimento_normativo"]
+        assert "76" in r["riferimento_normativo"] and "196-quater" in r["riferimento_normativo"]
+
+    def test_motivo_non_previsto_errore(self):
+        r = _call("istanza_visibilita_fascicolo", avvocato="A", parte="B", tribunale="T", rg_numero="1/2025",
+                  motivo="altro")
+        assert "errore" in r
+
+
+class TestDichiarazioneTerzoArt547:
+
+    @pytest.mark.parametrize("rapporto", ["conto_corrente", "stipendio", "altro"])
+    def test_contenuto_art_547_in_ogni_variante(self, rapporto):
+        # art. 547 c.p.c.: raccomandata or PEC to the creditor; sequestri and cessioni; when payment is due
+        r = _call("dichiarazione_553_cpc", terzo_pignorato="T", debitore="D", procedura="R.G.E. 1/2025",
+                  tipo_rapporto=rapporto)
+        t = r["testo"].lower()
+        assert "sequestri" in t and "cessioni" in t
+        assert "raccomandata" in t and "pec" in t
+        assert "pagamento o la consegna" in t
 
 
 # ---------------------------------------------------------------------------
@@ -1441,3 +1574,118 @@ class TestEsportaAttoDocx:
         )
         assert "docx" in result.lower()
         assert "errore" not in result.lower()
+
+
+class TestNotaPrecisazioneCreditoNorme:
+    def test_assegnazione_cita_art_553_non_543(self):
+        # Art. 553 c.p.c. (assegnazione e vendita di crediti) governs assignment;
+        # art. 543 c.p.c. is the form of the garnishment deed, not assignment.
+        r = _call(
+            "nota_precisazione_credito",
+            creditore="A", debitore="B", procedura_esecutiva="R.G.E. 1/2024",
+            capitale=5000.0, interessi=125.5, spese_legali=800.0, spese_esecuzione=150.75,
+        )
+        assert r["totale_credito"] == pytest.approx(6076.25, abs=0.01)
+        assert "Artt. 510, 553 e 596 c.p.c." in r["riferimento_normativo"]
+        assert "553" in r["testo"] and "543" not in r["testo"]
+
+
+class TestProcuraAlleLitiNorme:
+    def test_antiriciclaggio_e_privacy_corrette(self):
+        # D.Lgs. 231/2007: adeguata verifica in artt. 17 ss. (art. 4 abrogated by D.Lgs. 90/2017);
+        # GDPR art. 6 par. 1 lett. b and art. 9 par. 2 lett. f, not consent.
+        r = _call(
+            "procura_alle_liti",
+            parte="Mario Rossi", avvocato="Anna Bianchi", cf_avvocato="BNCNNA80A41H501Z",
+            foro="Roma", oggetto_causa="recupero credito",
+        )
+        t = r["testo"]
+        assert "art. 4 co. 3" not in t
+        assert "artt. 17 ss." in t and "art. 3 co. 4 lett. c)" in t
+        assert "Presta il consenso" not in t
+        assert "art. 6 par. 1 lett. b" in t and "art. 9 par. 2 lett. f" in t
+        assert "art. 13" in t
+
+
+class TestRelataNotificaPecNorme:
+    def _base(self, **kw):
+        return _call(
+            "relata_notifica_pec",
+            avvocato="Anna Bianchi", destinatario="Dest", pec_destinatario="d@pec.it",
+            atto_notificato="atto di citazione", data_invio="2026-10-05", **kw,
+        )
+
+    def test_contenuto_art_3bis_co5_co6(self):
+        # L. 53/1994 art. 3-bis co. 5 lett. a, c, f, g and co. 6 (ruolo data).
+        r = self._base(
+            cf_avvocato="BNCNNA80A41H501Z", parte_assistita="Mario Rossi", cf_parte="RSSMRA70A01H501X",
+            elenco_pubblico="INI-PEC", atto_analogico=True,
+            ufficio_giudiziario="Tribunale di Roma", sezione="III", numero_ruolo="1234/2026",
+        )
+        t = r["testo"]
+        for needle in ("BNCNNA80A41H501Z", "Mario Rossi", "RSSMRA70A01H501X", "INI-PEC",
+                       "196-undecies", "Tribunale di Roma", "1234/2026", "05/10/2026"):
+            assert needle in t
+
+    def test_data_inesistente_errore_gestito(self):
+        # 2026-02-30 does not exist: handled error, not ValueError.
+        assert "errore" in _call(
+            "relata_notifica_pec", avvocato="A", destinatario="D", pec_destinatario="d@pec.it",
+            atto_notificato="x", data_invio="2026-02-30",
+        )
+
+
+class TestNoteTrattazioneScrittaNorme:
+    def test_solo_istanze_e_conclusioni(self):
+        # Art. 127-ter co. 1 c.p.c.: notes contain only istanze and conclusioni;
+        # co. 2: perentory term of at least 15 days assigned by the substituting order.
+        r = _call(
+            "note_trattazione_scritta",
+            avvocato="A", parte="P", tribunale="Tribunale di Milano", rg_numero="1/2026",
+            giudice="G", conclusioni="Si chiede il rigetto.",
+            data_provvedimento="01/10/2026", termine_deposito="20/10/2026",
+        )
+        t = r["testo"]
+        assert "si osserva quanto segue" not in t
+        assert "Si producono" not in t
+        assert "ISTANZE" in t and "CONCLUSIONI" in t and "Si chiede il rigetto." in t
+        assert "01/10/2026" in t and "20/10/2026" in t and "termine perentorio" in t
+
+
+class TestSfrattoMorositaNorme:
+    def _call_s(self, **kw):
+        args = dict(locatore="L", conduttore="C", immobile="Via X 1", canone_mensile=750.0,
+                    mensilita_insolute=4, data_contratto="2020-01-01")
+        args.update(kw)
+        return _call("sfratto_morosita", **args)
+
+    def test_avvertimento_660_co3_e_ingiunzione(self):
+        # Art. 660 co. 3 c.p.c. (D.Lgs. 164/2024): warning on legal aid; arts. 658 co. 1 and
+        # 664 co. 1: request is an injunction to pay, not a condemnation. 750 x 4 = 3000.
+        r = self._call_s()
+        assert r["totale_dovuto"] == pytest.approx(3000.0)
+        t = r["testo"]
+        assert "patrocinio a spese dello Stato" in t and "art. 660 co. 3" in t
+        assert "ingiunzione di pagamento" in t and "664" in t
+        assert "condanna" not in t
+
+    def test_nessuna_mensilita_errore(self):
+        assert "errore" in self._call_s(mensilita_insolute=0)
+
+
+class TestTestimonianzaScrittaNorme:
+    def test_contenuto_art_103_bis(self):
+        # Art. 103-bis disp. att. c.p.c. co. 1 (content), co. 3 (authentication by segretario
+        # comunale or cancelliere); art. 251 co. 2 after Corte cost. 149/1995 (duty to tell the truth).
+        r = _call("testimonianza_scritta", teste="T", capitoli_prova=["Vero che...", "Vero che..."])
+        t = r["testo"]
+        assert r["numero_capitoli"] == 2
+        assert "importanza morale" not in t
+        assert "obbligo di dire la verità" in t
+        assert "non è possibile deporre" not in t.lower()
+        assert "diretta" in t and "indiretta" in t
+        assert "segretario comunale o del cancelliere" in t
+        assert "Ordinanza di ammissione" in t and "Domicilio" in t and "artt. 200, 201 e 202" in t
+
+    def test_nessun_capitolo_errore(self):
+        assert "errore" in _call("testimonianza_scritta", teste="T", capitoli_prova=[])

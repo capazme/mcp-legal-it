@@ -483,21 +483,29 @@ def concordato_preventivo(
 ) -> dict:
     """Verifica l'ammissibilità e calcola i parametri del concordato preventivo (artt. 84-120 CCII).
 
-    Il concordato preventivo consente all'imprenditore insolvente di proporre ai creditori
-    un piano di soddisfazione parziale. In continuità (art. 84 co. 2) non esiste una soglia
-    minima di soddisfazione; in liquidazione (art. 84 co. 4) i chirografari devono ricevere almeno il 20%.
-    I creditori privilegiati devono essere soddisfatti integralmente salvo degradazione consensuale.
-    Vigenza: Artt. 84-120 D.Lgs. 14/2019 (CCII).
-    Precisione: INDICATIVO — l'ammissibilità è soggetta a verifica del Tribunale.
+    Il concordato preventivo consente all'imprenditore in crisi o insolvente di proporre ai creditori
+    un piano di soddisfazione in misura non inferiore a quella realizzabile in liquidazione giudiziale
+    (art. 84 co. 1). In continuità aziendale (art. 84 co. 3) non esiste una soglia minima di
+    soddisfazione; nel concordato con liquidazione del patrimonio (art. 84 co. 4) la proposta prevede un
+    apporto di risorse esterne che incrementi di almeno il 10% l'attivo disponibile e assicuri ai
+    chirografari e ai privilegiati degradati per incapienza almeno il 20% del loro ammontare complessivo.
+    I privilegiati possono essere soddisfatti anche non integralmente, senza consenso, in misura non
+    inferiore al valore di realizzo attestato da un professionista indipendente: la quota residua del
+    credito è chirografaria (art. 84 co. 5). Il tool tratta la quota non pagata ai privilegiati come
+    chirografaria e le applica la stessa percentuale offerta ai chirografari (proposta_pct_chirografari).
+    Vigenza: Artt. 84 co. 1-5, 85 co. 3, 109 co. 1 e 3-5, 112 co. 2 D.Lgs. 14/2019 (CCII) nel testo risultante dai D.Lgs. 83/2022 e 136/2024 (commi 8 e 9 dell'art. 84 abrogati); testo vigente al 2026-09-29.
+    Precisione: INDICATIVO — l'ammissibilità è soggetta a verifica del Tribunale; il tool non accerta il valore di realizzo dei beni gravati né l'apporto esterno del 10%.
     Chaining: → compenso_occ() per stimare i costi della procedura
 
     Args:
         creditori_privilegiati: Totale crediti privilegiati in euro (es. 200000.0)
         creditori_chirografari: Totale crediti chirografari in euro (es. 500000.0)
-        proposta_pct_chirografari: Percentuale di soddisfazione proposta per i chirografari (0-100)
-        proposta_pct_privilegiati: Percentuale di soddisfazione proposta per i privilegiati (0-100; default 100)
-        tipo: Tipo di concordato: 'continuita' (art. 84 co. 2, no soglia minima) o 'liquidatorio' (art. 84 co. 4, min 20%)
+        proposta_pct_chirografari: Percentuale di soddisfazione proposta per i chirografari, e per la quota degradata dei privilegiati (0-100)
+        proposta_pct_privilegiati: Percentuale di soddisfazione proposta per i privilegiati (0-100; default 100); il resto è degradato a chirografo (art. 84 co. 5)
+        tipo: Tipo di concordato: 'continuita' (art. 84 co. 3, no soglia minima) o 'liquidatorio' (art. 84 co. 4, min 20% su chirografari e privilegiati degradati)
     """
+    if creditori_privilegiati < 0 or creditori_chirografari < 0:
+        raise ValueError("Gli importi dei crediti non possono essere negativi")
     if not (0 <= proposta_pct_chirografari <= 100):
         raise ValueError("proposta_pct_chirografari deve essere compresa tra 0 e 100")
     if not (0 <= proposta_pct_privilegiati <= 100):
@@ -505,37 +513,66 @@ def concordato_preventivo(
 
     totale_debito = creditori_privilegiati + creditori_chirografari
 
+    # Art. 84 co. 5 CCII: the part of a privileged claim that is not paid is treated as chirografario;
+    # art. 84 co. 4: the 20% is measured on chirografari AND privilegiati degradati per incapienza.
+    quota_degradata = round(creditori_privilegiati * (100.0 - proposta_pct_privilegiati) / 100, 2)
+    base_chirografaria = round(creditori_chirografari + quota_degradata, 2)
+
     proposta_privilegiati = round(creditori_privilegiati * proposta_pct_privilegiati / 100, 2)
-    proposta_chirografari_importo = round(creditori_chirografari * proposta_pct_chirografari / 100, 2)
+    proposta_chirografari_importo = round(base_chirografaria * proposta_pct_chirografari / 100, 2)
     proposta_totale = round(proposta_privilegiati + proposta_chirografari_importo, 2)
 
     if tipo == "liquidatorio":
         soglia_minima = 20.0
+        # "Non inferiore al 20 per cento": the threshold itself is admissible (art. 84 co. 4).
         ammissibile = proposta_pct_chirografari >= soglia_minima
         nota_soglia = (
-            f"Concordato liquidatorio: soddisfazione chirografari {proposta_pct_chirografari:.1f}% "
-            f"{'≥' if ammissibile else '<'} soglia minima {soglia_minima}% (art. 84 co. 4 CCII). "
-            "ATTENZIONE: l'ammissibilità richiede ANCHE l'apporto di risorse esterne che incrementi "
-            "di almeno il 10% il soddisfacimento dei chirografari rispetto alla liquidazione giudiziale "
-            "(art. 84 co. 4 CCII) — condizione non verificabile da questo tool: l'esito 'ammissibile' "
-            "è subordinato alla sussistenza di tale apporto esterno."
+            f"Concordato liquidatorio: soddisfazione dei chirografari e dei privilegiati degradati per incapienza "
+            f"{proposta_pct_chirografari:.2f}% {'≥' if ammissibile else '<'} soglia minima {soglia_minima:.2f}% "
+            f"su una base di € {_it(base_chirografaria)} (art. 84 co. 4 CCII). "
+            "ATTENZIONE: l'ammissibilità richiede ANCHE un apporto di risorse esterne che incrementi di almeno "
+            "il 10 per cento l'attivo disponibile al momento della presentazione della domanda (art. 84 co. 4 "
+            "CCII) — condizione non verificabile da questo tool: l'esito 'ammissibile' è subordinato alla "
+            "sussistenza di tale apporto esterno."
+        )
+        voto_requisito = (
+            "Art. 109 co. 1 CCII: approvazione con la maggioranza dei crediti ammessi al voto; se un unico "
+            "creditore detiene più della maggioranza dei crediti ammessi al voto serve anche la maggioranza per "
+            "teste dei voti espressi; se sono previste più classi la maggioranza dei crediti ammessi al voto deve "
+            "essere raggiunta anche nel maggior numero di classi."
         )
     elif tipo == "continuita":
         soglia_minima = 0.0
         ammissibile = True
         nota_soglia = (
-            "Concordato in continuità: nessuna soglia minima ex lege (art. 84 co. 2 CCII) — "
-            "il piano deve tuttavia essere migliorativo rispetto alla liquidazione"
+            "Concordato in continuità: nessuna soglia minima di percentuale (art. 84 co. 3 CCII) — "
+            "il soddisfacimento dei creditori deve essere non inferiore a quello realizzabile in caso di "
+            "liquidazione giudiziale (art. 84 co. 1) e ciascun creditore deve avere un'utilità specificamente "
+            "individuata ed economicamente valutabile (art. 84 co. 3)"
+        )
+        voto_requisito = (
+            "Nel concordato in continuità la suddivisione in classi è in ogni caso obbligatoria (art. 85 co. 3 "
+            "CCII). Il concordato è approvato se tutte le classi votano a favore (art. 109 co. 5): in ciascuna "
+            "classe serve la maggioranza dei crediti ammessi al voto oppure, in mancanza, i due terzi dei crediti "
+            "dei votanti, purché abbiano votato i titolari di almeno la metà dei crediti della classe. In caso "
+            "di mancata approvazione si applica la ristrutturazione trasversale (art. 112 co. 2)."
         )
     else:
         raise ValueError(f"tipo non valido: '{tipo}'. Usare 'continuita' o 'liquidatorio'")
 
-    # Privilegiati: devono ricevere 100% salvo degradazione consensuale
     privilegiati_integrali = proposta_pct_privilegiati >= 100.0
     nota_privilegiati = (
-        "Privilegiati: soddisfatti integralmente (conforme all'art. 84 CCII)"
+        "Privilegiati: soddisfatti integralmente; non hanno diritto al voto se non rinunciano in tutto o in "
+        "parte alla prelazione (art. 109 co. 3 CCII)"
         if privilegiati_integrali
-        else f"Privilegiati: soddisfatti al {proposta_pct_privilegiati:.1f}% — necessaria degradazione consensuale ex art. 109 CCII"
+        else (
+            f"Privilegiati: soddisfatti al {proposta_pct_privilegiati:.2f}%. Il pagamento non integrale non "
+            "richiede il consenso dei creditori, ma non può essere inferiore al valore di realizzo dei beni o "
+            "diritti gravati, al netto delle spese, attestato da un professionista indipendente (art. 84 co. 5 "
+            f"CCII); la quota incapiente (€ {_it(quota_degradata)}) è degradata a chirografo e, ai fini del voto, "
+            "il creditore è equiparato ai chirografari per la parte residua (art. 109 co. 4). Il tool non "
+            "verifica il valore di realizzo attestato."
+        )
     )
 
     return {
@@ -544,6 +581,8 @@ def concordato_preventivo(
         "totale_debito": round(totale_debito, 2),
         "creditori_privilegiati": creditori_privilegiati,
         "creditori_chirografari": creditori_chirografari,
+        "quota_privilegiati_degradata": quota_degradata,
+        "base_chirografaria_con_degradati": base_chirografaria,
         "proposta_privilegiati_euro": proposta_privilegiati,
         "proposta_chirografari_euro": proposta_chirografari_importo,
         "proposta_totale": proposta_totale,
@@ -552,10 +591,7 @@ def concordato_preventivo(
         "soglia_minima_pct": soglia_minima,
         "nota_soglia": nota_soglia,
         "nota_privilegiati": nota_privilegiati,
-        "voto_requisito": (
-            "Maggioranza dei crediti ammessi per ciascuna classe (art. 109 CCII). "
-            "In mancanza di classi: maggioranza dei crediti chirografari."
-        ),
+        "voto_requisito": voto_requisito,
         "riferimento_normativo": "Artt. 84-120 D.Lgs. 14/2019 (CCII) — Concordato preventivo",
     }
 
@@ -564,84 +600,127 @@ def concordato_preventivo(
 def compenso_occ(
     passivo: float,
     tipo: str = "ristrutturazione",
+    attivo: float | None = None,
+    importo_attribuito_creditori: float | None = None,
 ) -> dict:
-    """Calcola il compenso dell'Organismo di Composizione della Crisi (OCC) ex D.M. 202/2014.
+    """Calcola la forbice del compenso dell'Organismo di Composizione della Crisi (OCC) ex D.M. 202/2014.
 
-    Il compenso è calcolato a fasce progressive sul passivo dell'impresa, con importo
-    minimo garantito. L'OCC assiste l'imprenditore nelle procedure di composizione
-    negoziata e di ristrutturazione dei debiti ai sensi del D.Lgs. 14/2019.
-    Vigenza: D.M. 202/2014 — Compensi OCC ex art. 15 co. 9 D.Lgs. 14/2019.
-    Precisione: INDICATIVO (gli scaglioni inclusi sono una semplificazione: l'art. 16 DM 202/2014
-        rinvia ai parametri del curatore con riduzioni; verificare sul decreto)
+    Nelle procedure di sovraindebitamento (piano del consumatore, accordo di ristrutturazione, liquidazione
+    controllata) il compenso dell'OCC è una percentuale dell'attivo e del passivo, con le percentuali del
+    curatore del D.M. 30/2012 (art. 1 co. 1 sull'attivo, co. 2 sul passivo), ridotta in misura compresa tra il
+    15% e il 40% (art. 16 co. 1, 2 e 4; art. 18 co. 1 per la liquidazione). Il risultato è una forbice
+    (minimo con la riduzione del 40%, massimo con la riduzione del 15%): il D.M. non prevede minimi e
+    le soglie numeriche non sono vincolanti (art. 14 co. 4). Il compenso complessivo con le spese generali non
+    può superare il 5% (passivo oltre 1.000.000) o il 10% (passivo inferiore) di quanto è attribuito ai creditori,
+    salvo che questo sia inferiore a 20.000 euro (art. 16 co. 5): il tetto si applica se si indica
+    importo_attribuito_creditori. Rimborso forfettario delle spese generali del 10-15% sul compenso (art. 14
+    co. 3). Senza `attivo` il tool calcola la sola componente sul passivo, che è un limite inferiore. Non
+    riguarda la composizione negoziata, condotta da un esperto con il compenso dell'art. 25-ter CCII.
+    Vigenza: D.M. 24 settembre 2014 n. 202, artt. 14, 16 e 18 (OCC disciplinati dall'art. 2 co. 1 lett. t D.Lgs. 14/2019); percentuali dell'art. 1 co. 1-2 D.M. 25 gennaio 2012 n. 30; testo vigente al 2026-09-29.
+    Precisione: INDICATIVO — i limiti della forbice sono quelli del decreto, ma il compenso è liquidato in concreto dal giudice o concordato con il debitore (art. 14 co. 1); senza `attivo` la forbice è parziale.
     Chaining: → concordato_preventivo() per la stima complessiva dei costi della procedura
 
     Args:
-        passivo: Passivo totale dell'impresa in euro (es. 300000.0)
-        tipo: Tipo di procedura: 'ristrutturazione' (aliquote ridotte, min €1.500) o 'liquidazione' (aliquote maggiori, min €2.000)
+        passivo: Passivo risultante dall'accordo o dal piano, o accertato in liquidazione, in euro (es. 300000.0)
+        tipo: 'ristrutturazione' (accordo o piano del consumatore, art. 16 co. 2) o 'liquidazione' (attivo realizzato e passivo accertato, art. 18 co. 1 con art. 16)
+        attivo: Attivo risultante dall'accordo o dal piano, o realizzato in liquidazione, in euro (opzionale; se assente si calcola solo la componente sul passivo)
+        importo_attribuito_creditori: Ammontare complessivo attribuito ai creditori, in euro, per applicare il tetto dell'art. 16 co. 5 (opzionale)
     """
     if passivo < 0:
         raise ValueError("Il passivo non può essere negativo")
+    if attivo is not None and attivo < 0:
+        raise ValueError("L'attivo non può essere negativo")
+    if importo_attribuito_creditori is not None and importo_attribuito_creditori < 0:
+        raise ValueError("L'importo attribuito ai creditori non può essere negativo")
     if tipo not in ("ristrutturazione", "liquidazione"):
         raise ValueError(f"tipo non valido: '{tipo}'. Usare 'ristrutturazione' o 'liquidazione'")
 
-    # Progressive bracket rates by type
-    fasce_config = {
-        "ristrutturazione": [
-            (100_000, 0.05),
-            (400_000, 0.03),   # 100.001 - 500.000
-            (float("inf"), 0.01),
-        ],
-        "liquidazione": [
-            (100_000, 0.07),
-            (400_000, 0.04),   # 100.001 - 500.000
-            (float("inf"), 0.02),
-        ],
-    }
-    minimi = {"ristrutturazione": 1_500.0, "liquidazione": 2_000.0}
+    # Bracket tables of art. 1 D.M. 30/2012, shared with compenso_curatore_fallimentare (parcelle_professionisti).
+    from src.tools.parcelle_professionisti import (
+        _SCAGLIONI_CURATORE_ATTIVO,
+        _SCAGLIONI_CURATORE_PASSIVO,
+        _curatore_scaglioni,
+    )
 
-    fasce = fasce_config[tipo]
-    minimo = minimi[tipo]
+    det_passivo = _curatore_scaglioni(passivo, _SCAGLIONI_CURATORE_PASSIVO)
+    pas_min = round(sum(d["compenso_min"] for d in det_passivo), 2)
+    pas_max = round(sum(d["compenso_max"] for d in det_passivo), 2)
+    det_attivo: list = []
+    att_min = att_max = 0.0
+    if attivo is not None:
+        det_attivo = _curatore_scaglioni(attivo, _SCAGLIONI_CURATORE_ATTIVO)
+        att_min = round(sum(d["compenso_min"] for d in det_attivo), 2)
+        att_max = round(sum(d["compenso_max"] for d in det_attivo), 2)
 
-    dettaglio_fasce = []
-    compenso_calcolato = 0.0
-    residuo = passivo
+    prima_min = round(att_min + pas_min, 2)
+    prima_max = round(att_max + pas_max, 2)
+    # Art. 16 co. 4: the fee is reduced by 15% to 40% (lowest fee: -40%; highest fee: -15%).
+    compenso_min = round(prima_min * (1 - 0.40), 2)
+    compenso_max = round(prima_max * (1 - 0.15), 2)
+    # Art. 14 co. 3: flat reimbursement of general expenses, 10-15% of the fee.
+    spese_min = round(compenso_min * 0.10, 2)
+    spese_max = round(compenso_max * 0.15, 2)
+    totale_min = round(compenso_min + spese_min, 2)
+    totale_max = round(compenso_max + spese_max, 2)
 
-    soglie = [100_000, 500_000]
-    precedente = 0
+    avvertenze = [
+        "Le soglie numeriche del capo IV D.M. 202/2014 non sono vincolanti per la liquidazione (art. 14 co. 4): "
+        "la forbice è un riferimento, non un importo dovuto",
+        "Il D.M. 202/2014 non prevede un compenso minimo; le spese effettivamente sostenute e documentate, IVA e "
+        "contributi previdenziali sono dovuti in aggiunta (art. 14 co. 3)",
+    ]
+    if attivo is None:
+        avvertenze.append(
+            "Attivo non indicato: la forbice comprende la sola componente sul passivo (art. 1 co. 2 D.M. 30/2012) "
+            "ed è un limite inferiore; il compenso comprende anche una percentuale sull'attivo (art. 16 co. 1-2 "
+            "D.M. 202/2014)"
+        )
 
-    for i, (ampiezza, aliquota) in enumerate(fasce):
-        limite = soglie[i] if i < len(soglie) else float("inf")
-        quota = min(residuo, limite - precedente) if limite != float("inf") else residuo
-        if quota <= 0:
-            break
-        importo_fascia = round(quota * aliquota, 2)
-        compenso_calcolato += importo_fascia
-        dettaglio_fasce.append({
-            "fascia": (
-                f"fino a €{_it(limite, 0)}" if i == 0
-                else f"€{_it(precedente + 1, 0)} – €{_it(limite, 0)}" if limite != float("inf")
-                else f"oltre €{_it(precedente, 0)}"
-            ),
-            "imponibile": round(quota, 2),
-            "aliquota_pct": aliquota * 100,
-            "importo": importo_fascia,
-        })
-        residuo -= quota
-        precedente = limite
-        if residuo <= 0:
-            break
-
-    compenso_calcolato = round(compenso_calcolato, 2)
-    minimo_applicato = compenso_calcolato < minimo
-    compenso_finale = minimo if minimo_applicato else compenso_calcolato
+    tetto = None
+    tetto_applicato = False
+    if importo_attribuito_creditori is not None:
+        if importo_attribuito_creditori < 20_000:
+            avvertenze.append(
+                "Importo attribuito ai creditori inferiore a 20.000 euro: il tetto del 5%/10% non si applica "
+                "(art. 16 co. 5, secondo periodo)"
+            )
+        else:
+            # Art. 16 co. 5: 5% if the passivo exceeds 1.000.000, 10% if lower. Exactly 1.000.000 is not covered by
+            # the text: the lower cap (5%) is applied, the prudent reading.
+            aliquota_tetto = 0.10 if passivo < 1_000_000 else 0.05
+            if passivo == 1_000_000:
+                avvertenze.append(
+                    "Passivo pari a 1.000.000 euro: il testo dell'art. 16 co. 5 non copre il caso (5% oltre, 10% sotto); "
+                    "applicato il tetto del 5%"
+                )
+            tetto = round(importo_attribuito_creditori * aliquota_tetto, 2)
+            if totale_min > tetto or totale_max > tetto:
+                tetto_applicato = True
+            totale_min = min(totale_min, tetto)
+            totale_max = min(totale_max, tetto)
 
     return {
-        "compenso": compenso_finale,
+        "compenso_min": compenso_min,
+        "compenso_max": compenso_max,
+        "spese_generali_min": spese_min,
+        "spese_generali_max": spese_max,
+        "totale_con_spese_generali_min": totale_min,
+        "totale_con_spese_generali_max": totale_max,
         "passivo": passivo,
+        "attivo": attivo,
         "tipo": tipo,
-        "compenso_calcolato": compenso_calcolato,
-        "minimo_applicato": minimo_applicato,
-        "minimo_di_legge": minimo,
-        "dettaglio_fasce": dettaglio_fasce,
-        "riferimento_normativo": "D.M. 202/2014 — Compensi OCC ex art. 15 co. 9 D.Lgs. 14/2019",
+        "componente_passivo_min_prima_riduzione": pas_min,
+        "componente_passivo_max_prima_riduzione": pas_max,
+        "componente_attivo_min_prima_riduzione": att_min if attivo is not None else None,
+        "componente_attivo_max_prima_riduzione": att_max if attivo is not None else None,
+        "riduzione_art_16_co_4": "dal 15% al 40%",
+        "tetto_art_16_co_5": tetto,
+        "tetto_applicato": tetto_applicato,
+        "dettaglio_passivo": det_passivo,
+        "dettaglio_attivo": det_attivo,
+        "avvertenze": avvertenze,
+        "riferimento_normativo": (
+            "Art. 2 co. 1 lett. t) D.Lgs. 14/2019; artt. 14, 16 e 18 D.M. 202/2014; "
+            "art. 1 co. 1-2 D.M. 30/2012"
+        ),
     }
