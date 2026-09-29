@@ -7,6 +7,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.lib.italgiure.client import (
+    ARCHIVE_START_YEAR,
     SolrSession,
     build_explore_params,
     build_lookup_params,
@@ -17,6 +18,9 @@ from src.lib.italgiure.client import (
     format_full_text,
     format_summary,
     get_kind_filter,
+    norma_is_qualified,
+    quote_fq_value,
+    resolve_sezione,
     _first,
     _format_date,
 )
@@ -229,7 +233,8 @@ class TestBuildSearchParams:
     def test_materia_filter(self):
         p = build_search_params("test", materia="contratti")
         fq = p.get("fq", [])
-        assert any("materia:contratti" in f for f in fq)
+        # the value is one Solr phrase (see TestMateriaFilterQuoted)
+        assert any('materia:"contratti"' in f for f in fq)
 
     def test_sezione_filter(self):
         p = build_search_params("test", sezione="3")
@@ -405,7 +410,7 @@ class TestBuildSearchParamsCombined:
         fq = p.get("fq", [])
         fq_joined = " ".join(fq)
         assert 'kind:"snciv"' in fq_joined
-        assert "materia:contratti" in fq_joined
+        assert 'materia:"contratti"' in fq_joined
         assert "szdec:3" in fq_joined
         assert "szdec:(SU OR U)" in fq_joined
         assert "tipoprov:S" in fq_joined
@@ -501,9 +506,13 @@ class TestBuildNormaVariants:
 
 class TestBuildNormaVariantsExpanded:
     def test_dlgs_231_produces_decreto_legislativo_variant(self):
+        # For an ACT the bare "art. 6" / "articolo 6" are no longer ORed in (they match every
+        # decision citing any art. 6: 4402 criminal decisions since 2021 on Italgiure 2026-09-29,
+        # against 24 for the act-anchored forms): the article is tied to the act by proximity.
         q = build_norma_variants("art. 6 D.Lgs. 231/2001")
-        assert '"art. 6"' in q
-        assert '"articolo 6"' in q
+        assert '"art. 6"' not in q
+        assert '"articolo 6"' not in q
+        assert '"art. 6 231/2001"~15' in q
         assert "decreto legislativo" in q.lower()
 
     def test_dlgs_numeric_identifier_included(self):
@@ -528,12 +537,12 @@ class TestBuildNormaVariantsExpanded:
 
     def test_legge_reference(self):
         q = build_norma_variants("art. 21 L. 241/1990")
-        assert '"art. 21"' in q
+        assert '"art. 21 241/1990"~15' in q
         assert "legge" in q.lower() or "L." in q
 
     def test_decreto_legge_reference(self):
         q = build_norma_variants("art. 1 D.L. 78/2010")
-        assert '"art. 1"' in q
+        assert '"art. 1 78/2010"~15' in q
         assert "decreto legge" in q.lower() or "D.L." in q
 
     def test_cpa_codice_del_processo_amministrativo(self):
@@ -2469,3 +2478,522 @@ class TestEsploraSmartSuggestions:
 
         assert "troppo generica" not in result
         assert "Suggerimento" in result
+
+
+
+# ===========================================================================
+# Corrections of the italgiure_orientamento benchmark cluster (2026-09-29)
+# ===========================================================================
+
+def _recording_client(responses: list[dict] | None = None, default: dict | None = None):
+    """Mock httpx client recording EVERY Solr POST body (parsed) and answering in sequence."""
+    import urllib.parse
+
+    bodies: list[dict] = []
+    queue = list(responses or [])
+    fallback = default if default is not None else _make_solr_response([_civile_doc()], num_found=1)
+
+    async def mock_get(url, **kwargs):
+        resp = AsyncMock()
+        resp.raise_for_status = MagicMock()
+        return resp
+
+    async def mock_post(url, content=None, **kwargs):
+        bodies.append(urllib.parse.parse_qs(content or "", keep_blank_values=True))
+        resp = AsyncMock()
+        resp.raise_for_status = MagicMock()
+        resp.json = MagicMock(return_value=queue.pop(0) if queue else fallback)
+        return resp
+
+    mock_client = AsyncMock()
+    mock_client.get = mock_get
+    mock_client.post = mock_post
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    return mock_client, bodies
+
+
+class TestResolveSezione:
+    """The szdec codes of the index are 1-7, L, U, F (facet read on Italgiure 2026-09-25):
+    there is no "SU" and no "T" (tributaria is civil section 5)."""
+
+    def test_su_is_the_sezioni_unite_code_u(self):
+        assert resolve_sezione("SU") == ("U", "tutti")
+        assert resolve_sezione("ss.uu.") == ("U", "tutti")
+        assert resolve_sezione("U") == ("U", "tutti")
+
+    def test_tributaria_is_civil_section_5(self):
+        assert resolve_sezione("T", "tutti") == ("5", "civile")
+        assert resolve_sezione("T", "civile") == ("5", "civile")
+
+    def test_tributaria_rejected_on_penal_archive(self):
+        with pytest.raises(ValueError, match="solo civile"):
+            resolve_sezione("T", "penale")
+
+    def test_plain_codes_and_roman_numerals(self):
+        assert resolve_sezione("3") == ("3", "tutti")
+        assert resolve_sezione("III") == ("3", "tutti")
+        assert resolve_sezione("L") == ("L", "tutti")
+        assert resolve_sezione("F") == ("F", "tutti")
+        assert resolve_sezione("7") == ("7", "tutti")  # sez. VII penale exists in the index
+        assert resolve_sezione("") == ("", "tutti")
+
+    def test_unknown_code_lists_the_valid_ones(self):
+        with pytest.raises(ValueError) as exc:
+            resolve_sezione("9")
+        msg = str(exc.value)
+        assert "1-7" in msg and "L (lavoro)" in msg and "U (Sezioni Unite" in msg and "F (feriale)" in msg
+
+
+class TestMateriaFilterQuoted:
+    """Read on Italgiure 2026-09-29 (civile, q 'danno parentale'): unquoted
+    materia:responsabilita' civile 9456 decisions (the second word is searched in the default
+    field, the filter widens), quoted phrase 2605."""
+
+    def test_quote_fq_value_is_a_phrase(self):
+        assert quote_fq_value("responsabilita' civile") == '"responsabilita\' civile"'
+
+    def test_quote_fq_value_escapes_quote_and_backslash(self):
+        assert quote_fq_value('a"b\\c') == '"a\\"b\\\\c"'
+
+    def test_search_params_use_the_quoted_phrase(self):
+        p = build_search_params("danno parentale", materia="responsabilita' civile")
+        assert 'materia:"responsabilita\' civile"' in p["fq"]
+
+    @pytest.mark.asyncio
+    async def test_ultime_pronunce_quotes_materia(self):
+        client, bodies = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _ultime_pronunce_impl(materia="responsabilita' civile")
+        assert 'materia:"responsabilita\' civile"' in bodies[0]["fq"]
+
+
+class TestSezioneNormalisedInTools:
+    @pytest.mark.asyncio
+    async def test_cerca_sezione_su_reaches_solr_as_u(self):
+        # Read on Italgiure 2026-09-25: fq szdec:SU returns 0, szdec:U returns SS.UU. 41994/2021.
+        client, bodies = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _cerca_giurisprudenza_impl("fideiussione schema ABI", archivio="civile", sezione="SU")
+        assert "szdec:U" in bodies[0]["fq"]
+        assert "szdec:SU" not in bodies[0]["fq"]
+
+    @pytest.mark.asyncio
+    async def test_cerca_sezione_t_becomes_5_and_civil_only(self):
+        client, bodies = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _cerca_giurisprudenza_impl("accertamento", sezione="T")
+        fq = bodies[0]["fq"]
+        assert "szdec:5" in fq
+        assert '(kind:"snciv")' in fq  # "tutti" narrowed to the civil archive
+
+    @pytest.mark.asyncio
+    async def test_cerca_unknown_sezione_is_an_error_not_an_empty_result(self):
+        client, bodies = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _cerca_giurisprudenza_impl("danno", sezione="XX")
+        assert result.success is False and result.error_type == "bad_input"
+        assert "Codici ammessi" in result.to_str()
+        assert bodies == []  # rejected before any request
+
+    @pytest.mark.asyncio
+    async def test_ultime_pronunce_sezione_su_reaches_solr_as_u(self):
+        client, bodies = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _ultime_pronunce_impl(archivio="civile", sezione="SU")
+        assert "szdec:U" in bodies[0]["fq"]
+
+    @pytest.mark.asyncio
+    async def test_ultime_pronunce_unknown_sezione_is_an_error(self):
+        result = await _ultime_pronunce_impl(sezione="Z")
+        assert result.success is False and result.error_type == "bad_input"
+
+    @pytest.mark.asyncio
+    async def test_leggi_sentenza_accepts_su(self):
+        client, bodies = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _leggi_sentenza_impl(41994, 2021, sezione="SU", archivio="civile")
+        assert "szdec:U" in bodies[0]["q"][0]
+
+
+class TestUltimePronunceTipo:
+    def test_estremi_with_type(self):
+        doc = {**_penale_doc("33825", "2026", "1"), "datdep": ["20260917"]}
+        assert format_estremi(doc, con_tipo=True) == "Cass. pen., sez. I, n. 33825/2026, dep. 17/09/2026 (sent.)"
+        # default unchanged: the estremi used elsewhere carry no type
+        assert format_estremi(doc) == "Cass. pen., sez. I, n. 33825/2026, dep. 17/09/2026"
+
+    def test_type_abbreviations(self):
+        assert format_estremi(_civile_doc(), con_tipo=True).endswith("(ord.)")
+        assert format_estremi({**_civile_doc(), "tipoprov": "Decreto"}, con_tipo=True).endswith("(decr.)")
+
+    @pytest.mark.asyncio
+    async def test_ultime_pronunce_lists_the_type(self):
+        client, _ = _recording_client(default=_make_solr_response([_penale_doc("33825", "2026")]))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _ultime_pronunce_impl(archivio="penale")
+        assert "n. 33825/2026, dep. 15/03/2024 (sent.)" in result.results_text
+
+
+class TestFormatFullTextHeadAndTail:
+    """SS.UU. 41994/2021 has an 82322-character OCR and an empty `ocrdis` at the source: the
+    principio di diritto starts at character 81733. A head-only cut at 30000 dropped it."""
+
+    def _doc(self):
+        ocr = "INIZIO " + "x" * 40000 + " CENTRO " + "y" * 40000 + (
+            " P.Q.M. il ricorso deve essere rigettato. principio di diritto: art. 1419 cod. civ. FINE"
+        )
+        return {**_civile_doc(), "ocr": [ocr], "ocrdis": []}
+
+    def test_tail_with_the_holding_is_kept(self):
+        out = format_full_text(self._doc())
+        assert "INIZIO" in out
+        assert "principio di diritto: art. 1419 cod. civ. FINE" in out
+        assert "CENTRO" not in out  # the omitted middle
+
+    def test_output_stays_within_the_old_budget(self):
+        doc = self._doc()
+        out = format_full_text(doc)
+        body = out.split("## Testo della decisione\n", 1)[1].split("\n---\n", 1)[0]
+        assert len(body) < 30300
+
+    def test_omission_is_declared(self):
+        doc = self._doc()
+        out = format_full_text(doc)
+        total = len(doc["ocr"][0])
+        assert f"[Testo troncato a 30000 caratteri su {total} totali]" in out
+        assert "primi 12000 e gli ultimi 18000" in out
+        assert f"[... omessi {total - 30000} caratteri della parte centrale ...]" in out
+
+    def test_missing_dispositivo_is_declared(self):
+        out = format_full_text(self._doc())
+        assert "## Dispositivo" not in out
+        assert "campo Dispositivo non è valorizzato alla fonte" in out
+
+    def test_short_text_is_untouched(self):
+        out = format_full_text(_civile_doc())
+        assert "[..." not in out and "Testo troncato" not in out
+        assert "## Dispositivo" in out
+
+
+class TestLeggiSentenzaMessages:
+    @pytest.mark.asyncio
+    async def test_not_found_states_the_rolling_window_not_2020(self):
+        # Read on Italgiure 2026-09-25: no decision of 2020; oldest civil 17/02/2021; continuous
+        # coverage from 27/09/2021 (rolling window of about five years).
+        client, _ = _recording_client(default=_make_solr_response([], num_found=0))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _leggi_sentenza_impl(10579, 2021, sezione="3", archivio="civile")
+        assert result.error_type == "no_results"
+        txt = result.results_text
+        assert "finestra mobile di circa cinque anni" in txt
+        assert "27/09/2021" in txt
+        assert "antecedente al 2020" not in txt
+        assert ARCHIVE_START_YEAR == 2021
+
+    @pytest.mark.asyncio
+    async def test_homonyms_with_archivio_tutti_are_reported(self):
+        # Read on Italgiure 2026-09-25: n. 10579/2022 is both Cass. civ. sez. V (dep. 01/04/2022)
+        # and Cass. pen. sez. VII (dep. 24/03/2022).
+        civ = {**_civile_doc("10579", "2022", "5"), "datdep": ["20220401"]}
+        pen = {**_penale_doc("10579", "2022", "7"), "datdep": ["20220324"]}
+        client, _ = _recording_client(default=_make_solr_response([civ, pen]))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _leggi_sentenza_impl(10579, 2022, archivio="tutti")
+        txt = result.results_text
+        assert txt.startswith("# Cass. civ., sez. V, n. 10579/2022, dep. 01/04/2022")
+        assert "esistono più decisioni n. 10579/2022" in txt
+        assert "Esiste anche: Cass. pen., sez. VII, n. 10579/2022, dep. 24/03/2022" in txt
+        assert "Indicare archivio" in txt
+
+    @pytest.mark.asyncio
+    async def test_no_homonym_note_for_a_single_decision(self):
+        client, _ = _recording_client(default=_make_solr_response([_civile_doc()]))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _leggi_sentenza_impl(24003, 2025, archivio="tutti")
+        assert "Attenzione" not in result.results_text
+
+    def test_docstring_does_not_promise_a_massima_ufficiale(self):
+        from src.tools.italgiure import leggi_sentenza
+
+        doc = getattr(leggi_sentenza, "fn", leggi_sentenza).__doc__
+        assert "massima ufficiale" not in doc.replace("NON fornisce una massima ufficiale", "")
+        assert "2020" not in doc
+
+
+class TestNormaVariantsForActs:
+    """Read on Italgiure 2026-09-29 (civile, dal 2021, art. 13 GDPR): the bare 'art. 13' /
+    'articolo 13' matches 12966 decisions of 2022 alone (art. 13 co. 1-quater d.P.R. 115/2002);
+    'art. 13' AND a GDPR marker anywhere in the decision 47 decisions of which 1 pertinent;
+    a proximity phrase ('art. 13 2016/679'~15) 7 decisions, 5 pertinent. Penale dal 2021: bare
+    'art. 6' 4402 decisions, 24 with the act-anchored proximity forms (art. 6 D.Lgs. 231/2001)."""
+
+    def test_gdpr_ties_the_article_to_the_act_by_proximity(self):
+        q = build_norma_variants("art. 13 GDPR")
+        for marker in ("679/2016", "2016/679", "679 del 2016", "gdpr"):
+            assert f'"art. 13 {marker}"~15' in q
+            assert f'"articolo 13 {marker}"~15' in q
+        assert q.startswith("ocr:(") and q.endswith(")")
+
+    def test_bare_forms_never_appear_for_an_act(self):
+        for ref, bare in (
+            ("art. 13 GDPR", '"art. 13"'),
+            ("art. 6 D.Lgs. 231/2001", '"art. 6"'),
+            ("art. 13 d.p.r. 115/2002", '"art. 13"'),
+            ("art. 18 statuto dei lavoratori", '"art. 18"'),
+        ):
+            q = build_norma_variants(ref)
+            assert bare not in q, ref
+            assert " AND " not in q, ref  # no article-AND-act anywhere in the decision
+
+    def test_dlgs_231_markers_and_numbered_forms_only(self):
+        q = build_norma_variants("art. 6 D.Lgs. 231/2001")
+        assert '"art. 6 231/2001"~15' in q and '"art. 6 231 del 2001"~15' in q
+        # "art. 6 D.Lgs." alone matches any legislative decree: only numbered forms remain
+        assert '"art. 6 D.Lgs."' not in q
+        assert '"art. 6 D.Lgs. 231/2001"' in q and '"art. 6 d.lgs. n. 231/2001"' in q
+
+    def test_codes_keep_bare_and_qualified_forms(self):
+        # Codes are unchanged: the manual cross-check on art. 1419 c.c. (672 decisions) uses
+        # exactly this OR.
+        q = build_norma_variants("art. 1419 c.c.")
+        assert q == 'ocr:("art. 1419" OR "articolo 1419" OR "1419 c.c." OR "1419 cod. civ." OR "1419 codice civile")'
+
+    def test_strict_drops_the_bare_forms_of_a_code(self):
+        q = build_norma_variants("art. 2043 c.c.", strict=True)
+        assert q == 'ocr:("2043 c.c." OR "2043 cod. civ." OR "2043 codice civile")'
+
+    def test_unqualified_reference_keeps_bare_forms(self):
+        assert build_norma_variants("art. 13") == 'ocr:("art. 13" OR "articolo 13")'
+
+    def test_norma_is_qualified(self):
+        assert norma_is_qualified("art. 13 GDPR")
+        assert norma_is_qualified("art. 2043 c.c.")
+        assert norma_is_qualified("articolo 649-bis c.p.")
+        assert not norma_is_qualified("art. 13")
+        assert not norma_is_qualified("responsabilità medica")
+
+    def test_act_without_number_resolves_the_identity_by_name(self):
+        # Statuto dei lavoratori = L. 20 maggio 1970, n. 300
+        q = build_norma_variants("art. 18 statuto dei lavoratori")
+        assert '"art. 18 300/1970"~15' in q
+        assert '"art. 18 statuto dei lavoratori"~15' in q
+
+    def test_no_artt_variant(self):
+        # "artt." phrase queries make the Solr highlighter answer 500 on some decisions
+        # (read 2026-09-29), so only "art." and "articolo" are proximity-anchored.
+        assert '"artt.' not in build_norma_variants("art. 13 GDPR")
+
+    @pytest.mark.asyncio
+    async def test_su_norma_query_for_gdpr_reaches_solr_anchored(self):
+        client, bodies = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _giurisprudenza_su_norma_impl("art. 13 GDPR", archivio="civile", anno_da=2022, anno_a=2022)
+        q = bodies[0]["q"][0]
+        assert '"art. 13 2016/679"~15' in q and '"art. 13"' not in q
+
+    @pytest.mark.asyncio
+    async def test_su_norma_retries_without_highlighting_on_a_source_error(self):
+        # Solr answered 500 to highlighted proximity queries on some decisions (2026-09-29):
+        # one retry without hl, so a highlighter fault is not reported as "source down".
+        calls: list[dict] = []
+        import urllib.parse
+
+        async def mock_get(url, **kwargs):
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            return resp
+
+        async def mock_post(url, content=None, **kwargs):
+            body = urllib.parse.parse_qs(content or "")
+            calls.append(body)
+            if "hl" in body:
+                raise RuntimeError("500 Internal Server Error")
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            resp.json = MagicMock(return_value=_make_solr_response([_civile_doc()]))
+            return resp
+
+        client = AsyncMock()
+        client.get = mock_get
+        client.post = mock_post
+        client.__aenter__ = AsyncMock(return_value=client)
+        client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _giurisprudenza_su_norma_impl("art. 13 GDPR")
+        assert result.success is True
+        assert len(calls) == 2 and "hl" in calls[0] and "hl" not in calls[1]
+
+    @pytest.mark.asyncio
+    async def test_su_norma_warns_about_an_unqualified_reference(self):
+        client, _ = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _giurisprudenza_su_norma_impl("art. 13")
+        assert "non indica il codice o l'atto" in result.results_text
+        assert "precisione bassa" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_su_norma_no_warning_for_a_code(self):
+        client, _ = _recording_client()
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
+        assert "non indica il codice" not in result.results_text
+
+
+class TestAutoRefineCount:
+    """The unified footer read 'Cassazione (501 risultati)' while the section said 143: after
+    the automatic refinement the returned count is the refined one (read 2026-09-25)."""
+
+    @pytest.mark.asyncio
+    async def test_refined_count_is_returned(self):
+        docs = [_civile_doc(str(i)) for i in range(3)]
+        first = _make_solr_response(docs, num_found=501)
+        refined = _make_solr_response(docs, num_found=30)
+        client, bodies = _recording_client(responses=[first, refined])
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _cerca_giurisprudenza_impl("concessioni demaniali marittime")
+        assert "(501 → 30)" in result.results_text
+        assert result.num_found == 30
+        assert "**Trovate 30 decisioni**" in result.results_text
+
+
+class TestAnchoredSearch:
+    """giurisprudenza_articolo: massima queries are anchored to the article and not refined
+    'solo nel dispositivo', which latched onto d.lgs. 72/2015 boilerplate (read 2026-09-25)."""
+
+    @pytest.mark.asyncio
+    async def test_ancora_norma_adds_a_strict_fq_and_disables_refinement(self):
+        docs = [_civile_doc(str(i)) for i in range(3)]
+        broad = _make_solr_response(docs, num_found=299)
+        client, bodies = _recording_client(default=broad)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _cerca_giurisprudenza_impl(
+                "capo nave responsabilita", ancora_norma="art. 2043 c.c.", auto_refine=False,
+            )
+        assert len(bodies) == 1  # no refinement round-trips
+        assert 'ocr:("2043 c.c." OR "2043 cod. civ." OR "2043 codice civile")' in bodies[0]["fq"]
+        assert result.num_found == 299
+        assert "Raffinamento" not in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_without_anchor_the_refinement_still_runs(self):
+        docs = [_civile_doc(str(i)) for i in range(3)]
+        client, bodies = _recording_client(responses=[_make_solr_response(docs, num_found=299)],
+                                           default=_make_solr_response(docs, num_found=20))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _cerca_giurisprudenza_impl("capo nave responsabilita")
+        assert len(bodies) >= 2
+
+    @pytest.mark.asyncio
+    async def test_anchor_survives_the_zero_result_relaxation(self):
+        empty = _make_solr_response([], num_found=0)
+        client, bodies = _recording_client(default=empty)
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            await _cerca_giurisprudenza_impl('"frase esatta" xyz', ancora_norma="art. 2043 c.c.")
+        assert len(bodies) > 1
+        assert all(any("2043 c.c." in f for f in b["fq"]) for b in bodies[:2])
+
+
+class TestGiurisprudenzaArticoloReport:
+    def _patches(self, massime, client):
+        return (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=_make_brocardi_result(massime)),
+            patch("src.tools.italgiure.resolve_atto",
+                  return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client),
+        )
+
+    @pytest.mark.asyncio
+    async def test_direct_references_are_summaries_not_full_text(self):
+        # The full text of three decisions made the report 37613 characters long (read 2026-09-25).
+        massime = [_make_massima("Cass. civ.", "24003", "2025", "Il danno ingiusto richiede il nesso.")]
+        client, _ = _recording_client(default=_make_solr_response([_civile_doc()]))
+        p1, p2, p3 = self._patches(massime, client)
+        with p1, p2, p3:
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+        direct = result.results_text.split("### Sentenze con riferimento diretto", 1)[1].split(
+            "### Sentenze per principio", 1)[0]
+        assert "### Cass. civ., sez. III, n. 24003/2025" in direct
+        assert "## Testo della decisione" not in direct
+
+    @pytest.mark.asyncio
+    async def test_references_outside_the_year_range_are_dropped_and_reported(self):
+        massime = [
+            _make_massima("Cass. civ.", "111", "2019", "principio uno"),
+            _make_massima("Cass. civ.", "24003", "2025", "principio due"),
+            _make_massima("Cass. civ.", "333", "2026", "principio tre"),
+        ]
+        client, bodies = _recording_client(default=_make_solr_response([_civile_doc()]))
+        p1, p2, p3 = self._patches(massime, client)
+        with p1, p2, p3:
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.", anno_da=2025, anno_a=2025)
+        lookups = [b["q"][0] for b in bodies if "numdec:" in b["q"][0]]
+        assert any("numdec:24003" in q for q in lookups)
+        assert not any("numdec:00111" in q or "numdec:111" in q for q in lookups)
+        assert not any("numdec:00333" in q or "numdec:333" in q for q in lookups)
+        assert "2 fuori dall'intervallo di anni richiesto" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_references_before_the_archive_window_are_reported_not_lost(self):
+        # Read on Brocardi 2026-09-25: 204 of the 500 references of art. 2043 c.c. precede 2021.
+        massime = [
+            _make_massima("Cass. civ.", "24003", "2025", "principio uno"),
+            _make_massima("Cass. civ.", "555", "2019", "principio due"),
+        ]
+        client, bodies = _recording_client(default=_make_solr_response([_civile_doc()]))
+        p1, p2, p3 = self._patches(massime, client)
+        with p1, p2, p3:
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+        assert "1 anteriori al 2021, fuori dalla finestra dell'archivio" in result.results_text
+        assert "n. 555/2019" in result.results_text
+        assert not any("numdec:00555" in b["q"][0] or "numdec:555" in b["q"][0] for b in bodies)
+
+    @pytest.mark.asyncio
+    async def test_unresolvable_reference_is_reported(self):
+        massime = [_make_massima("Cass. civ.", "24003", "2025", "principio")]
+
+        def _responses():
+            empty = _make_solr_response([], num_found=0)
+            hit = _make_solr_response([_civile_doc("5", "2025")], num_found=1)
+            return empty, hit
+
+        empty, hit = _responses()
+
+        async def mock_post(url, content=None, **kwargs):
+            import urllib.parse
+            q = urllib.parse.parse_qs(content or "").get("q", [""])[0]
+            resp = AsyncMock()
+            resp.raise_for_status = MagicMock()
+            # the direct lookups (numdec:...) find nothing, the anchored text search finds a doc
+            resp.json = MagicMock(return_value=empty if "numdec:" in q else hit)
+            return resp
+
+        client, _ = _recording_client()
+        client.post = mock_post
+        p1, p2, p3 = self._patches(massime, client)
+        with p1, p2, p3:
+            result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+        assert "1 non reperiti su Italgiure (n. 24003/2025)" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_principle_searches_are_anchored_to_the_article(self):
+        massime = [_make_massima("Trib. Milano", None, None, "Responsabilità extracontrattuale.")]
+        client, bodies = _recording_client(default=_make_solr_response([_civile_doc()]))
+        p1, p2, p3 = self._patches(massime, client)
+        with p1, p2, p3:
+            await _giurisprudenza_articolo_impl("art. 2043 c.c.")
+        assert bodies
+        assert all('ocr:("2043 c.c." OR "2043 cod. civ." OR "2043 codice civile")' in b["fq"] for b in bodies)
+
+    @pytest.mark.asyncio
+    async def test_fallback_declares_that_brocardi_had_nothing(self):
+        client, _ = _recording_client(default=_make_solr_response([_civile_doc()]))
+        with (
+            patch("src.tools.italgiure.fetch_brocardi", return_value=_make_brocardi_result([])),
+            patch("src.tools.italgiure.resolve_atto",
+                  return_value={"tipo_atto": "decreto legislativo", "numero_atto": "231", "data": "2001-06-08"}),
+            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client),
+        ):
+            result = await _giurisprudenza_articolo_impl("art. 6 D.Lgs. 231/2001", archivio="penale")
+        assert result.results_text.startswith("*Brocardi: nessuna massima disponibile per art. 6 D.Lgs. 231/2001")
+        assert "**Trovate" in result.results_text  # the su_norma report follows

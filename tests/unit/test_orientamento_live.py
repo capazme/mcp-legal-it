@@ -26,9 +26,10 @@ What it checks, one tool call per plan case:
 - `mappa_orientamento`: art. 2043 c.c., civile, anno_da 2020 (Brocardi anchor:
   number of massime and first five Cassazione references, each found on Italgiure).
 - Cross-cutting: the "segnali testuali" headers count distinct decisions; the
-  phrase "discostarsi" is not mostly used in the negated, conformity sense
-  ("non vi sono ragioni per discostarsi"); the declared archive horizon
-  ("dal ~2020") exists in the archive; the docstrings attribute to art. 15
+  phrase "discostarsi" is not filed as contrasto when it is mostly used in the
+  negated, conformity sense ("non vi sono ragioni per discostarsi") - the tool
+  dropped it from the signals; the declared archive horizon (rolling window from
+  27/09/2021) matches the archive; the docstrings attribute to art. 15
   L. 132/2025 only what its text says.
 
 A source failure ("non raggiungibile") skips the test instead of failing it:
@@ -78,7 +79,7 @@ BROCARDI_2043 = "https://www.brocardi.it/codice-civile/libro-quarto/titolo-ix/ar
 VARIANTI_1419 = 'ocr:("art. 1419" OR "articolo 1419" OR "1419 c.c." OR "1419 cod. civ." OR "1419 codice civile")'
 VARIANTI_2043 = 'ocr:("art. 2043" OR "articolo 2043" OR "2043 c.c." OR "2043 cod. civ." OR "2043 codice civile")'
 
-CONFLITTO = ("contrasto giurisprudenziale", "difforme orientamento", "discostarsi")
+CONFLITTO = ("contrasto giurisprudenziale", "difforme orientamento")
 CONFORMITA = ("orientamento consolidato", "in senso conforme")
 
 # Negated uses of "discostarsi", which state that the Court FOLLOWS the settled case law.
@@ -136,14 +137,19 @@ def _norma_q(varianti: str, anno_da: int, extra: str = "") -> str:
 
 
 def _principio_params(extra_fq: list[str] | None = None, sezione: str = "") -> dict:
-    """Same edismax search the tool documents (qf ocrdis^5 ocr^1, mm 2<75% 5<60%)."""
+    """Same edismax search the tool documents (qf ocrdis^5 ocr^1, mm 3<90%).
+
+    The tool moved from the default mm "2<75% 5<60%" to "3<90%" (the 6-term principle needs 5
+    terms, not 3): with the loose mm, unrelated decisions sharing three words flooded the totals
+    (1598 decisions, 14 SS.UU.) and the SS.UU. block.
+    """
     fq = ['(kind:"snciv")', "anno:[2021 TO *]"]
     if sezione:
         fq.append(f"szdec:{sezione}")
     fq += extra_fq or []
     return {
         "defType": "edismax", "q": _normalize_query(PRINCIPIO), "qf": "ocrdis^5 ocr^1",
-        "mm": "2<75% 5<60%", "fq": fq, "rows": 0,
+        "mm": "3<90%", "fq": fq, "rows": 0,
     }
 
 
@@ -154,6 +160,8 @@ def _sezioni_markdown(out: str) -> dict[str, str]:
 
 
 def _totale(out: str) -> int:
+    if out.startswith("Nessuna decisione trovata"):
+        return 0  # an honest empty answer: no decision matches the reference
     m = re.search(r"\*\*(\d+) decisioni\*\* negli archivi della Cassazione", out)
     assert m, out[:500]
     return int(m.group(1))
@@ -336,7 +344,8 @@ def test_mappa_orientamento_art_2043_ancoraggio_brocardi():
     """Plan case: art. 2043 c.c. — Brocardi anchor (count and first five Cassazione refs) + map."""
     out = _tool("mappa_orientamento", **CASO_2043)
     assert out.startswith("# Orientamento giurisprudenziale — art. 2043 c.c.")
-    assert "## Ancoraggio Brocardi (massime consolidate)" in out
+    assert "## Ancoraggio Brocardi\n" in out
+    assert "massime consolidate" not in out
     m = re.search(r"Brocardi riporta (\d+) massime per art\. 2043 c\.c\.; (\d+) riferimenti Cassazione", out)
     assert m, out[:800]
     anchor = re.findall(r"^- (Cass\. (?:civ|pen)\.) n\. (\d+)/(\d{4})$", out, flags=re.M)
@@ -391,7 +400,9 @@ def test_segnali_testuali_contano_decisioni_distinte(caso):
         out = _tool(caso, **CASO_ABI)
         conta = lambda frasi: int(_solr(_principio_params([_union(frasi)]))["response"]["numFound"])  # noqa: E731
     conflitto, conformita, frasi = _segnali(out)
-    assert sum(frasi[f] for f in CONFLITTO) == conflitto
+    # a decision using two expressions appears in both lines but counts once in the header
+    assert conflitto <= sum(frasi[f] for f in CONFLITTO)
+    assert conformita <= sum(frasi[f] for f in CONFORMITA)
     distinte_conflitto, distinte_conformita = conta(CONFLITTO), conta(CONFORMITA)
     assert (conflitto, conformita) == (distinte_conflitto, distinte_conformita), (
         f"{caso}: intestazioni ({conflitto}, {conformita}) = somma dei conteggi per espressione; "
@@ -400,17 +411,26 @@ def test_segnali_testuali_contano_decisioni_distinte(caso):
 
 
 def test_segnale_discostarsi_non_e_prevalentemente_conforme():
-    """'discostarsi' is filed under contrasto/difformita': most of its uses must not be negated.
+    """'discostarsi' must not be filed under contrasto/difformita' while it is mostly negated.
 
     On art. 1419 c.c. (civile, dal 2021) the decisions using "discostarsi" are compared with
     those using it in the formula "non vi sono ragioni per discostarsi" and variants, which
-    signal conformity with the settled case law, i.e. the opposite of the tool's label.
+    signal conformity with the settled case law, i.e. the opposite of a contrast label. The tool
+    no longer counts the word as a signal; if it ever comes back, most of its uses must not be
+    negated.
     """
     out = _tool("orientamento_su_norma", **CASO_1419)
     _, _, frasi = _segnali(out)
     tutte = _count(_norma_q(VARIANTI_1419, 2021, 'ocr:"discostarsi"'))
-    assert frasi["discostarsi"] == tutte
     conformi = _count(_norma_q(VARIANTI_1419, 2021, DISCOSTARSI_CONFORME))
+    if "discostarsi" not in frasi:
+        # the source fact that justifies dropping the signal: mostly negated
+        assert conformi * 2 > tutte, (
+            f"solo {conformi} delle {tutte} decisioni con 'discostarsi' usano la formula negativa: "
+            "il segnale potrebbe essere reintrodotto"
+        )
+        return
+    assert frasi["discostarsi"] == tutte
     assert conformi * 2 < tutte, (
         f"{conformi} delle {tutte} decisioni contate come 'contrasto/difformita'' per 'discostarsi' "
         f"usano la formula negativa ('ragioni per discostarsi' e simili), che segnala conformita'"
@@ -418,15 +438,20 @@ def test_segnale_discostarsi_non_e_prevalentemente_conforme():
 
 
 def test_orizzonte_archivio_dichiarato():
-    """The footer says 'decisioni dal ~2020 in poi': the archive must hold decisions of that year."""
+    """The footer declares a rolling window from 27/09/2021: no '~2020', and the source agrees.
+
+    Read on 2026-09-25: no decision of 2020, the oldest deposited 27/01/2021, 11 decisions before
+    27/09/2021 and continuous coverage from then on (rolling window of about five years).
+    """
     out = _tool("orientamento_su_norma", **CASO_1419)
-    m = re.search(r"Orizzonte archivio Italgiure: decisioni dal ~(\d{4}) in poi", out)
-    assert m, "piè di pagina sull'orizzonte dell'archivio assente"
-    anno = m.group(1)
+    assert "Orizzonte archivio Italgiure" in out, "piè di pagina sull'orizzonte dell'archivio assente"
+    assert "~2020" not in out and "dal 2020" not in out
+    m = re.search(r"dal (\d{2})/(\d{2})/(\d{4})", out)
+    assert m, "il piè di pagina non dichiara la data iniziale della finestra"
+    inizio = f"{m.group(3)}{m.group(2)}{m.group(1)}"
     tutte = '(kind:"snciv" OR kind:"snpen")'
-    nell_anno = _count(f"{tutte} AND anno:{anno}")
-    piu_vecchia = _solr({"q": tutte, "rows": 1, "sort": "pd asc", "fl": "datdep"})["response"]["docs"][0]
-    assert nell_anno > 0, (
-        f"il piè di pagina dichiara decisioni dal ~{anno}, ma Italgiure non ne contiene del {anno}; "
-        f"la piu' vecchia e' depositata il {piu_vecchia.get('datdep')}"
-    )
+    assert _count(f"{tutte} AND anno:2020") == 0
+    prima = _count(f"{tutte} AND datdep:[* TO {int(inizio) - 1}]")
+    dal = _count(f"{tutte} AND datdep:[{inizio} TO *]")
+    assert prima < 50, f"{prima} decisioni anteriori al {m.group(0)[4:]}: l'inizio dichiarato e' troppo recente"
+    assert dal > 100000, f"solo {dal} decisioni dal {m.group(0)[4:]}: la finestra si e' spostata"

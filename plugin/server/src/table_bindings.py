@@ -98,6 +98,7 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "calcolo_inflazione": ("indici_foi",),
     "calcolo_irpef": ("irpef_scaglioni",),
     "calcolo_maggior_danno": ("indici_foi", "tassi_legali"),
+    "calcolo_naspi": ("inps_parametri",),
     "calcolo_notula_penale": ("parametri_forensi",),
     "calcolo_sanzione_gdpr": ("gdpr_sanzioni",),
     "calcolo_tfr": ("irpef_scaglioni",),

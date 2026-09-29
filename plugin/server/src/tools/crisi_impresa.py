@@ -4,77 +4,270 @@ compenso OCC (D.M. 202/2014)."""
 
 from src.server import mcp
 
+def _it(valore: float, decimali: int = 2) -> str:
+    """Italian number format (thousands with a dot, decimals with a comma): 15000.5 -> '15.000,50'."""
+    testo = f"{valore:,.{decimali}f}"
+    return testo.replace(",", "\0").replace(".", ",").replace("\0", ".")
+
+
+# Art. 25-novies co. 1 lett. d) CCII: AdER threshold by legal form of the debtor (euro, "superiori a").
+_SOGLIE_ADER = {
+    "impresa_individuale": 100_000,
+    "societa_di_persone": 200_000,
+    "altra_societa": 500_000,
+}
+
 
 @mcp.tool(tags={"crisi_impresa"})
 def test_crisi_impresa(
-    dscr: float,
+    dscr: float | None = None,
     giorni_ritardo_inps: int = 0,
     giorni_ritardo_ade: int = 0,
     esposizioni_scadute_pct: float = 0.0,
     debiti_vs_attivo_pct: float = 0.0,
+    retribuzioni_scadute_30gg: float | None = None,
+    monte_retribuzioni_mensile: float | None = None,
+    debiti_fornitori_scaduti_90gg: float | None = None,
+    debiti_fornitori_non_scaduti: float | None = None,
+    debito_inps: float | None = None,
+    contributi_inps_anno_precedente: float | None = None,
+    impresa_con_lavoratori: bool = True,
+    giorni_ritardo_inail: int = 0,
+    debito_inail: float | None = None,
+    debito_iva_ade: float | None = None,
+    volume_affari_anno_precedente: float | None = None,
+    debito_ader: float | None = None,
+    giorni_ritardo_ader: int = 0,
+    forma_giuridica: str | None = None,
 ) -> dict:
-    """Verifica la presenza di indicatori di crisi d'impresa ai sensi dell'art. 3 CCII (D.Lgs. 14/2019).
+    """Rileva i segnali di crisi dell'art. 3 co. 4 CCII (D.Lgs. 14/2019) e alcuni indici di prassi.
 
-    Valuta cinque indicatori di allerta per rilevare precocemente lo stato di crisi:
-    DSCR prospettico a 6 mesi, ritardo pagamenti INPS/AdE, esposizioni bancarie scadute,
-    incidenza debiti sull'attivo. Qualsiasi indicatore attivato comporta l'obbligo di adottare
-    misure idonee al superamento della crisi o all'accesso a strumenti di regolazione.
-    Vigenza: Art. 3 D.Lgs. 14/2019 (CCII) come modificato dal D.Lgs. 83/2022.
-    Precisione: INDICATIVO (indicatori semplificati; l'art. 3 co. 3 CCII richiede la sostenibilità
-        dei debiti a 12 mesi e l'art. 3 co. 4 elenca i segnali di allarme su retribuzioni,
-        fornitori, banche ed esposizioni verso i creditori pubblici qualificati ex art. 25-novies)
+    I segnali normativi sono quattro: (a) debiti per retribuzioni scaduti da almeno 30 giorni per oltre
+    la metà del monte retribuzioni mensile; (b) debiti verso fornitori scaduti da almeno 90 giorni
+    superiori ai debiti non scaduti; (c) esposizioni bancarie scadute (o sconfinate) da oltre 60 giorni
+    pari ad ALMENO il 5% del totale; (d) le esposizioni verso i creditori pubblici qualificati
+    dell'art. 25-novies co. 1: INPS (oltre 90 giorni e oltre il 30% dei contributi dell'anno precedente
+    e 15.000 euro, oppure 5.000 euro per le imprese senza lavoratori), INAIL (oltre 90 giorni e oltre
+    5.000 euro), Agenzia delle entrate (debito IVA oltre 5.000 euro e non inferiore al 10% del volume
+    d'affari, comunque oltre 20.000 euro; nessuna soglia a giorni), Agenzia delle entrate-Riscossione
+    (carichi scaduti da oltre 90 giorni oltre 100.000 euro per le imprese individuali, 200.000 per le
+    società di persone, 500.000 per le altre società). Per i creditori pubblici contano gli importi, non i
+    soli giorni: se un dato necessario manca il segnale non viene attivato ma è elencato tra i
+    `segnali_non_determinabili`. I segnali "agevolano la previsione" della crisi (art. 3 co. 3): non ne
+    provano l'esistenza. Il DSCR a 12 mesi (art. 3 co. 3 lett. b: sostenibilità dei debiti almeno per i
+    dodici mesi successivi), il rapporto debiti/attivo > 80% e i livelli di severità sono criteri di
+    PRASSI, non previsti dal testo vigente, e sono etichettati come tali.
+    Vigenza: Art. 3 co. 3-4 e art. 25-novies co. 1 D.Lgs. 14/2019 (CCII) come sostituiti dal D.Lgs. 83/2022; testo vigente al 2026-09-29.
+    Precisione: INDICATIVO — i segnali normativi sono applicati alla lettera, ma dati e orizzonte dipendono dalle scritture; DSCR, debiti/attivo e severità sono prassi.
     Chaining: → composizione_negoziata() per verificare l'accesso allo strumento di risanamento
 
     Args:
-        dscr: Debt Service Coverage Ratio prospettico a 6 mesi (es. 0.8 = copertura insufficiente; < 1.0 = allerta)
-        giorni_ritardo_inps: Giorni di ritardo nei pagamenti INPS rispetto alle scadenze (> 90 = allerta)
-        giorni_ritardo_ade: Giorni di ritardo nei pagamenti Agenzia delle Entrate (> 90 = allerta)
-        esposizioni_scadute_pct: Percentuale di esposizioni bancarie scadute sul totale (> 5.0% = allerta)
-        debiti_vs_attivo_pct: Rapporto debiti totali / attivo totale in percentuale (> 80% = allerta)
+        dscr: (prassi) Debt Service Coverage Ratio prospettico a 12 mesi (< 1.0 = flussi insufficienti); facoltativo
+        giorni_ritardo_inps: Giorni di ritardo nel versamento dei contributi INPS (segnale solo se > 90 E con gli importi di debito_inps)
+        giorni_ritardo_ade: DEPRECATO e ignorato: l'art. 25-novies co. 1 lett. c) non prevede soglie a giorni per l'Agenzia delle entrate (usare debito_iva_ade)
+        esposizioni_scadute_pct: Percentuale (0-100) delle esposizioni verso banche e intermediari SCADUTE DA PIÙ DI 60 GIORNI (o sconfinate da almeno 60) sul totale delle esposizioni (segnale se >= 5.0)
+        debiti_vs_attivo_pct: (prassi) Rapporto debiti totali / attivo totale in percentuale (> 80% = indice di prassi)
+        retribuzioni_scadute_30gg: Euro di debiti per retribuzioni scaduti da almeno 30 giorni (lett. a)
+        monte_retribuzioni_mensile: Euro dell'ammontare complessivo mensile delle retribuzioni (lett. a)
+        debiti_fornitori_scaduti_90gg: Euro di debiti verso fornitori scaduti da almeno 90 giorni (lett. b)
+        debiti_fornitori_non_scaduti: Euro di debiti verso fornitori non scaduti (lett. b)
+        debito_inps: Euro di contributi previdenziali scaduti e non versati (art. 25-novies co. 1 lett. a)
+        contributi_inps_anno_precedente: Euro di contributi dovuti all'INPS nell'anno precedente (per il 30%, imprese con lavoratori)
+        impresa_con_lavoratori: True se l'impresa ha lavoratori subordinati o parasubordinati (soglia 15.000 e 30%); False (soglia 5.000)
+        giorni_ritardo_inail: Giorni di ritardo nel pagamento dei premi INAIL (segnale solo se > 90 E debito_inail > 5.000)
+        debito_inail: Euro di premi INAIL scaduti e non versati (lett. b)
+        debito_iva_ade: Euro di debito IVA scaduto e non versato risultante dalle liquidazioni periodiche (lett. c)
+        volume_affari_anno_precedente: Euro di volume d'affari della dichiarazione dell'anno d'imposta precedente (per il 10%)
+        debito_ader: Euro di crediti affidati all'Agenzia delle entrate-Riscossione, autodichiarati o definitivamente accertati (lett. d)
+        giorni_ritardo_ader: Giorni di scaduto dei carichi affidati all'AdER (segnale solo se > 90)
+        forma_giuridica: 'impresa_individuale' (soglia 100.000), 'societa_di_persone' (200.000) o 'altra_societa' (500.000), per l'AdER
     """
-    if dscr < 0:
+    if dscr is not None and dscr < 0:
         raise ValueError("dscr non può essere negativo")
-    if giorni_ritardo_inps < 0:
-        raise ValueError("giorni_ritardo_inps non può essere negativo")
-    if giorni_ritardo_ade < 0:
-        raise ValueError("giorni_ritardo_ade non può essere negativo")
+    for nome, valore in (
+        ("giorni_ritardo_inps", giorni_ritardo_inps),
+        ("giorni_ritardo_ade", giorni_ritardo_ade),
+        ("giorni_ritardo_inail", giorni_ritardo_inail),
+        ("giorni_ritardo_ader", giorni_ritardo_ader),
+    ):
+        if valore < 0:
+            raise ValueError(f"{nome} non può essere negativo")
     if not (0 <= esposizioni_scadute_pct <= 100):
         raise ValueError("esposizioni_scadute_pct deve essere compresa tra 0 e 100")
     if debiti_vs_attivo_pct < 0:
         raise ValueError("debiti_vs_attivo_pct non può essere negativo")
-
-    indicatori_attivati = []
-
-    if dscr < 1.0:
-        indicatori_attivati.append(
-            f"DSCR {dscr:.2f} < 1.0 — flusso di cassa insufficiente a coprire il servizio del debito nei 6 mesi"
+    for nome, valore in (
+        ("retribuzioni_scadute_30gg", retribuzioni_scadute_30gg),
+        ("monte_retribuzioni_mensile", monte_retribuzioni_mensile),
+        ("debiti_fornitori_scaduti_90gg", debiti_fornitori_scaduti_90gg),
+        ("debiti_fornitori_non_scaduti", debiti_fornitori_non_scaduti),
+        ("debito_inps", debito_inps),
+        ("contributi_inps_anno_precedente", contributi_inps_anno_precedente),
+        ("debito_inail", debito_inail),
+        ("debito_iva_ade", debito_iva_ade),
+        ("volume_affari_anno_precedente", volume_affari_anno_precedente),
+        ("debito_ader", debito_ader),
+    ):
+        if valore is not None and valore < 0:
+            raise ValueError(f"{nome} non può essere negativo")
+    if forma_giuridica is not None and forma_giuridica not in _SOGLIE_ADER:
+        raise ValueError(
+            f"forma_giuridica non valida: '{forma_giuridica}'. Usare 'impresa_individuale', "
+            "'societa_di_persone' o 'altra_societa'"
         )
+
+    segnali: list[str] = []  # art. 3 co. 4 CCII, verified on the figures given
+    non_determinabili: list[str] = []  # the norm needs a figure that was not supplied
+    avvertenze: list[str] = []
+
+    # Art. 3 co. 4 lett. a): retribuzioni scadute da almeno 30 giorni, oltre la metà del monte mensile.
+    if retribuzioni_scadute_30gg:
+        if not monte_retribuzioni_mensile:
+            non_determinabili.append(
+                "Art. 3 co. 4 lett. a) CCII: retribuzioni scadute da almeno 30 giorni indicate, ma manca "
+                "monte_retribuzioni_mensile (il segnale richiede l'importo oltre la metà del monte mensile)"
+            )
+        elif retribuzioni_scadute_30gg > monte_retribuzioni_mensile / 2:
+            segnali.append(
+                f"Art. 3 co. 4 lett. a) CCII: retribuzioni scadute da almeno 30 giorni "
+                f"{_it(retribuzioni_scadute_30gg)} euro > metà del monte mensile "
+                f"({_it(monte_retribuzioni_mensile / 2)} euro)"
+            )
+
+    # Art. 3 co. 4 lett. b): fornitori scaduti da almeno 90 giorni, superiori ai debiti non scaduti.
+    if debiti_fornitori_scaduti_90gg:
+        if debiti_fornitori_non_scaduti is None:
+            non_determinabili.append(
+                "Art. 3 co. 4 lett. b) CCII: debiti verso fornitori scaduti da almeno 90 giorni indicati, ma "
+                "manca debiti_fornitori_non_scaduti (il segnale richiede il confronto con i debiti non scaduti)"
+            )
+        elif debiti_fornitori_scaduti_90gg > debiti_fornitori_non_scaduti:
+            segnali.append(
+                f"Art. 3 co. 4 lett. b) CCII: debiti verso fornitori scaduti da almeno 90 giorni "
+                f"{_it(debiti_fornitori_scaduti_90gg)} euro > debiti non scaduti "
+                f"{_it(debiti_fornitori_non_scaduti)} euro"
+            )
+
+    # Art. 3 co. 4 lett. c): esposizioni bancarie scadute da oltre 60 giorni, ALMENO il 5% del totale.
+    if esposizioni_scadute_pct >= 5.0:
+        segnali.append(
+            f"Art. 3 co. 4 lett. c) CCII: esposizioni bancarie scadute da oltre 60 giorni "
+            f"{esposizioni_scadute_pct:.2f}% >= 5% del totale delle esposizioni"
+        )
+
+    # Art. 3 co. 4 lett. d) with art. 25-novies co. 1: public creditors, days AND amounts.
+    # INPS (lett. a): oltre 90 giorni e importo > 30% dei contributi dell'anno precedente e 15.000 euro
+    # (imprese con lavoratori), oppure > 5.000 euro (imprese senza lavoratori).
     if giorni_ritardo_inps > 90:
-        indicatori_attivati.append(
-            f"Ritardo INPS {giorni_ritardo_inps} giorni > 90 — esposizione previdenziale scaduta"
+        if debito_inps is None:
+            non_determinabili.append(
+                f"Art. 25-novies co. 1 lett. a) CCII: ritardo INPS di {giorni_ritardo_inps} giorni (> 90), ma "
+                "il segnale richiede anche l'importo: indicare debito_inps"
+            )
+        elif impresa_con_lavoratori:
+            if debito_inps <= 15_000:
+                pass  # cannot exceed 15.000 euro: no signal
+            elif contributi_inps_anno_precedente is None:
+                non_determinabili.append(
+                    f"Art. 25-novies co. 1 lett. a) n. 1) CCII: ritardo INPS di {giorni_ritardo_inps} giorni "
+                    f"e debito di {_it(debito_inps)} euro (> 15.000), ma manca contributi_inps_anno_precedente "
+                    "per il confronto con il 30% dei contributi dovuti nell'anno precedente"
+                )
+            elif debito_inps > 0.30 * contributi_inps_anno_precedente:
+                segnali.append(
+                    f"Art. 25-novies co. 1 lett. a) n. 1) CCII: ritardo INPS {giorni_ritardo_inps} giorni > 90, "
+                    f"debito {_it(debito_inps)} euro > 30% dei contributi dell'anno precedente "
+                    f"({_it(0.30 * contributi_inps_anno_precedente)} euro) e > 15.000 euro"
+                )
+        elif debito_inps > 5_000:
+            segnali.append(
+                f"Art. 25-novies co. 1 lett. a) n. 2) CCII: ritardo INPS {giorni_ritardo_inps} giorni > 90, "
+                f"debito {_it(debito_inps)} euro > 5.000 euro (impresa senza lavoratori)"
+            )
+
+    # INAIL (lett. b): premi scaduti da oltre 90 giorni e non versati, superiori a 5.000 euro.
+    if giorni_ritardo_inail > 90:
+        if debito_inail is None:
+            non_determinabili.append(
+                f"Art. 25-novies co. 1 lett. b) CCII: ritardo INAIL di {giorni_ritardo_inail} giorni (> 90), ma "
+                "il segnale richiede anche l'importo: indicare debito_inail"
+            )
+        elif debito_inail > 5_000:
+            segnali.append(
+                f"Art. 25-novies co. 1 lett. b) CCII: premi INAIL scaduti da oltre 90 giorni, "
+                f"debito {_it(debito_inail)} euro > 5.000 euro"
+            )
+
+    # Agenzia delle entrate (lett. c): debito IVA > 5.000 e non inferiore al 10% del volume d'affari,
+    # in ogni caso se > 20.000. Nessuna soglia a giorni.
+    if giorni_ritardo_ade:
+        avvertenze.append(
+            "giorni_ritardo_ade ignorato: l'art. 25-novies co. 1 lett. c) CCII fissa per l'Agenzia delle "
+            "entrate soglie d'importo (debito IVA), non di giorni; usare debito_iva_ade e "
+            "volume_affari_anno_precedente"
         )
-    if giorni_ritardo_ade > 90:
-        indicatori_attivati.append(
-            f"Ritardo AdE {giorni_ritardo_ade} giorni > 90 — esposizione fiscale scaduta"
+    if debito_iva_ade is not None:
+        if debito_iva_ade > 20_000:
+            segnali.append(
+                f"Art. 25-novies co. 1 lett. c) CCII: debito IVA scaduto e non versato "
+                f"{_it(debito_iva_ade)} euro > 20.000 euro (segnalazione in ogni caso)"
+            )
+        elif debito_iva_ade > 5_000:
+            if volume_affari_anno_precedente is None:
+                non_determinabili.append(
+                    f"Art. 25-novies co. 1 lett. c) CCII: debito IVA di {_it(debito_iva_ade)} euro (> 5.000) "
+                    "ma manca volume_affari_anno_precedente per il confronto con il 10% del volume d'affari"
+                )
+            elif debito_iva_ade >= 0.10 * volume_affari_anno_precedente:
+                segnali.append(
+                    f"Art. 25-novies co. 1 lett. c) CCII: debito IVA {_it(debito_iva_ade)} euro > 5.000 euro "
+                    f"e >= 10% del volume d'affari ({_it(0.10 * volume_affari_anno_precedente)} euro)"
+                )
+
+    # Agenzia delle entrate-Riscossione (lett. d): carichi scaduti da oltre 90 giorni sopra soglia per forma.
+    if debito_ader is not None and giorni_ritardo_ader > 90:
+        if forma_giuridica is not None:
+            soglia_ader = _SOGLIE_ADER[forma_giuridica]
+            if debito_ader > soglia_ader:
+                segnali.append(
+                    f"Art. 25-novies co. 1 lett. d) CCII: carichi AdER scaduti da oltre 90 giorni, "
+                    f"{_it(debito_ader)} euro > {_it(soglia_ader, 0)} euro ({forma_giuridica})"
+                )
+        elif debito_ader > min(_SOGLIE_ADER.values()):
+            non_determinabili.append(
+                f"Art. 25-novies co. 1 lett. d) CCII: carichi AdER di {_it(debito_ader)} euro scaduti da oltre "
+                "90 giorni; la soglia dipende dalla forma giuridica (100.000 impresa individuale, 200.000 "
+                "società di persone, 500.000 altre società): indicare forma_giuridica"
+            )
+    elif debito_ader is not None and giorni_ritardo_ader == 0 and debito_ader > min(_SOGLIE_ADER.values()):
+        non_determinabili.append(
+            "Art. 25-novies co. 1 lett. d) CCII: debito AdER indicato senza giorni di scaduto; il segnale "
+            "richiede carichi scaduti da oltre 90 giorni (indicare giorni_ritardo_ader)"
         )
-    if esposizioni_scadute_pct > 5.0:
-        indicatori_attivati.append(
-            f"Esposizioni bancarie scadute {esposizioni_scadute_pct:.1f}% > 5% — deterioramento credito bancario"
+
+    # Criteri di PRASSI (not in the vigente text of art. 3 CCII).
+    prassi: list[str] = []
+    if dscr is not None and dscr < 1.0:
+        prassi.append(
+            f"[prassi] DSCR {dscr:.2f} < 1.0: flussi di cassa prospettici insufficienti a coprire il servizio "
+            "del debito nei 12 mesi successivi (art. 3 co. 3 lett. b) CCII: orizzonte di dodici mesi)"
         )
     if debiti_vs_attivo_pct > 80.0:
-        indicatori_attivati.append(
-            f"Debiti/Attivo {debiti_vs_attivo_pct:.1f}% > 80% — eccessivo indebitamento rispetto al patrimonio"
+        prassi.append(
+            f"[prassi] Debiti/Attivo {debiti_vs_attivo_pct:.1f}% > 80%: eccessivo indebitamento rispetto al "
+            "patrimonio (indice non previsto dal testo vigente dell'art. 3 CCII)"
         )
 
+    indicatori_attivati = segnali + prassi
     n = len(indicatori_attivati)
     alert = n > 0
 
+    # The severity ladder is a convention of this tool, not a rule of the CCII.
     if n >= 3:
         severita = "critico"
         raccomandazione = (
-            "Situazione critica: attivare immediatamente la composizione negoziata (art. 12 CCII) "
-            "o valutare il concordato preventivo (art. 84 CCII). Convocare organo amministrativo "
-            "e coinvolgere advisor entro 30 giorni."
+            "Situazione critica: valutare senza indugio la composizione negoziata (art. 12 CCII) o il "
+            "concordato preventivo (art. 84 CCII); convocare l'organo amministrativo e coinvolgere advisor."
         )
     elif n == 2:
         severita = "significativo"
@@ -86,23 +279,34 @@ def test_crisi_impresa(
         severita = "moderato"
         raccomandazione = (
             "Situazione moderata: adottare misure correttive interne, aggiornare il budget di cassa "
-            "e verificare nuovamente gli indicatori entro 90 giorni."
+            "e verificare nuovamente gli indicatori a breve."
         )
     else:
         severita = "nessuno"
         raccomandazione = (
-            "Nessun indicatore di crisi rilevato. Continuare il monitoraggio periodico "
+            "Nessun segnale di crisi rilevato sui dati forniti. Continuare il monitoraggio periodico "
             "ai sensi dell'art. 3 co. 3 CCII."
         )
+        if non_determinabili:
+            raccomandazione += " Alcuni segnali non sono determinabili per dati mancanti (vedi segnali_non_determinabili)."
 
     return {
         "alert": alert,
         "severita": severita,
+        "severita_criterio": "prassi: la scala dei livelli non è prevista dal CCII",
         "indicatori_attivati": indicatori_attivati,
         "numero_indicatori": n,
+        "segnali_art_3_co_4": segnali,
+        "numero_segnali_normativi": len(segnali),
+        "indicatori_di_prassi": prassi,
+        "segnali_non_determinabili": non_determinabili,
+        "avvertenze": avvertenze,
         "dscr": dscr,
         "raccomandazione": raccomandazione,
-        "riferimento_normativo": "Art. 3 D.Lgs. 14/2019 (CCII) — Indicatori della crisi",
+        "riferimento_normativo": (
+            "Art. 3 D.Lgs. 14/2019 (CCII) — Adeguatezza delle misure e degli assetti (co. 3 lett. b, co. 4); "
+            "art. 25-novies co. 1 (segnalazioni dei creditori pubblici qualificati)"
+        ),
     }
 
 
@@ -113,90 +317,157 @@ def composizione_negoziata(
     dipendenti: int,
     debito_totale: float,
     tipo_impresa: str = "commerciale",
+    procedimento_regolazione_pendente: bool = False,
+    rinuncia_domanda_ultimi_4_mesi: bool = False,
 ) -> dict:
-    """Verifica l'ammissibilità alla composizione negoziata della crisi e valuta gli indicatori finanziari.
+    """Verifica la via d'accesso alla composizione negoziata della crisi e riepiloga effetti e limiti.
 
-    La composizione negoziata (artt. 12-25-undecies CCII) è uno strumento stragiudiziale che consente
-    all'imprenditore in stato di crisi o insolvenza reversibile di negoziare con i creditori
-    con l'assistenza di un esperto indipendente nominato dalla CCIAA competente.
-    Vigenza: Artt. 12-25-undecies D.Lgs. 14/2019 (CCII) come modificato dal D.Lgs. 83/2022.
-    Precisione: INDICATIVO — l'ammissibilità definitiva è valutata dall'esperto nominato dalla CCIAA.
+    La composizione negoziata (artt. 12-25-undecies CCII) è uno strumento stragiudiziale con cui
+    l'imprenditore commerciale o agricolo, in crisi o in squilibrio che ne rende probabile la crisi o
+    l'insolvenza, negozia con i creditori assistito da un esperto indipendente nominato dal segretario
+    generale della CCIAA (art. 12 co. 1). Il tool stabilisce se l'impresa è "minore" (art. 2 co. 1 lett. d:
+    attivo, ricavi e debiti non superiori a 300.000, 200.000 e 500.000 euro, congiuntamente): in tal caso
+    l'accesso è quello dell'art. 25-quater (imprese sotto soglia), altrimenti l'ordinario art. 12 co. 1.
+    Non decide la ragionevole perseguibilità del risanamento né lo squilibrio: sono condizioni dell'art. 12
+    co. 1 da verificare con il test pratico e la lista di controllo della piattaforma (art. 13 co. 2).
+    Segnala le cause ostative dell'art. 25-quinquies (domanda di accesso a uno strumento di regolazione
+    pendente, o rinunciata nei quattro mesi precedenti).
+    Vigenza: Artt. 2 co. 1 lett. d), 12, 17 co. 7, 18, 20, 22, 24, 25-quater e 25-quinquies D.Lgs. 14/2019 (CCII) come modificato dal D.Lgs. 83/2022 e dal D.Lgs. 136/2024; soglie dell'impresa minore aggiornabili ogni tre anni con decreto ministeriale (art. 348); testo vigente al 2026-09-29.
+    Precisione: INDICATIVO — l'ammissibilità definitiva è valutata dall'esperto; i requisiti dell'impresa minore vanno verificati sui tre esercizi antecedenti.
     Chaining: → concordato_preventivo() se la composizione negoziata fallisce
 
     Args:
-        fatturato: Fatturato annuo in euro (es. 500000.0)
-        attivo: Totale attivo patrimoniale in euro (es. 800000.0)
-        dipendenti: Numero di dipendenti (es. 10)
-        debito_totale: Debito totale in euro (es. 300000.0)
-        tipo_impresa: Tipo di impresa: 'commerciale' (default), 'agricola' (art. 25-quater), 'sotto_soglia' (art. 2 co. 1 lett. d CCII)
+        fatturato: Ricavi annui in euro (requisito dell'impresa minore: non superiori a 200.000; es. 500000.0)
+        attivo: Totale attivo patrimoniale in euro (requisito dell'impresa minore: non superiore a 300.000; es. 800000.0)
+        dipendenti: Numero di dipendenti (informativo: l'art. 2 co. 1 lett. d) non li considera, non incide sull'accesso)
+        debito_totale: Debito totale, anche non scaduto, in euro (requisito dell'impresa minore: non superiore a 500.000; es. 300000.0)
+        tipo_impresa: 'commerciale' (default) o 'agricola' (accesso ex art. 12 co. 1, o ex art. 25-quater se impresa minore); 'sotto_soglia' se si vuole verificare l'accesso ex art. 25-quater (art. 2 co. 1 lett. d)
+        procedimento_regolazione_pendente: True se pende una domanda di accesso a uno strumento di regolazione della crisi o dell'insolvenza (art. 25-quinquies co. 1: istanza non presentabile)
+        rinuncia_domanda_ultimi_4_mesi: True se l'imprenditore ha rinunciato a tale domanda nei quattro mesi precedenti (art. 25-quinquies co. 1)
     """
     if any(v < 0 for v in [fatturato, attivo, debito_totale]):
         raise ValueError("I valori finanziari non possono essere negativi")
     if dipendenti < 0:
         raise ValueError("Il numero di dipendenti non può essere negativo")
-
-    # Verifica requisiti di accesso per tipo impresa
-    requisiti_soddisfatti = []
-    ammissibile = False
-
-    if tipo_impresa == "commerciale":
-        ammissibile = True
-        requisiti_soddisfatti.append("Impresa commerciale: accesso diretto (art. 12 co. 1 CCII)")
-    elif tipo_impresa == "agricola":
-        ammissibile = True
-        requisiti_soddisfatti.append("Impresa agricola: accesso ex art. 25-quater CCII")
-    elif tipo_impresa == "sotto_soglia":
-        # Art. 2 co. 1 lett. d CCII: impresa minore e' quella che presenta CONGIUNTAMENTE
-        # i tre requisiti (attivo, ricavi e debiti sotto soglia)
-        sotto_attivo = attivo <= 300_000
-        sotto_ricavi = fatturato <= 200_000
-        sotto_debiti = debito_totale <= 500_000
-        if sotto_attivo and sotto_ricavi and sotto_debiti:
-            ammissibile = True
-            if sotto_attivo:
-                requisiti_soddisfatti.append(f"Attivo ≤ €300.000 (attuale: €{attivo:,.2f})")
-            if sotto_ricavi:
-                requisiti_soddisfatti.append(f"Ricavi ≤ €200.000 (attuale: €{fatturato:,.2f})")
-            if sotto_debiti:
-                requisiti_soddisfatti.append(f"Debiti ≤ €500.000 (attuale: €{debito_totale:,.2f})")
-            requisiti_soddisfatti.append("Impresa sotto soglia: ammessa ex art. 2 co. 1 lett. d CCII")
-        else:
-            ammissibile = False
-            requisiti_soddisfatti.append(
-                "Impresa sotto soglia: nessuna soglia rispettata — non ammissibile come sotto_soglia"
-            )
-    else:
+    if tipo_impresa not in ("commerciale", "agricola", "sotto_soglia"):
         raise ValueError(f"tipo_impresa non valido: '{tipo_impresa}'. Usare 'commerciale', 'agricola' o 'sotto_soglia'")
 
-    # Indicatori finanziari
+    # Art. 2 co. 1 lett. d) CCII: the three requirements are joint, each "non superiore" to its limit.
+    sotto_attivo = attivo <= 300_000
+    sotto_ricavi = fatturato <= 200_000
+    sotto_debiti = debito_totale <= 500_000
+    impresa_minore = sotto_attivo and sotto_ricavi and sotto_debiti
+
+    requisiti_soddisfatti: list[str] = []
+    requisiti_mancanti: list[str] = []
+    for ok, soddisfatto, mancante in (
+        (
+            sotto_attivo,
+            f"Attivo non superiore a € 300.000 (attuale: € {_it(attivo)})",
+            f"Attivo superiore a € 300.000 (attuale: € {_it(attivo)})",
+        ),
+        (
+            sotto_ricavi,
+            f"Ricavi non superiori a € 200.000 (attuali: € {_it(fatturato)})",
+            f"Ricavi superiori a € 200.000 (attuali: € {_it(fatturato)})",
+        ),
+        (
+            sotto_debiti,
+            f"Debiti non superiori a € 500.000 (attuali: € {_it(debito_totale)})",
+            f"Debiti superiori a € 500.000 (attuali: € {_it(debito_totale)})",
+        ),
+    ):
+        (requisiti_soddisfatti if ok else requisiti_mancanti).append(soddisfatto if ok else mancante)
+
+    # Access route: art. 25-quater for the impresa minore, art. 12 co. 1 otherwise.
+    if impresa_minore:
+        accesso = "Art. 25-quater co. 1 CCII (imprese sotto soglia)"
+        requisiti_soddisfatti.append(
+            "Impresa minore (art. 2 co. 1 lett. d CCII): accesso ex art. 25-quater co. 1 CCII; "
+            "per quanto non previsto si applicano gli artt. 12 e seguenti (art. 25-quater co. 5)"
+        )
+    else:
+        accesso = "Art. 12 co. 1 CCII (imprenditore commerciale e agricolo)"
+        if tipo_impresa == "sotto_soglia":
+            requisiti_soddisfatti.append(
+                "Non è impresa minore: manca almeno uno dei tre requisiti congiunti dell'art. 2 co. 1 lett. d) "
+                "CCII, quindi non si applica l'art. 25-quater; l'accesso resta quello ordinario ex art. 12 co. 1 CCII"
+            )
+        else:
+            requisiti_soddisfatti.append(f"Impresa {tipo_impresa}: accesso ex art. 12 co. 1 CCII")
+
+    # Art. 25-quinquies co. 1 CCII: bars to the request.
+    ostacoli: list[str] = []
+    if procedimento_regolazione_pendente:
+        ostacoli.append(
+            "Art. 25-quinquies co. 1 CCII: l'istanza non può essere presentata in pendenza di una domanda di "
+            "accesso a uno strumento di regolazione della crisi o dell'insolvenza"
+        )
+    if rinuncia_domanda_ultimi_4_mesi:
+        ostacoli.append(
+            "Art. 25-quinquies co. 1 CCII: l'istanza non può essere presentata se l'imprenditore ha rinunciato "
+            "a tale domanda nei quattro mesi precedenti"
+        )
+    ammissibile = not ostacoli
+
+    condizioni_da_verificare = [
+        "Art. 12 co. 1 CCII: squilibrio patrimoniale o economico-finanziario che rende probabile la crisi o "
+        "l'insolvenza (o crisi/insolvenza ex art. 2 co. 1 lett. a, b) E risanamento ragionevolmente "
+        "perseguibile: il tool non le accerta (test pratico e lista di controllo, art. 13 co. 2 CCII)",
+        "Art. 2 co. 1 lett. d) CCII: i requisiti dell'impresa minore si misurano sui tre esercizi antecedenti "
+        "l'istanza (o dall'inizio dell'attività se di durata inferiore); il tool usa un solo valore annuo",
+    ]
+
+    # Informative ratios only: the CCII fixes no debt/turnover threshold.
     rapporto_debito_fatturato = round(debito_totale / fatturato, 2) if fatturato > 0 else None
     rapporto_debito_attivo = round(debito_totale / attivo * 100, 1) if attivo > 0 else None
-    risanamento_ragionevole = debito_totale < 2 * fatturato if fatturato > 0 else False
+    euristica_debito_lt_2x = debito_totale < 2 * fatturato if fatturato > 0 else None
 
     indicatori = {
         "rapporto_debito_fatturato": rapporto_debito_fatturato,
         "rapporto_debito_attivo_pct": rapporto_debito_attivo,
-        "risanamento_ragionevole": risanamento_ragionevole,
+        "euristica_di_prassi_debito_inferiore_a_2x_fatturato": euristica_debito_lt_2x,
         "nota_risanamento": (
-            "Rapporto debito/fatturato < 2: risanamento potenzialmente ragionevole"
-            if risanamento_ragionevole
-            else "Rapporto debito/fatturato ≥ 2: risanamento difficile — valutare procedure concorsuali"
+            "La ragionevole perseguibilità del risanamento (art. 12 co. 1 CCII) non dipende dal rapporto "
+            "debito/fatturato: si verifica con il test pratico e la lista di controllo della piattaforma "
+            "telematica nazionale (art. 13 co. 2 CCII, decreto dirigenziale del Ministero della giustizia). "
+            "I rapporti sono indicatori informativi; la soglia 2x è una euristica di prassi senza base nel CCII."
         ),
     }
 
     misure_protettive = [
-        "Sospensione azioni esecutive e cautelari (art. 18 CCII)",
-        "Sospensione obbligo di scioglimento per perdita capitale (art. 20 CCII)",
-        "Prededuzione dei finanziamenti interinali (art. 22 CCII)",
-        "Sospensione revocatoria per atti in esecuzione del piano (art. 24 CCII)",
+        "Misure protettive del patrimonio, su richiesta dell'imprenditore: dalla pubblicazione dell'istanza i "
+        "creditori interessati non possono acquisire prelazioni non concordate né iniziare o proseguire azioni "
+        "esecutive e cautelari; esclusi i crediti dei lavoratori (art. 18 co. 1 e 3 CCII)",
+        "Sospensione, su dichiarazione dell'imprenditore, degli obblighi e delle cause di scioglimento per "
+        "riduzione o perdita del capitale (artt. 2446, 2447, 2482-bis, 2482-ter, 2484 n. 4 c.c.) fino alla "
+        "conclusione delle trattative (art. 20 CCII)",
+        "Finanziamenti autorizzati dal tribunale con riconoscimento della prededuzione (art. 22 co. 1 lett. a) CCII)",
     ]
+    if impresa_minore:
+        misure_protettive.append(
+            "Revocatoria (art. 24 CCII): per le imprese sotto soglia l'art. 25-quater co. 5 richiama solo l'art. 24 "
+            "co. 3 e 4 (atti soggetti a revocatoria se l'esperto ha iscritto il dissenso o il tribunale ha rigettato "
+            "l'autorizzazione); non si applica l'esenzione dell'art. 24 co. 2"
+        )
+    else:
+        misure_protettive.append(
+            "Esenzione dalla revocatoria ex art. 166 co. 2 per atti, pagamenti e garanzie successivi "
+            "all'accettazione dell'esperto e coerenti con le trattative (art. 24 co. 2 CCII), salvo dissenso "
+            "dell'esperto o rigetto dell'autorizzazione (art. 24 co. 3)"
+        )
 
     return {
         "ammissibile": ammissibile,
         "tipo_impresa": tipo_impresa,
+        "impresa_minore": impresa_minore,
+        "accesso": accesso,
         "requisiti_soddisfatti": requisiti_soddisfatti,
+        "requisiti_mancanti": requisiti_mancanti,
+        "ostacoli_art_25_quinquies": ostacoli,
+        "condizioni_da_verificare": condizioni_da_verificare,
         "indicatori": indicatori,
-        "durata_max": "180 giorni + proroga di ulteriori 180 giorni (art. 17 CCII)",
+        "durata_max": "180 giorni dall'accettazione della nomina, prorogabili per non oltre altri 180 giorni (art. 17 co. 7 CCII)",
         "misure_protettive": misure_protettive,
         "riferimento_normativo": "Artt. 12-25-undecies D.Lgs. 14/2019 (CCII) — Composizione negoziata",
     }
@@ -347,9 +618,9 @@ def compenso_occ(
         compenso_calcolato += importo_fascia
         dettaglio_fasce.append({
             "fascia": (
-                f"fino a €{limite:,.0f}" if i == 0
-                else f"€{precedente + 1:,.0f} – €{limite:,.0f}" if limite != float("inf")
-                else f"oltre €{precedente:,.0f}"
+                f"fino a €{_it(limite, 0)}" if i == 0
+                else f"€{_it(precedente + 1, 0)} – €{_it(limite, 0)}" if limite != float("inf")
+                else f"oltre €{_it(precedente, 0)}"
             ),
             "imponibile": round(quota, 2),
             "aliquota_pct": aliquota * 100,

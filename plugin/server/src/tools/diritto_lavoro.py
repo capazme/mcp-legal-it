@@ -4,9 +4,10 @@ costo del lavoro, offerta conciliativa."""
 
 import json
 from datetime import date, timedelta
+from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from src.lib import _clock
+from src.lib import _clock, _data
 from src.server import mcp
 from src.lib._data import sourced
 
@@ -19,6 +20,10 @@ with open(_DATA / "irpef_scaglioni.json") as _f:
     _IRPEF: dict = json.load(_f)
 
 
+#: The Quadri row is 'quadri_1' in the commercio table and 'quadri' in the studi professionali one.
+_ALIAS_LIVELLO = {"quadri_1": "quadri", "quadri": "quadri_1"}
+
+
 def _parse_date(d: str) -> date:
     return date.fromisoformat(d)
 
@@ -27,22 +32,53 @@ def _add_days(d: date, giorni: int) -> date:
     return d + timedelta(days=giorni)
 
 
+def _dec(valore) -> Decimal:
+    """A float as the decimal the caller typed (`Decimal(str(x))`, not the binary expansion)."""
+    return Decimal(str(valore))
+
+
+def _cent(valore: Decimal) -> Decimal:
+    """Round half up to the cent, as a payroll does (Python's `round()` is binary)."""
+    return valore.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _quattro_decimali(rapporto: Decimal) -> Decimal:
+    """Art. 13 co. 6 TUIR: a positive ratio 'si assume nelle prime quattro cifre decimali'."""
+    return rapporto.quantize(Decimal("0.0001"), rounding=ROUND_DOWN)
+
+
+def _parametri_inps() -> tuple[int, dict]:
+    """INPS yearly parameters of the running year (the latest year listed when it is missing).
+
+    Read through `_data.load` so the call is observed by the table ledger. When the running
+    year is not in the table the latest one is used and the expired vintage tells the caller
+    (and, for a figure about today, the precision policy refuses): a stale value is never
+    applied without a signal.
+    """
+    anni = _data.load("inps_parametri")["anni"]
+    anno = str(_clock.today().year)
+    chiave = anno if anno in anni else max(anni, key=int)
+    return int(chiave), anni[chiave]
+
+
 def _calcola_irpef_semplificata(imponibile: float) -> float:
-    """Stima IRPEF lorda su imponibile annuo usando scaglioni vigenti."""
+    """Stima IRPEF lorda su imponibile annuo usando scaglioni vigenti (art. 11 TUIR)."""
     scaglioni = _IRPEF.get("scaglioni_per_anno", {}).get(str(_clock.today().year), _IRPEF["scaglioni"])
-    imposta = 0.0
-    residuo = imponibile
-    prev_limit = 0
+    imposta = Decimal(0)
+    residuo = _dec(imponibile)
+    prev_limit = Decimal(0)
     for s in scaglioni:
-        aliquota = s["aliquota"] / 100
-        limite = s.get("fino_a", float("inf"))
-        base = min(residuo, limite - prev_limit)
+        aliquota = _dec(s["aliquota"]) / 100
+        limite = _dec(s["fino_a"]) if "fino_a" in s else None
+        base = residuo if limite is None else min(residuo, limite - prev_limit)
         if base <= 0:
             break
         imposta += base * aliquota
         residuo -= base
+        if limite is None:
+            break
         prev_limit = limite
-    return round(imposta, 2)
+    return float(_cent(imposta))
 
 
 @mcp.tool(tags={"lavoro"})
@@ -54,20 +90,23 @@ def indennita_licenziamento(
 ) -> dict:
     """Calcola l'indennità di licenziamento per tutele crescenti (D.Lgs. 23/2015).
 
-    Applica le formule post C.Cost. 194/2018 (no più moltiplicatore fisso per anni)
-    e C.Cost. 128/2024 / 118/2025 per le piccole imprese.
-    Vigenza: D.Lgs. 23/2015 artt. 3, 9 — C.Cost. 194/2018, 128/2024, 118/2025.
-    Precisione: INDICATIVO (dopo Corte cost. 194/2018 l'indennità non è commisurata automaticamente
-        a due mensilità per anno: il giudice la determina tra il minimo e il massimo tenendo conto
-        di anzianità, dimensioni dell'impresa e comportamento delle parti; il moltiplicatore per
-        anzianità è solo un punto di partenza)
+    Indennità dell'art. 3 co. 1 nella forma post C.Cost. 194/2018 (caduto il moltiplicatore
+    fisso di due mensilità per anno: resta l'intervallo 6-36, o 3-18 per i datori sotto la
+    soglia dell'art. 18 St. lav. dopo C.Cost. 118/2025, che ha eliminato il tetto di sei
+    mensilità dell'art. 9 co. 1). Con tipo='reintegra' restituisce il tetto di 12 mensilità
+    dell'indennità risarcitoria dell'art. 3 co. 2 (esteso da C.Cost. 128/2024 al licenziamento
+    per giustificato motivo oggettivo con fatto materiale insussistente), che non dipende
+    dall'anzianità: il valore effettivo è il periodo tra licenziamento e reintegra, dedotto
+    l'aliunde percepito o percepibile, più i contributi senza sanzioni.
+    Vigenza: D.Lgs. 23/2015 artt. 3, 9 nel testo vigente al 2026-09-29 — C.Cost. 194/2018, 128/2024, 118/2025.
+    Precisione: INDICATIVO (il giudice può discostarsi nei limiti floor/cap in base a criteri art. 8 L. 604/1966).
     Chaining: → offerta_conciliativa() per la formula agevolata art. 6 D.Lgs. 23/2015.
 
     Args:
         anni_servizio: Anni di servizio maturati (es. 3.5; valore > 0)
-        retribuzione_mensile: Retribuzione mensile lorda in euro (es. 2000.00; valore > 0)
+        retribuzione_mensile: Ultima retribuzione di riferimento per il calcolo del TFR, mensile, in euro (es. 2000.00; valore > 0)
         dimensione_azienda: 'grande' (>15 dipendenti) o 'piccola' (≤15 dipendenti)
-        tipo: 'indennitario' (art. 3 co. 1) o 'reintegra' (art. 3 co. 2 — calcola max risarcimento)
+        tipo: 'indennitario' (art. 3 co. 1) o 'reintegra' (art. 3 co. 2: calcola il tetto dell'indennità risarcitoria; solo con dimensione_azienda='grande', l'art. 9 co. 1 esclude la reintegra sotto soglia)
     """
     if anni_servizio <= 0:
         raise ValueError("anni_servizio deve essere > 0")
@@ -77,13 +116,34 @@ def indennita_licenziamento(
         raise ValueError("dimensione_azienda deve essere 'grande' o 'piccola'")
     if tipo not in ("indennitario", "reintegra"):
         raise ValueError("tipo deve essere 'indennitario' o 'reintegra'")
+    if tipo == "reintegra" and dimensione_azienda == "piccola":
+        raise ValueError(
+            "art. 9 co. 1 D.Lgs. 23/2015: sotto i requisiti dimensionali dell'art. 18 St. lav. "
+            "'non si applica l'articolo 3, comma 2': la reintegra non spetta. Usa tipo='indennitario' "
+            "(indennità dimezzata, da 3 a 18 mensilità)"
+        )
 
     if tipo == "reintegra":
-        mensilita = min(anni_servizio * 2, 12)
+        # Art. 3 co. 2: the damages run from the dismissal to the actual reinstatement (less
+        # the aliunde perceptum et percipiendum), and for the period before the ruling they
+        # cannot exceed twelve mensilita. Nothing ties them to seniority, so the only figure
+        # the inputs support is the ceiling.
+        mensilita = 12
         floor_val = 0
         cap_val = 12
-        formula = "min(anni_servizio × 2, 12) — risarcimento max in caso di reintegra"
-        nota = "La reintegra è disposta dal giudice; questa è la stima del risarcimento massimo (retribuzioni perse)"
+        formula = (
+            "tetto di 12 mensilità (art. 3 co. 2 D.Lgs. 23/2015), indipendente dall'anzianità: "
+            "l'importo effettivo è il periodo dal licenziamento all'effettiva reintegra, dedotto l'aliunde "
+            "percepito o percepibile, entro 12 mensilità per il periodo anteriore alla pronuncia"
+        )
+        nota = (
+            "La reintegra è disposta dal giudice solo per il licenziamento per giustificato motivo soggettivo o "
+            "giusta causa con fatto materiale insussistente (art. 3 co. 2) e, dopo C.Cost. 128/2024, per il "
+            "giustificato motivo oggettivo con fatto materiale insussistente. 'importo' è il tetto massimo "
+            "dell'indennità risarcitoria; si aggiungono i contributi previdenziali e assistenziali dal "
+            "licenziamento alla reintegra, senza sanzioni. Il lavoratore può chiedere in luogo della reintegra "
+            "l'indennità sostitutiva di 15 mensilità (art. 3 co. 2, che richiama l'art. 2 co. 3)"
+        )
     elif dimensione_azienda == "grande":
         mensilita_raw = anni_servizio * 2
         floor_val = 6
@@ -130,15 +190,20 @@ def indennita_preavviso(
 
     Supported CCNL: 'commercio', 'metalmeccanici', 'studi_professionali'.
     Il preavviso è dovuto in caso di recesso senza giusta causa; in mancanza si corrisponde
-    l'indennità sostitutiva pari alla retribuzione del periodo.
-    Vigenza: artt. 2118-2119 c.c. — CCNL di riferimento per il settore.
+    l'indennità sostitutiva pari alla retribuzione del periodo (art. 2118 co. 2 c.c.), calcolata
+    senza arrotondamenti intermedi come retribuzione mensile x giorni / 30. Per i metalmeccanici
+    l'importo segue la tabella dell'indennità in mensilità del CCNL (per i livelli D1, D2 e C1 lo
+    stesso contratto scrive 0,33 e 0,67 mensilità al posto di 10/30 e 20/30).
+    Vigenza: artt. 2118-2119 e 2121 c.c.; TU CCNL Terziario 3/2/2026 artt. 251-252 e 256; CCNL industria
+    metalmeccanica 5/2/2021 Sez. IV Tit. VIII art. 1; CCNL studi professionali 16/2/2024 artt. 146-147
+    (testi depositati al CNEL, letti il 2026-09-25).
     Precisione: ESATTO per i periodi tabellari del CCNL indicato; verificare il CCNL aziendale applicato.
 
     Args:
         ccnl: Codice CCNL: 'commercio', 'metalmeccanici', 'studi_professionali'
-        livello: Livello contrattuale (es. '2_3', 'quadri_1', 'A1_B2_B3', '3S_3')
+        livello: Livello contrattuale (es. '2_3', 'quadri_1', 'A1_B2_B3', '3S_3'; per gli studi professionali 'quadri' vale come il livello '1')
         anzianita_anni: Anni di anzianità aziendale (es. 7.0; valore >= 0)
-        retribuzione_mensile: Retribuzione mensile lorda in euro (es. 2000.00; valore > 0)
+        retribuzione_mensile: Retribuzione mensile lorda in euro (es. 2000.00; valore > 0), comprensiva dei ratei di 13a e 14a mensilità e di ogni compenso continuativo (art. 2121 c.c.; art. 252 TU Terziario; art. 147 CCNL studi professionali)
         tipo: Tipo di recesso: 'licenziamento' o 'dimissioni'
         giorni_preavviso: Giorni di preavviso che il CCNL applicabile prevede, se li conosci: al posto
                           della tabella inclusa, che i contratti rinnovano. Il calcolo dell'indennità
@@ -163,6 +228,7 @@ def indennita_preavviso(
     # and the calculation no longer rests on the bundled table at all (which is
     # why it is then never read, and its vintage never enters the answer).
     dal_chiamante = giorni_preavviso is not None
+    mensilita_ccnl = None
     if dal_chiamante:
         ccnl_data = {"nome": ccnl, "fonte": "giorni di preavviso forniti dal chiamante"}
     else:
@@ -172,16 +238,30 @@ def indennita_preavviso(
             raise ValueError(f"CCNL '{ccnl}' non trovato. Disponibili: {ccnl_disponibili}")
 
         tabella_tipo = ccnl_data[tipo]
+        # 'quadri_1' (the commercio key) and 'quadri' (studi professionali) name the same row.
+        livello = next(
+            (k for k in (livello, _ALIAS_LIVELLO.get(livello)) if k in tabella_tipo), livello
+        )
         livello_data = tabella_tipo.get(livello)
         if livello_data is None:
             livelli_disponibili = list(tabella_tipo.keys())
             raise ValueError(f"Livello '{livello}' non trovato nel CCNL '{ccnl}' per '{tipo}'. Disponibili: {livelli_disponibili}")
         giorni_preavviso = livello_data[fascia]
+        # Some CCNL fix the indemnity in mensilita' with a table of their own (metalmeccanici,
+        # art. 1 second table): that is the amount the contract states, not the term converted.
+        mensilita_ccnl = ccnl_data.get("indennita_mensilita", {}).get(livello, {}).get(fascia)
 
     if giorni_preavviso < 0:
         raise ValueError("giorni_preavviso deve essere >= 0")
-    retribuzione_giornaliera = round(retribuzione_mensile / 30, 4)
-    importo = round(retribuzione_giornaliera * giorni_preavviso, 2)
+    retribuzione_giornaliera = round(retribuzione_mensile / 30, 4)  # shown, never multiplied
+    if mensilita_ccnl is not None:
+        importo = float(_cent(_dec(mensilita_ccnl) * _dec(retribuzione_mensile)))
+        base_importo = f"{mensilita_ccnl} mensilità della retribuzione (tabella dell'indennità del CCNL)"
+    else:
+        # Art. 2118 co. 2 c.c.: the pay of the period, one month being 30 days; no rounding
+        # of the daily rate before the multiplication (150 days on 1.000 euro are 5.000,00).
+        importo = float(_cent(_dec(retribuzione_mensile) * _dec(giorni_preavviso) / 30))
+        base_importo = f"retribuzione mensile x {giorni_preavviso} giorni / 30 (art. 2118 co. 2 c.c.)"
 
     return {
         "ccnl": ccnl,
@@ -194,11 +274,13 @@ def indennita_preavviso(
         "giorni_preavviso_fonte": "forniti dal chiamante" if dal_chiamante else "tabella CCNL inclusa",
         "retribuzione_giornaliera": retribuzione_giornaliera,
         "importo": importo,
+        "base_importo": base_importo,
         "riferimento_normativo": f"Artt. 2118-2119 c.c. — {ccnl_data['fonte']}",
     }
 
 
 @mcp.tool(tags={"lavoro"})
+@sourced("inps_parametri")
 def calcolo_naspi(
     retribuzione_media_mensile: float,
     settimane_contributive: int,
@@ -206,66 +288,103 @@ def calcolo_naspi(
 ) -> dict:
     """Calcola l'importo e la durata della NASpI (indennità di disoccupazione).
 
-    Applica la formula 2026 con soglia, massimale, durata proporzionale alle settimane
-    contributive degli ultimi 4 anni e decalage mensile dal 6° mese (o 8° se età ≥ 55).
-    Vigenza: D.Lgs. 22/2015 artt. 4-8 — Circ. INPS n. 4/2026.
+    Applica la formula dell'anno con soglia, massimale, durata pari a metà delle settimane
+    contributive degli ultimi 4 anni e riduzione del 3% al mese dal 6° mese di fruizione
+    (dall'8° se l'età alla domanda è ≥ 55). Con meno di 13 settimane di contribuzione nei
+    quattro anni la NASpI non spetta (art. 3 co. 1 lett. b): l'esito è 'non_spettante',
+    senza importo. Non verifica lo stato di disoccupazione involontaria (lett. a) né, per
+    gli eventi dal 2025, le 13 settimane successive a dimissioni volontarie (lett. c-bis).
+    Vigenza: D.Lgs. 22/2015 artt. 3-5 nel testo vigente al 2026-09-29 — Circ. INPS n. 4 del 28-01-2026 par. 6
+    (soglia 1.456,72 e massimale 1.584,70 euro per il 2026).
     Precisione: INDICATIVO (il calcolo INPS considera le retribuzioni imponibili effettive dei 4 anni precedenti).
     Chaining: → scadenze_licenziamento() per le scadenze di impugnazione collegate al licenziamento.
 
     Args:
         retribuzione_media_mensile: Retribuzione media mensile imponibile previdenziale in euro (es. 2500.00; valore > 0)
-        settimane_contributive: Settimane di contribuzione accreditate negli ultimi 4 anni (es. 104; valore > 0)
-        eta_anni: Età del lavoratore in anni interi (influenza la soglia decalage)
+        settimane_contributive: Settimane di contribuzione accreditate negli ultimi 4 anni (es. 104; valore > 0; sotto 13 la prestazione non spetta)
+        eta_anni: Età in anni interi alla data di presentazione della domanda (da 55 anni la riduzione parte dall'8° mese)
     """
     if retribuzione_media_mensile <= 0:
         raise ValueError("retribuzione_media_mensile deve essere > 0")
     if settimane_contributive <= 0:
         raise ValueError("settimane_contributive deve essere > 0")
 
-    # 2026 reference values
-    soglia = 1456.72
-    massimale = 1584.70
+    anno, parametri = _parametri_inps()
+    soglia = parametri["naspi"]["retribuzione_riferimento_mensile"]
+    massimale = parametri["naspi"]["importo_massimo_mensile"]
+    base_output = {
+        "retribuzione_media_mensile": retribuzione_media_mensile,
+        "settimane_contributive": settimane_contributive,
+        "eta_anni": eta_anni,
+        "anno_parametri": anno,
+        f"soglia_{anno}": soglia,
+        f"massimale_{anno}": massimale,
+    }
+    # Not checked by the tool: it has no input for them (art. 3 co. 1 lett. a and c-bis).
+    requisiti_non_verificati = [
+        "stato di disoccupazione involontaria (art. 3 co. 1 lett. a D.Lgs. 22/2015): dimissioni volontarie non danno diritto "
+        "salvo giusta causa o risoluzione consensuale ex art. 7 L. 604/1966",
+        "per gli eventi dal 1° gennaio 2025, se il rapporto a tempo indeterminato precedente è cessato per dimissioni "
+        "volontarie nei 12 mesi prima, servono 13 settimane di contribuzione dopo quella cessazione (art. 3 co. 1 lett. c-bis)",
+    ]
 
-    if retribuzione_media_mensile <= soglia:
-        naspi_base = 0.75 * retribuzione_media_mensile
+    # Art. 3 co. 1 lett. b: at least thirteen weeks of contribution in the four years before
+    # the start of unemployment, together with the other requirements. Below that there is no NASpI.
+    if settimane_contributive < 13:
+        return {
+            **base_output,
+            "esito": "non_spettante",
+            "importo_mensile_iniziale": 0.0,
+            "durata_mesi": 0,
+            "decalage_da_mese": 8 if eta_anni >= 55 else 6,
+            "totale_stimato": 0.0,
+            "piano_mensile": [],
+            "motivo": (
+                f"{settimane_contributive} settimane di contribuzione nei quattro anni sono meno di 13: "
+                "requisito dell'art. 3 co. 1 lett. b D.Lgs. 22/2015 non soddisfatto, la NASpI non spetta"
+            ),
+            "requisiti_non_verificati": requisiti_non_verificati,
+            "riferimento_normativo": "D.Lgs. 22/2015 art. 3 co. 1 lett. b",
+        }
+
+    d_retribuzione = _dec(retribuzione_media_mensile)
+    d_soglia = _dec(soglia)
+    if d_retribuzione <= d_soglia:
+        naspi_base = Decimal("0.75") * d_retribuzione
     else:
-        naspi_base = 0.75 * soglia + 0.25 * (retribuzione_media_mensile - soglia)
-
-    naspi_base = min(naspi_base, massimale)
-    naspi_base = round(naspi_base, 2)
+        naspi_base = Decimal("0.75") * d_soglia + Decimal("0.25") * (d_retribuzione - d_soglia)
+    naspi_base = _cent(min(naspi_base, _dec(massimale)))
 
     # Duration: weeks / 2, converted to months, capped at 24
     durata_mesi_raw = settimane_contributive / 2 / 4.33
     durata_mesi = min(round(durata_mesi_raw, 1), 24.0)
     durata_mesi_interi = int(durata_mesi) if durata_mesi == int(durata_mesi) else durata_mesi
 
-    # Decalage starts from month 6 (or 8 if age >= 55)
+    # Art. 4 co. 3: -3% every month from the first day of the sixth month of use (eighth from
+    # age 55 at the application), so that month 6 is the first reduced one, each step on the
+    # amount of the month before (compound).
     decalage_da_mese = 8 if eta_anni >= 55 else 6
-    decalage_pct = 0.03  # 3% per month
+    fattore = Decimal("0.97")
 
     piano_mensile = []
-    totale = 0.0
-    importo_corrente = naspi_base
+    totale = Decimal(0)
     n_mesi = int(durata_mesi) + (1 if durata_mesi > int(durata_mesi) else 0)
 
     for mese in range(1, n_mesi + 1):
-        # Art. 4 co. 3 D.Lgs. 22/2015 (L. 234/2021): riduzione del 3% ogni mese a decorrere dal
-        # primo giorno del sesto mese di fruizione (ottavo per chi ha compiuto 55 anni)
         if mese >= decalage_da_mese:
-            importo_corrente = round(naspi_base * (1 - decalage_pct) ** (mese - decalage_da_mese + 1), 2)
-            importo_corrente = max(importo_corrente, 0.0)
+            importo_corrente = _cent(naspi_base * fattore ** (mese - decalage_da_mese + 1))
+        else:
+            importo_corrente = naspi_base
 
         # Last month may be partial
         if mese == n_mesi and durata_mesi != int(durata_mesi):
-            frazione = durata_mesi - int(durata_mesi)
-            contributo = round(importo_corrente * frazione, 2)
+            frazione = _dec(durata_mesi - int(durata_mesi))
+            contributo = _cent(importo_corrente * frazione)
         else:
             contributo = importo_corrente
 
         totale += contributo
-        piano_mensile.append({"mese": mese, "importo": contributo})
-
-    totale = round(totale, 2)
+        piano_mensile.append({"mese": mese, "importo": float(contributo)})
 
     # Return first 6 + last entry for brevity
     piano_ridotto = piano_mensile[:6]
@@ -273,17 +392,15 @@ def calcolo_naspi(
         piano_ridotto.append({"mese": piano_mensile[-1]["mese"], "importo": piano_mensile[-1]["importo"], "nota": "ultimo mese"})
 
     return {
-        "retribuzione_media_mensile": retribuzione_media_mensile,
-        "settimane_contributive": settimane_contributive,
-        "eta_anni": eta_anni,
-        "importo_mensile_iniziale": naspi_base,
-        "soglia_2026": soglia,
-        "massimale_2026": massimale,
+        **base_output,
+        "esito": "calcolato",
+        "importo_mensile_iniziale": float(naspi_base),
         "durata_mesi": durata_mesi_interi,
         "decalage_da_mese": decalage_da_mese,
-        "totale_stimato": totale,
+        "totale_stimato": float(_cent(totale)),
         "piano_mensile": piano_ridotto,
-        "riferimento_normativo": "D.Lgs. 22/2015 artt. 4-8 — Circ. INPS n. 4/2026",
+        "requisiti_non_verificati": requisiti_non_verificati,
+        "riferimento_normativo": "D.Lgs. 22/2015 artt. 3-5 — Circ. INPS n. 4/2026",
     }
 
 

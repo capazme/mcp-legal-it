@@ -317,9 +317,10 @@ def test_sanzione_microimpresa_2_milioni_rettifica_dimensionale_edpb(edpb_sanzio
 def test_sanzione_grande_impresa_gravita_alta_raggiunge_la_fascia_alta_edpb(edpb_sanzioni, massimali_art83):
     """EDPB 04/2022 par. 60 and 66: above EUR 500 m no size adjustment; high seriousness starts at 20 %.
 
-    With the dynamic maximum of 40 mln (4 % of 1 bn) the high band starts at 8 mln. The tool caps the
-    upper bound at 20 % (base_massima_pct) of 5 % x multiplier (at most 3): 15 % at best, so a
-    case with five aggravating factors and previous infringements can never reach the EDPB high band.
+    With the dynamic maximum of 40 mln (4 % of 1 bn) the high band starts at 8 mln. Before the fix the
+    tool asked for no seriousness level and capped the upper bound at 15 % at best, so no case could
+    reach the EDPB high band. The tool now takes `gravita`; the case is asked with gravita='alta'
+    (the parameter did not exist when this test was written).
     """
     assert not contiene(
         edpb_sanzioni,
@@ -339,6 +340,7 @@ def test_sanzione_grande_impresa_gravita_alta_raggiunge_la_fascia_alta_edpb(edpb
             "profitto economico dalla violazione",
         ],
         precedenti=True,
+        gravita="alta",
     )
     assert r["range_stimato"]["massimo"] >= 0.20 * massimale_dinamico, (
         f"range del tool {r['range_stimato']['minimo']:,.0f}-{r['range_stimato']['massimo']:,.0f} euro; "
@@ -654,14 +656,20 @@ def test_dpia_newsletter_profilata_un_solo_criterio(provv_467):
 
 def test_dpia_presenze_biometriche_dipendenti_voce_11(allegato_1):
     """Plan case 4: biometric attendance of employees -> DPIA required (criteria 4, 7, 8) and item 11 of
-    the list ('trattamenti sistematici di dati biometrici'), which the tool cannot match: it has no
-    parameter for biometric data."""
+    the list ('trattamenti sistematici di dati biometrici'), which the tool could not match: it had no
+    parameter for biometric data.
+
+    The tool now takes `dati_biometrici`; item 11 reads 'sistematici' as large scale (the Garante's
+    interpretive clarification, items 6, 11, 12), so the case is asked with larga_scala=True as well
+    (which adds WP248 criterion 5: four criteria instead of the three of the original plan case)."""
     assert "trattamenti sistematici di dati biometrici" in allegato_1[11]
     r = _dpia(
         tipo_trattamento="rilevazione presenze biometrica dei dipendenti",
         dati_sensibili=True,
+        dati_biometrici=True,
+        larga_scala=True,
         soggetti_vulnerabili=True,
         nuove_tecnologie=True,
     )
-    assert r["dpia_necessaria"] is True and r["n_criteri"] == 3
+    assert r["dpia_necessaria"] is True and r["n_criteri"] == 4
     assert any("biometric" in normalizza(v) for v in r["lista_garante_match"]), r["lista_garante_match"]

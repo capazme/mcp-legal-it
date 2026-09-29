@@ -12,16 +12,22 @@ from src.lib._result import SearchResult
 from src.lib.brocardi.client import fetch_brocardi, parse_massime_references
 from src.lib.visualex import resolve_atto
 from src.lib.italgiure.client import (
+    ARCHIVE_START_YEAR,
+    ARCHIVE_WINDOW_NOTE,
     TIPO_PROV,
     SolrSession,
     build_explore_params,
     build_lookup_params,
     build_norma_variants,
     build_search_params,
+    format_estremi,
     format_facets,
     format_full_text,
     format_summary,
     get_kind_filter,
+    norma_is_qualified,
+    quote_fq_value,
+    resolve_sezione,
     solr_query,
 )
 
@@ -123,12 +129,48 @@ def _filter_by_score(docs: list[dict]) -> tuple[list[dict], int]:
 # Impl functions (testable without MCP context)
 # ---------------------------------------------------------------------------
 
+def _omonimi_note(docs: list[dict], chosen: dict, archivio: str, numero: int, anno: int) -> str:
+    """Warn when the same number/year names several decisions (e.g. a civil and a criminal one).
+
+    Italgiure numbers decisions per branch: with archivio="tutti", n. 10579/2022 is both a
+    civil (sez. V) and a criminal (sez. VII) decision. The first hit is returned; the caller
+    must be told that others exist, and how to choose.
+    """
+    chosen_id = _first_value(chosen.get("id"))
+    others = [d for d in docs if _first_value(d.get("id")) != chosen_id]
+    if not others:
+        return ""
+    elenco = "; ".join(format_estremi(d) for d in others)
+    return (
+        f"\n\n---\n*Attenzione: con archivio='{archivio}' esistono più decisioni n. {numero}/{anno}; "
+        f"restituita {format_estremi(chosen)}. Esiste anche: {elenco}. "
+        f"Indicare archivio='civile' o 'penale' (o la sezione) per sceglierne una.*"
+    )
+
+
+def _first_value(val) -> str:
+    if isinstance(val, list):
+        return str(val[0]) if val else ""
+    return str(val) if val is not None else ""
+
+
 async def _leggi_sentenza_impl(
     numero: int,
     anno: int,
     sezione: str = "",
     archivio: str = "tutti",
+    formatter=format_full_text,
 ) -> SearchResult:
+    """Read one decision. *formatter* renders the document (full text by default)."""
+    try:
+        sezione, archivio = resolve_sezione(sezione, archivio)
+    except ValueError as exc:
+        return SearchResult(success=False, source="italgiure", error_type="bad_input", results_text=str(exc))
+
+    def _found(docs: list[dict]) -> SearchResult:
+        text = formatter(docs[0]) + _omonimi_note(docs, docs[0], archivio, numero, anno)
+        return SearchResult(success=True, source="italgiure", num_found=1, results_text=text)
+
     try:
         async with SolrSession() as session:
             # Step 1: Standard lookup (zero-padded + sezione)
@@ -136,7 +178,7 @@ async def _leggi_sentenza_impl(
             data = await solr_query(params, session=session)
             docs = data.get("response", {}).get("docs", [])
             if docs:
-                return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+                return _found(docs)
 
             # Step 2: Retry without sezione filter (if provided)
             if sezione:
@@ -144,7 +186,7 @@ async def _leggi_sentenza_impl(
                 data = await solr_query(params, session=session)
                 docs = data.get("response", {}).get("docs", [])
                 if docs:
-                    return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+                    return _found(docs)
 
             # Step 3: Retry with raw number (no zero-padding)
             kinds = get_kind_filter(archivio)
@@ -157,7 +199,7 @@ async def _leggi_sentenza_impl(
             data = await solr_query(raw_params, session=session)
             docs = data.get("response", {}).get("docs", [])
             if docs:
-                return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(docs[0]))
+                return _found(docs)
 
             # Step 4: Full-text search for "n. {numero}/{anno}"
             ft_query = f'"n. {numero}/{anno}" OR "n. {numero} del {anno}"'
@@ -173,7 +215,9 @@ async def _leggi_sentenza_impl(
                 numdec_candidates = {str(numero), str(numero).zfill(5)}
                 for doc in docs:
                     if str(doc.get("numdec")) in numdec_candidates and str(doc.get("anno")) == str(anno):
-                        return SearchResult(success=True, source="italgiure", num_found=1, results_text=format_full_text(doc))
+                        return SearchResult(
+                            success=True, source="italgiure", num_found=1, results_text=formatter(doc),
+                        )
 
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
@@ -185,7 +229,8 @@ async def _leggi_sentenza_impl(
         results_text=(
             f"Decisione n. {numero}/{anno} non trovata negli archivi della Cassazione.\n\n"
             f"**Possibili cause**: sentenza non ancora indicizzata (lag archivio), "
-            f"numero o anno errato, o sentenza antecedente al 2020.\n"
+            f"numero o anno errato, oppure decisione anteriore alla finestra dell'archivio: "
+            f"{ARCHIVE_WINDOW_NOTE}.\n"
             f"**Suggerimento**: prova `cerca_giurisprudenza()` con il tema della sentenza."
         ),
     )
@@ -205,20 +250,33 @@ async def _cerca_giurisprudenza_impl(
     pagina: int = 0,
     campo: str = "tutto",
     modalita: str = "cerca",
+    ancora_norma: str = "",
+    auto_refine: bool = True,
 ) -> SearchResult | str:
+    """Full-text search. *ancora_norma* (a reference such as "art. 2043 c.c.") restricts the
+    results to decisions that cite that article; *auto_refine=False* disables the automatic
+    narrowing of broad queries (used with an anchor, where narrowing to the dispositivo only
+    latches onto boilerplate)."""
     # --- Explore mode: facets only, no documents — returns plain str ---
     if modalita == "esplora":
         return await _esplora_impl(query, archivio=archivio, campo=campo)
 
+    try:
+        sezione, archivio = resolve_sezione(sezione, archivio)
+    except ValueError as exc:
+        return SearchResult(success=False, source="italgiure", error_type="bad_input", results_text=str(exc))
+
     # Normalize query to improve Solr matching
     query = _normalize_query(query)
 
+    fq_extra = [build_norma_variants(ancora_norma, strict=True)] if ancora_norma else None
     max_risultati = min(max_risultati, 50)
     params = build_search_params(
         query,
         archivio=archivio,
         materia=materia or None,
         sezione=sezione or None,
+        fq_extra=fq_extra,
         anno_da=anno_da or None,
         anno_a=anno_a or None,
         tipo_provvedimento=tipo_provvedimento or None,
@@ -242,13 +300,15 @@ async def _cerca_giurisprudenza_impl(
         relaxed = await _auto_relax(
             query, archivio, materia, sezione, anno_da, anno_a,
             tipo_provvedimento, solo_sezioni_unite, max_risultati, campo,
+            fq_extra=fq_extra,
         )
         if relaxed is not None:
             return SearchResult(success=True, source="italgiure", num_found=0, results_text=relaxed)
 
     # --- Auto-refinement when too many results ---
     if (
-        num_found > _REFINEMENT_THRESHOLD
+        auto_refine
+        and num_found > _REFINEMENT_THRESHOLD
         and ordinamento == "rilevanza"
         and pagina == 0
         and not any([materia, sezione, tipo_provvedimento, solo_sezioni_unite])
@@ -258,7 +318,9 @@ async def _cerca_giurisprudenza_impl(
             num_found, facet_counts, data,
         )
         if refined is not None:
-            return SearchResult(success=True, source="italgiure", num_found=num_found, results_text=refined)
+            # Report the refined count printed in the text, not the original one.
+            refined_text, refined_count = refined
+            return SearchResult(success=True, source="italgiure", num_found=refined_count, results_text=refined_text)
 
     text = _format_search_results(
         data, query, ordinamento, pagina, max_risultati, num_found, facet_counts,
@@ -267,7 +329,7 @@ async def _cerca_giurisprudenza_impl(
 
 
 _SEZIONE_NAMES = {
-    "L": "Lavoro", "T": "Tributaria", "SU": "Sezioni Unite", "U": "Sez. Unica",
+    "L": "Lavoro", "T": "Tributaria", "SU": "Sezioni Unite", "U": "Sezioni Unite", "F": "Feriale",
     "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII",
 }
 
@@ -386,6 +448,7 @@ async def _auto_relax(
     solo_sezioni_unite: bool,
     max_risultati: int,
     campo: str,
+    fq_extra: list[str] | None = None,
 ) -> str | None:
     """Try progressive query relaxation when num_found == 0.
 
@@ -423,6 +486,7 @@ async def _auto_relax(
                     campo=step_campo,
                     mm=step_mm,
                     include_facets=True,
+                    fq_extra=fq_extra,
                 )
                 step_data = await solr_query(step_params, session=session)
                 step_count = step_data.get("response", {}).get("numFound", 0)
@@ -463,10 +527,11 @@ async def _auto_refine(
     original_num_found: int,
     original_facets: dict,
     original_data: dict,
-) -> str | None:
+) -> tuple[str, int] | None:
     """Try progressive refinement steps to reduce results below threshold.
 
-    Returns formatted output if refinement succeeded, None to fall back to original.
+    Returns (formatted output, refined result count) if refinement succeeded, None to fall
+    back to the original.
     """
     best_data = None
     best_count = original_num_found
@@ -495,7 +560,7 @@ async def _auto_refine(
                         step_count,
                         step_data.get("facet_counts", {}),
                         refinement_note=f"Raffinamento automatico: {step['label']} ({original_num_found} → {step_count})",
-                    )
+                    ), step_count
                 if 0 < step_count < best_count:
                     best_data = step_data
                     best_count = step_count
@@ -509,7 +574,7 @@ async def _auto_refine(
             best_count,
             best_data.get("facet_counts", {}),
             refinement_note=f"Raffinamento automatico: {best_label} ({original_num_found} → {best_count})",
-        )
+        ), best_count
     return None
 
 
@@ -601,7 +666,14 @@ async def _giurisprudenza_su_norma_impl(
     if fq_parts:
         params["fq"] = fq_parts
     try:
-        data = await solr_query(params)
+        try:
+            data = await solr_query(params)
+        except Exception:
+            # The Solr highlighter answers 500 on some decisions matched by phrase queries
+            # (read 2026-09-29): retry once without highlighting, so a highlighter fault is not
+            # reported as "source down".
+            plain = {k: v for k, v in params.items() if not k.startswith("hl")}
+            data = await solr_query(plain)
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
     docs = data.get("response", {}).get("docs", [])
@@ -612,6 +684,12 @@ async def _giurisprudenza_su_norma_impl(
     start_idx = pagina * max_risultati + 1
     end_idx = start_idx + len(docs) - 1
     lines = [f"**Trovate {num_found} decisioni su**: _{riferimento}_ (mostro {start_idx}-{end_idx})\n"]
+    if not norma_is_qualified(riferimento):
+        lines.append(
+            "*Attenzione: il riferimento non indica il codice o l'atto. La ricerca trova ogni "
+            "decisione che cita un qualsiasi \"art. N\": precisione bassa e totale gonfiato. "
+            "Indicare l'atto (es. \"art. 13 GDPR\", \"art. 2043 c.c.\").*\n"
+        )
     for doc in docs:
         doc_id = doc.get("id", "")
         hl = highlighting.get(doc_id)
@@ -629,6 +707,10 @@ async def _ultime_pronunce_impl(
     max_risultati: int = 5,
 ) -> SearchResult:
     max_risultati = min(max_risultati, 50)
+    try:
+        sezione, archivio = resolve_sezione(sezione, archivio)
+    except ValueError as exc:
+        return SearchResult(success=False, source="italgiure", error_type="bad_input", results_text=str(exc))
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
     params: dict = {
@@ -639,7 +721,7 @@ async def _ultime_pronunce_impl(
     }
     fq_parts: list[str] = []
     if materia:
-        fq_parts.append(f"materia:{materia}")
+        fq_parts.append(f"materia:{quote_fq_value(materia)}")
     if sezione:
         fq_parts.append(f"szdec:{sezione}")
     if solo_sezioni_unite:
@@ -658,7 +740,7 @@ async def _ultime_pronunce_impl(
         return SearchResult(success=False, source="italgiure", error_type="no_results", results_text="Nessuna decisione recente trovata con i filtri specificati.")
     lines = [f"**Ultime pronunce della Cassazione** ({num_found} totali)\n"]
     for doc in docs:
-        lines.append(format_summary(doc))
+        lines.append(format_summary(doc, con_tipo=True))
         lines.append("")
     return SearchResult(success=True, source="italgiure", num_found=num_found, results_text="\n".join(lines))
 
@@ -679,12 +761,21 @@ async def leggi_sentenza(
     USARE SEMPRE quando l'utente menziona una sentenza con numero e anno già noti
     (es. "Cass. n. 10787/2024", "Sez. III n. 10787 del 22 aprile 2024").
     NON usare web search per sentenze identificate — questo tool è diretto e ufficiale.
-    Restituisce: testo completo della sentenza con dispositivo, massima ufficiale, e metadati.
+    Restituisce: estremi, relatore e presidente, testo della decisione e, quando la fonte lo
+    valorizza, il dispositivo. Italgiure NON fornisce una massima ufficiale.
+
+    ATTENZIONE: il testo oltre 30000 caratteri è abbreviato (primi 12000 e ultimi 18000, parte
+    centrale omessa, dichiarato in coda) e il campo Dispositivo può mancare alla fonte: in quel
+    caso la decisione (rigetto, accoglimento, principio di diritto) è nella parte finale del testo.
+    L'archivio pubblico è una finestra mobile di circa cinque anni (a settembre 2026 dal
+    27/09/2021): le decisioni anteriori risultano "non trovate". Con archivio="tutti" un numero
+    può indicare una decisione civile e una penale: il tool restituisce la prima e segnala le altre;
+    indicare archivio per scegliere.
 
     Args:
         numero: Numero della decisione (es. 10787)
         anno: Anno della decisione (es. 2024)
-        sezione: Sezione della Corte (opzionale: 1-6, L=lavoro, T=tributaria, SU=sezioni unite)
+        sezione: Sezione della Corte (opzionale: 1-7, L=lavoro, U o SU=sezioni unite, F=feriale, T=tributaria=sezione 5 civile)
         archivio: "civile", "penale", o "tutti" (default)
     """
     result = await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio)
@@ -707,7 +798,7 @@ async def cerca_giurisprudenza(
     campo: str = "tutto",
     modalita: str = "cerca",
 ) -> str:
-    """Ricerca full-text nelle sentenze della Cassazione su Italgiure (fonte ufficiale, archivio 2020+).
+    """Ricerca full-text nelle sentenze della Cassazione su Italgiure (fonte ufficiale, archivio pubblico a finestra mobile di circa 5 anni: a settembre 2026 dal 27/09/2021).
 
     **BEST PRACTICE per query efficaci**:
     - Usa 2-4 termini chiave, NON frasi lunghe o riferimenti normativi completi
@@ -733,8 +824,8 @@ async def cerca_giurisprudenza(
     Args:
         query: 2-4 termini chiave (il sistema normalizza automaticamente). Supporta: "frase esatta", AND/OR, -esclusione, "frase"~3 prossimità, termin* wildcard
         archivio: "civile", "penale", o "tutti" (default)
-        materia: Filtro per materia (es. "contratti", "responsabilita' civile")
-        sezione: Filtro sezione (1-6, L=lavoro, T=tributaria, SU=sezioni unite). PREFERIRE questo ai termini nella query
+        materia: Filtro per materia, cercata come frase (es. "contratti", "responsabilita' civile")
+        sezione: Filtro sezione (1-7, L=lavoro, U o SU=sezioni unite, F=feriale, T=tributaria=sezione 5 civile; un codice sconosciuto è rifiutato con l'elenco dei validi). PREFERIRE questo ai termini nella query
         anno_da: Anno di inizio (incluso). PREFERIRE questo a scrivere l'anno nella query
         anno_a: Anno di fine (incluso)
         tipo_provvedimento: "sentenza", "ordinanza", o "decreto" (default: tutti). PREFERIRE questo a "solo sentenze" nella query
@@ -768,6 +859,12 @@ async def giurisprudenza_su_norma(
 
     Genera automaticamente varianti del riferimento per massimizzare i risultati
     (es. "art. 2043 c.c." → cerca anche "articolo 2043", "2043 codice civile", "2043 cod. civ.").
+
+    Il riferimento deve indicare il codice o l'atto ("art. 13 GDPR", "art. 6 D.Lgs. 231/2001"):
+    per gli atti la ricerca richiede l'articolo N insieme agli estremi dell'atto (numero/anno o
+    nome) nella stessa decisione, perché il solo "art. 13" trova ogni decisione che cita un
+    qualsiasi art. 13 (in primis il d.P.R. 115/2002 sul contributo unificato). Un riferimento
+    senza codice né atto è cercato in forma nuda e segnalato a bassa precisione.
 
     **Quando usare**: per trovare giurisprudenza su un articolo specifico.
     **Quando NON usare**: per ricerche per tema/concetto → usa cerca_giurisprudenza.
@@ -804,6 +901,25 @@ def _parse_articolo_riferimento(riferimento: str) -> tuple[str, str]:
     return "", riferimento.strip()
 
 
+def _riferimenti_note(esclusi_intervallo: int, fuori_finestra: list[dict], non_reperiti: list[dict]) -> str:
+    """One line per class of Brocardi references that did not reach the report."""
+    notes = []
+    if esclusi_intervallo:
+        notes.append(f"{esclusi_intervallo} fuori dall'intervallo di anni richiesto")
+    if fuori_finestra:
+        elenco = ", ".join(f"n. {r['numero']}/{r['anno']}" for r in fuori_finestra[:5])
+        notes.append(
+            f"{len(fuori_finestra)} anteriori al {ARCHIVE_START_YEAR}, fuori dalla finestra dell'archivio "
+            f"e non leggibili con leggi_sentenza ({elenco}{', ...' if len(fuori_finestra) > 5 else ''})"
+        )
+    if non_reperiti:
+        elenco = ", ".join(f"n. {r['numero']}/{r['anno']}" for r in non_reperiti)
+        notes.append(f"{len(non_reperiti)} non reperiti su Italgiure ({elenco})")
+    if not notes:
+        return ""
+    return "*Riferimenti di Cassazione citati da Brocardi non riportati: " + "; ".join(notes) + ".*"
+
+
 async def _giurisprudenza_articolo_impl(
     riferimento: str,
     archivio: str = "tutti",
@@ -830,38 +946,58 @@ async def _giurisprudenza_articolo_impl(
             except Exception:
                 brocardi_result = None
 
-    # Fallback: no Brocardi data → delegate to _giurisprudenza_su_norma_impl
+    # Fallback: no Brocardi data -> delegate to _giurisprudenza_su_norma_impl, and say so.
     if brocardi_result is None or not brocardi_result.massime:
-        return await _giurisprudenza_su_norma_impl(
+        fallback = await _giurisprudenza_su_norma_impl(
             riferimento,
             archivio=archivio,
             anno_da=anno_da,
             anno_a=anno_a,
             max_risultati=max_risultati,
         )
+        if fallback.success:
+            fallback.results_text = (
+                f"*Brocardi: nessuna massima disponibile per {riferimento} (o fonte non raggiungibile): "
+                f"ricerca per citazione dell'articolo su Italgiure.*\n\n{fallback.results_text}"
+            )
+        return fallback
 
-    # --- Direct references from parse_massime_references ---
-    cass_refs = parse_massime_references(brocardi_result.massime)[:3]
+    # --- Direct references from parse_massime_references, restricted to the requested years
+    #     and to the archive window (older ones cannot be read) and reported when dropped ---
+    all_refs = parse_massime_references(brocardi_result.massime)
 
-    # --- Text queries from massima testo (up to 3 non-Cassazione massime first,
-    #     then Cassazione ones, to get diverse signals) ---
+    def _anno_ok(anno: int) -> bool:
+        return (not anno_da or anno >= anno_da) and (not anno_a or anno <= anno_a)
+
+    in_intervallo = [r for r in all_refs if _anno_ok(int(r["anno"]))]
+    esclusi_intervallo = len(all_refs) - len(in_intervallo)
+    fuori_finestra = [r for r in in_intervallo if int(r["anno"]) < ARCHIVE_START_YEAR]
+    cass_refs = [r for r in in_intervallo if int(r["anno"]) >= ARCHIVE_START_YEAR][:3]
+
+    # --- Text queries from massima testo (up to 3), anchored to the article ---
     query_massime = [m for m in brocardi_result.massime if m.testo][:3]
 
     # Launch all lookups in parallel
     async def _safe_lookup(numero: int, anno: int) -> SearchResult:
         try:
-            return await _leggi_sentenza_impl(numero, anno, archivio=archivio)
+            # A summary (estremi, materia), not the full text: the full text of three
+            # decisions makes the report tens of thousands of characters long.
+            return await _leggi_sentenza_impl(numero, anno, archivio=archivio, formatter=format_summary)
         except Exception as exc:
             return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
 
     async def _safe_search(query: str) -> SearchResult:
         try:
+            # ancora_norma: only decisions that cite the article; auto_refine off: narrowing a
+            # massima query "to the dispositivo" latches onto boilerplate formulas.
             result = await _cerca_giurisprudenza_impl(
                 query,
                 archivio=archivio,
                 anno_da=anno_da,
                 anno_a=anno_a,
                 max_risultati=max_risultati,
+                ancora_norma=riferimento,
+                auto_refine=False,
             )
             return result if isinstance(result, SearchResult) else SearchResult(success=False, source="italgiure", error_type="no_results")
         except Exception as exc:
@@ -877,17 +1013,14 @@ async def _giurisprudenza_articolo_impl(
     # Deduplicate by (numdec, anno)
     seen_keys: set[str] = set()
 
-    def _collect_docs_from_result(sr: SearchResult) -> list[str]:
-        """Return formatted summary lines from a successful SearchResult, deduped."""
-        if not sr.success or not sr.results_text:
-            return []
-        return [sr.results_text]
-
     direct_lines: list[str] = []
+    non_reperiti: list[dict] = []
     for i, sr in enumerate(lookup_results):
-        if not sr.success:
-            continue
         ref = cass_refs[i]
+        if not sr.success:
+            if sr.error_type == "no_results":
+                non_reperiti.append(ref)
+            continue
         key = f"{ref['numero']}/{ref['anno']}"
         if key in seen_keys:
             continue
@@ -919,6 +1052,9 @@ async def _giurisprudenza_articolo_impl(
         f"## Giurisprudenza sull'{riferimento}\n",
         f"**Fonte Brocardi**: {len(brocardi_result.massime)} massime trovate per {riferimento}\n",
     ]
+    nota = _riferimenti_note(esclusi_intervallo, fuori_finestra, non_reperiti)
+    if nota:
+        parts.append(nota + "\n")
 
     if direct_lines:
         parts.append("### Sentenze con riferimento diretto")
@@ -952,11 +1088,13 @@ async def ultime_pronunce(
     """Ultime pronunce depositate dalla Cassazione, con filtri opzionali.
 
     Dopo questo tool: leggi_sentenza() per leggere il testo integrale di una decisione specifica.
-    Restituisce: lista cronologica delle ultime decisioni depositate con metadati e dispositivo.
+    Restituisce: lista cronologica delle ultime decisioni depositate con metadati (estremi, tipo
+    sent./ord./decr., materia) e dispositivo quando presente. L'indicizzazione ha un ritardo di
+    alcuni giorni rispetto al deposito.
 
     Args:
-        materia: Filtro per materia
-        sezione: Filtro sezione (1-6, L=lavoro, T=tributaria, SU=sezioni unite)
+        materia: Filtro per materia, cercata come frase (es. "responsabilita' civile")
+        sezione: Filtro sezione (1-7, L=lavoro, U o SU=sezioni unite, F=feriale, T=tributaria=sezione 5 civile; un codice sconosciuto è rifiutato)
         archivio: "civile", "penale", o "tutti" (default)
         tipo_provvedimento: "sentenza", "ordinanza", o "decreto"
         solo_sezioni_unite: Se True, filtra solo decisioni delle Sezioni Unite (default: False)
@@ -981,8 +1119,12 @@ async def giurisprudenza_articolo(
     """Cerca giurisprudenza su un articolo usando le massime Brocardi come guida.
 
     Workflow: recupera le massime giurisprudenziali da Brocardi per l'articolo indicato,
-    poi usa il testo dei principi di diritto come query di ricerca su Italgiure per trovare
-    sentenze pertinenti. Inoltre cerca direttamente le sentenze Cassazione citate nelle massime.
+    poi usa il testo dei principi di diritto come query di ricerca su Italgiure, limitata alle
+    decisioni che citano l'articolo (senza raffinamento automatico). Inoltre elenca (estremi e
+    materia, non il testo: usare leggi_sentenza) le sentenze Cassazione citate nelle massime.
+    Le sentenze citate da Brocardi anteriori alla finestra dell'archivio (a settembre 2026 dal
+    27/09/2021) o fuori dall'intervallo anno_da/anno_a sono escluse e segnalate; senza massime
+    Brocardi il tool ripiega su giurisprudenza_su_norma e lo dichiara.
 
     USARE quando il tema riguarda un articolo specifico (es. "art. 2043 c.c.").
     Per ricerche generiche per tema, usare cerca_giurisprudenza.
@@ -990,8 +1132,8 @@ async def giurisprudenza_articolo(
     Args:
         riferimento: Riferimento normativo (es. "art. 2043 c.c.", "art. 6 D.Lgs. 231/2001")
         archivio: Collezione Italgiure: 'civile', 'penale' o 'tutti' (default)
-        anno_da: Anno minimo (es. 2020). 0 = nessun filtro.
-        anno_a: Anno massimo (es. 2025). 0 = nessun filtro.
+        anno_da: Anno minimo (es. 2022), applicato anche ai riferimenti diretti. 0 = nessun filtro.
+        anno_a: Anno massimo (es. 2025), applicato anche ai riferimenti diretti. 0 = nessun filtro.
         max_risultati: Numero massimo sentenze per tipo di ricerca (default 5)
     """
     result = await _giurisprudenza_articolo_impl(
