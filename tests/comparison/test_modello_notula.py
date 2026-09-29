@@ -284,6 +284,11 @@ def test_accessori_con_fasi_cognizione_del_tool(page):
     IVA 446,25, totale 2.474,67: isolates the accessori arithmetic (art. 2 co. 2 DM
     55/2014, CPA, IVA) from the choice of table.
     """
+    # Phase 3 (2026-09-29), verdict test_errato: the control relied on the tool paying a
+    # decreto ingiuntivo with the cognizione phases, which was the tool's error (DM 55/2014
+    # Tab. VIII has a single phase). The accessori arithmetic stays covered by the other
+    # decreto ingiuntivo cases against Tab. VIII.
+    pytest.skip("control case obsolete: the tool no longer uses the cognizione phases for the monitorio")
     tool = _tool(tipo_procedimento="decreto_ingiuntivo", valore_causa=10000, livello="medio")
     site = _site_parametri(page, _COMP_TRIBUNALE, 10000, "medio", keep_phases={1, 2})
     assert_close(tool["totale_compensi"], site["compenso"], _TOL, "compensi")
@@ -367,7 +372,8 @@ def test_esecuzione_mobiliare_presso_terzi_2000_compenso(page):
     (scaglione 1.101-5.200: introduttiva 331 + trattazione/conclusiva 567 = 898 medio).
     Atteso: in either reading the tool's 1.701 (cognizione) differs.
     """
-    tool = _tool(tipo_procedimento="esecuzione_mobiliare", valore_causa=2000, livello="medio")
+    # Phase 3: 'esecuzione_presso_terzi' now exists as its own type (Tab. XVII)
+    tool = _tool(tipo_procedimento="esecuzione_presso_terzi", valore_causa=2000, livello="medio")
     site = _site_parametri(page, _COMP_ESEC_PRESSO_TERZI, 2000, "medio")
     _assert_notula_vs_site(tool, site, "esecuzione presso terzi 2.000 medio")
 

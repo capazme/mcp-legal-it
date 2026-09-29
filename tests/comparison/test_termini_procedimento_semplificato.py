@@ -143,3 +143,10 @@ def test_memoria_oltre_massimo_errore_tool():
     r = _fn(data_udienza="2025-10-01", giorni_memoria=21)
     assert "errore" in r
     pytest.skip("il sito limita Termine1 a 1-20: rifiuto non confrontabile, verificato solo sul tool")
+
+
+# CONVENTION (phase 2-3): art. 281-duodecies co. 4 gives the reply term as "ulteriore" without
+# saying whether it runs from the extended memoria deadline. The tool counts from the unextended
+# one (the site's prudential mode); the site's other mode counts from the extended one. Both
+# defensible: no change. Comma references were checked on Normattiva (10 days: 281-undecies
+# co. 2; 20+10 days: 281-duodecies co. 4).

@@ -545,10 +545,9 @@ class TestModelloNotula:
         assert "Acme Srl" in r["testo_notula"]
         assert "decreto ingiuntivo" in r["testo_notula"].lower()
         d = r["dettaglio_calcoli"]
-        # decreto_ingiuntivo usa fasi_default: studio, introduttiva
-        fasi_nomi = [f["fase"] for f in d["fasi"]]
-        assert "studio" in fasi_nomi
-        assert "introduttiva" in fasi_nomi
+        # DM 55/2014 Tab. VIII: the monitorio is paid on a single phase, not on the
+        # cognizione phases studio + introduttiva (that was the old, wrong table)
+        assert [f["fase"] for f in d["fasi"]] == ["unica"]
 
     def test_decreto_ingiuntivo_cu_dimezzato(self):
         r = _call(
@@ -560,6 +559,7 @@ class TestModelloNotula:
         )
         sv = r["dettaglio_calcoli"]["spese_vive"]
         assert "contributo_unificato_dimezzato" in sv
+        # art. 13 co. 1 lett. c DPR 115/2002: 237 for 5.200-26.000, halved for the monitorio (co. 3)
         assert sv["contributo_unificato_dimezzato"] == pytest.approx(237.0 / 2, abs=0.01)
 
     def test_precetto(self):
@@ -573,6 +573,8 @@ class TestModelloNotula:
         sv = r["dettaglio_calcoli"]["spese_vive"]
         assert "notifica" in sv
         assert sv["notifica"] == 27.0
+        # art. 30 DPR 115/2002: the 27 euro forfait is not due for a precetto
+        assert "marca_da_bollo" not in sv and "anticipazione_forfettaria_art_30" not in sv
 
     def test_esecuzione_immobiliare_ha_trascrizione(self):
         r = _call(
@@ -714,3 +716,243 @@ class TestCalcoloNotulaPenale:
     def test_riferimento_normativo(self):
         r = _call("calcolo_notula_penale", competenza="corte_assise")
         assert "DM 55/2014" in r["riferimento_normativo"]
+
+
+# ---------------------------------------------------------------------------
+# modello_notula: each proceeding on its own table of the DM 55/2014 (agg. DM 147/2022)
+# ---------------------------------------------------------------------------
+
+def _notula(tipo, valore, livello="medio", fasi=None):
+    return _call("modello_notula", tipo_procedimento=tipo, avvocato="A", cliente="B",
+                 valore_causa=valore, livello=livello, fasi=fasi)["dettaglio_calcoli"]
+
+
+class TestModelloNotulaTabelleDedicate:
+
+    def test_decreto_ingiuntivo_tab_viii(self):
+        # Tab. VIII (procedimenti monitori), scaglione 5.200,01-26.000: 567 medio, phase unica.
+        # Onorari: 567 + 15% sg 85.05 + CPA 4% 26.08 + IVA 22% 149.19 = 827.32 (hand check).
+        d = _notula("decreto_ingiuntivo", 10000)
+        assert d["totale_compensi"] == 567
+        assert d["totale_onorari"] == pytest.approx(827.32, abs=0.01)
+        # art. 13 DPR 115/2002 halved for the monitorio (237 / 2 = 118.50) + art. 30 forfait 27
+        assert d["spese_vive"]["contributo_unificato_dimezzato"] == 118.5
+        assert d["spese_vive"]["anticipazione_forfettaria_art_30"] == 27.0
+
+    def test_decreto_ingiuntivo_max_primo_scaglione(self):
+        # Tab. VIII, fino a 5.200: medio 473, max +50% = 709.50, whole euro half up = 710
+        assert _notula("decreto_ingiuntivo", 5200, "max")["totale_compensi"] == 710
+
+    def test_precetto_tab_vi_senza_bollo(self):
+        # Tab. VI (atto di precetto), fino a 5.200: medio 142, min -50% = 71.
+        d = _notula("precetto", 3000, "min")
+        assert d["totale_compensi"] == 71
+        assert d["totale_onorari"] == pytest.approx(103.60, abs=0.01)
+        # art. 30 DPR 115/2002: the 27 euro forfait is due on ricorso / istanza di vendita,
+        # a precetto is not a proceeding: no forfait, and no contributo unificato.
+        assert "anticipazione_forfettaria_art_30" not in d["spese_vive"]
+        assert not any(k.startswith("contributo_unificato") for k in d["spese_vive"])
+
+    def test_esecuzione_mobiliare_tab_xvi(self):
+        # Tab. XVI, 1.100,01-5.200: studio 368 + trattazione 184 = 552 medio
+        d = _notula("esecuzione_mobiliare", 2000)
+        assert [f["fase"] for f in d["fasi"]] == ["studio", "trattazione"]
+        assert d["totale_compensi"] == 552
+        assert d["totale_onorari"] == pytest.approx(805.43, abs=0.01)
+
+    def test_esecuzione_mobiliare_cu_soglia_2500(self):
+        # art. 13 co. 2 DPR 115/2002: 43 euro below 2.500, 139 from 2.500 (half of 278)
+        assert _notula("esecuzione_mobiliare", 2499.99)["spese_vive"]["contributo_unificato"] == 43
+        assert _notula("esecuzione_mobiliare", 2500)["spese_vive"]["contributo_unificato"] == 139
+
+    def test_esecuzione_presso_terzi_tab_xvii(self):
+        # Tab. XVII, 1.100,01-5.200: introduttiva 331 + trattazione e conclusiva 567 = 898 medio
+        d = _notula("esecuzione_presso_terzi", 2000)
+        assert d["totale_compensi"] == 898
+        assert d["totale_onorari"] == pytest.approx(1310.29, abs=0.01)
+
+    def test_esecuzione_immobiliare_tab_xviii(self):
+        # Tab. XVIII, 52.000,01-260.000: introduttiva 1.433 + trattazione 982 = 2.415 medio;
+        # contributo unificato fisso 278 (art. 13 co. 2 DPR 115/2002)
+        d = _notula("esecuzione_immobiliare", 100000)
+        assert [f["fase"] for f in d["fasi"]] == ["introduttiva", "trattazione"]
+        assert d["totale_compensi"] == 2415
+        assert d["totale_onorari"] == pytest.approx(3523.77, abs=0.01)
+        assert d["spese_vive"]["contributo_unificato"] == 278
+
+    def test_fasi_della_cognizione_rifiutate(self):
+        r = _call("modello_notula", tipo_procedimento="decreto_ingiuntivo", avvocato="A",
+                  cliente="B", valore_causa=10000, fasi=["studio", "introduttiva"])
+        assert "errore" in r
+
+    def test_oltre_520000_avvertenza(self):
+        r = _call("modello_notula", tipo_procedimento="decreto_ingiuntivo", avvocato="A",
+                  cliente="B", valore_causa=600000)
+        assert r["dettaglio_calcoli"]["totale_compensi"] == 4394  # last row of Tab. VIII
+        assert r["avvertenze"]
+
+
+# ---------------------------------------------------------------------------
+# parcella_avvocato_civile above 32 million: art. 6 co. 1 DM 55/2014, last sentence
+# ---------------------------------------------------------------------------
+
+class TestParcellaCivileOltre32Milioni:
+
+    def test_primo_raddoppio_oltre_32_milioni(self):
+        # Art. 6 co. 1: "tale ultimo criterio puo' essere utilizzato per ogni successivo
+        # raddoppio del valore". 32-64 million = +30% on the 16-32 million medium, per phase:
+        # 17.107 x 1,3 = 22.239 ; 11.284 x 1,3 = 14.669 ; 50.250 x 1,3 = 65.325 ; 29.753 x 1,3 = 38.679
+        r = _call("parcella_avvocato_civile", valore_causa=32_000_000.01)
+        assert [f["importo"] for f in r["fasi"]] == [22239, 14669, 65325, 38679]
+        assert r["totale_compenso"] == 140912
+
+    def test_secondo_raddoppio(self):
+        # 64-128 million: +30% again on the rounded previous medium (22.239 x 1,3 = 28.911, ...)
+        r = _call("parcella_avvocato_civile", valore_causa=70_000_000)
+        assert [f["importo"] for f in r["fasi"]] == [28911, 19070, 84923, 50283]
+        assert r["totale_compenso"] == 183187
+
+    def test_confine_32_milioni_invariato(self):
+        # 32.000.000 exactly stays in the closed 16-32 million band (108.394 medio)
+        assert _call("parcella_avvocato_civile", valore_causa=32_000_000)["totale_compenso"] == 108394
+
+    def test_raddoppio_esatto_64_milioni_resta_nel_primo(self):
+        assert _call("parcella_avvocato_civile", valore_causa=64_000_000)["totale_compenso"] == 140912
+
+    def test_minimo_massimo_oltre_32_milioni(self):
+        # min/max = medium -/+ 50% (art. 4 co. 1 as amended by DM 147/2022), rounded
+        r_min = _call("parcella_avvocato_civile", valore_causa=40_000_000, livello="min")
+        r_max = _call("parcella_avvocato_civile", valore_causa=40_000_000, livello="max")
+        assert [f["importo"] for f in r_min["fasi"]] == [11120, 7335, 32663, 19340]
+        assert [f["importo"] for f in r_max["fasi"]] == [33359, 22004, 97988, 58019]
+
+
+# ---------------------------------------------------------------------------
+# stragiudiziale above 520.000: art. 22 DM 55/2014, Tab. 25 (percentuale decrescente)
+# ---------------------------------------------------------------------------
+
+class TestStragiudizialeOltre520000:
+
+    def test_600000_medio_3_per_cento(self):
+        # Art. 22 DM 55/2014 + Tab. 25: 520.000,01-2.000.000 -> 3% of the value:
+        # 600.000 x 3% = 18.000 (medio); min -50% = 9.000; max +50% = 27.000 (art. 19 co. 1)
+        assert _call("parcella_stragiudiziale", valore_pratica=600000)["compenso"] == 18000
+        assert _call("parcella_stragiudiziale", valore_pratica=600000, livello="min")["compenso"] == 9000
+        assert _call("parcella_stragiudiziale", valore_pratica=600000, livello="max")["compenso"] == 27000
+
+    def test_3_milioni_fascia_2_75(self):
+        # 2.000.000,01-4.000.000 -> 2,75% on the whole value: 3.000.000 x 2,75% = 82.500
+        assert _call("parcella_stragiudiziale", valore_pratica=3_000_000)["compenso"] == 82500
+
+    def test_confini_fasce(self):
+        # the bracket limit belongs to the lower bracket ("da 520.000,01 a 2.000.000,00")
+        assert _call("parcella_stragiudiziale", valore_pratica=2_000_000)["compenso"] == 60000  # 3%
+        assert _call("parcella_stragiudiziale", valore_pratica=2_000_000.01)["compenso"] == 55000  # 2,75%
+
+    def test_oltre_22_milioni_0_25_per_cento(self):
+        # last bracket: 0,25% -> 30.000.000 x 0,25% = 75.000
+        assert _call("parcella_stragiudiziale", valore_pratica=30_000_000)["compenso"] == 75000
+
+    def test_520000_esatti_restano_nello_scaglione_tabellare(self):
+        assert _call("parcella_stragiudiziale", valore_pratica=520000)["compenso"] == 6164
+
+    def test_preventivo_oltre_520000(self):
+        # 600.000 max: compenso 27.000, sg 15% = 4.050, CPA 4% of 31.050 = 1.242, IVA off
+        r = _call("preventivo_stragiudiziale", valore_pratica=600000, livello="max", iva=False)
+        d = r["dettaglio_calcoli"]
+        assert d["compenso_base"] == 27000
+        assert d["spese_generali_15pct"] == 4050
+        assert d["cpa_4pct"] == pytest.approx(1242, abs=0.01)
+        assert d["percentuale_tab_25"] == 3.0  # Tab. 25, 520.000,01-2.000.000
+
+
+# Half-cent rounding and art. 27 DM 55/2014 (benchmark phase 3, fatturazione_avvocati)
+# ---------------------------------------------------------------------------
+
+class TestArrotondamentoMetaCentesimo:
+    """Ties go to the upper cent (art. 5 Reg. CE 1103/97), never depending on the float bits.
+
+    Every expected value is computed by hand on exact decimals.
+    """
+
+    def test_fattura_iva_tie_sale(self):
+        # 1000.24 + CPA 4% (40.0096 -> 40.01) = 1040.25; IVA 22% = 228.855 exactly -> 228.86
+        r = _call("fattura_avvocato", imponibile=1000.24)
+        assert r["cpa_4pct"] == 40.01
+        assert r["imponibile_iva"] == 1040.25
+        assert r["iva_22pct"] == 228.86
+        # withholding 20% of 1000.24 = 200.048 -> 200.05; net = 1040.25 + 228.86 - 200.05
+        assert r["netto_a_pagare"] == 1069.06
+
+    def test_fattura_iva_tie_gia_corretto_resta(self):
+        # 1000.72 + 40.03 = 1040.75; IVA = 228.965 exactly -> 228.97
+        r = _call("fattura_avvocato", imponibile=1000.72)
+        assert r["iva_22pct"] == 228.97
+
+    def test_nota_spese_sg_tie(self):
+        # 15% of 1000.10 = 150.015 exactly -> 150.02; sum 1150.12; CPA 46.0048 -> 46.00;
+        # taxable 1196.12; IVA 263.1464 -> 263.15; total 1459.27
+        r = _call("nota_spese", voci=[
+            {"descrizione": "c", "importo": 1000.1, "tipo": "compenso"},
+            {"descrizione": "b", "importo": 1000.1, "tipo": "spese_generali_15pct"},
+        ])
+        assert r["totale_spese_generali_15pct"] == 150.02
+        assert r["imponibile_iva"] == 1196.12
+        assert r["iva_22pct"] == 263.15
+        assert r["totale_nota_spese"] == 1459.27
+
+    def test_nota_spese_iva_tie(self):
+        # 503.61 + CPA 20.1444 -> 20.14 = 523.75; IVA 22% = 115.225 exactly -> 115.23
+        r = _call("nota_spese", voci=[{"descrizione": "c", "importo": 503.61, "tipo": "compenso"}])
+        assert r["iva_22pct"] == 115.23
+        assert r["totale_nota_spese"] == 638.98
+
+    def test_nota_spese_totali_aggregati_al_centesimo(self):
+        r = _call("nota_spese", voci=[
+            {"descrizione": "a", "importo": 0.1, "tipo": "compenso"},
+            {"descrizione": "b", "importo": 0.2, "tipo": "compenso"},
+        ])
+        assert r["totale_compensi"] == 0.3
+
+    def test_notula_penale_iva_tie(self):
+        # DM 147/2022 penale, tribunale monocratico, studio+introduttiva+istruttoria at minimum:
+        # 237+284+567 = 1088; SG 163.20; CPA 4% of 1251.20 = 50.048 -> 50.05; taxable 1301.25;
+        # IVA 22% = 286.275 exactly -> 286.28; total 1587.53
+        r = _call("calcolo_notula_penale", competenza="tribunale_monocratico",
+                  fasi=["studio", "introduttiva", "istruttoria"], livello="min")
+        assert r["imponibile_iva"] == 1301.25
+        assert r["iva_22pct"] == 286.28
+        assert r["totale"] == 1587.53
+
+
+class TestSpeseTrasfertaArt27:
+
+    def test_indennita_chilometrica_un_quinto_carburante(self):
+        # art. 27 DM 55/2014: one fifth of the fuel cost per litre per km.
+        # 200 km x 1.80 / 5 = 72.00 (0.36 euro/km)
+        r = _call("spese_trasferta_avvocati", km_distanza=200.0, ore_assenza=4.0,
+                  prezzo_carburante_litro=1.80)
+        assert r["rimborso_km"] == 72.0
+
+    def test_indennita_chilometrica_decimali(self):
+        # 137.5 km x 1.50 / 5 = 41.25
+        r = _call("spese_trasferta_avvocati", km_distanza=137.5, ore_assenza=2.0,
+                  prezzo_carburante_litro=1.50)
+        assert r["rimborso_km"] == 41.25
+
+    def test_default_senza_prezzo_equivale_a_1_50_litro(self):
+        r = _call("spese_trasferta_avvocati", km_distanza=200.0, ore_assenza=4.0)
+        assert r["rimborso_km"] == 60.0
+
+    def test_albergo_maggiorato_10_per_cento_e_pedaggi(self):
+        # art. 27: documented hotel +10% accessory costs (100 -> 110); tolls and parking at cost.
+        r = _call("spese_trasferta_avvocati", km_distanza=0.0, ore_assenza=9.0, mezzo="treno",
+                  pernottamento=True, costo_albergo=100.0, pedaggi_parcheggi=12.5)
+        assert r["albergo_maggiorato_10pct"] == 110.0
+        # allowance 40% of 540 = 216.00; 216 + 110 + 12.50
+        assert r["totale_stimato"] == 338.5
+
+    def test_prezzo_negativo(self):
+        r = _call("spese_trasferta_avvocati", km_distanza=10.0, ore_assenza=1.0,
+                  prezzo_carburante_litro=-1.0)
+        assert "errore" in r

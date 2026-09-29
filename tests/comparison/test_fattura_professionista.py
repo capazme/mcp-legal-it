@@ -270,6 +270,13 @@ class TestFatturaProfessionistaForfettario:
     def test_forfettario_bollo_un_centesimo_sopra_soglia(self, page):
         """Piano, caso 5 (al limite) - forfettario, gestione separata, 74,50.
 
+        Phase 3 verdict (da_chiarire): the site puts the 2 euro stamp duty charged to the
+        client into the base of the 4% (AdE practice, answer 428/2022 as cited by the phase 1
+        agent; a practice document, not verified on a primary source). The rule of art. 1 co. 212
+        L. 662/1996 speaks of the "compenso" without settling it; the tool keeps the stamp
+        duty out of the base.
+        The test stays red until the point is settled on a primary source.
+
         Atteso (piano): rivalsa 2,98; importo 77,48 > 77,47: bollo 2,00; totale
         79,48; nessuna IVA e nessuna ritenuta.
         Norma: art. 1 co. 54-89 L. 190/2014 (niente IVA), co. 67 (niente
@@ -297,6 +304,13 @@ class TestFatturaProfessionistaForfettario:
 
     def test_forfettario_architetto_inarcassa(self, page):
         """Aggiunto (opzione enumerata) - forfettario, architetto, 1.000.
+
+        Phase 3 verdict (da_chiarire): the site puts the 2 euro stamp duty charged to the
+        client into the base of the 4% (AdE practice, answer 428/2022 as cited by the phase 1
+        agent; a practice document, not verified on a primary source). The rule of art. 1 co. 212
+        L. 662/1996 speaks of the "compenso" without settling it; the tool keeps the stamp
+        duty out of the base.
+        The test stays red until the point is settled on a primary source.
 
         Tool: contributo integrativo 40,00, bollo 2,00, totale 1.042,00, no IVA,
         no ritenuta. Norma: L. 190/2014 art. 1 co. 54-89 e co. 67; bollo DPR

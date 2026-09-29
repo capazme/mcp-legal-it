@@ -149,42 +149,54 @@ class TestContributoUnificato:
 class TestDirittiCopia:
 
     def test_digitale_semplice_gratuita(self):
+        # Art. 269 co. 1-bis DPR 115/2002: no diritto for a plain copy taken from the fascicolo informatico
         r = _call("diritti_copia", n_pagine=10, tipo="semplice", formato="digitale")
         assert r["totale"] == 0.0
 
-    def test_digitale_autentica_fascia_4_pagine(self):
-        r = _call("diritti_copia", n_pagine=4, tipo="autentica", formato="digitale")
-        assert r["totale"] == 1.62
+    def test_digitale_autentica_non_calcolata(self):
+        # The digital authentic copy right is not established from a primary source (Annex 8 flat
+        # 8.00 euro is for uncountable files; the D.I. 9.7.2021 table has per-page bands), so the
+        # tool refuses rather than returning a probably wrong amount.
+        for tipo in ("autentica", "esecutiva"):
+            for n in (4, 10, 100):
+                r = _call("diritti_copia", n_pagine=n, tipo=tipo, formato="digitale")
+                assert "errore" in r and "non e' calcolato" in r["errore"]
+                assert "totale" not in r
 
-    def test_digitale_autentica_fascia_10_pagine(self):
-        r = _call("diritti_copia", n_pagine=10, tipo="autentica", formato="digitale")
-        assert r["totale"] == 4.05
+    def test_digitale_semplice_gratuita_anche_se_urgente(self):
+        # Art. 269 co. 1-bis DPR 115/2002: no right for the plain copy taken from the electronic file
+        r = _call("diritti_copia", n_pagine=8, tipo="semplice", formato="digitale", urgente=True)
+        assert r["totale"] == 0.0
 
-    def test_digitale_autentica_fascia_20_pagine(self):
-        r = _call("diritti_copia", n_pagine=20, tipo="autentica", formato="digitale")
-        assert r["totale"] == 6.48
+    def test_cartaceo_semplice_fasce(self):
+        # Allegato 6 (D.I. 9 luglio 2021) + 50% (art. 4 co. 5 DL 193/2009): 0,98 -> 1,47 ... 15,72 -> 23,58
+        attesi = {1: 1.47, 4: 1.47, 5: 2.96, 10: 2.96, 11: 5.88, 20: 5.88, 21: 11.79, 50: 11.79, 51: 23.58, 100: 23.58}
+        for n, atteso in attesi.items():
+            assert _call("diritti_copia", n_pagine=n, tipo="semplice", formato="cartaceo")["totale"] == atteso
 
-    def test_digitale_autentica_fascia_50_pagine(self):
-        r = _call("diritti_copia", n_pagine=50, tipo="autentica", formato="digitale")
-        assert r["totale"] == 8.11
+    def test_cartaceo_semplice_oltre_100(self):
+        # Allegato 6: 23,58 + 9,83 for each further 100 pages or fraction
+        assert _call("diritti_copia", n_pagine=101, tipo="semplice", formato="cartaceo")["totale"] == 33.41
+        assert _call("diritti_copia", n_pagine=200, tipo="semplice", formato="cartaceo")["totale"] == 33.41
+        assert _call("diritti_copia", n_pagine=201, tipo="semplice", formato="cartaceo")["totale"] == 43.24
 
-    def test_digitale_autentica_oltre_50(self):
-        r = _call("diritti_copia", n_pagine=100, tipo="autentica", formato="digitale")
-        assert r["totale"] == pytest.approx(10.13 + 1 * 1.62, abs=0.01)
+    def test_cartaceo_autentica_fasce(self):
+        # Allegato 7 (copy + certification) + 50%: 7,86 -> 11,80 ; 9,18 -> 13,78 ; 10,47 -> 15,71
+        attesi = {4: 11.80, 5: 13.78, 10: 13.78, 11: 15.71, 20: 15.71, 21: 19.66, 51: 29.48}
+        for n, atteso in attesi.items():
+            assert _call("diritti_copia", n_pagine=n, tipo="autentica", formato="cartaceo")["totale"] == atteso
 
-    def test_cartaceo_semplice(self):
-        r = _call("diritti_copia", n_pagine=10, tipo="semplice", formato="cartaceo")
-        assert r["totale"] == pytest.approx(10 * 0.30, abs=0.01)
+    def test_cartaceo_esecutiva_come_autentica(self):
+        r = _call("diritti_copia", n_pagine=3, tipo="esecutiva", formato="cartaceo")
+        assert r["totale"] == 11.80
 
-    def test_cartaceo_autentica(self):
-        r = _call("diritti_copia", n_pagine=5, tipo="autentica", formato="cartaceo")
-        assert r["totale"] == pytest.approx(5 * 0.70, abs=0.01)
-
-    def test_cartaceo_urgente_maggiorazione(self):
-        r = _call("diritti_copia", n_pagine=10, tipo="semplice", formato="cartaceo", urgente=True)
-        subtotale = 10 * 0.30
-        assert r["totale"] == pytest.approx(subtotale * 1.5, abs=0.01)
-        assert "maggiorazione_urgenza" in r
+    def test_cartaceo_urgente_triplicato(self):
+        # Art. 270 DPR 115/2002: release within two days, the right is tripled (not +50%)
+        r = _call("diritti_copia", n_pagine=4, tipo="semplice", formato="cartaceo", urgente=True)
+        assert r["totale"] == 4.41
+        assert r["maggiorazione_urgenza"] == 2.94
+        r = _call("diritti_copia", n_pagine=11, tipo="autentica", formato="cartaceo", urgente=True)
+        assert r["totale"] == 47.13
 
     def test_formato_non_valido(self):
         r = _call("diritti_copia", n_pagine=10, tipo="semplice", formato="fax")
@@ -193,10 +205,6 @@ class TestDirittiCopia:
     def test_tipo_non_valido(self):
         r = _call("diritti_copia", n_pagine=10, tipo="notarile", formato="cartaceo")
         assert "errore" in r
-
-    def test_esecutiva_digitale(self):
-        r = _call("diritti_copia", n_pagine=8, tipo="esecutiva", formato="digitale")
-        assert r["totale"] == 4.05
 
 
 # ---------------------------------------------------------------------------
@@ -244,15 +252,26 @@ class TestPignoramentoStipendio:
 
     def test_contiene_minimo_impignorabile_pensioni(self):
         r = _call("pignoramento_stipendio", stipendio_netto_mensile=1000, tipo_credito="ordinario")
-        assert r["assegno_sociale_mensile"] == 534.41
-        # Art. 545 co. 7: doppio dell'assegno sociale, con un minimo di 1.000 euro
-        assert r["minimo_impignorabile_pensioni"] == round(2 * 534.41, 2)
+        # Assegno sociale 2026: 546,24 euro/month (INPS circular 153 of 19/12/2025,
+        # 7.101,12 / 13). Art. 545 co. 7 c.p.c.: twice the assegno sociale, minimum 1.000 euro.
+        assert r["assegno_sociale_mensile"] == 546.24
+        assert r["minimo_impignorabile_pensioni"] == 1092.48
 
     def test_pensione_quota_solo_sull_eccedenza(self):
         r = _call("pignoramento_stipendio", stipendio_netto_mensile=1500, tipo_credito="ordinario", pensione=True)
-        assert r["base_di_calcolo"] == round(1500 - 2 * 534.41, 2)
-        assert r["importo_pignorabile"] == round((1500 - 2 * 534.41) / 5, 2)
+        # 1.500 - 2 x 546,24 = 407,52; 1/5 = 81,504 -> 81,50 (art. 545 co. 7 and 4 c.p.c.)
+        assert r["base_di_calcolo"] == 407.52
+        assert r["importo_pignorabile"] == 81.50
         assert "avvertenza" in r
+
+    def test_arrotondamento_mezzo_centesimo_per_eccesso(self):
+        # 1.107,53 - 1.092,48 = 15,05; 1/10 (art. 72-ter DPR 602/1973) = 1,505 -> 1,51.
+        # Binary floats give 15,04999... and 1,50: the base is now computed in Decimal.
+        r = _call("pignoramento_stipendio", stipendio_netto_mensile=1107.53, tipo_credito="fiscale",
+                  pensione=True)
+        assert r["base_di_calcolo"] == 15.05
+        assert r["importo_pignorabile"] == 1.51
+        assert r["importo_non_pignorabile"] == 1106.02
 
     def test_pensione_sotto_il_minimo_impignorabile(self):
         r = _call("pignoramento_stipendio", stipendio_netto_mensile=900, tipo_credito="ordinario", pensione=True)
@@ -335,6 +354,79 @@ class TestSollecitoPagemento:
             data_sollecito="2024-01-01",
         )
         assert "errore" in r
+
+    @staticmethod
+    def _soll(**kw):
+        return _call("sollecito_pagamento", creditore="A", debitore="B", **kw)
+
+    def test_regime_7_punti_scadenza_2012(self):
+        # Art. 5 D.Lgs. 231/2002 in the text before D.Lgs. 192/2012 (art. 3 co. 1): BCE 1,00% + 7
+        # points = 8,00% for a transaction concluded by 31/12/2012. 77 days (16/10-31/12/2012),
+        # 2012 leap year: 5000 x 8% x 77 / 366 = 84,15.
+        r = self._soll(importo=5000, data_scadenza="2012-10-15", data_sollecito="2012-12-31")
+        assert r["calcoli"]["maggiorazione_punti"] == 7
+        assert r["calcoli"]["tasso_mora_pct"] == 8.0
+        assert r["calcoli"]["interessi_mora"] == pytest.approx(84.15, abs=0.01)
+
+    def test_data_contratto_2012_scadenza_2013_usa_7_punti(self):
+        # Art. 3 co. 1 D.Lgs. 192/2012: transaction concluded before 01/01/2013 keeps BCE + 7.
+        # 91 days at 7,75% + 92 days at 7,50% on 10.000 (365-day year):
+        # 193,22 + 189,04 = 382,26.
+        r = self._soll(importo=10000, data_scadenza="2013-03-31", data_sollecito="2013-09-30",
+                       data_contratto="2012-12-31")
+        assert r["calcoli"]["interessi_mora"] == pytest.approx(382.26, abs=0.01)
+
+    def test_senza_data_contratto_scadenza_2013_usa_8_punti(self):
+        # Without a contract date, a 2013 due date is assumed to be a post-2012 transaction (8 points).
+        r = self._soll(importo=10000, data_scadenza="2013-03-31", data_sollecito="2013-09-30")
+        assert r["calcoli"]["maggiorazione_punti"] == 8
+        assert r["calcoli"]["interessi_mora"] == pytest.approx(432.40, abs=0.01)
+
+    def test_contratto_ante_agosto_2002_errore(self):
+        # Art. 11 co. 1 D.Lgs. 231/2002: not applicable to contracts concluded before 08/08/2002.
+        r = self._soll(importo=1000, data_scadenza="2002-10-01", data_sollecito="2002-12-01",
+                       data_contratto="2002-08-07")
+        assert "errore" in r
+
+    def test_inizio_tabella_primo_giorno_di_mora(self):
+        # Due 31/08/2002: first day of mora is 01/09/2002, covered by the table. BCE 3,35% + 7 =
+        # 10,35% x 122 days (365-day year) on 10.000 = 345,95 (art. 5 original text).
+        r = self._soll(importo=10000, data_scadenza="2002-08-31", data_sollecito="2002-12-31")
+        assert "errore" not in r
+        assert r["calcoli"]["interessi_mora"] == pytest.approx(345.95, abs=0.01)
+
+    def test_oltre_fine_tabella_rifiuta(self):
+        # Art. 5 co. 2: the rate for the first half of 2027 is the BCE rate at 01/01/2027, not
+        # yet in the table: the tool refuses instead of silently counting 31 of 62 days.
+        r = self._soll(importo=10000, data_scadenza="2026-11-30", data_sollecito="2027-01-31")
+        assert "errore" in r
+        assert "2026" in r["errore"]
+
+    def test_tasso_convenzionale_divisore_per_anno(self):
+        # Agreed rate 8,5% from 30/06/2024 to 30/06/2025 on 10.000, actual/actual by calendar
+        # year: 184 days of 2024 (/366) + 181 days of 2025 (/365) = 427,32 + 421,51 = 848,83
+        # (art. 1284 c.c.; no rule fixes the divisor, the tool uses each year's own length).
+        r = self._soll(importo=10000, data_scadenza="2024-06-30", data_sollecito="2025-06-30",
+                       tasso_mora=8.5)
+        assert r["calcoli"]["interessi_mora"] == pytest.approx(848.83, abs=0.01)
+
+    def test_lettera_importi_formato_italiano(self):
+        r = self._soll(importo=10000, data_scadenza="2026-03-31", data_sollecito="2026-09-30")
+        assert "Euro 10.000,00" in r["testo_lettera"]
+        assert "10,000.00" not in r["testo_lettera"]
+
+    def test_lettera_messa_in_mora_e_forfettario(self):
+        # Art. 1219 c.c. (constitution in mora) and art. 6 co. 2 D.Lgs. 231/2002 (40 euro lump sum)
+        r = self._soll(importo=10000, data_scadenza="2026-03-31", data_sollecito="2026-09-30")
+        assert "messa in mora" in r["testo_lettera"]
+        assert "40,00" in r["testo_lettera"]
+
+    def test_forfettario_omesso_per_contratti_ante_2013(self):
+        # Art. 6 co. 2 D.Lgs. 231/2002 (40 euro) comes from D.Lgs. 192/2012 art. 3, transactions concluded
+        # from 1/1/2013: for a contract of 2010 (7-point regime) the lump sum is not due.
+        r = self._soll(importo=10000, data_scadenza="2012-03-31", data_sollecito="2012-09-30",
+                       data_contratto="2010-05-01")
+        assert "40,00" not in r["testo_lettera"]
 
 
 # ---------------------------------------------------------------------------
@@ -483,24 +575,30 @@ class TestTassazioneAtti:
 
 
 class TestCopieProcessoTributario:
+    # DM MEF 27 dicembre 2011, allegato 1 (copia semplice per fascia) e art. 2 co. 2 (+9 euro conformita')
 
-    def test_semplice(self):
-        r = _call("copie_processo_tributario", n_pagine=10, tipo="semplice")
-        assert r["totale"] == pytest.approx(10 * 0.25, abs=0.01)
+    def test_semplice_fasce(self):
+        attesi = {1: 1.50, 4: 1.50, 5: 3.00, 10: 3.00, 11: 6.00, 20: 6.00, 21: 12.00, 50: 12.00, 51: 25.00, 100: 25.00}
+        for n, atteso in attesi.items():
+            assert _call("copie_processo_tributario", n_pagine=n, tipo="semplice")["totale"] == atteso
 
-    def test_autentica(self):
-        r = _call("copie_processo_tributario", n_pagine=10, tipo="autentica")
-        assert r["totale"] == pytest.approx(10 * 0.50, abs=0.01)
+    def test_semplice_oltre_100(self):
+        # 25,00 + 15,00 for each further 100 pages or fraction
+        assert _call("copie_processo_tributario", n_pagine=101, tipo="semplice")["totale"] == 40.00
+        assert _call("copie_processo_tributario", n_pagine=201, tipo="semplice")["totale"] == 55.00
 
-    def test_urgente_maggiorazione(self):
-        r = _call("copie_processo_tributario", n_pagine=10, tipo="semplice", urgente=True)
-        assert r["totale"] == pytest.approx(10 * 0.25 * 1.5, abs=0.01)
-        assert "maggiorazione_urgenza" in r
+    def test_autentica_aggiunge_9_euro(self):
+        assert _call("copie_processo_tributario", n_pagine=5, tipo="autentica")["totale"] == 12.00
+        assert _call("copie_processo_tributario", n_pagine=21, tipo="autentica")["totale"] == 21.00
 
-    def test_urgente_importo_maggiorazione(self):
-        r = _call("copie_processo_tributario", n_pagine=20, tipo="autentica", urgente=True)
-        expected_sub = 20 * 0.50
-        assert r["maggiorazione_urgenza"] == pytest.approx(expected_sub * 0.5, abs=0.01)
+    def test_urgente_nessuna_maggiorazione(self):
+        # The DM 27/12/2011 provides no urgency surcharge
+        r = _call("copie_processo_tributario", n_pagine=21, tipo="autentica", urgente=True)
+        assert r["totale"] == 21.00
+        assert "maggiorazione_urgenza" not in r
+
+    def test_tipo_non_ammesso(self):
+        assert "errore" in _call("copie_processo_tributario", n_pagine=10, tipo="esecutiva")
 
     def test_non_urgente_no_maggiorazione_key(self):
         r = _call("copie_processo_tributario", n_pagine=10, tipo="semplice", urgente=False)
@@ -535,6 +633,31 @@ class TestNoteIscrizioneRuolo:
         r = _call("note_iscrizione_ruolo", tipo_procedimento="cognizione_ordinaria")
         assert "contributo_unificato" in r
 
+    def test_sfratto_cu_dimezzato(self):
+        # Art. 13 co. 3 DPR 115/2002: half the contribution for the special proceedings of
+        # book IV, title I, c.p.c. (convalida di sfratto, artt. 657-669). 3.000 euro: 98 -> 49
+        ordinaria = _call("note_iscrizione_ruolo", tipo_procedimento="locazione", valore_causa=3000)
+        assert ordinaria["contributo_unificato"] == 98
+        sfratto = _call("note_iscrizione_ruolo", tipo_procedimento="locazione", valore_causa=3000,
+                        convalida_sfratto=True)
+        assert sfratto["contributo_unificato"] == 49
+
+    def test_lavoro_oltre_soglia_dimezzato(self):
+        # Art. 9 co. 1-bis + art. 13 co. 3: above three times the art. 76 threshold the CU is due,
+        # halved. 20.000 euro: scaglione 237 -> 118,50
+        r = _call("note_iscrizione_ruolo", tipo_procedimento="lavoro", valore_causa=20000,
+                  reddito_oltre_soglia_lavoro=True)
+        assert r["contributo_unificato"] == 118.5
+
+    def test_esecuzione_mobiliare_richiede_il_valore(self):
+        # Art. 13 co. 2: 43 euro below 2.500, 139 from 2.500: without the value the CU is not decidable
+        r = _call("note_iscrizione_ruolo", tipo_procedimento="esecuzione_mobiliare")
+        assert r["contributo_unificato"] is None
+        assert _call("note_iscrizione_ruolo", tipo_procedimento="esecuzione_mobiliare",
+                     valore_causa=2500)["contributo_unificato"] == 139
+        assert _call("note_iscrizione_ruolo", tipo_procedimento="esecuzione_mobiliare",
+                     valore_causa=2499.99)["contributo_unificato"] == 43
+
 
 # ---------------------------------------------------------------------------
 # codici_iscrizione_ruolo
@@ -557,6 +680,22 @@ class TestCodiciIscrizioneRuolo:
         r = _call("codici_iscrizione_ruolo", materia="xyznonexistent999")
         assert r["totale"] == 0
         assert r["risultati"] == []
+
+    def test_accenti_ignorati(self):
+        # The ministerial search does not tell accented from unaccented vowels: the same
+        # keyword gives the same codes with or without the accent or the apostrophe
+        senza = _call("codici_iscrizione_ruolo", materia="responsabilita")
+        con = _call("codici_iscrizione_ruolo", materia="responsabilit\u00e0")
+        apostrofo = _call("codici_iscrizione_ruolo", materia="responsabilita'")
+        assert senza["totale"] > 6
+        assert {c["codice"] for c in senza["risultati"]} == {c["codice"] for c in con["risultati"]}
+        assert {c["codice"] for c in senza["risultati"]} == {c["codice"] for c in apostrofo["risultati"]}
+        assert {"145001", "145011", "151110", "152110"} <= {c["codice"] for c in senza["risultati"]}
+
+    def test_proprieta_con_e_senza_accento(self):
+        a = _call("codici_iscrizione_ruolo", materia="proprieta")
+        b = _call("codici_iscrizione_ruolo", materia="propriet\u00e0")
+        assert a["totale"] == b["totale"] > 0
 
     def test_risultati_hanno_codice(self):
         r = _call("codici_iscrizione_ruolo", materia="locazione")
@@ -1217,6 +1356,35 @@ class TestCercaUfficioGiudiziario:
             assert "suggerimenti" in r
         else:
             assert r["trovato"] is True
+
+    @pytest.mark.parametrize("comune", [
+        "Torino di Sangro", "Bari Sardo", "Lucca Sicula", "Romano di Lombardia", "Pisano",
+        "Forlì del Sannio", "Bolzano Novarese",
+    ])
+    def test_nome_che_contiene_un_capoluogo_non_suggerisce_il_capoluogo(self, comune):
+        # A comune whose name merely contains a capoluogo's belongs to another circondario
+        # (R.D. 12/1941 tab. A as replaced by D.Lgs. 155/2012): never suggest the wrong tribunal.
+        r = _call("cerca_ufficio_giudiziario", comune=comune)
+        assert r["trovato"] is False
+        assert "suggerimenti" not in r
+
+    @pytest.mark.parametrize("comune,atteso", [
+        ("Reggio nell'Emilia", "Tribunale di Reggio Emilia"),
+        ("Reggio di Calabria", "Tribunale di Reggio Calabria"),
+        ("Bolzano/Bozen", "Tribunale di Bolzano"),
+        ("Reggio nell\u2019Emilia", "Tribunale di Reggio Emilia"),
+    ])
+    def test_denominazione_istat_dei_capoluoghi(self, comune, atteso):
+        r = _call("cerca_ufficio_giudiziario", comune=comune)
+        assert r["trovato"] is True
+        assert r["ufficio_competente"] == atteso
+
+    def test_tipo_non_supportato_errore(self):
+        # 'corte_appello' used to return the Tribunale with trovato=True
+        r = _call("cerca_ufficio_giudiziario", comune="Milano", tipo="corte_appello")
+        assert r["trovato"] is False
+        assert "errore" in r
+        assert "ufficio_competente" not in r
 
 
 # ---------------------------------------------------------------------------

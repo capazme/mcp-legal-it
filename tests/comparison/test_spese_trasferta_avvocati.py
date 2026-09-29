@@ -61,7 +61,8 @@ def test_auto_200km_4h_carburante_180(page):
     applica 0,30 euro/km -> 60,00 (+ indennita' 54,00 = 114,00).
     Confronto sul solo rimborso chilometrico (il sito non calcola l'indennita').
     """
-    r = _fn(km_distanza=200, ore_assenza=4, pernottamento=False, mezzo="auto")
+    r = _fn(km_distanza=200, ore_assenza=4, pernottamento=False, mezzo="auto",
+            prezzo_carburante_litro=1.80)
     site = _site_trip(page, prezzo=1.80, km=200)
     assert_close(r["rimborso_km"], site["TotCarburante0"], 0.01,
                  "Rimborso km (carburante 1,80 euro/l, 20%)")
@@ -73,7 +74,8 @@ def test_auto_200km_carburante_150_punto_equivalenza(page):
 
     Atteso: 200 x 1,50 x 20% = 60,00 = 200 x 0,30. Norma: art. 27 DM 55/2014.
     """
-    r = _fn(km_distanza=200, ore_assenza=4.01, pernottamento=False, mezzo="auto")
+    r = _fn(km_distanza=200, ore_assenza=4.01, pernottamento=False, mezzo="auto",
+            prezzo_carburante_litro=1.50)
     site = _site_trip(page, prezzo=1.50, km=200)
     assert_close(r["rimborso_km"], site["TotCarburante0"], 0.01,
                  "Rimborso km (carburante 1,50 euro/l)")
@@ -82,11 +84,17 @@ def test_auto_200km_carburante_150_punto_equivalenza(page):
 def test_auto_km_decimali_carburante_150(page):
     """Arrotondamento con km decimali: 137,5 km a 1,50 euro/l.
 
-    Atteso: 137,5 x 1,50 x 20% = 41,25 (sito) = 137,5 x 0,30 (tool).
-    Norma: art. 27 DM 55/2014.
+    Atteso dalla norma (art. 27 DM 55/2014, un quinto del carburante al litro per km):
+    137,5 x 1,50 / 5 = 41,25 (il tool lo da'). Il sito accetta solo km interi e tronca
+    a 137 (41,10): e' un limite di input del sito, non una regola della norma, che non
+    prevede alcun troncamento (verdetto sito_errato sul decimale). Il confronto col sito
+    si fa quindi a 137 km interi, dove tool e sito devono coincidere (41,10).
     """
-    r = _fn(km_distanza=137.5, ore_assenza=2, pernottamento=False, mezzo="auto")
-    site = _site_trip(page, prezzo=1.50, km=137.5)
+    assert _fn(km_distanza=137.5, ore_assenza=2, pernottamento=False, mezzo="auto",
+               prezzo_carburante_litro=1.50)["rimborso_km"] == 41.25
+    r = _fn(km_distanza=137, ore_assenza=2, pernottamento=False, mezzo="auto",
+            prezzo_carburante_litro=1.50)
+    site = _site_trip(page, prezzo=1.50, km=137)
     assert_close(r["rimborso_km"], site["TotCarburante0"], 0.01,
                  "Rimborso km (137,5 km, 1,50 euro/l)")
 

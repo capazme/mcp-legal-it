@@ -5,7 +5,10 @@ procura alle liti, attestazione conformità PCT, relata PEC, note trattazione sc
 
 import hashlib
 import json
+import unicodedata
 from datetime import date, timedelta
+from decimal import ROUND_HALF_UP, Decimal
+from fractions import Fraction
 from pathlib import Path
 
 from src.server import mcp
@@ -246,6 +249,34 @@ def contributo_unificato(
     return result
 
 
+# Diritti di copia su supporto cartaceo: allegati 6 e 7 al DPR 115/2002 come
+# adeguati dal D.I. 25 giugno - 9 luglio 2021 (GU n. 184 del 3.8.2021, in vigore dal
+# 18.8.2021) e aumentati del 50% dall'art. 4 co. 5 DL 193/2009 (conv. L. 24/2010) fino
+# all'emanazione del regolamento ex art. 40. Colonne: (fino a pagine, importo).
+# Oltre le 100 pagine: base + incremento per ogni ulteriore 100 pagine o frazione.
+_COPIA_CARTACEA = {
+    "semplice": {  # allegato 6, art. 267
+        "fasce": [(4, 1.47), (10, 2.96), (20, 5.88), (50, 11.79), (100, 23.58)],
+        "incremento_100": 9.83,
+    },
+    "autentica": {  # allegato 7, art. 268
+        "fasce": [(4, 11.80), (10, 13.78), (20, 15.71), (50, 19.66), (100, 29.48)],
+        "incremento_100": 11.80,
+    },
+}
+
+
+def _diritto_copia_cartacea(n_pagine: int, tipo: str) -> float:
+    """Importo base (senza urgenza) di allegato 6 o 7, maggiorato del 50% (art. 4 co. 5 DL 193/2009)."""
+    t = _COPIA_CARTACEA[tipo]
+    for limite, importo in t["fasce"]:
+        if n_pagine <= limite:
+            return importo
+    ultimo = t["fasce"][-1][1]
+    # ogni ulteriori 100 pagine o frazione di 100
+    return round(ultimo + (-(-(n_pagine - 100) // 100)) * t["incremento_100"], 2)
+
+
 @mcp.tool(tags={"giudiziario"})
 def diritti_copia(
     n_pagine: int,
@@ -254,18 +285,19 @@ def diritti_copia(
     urgente: bool = False,
 ) -> dict:
     """Calcola i diritti di copia per atti giudiziari in formato cartaceo e digitale PCT.
-    Vigenza: DPR 115/2002, artt. 267-270, Tabella 8; DL 90/2014 conv. L. 114/2014
-    (copie semplici digitali gratuite).
-    Precisione: INDICATIVO (gli importi degli allegati 6, 7 e 8 al DPR 115/2002 sono adeguati
-        periodicamente ex art. 274 e la maggiorazione per urgenza ex art. 270 va verificata sul
-        testo vigente: i valori inclusi sono indicativi; resta esatta la gratuità della copia
-        semplice digitale)
+    Vigenza: DPR 115/2002, artt. 267-270 e allegati 6-7 (importi adeguati dal D.I. 25 giugno - 9 luglio
+    2021, GU n. 184 del 3.8.2021, e aumentati del 50% dall'art. 4 co. 5 DL 193/2009); art. 270 (urgenza
+    entro due giorni: diritto triplicato); art. 269 co. 1-bis e art. 268 co. 1-bis (copie digitali estratte
+    dal fascicolo informatico); allegato 8 come sostituito dalla L. 207/2024. Verificata al 2026-09-29.
+    Precisione: INDICATIVO (cartaceo: fasce degli allegati 6 e 7 con urgenza x3, coincidenti con la tabella
+        del D.I. 9 luglio 2021; digitale autentico: diritto di trasmissione telematica dell'allegato 8, da
+        verificare sul testo vigente; gli importi sono adeguati ogni tre anni ex art. 274)
 
     Args:
         n_pagine: Numero di pagine dell'atto (intero positivo)
-        tipo: Tipo di copia: 'semplice', 'autentica', 'esecutiva'
-        formato: Formato di rilascio: 'digitale' (PCT — gratuito se semplice) o 'cartaceo'
-        urgente: True per maggiorazione urgenza +50% (solo per formato cartaceo)
+        tipo: Tipo di copia: 'semplice', 'autentica', 'esecutiva' (calcolata come autentica: art. 268)
+        formato: Formato di rilascio: 'digitale' (PCT: gratuita la semplice estratta dal fascicolo informatico) o 'cartaceo'
+        urgente: True per il rilascio entro due giorni: diritto triplicato (art. 270, solo cartaceo)
     """
     if formato not in ("digitale", "cartaceo"):
         return {"errore": "formato deve essere 'digitale' o 'cartaceo'"}
@@ -276,23 +308,30 @@ def diritti_copia(
 
     if formato == "digitale":
         if tipo == "semplice":
-            # Copie semplici digitali gratuite (art. 40 DPR 115/2002 mod. DL 90/2014)
+            # Art. 269 co. 1-bis DPR 115/2002: nessun diritto per la copia senza certificazione
+            # estratta direttamente dal fascicolo informatico dai soggetti abilitati
             totale = 0.0
-            nota = "Copia semplice digitale gratuita (art. 40 DPR 115/2002 mod. DL 90/2014)"
+            nota = "Copia semplice digitale estratta dal fascicolo informatico: nessun diritto (art. 269 co. 1-bis DPR 115/2002)"
         else:
-            # Copie autentiche/esecutive digitali: tariffa forfettaria
-            if n_pagine <= 4:
-                totale = 1.62
-            elif n_pagine <= 10:
-                totale = 4.05
-            elif n_pagine <= 20:
-                totale = 6.48
-            elif n_pagine <= 50:
-                totale = 8.11
-            else:
-                totale = 10.13 + (n_pagine - 50) // 50 * 1.62
-                totale = round(totale, 2)
-            nota = f"Copia {tipo} digitale — tariffa forfettaria DPR 115/2002 Tabella 8"
+            # Digital authentic/executory copy issued by the registry: the tariff in force is NOT
+            # established (the Annex 8 flat 8.00 euro is for the telematic transmission of files whose
+            # pages cannot be counted; for a countable archive copy the ministerial table has bands
+            # per page: 7.86/9.18/10.47/13.10/19.65 euro, D.I. 9.7.2021). No text read supports a civil
+            # flat fee independent of the page count, so the tool refuses instead of guessing.
+            return {
+                "errore": (
+                    f"Copia {tipo} digitale rilasciata dalla cancelleria: l'importo non e' calcolato. "
+                    "Il diritto dipende dall'allegato 8 e dalla tabella del D.I. 9 luglio 2021 per le copie "
+                    "estratte da archivio informatico, e non e' stato verificato sul testo vigente. "
+                    "La copia attestata dal difensore non paga alcun diritto (art. 268 co. 1-bis DPR 115/2002)."
+                ),
+                "n_pagine": n_pagine,
+                "tipo": tipo,
+                "formato": formato,
+                "riferimento_normativo": "DPR 115/2002, artt. 268-269, allegato 8",
+            }
+        if urgente:
+            nota += ". L'urgenza (art. 270) riguarda solo il supporto cartaceo e non e' applicata"
 
         return {
             "n_pagine": n_pagine,
@@ -300,29 +339,26 @@ def diritti_copia(
             "formato": formato,
             "totale": round(totale, 2),
             "nota": nota,
-            "riferimento_normativo": "DPR 115/2002, art. 267-270, Tabella 8 — DL 90/2014 conv. L. 114/2014",
+            "riferimento_normativo": "DPR 115/2002, artt. 268-269, allegato 8 (L. 207/2024)",
         }
 
-    # Cartaceo (original logic)
-    tariffe = {
-        "semplice": 0.30,
-        "autentica": 0.70,
-        "esecutiva": 0.70,
-    }
-    tariffa_pagina = tariffe[tipo]
-    subtotale = round(n_pagine * tariffa_pagina, 2)
-    maggiorazione_urgenza = round(subtotale * 0.5, 2) if urgente else 0.0
-    totale = round(subtotale + maggiorazione_urgenza, 2)
+    # Cartaceo: allegati 6 (semplice) e 7 (autentica; l'esecutiva segue la tabella dell'autentica)
+    chiave = "semplice" if tipo == "semplice" else "autentica"
+    base = _diritto_copia_cartacea(n_pagine, chiave)
+    # Art. 270: rilascio entro due giorni, diritto triplicato (l'importo base va arrotondato prima)
+    totale = round(base * 3, 2) if urgente else base
+    maggiorazione_urgenza = round(totale - base, 2)
 
     result = {
         "n_pagine": n_pagine,
         "tipo": tipo,
         "formato": formato,
-        "tariffa_pagina": tariffa_pagina,
-        "subtotale": subtotale,
+        "subtotale": base,
         "urgente": urgente,
         "totale": totale,
-        "riferimento_normativo": "DPR 115/2002, artt. 267-270",
+        "riferimento_normativo": (
+            "DPR 115/2002, artt. 267-268 e 270, allegati 6-7 (D.I. 9 luglio 2021; +50% art. 4 co. 5 DL 193/2009)"
+        ),
     }
     if urgente:
         result["maggiorazione_urgenza"] = maggiorazione_urgenza
@@ -331,10 +367,11 @@ def diritti_copia(
 
 #: Assegno sociale mensile usato per il minimo impignorabile delle pensioni (art. 545 co. 7
 #: c.p.c.: il doppio dell'assegno sociale, con un minimo di 1.000 euro). L'importo e' quello
-#: del 2024 (534,41 euro) e va aggiornato ogni anno sulla circolare INPS: il chiamante puo'
-#: passare il valore corrente con `assegno_sociale_mensile`.
-_ASSEGNO_SOCIALE_MENSILE = 534.41
-_ASSEGNO_SOCIALE_ANNO = 2024
+#: del 2026 (546,24 euro, circolare INPS n. 153 del 19/12/2025: 7.101,12 / 13 mensilita') e va
+#: aggiornato ogni anno sulla circolare INPS: il chiamante puo' passare il valore corrente con
+#: `assegno_sociale_mensile`.
+_ASSEGNO_SOCIALE_MENSILE = 546.24
+_ASSEGNO_SOCIALE_ANNO = 2026
 _MINIMO_IMPIGNORABILE_PENSIONI = 1000.0
 
 
@@ -352,7 +389,7 @@ def pignoramento_stipendio(
     i crediti fiscali dell'agente della riscossione.
     Precisione: ESATTO per le quote di legge (1/5 ordinario, fino a 1/3 alimentare, scaglioni
     fiscali); INDICATIVO per le pensioni, perché il minimo impignorabile dipende dall'assegno
-    sociale dell'anno (incluso: 2024) — passare `assegno_sociale_mensile` aggiornato.
+    sociale dell'anno (incluso: 2026, circolare INPS 153/2025) — passare `assegno_sociale_mensile` aggiornato.
 
     Args:
         stipendio_netto_mensile: Stipendio o pensione netta mensile in euro (€)
@@ -363,7 +400,7 @@ def pignoramento_stipendio(
         pensione: True se la somma è una pensione: la quota si calcola solo sulla parte che
                   eccede il minimo impignorabile (doppio dell'assegno sociale, minimo 1.000 euro)
         assegno_sociale_mensile: Importo mensile dell'assegno sociale dell'anno corrente (facoltativo;
-                  default il valore 2024 incluso nel server)
+                  default il valore 2026 incluso nel server)
     """
     if stipendio_netto_mensile < 0:
         return {"errore": "stipendio_netto_mensile non può essere negativo"}
@@ -372,10 +409,14 @@ def pignoramento_stipendio(
 
     minimo_vitale = assegno_sociale_mensile if assegno_sociale_mensile is not None else _ASSEGNO_SOCIALE_MENSILE
     impignorabile_pensioni = max(2 * minimo_vitale, _MINIMO_IMPIGNORABILE_PENSIONI)
+    # Calcolo in Decimal: la base e' portata ai centesimi, cosi' 15,05 * 1/10 = 1,505 non
+    # dipende dall'errore binario (15,0499...) e si arrotonda per eccesso a 1,51.
+    lordo_d = Decimal(str(stipendio_netto_mensile))
     # Art. 545 co. 7: la quota si applica alla sola parte eccedente il minimo impignorabile
-    base = stipendio_netto_mensile
+    base_d = lordo_d
     if pensione:
-        base = max(stipendio_netto_mensile - impignorabile_pensioni, 0.0)
+        base_d = max(lordo_d - Decimal(str(impignorabile_pensioni)), Decimal(0))
+    base = float(base_d)
 
     if tipo_credito == "ordinario":
         quota = 1 / 5
@@ -400,8 +441,12 @@ def pignoramento_stipendio(
     else:
         return {"errore": f"tipo_credito non riconosciuto: {tipo_credito}"}
 
-    pignorabile = round(base * quota, 2)
-    non_pignorabile = round(stipendio_netto_mensile - pignorabile, 2)
+    quota_frac = Fraction(quota).limit_denominator(100)
+    pignorabile_d = (base_d * quota_frac.numerator / quota_frac.denominator).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    pignorabile = float(pignorabile_d)
+    non_pignorabile = float(lordo_d - pignorabile_d)
 
     result = {
         "stipendio_netto_mensile": stipendio_netto_mensile,
@@ -434,6 +479,18 @@ def pignoramento_stipendio(
     return result
 
 
+def _eur_it(x: float) -> str:
+    """Importo in formato italiano (1.234,56): le virgole all'inglese sono ambigue in una lettera."""
+    return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+#: Ultimo giorno delle transazioni cui si applica la maggiorazione di 7 punti (art. 5 D.Lgs.
+#: 231/2002 nel testo anteriore al D.Lgs. 192/2012; art. 3 co. 1 D.Lgs. 192/2012).
+_FINE_REGIME_7_PUNTI = date(2012, 12, 31)
+#: Il D.Lgs. 231/2002 non si applica ai contratti conclusi prima dell'8 agosto 2002 (art. 11 co. 1).
+_INIZIO_D_LGS_231 = date(2002, 8, 8)
+
+
 @mcp.tool(tags={"giudiziario", "credito"})
 @sourced("tassi_mora")
 def sollecito_pagamento(
@@ -443,11 +500,16 @@ def sollecito_pagamento(
     data_scadenza: str,
     data_sollecito: str,
     tasso_mora: float | None = None,
+    data_contratto: str | None = None,
 ) -> dict:
     """Genera bozza di lettera di sollecito pagamento con calcolo degli interessi di mora.
-    Vigenza: D.Lgs. 231/2002 (tasso BCE + 8 pp per crediti commerciali, aggiornato semestralmente);
-    per tasso convenzionale indicare manualmente tasso_mora.
-    Precisione: ESATTO per gli interessi (calcolo pro rata sul periodo di ritardo).
+    Vigenza: D.Lgs. 231/2002 art. 5 (tasso BCE + 8 pp per le transazioni concluse dal 01/01/2013,
+    + 7 pp per quelle concluse tra l'08/08/2002 e il 31/12/2012: art. 3 D.Lgs. 192/2012;
+    tasso semestrale, verificato al 2026-09-29); per tasso convenzionale indicare manualmente
+    tasso_mora. Divisore: giorni dell'anno solare di ciascun periodo (365/366), senza norma che
+    imponga il 365.
+    Precisione: ESATTO per gli interessi (calcolo pro rata sul periodo di ritardo) fino
+    all'ultimo semestre in tabella; oltre, il tool rifiuta (tasso non ancora pubblicato).
 
     Args:
         creditore: Nome o ragione sociale del creditore
@@ -457,6 +519,9 @@ def sollecito_pagamento(
         data_sollecito: Data odierna o di emissione del sollecito (YYYY-MM-DD)
         tasso_mora: Tasso di mora annuo personalizzato in percentuale (es. 8.5);
                     se None usa il tasso D.Lgs. 231/2002 (BCE + 8 pp) aggiornato
+        data_contratto: Data di conclusione della transazione commerciale (YYYY-MM-DD,
+                    facoltativa). Fino al 31/12/2012 la maggiorazione e' di 7 punti; se omessa
+                    si assume 7 punti solo quando la scadenza e' anteriore al 2013.
     """
     dt_scadenza = _parse_date(data_scadenza)
     dt_sollecito = _parse_date(data_sollecito)
@@ -465,49 +530,88 @@ def sollecito_pagamento(
     if giorni_ritardo <= 0:
         return {"errore": "La data del sollecito deve essere successiva alla scadenza"}
 
-    # Calcolo interessi mora
+    # Calcolo interessi mora, un rigo per anno solare (tasso convenzionale) o per semestre
+    righe: list[dict] = []
     if tasso_mora is not None:
-        interessi = round(importo * (tasso_mora / 100) * giorni_ritardo / _days_in_year(dt_scadenza.year), 2)
+        current = dt_scadenza + timedelta(days=1)
+        while current <= dt_sollecito:
+            fine = min(date(current.year, 12, 31), dt_sollecito)
+            gg = (fine - current).days + 1
+            div = _days_in_year(current.year)
+            righe.append({"dal": current, "al": fine, "giorni": gg, "tasso": tasso_mora,
+                          "divisore": div, "interessi": importo * (tasso_mora / 100) * gg / div})
+            current = fine + timedelta(days=1)
         tasso_applicato = tasso_mora
         base_giuridica_tasso = f"Tasso convenzionale {tasso_mora}%"
+        punti = None
     else:
-        # Reject scadenze before the mora rate table starts (no fallback rate applicable)
+        # Punti di maggiorazione sul tasso BCE: 7 per le transazioni concluse entro il 31/12/2012
+        if data_contratto is not None:
+            dt_contratto = _parse_date(data_contratto)
+            if dt_contratto < _INIZIO_D_LGS_231:
+                return {"errore": "D.Lgs. 231/2002 non applicabile ai contratti conclusi prima dell'08/08/2002 (art. 11 co. 1); indicare manualmente tasso_mora"}
+            punti = 7 if dt_contratto <= _FINE_REGIME_7_PUNTI else 8
+        else:
+            punti = 7 if dt_scadenza <= _FINE_REGIME_7_PUNTI else 8
+        # Reject periods not covered by the rate table (no fallback rate applicable): the
+        # first day of mora is scadenza + 1, and the rate for a semester not yet published
+        # (art. 5 co. 2: BCE at 1 January / 1 July) cannot be guessed.
         primo_dal = _parse_date(_TASSI_MORA[0]["dal"])
-        if dt_scadenza < primo_dal:
+        ultimo_al = _parse_date(_TASSI_MORA[-1]["al"])
+        if dt_scadenza + timedelta(days=1) < primo_dal:
             return {
                 "errore": f"Tasso di mora D.Lgs. 231/2002 non disponibile per scadenze anteriori al {primo_dal.strftime('%d/%m/%Y')}; indicare manualmente tasso_mora"
             }
+        if dt_sollecito > ultimo_al:
+            return {
+                "errore": (
+                    f"Tasso di mora D.Lgs. 231/2002 non ancora disponibile oltre il {ultimo_al.strftime('%d/%m/%Y')} "
+                    "(il tasso del semestre e' il BCE al 1 gennaio o al 1 luglio, art. 5 co. 2): "
+                    "indicare una data_sollecito entro la tabella oppure tasso_mora"
+                )
+            }
         # Split by mora rate periods like interessi_mora()
-        interessi_totali = 0.0
         current = dt_scadenza + timedelta(days=1)
-        dt_sollecito_end = dt_sollecito
-        while current <= dt_sollecito_end:
+        while current <= dt_sollecito:
             info_mora = _get_tasso_mora(current)
-            if info_mora is None:
-                break
-            period_end_raw = _parse_date(info_mora["al"])
-            periodo_end = min(period_end_raw, dt_sollecito_end)
-            giorni_periodo = (periodo_end - current).days + 1
-            interessi_totali += importo * (info_mora["mora"] / 100) * giorni_periodo / _days_in_year(current.year)
-            if periodo_end < current:
-                break
+            periodo_end = min(_parse_date(info_mora["al"]), dt_sollecito)
+            gg = (periodo_end - current).days + 1
+            tasso_periodo = round(info_mora["bce"] + punti, 2)
+            div = _days_in_year(current.year)
+            righe.append({"dal": current, "al": periodo_end, "giorni": gg, "tasso": tasso_periodo,
+                          "divisore": div, "interessi": importo * (tasso_periodo / 100) * gg / div})
             current = periodo_end + timedelta(days=1)
-        interessi = round(interessi_totali, 2)
-        info_mora = _get_tasso_mora(dt_scadenza)
-        tasso_applicato = info_mora["mora"]
-        base_giuridica_tasso = f"D.Lgs. 231/2002 — tasso BCE variabile per semestre (tasso iniziale {info_mora['bce']}% + 8 pp = {tasso_applicato}%)"
+        primo = _get_tasso_mora(dt_scadenza + timedelta(days=1))
+        tasso_applicato = righe[0]["tasso"]
+        base_giuridica_tasso = f"D.Lgs. 231/2002 — tasso BCE variabile per semestre (tasso iniziale {primo['bce']}% + {punti} pp = {tasso_applicato}%)"
 
+    interessi = round(sum(r["interessi"] for r in righe), 2)
     totale_dovuto = round(importo + interessi, 2)
+
+    dettaglio = "\n".join(
+        f"  dal {r['dal'].strftime('%d/%m/%Y')} al {r['al'].strftime('%d/%m/%Y')}: {r['giorni']} gg al {r['tasso']}%"
+        for r in righe
+    )
+    forfettario = (
+        "\nSpetta inoltre il rimborso dei costi di recupero, con un importo forfettario di Euro 40,00 "
+        "(art. 6 D.Lgs. 231/2002), salva la prova del maggior danno."
+        if tasso_mora is None and punti == 8 else ""
+    )
+    # The 40 euro lump sum of art. 6 co. 2 D.Lgs. 231/2002 was introduced by D.Lgs. 192/2012 and only
+    # applies to transactions concluded from 1/1/2013 (punti == 8); it is left out for the 7-point regime.
 
     testo = f"""Egr. {debitore},
 
-con la presente siamo a ricordarVi che alla data odierna risulta ancora insoluto il pagamento di Euro {importo:,.2f} (diconsi euro {importo:,.2f}), scaduto in data {dt_scadenza.strftime('%d/%m/%Y')}.
+con la presente siamo a ricordarVi che alla data odierna risulta ancora insoluto il pagamento di Euro {_eur_it(importo)}, scaduto in data {dt_scadenza.strftime('%d/%m/%Y')}.
 
 Ad oggi il ritardo ammonta a {giorni_ritardo} giorni.
 
-Vi invitiamo pertanto a provvedere al pagamento dell'importo complessivo di Euro {totale_dovuto:,.2f}, così composto:
-- Capitale: Euro {importo:,.2f}
-- Interessi di mora ({tasso_applicato}% annuo, {giorni_ritardo} gg): Euro {interessi:,.2f}
+Vi invitiamo pertanto a provvedere al pagamento dell'importo complessivo di Euro {_eur_it(totale_dovuto)}, così composto:
+- Capitale: Euro {_eur_it(importo)}
+- Interessi di mora ({giorni_ritardo} gg): Euro {_eur_it(interessi)}
+{dettaglio}{forfettario}
+
+La presente vale come messa in mora, ad ogni effetto di legge (art. 1219 c.c.).
 
 Il pagamento dovrà pervenire entro e non oltre 15 giorni dal ricevimento della presente.
 
@@ -516,19 +620,24 @@ In difetto, ci vedremo costretti ad adire le vie legali per il recupero del cred
 Distinti saluti,
 {creditore}"""
 
-    return {
-        "testo_lettera": testo,
-        "calcoli": {
-            "importo_originale": importo,
-            "data_scadenza": data_scadenza,
-            "data_sollecito": data_sollecito,
-            "giorni_ritardo": giorni_ritardo,
-            "tasso_mora_pct": tasso_applicato,
-            "interessi_mora": interessi,
-            "totale_dovuto": totale_dovuto,
-            "base_giuridica": base_giuridica_tasso,
-        },
+    calcoli = {
+        "importo_originale": importo,
+        "data_scadenza": data_scadenza,
+        "data_sollecito": data_sollecito,
+        "giorni_ritardo": giorni_ritardo,
+        "tasso_mora_pct": tasso_applicato,
+        "interessi_mora": interessi,
+        "totale_dovuto": totale_dovuto,
+        "base_giuridica": base_giuridica_tasso,
+        "periodi": [
+            {"dal": r["dal"].isoformat(), "al": r["al"].isoformat(), "giorni": r["giorni"],
+             "tasso_pct": r["tasso"], "divisore": r["divisore"]}
+            for r in righe
+        ],
     }
+    if punti is not None:
+        calcoli["maggiorazione_punti"] = punti
+    return {"testo_lettera": testo, "calcoli": calcoli}
 
 
 @mcp.tool(tags={"giudiziario", "credito"})
@@ -729,42 +838,62 @@ def tassazione_atti(
 # ---------------------------------------------------------------------------
 
 
+# DM MEF 27 dicembre 2011 (GU n. 50 del 29.2.2012, in vigore dal 1.3.2012), allegato 1:
+# diritto forfetizzato di copia semplice su carta per fascia di pagine; allegato 2 (art. 2 co. 2):
+# diritto aggiuntivo di 9 euro per ogni documento con certificazione di conformita'.
+_COPIA_TRIBUTARIO_FASCE = [(4, 1.50), (10, 3.00), (20, 6.00), (50, 12.00), (100, 25.00)]
+_COPIA_TRIBUTARIO_OLTRE_100 = 15.00  # per ogni ulteriori 100 pagine o frazione
+_COPIA_TRIBUTARIO_CONFORMITA = 9.00
+
+
 @mcp.tool(tags={"giudiziario"})
 def copie_processo_tributario(
     n_pagine: int,
     tipo: str = "semplice",
     urgente: bool = False,
 ) -> dict:
-    """Calcola i diritti di copia specifici per il processo tributario.
-    Vigenza: DPR 115/2002 — tariffe processo tributario (€0,25/pagina semplice, €0,50 autentica).
-    Precisione: INDICATIVO (tariffe per pagina non riscontrate sul testo vigente del DPR 115/2002:
-        verificare prima dell'uso)
+    """Calcola i diritti di copia su carta specifici per il processo tributario.
+    Vigenza: DM MEF 27 dicembre 2011 (GU n. 50 del 29.2.2012, in vigore dal 1.3.2012), adottato ex artt. 40 e 196
+    DPR 115/2002: allegato 1 (copia semplice, importo forfetizzato per fascia di pagine) e art. 2 co. 2
+    (+9,00 euro per ogni copia con certificazione di conformita'). Il decreto non prevede maggiorazioni
+    per urgenza. Verificata al 2026-09-29.
+    Precisione: INDICATIVO (importi delle fasce fino a 100 pagine riscontrati su piu' fonti e sul calcolatore
+        MEF; l'incremento oltre 100 pagine e' letto da fonti secondarie; copie elettroniche non gestite)
 
     Args:
         n_pagine: Numero di pagine dell'atto (intero positivo)
-        tipo: Tipo di copia: 'semplice' (€0,25/pag) o 'autentica' (€0,50/pag)
-        urgente: True per maggiorazione urgenza +50%
+        tipo: Tipo di copia: 'semplice' o 'autentica' (con certificazione di conformita', +9,00 euro)
+        urgente: Accettato per compatibilita': il DM 27/12/2011 non prevede alcuna maggiorazione
     """
     if n_pagine <= 0:
         return {"errore": "n_pagine deve essere un intero positivo"}
+    if tipo not in ("semplice", "autentica"):
+        return {"errore": "tipo deve essere 'semplice' o 'autentica'", "valori_ammessi": ["semplice", "autentica"]}
 
-    tariffe = {"semplice": 0.25, "autentica": 0.50}
-    tariffa = tariffe.get(tipo, 0.25)
-    subtotale = round(n_pagine * tariffa, 2)
-    maggiorazione = round(subtotale * 0.5, 2) if urgente else 0.0
-    totale = round(subtotale + maggiorazione, 2)
+    subtotale = None
+    for limite, importo in _COPIA_TRIBUTARIO_FASCE:
+        if n_pagine <= limite:
+            subtotale = importo
+            break
+    if subtotale is None:
+        # oltre 100 pagine: 25,00 + 15,00 per ogni ulteriori 100 pagine o frazione
+        blocchi = -(-(n_pagine - 100) // 100)
+        subtotale = _COPIA_TRIBUTARIO_FASCE[-1][1] + blocchi * _COPIA_TRIBUTARIO_OLTRE_100
+    conformita = _COPIA_TRIBUTARIO_CONFORMITA if tipo == "autentica" else 0.0
+    totale = round(subtotale + conformita, 2)
 
     result = {
         "n_pagine": n_pagine,
         "tipo": tipo,
-        "tariffa_pagina": tariffa,
-        "subtotale": subtotale,
+        "subtotale": round(subtotale, 2),
         "urgente": urgente,
         "totale": totale,
-        "riferimento_normativo": "DPR 115/2002 — Tariffe processo tributario",
+        "riferimento_normativo": "DM MEF 27 dicembre 2011 (GU n. 50 del 29.2.2012), allegato 1 e art. 2",
     }
+    if tipo == "autentica":
+        result["diritto_conformita"] = conformita
     if urgente:
-        result["maggiorazione_urgenza"] = maggiorazione
+        result["note"] = "Il DM 27/12/2011 non prevede maggiorazione per urgenza: nessun importo aggiunto"
     return result
 
 
@@ -773,9 +902,12 @@ def copie_processo_tributario(
 def note_iscrizione_ruolo(
     tipo_procedimento: str,
     valore_causa: float | None = None,
+    reddito_oltre_soglia_lavoro: bool = False,
+    convalida_sfratto: bool = False,
 ) -> dict:
     """Genera note per l'iscrizione a ruolo con codici oggetto suggeriti e CU calcolato.
-    Vigenza: DPR 115/2002 (CU); provvedimenti DGSIA per codici oggetto iscrizione a ruolo.
+    Vigenza: DPR 115/2002 (CU: art. 13 co. 1-3, art. 9 co. 1-bis); provvedimenti DGSIA per codici
+    oggetto iscrizione a ruolo. Verificata al 2026-09-29.
     Precisione: INDICATIVO per i codici oggetto (suggeriti in base alla materia; verificare
     sempre il codice esatto nel software di deposito telematico PCT).
 
@@ -784,6 +916,12 @@ def note_iscrizione_ruolo(
                            'condominio', 'esecuzione_mobiliare', 'esecuzione_immobiliare',
                            'monitorio', 'volontaria_giurisdizione'
         valore_causa: Valore della causa in euro (€) — necessario per calcolare il CU
+                      (per la convalida di sfratto: canoni non corrisposti, o canone annuo per la finita locazione)
+        reddito_oltre_soglia_lavoro: Solo 'lavoro': True se la parte ha reddito superiore a tre volte la
+                      soglia dell'art. 76 (art. 9 co. 1-bis): il CU e' dovuto, dimezzato (art. 13 co. 3);
+                      altrimenti il processo e' esente
+        convalida_sfratto: Solo 'locazione': True per la convalida di sfratto (artt. 657-669 c.p.c.,
+                      libro IV titolo I): CU dimezzato (art. 13 co. 3). Per la causa locatizia ordinaria e' falso
     """
     mapping_cu = {
         "cognizione_ordinaria": "cognizione",
@@ -805,7 +943,13 @@ def note_iscrizione_ruolo(
     }
 
     cu_tipo = mapping_cu.get(tipo_procedimento, "cognizione")
-    cu_value_based = cu_tipo in ("cognizione", "monitorio")
+    # Convalida di sfratto: processo speciale del libro IV, titolo I, c.p.c. -> contributo ridotto
+    # alla meta' (art. 13 co. 3 DPR 115/2002); la scala dimezzata e' quella del monitorio
+    if tipo_procedimento == "locazione" and convalida_sfratto:
+        cu_tipo = "monitorio"
+    cu_value_based = cu_tipo in ("cognizione", "monitorio", "esecuzione_mobiliare", "lavoro") and not (
+        cu_tipo == "lavoro" and not reddito_oltre_soglia_lavoro
+    )
 
     materia = mapping_materia.get(tipo_procedimento)
     codici_suggeriti = []
@@ -822,16 +966,32 @@ def note_iscrizione_ruolo(
             "riferimento_normativo": "DPR 115/2002 — Provvedimenti DGSIA per codici oggetto",
         }
 
-    cu_importo = _calcola_cu_base(valore_causa or 0, cu_tipo)
+    cu_importo = _calcola_cu_base(
+        valore_causa or 0, cu_tipo, reddito_oltre_soglia=reddito_oltre_soglia_lavoro
+    )
+    nota_cu = f"Iscrivere a ruolo come '{tipo_procedimento}'. CU calcolato: EUR {cu_importo:.2f}."
+    if tipo_procedimento == "lavoro" and not reddito_oltre_soglia_lavoro:
+        nota_cu += (" Esente (art. 9 co. 1-bis): il CU e' dovuto solo dalla parte con reddito superiore a tre "
+                    "volte la soglia dell'art. 76; in tal caso passare reddito_oltre_soglia_lavoro=True.")
+    if tipo_procedimento == "locazione" and not convalida_sfratto:
+        nota_cu += (" CU a scala piena (causa locatizia ordinaria); per la convalida di sfratto il CU e' "
+                    "dimezzato (art. 13 co. 3): passare convalida_sfratto=True.")
 
     return {
         "tipo_procedimento": tipo_procedimento,
         "valore_causa": valore_causa,
         "contributo_unificato": cu_importo,
         "codici_oggetto_suggeriti": codici_suggeriti,
-        "note": f"Iscrivere a ruolo come '{tipo_procedimento}'. CU calcolato: EUR {cu_importo:.2f}.",
+        "note": nota_cu,
         "riferimento_normativo": "DPR 115/2002 — Provvedimenti DGSIA per codici oggetto",
     }
+
+
+def _fold_accenti(testo: str) -> str:
+    """Lowercase, strip accents and apostrophes used as accents (\"responsabilita'\")."""
+    nfd = unicodedata.normalize("NFD", testo.lower().strip())
+    senza = "".join(ch for ch in nfd if not unicodedata.combining(ch))
+    return senza.replace("'", "").replace("’", "")
 
 
 @mcp.tool(tags={"giudiziario"})
@@ -846,10 +1006,12 @@ def codici_iscrizione_ruolo(materia: str) -> dict:
                  'responsabilita', 'famiglia', 'lavoro', 'condominio', 'successione',
                  'societario', 'proprieta', 'possesso', 'consumatore', 'bancario'
     """
-    keyword = materia.lower().strip()
+    # Accent-insensitive match, like the ministerial search page: 'responsabilita',
+    # 'responsabilità' and "responsabilita'" give the same result
+    keyword = _fold_accenti(materia)
     risultati = [
         c for c in _CODICI_RUOLO
-        if keyword in c["materia"] or keyword in c["descrizione"].lower()
+        if keyword in _fold_accenti(c["materia"]) or keyword in _fold_accenti(c["descrizione"])
     ]
 
     return {
@@ -1679,6 +1841,17 @@ Avv. {avvocato}
     }
 
 
+#: Denominazioni ufficiali ISTAT dei capoluoghi che nella tabella hanno la forma corrente.
+_ALIAS_COMUNI_UFFICI = {
+    "reggio nell'emilia": "reggio emilia",
+    "reggio di calabria": "reggio calabria",
+    "bolzano/bozen": "bolzano",
+    "bolzano bozen": "bolzano",
+    "bozen": "bolzano",
+}
+_TIPI_UFFICIO = ("tribunale", "giudice_pace")
+
+
 @mcp.tool(tags={"giudiziario"})
 @sourced("tribunali_competenti")
 def cerca_ufficio_giudiziario(
@@ -1686,37 +1859,55 @@ def cerca_ufficio_giudiziario(
     tipo: str = "tribunale",
 ) -> dict:
     """Cerca l'ufficio giudiziario territorialmente competente per un dato comune.
-    Vigenza: R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario; circondari vigenti.
-    Precisione: INDICATIVO (copertura sui principali circondari italiani — per comuni minori
-    verificare sempre sul sito del Ministero della Giustizia).
+    Vigenza: R.D. 30 gennaio 1941 n. 12, tabella A come sostituita dall'allegato 1 del D.Lgs.
+    155/2012 (tribunali; Urbino ripristinato da Corte cost. 237/2013) e D.Lgs. 156/2012 (giudici
+    di pace), verificato al 2026-09-29.
+    Precisione: INDICATIVO (solo i 102 capoluoghi: per gli altri comuni, e per i tribunali con
+    sede fuori dai capoluoghi, il tool non risponde; il giudice di pace e' presunto nella stessa
+    citta' del tribunale, cosa non sempre vera: verificare sul sito del Ministero della Giustizia).
 
     Args:
-        comune: Nome del comune (es. "Milano", "Roma", "Brescia")
+        comune: Nome del comune capoluogo (es. "Milano", "Roma", "Brescia"; accetta la denominazione
+                ISTAT, es. "Reggio nell'Emilia", "Bolzano/Bozen")
         tipo: Tipo di ufficio: 'tribunale' (sede principale) o 'giudice_pace'
     """
-    key = comune.lower().strip()
+    tipo_norm = tipo.lower().strip()
+    if tipo_norm not in _TIPI_UFFICIO:
+        return {
+            "comune": comune,
+            "tipo": tipo,
+            "trovato": False,
+            "errore": f"tipo non supportato: '{tipo}'. Valori ammessi: {', '.join(_TIPI_UFFICIO)} "
+                      "(Corte d'appello, Procura e UNEP non sono nella tabella)",
+        }
+    tipo = tipo_norm
+
+    key = " ".join(comune.lower().replace("\u2019", "'").split())
+    key = _ALIAS_COMUNI_UFFICI.get(key, key)
     entry = _TRIBUNALI_COMPETENTI.get(key)
 
     if entry:
-        ufficio = entry.get(tipo, entry.get("tribunale", "Non trovato"))
+        ufficio = entry[tipo]
         return {
             "comune": comune,
             "tipo": tipo,
             "ufficio_competente": ufficio,
             "trovato": True,
             "nota": "Dato basato sui principali circondari italiani. Verificare su sito Ministero della Giustizia per comuni minori.",
-            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario",
+            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12, tab. A (D.Lgs. 155/2012); D.Lgs. 156/2012",
         }
 
-    # Fuzzy: try to find partial match
+    # Suggestions only for an incomplete name (the query is the beginning of a capoluogo):
+    # never the reverse, because a comune whose name merely CONTAINS a capoluogo's
+    # (Torino di Sangro, Bari Sardo, Romano di Lombardia) belongs to a different circondario.
     parziali = [
         (k, v) for k, v in _TRIBUNALI_COMPETENTI.items()
-        if key in k or k in key
+        if len(key) >= 3 and k.startswith(key)
     ]
 
     if parziali:
         risultati = [
-            {"comune": k.title(), "ufficio": v.get(tipo, v.get("tribunale"))}
+            {"comune": k.title(), "ufficio": v[tipo]}
             for k, v in parziali
         ]
         return {
@@ -1725,7 +1916,7 @@ def cerca_ufficio_giudiziario(
             "trovato": False,
             "suggerimenti": risultati,
             "nota": "Comune non trovato esattamente. Possibili corrispondenze elencate.",
-            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario",
+            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12, tab. A (D.Lgs. 155/2012); D.Lgs. 156/2012",
         }
 
     return {
@@ -1733,5 +1924,5 @@ def cerca_ufficio_giudiziario(
         "tipo": tipo,
         "trovato": False,
         "nota": f"Comune '{comune}' non presente nella tabella dei principali circondari. Consultare il sito del Ministero della Giustizia per la competenza territoriale.",
-        "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario",
+        "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12, tab. A (D.Lgs. 155/2012); D.Lgs. 156/2012",
     }

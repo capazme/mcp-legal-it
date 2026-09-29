@@ -95,3 +95,9 @@ def test_conferimento_31_luglio_agosto(page):
 def test_anno_2026_default_sito(page):
     # Limite: anno diverso (2026), 20/15/15 come default del sito.
     _confronta(page, "2026-09-25", t1=20)
+
+
+# CONVENTION (phase 2-3): the two failing cases differ only in the dies a quo of the follow-up
+# terms. The tool counts observations and reply from the unextended deadline, the site from the
+# extended one. Art. 195 co. 3 c.p.c. leaves the terms to the judge's order (art. 193), and art.
+# 155 co. 4-5 extends only the deadline itself, so both readings are defensible: no change.

@@ -174,3 +174,11 @@ def test_pagamento_5gg_finestra_aperta(page):
     r = _tool(n, "pagamento_ridotto_5gg")
     assert r["scadenza"] == s5, f"5gg: tool {r['scadenza']} vs sito {s5}"
     assert r["riepilogo_opzioni"]["pagamento_ridotto"]["scadenza"] == s60
+
+
+# Benchmark phase 3 verdict (2026-09-29): tool_errato fixed. The giudice_pace cases needed the feriale
+# suspension (art. 1 L. 742/1969; Cass. 11478/2017, 30427/2022) and now match the site. The remaining
+# Saturday cases for prefetto/payment (non-procedural terms) now also match: Saturday is a working day.
+# The 5-day payment case is not comparable (site uses the real current date).
+# Remaining failure test_giudice_pace_scade_sabato: site wrong. The ricorso to the giudice di pace is a
+# procedural act outside the hearing, so art. 155 co. 5 c.p.c. prorogues a Saturday expiry to Monday.

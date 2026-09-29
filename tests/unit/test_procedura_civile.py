@@ -235,6 +235,45 @@ class TestGratuitoPatrocinio:
         )
         assert result["ammesso"] is True
 
+    def test_interessi_in_conflitto_solo_reddito_personale(self):
+        # Art. 76 co. 4 DPR 115/2002: only the applicant's own income counts when
+        # the applicant's interests conflict with those of the cohabiting family.
+        # 9000 <= 13659.64, margin 4659.64 (the household 39000 would exceed it).
+        result = _call(
+            "gratuito_patrocinio",
+            reddito_richiedente=9_000.0,
+            n_familiari_conviventi=1,
+            redditi_familiari=[30_000.0],
+            interessi_in_conflitto=True,
+        )
+        assert result["ammesso"] is True
+        assert result["reddito_totale_nucleo"] == pytest.approx(9_000.0, abs=0.01)
+        assert result["margine"] == pytest.approx(4_659.64, abs=0.01)
+        assert result["solo_reddito_personale"] is True
+
+    def test_diritti_personalita_solo_reddito_personale(self):
+        # Art. 76 co. 4 DPR 115/2002: same rule when the case concerns personality rights.
+        result = _call(
+            "gratuito_patrocinio",
+            reddito_richiedente=9_000.0,
+            n_familiari_conviventi=1,
+            redditi_familiari=[30_000.0],
+            diritti_personalita=True,
+        )
+        assert result["ammesso"] is True
+        assert result["margine"] == pytest.approx(4_659.64, abs=0.01)
+
+    def test_senza_flag_reddito_nucleo_sommato(self):
+        # Art. 76 co. 2: without the co. 4 flags the household income is summed.
+        result = _call(
+            "gratuito_patrocinio",
+            reddito_richiedente=9_000.0,
+            n_familiari_conviventi=1,
+            redditi_familiari=[30_000.0],
+        )
+        assert result["ammesso"] is False
+        assert result["margine"] == pytest.approx(-25_340.36, abs=0.01)
+
     def test_reddito_negativo_errore(self):
         with pytest.raises(ValueError):
             _call("gratuito_patrocinio", reddito_richiedente=-1.0)

@@ -146,3 +146,10 @@ def test_lavorativi_non_confrontabile(page):
     r = _fn(data_evento="2025-04-17", giorni=5, tipo="lavorativi")
     assert r["scadenza"] == "2025-04-28"
     pytest.skip("il sito non offre l'opzione giorni lavorativi (solo giorni di calendario)")
+
+
+# Benchmark phase 3 verdicts (2026-09-29). The failing cases below are site deviations, not tool errors.
+# - Saturday: art. 155 co. 5 c.p.c. extends the co. 4 proroga to procedural acts done outside the
+#   hearing that expire on a Saturday; the site treats Saturday as a working day (site wrong).
+# - 4 October: L. 151/2025 art. 1 co. 2 adds it to art. 2 L. 260/1949 (national holiday from 2026);
+#   the tool applies it via festivita.json (dal_anno 2026), the site does not (site wrong).
