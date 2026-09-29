@@ -3,6 +3,11 @@
 Norma: art. 35 DPR 633/1972 (11 cifre: 7 matricola, 3 codice ufficio, 1 controllo).
 Il sito legge l'esito dalla riga "La Partita IVA e' formalmente corretta / errata"
 e mostra matricola, ufficio (con provincia) e cifra di controllo.
+
+Phase 3: the tool's codice_ufficio now reads digits 8-10 (fixed). The site also rejects
+office codes it does not know (000, 101, 890); the list of assigned codes has no primary
+source that could be read (art. 35 DPR 633/1972 does not define it), so the tool keeps
+validating the check digit only: open point (da_chiarire), the related cases stay red.
 """
 
 import os

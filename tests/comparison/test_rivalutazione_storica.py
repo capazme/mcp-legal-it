@@ -10,6 +10,15 @@ site chains the last annual index (2025) with the monthly FOI December 2025 -> l
 Tolerance: 0,01 EUR on the revalued amount (brief). No wider tolerance is used.
 """
 
+# Phase 3 verdict (2026-09-29): the pre-2020 FOI series was wrong and was rebuilt from the ISTAT
+# monthly series (1990-1995 removed: no primary source, see indici_foi.json _note); the 1990 and
+# 1985-1995 cases are now out of coverage. The remaining gaps are a CONVENTION: the tool averages
+# the 12 published monthly indices (1 decimal), the page uses the ISTAT annual historical index
+# and rounds the coefficient to 3-4 decimals (2015-2023: 1.18738 vs 1.187; 2010-2014: 1.07281 vs
+# 1.072). For the current year the tool uses the partial mean (with a warning), the page chains
+# the last published month. The cases stay failing as documented differences.
+
+
 import os
 import re
 

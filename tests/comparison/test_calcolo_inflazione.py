@@ -150,3 +150,9 @@ def test_giu2011_giu2016_tratto_2011_2013(page):
 def test_giu1995_giu2005_anni_novanta(page):
     """Anni diversi della tabella (base 1995, lira/euro). Atteso dal sito +25,0%."""
     _compare(page, "1995-06-01", "2005-06-01")
+
+
+# Phase 3 verdict (2026-09-29). The FOI series was rebuilt from the ISTAT original bases and spliced with the
+# ISTAT coefficients (1,373 and 1,071; note NM_variazioni_coefficienti.pdf): every case now matches the site
+# except test_dic1989_fuori_serie, a convention: the tool series starts in January 1990 and substitutes the
+# missing month (INDICATIVO warning), the site starts from 1947.

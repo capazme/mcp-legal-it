@@ -84,7 +84,9 @@ def _site(page, anno, pensione_annua, coniuge=False, reddito=None, figli=0, geni
 
 
 def _compare(page, anno, tool_kwargs, site_kwargs, label):
-    r = _call(**tool_kwargs)
+    # The tool takes the reference year explicitly (trattamento minimo of Tabella F): pass the same
+    # year selected on the site, otherwise the tool would use the current one.
+    r = _call(anno=anno, **tool_kwargs)
     assert "errore" not in r, r
     site_total, text = _site(page, anno, **site_kwargs)
     print(f"{label}: tool={r['pensione_netta_annua']} site={site_total} | {text.strip()}")
@@ -112,7 +114,9 @@ def test_coniuge_figlio_minore_reddito_alto(page):
     # Plan: no reduction when the household includes a minor child (art. 1 co. 41
     # L. 335/1995): 80% = 16,000.00; the tool halves the whole 80% (8,000.00).
     # The site reduces only the spouse's 60% share (6,000) and leaves the child's
-    # 20% (4,000) untouched: 10,000.00. Neither matches the plan's reading.
+    # 20% (4,000) untouched: 10,000.00. Phase 3 verdict: the tool is now right (16,000.00,
+    # art. 1 co. 41 L. 335/1995: limits do not apply with minor children in the household);
+    # the site is wrong, so this case stays failing by design.
     _compare(page, 2024,
              dict(pensione_de_cuius=20000, beneficiari={"coniuge": True, "figli": 1, "figli_minori": 1},
                   reddito_beneficiario=50000),

@@ -55,6 +55,7 @@ TABLE_CONSTANTS: dict[str, dict[str, str]] = {
     },
     "src.tools.proprieta_successioni": {
         "_SUCCESSIONE": "imposte_successione",
+        "_TASSI_LEGALI_REGISTRO": "tassi_legali",
         "_USUFRUTTO": "usufrutto_coefficienti",
     },
     "src.tools.risarcimento_danni": {
@@ -124,6 +125,7 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "detrazione_lavoro_dipendente": ("irpef_scaglioni",),
     "genera_modello_atto": ("modelli_atti",),
     "genera_quotazione_docx": ("contributo_unificato", "parametri_forensi"),
+    "imposta_registro_locazioni": ("tassi_legali",),
     "imposte_compravendita": ("imposte_successione",),
     "imposte_successione": ("imposte_successione",),
     "indennita_preavviso": ("preavviso_ccnl",),
@@ -141,6 +143,7 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "parcella_avvocato_penale": ("parametri_forensi",),
     "parcella_stragiudiziale": ("parametri_forensi",),
     "parcella_volontaria_giurisdizione": ("parametri_forensi",),
+    "prescrizione_diritti": ("festivita",),
     "preventivo_civile": ("contributo_unificato", "parametri_forensi"),
     "preventivo_stragiudiziale": ("parametri_forensi",),
     "preventivo_volontaria_giurisdizione": ("parametri_forensi",),

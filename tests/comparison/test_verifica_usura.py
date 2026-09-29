@@ -189,6 +189,9 @@ def test_tasso_con_tre_decimali_sopra_soglia_non_arrotondata(page):
     # Soglia esatta 9,2625. Con 9,263 il tool dice usurario (9,263 > 9,2625); il sito
     # arrotonda l'input a 2 decimali (9,26%) e risponde No. Norma: art. 2 co. 4 L. 108/1996
     # non fissa un numero di decimali. Caso al limite (sub-centesimale).
+    # CONVENZIONE (fase 3): il decreto MEF stampa la soglia a quattro decimali (es. 9,2625) e
+    # il limite e' superato da qualunque tasso maggiore; il tool confronta il valore esatto
+    # (piu' rigoroso), il sito arrotonda l'input. Scostamento accertato e non corretto nel tool.
     riga = _sito(page, "9", 10000, "9,263", "09", "2026")
     (_, _, supera_s), = riga.values()
     r = _tool(9.263, "mutuo_prima_casa", "2026-Q3")

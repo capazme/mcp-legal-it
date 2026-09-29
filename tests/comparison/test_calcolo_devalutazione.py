@@ -125,3 +125,11 @@ def test_giu1985_fuori_serie(page):
     assert "errore" in r
     assert s["importo"] is not None
     pytest.skip(f"non confrontabile: il tool copre dal 1990 (errore), il sito calcola {s['importo']}")
+
+
+# Phase 3 verdict (2026-09-29). The FOI series was rebuilt from the ISTAT original bases (data errors fixed).
+# The residual differences are conventions: (1) the site rounds the revaluation coefficient to 3 decimals
+# (ISTAT practice) before dividing, the tool divides by the exact index ratio; (2) the site uses 1,374 as the
+# 1995>2010 splicing coefficient, ISTAT states 1,373 (NM_variazioni_coefficienti.pdf: dec 2012 -> dec 2010
+# gives 9464.89 with 1,373 and 9460.74 with the site's 1,374); (3) Jan 1990 is a with-tobacco index (base 1989)
+# as in the ISTAT worked example 2.

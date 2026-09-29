@@ -13,6 +13,17 @@ The site accepts dates up to the last published FOI month (Aug 2026 at run time)
 Tolerance: 0.01 EUR on amounts (brief). Mismatches are genuine and are left failing.
 """
 
+# Phase 3 verdict (2026-09-29): the FOI series was rebuilt from the ISTAT monthly series
+# (raccordo 2010->2015 = 1,071 applied to the base-2010 months, as ISTAT does); the 2015-2019
+# indices and dic. 2013 now equal the site's. The remaining gaps are CONVENTIONS that leave the
+# tool unchanged: (a) the page rounds the coefficient to 3 decimals as ISTAT Rivaluta does, the
+# tool keeps the full ratio; (b) interest day count: the page uses N/36500 always and counts the
+# end date, the tool divides by 366 in leap years and does not count it; (c) the page revalues
+# at each anniversary of the start date, the tool at each calendar year with the December index.
+# No norm fixes these choices (Cass. SU 1712/1995 only states the criterion), so the cases below
+# stay failing as documented differences.
+
+
 import os
 import re
 

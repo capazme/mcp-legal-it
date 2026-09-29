@@ -31,6 +31,8 @@ LAUNCHER_SERVER = REPO / "plugin/server/run_server.py"
 # free-form strings with a documented format. Each entry here is a tool the
 # generated arguments could only make fail.
 CURATED = {
+    # millesimi are shares of 1000: the generic 10000.0 sample is rejected since the range check.
+    "spese_condominiali": {"importo_totale": 10000.0, "millesimi_proprietario": 100.0},
     # `tipo_societa` is validated against a closed list that the schema calls a
     # free string; `rate` is a number of installments, and 10000 of them make
     # the Newton-Raphson iteration diverge.

@@ -195,3 +195,9 @@ def test_non_confrontabile_moratori():
     """Site option 'Moratori' (D.Lgs. 231/2002) and anatocismo have no
     counterpart in the tool (only tasso fisso or legale, no capitalisation)."""
     pytest.skip("il tool non offre interessi moratori ne' capitalizzazione: opzioni del sito non coperte")
+
+
+# Phase 3 verdict (2026-09-29). Tool fixed: FOI series (ISTAT original bases) and day count of the last
+# segment (art. 2963 c.c., dies a quo excluded: 365 days for 31/12/2024-31/12/2025). Residual differences
+# are conventions: the site rounds the coefficient to 3 decimals (capital always a multiple of 10 euro on
+# 10,000), works by anniversary years and divides the 2025 segment by 366 (a site error: the year is 365 days).

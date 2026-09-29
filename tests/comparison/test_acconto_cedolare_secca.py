@@ -25,6 +25,16 @@ scostamento lo giudica la fase 2.
 Tolleranza: 0,01 euro sugli importi (brief di benchmark); scadenze confrontate
 su giorno e mese (il tool non indica l'anno, il sito indica il 2026: 30 giugno
 2026 e' martedi', 30 novembre 2026 e' lunedi', nessuna proroga per festivo).
+
+Verdetto fase 2-3 (2026-09-29): convenzione. Il rigo di dichiarazione e' in euro
+interi e il sito arrotonda half-up all'unita' prima di applicare le soglie; il
+tool applica le soglie all'importo esatto (i centesimi non possono comparire nel
+rigo). Nessuna norma impone un arrotondamento diverso: gli scostamenti sui casi
+con i centesimi (51,65; 51,66; 257,53) restano documentati e non vanno corretti.
+Il solo errore del tool era il confine dei centesimi: a 257,52 il 40% e' 103,01 e
+supera euro 103 (art. 17, c. 3, D.P.R. 435/2001), quindi due rate; corretto con
+test unitari in tests/unit/test_dichiarazione_redditi.py. Sugli interi il tool
+coincide con il sito.
 """
 
 import re

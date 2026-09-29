@@ -70,6 +70,40 @@ class TestRendimentoBot:
         r = _call("rendimento_bot", valore_nominale=10000, prezzo_acquisto=-100, giorni_scadenza=90)
         assert "errore" in r
 
+    def test_net_yield_on_total_outlay(self):
+        # MEF scheda BOT: the 12,5% tax is withheld at subscription, so the cash laid out is
+        # price + tax (+ commission). 10.000 nominal at 9.700, 365 days, no commission:
+        # tax 37,50, net 262,50, outlay 9.737,50, net yield 262,50 / 9.737,50 = 2,6958%.
+        r = _call("rendimento_bot", valore_nominale=10000, prezzo_acquisto=9700, giorni_scadenza=365)
+        assert r["esborso_totale"] == 9737.5
+        assert r["guadagno_netto"] == 262.5
+        assert r["rendimento_netto_annuo_pct"] == pytest.approx(2.6958, abs=1e-4)
+        assert r["rendimento_lordo_annuo_pct"] == pytest.approx(3.0928, abs=1e-4)
+
+    def test_commissione_zero_at_or_above_par(self):
+        # D.M. 15/1/2015 (scheda MEF): price at or above 100, no commission to the client.
+        r = _call("rendimento_bot", valore_nominale=10000, prezzo_acquisto=10020,
+                  giorni_scadenza=91, commissione_pct=0.05)
+        assert r["commissione"] == 0.0
+        assert r["guadagno_netto"] == -20.0
+        assert r["rendimento_netto_annuo_pct"] == pytest.approx(-20 / 10020 * 365 / 91 * 100, abs=1e-4)
+
+    def test_commissione_capped_to_keep_total_price_within_par(self):
+        # D.M. 15/1/2015: price 99,90 -> gain 10, tax 1,25; room left for the commission is
+        # 10 - 1,25 = 8,75 euro, below the 0,15% x 10.000 = 15 asked.
+        r = _call("rendimento_bot", valore_nominale=10000, prezzo_acquisto=9990,
+                  giorni_scadenza=300, commissione_pct=0.15)
+        assert r["commissione"] == 8.75
+        assert r["guadagno_netto"] == 0.0
+        assert "avvertenze" in r
+
+    def test_commissione_above_dm_maximum_is_flagged(self):
+        # D.M. 15/1/2015: max 0,10% for 141-270 days; the amount is still computed as asked.
+        r = _call("rendimento_bot", valore_nominale=10000, prezzo_acquisto=9800,
+                  giorni_scadenza=180, commissione_pct=0.20)
+        assert r["commissione"] == 20.0
+        assert any("massimo" in a for a in r["avvertenze"])
+
     def test_short_duration_bot(self):
         r = _call("rendimento_bot", valore_nominale=5000, prezzo_acquisto=4980, giorni_scadenza=91)
         assert isinstance(r["rendimento_netto_annuo_pct"], float)

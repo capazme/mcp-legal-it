@@ -19,6 +19,13 @@ last digit: |tool - site| <= 0.05 percentage points. The brief's four-decimal
 tolerance cannot apply to a one-decimal source.
 """
 
+# Phase 3 verdict (2026-09-29): the FOI series was wrong in 1996-2019 and was rebuilt from the
+# ISTAT monthly series; 2009 is now +0.68 (ISTAT +0.7) and 2012 +2.97 (+3.0). The remaining
+# gaps of 0.05-0.1 pp are a CONVENTION: ISTAT computes the annual variation on annual indices
+# rounded to 1 decimal, the tool on the unrounded mean of the 12 monthly indices (2 decimals).
+# The 1989-1992 case is out of coverage: the ISTAT monthly series starts in 1996.
+
+
 import os
 import re
 import sys

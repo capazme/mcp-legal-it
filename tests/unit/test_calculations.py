@@ -65,7 +65,10 @@ class TestRivalutazioneMonetaria:
         r = _call("src.tools.rivalutazioni_istat", "rivalutazione_monetaria",
                   capitale=1000, data_inizio="2010-01-01", data_fine="2015-01-01",
                   con_interessi_legali=False)
-        assert r["capitale_rivalutato"] == pytest.approx(1049.47, abs=1.0)
+        # ISTAT FOI: gen. 2010 = 136.0 (base 1995) => 136.0 / 1,373 = 99.0532 in base 2010=100;
+        # gen. 2015 = 106.5 (base 2010) => 1000 * 106.5 * 1,373 / 136.0 = 1075.18
+        # (raccordo 1995->2010 = 1,373; the pre-2026-09 table gave 1049.47)
+        assert r["capitale_rivalutato"] == pytest.approx(1075.18, abs=0.01)
         assert r["coefficiente_rivalutazione"] > 1.0
 
     def test_date_order_error(self):

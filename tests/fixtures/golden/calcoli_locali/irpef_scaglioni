@@ -7,14 +7,14 @@
    "arguments": {
     "reddito_complessivo": 10000.0
    },
-   "expected": "{\"reddito_complessivo\":10000.0,\"deduzioni\":0,\"reddito_imponibile\":10000.0,\"tipo_reddito\":\"dipendente\",\"imposta_lorda\":2300.0,\"dettaglio_scaglioni\":[{\"scaglione\":\"0-28000\",\"aliquota_pct\":23,\"base_imponibile\":10000.0,\"imposta\":2300.0}],\"detrazioni\":{\"lavoro\":1955,\"extra\":0,\"totale\":1955},\"imposta_netta\":345.0,\"addizionali\":{\"regionale\":173.0,\"regionale_pct\":1.73,\"comunale\":80.0,\"comunale_pct\":0.8,\"totale\":253.0},\"totale_imposte\":598.0,\"reddito_netto\":9402.0,\"aliquota_effettiva_pct\":5.98,\"anno_fiscale\":2026,\"riferimento_normativo\":\"TUIR — D.P.R. 917/1986, art. 11-13\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+   "expected": "{\"reddito_complessivo\":10000.0,\"deduzioni\":0,\"reddito_imponibile\":10000.0,\"tipo_reddito\":\"dipendente\",\"imposta_lorda\":2300.0,\"dettaglio_scaglioni\":[{\"scaglione\":\"0-28000\",\"aliquota_pct\":23,\"base_imponibile\":10000.0,\"imposta\":2300.0}],\"detrazioni\":{\"lavoro\":1955.0,\"extra\":0,\"totale\":1955.0},\"imposta_netta\":345.0,\"addizionali\":{\"regionale\":173.0,\"regionale_pct\":1.73,\"comunale\":80.0,\"comunale_pct\":0.8,\"totale\":253.0},\"totale_imposte\":598.0,\"reddito_netto\":9402.0,\"aliquota_effettiva_pct\":5.98,\"anno_fiscale\":2026,\"riferimento_normativo\":\"TUIR — D.P.R. 917/1986, art. 11-13\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
   },
   "calcolo_tfr": {
    "arguments": {
     "anni_servizio": 10,
     "retribuzione_annua_lorda": 10000.0
    },
-   "expected": "{\"retribuzione_annua_lorda\":10000.0,\"anni_servizio\":10,\"accantonamento_annuo\":740.74,\"tasso_rivalutazione_pct\":3.0,\"tfr_lordo\":8491.76,\"tassazione_separata\":{\"reddito_riferimento\":10190.11,\"aliquota_media_pct\":23.0,\"imposta\":1953.11},\"tfr_netto\":6538.65,\"riferimento_normativo\":\"Art. 2120 c.c. — Tassazione separata ex art. 17, 19 TUIR\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+   "expected": "{\"retribuzione_annua_lorda\":10000.0,\"anni_servizio\":10,\"anno_cessazione\":2026,\"accantonamento_annuo\":740.74,\"contributo_aggiuntivo_annuo\":50.0,\"tasso_rivalutazione_pct\":3.0,\"tfr_lordo\":7904.61,\"rivalutazioni_lorde\":997.2,\"imposta_sostitutiva_rivalutazioni\":169.52,\"tfr_al_netto_imposta_sostitutiva\":7735.08,\"imponibile\":6737.88,\"tassazione_separata\":{\"reddito_riferimento\":8085.46,\"aliquota_media_pct\":23.0,\"imposta_lorda\":1549.71,\"detrazione_tempo_determinato\":0.0,\"imposta\":1549.71},\"tfr_netto\":6185.37,\"riferimento_normativo\":\"Art. 2120 c.c.; art. 3 L. 297/1982; art. 11 c. 3 D.Lgs. 47/2000; artt. 17 e 19 TUIR\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
   },
   "costo_lavoro": {
    "arguments": {
@@ -26,7 +26,7 @@
    "arguments": {
     "reddito_complessivo": 10000.0
    },
-   "expected": "{\"reddito_complessivo\":10000.0,\"giorni_lavoro\":365,\"fascia\":\"fino a 15.000€\",\"detrazione_annua_piena\":1955,\"detrazione_rapportata\":1955.0,\"riferimento_normativo\":\"Art. 13, comma 1, TUIR — D.P.R. 917/1986 (scaglioni 2026 ex L. 199/2025)\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
+   "expected": "{\"reddito_complessivo\":10000.0,\"giorni_lavoro\":365,\"tempo_determinato\":false,\"fascia\":\"fino a 15.000€\",\"detrazione_annua_piena\":1955,\"minimo_applicabile\":690,\"aumento_comma_1_1\":0,\"detrazione_rapportata\":1955.0,\"riferimento_normativo\":\"Art. 13, commi 1, 1.1 e 6 TUIR — D.P.R. 917/1986\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\"]}"
   },
   "regime_forfettario": {
    "arguments": {

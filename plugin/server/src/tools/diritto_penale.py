@@ -37,7 +37,11 @@ def aumenti_riduzioni_pena(
     Calcola la pena finale partendo dalla pena base edittale, applicando in sequenza
     recidiva (+1/3), aggravanti (aumenti percentuali) e attenuanti (riduzioni percentuali).
     Per simulare il patteggiamento usare pena_concordata; per la data fine pena usare fine_pena.
-    Vigenza: Artt. 63-69 c.p. (aumenti/riduzioni); art. 99 c.p. (recidiva).
+    Vigenza: Artt. 63-69 c.p. (aumenti/riduzioni); art. 99 c.p. (recidiva); art. 67 co. 2 c.p.
+    (con piu' attenuanti la pena non scende sotto un quarto, calcolato sulla pena prima delle
+    attenuanti; non applicato se una attenuante e' ad effetto speciale). Non applica l'art. 66 c.p.
+    (tetti massimi) ne' il bilanciamento dell'art. 69 c.p.; non tronca le frazioni di giorno
+    (art. 134 co. 2 c.p.: il risultato e' in mesi decimali).
     Precisione: INDICATIVO (il giudice applica le variazioni discrezionalmente nei limiti di legge).
     Chaining: → pena_concordata() per simulare un patteggiamento
 
@@ -76,6 +80,7 @@ def aumenti_riduzioni_pena(
                 "mesi": round(pena, 2),
             })
 
+    pena_pre_attenuanti = pena
     if attenuanti:
         for att in attenuanti:
             pct = att.get("riduzione_pct")
@@ -90,12 +95,33 @@ def aumenti_riduzioni_pena(
                 "mesi": round(pena, 2),
             })
 
+    # Art. 67 co. 2 c.p.: con piu' attenuanti la pena non puo' essere applicata in misura
+    # inferiore a un quarto, salvo le circostanze ad effetto speciale (diminuzione superiore
+    # a un terzo, art. 63 co. 3 c.p.), che il tool non sa trattare: in quel caso il limite
+    # non viene applicato e la nota lo dichiara.
+    limite_art67 = None
+    if attenuanti and len(attenuanti) >= 2:
+        if all(a["riduzione_pct"] <= 100 / 3 + 0.001 for a in attenuanti):
+            minimo = pena_pre_attenuanti / 4
+            if pena < minimo:
+                pena = minimo
+                limite_art67 = "applicato: pena non inferiore a un quarto (art. 67 co. 2 c.p.)"
+                dettaglio.append({
+                    "step": "Limite art. 67 co. 2 c.p. (non meno di 1/4)",
+                    "mesi": round(pena, 2),
+                })
+        else:
+            limite_art67 = (
+                "non applicato: presenti attenuanti ad effetto speciale (oltre 1/3, art. 63 co. 3 c.p.)"
+            )
+
     pena = max(0.0, pena)
     anni = int(pena // 12)
     mesi_residui = round(pena % 12, 2)
 
     return {
         "pena_base_mesi": pena_base_mesi,
+        "limite_art_67": limite_art67,
         "pena_risultante_mesi": round(pena, 2),
         "pena_risultante_formato": f"{anni} anni e {mesi_residui} mesi" if anni else f"{mesi_residui} mesi",
         "recidiva_applicata": recidiva,
@@ -165,7 +191,11 @@ def fine_pena(
     Sottrae i giorni di presofferto (custodia cautelare) e calcola il beneficio della
     liberazione anticipata ex art. 54 L. 354/1975 (ordinamento penitenziario).
     Per calcolare la pena da scontare (con aggravanti/attenuanti) usare aumenti_riduzioni_pena.
-    Vigenza: Art. 54 L. 354/1975 (ordinamento penitenziario).
+    Vigenza: Art. 54 co. 1 L. 354/1975 (45 giorni per ogni singolo semestre di pena scontata, quindi
+    solo i semestri di calendario compiuti prima della scarcerazione, ciascuno valutato rispetto alla
+    fine pena risultante dai semestri precedenti;
+    la custodia cautelare e' valutata); art. 14 c.p. Non applica la detrazione di 75 giorni
+    dell'art. 4 D.L. 146/2013 (periodo 2014-2015 concluso).
     Precisione: INDICATIVO (la liberazione anticipata è concessa discrezionalmente dal magistrato di sorveglianza).
 
     Args:
@@ -199,8 +229,13 @@ def fine_pena(
 
     if liberazione_anticipata:
         # 45 days reduction per semester served (art. 54 L. 354/1975)
-        giorni_totali = (dt_fine - dt_inizio_effettivo).days
-        semestri = giorni_totali // 180
+        # The detraction is due "per ogni singolo semestre di pena scontata": a semester
+        # counts only if it is completed strictly before the release date resulting from
+        # the previous semesters (a semester ending on the nominal end grants nothing), not
+        # for every 180 days of the nominal sentence.
+        semestri = 0
+        while _add_months(dt_inizio_effettivo, 6 * (semestri + 1)) < dt_fine - timedelta(days=45 * semestri):
+            semestri += 1
         sconto_giorni = semestri * 45
         dt_fine_anticipata = dt_fine - timedelta(days=sconto_giorni)
         result.update({

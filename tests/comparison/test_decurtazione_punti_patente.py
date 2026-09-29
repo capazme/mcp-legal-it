@@ -7,6 +7,10 @@ lette una sola volta e i punti del tool si confrontano voce per voce, agganciand
 la riga del sito per articolo e comma. Le voci a 0 punti non compaiono nella
 tabella del sito: per il confronto "assente dalla tabella" equivale a 0 punti.
 Sanzioni pecuniarie/accessorie non sono pubblicate dal sito: non confrontabili.
+
+Phase 3 note: the site has no art. 193 row in its table, but art. 193 c.2 (insurance, 5 points)
+is in the table annexed to art. 126-bis according to ACI and certifico 2025 reproductions; the
+tool is kept, the site is incomplete.
 """
 
 import os
@@ -132,9 +136,8 @@ def test_cellulare_recidiva_biennio(sito):
     r = _fn(violazione="cellulare")
     sito_punti = _punti_sito(sito, r"^art\. 173, comma 3 bis")
     assert sito_punti == [5, 10], sito_punti
-    assert sorted({r["punti"]}) == sito_punti, (
-        f"tool espone solo {r['punti']} punti, il sito anche 10 punti per la recidiva biennale"
-    )
+    # Phase 3: the tool now exposes both values (punti 5, punti_recidiva_biennio 10).
+    assert [r["punti"], r["punti_recidiva_biennio"]] == sito_punti
 
 
 def test_precedenza_e_stop(sito):

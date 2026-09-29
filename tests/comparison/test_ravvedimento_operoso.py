@@ -44,6 +44,14 @@ Convenzioni osservate sul sito (2026-09-25):
   sito): il test confronta quindi il totale del tool con imposta + sanzione +
   interessi esposti dal sito, e riporta il TOTALE F24 solo nei messaggi.
 
+Verdetto fase 2-3 (2026-09-29): tool_errato corretto su soglia della lett. b)
+(termine della dichiarazione, non 365 giorni), 1/7 senza limite superiore (lett.
+b-bis), interessi per anno (art. 13, co. 2), arrotondamento unico dell'importo,
+rifiuto del previgente; il tool ha ora il parametro data_scadenza. Restano
+scostamenti dovuti al sito (percentuale arrotondata a due decimali: 0,42%,
+1,39%, 3,13%; 1/6 oltre il termine della seconda dichiarazione, testo previgente
+della lett. b-ter) e il totale F24 che esclude importi sotto 1,03.
+
 Tolleranza: 0,01 euro (brief di benchmark); giorni e frazione di riduzione
 esatti. I test confrontano tool == sito e raccolgono tutte le differenze del
 caso in un'unica asserzione: uno scostamento genuino resta un fallimento (lo
@@ -71,19 +79,25 @@ _FRAZIONE_TOOL = {
     "breve": 10,
     "intermedio": 9,
     "lungo": 8,
-    "biennale": 7,
-    "ultrannuale": 6,
+    "oltre": 7,  # lett. b-bis), 1/7 senza limite superiore (dopo la fase 3)
 }
 
 
-def _tool(imposta: float, giorni: int, tipo: str = "omesso_versamento") -> dict:
+def _tool(imposta: float, giorni: int, tipo: str = "omesso_versamento", scadenza: date | None = None) -> dict:
     import importlib
 
     import src.server  # noqa: F401  -- registra i moduli (evita import circolari)
 
     mod = importlib.import_module("src.tools.dichiarazione_redditi")
     fn = getattr(mod.ravvedimento_operoso, "fn", mod.ravvedimento_operoso)
-    r = fn(imposta_dovuta=imposta, giorni_ritardo=giorni, tipo=tipo)
+    r = fn(
+        imposta_dovuta=imposta, giorni_ritardo=giorni, tipo=tipo,
+        data_scadenza=scadenza.isoformat() if scadenza else "",
+    )
+    if "errore" in r and scadenza and scadenza < date(2024, 9, 1):
+        # Fase 3: il tool rifiuta le violazioni previgenti (base 30%) invece di
+        # restituire un valore sulla base del 25%: non confrontabile.
+        pytest.skip("non_confrontabile: regime previgente rifiutato dal tool")
     assert "errore" not in r, r
     etichetta = r["tipo_ravvedimento"].split()[0]
     return {
@@ -159,7 +173,7 @@ def _site(page, importo: float, scadenza: date, ravvedimento: date) -> dict:
 
 def _confronta(importo: float, scadenza: date, ravvedimento: date, page) -> None:
     giorni = (ravvedimento - scadenza).days
-    t = _tool(importo, giorni)
+    t = _tool(importo, giorni, scadenza=scadenza)
     s = _site(page, importo, scadenza, ravvedimento)
 
     diff = []

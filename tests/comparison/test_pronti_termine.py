@@ -1,3 +1,8 @@
+# FASE 3 (verdetto: sito_errato). Amounts coincide. The site's net annual yield divides by capital PLUS
+# the withholding tax; on a full year 222/10.000 must be 2,22% (site 2,203%). For a PCT the ritenuta is
+# taken on the proventi when they are paid at maturity (art. 26 c. 3-bis DPR 600/1973; art. 2 D.Lgs.
+# 239/1996 for titoli di Stato at 12,5%, DL 66/2014 26% otherwise), so it is not part of the capital laid
+# out. The tool divides by the capital: correct, nothing changed.
 """Comparison: pronti_termine vs avvocatoandreani.it (calcolo-rendimento-pronti-contro-termine.php).
 
 Norma: art. 3 D.L. 66/2014 (26% in generale; 12,5% sui proventi di PCT su titoli

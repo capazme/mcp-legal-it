@@ -51,14 +51,14 @@ def rendimento_bot(
     commissione_pct: float = 0.0,
 ) -> dict:
     """Calcola il rendimento netto di un BOT (Buono Ordinario del Tesoro, zero-coupon).
-    Vigenza: D.Lgs. 239/1996 — imposta sostitutiva 12,5% sulla plusvalenza (scarto di emissione).
-    Precisione: ESATTO (formula rendimento annualizzato su base 365gg; imposta sulla plusvalenza).
+    Vigenza: art. 2 D.Lgs. 239/1996 e art. 3 co. 2 D.L. 66/2014 (imposta sostitutiva 12,5% sullo scarto di emissione, trattenuta alla sottoscrizione); D.M. 15 gennaio 2015 (trasparenza nel collocamento: tetto e azzeramento delle commissioni), verificati al 2026-09-29 sulla scheda MEF dei BOT.
+    Precisione: ESATTO per importi, imposta e commissione; il rendimento annuo è semplice su base 365 giorni (la convenzione di mercato del MEF per i BOT è giorni effettivi/360: il campo *_base_360 la riporta). Il rendimento netto è calcolato sull'esborso reale (prezzo + imposta + commissione), perché l'imposta si paga alla sottoscrizione.
 
     Args:
         valore_nominale: Valore nominale del BOT in euro — importo rimborsato a scadenza (€)
         prezzo_acquisto: Prezzo di acquisto in euro (€), normalmente inferiore al nominale
         giorni_scadenza: Giorni residui alla scadenza (interi positivi)
-        commissione_pct: Commissione bancaria percentuale sul nominale (es. 0.15 per 0,15%)
+        commissione_pct: Commissione bancaria percentuale sul nominale (es. 0.15 per 0,15%). Massimi D.M. 15/1/2015: 0,03% fino a 80 giorni, 0,05% da 81 a 140, 0,10% da 141 a 270, 0,15% da 271; ridotta o annullata se prezzo + imposta + commissione supera il nominale
     """
     if giorni_scadenza <= 0:
         return {"errore": "giorni_scadenza deve essere positivo"}
@@ -68,14 +68,40 @@ def rendimento_bot(
         return {"errore": "valore_nominale deve essere positivo"}
 
     plusvalenza = valore_nominale - prezzo_acquisto
-    commissione = valore_nominale * commissione_pct / 100
     imposta = plusvalenza * _ALIQUOTA_TITOLI_STATO / 100 if plusvalenza > 0 else 0.0
+
+    # D.M. 15/1/2015: with a price at or above par no commission is charged; below par
+    # the commission is cut so that price + imposta + commission never exceeds the nominal.
+    commissione_richiesta = valore_nominale * commissione_pct / 100
+    if plusvalenza <= 0:
+        commissione = 0.0
+    else:
+        commissione = min(commissione_richiesta, max(plusvalenza - imposta, 0.0))
+    avvertenze = []
+    if commissione < commissione_richiesta - 1e-9:
+        avvertenze.append(
+            "commissione ridotta o annullata (D.M. 15/1/2015): prezzo + imposta + commissione non può superare il nominale"
+        )
+    if giorni_scadenza <= 80:
+        massimo = 0.03
+    elif giorni_scadenza <= 140:
+        massimo = 0.05
+    elif giorni_scadenza <= 270:
+        massimo = 0.10
+    else:
+        massimo = 0.15
+    if commissione_pct > massimo + 1e-12:
+        avvertenze.append(f"commissione oltre il massimo di {massimo:.2f}% previsto dal D.M. 15/1/2015 per questa durata")
+
     guadagno_netto = plusvalenza - imposta - commissione
+    esborso = prezzo_acquisto + imposta + commissione  # the tax is withheld at subscription
 
     rendimento_lordo_annuo = (plusvalenza / prezzo_acquisto) * (365 / giorni_scadenza) * 100
-    rendimento_netto_annuo = (guadagno_netto / prezzo_acquisto) * (365 / giorni_scadenza) * 100
+    rendimento_netto_annuo = (guadagno_netto / esborso) * (365 / giorni_scadenza) * 100
+    rendimento_lordo_360 = (plusvalenza / prezzo_acquisto) * (360 / giorni_scadenza) * 100
+    rendimento_netto_360 = (guadagno_netto / esborso) * (360 / giorni_scadenza) * 100
 
-    return {
+    risultato = {
         "valore_nominale": valore_nominale,
         "prezzo_acquisto": prezzo_acquisto,
         "giorni_scadenza": giorni_scadenza,
@@ -84,10 +110,16 @@ def rendimento_bot(
         "imposta": round(imposta, 2),
         "commissione": round(commissione, 2),
         "guadagno_netto": round(guadagno_netto, 2),
+        "esborso_totale": round(esborso, 2),
         "rendimento_lordo_annuo_pct": round(rendimento_lordo_annuo, 4),
         "rendimento_netto_annuo_pct": round(rendimento_netto_annuo, 4),
-        "riferimento_normativo": "D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato",
+        "rendimento_lordo_annuo_base_360_pct": round(rendimento_lordo_360, 4),
+        "rendimento_netto_annuo_base_360_pct": round(rendimento_netto_360, 4),
+        "riferimento_normativo": "D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato; D.M. 15/1/2015 (commissioni BOT)",
     }
+    if avvertenze:
+        risultato["avvertenze"] = avvertenze
+    return risultato
 
 
 @mcp.tool(tags={"investimenti"})

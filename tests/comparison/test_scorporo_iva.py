@@ -8,6 +8,13 @@ Site page: /servizi/scorporo-iva-calcoli-percentuali-frequenti.php
 Rounding convention: the tool rounds the imponibile and gets the IVA as importo - imponibile
 (computed on unrounded values, then rounded); the site rounds each result independently,
 so a one-cent divergence on the IVA is possible (see the boundary cases).
+
+Phase 3 verdict: convention. DPR 633/1972 fixes no rounding rule for scorporo; the only euro
+rounding rule (reg. CE 1103/97 art. 5, half up, for conversions) does not govern it. Both
+sides are defensible: the tool keeps imponibile + iva == importo_ivato, the site rounds
+each figure alone (so on 1,17 at 4% it shows 1,13 + 0,05 = 1,18 != 1,17). The two boundary
+cases (0,13 and 1,17 at 4%) fail by one cent on exact half cents; the tool's float round()
+is not half-up there (open point for the coordinator, no code change made).
 """
 
 import re

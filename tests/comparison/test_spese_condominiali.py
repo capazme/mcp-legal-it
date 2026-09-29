@@ -207,7 +207,9 @@ def test_locato_ordinaria_portierato(page):
     ordinaria della guardiola" at P 10% / I 90%. For an ordinary expense of
     that kind the tenant share is 855,00 x 90% = 769,50.
     """
-    tool = TOOL(importo_totale=10000, millesimi_proprietario=85.5, tipo_spesa="ordinaria", immobile_locato=True)
+    # Phase 3: the portineria is now its own expense type (art. 9 co. 2 L. 392/1978, 90% tenant);
+    # the generic 'ordinaria' type stays 100% tenant, so this case uses 'portineria'.
+    tool = TOOL(importo_totale=10000, millesimi_proprietario=85.5, tipo_spesa="portineria", immobile_locato=True)
     page.goto(f"{URL_PI}?tabella=2&menu=210", timeout=60000, wait_until="domcontentloaded")
     accept_cookies(page)
     page.wait_for_timeout(1500)

@@ -1,10 +1,12 @@
 """Utilità generali: codice fiscale (DM 12/03/1974), IBAN, conteggio giorni lavorativi,
 prescrizione diritti civili, tasso alcolemico (art. 186 CdS), ATECO, scorporo IVA."""
 
+import calendar
 import json
 import os
 import platform
 import sys
+import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -40,6 +42,38 @@ with open(_DATA / "violazioni_patente.json", encoding="utf-8") as f:
 
 def _parse_date(d: str) -> date:
     return date.fromisoformat(d)
+
+
+def _add_months(d: date, n: int) -> date:
+    """Add n calendar months; a missing day falls back to the last day of the target month."""
+    y, m = divmod(d.month - 1 + n, 12)
+    year, month = d.year + y, m + 1
+    return date(year, month, min(d.day, calendar.monthrange(year, month)[1]))
+
+
+def _diff_ymd(start: date, end: date) -> tuple[int, int, int]:
+    """Years, months, days between two dates (start <= end) by the common calendar.
+
+    Art. 2963 c.c., commi 4-5: a period in months runs to the day of the expiry month that
+    matches the initial day; if that day is missing the period ends on the last day of the
+    month. Complete months are counted that way, the remainder is the days left.
+    """
+    mesi_tot = (end.year - start.year) * 12 + end.month - start.month
+    if _add_months(start, mesi_tot) > end:
+        mesi_tot -= 1
+    giorni = (end - _add_months(start, mesi_tot)).days
+    anni, mesi = divmod(mesi_tot, 12)
+    return anni, mesi, giorni
+
+
+def _plurale(n: int, sing: str, plur: str) -> str:
+    return f"{n} {sing if n == 1 else plur}"
+
+
+def _descrizione_ymd(anni: int, mesi: int, giorni: int) -> str:
+    return ", ".join(
+        [_plurale(anni, "anno", "anni"), _plurale(mesi, "mese", "mesi"), _plurale(giorni, "giorno", "giorni")]
+    )
 
 
 # --- Codice Fiscale helpers ---
@@ -78,12 +112,20 @@ def _deomocodia(s: str) -> str:
     return "".join(_OMOCODIA_MAP.get(c, c) for c in s)
 
 
+def _fold(s: str) -> str:
+    """Upper-case and strip diacritics: an accented vowel counts as the plain vowel
+    (Nicolò -> NICOLO), as the Agenzia delle Entrate does. Apostrophes and hyphens are
+    not letters and are ignored by the callers."""
+    decomposed = unicodedata.normalize("NFD", s.upper())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
 def _extract_consonants(s: str) -> str:
-    return "".join(c for c in s.upper() if c.isalpha() and c not in "AEIOU")
+    return "".join(c for c in _fold(s) if c.isalpha() and c not in "AEIOU")
 
 
 def _extract_vowels(s: str) -> str:
-    return "".join(c for c in s.upper() if c in "AEIOU")
+    return "".join(c for c in _fold(s) if c in "AEIOU")
 
 
 def _cf_cognome(cognome: str) -> str:
@@ -134,6 +176,7 @@ def codice_fiscale(
     """Genera il codice fiscale italiano a 16 caratteri secondo l'algoritmo ufficiale.
 
     Vigenza: DM 12/03/1974 — Agenzia delle Entrate; database comuni e stati esteri aggiornato.
+    Le vocali accentate valgono come la vocale semplice (Nicolò = NICOLO); apostrofi e trattini sono ignorati.
     Precisione: ESATTO (algoritmo ufficiale con carattere di controllo); possibile omonimia non gestita (codice jolly).
 
     Args:
@@ -162,12 +205,12 @@ def codice_fiscale(
     if not catastale:
         return {"errore": f"Comune o stato estero '{comune_nascita}' non trovato nel database"}
 
+    for etichetta, valore in (("cognome", cognome), ("nome", nome)):
+        lettere = [c for c in _fold(valore) if c.isalpha()]
+        if not lettere or any(not ("A" <= c <= "Z") for c in lettere):
+            return {"errore": f"{etichetta} non valido (solo lettere dell'alfabeto latino, anche accentate)"}
     part_cognome = _cf_cognome(cognome)
     part_nome = _cf_nome(nome)
-    if not any(c.isalpha() for c in cognome):
-        return {"errore": "cognome non valido"}
-    if not any(c.isalpha() for c in nome):
-        return {"errore": "nome non valido"}
     part_anno = f"{dt.year % 100:02d}"
     part_mese = _MESE_CF[dt.month]
     giorno = dt.day if sesso == "M" else dt.day + 40
@@ -197,6 +240,8 @@ def decodifica_codice_fiscale(codice_fiscale: str, mappa_comuni: dict | None = N
     """Decodifica un codice fiscale italiano a 16 caratteri estraendo i dati anagrafici.
 
     Nota: l'anno di nascita è stimato (ambiguità di secolo); i caratteri cognome/nome non sono reversibili.
+    Il secolo scelto è il più recente che non collochi la nascita nel futuro (rispetto alla data odierna):
+    con oggi 2026, l'anno 29 dà 1929 e l'anno 26 dà 2026.
     Vigenza: DM 12/03/1974 — Agenzia delle Entrate.
     Precisione: ESATTO per validità formale (carattere controllo); INDICATIVO per anno di nascita (stima 1900/2000).
 
@@ -223,8 +268,8 @@ def decodifica_codice_fiscale(codice_fiscale: str, mappa_comuni: dict | None = N
         anno = int(anno_part)
     except ValueError:
         return {"errore": "Anno di nascita non valido nel codice fiscale"}
-    # Heuristic: 00-29 -> 2000s, 30-99 -> 1900s
-    anno_completo = 2000 + anno if anno <= 29 else 1900 + anno
+    # The CF carries only two digits of the year: pick the most recent century that does not
+    # put the birth date in the future (2029 is impossible today, so 29 -> 1929).
 
     # Month
     mese_char = cf[8]
@@ -245,10 +290,19 @@ def decodifica_codice_fiscale(codice_fiscale: str, mappa_comuni: dict | None = N
         giorno = giorno_raw
 
     # Date
-    try:
-        data_nascita = date(anno_completo, mese, giorno)
-    except ValueError:
+    oggi = _clock.today()
+    data_nascita = None
+    for secolo in (2000, 1900):
+        try:
+            candidata = date(secolo + anno, mese, giorno)
+        except ValueError:
+            continue
+        if candidata <= oggi:
+            data_nascita = candidata
+            break
+    if data_nascita is None:
         return {"errore": "Data di nascita non valida nel codice fiscale"}
+    anno_completo = data_nascita.year
 
     # Comune lookup (reverse); de-omocodify the numeric part of the cadastral code
     codice_catastale = cf[11] + _deomocodia(cf[12:15])
@@ -475,8 +529,11 @@ def decurtazione_punti_patente(violazione: str, tabella_violazioni: dict | None 
 
     Accetta parola chiave e restituisce tutte le violazioni corrispondenti con i relativi punti decurtati.
     Vigenza: art. 126-bis D.Lgs. 285/1992 e tabella allegata, come aggiornati dalla L. 25 novembre
-        2024 n. 177 (riforma del Codice della Strada).
+        2024 n. 177 (riforma del Codice della Strada). Art. 173 c.3-bis: 5 punti, 10 alla ulteriore
+        violazione nel biennio (voce `cellulare_recidiva`, campo `punti_recidiva_biennio`); art. 173 c.3
+        (lenti): 8 punti. Verificato al 29/09/2026.
     Precisione: ESATTO per violazioni presenti nel database; verificare aggiornamenti per riforme recenti.
+    Il tool non applica il raddoppio dei punti per i neopatentati.
 
     Args:
         violazione: Parola chiave della violazione (es. 'cellulare', 'cintura', 'semaforo_rosso', 'eccesso_velocita_10', 'guida_ebbra', 'sorpasso_divieto')
@@ -591,6 +648,7 @@ def tasso_alcolemico(
 
 
 @mcp.tool(tags={"utility"})
+@sourced("festivita")
 def prescrizione_diritti(
     tipo_diritto: str,
     data_evento: str,
@@ -601,6 +659,9 @@ def prescrizione_diritti(
     I termini possono essere sospesi o interrotti da atti specifici (diffida, citazione, riconoscimento debito).
     Vigenza: Termini ex c.c.: art. 2946 (ordinaria 10a), 2947 (danni 5a/RCA 2a), 2948 (lavoro 5a),
     2956 (professionisti 3a), 1495 (vizi vendita 1a), 1667 (appalto 2a); L. 335/1995 (previdenza 5a).
+    Art. 2963 c.c.: dies a quo escluso; se il termine scade in domenica o in un giorno festivo nazionale
+    è prorogato di diritto al primo giorno non festivo (il sabato non è festivo); se nel mese di scadenza
+    manca il giorno (29 febbraio) il termine si compie l'ultimo giorno del mese. Verificato al 29/09/2026.
     Precisione: INDICATIVO (sospensioni e interruzioni non sono calcolate automaticamente).
 
     Args:
@@ -633,6 +694,11 @@ def prescrizione_diritti(
         data_prescrizione = date(dt_evento.year + anni, dt_evento.month, dt_evento.day)
     except ValueError:
         data_prescrizione = date(dt_evento.year + anni, dt_evento.month, 28)
+    # Art. 2963 c. 3 c.c.: a term expiring on a holiday is extended by right to the next
+    # non-holiday day. Sundays and national holidays count, Saturdays do not.
+    scadenza_naturale = data_prescrizione
+    while data_prescrizione.weekday() == 6 or data_prescrizione in _get_holidays(data_prescrizione.year):
+        data_prescrizione += timedelta(days=1)
     oggi = _clock.today()
     prescritto = oggi > data_prescrizione
     giorni_mancanti = (data_prescrizione - oggi).days if not prescritto else 0
@@ -642,6 +708,8 @@ def prescrizione_diritti(
         "data_evento": data_evento,
         "termine_anni": anni,
         "data_prescrizione": data_prescrizione.isoformat(),
+        "scadenza_naturale": scadenza_naturale.isoformat(),
+        "prorogata_per_festivo": data_prescrizione != scadenza_naturale,
         "prescritto": prescritto,
         "giorni_mancanti": giorni_mancanti,
         "nota": "I termini possono essere sospesi o interrotti da atti specifici (diffida, citazione, riconoscimento del debito).",
@@ -657,6 +725,8 @@ def calcolo_tempo_trascorso(
     """Calcola il tempo trascorso tra due date espresso in anni, mesi e giorni.
 
     Utile per calcolare anzianità lavorativa, durata contratti, età al fatto, termini processuali.
+    Vigenza: art. 2963 c.c., commi 4-5 (calendario comune; mese compiuto nel giorno corrispondente
+    o, se manca, nell'ultimo giorno del mese), verificato al 29/09/2026.
     Precisione: ESATTO (calcolo calendario esatto con gestione anni bisestili).
 
     Args:
@@ -679,27 +749,7 @@ def calcolo_tempo_trascorso(
     if dt_fine < dt_inizio:
         return {"errore": "data_fine deve essere uguale o successiva a data_inizio"}
 
-    # Calculate years, months, days
-    anni = dt_fine.year - dt_inizio.year
-    mesi = dt_fine.month - dt_inizio.month
-    giorni = dt_fine.day - dt_inizio.day
-
-    if giorni < 0:
-        mesi -= 1
-        # Days in previous month
-        prev_month = dt_fine.month - 1 if dt_fine.month > 1 else 12
-        prev_year = dt_fine.year if dt_fine.month > 1 else dt_fine.year - 1
-        if prev_month in (1, 3, 5, 7, 8, 10, 12):
-            days_prev = 31
-        elif prev_month in (4, 6, 9, 11):
-            days_prev = 30
-        else:
-            days_prev = 29 if (prev_year % 4 == 0 and (prev_year % 100 != 0 or prev_year % 400 == 0)) else 28
-        giorni += days_prev
-
-    if mesi < 0:
-        anni -= 1
-        mesi += 12
+    anni, mesi, giorni = _diff_ymd(dt_inizio, dt_fine)
 
     giorni_totali = (dt_fine - dt_inizio).days
 
@@ -710,7 +760,7 @@ def calcolo_tempo_trascorso(
         "mesi": mesi,
         "giorni": giorni,
         "giorni_totali": giorni_totali,
-        "descrizione": f"{anni} anni, {mesi} mesi, {giorni} giorni",
+        "descrizione": _descrizione_ymd(anni, mesi, giorni),
     }
 
 
@@ -718,8 +768,11 @@ def calcolo_tempo_trascorso(
 def verifica_partita_iva(partita_iva: str) -> dict:
     """Valida formalmente una partita IVA italiana tramite algoritmo di controllo (11 cifre).
 
-    Vigenza: DPR 633/1972 art. 35 — struttura P.IVA italiana; algoritmo di controllo invariato.
-    Precisione: ESATTO per validità formale algoritmica; non verifica attivazione effettiva presso Agenzia Entrate.
+    Vigenza: DPR 633/1972 art. 35 (attribuzione del numero) — struttura P.IVA italiana secondo l'Agenzia
+    delle Entrate: 7 cifre di matricola, 3 di codice ufficio (cifre 8-10), 1 di controllo; algoritmo
+    di controllo invariato. Verificato al 29/09/2026.
+    Precisione: ESATTO per validità formale algoritmica; non verifica attivazione effettiva presso Agenzia Entrate
+    né che il codice ufficio sia tra quelli attribuiti (non controllato).
 
     Args:
         partita_iva: Numero di partita IVA italiano (11 cifre numeriche)
@@ -731,8 +784,10 @@ def verifica_partita_iva(partita_iva: str) -> dict:
     if len(piva) != 11:
         return {"valido": False, "errore": f"La partita IVA deve essere di 11 cifre, trovate {len(piva)}"}
 
-    # Codice provincia (prime 2 cifre per persone fisiche, 3 per soggetti diversi)
-    codice_ufficio = piva[:2]
+    # Structure (Agenzia delle Entrate): 7 digits progressive number, 3 digits code of the
+    # provincial office that issued it (digits 8-10), 1 check digit.
+    matricola = piva[:7]
+    codice_ufficio = piva[7:10]
 
     # Luhn-like algorithm for Italian VAT numbers
     somma = 0
@@ -752,6 +807,7 @@ def verifica_partita_iva(partita_iva: str) -> dict:
     return {
         "partita_iva": piva,
         "valido": valido,
+        "matricola": matricola,
         "codice_ufficio": codice_ufficio,
         "cifra_controllo_attesa": check_digit,
         "cifra_controllo_presente": int(piva[10]),
@@ -766,6 +822,9 @@ def calcolo_eta_anagrafica(
     """Calcola l'età anagrafica esatta in anni, mesi e giorni con data del prossimo compleanno.
 
     Utile per verificare maggiore età, capacità d'agire, accesso a prestazioni per fascia d'età.
+    Vigenza: calendario comune con la regola dell'art. 2963 c.c., commi 4-5, applicata per analogia
+    all'età (chi nasce il 29 febbraio compie gli anni il 28 febbraio negli anni non bisestili),
+    verificato al 29/09/2026.
     Precisione: ESATTO (calcolo calendario esatto con gestione anni bisestili).
 
     Args:
@@ -788,26 +847,8 @@ def calcolo_eta_anagrafica(
     if dt_rif < dt_nascita:
         return {"errore": "La data di riferimento deve essere successiva alla data di nascita"}
 
-    # Age calculation
-    anni = dt_rif.year - dt_nascita.year
-    mesi = dt_rif.month - dt_nascita.month
-    giorni = dt_rif.day - dt_nascita.day
-
-    if giorni < 0:
-        mesi -= 1
-        prev_month = dt_rif.month - 1 if dt_rif.month > 1 else 12
-        prev_year = dt_rif.year if dt_rif.month > 1 else dt_rif.year - 1
-        if prev_month in (1, 3, 5, 7, 8, 10, 12):
-            days_prev = 31
-        elif prev_month in (4, 6, 9, 11):
-            days_prev = 30
-        else:
-            days_prev = 29 if (prev_year % 4 == 0 and (prev_year % 100 != 0 or prev_year % 400 == 0)) else 28
-        giorni += days_prev
-
-    if mesi < 0:
-        anni -= 1
-        mesi += 12
+    # Complete years/months by the common calendar (art. 2963 c.c., commi 4-5, by analogy)
+    anni, mesi, giorni = _diff_ymd(dt_nascita, dt_rif)
 
     # Next birthday
     try:
@@ -828,7 +869,7 @@ def calcolo_eta_anagrafica(
         "eta_anni": anni,
         "eta_mesi": mesi,
         "eta_giorni": giorni,
-        "descrizione": f"{anni} anni, {mesi} mesi, {giorni} giorni",
+        "descrizione": _descrizione_ymd(anni, mesi, giorni),
         "prossimo_compleanno": prossimo.isoformat(),
         "giorni_al_compleanno": giorni_al_compleanno,
     }

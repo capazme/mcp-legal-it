@@ -455,3 +455,11 @@ def test_limite_rapporto_a_cavallo_anno(page):
     t = _tool(retribuzione_annua_lorda=30000, anni_servizio=1)
     s = _site(page, "01/07/2024", "30/06/2025", [15000, 15000])
     _confronta("30000, 12 mesi 07/2024-06/2025", t, s)
+
+
+# CONVENZIONI e scostamenti residui dopo la fase 3: il tool applica art. 2120 c.c., art. 3 L. 297/1982
+# (contributo 0,50% sempre detratto), art. 11 c. 3 D.Lgs. 47/2000 e art. 19 TUIR; il sito aggiunge una
+# seconda detrazione decrescente col reddito di riferimento (non riscontrata nel testo dell'art. 19),
+# applica la detrazione del c. 1-ter senza chiedere il tipo di contratto, arrotonda l'aliquota media a
+# due decimali prima di applicarla, usa gli scaglioni 2025 per cessazioni 2026 e ragiona per date
+# (frazioni d'anno, rivalutazione della quota dell'anno precedente), che il tool non modella.

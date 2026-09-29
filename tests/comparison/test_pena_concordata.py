@@ -329,3 +329,7 @@ def test_diminuente_rito_inferiore_a_un_terzo():
     pytest.skip(
         "non confrontabile: il tool non consente una diminuente del rito inferiore a 1/3"
     )
+
+
+# Fase 3: the residual 1 day gap is a convention. The site truncates the fraction of day at
+# every step (art. 134 co. 2 c.p. applied step by step); the tool keeps continuous months.

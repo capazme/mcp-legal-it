@@ -205,6 +205,11 @@ def test_piano_figlio_disabile_reddito_40000_pagina_previgente(page):
     Sito: teorica 1.350,00, quoziente 0,5789, effettiva 781,51, RN6 782,00.
     Scostamento atteso: 0,07 (troncamento del quoziente, co. 4).
     """
+    import pytest
+    # Verdict test_errato: the old page models the regime abrogated by D.Lgs. 230/2021
+    # (1.350 euro); the tool now applies art. 12 co. 1 lett. c) TUIR as in force (950 euro),
+    # covered by test_limite_figlio_disabile_reddito_40000_regime_vigente.
+    pytest.skip("regime previgente (fino alla dichiarazione 2022): il tool applica il testo vigente")
     t = _tool(40000, 1, disabili=1)
     s = _site_previgente(page, "40000", 1, 1)
     assert s["calcolato"], "il sito non ha prodotto lo sviluppo del calcolo"

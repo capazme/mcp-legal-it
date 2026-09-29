@@ -233,7 +233,13 @@ def danno_parentale(
     personalizzazione_pct: float = 50,
 ) -> dict:
     """Calcola il danno da perdita del rapporto parentale (danno morale da morte del congiunto).
-    Vigenza: Tabelle di Milano 2024 e Roma 2024 (aggiornate con Cass. SU 26972/2008 e successive).
+    Vigenza: Tabelle di Milano, edizione 2024 (Osservatorio, valori all'1.1.2024, rivalutazione
+    1,162268): il massimo del range coincide con il "cap" della tabella integrata a punti
+    (391.103,18 genitori/figli/coniuge; 169.830,60 fratelli/nonni/nipoti). Il minimo è il
+    pavimento della vecchia forbice, NON un limite della liquidazione: la tabella a punti parte
+    da 0 (valore punto 3.911,00 / 1.698,00) e tiene conto di età, convivenza, altri familiari e
+    intensità della relazione, dati che questo tool non riceve. Roma: NON esiste un'edizione 2024
+    ufficiale; i valori inclusi sono una stima scalata da Milano, non i criteri del Tribunale di Roma.
     Precisione: INDICATIVO (range minimo-massimo derivati dalle edizioni precedenti delle tabelle;
         dal 2022 la tabella di Milano liquida il danno da perdita del rapporto parentale a punti, in
         linea con Cass. 10579/2021, e i valori di Roma inclusi sono una stima)
@@ -276,10 +282,25 @@ def danno_parentale(
     importo_max = match["max"]
     importo = importo_min + (importo_max - importo_min) * (personalizzazione_pct / 100)
 
+    if tabella == "milano":
+        avvertenza = (
+            "Milano 2024: il minimo e il massimo sono la vecchia forbice rivalutata; il massimo coincide "
+            "con il cap della tabella a punti, il minimo non e' un pavimento (la tabella a punti parte da "
+            "0 e dipende da eta' di vittima e superstite, convivenza, altri familiari, intensita' della "
+            "relazione). L'importo liquidato qui e' solo una posizione nel range, non il risultato della tabella."
+        )
+    else:
+        avvertenza = (
+            "Roma: stima scalata da Milano, non esiste un'edizione 2024 ufficiale dei criteri del Tribunale "
+            "di Roma (sistema a punti con valore punto e aumenti diversi, es. +1/3 fino a 1/2 senza altri "
+            "familiari): il range puo' non coprire la liquidazione effettiva."
+        )
+
     return {
         "vittima": vittima,
         "superstite": superstite,
         "tabella": tabella,
+        "avvertenza": avvertenza,
         "importo_minimo": importo_min,
         "importo_massimo": importo_max,
         "personalizzazione_pct": personalizzazione_pct,
@@ -346,17 +367,24 @@ def risarcimento_inail(
     tipo: str = "permanente",
 ) -> dict:
     """Calcola l'indennizzo INAIL per infortunio sul lavoro o malattia professionale.
-    Vigenza: D.Lgs. 38/2000 art. 13 — D.P.R. 1124/1965 TU INAIL — tabelle INAIL vigenti.
-    Precisione: INDICATIVO (i coefficienti per la forma capitale sono una semplificazione;
-    il valore esatto richiede la tabella INAIL ufficiale per anno e grado di invalidità).
+    Vigenza: D.Lgs. 38/2000 art. 13 (quota patrimoniale: retribuzione x coefficiente della Tabella dei
+    coefficienti, D.M. 12/07/2000 x grado); D.P.R. 1124/1965 artt. 68 e 73 (inabilità temporanea).
+    Verificato il 29/09/2026.
+    Precisione: STIMATO (la quota di danno biologico, in capitale 6-15% e in rendita dal 16%, NON è letta
+    dalla "Tabella indennizzo danno biologico" per grado ed età rivalutata da INAIL ma è una
+    semplificazione lineare sulla retribuzione: gli importi divergono in modo rilevante, fino a
+    qualche migliaio di euro; la retribuzione non è riportata a minimale e massimale dell'art. 116
+    D.P.R. 1124/1965; il valore esatto richiede le tabelle INAIL in vigore, aggiornate ogni 1 luglio).
+    La quota patrimoniale della rendita e l'indennità temporanea seguono invece la norma.
 
-    Usa questo quando: lavoratore infortunato o con malattia professionale riconosciuta dall'INAIL.
+    Usa questo quando: lavoratore infortunato o con malattia professionale riconosciuta dall'INAIL,
+    per un ordine di grandezza (non per una quantificazione da produrre in giudizio).
     NON usare per: danno biologico civilistico da illecito di terzi → usa danno_biologico_micro/macro().
 
     Args:
         retribuzione_annua: Retribuzione annua lorda del lavoratore in euro (€)
         percentuale_invalidita: Percentuale di invalidità accertata dall'INAIL (0-100)
-        tipo: Tipo di indennizzo: 'permanente' (in capitale se ≤15%, rendita se >15%)
+        tipo: Tipo di indennizzo: 'permanente' (in capitale se <16%, rendita dal 16%)
               o 'temporanea' (indennità giornaliera per i giorni di assenza)
     """
     tipo = tipo.lower()
@@ -371,9 +399,10 @@ def risarcimento_inail(
 
     if tipo == "temporanea":
         retribuzione_giornaliera = retribuzione_annua / 365
-        # Primi 3 giorni: a carico del datore (100%)
-        # Dal 4° al 90° giorno: INAIL paga 60%
-        # Dal 91° giorno in poi: INAIL paga 75%
+        # Giorno dell'infortunio: intera retribuzione a carico del datore (art. 73 co. 1 DPR 1124/1965)
+        # Tre giorni successivi (carenza): 60% a carico del datore, salvo migliori condizioni (art. 73)
+        # Dal 4° giorno successivo al 90° giorno: INAIL paga 60% (art. 68 co. 1)
+        # Dal 91° giorno in poi: INAIL paga 75% (art. 68 co. 2)
         indennita_60 = retribuzione_giornaliera * 0.60
         indennita_75 = retribuzione_giornaliera * 0.75
 
@@ -381,7 +410,8 @@ def risarcimento_inail(
             "tipo": "temporanea",
             "retribuzione_annua": retribuzione_annua,
             "retribuzione_giornaliera": round(retribuzione_giornaliera, 2),
-            "primi_3_giorni": "A carico del datore di lavoro (100%)",
+            "giorno_infortunio": "A carico del datore di lavoro (intera retribuzione, art. 73 DPR 1124/1965)",
+            "primi_3_giorni": "Carenza a carico del datore di lavoro: 60% della retribuzione, salvo migliori condizioni (art. 73 DPR 1124/1965)",
             "dal_4_al_90_giorno": {
                 "percentuale": "60%",
                 "indennita_giornaliera": round(indennita_60, 2),
@@ -390,7 +420,7 @@ def risarcimento_inail(
                 "percentuale": "75%",
                 "indennita_giornaliera": round(indennita_75, 2),
             },
-            "riferimento_normativo": "D.P.R. 1124/1965 — TU INAIL",
+            "riferimento_normativo": "D.P.R. 1124/1965 artt. 68 e 73 — TU INAIL",
         }
 
     # Permanente
@@ -403,8 +433,8 @@ def risarcimento_inail(
             "riferimento_normativo": "D.Lgs. 38/2000 art. 13",
         }
 
-    if percentuale_invalidita <= 15:
-        # Indennizzo in capitale (una tantum)
+    if percentuale_invalidita < 16:
+        # Indennizzo in capitale (art. 13 co. 2 lett. a D.Lgs. 38/2000: da 6% a meno di 16%) (una tantum)
         # Coefficienti indicativi tabelle INAIL
         coefficiente_capitale = 7.0 * percentuale_invalidita  # semplificazione
         indennizzo = retribuzione_annua * (coefficiente_capitale / 100)
@@ -416,15 +446,25 @@ def risarcimento_inail(
             "retribuzione_annua": retribuzione_annua,
             "coefficiente_pct": round(coefficiente_capitale, 2),
             "indennizzo_capitale": round(indennizzo, 2),
-            "nota": "Invalidità 6-15%: indennizzo in capitale (una tantum). Importo indicativo basato su tabelle INAIL.",
+            "nota": (
+                "Invalidità 6-15%: indennizzo in capitale (una tantum). Importo STIMATO con formula "
+                "semplificata sulla retribuzione: l'INAIL lo liquida dalla tabella per grado ed età."
+            ),
             "riferimento_normativo": "D.Lgs. 38/2000 art. 13 — Tabella indennizzo danno biologico",
         }
 
-    # > 16%: rendita
+    # Da 16%: rendita = quota danno biologico + quota patrimoniale (art. 13 co. 2 lett. a e b D.Lgs. 38/2000)
+    # Quota biologica: semplificazione (l'INAIL usa la tabella per grado, indipendente dalla retribuzione).
     quota_biologica = retribuzione_annua * (percentuale_invalidita / 100) * 0.40
-    quota_patrimoniale = 0.0
-    if percentuale_invalidita > 16:
-        quota_patrimoniale = retribuzione_annua * ((percentuale_invalidita - 16) / 100) * 0.60
+    # Quota patrimoniale: retribuzione x coefficiente della Tabella dei coefficienti (D.M. 12/07/2000)
+    # x grado percentuale (art. 13 co. 2 lett. b). Coefficiente per fascia di grado.
+    grado = int(percentuale_invalidita)
+    coefficiente = 1.0
+    for limite, valore in ((20, 0.4), (25, 0.5), (35, 0.6), (50, 0.7), (70, 0.8), (85, 0.9)):
+        if grado <= limite:
+            coefficiente = valore
+            break
+    quota_patrimoniale = retribuzione_annua * coefficiente * (percentuale_invalidita / 100)
     rendita_annua = quota_biologica + quota_patrimoniale
     rendita_mensile = rendita_annua / 12
 
@@ -437,7 +477,12 @@ def risarcimento_inail(
         "quota_danno_patrimoniale": round(quota_patrimoniale, 2),
         "rendita_annua": round(rendita_annua, 2),
         "rendita_mensile": round(rendita_mensile, 2),
-        "nota": "Invalidità >16%: rendita diretta. Composta da quota biologica + quota patrimoniale.",
+        "coefficiente_patrimoniale": coefficiente,
+        "nota": (
+            "Invalidità dal 16%: rendita diretta = quota biologica + quota patrimoniale. La quota "
+            "patrimoniale segue l'art. 13 co. 2 lett. b (retribuzione x coefficiente x grado, senza "
+            "minimale e massimale); la quota biologica è STIMATA con formula semplificata."
+        ),
         "riferimento_normativo": "D.Lgs. 38/2000 art. 13 — Rendita per danno biologico e patrimoniale",
     }
 
@@ -456,10 +501,15 @@ def danno_non_patrimoniale(
     """Calcola il danno non patrimoniale complessivo con tutte le componenti in un unico prospetto.
 
     Combina automaticamente danno biologico (micro se ≤9%, macro se ≥10%), danno morale
-    (personalizzazione), danno esistenziale e patrimoniale emergente (spese mediche + ITT).
-    Vigenza: art. 138-139 Cod. Assicurazioni; Tabelle Milano 2024; Cass. SU 26972/2008.
-    Precisione: INDICATIVO (il danno biologico macro è interpolato; la personalizzazione
-    morale ed esistenziale è soggetta a valutazione giudiziale discrezionale).
+    (personalizzazione), danno esistenziale e patrimoniale emergente (spese mediche); l'ITT è
+    esposta come danno biologico temporaneo (art. 139 co. 1 lett. b).
+    Vigenza: art. 138-139 Cod. Assicurazioni (D.Lgs. 209/2005); per le micropermanenti importi del
+    DM 20/07/2026 (art. 139 co. 1 e 6); per le macropermanenti valori NON riconducibili alla
+    tabella unica nazionale DPR 12/2025 né a Milano (vedi danno_biologico_macro). L'ITT è liquidata
+    a 57,64 euro/giorno anche sopra il 9% (DPR 12/2025 art. 3 co. 1 rinvia all'art. 139 co. 1 lett. b).
+    Precisione: STIMATO (micropermanenti: valori di legge, ma la componente macro è solo un ordine di
+    grandezza; la personalizzazione è soggetta a valutazione giudiziale discrezionale e per le
+    micropermanenti non può superare il 20% complessivo, art. 139 co. 3)
 
     Usa questo quando: vuoi un prospetto completo di tutte le componenti del danno non patrimoniale.
     NON usare per: solo danno biologico micro → usa danno_biologico_micro() (più dettagliato).
@@ -473,8 +523,8 @@ def danno_non_patrimoniale(
         tipo_danno: Voce principale richiesta: 'biologico', 'morale', 'esistenziale', 'patrimoniale_emergente'
         giorni_itt: Giorni di invalidità temporanea totale al 100%
         spese_mediche: Spese mediche documentate in euro (€)
-        danno_morale_pct: Percentuale di personalizzazione per danno morale (0-50)
-        danno_esistenziale_pct: Percentuale di personalizzazione per danno esistenziale (0-50)
+        danno_morale_pct: Percentuale di personalizzazione per danno morale (0-50; micro: morale + esistenziale ≤ 20)
+        danno_esistenziale_pct: Percentuale di personalizzazione per danno esistenziale (0-50; micro: morale + esistenziale ≤ 20)
     """
     if not 1 <= percentuale_invalidita <= 100:
         return {"errore": "Percentuale invalidità deve essere tra 1 e 100"}
@@ -487,6 +537,17 @@ def danno_non_patrimoniale(
 
     if giorni_itt < 0:
         return {"errore": "giorni_itt non puo essere negativo"}
+
+    # Art. 139 co. 3 Cod. Ass.: per le lesioni fino al 9% l'aumento per le condizioni soggettive
+    # (morale e dinamico-relazionale) e' "fino al 20 per cento" e l'importo complessivo e'
+    # esaustivo del danno non patrimoniale: le due percentuali non possono cumularsi oltre il 20.
+    if percentuale_invalidita <= 9 and danno_morale_pct + danno_esistenziale_pct > _MICRO["maggiorazione_morale_max_pct"]:
+        return {
+            "errore": (
+                f"Micropermanenti: danno morale + esistenziale non possono superare "
+                f"{_MICRO['maggiorazione_morale_max_pct']:g}% (art. 139 co. 3 Cod. Ass.)"
+            )
+        }
 
     if spese_mediche < 0:
         return {"errore": "spese_mediche non puo essere negativo"}
@@ -504,9 +565,10 @@ def danno_non_patrimoniale(
         else:
             riduzione = 1.0
 
-        danno_biologico = 0.0
-        for p in range(1, percentuale_invalidita + 1):
-            danno_biologico += punto_base * coefficienti[str(p)] * riduzione
+        # Art. 139 co. 1 lett. a) e co. 6: il coefficiente del grado accertato si applica a ciascun
+        # punto percentuale (valore punto = base x coeff x riduzione eta', poi x punti), non alla
+        # somma dei valori dei gradi inferiori.
+        danno_biologico = punto_base * coefficienti[str(percentuale_invalidita)] * riduzione * percentuale_invalidita
 
         tipo_calcolo = "micropermanenti (art. 139)"
     else:
@@ -525,10 +587,11 @@ def danno_non_patrimoniale(
     # Componente esistenziale
     danno_esistenziale = danno_biologico * (danno_esistenziale_pct / 100)
 
-    # Patrimoniale emergente
-    danno_patrimoniale = spese_mediche + danno_itt
+    # Patrimoniale emergente: solo le spese; l'ITT e' danno biologico temporaneo (art. 139 co. 1
+    # lett. b; per le macro DPR 12/2025 art. 3 co. 1), non danno patrimoniale.
+    danno_patrimoniale = spese_mediche
 
-    totale = danno_biologico + danno_morale + danno_esistenziale + danno_patrimoniale
+    totale = danno_biologico + danno_itt + danno_morale + danno_esistenziale + danno_patrimoniale
 
     return {
         "percentuale_invalidita": percentuale_invalidita,
@@ -545,14 +608,17 @@ def danno_non_patrimoniale(
                 "personalizzazione_pct": danno_esistenziale_pct,
                 "importo": round(danno_esistenziale, 2),
             },
+            "danno_biologico_temporaneo": {
+                "itt": {"giorni": giorni_itt, "importo": round(danno_itt, 2)},
+                "totale": round(danno_itt, 2),
+            },
             "danno_patrimoniale_emergente": {
                 "spese_mediche": round(spese_mediche, 2),
-                "itt": {"giorni": giorni_itt, "importo": round(danno_itt, 2)},
                 "totale": round(danno_patrimoniale, 2),
             },
         },
         "totale_risarcimento": round(totale, 2),
-        "riferimento_normativo": "Art. 138-139 Cod. Assicurazioni; Tabelle Milano 2024; Cass. SU 26972/2008",
+        "riferimento_normativo": "Art. 138-139 Cod. Assicurazioni (D.Lgs. 209/2005); DPR 12/2025 art. 3; DM 20/07/2026 (micropermanenti)",
     }
 
 
@@ -562,6 +628,8 @@ def equo_indennizzo(
     categoria_tabella: str,
     percentuale_invalidita: float,
     stipendio_annuo: float,
+    eta_evento: int | None = None,
+    pensione_privilegiata: bool = False,
 ) -> dict:
     """Calcola l'equo indennizzo per causa di servizio per dipendenti pubblici (istituto abrogato).
     Regime: PREVIGENTE — infermità da causa di servizio di dipendenti pubblici per fatti anteriori
@@ -570,35 +638,47 @@ def equo_indennizzo(
 
     ATTENZIONE: Istituto ABROGATO per eventi successivi al 06/12/2011
     (art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero). Il calcolo resta valido
-    esclusivamente per pratiche relative a fatti anteriori a tale data.
+    per pratiche relative a fatti anteriori a tale data. L'abrogazione NON si applica al personale
+    del comparto sicurezza, difesa, vigili del fuoco e soccorso pubblico (art. 6 co. 1, secondo
+    periodo): per quel personale l'istituto è tuttora vigente e il calcolo è applicabile.
 
-    Vigenza: DPR 834/1981 Tabella A — applicabile solo a fatti anteriori al 06/12/2011.
-    Precisione: INDICATIVO (coefficienti tabellari semplificati; il calcolo esatto
-    dipende dalla specifica categoria e dalla delibera della CMO).
+    Vigenza: art. 1 co. 119 L. 662/1996 (Tabella 1: 2 x stipendio tabellare x percentuale della
+    categoria), art. 1 co. 210-211 L. 266/2005 (stipendio tabellare in godimento alla domanda, per
+    domande dal 01/01/2006), art. 49 DPR 686/1957 (riduzione per età all'evento), art. 50 DPR 686/1957
+    (riduzione alla metà con pensione privilegiata). Verificato il 29/09/2026.
+    Precisione: INDICATIVO (le percentuali della Tabella 1 sono lette dall'allegato alla L. 662/1996;
+    la categoria di menomazione è assegnata dalla CMO e non è calcolata; per le domande anteriori al
+    01/01/2006 lo stipendio da usare è quello tabellare iniziale; non si detrae quanto già percepito
+    per assicurazione a carico dello Stato, art. 50 co. 2 DPR 686/1957).
 
-    Usa questo quando: dipendente pubblico con infermità da causa di servizio anteriore al 06/12/2011.
-    NON usare per: eventi successivi al 06/12/2011 (istituto abrogato).
+    Usa questo quando: dipendente pubblico con infermità da causa di servizio anteriore al 06/12/2011,
+    o appartenente al comparto sicurezza, difesa, vigili del fuoco e soccorso pubblico.
+    NON usare per: altro personale con eventi successivi al 06/12/2011 (istituto abrogato).
     NON usare per: lavoratori privati infortunati → usa risarcimento_inail().
 
     Args:
-        categoria_tabella: Categoria dalla Tabella A DPR 834/1981 ('1' = 81-100%, '8' = 1-10%)
-        percentuale_invalidita: Percentuale di invalidità accertata dalla CMO (0-100)
-        stipendio_annuo: Ultimo stipendio annuo lordo in euro (€)
+        categoria_tabella: Categoria di menomazione da '1' a '8' (Tabella A DPR 834/1981) oppure '9'
+                           (o 'B', 'una_tantum') per l'indennità una tantum della Tabella B, pari al 3%
+        percentuale_invalidita: Percentuale di invalidità accertata dalla CMO (0-100). Non entra nel
+                           calcolo: l'importo dipende solo dalla categoria
+        stipendio_annuo: Stipendio annuo TABELLARE in euro (€), senza altre voci retributive
+        eta_evento: Età dell'interessato al momento dell'evento dannoso (art. 49 co. 3 DPR 686/1957).
+                    Oltre 50 anni l'indennizzo è ridotto del 25%, oltre 60 del 50%. Se omessa,
+                    nessuna riduzione
+        pensione_privilegiata: True se l'interessato consegue anche la pensione privilegiata:
+                    l'indennizzo è ridotto della metà (art. 50 co. 1 DPR 686/1957)
     """
-    coefficienti = {
-        "1": {"range": "81-100%", "coefficiente": 8.0, "pensione_privilegiata": True},
-        "2": {"range": "61-80%", "coefficiente": 6.5, "pensione_privilegiata": True},
-        "3": {"range": "51-60%", "coefficiente": 5.0, "pensione_privilegiata": True},
-        "4": {"range": "41-50%", "coefficiente": 4.0, "pensione_privilegiata": True},
-        "5": {"range": "31-40%", "coefficiente": 3.0, "pensione_privilegiata": True},
-        "6": {"range": "21-30%", "coefficiente": 2.5, "pensione_privilegiata": False},
-        "7": {"range": "11-20%", "coefficiente": 1.5, "pensione_privilegiata": False},
-        "8": {"range": "1-10%", "coefficiente": 0.7, "pensione_privilegiata": False},
+    # Tabella 1 allegata alla L. 662/1996: percentuale dell'importo di 1ª categoria (2 x stipendio)
+    percentuali = {
+        "1": 100, "2": 92, "3": 75, "4": 61, "5": 44, "6": 27, "7": 12, "8": 6,
+        "9": 3,  # indennità una tantum (Tabella B): 3% dell'importo di 1ª categoria
     }
 
-    cat = str(categoria_tabella).strip()
-    if cat not in coefficienti:
-        return {"errore": f"Categoria non valida. Valori ammessi: 1-8 (trovato: {categoria_tabella})"}
+    cat = str(categoria_tabella).strip().lower()
+    if cat in ("b", "una_tantum", "una tantum"):
+        cat = "9"
+    if cat not in percentuali:
+        return {"errore": f"Categoria non valida. Valori ammessi: 1-8, 9 (una tantum) (trovato: {categoria_tabella})"}
 
     if percentuale_invalidita < 0 or percentuale_invalidita > 100:
         return {"errore": "percentuale_invalidita deve essere tra 0 e 100"}
@@ -606,29 +686,54 @@ def equo_indennizzo(
     if stipendio_annuo < 0:
         return {"errore": "stipendio_annuo non puo essere negativo"}
 
-    info = coefficienti[cat]
-    base = stipendio_annuo * info["coefficiente"] * (percentuale_invalidita / 100)
-    indennizzo = round(base, 2)
+    if eta_evento is not None and (eta_evento < 0 or eta_evento > 120):
+        return {"errore": "eta_evento deve essere tra 0 e 120"}
+
+    pct = percentuali[cat]
+    base = 2 * stipendio_annuo * pct / 100
+
+    # art. 49 co. 2 DPR 686/1957: -25% se ha superato i 50 anni, -50% se ha superato i 60
+    riduzione_eta = 0
+    if eta_evento is not None:
+        if eta_evento > 60:
+            riduzione_eta = 50
+        elif eta_evento > 50:
+            riduzione_eta = 25
+    importo = base * (100 - riduzione_eta) / 100
+
+    # art. 50 co. 1 DPR 686/1957: ridotto della metà se consegue anche la pensione privilegiata
+    if pensione_privilegiata:
+        importo = importo / 2
+
+    indennizzo = round(importo, 2)
 
     result = {
         "categoria_tabella": cat,
-        "range_invalidita": info["range"],
+        "percentuale_categoria": pct,
         "percentuale_invalidita": percentuale_invalidita,
         "stipendio_annuo": stipendio_annuo,
-        "coefficiente": info["coefficiente"],
+        "importo_prima_categoria": round(2 * stipendio_annuo, 2),
+        "riduzione_eta_pct": riduzione_eta,
+        "pensione_privilegiata": pensione_privilegiata,
         "equo_indennizzo": indennizzo,
-        "pensione_privilegiata": info["pensione_privilegiata"],
     }
-
-    if info["pensione_privilegiata"]:
-        result["nota_pensione"] = (
-            "Categoria 1ª-5ª: diritto a pensione privilegiata se cessazione dal servizio per infermità"
+    if cat == "9":
+        result["nota_categoria"] = "Indennità una tantum (Tabella B): 3% dell'importo di 1ª categoria"
+    if eta_evento is None:
+        result["nota_eta"] = (
+            "eta_evento non indicata: nessuna riduzione per età applicata "
+            "(art. 49 DPR 686/1957: -25% oltre 50 anni, -50% oltre 60)"
         )
 
     result["attenzione"] = (
         "Istituto ABROGATO per eventi successivi al 06/12/2011 "
-        "(art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero). "
-        "Il calcolo è valido solo per pratiche relative a fatti anteriori a tale data."
+        "(art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero), salvo il personale del comparto "
+        "sicurezza, difesa, vigili del fuoco e soccorso pubblico. "
+        "Il calcolo è valido per pratiche relative a fatti anteriori a tale data o per tale personale."
     )
-    result["riferimento_normativo"] = "DPR 461/2001; DPR 834/1981 — Tabella A. Abrogato per nuovi eventi da art. 6 DL 201/2011 (L. 214/2011)"
+    result["riferimento_normativo"] = (
+        "L. 662/1996 art. 1 co. 119 (Tabella 1); L. 266/2005 art. 1 co. 210-211; "
+        "DPR 686/1957 artt. 49-50; DPR 834/1981 (Tabelle A e B). "
+        "Abrogato per nuovi eventi da art. 6 DL 201/2011 (L. 214/2011)"
+    )
     return result

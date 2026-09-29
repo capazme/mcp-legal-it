@@ -37,6 +37,15 @@ sposta ogni rata (anche la prima) al giorno 28 del mese e calcola gli interessi
 sul debito residuo per il numero di mesi. I test restano tool == sito con la
 tolleranza del brief (0,01 euro; date esatte): gli scostamenti li giudica la
 fase 2. Il tool non dipende dalla data corrente (nessun LEGAL_TODAY necessario).
+
+Verdetto fase 2-3 (2026-09-29): tool_errato corretto su scadenze (16 del mese,
+art. 20 c. 4), limite del 16 dicembre (c. 1: rifiuto della settima rata da
+luglio), interessi sulla singola rata con la tabella AdE 0,18% + 0,33% al mese,
+maggiorazione 0,40% di luglio (art. 17 c. 2 DPR 435/2001) e resto
+dell'arrotondamento sull'ultima rata. Restano fuori: la proroga di Ferragosto
+(il sito porta il 16/08 al 20/08; il tool non sposta le scadenze), i piani dei
+non titolari di partita IVA (il tool calcola solo i titolari) e l'esclusione dai
+totali degli interessi sotto 1,03 euro (convenzione del sito).
 """
 
 import re

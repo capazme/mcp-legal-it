@@ -147,7 +147,7 @@ def test_1_punto_10_anni_itt(page):
     s = _site_micro(page, 1, 10, itt=10)
     print("TOOL", t["componenti"], t["totale_risarcimento"])
     assert_close(t["componenti"]["danno_biologico"], s["permanente"], TOL, "biologico 1pt/10a")
-    assert_close(t["componenti"]["danno_patrimoniale_emergente"]["itt"]["importo"], s["temporaneo"], TOL, "ITT 10 gg")
+    assert_close(t["componenti"]["danno_biologico_temporaneo"]["itt"]["importo"], s["temporaneo"], TOL, "ITT 10 gg")
     assert_close(t["totale_risarcimento"], s["totale"], TOL, "totale 1pt/10a")
 
 
@@ -170,7 +170,7 @@ def test_5_punti_35_anni_itt_spese(page):
     c = t["componenti"]
     print("TOOL", c, t["totale_risarcimento"])
     # ITT amount (same per-day value, different classification) is compared first.
-    assert_close(c["danno_patrimoniale_emergente"]["itt"]["importo"], s["temporaneo"], TOL, "ITT 30 gg")
+    assert_close(c["danno_biologico_temporaneo"]["itt"]["importo"], s["temporaneo"], TOL, "ITT 30 gg")
     assert_close(c["danno_biologico"], s["permanente"], TOL, "biologico 5pt/35a")
     assert_close(t["totale_risarcimento"], s["totale"], TOL, "totale 5pt/35a")
 
@@ -181,7 +181,7 @@ def test_5_punti_35_anni_itt_spese(page):
 # esistenziale non e' voce autonoma (Cass. SU 26972/2008). Site: PctDM 20, solo permanente.
 def test_4_punti_30_anni_morale_esistenziale_50(page):
     t = _tool(percentuale_invalidita=4, eta_vittima=30, tipo_danno="morale",
-              danno_morale_pct=50, danno_esistenziale_pct=50)
+              danno_morale_pct=20, danno_esistenziale_pct=0)  # 50+50 now refused: art. 139 co. 3 caps the raise at 20%
     s = _site_micro(page, 4, 30, pct_morale=20, morale_su_temporaneo=False)
     c = t["componenti"]
     print("TOOL", c, t["totale_risarcimento"])
@@ -215,5 +215,5 @@ def test_10_punti_40_anni_itt_milano_2024(page):
     c = t["componenti"]
     print("TOOL", c, t["totale_risarcimento"])
     assert_close(c["danno_biologico"], s["biologico"], TOL, "biologico 10pt/40a Milano 2024")
-    assert_close(c["danno_patrimoniale_emergente"]["itt"]["importo"], s["temporaneo"], TOL, "ITT 20 gg")
+    assert_close(c["danno_biologico_temporaneo"]["itt"]["importo"], s["temporaneo"], TOL, "ITT 20 gg")
     assert_close(t["totale_risarcimento"], s["totale"], TOL, "totale 10pt/40a")

@@ -168,6 +168,52 @@ class TestInteressiMora:
             assert key in p
 
 
+class TestInteressiMoraRegime:
+    """Spread of the reference rate: art. 5 c.1 D.Lgs. 231/2002 original text (+7) for
+    transactions concluded up to 31/12/2012, art. 2 c.1 lett. e) as replaced by D.Lgs. 192/2012
+    (+8) afterwards (art. 3 c.1 D.Lgs. 192/2012)."""
+
+    def test_2012_uses_seven_points(self):
+        # 2012: BCE 1.00% both semesters, +7 = 8.00%. Days 2012-01-02..2012-12-31 = 365.
+        # 10000 * 8% * 365/365 = 800.00 (hand computed)
+        r = _call("interessi_mora", capitale=10000, data_inizio="2012-01-01", data_fine="2012-12-31")
+        assert r["maggiorazione_punti"] == 7
+        assert r["totale_interessi"] == pytest.approx(800.00, abs=0.01)
+        assert {p["tasso_mora_pct"] for p in r["periodi"]} == {8.0}
+
+    def test_regime_follows_start_date_across_2013(self):
+        # start 31/12/2012 -> pre-2013 transaction, +7 also on 2013 days: BCE 0.75 + 7 = 7.75%
+        # 31 days (2013-01-01..2013-01-31): 10000 * 7.75% * 31/365 = 65.82
+        r = _call("interessi_mora", capitale=10000, data_inizio="2012-12-31", data_fine="2013-01-31")
+        assert r["maggiorazione_punti"] == 7
+        assert r["totale_interessi"] == pytest.approx(65.82, abs=0.01)
+
+    def test_2013_start_uses_eight_points(self):
+        # 2013: 8.75% for 180 days (2013-01-02..06-30), 8.50% for 184 days:
+        # 10000*(0.0875*180 + 0.0850*184)/365 = 860.00
+        r = _call("interessi_mora", capitale=10000, data_inizio="2013-01-01", data_fine="2013-12-31")
+        assert r["maggiorazione_punti"] == 8
+        assert r["totale_interessi"] == pytest.approx(860.00, abs=0.01)
+
+    def test_explicit_pre_2013_contract_with_later_due_date(self):
+        # contract concluded before 1/1/2013, due in 2013: old text still applies (art. 3 D.Lgs. 192/2012)
+        r = _call(
+            "interessi_mora", capitale=10000, data_inizio="2013-01-01", data_fine="2013-01-31",
+            contratto_ante_2013=True,
+        )
+        assert r["periodi"][0]["tasso_mora_pct"] == 7.75
+
+    def test_2003_rates(self):
+        # 2003 H1 BCE 2.85 + 7 = 9.85%, H2 2.10 + 7 = 9.10% (D.Lgs. 231/2002 art. 5 original)
+        r = _call("interessi_mora", capitale=10000, data_inizio="2003-01-01", data_fine="2003-12-31")
+        assert [p["tasso_mora_pct"] for p in r["periodi"]] == [9.85, 9.10]
+
+    def test_beyond_table_warns_instead_of_silent_zero(self):
+        r = _call("interessi_mora", capitale=10000, data_inizio="2026-12-31", data_fine="2027-01-31")
+        assert r["totale_interessi"] == 0
+        assert "avvertenza" in r
+
+
 # ---------------------------------------------------------------------------
 # interessi_tasso_fisso
 # ---------------------------------------------------------------------------
@@ -398,6 +444,37 @@ class TestVerificaUsura:
         assert r_q1["tegm_pct"] != r_q4["tegm_pct"]
         assert r_q1["tasso_soglia_pct"] != r_q4["tasso_soglia_pct"]
 
+    def test_leasing_strumentale_2025_q1_matches_mef_decree(self):
+        # MEF decree, Allegato A, application 1 Jan - 31 Mar 2025: leasing strumentale
+        # up to 25.000 has TEGM 9,75 and soglia 16,1875 (9,75 x 1,25 + 4). The table
+        # used to carry 7,44, which is the "oltre 25.000" class (soglia 13,3000).
+        r = _call("verifica_usura", tasso_applicato=15.0, tipo_operazione="leasing", trimestre="2025-Q1")
+        assert r["tegm_pct"] == 9.75
+        assert r["tasso_soglia_decreto_pct"] == 16.1875
+        assert r["tasso_soglia_pct"] == 16.19
+        assert r["usurario"] is False
+
+    def test_soglia_keeps_four_decimals_of_the_decree(self):
+        # Art. 2 c. 4 L. 108/1996: mutuo fisso 2025-Q4 TEGM 3,58 -> 3,58 x 1,25 + 4 = 8,475
+        # exactly; the rate 8,48 is above it, 8,47 is below (no binary rounding of the limit).
+        alto = _call("verifica_usura", tasso_applicato=8.48, trimestre="2025-Q4")
+        basso = _call("verifica_usura", tasso_applicato=8.47, trimestre="2025-Q4")
+        assert alto["tasso_soglia_decreto_pct"] == 8.475
+        assert alto["tasso_soglia_pct"] == 8.48  # half-up, not the binary-float 8.47
+        assert alto["usurario"] is True
+        assert basso["usurario"] is False
+
+    def test_unknown_category_is_an_error_not_a_fallback(self):
+        # Art. 2 c. 1 L. 108/1996: one limit per category; no silent substitution.
+        r = _call("verifica_usura", tasso_applicato=10.0, tipo_operazione="anticipi_sconti")
+        assert "errore" in r
+        assert "credito_personale" in r["tipi_operazione_disponibili"]
+
+    def test_unknown_quarter_is_an_error_not_a_substitution(self):
+        r = _call("verifica_usura", tasso_applicato=10.0, tipo_operazione="credito_personale", trimestre="2024-Q1")
+        assert "errore" in r
+        assert "2025-Q1" in r["trimestri_disponibili"]
+
     def test_default_trimestre_resolves_to_current_quarter(self):
         # No trimestre provided — resolves to the quarter containing today,
         # falling back to the latest available one. Data-driven (not pinned
@@ -456,14 +533,99 @@ class TestInteressiAcconti:
         assert r_acc["totale_interessi"] == pytest.approx(r_leg["totale_interessi"], rel=0.01)
 
     def test_acconto_reduces_capital(self):
+        # imputazione="capitale": payment straight to capital, admitted only with the creditor's
+        # consent (art. 1194 co. 1 c.c.); the default imputes to interest first
         r = _call(
             "interessi_acconti",
             capitale=10000,
             data_inizio="2024-01-01",
             acconti=[{"data": "2024-04-01", "importo": 3000}],
             data_fine="2025-01-01",
+            imputazione="capitale",
         )
         assert r["capitale_residuo_finale"] == pytest.approx(7000.0, abs=0.01)
+
+    def test_art_1194_default_imputes_to_interest_first(self):
+        # art. 1194 c.c.: payment imputed first to accrued interest, the rest to capital.
+        # 10000 at 5% from 2023-01-01 to 2023-07-01 (181 days): 247.95 interest; acconto 5000
+        # -> 247.95 to interest, 4752.05 to capital -> capital 5247.95.
+        # 2023-07-02..2023-12-31 (183 d) at 5% + 2024-01-01 (1 d) at 2.5% on 5247.95 = 131.92.
+        # Due = 5247.95 + 131.92 = 5379.87 (5379.86 unrounded; +-0.01 rounding convention)
+        r = _call(
+            "interessi_acconti",
+            capitale=10000,
+            data_inizio="2023-01-01",
+            acconti=[{"data": "2023-07-01", "importo": 5000}],
+            data_fine="2024-01-01",
+        )
+        assert r["imputazione"] == "interessi"
+        assert r["capitale_residuo_finale"] == pytest.approx(5247.95, abs=0.011)
+        assert r["interessi_residui"] == pytest.approx(131.92, abs=0.011)
+        assert r["totale_dovuto"] == pytest.approx(5379.87, abs=0.011)
+
+    def test_art_1194_two_acconti_across_rate_change(self):
+        # 10000 from 2025-06-30, acconti 2000 (2025-10-01) and 1000 (2026-02-15), to 2026-06-30;
+        # rates 2% (2025) and 1.6% (2026); art. 1194 imputation: due 7149.40 (7149.39 with per-period rounding)
+        r = _call(
+            "interessi_acconti",
+            capitale=10000,
+            data_inizio="2025-06-30",
+            acconti=[{"data": "2025-10-01", "importo": 2000}, {"data": "2026-02-15", "importo": 1000}],
+            data_fine="2026-06-30",
+        )
+        assert r["totale_dovuto"] == pytest.approx(7149.40, abs=0.011)
+        assert r["capitale_residuo_finale"] == pytest.approx(7107.34, abs=0.011)
+
+    def test_acconto_on_final_date_reduces_residual(self):
+        # 10000 at 2% for 2025-01-01..2025-12-31 (364 d): 199.45; acconto 2000 on the final day
+        # (dies ad quem included): 199.45 to interest, 1800.55 to capital -> due 8199.45
+        r = _call(
+            "interessi_acconti",
+            capitale=10000,
+            data_inizio="2025-01-01",
+            acconti=[{"data": "2025-12-31", "importo": 2000}],
+            data_fine="2025-12-31",
+        )
+        assert r["totale_dovuto"] == pytest.approx(8199.45, abs=0.01)
+        r2 = _call(
+            "interessi_acconti",
+            capitale=10000,
+            data_inizio="2025-01-01",
+            acconti=[{"data": "2025-12-31", "importo": 2000}],
+            data_fine="2025-12-31",
+            imputazione="capitale",
+        )
+        assert r2["capitale_residuo_finale"] == pytest.approx(8000.0, abs=0.01)
+        assert r2["totale_dovuto"] == pytest.approx(8199.45, abs=0.01)
+
+    def test_acconto_exceeding_credit_is_rejected(self):
+        # payment larger than capital plus accrued interest cannot be imputed (art. 1194 c.c.)
+        r = _call(
+            "interessi_acconti",
+            capitale=3000,
+            data_inizio="2024-03-01",
+            acconti=[{"data": "2024-08-15", "importo": 4000}],
+            data_fine="2024-12-31",
+        )
+        assert "errore" in r
+
+    def test_acconto_outside_period_is_rejected(self):
+        before = _call(
+            "interessi_acconti", capitale=1000, data_inizio="2024-03-01",
+            acconti=[{"data": "2024-02-01", "importo": 100}], data_fine="2024-12-31",
+        )
+        after = _call(
+            "interessi_acconti", capitale=1000, data_inizio="2024-03-01",
+            acconti=[{"data": "2025-01-05", "importo": 100}], data_fine="2024-12-31",
+        )
+        assert "errore" in before and "errore" in after
+
+    def test_invalid_imputazione(self):
+        r = _call(
+            "interessi_acconti", capitale=1000, data_inizio="2024-03-01",
+            acconti=[], data_fine="2024-12-31", imputazione="altro",
+        )
+        assert "errore" in r
 
     def test_inverted_dates_error(self):
         r = _call(
