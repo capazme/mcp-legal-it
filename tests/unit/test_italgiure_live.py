@@ -10,20 +10,24 @@ What it checks, one real call per plan case on a known document:
   source is down or changed and the tool tests below say nothing;
 * `leggi_sentenza` returns the estremi, relatore, presidente and text of SS.UU. 41994/2021, reports
   the truncation, and (plan expectation) carries the decisive part of the decision — principio di
-  diritto / dispositivo; it reports 10579/2021 as not found (outside the archive window) and, with
-  archivio="tutti" on a number shared by a civil and a criminal decision, says which one it returned;
-* the archive window the docstrings declare ("archivio 2020+") exists at the source;
+  diritto / dispositivo (head AND tail of the long text are kept); it reports 10579/2021 as not found
+  (outside the archive window) and, with archivio="tutti" on a number shared by a civil and a
+  criminal decision, says which one it returned and that the other exists;
+* the archive window the docstring declares (a rolling window of about five years, from 27/09/2021
+  at the time of the benchmark) matches the source;
 * `cerca_giurisprudenza` finds 41994/2021 with the Sezioni Unite filter, both through
   `solo_sezioni_unite` and through the documented `sezione="SU"`, and its "esplora" mode returns
   facets only, with the same total the source gives;
-* `giurisprudenza_su_norma` finds 41994/2021 on art. 1419 c.c., and at least 8 of the first 10
-  results for "art. 13 GDPR" actually cite art. 13 of Regulation (EU) 2016/679;
+* `giurisprudenza_su_norma` finds 41994/2021 on art. 1419 c.c., and at least 80% of the results for
+  "art. 13 GDPR" (only a handful of decisions exist) actually cite art. 13 of Regulation (EU)
+  2016/679;
 * `ultime_pronunce` lists the latest Sezioni Unite civili and the latest criminal sentenze in
-  descending deposit order, never after today, with an indexing lag under 30 days, and honours the
-  documented `sezione="SU"`;
-* `giurisprudenza_articolo` builds the Brocardi-guided report for art. 2043 c.c. (direct references +
-  principle-of-law searches whose results cite art. 2043), and with no Brocardi massime (art. 6
-  D.Lgs. 231/2001) returns exactly what `giurisprudenza_su_norma` returns on the same parameters.
+  descending deposit order, never after today, with an indexing lag under 30 days, prints the type
+  of each decision (sent./ord./decr.) and honours the documented `sezione="SU"`;
+* `giurisprudenza_articolo` builds the Brocardi-guided report for art. 2043 c.c. (direct references as
+  summaries + principle-of-law searches whose results cite art. 2043), and with no Brocardi massime
+  (art. 6 D.Lgs. 231/2001) says so and then returns what `giurisprudenza_su_norma` returns on the
+  same parameters.
 
 Source facts read on 2026-09-25 through the Solr endpoint the tools use: szdec codes in the index
 are 1-7, L, U (Sezioni Unite) and F — there is no "SU" and no "T"; the oldest civil decision is of
@@ -77,6 +81,23 @@ _GDPR_RE = re.compile(
     r"2016/679|679/2016|679 del 2016|\bGDPR\b|\bRGPD\b|regolamento generale sulla protezione dei dati",
     re.I,
 )
+# "art. 13", "artt. 12 e 13", "articolo 13", "articoli 13 e 14": the ways a decision names the article.
+_ART13_RE = re.compile(r"art(?:icol[oi]|t?\.)\s*(?:\d+[\s,e-]{0,6}){0,3}?\b13\b", re.I)
+
+
+def _cita_art_13_gdpr(testo: str) -> bool:
+    """True when the text cites art. 13 of Reg. (UE) 2016/679.
+
+    A GDPR marker within 250 characters after an article-13 mention, or (decisions that name the
+    act once in full and then say "l'articolo 13 del Regolamento") the words "del Regolamento"
+    right after it while the decision cites the Regulation elsewhere.
+    """
+    cita_gdpr = bool(_GDPR_RE.search(testo))
+    for m in _ART13_RE.finditer(testo):
+        dopo = testo[m.start(): m.start() + 250]
+        if _GDPR_RE.search(dopo) or (cita_gdpr and re.search(r"del regolamento", dopo[:60], re.I)):
+            return True
+    return False
 
 
 def _fn(tool):
@@ -141,22 +162,30 @@ def test_fonte_italgiure_indicizza_ssuu_41994_2021():
 
 
 def test_archivio_dichiarato_dal_docstring_esiste_nella_fonte():
-    """The docstring of cerca_giurisprudenza (and server.py) declares 'archivio 2020+'.
+    """The docstring of cerca_giurisprudenza declares the rolling window and its start date.
 
     The public archive is a rolling window: on 2026-09-25 it holds no decision of 2020 and only
-    10 decisions deposited before 27/09/2021. A declared year the source does not hold misleads the
-    caller (leggi_sentenza's not-found message also blames 'antecedente al 2020').
+    10 decisions deposited before 27/09/2021. The docstring must not declare a year the source does
+    not hold ("archivio 2020+" did), and the start date it does declare must exist at the source
+    (when the window moves on, this test fails and the docstring has to be refreshed).
     """
     doc = _fn(cerca_giurisprudenza).__doc__ or ""
-    m = re.search(r"archivio (\d{4})\+", doc)
-    assert m, "il docstring non dichiara piu' l'anno iniziale dell'archivio"
-    anno = int(m.group(1))
-    data = _run(_solr({"q": f'(kind:"snciv" OR kind:"snpen") AND anno:{anno}', "rows": 0}))
-    n = data["response"]["numFound"]
-    assert n > 0, (
-        f"il docstring dichiara 'archivio {anno}+' ma la fonte non ha decisioni del {anno}: "
-        "l'archivio pubblico e' una finestra mobile (al 2026-09-25 dal 27/09/2021)"
+    assert not re.search(r"archivio \d{4}\+", doc), "il docstring dichiara ancora un anno iniziale fisso"
+    assert "finestra mobile" in doc, "il docstring non dichiara che l'archivio e' una finestra mobile"
+    m = re.search(r"dal (\d{2})/(\d{2})/(\d{4})", doc)
+    assert m, "il docstring non dichiara la data iniziale della finestra"
+    inizio = f"{m.group(3)}{m.group(2)}{m.group(1)}"
+    tutte = '(kind:"snciv" OR kind:"snpen")'
+    prima = _run(_solr({"q": f"{tutte} AND datdep:[* TO {int(inizio) - 1}]", "rows": 0}))["response"]["numFound"]
+    # the continuous coverage starts at the declared date (the first deposit on 2026-09-29 is of
+    # 29/09/2021, the days before hold only isolated decisions)
+    dal = _run(_solr({"q": f"{tutte} AND datdep:[{inizio} TO *]", "rows": 0}))["response"]["numFound"]
+    assert dal > 100000, f"la fonte ha solo {dal} decisioni dal {m.group(0)[4:]}: la finestra si e' spostata"
+    assert prima < 50, (
+        f"la fonte ha {prima} decisioni anteriori al {m.group(0)[4:]}: il docstring dichiara un "
+        "inizio piu' recente di quello reale"
     )
+    assert _run(_solr({"q": f"{tutte} AND anno:2020", "rows": 0}))["response"]["numFound"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -294,32 +323,44 @@ def test_giurisprudenza_su_norma_art_1419_cc_ssuu_2021():
 
 
 def test_giurisprudenza_su_norma_art_13_gdpr_precisione():
-    """Plan case 2: at least 8 of the first 10 results cite art. 13 of Reg. (UE) 2016/679.
+    """Plan case 2: the results for "art. 13 GDPR" are decisions that cite art. 13 of Reg. (UE) 2016/679.
 
-    build_norma_variants ORs the bare "art. 13" / "articolo 13" with the qualified form; since
-    "gdpr" is neither a code nor an act type, only "art. 13 gdpr" is added, and the bare variant
-    dominates: on 2026-09-25 the tool reports 12920 civil decisions of 2022 and the first 10 all
-    cite art. 13 d.P.R. 115/2002 (contributo unificato). A decision counts as pertinent when a GDPR
-    marker (2016/679, GDPR, ...) occurs within 250 characters after an "art. 13" mention.
+    Before the fix build_norma_variants ORed the bare "art. 13" / "articolo 13" with the qualified
+    form and the bare variant dominated: on 2026-09-25 the tool reported 12920 civil decisions of
+    2022 and the first 10 all cited art. 13 d.P.R. 115/2002 (contributo unificato). The article is
+    now tied to the act by a proximity phrase ("art. 13 2016/679"~15).
+
+    The plan asks for 8 pertinent decisions out of 10. The source cannot supply ten: civil
+    decisions of 2022 citing art. 13 of the Regulation are none (exact phrases 0, article AND GDPR
+    marker anywhere 2, neither pertinent), and since 2021 only seven. So the plan year is checked
+    for the absence of the inflated total (an honest "nessuna decisione" is a correct answer), and
+    the plan's 80% precision is measured on what the range 2021-today returns (6 of 7 on
+    2026-09-29; the stray hit is Cass. 12967/2024, a Garante measure under Reg. 2016/679 art. 78).
     """
-    out = _run(_fn(giurisprudenza_su_norma)(
-        riferimento="art. 13 GDPR", archivio="civile", anno_da=2022, anno_a=2022, max_risultati=10,
-    ))
+    fn = _fn(giurisprudenza_su_norma)
+    piano = _run(fn(riferimento="art. 13 GDPR", archivio="civile", anno_da=2022, anno_a=2022,
+                    max_risultati=10))
+    assert not piano.startswith("**Errore**"), piano[:500]
+    tot_piano = re.search(r"Trovate (\d+)", piano)
+    assert tot_piano is None or int(tot_piano.group(1)) < 200, (
+        f"totale gonfiato per il 2022: {tot_piano.group(0)} (varianti nude 'art. 13')"
+    )
+
+    out = _run(fn(riferimento="art. 13 GDPR", archivio="civile", anno_da=2021, max_risultati=10))
     assert not out.startswith("**Errore**"), out[:500]
     decisioni = _estremi(out)
-    assert len(decisioni) == 10, out[:500]
+    assert 1 <= len(decisioni) <= 10, out[:500]
+    totale = re.search(r"Trovate (\d+)", out)
+    assert totale and int(totale.group(1)) < 200, out[:300]
     ocr = _ocr_per_decisioni(decisioni)
     pertinenti = []
     for d in decisioni:
         testo = ocr.get((d["ramo"], d["num"], d["anno"]), "")
-        ok = any(_GDPR_RE.search(testo[m.start(): m.start() + 250])
-                 for m in re.finditer(r"art(?:icolo|\.)\s*13\b", testo, re.I))
-        pertinenti.append(ok)
+        pertinenti.append(_cita_art_13_gdpr(testo))
     quota = sum(pertinenti) / len(pertinenti)
-    totale = re.search(r"Trovate (\d+)", out)
     assert quota >= _PRECISIONE_MINIMA, (
-        f"'art. 13 GDPR': {sum(pertinenti)}/10 decisioni citano l'art. 13 del Reg. (UE) 2016/679 "
-        f"({totale.group(1) if totale else '?'} risultati: domina la variante nuda 'art. 13')"
+        f"'art. 13 GDPR': {sum(pertinenti)}/{len(pertinenti)} decisioni citano l'art. 13 del "
+        f"Reg. (UE) 2016/679 ({totale.group(1)} risultati)"
     )
 
 
@@ -348,12 +389,13 @@ def test_ultime_pronunce_sezioni_unite_civili():
 def test_ultime_pronunce_sentenze_penali():
     """Plan case 2: three criminal sentenze, newest first; indexing lag under 30 days.
 
-    The listing does not print the type of decision, so the type is checked at the source.
+    The listing prints the type of each decision (sent.), which is also checked at the source.
     On 2026-09-25 the newest deposit returned was 17/09/2026 (lag 8 days).
     """
     out = _run(_fn(ultime_pronunce)(archivio="penale", tipo_provvedimento="sentenza", max_risultati=3))
     decisioni = _estremi(out)
     assert len(decisioni) == 3, out[:800]
+    assert out.count("(sent.)") == 3, out[:800]
     assert all(d["ramo"] == "pen" for d in decisioni), decisioni
     oggi = _clock.today()
     _ordine_e_date(decisioni, oggi)
@@ -396,7 +438,11 @@ def test_giurisprudenza_articolo_2043_cc_struttura(articolo_2043):
         "### Sentenze per principio di diritto", 1)[0]
     heads = [d for d in _estremi(diretti) if d["ramo"] == "civ"]
     assert heads, diretti[:800]
-    assert "## Testo della decisione" in diretti
+    # Direct references are summaries (estremi + materia): the full text of three decisions made the
+    # report 37613 characters long. The text is one leggi_sentenza call away.
+    assert "## Testo della decisione" not in diretti
+    assert "**Materia**" in diretti
+    assert len(out) < 25000, len(out)
 
 
 def test_giurisprudenza_articolo_2043_cc_pertinenza_principio_di_diritto(articolo_2043):
@@ -424,8 +470,8 @@ def test_giurisprudenza_articolo_senza_massime_coincide_con_su_norma():
     """Plan case 2: with no Brocardi massime the tool falls back to giurisprudenza_su_norma.
 
     On 2026-09-25 Brocardi has no massime for art. 6 D.Lgs. 231/2001; the output must then be the
-    same as giurisprudenza_su_norma on the same parameters (the fallback is silent: it does not say
-    that Brocardi had nothing).
+    same as giurisprudenza_su_norma on the same parameters, preceded by a line that says Brocardi had
+    no massime (the fallback used to be silent).
     """
     atto = resolve_atto("D.Lgs. 231/2001")
     assert atto, "resolve_atto non riconosce piu' il D.Lgs. 231/2001"
@@ -435,5 +481,6 @@ def test_giurisprudenza_articolo_senza_massime_coincide_con_su_norma():
     parametri = dict(riferimento="art. 6 D.Lgs. 231/2001", archivio="penale", anno_da=2021)
     out = _run(_fn(giurisprudenza_articolo)(**parametri))
     atteso = _run(_fn(giurisprudenza_su_norma)(**parametri))
-    assert out.startswith("**Trovate"), out[:300]
-    assert out == atteso, (out[:400], atteso[:400])
+    assert out.startswith("*Brocardi: nessuna massima disponibile per art. 6 D.Lgs. 231/2001"), out[:300]
+    assert out.endswith(atteso), (out[-400:], atteso[:400])
+    assert atteso.startswith("**Trovate"), atteso[:300]

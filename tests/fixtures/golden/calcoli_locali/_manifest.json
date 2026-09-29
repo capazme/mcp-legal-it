@@ -149,6 +149,14 @@
     "rivalutazione_monetaria"
    ]
   },
+  "inps_parametri": {
+   "datasets": [
+    "inps_parametri"
+   ],
+   "tools": [
+    "calcolo_naspi"
+   ]
+  },
   "irpef_scaglioni": {
    "datasets": [
     "irpef_scaglioni"
@@ -193,7 +201,6 @@
     "calcolo_eta_anagrafica",
     "calcolo_hash",
     "calcolo_imu",
-    "calcolo_naspi",
     "calcolo_superficie_commerciale",
     "calcolo_surroga_mutuo",
     "calcolo_taeg",
@@ -409,7 +416,9 @@
    "indici_foi",
    "tassi_legali"
   ],
-  "calcolo_naspi": [],
+  "calcolo_naspi": [
+   "inps_parametri"
+  ],
   "calcolo_notula_penale": [
    "parametri_forensi"
   ],

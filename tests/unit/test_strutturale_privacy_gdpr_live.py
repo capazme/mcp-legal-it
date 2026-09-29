@@ -420,9 +420,14 @@ def test_cookie_solo_tecnici():
 
 
 def test_cookie_banner_linee_guida_2021():
-    """Linee guida 10/06/2021, par. 6.1-6.3 and 7.1: the banner must say that closing it with
-    the X keeps the defaults (no tracking), scrolling is never consent, and the banner is not
-    shown again for at least 6 months after a refusal. The suggested banner says none of it."""
+    """Linee guida 10/06/2021, par. 7.1, point i): the banner MUST warn that closing it with the
+    X keeps the default settings (browsing without non-technical cookies).
+
+    Only that warning is a required content of the banner text. That scrolling is never consent
+    (par. 6.1) and that the banner is not shown again for at least 6 months after a refusal
+    (par. 6.2) bind how the consent mechanism works, not what the banner or the policy must say:
+    they are reported by the tool as `note_implementazione_banner` (checked below), not
+    required in the text (fase 3 verdicts, three verifiers agree)."""
     _, lg = _gpdp_doc(_LINEE_GUIDA_COOKIE)
     lg = normalizza(lg)
     assert not contiene(
@@ -432,14 +437,11 @@ def test_cookie_banner_linee_guida_2021():
         "trascorsi almeno 6 mesi dalla precedente presentazione del banner",
     ), "le Linee guida lette non contengono più le regole attese"
     r = _tool("genera_informativa_cookie", **_caso("genera_informativa_cookie", "Tecnici, analitici e di profilazione"))
-    banner = normalizza(r["banner_testo_suggerito"] + "\n" + r["testo"])
-    mancanti = {
-        "X di chiusura = rifiuto": contiene(banner, "comando x|la x |chiusura del banner|chiudere il banner"),
-        "scroll non è consenso": contiene(banner, "scroll"),
-        "nessuna riproposizione prima di 6 mesi": contiene(banner, "6 mesi|sei mesi"),
-    }
-    mancanti = [k for k, v in mancanti.items() if v]
-    assert not mancanti, f"banner non conforme alle Linee guida Garante 10/06/2021: mancano {mancanti}"
+    banner = normalizza(r["banner_testo_suggerito"])
+    mancanti = contiene(banner, "la x |comando x", "impostazioni di default", "diversi da quelli tecnici")
+    assert not mancanti, f"banner non conforme alle Linee guida Garante 10/06/2021, par. 7.1 i): mancano {mancanti}"
+    note = normalizza(" ".join(r["note_implementazione_banner"]))
+    assert not contiene(note, "scroll", "6 mesi")
 
 
 def test_cookie_analytics_condizioni_equiparazione():
@@ -459,6 +461,9 @@ def test_cookie_analytics_condizioni_equiparazione():
         "informativa sui cookie analitici senza le condizioni del par. 7.2 delle Linee guida "
         f"(minimizzazione e divieto di combinazione da parte del fornitore): mancano {mancanti}"
     )
+    # Par. 7.2 does not make consent depend on a transfer outside the EU (that is chapter V GDPR).
+    assert "extra-ue, è richiesto il consenso" not in testo
+    assert "non trasferiti a terzi" not in testo
 
 
 # ------------------------------------------------------------ genera_informativa_dipendenti
@@ -761,20 +766,29 @@ def test_breach_elementi_art33_3_con_dpo():
     r = _tool("genera_notifica_data_breach", **_caso("genera_notifica_data_breach", "Esattamente 72 ore"))
     assert r["tutti_elementi_presenti"] is True
     testo = r["testo"]
-    for frase in ("Accesso abusivo al CRM", "1,200", "rischio di phishing mirato", "reset delle credenziali", "dpo@alfa.it"):
+    # "1.200": the notice is an Italian document, so the thousands separator is the dot (the
+    # earlier expectation "1,200" pinned Python's English formatting, a form defect, not a norm).
+    for frase in ("Accesso abusivo al CRM", "1.200", "rischio di phishing mirato", "reset delle credenziali", "dpo@alfa.it"):
         assert frase in testo, frase
 
 
 def test_breach_altro_punto_di_contatto_art33_3_b():
-    """Art. 33(3)(b): 'DPO OR ANOTHER contact point'. Without a DPO the tool marks (b) missing
-    and offers no field for another contact point (case 'Senza DPO')."""
-    r = _tool("genera_notifica_data_breach", **_caso("genera_notifica_data_breach", "Senza DPO"))
+    """Art. 33(3)(b): 'DPO OR ANOTHER contact point'. Without a DPO the tool takes the contact
+    point (case 'Senza DPO' plus `punto_contatto`) and marks (b) present; the form has a field
+    for it. With neither a DPO nor a contact point (b) is honestly reported missing: the case
+    of the plan carries no contact at all, so it is the two-way check, not the bare case, that
+    pins the norm (the earlier assertion expected (b) present with no contact data whatsoever)."""
+    caso = _caso("genera_notifica_data_breach", "Senza DPO")
+    con = _tool("genera_notifica_data_breach", **caso, punto_contatto="Ufficio privacy Alfa, privacy@alfa.it")
     problemi = []
-    if r["elementi_art33_3"]["b_contatti_dpo"] is False:
-        problemi.append("b_contatti_dpo=False / tutti_elementi_presenti=False senza DPO")
-    if "punto di contatto" not in r["testo"].lower():
+    if con["elementi_art33_3"]["b_contatti_dpo"] is not True or con["tutti_elementi_presenti"] is not True:
+        problemi.append("b_contatti_dpo/tutti_elementi_presenti falsi con un altro punto di contatto")
+    if "punto di contatto" not in con["testo"].lower() or "privacy@alfa.it" not in con["testo"]:
         problemi.append("nessun campo 'altro punto di contatto' nel modulo")
     assert not problemi, f"art. 33(3)(b) GDPR ammette 'altro punto di contatto': {problemi}"
+    senza = _tool("genera_notifica_data_breach", **caso)
+    assert senza["elementi_art33_3"]["b_contatti_dpo"] is False
+    assert senza["tutti_elementi_presenti"] is False
 
 
 def test_breach_etichette_e_registrazioni_art33_3():

@@ -4,6 +4,7 @@ DPIA (art. 35), analisi base giuridica, verifica necessità DPIA, valutazione da
 calcolo sanzioni GDPR, notifica data breach (art. 33)."""
 
 import json
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -27,6 +28,13 @@ with open(_DATA / "gdpr_dpia_criteri.json") as f:
 # Tool 1: genera_informativa_privacy
 # ---------------------------------------------------------------------------
 
+# A `6(1)(f)` basis (legitimate interests) obliges the notice to name the interests pursued
+# (art. 13(1)(d) / art. 14(2)(b) GDPR): the tool recognises it in the caller's own wording.
+_RE_LEGITTIMO_INTERESSE = re.compile(
+    r"6\s*\(\s*1\s*\)\s*\(\s*f\s*\)|legittim[oi]\s+interess", re.IGNORECASE
+)
+
+
 def _genera_informativa_privacy_impl(
     titolare: str,
     finalita: list[str],
@@ -38,6 +46,11 @@ def _genera_informativa_privacy_impl(
     dpo: str = "",
     diritti_esercitabili: list[str] | None = None,
     trasferimento_extra_ue: str = "",
+    legittimi_interessi: str = "",
+    conferimento: str = "",
+    decisioni_automatizzate: str = "",
+    fonte_dati: str = "",
+    garanzia_trasferimento: str = "",
 ) -> dict:
     if diritti_esercitabili is None:
         diritti_esercitabili = [
@@ -62,34 +75,165 @@ def _genera_informativa_privacy_impl(
     destinatari_text = "\n".join(f"  - {d}" for d in destinatari)
     diritti_text = "\n".join(f"  - {d}" for d in diritti_esercitabili)
 
-    dpo_section = ""
-    if dpo:
-        dpo_section = f"""
-5. RESPONSABILE DELLA PROTEZIONE DEI DATI (DPO)
-Il titolare ha designato un Responsabile della Protezione dei Dati (DPO) contattabile a:
-  {dpo}
-"""
+    legittimo_interesse = any(_RE_LEGITTIMO_INTERESSE.search(b) for b in basi_giuridiche)
+    da_completare: list[str] = []
+    avvertenze: list[str] = []
 
-    trasferimento_section = ""
-    if trasferimento_extra_ue:
-        trasferimento_section = f"""
-6. TRASFERIMENTO VERSO PAESI TERZI
-I Suoi dati personali potranno essere trasferiti verso paesi terzi o organizzazioni internazionali
-nelle seguenti modalità e con le seguenti garanzie:
-  {trasferimento_extra_ue}
-Il trasferimento avviene sulla base di: decisione di adeguatezza della Commissione europea (art. 45
-GDPR) ovvero clausole contrattuali standard (art. 46(2)(c) GDPR).
-"""
+    def _o_segnaposto(valore: str, campo: str, istruzione: str) -> str:
+        """The caller's text, or a visible placeholder that the checklist reports as open."""
+        valore = valore.strip()
+        if valore:
+            return valore
+        da_completare.append(campo)
+        return f"[DA COMPLETARE: {istruzione}]"
 
-    fonte_section = ""
+    # Sections in document order; the numbering is assigned at the end, so that an omitted
+    # optional section never leaves a gap (1, 2, 3, ... N).
+    sezioni: list[tuple[str, str]] = [
+        (
+            "TITOLARE DEL TRATTAMENTO",
+            f"{titolare}\n"
+            "Per esercitare i Suoi diritti o per qualsiasi informazione sul trattamento dei Suoi dati personali,\n"
+            "può contattare il Titolare agli indirizzi sopra indicati.",
+        )
+    ]
+
     if tipo == "art14":
-        fonte_section = """
-FONTE DEI DATI
-I Suoi dati personali sono stati ottenuti da:
-  - Fonti accessibili al pubblico (registri, elenchi, atti, documenti conoscibili da chiunque)
-  - Terzi (clienti, fornitori, partner commerciali, intermediari)
-  - Enti pubblici o privati nell'ambito di rapporti contrattuali o istituzionali
-"""
+        fonte = _o_segnaposto(
+            fonte_dati,
+            "fonte_dati",
+            "indicare la fonte specifica da cui hanno origine i dati personali e se provengono da "
+            "fonti accessibili al pubblico (art. 14(2)(f) GDPR)",
+        )
+        sezioni.append((
+            "FONTE DEI DATI",
+            "I Suoi dati personali non sono stati raccolti presso di Lei.\n"
+            f"Fonte da cui hanno origine i dati: {fonte}",
+        ))
+
+    sezioni.append((
+        "FINALITÀ E BASI GIURIDICHE DEL TRATTAMENTO",
+        "Il Titolare tratta i Suoi dati personali per le seguenti finalità e sulla base delle\n"
+        "corrispondenti basi giuridiche (art. 6 GDPR):\n\n"
+        f"{finalita_text}\n\n"
+        "Le basi giuridiche del trattamento sono:\n"
+        f"{basi_text}",
+    ))
+
+    if legittimo_interesse:
+        interessi = _o_segnaposto(
+            legittimi_interessi,
+            "legittimi_interessi",
+            "indicare i legittimi interessi perseguiti dal Titolare o da terzi "
+            f"(art. {'13(1)(d)' if tipo == 'art13' else '14(2)(b)'} GDPR)",
+        )
+        sezioni.append((
+            "LEGITTIMI INTERESSI PERSEGUITI DAL TITOLARE O DA TERZI",
+            "Per le finalità fondate sull'art. 6(1)(f) GDPR, i legittimi interessi perseguiti dal Titolare\n"
+            f"o da terzi sono i seguenti:\n  {interessi}",
+        ))
+
+    sezioni.append((
+        "CATEGORIE DI DATI PERSONALI TRATTATI",
+        f"Il Titolare tratta le seguenti categorie di dati personali:\n{dati_text}",
+    ))
+
+    sezioni.append((
+        "DESTINATARI O CATEGORIE DI DESTINATARI",
+        "I Suoi dati personali potranno essere comunicati alle seguenti categorie di destinatari:\n"
+        f"{destinatari_text}\n\n"
+        "I dati non saranno diffusi, salvo espressa previsione di legge o Suo consenso.\n"
+        "I soggetti appartenenti alle categorie sopra indicate svolgono la funzione di responsabili\n"
+        "del trattamento (art. 28 GDPR), di persone autorizzate al trattamento sotto l'autorità del\n"
+        "titolare o del responsabile (art. 29 GDPR; art. 2-quaterdecies D.Lgs. 196/2003) ovvero operano\n"
+        "in autonomia come distinti titolari del trattamento.",
+    ))
+
+    if dpo:
+        sezioni.append((
+            "RESPONSABILE DELLA PROTEZIONE DEI DATI (DPO)",
+            "Il titolare ha designato un Responsabile della Protezione dei Dati (DPO) contattabile a:\n"
+            f"  {dpo}",
+        ))
+
+    if trasferimento_extra_ue:
+        garanzia = _o_segnaposto(
+            garanzia_trasferimento,
+            "garanzia_trasferimento",
+            "indicare se esiste o manca una decisione di adeguatezza della Commissione europea "
+            "(art. 45 GDPR) oppure le garanzie appropriate applicate ai sensi degli artt. 46, 47 o 49, "
+            "secondo comma, GDPR",
+        )
+        sezioni.append((
+            "TRASFERIMENTO VERSO PAESI TERZI",
+            "I Suoi dati personali potranno essere trasferiti verso paesi terzi o organizzazioni internazionali\n"
+            "nelle seguenti modalità:\n"
+            f"  {trasferimento_extra_ue}\n"
+            f"Decisione di adeguatezza o garanzie applicate: {garanzia}\n"
+            "Per ottenere una copia delle garanzie, o conoscere il luogo in cui sono state rese disponibili,\n"
+            "può rivolgersi al Titolare ai recapiti indicati al punto 1.",
+        ))
+
+    sezioni.append((
+        "PERIODO DI CONSERVAZIONE",
+        "I Suoi dati personali saranno conservati per il seguente periodo:\n"
+        f"  {periodo_conservazione}\n\n"
+        "Decorso tale termine, i dati saranno cancellati o resi anonimi in modo irreversibile,\n"
+        "salvo obblighi di conservazione previsti dalla legge.",
+    ))
+
+    if tipo == "art13":
+        obbligo = _o_segnaposto(
+            conferimento,
+            "conferimento",
+            "indicare se la comunicazione dei dati è un obbligo legale o contrattuale oppure un requisito "
+            "necessario per la conclusione di un contratto, se Lei è obbligato a fornire i dati e le "
+            "possibili conseguenze della mancata comunicazione (art. 13(2)(e) GDPR)",
+        )
+        sezioni.append((
+            "CONFERIMENTO DEI DATI",
+            f"Natura del conferimento e conseguenze della mancata comunicazione: {obbligo}",
+        ))
+
+    if decisioni_automatizzate.strip():
+        automatizzato = (
+            "Il Titolare adotta un processo decisionale automatizzato, compresa la profilazione di cui\n"
+            "all'art. 22, paragrafi 1 e 4, GDPR. Logica utilizzata, importanza e conseguenze previste per\n"
+            f"l'interessato: {decisioni_automatizzate.strip()}"
+        )
+    else:
+        automatizzato = (
+            "Il Titolare non adotta alcun processo decisionale unicamente automatizzato, compresa la\n"
+            "profilazione di cui all'art. 22, paragrafi 1 e 4, GDPR."
+        )
+        avvertenze.append(
+            "decisioni_automatizzate non indicate: il testo dichiara che non esiste alcun processo "
+            "decisionale automatizzato o profilazione (art. 13(2)(f) / 14(2)(g) GDPR); se esiste, "
+            "compilare il parametro con logica, importanza e conseguenze"
+        )
+    sezioni.append(("PROCESSO DECISIONALE AUTOMATIZZATO E PROFILAZIONE", automatizzato))
+
+    sezioni.append((
+        "DIRITTI DELL'INTERESSATO",
+        "In qualità di interessato, Lei ha il diritto di:\n"
+        f"{diritti_text}\n\n"
+        "Per esercitare i Suoi diritti, può inviare una richiesta scritta al Titolare del trattamento.\n"
+        "Il Titolare risponderà entro un mese dalla ricezione della richiesta, prorogabile di due mesi per richieste complesse o numerose (art. 12(3) GDPR).",
+    ))
+
+    sezioni.append((
+        "DIRITTO DI PROPORRE RECLAMO",
+        "Lei ha il diritto di proporre reclamo all'Autorità di controllo competente.\n"
+        "In Italia: Garante per la protezione dei dati personali\n"
+        "Sito web: www.garanteprivacy.it\n"
+        "E-mail: protocollo@gpdp.it\n"
+        "PEC: protocollo@pec.gpdp.it\n"
+        "Indirizzo: Piazza Venezia n. 11, 00187 Roma",
+    ))
+
+    corpo = "\n\n".join(
+        f"{i}. {titolo}\n{testo_sezione}" for i, (titolo, testo_sezione) in enumerate(sezioni, start=1)
+    )
 
     testo = f"""INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI
 ai sensi {riferimento}
@@ -98,59 +242,16 @@ Gentile Interessato/a,
 in ottemperanza a quanto previsto dal Regolamento (UE) 2016/679 (di seguito "GDPR"), La informiamo
 che {titolare} (di seguito "Titolare"), {titolo_tipo}, tratta i Suoi dati personali.
 
-1. TITOLARE DEL TRATTAMENTO
-{titolare}
-Per esercitare i Suoi diritti o per qualsiasi informazione sul trattamento dei Suoi dati personali,
-può contattare il Titolare agli indirizzi sopra indicati.
-{fonte_section}
-2. FINALITÀ E BASI GIURIDICHE DEL TRATTAMENTO
-Il Titolare tratta i Suoi dati personali per le seguenti finalità e sulla base delle
-corrispondenti basi giuridiche (art. 6 GDPR):
-
-{finalita_text}
-
-Le basi giuridiche del trattamento sono:
-{basi_text}
-
-3. CATEGORIE DI DATI PERSONALI TRATTATI
-Il Titolare tratta le seguenti categorie di dati personali:
-{dati_text}
-
-4. DESTINATARI O CATEGORIE DI DESTINATARI
-I Suoi dati personali potranno essere comunicati alle seguenti categorie di destinatari:
-{destinatari_text}
-
-I dati non saranno diffusi, salvo espressa previsione di legge o Suo consenso.
-I soggetti appartenenti alle categorie sopra indicate svolgono la funzione di responsabili
-del trattamento (art. 28 GDPR), incaricati del trattamento ovvero operano in autonomia
-come distinti titolari del trattamento.
-{dpo_section}{trasferimento_section}
-7. PERIODO DI CONSERVAZIONE
-I Suoi dati personali saranno conservati per il seguente periodo:
-  {periodo_conservazione}
-
-Decorso tale termine, i dati saranno cancellati o resi anonimi in modo irreversibile,
-salvo obblighi di conservazione previsti dalla legge.
-
-8. DIRITTI DELL'INTERESSATO
-In qualità di interessato, Lei ha il diritto di:
-{diritti_text}
-
-Per esercitare i Suoi diritti, può inviare una richiesta scritta al Titolare del trattamento.
-Il Titolare risponderà entro un mese dalla ricezione della richiesta, prorogabile di due mesi per richieste complesse o numerose (art. 12(3) GDPR).
-
-9. DIRITTO DI PROPORRE RECLAMO
-Lei ha il diritto di proporre reclamo all'Autorità di controllo competente.
-In Italia: Garante per la protezione dei dati personali
-Sito web: www.garanteprivacy.it
-E-mail: garante@gpdp.it
-Indirizzo: Piazza Venezia n. 11, 00187 Roma
+{corpo}
 
 Informativa aggiornata ai sensi del Reg. UE 2016/679 (GDPR) e del D.Lgs. 196/2003
 come modificato dal D.Lgs. 101/2018.
 """
 
-    # Checklist elementi obbligatori
+    # Checklist of the elements of art. 13(1)-(2) / art. 14(1)-(2) GDPR. An element that depends
+    # on the caller's input (legitimate interests, nature of the provision of data, source of the
+    # data, safeguards of a transfer) is satisfied only when the caller supplied it: otherwise the
+    # text carries a "[DA COMPLETARE: ...]" placeholder and the element stays False.
     elementi_obbligatori = {
         "identita_titolare": bool(titolare),
         "finalita_trattamento": len(finalita) > 0,
@@ -160,14 +261,20 @@ come modificato dal D.Lgs. 101/2018.
         "periodo_conservazione": bool(periodo_conservazione),
         "diritti_interessato": len(diritti_esercitabili) > 0,
         "diritto_reclamo": True,
-        # Elementi condizionalmente obbligatori (solo se presenti): sempre soddisfatti qui,
-        # nessuna verifica di contenuto viene effettuata.
+        # The DPO section appears whenever `dpo` is given: nothing to check otherwise.
         "dpo_se_nominato": True,
-        "trasferimento_extra_ue_se_presente": True,
+        # Art. 13(1)(d) / 14(2)(b): only when a 6(1)(f) basis is declared.
+        "legittimi_interessi_se_art_6_1_f": (not legittimo_interesse) or bool(legittimi_interessi.strip()),
+        # Art. 13(1)(f) / 14(1)(f): only when a transfer is declared.
+        "trasferimento_extra_ue_se_presente": (not trasferimento_extra_ue) or bool(garanzia_trasferimento.strip()),
+        # Art. 13(2)(f) / 14(2)(g): the text always takes a position (existence or absence).
+        "decisioni_automatizzate": True,
     }
 
-    if tipo == "art14":
-        elementi_obbligatori["fonte_dati"] = True
+    if tipo == "art13":
+        elementi_obbligatori["conferimento_e_conseguenze"] = bool(conferimento.strip())
+    else:
+        elementi_obbligatori["fonte_dati"] = bool(fonte_dati.strip())
         elementi_obbligatori["categorie_dati_fonte"] = len(categorie_dati) > 0
 
     tutti_verificati = all(elementi_obbligatori.values())
@@ -176,6 +283,8 @@ come modificato dal D.Lgs. 101/2018.
         "testo": testo.strip(),
         "elementi_obbligatori_verificati": elementi_obbligatori,
         "tutti_elementi_presenti": tutti_verificati,
+        "campi_da_completare": da_completare,
+        "avvertenze": avvertenze,
         "tipo": tipo,
         "riferimento_normativo": riferimento,
     }
@@ -193,6 +302,11 @@ def genera_informativa_privacy(
     dpo: str = "",
     diritti_esercitabili: list[str] | None = None,
     trasferimento_extra_ue: str = "",
+    legittimi_interessi: str = "",
+    conferimento: str = "",
+    decisioni_automatizzate: str = "",
+    fonte_dati: str = "",
+    garanzia_trasferimento: str = "",
 ) -> dict:
     """Genera un'informativa privacy completa ai sensi dell'art. 13 o 14 GDPR.
 
@@ -201,6 +315,12 @@ def genera_informativa_privacy(
     Art. 13 = dati raccolti direttamente dall'interessato (es. modulo di contatto, acquisto).
     Art. 14 = dati ottenuti da terzi o fonti indirette (es. liste, partner, fonti pubbliche).
     Chaining: → genera_dpa() per i responsabili del trattamento → genera_registro_trattamenti()
+    Vigenza: artt. 12, 13 e 14 Reg. (UE) 2016/679 nel testo vigente al 29/09/2026; recapiti del
+    Garante come pubblicati su garanteprivacy.it (protocollo@gpdp.it, PEC protocollo@pec.gpdp.it).
+    Precisione: INDICATIVO (modello redazionale: gli elementi che dipendono dal caso concreto,
+    cioè legittimi interessi, natura del conferimento, fonte dei dati e garanzie del trasferimento,
+    compaiono come «[DA COMPLETARE: ...]» finché non vengono forniti, e la checklist li segna
+    mancanti; la valutazione di adeguatezza del documento resta del titolare).
 
     Args:
         titolare: Denominazione completa del titolare del trattamento (ragione sociale e sede)
@@ -213,6 +333,11 @@ def genera_informativa_privacy(
         dpo: Contatti del DPO (Responsabile Protezione Dati), se nominato (lasciare vuoto se assente)
         diritti_esercitabili: Lista dei diritti esercitabili (default: tutti i 7 diritti art. 15-21)
         trasferimento_extra_ue: Descrizione del trasferimento extra-UE, se presente (vuoto se assente)
+        legittimi_interessi: Legittimi interessi perseguiti dal titolare o da terzi (art. 13(1)(d) / 14(2)(b)); richiesti se una base è l'art. 6(1)(f)
+        conferimento: Art. 13(2)(e): se la comunicazione dei dati è un obbligo legale o contrattuale o un requisito per concludere il contratto, se l'interessato è obbligato a fornirli e le conseguenze della mancata comunicazione (solo art13)
+        decisioni_automatizzate: Art. 13(2)(f) / 14(2)(g): logica, importanza e conseguenze di un processo decisionale automatizzato o di una profilazione; se vuoto il testo dichiara che non ne esistono
+        fonte_dati: Art. 14(2)(f): fonte specifica da cui hanno origine i dati e se è accessibile al pubblico (solo art14)
+        garanzia_trasferimento: Art. 13(1)(f) / 14(1)(f): decisione di adeguatezza o garanzie appropriate applicate al trasferimento (artt. 45, 46, 47, 49 co. 2) e mezzi per ottenerne copia; richiesta se c'è un trasferimento extra-UE
     """
     return _genera_informativa_privacy_impl(
         titolare=titolare,
@@ -225,6 +350,11 @@ def genera_informativa_privacy(
         dpo=dpo,
         diritti_esercitabili=diritti_esercitabili,
         trasferimento_extra_ue=trasferimento_extra_ue,
+        legittimi_interessi=legittimi_interessi,
+        conferimento=conferimento,
+        decisioni_automatizzate=decisioni_automatizzate,
+        fonte_dati=fonte_dati,
+        garanzia_trasferimento=garanzia_trasferimento,
     )
 
 
@@ -258,10 +388,15 @@ def _genera_informativa_cookie_impl(
         tabella_cookie.append({
             "nome": nome,
             "tipo": "Analitico/statistico",
-            "finalita": "Analisi statistica anonima degli accessi e del comportamento degli utenti",
+            "finalita": "Analisi statistica aggregata degli accessi e del comportamento degli utenti",
             "durata": "Fino a 13 mesi",
             "fornitore": "Terza parte (es. Google Analytics, Matomo)",
-            "base_giuridica": "Consenso (art. 6(1)(a) GDPR) se non anonimizzati; non richiede consenso se anonimizzati e dati non trasferiti a terzi",
+            "base_giuridica": (
+                "Consenso (art. 122(1) D.Lgs. 196/2003; art. 6(1)(a) GDPR), salvo che il cookie sia "
+                "equiparato a un cookie tecnico (Linee guida Garante 10/06/2021, par. 7.2): IP mascherato "
+                "almeno nella quarta componente, sole statistiche aggregate su un solo sito o app, "
+                "nessuna combinazione né trasmissione dei dati da parte del fornitore"
+            ),
         })
 
     for nome in cookie_profilazione:
@@ -293,8 +428,12 @@ def _genera_informativa_cookie_impl(
             if ha_profilazione
             else "."
         )
+        # Linee guida Garante 10/06/2021, par. 7.1, point i): the banner must warn that closing it
+        # with the X keeps the default settings, i.e. browsing without non-technical cookies.
         banner_testo += (
             " Può accettare, rifiutare o personalizzare le sue preferenze. "
+            "Chiudendo il banner con la X in alto a destra restano attive le impostazioni di default "
+            "e la navigazione prosegue senza cookie o altri strumenti di tracciamento diversi da quelli tecnici. "
             "Per maggiori informazioni consulti la nostra Cookie Policy."
         )
     else:
@@ -323,12 +462,20 @@ tramite il pannello delle preferenze cookie del sito.
         analytics_section = f"""
 3. COOKIE ANALITICI
 I cookie analitici consentono di contare le visite e le fonti di traffico in modo da poter
-misurare e migliorare le prestazioni del sito. I dati sono raccolti in forma anonima o
-aggregata ove possibile.
+misurare e migliorare le prestazioni del sito.
 Utilizziamo i seguenti cookie analitici:
   {nomi_analytics}
 
-Se i dati vengono trasmessi a fornitori terzi extra-UE, è richiesto il consenso dell'utente.
+Questi cookie sono equiparati ai cookie tecnici, e quindi utilizzati senza il Suo consenso, solo
+se sono soddisfatte tutte queste condizioni (Linee guida del Garante del 10 giugno 2021, par. 7.2):
+  a) l'indirizzo IP è mascherato almeno nella quarta componente (IPv4), o con misure analoghe per
+     gli indirizzi IPv6, in modo da impedire l'individuazione diretta dell'utente;
+  b) i dati sono usati solo per statistiche aggregate, riferite a un singolo sito o applicazione;
+  c) il fornitore terzo non combina i dati con altre elaborazioni né li trasmette a ulteriori terzi
+     (salvo statistiche riferite a più domini dello stesso titolare o gruppo).
+In mancanza anche di una sola di queste condizioni è richiesto il Suo consenso (art. 122(1)
+D.Lgs. 196/2003). L'eventuale trasferimento di dati verso paesi terzi è disciplinato a parte
+dal capo V del GDPR (artt. 44-49 GDPR) e non incide su questa distinzione.
 """
 
     testo = f"""COOKIE POLICY
@@ -352,7 +499,12 @@ Utilizziamo i seguenti cookie tecnici:
   {nomi_tecnici}
 {analytics_section}{profilazione_section}
 5. COME GESTIRE I COOKIE
-Lei può gestire le proprie preferenze relative ai cookie mediante le impostazioni del browser
+Alla prima visita Le viene presentato un banner. La chiusura del banner mediante il comando X, in
+alto a destra, mantiene le impostazioni di default: la navigazione prosegue senza cookie o altri
+strumenti di tracciamento diversi da quelli tecnici. Il semplice scorrimento della pagina (scroll)
+non costituisce consenso all'installazione di cookie diversi da quelli tecnici.
+
+Lei può gestire le proprie preferenze relative ai cookie anche mediante le impostazioni del browser
 che utilizza. Tuttavia, la disabilitazione dei cookie tecnici potrebbe pregiudicare il
 corretto funzionamento del sito.
 
@@ -372,14 +524,32 @@ Cookie Policy aggiornata ai sensi del Reg. UE 2016/679 (GDPR), dell'art. 122 D.L
 e delle Linee Guida del Garante del 10/06/2021.
 """
 
-    return {
+    risultato = {
         "testo": testo.strip(),
         "tabella_cookie": tabella_cookie,
         "banner_testo_suggerito": banner_testo,
+        # Prudential default: analytics are treated as needing consent unless the conditions of
+        # par. 7.2 (listed in `condizioni_equiparazione_analytics`) are all verified by the owner.
         "consenso_richiesto_analytics": ha_analytics,
         "consenso_richiesto_profilazione": ha_profilazione,
         "riferimento_normativo": "Art. 122 D.Lgs. 196/2003; Linee Guida Garante 10/06/2021 (doc. web 9677876); Art. 6(1)(a) GDPR",
     }
+    if ha_analytics:
+        risultato["condizioni_equiparazione_analytics"] = [
+            "IP mascherato almeno nella quarta componente (IPv4) o misure analoghe (IPv6)",
+            "solo statistiche aggregate, riferite a un singolo sito o applicazione",
+            "il fornitore terzo non combina i dati con altre elaborazioni né li trasmette a ulteriori terzi",
+        ]
+    if ha_analytics or ha_profilazione:
+        # Rules on how the consent mechanism must work (Linee guida 10/06/2021, par. 6.1, 6.2, 7.1):
+        # they bind the CMP configuration, not the text of the policy.
+        risultato["note_implementazione_banner"] = [
+            "il comando X di chiusura, in alto a destra, ha evidenza grafica pari agli altri comandi (par. 7.1)",
+            "lo scroll non equivale a consenso (par. 6.1)",
+            "dopo un rifiuto il banner non si ripropone prima di 6 mesi, salvo mutamento significativo "
+            "delle condizioni del trattamento o impossibilità di sapere se il cookie sia già memorizzato (par. 6.2)",
+        ]
+    return risultato
 
 
 @mcp.tool(tags={"privacy"})
@@ -395,7 +565,16 @@ def genera_informativa_cookie(
     Usa questo tool quando: un sito web deve adempiere agli obblighi di informativa cookie
     previsti dall'art. 122 D.Lgs. 196/2003 e dalle Linee Guida Garante del 10/06/2021.
     Distingue cookie tecnici (no consenso), analitici e di profilazione (consenso).
+    I cookie analitici di terze parti sono equiparati ai tecnici, e quindi senza consenso, solo se
+    l'IP è mascherato (almeno la quarta componente), le statistiche sono aggregate su un solo sito
+    e il fornitore non combina né ritrasmette i dati (par. 7.2 Linee guida); il trasferimento
+    extra-UE non è il criterio (capo V GDPR). Il tool per prudenza richiede il consenso per gli
+    analitici (`consenso_richiesto_analytics`) e riporta le condizioni di equiparazione.
     Chaining: → genera_informativa_privacy() per l'informativa generale del sito
+    Vigenza: art. 122 D.Lgs. 196/2003 e Linee guida cookie del Garante, provv. n. 231 del
+    10/06/2021 (doc. web 9677876), testo vigente al 29/09/2026.
+    Precisione: INDICATIVO (modello di policy e di banner: la classificazione dei singoli cookie
+    e la verifica delle condizioni di equiparazione degli analitici restano del titolare).
 
     Args:
         titolare: Ragione sociale e recapiti del titolare del sito
@@ -433,7 +612,7 @@ VIDEOSORVEGLIANZA
 Il datore di lavoro utilizza sistemi di videosorveglianza nelle seguenti aree comuni aziendali
 per finalità di sicurezza, tutela del patrimonio aziendale e prevenzione di illeciti.
 I sistemi di videosorveglianza sono installati previa stipula di accordo sindacale (art. 4(1) L. 300/1970)
-ovvero autorizzazione dell'Ispettorato Territoriale del Lavoro (art. 4(2) L. 300/1970).
+ovvero autorizzazione dell'Ispettorato Territoriale del Lavoro (art. 4(1) L. 300/1970).
 Le immagini sono conservate per un massimo di 24-72 ore salvo esigenze investigative documentate.
 Ulteriori informazioni sono disponibili nell'apposita informativa videosorveglianza esposta nei locali.
 """
@@ -452,7 +631,7 @@ Il datore di lavoro utilizza sistemi di geolocalizzazione su veicoli aziendali p
 sicurezza del lavoratore, organizzazione del lavoro, tutela del patrimonio aziendale.
 La geolocalizzazione avviene durante l'orario di lavoro. I dati sono conservati per 6 mesi.
 L'utilizzo dei sistemi di geolocalizzazione è avvenuto previa stipula di accordo sindacale
-(art. 4(1) L. 300/1970) ovvero autorizzazione dell'Ispettorato Territoriale del Lavoro (art. 4(2) L. 300/1970).
+(art. 4(1) L. 300/1970) ovvero autorizzazione dell'Ispettorato Territoriale del Lavoro (art. 4(1) L. 300/1970).
 """
         adempimenti_aggiuntivi.append(
             "Accordo sindacale o autorizzazione ITL ex art. 4 L. 300/1970 per geolocalizzazione"
@@ -464,10 +643,13 @@ L'utilizzo dei sistemi di geolocalizzazione è avvenuto previa stipula di accord
 UTILIZZO DI STRUMENTI AZIENDALI (PC, EMAIL, INTERNET, TELEFONO)
 Gli strumenti aziendali (computer, email, accesso internet, telefono aziendale) sono messi
 a disposizione del dipendente per lo svolgimento dell'attività lavorativa.
-Il datore di lavoro può effettuare controlli sull'utilizzo degli strumenti aziendali nei limiti
-previsti dalla legge (art. 4(2) L. 300/1970) per ragioni organizzative, produttive, di sicurezza
-o per esigenze di tutela del patrimonio aziendale, previa informativa ai dipendenti.
-Si applicano le policy aziendali sull'utilizzo degli strumenti di lavoro.
+Gli strumenti utilizzati per rendere la prestazione lavorativa non richiedono accordo sindacale
+né autorizzazione dell'Ispettorato (art. 4(2) L. 300/1970). Le informazioni raccolte tramite tali
+strumenti sono utilizzabili a tutti i fini connessi al rapporto di lavoro a condizione che al
+dipendente sia data adeguata informazione delle modalità d'uso degli strumenti e di effettuazione
+dei controlli, nel rispetto del D.Lgs. 196/2003 (art. 4(3) L. 300/1970).
+Le modalità d'uso degli strumenti e le eventuali modalità di controllo sono descritte nelle policy
+aziendali, che il dipendente è tenuto a leggere.
 """
         adempimenti_aggiuntivi.append(
             "Policy aziendale utilizzo strumenti IT (PC, email, internet) da consegnare al dipendente"
@@ -484,12 +666,13 @@ Il titolare ha nominato un DPO contattabile a: {dpo}
         "Consegna dell'informativa al momento dell'assunzione e conservazione firma di ricevuta",
         "Aggiornamento dell'informativa in caso di nuovi trattamenti o modifiche significative",
         "Registro dei trattamenti (art. 30 GDPR) aggiornato con i trattamenti HR",
-        "Nomina ad incaricato del trattamento per il personale HR che accede ai dati",
+        "Autorizzazione, con istruzioni, del personale HR che accede ai dati (art. 29 GDPR; "
+        "art. 2-quaterdecies D.Lgs. 196/2003)",
     ])
 
     testo = f"""INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI DEI DIPENDENTI
-ai sensi dell'art. 13 Reg. UE 2016/679 (GDPR), dell'art. 111-bis D.Lgs. 196/2003
-e dell'art. 4 L. 300/1970
+ai sensi dell'art. 13 Reg. UE 2016/679 (GDPR), dell'art. 88 GDPR, dell'art. 113 e dell'art. 114
+D.Lgs. 196/2003 e dell'art. 4 L. 300/1970
 
 Gentile Dipendente/Collaboratore,
 in qualità di Titolare del trattamento, {titolare} La informa che, nel contesto del rapporto
@@ -542,8 +725,12 @@ I dati potranno essere comunicati a:
   - Dati del rapporto di lavoro: per tutta la durata e per 10 anni successivi alla cessazione
     (prescrizione ordinaria art. 2946 c.c.)
   - Buste paga e documenti contabili: 10 anni (obblighi fiscali)
-  - Dati di sorveglianza sanitaria: 40 anni (art. 25(1)(a) D.Lgs. 81/2008 per esposizione ad
-    agenti chimici/fisici/biologici)
+  - Dati di sorveglianza sanitaria: l'originale della cartella sanitaria e di rischio è conservato dal
+    datore di lavoro per almeno 10 anni (art. 25(1)(e) D.Lgs. 81/2008), salvo il diverso termine
+    previsto da altre disposizioni dello stesso decreto: per l'esposizione ad agenti cancerogeni o
+    mutageni (art. 243(6) D.Lgs. 81/2008), ad amianto (art. 260(4) D.Lgs. 81/2008) e ad agenti
+    biologici con gravi sequele (art. 280(4) D.Lgs. 81/2008) l'INAIL conserva la documentazione
+    fino a 40 anni
   - Riprese videosorveglianza: 24-72 ore salvo diverse esigenze documentate
 
 6. DIRITTI DELL'INTERESSATO
@@ -560,7 +747,8 @@ ED effettuati con mezzi automatizzati; non si applica ai trattamenti basati su o
 7. DIRITTO DI PROPORRE RECLAMO
 Può proporre reclamo al Garante per la protezione dei dati personali (www.garanteprivacy.it).
 
-Informativa resa ai sensi dell'art. 13 GDPR, dell'art. 111-bis D.Lgs. 196/2003 e dell'art. 4 L. 300/1970.
+Informativa resa ai sensi dell'art. 13 e dell'art. 88 GDPR, dell'art. 113 e dell'art. 114 D.Lgs. 196/2003
+e dell'art. 4 L. 300/1970.
 Data: ___________    Firma per ricevuta: ___________________________
 """
 
@@ -568,7 +756,7 @@ Data: ___________    Firma per ricevuta: ___________________________
         "testo": testo.strip(),
         "adempimenti_aggiuntivi": adempimenti_aggiuntivi,
         "riferimento_normativo": (
-            "Art. 13 Reg. UE 2016/679 (GDPR); Art. 111-bis D.Lgs. 196/2003; "
+            "Art. 13 e art. 88 Reg. UE 2016/679 (GDPR); art. 113 e art. 114 D.Lgs. 196/2003; "
             "Art. 4 L. 300/1970 (Statuto dei Lavoratori); D.Lgs. 81/2008 (sicurezza sul lavoro)"
         ),
     }
@@ -587,9 +775,17 @@ def genera_informativa_dipendenti(
     Usa questo tool quando: un'azienda deve consegnare l'informativa privacy al personale
     al momento dell'assunzione o aggiornare quella esistente.
     Tiene conto dei vincoli dell'art. 4 L. 300/1970 (Statuto dei Lavoratori) per controlli
-    a distanza, videosorveglianza e geolocalizzazione.
+    a distanza, videosorveglianza e geolocalizzazione: accordo sindacale e, in mancanza,
+    autorizzazione dell'Ispettorato sono entrambi al comma 1; il comma 2 esclude gli strumenti
+    di lavoro e di registrazione delle presenze; il comma 3 lega l'utilizzabilità delle
+    informazioni all'adeguata informazione del lavoratore.
     Chaining: → genera_informativa_videosorveglianza() se videosorveglianza=True
               → genera_registro_trattamenti() per registrare il trattamento HR
+    Vigenza: artt. 13 e 88 Reg. (UE) 2016/679; artt. 113, 114 e 2-quaterdecies D.Lgs. 196/2003;
+    art. 4 L. 300/1970 (testo D.Lgs. 151/2015); artt. 25(1)(e), 243(6), 260(4), 280(4) D.Lgs.
+    81/2008 (conservazione della cartella sanitaria), testi vigenti al 29/09/2026.
+    Precisione: INDICATIVO (modello di informativa; i termini di conservazione di video e GPS,
+    24-72 ore e 6 mesi, sono prassi del Garante e non un valore fissato dalla norma).
 
     Args:
         titolare: Ragione sociale e sede del datore di lavoro (titolare del trattamento)
@@ -747,16 +943,19 @@ def _genera_dpa_impl(
 ) -> dict:
     sub_responsabili = sub_responsabili or []
 
-    clausole_obbligatorie_art28 = {
-        "a_istruzioni_documentate": True,
-        "b_riservatezza": True,
-        "c_misure_sicurezza_art32": True,
-        "d_sub_responsabili_condizioni": True,
-        "e_assistenza_diritti_interessati": True,
-        "f_assistenza_sicurezza_breach_dpia": True,
-        "g_cancellazione_restituzione_fine_servizio": True,
-        "h_audit_ispezioni": True,
+    # Label each clause of art. 28(3) carries in the generated text: the checklist below is
+    # derived from the text, so it can no longer report a clause the document does not contain.
+    _marcatori_art28 = {
+        "a_istruzioni_documentate": "[art. 28(3)(a)]",
+        "b_riservatezza": "[art. 28(3)(b)]",
+        "c_misure_sicurezza_art32": "[art. 28(3)(c)]",
+        "d_sub_responsabili_condizioni": "[art. 28(3)(d)",
+        "e_assistenza_diritti_interessati": "[art. 28(3)(e)]",
+        "f_assistenza_sicurezza_breach_dpia": "[art. 28(3)(f)]",
+        "g_cancellazione_restituzione_fine_servizio": "[art. 28(3)(g)]",
+        "h_audit_ispezioni": "[art. 28(3)(h)]",
     }
+    _marcatore_istruzione_illecita = "[art. 28(3), secondo comma]"
 
     categorie_int_text = "\n".join(f"  - {c}" for c in categorie_interessati)
     categorie_dati_text = "\n".join(f"  - {d}" for d in categorie_dati)
@@ -766,20 +965,32 @@ def _genera_dpa_impl(
     if sub_responsabili:
         sub_list = "\n".join(f"  - {s}" for s in sub_responsabili)
         sub_section = f"""
-4.4 Sub-responsabili autorizzati
+4.4 Sub-responsabili autorizzati [art. 28(3)(d), art. 28(2) e (4)]
 Il Titolare autorizza il Responsabile ad avvalersi dei seguenti sub-responsabili:
 {sub_list}
 Il Responsabile informerà previamente il Titolare di qualsiasi modifica prevista riguardante
 l'aggiunta o la sostituzione di altri responsabili del trattamento, dando al Titolare la
-possibilità di opporsi. I sub-responsabili devono essere vincolati da obblighi analoghi
-a quelli del presente accordo. Il Responsabile rimane pienamente responsabile nei confronti
-del Titolare dell'adempimento degli obblighi dei sub-responsabili.
+possibilità di opporsi a tali modifiche. Sui sub-responsabili sono imposti, mediante contratto
+o altro atto giuridico, gli stessi obblighi in materia di protezione dei dati contenuti nel
+presente accordo, prevedendo in particolare garanzie sufficienti per mettere in atto misure
+tecniche e organizzative adeguate. Qualora il sub-responsabile ometta di adempiere ai propri
+obblighi in materia di protezione dei dati, il Responsabile rimane pienamente responsabile e
+conserva nei confronti del Titolare l'intera responsabilità dell'adempimento degli obblighi
+del sub-responsabile.
 """
     else:
         sub_section = """
-4.4 Sub-responsabili
+4.4 Sub-responsabili [art. 28(3)(d), art. 28(2) e (4)]
 Il Responsabile non è autorizzato ad avvalersi di altri responsabili del trattamento
 (sub-responsabili) senza la previa autorizzazione scritta specifica o generale del Titolare.
+Nel caso di autorizzazione scritta generale, il Responsabile informa il Titolare di eventuali
+modifiche previste riguardanti l'aggiunta o la sostituzione di altri responsabili del trattamento,
+dando al Titolare l'opportunità di opporsi a tali modifiche. Ai sub-responsabili così autorizzati
+sono imposti, mediante contratto o altro atto giuridico, gli stessi obblighi in materia di
+protezione dei dati contenuti nel presente accordo, prevedendo in particolare garanzie sufficienti
+per mettere in atto misure tecniche e organizzative adeguate; il Responsabile rimane pienamente
+responsabile e conserva nei confronti del Titolare l'intera responsabilità dell'adempimento degli
+obblighi del sub-responsabile.
 """
 
     testo = f"""ACCORDO SUL TRATTAMENTO DEI DATI PERSONALI
@@ -867,6 +1078,11 @@ dimostrare il rispetto degli obblighi di cui al presente articolo e consente e c
 alle attività di revisione, compresi le ispezioni, realizzate dal Titolare o da un altro
 soggetto da questi incaricato.
 
+4.9 Istruzioni in violazione della normativa [art. 28(3), secondo comma]
+Con riguardo al punto 4.8, il Responsabile informa immediatamente il Titolare qualora, a suo
+parere, un'istruzione violi il Regolamento o altre disposizioni, nazionali o dell'Unione,
+relative alla protezione dei dati.
+
 ART. 5 — OBBLIGHI DEL TITOLARE
 Il Titolare si impegna a:
   - fornire istruzioni chiare, documentate e lecite per il trattamento
@@ -876,8 +1092,9 @@ Il Titolare si impegna a:
 
 ART. 6 — RESPONSABILITÀ
 Il Responsabile è responsabile dell'adempimento degli obblighi ex art. 28 GDPR.
-Qualora il Responsabile determini autonomamente finalità e mezzi del trattamento,
-è considerato Titolare ai sensi dell'art. 4(7) GDPR, con le relative responsabilità.
+Qualora il Responsabile violi il GDPR determinando le finalità e i mezzi del trattamento,
+è considerato Titolare del trattamento ai sensi dell'art. 28(10) GDPR (nozione di cui all'art. 4(7)),
+fatti salvi gli artt. 82, 83 e 84 GDPR, con le relative responsabilità.
 
 ART. 7 — LEGGE APPLICABILE E FORO COMPETENTE
 Il presente accordo è regolato dal Reg. UE 2016/679 (GDPR) e dalla normativa italiana
@@ -889,11 +1106,16 @@ Per il Titolare: ___________________________
 Per il Responsabile: _______________________
 """
 
+    clausole_obbligatorie_art28 = {k: m in testo for k, m in _marcatori_art28.items()}
+    avviso_istruzione_illecita = _marcatore_istruzione_illecita in testo
+
     return {
         "testo": testo.strip(),
         "clausole_obbligatorie_art28": clausole_obbligatorie_art28,
-        "tutte_clausole_presenti": all(clausole_obbligatorie_art28.values()),
-        "riferimento_normativo": "Art. 28 Reg. UE 2016/679 (GDPR)",
+        # Art. 28(3), second sub-paragraph (immediate notice of an unlawful instruction)
+        "avviso_istruzione_illecita_art28_3": avviso_istruzione_illecita,
+        "tutte_clausole_presenti": all(clausole_obbligatorie_art28.values()) and avviso_istruzione_illecita,
+        "riferimento_normativo": "Art. 28 Reg. UE 2016/679 (GDPR), parr. 2, 3, 4 e 10",
     }
 
 
@@ -916,6 +1138,11 @@ def genera_dpa(
     del trattamento. Senza DPA, il titolare risponde della violazione degli obblighi.
     Chaining: → genera_registro_trattamenti() per registrare il trattamento
               → verifica_necessita_dpia() se il trattamento presenta rischi elevati
+    Vigenza: art. 28, parr. 2, 3, 4 e 10 Reg. UE 2016/679, testo vigente al 2026-09-29
+    (le clausole 4.1-4.8 riproducono le lett. a-h del par. 3, la 4.9 il secondo comma).
+    Precisione: INDICATIVO (modello di clausole fondato sull'art. 28; le condizioni
+    economiche, i tempi di notifica del breach e il foro restano scelte contrattuali
+    da adattare al caso; non sostituisce la revisione di un legale).
 
     Args:
         titolare: Ragione sociale e sede del titolare del trattamento
@@ -1098,6 +1325,48 @@ def _calcola_livello_rischio(probabilita: str, gravita: str) -> dict:
     return {"score": score, "livello": livello, "probabilita_num": p, "gravita_num": g, "avvisi": avvisi}
 
 
+# Steps of the 4-level scale a measure removes, by declared efficacy. NOT set by the GDPR:
+# art. 36(1) only makes the consultation depend on the risk that remains after the controller's
+# measures. The tool's estimate is deliberately cautious (the best single measure per risk, no
+# cumulation) and the controller must justify each declared efficacy in the DPIA.
+_GRADINI_EFFICACIA = {"alta": 2, "media": 1, "bassa": 0}
+_LIVELLI_ORDINE = ["basso", "medio", "alto", "molto_alto"]
+
+
+def _norm_testo(valore) -> str:
+    return " ".join(str(valore or "").lower().split())
+
+
+def _misure_per_rischio(desc: str, misure: list[dict], n_rischi: int) -> list[dict]:
+    """Measures whose 'rischio_mitigato' names this risk (equal or one contains the other).
+
+    A measure with no 'rischio_mitigato' counts for the only risk of a single-risk DPIA."""
+    d = _norm_testo(desc)
+    trovate = []
+    for m in misure:
+        rm = _norm_testo(m.get("rischio_mitigato", ""))
+        if (rm and d and (rm == d or rm in d or d in rm)) or (not rm and n_rischi == 1):
+            trovate.append(m)
+    return trovate
+
+
+def _livello_residuo(livello: str, misure: list[dict]) -> tuple[str, list[str]]:
+    """Level left after the best measure declared for the risk, with any warning."""
+    avvisi: list[str] = []
+    gradini = 0
+    for m in misure:
+        eff = _norm_testo(m.get("efficacia", ""))
+        if eff not in _GRADINI_EFFICACIA:
+            avvisi.append(
+                f"efficacia '{m.get('efficacia', '')}' della misura '{m.get('misura', '')}' "
+                "non riconosciuta (alta/media/bassa): la misura non riduce il rischio"
+            )
+            continue
+        gradini = max(gradini, _GRADINI_EFFICACIA[eff])
+    idx = max(0, _LIVELLI_ORDINE.index(livello) - gradini)
+    return _LIVELLI_ORDINE[idx], avvisi
+
+
 def _genera_dpia_impl(
     titolare: str,
     descrizione: str,
@@ -1107,29 +1376,50 @@ def _genera_dpia_impl(
     misure_mitigazione: list[dict],
 ) -> dict:
     matrice_rischi = []
+    misure_usate: set[int] = set()
     for r in rischi:
         analisi = _calcola_livello_rischio(r.get("probabilita", "media"), r.get("gravita", "media"))
+        applicabili = _misure_per_rischio(r.get("desc", ""), misure_mitigazione, len(rischi))
+        misure_usate.update(id(m) for m in applicabili)
+        livello_res, avvisi_misure = _livello_residuo(analisi["livello"], applicabili)
         matrice_rischi.append({
             "descrizione": r.get("desc", ""),
             "probabilita": r.get("probabilita", "media"),
             "gravita": r.get("gravita", "media"),
             "score": analisi["score"],
+            # Inherent level (before any measure); the level after the measures is below
             "livello_rischio": analisi["livello"],
-            "avvisi": analisi["avvisi"],
+            "livello_residuo": livello_res,
+            "misure_applicate": [m.get("misura", "") for m in applicabili],
+            "avvisi": analisi["avvisi"] + avvisi_misure,
         })
 
-    # Rischio residuo = livello massimo dopo mitigazione
-    rischi_alti = [r for r in matrice_rischi if r["livello_rischio"] in ("alto", "molto_alto")]
+    avvisi_dpia = [
+        f"la misura '{m.get('misura', '')}' (rischio mitigato: '{m.get('rischio_mitigato', '')}') "
+        "non corrisponde a nessun rischio elencato: non è stata considerata nel rischio residuo"
+        for m in misure_mitigazione if id(m) not in misure_usate
+    ]
+
+    # Residual risk = highest level left AFTER the measures declared for each risk.
+    # Art. 36(1) GDPR: prior consultation when the DPIA shows a high risk that the controller's
+    # measures do not attenuate, so it turns on the residual level, "alto" and "molto_alto" included.
+    residui = [r["livello_residuo"] for r in matrice_rischi]
+    consultazione = any(lv in ("alto", "molto_alto") for lv in residui)
     if not matrice_rischi:
         rischio_residuo = "non determinabile"
-    elif any(r["livello_rischio"] == "molto_alto" for r in matrice_rischi):
+    elif "molto_alto" in residui:
         rischio_residuo = "molto_alto — consultazione preventiva obbligatoria (art. 36 GDPR)"
-    elif rischi_alti:
-        rischio_residuo = "alto — valutare misure di mitigazione aggiuntive o consultazione Garante"
-    elif any(r["livello_rischio"] == "medio" for r in matrice_rischi):
+    elif "alto" in residui:
+        rischio_residuo = "alto — rischio elevato residuo: consultazione preventiva obbligatoria (art. 36 GDPR)"
+    elif "medio" in residui:
         rischio_residuo = "medio — accettabile con le misure di mitigazione adottate"
     else:
         rischio_residuo = "basso — rischio accettabile"
+    ordine = {lv: i for i, lv in enumerate(_LIVELLI_ORDINE)}
+    rischio_inerente = (
+        max((r["livello_rischio"] for r in matrice_rischi), key=ordine.__getitem__)
+        if matrice_rischi else "non determinabile"
+    )
 
     rischi_text = ""
     for i, r in enumerate(matrice_rischi, 1):
@@ -1147,14 +1437,25 @@ def _genera_dpia_impl(
             f"Efficacia: {m.get('efficacia', '')}\n"
         )
 
+    residuo_text = ""
+    for i, r in enumerate(matrice_rischi, 1):
+        residuo_text += (
+            f"  {i}. {r['descrizione']}: inerente {r['livello_rischio'].upper()} → "
+            f"residuo {r['livello_residuo'].upper()}\n"
+        )
+    for a in avvisi_dpia + [a for r in matrice_rischi for a in r["avvisi"]]:
+        residuo_text += f"  Avviso: {a}\n"
+
     consultazione_note = ""
-    if "molto_alto" in rischio_residuo:
-        consultazione_note = """
-CONSULTAZIONE PREVENTIVA OBBLIGATORIA (art. 36 GDPR)
-Il rischio residuo è molto alto. Prima di procedere con il trattamento, il titolare è
-obbligato a consultare preventivamente il Garante per la protezione dei dati personali
-(art. 36 GDPR). La consultazione deve avvenire prima dell'avvio del trattamento.
-Il Garante risponde entro 8 settimane (prorogabili di 6 settimane per casi complessi).
+    if consultazione:
+        livello_label = "molto alto" if "molto_alto" in residui else "alto"
+        consultazione_note = f"""
+CONSULTAZIONE PREVENTIVA OBBLIGATORIA (art. 36(1) GDPR)
+Il rischio residuo, calcolato dopo le misure di mitigazione indicate, è {livello_label}: la DPIA
+indica un rischio elevato che le misure adottate dal titolare non attenuano a sufficienza.
+Prima di procedere con il trattamento il titolare consulta il Garante per la protezione dei
+dati personali. Il Garante risponde entro 8 settimane (prorogabili di 6 settimane per casi
+complessi) (art. 36(2) GDPR).
 """
 
     testo = f"""VALUTAZIONE D'IMPATTO SULLA PROTEZIONE DEI DATI (DPIA)
@@ -1191,8 +1492,12 @@ Score = Probabilità × Gravità: ≤2=basso, ≤4=medio, ≤6=alto, >6=molto_al
 5. MISURE DI MITIGAZIONE ADOTTATE
 {misure_text}
 
-6. RISCHIO RESIDUO
-{rischio_residuo}
+6. RISCHIO RESIDUO (dopo le misure di mitigazione)
+Rischio inerente massimo (prima delle misure): {rischio_inerente}
+{residuo_text}Stima del tool: ogni misura riduce il livello di 2 gradini se l'efficacia dichiarata è alta,
+di 1 se media, di 0 se bassa (si considera la misura migliore per ciascun rischio, senza cumulo).
+La riduzione è una convenzione del tool, non un valore fissato dal GDPR: il titolare la motiva.
+Rischio residuo complessivo: {rischio_residuo}
 {consultazione_note}
 7. CONSULTAZIONE DPO
 □ Il DPO è stato consultato nella redazione della presente DPIA
@@ -1210,9 +1515,11 @@ Riferimento normativo: Art. 35 Reg. UE 2016/679 (GDPR); WP248 rev.01 (Linee Guid
     return {
         "testo": testo.strip(),
         "matrice_rischi": matrice_rischi,
+        "rischio_inerente": rischio_inerente,
         "rischio_residuo": rischio_residuo,
-        "consultazione_preventiva_necessaria": "molto_alto" in rischio_residuo,
-        "riferimento_normativo": "Art. 35 Reg. UE 2016/679 (GDPR); WP248 rev.01 — Linee Guida DPIA EDPB",
+        "consultazione_preventiva_necessaria": consultazione,
+        "avvisi": avvisi_dpia,
+        "riferimento_normativo": "Artt. 35 e 36 Reg. UE 2016/679 (GDPR); WP248 rev.01 — Linee Guida DPIA EDPB",
     }
 
 
@@ -1232,6 +1539,13 @@ def genera_dpia(
     La DPIA è obbligatoria per trattamenti che soddisfano ≥2 criteri WP248 (es. profilazione larga
     scala, videosorveglianza sistematica, dati biometrici, scoring automatizzato).
     Chaining: → verifica_necessita_dpia() prima, per verificare l'obbligo
+    Vigenza: art. 35, par. 7 (lett. a-d) e par. 2, e art. 36, parr. 1-2 Reg. UE 2016/679, testo
+    vigente al 2026-09-29; WP248 rev.01 (EDPB). Il rischio residuo è calcolato dopo le misure
+    indicate e la consultazione preventiva dell'art. 36(1) scatta se resta 'alto' o 'molto_alto'.
+    Precisione: STIMATO (scala probabilità x gravità a 4 livelli e riduzione per efficacia
+    delle misure, alta -2 gradini, media -1, bassa 0, sono convenzioni del tool, non della
+    norma: il titolare deve motivare la valutazione; struttura e termini 8+6 settimane
+    dell'art. 36(2) sono quelli del regolamento).
 
     Args:
         titolare: Ragione sociale del titolare del trattamento
@@ -1239,7 +1553,7 @@ def genera_dpia(
         finalita: Finalità specifiche del trattamento
         necessita_proporzionalita: Valutazione della necessità e proporzionalità del trattamento
         rischi: Lista di rischi, ciascuno con campi: 'desc' (str), 'probabilita' (bassa/media/alta/molto_alta), 'gravita' (bassa/media/alta/molto_alta)
-        misure_mitigazione: Lista di misure, ciascuna con campi: 'misura' (str), 'rischio_mitigato' (str), 'efficacia' (alta/media/bassa)
+        misure_mitigazione: Lista di misure, ciascuna con campi: 'misura' (str), 'rischio_mitigato' (str, deve coincidere con la 'desc' di un rischio), 'efficacia' (alta/media/bassa)
     """
     return _genera_dpia_impl(
         titolare=titolare,
@@ -1397,6 +1711,22 @@ def analisi_base_giuridica(
 # Tool 9: verifica_necessita_dpia
 # ---------------------------------------------------------------------------
 
+#: Short labels of the items of the Garante's list (Allegato 1 to provv. n. 467/2018) the tool can
+#: reach from its parameters; the literal text of the twelve items is in `lista_garante_italiano`.
+_ETICHETTE_ALLEGATO_1 = {
+    1: "Trattamenti valutativi o di scoring su larga scala, profilazione, attività predittive",
+    2: "Trattamenti automatizzati con effetti giuridici o effetti analoghi significativi",
+    3: "Utilizzo sistematico di dati per l'osservazione, il monitoraggio o il controllo degli interessati",
+    5: "Trattamenti nel rapporto di lavoro con possibilità di controllo a distanza dei dipendenti",
+    6: "Trattamenti non occasionali di dati di soggetti vulnerabili",
+    7: "Trattamenti con tecnologie innovative insieme ad almeno un altro criterio WP248",
+    9: "Trattamenti mediante interconnessione, combinazione o raffronto di informazioni",
+    10: "Dati art. 9 o art. 10 interconnessi con altri dati raccolti per finalità diverse",
+    11: "Trattamenti sistematici di dati biometrici",
+    12: "Trattamenti sistematici di dati genetici",
+}
+
+
 def _verifica_necessita_dpia_impl(
     tipo_trattamento: str,
     profilazione: bool = False,
@@ -1409,15 +1739,22 @@ def _verifica_necessita_dpia_impl(
     incrocio_dataset: bool = False,
     trasferimento_extra_ue: bool = False,
     impedimento_diritto: bool = False,
+    dati_biometrici: bool = False,
+    dati_genetici: bool = False,
+    rapporto_di_lavoro: bool = False,
 ) -> dict:
     criteri_wp248 = _DPIA["criteri_wp248"]
     soglia = _DPIA["soglia_criteri"]
+
+    # Biometric data (for unique identification) and genetic data are art. 9(1) data: they satisfy
+    # WP248 criterion 4 like `dati_sensibili`.
+    dati_art9 = dati_sensibili or dati_biometrici or dati_genetici
 
     param_map = {
         "profilazione": profilazione,
         "decisione_automatizzata": valutazione_scoring,
         "monitoraggio_sistematico": monitoraggio_sistematico,
-        "dati_sensibili": dati_sensibili,
+        "dati_sensibili": dati_art9,
         "larga_scala": larga_scala,
         "incrocio_dataset": incrocio_dataset,
         "soggetti_vulnerabili": soggetti_vulnerabili,
@@ -1431,37 +1768,102 @@ def _verifica_necessita_dpia_impl(
         if param in param_map and param_map[param]:
             criteri_soddisfatti.append(f"Criterio {criterio['id']}: {criterio['criterio']}")
 
-    # Trasferimento extra-UE come criterio aggiuntivo
-    if trasferimento_extra_ue:
-        criteri_soddisfatti.append(
-            "Criterio aggiuntivo: Trasferimento verso paesi terzi senza adeguata protezione"
+    # The nine WP248 rev.01 criteria restated by the Garante (provv. 467/2018) are the only ones
+    # counted: a transfer outside the EU is not among them.
+    n_criteri = len(criteri_soddisfatti)
+    soglia_raggiunta = n_criteri >= soglia
+
+    # Art. 35(3) GDPR: cases in which the assessment is required whatever the criteria count.
+    art35_3 = []
+    if valutazione_scoring:
+        art35_3.append(
+            "Art. 35(3)(a): valutazione sistematica e globale basata su trattamento automatizzato, "
+            "compresa la profilazione, su cui si fondano decisioni con effetti giuridici o analoghi"
+        )
+    if dati_art9 and larga_scala:
+        art35_3.append(
+            "Art. 35(3)(b): trattamento su larga scala di categorie particolari di dati (art. 9) "
+            "o di dati relativi a condanne penali e reati (art. 10)"
+        )
+    if monitoraggio_sistematico and larga_scala:
+        art35_3.append(
+            "Art. 35(3)(c): sorveglianza sistematica su larga scala di una zona accessibile al "
+            "pubblico (se il monitoraggio riguarda una tale zona)"
         )
 
-    n_criteri = len(criteri_soddisfatti)
-    dpia_necessaria = n_criteri >= soglia
+    # Items of the Garante's list (art. 35(4); Allegato 1 to provv. 467/2018) reached by the
+    # parameters. Items 6, 11 and 12 read "non occasionali"/"sistematici" as large scale (the
+    # Garante's interpretive clarification); item 7 needs another WP248 criterion besides the
+    # innovative technology itself.
+    voci_obbligatorie: list[int] = []
+    voci_da_verificare: list[str] = []
 
-    lista_garante = _DPIA["lista_garante_italiano"]
-    lista_garante_match = []
-    if dati_sensibili and larga_scala:
-        lista_garante_match.append("Trattamento su larga scala di dati ex art. 9 o 10 GDPR")
-    if monitoraggio_sistematico and larga_scala:
-        lista_garante_match.append("Monitoraggio sistematico su larga scala (videosorveglianza, geolocalizzazione)")
     if profilazione and larga_scala:
-        lista_garante_match.append("Trattamenti valutativi o di scoring su larga scala")
+        voci_obbligatorie.append(1)
+    elif profilazione:
+        voci_da_verificare.append(
+            f"Voce 1: {_ETICHETTE_ALLEGATO_1[1]} (la voce richiama la profilazione insieme al "
+            "requisito di larga scala: se la profilazione rientra nella voce, la DPIA è obbligatoria)"
+        )
     if valutazione_scoring:
-        lista_garante_match.append("Trattamenti automatizzati con effetto giuridico significativo")
-    if soggetti_vulnerabili:
-        lista_garante_match.append("Trattamento di dati di soggetti vulnerabili (minori, dipendenti, pazienti)")
-    if nuove_tecnologie:
-        lista_garante_match.append("Utilizzo di tecnologie innovative per il trattamento di dati personali")
+        voci_obbligatorie.append(2)
+    if monitoraggio_sistematico:
+        voci_obbligatorie.append(3)
+    if rapporto_di_lavoro:
+        voci_obbligatorie.append(5)
+    if soggetti_vulnerabili and larga_scala:
+        voci_obbligatorie.append(6)
+    elif soggetti_vulnerabili:
+        voci_da_verificare.append(
+            f"Voce 6: {_ETICHETTE_ALLEGATO_1[6]} (si applica solo se il trattamento è non "
+            "occasionale, cioè su larga scala)"
+        )
+    if nuove_tecnologie and n_criteri >= 2:
+        voci_obbligatorie.append(7)
+    elif nuove_tecnologie:
+        voci_da_verificare.append(
+            f"Voce 7: {_ETICHETTE_ALLEGATO_1[7]} (si applica solo se ricorre anche un altro criterio WP248)"
+        )
     if incrocio_dataset:
-        lista_garante_match.append("Trattamenti di dati personali tramite interconnessione di banche dati")
+        voci_obbligatorie.append(9)
+    if dati_art9 and incrocio_dataset:
+        voci_obbligatorie.append(10)
+    if dati_biometrici and larga_scala:
+        voci_obbligatorie.append(11)
+    elif dati_biometrici:
+        voci_da_verificare.append(
+            f"Voce 11: {_ETICHETTE_ALLEGATO_1[11]} (si applica solo se il trattamento è sistematico, "
+            "cioè su larga scala)"
+        )
+    if dati_genetici and larga_scala:
+        voci_obbligatorie.append(12)
+    elif dati_genetici:
+        voci_da_verificare.append(
+            f"Voce 12: {_ETICHETTE_ALLEGATO_1[12]} (si applica solo se il trattamento è sistematico, "
+            "cioè su larga scala)"
+        )
+
+    lista_garante_match = [f"Voce {n}: {_ETICHETTE_ALLEGATO_1[n]}" for n in voci_obbligatorie]
+    # Art. 35(3)(a) and (b) require the assessment by themselves; (c) is met through item 3 above.
+    caso_art35_3 = any(c.startswith(("Art. 35(3)(a)", "Art. 35(3)(b)")) for c in art35_3)
+
+    dpia_necessaria = soglia_raggiunta or caso_art35_3 or bool(voci_obbligatorie)
+
+    fondamenti = []
+    if soglia_raggiunta:
+        fondamenti.append(f"il trattamento soddisfa {n_criteri} criteri WP248 (soglia: {soglia})")
+    fondamenti.extend(c.split(":")[0] for c in art35_3 if c.startswith(("Art. 35(3)(a)", "Art. 35(3)(b)")))
+    if voci_obbligatorie:
+        fondamenti.append(
+            "rientra nell'elenco del Garante ex art. 35(4) (voci "
+            + ", ".join(str(n) for n in voci_obbligatorie)
+            + ")"
+        )
 
     if dpia_necessaria:
         motivazione = (
-            f"La DPIA è OBBLIGATORIA: il trattamento soddisfa {n_criteri} criteri WP248 "
-            f"(soglia: {soglia}). È necessario effettuare la valutazione d'impatto prima "
-            f"di avviare o continuare il trattamento (art. 35 GDPR)."
+            f"La DPIA è OBBLIGATORIA: {'; '.join(fondamenti)}. È necessario effettuare la "
+            f"valutazione d'impatto prima di avviare o continuare il trattamento (art. 35 GDPR)."
         )
     elif n_criteri == 1:
         motivazione = (
@@ -1476,6 +1878,20 @@ def _verifica_necessita_dpia_impl(
             f"per documentare la valutazione dei rischi."
         )
 
+    avvertenze = []
+    if trasferimento_extra_ue:
+        avvertenze.append(
+            "Il trasferimento verso paesi terzi non è tra i nove criteri WP248 rev.01 né tra le "
+            "voci dell'elenco del Garante: non concorre alla soglia; resta un fattore di rischio da "
+            "valutare nella DPIA (art. 35(7)(c); capo V GDPR)."
+        )
+    if soggetti_vulnerabili:
+        avvertenze.append(
+            "Voce 6 dell'elenco del Garante: minori, disabili, anziani, infermi di mente, pazienti, "
+            "richiedenti asilo; i dipendenti non vi sono elencati (criterio 7 WP248; per il controllo "
+            "a distanza vale la voce 5, parametro rapporto_di_lavoro)."
+        )
+
     return {
         "tipo_trattamento": tipo_trattamento,
         "dpia_necessaria": dpia_necessaria,
@@ -1483,11 +1899,14 @@ def _verifica_necessita_dpia_impl(
         "n_criteri": n_criteri,
         "soglia": soglia,
         "motivazione": motivazione,
+        "art35_3": art35_3,
         "lista_garante_match": lista_garante_match,
+        "lista_garante_da_verificare": voci_da_verificare,
+        "avvertenze": avvertenze,
         "esenzioni_possibili": _DPIA["esenzioni_dpia"],
         "riferimento_normativo": (
             "Art. 35 Reg. UE 2016/679 (GDPR); WP248 rev.01 (Linee Guida DPIA); "
-            "Provvedimento Garante 11/10/2018 [doc. web 9058979]"
+            "Provvedimento Garante n. 467 dell'11/10/2018 [doc. web 9058979] e Allegato 1 [doc. web 9059358]"
         ),
     }
 
@@ -1506,12 +1925,25 @@ def verifica_necessita_dpia(
     incrocio_dataset: bool = False,
     trasferimento_extra_ue: bool = False,
     impedimento_diritto: bool = False,
+    dati_biometrici: bool = False,
+    dati_genetici: bool = False,
+    rapporto_di_lavoro: bool = False,
 ) -> dict:
     """Verifica se un trattamento dati richiede obbligatoriamente la DPIA (art. 35 GDPR).
 
     Usa questo tool quando: stai progettando un nuovo trattamento o revisioni uno esistente
-    e devi stabilire se la DPIA sia obbligatoria. Si basa sui 9 criteri WP248 rev.01 e
-    sull'elenco del Garante italiano (Provvedimento 11/10/2018). Soglia: ≥2 criteri.
+    e devi stabilire se la DPIA sia obbligatoria. La DPIA è obbligatoria in tre casi, indicati
+    nella risposta: (1) almeno 2 dei 9 criteri WP248 rev.01 (soglia del provv. Garante n. 467
+    dell'11/10/2018); (2) un caso dell'art. 35(3) GDPR: valutazione sistematica con decisioni
+    automatizzate ad effetti giuridici (lett. a), categorie particolari o dati penali su larga
+    scala (lett. b); (3) una voce dell'elenco del Garante ex art. 35(4) (Allegato 1 al provv.
+    467/2018), che basta da sola (voci 2, 3, 5, 9, 10) o con la larga scala (1, 6, 11, 12) o con un
+    altro criterio (7). "Larga scala" vale anche per i trattamenti "non occasionali" e "sistematici"
+    delle voci 6, 11 e 12, come nel chiarimento del Garante. Il trasferimento extra UE non è un
+    criterio WP248 e non concorre alla soglia. Le voci raggiunte solo in parte sono in
+    `lista_garante_da_verificare`. Non copre le voci 4 e 8 dell'elenco (nessun parametro dedicato).
+    Vigenza: art. 35 Reg. UE 2016/679; provv. Garante n. 467/2018 e Allegato 1, GU n. 269 del
+    19/11/2018 (elenco letto il 29/09/2026).
     Precisione: INDICATIVO (criteri WP248 rev.01 e provvedimento Garante; il conteggio
     dei criteri non sostituisce la valutazione del titolare).
     Chaining: se dpia_necessaria=True → genera_dpia() per redigere la valutazione d'impatto
@@ -1522,12 +1954,15 @@ def verifica_necessita_dpia(
         dati_sensibili: True se tratta categorie particolari ex art. 9 o dati giudiziari ex art. 10
         monitoraggio_sistematico: True se prevede monitoraggio o sorveglianza sistematica
         larga_scala: True se tratta dati di un numero significativo di interessati
-        soggetti_vulnerabili: True se gli interessati includono minori, dipendenti, pazienti, anziani
+        soggetti_vulnerabili: True se gli interessati includono minori, dipendenti, pazienti, anziani (criterio 7 WP248; la voce 6 del Garante elenca minori, disabili, anziani, infermi di mente, pazienti, richiedenti asilo)
         nuove_tecnologie: True se utilizza tecnologie innovative (AI, biometria, IoT, riconoscimento facciale)
         valutazione_scoring: True se prevede valutazione automatizzata con effetti giuridici (art. 22)
         incrocio_dataset: True se combina dataset provenienti da fonti diverse o titolari diversi
-        trasferimento_extra_ue: True se trasferisce dati verso paesi extra-UE senza adeguata protezione
+        trasferimento_extra_ue: True se trasferisce dati verso paesi extra-UE senza adeguata protezione (non concorre alla soglia: non è un criterio WP248)
         impedimento_diritto: True se può impedire agli interessati di esercitare un diritto o accedere a un servizio
+        dati_biometrici: True se tratta dati biometrici per identificare univocamente una persona (voce 11; conta anche come criterio 4)
+        dati_genetici: True se tratta dati genetici (voce 12; conta anche come criterio 4)
+        rapporto_di_lavoro: True se il trattamento avviene nel rapporto di lavoro con sistemi tecnologici (videosorveglianza, geolocalizzazione) da cui derivi la possibilità di controllo a distanza dei dipendenti (voce 5)
     """
     return _verifica_necessita_dpia_impl(
         tipo_trattamento=tipo_trattamento,
@@ -1541,6 +1976,9 @@ def verifica_necessita_dpia(
         incrocio_dataset=incrocio_dataset,
         trasferimento_extra_ue=trasferimento_extra_ue,
         impedimento_diritto=impedimento_diritto,
+        dati_biometrici=dati_biometrici,
+        dati_genetici=dati_genetici,
+        rapporto_di_lavoro=rapporto_di_lavoro,
     )
 
 
@@ -1587,12 +2025,18 @@ def _valutazione_data_breach_impl(
     if "dati finanziari" in " ".join(categorie_dati).lower() or "bancari" in " ".join(categorie_dati).lower():
         fattori_gravita.append("Coinvolti dati finanziari o bancari: rischio furto d'identità")
 
-    # Verifica cifratura / misure di protezione
+    # Verifica cifratura / misure di protezione. Solo la cifratura rende i dati incomprensibili
+    # (art. 34(3)(a)); la pseudonimizzazione da sola no (EDPB 9/2022 par. 112).
     cifratura_presente = any(
         keyword in m.lower()
         for m in misure_protezione
-        for keyword in ("cifratura", "crittografia", "pseudonimizzazione", "encryption", "cifrat")
+        for keyword in ("cifratura", "crittografia", "encryption", "cifrat")
     )
+    pseudonimizzazione_presente = any("pseudonimizz" in m.lower() for m in misure_protezione)
+    # L'esenzione art. 34(3)(a) copre l'accesso non autorizzato a dati resi incomprensibili, cioe'
+    # la riservatezza: la perdita o l'alterazione di dati cifrati resta un rischio (EDPB 9/2022
+    # par. 76 e 79), per cui l'esenzione non opera per integrita' e disponibilita'.
+    esenzione_art34_3_a = cifratura_presente and tipo_violazione == "confidenzialita"
 
     # Determinazione livello rischio
     livelli = {1: "improbabile", 2: "possibile", 3: "probabile", 4: "molto probabile"}
@@ -1602,10 +2046,15 @@ def _valutazione_data_breach_impl(
     notifica_garante = livello_rischio != "improbabile"
 
     # Art. 34: comunicazione agli interessati
-    # Art. 34(3)(a): non obbligatoria se misure adeguate (cifratura)
-    if cifratura_presente:
+    # Art. 34(3)(a): non obbligatoria se i dati erano resi incomprensibili (cifratura) e la
+    # violazione e' di riservatezza
+    if esenzione_art34_3_a:
         comunicazione_interessati = False
-        motivo_no_comunicazione = "Dati cifrati/pseudonimizzati: comunicazione agli interessati non obbligatoria (art. 34(3)(a) GDPR)"
+        motivo_no_comunicazione = (
+            "Violazione di riservatezza di dati cifrati: comunicazione agli interessati non "
+            "obbligatoria se i dati sono incomprensibili, cioe' se la chiave non e' compromessa "
+            "(art. 34(3)(a) GDPR; EDPB 9/2022 par. 76)"
+        )
     elif livello_rischio in ("probabile", "molto probabile"):
         comunicazione_interessati = True
         motivo_no_comunicazione = ""
@@ -1639,9 +2088,22 @@ def _valutazione_data_breach_impl(
         "Valutare necessità di consulenza legale per responsabilità civili verso gli interessati",
     ])
 
-    if cifratura_presente:
+    if esenzione_art34_3_a:
         azioni_consigliate.append(
-            "La cifratura attiva ha ridotto l'obbligo di comunicazione agli interessati (art. 34(3)(a)): documentarlo"
+            "La cifratura ha escluso la comunicazione agli interessati (art. 34(3)(a)): documentare "
+            "che la chiave non e' compromessa e riesaminare il rischio se lo diventa (EDPB 9/2022 par. 78)"
+        )
+    elif cifratura_presente:
+        azioni_consigliate.append(
+            "La cifratura non esclude la comunicazione in caso di perdita o alterazione dei dati: "
+            "verificare backup integro e tempo di ripristino, da cui dipende il rischio per gli "
+            "interessati (EDPB 9/2022 par. 76 e 79; art. 32(1)(c) GDPR)"
+        )
+    if pseudonimizzazione_presente:
+        azioni_consigliate.append(
+            "La pseudonimizzazione da sola non rende i dati incomprensibili e non esclude la "
+            "comunicazione agli interessati (EDPB 9/2022 par. 112): puo' ridurre la probabilita' "
+            "di identificazione, da valutare nell'impatto"
         )
 
     return {
@@ -1650,6 +2112,7 @@ def _valutazione_data_breach_impl(
         "dati_particolari": dati_particolari,
         "misure_protezione_attive": misure_protezione,
         "cifratura_attiva": cifratura_presente,
+        "esenzione_art34_3_a": esenzione_art34_3_a,
         "fattori_gravita": fattori_gravita,
         "livello_rischio": livello_rischio,
         "notifica_garante": notifica_garante,
@@ -1660,7 +2123,8 @@ def _valutazione_data_breach_impl(
         "riferimento_normativo": (
             "Art. 33 GDPR (notifica all'autorità di controllo); "
             "Art. 34 GDPR (comunicazione agli interessati); "
-            "Art. 4(12) GDPR (definizione di violazione dei dati)"
+            "Art. 4(12) GDPR (definizione di violazione dei dati); "
+            "EDPB Linee guida 9/2022 v. 2.0 (notifica delle violazioni)"
         ),
     }
 
@@ -1679,7 +2143,18 @@ def valutazione_data_breach(
     Usa questo tool quando: si verifica o si sospetta una violazione dei dati personali.
     Determina: (1) se notificare al Garante entro 72h (art. 33), (2) se comunicare agli
     interessati (art. 34), (3) il livello di rischio, (4) le azioni immediate da intraprendere.
-    La cifratura attiva dei dati viola l'obbligo di comunicazione agli interessati (art. 34(3)(a)).
+    La cifratura esclude l'obbligo di comunicazione agli interessati (art. 34(3)(a)) solo per le
+    violazioni di riservatezza (accesso non autorizzato a dati incomprensibili): per perdita o
+    alterazione di dati cifrati la comunicazione resta dovuta se il rischio è elevato (EDPB 9/2022
+    par. 76 e 79). La pseudonimizzazione da sola non rende i dati incomprensibili (par. 112).
+    Il livello di rischio è una scala del tool (impatto dichiarato, +1 per dati particolari, +1 oltre
+    100.000 interessati): le soglie di 10.000 e 100.000 interessati sono una convenzione del tool,
+    non della norma né dell'EDPB (par. 118, nessuna soglia numerica); la notifica segue l'albero
+    del Garante (rischio: notifica; rischio elevato: anche comunicazione).
+    Vigenza: artt. 33 e 34 Reg. UE 2016/679 (testo vigente al 29/09/2026); EDPB Linee guida 9/2022
+    v. 2.0 (28/03/2023).
+    Precisione: INDICATIVO (albero decisionale di legge, ma il livello di rischio è una stima del
+    tool; con dati cifrati il tool non sa se la chiave è integra né se esiste un backup).
     Chaining: se notifica_garante=True → genera_notifica_data_breach() per redigere la notifica
 
     Args:
@@ -1687,7 +2162,7 @@ def valutazione_data_breach(
         categorie_dati: Categorie di dati coinvolti (es. ['email', 'password hash', 'dati anagrafici'])
         n_interessati: Numero stimato di interessati coinvolti
         dati_particolari: True se coinvolti dati ex art. 9 (salute, biometria, etnia) o art. 10 (giudiziari)
-        misure_protezione: Misure di sicurezza attive al momento della violazione (es. ['cifratura AES-256', 'pseudonimizzazione'])
+        misure_protezione: Misure di sicurezza attive al momento della violazione (es. ['cifratura AES-256', 'controllo accessi']); solo la cifratura può escludere la comunicazione, e solo per violazioni di riservatezza
         impatto: Impatto stimato della violazione sugli interessati: 'basso', 'medio', 'alto', 'molto_alto'
     """
     return _valutazione_data_breach_impl(
@@ -1704,12 +2179,37 @@ def valutazione_data_breach(
 # Tool 11: calcolo_sanzione_gdpr
 # ---------------------------------------------------------------------------
 
+_GRAVITA_VALIDE = ("bassa", "media", "alta")
+
+
+def _fascia_rettifica_fatturato(fatturato: float) -> dict | None:
+    """EDPB 04/2022 par. 65-66: size adjustment tier for a turnover, None above 500 mln."""
+    for fascia in _SANZIONI["metodo_edpb"]["rettifica_fatturato"]:
+        if fatturato <= fascia["fino_a"]:
+            return fascia
+    return None
+
+
+def _punto_di_partenza_edpb(
+    massimale_applicabile: float, gravita: str, fascia_fatturato: dict | None
+) -> tuple[float, float]:
+    """Starting-amount range of the EDPB method: seriousness band, then size adjustment."""
+    fascia = _SANZIONI["metodo_edpb"]["fasce_gravita"][gravita]
+    minimo = massimale_applicabile * fascia["da_pct"] / 100
+    massimo = massimale_applicabile * fascia["a_pct"] / 100
+    if fascia_fatturato:
+        minimo *= fascia_fatturato["da_pct"] / 100
+        massimo *= fascia_fatturato["a_pct"] / 100
+    return minimo, massimo
+
+
 def _calcolo_sanzione_gdpr_impl(
     tipo_violazione: str,
     fatturato_annuo: float | None = None,
     fattori_aggravanti: list[str] | None = None,
     fattori_attenuanti: list[str] | None = None,
     precedenti: bool = False,
+    gravita: str | None = None,
 ) -> dict:
     fattori_aggravanti = fattori_aggravanti or []
     fattori_attenuanti = fattori_attenuanti or []
@@ -1717,20 +2217,23 @@ def _calcolo_sanzione_gdpr_impl(
     tipi_validi = ("art83_4", "art83_5", "art83_6")
     if tipo_violazione not in tipi_validi:
         return {"errore": f"tipo_violazione deve essere uno tra: {', '.join(tipi_validi)}"}
+    gravita_di_default = gravita is None
+    if gravita is None:
+        gravita = "bassa"
+    if gravita not in _GRAVITA_VALIDE:
+        return {"errore": f"gravita deve essere una tra: {', '.join(_GRAVITA_VALIDE)}"}
 
     massimale_data = _SANZIONI["massimali"][tipo_violazione]
     max_euro = massimale_data["euro"]
     max_pct = massimale_data["percentuale_fatturato"]
 
-    modulazione = _SANZIONI["modulazione_percentuale"]
-    base_min_pct = modulazione["base_minima_pct"] / 100
-    base_media_pct = modulazione["base_media_pct"] / 100
-    base_max_pct = modulazione["base_massima_pct"] / 100
-    aggravante_inc = modulazione["aggravante_incremento_pct"] / 100
-    attenuante_rid = modulazione["attenuante_riduzione_pct"] / 100
-    precedenti_inc = modulazione["precedenti_incremento_pct"] / 100
+    correttivi = _SANZIONI["correttivi_convenzione_tool"]
+    aggravante_inc = correttivi["aggravante_incremento_pct"] / 100
+    attenuante_rid = correttivi["attenuante_riduzione_pct"] / 100
+    precedenti_inc = correttivi["precedenti_incremento_pct"] / 100
 
-    # Calcola modificatori
+    # Aggravating/mitigating correction: convention of the tool, not in art. 83 nor in the
+    # EDPB guidelines (par. 71 rules out predetermined percentages).
     n_aggravanti = len(fattori_aggravanti)
     n_attenuanti = len(fattori_attenuanti)
 
@@ -1739,30 +2242,51 @@ def _calcolo_sanzione_gdpr_impl(
     moltiplicatore -= n_attenuanti * attenuante_rid
     if precedenti:
         moltiplicatore += precedenti_inc
-    moltiplicatore = max(0.1, min(moltiplicatore, 3.0))
+    moltiplicatore = max(
+        correttivi["moltiplicatore_minimo"], min(moltiplicatore, correttivi["moltiplicatore_massimo"])
+    )
 
-    # Range stimato come % del massimale
-    pct_min = base_min_pct * moltiplicatore
-    pct_max = min(base_media_pct * moltiplicatore, base_max_pct)
+    # Art. 83(4)-(6): the fixed amount or, for undertakings, the percentage of the total worldwide
+    # annual turnover of the preceding financial year, whichever is higher.
+    fatturato_noto = bool(fatturato_annuo and fatturato_annuo > 0)
+    max_fatturato = fatturato_annuo * (max_pct / 100) if fatturato_noto else None
+    massimale_effettivo = max(max_euro, max_fatturato) if fatturato_noto else max_euro
+    massimale_effettivo = int(round(massimale_effettivo))
 
-    range_min_euro = round(max_euro * pct_min, 0)
-    range_max_euro = round(max_euro * pct_max, 0)
+    fascia_fatturato = _fascia_rettifica_fatturato(fatturato_annuo) if fatturato_noto else None
 
-    # Se fatturato noto: confronto con percentuale fatturato
-    range_fatturato_note = ""
-    if fatturato_annuo and fatturato_annuo > 0:
-        max_fatturato = fatturato_annuo * (max_pct / 100)
-        massimale_effettivo = max(max_euro, max_fatturato)
-        range_min_euro_fat = round(massimale_effettivo * pct_min, 0)
-        range_max_euro_fat = round(massimale_effettivo * pct_max, 0)
+    def _range(livello: str) -> tuple[float, float]:
+        p_min, p_max = _punto_di_partenza_edpb(massimale_effettivo, livello, fascia_fatturato)
+        # Correction for aggravating/mitigating circumstances, never above the legal maximum.
+        return (
+            round(min(p_min * moltiplicatore, massimale_effettivo), 0),
+            round(min(p_max * moltiplicatore, massimale_effettivo), 0),
+        )
+
+    range_min_euro, range_max_euro = _range(gravita)
+    partenza_min, partenza_max = _punto_di_partenza_edpb(massimale_effettivo, gravita, fascia_fatturato)
+    fasce_gravita = _SANZIONI["metodo_edpb"]["fasce_gravita"]
+
+    if fatturato_noto:
+        if fascia_fatturato:
+            rettifica_txt = (
+                f"Rettifica dimensionale EDPB (fatturato fino a {fascia_fatturato['fino_a']:,.0f}€): "
+                f"{fascia_fatturato['da_pct']}%-{fascia_fatturato['a_pct']}% del punto di partenza. "
+            )
+        else:
+            rettifica_txt = "Fatturato oltre 500 milioni di euro: nessuna rettifica dimensionale (EDPB par. 66). "
         range_fatturato_note = (
             f"Con fatturato {fatturato_annuo:,.0f}€: massimale basato su % fatturato = "
             f"{max_fatturato:,.0f}€ ({max_pct}% fatturato). "
             f"Massimale effettivo applicato (maggiore tra i due): {massimale_effettivo:,.0f}€. "
-            f"Range stimato con fatturato: {range_min_euro_fat:,.0f}€ — {range_max_euro_fat:,.0f}€"
+            f"{rettifica_txt}"
+            f"Range stimato con fatturato: {range_min_euro:,.0f}€ — {range_max_euro:,.0f}€"
         )
-        range_min_euro = range_min_euro_fat
-        range_max_euro = range_max_euro_fat
+    else:
+        range_fatturato_note = (
+            "Fatturato non indicato: si applica il massimale fisso e non la rettifica dimensionale "
+            "dell'EDPB (par. 65-66), che dipende dal fatturato dell'impresa."
+        )
 
     # Analisi fattori
     fattori_aggravanti_match = []
@@ -1783,18 +2307,47 @@ def _calcolo_sanzione_gdpr_impl(
         else:
             fattori_attenuanti_match.append(fa)
 
+    avvertenza = (
+        "Stima orientativa: punto di partenza secondo il metodo delle Linee guida EDPB 04/2022 "
+        "(fascia di gravità, rettifica per fatturato), corretto con un moltiplicatore convenzionale "
+        "del tool per aggravanti, attenuanti e precedenti (non previsto dall'EDPB, par. 71). "
+        "La sanzione effettiva è determinata dal Garante caso per caso ai sensi dell'art. 83(2) GDPR."
+    )
+    if gravita_di_default:
+        avvertenza += (
+            " Gravità non indicata: assunta 'bassa' (0-10% del massimale applicabile); "
+            "per violazioni di gravità media o alta indicare gravita='media' o 'alta'."
+        )
+
     return {
         "tipo_violazione": tipo_violazione,
         "descrizione_violazione": massimale_data["descrizione"],
         "massimale": {
             "euro": max_euro,
             "pct_fatturato": max_pct,
-            "descrizione": f"Fino a {max_euro:,}€ o {max_pct}% del fatturato mondiale annuo (il maggiore)",
+            "effettivo_euro": massimale_effettivo,
+            "descrizione": (
+                f"Fino a {max_euro:,}€ o, per le imprese, {max_pct}% del fatturato mondiale totale "
+                "annuo dell'esercizio precedente, se superiore"
+            ),
+        },
+        "gravita": gravita,
+        "punto_di_partenza_edpb": {
+            "fascia_gravita_pct": [fasce_gravita[gravita]["da_pct"], fasce_gravita[gravita]["a_pct"]],
+            "rettifica_fatturato_pct": (
+                [fascia_fatturato["da_pct"], fascia_fatturato["a_pct"]] if fascia_fatturato else None
+            ),
+            "minimo": round(partenza_min, 0),
+            "massimo": round(partenza_max, 0),
         },
         "range_stimato": {
             "minimo": range_min_euro,
             "massimo": range_max_euro,
             "nota": range_fatturato_note,
+        },
+        "range_per_gravita": {
+            livello: {"minimo": _range(livello)[0], "massimo": _range(livello)[1]}
+            for livello in _GRAVITA_VALIDE
         },
         "criteri_art83_2": _SANZIONI["criteri_art83_2"],
         "fattori_analisi": {
@@ -1803,11 +2356,11 @@ def _calcolo_sanzione_gdpr_impl(
             "precedenti": precedenti,
             "moltiplicatore_applicato": round(moltiplicatore, 2),
         },
-        "avvertenza": (
-            "Stima orientativa basata sulla modulazione percentuale dei massimali. "
-            "La sanzione effettiva è determinata dal Garante caso per caso ai sensi dell'art. 83(2) GDPR."
+        "avvertenza": avvertenza,
+        "riferimento_normativo": (
+            "Art. 83 Reg. UE 2016/679 (GDPR) — Condizioni generali per l'imposizione di sanzioni "
+            "amministrative pecuniarie; EDPB, Linee guida 04/2022 (v. 2.1), par. 60 e 65-66"
         ),
-        "riferimento_normativo": "Art. 83 Reg. UE 2016/679 (GDPR) — Condizioni generali per l'imposizione di sanzioni amministrative pecuniarie",
     }
 
 
@@ -1819,24 +2372,35 @@ def calcolo_sanzione_gdpr(
     fattori_aggravanti: list[str] | None = None,
     fattori_attenuanti: list[str] | None = None,
     precedenti: bool = False,
+    gravita: str | None = None,
 ) -> dict:
     """Calcola il massimale e il range stimato di sanzione amministrativa GDPR ex art. 83.
 
     Usa questo tool quando: devi stimare la sanzione applicabile in seguito a una violazione
     GDPR, per valutazione del rischio, due diligence o consulenza a un'azienda sanzionata.
-    art83_4: violazioni di obblighi titolare/responsabile (massimale 10M€ o 2% fatturato).
+    art83_4: violazioni di obblighi titolare/responsabile (massimale 10M€ o, per le imprese,
+    2% del fatturato mondiale totale annuo dell'esercizio precedente, se superiore).
     art83_5: violazioni principi base, diritti interessati, trasferimenti (massimale 20M€ o 4%).
     art83_6: inosservanza ordine di limitazione/sospensione (massimale 20M€ o 4%).
+    Il range segue il metodo delle Linee guida EDPB 04/2022 (v. 2.1): punto di partenza in una
+    fascia di gravità (bassa 0-10%, media 10-20%, alta 20-100% del massimale applicabile, par. 60),
+    rettificato per il fatturato dell'impresa (da 0,2-0,4% fino a 2 mln a 40-100% fino a 500 mln,
+    nessuna rettifica oltre, par. 65-66), poi corretto con un moltiplicatore convenzionale del tool
+    per aggravanti, attenuanti e precedenti, mai oltre il massimale. Le Linee guida non sono
+    vincolanti e non fissano importi (par. 69); il moltiplicatore non è previsto dall'EDPB.
     NON usare per stime definitive: la sanzione è sempre determinata dal Garante caso per caso.
-    Precisione: STIMATO (modulazione percentuale dei massimali di legge; non è il
-    quantum irrogato, che dipende dalla valutazione del Garante).
+    Vigenza: art. 83, par. 2 e 4-6, Reg. UE 2016/679 (testo vigente al 29/09/2026); EDPB Linee
+    guida 04/2022 v. 2.1 (24/05/2023, corr. 29/06/2023).
+    Precisione: STIMATO (metodo EDPB, non vincolante, più correttivi convenzionali del tool; non
+    è il quantum irrogato, che dipende dalla valutazione del Garante).
 
     Args:
         tipo_violazione: Livello della violazione: 'art83_4' (massimale minore), 'art83_5' o 'art83_6' (massimale maggiore)
-        fatturato_annuo: Fatturato mondiale annuo lordo in euro (opzionale, migliora la stima)
+        fatturato_annuo: Fatturato mondiale totale annuo dell'esercizio precedente in euro, per le imprese (opzionale: senza, si usa il massimale fisso e non si applica la rettifica dimensionale)
         fattori_aggravanti: Lista fattori aggravanti presenti (es. ['dati sensibili', 'larga scala', 'violazione dolosa'])
         fattori_attenuanti: Lista fattori attenuanti presenti (es. ['prima violazione', 'cooperazione piena', 'misure correttive immediate'])
         precedenti: True se il titolare ha precedenti violazioni o ammonimenti del Garante
+        gravita: Gravità della violazione secondo l'EDPB (par. 60): 'bassa', 'media' o 'alta'. Se omessa si assume 'bassa' e la risposta lo segnala; `range_per_gravita` riporta comunque le tre fasce
     """
     return _calcolo_sanzione_gdpr_impl(
         tipo_violazione=tipo_violazione,
@@ -1844,6 +2408,7 @@ def calcolo_sanzione_gdpr(
         fattori_aggravanti=fattori_aggravanti,
         fattori_attenuanti=fattori_attenuanti,
         precedenti=precedenti,
+        gravita=gravita,
     )
 
 
@@ -1861,6 +2426,8 @@ def _genera_notifica_data_breach_impl(
     conseguenze: str,
     misure_adottate: list[str],
     dpo: str = "",
+    punto_contatto: str = "",
+    n_registrazioni: int | None = None,
 ) -> dict:
     try:
         dt_scoperta = datetime.fromisoformat(data_scoperta)
@@ -1878,6 +2445,18 @@ def _genera_notifica_data_breach_impl(
 
     if n_interessati < 0:
         return {"errore": "n_interessati deve essere >= 0"}
+    if n_registrazioni is not None and n_registrazioni < 0:
+        return {"errore": "n_registrazioni deve essere >= 0"}
+    # A breach cannot come after the moment the controller became aware of it: the 72 hours of
+    # art. 33(1) run from awareness. The draft is still produced (the 72 h window is short) but
+    # the incoherence is flagged in the document and in `avvisi`.
+    avvisi: list[str] = []
+    if dt_violazione > dt_scoperta:
+        avvisi.append(
+            "date incoerenti: la data della violazione "
+            f"({dt_violazione.strftime('%d/%m/%Y %H:%M')}) è successiva alla data di scoperta "
+            f"({dt_scoperta.strftime('%d/%m/%Y %H:%M')}); verificare le date prima dell'invio"
+        )
 
     scadenza_72h = dt_scoperta + timedelta(hours=72)
     termine_scadenza = scadenza_72h.strftime("%d/%m/%Y ore %H:%M")
@@ -1894,15 +2473,33 @@ def _genera_notifica_data_breach_impl(
             f"Il termine di 72 ore è probabilmente superato. Notificare immediatamente "
             f"al Garante indicando i motivi del ritardo (art. 33(1) GDPR)."
         )
+    if avvisi:
+        avviso_scadenza = (avviso_scadenza + "\n" if avviso_scadenza else "") + "\n".join(
+            f"ATTENZIONE: {a}" for a in avvisi
+        )
 
-    dpo_section = f"DPO: {dpo}" if dpo else "DPO: [Non nominato / indicare se presente]"
+    dpo_section = f"DPO: {dpo}" if dpo else "DPO: [non nominato / non indicato]"
+    contatto_section = (
+        f"Altro punto di contatto presso cui ottenere più informazioni: {punto_contatto}"
+        if punto_contatto
+        else "Altro punto di contatto presso cui ottenere più informazioni: "
+        "[indicare nome e recapiti se manca il DPO]"
+    )
+    # Italian thousands separator (1.200), not the English 1,200
+    n_interessati_text = f"{n_interessati:,}".replace(",", ".")
+    n_registrazioni_text = (
+        f"{n_registrazioni:,}".replace(",", ".")
+        if n_registrazioni is not None
+        else "[indicare, ove possibile]"
+    )
 
     categorie_text = "\n".join(f"  - {c}" for c in categorie_dati)
     misure_text = "\n".join(f"  - {m}" for m in misure_adottate)
 
     elementi_art33_3 = {
         "a_natura_violazione": bool(descrizione),
-        "b_contatti_dpo": bool(dpo),
+        # Art. 33(3)(b): "il responsabile della protezione dei dati o ... altro punto di contatto"
+        "b_contatti_dpo": bool(dpo or punto_contatto),
         "c_probabili_conseguenze": bool(conseguenze),
         "d_misure_adottate": len(misure_adottate) > 0,
     }
@@ -1914,16 +2511,16 @@ ai sensi dell'art. 33 Reg. UE 2016/679 (GDPR)
 
 Al Garante per la protezione dei dati personali
 Piazza Venezia n. 11, 00187 Roma
-datibreach@gpdp.it — garante@gpdp.it
 
 {'=' * 70}
-NOTA: Questa notifica deve essere inviata tramite il portale telematico del Garante
-disponibile all'indirizzo: https://servizi.gpdp.it/databreach/
+NOTA: Questa notifica deve essere inviata tramite la procedura telematica del Garante
+(provv. 27 maggio 2021, n. 209), disponibile all'indirizzo: https://servizi.gpdp.it/databreach/
 {'=' * 70}
 
-1. IDENTITÀ E RECAPITI DEL TITOLARE DEL TRATTAMENTO [art. 33(3)(a)]
+1. TITOLARE, DPO O ALTRO PUNTO DI CONTATTO [art. 33(3)(b)]
 Titolare: {titolare}
 {dpo_section}
+{contatto_section}
 
 2. NATURA DELLA VIOLAZIONE [art. 33(3)(a)]
 {descrizione}
@@ -1934,10 +2531,11 @@ Data e ora della presente notifica: _______________
 
 {avviso_scadenza}
 
-3. CATEGORIE E NUMERO APPROSSIMATIVO DI INTERESSATI COINVOLTI [art. 33(3)(a)]
-Numero approssimativo di interessati: {n_interessati:,}
-Categorie di dati coinvolti:
+3. CATEGORIE E NUMERO APPROSSIMATIVO DI INTERESSATI E DI REGISTRAZIONI [art. 33(3)(a)]
+Numero approssimativo di interessati: {n_interessati_text}
+Categorie di dati coinvolti (categorie di registrazioni dei dati personali):
 {categorie_text}
+Numero approssimativo di registrazioni dei dati personali in questione: {n_registrazioni_text}
 
 Categorie di dati particolari (art. 9) coinvolti: □ Sì □ No
 Dati di minori coinvolti: □ Sì □ No
@@ -2000,6 +2598,7 @@ Riferimento normativo: Art. 33 Reg. UE 2016/679 (GDPR) — Notifica all'autorit�
         "ore_dalla_scoperta": round(ore_trascorse, 1),
         "elementi_art33_3": elementi_art33_3,
         "tutti_elementi_presenti": tutti_elementi,
+        "avvisi": avvisi,
         "riferimento_normativo": "Art. 33 Reg. UE 2016/679 (GDPR) — Notifica di una violazione dei dati personali all'autorità di controllo",
     }
 
@@ -2015,6 +2614,8 @@ def genera_notifica_data_breach(
     conseguenze: str,
     misure_adottate: list[str],
     dpo: str = "",
+    punto_contatto: str = "",
+    n_registrazioni: int | None = None,
 ) -> dict:
     """Genera il modulo di notifica di un data breach al Garante ai sensi dell'art. 33 GDPR.
 
@@ -2022,10 +2623,17 @@ def genera_notifica_data_breach(
     è obbligatoria. Il termine è di 72 ore dalla scoperta. Se le 72h sono già scorse,
     notificare immediatamente indicando i motivi del ritardo.
     La notifica deve essere inviata tramite il portale del Garante: https://servizi.gpdp.it/databreach/
-    I 4 elementi obbligatori ex art. 33(3) sono: (a) natura violazione, (b) DPO, (c) probabili
-    conseguenze, (d) misure adottate.
+    I 4 elementi obbligatori ex art. 33(3) sono: (a) natura violazione, con categorie e numero
+    approssimativo di interessati e di registrazioni, (b) DPO o altro punto di contatto,
+    (c) probabili conseguenze, (d) misure adottate. Se manca il DPO indicare punto_contatto.
+    Se data_violazione è successiva a data_scoperta il modulo riporta un avviso di date incoerenti.
     Chaining: preceduto da valutazione_data_breach() per stabilire obbligo di notifica
               e comunicazione_interessati per l'art. 34
+    Vigenza: art. 33, parr. 1 e 3 Reg. UE 2016/679, testo vigente al 2026-09-29; procedura
+    telematica del Garante, provv. 27 maggio 2021 n. 209 (doc. web 9667201), dal 1° luglio 2021.
+    Precisione: ESATTO (termine di 72 ore solari dalla scoperta, art. 33(1), calcolato sull'ora
+    locale senza correzione per il cambio dell'ora legale; il modulo riproduce i contenuti
+    minimi dell'art. 33(3) e non sostituisce l'invio sul portale del Garante).
 
     Args:
         titolare: Ragione sociale, sede e recapiti del titolare del trattamento
@@ -2037,6 +2645,8 @@ def genera_notifica_data_breach(
         conseguenze: Probabili conseguenze della violazione per gli interessati
         misure_adottate: Misure adottate o proposte per rimediare alla violazione
         dpo: Contatti del DPO se nominato (lasciare vuoto se assente)
+        punto_contatto: Altro punto di contatto presso cui ottenere più informazioni (art. 33(3)(b)), da indicare se manca il DPO
+        n_registrazioni: Numero approssimativo di registrazioni dei dati personali in questione (art. 33(3)(a)), ove possibile
     """
     return _genera_notifica_data_breach_impl(
         titolare=titolare,
@@ -2048,4 +2658,6 @@ def genera_notifica_data_breach(
         conseguenze=conseguenze,
         misure_adottate=misure_adottate,
         dpo=dpo,
+        punto_contatto=punto_contatto,
+        n_registrazioni=n_registrazioni,
     )

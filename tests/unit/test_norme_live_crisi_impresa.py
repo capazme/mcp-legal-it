@@ -138,9 +138,15 @@ def test_art_25_novies_inps_oltre_novanta_giorni_con_soglie_di_importo(testo_25_
     )
     assert not missing, f"art. 25-novies CCII: il testo vigente non contiene {missing}"
     fn = _tool("test_crisi_impresa")
-    # The day threshold coincides ('oltre novanta giorni' = more than 90): 90 no, 91 yes.
-    assert fn(dscr=1.2, giorni_ritardo_inps=90)["numero_indicatori"] == 0
-    assert fn(dscr=1.2, giorni_ritardo_inps=91)["numero_indicatori"] == 1
+    # The day threshold is 'oltre novanta giorni' (more than 90): 90 no, 91 yes, but only together
+    # with the amounts. Days alone are not a signal: the tool lists it as non determinabile.
+    con_importi = dict(debito_inps=15_000.01, contributi_inps_anno_precedente=50_000.0)
+    assert fn(giorni_ritardo_inps=90, **con_importi)["numero_indicatori"] == 0
+    assert fn(giorni_ritardo_inps=91, **con_importi)["numero_indicatori"] == 1
+    solo_giorni = fn(dscr=1.2, giorni_ritardo_inps=91)
+    assert solo_giorni["numero_indicatori"] == 0 and solo_giorni["segnali_non_determinabili"], solo_giorni
+    # Imprese senza lavoratori: threshold 5.000 euro (n. 2).
+    assert fn(giorni_ritardo_inps=91, debito_inps=5_000.01, impresa_con_lavoratori=False)["numero_indicatori"] == 1
 
 
 def test_art_25_novies_agenzia_entrate_segnale_su_debito_iva(testo_25_novies):
@@ -156,6 +162,25 @@ def test_art_25_novies_agenzia_entrate_segnale_su_debito_iva(testo_25_novies):
         "euro 500.000",
     )
     assert not missing, f"art. 25-novies CCII: il testo vigente non contiene {missing}"
+    fn = _tool("test_crisi_impresa")
+    # AdE: no threshold in days (the old 'ritardo AdE > 90 giorni' had no basis); the signal is on the amount.
+    assert fn(dscr=1.2, giorni_ritardo_ade=120)["numero_indicatori"] == 0
+    assert fn(debito_iva_ade=20_000.01)["numero_indicatori"] == 1
+    assert fn(debito_iva_ade=10_000, volume_affari_anno_precedente=100_000)["numero_indicatori"] == 1
+    assert fn(debito_iva_ade=10_000, volume_affari_anno_precedente=100_001)["numero_indicatori"] == 0
+    # AdER: over 90 days and over 100.000 / 200.000 / 500.000 euro by legal form.
+    assert fn(debito_ader=100_000.01, giorni_ritardo_ader=91, forma_giuridica="impresa_individuale")["numero_indicatori"] == 1
+    assert fn(debito_ader=200_000, giorni_ritardo_ader=91, forma_giuridica="societa_di_persone")["numero_indicatori"] == 0
+    assert fn(debito_ader=500_000.01, giorni_ritardo_ader=91, forma_giuridica="altra_societa")["numero_indicatori"] == 1
+
+
+def test_art_3_co_4_lett_a_e_b_retribuzioni_e_fornitori():
+    """Art. 3 co. 4 lett. a) and b) CCII: the two signals the tool used to lack."""
+    fn = _tool("test_crisi_impresa")
+    assert fn(retribuzioni_scadute_30gg=5_001, monte_retribuzioni_mensile=10_000)["numero_indicatori"] == 1
+    assert fn(retribuzioni_scadute_30gg=5_000, monte_retribuzioni_mensile=10_000)["numero_indicatori"] == 0
+    assert fn(debiti_fornitori_scaduti_90gg=100_001, debiti_fornitori_non_scaduti=100_000)["numero_indicatori"] == 1
+    assert fn(debiti_fornitori_scaduti_90gg=100_000, debiti_fornitori_non_scaduti=100_000)["numero_indicatori"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -175,9 +200,11 @@ def test_impresa_minore_soglie_congiunte_art_2_co_1_lett_d():
     )
     fn = _tool("composizione_negoziata")
     ai_limiti = fn(fatturato=200_000, attivo=300_000, dipendenti=3, debito_totale=500_000, tipo_impresa="sotto_soglia")
-    assert ai_limiti["ammissibile"] is True, ai_limiti
+    assert ai_limiti["impresa_minore"] is True and "25-quater" in ai_limiti["accesso"], ai_limiti
     oltre = fn(fatturato=200_000.01, attivo=100_000, dipendenti=3, debito_totale=100_000, tipo_impresa="sotto_soglia")
-    assert oltre["ammissibile"] is False, oltre
+    # Not an impresa minore (ricavi over the limit), but not excluded from the composizione negoziata:
+    # art. 12 co. 1 is open to every imprenditore commerciale e agricolo.
+    assert oltre["impresa_minore"] is False and "Art. 12 co. 1" in oltre["accesso"], oltre
 
 
 def test_durata_incarico_esperto_180_piu_180_giorni_art_17_co_7():
@@ -202,20 +229,40 @@ def test_impresa_agricola_non_minore_accede_ex_art_12_co_1():
 
 
 def test_sotto_soglia_con_un_solo_requisito_mancante():
-    """Art. 2 co. 1 lett. d) and art. 25-quater co. 1 CCII: one missing requirement is enough to exclude.
+    """Art. 2 co. 1 lett. d) and art. 25-quater co. 1 CCII: one missing requirement excludes the impresa minore.
 
-    The exclusion is right; the message must not say that no threshold is met when two are.
+    The impresa is not "sotto soglia", but it keeps the ordinary access of art. 12 co. 1; the message
+    must name the missing requirement and must not say that no threshold is met when two are.
     """
     _assert_testo(f"art. 25-quater {CCII}", "presenta congiuntamente i requisiti")
+    _assert_testo(f"art. 12 {CCII}", "l'imprenditore commerciale e agricolo")
     r = _tool("composizione_negoziata")(
         fatturato=200_000.01, attivo=100_000, dipendenti=3, debito_totale=100_000, tipo_impresa="sotto_soglia"
     )
-    assert r["ammissibile"] is False
+    assert r["impresa_minore"] is False and "Art. 12 co. 1" in r["accesso"]
+    assert len(r["requisiti_mancanti"]) == 1 and "Ricavi" in r["requisiti_mancanti"][0], r["requisiti_mancanti"]
     messaggio = " ".join(r["requisiti_soddisfatti"])
     assert "nessuna soglia rispettata" not in messaggio, (
         "attivo 100.000 <= 300.000 e debiti 100.000 <= 500.000 sono rispettati, manca solo il requisito "
         f"dei ricavi (200.000,01 > 200.000): il messaggio del tool e' '{messaggio}'"
     )
+
+
+def test_cause_ostative_art_25_quinquies_e_richiami_art_25_quater_co_5():
+    """Art. 25-quinquies co. 1 CCII (bars to the istanza) and art. 25-quater co. 5 (art. 24 commi 3 e 4 only)."""
+    _assert_testo(
+        f"art. 25-quinquies {CCII}",
+        "non puo' essere presentata dall'imprenditore in pendenza del procedimento",
+        "nei quattro mesi precedenti",
+    )
+    _assert_testo(f"art. 25-quater {CCII}", "24, commi 3 e 4")
+    fn = _tool("composizione_negoziata")
+    base = dict(fatturato=500_000, attivo=800_000, dipendenti=10, debito_totale=300_000)
+    assert fn(procedimento_regolazione_pendente=True, **base)["ammissibile"] is False
+    assert fn(rinuncia_domanda_ultimi_4_mesi=True, **base)["ammissibile"] is False
+    minore = fn(fatturato=150_000, attivo=250_000, dipendenti=3, debito_totale=100_000)
+    art_24 = " ".join(m for m in minore["misure_protettive"] if "art. 24" in m)
+    assert "co. 3 e 4" in art_24, art_24
 
 
 def test_misure_citate_esistono_negli_artt_18_20_22_24():
