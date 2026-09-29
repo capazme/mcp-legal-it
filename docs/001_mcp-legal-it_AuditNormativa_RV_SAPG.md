@@ -170,7 +170,7 @@ Ogni scostamento è stato esaminato da agenti indipendenti: per i tool senza cal
 | errato, non corretto | 2 |
 | non applicabile | 4 |
 
-File di test prodotti: 141 file in `tests/comparison` (uno per ogni tool con calcolatore, più i preesistenti) e 32 file live nuovi in `tests/unit` (`test_norme_live_*`, `test_fonte_*_live`, `test_<fonte>_live`, `test_strutturale_*_live`, più l'helper `_norme_live.py`). Casi eseguiti nelle matrici: 1825. La suite predefinita passa (4153 test, `pytest tests/ -m "not live"`), come `scripts/audit_tool_annotations.py --check` e `scripts/update-data.py --strict`.
+File di test prodotti: 140 file in `tests/comparison` (uno per ogni tool con calcolatore, più i preesistenti) e 34 file live in `tests/unit` (`test_norme_live_*`, `test_fonte_*_live`, `test_<fonte>_live`, `test_strutturale_*_live`, più l'helper `_norme_live.py`). Casi eseguiti nelle matrici: 1857. La suite predefinita passa (4153 test, `pytest tests/ -m "not live"`), come `scripts/audit_tool_annotations.py --check` e `scripts/update-data.py --strict`.
 
 ### 6.3 Matrice per tool
 
@@ -240,7 +240,7 @@ Nella colonna "Esito": corretto = errore del tool accertato sulla fonte primaria
 | `inflazione_titoli_stato` | sito | 8 |  |  | coincide |  |
 | `interessi_acconti` | sito | 10 | dovuto 5373,63 (interessi 373,63) | dovuto 5379,87 (interessi 379,87; residuo 524… | corretto | Fixed interessi_acconti: payments are now imputed first to accrued interest (art. 1194 c.c.), with imputazione='capitale' for imputation with the cre… |
 | `interessi_corso_causa` | sito | 0 |  |  | corretto | Saggio legale per domande anteriori all'11/12/2014 (art. 17 co. 2 DL 132/2014); oltre il 31/12/2026 il tool non estende il tasso (aperto) |
-| `interessi_legali` | sito | 0 |  |  | corretto | 10% dal 16/12/1990 (art. 1 L. 353/1990, art. 92 co. 1); tassi_legali.json |
+| `interessi_legali` | sito | 9 |  |  | corretto | 10% dal 16/12/1990 (art. 1 L. 353/1990, art. 92 co. 1); tassi_legali.json |
 | `interessi_mora` | sito | 14 | 900.00 (9,00%) | 800.00 (8,00%) | corretto | Fixed interessi_mora: transactions concluded before 1/1/2013 now use BCE + 7 points (art. 5 c.1 D.Lgs. 231/2002 original text, art. 3 c.1 D.Lgs. 192/… |
 | `interessi_tasso_fisso` | sito | 10 | 500.00 | 501.37 | convenzione | Divisore 366 (anno di inizio bisestile) del tool contro 365 del sito; capitalizzazione esponenziale continua contro annuale a date fisse. |
 | `interessi_vari_capitale_rivalutato` | sito | 6 | capitale rivalutato 11.614,17; interessi 324,… | capitale rivalutato 11.510,00; interessi 321,… | corretto | fix(interessi_vari_capitale_rivalutato): last-year segment now counts 1 January (art. 2963 c.c., dies a quo excluded only at the start: 365 days for … |
@@ -266,7 +266,7 @@ Nella colonna "Esito": corretto = errore del tool accertato sulla fonte primaria
 | `ravvedimento_operoso` | sito | 13 | sanzione 4,17 (0,4167%); interessi 0,22 (1,6%… | sanzione 4,20 ('1/15 x 1,25% x 5 giorni = 0,4… | corretto | Fixed ravvedimento_operoso: new optional data_scadenza; lett. b threshold is the dichiarazione deadline (31 Oct of the following year, art. 13 c. 1 D… |
 | `regime_forfettario` | sito | 13 | reddito 4.000,00; reddito_imponibile 0 (max(.… | imponibile 4.000,00; imponibile al netto dei … | convenzione | Eccedenza contributi: tool imponibile 0, sito -1.000 (deducibile dal reddito complessivo, art. 10 TUIR). |
 | `rendimento_bot` | sito | 5 | scarto 300,00; imposta 37,50; netto 262,50; l… | capital gain 300,00; ritenuta 37,50; netto 26… | corretto | rendimento_bot: net yield now computed on the real outlay (price + substitute tax + commission, tax withheld at subscription, MEF BOT sheet), commiss… |
-| `ricerca_codici_ateco` | sito | 0 |  |  | da chiarire | Coefficienti da riconciliare con l'Allegato 4 L. 190/2014 e con ATECO 2025 (tabella da_verificare): fonte non riletta |
+| `ricerca_codici_ateco` | sito | 9 |  |  | da chiarire | Coefficienti da riconciliare con l'Allegato 4 L. 190/2014 e con ATECO 2025 (tabella da_verificare): fonte non riletta |
 | `ricevuta_prestazione_occasionale` | sito | 9 | ritenuta 1.200,00; netto 4.800,00 | ritenuta 1.200,00; ritenuta INPS a carico del… | corretto | ricevuta_prestazione_occasionale: now computes the worker's third of the INPS Gestione separata contribution on the excess over 5,000 euro a year (ar… |
 | `risarcimento_inail` | sito | 8 | 12600.00 (42% della retribuzione) | 8178.02 (punto 1.682,72 x 6 x (1 - 19% riduzi… | errato, non corretto | risarcimento_inail: rendita patrimoniale quota now retribuzione x coefficient of the D.M. 12/07/2000 table x grade (art. 13 co. 2 lett. b D.Lgs. 38/2… |
 | `ritenuta_acconto` | sito | 7 |  |  | coincide |  |
@@ -284,7 +284,7 @@ Nella colonna "Esito": corretto = errore del tool accertato sulla fonte primaria
 | `spese_mediazione` | sito | 8 | totale_per_parte 146,40 (120 + IVA 26,40) | TOTALE GENERALE 202,52 (avvio 40 + primo inco… | corretto | spese_mediazione: rebuilt on DM 150/2023 (arts. 28, 30, 31, Tabella A with 12 brackets): avvio 40/75/110, first-meeting fee 60/120/170, +10%/+25% sur… |
 | `spese_trasferta_avvocati` | sito | 5 | rimborso_km 60,00 (0,30 euro/km); indennita 5… | Rimborso chilometrico 72,00 (200 x 1,80 x 20%) | corretto | Fixed spese_trasferta_avvocati: kilometric allowance is now one fifth of the fuel price per litre (art. 27 DM 55/2014) via the new prezzo_carburante_… |
 | `tariffe_mediazione` | sito | 7 | avvio 40; indennità neg 60; indennità pos 120… | avvio 40; primo incontro 60; Tabella A (valor… | corretto | tariffe_mediazione: rebuilt on the DM 150/2023 Tabella A (12 brackets, min/max/mean), first-meeting fee and the four outcome scenarios with the art. … |
-| `tasso_alcolemico` | sito | 0 |  |  | corretto | Confini delle fasce come da art. 186 co. 2 ('superiore a', 'non superiore a'); il picco Widmark resta una stima (convenzione) |
+| `tasso_alcolemico` | sito | 7 |  |  | corretto | Confini delle fasce come da art. 186 co. 2 ('superiore a', 'non superiore a'); il picco Widmark resta una stima (convenzione) |
 | `termini_183_190_cpc` | sito | 11 | n1 2025-06-03, n2 2025-06-30, n3 2025-07-21 | n1 2025-06-03, n2 2025-07-03, n3 2025-07-23 | convenzione | Decorrenza dei termini successivi: dall'udienza (tool, 30/60/80 e 60/80 giorni, prudenziale) contro a catena dalla scadenza precedente prorogata ex a… |
 | `termini_deposito_atti_appello` | sito | 10 | 2025-07-04 | 2025-07-05 | convenzione | Termine a ritroso con data grezza di domenica: venerdi (tool, prudenziale) contro sabato (sito). Caso appellante di sabato: tool corretto per art. 15… |
 | `termini_deposito_ctu` | sito | 7 | 2025-09-01, 2025-09-15, 2025-09-29 | 2025-09-01, 2025-09-16, 2025-10-01 | convenzione | Dies a quo dei termini successivi: scadenza non prorogata (tool) contro scadenza prorogata (sito). Commento aggiunto in tests/comparison/test_termini… |
@@ -294,7 +294,7 @@ Nella colonna "Esito": corretto = errore del tool accertato sulla fonte primaria
 | `termini_processuali_civili` | sito | 9 |  |  | coincide |  |
 | `termini_separazione_divorzio` | sito | 9 | 2025-12-29 | 2025-12-27 | da chiarire | Doppia proroga festivo poi sabato (tool: 2025-12-29) contro singola (sito: 2025-12-27). Commento aggiunto in tests/comparison/test_termini_separazion… |
 | `variazioni_istat` | sito | 5 | 2022 8,01; 2023 5,43; 2024 0,88 (cumulata 14,… | 2022 +8,1; 2023 +5,4; 2024 +0,8 | corretto | fix(variazioni_istat): annual FOI variations recomputed on the corrected ISTAT series (2009 +0.68 instead of -0.65); first year of the series has a n… |
-| `verifica_iban` | sito | 1 | valido=False (non inizia con IT) | valido=True | convenzione | Ambito volutamente limitato agli IBAN italiani; San Marino formalmente valido ma fuori ambito |
+| `verifica_iban` | sito | 8 | valido=False (non inizia con IT) | valido=True | convenzione | Ambito volutamente limitato agli IBAN italiani; San Marino formalmente valido ma fuori ambito |
 | `verifica_partita_iva` | sito | 10 | codice_ufficio='00' | Ufficio=015 Milano, Lodi | corretto | verifica_partita_iva: codice_ufficio now reads digits 8-10 (was digits 1-2), new matricola field; the office code list is still not validated. |
 | `verifica_usura` | sito | 31 | nessun errore; cade su Prestiti personali: TE… | Anticipi su crediti e sconti: TEGM 8,12; sogl… | corretto | verifica_usura: leasing strumentale 2025-Q1 TEGM corrected from 7.44 to 9.75 (MEF decree Allegato A, 1 Jan-31 Mar 2025, threshold 16.1875); threshold… |
 | `calcolo_naspi` | fonte ufficiale | 7 | 900.00 al mese per 1,4 mesi (totale 1.260,00) | Art. 3 co. 1 lett. b D.Lgs. 22/2015: servono … | corretto | calcolo_naspi: below 13 weeks of contribution the outcome is 'non_spettante' with no amount (art. 3 co. 1 lett. b D.Lgs. 22/2015); the 3% monthly red… |
