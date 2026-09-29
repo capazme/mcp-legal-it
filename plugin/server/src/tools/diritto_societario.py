@@ -476,7 +476,8 @@ def costi_costituzione(
     Fornisce una stima delle principali voci di costo: onorario notarile, imposte,
     diritti CCIAA, capitale minimo. I costi notarili variano significativamente per
     zona geografica, complessità dello statuto e valore del capitale versato.
-    Precisione: INDICATIVO — ottenere preventivo dal notaio scelto.
+    Precisione: INDICATIVO — ottenere preventivo dal notaio scelto (gli onorari notarili sono liberi).
+    Vigenza: tassa di concessione governativa art. 23 Tariffa DPR 641/1972 (309,87 euro fino a 516.456,90 di capitale); diritti di segreteria 90 euro (D.M. 17/7/2012); diritto annuale 120/53 euro comprensivo della maggiorazione del 20% (2026-2028, senza maggiorazione 100/44).
     Chaining: → cite_law() per verificare il testo aggiornato degli artt. 2463, 2327 c.c.
 
     Args:
@@ -499,16 +500,17 @@ def costi_costituzione(
         ]
         capitale_minimo = 1.0
         capitale_consigliato = 10000.0
-        rif = "Art. 2463 c.c. — D.M. 55/2014 — DPR 131/1986"
+        rif = "Art. 2463 c.c. — Tariffa parte I DPR 131/1986 — Tariffa DPR 642/1972 art. 1 co. 1-bis.1 — art. 23 Tariffa DPR 641/1972 — D.M. 17/7/2012 (diritti di segreteria)"
         note_extra = "Il capitale minimo legale è €1, ma è consigliato almeno €10.000 per operatività e credibilità."
 
     elif tipo_societa == "srls":
         voci = [
             {"voce": "Onorario notarile", "min": 0.0, "max": 0.0, "note": "GRATUITO — atto standard tabellare (art. 2463-bis c.c.)"},
             {"voce": "Imposta di registro", "min": 200.0, "max": 200.0, "note": "Fissa (DPR 131/1986)"},
-            {"voce": "Bolli e diritti", "min": 0.0, "max": 0.0, "note": "ESENTI per SRLS (art. 3 c. 1 D.L. 1/2012)"},
+            {"voce": "Bolli e diritti", "min": 0.0, "max": 0.0, "note": "ESENTI per SRLS (art. 3 c. 3 D.L. 1/2012)"},
             {"voce": "Diritto CCIAA (annuale)", "min": 120.0, "max": 120.0, "note": "Diritto annuale — varia per provincia"},
             {"voce": "Diritti di segreteria", "min": 0.0, "max": 0.0, "note": "ESENTI per SRLS (art. 3 c. 3 D.L. 1/2012: iscrizione esente da bollo e diritti di segreteria)"},
+            {"voce": "Tassa di concessione governativa", "min": 309.87, "max": 309.87, "note": "Art. 23 Tariffa DPR 641/1972: dovuta anche dalla SRLS (art. 3 c. 3 D.L. 1/2012 non la esenta; art. 2463-bis ult. co. c.c.)"},
         ]
         capitale_minimo = 1.0
         capitale_consigliato = 9999.0
@@ -535,6 +537,7 @@ def costi_costituzione(
             {"voce": "Imposta di registro", "min": 200.0, "max": 200.0, "note": "Fissa (DPR 131/1986)"},
             {"voce": "Bolli e diritti", "min": 156.0, "max": 156.0, "note": "Marche da bollo su atto e copia"},
             {"voce": "Diritto CCIAA (annuale)", "min": 120.0, "max": 120.0, "note": "Diritto annuale — varia per provincia"},
+            {"voce": "Diritti di segreteria (Registro imprese)", "min": 90.0, "max": 90.0, "note": "D.M. 17/7/2012 Tab. A: 90 euro con modalità telematica"},
         ]
         capitale_minimo = 0.0
         capitale_consigliato = None
@@ -547,6 +550,7 @@ def costi_costituzione(
             {"voce": "Imposta di registro", "min": 200.0, "max": 200.0, "note": "Fissa (DPR 131/1986)"},
             {"voce": "Bolli e diritti", "min": 156.0, "max": 156.0, "note": "Marche da bollo su atto e copia"},
             {"voce": "Diritto CCIAA (annuale)", "min": 120.0, "max": 120.0, "note": "Diritto annuale — varia per provincia"},
+            {"voce": "Diritti di segreteria (Registro imprese)", "min": 90.0, "max": 90.0, "note": "D.M. 17/7/2012 Tab. A: 90 euro con modalità telematica"},
         ]
         capitale_minimo = 0.0
         capitale_consigliato = None
@@ -555,7 +559,7 @@ def costi_costituzione(
 
     else:  # ditta_individuale
         voci = [
-            {"voce": "Diritto CCIAA (iscrizione)", "min": 53.0, "max": 53.0, "note": "Diritto annuale ditta individuale"},
+            {"voce": "Diritto CCIAA (sezione speciale)", "min": 53.0, "max": 53.0, "note": "Diritto annuale ditta individuale in sezione speciale (120 euro in sezione ordinaria); importi comprensivi della maggiorazione del 20% (D.M. MIMIT 17/3/2026)"},
             {"voce": "Diritti MiSE (pratiche RI)", "min": 18.0, "max": 18.0, "note": "Diritti di segreteria Registro Imprese"},
             {"voce": "Bolli", "min": 17.50, "max": 17.50, "note": "Marche da bollo"},
         ]
