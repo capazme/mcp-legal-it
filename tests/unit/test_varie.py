@@ -336,6 +336,15 @@ class TestDecurtazionePuntiPatente:
 
 class TestTassoAlcolemico:
 
+    def test_confine_0_5_non_e_ancora_illecito(self):
+        # Art. 186 co. 2 lett. a) D.Lgs. 285/1992: la fascia e' "superiore a 0,5 e non superiore a 0,8 g/l",
+        # quindi esattamente 0,5 g/l resta fuori (M 60 kg, 1,75 unita' alcoliche, picco 0,50).
+        r = _call("tasso_alcolemico", sesso="M", peso_kg=60, unita_alcoliche=1.75, ore_trascorse=0)
+        assert r["tasso_attuale_g_l"] == 0.5
+        assert r["sanzione"] is None
+        assert r["fascia_sanzione_cds"].startswith("nessuna")
+
+
     def test_fascia_a(self):
         # 3 UA, 70kg M, 1h → tasso 0.58 → fascia a
         r = _call("tasso_alcolemico", sesso="M", peso_kg=70,

@@ -19,6 +19,14 @@ def _call(fn_name: str, **kwargs):
 
 
 class TestInteressiLegali:
+
+    def test_saggio_1990_cambia_il_16_dicembre(self):
+        # Art. 1 L. 353/1990 (10%), efficace dal 16/12/1990 (art. 92 co. 1 stessa legge, che rinvia
+        # l'entrata in vigore del resto al 1/1/1993 ma non dell'art. 1): 5% fino al 15/12 (348 giorni =
+        # 476.71) e 10% dal 16/12 (16 giorni = 43.84), totale 520.55, divisore 365.
+        r = _call("interessi_legali", capitale=10000, data_inizio="1990-01-01", data_fine="1990-12-31")
+        assert r["totale_interessi"] == pytest.approx(520.55, abs=0.01)
+
     def test_happy_path_semplici(self):
         r = _call(
             "interessi_legali",
@@ -713,6 +721,24 @@ class TestCalcoloMaggiorDanno:
 
 
 class TestInteressiCorsoCausa:
+
+    def test_domanda_ante_11_12_2014_saggio_legale(self):
+        # Art. 17 co. 2 DL 132/2014: the mora rate of art. 1284 co. 4 c.c. applies to proceedings begun
+        # from 11/12/2014. A domanda of 3/6/2014 stays on the legal rate (art. 1284 co. 1):
+        # 116.30 over two years at 1.0%, 0.5% and 0.2% per year (site and hand check).
+        r = _call("interessi_corso_causa", capitale=10000, data_citazione="2014-06-03", data_sentenza="2016-06-03")
+        assert r["totale_interessi"] == pytest.approx(116.30, abs=0.02)
+        assert "saggio legale" in r["tasso_applicato"]
+
+    def test_domanda_dell_11_12_2014_usa_la_mora(self):
+        # 11/12/2014 is the thirtieth day after the entry into force of L. 162/2014 (11/11/2014):
+        # the mora rate already applies, unlike the day before (10/12/2014, legal rate 52.88).
+        prima = _call("interessi_corso_causa", capitale=10000, data_citazione="2014-12-10", data_sentenza="2015-12-10")
+        dopo = _call("interessi_corso_causa", capitale=10000, data_citazione="2014-12-11", data_sentenza="2015-12-11")
+        assert prima["totale_interessi"] == pytest.approx(52.88, abs=0.02)
+        assert dopo["totale_interessi"] > 700
+        assert "mora" in dopo["tasso_applicato"]
+
     def test_happy_path_no_payment(self):
         r = _call(
             "interessi_corso_causa",

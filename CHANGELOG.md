@@ -291,6 +291,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed costi_costituzione: SRLS now includes the concession tax (EUR 309.87, art. 3 co. 3 DL 1/2012 does not exempt it; total 629.87), SAS/SNC include the EUR 90 Registro Imprese fee (DM 17/7/2012), legal references corrected.
 - Fixed competenza_giudice: condominio is no longer treated as reserved to the Tribunale (art. 7 co. 1 and co. 3 n. 2 c.p.c.), art. 9 co. 2 exclusive matters and immovables go to the Tribunale, unknown matters are refused, crisis law follows art. 27 CCII, thresholds dated 31/10/2027.
 - Fixed verifica_mediazione_obbligatoria: exact/alias matching with accent normalisation instead of substring (rete, contratto di rete, responsabilita medica now recognised; generic or empty input no longer matches), exclusions now the eight letters of art. 5 co. 6 D.Lgs. 28/2010, urgent measures (co. 5) no longer listed as an exclusion.
+- interessi_legali: the 10% saggio legale starts on 16/12/1990 and not on 16/04/1990 (art. 1 L. 353/1990, art. 92 co. 1 same law); the correction also applies to interessi_acconti and calcolo_maggior_danno, which read the same table.
+- tasso_alcolemico: the sanction bands follow the wording of art. 186 co. 2 D.Lgs. 285/1992 ("superiore a 0,5", "non superiore a 0,8" and "1,5"): the exact thresholds 0.5, 0.8 and 1.5 g/l fall in the lower band.
+- interessi_corso_causa: the mora rate of art. 1284 co. 4 c.c. applies only to proceedings begun from 11/12/2014 (art. 17 co. 2 DL 132/2014 conv. L. 162/2014); earlier domande run on the legal rate of art. 1284 co. 1.
 
 ## [2.14.2] - 2026-09-28
 

@@ -9,7 +9,7 @@ centesimo (il sito somma le righe gia' arrotondate, il tool arrotonda il totale)
 
 import os
 
-os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
+os.environ["LEGAL_TODAY"] = "2026-09-29"
 
 import re
 
@@ -26,6 +26,12 @@ def _site_totale(page, capitale, data_inizio, data_fine, anatocismo="0"):
     anatocismo: '0' nessuna, '3' trimestrale, '6' semestrale, '12' annuale.
     """
     goto(page, "interessi_legali.php")
+    # The CMP banner appears after the conftest helper has already looked for it:
+    # wait for the accept button, otherwise the form submit is swallowed.
+    try:
+        page.locator("#accept-btn").click(timeout=8000)
+    except Exception:
+        pass
     ai, mi, gi = data_inizio.split("-")
     af, mf, gf = data_fine.split("-")
     page.fill("input[name='Capitale']", str(int(capitale)))

@@ -346,12 +346,20 @@
     "ravvedimento_operoso"
    ]
   },
+  "tassi_legali+tassi_mora": {
+   "datasets": [
+    "tassi_legali",
+    "tassi_mora"
+   ],
+   "tools": [
+    "interessi_corso_causa"
+   ]
+  },
   "tassi_mora": {
    "datasets": [
     "tassi_mora"
    ],
    "tools": [
-    "interessi_corso_causa",
     "interessi_mora",
     "sollecito_pagamento"
    ]
@@ -552,6 +560,7 @@
    "tassi_legali"
   ],
   "interessi_corso_causa": [
+   "tassi_legali",
    "tassi_mora"
   ],
   "interessi_legali": [
