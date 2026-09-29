@@ -170,7 +170,7 @@ Ogni scostamento è stato esaminato da agenti indipendenti: per i tool senza cal
 | errato, non corretto | 2 |
 | non applicabile | 4 |
 
-File di test prodotti: 140 file in `tests/comparison` (uno per ogni tool con calcolatore, più i preesistenti) e 34 file live in `tests/unit` (`test_norme_live_*`, `test_fonte_*_live`, `test_<fonte>_live`, `test_strutturale_*_live`, più l'helper `_norme_live.py`). Casi eseguiti nelle matrici: 1857. La suite predefinita passa (4153 test, `pytest tests/ -m "not live"`), come `scripts/audit_tool_annotations.py --check` e `scripts/update-data.py --strict`.
+File di test prodotti: 141 file in `tests/comparison` (uno per ogni tool con calcolatore, più i preesistenti) e 32 file live nuovi in `tests/unit` (`test_norme_live_*`, `test_fonte_*_live`, `test_<fonte>_live`, `test_strutturale_*_live`, più l'helper `_norme_live.py`). Casi eseguiti nelle matrici: 1857. La suite predefinita passa (4153 test, `pytest tests/ -m "not live"`), come `scripts/audit_tool_annotations.py --check` e `scripts/update-data.py --strict`.
 
 ### 6.3 Matrice per tool
 
