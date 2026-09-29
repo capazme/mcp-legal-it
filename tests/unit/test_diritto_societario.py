@@ -538,6 +538,24 @@ class TestCostiCostituzione:
         assert notaio["min"] == 0.0
         assert notaio["max"] == 0.0
 
+    def test_srls_totale_629_87_con_tcg(self):
+        # Art. 3 co. 3 DL 1/2012 esenta solo bollo, diritti di segreteria e onorari:
+        # la TCG (art. 23 Tariffa DPR 641/1972, 309,87) resta dovuta.
+        # Verificato a mano: 200 + 120 + 309,87 = 629,87.
+        result = _call("costi_costituzione", tipo_societa="srls")
+        assert result["totale_stimato_min"] == 629.87
+        assert result["totale_stimato_max"] == 629.87
+
+    def test_sas_snc_con_diritti_segreteria_90(self):
+        # D.M. 17/7/2012 Tab. A: 90 euro. sas 1000+200+156+120+90 = 1566; snc 800+...=1366.
+        sas = _call("costi_costituzione", tipo_societa="sas")
+        snc = _call("costi_costituzione", tipo_societa="snc")
+        assert sas["totale_stimato_min"] == 1566.0
+        assert sas["totale_stimato_max"] == 2066.0
+        assert snc["totale_stimato_min"] == 1366.0
+        assert snc["totale_stimato_max"] == 1766.0
+        assert "55/2014" not in _call("costi_costituzione", tipo_societa="srl")["riferimento_normativo"]
+
     def test_spa_capitale_minimo_50000(self):
         result = _call("costi_costituzione", tipo_societa="spa")
         assert result["capitale_minimo"] == 50_000.0
