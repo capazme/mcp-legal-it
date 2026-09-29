@@ -17,6 +17,7 @@ from src.lib._result import SearchResult
 from src.server import mcp
 from src.lib.corte_cost.client import (
     TIPOLOGIE,
+    _parse_fonte,
     fetch_pronuncia,
     format_full,
     format_massima_hit,
@@ -109,6 +110,7 @@ async def _pronunce_cost_su_norma_impl(
             year_from=anno_da,
             year_to=anno_a,
             limit=max_risultati,
+            current_year=_clock.today().year,
         )
     except Exception as exc:
         return SearchResult(
@@ -122,11 +124,20 @@ async def _pronunce_cost_su_norma_impl(
             success=False, source=_SOURCE, error_type="no_results",
             results_text=(
                 f"Nessuna pronuncia costituzionale trovata che invochi come parametro: _{riferimento}_. "
-                "Indicare articolo e/o numero dell'atto (es. 'art. 23 legge 87/1953')."
+                "Indicare articolo e/o numero dell'atto (es. 'art. 23 legge 87/1953'); "
+                "se l'atto è indicato (Costituzione, legge, d.lgs., statuto...) si cercano "
+                "solo i parametri di quel tipo di atto."
             ),
         )
 
     lines = [f"**Pronunce costituzionali che invocano**: _{riferimento}_\n"]
+    if not _parse_fonte(riferimento):
+        lines.append(
+            "*Nota: il riferimento non indica l'atto (Costituzione, legge, d.lgs., "
+            "statuto, CEDU, atto UE...): sono incluse le massime che invocano quell'articolo "
+            "o quel numero in qualunque atto. Per restringere scrivere ad es. "
+            "'art. 3 Costituzione' o 'art. 23 legge 87/1953'.*\n"
+        )
     for numero, anno, massima in hits:
         lines.append(format_massima_hit(numero, anno, massima))
         lines.append("")
@@ -210,7 +221,12 @@ async def leggi_pronuncia_costituzionale(numero: int, anno: int) -> str:
 
     Usare quando si conosce già numero e anno (es. "sentenza 1/2024"), oppure
     dopo cerca_pronuncia_costituzionale(). Restituisce epigrafe, testo e
-    dispositivo (max 25000 caratteri) dall'archivio open-data ufficiale.
+    dispositivo dall'archivio open-data ufficiale. Epigrafe e dispositivo sono
+    sempre riportati per intero; se la pronuncia supera circa 25000 caratteri
+    si tronca soltanto la motivazione (sezione "Testo"), con una nota che lo
+    dichiara. Il dispositivo non si tronca mai: è la parte da cui discendono
+    gli effetti della pronuncia (art. 136 Cost.; artt. 18, terzo comma, e 30
+    l. 11 marzo 1953, n. 87).
 
     Args:
         numero: Numero della pronuncia (es. 1, 162, 238)
@@ -231,15 +247,23 @@ async def pronunce_cost_su_norma(
 
     Usa l'archivio delle massime, dove ogni massima elenca le norme invocate
     come parametro di costituzionalità. Indicare l'articolo e/o il numero
-    dell'atto. Dopo aver trovato una pronuncia, usare
+    dell'atto. Se il riferimento nomina il tipo di atto (Costituzione o Cost.,
+    legge, d.lgs., d.p.r., d.l., statuto, CEDU, TFUE, direttiva...) restituisce
+    solo le massime il cui parametro è di quel tipo: "art. 3 Costituzione" non
+    include l'art. 3 di uno statuto speciale o delle norme integrative. Se non
+    lo nomina ("art. 117") il risultato lo dichiara e l'articolo è cercato in
+    qualunque atto. Senza anni la ricerca parte dall'anno corrente e scende fino
+    al 1956; l'archivio delle massime arriva ad oggi. Dopo aver trovato una pronuncia, usare
     leggi_pronuncia_costituzionale(numero, anno) per il testo completo.
     Restituisce: massime con titolo, testo e parametri normativi.
 
     Args:
         riferimento: Norma invocata come parametro (es. "art. 23 legge 87/1953",
-            "art. 3 Costituzione", "art. 117"). Si estraggono articolo e numero atto.
-        anno_da: Anno di inizio (default copre l'intero archivio massime)
-        anno_a: Anno di fine
+            "art. 3 Costituzione", "art. 117"). Si estraggono articolo, numero
+            atto e tipo di atto.
+        anno_da: Anno di inizio (default copre l'intero archivio massime, 1956-anno
+            corrente); se indicato senza anno_a si cerca solo in quell'anno
+        anno_a: Anno di fine (se indicato senza anno_da si cerca solo in quell'anno)
         max_risultati: Numero massimo di risultati (default 10, max 50)
     """
     result = await _pronunce_cost_su_norma_impl(

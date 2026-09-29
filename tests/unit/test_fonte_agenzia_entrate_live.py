@@ -206,8 +206,8 @@ CONCETTI: dict[str, tuple[str, list[str]]] = {
     "4033": ("erel", [r"irpef", r"acconto", r"(prima rata|primo)"]),
     "4034": ("erel", [r"irpef", r"acconto", r"(seconda ?rata|secondo)", r"unica soluzione"]),
     "1040": ("erel", [r"ritenute", r"lavoro autonomo", r"arti e professioni"]),
-    # 1038 was suppressed from 1 January 2017 (ris. AdE 13/E del 17 marzo 2016) and merged in 1040.
-    "1038": ("erel", [r"ritenute", r"provvigioni"]),
+    # 1038 (provvigioni) was suppressed from 1 January 2017 (ris. AdE 13/E del 17 marzo 2016) and
+    # merged in 1040: it is no longer offered by the tool, and it is absent from the AdE table.
     "1001": ("erel", [r"ritenute", r"retribuzioni", r"pensioni"]),
     "1712": ("erel", [r"sostitutiva", r"rivalutazion", r"(trattamento di fine rapporto|tfr)", r"acconto"]),
     "1713": ("erel", [r"sostitutiva", r"rivalutazion", r"(trattamento di fine rapporto|tfr)", r"saldo"]),
@@ -216,6 +216,17 @@ CONCETTI: dict[str, tuple[str, list[str]]] = {
     "1840": ("erel", [r"(cedolare|\bloc)", r"acconto", r"(prima rata|primo)"]),
     "1841": ("erel", [r"(cedolare|\bloc)", r"acconto", r"(seconda ?rata|secondo)"]),
     "1842": ("erel", [r"(cedolare|\bloc)", r"saldo"]),
+    # AdE: 1790/1791/1792 = imposta sostitutiva regime forfetario (art. 1 c. 64 L. 190/2014).
+    "1790": ("erel", [r"sostitutiva", r"forfetario|forfettario", r"acconto", r"(prima rata|primo)"]),
+    "1791": ("erel", [r"sostitutiva", r"forfetario|forfettario", r"acconto", r"(seconda ?rata|secondo)"]),
+    "1792": ("erel", [r"sostitutiva", r"forfetario|forfettario", r"saldo"]),
+    # AdE: 1668 = interessi sul pagamento dilazionato degli importi rateizzabili, sezione 2 del
+    # modello di versamento unitario.
+    "1668": ("erel", [r"interessi", r"dilazionat", r"rateizzabili"]),
+    # AdE: 6035 = "versamento IVA acconto" (the quarterly counterpart of 6013).
+    "6035": ("erel", [r"\biva\b", r"acconto"]),
+    # AdE F24 ELIDE: contributo unificato of the administrative justice (TAR, Consiglio di Stato).
+    **{f"GA0{n}": ("elide", [r"contrib\w* ?unific", r"amministrativ|presidente"]) for n in range(1, 6)},
     "6099": ("erel", [r"\biva\b", r"annual"]),
     **{f"60{m:02d}": ("erel", [r"\biva\b", r"mensile", MESI[m - 1]]) for m in range(1, 13)},
     # AdE: 6013 = "versamento acconto per IVA mensile" (the quarterly acconto is 6035).
@@ -250,11 +261,11 @@ CONCETTI: dict[str, tuple[str, list[str]]] = {
     "3843": ("erel", [r"addizionale comunale", r"acconto"]),
     "3844": ("erel", [r"addizionale comunale", r"saldo"]),
     # AdE: 1630 = interessi sulla rateazione dell'IRPEF trattenuta dal sostituto (assistenza
-    # fiscale), 1631 = imposte rimborsate dal sostituto; 1632 does not exist. The civil
-    # contributo unificato has no F24 code in these tables (only GA01... for the TAR/CdS, F24 ELIDE).
+    # fiscale), 1631 = imposte rimborsate dal sostituto; 1632 does not exist (removed from the
+    # tool). The civil contributo unificato has no F24 code in these tables (only GA01... for
+    # the TAR/CdS, F24 ELIDE, listed above).
     "1630": ("erel", [r"interessi", r"dilazionat", r"assistenza fiscale"]),
     "1631": ("erel", [r"rimborsat", r"assistenza fiscale"]),
-    "1632": ("erel", [r"contributo unificato|diritti di copia|bollo"]),
 }
 
 _SEZIONE_DA_TIPO = {"erario": "erario", "regioni": "regioni", "enti locali": "enti_locali"}

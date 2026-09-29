@@ -23,15 +23,16 @@ bursts; the client itself keeps one second between requests):
   marks that merely contain the term among the similar ones, and always ends with the
   disclaimer — also when nothing is found (a made-up name), which the tool treats as success.
 
-KNOWN DEFECT (fails on purpose until fixed; verified on 2026-09-25, two runs):
+FIXED DEFECT (found on 2026-09-25, two runs; corrected after the audit):
 
 * `leggi_marchio` on a well-formed but nonexistent ST13 (IT500000000000000): TMview answers
   HTTP 500 with the JSON body {"message":"Can't get trademark/design detail from resource
-  url:{}"}; `retry_request` retries every 5xx twice (three API hits plus the warm-up, against
-  a WAF that counts them) and the tool reports "**Errore**: tmview non raggiungibile"
-  (source_down) instead of "Nessun marchio trovato". The same endpoint also answers transient
-  500s for existing marks (seen once for IT502013902128590, gone 40 s later), so the tool shows
-  one message for "unknown ST13" and "TMview hiccup" alike.
+  url:{}"}. `retry_request` used to retry every 5xx twice (three API hits plus the warm-up,
+  against a WAF that counts them) and the tool reported "**Errore**: tmview non raggiungibile"
+  (source_down). Now the client stops at the first reply (TMviewNotFoundError) and the tool
+  answers error_type no_results, "Nessuna scheda restituita ... ST13 inesistente o scheda ...
+  momentaneamente non disponibile". The same endpoint also answers transient 500s for existing
+  marks (seen once for IT502013902128590, gone 40 s later), so the wording covers both.
 
 If the WAF turns the client away the tool answers with its anti-bot hint: the case is skipped
 as "source temporarily unavailable", never passed.
@@ -191,15 +192,18 @@ def test_leggi_marchio_fuoricorso_scheda_completa():
 
 
 def test_leggi_marchio_st13_inesistente_e_non_trovato_non_fonte_giu():
-    """Plan case 2: a nonexistent ST13 is 'not found', not 'source unreachable'.
+    """Plan case 2: a nonexistent ST13 is 'no record returned', not 'source unreachable'.
 
-    KNOWN DEFECT: TMview answers HTTP 500 {"message":"Can't get trademark/design detail…"}
-    for an unknown ST13; the client retries it as a server error and the tool reports
-    "tmview non raggiungibile".
+    TMview answers HTTP 500 {"message":"Can't get trademark/design detail…"} for an unknown ST13
+    (same reply for a momentary outage of the office record): the tool must not retry it and
+    must not call the source unreachable. The wording is "Nessuna scheda restituita ... ST13
+    inesistente o scheda ... momentaneamente non disponibile" (the old assertion looked for
+    "Nessun marchio trovato", which would claim non-existence: wrong in form, not in substance).
     """
     r = _run(leggi_marchio, riprova=False, st13=_ST13_INESISTENTE)  # deterministic: no retry
     assert "non raggiungibile" not in r, r[:600]
-    assert "Nessun marchio trovato" in r, r[:600]
+    assert f"Nessuna scheda restituita da TMview per ST13 `{_ST13_INESISTENTE}`" in r, r[:600]
+    assert "ST13 inesistente o scheda dell'ufficio d'origine momentaneamente non disponibile" in r, r[:600]
 
 
 # ---------------------------------------------------------------------------

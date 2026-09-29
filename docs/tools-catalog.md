@@ -332,7 +332,7 @@ descrizione di ogni tool.
 | `rendimento_bot` | `rendimento_bot(valore_nominale: float, prezzo_acquisto: float, giorni_scadenza: int, commissione_pct: float = 0.0)` | Rendimento netto BOT (zero-coupon) con imposta sostitutiva 12,5%. |
 | `rendimento_btp` | `rendimento_btp(valore_nominale: float, prezzo_acquisto: float, cedola_annua_pct: float, anni_scadenza: int, frequenza_cedola: int = 2)` | Rendimento netto BTP cedola fissa con flusso cedole e capital gain. |
 | `pronti_termine` | `pronti_termine(capitale: float, tasso_lordo_pct: float, giorni: int, tipo_sottostante: str = "titoli_stato")` | Rendimento netto pronti contro termine (12,5% o 26% secondo sottostante). |
-| `rendimento_buoni_postali` | `rendimento_buoni_postali(importo: float, tipo: str = "ordinario", anni: int = 10)` | Rendimento netto buoni fruttiferi postali con capitalizzazione per scaglioni. |
+| `rendimento_buoni_postali` | `rendimento_buoni_postali(importo: float, tipo: str = "ordinario", anni: int = 10, serie: str \| None = None, eta_minore: int = 0, valore_portafoglio_buoni: float \| None = None)` | Montante e rendimento netto buoni fruttiferi postali con i coefficienti dei fogli informativi CDP per serie. |
 | `confronto_investimenti` | `confronto_investimenti(importo: float, investimenti: list[dict])` | Confronto rendimento netto tra strumenti finanziari diversi. |
 
 ---
@@ -399,7 +399,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `verifica_partita_iva_vies` | `verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT")` | Verifica una P.IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati. Per le P.IVA italiane esegue prima il checksum locale (niente rete se fallisce). |
 | `genera_report_fornitori` | `genera_report_fornitori(fornitori: list, cliente: str, data_analisi: str = "", file_sorgente: str = "", nome_file: str = "")` | Genera l'Excel standard dell'analisi privacy del mastrino fornitori: foglio Avvertenze + 11 colonne, responsabili senza DPA proprio in cima. Valida i record canonici (collect-all) e non scrive file parziali. |
-| `verifica_dpa_fornitore` | `verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "")` | Sonda il dominio del fornitore sui percorsi convenzionali per accertare se pubblica una nomina a responsabile ex art. 28 GDPR. Esiti: `dpa_dedicato`, `clausola_in_condizioni`, `non_trovato`, `bloccato`, `dominio_irraggiungibile`. Sostituisce la whitelist statica; le determinazioni sono in cache 90 giorni, i fallimenti mai. |
+| `verifica_dpa_fornitore` | `verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "")` | Sonda il dominio del fornitore sui percorsi convenzionali per accertare se pubblica una nomina a responsabile ex art. 28 GDPR. Esiti: `dpa_dedicato`, `clausola_in_condizioni`, `non_trovato`, `bloccato`, `dominio_irraggiungibile`. Sostituisce la whitelist statica; le determinazioni sono in cache 90 giorni (14 per `non_trovato`), i fallimenti mai. |
 
 ---
 

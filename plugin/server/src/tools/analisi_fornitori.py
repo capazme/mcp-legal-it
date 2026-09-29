@@ -12,6 +12,7 @@ import uuid
 from datetime import date, datetime
 
 from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -87,6 +88,39 @@ def _verifica_coerenza_classi(fornitori: list[dict]) -> list[str]:
             "prestazioni realmente diverse — mai per far passare la validazione."
         )
     return errori
+
+
+def _pulisci_testo(valore, contatore: list[int]):
+    """Strip the control characters that XML 1.0 (and so SpreadsheetML) forbids.
+
+    They are U+0000-0008, U+000B-000C and U+000E-001F (XML 1.0 §2.2, production Char;
+    openpyxl's ILLEGAL_CHARACTERS_RE): typical residue of extraction from PDFs and
+    ledger software, with no meaning in a supplier name. Tab, line feed and carriage
+    return are legal and stay. `contatore[0]` accumulates how many were removed.
+    """
+    if isinstance(valore, str):
+        pulito, n = ILLEGAL_CHARACTERS_RE.subn("", valore)
+        contatore[0] += n
+        return pulito
+    if isinstance(valore, list):
+        return [_pulisci_testo(elemento, contatore) for elemento in valore]
+    return valore
+
+
+def _pulisci_lotto(fornitori, contatore: list[int]):
+    """Cleaned copy of the supplier records, before validation.
+
+    Cleaning comes first so that a required field made only of control characters is
+    reported as empty, not silently written as an empty cell. Anything that is not a
+    list of objects is returned as is and left to `_valida_fornitori`.
+    """
+    if not isinstance(fornitori, list):
+        return fornitori
+    return [
+        {chiave: _pulisci_testo(valore, contatore) for chiave, valore in riga.items()}
+        if isinstance(riga, dict) else riga
+        for riga in fornitori
+    ]
 
 
 def _valida_fornitori(fornitori) -> list[str]:
@@ -289,7 +323,10 @@ def genera_report_fornitori(
     (vedi skill analisi-fornitori) e produce SEMPRE lo stesso layout: responsabili
     senza DPA proprio in cima (sono le nomine da predisporre), poi gli altri
     responsabili, i titolari autonomi e i fuori perimetro. Valida ogni riga e in
-    caso di errori li restituisce tutti insieme senza scrivere il file.
+    caso di errori li restituisce tutti insieme senza scrivere il file. I caratteri di
+    controllo non ammessi in Excel/XML (U+0000-0008, 000B-000C, 000E-001F: residui di
+    estrazione da PDF o gestionale) sono rimossi da ogni testo ricevuto e il numero è
+    indicato nell'esito; tab e a capo restano.
 
     Vigenza: art. 28 GDPR (nomina responsabile); art. 4 GDPR (definizioni).
     Precisione: ESATTO per il layout; il contenuto riflette l'analisi ricevuta.
@@ -308,6 +345,13 @@ def genera_report_fornitori(
         file_sorgente: Nome del file mastrino analizzato (mostrato in Avvertenze)
         nome_file: Nome file di output personalizzato (default generato dal cliente)
     """
+    rimossi = [0]
+    fornitori = _pulisci_lotto(fornitori, rimossi)
+    cliente = _pulisci_testo(cliente, rimossi)
+    data_analisi = _pulisci_testo(data_analisi, rimossi)
+    file_sorgente = _pulisci_testo(file_sorgente, rimossi)
+    nome_file = _pulisci_testo(nome_file, rimossi)
+
     errori = _valida_fornitori(fornitori)
     if errori:
         return "Errore di validazione: " + "; ".join(errori)
@@ -332,7 +376,10 @@ def genera_report_fornitori(
     filepath = os.path.join(_OUTPUT_DIR, os.path.basename(nome_file))
     wb.save(filepath)
     size_kb = round(os.path.getsize(filepath) / 1024, 1)
-    return f"File salvato: {filepath} ({size_kb} KB)"
+    esito = f"File salvato: {filepath} ({size_kb} KB)"
+    if rimossi[0]:
+        esito += f" — rimossi {rimossi[0]} caratteri di controllo non ammessi in Excel dai testi ricevuti"
+    return esito
 
 
 @mcp.tool(tags={"privacy", "utility"})
@@ -390,7 +437,11 @@ async def verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "") -> dict
     (art. 28 dentro le condizioni generali di servizio: la copertura dipende dal
     servizio effettivamente acquistato) → `dpa_proprio: "si"`. `non_trovato`,
     `bloccato` e `dominio_irraggiungibile` NON sono un "no": vanno seguiti da
-    ricerca mirata prima di concludere.
+    ricerca mirata prima di concludere. Il riconoscimento vale per DPA in inglese e in
+    italiano ("Data Processing Agreement", "Accordo sul trattamento dei dati"): l'art. 28
+    parr. 3 e 9 GDPR chiede un atto scritto, non una lingua o un titolo. La sonda chiede le
+    pagine in inglese (Accept-Language) per non dipendere dalla geolocalizzazione del server.
+    Cache su disco: 90 giorni per le conferme, 14 per `non_trovato`.
 
     Vigenza: art. 28 GDPR (nomina responsabile).
     Precisione: INDICATIVO (indiziaria) — accerta che il fornitore pubblichi un DPA, non che

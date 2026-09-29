@@ -931,3 +931,146 @@ class TestCacheWriteSurvivesOSError:
         assert out["dominio"] == "example.com"
         assert out["da_cache"] is False
         assert out["errore"] is None
+
+
+# ---------------------------------------------------------------------------
+# Localised suppliers (Stripe): the Italian DPA must be recognised, and the
+# probe must not depend on the caller's geolocation.
+#
+# Art. 28(3) and (9) GDPR (Reg. (UE) 2016/679) require a "contratto o altro atto giuridico"
+# in written form; they prescribe neither a language nor a title, so an Italian
+# "Accordo sul trattamento dei dati" is an art. 28 instrument like the English
+# "Data Processing Agreement". Fixtures: stripe.com/legal/dpa as served on 2026-09-28
+# (redirected to /it/legal/dpa without Accept-Language, /en-it/legal/dpa with en-US),
+# stripped of scripts, styles and images.
+# ---------------------------------------------------------------------------
+
+class TestLocalisedDpa:
+    def test_stripe_italian_dpa_is_dedicated(self):
+        html = _fx("stripe_dpa_it.html")
+        assert len(html) > 5000
+        assert "Accordo sul trattamento dei dati" in html
+        g = giudica_html(html, "https://stripe.com/it/legal/dpa")
+        assert g.verdetto == VERDETTO_DEDICATO
+        assert "titolo_dpa" in g.marcatori
+        # Same result on the title alone, without the URL anchor.
+        assert giudica_html(html).verdetto == VERDETTO_DEDICATO
+
+    def test_stripe_italian_dpa_does_not_trip_the_direction_gate(self):
+        """Only `base_giuridica` shows up of the art. 13/14 signature: 1 signal of the
+        2 required, so the Italian DPA is not mistaken for an own privacy notice."""
+        text = BeautifulSoup(_fx("stripe_dpa_it.html"), "lxml").get_text(" ", strip=True)
+        assert len(_notice_signature(text)) < 2
+
+    def test_stripe_english_dpa_is_still_dedicated(self):
+        g = giudica_html(_fx("stripe_dpa_en.html"), "https://stripe.com/en-it/legal/dpa")
+        assert g.verdetto == VERDETTO_DEDICATO
+
+    @pytest.mark.parametrize(
+        "titolo",
+        [
+            "Accordo sul trattamento dei dati",
+            "Accordo per il trattamento dei dati personali",
+            "Contratto di trattamento dei dati",
+            "Contratto sul trattamento di dati",
+            "Addendum sul trattamento dei dati",
+        ],
+    )
+    def test_italian_titles_are_strong_markers(self, titolo):
+        assert "titolo_dpa" in _strong_markers(titolo)
+
+    @pytest.mark.parametrize(
+        "frase",
+        [
+            "Il responsabile del trattamento",
+            "Titolare del trattamento dei dati",
+            "Informativa sul trattamento dei dati personali",
+            "Il trattamento dei dati avviene con strumenti informatici",
+        ],
+    )
+    def test_generic_privacy_wording_is_not_a_strong_marker(self, frase):
+        """`Responsabile del trattamento` and `trattamento dei dati` alone are the
+        vocabulary of every art. 13 notice: they must not confirm anything."""
+        assert _strong_markers(frase) == []
+
+    @pytest.mark.parametrize(
+        "frase, marcatore",
+        [
+            ("nel rispetto delle istruzioni documentate del Titolare", "istruzione_documentata"),
+            ("su istruzione documentata del Titolare", "istruzione_documentata"),
+            ("l'elenco dei sub-responsabili", "sub_responsabile"),
+            ("un sub-responsabile", "sub_responsabile"),
+            ("assistere il Titolare per i diritti degli Interessati", "diritti_interessato"),
+            ("garantire i diritti dell’interessato", "diritti_interessato"),
+            ("i diritti dell'interessato", "diritti_interessato"),
+        ],
+    )
+    def test_italian_duties_singular_and_plural(self, frase, marcatore):
+        assert _SUPPORTO[marcatore].search(frase)
+
+    def test_own_notice_quoting_the_italian_title_still_does_not_confirm(self):
+        """An art. 13 notice that mentions an 'accordo sul trattamento dei dati' keeps
+        failing the body-signature gate (art. 13 + base giuridica): widening the title
+        vocabulary must not reopen the direction problem."""
+        html = (
+            "<html><head><title>Accordo sul trattamento dei dati</title></head><body>"
+            "<p>Ai sensi degli artt. 13 e 14 del GDPR la informiamo che la base giuridica del "
+            "trattamento e il legittimo interesse. Con i fornitori stipuliamo un accordo sul "
+            "trattamento dei dati e li nominiamo responsabili, su istruzione documentata, con "
+            "diritto di audit e obbligo di sub-responsabili autorizzati.</p></body></html>"
+        )
+        assert giudica_html(html, "https://x.test/legal/dpa").verdetto == VERDETTO_NON_TROVATO
+
+
+class TestProbeSendsEnglishAcceptLanguage:
+    @pytest.mark.asyncio
+    async def test_accept_language_is_fixed_to_english(self):
+        """Without Accept-Language stripe.com/legal/dpa is redirected to /it/legal/dpa
+        from an Italian IP (2026-09-28): the outcome would depend on where the server
+        runs. The probe now always asks for English."""
+        def handler(url):
+            if "__dpa_probe_404__" in url:
+                return _resp(404, ERROR_PAGE)
+            if url.endswith("/legal/dpa"):
+                return _resp(200, DPA_HTML, url=url)
+            return _resp(404, ERROR_PAGE)
+
+        with patch("httpx.AsyncClient", return_value=_client_with(handler)) as client_cls:
+            esito = await sonda_dominio("example.com")
+        assert esito.verdetto == VERDETTO_DEDICATO
+        headers = client_cls.call_args.kwargs["headers"]
+        assert headers["Accept-Language"].startswith("en")
+
+    @pytest.mark.asyncio
+    async def test_italian_page_served_anyway_is_recognised(self):
+        """If the supplier serves the Italian translation regardless, the probe still
+        confirms it (Stripe's /it/legal/dpa)."""
+        html = _fx("stripe_dpa_it.html")
+
+        def handler(url):
+            if "__dpa_probe_404__" in url:
+                return _resp(404, ERROR_PAGE)
+            if url.endswith("/legal/dpa"):
+                return _resp(200, html, url="https://example.com/it/legal/dpa")
+            return _resp(404, ERROR_PAGE)
+
+        with patch("httpx.AsyncClient", return_value=_client_with(handler)):
+            esito = await sonda_dominio("example.com")
+        assert esito.verdetto == VERDETTO_DEDICATO
+        assert esito.url_evidenza == "https://example.com/it/legal/dpa"
+
+
+class TestNegativeTtl:
+    def test_not_found_is_reprobed_after_14_days(self, cache_dir):
+        """A negative can be a false negative (the Stripe case): it must not be frozen for
+        90 days like a confirmation."""
+        dpa_cache.scrivi("example.com", EsitoSonda(VERDETTO_NON_TROVATO), ADESSO)
+        assert dpa_cache.TTL_NON_TROVATO_GIORNI == 14
+        assert dpa_cache.leggi("example.com", ADESSO + timedelta(days=14)) is not None
+        assert dpa_cache.leggi("example.com", ADESSO + timedelta(days=15)) is None
+
+    def test_confirmations_keep_the_90_day_ttl(self, cache_dir):
+        for verdetto in (VERDETTO_DEDICATO, VERDETTO_CLAUSOLA):
+            dpa_cache.scrivi("example.com", EsitoSonda(verdetto, "u"), ADESSO)
+            assert dpa_cache.leggi("example.com", ADESSO + timedelta(days=60)) is not None
+            assert dpa_cache.leggi("example.com", ADESSO + timedelta(days=91)) is None

@@ -137,10 +137,11 @@ def test_dpa_stripe_dpa_dedicato_art_28_gdpr(stripe):
         pytest.skip(f"fonte non leggibile dal probe (non vale come 'no'): {r}")
     assert r["dominio"] == "stripe.com"
     assert r["nome_fornitore"] == "Stripe"
-    # Diagnosis on 2026-09-25: without an Accept-Language header Stripe geo-redirects an
-    # Italian client to /it/legal/dpa, titled "Accordo sul trattamento dei dati", which
-    # no strong marker of src/lib/dpa_probe/judge.py recognises; the English page
-    # (/en-it/legal/dpa, "Data Processing Agreement") is judged dpa_dedicato.
+    # Diagnosis on 2026-09-25 (fixed after the audit): without an Accept-Language header
+    # Stripe geo-redirects an Italian client to /it/legal/dpa, titled "Accordo sul
+    # trattamento dei dati", which no strong marker of src/lib/dpa_probe/judge.py used to
+    # recognise. The probe now asks for English (/en-it/legal/dpa, "Data Processing
+    # Agreement") and the judge also knows the Italian title.
     assert r["verdetto"] == "dpa_dedicato", (
         "Stripe pubblica un DPA dedicato (https://stripe.com/legal/dpa) ma la sonda risponde "
         f"{r['verdetto']!r}: {r}"

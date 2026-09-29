@@ -115,6 +115,17 @@ async def _leggi_atto_gazzetta_impl(
     solo_metadati: bool = False,
 ) -> SearchResult:
     serie_path = _resolve_serie_path(serie)
+    if serie_path == "unione_europea":
+        # The 2a Serie speciale has no atto pages (the ELI permalink answers HTTP 500):
+        # its items exist only as pages of the fascicolo PDF.
+        return SearchResult(
+            success=False, source=_SOURCE, error_type="no_results",
+            results_text=(
+                "Gli atti della 2a Serie speciale (Unione europea) non hanno una pagina "
+                "propria in Gazzetta Ufficiale: usare scarica_pdf_gazzetta(numero, data, "
+                "serie=\"unione_europea\") per il fascicolo o cite_law() per l'atto UE."
+            ),
+        )
     try:
         detail = await fetch_atto(
             serie_path, data_pubblicazione, codice_redazionale,
@@ -152,8 +163,9 @@ async def _sommario_gazzetta_impl(
     data_pubblicazione: str,
     serie: str = "serie_generale",
 ) -> SearchResult:
+    serie_path = _resolve_serie_path(serie)
     try:
-        heading, atti = await fetch_sommario(data_pubblicazione, numero_gazzetta)
+        heading, atti = await fetch_sommario(data_pubblicazione, numero_gazzetta, serie_path)
     except ValueError as exc:
         return SearchResult(
             success=False, source=_SOURCE, error_type="bad_input",
@@ -215,12 +227,15 @@ async def _scarica_pdf_gazzetta_impl(
     data_pubblicazione: str,
     serie: str = "serie_generale",
 ) -> SearchResult:
+    serie_path = _resolve_serie_path(serie)
     try:
-        url = pdf_url(data_pubblicazione, numero_gazzetta)
-    except Exception as exc:
+        url = pdf_url(data_pubblicazione, numero_gazzetta, serie_path)
+    except ValueError as exc:
+        # A malformed date is the caller's mistake, not a source outage.
         return SearchResult(
-            success=False, source=_SOURCE, error_type="source_down",
+            success=False, source=_SOURCE, error_type="bad_input",
             error_message=f"Data non valida: {exc}",
+            results_text=f"**Errore**: data non valida. {exc}",
         )
     text = (
         f"**PDF ufficiale Gazzetta Ufficiale n. {numero_gazzetta} "
@@ -289,12 +304,17 @@ async def leggi_atto_gazzetta(
 
     Usare dopo cerca_gazzetta_ufficiale(), ultime_gazzette() o sommario_gazzetta()
     indicando il codice redazionale e la data di pubblicazione del risultato.
-    Restituisce: metadati ELI (tipo, emettitore, date) + testo integrale assemblato.
+    Restituisce: estremi (es. "DECRETO LEGISLATIVO 10 ottobre 2022, n. 149"), oggetto,
+    riferimento alla GU, metadati ELI (tipo, date) + testo integrale assemblato.
+    Per un atto delle serie speciali (corte_costituzionale, regioni, concorsi, contratti,
+    parte_seconda) indicare la serie: e' quella che determina la pagina dell'atto. Gli
+    atti della 2a Serie speciale (unione_europea) non hanno una pagina propria.
 
     Args:
         codice_redazionale: Codice dell'atto (es. "26A02808")
         data_pubblicazione: Data pubblicazione in formato YYYY-MM-DD (es. "2026-06-13")
-        serie: Serie dell'atto (default serie_generale)
+        serie: Serie dell'atto (serie_generale, corte_costituzionale, regioni,
+            concorsi, contratti, parte_seconda; default serie_generale)
         solo_metadati: Se True, restituisce solo i metadati senza scaricare il testo
     """
     result = await _leggi_atto_gazzetta_impl(
@@ -315,12 +335,15 @@ async def sommario_gazzetta(
 
     Usare per vedere tutti gli atti pubblicati in una specifica gazzetta.
     Da ogni atto del sommario si puo poi usare leggi_atto_gazzetta() per il testo.
-    Restituisce: elenco degli atti con codice redazionale e oggetto.
+    Restituisce: intestazione del fascicolo (serie, numero, data) e per ogni atto
+    codice redazionale, estremi, emettitore e oggetto.
 
     Args:
-        numero_gazzetta: Numero del fascicolo (es. "135")
+        numero_gazzetta: Numero del fascicolo nella sua serie (es. "135")
         data_pubblicazione: Data pubblicazione in formato YYYY-MM-DD (es. "2026-06-13")
-        serie: Serie della gazzetta (default serie_generale)
+        serie: Serie della gazzetta (serie_generale, corte_costituzionale,
+            unione_europea, regioni, concorsi, contratti, parte_seconda;
+            default serie_generale). Il numero e' quello della serie indicata.
     """
     result = await _sommario_gazzetta_impl(
         numero_gazzetta=numero_gazzetta,
@@ -338,7 +361,9 @@ async def ultime_gazzette(
 
     USARE per le novita normative italiane piu recenti. Percorso stabile (RSS).
     Da ogni risultato usare leggi_atto_gazzetta(codice, data) per il testo completo.
-    Restituisce: lista cronologica degli ultimi atti con emettitore, tipo e oggetto.
+    Restituisce: lista cronologica degli ultimi atti con emettitore, tipo, oggetto e link.
+    Le serie speciali seguono la numerazione ufficiale (1a Corte costituzionale, 2a Unione
+    europea, 3a Regioni, 4a Concorsi ed esami, 5a Contratti pubblici).
 
     Args:
         serie: Serie (serie_generale, unione_europea, regioni, corte_costituzionale,
@@ -357,12 +382,15 @@ async def scarica_pdf_gazzetta(
 ) -> str:
     """Restituisce l'URL del PDF ufficiale di un fascicolo di Gazzetta Ufficiale.
 
-    Restituisce il link al PDF ufficiale (non scarica il file inline).
+    Restituisce il link al PDF ufficiale (non scarica il file inline e non lo verifica:
+    per una serie speciale il link e' quello della serie indicata, non della Serie generale).
 
     Args:
-        numero_gazzetta: Numero del fascicolo (es. "135")
+        numero_gazzetta: Numero del fascicolo nella sua serie (es. "135")
         data_pubblicazione: Data pubblicazione in formato YYYY-MM-DD (es. "2026-06-13")
-        serie: Serie della gazzetta (default serie_generale)
+        serie: Serie della gazzetta (serie_generale, corte_costituzionale,
+            unione_europea, regioni, concorsi, contratti, parte_seconda;
+            default serie_generale)
     """
     result = await _scarica_pdf_gazzetta_impl(
         numero_gazzetta=numero_gazzetta,

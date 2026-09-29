@@ -157,18 +157,22 @@ def test_cerca_adunanza_plenaria_17_2021_metadati():
     assert "demaniali" in doc["block"] and "marittime" in doc["block"]
 
 
-def test_cerca_adunanza_plenaria_17_2021_data_del_provvedimento():
-    """The docstring promises 'sede, NRG, tipo, data e oggetto': the date must be in the answer.
+def test_cerca_adunanza_plenaria_17_2021_data_non_promessa_e_citazione():
+    """The search page carries no date, so the tool must not promise one, and must say where it is.
 
     AP 17/2021 was published on 09/11/2021 (`<dataPubblicazione>` of the official
-    XML). The search page of the portal carries no date, and the tool fills
-    `data_deposito` with "" for every result, so the promise is never kept: either
-    the docstring stops promising a date or the tool reads it from the XML.
+    XML, art. 89 c.p.a.). The search page of the portal has no date (verified
+    2026-09-25), so the first version of this test, which asserted the date in the
+    search answer, measured a docstring promise the source cannot keep. The
+    contract is now: no date promised, the answer points to `leggi_provvedimento_amm`
+    (which does carry it, see the test below), and the citation form "n. 17/2021"
+    and the plenary body are spelled out.
     """
+    fn = getattr(ga_tools.cerca_giurisprudenza_amministrativa, "fn", ga_tools.cerca_giurisprudenza_amministrativa)
+    assert "tipo, data e oggetto" not in fn.__doc__
     out = _call("cerca_giurisprudenza_amministrativa", **AP17_QUERY)
-    assert any(d in out for d in AP17_DATA), (
-        "data del provvedimento assente dalla risposta (il docstring la promette): " + out[:600]
-    )
+    assert "non espone la data" in out and "leggi_provvedimento_amm()" in out, out[-500:]
+    assert "**Estremi**: Consiglio di Stato, Adunanza plenaria, sentenza n. 17/2021" in out, out[:600]
 
 
 def test_cerca_anno_senza_numero_filtrato_sui_risultati_e_dichiarato():
@@ -264,6 +268,12 @@ def test_leggi_ap_17_2021_dispositivo_raggiunge_il_lettore():
     )
 
 
+def test_leggi_ap_17_2021_estremi_e_data_di_pubblicazione():
+    """The date the search page cannot give (art. 89 c.p.a.) reaches the user through the reading tool."""
+    out = _ap17_full()
+    assert "**Estremi**: Sentenza n. 17/2021, pubblicata il 09/11/2021" in out, out[:500]
+
+
 def test_leggi_provvedimento_pubblicato_solo_in_pdf():
     """A PDF-only provvedimento must yield readable text or a clear message, never raw PDF bytes.
 
@@ -275,6 +285,8 @@ def test_leggi_provvedimento_pubblicato_solo_in_pdf():
     assert "%PDF-" not in out and "endobj" not in out, (
         "il tool restituisce i byte grezzi del PDF come testo integrale: " + out[:300]
     )
+    # It says why there is no text and where the official document is.
+    assert "solo in formato PDF" in out and f"nomeFile={PDF_FILE}" in out, out[:400]
 
 
 def test_leggi_riferimento_inesistente_pagina_di_errore_riconosciuta():
@@ -308,7 +320,9 @@ def test_ultimi_sentenze_tar_lombardia_milano():
         assert doc.get("sede") == "tar_mi"
         assert doc["anno"] in anni, doc["block"][:200]
         assert doc.get("Sezione", "").startswith("SEZIONE"), doc["block"][:200]
-        assert re.fullmatch(r"ECLI:IT:TARMI:\d{4}:\d+SENT", doc.get("ECLI", "")), doc["block"][:200]
+        # "SENTENZA BREVE" (art. 60 c.p.a.) is a SENTENZA whose ECLI ends in SENB, not SENT:
+        # the assertion was too narrow in form, the tool reports the portal's value.
+        assert re.fullmatch(r"ECLI:IT:TARMI:\d{4}:\d+SEN[TB]", doc.get("ECLI", "")), doc["block"][:200]
         assert doc.get("nrg") and doc.get("nome_file")
     numeri = [int(d["numero"]) for d in docs]
     assert numeri == sorted(numeri, reverse=True) and len(set(numeri)) == 5, numeri

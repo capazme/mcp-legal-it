@@ -39,9 +39,11 @@ import time
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 
 import httpx
 
+from src.lib import _clock
 from src.lib._cache import cache_enabled, cache_root
 from src.lib._http import retry_request
 
@@ -52,6 +54,10 @@ _MASSIME_BASE = f"{_BASE}/massime"
 # Files are large; allow generous timeouts.
 _TIMEOUT = httpx.Timeout(60.0, connect=20.0)
 _MAX_TEXT_LENGTH = 25000
+# Floor for the reasons (testo) when epigrafe + dispositivo alone use up most
+# of _MAX_TEXT_LENGTH: the answer may then exceed the cap, but it never loses
+# the dispositivo and always keeps some of the reasons.
+_MIN_TESTO_LENGTH = 5000
 _CACHE_TTL_SECONDS = 7 * 24 * 3600
 
 _HEADERS = {
@@ -70,8 +76,10 @@ _PRONUNCE_DECADES: list[tuple[int, int, str]] = [
     (1981, 2000, "P_json1981_2000.zip"),
     (2001, 9999, "P_json2001_oggi.zip"),
 ]
-# Massime decade ranges and their bundle filenames (different upper bound:
-# 2001_2015, not 2001_oggi).
+# Massime decade ranges and their bundle filenames. The last bundle is still
+# named "CC_M_2001_2015_json.zip" upstream but the Court never renamed it: it
+# holds one nested ZIP per year from 2001 to today (the portal presents it as
+# "Archivio delle Massime dal 2001 ad oggi"), hence the open upper bound.
 _MASSIME_DECADES: list[tuple[int, int, str]] = [
     (1956, 1980, "CC_M_1956_1980_json.zip"),
     (1981, 2000, "CC_M_1981_2000_json.zip"),
@@ -270,7 +278,7 @@ async def _load_year(
 
     if year not in by_year:
         # Cache the negative result so a year absent from the decade bundle
-        # (post-2015 massime, future years, upstream omissions) doesn't trigger
+        # (future years, upstream omissions) doesn't trigger
         # a full decade re-download on every subsequent call.
         _write_cache(_cache_path(kind, year), [])
 
@@ -461,11 +469,76 @@ def _parse_riferimento(riferimento: str) -> tuple[str, str]:
     return art, atto
 
 
-def _parametro_matches(param: ParametroNorma, articolo: str, atto: str) -> bool:
+# Source families a reference can name, in the order they are tried (first hit
+# wins, so "legge costituzionale" precedes "legge"). Each entry is
+# (key, regex on the reference, predicate on ParametroNorma.descrizione lowered).
+# The descriptions are the ones used by the Court's open data (e.g.
+# "Costituzione", "legge", "decreto legislativo", "statuto regione Sardegna",
+# "norme integrative per i giudizi davanti alla Corte costituzionale (...)").
+_FONTI: list[tuple[str, re.Pattern[str], Callable[[str], bool]]] = [
+    ("legge_costituzionale", re.compile(
+        r"\blegge\s+costituzionale\b|\bl\.?\s*cost\b\.?|\bl\.\s*c\.", re.I),
+     lambda d: d == "legge costituzionale"),
+    ("costituzione", re.compile(r"\bcostituzione\b|\bcost\b\.?", re.I),
+     lambda d: d.startswith("costituzione")),
+    ("legge_regionale", re.compile(r"\blegge\s+regionale\b|\bl\.?\s*r\.", re.I),
+     lambda d: d.startswith("legge regionale")),
+    ("decreto_legge", re.compile(r"\bdecreto[\s-]+legge\b|\bd\.?\s*l\.(?!\s*gs)", re.I),
+     lambda d: d in ("decreto legge", "decreto-legge")),
+    ("decreto_legislativo", re.compile(r"\bdecreto\s+legislativo\b|\bd\.?\s*lgs\b\.?", re.I),
+     lambda d: d == "decreto legislativo"),
+    ("dpr", re.compile(
+        r"\bd\.?\s*p\.?\s*r\b\.?|\bdecreto\s+del\s+presidente\s+della\s+repubblica\b", re.I),
+     lambda d: d.startswith("decreto del presidente della repubblica")),
+    ("regio_decreto", re.compile(r"\bregio\s+decreto\b|\br\.?\s*d\.", re.I),
+     lambda d: d == "regio decreto"),
+    ("legge", re.compile(r"\blegge\b|\bl\.(?!\s*(?:cost|c\.|r\.))", re.I),
+     lambda d: d == "legge"),
+    ("statuto", re.compile(r"\bstatuto\b", re.I), lambda d: d.startswith("statuto")),
+    ("norme_integrative", re.compile(r"\bnorme\s+integrative\b", re.I),
+     lambda d: d.startswith("norme integrative")),
+    ("cedu", re.compile(r"\bcedu\b|\bconvenzione\b", re.I), lambda d: "convenzione" in d),
+    ("cdfue", re.compile(r"\bcdfue\b|\bcarta\s+dei\s+diritti\b", re.I),
+     lambda d: d.startswith("carta dei diritti fondamentali")),
+    ("tfue", re.compile(r"\btfue\b|\btrattato\s+sul\s+funzionamento\b", re.I),
+     lambda d: "funzionamento" in d),
+    ("tue", re.compile(r"\btue\b|\btrattato\s+(?:sull['\u2019]\s*)?unione\s+europea\b", re.I),
+     lambda d: d.startswith("trattato unione europea") or d.startswith("trattato sull")),
+    ("direttiva", re.compile(r"\bdirettiva\b", re.I), lambda d: d.startswith("direttiva")),
+    ("regolamento", re.compile(r"\bregolamento\b", re.I), lambda d: d.startswith("regolamento")),
+]
+
+
+def _parse_fonte(riferimento: str) -> str:
+    """Return the key of the act type named in a reference ("" if it names none).
+
+    Examples:
+        "art. 3 Costituzione"     -> "costituzione"
+        "art. 3 Cost."            -> "costituzione"
+        "art. 23 legge 87/1953"   -> "legge"
+        "art. 3 statuto Sardegna" -> "statuto"
+        "art. 117"                -> ""
+    """
+    for key, pattern, _ in _FONTI:
+        if pattern.search(riferimento):
+            return key
+    return ""
+
+
+def _parametro_matches(
+    param: ParametroNorma, articolo: str, atto: str, fonte: str = ""
+) -> bool:
     if articolo and param.articolo != articolo:
         return False
     if atto and param.numero != atto:
         return False
+    if fonte:
+        # The reference names the act type: "art. 3 Costituzione" must not
+        # match art. 3 of a statuto speciale, of the norme integrative or of
+        # a directive. A reference that names no type keeps matching any act.
+        accepts = next((pred for key, _, pred in _FONTI if key == fonte), None)
+        if accepts is not None and not accepts(param.descrizione.strip().lower()):
+            return False
     return articolo != "" or atto != ""
 
 
@@ -474,18 +547,25 @@ async def pronunce_su_norma(
     year_from: int,
     year_to: int,
     limit: int = 10,
+    current_year: int = 0,
 ) -> list[tuple[str, str, MassimaCost]]:
     """Find pronunce whose massime invoke a given norm as a parameter.
 
     Returns a list of (numero_pronuncia, anno_pronuncia, MassimaCost) tuples.
-    Scans the massime distribution (capped to massime data range upper bound).
+    Scans the massime distribution from the most recent year down. With no
+    years given it covers the whole archive, 1956 up to ``current_year`` (the
+    calling tool passes the year from src/lib/_clock.py); if the caller does
+    not pass it the year is read from the same clock.
     """
     articolo, atto = _parse_riferimento(riferimento)
     if not articolo and not atto:
         return []
+    fonte = _parse_fonte(riferimento)
 
+    if not current_year:
+        current_year = _clock.today().year
     lo = year_from or year_to or 1956
-    hi = year_to or year_from or 2015
+    hi = year_to or year_from or current_year
     years = list(range(min(lo, hi), max(lo, hi) + 1))
 
     hits: list[tuple[str, str, MassimaCost]] = []
@@ -496,7 +576,10 @@ async def pronunce_su_norma(
             anno = str(entry.get("anno_pronuncia", "")).strip()
             for raw_m in (entry.get("massime") or []):
                 massima = _parse_massima(raw_m)
-                if any(_parametro_matches(p, articolo, atto) for p in massima.parametri):
+                if any(
+                    _parametro_matches(p, articolo, atto, fonte)
+                    for p in massima.parametri
+                ):
                     hits.append((num, anno, massima))
                     if len(hits) >= limit:
                         return hits
@@ -556,23 +639,29 @@ def format_full(p: PronunciaCost) -> str:
         lines.append(f"**Relatore**: {p.relatore_pronuncia}")
     lines.append("")
 
-    body_parts = []
-    if p.epigrafe:
-        body_parts.append(f"## Epigrafe\n{p.epigrafe}")
+    # Epigrafe and dispositivo are always emitted in full; only the reasons
+    # (testo) are cut to the budget that is left. The dispositivo is the part
+    # the effects of the decision flow from (art. 136 Cost.; art. 30 l. 87/1953,
+    # which publishes "il dispositivo della decisione") and a required element
+    # of every sentenza (art. 18, third paragraph, l. 87/1953). It sits last in
+    # the record, so a cut of the whole body dropped it first: for 194/2018
+    # (epigrafe 1,469 + testo 106,851 + dispositivo 5,840 characters) the
+    # answer stopped mid-reasons and never said what was struck down.
+    epigrafe = f"## Epigrafe\n{p.epigrafe}" if p.epigrafe else ""
+    dispositivo = f"## Dispositivo\n{p.dispositivo}" if p.dispositivo else ""
+    testo = ""
     if p.testo:
-        body_parts.append(f"## Testo\n{p.testo}")
-    if p.dispositivo:
-        body_parts.append(f"## Dispositivo\n{p.dispositivo}")
-    body = "\n\n".join(body_parts)
-
-    truncated = len(body) > _MAX_TEXT_LENGTH
-    if truncated:
-        body = body[:_MAX_TEXT_LENGTH]
-    lines.append(body)
-    if truncated:
-        lines.append(
-            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri]*"
-        )
+        budget = _MAX_TEXT_LENGTH - len(epigrafe) - len(dispositivo)
+        budget = max(budget, _MIN_TESTO_LENGTH)
+        if len(p.testo) > budget:
+            testo = (
+                f"## Testo\n{p.testo[:budget].rstrip()}\n\n"
+                f"*[Testo della motivazione troncato a {budget} caratteri su "
+                f"{len(p.testo)}: epigrafe e dispositivo sono riportati per intero]*"
+            )
+        else:
+            testo = f"## Testo\n{p.testo}"
+    lines.append("\n\n".join(part for part in (epigrafe, testo, dispositivo) if part))
     return "\n".join(lines)
 
 

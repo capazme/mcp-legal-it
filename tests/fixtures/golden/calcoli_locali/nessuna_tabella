@@ -205,7 +205,7 @@
      {}
     ]
    },
-   "expected": "{\"importo\":10000.0,\"classifica\":[{\"nome\":\"N/D\",\"rendimento_lordo_pct\":0.0,\"tipo_tassazione_riconosciuto\":true,\"aliquota_pct\":26.0,\"rendimento_netto_pct\":0.0,\"durata_anni\":1,\"montante_lordo\":10000.0,\"imposta\":0.0,\"montante_netto\":10000.0,\"guadagno_netto\":0.0}],\"migliore\":\"N/D\",\"nota\":\"Confronto indicativo — non considera costi di gestione, inflazione o rischio\"}"
+   "expected": "{\"importo\":10000.0,\"classifica\":[{\"nome\":\"N/D\",\"rendimento_lordo_pct\":0.0,\"aliquota_pct\":26.0,\"rendimento_netto_pct\":0.0,\"rendimento_netto_annualizzato_pct\":0.0,\"durata_anni\":1,\"montante_lordo\":10000.0,\"imposta\":0.0,\"montante_netto\":10000.0,\"guadagno_netto\":0.0}],\"migliore\":\"N/D\",\"nota\":\"Confronto indicativo — imposta prelevata una volta a scadenza sugli interessi composti (per i titoli a cedola il montante è sovrastimato); classifica per rendimento netto annuo, che ignora la durata; non considera costi di gestione, inflazione o rischio\"}"
   },
   "conversione_pena": {
    "arguments": {
@@ -643,12 +643,6 @@
     "valore_nominale": 10000.0
    },
    "expected": "{\"valore_nominale\":10000.0,\"prezzo_acquisto\":10000.0,\"cedola_annua_pct\":5.0,\"anni_scadenza\":10,\"frequenza_cedola\":2,\"totale_cedole_lordo\":5000.0,\"imposta_cedole\":625.0,\"totale_cedole_netto\":4375.0,\"plusvalenza_lorda\":0.0,\"imposta_plusvalenza\":0.0,\"plusvalenza_netta\":0.0,\"guadagno_netto_totale\":4375.0,\"rendimento_netto_annuo_pct\":4.375,\"flusso_cedole\":[{\"cedola_n\":1,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":2,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":3,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":4,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":5,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":6,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":7,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":8,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":9,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":10,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":11,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":12,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":13,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":14,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":15,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":16,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":17,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":18,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":19,\"lorda\":250.0,\"netta\":218.75},{\"cedola_n\":20,\"lorda\":250.0,\"netta\":218.75}],\"riferimento_normativo\":\"D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato\"}"
-  },
-  "rendimento_buoni_postali": {
-   "arguments": {
-    "importo": 10000.0
-   },
-   "expected": "{\"importo\":10000.0,\"tipo\":\"ordinario\",\"anni\":10,\"montante_lordo\":11045.54,\"interessi_lordi\":1045.54,\"imposta_sostitutiva_pct\":12.5,\"imposta\":130.69,\"montante_netto\":10914.85,\"interessi_netti\":914.85,\"rendimento_netto_annuo_pct\":0.8792,\"dettaglio_annuale\":[{\"anno\":1,\"tasso_lordo_pct\":0.5,\"montante_lordo\":10050.0},{\"anno\":2,\"tasso_lordo_pct\":0.5,\"montante_lordo\":10100.25},{\"anno\":3,\"tasso_lordo_pct\":0.75,\"montante_lordo\":10176.0},{\"anno\":4,\"tasso_lordo_pct\":0.75,\"montante_lordo\":10252.32},{\"anno\":5,\"tasso_lordo_pct\":1.0,\"montante_lordo\":10354.85},{\"anno\":6,\"tasso_lordo_pct\":1.0,\"montante_lordo\":10458.39},{\"anno\":7,\"tasso_lordo_pct\":1.25,\"montante_lordo\":10589.12},{\"anno\":8,\"tasso_lordo_pct\":1.25,\"montante_lordo\":10721.49},{\"anno\":9,\"tasso_lordo_pct\":1.5,\"montante_lordo\":10882.31},{\"anno\":10,\"tasso_lordo_pct\":1.5,\"montante_lordo\":11045.54}],\"nota\":\"Tassi indicativi — verificare condizioni aggiornate su poste.it\",\"riferimento_normativo\":\"D.Lgs. 239/1996 — imposta sostitutiva 12,5% (equiparati a titoli di Stato)\"}"
   },
   "ricevuta_prestazione_occasionale": {
    "arguments": {

@@ -220,7 +220,7 @@ def test_cerca_per_titolo_trova_il_dlgs_149_2022(cerca_per_titolo):
 
 
 def test_cerca_non_ripete_gli_stessi_atti(cerca_per_titolo):
-    """Each atto appears once. DEFECT: the tool pages from /originario/0, but the site numbers
+    """Each atto appears once. Fixed defect (regression guard): the tool pages from /originario/0, but the site numbers
     pages from 1, so page 0 and page 1 are the same page and every result set smaller than
     `max_risultati` is listed twice ("Trovati 2 atti" followed by four blocks)."""
     blocchi = _blocchi(cerca_per_titolo)
@@ -231,7 +231,7 @@ def test_cerca_non_ripete_gli_stessi_atti(cerca_per_titolo):
 def test_cerca_con_tipo_provvedimento_caso_piano_1():
     """Plan case 1: title "processo civile", tipo "DECRETO LEGISLATIVO", 2022.
 
-    The source finds exactly one atto (see the redirect canary). DEFECT: the tool parses only
+    The source finds exactly one atto (see the redirect canary). Fixed defect (regression guard): the tool parses only
     result lists, so a single hit, which the site answers with the atto page, is reported as
     "Nessun atto trovato".
     """
@@ -273,7 +273,7 @@ def test_leggi_metadati_eli_del_dlgs_149_2022(metadati_dlgs_149):
 
 
 def test_leggi_metadati_riportano_l_oggetto_dell_atto(metadati_dlgs_149):
-    """The header carries the atto's title. DEFECT: `_parse_atto_header` looks for classes
+    """The header carries the atto's title. Fixed defect (regression guard): `_parse_atto_header` looks for classes
     (titoloAtto, emettitore, tipo_provvedimento) that the ELI page does not use — the page puts
     the estremi and the oggetto in h2.consultazione — so the result is headed "# Atto 22G00158"
     and never says what the act is about."""
@@ -302,7 +302,7 @@ def test_leggi_testo_integrale_di_un_atto_breve():
 def test_leggi_atto_di_serie_speciale():
     """A 1a Serie speciale atto (ordinanza n. 230/2026, 26C00185).
 
-    DEFECT: the permalink is always built with "/sg" (the right segment is "/s1": the "/sg"
+    Fixed defect (regression guard): the permalink is always built with "/sg" (the right segment is "/s1": the "/sg"
     page does not contain the atto) and the text is harvested only from caricaArticolo links,
     while for the special series vediMenuHTML carries the text inline: the tool returns
     "Testo non disponibile" with empty metadata.
@@ -346,7 +346,7 @@ def test_pdf_del_fascicolo_205_2018_caso_piano_1():
 
 
 def test_pdf_data_in_formato_errato_caso_piano_2():
-    """Plan case 2: a malformed date is a bad input. DEFECT: `_scarica_pdf_gazzetta_impl`
+    """Plan case 2: a malformed date is a bad input. Fixed defect (regression guard): `_scarica_pdf_gazzetta_impl`
     classifies the ValueError as `source_down`, so the user reads "gazzetta_ufficiale non
     raggiungibile" for a typo in the date."""
     r = _run(scarica_pdf_gazzetta, numero_gazzetta="205", data_pubblicazione="04/09/2018")
@@ -357,7 +357,7 @@ def test_pdf_data_in_formato_errato_caso_piano_2():
 def test_pdf_serie_concorsi_caso_piano_3():
     """Plan case 3: 4a Serie speciale Concorsi n. 10 del 6-2-2026.
 
-    DEFECT: `serie` is ignored and the URL always ends in "/sg/pdf"; the site answers it with
+    Fixed defect (regression guard): `serie` is ignored and the URL always ends in "/sg/pdf"; the site answers it with
     its "Il pdf selezionato non é stato trovato" page. The official PDF is ".../s4/pdf".
     """
     r = _run(
@@ -386,7 +386,7 @@ def test_sommario_205_2018_caso_piano_1(sommario_205_2018):
 
 
 def test_sommario_riporta_l_oggetto_degli_atti(sommario_205_2018):
-    """The docstring promises "codice redazionale e oggetto". DEFECT: `_parse_sommario` keeps
+    """The docstring promises "codice redazionale e oggetto". Fixed defect (regression guard): `_parse_sommario` keeps
     the first anchor of each atto (the estremi, "DECRETO 9 agosto 2018") and drops the second
     (the oggetto) as a duplicate codice; the issuer (span.emettitore) is not read either, and
     the heading is just "Sommario" without number and date of the fascicolo."""
@@ -404,7 +404,7 @@ def test_sommario_con_supplemento_ordinario_caso_piano_2():
 def test_sommario_serie_speciale_concorsi():
     """4a Serie speciale Concorsi n. 10 del 6-2-2026 (50 atti, codici 26E...).
 
-    DEFECT: `serie` is ignored and the page requested is ".../sg", which the site shows as
+    Fixed defect (regression guard): `serie` is ignored and the page requested is ".../sg", which the site shows as
     "Gazzetta in fase di caricamento": the tool answers "Nessun atto trovato".
     """
     r = _run(
@@ -438,7 +438,7 @@ def test_ultime_serie_generale_caso_piano_1():
 def test_ultime_corte_costituzionale_caso_piano_2():
     """Plan case 2: the 1a Serie speciale (Corte costituzionale) — codici with "C" (26C...).
 
-    DEFECT: RSS_CODE maps corte_costituzionale to S3, which is the 3a Serie speciale (Regioni):
+    Fixed defect (regression guard): RSS_CODE maps corte_costituzionale to S3, which is the 3a Serie speciale (Regioni):
     the tool returns regional laws (codici 26R...). All five special series are shifted
     (see the RSS canary); and the links are rebuilt with "/SG", which for a special-series atto
     opens a page without the atto.

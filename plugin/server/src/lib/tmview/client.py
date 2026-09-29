@@ -71,6 +71,27 @@ class TMviewBlockedError(Exception):
     """TMview's WAF answered with a challenge page instead of JSON."""
 
 
+class TMviewNotFoundError(Exception):
+    """TMview answered, but has no record to return for the ST13 asked.
+
+    For an unknown ST13 the detail endpoint replies HTTP 500 with the body
+    {"message": "Can't get trademark/design detail from resource url:{}"}. The
+    same reply can also come from a transient failure on an existing mark, so
+    callers must say "unknown or momentarily unavailable", never "does not
+    exist".
+    """
+
+
+#: Prefix of the `message` TMview puts in the HTTP 500 body of the detail
+#: endpoint when it has no record to return (verified live 2026-09-25/28).
+_DETAIL_UNAVAILABLE_PREFIX = "Can't get trademark/design detail"
+
+#: Attempts on the detail endpoint for generic failures (transport errors, 5xx
+#: without the "no record" body). The deterministic "no record" reply is never
+#: retried: every attempt is counted by the WAF.
+_DETAIL_ATTEMPTS = 3
+
+
 @dataclass
 class TrademarkResult:
     st13: str
@@ -313,12 +334,42 @@ async def search_trademarks(
         return _parse_search_response(_json_or_blocked(resp))
 
 
+def _is_detail_unavailable(resp: httpx.Response) -> bool:
+    """True for TMview's "no record to return" reply (HTTP 500 + known message)."""
+    if resp.status_code != 500:
+        return False
+    try:
+        body = resp.json()
+    except ValueError:
+        return False
+    message = body.get("message") if isinstance(body, dict) else None
+    return isinstance(message, str) and message.startswith(_DETAIL_UNAVAILABLE_PREFIX)
+
+
 async def fetch_trademark(st13: str) -> TrademarkDetail:
-    """Fetch the full TMview record for one trademark by ST13 identifier."""
+    """Fetch the full TMview record for one trademark by ST13 identifier.
+
+    Raises TMviewNotFoundError as soon as TMview answers with its "no record"
+    reply (unknown ST13, or the origin office's record momentarily unavailable),
+    without retrying it. Other transient failures are still retried.
+    """
     await _throttle()
+    url = _DETAIL_URL.format(st13=st13)
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         await _warm_up(client)
-        resp = await retry_request(
-            client, "GET", _DETAIL_URL.format(st13=st13), dataset="tmview", params={"translate": "false"}
-        )
+        for attempt in range(_DETAIL_ATTEMPTS):
+            try:
+                resp = await retry_request(
+                    client, "GET", url, dataset="tmview", params={"translate": "false"}, max_retries=0
+                )
+                break
+            except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+                if isinstance(exc, httpx.HTTPStatusError):
+                    if _is_detail_unavailable(exc.response):
+                        raise TMviewNotFoundError(st13) from exc
+                    if exc.response.status_code < 500:
+                        raise
+                if attempt == _DETAIL_ATTEMPTS - 1:
+                    raise
+                await asyncio.sleep(2 ** attempt)
         return _parse_detail_response(_json_or_blocked(resp))

@@ -13,6 +13,7 @@ from src.lib.cerdef.client import (
     ENTI,
     TIPO_ESTREMI,
     CerdefError,
+    CerdefNonTrovato,
     EsitoRicerca,
     search_giurisprudenza,
     fetch_provvedimento,
@@ -36,6 +37,12 @@ def _errore(exc: Exception) -> SearchResult:
         return SearchResult(
             success=False, source="cerdef", error_type="bad_input", error_message=str(exc),
             results_text=f"**Errore**: parametri non validi per CeRDEF. {exc}",
+        )
+    if isinstance(exc, CerdefNonTrovato):
+        # The portal does not know the id: neither an outage nor a failed read.
+        return SearchResult(
+            success=False, source="cerdef", error_type="not_found", error_message=str(exc),
+            results_text=f"**Errore**: {exc}.",
         )
     error_type = "source_error" if isinstance(exc, CerdefError) else "source_down"
     return SearchResult(success=False, source="cerdef", error_type=error_type, error_message=str(exc))
@@ -213,11 +220,15 @@ async def cerdef_leggi_provvedimento(guid: str) -> str:
 
     Usare dopo cerca_giurisprudenza_tributaria() o ultime_sentenze_tributarie()
     per leggere massima e testo integrale del provvedimento.
-    Il GUID e riportato in ogni risultato della ricerca.
+    Il GUID e riportato in ogni risultato della ricerca. Un GUID inesistente o
+    malformato e' segnalato come "provvedimento non trovato o GUID non valido",
+    non come fonte irraggiungibile. Il testo integrale e' troncato a 25000 caratteri
+    (la nota indica la lunghezza totale).
     Restituisce: massima e testo integrale del provvedimento tributario.
 
     Args:
-        guid: GUID del provvedimento (es. "abc-123-def-456")
+        guid: GUID del provvedimento, tra graffe come lo riporta la ricerca
+            (es. "{B0F76E21-B5FA-4415-9D1D-44FF7B5741C1}")
     """
     result = await _cerdef_leggi_provvedimento_impl(guid)
     return result.to_str() if isinstance(result, SearchResult) else result

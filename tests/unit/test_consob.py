@@ -460,3 +460,196 @@ class TestUltimeDelibereImpl:
             result = await _ultime_delibere_consob_impl()
 
         assert "Errore" in result
+
+
+# ---------------------------------------------------------------------------
+# Non-delibera documents of the Bollettino (comunicazioni, richiami, avvisi)
+# ---------------------------------------------------------------------------
+#
+# Fixtures mirror the real markup of the Bollettino search page (checked on 2026-09-29): every
+# href carries a long ?redirect= back-link to the search, and only some delibere live at
+# /-/delibera-n.-<n>. The other documents have their own slug and their own numbering
+# ("13/25", "0117520", none at all). Source: CONSOB, Bollettino elettronico,
+# https://www.consob.it/web/area-pubblica/bollettino/ricerca
+
+_BASE_DOC = "https://www.consob.it/web/area-pubblica/-/"
+_REDIRECT = "?redirect=%2Fweb%2Farea-pubblica%2Fbollettino%2Fricerca%3Fp_p_id%3Dit_consob_BollettinoRicercaPortlet"
+
+
+def _article(asset_title: str, slug: str, title: str, data: str, pub: str) -> str:
+    return f"""
+<li>
+<div class="journal-content-article " data-analytics-asset-id="1" data-analytics-asset-title="{asset_title}" data-analytics-asset-type="web-content">
+<div class="div100 j"><b><a href="{_BASE_DOC}{slug}{_REDIRECT}">{title}</a></b>
+<p class="dwn">Data: {data}</p>
+<p class="dwn">Data Pubblicazione: {pub}</p>
+</div></div></li>"""
+
+
+def _page(*articles: str) -> str:
+    return "<html><body><ul>" + "".join(articles) + "</ul></body></html>"
+
+
+_JULY_2025 = _page(
+    _article("Richiamo di attenzione n. 14/25 del 7 luglio 2025",
+             "richiamo-di-attenzione-n-14-25-del-7-luglio-2025",
+             "Richiamo di attenzione n. 14/25 del 7 luglio 2025, prestiti obbligazionari convertibili",
+             "07/07/2025", "07/07/2025"),
+    _article("Comunicazione n. 13/25 del 4 luglio 2025",
+             "comunicazione-n-13-25-del-4-luglio-2025",
+             "Comunicazione n. 13/25 del 4 luglio 2025 - Operazioni di rafforzamento patrimoniale",
+             "04/07/2025", "07/07/2025"),
+    _article("Avviso Consob del 1 luglio 2025",
+             "avviso-consob-del-1-luglio-2025",
+             "Avviso Consob del 1° luglio 2025 in merito agli Orientamenti ESMA",
+             "01/07/2025", "01/07/2025"),
+)
+
+
+class TestNonDeliberaDocuments:
+    def test_comunicazione_keeps_type_full_number_and_real_href(self):
+        # Bollettino: "Comunicazione n. 13/25 del 4 luglio 2025"; the page is
+        # /-/comunicazione-n-13-25-del-4-luglio-2025 (HTTP 200), while /-/delibera-n.-13 is 404.
+        docs = {d.numero: d for d in _parse_results(_JULY_2025) if d.numero}
+        com = docs["13/25"]
+        assert com.tipo == "Comunicazione"
+        assert com.designazione == "Comunicazione n. 13/25"
+        assert com.href == _BASE_DOC + "comunicazione-n-13-25-del-4-luglio-2025"
+        assert "?" not in com.href
+        assert com.date == "04/07/2025" and com.data_pubblicazione == "07/07/2025"
+
+    def test_richiamo_di_attenzione_is_not_a_delibera(self):
+        richiamo = _parse_results(_JULY_2025)[0]
+        assert (richiamo.tipo, richiamo.numero) == ("Richiamo di attenzione", "14/25")
+        assert richiamo.href == _BASE_DOC + "richiamo-di-attenzione-n-14-25-del-7-luglio-2025"
+
+    def test_unnumbered_avviso_is_kept_and_designated_by_its_date(self):
+        # The old parser dropped every result without "n. <digits>": the newest comunicazioni
+        # of the Bollettino ("Avviso Consob del 1 luglio 2025") were silently missing.
+        avviso = _parse_results(_JULY_2025)[2]
+        assert avviso.numero == ""
+        assert avviso.designazione == "Avviso Consob del 1° luglio 2025"
+        assert avviso.href == _BASE_DOC + "avviso-consob-del-1-luglio-2025"
+
+    def test_protocol_number_keeps_leading_zeros_and_year_suffix(self):
+        html = _page(
+            _article("Comunicazione n. 0117520 dell’11 dicembre 2025",
+                     "comunicazione-n.-0117520-dell-11-dicembre-2025",
+                     "Comunicazione n. 0117520 dell’11 dicembre 2025 - […società B…]",
+                     "11/12/2025", "20/01/2026"),
+            _article("Comunicazione n. 0104577/24 del 14 novembre 2024",
+                     "comunicazione-n.-0104577/24-del-14-novembre-2024",
+                     "Comunicazione n. 0104577/24 del 14 novembre 2024 - […società A…]",
+                     "14/11/2024", "19/12/2024"),
+        )
+        first, second = _parse_results(html)
+        assert first.numero == "0117520" and first.tipo == "Comunicazione"
+        assert second.numero == "0104577/24"
+
+    def test_placeholder_asset_title_is_replaced_by_the_real_title(self):
+        # Older items carry the CMS placeholder "Comunicazione comunicazione cg n. 0" as asset
+        # title; the visible title ("Avviso Consob del 27 settembre 2023 ...") is the real one.
+        html = _page(_article(
+            "Comunicazione comunicazione cg n. 0", "comunicazione-comunicazione-cg-n.-0-38",
+            "Avviso Consob del 27 settembre 2023 in merito all'aggiornamento degli Orientamenti",
+            "27/09/2023", "02/10/2023",
+        ))
+        (doc,) = _parse_results(html)
+        assert doc.designazione == "Avviso Consob del 27 settembre 2023"
+        assert doc.numero == ""
+
+    def test_title_without_date_falls_back_to_a_clean_asset_title(self):
+        html = _page(_article(
+            "Orientamenti di vigilanza Consob-Banca d’Italia del 23 marzo 2026",
+            "orientamenti-di-vigilanza-consob-banca-d-italia-del-23-marzo-2026-1",
+            "Orientamenti di vigilanza Consob-Banca d’Italia in materia di Società quotate",
+            "23/03/2026", "10/04/2026",
+        ))
+        (doc,) = _parse_results(html)
+        assert doc.designazione == "Orientamenti di vigilanza Consob-Banca d’Italia del 23 marzo 2026"
+
+    def test_delibera_with_undotted_slug_is_still_a_delibera(self):
+        # In 2025 the Bollettino uses /-/delibera-n-23674 (no dot) for some delibere.
+        html = _page(_article(
+            "Delibera n. 23674", "delibera-n-23674",
+            "Delibera n. 23674, ordine, ai sensi dell'art. 7-octies", "24/09/2025", "25/09/2025",
+        ))
+        (doc,) = _parse_results(html)
+        assert (doc.tipo, doc.numero) == ("Delibera", "23674")
+        assert doc.href == _BASE_DOC + "delibera-n-23674"
+
+    def test_format_result_uses_the_real_link_and_type(self):
+        com = _parse_results(_JULY_2025)[1]
+        text = format_result(com)
+        assert text.splitlines()[0] == "### Comunicazione n. 13/25"
+        assert f"({_BASE_DOC}comunicazione-n-13-25-del-4-luglio-2025)" in text
+        # The rebuilt /delibera-n.-13 answers HTTP 404: it must never be emitted.
+        assert "delibera-n.-13" not in text
+        assert "non e' una delibera" in text
+
+    def test_format_result_of_a_delibera_is_unchanged(self):
+        html = _page(_article(
+            "Delibera n. 20307", "delibera-n.-20307",
+            "Delibera n. 20307, regolamento recante norme di attuazione", "15/02/2018", "16/02/2018",
+        ))
+        text = format_result(_parse_results(html)[0])
+        assert text.splitlines()[0] == "### Delibera n. 20307"
+        assert f"({_BASE_DOC}delibera-n.-20307)" in text
+        assert "non e' una delibera" not in text
+
+    def test_format_result_legacy_docresult_still_builds_the_delibera_link(self):
+        # A DocResult built without href/tipo (older callers) keeps the /delibera-n.- link.
+        text = format_result(DocResult(numero="23175", title="T", date=""))
+        assert text.splitlines()[0] == "### Delibera n. 23175"
+        assert "https://www.consob.it/web/area-pubblica/-/delibera-n.-23175" in text
+
+
+class TestNonDeliberaImpl:
+    @staticmethod
+    def _patched(html: str):
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(html))
+        return patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client)
+
+    @pytest.mark.asyncio
+    async def test_search_labels_comunicazioni_and_keeps_every_document(self):
+        with self._patched(_JULY_2025):
+            result = await _cerca_delibere_consob_impl("", tipologia="comunicazioni")
+        assert "Trovati 3 documenti del Bollettino CONSOB" in result
+        assert "### Comunicazione n. 13/25" in result
+        assert "### Richiamo di attenzione n. 14/25" in result
+        assert "### Avviso Consob del 1° luglio 2025" in result
+        assert "### Delibera n." not in result
+        assert "delibera-n.-13" not in result and "delibera-n.-14" not in result
+
+    @pytest.mark.asyncio
+    async def test_latest_labels_comunicazioni(self):
+        with self._patched(_JULY_2025):
+            result = await _ultime_delibere_consob_impl(tipologia="comunicazioni")
+        assert "Ultimi documenti del Bollettino CONSOB" in result
+        assert "### Comunicazione n. 13/25" in result
+
+    @pytest.mark.asyncio
+    async def test_same_number_in_different_years_is_not_merged(self):
+        # "n. 13/24" and "n. 13/25" (and Delibera n. 13) are three documents: the old
+        # deduplication on the truncated number "13" kept only the first.
+        html = _page(
+            _article("Comunicazione n. 13/25 del 4 luglio 2025", "comunicazione-n-13-25-del-4-luglio-2025",
+                     "Comunicazione n. 13/25 del 4 luglio 2025 - A", "04/07/2025", "07/07/2025"),
+            _article("Comunicazione n. 13/24 del 4 luglio 2024", "comunicazione-n-13-24-del-4-luglio-2024",
+                     "Comunicazione n. 13/24 del 4 luglio 2024 - B", "04/07/2024", "07/07/2024"),
+            _article("Delibera n. 13", "delibera-n.-13", "Delibera n. 13, C", "01/01/1990", "01/01/1990"),
+        )
+        with self._patched(html):
+            result = await _cerca_delibere_consob_impl("13")
+        assert "### Comunicazione n. 13/25" in result
+        assert "### Comunicazione n. 13/24" in result
+        assert "### Delibera n. 13\n" in result
+
+    @pytest.mark.asyncio
+    async def test_delibere_only_keeps_the_original_header(self):
+        with self._patched(_SEARCH_HTML):
+            result = await _cerca_delibere_consob_impl("abusi di mercato")
+        assert result.startswith("**Trovate 2 delibere CONSOB per**")

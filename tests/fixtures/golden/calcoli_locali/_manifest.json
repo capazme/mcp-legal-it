@@ -1,5 +1,13 @@
 {
  "groups": {
+  "buoni_postali": {
+   "datasets": [
+    "buoni_postali"
+   ],
+   "tools": [
+    "rendimento_buoni_postali"
+   ]
+  },
   "codici_ateco": {
    "datasets": [
     "codici_ateco"
@@ -251,7 +259,6 @@
     "relata_notifica_pec",
     "rendimento_bot",
     "rendimento_btp",
-    "rendimento_buoni_postali",
     "ricevuta_prestazione_occasionale",
     "risarcimento_inail",
     "ritenuta_acconto",
@@ -598,7 +605,9 @@
   "relata_notifica_pec": [],
   "rendimento_bot": [],
   "rendimento_btp": [],
-  "rendimento_buoni_postali": [],
+  "rendimento_buoni_postali": [
+   "buoni_postali"
+  ],
   "ricerca_codici_ateco": [
    "codici_ateco"
   ],

@@ -10,6 +10,7 @@ from src.server import mcp
 from src.lib.tmview.client import (
     STATI,
     TMviewBlockedError,
+    TMviewNotFoundError,
     _normalize_name,
     fetch_trademark,
     format_detail,
@@ -111,6 +112,20 @@ async def _leggi_marchio_impl(st13: str) -> SearchResult:
         detail = await fetch_trademark(st13.strip())
     except TMviewBlockedError:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=_WAF_HINT)
+    except TMviewNotFoundError:
+        # TMview answered (HTTP 500 "Can't get trademark/design detail"): it is reachable but
+        # has no record for this ST13. The reply is the same for an unknown ST13 and for the
+        # origin office's record being momentarily unavailable, so neither is asserted.
+        return SearchResult(
+            success=False,
+            source="tmview",
+            error_type="no_results",
+            results_text=(
+                f"Nessuna scheda restituita da TMview per ST13 `{st13.strip()}`: ST13 inesistente "
+                "o scheda dell'ufficio d'origine momentaneamente non disponibile. "
+                "Verificare l'ST13 con cerca_marchi()."
+            ),
+        )
     except Exception as exc:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=str(exc))
 
@@ -220,6 +235,10 @@ async def leggi_marchio(st13: str) -> str:
     titolare con nazionalità, rappresentante, descrizione prodotti/servizi per classe
     di Nizza, pubblicazioni, date di deposito/registrazione/scadenza, stato corrente.
     Restituisce: scheda completa del marchio dall'ufficio di origine.
+    Se TMview non restituisce nessuna scheda (risposta HTTP 500 "Can't get trademark/design
+    detail") l'esito è "nessuna scheda restituita": ST13 inesistente OPPURE scheda dell'ufficio
+    momentaneamente non disponibile, che TMview non distingue. Non è "fonte non raggiungibile" e
+    non prova che il marchio non esista: verificare l'ST13 con cerca_marchi().
 
     Args:
         st13: Identificativo ST13 del marchio, riportato in ogni risultato di ricerca
