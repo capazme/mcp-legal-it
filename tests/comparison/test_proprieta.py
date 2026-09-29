@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 9 — Proprietà e Successioni."""
+"""Arithmetic verification tests for Sezione 9 - Proprietà e Successioni."""
 
 from tests.comparison.conftest import assert_close
 

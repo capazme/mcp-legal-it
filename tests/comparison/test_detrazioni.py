@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 11 — detrazioni IRPEF."""
+"""Arithmetic verification tests for Sezione 11 - detrazioni IRPEF."""
 
 from tests.comparison.conftest import assert_close
 

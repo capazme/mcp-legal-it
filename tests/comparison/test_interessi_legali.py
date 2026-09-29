@@ -1,4 +1,15 @@
-"""Comparison tests: interessi_legali vs avvocatoandreani.it/servizi/interessi_legali.php."""
+"""Comparison tests: interessi_legali vs avvocatoandreani.it/servizi/interessi_legali.php.
+
+Norma: art. 1284 c.c. (saggio legale fissato annualmente con DM MEF dal 1 gennaio),
+L. 353/1990 per il 1990. Convenzione di sito e tool: anno civile
+di 365 giorni anche nei bisestili. Tolleranza: 0,01 euro sugli importi; il valore
+0.0101 evita solo il rumore della virgola mobile su una differenza di esattamente un
+centesimo (il sito somma le righe gia' arrotondate, il tool arrotonda il totale).
+"""
+
+import os
+
+os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 
 import re
 
@@ -6,15 +17,17 @@ import pytest
 
 from tests.comparison.conftest import assert_close, goto, parse_euro
 
+TOL = 0.0101
 
-def _fill_and_calc(page, capitale, data_inizio, data_fine, anatocismo=False):
-    """Fill the interessi_legali form and return the site's total interest."""
+
+def _site_totale(page, capitale, data_inizio, data_fine, anatocismo="0"):
+    """Drive the form; return the site's 'Totale interessi legali' or None if absent.
+
+    anatocismo: '0' nessuna, '3' trimestrale, '6' semestrale, '12' annuale.
+    """
     goto(page, "interessi_legali.php")
-
-    # Parse dates (YYYY-MM-DD) → day, month, year for the form
     ai, mi, gi = data_inizio.split("-")
     af, mf, gf = data_fine.split("-")
-
     page.fill("input[name='Capitale']", str(int(capitale)))
     page.fill("input[name='GiornoInizio']", gi)
     page.fill("input[name='MeseInizio']", mi)
@@ -22,86 +35,88 @@ def _fill_and_calc(page, capitale, data_inizio, data_fine, anatocismo=False):
     page.fill("input[name='GiornoFine']", gf)
     page.fill("input[name='MeseFine']", mf)
     page.fill("input[name='AnnoFine']", af)
-
-    # Anatocismo: 0=none, 3=trimestrale, 6=semestrale, 12=annuale
-    value = "12" if anatocismo else "0"
-    page.click(f"input[name='Anatocismo'][value='{value}']")
-
-    page.click("#btn-calc")
-    page.wait_for_timeout(2000)
-
-    return _parse_totale(page)
-
-
-def _parse_totale(page) -> float:
-    """Extract 'Totale interessi legali: € X' from the result tables."""
-    tables = page.query_selector_all("table")
-    for table in tables:
-        text = table.inner_text()
-        m = re.search(r"[Tt]otale\s+interessi\s+legali[:\s]*€?\s*([\d.]+,\d{2})", text)
-        if m:
-            return parse_euro(m.group(1))
-    # Fallback: search full page
-    full = page.inner_text("body")
-    m = re.search(r"[Tt]otale\s+interessi\s+legali[:\s]*€?\s*([\d.]+,\d{2})", full)
-    if m:
-        return parse_euro(m.group(1))
-    raise ValueError("Could not parse 'Totale interessi legali' from site")
+    page.click(f"input[name='Anatocismo'][value='{anatocismo}']", force=True)
+    page.click("#btn-calc", force=True)
+    try:
+        page.wait_for_function(
+            "document.body.innerText.includes('Totale interessi legali')", timeout=15000
+        )
+    except Exception:
+        pass
+    page.wait_for_timeout(1000)
+    body = page.inner_text("body")
+    m = re.search(r"Totale\s+interessi\s+legali[:\s]*€?\s*([\d.]+,\d{2})", body, re.I)
+    page.wait_for_timeout(1000)
+    return parse_euro(m.group(1)) if m else None
 
 
-def _our_interessi(capitale, data_inizio, data_fine, tipo="semplici"):
-    """Call our interessi_legali tool."""
+def _ours(capitale, data_inizio, data_fine, tipo="semplici"):
+    import src.server  # noqa: F401
     from src.tools.tassi_interessi import interessi_legali
+
     fn = getattr(interessi_legali, "fn", interessi_legali)
-    return fn(capitale=capitale, data_inizio=data_inizio, data_fine=data_fine, tipo=tipo)
+    r = fn(capitale=capitale, data_inizio=data_inizio, data_fine=data_fine, tipo=tipo)
+    assert "errore" not in r, r
+    return r["totale_interessi"]
+
+
+def _confronta(page, capitale, di, df, tipo="semplici", anatocismo="0", label=""):
+    site = _site_totale(page, capitale, di, df, anatocismo)
+    for _ in range(3):  # the site intermittently returns no result: retry
+        if site is not None:
+            break
+        page.wait_for_timeout(3000)
+        site = _site_totale(page, capitale, di, df, anatocismo)
+    if site is None:
+        pytest.skip(f"{label}: il sito non restituisce un totale per questo input")
+    assert_close(_ours(capitale, di, df, tipo), site, tolerance=TOL, label=label)
 
 
 class TestInteressiLegaliComparison:
 
-    def test_same_year_no_rate_change(self, page):
-        """Single year, no rate boundary crossing."""
-        capitale = 10000
-        di, df = "2023-06-01", "2023-12-01"
-        site = _fill_and_calc(page, capitale, di, df)
-        ours = _our_interessi(capitale, di, df)
-        assert_close(ours["totale_interessi"], site, tolerance=0.02, label="same_year")
+    def test_cambio_tasso_1_gennaio_2026(self, page):
+        """Piano: 179,62 = 183 gg al 2,0% (100,27) + 181 gg all'1,6% (79,34);
+        art. 1284 co. 1 c.c., divisore 365. Sito atteso 179,61 (somma righe)."""
+        _confronta(page, 10000, "2025-07-01", "2026-06-30", label="cambio_2026")
 
-    def test_cross_year_rate_change(self, page):
-        """Crosses year boundary where rate changes (5% → 2.5%)."""
-        capitale = 10000
-        di, df = "2023-01-01", "2024-01-01"
-        site = _fill_and_calc(page, capitale, di, df)
-        ours = _our_interessi(capitale, di, df)
-        assert_close(ours["totale_interessi"], site, tolerance=0.02, label="cross_year")
+    def test_1990_cambio_tasso_infrannuale(self, page):
+        """LIMITE (anno storico). Piano: 520,55 = 5% fino al 15/12/1990 e 10% dal
+        16/12/1990 (L. 353/1990). Il tool applica il 10% dal 16/04/1990 (854,79)."""
+        _confronta(page, 10000, "1990-01-01", "1990-12-31", label="1990")
 
-    def test_multi_year_multiple_rates(self, page):
-        """Spans multiple years with different rates."""
-        capitale = 50000
-        di, df = "2021-01-01", "2024-01-01"
-        site = _fill_and_calc(page, capitale, di, df)
-        ours = _our_interessi(capitale, di, df)
-        assert_close(ours["totale_interessi"], site, tolerance=0.10, label="multi_year")
+    def test_anno_bisestile_divisore(self, page):
+        """LIMITE (bisestile). Piano: 366 gg al 2,5% = 250,68 con anno di 365 gg
+        (convenzione di sito e tool), 250,00 con divisore 366; la norma non fissa."""
+        _confronta(page, 10000, "2023-12-31", "2024-12-31", label="bisestile")
 
-    def test_mid_year_to_mid_year(self, page):
-        """Mid-year to mid-year crossing one rate boundary."""
-        capitale = 25000
-        di, df = "2023-06-15", "2024-06-15"
-        site = _fill_and_calc(page, capitale, di, df)
-        ours = _our_interessi(capitale, di, df)
-        assert_close(ours["totale_interessi"], site, tolerance=0.05, label="mid_year")
+    def test_composti_annuale_5_anni(self, page):
+        """Piano: 5.586,55 (tool, capitalizzazione annuale al 31/12) da leggere dal
+        sito con capitalizzazione annuale; art. 1283 c.c. sui limiti dell'anatocismo."""
+        _confronta(page, 50000, "2021-01-01", "2026-01-01", tipo="composti",
+                   anatocismo="12", label="composti_annuale")
 
-    def test_short_period_same_rate(self, page):
-        """Short period within same rate."""
-        capitale = 5000
-        di, df = "2024-03-01", "2024-06-01"
-        site = _fill_and_calc(page, capitale, di, df)
-        ours = _our_interessi(capitale, di, df)
-        assert_close(ours["totale_interessi"], site, tolerance=0.02, label="short_period")
+    def test_oltre_copertura_2027(self, page):
+        """LIMITE (oltre la tabella). Piano: senza decreto entro il 15/12/2026 resta
+        l'1,6% (art. 1284 co. 1 c.c.): stima 159,56; il tool si ferma a 80,22."""
+        _confronta(page, 10000, "2026-07-01", "2027-06-30", label="oltre_2027")
 
-    def test_large_capital_long_period(self, page):
-        """Large capital over many years."""
-        capitale = 100000
-        di, df = "2018-01-01", "2025-01-01"
-        site = _fill_and_calc(page, capitale, di, df)
-        ours = _our_interessi(capitale, di, df)
-        assert_close(ours["totale_interessi"], site, tolerance=0.50, label="large_long")
+    def test_confine_anno_un_giorno(self, page):
+        """LIMITE (confine 1 gennaio 2023, tasso 1,25% -> 5,0%). Un giorno a cavallo:
+        31/12/2022 -> 01/01/2023, art. 1284 c.c. e DM MEF 13/12/2022."""
+        _confronta(page, 10000, "2022-12-31", "2023-01-01", label="confine_2023")
+
+    def test_agosto_stesso_tasso(self, page):
+        """LIMITE (agosto). 01/07/2024 - 31/08/2024 al 2,5% (DM MEF 2023): nessuna
+        sospensione feriale per gli interessi (art. 1284 c.c.), 62 gg."""
+        _confronta(page, 20000, "2024-07-01", "2024-08-31", label="agosto")
+
+    def test_composti_annuale_non_a_gennaio(self, page):
+        """LIMITE (capitalizzazione). 01/07/2022 - 01/07/2025 composti: il tool capitalizza
+        al 31/12, il sito ogni 12 mesi dalla data iniziale (art. 1283 c.c.)."""
+        _confronta(page, 30000, "2022-07-01", "2025-07-01", tipo="composti",
+                   anatocismo="12", label="composti_non_gennaio")
+
+    def test_1990_confine_16_dicembre(self, page):
+        """LIMITE (L. 353/1990). 01/12/1990 - 31/12/1990: 5% fino al 15/12 e 10% dal 16/12;
+        il tool applica il 10% su tutto il periodo."""
+        _confronta(page, 10000, "1990-12-01", "1990-12-31", label="1990_dicembre")
