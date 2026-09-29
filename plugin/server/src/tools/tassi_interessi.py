@@ -698,8 +698,34 @@ def calcolo_maggior_danno(
     }
 
 
+_INIZIO_ART_1284_CO_4 = date(2014, 12, 11)
+
+
+def _corso_causa_saggio_legale(capitale, data_citazione, data_sentenza, data_pagamento):
+    """Interest for a proceeding begun before 11/12/2014: legal rate throughout (art. 17 co. 2 DL 132/2014)."""
+    dt_c, dt_s = _parse_date(data_citazione), _parse_date(data_sentenza)
+    dt_p = _parse_date(data_pagamento) if data_pagamento else dt_s
+    causa = _calc_interessi_periodo(capitale, dt_c, dt_s)
+    periodi = [{"tipo": "in_corso_causa", "dal": data_citazione, "al": data_sentenza,
+                "tasso_tipo": "saggio legale art. 1284 co. 1 c.c.", "interessi": round(causa, 2)}]
+    totale = causa
+    if dt_p > dt_s:
+        post = _calc_interessi_periodo(capitale, dt_s, dt_p)
+        totale += post
+        periodi.append({"tipo": "post_sentenza", "dal": data_sentenza, "al": dt_p.isoformat(),
+                        "tasso_tipo": "saggio legale art. 1284 co. 1 c.c.", "interessi": round(post, 2)})
+    return {
+        "capitale": capitale, "data_citazione": data_citazione, "data_sentenza": data_sentenza,
+        "data_pagamento": data_pagamento or data_sentenza,
+        "totale_interessi": round(totale, 2), "totale_dovuto": round(capitale + totale, 2),
+        "tasso_applicato": "saggio legale (art. 1284 co. 1 c.c.): domanda anteriore all'11/12/2014",
+        "riferimento_normativo": "Art. 1284 c.c.; art. 17 co. 2 DL 132/2014 conv. L. 162/2014",
+        "periodi": periodi,
+    }
+
+
 @mcp.tool(tags={"interessi"})
-@sourced("tassi_mora")
+@sourced("tassi_mora", "tassi_legali")
 def interessi_corso_causa(
     capitale: float,
     data_citazione: str,
@@ -711,7 +737,9 @@ def interessi_corso_causa(
     Dal giorno della domanda giudiziale (citazione) si applica il tasso di mora D.Lgs. 231/2002
     (BCE+8pp) invece del tasso legale ordinario, sia in corso di causa sia post-sentenza.
     Per interessi ante-causa (prima della citazione) usare interessi_legali.
-    Vigenza: Art. 1284 co. 4 c.c. (introdotto da L. 162/2014); D.Lgs. 231/2002.
+    Vigenza: Art. 1284 co. 4 c.c. (introdotto dall'art. 17 DL 132/2014 conv. L. 162/2014, con effetto per i
+    procedimenti iniziati dall'11/12/2014, art. 17 co. 2); D.Lgs. 231/2002. Per le domande anteriori
+    all'11/12/2014 si applica il saggio legale dell'art. 1284 co. 1.
     Precisione: ESATTO per tassi BCE storici; INDICATIVO per periodi futuri.
 
     Args:
@@ -726,6 +754,12 @@ def interessi_corso_causa(
 
     if dt_sentenza <= dt_citazione:
         return {"errore": "data_sentenza deve essere successiva a data_citazione"}
+
+    # Art. 17 co. 2 DL 132/2014: the mora rate of art. 1284 co. 4 c.c. only applies to proceedings begun
+    # from the thirtieth day after the entry into force of L. 162/2014 (11/12/2014); before that the
+    # ordinary legal rate of art. 1284 co. 1 runs, also after the judgment.
+    if dt_citazione < _INIZIO_ART_1284_CO_4:
+        return _corso_causa_saggio_legale(capitale, data_citazione, data_sentenza, data_pagamento)
 
     # In corso di causa (data_citazione -> data_sentenza): mora rate per art. 1284 co. 4 c.c.
     interessi_causa, _ = _calc_interessi_mora_periodo(capitale, dt_citazione, dt_sentenza)

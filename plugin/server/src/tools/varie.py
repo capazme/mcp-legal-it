@@ -616,13 +616,14 @@ def tasso_alcolemico(
     if tasso_attuale == 0:
         fascia = "nessuna (tasso 0)"
         sanzione = None
-    elif tasso_attuale < 0.5:
-        fascia = "nessuna (< 0.5 g/l)"
+    elif tasso_attuale <= 0.5:
+        # art. 186 co. 2 lett. a) starts "superiore a 0,5 g/l": exactly 0.5 is below the band
+        fascia = "nessuna (non superiore a 0.5 g/l)"
         sanzione = None
-    elif tasso_attuale < 0.8:
+    elif tasso_attuale <= 0.8:
         fascia = "art. 186 co. 2 lett. a)"
         sanzione = "Sanzione amministrativa 543-2.170€, sospensione patente 3-6 mesi (illecito amministrativo, non reato)"
-    elif tasso_attuale < 1.5:
+    elif tasso_attuale <= 1.5:
         fascia = "art. 186 co. 2 lett. b)"
         sanzione = "Ammenda 800-3200€, arresto fino a 6 mesi, sospensione patente 6-12 mesi"
     else:

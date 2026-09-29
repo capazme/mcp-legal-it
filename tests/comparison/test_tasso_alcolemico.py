@@ -23,7 +23,7 @@ import re
 
 import pytest
 
-os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
+os.environ.setdefault("LEGAL_TODAY", "2026-09-29")
 
 import src.server  # noqa: F401,E402
 from src.tools import varie  # noqa: E402
@@ -121,3 +121,26 @@ def test_stomaco_pieno_non_confrontabile(page):
         pytest.skip("il sito (Widmark base) ignora lo stomaco pieno: opzione non confrontabile")
     t = _tool(sesso="M", peso_kg=80, unita_alcoliche=4, ore_trascorse=0, stomaco_pieno=True)
     assert_close(t["tasso_picco_g_l"], p, TOL, "picco stomaco pieno")
+
+
+# Fasce dell'art. 186 co. 2 D.Lgs. 285/1992 (Normattiva via cite_law): lett. a)
+# "superiore a 0,5 e non superiore a 0,8"; lett. b) "superiore a 0,8 e non superiore
+# a 1,5"; lett. c) "superiore a 1,5". Il sito non mostra la fascia: il riferimento
+# qui e' la norma, non il sito. Confini esatti: 0,5 e' fuori fascia, 0,8 e' lett. a),
+# 1,5 e' lett. b).
+@pytest.mark.parametrize(
+    "ua, atteso",
+    [
+        (1.75, "nessuna"),  # 0,50 g/l
+        (2.8, "lett. a)"),  # 0,80 g/l
+        (5.25, "lett. b)"),  # 1,50 g/l
+        (5.3, "lett. c)"),  # 1,51 g/l
+    ],
+)
+def test_fascia_art_186_ai_confini(ua, atteso):
+    t = _tool(sesso="M", peso_kg=60, unita_alcoliche=ua, ore_trascorse=0)
+    fascia = t["fascia_sanzione_cds"]
+    if atteso == "nessuna":
+        assert fascia.startswith("nessuna"), fascia
+    else:
+        assert atteso in fascia, fascia

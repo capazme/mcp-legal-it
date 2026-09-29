@@ -723,7 +723,7 @@
     "sesso": "M",
     "unita_alcoliche": 3.0
    },
-   "expected": "{\"sesso\":\"M\",\"peso_kg\":80.0,\"unita_alcoliche\":3.0,\"ore_trascorse\":2.0,\"stomaco_pieno\":false,\"alcol_assorbito_grammi\":36.0,\"tasso_picco_g_l\":0.64,\"tasso_attuale_g_l\":0.34,\"ore_smaltimento_totale\":4.3,\"ore_residue_smaltimento\":2.3,\"fascia_sanzione_cds\":\"nessuna (< 0.5 g/l)\",\"sanzione\":null,\"avvertenza\":\"Calcolo puramente indicativo basato su formula di Widmark. Il tasso reale dipende da metabolismo individuale, farmaci, condizioni fisiche.\",\"riferimento_normativo\":\"Art. 186 D.Lgs. 285/1992 (Codice della Strada)\"}"
+   "expected": "{\"sesso\":\"M\",\"peso_kg\":80.0,\"unita_alcoliche\":3.0,\"ore_trascorse\":2.0,\"stomaco_pieno\":false,\"alcol_assorbito_grammi\":36.0,\"tasso_picco_g_l\":0.64,\"tasso_attuale_g_l\":0.34,\"ore_smaltimento_totale\":4.3,\"ore_residue_smaltimento\":2.3,\"fascia_sanzione_cds\":\"nessuna (non superiore a 0.5 g/l)\",\"sanzione\":null,\"avvertenza\":\"Calcolo puramente indicativo basato su formula di Widmark. Il tasso reale dipende da metabolismo individuale, farmaci, condizioni fisiche.\",\"riferimento_normativo\":\"Art. 186 D.Lgs. 285/1992 (Codice della Strada)\"}"
   },
   "test_crisi_impresa": {
    "arguments": {},

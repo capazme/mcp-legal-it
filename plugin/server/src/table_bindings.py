@@ -131,7 +131,7 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "indennita_preavviso": ("preavviso_ccnl",),
     "inflazione_titoli_stato": ("indici_foi",),
     "interessi_acconti": ("tassi_legali",),
-    "interessi_corso_causa": ("tassi_mora",),
+    "interessi_corso_causa": ("tassi_legali", "tassi_mora"),
     "interessi_legali": ("tassi_legali",),
     "interessi_mora": ("tassi_mora",),
     "interessi_vari_capitale_rivalutato": ("indici_foi", "tassi_legali"),
