@@ -362,3 +362,8 @@ def test_opzioni_sito_senza_corrispondente():
     """
     pytest.skip("non confrontabile: il tool non ha data limite, interruzioni, "
                 "'solo semestri completi' ne' tipologie di presofferto che non rilevano per la LA")
+
+
+# Fase 3: the tool now counts only the semesters served before release (art. 54 co. 1
+# L. 354/1975), as the site does. The site's virtual end date is 1-4 days after nominal end
+# minus the detraction, with no rule found in the norm; the tool keeps the plain subtraction.

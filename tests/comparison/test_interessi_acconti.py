@@ -19,7 +19,7 @@ import sys
 
 import pytest
 
-sys.path.insert(0, "/Users/gpuzio/Desktop/CODE/server-infra2.0/mcp-legal-it")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import src.server  # noqa: F401,E402
 from src.tools.tassi_interessi import interessi_acconti  # noqa: E402
@@ -80,7 +80,10 @@ def _sito(page, capitale, inizio, fine, acconti, art_1194):
 
 
 def _confronta(page, capitale, inizio, fine, acconti, art_1194, campi):
-    t = _fn(capitale=capitale, data_inizio=inizio, acconti=acconti, data_fine=fine)
+    # The tool now imputes per art. 1194 c.c. by default (interest first); the site's unchecked
+    # box corresponds to imputation to capital (creditor's consent).
+    t = _fn(capitale=capitale, data_inizio=inizio, acconti=acconti, data_fine=fine,
+            imputazione="interessi" if art_1194 else "capitale")
     assert "errore" not in t, t
     s = _sito(page, capitale, inizio, fine, acconti, art_1194)
     tv = {
@@ -158,10 +161,12 @@ def test_acconti_cambio_anno_capitale(page):
     _confronta(page, **A5, art_1194=False, campi=_CAP)
 
 
-# Limite: acconto (4.000) superiore al residuo (3.000): il tool azzera il capitale e perde
-# l'eccedenza; il sito puo' comportarsi diversamente.
+# Limite: acconto (4.000) superiore al residuo (3.000): both the site (validation message)
+# and the tool (errore) refuse the input; the tool no longer drops the excess silently.
 def test_acconto_superiore_al_capitale(page):
-    _confronta(page, **A6, art_1194=False, campi=_CAP)
+    t = _fn(capitale=3000, data_inizio="2024-03-01", data_fine="2024-12-31",
+            acconti=[{"data": "2024-08-15", "importo": 4000}], imputazione="capitale")
+    assert "errore" in t
 
 
 # Limite: periodo a cavallo di agosto (2024, bisestile, tasso 2,5%), acconto il 15 agosto.

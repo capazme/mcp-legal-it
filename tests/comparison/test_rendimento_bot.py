@@ -1,3 +1,11 @@
+# FASE 3. Net-yield denominator: tool_errato, fixed. MEF scheda BOT: the 12,5% tax is withheld at
+# subscription (art. 3 c. 2 DL 66/2014, art. 2 D.Lgs. 239/1996) and the "prezzo totale di vendita" is
+# price + commission + tax, so the net yield is on that outlay, as the site does (262,50 / 9.737,50).
+# Annualisation (verdetto: convenzione): MEF quotes BOT yields on giorni effettivi/360, the tool keeps
+# 365 for *_annuo_pct and now also returns *_base_360_pct; the comparison uses the period yield to
+# neutralise the base. Commission above par: D.M. 15/1/2015 zeroes it, the tool now does the same (the
+# site rejects prices above par, case skipped). The site's suggested maximum commissions (0,30/0,20/0,10)
+# differ from the D.M. 15/1/2015 caps (0,15% from 271 days, 0,10% for 141-270, 0,05% for 81-140).
 """Benchmark rendimento_bot vs avvocatoandreani.it (calcolo-rendimento-bot.php).
 
 Norma: D.Lgs. 239/1996 (imposta sostitutiva 12,5% sullo scarto di emissione,

@@ -7,6 +7,12 @@ Lavorativi e festivi: calcolo-giorni-lavorativi-festivi.php (modulo GiorniLavora
 esclusioni e quello con la sola opzione "festivita' nazionali" (una festivita' che cade
 di sabato/domenica conta una volta, come nel tool). Dies a quo escluso, dies ad quem
 incluso (Compreso spento) in entrambi.
+
+Known divergence of the SITE (phase 3): it lacks San Francesco d'Assisi (4 October).
+L. 8 ottobre 2025 n. 151, art. 1 c. 2 adds it to art. 2 L. 260/1949 and art. 3 c. 3 makes
+the law effective from 1 January 2026, so the tool is right to treat 4/10/2026 and later
+as a national holiday; the two failing cases (October 2027 working days, 2026 holidays)
+are the site being out of date.
 """
 
 import re

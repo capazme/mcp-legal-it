@@ -75,6 +75,7 @@
    ],
    "tools": [
     "conta_giorni",
+    "prescrizione_diritti",
     "scadenza_processuale",
     "scadenze_impugnazioni",
     "scadenze_multe",
@@ -244,7 +245,6 @@
     "genera_registro_trattamenti",
     "grado_parentela",
     "gratuito_patrocinio",
-    "imposta_registro_locazioni",
     "indennita_licenziamento",
     "indice_documenti",
     "interessi_tasso_fisso",
@@ -257,7 +257,6 @@
     "pena_concordata",
     "pensione_reversibilita",
     "pignoramento_stipendio",
-    "prescrizione_diritti",
     "prescrizione_reato",
     "procura_alle_liti",
     "pronti_termine",
@@ -333,6 +332,7 @@
     "tassi_legali"
    ],
    "tools": [
+    "imposta_registro_locazioni",
     "interessi_acconti",
     "interessi_legali",
     "ravvedimento_operoso"
@@ -522,7 +522,9 @@
   "genera_registro_trattamenti": [],
   "grado_parentela": [],
   "gratuito_patrocinio": [],
-  "imposta_registro_locazioni": [],
+  "imposta_registro_locazioni": [
+   "tassi_legali"
+  ],
   "imposte_compravendita": [
    "imposte_successione"
   ],
@@ -589,7 +591,9 @@
   "pena_concordata": [],
   "pensione_reversibilita": [],
   "pignoramento_stipendio": [],
-  "prescrizione_diritti": [],
+  "prescrizione_diritti": [
+   "festivita"
+  ],
   "prescrizione_reato": [],
   "preventivo_civile": [
    "contributo_unificato",

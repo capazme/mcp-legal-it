@@ -18,7 +18,7 @@
     "isee": 10000.0,
     "n_figli": 2
    },
-   "expected": "{\"isee\":10000.0,\"n_figli\":2,\"importo_base_per_figlio\":203.8,\"dettaglio_figli\":[{\"figlio\":1,\"eta\":10,\"importo_base\":203.8,\"maggiorazioni\":[],\"importo_mensile\":203.8},{\"figlio\":2,\"eta\":10,\"importo_base\":203.8,\"maggiorazioni\":[],\"importo_mensile\":203.8}],\"genitore_solo\":false,\"maggiorazione_genitore_solo\":0,\"totale_mensile\":407.6,\"totale_annuo\":4891.2,\"riferimento_normativo\":\"D.Lgs. 230/2021 — Importi 2026 (rivalutazione ISTAT)\"}"
+   "expected": "{\"isee\":10000.0,\"isee_presentato\":true,\"n_figli\":2,\"importo_base_per_figlio\":203.8,\"dettaglio_figli\":[{\"figlio\":1,\"eta\":10,\"importo_base\":203.8,\"maggiorazioni\":[],\"importo_mensile\":203.8},{\"figlio\":2,\"eta\":10,\"importo_base\":203.8,\"maggiorazioni\":[],\"importo_mensile\":203.8}],\"genitore_solo\":false,\"maggiorazione_genitore_solo\":0,\"nota_genitore_solo\":\"Il D.Lgs. 230/2021 non prevede una maggiorazione per il genitore solo: il parametro non ha effetto\",\"totale_mensile\":407.6,\"totale_annuo\":4891.2,\"riferimento_normativo\":\"D.Lgs. 230/2021 art. 4 - importi 2026 (INPS circ. 7/2026)\"}"
   },
   "attestazione_conformita": {
    "arguments": {
@@ -41,7 +41,7 @@
    "arguments": {
     "pena_base_mesi": 12.0
    },
-   "expected": "{\"pena_base_mesi\":12.0,\"pena_risultante_mesi\":12.0,\"pena_risultante_formato\":\"1 anni e 0.0 mesi\",\"recidiva_applicata\":false,\"dettaglio\":[{\"step\":\"Pena base\",\"mesi\":12.0}],\"riferimento_normativo\":\"Artt. 63-69, 99 c.p.\"}"
+   "expected": "{\"pena_base_mesi\":12.0,\"limite_art_67\":null,\"pena_risultante_mesi\":12.0,\"pena_risultante_formato\":\"1 anni e 0.0 mesi\",\"recidiva_applicata\":false,\"dettaglio\":[{\"step\":\"Pena base\",\"mesi\":12.0}],\"riferimento_normativo\":\"Artt. 63-69, 99 c.p.\"}"
   },
   "backlog_riconciliazione": {
    "arguments": {},
@@ -86,7 +86,7 @@
    "arguments": {
     "superficie_calpestabile": 10000.0
    },
-   "expected": "{\"superficie_commerciale\":10000.0,\"dettaglio\":{\"calpestabile\":{\"mq_reali\":10000.0,\"coefficiente\":1.0,\"mq_commerciali\":10000.0}},\"coefficienti_applicati\":{\"calpestabile\":1.0,\"balconi\":0.33,\"terrazzi\":0.25,\"giardino\":0.1,\"cantina\":0.25,\"garage\":0.5},\"riferimento_normativo\":\"DPR 138/1998 — Standard dimensionali catastali\"}"
+   "expected": "{\"superficie_commerciale\":10000.0,\"dettaglio\":{\"calpestabile\":{\"mq_reali\":10000.0,\"coefficiente\":1.0,\"mq_commerciali\":10000.0}},\"tetto_pertinenze_applicato\":false,\"coefficienti_applicati\":{\"calpestabile\":1.0,\"balconi_terrazzi\":\"0.30 fino a 25 mq, 0.10 oltre\",\"giardino\":\"0.10 fino alla superficie dei vani, 0.02 oltre\",\"cantina\":0.25,\"garage\":0.25},\"riferimento_normativo\":\"DPR 138/1998 allegato C — Norme tecniche per la determinazione della superficie catastale\"}"
   },
   "calcolo_surroga_mutuo": {
    "arguments": {
@@ -222,13 +222,13 @@
     "n_familiari": 2,
     "reddito_complessivo": 10000.0
    },
-   "expected": "{\"reddito_complessivo\":10000.0,\"n_familiari\":2,\"soglia_reddito\":80000,\"detrazione_unitaria_teorica\":750,\"detrazione_per_familiare\":656.25,\"detrazione_totale\":1312.5,\"riferimento_normativo\":\"Art. 12, comma 1, lett. d) TUIR — D.P.R. 917/1986\"}"
+   "expected": "{\"reddito_complessivo\":10000.0,\"n_familiari\":2,\"soglia_reddito\":80000,\"rapporto\":0.875,\"detrazione_unitaria_teorica\":750,\"detrazione_per_familiare\":656.25,\"detrazione_totale\":1312.5,\"riferimento_normativo\":\"Art. 12, comma 1, lett. d) e comma 4 TUIR — D.P.R. 917/1986\"}"
   },
   "detrazione_assegno_coniuge": {
    "arguments": {
     "reddito_complessivo": 10000.0
    },
-   "expected": "{\"reddito_complessivo\":10000.0,\"fascia\":\"5.501-28.000€\",\"detrazione\":1112.0,\"nota\":\"L'assegno periodico al coniuge e reddito assimilato al lavoro dipendente per il percipiente e onere deducibile per chi lo versa.\",\"riferimento_normativo\":\"Art. 13, comma 5-bis, TUIR — Art. 10, comma 1, lett. c) TUIR\"}"
+   "expected": "{\"reddito_complessivo\":10000.0,\"fascia\":\"8.501-28.000€\",\"detrazione\":1858.37,\"nota\":\"L'assegno periodico al coniuge e reddito assimilato al lavoro dipendente per il percipiente e onere deducibile per chi lo versa.\",\"riferimento_normativo\":\"Art. 13, commi 5-bis e 6 TUIR (misura del comma 3) — Art. 10, comma 1, lett. c) TUIR\"}"
   },
   "detrazione_canone_locazione": {
    "arguments": {
@@ -240,20 +240,20 @@
    "arguments": {
     "reddito_complessivo": 10000.0
    },
-   "expected": "{\"reddito_complessivo\":10000.0,\"fascia\":\"fino a 15.000€\",\"detrazione\":726.67,\"limite_reddito_coniuge\":2840.51,\"limite_reddito_coniuge_under24\":4000,\"riferimento_normativo\":\"Art. 12, comma 1, lett. a) TUIR — D.P.R. 917/1986\"}"
+   "expected": "{\"reddito_complessivo\":10000.0,\"fascia\":\"fino a 15.000€\",\"maggiorazione\":0,\"detrazione\":726.67,\"limite_reddito_coniuge\":2840.51,\"riferimento_normativo\":\"Art. 12, comma 1, lett. a) e b), commi 2 e 4 TUIR — D.P.R. 917/1986\"}"
   },
   "detrazione_figli": {
    "arguments": {
     "n_figli_over21": 2,
     "reddito_complessivo": 10000.0
    },
-   "expected": "{\"reddito_complessivo\":10000.0,\"n_figli_over21\":2,\"n_figli_disabili\":0,\"soglia_reddito\":110000,\"dettaglio\":[{\"figlio\":1,\"tipo\":\"ordinario\",\"detrazione_teorica\":950,\"importo\":863.64},{\"figlio\":2,\"tipo\":\"ordinario\",\"detrazione_teorica\":950,\"importo\":863.64}],\"detrazione_totale\":1727.28,\"riferimento_normativo\":\"Art. 12 TUIR — D.P.R. 917/1986 (mod. D.Lgs. 230/2021)\"}"
+   "expected": "{\"reddito_complessivo\":10000.0,\"n_figli_over21\":2,\"n_figli_disabili\":0,\"soglia_reddito\":110000,\"rapporto\":0.909,\"dettaglio\":[{\"figlio\":1,\"tipo\":\"ordinario\",\"detrazione_teorica\":950,\"importo\":863.55},{\"figlio\":2,\"tipo\":\"ordinario\",\"detrazione_teorica\":950,\"importo\":863.55}],\"detrazione_totale\":1727.1,\"riferimento_normativo\":\"Art. 12, comma 1, lett. c) e comma 4 TUIR — D.P.R. 917/1986 (mod. D.Lgs. 230/2021)\"}"
   },
   "detrazione_pensione": {
    "arguments": {
     "reddito_complessivo": 10000.0
    },
-   "expected": "{\"reddito_complessivo\":10000.0,\"giorni\":365,\"fascia\":\"8.501-28.000€\",\"detrazione_annua_piena\":1858.46,\"detrazione_rapportata\":1858.46,\"riferimento_normativo\":\"Art. 13, comma 3, TUIR — D.P.R. 917/1986\"}"
+   "expected": "{\"reddito_complessivo\":10000.0,\"giorni\":365,\"fascia\":\"8.501-28.000€\",\"detrazione_annua_piena\":1858.37,\"minimo_applicabile\":0,\"aumento_comma_3_bis\":0,\"detrazione_rapportata\":1858.37,\"riferimento_normativo\":\"Art. 13, commi 3, 3-bis e 6 TUIR — D.P.R. 917/1986\"}"
   },
   "dichiarazione_553_cpc": {
    "arguments": {
@@ -275,7 +275,7 @@
     "percentuale_invalidita": 85.0,
     "stipendio_annuo": 35000.0
    },
-   "expected": "{\"categoria_tabella\":\"1\",\"range_invalidita\":\"81-100%\",\"percentuale_invalidita\":85.0,\"stipendio_annuo\":35000.0,\"coefficiente\":8.0,\"equo_indennizzo\":238000.0,\"pensione_privilegiata\":true,\"nota_pensione\":\"Categoria 1ª-5ª: diritto a pensione privilegiata se cessazione dal servizio per infermità\",\"attenzione\":\"Istituto ABROGATO per eventi successivi al 06/12/2011 (art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero). Il calcolo è valido solo per pratiche relative a fatti anteriori a tale data.\",\"riferimento_normativo\":\"DPR 461/2001; DPR 834/1981 — Tabella A. Abrogato per nuovi eventi da art. 6 DL 201/2011 (L. 214/2011)\",\"regime_normativo\":{\"stato\":\"previgente\",\"applicabile_a\":\"infermità da causa di servizio di dipendenti pubblici per fatti anteriori al 06/12/2011 (istituto abrogato dall'art. 6 DL 201/2011 conv. L. 214/2011; nessun tool vigente equivalente: per gli infortuni dei lavoratori privati → risarcimento_inail)\",\"avvertenza\":\"Regime normativo superato: il risultato vale solo per i casi residuali indicati in `applicabile_a`. Per un caso soggetto alla disciplina vigente usare i tool in `tool_vigenti`.\"}}"
+   "expected": "{\"categoria_tabella\":\"1\",\"percentuale_categoria\":100,\"percentuale_invalidita\":85.0,\"stipendio_annuo\":35000.0,\"importo_prima_categoria\":70000.0,\"riduzione_eta_pct\":0,\"pensione_privilegiata\":false,\"equo_indennizzo\":70000.0,\"nota_eta\":\"eta_evento non indicata: nessuna riduzione per età applicata (art. 49 DPR 686/1957: -25% oltre 50 anni, -50% oltre 60)\",\"attenzione\":\"Istituto ABROGATO per eventi successivi al 06/12/2011 (art. 6 DL 201/2011 conv. L. 214/2011 — Riforma Fornero), salvo il personale del comparto sicurezza, difesa, vigili del fuoco e soccorso pubblico. Il calcolo è valido per pratiche relative a fatti anteriori a tale data o per tale personale.\",\"riferimento_normativo\":\"L. 662/1996 art. 1 co. 119 (Tabella 1); L. 266/2005 art. 1 co. 210-211; DPR 686/1957 artt. 49-50; DPR 834/1981 (Tabelle A e B). Abrogato per nuovi eventi da art. 6 DL 201/2011 (L. 214/2011)\",\"regime_normativo\":{\"stato\":\"previgente\",\"applicabile_a\":\"infermità da causa di servizio di dipendenti pubblici per fatti anteriori al 06/12/2011 (istituto abrogato dall'art. 6 DL 201/2011 conv. L. 214/2011; nessun tool vigente equivalente: per gli infortuni dei lavoratori privati → risarcimento_inail)\",\"avvertenza\":\"Regime normativo superato: il risultato vale solo per i casi residuali indicati in `applicabile_a`. Per un caso soggetto alla disciplina vigente usare i tool in `tool_vigenti`.\"}}"
   },
   "fascicolo_di_parte": {
    "arguments": {
@@ -309,7 +309,7 @@
     "data_inizio_pena": "2021-01-01",
     "pena_totale_mesi": 12.0
    },
-   "expected": "{\"data_inizio_pena\":\"2021-01-01\",\"pena_totale_mesi\":12.0,\"giorni_presofferto\":0,\"data_inizio_effettiva\":\"2021-01-01\",\"data_fine_pena\":\"2022-01-01\",\"liberazione_anticipata\":{\"semestri_scontati\":2,\"sconto_giorni\":90,\"data_fine_con_liberazione\":\"2021-10-03\"},\"riferimento_normativo\":\"Art. 54 L. 354/1975 (Ordinamento penitenziario)\"}"
+   "expected": "{\"data_inizio_pena\":\"2021-01-01\",\"pena_totale_mesi\":12.0,\"giorni_presofferto\":0,\"data_inizio_effettiva\":\"2021-01-01\",\"data_fine_pena\":\"2022-01-01\",\"liberazione_anticipata\":{\"semestri_scontati\":1,\"sconto_giorni\":45,\"data_fine_con_liberazione\":\"2021-11-17\"},\"riferimento_normativo\":\"Art. 54 L. 354/1975 (Ordinamento penitenziario)\"}"
   },
   "genera_dpa": {
    "arguments": {
@@ -443,12 +443,6 @@
    },
    "expected": "{\"ammesso\":true,\"vittima_violenza\":false,\"reddito_richiedente\":10000.0,\"redditi_familiari\":[],\"n_familiari_conviventi\":0,\"solo_reddito_personale\":false,\"reddito_totale_nucleo\":10000.0,\"soglia_applicata\":13659.64,\"margine\":3659.64,\"ambito\":\"civile\",\"note\":\"Reddito nucleo familiare: €10,000.00 — Soglia civile: €13,659.64 — AMMESSO (margine: +3,659.64 €)\",\"riferimento_normativo\":\"DPR 115/2002 artt. 76, 92 — D.M. 22 aprile 2025 (soglia €13.659,64)\"}"
   },
-  "imposta_registro_locazioni": {
-   "arguments": {
-    "canone_annuo": 10000.0
-   },
-   "expected": "{\"canone_annuo\":10000.0,\"durata_anni\":4,\"tipo_contratto\":\"libero\",\"aliquota_pct\":2.0,\"imposta_prima_annualita\":200.0,\"imposta_annualita_successive\":200.0,\"totale_durata_contratto\":800.0,\"opzione_intera_durata\":800.0,\"minimo_applicato\":false,\"nota\":\"Imposta a carico 50% locatore e 50% conduttore (salvo patto contrario)\",\"riferimento_normativo\":\"DPR 131/1986 art. 5 Tariffa Parte I — Imposta registro locazioni\"}"
-  },
   "indennita_licenziamento": {
    "arguments": {
     "anni_servizio": 10.0,
@@ -551,20 +545,13 @@
     "pensione_de_cuius": 18000.0,
     "reddito_beneficiario": 20000.0
    },
-   "expected": "{\"pensione_de_cuius\":18000.0,\"beneficiari\":{\"coniuge\":true,\"figli\":1,\"figli_minori\":1,\"genitori\":0},\"descrizione_quota\":\"Coniuge + 1 figlio\",\"quota_pct\":80,\"pensione_lorda_annua\":14400.0,\"pensione_lorda_mensile\":1107.69,\"riduzione_cumulo\":{\"reddito_beneficiario\":20000.0,\"trattamento_minimo\":7781.93,\"riduzione_pct\":0},\"pensione_netta_annua\":14400.0,\"pensione_netta_mensile\":1107.69,\"riferimento_normativo\":\"L. 335/1995 art. 1 co. 41; L. 335/1995 Tabella F\"}"
+   "expected": "{\"pensione_de_cuius\":18000.0,\"beneficiari\":{\"coniuge\":true,\"figli\":1,\"figli_minori\":1,\"genitori\":0},\"descrizione_quota\":\"Coniuge + 1 figlio\",\"quota_pct\":80,\"pensione_lorda_annua\":14400.0,\"pensione_lorda_mensile\":1107.69,\"riduzione_cumulo\":{\"reddito_beneficiario\":20000.0,\"trattamento_minimo\":7954.05,\"riduzione_pct\":0,\"clausola_salvaguardia_applicata\":false,\"anno_trattamento_minimo\":2026,\"esclusa_per_figli_minori\":true},\"pensione_netta_annua\":14400.0,\"pensione_netta_mensile\":1107.69,\"riferimento_normativo\":\"L. 335/1995 art. 1 co. 41; L. 335/1995 Tabella F\"}"
   },
   "pignoramento_stipendio": {
    "arguments": {
     "stipendio_netto_mensile": 10000.0
    },
    "expected": "{\"stipendio_netto_mensile\":10000.0,\"pensione\":false,\"tipo_credito\":\"ordinario\",\"quota_pignorabile\":0.2,\"base_di_calcolo\":10000.0,\"importo_pignorabile\":2000.0,\"importo_non_pignorabile\":8000.0,\"assegno_sociale_mensile\":546.24,\"minimo_impignorabile_pensioni\":1092.48,\"nota_pensioni\":\"Per le pensioni è impignorabile la parte fino al doppio dell'assegno sociale, con un minimo di 1.000 euro (€1092.48 con l'assegno sociale indicato); la quota si applica solo all'eccedenza (art. 545 co. 7 c.p.c.). Assegno sociale incluso: anno 2026 — aggiornarlo con `assegno_sociale_mensile`.\",\"nota_conto_corrente\":\"Somme accreditate su conto prima del pignoramento: pignorabili solo oltre il triplo dell'assegno sociale (art. 545 co. 8 c.p.c.)\",\"descrizione\":\"1/5 dello stipendio netto (art. 545 co. 4 c.p.c.)\",\"riferimento_normativo\":\"Art. 545 c.p.c. (co. 7 nel testo dell'art. 21-bis DL 115/2022 conv. L. 142/2022); art. 72-ter DPR 602/1973\"}"
-  },
-  "prescrizione_diritti": {
-   "arguments": {
-    "data_evento": "2021-01-01",
-    "tipo_diritto": "risarcimento_danni"
-   },
-   "expected": "{\"tipo_diritto\":\"risarcimento_danni\",\"data_evento\":\"2021-01-01\",\"termine_anni\":5,\"data_prescrizione\":\"2026-01-01\",\"prescritto\":true,\"giorni_mancanti\":0,\"nota\":\"I termini possono essere sospesi o interrotti da atti specifici (diffida, citazione, riconoscimento del debito).\",\"riferimento_normativo\":\"Art. 2947 c.c.\"}"
   },
   "prescrizione_reato": {
    "arguments": {
@@ -607,7 +594,7 @@
     "importo_totale": 10000.0,
     "n_rate": 2
    },
-   "expected": "{\"importo_totale\":10000.0,\"n_rate\":2,\"tasso_interesse_annuo_pct\":4.0,\"piano_rate\":[{\"rata\":1,\"data_scadenza\":\"2023-01-01\",\"importo_capitale\":5000.0,\"interessi\":0,\"rata_totale\":5000.0},{\"rata\":2,\"data_scadenza\":\"2023-02-01\",\"importo_capitale\":5000.0,\"interessi\":16.67,\"rata_totale\":5016.67}],\"totale_interessi\":16.67,\"totale_versato\":10016.67,\"riferimento_normativo\":\"Art. 20 D.Lgs. 241/1997\"}"
+   "expected": "{\"importo_totale\":10000.0,\"n_rate\":2,\"tasso_interesse_annuo_pct\":4.0,\"piano_rate\":[{\"rata\":1,\"data_scadenza\":\"2023-01-01\",\"importo_capitale\":5000.0,\"percentuale_interessi\":0.0,\"interessi\":0.0,\"rata_totale\":5000.0},{\"rata\":2,\"data_scadenza\":\"2023-02-16\",\"importo_capitale\":5000.0,\"percentuale_interessi\":0.18,\"interessi\":9.0,\"rata_totale\":5009.0}],\"totale_interessi\":9.0,\"totale_versato\":10009.0,\"riferimento_normativo\":\"Art. 20 D.Lgs. 241/1997\"}"
   },
   "relata_notifica_pec": {
    "arguments": {
@@ -625,7 +612,7 @@
     "prezzo_acquisto": 10000.0,
     "valore_nominale": 10000.0
    },
-   "expected": "{\"valore_nominale\":10000.0,\"prezzo_acquisto\":10000.0,\"giorni_scadenza\":30,\"plusvalenza_lorda\":0.0,\"imposta_sostitutiva_pct\":12.5,\"imposta\":0.0,\"commissione\":0.0,\"guadagno_netto\":0.0,\"rendimento_lordo_annuo_pct\":0.0,\"rendimento_netto_annuo_pct\":0.0,\"riferimento_normativo\":\"D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato\"}"
+   "expected": "{\"valore_nominale\":10000.0,\"prezzo_acquisto\":10000.0,\"giorni_scadenza\":30,\"plusvalenza_lorda\":0.0,\"imposta_sostitutiva_pct\":12.5,\"imposta\":0.0,\"commissione\":0.0,\"guadagno_netto\":0.0,\"esborso_totale\":10000.0,\"rendimento_lordo_annuo_pct\":0.0,\"rendimento_netto_annuo_pct\":0.0,\"rendimento_lordo_annuo_base_360_pct\":0.0,\"rendimento_netto_annuo_base_360_pct\":0.0,\"riferimento_normativo\":\"D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato; D.M. 15/1/2015 (commissioni BOT)\"}"
   },
   "rendimento_btp": {
    "arguments": {
@@ -699,9 +686,9 @@
   "spese_condominiali": {
    "arguments": {
     "importo_totale": 10000.0,
-    "millesimi_proprietario": 10000.0
+    "millesimi_proprietario": 100.0
    },
-   "expected": "{\"importo_totale\":10000.0,\"millesimi\":10000.0,\"tipo_spesa\":\"ordinaria\",\"metodo_ripartizione\":\"Millesimi: 10000.0/1000\",\"quota_unita\":100000.0,\"riferimento_normativo\":\"Art. 1123-1124 c.c.; L. 392/1978 art. 9 — Ripartizione spese condominiali\"}"
+   "expected": "{\"importo_totale\":10000.0,\"millesimi\":100.0,\"tipo_spesa\":\"ordinaria\",\"metodo_ripartizione\":\"Millesimi: 100.0/1000\",\"quota_unita\":1000.0,\"riferimento_normativo\":\"Art. 1123-1124 c.c.; L. 392/1978 art. 9 — Ripartizione spese condominiali\"}"
   },
   "spese_mediazione": {
    "arguments": {
@@ -780,7 +767,7 @@
    "arguments": {
     "partita_iva": "12345678903"
    },
-   "expected": "{\"partita_iva\":\"12345678903\",\"valido\":true,\"codice_ufficio\":\"12\",\"cifra_controllo_attesa\":3,\"cifra_controllo_presente\":3}"
+   "expected": "{\"partita_iva\":\"12345678903\",\"valido\":true,\"matricola\":\"1234567\",\"codice_ufficio\":\"890\",\"cifra_controllo_attesa\":3,\"cifra_controllo_presente\":3}"
   }
  }
 }

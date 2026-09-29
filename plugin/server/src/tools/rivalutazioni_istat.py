@@ -9,7 +9,7 @@ ISTAT in GU ex art. 81 L. 392/1978 (fanno fede per l'adeguamento canoni); per gl
 altri periodi a cavallo del ribasamento il calcolo sulla serie raccordata può
 scostarsi fino a ±0,1 p.p. dagli arrotondamenti ufficiali.
 
-Serie disponibile dal 1990 all'ultimo mese pubblicato: i mesi mancanti vengono
+Serie disponibile dal 1996 all'ultimo mese pubblicato: i mesi mancanti vengono
 approssimati con il più vicino disponibile e la sostituzione è sempre segnalata
 nel campo `avvertenza` dei risultati."""
 
@@ -92,7 +92,7 @@ def _componi_avvertenza(parti: list) -> str | None:
         return None
     return (
         "ATTENZIONE — " + "; ".join(parti) + ". Risultato INDICATIVO "
-        "(serie FOI disponibile dal 1990 all'ultimo mese pubblicato)."
+        "(serie FOI disponibile dal 1996 all'ultimo mese pubblicato)."
     )
 
 
@@ -161,12 +161,19 @@ def _variazione_ufficiale(dt_fine: date, lag_mesi: int) -> dict | None:
     return {"pct": pct, "fonte": entry.get("gu") or entry.get("fonte"), "nota": nota}
 
 
-def _variazione_foi(dt_a: date, dt_b: date) -> dict | None:
+def _variazione_foi(dt_a: date, dt_b: date, *, comunicato: bool = False) -> dict | None:
     """FOI % variation between the months of dt_a and dt_b.
 
     For exact 12/24-month pairs the official GU-published variation prevails
     (authoritative for rent adjustments ex art. 32 L. 392/1978); otherwise the
     variation is computed on the linked index series.
+
+    With `comunicato=True` (rent adjustment) a computed 12/24-month variation is
+    rounded to one decimal, as ISTAT publishes it in the GU communiqués ex
+    art. 81 L. 392/1978: the rounded ratio of the series reproduces ISTAT's
+    published 12-month variation for every month 1997-2025 (348 of 348, checked
+    against the ISTAT SDMX `tendenziale` measure). For the TFR (art. 2120 c.c.)
+    the ratio is kept unrounded, as in ISTAT's own TFR coefficients.
     """
     ufficiale = _variazione_ufficiale(dt_b, _mesi_tra(dt_a, dt_b))
     if ufficiale is not None:
@@ -182,11 +189,17 @@ def _variazione_foi(dt_a: date, dt_b: date) -> dict | None:
     foi_b = _foi_tracciato(sostituzioni, dt_b.year, dt_b.month)
     if foi_a is None or foi_b is None or foi_a <= 0:
         return None
+    pct = (foi_b - foi_a) / foi_a * 100
+    metodo = "calcolata (serie FOI raccordata, base 2015=100)"
+    nota = _NOTA_RACCORDO if _a_cavallo_ribasamento(dt_a, dt_b) else None
+    if comunicato and _mesi_tra(dt_a, dt_b) in (12, 24):
+        pct = round(pct + 1e-9, 1)
+        metodo += ", arrotondata a un decimale come nei comunicati ISTAT in GU (art. 81 L. 392/1978)"
     return {
-        "pct": (foi_b - foi_a) / foi_a * 100,
-        "metodo": "calcolata (serie FOI raccordata, base 2015=100)",
+        "pct": pct,
+        "metodo": metodo,
         "fonte": None,
-        "nota": _NOTA_RACCORDO if _a_cavallo_ribasamento(dt_a, dt_b) else None,
+        "nota": nota,
         "sostituzioni": sostituzioni,
     }
 
@@ -215,7 +228,10 @@ def rivalutazione_monetaria(
     Se con_interessi_legali=True, applica il criterio Cass. SU 1712/1995: interessi legali
     sul capitale rivalutato per ciascun anno (metodo più favorevole al creditore).
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 conversione dalla base
-    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1990 al mese più recente pubblicato.
+    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1996 al mese più recente pubblicato.
+    Serie rifatta il 2026-09-29 sulle serie mensili ISTAT (senza tabacchi), raccordi 1,373 e 1,071.
+    Convenzione: il coefficiente è il rapporto pieno tra gli indici (6 decimali); il servizio
+    Rivaluta di ISTAT lo arrotonda a 3 decimali, con scarti di qualche euro su 10.000.
     Precisione: ESATTO (indici ISTAT ufficiali); INDICATIVO se la data richiesta è oltre l'ultimo indice disponibile (usa l'anno più prossimo).
     Spesso chiamato dopo danno_biologico_* o interessi_mora per attualizzare un importo.
 
@@ -316,7 +332,7 @@ def rivalutazione_mensile(
     Utile per assegni di mantenimento arretrati o canoni mensili non corrisposti:
     ogni mensilità viene rivalutata individualmente dalla sua data fino a data_fine.
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 conversione dalla base
-    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1990 al mese più recente.
+    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1996 al mese più recente.
     Precisione: ESATTO (indici ISTAT ufficiali mese per mese).
 
     Args:
@@ -403,7 +419,9 @@ def adeguamento_canone_locazione(
     (che fa fede per l'adeguamento; v. campi `metodo_variazione` e `fonte_variazione`);
     per gli altri periodi a cavallo del ribasamento 2025=100 la variazione è calcolata
     sulla serie raccordata e può differire fino a ±0,1 p.p. dagli arrotondamenti
-    ufficiali (v. campo `nota`).
+    ufficiali (v. campo `nota`). Prima del 2026 la variazione a 12/24 mesi è calcolata sulla
+    serie ISTAT e arrotondata a un decimale, come pubblicata nei comunicati in GU (art. 81 L.
+    392/1978): coincide con la variazione ISTAT in 348 mesi su 348 (1997-2025).
 
     Args:
         canone_annuo: Canone annuo corrente in euro (€)
@@ -431,7 +449,7 @@ def adeguamento_canone_locazione(
     if foi_stipula is None or foi_adeguamento is None:
         return {"errore": "Indici FOI non disponibili per le date richieste"}
 
-    variazione = _variazione_foi(dt_stipula, dt_adeguamento)
+    variazione = _variazione_foi(dt_stipula, dt_adeguamento, comunicato=True)
     if variazione is None:
         return {"errore": "Indici FOI non disponibili per le date richieste"}
 
@@ -479,7 +497,7 @@ def calcolo_inflazione(
 
     Restituisce variazione cumulata, coefficiente di rivalutazione e inflazione media annua.
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 base 2025=100, coefficiente
-    di raccordo ufficiale 1,214), disponibili dal 1990 al mese più recente pubblicato.
+    di raccordo ufficiale 1,214), disponibili dal 1996 al mese più recente pubblicato.
     Precisione: ESATTO (indici ISTAT ufficiali). Per i periodi a cavallo del ribasamento
     2025=100 (gennaio 2026) la variazione calcolata può differire fino a ±0,1 p.p. dalla
     variazione ufficiale ex art. 81 L. 392/1978: quando la coppia di mesi coincide con un
@@ -533,6 +551,12 @@ def calcolo_inflazione(
     return risultato
 
 
+# Imposta sostitutiva sulle rivalutazioni del TFR: art. 11 co. 3 D.Lgs. 47/2000 (11%);
+# 17% per le rivalutazioni decorrenti dal 1 gennaio 2015 (L. 190/2014 art. 1 co. 623 e 625).
+_ALIQUOTA_IMPOSTA_TFR_FINO_2014 = 0.11
+_ALIQUOTA_IMPOSTA_TFR_DAL_2015 = 0.17
+
+
 @mcp.tool(tags={"rivalutazione"})
 @sourced("indici_foi")
 def rivalutazione_tfr(
@@ -542,11 +566,17 @@ def rivalutazione_tfr(
 ) -> dict:
     """Calcola il TFR con rivalutazione annuale ex art. 2120 c.c.
 
-    Il TFR accantonato (1/13.5 della retribuzione annua) si rivaluta ogni anno con coefficiente:
-    1.5% fisso + 75% della variazione FOI. Sull'importo rivalutato si applica imposta sostitutiva 17%.
-    Vigenza: Art. 2120 c.c.; indici FOI ISTAT base 2015=100 raccordata (dal 2026 base
-    2025=100, coefficiente ufficiale 1,214). La variazione dicembre/dicembre usa il valore
-    UFFICIALE del comunicato ISTAT in GU quando pubblicato.
+    Il TFR accantonato (1/13.5 della retribuzione annua) si rivaluta ogni 31 dicembre, su base composta
+    e con esclusione della quota maturata nell'anno, con tasso 1,5% fisso + 75% dell'aumento FOI
+    dicembre su dicembre (art. 2120 co. 4 c.c.); se l'indice scende non c'è aumento e il tasso
+    resta 1,5%. Sulla rivalutazione di ogni anno si applica l'imposta sostitutiva (art. 11 co. 3 D.Lgs.
+    47/2000: 11% fino al 2014, 17% dalle rivalutazioni decorrenti dal 1° gennaio 2015, art. 1 co.
+    623 e 625 L. 190/2014), che è imputata a riduzione del fondo (art. 11 co. 4): dall'anno
+    successivo la rivalutazione si calcola quindi sul fondo al netto dell'imposta già trattenuta.
+    Vigenza: Art. 2120 c.c.; art. 11 D.Lgs. 47/2000 (verificato su Normattiva il 2026-09-29);
+    indici FOI ISTAT base 2015=100 raccordata (dal 2026 base 2025=100, coefficiente ufficiale
+    1,214). La variazione dicembre/dicembre usa il valore UFFICIALE del comunicato ISTAT in GU
+    quando pubblicato.
     Precisione: ESATTO per la formula di legge; INDICATIVO se la variazione FOI dell'anno non è ancora disponibile.
 
     Args:
@@ -560,13 +590,17 @@ def rivalutazione_tfr(
         return {"errore": "retribuzione_annua deve essere maggiore o uguale a zero"}
 
     anno_inizio = anno_cessazione - anni_servizio
-    accantonamento_annuo = retribuzione_annua / 13.5
-    tfr_accumulato = 0.0
+    accantonamento_annuo = round(retribuzione_annua / 13.5, 2)  # quota al centesimo (art. 2120 co. 2)
+    fondo = 0.0  # TFR al netto dell'imposta sostitutiva già imputata a riduzione del fondo
+    totale_accantonato = 0.0
+    totale_rivalutazioni = 0.0
+    totale_imposta = 0.0
     dettaglio = []
     sostituzioni: list = []
 
     for anno in range(anno_inizio, anno_cessazione):
-        tfr_accumulato += accantonamento_annuo
+        fondo_precedente = fondo
+        totale_accantonato += accantonamento_annuo
 
         if anno > anno_inizio:
             # December/December FOI variation (official GU value when published)
@@ -577,16 +611,26 @@ def rivalutazione_tfr(
                     if coppia not in sostituzioni:
                         sostituzioni.append(coppia)
 
-            # Coefficiente rivalutazione TFR: 1.5% fisso + 75% variazione FOI
-            coeff_rival = 1.5 + 0.75 * variazione_foi
-            # No negative revaluation
-            coeff_rival = max(coeff_rival, 0)
-            rivalutazione = (tfr_accumulato - accantonamento_annuo) * (coeff_rival / 100)
-            tfr_accumulato += rivalutazione
+            # Art. 2120 co. 4: 1.5% fisso + 75% dell'AUMENTO dell'indice: se l'indice
+            # scende non c'è aumento e la parte variabile è zero (tasso 1.5%).
+            coeff_rival = 1.5 + 0.75 * max(variazione_foi, 0.0)
+            # Composta, esclusa la quota dell'anno, sul fondo netto dell'imposta già trattenuta
+            # (amounts are rounded to the cent each year, as in the fund's yearly statement)
+            rivalutazione = round(fondo_precedente * (coeff_rival / 100), 2)
+            aliquota = (
+                _ALIQUOTA_IMPOSTA_TFR_DAL_2015 if anno >= 2015 else _ALIQUOTA_IMPOSTA_TFR_FINO_2014
+            )
+            imposta = round(rivalutazione * aliquota, 2)
         else:
             variazione_foi = 0.0
             coeff_rival = 0.0
             rivalutazione = 0.0
+            aliquota = 0.0
+            imposta = 0.0
+
+        fondo = fondo_precedente + accantonamento_annuo + rivalutazione - imposta
+        totale_rivalutazioni += rivalutazione
+        totale_imposta += imposta
 
         dettaglio.append({
             "anno": anno,
@@ -594,12 +638,13 @@ def rivalutazione_tfr(
             "variazione_foi_pct": round(variazione_foi, 2),
             "coefficiente_rivalutazione_pct": round(coeff_rival, 2),
             "rivalutazione": round(rivalutazione, 2),
-            "tfr_accumulato": round(tfr_accumulato, 2),
+            "aliquota_imposta_sostitutiva_pct": round(aliquota * 100, 2),
+            "imposta_sostitutiva": round(imposta, 2),
+            "tfr_accumulato": round(fondo, 2),
         })
 
-    # Imposta sostitutiva (17% sulla rivalutazione)
-    totale_rivalutazioni = sum(d["rivalutazione"] for d in dettaglio)
-    imposta_sostitutiva = totale_rivalutazioni * 0.17
+    tfr_accumulato = totale_accantonato + totale_rivalutazioni
+    imposta_sostitutiva = totale_imposta
 
     return {
         "retribuzione_annua": retribuzione_annua,
@@ -611,7 +656,11 @@ def rivalutazione_tfr(
         "totale_rivalutazioni": round(totale_rivalutazioni, 2),
         "imposta_sostitutiva_17_pct": round(imposta_sostitutiva, 2),
         "tfr_netto_rivalutazione": round(tfr_accumulato - imposta_sostitutiva, 2),
-        "riferimento_normativo": "Art. 2120 c.c. — rivalutazione 1.5% fisso + 75% FOI ISTAT",
+        "riferimento_normativo": (
+            "Art. 2120 c.c. — rivalutazione 1.5% fisso + 75% FOI ISTAT; "
+            "art. 11 D.Lgs. 47/2000 — imposta sostitutiva 11% fino al 2014, 17% dal 2015, "
+            "imputata a riduzione del fondo"
+        ),
         "avvertenza": _formatta_avvertenza(sostituzioni),
         "dettaglio_anni": dettaglio,
     }
@@ -631,6 +680,8 @@ def interessi_vari_capitale_rivalutato(
     (es. tasso contrattuale, tasso BOT). Se tasso_personalizzato=None usa il tasso legale vigente per anno.
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 conversione dalla base
     2025=100 con coefficiente ufficiale 1,214), disponibili dal 1990 al mese più recente.
+    Giorni computati ex art. 2963 c.c. (dies a quo escluso), divisore = giorni dell'anno solare del segmento;
+    capitale rivalutato senza arrotondare il coefficiente (ISTAT lo arrotonda a 3 decimali: convenzione).
     Precisione: ESATTO (indici ISTAT ufficiali); tasso personalizzato non verificato rispetto ai tassi di legge.
 
     Args:
@@ -673,7 +724,9 @@ def interessi_vari_capitale_rivalutato(
         elif anno == dt_inizio.year:
             giorni = (date(anno, 12, 31) - dt_inizio).days
         elif anno == dt_fine.year:
-            giorni = (dt_fine - date(anno, 1, 1)).days
+            # art. 2963 c.c.: dies a quo excluded (start date), dies ad quem included, so the
+            # last segment runs from 31/12 of the previous year (1 January is counted)
+            giorni = (dt_fine - date(anno - 1, 12, 31)).days
         else:
             giorni = _days_in_year(anno)
 
@@ -725,6 +778,8 @@ def lettera_adeguamento_canone(
     variazione UFFICIALE del comunicato ISTAT in GU ex art. 81 L. 392/1978 (citata in lettera);
     per gli altri periodi a cavallo del ribasamento la variazione è calcolata sulla serie
     raccordata e può differire fino a ±0,1 p.p. dagli arrotondamenti ufficiali (v. campo `nota`).
+    Prima del 2026 la variazione a 12/24 mesi è calcolata sulla serie ISTAT e arrotondata a un
+    decimale, come pubblicata nei comunicati in GU (art. 81 L. 392/1978).
 
     Args:
         locatore: Nome e cognome completo del locatore (mittente della lettera)
@@ -755,7 +810,7 @@ def lettera_adeguamento_canone(
     if foi_stipula is None or foi_adeguamento is None:
         return {"errore": "Indici FOI non disponibili per le date richieste"}
 
-    variazione = _variazione_foi(dt_stipula, dt_adeguamento)
+    variazione = _variazione_foi(dt_stipula, dt_adeguamento, comunicato=True)
     if variazione is None:
         return {"errore": "Indici FOI non disponibili per le date richieste"}
 
@@ -832,6 +887,8 @@ def calcolo_devalutazione(
     Utile per confronti storici di valore (es. "quanto valeva in euro 1990 questa somma di oggi?").
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 conversione dalla base
     2025=100 con coefficiente ufficiale 1,214), disponibili dal 1990 al mese più recente.
+    Il coefficiente è il rapporto diretto degli indici raccordati, senza l'arrotondamento a 3 decimali
+    che ISTAT applica ai coefficienti di rivalutazione (convenzione: scarto fino a circa 0,05%).
     Precisione: ESATTO (indici ISTAT ufficiali).
 
     Args:
@@ -881,7 +938,10 @@ def rivalutazione_storica(
     Usa la media annuale degli indici FOI per ciascun anno. Utile quando non si conosce
     il mese esatto dell'obbligazione. Per precisione mensile usare rivalutazione_monetaria.
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 conversione dalla base
-    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1990.
+    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1996.
+    Convenzione: media aritmetica dei 12 indici mensili pubblicati (un decimale); l'indice storico
+    annuo ISTAT usato da altri servizi può differire di qualche centesimo di punto percentuale
+    (es. 2015-2023: 1,18738 contro 1,187), e per l'anno in corso la media è parziale (avvertenza).
     Precisione: ESATTO (media annua indici ISTAT ufficiali); meno preciso di rivalutazione_monetaria se si conosce il mese.
 
     Args:
@@ -952,7 +1012,12 @@ def variazioni_istat(
 
     Utile per consulenze, analisi storiche dell'inflazione e relazioni peritali.
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 base 2025=100, coefficiente
-    di raccordo ufficiale 1,214), disponibili dal 1990 al mese più recente.
+    di raccordo ufficiale 1,214), disponibili dal 1996 al mese più recente.
+    Convenzione: la variazione è calcolata sulla media dei 12 indici mensili senza
+    arrotondamenti intermedi (due decimali in uscita); ISTAT pubblica la variazione media annua
+    con un decimale calcolandola sulle medie annue arrotondate a un decimale, quindi lo scarto
+    può arrivare a circa 0,05 punti percentuali (es. 2022: 8,01 contro 8,1 ISTAT).
+    Serie ISTAT FOI senza tabacchi rifatta il 2026-09-29 sulle serie mensili ISTAT (SDMX).
     Precisione: ESATTO (medie annue indici ISTAT ufficiali). L'anno in corso ha una media
     PARZIALE sui soli mesi pubblicati (campi `mesi_disponibili` e `nota` nella riga):
     non confrontabile con le medie annue complete. La variazione media annua ufficiale
@@ -961,7 +1026,7 @@ def variazioni_istat(
     `variazione_cumulata_parziale: true`).
 
     Args:
-        anno_inizio: Anno iniziale del periodo (es. 2000; range disponibile: 1990 a oggi)
+        anno_inizio: Anno iniziale del periodo (es. 2000; range disponibile: 1996 a oggi)
         anno_fine: Anno finale del periodo (es. 2024)
     """
     if anno_fine <= anno_inizio:
@@ -990,8 +1055,8 @@ def variazioni_istat(
         if anno != anno_inizio:
             if media_prec and media_prec > 0:
                 riga["variazione_pct"] = round(((media - media_prec) / media_prec) * 100, 2)
-            else:
-                riga["variazione_pct"] = 0.0
+            # else: the previous year is not in the series (before 1996): no variation
+            # can be computed, so it stays null instead of a fake 0.0
         mesi_disponibili = len(_INDICI_FOI[str(anno)])
         if mesi_disponibili < 12:
             riga["mesi_disponibili"] = mesi_disponibili
@@ -1034,6 +1099,8 @@ def rivalutazione_annuale_media(
     Per calcoli dove il mese è noto, preferire rivalutazione_monetaria.
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 conversione dalla base
     2025=100 con coefficiente ufficiale 1,214), disponibili dal 1990.
+    Media annua = media aritmetica dei 12 indici mensili senza arrotondamento (ISTAT arrotonda la
+    media a 1 decimale: scarto massimo circa 0,1%); il sito di confronto concatena le variazioni ufficiali arrotondate.
     Precisione: ESATTO su base annua (media annua indici ISTAT ufficiali).
 
     Args:
@@ -1097,7 +1164,7 @@ def inflazione_titoli_stato(
     Calcola il rendimento reale (equazione di Fisher) e verifica se l'investimento
     ha preservato il potere d'acquisto rispetto all'inflazione ISTAT del periodo.
     Vigenza: Indici FOI ISTAT base 2015=100 raccordata (dal 2026 conversione dalla base
-    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1990 al mese più recente.
+    2025=100 con coefficiente ufficiale 1,214), disponibili dal 1996 al mese più recente.
     Precisione: ESATTO per indici FOI; INDICATIVO per rendimento reale (usa inflazione media annua FOI).
 
     Args:

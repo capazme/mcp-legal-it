@@ -132,6 +132,10 @@ def test_prima_casa_minimo_registro(page):
     _compare(tool, site, "prima casa minimo")
 
 
+# Phase 3 (open point, not a tool fix): the site adds imposta di bollo (230) and tasse ipotecarie
+# (35 + 55) to sales subject to VAT. The tool leaves them out of totale_imposte; their amounts were
+# not confirmed on a primary source (art. 10 co. 3 D.Lgs. 23/2011 only exempts sales taxed with
+# proportional registro), so the difference stays documented and unresolved.
 def test_prima_casa_da_costruttore(page):
     """Plan: IVA 4% = 10.000; registro, ipotecaria e catastale 200 ciascuna; totale 10.600,00.
     Norm: DPR 633/1972 Tab. A parte II n. 21; art. 26 D.Lgs. 104/2013."""
@@ -185,6 +189,9 @@ def test_prima_casa_esattamente_al_minimo(page):
     _compare(tool, site, "prima casa = minimo")
 
 
+# Phase 3 verdict: convention. The site rounds the revalued rendita (987,65 x 1,05 = 1.037,03) before
+# multiplying by 110; the tool multiplies 987,65 x 115,5 in one step (114.073,57 vs 114.073,30). The
+# registro (2.281,47) is identical: art. 52 DPR 131/1986 does not prescribe an intermediate rounding.
 def test_prima_casa_rendita_decimale(page):
     """Rounding: rendita 987,65 x 115,5 = 114.073,575 -> base 114.073,58; registro 2% = 2.281,47
     (2.281,4715); totale 2.381,47. Norm: art. 1 co. 497 L. 266/2005."""
@@ -196,6 +203,10 @@ def test_prima_casa_rendita_decimale(page):
     assert_close(tool["base_prezzo_valore"], site["valore_catastale"], TOL, "base prezzo-valore")
 
 
+# Phase 3 (open point, not a tool fix): the site adds imposta di bollo (230) and tasse ipotecarie
+# (35 + 55) to sales subject to VAT. The tool leaves them out of totale_imposte; their amounts were
+# not confirmed on a primary source (art. 10 co. 3 D.Lgs. 23/2011 only exempts sales taxed with
+# proportional registro), so the difference stays documented and unresolved.
 def test_seconda_casa_da_costruttore(page):
     """Enumerated option: IVA 10% di 300.000 = 30.000 + 200 x 3 = 30.600,00.
     Norm: DPR 633/1972 Tab. A parte III n. 127-undecies; art. 26 D.Lgs. 104/2013."""
@@ -204,6 +215,10 @@ def test_seconda_casa_da_costruttore(page):
     _compare(tool, site, "seconda casa IVA 10%")
 
 
+# Phase 3 (open point, not a tool fix): the site adds imposta di bollo (230) and tasse ipotecarie
+# (35 + 55) to sales subject to VAT. The tool leaves them out of totale_imposte; their amounts were
+# not confirmed on a primary source (art. 10 co. 3 D.Lgs. 23/2011 only exempts sales taxed with
+# proportional registro), so the difference stays documented and unresolved.
 def test_lusso_da_costruttore(page):
     """Enumerated option: IVA 22% di 800.000 = 176.000 + 600 = 176.600,00.
     Norm: DPR 633/1972 (aliquota ordinaria, art. 16)."""

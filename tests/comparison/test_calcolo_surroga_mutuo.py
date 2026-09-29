@@ -1,3 +1,8 @@
+# FASE 3 (verdetto: convenzione). The new loan (rata, interessi) matches the site to the cent. The gap
+# (up to ~1 euro on 239 rates) is on the OLD loan: the tool takes the rata actually paid, rounded to the
+# cent (rata_attuale x mesi - residuo), the site rebuilds it from the original loan with the unrounded
+# instalment. Both defensible; no statutory formula fixes it (art. 120-quater TUB gives no calculation
+# rule). The 0,01 euro tolerance therefore cannot hold on the residual-interest and total-saving lines.
 """Benchmark calcolo_surroga_mutuo vs avvocatoandreani.it/servizi/calcolo-surroga-mutuo.php
 
 Norma: art. 120-quater TUB (surroga per volonta' del debitore); DL 7/2007 conv. L. 40/2007;

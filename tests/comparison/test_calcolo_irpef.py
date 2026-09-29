@@ -258,14 +258,17 @@ def test_anno_2023_assente_dalla_tabella():
     (15.000 x 23% + 13.000 x 25% + 2.000 x 35%, art. 11 TUIR nel testo vigente
     per il 2023). Il sito offre solo gli scaglioni 2025 e la simulazione 2026:
     non confrontabile. Si registra comunque cosa fa il tool."""
-    r = _tool(reddito_complessivo=30000, tipo_reddito="autonomo", anno_fiscale=2023)
-    aliquote = [s["aliquota_pct"] for s in r["dettaglio_scaglioni"]]
-    print(f"BENCH|aut30k_2023|lorda|tool={r['imposta_lorda']}|sito=n/d|atteso_piano=7400.0")
+    import src.server  # noqa: F401
+    from src.tools import dichiarazione_redditi as mod
+
+    fn = getattr(mod.calcolo_irpef, "fn", mod.calcolo_irpef)
+    r = fn(reddito_complessivo=30000, tipo_reddito="autonomo", anno_fiscale=2023)
+    # The tool used to fall back silently on the 2026 brackets; it now refuses years
+    # before 2024 (art. 11 TUIR had four brackets 23-25-35-43%).
+    assert "errore" in r, r
     pytest.skip(
         "sito: solo anno d'imposta 2025 e simulazione 2026, niente 2023. "
-        f"Tool con anno_fiscale=2023: lorda {r['imposta_lorda']:.2f} con aliquote "
-        f"{aliquote} (scaglioni 2026) e anno_fiscale={r['anno_fiscale']} dichiarato, "
-        "senza avviso; atteso dal piano 7.400,00 a quattro scaglioni"
+        "Il tool rifiuta gli anni anteriori al 2024 (atteso dal piano 7.400,00 a quattro scaglioni)"
     )
 
 

@@ -7,6 +7,16 @@ explicit reference date, so no clock pinning is needed.
 
 Norma: artt. 2 e 2963 c.c. (maggiore eta', computo ad anni e mesi).
 Tolerance: exact integers (anni, mesi, giorni).
+
+Known divergences of the SITE (phase 3, checked by hand against art. 2963 c.c. commi 4-5):
+- 2008-09-25 -> 2026-09-24: the site says 17a 11m 29g, but 25/08 -> 24/09 is 30 calendar
+  days (tool: 30). Site error.
+- Born on 29/02: the tool applies the last-day-of-month rule by analogy (birthday 28/02,
+  so 18a 0m 0g on 28/02/2026 and 18a 0m 1g on 01/03/2026); the site is inconsistent (it
+  gives 17a 11m 28g on 28/02 but 18a 1g on 01/03). Documented convention, not a tool bug.
+- 1990-01-31 -> 2025-02-28: the tool closes the month on the last day of February (art. 2963
+  c. 5: 35a 1m 0g), the site says 35a 0m 28g. Convention: the site clamps only from the next
+  day on (31/01 -> 01/03 is 1m 1g on both sides).
 """
 
 import re

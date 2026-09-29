@@ -146,3 +146,8 @@ def test_intervallo_oltre_20_anni_1990_2025(page):
     if site is None:
         pytest.skip("site refuses intervals over 20 years (declared limit)")
     assert_close(r["importo_rivalutato"], site, 0.01, "capitale rivalutato 1990->2025")
+
+
+# Phase 3 verdict (2026-09-29). The FOI series was rebuilt from the ISTAT original bases. Residual differences
+# are a convention: the site chains the official annual variations rounded to 0.1%, year by year, the tool
+# divides the unrounded annual means once (ISTAT rounds the means to 1 decimal; gap up to about 0.1%).

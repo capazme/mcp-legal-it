@@ -88,18 +88,19 @@ CASI = [
 
 @pytest.mark.parametrize("caso_id,inp,eta", CASI, ids=[c[0] for c in CASI])
 def test_equo_indennizzo_vs_sito(page, caso_id, inp, eta):
-    tool = _tool_val(**inp)
+    # Since phase 3 the tool takes eta_evento (art. 49 DPR 686/1957: -25% over 50, -50% over 60),
+    # so the same age is passed to both sides.
+    tool = _tool_val(**inp, eta_evento=eta)
     sito = _sito(page, inp["stipendio_annuo"], inp["categoria_tabella"], eta)
     assert_close(tool, sito, TOL, f"{caso_id} (eta' sito {eta})")
 
 
 def test_categoria_9_una_tantum(page):
-    """Piano 5: categoria '9' inesistente. Atteso piano: errore (categorie 1-8 tab. A).
+    """Categoria '9' = indennita' una tantum (Tabella B): 3% dell'importo di 1a categoria.
 
-    Il sito usa invece il valore 9 per l'"Indennita' una tantum" (tab. B DPR
-    834/1981): calcola un importo che il tool non offre. Non confrontabile.
+    Since phase 3 the tool offers it (Tabella 1 L. 662/1996 and Tabella B DPR 834/1981),
+    so the comparison is direct: 2 x 25.000 x 3% = 1.500.
     """
-    r = _fn(categoria_tabella="9", percentuale_invalidita=10, stipendio_annuo=25000)
-    assert "errore" in r
+    tool = _tool_val(categoria_tabella="9", percentuale_invalidita=10, stipendio_annuo=25000)
     sito = _sito(page, 25000, "9", 30)
-    pytest.skip(f"non confrontabile: il tool rifiuta la cat. 9, il sito calcola l'una tantum ({sito:.2f})")
+    assert_close(tool, sito, TOL, "una_tantum")

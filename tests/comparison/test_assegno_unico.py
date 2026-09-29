@@ -409,3 +409,11 @@ def test_genitore_solo_due_figli(page):
     )
 
 
+
+
+# CONVENZIONI residue dopo la fase 3 (i tre KO rimasti non sono errori del tool):
+# - il sito applica la tabella 1 a fasce arrotondate al decimo, il tool interpola linearmente tra i
+#   valori pieno e minimo dell'art. 4 D.Lgs. 230/2021 (scarto 0,1-0,3 euro per figlio, oltre la
+#   tolleranza di trasposizione di 0,11);
+# - "figlio di eta' compresa tra uno e tre anni" (art. 4 c. 1): il sito esclude il figlio di 3 anni
+#   compiuti, il tool lo include; il testo di legge non basta a decidere (da_chiarire, INPS).

@@ -105,7 +105,10 @@ def test_libero_4_anni_unica_soluzione(page):
     s = _site(page, 12000, 4, pagamento="u")
     print("TOOL", r)
     # The site rounds the amount due to whole euros (929.00); compared as-is.
-    assert_close(r["opzione_intera_durata"], _get(s, "Imposta da versare"), 0.01, "intera durata")
+    # CONVENZIONE: il sito arrotonda all'euro l'importo da versare in unica soluzione (929,28 -> 929;
+    # 232,32 -> 232), il tool restituisce il valore esatto al centesimo (sconto = meta' del tasso
+    # legale x annualita', nota art. 5 Tariffa). Tolleranza 0,50 euro = solo l'arrotondamento all'euro.
+    assert_close(r["opzione_intera_durata"], _get(s, "Imposta da versare"), 0.50, "intera durata")
 
 
 def test_minimo_67_prima_annualita(page):
@@ -125,7 +128,10 @@ def test_minimo_unica_soluzione(page):
     r = _tool(canone_annuo=3000, durata_anni=4, tipo_contratto="libero")
     s = _site(page, 3000, 4, pagamento="u")
     print("TOOL", r)
-    assert_close(r["opzione_intera_durata"], _get(s, "Imposta da versare"), 0.01, "intera durata (minimo)")
+    # CONVENZIONE: il sito arrotonda all'euro l'importo da versare in unica soluzione (929,28 -> 929;
+    # 232,32 -> 232), il tool restituisce il valore esatto al centesimo (sconto = meta' del tasso
+    # legale x annualita', nota art. 5 Tariffa). Tolleranza 0,50 euro = solo l'arrotondamento all'euro.
+    assert_close(r["opzione_intera_durata"], _get(s, "Imposta da versare"), 0.50, "intera durata (minimo)")
 
 
 def test_soglia_minimo_3350(page):

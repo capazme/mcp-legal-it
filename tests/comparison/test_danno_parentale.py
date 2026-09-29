@@ -120,10 +120,13 @@ def test_milano_genitore_perde_figlio_mediana(page):
 def test_milano_tetto_genitori_figli_coniuge(page):
     """Limite: tetto massimo della categoria genitori/figli/coniuge (Milano 2024).
     Tool pct=100 -> 391.103,18 (336.500 x 1,162268); il sito limita al tetto della tabella 2024."""
+    # CONVENTION: tolerance 0,50 euro. The Osservatorio of Milano publishes the cap as 391.103,18
+    # (cap della tabella integrata a punti, ed. 2024, official PDF P._7646_24 p. 71); the site
+    # rounds to whole euros (391.103). The tool matches the source (same for 169.830,60 below).
     r = _tool(vittima="figlio", superstite="genitore", personalizzazione_pct=100)
     s = _milano(page, "genitore", 50, 20, True, 0, 30)
     print(f"tool={r['importo_liquidato']} sito={s['importo']} massimo_sito={s['massimo']}")
-    assert_close(r["importo_liquidato"], s["massimo"], tolerance=0.01, label="tetto genitori")
+    assert_close(r["importo_liquidato"], s["massimo"], tolerance=0.50, label="tetto genitori")
 
 
 def test_milano_fratello_minimo(page):
@@ -143,7 +146,7 @@ def test_milano_tetto_fratelli(page):
     r = _tool(vittima="fratello", superstite="fratello", tabella="milano", personalizzazione_pct=100)
     s = _milano(page, "fratello", 20, 18, True, 0, 30)
     print(f"tool={r['importo_liquidato']} sito={s['importo']} tetto={s['tetto']}")
-    assert_close(r["importo_liquidato"], s["importo"], tolerance=0.01, label="tetto fratelli")
+    assert_close(r["importo_liquidato"], s["importo"], tolerance=0.50, label="tetto fratelli")
 
 
 def test_milano_figlio_configurazione_minima_sotto_range(page):

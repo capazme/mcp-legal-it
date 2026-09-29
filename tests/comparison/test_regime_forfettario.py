@@ -249,8 +249,12 @@ def test_contributi_eccedenti_imposta(page):
 
 def test_contributi_eccedenti_imponibile(page):
     """Imponibile con contributi eccedenti: il tool lo porta a zero (max(...,0)),
-    il sito espone il valore negativo (l'eccedenza). Confronto stretto tool == sito:
-    un KO qui segnala la differenza di convenzione per la fase 2.
+    il sito espone il valore negativo (l'eccedenza).
+    CONVENZIONE (fase 3): art. 1 c. 64 L. 190/2014 deduce i contributi dal reddito forfettario e
+    rende "l'eventuale eccedenza" deducibile dal reddito complessivo (art. 10 TUIR). La base
+    dell'imposta sostitutiva non puo' essere negativa: il tool la azzera, il sito mostra l'eccedenza
+    (-1.000) come imponibile negativo. Le due rappresentazioni sono equivalenti, l'imposta e' 0,00
+    in entrambi; si confronta quindi il tool con max(sito, 0).
     """
     tool = _tool(**_ECCEDENZA)
     site = _site(page, "7", 10000, 5000, False)
@@ -258,6 +262,6 @@ def test_contributi_eccedenti_imponibile(page):
     assert abs(tool["reddito_lordo"] - site["reddito_lordo"]) <= TOL_EUR, (
         f"reddito lordo: tool={tool['reddito_lordo']} sito={site['reddito_lordo']}"
     )
-    assert abs(tool["reddito_imponibile"] - site["reddito_imponibile"]) <= TOL_EUR, (
+    assert abs(tool["reddito_imponibile"] - max(site["reddito_imponibile"], 0)) <= TOL_EUR, (
         f"reddito imponibile: tool={tool['reddito_imponibile']} sito={site['reddito_imponibile']}"
     )

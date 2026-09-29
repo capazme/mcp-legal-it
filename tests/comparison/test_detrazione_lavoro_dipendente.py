@@ -36,12 +36,13 @@ PAGE = "calcolo-detrazione-redditi-lavoro-dipendente.php"
 TOL_ARROTONDAMENTO_EURO = 0.50
 
 
-def _tool(reddito: float, giorni: int) -> dict:
+def _tool(reddito: float, giorni: int, tipo: str = "1") -> dict:
     import src.server  # noqa: F401  (registers every module, avoids circular imports)
     from src.tools.dichiarazione_redditi import detrazione_lavoro_dipendente
 
     fn = getattr(detrazione_lavoro_dipendente, "fn", detrazione_lavoro_dipendente)
-    return fn(reddito_complessivo=reddito, giorni_lavoro=giorni)
+    # site TipoRedditoLavoroDipendente "2" = fixed-term contract (art. 13 co. 1 lett. a, minimum 1,380)
+    return fn(reddito_complessivo=reddito, giorni_lavoro=giorni, tempo_determinato=(tipo == "2"))
 
 
 FORM = "CalcoloDetrazioneLavoroDipendente"
@@ -140,7 +141,7 @@ CASI = [
     ids=[c[0] for c in CASI],
 )
 def test_detrazione_lavoro_dipendente_vs_sito(page, reddito, giorni, tipo, atteso):
-    tool = _tool(reddito, giorni)
+    tool = _tool(reddito, giorni, tipo)
     assert "errore" not in tool, tool
     tool_value = tool["detrazione_rapportata"]
     site_value, sviluppo = _site(page, reddito, giorni, tipo)

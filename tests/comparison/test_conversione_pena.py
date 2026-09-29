@@ -235,3 +235,8 @@ def test_valore_giornaliero_diverso_da_250():
         "non confrontabile: il tool non accetta un valore giornaliero diverso da 250 euro "
         "(art. 135 c.p.); il sito lo consente tra 250 e 2.500 euro"
     )
+
+
+# Fase 3: the site truncates the fraction of 250 euro; art. 135 c.p. (Normattiva) says
+# "euro 250, o frazione di euro 250, ... per un giorno", so the tool (ceil) is right and the
+# scostamenti on 249/251/500,50/600 euro are site errors, not tool errors.

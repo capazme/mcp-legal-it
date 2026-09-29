@@ -1,3 +1,10 @@
+# FASE 3 (verdetto: sito_errato). The site prints 12 x the periodic rate (a nominal rate) under the
+# label TAEG. Art. 121 c. 1 lett. m) TUB defines the TAEG as the total cost of credit "in percentuale
+# annua" and Dir. 2008/48/CE Annex I defines it through the annual EFFECTIVE rate X ((1+X)^t with t in
+# years), so the tool's taeg_pct (effective) is the legal figure. Hand check (bisection on the monthly IRR):
+# 30.000 / 120 x 269,3707 / 270 upfront -> monthly i = 0,14034%, 12 x i = 1,6841% (site 1,68, tool tan_pct),
+# (1+i)^12 - 1 = 1,6972% (tool taeg_pct 1,6975 with rounded rata). The taeg_pct failures below are that
+# convention gap, not a tool error; tan_pct coincides with the site.
 """Comparison tests: calcolo_taeg vs avvocatoandreani.it/servizi/calcolo-taeg.php.
 
 Norma: art. 121 TUB co. 1 lett. m; Dir. 2008/48/CE all. I (il sito cita il D.M. 8/7/1992, superato).

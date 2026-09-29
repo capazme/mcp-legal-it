@@ -19,6 +19,15 @@ Norm/source: indici FOI ISTAT (base 2015=100 raccordata; from 2026 base
 2025=100 with official coefficient 1,214).
 """
 
+# Phase 3 verdict (2026-09-29): the FOI series of the tool was rebuilt from the ISTAT monthly
+# series (SDMX dataflows 144_110, 169_15, 169_745, code 00ST), which fixes the 2012-2013 case.
+# The remaining gaps are a METHOD CONVENTION, not a tool error: the tool revalues each rata
+# with the full ratio of the published indices I(end)/I(month), the page chains the monthly
+# variations rounded to 0.1%, which accumulates up to a few euros on 12 rate (2022: 611.11
+# vs 625.39; sept. 2025-aug. 2026: 131.74 vs 134.12; jun. 2012-may. 2013: 48.03 vs 51.10).
+# These cases stay failing on purpose: no norm prescribes the page's chaining.
+
+
 import os
 
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")

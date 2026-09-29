@@ -393,6 +393,10 @@ def test_limite_terzo_decimale_cinque(page):
          {"rendita_catastale": 500, "categoria": "C/1", "aliquota_comunale": 0.86})
 
 
+# Phase 3 verdict: site wrong. Art. 1 co. 754 L. 160/2019 sets the base rate at 0,86% (8,6 per mille) and
+# co. 748 at 0,5% for the A/1, A/8, A/9 principal residence; the site still uses the D.L. 201/2011 rates
+# (7,6 and 4 per mille). The tool now applies co. 748 by default (A/1 case: 1.060,00), so this case
+# stays failing against the site by design.
 def test_limite_aliquota_default_non_principale(page):
     """Opzione di default: tool senza aliquota (0,86%) contro campo vuoto del sito
     (aliquota base). L. 160/2019 art. 1 co. 754: aliquota base 0,86% per gli
@@ -401,6 +405,10 @@ def test_limite_aliquota_default_non_principale(page):
          {"rendita_catastale": 1000, "categoria": "A/2"}, site_aliquota=None)
 
 
+# Phase 3 verdict: site wrong. Art. 1 co. 754 L. 160/2019 sets the base rate at 0,86% (8,6 per mille) and
+# co. 748 at 0,5% for the A/1, A/8, A/9 principal residence; the site still uses the D.L. 201/2011 rates
+# (7,6 and 4 per mille). The tool now applies co. 748 by default (A/1 case: 1.060,00), so this case
+# stays failing against the site by design.
 def test_limite_aliquota_default_principale_di_lusso(page):
     """Opzione di default: A/1 abitazione principale senza aliquota.
 
