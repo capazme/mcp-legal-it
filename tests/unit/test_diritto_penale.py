@@ -80,12 +80,47 @@ class TestAumentiRiduzioniPena:
         result = _call("aumenti_riduzioni_pena", pena_base_mesi=12)
         assert "63" in result["riferimento_normativo"]
 
+    def test_limite_un_quarto_art_67_con_piu_attenuanti(self):
+        # Art. 67 co. 2 c.p.: with several attenuanti the pena cannot be applied below a
+        # quarter. 12 months, four attenuanti of 1/3: 12 x (2/3)^4 = 2.37 < 12/4 = 3.
+        att = [{"tipo": f"a{n}", "riduzione_pct": 100 / 3} for n in range(4)]
+        result = _call("aumenti_riduzioni_pena", pena_base_mesi=12, attenuanti=att)
+        assert result["pena_risultante_mesi"] == 3.0
+        assert "applicato" in result["limite_art_67"]
+
+    def test_limite_art_67_non_scatta_con_una_sola_attenuante(self):
+        # Art. 67 requires "piu' circostanze attenuanti": one attenuante is not limited.
+        result = _call(
+            "aumenti_riduzioni_pena",
+            pena_base_mesi=12,
+            attenuanti=[{"tipo": "a", "riduzione_pct": 90}],
+        )
+        assert result["pena_risultante_mesi"] == pytest.approx(1.2, abs=0.01)
+
+    def test_limite_art_67_non_applicato_con_effetto_speciale(self):
+        # Art. 67 co. 2 excludes the circostanze of art. 63 co. 3 (effetto speciale: more
+        # than one third); the tool does not apply the floor and says so.
+        att = [{"tipo": "a", "riduzione_pct": 50}, {"tipo": "b", "riduzione_pct": 50}]
+        result = _call("aumenti_riduzioni_pena", pena_base_mesi=12, attenuanti=att)
+        assert result["pena_risultante_mesi"] == 3.0  # 12 x 0.5 x 0.5, coincidentally 1/4
+        att = [{"tipo": "a", "riduzione_pct": 50}, {"tipo": "b", "riduzione_pct": 60}]
+        result = _call("aumenti_riduzioni_pena", pena_base_mesi=12, attenuanti=att)
+        assert result["pena_risultante_mesi"] == pytest.approx(2.4, abs=0.01)
+        assert "non applicato" in result["limite_art_67"]
+
 
 # ---------------------------------------------------------------------------
 # conversione_pena
 # ---------------------------------------------------------------------------
 
 class TestConversionePena:
+    @pytest.mark.parametrize("euro,giorni", [(249, 1), (250, 1), (251, 2), (500.5, 3), (600, 3)])
+    def test_frazione_di_250_euro_vale_un_giorno(self, euro, giorni):
+        # Art. 135 c.p.: "euro 250, o frazione di euro 250, di pena pecuniaria per un
+        # giorno di pena detentiva": 600 / 250 = 2.4 -> 3 days (the site truncates to 2).
+        result = _call("conversione_pena", importo=euro, direzione="pecuniaria_a_detentiva")
+        assert result["giorni_detentivi"] == giorni
+
     def test_detentiva_a_pecuniaria_base(self):
         result = _call("conversione_pena", importo=10, direzione="detentiva_a_pecuniaria")
         assert result["giorni_detentivi"] == 10
@@ -164,9 +199,43 @@ class TestFinePena:
             giorni_presofferto=0,
         )
         la = result["liberazione_anticipata"]
-        # 24 mesi ~ 730 giorni -> 4 semestri -> 180 giorni di sconto
-        assert la["semestri_scontati"] == 4
-        assert la["sconto_giorni"] == 180
+        # Art. 54 co. 1 L. 354/1975: 45 days per semester of pena scontata. Semesters end
+        # 2024-07-01, 2025-01-01, 2025-07-01; the fourth would end on the nominal end
+        # (2026-01-01) and grants nothing. 3 x 45 = 135; virtual end 2026-01-01 - 135 d.
+        assert la["semestri_scontati"] == 3
+        assert la["sconto_giorni"] == 135
+        assert la["data_fine_con_liberazione"] == "2025-08-19"
+
+    @pytest.mark.parametrize(
+        "inizio,mesi,presofferto,semestri,fine",
+        [
+            # art. 54 co. 1 L. 354/1975, hand-computed: a sentence of exactly six months
+            # grants nothing (the semester ends on the nominal end)
+            ("2025-01-01", 6, 0, 0, "2025-07-01"),
+            # 36 months: 4th semester ends 2027-01-01, virtual end 2027-07-05; 5th ends
+            # 2027-07-01 < 2027-07-05, so 5 x 45 = 225; 2028-01-01 - 225 d = 2027-05-21
+            ("2025-01-01", 36, 0, 5, "2027-05-21"),
+            # 17 months 28 days: nominal end 2026-09-07; 2 semesters = 90 d -> 2026-06-09
+            ("2025-03-10", 17.95, 0, 2, "2026-06-09"),
+            # 12 months with 30 days of custodia cautelare (valued by art. 54 co. 1):
+            # effective start 2024-05-02, end 2025-05-02, 1 semester -> 2025-03-18
+            ("2024-06-01", 12, 30, 1, "2025-03-18"),
+        ],
+    )
+    def test_liberazione_anticipata_solo_semestri_scontati(
+        self, inizio, mesi, presofferto, semestri, fine
+    ):
+        result = _call(
+            "fine_pena",
+            data_inizio_pena=inizio,
+            pena_totale_mesi=mesi,
+            liberazione_anticipata=True,
+            giorni_presofferto=presofferto,
+        )
+        la = result["liberazione_anticipata"]
+        assert la["semestri_scontati"] == semestri
+        assert la["sconto_giorni"] == semestri * 45
+        assert la["data_fine_con_liberazione"] == fine
 
     def test_presofferto_riduce_inizio_effettivo(self):
         result = _call(
@@ -424,3 +493,51 @@ class TestPenaConcordata:
         result = _call("pena_concordata", pena_base_mesi=36)
         assert result["attenuanti_generiche"] is True
         assert result["diminuente_rito"] is True
+
+
+# ---------------------------------------------------------------------------
+# prescrizione_reato: regimi per data del fatto
+# ---------------------------------------------------------------------------
+
+class TestPrescrizioneRegimi:
+
+    def test_regime_ordinario_fino_al_2_agosto_2017(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2017-08-02")
+        assert r["regime"]["nome"].startswith("ordinario")
+        assert "improcedibilita" not in r
+
+    def test_regime_orlando_dal_3_agosto_2017(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2017-08-03",
+                  data_sentenza_primo_grado="2021-01-01")
+        assert r["regime"]["nome"] == "riforma Orlando"
+        assert any("18 mesi" in a for a in r["avvertenze"])
+
+    def test_regime_blocco_dal_2020_cessa_con_il_primo_grado(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2020-03-01",
+                  data_sentenza_primo_grado="2023-05-10", data_impugnazione="2023-07-01")
+        assert r["data_prescrizione"] == "2026-03-01"
+        assert r["prescrizione_cessata_con_primo_grado"] is True
+        assert r["prescritto"] is False
+        imp = r["improcedibilita"]
+        # Impugnazione entro il 31/12/2024: termini transitori di 3 anni in appello
+        assert imp["durata_massima_mesi"]["appello"] == 36
+        assert imp["appello"]["decorrenza_stimata"] == "2023-08-23"  # sentenza + 15 + 90 giorni
+        assert imp["appello"]["scadenza_stimata"] == "2026-08-23"
+
+    def test_regime_blocco_termini_ordinari_dal_2025(self):
+        r = _call("prescrizione_reato", pena_massima_anni=4.0, data_commissione="2021-01-01",
+                  data_sentenza_primo_grado="2025-02-01", data_sentenza_appello="2026-03-01",
+                  data_impugnazione="2025-03-15")
+        imp = r["improcedibilita"]
+        assert imp["durata_massima_mesi"] == {"appello": 24, "cassazione": 12}
+        assert imp["cassazione"]["scadenza_stimata"] == "2027-06-14"
+
+    def test_recidiva_reiterata_aumento_due_terzi(self):
+        r = _call("prescrizione_reato", pena_massima_anni=6.0, data_commissione="2015-01-01",
+                  interruzioni_giorni=10, recidiva="reiterata")
+        assert r["aumento_interruzione_anni"] == pytest.approx(4.0, abs=0.01)
+        assert r["termine_totale_anni"] == pytest.approx(10.0, abs=0.01)
+
+    def test_recidiva_non_valida(self):
+        with pytest.raises(ValueError, match="recidiva"):
+            _call("prescrizione_reato", pena_massima_anni=6.0, data_commissione="2015-01-01", recidiva="boh")

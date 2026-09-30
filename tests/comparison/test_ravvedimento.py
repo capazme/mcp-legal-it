@@ -5,7 +5,7 @@ SKIPPED: This calculator requires login/registration on the site.
 
 import pytest
 
-pytestmark = pytest.mark.skip(reason="Site calculator requires login — cannot compare without account")
+pytestmark = pytest.mark.skip(reason="Site calculator requires login - cannot compare without account")
 
 
 class TestRavvedimentoComparison:

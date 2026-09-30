@@ -24,10 +24,12 @@ from src.lib.giustizia_amm.client import (
     _extract_portlet_id,
     _is_error_page,
     _parse_results,
+    _parse_total,
     _parse_xml_text,
     _resolve_schema,
     _SEARCH_PATH,
     build_document_url,
+    citation_number,
     format_full,
     format_result,
 )
@@ -644,6 +646,282 @@ class TestUltimiProvvedimentiImpl:
 
 
 # ---------------------------------------------------------------------------
+# cerca_giurisprudenza_amministrativa: citation form, plenary bodies, portal
+# total, and the date the search page does NOT carry (benchmark phase 3).
+# Reference: Cons. Stato, Ad. plen., sentenza 9 novembre 2021 n. 17 (ricorso
+# n. 14/2021 A.P., NRG 202105584), whose official XML reads
+# <fascicolo anno="2021" n="00017"/>: the portal number 202100017 is YYYY + the
+# five-digit progressive of the provvedimento, cited as "n. 17/2021".
+# ---------------------------------------------------------------------------
+
+# Trimmed copy of the REAL result item + footer for AP 17/2021 (query with
+# anno=2021, numero=17: "Risultati da 1 a 1 di 1 totali").
+_SEARCH_HTML_AP17 = """
+<html><body>
+<article class="ricerca--item">
+ <div class="ricerca--item__footer row">
+  <div class="col-sm-12">
+   <a data-sede="cds" data-nrg="202105584" data-idprovv="c3xlSpMBITmkOkrmiUpf"
+      href="https://mdp.giustizia-amministrativa.it/visualizza/?nodeRef=&amp;schema=cds&amp;nrg=202105584&amp;nomeFile=202100017_11.html&amp;subDir=Provvedimenti"
+      class="visited-provvedimenti clickable" target="_blank"><img alt="Apri il documento html originale"></a>
+   <a data-word="" href="#" class="visited-provvedimenti clickable visualizza-provvedimento-h">202100017 (CONSIGLIO DI STATO, SEZIONE P) html
+   </a>
+  </div>
+  <div class="col-sm-12">
+   <b>SENTENZA</b> sede di <b>CONSIGLIO DI STATO</b>, sezione <b>SEZIONE P</b>, numero provv.: <b>202100017</b>
+  </div>
+  <div class="col-sm-12 snippet">...<em>demaniali</em> <em>marittime</em>. 38.2....</div>
+  <div class="col-sm-12">Numero ricorso: <b>202105584</b></div>
+  <div class="col-sm-12"><b>ECLI:IT:CDS:2021:17APLE</b></div>
+ </div>
+</article>
+<article class="ricerca--item">
+ <div class="ricerca--item__footer row">
+  <div class="col-sm-12">
+
+   Risultati da 1 a 1 di 1 totali
+  </div>
+ </div>
+</article>
+</body></html>
+"""
+
+
+class TestCitationForm:
+    def test_citation_number_from_portal_number(self):
+        # 202100017 = 2021 + 00017 -> "n. 17/2021" (XML <fascicolo anno="2021" n="00017"/>)
+        assert citation_number("202100017") == "17/2021"
+        assert citation_number("202614035") == "14035/2026"
+
+    def test_citation_number_leaves_other_shapes_alone(self):
+        assert citation_number("") == ""
+        assert citation_number("17") == "17"
+
+    def test_plenary_section_is_named_and_number_cited(self):
+        doc = _parse_results(_SEARCH_HTML_AP17)[0]
+        text = format_result(doc)
+        assert "**Estremi**: Consiglio di Stato, Adunanza plenaria, sentenza n. 17/2021" in text
+        # The portal's own labels stay, so an agent can still match them.
+        assert "n. 202100017 (2021)" in text
+        assert "**Sezione**: SEZIONE P" in text
+        assert "ECLI:IT:CDS:2021:17APLE" in text
+
+    def test_section_c_is_the_adunanza_generale_only_at_the_cds(self):
+        cds = _sample_doc(sede="cds", sede_label="Consiglio di Stato", sezione="SEZIONE C",
+                          tipo="PARERE", numero="202600012")
+        assert "Adunanza generale, parere n. 12/2026" in format_result(cds)
+        tar = _sample_doc(sezione="SEZIONE C")
+        assert "Adunanza" not in format_result(tar)
+
+    def test_ordinary_tar_result_gets_the_citation_form(self):
+        text = format_result(_sample_doc())
+        assert "**Estremi**: TAR Lazio - Roma, sentenza n. 14035/2026" in text
+
+
+class TestPortalTotal:
+    def test_parse_total_reads_the_results_footer(self):
+        assert _parse_total(_SEARCH_HTML_AP17) == 1
+        assert _parse_total(_SEARCH_HTML) == 16297
+        assert _parse_total(_SEARCH_HTML_EMPTY) is None
+
+    @pytest.mark.asyncio
+    async def test_count_says_it_is_a_page_of_a_larger_answer(self):
+        with _patch_session():
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="appalto")
+        text = result.to_str()
+        assert "**Trovati 2 provvedimenti TAR/CdS" in text
+        assert "mostrati 2 su 16297 totali indicati dal portale" in text
+
+    @pytest.mark.asyncio
+    async def test_exact_lookup_does_not_claim_a_larger_answer(self):
+        with _patch_session(search_html=_SEARCH_HTML_AP17):
+            result = await _cerca_giurisprudenza_amministrativa_impl(
+                query="concessioni demaniali marittime", sede="consiglio_di_stato",
+                tipo="adunanza_plenaria", anno="2021", numero="17",
+            )
+        text = result.to_str()
+        assert "**Trovati 1 provvedimenti TAR/CdS" in text
+        assert "mostrati" not in text
+        assert "Adunanza plenaria, sentenza n. 17/2021" in text
+
+
+class TestNoDateOnTheSearchPage:
+    """The search page carries no date: the answer says where to read it, and the
+    docstring stops promising it (art. 89 c.p.a.: the date of publication is the
+    one the segretario writes at the foot of the sentence, in the XML)."""
+
+    @pytest.mark.asyncio
+    async def test_answer_points_to_leggi_for_the_date(self):
+        with _patch_session(search_html=_SEARCH_HTML_AP17):
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="concessioni")
+        text = result.to_str()
+        assert "non espone la data" in text
+        assert "leggi_provvedimento_amm()" in text
+
+    def test_docstring_does_not_promise_a_date(self):
+        from src.tools import giustizia_amm as ga_tools
+
+        fn = getattr(ga_tools.cerca_giurisprudenza_amministrativa, "fn",
+                     ga_tools.cerca_giurisprudenza_amministrativa)
+        doc = fn.__doc__
+        assert "tipo, data e oggetto" not in doc
+        assert "NON restituisce la data" in doc
+
+
+# ---------------------------------------------------------------------------
+# leggi_provvedimento_amm: dispositivo kept when the text is shortened, date of
+# publication from the XML, PDF-only provvedimenti (benchmark phase 3).
+# Reference: Cons. Stato, Ad. plen., sentenza n. 17/2021 (nrg 202105584): body of
+# 106,448 characters, "P.Q.M." at 104,513, <dataPubblicazione>09/11/2021.
+# Art. 88, co. 2, lett. e), d.lgs. 104/2010 (c.p.a.): the dispositivo is a
+# necessary element of the sentence. Art. 89, co. 2-3, c.p.a.: the segretario
+# writes the date of deposit at the foot of the sentence.
+# ---------------------------------------------------------------------------
+
+# Real <GA> shape of AP 17/2021 (note the leading space of <tipologia>, the
+# zero-padded n="00017" and the dispositivo as the LAST section); the premessa
+# is padded to the real length so the text overflows the 15,000-character cut.
+_AP17_PQM = (
+    "P.Q.M. Il Consiglio di Stato in sede giurisdizionale (Adunanza Plenaria) "
+    "definitivamente pronunciando: a) dichiara inammissibili gli interventi; "
+    "b) enuncia i principi di diritto di cui in motivazione; c) restituisce gli atti "
+    "al Consiglio di Giustizia amministrativa per la Regione siciliana."
+)
+_MDP_XML_AP17 = f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<GA {_H}><Provvedimento>
+<meta id="20210558420211107183102616" descrizione="" ricorrente="-OMISSIS-">
+<descrittori><registro anno="2021" n="00014"/><fascicolo anno="2021" n="00017"/></descrittori>
+<tipologia> Sentenza</tipologia>
+<dataPubblicazione>09/11/2021</dataPubblicazione>
+</meta>
+<epigrafe><adunanza><h:div>Il Consiglio di Stato</h:div><h:div>in sede giurisdizionale (Adunanza Plenaria)</h:div></adunanza>
+<oggetto><h:div>per la riforma della sentenza del TAR Catania n. 504/2021</h:div></oggetto></epigrafe>
+<premessa><h:div>{"Le concessioni demaniali marittime sono prorogate ex lege. " * 1900}</h:div></premessa>
+<motivazione></motivazione>
+<dispositivo><h:div>{_AP17_PQM}</h:div></dispositivo>
+</Provvedimento></GA>
+""".encode()
+
+_PDF_BYTES = b"%PDF-1.7\n%\xb5\xb5\xb5\xb5\n1 0 obj\n<</Type/Catalog>>\nendobj\n5 0 obj\n<</Length 9>>\nstream\n\x00\x01\x02\nendstream\nendobj\n"
+
+
+class TestXmlMeta:
+    def test_reads_type_number_and_date_of_the_official_xml(self):
+        from src.lib.giustizia_amm.client import _parse_xml_meta
+
+        assert _parse_xml_meta(_MDP_XML_AP17) == {
+            "tipologia": "Sentenza",          # leading space stripped
+            "numero": "17/2021",              # n="00017" anno="2021"
+            "data_pubblicazione": "09/11/2021",
+        }
+
+    def test_meta_empty_for_pdf_and_error_page(self):
+        from src.lib.giustizia_amm.client import _parse_xml_meta
+
+        assert _parse_xml_meta(_PDF_BYTES) == {}
+        assert _parse_xml_meta(_MDP_404_PAGE) == {}
+
+    def test_is_pdf_by_signature(self):
+        from src.lib.giustizia_amm.client import is_pdf
+
+        assert is_pdf(_PDF_BYTES)
+        assert not is_pdf(_MDP_XML) and not is_pdf(_MDP_404_PAGE)
+
+    def test_parse_xml_text_never_returns_pdf_bytes_as_text(self):
+        assert _parse_xml_text(_PDF_BYTES) == ("", "")
+
+
+class TestDispositivoSurvivesTruncation:
+    _DISP = "P.Q.M. accoglie l'appello e annulla il provvedimento."
+
+    def _text(self, filler: int, disp: str | None = None) -> str:
+        return ("MOTIVAZIONE\n\n" + "a" * filler + "\n\nDISPOSITIVO\n\n" + (disp or self._DISP))
+
+    def test_long_text_keeps_head_omission_marker_and_whole_dispositivo(self):
+        text = self._text(106_000)
+        out = format_full("Title", text, "cds", "123")
+        assert out.count(self._DISP) == 1
+        assert "DISPOSITIVO\n\n" + self._DISP in out
+        assert "omissis" in out
+        # about the declared size, not the whole text
+        assert len(out) < 15_000 + 600
+        assert f"su {len(text)} totali" in out
+        assert "il DISPOSITIVO è riportato per intero" in out
+
+    def test_omitted_count_is_exact(self):
+        import re
+
+        text = self._text(50_000)
+        out = format_full("Title", text, "cds", "123")
+        omitted = int(re.search(r"omissis: (\d+) caratteri", out).group(1))
+        # the body follows the "**Sede**" line and a blank line
+        body = out.split("**Sede**: ", 1)[1].split("\n\n", 1)[1]
+        head_text = body.split("\n\n[... omissis")[0]
+        idx = text.rfind("\n\nDISPOSITIVO\n\n")
+        # kept head + omitted characters = everything that precedes the dispositivo
+        assert omitted > 0 and len(head_text) + omitted == idx
+
+    def test_oversized_dispositivo_is_capped_and_declared(self):
+        big = "P.Q.M. " + "x" * 9000
+        text = self._text(50_000, big)
+        out = format_full("Title", text, "cds", "123")
+        assert "il DISPOSITIVO è riportato per i primi 6000 caratteri su" in out
+        assert len(out) < 15_000 + 800
+
+    def test_text_without_dispositivo_is_cut_as_before(self):
+        out = format_full("Title", "a" * 16000, "cds", "123")
+        assert "omissis" not in out
+        assert "Testo troncato a 15000 caratteri su 16000 totali" in out
+
+    def test_short_text_is_untouched(self):
+        text = self._text(100)
+        out = format_full("Title", text, "cds", "123")
+        assert text in out and "troncato" not in out and "omissis" not in out
+
+
+class TestLeggiKeepsPqmAndDate:
+    @pytest.mark.asyncio
+    async def test_ap17_shape_pqm_and_publication_date_reach_the_reader(self):
+        with _patch_session(doc_bytes=_MDP_XML_AP17):
+            result = await _leggi_provvedimento_amm_impl("cds", "202105584", "202100017_11.html")
+        text = result.to_str()
+        assert result.success is True
+        assert "P.Q.M." in text and "enuncia i principi di diritto" in text
+        assert "**Estremi**: Sentenza n. 17/2021, pubblicata il 09/11/2021" in text
+        assert "**Sede**: Consiglio di Stato (cds) — NRG: 202105584" in text  # unchanged line
+        assert "(Adunanza Plenaria)" in text
+        assert "omissis" in text and "Testo troncato a 15000 caratteri su" in text
+
+    @pytest.mark.asyncio
+    async def test_short_xml_shows_its_estremi_too(self):
+        with _patch_session():
+            result = await _leggi_provvedimento_amm_impl("tar_rm", "202510565", "202614035_01.html")
+        assert "**Estremi**: Sentenza n. 14035/2026, pubblicata il 03/08/2026" in result.to_str()
+
+
+class TestLeggiPdfOnly:
+    @pytest.mark.asyncio
+    async def test_pdf_is_declared_not_dumped(self):
+        with _patch_session(doc_bytes=_PDF_BYTES):
+            result = await _leggi_provvedimento_amm_impl("cds", "202508523", "202606915_11.pdf")
+        text = result.to_str()
+        assert result.success is False
+        assert result.error_type == "pdf_only"
+        assert "%PDF-" not in text and "endobj" not in text
+        assert "solo in formato PDF" in text
+        # the official document is one click away
+        assert "schema=cds" in text and "nomeFile=202606915_11.pdf" in text
+        assert "mdp.giustizia-amministrativa.it/visualizza/" in text
+
+    @pytest.mark.asyncio
+    async def test_error_page_keeps_its_own_message(self):
+        with _patch_session(doc_bytes=_MDP_404_PAGE):
+            result = await _leggi_provvedimento_amm_impl("cds", "202500000", "202500000_01.html")
+        assert result.error_type == "no_results"
+        assert "pagina di errore" in result.to_str()
+
+
+# ---------------------------------------------------------------------------
 # Live tests — hit the real portal. Run with: pytest -m live
 # These are the guard-rail for issue #32: a silent endpoint move must fail here.
 # ---------------------------------------------------------------------------
@@ -664,11 +942,17 @@ async def test_live_search_returns_results():
 async def test_live_full_text_roundtrip():
     from src.lib.giustizia_amm.client import fetch_provvedimento_text, search_provvedimenti
 
-    docs = await search_provvedimenti(query="silenzio assenso", rows=5)
+    docs = await search_provvedimenti(query="silenzio assenso", rows=20)
     assert docs
-    doc = docs[0]
+    # PDF-only provvedimenti (about 30% of the latest CdS ones) have no XML text:
+    # the roundtrip is about the XML ones. Before phase 3 this test also passed on
+    # the raw bytes of a PDF, which is why it now rejects them explicitly.
+    xml_docs = [d for d in docs if d.nome_file.endswith(".html")]
+    assert xml_docs, f"nessun provvedimento XML tra i risultati: {[d.nome_file for d in docs]}"
+    doc = xml_docs[0]
     title, body = await fetch_provvedimento_text(doc.sede, doc.nrg, doc.nome_file)
     assert len(body) > 500, f"testo troppo corto: {body[:200]!r}"
+    assert "%PDF-" not in body and "endobj" not in body
 
 
 @pytest.mark.live

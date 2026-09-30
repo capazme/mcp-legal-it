@@ -13,7 +13,7 @@ _SKIP_REASON = "Site uses 2025 IRPEF rates (35%); our tool correctly applies 202
 def _fill_and_calc(page, reddito):
     goto(page, "calcolo-irpef.php")
 
-    # Use JS form.submit() — field name is RedditoComplessivoIrpef
+    # Use JS form.submit() - field name is RedditoComplessivoIrpef
     page.evaluate(f"""() => {{
         const f = document.getElementById('CalcoloIrpef');
         f.RedditoComplessivoIrpef.value = '{int(reddito)}';

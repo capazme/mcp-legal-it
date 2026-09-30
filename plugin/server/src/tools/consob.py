@@ -11,6 +11,7 @@ from src.lib.consob.client import (
     fetch_delibera,
     format_full,
     format_result,
+    is_delibera,
     search_delibere,
 )
 
@@ -60,7 +61,12 @@ async def _cerca_delibere_consob_impl(
     if not docs:
         return f"Nessuna delibera CONSOB trovata per: _{query}_"
 
-    lines = [f"**Trovate {len(docs)} delibere CONSOB per**: _{query}_\n"]
+    # The Bollettino also lists comunicazioni, richiami di attenzione and avvisi: say so
+    # instead of calling every hit a "delibera".
+    if all(is_delibera(d) for d in docs):
+        lines = [f"**Trovate {len(docs)} delibere CONSOB per**: _{query}_\n"]
+    else:
+        lines = [f"**Trovati {len(docs)} documenti del Bollettino CONSOB per**: _{query}_\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
@@ -96,7 +102,10 @@ async def _ultime_delibere_consob_impl(
     if not docs:
         return "Nessuna delibera CONSOB recente trovata."
 
-    lines = ["**Ultime delibere CONSOB**\n"]
+    if all(is_delibera(d) for d in docs):
+        lines = ["**Ultime delibere CONSOB**\n"]
+    else:
+        lines = ["**Ultimi documenti del Bollettino CONSOB**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
@@ -121,7 +130,13 @@ async def cerca_delibere_consob(
     USARE quando si parla di: delibere CONSOB, sanzioni mercati finanziari, abusi di mercato,
     intermediari, emittenti, OPA, crowdfunding, cripto-attivita, regolamenti CONSOB.
     Dopo aver trovato una delibera, usare leggi_delibera_consob() per il testo completo.
-    Restituisce: lista delibere con numero, titolo, data e link.
+    Restituisce: lista di documenti del Bollettino con tipo effettivo (Delibera, Comunicazione,
+    Richiamo di attenzione, Avviso...), numero completo (es. "13/25"), titolo, data e link
+    alla pagina reale del documento. Solo le delibere si leggono con leggi_delibera_consob():
+    per gli altri documenti il testo e' alla pagina del link.
+    Avvertenza: il filtro argomento segue la tassonomia del Bollettino, che non e' applicata in modo
+    uniforme (es. "abusi_di_mercato" non e' assegnato ai documenti dopo il 2017): per i temi recenti
+    usare la ricerca testuale in query e i filtri di data.
 
     Args:
         query: Testo da cercare (es. "abusi di mercato", "sanzione intermediario", "OPA")
@@ -162,7 +177,9 @@ async def ultime_delibere_consob(
     """Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale.
 
     Dopo questo tool: leggi_delibera_consob() con il numero per il testo completo.
-    Restituisce: lista cronologica delle ultime delibere con numero, titolo e data.
+    Restituisce: lista dei documenti piu' recenti del Bollettino, in ordine di data di pubblicazione
+    decrescente (non di data dell'atto), con tipo effettivo (Delibera, Comunicazione, Richiamo di
+    attenzione, Avviso...), numero completo, titolo, date e link alla pagina reale del documento.
 
     Args:
         tipologia: Filtra per tipo (es. "delibere", "comunicazioni", "provvedimenti_urgenti")

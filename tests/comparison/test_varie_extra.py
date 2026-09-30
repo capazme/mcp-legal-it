@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 12 — Applicazioni Varie (extra tools)."""
+"""Arithmetic verification tests for Sezione 12 - Applicazioni Varie (extra tools)."""
 
 from tests.comparison.conftest import assert_close
 

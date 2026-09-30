@@ -23,12 +23,14 @@ class TestRivalutazioneMonetaria:
             data_fine="2020-01-01",
             con_interessi_legali=False,
         )
-        # FOI 2000/01=81.3, 2020/01=102.7 => coeff=1.263223
+        # ISTAT FOI nt 2000/01 = 110.5 (base 1995), 2020/01 = 102.7 (base 2015);
+        # ISTAT note NM_variazioni_coefficienti: raccordo 1995>2010 = 1,373, 2010>2015 = 1,071
+        # => coeff = 102.7 / 110.5 * 1,373 * 1,071 = 1.366684 (foi_inizio in base 2015 = 75.1454)
         assert result["capitale_originario"] == 100.0
-        assert result["foi_inizio"] == pytest.approx(81.3)
+        assert result["foi_inizio"] == pytest.approx(75.1454, rel=1e-4)
         assert result["foi_fine"] == pytest.approx(102.7)
-        assert result["coefficiente_rivalutazione"] == pytest.approx(1.263223, rel=1e-4)
-        assert result["capitale_rivalutato"] == pytest.approx(126.32, abs=0.01)
+        assert result["coefficiente_rivalutazione"] == pytest.approx(1.366684, rel=1e-4)
+        assert result["capitale_rivalutato"] == pytest.approx(136.67, abs=0.01)
         assert "totale_interessi_legali" not in result
 
     def test_happy_path_con_interessi(self):
@@ -42,8 +44,9 @@ class TestRivalutazioneMonetaria:
         assert "totale_interessi_legali" in result
         assert "totale_dovuto" in result
         assert result["totale_dovuto"] > result["capitale_rivalutato"]
-        # FOI 2015/01=99.7, 2025/01=120.9 (GU n.43 del 21-2-2026) => 1000*120.9/99.7
-        assert result["capitale_rivalutato"] == pytest.approx(1212.64, abs=0.5)
+        # ISTAT FOI nt 2015/01 = 106.5 (base 2010, raccordo 1,071 => 99.4398 in base 2015),
+        # 2025/01 = 120.9 (GU n.43 del 21-2-2026) => 1000 * 120.9 / 99.4398 = 1215.81
+        assert result["capitale_rivalutato"] == pytest.approx(1215.81, abs=0.5)
 
     def test_dettaglio_anni_populated(self):
         result = _call(
@@ -140,7 +143,9 @@ class TestRivalutazioneMensile:
         )
         assert result["numero_mensilita"] == 4
         assert result["totale_nominale"] == pytest.approx(1200.0)
-        assert result["totale_rivalutato"] > result["totale_nominale"]
+        # ISTAT FOI nt nov 2019 = 102.3, dic = 102.5, gen 2020 = 102.7, feb = 102.5:
+        # 300 * (102.5/102.3 + 1 + 102.5/102.7 + 1) = 1200.00 (the January drop offsets November)
+        assert result["totale_rivalutato"] == pytest.approx(1200.00, abs=0.01)
 
     def test_error_date_invertite(self):
         result = _call(
@@ -182,7 +187,8 @@ class TestRivalutazioneMensile:
 
 class TestAdeguamentoCanoneLocazione:
     def test_happy_path_75pct(self):
-        # FOI 2010/01=95.0, 2020/01=102.7 => var_piena=8.105%, var_75=6.079%
+        # ISTAT FOI nt 2010/01 = 136.0 (base 1995), 2020/01 = 102.7 (base 2015), raccordi 1,373 e 1,071:
+        # var_piena = 102.7 / 136.0 * 1,373 * 1,071 - 1 = 11.043%, var_75 = 8.282%
         result = _call(
             "adeguamento_canone_locazione",
             canone_annuo=10000.0,
@@ -190,8 +196,8 @@ class TestAdeguamentoCanoneLocazione:
             data_adeguamento="2020-01-01",
             percentuale_istat=75.0,
         )
-        assert result["canone_annuo_aggiornato"] == pytest.approx(10607.89, abs=0.5)
-        assert result["canone_mensile_aggiornato"] == pytest.approx(10607.89 / 12, abs=0.1)
+        assert result["canone_annuo_aggiornato"] == pytest.approx(10828.23, abs=0.5)
+        assert result["canone_mensile_aggiornato"] == pytest.approx(10828.23 / 12, abs=0.1)
         assert result["percentuale_istat_applicata"] == 75.0
         assert "L. 392/1978" in result["riferimento_normativo"]
 
@@ -203,7 +209,7 @@ class TestAdeguamentoCanoneLocazione:
             data_adeguamento="2020-01-01",
             percentuale_istat=100.0,
         )
-        assert result["canone_annuo_aggiornato"] == pytest.approx(10810.53, abs=0.5)
+        assert result["canone_annuo_aggiornato"] == pytest.approx(11104.31, abs=0.5)
 
     def test_canone_mensile_originario(self):
         result = _call(
@@ -253,14 +259,15 @@ class TestAdeguamentoCanoneLocazione:
 
 class TestCalcoloInflazione:
     def test_happy_path(self):
-        # FOI 2000/01=81.3, 2020/01=102.7 => var=26.32%
+        # ISTAT FOI nt 2000/01 = 110.5 (base 1995), 2020/01 = 102.7 (base 2015), raccordi 1,373 e 1,071
+        # => var = 102.7 / 110.5 * 1,373 * 1,071 - 1 = 36.67%
         result = _call(
             "calcolo_inflazione",
             data_inizio="2000-01-01",
             data_fine="2020-01-01",
         )
-        assert result["variazione_percentuale"] == pytest.approx(26.32, abs=0.05)
-        assert result["coefficiente_rivalutazione"] == pytest.approx(1.263223, rel=1e-4)
+        assert result["variazione_percentuale"] == pytest.approx(36.67, abs=0.05)
+        assert result["coefficiente_rivalutazione"] == pytest.approx(1.366684, rel=1e-4)
         assert result["base_indici"] == "2015=100"
         assert "esempio" in result
 
@@ -316,7 +323,14 @@ class TestRivalutazioneTfr:
         assert result["anno_inizio"] == 2018
         assert result["anno_cessazione"] == 2021
         assert len(result["dettaglio_anni"]) == 3
-        assert result["tfr_lordo"] == pytest.approx(6795.34, abs=1.0)
+        # art. 2120 co. 4 c.c., ISTAT FOI nt December/December (base 2015): 2018 102.1, 2019 102.5,
+        # 2020 102.3. 2018: no revaluation (fund empty at 31/12/2017), fund 2222.22.
+        # 2019: 1.5% + 75% x 0.392% = 1.794% on 2222.22 = 39.86, substitute tax 17% = 6.78,
+        #       fund 2222.22 + 39.86 - 6.78 + 2222.22 = 4477.52.
+        # 2020: the index falls (-0.195%): no increase, so the variable part is zero and the rate is
+        #       the fixed 1.5% on 4477.52 = 67.16, tax 11.42, fund 6755.48.
+        # tfr_lordo is the fund before the substitute tax: 6755.48 + 6.78 + 11.42 = 6773.68.
+        assert result["tfr_lordo"] == pytest.approx(6773.68, abs=0.05)
         assert result["imposta_sostitutiva_17_pct"] == pytest.approx(
             result["totale_rivalutazioni"] * 0.17, abs=0.01
         )
@@ -550,15 +564,16 @@ class TestLetteraAdeguamentoCanone:
 
 class TestCalcoloDevalutazione:
     def test_happy_path(self):
-        # FOI 2020/01=102.7, FOI 2000/01=81.3 => coeff=81.3/102.7=0.791626
+        # ISTAT FOI nt 2020/01 = 102.7 (base 2015), 2000/01 = 110.5 (base 1995 => 75.1454 in base 2015,
+        # raccordi 1,373 e 1,071) => coeff = 75.1454 / 102.7 = 0.731698
         result = _call(
             "calcolo_devalutazione",
             importo_attuale=1000.0,
             data_attuale="2020-01-01",
             data_passata="2000-01-01",
         )
-        assert result["coefficiente_devalutazione"] == pytest.approx(0.791626, rel=1e-4)
-        assert result["importo_in_data_passata"] == pytest.approx(791.63, abs=0.05)
+        assert result["coefficiente_devalutazione"] == pytest.approx(0.731698, rel=1e-4)
+        assert result["importo_in_data_passata"] == pytest.approx(731.70, abs=0.05)
         assert result["perdita_potere_acquisto_pct"] > 0
         assert "esempio" in result
 
@@ -617,15 +632,17 @@ class TestCalcoloDevalutazione:
 
 class TestRivalutazioneStoica:
     def test_happy_path(self):
-        # media 2000=82.69, media 2020=102.33 => coeff=1.237529
+        # ISTAT annual means (rounded to 1 decimal): 2000 = 112.1 (base 1995), 2020 = 102.3 (base 2015)
+        # => coeff = 102.3 / 112.1 * 1,373 * 1,071 = 1.3419; the tool averages the unrounded monthly
+        # indices (1.3430), a 0.08% convention gap, hence the 1.5 euro tolerance on 1000
         result = _call(
             "rivalutazione_storica",
             importo=1000.0,
             anno_partenza=2000,
             anno_arrivo=2020,
         )
-        assert result["importo_rivalutato"] == pytest.approx(1237.53, abs=0.5)
-        assert result["coefficiente_rivalutazione"] == pytest.approx(1.237529, rel=1e-3)
+        assert result["importo_rivalutato"] == pytest.approx(1341.93, abs=1.5)
+        assert result["coefficiente_rivalutazione"] == pytest.approx(1.34193, rel=1e-3)
         assert result["differenza"] == pytest.approx(
             result["importo_rivalutato"] - 1000.0, abs=0.01
         )
@@ -750,10 +767,11 @@ class TestRivalutazioneAnnualeMedia:
             data_inizio="2000-06-15",
             data_fine="2020-06-15",
         )
-        # uses only years 2000 and 2020
+        # uses only years 2000 and 2020; ISTAT annual means 112.1 (base 1995) and 102.3 (base 2015),
+        # raccordi 1,373 e 1,071 => 1341.93 (tool 1342.97: unrounded means, see rivalutazione_storica)
         assert result["anno_inizio"] == 2000
         assert result["anno_fine"] == 2020
-        assert result["importo_rivalutato"] == pytest.approx(1237.53, abs=0.5)
+        assert result["importo_rivalutato"] == pytest.approx(1341.93, abs=1.5)
         assert "Calcolo basato su media annua FOI" in result["nota"]
 
     def test_differenza_coerente(self):
@@ -1056,8 +1074,9 @@ class TestAdeguamentoCanoneRaccordo:
             data_adeguamento="2024-01-01",
             percentuale_istat=100.0,
         )
-        # (119.3-118.3)/118.3 = 0.845 -> 0.85, nessuna nota di raccordo
-        assert result["variazione_foi_piena_pct"] == pytest.approx(0.85, abs=0.01)
+        # (119.3-118.3)/118.3 = 0.845 -> 0.8: the variation published by ISTAT in the GU
+        # (art. 81 L. 392/1978) has one decimal; no raccordo note
+        assert result["variazione_foi_piena_pct"] == pytest.approx(0.8, abs=0.001)
         assert "calcolata" in result["metodo_variazione"]
         assert result["nota"] is None
 
@@ -1160,7 +1179,8 @@ class TestAvvertenzaIndiceMancante:
 
     def test_adeguamento_mese_non_pubblicato(self):
         # 07/2026 non pubblicato: niente variazione ufficiale, serie raccordata
-        # con fallback su 06/2026 (124.8): (124.8-121.8)/121.8 = 2.46
+        # con fallback su 06/2026 (124.8): (124.8-121.8)/121.8 = 2.46, published with one
+        # decimal in the GU communiqués (art. 81 L. 392/1978) => 2.5
         r = _call(
             "adeguamento_canone_locazione",
             canone_annuo=12000.0,
@@ -1168,7 +1188,7 @@ class TestAvvertenzaIndiceMancante:
             data_adeguamento="2026-07-01",
             percentuale_istat=100.0,
         )
-        assert r["variazione_foi_piena_pct"] == pytest.approx(2.46, abs=0.01)
+        assert r["variazione_foi_piena_pct"] == pytest.approx(2.5, abs=0.001)
         assert "calcolata" in r["metodo_variazione"]
         assert "raccord" in r["nota"].lower()
         assert "07/2026" in r["avvertenza"]
@@ -1297,7 +1317,7 @@ class TestAvvertenzaIndiceMancante:
         assert "06/2026" in r["avvertenza"]
 
     def test_anno_fuori_serie_errore_esplicito(self):
-        # la serie parte dal 1990: oltre 1 anno di distanza niente approssimazione
+        # la serie parte dal 1996: oltre 1 anno di distanza niente approssimazione
         # silenziosa (inghiottirebbe anni di inflazione) — errore esplicito
         r = _call(
             "rivalutazione_monetaria",
@@ -1365,3 +1385,114 @@ class TestAvvertenzaMediaParziale:
         )
         assert "anno 2026 parziale" in r["avvertenza"]
         assert "primi 6 mesi" in r["avvertenza"]
+
+
+class TestSerieFoiRaccordoIstat:
+    """The FOI series is the ISTAT one in the original bases, spliced with the official coefficients
+    (ISTAT note "Indice dei prezzi per le rivalutazioni monetarie": 1989>1992 1,189; 1992>1995 1,141;
+    1995>2010 1,373; 2010>2015 1,071; Cst 1,0009 across February 1992)."""
+
+    def test_esempio_4_istat_gennaio_1991_gennaio_2016(self):
+        # ISTAT worked example 4: CRM = 99.7/110.0 * 1,189 * 1,141 * 1,373 * 1,071 * 1,0009 = 1.810
+        r = _call("calcolo_inflazione", data_inizio="1991-01-01", data_fine="2016-01-01")
+        assert r["coefficiente_rivalutazione"] == pytest.approx(1.810, abs=5e-4)
+        assert r["variazione_percentuale"] == pytest.approx(81.0, abs=0.05)
+
+    def test_esempio_3_istat_gennaio_2009_gennaio_2016(self):
+        # ISTAT worked example 3: CRM = 99.7/134.2 * 1,373 * 1,071 = 1.092
+        r = _call("calcolo_inflazione", data_inizio="2009-01-01", data_fine="2016-01-01")
+        assert r["coefficiente_rivalutazione"] == pytest.approx(1.092, abs=5e-4)
+        assert r["variazione_percentuale"] == pytest.approx(9.2, abs=0.06)  # unrounded 9.2465%, ISTAT prints 9.2
+
+    def test_inflazione_dicembre_2013_dicembre_2023(self):
+        # Dec 2013 = 107.1 (base 2010, /1,071 = 100.0); Dec 2023 = 118.9 => +18.9%
+        r = _call("calcolo_inflazione", data_inizio="2013-12-01", data_fine="2023-12-01")
+        assert r["variazione_percentuale"] == pytest.approx(18.9, abs=0.05)
+
+    def test_inflazione_giugno_2011_giugno_2016(self):
+        # Jun 2011 = 102.6 (base 2010, /1,071 = 95.798); Jun 2016 = 99.9 => +4.28%
+        r = _call("calcolo_inflazione", data_inizio="2011-06-01", data_fine="2016-06-01")
+        assert r["variazione_percentuale"] == pytest.approx(4.28, abs=0.05)
+
+    def test_inflazione_giugno_1995_giugno_2005(self):
+        # Jun 1995 = 114.4 (base 1992, /(1,141*1,373*1,071)); Jun 2005 = 125.3 (base 1995,
+        # /(1,373*1,071)) => +24.96%
+        r = _call("calcolo_inflazione", data_inizio="1995-06-01", data_fine="2005-06-01")
+        assert r["variazione_percentuale"] == pytest.approx(24.96, abs=0.05)
+
+    def test_inflazione_gennaio_2016_dicembre_2020(self):
+        # Jan 2016 = 99.7 (ISTAT, base 2015), Dec 2020 = 102.3 => +2.61%
+        r = _call("calcolo_inflazione", data_inizio="2016-01-01", data_fine="2020-12-01")
+        assert r["variazione_percentuale"] == pytest.approx(2.61, abs=0.005)
+
+    def test_devalutazione_dicembre_2023_dicembre_2013(self):
+        # 10000 * 100.0 / 118.9 = 8410.43 (Dec 2013 = 107.1/1,071 = 100.0)
+        r = _call(
+            "calcolo_devalutazione",
+            importo_attuale=10000.0,
+            data_attuale="2023-12-01",
+            data_passata="2013-12-01",
+        )
+        assert r["importo_in_data_passata"] == pytest.approx(8410.43, abs=0.05)
+
+    def test_devalutazione_dicembre_2010_dicembre_2012(self):
+        # Dec 2012 = 106.5 (base 2010, /1,071 = 99.440); Dec 2010 = 138.4 (base 1995, /(1,373*1,071)
+        # = 94.117) => 10000 * 94.117 / 99.440 = 9464.7 (linked series, not the 2010 base alone)
+        r = _call(
+            "calcolo_devalutazione",
+            importo_attuale=10000.0,
+            data_attuale="2012-12-01",
+            data_passata="2010-12-01",
+        )
+        assert r["importo_in_data_passata"] == pytest.approx(9464.7, abs=0.5)
+
+    def test_devalutazione_gennaio_1990(self):
+        # Jan 1990 = 103.3 (base 1989, with tobacco: FOI nt not yet produced before Feb 1992),
+        # divided by 1,189*1,141*1,373*1,071*1,0009 = 51.73; Aug 2026 = 103.7 * 1,214 = 125.9
+        # => 10000 * 51.7347 / 125.9 = 4109.2
+        r = _call(
+            "calcolo_devalutazione",
+            importo_attuale=10000.0,
+            data_attuale="2026-08-01",
+            data_passata="1990-01-01",
+        )
+        assert r["importo_in_data_passata"] == pytest.approx(4109.2, abs=1.0)
+
+    def test_annuale_media_2011_2013(self):
+        # ISTAT annual means base 2010: 2011 = 102.7, 2013 = 107.0 => 10000 * 107.0 / 102.7 = 10418.7
+        # (the tool uses unrounded monthly means: 6 euro tolerance covers the rounding of the ISTAT means)
+        r = _call(
+            "rivalutazione_annuale_media",
+            importo=10000.0,
+            data_inizio="2011-01-01",
+            data_fine="2013-01-01",
+        )
+        assert r["importo_rivalutato"] == pytest.approx(10000 * 107.0 / 102.7, abs=6.0)
+
+
+class TestInteressiVariGiorniUltimoAnno:
+    def test_anno_intero_365_giorni(self):
+        # art. 2963 c.c.: dies a quo (31/12/2024) excluded, dies ad quem (31/12/2025) included:
+        # the period 31/12/2024 to 31/12/2025 is 365 days, 1 January 2025 counted.
+        # ISTAT FOI nt Dec 2024 = 120.2, Dec 2025 = 121.5 => 10000 * 121.5 / 120.2 = 10108.15;
+        # interest 10108.15 * 5% * 365/365 = 505.41 (the old count of 364 days gave 504.02)
+        r = _call(
+            "interessi_vari_capitale_rivalutato",
+            capitale=10000.0,
+            data_inizio="2024-12-31",
+            data_fine="2025-12-31",
+            tasso_personalizzato=5.0,
+        )
+        assert r["capitale_rivalutato"] == pytest.approx(10108.15, abs=0.01)
+        assert r["dettaglio_anni"][-1]["giorni"] == 365
+        assert r["totale_interessi"] == pytest.approx(505.41, abs=0.02)
+
+    def test_giorni_dei_segmenti_sommano_al_periodo(self):
+        # 10/06/2025 to 10/06/2026 = 365 days: 204 in 2025 (to 31/12) + 161 in 2026
+        r = _call(
+            "interessi_vari_capitale_rivalutato",
+            capitale=10000.0,
+            data_inizio="2025-06-10",
+            data_fine="2026-06-10",
+        )
+        assert [d["giorni"] for d in r["dettaglio_anni"]] == [204, 161]

@@ -39,15 +39,32 @@ TIPO_PROV = {"sentenza": "Sentenza", "ordinanza": "Ordinanza", "decreto": "Decre
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 _MAX_OCR_LENGTH = 30000
+# Long decisions keep their head (parties, facts) AND their tail: the holding (rigetto,
+# accoglimento, principio di diritto, P.Q.M.) sits at the end of the OCR text, and for many
+# decisions the `ocrdis` field is empty at the source, so a head-only cut loses the decision.
+_OCR_HEAD_LENGTH = 12000
+_OCR_TAIL_LENGTH = _MAX_OCR_LENGTH - _OCR_HEAD_LENGTH
+
+# The public SentenzeWeb archive is a rolling window of about five years, NOT "2020+":
+# read 2026-09-25, no decision of 2020 exists, the oldest civil decision is of 17/02/2021 and
+# the continuous coverage starts on 27/09/2021.
+ARCHIVE_START_YEAR = 2021
+ARCHIVE_WINDOW_NOTE = (
+    "l'archivio pubblico SentenzeWeb è una finestra mobile di circa cinque anni "
+    "(a settembre 2026 le decisioni depositate dal 27/09/2021 in poi): le decisioni "
+    "anteriori non sono consultabili"
+)
 
 _FACET_FIELDS = ["materia", "szdec", "anno", "tipoprov"]
 
 # Textual signals a decision uses to FLAG a divergence in the case law.
 # These are SELF-DECLARED markers in the decision text — NOT a holding classifier.
+# "discostarsi" is deliberately NOT a signal: in the decisions it appears mostly in the negated
+# formula "non vi sono ragioni per discostarsi", which declares conformity (read 2026-09-25: 13 of
+# the 22 decisions on art. 1419 c.c., 65% of the civil archive).
 CONFLICT_SIGNALS = [
     "contrasto giurisprudenziale",
     "difforme orientamento",
-    "discostarsi",
 ]
 # Textual signals a decision uses to ALIGN with settled case law.
 CONFORMITY_SIGNALS = [
@@ -67,6 +84,7 @@ _SEZIONI = {
     "T": "trib.",
     "SU": "SS.UU.",
     "U": "sez. un.",
+    "F": "fer.",
 }
 
 _TIPO_LABELS = {
@@ -106,6 +124,56 @@ _TIPI_ATTO = {
 
 def get_kind_filter(archivio: str) -> list[str]:
     return _KIND_FILTER.get(archivio, _KIND_FILTER["tutti"])
+
+
+# Section codes of the `szdec` field, read from the index facet on 2026-09-25: 1-7 (simple
+# sections, 7 = sez. VII penale), L (lavoro), U (Sezioni Unite), F (feriale). "SU" and "T" do
+# not exist in the index: tributaria is civil section 5.
+VALID_SEZIONI = ("1", "2", "3", "4", "5", "6", "7", "L", "U", "F")
+_SEZIONE_ALIAS = {
+    "SU": "U", "SSUU": "U", "S.U.": "U", "SS.UU.": "U", "UNITE": "U", "SEZIONIUNITE": "U",
+    "T": "5", "TRIB": "5", "TRIBUTARIA": "5",
+    "LAV": "L", "LAVORO": "L",
+    "FER": "F", "FERIALE": "F",
+    "I": "1", "II": "2", "III": "3", "IV": "4", "V": "5", "VI": "6", "VII": "7",
+}
+_TRIBUTARIA_KEYS = ("T", "TRIB", "TRIBUTARIA")
+
+
+def resolve_sezione(sezione: str | None, archivio: str = "tutti") -> tuple[str, str]:
+    """Map a user-facing section token to the `szdec` code and the effective archive.
+
+    Accepts the documented spellings (SU, T, L, roman numerals) and the index codes
+    (1-7, L, U, F). "T" (tributaria) is civil section 5, so with archivio="tutti" the
+    search is narrowed to the civil archive. Raises ValueError, listing the valid codes,
+    for anything else: an unknown code would otherwise match nothing and read as "no
+    decisions found".
+    """
+    raw = (sezione or "").strip()
+    if not raw:
+        return "", archivio
+    key = raw.upper().replace(" ", "")
+    code = _SEZIONE_ALIAS.get(key, key)
+    if code not in VALID_SEZIONI:
+        raise ValueError(
+            f"Sezione '{raw}' non valida. Codici ammessi: 1-7 (sezioni semplici, 7 = sez. VII penale), "
+            "L (lavoro), U (Sezioni Unite, anche SU), F (feriale); T = tributaria = sezione 5 civile."
+        )
+    if key in _TRIBUTARIA_KEYS:
+        if archivio == "penale":
+            raise ValueError("La sezione tributaria (T) è solo civile: usare archivio 'civile' o 'tutti'.")
+        archivio = "civile"
+    return code, archivio
+
+
+def quote_fq_value(value: str) -> str:
+    """Quote a free-text filter value as one Solr phrase (escaping backslash and double quote).
+
+    Unquoted, `materia:responsabilita' civile` binds only the first word to the field and
+    the second is searched in the default field, so the filter widens instead of narrowing.
+    """
+    escaped = value.strip().replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
 
 
 def _first(val) -> str:
@@ -173,6 +241,7 @@ def build_search_params(
     campo: str = "tutto",
     include_facets: bool = False,
     mm: str | None = None,
+    fq_extra: list[str] | None = None,
 ) -> dict:
     """Build eDisMax params for full-text search.
 
@@ -180,6 +249,7 @@ def build_search_params(
     campo: "tutto" (ocrdis+ocr, default) or "dispositivo" (solo ocrdis).
     include_facets: if True, adds facet params for materia/szdec/anno/tipoprov.
     mm: override minimum-should-match (default "2<75% 5<60%").
+    fq_extra: extra filter queries, AND-ed in verbatim (e.g. an article anchor).
     """
     kinds = get_kind_filter(archivio)
     kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
@@ -209,7 +279,7 @@ def build_search_params(
         "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind,score",
     }
     if materia:
-        params["fq"].append(f"materia:{materia}")
+        params["fq"].append(f"materia:{quote_fq_value(materia)}")
     if sezione:
         params["fq"].append(f"szdec:{sezione}")
     if solo_sezioni_unite:
@@ -222,6 +292,8 @@ def build_search_params(
         params["fq"].append(f"anno:[{anno_da} TO *]")
     elif anno_a:
         params["fq"].append(f"anno:[* TO {anno_a}]")
+    if fq_extra:
+        params["fq"].extend(fq_extra)
     if include_facets:
         params["facet"] = "true"
         params["facet.field"] = _FACET_FIELDS
@@ -272,6 +344,15 @@ def _signal_facet_query(phrase: str) -> str:
     return f'ocr:"{phrase}"'
 
 
+def group_signal_facet_query(phrases: list[str]) -> str:
+    """Return the facet.query counting DISTINCT decisions that use ANY phrase of a group.
+
+    Summing the per-phrase counts counts twice every decision that uses two of the
+    expressions; a single OR query counts each decision once.
+    """
+    return "ocr:(" + " OR ".join(f'"{p}"' for p in phrases) + ")"
+
+
 def build_orientamento_params(
     q: str,
     archivio: str = "tutti",
@@ -280,6 +361,8 @@ def build_orientamento_params(
     rows: int = 10,
     campo: str = "tutto",
     field_query: bool = False,
+    sort: str = "pd desc",
+    mm: str | None = None,
 ) -> dict:
     """Build ONE faceted query for a descriptive orientation map.
 
@@ -304,6 +387,9 @@ def build_orientamento_params(
 
     *q* is passed verbatim (caller normalises / builds variants). *campo*
     "dispositivo" narrows the qf to the operative part (free-text mode only).
+    *sort* is "pd desc" (default) or a relevance sort such as "score desc" (free-text mode
+    only: a fielded lucene query has no meaningful score); *mm* overrides the edismax
+    minimum-should-match (free-text mode only, default "2<75% 5<60%").
     Faceting (incl. facet.query) is independent of defType, so it works in both
     modes. Never issues N separate requests.
     """
@@ -312,12 +398,13 @@ def build_orientamento_params(
     facet_queries = (
         [_signal_facet_query(p) for p in CONFLICT_SIGNALS]
         + [_signal_facet_query(p) for p in CONFORMITY_SIGNALS]
+        + [group_signal_facet_query(CONFLICT_SIGNALS), group_signal_facet_query(CONFORMITY_SIGNALS)]
     )
     params: dict = {
         "rows": rows,
         "start": 0,
-        "sort": "pd desc",
-        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
+        "sort": "pd desc" if field_query else sort,
+        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind,score",
         "facet": "true",
         "facet.field": ["szdec", "anno"],
         "facet.limit": 30,
@@ -338,8 +425,14 @@ def build_orientamento_params(
             "defType": "edismax",
             "q": q,
             "qf": qf,
-            "mm": "2<75% 5<60%",
+            "mm": mm or "2<75% 5<60%",
         })
+        if sort.startswith("score"):
+            # Phrase boosts only reorder the score: the decisions that use the principle's
+            # words together outrank those that merely share a few of them.
+            params.update({
+                "pf": "ocrdis^10 ocr^3", "pf2": "ocrdis^6 ocr^2", "pf3": "ocrdis^4 ocr^1",
+            })
         fq = [f"({kind_clause})"]
     if sezione:
         fq.append(f"szdec:{sezione}")
@@ -401,8 +494,61 @@ def build_lookup_params(
     }
 
 
-def build_norma_variants(riferimento: str) -> str:
-    """Convert 'art. 2043 c.c.' to Solr OR query with common text variants."""
+# Slop of the proximity phrases that tie an article number to the act it belongs to:
+# "art. 13 ... 2016/679" within this many tokens. Read on Italgiure 2026-09-29 (civile, dal 2021,
+# art. 13 GDPR): slop 5 -> 5 decisions (4 cite art. 13 of the Regulation within 250 characters),
+# slop 15 -> 7 (5), slop 30 -> 10 (5); AND-ing the article with the act anywhere in the decision
+# gave 47 decisions of which 1 pertinent, the bare "art. 13" 12966 in 2022 alone.
+_NORMA_PROXIMITY = 15
+
+
+def _act_identity_markers(rest: str) -> list[str]:
+    """Plain phrases that identify the ACT named after the article number.
+
+    "231/2001" -> "231/2001", "2001/231", "231 del 2001" (the form in the text depends on the
+    source: "regolamento (UE) 2016/679", "n. 679/2016", "679 del 2016"). When the reference
+    carries no number (e.g. "GDPR", "statuto dei lavoratori") the act is resolved by name and the
+    name itself is also a marker.
+    """
+    markers: list[str] = []
+    pair = re.search(r"(\d+)\s*(?:/|del)\s*(\d{2,4})", rest)
+    if pair:
+        a, b = pair.group(1), pair.group(2)
+    else:
+        a = b = ""
+        try:  # lazy: keeps the client free of a hard import-time dependency on visualex
+            from src.lib.visualex import resolve_atto
+
+            atto = resolve_atto(rest) or {}
+        except Exception:  # noqa: BLE001 - identity by number is best effort
+            atto = {}
+        numero = str(atto.get("numero_atto") or "")
+        anno = str(atto.get("data") or "")[:4]
+        if numero.isdigit() and anno.isdigit():
+            a, b = numero, anno
+    if a and b:
+        markers += [f"{a}/{b}", f"{b}/{a}", f"{a} del {b}"]
+    if not any(ch.isdigit() for ch in rest):
+        markers.append(rest)
+    return list(dict.fromkeys(markers))
+
+
+def build_norma_variants(riferimento: str, strict: bool = False) -> str:
+    """Convert 'art. 2043 c.c.' to a Solr query with common text variants.
+
+    Codes ('art. 2043 c.c.'): the bare "art. N" / "articolo N" plus the code-qualified forms
+    ("2043 c.c.", "2043 cod. civ.", ...). With *strict* the bare forms are dropped, leaving
+    only the code-qualified ones (used to ANCHOR a search to one article).
+
+    Acts ('art. 13 GDPR', 'art. 6 D.Lgs. 231/2001'): the bare forms are NOT ORed in, because
+    they match every decision that cites ANY article N (art. 13 co. 1-quater d.P.R. 115/2002
+    sits in almost every dispositivo). The article is tied to the act by a PROXIMITY phrase
+    instead ("art. 13 2016/679"~15: the identity of the act, number/year or name, within a few
+    tokens of the article). AND-ing article and act anywhere in the decision is not enough: it
+    matched 47 decisions with 1 pertinent. Qualified forms are kept as an alternative.
+
+    A reference with no code and no act ('art. 13') keeps the bare forms (low precision).
+    """
     rif = riferimento.strip().lower()
 
     match = re.match(
@@ -415,37 +561,68 @@ def build_norma_variants(riferimento: str) -> str:
     num = match.group(1)
     rest = rif[match.end():].strip()
 
-    variants = [f'"art. {num}"', f'"articolo {num}"']
+    bare = [f'"art. {num}"', f'"articolo {num}"']
+    qualified: list[str] = []
 
     matched_code = False
     for abbrev, expansions in _CODICI.items():
         if rest.startswith(abbrev) or rest == abbrev.rstrip("."):
             for exp in expansions:
-                variants.append(f'"{num} {exp}"')
+                qualified.append(f'"{num} {exp}"')
             matched_code = True
             break
 
-    if not matched_code and rest:
-        # Check for legislative act type references (e.g., "D.Lgs. 231/2001")
-        # Extract numeric identifier like "231/2001" or "231" from rest
-        num_year_match = re.search(r"(\d+(?:/\d+)?)", rest)
-        act_num_str = num_year_match.group(1) if num_year_match else ""
+    if matched_code:
+        variants = qualified if strict else bare + qualified
+        return "ocr:(" + " OR ".join(variants) + ")"
 
-        matched_tipo = False
-        for abbrev, tipo_variants in _TIPI_ATTO.items():
-            if rest.startswith(abbrev) or any(rest.startswith(v.lower()) for v in tipo_variants):
-                for v in tipo_variants:
-                    variants.append(f'"art. {num} {v}"')
-                    if act_num_str:
-                        variants.append(f'"art. {num} {v} {act_num_str}"')
-                        variants.append(f'"art. {num} {v} n. {act_num_str}"')
-                matched_tipo = True
-                break
+    if not rest:
+        return "ocr:(" + " OR ".join(bare) + ")"
 
-        if not matched_tipo:
-            variants.append(f'"art. {num} {rest}"')
+    # Legislative act: e.g. "D.Lgs. 231/2001". Extract the numeric identifier
+    # ("231/2001" or "231") from rest.
+    num_year_match = re.search(r"(\d+(?:/\d+)?)", rest)
+    act_num_str = num_year_match.group(1) if num_year_match else ""
 
-    return "ocr:(" + " OR ".join(variants) + ")"
+    matched_tipo = False
+    for abbrev, tipo_variants in _TIPI_ATTO.items():
+        if rest.startswith(abbrev) or any(rest.startswith(v.lower()) for v in tipo_variants):
+            for v in tipo_variants:
+                if act_num_str:
+                    # Only forms carrying the act number identify the act: "art. 6 D.Lgs."
+                    # alone matches any legislative decree.
+                    qualified.append(f'"art. {num} {v} {act_num_str}"')
+                    qualified.append(f'"art. {num} {v} n. {act_num_str}"')
+                else:
+                    qualified.append(f'"art. {num} {v}"')
+            matched_tipo = True
+            break
+
+    if not matched_tipo:
+        qualified.append(f'"art. {num} {rest}"')
+
+    markers = _act_identity_markers(rest)
+    if not markers:
+        # No way to tell the act apart: keep the historical (low precision) OR of bare forms.
+        return "ocr:(" + " OR ".join(bare + qualified) + ")"
+    # Only "art." and "articolo": phrase queries on "artt." make the Solr highlighter answer
+    # 500 on some decisions (read 2026-09-29).
+    near = [
+        f'"{art} {num} {marker}"~{_NORMA_PROXIMITY}'
+        for art in ("art.", "articolo")
+        for marker in markers
+    ]
+    return "ocr:(" + " OR ".join(qualified + near) + ")"
+
+
+def norma_is_qualified(riferimento: str) -> bool:
+    """True when the reference names a code or an act after the article number."""
+    rif = riferimento.strip().lower()
+    m = re.match(
+        r"(?:art\.?|articolo)\s+\d+(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?",
+        rif,
+    )
+    return bool(m and rif[m.end():].strip())
 
 
 def _format_date(datdep) -> str:
@@ -466,7 +643,13 @@ def _format_date(datdep) -> str:
     return raw
 
 
-def format_estremi(doc: dict) -> str:
+_TIPO_ABBR = {
+    "sentenza": "sent.", "ordinanza": "ord.", "decreto": "decr.", "ord. int.": "ord. int.",
+}
+
+
+def format_estremi(doc: dict, con_tipo: bool = False) -> str:
+    """Estremi of a decision; with *con_tipo* the type (sent./ord./decr.) is appended."""
     kind = _first(doc.get("kind", "snciv"))
     ramo = _RAMO.get(kind, "civ.")
     sez = _first(doc.get("szdec", ""))
@@ -484,11 +667,19 @@ def format_estremi(doc: dict) -> str:
     if datdep:
         parts.append(f"dep. {datdep}")
 
-    return ", ".join(parts)
+    estremi = ", ".join(parts)
+    if con_tipo:
+        raw = _first(doc.get("tipoprov", ""))
+        tipo = _TIPO_ABBR.get(_TIPO_LABELS.get(raw, raw.lower()), "")
+        if tipo:
+            estremi += f" ({tipo})"
+    return estremi
 
 
-def format_summary(doc: dict, highlights: dict[str, list[str]] | None = None) -> str:
-    estremi = format_estremi(doc)
+def format_summary(
+    doc: dict, highlights: dict[str, list[str]] | None = None, con_tipo: bool = False,
+) -> str:
+    estremi = format_estremi(doc, con_tipo=con_tipo)
     materia = _first(doc.get("materia", ""))
     ocrdis = _first(doc.get("ocrdis", ""))
 
@@ -530,16 +721,27 @@ def format_full_text(doc: dict) -> str:
 
     if ocr:
         truncated = len(ocr) > _MAX_OCR_LENGTH
-        text = ocr[:_MAX_OCR_LENGTH] if truncated else ocr
         lines.append("## Testo della decisione")
-        lines.append(text)
         if truncated:
+            omitted = len(ocr) - _MAX_OCR_LENGTH
+            lines.append(ocr[:_OCR_HEAD_LENGTH])
+            lines.append(f"\n[... omessi {omitted} caratteri della parte centrale ...]\n")
+            lines.append(ocr[-_OCR_TAIL_LENGTH:])
             lines.append(
-                f"\n---\n*[Testo troncato a {_MAX_OCR_LENGTH} caratteri su {len(ocr)} totali]*"
+                f"\n---\n*[Testo troncato a {_MAX_OCR_LENGTH} caratteri su {len(ocr)} totali]* "
+                f"Mostrati i primi {_OCR_HEAD_LENGTH} e gli ultimi {_OCR_TAIL_LENGTH} caratteri; la parte "
+                f"centrale è omessa. La decisione (rigetto, accoglimento, P.Q.M.) sta in genere in coda."
             )
+        else:
+            lines.append(ocr)
 
     if ocrdis:
         lines.append("\n## Dispositivo")
         lines.append(ocrdis)
+    elif ocr:
+        lines.append(
+            "\n*[Il campo Dispositivo non è valorizzato alla fonte per questa decisione: "
+            "il dispositivo, se presente, è nella parte finale del testo]*"
+        )
 
     return "\n".join(lines)

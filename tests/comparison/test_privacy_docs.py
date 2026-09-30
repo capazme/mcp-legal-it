@@ -250,7 +250,9 @@ class TestRiferimentiNormativi:
                 {"misura": "cifratura", "rischio_mitigato": "Furto dati biometrici", "efficacia": "alta"}
             ],
         )
-        assert "Art. 35" in result["riferimento_normativo"]
+        # genera_dpia now also covers the prior consultation of art. 36 GDPR (residual risk after the
+        # mitigation measures), so the reference names both articles.
+        assert "Artt. 35 e 36" in result["riferimento_normativo"]
 
     def test_base_giuridica_ref(self):
         result = _analisi_base_giuridica_impl(

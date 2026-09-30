@@ -5,7 +5,10 @@ procura alle liti, attestazione conformità PCT, relata PEC, note trattazione sc
 
 import hashlib
 import json
+import unicodedata
 from datetime import date, timedelta
+from decimal import ROUND_HALF_UP, Decimal
+from fractions import Fraction
 from pathlib import Path
 
 from src.server import mcp
@@ -54,13 +57,35 @@ def _lookup_scaglione(scaglioni: list, valore: float) -> float:
     return scaglioni[-1]["importo"]
 
 
-def _calcola_cu_base(valore_causa: float, tipo_procedimento: str, tabella: dict | None = None) -> float:
+#: I tipi di procedimento che `_calcola_cu_base` conosce (docstring del tool e validazione).
+_TIPI_CU = (
+    "cognizione", "valore_indeterminabile", "valore_indeterminabile_gdp", "monitorio",
+    "opposizione_decreto_ingiuntivo", "opposizione_atti_esecutivi", "esecuzione_immobiliare",
+    "esecuzione_mobiliare", "cautelari", "volontaria_giurisdizione", "separazione_consensuale",
+    "separazione_giudiziale", "divorzio_congiunto", "divorzio_giudiziale", "lavoro", "previdenza",
+    "tributario", "tar",
+)
+
+
+def _calcola_cu_base(
+    valore_causa: float,
+    tipo_procedimento: str,
+    tabella: dict | None = None,
+    reddito_oltre_soglia: bool = False,
+) -> float:
     """Calcola CU base primo grado.
 
     `tabella` is a replacement table supplied by the caller (the `alternativa`
     parameter of the `contributo_unificato` tool): when given, nothing is read
     from the shipped file, so the answer rests entirely on the caller's data.
+    `reddito_oltre_soglia` is the art. 9 co. 1-bis condition for labour and
+    welfare cases: the contribution is due only above three times the art. 76
+    income threshold.
     """
+    if tipo_procedimento not in _TIPI_CU:
+        raise ValueError(
+            f"tipo_procedimento non valido: {tipo_procedimento!r}; valori ammessi: {', '.join(_TIPI_CU)}"
+        )
     cu = tabella if tabella is not None else _CU
     civile = cu["civile"]
 
@@ -90,21 +115,38 @@ def _calcola_cu_base(valore_causa: float, tipo_procedimento: str, tabella: dict 
     if tipo_procedimento == "cognizione":
         return _lookup_scaglione(civile["cognizione"], valore_causa)
 
-    # Monitorio (scaglioni dimezzati)
+    # Valore indeterminabile: 518 in tribunale (lett. d), 237 davanti al giudice di pace (lett. c)
+    if tipo_procedimento == "valore_indeterminabile":
+        return civile["valore_indeterminabile"]
+    if tipo_procedimento == "valore_indeterminabile_gdp":
+        return civile["cognizione"][2]["importo"]
+
+    # Monitorio e opposizione a decreto ingiuntivo (scaglioni dimezzati, art. 13 co. 3)
     if tipo_procedimento == "monitorio":
         return _lookup_scaglione(civile["procedimento_monitorio"]["scaglioni"], valore_causa)
+    if tipo_procedimento == "opposizione_decreto_ingiuntivo":
+        return _lookup_scaglione(civile["opposizione_decreto_ingiuntivo"]["scaglioni"], valore_causa)
 
-    # Lavoro — primo grado esente
+    # Opposizione agli atti esecutivi: importo fisso (art. 13 co. 2, ultimo periodo)
+    if tipo_procedimento == "opposizione_atti_esecutivi":
+        return civile["opposizione_atti_esecutivi"]["importo"]
+
+    # Lavoro e previdenza (art. 9 co. 1-bis): esenti fino a tre volte la soglia dell'art. 76;
+    # oltre, previdenza alla lett. a) (43 euro) e lavoro alla meta' dello scaglione (co. 3)
+    if tipo_procedimento == "previdenza":
+        return civile["cognizione"][0]["importo"] if reddito_oltre_soglia else 0.0
     if tipo_procedimento == "lavoro":
-        return 0.0
+        if not reddito_oltre_soglia:
+            return 0.0
+        return round(_lookup_scaglione(civile["cognizione"], valore_causa) / 2, 2)
 
-    # Tributario
+    # Tributario (art. 13 co. 6-quater: stessi importi in primo e secondo grado)
     if tipo_procedimento == "tributario":
         return _lookup_scaglione(cu["tributario"]["scaglioni"], valore_causa)
 
     # TAR
     if tipo_procedimento == "tar":
-        return _CU["amministrativo"]["tar_ordinario"]
+        return cu["amministrativo"]["tar_ordinario"]
 
     return _lookup_scaglione(civile["cognizione"], valore_causa)
 
@@ -116,20 +158,31 @@ def contributo_unificato(
     tipo_procedimento: str = "cognizione",
     grado: str = "primo",
     tabella_contributo_unificato: dict | None = None,
+    reddito_oltre_soglia_lavoro: bool = False,
 ) -> dict:
     """Calcola il Contributo Unificato per valore della causa, tipo di procedimento e grado.
-    Vigenza: DPR 115/2002 — Testo Unico Spese di Giustizia (tabelle aggiornate al 2024).
-    Precisione: ESATTO (scaglioni per valore; moltiplicatori per appello e cassazione).
+    Vigenza: DPR 115/2002, art. 13 (importi del testo vigente riscontrati su Normattiva il
+    20/09/2026), art. 9 co. 1-bis (lavoro e previdenza), art. 13 co. 6-quater (tributario).
+    Precisione: ESATTO (scaglioni per valore; +50% in appello e raddoppio in Cassazione ex art. 13
+    co. 1-bis; per lavoro/previdenza e tributario in Cassazione verificare con cite_law).
     Spesso chiamato insieme a decreto_ingiuntivo() o prima di avviare una causa civile.
 
     Args:
         valore_causa: Valore della causa in euro (€)
-        tipo_procedimento: Tipo di rito: 'cognizione', 'esecuzione_immobiliare',
-                           'esecuzione_mobiliare', 'monitorio', 'volontaria_giurisdizione',
-                           'separazione_consensuale', 'separazione_giudiziale',
-                           'divorzio_congiunto', 'divorzio_giudiziale', 'cautelari',
-                           'lavoro' (primo grado esente), 'tributario', 'tar'
+        tipo_procedimento: Tipo di rito: 'cognizione', 'valore_indeterminabile' (518 in tribunale),
+                           'valore_indeterminabile_gdp' (237 davanti al giudice di pace),
+                           'monitorio' e 'opposizione_decreto_ingiuntivo' (metà, art. 13 co. 3),
+                           'opposizione_atti_esecutivi' (168 fisso), 'esecuzione_immobiliare' (278),
+                           'esecuzione_mobiliare' (43 sotto 2.500, 139 oltre), 'cautelari' (metà),
+                           'volontaria_giurisdizione', 'separazione_consensuale',
+                           'separazione_giudiziale', 'divorzio_congiunto', 'divorzio_giudiziale',
+                           'lavoro' e 'previdenza' (esenti salvo reddito oltre tre volte la soglia
+                           dell'art. 76: allora previdenza 43 euro e lavoro metà scaglione),
+                           'tributario' (art. 13 co. 6-quater, stessi importi in appello), 'tar'
         grado: Grado del giudizio: 'primo', 'appello', 'cassazione'
+        reddito_oltre_soglia_lavoro: Solo per 'lavoro' e 'previdenza': True se la parte ha un reddito
+                           imponibile superiore a tre volte la soglia dell'art. 76 DPR 115/2002
+                           (art. 9 co. 1-bis); False (default) = esente
         tabella_contributo_unificato: Tabella sostitutiva fornita dal chiamante, con la
                           stessa struttura di src/data/contributo_unificato.json (almeno
                           'civile', 'tributario', 'appello', 'cassazione'). Se la fornisci,
@@ -139,37 +192,89 @@ def contributo_unificato(
     """
     if valore_causa < 0:
         return {"errore": "valore_causa non può essere negativo"}
+    if grado not in ("primo", "appello", "cassazione"):
+        return {"errore": f"grado non valido: {grado}", "valori_ammessi": ["primo", "appello", "cassazione"]}
 
-    cu_base = _calcola_cu_base(valore_causa, tipo_procedimento, tabella_contributo_unificato)
+    tabella = tabella_contributo_unificato or _CU
+    try:
+        cu_base = _calcola_cu_base(
+            valore_causa, tipo_procedimento, tabella_contributo_unificato, reddito_oltre_soglia_lavoro
+        )
+    except ValueError as exc:
+        return {"errore": str(exc), "valori_ammessi": list(_TIPI_CU)}
 
+    note = []
     moltiplicatore = 1.0
     if grado == "appello":
-        if tipo_procedimento == "lavoro":
-            lavoro = (tabella_contributo_unificato or _CU)["lavoro"]
-            lavoro_appello = lavoro["appello"]
-            if valore_causa <= lavoro_appello["fino_a"]:
-                cu_base = lavoro_appello["importo"]
-            elif valore_causa <= 50000:
-                cu_base = lavoro_appello["fino_a_50000"]
-            else:
-                cu_base = lavoro_appello["oltre"]
-            moltiplicatore = 1.0
+        if tipo_procedimento == "tributario":
+            # Art. 13 co. 6-quater: gli importi valgono per i ricorsi in primo e in secondo grado
+            note.append("Tributario in appello: stessi importi del primo grado (art. 13 co. 6-quater)")
+        elif tipo_procedimento in ("lavoro", "previdenza") and not reddito_oltre_soglia_lavoro:
+            note.append("Lavoro/previdenza: esente anche in appello sotto la soglia di reddito (art. 9 co. 1-bis)")
         else:
-            moltiplicatore = (tabella_contributo_unificato or _CU)["appello"]["moltiplicatore"]
+            moltiplicatore = tabella["appello"]["moltiplicatore"]
     elif grado == "cassazione":
-        moltiplicatore = (tabella_contributo_unificato or _CU)["cassazione"]["moltiplicatore"]
+        if tipo_procedimento in ("lavoro", "previdenza"):
+            if reddito_oltre_soglia_lavoro:
+                # Art. 9 co. 1-bis: in Cassazione il contributo e' dovuto nella misura dell'art. 13 co. 1
+                cu_base = _lookup_scaglione(tabella["civile"]["cognizione"], valore_causa)
+                moltiplicatore = tabella["cassazione"]["moltiplicatore"]
+                note.append("Lavoro/previdenza in Cassazione oltre soglia: importo pieno dell'art. 13 co. 1, raddoppiato ex co. 1-bis")
+            else:
+                note.append("Lavoro/previdenza: esente anche in Cassazione sotto la soglia di reddito (art. 9 co. 1-bis)")
+        elif tipo_procedimento == "tributario":
+            # Il co. 6-quater copre solo i gradi di merito: in Cassazione si applica la scala civile
+            cu_base = _lookup_scaglione(tabella["civile"]["cognizione"], valore_causa)
+            moltiplicatore = tabella["cassazione"]["moltiplicatore"]
+            note.append("Tributario in Cassazione: scala civile dell'art. 13 co. 1, raddoppiata ex co. 1-bis (verificare)")
+        else:
+            moltiplicatore = tabella["cassazione"]["moltiplicatore"]
 
     importo = round(cu_base * moltiplicatore, 2)
 
-    return {
+    result = {
         "valore_causa": valore_causa,
         "tipo_procedimento": tipo_procedimento,
         "grado": grado,
         "cu_base": cu_base,
         "moltiplicatore": moltiplicatore,
         "importo_dovuto": importo,
-        "riferimento_normativo": "DPR 115/2002 — Testo Unico Spese di Giustizia",
+        "riferimento_normativo": "DPR 115/2002, art. 13 — Testo Unico Spese di Giustizia",
     }
+    if tipo_procedimento in ("lavoro", "previdenza"):
+        result["reddito_oltre_soglia_lavoro"] = reddito_oltre_soglia_lavoro
+        result["riferimento_normativo"] += "; art. 9 co. 1-bis (esenzione fino a tre volte la soglia dell'art. 76)"
+    if note:
+        result["note"] = note
+    return result
+
+
+# Diritti di copia su supporto cartaceo: allegati 6 e 7 al DPR 115/2002 come
+# adeguati dal D.I. 25 giugno - 9 luglio 2021 (GU n. 184 del 3.8.2021, in vigore dal
+# 18.8.2021) e aumentati del 50% dall'art. 4 co. 5 DL 193/2009 (conv. L. 24/2010) fino
+# all'emanazione del regolamento ex art. 40. Colonne: (fino a pagine, importo).
+# Oltre le 100 pagine: base + incremento per ogni ulteriore 100 pagine o frazione.
+_COPIA_CARTACEA = {
+    "semplice": {  # allegato 6, art. 267
+        "fasce": [(4, 1.47), (10, 2.96), (20, 5.88), (50, 11.79), (100, 23.58)],
+        "incremento_100": 9.83,
+    },
+    "autentica": {  # allegato 7, art. 268
+        "fasce": [(4, 11.80), (10, 13.78), (20, 15.71), (50, 19.66), (100, 29.48)],
+        "incremento_100": 11.80,
+    },
+}
+
+
+def _diritto_copia_cartacea(n_pagine: int, tipo: str) -> float:
+    """Importo base (senza urgenza) di allegato 6 o 7, maggiorato del 50% (art. 4 co. 5 DL 193/2009)."""
+    t = _COPIA_CARTACEA[tipo]
+    for limite, importo in t["fasce"]:
+        if n_pagine <= limite:
+            return importo
+    ultimo = t["fasce"][-1][1]
+    # ogni ulteriori 100 pagine o frazione di 100
+    return round(ultimo + (-(-(n_pagine - 100) // 100)) * t["incremento_100"], 2)
 
 
 @mcp.tool(tags={"giudiziario"})
@@ -180,15 +285,19 @@ def diritti_copia(
     urgente: bool = False,
 ) -> dict:
     """Calcola i diritti di copia per atti giudiziari in formato cartaceo e digitale PCT.
-    Vigenza: DPR 115/2002, artt. 267-270, Tabella 8; DL 90/2014 conv. L. 114/2014
-    (copie semplici digitali gratuite).
-    Precisione: ESATTO (tariffe per pagina per cartaceo; forfettaria a scaglioni per digitale).
+    Vigenza: DPR 115/2002, artt. 267-270 e allegati 6-7 (importi adeguati dal D.I. 25 giugno - 9 luglio
+    2021, GU n. 184 del 3.8.2021, e aumentati del 50% dall'art. 4 co. 5 DL 193/2009); art. 270 (urgenza
+    entro due giorni: diritto triplicato); art. 269 co. 1-bis e art. 268 co. 1-bis (copie digitali estratte
+    dal fascicolo informatico); allegato 8 come sostituito dalla L. 207/2024. Verificata al 2026-09-29.
+    Precisione: INDICATIVO (cartaceo: fasce degli allegati 6 e 7 con urgenza x3, coincidenti con la tabella
+        del D.I. 9 luglio 2021; digitale autentico: diritto di trasmissione telematica dell'allegato 8, da
+        verificare sul testo vigente; gli importi sono adeguati ogni tre anni ex art. 274)
 
     Args:
         n_pagine: Numero di pagine dell'atto (intero positivo)
-        tipo: Tipo di copia: 'semplice', 'autentica', 'esecutiva'
-        formato: Formato di rilascio: 'digitale' (PCT — gratuito se semplice) o 'cartaceo'
-        urgente: True per maggiorazione urgenza +50% (solo per formato cartaceo)
+        tipo: Tipo di copia: 'semplice', 'autentica', 'esecutiva' (calcolata come autentica: art. 268)
+        formato: Formato di rilascio: 'digitale' (PCT: gratuita la semplice estratta dal fascicolo informatico) o 'cartaceo'
+        urgente: True per il rilascio entro due giorni: diritto triplicato (art. 270, solo cartaceo)
     """
     if formato not in ("digitale", "cartaceo"):
         return {"errore": "formato deve essere 'digitale' o 'cartaceo'"}
@@ -199,23 +308,30 @@ def diritti_copia(
 
     if formato == "digitale":
         if tipo == "semplice":
-            # Copie semplici digitali gratuite (art. 40 DPR 115/2002 mod. DL 90/2014)
+            # Art. 269 co. 1-bis DPR 115/2002: nessun diritto per la copia senza certificazione
+            # estratta direttamente dal fascicolo informatico dai soggetti abilitati
             totale = 0.0
-            nota = "Copia semplice digitale gratuita (art. 40 DPR 115/2002 mod. DL 90/2014)"
+            nota = "Copia semplice digitale estratta dal fascicolo informatico: nessun diritto (art. 269 co. 1-bis DPR 115/2002)"
         else:
-            # Copie autentiche/esecutive digitali: tariffa forfettaria
-            if n_pagine <= 4:
-                totale = 1.62
-            elif n_pagine <= 10:
-                totale = 4.05
-            elif n_pagine <= 20:
-                totale = 6.48
-            elif n_pagine <= 50:
-                totale = 8.11
-            else:
-                totale = 10.13 + (n_pagine - 50) // 50 * 1.62
-                totale = round(totale, 2)
-            nota = f"Copia {tipo} digitale — tariffa forfettaria DPR 115/2002 Tabella 8"
+            # Digital authentic/executory copy issued by the registry: the tariff in force is NOT
+            # established (the Annex 8 flat 8.00 euro is for the telematic transmission of files whose
+            # pages cannot be counted; for a countable archive copy the ministerial table has bands
+            # per page: 7.86/9.18/10.47/13.10/19.65 euro, D.I. 9.7.2021). No text read supports a civil
+            # flat fee independent of the page count, so the tool refuses instead of guessing.
+            return {
+                "errore": (
+                    f"Copia {tipo} digitale rilasciata dalla cancelleria: l'importo non e' calcolato. "
+                    "Il diritto dipende dall'allegato 8 e dalla tabella del D.I. 9 luglio 2021 per le copie "
+                    "estratte da archivio informatico, e non e' stato verificato sul testo vigente. "
+                    "La copia attestata dal difensore non paga alcun diritto (art. 268 co. 1-bis DPR 115/2002)."
+                ),
+                "n_pagine": n_pagine,
+                "tipo": tipo,
+                "formato": formato,
+                "riferimento_normativo": "DPR 115/2002, artt. 268-269, allegato 8",
+            }
+        if urgente:
+            nota += ". L'urgenza (art. 270) riguarda solo il supporto cartaceo e non e' applicata"
 
         return {
             "n_pagine": n_pagine,
@@ -223,67 +339,93 @@ def diritti_copia(
             "formato": formato,
             "totale": round(totale, 2),
             "nota": nota,
-            "riferimento_normativo": "DPR 115/2002, art. 267-270, Tabella 8 — DL 90/2014 conv. L. 114/2014",
+            "riferimento_normativo": "DPR 115/2002, artt. 268-269, allegato 8 (L. 207/2024)",
         }
 
-    # Cartaceo (original logic)
-    tariffe = {
-        "semplice": 0.30,
-        "autentica": 0.70,
-        "esecutiva": 0.70,
-    }
-    tariffa_pagina = tariffe[tipo]
-    subtotale = round(n_pagine * tariffa_pagina, 2)
-    maggiorazione_urgenza = round(subtotale * 0.5, 2) if urgente else 0.0
-    totale = round(subtotale + maggiorazione_urgenza, 2)
+    # Cartaceo: allegati 6 (semplice) e 7 (autentica; l'esecutiva segue la tabella dell'autentica)
+    chiave = "semplice" if tipo == "semplice" else "autentica"
+    base = _diritto_copia_cartacea(n_pagine, chiave)
+    # Art. 270: rilascio entro due giorni, diritto triplicato (l'importo base va arrotondato prima)
+    totale = round(base * 3, 2) if urgente else base
+    maggiorazione_urgenza = round(totale - base, 2)
 
     result = {
         "n_pagine": n_pagine,
         "tipo": tipo,
         "formato": formato,
-        "tariffa_pagina": tariffa_pagina,
-        "subtotale": subtotale,
+        "subtotale": base,
         "urgente": urgente,
         "totale": totale,
-        "riferimento_normativo": "DPR 115/2002, artt. 267-270",
+        "riferimento_normativo": (
+            "DPR 115/2002, artt. 267-268 e 270, allegati 6-7 (D.I. 9 luglio 2021; +50% art. 4 co. 5 DL 193/2009)"
+        ),
     }
     if urgente:
         result["maggiorazione_urgenza"] = maggiorazione_urgenza
     return result
 
 
+#: Assegno sociale mensile usato per il minimo impignorabile delle pensioni (art. 545 co. 7
+#: c.p.c.: il doppio dell'assegno sociale, con un minimo di 1.000 euro). L'importo e' quello
+#: del 2026 (546,24 euro, circolare INPS n. 153 del 19/12/2025: 7.101,12 / 13 mensilita') e va
+#: aggiornato ogni anno sulla circolare INPS: il chiamante puo' passare il valore corrente con
+#: `assegno_sociale_mensile`.
+_ASSEGNO_SOCIALE_MENSILE = 546.24
+_ASSEGNO_SOCIALE_ANNO = 2026
+_MINIMO_IMPIGNORABILE_PENSIONI = 1000.0
+
+
 @mcp.tool(tags={"giudiziario", "credito"})
 def pignoramento_stipendio(
     stipendio_netto_mensile: float,
     tipo_credito: str = "ordinario",
+    pensione: bool = False,
+    assegno_sociale_mensile: float | None = None,
 ) -> dict:
     """Calcola le quote pignorabili dello stipendio o della pensione ex art. 545 c.p.c.
-    Vigenza: art. 545 c.p.c. (mod. DL 83/2015); art. 72-ter DPR 602/1973 per crediti fiscali.
-    Precisione: ESATTO (quote fisse di legge: 1/5 ordinario, 1/3 alimentare, scaglioni fiscale).
+    Vigenza: art. 545 c.p.c. (co. 3-5 per stipendi; co. 7 per le pensioni nel testo dell'art.
+    21-bis DL 115/2022 conv. L. 142/2022: impignorabile il doppio dell'assegno sociale con un
+    minimo di 1.000 euro; co. 8 per le somme accreditate su conto); art. 72-ter DPR 602/1973 per
+    i crediti fiscali dell'agente della riscossione.
+    Precisione: ESATTO per le quote di legge (1/5 ordinario, fino a 1/3 alimentare, scaglioni
+    fiscali); INDICATIVO per le pensioni, perché il minimo impignorabile dipende dall'assegno
+    sociale dell'anno (incluso: 2026, circolare INPS 153/2025) — passare `assegno_sociale_mensile` aggiornato.
 
     Args:
         stipendio_netto_mensile: Stipendio o pensione netta mensile in euro (€)
         tipo_credito: Tipo di credito per cui si procede: 'ordinario' (1/5),
                       'alimentare' (fino a 1/3 — misura fissata dal giudice),
-                      'fiscale' (scaglioni per Equitalia: 1/10, 1/7, 1/5),
+                      'fiscale' (scaglioni dell'agente della riscossione: 1/10, 1/7, 1/5),
                       'concorso_crediti' (fino a 1/2 in caso di concorso)
+        pensione: True se la somma è una pensione: la quota si calcola solo sulla parte che
+                  eccede il minimo impignorabile (doppio dell'assegno sociale, minimo 1.000 euro)
+        assegno_sociale_mensile: Importo mensile dell'assegno sociale dell'anno corrente (facoltativo;
+                  default il valore 2026 incluso nel server)
     """
     if stipendio_netto_mensile < 0:
         return {"errore": "stipendio_netto_mensile non può essere negativo"}
+    if assegno_sociale_mensile is not None and assegno_sociale_mensile <= 0:
+        return {"errore": "assegno_sociale_mensile deve essere positivo"}
 
-    # Assegno sociale 2024 come minimo vitale per pensioni
-    minimo_vitale = 534.41
+    minimo_vitale = assegno_sociale_mensile if assegno_sociale_mensile is not None else _ASSEGNO_SOCIALE_MENSILE
+    impignorabile_pensioni = max(2 * minimo_vitale, _MINIMO_IMPIGNORABILE_PENSIONI)
+    # Calcolo in Decimal: la base e' portata ai centesimi, cosi' 15,05 * 1/10 = 1,505 non
+    # dipende dall'errore binario (15,0499...) e si arrotonda per eccesso a 1,51.
+    lordo_d = Decimal(str(stipendio_netto_mensile))
+    # Art. 545 co. 7: la quota si applica alla sola parte eccedente il minimo impignorabile
+    base_d = lordo_d
+    if pensione:
+        base_d = max(lordo_d - Decimal(str(impignorabile_pensioni)), Decimal(0))
+    base = float(base_d)
 
     if tipo_credito == "ordinario":
         quota = 1 / 5
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
         descrizione = "1/5 dello stipendio netto (art. 545 co. 4 c.p.c.)"
     elif tipo_credito == "alimentare":
         quota = 1 / 3
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
         descrizione = "Fino a 1/3 dello stipendio netto (art. 545 co. 3 c.p.c.) — misura fissata dal giudice"
     elif tipo_credito == "fiscale":
-        # Scaglioni art. 72-ter DPR 602/73 (riformato DL 83/2015)
+        # Scaglioni art. 72-ter DPR 602/1973 (introdotto dal DL 16/2012, conv. L. 44/2012)
         if stipendio_netto_mensile <= 2500:
             quota = 1 / 10
             descrizione = "1/10 — stipendio netto ≤ €2.500 (art. 72-ter DPR 602/73)"
@@ -293,27 +435,60 @@ def pignoramento_stipendio(
         else:
             quota = 1 / 5
             descrizione = "1/5 — stipendio netto > €5.000 (art. 72-ter DPR 602/73)"
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
     elif tipo_credito == "concorso_crediti":
         quota = 1 / 2
-        pignorabile = round(stipendio_netto_mensile * quota, 2)
         descrizione = "Fino a 1/2 in caso di concorso di crediti (art. 545 co. 5 c.p.c.)"
     else:
         return {"errore": f"tipo_credito non riconosciuto: {tipo_credito}"}
 
-    non_pignorabile = round(stipendio_netto_mensile - pignorabile, 2)
+    quota_frac = Fraction(quota).limit_denominator(100)
+    pignorabile_d = (base_d * quota_frac.numerator / quota_frac.denominator).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    pignorabile = float(pignorabile_d)
+    non_pignorabile = float(lordo_d - pignorabile_d)
 
-    return {
+    result = {
         "stipendio_netto_mensile": stipendio_netto_mensile,
+        "pensione": pensione,
         "tipo_credito": tipo_credito,
         "quota_pignorabile": round(quota, 4),
+        "base_di_calcolo": round(base, 2),
         "importo_pignorabile": pignorabile,
         "importo_non_pignorabile": non_pignorabile,
-        "minimo_vitale_pensioni": minimo_vitale,
-        "nota_pensioni": f"Per le pensioni, è impignorabile l'importo pari al doppio dell'assegno sociale (€{minimo_vitale * 2:.2f})",
+        "assegno_sociale_mensile": minimo_vitale,
+        "minimo_impignorabile_pensioni": round(impignorabile_pensioni, 2),
+        "nota_pensioni": (
+            f"Per le pensioni è impignorabile la parte fino al doppio dell'assegno sociale, con un "
+            f"minimo di 1.000 euro (€{impignorabile_pensioni:.2f} con l'assegno sociale indicato); la "
+            f"quota si applica solo all'eccedenza (art. 545 co. 7 c.p.c.). Assegno sociale incluso: "
+            f"anno {_ASSEGNO_SOCIALE_ANNO} — aggiornarlo con `assegno_sociale_mensile`."
+        ),
+        "nota_conto_corrente": (
+            "Somme accreditate su conto prima del pignoramento: pignorabili solo oltre il triplo "
+            "dell'assegno sociale (art. 545 co. 8 c.p.c.)"
+        ),
         "descrizione": descrizione,
-        "riferimento_normativo": "Art. 545 c.p.c. — DL 83/2015",
+        "riferimento_normativo": "Art. 545 c.p.c. (co. 7 nel testo dell'art. 21-bis DL 115/2022 conv. L. 142/2022); art. 72-ter DPR 602/1973",
     }
+    if pensione and assegno_sociale_mensile is None:
+        result["avvertenza"] = (
+            f"Minimo impignorabile calcolato sull'assegno sociale {_ASSEGNO_SOCIALE_ANNO}: "
+            "per l'anno in corso passare `assegno_sociale_mensile` dalla circolare INPS."
+        )
+    return result
+
+
+def _eur_it(x: float) -> str:
+    """Importo in formato italiano (1.234,56): le virgole all'inglese sono ambigue in una lettera."""
+    return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+#: Ultimo giorno delle transazioni cui si applica la maggiorazione di 7 punti (art. 5 D.Lgs.
+#: 231/2002 nel testo anteriore al D.Lgs. 192/2012; art. 3 co. 1 D.Lgs. 192/2012).
+_FINE_REGIME_7_PUNTI = date(2012, 12, 31)
+#: Il D.Lgs. 231/2002 non si applica ai contratti conclusi prima dell'8 agosto 2002 (art. 11 co. 1).
+_INIZIO_D_LGS_231 = date(2002, 8, 8)
 
 
 @mcp.tool(tags={"giudiziario", "credito"})
@@ -325,11 +500,16 @@ def sollecito_pagamento(
     data_scadenza: str,
     data_sollecito: str,
     tasso_mora: float | None = None,
+    data_contratto: str | None = None,
 ) -> dict:
     """Genera bozza di lettera di sollecito pagamento con calcolo degli interessi di mora.
-    Vigenza: D.Lgs. 231/2002 (tasso BCE + 8 pp per crediti commerciali, aggiornato semestralmente);
-    per tasso convenzionale indicare manualmente tasso_mora.
-    Precisione: ESATTO per gli interessi (calcolo pro rata sul periodo di ritardo).
+    Vigenza: D.Lgs. 231/2002 art. 5 (tasso BCE + 8 pp per le transazioni concluse dal 01/01/2013,
+    + 7 pp per quelle concluse tra l'08/08/2002 e il 31/12/2012: art. 3 D.Lgs. 192/2012;
+    tasso semestrale, verificato al 2026-09-29); per tasso convenzionale indicare manualmente
+    tasso_mora. Divisore: giorni dell'anno solare di ciascun periodo (365/366), senza norma che
+    imponga il 365.
+    Precisione: ESATTO per gli interessi (calcolo pro rata sul periodo di ritardo) fino
+    all'ultimo semestre in tabella; oltre, il tool rifiuta (tasso non ancora pubblicato).
 
     Args:
         creditore: Nome o ragione sociale del creditore
@@ -339,6 +519,9 @@ def sollecito_pagamento(
         data_sollecito: Data odierna o di emissione del sollecito (YYYY-MM-DD)
         tasso_mora: Tasso di mora annuo personalizzato in percentuale (es. 8.5);
                     se None usa il tasso D.Lgs. 231/2002 (BCE + 8 pp) aggiornato
+        data_contratto: Data di conclusione della transazione commerciale (YYYY-MM-DD,
+                    facoltativa). Fino al 31/12/2012 la maggiorazione e' di 7 punti; se omessa
+                    si assume 7 punti solo quando la scadenza e' anteriore al 2013.
     """
     dt_scadenza = _parse_date(data_scadenza)
     dt_sollecito = _parse_date(data_sollecito)
@@ -347,49 +530,88 @@ def sollecito_pagamento(
     if giorni_ritardo <= 0:
         return {"errore": "La data del sollecito deve essere successiva alla scadenza"}
 
-    # Calcolo interessi mora
+    # Calcolo interessi mora, un rigo per anno solare (tasso convenzionale) o per semestre
+    righe: list[dict] = []
     if tasso_mora is not None:
-        interessi = round(importo * (tasso_mora / 100) * giorni_ritardo / _days_in_year(dt_scadenza.year), 2)
+        current = dt_scadenza + timedelta(days=1)
+        while current <= dt_sollecito:
+            fine = min(date(current.year, 12, 31), dt_sollecito)
+            gg = (fine - current).days + 1
+            div = _days_in_year(current.year)
+            righe.append({"dal": current, "al": fine, "giorni": gg, "tasso": tasso_mora,
+                          "divisore": div, "interessi": importo * (tasso_mora / 100) * gg / div})
+            current = fine + timedelta(days=1)
         tasso_applicato = tasso_mora
         base_giuridica_tasso = f"Tasso convenzionale {tasso_mora}%"
+        punti = None
     else:
-        # Reject scadenze before the mora rate table starts (no fallback rate applicable)
+        # Punti di maggiorazione sul tasso BCE: 7 per le transazioni concluse entro il 31/12/2012
+        if data_contratto is not None:
+            dt_contratto = _parse_date(data_contratto)
+            if dt_contratto < _INIZIO_D_LGS_231:
+                return {"errore": "D.Lgs. 231/2002 non applicabile ai contratti conclusi prima dell'08/08/2002 (art. 11 co. 1); indicare manualmente tasso_mora"}
+            punti = 7 if dt_contratto <= _FINE_REGIME_7_PUNTI else 8
+        else:
+            punti = 7 if dt_scadenza <= _FINE_REGIME_7_PUNTI else 8
+        # Reject periods not covered by the rate table (no fallback rate applicable): the
+        # first day of mora is scadenza + 1, and the rate for a semester not yet published
+        # (art. 5 co. 2: BCE at 1 January / 1 July) cannot be guessed.
         primo_dal = _parse_date(_TASSI_MORA[0]["dal"])
-        if dt_scadenza < primo_dal:
+        ultimo_al = _parse_date(_TASSI_MORA[-1]["al"])
+        if dt_scadenza + timedelta(days=1) < primo_dal:
             return {
                 "errore": f"Tasso di mora D.Lgs. 231/2002 non disponibile per scadenze anteriori al {primo_dal.strftime('%d/%m/%Y')}; indicare manualmente tasso_mora"
             }
+        if dt_sollecito > ultimo_al:
+            return {
+                "errore": (
+                    f"Tasso di mora D.Lgs. 231/2002 non ancora disponibile oltre il {ultimo_al.strftime('%d/%m/%Y')} "
+                    "(il tasso del semestre e' il BCE al 1 gennaio o al 1 luglio, art. 5 co. 2): "
+                    "indicare una data_sollecito entro la tabella oppure tasso_mora"
+                )
+            }
         # Split by mora rate periods like interessi_mora()
-        interessi_totali = 0.0
         current = dt_scadenza + timedelta(days=1)
-        dt_sollecito_end = dt_sollecito
-        while current <= dt_sollecito_end:
+        while current <= dt_sollecito:
             info_mora = _get_tasso_mora(current)
-            if info_mora is None:
-                break
-            period_end_raw = _parse_date(info_mora["al"])
-            periodo_end = min(period_end_raw, dt_sollecito_end)
-            giorni_periodo = (periodo_end - current).days + 1
-            interessi_totali += importo * (info_mora["mora"] / 100) * giorni_periodo / _days_in_year(current.year)
-            if periodo_end < current:
-                break
+            periodo_end = min(_parse_date(info_mora["al"]), dt_sollecito)
+            gg = (periodo_end - current).days + 1
+            tasso_periodo = round(info_mora["bce"] + punti, 2)
+            div = _days_in_year(current.year)
+            righe.append({"dal": current, "al": periodo_end, "giorni": gg, "tasso": tasso_periodo,
+                          "divisore": div, "interessi": importo * (tasso_periodo / 100) * gg / div})
             current = periodo_end + timedelta(days=1)
-        interessi = round(interessi_totali, 2)
-        info_mora = _get_tasso_mora(dt_scadenza)
-        tasso_applicato = info_mora["mora"]
-        base_giuridica_tasso = f"D.Lgs. 231/2002 — tasso BCE variabile per semestre (tasso iniziale {info_mora['bce']}% + 8 pp = {tasso_applicato}%)"
+        primo = _get_tasso_mora(dt_scadenza + timedelta(days=1))
+        tasso_applicato = righe[0]["tasso"]
+        base_giuridica_tasso = f"D.Lgs. 231/2002 — tasso BCE variabile per semestre (tasso iniziale {primo['bce']}% + {punti} pp = {tasso_applicato}%)"
 
+    interessi = round(sum(r["interessi"] for r in righe), 2)
     totale_dovuto = round(importo + interessi, 2)
+
+    dettaglio = "\n".join(
+        f"  dal {r['dal'].strftime('%d/%m/%Y')} al {r['al'].strftime('%d/%m/%Y')}: {r['giorni']} gg al {r['tasso']}%"
+        for r in righe
+    )
+    forfettario = (
+        "\nSpetta inoltre il rimborso dei costi di recupero, con un importo forfettario di Euro 40,00 "
+        "(art. 6 D.Lgs. 231/2002), salva la prova del maggior danno."
+        if tasso_mora is None and punti == 8 else ""
+    )
+    # The 40 euro lump sum of art. 6 co. 2 D.Lgs. 231/2002 was introduced by D.Lgs. 192/2012 and only
+    # applies to transactions concluded from 1/1/2013 (punti == 8); it is left out for the 7-point regime.
 
     testo = f"""Egr. {debitore},
 
-con la presente siamo a ricordarVi che alla data odierna risulta ancora insoluto il pagamento di Euro {importo:,.2f} (diconsi euro {importo:,.2f}), scaduto in data {dt_scadenza.strftime('%d/%m/%Y')}.
+con la presente siamo a ricordarVi che alla data odierna risulta ancora insoluto il pagamento di Euro {_eur_it(importo)}, scaduto in data {dt_scadenza.strftime('%d/%m/%Y')}.
 
 Ad oggi il ritardo ammonta a {giorni_ritardo} giorni.
 
-Vi invitiamo pertanto a provvedere al pagamento dell'importo complessivo di Euro {totale_dovuto:,.2f}, così composto:
-- Capitale: Euro {importo:,.2f}
-- Interessi di mora ({tasso_applicato}% annuo, {giorni_ritardo} gg): Euro {interessi:,.2f}
+Vi invitiamo pertanto a provvedere al pagamento dell'importo complessivo di Euro {_eur_it(totale_dovuto)}, così composto:
+- Capitale: Euro {_eur_it(importo)}
+- Interessi di mora ({giorni_ritardo} gg): Euro {_eur_it(interessi)}
+{dettaglio}{forfettario}
+
+La presente vale come messa in mora, ad ogni effetto di legge (art. 1219 c.c.).
 
 Il pagamento dovrà pervenire entro e non oltre 15 giorni dal ricevimento della presente.
 
@@ -398,19 +620,24 @@ In difetto, ci vedremo costretti ad adire le vie legali per il recupero del cred
 Distinti saluti,
 {creditore}"""
 
-    return {
-        "testo_lettera": testo,
-        "calcoli": {
-            "importo_originale": importo,
-            "data_scadenza": data_scadenza,
-            "data_sollecito": data_sollecito,
-            "giorni_ritardo": giorni_ritardo,
-            "tasso_mora_pct": tasso_applicato,
-            "interessi_mora": interessi,
-            "totale_dovuto": totale_dovuto,
-            "base_giuridica": base_giuridica_tasso,
-        },
+    calcoli = {
+        "importo_originale": importo,
+        "data_scadenza": data_scadenza,
+        "data_sollecito": data_sollecito,
+        "giorni_ritardo": giorni_ritardo,
+        "tasso_mora_pct": tasso_applicato,
+        "interessi_mora": interessi,
+        "totale_dovuto": totale_dovuto,
+        "base_giuridica": base_giuridica_tasso,
+        "periodi": [
+            {"dal": r["dal"].isoformat(), "al": r["al"].isoformat(), "giorni": r["giorni"],
+             "tasso_pct": r["tasso"], "divisore": r["divisore"]}
+            for r in righe
+        ],
     }
+    if punti is not None:
+        calcoli["maggiorazione_punti"] = punti
+    return {"testo_lettera": testo, "calcoli": calcoli}
 
 
 @mcp.tool(tags={"giudiziario", "credito"})
@@ -421,9 +648,15 @@ def decreto_ingiuntivo(
     importo: float,
     tipo_credito: str = "ordinario",
     provvisoria_esecuzione: bool = False,
+    reddito_oltre_soglia_lavoro: bool = False,
 ) -> dict:
     """Genera bozza di ricorso per decreto ingiuntivo con calcolo della competenza per valore e CU.
-    Vigenza: artt. 633-656 c.p.c.; D.Lgs. 116/2017 (soglia GdP €10.000); DPR 115/2002 (CU monitorio).
+    Vigenza: artt. 633-656 c.p.c.; art. 7 c.p.c. nel testo del D.Lgs. 149/2022 (giudice di pace fino
+    a €10.000 dal 28/02/2023; l'innalzamento a €30.000 del D.Lgs. 116/2017 è stato più volte
+    differito e non è in vigore); art. 413 c.p.c. per i crediti di lavoro (sempre tribunale);
+    DPR 115/2002 (CU monitorio, metà ex art. 13 co. 3; art. 9 co. 1-bis per i crediti di lavoro: CU dovuto solo se
+    il reddito supera tre volte la soglia dell'art. 76; dichiarazione di valore ex art. 14 co. 2); artt. 636 e 637
+    co. 3 c.p.c. per la parcella con parere dell'Ordine. Verificata al 2026-09-29.
     Precisione: INDICATIVO per la bozza (richiede completamento con dati specifici del caso).
     Chaining: → contributo_unificato() per calcolare le spese di giustizia → parcella_avvocato_civile()
 
@@ -432,23 +665,44 @@ def decreto_ingiuntivo(
         debitore: Nome o ragione sociale del debitore
         importo: Importo del credito in euro (€)
         tipo_credito: Natura del credito: 'ordinario', 'professionale' (parcella vidimata),
-                      'condominiale' (delibera assembleare), 'cambiale'
+                      'condominiale' (delibera assembleare), 'cambiale', 'retribuzioni' (crediti di
+                      lavoro: competenza del tribunale in funzione di giudice del lavoro)
         provvisoria_esecuzione: True per richiedere la clausola ex art. 642 c.p.c.
+        reddito_oltre_soglia_lavoro: solo per 'retribuzioni' (art. 9 co. 1-bis DPR 115/2002): True se il reddito
+                      imponibile del ricorrente supera tre volte la soglia dell'art. 76; altrimenti CU non dovuto
     """
-    # Giudice competente per valore (D.Lgs. 116/2017: soglia GdP €10.000)
-    if importo <= 10000:
+    tipi_credito = ("ordinario", "professionale", "condominiale", "cambiale", "retribuzioni")
+    if tipo_credito not in tipi_credito:
+        return {"errore": f"tipo_credito non riconosciuto: {tipo_credito!r}. Valori ammessi: {', '.join(tipi_credito)}"}
+    # Giudice competente: crediti di lavoro sempre al tribunale (art. 413 c.p.c.); per gli altri
+    # per valore (art. 7 co. 1 c.p.c. post-Cartabia: giudice di pace fino a €10.000)
+    if tipo_credito == "retribuzioni":
+        giudice = "Tribunale — Sezione Lavoro"
+    elif importo <= 10000:
         giudice = "Giudice di Pace"
     else:
         giudice = "Tribunale"
 
-    # CU monitorio
-    cu = _calcola_cu_base(importo, "monitorio")
+    # CU monitorio; labour credits: due only above three times the art. 76 threshold (art. 9 co. 1-bis DPR 115/2002)
+    if tipo_credito == "retribuzioni":
+        cu = _calcola_cu_base(importo, "lavoro", reddito_oltre_soglia=reddito_oltre_soglia_lavoro)
+        nota_cu = (
+            "Crediti di lavoro: contributo unificato dovuto solo se il reddito supera tre volte la soglia "
+            "dell'art. 76 (art. 9 co. 1-bis DPR 115/2002); altrimenti 0"
+        )
+    else:
+        cu = _calcola_cu_base(importo, "monitorio")
+        nota_cu = "Scaglione ridotto alla meta' per il procedimento monitorio (art. 13 co. 3 DPR 115/2002)"
 
     # Motivi provvisoria esecuzione
     motivi_pe = []
     if provvisoria_esecuzione:
         if tipo_credito == "professionale":
-            motivi_pe.append("credito fondato su parcella professionale vidimata dall'Ordine (art. 642 co. 1 c.p.c.)")
+            motivi_pe.append(
+                "credito fondato su parcella con parere di congruita' dell'Ordine (art. 636 c.p.c.): la parcella non rientra "
+                "tra i titoli del primo comma dell'art. 642, la clausola si chiede per pericolo di grave pregiudizio nel ritardo o per "
+                "documentazione sottoscritta dal debitore (art. 642 co. 2 c.p.c.)"
+            )
         elif tipo_credito == "condominiale":
             motivi_pe.append("credito fondato su delibera assembleare di approvazione spese (art. 63 disp. att. c.c.)")
         elif tipo_credito == "cambiale":
@@ -479,7 +733,9 @@ Che il credito è certo, liquido ed esigibile, come risulta dalla prova scritta 
 
 CHIEDE
 
-che l'Ill.mo {giudice} voglia emettere decreto con il quale si ingiunge a {debitore} di pagare la somma di Euro {importo:,.2f}, oltre interessi legali dalla messa in mora al saldo, oltre spese e competenze del procedimento."""
+che l'Ill.mo {giudice} voglia emettere decreto con il quale si ingiunge a {debitore} di pagare la somma di Euro {importo:,.2f}, oltre interessi legali dalla messa in mora al saldo, oltre spese e competenze del procedimento.
+
+Ai fini del contributo unificato si dichiara che il valore della controversia è di Euro {importo:,.2f} (art. 14 co. 2 DPR 115/2002) e che il contributo dovuto è di Euro {cu:,.2f}."""
 
     if provvisoria_esecuzione:
         bozza += f"""
@@ -506,10 +762,18 @@ Avv. [LEGALE]"""
             "tipo_credito": tipo_credito,
             "giudice_competente": giudice,
             "contributo_unificato": cu,
+            "nota_contributo_unificato": nota_cu,
             "provvisoria_esecuzione": provvisoria_esecuzione,
             "motivi_pe": motivi_pe if provvisoria_esecuzione else None,
         },
-        "riferimento_normativo": "Artt. 633-656 c.p.c.",
+        "termini": {
+            "opposizione": "40 giorni dalla notifica del decreto (50 se l'ingiunto risiede in altro Stato UE, 60 fuori UE) — art. 641 c.p.c.",
+            "notifica_decreto": "entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti il decreto perde efficacia — art. 644 c.p.c.",
+        },
+        "riferimento_normativo": (
+            "Artt. 633-656 c.p.c.; art. 7 c.p.c. (competenza per valore); art. 413 c.p.c. (crediti di lavoro); "
+            "artt. 636 e 637 co. 3 c.p.c. (parcella, foro del Consiglio dell'Ordine); artt. 9, 13 e 14 DPR 115/2002"
+        ),
     }
 
 
@@ -537,60 +801,105 @@ def tassazione_atti(
     tipo_atto: str,
     valore: float,
     prima_casa: bool = False,
+    contenuto: str = "",
+    valore_causa: float | None = None,
+    credito_soggetto_iva: bool = False,
+    mediazione: bool = False,
+    decreto_sostitutivo: bool = False,
 ) -> dict:
-    """Calcola l'imposta di registro dovuta su atti giudiziari.
-    Vigenza: DPR 131/1986 — TU Imposta di Registro, Tariffa Parte I (tabelle vigenti).
-    Precisione: ESATTO (imposta proporzionale 3% con minimo €200; 2% per prima casa su verbale).
+    """Calcola l'imposta di registro dovuta su atti giudiziari, secondo il contenuto dell'atto.
+    Vigenza: DPR 131/1986, Tariffa parte I art. 8 lett. a-g con Note I e II, art. 11, artt. 40 e 41 co. 2
+    (testo in vigore al 2026-09-29, fino al 31/12/2026: dal 1/1/2027 si applica il D.Lgs. 123/2025,
+    artt. 204-205 e 45 co. 2, da rileggere); misura fissa 200 euro (art. 26 co. 2 DL 104/2013);
+    art. 10 D.Lgs. 23/2011 (art. 1 Tariffa: 9%, 2% prima casa, minimo 1.000 euro);
+    art. 46 co. 1 L. 374/1991 (cause fino a 1.033,00 euro: solo contributo unificato, circ. AdE 30/E/2022);
+    art. 17 co. 2 D.Lgs. 28/2010 (accordo di mediazione esente fino a 100.000 euro).
+    Precisione: INDICATIVO (imposte ipotecaria e catastale escluse; la misura applicata dall'ufficio a ordinanze
+        di assegnazione e a condanne solo in parte soggette a IVA dipende dalla prassi; nessun arrotondamento
+        all'euro per gli atti giudiziari dal 1/1/2025, art. 41 co. 1 come modificato dal D.Lgs. 139/2024)
 
     Args:
-        tipo_atto: Tipo di atto giudiziario: 'sentenza_condanna' (3% proporzionale o €200 fisso),
-                   'decreto_ingiuntivo' (3%), 'verbale_conciliazione' (3% o 2% prima casa),
-                   'ordinanza' (€200 fisso)
-        valore: Valore dell'atto o importo oggetto del provvedimento in euro (€)
-        prima_casa: True se il verbale di conciliazione riguarda un trasferimento prima casa
-                    (aliquota agevolata 2%, minimo €1.000)
+        tipo_atto: 'sentenza_condanna', 'decreto_ingiuntivo', 'verbale_conciliazione' oppure 'ordinanza'.
+                   Conta il contenuto (art. 8 Tariffa I), non la forma: vedi il parametro contenuto
+        valore: Valore dell'atto o importo oggetto del provvedimento in euro (>= 0)
+        prima_casa: True se l'atto trasferisce una prima casa (2%, minimo 1.000 euro); implica contenuto='trasferimento'
+        contenuto: 'condanna' (3%, lett. b), 'accertamento' (1%, lett. c), 'trasferimento' (aliquota dell'atto
+                   corrispondente, lett. a: 9% o 2% prima casa, minimo 1.000 euro), 'nessuno' (misura fissa,
+                   lett. d-g). Se vuoto: condanna con valore > 0, nessuno con valore 0
+        valore_causa: Valore della causa ai fini dell'art. 46 L. 374/1991 (esente se <= 1.033,00 euro);
+                      se omesso coincide con valore
+        credito_soggetto_iva: True se la condanna riguarda corrispettivi soggetti a IVA (Nota II art. 8 e art. 40
+                              DPR 131/1986: misura fissa)
+        mediazione: True per il verbale o l'accordo di conciliazione in mediazione (art. 17 co. 2 D.Lgs. 28/2010:
+                    esente fino a 100.000 euro, imposta sulla sola parte eccedente)
+        decreto_sostitutivo: True per il decreto ingiuntivo emesso in sostituzione ex art. 644 c.p.c.
+                             (Nota I art. 8 Tariffa I: misura fissa)
     """
-    # Imposte fisse e proporzionali per atti giudiziari
     imposta_fissa = 200.0
+    tipi = ("sentenza_condanna", "decreto_ingiuntivo", "verbale_conciliazione", "ordinanza")
+    if tipo_atto not in tipi:
+        return {"errore": f"tipo_atto non riconosciuto: {tipo_atto}. Valori ammessi: {', '.join(tipi)}"}
+    if valore < 0 or (valore_causa is not None and valore_causa < 0):
+        return {"errore": "valore non puo' essere negativo: la base imponibile e' un importo >= 0"}
+    if contenuto not in ("", "condanna", "accertamento", "trasferimento", "nessuno"):
+        return {"errore": "contenuto non riconosciuto. Valori ammessi: condanna, accertamento, trasferimento, nessuno"}
 
-    if tipo_atto == "sentenza_condanna":
-        if valore > 0:
-            aliquota = 0.03  # 3% per condanne al pagamento di somme
-            imposta = max(round(valore * aliquota, 2), imposta_fissa)
-            descrizione = "Imposta proporzionale 3% su sentenze di condanna al pagamento"
-        else:
-            imposta = imposta_fissa
-            aliquota = 0
-            descrizione = "Imposta fissa per sentenze senza condanna al pagamento"
-    elif tipo_atto == "decreto_ingiuntivo":
-        aliquota = 0.03
-        imposta = max(round(valore * aliquota, 2), imposta_fissa)
-        descrizione = "Imposta proporzionale 3% su decreto ingiuntivo"
-    elif tipo_atto == "verbale_conciliazione":
+    if not contenuto:
         if prima_casa:
-            aliquota = 0.02  # 2% agevolata
-            imposta = max(round(valore * aliquota, 2), 1000.0)
-            descrizione = "Imposta 2% su verbale conciliazione (agevolazione prima casa)"
+            contenuto = "trasferimento"
+        elif valore > 0:
+            contenuto = "condanna"
         else:
-            aliquota = 0.03
-            imposta = max(round(valore * aliquota, 2), imposta_fissa)
-            descrizione = "Imposta proporzionale 3% su verbale di conciliazione"
-    elif tipo_atto == "ordinanza":
-        imposta = imposta_fissa
-        aliquota = 0
-        descrizione = "Imposta fissa per ordinanze"
-    else:
-        return {"errore": f"tipo_atto non riconosciuto: {tipo_atto}. Valori ammessi: sentenza_condanna, decreto_ingiuntivo, verbale_conciliazione, ordinanza"}
+            contenuto = "nessuno"
+    if prima_casa and contenuto != "trasferimento":
+        return {"errore": "prima_casa vale solo per contenuto='trasferimento'"}
 
-    return {
-        "tipo_atto": tipo_atto,
-        "valore": valore,
-        "prima_casa": prima_casa,
-        "aliquota_pct": round(aliquota * 100, 2) if aliquota else 0,
-        "imposta_registro": imposta,
-        "descrizione": descrizione,
-        "riferimento_normativo": "DPR 131/1986 — TU Imposta di Registro, Tariffa Parte I",
-    }
+    def _risultato(imposta: float, aliquota: float, descrizione: str) -> dict:
+        return {
+            "tipo_atto": tipo_atto,
+            "valore": valore,
+            "prima_casa": prima_casa,
+            "contenuto": contenuto,
+            "aliquota_pct": round(aliquota * 100, 2) if aliquota else 0,
+            "imposta_registro": imposta,
+            "descrizione": descrizione,
+            "riferimento_normativo": (
+                "DPR 131/1986, Tariffa parte I art. 8 (Note I e II), art. 41 co. 2; art. 26 co. 2 DL 104/2013; "
+                "art. 10 D.Lgs. 23/2011; art. 46 L. 374/1991; art. 17 D.Lgs. 28/2010"
+            ),
+            "avvertenze": "Imposte ipotecaria e catastale escluse. Dal 1/1/2027 si applica il D.Lgs. 123/2025.",
+        }
+
+    # art. 46 co. 1 L. 374/1991: causes up to 1.033,00 euro pay only the contributo unificato
+    if (valore_causa if valore_causa is not None else valore) <= 1033.0 and not mediazione and valore > 0:
+        return _risultato(0.0, 0, "Esente: causa di valore non superiore a 1.033,00 euro (art. 46 L. 374/1991)")
+
+    base = valore
+    if mediazione:
+        base = max(valore - 100000.0, 0.0)
+        if base == 0:
+            return _risultato(0.0, 0, "Esente: accordo di mediazione fino a 100.000 euro (art. 17 co. 2 D.Lgs. 28/2010)")
+
+    if decreto_sostitutivo and tipo_atto == "decreto_ingiuntivo":
+        return _risultato(imposta_fissa, 0, "Misura fissa: decreto ingiuntivo in sostituzione ex art. 644 c.p.c. (Nota I art. 8)")
+    if contenuto == "nessuno":
+        return _risultato(imposta_fissa, 0, "Misura fissa: atto senza condanna, accertamento o trasferimento (art. 8 lett. d Tariffa I)")
+    if contenuto == "condanna":
+        if credito_soggetto_iva:
+            return _risultato(imposta_fissa, 0, "Misura fissa: condanna per corrispettivi soggetti a IVA (Nota II art. 8, art. 40 DPR 131/1986)")
+        aliquota, minimo = 0.03, imposta_fissa
+        descrizione = "Imposta proporzionale 3% su condanna al pagamento (art. 8 lett. b Tariffa I)"
+    elif contenuto == "accertamento":
+        aliquota, minimo = 0.01, imposta_fissa
+        descrizione = "Imposta proporzionale 1% su accertamento di rapporti (art. 8 lett. c Tariffa I)"
+    elif prima_casa:
+        aliquota, minimo = 0.02, 1000.0
+        descrizione = "Imposta 2% su trasferimento prima casa, minimo 1.000 euro (art. 8 lett. a Tariffa I; art. 10 D.Lgs. 23/2011)"
+    else:
+        aliquota, minimo = 0.09, 1000.0
+        descrizione = "Imposta 9% su trasferimento, minimo 1.000 euro (art. 8 lett. a Tariffa I; art. 10 D.Lgs. 23/2011)"
+    imposta = max(round(base * aliquota, 2), minimo)
+    return _risultato(imposta, aliquota, descrizione)
 
 
 
@@ -600,41 +909,62 @@ def tassazione_atti(
 # ---------------------------------------------------------------------------
 
 
+# DM MEF 27 dicembre 2011 (GU n. 50 del 29.2.2012, in vigore dal 1.3.2012), allegato 1:
+# diritto forfetizzato di copia semplice su carta per fascia di pagine; allegato 2 (art. 2 co. 2):
+# diritto aggiuntivo di 9 euro per ogni documento con certificazione di conformita'.
+_COPIA_TRIBUTARIO_FASCE = [(4, 1.50), (10, 3.00), (20, 6.00), (50, 12.00), (100, 25.00)]
+_COPIA_TRIBUTARIO_OLTRE_100 = 15.00  # per ogni ulteriori 100 pagine o frazione
+_COPIA_TRIBUTARIO_CONFORMITA = 9.00
+
+
 @mcp.tool(tags={"giudiziario"})
 def copie_processo_tributario(
     n_pagine: int,
     tipo: str = "semplice",
     urgente: bool = False,
 ) -> dict:
-    """Calcola i diritti di copia specifici per il processo tributario.
-    Vigenza: DPR 115/2002 — tariffe processo tributario (€0,25/pagina semplice, €0,50 autentica).
-    Precisione: ESATTO (tariffe per pagina; maggiorazione urgenza +50%).
+    """Calcola i diritti di copia su carta specifici per il processo tributario.
+    Vigenza: DM MEF 27 dicembre 2011 (GU n. 50 del 29.2.2012, in vigore dal 1.3.2012), adottato ex artt. 40 e 196
+    DPR 115/2002: allegato 1 (copia semplice, importo forfetizzato per fascia di pagine) e art. 2 co. 2
+    (+9,00 euro per ogni copia con certificazione di conformita'). Il decreto non prevede maggiorazioni
+    per urgenza. Verificata al 2026-09-29.
+    Precisione: INDICATIVO (importi delle fasce fino a 100 pagine riscontrati su piu' fonti e sul calcolatore
+        MEF; l'incremento oltre 100 pagine e' letto da fonti secondarie; copie elettroniche non gestite)
 
     Args:
         n_pagine: Numero di pagine dell'atto (intero positivo)
-        tipo: Tipo di copia: 'semplice' (€0,25/pag) o 'autentica' (€0,50/pag)
-        urgente: True per maggiorazione urgenza +50%
+        tipo: Tipo di copia: 'semplice' o 'autentica' (con certificazione di conformita', +9,00 euro)
+        urgente: Accettato per compatibilita': il DM 27/12/2011 non prevede alcuna maggiorazione
     """
     if n_pagine <= 0:
         return {"errore": "n_pagine deve essere un intero positivo"}
+    if tipo not in ("semplice", "autentica"):
+        return {"errore": "tipo deve essere 'semplice' o 'autentica'", "valori_ammessi": ["semplice", "autentica"]}
 
-    tariffe = {"semplice": 0.25, "autentica": 0.50}
-    tariffa = tariffe.get(tipo, 0.25)
-    subtotale = round(n_pagine * tariffa, 2)
-    maggiorazione = round(subtotale * 0.5, 2) if urgente else 0.0
-    totale = round(subtotale + maggiorazione, 2)
+    subtotale = None
+    for limite, importo in _COPIA_TRIBUTARIO_FASCE:
+        if n_pagine <= limite:
+            subtotale = importo
+            break
+    if subtotale is None:
+        # oltre 100 pagine: 25,00 + 15,00 per ogni ulteriori 100 pagine o frazione
+        blocchi = -(-(n_pagine - 100) // 100)
+        subtotale = _COPIA_TRIBUTARIO_FASCE[-1][1] + blocchi * _COPIA_TRIBUTARIO_OLTRE_100
+    conformita = _COPIA_TRIBUTARIO_CONFORMITA if tipo == "autentica" else 0.0
+    totale = round(subtotale + conformita, 2)
 
     result = {
         "n_pagine": n_pagine,
         "tipo": tipo,
-        "tariffa_pagina": tariffa,
-        "subtotale": subtotale,
+        "subtotale": round(subtotale, 2),
         "urgente": urgente,
         "totale": totale,
-        "riferimento_normativo": "DPR 115/2002 — Tariffe processo tributario",
+        "riferimento_normativo": "DM MEF 27 dicembre 2011 (GU n. 50 del 29.2.2012), allegato 1 e art. 2",
     }
+    if tipo == "autentica":
+        result["diritto_conformita"] = conformita
     if urgente:
-        result["maggiorazione_urgenza"] = maggiorazione
+        result["note"] = "Il DM 27/12/2011 non prevede maggiorazione per urgenza: nessun importo aggiunto"
     return result
 
 
@@ -643,9 +973,12 @@ def copie_processo_tributario(
 def note_iscrizione_ruolo(
     tipo_procedimento: str,
     valore_causa: float | None = None,
+    reddito_oltre_soglia_lavoro: bool = False,
+    convalida_sfratto: bool = False,
 ) -> dict:
     """Genera note per l'iscrizione a ruolo con codici oggetto suggeriti e CU calcolato.
-    Vigenza: DPR 115/2002 (CU); provvedimenti DGSIA per codici oggetto iscrizione a ruolo.
+    Vigenza: DPR 115/2002 (CU: art. 13 co. 1-3, art. 9 co. 1-bis); provvedimenti DGSIA per codici
+    oggetto iscrizione a ruolo. Verificata al 2026-09-29.
     Precisione: INDICATIVO per i codici oggetto (suggeriti in base alla materia; verificare
     sempre il codice esatto nel software di deposito telematico PCT).
 
@@ -654,6 +987,12 @@ def note_iscrizione_ruolo(
                            'condominio', 'esecuzione_mobiliare', 'esecuzione_immobiliare',
                            'monitorio', 'volontaria_giurisdizione'
         valore_causa: Valore della causa in euro (€) — necessario per calcolare il CU
+                      (per la convalida di sfratto: canoni non corrisposti, o canone annuo per la finita locazione)
+        reddito_oltre_soglia_lavoro: Solo 'lavoro': True se la parte ha reddito superiore a tre volte la
+                      soglia dell'art. 76 (art. 9 co. 1-bis): il CU e' dovuto, dimezzato (art. 13 co. 3);
+                      altrimenti il processo e' esente
+        convalida_sfratto: Solo 'locazione': True per la convalida di sfratto (artt. 657-669 c.p.c.,
+                      libro IV titolo I): CU dimezzato (art. 13 co. 3). Per la causa locatizia ordinaria e' falso
     """
     mapping_cu = {
         "cognizione_ordinaria": "cognizione",
@@ -675,7 +1014,13 @@ def note_iscrizione_ruolo(
     }
 
     cu_tipo = mapping_cu.get(tipo_procedimento, "cognizione")
-    cu_value_based = cu_tipo in ("cognizione", "monitorio")
+    # Convalida di sfratto: processo speciale del libro IV, titolo I, c.p.c. -> contributo ridotto
+    # alla meta' (art. 13 co. 3 DPR 115/2002); la scala dimezzata e' quella del monitorio
+    if tipo_procedimento == "locazione" and convalida_sfratto:
+        cu_tipo = "monitorio"
+    cu_value_based = cu_tipo in ("cognizione", "monitorio", "esecuzione_mobiliare", "lavoro") and not (
+        cu_tipo == "lavoro" and not reddito_oltre_soglia_lavoro
+    )
 
     materia = mapping_materia.get(tipo_procedimento)
     codici_suggeriti = []
@@ -692,16 +1037,32 @@ def note_iscrizione_ruolo(
             "riferimento_normativo": "DPR 115/2002 — Provvedimenti DGSIA per codici oggetto",
         }
 
-    cu_importo = _calcola_cu_base(valore_causa or 0, cu_tipo)
+    cu_importo = _calcola_cu_base(
+        valore_causa or 0, cu_tipo, reddito_oltre_soglia=reddito_oltre_soglia_lavoro
+    )
+    nota_cu = f"Iscrivere a ruolo come '{tipo_procedimento}'. CU calcolato: EUR {cu_importo:.2f}."
+    if tipo_procedimento == "lavoro" and not reddito_oltre_soglia_lavoro:
+        nota_cu += (" Esente (art. 9 co. 1-bis): il CU e' dovuto solo dalla parte con reddito superiore a tre "
+                    "volte la soglia dell'art. 76; in tal caso passare reddito_oltre_soglia_lavoro=True.")
+    if tipo_procedimento == "locazione" and not convalida_sfratto:
+        nota_cu += (" CU a scala piena (causa locatizia ordinaria); per la convalida di sfratto il CU e' "
+                    "dimezzato (art. 13 co. 3): passare convalida_sfratto=True.")
 
     return {
         "tipo_procedimento": tipo_procedimento,
         "valore_causa": valore_causa,
         "contributo_unificato": cu_importo,
         "codici_oggetto_suggeriti": codici_suggeriti,
-        "note": f"Iscrivere a ruolo come '{tipo_procedimento}'. CU calcolato: EUR {cu_importo:.2f}.",
+        "note": nota_cu,
         "riferimento_normativo": "DPR 115/2002 — Provvedimenti DGSIA per codici oggetto",
     }
+
+
+def _fold_accenti(testo: str) -> str:
+    """Lowercase, strip accents and apostrophes used as accents (\"responsabilita'\")."""
+    nfd = unicodedata.normalize("NFD", testo.lower().strip())
+    senza = "".join(ch for ch in nfd if not unicodedata.combining(ch))
+    return senza.replace("'", "").replace("’", "")
 
 
 @mcp.tool(tags={"giudiziario"})
@@ -716,10 +1077,12 @@ def codici_iscrizione_ruolo(materia: str) -> dict:
                  'responsabilita', 'famiglia', 'lavoro', 'condominio', 'successione',
                  'societario', 'proprieta', 'possesso', 'consumatore', 'bancario'
     """
-    keyword = materia.lower().strip()
+    # Accent-insensitive match, like the ministerial search page: 'responsabilita',
+    # 'responsabilità' and "responsabilita'" give the same result
+    keyword = _fold_accenti(materia)
     risultati = [
         c for c in _CODICI_RUOLO
-        if keyword in c["materia"] or keyword in c["descrizione"].lower()
+        if keyword in _fold_accenti(c["materia"]) or keyword in _fold_accenti(c["descrizione"])
     ]
 
     return {
@@ -795,7 +1158,10 @@ def procura_alle_liti(
     tipo: str = "generale",
 ) -> dict:
     """Genera bozza di procura alle liti ex art. 83 c.p.c.
-    Vigenza: art. 83 c.p.c. (testo vigente); include clausola GDPR e antiriciclaggio.
+    Vigenza: artt. 83 e 84 c.p.c. (testo vigente al 2026-09-29). La clausola antiriciclaggio rinvia
+    agli artt. 17 ss. D.Lgs. 231/2007 (come sostituiti dal D.Lgs. 90/2017; l'art. 4 e' abrogato), solo
+    per le prestazioni dell'art. 3 co. 4 lett. c). Clausola privacy: basi giuridiche art. 6 par. 1
+    lett. b) e art. 9 par. 2 lett. f) GDPR, non il consenso.
 
     Args:
         parte: Nome della parte che conferisce la procura
@@ -828,9 +1194,9 @@ l'Avv. {avvocato}, C.F. {cf_avvocato}, del Foro di {foro}, con studio in ___, PE
 
 Elegge domicilio presso lo studio del predetto difensore e, ai fini delle comunicazioni e notificazioni, all'indirizzo PEC dello stesso risultante da pubblici elenchi.
 
-Dichiara di essere stato/a informato/a, ai sensi dell'art. 4 co. 3 del D.Lgs. 231/2007, che il difensore è tenuto ad effettuare la verifica dell'identità del cliente e all'adeguata verifica ai fini antiriciclaggio.
+Dichiara di essere stato/a informato/a che, ove l'incarico comprenda prestazioni rientranti nell'art. 3 co. 4 lett. c) del D.Lgs. 231/2007 (operazioni finanziarie o immobiliari), il difensore è tenuto all'identificazione e all'adeguata verifica ai fini antiriciclaggio ai sensi degli artt. 17 ss. dello stesso decreto.
 
-Presta il consenso al trattamento dei dati personali ai sensi del Reg. UE 2016/679 (GDPR) per le finalità connesse al conferimento dell'incarico professionale.
+Prende atto che i dati personali sono trattati dal difensore per l'esecuzione dell'incarico professionale (art. 6 par. 1 lett. b Reg. UE 2016/679) e, per le categorie particolari di dati eventualmente coinvolte, per l'accertamento, l'esercizio o la difesa di un diritto in sede giudiziaria (art. 9 par. 2 lett. f Reg. UE 2016/679), senza necessità di consenso.
 
 Dichiara di aver ricevuto l'informativa ai sensi dell'art. 13 del Reg. UE 2016/679.
 
@@ -858,8 +1224,13 @@ def attestazione_conformita(
     modalita: str = "estratto",
 ) -> dict:
     """Genera bozza di attestazione di conformità per il deposito telematico PCT.
-    Vigenza: art. 16-bis co. 9-bis DL 179/2012 conv. L. 221/2012;
-    art. 16-undecies DL 179/2012 — DM 44/2011 specifiche tecniche PCT.
+    Vigenza: artt. 196-octies, 196-novies, 196-decies e 196-undecies disp. att. c.p.c., introdotti
+    dal D.Lgs. 149/2022 (Riforma Cartabia) in luogo degli artt. 16-bis co. 9-bis e 16-undecies
+    DL 179/2012 conv. L. 221/2012, che restano applicabili ai soli procedimenti pendenti al
+    28/02/2023 (gli artt. 16-bis e 16-undecies DL 179/2012 sono abrogati dal D.Lgs. 149/2022); art. 196-novies
+    per la copia informatica di atto analogico depositata, art. 196-decies per le copie trasmesse all'ufficiale
+    giudiziario (non gestite); DM 44/2011 e specifiche tecniche DGSIA per le modalità. Verificata al 2026-09-29.
+    Precisione: INDICATIVO (bozza da completare e firmare digitalmente).
 
     Args:
         avvocato: Nome e cognome dell'avvocato attestante
@@ -870,16 +1241,16 @@ def attestazione_conformita(
     """
     if modalita == "copia_informatica":
         tipo_attestazione = "copia informatica di documento analogico"
-        norma_specifica = "art. 16-bis co. 9-bis DL 179/2012, conv. L. 221/2012"
+        norma_specifica = "art. 196-novies disp. att. c.p.c. (copia informatica di atto analogico depositata dal difensore)"
     elif modalita == "duplicato":
         tipo_attestazione = "duplicato informatico"
-        norma_specifica = "art. 16-bis co. 9-bis DL 179/2012, conv. L. 221/2012"
+        norma_specifica = "art. 196-octies disp. att. c.p.c. (duplicato informatico)"
     else:
         tipo_attestazione = "copia informatica estratta dal fascicolo informatico"
-        norma_specifica = "art. 16-bis co. 9-bis DL 179/2012, conv. L. 221/2012"
+        norma_specifica = "art. 196-octies disp. att. c.p.c. (copia estratta dal fascicolo informatico)"
 
     testo = f"""ATTESTAZIONE DI CONFORMITA'
-(Art. 16-bis co. 9-bis DL 179/2012 — Art. 16-undecies DL 179/2012)
+(Artt. 196-octies, 196-novies e 196-undecies disp. att. c.p.c.)
 
 Il sottoscritto Avv. {avvocato}, in qualità di difensore di parte nel procedimento indicato in atti,
 
@@ -893,7 +1264,7 @@ Estremi: {estremi_originale}
 
 è conforme all'originale {("analogico" if modalita == "copia_informatica" else "contenuto nel fascicolo informatico")}.
 
-La presente attestazione è resa ai sensi dell'art. 16-undecies del DL 18 ottobre 2012, n. 179, convertito con modificazioni dalla L. 17 dicembre 2012, n. 221.
+La presente attestazione è resa ai sensi dell'art. 196-undecies delle disposizioni di attuazione del codice di procedura civile (D.Lgs. 10 ottobre 2022, n. 149).
 
 Luogo e data _______________
 
@@ -904,7 +1275,7 @@ Avv. {avvocato}
         "testo": testo,
         "tipo_atto": "attestazione_conformita",
         "modalita": modalita,
-        "riferimento_normativo": "Art. 16-bis co. 9-bis DL 179/2012 — Art. 16-undecies DL 179/2012",
+        "riferimento_normativo": "Artt. 196-octies, 196-novies e 196-undecies disp. att. c.p.c. (D.Lgs. 149/2022)",
     }
 
 
@@ -915,10 +1286,22 @@ def relata_notifica_pec(
     pec_destinatario: str,
     atto_notificato: str,
     data_invio: str,
+    cf_avvocato: str = "",
+    parte_assistita: str = "",
+    cf_parte: str = "",
+    elenco_pubblico: str = "",
+    atto_analogico: bool = False,
+    ufficio_giudiziario: str = "",
+    sezione: str = "",
+    numero_ruolo: str = "",
 ) -> dict:
     """Genera bozza di relata di notificazione a mezzo PEC ex L. 53/1994.
-    Vigenza: art. 3-bis L. 53/1994 (mod. L. 228/2012); la notifica si perfeziona con
-    la ricevuta di avvenuta consegna (RdAC).
+    Vigenza: art. 3-bis L. 53/1994 (commi 3, 5 e 6), art. 147 c.p.c. e art. 196-undecies disp. att.
+    c.p.c. (D.Lgs. 149/2022), testo vigente al 2026-09-29; la notifica si perfeziona con la
+    ricevuta di avvenuta consegna (RdAC). Il contenuto della relata segue l'art. 3-bis co. 5:
+    CF del notificante, parte che ha conferito la procura e suo CF, elenco di provenienza della
+    PEC, attestazione di conformità se l'atto è analogico; co. 6: dati di ruolo se in corso di causa.
+    Precisione: ESATTO nel contenuto normativo; i campi non forniti restano da completare.
 
     Args:
         avvocato: Nome e cognome dell'avvocato notificante (iscritto a INI-PEC)
@@ -926,14 +1309,46 @@ def relata_notifica_pec(
         pec_destinatario: Indirizzo PEC del destinatario (estratto da INI-PEC/ReGIndE/Registro Imprese)
         atto_notificato: Descrizione dell'atto notificato (es. "ricorso per decreto ingiuntivo")
         data_invio: Data di invio del messaggio PEC (YYYY-MM-DD)
+        cf_avvocato: Codice fiscale dell'avvocato notificante (art. 3-bis co. 5 lett. a)
+        parte_assistita: Parte che ha conferito la procura alle liti (art. 3-bis co. 5 lett. c)
+        cf_parte: Codice fiscale o partita IVA della parte assistita (art. 3-bis co. 5 lett. c)
+        elenco_pubblico: Elenco da cui è stata estratta la PEC: INI-PEC, ReGIndE o Registro imprese (lett. f)
+        atto_analogico: True se l'atto è copia informatica di un originale analogico (attestazione ex art. 196-undecies disp. att.)
+        ufficio_giudiziario: Ufficio giudiziario, se la notifica è in corso di procedimento (co. 6)
+        sezione: Sezione, se in corso di procedimento (co. 6)
+        numero_ruolo: Numero e anno di ruolo (es. "1234/2026"), se in corso di procedimento (co. 6)
     """
-    dt = _parse_date(data_invio)
+    try:
+        dt = _parse_date(data_invio)
+    except ValueError:
+        return {"errore": f"data_invio non valida (atteso YYYY-MM-DD): {data_invio}"}
     data_fmt = dt.strftime("%d/%m/%Y")
 
-    testo = f"""RELATA DI NOTIFICAZIONE A MEZZO PEC
-(L. 21 gennaio 1994, n. 53, come modificata dalla L. 228/2012)
+    _ = "_______________"
+    cf_avv = cf_avvocato or _
+    parte = parte_assistita or _
+    cfp = cf_parte or _
+    elenco = elenco_pubblico or "INI-PEC, ReGIndE o Registro Imprese (indicare quello effettivo)"
+    if atto_analogico:
+        attestazione = (
+            "5. Che l'atto notificato è copia informatica di un documento formato su supporto analogico e ne attesto "
+            "la conformità all'originale ai sensi dell'art. 3-bis co. 2 e co. 5 lett. g) della L. 53/1994 e "
+            "dell'art. 196-undecies disp. att. c.p.c. (attestazione inserita nella presente relazione)."
+        )
+    else:
+        attestazione = (
+            "5. Che l'atto notificato è un documento informatico nativo: non occorre l'attestazione di conformità "
+            "di cui all'art. 3-bis co. 2."
+        )
+    ruolo = (
+        f"\nSe la notifica è eseguita in corso di procedimento (L. 53/1994, art. 3-bis co. 6): ufficio giudiziario "
+        f"{ufficio_giudiziario or _}, sezione {sezione or _}, R.G. n. {numero_ruolo or _}.\n"
+    )
 
-Il sottoscritto Avv. {avvocato}, autorizzato dal Consiglio dell'Ordine ai sensi dell'art. 1 della L. 53/1994,
+    testo = f"""RELATA DI NOTIFICAZIONE A MEZZO PEC
+(L. 21 gennaio 1994, n. 53, art. 3-bis)
+
+Il sottoscritto Avv. {avvocato}, C.F. {cf_avv}, quale difensore di {parte}, C.F./P.IVA {cfp}, parte che ha conferito la procura alle liti, ai sensi degli artt. 1 e 3-bis della L. 53/1994 (per la notificazione a mezzo PEC non occorre l'autorizzazione del Consiglio dell'Ordine, richiesta solo per la notifica a mezzo posta),
 
 CERTIFICA
 
@@ -946,18 +1361,19 @@ al seguente destinatario:
 {destinatario}
 Indirizzo PEC: {pec_destinatario}
 
-L'indirizzo PEC del destinatario è stato estratto da pubblici elenchi (INI-PEC / ReGIndE / Registro Imprese), come previsto dall'art. 3-bis co. 1 della L. 53/1994.
-
+L'indirizzo PEC del destinatario è stato estratto dall'elenco: {elenco} (L. 53/1994, art. 3-bis co. 1 e co. 5 lett. f).
+{ruolo}
 DICHIARA
 
-1. Che il messaggio di posta elettronica certificata è stato inviato dall'indirizzo PEC del sottoscritto risultante da pubblici elenchi;
-2. Che l'atto notificato è stato trasmesso in formato PDF conforme all'originale;
-3. Che si è provveduto a inserire nella busta di trasporto la relazione di notificazione sottoscritta digitalmente;
-4. Che la ricevuta di accettazione e la ricevuta di avvenuta consegna sono state conservate agli atti.
+1. Che il messaggio di posta elettronica certificata è stato inviato da un indirizzo PEC del sottoscritto risultante da pubblici elenchi, con l'oggetto «notificazione ai sensi della legge n. 53 del 1994»;
+2. Che la presente relazione è redatta su documento informatico separato, sottoscritto con firma digitale e allegato al messaggio;
+3. Che la ricevuta di accettazione e la ricevuta di avvenuta consegna sono conservate agli atti;
+4. Che l'atto è allegato al messaggio di posta elettronica certificata;
+{attestazione}
 
-Ai sensi dell'art. 3-bis co. 3 della L. 53/1994, la notifica si intende perfezionata nel momento in cui è generata la ricevuta di avvenuta consegna (RdAC).
+Ai sensi dell'art. 3-bis co. 3 della L. 53/1994 e dell'art. 147 co. 3 c.p.c., la notifica si intende perfezionata, per il notificante, nel momento in cui è generata la ricevuta di accettazione e, per il destinatario, nel momento in cui è generata la ricevuta di avvenuta consegna; se quest'ultima è generata tra le ore 21 e le ore 7 del mattino del giorno successivo, la notificazione si intende perfezionata per il destinatario alle ore 7.
 
-Luogo e data _______________
+Luogo e data {_}
 
 Avv. {avvocato}
 (firmato digitalmente)"""
@@ -968,7 +1384,7 @@ Avv. {avvocato}
         "data_invio": data_invio,
         "destinatario": destinatario,
         "pec_destinatario": pec_destinatario,
-        "riferimento_normativo": "L. 53/1994 — Art. 3-bis, Notificazioni a mezzo PEC",
+        "riferimento_normativo": "L. 53/1994, art. 3-bis co. 3, 5 e 6; art. 147 c.p.c.; art. 196-undecies disp. att. c.p.c.",
     }
 
 
@@ -1014,10 +1430,19 @@ def note_trattazione_scritta(
     rg_numero: str,
     giudice: str,
     conclusioni: str,
+    data_provvedimento: str = "",
+    termine_deposito: str = "",
+    data_udienza_sostituita: str = "",
 ) -> dict:
     """Genera bozza di note di trattazione scritta in sostituzione dell'udienza.
-    Vigenza: art. 127-ter c.p.c. introdotto dalla Riforma Cartabia (D.Lgs. 149/2022,
-    in vigore dal 28/02/2023) — sostituzione dell'udienza con deposito di note scritte.
+    Vigenza: art. 127-ter c.p.c. introdotto dalla Riforma Cartabia (D.Lgs. 149/2022; applicabile
+    dal 01/01/2023 anche ai procedimenti pendenti, art. 35 co. 2 come modificato dalla L. 197/2022)
+    — sostituzione dell'udienza con deposito di note scritte contenenti le sole istanze e
+    conclusioni; il correttivo D.Lgs. 164/2024 esclude la sostituzione quando è richiesta la
+    presenza personale delle parti e consente alle parti di opporsi.
+    Il modello contiene solo intestazione, richiamo del provvedimento e del termine (co. 2),
+    istanze e conclusioni (co. 1): niente parte argomentativa e niente produzioni documentali.
+    Precisione: ESATTO come struttura (art. 127-ter co. 1-2 c.p.c., testo vigente al 2026-09-29).
 
     Args:
         avvocato: Nome e cognome dell'avvocato depositante
@@ -1026,7 +1451,11 @@ def note_trattazione_scritta(
         rg_numero: Numero di Ruolo Generale del procedimento (es. "1234/2025")
         giudice: Nome del giudice istruttore o del collegio
         conclusioni: Testo delle conclusioni e istanze da includere nelle note
+        data_provvedimento: Data del provvedimento che sostituisce l'udienza (facoltativa)
+        termine_deposito: Termine perentorio assegnato per il deposito, non inferiore a 15 giorni (facoltativo)
+        data_udienza_sostituita: Data dell'udienza sostituita (facoltativa)
     """
+    _ = "___"
     testo = f"""{tribunale.upper()}
 Sezione ___
 
@@ -1041,15 +1470,14 @@ Difeso da: Avv. {avvocato}
 
 ***
 
-Il sottoscritto difensore, ai sensi dell'art. 127-ter c.p.c., in sostituzione dell'udienza fissata per il giorno ___, deposita le seguenti
+Il sottoscritto difensore, in esecuzione del provvedimento del {data_provvedimento or _} con cui il Giudice ha sostituito l'udienza del {data_udienza_sostituita or _} con il deposito di note scritte ai sensi dell'art. 127-ter c.p.c., e nel termine perentorio assegnato del {termine_deposito or _}, deposita le seguenti
 
 NOTE SCRITTE
 
-Premesso che la causa verte su _______________,
+(contenenti le sole istanze e conclusioni, art. 127-ter co. 1 c.p.c.)
 
-si osserva quanto segue:
+ISTANZE
 
-_______________________________________________
 _______________________________________________
 
 CONCLUSIONI
@@ -1059,9 +1487,6 @@ CONCLUSIONI
 ***
 
 Si chiede che il Giudice voglia provvedere come in conclusioni.
-
-Si producono i seguenti documenti:
-_______________________________________________
 
 Con osservanza.
 
@@ -1087,7 +1512,11 @@ def sfratto_morosita(
     data_contratto: str,
 ) -> dict:
     """Genera bozza di intimazione di sfratto per morosità con citazione per convalida.
-    Vigenza: artt. 658-669 c.p.c.; art. 55 L. 392/1978 (termine di grazia fino a 90gg).
+    Vigenza: artt. 658-669 c.p.c. (testo del D.Lgs. 164/2024, vigente al 2026-09-29); art. 55
+    L. 392/1978 (termine di grazia fino a 90gg). La citazione contiene l'avvertimento dell'art. 660
+    co. 3 (convalida e patrocinio a spese dello Stato) e la domanda di ingiunzione di pagamento
+    dei canoni ex artt. 658 co. 1 e 664 co. 1 c.p.c. (non una condanna). Termini liberi di
+    comparizione non minori di venti giorni (art. 660 co. 4).
 
     Args:
         locatore: Nome o ragione sociale del locatore
@@ -1097,8 +1526,15 @@ def sfratto_morosita(
         mensilita_insolute: Numero di mensilità non pagate (interi positivi)
         data_contratto: Data di stipula del contratto di locazione (YYYY-MM-DD)
     """
+    if canone_mensile <= 0:
+        return {"errore": "canone_mensile deve essere positivo"}
+    if mensilita_insolute < 1:
+        return {"errore": "mensilita_insolute deve essere almeno 1: la morosità è il presupposto dell'intimazione"}
     totale_dovuto = round(canone_mensile * mensilita_insolute, 2)
-    dt_contratto = _parse_date(data_contratto)
+    try:
+        dt_contratto = _parse_date(data_contratto)
+    except ValueError:
+        return {"errore": f"data_contratto non valida (atteso YYYY-MM-DD): {data_contratto}"}
 
     testo = f"""ATTO DI INTIMAZIONE DI SFRATTO PER MOROSITA'
 CON CONTESTUALE CITAZIONE PER LA CONVALIDA
@@ -1128,11 +1564,13 @@ il/la medesimo/a {conduttore} a comparire avanti al Tribunale di ___, all'udienz
 Con espresso avvertimento che:
 1. Se il/la convenuto/a non comparirà o comparendo non si opporrà, il Giudice convaliderà lo sfratto (art. 663 co. 1 c.p.c.);
 2. Il/La convenuto/a potrà evitare la convalida pagando, prima dell'udienza, tutti i canoni scaduti e le spese del procedimento;
-3. Il Giudice potrà concedere al conduttore un termine non superiore a 90 giorni (cd. "termine di grazia") per il pagamento dei canoni scaduti (art. 55 L. 392/1978).
+3. Il Giudice potrà concedere al conduttore un termine non superiore a 90 giorni (cd. "termine di grazia") per il pagamento dei canoni scaduti (art. 55 L. 392/1978);
+4. Sussistendo i presupposti di legge, la parte può presentare istanza per l'ammissione al patrocinio a spese dello Stato (art. 660 co. 3 c.p.c.);
+5. Tra la notificazione e l'udienza debbono intercorrere termini liberi non minori di venti giorni (art. 660 co. 4 c.p.c.).
 
-Si chiede inoltre la condanna del/la convenuto/a al pagamento di:
+Si chiede inoltre l'ingiunzione di pagamento ai sensi degli artt. 658 co. 1 e 664 co. 1 c.p.c., con decreto ingiuntivo per:
 — Euro {totale_dovuto:,.2f} per canoni scaduti e non pagati;
-— canoni a scadere fino all'effettivo rilascio;
+— canoni a scadere fino all'esecuzione dello sfratto;
 — spese e competenze del procedimento.
 
 Si allegano:
@@ -1163,7 +1601,11 @@ def atto_di_precetto(
     spese: float = 0,
 ) -> dict:
     """Genera bozza di atto di precetto con avvertimento ex art. 480 c.p.c.
-    Vigenza: art. 480 c.p.c. — precetto; il debitore ha 10gg per pagare, poi si può pignorare.
+    Vigenza: artt. 475, 479, 480 co. 1-3, 615 e 617 c.p.c. nel testo del D.Lgs. 149/2022 e del D.Lgs. 164/2024:
+    termine non minore di dieci giorni, data di notificazione del titolo a pena di nullità, avvertimento sul
+    sovraindebitamento con l'ausilio dell'OCC, indicazione del giudice competente per l'esecuzione. Verificata
+    al 2026-09-29.
+    Precisione: INDICATIVO (bozza da completare; il totale intimato è la somma degli importi forniti)
 
     Args:
         creditore: Nome o ragione sociale del creditore
@@ -1184,7 +1626,7 @@ Il/La sottoscritto/a {creditore}, C.F. ___, residente/con sede in ___, rappresen
 PREMESSO
 
 — che è in possesso del seguente titolo esecutivo: {titolo_esecutivo};
-— che il predetto titolo è stato ritualmente notificato in forma esecutiva;
+— che il predetto titolo è stato notificato in data ___________ (art. 479 c.p.c.);
 — che il/la debitore/trice non ha ancora provveduto al pagamento delle somme dovute;
 
 INTIMA
@@ -1202,7 +1644,11 @@ oltre interessi dalla data odierna al saldo effettivo, oltre spese del presente 
 
 AVVERTE
 
-il debitore che, ai sensi dell'art. 480 co. 2 c.p.c., può proporre opposizione al precetto ai sensi dell'art. 615 c.p.c. nel termine perentorio di venti giorni dalla notificazione del presente atto, e che, in mancanza di pagamento nel termine suindicato, si procederà ad esecuzione forzata.
+il debitore che, in mancanza di pagamento nel termine suindicato, si procederà ad esecuzione forzata; che l'opposizione agli atti esecutivi per vizi del titolo o del precetto va proposta nel termine perentorio di venti giorni dalla notificazione del presente atto (art. 617 c.p.c.), mentre l'opposizione all'esecuzione ex art. 615 c.p.c. non è soggetta a termine; e che, ai sensi dell'art. 480 co. 2 c.p.c., può porre rimedio alla situazione di sovraindebitamento concludendo con i creditori un accordo di composizione della crisi o proponendo un piano del consumatore, con l'ausilio di un organismo di composizione della crisi o di un professionista nominato dal giudice (D.Lgs. 14/2019).
+
+Giudice competente per l'esecuzione: ___________________ (art. 480 co. 3 c.p.c.).
+
+Il creditore dichiara la propria residenza o elegge domicilio in ___________________ / indica il proprio indirizzo PEC ___________________ (art. 480 co. 3 c.p.c., se il precetto è sottoscritto dalla parte).
 
 Con riserva di ogni ulteriore diritto e azione.
 
@@ -1218,7 +1664,7 @@ Avv. _______________
         "interessi": interessi,
         "spese": spese,
         "totale_intimato": totale,
-        "riferimento_normativo": "Art. 480 c.p.c. — Forma del precetto",
+        "riferimento_normativo": "Artt. 475, 479 e 480 c.p.c. — forma e contenuto del precetto",
     }
 
 
@@ -1233,8 +1679,9 @@ def nota_precisazione_credito(
     spese_esecuzione: float,
 ) -> dict:
     """Genera bozza di nota di precisazione del credito per procedure esecutive.
-    Vigenza: art. 547 c.p.c. — precisazione del credito nel pignoramento presso terzi
-    e nelle procedure esecutive mobiliari e immobiliari.
+    Vigenza: atto di prassi, non tipizzato dal codice: precisa il credito ai fini dell'assegnazione
+    o della distribuzione (artt. 510, 553 e 596 c.p.c.); l'art. 547 c.p.c. riguarda invece la
+    dichiarazione del terzo pignorato.
 
     Args:
         creditore: Nome o ragione sociale del creditore procedente
@@ -1248,7 +1695,7 @@ def nota_precisazione_credito(
     totale = round(capitale + interessi + spese_legali + spese_esecuzione, 2)
 
     testo = f"""NOTA DI PRECISAZIONE DEL CREDITO
-(Art. 547 c.p.c.)
+(Artt. 510, 553 e 596 c.p.c.)
 
 TRIBUNALE DI _______________
 
@@ -1259,7 +1706,7 @@ Contro: {debitore}
 
 ***
 
-Il/La sottoscritto/a Avv. ___, quale difensore di {creditore}, ai sensi dell'art. 547 c.p.c.,
+Il/La sottoscritto/a Avv. ___, quale difensore di {creditore}, ai fini dell'assegnazione o della distribuzione delle somme (artt. 510, 553 e 596 c.p.c.),
 
 PRECISA
 
@@ -1293,7 +1740,7 @@ Avv. _______________"""
         "spese_legali": spese_legali,
         "spese_esecuzione": spese_esecuzione,
         "totale_credito": totale,
-        "riferimento_normativo": "Art. 547 c.p.c. — Dichiarazione del terzo e precisazione credito",
+        "riferimento_normativo": "Artt. 510, 553 e 596 c.p.c. — precisazione del credito ai fini dell'assegnazione o distribuzione (atto di prassi)",
     }
 
 
@@ -1305,7 +1752,13 @@ def dichiarazione_553_cpc(
     tipo_rapporto: str = "conto_corrente",
 ) -> dict:
     """Genera bozza di dichiarazione del terzo pignorato ex art. 547 c.p.c.
-    Vigenza: art. 547 c.p.c. (mod. DL 132/2014 — dichiarazione anche per iscritto prima dell'udienza).
+    Vigenza: art. 547 c.p.c. (dichiarazione a mezzo raccomandata o PEC al creditore procedente entro dieci
+    giorni dalla notifica del pignoramento, art. 543 co. 2 n. 4; sequestri e cessioni; quando il pagamento o la
+    consegna) e art. 548 c.p.c. (mancata dichiarazione: credito non contestato). Verificata al 2026-09-29.
+    Il nome del tool richiama l'art. 553 c.p.c., ma la dichiarazione dell'art. 553 co. 1 (art. 169-septies disp.
+    att.) è un atto diverso, del creditore con i dati per il pagamento, che questo tool NON genera: il modello
+    è la dichiarazione del terzo dell'art. 547.
+    Precisione: INDICATIVO (bozza da completare)
 
     Args:
         terzo_pignorato: Nome o ragione sociale del terzo pignorato (banca, datore di lavoro, etc.)
@@ -1372,7 +1825,13 @@ in relazione all'atto di pignoramento presso terzi notificato in data __________
 
 {sezione_rapporto}
 
-Ai sensi dell'art. 547 co. 3 c.p.c., in caso di mancata comparizione all'udienza o mancato invio della presente dichiarazione, il credito pignorato si considera non contestato nei termini indicati dal creditore procedente.
+Il terzo specifica altresì (art. 547 c.p.c.):
+- di quali somme o cose è debitore o si trova in possesso e quando ne deve eseguire il pagamento o la consegna: ___________;
+- i sequestri precedentemente eseguiti presso di sé e le cessioni che gli sono state notificate o che ha accettato: [ ] nessuno  [ ] i seguenti: ___________.
+
+La presente dichiarazione è resa con raccomandata inviata al creditore procedente o trasmessa a mezzo di posta elettronica certificata (PEC) entro dieci giorni dalla notifica del pignoramento (art. 547 co. 1 c.p.c.).
+
+Ai sensi dell'art. 548 c.p.c., in caso di mancata dichiarazione e di mancata comparizione all'udienza fissata dal giudice, il credito pignorato si considera non contestato nei termini indicati dal creditore procedente.
 
 [Luogo], [Data]
 
@@ -1383,7 +1842,10 @@ Ai sensi dell'art. 547 co. 3 c.p.c., in caso di mancata comparizione all'udienza
         "testo": testo,
         "tipo_atto": "dichiarazione_terzo_pignorato",
         "tipo_rapporto": tipo_rapporto,
-        "riferimento_normativo": "Art. 547 c.p.c. — Dichiarazione del terzo",
+        "riferimento_normativo": (
+            "Artt. 543, 547 e 548 c.p.c. — Dichiarazione del terzo. Non e' la dichiarazione del creditore dell'art. 553 "
+            "co. 1 c.p.c. (art. 169-septies disp. att. c.p.c.), atto diverso non generato da questo tool"
+        ),
     }
 
 
@@ -1391,83 +1853,111 @@ Ai sensi dell'art. 547 co. 3 c.p.c., in caso di mancata comparizione all'udienza
 def testimonianza_scritta(
     teste: str,
     capitoli_prova: list[str],
+    procedimento: str = "",
+    ordinanza_ammissione: str = "",
 ) -> dict:
     """Genera bozza del modulo per testimonianza scritta con capitoli e ammonizione.
-    Vigenza: art. 257-bis c.p.c. — testimonianza scritta su autorizzazione del giudice.
+    Vigenza: art. 257-bis c.p.c. (testimonianza scritta, co. 3-4) e art. 103-bis disp. att. c.p.c.
+    (contenuto del modello, firma dopo ogni risposta, autentica di segretario comunale o cancelliere),
+    testo vigente al 2026-09-29; ammonimento ex art. 251 co. 2 c.p.c. nel testo risultante da Corte cost.
+    n. 149/1995 (obbligo di dire la verità). Il modello ministeriale ufficiale (DM 17/02/2010) non è
+    riprodotto: è una bozza conforme al contenuto minimo dell'art. 103-bis.
+    Precisione: INDICATIVO (bozza da confrontare con il modello ministeriale).
 
     Args:
         teste: Nome e cognome del testimone
         capitoli_prova: Lista dei capitoli di prova su cui il teste deve rispondere
                         (es. ["È vero che il 10/01/2024 lei era presente in..."])
+        procedimento: Estremi del procedimento (ufficio, R.G.), facoltativo
+        ordinanza_ammissione: Estremi dell'ordinanza di ammissione, facoltativo
     """
+    if not capitoli_prova:
+        return {"errore": "capitoli_prova vuoto: il modello richiede la trascrizione dei quesiti ammessi (art. 257-bis co. 2 c.p.c.)"}
+    _ = "_______________"
     capitoli_formattati = []
     for i, cap in enumerate(capitoli_prova, 1):
         capitoli_formattati.append(
             f"Capitolo {i}: \"{cap}\"\n"
-            f"   Risposta: [ ] Vero  [ ] Non vero  [ ] Non so\n"
-            f"   Specificazioni: _______________________________________________"
+            f"   Risposta: _______________________________________________\n"
+            f"   Conoscenza dei fatti:  [ ] diretta  [ ] indiretta (indicare la fonte)\n"
+            f"   Se non è in grado di rispondere, ragione: ______________________\n"
+            f"   Firma del teste (subito dopo la risposta): _______________"
         )
 
     testo = f"""MODULO PER TESTIMONIANZA SCRITTA
-(Art. 257-bis c.p.c.)
+(Art. 257-bis c.p.c.; art. 103-bis disp. att. c.p.c.)
 
-TRIBUNALE DI _______________
-R.G. n. _______________
-Giudice: _______________
+Procedimento: {procedimento or _}
+Ordinanza di ammissione: {ordinanza_ammissione or _}
 
 ***
 
 DATI DEL TESTE
 
 Nome e Cognome: {teste}
-Nato/a a: _______________  il: _______________
-Residente in: _______________
-C.F.: _______________
-Professione: _______________
+Nato/a a: {_}  il: {_}
+Residente in: {_}
+Domicilio: {_}
+Recapito telefonico (ove possibile): {_}
+C.F.: {_}
+Professione: {_}
 
 ***
 
-AMMONIZIONE (art. 251 c.p.c.)
+AVVISO SULLA FACOLTÀ DI ASTENSIONE
 
-Il/La teste è ammonito/a dal Giudice sull'importanza religiosa e morale del giuramento e sulle conseguenze penali delle dichiarazioni false o reticenti, e presta il seguente
+Il teste ha facoltà di astenersi ai sensi degli artt. 200, 201 e 202 c.p.p.; se se ne avvale deve comunque compilare il modello indicando le complete generalità e i motivi di astensione (art. 257-bis co. 5 c.p.c.).
+Firma del teste: {_}
+
+***
+
+AMMONIMENTO (art. 251 c.p.c.)
+
+Il giudice avverte il testimone dell'obbligo di dire la verità e delle conseguenze penali delle dichiarazioni false o reticenti (art. 251 co. 2 c.p.c., nel testo risultante da Corte cost. n. 149/1995). Il testimone presta il seguente
 
 GIURAMENTO
 
 "Consapevole della responsabilità morale e giuridica che assumo con la mia deposizione, mi impegno a dire tutta la verità e a non nascondere nulla di quanto è a mia conoscenza."
 
-Firma del teste: _______________
+Firma del teste: {_}
 
 ***
 
-RISPOSTE AI CAPITOLI DI PROVA
+GENERALITÀ E RAPPORTI CON LE PARTI (art. 252 co. 1 c.p.c.)
+
+Indicare eventuali rapporti di parentela, affinità, convivenza, lavoro o altri rapporti personali con le parti: {_}
+
+***
+
+QUESITI AMMESSI E RISPOSTE
 
 {chr(10).join(capitoli_formattati)}
 
 ***
 
 ISTRUZIONI PER IL TESTE:
-1. Rispondere a ciascun capitolo barrando la casella corrispondente.
-2. Se si risponde "Vero" o "Non vero", specificare nelle righe sottostanti i fatti a propria conoscenza.
-3. Non è possibile deporre su fatti appresi da terzi (testimonianza de relato).
-4. Il modulo deve essere restituito compilato e firmato entro il termine assegnato dal Giudice.
-5. La mancata restituzione può comportare le sanzioni di cui all'art. 255 c.p.c.
+1. Rispondere in modo specifico e pertinente a ciascun quesito, con risposta separata.
+2. Per ciascun quesito precisare se la conoscenza dei fatti è diretta o indiretta (art. 103-bis disp. att.).
+3. Indicare i quesiti cui non si è in grado di rispondere, con la ragione.
+4. Sottoscrivere subito dopo ogni risposta, senza lasciare spazi vuoti; la firma va autenticata su ciascuna facciata del foglio.
+5. Restituire il modulo compilato al difensore nel termine fissato dal giudice; la mancata trasmissione può comportare la pena pecuniaria di cui all'art. 255 c.p.c. (art. 257-bis co. 6).
 
-Data compilazione: _______________
+Data compilazione: {_}
 
-Firma del teste: _______________
+Firma del teste: {_}
 
-AUTENTICAZIONE
-(a cura del segretario comunale o di altro pubblico ufficiale)
+AUTENTICAZIONE DELLE SOTTOSCRIZIONI
+(a cura del segretario comunale o del cancelliere di un ufficio giudiziario; gratuita ed esente da bollo, art. 103-bis co. 3 disp. att.)
 
-Certifico che la firma è stata apposta in mia presenza da persona della cui identità mi sono accertato.
+Certifico che le sottoscrizioni apposte su ciascuna facciata sono state apposte in mia presenza da persona della cui identità mi sono accertato.
 
-Timbro e firma: _______________"""
+Timbro e firma: {_}"""
 
     return {
         "testo": testo,
         "tipo_atto": "testimonianza_scritta",
         "numero_capitoli": len(capitoli_prova),
-        "riferimento_normativo": "Art. 257-bis c.p.c. — Testimonianza scritta",
+        "riferimento_normativo": "Art. 257-bis c.p.c.; art. 103-bis disp. att. c.p.c.; art. 251 c.p.c. (Corte cost. 149/1995)",
     }
 
 
@@ -1480,7 +1970,10 @@ def istanza_visibilita_fascicolo(
     motivo: str = "costituzione",
 ) -> dict:
     """Genera bozza di istanza di visibilità del fascicolo telematico per avvocato non costituito.
-    Vigenza: art. 16-bis DL 179/2012 — specifiche tecniche PCT DM 44/2011.
+    Vigenza: art. 76 co. 2 disp. att. c.p.c. (accesso delle parti e dei difensori muniti di procura al fascicolo
+    informatico) e art. 196-quater disp. att. c.p.c. (D.Lgs. 149/2022; l'art. 16-bis DL 179/2012 è abrogato);
+    art. 105 c.p.c. per l'intervento; DM 44/2011 e specifiche tecniche DGSIA. Verificata al 2026-09-29.
+    Precisione: INDICATIVO (bozza da completare)
 
     Args:
         avvocato: Nome e cognome dell'avvocato richiedente (con PEC e foro di appartenenza)
@@ -1496,11 +1989,13 @@ def istanza_visibilita_fascicolo(
         "intervento": "di doversi costituire nel procedimento sopra indicato mediante atto di intervento ex art. 105 c.p.c. e necessitando pertanto di prendere visione degli atti del fascicolo telematico",
     }
 
-    motivo_desc = motivi_testo.get(motivo, motivi_testo["costituzione"])
+    if motivo not in motivi_testo:
+        return {"errore": f"motivo non riconosciuto: {motivo!r}. Valori ammessi: {', '.join(motivi_testo)}"}
+    motivo_desc = motivi_testo[motivo]
 
     testo = f"""ISTANZA DI VISIBILITA' DEL FASCICOLO TELEMATICO
 
-Al Sig. {tribunale}
+Al Presidente del {tribunale} / Al Giudice designato
 Ufficio _______________
 
 R.G. n. {rg_numero}
@@ -1535,8 +2030,19 @@ Avv. {avvocato}
         "tipo_atto": "istanza_visibilita_fascicolo",
         "motivo": motivo,
         "rg_numero": rg_numero,
-        "riferimento_normativo": "Art. 16-bis DL 179/2012 — Specifiche tecniche PCT (DM 44/2011)",
+        "riferimento_normativo": "Art. 76 co. 2 e art. 196-quater disp. att. c.p.c.; art. 105 c.p.c.; specifiche tecniche PCT (DM 44/2011)",
     }
+
+
+#: Denominazioni ufficiali ISTAT dei capoluoghi che nella tabella hanno la forma corrente.
+_ALIAS_COMUNI_UFFICI = {
+    "reggio nell'emilia": "reggio emilia",
+    "reggio di calabria": "reggio calabria",
+    "bolzano/bozen": "bolzano",
+    "bolzano bozen": "bolzano",
+    "bozen": "bolzano",
+}
+_TIPI_UFFICIO = ("tribunale", "giudice_pace")
 
 
 @mcp.tool(tags={"giudiziario"})
@@ -1546,37 +2052,55 @@ def cerca_ufficio_giudiziario(
     tipo: str = "tribunale",
 ) -> dict:
     """Cerca l'ufficio giudiziario territorialmente competente per un dato comune.
-    Vigenza: R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario; circondari vigenti.
-    Precisione: INDICATIVO (copertura sui principali circondari italiani — per comuni minori
-    verificare sempre sul sito del Ministero della Giustizia).
+    Vigenza: R.D. 30 gennaio 1941 n. 12, tabella A come sostituita dall'allegato 1 del D.Lgs.
+    155/2012 (tribunali; Urbino ripristinato da Corte cost. 237/2013) e D.Lgs. 156/2012 (giudici
+    di pace), verificato al 2026-09-29.
+    Precisione: INDICATIVO (solo i 102 capoluoghi: per gli altri comuni, e per i tribunali con
+    sede fuori dai capoluoghi, il tool non risponde; il giudice di pace e' presunto nella stessa
+    citta' del tribunale, cosa non sempre vera: verificare sul sito del Ministero della Giustizia).
 
     Args:
-        comune: Nome del comune (es. "Milano", "Roma", "Brescia")
+        comune: Nome del comune capoluogo (es. "Milano", "Roma", "Brescia"; accetta la denominazione
+                ISTAT, es. "Reggio nell'Emilia", "Bolzano/Bozen")
         tipo: Tipo di ufficio: 'tribunale' (sede principale) o 'giudice_pace'
     """
-    key = comune.lower().strip()
+    tipo_norm = tipo.lower().strip()
+    if tipo_norm not in _TIPI_UFFICIO:
+        return {
+            "comune": comune,
+            "tipo": tipo,
+            "trovato": False,
+            "errore": f"tipo non supportato: '{tipo}'. Valori ammessi: {', '.join(_TIPI_UFFICIO)} "
+                      "(Corte d'appello, Procura e UNEP non sono nella tabella)",
+        }
+    tipo = tipo_norm
+
+    key = " ".join(comune.lower().replace("\u2019", "'").split())
+    key = _ALIAS_COMUNI_UFFICI.get(key, key)
     entry = _TRIBUNALI_COMPETENTI.get(key)
 
     if entry:
-        ufficio = entry.get(tipo, entry.get("tribunale", "Non trovato"))
+        ufficio = entry[tipo]
         return {
             "comune": comune,
             "tipo": tipo,
             "ufficio_competente": ufficio,
             "trovato": True,
             "nota": "Dato basato sui principali circondari italiani. Verificare su sito Ministero della Giustizia per comuni minori.",
-            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario",
+            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12, tab. A (D.Lgs. 155/2012); D.Lgs. 156/2012",
         }
 
-    # Fuzzy: try to find partial match
+    # Suggestions only for an incomplete name (the query is the beginning of a capoluogo):
+    # never the reverse, because a comune whose name merely CONTAINS a capoluogo's
+    # (Torino di Sangro, Bari Sardo, Romano di Lombardia) belongs to a different circondario.
     parziali = [
         (k, v) for k, v in _TRIBUNALI_COMPETENTI.items()
-        if key in k or k in key
+        if len(key) >= 3 and k.startswith(key)
     ]
 
     if parziali:
         risultati = [
-            {"comune": k.title(), "ufficio": v.get(tipo, v.get("tribunale"))}
+            {"comune": k.title(), "ufficio": v[tipo]}
             for k, v in parziali
         ]
         return {
@@ -1585,7 +2109,7 @@ def cerca_ufficio_giudiziario(
             "trovato": False,
             "suggerimenti": risultati,
             "nota": "Comune non trovato esattamente. Possibili corrispondenze elencate.",
-            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario",
+            "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12, tab. A (D.Lgs. 155/2012); D.Lgs. 156/2012",
         }
 
     return {
@@ -1593,5 +2117,5 @@ def cerca_ufficio_giudiziario(
         "tipo": tipo,
         "trovato": False,
         "nota": f"Comune '{comune}' non presente nella tabella dei principali circondari. Consultare il sito del Ministero della Giustizia per la competenza territoriale.",
-        "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12 — Ordinamento giudiziario",
+        "riferimento_normativo": "R.D. 30 gennaio 1941 n. 12, tab. A (D.Lgs. 155/2012); D.Lgs. 156/2012",
     }

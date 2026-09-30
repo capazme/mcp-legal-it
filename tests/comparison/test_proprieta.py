@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 9 — Proprietà e Successioni."""
+"""Arithmetic verification tests for Sezione 9 - Proprietà e Successioni."""
 
 from tests.comparison.conftest import assert_close
 
@@ -157,7 +157,9 @@ class TestSuperficieCommerciale:
 
     def test_base(self):
         r = _call("calcolo_superficie_commerciale", superficie_calpestabile=80, balconi=10, cantina=5, garage=15)
-        expected = 80 * 1.0 + 10 * 0.33 + 5 * 0.25 + 15 * 0.50
+        # DPR 138/1998 all. C: balconi 30% (up to 25 mq), cantina and box non communicating 25%
+        # (the earlier 0.33 and 0.50 coefficients were not in the decree).
+        expected = 80 * 1.0 + 10 * 0.30 + 5 * 0.25 + 15 * 0.25
         assert_close(r["superficie_commerciale"], round(expected, 2), tolerance=0.01, label="sup_comm")
 
 

@@ -840,11 +840,18 @@ class TestPreleggiRegression:
         assert "inesistente" in out
 
     @pytest.mark.asyncio
-    async def test_sentenza_pre_2020_not_verifiable(self):
-        # No HTTP should be touched: the year gate short-circuits.
-        out = await _verifica_citazioni_impl("Cass. n. 5000/2015")
+    async def test_sentenza_before_archive_start_not_verifiable(self):
+        # Italgiure is a moving window (from 17/02/2021 on 2026-09-25, not "from 2020"):
+        # a decision of 2015 is outside it. Once the archive start is known, no lookup is made.
+        async def archive_start(archivio="tutti"):
+            return 2021, "2021-02-17"
+
+        forbidden = AsyncMock(side_effect=AssertionError("Italgiure interrogata per una decisione fuori archivio"))
+        with patch("src.tools.legal_citations._italgiure_archive_start", archive_start), \
+             patch("src.tools.italgiure.solr_query", forbidden):
+            out = await _verifica_citazioni_impl("Cass. n. 5000/2015")
         assert "non verificabile" in out
-        assert "2020" in out
+        assert "17/02/2021" in out
         assert "inesistente" not in out
 
     @pytest.mark.asyncio

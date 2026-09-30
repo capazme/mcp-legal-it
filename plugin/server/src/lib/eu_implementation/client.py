@@ -19,7 +19,10 @@ MNE metadata predicates:
                                                           full ref string)
   measure_national_implementing_number_official_journal -> Gazzetta Ufficiale number
   measure_national_implementing_date_official_journal   -> GU date (unreliable)
-  resource_legal_date_entry-into-force                  -> entry into force date
+  resource_legal_date_entry-into-force                  -> UNRELIABLE for ITA: often
+                                                          the GU date, not the entry
+                                                          into force (see
+                                                          _format_entry_into_force)
   work_title                                            -> title (IT for ITA MNE)
   resource_legal_id_celex                               -> MNE CELEX
                                                           7{YYYY}L{NNNN}{COUNTRY}_{nimId}
@@ -58,6 +61,25 @@ _HEADERS_SPARQL = {
     "User-Agent": "Mozilla/5.0 (compatible; mcp-legal-it/2.1)",
 }
 
+# ISO-3 code -> country name (Italian), for headings of lookups on a Member State
+# other than Italy. Unknown codes fall back to the bare code.
+COUNTRY_NAMES: dict[str, str] = {
+    "AUT": "Austria", "BEL": "Belgio", "BGR": "Bulgaria", "CYP": "Cipro", "CZE": "Cechia",
+    "DEU": "Germania", "DNK": "Danimarca", "ESP": "Spagna", "EST": "Estonia", "FIN": "Finlandia",
+    "FRA": "Francia", "GBR": "Regno Unito", "GRC": "Grecia", "HRV": "Croazia", "HUN": "Ungheria",
+    "IRL": "Irlanda", "ITA": "Italia", "LTU": "Lituania", "LUX": "Lussemburgo", "LVA": "Lettonia",
+    "MLT": "Malta", "NLD": "Paesi Bassi", "POL": "Polonia", "PRT": "Portogallo", "ROU": "Romania",
+    "SVK": "Slovacchia", "SVN": "Slovenia", "SWE": "Svezia",
+}
+
+
+def country_label(country: str) -> str:
+    """'Francia (FRA)' for a known ISO-3 code, the bare code otherwise."""
+    code = (country or "").upper()
+    name = COUNTRY_NAMES.get(code)
+    return f"{name} ({code})" if name else code
+
+
 # Italian act-type keywords -> canonical label used to disambiguate human refs.
 # Maps common abbreviations to the substring expected in MNE titles / type_act.
 _ACT_TYPE_ALIASES: dict[str, str] = {
@@ -89,6 +111,7 @@ class ImplementationResult:
     title: str = ""              # IT title
     directive_celex: str = ""    # the directive this row transposes
     cellar_uri: str = ""         # MNE work URI
+    country: str = "ITA"         # ISO-3 code of the Member State that notified the measure
 
 
 @dataclass
@@ -113,6 +136,7 @@ class MappingResult:
     celex: str = ""  # the resolved CELEX that was queried
     implementations: list[ImplementationResult] = field(default_factory=list)
     bases: list[BasisResult] = field(default_factory=list)
+    country: str = "ITA"  # ISO-3 code the eu_to_it lookup was run for
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +297,7 @@ def build_it_to_eu_from_act(number: str, year: str, country: str = "ITA", limit:
     Both shapes were confirmed against live CELLAR during recon (177/2021,
     138/2024 NIS2). The join is anchored on the MNE (id_local is indexed), which
     stays fast (~0.2s) even without the directive-first constraint.
+    Notices with no id_local are NOT reachable here: see build_it_to_eu_from_title.
     """
     country = country.upper()
     country_uri = f"{_COUNTRY_BASE}{country}"
@@ -301,6 +326,69 @@ WHERE {{
   }}
 }}
 LIMIT {limit}"""
+
+
+def build_it_to_eu_from_title(number: str, year: str, country: str = "ITA", limit: int = 200) -> str:
+    """Fallback for MNE notices WITHOUT resource_legal_id_local, matched on work_title.
+
+    About half of the Italian notices (2,635 of 5,482 in CELLAR on 2026-09-25,
+    among them D.Lgs. 196/2003, MNE 72002L0058ITA_117422) carry no local id: the
+    act number and year are only in the title ("Decreto legislativo 30/6/2003,
+    n. 196-Codice in materia di protezione dei dati personali"). The SPARQL
+    filter is only a coarse candidate selector (year + "n. {number}" followed by
+    a delimiter, so "196" does not match "1960"); titles of OTHER acts that merely
+    mention the number ("Modifiche al decreto legislativo 30 giugno 2003, n. 196")
+    are discarded afterwards by :func:`filter_title_matches`. Run only when the
+    id_local query returns nothing.
+    """
+    country = country.upper()
+    country_uri = f"{_COUNTRY_BASE}{country}"
+    return f"""{_PREFIXES}
+
+SELECT DISTINCT ?mne_celex ?dir_celex ?title ?transp ?act_type ?dir ?wtitle
+WHERE {{
+  ?mne cdm:measure_national_implementing_implemented_by_country <{country_uri}> .
+  ?mne cdm:work_title ?wtitle .
+  FILTER(
+    CONTAINS(STR(?wtitle), "{year}") && (
+      CONTAINS(LCASE(STR(?wtitle)), "n. {number}-")
+      || CONTAINS(LCASE(STR(?wtitle)), "n. {number},")
+      || CONTAINS(LCASE(STR(?wtitle)), "n. {number} ")
+      || CONTAINS(LCASE(STR(?wtitle)), "n. {number}.")
+    )
+  )
+  ?mne cdm:measure_national_implementing_implements_resource_legal ?dir .
+  ?dir cdm:resource_legal_id_celex ?dir_celex .
+  OPTIONAL {{ ?mne cdm:resource_legal_id_celex ?mne_celex . }}
+  OPTIONAL {{ ?mne cdm:measure_national_implementing_type_act ?act_type . }}
+  OPTIONAL {{ ?dir cdm:directive_date_transposition ?transp . }}
+  OPTIONAL {{
+    ?exp cdm:expression_belongs_to_work ?dir .
+    ?exp cdm:expression_uses_language <{_LANG_ITA}> .
+    ?exp cdm:expression_title ?title .
+  }}
+}}
+LIMIT {limit}"""
+
+
+def filter_title_matches(bindings: list[dict], act_type: str, number: str, year: str) -> list[dict]:
+    """Keep only the rows whose MNE title IS the requested act (not one that cites it).
+
+    The title must open with the act type ("Decreto legislativo ...", "Legge ...";
+    any known type when the reference gave none), and "n. {number}" plus the year
+    must appear in the opening of the title, before the descriptive part.
+    """
+    kinds = {act_type} if act_type else set(_ACT_TYPE_ALIASES.values())
+    num_re = re.compile(rf"\bn\.?\s*{re.escape(number)}(?!\d)")
+    kept: list[dict] = []
+    for b in bindings:
+        low = _val(b, "wtitle").strip().lower().replace("decreto legge", "decreto-legge")
+        if not any(low.startswith(k) for k in kinds):
+            continue
+        head = low[:90]
+        if num_re.search(head) and year in head:
+            kept.append(b)
+    return kept
 
 
 def build_directive_exists_query(directive_celex: str) -> str:
@@ -335,7 +423,9 @@ def _val(binding: dict, key: str) -> str:
     return binding.get(key, {}).get("value", "")
 
 
-def parse_implementations(bindings: list[dict], directive_celex: str) -> list[ImplementationResult]:
+def parse_implementations(
+    bindings: list[dict], directive_celex: str, country: str = "ITA"
+) -> list[ImplementationResult]:
     """Collapse MNE bindings into ImplementationResult, deduped by MNE work URI.
 
     A single MNE can appear in several rows (multi-valued OPTIONAL fields). We
@@ -347,7 +437,9 @@ def parse_implementations(bindings: list[dict], directive_celex: str) -> list[Im
         mne_uri = _val(b, "mne")
         key = mne_uri or _val(b, "mne_celex") or str(len(order))
         if key not in by_mne:
-            by_mne[key] = ImplementationResult(directive_celex=directive_celex, cellar_uri=mne_uri)
+            by_mne[key] = ImplementationResult(
+                directive_celex=directive_celex, cellar_uri=mne_uri, country=country.upper(),
+            )
             order.append(key)
         row = by_mne[key]
         row.mne_celex = row.mne_celex or _val(b, "mne_celex")
@@ -398,17 +490,52 @@ def _clean_act_number(id_local: str) -> str:
     """Best-effort act number from a messy id_local.
 
     "177" -> "177"; "Decreto legislativo 4 settembre 2024, n. 138," -> "138".
+    Numbers of other Member States are kept whole: "2019-775" (loi n° 2019-775),
+    "24/2021" (Real Decreto-ley 24/2021), "n° 2021-580" -> "2021-580".
     Returns "" if nothing usable can be extracted.
     """
     if not id_local:
         return ""
     raw = id_local.strip()
-    if raw.isdigit():
+    if raw.isdigit() or re.fullmatch(r"\d{1,5}[-/]\d{1,5}", raw):
         return raw
-    m = re.search(r"\bn\.?\s*(\d{1,5})", raw, re.IGNORECASE)
+    m = re.search(r"\bn[.\u00b0\u00ba]?\s*(\d{1,5}(?:[-/]\d{1,5})?)", raw, re.IGNORECASE)
     if m:
         return m.group(1)
     return ""
+
+
+def _format_entry_into_force(impl: ImplementationResult) -> str:
+    """Render CELLAR's entry-into-force field without overstating it.
+
+    For Italian measures CELLAR often copies the Gazzetta Ufficiale date into
+    ``resource_legal_date_entry-into-force`` (D.Lgs. 177/2021: 2021-11-27, the
+    GU date, while Normattiva gives 12/12/2021). A date equal to the GU date, or
+    one that cannot be compared with it, is therefore NOT printed as the entry
+    into force: absent a different term in the act, an Italian law enters into
+    force on the fifteenth day after its publication (art. 73, third paragraph,
+    Cost.; art. 10 preleggi). Only a date different from the GU date is kept as
+    "Entrata in vigore".
+    """
+    eif = impl.entry_into_force
+    oj_date = "" if impl.oj_date.startswith("1001") else impl.oj_date
+    if oj_date and eif[:10] != oj_date[:10]:
+        return f"**Entrata in vigore**: {eif}"
+    italian = impl.country.upper() == "ITA"
+    publication = "la data della GU" if italian else "la data di pubblicazione ufficiale"
+    if oj_date:
+        motivo = f"coincide con {publication}, quindi è la pubblicazione e non l'entrata in vigore"
+    else:
+        motivo = f"non è confrontabile con {publication}, che CELLAR non riporta"
+    if italian:
+        verifica = (
+            "Salvo termine diverso stabilito dall'atto, vale il quindicesimo giorno successivo "
+            "alla pubblicazione (art. 73 co. 3 Cost.; art. 10 preleggi): verificare la data "
+            "di entrata in vigore su Normattiva."
+        )
+    else:
+        verifica = "Verificare l'entrata in vigore nella fonte ufficiale dello Stato membro."
+    return f"**Data registrata in CELLAR (non è l'entrata in vigore)**: {eif} ({motivo}). {verifica}"
 
 
 def format_implementation(impl: ImplementationResult) -> str:
@@ -426,9 +553,12 @@ def format_implementation(impl: ImplementationResult) -> str:
     if impl.oj_date and not impl.oj_date.startswith("1001"):
         gu_parts.append(f"del {impl.oj_date}")
     if gu_parts:
-        lines.append(f"**Gazzetta Ufficiale**: {' '.join(gu_parts)}")
+        # "Gazzetta Ufficiale" is the Italian journal: other Member States publish
+        # elsewhere (JORF, BGBl., BOE...), so a neutral label is used for them.
+        label = "Gazzetta Ufficiale" if impl.country.upper() == "ITA" else "Pubblicazione ufficiale"
+        lines.append(f"**{label}**: {' '.join(gu_parts)}")
     if impl.entry_into_force:
-        lines.append(f"**Entrata in vigore**: {impl.entry_into_force}")
+        lines.append(_format_entry_into_force(impl))
     if impl.mne_celex:
         lines.append(f"**CELEX misura nazionale**: {impl.mne_celex}")
     lines.append(f"**Direttiva recepita**: {impl.directive_celex}")
@@ -476,15 +606,15 @@ async def get_italian_implementation(directive_ref: str, country: str = "ITA", l
             query_ref=directive_ref, celex=celex, error_message=str(exc),
         )
 
-    impls = parse_implementations(bindings, celex)
+    impls = parse_implementations(bindings, celex, country=country)
     if not impls:
         return MappingResult(
             success=False, direction="eu_to_it", error_type="no_results",
-            query_ref=directive_ref, celex=celex,
+            query_ref=directive_ref, celex=celex, country=country.upper(),
         )
     return MappingResult(
         success=True, direction="eu_to_it", query_ref=directive_ref,
-        celex=celex, implementations=impls,
+        celex=celex, implementations=impls, country=country.upper(),
     )
 
 
@@ -517,9 +647,13 @@ async def get_eu_basis(act_ref: str, country: str = "ITA", limit: int = 30) -> M
             query_ref=act_ref,
             error_message="Riferimento non riconosciuto. Usare un atto italiano (es. 'D.Lgs. 177/2021') o un CELEX di misura nazionale (es. 72019L0790ITA_202107973).",
         )
-    _act_type, number, year = parsed
+    act_type, number, year = parsed
     try:
         bindings = await _execute_sparql(build_it_to_eu_from_act(number, year, country=country, limit=limit))
+        if not bindings:
+            # Notices without resource_legal_id_local are reachable only by title.
+            candidates = await _execute_sparql(build_it_to_eu_from_title(number, year, country=country))
+            bindings = filter_title_matches(candidates, act_type, number, year)
     except Exception as exc:
         return MappingResult(
             success=False, direction="it_to_eu", error_type="source_down",

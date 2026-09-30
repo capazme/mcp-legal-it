@@ -28,6 +28,8 @@ from src.lib.eu_implementation.client import (
     build_eu_to_it_query,
     build_it_to_eu_from_act,
     build_it_to_eu_from_mne_celex,
+    build_it_to_eu_from_title,
+    filter_title_matches,
     format_basis,
     format_implementation,
     parse_bases,
@@ -109,6 +111,57 @@ _IT_TO_EU_NIS2 = {
     ]},
 }
 
+# Title fallback for D.Lgs. 196/2003 (MNE 72002L0058ITA_117422 has NO resource_legal_id_local).
+# The second row is the notice of ANOTHER act (D.Lgs. 69/2012, MNE 72009L0136ITA_191163) whose
+# title merely cites "n. 196": the fallback must discard it. Both rows captured from CELLAR
+# on 2026-09-28.
+_IT_TO_EU_196_BY_TITLE = {
+    "head": {"vars": ["mne_celex", "dir_celex", "title", "transp", "act_type", "dir", "wtitle"]},
+    "results": {"bindings": [
+        {
+            "mne_celex": {"type": "literal", "value": "72002L0058ITA_117422"},
+            "dir_celex": {"type": "literal", "value": "32002L0058"},
+            "title": {"type": "literal", "value": "Direttiva 2002/58/CE del Parlamento europeo e del Consiglio, del 12 luglio 2002, relativa al trattamento dei dati personali e alla tutela della vita privata nel settore delle comunicazioni elettroniche (direttiva relativa alla vita privata e alle comunicazioni elettroniche)"},
+            "act_type": {"type": "literal", "value": "Decreto legislativo"},
+            "dir": {"type": "uri", "value": "http://publications.europa.eu/resource/cellar/cb5af945-9d9f-40e6-acee-bd0c5bb4ed0a"},
+            "wtitle": {"type": "literal", "value": "Decreto legislativo 30/6/2003, n. 196-Codice in materia di protezione dei dati personali.  GURI  n° 174 del 29/7/2003 p. 11"},
+        },
+        {
+            "mne_celex": {"type": "literal", "value": "72009L0136ITA_191163"},
+            "dir_celex": {"type": "literal", "value": "32009L0136"},
+            "act_type": {"type": "literal", "value": "Decreto legislativo"},
+            "dir": {"type": "uri", "value": "http://publications.europa.eu/resource/cellar/dir-2009-136-uri"},
+            "wtitle": {"type": "literal", "value": "Modifiche al decreto legislativo 30 giugno 2003, n. 196, recante codice in materia di protezione dei dati personali"},
+        },
+    ]},
+}
+
+# EU -> FR for directive 32019L0790: two of the eight French measures notified to CELLAR
+# (read 2026-09-28). id_local is the French number "2019-775"; the JORF date is reported
+# in the same field as the Italian GU date.
+_EU_TO_FR_DSM = {
+    "head": {"vars": ["mne", "mne_celex", "act_type", "id_local", "oj_num", "oj_date", "eif", "title"]},
+    "results": {"bindings": [
+        {
+            "mne": {"type": "uri", "value": "http://publications.europa.eu/resource/cellar/fra-loi-2019-775"},
+            "mne_celex": {"type": "literal", "value": "72019L0790FRA_278035"},
+            "act_type": {"type": "literal", "value": "Loi"},
+            "id_local": {"type": "literal", "value": "2019-775"},
+            "oj_date": {"type": "literal", "value": "2019-07-26"},
+            "eif": {"type": "literal", "value": "2019-07-26"},
+            "title": {"type": "literal", "value": "LOI no 2019-775 du 24 juillet 2019 tendant à créer un droit voisin au profit des agences de presse et des éditeurs de presse (1)"},
+        },
+        {
+            "mne": {"type": "uri", "value": "http://publications.europa.eu/resource/cellar/fra-ord-2021-580"},
+            "mne_celex": {"type": "literal", "value": "72019L0790FRA_202103614"},
+            "act_type": {"type": "literal", "value": "Ordonnance"},
+            "id_local": {"type": "literal", "value": "2021-580"},
+            "oj_date": {"type": "literal", "value": "2021-05-13"},
+            "title": {"type": "literal", "value": "Ordonnance n° 2021-580 du 12 mai 2021 portant transposition du 6 de l'article 2 et des articles 17 à 23 de la directive 2019/790 (NOR : MICB2106674R) JORF n°0111 du 13 mai 2021"},
+        },
+    ]},
+}
+
 _EMPTY = {"head": {"vars": ["x"]}, "results": {"bindings": []}}
 
 
@@ -121,6 +174,21 @@ def _sparql_mock(response_data):
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=None)
     mock_client.post = AsyncMock(return_value=mock_resp)
+    return mock_client
+
+
+def _sparql_mock_sequence(*responses):
+    """Like _sparql_mock, but each successive SPARQL POST returns the next response."""
+    mocks = []
+    for data in responses:
+        r = MagicMock()
+        r.raise_for_status = MagicMock()
+        r.json = MagicMock(return_value=data)
+        mocks.append(r)
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.post = AsyncMock(side_effect=mocks)
     return mock_client
 
 
@@ -261,10 +329,42 @@ class TestQueryBuilders:
         assert '"n. 90,"' in q
         assert '"n. 90 "' in q
 
+    def test_it_to_eu_from_title_word_boundary(self):
+        # fallback for notices without id_local: number followed by a delimiter, plus the year
+        q = build_it_to_eu_from_title("196", "2003")
+        assert '"n. 196-"' in q and '"n. 196,"' in q and '"n. 196 "' in q and '"n. 196."' in q
+        assert 'CONTAINS(STR(?wtitle), "2003")' in q
+        assert "resource_legal_id_local" not in q
+
     def test_directive_exists_query(self):
         q = build_directive_exists_query("32019L0790")
         assert '"32019L0790"^^xsd:string' in q
         assert "directive_date_transposition" in q
+
+
+class TestFilterTitleMatches:
+    # D.Lgs. 30 giugno 2003, n. 196 (Codice privacy): MNE 72002L0058ITA_117422 for
+    # directive 2002/58/CE (art. 17 par. 2 of the directive: Member States notify their measures).
+    rows = _IT_TO_EU_196_BY_TITLE["results"]["bindings"]
+
+    def test_keeps_the_act_itself(self):
+        kept = filter_title_matches(self.rows, "decreto legislativo", "196", "2003")
+        assert [_b["mne_celex"]["value"] for _b in kept] == ["72002L0058ITA_117422"]
+
+    def test_discards_a_title_that_only_cites_the_act(self):
+        # "Modifiche al decreto legislativo 30 giugno 2003, n. 196" is another act
+        kept = filter_title_matches(self.rows[1:], "decreto legislativo", "196", "2003")
+        assert kept == []
+
+    def test_unknown_act_type_accepts_any_known_type_prefix(self):
+        kept = filter_title_matches(self.rows, "", "196", "2003")
+        assert [_b["mne_celex"]["value"] for _b in kept] == ["72002L0058ITA_117422"]
+
+    def test_wrong_type_or_year_or_number_is_discarded(self):
+        assert filter_title_matches(self.rows, "legge", "196", "2003") == []
+        assert filter_title_matches(self.rows, "decreto legislativo", "196", "2004") == []
+        # "19" must not match "n. 196"
+        assert filter_title_matches(self.rows, "decreto legislativo", "19", "2003") == []
 
 
 # ---------------------------------------------------------------------------
@@ -329,6 +429,22 @@ class TestParseBases:
 # ---------------------------------------------------------------------------
 
 class TestCleanActNumber:
+    def test_french_number_kept_whole(self):
+        # CELLAR id_local of loi n° 2019-775 and ordonnance n° 2021-580
+        assert _clean_act_number("2019-775") == "2019-775"
+        assert _clean_act_number("Ordonnance n° 2021-580 du 12 mai 2021") == "2021-580"
+
+    def test_spanish_number_kept_whole(self):
+        # Real Decreto-ley 24/2021
+        assert _clean_act_number("24/2021") == "24/2021"
+
+    def test_italian_number_followed_by_title_is_not_extended(self):
+        # "n. 196-Codice ..." must give 196, not swallow the hyphen
+        assert _clean_act_number("Decreto legislativo 30/6/2003, n. 196-Codice in materia") == "196"
+
+    def test_journal_reference_gives_no_number(self):
+        assert _clean_act_number("BGBl. 2021 I S. 1204 ff.") == ""
+
     def test_bare_number(self):
         assert _clean_act_number("177") == "177"
 
@@ -351,6 +467,36 @@ class TestFormatImplementation:
         assert "283" in text
         assert "72019L0790ITA_202107973" in text
         assert "32019L0790" in text
+
+    def test_dsm_gu_date_is_not_printed_as_entry_into_force(self):
+        # D.Lgs. 8 novembre 2021 n. 177: CELLAR's entry-into-force field repeats the GU
+        # date (2021-11-27), Normattiva gives 12/12/2021 (art. 73 co. 3 Cost.; art. 10
+        # preleggi: fifteenth day after publication). It must not be labelled
+        # "Entrata in vigore".
+        impl = parse_implementations(_EU_TO_IT_DSM["results"]["bindings"], "32019L0790")[0]
+        text = format_implementation(impl)
+        assert "**Entrata in vigore**" not in text
+        assert "**Data registrata in CELLAR (non è l'entrata in vigore)**: 2021-11-27" in text
+        assert "art. 73 co. 3 Cost." in text and "Normattiva" in text
+
+    def test_entry_into_force_different_from_gu_date_is_kept(self):
+        # A date distinct from the GU date is not a copy of it: printed as CELLAR gives it.
+        impl = ImplementationResult(
+            act_type="Decreto legislativo", id_local="177", oj_number="283",
+            oj_date="2021-11-27", entry_into_force="2021-12-12", directive_celex="32019L0790",
+        )
+        assert "**Entrata in vigore**: 2021-12-12" in format_implementation(impl)
+
+    def test_entry_into_force_without_reliable_gu_date_is_not_asserted(self):
+        # Placeholder GU date 1001-01-01: the CELLAR date cannot be told apart from the
+        # publication date, so it is not asserted as the entry into force.
+        impl = ImplementationResult(
+            act_type="Decreto legislativo", oj_date="1001-01-01",
+            entry_into_force="2024-10-16", directive_celex="32022L2555",
+        )
+        text = format_implementation(impl)
+        assert "**Entrata in vigore**" not in text
+        assert "2024-10-16" in text and "1001-01-01" not in text
 
     def test_nis2_heading_extracts_clean_number(self):
         impl = parse_implementations(_EU_TO_IT_NIS2["results"]["bindings"], "32022L2555")[0]
@@ -517,6 +663,39 @@ class TestGetEuBasisImpl:
         assert "32019L0790" in result.results_text
 
     @pytest.mark.asyncio
+    async def test_act_without_local_id_found_by_title(self):
+        # D.Lgs. 196/2003: the id_local query returns nothing (the CELLAR notice has no
+        # resource_legal_id_local), the title fallback finds directive 32002L0058 and
+        # discards the notice of D.Lgs. 69/2012 that only cites "n. 196".
+        mock = _sparql_mock_sequence(_EMPTY, _IT_TO_EU_196_BY_TITLE)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _get_eu_basis_impl("D.Lgs. 196/2003")
+        assert result.success
+        assert "### 32002L0058" in result.results_text
+        assert "32009L0136" not in result.results_text
+        assert mock.post.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_title_fallback_not_run_when_id_local_query_answers(self):
+        mock = _sparql_mock_sequence(_IT_TO_EU_DSM)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _get_eu_basis_impl("D.Lgs. 177/2021")
+        assert result.success
+        assert mock.post.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_no_results_after_title_fallback_explains_coverage(self):
+        # An act that transposes no directive (e.g. D.Lgs. 101/2018 adapts to a regulation)
+        # gets an honest message that does not blame a correct number/year.
+        mock = _sparql_mock_sequence(_EMPTY, _EMPTY)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _get_eu_basis_impl("D.Lgs. 101/2018")
+        assert not result.success
+        text = result.to_str()
+        assert "Nessuna base giuridica" in text
+        assert "identificativo locale" in text and "titolo" in text
+
+    @pytest.mark.asyncio
     async def test_from_act_ref_nis2(self):
         mock = _sparql_mock(_IT_TO_EU_NIS2)
         with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
@@ -551,6 +730,68 @@ class TestGetEuBasisImpl:
             result = await _get_eu_basis_impl("72019L0790ITA_202107973")
         assert not result.success
         assert result.error_type == "source_down"
+
+
+class TestElencoMisureNazionaliOtherCountry:
+    """paese other than ITA: wording, act number and journal label follow the Member State.
+
+    Art. 29(1)-(2) of directive (UE) 2019/790: each Member State notifies the Commission
+    of its OWN national measures (the CELEX suffix FRA_ marks them as French).
+    """
+
+    @pytest.mark.asyncio
+    async def test_fra_header_names_france_not_italy(self):
+        mock = _sparql_mock(_EU_TO_FR_DSM)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="FRA")
+        assert result.success
+        header = result.results_text.splitlines()[0]
+        assert header == "**Recepimento in Francia (FRA) della direttiva 32019L0790** — 2 misura/e nazionale/i"
+        assert "italian" not in result.results_text.lower()
+
+    @pytest.mark.asyncio
+    async def test_fra_headings_carry_the_french_act_number(self):
+        mock = _sparql_mock(_EU_TO_FR_DSM)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="fra")
+        headings = [ln for ln in result.results_text.splitlines() if ln.startswith("### ")]
+        assert headings == ["### Loi n. 2019-775", "### Ordonnance n. 2021-580"]
+
+    @pytest.mark.asyncio
+    async def test_fra_publication_is_not_called_gazzetta_ufficiale(self):
+        # the JORF is not the Italian Gazzetta Ufficiale
+        mock = _sparql_mock(_EU_TO_FR_DSM)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="FRA")
+        assert "Gazzetta Ufficiale" not in result.results_text
+        assert "**Pubblicazione ufficiale**: del 2021-05-13" in result.results_text
+        # Italian art. 73 Cost. does not apply to a French act
+        assert "art. 73" not in result.results_text and "Normattiva" not in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_no_measures_message_names_the_country(self):
+        # GBR left the EU before the 7 June 2021 deadline of art. 29(1): no measures, and the
+        # message must not say "italiana".
+        mock = _sparql_mock(_EMPTY)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="GBR")
+        assert not result.success
+        assert result.to_str().startswith("Nessuna misura nazionale (GBR) trovata per la direttiva _32019L0790_")
+        assert "italian" not in result.to_str().lower()
+
+    @pytest.mark.asyncio
+    async def test_ita_keeps_italian_wording(self):
+        mock = _sparql_mock(_EMPTY)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _elenco_misure_nazionali_impl("direttiva 2019/790")
+        assert result.to_str().startswith("Nessuna misura nazionale italiana trovata")
+
+    @pytest.mark.asyncio
+    async def test_unknown_country_code_falls_back_to_the_code(self):
+        mock = _sparql_mock(_EU_TO_FR_DSM)
+        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+            result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="XXX")
+        assert result.results_text.startswith("**Recepimento in XXX della direttiva")
 
 
 class TestElencoMisureNazionaliImpl:

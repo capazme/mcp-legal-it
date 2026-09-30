@@ -13,6 +13,7 @@ from src.lib._result import SearchResult
 from src.server import mcp
 from src.lib.eu_implementation.client import (
     MappingResult,
+    country_label,
     format_basis,
     format_implementation,
     get_eu_basis as _client_get_eu_basis,
@@ -51,10 +52,15 @@ def _mapping_to_search_result(mapping: MappingResult) -> SearchResult:
         if mapping.error_type == "no_results":
             if mapping.direction == "eu_to_it":
                 ref = mapping.celex or mapping.query_ref
+                # Wording follows the requested Member State: "italiana" only for ITA.
+                if mapping.country.upper() == "ITA":
+                    scope = "nazionale italiana"
+                else:
+                    scope = f"nazionale ({mapping.country.upper()})"
                 return SearchResult(
                     success=False, source=source, error_type="no_results",
                     results_text=(
-                        f"Nessuna misura nazionale italiana trovata per la direttiva _{ref}_ "
+                        f"Nessuna misura {scope} trovata per la direttiva _{ref}_ "
                         f"nel database CELLAR. Possibili cause: trasposizione non ancora "
                         f"notificata, recepimento tramite atto non mappato, o termine non scaduto."
                     ),
@@ -63,8 +69,11 @@ def _mapping_to_search_result(mapping: MappingResult) -> SearchResult:
                 success=False, source=source, error_type="no_results",
                 results_text=(
                     f"Nessuna base giuridica UE trovata per _{mapping.query_ref}_ nel database "
-                    f"CELLAR. Verificare il numero/anno dell'atto o usare il CELEX della misura "
-                    f"nazionale (es. 72019L0790ITA_202107973)."
+                    f"CELLAR. La ricerca per estremi copre le notizie con identificativo locale "
+                    f"o con tipo, numero e anno all'inizio del titolo; un atto che non recepisce "
+                    f"direttive (es. adeguamento a un regolamento) non compare. Verificare "
+                    f"numero/anno dell'atto o usare il CELEX della misura nazionale "
+                    f"(es. 72019L0790ITA_202107973)."
                 ),
             )
         return SearchResult(
@@ -74,8 +83,12 @@ def _mapping_to_search_result(mapping: MappingResult) -> SearchResult:
 
     if mapping.direction == "eu_to_it":
         impls = mapping.implementations
+        if mapping.country.upper() == "ITA":
+            recepimento = "Recepimento italiano"
+        else:
+            recepimento = f"Recepimento in {country_label(mapping.country)}"
         lines = [
-            f"**Recepimento italiano della direttiva {mapping.celex}** — "
+            f"**{recepimento} della direttiva {mapping.celex}** — "
             f"{len(impls)} misura/e nazionale/i\n",
             "_Le misure nazionali sono metadati: per il testo usare `cite_law`._\n",
         ]
@@ -146,8 +159,14 @@ async def get_italian_implementation(direttiva: str) -> str:
     USARE quando si chiede: "come è stata recepita in Italia la direttiva X?",
     "quale decreto legislativo attua la direttiva Y?", "qual è la legge di recepimento?".
     Restituisce: tipo atto (es. Decreto legislativo), numero, Gazzetta Ufficiale n./data,
-    entrata in vigore, titolo e CELEX della misura nazionale.
+    titolo e CELEX della misura nazionale. La data di entrata in vigore compare come
+    "Entrata in vigore" solo se CELLAR la distingue dalla data della GU; se coincide con
+    la GU (caso frequente per le misure italiane) è stampata come "Data registrata in
+    CELLAR" con il rinvio a Normattiva.
     La misura nazionale è SOLO metadato — per il testo dell'atto usare `cite_law`.
+    Vigenza: art. 73 co. 3 Cost. e art. 10 preleggi (entrata in vigore il quindicesimo
+    giorno successivo alla pubblicazione, salvo termine diverso); dati CELLAR letti al
+    momento della chiamata.
     Per un regolamento UE (direttamente applicabile) viene spiegato che non c'è trasposizione.
 
     Args:
@@ -166,6 +185,10 @@ async def get_eu_basis(atto: str) -> str:
     "quale direttiva UE attua questo decreto?", "da quale direttiva deriva la legge Y?".
     Restituisce: CELEX della direttiva, titolo in italiano, termine di trasposizione,
     CELLAR URI. Un atto nazionale può recepire PIÙ direttive (vengono elencate tutte).
+    Se la notizia CELLAR non ha identificativo locale, l'atto si cerca per tipo, numero
+    e anno nel titolo (es. D.Lgs. 196/2003 -> direttiva 2002/58/CE). Il termine di
+    trasposizione è quello notificato a CELLAR: se manca, non viene stampato (si legge
+    nella direttiva con `cite_law`).
     Per il testo della direttiva usare `cite_law`.
 
     Args:
@@ -183,6 +206,12 @@ async def elenco_misure_nazionali(direttiva: str, paese: str = "ITA") -> str:
 
     Come get_italian_implementation ma con scelta del Paese (default ITA).
     USARE per confrontare il recepimento in diversi Stati membri.
+    Intestazione e messaggio "nessuna misura" nominano il Paese richiesto (l'aggettivo
+    "italiano" solo per ITA); per i Paesi diversi dall'Italia la pubblicazione è indicata
+    come "Pubblicazione ufficiale" (non "Gazzetta Ufficiale") e il numero dell'atto
+    conserva la forma del Paese (es. "Loi n. 2019-775"). Le misure sono quelle
+    notificate dallo Stato a CELLAR; l'entrata in vigore va verificata nella fonte
+    ufficiale dello Stato.
     Le misure nazionali sono SOLO metadati — per il testo usare `cite_law`.
 
     Args:

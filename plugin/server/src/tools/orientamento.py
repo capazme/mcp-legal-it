@@ -1,16 +1,19 @@
 """MCP tools per la MAPPATURA DESCRITTIVA degli orientamenti giurisprudenziali.
 
-LIMITE NORMATIVO (art. 15, L. 132/2025): nell'attività giudiziaria ogni decisione
-sull'interpretazione e applicazione della legge e sulla valutazione di fatti e prove è
-riservata al magistrato — questi tool NON prevedono esiti, overruling o probabilità di
-accoglimento. Producono solo una
+RISERVA AL MAGISTRATO (art. 15, co. 1, L. 132/2025): quando l'intelligenza artificiale è
+impiegata nell'attività giudiziaria, ogni decisione sull'interpretazione e applicazione della
+legge, sulla valutazione dei fatti e delle prove e sull'adozione dei provvedimenti è sempre
+riservata al magistrato. La norma non vieta la "giustizia predittiva" e non disciplina gli
+strumenti usati dagli avvocati (per quelli rileva l'art. 13); per scelta di progetto questi tool
+NON prevedono esiti, overruling o probabilità di accoglimento: producono solo una
 MAPPA DESCRITTIVA di ciò che gli archivi della Cassazione contengono: intervento
 delle Sezioni Unite, distribuzione per sezione, andamento temporale e il NUMERO di
-decisioni che SEGNALANO nel proprio testo un contrasto/difformità oppure un
+decisioni DISTINTE che SEGNALANO nel proprio testo un contrasto/difformità oppure un
 orientamento consolidato/conforme. Questi conteggi sono un SEGNALE TESTUALE, mai una
 classificazione di merito delle decisioni come "conformi" o "difformi".
 
-Orizzonte archivio Italgiure: ~2020 in poi.
+Orizzonte archivio Italgiure: finestra mobile di circa cinque anni (a settembre 2026 dal
+27/09/2021), non "dal 2020".
 """
 
 import re
@@ -20,22 +23,42 @@ from src.lib._result import SearchResult
 from src.lib.brocardi.client import fetch_brocardi, parse_massime_references
 from src.lib.visualex import resolve_atto
 from src.lib.italgiure.client import (
+    ARCHIVE_START_YEAR,
     CONFLICT_SIGNALS,
     CONFORMITY_SIGNALS,
     SolrSession,
     build_norma_variants,
     build_orientamento_params,
+    resolve_sezione,
     format_estremi,
     format_summary,
     get_kind_filter,
+    group_signal_facet_query,
     solr_query,
 )
 
 _DISCLAIMER = (
-    "_Mappa descrittiva degli orientamenti, NON una previsione di overruling "
-    "(art. 15, L. 132/2025)._"
+    "_Mappa descrittiva degli orientamenti, non una previsione di esito né di overruling: "
+    "nell'attività giudiziaria le decisioni restano riservate al magistrato (art. 15, L. 132/2025)._"
 )
-_ARCHIVE_NOTE = "_Orizzonte archivio Italgiure: decisioni dal ~2020 in poi._"
+_ARCHIVE_NOTE = (
+    "_Orizzonte archivio Italgiure: finestra mobile di circa gli ultimi cinque anni "
+    "(a settembre 2026 dal 27/09/2021); le decisioni anteriori non sono consultabili._"
+)
+
+# Free-text principle: with the default edismax mm ("2<75% 5<60%") six terms need only three,
+# so unrelated decisions sharing three words (e.g. "schema", "nullità", "parziale") flood the
+# totals and the Sezioni Unite block. "3<90%": up to three terms must all be present, above
+# three at least 90% of them (5 of 6).
+_PRINCIPIO_MM = "3<90%"
+_PRINCIPIO_MM_NOTE = (
+    "_I totali contano le decisioni che contengono almeno il 90% dei termini del principio "
+    "(tutti, fino a tre termini)._"
+)
+_PRINCIPIO_MM_RELAXED_NOTE = (
+    "_Nessuna decisione contiene almeno il 90% dei termini: criteri allargati (almeno il 60-75% "
+    "dei termini), i totali sono meno selettivi._"
+)
 
 _SEZIONI_LABELS = {
     "1": "Sezione I", "2": "Sezione II", "3": "Sezione III", "4": "Sezione IV",
@@ -72,16 +95,30 @@ def _signal_split(facet_queries: dict) -> tuple[list[tuple[str, int]], list[tupl
     return conflict, conformity
 
 
+def _distinct_total(facet_queries: dict, phrases: list[str], per_phrase: list[tuple[str, int]]) -> int:
+    """Number of DISTINCT decisions using any phrase of the group.
+
+    Read from the group facet.query (one OR query, each decision counted once). A response
+    without it (older mocks) falls back to the sum of the per-phrase counts.
+    """
+    key = group_signal_facet_query(phrases)
+    if key in facet_queries:
+        return int(facet_queries[key])
+    return sum(c for _, c in per_phrase)
+
+
 def _format_signal_block(facet_queries: dict) -> list[str]:
     """Render the self-flag signal split as a TEXTUAL-signal section (never holdings)."""
     conflict, conformity = _signal_split(facet_queries)
-    total_conflict = sum(c for _, c in conflict)
-    total_conformity = sum(c for _, c in conformity)
+    total_conflict = _distinct_total(facet_queries, CONFLICT_SIGNALS, conflict)
+    total_conformity = _distinct_total(facet_queries, CONFORMITY_SIGNALS, conformity)
     lines = ["## Segnali testuali nelle decisioni"]
     lines.append(
         "> I conteggi sotto indicano quante decisioni **usano nel testo** le seguenti "
         "espressioni. Sono un SEGNALE TESTUALE di come la decisione si autoqualifica, "
-        "NON una classificazione di merito dell'esito."
+        "NON una classificazione di merito dell'esito. Il totale di ogni gruppo conta "
+        "decisioni distinte: una decisione che usa più espressioni compare in ciascuna riga "
+        "ma è contata una sola volta nel totale."
     )
     lines.append("")
     lines.append(f"**Decisioni che SEGNALANO un contrasto/difformità** ({total_conflict}):")
@@ -114,16 +151,28 @@ async def _fetch_ss_uu(
     campo: str,
     session: SolrSession,
     field_query: bool = False,
+    sort: str = "pd desc",
+    mm: str | None = None,
 ) -> tuple[int, list[dict]]:
-    """Fetch the dedicated Sezioni Unite (szdec:U) block in ONE query."""
+    """Fetch the dedicated Sezioni Unite (szdec:U) block in ONE query.
+
+    *sort* "score desc" (free-text principle only) lists the most pertinent decisions instead
+    of the most recent ones that merely share a few words with the query.
+    """
     params = build_orientamento_params(
         q, archivio=archivio, anno_da=anno_da, sezione="U", rows=_SS_UU_ROWS,
-        campo=campo, field_query=field_query,
+        campo=campo, field_query=field_query, sort=sort, mm=mm,
     )
     data = await solr_query(params, session=session)
     num = data.get("response", {}).get("numFound", 0)
     docs = data.get("response", {}).get("docs", [])
     return num, docs
+
+
+def _first_str(val) -> str:
+    if isinstance(val, list):
+        return str(val[0]) if val else ""
+    return str(val) if val else ""
 
 
 def _doc_key(doc: dict) -> str:
@@ -192,8 +241,12 @@ def _format_sezione_clusters(docs: list[dict], szdec_raw: list | None = None) ->
     return lines
 
 
-def _format_ss_uu_block(num: int, docs: list[dict]) -> list[str]:
-    """Render the Sezioni Unite (szdec:U) block at the top of the map."""
+def _format_ss_uu_block(num: int, docs: list[dict], ordine: str = "le più recenti") -> list[str]:
+    """Render the Sezioni Unite (szdec:U) block at the top of the map.
+
+    Each line carries the materia, so an unrelated decision that shares a few words with the
+    query is recognisable at a glance. *ordine* says how the shown decisions were picked.
+    """
     lines = ["## Intervento delle Sezioni Unite (szdec:U)"]
     if not docs:
         lines.append(
@@ -208,10 +261,14 @@ def _format_ss_uu_block(num: int, docs: list[dict]) -> list[str]:
             continue
         seen.add(key)
         deduped.append(doc)
-    lines.append(f"**{num} pronunce delle Sezioni Unite** (mostro {min(len(deduped), _SS_UU_ROWS)}):")
+    lines.append(
+        f"**{num} pronunce delle Sezioni Unite** (mostro {min(len(deduped), _SS_UU_ROWS)}, {ordine}):"
+    )
     lines.append("")
     for doc in deduped:
-        lines.append(f"- {format_estremi(doc)}")
+        materia = _first_str(doc.get("materia"))
+        suffix = f" — {materia}" if materia else ""
+        lines.append(f"- {format_estremi(doc)}{suffix}")
     return lines
 
 
@@ -223,6 +280,8 @@ def _assemble_map(
     docs: list[dict],
     ss_uu_num: int,
     ss_uu_docs: list[dict],
+    extra_notes: list[str] | None = None,
+    ss_uu_ordine: str = "le più recenti",
 ) -> str:
     """Assemble the descriptive orientation map in the mandated order."""
     facet_fields = facet_counts.get("facet_fields", {})
@@ -230,9 +289,11 @@ def _assemble_map(
 
     parts: list[str] = [f"# {titolo}", ""]
     parts.append(f"**{num_found} decisioni** negli archivi della Cassazione per: _{base_q}_")
+    for note in extra_notes or []:
+        parts.append(note)
     parts.append("")
     # (1) SS.UU. block
-    parts.extend(_format_ss_uu_block(ss_uu_num, ss_uu_docs))
+    parts.extend(_format_ss_uu_block(ss_uu_num, ss_uu_docs, ss_uu_ordine))
     parts.append("")
     # (2) per-sezione clusters of LATER decisions
     parts.extend(_format_sezione_clusters(docs, facet_fields.get("szdec", [])))
@@ -322,17 +383,32 @@ async def _orientamento_su_principio_impl(
     # Reuse italgiure query normalization for principle text.
     from src.tools.italgiure import _normalize_query
 
-    q = _normalize_query(principio)
     try:
+        sezione, archivio = resolve_sezione(sezione, archivio)
+    except ValueError as exc:
+        return SearchResult(success=False, source="italgiure", error_type="bad_input", results_text=str(exc))
+
+    q = _normalize_query(principio)
+
+    async def _run(mm: str | None):
         async with SolrSession() as session:
             params = build_orientamento_params(
                 q, archivio=archivio, anno_da=anno_da, sezione=sezione or "",
-                rows=max_risultati, campo="tutto",
+                rows=max_risultati, campo="tutto", mm=mm,
             )
             data = await solr_query(params, session=session)
-            ss_uu_num, ss_uu_docs = await _fetch_ss_uu(
-                q, archivio, anno_da, "tutto", session,
-            )
+            # The SS.UU. block lists the MOST PERTINENT decisions (score), not the most recent
+            # ones sharing a few words with the principle.
+            ss = await _fetch_ss_uu(q, archivio, anno_da, "tutto", session, sort="score desc", mm=mm)
+        return data, ss
+
+    relaxed = False
+    try:
+        data, (ss_uu_num, ss_uu_docs) = await _run(_PRINCIPIO_MM)
+        if data.get("response", {}).get("numFound", 0) == 0 and ss_uu_num == 0:
+            # Strict matching found nothing: retry once with the default (looser) matching.
+            relaxed = True
+            data, (ss_uu_num, ss_uu_docs) = await _run(None)
     except Exception as exc:
         return SearchResult(
             success=False, source="italgiure",
@@ -360,6 +436,8 @@ async def _orientamento_su_principio_impl(
         docs=docs,
         ss_uu_num=ss_uu_num,
         ss_uu_docs=ss_uu_docs,
+        extra_notes=[_PRINCIPIO_MM_RELAXED_NOTE if relaxed else _PRINCIPIO_MM_NOTE],
+        ss_uu_ordine="per pertinenza al principio",
     )
     return SearchResult(
         success=True, source="italgiure", num_found=num_found, results_text=text,
@@ -385,16 +463,20 @@ async def _mappa_orientamento_impl(
 ) -> SearchResult:
     """Orchestrator: Brocardi anchor → SS.UU. references → orientation map.
 
-    1. fetch_brocardi for the article (anchor of the established case law)
+    1. fetch_brocardi for the article (anchor of the case law Brocardi reports)
     2. parse_massime_references → Cassazione decisions cited as massime
     3. build the descriptive orientation map via _orientamento_su_norma_impl
     4. surface any SS.UU. (szdec:U) anchor references at the top
+
+    The anchor never disappears silently: when Brocardi is unreachable, has no massime or the
+    act is not recognised, the map says so.
     """
     articolo, atto_str = _parse_articolo_riferimento(riferimento)
 
     # --- Brocardi anchor (best-effort; map still produced if it fails) ---
     anchor_refs: list[dict] = []
     n_massime = 0
+    anchor_status = ""  # human-readable reason when there is no anchor
     if articolo and atto_str:
         act_info = resolve_atto(atto_str)
         if act_info:
@@ -408,8 +490,22 @@ async def _mappa_orientamento_impl(
                 if brocardi_result and not brocardi_result.error and brocardi_result.massime:
                     n_massime = len(brocardi_result.massime)
                     anchor_refs = parse_massime_references(brocardi_result.massime)
+                    if not anchor_refs:
+                        anchor_status = (
+                            f"Brocardi riporta {n_massime} massime per {riferimento}, ma nessuna "
+                            "cita una decisione della Cassazione con numero e anno"
+                        )
+                elif brocardi_result and not brocardi_result.error:
+                    anchor_status = f"Brocardi non riporta massime per {riferimento}"
+                else:
+                    anchor_status = "Brocardi non ha restituito la pagina dell'articolo"
             except Exception:
                 anchor_refs = []
+                anchor_status = "Brocardi non raggiungibile"
+        else:
+            anchor_status = "atto non riconosciuto: nessun ancoraggio Brocardi"
+    else:
+        anchor_status = "riferimento senza articolo e atto: nessun ancoraggio Brocardi"
 
     # --- Descriptive orientation map (core) ---
     base = await _orientamento_su_norma_impl(
@@ -418,7 +514,7 @@ async def _mappa_orientamento_impl(
 
     parts: list[str] = []
     if anchor_refs:
-        parts.append("## Ancoraggio Brocardi (massime consolidate)")
+        parts.append("## Ancoraggio Brocardi")
         parts.append(
             f"_Brocardi riporta {n_massime} massime per {riferimento}; "
             f"{len(anchor_refs)} riferimenti Cassazione estratti come ancoraggio:_"
@@ -426,6 +522,17 @@ async def _mappa_orientamento_impl(
         for ref in anchor_refs[:5]:
             autorita = ref.get("autorita") or "Cass."
             parts.append(f"- {autorita} n. {ref['numero']}/{ref['anno']}")
+        prima = sum(1 for r in anchor_refs if int(r["anno"]) < ARCHIVE_START_YEAR)
+        if prima:
+            parts.append(
+                f"_{prima} su {len(anchor_refs)} riferimenti precedono il {ARCHIVE_START_YEAR}: sono "
+                "fuori dalla finestra dell'archivio Italgiure e non si leggono con leggi_sentenza. "
+                "Le massime di Brocardi non misurano il consolidamento dell'orientamento._"
+            )
+        parts.append("")
+    elif anchor_status:
+        parts.append("## Ancoraggio Brocardi")
+        parts.append(f"_{anchor_status}: la mappa che segue è costruita solo sugli archivi Italgiure._")
         parts.append("")
 
     if not base.success:
@@ -470,19 +577,26 @@ async def orientamento_su_norma(
 
     Produce una mappa (NON una previsione): intervento delle Sezioni Unite,
     cluster per sezione delle decisioni successive, andamento temporale e il
-    numero di decisioni che SEGNALANO nel testo un contrasto/difformità oppure
-    un orientamento consolidato/conforme. I conteggi dei segnali sono un SEGNALE
-    TESTUALE, non una classificazione di merito.
+    numero di decisioni DISTINTE che SEGNALANO nel testo un contrasto/difformità
+    oppure un orientamento consolidato/conforme. I conteggi dei segnali sono un
+    SEGNALE TESTUALE, non una classificazione di merito.
 
-    LIMITE L. 132/2025: vietata la giustizia predittiva — nessuna stima di esito
-    o probabilità di overruling.
+    Art. 15, co. 1, L. 132/2025: nell'attività giudiziaria l'IA non sostituisce il
+    magistrato, cui è sempre riservata ogni decisione su interpretazione e applicazione
+    della legge, fatti e prove. Per scelta di progetto il tool produce solo una mappa
+    descrittiva, senza stime di esito o probabilità di overruling.
+
+    Il riferimento deve indicare codice o atto: per gli atti ("art. 13 GDPR") sono contate le
+    decisioni che citano l'articolo insieme agli estremi dell'atto, non ogni "art. 13".
+    L'archivio Italgiure è una finestra mobile di circa cinque anni (a settembre 2026 dal
+    27/09/2021).
 
     Usa una sola query Solr faceted per i dati principali + una per il blocco SS.UU.
 
     Args:
         riferimento: Riferimento normativo breve (es. "art. 2043 c.c.", "art. 13 GDPR")
         archivio: "civile", "penale", o "tutti" (default)
-        anno_da: Anno minimo delle decisioni successive (0 = nessun filtro; archivio ~2020+)
+        anno_da: Anno minimo delle decisioni successive (0 = nessun filtro; l'archivio parte da settembre 2021)
         max_risultati: Numero massimo di decisioni successive analizzate (default 10, max 50)
     """
     result = await _orientamento_su_norma_impl(
@@ -503,14 +617,17 @@ async def orientamento_su_principio(
 
     Come `orientamento_su_norma` ma a partire da un principio in linguaggio libero
     (es. "buona fede oggettiva nel recesso contrattuale"). Restituisce intervento
-    SS.UU., cluster per sezione, andamento temporale e segnali testuali di
-    contrasto/conformità. NON è una previsione (L. 132/2025).
+    SS.UU. (le più pertinenti al principio, con la materia), cluster per sezione, andamento
+    temporale e segnali testuali di contrasto/conformità. È una mappa descrittiva, non una
+    previsione di esito: nell'attività giudiziaria le decisioni restano riservate al
+    magistrato (art. 15 L. 132/2025). I totali contano le decisioni con almeno il 90% dei
+    termini del principio (tutti, fino a tre termini).
 
     Args:
         principio: Principio o massima in linguaggio libero (2-6 termini chiave)
         archivio: "civile", "penale", o "tutti" (default)
-        anno_da: Anno minimo (0 = nessun filtro; archivio ~2020+)
-        sezione: Filtro sezione (1-7, L=lavoro, T=tributaria, U=sezioni unite). Default: tutte
+        anno_da: Anno minimo (0 = nessun filtro; l'archivio parte da settembre 2021)
+        sezione: Filtro sezione (1-7, L=lavoro, U o SU=sezioni unite, F=feriale, T=tributaria=sezione 5 civile). Default: tutte
         max_risultati: Numero massimo di decisioni successive (default 10, max 50)
     """
     result = await _orientamento_su_principio_impl(
@@ -529,18 +646,22 @@ async def mappa_orientamento(
     """Mappa DESCRITTIVA completa: ancoraggio Brocardi + orientamenti Cassazione su un articolo.
 
     Workflow orchestrato:
-    1. recupera le massime consolidate da Brocardi per l'articolo (ancoraggio)
-    2. estrae i riferimenti Cassazione citati come massime
+    1. recupera le massime riportate da Brocardi per l'articolo (ancoraggio; le massime di
+       Brocardi non misurano il consolidamento; se Brocardi non risponde o non ha massime
+       la mappa lo dichiara)
+    2. estrae i riferimenti Cassazione citati come massime e segnala quanti sono anteriori
+       alla finestra dell'archivio (non leggibili con leggi_sentenza)
     3. costruisce la mappa descrittiva degli orientamenti (intervento SS.UU.,
        cluster per sezione, andamento temporale, segnali testuali di
        contrasto/conformità)
 
-    NON è una previsione di overruling né una giustizia predittiva (L. 132/2025).
+    È una mappa descrittiva, non una previsione di esito né di overruling: nell'attività
+    giudiziaria le decisioni restano riservate al magistrato (art. 15 L. 132/2025).
 
     Args:
         riferimento: Riferimento normativo (es. "art. 2043 c.c.", "art. 2087 c.c.")
         archivio: "civile", "penale", o "tutti" (default)
-        anno_da: Anno minimo delle decisioni successive (0 = nessun filtro; archivio ~2020+)
+        anno_da: Anno minimo delle decisioni successive (0 = nessun filtro; l'archivio parte da settembre 2021)
     """
     result = await _mappa_orientamento_impl(
         riferimento, archivio=archivio, anno_da=anno_da,

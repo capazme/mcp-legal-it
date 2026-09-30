@@ -34,6 +34,13 @@ the answer carries a `fonti_consultate` block in `_meta` with the dataset
 names and the moment of the consult. The per-tool dataset map is
 `source_bindings.py`, regenerated together with this policy.
 
+`PREVIGENTE` names the tools that compute under a rule that no longer governs
+new cases (docstring line `Regime: PREVIGENTE`, tag `previgente`, wrapper
+`@previgente` from `src/lib/_regime.py`), with the residual cases each still
+applies to and the tools to use for a current case. The middleware stamps the
+same block in the `_meta` of their `tools/list` entry, the ledger stamps it on
+every result, and `LEGAL_PREVIGENTE=off` hides the group.
+
 `apply_tool_annotations` installs a middleware that stamps these annotations on
 `tools/list`. It lives in one place on purpose: annotating 221 decorators would
 be a diff nobody can review, and the audit rule is easier to re-run than to
@@ -51,6 +58,9 @@ from collections.abc import Iterable
 
 from fastmcp.server.middleware import Middleware
 from mcp.types import ToolAnnotations
+
+from src.lib._regime import META_KEY as REGIME_META_KEY
+from src.lib._regime import PREVIGENTE as REGIME_PREVIGENTE
 
 # No reachable filesystem/network write.
 READ_ONLY: frozenset[str] = frozenset({
@@ -164,6 +174,19 @@ ONLINE_SOURCES: frozenset[str] = frozenset({
     "verifica_dpa_fornitore", "verifica_partita_iva_vies",
 })
 
+# Tools that compute under a superseded rule (`Regime: PREVIGENTE`): the
+# residual cases each still governs, and the tools for a current case.
+PREVIGENTE: dict[str, dict[str, object]] = {
+    "equo_indennizzo": {
+        "applicabile_a": "infermità da causa di servizio di dipendenti pubblici per fatti anteriori al 06/12/2011 (istituto abrogato dall'art. 6 DL 201/2011 conv. L. 214/2011; nessun tool vigente equivalente: per gli infortuni dei lavoratori privati → risarcimento_inail)",
+        "tool_vigenti": (),
+    },
+    "termini_183_190_cpc": {
+        "applicabile_a": 'cause iscritte a ruolo prima del 28/02/2023 (artt. 183 co. 6 e 190 c.p.c. nel testo anteriore al D.Lgs. 149/2022)',
+        "tool_vigenti": ('termini_memorie_repliche', 'termini_processuali_civili'),
+    },
+}
+
 
 def annotations_for(tool_name: str) -> ToolAnnotations | None:
     """Annotations for a tool, or None when the policy does not mention it."""
@@ -196,6 +219,12 @@ class ToolAnnotationMiddleware(Middleware):
             annotations = annotations_for(tool.name)
             if annotations is not None:
                 tool.annotations = annotations
+            regime = PREVIGENTE.get(tool.name)
+            if regime:
+                tool.meta = {
+                    **(tool.meta or {}),
+                    REGIME_META_KEY: {"stato": REGIME_PREVIGENTE.lower(), **regime},
+                }
         if not self._checked:
             self._checked = True
             self._warn_on_drift(t.name for t in tools)

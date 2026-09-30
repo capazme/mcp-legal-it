@@ -1,23 +1,25 @@
 {
   "_vintage": {
-    "fonte": "art. 83 Reg. UE 2016/679",
-    "verifica": "manuale"
+    "aggiornato_al": "2026-09-29",
+    "fonte": "art. 83 Reg. UE 2016/679; EDPB Linee guida 04/2022 sul calcolo delle sanzioni amministrative pecuniarie, v. 2.1 (24/05/2023, corr. 29/06/2023), par. 60 e 65-66",
+    "verifica": "manuale",
+    "nota": "massimali e criteri dal testo vigente dell'art. 83 (letto il 29/09/2026); fasce di gravita' e rettifica per fatturato dalle Linee guida EDPB (soft law, non vincolanti); i correttivi per aggravanti, attenuanti e precedenti sono una convenzione del tool, non prevista ne' dall'art. 83 ne' dall'EDPB (par. 71)"
   },
   "massimali": {
     "art83_4": {
       "euro": 10000000,
       "percentuale_fatturato": 2,
-      "descrizione": "Violazioni obblighi titolare/responsabile, organismo certificazione, organismo controllo (art. 83(4) GDPR)"
+      "descrizione": "Violazioni degli obblighi del titolare e del responsabile (artt. 8, 11, 25-39), dell'organismo di certificazione (artt. 42-43) e dell'organismo di controllo (art. 41, par. 4) (art. 83(4) GDPR)"
     },
     "art83_5": {
       "euro": 20000000,
       "percentuale_fatturato": 4,
-      "descrizione": "Violazioni principi base, diritti interessati, trasferimenti, ordini autorità (art. 83(5) GDPR)"
+      "descrizione": "Violazioni dei principi di base del trattamento e delle condizioni del consenso (artt. 5, 6, 7, 9), dei diritti degli interessati (artt. 12-22), dei trasferimenti verso paesi terzi (artt. 44-49), degli obblighi di diritto nazionale ex capo IX e inosservanza di un ordine o di una limitazione dell'autorita' di controllo (art. 58, par. 1 e 2) (art. 83(5) GDPR)"
     },
     "art83_6": {
       "euro": 20000000,
       "percentuale_fatturato": 4,
-      "descrizione": "Inosservanza ordine di limitazione/sospensione trattamento (art. 83(6) GDPR)"
+      "descrizione": "Inosservanza di un ordine dell'autorita' di controllo ex art. 58, par. 2 (art. 83(6) GDPR)"
     }
   },
   "criteri_art83_2": [
@@ -70,6 +72,11 @@
       "id": "j",
       "criterio": "Adesione a codici di condotta o meccanismi di certificazione",
       "parametro": "certificazioni ex art. 40-42, codici di condotta approvati"
+    },
+    {
+      "id": "k",
+      "criterio": "Eventuali altri fattori aggravanti o attenuanti applicabili alle circostanze del caso",
+      "parametro": "benefici finanziari conseguiti o perdite evitate, direttamente o indirettamente, quale conseguenza della violazione"
     }
   ],
   "fattori_aggravanti": [
@@ -96,12 +103,62 @@
     "Dimensione ridotta dell'organizzazione",
     "Assenza di profitto dalla violazione"
   ],
-  "modulazione_percentuale": {
-    "base_minima_pct": 0.5,
-    "base_media_pct": 5,
-    "base_massima_pct": 20,
+  "metodo_edpb": {
+    "fonte": "EDPB, Guidelines 04/2022 on the calculation of administrative fines under the GDPR, v. 2.1, par. 60 (gravita') e par. 65-66 (fatturato)",
+    "fasce_gravita": {
+      "bassa": {
+        "da_pct": 0,
+        "a_pct": 10
+      },
+      "media": {
+        "da_pct": 10,
+        "a_pct": 20
+      },
+      "alta": {
+        "da_pct": 20,
+        "a_pct": 100
+      }
+    },
+    "rettifica_fatturato": [
+      {
+        "fino_a": 2000000,
+        "da_pct": 0.2,
+        "a_pct": 0.4
+      },
+      {
+        "fino_a": 10000000,
+        "da_pct": 0.3,
+        "a_pct": 2
+      },
+      {
+        "fino_a": 50000000,
+        "da_pct": 1.5,
+        "a_pct": 10
+      },
+      {
+        "fino_a": 100000000,
+        "da_pct": 8,
+        "a_pct": 20
+      },
+      {
+        "fino_a": 250000000,
+        "da_pct": 15,
+        "a_pct": 50
+      },
+      {
+        "fino_a": 500000000,
+        "da_pct": 40,
+        "a_pct": 100
+      }
+    ],
+    "nota_fatturato": "oltre 500 milioni di euro nessuna rettifica (par. 66, ultimo alinea): la dimensione e' gia' nel massimale dinamico"
+  },
+  "correttivi_convenzione_tool": {
+    "nota": "Convenzione del tool: l'EDPB (par. 71) esclude che gli aumenti e le riduzioni per circostanze aggravanti e attenuanti possano essere predeterminati con tabelle o percentuali",
     "aggravante_incremento_pct": 25,
     "attenuante_riduzione_pct": 20,
-    "precedenti_incremento_pct": 50
+    "precedenti_incremento_pct": 50,
+    "moltiplicatore_minimo": 0.1,
+    "moltiplicatore_massimo": 3.0
   }
 }
