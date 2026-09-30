@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.0] - 2026-09-30
+
+### Fixed
+Benchmark completo dei 228 tool registrati contro i calcolatori di
+avvocatoandreani.it, le fonti ufficiali degli enti competenti (Agenzia delle
+Entrate, INPS, CNEL, MEF, EDPB, Garante) e il testo vigente delle norme
+(25-29 settembre 2026). 161 tool corretti sulla fonte primaria, ciascuno con
+un test che fissa il valore verificato a mano. Le aree con più correzioni:
+termini processuali e costi giudiziari (sospensione feriale, diritti di
+copia), detrazioni IRPEF e imposte sugli immobili (maggiorazioni degli artt.
+12 e 13 TUIR, categoria catastale B), parcelle e compensi professionali
+(DM 55/2014, DM 150/2023, DM 30/2012), interessi e rivalutazione monetaria
+(saggio legale dal 1990, serie ISTAT FOI ricostruita), ricerca online
+(CeRDEF, CONSOB, Corte costituzionale, TAR e Consiglio di Stato, Garante,
+Gazzetta Ufficiale, CGUE, Italgiure), generatori di documenti GDPR e atti
+giudiziari. Report completo con la matrice dei 228 tool in
+`docs/001_mcp-legal-it_AuditNormativa_RV_SAPG.md` e
+`docs/benchmark/Report-benchmark-mcp-legal-it_RV3_SAPG.docx`.
+
+### Note
+Restano aperte 9 voci (danno biologico macropermanente, risarcimento INAIL,
+ATECO 2025, alcuni termini processuali): dettaglio nel paragrafo 7.2 del
+report.
+
 ## [2.14.2] - 2026-09-28
 
 ### Added
