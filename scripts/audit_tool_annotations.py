@@ -118,6 +118,7 @@ LOCAL_LIB_MODULES = {
     "_cache",
     "_clock",
     "_data",
+    "_regime",
     "_egress",
     "_http",
     "_ledger",
@@ -241,6 +242,13 @@ the answer carries a `fonti_consultate` block in `_meta` with the dataset
 names and the moment of the consult. The per-tool dataset map is
 `source_bindings.py`, regenerated together with this policy.
 
+`PREVIGENTE` names the tools that compute under a rule that no longer governs
+new cases (docstring line `Regime: PREVIGENTE`, tag `previgente`, wrapper
+`@previgente` from `src/lib/_regime.py`), with the residual cases each still
+applies to and the tools to use for a current case. The middleware stamps the
+same block in the `_meta` of their `tools/list` entry, the ledger stamps it on
+every result, and `LEGAL_PREVIGENTE=off` hides the group.
+
 `apply_tool_annotations` installs a middleware that stamps these annotations on
 `tools/list`. It lives in one place on purpose: annotating 221 decorators would
 be a diff nobody can review, and the audit rule is easier to re-run than to
@@ -258,6 +266,9 @@ from collections.abc import Iterable
 
 from fastmcp.server.middleware import Middleware
 from mcp.types import ToolAnnotations
+
+from src.lib._regime import META_KEY as REGIME_META_KEY
+from src.lib._regime import PREVIGENTE as REGIME_PREVIGENTE
 
 # No reachable filesystem/network write.
 READ_ONLY: frozenset[str] = frozenset({
@@ -286,6 +297,12 @@ CACHE_WRITES: frozenset[str] = frozenset({
 ONLINE_SOURCES: frozenset[str] = frozenset({
 %s
 })
+
+# Tools that compute under a superseded rule (`Regime: PREVIGENTE`): the
+# residual cases each still governs, and the tools for a current case.
+PREVIGENTE: dict[str, dict[str, object]] = {
+%s
+}
 
 
 def annotations_for(tool_name: str) -> ToolAnnotations | None:
@@ -319,6 +336,12 @@ class ToolAnnotationMiddleware(Middleware):
             annotations = annotations_for(tool.name)
             if annotations is not None:
                 tool.annotations = annotations
+            regime = PREVIGENTE.get(tool.name)
+            if regime:
+                tool.meta = {
+                    **(tool.meta or {}),
+                    REGIME_META_KEY: {"stato": REGIME_PREVIGENTE.lower(), **regime},
+                }
         if not self._checked:
             self._checked = True
             self._warn_on_drift(t.name for t in tools)
@@ -752,12 +775,21 @@ class Audit:
                 open_world.append(self.tools[fq])
             if self.sources_for(fq):
                 online.append(self.tools[fq])
+        previgente: dict[str, dict] = {}
+        for fq, name in self.tools.items():
+            regime = declared_regime(self.functions[fq])
+            if regime is not None and regime["stato"] == REGIME_PREVIGENTE:
+                previgente[name] = {
+                    "applicabile_a": regime["ambito"],
+                    "tool_vigenti": list(regime["tool_vigenti"]),
+                }
         return {
             "read_only": sorted(read_only),
             "writes_files": sorted(writes),
             "open_world": sorted(open_world),
             "cache_writes": sorted(cache),
             "online_sources": sorted(online),
+            "previgente": previgente,
         }
 
     def report(self) -> dict[str, dict]:
@@ -1740,6 +1772,149 @@ def runtime_grades() -> list[str]:
     return gradi
 
 
+#: The line that declares a regime, e.g. `Regime: PREVIGENTE — cause iscritte a
+#: ruolo prima del 28/02/2023; tool vigenti: termini_memorie_repliche`. Kept in
+#: step with `src/lib/_regime.py` by `verify_regime`: the declaration may run on
+#: over the indented lines that follow, up to a blank line or the next field.
+REGIME_RE = re.compile(r"^[ \t]*Regime:[ \t]*([A-Za-zÀ-ÿ]+)[ \t]*(.*)$", re.MULTILINE)
+REGIME_FIELD_RE = re.compile(r"^[ \t]*[A-ZÀ-Ý][A-Za-zÀ-ÿ ]*:")
+REGIME_VIGENTI_RE = re.compile(r"tool vigent[ei]\s*:\s*([A-Za-z0-9_,\s]+)", re.IGNORECASE)
+REGIME_VIGENTE = "VIGENTE"
+REGIME_PREVIGENTE = "PREVIGENTE"
+REGIME_STATI = (REGIME_VIGENTE, REGIME_PREVIGENTE)
+#: The tag a superseded tool has to carry in `@mcp.tool(tags=...)`.
+REGIME_TAG = "previgente"
+#: The wrapper that puts the block in every answer (`src/lib/_regime.py`).
+REGIME_DECORATOR = "previgente"
+
+
+def declared_regime(fn: ast.AST) -> dict | None:
+    """The regime a tool declares in its docstring, or None when it declares none."""
+    doc = ast.get_docstring(fn) or ""
+    found = REGIME_RE.search(doc)
+    if found is None:
+        return None
+    parts = [found.group(2).strip()]
+    for line in doc[found.end():].split("\n")[1:]:
+        if not line.strip() or REGIME_FIELD_RE.match(line):
+            break
+        parts.append(line.strip())
+    rest = " ".join(p for p in parts if p)
+    vigenti: list[str] = []
+    match = REGIME_VIGENTI_RE.search(rest)
+    if match:
+        vigenti = [n.strip() for n in match.group(1).split(",") if n.strip()]
+        rest = (rest[: match.start()] + rest[match.end():]).strip()
+    return {
+        "stato": found.group(1).upper(),
+        "ambito": rest.lstrip(" \t—–-:(,;.").rstrip(" \t—–-:,;."),
+        "tool_vigenti": vigenti,
+    }
+
+
+def tool_tags(fn: ast.AST) -> set[str]:
+    """The tags a tool's `@mcp.tool(tags={...})` decorator names."""
+    for decorator in getattr(fn, "decorator_list", []):
+        if not isinstance(decorator, ast.Call) or "mcp.tool" not in ast.unparse(decorator.func):
+            continue
+        for keyword in decorator.keywords:
+            if keyword.arg != "tags":
+                continue
+            if isinstance(keyword.value, (ast.Set, ast.List, ast.Tuple)):
+                return {
+                    e.value for e in keyword.value.elts
+                    if isinstance(e, ast.Constant) and isinstance(e.value, str)
+                }
+    return set()
+
+
+def has_decorator(fn: ast.AST, name: str) -> bool:
+    """Whether a tool is wrapped by the bare decorator `name` (or `module.name`)."""
+    for decorator in getattr(fn, "decorator_list", []):
+        text = ast.unparse(decorator)
+        if text == name or text.endswith("." + name):
+            return True
+    return False
+
+
+def verify_regime(audit: "Audit") -> list[str]:
+    """A tool under a superseded rule says so in three places, or in none.
+
+    The docstring line is what the calling model reads before choosing; the tag
+    is what a host filters on and what `LEGAL_PREVIGENTE=off` hides; the wrapper
+    is what puts the block in every answer. Any one of them alone is a flag that
+    is declared and forgotten, so the three have to agree -- and the successors a
+    declaration names have to be tools this server registers, or the answer
+    would point at a tool that does not exist.
+    """
+    problems: list[str] = []
+    registered = set(audit.tools.values())
+    for fq, name in sorted(audit.tools.items(), key=lambda kv: kv[1]):
+        fn = audit.functions[fq]
+        regime = declared_regime(fn)
+        tagged = REGIME_TAG in tool_tags(fn)
+        wrapped = has_decorator(fn, REGIME_DECORATOR)
+        if regime is not None and regime["stato"] not in REGIME_STATI:
+            problems.append(
+                "%s declares `Regime: %s`, which src/lib/_regime.py does not know (it knows %s)"
+                % (name, regime["stato"], ", ".join(REGIME_STATI))
+            )
+            continue
+        superseded = regime is not None and regime["stato"] == REGIME_PREVIGENTE
+        if superseded:
+            if not tagged:
+                problems.append(
+                    "%s declares `Regime: PREVIGENTE` but its @mcp.tool(tags=...) lacks the "
+                    "`%s` tag: a host could not filter it and LEGAL_PREVIGENTE=off would not hide it"
+                    % (name, REGIME_TAG)
+                )
+            if not wrapped:
+                problems.append(
+                    "%s declares `Regime: PREVIGENTE` but is not wrapped by @%s: its answers "
+                    "would not carry `regime_normativo`" % (name, REGIME_DECORATOR)
+                )
+            if not regime["ambito"]:
+                problems.append(
+                    "%s declares `Regime: PREVIGENTE` without saying which residual cases it "
+                    "still governs" % name
+                )
+            for successor in regime["tool_vigenti"]:
+                if successor not in registered:
+                    problems.append(
+                        "%s names `%s` as its current-rule successor, which is not a registered tool"
+                        % (name, successor)
+                    )
+        else:
+            if tagged:
+                problems.append(
+                    "%s carries the `%s` tag but declares no `Regime: PREVIGENTE` line: the tag "
+                    "would hide a tool whose answers never say why" % (name, REGIME_TAG)
+                )
+            if wrapped:
+                problems.append(
+                    "%s is wrapped by @%s but declares no `Regime: PREVIGENTE` line"
+                    % (name, REGIME_DECORATOR)
+                )
+    regime_module = audit.src / "lib" / "_regime.py"
+    if not regime_module.exists():
+        problems.append("src/lib/_regime.py is missing: nothing flags a superseded regime")
+    else:
+        text = regime_module.read_text(encoding="utf-8")
+        for marker in ("def previgente", "def declared", "def parse", "META_KEY", 'TAG = "%s"' % REGIME_TAG,
+                       'PREVIGENTE = "%s"' % REGIME_PREVIGENTE, "def hidden_by_environment"):
+            if marker not in text:
+                problems.append("src/lib/_regime.py: %s is gone" % marker)
+    ledger = (audit.src / "lib" / "_ledger.py").read_text(encoding="utf-8")
+    for marker in ("REGIME_KEY", "tool_regimes"):
+        if marker not in ledger:
+            problems.append("src/lib/_ledger.py: %s is gone, so a result's _meta no longer names the regime" % marker)
+    server = (audit.src / "server.py").read_text(encoding="utf-8")
+    for marker in ("tool_regimes=PREVIGENTE", "hidden_by_environment", "mcp.disable(tags="):
+        if marker not in server:
+            problems.append("src/server.py: %s is gone" % marker)
+    return problems
+
+
 def verify_precision(audit: "Audit") -> list[str]:
     """A tool that rests on a table has to declare how precise its answer is.
 
@@ -1912,6 +2087,18 @@ def block(names, indent="    "):
     return "\n".join(lines)
 
 
+def block_regimes(regimes: dict[str, dict], indent: str = "    ") -> str:
+    """The PREVIGENTE map, one tool per entry, rendered as Python source."""
+    lines = []
+    for name in sorted(regimes):
+        info = regimes[name]
+        lines.append('%s"%s": {' % (indent, name))
+        lines.append('%s    "applicabile_a": %r,' % (indent, info["applicabile_a"]))
+        lines.append('%s    "tool_vigenti": %r,' % (indent, tuple(info["tool_vigenti"])))
+        lines.append("%s}," % indent)
+    return "\n".join(lines)
+
+
 def render(policy: dict[str, list[str]]) -> str:
     local = len(set(policy["read_only"]) - set(policy["open_world"]))
     return TEMPLATE % (
@@ -1921,6 +2108,7 @@ def render(policy: dict[str, list[str]]) -> str:
         block(policy["open_world"] or {"none"}),
         block(policy["cache_writes"] or {"none"}),
         block(policy["online_sources"] or {"none"}),
+        block_regimes(policy["previgente"]),
     )
 
 
@@ -1978,6 +2166,9 @@ def main() -> int:
         failed = True
     for problem in verify_precision(audit):
         print("precision audit: %s" % problem, file=sys.stderr)
+        failed = True
+    for problem in verify_regime(audit):
+        print("regime audit: %s" % problem, file=sys.stderr)
         failed = True
 
     bindings = render_table_bindings(audit)

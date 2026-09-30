@@ -208,6 +208,14 @@ TIPI_PROVVEDIMENTO: dict[str, str] = {
     "adunanza_generale": "C",
 }
 
+# The portal files the Consiglio di Stato's plenary bodies as one-letter
+# "sections": its own <select> labels P "Adunanza Plenaria" and C "Adunanza
+# Generale" (the ECLI of AP 17/2021 ends in "APLE"). Only valid for the CdS.
+_SEZIONI_SPECIALI: dict[str, str] = {
+    "SEZIONE P": "Adunanza plenaria",
+    "SEZIONE C": "Adunanza generale",
+}
+
 # XML sections carrying the body, in reading order. `motivazione` is often empty
 # and the reasoning sits in `premessa` instead — emit whichever is populated.
 _EPIGRAFE_FIELDS = ("adunanza", "oggetto", "ricorrenti", "resistenti", "altro", "visto", "esaminato")
@@ -222,7 +230,8 @@ class ProvvedimentoResult:
     tipo: str             # SENTENZA, ORDINANZA, DECRETO, PARERE
     anno: str             # year of the provvedimento
     nome_file: str        # filename on the mdp subdomain
-    data_deposito: str    # DD/MM/YYYY — no longer exposed by the portal, kept ""
+    data_deposito: str    # DD/MM/YYYY — NOT on the search page (only the XML's
+                          # <dataPubblicazione>, which leggi_provvedimento_amm reads): kept ""
     oggetto: str          # snippet returned by the search engine
     numero: str = ""      # numero provvedimento, e.g. "202614035"
     sezione: str = ""     # e.g. "SEZIONE 3Q"
@@ -380,6 +389,34 @@ _RE_TIPO = re.compile(r"([A-ZÀ-Ù][A-ZÀ-Ù' ]+?)\s+sede di", re.UNICODE)
 # heading repeats the value uppercase ("(ROMA, SEZIONE 3Q)") earlier in the item.
 _RE_SEZIONE = re.compile(r",\s*sezione\s+([^,]+?)\s*,\s*numero\s+provv")
 _RE_ECLI = re.compile(r"ECLI:[A-Z]{2}:[A-Z]+:\d{4}:\w+")
+# Footer of the results page: "Risultati da 1 a 20 di 4399 totali".
+_RE_TOTALE = re.compile(r"Risultati\s+da\s+\d+\s+a\s+\d+\s+di\s+(\d+)\s+totali", re.IGNORECASE)
+
+
+def _parse_total(html: str) -> int | None:
+    """Total hits the portal reports for the query (None when the footer is absent)."""
+    m = _RE_TOTALE.search(html or "")
+    return int(m.group(1)) if m else None
+
+
+def citation_number(numero: str) -> str:
+    """Portal number YYYYNNNNN -> citation form N/YYYY (202100017 -> "17/2021")."""
+    numero = (numero or "").strip()
+    if len(numero) >= 8 and numero.isdigit():
+        return f"{int(numero[4:])}/{numero[:4]}"
+    return numero
+
+
+def _estremi(doc: "ProvvedimentoResult") -> str:
+    """Citation line: seat, plenary body if any, type and number as cited in the courts."""
+    if len(doc.numero) < 8 or not doc.numero.isdigit():
+        return ""
+    parts = [doc.sede_label]
+    speciale = _SEZIONI_SPECIALI.get((doc.sezione or "").upper()) if doc.sede == "cds" else None
+    if speciale:
+        parts.append(speciale)
+    parts.append(f"{(doc.tipo or 'provvedimento').lower()} n. {citation_number(doc.numero)}")
+    return ", ".join(parts)
 
 
 def _parse_results(html: str) -> list[ProvvedimentoResult]:
@@ -469,14 +506,26 @@ def _is_error_page(content: bytes) -> bool:
     )
 
 
+def is_pdf(content: bytes) -> bool:
+    """True when mdp served a PDF (about 30% of the latest CdS provvedimenti exist only as PDF).
+
+    The file is not XML: without this check the fallback of `_parse_xml_text`
+    would decode the PDF bytes as UTF-8 and hand them over as "full text".
+    """
+    return content.lstrip()[:5] == b"%PDF-"
+
+
 def _element_text(element) -> str:
     """Flatten an element's text, including namespaced HTML children."""
     return " ".join(t.strip() for t in element.itertext() if t and t.strip())
 
 
 def _parse_xml_text(xml_bytes: bytes) -> tuple[str, str]:
-    """Parse XML <GA> from mdp subdomain. Returns (title, body_text)."""
-    if _is_error_page(xml_bytes):
+    """Parse XML <GA> from mdp subdomain. Returns (title, body_text).
+
+    A PDF or an error page yields ("", ""): there is no text to read.
+    """
+    if is_pdf(xml_bytes) or _is_error_page(xml_bytes):
         return ("", "")
 
     try:
@@ -525,6 +574,47 @@ def _parse_xml_text(xml_bytes: bytes) -> tuple[str, str]:
     return title, body_text
 
 
+def _parse_xml_meta(xml_bytes: bytes) -> dict[str, str]:
+    """Citation data of the official XML: type, number as cited, date of publication.
+
+    `<dataPubblicazione>` is the date of the deposit in the segreteria (art. 89
+    c.p.a.: the segretario writes it at the foot of the sentence), the date a
+    provvedimento is cited by. `<fascicolo anno n>` is the number as cited
+    ("n. 17/2021"). Keys are absent when the XML lacks them.
+    """
+    if is_pdf(xml_bytes) or _is_error_page(xml_bytes):
+        return {}
+    try:
+        root = ElementTree.fromstring(xml_bytes)
+    except ElementTree.ParseError:
+        return {}
+    meta: dict[str, str] = {}
+    tipologia = (root.findtext(".//tipologia") or "").strip()
+    if tipologia:
+        meta["tipologia"] = tipologia
+    data = (root.findtext(".//dataPubblicazione") or "").strip()
+    if data:
+        meta["data_pubblicazione"] = data
+    fascicolo = root.find(".//fascicolo")
+    if fascicolo is not None:
+        n = (fascicolo.get("n") or "").strip()
+        anno = (fascicolo.get("anno") or "").strip()
+        if n.isdigit() and anno.isdigit():
+            meta["numero"] = f"{int(n)}/{anno}"
+    return meta
+
+
+def _estremi_line(meta: dict[str, str]) -> str:
+    """'Sentenza n. 17/2021, pubblicata il 09/11/2021' from `_parse_xml_meta`."""
+    head = meta.get("tipologia", "")
+    if meta.get("numero"):
+        head = f"{head} n. {meta['numero']}".strip()
+    if meta.get("data_pubblicazione"):
+        pub = f"pubblicata il {meta['data_pubblicazione']}"
+        return f"{head}, {pub}" if head else pub
+    return head
+
+
 def format_result(doc: ProvvedimentoResult) -> str:
     """Format a single ProvvedimentoResult as markdown block."""
     numero = doc.numero or doc.nrg
@@ -532,6 +622,9 @@ def format_result(doc: ProvvedimentoResult) -> str:
     if doc.anno:
         header += f" ({doc.anno})"
     lines = [header]
+    estremi = _estremi(doc)
+    if estremi:
+        lines.append(f"**Estremi**: {estremi}")
     if doc.sezione:
         lines.append(f"**Sezione**: {doc.sezione}")
     if doc.oggetto:
@@ -545,22 +638,65 @@ def format_result(doc: ProvvedimentoResult) -> str:
     return "\n".join(lines)
 
 
-def format_full(title: str, text: str, sede: str, nrg: str) -> str:
-    """Format full provvedimento as markdown with truncation at _MAX_TEXT_LENGTH."""
+# `_parse_xml_text` writes the operative part as its own last section.
+_DISPOSITIVO_MARK = "\n\nDISPOSITIVO\n\n"
+# Ceiling for the operative part kept when the text is shortened; a normal
+# dispositivo (P.Q.M., spese, ordine di esecuzione) is 1-3 thousand characters.
+_MAX_DISPOSITIVO_LENGTH = 6000
+
+
+def _shorten(text: str) -> tuple[str, str]:
+    """Cut `text` to about _MAX_TEXT_LENGTH characters WITHOUT losing the dispositivo.
+
+    The dispositivo is the part of a sentence that decides the case (art. 88, co.
+    2, lett. e), c.p.a.) and it is the LAST section of the text, so a plain head
+    cut removes it from every long provvedimento (AP 17/2021: 106,448 characters,
+    P.Q.M. at 104,513). Head + omission marker + dispositivo instead.
+    Returns (body, note about what was cut).
+    """
+    total = len(text)
+    idx = text.rfind(_DISPOSITIVO_MARK)
+    if idx == -1:
+        return text[:_MAX_TEXT_LENGTH], f"Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali"
+
+    disp = text[idx + 2:]  # keeps the "DISPOSITIVO" heading
+    disp_kept = disp[:_MAX_DISPOSITIVO_LENGTH]
+    head = text[: min(idx, _MAX_TEXT_LENGTH - len(disp_kept))]
+    omitted = idx - len(head)
+    body = head
+    if omitted > 0:
+        body += f"\n\n[... omissis: {omitted} caratteri della motivazione ...]"
+    body += "\n\n" + disp_kept
+    note = f"Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali"
+    if len(disp_kept) < len(disp):
+        note += f"; il DISPOSITIVO è riportato per i primi {len(disp_kept)} caratteri su {len(disp)}"
+    else:
+        note += "; il DISPOSITIVO è riportato per intero"
+    return body, note
+
+
+def format_full(title: str, text: str, sede: str, nrg: str, meta: dict[str, str] | None = None) -> str:
+    """Format full provvedimento as markdown, shortened to _MAX_TEXT_LENGTH keeping the dispositivo.
+
+    `meta` (from `_parse_xml_meta`) adds the citation line with the date of
+    publication, which only the official XML carries.
+    """
     schema = _resolve_schema(sede)
     sede_label = _SCHEMA_LABELS.get(schema, sede)
-    truncated = len(text) > _MAX_TEXT_LENGTH
-    body = text[:_MAX_TEXT_LENGTH] if truncated else text
+    note = ""
+    body = text
+    if len(text) > _MAX_TEXT_LENGTH:
+        body, note = _shorten(text)
     lines = [
         f"# {title}",
         f"**Sede**: {sede_label} ({schema}) — NRG: {nrg}",
-        "",
-        body,
     ]
-    if truncated:
-        lines.append(
-            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(text)} totali]*"
-        )
+    estremi = _estremi_line(meta or {})
+    if estremi:
+        lines.append(f"**Estremi**: {estremi}")
+    lines += ["", body]
+    if note:
+        lines.append(f"\n---\n*[{note}]*")
     return "\n".join(lines)
 
 
@@ -618,6 +754,21 @@ async def search_provvedimenti(
     rows: int = 20,
 ) -> list[ProvvedimentoResult]:
     """Search Giustizia Amministrativa. Returns list of ProvvedimentoResult."""
+    docs, _total = await search_provvedimenti_page(
+        query=query, tipo=tipo, sede=sede, anno=anno, numero=numero, rows=rows,
+    )
+    return docs
+
+
+async def search_provvedimenti_page(
+    query: str = "",
+    tipo: str = "",
+    sede: str = "",
+    anno: str = "",
+    numero: str = "",
+    rows: int = 20,
+) -> tuple[list[ProvvedimentoResult], int | None]:
+    """Like search_provvedimenti, plus the portal's total hit count (None if absent)."""
     rows = min(rows, 60)
     tipo_val = TIPI_PROVVEDIMENTO.get(tipo.lower().replace(" ", "_"), tipo) if tipo else ""
     sede_val = _resolve_sede_filter(sede)
@@ -634,11 +785,35 @@ async def search_provvedimenti(
         )
         html = await session.search(params)
 
-    return _parse_results(html)[:rows]
+    return _parse_results(html)[:rows], _parse_total(html)
+
+
+@dataclass
+class ProvvedimentoDocument:
+    """What mdp served for one provvedimento."""
+
+    title: str
+    text: str               # "" for an error page or a PDF
+    meta: dict[str, str]    # tipologia, numero, data_pubblicazione (XML only)
+    pdf_only: bool          # the file is a PDF: no text is extracted from it
+    url: str                # official document URL
+
+
+async def fetch_provvedimento_document(sede: str, nrg: str, nome_file: str) -> ProvvedimentoDocument:
+    """Fetch a provvedimento from mdp: text and citation data, or the PDF flag."""
+    async with GASession() as session:
+        content = await session.fetch_text(sede, nrg, nome_file)
+    title, text = _parse_xml_text(content)
+    return ProvvedimentoDocument(
+        title=title,
+        text=text,
+        meta=_parse_xml_meta(content),
+        pdf_only=is_pdf(content),
+        url=build_document_url(sede, nrg, nome_file),
+    )
 
 
 async def fetch_provvedimento_text(sede: str, nrg: str, nome_file: str) -> tuple[str, str]:
     """Fetch full text from mdp subdomain. Returns (title, body_text)."""
-    async with GASession() as session:
-        xml_bytes = await session.fetch_text(sede, nrg, nome_file)
-    return _parse_xml_text(xml_bytes)
+    doc = await fetch_provvedimento_document(sede, nrg, nome_file)
+    return doc.title, doc.text

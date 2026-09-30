@@ -21,7 +21,7 @@
 
 ## Struttura directory
 
-> Stato attuale: **96 file di test** (66 unit + 30 comparison), 3478 test raccolti inclusi i `live`. Il numero di test
+> Stato attuale: **243 file di test** (102 unit + 141 comparison), 6610 test raccolti inclusi i `live`. Il numero di test
 > cambia a ogni aggiunta: per il numero aggiornato usa
 > `pytest tests/ --collect-only -q | tail -1` (aggiungi `-m ""` per includere i `live`). Il default di `pytest` esclude i test `live` (vedi `addopts` in `pyproject.toml`).
 
@@ -37,6 +37,7 @@ tests/
 │   ├── test_atti_giudiziari.py                     142 test
 │   ├── test_brocardi.py                             43 test
 │   ├── test_brocardi_codici_live.py                  2 test  ← gate live: ogni URL Brocardi risponde e ogni fonte è mappata (-m live)
+│   ├── test_cartabia_live.py                        14 test  ← gate live: i giorni e gli importi dei tool di procedura riscontrati sul testo vigente via cite_law (-m live)
 │   ├── test_brocardi_identity.py                    46 test
 │   ├── test_cache_switch.py                         18 test
 │   ├── test_calculations.py                         18 test
@@ -128,6 +129,31 @@ tests/
     ├── test_varie_extra.py                           9 test
     └── test_volontaria.py                           18 test
 ```
+
+---
+
+## Benchmark su norme, fonti ufficiali e sito (RV2, 29/09/2026)
+
+Tutti i file seguenti sono marcati `live` e restano fuori dalla suite predefinita: contattano Normattiva, EUR-Lex, i portali delle autorità o avvocatoandreani.it. Il riepilogo dei risultati è nel paragrafo 6 di `docs/001_mcp-legal-it_AuditNormativa_RV_SAPG.md`; il piano e il catalogo del sito sono in `docs/benchmark/`.
+
+| Tipo | File | Che cosa verifica |
+|---|---|---|
+| Confronto con il sito | `tests/comparison/test_<tool>.py` (uno per ogni tool con calcolatore, 141 file) | tool e calcolatore di avvocatoandreani.it, tolleranza 0,01 euro, date esatte, almeno tre casi con uno al limite; uno scostamento resta un test rosso finché non è giudicato sulla fonte primaria |
+| Norme | `tests/unit/test_norme_live_<modulo>.py` (7 file: atti giudiziari, crisi d'impresa, lavoro, societario, investimenti, privacy, procedura civile) | i numeri e le soglie usati dai tool, asseriti sul testo vigente letto con `cite_law` |
+| Fonti ufficiali | `tests/unit/test_fonte_<ente>_live.py` (agenzia_entrate, cnel, edpb_garante, inps, mef_cdp) | i valori del tool e delle tabelle in `src/data` contro la tabella o il calcolatore dell'ente |
+| Chiamate reali | `tests/unit/test_<fonte>_live.py` (15 file: Italgiure, CeRDEF, CGUE, CONSOB, Consulta, TAR e Consiglio di Stato, Garante, Gazzetta Ufficiale, EUR-Lex e Normattiva, Brocardi, Senato e Camera, TMview, VIES e sonda dei DPA) | una chiamata su un documento noto con verifica dei metadati |
+| Documenti | `tests/unit/test_strutturale_<modulo>_live.py` (5 file: fornitori, atti giudiziari, modelli di atti, privacy, procure e quotazioni) | struttura dei generatori e riferimenti normativi verificati con `verifica_citazioni` |
+| Helper | `tests/unit/_norme_live.py` | normalizza le particolarità del testo di Normattiva ("giorni sessanta", indicatore ordinale) così che una differenza di forma non sia letta come un cambio di legge |
+
+Comandi:
+
+```bash
+pytest tests/comparison -m live -q                       # confronto con il sito (richiede Playwright e Chromium)
+pytest tests/unit -m live -q                             # norme, fonti ufficiali, chiamate reali, documenti
+pytest tests/unit/test_cartabia_live.py -m live -q       # i termini di procedura civile sul testo vigente
+```
+
+Avvertenze: i test sul sito dipendono dal markup della pagina (l'overlay dei cookie può intercettare i click: usare `accept_cookies` e `click(force=True)`); i tool "ad oggi" si pinnano con `LEGAL_TODAY`; quando la pagina del sito cambia o una fonte sposta un portale il test diventa rosso, e il fallimento va giudicato prima di correggere tool o test.
 
 ---
 

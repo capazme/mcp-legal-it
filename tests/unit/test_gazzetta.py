@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.lib._result import SearchResult
 from src.lib.gazzetta.client import (
+    ELI_SEGMENT,
     RSS_CODE,
     SERIE,
     AttoDetail,
@@ -21,8 +22,10 @@ from src.lib.gazzetta.client import (
     _menu_url,
     _parse_article_text,
     _parse_atto_header,
+    _parse_detail_redirect,
     _parse_eli_metadata,
     _parse_menu_article_urls,
+    _parse_menu_inline_text,
     _parse_rss,
     _parse_search_results,
     _parse_sommario,
@@ -32,6 +35,7 @@ from src.lib.gazzetta.client import (
     format_result,
     format_sommario,
     pdf_url,
+    search_atti,
 )
 
 from src.tools.gazzetta import (
@@ -159,14 +163,166 @@ DECRETA: la liquidazione coatta amministrativa della cooperativa.
 </body></html>
 """
 
+# Sommario page, structure as served by /eli/gu/{y}/{m}/{d}/{n}/sg: fascicolo header in
+# div.intestazione, section headings in span.rubrica, the issuer in span.emettitore and, per
+# atto, TWO anchors (estremi + oggetto) followed by span.pagina ("Pag. N").
 _SOMMARIO_HTML = """
 <html><body>
-<h2 class="testata">Sommario</h2>
-<ul>
-  <li><a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-06-13&atto.codiceRedazionale=26A02924&elenco30giorni=false">DECRETO 17 febbraio 2026 (26A02924)</a></li>
-  <li><a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-06-13&atto.codiceRedazionale=26A02808&elenco30giorni=false">DECRETO 22 maggio 2026 (26A02808)</a></li>
-</ul>
+<div id="elenco_hp">
+  <div class="riga_t">
+    <div class="colonna_ultima intestazione">
+      Serie Generale
+      n. <span class="estremi">135</span> del <span class="estremi">13-6-2026</span>
+    </div>
+  </div>
+  <h2>Sommario</h2>
+  <span class="rubrica"> DECRETI, DELIBERE E ORDINANZE MINISTERIALI</span>
+  <span class="emettitore">MINISTERO DELLE IMPRESE E DEL MADE IN ITALY</span>
+  <span class="risultato">
+    <a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-06-13&atto.codiceRedazionale=26A02924&elenco30giorni=false">
+      <span class="data">
+        DECRETO 17 febbraio 2026
+      </span>
+    </a>
+    <a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-06-13&atto.codiceRedazionale=26A02924&elenco30giorni=false">
+      Modifica del decreto 16 gennaio 1997 concernente criteri per la
+determinazione dei compensi spettanti ai commissari liquidatori. (26A02924)
+      <span class="riferimento">
+      </span>
+      <span class="pagina">Pag. 1</span>
+    </a>
+  </span>
+  <span class="rubrica"> ESTRATTI, SUNTI E COMUNICATI</span>
+  <span class="risultato">
+    <a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-06-13&atto.codiceRedazionale=26A02808&elenco30giorni=false">
+      <span class="data">
+        DECRETO 22 maggio 2026
+      </span>
+    </a>
+    <a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-06-13&atto.codiceRedazionale=26A02808&elenco30giorni=false">
+      Liquidazione coatta amministrativa della Multiservizi 2000 societa'
+cooperativa sociale, in Supino. (26A02808)
+      <span class="riferimento">
+      </span>
+      <span class="pagina">Pag. 2</span>
+    </a>
+  </span>
+</div>
 </body></html>
+"""
+
+# Search hit answered with the atto's own page (single result): estremi in h2.consultazione,
+# oggetto + GU reference in h3.consultazione (structure of the real 22G00158 page).
+_DETAIL_PAGE_HTML = """
+<html><body>
+<div id="testa_atto">
+  <h2 class="consultazione">
+    DECRETO LEGISLATIVO <span>
+      10 ottobre 2022, n. 149&nbsp;
+    </span>
+  </h2>
+  <h3 class="consultazione" style="border: none;">
+    <span about="gu:id/2022/10/17/22G00158/sg/ita" property="eli:title">Attuazione della legge 26 novembre 2021, n. 206,  recante  delega  al
+ Governo per l'efficienza del <strong><FONT COLOR=#370AED>processo</FONT></strong> <strong><FONT COLOR=#370AED>civile</FONT></strong>. (22G00158)
+ </span>
+    <span class="riferimento">
+      <span class="link_gazzetta">
+        <a target="_blank" href="https://www.gazzettaufficiale.it/eli/gu/2022/10/17/243/so/38/sg/pdf">(GU Serie Generale n.243 del 17-10-2022 - Suppl. Ordinario n. 38)</a>
+      </span>
+    </span>
+  </h3>
+</div>
+</body></html>
+"""
+_DETAIL_URL = (
+    "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario"
+    "?atto.dataPubblicazioneGazzetta=2022-10-17&atto.codiceRedazionale=22G00158"
+    "&isAnonimo=false&tipoSerie=serie_generale&tipoVigenza=originario&normativi=false&currentPage=1"
+)
+
+# 1a Serie speciale atto page: no RDFa, header without a type/date meta; the oggetto is the
+# text of h3.consultazione (with the "(codice)") and 1<sup>a</sup> sits in the GU reference.
+_ELI_S1_HTML = """
+<html><body>
+<div id="testa_atto">
+  <h2 class="consultazione">
+    N. 230
+    ORDINANZA (Atto di promovimento)
+    4 agosto 2025
+  </h2>
+  <h3 class="consultazione" style="border:none;">Ripubblicazione dell'ordinanza del 4 agosto  2025  del  Tribunale  di
+ Verona nel procedimento <strong><FONT COLOR=#370AED>civile</FONT></strong> promosso da R. V. M.. 
+ (26C00185)
+    <span class="riferimento">
+      <span class="link_gazzetta">
+        <a target="_blank" href="https://www.gazzettaufficiale.it/eli/gu/2026/09/23/38/s1/pdf">(GU 1<sup>a</sup> Serie Speciale - Corte Costituzionale  n.38 del 23-9-2026)</a>
+      </span>
+    </span>
+  </h3>
+</div>
+</body></html>
+"""
+
+# vediMenuHTML of a special-series atto: no caricaArticolo links, the whole text is inline in
+# div.stampami (<pre>).
+_MENU_INLINE_HTML = """
+<html><body class="stampa">
+<div id="testa_atto_preview">
+  <p class="grassetto">N. 230 ORDINANZA (Atto di promovimento) 4 agosto 2025</p>
+  <pre>Ripubblicazione dell'ordinanza del 4 agosto 2025 del Tribunale di Verona.</pre>
+</div>
+<div class="stampami">
+  <div class="wrapper_pre">
+    <PRE>
+                    TRIBUNALE ORDINARIO DI VERONA
+                       Seconda sezione civile
+    Il Collegio ha pronunciato la seguente ordinanza ex art. 23, legge 11 marzo
+1953, n. 87;
+    </PRE>
+  </div>
+</div>
+<script>var x = 1;</script>
+</body></html>
+"""
+
+# RSS of the 1a Serie speciale (links keep the series segment "S1") and of the 2a Serie
+# speciale, whose items link to the paginated PDF and carry the code as "(26CE2412)".
+_RSS_S1_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0">
+  <channel>
+    <title>Gazzetta Ufficiale - 1a Serie Speciale - Corte Costituzionale - Sommario</title>
+    <item>
+      <title>n. 230 ORDINANZA (Atto di promovimento) 4 agosto 2025</title>
+      <link>http://www.gazzettaufficiale.it/eli/id/2026/09/23/26C00185/S1</link>
+      <content:encoded>Ripubblicazione dell'ordinanza del 4 agosto  2025  del  Tribunale  di
+Verona nel procedimento civile promosso da R. V. M.. 
+ 
+.........(26C00185)</content:encoded>
+      <pubDate>Sun, 03 Aug 2025 22:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
+"""
+
+_RSS_S2_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0">
+  <channel>
+    <title>Gazzetta Ufficiale - 2a Serie Speciale - Unione Europea - Sommario</title>
+    <item>
+      <title>DECISIONE 11 maggio 2026, n. 1510</title>
+      <link>http://www.gazzettaufficiale.it/do/gazzetta/unione_europea/3/pdfPaginato?numPagina=1062&amp;dataPubblicazioneGazzetta=20260928&amp;numeroGazzetta=76&amp;tipoSerie=S2&amp;tipoSupplemento=GU&amp;numeroSupplemento=0&amp;edizione=0&amp;elenco30giorni=false</link>
+      <content:encoded>Decisione (UE) 2026/1510 del Consiglio, dell'11 maggio 2026, relativa
+alla firma dell'accordo di partenariato strategico. 
+(26CE2413)</content:encoded>
+      <pubDate>Sun, 27 Sep 2026 22:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Item without a readable code</title>
+      <link>http://www.gazzettaufficiale.it/do/gazzetta/unione_europea/3/pdfPaginato?numPagina=1&amp;dataPubblicazioneGazzetta=20260928</link>
+      <content:encoded>Nessun codice qui.</content:encoded>
+    </item>
+  </channel>
+</rss>
 """
 
 _SOMMARIO_HTML_EMPTY = """<html><body><h2 class="testata">Sommario</h2><ul></ul></body></html>"""
@@ -324,7 +480,8 @@ class TestParseSearchResults:
 
     def test_eli_url_built(self):
         res = _parse_search_results(_SEARCH_HTML)
-        assert res[0].eli_url.endswith("/eli/id/2026/05/22/26A02532/SG")
+        # the ELI segment of the atto's own series (serie_generale -> sg)
+        assert res[0].eli_url.endswith("/eli/id/2026/05/22/26A02532/sg")
 
     def test_empty_results(self):
         assert _parse_search_results(_SEARCH_HTML_EMPTY) == []
@@ -406,7 +563,8 @@ class TestParseArticleText:
 class TestParseSommario:
     def test_heading_and_atti(self):
         heading, atti = _parse_sommario(_SOMMARIO_HTML)
-        assert heading == "Sommario"
+        # the fascicolo header (series, number, date), not the generic "Sommario" h2
+        assert heading == "Serie Generale n. 135 del 13-6-2026"
         assert len(atti) == 2
         assert atti[0].codice_redazionale == "26A02924"
         assert atti[1].codice_redazionale == "26A02808"
@@ -493,9 +651,18 @@ class TestResolution:
         }
 
     def test_rss_code_map(self):
-        assert RSS_CODE["serie_generale"] == "SG"
-        assert RSS_CODE["unione_europea"] == "S1"
-        assert RSS_CODE["parte_seconda"] == "P2"
+        # Official numbering, from the channel titles of /rss/{code} (read 2026-09-29):
+        # SG Serie Generale, S1 1a Corte Costituzionale, S2 2a Unione Europea, S3 3a Regioni,
+        # S4 4a Concorsi ed esami, S5 5a Contratti Pubblici, P2 Parte Seconda.
+        assert RSS_CODE == {
+            "serie_generale": "SG",
+            "corte_costituzionale": "S1",
+            "unione_europea": "S2",
+            "regioni": "S3",
+            "concorsi": "S4",
+            "contratti": "S5",
+            "parte_seconda": "P2",
+        }
 
     def test_resolve_serie_path_known(self):
         assert _resolve_serie_path("Corte Costituzionale") == "corte_costituzionale"
@@ -504,7 +671,8 @@ class TestResolution:
         assert _resolve_serie_path("inesistente") == "serie_generale"
 
     def test_resolve_rss_code_known(self):
-        assert _resolve_rss_code("unione_europea") == "S1"
+        assert _resolve_rss_code("unione_europea") == "S2"
+        assert _resolve_rss_code("Corte Costituzionale") == "S1"
 
     def test_resolve_rss_code_unknown_defaults(self):
         assert _resolve_rss_code("inesistente") == "SG"
@@ -698,6 +866,314 @@ class TestScaricaPdfImpl:
         result = await _scarica_pdf_gazzetta_impl("135", "not-a-date")
         assert not result.success
         assert "Errore" in result.to_str()
+
+
+# ---------------------------------------------------------------------------
+# Corrections from the benchmark (source: www.gazzettaufficiale.it, read 2026-09-25/29)
+# ---------------------------------------------------------------------------
+
+class TestSeriesSegments:
+    """ELI path segment of each series: /eli/id/... and /eli/gu/... answer only for it."""
+
+    def test_eli_segment_map(self):
+        # same numbering as the RSS feeds (sg, s1 Corte costituzionale, s2 UE, s3 Regioni,
+        # s4 Concorsi, s5 Contratti, p2 Parte seconda)
+        assert ELI_SEGMENT == {
+            "serie_generale": "sg",
+            "corte_costituzionale": "s1",
+            "unione_europea": "s2",
+            "regioni": "s3",
+            "concorsi": "s4",
+            "contratti": "s5",
+            "parte_seconda": "p2",
+        }
+
+    def test_eli_atto_url_special_series(self):
+        # 26C00185 is a 1a Serie speciale atto: /eli/id/2026/09/23/26C00185/s1 holds it, /sg does not
+        assert _eli_atto_url("2026-09-23", "26C00185", "corte_costituzionale") == (
+            "https://www.gazzettaufficiale.it/eli/id/2026/09/23/26C00185/s1"
+        )
+
+    def test_sommario_url_special_series(self):
+        assert _sommario_url("2026-02-06", "10", "concorsi") == (
+            "https://www.gazzettaufficiale.it/eli/gu/2026/02/06/10/s4"
+        )
+
+    def test_pdf_url_special_series(self):
+        # 4a Serie speciale Concorsi n. 10 del 6-2-2026: .../s4/pdf is the PDF, .../sg/pdf redirects
+        # to "pdf non trovato"
+        assert pdf_url("2026-02-06", "10", "concorsi") == (
+            "https://www.gazzettaufficiale.it/eli/gu/2026/02/06/10/s4/pdf"
+        )
+
+    def test_pdf_url_defaults_to_serie_generale(self):
+        assert pdf_url("2018-09-04", "205").endswith("/2018/09/04/205/sg/pdf")
+
+    def test_malformed_date_is_a_value_error(self):
+        with pytest.raises(ValueError, match="YYYY-MM-DD"):
+            _eli_atto_url("17/10/2022", "22G00158")
+        with pytest.raises(ValueError, match="YYYY-MM-DD"):
+            _sommario_url("04/09/2018", "205")
+
+    def test_search_result_link_uses_the_series_of_the_hit(self):
+        html = _SEARCH_HTML.replace("/atto/serie_generale/", "/atto/concorsi/")
+        assert _parse_search_results(html)[0].eli_url.endswith("/eli/id/2026/05/22/26A02532/s4")
+
+
+def _results_page(codici):
+    """A results page of the given codes (structure of the real result list)."""
+    spans = "".join(
+        f'<span class="risultato">'
+        f'<a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-05-22&atto.codiceRedazionale={c}"><span class="data">DECRETO</span></a>'
+        f'<a href="/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-05-22&atto.codiceRedazionale={c}">Oggetto {c}. ({c})</a>'
+        f'</span>'
+        for c in codici
+    )
+    return f'<html><body><div class="risultati_ricerca">{spans}</div></body></html>'
+
+
+class TestSearchPaginationAndRedirect:
+    @pytest.mark.asyncio
+    async def test_pages_are_numbered_from_one(self):
+        # /originario/0 and /originario/1 are the same page: starting at 0 lists every atto twice
+        client = _client_with_get(_make_resp("<html>seed</html>"))
+        client.post = AsyncMock(return_value=_make_resp(_SEARCH_HTML))
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            total, docs = await search_atti("serie_generale", titolo="liquidazione")
+        assert client.post.call_args_list[0].args[0].endswith("/do/ricerca/atto/serie_generale/originario/1")
+        # a short page (< 100 results) is the last one: no second request, no duplicates
+        assert client.post.call_count == 1
+        assert [d.codice_redazionale for d in docs] == ["26A02532", "26A00412"]
+        assert total == 223
+
+    @pytest.mark.asyncio
+    async def test_duplicates_across_pages_are_dropped(self):
+        # a full page (100 raw results, two of them repeated) leaves 98 distinct atti: the loop
+        # reads /originario/2, whose first entry repeats one already seen (the site does this at
+        # the page boundary, checked on 2026-09-29) and must be counted once
+        codici = [f"26A{n:05d}" for n in range(98)]
+        first = _results_page(codici + codici[:2])
+        second = _results_page(["26A00097", "26A00098", "26A00099", "26A00100"])
+        client = _client_with_get(_make_resp("<html>seed</html>"))
+        client.post = AsyncMock(side_effect=[_make_resp(first), _make_resp(second)])
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            total, docs = await search_atti("serie_generale", titolo="x", rows=100)
+        assert client.post.call_count == 2
+        assert client.post.call_args_list[0].args[0].endswith("/originario/1")
+        assert client.post.call_args_list[1].args[0].endswith("/originario/2")
+        got = [d.codice_redazionale for d in docs]
+        assert len(got) == len(set(got)) == 100
+        assert got[-1] == "26A00099"
+
+    @pytest.mark.asyncio
+    async def test_single_hit_redirect_to_the_atto_page(self):
+        # the search answers a query with exactly one hit with the atto's own page
+        client = _client_with_get(_make_resp("<html>seed</html>"))
+        redirected = _make_resp(_DETAIL_PAGE_HTML)
+        redirected.url = _DETAIL_URL
+        client.post = AsyncMock(return_value=redirected)
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            result = await _cerca_gazzetta_ufficiale_impl(
+                titolo="processo civile", tipo_provvedimento="DECRETO LEGISLATIVO",
+                anno_da="2022", anno_a="2022",
+            )
+        assert result.success
+        out = result.to_str()
+        assert "Trovati 1 atti" in out
+        assert "22G00158" in out
+        assert "DECRETO LEGISLATIVO 10 ottobre 2022, n. 149" in out
+        assert "Attuazione della legge 26 novembre 2021, n. 206" in out
+        assert "GU Serie Generale n.243 del 17-10-2022 - Suppl. Ordinario n. 38" in out
+        assert "2022-10-17" in out
+        assert "/eli/id/2022/10/17/22G00158/sg" in out
+        assert client.post.call_count == 1
+
+    def test_parse_detail_redirect_takes_the_series_from_the_url(self):
+        url = _DETAIL_URL.replace("/atto/serie_generale/", "/atto/corte_costituzionale/")
+        atto = _parse_detail_redirect(_ELI_S1_HTML, url)[0]
+        assert atto.eli_url.endswith("/eli/id/2022/10/17/22G00158/s1")
+
+    def test_parse_detail_redirect_without_ids_is_empty(self):
+        assert _parse_detail_redirect(_DETAIL_PAGE_HTML, "https://www.gazzettaufficiale.it/x") == []
+
+    def test_count_of_long_result_lists(self):
+        # long lists print "Sono stati trovati N atti", short ones "Risultati della ricerca: N atti"
+        html = "<span>Sono stati trovati 715 atti.(&Eacute; possibile visualizzare solo i primi 500 atti)</span>"
+        assert _search_result_count(html) == 715
+
+
+class TestAttoHeader:
+    def test_estremi_oggetto_riferimento(self):
+        estremi, oggetto, riferimento = _parse_atto_header(_DETAIL_PAGE_HTML)
+        assert estremi == "DECRETO LEGISLATIVO 10 ottobre 2022, n. 149"
+        assert oggetto.startswith("Attuazione della legge 26 novembre 2021, n. 206, recante delega al Governo")
+        assert oggetto.endswith("processo civile.")  # the "(22G00158)" marker is stripped
+        assert riferimento == "(GU Serie Generale n.243 del 17-10-2022 - Suppl. Ordinario n. 38)"
+
+    def test_special_series_header(self):
+        estremi, oggetto, riferimento = _parse_atto_header(_ELI_S1_HTML)
+        assert estremi == "N. 230 ORDINANZA (Atto di promovimento) 4 agosto 2025"
+        assert oggetto == (
+            "Ripubblicazione dell'ordinanza del 4 agosto 2025 del Tribunale di "
+            "Verona nel procedimento civile promosso da R. V. M.."
+        )
+        assert riferimento == "(GU 1a Serie Speciale - Corte Costituzionale n.38 del 23-9-2026)"
+
+    def test_format_detail_reports_the_oggetto(self):
+        estremi, oggetto, riferimento = _parse_atto_header(_DETAIL_PAGE_HTML)
+        d = AttoDetail(
+            codice_redazionale="22G00158", data_pubblicazione="2022-10-17",
+            serie="serie_generale", estremi=estremi, title=oggetto, riferimento=riferimento,
+            metadata_only=True,
+        )
+        out = format_detail(d)
+        assert out.startswith("# DECRETO LEGISLATIVO 10 ottobre 2022, n. 149")
+        assert "**Oggetto**: Attuazione della legge 26 novembre 2021, n. 206" in out
+        assert "**Riferimento**: (GU Serie Generale n.243" in out
+
+
+class TestMenuInlineText:
+    def test_reads_the_stampami_block(self):
+        text = _parse_menu_inline_text(_MENU_INLINE_HTML)
+        assert "TRIBUNALE ORDINARIO DI VERONA" in text
+        assert "ex art. 23, legge 11 marzo" in text
+        assert "var x" not in text
+        # the preview above the text is not part of it
+        assert "Ripubblicazione" not in text
+
+    def test_without_stampami_returns_empty(self):
+        assert _parse_menu_inline_text("<html><body>vuoto</body></html>") == ""
+
+
+class TestSommarioStructure:
+    def test_keeps_estremi_oggetto_and_issuer(self):
+        _, atti = _parse_sommario(_SOMMARIO_HTML)
+        first = atti[0]
+        assert first.tipo == "DECRETO 17 febbraio 2026"
+        assert first.emettitore == "MINISTERO DELLE IMPRESE E DEL MADE IN ITALY"
+        assert first.title == (
+            "Modifica del decreto 16 gennaio 1997 concernente criteri per la "
+            "determinazione dei compensi spettanti ai commissari liquidatori."
+        )
+        # "Pag. N" is not part of the oggetto
+        assert "Pag." not in first.title
+
+    def test_section_heading_resets_the_issuer(self):
+        # the second atto sits under a new rubrica with no issuer of its own
+        _, atti = _parse_sommario(_SOMMARIO_HTML)
+        assert atti[1].emettitore == ""
+
+    def test_special_series_heading(self):
+        html = _SOMMARIO_HTML.replace(
+            "Serie Generale\n", "4<sup>a</sup> Serie Speciale - Concorsi ed Esami\n"
+        )
+        heading, _ = _parse_sommario(html)
+        assert heading == "4a Serie Speciale - Concorsi ed Esami n. 135 del 13-6-2026"
+
+    def test_format_sommario_lists_oggetto(self):
+        heading, atti = _parse_sommario(_SOMMARIO_HTML)
+        out = format_sommario(heading, atti)
+        assert out.startswith("# Serie Generale n. 135 del 13-6-2026")
+        assert "**Atti**: 2" in out
+        assert "- **26A02924** — DECRETO 17 febbraio 2026 (MINISTERO DELLE IMPRESE E DEL MADE IN ITALY): Modifica del decreto" in out
+
+
+class TestRssSeries:
+    def test_special_series_link_keeps_its_segment(self):
+        # the feed link is the permalink: rebuilding it with /SG opens a page without the atto
+        a = _parse_rss(_RSS_S1_XML)[0]
+        assert a.codice_redazionale == "26C00185"
+        assert a.data_pubblicazione == "2026-09-23"
+        assert a.eli_url == "https://www.gazzettaufficiale.it/eli/id/2026/09/23/26C00185/S1"
+        assert a.tipo == "n. 230 ORDINANZA (Atto di promovimento) 4 agosto 2025"
+        # filler dots of the truncated feed text are not printed as content
+        assert not a.title.rstrip().endswith("....")
+
+    def test_unione_europea_items_link_to_the_paginated_pdf(self):
+        # 2a Serie speciale: no /eli/id/ link; code from "(26CE2413)", date from the link
+        res = _parse_rss(_RSS_S2_XML)
+        assert [a.codice_redazionale for a in res] == ["26CE2413"]  # the item without a code is skipped
+        assert res[0].data_pubblicazione == "2026-09-28"
+        assert "pdfPaginato" in res[0].eli_url
+        assert res[0].title.startswith("Decisione (UE) 2026/1510 del Consiglio")
+        assert "(26CE2413)" not in res[0].title
+
+    @pytest.mark.asyncio
+    async def test_ultime_corte_costituzionale_reads_the_s1_feed(self):
+        client = _client_with_get(_make_resp(_RSS_S1_XML))
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            result = await _ultime_gazzette_impl(serie="corte_costituzionale")
+        assert result.success
+        assert client.get.call_args_list[0].args[0].endswith("/rss/S1")
+        assert "26C00185" in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_ultime_regioni_reads_the_s3_feed(self):
+        client = _client_with_get(_make_resp(_RSS_S1_XML))
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            await _ultime_gazzette_impl(serie="regioni")
+        assert client.get.call_args_list[0].args[0].endswith("/rss/S3")
+
+
+class TestSpecialSeriesTools:
+    @pytest.mark.asyncio
+    async def test_leggi_special_series_atto_reads_the_inline_text(self):
+        # head (/s1) -> menu (no article links, text in div.stampami)
+        client = _client_with_get([_make_resp(_ELI_S1_HTML), _make_resp(_MENU_INLINE_HTML)])
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            result = await _leggi_atto_gazzetta_impl(
+                "26C00185", "2026-09-23", serie="corte_costituzionale",
+            )
+        assert result.success, result.to_str()
+        out = result.to_str()
+        assert client.get.call_args_list[0].args[0].endswith("/eli/id/2026/09/23/26C00185/s1")
+        assert "tipoSerie=corte_costituzionale" in client.get.call_args_list[1].args[0]
+        assert "# N. 230 ORDINANZA (Atto di promovimento) 4 agosto 2025" in out
+        assert "**Oggetto**: Ripubblicazione dell'ordinanza" in out
+        assert "TRIBUNALE ORDINARIO DI VERONA" in out
+
+    @pytest.mark.asyncio
+    async def test_leggi_unione_europea_has_no_atto_page(self):
+        # the ELI permalink of a 2a Serie speciale atto answers HTTP 500: no request is made
+        client = _client_with_get(_make_resp(""))
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            result = await _leggi_atto_gazzetta_impl("26CE2412", "2026-09-28", serie="unione_europea")
+        assert not result.success
+        assert result.error_type == "no_results"
+        assert "scarica_pdf_gazzetta" in result.to_str()
+        assert client.get.call_count == 0
+
+    @pytest.mark.asyncio
+    async def test_leggi_bad_date_is_bad_input(self):
+        result = await _leggi_atto_gazzetta_impl("22G00158", "17/10/2022")
+        assert not result.success
+        assert result.error_type == "bad_input"
+        assert "data non valida" in result.to_str().lower()
+        assert "non raggiungibile" not in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_sommario_special_series_requests_its_own_page(self):
+        client = _client_with_get(_make_resp(_SOMMARIO_HTML))
+        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+            result = await _sommario_gazzetta_impl("10", "2026-02-06", serie="concorsi")
+        assert result.success
+        assert client.get.call_args_list[0].args[0] == "https://www.gazzettaufficiale.it/eli/gu/2026/02/06/10/s4"
+
+    @pytest.mark.asyncio
+    async def test_pdf_special_series_url(self):
+        result = await _scarica_pdf_gazzetta_impl("10", "2026-02-06", serie="concorsi")
+        assert result.success
+        assert "https://www.gazzettaufficiale.it/eli/gu/2026/02/06/10/s4/pdf" in result.to_str()
+        assert "/sg/pdf" not in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_pdf_bad_date_is_bad_input_not_source_down(self):
+        result = await _scarica_pdf_gazzetta_impl("205", "04/09/2018")
+        assert not result.success
+        assert result.error_type == "bad_input"
+        out = result.to_str()
+        assert "data non valida" in out.lower()
+        assert "non raggiungibile" not in out
 
 
 # ---------------------------------------------------------------------------

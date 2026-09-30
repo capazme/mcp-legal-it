@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 7 — Risarcimento Danni."""
+"""Arithmetic verification tests for Sezione 7 - Risarcimento Danni."""
 
 from tests.comparison.conftest import assert_close
 

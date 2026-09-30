@@ -205,7 +205,8 @@ def _render_contributo_unificato() -> str:
     monitorio = _scaglioni_rows(civ["procedimento_monitorio"]["scaglioni"])
 
     speciali = [
-        f"| Opposizione a decreto ingiuntivo | CU pieno per valore |",
+        f"| Opposizione a decreto ingiuntivo | metà degli scaglioni ordinari per valore (art. 13 co. 3) |",
+        f"| Opposizione agli atti esecutivi | € {_eur(civ['opposizione_atti_esecutivi']['importo'])} (art. 13 co. 2) |",
         f"| Procedimenti cautelari | 50% degli scaglioni ordinari per valore |",
         f"| Volontaria giurisdizione | € {_eur(civ['volontaria_giurisdizione'])} |",
         f"| Procedimenti esecutivi immobiliari | € {_eur(civ['esecuzione_immobiliare'])} |",
@@ -215,7 +216,7 @@ def _render_contributo_unificato() -> str:
         f"| Separazione giudiziale / divorzio giudiziale | € {_eur(civ['separazione_giudiziale'])} |",
     ]
 
-    lav = cu["lavoro"]["appello"]
+    multiplo_soglia = cu["lavoro"]["esenzione_reddito_multiplo_soglia_art_76"]
     tributario = _scaglioni_rows(cu["tributario"]["scaglioni"])
 
     amm_labels = {
@@ -279,10 +280,10 @@ LAVORO E TRIBUTARIO
 
 | Fattispecie | CU |
 |-------------|-----|
-| Lavoro e previdenza — primo grado | Esente |
-| Lavoro — appello (fino a € {_soglia(lav["fino_a"])}) | € {_eur(lav["importo"])} |
-| Lavoro — appello (fino a € 50.000) | € {_eur(lav["fino_a_50000"])} |
-| Lavoro — appello (oltre € 50.000) | € {_eur(lav["oltre"])} |
+| Lavoro e previdenza — parte con reddito fino a {multiplo_soglia} volte la soglia dell'art. 76 | Esente in ogni grado (art. 9 co. 1-bis) |
+| Previdenza — parte con reddito oltre la soglia | € {_eur(civ['cognizione'][0]['importo'])} (art. 13 co. 1 lett. a) |
+| Lavoro — parte con reddito oltre la soglia | metà degli scaglioni ordinari per valore (art. 13 co. 3); +50% in appello |
+| Lavoro e previdenza — Cassazione, parte oltre la soglia | importo pieno dell'art. 13 co. 1 (art. 9 co. 1-bis), raddoppiato ex co. 1-bis |
 
 Processo tributario (per valore della lite):
 

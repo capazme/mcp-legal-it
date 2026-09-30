@@ -27,24 +27,34 @@ _OUTPUT_DIR = os.path.join(tempfile.gettempdir(), "mcp-legal-it")
 
 # ---------------------------------------------------------------------------
 # Tabelle D.M. 55/2014 (agg. D.M. 147/2022) — procedimenti monitori, fase unica.
-# Coppie (soglia_scaglione, minimo, medio) dalla tabella ministeriale: il minimo
-# pubblicato e' il medio ridotto del 50% ex art. 4, co. 1 (arrotondato: per i
-# primi scaglioni il medio e' dispari, quindi minimo x 2 NON restituisce il medio).
+# Coppie (soglia_scaglione, minimo, medio) dalla Tabella 8 del D.M. 147/2022
+# (procedimenti monitori, fase unica). La tabella pubblica solo il valore medio;
+# il minimo e' il medio diminuito del 50% (art. 4, co. 1, D.M. 55/2014: "possono
+# essere diminuiti in ogni caso non oltre il 50 per cento"), quindi esattamente
+# medio / 2 al centesimo (473 -> 236,50; 567 -> 283,50), senza arrotondare
+# all'euro.
 # ---------------------------------------------------------------------------
 _MONITORI_FASE_UNICA = [
-    (5200, Decimal("237"), Decimal("473")),
-    (26000, Decimal("284"), Decimal("567")),
+    (5200, Decimal("236.50"), Decimal("473")),
+    (26000, Decimal("283.50"), Decimal("567")),
     (52000, Decimal("685"), Decimal("1370")),
     (260000, Decimal("1121"), Decimal("2242")),
     (520000, Decimal("2197"), Decimal("4394")),
 ]
 
-# Compensi esecuzione forzata di default (D.M. 55/2014 agg. 147/2022, esecuzioni
-# mobiliari, scaglione fino a € 5.200, valori minimi). Oltre questo scaglione o a
-# livello diverso i compensi vanno passati esplicitamente dal chiamante.
+# Compensi esecuzione forzata di default: Tabella 17 del D.M. 147/2022
+# (esecuzioni presso terzi, consegna e rilascio: fase introduttiva + fase di
+# trattazione e conclusiva), valori MINIMI (medio / 2, art. 4, co. 1, D.M. 55/2014).
+# Scaglione 1.100,01-5.200: medi 331 e 567, minimi 165,50 e 283,50. Fino a
+# 1.100 euro la stessa tabella da medi 110 e 236, minimi 55 e 118. Non sono i
+# valori della Tabella 16 (esecuzioni mobiliari presso il debitore, minimi
+# 184 e 92): per quelle va passato il compenso corretto. Oltre 5.200 euro o a
+# livello 'medi' i compensi vanno passati esplicitamente dal chiamante.
 _ESECUZIONE_DEFAULT_MAX_VALORE = 5200
-_ESECUZIONE_DEFAULT_INTRODUTTIVA = 166.0
-_ESECUZIONE_DEFAULT_TRATTAZIONE = 284.0
+_ESECUZIONE_DEFAULT_INTRODUTTIVA = 165.5
+_ESECUZIONE_DEFAULT_TRATTAZIONE = 283.5
+_ESECUZIONE_SOTTO_1100_INTRODUTTIVA = 55.0
+_ESECUZIONE_SOTTO_1100_TRATTAZIONE = 118.0
 
 _FASI_OPPOSIZIONE = ["studio", "introduttiva", "istruttoria", "decisionale"]
 _ETICHETTE_FASI = {
@@ -111,6 +121,17 @@ def _cu_monitorio(valore: float) -> Decimal:
         if scaglione.get("oltre") or valore <= scaglione["fino_a"]:
             return _d2(scaglione["importo"])
     return _d2(_CU["civile"]["procedimento_monitorio"]["scaglioni"][-1]["importo"])
+
+
+def _cu_esecuzione(valore) -> Decimal:
+    """CU dell'esecuzione mobiliare o presso terzi: 43 euro sotto 2.500 euro di credito, 139
+    oltre (art. 13 co. 2 DPR 115/2002); l'esecuzione immobiliare (278 euro) va passata con
+    `contributo_unificato`."""
+    valore = Decimal(str(valore))
+    for scaglione in _CU["civile"]["esecuzione_mobiliare"]["scaglioni"]:
+        if "fino_a" in scaglione and valore <= Decimal(str(scaglione["fino_a"])):
+            return _d2(scaglione["importo"])
+    return _d2(_CU["civile"]["esecuzione_mobiliare"]["scaglioni"][-1]["importo"])
 
 
 def _prospetto_importi(tabellare: Decimal, aumento_pct30: bool) -> dict:
@@ -295,8 +316,8 @@ def genera_quotazione_docx(
     luogo: str = "Milano",
     data_documento: str = "",
     contributo_unificato: float = -1,
-    compenso_fase_introduttiva: float = 166,
-    compenso_fase_trattazione: float = 284,
+    compenso_fase_introduttiva: float = 165.5,
+    compenso_fase_trattazione: float = 283.5,
 ) -> str:
     """Genera la lettera di quotazione compensi (D.M. 55/2014 agg. D.M. 147/2022) in DOCX.
 
@@ -308,7 +329,7 @@ def genera_quotazione_docx(
     piene + aumento 30% PCT). Usare nel recupero crediti seriale insieme a
     genera_procura_liti_docx(); scegliere il tipo in base alla fase reale della posizione
     (decreto esecutivo -> esecuzione; decreto opposto -> opposizione).
-    Vigenza: D.M. 55/2014 agg. D.M. 147/2022; CU ex DPR 115/2002 (monitorio: ridotto alla metà).
+    Vigenza: D.M. 55/2014 agg. D.M. 147/2022 (Tabelle 2, 8, 17; valori minimi = medio - 50% esatto, art. 4 co. 1; aumento PCT fino al 30%, art. 4 co. 1-bis, applicato al massimo; l'esecuzione esclude per scelta aumento PCT e ritenuta; l'opposizione usa la Tabella 2 del tribunale); CU ex DPR 115/2002 (monitorio: ridotto alla metà).
     Precisione: INDICATIVO per i compensi (valori tabellari); ESATTO per la catena SG 15%/CPA 4%/IVA 22%.
 
     Args:
@@ -322,9 +343,11 @@ def genera_quotazione_docx(
         accettazione_denominazione: Denominazione nel blocco di accettazione (default: cliente_denominazione)
         luogo: Luogo della lettera (default Milano)
         data_documento: Data GG/MM/AAAA (convertita in forma estesa) o testo libero; vuota = odierna
-        contributo_unificato: CU in euro; -1 = calcolo automatico (monitorio: metà DPR 115/2002; esecuzione: € 139,00)
-        compenso_fase_introduttiva: Solo tipo 'esecuzione': compenso fase introduttiva. Il default € 166,00 vale SOLO per valore causa fino a € 5.200 a livello minimi; oltre, o a livello 'medi', va passato il valore corretto della tabella esecuzioni
-        compenso_fase_trattazione: Solo tipo 'esecuzione': compenso fase trattazione/conclusiva. Il default € 284,00 vale SOLO per valore causa fino a € 5.200 a livello minimi; oltre, o a livello 'medi', va passato il valore corretto
+        contributo_unificato: CU in euro; -1 = calcolo automatico (monitorio: metà DPR 115/2002; esecuzione
+                              mobiliare o presso terzi: € 43,00 sotto 2.500 euro, € 139,00 oltre; per
+                              l'esecuzione immobiliare passare € 278,00)
+        compenso_fase_introduttiva: Solo tipo 'esecuzione': compenso fase introduttiva. Il default € 165,50 (Tabella 17 D.M. 147/2022, esecuzioni presso terzi, consegna e rilascio, scaglione 1.100,01-5.200, minimi; fino a € 1.100 il tool applica 55,00 e 118,00) vale SOLO per valore causa fino a € 5.200 a livello minimi; per l'espropriazione mobiliare presso il debitore passare i valori della Tabella 16; oltre, o a livello 'medi', va passato il valore corretto della tabella esecuzioni
+        compenso_fase_trattazione: Solo tipo 'esecuzione': compenso fase trattazione/conclusiva. Il default € 283,50 vale SOLO per valore causa fino a € 5.200 a livello minimi; oltre, o a livello 'medi', va passato il valore corretto
     """
     try:
         from docx import Document
@@ -363,7 +386,6 @@ def genera_quotazione_docx(
             f"maturati in relazione al procedimento monitorio instaurato nei confronti di {debitore}"
         )
     elif tipo == "opposizione":
-        liv_json = "medio" if livello == "medi" else "min"
         scaglione = None
         for s in _PARAMETRI["civile"]["scaglioni"]:
             if s.get("oltre") or valore_causa <= s["fino_a"]:
@@ -371,7 +393,13 @@ def genera_quotazione_docx(
                 break
         tabellare = Decimal("0")
         for fase in _FASI_OPPOSIZIONE:
-            importo = Decimal(str(scaglione[fase][liv_json]))
+            # minimo = medio / 2 esatto (art. 4, co. 1, D.M. 55/2014), non il "min"
+            # arrotondato all'euro della tabella dati
+            importo = (
+                Decimal(str(scaglione[fase]["medio"]))
+                if livello == "medi"
+                else Decimal(str(scaglione[fase]["medio"])) / 2
+            )
             tabellare += importo
             righe_fasi.append((f"{_ETICHETTE_FASI[fase]}, {fase_label}:", _eur(importo)))
         importi = _prospetto_importi(tabellare, aumento_pct30=True)
@@ -384,10 +412,15 @@ def genera_quotazione_docx(
     else:  # esecuzione
         if compenso_fase_introduttiva <= 0 or compenso_fase_trattazione <= 0:
             return "Errore: i compensi di fase dell'esecuzione devono essere positivi."
+        # 166/284 erano i default arrotondati all'euro delle versioni precedenti: chi li
+        # passa ancora esplicitamente ottiene i minimi esatti della Tabella 17
         default_compensi = (
             compenso_fase_introduttiva == _ESECUZIONE_DEFAULT_INTRODUTTIVA
             and compenso_fase_trattazione == _ESECUZIONE_DEFAULT_TRATTAZIONE
-        )
+        ) or (compenso_fase_introduttiva == 166 and compenso_fase_trattazione == 284)
+        if default_compensi:
+            compenso_fase_introduttiva = _ESECUZIONE_DEFAULT_INTRODUTTIVA
+            compenso_fase_trattazione = _ESECUZIONE_DEFAULT_TRATTAZIONE
         if default_compensi and livello == "medi":
             return (
                 "Errore: i compensi di default dell'esecuzione sono i MINIMI dello "
@@ -400,6 +433,10 @@ def genera_quotazione_docx(
                 "dell'esecuzione (scaglione base) non sono applicabili: passare "
                 "compenso_fase_introduttiva e compenso_fase_trattazione dello scaglione corretto."
             )
+        if default_compensi and valore_causa <= 1100:
+            # Tabella 17, scaglione fino a 1.100 euro: minimi 55 e 118
+            compenso_fase_introduttiva = _ESECUZIONE_SOTTO_1100_INTRODUTTIVA
+            compenso_fase_trattazione = _ESECUZIONE_SOTTO_1100_TRATTAZIONE
         intro = _d2(compenso_fase_introduttiva)
         tratt = _d2(compenso_fase_trattazione)
         tabellare = intro + tratt
@@ -479,7 +516,7 @@ def genera_quotazione_docx(
         if tipo == "opposizione":
             righe.append((f"Compenso tabellare ({livello_label})", _eur(importi["tabellare"])))
         righe += [
-            ("Aumento del 30% per tecniche informatiche PCT (art. 4, co. 1 bis)", _eur(importi["aumento"])),
+            ("Aumento per tecniche informatiche PCT, fino al 30% (art. 4, co. 1-bis, D.M. 55/2014), applicato nella misura del 30%", _eur(importi["aumento"])),
             ("PROSPETTO FINALE", ""),
             ("Compenso tabellare", _eur(importi["tabellare"])),
             ("Totale variazioni in aumento", "+ " + _eur(importi["aumento"])),
@@ -523,7 +560,7 @@ def genera_quotazione_docx(
             f"bollo, per un totale complessivo preventivato di {_eur(totale_complessivo)}."
         )
     elif tipo == "esecuzione":
-        cu = _d2(contributo_unificato) if contributo_unificato >= 0 else Decimal("139.00")
+        cu = _d2(contributo_unificato) if contributo_unificato >= 0 else _cu_esecuzione(valore_causa)
         marca = Decimal("27.00")
         forfait = Decimal("120.00")
         totale_complessivo = _d2(importi["liquidabile"] + cu + marca + forfait)

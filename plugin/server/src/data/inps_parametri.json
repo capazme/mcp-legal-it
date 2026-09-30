@@ -1,0 +1,24 @@
+{
+  "_vintage": {
+    "fonte": "INPS, circolare n. 4 del 28-01-2026 par. 6 (NASpI: retribuzione di riferimento e importo massimo mensile 2026); circolare n. 6 del 30-01-2026 parr. 5-6 (prima fascia di retribuzione pensionabile e massimale annuo della base contributiva 2026)",
+    "aggiornato_al": "2026-09-29",
+    "copre_fino_a": "2026-12-31",
+    "verifica": "manuale",
+    "nota": "valori annuali rivalutati con l'indice ISTAT dei prezzi al consumo per le famiglie di operai e impiegati: ogni gennaio l'INPS pubblica le nuove circolari e la tabella va aggiornata con una nuova voce in `anni`"
+  },
+  "_descrizione": "Parametri INPS annuali usati dai calcoli di diritto del lavoro: soglia e massimale NASpI (art. 4 co. 2 D.Lgs. 22/2015) e prima fascia pensionabile con massimale contributivo (art. 3-ter D.L. 384/1992; art. 2 co. 18 L. 335/1995).",
+  "anni": {
+    "2026": {
+      "naspi": {
+        "retribuzione_riferimento_mensile": 1456.72,
+        "importo_massimo_mensile": 1584.70,
+        "fonte": "Circ. INPS n. 4 del 28-01-2026, par. 6"
+      },
+      "contributi": {
+        "prima_fascia_pensionabile": 56224.00,
+        "massimale_base_contributiva": 122295.00,
+        "fonte": "Circ. INPS n. 6 del 30-01-2026, parr. 5 e 6"
+      }
+    }
+  }
+}

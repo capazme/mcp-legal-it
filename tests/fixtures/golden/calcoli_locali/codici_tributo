@@ -7,7 +7,7 @@
    "arguments": {
     "query": "1001"
    },
-   "expected": "| Codice | Descrizione | Sezione | Categoria |\n|--------|-------------|---------|-----------|\n| 1001 | Ritenute su retribuzioni, pensioni, trasferte, mensilità aggiuntive e conguagli — Lav. dipendente | erario | ritenute |\n\n> **Dati applicati**\n> - codici tributo: risoluzioni Agenzia delle Entrate, aggiornamento dichiarato in tabella: 2026 — periodo di validità non dichiarato"
+   "expected": "| Codice | Descrizione | Sezione | Categoria |\n|--------|-------------|---------|-----------|\n| 1001 | Ritenute su retribuzioni, pensioni, trasferte, mensilità aggiuntive e conguagli — Lav. dipendente | erario | ritenute |\n\n> **Dati applicati**\n> - codici tributo: aggiornati al 29/09/2026 (Agenzia delle Entrate: tabella codici tributo erariali e regionali ordinata per codice crescente (aggiornamento 23/09/2026), tabella versamenti con elementi identificativi F24 ELIDE (aggiornamento 27/07/2026), tabella codici tributo IMU, TASI, TARI, IMIS e altri tributi locali (aggiornamento 27/03/2026)) — sottoinsieme dei codici piu' usati; l'AdE istituisce e sopprime codici (es. 1038 dal 1.1.2017): riverificare a ogni aggiornamento delle tabelle"
   }
  }
 }

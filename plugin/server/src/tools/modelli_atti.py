@@ -125,6 +125,9 @@ def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
         result["tool_diretto"] = routing["tool"]
         result["parametri_fissi"] = routing.get("parametri_fissi", {})
         fase = routing.get("fase", 2)
+        if routing.get("variante"):
+            # etichetta della variante da adattare a mano: NON è un parametro del tool
+            result["variante"] = routing["variante"]
         result["istruzioni"] = (
             f"Usare il tool `{routing['tool']}` per generare la base, "
             "poi adattare l'output ai campi specifici di questo tipo di atto."
