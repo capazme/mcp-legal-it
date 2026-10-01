@@ -29,6 +29,7 @@ from xml.etree import ElementTree
 import httpx
 
 from src.lib._http import retry_request
+from src.lib._paging import page, resume_hint
 from bs4 import BeautifulSoup
 
 _BASE_SEARCH = "https://www.giustizia-amministrativa.it"
@@ -652,12 +653,16 @@ def _shorten(text: str) -> tuple[str, str]:
     2, lett. e), c.p.a.) and it is the LAST section of the text, so a plain head
     cut removes it from every long provvedimento (AP 17/2021: 106,448 characters,
     P.Q.M. at 104,513). Head + omission marker + dispositivo instead.
-    Returns (body, note about what was cut).
+    Returns (body, note about what was cut). Every cut says from which character
+    (1-based, in `text`) to resume with `da_carattere` (see src/lib/_paging.py).
     """
     total = len(text)
     idx = text.rfind(_DISPOSITIVO_MARK)
     if idx == -1:
-        return text[:_MAX_TEXT_LENGTH], f"Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali"
+        return text[:_MAX_TEXT_LENGTH], (
+            f"Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali: "
+            f"{resume_hint(_MAX_TEXT_LENGTH + 1)}"
+        )
 
     disp = text[idx + 2:]  # keeps the "DISPOSITIVO" heading
     disp_kept = disp[:_MAX_DISPOSITIVO_LENGTH]
@@ -665,28 +670,44 @@ def _shorten(text: str) -> tuple[str, str]:
     omitted = idx - len(head)
     body = head
     if omitted > 0:
-        body += f"\n\n[... omissis: {omitted} caratteri della motivazione ...]"
+        body += f"\n\n[... omissis: {omitted} caratteri della motivazione: {resume_hint(len(head) + 1)} ...]"
     body += "\n\n" + disp_kept
     note = f"Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali"
     if len(disp_kept) < len(disp):
         note += f"; il DISPOSITIVO è riportato per i primi {len(disp_kept)} caratteri su {len(disp)}"
+        # the text after the kept dispositivo is the first thing not shown at the end
+        note += f": {resume_hint(idx + 2 + len(disp_kept) + 1)}"
     else:
         note += "; il DISPOSITIVO è riportato per intero"
+        if omitted > 0:
+            note += f": {resume_hint(len(head) + 1)}"
     return body, note
 
 
-def format_full(title: str, text: str, sede: str, nrg: str, meta: dict[str, str] | None = None) -> str:
+def format_full(
+    title: str,
+    text: str,
+    sede: str,
+    nrg: str,
+    meta: dict[str, str] | None = None,
+    da_carattere: int = 1,
+) -> str:
     """Format full provvedimento as markdown, shortened to _MAX_TEXT_LENGTH keeping the dispositivo.
 
     `meta` (from `_parse_xml_meta`) adds the citation line with the date of
-    publication, which only the official XML carries.
+    publication, which only the official XML carries. `da_carattere` > 1 renders
+    the plain window of `text` that starts there (no dispositivo extraction).
     """
     schema = _resolve_schema(sede)
     sede_label = _SCHEMA_LABELS.get(schema, sede)
     note = ""
     body = text
-    if len(text) > _MAX_TEXT_LENGTH:
-        body, note = _shorten(text)
+    if da_carattere > 1:
+        body, page_note = page(text, da_carattere, _MAX_TEXT_LENGTH)
+    else:
+        page_note = ""
+        if len(text) > _MAX_TEXT_LENGTH:
+            body, note = _shorten(text)
     lines = [
         f"# {title}",
         f"**Sede**: {sede_label} ({schema}) — NRG: {nrg}",
@@ -695,7 +716,9 @@ def format_full(title: str, text: str, sede: str, nrg: str, meta: dict[str, str]
     if estremi:
         lines.append(f"**Estremi**: {estremi}")
     lines += ["", body]
-    if note:
+    if page_note:
+        lines.append(f"\n---\n{page_note}")
+    elif note:
         lines.append(f"\n---\n*[{note}]*")
     return "\n".join(lines)
 

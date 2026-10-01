@@ -475,6 +475,33 @@ class TestFormatFull:
         result = format_full("T", "breve testo", 1)
         assert "troncato" not in result
 
+    def test_truncation_note_carries_resume_position(self):
+        result = format_full("T", "a" * 7000, 1)
+        assert result.endswith(
+            "*[Testo troncato a 6000 caratteri su 7000 totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=6001]*"
+        )
+
+    def test_da_carattere_starts_at_the_first_omitted_character(self):
+        text = "".join(f"[{i:05d}]" for i in range(2000))[:14000]
+        first = format_full("T", text, 1)
+        assert text[:6000] in first and text[:6001] not in first
+        second = format_full("T", text, 1, da_carattere=6001)
+        assert second.startswith("# T\n**DocWeb**: [1](")
+        assert text[6000:12000] in second and text[6000:12001] not in second
+        assert text[5994:6000] not in second
+        assert "*[Caratteri 6001-12000 su 14000 totali: per leggere il seguito " \
+            "ripetere la chiamata con da_carattere=12001]*" in second
+
+    def test_last_window_says_end_of_text(self):
+        text = "b" * 14000
+        last = format_full("T", text, 1, da_carattere=12001)
+        assert last.endswith("*[Caratteri 12001-14000 su 14000 totali: fine del testo]*")
+
+    def test_start_beyond_the_end_says_so(self):
+        result = format_full("T", "breve", 1, da_carattere=50)
+        assert "oltre la fine del testo (5 caratteri)" in result
+
 
 # ---------------------------------------------------------------------------
 # Tests: _impl functions (mocked httpx)
@@ -672,6 +699,38 @@ class TestLeggiProvvedimentoImpl:
 
         assert ("https://www.garanteprivacy.it/web/guest/home/docweb/-/docweb-display/"
                 "docweb/9677876") in result
+
+    @pytest.mark.asyncio
+    async def test_da_carattere_threads_to_the_window(self):
+        body = "x" * 3000 + "MARKER" + "y" * 6000
+        html = f"<html><body><div class='doc'><p>{body}</p></div></body></html>"
+        mock_client = _mock_client(html)
+        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+            first = await _leggi_provvedimento_garante_impl(1)
+        assert "da_carattere=6001]*" in first
+        mock_client = _mock_client(html)
+        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+            second = await _leggi_provvedimento_garante_impl(1, da_carattere=6001)
+        assert "Caratteri 6001-" in second
+        assert "MARKER" not in second
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [0, -3, "2", 1.5, True])
+    async def test_invalid_da_carattere_errors_without_network(self, bad):
+        with patch("src.lib.gpdp.client.httpx.AsyncClient") as client_cls:
+            result = await _leggi_provvedimento_garante_impl(9677876, da_carattere=bad)
+        assert result.startswith("Errore: da_carattere deve essere un intero")
+        client_cls.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_accepts_da_carattere(self):
+        from src.tools.gpdp import leggi_provvedimento_garante
+        fn = getattr(leggi_provvedimento_garante, "fn", leggi_provvedimento_garante)
+        with patch("src.tools.gpdp._leggi_provvedimento_garante_impl",
+                   new=AsyncMock(return_value="ok")) as impl:
+            assert await fn(9677876, da_carattere=6001) == "ok"
+        impl.assert_awaited_once_with(9677876, 6001)
+        assert "da_carattere" in fn.__doc__
 
     def test_docstring_examples_are_labelled_correctly(self):
         # DocWeb 9870832 is the Provvedimento of 30/03/2023 (reg. n. 112, OpenAI/ChatGPT),

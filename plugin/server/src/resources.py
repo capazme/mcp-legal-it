@@ -1044,7 +1044,7 @@ NOTE TECNICHE
 
 - Il numero delibera è nel formato numerico (es. "23257") o con suffisso (es. "23256-1")
 - Le date nei filtri usano formato YYYY-MM-DD (es. "2024-01-01")
-- Il testo delle delibere è troncato a 8000 caratteri per evitare saturazione del contesto
+- Il testo delle delibere è letto a blocchi di 8000 caratteri: la nota finale indica il `da_carattere` con cui leggere il seguito
 - La ricerca interroga il Bollettino CONSOB (Liferay Portal) — dati pubblici, nessuna autenticazione
 """
 
@@ -1171,7 +1171,7 @@ NOTE TECNICHE
 ═══════════════════════════════════════════════════════════
 
 - API: Solr REST su italgiure.giustizia.it (pubblica, nessuna autenticazione)
-- OCR troncato a 30000 caratteri per evitare saturazione contesto
+- OCR letto a blocchi di 30000 caratteri (inizio e fine della sentenza nella prima risposta): la nota indica il `da_carattere` con cui leggere la parte omessa
 - Certificato SSL non valido → verify=False (necessario)
 - Campi chiave: numdec (numero), anno, datdep (data deposito), szdec (sezione), ocr (testo)
 """
@@ -1278,7 +1278,7 @@ NOTE TECNICHE
 
 - Endpoint: def.finanze.it/DocTribFrontend/ (MEF — dati pubblici)
 - Ricerca: POST form-encoded, risultati in XML embedded in JS
-- Testo troncato a 25000 caratteri per evitare saturazione del contesto
+- Testo letto a blocchi di 25000 caratteri: la nota finale indica il `da_carattere` con cui leggere il seguito
 - Il GUID identifica univocamente ogni provvedimento
 - Date nei parametri di ricerca: formato DD/MM/YYYY
 - Una risposta anomala del portale è un **Errore** esplicito, mai "nessun
@@ -1523,7 +1523,7 @@ NOTE TECNICHE
 - Il portale usa Liferay Portal — ricerca pubblica, nessuna autenticazione
 - Testi integrali sul sottodominio mdp in formato XML <GA> (epigrafe + motivazione + dispositivo)
 - Certificato SSL valido su entrambi i domini → verifica TLS attiva
-- Il testo è troncato a 15000 caratteri per evitare saturazione del contesto
+- Il testo è letto a blocchi di 15000 caratteri (il dispositivo è sempre incluso nella prima risposta): la nota indica il `da_carattere` con cui leggere la parte omessa
 - I parametri sede, nrg e nome_file per leggi_provvedimento_amm vengono dai risultati di ricerca
 - Adunanza Plenaria: massima autorità del CdS — privilegiare nelle ricerche
 """

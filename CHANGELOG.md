@@ -28,6 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   number. EU acts: "Allegato III AI Act" returns the whole annex from CELLAR
   (`div#anx_N`), points and letters on their own lines; an unknown annex lists
   the available ones. `cite_law(formato="json")` gains the field `allegato`.
+- Paged reading of long texts: `leggi_sentenza_cgue`, `leggi_sentenza`,
+  `cerdef_leggi_provvedimento`, `leggi_provvedimento_amm`,
+  `leggi_pronuncia_costituzionale`, `leggi_provvedimento_garante`,
+  `leggi_delibera_consob` and `leggi_atto_gazzetta` take an optional
+  `da_carattere` (default 1). Beyond each tool's cap the omitted text used to be
+  unreachable: of CGUE C-203/22 (63,472 characters) the beginning and the
+  operative part came back, the Court's reasoning (characters 25,001-61,449)
+  could not be read at all. The first answer is unchanged, except that every
+  note on a cut now says from which character to resume; `da_carattere=N`
+  returns the window of the same text that starts there (`src/lib/_paging.py`).
+- `leggi_sentenza_cgue` keeps the proposed answer of an Advocate General's
+  opinion ("propongo alla Corte di ...") the way it keeps the operative part of
+  a judgment: the opinions have no "Per questi motivi" and were cut before it.
 
 ## [2.15.0] - 2026-09-30
 

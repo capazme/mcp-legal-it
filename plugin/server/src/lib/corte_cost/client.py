@@ -46,6 +46,7 @@ import httpx
 from src.lib import _clock
 from src.lib._cache import cache_enabled, cache_root
 from src.lib._http import retry_request
+from src.lib._paging import page, resume_hint
 
 _BASE = "https://dati.cortecostituzionale.it/opendata/distribuzione"
 _PRONUNCE_BASE = f"{_BASE}/pronunce"
@@ -624,7 +625,14 @@ def format_result(p: PronunciaCost) -> str:
     return "\n".join(lines)
 
 
-def format_full(p: PronunciaCost) -> str:
+def format_full(p: PronunciaCost, da_carattere: int = 1) -> str:
+    """Full pronuncia: epigrafe, motivazione (testo), dispositivo.
+
+    Positions (`da_carattere`, resume hints) count the characters of the motivazione
+    (`p.testo`), the only part ever cut. `da_carattere` > 1 renders the header and the
+    plain window of the motivazione that starts there, without epigrafe or dispositivo
+    (already returned by the first call).
+    """
     label = _tipo_label(p.tipologia_pronuncia)
     lines = [f"# {label} Corte Costituzionale n. {p.numero_pronuncia}/{p.anno_pronuncia}"]
     if p.ecli:
@@ -638,6 +646,15 @@ def format_full(p: PronunciaCost) -> str:
     if p.relatore_pronuncia:
         lines.append(f"**Relatore**: {p.relatore_pronuncia}")
     lines.append("")
+
+    if da_carattere > 1:
+        body, note = page(p.testo, da_carattere, _MAX_TEXT_LENGTH)
+        # The positions count the motivazione, not the whole record: say so.
+        note = note.replace("*[Caratteri ", "*[Caratteri della motivazione ", 1).replace(
+            "del testo", "della motivazione"
+        )
+        lines.append(f"## Testo\n{body}\n\n{note}" if body else note)
+        return "\n".join(lines)
 
     # Epigrafe and dispositivo are always emitted in full; only the reasons
     # (testo) are cut to the budget that is left. The dispositivo is the part
@@ -657,7 +674,8 @@ def format_full(p: PronunciaCost) -> str:
             testo = (
                 f"## Testo\n{p.testo[:budget].rstrip()}\n\n"
                 f"*[Testo della motivazione troncato a {budget} caratteri su "
-                f"{len(p.testo)}: epigrafe e dispositivo sono riportati per intero]*"
+                f"{len(p.testo)}: epigrafe e dispositivo sono riportati per intero; "
+                f"{resume_hint(budget + 1)}]*"
             )
         else:
             testo = f"## Testo\n{p.testo}"

@@ -12,6 +12,7 @@ Workflow tipico:
 - scarica_pdf_gazzetta(numero, data) per il PDF ufficiale (restituisce l'URL).
 """
 
+from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.lib._sources import note
 from src.server import mcp
@@ -113,7 +114,13 @@ async def _leggi_atto_gazzetta_impl(
     data_pubblicazione: str,
     serie: str = "serie_generale",
     solo_metadati: bool = False,
+    da_carattere: int = 1,
 ) -> SearchResult:
+    if (error := invalid_start(da_carattere)) is not None:
+        return SearchResult(
+            success=False, source=_SOURCE, error_type="bad_input",
+            error_message=error, results_text=f"**Errore**: {error}",
+        )
     serie_path = _resolve_serie_path(serie)
     if serie_path == "unione_europea":
         # The 2a Serie speciale has no atto pages (the ELI permalink answers HTTP 500):
@@ -154,7 +161,7 @@ async def _leggi_atto_gazzetta_impl(
 
     return SearchResult(
         success=True, source=_SOURCE, num_found=1,
-        results_text=format_detail(detail),
+        results_text=format_detail(detail, da_carattere),
     )
 
 
@@ -299,6 +306,7 @@ async def leggi_atto_gazzetta(
     data_pubblicazione: str,
     serie: str = "serie_generale",
     solo_metadati: bool = False,
+    da_carattere: int = 1,
 ) -> str:
     """Legge il testo completo di un atto pubblicato in Gazzetta Ufficiale.
 
@@ -309,6 +317,10 @@ async def leggi_atto_gazzetta(
     Per un atto delle serie speciali (corte_costituzionale, regioni, concorsi, contratti,
     parte_seconda) indicare la serie: e' quella che determina la pagina dell'atto. Gli
     atti della 2a Serie speciale (unione_europea) non hanno una pagina propria.
+    Il testo e' limitato a 25000 caratteri per chiamata: la parte omessa si legge
+    ripetendo la chiamata con il da_carattere indicato nella nota. Le posizioni
+    contano il testo integrale assemblato dell'atto (non i metadati in testa).
+    Con da_carattere > 1 restituisce i 25000 caratteri che partono da quella posizione.
 
     Args:
         codice_redazionale: Codice dell'atto (es. "26A02808")
@@ -316,11 +328,14 @@ async def leggi_atto_gazzetta(
         serie: Serie dell'atto (serie_generale, corte_costituzionale, regioni,
             concorsi, contratti, parte_seconda; default serie_generale)
         solo_metadati: Se True, restituisce solo i metadati senza scaricare il testo
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota finale indica il valore con cui ripetere la chiamata per leggere il seguito
     """
     result = await _leggi_atto_gazzetta_impl(
         codice_redazionale=codice_redazionale,
         data_pubblicazione=data_pubblicazione,
         serie=serie, solo_metadati=solo_metadati,
+        da_carattere=da_carattere,
     )
     return result.to_str()
 

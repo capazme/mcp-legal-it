@@ -2661,9 +2661,9 @@ class TestFormatFullTextHeadAndTail:
         doc = self._doc()
         out = format_full_text(doc)
         total = len(doc["ocr"][0])
-        assert f"[Testo troncato a 30000 caratteri su {total} totali]" in out
+        assert f"[Testo troncato a 30000 caratteri su {total} totali: " in out
         assert "primi 12000 e gli ultimi 18000" in out
-        assert f"[... omessi {total - 30000} caratteri della parte centrale ...]" in out
+        assert f"[... omessi {total - 30000} caratteri della parte centrale (caratteri 12001-{total - 18000}): " in out
 
     def test_missing_dispositivo_is_declared(self):
         out = format_full_text(self._doc())
@@ -2674,6 +2674,85 @@ class TestFormatFullTextHeadAndTail:
         out = format_full_text(_civile_doc())
         assert "[..." not in out and "Testo troncato" not in out
         assert "## Dispositivo" in out
+
+
+class TestLeggiSentenzaPaged:
+    """`da_carattere`: the omitted middle of a long decision can be read in windows. Positions
+    count the `ocr` text (1-based)."""
+
+    HINT = "per leggere il seguito ripetere la chiamata con da_carattere="
+
+    @staticmethod
+    def _numbered_ocr(total: int = 75000) -> str:
+        # every 10-character block carries its own 1-based start, so a window is verifiable
+        return "".join(f"{i:09d}\n" for i in range(1, total, 10))[:total]
+
+    def _doc(self, total: int = 75000):
+        return {**_civile_doc(), "ocr": [self._numbered_ocr(total)], "ocrdis": []}
+
+    def test_default_note_carries_the_resume_position(self):
+        out = format_full_text(self._doc())
+        # head 12000: the first omitted character is the 12001st
+        assert f"{self.HINT}12001" in out
+        assert out.count(f"{self.HINT}12001") == 2  # omitted marker and final note
+
+    def test_window_starts_at_the_first_omitted_character(self):
+        doc = self._doc()
+        ocr = doc["ocr"][0]
+        out = format_full_text(doc, da_carattere=12001)
+        body = out.split("## Testo della decisione\n", 1)[1].split("\n\n---\n", 1)[0]
+        assert body == ocr[12000:42000]
+        assert body.startswith("000012001")
+        assert f"*[Caratteri 12001-42000 su {len(ocr)} totali: {self.HINT}42001]*" in out
+        assert out.startswith("# Cass. civ.")  # normal header kept
+        assert "## Dispositivo" not in out
+
+    def test_last_window_says_end_of_text(self):
+        doc = self._doc()
+        total = len(doc["ocr"][0])
+        out = format_full_text(doc, da_carattere=42001)
+        assert f"*[Caratteri 42001-{min(total, 72000)} su {total} totali: {self.HINT}72001]*" in out
+        out = format_full_text(doc, da_carattere=72001)
+        assert f"*[Caratteri 72001-{total} su {total} totali: fine del testo]*" in out
+
+    def test_start_beyond_the_end(self):
+        out = format_full_text(self._doc(), da_carattere=999999)
+        assert "oltre la fine del testo (75000 caratteri)" in out
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [0, -5, "2", 1.5, True])
+    async def test_invalid_start_is_an_error_without_network(self, bad):
+        with patch("src.lib.italgiure.client.httpx.AsyncClient") as client:
+            result = await _leggi_sentenza_impl(24003, 2025, da_carattere=bad)
+        client.assert_not_called()
+        assert result.success is False and result.error_type == "bad_input"
+        assert "da_carattere deve essere un intero" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_impl_threads_the_parameter(self):
+        client, _ = _recording_client(default=_make_solr_response([self._doc()]))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _leggi_sentenza_impl(24003, 2025, archivio="civile", da_carattere=12001)
+        assert result.success
+        assert "Caratteri 12001-42000 su 75000 totali" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_accepts_the_parameter(self):
+        from src.tools.italgiure import leggi_sentenza
+
+        fn = getattr(leggi_sentenza, "fn", leggi_sentenza)
+        assert "da_carattere" in (fn.__doc__ or "")
+        client, _ = _recording_client(default=_make_solr_response([self._doc()]))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            out = await fn(24003, 2025, archivio="civile", da_carattere=42001)
+        assert "Caratteri 42001-72000 su 75000 totali" in out
+
+    @pytest.mark.asyncio
+    async def test_summary_formatter_keeps_working_with_the_default(self):
+        client, _ = _recording_client(default=_make_solr_response([_civile_doc()]))
+        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+            result = await _leggi_sentenza_impl(24003, 2025, archivio="civile", formatter=format_summary)
+        assert result.success
 
 
 class TestLeggiSentenzaMessages:

@@ -289,10 +289,41 @@ class TestFormatFull:
         result = format_full("T", long_text, "1")
         assert "Testo troncato" in result
         assert "8000" in result
+        assert result.endswith(
+            "*[Testo troncato a 8000 caratteri su 9000 totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=8001]*"
+        )
 
     def test_no_truncation_note_for_short_text(self):
         result = format_full("T", "breve testo", "1")
         assert "troncato" not in result
+
+    def test_cut_note_position_is_the_first_omitted_character(self):
+        text = "".join(chr(97 + i % 26) for i in range(20000))
+        first = format_full("T", text, "1")
+        assert first.endswith("da_carattere=8001]*")
+        assert text[:8000] in first
+        assert text[:8001] not in first
+
+    def test_da_carattere_returns_next_window_from_first_omitted_char(self):
+        text = "".join(chr(97 + i % 26) for i in range(20000))
+        second = format_full("T", text, "1", da_carattere=8001)
+        assert "# T" in second and "/delibera-n.--1" not in second
+        assert text[8000:16000] in second
+        assert text[7999:16000] not in second
+        assert text[8000:16001] not in second
+        assert "*[Caratteri 8001-16000 su 20000 totali: " in second
+        assert second.endswith("da_carattere=16001]*")
+
+    def test_last_window_says_end_of_text(self):
+        text = "".join(chr(97 + i % 26) for i in range(20000))
+        last = format_full("T", text, "1", da_carattere=16001)
+        assert text[16000:] in last
+        assert last.endswith("*[Caratteri 16001-20000 su 20000 totali: fine del testo]*")
+
+    def test_da_carattere_beyond_end(self):
+        result = format_full("T", "breve", "1", da_carattere=50)
+        assert "oltre la fine del testo (5 caratteri)" in result
 
 
 # ---------------------------------------------------------------------------
@@ -432,6 +463,44 @@ class TestLeggiDeliberaImpl:
             result = await _leggi_delibera_consob_impl("99999")
 
         assert "Errore" in result
+
+
+class TestLeggiDeliberaPaging:
+    @staticmethod
+    def _client_returning(html):
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=_make_mock_response(html))
+        return mock_client
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [0, -3, "2", 1.5, True])
+    async def test_invalid_da_carattere_errors_without_network(self, bad):
+        with patch("src.lib.consob.client.httpx.AsyncClient") as client_cls:
+            result = await _leggi_delibera_consob_impl("23257", bad)
+        assert result.startswith("Errore nel recupero della delibera CONSOB n. 23257")
+        assert "da_carattere deve essere un intero maggiore o uguale a 1" in result
+        client_cls.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_impl_threads_da_carattere_to_the_window(self):
+        words = " ".join(f"w{i:05d}" for i in range(3000))  # 20,999 chars
+        html = f'<html><body><div class="journal-content-article" data-analytics-asset-title="Delibera n. 1"><p>{words}</p></div></body></html>'
+        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=self._client_returning(html)):
+            first = await _leggi_delibera_consob_impl("1")
+        assert first.endswith("da_carattere=8001]*")
+        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=self._client_returning(html)):
+            second = await _leggi_delibera_consob_impl("1", 8001)
+        assert words[8000:16000] in second
+        assert "*[Caratteri 8001-16000 su 20999 totali: " in second
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_accepts_da_carattere(self):
+        from src.tools.consob import leggi_delibera_consob
+        with patch("src.tools.consob._leggi_delibera_consob_impl", new=AsyncMock(return_value="ok")) as impl:
+            assert await leggi_delibera_consob("23257", da_carattere=8001) == "ok"
+        impl.assert_awaited_once_with("23257", 8001)
 
 
 class TestUltimeDelibereImpl:

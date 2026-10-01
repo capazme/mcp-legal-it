@@ -5,6 +5,7 @@ rinvio pregiudiziale, diritto UE, direttive europee interpretate, regolamenti UE
 conclusioni avvocato generale, ECLI europeo.
 """
 
+from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.server import mcp
 from src.lib.cgue.client import (
@@ -63,7 +64,9 @@ async def _cerca_giurisprudenza_cgue_impl(
     return SearchResult(success=True, source="cgue", num_found=len(docs), results_text="\n".join(lines))
 
 
-async def _leggi_sentenza_cgue_impl(cellar_uri: str) -> SearchResult:
+async def _leggi_sentenza_cgue_impl(cellar_uri: str, da_carattere: int = 1) -> SearchResult:
+    if (error := invalid_start(da_carattere)) is not None:
+        return SearchResult(success=False, source="cgue", error_type="bad_input", results_text=error)
     try:
         text = await fetch_sentenza_text(cellar_uri)
         stripped = text.strip()
@@ -88,6 +91,7 @@ async def _leggi_sentenza_cgue_impl(cellar_uri: str) -> SearchResult:
                 meta.get("ecli", ""),
                 case_ref=meta.get("case_ref", ""),
                 date=meta.get("date", ""),
+                da_carattere=da_carattere,
             ),
         )
     except Exception as exc:
@@ -222,23 +226,29 @@ async def cerca_giurisprudenza_cgue(
 
 
 @mcp.tool(tags={"giurisprudenza_ue", "normativa"})
-async def leggi_sentenza_cgue(cellar_uri: str) -> str:
+async def leggi_sentenza_cgue(cellar_uri: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di una sentenza CGUE tramite CELLAR URI.
 
     Il dispositivo ("Per questi motivi") e' incluso anche nelle sentenze lunghe: oltre 25000 caratteri
-    si abbrevia il corpo, non la parte finale.
+    si abbrevia il corpo, non la parte finale. Nelle conclusioni dell'avvocato generale si conserva
+    allo stesso modo la risposta proposta alla Corte ("propongo alla Corte di ...", o dall'intestazione
+    "Conclusione"). La parte omessa si legge ripetendo la chiamata con il da_carattere indicato
+    nella nota.
     Usare dopo cerca_giurisprudenza_cgue() o ultime_sentenze_cgue() per leggere il testo.
     Il CELLAR URI è riportato in ogni risultato della ricerca come "CELLAR URI".
     Recupera il testo direttamente dall'archivio CELLAR (bypassa EUR-Lex WAF).
     Restituisce: testo della sentenza in italiano, preceduto da CELEX, numero di causa (es. C-311/18),
     ECLI e data. Oltre 25000 caratteri il testo e' abbreviato: si conservano l'inizio e il
     dispositivo (dal "Per questi motivi", fino a 8000 caratteri) con l'indicazione dei caratteri omessi.
+    Con da_carattere > 1 restituisce i 25000 caratteri che partono da quella posizione.
 
     Args:
         cellar_uri: URI CELLAR della sentenza
             (es. "http://publications.europa.eu/resource/cellar/abc123.0006")
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    result = await _leggi_sentenza_cgue_impl(cellar_uri)
+    result = await _leggi_sentenza_cgue_impl(cellar_uri, da_carattere)
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
