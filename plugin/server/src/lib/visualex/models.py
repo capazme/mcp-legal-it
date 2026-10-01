@@ -77,15 +77,56 @@ class NormaVisitata:
     _urn: str = field(default="", repr=False)
 
     def url(self) -> str:
-        if self.norma._is_eurlex():
+        # An annex article has no ~artN of its own in the act URN: the act's URL is
+        # the honest one (~artN would point at the body article with that number).
+        if self.norma._is_eurlex() or split_annex(self.numero_articolo):
             return self.norma.url()
         return self.norma.url(article=self.numero_articolo)
 
     def __str__(self):
         base = str(self.norma)
-        if self.numero_articolo:
+        if split_annex(self.numero_articolo):
+            base += f" {self.numero_articolo}"
+        elif self.numero_articolo:
             base += f" art. {self.numero_articolo}"
         return base
+
+
+# Annex identifiers as acts number them: "I.7", "II.14", "III", "1", "A".
+ANNEX_ID = r"(?:[IVXLCDM]+|\d+|[A-Z])(?:\.\d+)*"
+
+_ANNEX_RE = re.compile(
+    rf"^\s*allegato\s+(?P<id>{ANNEX_ID})"
+    # The article forms of the reference parser: "30", "2-bis", "2 bis", "30.1", "3-quater.1".
+    r"(?:\s*,?\s*(?:art(?:icolo)?\.?)\s*(?P<art>\d+(?:[-/.\s]?\w+)*))?\s*$",
+    re.IGNORECASE,
+)
+
+
+_ANNEX_WORD_RE = re.compile(r"^\s*allegat[oi]\b", re.IGNORECASE)
+
+
+def names_an_annex(numero_articolo: str) -> bool:
+    """Whether the article string speaks of an annex at all, parsable or not."""
+    return bool(_ANNEX_WORD_RE.match(numero_articolo or ""))
+
+
+def split_annex(numero_articolo: str) -> "tuple[str, str] | None":
+    """``(annex_id, article)`` when the article designates an annex, else None.
+
+    ``"allegato I.7 art. 30"`` -> ``("I.7", "30")``; ``"Allegato III"`` ->
+    ``("III", "")`` (the whole annex). A plain article number returns None.
+    """
+    m = _ANNEX_RE.match(numero_articolo or "")
+    if not m:
+        return None
+    return m.group("id"), (m.group("art") or "").strip()
+
+
+def annex_reference(annex_id: str, article: str = "") -> str:
+    """Canonical article string for an annex: the inverse of :func:`split_annex`."""
+    ref = f"allegato {annex_id}"
+    return f"{ref} art. {article}" if article else ref
 
 
 def _append_article(urn: str, article: str) -> str:
