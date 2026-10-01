@@ -29,6 +29,7 @@ from datetime import date, datetime
 import httpx
 
 from src.lib._http import retry_request
+from src.lib._paging import page, resume_hint
 from bs4 import BeautifulSoup
 
 _BASE = "https://def.finanze.it/DocTribFrontend/"
@@ -502,8 +503,14 @@ def format_result(doc: ProvvedimentoResult) -> str:
     return "\n".join(lines)
 
 
-def format_detail(detail: ProvvedimentoDetail) -> str:
-    """Format a ProvvedimentoDetail as markdown with truncation."""
+def format_detail(detail: ProvvedimentoDetail, da_carattere: int = 1) -> str:
+    """Format a ProvvedimentoDetail as markdown with truncation.
+
+    Positions count `testo_integrale` (the massima is not part of it). The default
+    answer keeps the massima and the first `_MAX_TEXT_LENGTH` characters of the text;
+    `da_carattere` > 1 renders the window of the text that starts there (header lines
+    only: the massima was already given by the first answer).
+    """
     lines = [f"# {detail.estremi or detail.guid}"]
 
     if detail.oggetto:
@@ -515,19 +522,28 @@ def format_detail(detail: ProvvedimentoDetail) -> str:
     if detail.ricorsi:
         lines.append(f"**Ricorsi**: {detail.ricorsi}")
 
-    if detail.massima:
+    windowed = da_carattere > 1
+    if detail.massima and not windowed:
         lines.append("\n## Massima\n")
         lines.append(detail.massima)
 
     if detail.testo_integrale:
         lines.append("\n## Testo Integrale\n")
         testo = detail.testo_integrale
-        truncated = len(testo) > _MAX_TEXT_LENGTH
-        lines.append(testo[:_MAX_TEXT_LENGTH] if truncated else testo)
-        if truncated:
-            lines.append(
-                f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(testo)} totali]*"
-            )
+        if windowed:
+            body, note = page(testo, da_carattere, _MAX_TEXT_LENGTH)
+            lines.append(body)
+            lines.append(f"\n---\n{note}")
+        else:
+            truncated = len(testo) > _MAX_TEXT_LENGTH
+            lines.append(testo[:_MAX_TEXT_LENGTH] if truncated else testo)
+            if truncated:
+                lines.append(
+                    f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(testo)} totali: "
+                    f"{resume_hint(_MAX_TEXT_LENGTH + 1)}]*"
+                )
+    elif windowed:
+        lines.append(f"\n---\n*[da_carattere={da_carattere} oltre la fine del testo (0 caratteri)]*")
 
     if not detail.massima and not detail.testo_integrale:
         lines.append("\n_Il portale CeRDEF non riporta massima né testo integrale per questo provvedimento._")

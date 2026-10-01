@@ -14,6 +14,7 @@ import urllib.parse
 import httpx
 
 from src.lib._http import retry_request
+from src.lib._paging import page, resume_hint
 
 _BASE = "https://www.italgiure.giustizia.it/sncass"
 _SOLR_URL = f"{_BASE}/isapi/hc.dll/sn.solr/sn-collection/select?app.query"
@@ -702,7 +703,12 @@ def format_summary(
     return "\n".join(lines)
 
 
-def format_full_text(doc: dict) -> str:
+def format_full_text(doc: dict, da_carattere: int = 1) -> str:
+    """Render a decision. Positions in the notes count the characters of the ``ocr`` text.
+
+    ``da_carattere`` > 1 renders the plain window of the ``ocr`` text that starts there
+    (src/lib/_paging.py), without the Dispositivo field already given by the first answer.
+    """
     estremi = format_estremi(doc)
     materia = _first(doc.get("materia", ""))
     relatore = _first(doc.get("relatore", ""))
@@ -719,16 +725,29 @@ def format_full_text(doc: dict) -> str:
         lines.append(f"**Presidente**: {presidente}")
     lines.append("")
 
+    if da_carattere > 1:
+        body, note = page(ocr, da_carattere, _MAX_OCR_LENGTH)
+        lines.append("## Testo della decisione")
+        if body:
+            lines.append(body)
+        lines.append(f"\n---\n{note}")
+        return "\n".join(lines)
+
     if ocr:
         truncated = len(ocr) > _MAX_OCR_LENGTH
         lines.append("## Testo della decisione")
         if truncated:
             omitted = len(ocr) - _MAX_OCR_LENGTH
+            resume = _OCR_HEAD_LENGTH + 1
             lines.append(ocr[:_OCR_HEAD_LENGTH])
-            lines.append(f"\n[... omessi {omitted} caratteri della parte centrale ...]\n")
+            lines.append(
+                f"\n[... omessi {omitted} caratteri della parte centrale "
+                f"(caratteri {resume}-{len(ocr) - _OCR_TAIL_LENGTH}): {resume_hint(resume)} ...]\n"
+            )
             lines.append(ocr[-_OCR_TAIL_LENGTH:])
             lines.append(
-                f"\n---\n*[Testo troncato a {_MAX_OCR_LENGTH} caratteri su {len(ocr)} totali]* "
+                f"\n---\n*[Testo troncato a {_MAX_OCR_LENGTH} caratteri su {len(ocr)} totali: "
+                f"{resume_hint(resume)}]* "
                 f"Mostrati i primi {_OCR_HEAD_LENGTH} e gli ultimi {_OCR_TAIL_LENGTH} caratteri; la parte "
                 f"centrale è omessa. La decisione (rigetto, accoglimento, P.Q.M.) sta in genere in coda."
             )

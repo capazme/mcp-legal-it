@@ -19,6 +19,7 @@ from dataclasses import dataclass
 import httpx
 
 from src.lib._http import retry_request
+from src.lib._paging import page, resume_hint
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
 _SPARQL_URL = "https://publications.europa.eu/webapi/rdf/sparql"
@@ -419,34 +420,74 @@ def format_result(doc: CaseResult) -> str:
 # The operative part of a judgment or order opens with this formula (art. 87, lett. i),
 # Regolamento di procedura della Corte di giustizia): it is the part that carries the decision.
 _OPERATIVE_PART = re.compile(r"Per (?:questi|tali) motivi", re.IGNORECASE)
+# The opinion of an Advocate General has no operative part: it closes with the answer it
+# proposes to the Court, in the first person and in several wordings ("propongo alla Corte
+# di rispondere", "Propongo quindi alla Corte di dichiarare", "suggerisco alla Corte di
+# rispondere", "propongo di rispondere"). The kept tail starts at the beginning of that line;
+# when the wording is unknown, at the last "Conclusione"/"Conclusioni" heading.
+_AG_PROPOSAL = re.compile(
+    r"\b(?:propongo|suggerisco)\b[^.\n]{0,40}?\bdi\s+"
+    r"(?:rispondere|dichiarare|statuire|risolvere|accogliere|respingere|annullare|constatare)\b",
+    re.IGNORECASE,
+)
+_AG_CONCLUSION_HEADING = re.compile(r"^[ \t]*Conclusion[ei][ \t]*$", re.IGNORECASE | re.MULTILINE)
 
 
-def _excerpt(text: str) -> tuple[str, str]:
+def _operative_start(text: str) -> int | None:
+    """Where the decisive final part starts, or None when the text has none.
+
+    The latest of: the last "Per questi motivi" (judgments, orders) and the line of the last
+    proposal of an Advocate General (else the last "Conclusione" heading). The latest wins
+    because an opinion can say "Per tali motivi" in its reasoning, long before its proposal,
+    while a judgment that quotes the Advocate General does so before its own operative part.
+    """
+    candidates = [m.start() for m in _OPERATIVE_PART.finditer(text)][-1:]
+    proposals = [m.start() for m in _AG_PROPOSAL.finditer(text)]
+    if proposals:
+        candidates.append(text.rfind("\n", 0, proposals[-1]) + 1)
+    else:
+        candidates.extend(m.start() for m in list(_AG_CONCLUSION_HEADING.finditer(text))[-1:])
+    return max(candidates) if candidates else None
+
+
+def _excerpt(text: str, da_carattere: int = 1) -> tuple[str, str]:
     """Cut `text` to the size limit without losing the operative part.
 
     Returns (body, note). A text within the limit comes back whole with an empty note.
-    A longer one keeps its beginning and, when it contains the "Per questi motivi"
-    formula, the operative part that follows the last occurrence (up to _MAX_TAIL_LENGTH
-    characters), so the decision always reaches the reader.
+    A longer one keeps its beginning and, when it has an operative part ("Per questi
+    motivi") or, for an Advocate General's opinion, the proposed answer, that final part
+    (up to _MAX_TAIL_LENGTH characters), so the decision always reaches the reader. Every
+    note on a cut says from which character to resume; `da_carattere` > 1 returns the plain
+    window of the text that starts there (see src/lib/_paging.py).
     """
+    if da_carattere > 1:
+        return page(text, da_carattere, _MAX_TEXT_LENGTH)
     total = len(text)
     if total <= _MAX_TEXT_LENGTH:
         return text, ""
-    marks = [m.start() for m in _OPERATIVE_PART.finditer(text)]
-    if not marks:
-        return text[:_MAX_TEXT_LENGTH], f"*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali]*"
-    start = marks[-1]
+    start = _operative_start(text)
+    if start is None:
+        return text[:_MAX_TEXT_LENGTH], (
+            f"*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali: "
+            f"{resume_hint(_MAX_TEXT_LENGTH + 1)}]*"
+        )
     end = min(total, start + _MAX_TAIL_LENGTH)
     if start < _MAX_TEXT_LENGTH:
         # The operative part begins inside the first block: extend the block to cover it.
         cut = max(_MAX_TEXT_LENGTH, end)
         if cut >= total:
             return text, ""
-        return text[:cut], f"*[Testo troncato a {cut} caratteri su {total} totali]*"
-    omitted = f"*[Omessi i caratteri {_MAX_TEXT_LENGTH + 1}-{start} su {total} totali: il testo riprende dal dispositivo]*"
+        return text[:cut], f"*[Testo troncato a {cut} caratteri su {total} totali: {resume_hint(cut + 1)}]*"
+    omitted = (
+        f"*[Omessi i caratteri {_MAX_TEXT_LENGTH + 1}-{start} su {total} totali: il testo riprende "
+        f"dalla parte finale; {resume_hint(_MAX_TEXT_LENGTH + 1)}]*"
+    )
     body = text[:_MAX_TEXT_LENGTH] + "\n\n---\n" + omitted + "\n\n" + text[start:end]
     if end < total:
-        return body, f"*[Testo troncato a {end} caratteri su {total} totali dopo il dispositivo]*"
+        return body, (
+            f"*[Testo troncato a {end} caratteri su {total} totali dopo la parte finale: "
+            f"{resume_hint(end + 1)}]*"
+        )
     return body, ""
 
 
@@ -457,13 +498,15 @@ def format_full(
     *,
     case_ref: str = "",
     date: str = "",
+    da_carattere: int = 1,
 ) -> str:
     """Render a decision: header and text.
 
     `case_number` is the first heading (the CELEX for the tools); `case_ref` is the
     official case number ("C-311/18") and `date` the decision date, when known.
+    `da_carattere` > 1 renders the window of the text that starts there.
     """
-    body, note = _excerpt(text)
+    body, note = _excerpt(text, da_carattere)
     lines = [f"# {case_number}"]
     if case_ref:
         lines.append(f"**Causa**: {case_ref}")

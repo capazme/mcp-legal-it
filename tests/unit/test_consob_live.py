@@ -206,7 +206,7 @@ def test_leggi_delibera_20307_regolamento_intermediari():
             "in materia di intermediari") in r, r[:1500]
     assert "La Commissione Nazionale per le Società e la Borsa" in r
     assert "Bollettino « Indietro" not in r[:300], "breadcrumb del portale non rimosso"
-    m = re.search(r"\[Testo troncato a 8000 caratteri su (\d+) totali\]", r)
+    m = re.search(r"\[Testo troncato a 8000 caratteri su (\d+) totali: [^\]]*da_carattere=8001\]", r)
     assert m and int(m.group(1)) > 8000, r[-300:]
 
 

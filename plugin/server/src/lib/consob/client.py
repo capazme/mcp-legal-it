@@ -16,6 +16,7 @@ from urllib.parse import urljoin
 import httpx
 
 from src.lib._http import retry_request
+from src.lib._paging import page, resume_hint
 from bs4 import BeautifulSoup
 
 _BASE = "https://www.consob.it"
@@ -245,15 +246,25 @@ def format_result(doc: DocResult) -> str:
     return "\n".join(lines)
 
 
-def format_full(title: str, text: str, numero: str) -> str:
-    """Format full document as markdown."""
+def format_full(title: str, text: str, numero: str, da_carattere: int = 1) -> str:
+    """Format full document as markdown.
+
+    Positions in the notes count `text`, the body of the page. `da_carattere` > 1 renders
+    the window of `text` that starts there.
+    """
     url = f"{_BASE}{_DOC_PATH}-{numero}"
+    lines = [f"# {title}", f"**Link**: [Delibera n. {numero}]({url})", ""]
+    if da_carattere > 1:
+        body, note = page(text, da_carattere, _MAX_TEXT_LENGTH)
+        lines.append(body)
+        lines.append(f"\n---\n{note}")
+        return "\n".join(lines)
     truncated = len(text) > _MAX_TEXT_LENGTH
-    body = text[:_MAX_TEXT_LENGTH] if truncated else text
-    lines = [f"# {title}", f"**Link**: [Delibera n. {numero}]({url})", "", body]
+    lines.append(text[:_MAX_TEXT_LENGTH] if truncated else text)
     if truncated:
         lines.append(
-            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(text)} totali]*"
+            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(text)} totali: "
+            f"{resume_hint(_MAX_TEXT_LENGTH + 1)}]*"
         )
     return "\n".join(lines)
 

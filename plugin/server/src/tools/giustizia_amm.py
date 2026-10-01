@@ -6,6 +6,7 @@ annullamento atti amministrativi, ricorso al TAR, CGARS.
 """
 
 from src.server import mcp
+from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.lib.giustizia_amm.client import (
     ProvvedimentoResult,
@@ -98,7 +99,9 @@ async def _cerca_giurisprudenza_amministrativa_impl(
     return SearchResult(success=True, source="giustizia_amm", num_found=len(docs), results_text="\n".join(lines))
 
 
-async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str) -> str:
+async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str, da_carattere: int = 1) -> str:
+    if (error := invalid_start(da_carattere)) is not None:
+        return SearchResult(success=False, source="giustizia_amm", error_type="bad_input", results_text=error)
     try:
         doc = await fetch_provvedimento_document(sede, nrg, nome_file)
         title, text = doc.title, doc.text
@@ -121,7 +124,8 @@ async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str) -> 
                                   f"da risultati datati non sono più validi)."
                               ))
         return SearchResult(success=True, source="giustizia_amm", num_found=1,
-                          results_text=format_full(title, text, sede, nrg, meta=doc.meta))
+                          results_text=format_full(title, text, sede, nrg, meta=doc.meta,
+                                                      da_carattere=da_carattere))
     except Exception as exc:
         return SearchResult(success=False, source="giustizia_amm", error_type="source_down",
                           error_message=str(exc))
@@ -245,7 +249,7 @@ async def cerca_giurisprudenza_amministrativa(
 
 
 @mcp.tool(tags={"giurisprudenza_amm", "normativa"})
-async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str) -> str:
+async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp.
 
     Usare dopo cerca_giurisprudenza_amministrativa() o ultimi_provvedimenti_amm()
@@ -254,7 +258,8 @@ async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str) -> str:
     Restituisce: estremi (tipo, numero, data di pubblicazione, art. 89 c.p.a.) e testo
     del provvedimento. Oltre ~15.000 caratteri la motivazione viene abbreviata (con
     l'indicazione dei caratteri omessi) ma il DISPOSITIVO (P.Q.M., art. 88 c.p.a.)
-    è sempre riportato. I provvedimenti che il portale pubblica solo in PDF non
+    è sempre riportato. La parte omessa si legge ripetendo la chiamata con il
+    da_carattere indicato nella nota (finestre di 15.000 caratteri). I provvedimenti che il portale pubblica solo in PDF non
     vengono letti: la risposta lo dichiara e dà il link ufficiale al documento.
     Vigenza: testo pubblicato dal portale ufficiale giustizia-amministrativa.it, letto
     al momento della chiamata.
@@ -267,8 +272,13 @@ async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str) -> str:
             estese ("consiglio_di_stato", "tar_lazio").
         nrg: Numero registro generale del ricorso (es. "202510565") — da risultati ricerca
         nome_file: Nome file sul sottodominio mdp (es. "202614035_01.html") — da risultati ricerca
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota indica il valore con cui ripetere la chiamata per leggere il seguito.
+            Le posizioni contano il testo integrale del provvedimento (epigrafe, motivazione e
+            DISPOSITIVO in sequenza); con da_carattere > 1 si riceve la finestra di testo che
+            parte da quella posizione, senza estrazione del dispositivo
     """
-    result = await _leggi_provvedimento_amm_impl(sede, nrg, nome_file)
+    result = await _leggi_provvedimento_amm_impl(sede, nrg, nome_file, da_carattere)
     return result.to_str() if isinstance(result, SearchResult) else result
 
 

@@ -6,6 +6,7 @@ trattamento dati personali, intelligenza artificiale e privacy.
 """
 
 from src.server import mcp
+from src.lib._paging import invalid_start
 from src.lib.gpdp.client import (
     DocNotAvailable,
     fetch_doc,
@@ -58,10 +59,12 @@ async def _cerca_provvedimenti_garante_impl(
     return "\n".join(lines)
 
 
-async def _leggi_provvedimento_garante_impl(docweb_id: int) -> str:
+async def _leggi_provvedimento_garante_impl(docweb_id: int, da_carattere: int = 1) -> str:
+    if (error := invalid_start(da_carattere)) is not None:
+        return f"Errore: {error}"
     try:
         title, text = await fetch_doc(docweb_id)
-        return format_full(title, text, docweb_id)
+        return format_full(title, text, docweb_id, da_carattere=da_carattere)
     except DocNotAvailable:
         return (
             f"Errore: DocWeb {docweb_id} non disponibile: il portale risponde "
@@ -150,12 +153,15 @@ async def cerca_provvedimenti_garante(
 
 
 @mcp.tool(tags={"privacy"})
-async def leggi_provvedimento_garante(docweb_id: int) -> str:
+async def leggi_provvedimento_garante(docweb_id: int, da_carattere: int = 1) -> str:
     """Legge il testo completo di un provvedimento del Garante Privacy tramite DocWeb ID.
 
     Usare dopo cerca_provvedimenti_garante() o ultimi_provvedimenti_garante() per leggere
     il testo completo. Il DocWeb ID è riportato in ogni risultato della ricerca.
-    Restituisce: testo integrale del provvedimento con titolo, data, e link alla fonte GPDP.
+    Restituisce: testo del provvedimento con titolo, data, e link alla fonte GPDP. Oltre 6000
+    caratteri il testo e' abbreviato: la parte omessa si legge ripetendo la chiamata con il
+    da_carattere indicato nella nota. Con da_carattere > 1 restituisce i 6000 caratteri che
+    partono da quella posizione; le posizioni contano il testo del documento (titolo e link esclusi).
 
     Un DocWeb ID inesistente o non pubblicato come pagina di testo (ad esempio un allegato PDF)
     restituisce un errore esplicito, non un documento.
@@ -167,8 +173,10 @@ async def leggi_provvedimento_garante(docweb_id: int) -> str:
 
     Args:
         docweb_id: ID numerico del documento Garante (es. 9677876)
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    return await _leggi_provvedimento_garante_impl(docweb_id)
+    return await _leggi_provvedimento_garante_impl(docweb_id, da_carattere)
 
 
 @mcp.tool(tags={"privacy"})

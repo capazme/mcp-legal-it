@@ -15,6 +15,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from .._http import note_source
+from .._paging import page, resume_hint
 
 _BASE = "https://www.garanteprivacy.it"
 _SEARCH_PATH = "/web/guest/home/ricerca"
@@ -377,15 +378,27 @@ def format_result(doc: DocResult) -> str:
     return "\n".join(lines)
 
 
-def format_full(title: str, text: str, docweb_id: int) -> str:
-    """Format full document as markdown."""
+def format_full(title: str, text: str, docweb_id: int, da_carattere: int = 1) -> str:
+    """Format full document as markdown.
+
+    Positions (``da_carattere`` and the ones in the notes) count ``text``, the
+    document body as extracted from the print page. With ``da_carattere`` > 1 the
+    answer is the window of ``text`` that starts there (see src/lib/_paging.py).
+    """
     url = f"{_BASE}{_DOC_PATH}/{docweb_id}"
+    header = [f"# {title}", f"**DocWeb**: [{docweb_id}]({url})", ""]
+    if da_carattere > 1:
+        body, note = page(text, da_carattere, _MAX_TEXT_LENGTH)
+        lines = header + ([body] if body else [])
+        lines.append(f"\n---\n{note}")
+        return "\n".join(lines)
     truncated = len(text) > _MAX_TEXT_LENGTH
     body = text[:_MAX_TEXT_LENGTH] if truncated else text
-    lines = [f"# {title}", f"**DocWeb**: [{docweb_id}]({url})", "", body]
+    lines = header + [body]
     if truncated:
         lines.append(
-            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(text)} totali]*"
+            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(text)} totali: "
+            f"{resume_hint(_MAX_TEXT_LENGTH + 1)}]*"
         )
     return "\n".join(lines)
 
