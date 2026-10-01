@@ -17,6 +17,7 @@ Two structures exist. The parser MUST handle both.
 | `dlgs_152_2006.xml` | flat | 443 | 6.3 MB | large flat act |
 | `codice_civile.xml` | component | ~2969 + preleggi | 10.6 MB | `<doc>` per article |
 | `codice_penale.xml` | component | ~734 | 4.1 MB | `<doc>` per article |
+| `dlgs_36_2023_trimmed.xml` | flat + annexes | 14 + 8 annex docs | 0.1 MB | trimmed (2026-10-01): body artt. 1-10, 18, 30, 31, 50; Allegati I.01, I.1, I.4, I.7, I.11; `meta/analysis` dropped |
 
 ## Structure 1 — FLAT (laws, decrees, Costituzione)
 
@@ -102,3 +103,12 @@ identified by the `name` attribute, **NOT** by eId:
 - The landing page exposes the params in the `caricaAKN` href and in
   `<meta property="eli:id_local" content="<CODE>">` + a
   `dataPubblicazioneGazzetta=YYYY-MM-DD` occurrence.
+
+## Structure 3 — FLAT BODY + COMPONENT ANNEXES (D.Lgs. 36/2023)
+
+The articles of the act are flat `<article>` elements in the body, and each
+annex article is a component `<doc>` in `<attachments>`, named
+`Allegato I.7-art. 30` — or, in the same export, `Allegato I.4-art 1` and
+`Allegati - Allegato I.01 art. 1`. The body is the default lookup; a component
+part takes over only when it outnumbers the body (codici: 2-3 body articles of
+the approving decree). Annex articles are reached by `annex_article()`.

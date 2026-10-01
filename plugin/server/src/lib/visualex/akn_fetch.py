@@ -54,6 +54,12 @@ _AKN_ROOT_WINDOW = 4000
 
 _CACHE_MAX = max(1, int(os.environ.get("AKN_CACHE_MAX_ACTS", "50") or "50"))
 
+# Version of the parsed-act layout on disk. Bump it whenever parse_akn changes
+# what an act serves, so acts parsed by the previous parser are fetched again
+# instead of answering with the old result until the vigenza date rolls over.
+# 2: the body of an act with annexes is the default lookup (issue #47).
+_CACHE_SCHEMA = 2
+
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
 
@@ -147,10 +153,12 @@ def _bump_hits(key: tuple[str, str, str]) -> None:
 
 def _act_to_dict(act: ParsedAct) -> dict:
     return {
+        "schema": _CACHE_SCHEMA,
         "title": act.title,
         "articles": act.articles,
         "order": act.order,
         "structure": act.structure,
+        "main_part": act.main_part,
         "parts": {
             name: {"name": p.name, "articles": p.articles, "order": p.order}
             for name, p in act.parts.items()
@@ -173,6 +181,7 @@ def _act_from_dict(data: dict) -> ParsedAct:
         order=list(data.get("order", [])),
         structure=data.get("structure", "flat"),
         parts=parts,
+        main_part=data.get("main_part", ""),
     )
 
 
@@ -184,6 +193,8 @@ def _disk_load(key: tuple[str, str, str]) -> "ParsedAct | None":
         if not path.exists():
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("schema") != _CACHE_SCHEMA:
+            return None  # parsed by an older parser: fetch and parse again
         return _act_from_dict(data)
     except (ValueError, OSError) as exc:
         print(f"[akn_fetch] disk read failed: {exc}", file=sys.stderr)

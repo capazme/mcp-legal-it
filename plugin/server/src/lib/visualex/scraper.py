@@ -12,7 +12,8 @@ from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .._http import note_source
-from .models import Norma, NormaVisitata
+from .akn_parser import annex_id_of
+from .models import Norma, NormaVisitata, names_an_annex, split_annex
 from .map import codice_urn, find_brocardi_url
 
 
@@ -142,12 +143,25 @@ async def fetch_article(nv: NormaVisitata) -> dict:
     """
     is_eurlex = nv.norma._is_eurlex()
     source = "eurlex" if is_eurlex else "normattiva"
+    annex = split_annex(nv.numero_articolo)
 
     if is_eurlex:
         html, url = await _fetch_eurlex_html(nv.norma)
         if not html:
             return {"text": "", "url": url, "source": source, "error": "Could not fetch EUR-Lex document"}
         text = _extract_eurlex_article(html, nv.numero_articolo)
+        if annex:
+            if text.startswith("["):  # not found / not divided into articles
+                return {"text": "", "url": url, "source": source, "error": text.strip("[]")}
+            return {"text": text, "url": url, "source": source, "allegato": f"Allegato {annex[0]}"}
+    elif annex:
+        return await _fetch_normattiva_annex(nv, *annex)
+    elif names_an_annex(nv.numero_articolo):
+        # An annex the syntax cannot read: going on would look up a body article
+        # under a malformed URN, the silent mix-up of issue #47.
+        return {"text": "", "url": nv.norma.url(), "source": source,
+                "error": (f"riferimento ad allegato non interpretabile: '{nv.numero_articolo}'. "
+                          "Formato atteso: 'allegato <id> art. <numero>' o 'allegato <id>'")}
     else:
         # A bare-year citation is resolved to the act's real date first, so the
         # URL (and the URN derived from it) is the act's own, not YYYY-01-01.
@@ -164,9 +178,14 @@ async def fetch_article(nv: NormaVisitata) -> dict:
 
             act = await fetch_act_akn(nv.norma)
             if act is not None:
-                akn_text = act.article(nv.numero_articolo, part=_akn_part_hint(nv.norma))
+                part = _akn_part_hint(nv.norma)
+                akn_text = act.article(nv.numero_articolo, part=part)
                 if akn_text:
-                    return {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data}
+                    result = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data}
+                    # The act's main text is a code approved in an annex: say so.
+                    if not part and annex_id_of(act.main_part):
+                        result["allegato"] = act.main_part
+                    return result
 
         async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
             resp = await client.get(url)
@@ -177,6 +196,35 @@ async def fetch_article(nv: NormaVisitata) -> dict:
         return {"text": text, "url": url, "source": source, "data_atto": nv.norma.data}
 
     return {"text": text, "url": url, "source": source}
+
+
+async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str) -> dict:
+    """An annex (or an article of an annex) of a Normattiva act, from the AKN export.
+
+    Only the AKN export separates the annexes from the body: the HTML fallback
+    knows body articles only, so without AKN this is an error, never the body
+    article that happens to carry the same number.
+    """
+    full = await with_full_date(nv.norma)
+    url = full.url()
+    base = {"text": "", "url": url, "source": "normattiva-akn", "data_atto": full.data}
+    label = f"Allegato {annex_id}" + (f", art. {article}" if article else "")
+    if _akn_disabled():
+        return {**base, "error": f"{label}: gli allegati si leggono solo dall'export Akoma Ntoso (AKN_DISABLED attivo)"}
+
+    from .akn_fetch import fetch_act_akn
+
+    act = await fetch_act_akn(full)
+    if act is None:
+        return {**base, "error": f"{label}: export Akoma Ntoso di Normattiva non disponibile, allegato non recuperabile"}
+    name = act.annex_name(annex_id)
+    if name is None:
+        available = ", ".join(act.annex_names()) or "nessuno con articoli"
+        return {**base, "error": f"Allegato {annex_id} non trovato nell'atto. Allegati disponibili: {available}"}
+    text = act.annex_article(annex_id, article) if article else act.annex_text(annex_id)
+    if not text:
+        return {**base, "error": f"{label} non trovato in {name}"}
+    return {**base, "text": text, "allegato": name}
 
 
 async def fetch_annotations(nv: NormaVisitata) -> dict:
@@ -419,6 +467,10 @@ def _extract_eurlex_article(html: str, article: str) -> str:
                 return text
         return f"[Considerando {recital_num} non trovato nel documento EUR-Lex]"
 
+    annex = split_annex(article)
+    if annex:
+        return _extract_eurlex_annex(soup, *annex)
+
     # Strategy 1: semantic id — div#art_N (most reliable on Cellar XHTML)
     art_id = f"art_{article}"
     article_div = soup.find("div", id=art_id)
@@ -457,6 +509,55 @@ def _extract_eurlex_article(html: str, article: str) -> str:
             return _extract_eurlex_siblings(tag)
 
     return f"[Articolo {article} non trovato nel documento EUR-Lex]"
+
+
+def _extract_eurlex_annex(soup: BeautifulSoup, annex_id: str, article: str) -> str:
+    """Text of an annex of an EU act: CELLAR marks each one as ``div#anx_<N>``.
+
+    The points of an annex ("1.", "a)") are two-cell table rows nested in each
+    other; they are rendered one per line, the label beside its text. EU annexes
+    are not divided into articles, so an article of an annex is refused rather
+    than answered with the whole annex.
+    """
+    if article:
+        return (f"[Gli allegati degli atti UE non sono suddivisi in articoli: "
+                f"richiedere l'Allegato {annex_id} per intero]")
+    wanted = annex_id.strip().upper()
+    annexes = soup.find_all("div", id=re.compile(r"^anx_"))
+    for div in annexes:
+        if div["id"][4:].upper() == wanted:
+            return "\n".join(_eurlex_block_lines(div))
+    available = ", ".join(div["id"][4:] for div in annexes) or "nessuno"
+    return f"[Allegato {annex_id} non trovato nel documento EUR-Lex. Allegati presenti: {available}]"
+
+
+def _eurlex_block_lines(node: Tag, indent: str = "") -> list[str]:
+    """Lines of a CELLAR block: paragraphs as they are, table rows as "label text"."""
+    lines: list[str] = []
+    for child in node.children:
+        if not isinstance(child, Tag):
+            continue
+        if child.name == "table":
+            body = child.find("tbody", recursive=False) or child
+            for row in body.find_all("tr", recursive=False):
+                cells = row.find_all("td", recursive=False)
+                if len(cells) < 2:
+                    lines.extend(_eurlex_block_lines(row, indent))
+                    continue
+                label = " ".join(cells[0].get_text().split())
+                content = _eurlex_block_lines(cells[1], indent + "  ")
+                if content:
+                    content[0] = f"{indent}{label} {content[0].strip()}".rstrip()
+                    lines.extend(content)
+                elif label:
+                    lines.append(f"{indent}{label}")
+        elif child.name in ("p", "span", "h1", "h2", "h3", "h4"):
+            text = " ".join(child.get_text().split())
+            if text:
+                lines.append(f"{indent}{text}")
+        else:
+            lines.extend(_eurlex_block_lines(child, indent))
+    return lines
 
 
 def _row_text(row: Tag) -> str:

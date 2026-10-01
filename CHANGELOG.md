@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `cite_law` / `fetch_law_article` on acts with annexes (issue #47): in the
+  Akoma Ntoso export of D.Lgs. 36/2023 the 233 articles of the Code sit in the
+  body and each annex is a set of component documents. The parser let the
+  largest annex replace the body, so artt. 1-44 of the Codice dei contratti
+  pubblici returned the article with the same number of Allegato I.7 (art. 30
+  "Cronoprogramma" instead of "Uso di procedure automatizzate"), under the URN
+  of the Code's own article and with no warning. The body is now the default
+  lookup; a component part replaces it only when it is the act's main text (the
+  codici, where the body is the 2-3 article approving decree), and then the
+  answer says so ("Testo tratto dall'Allegato ..."). Parsed acts cached on disk
+  by the previous parser are discarded (`_CACHE_SCHEMA`).
+
+### Added
+- Annexes on request. Italian acts: "art. 30 dell'allegato I.7 al D.Lgs.
+  36/2023" or "allegato I.7 art. 30 D.Lgs. 36/2023" (also `article="allegato
+  I.7 art. 30"` in `fetch_law_article`), read from the AKN export only — without
+  it the tool answers with an error, never with the body article of the same
+  number. EU acts: "Allegato III AI Act" returns the whole annex from CELLAR
+  (`div#anx_N`), points and letters on their own lines; an unknown annex lists
+  the available ones. `cite_law(formato="json")` gains the field `allegato`.
+
 ## [2.15.0] - 2026-09-30
 
 ### Added

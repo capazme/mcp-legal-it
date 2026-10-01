@@ -54,8 +54,8 @@ descrizione di ogni tool.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato. |
-| `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti. |
+| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato; anche allegati ("art. 30 dell'allegato I.7 al D.Lgs. 36/2023", "Allegato III AI Act"). |
+| `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti; `article` accetta anche "allegato I.7 art. 30" o "Allegato III". |
 | `fetch_law_annotations` | `fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "")` | Solo annotazioni Brocardi per un articolo specifico. |
 | `cerca_brocardi` | `cerca_brocardi(reference: str)` | Annotazioni complete Brocardi: ratio, spiegazione, massime strutturate con riferimenti Cassazione. |
 | `fetch_act_index` | `fetch_act_index(reference: str)` | Indice degli articoli di un atto normativo. |
