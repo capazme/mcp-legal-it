@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.2] - 2026-10-01
+
+### Fixed
+- `cite_law` sugli atti con allegati (issue #47): gli artt. 1-44 del D.Lgs.
+  36/2023 restituivano, senza avvisi, l'articolo con lo stesso numero
+  dell'Allegato I.7. Ora si ottiene sempre il corpo dell'atto; quando il testo
+  principale sta in un allegato (un codice approvato in allegato) la risposta
+  lo dichiara.
+- `cerca_pronuncia_costituzionale` senza anni cerca solo nell'anno corrente:
+  ora l'intestazione lo dice anche quando trova risultati.
+
+### Added
+- Allegati su richiesta: "art. 30 dell'allegato I.7 al D.Lgs. 36/2023" e
+  "Allegato III AI Act" (allegati degli atti UE da CELLAR, per intero).
+- Lettura a pagine dei testi lunghi: gli otto tool che leggono sentenze e
+  provvedimenti (CGUE, Cassazione, CeRDEF, TAR/CdS, Corte costituzionale,
+  Garante, CONSOB, Gazzetta) accettano `da_carattere`; ogni nota di taglio
+  indica da dove riprendere. Le conclusioni dell'avvocato generale conservano
+  la risposta proposta alla Corte.
+
 ## [2.15.0] - 2026-09-30
 
 ### Fixed
