@@ -54,8 +54,8 @@ descrizione di ogni tool.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato. |
-| `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti. |
+| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato; anche allegati ("art. 30 dell'allegato I.7 al D.Lgs. 36/2023", "Allegato III AI Act"). |
+| `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti; `article` accetta anche "allegato I.7 art. 30" o "Allegato III". |
 | `fetch_law_annotations` | `fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "")` | Solo annotazioni Brocardi per un articolo specifico. |
 | `cerca_brocardi` | `cerca_brocardi(reference: str)` | Annotazioni complete Brocardi: ratio, spiegazione, massime strutturate con riferimenti Cassazione. |
 | `fetch_act_index` | `fetch_act_index(reference: str)` | Indice degli articoli di un atto normativo. |
@@ -70,11 +70,11 @@ descrizione di ogni tool.
 **Modulo:** `src/tools/italgiure.py`
 **Tag:** `giurisprudenza`
 **API esterne:** Italgiure (Cassazione Solr API, `https://www.italgiure.giustizia.it`)
-**Note:** SSL non valido → `verify=False`; collezioni `snciv` (civile) e `snpen` (penale); OCR troncato a 30.000 caratteri.
+**Note:** SSL non valido → `verify=False`; collezioni `snciv` (civile) e `snpen` (penale); OCR letto a blocchi di 30.000 caratteri (inizio e fine nella prima risposta, il resto con `da_carattere`).
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `leggi_sentenza` | `leggi_sentenza(numero: int, anno: int, sezione: str = "", archivio: str = "tutti")` | Testo completo di una sentenza da Italgiure. Usare quando si conosce già il numero. |
+| `leggi_sentenza` | `leggi_sentenza(numero: int, anno: int, sezione: str = "", archivio: str = "tutti", da_carattere: int = 1)` | Testo completo di una sentenza da Italgiure. Usare quando si conosce già il numero. |
 | `cerca_giurisprudenza` | `cerca_giurisprudenza(query: str, archivio: str = "tutti", materia: str = "", sezione: str = "", anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10, pagina: int = 0)` | Ricerca full-text nelle sentenze della Cassazione. |
 | `giurisprudenza_su_norma` | `giurisprudenza_su_norma(riferimento: str, archivio: str = "tutti", max_risultati: int = 10, pagina: int = 0)` | Sentenze della Cassazione che citano uno specifico articolo di legge. |
 | `ultime_pronunce` | `ultime_pronunce(materia: str = "", sezione: str = "", archivio: str = "tutti", tipo_provvedimento: str = "", max_risultati: int = 10)` | Ultime decisioni depositate dalla Cassazione, con filtri opzionali. |
@@ -91,7 +91,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_provvedimenti_garante` | `cerca_provvedimenti_garante(query: str, tipologia: str = "", data_da: str = "", data_a: str = "", max_risultati: int = 10)` | Ricerca full-text nei provvedimenti del Garante Privacy. |
-| `leggi_provvedimento_garante` | `leggi_provvedimento_garante(docweb_id: int)` | Testo completo di un provvedimento del Garante per ID docweb. |
+| `leggi_provvedimento_garante` | `leggi_provvedimento_garante(docweb_id: int, da_carattere: int = 1)` | Testo completo di un provvedimento del Garante per ID docweb. |
 | `ultimi_provvedimenti_garante` | `ultimi_provvedimenti_garante(tipologia: str = "", max_risultati: int = 10)` | Ultimi provvedimenti pubblicati dal Garante, con filtro tipologia. |
 
 ---
@@ -412,7 +412,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_gazzetta_ufficiale` | `cerca_gazzetta_ufficiale(query: str = '', titolo: str = '', testo: str = '', tipo_provvedimento: str = '', emettitore: str = '', materia: str = '', serie: str = 'serie_generale', anno_da: str = '', anno_a: str = '', max_risultati: int = 20)` | Cerca atti pubblicati nella Gazzetta Ufficiale (ricerca parametrica/full-text). |
-| `leggi_atto_gazzetta` | `leggi_atto_gazzetta(codice_redazionale: str, data_pubblicazione: str, serie: str = 'serie_generale', solo_metadati: bool = False)` | Legge il testo completo di un atto pubblicato in Gazzetta Ufficiale. |
+| `leggi_atto_gazzetta` | `leggi_atto_gazzetta(codice_redazionale: str, data_pubblicazione: str, serie: str = 'serie_generale', solo_metadati: bool = False, da_carattere: int = 1)` | Legge il testo completo di un atto pubblicato in Gazzetta Ufficiale. |
 | `scarica_pdf_gazzetta` | `scarica_pdf_gazzetta(numero_gazzetta: str, data_pubblicazione: str, serie: str = 'serie_generale')` | Restituisce l'URL del PDF ufficiale di un fascicolo di Gazzetta Ufficiale. |
 | `sommario_gazzetta` | `sommario_gazzetta(numero_gazzetta: str, data_pubblicazione: str, serie: str = 'serie_generale')` | Restituisce il sommario (indice degli atti) di un fascicolo di Gazzetta Ufficiale. |
 | `ultime_gazzette` | `ultime_gazzette(serie: str = 'serie_generale', max_risultati: int = 10)` | Ultimi atti pubblicati nella Gazzetta Ufficiale (novita normative, via RSS). |
@@ -428,7 +428,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_pronuncia_costituzionale` | `cerca_pronuncia_costituzionale(query: str, tipo: str = '', anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10)` | Cerca sentenze e ordinanze della Corte Costituzionale per parole chiave. |
-| `leggi_pronuncia_costituzionale` | `leggi_pronuncia_costituzionale(numero: int, anno: int)` | Legge il testo completo di una pronuncia della Corte Costituzionale. |
+| `leggi_pronuncia_costituzionale` | `leggi_pronuncia_costituzionale(numero: int, anno: int, da_carattere: int = 1)` | Legge il testo completo di una pronuncia della Corte Costituzionale. |
 | `pronunce_cost_su_norma` | `pronunce_cost_su_norma(riferimento: str, anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10)` | Cerca pronunce costituzionali che invocano una norma come parametro. |
 | `ultime_pronunce_cost` | `ultime_pronunce_cost(tipo: str = '', max_risultati: int = 10)` | Ultime pronunce depositate dalla Corte Costituzionale (anno corrente). |
 
@@ -444,7 +444,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_giurisprudenza_tributaria` | `cerca_giurisprudenza_tributaria(query: str, tipo_provvedimento: str = '', ente: str = '', data_da: str = '', data_a: str = '', numero: str = '', criterio: str = 'tutti', ordinamento: str = 'rilevanza', max_risultati: int = 10)` | Cerca sentenze e provvedimenti nella banca dati CeRDEF (MEF — def.finanze.it). |
-| `cerdef_leggi_provvedimento` | `cerdef_leggi_provvedimento(guid: str)` | Legge il testo completo di un provvedimento CeRDEF tramite GUID. |
+| `cerdef_leggi_provvedimento` | `cerdef_leggi_provvedimento(guid: str, da_carattere: int = 1)` | Legge il testo completo di un provvedimento CeRDEF tramite GUID. |
 | `ultime_sentenze_tributarie` | `ultime_sentenze_tributarie(ente: str = '', tipo_provvedimento: str = '', max_risultati: int = 10)` | Ultime sentenze e provvedimenti tributari da CeRDEF (MEF), con filtro opzionale. |
 
 ---
@@ -460,7 +460,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `cerca_giurisprudenza_amministrativa` | `cerca_giurisprudenza_amministrativa(query: str, sede: str = '', tipo: str = '', anno: str = '', numero: str = '', max_risultati: int = 10)` | Cerca sentenze e provvedimenti di TAR e Consiglio di Stato. |
 | `giurisprudenza_amm_su_norma` | `giurisprudenza_amm_su_norma(riferimento: str, sede: str = '', anno_da: str = '', max_risultati: int = 10)` | Trova provvedimenti TAR/CdS che citano una norma specifica. |
-| `leggi_provvedimento_amm` | `leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str)` | Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp. |
+| `leggi_provvedimento_amm` | `leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str, da_carattere: int = 1)` | Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp. |
 | `ultimi_provvedimenti_amm` | `ultimi_provvedimenti_amm(sede: str = '', tipo: str = '', max_risultati: int = 10)` | Ultimi provvedimenti depositati da TAR e Consiglio di Stato, con filtro opzionale. |
 
 ---
@@ -476,7 +476,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `cerca_giurisprudenza_cgue` | `cerca_giurisprudenza_cgue(query: str, corte: str = '', tipo_documento: str = '', anno_da: str = '', anno_a: str = '', materia: str = '', max_risultati: int = 10)` | Cerca sentenze e decisioni della Corte di Giustizia UE (CGUE) e del Tribunale UE via SPARQL CELLAR. |
 | `giurisprudenza_cgue_su_norma` | `giurisprudenza_cgue_su_norma(riferimento: str, corte: str = '', anno_da: str = '', max_risultati: int = 10)` | Cerca sentenze CGUE e Tribunale UE che interpretano una specifica norma del diritto UE. |
-| `leggi_sentenza_cgue` | `leggi_sentenza_cgue(cellar_uri: str)` | Legge il testo completo di una sentenza CGUE tramite CELLAR URI. |
+| `leggi_sentenza_cgue` | `leggi_sentenza_cgue(cellar_uri: str, da_carattere: int = 1)` | Legge il testo completo di una sentenza CGUE tramite CELLAR URI. |
 | `ultime_sentenze_cgue` | `ultime_sentenze_cgue(corte: str = '', tipo_documento: str = '', materia: str = '', max_risultati: int = 10)` | Ultime sentenze e decisioni pubblicate dalla Corte di Giustizia UE e dal Tribunale UE. |
 
 ---
@@ -491,7 +491,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_delibere_consob` | `cerca_delibere_consob(query: str, tipologia: str = '', argomento: str = '', data_da: str = '', data_a: str = '', max_risultati: int = 20)` | Cerca delibere e provvedimenti CONSOB nel bollettino ufficiale. |
-| `leggi_delibera_consob` | `leggi_delibera_consob(numero: str)` | Legge il testo completo di una delibera CONSOB tramite numero. |
+| `leggi_delibera_consob` | `leggi_delibera_consob(numero: str, da_carattere: int = 1)` | Legge il testo completo di una delibera CONSOB tramite numero. |
 | `ultime_delibere_consob` | `ultime_delibere_consob(tipologia: str = '', argomento: str = '', max_risultati: int = 10)` | Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale. |
 
 ---

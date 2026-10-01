@@ -231,7 +231,7 @@ def test_leggi_linee_guida_cookie_9677876():
     assert "[doc. web n. 9677876]" in r
     assert "n. 231 del 10 giugno 2021" in r
     assert "Gazzetta Ufficiale n. 163 del 9 luglio 2021" in r
-    m = re.search(r"\[Testo troncato a 6000 caratteri su (\d+) totali\]", r)
+    m = re.search(r"\[Testo troncato a 6000 caratteri su (\d+) totali: [^\]]*da_carattere=6001\]", r)
     assert m, r[-300:]
     assert int(m.group(1)) > 6000
 

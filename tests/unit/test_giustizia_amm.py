@@ -9,6 +9,9 @@ Do not "simplify" them: the previous fixtures were invented, matched nothing on
 the live site, and let a total outage of both tools pass CI unnoticed.
 """
 
+import inspect
+import re
+
 import pytest
 import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -872,11 +875,111 @@ class TestDispositivoSurvivesTruncation:
         out = format_full("Title", "a" * 16000, "cds", "123")
         assert "omissis" not in out
         assert "Testo troncato a 15000 caratteri su 16000 totali" in out
+        assert "da_carattere=15001" in out
 
     def test_short_text_is_untouched(self):
         text = self._text(100)
         out = format_full("Title", text, "cds", "123")
         assert text in out and "troncato" not in out and "omissis" not in out
+
+
+def _body_of(out: str) -> str:
+    """The text part of format_full: after the Sede/Estremi header, before the closing note."""
+    return out.split("**Sede**: ", 1)[1].split("\n\n", 1)[1]
+
+
+class TestPagedReading:
+    """da_carattere: the part cut from a long provvedimento stays reachable."""
+
+    _DISP = "P.Q.M. accoglie l'appello."
+
+    def _text(self, filler: int = 50_000, disp: str | None = None) -> str:
+        # distinguishable characters so a window's start can be checked exactly
+        body = "".join(chr(ord("a") + (i // 7) % 26) for i in range(filler))
+        return "MOTIVAZIONE\n\n" + body + "\n\nDISPOSITIVO\n\n" + (disp or self._DISP)
+
+    def test_default_cut_note_carries_the_resume_position_after_the_head(self):
+        text = self._text()
+        out = format_full("T", text, "cds", "1")
+        idx = text.rfind("\n\nDISPOSITIVO\n\n")
+        head_len = 15_000 - len(text[idx + 2:])
+        assert f"omissis: {idx - head_len} caratteri della motivazione: " in out
+        assert f"da_carattere={head_len + 1}" in out
+        # the closing note repeats the first omitted character
+        assert out.rstrip().endswith(f"da_carattere={head_len + 1}]*")
+
+    def test_oversized_dispositivo_note_resumes_after_the_kept_dispositivo(self):
+        text = self._text(50_000, "P.Q.M. " + "x" * 9000)
+        out = format_full("T", text, "cds", "1")
+        idx = text.rfind("\n\nDISPOSITIVO\n\n")
+        assert out.rstrip().endswith(f"da_carattere={idx + 2 + 6000 + 1}]*")
+
+    def test_no_dispositivo_cut_resumes_after_the_limit(self):
+        out = format_full("T", "a" * 16000, "cds", "1")
+        assert out.rstrip().endswith("Testo troncato a 15000 caratteri su 16000 totali: "
+                                     "per leggere il seguito ripetere la chiamata con da_carattere=15001]*")
+
+    def test_window_starts_exactly_at_the_first_omitted_character(self):
+        text = self._text()
+        first = format_full("T", text, "cds", "1")
+        idx = text.rfind("\n\nDISPOSITIVO\n\n")
+        head_len = 15_000 - len(text[idx + 2:])
+        out = format_full("T", text, "cds", "1", da_carattere=head_len + 1)
+        body = _body_of(out).split("\n\n---\n", 1)[0]
+        assert body == text[head_len:head_len + 15_000]
+        assert f"*[Caratteri {head_len + 1}-{head_len + 15_000} su {len(text)} totali: " in out
+        assert "**Sede**: Consiglio di Stato (cds) — NRG: 1" in out
+        assert "omissis" not in out and first != out
+
+    def test_windows_walk_the_whole_text_and_the_last_says_end(self):
+        text = self._text(20_000)
+        # da_carattere=1 is the dispositivo-keeping excerpt; plain windows start at 2
+        pos, seen = 2, text[0]
+        while True:
+            out = format_full("T", text, "cds", "1", da_carattere=pos)
+            body = _body_of(out).rsplit("\n\n---\n", 1)[0]
+            seen += body
+            if "fine del testo" in out:
+                break
+            pos += 15_000
+        assert seen == text
+        assert out.rstrip().endswith(f"su {len(text)} totali: fine del testo]*")
+
+    def test_start_beyond_the_end_is_declared(self):
+        out = format_full("T", "breve", "cds", "1", da_carattere=99)
+        assert "oltre la fine del testo (5 caratteri)" in out
+
+    @pytest.mark.asyncio
+    async def test_impl_threads_the_parameter_down_to_the_window(self):
+        with _patch_session(doc_bytes=_MDP_XML_AP17):
+            full = (await _leggi_provvedimento_amm_impl("cds", "202105584", "202100017_11.html")).to_str()
+            m = re.search(r"da_carattere=(\d+)", full)
+            assert m, full[-400:]
+            nxt = int(m.group(1))
+            paged = await _leggi_provvedimento_amm_impl("cds", "202105584", "202100017_11.html", nxt)
+        assert paged.success is True
+        assert f"*[Caratteri {nxt}-" in paged.to_str()
+        assert "omissis" not in paged.to_str()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [0, -3, "2", 1.5, True, None])
+    async def test_invalid_da_carattere_errors_before_any_network_call(self, bad):
+        with _patch_session() as session_cls:
+            result = await _leggi_provvedimento_amm_impl("tar_rm", "1", "x.html", bad)
+        assert result.success is False
+        assert "da_carattere deve essere un intero maggiore o uguale a 1" in result.to_str()
+        session_cls.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_accepts_and_threads_da_carattere(self):
+        from src.tools.giustizia_amm import leggi_provvedimento_amm
+
+        with patch("src.tools.giustizia_amm._leggi_provvedimento_amm_impl",
+                   new=AsyncMock(return_value="ok")) as impl:
+            out = await leggi_provvedimento_amm("cds", "1", "x.html", da_carattere=15001)
+        assert out == "ok"
+        assert list(inspect.signature(leggi_provvedimento_amm).parameters)[-1] == "da_carattere"
+        impl.assert_awaited_once_with("cds", "1", "x.html", 15001)
 
 
 class TestLeggiKeepsPqmAndDate:
