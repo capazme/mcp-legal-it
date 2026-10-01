@@ -71,7 +71,12 @@ async def _cerca_pronuncia_costituzionale_impl(
             results_text=f"Nessuna pronuncia costituzionale trovata per: _{q_desc}_{scope}",
         )
 
-    lines = [f"**Trovate {len(docs)} pronunce della Corte Costituzionale**\n"]
+    # Without years only the current year was searched: say so also when something is found,
+    # or "Trovate N pronunce" reads as a count over the whole archive.
+    scope = "" if (anno_da or anno_a) else (
+        f" (solo anno {current_year}; specificare anno_da/anno_a per cercare in altri anni)"
+    )
+    lines = [f"**Trovate {len(docs)} pronunce della Corte Costituzionale{scope}**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")

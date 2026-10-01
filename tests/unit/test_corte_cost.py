@@ -691,6 +691,20 @@ class TestCercaImpl:
         assert result.success
         assert "Trovate" in result.results_text
         assert "1/1956" in result.results_text
+        # Explicit years: the header does not claim a restricted scope.
+        assert "solo anno" not in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_results_without_years_declare_the_current_year(self, monkeypatch):
+        # Without anno_da/anno_a only the current year is searched: "Trovate N pronunce" alone
+        # reads as the whole archive, so the header says which year it covered.
+        monkeypatch.setenv("LEGAL_TODAY", "1956-12-31")
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+            result = await _cerca_pronuncia_costituzionale_impl("illegittimità")
+        assert result.success
+        header = result.results_text.split("\n### ", 1)[0]
+        assert "solo anno 1956" in header
+        assert "anno_da/anno_a" in header
 
     @pytest.mark.asyncio
     async def test_no_results(self):
