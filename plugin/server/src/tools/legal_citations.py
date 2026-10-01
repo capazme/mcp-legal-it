@@ -20,6 +20,7 @@ from src.lib.visualex import (
     strip_leading_particles,
     known_act_names,
 )
+from src.lib.visualex.models import ANNEX_ID, annex_reference, split_annex
 from src.lib.visualex.scraper import (
     _build_celex,
     fetch_article,
@@ -43,6 +44,38 @@ _PARAGRAPH_PATTERN = re.compile(
 )
 
 
+# Connectives between an annex and its act: "allegato I.7 al D.Lgs. 36/2023".
+_ANNEX_LINK = r"(?:(?:al|del|della|dello|alla|all['’]|dell['’])\s*)?"
+
+# "allegato I.7 [art. 30] <atto>", "Allegato III, punto 4, lett. a) <atto>"
+_ANNEX_FIRST_PATTERN = re.compile(
+    rf"^allegato\s+(?P<id>{ANNEX_ID})(?=[\s,;]|$)"
+    r"(?:\s*,?\s*(?:articol[oi]|art)\.?\s*(?P<art>\d+(?:[-/.]\w+)*))?"
+    r"\s*[,;]?\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+
+# What follows "art. 30" when the article belongs to an annex: "dell'allegato I.7 al ..."
+_ANNEX_AFTER_ARTICLE = re.compile(
+    rf"^{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})(?=[\s,;]|$)\s*[,;]?\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+
+
+def _strip_paragraphs(rest: str) -> str:
+    """Drop leading paragraph/point/letter indicators, repeatedly ("comma 1 lett. a) GDPR" → "GDPR")."""
+    while True:
+        stripped = _PARAGRAPH_PATTERN.sub("", rest).strip()
+        if stripped == rest:
+            return rest
+        rest = stripped
+
+
+def _strip_annex_link(rest: str) -> str:
+    """Drop the connective before the act name ("al D.Lgs. 36/2023" → "D.Lgs. 36/2023")."""
+    return re.sub(rf"^{_ANNEX_LINK}", "", rest, flags=re.IGNORECASE).strip()
+
+
 def _parse_reference(reference: str) -> tuple[str, str]:
     """Parse a legal reference like 'art. 13 GDPR' into (article, act_name).
 
@@ -55,8 +88,16 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     - "art. 4 n. 11 GDPR"  → paragraph stripped → ("4", "GDPR")
     - "considerando 42 GDPR" → ("rec_42", "GDPR")
     - "recital 47 GDPR"     → ("rec_47", "GDPR")
+    - "allegato I.7 art. 30 D.Lgs. 36/2023", "art. 30 dell'allegato I.7 al D.Lgs. 36/2023"
+                             → ("allegato I.7 art. 30", "D.Lgs. 36/2023")
+    - "Allegato III AI Act"  → ("allegato III", "AI Act")
     """
     reference = reference.strip()
+
+    annex_match = _ANNEX_FIRST_PATTERN.match(reference)
+    if annex_match:
+        rest = _strip_annex_link(_strip_paragraphs(annex_match.group("rest").strip()))
+        return annex_reference(annex_match.group("id"), annex_match.group("art") or ""), rest
 
     # Considerando / recital — must be checked before "art." pattern
     rec_match = re.match(
@@ -75,14 +116,13 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     )
     if match:
         article = match.group(1).strip()
-        rest = match.group(2).strip()
         # Strip leading paragraph/point/comma indicators, applied repeatedly
         # to handle chains like "comma 1 lett. a) GDPR" → "GDPR".
-        while True:
-            stripped = _PARAGRAPH_PATTERN.sub("", rest).strip()
-            if stripped == rest:
-                break
-            rest = stripped
+        rest = _strip_paragraphs(match.group(2).strip())
+        annex_match = _ANNEX_AFTER_ARTICLE.match(rest)
+        if annex_match:
+            rest = _strip_annex_link(annex_match.group("rest").strip())
+            return annex_reference(annex_match.group("id"), article), rest
         return article, rest
 
     # No "art." prefix — try to parse as just act name (no article)
@@ -259,6 +299,8 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 
     if text:
         parts.append(f"**Fonte**: {source.title()} — {url}\n")
+        if article_result.get("allegato"):
+            parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         parts.append(text)
     else:
         parts.append(f"**Nessun testo trovato** — URL: {url}")
@@ -309,7 +351,8 @@ async def _cite_law_struct(reference: str) -> dict:
     base = {
         "formato": "json", "riferimento": reference, "articolo": "",
         "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
-        "url": "", "urn": None, "fonte": "", "testo": "", "errore": None, "data_consultazione": today,
+        "url": "", "urn": None, "fonte": "", "allegato": None, "testo": "", "errore": None,
+        "data_consultazione": today,
     }
     article, act_name = _parse_reference(reference)
     if not act_name:
@@ -346,6 +389,7 @@ async def _cite_law_struct(reference: str) -> dict:
     elif base["urn"] and re.fullmatch(r"\d{4}", act_info.get("data", "") or ""):
         base["urn"] = None
     base["fonte"] = result.get("source", "") or ""
+    base["allegato"] = result.get("allegato") or None
     base["testo"] = result.get("text", "") or ""
     if result.get("error"):
         base["errore"] = result["error"]
@@ -374,7 +418,9 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
         article_result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
 
     brocardi_md = ""
-    if include_annotations and article:
+    if include_annotations and article and split_annex(article):
+        brocardi_md = "\n\n**Annotazioni Brocardi**: non disponibili per gli allegati"
+    elif include_annotations and article:
         try:
             brocardi = await fetch_brocardi(
                 act_info["tipo_atto"], article, act_info.get("numero_atto", ""), act_info.get("data", "")
@@ -430,6 +476,13 @@ async def cite_law(
       - "art. 6 D.Lgs. 231/2001" — articolo di decreto legislativo
       - "considerando 42 GDPR" — considerando (recital) di regolamento UE
       - "art. 13 regolamento UE 2016/679" — riferimento con nome completo
+      - "art. 30 dell'allegato I.7 al D.Lgs. 36/2023" — articolo di un allegato
+        (anche "allegato I.7 art. 30 D.Lgs. 36/2023")
+      - "Allegato III AI Act" — allegato di un atto UE, restituito per intero
+        (punti e lettere vengono ignorati, come i commi)
+
+    Senza "allegato" si ottiene sempre l'articolo del corpo dell'atto. Se il testo
+    proviene da un allegato, l'output lo dichiara ("Testo tratto dall'Allegato ...").
 
     I numeri di paragrafo (n. N, co. N, comma N) vengono automaticamente
     ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR".
@@ -441,8 +494,10 @@ async def cite_law(
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
                              massime giurisprudenziali). Default False.
         formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
-                 atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, testo,
-                 errore, data_consultazione. "urn" è l'estremo URN Normattiva quando la
+                 atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, allegato,
+                 testo, errore, data_consultazione. "allegato" è il nome dell'allegato da cui
+                 proviene il testo ("Allegato I.7"), null se è il corpo dell'atto; per un
+                 allegato "urn" è quello dell'atto. "urn" è l'estremo URN Normattiva quando la
                  fonte è Normattiva, altrimenti null; se l'atto è citato con il solo anno
                  ("L. 742/1969") la data completa è letta dalla pagina Normattiva
                  ("1969-10-07"), e se non è ricavabile "urn" è null (mai una data fittizia).
@@ -462,7 +517,9 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
     Args:
         act_type: Tipo di atto normativo, es. "decreto legislativo", "regolamento ue",
                   "codice civile", "codice penale", "costituzione", "legge", "decreto legge"
-        article: Numero dell'articolo, es. "13", "2-bis", "117"
+        article: Numero dell'articolo, es. "13", "2-bis", "117"; per un allegato
+                 "allegato I.7 art. 30" (articolo di un allegato) o "Allegato III"
+                 (allegato intero, es. di un regolamento UE)
         date: Anno o data dell'atto, es. "2016", "2003-06-30" (opzionale per i codici)
         act_number: Numero dell'atto, es. "196", "679" (opzionale per i codici)
     """
@@ -495,6 +552,9 @@ async def _cerca_brocardi_impl(reference: str) -> str:
 
     if not act_name:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
+
+    if split_annex(article):
+        return "**Errore Brocardi**: Brocardi non annota gli allegati; per il testo usare cite_law()."
 
     act_info = _resolve_act(act_name)
     if not act_info:
@@ -968,7 +1028,7 @@ def _split_citazioni(citazioni: str) -> list[str]:
         for frag in fragments:
             if not frag:
                 continue
-            if current and _starts_new_reference(frag):
+            if current and _starts_new_reference(frag) and not _continues_with_annex(current, frag):
                 refs.append(current)
                 current = frag
             elif current:
@@ -980,10 +1040,19 @@ def _split_citazioni(citazioni: str) -> list[str]:
     return refs
 
 
+def _continues_with_annex(current: str, fragment: str) -> bool:
+    """ "art. 30, allegato I.7, D.Lgs. 36/2023": the annex completes an article still
+    waiting for its act, it does not open a new reference."""
+    if not re.match(r"allegato\s", fragment.lstrip(), re.IGNORECASE):
+        return False
+    article, act_name = _parse_reference(current)
+    return not (article and act_name)
+
+
 def _starts_new_reference(fragment: str) -> bool:
     """True if a comma-fragment begins a fresh citation (not a continuation)."""
     low = fragment.lstrip().lower()
-    if re.match(r"(?:art(?:icol[oi])?\.?\s*\d|considerando\s+\d|recital\s+\d)", low):
+    if re.match(r"(?:art(?:icol[oi])?\.?\s*\d|considerando\s+\d|recital\s+\d|allegato\s+\w)", low):
         return True
     if re.match(r"(?:cass|sez|ss?\.?\s*uu)", low):
         return True

@@ -1086,7 +1086,9 @@ class TestExcerptKeepsOperativePart:
         body, note = _excerpt(text)
         assert "Per questi motivi, dichiara" in body
         assert len(body) < 25000 + 8000 + 400
-        assert "dopo il dispositivo" in note
+        assert "dopo la parte finale" in note
+        # The kept tail ends 8000 characters after the formula (at 60000): resume right after it.
+        assert note.endswith("da_carattere=68001]*")
 
     def test_operative_part_inside_the_first_block(self):
         text = "x" * 20000 + "Per questi motivi, dichiara:\n" + "d" * 12000 + "\n" + "w" * 20000
@@ -1099,10 +1101,44 @@ class TestExcerptKeepsOperativePart:
     def test_no_formula_falls_back_to_head_truncation(self):
         body, note = _excerpt("a" * 30000)
         assert body == "a" * 25000
-        assert note == "*[Testo troncato a 25000 caratteri su 30000 totali]*"
+        assert note == (
+            "*[Testo troncato a 25000 caratteri su 30000 totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=25001]*"
+        )
 
     def test_short_text_unchanged(self):
         assert _excerpt("breve Per questi motivi") == ("breve Per questi motivi", "")
+
+    def test_omitted_part_says_how_to_read_it(self):
+        body, _ = _excerpt(self._long())
+        assert "ripetere la chiamata con da_carattere=25001" in body
+
+    def test_da_carattere_reads_the_omitted_reasoning(self):
+        # C-203/22: 63,472 characters, operative part at 61,449. The reasoning in between
+        # (25,001-61,449) used to be unreachable; it is read in windows of 25,000.
+        text = "a" * 25000 + "MOTIVAZIONE" + "b" * 30000 + "\n" + self.DISPOSITIVO
+        body, note = _excerpt(text, da_carattere=25001)
+        assert body.startswith("MOTIVAZIONE")
+        assert len(body) == 25000
+        assert note == (
+            f"*[Caratteri 25001-50000 su {len(text)} totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=50001]*"
+        )
+        last, note = _excerpt(text, da_carattere=50001)
+        assert last.endswith("Firme")
+        assert note.endswith("fine del testo]*")
+
+    def test_ag_opinion_keeps_the_proposed_answer(self):
+        # Conclusioni AG, causa C-203/22: no "Per questi motivi"; the proposal closes the text.
+        text = (
+            "CONCLUSIONI DELL'AVVOCATO GENERALE\n" + "x" * 60000 + "\nIV.\nConclusione\n96.\n"
+            "Alla luce di tutte le considerazioni che precedono, propongo alla Corte di rispondere "
+            "alle questioni pregiudiziali nei seguenti termini:\n1) l'articolo 15 ...\n" + "(1) nota" * 10
+        )
+        body, _ = _excerpt(text)
+        assert "Alla luce di tutte le considerazioni che precedono, propongo alla Corte di rispondere" in body
+        assert "Omessi i caratteri 25001-" in body
+        assert "Testo troncato a 25000 caratteri" not in body
 
     def test_format_full_header_carries_case_number_ecli_and_date(self):
         out = format_full(
@@ -1219,3 +1255,50 @@ class TestLeggiSentenzaHeader:
         assert result.results_text.startswith("# 62018CJ0311\n")
         assert "**ECLI**" not in result.results_text
         assert "Testo della sentenza." in result.results_text
+
+
+class TestAdvocateGeneralProposal:
+    """The proposed answer closes an AG opinion; it is kept like a judgment's operative part."""
+
+    def _opinion(self, closing: str, middle: str = "") -> str:
+        return (
+            "CONCLUSIONI DELL'AVVOCATO GENERALE\n" + "x" * 30000 + middle + "y" * 30000
+            + "\nV.\nConclusione\n96.\n" + closing + " PROPOSTA FINALE\n" + "(1) nota\n" * 20
+        )
+
+    def test_a_per_tali_motivi_in_the_reasoning_does_not_hide_the_proposal(self):
+        # Conclusioni AG Google Spain (62012CC0131): "Per tali motivi" recurs in the reasoning.
+        text = self._opinion(
+            "Alla luce di quanto precede, propongo alla Corte di rispondere:",
+            middle="\n40.\nPer tali motivi, ritengo che la questione vada risolta.\n",
+        )
+        body, _ = _excerpt(text)
+        assert "PROPOSTA FINALE" in body
+
+    @pytest.mark.parametrize(
+        "closing",
+        [
+            "Alla luce delle considerazioni che precedono, suggerisco alla Corte di rispondere:",  # 62017CC0673
+            "Propongo quindi alla Corte di dichiarare:",  # 62018CC0507
+            "Per le ragioni esposte, propongo di rispondere alle questioni pregiudiziali:",  # 62021CC0300
+        ],
+    )
+    def test_other_wordings_of_the_proposal(self, closing):
+        body, _ = _excerpt(self._opinion(closing))
+        assert "PROPOSTA FINALE" in body
+        assert closing in body
+
+    def test_conclusion_heading_when_the_wording_is_unknown(self):
+        body, _ = _excerpt(self._opinion("La Corte dovrebbe pertanto statuire come segue:"))
+        assert "PROPOSTA FINALE" in body
+
+    def test_judgment_keeps_its_operative_part(self):
+        # A judgment can quote the AG ("l'avvocato generale propone alla Corte di ...") in the
+        # reasoning: the final "Per questi motivi" still wins.
+        text = (
+            "SENTENZA\n" + "a" * 30000 + "\nCome propongo alla Corte di rispondere, rileva l'AG.\n"
+            + "b" * 30000 + "\nPer questi motivi, la Corte dichiara:\nDISPOSITIVO\nFirme"
+        )
+        body, _ = _excerpt(text)
+        assert body.endswith("Firme")
+        assert body.index("Per questi motivi, la Corte dichiara") > 25000

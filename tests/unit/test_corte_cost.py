@@ -54,6 +54,7 @@ from src.lib.corte_cost.client import (
 from src.tools.corte_cost import (
     _cerca_pronuncia_costituzionale_impl,
     _leggi_pronuncia_costituzionale_impl,
+    leggi_pronuncia_costituzionale,
     _pronunce_cost_su_norma_impl,
     _ultime_pronunce_cost_impl,
 )
@@ -473,6 +474,67 @@ class TestFormatFull:
         assert text.index("## Epigrafe") < text.index("## Testo") < text.index("## Dispositivo")
 
 
+class TestFormatFullPaging:
+    """da_carattere pages over the motivazione (testo): positions count its characters."""
+
+    @staticmethod
+    def _doc(testo_len=60000):
+        # Position-unique text: character i of the motivazione is recoverable from the output.
+        testo = "".join(f"[{i:06d}]" for i in range(testo_len // 8 + 1))[:testo_len]
+        return PronunciaCost(
+            numero_pronuncia="194",
+            anno_pronuncia="2018",
+            tipologia_pronuncia="S",
+            ecli="ECLI:IT:COST:2018:194",
+            epigrafe="e" * 1000,
+            testo=testo,
+            dispositivo="d" * 2000,
+        )
+
+    def test_default_cut_note_carries_the_resume_position(self):
+        doc = self._doc()
+        budget = 25000 - len("## Epigrafe\n" + doc.epigrafe) - len("## Dispositivo\n" + doc.dispositivo)
+        text = format_full(doc)
+        assert (
+            f"*[Testo della motivazione troncato a {budget} caratteri su 60000: "
+            "epigrafe e dispositivo sono riportati per intero; "
+            f"per leggere il seguito ripetere la chiamata con da_carattere={budget + 1}]*"
+        ) in text
+        assert doc.testo[:budget].rstrip() in text
+        assert doc.testo[budget : budget + 20] not in text
+
+    def test_resume_position_returns_the_first_omitted_character(self):
+        doc = self._doc()
+        budget = 25000 - len("## Epigrafe\n" + doc.epigrafe) - len("## Dispositivo\n" + doc.dispositivo)
+        text = format_full(doc, da_carattere=budget + 1)
+        # Header kept, epigrafe and dispositivo not repeated, window starts right after the cut.
+        assert text.startswith("# Sentenza Corte Costituzionale n. 194/2018\n**ECLI**: ECLI:IT:COST:2018:194")
+        assert "## Epigrafe" not in text and "## Dispositivo" not in text
+        window = text.split("## Testo\n", 1)[1]
+        assert window.startswith(doc.testo[budget : budget + 40])
+        assert (
+            f"*[Caratteri della motivazione {budget + 1}-{budget + 25000} su 60000 totali: "
+            f"per leggere il seguito ripetere la chiamata con da_carattere={budget + 25001}]*"
+        ) in text
+
+    def test_last_window_says_end_of_the_motivazione(self):
+        doc = self._doc()
+        text = format_full(doc, da_carattere=50001)
+        assert doc.testo[50000:] in text
+        assert text.rstrip().endswith("*[Caratteri della motivazione 50001-60000 su 60000 totali: fine della motivazione]*")
+
+    def test_start_beyond_the_end(self):
+        text = format_full(self._doc(), da_carattere=60001)
+        assert "da_carattere=60001 oltre la fine della motivazione (60000 caratteri)" in text
+        assert "## Testo" not in text
+
+    def test_short_decision_unaffected_by_default(self):
+        doc = self._doc(testo_len=3000)
+        text = format_full(doc)
+        assert "troncato" not in text and "da_carattere" not in text
+        assert text.index("## Epigrafe") < text.index("## Testo") < text.index("## Dispositivo")
+
+
 class TestFormatMassimaHit:
     def test_contains_parametri(self):
         m = _parse_massima(_MASSIME_1956["corte_costituzionale_archiviomassime"][0]["massime"][0])
@@ -629,6 +691,20 @@ class TestCercaImpl:
         assert result.success
         assert "Trovate" in result.results_text
         assert "1/1956" in result.results_text
+        # Explicit years: the header does not claim a restricted scope.
+        assert "solo anno" not in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_results_without_years_declare_the_current_year(self, monkeypatch):
+        # Without anno_da/anno_a only the current year is searched: "Trovate N pronunce" alone
+        # reads as the whole archive, so the header says which year it covered.
+        monkeypatch.setenv("LEGAL_TODAY", "1956-12-31")
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+            result = await _cerca_pronuncia_costituzionale_impl("illegittimità")
+        assert result.success
+        header = result.results_text.split("\n### ", 1)[0]
+        assert "solo anno 1956" in header
+        assert "anno_da/anno_a" in header
 
     @pytest.mark.asyncio
     async def test_no_results(self):
@@ -693,6 +769,40 @@ class TestLeggiImpl:
             result = await _leggi_pronuncia_costituzionale_impl(1, 1956)
         assert not result.success
         assert result.error_type == "source_down"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [0, -5, "1", 1.5, True])
+    async def test_invalid_da_carattere_errors_without_network(self, bad):
+        download = AsyncMock(side_effect=_download_router)
+        with patch("src.lib.corte_cost.client._download", download):
+            result = await _leggi_pronuncia_costituzionale_impl(1, 1956, bad)
+        assert not result.success
+        assert result.error_type == "bad_input"
+        assert "da_carattere deve essere un intero maggiore o uguale a 1" in result.results_text
+        download.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_da_carattere_is_threaded_to_the_formatter(self):
+        long_doc = PronunciaCost(
+            numero_pronuncia="1", anno_pronuncia="1956", epigrafe="E", testo="t" * 30000, dispositivo="D"
+        )
+        with patch("src.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
+            first = await _leggi_pronuncia_costituzionale_impl(1, 1956)
+            window = await _leggi_pronuncia_costituzionale_impl(1, 1956, 24990)
+        # budget = 25000 - len("## Epigrafe\nE") - len("## Dispositivo\nD") = 24971
+        assert "da_carattere=24972]*" in first.results_text
+        assert "Caratteri della motivazione 24990-30000 su 30000 totali: fine della motivazione" in window.results_text
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_accepts_da_carattere(self):
+        long_doc = PronunciaCost(
+            numero_pronuncia="1", anno_pronuncia="1956", epigrafe="E", testo="t" * 30000, dispositivo="D"
+        )
+        with patch("src.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
+            out = await leggi_pronuncia_costituzionale(1, 1956, da_carattere=26001)
+            bad = await leggi_pronuncia_costituzionale(1, 1956, da_carattere=0)
+        assert "Caratteri della motivazione 26001-30000 su 30000 totali: fine della motivazione" in out
+        assert "da_carattere deve essere un intero" in bad
 
 
 class TestSuNormaImpl:

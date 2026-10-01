@@ -38,6 +38,8 @@ from email.utils import parsedate_to_datetime
 import httpx
 from bs4 import BeautifulSoup
 
+from src.lib._paging import page, resume_hint
+
 from src.lib._http import retry_request
 
 _BASE = "https://www.gazzettaufficiale.it"
@@ -595,8 +597,12 @@ def format_result(atto: AttoResult) -> str:
     return "\n".join(lines)
 
 
-def format_detail(detail: AttoDetail) -> str:
-    """Format an AttoDetail (metadata + optional full text) as markdown."""
+def format_detail(detail: AttoDetail, da_carattere: int = 1) -> str:
+    """Format an AttoDetail (metadata + optional full text) as markdown.
+
+    Positions count ``detail.text``, the assembled text of the atto. With
+    ``da_carattere`` > 1 the body is the window of that text starting there.
+    """
     title = detail.estremi or detail.title or f"Atto {detail.codice_redazionale}"
     lines = [f"# {title}"]
     if detail.estremi and detail.title:
@@ -622,12 +628,18 @@ def format_detail(detail: AttoDetail) -> str:
         return "\n".join(lines)
 
     text = detail.text or ""
+    if da_carattere > 1:
+        body, note = page(text, da_carattere, _MAX_TEXT_LENGTH)
+        lines.append(body)
+        lines.append(f"\n---\n{note}")
+        return "\n".join(lines)
     truncated = len(text) > _MAX_TEXT_LENGTH
     body = text[:_MAX_TEXT_LENGTH] if truncated else text
     lines.append(body)
     if truncated:
         lines.append(
-            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(text)} totali]*"
+            f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(text)} totali: "
+            f"{resume_hint(_MAX_TEXT_LENGTH + 1)}]*"
         )
     return "\n".join(lines)
 

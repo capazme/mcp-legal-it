@@ -627,6 +627,10 @@ class TestFormatters:
         out = format_detail(d)
         assert "troncato" in out
         assert "25000" in out
+        assert out.endswith(
+            "*[Testo troncato a 25000 caratteri su 30000 totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=25001]*"
+        )
 
     def test_format_sommario(self):
         atti = [
@@ -1174,6 +1178,76 @@ class TestSpecialSeriesTools:
         out = result.to_str()
         assert "data non valida" in out.lower()
         assert "non raggiungibile" not in out
+
+
+# ---------------------------------------------------------------------------
+# Paged reading (da_carattere)
+# ---------------------------------------------------------------------------
+
+def _long_detail(n: int = 60000) -> AttoDetail:
+    # position-coded text: character i (1-based) is a letter that tells its 25k block
+    text = "".join(chr(ord("a") + (i // 1000) % 26) for i in range(n))
+    return AttoDetail(
+        codice_redazionale="X", data_pubblicazione="2026-06-13",
+        serie="serie_generale", title="Atto lungo", text=text,
+    )
+
+
+class TestPagedReading:
+    def test_default_cut_note_says_where_to_resume(self):
+        out = format_detail(_long_detail())
+        assert "*[Testo troncato a 25000 caratteri su 60000 totali: " in out
+        assert out.endswith("ripetere la chiamata con da_carattere=25001]*")
+
+    def test_da_carattere_starts_at_the_first_omitted_character(self):
+        d = _long_detail()
+        out = format_detail(d, da_carattere=25001)
+        body, _, note = out.partition("\n\n---\n")
+        assert body.endswith(d.text[25000:50000])
+        assert not body.endswith(d.text[24999:49999])
+        assert note == (
+            "*[Caratteri 25001-50000 su 60000 totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=50001]*"
+        )
+        assert "# Atto lungo" in out  # header kept
+
+    def test_last_window_says_end_of_text(self):
+        d = _long_detail()
+        out = format_detail(d, da_carattere=50001)
+        assert out.endswith(d.text[50000:] + "\n\n---\n*[Caratteri 50001-60000 su 60000 totali: fine del testo]*")
+
+    def test_start_beyond_the_end(self):
+        out = format_detail(_long_detail(100), da_carattere=500)
+        assert "oltre la fine del testo (100 caratteri)" in out
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [0, -3, "7", 1.5, None, True])
+    async def test_invalid_da_carattere_errors_without_network(self, bad):
+        with patch("src.tools.gazzetta.fetch_atto", new=AsyncMock()) as fetch:
+            result = await _leggi_atto_gazzetta_impl("X", "2026-06-13", da_carattere=bad)
+        assert not result.success
+        assert result.error_type == "bad_input"
+        assert "da_carattere deve essere un intero maggiore o uguale a 1" in result.to_str()
+        fetch.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_impl_threads_da_carattere(self):
+        d = _long_detail()
+        with patch("src.tools.gazzetta.fetch_atto", new=AsyncMock(return_value=d)):
+            result = await _leggi_atto_gazzetta_impl("X", "2026-06-13", da_carattere=25001)
+        assert result.success
+        assert "Caratteri 25001-50000 su 60000 totali" in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_accepts_da_carattere(self):
+        from src.tools.gazzetta import leggi_atto_gazzetta
+
+        fn = getattr(leggi_atto_gazzetta, "fn", leggi_atto_gazzetta)
+        d = _long_detail()
+        with patch("src.tools.gazzetta.fetch_atto", new=AsyncMock(return_value=d)):
+            out = await fn("X", "2026-06-13", da_carattere=50001)
+        assert "fine del testo" in out
+        assert "da_carattere" in (fn.__doc__ or "")
 
 
 # ---------------------------------------------------------------------------

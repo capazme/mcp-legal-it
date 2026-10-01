@@ -13,6 +13,7 @@ decennio, con cache locale di 7 giorni). Il sito www.cortecostituzionale.it
 from datetime import date
 
 from src.lib import _clock
+from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.server import mcp
 from src.lib.corte_cost.client import (
@@ -70,14 +71,23 @@ async def _cerca_pronuncia_costituzionale_impl(
             results_text=f"Nessuna pronuncia costituzionale trovata per: _{q_desc}_{scope}",
         )
 
-    lines = [f"**Trovate {len(docs)} pronunce della Corte Costituzionale**\n"]
+    # Without years only the current year was searched: say so also when something is found,
+    # or "Trovate N pronunce" reads as a count over the whole archive.
+    scope = "" if (anno_da or anno_a) else (
+        f" (solo anno {current_year}; specificare anno_da/anno_a per cercare in altri anni)"
+    )
+    lines = [f"**Trovate {len(docs)} pronunce della Corte Costituzionale{scope}**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
     return SearchResult(success=True, source=_SOURCE, num_found=len(docs), results_text="\n".join(lines))
 
 
-async def _leggi_pronuncia_costituzionale_impl(numero: int, anno: int) -> SearchResult:
+async def _leggi_pronuncia_costituzionale_impl(
+    numero: int, anno: int, da_carattere: int = 1
+) -> SearchResult:
+    if (error := invalid_start(da_carattere)) is not None:
+        return SearchResult(success=False, source=_SOURCE, error_type="bad_input", results_text=error)
     try:
         doc = await fetch_pronuncia(numero, anno)
     except Exception as exc:
@@ -93,7 +103,7 @@ async def _leggi_pronuncia_costituzionale_impl(numero: int, anno: int) -> Search
             results_text=f"Pronuncia n. {numero}/{anno} non trovata nell'archivio Corte Costituzionale.",
         )
 
-    return SearchResult(success=True, source=_SOURCE, num_found=1, results_text=format_full(doc))
+    return SearchResult(success=True, source=_SOURCE, num_found=1, results_text=format_full(doc, da_carattere))
 
 
 async def _pronunce_cost_su_norma_impl(
@@ -216,7 +226,7 @@ async def cerca_pronuncia_costituzionale(
 
 
 @mcp.tool(tags={"giurisprudenza", "costituzionale"})
-async def leggi_pronuncia_costituzionale(numero: int, anno: int) -> str:
+async def leggi_pronuncia_costituzionale(numero: int, anno: int, da_carattere: int = 1) -> str:
     """Legge il testo completo di una pronuncia della Corte Costituzionale.
 
     Usare quando si conosce già numero e anno (es. "sentenza 1/2024"), oppure
@@ -226,13 +236,21 @@ async def leggi_pronuncia_costituzionale(numero: int, anno: int) -> str:
     si tronca soltanto la motivazione (sezione "Testo"), con una nota che lo
     dichiara. Il dispositivo non si tronca mai: è la parte da cui discendono
     gli effetti della pronuncia (art. 136 Cost.; artt. 18, terzo comma, e 30
-    l. 11 marzo 1953, n. 87).
+    l. 11 marzo 1953, n. 87). La parte omessa della motivazione si legge
+    ripetendo la chiamata con il da_carattere indicato nella nota. Le posizioni
+    contano i caratteri della sola motivazione (sezione "Testo"), non
+    dell'intera pronuncia; con da_carattere > 1 si restituiscono l'intestazione
+    e i 25000 caratteri di motivazione che partono da quella posizione, senza
+    epigrafe e dispositivo (già riportati nella prima chiamata).
 
     Args:
         numero: Numero della pronuncia (es. 1, 162, 238)
         anno: Anno della pronuncia (es. 2024)
+        da_carattere: Carattere della motivazione da cui leggere (1 = inizio, default). Se la
+            motivazione supera il limite, la nota indica il valore con cui ripetere la chiamata
+            per leggere il seguito
     """
-    result = await _leggi_pronuncia_costituzionale_impl(numero, anno)
+    result = await _leggi_pronuncia_costituzionale_impl(numero, anno, da_carattere)
     return result.to_str() if isinstance(result, SearchResult) else result
 
 

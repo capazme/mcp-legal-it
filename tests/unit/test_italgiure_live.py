@@ -209,7 +209,7 @@ def test_leggi_sentenza_ssuu_41994_2021_estremi_e_testo(sentenza_41994_2021):
     for parola in ("fideiussion", "ABI", "287 del 1990", "Sezioni Unite"):
         assert parola in out, parola
     # The text is 82k characters at the source: the 30000-character cut must be declared.
-    assert re.search(r"\[Testo troncato a 30000 caratteri su \d+ totali\]", out), out[-300:]
+    assert re.search(r"\[Testo troncato a 30000 caratteri su \d+ totali: [^\]]*da_carattere=12001\]", out), out[-300:]
 
 
 def test_leggi_sentenza_ssuu_41994_2021_riporta_principio_di_diritto_o_dispositivo(sentenza_41994_2021):

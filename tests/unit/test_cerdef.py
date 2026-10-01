@@ -862,6 +862,33 @@ class TestCerdefLeggiProvvedimentoImpl:
         assert result.error_type == "bad_input"
         assert result.to_str().startswith("**Errore**")
 
+    @pytest.mark.parametrize("valore", [0, -3, "2", 1.5, True])
+    async def test_invalid_da_carattere_is_bad_input_without_request(self, valore):
+        portale = _Portale()
+        with portale.attiva():
+            result = await _cerdef_leggi_provvedimento_impl(GUID_25285, valore)
+        assert result.error_type == "bad_input"
+        assert "da_carattere deve essere un intero maggiore o uguale a 1" in result.to_str()
+        assert portale.richieste == []
+
+    async def test_da_carattere_is_threaded_to_the_formatter(self):
+        testo = "".join(f"{i:05d}" for i in range(12000))
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="M", testo_integrale=testo)
+        with patch("src.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)) as fetch:
+            result = await _cerdef_leggi_provvedimento_impl("{G}", 25001)
+        fetch.assert_awaited_once_with("{G}")
+        assert result.success
+        assert testo[25000:50000] in result.results_text
+
+    async def test_mcp_tool_accepts_da_carattere(self):
+        from src.tools.cerdef import cerdef_leggi_provvedimento
+
+        testo = "".join(f"{i:05d}" for i in range(12000))
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="M", testo_integrale=testo)
+        with patch("src.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)):
+            out = await cerdef_leggi_provvedimento("{G}", da_carattere=50001)
+        assert out.endswith("fine del testo]*")
+
 
 # ---------------------------------------------------------------------------
 # Rendering
@@ -933,11 +960,37 @@ class TestFormatDetail:
     def test_truncation_at_25000(self):
         detail = ProvvedimentoDetail(guid="x", estremi="X", massima="", testo_integrale="a" * 30000)
         text = format_detail(detail)
-        assert "Testo troncato a 25000 caratteri su 30000 totali" in text
+        assert text.endswith(
+            "*[Testo troncato a 25000 caratteri su 30000 totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=25001]*"
+        )
 
     def test_truncation_boundary(self):
         detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="a" * 25000)
         assert "troncato" not in format_detail(detail)
+
+    def test_resume_position_reads_the_omitted_text(self):
+        testo = "".join(f"{i:05d}" for i in range(12000))  # 60000 chars, each 5-digit block unique
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="Principio X.", testo_integrale=testo)
+        first = format_detail(detail)
+        assert "da_carattere=25001]*" in first
+        assert testo[:25000] in first and testo[25000:25010] not in first
+        second = format_detail(detail, da_carattere=25001)
+        assert second.startswith("# E")
+        assert "Principio X." not in second  # the massima belongs to the first answer
+        assert testo[25000:50000] in second
+        assert "*[Caratteri 25001-50000 su 60000 totali: per leggere il seguito ripetere la chiamata con da_carattere=50001]*" in second
+
+    def test_last_window_says_end_of_text(self):
+        testo = "".join(f"{i:05d}" for i in range(12000))
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale=testo)
+        last = format_detail(detail, da_carattere=50001)
+        assert testo[50000:] in last
+        assert last.endswith("*[Caratteri 50001-60000 su 60000 totali: fine del testo]*")
+
+    def test_start_beyond_the_end(self):
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="a" * 100)
+        assert "da_carattere=500 oltre la fine del testo (100 caratteri)" in format_detail(detail, da_carattere=500)
 
     def test_includes_optional_fields(self):
         detail = ProvvedimentoDetail(guid="x", estremi="X", massima="", testo_integrale="",

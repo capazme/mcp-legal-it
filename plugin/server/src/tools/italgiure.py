@@ -8,6 +8,7 @@ import asyncio
 import re
 
 from src.server import mcp
+from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.lib.brocardi.client import fetch_brocardi, parse_massime_references
 from src.lib.visualex import resolve_atto
@@ -160,8 +161,21 @@ async def _leggi_sentenza_impl(
     sezione: str = "",
     archivio: str = "tutti",
     formatter=format_full_text,
+    da_carattere: int = 1,
 ) -> SearchResult:
-    """Read one decision. *formatter* renders the document (full text by default)."""
+    """Read one decision. *formatter* renders the document (full text by default).
+
+    *da_carattere* > 1 reads the window of the ``ocr`` text that starts there (full-text
+    formatter only: other formatters are always called with the default).
+    """
+    if (error := invalid_start(da_carattere)) is not None:
+        return SearchResult(success=False, source="italgiure", error_type="bad_input", results_text=error)
+    if da_carattere > 1:
+        base_formatter = formatter
+
+        def formatter(doc: dict) -> str:  # noqa: F811 - bind the window start
+            return base_formatter(doc, da_carattere=da_carattere)
+
     try:
         sezione, archivio = resolve_sezione(sezione, archivio)
     except ValueError as exc:
@@ -755,6 +769,7 @@ async def leggi_sentenza(
     anno: int,
     sezione: str = "",
     archivio: str = "tutti",
+    da_carattere: int = 1,
 ) -> str:
     """Legge il testo completo di una specifica sentenza della Cassazione da Italgiure (fonte ufficiale).
 
@@ -767,6 +782,9 @@ async def leggi_sentenza(
     ATTENZIONE: il testo oltre 30000 caratteri è abbreviato (primi 12000 e ultimi 18000, parte
     centrale omessa, dichiarato in coda) e il campo Dispositivo può mancare alla fonte: in quel
     caso la decisione (rigetto, accoglimento, principio di diritto) è nella parte finale del testo.
+    La parte omessa si legge ripetendo la chiamata con il da_carattere indicato nella nota: le
+    posizioni contano i caratteri del testo della decisione (esclusi intestazione e Dispositivo)
+    e con da_carattere > 1 si ottengono i 30000 caratteri che partono da quella posizione.
     L'archivio pubblico è una finestra mobile di circa cinque anni (a settembre 2026 dal
     27/09/2021): le decisioni anteriori risultano "non trovate". Con archivio="tutti" un numero
     può indicare una decisione civile e una penale: il tool restituisce la prima e segnala le altre;
@@ -777,8 +795,10 @@ async def leggi_sentenza(
         anno: Anno della decisione (es. 2024)
         sezione: Sezione della Corte (opzionale: 1-7, L=lavoro, U o SU=sezioni unite, F=feriale, T=tributaria=sezione 5 civile)
         archivio: "civile", "penale", o "tutti" (default)
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    result = await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio)
+    result = await _leggi_sentenza_impl(numero, anno, sezione=sezione, archivio=archivio, da_carattere=da_carattere)
     return result.to_str() if isinstance(result, SearchResult) else result
 
 

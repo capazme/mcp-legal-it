@@ -5,6 +5,7 @@ finanziari, abusi di mercato, intermediari, emittenti, OPA, crowdfunding, cripto
 """
 
 from src.server import mcp
+from src.lib._paging import invalid_start
 from src.lib.consob.client import (
     ARGOMENTI,
     TIPOLOGIE,
@@ -73,10 +74,12 @@ async def _cerca_delibere_consob_impl(
     return "\n".join(lines)
 
 
-async def _leggi_delibera_consob_impl(numero: str) -> str:
+async def _leggi_delibera_consob_impl(numero: str, da_carattere: int = 1) -> str:
+    if (error := invalid_start(da_carattere)) is not None:
+        return f"Errore nel recupero della delibera CONSOB n. {numero}: {error}"
     try:
         title, text = await fetch_delibera(numero)
-        return format_full(title, text, numero)
+        return format_full(title, text, numero, da_carattere)
     except Exception as exc:
         return f"Errore nel recupero della delibera CONSOB n. {numero}: {exc}"
 
@@ -155,17 +158,22 @@ async def cerca_delibere_consob(
 
 
 @mcp.tool(tags={"consob"})
-async def leggi_delibera_consob(numero: str) -> str:
+async def leggi_delibera_consob(numero: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di una delibera CONSOB tramite numero.
 
     Usare dopo cerca_delibere_consob() o ultime_delibere_consob() per leggere
     il testo completo. Il numero delibera e riportato in ogni risultato della ricerca.
-    Restituisce: testo integrale della delibera con titolo e link alla fonte CONSOB.
+    Restituisce: testo della delibera con titolo e link alla fonte CONSOB. Oltre 8000 caratteri
+    il testo e' troncato; la parte omessa si legge ripetendo la chiamata con il da_carattere
+    indicato nella nota. Le posizioni contano i caratteri del testo della pagina (senza titolo e link).
+    Con da_carattere > 1 restituisce gli 8000 caratteri che partono da quella posizione.
 
     Args:
         numero: Numero della delibera (es. "23257", "23256-1")
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    return await _leggi_delibera_consob_impl(numero)
+    return await _leggi_delibera_consob_impl(numero, da_carattere)
 
 
 @mcp.tool(tags={"consob"})

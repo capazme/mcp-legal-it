@@ -98,16 +98,28 @@ class ParsedPart:
 # ParsedAct
 # ---------------------------------------------------------------------------
 
+_ANNEX_NAME_RE = re.compile(r"^allegato\s+(?P<id>\S+)$", re.IGNORECASE)
+
+
+def annex_id_of(part_name: str) -> str | None:
+    """The annex identifier of a part name (``"Allegato I.7"`` -> ``"i.7"``), else None."""
+    m = _ANNEX_NAME_RE.match((part_name or "").strip())
+    return m.group("id").lower() if m else None
+
+
 @dataclass
 class ParsedAct:
     title: str
     articles: dict[str, str] = field(default_factory=dict)
     order: list[str] = field(default_factory=list)
     structure: str = "flat"
-    # All component parts keyed by their AKN PART name. Empty for flat acts and
-    # for single-part component acts. ``articles``/``order`` mirror the dominant
-    # part so the default (part-less) lookup is unchanged.
+    # All component parts keyed by their AKN PART name (the code body of a
+    # codice, the preleggi, the annexes of an act). ``articles``/``order`` hold
+    # the default lookup: the body of the act, or the dominant part when the act
+    # is a short decree whose real text is a component (the codici).
     parts: dict[str, ParsedPart] = field(default_factory=dict)
+    # Name of the part that serves the default lookup; "" when it is the body.
+    main_part: str = ""
 
     def article(self, numero_articolo: str, part: str | None = None) -> str | None:
         """Return the markdown text of an article, or ``None`` if absent.
@@ -178,6 +190,38 @@ class ParsedAct:
     @property
     def article_count(self) -> int:
         return len(self.order)
+
+    # --- annexes -----------------------------------------------------------
+
+    def annex_names(self) -> list[str]:
+        """Names of the annex parts ("Allegato I.7", ...), in document order."""
+        return [name for name in self.parts if annex_id_of(name)]
+
+    def _resolve_annex(self, annex_id: str) -> "ParsedPart | None":
+        # Exact identifier match: "I.1" must never resolve to "I.11".
+        wanted = (annex_id or "").strip().lower()
+        for name, part in self.parts.items():
+            if annex_id_of(name) == wanted:
+                return part
+        return None
+
+    def annex_article(self, annex_id: str, numero_articolo: str) -> str | None:
+        """Text of an article of an annex, or None if the annex or article is absent."""
+        part = self._resolve_annex(annex_id)
+        if part is None:
+            return None
+        return part.articles.get(normalize_article_key(numero_articolo))
+
+    def annex_text(self, annex_id: str) -> str | None:
+        """Every article of an annex, headed by its name; None if the annex is absent."""
+        part = self._resolve_annex(annex_id)
+        if part is None:
+            return None
+        return self.full_text(part=part.name)
+
+    def annex_name(self, annex_id: str) -> str | None:
+        part = self._resolve_annex(annex_id)
+        return part.name if part is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -325,7 +369,11 @@ def _parse_flat(root) -> tuple[dict[str, str], list[str]]:
 # Component structure
 # ---------------------------------------------------------------------------
 
-_DOC_NAME_RE = re.compile(r"^(?P<part>.+?)-art\.\s*(?P<num>.+)$", re.IGNORECASE)
+# "CODICE CIVILE-art. 2043", and the looser forms of some annexes in the same
+# exports: "Allegato I.4-art 1", "Allegati - Allegato I.01 art. 1".
+_DOC_NAME_RE = re.compile(r"^(?P<part>.+?)(?:\s*-\s*|\s+)art\.?\s*(?P<num>\d.*)$", re.IGNORECASE)
+# Index-wide prefix of some annex names ("Allegati - Allegato I.01").
+_PART_PREFIX_RE = re.compile(r"^allegati\s*-\s*", re.IGNORECASE)
 
 
 def _render_component_doc(doc, num_label: str) -> str:
@@ -376,7 +424,7 @@ def _parse_component(root) -> tuple[dict[str, ParsedPart], str]:
         m = _DOC_NAME_RE.match(name)
         if not m:
             continue
-        part = m.group("part").strip()
+        part = _PART_PREFIX_RE.sub("", m.group("part").strip())
         num_raw = m.group("num").strip()
         by_part.setdefault(part, []).append((num_raw, doc))
 
@@ -431,9 +479,17 @@ def _extract_title(root) -> str:
 def parse_akn(xml: str) -> ParsedAct:
     """Parse an Akoma Ntoso XML string into a ``ParsedAct``.
 
-    Auto-detects flat vs component structure: if the act has component
-    ``<doc name="...-art. N">`` elements, those win (they carry the full set for
-    codici); otherwise the flat ``<article>`` elements are used.
+    An act has flat ``<article>`` elements in its body and may have component
+    ``<doc name="...-art. N">`` elements in its attachments. Which one serves the
+    default lookup depends on which is the act's text:
+
+    - a codice (c.c., c.p.) is a short approving decree (2-3 body articles) whose
+      code is a component part: the dominant part wins, as before;
+    - an act with annexes (D.Lgs. 36/2023: 233 body articles, Allegato I.7 with
+      50) keeps its body. Letting the largest annex win served "art. 30" from
+      Allegato I.7 under the URN of the Code's own art. 30 (issue #47).
+
+    Every component part stays reachable (``parts``, ``annex_article``).
     """
     if isinstance(xml, str):
         xml_bytes = xml.encode("utf-8")
@@ -446,7 +502,8 @@ def parse_akn(xml: str) -> ParsedAct:
     title = _extract_title(root)
 
     parts, main_part = _parse_component(root)
-    if parts:
+    flat_articles, flat_order = _parse_flat(root)
+    if parts and parts[main_part].article_count > len(flat_order):
         main = parts[main_part]
         return ParsedAct(
             title=title,
@@ -454,12 +511,13 @@ def parse_akn(xml: str) -> ParsedAct:
             order=main.order,
             structure="component",
             parts=parts,
+            main_part=main_part,
         )
 
-    flat_articles, flat_order = _parse_flat(root)
     return ParsedAct(
         title=title,
         articles=flat_articles,
         order=flat_order,
         structure="flat",
+        parts=parts,
     )
