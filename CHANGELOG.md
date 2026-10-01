@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   codici, where the body is the 2-3 article approving decree), and then the
   answer says so ("Testo tratto dall'Allegato ..."). Parsed acts cached on disk
   by the previous parser are discarded (`_CACHE_SCHEMA`).
+- `cerca_pronuncia_costituzionale` without `anno_da`/`anno_a` searches only the
+  current year, but when it found something the header read "Trovate N
+  pronunce della Corte Costituzionale", a count that looks like the whole
+  archive. The header now says "(solo anno 2026; specificare anno_da/anno_a
+  ...)", as the no-results answer already did.
 
 ### Added
 - Annexes on request. Italian acts: "art. 30 dell'allegato I.7 al D.Lgs.
