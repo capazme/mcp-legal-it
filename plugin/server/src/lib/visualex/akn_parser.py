@@ -135,6 +135,13 @@ class ParsedAct:
             return matched.articles.get(key) if matched is not None else None
         return self.articles.get(key)
 
+    def article_keys(self, part: str | None = None) -> list[str]:
+        """Keys of the articles of a component part (the default lookup when ``part`` is None)."""
+        if part:
+            matched = self._resolve_part(part)
+            return list(matched.order) if matched is not None else []
+        return list(self.order)
+
     def full_text(self, part: str | None = None) -> str:
         """Return all articles joined as markdown, prefixed by the act title.
 
