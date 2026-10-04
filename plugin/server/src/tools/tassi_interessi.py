@@ -16,10 +16,10 @@ from src.tools import rivalutazioni_istat as _rivalutazioni
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "tassi_legali.json") as f:
+with open(_DATA / "tassi_legali.json", encoding="utf-8") as f:
     _TASSI_LEGALI = json.load(f)["tassi"]
 
-with open(_DATA / "tassi_mora.json") as f:
+with open(_DATA / "tassi_mora.json", encoding="utf-8") as f:
     _TASSI_MORA = json.load(f)["tassi"]
 
 

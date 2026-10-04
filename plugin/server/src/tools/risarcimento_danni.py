@@ -11,10 +11,10 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "tabella_danno_bio.json") as f:
+with open(_DATA / "tabella_danno_bio.json", encoding="utf-8") as f:
     _DANNO_BIO = json.load(f)
 
-with open(_DATA / "tabella_milano_roma.json") as f:
+with open(_DATA / "tabella_milano_roma.json", encoding="utf-8") as f:
     _PARENTALE = json.load(f)
 
 _MICRO = _DANNO_BIO["micropermanenti"]
