@@ -11,6 +11,8 @@ import tempfile
 import time
 from typing import Literal
 
+import httpx
+
 from src.server import mcp
 from src.lib import _clock
 from src.lib.visualex import (
@@ -22,6 +24,8 @@ from src.lib.visualex import (
 )
 from src.lib.visualex.models import ANNEX_ID, annex_reference, split_annex
 from src.lib.visualex.scraper import (
+    ARTICLE_NOT_FOUND,
+    CHECK_UNAVAILABLE,
     _build_celex,
     fetch_article,
     fetch_annotations,
@@ -345,8 +349,32 @@ def _urn_from_url(url: str) -> str | None:
     return url.split("?", 1)[1] or None
 
 
+def _source_failure(exc: Exception) -> bool:
+    """Whether an exception says the source is down, slow or limiting us (not that the norm is absent)."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code if exc.response is not None else 0
+        return status == 429 or status >= 500
+    return isinstance(exc, (httpx.TransportError, asyncio.TimeoutError))
+
+
+def _failed_fetch(nv: NormaVisitata, exc: Exception) -> dict:
+    result = {"text": "", "url": nv.url(), "source": "", "error": str(exc)}
+    if _source_failure(exc):
+        result["esito"] = CHECK_UNAVAILABLE
+    return result
+
+
 async def _cite_law_struct(reference: str) -> dict:
     """Structured article lookup (no Brocardi): the JSON face of cite_law."""
+    return (await _cite_law_lookup(reference))[0]
+
+
+async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
+    """The JSON face of cite_law, plus the outcome of the existence check.
+
+    The outcome is ``ARTICLE_NOT_FOUND`` (the article is not in the act),
+    ``CHECK_UNAVAILABLE`` (the source could not tell) or None.
+    """
     today = _clock.today().isoformat()
     base = {
         "formato": "json", "riferimento": reference, "articolo": "",
@@ -358,11 +386,11 @@ async def _cite_law_struct(reference: str) -> dict:
     if not act_name:
         base["errore"] = (f"impossibile interpretare il riferimento '{reference}'. "
                           "Formato atteso: 'art. <numero> <atto>'")
-        return base
+        return base, None
     act_info = _resolve_act(act_name)
     if not act_info:
         base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
-        return base
+        return base, None
 
     nv = _build_nv(act_info, article)
     base["articolo"] = article or ""
@@ -375,7 +403,7 @@ async def _cite_law_struct(reference: str) -> dict:
     try:
         result = await fetch_article(nv)
     except Exception as e:
-        result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+        result = _failed_fetch(nv, e)
     base["url"] = result.get("url", "") or nv.url()
     base["urn"] = _urn_from_url(base["url"])
     # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
@@ -395,7 +423,7 @@ async def _cite_law_struct(reference: str) -> dict:
         base["errore"] = result["error"]
     elif not base["testo"]:
         base["errore"] = "nessun testo trovato"
-    return base
+    return base, result.get("esito")
 
 
 async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
@@ -415,12 +443,15 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
     try:
         article_result = await fetch_article(nv)
     except Exception as e:
-        article_result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+        article_result = _failed_fetch(nv, e)
 
+    # An article the act does not have has nothing to annotate (and Brocardi would
+    # only be searched page by page for it).
+    annotate = include_annotations and article and article_result.get("esito") != ARTICLE_NOT_FOUND
     brocardi_md = ""
-    if include_annotations and article and split_annex(article):
+    if annotate and split_annex(article):
         brocardi_md = "\n\n**Annotazioni Brocardi**: non disponibili per gli allegati"
-    elif include_annotations and article:
+    elif annotate:
         try:
             brocardi = await fetch_brocardi(
                 act_info["tipo_atto"], article, act_info.get("numero_atto", ""), act_info.get("data", "")
@@ -443,7 +474,7 @@ async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", a
     try:
         result = await fetch_article(nv)
     except Exception as e:
-        result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+        result = _failed_fetch(nv, e)
 
     return _format_result(result)
 
@@ -480,6 +511,11 @@ async def cite_law(
         (anche "allegato I.7 art. 30 D.Lgs. 36/2023")
       - "Allegato III AI Act" — allegato di un atto UE, restituito per intero
         (punti e lettere vengono ignorati, come i commi)
+
+    Un articolo che l'atto non ha produce un errore ("articolo N non trovato"), mai il
+    testo di un altro articolo: Normattiva risponde a un numero inesistente con l'art. 1
+    dell'atto. Se la fonte non permette di stabilire quale articolo ha restituito,
+    l'errore dice "verifica non disponibile" e il testo non viene presentato.
 
     Senza "allegato" si ottiene sempre l'articolo del corpo dell'atto. Se il testo
     proviene da un allegato, l'output lo dichiara ("Testo tratto dall'Allegato ...").
@@ -1188,17 +1224,17 @@ def _norma_misquote(reference: str, article_text: str) -> bool:
 
 async def _verifica_norma(reference: str) -> tuple[str, str]:
     """Verify a NORMA reference. Returns (verdetto, nota)."""
-    markdown = await _cite_law_impl(reference)
-    if markdown.startswith("**Errore**") or markdown.startswith("**Nessun testo trovato**"):
+    data, esito = await _cite_law_lookup(reference)
+    if esito == ARTICLE_NOT_FOUND:
+        return "inesistente", f"L'articolo non esiste nell'atto citato: {data['errore']}."
+    if esito == CHECK_UNAVAILABLE:
+        return "non verificata", f"Esistenza dell'articolo non verificabile ora: {data['errore']}."
+    if data["errore"] or not data["testo"]:
         return "non trovata", "Atto o articolo non reperibile su Normattiva/EUR-Lex."
 
-    # Source line: "**Fonte**: <Source> — <url>"
-    fonte = ""
-    fonte_m = re.search(r"\*\*Fonte\*\*:\s*(.+)", markdown)
-    if fonte_m:
-        fonte = fonte_m.group(1).strip()
+    fonte = f"{data['fonte'].title()} — {data['url']}" if data["fonte"] else ""
 
-    if _norma_misquote(reference, markdown):
+    if _norma_misquote(reference, data["testo"]):
         nota = "Comma/lettera citato non riscontrato nel testo dell'articolo."
         if fonte:
             nota += f" Fonte: {fonte}"
@@ -1397,13 +1433,15 @@ async def verifica_citazioni(
     Verdetti possibili:
       - **verificata** — la fonte esiste e i metadati coincidono
       - **inesistente** — la decisione non risulta negli archivi (o la ricerca ha restituito
-        una decisione diversa da quella citata)
+        una decisione diversa da quella citata); per una norma, l'articolo non esiste
+        nell'atto citato (Normattiva risponde a un numero inesistente con un altro articolo)
       - **non trovata** — l'atto/articolo non è reperibile
       - **metadati discordanti** — la fonte esiste ma sezione/comma/lettera non coincidono
       - **non verificabile** — sentenza anteriore all'inizio dell'archivio Italgiure (finestra
         mobile: nel 2026 parte dal 2021, letta dall'archivio stesso) o non trovata nel primo
         anno, coperto solo in parte: non si può stabilire se esista
-      - **non verificata** — fonte temporaneamente non raggiungibile
+      - **non verificata** — fonte temporaneamente non raggiungibile, o esistenza
+        dell'articolo non verificabile perché la fonte non ne restituisce la struttura
       - **Non interpretabile** — formato del riferimento non riconosciuto
 
     Con "Cass. pen." / "Cass. civ." nella citazione e archivio "tutti" la ricerca è limitata

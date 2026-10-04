@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `cite_law` on an article the act does not have answered with another
+  article's text. Normattiva answers a URN naming a missing article with HTTP
+  200 and the act's first article, and the HTML fallback took that page at face
+  value: `cite_law("art. 99999 c.c.")` returned art. 1 of the R.D. 262/1942 ("È
+  approvato il testo del Codice civile...") under the URL of art. 99999, with no
+  warning, so a typo in the article number became a confident wrong citation.
+  Existence is now decided by what identifies the article, never by the text
+  alone: the act's Akoma Ntoso export (its article keys) or the number
+  Normattiva gives the article it served (the numbered heading, or the "Art. N."
+  head of a code article). A missing article is an error ("articolo N non
+  trovato"); when neither check can be made the error says "verifica non
+  disponibile" and no text is presented. The guard sits in `fetch_article`, so
+  `cite_law` (markdown and json), `fetch_law_article` and `verifica_citazioni`
+  share it; an article of a code that the AKN parser misses is still served
+  when Normattiva's page names it. Numbers are compared in canonical form, so
+  a real article whose suffix Normattiva spells another way ("2-quinquiesdecies"
+  served as "Art. 2-quindecies", "2-sexiesdecies" as "Art. 2-sex-decies",
+  "416-bis.1", "609-undecies") is still found; "non trovato" is said only when
+  the number itself differs (99999 -> 1) or the act has no article with that
+  number at all, and a different suffix on the same number is "verifica non
+  disponibile", never "missing".
+- `verifica_citazioni` on norms: a missing article is now `inesistente` (it was
+  `verificata`), and a source that cannot be reached or cannot tell is `non
+  verificata` (it was `non trovata`, which reads as "the norm does not exist").
+- EUR-Lex: a missing article came back as the text "[Articolo N non trovato nel
+  documento EUR-Lex]" under "Fonte: Eurlex"; it is now an error. A title that
+  only starts with the number asked for ("Articolo 90" for art. 9) no longer
+  matches.
+- `cite_law(include_annotations=True)` no longer searches Brocardi, page by
+  page, for an article that does not exist.
+- Citation gate (plugin Stop hook): a `cite_law()` call covered the article it
+  named whatever it returned. A call that ended in an error, or whose text is a
+  different article, no longer counts as verification.
+
 ## [2.15.2] - 2026-10-01
 
 ### Fixed
