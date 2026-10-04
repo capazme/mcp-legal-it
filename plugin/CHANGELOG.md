@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `cite_law` su un articolo che l'atto non ha restituiva il testo di un altro
+  articolo: "art. 99999 c.c." dava l'art. 1 del R.D. 262/1942, senza avvisi,
+  perché Normattiva risponde a un numero inesistente con il primo articolo
+  dell'atto. Ora risponde "articolo N non trovato"; se la fonte non permette di
+  verificarlo, "verifica non disponibile", senza testo. Vale anche per
+  `fetch_law_article` e `verifica_citazioni` (verdetto `inesistente`; fonte non
+  raggiungibile: `non verificata`).
+- EUR-Lex: un articolo inesistente è un errore, non più un testo "[... non
+  trovato ...]".
+- Gate citazioni: una `cite_law()` finita in errore o che ha restituito un
+  altro articolo non conta più come verifica.
+
 ## [2.15.2] - 2026-10-01
 
 ### Fixed

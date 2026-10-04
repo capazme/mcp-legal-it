@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .._http import note_source
-from .akn_parser import annex_id_of
+from .akn_parser import annex_id_of, normalize_article_key
 from .models import Norma, NormaVisitata, names_an_annex, split_annex
 from .map import codice_urn, find_brocardi_url
 
@@ -154,6 +154,11 @@ async def fetch_article(nv: NormaVisitata) -> dict:
             if text.startswith("["):  # not found / not divided into articles
                 return {"text": "", "url": url, "source": source, "error": text.strip("[]")}
             return {"text": text, "url": url, "source": source, "allegato": f"Allegato {annex[0]}"}
+        if nv.numero_articolo and _EURLEX_NOT_FOUND_RE.match(text):
+            # The extractor's "[Articolo N non trovato ...]" is an answer about the
+            # document, not its text: returned as text it read as the article.
+            return {"text": "", "url": url, "source": source, "esito": ARTICLE_NOT_FOUND,
+                    "error": text.strip("[]")}
     elif annex:
         return await _fetch_normattiva_annex(nv, *annex)
     elif names_an_annex(nv.numero_articolo):
@@ -173,13 +178,14 @@ async def fetch_article(nv: NormaVisitata) -> dict:
             return {"text": "", "url": "", "source": "", "error": "Could not generate URL for this act"}
 
         # AKN-first: try the official Akoma Ntoso XML export, fall back to HTML.
+        act = None
+        part = _akn_part_hint(nv.norma)
         if not _akn_disabled():
             from .akn_fetch import fetch_act_akn
 
             act = await fetch_act_akn(nv.norma)
             if act is not None:
-                part = _akn_part_hint(nv.norma)
-                akn_text = act.article(nv.numero_articolo, part=part)
+                akn_text = _akn_article(act, nv.numero_articolo, part)
                 if akn_text:
                     result = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data}
                     # The act's main text is a code approved in an annex: say so.
@@ -192,10 +198,155 @@ async def fetch_article(nv: NormaVisitata) -> dict:
             resp.raise_for_status()
             note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
             html = resp.text
-        text = _extract_normattiva_article(html)
-        return {"text": text, "url": url, "source": source, "data_atto": nv.norma.data}
+        text, served = _normattiva_article_page(html)
+        result = {"text": text, "url": url, "source": source, "data_atto": nv.norma.data}
+        if not nv.numero_articolo:
+            return result
+        return _checked_html_article(result, nv, served, act, part)
 
     return {"text": text, "url": url, "source": source}
+
+
+# ---------------------------------------------------------------------------
+# Does the article exist? (Normattiva answers a missing one with the act's art. 1)
+# ---------------------------------------------------------------------------
+
+# Machine-readable outcome of a failed existence check, carried in ``esito``
+# next to ``error``: the article is not in the act, or the act's structure could
+# not be read to tell. Callers (verifica_citazioni) branch on it, never on the wording.
+ARTICLE_NOT_FOUND = "articolo_non_trovato"
+CHECK_UNAVAILABLE = "verifica_non_disponibile"
+
+# What _extract_eurlex_article answers when the document has no such article or recital.
+_EURLEX_NOT_FOUND_RE = re.compile(r"^\[(?:Articolo|Considerando) .+ non trovato nel documento EUR-Lex\]$")
+
+# The Latin ordinals after an article number are spelled more than one way, even
+# inside Normattiva: the D.Lgs. 196/2003 asked as "2-quinquiesdecies" is served
+# as "Art. 2-quindecies", "2-sexiesdecies" as "Art. 2-sex-decies".
+_ORDINAL_SPELLINGS = (
+    ("quindecies", "quinquiesdecies"),
+    ("sexdecies", "sexiesdecies"),
+    ("septendecies", "septiesdecies"),
+    ("octodecies", "octiesdecies"),
+    ("novendecies", "noviesdecies"),
+    ("nonies", "novies"),
+)
+
+
+def _article_identity(key: str) -> "tuple[str, str] | None":
+    """``(number, suffix)`` of an article key in canonical form, None if it has no number.
+
+    ``"2-sex-decies"`` and ``"2-sexiesdecies"`` are ``("2", "sexiesdecies")``,
+    ``"416-bis.1"`` is ``("416", "bis1")``, ``"01"`` is ``("1", "")``. An act made
+    of one article numbers it "unico" in some sources and 1 in others: both are
+    ``("1", "")``.
+    """
+    key = (key or "").strip().lower()
+    if key == "unico":
+        return "1", ""
+    m = re.match(r"(\d+)(.*)$", key)
+    if not m:
+        return None
+    suffix = re.sub(r"[^a-z0-9]", "", m.group(2))
+    for variant, canonical in _ORDINAL_SPELLINGS:
+        suffix = suffix.replace(variant, canonical)
+    return str(int(m.group(1))), suffix
+
+
+def _akn_article(act, numero_articolo: str, part: "str | None") -> "str | None":
+    """The article from the parsed export, matched on its canonical identity."""
+    text = act.article(numero_articolo, part=part)
+    if text:
+        return text
+    wanted = _article_identity(normalize_article_key(numero_articolo))
+    if wanted is None:
+        return None
+    for key in act.article_keys(part):
+        if _article_identity(key) == wanted:
+            return act.article(key, part=part)
+    return None
+
+
+# The number at the head of a code article, which Normattiva serves as an
+# attachment with no numbered heading element: "Art. 2043.", "Art. 609-undecies.",
+# "Art. 416-bis.1", "Art. 2-sex-decies", "Articolo unico". The suffix words are the
+# Latin ordinals (bis, ter, quater, sex, ...ies), so "Art. 5. La legge" stops at 5.
+# "Art" is matched as written: an upper-case editorial note at the head of the
+# text ("((ARTICOLO ABROGATO DALL'ART. 106 ...))") must not read as art. 106.
+_ATTACHMENT_ARTICLE_RE = re.compile(
+    r"\b(?:Art(?:icolo)?\.?|ARTICOLO)\s*"
+    r"((?i:\d+(?:[\s-]*(?:bis|ter|quater|sex|[a-z]*ies)\b)*(?:\.\d+)?|unico))\b"
+)
+
+
+def _served_article_key(corpo: Tag) -> "str | None":
+    """The number Normattiva gives the article it served, or None if the page does not say.
+
+    An article of the act's body has a numbered heading (``<h2 class="article-num-akn"
+    id="art_N">``); an article of a code, served as an attachment, opens with its own
+    "Art. N." line. A page with neither is not identified.
+    """
+    heading = corpo.find("h2", class_="article-num-akn")
+    if heading is not None:
+        key = normalize_article_key(heading.get("id") or "") or normalize_article_key(
+            heading.get_text(" ", strip=True)
+        )
+        return key or None
+    attachment = corpo.find(class_="attachment-just-text")
+    if attachment is not None:
+        m = _ATTACHMENT_ARTICLE_RE.search(attachment.get_text(" ", strip=True)[:400])
+        if m:
+            return normalize_article_key(m.group(1)) or None
+    return None
+
+
+def _unavailable(base: dict, nv: NormaVisitata, why: str) -> dict:
+    return {**base, "esito": CHECK_UNAVAILABLE,
+            "error": (f"verifica non disponibile per l'art. {nv.numero_articolo} di {nv.norma}: "
+                      f"{why}, quindi il testo non viene presentato come quello dell'articolo "
+                      "richiesto")}
+
+
+def _checked_html_article(result: dict, nv: NormaVisitata, served: "str | None", act, part) -> dict:
+    """Serve the HTML text only if it is the article asked for.
+
+    Normattiva answers a URN naming an article the act does not have with HTTP 200
+    and the act's first article: taking that text at face value turned a typo in
+    the article number into a confident citation of another article.
+
+    - the page names the article asked for (same number, same suffix in canonical
+      spelling): it exists, the text is served;
+    - the page names another number (99999 -> 1): the article does not exist;
+    - the page names the same number with another suffix, or names nothing: the
+      article is declared missing only if the act's structure (the AKN export,
+      already read) has no article with that number at all. Otherwise nothing
+      proves which article the text is, and the answer says "verifica non
+      disponibile" rather than "non esiste": a suffix spelled in a way this code
+      does not know must never turn a real article into a missing one.
+    """
+    requested = _article_identity(normalize_article_key(nv.numero_articolo))
+    got = _article_identity(served) if served is not None else None
+    if requested is not None and got == requested:
+        return result
+    base = {**result, "text": ""}
+    if requested is not None and got is not None and got[0] != requested[0]:
+        return {**base, "esito": ARTICLE_NOT_FOUND,
+                "error": (f"articolo {nv.numero_articolo} non trovato in {nv.norma}: per questo "
+                          f"numero Normattiva restituisce l'art. {served}, quindi l'articolo "
+                          "non esiste nell'atto (controlla il numero)")}
+    if act is not None and requested is not None:
+        numbers = {ident[0] for ident in map(_article_identity, act.article_keys(part)) if ident}
+        if requested[0] not in numbers:
+            return {**base, "esito": ARTICLE_NOT_FOUND,
+                    "error": (f"articolo {nv.numero_articolo} non trovato in {nv.norma}: nessun "
+                              f"articolo con il numero {requested[0]} tra i {len(numbers)} numeri "
+                              "dell'atto (export Akoma Ntoso di Normattiva)")}
+    if served is not None:
+        return _unavailable(base, nv, f"Normattiva restituisce l'art. {served}, che non coincide "
+                                      "con quello richiesto, e la struttura dell'atto non basta a "
+                                      "stabilire se l'articolo esista")
+    return _unavailable(base, nv, "Normattiva non indica quale articolo ha restituito e l'export "
+                                  "strutturato dell'atto non è raggiungibile. Riprova più tardi")
 
 
 async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str) -> dict:
@@ -210,20 +361,23 @@ async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str
     base = {"text": "", "url": url, "source": "normattiva-akn", "data_atto": full.data}
     label = f"Allegato {annex_id}" + (f", art. {article}" if article else "")
     if _akn_disabled():
-        return {**base, "error": f"{label}: gli allegati si leggono solo dall'export Akoma Ntoso (AKN_DISABLED attivo)"}
+        return {**base, "esito": CHECK_UNAVAILABLE,
+                "error": f"{label}: gli allegati si leggono solo dall'export Akoma Ntoso (AKN_DISABLED attivo)"}
 
     from .akn_fetch import fetch_act_akn
 
     act = await fetch_act_akn(full)
     if act is None:
-        return {**base, "error": f"{label}: export Akoma Ntoso di Normattiva non disponibile, allegato non recuperabile"}
+        return {**base, "esito": CHECK_UNAVAILABLE,
+                "error": f"{label}: export Akoma Ntoso di Normattiva non disponibile, allegato non recuperabile"}
     name = act.annex_name(annex_id)
     if name is None:
         available = ", ".join(act.annex_names()) or "nessuno con articoli"
-        return {**base, "error": f"Allegato {annex_id} non trovato nell'atto. Allegati disponibili: {available}"}
+        return {**base, "esito": ARTICLE_NOT_FOUND,
+                "error": f"Allegato {annex_id} non trovato nell'atto. Allegati disponibili: {available}"}
     text = act.annex_article(annex_id, article) if article else act.annex_text(annex_id)
     if not text:
-        return {**base, "error": f"{label} non trovato in {name}"}
+        return {**base, "esito": ARTICLE_NOT_FOUND, "error": f"{label} non trovato in {name}"}
     return {**base, "text": text, "allegato": name}
 
 
@@ -263,12 +417,20 @@ async def fetch_annotations(nv: NormaVisitata) -> dict:
 # Normattiva extraction (4 scenarios from original)
 # ---------------------------------------------------------------------------
 
-def _extract_normattiva_article(html: str) -> str:
+def _normattiva_article_page(html: str) -> "tuple[str, str | None]":
+    """The article text of a Normattiva page and the number the page gives it (None if unsaid)."""
     soup = BeautifulSoup(html, "lxml")
     corpo = soup.find("div", class_="bodyTesto")
     if corpo is None:
-        return soup.get_text(separator="\n", strip=True)
+        return soup.get_text(separator="\n", strip=True), None
+    return _normattiva_body_text(corpo), _served_article_key(corpo)
 
+
+def _extract_normattiva_article(html: str) -> str:
+    return _normattiva_article_page(html)[0]
+
+
+def _normattiva_body_text(corpo: Tag) -> str:
     # Scenario 1: AKN Detailed (art-comma-div-akn)
     if corpo.find(class_="art-comma-div-akn"):
         return _normattiva_akn_detailed(corpo)
@@ -478,11 +640,17 @@ def _extract_eurlex_article(html: str, article: str) -> str:
         return _extract_eurlex_subdivision(article_div)
 
     search_patterns = [f"Articolo {article}", f"Article {article}", f"Art. {article}"]
+    # A title names the article only if the number ends there: "Articolo 9" is not
+    # the head of "Articolo 90", which a bare startswith() served for a missing art. 9.
+    title_re = re.compile(
+        "^(?:" + "|".join(re.escape(p) for p in search_patterns) + r")(?!\d)"
+    )
 
     # Strategy 2: <p class="oj-ti-art"> (Cellar/OJ format)
     for pattern in search_patterns:
         for p_tag in soup.find_all("p", class_=lambda c: c and "ti-art" in c):
-            if p_tag.get_text(strip=True).startswith(pattern):
+            title = p_tag.get_text(strip=True)
+            if title.startswith(pattern) and title_re.match(title):
                 # Check if parent is eli-subdivision — if so, extract the whole block
                 parent_sub = p_tag.find_parent("div", class_=lambda c: c and "eli-subdivision" in c)
                 if parent_sub:
@@ -494,7 +662,7 @@ def _extract_eurlex_article(html: str, article: str) -> str:
     for subdiv in soup.find_all("div", class_=lambda c: c and "eli-subdivision" in c):
         title_elem = subdiv.find(
             ["p", "span", "div"],
-            string=lambda s: s and any(s.strip().startswith(p) for p in search_patterns),
+            string=lambda s: s and bool(title_re.match(s.strip())),
         )
         if title_elem:
             return _extract_eurlex_subdivision(subdiv)
