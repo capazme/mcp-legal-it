@@ -17,10 +17,10 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "parametri_forensi.json") as f:
+with open(_DATA / "parametri_forensi.json", encoding="utf-8") as f:
     _PARAMETRI = json.load(f)
 
-with open(_DATA / "contributo_unificato.json") as f:
+with open(_DATA / "contributo_unificato.json", encoding="utf-8") as f:
     _CU = json.load(f)
 
 _OUTPUT_DIR = os.path.join(tempfile.gettempdir(), "mcp-legal-it")

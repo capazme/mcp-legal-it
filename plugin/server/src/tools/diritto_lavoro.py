@@ -13,10 +13,10 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).parent.parent / "data"
 
-with open(_DATA / "preavviso_ccnl.json") as _f:
+with open(_DATA / "preavviso_ccnl.json", encoding="utf-8") as _f:
     _PREAVVISO: dict = json.load(_f)
 
-with open(_DATA / "irpef_scaglioni.json") as _f:
+with open(_DATA / "irpef_scaglioni.json", encoding="utf-8") as _f:
     _IRPEF: dict = json.load(_f)
 
 

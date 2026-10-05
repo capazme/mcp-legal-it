@@ -22,14 +22,14 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "indici_foi.json") as f:
+with open(_DATA / "indici_foi.json", encoding="utf-8") as f:
     _FOI_DATA = json.load(f)
 
 _INDICI_FOI = _FOI_DATA["indici"]
 _VARIAZIONI_UFFICIALI = _FOI_DATA.get("variazioni_ufficiali", {})
 _RACCORDO_BASI = _FOI_DATA.get("raccordo_basi", {})
 
-with open(_DATA / "tassi_legali.json") as f:
+with open(_DATA / "tassi_legali.json", encoding="utf-8") as f:
     _TASSI_LEGALI = json.load(f)["tassi"]
 
 
