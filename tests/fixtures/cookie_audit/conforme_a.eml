@@ -1,0 +1,36 @@
+Return-Path: <bounces@news.studio-esempio.example>
+From: Studio Esempio <news@studio-esempio.example>
+To: prova1@studio-esempio.example
+Subject: Novità di ottobre
+Date: Thu, 15 Oct 2026 09:00:00 +0200
+Message-ID: <conforme@news.studio-esempio.example>
+List-Unsubscribe: <https://news.studio-esempio.example/disiscrizione>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1"
+
+--b1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Versione testo della newsletter.
+--b1
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><body>
+<p>Novit=C3=A0 dallo studio.</p>
+<p><a href=3D"https://www.studio-esempio.example/novita">Leggi le novit=C3=
+=A0</a></p>
+<p style=3D"font-size:11px">Questa email contiene un pixel che misura solo =
+il tasso di apertura complessivo della campagna, in forma anonima.
+Consulta l'<a href=3D"https://www.studio-esempio.example/privacy">informati=
+va privacy</a>.
+<a href=3D"https://news.studio-esempio.example/preferenze?azione=3Dstop">Di=
+sattiva il tracciamento delle aperture</a> =C2=B7
+<a href=3D"https://news.studio-esempio.example/disiscrizione">Disiscriviti<=
+/a></p>
+<img src=3D"https://news.studio-esempio.example/stats/open.gif?campaign=3D2=
+026-10" width=3D"1" height=3D"1" style=3D"display:block;width:1px;height:1p=
+x" alt=3D"">
+</body></html>
+--b1--
