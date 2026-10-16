@@ -82,7 +82,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 | `pianificazione-successione` | Quote ereditarie, imposte, adempimenti |
 | `compliance-privacy` | Assessment GDPR completo |
 | `data-breach` | Gestione data breach: valutazione + notifica |
-| `cookie-audit` | Audit forense dei cookie di un sito e conformità al Provvedimento Garante 2021 |
+| `cookie-audit` | Audit forense di cookie, pixel e tracciamento di sito e newsletter (Provv. Garante 2021, Linee guida tracking pixel nelle e-mail 2026) |
 | `analisi-fornitori` | Screening privacy del mastrino fornitori (art. 28), DPA pubblicati, report Excel e nomine |
 | `redazione-contratto` | Supporto redazione contrattuale |
 | `genera-atto` | Generazione atti giudiziari (100 modelli) |

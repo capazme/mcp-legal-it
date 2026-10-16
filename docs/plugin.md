@@ -98,7 +98,7 @@ Fonte: `content/skills/*/SKILL.md` (una directory per skill; `plugin/skills/` è
 | `esporta-documento` | "esporta in word", "salva in pdf", "genera docx" | `esporta_atto_docx` |
 | `procure-quotazioni` | "procure e quotazioni", "quotazioni monitori", "preventivi decreti ingiuntivi" | `genera_procura_liti_docx`, `genera_quotazione_docx` |
 | `analisi-fornitori` | "mastrino fornitori", "screening fornitori GDPR", "nomina responsabile art. 28" | `verifica_partita_iva_vies`, `genera_report_fornitori`, `genera_dpa` |
-| `cookie-audit` | "analisi cookie", "audit cookie", "banner consenso", "che cookie usa il sito" | browser + `genera_informativa_cookie` |
+| `cookie-audit` | "analisi cookie", "audit cookie", "banner consenso", "che cookie usa il sito", "pixel di Meta", "tracking pixel nelle newsletter", "mappatura strumenti di tracciamento" | browser + script della skill + `genera_informativa_cookie` |
 | `analisi-delibere-consob` | "delibere CONSOB", "provvedimenti mercati finanziari", "sanzioni CONSOB" | `cerca_delibere_consob`, `leggi_delibera_consob`, `cite_law` |
 | `novita-consob` | "ultime novità CONSOB", "delibere recenti" | `ultime_delibere_consob`, `leggi_delibera_consob` |
 | `analisi-tributaria` | "giurisprudenza tributaria", "sentenze IVA/IRES", "accertamento e riscossione", "contenzioso fiscale CGT" | `cerca_giurisprudenza`, `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `cite_law` |
