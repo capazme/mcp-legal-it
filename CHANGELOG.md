@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `cookie-audit` skill: pixels and the tracking inside newsletters, as one repeatable
+  mapping that needs from the client only what cannot be seen from outside.
+  - Site: browser probe §5 classifies the calls already made to ~30 pixel and
+    tracking vendors (Meta, TikTok, LinkedIn, Pinterest, X, Microsoft UET, Criteo,
+    Google Ads/Floodlight, affiliate networks, the on-site scripts of e-mail
+    platforms such as Klaviyo, HubSpot, Mailchimp, ActiveCampaign), with IDs, events,
+    the NAMES of the user-data parameters (advanced matching), e-mail addresses in
+    clear in URLs, consent signals (`gcs` decoded, TCF) and the pre/post consent
+    split through a marker set when consent is granted. It also reads the pixel IDs
+    written in the page code, `<noscript>` fallbacks, 1x1 images and the IDs exposed
+    by the libraries, so an ad-blocker in the auditor's browser no longer hides them.
+  - `scripts/inspect_container.py` (the existing `inspect_container.sh` now calls
+    it) parses a GTM container or Google tag as data: vendor, IDs, events, user data
+    and firing/blocking conditions of every tag, with a verdict read rule by rule
+    (firing rules are alternatives: one rule that reads no consent decision — All
+    Pages, Consent Initialization, a CMP event sent on every load — is enough for the
+    warning), Consent Mode defaults (warning on
+    `granted`), paused tags and server-side tagging. The Meta gallery template's
+    `consent = true` is reported as what it is: an unconditional
+    `fbq('consent','grant')`, not a filter.
+  - `scripts/inspect_pixel_config.py` reads the configuration Meta publishes for a
+    pixel: Automatic Advanced Matching and the form fields it reads, automatic
+    events, the parameters Meta filters as unwanted. TikTok's loader returns the same
+    flags for any pixel code, an invented one included, so it is deliberately not
+    read: the evidence there is the request body (probe §6).
+  - Newsletters: `scripts/inspect_newsletter.py` maps a `.eml` against the Garante's
+    Guidelines on tracking pixels in e-mail (provv. 17 April 2026 n. 284, compliance
+    due by 29 October 2026): sending platform from the headers, open pixels and
+    images carrying identifiers, tracked links and the per-recipient IDs they carry
+    onto the website, third parties, the recipient's address in any URL (clear,
+    base64, hex, MD5/SHA-1/SHA-256), unsubscribe, the link to refuse ONLY the
+    tracking (§6) and the notice (§4). With `--compare`, two copies sent to two test
+    mailboxes decide whether the pixel is individual; one copy alone never claims it.
+    Probe §7 reads the newsletter sign-up form (notice, consent wording, pre-ticked
+    boxes).
+  - References: `pixel-fingerprints.md`, `newsletter-tracking.md` (the repeatable
+    path, the message types and the exemptions of the Guidelines, eight questions for
+    the client), pixel and newsletter sections in `compliance-checklist.md`.
+  - `generate_report.js`: pixel and tracker map (where, ID, data sent, moment,
+    state) and a newsletter section, both optional.
+
+
 ## [2.15.3] - 2026-10-04
 
 ### Fixed

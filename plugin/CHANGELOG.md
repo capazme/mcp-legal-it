@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `cookie-audit` si estende ai **pixel** e alle **newsletter**, in un percorso
+  ripetibile che chiede al cliente solo ciò che non si vede da fuori: sonda dei
+  pixel sul sito con ID, eventi, dati utente e momento rispetto al consenso;
+  analisi del container GTM tag per tag (condizioni di attivazione e consenso);
+  configurazione pubblicata dei pixel Meta (Advanced Matching automatico); analisi
+  dei `.eml` delle newsletter secondo le Linee guida del Garante sui tracking pixel
+  nelle e-mail (17 aprile 2026, adeguamento entro il 29 ottobre 2026), con
+  confronto tra due caselle di prova; controllo del modulo di iscrizione; mappa dei
+  pixel e sezione newsletter nel report Word.
+
+
 ## [2.15.3] - 2026-10-04
 
 ### Fixed

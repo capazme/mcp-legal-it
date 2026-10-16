@@ -209,7 +209,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base a
 | `compliance-privacy` | Assessment GDPR completo: base giuridica, check DPIA, registro, informativa, DPA, data breach | tutti i 12 tool GDPR + `cite_law` |
 | `data-breach` | Gestione incidente: valutazione rischio, modulo notifica Garante entro 72h, stima sanzioni art. 83 | `valutazione_data_breach`, `genera_notifica_data_breach`, `calcolo_sanzione_gdpr`, `cite_law` |
 | `analisi-fornitori` | Screening privacy del mastrino fornitori: identificazione via web e VIES, ruolo art. 28, DPA pubblicato dal fornitore, report Excel e bozze di nomina | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori`, `genera_dpa` |
-| `cookie-audit` | Audit forense dei cookie di un sito (pre/post consenso, CMP, tracker, GTM) con report Word e remediation — Provv. Garante 10/06/2021 | `genera_informativa_cookie`, `cite_law` (+ strumenti browser di Claude) |
+| `cookie-audit` | Audit forense di cookie, pixel e tracciamento di un sito e delle sue newsletter (pre/post consenso, CMP, GTM tag per tag, pixel Meta, `.eml` delle newsletter) con report Word e remediation — Provv. Garante 10/06/2021 e Linee guida sui tracking pixel nelle e-mail 17/04/2026 | `genera_informativa_cookie`, `cite_law` (+ strumenti browser di Claude) |
 
 ### Redazione documenti
 
