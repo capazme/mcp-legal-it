@@ -1,0 +1,49 @@
+Return-Path: <bounce-mc.us21_12345678.9876543-prova1=studio-esempio.example@mail123.atl11.mcdlv.net>
+Received: from mail123.atl11.mcdlv.net (mail123.atl11.mcdlv.net [192.0.2.10]) by mx.studio-esempio.example with ESMTPS; Thu, 15 Oct 2026 09:00:01 +0200
+Authentication-Results: mx.studio-esempio.example; dkim=pass header.d=mcdlv.net; spf=pass smtp.mailfrom=mail123.atl11.mcdlv.net
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mcdlv.net; s=k2; h=from:to:subject; bh=abc=; b=xyz=
+From: Studio Esempio <news@studio-esempio.example>
+To: prova1@studio-esempio.example
+Subject: Newsletter di ottobre
+Date: Thu, 15 Oct 2026 09:00:00 +0200
+Message-ID: <a1b2c3d4e5.mc@mail123.atl11.mcdlv.net>
+List-Unsubscribe: <https://studio-esempio.us21.list-manage.com/unsubscribe?u=0a1b2c3d4e5f6a7b8c9d0e1f2&id=1a2b3c4d5e>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+X-MC-User: 0a1b2c3d4e5f6a7b8c9d0e1f2
+Precedence: bulk
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1"
+
+--b1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Versione testo della newsletter.
+--b1
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><body>
+<table><tr><td><img src=3D"https://mcusercontent.com/0a1b2c3d4e5f6a7b8c9d0e=
+1f2/images/logo.png" width=3D"200" height=3D"60" alt=3D"Logo"></td></tr>
+<tr><td><p>Le novit=C3=A0 del mese in materia di privacy.</p>
+<a href=3D"https://studio-esempio.us21.list-manage.com/track/click?u=3D0a1b=
+2c3d4e5f6a7b8c9d0e1f2&amp;id=3D9f8e7d6c5b&amp;e=3Da1b2c3d4e5">Leggi l'artic=
+olo</a>
+<a href=3D"https://www.studio-esempio.example/articolo?utm_source=3Dnewslet=
+ter&amp;mc_cid=3D4c3b2a1f0e&amp;mc_eid=3Da1b2c3d4e5">Vai al sito</a>
+</td></tr>
+<tr><td style=3D"font-size:11px">Ricevi questa email perch=C3=A9 ti sei isc=
+ritto.
+<a href=3D"https://studio-esempio.us21.list-manage.com/unsubscribe?u=3D0a1b=
+2c3d4e5f6a7b8c9d0e1f2&amp;id=3D1a2b3c4d5e&amp;e=3Da1b2c3d4e5">Cancella l'is=
+crizione</a> |
+<a href=3D"https://studio-esempio.us21.list-manage.com/profile?u=3D0a1b2c3d=
+4e5f6a7b8c9d0e1f2&amp;id=3D1a2b3c4d5e&amp;e=3Da1b2c3d4e5">Aggiorna le tue p=
+referenze</a>
+</td></tr></table>
+<img src=3D"https://studio-esempio.us21.list-manage.com/track/open.php?u=3D=
+0a1b2c3d4e5f6a7b8c9d0e1f2&amp;id=3D9f8e7d6c5b&amp;e=3Da1b2c3d4e5" height=3D=
+"1" width=3D"1" alt=3D"">
+</body></html>
+--b1--
