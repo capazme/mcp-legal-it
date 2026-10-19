@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Plugin first start: `server/bootstrap.py` (standard library only) answers
+  Claude Code as soon as Python is available, installs the locked libraries in
+  the background with no time limit, then hands the session to the real server
+  and announces the tools (`notifications/tools/list_changed`). Before, the
+  whole download had to fit in Claude Code's 30-second start limit, and on a
+  slow network the server stayed "failed" until `/mcp` -> Reconnect. Tool calls
+  made while it prepares get a plain «Legal IT si sta preparando» message.
 - Data: TEGM table for Q4 2026 (DM MEF 28/09/2026, GU n. 227 del 30/09/2026).
 - Plugin launcher: the MCP server starts with `uv run --frozen --project
   ${CLAUDE_PLUGIN_ROOT}/server`, from the exact versions pinned in the new

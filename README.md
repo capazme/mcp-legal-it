@@ -97,7 +97,7 @@ Richiede `uv` e `git` (vedi sopra). Il primo avvio può essere lento: vedi la ta
 
 | Sintomo | Causa | Rimedio |
 |---|---|---|
-| `connection timed out after 30000ms` al primo avvio | `uv` sta ancora scaricando Python e le dipendenze: Claude Code aspetta 30 s e rinuncia | Riprova da `/mcp` → *reconnect* (la cache è già popolata). Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
+| `connection timed out after 30000ms` al primo avvio | `uv` sta ancora scaricando Python: Claude Code aspetta 30 s e rinuncia (le librerie, invece, si scaricano dopo la connessione, senza limite di tempo) | Riprova da `/mcp` → *reconnect* (la cache è già popolata). Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
 | `CONNECTION_CLOSED` | Il processo del server è terminato subito: di solito `uv` non è installato | Installa `uv` (vedi sopra; scarica da solo Python 3.12), apri un nuovo terminale e riavvia `claude` |
 | `marketplace add` fallisce subito | `git` mancante | `xcode-select --install` (macOS) e riprova |
 

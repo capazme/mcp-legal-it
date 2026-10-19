@@ -33,11 +33,11 @@ Gli aggiornamenti automatici dei marketplace di terzi sono spenti per default: a
 
 ### Primo avvio
 
-Al primo avvio `uv` scarica Python 3.12 e le versioni esatte delle librerie fissate in `server/uv.lock` (da qualche secondo a un paio di minuti, secondo la rete). Gli avvii successivi richiedono meno di un secondo.
+Al primo avvio `uv` scarica Python 3.12 (circa 25 MB); il server si collega appena Python è pronto e, in background, scarica le versioni esatte delle librerie fissate in `server/uv.lock` (circa 40 MB, senza limite di tempo). Gli strumenti compaiono da soli quando il download finisce; se nel frattempo ne chiedi uno, Claude riceve il messaggio «Legal IT si sta preparando». Gli avvii successivi richiedono meno di un secondo.
 
 | Sintomo | Rimedio |
 |---|---|
-| `connection timed out` al primo avvio | Il download non era finito: `/mcp` → *reconnect*. Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
+| `connection timed out` al primo avvio | La rete è così lenta che anche il solo Python ha superato i 30 secondi: `/mcp` → *reconnect* (il download riprende da dove era). Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
 | `CONNECTION_CLOSED` o `uv: command not found` | `uv` manca: installalo, apri un nuovo terminale e riavvia Claude |
 
 ## Rete e dati

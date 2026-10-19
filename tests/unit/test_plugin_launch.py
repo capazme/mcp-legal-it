@@ -25,9 +25,12 @@ def test_the_server_starts_from_the_lock_without_a_shell():
     assert server["command"] == "uv"
     args = server["args"]
     assert args[0] == "run" and "--frozen" in args
+    # --no-sync: Python only, so the bootstrap can answer Claude Code within its
+    # 30-second start limit while it installs the libraries itself.
+    assert "--no-sync" in args
     assert args[args.index("--project") + 1] == "${CLAUDE_PLUGIN_ROOT}/server"
-    assert args[-2:] == ["python", "${CLAUDE_PLUGIN_ROOT}/server/run_server.py"]
-    assert (PLUGIN / "server" / "run_server.py").exists()
+    assert args[-2:] == ["python", "${CLAUDE_PLUGIN_ROOT}/server/bootstrap.py"]
+    assert (PLUGIN / "server" / "bootstrap.py").exists()
 
 
 def test_the_lock_fits_the_directory_file_limit_and_holds_fastmcp_3():
