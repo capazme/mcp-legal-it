@@ -8,8 +8,8 @@ on:
   # push to main (the release merge) triggered nothing.
   push:
     branches: [develop, main]
-    # A tag push runs the same battery plus the tarball check, before the
-    # marketplace backend can ingest the codeload archive of that tag.
+    # A tag push runs the same battery, including the directory checks on
+    # plugin/, before the release workflow publishes that tag.
     tags: ['*']
 
 permissions:
