@@ -194,8 +194,8 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
 
       <li><div class="step">
         <h3>Primo avvio</h3>
-        <p>Apri Claude Code (digita <code>claude</code> in una cartella di lavoro, oppure apri la scheda Code dell'app). La prima volta Legal IT scarica Python e i suoi componenti: da qualche secondo a un paio di minuti, secondo la rete.</p>
-        <p>Digita <code>/mcp</code>: <strong>legal-it</strong> deve risultare <em>connected</em>. Se risulta <em>failed</em>, il download non aveva finito: scegli <strong>Reconnect</strong>. Dal secondo avvio parte in meno di un secondo.</p>
+        <p>Apri Claude Code (digita <code>claude</code> in una cartella di lavoro, oppure apri la scheda Code dell'app). La prima volta Legal IT scarica Python, si collega, e poi scarica in background i suoi componenti: da qualche secondo a un paio di minuti, secondo la rete. Gli strumenti compaiono da soli quando il download finisce; se li chiedi prima, Claude ti dirà che Legal IT si sta preparando.</p>
+        <p>Digita <code>/mcp</code>: <strong>legal-it</strong> deve risultare <em>connected</em>. Dal secondo avvio parte in meno di un secondo.</p>
       </div></li>
 
       <li><div class="step">
@@ -222,7 +222,7 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
         <thead><tr><th>Cosa vedi</th><th>Cosa fare</th></tr></thead>
         <tbody>
           <tr><td><code>marketplace add</code> fallisce subito</td><td>Manca <code>git</code>: ripeti il passo 2, poi riprova.</td></tr>
-          <tr><td>In <code>/mcp</code> legal-it è <em>failed</em> (connection timed out)</td><td>Il primo download non aveva finito: <strong>Reconnect</strong>. In alternativa avvia Claude Code con <code>MCP_TIMEOUT=120000 claude</code>.</td></tr>
+          <tr><td>In <code>/mcp</code> legal-it è <em>failed</em> (connection timed out)</td><td>Rete molto lenta: anche il solo Python ha superato i 30 secondi. Scegli <strong>Reconnect</strong> (il download riprende da dove era), oppure avvia Claude Code con <code>MCP_TIMEOUT=120000 claude</code>.</td></tr>
           <tr><td><code>uv: command not found</code> o <em>CONNECTION_CLOSED</em></td><td>Manca <code>uv</code> oppure la finestra era aperta da prima: ripeti il passo 1 e riapri Claude Code.</td></tr>
           <tr><td>Strumenti di Legal IT doppi</td><td>È installata anche l'estensione <code>.mcpb</code>: toglila (passo 4).</td></tr>
         </tbody>
