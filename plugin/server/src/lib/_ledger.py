@@ -234,7 +234,8 @@ class TableLedgerMiddleware(Middleware):
         if non_dichiarate:
             print(
                 "[_ledger] %s consulted undeclared online sources: %s "
-                "(add them to TOOL_SOURCES in table_bindings.py)" % (name, non_dichiarate),
+                "(add them to TOOL_SOURCES in source_bindings.py)" % (name, non_dichiarate),
+                file=sys.stderr,
                 flush=True,
             )
         # A call that supplied the datum its table would have provided read no
