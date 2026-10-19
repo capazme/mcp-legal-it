@@ -69,16 +69,27 @@ def covers(ref: str, result: "dict | None") -> bool:
     if result.get("is_error"):
         return False
     text = result_text(result.get("content")).strip()
-    if text.startswith("{"):
+    markdown = True  # False once the text came out of the json format (testo)
+    # Two passes at most: Claude Code hands over the FastMCP structured wrapper
+    # {"result": "<text>"}, and <text> may itself be the json format of cite_law.
+    for _ in range(2):
+        if not text.startswith("{"):
+            break
         try:
             body = json.loads(text)
         except ValueError:
-            body = None
-        if isinstance(body, dict):
-            if body.get("errore") or not body.get("testo"):
-                return False
-            text = body.get("testo") or ""
-    elif text.startswith("**Errore") or text.startswith("**Nessun testo trovato"):
+            break
+        if not isinstance(body, dict):
+            break
+        if "testo" not in body and isinstance(body.get("result"), str):
+            text = body["result"].strip()
+            continue
+        if body.get("errore") or not body.get("testo"):
+            return False
+        text = body.get("testo") or ""
+        markdown = False
+        break
+    if markdown and (text.startswith("**Errore") or text.startswith("**Nessun testo trovato")):
         return False
     asked = re.search(_ARTICOLO, ref, re.I)
     # Skip the "**Fonte**: ..." / "**Testo tratto dall'Allegato ...**" header lines.
