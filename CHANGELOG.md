@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Data: TEGM table for Q4 2026 (DM MEF 28/09/2026, GU n. 227 del 30/09/2026).
 - Plugin launcher: the MCP server starts with `uv run --frozen --project
   ${CLAUDE_PLUGIN_ROOT}/server`, from the exact versions pinned in the new
   `plugin/server/uv.lock` (FastMCP 3.4.9), in an environment of the plugin's own.
