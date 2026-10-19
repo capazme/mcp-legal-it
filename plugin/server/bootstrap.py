@@ -26,11 +26,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import queue
 import re
 import shutil
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 from typing import IO, Callable
 
@@ -41,14 +43,26 @@ SERVER = HERE / "run_server.py"
 MARKER = Path(sys.prefix) / ".legal-it-synced"
 
 PREPARING = (
-    "Legal IT si sta preparando: al primo avvio scarica Python e le librerie "
-    "del server (da qualche secondo a un paio di minuti). Gli strumenti "
-    "compaiono da soli appena il download finisce: riprova tra poco."
+    "Legal IT si sta preparando: al primo avvio scarica le librerie del server "
+    "(da qualche secondo a un paio di minuti). Gli strumenti compaiono da soli "
+    "appena il download finisce: riprova tra poco."
 )
 FAILED = (
-    "Legal IT non è riuscito a installare le sue librerie ({reason}). Controlla "
-    "la connessione, poi chiudi e riapri la sessione oppure /mcp -> Reconnect."
+    "Legal IT non è riuscito ad avviarsi ({reason}). Controlla la connessione, "
+    "poi chiudi e riapri la sessione oppure /mcp -> Reconnect."
 )
+# Read once by the client at initialize, so it must stay true once the tools
+# arrive: the real server's own instructions apply from the next session on.
+INSTRUCTIONS = (
+    "Legal IT: strumenti di diritto italiano. Al primo avvio gli strumenti "
+    "compaiono dopo il download delle librerie. Usa cite_law() prima di citare "
+    "una norma e leggi_sentenza() per le sentenze di Cassazione con numero noto."
+)
+# Protocol versions the locked `mcp` package negotiates; anything else gets the
+# newest, as the real server would answer.
+PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25")
+# How long the real server may take to answer the replayed initialize.
+REPLAY_TIMEOUT = 120
 
 # Requests answered while the libraries are still being installed.
 EMPTY_RESULTS = {
@@ -138,14 +152,18 @@ class Relay:
         if method == "initialize":
             self.init_line = line
             self.got_init.set()
-            params = message.get("params") or {}
+            params = message.get("params")
+            if not isinstance(params, dict):
+                params = {}
+            requested = params.get("protocolVersion")
             self.send({"jsonrpc": "2.0", "id": request_id, "result": {
-                "protocolVersion": params.get("protocolVersion", "2025-06-18"),
+                "protocolVersion": (requested if requested in PROTOCOL_VERSIONS
+                                    else PROTOCOL_VERSIONS[-1]),
                 "capabilities": {"tools": {"listChanged": True},
                                  "prompts": {"listChanged": True},
                                  "resources": {"listChanged": True}},
                 "serverInfo": {"name": "Legal IT", "version": server_version()},
-                "instructions": PREPARING,
+                "instructions": INSTRUCTIONS,
             }})
             return
         if method == "notifications/initialized":
@@ -166,36 +184,75 @@ class Relay:
 
     # --- switching over -----------------------------------------------------
     def start_server(self) -> None:
-        """Runs in its own thread: install, start, replay, announce."""
-        reason = self.sync()
+        """Runs in its own thread: install, start, replay, announce.
+
+        Any failure must reach the client as a message on the next tool call;
+        a thread that dies silently would leave the session "preparing" forever.
+        """
+        spawned: list[subprocess.Popen[bytes]] = []
+        try:
+            reason = self.sync()
+            if reason is None:
+                self.got_init.wait()
+                reason = self.switch_over(spawned)
+        except Exception as exc:  # noqa: BLE001 — surfaced to the client below
+            reason = f"{type(exc).__name__}: {exc}"
         if reason is not None:
             with self.state:
                 self.failure = reason
-            return
-        self.got_init.wait()
+            for child in spawned:
+                if child.poll() is None:
+                    child.kill()
+                child.wait()
+                for pipe in (child.stdin, child.stdout):
+                    try:
+                        pipe.close()
+                    except OSError:
+                        pass
+
+    def switch_over(self, spawned: list) -> str | None:
         with self.state:
             child = subprocess.Popen(self.server_cmd, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=sys.stderr)
+            spawned.append(child)
+            lines: queue.Queue = queue.Queue()
+            threading.Thread(target=self.read_server, args=(child, lines),
+                             daemon=True).start()
             init = json.loads(self.init_line)
             child.stdin.write(self.init_line)
             child.stdin.flush()
-            for raw in iter(child.stdout.readline, b""):  # the replayed answer
+            deadline = time.monotonic() + REPLAY_TIMEOUT
+            while True:  # the replayed answer is swallowed, never relayed
                 try:
-                    if json.loads(raw).get("id") == init.get("id"):
-                        break
+                    raw = lines.get(timeout=max(0.0, deadline - time.monotonic()))
+                except queue.Empty:
+                    return "il server non ha risposto all'avvio"
+                if raw is None:
+                    return f"server exit {child.wait()}"
+                try:
+                    message = json.loads(raw)
                 except ValueError:
                     continue
+                if isinstance(message, dict) and message.get("id") == init.get("id"):
+                    break
             if self.initialized:
                 child.stdin.write(b'{"jsonrpc":"2.0","method":"notifications/initialized"}\n')
                 child.stdin.flush()
             self.child = child
-            threading.Thread(target=self.pump_server, daemon=True).start()
+            threading.Thread(target=self.pump_server, args=(lines,), daemon=True).start()
             for method in CHANGED:
                 self.send({"jsonrpc": "2.0", "method": method})
+        return None
 
-    def pump_server(self) -> None:
-        assert self.child is not None and self.child.stdout is not None
-        for raw in iter(self.child.stdout.readline, b""):
+    @staticmethod
+    def read_server(child: subprocess.Popen[bytes], lines: queue.Queue) -> None:
+        for raw in iter(child.stdout.readline, b""):
+            lines.put(raw)
+        lines.put(None)
+
+    def pump_server(self, lines: queue.Queue) -> None:
+        assert self.child is not None
+        for raw in iter(lines.get, None):
             self.send_raw(raw)
         # The server ended: so does the session.
         self.on_server_exit(self.child.wait())
@@ -227,8 +284,12 @@ class Relay:
 def main() -> int:
     server = [sys.executable, str(SERVER)]
     if in_sync():
-        # Warm start: the real server inherits this process's stdio.
-        return subprocess.call(server)
+        # Warm start: the real server inherits this process's stdio. A failure
+        # sends the next start down the cold path, which re-syncs.
+        code = subprocess.call(server)
+        if code != 0:
+            MARKER.unlink(missing_ok=True)
+        return code
     return Relay(sys.stdin.buffer, sys.stdout.buffer, run_sync, server).run()
 
 

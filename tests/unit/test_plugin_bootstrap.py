@@ -31,13 +31,18 @@ bootstrap = load_bootstrap()
 
 FAKE_SERVER = textwrap.dedent('''
     import json, sys
+    initialized = False
     for raw in sys.stdin:
         msg = json.loads(raw)
+        if msg["method"] == "notifications/initialized":
+            initialized = True
         if "id" not in msg:
             continue
         if msg["method"] == "initialize":
             result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
                       "serverInfo": {"name": "Legal IT", "version": "real"}}
+        elif msg["method"] == "check/initialized":
+            result = {"initialized": initialized}
         elif msg["method"] == "tools/list":
             result = {"tools": [{"name": "cite_law", "inputSchema": {"type": "object"}}]}
         else:
@@ -50,9 +55,9 @@ FAKE_SERVER = textwrap.dedent('''
 class Session:
     """A client on one side of the relay, with the real server stubbed out."""
 
-    def __init__(self, tmp_path: Path, sync) -> None:
+    def __init__(self, tmp_path: Path, sync, server_source: str = FAKE_SERVER) -> None:
         server = tmp_path / "server.py"
-        server.write_text(FAKE_SERVER, encoding="utf-8")
+        server.write_text(server_source, encoding="utf-8")
         to_relay_r, self._to_relay_w = os.pipe()
         from_relay_r, from_relay_w = os.pipe()
         self._in = os.fdopen(to_relay_r, "rb")
@@ -65,11 +70,14 @@ class Session:
         self.thread = threading.Thread(target=self.relay.run, daemon=True)
         self.thread.start()
         self.inbox: queue.Queue = queue.Queue()
+        self.seen: list[dict] = []
         threading.Thread(target=self._read, daemon=True).start()
 
     def _read(self) -> None:
         for raw in iter(self.replies.readline, b""):
-            self.inbox.put(json.loads(raw))
+            message = json.loads(raw)
+            self.seen.append(message)
+            self.inbox.put(message)
 
     def send(self, message: dict) -> None:
         os.write(self._to_relay_w, json.dumps(message).encode() + b"\n")
@@ -112,8 +120,31 @@ def test_first_start_answers_at_once_then_hands_over_to_the_server(tmp_path):
     session.next(lambda m: m.get("method") == "notifications/tools/list_changed")
     tools = session.request(4, "tools/list")["result"]["tools"]
     assert [t["name"] for t in tools] == ["cite_law"]
-    # The replayed initialize was swallowed, not sent twice to the client.
     assert session.request(5, "ping")["result"] == {"echo": "ping"}
+    # The handshake reached the real server, and its own answer to the
+    # replayed initialize was swallowed, not sent to the client a second time.
+    assert session.request(6, "check/initialized")["result"] == {"initialized": True}
+    assert [m for m in session.seen if m.get("id") == 1] == [reply]
+    session.close()
+
+
+def test_a_server_that_dies_at_start_is_reported_not_left_preparing(tmp_path):
+    session = Session(tmp_path, sync=lambda: None,
+                      server_source="import sys; sys.exit(3)")
+    handshake(session)
+    for _ in range(100):
+        if session.relay.failure:
+            break
+        threading.Event().wait(0.05)
+    call = session.request(2, "tools/call", {"name": "cite_law", "arguments": {}})
+    assert "server exit 3" in call["result"]["content"][0]["text"]
+    session.close()
+
+
+def test_an_unknown_protocol_version_gets_the_newest_supported(tmp_path):
+    session = Session(tmp_path, sync=lambda: "stub")
+    reply = session.request(1, "initialize", {"protocolVersion": "2099-01-01"})
+    assert reply["result"]["protocolVersion"] == bootstrap.PROTOCOL_VERSIONS[-1]
     session.close()
 
 
@@ -133,7 +164,7 @@ def test_a_failed_install_says_so_on_every_tool_call(tmp_path):
 
 
 def test_unknown_requests_get_an_error_not_silence(tmp_path):
-    session = Session(tmp_path, sync=lambda: threading.Event().wait(10) and None)
+    session = Session(tmp_path, sync=lambda: "stub")
     handshake(session)
     reply = session.request(2, "prompts/get", {"name": "parere_legale"})
     assert reply["error"]["code"] == -32603
