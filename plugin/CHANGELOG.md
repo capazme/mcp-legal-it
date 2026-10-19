@@ -14,7 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `plugin/server/uv.lock` (FastMCP 3.4.9), in an environment of the plugin's own.
   `start_server.sh` is gone: no shell between Claude Code and the server, so
   Windows no longer needs Git Bash to start it. The system-Python fallback is
-  gone too; `uv` is the one prerequisite.
+  gone too; `uv` is the one prerequisite. `plugin/server/pyproject.toml` is now
+  the plugin's own project: Python 3.12 only (it always ran on 3.12) and no
+  `dev` extras, which keeps the lock under the directory's 256 KiB file limit.
+- Security audit: a weekly `pip-audit` of the versions pinned in the plugin lock,
+  next to the existing audit of the library's resolved dependencies.
 - Citation gate (plugin Stop hook): it runs in the same locked uv environment
   instead of a bare `python3`, which on Windows is usually the Microsoft Store
   alias (exit 9009) and turned every reply into a "Stop hook error".

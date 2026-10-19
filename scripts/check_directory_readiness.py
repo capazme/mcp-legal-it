@@ -198,7 +198,7 @@ def check_files(rev: str, files: dict[str, tuple[str, int]], report: Report) -> 
         text = data.decode("utf-8", "replace")
         if SECRET.search(text):
             report.block(f"{path}: looks like a credential")
-        if path.endswith(".md") and re.search(r"^!`", text, re.M):
+        if path.endswith(".md") and re.search(r"(^|[\s(])!`[^`\n]+`", text, re.M):
             report.hold(f"{path}: inline `!` command in a skill or command")
 
 
@@ -221,9 +221,9 @@ def check_command(where: str, command: str, args: list[str], report: Report,
         if "--project" in args and files is not None:
             project = args[args.index("--project") + 1]
             lock = project.replace("${CLAUDE_PLUGIN_ROOT}", PLUGIN) + "/uv.lock"
-            if "--frozen" in args and lock not in files:
-                report.block(f"{where}: `uv run --frozen` needs {lock}, which is "
-                             "not tracked (check .gitignore)")
+            if ("--frozen" in args or "--locked" in args) and lock not in files:
+                report.block(f"{where}: `uv run --frozen/--locked` needs {lock}, "
+                             "which is not tracked (check .gitignore)")
     if command in LAUNCHERS:
         package = next((a for a in args if not a.startswith("-")), "")
         if not re.search(r"(@|==)\d", package):
