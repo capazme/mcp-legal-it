@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import contextvars
 import os
+import sys
 from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Iterator
@@ -81,6 +82,7 @@ def _parse(raw: str) -> datetime | None:
         # reason to make the server unpredictable: say so and use the clock.
         print(
             "[_clock] ignoring %r: expected an ISO date or datetime" % raw,
+            file=sys.stderr,
             flush=True,
         )
         return None

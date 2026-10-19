@@ -274,7 +274,7 @@ def tools() -> list[dict]:
             "name": tool.name,
             "description": tool.description or "",
             "inputSchema": tool.inputSchema,
-            "annotations": tool.annotations.model_dump() if tool.annotations else None,
+            "annotations": tool.annotations.model_dump(by_alias=True) if tool.annotations else None,
         }
         for tool in asyncio.run(run())
     ]

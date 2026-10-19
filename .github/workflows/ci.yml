@@ -80,6 +80,8 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.10', '3.12']
+        # The library range is fastmcp>=3.4,<5: test both majors.
+        fastmcp: ['3', '4']
 
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +92,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev]" "fastmcp==${{ matrix.fastmcp }}.*"
 
       - name: Run tests
         run: pytest tests/ -m "not live" -q

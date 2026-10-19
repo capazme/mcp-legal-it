@@ -2,7 +2,7 @@
 name: dati
 description: Mostra lo stato di freschezza delle tabelle dati del server e il backlog di riconciliazione, ordinato per quanto blocca davvero
 argument-hint: "[nome tabella opzionale, es. contributo_unificato]"
-allowed-tools: mcp__legal-it__backlog_riconciliazione, Bash, Read
+allowed-tools: mcp__legal-it__backlog_riconciliazione, mcp__plugin_legal-it_legal-it__backlog_riconciliazione, Bash, Read
 ---
 
 # Comando /dati — aggiornare le tabelle senza aprire il codice

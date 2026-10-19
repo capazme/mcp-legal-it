@@ -108,6 +108,7 @@ from src.lib._ledger import apply_table_ledger  # noqa: E402
 from src.lib._regime import ENV_SWITCH as _PREVIGENTE_SWITCH  # noqa: E402
 from src.lib._regime import TAG as _PREVIGENTE_TAG  # noqa: E402
 from src.lib._regime import hidden_by_environment as _previgenti_nascosti  # noqa: E402
+from src.source_bindings import TOOL_SOURCES  # noqa: E402
 from src.table_bindings import TABLE_CONSTANTS, TOOL_ALTERNATIVES, TOOL_TABLES  # noqa: E402
 from src.tool_annotations import PREVIGENTE, apply_tool_annotations  # noqa: E402
 
@@ -124,7 +125,12 @@ apply_tool_annotations(mcp)
 # is what `src/lib/_data.py` names in the `dati_applicati` footer.
 # ---------------------------------------------------------------------------
 _TABLES_WRAPPED = apply_table_ledger(
-    mcp, TABLE_CONSTANTS, TOOL_TABLES, TOOL_ALTERNATIVES, tool_regimes=PREVIGENTE
+    mcp,
+    TABLE_CONSTANTS,
+    TOOL_TABLES,
+    TOOL_ALTERNATIVES,
+    tool_sources=TOOL_SOURCES,
+    tool_regimes=PREVIGENTE,
 )
 
 # ---------------------------------------------------------------------------

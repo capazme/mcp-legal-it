@@ -128,7 +128,7 @@ diffidenza, sempre. Ecco cosa contiene questo:
   una norma è stata citata senza passare da `cite_law()`. Non fa rete, non
   scrive file. Leggilo prima di approvarlo — è breve apposta.
 - **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto.
-- Le 23 skill, i 10 comandi e i 6 agenti sono file markdown di istruzioni. Non eseguono nulla
+- Le 23 skill, i 9 comandi e i 6 agenti sono file markdown di istruzioni. Non eseguono nulla
   da soli.
 
 ## Dipendere da un solo manutentore
