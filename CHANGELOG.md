@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.1] - 2026-10-19
+
+### Fixed
+- Citation gate (plugin Stop hook): in Claude Code the result of a plugin tool
+  reaches the hook as the FastMCP structured wrapper `{"result": "<markdown>"}`.
+  The gate read it as a JSON object without `testo`, so every successful
+  `cite_law()` counted as unverified and the hook nagged on every message that
+  cited a norm. The wrapper is now unwrapped and its text judged like any other
+  markdown answer (errors and a different article served still cover nothing).
+- Server stdout: the "consulted undeclared online sources" diagnostic of the
+  ledger (and the malformed `LEGAL_TODAY`/`LEGAL_NOW` notice) was printed on
+  stdout, which is the JSON-RPC channel of the stdio transport. They go to stderr.
+  Root cause of the warning: `src/server.py` installed the ledger without the
+  committed online-source policy (`TOOL_SOURCES`), so every source looked
+  undeclared; the policy is now passed, and `non_dichiarate` in the
+  `fonti_consultate` block of `_meta` is empty for declared sources.
+- Permission rules: tools installed through the plugin are named
+  `mcp__plugin_legal-it_legal-it__<tool>`, not `mcp__legal-it__<tool>`, so
+  `plugin/settings.json` and the `allowed-tools` of the slash commands matched
+  nothing and every command asked for confirmation. Both prefixes are now listed
+  (the old one stays right for a server registered by hand as `legal-it`).
+
+### Changed
+- Library installs (wheel, `uvx`) accept FastMCP 3.4 to 4.x: the `fastmcp`
+  requirement is now `>=3.4,<5` (was `>=2.0,<4`, whose floor was already false: the
+  server needs `FastMCP.enable`, added in 3.x). The code runs unchanged on FastMCP
+  4.1.1 (full suite and wire output identical); CI now tests both majors. The
+  Claude Code plugin and the Desktop `.mcpb` keep launching with `fastmcp<4` for now.
+- The maintainer-only `/release` command is no longer shipped in the plugin: it
+  moved to the repository-local `.claude/commands/release.md` (the plugin now
+  has 9 slash commands).
+
+### Docs
+- README: `git` is a prerequisite of the Claude Code marketplace (not only `uv`);
+  quit Claude completely (⌘Q) after installing `uv`; troubleshooting for
+  `connection timed out after 30000ms` (retry from `/mcp`, or `MCP_TIMEOUT`) and
+  `CONNECTION_CLOSED`; the Docker endpoint is `/mcp` (Streamable HTTP), not
+  `/sse`; what `legal-it-plugin-X.Y.Z.zip` is for; claude.ai web/mobile has no
+  supported connector.
+
 ## [2.16.0] - 2026-10-16
 
 ### Added

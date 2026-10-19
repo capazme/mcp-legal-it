@@ -2,7 +2,7 @@
 name: verbale
 description: Report mensile dei rifiuti osservati dal verbale, con confronto mese su mese e classifica di cosa ha bloccato davvero
 argument-hint: "[mesi opzionale, default 6]"
-allowed-tools: mcp__legal-it__verbale_mensile, Bash, Read
+allowed-tools: mcp__legal-it__verbale_mensile, mcp__plugin_legal-it_legal-it__verbale_mensile, Bash, Read
 ---
 
 # Comando /verbale — la serie storica dei rifiuti

@@ -1,6 +1,6 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude Code e Claude Desktop: **228 tool** MCP, **23 skill**, **10 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **228 tool** MCP, **23 skill**, **9 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
@@ -8,16 +8,25 @@ Plugin legale italiano per Claude Code e Claude Desktop: **228 tool** MCP, **23 
 
 > L'agente **Cowork** (cloud) non supporta i server MCP locali: usa il `.mcpb`, che gira in locale.
 
-1. Installa [`uv`](https://docs.astral.sh/uv/).
+1. Installa [`uv`](https://docs.astral.sh/uv/), poi chiudi Claude del tutto (⌘Q) e riaprilo.
 2. Scarica `legal-it-X.Y.Z.mcpb` dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
 3. Doppio click sul file (o **Impostazioni → Estensioni → Impostazioni avanzate → Installa `.mcpb`**).
 
 ### Claude Code CLI
 
+Prerequisiti: [`uv`](https://docs.astral.sh/uv/) **e `git`** (il marketplace clona il repository; su macOS `xcode-select --install`). Dopo aver installato `uv`, chiudi Claude del tutto (⌘Q) e riaprilo.
+
 ```bash
 claude plugin marketplace add capazme/mcp-legal-it
 claude plugin install legal-it@mcp-legal-it
 ```
+
+| Sintomo | Rimedio |
+|---|---|
+| `connection timed out after 30000ms` al primo avvio (`uv` sta scaricando Python) | `/mcp` → *reconnect*, oppure avvia Claude Code con `MCP_TIMEOUT=120000` |
+| `CONNECTION_CLOSED` | `uv` o Python 3.10+ mancante: installa `uv`, apri un nuovo terminale e riavvia `claude` |
+
+claude.ai web e mobile: al momento non c'è un connettore supportato. Il file `legal-it-plugin-X.Y.Z.zip` della Release è una copia autonoma del plugin per Claude Code (senza marketplace: `claude --plugin-dir legal-it-plugin-X.Y.Z.zip`, valido per la sola sessione), non un pacchetto per claude.ai.
 
 ## Cosa include
 
@@ -91,7 +100,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 | `analisi-delibere-consob` | Ricerca e analisi delibere CONSOB |
 | `novita-consob` | Ultime delibere CONSOB |
 
-### Slash command (10)
+### Slash command (9)
 
 | Comando | Descrizione |
 |---------|-------------|
@@ -104,7 +113,6 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 | `/legal-it:digest` | Briefing giuridico settimanale |
 | `/legal-it:dati` | Stato delle tabelle dati |
 | `/legal-it:verbale` | Verbale mensile dei rifiuti |
-| `/legal-it:release` | Rilascio del plugin |
 
 ### Agenti (6 specialisti)
 

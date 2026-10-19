@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.1] - 2026-10-19
+
+### Fixed
+- Gate citazioni (hook Stop): in Claude Code il risultato di un tool del plugin
+  arriva all'hook come `{"result": "<markdown>"}`; il gate lo leggeva come JSON
+  senza `testo` e considerava non verificata ogni `cite_law()` riuscita, quindi
+  segnalava ad ogni messaggio che citava una norma. Ora il testo viene estratto
+  e valutato normalmente: errori e articolo diverso da quello chiesto continuano
+  a non coprire nulla.
+- Il server scriveva un avviso diagnostico su stdout, cioè sul canale JSON-RPC
+  dello stdio: ora va su stderr. Corretta anche la causa (la policy delle fonti
+  online non veniva passata al registro, e ogni fonte risultava non dichiarata).
+- Permessi: i tool installati dal plugin si chiamano
+  `mcp__plugin_legal-it_legal-it__<tool>`, non `mcp__legal-it__<tool>`, quindi
+  i comandi chiedevano conferma anche per i tool dichiarati. Elencati entrambi i
+  prefissi in `settings.json` e in `allowed-tools`.
+
+### Changed
+- Installazione come libreria (wheel, `uvx`): accettata FastMCP dalla 3.4 alla 4.x
+  (`fastmcp>=3.4,<5`). Il codice gira invariato sulla 4.1.1; la CI prova entrambe.
+  Il plugin e l'estensione `.mcpb` continuano per ora ad avviarsi con `fastmcp<4`.
+- Il comando `/release`, riservato al maintainer, non è più distribuito col
+  plugin (ora i comandi sono 9); resta nel repository in `.claude/commands/`.
+
+### Docs
+- README: `git` richiesto per il marketplace di Claude Code; chiudere Claude con
+  ⌘Q dopo aver installato `uv`; tabella dei sintomi (`connection timed out after
+  30000ms`, `CONNECTION_CLOSED`); endpoint Docker `/mcp`; a cosa serve
+  `legal-it-plugin-X.Y.Z.zip`; claude.ai web/mobile senza connettore supportato.
+
 ## [2.16.0] - 2026-10-16
 
 ### Added

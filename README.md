@@ -40,7 +40,9 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 > Python 3.12 e le dipendenze, identico su Windows/macOS/Linux.
 > macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh` ·
 > Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
-> Riavvia il client dopo l'installazione. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
+> Dopo l'installazione di `uv` **chiudi Claude del tutto** (⌘Q su macOS, non basta chiudere la finestra) e riaprilo: un'app già aperta non vede il nuovo `PATH`. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
+>
+> **Per il marketplace di Claude Code serve anche `git`** (clona il repository del plugin). Su macOS: `xcode-select --install`; su Windows: [Git for Windows](https://git-scm.com/download/win). Il file `.mcpb` per Claude Desktop non lo richiede.
 
 > [!IMPORTANT]
 > **Claude Desktop "Cowork" (l'agente cloud) non è supportato.** Da giugno 2026 Cowork esegue i plugin in una VM cloud che non può avviare server MCP locali, quindi il marketplace lo rifiuta (`failed_content: local/stdio server`). Per Claude Desktop usa il file **`.mcpb`** qui sotto (gira in locale; l'unico prerequisito è `uv`). Per l'agente Cowork servirebbe un server remoto HTTPS.
@@ -82,11 +84,32 @@ claude plugin marketplace add capazme/mcp-legal-it
 claude plugin install legal-it@mcp-legal-it
 ```
 
+Richiede `uv` e `git` (vedi sopra). Il primo avvio può essere lento: vedi la tabella qui sotto.
+
+<details>
+<summary><strong>Claude Code: il server non si connette</strong></summary>
+
+| Sintomo | Causa | Rimedio |
+|---|---|---|
+| `connection timed out after 30000ms` al primo avvio | `uv` sta ancora scaricando Python e le dipendenze: Claude Code aspetta 30 s e rinuncia | Riprova da `/mcp` → *reconnect* (la cache è già popolata). Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
+| `CONNECTION_CLOSED` | Il processo del server è terminato subito: di solito `uv` non è installato o Python 3.10+ non è disponibile | Installa `uv` (vedi sopra; scarica da solo Python 3.12), apri un nuovo terminale e riavvia `claude` |
+| `marketplace add` fallisce subito | `git` mancante | `xcode-select --install` (macOS) e riprova |
+
+</details>
+
+### Claude.ai (web e mobile)
+
+**Al momento non esiste un connettore supportato per claude.ai web o mobile.** Il server gira in locale (stdio): le app web e mobile non possono avviarlo, e il plugin non è installabile da lì. Usa Claude Desktop (`.mcpb`) o Claude Code.
+
+### Archivio `legal-it-plugin-X.Y.Z.zip`
+
+Ogni Release pubblica, oltre al `.mcpb`, anche `legal-it-plugin-X.Y.Z.zip` (generato da `scripts/build-plugin.sh`): una copia autonoma del **plugin per Claude Code** — skill, comandi, agenti, hook e codice del server — pensata per chi non può usare il marketplace (per esempio senza `git`). Si carica, per la sola sessione, con `claude --plugin-dir legal-it-plugin-X.Y.Z.zip` (accetta lo zip o la cartella estratta). Al primo avvio serve comunque la rete: `uv` scarica Python e le dipendenze. **Non** è un file da caricare in Claude Desktop (per quello c'è il `.mcpb`) né in claude.ai.
+
 ### Docker
 
 ```bash
 docker build -t mcp-legal-it .
-docker run -p 8000:8000 mcp-legal-it    # SSE su porta 8000
+docker run -p 8000:8000 mcp-legal-it    # Streamable HTTP su porta 8000, endpoint /mcp
 ```
 
 Client MCP:
@@ -95,7 +118,7 @@ Client MCP:
 {
   "mcpServers": {
     "legal-it": {
-      "url": "http://localhost:8000/sse"
+      "url": "http://localhost:8000/mcp"
     }
   }
 }
@@ -415,7 +438,7 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 
 ---
 
-## Slash command — 10
+## Slash command — 9
 
 | Comando | Descrizione | Logica di routing |
 |---------|-------------|-------------------|
@@ -428,7 +451,6 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 | `/legal-it:digest` | Briefing giuridico settimanale | Ultime novità da tutte le fonti (Cassazione, tributario, TAR/CdS, CGUE, Garante, CONSOB), raggruppate per fonte; pianificabile come cron |
 | `/legal-it:dati` | Stato delle tabelle dati | Freschezza e provenienza di ogni tabella del server e backlog di riconciliazione ordinato per quanto ha bloccato |
 | `/legal-it:verbale` | Verbale mensile dei rifiuti | Report mese su mese dei calcoli rifiutati o degradati per tabelle scadute o non verificate (`verbale_mensile`) |
-| `/legal-it:release` | Rilascio del plugin | Bump di tutti i manifest, changelog, release branch, merge in `main` e tag — solo per il maintainer |
 
 ---
 
@@ -487,9 +509,9 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 | Variabile | Default | Descrizione |
 |-----------|---------|-------------|
-| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` o `sse` |
-| `MCP_HOST` | `0.0.0.0` | Bind address (solo SSE) |
-| `MCP_PORT` | `8000` | Porta (solo SSE) |
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio`, `http` (Streamable HTTP, endpoint `/mcp`; default nell'immagine Docker) o `sse` (legacy) |
+| `MCP_HOST` | `0.0.0.0` | Bind address (solo http/sse) |
+| `MCP_PORT` | `8000` | Porta (solo http/sse) |
 | `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
 | `LEGAL_PREVIGENTE` | `on` | `off` nasconde i tool a normativa previgente (tag `previgente`) |
 | `MCP_CACHE_DIR` | — | Directory cache Brocardi |

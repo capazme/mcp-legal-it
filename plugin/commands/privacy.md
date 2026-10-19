@@ -2,7 +2,7 @@
 name: privacy
 description: Genera documenti GDPR (informativa privacy/cookie/dipendenti/videosorveglianza, DPA, registro trattamenti, DPIA, analisi base giuridica). Usa quando l'utente chiede di generare un documento privacy, un'informativa, un DPA, una DPIA o un registro dei trattamenti.
 argument-hint: "[tipo documento] [titolare] [dettagli]"
-allowed-tools: mcp__legal-it__genera_informativa_privacy, mcp__legal-it__genera_informativa_cookie, mcp__legal-it__genera_informativa_dipendenti, mcp__legal-it__genera_informativa_videosorveglianza, mcp__legal-it__genera_dpa, mcp__legal-it__genera_registro_trattamenti, mcp__legal-it__genera_dpia, mcp__legal-it__verifica_necessita_dpia, mcp__legal-it__analisi_base_giuridica, mcp__legal-it__cite_law
+allowed-tools: mcp__legal-it__genera_informativa_privacy, mcp__plugin_legal-it_legal-it__genera_informativa_privacy, mcp__legal-it__genera_informativa_cookie, mcp__plugin_legal-it_legal-it__genera_informativa_cookie, mcp__legal-it__genera_informativa_dipendenti, mcp__plugin_legal-it_legal-it__genera_informativa_dipendenti, mcp__legal-it__genera_informativa_videosorveglianza, mcp__plugin_legal-it_legal-it__genera_informativa_videosorveglianza, mcp__legal-it__genera_dpa, mcp__plugin_legal-it_legal-it__genera_dpa, mcp__legal-it__genera_registro_trattamenti, mcp__plugin_legal-it_legal-it__genera_registro_trattamenti, mcp__legal-it__genera_dpia, mcp__plugin_legal-it_legal-it__genera_dpia, mcp__legal-it__verifica_necessita_dpia, mcp__plugin_legal-it_legal-it__verifica_necessita_dpia, mcp__legal-it__analisi_base_giuridica, mcp__plugin_legal-it_legal-it__analisi_base_giuridica, mcp__legal-it__cite_law, mcp__plugin_legal-it_legal-it__cite_law
 ---
 
 In base alla richiesta:

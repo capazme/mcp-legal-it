@@ -2,7 +2,7 @@
 name: scadenza
 description: Calcola una scadenza processuale o termine
 argument-hint: "[tipo scadenza] [data di riferimento, es. 2026-06-18]"
-allowed-tools: mcp__legal-it__scadenza_processuale, mcp__legal-it__termini_processuali_civili, mcp__legal-it__termini_183_190_cpc, mcp__legal-it__scadenze_impugnazioni, mcp__legal-it__termini_esecuzioni, mcp__legal-it__prescrizione_diritti, mcp__legal-it__prescrizione_reato, mcp__legal-it__termini_memorie_repliche
+allowed-tools: mcp__legal-it__scadenza_processuale, mcp__plugin_legal-it_legal-it__scadenza_processuale, mcp__legal-it__termini_processuali_civili, mcp__plugin_legal-it_legal-it__termini_processuali_civili, mcp__legal-it__termini_183_190_cpc, mcp__plugin_legal-it_legal-it__termini_183_190_cpc, mcp__legal-it__scadenze_impugnazioni, mcp__plugin_legal-it_legal-it__scadenze_impugnazioni, mcp__legal-it__termini_esecuzioni, mcp__plugin_legal-it_legal-it__termini_esecuzioni, mcp__legal-it__prescrizione_diritti, mcp__plugin_legal-it_legal-it__prescrizione_diritti, mcp__legal-it__prescrizione_reato, mcp__plugin_legal-it_legal-it__prescrizione_reato, mcp__legal-it__termini_memorie_repliche, mcp__plugin_legal-it_legal-it__termini_memorie_repliche
 ---
 
 In base al tipo di scadenza richiesta:
