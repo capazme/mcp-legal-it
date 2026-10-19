@@ -4,29 +4,63 @@ Plugin legale italiano per Claude Code e Claude Desktop: **228 tool** MCP, **23 
 
 ## Installazione
 
-### Claude Desktop (file `.mcpb`)
+Il plugin funziona in **Claude Code**: nel terminale, nelle estensioni per IDE e nella scheda **Code** dell'app Claude Desktop.
 
-> L'agente **Cowork** (cloud) non supporta i server MCP locali: usa il `.mcpb`, che gira in locale.
+**Prerequisito: [`uv`](https://docs.astral.sh/uv/)**, che scarica da solo Python 3.12 e le librerie del server. Python non va installato a parte.
 
-1. Installa [`uv`](https://docs.astral.sh/uv/), poi chiudi Claude del tutto (⌘Q) e riaprilo.
-2. Scarica `legal-it-X.Y.Z.mcpb` dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
-3. Doppio click sul file (o **Impostazioni → Estensioni → Impostazioni avanzate → Installa `.mcpb`**).
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-### Claude Code CLI
+```powershell
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
-Prerequisiti: [`uv`](https://docs.astral.sh/uv/) **e `git`** (il marketplace clona il repository; su macOS `xcode-select --install`). Dopo aver installato `uv`, chiudi Claude del tutto (⌘Q) e riaprilo.
+Dopo l'installazione di `uv`, chiudi del tutto Claude (o il terminale) e riaprilo.
+
+**Dal marketplace del progetto** (serve anche `git`; su macOS `xcode-select --install`):
 
 ```bash
 claude plugin marketplace add capazme/mcp-legal-it
 claude plugin install legal-it@mcp-legal-it
 ```
 
+Gli aggiornamenti automatici dei marketplace di terzi sono spenti per default: attivali da `/plugin` → **Marketplaces** → `mcp-legal-it` → **Enable auto-update**.
+
+**Non installare insieme anche l'estensione `.mcpb`**: Claude Desktop la avvia pure nelle sessioni Code, e gli stessi strumenti comparirebbero due volte.
+
+### Primo avvio
+
+Al primo avvio `uv` scarica Python 3.12 e le versioni esatte delle librerie fissate in `server/uv.lock` (da qualche secondo a un paio di minuti, secondo la rete). Gli avvii successivi richiedono meno di un secondo.
+
 | Sintomo | Rimedio |
 |---|---|
-| `connection timed out after 30000ms` al primo avvio (`uv` sta scaricando Python) | `/mcp` → *reconnect*, oppure avvia Claude Code con `MCP_TIMEOUT=120000` |
-| `CONNECTION_CLOSED` | `uv` o Python 3.10+ mancante: installa `uv`, apri un nuovo terminale e riavvia `claude` |
+| `connection timed out` al primo avvio | Il download non era finito: `/mcp` → *reconnect*. Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
+| `CONNECTION_CLOSED` o `uv: command not found` | `uv` manca: installalo, apri un nuovo terminale e riavvia Claude |
 
-claude.ai web e mobile: al momento non c'è un connettore supportato. Il file `legal-it-plugin-X.Y.Z.zip` della Release è una copia autonoma del plugin per Claude Code (senza marketplace: `claude --plugin-dir legal-it-plugin-X.Y.Z.zip`, valido per la sola sessione), non un pacchetto per claude.ai.
+## Rete e dati
+
+Il server gira **sul tuo computer** e non invia telemetria. Contatta soltanto:
+
+- **al primo avvio e a ogni nuova versione**: i server di `uv` per scaricare Python 3.12 (python-build-standalone, su GitHub) e PyPI per le librerie elencate in `server/uv.lock`;
+- **quando un tool lo richiede**, le fonti pubbliche che consulta per rispondere:
+  - legislazione: Normattiva (`www.normattiva.it`), Gazzetta Ufficiale (`www.gazzettaufficiale.it`);
+  - giurisprudenza: Corte di cassazione (`www.italgiure.giustizia.it`), giustizia amministrativa (`www.giustizia-amministrativa.it`, `mdp.giustizia-amministrativa.it`), Corte costituzionale (`dati.cortecostituzionale.it`), CeRDEF del MEF (`def.finanze.it`);
+  - Parlamento: `dati.senato.it`, `dati.camera.it`;
+  - autorità: Garante privacy (`www.garanteprivacy.it`, `servizi.gpdp.it`), CONSOB (`www.consob.it`);
+  - Unione europea: EUR-Lex (`eur-lex.europa.eu`), Ufficio delle pubblicazioni (`publications.europa.eu`), VIES della Commissione (`ec.europa.eu`), TMview (`www.tmdn.org`);
+  - fonte privata: Brocardi.it (`www.brocardi.it`), solo annotazioni e massime, mai il testo delle norme;
+  - `verifica_dpa_fornitore`: il sito pubblico del fornitore indicato dall'utente (solo indirizzi pubblici, verificati prima della richiesta).
+
+A queste fonti arrivano solo i parametri della ricerca (per esempio il numero di un articolo, le parole cercate, una partita IVA da verificare con VIES). L'elenco degli host è verificato dai test del progetto (`_egress.py`).
+
+**Sul disco** il server scrive solo cache di testi pubblici in `~/.cache/mcp-legal-it` (`MCP_CACHE_DIR`; `LEGAL_CACHE=off` le disattiva) e i documenti che chiedi di generare. L'hook delle citazioni legge in locale la trascrizione della sessione e non la invia da nessuna parte.
+
+Le skill `esporta-documento` e `cookie-audit` usano Node.js con il pacchetto `docx`, se presente; la skill `cookie-audit` usa anche gli strumenti del browser di Claude, quando disponibili.
+
+Informativa privacy: <https://capazme.github.io/mcp-legal-it/privacy.html>. Assistenza: <https://github.com/capazme/mcp-legal-it/issues>.
 
 ## Cosa include
 
@@ -127,8 +161,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude.
 
 ### Hook (Legal Grounding Protocol)
 
-- **Stop**: verifica che ogni norma citata abbia un `cite_law()` corrispondente
-- **SessionStart**: dopo compaction, ricorda il protocollo di citazione
+- **Stop**: a fine risposta segnala le norme citate senza un `cite_law()` che le abbia verificate (locale, deterministico; gira nell'ambiente `uv` del server)
 
 ## Esempi d'uso
 
@@ -150,8 +183,12 @@ Calcola gli interessi di mora su un credito commerciale di 15.000 scaduto il 01/
 
 ## Requisiti
 
-- Claude Desktop (Cowork) o Claude Code CLI
-- Python >= 3.10 (installato automaticamente il virtualenv al primo avvio)
+- Claude Code (terminale, IDE o scheda Code di Claude Desktop)
+- [`uv`](https://docs.astral.sh/uv/): installa da solo Python 3.12 e le librerie
+
+## In English
+
+legal-it is a Claude Code plugin for Italian law: a local MCP server with 228 tools (statutes from Normattiva and EUR-Lex, case law from the Italian Supreme Court, administrative courts, Constitutional Court and CJEU, legal calculations, GDPR documents), 23 skills, 9 commands and 6 agents. The server runs on the user's machine through `uv run --frozen` with the versions pinned in `server/uv.lock`, sends no telemetry, and contacts only the public sources listed under «Rete e dati», with the parameters of each query.
 
 ## Licenza
 

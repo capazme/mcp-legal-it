@@ -6,18 +6,18 @@ ma copre i blocchi usati nei deliverable legali.
 
 ## Blocchi supportati
 
-| Markdown | Tokenizzato come | Word (.docx) — canone SAPG | Word (.docx) — fallback plain | PDF (.pdf) |
-|---|---|---|---|---|
-| `# Titolo` | `heading` livello 1 | stile `SAPGHeading1`, numerato `1.`, bold, sinistra | `HEADING_1`, bold, Times New Roman | Helvetica bold 13 pt |
-| `## Titolo` | `heading` livello 2 | stile `SAPGHeading2`, numerato `1.1`, bold | `HEADING_2`, bold | Helvetica bold 12 pt |
-| `### Titolo` (e oltre) | `heading` livello ≤3 | stile `SAPGHeading3`, numerato `1.1.1`, bold | `HEADING_3`, bold | Helvetica bold 11 pt |
-| testo libero | `paragraph` | stile `SAPGBody`: giustificato, rientro 0,5 cm, interlinea 1,5 | giustificato, rientro 0,5 cm, interlinea 1,5 | Helvetica 10 pt |
-| `- voce` / `* voce` / `+ voce` | `list` non ordinata | `SAPGBody` + numbering `sapg-bullets` (•) | bullet docx-js | riga `- voce` |
-| `1. voce` / `1) voce` | `list` ordinata | `SAPGBody` + numbering `sapg-numbers` (1.) | numbering `plain-numbers` | riga `1. voce` |
-| `> citazione` | `quote` (righe `>` consecutive unite) | stile `SAPGQuote`: corsivo, rientro 1 cm bilaterale | corsivo, rientro bilaterale | Helvetica corsivo 10 pt, rientrato |
-| tabella GFM (header + riga `---`) | `table` | `Table` docx 100% larghezza, bordi grigi, header in bold | idem | righe con celle separate da `  \|  ` |
-| `---` / `***` / `___` | `spacer` (docx) / linea orizzontale (pdf) | paragrafo vuoto | paragrafo vuoto | linea orizzontale |
-| riga vuota | confine di paragrafo | flush del paragrafo corrente | idem | `ln(3)` |
+| Markdown | Tokenizzato come | Word (.docx) | PDF (.pdf) |
+|---|---|---|---|
+| `# Titolo` | `heading` livello 1 | `HEADING_1`, bold, Times New Roman | Helvetica bold 13 pt |
+| `## Titolo` | `heading` livello 2 | `HEADING_2`, bold | Helvetica bold 12 pt |
+| `### Titolo` (e oltre) | `heading` livello ≤3 | `HEADING_3`, bold | Helvetica bold 11 pt |
+| testo libero | `paragraph` | giustificato, rientro 0,5 cm, interlinea 1,5 | Helvetica 10 pt |
+| `- voce` / `* voce` / `+ voce` | `list` non ordinata | bullet docx-js | riga `- voce` |
+| `1. voce` / `1) voce` | `list` ordinata | numbering `plain-numbers` | riga `1. voce` |
+| `> citazione` | `quote` (righe `>` consecutive unite) | corsivo, rientro bilaterale | Helvetica corsivo 10 pt, rientrato |
+| tabella GFM (header + riga `---`) | `table` | `Table` docx 100% larghezza, bordi grigi, header in bold | righe con celle separate da `  \|  ` |
+| `---` / `***` / `___` | `spacer` (docx) / linea orizzontale (pdf) | paragrafo vuoto | linea orizzontale |
+| riga vuota | confine di paragrafo | flush del paragrafo corrente | `ln(3)` |
 
 ## Inline (emfasi)
 

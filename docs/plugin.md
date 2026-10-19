@@ -63,7 +63,7 @@ plugin/
 ├── hooks/
 │   ├── hooks.json              # registra lo Stop hook
 │   └── citation-gate.py        # implementazione del gate citazioni
-└── settings.json               # Permessi MCP
+└── server/uv.lock              # versioni esatte installate da `uv run --frozen`
 ```
 
 Ogni skill è una directory con un file `SKILL.md` in formato frontmatter YAML + markdown.
@@ -205,7 +205,8 @@ Specialista in protezione dei dati: GDPR (Reg. UE 2016/679), Codice Privacy (D.L
 Si attiva al termine di ogni risposta di Claude.
 
 **Tipo**: hook `command` — esegue `hooks/citation-gate.py` (Python 3, stdlib, nessun
-modello: deterministico e senza costo). Sostituisce il precedente hook di tipo
+modello: deterministico e senza costo) con `uv run --frozen` nell'ambiente del server,
+così non dipende da un `python3` di sistema (su Windows spesso è l'alias del Microsoft Store). Sostituisce il precedente hook di tipo
 `prompt` (Haiku), che segnalava falsi positivi e ripeteva avvisi su norme già verificate.
 
 **Funzione**: estrae le citazioni a livello di articolo dall'ultimo messaggio
@@ -229,19 +230,12 @@ Il plugin non registra altri hook: `hooks.json` dichiara il solo evento `Stop`.
 
 ## Permessi
 
-**File**: `plugin/settings.json`
-
-```json
-{
-  "permissions": {
-    "allow": ["mcp__legal-it__*", "mcp__plugin_legal-it_legal-it__*"]
-  }
-}
-```
-
-Il plugin concede permesso automatico a tutti i tool MCP del server `legal-it`. Non sono richieste conferme manuali per le chiamate ai tool durante l'esecuzione delle skills.
-
-I due prefissi coprono i due modi di installare il server: `mcp__plugin_legal-it_legal-it__` è il nome che Claude Code dà ai tool quando il server arriva dal plugin; `mcp__legal-it__` vale per chi lo registra a mano con il nome `legal-it` (`.mcp.json`, Claude Desktop). Lo stesso vale per `allowed-tools` dei comandi in `plugin/commands/`.
+Il plugin non porta un `settings.json`: in un plugin Claude Code carica solo le chiavi
+`agent` e `subagentStatusLine`, e un blocco `permissions` verrebbe ignorato. Ogni comando
+dichiara invece i propri `allowed-tools` nel frontmatter, sotto entrambi i prefissi:
+`mcp__plugin_legal-it_legal-it__` è il nome che Claude Code dà ai tool quando il server
+arriva dal plugin; `mcp__legal-it__` vale per chi lo registra a mano con il nome
+`legal-it` (`.mcp.json`, Claude Desktop).
 
 ---
 

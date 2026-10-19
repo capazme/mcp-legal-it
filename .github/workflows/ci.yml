@@ -54,16 +54,12 @@ jobs:
             plugin/server/src/source_bindings.py \
             plugin/server/src/table_bindings.py docs/cache-inventory.md
 
-  # The release tarball is what the marketplace backend ingests (the codeload
-  # archive of a tag), and its exclusions are hand-maintained in
-  # .gitattributes. scripts/verify_tarball.py checks both directions from the
-  # repository itself: nothing forbidden (/src, /tests, any symlink) inside,
-  # and every tracked non-ignored file present -- so a new runtime file that
-  # lands under an excluded path, or a widened pattern that swallows one,
-  # fails here instead of shipping as marketplace `failed_content`. Stdlib +
-  # git: no install step.
-  tarball-sync:
-    name: Release tarball exclusions hold
+  # The directory reads plugin/ from this repository and rescans every commit
+  # on main before it can be published. Replays its automated checks so a
+  # change that would block the listing, or send it to a reviewer for a new
+  # reason, fails here first. Stdlib + git: no install step.
+  directory-readiness:
+    name: Plugin passes the directory checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +68,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Verify the export-ignore contract on this revision
-        run: python scripts/verify_tarball.py
+      - name: Replay the directory's automated checks on plugin/
+        run: python scripts/check_directory_readiness.py
 
   test:
     runs-on: ubuntu-latest

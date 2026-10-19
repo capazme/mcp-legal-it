@@ -7,19 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Plugin launcher: the MCP server starts with `uv run --frozen --project
+  ${CLAUDE_PLUGIN_ROOT}/server`, from the exact versions pinned in the new
+  `plugin/server/uv.lock` (FastMCP 3.4.9), in an environment of the plugin's own.
+  `start_server.sh` is gone: no shell between Claude Code and the server, so
+  Windows no longer needs Git Bash to start it. The system-Python fallback is
+  gone too; `uv` is the one prerequisite.
+- Citation gate (plugin Stop hook): it runs in the same locked uv environment
+  instead of a bare `python3`, which on Windows is usually the Microsoft Store
+  alias (exit 9009) and turned every reply into a "Stop hook error".
+- The plugin folder now meets the Claude directory's automated checks:
+  `scripts/check_directory_readiness.py` replays them and runs in CI
+  (job `directory-readiness`), replacing the tarball check.
+- `.gitattributes` export-ignore rules removed (the directory refuses them); the
+  GitHub archive of a tag contains the whole tree again.
+- Skills for claude.ai upload are built outside the plugin folder and ship as one
+  release asset, `legal-it-skills-X.Y.Z.zip`.
+- `esporta-documento`: the .docx renderer no longer loads a style module from
+  `~/.claude/skills`; it uses only its own code and the `docx` package. The PDF
+  renderer runs in the plugin's locked environment.
+- Plugin README: installation for Claude Code, first start, and a «Rete e dati»
+  section listing everything the plugin downloads and every host it contacts.
+
 ### Fixed
-- Plugin and Desktop extension launchers: `uv run` now passes `--no-project`.
-  Without it, starting the server from a folder that holds a `pyproject.toml`
-  (in Claude Code the server starts in the user's project folder) made uv sync
-  that project's `.venv` to its own dependencies, which could break the
-  user's environment.
-- Citation gate (plugin Stop hook): it is launched by `hooks/citation-gate.sh`,
-  which runs the first Python that actually works and falls back to uv. On
-  Windows `python3` is usually the Microsoft Store alias, which exits 9009,
-  so Claude Code showed a "Stop hook error" after every reply on machines
-  without Python. With neither Python nor uv the gate now stays silent.
-- Citation gate timeout: `15000` was read as seconds (over four hours); it is
-  now `15`.
+- Starting the server from a folder that holds a `pyproject.toml` no longer syncs
+  that project's `.venv` (`uv run --with` resolved the session's working
+  directory as a project). The `.mcpb` launcher passes `--no-project` as well.
+- FastMCP no longer asks pypi.org for a newer release at startup
+  (`FASTMCP_CHECK_FOR_UPDATES=off` unless set): the server contacts only the
+  hosts in `_egress.py`.
+- Citation gate timeout: `15000` was read as seconds; it is now `120`.
+
+### Removed
+- `plugin/settings.json`: a plugin loads only `agent` and `subagentStatusLine`
+  from it, so its `permissions` block never applied. Commands keep declaring
+  `allowed-tools` under both tool prefixes.
 
 ## [2.16.1] - 2026-10-19
 

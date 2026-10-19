@@ -38,6 +38,12 @@ jobs:
           chmod +x scripts/build-plugin.sh
           scripts/build-plugin.sh "$VERSION"
 
+      - name: Build skills for claude.ai upload (.zip of .zip)
+        run: |
+          VERSION="${TAG_VERSION#v}"
+          python scripts/build-web-skills.py
+          (cd dist/web-skills && zip -q "../legal-it-skills-${VERSION}.zip" *.zip)
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -6,8 +6,7 @@ bootstrap launchers, because each install path resolves dependencies on its own:
 
     pyproject.toml            <- single source of truth (Dockerfile: `pip install .`)
     plugin/server/pyproject.toml
-    plugin/start_server.sh    <- `uv run --with ...` path
-    plugin/start_server.sh    <- system-venv fallback path (no `uv` available)
+    plugin/server/uv.lock     <- what the plugin installs (`uv run --frozen`)
     dxt/manifest.json         <- Claude Desktop `.mcpb` mcp_config
 
 Nothing keeps those copies in sync automatically, and they have drifted before:
@@ -34,9 +33,6 @@ ROOT = Path(__file__).resolve().parent.parent
 
 SOURCE_OF_TRUTH = Path("pyproject.toml")
 
-# A PEP 508 requirement, loose enough for the specs we declare (name + specifier).
-_REQUIREMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\s*[<>=!~]")
-
 
 def normalize(spec: str) -> tuple[str, str]:
     """Split a requirement into (canonical name, specifier) per PEP 503/440.
@@ -60,34 +56,6 @@ def read_pyproject(path: Path) -> list[str]:
     return data["project"]["dependencies"]
 
 
-def read_uv_with_flags(path: Path) -> list[str]:
-    """Extract every `--with "<spec>"` argument from a shell launcher."""
-    text = (ROOT / path).read_text(encoding="utf-8")
-    return re.findall(r'--with\s+"([^"]+)"', text)
-
-
-def read_pip_install_args(path: Path) -> list[str]:
-    """Extract the quoted requirements of the `pip install` fallback command.
-
-    The command spans continuation lines, so join them before scanning, and keep
-    only tokens that look like requirements (drops flags and the interpreter path).
-    """
-    lines = (ROOT / path).read_text(encoding="utf-8").splitlines()
-    for index, line in enumerate(lines):
-        if "pip" not in line or " install" not in line:
-            continue
-        command = line
-        while command.rstrip().endswith("\\") and index + 1 < len(lines):
-            index += 1
-            command = command.rstrip().rstrip("\\") + " " + lines[index]
-        return [
-            token
-            for token in re.findall(r'"([^"]+)"', command)
-            if _REQUIREMENT.match(token)
-        ]
-    raise ValueError(f"no `pip install` command found in {path}")
-
-
 def read_manifest_with_flags(path: Path) -> list[str]:
     """Extract `--with <spec>` pairs from the .mcpb manifest mcp_config args."""
     manifest = json.loads((ROOT / path).read_text(encoding="utf-8"))
@@ -95,18 +63,39 @@ def read_manifest_with_flags(path: Path) -> list[str]:
     return [args[i + 1] for i, arg in enumerate(args[:-1]) if arg == "--with"]
 
 
+def read_uv_lock(path: Path) -> list[str]:
+    """The requirements the lock was resolved from (its root package's metadata).
+
+    `uv run --frozen` installs the lock without looking at pyproject.toml, so a
+    range edited in pyproject but not relocked would silently never ship.
+    Markers are dropped: uv rewrites them in its own canonical order.
+    """
+    data = tomllib.loads((ROOT / path).read_text(encoding="utf-8"))
+    root = next(
+        package for package in data["package"]
+        if package.get("source", {}).get("virtual") == "."
+    )
+    return [
+        f'{entry["name"]}{entry.get("specifier", "")}'
+        for entry in root["metadata"]["requires-dist"]
+    ]
+
+
+def without_markers(specs: dict[str, str]) -> dict[str, str]:
+    return {name: specifier.split(";")[0] for name, specifier in specs.items()}
+
+
 # Launchers that deliberately pin a narrower range than pyproject.toml, by name.
 # Library installs (wheel, uvx) accept fastmcp>=3.4,<5 since 2.16.1, while the
-# plugin and .mcpb launchers keep their FastMCP 3 pin until they move to FastMCP 4
-# in their own release (changing the string also invalidates every user's uv
+# .mcpb launcher keeps its FastMCP 3 pin until it moves to FastMCP 4 in its own
+# release (the plugin's lock holds FastMCP 3 through a uv constraint instead) (changing the string also invalidates every user's uv
 # environment, so it must not ride along with an unrelated fix). The override must
 # match exactly: drift in a launcher is still a failure.
 LAUNCHER_OVERRIDES: dict[str, str] = {"fastmcp": ">=2.0,<4"}
 
 TARGETS: list[tuple[str, Path, object]] = [
     ("plugin/server/pyproject.toml", Path("plugin/server/pyproject.toml"), read_pyproject),
-    ("plugin/start_server.sh (uv path)", Path("plugin/start_server.sh"), read_uv_with_flags),
-    ("plugin/start_server.sh (venv fallback)", Path("plugin/start_server.sh"), read_pip_install_args),
+    ("plugin/server/uv.lock (requires-dist)", Path("plugin/server/uv.lock"), read_uv_lock),
     ("dxt/manifest.json (mcp_config)", Path("dxt/manifest.json"), read_manifest_with_flags),
 ]
 
@@ -145,11 +134,16 @@ def main() -> int:
     for label, path, reader in TARGETS:
         try:
             actual = as_mapping(reader(path))
-        except (OSError, KeyError, ValueError) as exc:
+        except (OSError, KeyError, ValueError, StopIteration) as exc:
             print(f"\n{label}\n  ERROR    could not read declarations: {exc}")
             failures += 1
             continue
-        wanted = expected if reader is read_pyproject else {**expected, **LAUNCHER_OVERRIDES}
+        if reader is read_pyproject:
+            wanted = expected
+        elif reader is read_uv_lock:
+            wanted = without_markers(expected)
+        else:
+            wanted = {**expected, **LAUNCHER_OVERRIDES}
         if report(label, wanted, actual):
             failures += 1
 
