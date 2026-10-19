@@ -22,15 +22,16 @@ cp -r "$ROOT_DIR/plugin/skills" "$BUILD_DIR/skills"
 cp -r "$ROOT_DIR/plugin/agents" "$BUILD_DIR/agents"
 cp -r "$ROOT_DIR/plugin/commands" "$BUILD_DIR/commands"
 cp -r "$ROOT_DIR/plugin/hooks" "$BUILD_DIR/hooks"
-cp "$ROOT_DIR/plugin/settings.json" "$BUILD_DIR/"
-cp "$ROOT_DIR/plugin/start_server.sh" "$BUILD_DIR/"
-chmod +x "$BUILD_DIR/start_server.sh"
+cp "$ROOT_DIR/plugin/README.md" "$ROOT_DIR/plugin/LICENSE" "$BUILD_DIR/"
 
 # .mcp.json is now portable (uses ${CLAUDE_PLUGIN_ROOT})
 cp "$ROOT_DIR/plugin/.mcp.json" "$BUILD_DIR/.mcp.json"
 
 # Server code is already in plugin/server/ — copy it
 cp -r "$ROOT_DIR/plugin/server" "$BUILD_DIR/server"
+
+# Never ship a local uv environment (created by `uv run --project` in a checkout)
+rm -rf "$BUILD_DIR/server/.venv"
 
 # Clean __pycache__
 find "$BUILD_DIR" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

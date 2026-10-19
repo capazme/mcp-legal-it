@@ -248,52 +248,20 @@ def test_the_json_format_inside_the_wrapper_is_judged_as_json(tmp_path):
     assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", ok),)) == SILENT
 
 
-# --- launcher: the hook must never fail a turn for want of a Python ---------
+# --- launcher -----------------------------------------------------------------
 
-WRAPPER = HOOK.with_name("citation-gate.sh")
 HOOKS_JSON = HOOK.with_name("hooks.json")
 
 
-def _fake_bin(tmp_path: Path, name: str, body: str) -> None:
-    exe = tmp_path / "bin" / name
-    exe.parent.mkdir(exist_ok=True)
-    exe.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
-    exe.chmod(0o755)
-
-
-def _run_wrapper(tmp_path: Path, path: str) -> subprocess.CompletedProcess:
-    transcript = tmp_path / "transcript.jsonl"
-    transcript.write_text(json.dumps({
-        "type": "assistant",
-        "message": {"content": [{"type": "text", "text": "Lo prevede l'art. 2043 c.c."}]},
-    }), encoding="utf-8")
-    return subprocess.run(
-        ["/bin/bash", str(WRAPPER)],
-        input=json.dumps({"transcript_path": str(transcript)}),
-        capture_output=True, text=True,
-        env={"PATH": path, "HOME": str(tmp_path)},
-    )
-
-
-def test_hooks_json_runs_the_wrapper_with_a_timeout_in_seconds():
+def test_the_hook_runs_in_the_plugin_server_environment():
+    """No bare `python3`: on Windows it is usually the Microsoft Store alias
+    (exit 9009), which turned every reply into a "Stop hook error". The hook
+    reuses the server's locked uv environment, which the plugin needs anyway."""
     hook = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["hooks"][0]
-    assert hook["command"] == 'bash "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.sh"'
-    assert hook["timeout"] <= 60
-
-
-def test_wrapper_runs_the_gate_with_a_working_python(tmp_path):
-    _fake_bin(tmp_path, "python3", f'exec "{sys.executable}" "$@"')
-    result = _run_wrapper(tmp_path, f"{tmp_path / 'bin'}:/usr/bin:/bin")
-    assert result.returncode == NAGS, result.stderr
-
-
-@pytest.mark.skipif(
-    any(Path(p).exists() for p in ("/opt/homebrew/bin/uv", "/usr/local/bin/uv")),
-    reason="a uv at a fixed path would legitimately run the gate",
-)
-def test_wrapper_skips_a_python_that_does_not_run(tmp_path):
-    # The Windows Store alias: found on PATH, prints an error, exits 9009.
-    _fake_bin(tmp_path, "python3", 'echo "Python was not found" >&2; exit 9009')
-    _fake_bin(tmp_path, "python", 'echo "Python was not found" >&2; exit 9009')
-    result = _run_wrapper(tmp_path, f"{tmp_path / 'bin'}:/bin")
-    assert result.returncode == SILENT, result.stderr
+    assert hook["command"] == (
+        'uv run --frozen --python 3.12 --project "${CLAUDE_PLUGIN_ROOT}/server" '
+        'python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"'
+    )
+    # Seconds. The first Stop of a session may still be building the
+    # environment the server started.
+    assert 15 <= hook["timeout"] <= 600

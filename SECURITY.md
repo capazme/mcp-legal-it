@@ -127,7 +127,9 @@ diffidenza, sempre. Ecco cosa contiene questo:
   uno script deterministico di ~100 righe che rilegge il transcript e avvisa se
   una norma è stata citata senza passare da `cite_law()`. Non fa rete, non
   scrive file. Leggilo prima di approvarlo — è breve apposta.
-- **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto.
+- **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto, e avvia
+  il server con `uv run --frozen`: le versioni esatte di `plugin/server/uv.lock`, in un
+  ambiente del plugin, senza toccare il progetto dell'utente.
 - Le 23 skill, i 9 comandi e i 6 agenti sono file markdown di istruzioni. Non eseguono nulla
   da soli.
 
