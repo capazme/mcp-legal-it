@@ -1,6 +1,6 @@
 # Claude Code Plugin — mcp-legal-it
 
-> Documentazione del plugin per Claude Code: 30 skills, 10 slash command, 6 agenti specializzati, hooks.
+> Documentazione del plugin per Claude Code: 30 skills, 9 slash command, 6 agenti specializzati, hooks.
 
 ## Indice
 
@@ -21,7 +21,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
 
 - **30 skills** invocabili con `/skill-name` — ogni skill orchestra una sequenza di tool MCP
 - **6 agenti** configurati come sub-agenti specializzati con istruzioni di sistema e tool preferiti
-- **10 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/dati`, `/verbale`, `/release`)
+- **9 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/dati`, `/verbale`)
 - **1 hook** automatico (`Stop`): gate deterministico sulle citazioni normative a fine risposta
 
 **Marketplace**: `.claude-plugin/marketplace.json`
@@ -32,7 +32,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
   "plugins": [{
     "name": "legal-it",
     "source": "./plugin",
-    "description": "Plugin legale italiano completo: 228 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 30 skill, 10 slash command, 6 agenti specializzati."
+    "description": "Plugin legale italiano completo: 228 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 30 skill, 9 slash command, 6 agenti specializzati."
   }]
 }
 ```
@@ -48,10 +48,10 @@ plugin/
 │   ├── recupero-credito/SKILL.md
 │   ├── causa-civile/SKILL.md
 │   └── ... (27 altre)
-├── commands/                   # 10 slash command
+├── commands/                   # 9 slash command
 │   ├── norma.md
 │   ├── sentenza.md
-│   └── ... (8 altri: interessi, scadenza, privacy, codice-fiscale, digest, dati, verbale, release)
+│   └── ... (7 altri: interessi, scadenza, privacy, codice-fiscale, digest, dati, verbale)
 ├── agents/                     # 6 agenti specializzati
 │   ├── civilista.md
 │   ├── penalista.md
@@ -234,12 +234,14 @@ Il plugin non registra altri hook: `hooks.json` dichiara il solo evento `Stop`.
 ```json
 {
   "permissions": {
-    "allow": ["mcp__legal-it__*"]
+    "allow": ["mcp__legal-it__*", "mcp__plugin_legal-it_legal-it__*"]
   }
 }
 ```
 
 Il plugin concede permesso automatico a tutti i tool MCP del server `legal-it`. Non sono richieste conferme manuali per le chiamate ai tool durante l'esecuzione delle skills.
+
+I due prefissi coprono i due modi di installare il server: `mcp__plugin_legal-it_legal-it__` è il nome che Claude Code dà ai tool quando il server arriva dal plugin; `mcp__legal-it__` vale per chi lo registra a mano con il nome `legal-it` (`.mcp.json`, Claude Desktop). Lo stesso vale per `allowed-tools` dei comandi in `plugin/commands/`.
 
 ---
 
