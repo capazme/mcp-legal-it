@@ -14,6 +14,10 @@
   <img src="https://img.shields.io/badge/tool-228-green?style=flat-square" alt="Tools">
 </p>
 
+<p align="center">
+  <a href="https://capazme.github.io/mcp-legal-it/"><strong>Guida all'installazione per Claude Desktop (Mac e Windows) →</strong></a>
+</p>
+
 
 ---
 
@@ -35,6 +39,8 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 ---
 
 ## Installazione
+
+> **Prima volta?** La [guida passo passo](https://capazme.github.io/mcp-legal-it/) porta da zero a Legal IT funzionante in Claude Desktop, su Mac e Windows, anche senza Python installato.
 
 > **Prerequisito unico: [`uv`](https://docs.astral.sh/uv/).** Gestisce automaticamente
 > Python 3.12 e le dipendenze, identico su Windows/macOS/Linux.
