@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Plugin and Desktop extension launchers: `uv run` now passes `--no-project`.
+  Without it, starting the server from a folder that holds a `pyproject.toml`
+  (in Claude Code the server starts in the user's project folder) made uv sync
+  that project's `.venv` to its own dependencies, which could break the
+  user's environment.
+- Citation gate (plugin Stop hook): it is launched by `hooks/citation-gate.sh`,
+  which runs the first Python that actually works and falls back to uv. On
+  Windows `python3` is usually the Microsoft Store alias, which exits 9009,
+  so Claude Code showed a "Stop hook error" after every reply on machines
+  without Python. With neither Python nor uv the gate now stays silent.
+- Citation gate timeout: `15000` was read as seconds (over four hours); it is
+  now `15`.
+
 ## [2.16.1] - 2026-10-19
 
 ### Fixed
