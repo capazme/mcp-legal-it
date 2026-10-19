@@ -95,6 +95,14 @@ def read_manifest_with_flags(path: Path) -> list[str]:
     return [args[i + 1] for i, arg in enumerate(args[:-1]) if arg == "--with"]
 
 
+# Launchers that deliberately pin a narrower range than pyproject.toml, by name.
+# Library installs (wheel, uvx) accept fastmcp>=3.4,<5 since 2.16.1, while the
+# plugin and .mcpb launchers keep their FastMCP 3 pin until they move to FastMCP 4
+# in their own release (changing the string also invalidates every user's uv
+# environment, so it must not ride along with an unrelated fix). The override must
+# match exactly: drift in a launcher is still a failure.
+LAUNCHER_OVERRIDES: dict[str, str] = {"fastmcp": ">=2.0,<4"}
+
 TARGETS: list[tuple[str, Path, object]] = [
     ("plugin/server/pyproject.toml", Path("plugin/server/pyproject.toml"), read_pyproject),
     ("plugin/start_server.sh (uv path)", Path("plugin/start_server.sh"), read_uv_with_flags),
@@ -128,6 +136,11 @@ def main() -> int:
     for name, specifier in sorted(expected.items()):
         print(f"  {name}{specifier}")
 
+    if LAUNCHER_OVERRIDES:
+        print("Launcher overrides (narrower on purpose):")
+        for name, specifier in sorted(LAUNCHER_OVERRIDES.items()):
+            print(f"  {name}{specifier}")
+
     failures = 0
     for label, path, reader in TARGETS:
         try:
@@ -136,7 +149,8 @@ def main() -> int:
             print(f"\n{label}\n  ERROR    could not read declarations: {exc}")
             failures += 1
             continue
-        if report(label, expected, actual):
+        wanted = expected if reader is read_pyproject else {**expected, **LAUNCHER_OVERRIDES}
+        if report(label, wanted, actual):
             failures += 1
 
     if failures:
