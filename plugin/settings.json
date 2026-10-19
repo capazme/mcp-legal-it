@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "mcp__legal-it__*"
+      "mcp__legal-it__*",
+      "mcp__plugin_legal-it_legal-it__*"
     ]
   }
 }
