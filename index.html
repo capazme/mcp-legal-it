@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Guida passo passo per installare l'estensione Legal IT (mcp-legal-it) in Claude Desktop su Mac e Windows.">
+<meta name="description" content="Guida passo passo per installare il plugin Legal IT (mcp-legal-it) in Claude Code, nel terminale o nella scheda Code dell'app Claude, su Mac e Windows.">
 <title>Installare Legal IT</title>
 <style>
 html { color-scheme: light; }
@@ -123,16 +123,16 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
 <body>
 <div class="wrap" id="page" data-os="mac">
   <header>
-    <span class="eyebrow">Claude Desktop · Mac e Windows</span>
+    <span class="eyebrow">Claude Code · terminale e app Claude (scheda Code) · Mac e Windows</span>
     <h1>Installare Legal IT</h1>
-    <p class="lead">Legal IT aggiunge a Claude oltre 200 strumenti di diritto italiano: il testo vigente delle norme da Normattiva ed EUR-Lex, le sentenze di Cassazione, Corte costituzionale, TAR e Consiglio di Stato e CGUE, i calcoli di interessi, rivalutazioni, termini e parcelle. Funziona sul tuo computer. Servono circa dieci minuti.</p>
+    <p class="lead">Legal IT è un plugin per Claude Code: 228 strumenti di diritto italiano (testo vigente da Normattiva ed EUR-Lex, Cassazione, Corte costituzionale, TAR e Consiglio di Stato, CGUE, calcoli di interessi, termini e parcelle), 23 procedure guidate, comandi e agenti specializzati. Funziona sul tuo computer. Servono circa dieci minuti.</p>
   </header>
 
   <section class="need" aria-labelledby="need-h">
     <h2 id="need-h" style="font-size:1.1rem">Cosa ti serve</h2>
     <ul>
-      <li>L'app <strong>Claude Desktop</strong>, con il tuo account. Se non l'hai: <a href="https://claude.ai/download" target="_blank" rel="noopener">claude.ai/download</a>.</li>
-      <li>Una connessione a internet: il primo avvio scarica i componenti necessari.</li>
+      <li><strong>Claude Code</strong>: nel terminale oppure nella scheda <strong>Code</strong> dell'app Claude. Il passo 3 lo installa se non l'hai.</li>
+      <li>Una connessione a internet: il primo avvio scarica Python e i componenti necessari.</li>
       <li><strong>Python non serve.</strong> Lo installa da solo il programma del passo 1.</li>
     </ul>
   </section>
@@ -150,59 +150,69 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
     <ol class="steps">
       <li><div class="step">
         <h3>Installa <code>uv</code></h3>
-        <p><code>uv</code> è il programma che scarica Python e i componenti di Legal IT. Si installa una volta sola.</p>
+        <p><code>uv</code> scarica Python e le versioni esatte dei componenti di Legal IT. Si installa una volta sola.</p>
         <div class="only-mac step">
-          <p>Apri il <strong>Terminale</strong>: premi <kbd>⌘</kbd> <kbd>Spazio</kbd>, scrivi <em>Terminale</em> e premi <kbd>Invio</kbd>. Incolla questo comando e premi <kbd>Invio</kbd>:</p>
+          <p>Apri il <strong>Terminale</strong> (<kbd>⌘</kbd> <kbd>Spazio</kbd>, scrivi <em>Terminale</em>, <kbd>Invio</kbd>), incolla e premi <kbd>Invio</kbd>:</p>
           <div class="cmd"><pre>curl -LsSf https://astral.sh/uv/install.sh | sh</pre><button type="button">Copia</button></div>
         </div>
         <div class="only-win step">
-          <p>Apri <strong>PowerShell</strong>: premi il tasto <kbd>Windows</kbd>, scrivi <em>PowerShell</em> e premi <kbd>Invio</kbd>. Incolla questo comando (tasto destro del mouse per incollare) e premi <kbd>Invio</kbd>:</p>
+          <p>Apri <strong>PowerShell</strong> (tasto <kbd>Windows</kbd>, scrivi <em>PowerShell</em>, <kbd>Invio</kbd>), incolla con il tasto destro e premi <kbd>Invio</kbd>:</p>
           <div class="cmd"><pre>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</pre><button type="button">Copia</button></div>
         </div>
-        <p>Alla fine compare un messaggio con <em>everything's installed!</em>. Per controllare, chiudi la finestra, aprine una nuova e scrivi:</p>
+        <p>Chiudi la finestra, aprine una nuova e controlla:</p>
         <div class="cmd"><pre>uv --version</pre><button type="button">Copia</button></div>
-        <p>Se risponde con un numero di versione (per esempio <code>uv 0.9…</code>), è fatto.</p>
       </div></li>
 
       <li><div class="step">
-        <h3>Chiudi Claude del tutto e riaprilo</h3>
-        <p>Claude vede <code>uv</code> solo dopo un riavvio completo. Chiudere la finestra non basta.</p>
-        <p class="only-mac">Con Claude in primo piano premi <kbd>⌘</kbd> <kbd>Q</kbd> (oppure menu <span class="path">Claude → Esci</span>), poi riaprilo.</p>
-        <p class="only-win">Cerca l'icona di Claude nell'area di notifica, in basso a destra vicino all'orologio (se non la vedi, clicca la freccia <kbd>^</kbd>). Tasto destro sull'icona, poi <strong>Esci</strong>. Riapri Claude dal menu Start.</p>
+        <h3>Installa <code>git</code></h3>
+        <p>Serve per scaricare il plugin dal suo archivio.</p>
+        <div class="only-mac step">
+          <div class="cmd"><pre>xcode-select --install</pre><button type="button">Copia</button></div>
+          <p>Si apre una finestra: premi <strong>Installa</strong>. Se dice che è già installato, sei a posto.</p>
+        </div>
+        <div class="only-win step">
+          <p>Scarica e installa <a href="https://git-scm.com/download/win" target="_blank" rel="noopener">Git for Windows</a> lasciando le opzioni predefinite. Claude Code su Windows lo usa anche per i suoi comandi.</p>
+        </div>
       </div></li>
 
       <li><div class="step">
-        <h3>Scarica l'estensione</h3>
-        <a class="dl" href="https://github.com/capazme/mcp-legal-it/releases/download/v2.16.1/legal-it-2.16.1.mcpb" target="_blank" rel="noopener">Scarica legal-it-2.16.1.mcpb</a>
-        <p>Il file finisce nella cartella <strong>Download</strong>. Le versioni successive sono sempre nella <a href="https://github.com/capazme/mcp-legal-it/releases/latest" target="_blank" rel="noopener">pagina delle release</a>.</p>
+        <h3>Installa Claude Code (se non c'è)</h3>
+        <p>Controlla con <code>claude --version</code>. Se il comando non esiste:</p>
+        <div class="only-mac"><div class="cmd"><pre>curl -fsSL https://claude.ai/install.sh | bash</pre><button type="button">Copia</button></div></div>
+        <div class="only-win"><div class="cmd"><pre>irm https://claude.ai/install.ps1 | iex</pre><button type="button">Copia</button></div></div>
+        <p>Chiudi e riapri la finestra, poi accedi con il tuo account Claude digitando <code>claude</code> una prima volta.</p>
       </div></li>
 
       <li><div class="step">
-        <h3>Installala in Claude</h3>
-        <ul>
-          <li>Fai <strong>doppio clic</strong> sul file scaricato. Claude si apre e chiede <em>Installare l'estensione?</em>: premi <strong>Installa</strong>.</li>
-          <li>Se il doppio clic non funziona: in Claude apri <span class="path">Impostazioni → Estensioni</span> e trascina il file nella pagina, oppure usa <span class="path">Impostazioni avanzate → Installa estensione…</span></li>
-        </ul>
-        <p class="note">Claude avvisa che l'estensione non è stata esaminata da Anthropic: è normale per le estensioni installate da file. Se segnala che manca Python, installa comunque: ci pensa <code>uv</code>.</p>
+        <h3>Installa il plugin</h3>
+        <p>Nel Terminale (o PowerShell), un comando alla volta:</p>
+        <div class="cmd"><pre>claude plugin marketplace add capazme/mcp-legal-it</pre><button type="button">Copia</button></div>
+        <div class="cmd"><pre>claude plugin install legal-it@mcp-legal-it</pre><button type="button">Copia</button></div>
+        <p>Il plugin vale sia per Claude Code nel terminale sia per la scheda <strong>Code</strong> dell'app Claude: si installa una volta sola.</p>
+        <p class="note">Se avevi installato l'estensione <code>.mcpb</code> in Claude Desktop, toglila (<span class="path">Impostazioni → Estensioni → Legal IT → Disinstalla</span>): altrimenti nella scheda Code gli strumenti compaiono due volte.</p>
       </div></li>
 
       <li><div class="step">
-        <h3>Aspetta il primo avvio</h3>
-        <p>La prima volta Legal IT scarica Python e i suoi componenti: di solito 15-60 secondi, di più su una rete lenta. In <span class="path">Impostazioni → Estensioni</span> Legal IT deve risultare attiva.</p>
-        <p>Se dopo un paio di minuti risulta ancora disconnessa, chiudi Claude del tutto (passo 2) e riaprilo: il download riprende da dove era arrivato, e dal secondo avvio parte in pochi secondi.</p>
+        <h3>Primo avvio</h3>
+        <p>Apri Claude Code (digita <code>claude</code> in una cartella di lavoro, oppure apri la scheda Code dell'app). La prima volta Legal IT scarica Python e i suoi componenti: da qualche secondo a un paio di minuti, secondo la rete.</p>
+        <p>Digita <code>/mcp</code>: <strong>legal-it</strong> deve risultare <em>connected</em>. Se risulta <em>failed</em>, il download non aveva finito: scegli <strong>Reconnect</strong>. Dal secondo avvio parte in meno di un secondo.</p>
+      </div></li>
+
+      <li><div class="step">
+        <h3>Attiva gli aggiornamenti automatici</h3>
+        <p>Digita <code>/plugin</code>, apri la scheda <strong>Marketplaces</strong>, scegli <code>mcp-legal-it</code> e poi <strong>Enable auto-update</strong>. Senza questo passo le nuove versioni non arrivano da sole.</p>
       </div></li>
     </ol>
   </section>
 
   <section class="try" aria-labelledby="try-h">
     <h2 id="try-h">Prova</h2>
-    <p>Apri una <strong>nuova chat</strong> (non Cowork) e chiedi, per esempio:</p>
     <ul class="prompts">
       <li>Calcola gli interessi legali su 10.000 euro dal 1° gennaio 2024 al 1° gennaio 2025.</li>
-      <li>Riportami il testo vigente dell'articolo 2043 del codice civile.</li>
+      <li>/legal-it:norma articolo 2043 del codice civile</li>
       <li>Cerca le sentenze recenti della Cassazione sul danno da perdita di chance.</li>
     </ul>
-    <p>La prima volta che usa uno strumento, Claude chiede il permesso: scegli <strong>Consenti sempre</strong> per non doverlo ripetere.</p>
+    <p>La prima volta che usa uno strumento, Claude chiede il permesso: scegli l'opzione che non lo richiede più per quella sessione o per sempre.</p>
   </section>
 
   <section style="display:grid;gap:1rem" aria-labelledby="fix-h">
@@ -211,18 +221,17 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
       <table>
         <thead><tr><th>Cosa vedi</th><th>Cosa fare</th></tr></thead>
         <tbody>
-          <tr><td><code>uv --version</code> risponde «comando non trovato»</td><td>Chiudi il Terminale o PowerShell, aprine uno nuovo e riprova. Se ancora non va, ripeti il passo 1.</td></tr>
-          <tr><td>Legal IT resta «disconnessa»</td><td>Quasi sempre <code>uv</code> manca o Claude non è stato chiuso del tutto. Verifica il passo 1, poi ripeti il passo 2.</td></tr>
-          <tr><td>«Questa estensione non è firmata» oppure «Le estensioni sono disabilitate»</td><td>L'account Claude dello studio blocca le estensioni installate da file. Lo sblocca l'amministratore dell'account.</td></tr>
-          <tr><td>Claude non usa gli strumenti di Legal IT</td><td>Controlla di essere in una chat normale, non in Cowork. Poi chiedi esplicitamente: «usa Legal IT per…».</td></tr>
+          <tr><td><code>marketplace add</code> fallisce subito</td><td>Manca <code>git</code>: ripeti il passo 2, poi riprova.</td></tr>
+          <tr><td>In <code>/mcp</code> legal-it è <em>failed</em> (connection timed out)</td><td>Il primo download non aveva finito: <strong>Reconnect</strong>. In alternativa avvia Claude Code con <code>MCP_TIMEOUT=120000 claude</code>.</td></tr>
+          <tr><td><code>uv: command not found</code> o <em>CONNECTION_CLOSED</em></td><td>Manca <code>uv</code> oppure la finestra era aperta da prima: ripeti il passo 1 e riapri Claude Code.</td></tr>
+          <tr><td>Strumenti di Legal IT doppi</td><td>È installata anche l'estensione <code>.mcpb</code>: toglila (passo 4).</td></tr>
         </tbody>
       </table>
     </div>
-    <p><strong>Aggiornamenti:</strong> quando esce una nuova versione, scarica il nuovo file <code>.mcpb</code> dalla pagina delle release e installalo come al passo 4. Sostituisce la versione precedente.</p>
   </section>
 
   <footer>
-    <p>Legal IT (mcp-legal-it) è software libero e open source. Codice e istruzioni complete: <a href="https://github.com/capazme/mcp-legal-it" target="_blank" rel="noopener">github.com/capazme/mcp-legal-it</a>.</p>
+    <p>Legal IT (mcp-legal-it) è software libero e open source: <a href="https://github.com/capazme/mcp-legal-it" target="_blank" rel="noopener">github.com/capazme/mcp-legal-it</a> · <a href="privacy.html">Informativa privacy</a> · <a href="https://github.com/capazme/mcp-legal-it/issues" target="_blank" rel="noopener">Assistenza</a></p>
     <p>I risultati vanno sempre verificati: i calcoli sono indicativi e non sostituiscono il giudizio professionale.</p>
   </footer>
 </div>
