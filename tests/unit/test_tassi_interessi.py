@@ -492,7 +492,11 @@ class TestVerificaUsura:
         trimestri = json.loads(
             (Path(__file__).parents[2] / "src" / "data" / "tegm.json").read_text()
         )["trimestri"]
-        today = date.today().isoformat()
+        # The server's clock, not the wall clock: other modules in the same
+        # session pin LEGAL_TODAY, and the tool reads the date from _clock.
+        from src.lib._clock import today as server_today
+
+        today = server_today().isoformat()
         expected = next(
             (key for key, q in trimestri.items() if q["dal"] <= today <= q["al"]),
             max(trimestri),

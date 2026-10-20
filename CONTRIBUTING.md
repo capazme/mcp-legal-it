@@ -243,14 +243,13 @@ In `src/resources.py`, aggiungi tramite `@mcp.resource()` con URI nel formato `l
 ### Aggiungere una dipendenza runtime
 
 `pyproject.toml` è l'unica fonte di verità, ma ogni percorso di installazione
-risolve le dipendenze per conto proprio, quindi il set va ridichiarato in 4 punti:
+risolve le dipendenze per conto proprio, quindi il set va ridichiarato in 3 punti,
+più il lock del plugin:
 
 | File | Percorso di installazione |
 |---|---|
 | `pyproject.toml` | Docker (`pip install .`), sviluppo |
-| `plugin/server/pyproject.toml` | server impacchettato nel plugin |
-| `plugin/start_server.sh` (riga `--with`) | plugin Claude Code con `uv` |
-| `plugin/start_server.sh` (riga `pip install`) | fallback senza `uv` (sandbox Cowork) |
+| `plugin/server/pyproject.toml` + `plugin/server/uv.lock` | plugin Claude Code (`uv run --frozen`): dopo la modifica, `cd plugin/server && uv lock --python 3.12` |
 | `dxt/manifest.json` (`mcp_config.args`) | Desktop Extension `.mcpb` |
 
 Dopo la modifica:

@@ -22,12 +22,9 @@ cp "$ROOT_DIR/dxt/manifest.json" "$BUILD_DIR/"
 cp "$ROOT_DIR/dxt/.mcpbignore" "$BUILD_DIR/"
 cp "$ROOT_DIR/pyproject.toml" "$BUILD_DIR/"
 
-# Copy start_server.sh (bootstrap script that creates venv + installs deps)
-cp "$ROOT_DIR/plugin/start_server.sh" "$BUILD_DIR/"
-chmod +x "$BUILD_DIR/start_server.sh"
-
-# Copy server source into server/ subdir (matches start_server.sh expectations)
+# Copy server source into server/ subdir (the manifest runs server/run_server.py)
 cp -r "$ROOT_DIR/plugin/server" "$BUILD_DIR/server"
+rm -rf "$BUILD_DIR/server/.venv"
 
 # Clean __pycache__ from copied source
 find "$BUILD_DIR" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

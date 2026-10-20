@@ -126,7 +126,7 @@ Prepara un JSON con la struttura descritta in cima a `scripts/generate_report.js
 ```
 NODE_PATH="$(npm root -g)" node "${CLAUDE_PLUGIN_ROOT}/skills/cookie-audit/scripts/generate_report.js" audit.json "/percorso/Desktop/Analisi-tracciamento-<sito>-<data>.docx"
 ```
-Richiede il pacchetto npm globale `docx` (`npm i -g docx`) — la stessa dipendenza di `esporta-documento`. Lo script stampa su stdout il path assoluto del file: riportalo sempre all'utente. La validazione del `.docx` è opzionale; se è installata la skill `docx` di Anthropic puoi usare `python ~/.claude/skills/docx/scripts/office/validate.py <file>`, altrimenti l'apertura del file conferma la buona formazione. In alternativa, per un report discorsivo in stile SAPG, scrivi il contenuto in markdown e passalo alla skill `esporta-documento`.
+Richiede il pacchetto npm globale `docx` (`npm i -g docx`) — la stessa dipendenza di `esporta-documento`. Lo script stampa su stdout il path assoluto del file: riportalo sempre all'utente; l'apertura del file in Word conferma la buona formazione. In alternativa, per un report discorsivo, scrivi il contenuto in markdown e passalo alla skill `esporta-documento`.
 
 ## Remediation (su richiesta)
 Quando emergono criticità, produci — vedi `references/compliance-checklist.md` § Remediation:

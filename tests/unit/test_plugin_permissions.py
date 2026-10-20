@@ -25,10 +25,13 @@ def allowed_tools(path: Path) -> list[str]:
     return []
 
 
-def test_plugin_settings_allow_both_tool_prefixes():
-    allow = json.loads((ROOT / "plugin" / "settings.json").read_text())["permissions"]["allow"]
-    assert MANUAL + "*" in allow
-    assert PLUGIN + "*" in allow
+def test_the_plugin_ships_no_permission_settings():
+    """A plugin's settings.json loads only `agent` and `subagentStatusLine`;
+    a `permissions` block is dropped at load and reads as a permission change
+    to the directory's security scan. Commands declare `allowed-tools` instead."""
+    settings = ROOT / "plugin" / "settings.json"
+    if settings.exists():
+        assert set(json.loads(settings.read_text())) <= {"agent", "subagentStatusLine"}
 
 
 def test_every_command_allows_each_mcp_tool_under_both_prefixes():

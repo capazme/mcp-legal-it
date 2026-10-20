@@ -1,10 +1,10 @@
 {
   "_vintage": {
-    "copre_fino_a": "2026-09-30",
+    "copre_fino_a": "2026-12-31",
     "fonte": "decreti MEF trimestrali ex L. 108/1996, CSV Banca d'Italia",
     "verifica": "manuale",
-    "aggiornato_al": "2026-09-29",
-    "nota": "2025-Q1 leasing strumentale riletto sul decreto MEF"
+    "aggiornato_al": "2026-10-19",
+    "nota": "2026-Q4 dal DM MEF 28/09/2026 (GU n. 227 del 30/09/2026, Allegato A); 2025-Q1 leasing strumentale riletto sul decreto MEF"
   },
   "_descrizione": "TEGM storico trimestrale — Banca d'Italia / Decreti MEF ex L. 108/1996",
   "_fonte": "CSV Banca d'Italia + DM trimestrali in Gazzetta Ufficiale",
@@ -155,6 +155,27 @@
         "leasing_immobiliare_variabile": {"tegm": 5.51, "descrizione": "Leasing immobiliare a tasso variabile"},
         "leasing_auto": {"tegm": 9.29, "descrizione": "Leasing autoveicoli (fino a 25.000€)"},
         "scoperti_senza_affidamento": {"tegm": 15.75, "descrizione": "Scoperti senza affidamento (fino a 1.500€)"}
+      }
+    },
+    "2026-Q4": {
+      "dal": "2026-10-01",
+      "al": "2026-12-31",
+      "categorie": {
+        "mutuo_prima_casa": {"tegm": 4.52, "descrizione": "Mutui ipotecari a tasso fisso"},
+        "mutuo_tasso_variabile": {"tegm": 4.34, "descrizione": "Mutui ipotecari a tasso variabile"},
+        "credito_personale": {"tegm": 12.08, "descrizione": "Prestiti personali"},
+        "apertura_credito": {"tegm": 10.80, "descrizione": "Aperture di credito in c/c (fino a 5.000€)"},
+        "apertura_credito_oltre_5000": {"tegm": 9.12, "descrizione": "Aperture di credito in c/c (oltre 5.000€)"},
+        "leasing": {"tegm": 10.27, "descrizione": "Leasing strumentale (fino a 25.000€)"},
+        "factoring": {"tegm": 6.58, "descrizione": "Factoring (fino a 50.000€)"},
+        "carte_revolving": {"tegm": 16.50, "descrizione": "Credito revolving"},
+        "cessione_quinto": {"tegm": 14.23, "descrizione": "Cessione del quinto (fino a 15.000€)"},
+        "cessione_quinto_oltre_15000": {"tegm": 9.88, "descrizione": "Cessione del quinto (oltre 15.000€)"},
+        "credito_finalizzato": {"tegm": 11.30, "descrizione": "Credito finalizzato rateale"},
+        "leasing_immobiliare_fisso": {"tegm": 6.52, "descrizione": "Leasing immobiliare a tasso fisso"},
+        "leasing_immobiliare_variabile": {"tegm": 5.82, "descrizione": "Leasing immobiliare a tasso variabile"},
+        "leasing_auto": {"tegm": 9.51, "descrizione": "Leasing autoveicoli (fino a 25.000€)"},
+        "scoperti_senza_affidamento": {"tegm": 16.08, "descrizione": "Scoperti senza affidamento (fino a 1.500€)"}
       }
     }
   }

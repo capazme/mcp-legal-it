@@ -5,8 +5,11 @@ import re
 import zipfile
 from pathlib import Path
 
-SKILLS_DIR = Path(__file__).parent / "skills"
-OUT_DIR = Path(__file__).parent / "dist" / "web-skills"
+ROOT = Path(__file__).resolve().parent.parent
+SKILLS_DIR = ROOT / "plugin" / "skills"
+# Outside the plugin folder: the plugin directory holds a binary .zip for a
+# reviewer, and these archives ship as release assets instead.
+OUT_DIR = ROOT / "dist" / "web-skills"
 MAX_DESC_LEN = 200
 
 

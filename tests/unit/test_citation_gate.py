@@ -246,3 +246,22 @@ def test_the_json_format_inside_the_wrapper_is_judged_as_json(tmp_path):
     assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", failed),)) == NAGS
     ok = _wrapped(json.dumps({"formato": "json", "testo": "Art. 2043.\nQualunque fatto...", "errore": None}))
     assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", ok),)) == SILENT
+
+
+# --- launcher -----------------------------------------------------------------
+
+HOOKS_JSON = HOOK.with_name("hooks.json")
+
+
+def test_the_hook_runs_in_the_plugin_server_environment():
+    """No bare `python3`: on Windows it is usually the Microsoft Store alias
+    (exit 9009), which turned every reply into a "Stop hook error". The hook
+    reuses the server's locked uv environment, which the plugin needs anyway."""
+    hook = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["hooks"][0]
+    assert hook["command"] == (
+        'uv run --frozen --python 3.12 --project "${CLAUDE_PLUGIN_ROOT}/server" '
+        'python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"'
+    )
+    # Seconds. The first Stop of a session may still be building the
+    # environment the server started.
+    assert 15 <= hook["timeout"] <= 600
