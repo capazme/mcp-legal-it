@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-legal-it"
-version = "2.16.1"
+version = "2.17.0"
 description = "MCP server with 228 Italian legal tools: calculations, legislation (incl. Gazzetta Ufficiale), case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), orientamento, EU→IT implementation mapping, citation verification, CONSOB, GDPR, document generation"
 license = {text = "Apache-2.0"}
 # The plugin always runs on uv's Python 3.12 (`uv run --python 3.12`); keeping the
