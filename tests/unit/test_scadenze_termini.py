@@ -142,11 +142,14 @@ class TestTerminiSeparazioneDivorzio:
         assert r["prorogata_art_155"] is False
         assert r["mesi_termine"] == 6
 
-    def test_separazione_giudiziale_12_mesi(self):
-        # 12 mesi da 2025-03-15 = 2026-03-15 (domenica) → slitta a 2026-03-16
+    def test_separazione_giudiziale_12_mesi_non_si_proroga(self):
+        # 12 mesi da 2025-03-15 = 2026-03-15 (domenica). Periodo di attesa, non
+        # termine per un atto: niente proroga art. 155 (decisione G-328).
         r = _call("termini_separazione_divorzio", data_evento="2025-03-15", tipo="separazione_giudiziale")
-        assert r["scadenza"] == "2026-03-16"
-        assert r["prorogata_art_155"] is True
+        assert r["scadenza"] == "2026-03-15"
+        assert r["prorogata_art_155"] is False
+        assert r["giorno_settimana"] == "domenica"
+        assert "155" in r["nota"]
 
     def test_ricorso_modifica_nessun_termine(self):
         r = _call("termini_separazione_divorzio", data_evento="2025-06-01", tipo="ricorso_modifica")
@@ -159,9 +162,10 @@ class TestTerminiSeparazioneDivorzio:
         assert r["mesi_termine"] == 6
 
     def test_end_of_month_clamp(self):
-        # 6 mesi da 2025-08-31 = 2026-02-28 (fine febbraio, nessun 31)
+        # 6 mesi da 2025-08-31 = 2026-02-28 (fine febbraio, nessun 31; sabato,
+        # e il periodo di attesa non si proroga)
         r = _call("termini_separazione_divorzio", data_evento="2025-08-31", tipo="separazione_consensuale")
-        assert r["scadenza"] == "2026-03-02"
+        assert r["scadenza"] == "2026-02-28"
 
     def test_tipo_invalido(self):
         r = _call("termini_separazione_divorzio", data_evento="2025-06-01", tipo="invalid")
@@ -536,22 +540,56 @@ class TestTerminiEsecuzioni:
         assert "termine_minimo_10gg" in r
         assert "scadenza_efficacia_precetto" in r
 
-    def test_opposizione_esecuzione_20gg(self):
+    def test_opposizione_atti_esecutivi_20gg(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
-                  tipo="opposizione_esecuzione")
+                  tipo="opposizione_atti_esecutivi")
         assert r["scadenza_opposizione"] == "2025-06-23"
         assert r["termine_opposizione_giorni"] == 20
 
     def test_opposizione_proroga_festivo(self):
         # 2025-12-20 + 20 = 2026-01-09
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-12-20",
-                  tipo="opposizione_esecuzione")
+                  tipo="opposizione_atti_esecutivi")
         assert r["scadenza_opposizione"] is not None
 
     def test_tipo_invalido(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01", tipo="invalid")
         assert "errore" in r
         assert "valori_ammessi" in r
+
+    def test_opposizione_atti_esecutivi_is_the_name_of_the_617_term(self):
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                  tipo="opposizione_atti_esecutivi")
+        assert r["scadenza_opposizione"] == "2025-06-23"
+        assert r["riferimento_normativo"] == "Art. 617 c.p.c."
+
+    def test_the_old_name_is_gone(self):
+        """'opposizione_esecuzione' read as art. 615 but computed art. 617: removed, no alias."""
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                  tipo="opposizione_esecuzione")
+        assert "errore" in r
+        assert "opposizione_atti_esecutivi" in r["valori_ammessi"]
+        assert "opposizione_esecuzione" not in r["valori_ammessi"]
+
+
+class TestGiornoSettimana:
+    """The weekday is Italian whatever the process locale (it used strftime)."""
+
+    def test_every_tool_names_the_day_in_italian(self):
+        import locale
+        try:
+            locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
+        except locale.Error:
+            pass  # the C locale is English as well
+        try:
+            r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                      tipo="opposizione_atti_esecutivi")
+            assert r["giorno_settimana"] == "lunedì"  # 2025-06-23
+            r = _call("scadenza_processuale", data_evento="2025-06-01", giorni=10)
+            mod = importlib.import_module("src.tools.scadenze_termini")
+            assert r["giorno_settimana"] in mod._GIORNI
+        finally:
+            locale.setlocale(locale.LC_TIME, "")
 
 
 # ---------------------------------------------------------------------------
