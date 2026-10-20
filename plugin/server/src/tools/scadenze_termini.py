@@ -416,7 +416,6 @@ def termini_processuali_civili(
 
 
 @mcp.tool(tags={"scadenze"})
-@sourced("festivita")
 def termini_separazione_divorzio(
     data_evento: str,
     tipo: str,

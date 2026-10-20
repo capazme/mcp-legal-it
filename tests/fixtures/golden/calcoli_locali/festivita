@@ -81,13 +81,6 @@
     "tipo_termine": "memoria_I"
    },
    "expected": "{\"data_udienza\":\"2022-03-15\",\"udienza_di_riferimento\":\"udienza di comparizione e trattazione ex art. 183 c.p.c.\",\"tipo_termine\":\"memoria_I\",\"descrizione\":\"Memoria art. 171-ter, co. 1, n. 1 — precisazione/modificazione domande, eccezioni, conclusioni\",\"giorni_prima_udienza\":40,\"giorni_assegnati_dal_giudice\":false,\"scadenza\":\"2022-02-03\",\"prorogata_art_155\":false,\"giorno_settimana\":\"giovedì\",\"sospensione_feriale_applicata\":true,\"sospensione_feriale_incidente\":false,\"riferimento_normativo\":\"Art. 171-ter c.p.c. (D.Lgs. 149/2022 — Riforma Cartabia); L. 742/1969, art. 1 (sospensione dal 1° al 31 agosto, come modificato dall'art. 16 DL 132/2014)\",\"riepilogo_termini_memorie\":{\"memoria_I\":\"2022-02-03\",\"memoria_II\":\"2022-02-23\",\"memoria_III\":\"2022-03-04\"},\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
-  },
-  "termini_separazione_divorzio": {
-   "arguments": {
-    "data_evento": "2021-01-01",
-    "tipo": "separazione_consensuale"
-   },
-   "expected": "{\"data_evento\":\"2021-01-01\",\"tipo\":\"separazione_consensuale\",\"descrizione\":\"Termine per presentare ricorso di divorzio dopo separazione consensuale (decorre dalla comparizione dei coniugi in udienza)\",\"mesi_termine\":6,\"scadenza\":\"2021-07-01\",\"prorogata_art_155\":false,\"giorno_settimana\":\"giovedì\",\"nota\":\"Periodo minimo di separazione prima del divorzio, non un termine per compiere un atto: non si proroga se cade di sabato o in un giorno festivo (art. 155 c.p.c. non applicato).\",\"riferimento_normativo\":\"Art. 3, n. 2, lett. b), L. 898/1970 (mod. L. 55/2015)\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
   }
  }
 }
