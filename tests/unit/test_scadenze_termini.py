@@ -540,16 +540,16 @@ class TestTerminiEsecuzioni:
         assert "termine_minimo_10gg" in r
         assert "scadenza_efficacia_precetto" in r
 
-    def test_opposizione_esecuzione_20gg(self):
+    def test_opposizione_atti_esecutivi_20gg(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
-                  tipo="opposizione_esecuzione")
+                  tipo="opposizione_atti_esecutivi")
         assert r["scadenza_opposizione"] == "2025-06-23"
         assert r["termine_opposizione_giorni"] == 20
 
     def test_opposizione_proroga_festivo(self):
         # 2025-12-20 + 20 = 2026-01-09
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-12-20",
-                  tipo="opposizione_esecuzione")
+                  tipo="opposizione_atti_esecutivi")
         assert r["scadenza_opposizione"] is not None
 
     def test_tipo_invalido(self):
@@ -562,19 +562,14 @@ class TestTerminiEsecuzioni:
                   tipo="opposizione_atti_esecutivi")
         assert r["scadenza_opposizione"] == "2025-06-23"
         assert r["riferimento_normativo"] == "Art. 617 c.p.c."
-        assert "avviso" not in r
 
-    def test_the_old_name_still_works_and_says_it_is_art_617(self):
-        """'opposizione_esecuzione' read as art. 615 but always computed art. 617."""
-        old = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
-                    tipo="opposizione_esecuzione")
-        new = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
-                    tipo="opposizione_atti_esecutivi")
-        assert old["scadenza_opposizione"] == new["scadenza_opposizione"]
-        assert "617" in old["avviso"] and "615" in old["avviso"]
-        listed = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
-                       tipo="invalid")["valori_ammessi"]
-        assert "opposizione_atti_esecutivi" in listed
+    def test_the_old_name_is_gone(self):
+        """'opposizione_esecuzione' read as art. 615 but computed art. 617: removed, no alias."""
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                  tipo="opposizione_esecuzione")
+        assert "errore" in r
+        assert "opposizione_atti_esecutivi" in r["valori_ammessi"]
+        assert "opposizione_esecuzione" not in r["valori_ammessi"]
 
 
 class TestGiornoSettimana:
