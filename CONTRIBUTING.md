@@ -321,3 +321,9 @@ devono poter arrivare agli utenti senza una release. L'unica eccezione è
       `retry_request(..., dataset="...")` così la risposta dichiara `fonti_consultate`
 - [ ] Se hai toccato `src/data/`: golden rigenerato e `python scripts/update-data.py --strict` verde
 - [ ] L'output rispetta le convenzioni (importi, date, ESATTO/INDICATIVO)
+
+## 9. Licenza dei contributi
+
+Dalla 3.0.0 il progetto è distribuito con licenza [MPL-2.0](LICENSE): aprendo una PR
+accetti che il tuo contributo sia distribuito con la stessa licenza. Le versioni fino
+alla linea 2.x restano sotto Apache-2.0 (vedi [NOTICE](NOTICE)).

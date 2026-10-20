@@ -200,4 +200,4 @@ legal-it is a Claude Code plugin for Italian law: a local MCP server with 228 to
 
 ## Licenza
 
-[Apache License 2.0](LICENSE) — Copyright 2025-2026 [capazme](https://github.com/capazme).
+[Mozilla Public License 2.0](LICENSE) — Copyright 2025-2026 [capazme](https://github.com/capazme). Fino alla linea 2.x: Apache-2.0.

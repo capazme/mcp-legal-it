@@ -14,7 +14,7 @@
     "url": "https://github.com/capazme/mcp-legal-it.git"
   },
   "homepage": "https://github.com/capazme/mcp-legal-it",
-  "license": "Apache-2.0",
+  "license": "MPL-2.0",
   "server": {
     "type": "python",
     "entry_point": "server/run_server.py",
