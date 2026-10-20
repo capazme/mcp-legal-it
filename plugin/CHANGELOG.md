@@ -564,6 +564,13 @@ stable 2.x line.
 ### Notes
 - MCP surface: 221 tools / 23 prompts / 15 resources.
 
+### Changed
+- `termini_separazione_divorzio`: the 6/12-month separation period before
+  divorce is no longer extended under art. 155 c.p.c. when it ends on a
+  Saturday or a holiday. It is a minimum duration, not a deadline for an act
+  (owner's legal reading). Example: 12 months from 15/03/2025 now end on
+  Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
+
 ## [2.17.0] - 2026-10-20
 
 ### Changed

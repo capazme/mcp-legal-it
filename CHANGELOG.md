@@ -548,6 +548,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   atto number, dated status and official scheda link — and states that no
   results never proves no reforms (titles-only search).
 
+### Changed
+- `termini_separazione_divorzio`: the 6/12-month separation period before
+  divorce is no longer extended under art. 155 c.p.c. when it ends on a
+  Saturday or a holiday. It is a minimum duration, not a deadline for an act
+  (owner's legal reading). Example: 12 months from 15/03/2025 now end on
+  Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
+
 ## [2.17.0] - 2026-10-20
 
 ### Changed
