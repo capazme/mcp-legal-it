@@ -553,6 +553,45 @@ class TestTerminiEsecuzioni:
         assert "errore" in r
         assert "valori_ammessi" in r
 
+    def test_opposizione_atti_esecutivi_is_the_name_of_the_617_term(self):
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                  tipo="opposizione_atti_esecutivi")
+        assert r["scadenza_opposizione"] == "2025-06-23"
+        assert r["riferimento_normativo"] == "Art. 617 c.p.c."
+        assert "avviso" not in r
+
+    def test_the_old_name_still_works_and_says_it_is_art_617(self):
+        """'opposizione_esecuzione' read as art. 615 but always computed art. 617."""
+        old = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                    tipo="opposizione_esecuzione")
+        new = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                    tipo="opposizione_atti_esecutivi")
+        assert old["scadenza_opposizione"] == new["scadenza_opposizione"]
+        assert "617" in old["avviso"] and "615" in old["avviso"]
+        listed = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                       tipo="invalid")["valori_ammessi"]
+        assert "opposizione_atti_esecutivi" in listed
+
+
+class TestGiornoSettimana:
+    """The weekday is Italian whatever the process locale (it used strftime)."""
+
+    def test_every_tool_names_the_day_in_italian(self):
+        import locale
+        try:
+            locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
+        except locale.Error:
+            pass  # the C locale is English as well
+        try:
+            r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                      tipo="opposizione_atti_esecutivi")
+            assert r["giorno_settimana"] == "lunedì"  # 2025-06-23
+            r = _call("scadenza_processuale", data_evento="2025-06-01", giorni=10)
+            mod = importlib.import_module("src.tools.scadenze_termini")
+            assert r["giorno_settimana"] in mod._GIORNI
+        finally:
+            locale.setlocale(locale.LC_TIME, "")
+
 
 # ---------------------------------------------------------------------------
 # termini_deposito_atti_appello
