@@ -1,0 +1,15 @@
+{
+ "datasets": [
+  "inps_parametri"
+ ],
+ "tools": {
+  "calcolo_naspi": {
+   "arguments": {
+    "eta_anni": 10,
+    "retribuzione_media_mensile": 10000.0,
+    "settimane_contributive": 10000
+   },
+   "expected": "{\"retribuzione_media_mensile\":10000.0,\"settimane_contributive\":10000,\"eta_anni\":10,\"anno_parametri\":2026,\"soglia_2026\":1456.72,\"massimale_2026\":1584.7,\"esito\":\"calcolato\",\"importo_mensile_iniziale\":1584.7,\"durata_mesi\":24,\"decalage_da_mese\":6,\"totale_stimato\":30437.11,\"piano_mensile\":[{\"mese\":1,\"importo\":1584.7},{\"mese\":2,\"importo\":1584.7},{\"mese\":3,\"importo\":1584.7},{\"mese\":4,\"importo\":1584.7},{\"mese\":5,\"importo\":1584.7},{\"mese\":6,\"importo\":1537.16},{\"mese\":24,\"importo\":888.4,\"nota\":\"ultimo mese\"}],\"requisiti_non_verificati\":[\"stato di disoccupazione involontaria (art. 3 co. 1 lett. a D.Lgs. 22/2015): dimissioni volontarie non danno diritto salvo giusta causa o risoluzione consensuale ex art. 7 L. 604/1966\",\"per gli eventi dal 1° gennaio 2025, se il rapporto a tempo indeterminato precedente è cessato per dimissioni volontarie nei 12 mesi prima, servono 13 settimane di contribuzione dopo quella cessazione (art. 3 co. 1 lett. c-bis)\"],\"riferimento_normativo\":\"D.Lgs. 22/2015 artt. 3-5 — Circ. INPS n. 4/2026\",\"dati_applicati\":[\"inps parametri: copre fino al 31/12/2026 (INPS, circolare n. 4 del 28-01-2026 par. 6 (NASpI: retribuzione di riferimento e importo massimo mensile 2026); circolare n. 6 del 30-01-2026 parr. 5-6 (prima fascia di retribuzione pensionabile e massimale annuo della base contributiva 2026)) — valori annuali rivalutati con l'indice ISTAT dei prezzi al consumo per le famiglie di operai e impiegati: ogni gennaio l'INPS pubblica le nuove circolari e la tabella va aggiornata con una nuova voce in `anni`\"]}"
+  }
+ }
+}

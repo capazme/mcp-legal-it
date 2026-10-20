@@ -80,16 +80,20 @@ class TestSollecitoPagamento:
         r = self._make()
         testo = r["testo_lettera"]
         c = r["calcoli"]
-        # The total and capital amounts must appear in the text
-        assert f"{c['importo_originale']:,.2f}" in testo
-        assert f"{c['totale_dovuto']:,.2f}" in testo
-        assert f"{c['interessi_mora']:,.2f}" in testo
+        # The total and capital amounts must appear in the text, in Italian format
+        # (1.234,56): the English format "1,234.56" is ambiguous in an Italian letter.
+        def it(x):
+            return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        assert it(c['importo_originale']) in testo
+        assert it(c['totale_dovuto']) in testo
+        assert it(c['interessi_mora']) in testo
 
     def test_custom_tasso_mora(self):
         r = self._make(tasso_mora=8.0)
         c = r["calcoli"]
         assert c["tasso_mora_pct"] == 8.0
-        expected = round(15000 * 8 / 100 * 214 / 366, 2)  # 2024 is leap year
+        # Actual/actual by calendar year: 199 days of 2024 (leap, /366) + 15 days of 2025 (/365)
+        expected = round(15000 * 8 / 100 * (199 / 366 + 15 / 365), 2)
         assert_close(c["interessi_mora"], expected, tolerance=0.01, label="soll_custom")
 
     def test_error_date_order(self):
@@ -348,12 +352,14 @@ class TestModelloNotula:
     def test_decreto_ingiuntivo_fasi(self):
         r = self._make(tipo_procedimento="decreto_ingiuntivo")
         fasi = [f["fase"] for f in r["dettaglio_calcoli"]["fasi"]]
-        assert fasi == ["studio", "introduttiva"]
+        # DM 55/2014 Tab. VIII: procedimenti monitori are paid on a single phase
+        assert fasi == ["unica"]
 
     def test_esecuzione_immobiliare_fasi(self):
         r = self._make(tipo_procedimento="esecuzione_immobiliare")
         fasi = [f["fase"] for f in r["dettaglio_calcoli"]["fasi"]]
-        assert fasi == ["studio", "introduttiva", "istruttoria", "decisionale"]
+        # DM 55/2014 Tab. XVIII: fase introduttiva + fase istruttoria e/o di trattazione
+        assert fasi == ["introduttiva", "trattazione"]
 
     def test_totale_in_text(self):
         r = self._make()

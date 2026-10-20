@@ -88,6 +88,7 @@ def _normalize(text: str) -> str:
 def _group_name(datasets: list[str]) -> str:
     return "+".join(datasets) if datasets else NO_TABLE_GROUP
 
+
 #: Introspection, not calculation: the answer reports the running process
 #: (package version, FastMCP build, hostname, live counters), so its values are
 #: a function of the machine, not of the arguments. Freezing them in the golden

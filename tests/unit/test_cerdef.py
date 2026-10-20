@@ -28,6 +28,7 @@ from bs4 import BeautifulSoup
 from src.lib import _clock
 from src.lib._result import SearchResult
 from src.lib.cerdef.client import (
+    CerdefNonTrovato,
     CRITERI_RICERCA,
     ENTI,
     ORDINAMENTI,
@@ -738,10 +739,44 @@ class TestFetchProvvedimento:
         assert "Depositato in Cancelleria il 14 settembre 2026." in dettaglio.testo_integrale
         assert "\\" not in dettaglio.massima + dettaglio.testo_integrale
 
-    async def test_unknown_guid_http_500(self):
-        portale = _Portale(*[(500, _ERRORE_500)] * 3)
-        with portale.attiva(), _senza_attese(), pytest.raises(CerdefError, match="inesistente"):
+    async def test_unknown_guid_http_500_is_not_found_without_retry(self):
+        # CeRDEF answers a well-formed but unknown id with HTTP 500 + NullPointerException,
+        # deterministically: "not found", asked once (a retry cannot change the answer).
+        portale = _Portale((500, _ERRORE_500))
+        with portale.attiva(), pytest.raises(CerdefNonTrovato, match="non trovato o GUID non valido"):
             await fetch_provvedimento("{00000000-0000-4000-8000-000000000000}")
+        assert len(portale.richieste) == 1
+
+    async def test_other_http_500_is_retried_and_stays_a_source_error(self):
+        # A 500 without the NullPointerException body may be a real outage: retried,
+        # then reported as an unreadable answer, never as "not found".
+        portale = _Portale(*[(500, "Internal error")] * 3)
+        with portale.attiva(), _senza_attese(), pytest.raises(CerdefError, match="HTTP 500") as info:
+            await fetch_provvedimento(GUID_25285)
+        assert not isinstance(info.value, CerdefNonTrovato)
+        assert len(portale.richieste) == 3
+
+    async def test_transient_500_then_detail_succeeds(self):
+        portale = _Portale((500, "Internal error"), _pagina("dettaglio_ordinanza_25285_2026.html"))
+        with portale.attiva(), _senza_attese():
+            dettaglio = await fetch_provvedimento(GUID_25285)
+        assert dettaglio.guid == GUID_25285
+        assert len(portale.richieste) == 2
+
+    @pytest.mark.parametrize("guid", ["abc-123-def-456", "B0F76E21", "{B0F76E21-B5FA-4415-9D1D-44FF7B5741C}", "x" * 36])
+    async def test_malformed_guid_is_refused_before_any_request(self, guid):
+        portale = _Portale()
+        with portale.attiva(), pytest.raises(ValueError, match="non valido"):
+            await fetch_provvedimento(guid)
+        assert portale.richieste == []
+
+    @pytest.mark.parametrize("guid", [GUID_25285, GUID_25285.strip("{}"), GUID_25285.lower()])
+    async def test_guid_with_or_without_braces_is_accepted(self, guid):
+        portale = _Portale(_pagina("dettaglio_ordinanza_25285_2026.html"))
+        with portale.attiva():
+            dettaglio = await fetch_provvedimento(guid)
+        assert portale.richieste[0].url.params["id"] == guid
+        assert dettaglio.estremi.startswith("Ordinanza del 14/09/2026 n. 25285")
 
     async def test_error_page_instead_of_detail_raises(self):
         portale = _Portale(_pagina("errore_generico.html"))
@@ -795,15 +830,26 @@ class TestCerdefLeggiProvvedimentoImpl:
         assert "## Massima" in testo
         assert "## Testo Integrale" in testo
 
-    async def test_unknown_guid_is_not_an_outage(self):
-        portale = _Portale(*[(500, _ERRORE_500)] * 3)
-        with portale.attiva(), _senza_attese():
-            result = await _cerdef_leggi_provvedimento_impl("abc-123-def-456")
-        assert result.error_type == "source_error"
+    async def test_unknown_guid_is_not_found_not_an_outage(self):
+        portale = _Portale((500, _ERRORE_500))
+        with portale.attiva():
+            result = await _cerdef_leggi_provvedimento_impl("{00000000-0000-4000-8000-000000000000}")
+        assert result.error_type == "not_found"
         testo = result.to_str()
         assert testo.startswith("**Errore**")
-        assert "inesistente" in testo
+        assert "provvedimento non trovato o GUID non valido" in testo
         assert "non raggiungibile" not in testo
+        assert len(portale.richieste) == 1
+
+    async def test_docstring_example_guid_is_bad_input_without_request(self):
+        # The old docstring example was not a CeRDEF GUID; it must read as invalid, not as an outage.
+        portale = _Portale()
+        with portale.attiva():
+            result = await _cerdef_leggi_provvedimento_impl("abc-123-def-456")
+        assert result.error_type == "bad_input"
+        assert "GUID" in result.to_str() and "non valido" in result.to_str()
+        assert "non raggiungibile" not in result.to_str()
+        assert portale.richieste == []
 
     async def test_http_404_is_source_down(self):
         portale = _Portale((404, "Not Found"))
@@ -815,6 +861,33 @@ class TestCerdefLeggiProvvedimentoImpl:
         result = await _cerdef_leggi_provvedimento_impl("")
         assert result.error_type == "bad_input"
         assert result.to_str().startswith("**Errore**")
+
+    @pytest.mark.parametrize("valore", [0, -3, "2", 1.5, True])
+    async def test_invalid_da_carattere_is_bad_input_without_request(self, valore):
+        portale = _Portale()
+        with portale.attiva():
+            result = await _cerdef_leggi_provvedimento_impl(GUID_25285, valore)
+        assert result.error_type == "bad_input"
+        assert "da_carattere deve essere un intero maggiore o uguale a 1" in result.to_str()
+        assert portale.richieste == []
+
+    async def test_da_carattere_is_threaded_to_the_formatter(self):
+        testo = "".join(f"{i:05d}" for i in range(12000))
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="M", testo_integrale=testo)
+        with patch("src.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)) as fetch:
+            result = await _cerdef_leggi_provvedimento_impl("{G}", 25001)
+        fetch.assert_awaited_once_with("{G}")
+        assert result.success
+        assert testo[25000:50000] in result.results_text
+
+    async def test_mcp_tool_accepts_da_carattere(self):
+        from src.tools.cerdef import cerdef_leggi_provvedimento
+
+        testo = "".join(f"{i:05d}" for i in range(12000))
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="M", testo_integrale=testo)
+        with patch("src.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)):
+            out = await cerdef_leggi_provvedimento("{G}", da_carattere=50001)
+        assert out.endswith("fine del testo]*")
 
 
 # ---------------------------------------------------------------------------
@@ -887,11 +960,37 @@ class TestFormatDetail:
     def test_truncation_at_25000(self):
         detail = ProvvedimentoDetail(guid="x", estremi="X", massima="", testo_integrale="a" * 30000)
         text = format_detail(detail)
-        assert "Testo troncato a 25000 caratteri su 30000 totali" in text
+        assert text.endswith(
+            "*[Testo troncato a 25000 caratteri su 30000 totali: "
+            "per leggere il seguito ripetere la chiamata con da_carattere=25001]*"
+        )
 
     def test_truncation_boundary(self):
         detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="a" * 25000)
         assert "troncato" not in format_detail(detail)
+
+    def test_resume_position_reads_the_omitted_text(self):
+        testo = "".join(f"{i:05d}" for i in range(12000))  # 60000 chars, each 5-digit block unique
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="Principio X.", testo_integrale=testo)
+        first = format_detail(detail)
+        assert "da_carattere=25001]*" in first
+        assert testo[:25000] in first and testo[25000:25010] not in first
+        second = format_detail(detail, da_carattere=25001)
+        assert second.startswith("# E")
+        assert "Principio X." not in second  # the massima belongs to the first answer
+        assert testo[25000:50000] in second
+        assert "*[Caratteri 25001-50000 su 60000 totali: per leggere il seguito ripetere la chiamata con da_carattere=50001]*" in second
+
+    def test_last_window_says_end_of_text(self):
+        testo = "".join(f"{i:05d}" for i in range(12000))
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale=testo)
+        last = format_detail(detail, da_carattere=50001)
+        assert testo[50000:] in last
+        assert last.endswith("*[Caratteri 50001-60000 su 60000 totali: fine del testo]*")
+
+    def test_start_beyond_the_end(self):
+        detail = ProvvedimentoDetail(guid="g", estremi="E", massima="", testo_integrale="a" * 100)
+        assert "da_carattere=500 oltre la fine del testo (100 caratteri)" in format_detail(detail, da_carattere=500)
 
     def test_includes_optional_fields(self):
         detail = ProvvedimentoDetail(guid="x", estremi="X", massima="", testo_integrale="",

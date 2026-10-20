@@ -87,7 +87,7 @@ def test_web_zip_conversion_rules(tmp_path):
         "packaging:\n"
         "  claude-web:\n"
         "    from: claude-code\n"
-        "    out_dir: plugin/dist/web-skills\n"
+        "    out_dir: dist/web-skills\n"
         "    description_max_chars: 200\n"
         "    keep_frontmatter: [name, description]\n"
         '    zip_member: "{name}/Skill.md"\n',
@@ -158,13 +158,15 @@ def _write_fake_plugin_tree(root: Path) -> None:
     (plugin / "commands" / "marker.txt").write_text("commands-marker\n", encoding="utf-8")
     (plugin / "hooks").mkdir()
     (plugin / "hooks" / "marker.txt").write_text("hooks-marker\n", encoding="utf-8")
-    (plugin / "settings.json").write_text("{}\n", encoding="utf-8")
-    (plugin / "start_server.sh").write_text("#!/usr/bin/env bash\necho hi\n", encoding="utf-8")
-    (plugin / "start_server.sh").chmod(0o755)
     (plugin / ".mcp.json").write_text("{}\n", encoding="utf-8")
+    (plugin / "README.md").write_text("# plugin\n", encoding="utf-8")
+    (plugin / "LICENSE").write_text("license\n", encoding="utf-8")
     server = plugin / "server"
     server.mkdir()
     (server / "__init__.py").write_text("# server\n", encoding="utf-8")
+    # a uv environment left by `uv run --project` in a checkout must never ship
+    (server / ".venv" / "lib").mkdir(parents=True)
+    (server / ".venv" / "lib" / "marker.txt").write_text("venv\n", encoding="utf-8")
     pycache = server / "__pycache__"
     pycache.mkdir()
     (pycache / "foo.cpython-312.pyc").write_bytes(b"\x00\x01")
@@ -178,7 +180,7 @@ def test_plugin_zip_stages_and_excludes(tmp_path):
         "  plugin-zip:\n"
         "    from: claude-code\n"
         '    artifact: "dist/legal-it-plugin-{version}.zip"\n'
-        "    include: [.claude-plugin, skills, agents, commands, hooks, settings.json, start_server.sh, .mcp.json, server]\n"
+        "    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE]\n"
         "    root: plugin\n"
         '    version_manifest: ".claude-plugin/plugin.json"\n',
     )
@@ -196,22 +198,19 @@ def test_plugin_zip_stages_and_excludes(tmp_path):
             "agents/marker.txt",
             "commands/marker.txt",
             "hooks/marker.txt",
-            "settings.json",
-            "start_server.sh",
             ".mcp.json",
+            "README.md",
+            "LICENSE",
             "server/__init__.py",
         ):
             assert expected in names, f"{expected} missing from {names}"
 
         assert not any(n.endswith(".pyc") for n in names), names
         assert not any("__pycache__" in n for n in names), names
+        assert not any(".venv" in n for n in names), names
 
         staged_manifest = json.loads(zf.read(".claude-plugin/plugin.json"))
         assert staged_manifest["version"] == "9.9.9"
-
-        info = zf.getinfo("start_server.sh")
-        mode = (info.external_attr >> 16) & 0o777
-        assert mode == 0o755, oct(mode)
 
     source_manifest = json.loads(
         (tmp_path / "plugin" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
@@ -230,7 +229,7 @@ def test_plugin_zip_default_version(tmp_path):
         "  plugin-zip:\n"
         "    from: claude-code\n"
         '    artifact: "dist/legal-it-plugin-{version}.zip"\n'
-        "    include: [.claude-plugin, skills, agents, commands, hooks, settings.json, start_server.sh, .mcp.json, server]\n"
+        "    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE]\n"
         "    root: plugin\n"
         '    version_manifest: ".claude-plugin/plugin.json"\n',
     )
@@ -263,14 +262,14 @@ def _write_fake_dxt_tree(root: Path) -> None:
     (root / "pyproject.toml").write_text("[project]\nname = \"legal-it-test\"\n", encoding="utf-8")
     plugin = root / "plugin"
     plugin.mkdir(parents=True, exist_ok=True)
-    (plugin / "start_server.sh").write_text("#!/usr/bin/env bash\necho hi\n", encoding="utf-8")
-    (plugin / "start_server.sh").chmod(0o755)
     server = plugin / "server"
     server.mkdir()
     (server / "__init__.py").write_text("# server\n", encoding="utf-8")
     pycache = server / "__pycache__"
     pycache.mkdir()
     (pycache / "foo.cpython-312.pyc").write_bytes(b"\x00\x01")
+    (server / ".venv").mkdir()
+    (server / ".venv" / "marker.txt").write_text("venv\n", encoding="utf-8")
 
 
 def test_mcpb_fallback_zip(tmp_path, monkeypatch):
@@ -292,17 +291,16 @@ def test_mcpb_fallback_zip(tmp_path, monkeypatch):
 
     with zipfile.ZipFile(output) as zf:
         names = zf.namelist()
-        for expected in ("manifest.json", ".mcpbignore", "pyproject.toml", "start_server.sh", "server/__init__.py"):
+        for expected in ("manifest.json", ".mcpbignore", "pyproject.toml", "server/__init__.py"):
             assert expected in names, f"{expected} missing from {names}"
+        # the manifest runs server/run_server.py through uv: no launcher script
+        assert "start_server.sh" not in names, names
         assert not any(n.endswith(".pyc") for n in names), names
         assert not any("__pycache__" in n for n in names), names
+        assert not any(".venv" in n for n in names), names
 
         staged_manifest = json.loads(zf.read("manifest.json"))
         assert staged_manifest["version"] == "1.2.3"
-
-        info = zf.getinfo("start_server.sh")
-        mode = (info.external_attr >> 16) & 0o777
-        assert mode == 0o755, oct(mode)
 
     source_manifest = json.loads((tmp_path / "dxt" / "manifest.json").read_text(encoding="utf-8"))
     assert source_manifest["version"] == "1.0.0"

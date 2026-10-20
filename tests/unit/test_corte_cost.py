@@ -32,6 +32,7 @@ from src.lib.corte_cost.client import (
     _parse_massima,
     _parse_parametro,
     _parse_pronuncia,
+    _parse_fonte,
     _parse_riferimento,
     _PRONUNCE_DECADES,
     _MASSIME_DECADES,
@@ -53,6 +54,7 @@ from src.lib.corte_cost.client import (
 from src.tools.corte_cost import (
     _cerca_pronuncia_costituzionale_impl,
     _leggi_pronuncia_costituzionale_impl,
+    leggi_pronuncia_costituzionale,
     _pronunce_cost_su_norma_impl,
     _ultime_pronunce_cost_impl,
 )
@@ -408,6 +410,130 @@ class TestFormatFull:
         text = format_full(self._doc())
         assert "troncato" not in text
 
+    def test_dispositivo_kept_whole_when_reasons_are_long(self):
+        # Shape of sentenza 194/2018 in the Court's open data (read 2026-09-28):
+        # epigrafe 1,469 + testo 106,851 + dispositivo 5,840 characters. The
+        # dispositivo is a required part of the sentenza (art. 18, third
+        # paragraph, l. 87/1953) and the one published with effect (art. 30
+        # l. 87/1953; art. 136 Cost.): only the reasons may be cut.
+        dispositivo = (
+            "1) dichiara l'illegittimità costituzionale dell'art. 3, comma 1, del "
+            "decreto legislativo 4 marzo 2015, n. 23 ... limitatamente alle parole "
+            "«di importo pari a due mensilità dell'ultima retribuzione di riferimento "
+            "per il calcolo del trattamento di fine rapporto per ogni anno di servizio,»"
+        )
+        dispositivo = dispositivo + " " + "d" * (5840 - len(dispositivo) - 2) + " Z"
+        doc = PronunciaCost(
+            numero_pronuncia="194",
+            anno_pronuncia="2018",
+            tipologia_pronuncia="S",
+            epigrafe="e" * 1469,
+            testo="Ritenuto in fatto " + "t" * 106833,
+            dispositivo=dispositivo,
+        )
+        text = format_full(doc)
+        assert "## Dispositivo\n" + dispositivo in text
+        assert text.rstrip().endswith(" Z")
+        assert "e" * 1469 in text
+        head, tail = text.split("## Dispositivo", 1)
+        # The truncation note belongs to the reasons, before the dispositivo.
+        assert "Testo della motivazione troncato" in head
+        assert "troncato" not in tail
+        # Total body stays within the cap: the reasons get what is left.
+        body = text.split("## Epigrafe", 1)[1]
+        assert len(body) < 25000 + 300
+
+    def test_dispositivo_kept_when_epigrafe_is_long(self):
+        # Shape of sentenza 1/1956: epigrafe 8,110 + testo 19,129 + dispositivo
+        # 1,267 characters; the whole-body cut used to drop the dispositivo.
+        doc = PronunciaCost(
+            numero_pronuncia="1",
+            anno_pronuncia="1956",
+            epigrafe="e" * 8110,
+            testo="t" * 19129,
+            dispositivo="2. - Dichiara l'illegittimità costituzionale " + "d" * 1221,
+        )
+        text = format_full(doc)
+        assert doc.dispositivo in text
+        assert "troncato" in text
+
+    def test_reasons_keep_a_floor_when_other_parts_are_huge(self):
+        doc = PronunciaCost(
+            numero_pronuncia="1",
+            anno_pronuncia="2000",
+            epigrafe="e" * 20000,
+            testo="t" * 20000,
+            dispositivo="d" * 10000,
+        )
+        text = format_full(doc)
+        assert "d" * 10000 in text
+        assert "t" * 5000 in text and "t" * 5001 not in text
+
+    def test_short_decision_unchanged_order(self):
+        text = format_full(self._doc())
+        assert text.index("## Epigrafe") < text.index("## Testo") < text.index("## Dispositivo")
+
+
+class TestFormatFullPaging:
+    """da_carattere pages over the motivazione (testo): positions count its characters."""
+
+    @staticmethod
+    def _doc(testo_len=60000):
+        # Position-unique text: character i of the motivazione is recoverable from the output.
+        testo = "".join(f"[{i:06d}]" for i in range(testo_len // 8 + 1))[:testo_len]
+        return PronunciaCost(
+            numero_pronuncia="194",
+            anno_pronuncia="2018",
+            tipologia_pronuncia="S",
+            ecli="ECLI:IT:COST:2018:194",
+            epigrafe="e" * 1000,
+            testo=testo,
+            dispositivo="d" * 2000,
+        )
+
+    def test_default_cut_note_carries_the_resume_position(self):
+        doc = self._doc()
+        budget = 25000 - len("## Epigrafe\n" + doc.epigrafe) - len("## Dispositivo\n" + doc.dispositivo)
+        text = format_full(doc)
+        assert (
+            f"*[Testo della motivazione troncato a {budget} caratteri su 60000: "
+            "epigrafe e dispositivo sono riportati per intero; "
+            f"per leggere il seguito ripetere la chiamata con da_carattere={budget + 1}]*"
+        ) in text
+        assert doc.testo[:budget].rstrip() in text
+        assert doc.testo[budget : budget + 20] not in text
+
+    def test_resume_position_returns_the_first_omitted_character(self):
+        doc = self._doc()
+        budget = 25000 - len("## Epigrafe\n" + doc.epigrafe) - len("## Dispositivo\n" + doc.dispositivo)
+        text = format_full(doc, da_carattere=budget + 1)
+        # Header kept, epigrafe and dispositivo not repeated, window starts right after the cut.
+        assert text.startswith("# Sentenza Corte Costituzionale n. 194/2018\n**ECLI**: ECLI:IT:COST:2018:194")
+        assert "## Epigrafe" not in text and "## Dispositivo" not in text
+        window = text.split("## Testo\n", 1)[1]
+        assert window.startswith(doc.testo[budget : budget + 40])
+        assert (
+            f"*[Caratteri della motivazione {budget + 1}-{budget + 25000} su 60000 totali: "
+            f"per leggere il seguito ripetere la chiamata con da_carattere={budget + 25001}]*"
+        ) in text
+
+    def test_last_window_says_end_of_the_motivazione(self):
+        doc = self._doc()
+        text = format_full(doc, da_carattere=50001)
+        assert doc.testo[50000:] in text
+        assert text.rstrip().endswith("*[Caratteri della motivazione 50001-60000 su 60000 totali: fine della motivazione]*")
+
+    def test_start_beyond_the_end(self):
+        text = format_full(self._doc(), da_carattere=60001)
+        assert "da_carattere=60001 oltre la fine della motivazione (60000 caratteri)" in text
+        assert "## Testo" not in text
+
+    def test_short_decision_unaffected_by_default(self):
+        doc = self._doc(testo_len=3000)
+        text = format_full(doc)
+        assert "troncato" not in text and "da_carattere" not in text
+        assert text.index("## Epigrafe") < text.index("## Testo") < text.index("## Dispositivo")
+
 
 class TestFormatMassimaHit:
     def test_contains_parametri(self):
@@ -565,6 +691,20 @@ class TestCercaImpl:
         assert result.success
         assert "Trovate" in result.results_text
         assert "1/1956" in result.results_text
+        # Explicit years: the header does not claim a restricted scope.
+        assert "solo anno" not in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_results_without_years_declare_the_current_year(self, monkeypatch):
+        # Without anno_da/anno_a only the current year is searched: "Trovate N pronunce" alone
+        # reads as the whole archive, so the header says which year it covered.
+        monkeypatch.setenv("LEGAL_TODAY", "1956-12-31")
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+            result = await _cerca_pronuncia_costituzionale_impl("illegittimità")
+        assert result.success
+        header = result.results_text.split("\n### ", 1)[0]
+        assert "solo anno 1956" in header
+        assert "anno_da/anno_a" in header
 
     @pytest.mark.asyncio
     async def test_no_results(self):
@@ -630,6 +770,40 @@ class TestLeggiImpl:
         assert not result.success
         assert result.error_type == "source_down"
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [0, -5, "1", 1.5, True])
+    async def test_invalid_da_carattere_errors_without_network(self, bad):
+        download = AsyncMock(side_effect=_download_router)
+        with patch("src.lib.corte_cost.client._download", download):
+            result = await _leggi_pronuncia_costituzionale_impl(1, 1956, bad)
+        assert not result.success
+        assert result.error_type == "bad_input"
+        assert "da_carattere deve essere un intero maggiore o uguale a 1" in result.results_text
+        download.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_da_carattere_is_threaded_to_the_formatter(self):
+        long_doc = PronunciaCost(
+            numero_pronuncia="1", anno_pronuncia="1956", epigrafe="E", testo="t" * 30000, dispositivo="D"
+        )
+        with patch("src.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
+            first = await _leggi_pronuncia_costituzionale_impl(1, 1956)
+            window = await _leggi_pronuncia_costituzionale_impl(1, 1956, 24990)
+        # budget = 25000 - len("## Epigrafe\nE") - len("## Dispositivo\nD") = 24971
+        assert "da_carattere=24972]*" in first.results_text
+        assert "Caratteri della motivazione 24990-30000 su 30000 totali: fine della motivazione" in window.results_text
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_accepts_da_carattere(self):
+        long_doc = PronunciaCost(
+            numero_pronuncia="1", anno_pronuncia="1956", epigrafe="E", testo="t" * 30000, dispositivo="D"
+        )
+        with patch("src.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
+            out = await leggi_pronuncia_costituzionale(1, 1956, da_carattere=26001)
+            bad = await leggi_pronuncia_costituzionale(1, 1956, da_carattere=0)
+        assert "Caratteri della motivazione 26001-30000 su 30000 totali: fine della motivazione" in out
+        assert "da_carattere deve essere un intero" in bad
+
 
 class TestSuNormaImpl:
     @pytest.mark.asyncio
@@ -687,6 +861,169 @@ class TestUltimeImpl:
             result = await _ultime_pronunce_cost_impl()
         assert not result.success
         assert result.error_type == "source_down"
+
+
+# ---------------------------------------------------------------------------
+# Tests: pronunce_cost_su_norma - default year range and act type
+# ---------------------------------------------------------------------------
+
+def _param(descrizione: str, articolo: str, numero: str = "") -> dict:
+    return {
+        "descrizione": descrizione, "numero": numero, "data": "", "articolo": articolo,
+        "comma": "", "specificazione_articolo": "", "specificazione_comma": "",
+    }
+
+
+def _massime_entry(numero: str, anno: str, *parametri: dict) -> dict:
+    return {
+        "numero_pronuncia": numero, "anno_pronuncia": anno,
+        "data_decisione": f"01/01/{anno}", "data_deposito": f"02/01/{anno}",
+        "tipologia_pronuncia": "S", "tipologia_giudizio": "legittimità",
+        "massime": [{
+            "numero": "1", "titolo": f"MASSIMA {numero}/{anno}",
+            "testo": "testo", "parametri": list(parametri),
+        }],
+    }
+
+
+def _multi_year_massime_bundle(entries_by_year: dict[int, list[dict]]) -> bytes:
+    """One outer ZIP with a nested per-year ZIP, like CC_M_2001_2015_json.zip."""
+    outer_buf = io.BytesIO()
+    with zipfile.ZipFile(outer_buf, "w", zipfile.ZIP_DEFLATED) as zo:
+        for year, entries in entries_by_year.items():
+            payload = {_MASSIME_ROOT_KEY: entries}
+            inner_buf = io.BytesIO()
+            with zipfile.ZipFile(inner_buf, "w", zipfile.ZIP_DEFLATED) as zi:
+                zi.writestr(
+                    _MASSIME_YEAR_JSON.format(year=year),
+                    json.dumps(payload, ensure_ascii=False).encode("latin-1"),
+                )
+            zo.writestr(_MASSIME_YEAR_ZIP.format(year=year), inner_buf.getvalue())
+    return outer_buf.getvalue()
+
+
+# Shape of the 2001-oggi massime bundle read on 2026-09-28: the file is named
+# "2001_2015" but holds one nested ZIP per year up to 2026. Numbers below are
+# fixtures; the parameter descriptions are the ones in the Court's open data
+# ("Costituzione", "statuto regione Sardegna", "norme integrative per i giudizi
+# davanti alla Corte costituzionale (7/10/2008)").
+_MASSIME_RECENT = _multi_year_massime_bundle({
+    2015: [_massime_entry("1", "2015", _param("Costituzione", "3"))],
+    2018: [
+        _massime_entry("6", "2018", _param(
+            "norme integrative per i giudizi davanti alla Corte costituzionale (7/10/2008)", "3")),
+        _massime_entry("17", "2018", _param("statuto regione Sardegna", "3")),
+        _massime_entry("20", "2018", _param("Costituzione", "3")),
+    ],
+    2026: [
+        _massime_entry("1", "2026", _param("Costituzione", "3")),
+        _massime_entry("2", "2026", _param("direttiva UE", "3", "2016")),
+    ],
+})
+
+
+def _download_recent(url: str) -> bytes:
+    return _MASSIME_RECENT
+
+
+class TestPronunceSuNormaRecentYears:
+    @pytest.mark.asyncio
+    async def test_default_range_starts_from_current_year(self):
+        # Corte costituzionale open data: the massime bundle runs to the current
+        # year (26 nested years, 2001-2026, read 2026-09-28), not to 2015 as the
+        # bundle file name suggests. With no years the most recent massime must
+        # come first: 1/2026, not 1/2015.
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+            hits = await pronunce_su_norma(
+                "art. 3 Costituzione", year_from=0, year_to=0, limit=10, current_year=2026
+            )
+        assert [(n, a) for n, a, _ in hits][0] == ("1", "2026")
+        assert {a for _, a, _ in hits} == {"2026", "2018", "2015"}
+
+    @pytest.mark.asyncio
+    async def test_default_range_uses_the_pinned_clock(self):
+        with patch.dict(os.environ, {"LEGAL_TODAY": "2026-09-29"}), patch(
+            "src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)
+        ):
+            result = await _pronunce_cost_su_norma_impl("art. 3 Costituzione")
+        assert result.success
+        text = result.results_text
+        assert "pronuncia n. 1/2026" in text
+        assert text.index("pronuncia n. 1/2026") < text.index("pronuncia n. 1/2015")
+
+    @pytest.mark.asyncio
+    async def test_costituzione_excludes_statuto_and_norme_integrative(self):
+        # Reference names the Constitution: art. 3 of a statuto speciale or of
+        # the norme integrative is another act (open data parametri[].descrizione).
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+            hits = await pronunce_su_norma(
+                "art. 3 Costituzione", year_from=2018, year_to=2018, limit=50
+            )
+        assert [n for n, _, _ in hits] == ["20"]
+
+    @pytest.mark.asyncio
+    async def test_cost_abbreviation_is_the_constitution_too(self):
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+            hits = await pronunce_su_norma(
+                "art. 3 Cost.", year_from=2018, year_to=2018, limit=50
+            )
+        assert [n for n, _, _ in hits] == ["20"]
+
+    @pytest.mark.asyncio
+    async def test_statuto_reference_selects_only_statuti(self):
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+            hits = await pronunce_su_norma(
+                "art. 3 statuto Sardegna", year_from=2018, year_to=2018, limit=50
+            )
+        assert [n for n, _, _ in hits] == ["17"]
+
+    @pytest.mark.asyncio
+    async def test_reference_without_act_type_matches_any_act(self):
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+            hits = await pronunce_su_norma(
+                "art. 3", year_from=2018, year_to=2018, limit=50
+            )
+        assert sorted(n for n, _, _ in hits) == ["17", "20", "6"]
+
+    @pytest.mark.asyncio
+    async def test_impl_declares_when_the_act_is_not_named(self):
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+            vague = await _pronunce_cost_su_norma_impl("art. 3", anno_da=2018, anno_a=2018)
+            named = await _pronunce_cost_su_norma_impl(
+                "art. 3 Costituzione", anno_da=2018, anno_a=2018
+            )
+        assert "non indica l'atto" in vague.results_text
+        assert "non indica l'atto" not in named.results_text
+
+
+class TestParseFonte:
+    @pytest.mark.parametrize("riferimento, fonte", [
+        ("art. 3 Costituzione", "costituzione"),
+        ("art. 3 Cost.", "costituzione"),
+        ("art. 23 legge 87/1953", "legge"),
+        ("art. 23 l. 87/1953", "legge"),
+        ("art. 5 d.lgs. n. 196", "decreto_legislativo"),
+        ("art. 1 d.l. 454", "decreto_legge"),
+        ("art. 8 D.P.R. 1074", "dpr"),
+        ("art. 2 l. cost. 1/1948", "legge_costituzionale"),
+        ("art. 3 statuto Sardegna", "statuto"),
+        ("art. 6 CEDU", "cedu"),
+        ("art. 107 TFUE", "tfue"),
+        ("art. 117", ""),
+        ("qualcosa", ""),
+    ])
+    def test_act_type(self, riferimento, fonte):
+        assert _parse_fonte(riferimento) == fonte
+
+    def test_legge_does_not_match_legge_costituzionale(self):
+        param = ParametroNorma(descrizione="legge costituzionale", numero="1", articolo="2")
+        assert not _parametro_matches(param, "2", "1", "legge")
+        assert _parametro_matches(param, "2", "1", "legge_costituzionale")
+
+    def test_costituzione_case_insensitive_description(self):
+        # The fixture data spells it lowercase ("costituzione").
+        param = ParametroNorma(descrizione="costituzione", articolo="3")
+        assert _parametro_matches(param, "3", "", "costituzione")
 
 
 # ---------------------------------------------------------------------------

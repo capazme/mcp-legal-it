@@ -54,8 +54,8 @@ descrizione di ogni tool.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato. |
-| `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti. |
+| `cite_law` | `cite_law(reference: str, include_annotations: bool = False, formato: str = "markdown")` | Testo ufficiale di una norma da Normattiva/EUR-Lex. Entry point principale per citazioni; formato="json" per output strutturato; anche allegati ("art. 30 dell'allegato I.7 al D.Lgs. 36/2023", "Allegato III AI Act"). |
+| `fetch_law_article` | `fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "")` | Recupero a basso livello del testo di un articolo con parametri espliciti; `article` accetta anche "allegato I.7 art. 30" o "Allegato III". |
 | `fetch_law_annotations` | `fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "")` | Solo annotazioni Brocardi per un articolo specifico. |
 | `cerca_brocardi` | `cerca_brocardi(reference: str)` | Annotazioni complete Brocardi: ratio, spiegazione, massime strutturate con riferimenti Cassazione. |
 | `fetch_act_index` | `fetch_act_index(reference: str)` | Indice degli articoli di un atto normativo. |
@@ -70,11 +70,11 @@ descrizione di ogni tool.
 **Modulo:** `src/tools/italgiure.py`
 **Tag:** `giurisprudenza`
 **API esterne:** Italgiure (Cassazione Solr API, `https://www.italgiure.giustizia.it`)
-**Note:** SSL non valido → `verify=False`; collezioni `snciv` (civile) e `snpen` (penale); OCR troncato a 30.000 caratteri.
+**Note:** SSL non valido → `verify=False`; collezioni `snciv` (civile) e `snpen` (penale); OCR letto a blocchi di 30.000 caratteri (inizio e fine nella prima risposta, il resto con `da_carattere`).
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `leggi_sentenza` | `leggi_sentenza(numero: int, anno: int, sezione: str = "", archivio: str = "tutti")` | Testo completo di una sentenza da Italgiure. Usare quando si conosce già il numero. |
+| `leggi_sentenza` | `leggi_sentenza(numero: int, anno: int, sezione: str = "", archivio: str = "tutti", da_carattere: int = 1)` | Testo completo di una sentenza da Italgiure. Usare quando si conosce già il numero. |
 | `cerca_giurisprudenza` | `cerca_giurisprudenza(query: str, archivio: str = "tutti", materia: str = "", sezione: str = "", anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10, pagina: int = 0)` | Ricerca full-text nelle sentenze della Cassazione. |
 | `giurisprudenza_su_norma` | `giurisprudenza_su_norma(riferimento: str, archivio: str = "tutti", max_risultati: int = 10, pagina: int = 0)` | Sentenze della Cassazione che citano uno specifico articolo di legge. |
 | `ultime_pronunce` | `ultime_pronunce(materia: str = "", sezione: str = "", archivio: str = "tutti", tipo_provvedimento: str = "", max_risultati: int = 10)` | Ultime decisioni depositate dalla Cassazione, con filtri opzionali. |
@@ -91,7 +91,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_provvedimenti_garante` | `cerca_provvedimenti_garante(query: str, tipologia: str = "", data_da: str = "", data_a: str = "", max_risultati: int = 10)` | Ricerca full-text nei provvedimenti del Garante Privacy. |
-| `leggi_provvedimento_garante` | `leggi_provvedimento_garante(docweb_id: int)` | Testo completo di un provvedimento del Garante per ID docweb. |
+| `leggi_provvedimento_garante` | `leggi_provvedimento_garante(docweb_id: int, da_carattere: int = 1)` | Testo completo di un provvedimento del Garante per ID docweb. |
 | `ultimi_provvedimenti_garante` | `ultimi_provvedimenti_garante(tipologia: str = "", max_risultati: int = 10)` | Ultimi provvedimenti pubblicati dal Garante, con filtro tipologia. |
 
 ---
@@ -172,15 +172,15 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `scadenza_processuale` | `scadenza_processuale(data_inizio: str, giorni: int, tipo: str = "calendario")` | Calcola la scadenza processuale escludendo festivi e weekend se richiesto. |
-| `termini_processuali_civili` | `termini_processuali_civili(tipo_termine: str, data_notifica: str)` | Scadenze dei principali termini nel processo civile (post-Cartabia). |
+| `termini_processuali_civili` | `termini_processuali_civili(data_udienza: str, tipo_termine: str, sospensione_feriale: bool = True, giorni: int | None = None)` | Memorie ex art. 171-ter (40/20/10) e atti per la decisione ex art. 189 c.p.c. (60/30/15), a ritroso, con sospensione feriale giorno per giorno. |
 | `termini_separazione_divorzio` | `termini_separazione_divorzio(tipo: str, data_udienza: str)` | Termini processuali per separazione e divorzio giudiziali. |
 | `scadenze_impugnazioni` | `scadenze_impugnazioni(tipo_atto: str, data_notifica: str, via_breve: bool = False)` | Termini per impugnare sentenze (appello, Cassazione, opposizione). |
 | `scadenze_multe` | `scadenze_multe(data_notifica: str)` | Termini per pagamento in misura ridotta, ricorso prefetto e giudice di pace. |
 | `termini_memorie_repliche` | `termini_memorie_repliche(data_udienza: str, tipo_procedimento: str = "ordinario")` | Scadenza deposito memorie ex art. 171-ter c.p.c. (Cartabia). |
-| `termini_procedimento_semplificato` | `termini_procedimento_semplificato(data_notifica: str)` | Termini per il procedimento semplificato di cognizione (art. 281-terdecies c.p.c.). |
-| `termini_183_190_cpc` | `termini_183_190_cpc(data_udienza_183: str)` | Termini memorie istruttorie ex artt. 183, 183-bis, 190 c.p.c. |
+| `termini_procedimento_semplificato` | `termini_procedimento_semplificato(data_udienza: str, giorni_memoria: int = 20, giorni_replica: int = 10, sospensione_feriale: bool = True)` | Termini del procedimento semplificato di cognizione (artt. 281-undecies e 281-duodecies c.p.c.): notifica, costituzione a 10 giorni, memorie eventuali 20+10. |
+| `termini_183_190_cpc` | `termini_183_190_cpc(data_udienza: str, sospensione_feriale: bool = True)` | **Regime previgente** (cause ante 28/02/2023): memorie ex art. 183 co. 6 e atti ex art. 190 c.p.c. nel testo anteriore alla Riforma Cartabia. |
 | `termini_esecuzioni` | `termini_esecuzioni(tipo: str, data_atto: str)` | Termini processuali per procedure esecutive (pignoramento, udienza, etc.). |
-| `termini_deposito_atti_appello` | `termini_deposito_atti_appello(data_udienza: str)` | Termini di deposito atti nel procedimento d'appello (art. 352 c.p.c.). |
+| `termini_deposito_atti_appello` | `termini_deposito_atti_appello(data_notifica_sentenza: str | None, data_pubblicazione: str | None, data_notifica_citazione: str | None, data_udienza: str | None, sospensione_feriale: bool = True)` | Termini dell'appello: impugnazione breve e lunga, costituzione dell'appellante (10 gg, art. 165 via 347) e comparsa dell'appellato (70 gg, art. 166 via 347). |
 | `termini_deposito_ctu` | `termini_deposito_ctu(data_conferimento_incarico: str, giorni_proroga: int = 0)` | Termine deposito relazione CTU con eventuale proroga. |
 
 ---
@@ -279,7 +279,7 @@ descrizione di ogni tool.
 | `menomazioni_plurime` | `menomazioni_plurime(percentuali: list[float])` | Combina percentuali di invalidità plurime con formula Balthazar. |
 | `risarcimento_inail` | `risarcimento_inail(retribuzione_annua: float, percentuale_invalidita: float, tipo: str = "permanente")` | Calcola prestazione INAIL per infortunio sul lavoro (permanente/temporanea). |
 | `danno_non_patrimoniale` | `danno_non_patrimoniale(percentuale_invalidita: float, eta_vittima: int, tipo_danno: str = "biologico", giorni_itt: int = 0, spese_mediche: float = 0, danno_morale_pct: float = 0, danno_esistenziale_pct: float = 0)` | Danno non patrimoniale complessivo con componenti biologica, morale ed esistenziale. |
-| `equo_indennizzo` | `equo_indennizzo(categoria_tabella: str, percentuale_invalidita: float, stipendio_annuo: float)` | Equo indennizzo per dipendenti pubblici per infermità da causa di servizio. |
+| `equo_indennizzo` | `equo_indennizzo(categoria_tabella: str, percentuale_invalidita: float, stipendio_annuo: float)` | **Regime previgente** (fatti ante 06/12/2011): equo indennizzo per dipendenti pubblici per infermità da causa di servizio. |
 
 ---
 
@@ -332,7 +332,7 @@ descrizione di ogni tool.
 | `rendimento_bot` | `rendimento_bot(valore_nominale: float, prezzo_acquisto: float, giorni_scadenza: int, commissione_pct: float = 0.0)` | Rendimento netto BOT (zero-coupon) con imposta sostitutiva 12,5%. |
 | `rendimento_btp` | `rendimento_btp(valore_nominale: float, prezzo_acquisto: float, cedola_annua_pct: float, anni_scadenza: int, frequenza_cedola: int = 2)` | Rendimento netto BTP cedola fissa con flusso cedole e capital gain. |
 | `pronti_termine` | `pronti_termine(capitale: float, tasso_lordo_pct: float, giorni: int, tipo_sottostante: str = "titoli_stato")` | Rendimento netto pronti contro termine (12,5% o 26% secondo sottostante). |
-| `rendimento_buoni_postali` | `rendimento_buoni_postali(importo: float, tipo: str = "ordinario", anni: int = 10)` | Rendimento netto buoni fruttiferi postali con capitalizzazione per scaglioni. |
+| `rendimento_buoni_postali` | `rendimento_buoni_postali(importo: float, tipo: str = "ordinario", anni: int = 10, serie: str \| None = None, eta_minore: int = 0, valore_portafoglio_buoni: float \| None = None)` | Montante e rendimento netto buoni fruttiferi postali con i coefficienti dei fogli informativi CDP per serie. |
 | `confronto_investimenti` | `confronto_investimenti(importo: float, investimenti: list[dict])` | Confronto rendimento netto tra strumenti finanziari diversi. |
 
 ---
@@ -399,7 +399,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `verifica_partita_iva_vies` | `verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT")` | Verifica una P.IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati. Per le P.IVA italiane esegue prima il checksum locale (niente rete se fallisce). |
 | `genera_report_fornitori` | `genera_report_fornitori(fornitori: list, cliente: str, data_analisi: str = "", file_sorgente: str = "", nome_file: str = "")` | Genera l'Excel standard dell'analisi privacy del mastrino fornitori: foglio Avvertenze + 11 colonne, responsabili senza DPA proprio in cima. Valida i record canonici (collect-all) e non scrive file parziali. |
-| `verifica_dpa_fornitore` | `verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "")` | Sonda il dominio del fornitore sui percorsi convenzionali per accertare se pubblica una nomina a responsabile ex art. 28 GDPR. Esiti: `dpa_dedicato`, `clausola_in_condizioni`, `non_trovato`, `bloccato`, `dominio_irraggiungibile`. Sostituisce la whitelist statica; le determinazioni sono in cache 90 giorni, i fallimenti mai. |
+| `verifica_dpa_fornitore` | `verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "")` | Sonda il dominio del fornitore sui percorsi convenzionali per accertare se pubblica una nomina a responsabile ex art. 28 GDPR. Esiti: `dpa_dedicato`, `clausola_in_condizioni`, `non_trovato`, `bloccato`, `dominio_irraggiungibile`. Sostituisce la whitelist statica; le determinazioni sono in cache 90 giorni (14 per `non_trovato`), i fallimenti mai. |
 
 ---
 
@@ -412,7 +412,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_gazzetta_ufficiale` | `cerca_gazzetta_ufficiale(query: str = '', titolo: str = '', testo: str = '', tipo_provvedimento: str = '', emettitore: str = '', materia: str = '', serie: str = 'serie_generale', anno_da: str = '', anno_a: str = '', max_risultati: int = 20)` | Cerca atti pubblicati nella Gazzetta Ufficiale (ricerca parametrica/full-text). |
-| `leggi_atto_gazzetta` | `leggi_atto_gazzetta(codice_redazionale: str, data_pubblicazione: str, serie: str = 'serie_generale', solo_metadati: bool = False)` | Legge il testo completo di un atto pubblicato in Gazzetta Ufficiale. |
+| `leggi_atto_gazzetta` | `leggi_atto_gazzetta(codice_redazionale: str, data_pubblicazione: str, serie: str = 'serie_generale', solo_metadati: bool = False, da_carattere: int = 1)` | Legge il testo completo di un atto pubblicato in Gazzetta Ufficiale. |
 | `scarica_pdf_gazzetta` | `scarica_pdf_gazzetta(numero_gazzetta: str, data_pubblicazione: str, serie: str = 'serie_generale')` | Restituisce l'URL del PDF ufficiale di un fascicolo di Gazzetta Ufficiale. |
 | `sommario_gazzetta` | `sommario_gazzetta(numero_gazzetta: str, data_pubblicazione: str, serie: str = 'serie_generale')` | Restituisce il sommario (indice degli atti) di un fascicolo di Gazzetta Ufficiale. |
 | `ultime_gazzette` | `ultime_gazzette(serie: str = 'serie_generale', max_risultati: int = 10)` | Ultimi atti pubblicati nella Gazzetta Ufficiale (novita normative, via RSS). |
@@ -428,7 +428,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_pronuncia_costituzionale` | `cerca_pronuncia_costituzionale(query: str, tipo: str = '', anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10)` | Cerca sentenze e ordinanze della Corte Costituzionale per parole chiave. |
-| `leggi_pronuncia_costituzionale` | `leggi_pronuncia_costituzionale(numero: int, anno: int)` | Legge il testo completo di una pronuncia della Corte Costituzionale. |
+| `leggi_pronuncia_costituzionale` | `leggi_pronuncia_costituzionale(numero: int, anno: int, da_carattere: int = 1)` | Legge il testo completo di una pronuncia della Corte Costituzionale. |
 | `pronunce_cost_su_norma` | `pronunce_cost_su_norma(riferimento: str, anno_da: int = 0, anno_a: int = 0, max_risultati: int = 10)` | Cerca pronunce costituzionali che invocano una norma come parametro. |
 | `ultime_pronunce_cost` | `ultime_pronunce_cost(tipo: str = '', max_risultati: int = 10)` | Ultime pronunce depositate dalla Corte Costituzionale (anno corrente). |
 
@@ -444,7 +444,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_giurisprudenza_tributaria` | `cerca_giurisprudenza_tributaria(query: str, tipo_provvedimento: str = '', ente: str = '', data_da: str = '', data_a: str = '', numero: str = '', criterio: str = 'tutti', ordinamento: str = 'rilevanza', max_risultati: int = 10)` | Cerca sentenze e provvedimenti nella banca dati CeRDEF (MEF — def.finanze.it). |
-| `cerdef_leggi_provvedimento` | `cerdef_leggi_provvedimento(guid: str)` | Legge il testo completo di un provvedimento CeRDEF tramite GUID. |
+| `cerdef_leggi_provvedimento` | `cerdef_leggi_provvedimento(guid: str, da_carattere: int = 1)` | Legge il testo completo di un provvedimento CeRDEF tramite GUID. |
 | `ultime_sentenze_tributarie` | `ultime_sentenze_tributarie(ente: str = '', tipo_provvedimento: str = '', max_risultati: int = 10)` | Ultime sentenze e provvedimenti tributari da CeRDEF (MEF), con filtro opzionale. |
 
 ---
@@ -460,7 +460,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `cerca_giurisprudenza_amministrativa` | `cerca_giurisprudenza_amministrativa(query: str, sede: str = '', tipo: str = '', anno: str = '', numero: str = '', max_risultati: int = 10)` | Cerca sentenze e provvedimenti di TAR e Consiglio di Stato. |
 | `giurisprudenza_amm_su_norma` | `giurisprudenza_amm_su_norma(riferimento: str, sede: str = '', anno_da: str = '', max_risultati: int = 10)` | Trova provvedimenti TAR/CdS che citano una norma specifica. |
-| `leggi_provvedimento_amm` | `leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str)` | Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp. |
+| `leggi_provvedimento_amm` | `leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str, da_carattere: int = 1)` | Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp. |
 | `ultimi_provvedimenti_amm` | `ultimi_provvedimenti_amm(sede: str = '', tipo: str = '', max_risultati: int = 10)` | Ultimi provvedimenti depositati da TAR e Consiglio di Stato, con filtro opzionale. |
 
 ---
@@ -476,7 +476,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `cerca_giurisprudenza_cgue` | `cerca_giurisprudenza_cgue(query: str, corte: str = '', tipo_documento: str = '', anno_da: str = '', anno_a: str = '', materia: str = '', max_risultati: int = 10)` | Cerca sentenze e decisioni della Corte di Giustizia UE (CGUE) e del Tribunale UE via SPARQL CELLAR. |
 | `giurisprudenza_cgue_su_norma` | `giurisprudenza_cgue_su_norma(riferimento: str, corte: str = '', anno_da: str = '', max_risultati: int = 10)` | Cerca sentenze CGUE e Tribunale UE che interpretano una specifica norma del diritto UE. |
-| `leggi_sentenza_cgue` | `leggi_sentenza_cgue(cellar_uri: str)` | Legge il testo completo di una sentenza CGUE tramite CELLAR URI. |
+| `leggi_sentenza_cgue` | `leggi_sentenza_cgue(cellar_uri: str, da_carattere: int = 1)` | Legge il testo completo di una sentenza CGUE tramite CELLAR URI. |
 | `ultime_sentenze_cgue` | `ultime_sentenze_cgue(corte: str = '', tipo_documento: str = '', materia: str = '', max_risultati: int = 10)` | Ultime sentenze e decisioni pubblicate dalla Corte di Giustizia UE e dal Tribunale UE. |
 
 ---
@@ -491,7 +491,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `cerca_delibere_consob` | `cerca_delibere_consob(query: str, tipologia: str = '', argomento: str = '', data_da: str = '', data_a: str = '', max_risultati: int = 20)` | Cerca delibere e provvedimenti CONSOB nel bollettino ufficiale. |
-| `leggi_delibera_consob` | `leggi_delibera_consob(numero: str)` | Legge il testo completo di una delibera CONSOB tramite numero. |
+| `leggi_delibera_consob` | `leggi_delibera_consob(numero: str, da_carattere: int = 1)` | Legge il testo completo di una delibera CONSOB tramite numero. |
 | `ultime_delibere_consob` | `ultime_delibere_consob(tipologia: str = '', argomento: str = '', max_risultati: int = 10)` | Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale. |
 
 ---

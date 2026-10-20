@@ -69,7 +69,7 @@ Struttura rigida con sezioni: FATTO → QUESITO → DIRITTO (quadro normativo + 
 
 #### `verifica_prescrizione`
 
-Per la **prescrizione civile**: chiama `prescrizione_diritti` distinguendo termine ordinario (10 anni, art. 2946 c.c.), risarcimento danni (5 anni, art. 2947 c.c.) e danno da circolazione veicoli/RCA (2 anni, art. 2947 c.2 c.c.); verifica sospensione (artt. 2941-2942 c.c.) e interruzione (art. 2943 c.c.). Per la **prescrizione penale**: chiama `prescrizione_reato`, termine pari al massimo edittale (minimo 6 anni per i delitti, 4 per le contravvenzioni), verifica sospensione (art. 159 c.p.) e interruzione (art. 160 c.p.), e segnala l'improcedibilità in appello/cassazione introdotta dalla riforma Cartabia. Output: stato PRESCRITTA / NON PRESCRITTA / IN SCADENZA con data esatta.
+Per la **prescrizione civile**: chiama `prescrizione_diritti` distinguendo termine ordinario (10 anni, art. 2946 c.c.), risarcimento danni (5 anni, art. 2947 c.c.) e danno da circolazione veicoli/RCA (2 anni, art. 2947 c.2 c.c.); verifica sospensione (artt. 2941-2942 c.c.) e interruzione (art. 2943 c.c.). Per la **prescrizione penale**: chiama `prescrizione_reato`, che applica il regime in base alla data del fatto (ordinario fino al 02/08/2017; Orlando dal 03/08/2017 al 31/12/2019; dal 01/01/2020 blocco dopo il primo grado ex art. 161-bis c.p. e improcedibilità ex art. 344-bis c.p.p., L. 3/2019 e L. 134/2021). Output: stato PRESCRITTA / NON PRESCRITTA / IN SCADENZA con data esatta.
 
 #### `analisi_giurisprudenziale`
 

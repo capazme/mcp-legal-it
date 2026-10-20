@@ -33,11 +33,13 @@ def test_validation_rejects_missing_namespace(tmp_path):
         tg.load_targets(tmp_path)
 
 
-def test_claude_web_out_dir_matches_release_py_consumer():
-    # release.py stages this EXACT path with `git add -f` at release time
-    # (three dist_dir sites). Changing out_dir here without updating release.py
-    # silently ships stale web-skills zips into release commits.
-    assert tg.get_target(REPO, "claude-web")["out_dir"] == "plugin/dist/web-skills"
+def test_claude_web_out_dir_matches_release_workflow():
+    # The web-skills zips live outside the plugin folder (the directory reads
+    # plugin/ and must not find binary archives there): release.yml zips
+    # dist/web-skills into one release asset, and dist/ is gitignored.
+    assert tg.get_target(REPO, "claude-web")["out_dir"] == "dist/web-skills"
+    release_yml = (REPO / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "cd dist/web-skills" in release_yml
 
 
 # ---------------------------------------------------------------------------
@@ -127,10 +129,10 @@ def test_openai_projection_out_dir_is_under_dist():
 
 
 def test_openai_projection_exclude_list():
-    # openai projection explicitly excludes these four items from projection.
+    # openai projection explicitly excludes these three items from projection
+    # (/release is maintainer-only and lives in .claude/commands, outside the corpus).
     openai = tg.get_target(REPO, "openai")
     assert openai["exclude"] == [
-        "commands/release",
         "commands/digest",
         "skills/cookie-audit",
         "skills/esporta-documento",

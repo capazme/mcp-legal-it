@@ -564,6 +564,642 @@ stable 2.x line.
 ### Notes
 - MCP surface: 221 tools / 23 prompts / 15 resources.
 
+## [2.17.0] - 2026-10-20
+
+### Changed
+- Plugin first start: `server/bootstrap.py` (standard library only) answers
+  Claude Code as soon as Python is available, installs the locked libraries in
+  the background with no time limit, then hands the session to the real server
+  and announces the tools (`notifications/tools/list_changed`). Before, the
+  whole download had to fit in Claude Code's 30-second start limit, and on a
+  slow network the server stayed "failed" until `/mcp` -> Reconnect. Tool calls
+  made while it prepares get a plain «Legal IT si sta preparando» message.
+- Data: TEGM table for Q4 2026 (DM MEF 28/09/2026, GU n. 227 del 30/09/2026).
+- Plugin launcher: the MCP server starts with `uv run --frozen --project
+  ${CLAUDE_PLUGIN_ROOT}/server`, from the exact versions pinned in the new
+  `plugin/server/uv.lock` (FastMCP 3.4.9), in an environment of the plugin's own.
+  `start_server.sh` is gone: no shell between Claude Code and the server, so
+  Windows no longer needs Git Bash to start it. The system-Python fallback is
+  gone too; `uv` is the one prerequisite. `plugin/server/pyproject.toml` is now
+  the plugin's own project: Python 3.12 only (it always ran on 3.12) and no
+  `dev` extras, which keeps the lock under the directory's 256 KiB file limit.
+- Security audit: a weekly `pip-audit` of the versions pinned in the plugin lock,
+  next to the existing audit of the library's resolved dependencies.
+- Citation gate (plugin Stop hook): it runs in the same locked uv environment
+  instead of a bare `python3`, which on Windows is usually the Microsoft Store
+  alias (exit 9009) and turned every reply into a "Stop hook error".
+- The plugin folder now meets the Claude directory's automated checks:
+  `scripts/check_directory_readiness.py` replays them and runs in CI
+  (job `directory-readiness`), replacing the tarball check.
+- `.gitattributes` export-ignore rules removed (the directory refuses them); the
+  GitHub archive of a tag contains the whole tree again.
+- Skills for claude.ai upload are built outside the plugin folder and ship as one
+  release asset, `legal-it-skills-X.Y.Z.zip`.
+- `esporta-documento`: the .docx renderer no longer loads a style module from
+  `~/.claude/skills`; it uses only its own code and the `docx` package. The PDF
+  renderer runs in the plugin's locked environment.
+- Plugin README: installation for Claude Code, first start, and a «Rete e dati»
+  section listing everything the plugin downloads and every host it contacts.
+
+### Fixed
+- Security: `cryptography` 50 for every platform except Intel Macs (which have
+  no wheels after 48.x and keep it). The plugin lock used to ship 48.0.1 to
+  every machine, with PYSEC-2026-3552/3553/3554; the per-platform declaration
+  makes the lock fork. `check_deps_sync.py` now tells per-platform entries apart.
+- Starting the server from a folder that holds a `pyproject.toml` no longer syncs
+  that project's `.venv` (`uv run --with` resolved the session's working
+  directory as a project). The `.mcpb` launcher passes `--no-project` as well.
+- FastMCP no longer asks pypi.org for a newer release at startup
+  (`FASTMCP_CHECK_FOR_UPDATES=off` unless set): the server contacts only the
+  hosts in `_egress.py`.
+- Citation gate timeout: `15000` was read as seconds; it is now `120`.
+
+### Removed
+- `plugin/settings.json`: a plugin loads only `agent` and `subagentStatusLine`
+  from it, so its `permissions` block never applied. Commands keep declaring
+  `allowed-tools` under both tool prefixes.
+
+## [2.16.1] - 2026-10-19
+
+### Fixed
+- Gate citazioni (hook Stop): in Claude Code il risultato di un tool del plugin
+  arriva all'hook come `{"result": "<markdown>"}`; il gate lo leggeva come JSON
+  senza `testo` e considerava non verificata ogni `cite_law()` riuscita, quindi
+  segnalava ad ogni messaggio che citava una norma. Ora il testo viene estratto
+  e valutato normalmente: errori e articolo diverso da quello chiesto continuano
+  a non coprire nulla.
+- Il server scriveva un avviso diagnostico su stdout, cioè sul canale JSON-RPC
+  dello stdio: ora va su stderr. Corretta anche la causa (la policy delle fonti
+  online non veniva passata al registro, e ogni fonte risultava non dichiarata).
+- Permessi: i tool installati dal plugin si chiamano
+  `mcp__plugin_legal-it_legal-it__<tool>`, non `mcp__legal-it__<tool>`, quindi
+  i comandi chiedevano conferma anche per i tool dichiarati. Elencati entrambi i
+  prefissi in `settings.json` e in `allowed-tools`.
+
+### Changed
+- Installazione come libreria (wheel, `uvx`): accettata FastMCP dalla 3.4 alla 4.x
+  (`fastmcp>=3.4,<5`). Il codice gira invariato sulla 4.1.1; la CI prova entrambe.
+  Il plugin e l'estensione `.mcpb` continuano per ora ad avviarsi con `fastmcp<4`.
+- Il comando `/release`, riservato al maintainer, non è più distribuito col
+  plugin (ora i comandi sono 9); resta nel repository in `.claude/commands/`.
+
+### Docs
+- README: `git` richiesto per il marketplace di Claude Code; chiudere Claude con
+  ⌘Q dopo aver installato `uv`; tabella dei sintomi (`connection timed out after
+  30000ms`, `CONNECTION_CLOSED`); endpoint Docker `/mcp`; a cosa serve
+  `legal-it-plugin-X.Y.Z.zip`; claude.ai web/mobile senza connettore supportato.
+
+## [2.16.0] - 2026-10-16
+
+### Added
+- `cookie-audit` si estende ai **pixel** e alle **newsletter**, in un percorso
+  ripetibile che chiede al cliente solo ciò che non si vede da fuori: sonda dei
+  pixel sul sito con ID, eventi, dati utente e momento rispetto al consenso;
+  analisi del container GTM tag per tag (condizioni di attivazione e consenso);
+  configurazione pubblicata dei pixel Meta (Advanced Matching automatico); analisi
+  dei `.eml` delle newsletter secondo le Linee guida del Garante sui tracking pixel
+  nelle e-mail (17 aprile 2026, adeguamento entro il 29 ottobre 2026), con
+  confronto tra due caselle di prova; controllo del modulo di iscrizione; mappa dei
+  pixel e sezione newsletter nel report Word.
+
+
+## [2.15.3] - 2026-10-04
+
+### Fixed
+- `cite_law` su un articolo che l'atto non ha restituiva il testo di un altro
+  articolo: "art. 99999 c.c." dava l'art. 1 del R.D. 262/1942, senza avvisi,
+  perché Normattiva risponde a un numero inesistente con il primo articolo
+  dell'atto. Ora risponde "articolo N non trovato"; se la fonte non permette di
+  verificarlo, "verifica non disponibile", senza testo. Vale anche per
+  `fetch_law_article` e `verifica_citazioni` (verdetto `inesistente`; fonte non
+  raggiungibile: `non verificata`).
+- EUR-Lex: un articolo inesistente è un errore, non più un testo "[... non
+  trovato ...]".
+- Gate citazioni: una `cite_law()` finita in errore o che ha restituito un
+  altro articolo non conta più come verifica.
+
+## [2.15.2] - 2026-10-01
+
+### Fixed
+- `cite_law` sugli atti con allegati (issue #47): gli artt. 1-44 del D.Lgs.
+  36/2023 restituivano, senza avvisi, l'articolo con lo stesso numero
+  dell'Allegato I.7. Ora si ottiene sempre il corpo dell'atto; quando il testo
+  principale sta in un allegato (un codice approvato in allegato) la risposta
+  lo dichiara.
+- `cerca_pronuncia_costituzionale` senza anni cerca solo nell'anno corrente:
+  ora l'intestazione lo dice anche quando trova risultati.
+
+### Added
+- Allegati su richiesta: "art. 30 dell'allegato I.7 al D.Lgs. 36/2023" e
+  "Allegato III AI Act" (allegati degli atti UE da CELLAR, per intero).
+- Lettura a pagine dei testi lunghi: gli otto tool che leggono sentenze e
+  provvedimenti (CGUE, Cassazione, CeRDEF, TAR/CdS, Corte costituzionale,
+  Garante, CONSOB, Gazzetta) accettano `da_carattere`; ogni nota di taglio
+  indica da dove riprendere. Le conclusioni dell'avvocato generale conservano
+  la risposta proposta alla Corte.
+
+## [2.15.0] - 2026-09-30
+
+### Fixed
+Benchmark completo dei 228 tool registrati contro i calcolatori di
+avvocatoandreani.it, le fonti ufficiali degli enti competenti (Agenzia delle
+Entrate, INPS, CNEL, MEF, EDPB, Garante) e il testo vigente delle norme
+(25-29 settembre 2026). 161 tool corretti sulla fonte primaria, ciascuno con
+un test che fissa il valore verificato a mano. Le aree con più correzioni:
+termini processuali e costi giudiziari (sospensione feriale, diritti di
+copia), detrazioni IRPEF e imposte sugli immobili (maggiorazioni degli artt.
+12 e 13 TUIR, categoria catastale B), parcelle e compensi professionali
+(DM 55/2014, DM 150/2023, DM 30/2012), interessi e rivalutazione monetaria
+(saggio legale dal 1990, serie ISTAT FOI ricostruita), ricerca online
+(CeRDEF, CONSOB, Corte costituzionale, TAR e Consiglio di Stato, Garante,
+Gazzetta Ufficiale, CGUE, Italgiure), generatori di documenti GDPR e atti
+giudiziari. Report completo con la matrice dei 228 tool in
+`docs/001_mcp-legal-it_AuditNormativa_RV_SAPG.md` e
+`docs/benchmark/Report-benchmark-mcp-legal-it_RV3_SAPG.docx`.
+
+### Note
+Restano aperte 9 voci (danno biologico macropermanente, risarcimento INAIL,
+ATECO 2025, alcuni termini processuali): dettaglio nel paragrafo 7.2 del
+report.
+
+## [2.14.2] - 2026-09-28
+
+### Added
+- `stato_server()`: the self-report diagnostics tool — package version,
+  active tool count after the `LEGAL_PROFILE` filter, pinned clock, cache
+  switch and directory, hostname. Surface is now 228 tools.
+
+### Fixed
+- CeRDEF (giurisprudenza tributaria) funziona di nuovo e un guasto della
+  fonte non si legge più come "nessun risultato" (#46). Il portale ha
+  cambiato modulo di ricerca e formato XML e rispondeva a ogni richiesta del
+  vecchio client con una pagina di errore in HTTP 200 ("Ambito di ricerca non
+  valido"), letta come zero risultati: `ultime_sentenze_tributarie` diceva
+  "nessuna sentenza" a ogni chiamata (e il digest settimanale ometteva la
+  sezione tributaria), `cerca_giurisprudenza_tributaria` non trovava nulla e
+  `cerdef_leggi_provvedimento` restituiva un testo vuoto come successo. Ora
+  una pagina di errore o un formato non riconosciuto sono un **Errore**
+  esplicito; "Nessun provvedimento" significa che CeRDEF non ne ha trovati.
+- `ultime_sentenze_tributarie` copre i provvedimenti emessi negli ultimi 12
+  mesi (per data di emissione: il portale rifiuta una ricerca senza criteri e
+  non espone la data di pubblicazione). Con `ente="cgt_primo_grado"`,
+  `cerca_giurisprudenza_tributaria` richiede anche `data_da`, e se il filtro
+  si ferma prima di aver esaminato l'intero elenco lo dichiara; il criterio
+  `codice` non esiste più, si aggiungono `parole_adiacenti` e
+  `operatori_logici`.
+
+## [2.14.1] - 2026-09-24
+
+### Fixed
+- `LEGAL_PROFILE` funziona di nuovo su FastMCP 3: FastMCP 3 ha rimosso
+  l'attributo `include_tags`, quindi l'assegnazione in `server.py` era un
+  no-op silenzioso e ogni profilo esponeva tutti i 227 tool (fino alla
+  2.14.0 inclusa). Il profilo è ora una trasformazione di visibilità
+  (`enable(tags=..., only=True)`) con prompt e risorse riabilitati;
+  `tests/unit/test_profiles.py` lo presidia e `install.py` riporta i
+  conteggi reali per profilo.
+- La versione dichiarata ai client MCP è quella del checkout, non quella
+  congelata nei metadati di un'installazione editable: vince il
+  `pyproject.toml` accanto al pacchetto, i metadati restano il ripiego per
+  una wheel installata.
+
+### Changed
+- Regole di grounding normalizzate: le sei skill agente riformulavano la
+  stessa regola di Legal Grounding in sette varianti divergenti -- ora
+  condividono una sola forma canonica. La convenzione OUTPUT del server
+  aggiunge la clausola di provenienza (`dati_applicati` col vintage e
+  `mcp-legal-it/fonti_consultate` dal `_meta`).
+- Documentazione allineata alla superficie 2.x distribuita (227 tool, 34
+  moduli, 23 skill, 10 slash command, 6 agenti): README e plugin/README,
+  guide di architettura, deployment e test, manifest e snippet del
+  marketplace riallineati.
+
+## [2.14.0] - 2026-09-20
+
+### Added
+- `verifica_dpa_fornitore(dominio)`: probes a supplier's site on a fixed list
+  of conventional paths for a published art. 28 DPA, judges the HTML or PDF
+  it finds against GDPR markers and caches the determination for 90 days
+  (`src/lib/dpa_probe/`; the hand-maintained DPA whitelist is gone). The probe
+  is the one tool that contacts a host chosen by the caller, so it is fenced:
+  public registrable names only (no addresses, ports, local or reserved
+  names), every name resolved and refused when any address is not public,
+  the same check on every redirect, the consult declared in
+  `fonti_consultate` and the cache under `LEGAL_CACHE`. `SECURITY.md`
+  documents the exception.
+- Annotazioni sui tool: tutti i 221 tool dichiarano ora `readOnlyHint` /
+  `openWorldHint`, così gli host che pre-approvano i tool sicuri possono
+  proporre le 204 letture senza una spunta per tool, mentre i 17 che scrivono
+  un file restano dietro un'approvazione esplicita. La classificazione è
+  ricavata dal grafo delle chiamate (funzione decorata → helper → client
+  importati: `open(..., "w")`, `write_text`, i costruttori di documenti, i
+  verbi HTTP che mutano). Vive in `src/tool_annotations.py`, generato da
+  `scripts/audit_tool_annotations.py` (`--check` fallisce la suite in caso di
+  drift, `--json` stampa l'evidenza per tool); un middleware la applica su
+  `tools/list` e `tests/unit/test_tool_annotations.py` fallisce se un tool esce
+  dalla policy.
+- I 12 che scrivono una cache sono segnalati come tali (`CACHE_WRITES`): la
+  loro unica scrittura è sotto `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (atti
+  parsati, URL degli articoli Brocardi, massime della Consulta), cosa diversa
+  dai 5 che producono un documento.
+- `LEGAL_CACHE=off` (anche `no`, `false`, `0`, `none`, `disabled`) tiene il
+  server completamente fuori dal disco: la directory della cache non viene più
+  né letta né creata e le cache restano in memoria per la vita del processo (i
+  parse funzionano lo stesso, semplicemente non vengono persistiti).
+  `src/lib/_cache.py` è l'unico modulo che legge l'interruttore e risolve
+  `MCP_CACHE_DIR`; `MCP_CACHE_DIR` da solo si limita a spostare i file.
+- Anche la parte cache è verificata: `scripts/audit_tool_annotations.py`
+  dichiara ogni posizione (`CACHE_LOCATIONS`) e fallisce se un modulo inizia a
+  risolvere una directory di cache senza essere dichiarato, se una cache
+  dichiarata perde i suoi letterali o se chi scrive smette di consultare
+  l'interruttore. L'inventario generato è `docs/cache-inventory.md` (posizione,
+  file, ritenzione, modulo e tool che possono toccarla) e `--check` lo confronta
+  come fa con la policy. `tests/unit/test_cache_switch.py` dimostra
+  l'interruttore, incluso il fatto che con `LEGAL_CACHE=off` non compare
+  nemmeno la directory.
+- L'orologio di sistema ha un solo lettore (`src/lib/_clock.py`) e
+  `LEGAL_TODAY` / `LEGAL_NOW` lo bloccano. Diversi tool sono "alla data odierna"
+  per natura (prescrizioni, scadenze, scaglioni IRPEF correnti, anno in corso
+  per i dump della Consulta): senza un override non sono riproducibili, quindi
+  un test sui loro numeri o marcisce col calendario o rinuncia alla metà più
+  interessante della superficie. L'audit fallisce su qualunque chiamata a
+  `date.today()`/`datetime.now()` fuori da quel modulo, così un tool nuovo non
+  può sottrarsi all'essere bloccabile.
+- `tests/unit/test_golden_calcoli.py` congela quello che rispondono i tool di
+  calcolo locali (167) in `tests/fixtures/golden/calcoli_locali/` (argomenti +
+  risposta attesa, bloccati su `LEGAL_TODAY`/`LEGAL_NOW`, troncati a 4000
+  caratteri dove la risposta è un documento intero). Il riferimento è **un file
+  per insieme di tabelle**, ricavato dal codice (dichiarazioni `@sourced(...)`
+  più le tabelle module-level che il codice raggiungibile di ogni tool legge,
+  costanti derivate incluse): `indici_foi`, `indici_foi+tassi_legali`,
+  `tabella_danno_bio`, `nessuna_tabella` (104 algoritmi puri) e altre 20. Una
+  tabella rinfrescata o uno scaglione digitato male fallisce nominando prima il
+  dataset — cambiare un singolo indice FOI riporta "tables involved: indici_foi
+  (12/12 tools), tassi_legali (3/12)", elenca solo i due file di gruppo
+  coinvolti e tagga ogni tool cambiato con le tabelle che legge. Si rigenera
+  deliberatamente con `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`;
+  il riferimento viene anche verificato come bloccato, completo, partizionato per
+  tabella (nessun tool due volte, nessuno mancante), senza payload di errore e
+  senza path locali, e il footer `dati_applicati` di ogni risposta deve
+  concordare con il gruppo in cui è archiviata.
+- L'harness stdio condiviso dai test di runtime vive ora in
+  `tests/unit/mcp_harness.py` e la generazione degli argomenti riempie i
+  parametri a oggetto (righe come `eredi`, `acconti`, `voci`, `rischi`) e
+  sceglie le date per ruolo (`data_inizio`/`data_fine`,
+  `anno_partenza`/`anno_arrivo`) invece di un unico valore per ogni `data_*`.
+  Tutti i tool di calcolo locali rispondono ora con un risultato vero,
+  mentre prima 12 tornavano con un errore di validazione.
+- `scripts/tool_report.py` rende la superficie una pagina autonoma
+  (`docs/tool-report.html`): i 221 tool divisi in 167 read-only locali, 37
+  read-only esterni, 12 che aggiornano la cache e 5 che generano documenti, con
+  il servizio raggiunto da ogni tool esterno, la directory di cache che ogni
+  writer può toccare e — dalla modifica qui sotto — le tabelle che ognuno applica
+  e se il loro vintage richiede un'azione. È costruita dallo stesso audit delle annotazioni, quindi
+  pagina e policy non possono divergere.
+- `tests/unit/test_provenance_datasets.py` dimostra la mappa tabella → tool
+  invece di riderivarla: la tabella viene perturbata in una copia usa-e-getta
+  del server e le risposte sono confrontate con una base pulita, in entrambe le
+  direzioni. Una risposta che si muove con una tabella che il suo footer non
+  nomina è un lettore silenzioso; una risposta che nomina una tabella e non si
+  muove è un footer decorativo. L'insieme dei tool chiamati viene dai loro
+  footer, i controlli sono tool che leggono altre tabelle: i due oracoli sono
+  indipendenti dall'audit.
+- Ogni chiamata dichiara ora nel `_meta` del risultato (`mcp-legal-it/opened_tables`)
+  quali tabelle a mano ha **davvero** letto: osservato, non derivato.
+  `src/lib/_ledger.py` avvolge le costanti che portano una tabella
+  (`src/table_bindings.py`, generato dall'audit) in sottoclassi di dict e list che
+  annotano il dataset quando vengono lette, quindi una chiamata che non apre
+  nessuna tabella — un algoritmo puro — non dichiara nulla, e una che ne applica
+  due lo dice. I wrapper sono superficiali e trasparenti: i valori annidati
+  restano normali, quindi `json.dumps`, `==` e la serializzazione dell'host
+  vedono gli stessi oggetti di prima.
+- Il footer `dati_applicati` è scritto da quello che la chiamata ha letto, non
+  dalla dichiarazione `@sourced(...)`: `_data.effective()` interseca le due, così
+  un tool che sceglie fra due tabelle nomina la tabella che ha usato. Chiamato
+  con i soli parametri obbligatori, `note_iscrizione_ruolo` dichiara
+  `codici_ruolo` + `contributo_unificato` ma applica solo la prima, e ora è
+  questo che la sua risposta dice. L'osservazione vale quanto la sua copertura,
+  quindi le due tabelle lette *dentro il corpo di una funzione*
+  (`mediazione_obbligatoria` in `procedura_civile`, `tegm` in `verifica_usura`)
+  passano ora dall'accessor `_data.load(nome)`, che registra la lettura; l'audit
+  riconosce la stessa chiamata come lettura, così la mappa statica e
+  l'osservazione descrivono un solo atto. Renderizzare un vintage passa invece
+  dal `_read` in cache sottostante: un footer che contasse come applicare le
+  tabelle che descrive renderebbe ogni osservazione uguale alla sua
+  dichiarazione e nessuna risposta potrebbe mai restringersi. La dichiarazione
+  resta il fallback per ciò che non si può avvolgere (una tabella raggiunta
+  attraverso uno scalare calcolato all'import), e con le due letture in corpo
+  osservate è ormai l'*unico* fallback rimasto: nessun tool della superficie
+  locale risponde da una tabella che il ledger non ha visto.
+- Un periodo coperto scaduto e una provenienza non verificata sono campi
+  strutturati, non solo una riga in fondo alla risposta. Una risposta a
+  dizionario porta `avvisi_dati` accanto a `dati_applicati`, ogni risposta porta
+  `mcp-legal-it/data_warnings` nel `_meta` del risultato -- l'unico canale che ha
+  un tool che restituisce una stringa -- e i due sono la stessa frase del footer,
+  quindi non possono divergere. Gli stati sono distinti: `scaduta` significa che
+  il periodo coperto è finito (`tassi_legali` dal 2027-01-01; `indici_foi` oltre
+  il proprio periodo *più* i 92 giorni di tolleranza per i comunicati ISTAT in
+  ritardo, quindi dal 2026-09-30 e non dal 2026-06-30), `non_verificata`
+  significa che nessuno ha stabilito da dove
+  viene la tabella (`contributo_unificato`, `comuni`, `codici_ateco` e altre 11),
+  e una tabella che non è né l'una né l'altra non segnala nulla -- così il campo
+  significa qualcosa ogni volta che compare, invece di essere una lista che si
+  impara a ignorare. Anche su quali tabelle verte l'avviso decide la stessa
+  osservazione del footer, non la dichiarazione.
+- Una tabella scaduta o non verificata ora cambia la risposta, non solo il
+  footer. Ogni tool dichiara già un grado nella propria docstring (`Precisione:
+  ESATTO|INDICATIVO|STIMATO`, 144 su 222, letto dalla riga che il modello
+  chiamante vede) e `src/lib/_precision.py` decide cosa fa il vintage a quella
+  dichiarazione: un'affermazione esatta che poggia su una tabella senza fonte
+  viene **ritirata** -- il tool risponde `errore: "dati_non_affidabili"`, senza
+  alcun importo, nominando la tabella, il suo stato e il file che sbloccherebbe
+  il calcolo -- mentre una indicativa scende a `STIMATO` e lo dichiara in
+  `precisione`, nel corpo della risposta e in `mcp-legal-it/precisione` nel
+  `_meta`. Una tabella scaduta è il caso più mite, perché copertura non è
+  provenienza: ferma una risposta ancorata a oggi (il tool ha letto l'orologio,
+  osservato per chiamata con `_clock.consulted()`) e degrada soltanto quella su
+  un periodo già chiuso. Con le tabelle attuali sono 6 rifiuti
+  (`codice_fiscale`, `imposte_*`,
+  `indennita_preavviso`, ...) e 4 degradi (`ricerca_codici_ateco`,
+  `cerca_ufficio_giudiziario`, ...), e l'audit fallisce quando
+  un tool applica una tabella senza dichiarare un grado, o dichiara una parola
+  che `_precision.py` non conosce -- un grado sconosciuto verrebbe letto come
+  l'affermazione più forte. `tests/unit/test_precision_policy.py` copre i due
+  stati sul filo e alla giuntura.
+- Un rifiuto è negoziabile, non definitivo. Ogni tool che legge una tabella
+  accetta ora anche `accetta_precisione` (`INDICATIVO` o `STIMATO`), dichiarato
+  nella firma e documentato nel blocco `Args:` come qualunque altro parametro:
+  chi chiama dice il grado con cui si accontenta, la risposta viene data a quel
+  grado, e sia il corpo (`precisione.accettata`) sia
+  `mcp-legal-it/precisione` nel `_meta` dicono che è l'accettazione ad averla
+  permessa. L'affermazione non è in vendita -- chiedere `ESATTO` su una tabella
+  senza fonte viene rifiutato, e il rifiuto porta `concedibile` così il secondo
+  tentativo è una decisione -- e nessuna accettazione sblocca una tabella scaduta
+  sotto una cifra che riguarda oggi: un tasso vecchio è sbagliato, non impreciso,
+  e il rifiuto lo dice con `negoziabile: false` invece di offrire un grado che non
+  aiuterebbe.
+- Due tool possono fare a meno della tabella, ed è l'altra metà della risposta.
+  `@sourced(..., alternativa="parametro")` nomina il parametro che fornisce ciò
+  che la tabella darebbe: `codice_fiscale` accetta il codice catastale
+  (`codice_catastale`, così l'algoritmo è esatto su un input invece che su una
+  ricerca) e `indennita_preavviso` accetta il periodo di preavviso
+  (`giorni_preavviso`, che è la parte di una tabella CCNL su cui nessun vintage
+  potrà mai essere giusto, perché i contratti si rinnovano). Una chiamata così
+  non legge nessuna tabella, quindi nessun vintage entra nella risposta: il
+  footer è vuoto, nessun avviso viene emesso, e la risposta dice
+  `dati_forniti_dal_chiamante: {parametro, al_posto_di}` invece di lasciare al
+  lettore il compito di indovinare cosa sostiene il numero. Il middleware conosce
+  la stessa mappa (`TOOL_ALTERNATIVES`, generata) e quindi non ripiega sulla
+  dichiarazione segnalando una tabella che la chiamata non ha aperto.
+- `scripts/update-data.py` dice quanto costa ogni tabella non verificata, e non
+  è più un avviso: il blocco per tabella elenca ora i tool che la applicano con
+  il loro grado dichiarato e se rifiutano o degradano soltanto, ricavato
+  dall'audit e dalla stessa regola che esegue il server. Le otto tabelle
+  `da_verificare` bloccano sette tool (`comuni` due, `imposte_successione` due,
+  `contributo_unificato`, `preavviso_ccnl`, `violazioni_patente` uno a testa) e ne
+  degradano nove, ed è questo che rende il controllo una lista di cose da fare
+  invece di una nota.
+- L'audit fallisce quando un letterale riscrive una tabella del repository: è
+  così che le fasce del contributo unificato vivevano dentro
+  `fatturazione_avvocati.py` mentre `contributo_unificato.json` veniva aggiornato
+  accanto — una copia non legge nessun file, non dichiara provenienza e diverge
+  in silenzio. Il confronto è sul contenuto e attraverso le forme (le fasce erano
+  copiate come lista di coppie mentre la tabella le tiene come dict), con
+  `TABLE_COPIES_ALLOWED` per una copia giustificata (oggi vuoto, e l'audit
+  fallisce su un'esenzione che non corrisponde più a nulla).
+- Ogni tabella letta da un tool ora lo dice *e* dice quanto è recente, incluse
+  quelle precaricate all'import: sei tool che rispondevano in silenzio
+  (`cerca_codice_tributo`, `genera_modello_atto`, `lista_categorie_atti`,
+  `indennita_preavviso`, `costo_lavoro`, `ravvedimento_operoso`) portano il
+  footer `dati_applicati`, ed è così che i vintage non verificati di
+  `preavviso_ccnl` e `contributo_unificato` arrivano al lettore come avviso
+  esplicito invece di non arrivare affatto.
+- `tests/unit/test_read_only_contract.py` dimostra la promessa read-only a
+  runtime: il server viene avviato con `HOME` e `MCP_CACHE_DIR` propri, tutti i
+  tool read-only locali vengono chiamati con argomenti generati dal loro
+  input schema e sandbox, checkout e cache reale sono improntati prima e dopo —
+  un file creato, cancellato o modificato fa fallire il test. Tutti hanno
+  risposto e nulla è cambiato.
+- `contributo_unificato.json` è riconciliato con il DPR 115/2002 vigente
+  (verificato sulla tabella di riferimento aggiornata a D.L. 132/2014 e D.L.
+  90/2014) e la tabella lo dichiara: `aggiornato_al` + `verifica: manuale`.
+  Tre voci riportavano valori o forme che la fonte contraddice, e la
+  riconciliazione li corregge invece di garantirli: `cautelari` era un fisso di
+  147 € ma i procedimenti cautelari sono il *50% degli scaglioni ordinari per
+  valore* (`cautelari.riduzione`); `esecuzione_mobiliare` era un fisso di 43 €
+  ma è 43 € *sotto i 2.500 € e 139 € sopra* (scaglioni, con il confine a
+  2499,99 — il massimo con due decimali ammesso dalla regola "inferiore a
+  2.500 €", perché la ricerca per scaglioni è inclusiva); `ottemperanza` era
+  650 €, la fonte dice 300 €; la chiave mai letta `opposizione_esecutiva`
+  (scaglioni pieni, dove la regola li dimezza) diventa
+  `opposizione_decreto_ingiuntivo` a scaglioni dimezzati. Il rifiuto di
+  `contributo_unificato` sparisce e i cinque tool degradati dal suo vintage non
+  verificato (`decreto_ingiuntivo`, `modello_notula`, `note_iscrizione_ruolo`,
+  `preventivo_civile`, `genera_quotazione_docx`) tornano a dichiarare il grado
+  pieno — è il meccanismo che funziona, e per questo i test che inchiodavano il
+  buco si sono spostati su tabelle ancora non verificate.
+- I rifiuti vanno a verbale, così il backlog di riconciliazione si ordina per
+  quanto ha bloccato *davvero* e non solo per quanto potrebbe. Con
+  `LEGAL_REFUSAL_LEDGER=on` il middleware del ledger aggiunge una riga JSONL per
+  ogni rifiuto e una per ogni accettazione a `refusals.jsonl` sotto la root
+  della cache: il tool, le tabelle in causa, lo stato, il grado dichiarato e
+  l'esito — un contatore, non un log del lavoro dello studio, così nessun dato
+  del caso finisce nel file. È opt-in (un tool read-only che rifiuta non deve
+  mettersi a scrivere file che l'host non ha chiesto) e best-effort esattamente
+  come la cache: un verbale non scrivibile non trasforma mai un rifiuto in un
+  errore. L'audit dichiara il verbale come posizione di cache e i suoi timestamp
+  passano da `_clock.now()`, quindi un `LEGAL_NOW` pinnato pina anche il
+  verbale (`tests/unit/test_refusal_ledger.py`).
+- Ogni tabella che la policy del vintage può bloccare ha ora un'
+  *alternativa fornita*, non solo un grado più economico:
+  `@sourced(..., alternativa=...)` passa da due tool a tutti e sette i lettori
+  delle tabelle bloccanti. `contributo_unificato` prende
+  `tabella_contributo_unificato` (tabella sostitutiva della stessa forma,
+  consumata dall'intero calcolo, moltiplicatori di appello e cassazione
+  inclusi), `imposte_successione` prende `aliquote_franchigie` (la lista degli
+  scaglioni, letta per `parentela` e tollerante verso voci malformate),
+  `imposte_compravendita` prende `aliquote_registro` (la sezione registro),
+  `decurtazione_punti_patente` prende `tabella_violazioni` (la mappa delle
+  violazioni) e `decodifica_codice_fiscale` prende `mappa_comuni` (mappa inversa
+  dei codici catastali). Una chiamata che fornisce il suo dato non legge nessuna
+  tabella, quindi la risposta non porta vintage che non poggia su di esso — e
+  chi *può* garantire un valore non deve più ricomprare un grado che la tabella
+  non sosteneva.
+- `backlog_riconciliazione` (il tool numero 222) è il pannello di lettura: le
+  tabelle ancora non verificate o scadute, ciascuna con la sua fonte, il costo
+  statico (chi la legge, a quale grado dichiarato, rifiutando o degradando — la
+  passeggiata dell'audit, calcolata una volta per processo e condivisa con
+  `scripts/update-data.py`) e l'azione da compiere; col verbale attivo, il
+  conteggio osservato riordina la lista, così la tabella che ha bloccato due
+  volte precede quella che avrebbe solo potuto. Col verbale spento lo dice
+  (`disponibile: false`) invece di tacere, e la risposta è congelata nel
+  riferimento golden come quella di ogni altro tool. La stessa derivazione è
+  quella che legge `/dati` (nuovo comando del plugin), così l'aggiornamento di
+  una tabella — verificare la fonte, aggiornare i valori, mettere `verifica:
+  manuale` e `aggiornato_al`, rieseguire la suite — è un flusso guidato che non
+  apre mai il codice.
+- `imposte_successione` e `violazioni_patente` sono riconciliate con le fonti
+  vigenti: la scheda dell'Agenzia delle Entrate per aliquote e franchigie
+  successorie (ogni valore combaciava — la correzione era di provenienza, non
+  di numeri) e la tabella allegata all'art. 126-bis per i punti della patente,
+  dove tre valori erano sbagliati e sono corretti (mancata precedenza 6 punti,
+  non 8; sorpasso 3, non 4; circolazione senza assicurazione 5 punti, non 0),
+  con le fasce di velocità legate ai commi giusti dell'art. 142 e le sanzioni
+  pecuniarie accanto ai punti. I loro rifiuti spariscono: le tabelle incluse
+  bloccano ora tre tool (`codice_fiscale`, `decodifica_codice_fiscale`,
+  `indennita_preavviso`) invece di sei, e il riferimento golden mostra il diff
+  invece di fidarsi della modifica.
+- `comuni`, `codici_ruolo` e `preavviso_ccnl` sono riconciliate con le fonti
+  ufficiali, e con loro il backlog arriva a **zero rifiuti** sulla superficie
+  inclusa: ogni tabella applicata da un tool a grado ESATTO è ora verificata.
+  `comuni` è verificata voce per voce sull'elenco ISTAT dei codici catastali
+  (7.899 comuni): 143 codici catastali erano sbagliati (Ercolano, Olbia,
+  Cortona, Bitetto e Bitonto scambiati tra loro, ...) e sono corretti, le
+  denominazioni ufficiali vengono prima così la ricerca inversa risponde con
+  loro invece che con un alias, le voci non verificabili (stati esteri,
+  frazioni senza codice garantito) sono eliminate, e la tabella si ridichiara
+  (`aggiornato_al`, `verifica: manuale`, l'elenco ISTAT come fonte).
+  `codici_ruolo` è ricostruita sulla tabella ufficiale DM 32/2012 / DGSIA dei
+  codici oggetto. `preavviso_ccnl` è verificata sui tre contratti
+  (metalmeccanici e commercio combaciavano cella per cella; studi
+  professionali aveva 14 celle sbagliate, corrette). Ciò che resta non
+  verificato — `codici_ateco`, `tribunali_competenti` — ha solo lettori
+  INDICATIVO, quindi nessuno rifiuta: le risposte degradano e lo dicono. La
+  via del rifiuto conserva la sua copertura wire su un server sonda
+  (`plugin/server/probe_precision.py`, lo stesso wrapper `sourced`, lanciato
+  attraverso l'harness), così i denti della policy sono provati su un rifiuto
+  reale invece che su un buco che il lavoro sui dati ha chiuso.
+- Report mensile dei rifiuti: `verbale_mensile` (il 223° tool) legge il verbale
+  che il middleware scrive (`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/refusals.jsonl`,
+  opt-in con `LEGAL_REFUSAL_LEDGER=on`) e confronta il mese corrente con i
+  precedenti — rifiuti e degradi accettati per tool, quale tabella ha bloccato,
+  e se i chiamanti stanno negoziando oltre la policy. L'aggregazione vive in
+  `src/lib/_refusals.monthly()`, l'abitudine ricorrente in
+  `scripts/verbale-report.py` (riga di cron o controllo pre-rilascio), e il
+  comando `/verbale` legge gli stessi numeri in conversazione; `/dati` rimanda
+  lato dati. `tests/unit/test_refusal_ledger.py` copre aggregazione e
+  superficie wire.
+- Provenienza delle fonti online: ogni risposta open-world dichiara ora
+  *quando ha consultato il web*. Il wrapper HTTP condiviso e i siti `httpx`
+  diretti (`retry_request(dataset=...)`, `note_source(...)`) registrano la
+  consultazione in una contextvar (`src/lib/_sources.py`); lo stesso passaggio
+  di middleware che timbra tabelle e precisione attacca
+  `mcp-legal-it/fonti_consultate` al `_meta` del risultato — nome del dataset,
+  prefisso `scheme://host//path` (mai la query string: i termini di ricerca del
+  chiamante restano fuori dalla provenienza) e un timestamp a livello di
+  chiamata dall'orologio non registrato. La policy commessa è
+  `src/source_bindings.py`, derivata dall'audit dal grafo delle chiamate: un
+  client che inizia a interrogare un nuovo dataset fa fallire la suite finché
+  la policy non è rigenerata, e il CI esegue quel controllo (job `policy-sync`)
+  a ogni push. `tests/unit/test_online_sources.py` prova il middleware, la
+  privacy degli URL e il flag sulle fonti non dichiarate.
+
+### Fixed
+- Two of the reconciled tables re-read against the primary source
+  (2026-09-20). `violazioni_patente`: generic failure to yield is art. 145
+  c.10 (5 points; the stop line, c.5, keeps its 6), safety distance and
+  wrong-way driving now rest on their base commi (art. 149 c.4: 3, art. 143
+  c.11: 4) with the aggravated cases as separate keys
+  (`distanza_sicurezza_collisione` 5, `distanza_sicurezza_lesioni` 8,
+  `contromano_curve_dossi` 10), hit-and-run split into injuries (art. 189
+  c.6: 10) and damage to things only (`fuga_incidente_cose`, c.5: 4).
+  `contributo_unificato`: sourced from art. 13 DPR 115/2002 on Normattiva
+  instead of a secondary table; adds the fixed 168 for oppositions to
+  enforcement acts (c.2), the three public-contract tiers up to 6.000 above
+  1 M (c.6-bis lett. d), the 1.800 abbreviated rite, the 300 for citizenship
+  and residence cases, and the Consiglio di Stato amounts raised by half
+  (art. 1 c.27 L. 228/2012); the note records that the labour-court
+  exemption only covers parties under twice the art. 76 threshold.
+- Data refresh: FOI index for August 2026 (ISTAT, 16-09-2026: 103,7 in base
+  2025=100 → 125,9 linked to 2015=100; official variations +3,4% / +4,8%,
+  recorded without a Gazzetta reference until the comunicato is published).
+  Verified against the sources on 2026-09-20: TEGM Q3 2026 (DM 23-06-2026,
+  GU n.149; the Q4 decree is not out yet), late-payment rate H2 2026 10,40%
+  (MRO 2,40% + 8, GU n.163 of 16-07-2026), legal rate 2026 1,60% (DM
+  10-12-2025, GU n.289), IRPEF 2026 brackets 23/33/43 (L. 199/2025).
+- Data refresh (issue #36): FOI index for July 2026 (ISTAT, 12-08-2026: 103,1
+  in base 2025=100 → 125,2 linked to 2015=100; official variations +2,8% /
+  +4,3%) and the Gazzetta references for the June and July comunicati, both
+  in GU n.201 of 31-08-2026 (26A04494, 26A04495). Art. 139 CAP
+  micropermanenti amounts revalued by DM MIMIT 20 July 2026 (GU n.173 of
+  28-07-2026, cod. 26A03765): first-point value €988,45, ITT €57,64/day,
+  +2,6% on the April 2026 FOI, applying from April 2026 (`_vintage` now
+  carries `aggiornato_al`; `docs/strumenti.md` follows).
+- `scripts/refresh_data.py`: the monthly FOI append matched the first
+  `"<year>": {` of the file, which since the 2025=100 rebasing belongs to
+  `indici_base_2025`; the safety check refused the rewrite every month and
+  the September cron opened issue #36 instead of a PR. The append is now
+  anchored to its block, mirrors the published base-2025 value and moves
+  `_vintage.copre_fino_a` (the one field it rewrites; the dead `_note`
+  stamp is gone); the rewrite must equal the original plus exactly those
+  edits.
+- Tests probing the "index not yet published" fallback run on a FOI series
+  frozen at 06/2026 (`tests/unit/conftest.py:foi_serie_fissa`) instead of
+  the live table, so a data refresh — including the monthly auto-refresh
+  PR — no longer turns them red by construction.
+- Un modulo di supporto in `src/lib/` finiva classificato come *servizio
+  esterno*. `upstream_clients()` restituisce `src/lib/<nome>` a meno che il nome
+  non sia dichiarato un helper in-process, e il `_tables_open` del ledger non lo
+  era. I 71 tool che lo importano (70 calcoli read-only e un generatore di
+  documenti) risultavano raggiungere un servizio esterno: i 70 sono finiti nella
+  colonna "esterni" del report e il conteggio open-world della pagina è passato
+  da 50 a 121, mentre ogni annotazione restava corretta (`openWorldHint` legge il grafo delle
+  chiamate e quel modulo non lo vedeva come client). Due lettori dello stesso
+  albero erano in disaccordo e nulla falliva: è questa la parte da sistemare.
+  `_ledger` e `_tables_open` sono ora dichiarati, e un nuovo controllo
+  `verify_lib_modules` fallisce su qualunque modulo sotto `src/lib` non
+  dichiarato in nessuno dei due modi -- un modulo è un helper in-process, un
+  pacchetto è un client -- con `tests/unit/test_tool_annotations.py` che sabota
+  entrambe le direzioni.
+- Il grafo delle chiamate non aveva un arco per una funzione passata come
+  *valore*. `_get_fonti()` in `giurisprudenza_unificata.py` restituisce un
+  dizionario con le quattro implementazioni di giurisprudenza e il chiamante
+  chiama attraverso di esso: non c'era nessun nodo `Call` da seguire e la
+  camminata si fermava alla tabella di dispatch.
+  `cerca_giurisprudenza_unificata` interroga Italgiure, CeRDEF, Giustizia
+  Amministrativa e CGUE, ed era annotato read-only *e* locale -- cioè quello che
+  un host pre-approva senza una spunta, e che chi revisiona legge come "una
+  semplice lettura". Ora un riferimento nudo a una funzione importata conta come
+  arco; cambia classificazione un solo tool (read-only locali 168 → 167,
+  open-world 49 → 50) e non si muove nient'altro: nessuna attribuzione di
+  tabella, nessuna scrittura, nessuna cache. La stessa via cieca era anche
+  l'ultimo valore vivo della fixture congelata: il tool rispondeva dalla rete,
+  quindi il valore registrato seguiva l'archivio della Cassazione (il conteggio
+  del raffinamento è passato da 3866 a 3863 fra due esecuzioni). Ora è fuori
+  dalla superficie riproducibile, che resta di 167 tool.
+- Tre tabelle precaricate all'import erano invisibili all'audit: `_CODICI_TRIBUTO`
+  si lega attraverso un indice (`json.load(f)["codici"]`), `_CATALOGO`
+  attraverso una dict comprehension, `_PREAVVISO` attraverso un'annotazione, e
+  la camminata riconosceva solo la forma nuda `X = json.load(f)`. Ora tutte e
+  tre sono attribuite ai tool che le leggono, e anche un caricamento dentro il
+  corpo di una funzione viene visto.
+- `preventivo_civile` e `modello_notula` stimavano il contributo unificato da
+  una copia a mano delle fasce invece che dalla tabella condivisa: la copia non
+  invecchia con `contributo_unificato.json`, poteva divergere in silenzio da
+  quello che rispondono `contributo_unificato` e `decreto_ingiuntivo` e lasciava
+  la stima senza vintage. Ora leggono `civile.cognizione` e dichiarano la
+  tabella (i numeri non cambiano).
+- `verify_provenance` confrontava la dichiarazione con un `datasets()` che la
+  conteneva già, quindi «dichiara una tabella che il codice non legge» non
+  poteva mai scattare. L'insieme derivato dal codice è ora `reads()` e il
+  confronto funziona in entrambe le direzioni; `tests/unit/test_tool_annotations.py`
+  sabota una copia dell'albero per verificare che i tre casi (dichiarazione
+  tolta, dichiarazione inventata, caricamento rinominato) falliscano davvero.
+- `start_server.sh` è indipendente dal PATH: gli host GUI (Claude Desktop,
+  Cowork, Freebuff) avviano i server MCP con il PATH minimo di launchd
+  (`/usr/bin:/bin:/usr/sbin:/sbin`), dove Homebrew, `~/.local/bin` e cargo non
+  esistono, quindi `command -v uv` falliva e si finiva nel ramo venv. Ora il
+  bootstrap antepone le directory di installazione usuali e cerca `uv` anche
+  per path assoluto.
+- Il fallback venv non si fida più di `command -v`: ogni candidato viene
+  eseguito e vince il primo che dichiara 3.10+. Una licenza Xcode non accettata
+  trasforma il `python3` dei CLT in uno shim che stampa solo l'errore di
+  licenza, e veniva scelto. Un venv in cache viene riusato solo se il suo
+  interprete è 3.10+ **e** importa tutte le dipendenze runtime: un venv
+  incompleto viene ricreato invece di avviare un server che muore al primo
+  import. `MCP_FORCE_VENV=1` salta `uv` per esercitare il fallback.
+
+
 ## [2.13.0] - 2026-08-30
 
 ### Added

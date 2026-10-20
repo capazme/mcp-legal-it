@@ -8,7 +8,8 @@ version: 1
 projections:
   claude-code:
     tool_namespace: "legal-it:{tool}"
-    command_tool_namespace: "mcp__legal-it__{tool}"
+    # both spellings: a server added by hand, and the same server installed with the plugin
+    command_tool_namespace: ["mcp__legal-it__{tool}", "mcp__plugin_legal-it_legal-it__{tool}"]
     strip_frontmatter_keys: [tools, prompt, standalone-description]
     supports: [skills, agents, commands, mcp_prompts, mcp_resources, hooks]
     out:
@@ -21,7 +22,7 @@ projections:
     strip_frontmatter_keys: [tools, prompt, standalone-description]
     supports: [skills]
     merge_into_skills: [agents, commands]
-    exclude: [commands/release, commands/digest, skills/cookie-audit, skills/esporta-documento]
+    exclude: [commands/digest, skills/cookie-audit, skills/esporta-documento]
     description_max_chars: 185
     out:
       skills: dist/openai/.agents/skills
@@ -29,14 +30,15 @@ projections:
 packaging:
   claude-web:
     from: claude-code
-    out_dir: plugin/dist/web-skills
+    # outside the plugin folder: these archives ship as release assets, not in the plugin
+    out_dir: dist/web-skills
     description_max_chars: 200
     keep_frontmatter: [name, description]
     zip_member: "{name}/Skill.md"
   plugin-zip:
     from: claude-code
     artifact: "dist/legal-it-plugin-{version}.zip"
-    include: [.claude-plugin, skills, agents, commands, hooks, settings.json, start_server.sh, .mcp.json, server]
+    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE]
     root: plugin
     version_manifest: ".claude-plugin/plugin.json"
   # staging file-set kept in code: the server→server/ remap doesn't fit a flat include list

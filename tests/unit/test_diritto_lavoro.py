@@ -10,6 +10,17 @@ def _call(fn_name, **kwargs):
     return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
+def _call_full(fn_name, **kwargs):
+    """The tool under `@sourced` (table vintage and precision policy), as a host runs it."""
+    from src.lib import _clock, _precision, _tables_open
+
+    mod = importlib.import_module("src.tools.diritto_lavoro")
+    fn = getattr(mod, fn_name)
+    fn = getattr(fn, "fn", fn)
+    with _tables_open.recording(), _clock.recording(), _precision.recording():
+        return fn(**kwargs)
+
+
 # ---------------------------------------------------------------------------
 # indennita_licenziamento
 # ---------------------------------------------------------------------------
@@ -52,9 +63,35 @@ class TestIndennitaLicenziamento:
         assert r["importo"] == 36000.0
 
     def test_reintegra_basso_anzianita(self):
+        # Art. 3 co. 2 D.Lgs. 23/2015: the damages for the period before the ruling are
+        # capped at twelve mensilita whatever the seniority (3 years is not 3 x 2 = 6).
         r = _call("indennita_licenziamento", anni_servizio=3.0, retribuzione_mensile=2000.0, tipo="reintegra")
-        assert r["mensilita"] == 6.0  # 3 × 2 = 6
-        assert r["importo"] == 12000.0
+        assert r["mensilita"] == 12
+        assert r["massimo_mensilita"] == 12
+        assert r["importo"] == 24000.0
+        assert "anzianità" in r["dettaglio_formula"]
+
+    def test_reintegra_tetto_indipendente_dall_anzianita(self):
+        # Art. 3 co. 2: no link between seniority and the reinstatement damages ceiling.
+        r1 = _call("indennita_licenziamento", anni_servizio=0.5, retribuzione_mensile=1500.0, tipo="reintegra")
+        r30 = _call("indennita_licenziamento", anni_servizio=30.0, retribuzione_mensile=1500.0, tipo="reintegra")
+        assert r1["mensilita"] == r30["mensilita"] == 12
+        assert r1["importo"] == r30["importo"] == 18000.0
+
+    def test_reintegra_esclusa_per_datore_sotto_soglia(self):
+        # Art. 9 co. 1 D.Lgs. 23/2015: below the art. 18 St. lav. threshold "non si applica
+        # l'articolo 3, comma 2": the reinstatement branch is refused, not computed.
+        with pytest.raises(ValueError, match="art. 9 co. 1"):
+            _call("indennita_licenziamento", anni_servizio=3.0, retribuzione_mensile=2000.0,
+                  dimensione_azienda="piccola", tipo="reintegra")
+
+    def test_piccola_indennitario_resta_dimezzato_3_18(self):
+        # The same small employer keeps the halved indemnity of art. 9 co. 1 (3-18 after
+        # C.Cost. 118/2025): 3 years -> 3 mensilita = 6.000 euro.
+        r = _call("indennita_licenziamento", anni_servizio=3.0, retribuzione_mensile=2000.0,
+                  dimensione_azienda="piccola")
+        assert (r["minimo_mensilita"], r["massimo_mensilita"]) == (3, 18)
+        assert r["mensilita"] == 3.0 and r["importo"] == 6000.0
 
     def test_errore_anni_zero(self):
         with pytest.raises(ValueError, match="anni_servizio"):
@@ -128,6 +165,58 @@ class TestIndennitaPreavviso:
         expected = round(3000.0 / 30 * 150, 2)
         assert r["importo"] == expected
 
+    def test_nessun_doppio_arrotondamento(self):
+        # Art. 2118 co. 2 c.c.: 150 days of calendar are five months, so on 1.000 euro the
+        # indemnity is 5.000,00 (art. 146 CCNL studi professionali, level I, over 10 years).
+        # The daily rate 33,3333 multiplied by 150 gave 4.999,99.
+        r = _call("indennita_preavviso", ccnl="studi_professionali", livello="1", anzianita_anni=11.0, retribuzione_mensile=1000.0)
+        assert r["giorni_preavviso"] == 150
+        assert r["importo"] == 5000.0
+
+    @pytest.mark.parametrize(
+        "anzianita, mensilita, importo",
+        [
+            # CCNL industria metalmeccanica 5/2/2021, Sez. IV Tit. VIII art. 1, second table
+            # (indennita' in mensilita'): levels D1, D2, C1 = 0,33 / 0,67 / 1 mensilita.
+            (5.0, 0.33, 726.00),
+            (10.0, 0.67, 1474.00),
+            (10.5, 1, 2200.00),
+        ],
+    )
+    def test_metalmeccanici_c1_d1_d2_indennita_in_mensilita_del_ccnl(self, anzianita, mensilita, importo):
+        r = _call("indennita_preavviso", ccnl="metalmeccanici", livello="C1_D1_D2", anzianita_anni=anzianita, retribuzione_mensile=2200.0)
+        assert r["importo"] == importo
+        assert f"{mensilita} mensilità" in r["base_importo"]
+
+    def test_metalmeccanici_altri_livelli_invariati(self):
+        # Same table: B1_C2_C3 over 10 years = 2,5 mensilita = 75 days (the two tables agree).
+        r = _call("indennita_preavviso", ccnl="metalmeccanici", livello="B1_C2_C3", anzianita_anni=10.5, retribuzione_mensile=2200.0)
+        assert r["giorni_preavviso"] == 75
+        assert r["importo"] == 5500.0
+
+    def test_metalmeccanici_dimissioni_stessa_indennita(self):
+        # The term binds "nessuna delle due parti" (art. 1): the same indemnity is due on resignation.
+        r = _call("indennita_preavviso", ccnl="metalmeccanici", livello="C1_D1_D2", anzianita_anni=3.0,
+                  retribuzione_mensile=2200.0, tipo="dimissioni")
+        assert r["importo"] == 726.0
+
+    @pytest.mark.parametrize("livello", ["quadri", "quadri_1"])
+    def test_studi_professionali_quadri_come_livello_1(self, livello):
+        # Art. 146 lett. A and B CCNL studi professionali 16/2/2024: Quadri have the periods of level I
+        # (licenziamento 90/120/150, dimissioni 75/105/135 days).
+        r = _call("indennita_preavviso", ccnl="studi_professionali", livello=livello, anzianita_anni=11.0, retribuzione_mensile=3000.0)
+        assert r["giorni_preavviso"] == 150 and r["importo"] == 15000.0
+        r = _call("indennita_preavviso", ccnl="studi_professionali", livello=livello, anzianita_anni=11.0,
+                  retribuzione_mensile=3000.0, tipo="dimissioni")
+        assert r["giorni_preavviso"] == 135 and r["importo"] == 13500.0
+
+    def test_riferimento_terziario_artt_251_252_256(self):
+        # TU CCNL Terziario 3/2/2026: terms in art. 251 (licenziamento) and 256 (dimissioni), indemnity in
+        # art. 252; art. 254 is "Decesso del dipendente" and must not be cited.
+        r = _call("indennita_preavviso", ccnl="commercio", livello="2_3", anzianita_anni=3.0, retribuzione_mensile=1800.0)
+        assert "251" in r["riferimento_normativo"] and "256" in r["riferimento_normativo"]
+        assert "254" not in r["riferimento_normativo"]
+
 
 # ---------------------------------------------------------------------------
 # calcolo_naspi
@@ -161,9 +250,66 @@ class TestCalcoloNaspi:
     def test_piano_mensile_decalage(self):
         r = _call("calcolo_naspi", retribuzione_media_mensile=1000.0, settimane_contributive=208, eta_anni=40)
         piano = r["piano_mensile"]
-        # First 6 months: no decalage
-        for entry in piano[:6]:
+        # Art. 4 co. 3 D.Lgs. 22/2015: the reduction starts on the first day of the SIXTH month,
+        # so months 1-5 are paid in full and month 6 is already reduced by 3%.
+        for entry in piano[:5]:
             assert entry["importo"] == r["importo_mensile_iniziale"]
+        assert piano[5]["importo"] == 727.50  # 750,00 x 0,97
+
+    def test_decalage_dal_sesto_mese_art_4_co_3(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+        r = _call("calcolo_naspi", retribuzione_media_mensile=1000.0, settimane_contributive=104, eta_anni=40)
+        piano = {m["mese"]: m["importo"] for m in r["piano_mensile"]}
+        assert piano[5] == 750.00
+        assert piano[6] == 727.50  # 750 x 0,97
+        assert piano[12] == 605.99  # 750 x 0,97^7 (each month 3% less than the month before)
+        assert r["decalage_da_mese"] == 6
+
+    def test_decalage_dall_ottavo_mese_da_55_anni(self, monkeypatch):
+        # Art. 4 co. 3: for who is 55 at the application the reduction starts from the eighth month.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+        r = _call("calcolo_naspi", retribuzione_media_mensile=3500.0, settimane_contributive=208, eta_anni=55)
+        piano = {m["mese"]: m["importo"] for m in r["piano_mensile"]}
+        assert piano[6] == 1584.70  # massimale 2026 (circ. INPS 4/2026), still in full
+        assert piano[24] == 944.21  # 1.584,70 x 0,97^17
+        r54 = _call("calcolo_naspi", retribuzione_media_mensile=3500.0, settimane_contributive=208, eta_anni=54)
+        assert {m["mese"]: m["importo"] for m in r54["piano_mensile"]}[24] == 888.40  # 1.584,70 x 0,97^19 (from month 6)
+
+    def test_requisito_tredici_settimane_art_3_co_1_lett_b(self, monkeypatch):
+        # Art. 3 co. 1 lett. b D.Lgs. 22/2015: at least 13 weeks of contribution in the four years,
+        # otherwise the NASpI is not due. Plan case 5: 12 weeks, 1.200 euro, 30 years.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+        r = _call("calcolo_naspi", retribuzione_media_mensile=1200.0, settimane_contributive=12, eta_anni=30)
+        assert r["esito"] == "non_spettante"
+        assert r["importo_mensile_iniziale"] == 0.0
+        assert r["durata_mesi"] == 0
+        assert r["totale_stimato"] == 0.0
+        assert "lett. b" in r["motivo"]
+
+    def test_tredici_settimane_bastano(self, monkeypatch):
+        # Boundary of the same requirement: 13 weeks -> 75% of 1.200 = 900,00 for 13/2 weeks = 1,5 months
+        # (art. 5: half of the weeks; art. 4 co. 1: 4,33 weeks per month), total 900 + 450.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+        r = _call("calcolo_naspi", retribuzione_media_mensile=1200.0, settimane_contributive=13, eta_anni=30)
+        assert r["esito"] == "calcolato"
+        assert r["importo_mensile_iniziale"] == 900.00
+        assert r["durata_mesi"] == 1.5
+        assert r["totale_stimato"] == 1350.00
+
+    def test_parametri_2026_da_tabella_circolare_inps_4_2026(self, monkeypatch):
+        # Circ. INPS n. 4 del 28-01-2026 par. 6: retribuzione di riferimento 1.456,72, massimo mensile 1.584,70.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+        r = _call_full("calcolo_naspi", retribuzione_media_mensile=2000.0, settimane_contributive=104, eta_anni=40)
+        assert r["anno_parametri"] == 2026
+        assert r["soglia_2026"] == 1456.72 and r["massimale_2026"] == 1584.70
+        assert any("inps parametri" in riga for riga in r["dati_applicati"])
+
+    def test_dal_2027_i_valori_2026_non_vengono_applicati_in_silenzio(self, monkeypatch):
+        # The 2026 values cover up to 2026-12-31: in 2027 the tool refuses instead of applying them.
+        monkeypatch.setenv("LEGAL_TODAY", "2027-01-15")
+        r = _call_full("calcolo_naspi", retribuzione_media_mensile=2000.0, settimane_contributive=104, eta_anni=40)
+        assert r["errore"] == "dati_non_affidabili"
+        assert "inps_parametri" in {t["tabella"] for t in r["tabelle"]}
 
     def test_errore_retrib_zero(self):
         with pytest.raises(ValueError, match="retribuzione_media_mensile"):
@@ -197,12 +343,20 @@ class TestScadenzeLicenziamento:
         dt_dep = date.fromisoformat(r["scadenze"]["deposito_ricorso"]["data"])
         assert (dt_dep - dt_imp).days == 180
 
-    def test_post_conciliazione_decorre_da_deposito(self):
+    def test_post_conciliazione_solo_con_data_rifiuto(self):
         r = _call("scadenze_licenziamento", data_licenziamento="2025-06-01")
-        from datetime import date
-        dt_dep = date.fromisoformat(r["scadenze"]["deposito_ricorso"]["data"])
-        dt_post = date.fromisoformat(r["scadenze"]["post_conciliazione"]["data"])
-        assert (dt_post - dt_dep).days == 60
+        assert r["scadenze"]["post_conciliazione"]["data"] is None
+        r2 = _call("scadenze_licenziamento", data_licenziamento="2025-06-01",
+                   data_rifiuto_conciliazione="2025-10-01")
+        # Art. 6 co. 2 L. 604/1966: 60 giorni dal rifiuto o dal mancato accordo
+        assert r2["scadenze"]["post_conciliazione"]["data"] == "2025-11-30"
+
+    def test_deposito_decorre_dall_impugnazione_effettiva(self):
+        r = _call("scadenze_licenziamento", data_licenziamento="2025-06-01", data_impugnazione="2025-06-10")
+        assert r["scadenze"]["deposito_ricorso"]["data"] == "2025-12-07"
+        assert r["scadenze"]["deposito_ricorso"]["decorre_da"] == "2025-06-10"
+        tardiva = _call("scadenze_licenziamento", data_licenziamento="2025-06-01", data_impugnazione="2025-09-01")
+        assert any("decadenza" in a for a in tardiva["avvertimenti"])
 
     def test_struttura_output(self):
         r = _call("scadenze_licenziamento", data_licenziamento="2025-03-15")
@@ -249,6 +403,75 @@ class TestCostoLavoro:
         r = _call("costo_lavoro", retribuzione_lorda_annua=80000.0, tipo_contratto="dirigente")
         assert r["tipo_contratto"] == "dirigente"
         assert r["costo_azienda_totale"] > 80000.0
+
+    # Values below recomputed by hand on the 2026 rules; the clock is pinned to 2026 by the fixture.
+    @pytest.fixture(autouse=True)
+    def _anno_2026(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+
+    def test_apprendista_quota_lavoratore_5_84_circ_inps_128_2012(self):
+        # Circ. INPS 128/2012 par. 8: apprentice's share 5,84% (not 5,19%): 20.000 x 5,84% = 1.168,00.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=20000.0, tipo_contratto="apprendista")
+        assert r["aliquota_contributi_dipendente_pct"] == pytest.approx(5.84)
+        assert r["contributi_dipendente"] == pytest.approx(1168.00, abs=0.01)
+        # Art. 13 TUIR + art. 1 co. 4 lett. c L. 207/2024: IRPEF 1.582,17, somma non imponibile
+        # 4,8% x 18.832 = 903,94, netto 20.000 - 1.168 - 1.582,17 + 903,94 = 18.153,77.
+        assert r["irpef_stimata"] == pytest.approx(1582.17, abs=0.01)
+        assert r["somma_non_imponibile_l_207_2024"] == pytest.approx(903.94, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(18153.77, abs=0.01)
+        assert r["aliquota_contributi_datore_pct"] == pytest.approx(11.61)  # 10% + 1,61%: full rate
+
+    def test_dirigente_contributo_aggiuntivo_1_per_cento_circ_inps_6_2026(self):
+        # Art. 3-ter D.L. 384/1992, circ. INPS 6/2026: 1% above 56.224 euro (prima fascia 2026):
+        # 80.000 x 9,19% + 1% x (80.000 - 56.224) = 7.352,00 + 237,76 = 7.589,76.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=80000.0, tipo_contratto="dirigente")
+        assert r["contributi_dipendente"] == pytest.approx(7589.76, abs=0.01)
+        assert r["contributo_aggiuntivo_1_pct"] == pytest.approx(237.76, abs=0.01)
+        # Imponibile 72.410,24: imposta lorda 23.336,40 (23% / 33% / 43%), nessuna detrazione.
+        assert r["irpef_stimata"] == pytest.approx(23336.40, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(49073.84, abs=0.01)
+        assert "INPDAI" not in r["nota"]  # suppressed by art. 42 L. 289/2002
+
+    def test_nessun_contributo_aggiuntivo_sotto_la_prima_fascia(self):
+        r = _call("costo_lavoro", retribuzione_lorda_annua=56224.0)
+        assert r["contributo_aggiuntivo_1_pct"] == 0.0
+
+    def test_irap_zero_per_tempo_indeterminato_art_11_co_4_octies(self):
+        # Art. 11 co. 4-octies D.Lgs. 446/1997: the cost of permanent staff is fully deductible.
+        # Costo azienda 30.000 + 30% + TFR 2.072,22 = 41.072,22 (IRAP not added).
+        r = _call("costo_lavoro", retribuzione_lorda_annua=30000.0)
+        assert r["irap_stimata"] == 0
+        assert r["costo_azienda_totale"] == pytest.approx(41072.22, abs=0.01)
+
+    def test_tfr_quota_netta_art_2120_cc_e_art_3_l_297_1982(self):
+        # 30.000 / 13,5 = 2.222,22 minus 0,50% (150,00) = 2.072,22.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=30000.0)
+        assert r["tfr_annuo"] == pytest.approx(2072.22, abs=0.01)
+
+    def test_irpef_30000_detrazioni_art_13_e_l_207_2024(self):
+        # Imponibile 27.243; imposta lorda 6.265,89; detrazione art. 13 co. 1 lett. b 1.979,26
+        # (ratio 0,0582 truncated, co. 6) + 65 (co. 1.1) + 1.000 (art. 1 co. 6 lett. a L. 207/2024):
+        # IRPEF 3.221,63, netto 24.021,37.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=30000.0)
+        assert r["irpef_stimata"] == pytest.approx(3221.63, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(24021.37, abs=0.01)
+
+    def test_somma_non_imponibile_15000_art_1_co_4_l_207_2024(self):
+        # Reddito 13.621,50 (between 8.500 and 15.000): 5,3% = 721,94; IRPEF 1.177,95; netto 13.165,49.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=15000.0)
+        assert r["somma_non_imponibile_l_207_2024"] == pytest.approx(721.94, abs=0.01)
+        assert r["irpef_stimata"] == pytest.approx(1177.95, abs=0.01)
+        assert r["netto_stimato"] == pytest.approx(13165.49, abs=0.01)
+
+    def test_ulteriore_detrazione_decrescente_tra_32000_e_40000(self):
+        # Art. 1 co. 6 lett. b L. 207/2024: 1.000 x (40.000 - reddito) / 8.000. Lordo 38.000:
+        # contributi 3.492,20, reddito 34.507,80 -> 1.000 x 5.492,20 / 8.000 = 686,53.
+        r = _call("costo_lavoro", retribuzione_lorda_annua=38000.0)
+        assert r["detrazione_ulteriore_l_207_2024"] == pytest.approx(686.53, abs=0.01)
+
+    def test_avvertenza_oltre_il_massimale_contributivo(self):
+        r = _call("costo_lavoro", retribuzione_lorda_annua=130000.0)
+        assert any("massimale" in a for a in r["avvertenze"])
 
     def test_errore_lordo_zero(self):
         with pytest.raises(ValueError, match="retribuzione_lorda_annua"):

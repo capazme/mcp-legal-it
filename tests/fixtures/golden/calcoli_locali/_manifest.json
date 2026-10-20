@@ -1,5 +1,13 @@
 {
  "groups": {
+  "buoni_postali": {
+   "datasets": [
+    "buoni_postali"
+   ],
+   "tools": [
+    "rendimento_buoni_postali"
+   ]
+  },
   "codici_ateco": {
    "datasets": [
     "codici_ateco"
@@ -67,6 +75,7 @@
    ],
    "tools": [
     "conta_giorni",
+    "prescrizione_diritti",
     "scadenza_processuale",
     "scadenze_impugnazioni",
     "scadenze_multe",
@@ -141,6 +150,23 @@
     "rivalutazione_monetaria"
    ]
   },
+  "inps_parametri": {
+   "datasets": [
+    "inps_parametri"
+   ],
+   "tools": [
+    "calcolo_naspi"
+   ]
+  },
+  "inps_parametri+irpef_scaglioni": {
+   "datasets": [
+    "inps_parametri",
+    "irpef_scaglioni"
+   ],
+   "tools": [
+    "costo_lavoro"
+   ]
+  },
   "irpef_scaglioni": {
    "datasets": [
     "irpef_scaglioni"
@@ -148,7 +174,6 @@
    "tools": [
     "calcolo_irpef",
     "calcolo_tfr",
-    "costo_lavoro",
     "detrazione_lavoro_dipendente",
     "regime_forfettario"
    ]
@@ -185,7 +210,6 @@
     "calcolo_eta_anagrafica",
     "calcolo_hash",
     "calcolo_imu",
-    "calcolo_naspi",
     "calcolo_superficie_commerciale",
     "calcolo_surroga_mutuo",
     "calcolo_taeg",
@@ -229,7 +253,6 @@
     "genera_registro_trattamenti",
     "grado_parentela",
     "gratuito_patrocinio",
-    "imposta_registro_locazioni",
     "indennita_licenziamento",
     "indice_documenti",
     "interessi_tasso_fisso",
@@ -242,7 +265,6 @@
     "pena_concordata",
     "pensione_reversibilita",
     "pignoramento_stipendio",
-    "prescrizione_diritti",
     "prescrizione_reato",
     "procura_alle_liti",
     "pronti_termine",
@@ -251,7 +273,6 @@
     "relata_notifica_pec",
     "rendimento_bot",
     "rendimento_btp",
-    "rendimento_buoni_postali",
     "ricevuta_prestazione_occasionale",
     "risarcimento_inail",
     "ritenuta_acconto",
@@ -319,9 +340,19 @@
     "tassi_legali"
    ],
    "tools": [
+    "imposta_registro_locazioni",
     "interessi_acconti",
     "interessi_legali",
     "ravvedimento_operoso"
+   ]
+  },
+  "tassi_legali+tassi_mora": {
+   "datasets": [
+    "tassi_legali",
+    "tassi_mora"
+   ],
+   "tools": [
+    "interessi_corso_causa"
    ]
   },
   "tassi_mora": {
@@ -329,7 +360,6 @@
     "tassi_mora"
    ],
    "tools": [
-    "interessi_corso_causa",
     "interessi_mora",
     "sollecito_pagamento"
    ]
@@ -402,7 +432,9 @@
    "indici_foi",
    "tassi_legali"
   ],
-  "calcolo_naspi": [],
+  "calcolo_naspi": [
+   "inps_parametri"
+  ],
   "calcolo_notula_penale": [
    "parametri_forensi"
   ],
@@ -453,6 +485,7 @@
   "copie_processo_tributario": [],
   "costi_costituzione": [],
   "costo_lavoro": [
+   "inps_parametri",
    "irpef_scaglioni"
   ],
   "danno_biologico_macro": [
@@ -506,7 +539,9 @@
   "genera_registro_trattamenti": [],
   "grado_parentela": [],
   "gratuito_patrocinio": [],
-  "imposta_registro_locazioni": [],
+  "imposta_registro_locazioni": [
+   "tassi_legali"
+  ],
   "imposte_compravendita": [
    "imposte_successione"
   ],
@@ -525,6 +560,7 @@
    "tassi_legali"
   ],
   "interessi_corso_causa": [
+   "tassi_legali",
    "tassi_mora"
   ],
   "interessi_legali": [
@@ -573,7 +609,9 @@
   "pena_concordata": [],
   "pensione_reversibilita": [],
   "pignoramento_stipendio": [],
-  "prescrizione_diritti": [],
+  "prescrizione_diritti": [
+   "festivita"
+  ],
   "prescrizione_reato": [],
   "preventivo_civile": [
    "contributo_unificato",
@@ -598,7 +636,9 @@
   "relata_notifica_pec": [],
   "rendimento_bot": [],
   "rendimento_btp": [],
-  "rendimento_buoni_postali": [],
+  "rendimento_buoni_postali": [
+   "buoni_postali"
+  ],
   "ricerca_codici_ateco": [
    "codici_ateco"
   ],

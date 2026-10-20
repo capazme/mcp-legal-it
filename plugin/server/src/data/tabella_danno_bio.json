@@ -1,7 +1,7 @@
 {
   "_vintage": {
     "aggiornato_al": "2026-09-03",
-    "fonte": "art. 139 Cod. Ass. (DM MIMIT 20 luglio 2026, GU n.173 del 28/07/2026) e tabella unica nazionale macropermanenti (DM 2024)",
+    "fonte": "art. 139 Cod. Ass. (DM MIMIT 20 luglio 2026, GU n.173 del 28/07/2026) per le micropermanenti; macropermanenti: valori indicativi, tabella unica nazionale DPR 12/2025 non ancora trascritta",
     "verifica": "manuale"
   },
   "_description": "Tabelle danno biologico — micropermanenti art. 139 CdA (DM 2026) e macropermanenti (tabella unica nazionale DM 2024)",
@@ -29,7 +29,7 @@
     "invalidita_temporanea_parziale_25_pct": 14.41
   },
   "macropermanenti": {
-    "_note": "Tabella unica nazionale ex art. 138 CdA (DM 2024). Valori punto per percentuale invalidità. I valori reali variano per età — qui riportati i valori medi indicativi.",
+    "_note": "ATTENZIONE: valori medi indicativi NON tratti dalla tabella unica nazionale ex art. 138 CdA (DPR 13 gennaio 2025 n. 12), ancora da trascrivere dalla Gazzetta Ufficiale, né dalle tabelle di Milano; per gradi elevati sovrastimano. Il tool danno_biologico_macro li dichiara STIMATO.",
     "punto_base": {
       "10": 2680,
       "15": 3800,

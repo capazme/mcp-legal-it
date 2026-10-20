@@ -1,13 +1,14 @@
 {
   "_vintage": {
     "copre_fino_a": "2026-12-31",
-    "fonte": "DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.",
+    "fonte": "DM MEF 10 dicembre 2025 (GU n.289 del 13/12/2025), art. 1284 c.c.; art. 1 L. 353/1990 (10% dal 16/12/1990, art. 92 co. 1 stessa legge)",
+    "aggiornato_al": "2026-09-29",
     "verifica": "manuale"
   },
   "_description": "Tassi di interesse legale art. 1284 c.c. — dal 1942 a oggi",
   "tassi": [
-    {"dal": "1942-04-21", "al": "1990-04-15", "tasso": 5.0},
-    {"dal": "1990-04-16", "al": "1996-12-31", "tasso": 10.0},
+    {"dal": "1942-04-21", "al": "1990-12-15", "tasso": 5.0},
+    {"dal": "1990-12-16", "al": "1996-12-31", "tasso": 10.0},
     {"dal": "1997-01-01", "al": "1998-12-31", "tasso": 5.0},
     {"dal": "1999-01-01", "al": "2000-12-31", "tasso": 2.5},
     {"dal": "2001-01-01", "al": "2001-12-31", "tasso": 3.5},

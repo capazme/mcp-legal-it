@@ -1,7 +1,9 @@
 {
   "_vintage": {
-    "fonte": "artt. 6 e 9 Reg. UE 2016/679",
-    "verifica": "manuale"
+    "aggiornato_al": "2026-09-29",
+    "fonte": "artt. 6, 7, 9, 22 Reg. UE 2016/679 (CELLAR 3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0013.03); artt. 2-ter, 2-sexies, 2-septies, 75, 114, 122, 130 D.Lgs. 196/2003 (Normattiva); art. 4 L. 300/1970 come sostituito dall'art. 23 D.Lgs. 151/2015",
+    "verifica": "manuale",
+    "nota": "testi vigenti riletti il 28/09/2026 con cite_law. Ogni voce di matrice_contesto_base ha parole_chiave (scelta della voce dal tipo di trattamento), condizioni_art9_pertinenti (lettere dell'art. 9(2) per quel contesto) e garanzie_art9."
   },
   "basi_art6": {
     "consenso": {
@@ -38,7 +40,7 @@
       "contesti_tipici": ["emergenze sanitarie", "catastrofi naturali", "salvataggio persona", "epidemie"],
       "pro": ["Applicabile anche senza consenso", "Copre situazioni di emergenza"],
       "contro": ["Solo per pericolo di vita o salute", "Residuale: non usare se altra base è disponibile", "Interpretazione molto restrittiva"],
-      "requisiti": ["Pericolo per la vita o l'integrità fisica", "Impossibilità di ottenere il consenso"]
+      "requisiti": ["Pericolo per la vita o l'integrità fisica", "Trattamento necessario a proteggere un interesse essenziale per la vita (considerando 46)"]
     },
     "interesse_pubblico": {
       "lettera": "e",
@@ -61,7 +63,7 @@
     }
   },
   "condizioni_art9": {
-    "premessa": "Il trattamento di categorie particolari di dati (art. 9(1): origine razziale/etnica, opinioni politiche, convinzioni religiose, appartenenza sindacale, dati genetici, biometrici, salute, vita/orientamento sessuale) è vietato salvo le eccezioni dell'art. 9(2)",
+    "premessa": "Il trattamento di categorie particolari di dati (art. 9(1): origine razziale/etnica, opinioni politiche, convinzioni religiose o filosofiche, appartenenza sindacale, dati genetici, dati biometrici intesi a identificare in modo univoco una persona fisica, salute, vita/orientamento sessuale) è vietato salvo le eccezioni dell'art. 9(2)",
     "eccezioni": {
       "consenso_esplicito": {
         "lettera": "a",
@@ -93,7 +95,7 @@
       },
       "medicina_lavoro": {
         "lettera": "h",
-        "descrizione": "Medicina preventiva/del lavoro, valutazione capacità lavorativa, diagnosi, assistenza sanitaria"
+        "descrizione": "Medicina preventiva/del lavoro, valutazione capacità lavorativa, diagnosi, assistenza sanitaria, fatte salve le condizioni e le garanzie dell'art. 9(3) (dati trattati da o sotto la responsabilità di un professionista soggetto al segreto professionale)"
       },
       "sanita_pubblica": {
         "lettera": "i",
@@ -107,51 +109,81 @@
   },
   "matrice_contesto_base": {
     "B2C_marketing": {
+      "parole_chiave": ["marketing", "newsletter", "promozion", "pubblicit", "offerte commerciali"],
+      "condizioni_art9_pertinenti": ["a"],
+      "garanzie_art9": "art. 9(2)(a): consenso esplicito",
       "base_consigliata": "consenso",
       "alternative": ["legittimo_interesse"],
       "nota": "Per marketing diretto via email, il consenso è richiesto anche dalla Dir. ePrivacy (art. 130 D.Lgs. 196/2003). Il legittimo interesse è ammesso solo per soft spam (clienti esistenti, prodotti analoghi, con opt-out)."
     },
     "B2C_ecommerce": {
+      "parole_chiave": ["ordine", "ordini", "e-commerce", "ecommerce", "acquist", "consegna", "fatturazione"],
+      "condizioni_art9_pertinenti": ["a"],
+      "garanzie_art9": "art. 9(2)(a): consenso esplicito, distinto da quello per l'esecuzione del contratto (art. 7(4))",
       "base_consigliata": "contratto",
       "alternative": ["obbligo_legale"],
       "nota": "Per l'esecuzione dell'ordine e la consegna. Per fatturazione e adempimenti fiscali: obbligo legale."
     },
     "B2B_gestione_clienti": {
+      "parole_chiave": ["b2b", "gestione clienti", "crm", "fornitor", "contratto commerciale"],
+      "condizioni_art9_pertinenti": ["a"],
+      "garanzie_art9": "art. 9(2)(a): consenso esplicito",
       "base_consigliata": "contratto",
       "alternative": ["legittimo_interesse"],
       "nota": "Per l'esecuzione del contratto commerciale. Per attività accessorie (CRM, analytics): legittimo interesse con LIA."
     },
     "dipendenti_gestione": {
+      "parole_chiave": ["dipendent", "personale", "paghe", "buste paga", "assenz", "malattia", "rapporto di lavoro"],
+      "condizioni_art9_pertinenti": ["b", "h", "f"],
+      "garanzie_art9": "art. 9(2)(b) con art. 9(3) e, per la medicina del lavoro, art. 9(2)(h); art. 9(2)(f) per il contenzioso",
       "base_consigliata": "contratto",
       "alternative": ["obbligo_legale"],
       "nota": "Per l'esecuzione del contratto di lavoro. Per adempimenti contributivi/fiscali: obbligo legale. Per dati sanitari: art. 9(2)(b) o (h). Il consenso è sconsigliato per lo squilibrio di potere."
     },
     "dipendenti_videosorveglianza": {
+      "parole_chiave": ["videosorveglianza", "telecamer", "impianti audiovisivi", "geolocalizzazione", "controllo a distanza"],
+      "condizioni_art9_pertinenti": ["b", "h", "f"],
+      "garanzie_art9": "art. 4 L. 300/1970 (art. 114 D.Lgs. 196/2003); art. 9(2)(b), (h), (f) solo per le categorie particolari eventualmente raccolte",
       "base_consigliata": "legittimo_interesse",
       "alternative": [],
-      "nota": "Richiede accordo sindacale o autorizzazione ITL ex art. 4 L. 300/1970. Il legittimo interesse deve essere documentato con LIA. Vietato il controllo a distanza dell'attività lavorativa."
+      "nota": "Impianti audiovisivi impiegabili esclusivamente per esigenze organizzative e produttive, per la sicurezza del lavoro e per la tutela del patrimonio aziendale, previo accordo collettivo (RSU/RSA) o autorizzazione dell'Ispettorato nazionale del lavoro (art. 4, co. 1, L. 300/1970, richiamato dall'art. 114 D.Lgs. 196/2003). Il legittimo interesse deve essere documentato con LIA; le informazioni raccolte sono utilizzabili a tutti i fini connessi al rapporto di lavoro solo con adeguata informazione ai lavoratori e nel rispetto del D.Lgs. 196/2003 (art. 4, co. 3)."
     },
     "pubblica_amministrazione": {
+      "parole_chiave": ["pubblica amministrazione", "ente pubblico", "procedimento amministrativo", "benefici", "invalidit"],
+      "condizioni_art9_pertinenti": ["g"],
+      "garanzie_art9": "art. 9(2)(g) con art. 2-sexies D.Lgs. 196/2003",
       "base_consigliata": "interesse_pubblico",
       "alternative": ["obbligo_legale"],
-      "nota": "La PA non può usare il legittimo interesse (art. 6(1), ultimo comma). Deve sempre identificare la base nel diritto UE o nazionale."
+      "nota": "La PA non può usare il legittimo interesse (art. 6(1), ultimo comma). Deve sempre identificare la base nel diritto UE o nazionale (art. 2-ter, co. 1 e 1-bis, D.Lgs. 196/2003); per i dati particolari, art. 9(2)(g) GDPR e art. 2-sexies D.Lgs. 196/2003 (co. 2, lett. m, per i benefici economici)."
     },
     "sanita": {
+      "parole_chiave": ["sanit", "clinic", "cartella", "diagnosi", "cura", "paziente", "terapia"],
+      "condizioni_art9_pertinenti": ["h", "i"],
+      "garanzie_art9": "art. 9(3) GDPR (segreto professionale); artt. 75 e 2-septies D.Lgs. 196/2003",
       "base_consigliata": "obbligo_legale",
       "alternative": ["interesse_pubblico"],
-      "nota": "Per trattamento dati sanitari: art. 9(2)(h) con base in art. 75 D.Lgs. 196/2003. Per emergenze: interesse vitale (art. 6(1)(d) + art. 9(2)(c))."
+      "nota": "Per trattamento dati sanitari: art. 9(2)(h) e (i) e 9(3) GDPR, con artt. 75 e 2-septies D.Lgs. 196/2003 (l'art. 9(2)(h) ammette anche il trattamento conforme al contratto con un professionista della sanità). Per emergenze: interesse vitale (art. 6(1)(d) + art. 9(2)(c))."
     },
     "ricerca_scientifica": {
+      "parole_chiave": ["ricerca scientifica", "ricerca medica", "ricerca storica", "studio clinico", "sperimentazione", "fini statistici", "fini di ricerca"],
+      "condizioni_art9_pertinenti": ["j"],
+      "garanzie_art9": "art. 89 GDPR; artt. 110 ss. D.Lgs. 196/2003",
       "base_consigliata": "interesse_pubblico",
       "alternative": ["consenso"],
       "nota": "Art. 9(2)(j) con garanzie ex art. 89. In Italia: artt. 97-110 D.Lgs. 196/2003."
     },
     "profilazione_online": {
+      "parole_chiave": ["profilazione", "cookie", "scoring", "decisione automatizzata", "tracciamento"],
+      "condizioni_art9_pertinenti": ["a"],
+      "garanzie_art9": "art. 9(2)(a): consenso esplicito; art. 22(4) GDPR per le decisioni automatizzate su dati particolari",
       "base_consigliata": "consenso",
       "alternative": [],
-      "nota": "Per cookie di profilazione: consenso obbligatorio (Linee Guida Garante 10/06/2021). Per profilazione con effetti significativi: art. 22 GDPR richiede consenso esplicito."
+      "nota": "Per cookie di profilazione: consenso obbligatorio (Linee Guida Garante 10/06/2021). Per le decisioni basate unicamente sul trattamento automatizzato con effetti giuridici o analoghi (art. 22(1) GDPR): ammesse solo se necessarie per la conclusione o l'esecuzione di un contratto, autorizzate dal diritto UE o nazionale o basate sul consenso esplicito (art. 22(2)(a)-(c))."
     },
     "antifrode_sicurezza": {
+      "parole_chiave": ["frod", "antifrod", "sicurezza informatica", "sicurezza della rete"],
+      "condizioni_art9_pertinenti": ["a"],
+      "garanzie_art9": "art. 9(2)(a) o altra condizione da individuare caso per caso",
       "base_consigliata": "legittimo_interesse",
       "alternative": [],
       "nota": "Considerando 47 GDPR: la prevenzione delle frodi costituisce legittimo interesse. Documentare con LIA. Se su larga scala con dati sensibili: valutare DPIA."

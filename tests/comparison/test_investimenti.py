@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 10 — Investimenti."""
+"""Arithmetic verification tests for Sezione 10 - Investimenti."""
 
 from tests.comparison.conftest import assert_close
 

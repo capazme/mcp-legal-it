@@ -18,11 +18,20 @@
  *       "purpose":"…", "duration":"2 anni",
  *       "category":"Statistica / Marketing", "state":"Atteso (post-consenso)" }
  *   ],
- *   "notes": [ "nota di accuratezza 1", "nota 2" ]  // opz. bullet finali
+ *   "notes": [ "nota di accuratezza 1", "nota 2" ], // opz. bullet finali
+ *   "pixels": [                                   // opz. mappa pixel e tracciatori
+ *     { "tool":"Meta Pixel", "where":"Sito (pagina)", "id":"1234567890123456",
+ *       "data":"PageView, AddToCart · ud[em] (email con hash)",
+ *       "when":"Pre-consenso", "state":"Osservato" }
+ *   ],
+ *   "newsletter": [                               // opz. un elemento per flusso email analizzato
+ *     { "message":"Newsletter di ottobre (2 copie)", "platform":"Mailchimp",
+ *       "findings":[ "Pixel individuale (diverso per destinatario)", "Manca la revoca del solo tracciamento" ] }
+ *   ]
  * }
  *
- * La colonna "state" è libera; le parole chiave Osservato/Atteso/Condizionale
- * determinano un colore. La legenda è fissa e sempre inclusa.
+ * La colonna "state" è libera; le parole chiave Osservato/Atteso/Configurato/Condizionale
+ * determinano un colore. La legenda è fissa e inclusa quando c'è la tabella.
  */
 const fs = require("fs");
 const {
@@ -45,15 +54,16 @@ const COLS = [2500, 2550, 4058, 1350, 1900, 1600];        // somma = 13958 (A4 l
 const CONTENT_W = COLS.reduce((a, b) => a + b, 0);
 const cellMargins = { top: 60, bottom: 60, left: 110, right: 110 };
 
-const stateColor = s => /osserv/i.test(s) ? "1E7A34" : /attes/i.test(s) ? "9A6700" : /condizion/i.test(s) ? "7A4EAB" : "333333";
+const stateColor = s => /osserv/i.test(s) ? "1E7A34" : /attes/i.test(s) ? "9A6700" : /configur/i.test(s) ? "1F5FA8" : /condizion/i.test(s) ? "7A4EAB" : "333333";
+const whenColor = s => /pre-?consenso/i.test(s) ? "B42318" : "333333";
 
-function hCell(text, i) {
-  return new TableCell({ borders, width: { size: COLS[i], type: WidthType.DXA },
+function hCell(text, i, cols = COLS) {
+  return new TableCell({ borders, width: { size: cols[i], type: WidthType.DXA },
     shading: { fill: HEADER_FILL, type: ShadingType.CLEAR }, margins: cellMargins, verticalAlign: VerticalAlign.CENTER,
     children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF", size: 17 })] })] });
 }
-function dCell(runs, i, fill) {
-  return new TableCell({ borders, width: { size: COLS[i], type: WidthType.DXA },
+function dCell(runs, i, fill, cols = COLS) {
+  return new TableCell({ borders, width: { size: cols[i], type: WidthType.DXA },
     shading: fill ? { fill, type: ShadingType.CLEAR } : undefined, margins: cellMargins, verticalAlign: VerticalAlign.CENTER,
     children: [new Paragraph({ children: runs })] });
 }
@@ -76,28 +86,65 @@ const bodyRows = (A.cookies || []).map((c, idx) => {
 });
 
 const table = new Table({ width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: COLS, rows: [headerRow, ...bodyRows] });
+
+// Pixel and tracker map (optional)
+const PCOLS = [2300, 1900, 2150, 4108, 1750, 1750];          // somma = 13958
+const pixels = A.pixels || [];
+const pixelTable = pixels.length ? new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: PCOLS,
+  rows: [
+    new TableRow({ tableHeader: true,
+      children: ["Strumento", "Dove", "ID", "Eventi e dati inviati", "Momento", "Stato"].map((t, i) => hCell(t, i, PCOLS)) }),
+    ...pixels.map((p, idx) => {
+      const fill = idx % 2 ? ROW_ALT : undefined;
+      return new TableRow({ children: [
+        dCell(txt(p.tool || ""), 0, fill, PCOLS),
+        dCell(txt(p.where || ""), 1, fill, PCOLS),
+        dCell(mono(p.id || ""), 2, fill, PCOLS),
+        dCell(txt(p.data || ""), 3, fill, PCOLS),
+        dCell(txt(p.when || "", { color: whenColor(p.when || "") }), 4, fill, PCOLS),
+        dCell(txt(p.state || "", { color: stateColor(p.state || "") }), 5, fill, PCOLS),
+      ] });
+    }),
+  ] }) : null;
 const r = (t, o = {}) => new TextRun({ text: t, size: 18, bold: o.bold, italics: o.italics, font: o.font, color: o.color });
 const bullet = runs => new Paragraph({ numbering: { reference: "b", level: 0 }, spacing: { after: 60 }, children: runs });
 
 const legend = [
-  ["Osservato", "cookie effettivamente presente nel browser durante il test (dopo «Accetta tutto»)."],
-  ["Atteso (post-consenso)", "non comparso nel test perché un ad-blocker ha bloccato la libreria, ma confermato dal container reale / policy: presente per l'utente comune."],
-  ["Condizionale", "si imposta solo su determinate pagine (form/checkout) o sottodomini, non sulla homepage."],
+  ["Osservato", "effettivamente presente nel browser o nell'email durante il test."],
+  ["Atteso (post-consenso)", "non comparso nel test perché un ad-blocker ha bloccato la libreria, ma confermato dal container reale / codice della pagina / policy: presente per l'utente comune."],
+  ["Configurato", "presente nel container o nel codice della pagina, ma non osservato in funzione durante il test (es. scatta solo su eventi non riprodotti)."],
+  ["Condizionale", "solo su determinate pagine (form/checkout), sottodomini o messaggi."],
 ];
 
 const children = [
-  new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(`Analisi cookie — ${A.site || A.url || ""}`)] }),
+  new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(`${pixels.length || (A.newsletter || []).length ? "Analisi cookie e tracciamento" : "Analisi cookie"} — ${A.site || A.url || ""}`)] }),
   new Paragraph({ spacing: { after: 60 }, children: [
     r("Pagina analizzata: ", { bold: true }), r(`${A.url || ""}    `),
     r("Data rilevazione: ", { bold: true }), r(A.date || "") ] }),
   new Paragraph({ spacing: { after: 200 }, children: [
     r("Metodo: ", { bold: true }),
-    r(A.method || "ispezione con browser controllato in contesto isolato e pulito; stato pre/post-consenso, rete, storage e DOM del banner; inventario tag verificato sul container GTM reale (lato server). "),
+    r(A.method || ("ispezione con browser controllato in contesto isolato e pulito; stato pre/post-consenso, rete, storage e DOM del banner; inventario tag verificato sul container GTM reale (lato server). "
+      + ((A.newsletter || []).length ? "Newsletter: analisi del sorgente (.eml) di copie ricevute su caselle di prova. " : ""))),
     ...(A.note ? [r("Nota: ", { bold: true, italics: true }), r(A.note, { italics: true })] : []) ] }),
-  table,
+  ...((A.cookies || []).length ? [
+    new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("Cookie")] }),
+    table] : []),
+  ...(pixelTable ? [
+    new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("Pixel e altri strumenti di tracciamento")] }),
+    pixelTable] : []),
   new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("Legenda «Stato»")] }),
   ...legend.map(([term, desc]) => bullet([r(term, { bold: true }), r(" — " + desc)])),
 ];
+
+if (A.newsletter && A.newsletter.length) {
+  children.push(new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("Newsletter e comunicazioni email")] }));
+  A.newsletter.forEach(n => {
+    children.push(new Paragraph({ spacing: { before: 120, after: 60 }, children: [
+      r(n.message || "Messaggio", { bold: true }), ...(n.platform ? [r(` · piattaforma: ${n.platform}`)] : [])] }));
+    (n.findings || []).forEach(f => children.push(bullet([r(f)])));
+  });
+}
 
 if (A.notes && A.notes.length) {
   children.push(new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("Note di accuratezza")] }));

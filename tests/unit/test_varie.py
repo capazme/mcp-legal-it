@@ -73,6 +73,30 @@ class TestCodiceFiscale:
         assert r_giu["dettaglio"]["mese"] == "H"
 
 
+class TestCodiceFiscaleAccentate:
+
+    def test_vocale_accentata_come_vocale_semplice(self):
+        # Nicolò is folded to NICOLO (consonants N,C,L then vocals): RSS NCL 85 H 15 H501 M
+        r = _call("codice_fiscale", cognome="Rossi", nome="Nicol\u00f2",
+                  data_nascita="1985-06-15", sesso="M", comune_nascita="ROMA")
+        r2 = _call("codice_fiscale", cognome="Rossi", nome="Nicolo",
+                   data_nascita="1985-06-15", sesso="M", comune_nascita="ROMA")
+        assert r["codice_fiscale"] == "RSSNCL85H15H501M"
+        assert r["codice_fiscale"] == r2["codice_fiscale"]
+
+    def test_cognome_accentato_e_apostrofo(self):
+        r = _call("codice_fiscale", cognome="D'Al\u00ec", nome="Mario",
+                  data_nascita="1985-06-15", sesso="M", comune_nascita="ROMA")
+        r2 = _call("codice_fiscale", cognome="Dali", nome="Mario",
+                   data_nascita="1985-06-15", sesso="M", comune_nascita="ROMA")
+        assert r["codice_fiscale"] == r2["codice_fiscale"]
+
+    def test_lettera_non_latina_rifiutata(self):
+        r = _call("codice_fiscale", cognome="\u0141ukasz", nome="Mario",
+                  data_nascita="1985-06-15", sesso="M", comune_nascita="ROMA")
+        assert "errore" in r
+
+
 # ---------------------------------------------------------------------------
 # decodifica_codice_fiscale
 # ---------------------------------------------------------------------------
@@ -113,6 +137,19 @@ class TestDecodificaCodiceFiscale:
     def test_codice_catastale_restituito(self):
         r = _call("decodifica_codice_fiscale", codice_fiscale="RSSMRA80A01H501U")
         assert r["dati"]["codice_catastale"] == "H501"
+
+    @pytest.mark.parametrize("cf, anno", [
+        # The CF has two year digits only: the century is the most recent one that keeps the
+        # birth date in the past. With today pinned to 2026-09-29:
+        ("RSSMRA29A01H501P", 1929),  # 2029-01-01 would be in the future
+        ("RSSMRA26A01H501M", 2026),  # 2026-01-01 is already past
+        ("RSSMRA26T31H501A", 1926),  # 2026-12-31 is still to come
+    ])
+    def test_secolo_non_nel_futuro(self, monkeypatch, cf, anno):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
+        r = _call("decodifica_codice_fiscale", codice_fiscale=cf)
+        assert r["dati"]["anno_nascita_stimato"] == anno
+        assert r["dati"]["data_nascita"].startswith(str(anno))
 
 
 # ---------------------------------------------------------------------------
@@ -267,12 +304,46 @@ class TestDecurtazionePuntiPatente:
         r = _call("decurtazione_punti_patente", violazione="cintura")
         assert "punti" in r or "risultati" in r
 
+    def test_cellulare_recidiva_biennio_10_punti(self):
+        # Art. 173 c.3-bis, secondo periodo (as amended by L. 177/2024): a further violation
+        # within two years costs 10 points (first violation: 5).
+        r = _call("decurtazione_punti_patente", violazione="cellulare_recidiva")
+        assert r["punti"] == 10
+        base = _call("decurtazione_punti_patente", violazione="cellulare")
+        assert base["punti"] == 5
+        assert base["punti_recidiva_biennio"] == 10
+
+    def test_cellulare_sospensione_come_da_norma(self):
+        # Art. 173 c.3-bis: 15 days-2 months, then 1-3 months for the further violation.
+        r = _call("decurtazione_punti_patente", violazione="cellulare")
+        assert "15 giorni a 2 mesi" in r["sanzione_accessoria"]
+        assert "da 1 a 3 mesi" in r["sanzione_accessoria"]
+
+    def test_lenti_otto_punti(self):
+        # Art. 173 c.3 (violation of c.1, lenses/devices prescribed): 8 points in the table.
+        r = _call("decurtazione_punti_patente", violazione="lenti_apparecchi")
+        assert r["punti"] == 8
+
+    def test_assicurazione_cinque_punti(self):
+        # Art. 193 c.2 is in the table annexed to art. 126-bis with 5 points (ACI, certifico 2025).
+        r = _call("decurtazione_punti_patente", violazione="assicurazione")
+        assert r["punti"] == 5
+
 
 # ---------------------------------------------------------------------------
 # tasso_alcolemico
 # ---------------------------------------------------------------------------
 
 class TestTassoAlcolemico:
+
+    def test_confine_0_5_non_e_ancora_illecito(self):
+        # Art. 186 co. 2 lett. a) D.Lgs. 285/1992: la fascia e' "superiore a 0,5 e non superiore a 0,8 g/l",
+        # quindi esattamente 0,5 g/l resta fuori (M 60 kg, 1,75 unita' alcoliche, picco 0,50).
+        r = _call("tasso_alcolemico", sesso="M", peso_kg=60, unita_alcoliche=1.75, ore_trascorse=0)
+        assert r["tasso_attuale_g_l"] == 0.5
+        assert r["sanzione"] is None
+        assert r["fascia_sanzione_cds"].startswith("nessuna")
+
 
     def test_fascia_a(self):
         # 3 UA, 70kg M, 1h → tasso 0.58 → fascia a
@@ -344,7 +415,9 @@ class TestPrescrioneDiritti:
         r = _call("prescrizione_diritti", tipo_diritto="risarcimento_danni",
                   data_evento="2024-01-01")
         assert r["termine_anni"] == 5
-        assert r["data_prescrizione"] == "2029-01-01"
+        # 01/01/2029 is a Monday and a holiday: extended to 02/01 by art. 2963 c. 3 c.c.
+        assert r["data_prescrizione"] == "2029-01-02"
+        assert r["scadenza_naturale"] == "2029-01-01"
 
     def test_tipo_invalido(self):
         r = _call("prescrizione_diritti", tipo_diritto="invenzione",
@@ -366,6 +439,32 @@ class TestPrescrioneDiritti:
                   data_evento="2030-06-01")
         assert r["termine_anni"] == 2
         assert r["data_prescrizione"] == "2032-06-01"
+
+
+class TestPrescrizioneDiritti:
+
+    @pytest.mark.parametrize("tipo, evento, atteso", [
+        # Art. 2963 c. 3 c.c.: a term expiring on a Sunday or holiday runs to the next working day.
+        ("ordinaria", "2016-10-04", "2026-10-05"),           # 04/10/2026 is a Sunday and San Francesco
+        ("risarcimento_danni", "2022-08-15", "2027-08-16"),  # 15/08/2027 is a Sunday and Ferragosto
+        ("ordinaria", "2015-12-25", "2025-12-27"),           # Natale (Thu) and Santo Stefano (Fri) are festive, Saturday 27/12 is not
+    ])
+    def test_proroga_festivo(self, tipo, evento, atteso):
+        r = _call("prescrizione_diritti", tipo_diritto=tipo, data_evento=evento)
+        assert r["data_prescrizione"] == atteso
+        assert r["prorogata_per_festivo"] is True
+
+    def test_sabato_non_festivo(self):
+        # 2026-08-08 is a Saturday: not a festive day for art. 2963 c. 3, no extension.
+        r = _call("prescrizione_diritti", tipo_diritto="ordinaria", data_evento="2016-08-08")
+        assert r["data_prescrizione"] == "2026-08-08"
+        assert r["prorogata_per_festivo"] is False
+
+    def test_29_febbraio_ultimo_giorno_del_mese(self):
+        # Art. 2963 c. 5: no 29/02 in the expiry month, the term ends on 28/02 (2025 is not
+        # a leap year; 28/02/2025 is a Friday).
+        r = _call("prescrizione_diritti", tipo_diritto="diritti_lavoro", data_evento="2020-02-29")
+        assert r["data_prescrizione"] == "2025-02-28"
 
 
 # ---------------------------------------------------------------------------
@@ -412,6 +511,25 @@ class TestCalcoloTempoTrascorso:
                   data_inizio="2020-03-01", data_fine="2024-03-01")
         assert "4 anni" in r["descrizione"]
 
+    @pytest.mark.parametrize("inizio, fine, ymd", [
+        # Art. 2963 c.c., commi 4-5: the month is complete on the matching day, or on the
+        # last day of the month when that day is missing. Values worked out by hand.
+        ("2024-01-31", "2024-03-01", (0, 1, 1)),   # 31/01 + 1 month = 29/02, +1 day
+        ("2023-01-31", "2023-03-01", (0, 1, 1)),   # 31/01 + 1 month = 28/02, +1 day
+        ("2020-02-29", "2021-02-28", (1, 0, 0)),   # a full year ends on 28/02
+        ("2023-12-31", "2024-02-29", (0, 2, 0)),   # 2 months end on 29/02
+        ("1990-05-31", "2025-07-01", (35, 1, 1)),  # 31/05 + 1 month = 30/06, +1 day
+    ])
+    def test_scomposizione_art_2963(self, inizio, fine, ymd):
+        r = _call("calcolo_tempo_trascorso", data_inizio=inizio, data_fine=fine)
+        assert (r["anni"], r["mesi"], r["giorni"]) == ymd
+        assert r["giorni"] >= 0
+
+    def test_descrizione_singolare(self):
+        r = _call("calcolo_tempo_trascorso",
+                  data_inizio="2024-01-31", data_fine="2024-03-01")
+        assert r["descrizione"] == "0 anni, 1 mese, 1 giorno"
+
 
 # ---------------------------------------------------------------------------
 # verifica_partita_iva
@@ -444,7 +562,16 @@ class TestVerificaPartitaIva:
 
     def test_codice_ufficio_estratto(self):
         r = _call("verifica_partita_iva", partita_iva="12345670017")
-        assert r["codice_ufficio"] == "12"
+        # Digits 8-10 are the office code, digits 1-7 the progressive number
+        # (structure of the partita IVA per the Agenzia delle Entrate).
+        assert r["codice_ufficio"] == "001"
+        assert r["matricola"] == "1234567"
+
+    def test_codice_ufficio_milano_lodi(self):
+        # 00743110157: office 015 (Milano), 7-digit progressive 0074311
+        r = _call("verifica_partita_iva", partita_iva="00743110157")
+        assert r["valido"] is True
+        assert r["codice_ufficio"] == "015"
 
 
 # ---------------------------------------------------------------------------
@@ -487,6 +614,22 @@ class TestCalcoloEtaAnagrafica:
         r = _call("calcolo_eta_anagrafica",
                   data_nascita="1990-06-15", data_riferimento="2024-06-15")
         assert "34 anni" in r["descrizione"]
+
+    @pytest.mark.parametrize("nascita, rif, ymd", [
+        # Same calendar rule as calcolo_tempo_trascorso (art. 2963 c.c., commi 4-5, by analogy).
+        ("1990-01-31", "2025-03-01", (35, 1, 1)),
+        ("2008-09-25", "2026-09-24", (17, 11, 30)),  # 25/08 -> 24/09 is 30 calendar days
+        ("2008-02-29", "2026-03-01", (18, 0, 1)),    # born on 29/02: birthday is 28/02
+        ("2008-02-29", "2026-02-28", (18, 0, 0)),
+    ])
+    def test_scomposizione_calendario_comune(self, nascita, rif, ymd):
+        r = _call("calcolo_eta_anagrafica", data_nascita=nascita, data_riferimento=rif)
+        assert (r["eta_anni"], r["eta_mesi"], r["eta_giorni"]) == ymd
+
+    def test_nato_29_febbraio_prossimo_compleanno_coerente(self):
+        r = _call("calcolo_eta_anagrafica",
+                  data_nascita="2008-02-29", data_riferimento="2026-02-28")
+        assert r["prossimo_compleanno"] == "2027-02-28"
 
 
 # ---------------------------------------------------------------------------

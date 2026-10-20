@@ -1,38 +1,215 @@
 {
   "_vintage": {
-    "fonte": "art. 5 D.Lgs. 28/2010 come modificato dal D.Lgs. 149/2022",
+    "fonte": "art. 5 co. 1, 5 e 6 D.Lgs. 28/2010 come modificato dal D.Lgs. 149/2022 e dal D.Lgs. 28/2023 (testo letto su Normattiva il 2026-09-29)",
     "verifica": "manuale"
   },
   "_descrizione": "Materie soggette a mediazione obbligatoria ex art. 5 D.Lgs. 28/2010 (aggiornato Cartabia D.Lgs. 149/2022)",
   "_fonte": "Art. 5, co. 1, D.Lgs. 28/2010 come modificato da D.Lgs. 149/2022",
   "materie": [
-    {"nome": "condominio", "fonte": "originaria (2010)", "note": "Controversie condominiali"},
-    {"nome": "diritti_reali", "fonte": "originaria (2010)", "note": "Proprietà, servitù, usufrutto, superficie, enfiteusi"},
-    {"nome": "divisione", "fonte": "originaria (2010)", "note": "Divisione ereditaria e non"},
-    {"nome": "successioni_ereditarie", "fonte": "originaria (2010)", "note": "Controversie tra eredi/legatari"},
-    {"nome": "patti_di_famiglia", "fonte": "originaria (2010)", "note": "Art. 768-bis ss. c.c."},
-    {"nome": "locazione", "fonte": "originaria (2010)", "note": "Tutti i contratti di locazione"},
-    {"nome": "comodato", "fonte": "originaria (2010)", "note": "Contratto di comodato"},
-    {"nome": "affitto_aziende", "fonte": "originaria (2010)", "note": "Affitto di azienda o ramo"},
-    {"nome": "responsabilita_medica", "fonte": "originaria (2010)", "note": "Risarcimento danno da responsabilità medico-sanitaria"},
-    {"nome": "diffamazione_stampa", "fonte": "originaria (2010)", "note": "Diffamazione a mezzo stampa o altro mezzo di pubblicità"},
-    {"nome": "contratti_assicurativi", "fonte": "originaria (2010)", "note": "Polizze assicurative"},
-    {"nome": "contratti_bancari", "fonte": "originaria (2010)", "note": "Conti correnti, mutui, fidi"},
-    {"nome": "contratti_finanziari", "fonte": "originaria (2010)", "note": "Strumenti finanziari, investimenti"},
-    {"nome": "associazione_in_partecipazione", "fonte": "Cartabia (2022)", "note": "Art. 2549 ss. c.c."},
-    {"nome": "consorzio", "fonte": "Cartabia (2022)", "note": "Art. 2602 ss. c.c."},
-    {"nome": "franchising", "fonte": "Cartabia (2022)", "note": "L. 129/2004"},
-    {"nome": "contratti_opera", "fonte": "Cartabia (2022)", "note": "Art. 2222 ss. c.c."},
-    {"nome": "reti_impresa", "fonte": "Cartabia (2022)", "note": "DL 5/2009 art. 3"},
-    {"nome": "somministrazione", "fonte": "Cartabia (2022)", "note": "Art. 1559 ss. c.c."},
-    {"nome": "societa_di_persone", "fonte": "Cartabia (2022)", "note": "SNC, SAS — controversie tra soci"},
-    {"nome": "subfornitura", "fonte": "Cartabia (2022)", "note": "L. 192/1998"}
+    {
+      "nome": "condominio",
+      "fonte": "originaria (2010)",
+      "note": "Controversie condominiali",
+      "alias": [
+        "controversie_condominiali",
+        "condominio_negli_edifici"
+      ]
+    },
+    {
+      "nome": "diritti_reali",
+      "fonte": "originaria (2010)",
+      "note": "Proprietà, servitù, usufrutto, superficie, enfiteusi",
+      "alias": [
+        "diritto_reale",
+        "proprieta",
+        "usufrutto",
+        "servitu",
+        "superficie",
+        "enfiteusi"
+      ]
+    },
+    {
+      "nome": "divisione",
+      "fonte": "originaria (2010)",
+      "note": "Divisione ereditaria e non",
+      "alias": [
+        "divisione_ereditaria",
+        "scioglimento_comunione"
+      ]
+    },
+    {
+      "nome": "successioni_ereditarie",
+      "fonte": "originaria (2010)",
+      "note": "Controversie tra eredi/legatari",
+      "alias": [
+        "successioni",
+        "successione",
+        "eredita",
+        "successione_ereditaria"
+      ]
+    },
+    {
+      "nome": "patti_di_famiglia",
+      "fonte": "originaria (2010)",
+      "note": "Art. 768-bis ss. c.c.",
+      "alias": [
+        "patto_di_famiglia"
+      ]
+    },
+    {
+      "nome": "locazione",
+      "fonte": "originaria (2010)",
+      "note": "Tutti i contratti di locazione",
+      "alias": [
+        "locazioni",
+        "contratto_di_locazione"
+      ]
+    },
+    {
+      "nome": "comodato",
+      "fonte": "originaria (2010)",
+      "note": "Contratto di comodato",
+      "alias": [
+        "contratto_di_comodato"
+      ]
+    },
+    {
+      "nome": "affitto_aziende",
+      "fonte": "originaria (2010)",
+      "note": "Affitto di azienda o ramo",
+      "alias": [
+        "affitto_di_azienda",
+        "affitto_di_aziende",
+        "affitto_azienda"
+      ]
+    },
+    {
+      "nome": "responsabilita_medica",
+      "fonte": "originaria (2010)",
+      "note": "Risarcimento danno da responsabilità medico-sanitaria",
+      "alias": [
+        "responsabilita_medica_e_sanitaria",
+        "responsabilita_sanitaria",
+        "responsabilita_medico_sanitaria"
+      ]
+    },
+    {
+      "nome": "diffamazione_stampa",
+      "fonte": "originaria (2010)",
+      "note": "Diffamazione a mezzo stampa o altro mezzo di pubblicità",
+      "alias": [
+        "diffamazione",
+        "diffamazione_a_mezzo_stampa"
+      ]
+    },
+    {
+      "nome": "contratti_assicurativi",
+      "fonte": "originaria (2010)",
+      "note": "Polizze assicurative",
+      "alias": [
+        "contratto_assicurativo",
+        "assicurativi",
+        "assicurazione"
+      ]
+    },
+    {
+      "nome": "contratti_bancari",
+      "fonte": "originaria (2010)",
+      "note": "Conti correnti, mutui, fidi",
+      "alias": [
+        "contratto_bancario",
+        "bancari"
+      ]
+    },
+    {
+      "nome": "contratti_finanziari",
+      "fonte": "originaria (2010)",
+      "note": "Strumenti finanziari, investimenti",
+      "alias": [
+        "contratto_finanziario",
+        "finanziari"
+      ]
+    },
+    {
+      "nome": "associazione_in_partecipazione",
+      "fonte": "Cartabia (2022)",
+      "note": "Art. 2549 ss. c.c.",
+      "alias": []
+    },
+    {
+      "nome": "consorzio",
+      "fonte": "Cartabia (2022)",
+      "note": "Art. 2602 ss. c.c.",
+      "alias": [
+        "consorzi"
+      ]
+    },
+    {
+      "nome": "franchising",
+      "fonte": "Cartabia (2022)",
+      "note": "L. 129/2004",
+      "alias": [
+        "contratto_di_franchising",
+        "affiliazione_commerciale"
+      ]
+    },
+    {
+      "nome": "contratti_opera",
+      "fonte": "Cartabia (2022)",
+      "note": "Art. 2222 ss. c.c.",
+      "alias": [
+        "contratto_d_opera",
+        "contratto_di_opera",
+        "opera"
+      ]
+    },
+    {
+      "nome": "reti_impresa",
+      "fonte": "Cartabia (2022)",
+      "note": "DL 5/2009 art. 3",
+      "alias": [
+        "rete",
+        "reti",
+        "contratto_di_rete",
+        "reti_di_impresa",
+        "rete_di_imprese"
+      ]
+    },
+    {
+      "nome": "somministrazione",
+      "fonte": "Cartabia (2022)",
+      "note": "Art. 1559 ss. c.c.",
+      "alias": [
+        "contratto_di_somministrazione"
+      ]
+    },
+    {
+      "nome": "societa_di_persone",
+      "fonte": "Cartabia (2022)",
+      "note": "SNC, SAS — controversie tra soci",
+      "alias": [
+        "societa_di_persone",
+        "societa_di_persone_e_soci"
+      ]
+    },
+    {
+      "nome": "subfornitura",
+      "fonte": "Cartabia (2022)",
+      "note": "L. 192/1998",
+      "alias": [
+        "contratto_di_subfornitura"
+      ]
+    }
   ],
   "esclusioni": [
-    "Procedimenti cautelari e d'urgenza (art. 700 c.p.c.)",
-    "Procedimenti di ingiunzione fino alla pronuncia sulle istanze cautelari",
-    "Procedimenti di sfratto e convalida fino al mutamento del rito",
-    "Azione civile nel processo penale",
-    "Procedimenti in camera di consiglio"
-  ]
+    "a) procedimenti per ingiunzione, inclusa l'opposizione, fino alla pronuncia sulle istanze di concessione e sospensione della provvisoria esecuzione (art. 5-bis)",
+    "b) procedimenti per convalida di licenza o sfratto, fino al mutamento del rito di cui all'art. 667 c.p.c.",
+    "c) procedimenti di consulenza tecnica preventiva ai fini della composizione della lite (art. 696-bis c.p.c.)",
+    "d) procedimenti possessori, fino alla pronuncia dei provvedimenti di cui all'art. 703, terzo comma, c.p.c.",
+    "e) procedimenti di opposizione o incidentali di cognizione relativi all'esecuzione forzata",
+    "f) procedimenti in camera di consiglio",
+    "g) azione civile esercitata nel processo penale",
+    "h) azione inibitoria di cui agli artt. 37 e 140-octies del codice del consumo (D.Lgs. 206/2005)"
+  ],
+  "nota_provvedimenti_urgenti": "Art. 5 co. 5: lo svolgimento della mediazione non preclude in ogni caso la concessione dei provvedimenti urgenti e cautelari, ne' la trascrizione della domanda giudiziale (non e' un'esclusione dell'art. 5 co. 6)."
 }

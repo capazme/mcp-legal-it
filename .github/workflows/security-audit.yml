@@ -36,9 +36,28 @@ jobs:
         with:
           inputs: .
 
+  # The plugin does not resolve anything at install time: `uv run --frozen`
+  # installs exactly the versions in plugin/server/uv.lock, which only move when
+  # someone relocks. The audit above would never see a CVE in a pinned version.
+  audit-plugin-lock:
+    name: pip-audit (plugin uv.lock)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Export the plugin's pinned dependencies
+        run: pipx run uv export --frozen --project plugin/server --format requirements-txt --no-hashes > plugin-locked.txt
+
+      - name: Audit the pinned versions
+        run: pipx run pip-audit -r plugin-locked.txt --no-deps --disable-pip
+
   report:
     name: Open issue on scheduled failure
-    needs: audit
+    needs: [audit, audit-plugin-lock]
     if: failure() && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
@@ -74,7 +93,8 @@ jobs:
                   '',
                   'Fix by raising the lower bound of the affected package in',
                   '`pyproject.toml`, then run `python scripts/check_deps_sync.py`',
-                  'to propagate the change to every launcher.',
+                  'to propagate the change to every launcher. For the plugin lock:',
+                  '`cd plugin/server && uv lock --upgrade-package <name> --python 3.12`.',
                 ].join('\n'),
                 labels: ['security'],
               });

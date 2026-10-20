@@ -29,6 +29,7 @@ from datetime import date, datetime
 import httpx
 
 from src.lib._http import retry_request
+from src.lib._paging import page, resume_hint
 from bs4 import BeautifulSoup
 
 _BASE = "https://def.finanze.it/DocTribFrontend/"
@@ -36,6 +37,7 @@ _FORM_URL = _BASE + "callRicAvanzataGiurisprudenza.do"
 _SEARCH_URL = _BASE + "executeAdvancedGiurisprudenzaSearch.do"
 _DETAIL_URL = _BASE + "getGiurisprudenzaDetail.do"
 _PAGINATOR_URL = _BASE + "paginatorXml.do"
+_NPE = "NullPointerException"  # body of the portal's HTTP 500 for an unknown detail id
 _TIMEOUT = httpx.Timeout(45.0, connect=15.0)
 _MAX_TEXT_LENGTH = 25000
 _MAX_RESULTS = 250
@@ -108,6 +110,10 @@ _FILTRI_ENTE: dict[str, _FiltroEnte] = {
 _PRIMO_GRADO = re.compile(r"\bprimo grado\b|\bComm\. Trib\. Prov\.|\bComm\. Trib\.\s+I grado\b")
 
 # "Ordinanza del 14/09/2026 n. 25285 - Corte di Cassazione - Sezione/Collegio 5"
+# The id CeRDEF gives a provvedimento: a GUID in braces, as the search lists it (the
+# detail page also answers to the same GUID without braces).
+_GUID = re.compile(r"^\{?[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\}?$")
+
 _ESTREMI = re.compile(
     r"^.+? del (?P<giorno>\d{1,2})/(?P<mese>\d{1,2})/(?P<anno>\d{4})(?: n\. .+?)?"
     r"(?: - (?P<ente>.+?))?(?: - Sezione/Collegio .+)?$"
@@ -148,6 +154,15 @@ class CerdefError(Exception):
     Raised for the portal's own error page (a rejected search, an unknown id) and
     for any payload whose shape the client does not recognise. Callers must report
     it as a failure of the source: reading it as "no results" was the bug of #46.
+    """
+
+
+class CerdefNonTrovato(CerdefError):
+    """The portal does not know the requested provvedimento (unknown or malformed GUID).
+
+    The portal answers an unknown detail id with HTTP 500 and a NullPointerException
+    body, deterministically: it is a "not found", not an outage, and retrying it is
+    pointless.
     """
 
 
@@ -488,8 +503,14 @@ def format_result(doc: ProvvedimentoResult) -> str:
     return "\n".join(lines)
 
 
-def format_detail(detail: ProvvedimentoDetail) -> str:
-    """Format a ProvvedimentoDetail as markdown with truncation."""
+def format_detail(detail: ProvvedimentoDetail, da_carattere: int = 1) -> str:
+    """Format a ProvvedimentoDetail as markdown with truncation.
+
+    Positions count `testo_integrale` (the massima is not part of it). The default
+    answer keeps the massima and the first `_MAX_TEXT_LENGTH` characters of the text;
+    `da_carattere` > 1 renders the window of the text that starts there (header lines
+    only: the massima was already given by the first answer).
+    """
     lines = [f"# {detail.estremi or detail.guid}"]
 
     if detail.oggetto:
@@ -501,19 +522,28 @@ def format_detail(detail: ProvvedimentoDetail) -> str:
     if detail.ricorsi:
         lines.append(f"**Ricorsi**: {detail.ricorsi}")
 
-    if detail.massima:
+    windowed = da_carattere > 1
+    if detail.massima and not windowed:
         lines.append("\n## Massima\n")
         lines.append(detail.massima)
 
     if detail.testo_integrale:
         lines.append("\n## Testo Integrale\n")
         testo = detail.testo_integrale
-        truncated = len(testo) > _MAX_TEXT_LENGTH
-        lines.append(testo[:_MAX_TEXT_LENGTH] if truncated else testo)
-        if truncated:
-            lines.append(
-                f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(testo)} totali]*"
-            )
+        if windowed:
+            body, note = page(testo, da_carattere, _MAX_TEXT_LENGTH)
+            lines.append(body)
+            lines.append(f"\n---\n{note}")
+        else:
+            truncated = len(testo) > _MAX_TEXT_LENGTH
+            lines.append(testo[:_MAX_TEXT_LENGTH] if truncated else testo)
+            if truncated:
+                lines.append(
+                    f"\n---\n*[Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {len(testo)} totali: "
+                    f"{resume_hint(_MAX_TEXT_LENGTH + 1)}]*"
+                )
+    elif windowed:
+        lines.append(f"\n---\n*[da_carattere={da_carattere} oltre la fine del testo (0 caratteri)]*")
 
     if not detail.massima and not detail.testo_integrale:
         lines.append("\n_Il portale CeRDEF non riporta massima né testo integrale per questo provvedimento._")
@@ -589,26 +619,55 @@ async def search_giurisprudenza(
 
 
 async def fetch_provvedimento(guid: str) -> ProvvedimentoDetail:
-    """Fetch the detail of a provvedimento by its GUID, as the search lists it (braces included)."""
+    """Fetch the detail of a provvedimento by its GUID, as the search lists it (braces included).
+
+    ValueError for an empty or malformed GUID (before any request), CerdefNonTrovato
+    when the portal does not know the id, CerdefError for an unreadable answer.
+    """
     guid = guid.strip()
     if not guid:
         raise ValueError(
             "indicare il GUID del provvedimento, come riportato da cerca_giurisprudenza_tributaria "
             "o ultime_sentenze_tributarie"
         )
+    if not _GUID.match(guid):
+        raise ValueError(
+            f"GUID {guid!r} non valido: il GUID di un provvedimento CeRDEF ha la forma "
+            "{B0F76E21-B5FA-4415-9D1D-44FF7B5741C1} ed è riportato in ogni risultato di "
+            "cerca_giurisprudenza_tributaria o ultime_sentenze_tributarie"
+        )
     async with httpx.AsyncClient(
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
+        params = {"id": guid}
         try:
-            resp = await retry_request(client, "GET", _DETAIL_URL, dataset="cerdef", params={"id": guid})
+            # One attempt first: an unknown id is answered with a deterministic HTTP 500
+            # that no retry can change, so only a different failure is worth retrying.
+            resp = await retry_request(client, "GET", _DETAIL_URL, dataset="cerdef", params=params, max_retries=0)
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 500:
-                raise
-            # An id the portal does not know ends in a NullPointerException (HTTP 500).
-            dettaglio = " ".join(exc.response.text.split())[:120]
-            raise CerdefError(
-                f"il portale ha risposto HTTP 500 per il GUID {guid} ({dettaglio}): di norma indica "
-                "un GUID inesistente o non valido; usare un GUID riportato da "
-                "cerca_giurisprudenza_tributaria o ultime_sentenze_tributarie"
-            ) from exc
+            if exc.response.status_code == 500 and _NPE in exc.response.text:
+                raise CerdefNonTrovato(
+                    f"provvedimento non trovato o GUID non valido ({guid}): il portale non conosce "
+                    "questo identificativo; usare un GUID riportato da cerca_giurisprudenza_tributaria "
+                    "o ultime_sentenze_tributarie"
+                ) from exc
+            resp = await _detail_with_retries(client, params, exc)
+        except httpx.TransportError as exc:
+            resp = await _detail_with_retries(client, params, exc)
     return _parse_detail_page(resp.text)
+
+
+async def _detail_with_retries(client: httpx.AsyncClient, params: dict[str, str], first: Exception) -> httpx.Response:
+    """Repeat the detail request after a failure that may be transient (5xx, transport).
+
+    Two more attempts after the first one, like every other CeRDEF call.
+    """
+    if isinstance(first, httpx.HTTPStatusError) and first.response.status_code < 500:
+        raise first
+    try:
+        return await retry_request(client, "GET", _DETAIL_URL, dataset="cerdef", params=params, max_retries=1)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code != 500:
+            raise
+        dettaglio = " ".join(exc.response.text.split())[:120]
+        raise CerdefError(f"il portale ha risposto HTTP 500 per il GUID {params['id']} ({dettaglio})") from exc

@@ -65,19 +65,30 @@ _FORTI: dict[str, re.Pattern] = {
         rf"{_GDPR_CONTEXT}.{{0,60}}?{_ARTICLE_28}|{_ARTICLE_28}.{{0,60}}?{_GDPR_CONTEXT}",
         re.I,
     ),
+    # The Italian forms name the same instrument as the English titles (an art. 28(3) GDPR
+    # "contratto o altro atto giuridico" has no prescribed language or title): "Accordo sul
+    # trattamento dei dati" is Stripe's own Italian title of its DPA. "Responsabile del
+    # trattamento" ALONE is deliberately NOT a marker: art. 13 notices use the same words.
     "titolo_dpa": re.compile(
         r"data\s+process(?:ing|or)\s+(?:agreement|addendum)|"
         r"data\s+protection\s+addendum|"
+        r"(?:accordo|contratto|addendum)\s+(?:sul|per\s+il|relativo\s+al|di)\s+"
+        r"trattamento\s+(?:dei|di)\s+dati|"
         r"(?:designazione|nomina)\s+(?:a|del|di)\s+responsabile",
         re.I,
     ),
 }
 
-# Supporting markers are the art. 28(3) duties.
+# Supporting markers are the art. 28(3) duties. Singular and plural forms both count
+# ("istruzioni documentate", "diritti degli Interessati", "sub-responsabili").
 _SUPPORTO: dict[str, re.Pattern] = {
-    "istruzione_documentata": re.compile(r"istruzione\s+documentata|documented\s+instructions", re.I),
-    "sub_responsabile": re.compile(r"sub-?responsabile|sub-?processor", re.I),
-    "diritti_interessato": re.compile(r"diritti\s+dell'interessato|data\s+subject\s+rights", re.I),
+    "istruzione_documentata": re.compile(
+        r"istruzion[ei]\s+documentat[ae]|documented\s+instructions", re.I
+    ),
+    "sub_responsabile": re.compile(r"sub-?responsabil[ei]|sub-?processors?", re.I),
+    "diritti_interessato": re.compile(
+        r"diritti\s+(?:dell['’]|degli\s+)interessat[oi]|data\s+subject\s+rights", re.I
+    ),
     "audit": re.compile(r"\baudit\b|attività\s+di\s+revisione|ispezion", re.I),
     "cancellazione_restituzione": re.compile(
         r"cancelli\s+o\s+(?:gli\s+)?restituisca|(?:delete|return)\s+(?:all\s+)?(?:the\s+)?personal\s+data", re.I
