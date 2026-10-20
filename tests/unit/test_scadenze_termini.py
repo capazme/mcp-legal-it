@@ -142,11 +142,14 @@ class TestTerminiSeparazioneDivorzio:
         assert r["prorogata_art_155"] is False
         assert r["mesi_termine"] == 6
 
-    def test_separazione_giudiziale_12_mesi(self):
-        # 12 mesi da 2025-03-15 = 2026-03-15 (domenica) → slitta a 2026-03-16
+    def test_separazione_giudiziale_12_mesi_non_si_proroga(self):
+        # 12 mesi da 2025-03-15 = 2026-03-15 (domenica). Periodo di attesa, non
+        # termine per un atto: niente proroga art. 155 (decisione G-328).
         r = _call("termini_separazione_divorzio", data_evento="2025-03-15", tipo="separazione_giudiziale")
-        assert r["scadenza"] == "2026-03-16"
-        assert r["prorogata_art_155"] is True
+        assert r["scadenza"] == "2026-03-15"
+        assert r["prorogata_art_155"] is False
+        assert r["giorno_settimana"] == "domenica"
+        assert "155" in r["nota"]
 
     def test_ricorso_modifica_nessun_termine(self):
         r = _call("termini_separazione_divorzio", data_evento="2025-06-01", tipo="ricorso_modifica")
@@ -159,9 +162,10 @@ class TestTerminiSeparazioneDivorzio:
         assert r["mesi_termine"] == 6
 
     def test_end_of_month_clamp(self):
-        # 6 mesi da 2025-08-31 = 2026-02-28 (fine febbraio, nessun 31)
+        # 6 mesi da 2025-08-31 = 2026-02-28 (fine febbraio, nessun 31; sabato,
+        # e il periodo di attesa non si proroga)
         r = _call("termini_separazione_divorzio", data_evento="2025-08-31", tipo="separazione_consensuale")
-        assert r["scadenza"] == "2026-03-02"
+        assert r["scadenza"] == "2026-02-28"
 
     def test_tipo_invalido(self):
         r = _call("termini_separazione_divorzio", data_evento="2025-06-01", tipo="invalid")
