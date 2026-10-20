@@ -214,12 +214,21 @@ def _mesi_avanti(dies_a_quo: date, mesi: int, feriale: bool) -> tuple[date, bool
     return fine, incisa
 
 
+# Italian names from a table: strftime follows the process locale, so the same
+# deadline came out as «lunedì» from one tool and «Monday» from another.
+_GIORNI = ("lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica")
+
+
+def _giorno(d: date) -> str:
+    return _GIORNI[d.weekday()]
+
+
 def _voce_scadenza(scadenza: date, prorogata: bool) -> dict:
     """Le tre chiavi che ogni scadenza espone, sempre con lo stesso nome."""
     return {
         "scadenza": scadenza.isoformat(),
         "prorogata_art_155": prorogata,
-        "giorno_settimana": scadenza.strftime("%A"),
+        "giorno_settimana": _giorno(scadenza),
     }
 
 
@@ -930,7 +939,7 @@ def termini_183_190_cpc(
             "scadenza": scad.isoformat(),
             chiave: giorni,
             "prorogata_art_155": adj,
-            "giorno_settimana": scad.strftime("%A"),
+            "giorno_settimana": _giorno(scad),
         })
 
     riferimento = "Artt. 183, co. 6 e 190 c.p.c. (testo previgente)" + (
@@ -962,7 +971,9 @@ def termini_esecuzioni(
         data_notifica_titolo: Data di notifica del precetto al debitore (YYYY-MM-DD)
         tipo: Tipo di procedura: 'pignoramento_mobiliare', 'pignoramento_immobiliare',
               'pignoramento_presso_terzi' (tutti: minimo 10gg e max 90gg dall'efficacia del precetto),
-              'opposizione_esecuzione' (20gg per opposizione agli atti esecutivi ex art. 617 c.p.c.)
+              'opposizione_atti_esecutivi' (20gg per l'opposizione agli atti esecutivi ex
+              art. 617 c.p.c.; 'opposizione_esecuzione' è il vecchio nome, accettato ancora).
+              Per l'opposizione all'esecuzione (art. 615 c.p.c.) il tool non calcola termini.
     """
     err = _validate_date(data_notifica_titolo)
     if err:
@@ -988,7 +999,7 @@ def termini_esecuzioni(
             "descrizione": "Pignoramento presso terzi — il precetto perde efficacia se non si inizia l'esecuzione entro 90gg",
             "normativa": "Artt. 480, 481, 543 ss. c.p.c.",
         },
-        "opposizione_esecuzione": {
+        "opposizione_atti_esecutivi": {
             "termine_minimo_giorni": None,
             "efficacia_precetto_giorni": None,
             "termine_opposizione_giorni": 20,
@@ -996,6 +1007,18 @@ def termini_esecuzioni(
             "normativa": "Art. 617 c.p.c.",
         },
     }
+
+    # The old name read as art. 615 (opposizione all'esecuzione) but has always
+    # computed art. 617; it still works, with a notice, so callers don't break.
+    avviso = None
+    if tipo == "opposizione_esecuzione":
+        avviso = (
+            "'opposizione_esecuzione' è il vecchio nome di questo calcolo: si tratta "
+            "dell'opposizione agli atti esecutivi (art. 617 c.p.c.). Usa "
+            "'opposizione_atti_esecutivi'. Per l'opposizione all'esecuzione "
+            "(art. 615 c.p.c.) il tool non calcola termini."
+        )
+        tipo = "opposizione_atti_esecutivi"
 
     if tipo not in config:
         return {
@@ -1005,7 +1028,7 @@ def termini_esecuzioni(
 
     cfg = config[tipo]
 
-    if tipo == "opposizione_esecuzione":
+    if tipo == "opposizione_atti_esecutivi":
         scad_raw = dt_notifica + timedelta(days=cfg["termine_opposizione_giorni"])
         scad, adjusted = _slide_forward(scad_raw)
         return {
@@ -1015,8 +1038,9 @@ def termini_esecuzioni(
             "termine_opposizione_giorni": cfg["termine_opposizione_giorni"],
             "scadenza_opposizione": scad.isoformat(),
             "prorogata_art_155": adjusted,
-            "giorno_settimana": scad.strftime("%A"),
+            "giorno_settimana": _giorno(scad),
             "riferimento_normativo": cfg["normativa"],
+            **({"avviso": avviso} if avviso else {}),
         }
 
     # Termine dilatorio minimo (10gg) — non si può pignorare prima
