@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-10-20
+
+### Changed
+- Plugin first start: `server/bootstrap.py` (standard library only) answers
+  Claude Code as soon as Python is available, installs the locked libraries in
+  the background with no time limit, then hands the session to the real server
+  and announces the tools (`notifications/tools/list_changed`). Before, the
+  whole download had to fit in Claude Code's 30-second start limit, and on a
+  slow network the server stayed "failed" until `/mcp` -> Reconnect. Tool calls
+  made while it prepares get a plain «Legal IT si sta preparando» message.
+- Data: TEGM table for Q4 2026 (DM MEF 28/09/2026, GU n. 227 del 30/09/2026).
+- Plugin launcher: the MCP server starts with `uv run --frozen --project
+  ${CLAUDE_PLUGIN_ROOT}/server`, from the exact versions pinned in the new
+  `plugin/server/uv.lock` (FastMCP 3.4.9), in an environment of the plugin's own.
+  `start_server.sh` is gone: no shell between Claude Code and the server, so
+  Windows no longer needs Git Bash to start it. The system-Python fallback is
+  gone too; `uv` is the one prerequisite. `plugin/server/pyproject.toml` is now
+  the plugin's own project: Python 3.12 only (it always ran on 3.12) and no
+  `dev` extras, which keeps the lock under the directory's 256 KiB file limit.
+- Security audit: a weekly `pip-audit` of the versions pinned in the plugin lock,
+  next to the existing audit of the library's resolved dependencies.
+- Citation gate (plugin Stop hook): it runs in the same locked uv environment
+  instead of a bare `python3`, which on Windows is usually the Microsoft Store
+  alias (exit 9009) and turned every reply into a "Stop hook error".
+- The plugin folder now meets the Claude directory's automated checks:
+  `scripts/check_directory_readiness.py` replays them and runs in CI
+  (job `directory-readiness`), replacing the tarball check.
+- `.gitattributes` export-ignore rules removed (the directory refuses them); the
+  GitHub archive of a tag contains the whole tree again.
+- Skills for claude.ai upload are built outside the plugin folder and ship as one
+  release asset, `legal-it-skills-X.Y.Z.zip`.
+- `esporta-documento`: the .docx renderer no longer loads a style module from
+  `~/.claude/skills`; it uses only its own code and the `docx` package. The PDF
+  renderer runs in the plugin's locked environment.
+- Plugin README: installation for Claude Code, first start, and a «Rete e dati»
+  section listing everything the plugin downloads and every host it contacts.
+
+### Fixed
+- Security: `cryptography` 50 for every platform except Intel Macs (which have
+  no wheels after 48.x and keep it). The plugin lock used to ship 48.0.1 to
+  every machine, with PYSEC-2026-3552/3553/3554; the per-platform declaration
+  makes the lock fork. `check_deps_sync.py` now tells per-platform entries apart.
+- Starting the server from a folder that holds a `pyproject.toml` no longer syncs
+  that project's `.venv` (`uv run --with` resolved the session's working
+  directory as a project). The `.mcpb` launcher passes `--no-project` as well.
+- FastMCP no longer asks pypi.org for a newer release at startup
+  (`FASTMCP_CHECK_FOR_UPDATES=off` unless set): the server contacts only the
+  hosts in `_egress.py`.
+- Citation gate timeout: `15000` was read as seconds; it is now `120`.
+
+### Removed
+- `plugin/settings.json`: a plugin loads only `agent` and `subagentStatusLine`
+  from it, so its `permissions` block never applied. Commands keep declaring
+  `allowed-tools` under both tool prefixes.
+
 ## [2.16.1] - 2026-10-19
 
 ### Fixed

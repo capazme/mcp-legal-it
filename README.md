@@ -97,8 +97,8 @@ Richiede `uv` e `git` (vedi sopra). Il primo avvio può essere lento: vedi la ta
 
 | Sintomo | Causa | Rimedio |
 |---|---|---|
-| `connection timed out after 30000ms` al primo avvio | `uv` sta ancora scaricando Python e le dipendenze: Claude Code aspetta 30 s e rinuncia | Riprova da `/mcp` → *reconnect* (la cache è già popolata). Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
-| `CONNECTION_CLOSED` | Il processo del server è terminato subito: di solito `uv` non è installato o Python 3.10+ non è disponibile | Installa `uv` (vedi sopra; scarica da solo Python 3.12), apri un nuovo terminale e riavvia `claude` |
+| `connection timed out after 30000ms` al primo avvio | `uv` sta ancora scaricando Python: Claude Code aspetta 30 s e rinuncia (le librerie, invece, si scaricano dopo la connessione, senza limite di tempo) | Riprova da `/mcp` → *reconnect* (la cache è già popolata). Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
+| `CONNECTION_CLOSED` | Il processo del server è terminato subito: di solito `uv` non è installato | Installa `uv` (vedi sopra; scarica da solo Python 3.12), apri un nuovo terminale e riavvia `claude` |
 | `marketplace add` fallisce subito | `git` mancante | `xcode-select --install` (macOS) e riprova |
 
 </details>
@@ -110,6 +110,9 @@ Richiede `uv` e `git` (vedi sopra). Il primo avvio può essere lento: vedi la ta
 ### Archivio `legal-it-plugin-X.Y.Z.zip`
 
 Ogni Release pubblica, oltre al `.mcpb`, anche `legal-it-plugin-X.Y.Z.zip` (generato da `scripts/build-plugin.sh`): una copia autonoma del **plugin per Claude Code** — skill, comandi, agenti, hook e codice del server — pensata per chi non può usare il marketplace (per esempio senza `git`). Si carica, per la sola sessione, con `claude --plugin-dir legal-it-plugin-X.Y.Z.zip` (accetta lo zip o la cartella estratta). Al primo avvio serve comunque la rete: `uv` scarica Python e le dipendenze. **Non** è un file da caricare in Claude Desktop (per quello c'è il `.mcpb`) né in claude.ai.
+
+
+Ogni Release pubblica anche `legal-it-skills-X.Y.Z.zip`: le 23 skill in formato `.zip`, una per file, da caricare su claude.ai (**Impostazioni → Funzionalità → Skill**). Senza il server MCP le skill che usano gli strumenti di Legal IT non hanno i dati: servono soprattutto come guida di metodo.
 
 ### Docker
 
@@ -496,7 +499,6 @@ registrato. Dettagli in `src/lib/_regime.py`.
 Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 - **Stop hook** — verifica che ogni norma citata nella risposta abbia un `cite_law()` corrispondente
-- **SessionStart hook** — dopo compaction, ricorda il protocollo di citazione
 
 **Regole per l'LLM**:
 

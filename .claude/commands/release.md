@@ -49,7 +49,7 @@ git checkout -b release/X.Y.Z
 Sostituisci la versione precedente con la nuova in OGNUNO di questi file:
 
 1. `pyproject.toml` → `version = "X.Y.Z"`
-2. `plugin/server/pyproject.toml` → `version = "X.Y.Z"`
+2. `plugin/server/pyproject.toml` → `version = "X.Y.Z"`, poi `cd plugin/server && uv lock --python 3.12` (il plugin installa esattamente `uv.lock`; `release.py` lo fa da solo)
 3. `dxt/manifest.json` → `"version": "X.Y.Z"`
 4. `plugin/server/manifest.json` → `"version": "X.Y.Z"`
 5. `plugin/.claude-plugin/plugin.json` → `"version": "X.Y.Z"`

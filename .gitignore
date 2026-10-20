@@ -52,6 +52,8 @@ tests/fixtures/akn/dlgs_196_2003.xml
 
 # uv ephemeral lock (uv run --with)
 uv.lock
+# ...except the plugin's: `uv run --frozen` installs exactly what it pins.
+!plugin/server/uv.lock
 
 # Generated tool report (`python scripts/tool_report.py`); the page is built
 # from the annotation audit, so it is regenerated rather than reviewed.
