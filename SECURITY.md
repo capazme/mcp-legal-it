@@ -138,9 +138,12 @@ diffidenza, sempre. Ecco cosa contiene questo:
 Il progetto ha un autore. È un rischio reale e la risposta corretta non è
 fidarsi di più: è rendere il fork banale.
 
-La licenza è **Apache-2.0**: puoi copiare, modificare e ridistribuire, anche
-per uso commerciale, tenendo la nota di copyright. Il percorso consigliato per
-chi lavora su pratiche vere:
+La licenza è **MPL-2.0** (fino alla linea 2.x era Apache-2.0, vedi `NOTICE`):
+puoi copiare, modificare e ridistribuire, anche per uso commerciale, tenendo le
+note di copyright; le modifiche ai file del progetto che distribuisci restano
+sotto MPL-2.0 e ne va reso disponibile il sorgente, mentre il codice tuo in file
+separati può avere la licenza che preferisci. Il percorso consigliato per chi
+lavora su pratiche vere:
 
 1. Forka il repository e tieni il tuo ramo di produzione su una versione che
    hai auditato.
