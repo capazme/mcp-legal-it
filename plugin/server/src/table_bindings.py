@@ -167,7 +167,6 @@ TOOL_TABLES: dict[str, tuple[str, ...]] = {
     "termini_memorie_repliche": ("festivita",),
     "termini_procedimento_semplificato": ("festivita",),
     "termini_processuali_civili": ("festivita",),
-    "termini_separazione_divorzio": ("festivita",),
     "variazioni_istat": ("indici_foi",),
     "verifica_mediazione_obbligatoria": ("mediazione_obbligatoria",),
     "verifica_necessita_dpia": ("gdpr_dpia_criteri",),

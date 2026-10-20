@@ -725,6 +725,13 @@
    },
    "expected": "{\"sesso\":\"M\",\"peso_kg\":80.0,\"unita_alcoliche\":3.0,\"ore_trascorse\":2.0,\"stomaco_pieno\":false,\"alcol_assorbito_grammi\":36.0,\"tasso_picco_g_l\":0.64,\"tasso_attuale_g_l\":0.34,\"ore_smaltimento_totale\":4.3,\"ore_residue_smaltimento\":2.3,\"fascia_sanzione_cds\":\"nessuna (non superiore a 0.5 g/l)\",\"sanzione\":null,\"avvertenza\":\"Calcolo puramente indicativo basato su formula di Widmark. Il tasso reale dipende da metabolismo individuale, farmaci, condizioni fisiche.\",\"riferimento_normativo\":\"Art. 186 D.Lgs. 285/1992 (Codice della Strada)\"}"
   },
+  "termini_separazione_divorzio": {
+   "arguments": {
+    "data_evento": "2021-01-01",
+    "tipo": "separazione_consensuale"
+   },
+   "expected": "{\"data_evento\":\"2021-01-01\",\"tipo\":\"separazione_consensuale\",\"descrizione\":\"Termine per presentare ricorso di divorzio dopo separazione consensuale (decorre dalla comparizione dei coniugi in udienza)\",\"mesi_termine\":6,\"scadenza\":\"2021-07-01\",\"prorogata_art_155\":false,\"giorno_settimana\":\"giovedì\",\"nota\":\"Periodo minimo di separazione prima del divorzio, non un termine per compiere un atto: non si proroga se cade di sabato o in un giorno festivo (art. 155 c.p.c. non applicato).\",\"riferimento_normativo\":\"Art. 3, n. 2, lett. b), L. 898/1970 (mod. L. 55/2015)\"}"
+  },
   "test_crisi_impresa": {
    "arguments": {},
    "expected": "{\"alert\":false,\"severita\":\"nessuno\",\"severita_criterio\":\"prassi: la scala dei livelli non è prevista dal CCII\",\"indicatori_attivati\":[],\"numero_indicatori\":0,\"segnali_art_3_co_4\":[],\"numero_segnali_normativi\":0,\"indicatori_di_prassi\":[],\"segnali_non_determinabili\":[],\"avvertenze\":[],\"dscr\":null,\"raccomandazione\":\"Nessun segnale di crisi rilevato sui dati forniti. Continuare il monitoraggio periodico ai sensi dell'art. 3 co. 3 CCII.\",\"riferimento_normativo\":\"Art. 3 D.Lgs. 14/2019 (CCII) — Adeguatezza delle misure e degli assetti (co. 3 lett. b, co. 4); art. 25-novies co. 1 (segnalazioni dei creditori pubblici qualificati)\"}"
