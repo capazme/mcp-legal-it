@@ -1,6 +1,6 @@
 # Claude Code Plugin — mcp-legal-it
 
-> Documentazione del plugin per Claude Code: 30 skills, 10 slash command, 6 agenti specializzati, hooks.
+> Documentazione del plugin per Claude Code: 30 skills, 9 slash command, 6 agenti specializzati, hooks.
 
 ## Indice
 
@@ -21,7 +21,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
 
 - **30 skills** invocabili con `/skill-name` — ogni skill orchestra una sequenza di tool MCP
 - **6 agenti** configurati come sub-agenti specializzati con istruzioni di sistema e tool preferiti
-- **10 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/dati`, `/verbale`, `/release`)
+- **9 slash command** (`/norma`, `/sentenza`, `/interessi`, `/scadenza`, `/privacy`, `/codice-fiscale`, `/digest`, `/dati`, `/verbale`)
 - **1 hook** automatico (`Stop`): gate deterministico sulle citazioni normative a fine risposta
 
 **Marketplace**: `.claude-plugin/marketplace.json`
@@ -32,7 +32,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
   "plugins": [{
     "name": "legal-it",
     "source": "./plugin",
-    "description": "Plugin legale italiano completo: 228 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 30 skill, 10 slash command, 6 agenti specializzati."
+    "description": "Plugin legale italiano completo: 228 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 30 skill, 9 slash command, 6 agenti specializzati."
   }]
 }
 ```
@@ -48,10 +48,10 @@ plugin/
 │   ├── recupero-credito/SKILL.md
 │   ├── causa-civile/SKILL.md
 │   └── ... (27 altre)
-├── commands/                   # 10 slash command
+├── commands/                   # 9 slash command
 │   ├── norma.md
 │   ├── sentenza.md
-│   └── ... (8 altri: interessi, scadenza, privacy, codice-fiscale, digest, dati, verbale, release)
+│   └── ... (7 altri: interessi, scadenza, privacy, codice-fiscale, digest, dati, verbale)
 ├── agents/                     # 6 agenti specializzati
 │   ├── civilista.md
 │   ├── penalista.md
@@ -63,7 +63,7 @@ plugin/
 ├── hooks/
 │   ├── hooks.json              # registra lo Stop hook
 │   └── citation-gate.py        # implementazione del gate citazioni
-└── settings.json               # Permessi MCP
+└── server/uv.lock              # versioni esatte installate da `uv run --frozen`
 ```
 
 Ogni skill è una directory con un file `SKILL.md` in formato frontmatter YAML + markdown.
@@ -98,7 +98,7 @@ Fonte: `content/skills/*/SKILL.md` (una directory per skill; `plugin/skills/` è
 | `esporta-documento` | "esporta in word", "salva in pdf", "genera docx" | `esporta_atto_docx` |
 | `procure-quotazioni` | "procure e quotazioni", "quotazioni monitori", "preventivi decreti ingiuntivi" | `genera_procura_liti_docx`, `genera_quotazione_docx` |
 | `analisi-fornitori` | "mastrino fornitori", "screening fornitori GDPR", "nomina responsabile art. 28" | `verifica_partita_iva_vies`, `genera_report_fornitori`, `genera_dpa` |
-| `cookie-audit` | "analisi cookie", "audit cookie", "banner consenso", "che cookie usa il sito" | browser + `genera_informativa_cookie` |
+| `cookie-audit` | "analisi cookie", "audit cookie", "banner consenso", "che cookie usa il sito", "pixel di Meta", "tracking pixel nelle newsletter", "mappatura strumenti di tracciamento" | browser + script della skill + `genera_informativa_cookie` |
 | `analisi-delibere-consob` | "delibere CONSOB", "provvedimenti mercati finanziari", "sanzioni CONSOB" | `cerca_delibere_consob`, `leggi_delibera_consob`, `cite_law` |
 | `novita-consob` | "ultime novità CONSOB", "delibere recenti" | `ultime_delibere_consob`, `leggi_delibera_consob` |
 | `analisi-tributaria` | "giurisprudenza tributaria", "sentenze IVA/IRES", "accertamento e riscossione", "contenzioso fiscale CGT" | `cerca_giurisprudenza`, `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`, `cite_law` |
@@ -167,9 +167,9 @@ Avvocato penalista esperto in reati, pene, prescrizione, misure cautelari, riti 
 
 | Data fatto | Regime | Norma |
 |-----------|--------|-------|
-| Fino al 31/12/2019 | Ordinario | artt. 157-161 c.p. |
-| 01/01/2020 – 31/12/2024 | Bonafede (sospensione dopo primo grado) | L. 3/2019 |
-| Dal 01/01/2025 | Cartabia (improcedibilità per superamento termini) | D.Lgs. 150/2022 |
+| Fino al 02/08/2017 | Ordinario (decorre in ogni grado) | artt. 157-161 c.p. (L. 251/2005) |
+| 03/08/2017 – 31/12/2019 | Orlando (sospensione fino a 18 mesi dopo condanna di primo grado e di appello) | art. 159 co. 2 c.p. (L. 103/2017) |
+| Dal 01/01/2020 | Blocco dopo il primo grado e improcedibilità in appello/Cassazione (2 anni / 1 anno; 3 anni / 18 mesi per impugnazioni entro il 31/12/2024) | art. 161-bis c.p. e art. 344-bis c.p.p. (L. 3/2019, L. 134/2021) |
 
 **Struttura risposte**: FATTO → DIRITTO (norma incriminatrice + elementi) → ANALISI (pena, prescrizione, riti alternativi) → CONCLUSIONI (opzioni strategiche).
 
@@ -205,7 +205,8 @@ Specialista in protezione dei dati: GDPR (Reg. UE 2016/679), Codice Privacy (D.L
 Si attiva al termine di ogni risposta di Claude.
 
 **Tipo**: hook `command` — esegue `hooks/citation-gate.py` (Python 3, stdlib, nessun
-modello: deterministico e senza costo). Sostituisce il precedente hook di tipo
+modello: deterministico e senza costo) con `uv run --frozen` nell'ambiente del server,
+così non dipende da un `python3` di sistema (su Windows spesso è l'alias del Microsoft Store). Sostituisce il precedente hook di tipo
 `prompt` (Haiku), che segnalava falsi positivi e ripeteva avvisi su norme già verificate.
 
 **Funzione**: estrae le citazioni a livello di articolo dall'ultimo messaggio
@@ -229,17 +230,12 @@ Il plugin non registra altri hook: `hooks.json` dichiara il solo evento `Stop`.
 
 ## Permessi
 
-**File**: `plugin/settings.json`
-
-```json
-{
-  "permissions": {
-    "allow": ["mcp__legal-it__*"]
-  }
-}
-```
-
-Il plugin concede permesso automatico a tutti i tool MCP del server `legal-it`. Non sono richieste conferme manuali per le chiamate ai tool durante l'esecuzione delle skills.
+Il plugin non porta un `settings.json`: in un plugin Claude Code carica solo le chiavi
+`agent` e `subagentStatusLine`, e un blocco `permissions` verrebbe ignorato. Ogni comando
+dichiara invece i propri `allowed-tools` nel frontmatter, sotto entrambi i prefissi:
+`mcp__plugin_legal-it_legal-it__` è il nome che Claude Code dà ai tool quando il server
+arriva dal plugin; `mcp__legal-it__` vale per chi lo registra a mano con il nome
+`legal-it` (`.mcp.json`, Claude Desktop).
 
 ---
 

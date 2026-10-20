@@ -5,15 +5,20 @@ from pathlib import Path
 
 REPO = Path(__file__).parents[2]
 
-# OS metadata (Finder's .DS_Store) is outside the projection contract: it
-# lives untracked in browsed checkouts and must not fail the gate.
+# OS metadata (Finder's .DS_Store) and bytecode caches are outside the
+# projection contract: they live untracked in checkouts (the cookie-audit
+# scripts are imported by the unit tests, which leaves __pycache__ next to
+# them) and must not fail the gate.
 _IGNORE_NAMES = {".DS_Store"}
 
 def _relative_files(root: Path) -> set[Path]:
     return {
         p.relative_to(root)
         for p in root.rglob("*")
-        if p.is_file() and p.name not in _IGNORE_NAMES
+        if p.is_file()
+        and p.name not in _IGNORE_NAMES
+        and "__pycache__" not in p.parts
+        and p.suffix != ".pyc"
     }
 
 def _assert_trees_equal(a: Path, b: Path) -> None:

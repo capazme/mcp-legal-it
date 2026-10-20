@@ -125,11 +125,13 @@ romperebbe la registrazione dei tool senza preavviso.
 | [strumenti.md](strumenti.md) | Scheda per tool con parametri ed esempi (copertura parziale, vedi nota nel file) |
 | [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `src/lib/` (15 moduli, 4 documentati in dettaglio) |
 | [prompts-resources.md](prompts-resources.md) | 23 prompt guidati e 15 risorse statiche `legal://` |
-| [plugin.md](plugin.md) | Plugin Claude Code: 30 skill, 10 slash command, 6 agenti, hook, installazione |
+| [plugin.md](plugin.md) | Plugin Claude Code: 30 skill, 9 slash command, 6 agenti, hook, installazione |
 | [openai.md](openai.md) | Bundle OpenAI (Codex CLI / ChatGPT): 42 skill, AGENTS.md, config MCP, limiti |
 | [data-files.md](data-files.md) | 24 file JSON dati: contenuto, fonte normativa, aggiornamento |
 | [testing.md](testing.md) | Strategia test, comandi, copertura, come aggiungere test |
 | [deployment.md](deployment.md) | install.py, setup manuale, Docker, variabili d'ambiente, troubleshooting |
+| [benchmark/piano-benchmark-andreani.md](benchmark/piano-benchmark-andreani.md) | Piano di benchmark dei 227 tool su avvocatoandreani.it e fonti ufficiali: strategia, pagina del sito, casi di prova per tool; [benchmark/PROMPT-sessione-locale.md](benchmark/PROMPT-sessione-locale.md) è il prompt che lo esegue in una sessione locale |
+| [001_mcp-legal-it_AuditNormativa_RV_SAPG.md](001_mcp-legal-it_AuditNormativa_RV_SAPG.md) | Audit normativo dei tool (settembre 2026): sospensione feriale, riforma Cartabia, flag `Regime: PREVIGENTE`, stato del benchmark su avvocatoandreani.it, voci aperte |
 | [guida-precisione.md](guida-precisione.md) / [precision-guide.md](precision-guide.md) | Provenienza dei dati in ogni risposta (`dati_applicati`, `fonti_consultate`), gradi di precisione, rifiuto negoziabile (`accetta_precisione`) |
 | [cache-inventory.md](cache-inventory.md) | Inventario generato delle cache su disco (`LEGAL_CACHE=off` le disattiva) — non modificare a mano |
 | [../SECURITY.md](../SECURITY.md) | Host contattati dal server (allowlist verificata in CI) e l'eccezione `verifica_dpa_fornitore` |

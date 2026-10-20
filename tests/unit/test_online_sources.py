@@ -125,3 +125,34 @@ def test_note_outside_a_call_is_a_noop():
         assert seen == {("corte_cost", "https://example.com/x")}
         assert [f["fonte"] for f in _sources.consulted()] == ["corte_cost"]
     assert _sources.consulted() == [], "the recording ends with its block"
+
+
+def test_the_undeclared_source_warning_never_reaches_stdout(capfd):
+    """stdout is the JSON-RPC channel of the stdio transport: a diagnostic there corrupts it."""
+    call(probe({"consults_a_source": ("brocardi",)}), ["consults_a_source"])
+
+    captured = capfd.readouterr()
+    assert "undeclared online sources" not in captured.out
+    assert "undeclared online sources" in captured.err
+
+
+def test_a_malformed_clock_override_warns_on_stderr_not_stdout(monkeypatch, capfd):
+    from src.lib import _clock
+
+    monkeypatch.setenv("LEGAL_TODAY", "not-a-date")
+    _clock.today()
+
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert "[_clock] ignoring" in captured.err
+
+
+def test_the_real_server_installs_the_committed_source_policy():
+    """Without it every consulted source reads as undeclared (warning + `non_dichiarate`)."""
+    from src.lib._ledger import TableLedgerMiddleware
+    from src.server import mcp
+    from src.source_bindings import TOOL_SOURCES
+
+    installed = [m for m in mcp.middleware if isinstance(m, TableLedgerMiddleware)]
+    assert len(installed) == 1
+    assert installed[0].tool_sources == TOOL_SOURCES

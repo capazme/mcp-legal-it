@@ -92,5 +92,5 @@ NOTE TECNICHE
 
 - Il numero delibera è nel formato numerico (es. "23257") o con suffisso (es. "23256-1")
 - Le date nei filtri usano formato YYYY-MM-DD (es. "2024-01-01")
-- Il testo delle delibere è troncato a 8000 caratteri per evitare saturazione del contesto
+- Il testo delle delibere è letto a blocchi di 8000 caratteri: la nota finale indica il `da_carattere` con cui leggere il seguito
 - La ricerca interroga il Bollettino CONSOB (Liferay Portal) — dati pubblici, nessuna autenticazione

@@ -274,6 +274,101 @@ class TestGeneraReport:
         assert cella.value == formula_payload
 
 
+def _fuori_varie(nome):
+    riga = _fuori(nome)
+    riga["classe_attivita"] = "varie"
+    return riga
+
+
+class TestCaratteriDiControllo:
+    """Control characters forbidden by XML 1.0 (section 2.2, production Char: U+0000-0008,
+    U+000B-000C, U+000E-001F, so also by SpreadsheetML/OOXML) used to escape as openpyxl's
+    IllegalCharacterError, in English, citing only the first bad row and writing no file,
+    against the docstring contract. Typical source: ledgers extracted from PDFs. They are now
+    stripped from every received text (tab, LF and CR are legal and stay) and counted."""
+
+    def test_form_feed_and_vertical_tab_are_stripped_from_names(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        out = _tool("genera_report_fornitori")(
+            fornitori=[
+                _fuori_varie("ACME\x0cSRL"),
+                _fuori_varie("BETA\x0bSRL"),
+            ],
+            cliente="Epsilon Srl",
+        )
+        assert out.startswith("File salvato: ")
+        assert "rimossi 2 caratteri di controllo" in out
+        wb = load_workbook(next(tmp_path.glob("*.xlsx")))
+        nomi = [wb["Analisi fornitori"].cell(row=r, column=1).value for r in (2, 3)]
+        assert nomi == ["ACMESRL", "BETASRL"]
+
+    def test_every_free_text_field_is_cleaned(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        sporco = "x\x00y\x08z\x0e\x1fw"
+        out = _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(
+                denominazione_mastrino=sporco, piva_cf=sporco, attivita=sporco,
+                categorie_dati=sporco, motivazione=sporco, note=sporco, fonti=[sporco, "https://b.it"],
+            )],
+            cliente=sporco,
+            data_analisi=sporco,
+            file_sorgente=sporco,
+        )
+        assert out.startswith("File salvato: ")
+        wb = load_workbook(next(tmp_path.glob("*.xlsx")))
+        riga = [c.value for c in wb["Analisi fornitori"][2]]
+        assert riga[0] == riga[1] == riga[2] == riga[3] == riga[5] == riga[10] == "xyzw"
+        assert riga[9] == "xyzw\nhttps://b.it"
+        avvertenze = {row[0].value: row[1].value for row in wb["Avvertenze"].iter_rows()}
+        assert avvertenze["Cliente (titolare)"] == "xyzw"
+        assert avvertenze["Data analisi"] == "xyzw"
+        assert avvertenze["File sorgente"] == "xyzw"
+        # 4 illegal characters (U+0000, 0008, 000E, 001F) in each of 10 texts
+        assert "rimossi 40 caratteri di controllo" in out
+
+    def test_tab_lf_cr_are_legal_and_kept(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        out = _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(note="a\tb\nc\rd")], cliente="X",
+        )
+        assert out.startswith("File salvato: ")
+        assert "rimossi" not in out
+        wb = load_workbook(next(tmp_path.glob("*.xlsx")))
+        assert wb["Analisi fornitori"].cell(row=2, column=11).value == "a\tb\nc\rd"
+
+    def test_required_field_made_only_of_control_chars_is_reported_missing(self, tmp_path, monkeypatch):
+        """Cleaning runs before validation: a name that is all control characters must be
+        rejected as empty, not written as an empty cell."""
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        out = _tool("genera_report_fornitori")(
+            fornitori=[_riga_ok(denominazione_mastrino="\x0c\x0b")], cliente="X",
+        )
+        assert out.startswith("Errore di validazione: riga 1:")
+        assert "denominazione_mastrino" in out
+        assert list(tmp_path.iterdir()) == []
+
+    def test_validation_errors_still_list_every_row(self, tmp_path, monkeypatch):
+        """Docstring contract: all faulty rows together, no file, also when other rows carry
+        control characters."""
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        out = _tool("genera_report_fornitori")(
+            fornitori=[
+                _riga_ok(denominazione_mastrino="A\x0cB", confidenza="x"),
+                _riga_ok(denominazione_mastrino="C\x0bD", motivazione=None),
+            ],
+            cliente="X",
+        )
+        assert out.startswith("Errore di validazione: ")
+        assert "riga 1:" in out and "riga 2:" in out
+        assert list(tmp_path.iterdir()) == []
+
+    def test_input_records_are_not_mutated(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        riga = _riga_ok(denominazione_mastrino="ACME\x0cSRL")
+        _tool("genera_report_fornitori")(fornitori=[riga], cliente="X")
+        assert riga["denominazione_mastrino"] == "ACME\x0cSRL"
+
+
 class TestCoerenzaClassi:
     """A well-formed but incoherent set must not produce a report.
 

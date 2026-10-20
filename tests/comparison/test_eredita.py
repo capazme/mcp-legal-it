@@ -7,7 +7,7 @@ from tests.comparison.conftest import assert_close, goto, parse_euro
 def _fill_and_calc(page, patrimonio, coniuge=False, figli=0, ascendenti=0, fratelli=0):
     goto(page, "calcolo_quote_ereditarie.php")
 
-    # Use JS form.submit() — page.click on #btn-calc doesn't work because
+    # Use JS form.submit() - page.click on #btn-calc doesn't work because
     # multiple inputs share name='Operazione' (tab buttons + submit)
     js = f"""() => {{
         const form = document.getElementById('QuoteEreditarie');

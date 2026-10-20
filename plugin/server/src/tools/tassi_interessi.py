@@ -4,6 +4,7 @@ TAEG (Dir. 2008/48/CE), verifica usura."""
 
 import json
 from datetime import date, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from src.lib import _clock, _data
@@ -20,6 +21,9 @@ with open(_DATA / "tassi_legali.json") as f:
 
 with open(_DATA / "tassi_mora.json") as f:
     _TASSI_MORA = json.load(f)["tassi"]
+
+
+_MORA_REGIME_7_FINE = date(2012, 12, 31)  # art. 3 c.1 D.Lgs. 192/2012: +8 for transactions from 1/1/2013
 
 
 def _parse_date(d: str) -> date:
@@ -208,19 +212,26 @@ def interessi_mora(
     capitale: float,
     data_inizio: str,
     data_fine: str,
+    contratto_ante_2013: bool | None = None,
 ) -> dict:
-    """Calcola interessi di mora per transazioni commerciali (tasso BCE + 8 punti percentuali).
+    """Calcola interessi di mora per transazioni commerciali (tasso BCE + 8 punti percentuali; + 7 per contratti anteriori al 2013).
 
     Si applica esclusivamente a transazioni commerciali tra imprese o tra imprese e PA.
     Per crediti tra privati usare interessi_legali. Per interessi in corso di causa: interessi_corso_causa.
-    Vigenza: D.Lgs. 231/2002 (recepimento Dir. 2011/7/UE); tasso BCE aggiornato semestralmente (gen e lug).
-    Precisione: ESATTO per tassi storici pubblicati dalla BCE; INDICATIVO per periodi futuri.
+    Vigenza: D.Lgs. 231/2002 art. 2 c.1 lett. e) e art. 5 (tasso di riferimento BCE semestrale, 1 gen e 1 lug), maggiorazione di otto punti
+        dopo il D.Lgs. 192/2012; le transazioni concluse fino al 31/12/2012 restano soggette al testo originario (art. 5 c.1: sette punti),
+        art. 3 c.1 D.Lgs. 192/2012. Parametro contratto_ante_2013: se omesso, la maggiorazione di sette punti si applica quando
+        data_inizio e' anteriore o uguale al 31/12/2012 (la scadenza precede il 2013, quindi il contratto e' anteriore); per un contratto
+        anteriore al 2013 con scadenza successiva passare contratto_ante_2013=true. Maggiorazione agroalimentare (art. 4 c.2 D.Lgs. 198/2021) non applicata.
+    Precisione: ESATTO per tassi storici pubblicati dalla BCE; INDICATIVO per periodi futuri (oltre il 31/12/2026 il tasso non e' ancora noto: nessun interesse calcolato e avvertenza).
     Chaining: → rivalutazione_monetaria() → decreto_ingiuntivo() → parcella_avvocato_civile()
 
     Args:
         capitale: Importo del credito commerciale in euro (€)
         data_inizio: Data di decorrenza della mora (formato YYYY-MM-DD)
         data_fine: Data di calcolo degli interessi (formato YYYY-MM-DD)
+        contratto_ante_2013: True se la transazione e' stata conclusa entro il 31/12/2012 (maggiorazione 7 punti); False per 8 punti;
+            omesso: dedotto da data_inizio
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
@@ -228,12 +239,17 @@ def interessi_mora(
     if dt_fine <= dt_inizio:
         return {"errore": "data_fine deve essere successiva a data_inizio"}
 
+    if contratto_ante_2013 is None:
+        contratto_ante_2013 = dt_inizio <= _MORA_REGIME_7_FINE
+    maggiorazione = 7 if contratto_ante_2013 else 8
+
     periodi = []
     totale_interessi = 0.0
 
     # "dies a quo non computatur": first accruing day is dt_inizio + 1
     current = dt_inizio + timedelta(days=1)
     dal_display = dt_inizio
+    ultimo_coperto = _parse_date(_TASSI_MORA[-1]["al"])
 
     while current <= dt_fine:
         info, al = _get_mora_period(current)
@@ -242,7 +258,9 @@ def interessi_mora(
             break
 
         giorni = (periodo_end - current).days + 1  # inclusive
-        interessi_periodo = capitale * (info["mora"] / 100) * giorni / 365
+        # rate = BCE reference rate + the spread of the regime (art. 2 lett. e / art. 5 c.1 D.Lgs. 231/2002)
+        tasso_mora = round(info["bce"] + maggiorazione, 4)
+        interessi_periodo = capitale * (tasso_mora / 100) * giorni / 365
 
         totale_interessi += interessi_periodo
         periodi.append({
@@ -250,21 +268,31 @@ def interessi_mora(
             "al": periodo_end.isoformat(),
             "giorni": giorni,
             "tasso_bce_pct": info["bce"],
-            "tasso_mora_pct": info["mora"],
+            "tasso_mora_pct": tasso_mora,
             "interessi": round(interessi_periodo, 2),
         })
         current = periodo_end + timedelta(days=1)
         dal_display = current
 
-    return {
+    risultato = {
         "capitale": capitale,
         "data_inizio": data_inizio,
         "data_fine": data_fine,
         "totale_interessi": round(totale_interessi, 2),
         "totale_dovuto": round(capitale + totale_interessi, 2),
-        "riferimento_normativo": "D.Lgs. 231/2002 — tasso BCE + 8 punti percentuali",
+        "maggiorazione_punti": maggiorazione,
+        "riferimento_normativo": (
+            f"D.Lgs. 231/2002 — tasso BCE + {maggiorazione} punti percentuali"
+            + (" (testo anteriore al D.Lgs. 192/2012, art. 3 c.1)" if maggiorazione == 7 else "")
+        ),
         "periodi": periodi,
     }
+    if dt_fine > ultimo_coperto:
+        risultato["avvertenza"] = (
+            f"Il tasso BCE successivo al {ultimo_coperto.strftime('%d/%m/%Y')} non e' ancora in tabella: "
+            "gli interessi oltre tale data non sono calcolati."
+        )
+    return risultato
 
 
 @mcp.tool(tags={"interessi"})
@@ -404,22 +432,30 @@ def verifica_usura(
 
     Calcola il tasso soglia con la formula: min(TEGM×1.25+4, TEGM+8) — DL 70/2011.
     Il TEGM è pubblicato trimestralmente dal MEF. Usare per verifica di contratti esistenti.
-    Vigenza: Art. 644 c.p. — L. 108/1996 — DL 70/2011 conv. L. 106/2011; TEGM aggiornato trimestralmente.
-    Precisione: ESATTO per TEGM del trimestre indicato; INDICATIVO se il trimestre non è ancora disponibile.
+    Vigenza: Art. 644 c.p. — art. 2 co. 4 L. 108/1996 — DL 70/2011 conv. L. 106/2011; TEGM dei decreti MEF trimestrali (Allegato A), verificati al 2026-09-29; soglia con i quattro decimali del decreto (es. 8,4750).
+    Precisione: ESATTO per TEGM del trimestre indicato; INDICATIVO se il trimestre non è ancora disponibile. Un trimestre o una categoria non in tabella danno errore (nessuna sostituzione silenziosa).
 
     Args:
         tasso_applicato: TAEG effettivo applicato dal finanziatore in percentuale (es. 15.5)
-        tipo_operazione: Categoria di finanziamento: 'mutuo_prima_casa', 'credito_personale', 'apertura_credito', 'leasing', 'factoring', 'carte_revolving', 'cessione_quinto', 'mutuo_tasso_variabile'
+        tipo_operazione: Categoria di finanziamento (una soglia per categoria e classe di importo, art. 2 co. 1 L. 108/1996): 'mutuo_prima_casa' (tasso fisso), 'mutuo_tasso_variabile', 'credito_personale', 'credito_finalizzato', 'apertura_credito' (fino a 5.000), 'apertura_credito_oltre_5000', 'leasing' (strumentale fino a 25.000), 'leasing_auto', 'leasing_immobiliare_fisso', 'leasing_immobiliare_variabile', 'factoring' (fino a 50.000), 'carte_revolving', 'cessione_quinto' (fino a 15.000), 'cessione_quinto_oltre_15000', 'scoperti_senza_affidamento'
         trimestre: Trimestre di riferimento MEF (es. '2024-Q1'); se None usa l'ultimo disponibile
     """
     # Load TEGM from data file (updated quarterly). Through `_data.load` so the
     # ledger sees the read and the answer can declare its vintage.
     tegm_data = _data.load("tegm")
 
+    avvertenza = None
     # Support both old flat format and new multi-quarter format
     if "trimestri" in tegm_data:
         trimestri = tegm_data["trimestri"]
-        if trimestre and trimestre in trimestri:
+        if trimestre:
+            if trimestre not in trimestri:
+                # Art. 2 c. 4 L. 108/1996: the limit is the one of the quarter in which the
+                # rate was agreed. Answering with another quarter would be silently wrong.
+                return {
+                    "errore": f"trimestre '{trimestre}' non presente in tabella",
+                    "trimestri_disponibili": sorted(trimestri),
+                }
             quarter = trimestri[trimestre]
         else:
             # Auto-detect quarter from today's date; fallback to last available
@@ -436,36 +472,57 @@ def verifica_usura(
                 last_key = sorted(trimestri)[-1]
                 trimestre = last_key
                 quarter = trimestri[last_key]
+                avvertenza = (
+                    f"nessun trimestre in tabella copre la data odierna: usato l'ultimo disponibile ({last_key})"
+                )
         categorie = quarter["categorie"]
     else:
         # Legacy flat format
         trimestre = trimestre or tegm_data["trimestre"]
         categorie = tegm_data["categorie"]
 
-    info = categorie.get(tipo_operazione, categorie["credito_personale"])
+    if tipo_operazione not in categorie:
+        # Art. 2 c. 1 L. 108/1996: one limit per category of operation. Falling back to
+        # another category would apply the wrong limit without telling the caller.
+        return {
+            "errore": f"tipo_operazione '{tipo_operazione}' non gestito",
+            "tipi_operazione_disponibili": sorted(categorie),
+        }
+    info = categorie[tipo_operazione]
     tegm = info["tegm"]
 
-    # Formula tasso soglia usura (L. 108/1996 come modificata dal DL 70/2011)
-    soglia_formula = tegm * 1.25 + 4
-    soglia_tetto = tegm + 8
-    tasso_soglia = min(soglia_formula, soglia_tetto)
+    # Formula tasso soglia usura (L. 108/1996 come modificata dal DL 70/2011).
+    # Decimal: the MEF decree prints the limit with four decimals (8,4750), so the
+    # exact value is representable; round() on binary floats turned 8,475 into 8,47.
+    d_tegm = Decimal(str(tegm))
+    d_formula = d_tegm * Decimal("1.25") + 4
+    d_tetto = d_tegm + 8
+    d_soglia = min(d_formula, d_tetto)
+    d_applicato = Decimal(str(tasso_applicato))
+    cent = Decimal("0.01")
 
-    usurario = tasso_applicato > tasso_soglia
-    prossimo_a_usura = tasso_applicato > (tasso_soglia * 0.9)
+    usurario = d_applicato > d_soglia
+    prossimo_a_usura = d_applicato > d_soglia * Decimal("0.9")
 
-    return {
+    risultato = {
         "tasso_applicato_pct": tasso_applicato,
         "tipo_operazione": tipo_operazione,
         "descrizione": info["descrizione"],
         "trimestre": trimestre,
         "tegm_pct": tegm,
-        "tasso_soglia_pct": round(tasso_soglia, 2),
-        "formula": f"min(TEGM×1.25+4, TEGM+8) = min({round(soglia_formula, 2)}, {round(soglia_tetto, 2)})",
+        # two decimals half-up (as the MEF/bank tables are displayed); the exact
+        # four-decimal figure of the decree is in tasso_soglia_decreto_pct
+        "tasso_soglia_pct": float(d_soglia.quantize(cent, rounding=ROUND_HALF_UP)),
+        "tasso_soglia_decreto_pct": float(d_soglia),
+        "formula": f"min(TEGM×1.25+4, TEGM+8) = min({float(d_formula)}, {float(d_tetto)})",
         "usurario": usurario,
         "prossimo_a_usura": prossimo_a_usura,
-        "margine": round(tasso_soglia - tasso_applicato, 2),
+        "margine": float((d_soglia - d_applicato).quantize(cent, rounding=ROUND_HALF_UP)),
         "riferimento_normativo": "Art. 644 c.p. — L. 108/1996 — DL 70/2011 conv. L. 106/2011",
     }
+    if avvertenza:
+        risultato["avvertenza"] = avvertenza
+    return risultato
 
 
 @mcp.tool(tags={"interessi"})
@@ -475,12 +532,16 @@ def interessi_acconti(
     data_inizio: str,
     acconti: list[dict],
     data_fine: str,
+    imputazione: str = "interessi",
 ) -> dict:
-    """Calcola interessi legali art. 1284 c.c. con acconti intermedi che riducono il capitale residuo.
+    """Calcola interessi legali art. 1284 c.c. con acconti intermedi imputati secondo l'art. 1194 c.c.
 
-    Ogni acconto viene sottratto dal capitale alla sua data, e gli interessi sono ricalcolati
-    sul residuo per ciascun sotto-periodo. Utile per pagamenti parziali dilazionati.
-    Vigenza: Art. 1284 c.c.; tassi legali vigenti per ciascun anno del periodo.
+    Per default (imputazione="interessi") ogni acconto e' imputato prima agli interessi maturati e non ancora pagati e
+    solo per l'eccedenza al capitale (art. 1194 c.c.); gli interessi non pagati restano dovuti ma non producono interessi
+    (art. 1283 c.c.). Con imputazione="capitale" l'acconto riduce direttamente il capitale: ammesso solo con il consenso
+    del creditore (art. 1194 co. 1 c.c.). L'acconto alla data finale e' computato (dies ad quem incluso); un acconto
+    anteriore alla decorrenza, successivo alla data finale o superiore al credito residuo e' rifiutato.
+    Vigenza: Art. 1194 e 1284 c.c.; tassi legali vigenti per ciascun anno del periodo.
     Precisione: ESATTO per tassi legali storici; INDICATIVO per tassi futuri.
 
     Args:
@@ -488,63 +549,83 @@ def interessi_acconti(
         data_inizio: Data inizio decorrenza interessi (formato YYYY-MM-DD)
         acconti: Lista di acconti intermedi, ciascuno con 'data' (YYYY-MM-DD) e 'importo' (float in €)
         data_fine: Data fine decorrenza interessi (formato YYYY-MM-DD)
+        imputazione: 'interessi' (default, art. 1194: prima gli interessi) oppure 'capitale' (solo con consenso del creditore)
     """
     dt_inizio = _parse_date(data_inizio)
     dt_fine = _parse_date(data_fine)
 
     if dt_fine <= dt_inizio:
         return {"errore": "data_fine deve essere successiva a data_inizio"}
+    if imputazione not in ("interessi", "capitale"):
+        return {"errore": "imputazione deve essere 'interessi' (art. 1194 c.c.) o 'capitale' (con consenso del creditore)"}
 
-    # Sort acconti by date
-    acconti_sorted = sorted(acconti, key=lambda a: a["data"])
+    movimenti = []
+    for acc in acconti:
+        dt_acc = _parse_date(acc["data"])
+        if dt_acc < dt_inizio:
+            return {"errore": f"acconto del {acc['data']} anteriore alla decorrenza degli interessi: ridurre il capitale iniziale"}
+        if dt_acc > dt_fine:
+            return {"errore": f"acconto del {acc['data']} successivo a data_fine"}
+        movimenti.append((dt_acc, float(acc["importo"])))
+    movimenti.sort(key=lambda m: m[0])
+    movimenti.append((dt_fine, 0.0))
 
     periodi = []
-    capitale_residuo = capitale
+    capitale_residuo = float(capitale)
+    interessi_residui = 0.0  # accrued and still unpaid (art. 1194)
     totale_interessi = 0.0
+    interessi_imputati = 0.0
     current = dt_inizio
 
-    # Build period boundaries: start, each acconto date, end
-    boundaries = []
-    for acc in acconti_sorted:
-        dt_acc = _parse_date(acc["data"])
-        if dt_inizio < dt_acc < dt_fine:
-            boundaries.append((dt_acc, acc["importo"]))
+    for dt_mov, importo in movimenti:
+        if dt_mov > current:
+            interessi_periodo = _calc_interessi_periodo(capitale_residuo, current, dt_mov)
+            totale_interessi += interessi_periodo
+            interessi_residui += interessi_periodo
+            periodi.append({
+                "dal": current.isoformat(),
+                "al": dt_mov.isoformat(),
+                "capitale_residuo": round(capitale_residuo, 2),
+                "interessi": round(interessi_periodo, 2),
+                "acconto_successivo": importo if importo > 0 else None,
+            })
+            current = dt_mov
 
-    boundaries.append((dt_fine, 0))
-
-    for dt_boundary, importo_acconto in boundaries:
-        if current >= dt_boundary:
-            if importo_acconto > 0:
-                capitale_residuo -= importo_acconto
+        if importo <= 0:
             continue
+        if imputazione == "interessi":
+            if importo > capitale_residuo + interessi_residui + 0.005:
+                return {"errore": (
+                    f"acconto di {importo:.2f} del {dt_mov.isoformat()} superiore al credito residuo "
+                    f"({capitale_residuo + interessi_residui:.2f})"
+                )}
+            agli_interessi = min(importo, interessi_residui)
+            interessi_residui -= agli_interessi
+            interessi_imputati += agli_interessi
+            capitale_residuo = max(capitale_residuo - (importo - agli_interessi), 0.0)
+        else:
+            if importo > capitale_residuo + 0.005:
+                return {"errore": (
+                    f"acconto di {importo:.2f} del {dt_mov.isoformat()} superiore al capitale residuo "
+                    f"({capitale_residuo:.2f})"
+                )}
+            capitale_residuo = max(capitale_residuo - importo, 0.0)
 
-        # Calculate interests for this sub-period using shared helper
-        interessi_periodo = _calc_interessi_periodo(capitale_residuo, current, dt_boundary)
-
-        totale_interessi += interessi_periodo
-
-        periodi.append({
-            "dal": current.isoformat(),
-            "al": dt_boundary.isoformat(),
-            "capitale_residuo": round(capitale_residuo, 2),
-            "interessi": round(interessi_periodo, 2),
-            "acconto_successivo": importo_acconto if importo_acconto > 0 else None,
-        })
-
-        if importo_acconto > 0:
-            capitale_residuo -= importo_acconto
-            capitale_residuo = max(capitale_residuo, 0)
-        current = dt_boundary
+    if imputazione == "capitale":
+        interessi_residui = totale_interessi
 
     return {
         "capitale_iniziale": capitale,
         "data_inizio": data_inizio,
         "data_fine": data_fine,
+        "imputazione": imputazione,
         "numero_acconti": len(acconti),
-        "totale_acconti": round(sum(a["importo"] for a in acconti), 2),
+        "totale_acconti": round(sum(float(a["importo"]) for a in acconti), 2),
         "capitale_residuo_finale": round(capitale_residuo, 2),
         "totale_interessi": round(totale_interessi, 2),
-        "totale_dovuto": round(capitale_residuo + totale_interessi, 2),
+        "interessi_imputati_da_acconti": round(interessi_imputati, 2),
+        "interessi_residui": round(interessi_residui, 2),
+        "totale_dovuto": round(capitale_residuo + interessi_residui, 2),
         "periodi": periodi,
     }
 
@@ -563,9 +644,10 @@ def calcolo_maggior_danno(
     il creditore ha diritto al maggior danno pari alla differenza.
     Vigenza: Art. 1224 co. 2 c.c. — Cass. SU 19499/2008; indici FOI ISTAT base 2015=100
     raccordata (dal 2026 base 2025=100, coefficiente ufficiale 1,214), serie dal 1990.
-    Precisione: ESATTO per tassi legali storici e indici FOI ufficiali; INDICATIVO se un
-    mese richiesto non è ancora pubblicato — approssimato col più vicino disponibile e
-    segnalato nel campo `avvertenza`.
+    Precisione: INDICATIVO (Cass. SS.UU. 19499/2008 presume il maggior danno ex art. 1224 co. 2 c.c.
+        nella differenza tra il rendimento medio annuo netto dei titoli di Stato di durata non
+        superiore a dodici mesi e il tasso legale; il confronto con l'indice FOI qui adottato è un
+        criterio diverso, da usare solo come stima)
 
     Args:
         capitale: Importo del credito originario in euro (€)
@@ -616,8 +698,34 @@ def calcolo_maggior_danno(
     }
 
 
+_INIZIO_ART_1284_CO_4 = date(2014, 12, 11)
+
+
+def _corso_causa_saggio_legale(capitale, data_citazione, data_sentenza, data_pagamento):
+    """Interest for a proceeding begun before 11/12/2014: legal rate throughout (art. 17 co. 2 DL 132/2014)."""
+    dt_c, dt_s = _parse_date(data_citazione), _parse_date(data_sentenza)
+    dt_p = _parse_date(data_pagamento) if data_pagamento else dt_s
+    causa = _calc_interessi_periodo(capitale, dt_c, dt_s)
+    periodi = [{"tipo": "in_corso_causa", "dal": data_citazione, "al": data_sentenza,
+                "tasso_tipo": "saggio legale art. 1284 co. 1 c.c.", "interessi": round(causa, 2)}]
+    totale = causa
+    if dt_p > dt_s:
+        post = _calc_interessi_periodo(capitale, dt_s, dt_p)
+        totale += post
+        periodi.append({"tipo": "post_sentenza", "dal": data_sentenza, "al": dt_p.isoformat(),
+                        "tasso_tipo": "saggio legale art. 1284 co. 1 c.c.", "interessi": round(post, 2)})
+    return {
+        "capitale": capitale, "data_citazione": data_citazione, "data_sentenza": data_sentenza,
+        "data_pagamento": data_pagamento or data_sentenza,
+        "totale_interessi": round(totale, 2), "totale_dovuto": round(capitale + totale, 2),
+        "tasso_applicato": "saggio legale (art. 1284 co. 1 c.c.): domanda anteriore all'11/12/2014",
+        "riferimento_normativo": "Art. 1284 c.c.; art. 17 co. 2 DL 132/2014 conv. L. 162/2014",
+        "periodi": periodi,
+    }
+
+
 @mcp.tool(tags={"interessi"})
-@sourced("tassi_mora")
+@sourced("tassi_mora", "tassi_legali")
 def interessi_corso_causa(
     capitale: float,
     data_citazione: str,
@@ -629,7 +737,9 @@ def interessi_corso_causa(
     Dal giorno della domanda giudiziale (citazione) si applica il tasso di mora D.Lgs. 231/2002
     (BCE+8pp) invece del tasso legale ordinario, sia in corso di causa sia post-sentenza.
     Per interessi ante-causa (prima della citazione) usare interessi_legali.
-    Vigenza: Art. 1284 co. 4 c.c. (introdotto da L. 162/2014); D.Lgs. 231/2002.
+    Vigenza: Art. 1284 co. 4 c.c. (introdotto dall'art. 17 DL 132/2014 conv. L. 162/2014, con effetto per i
+    procedimenti iniziati dall'11/12/2014, art. 17 co. 2); D.Lgs. 231/2002. Per le domande anteriori
+    all'11/12/2014 si applica il saggio legale dell'art. 1284 co. 1.
     Precisione: ESATTO per tassi BCE storici; INDICATIVO per periodi futuri.
 
     Args:
@@ -644,6 +754,12 @@ def interessi_corso_causa(
 
     if dt_sentenza <= dt_citazione:
         return {"errore": "data_sentenza deve essere successiva a data_citazione"}
+
+    # Art. 17 co. 2 DL 132/2014: the mora rate of art. 1284 co. 4 c.c. only applies to proceedings begun
+    # from the thirtieth day after the entry into force of L. 162/2014 (11/12/2014); before that the
+    # ordinary legal rate of art. 1284 co. 1 runs, also after the judgment.
+    if dt_citazione < _INIZIO_ART_1284_CO_4:
+        return _corso_causa_saggio_legale(capitale, data_citazione, data_sentenza, data_pagamento)
 
     # In corso di causa (data_citazione -> data_sentenza): mora rate per art. 1284 co. 4 c.c.
     interessi_causa, _ = _calc_interessi_mora_periodo(capitale, dt_citazione, dt_sentenza)

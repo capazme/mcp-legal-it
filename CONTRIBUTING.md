@@ -64,7 +64,14 @@ Il caso più semplice: il tool riceve parametri, calcola, restituisce una string
    INDICATIVO | STIMATO`): l'audit fallisce sui tool che applicano una tabella senza grado
 5. Leggi la data solo tramite `src.lib._clock` (`_clock.today()` / `_clock.now()`):
    `date.today()` altrove fa fallire l'audit, perché `LEGAL_TODAY` deve poter pinnare ogni tool
-6. Rigenera policy e binding: `python scripts/audit_tool_annotations.py --write`
+6. Se il tool calcola sotto una disciplina superata, che serve solo per casi residuali (una
+   causa iscritta prima della Riforma Cartabia, un istituto abrogato per i fatti successivi a
+   una data), dichiaralo in tre punti che l'audit tiene allineati: la riga
+   `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>` nel docstring, il tag
+   `previgente` in `@mcp.tool(tags=...)` e il wrapper `@previgente` di `src/lib/_regime.py`
+   (sotto `@mcp.tool`, sopra `@sourced`). Ogni risposta porta così `regime_normativo` e
+   `LEGAL_PREVIGENTE=off` può nascondere il gruppo. Un tool senza riga `Regime:` è vigente.
+7. Rigenera policy e binding: `python scripts/audit_tool_annotations.py --write`
    (`--check` è il job `policy-sync` in CI) e, se il tool è locale e read-only, aggiornalo nel
    golden con `GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`
 
@@ -274,14 +281,13 @@ In `src/resources.py`, aggiungi tramite `@mcp.resource()` con URI nel formato `l
 ### Aggiungere una dipendenza runtime
 
 `pyproject.toml` è l'unica fonte di verità, ma ogni percorso di installazione
-risolve le dipendenze per conto proprio, quindi il set va ridichiarato in 4 punti:
+risolve le dipendenze per conto proprio, quindi il set va ridichiarato in 3 punti,
+più il lock del plugin:
 
 | File | Percorso di installazione |
 |---|---|
 | `pyproject.toml` | Docker (`pip install .`), sviluppo |
-| `plugin/server/pyproject.toml` | server impacchettato nel plugin |
-| `plugin/start_server.sh` (riga `--with`) | plugin Claude Code con `uv` |
-| `plugin/start_server.sh` (riga `pip install`) | fallback senza `uv` (sandbox Cowork) |
+| `plugin/server/pyproject.toml` + `plugin/server/uv.lock` | plugin Claude Code (`uv run --frozen`): dopo la modifica, `cd plugin/server && uv lock --python 3.12` |
 | `dxt/manifest.json` (`mcp_config.args`) | Desktop Extension `.mcpb` |
 
 Dopo la modifica:

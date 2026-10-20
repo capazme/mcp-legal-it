@@ -122,6 +122,10 @@ def build_claude_web(root: Path, out_dir: Path | None = None) -> int:
 # ---------------------------------------------------------------------------
 
 def _purge_caches(stage: Path) -> None:
+    # Never ship a local uv environment (created by `uv run --project` in a checkout).
+    for d in list(stage.rglob(".venv")):
+        if d.is_dir():
+            shutil.rmtree(d, ignore_errors=True)
     for d in list(stage.rglob("__pycache__")):
         if d.is_dir():
             shutil.rmtree(d, ignore_errors=True)
@@ -177,8 +181,6 @@ def build_plugin_zip(root: Path, version: str | None = None) -> Path:
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, dst)
 
-        os.chmod(stage / "start_server.sh", 0o755)
-
         _purge_caches(stage)
 
         if explicit_version:
@@ -211,10 +213,8 @@ def build_mcpb(root: Path, version: str | None = None) -> Path:
         shutil.copy2(manifest_path, stage / "manifest.json")
         shutil.copy2(dxt_dir / ".mcpbignore", stage / ".mcpbignore")
         shutil.copy2(root / "pyproject.toml", stage / "pyproject.toml")
-        shutil.copy2(root / "plugin" / "start_server.sh", stage / "start_server.sh")
+        # the manifest runs server/run_server.py through uv: no launcher script
         shutil.copytree(root / "plugin" / "server", stage / "server")
-
-        os.chmod(stage / "start_server.sh", 0o755)
 
         _purge_caches(stage)
 
@@ -248,7 +248,7 @@ _OPENAI_CONFIG_TOML_EXAMPLE = """\
 [mcp_servers.legal_it]
 command = "uv"
 args = [
-  "run", "--python", "3.12",
+  "run", "--no-project", "--python", "3.12",
   "--with", "fastmcp>=2.0,<4",
   "--with", "httpx>=0.27",
   "--with", "beautifulsoup4>=4.12",
@@ -257,6 +257,7 @@ args = [
   "--with", "python-docx>=1.0",
   "--with", "openpyxl>=3.1",
   "--with", "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "--with", "cryptography>=50; sys_platform != 'darwin' or platform_machine != 'x86_64'",
   "/path/to/mcp-legal-it/plugin/server/run_server.py",
 ]
 

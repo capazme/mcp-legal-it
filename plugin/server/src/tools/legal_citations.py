@@ -11,6 +11,8 @@ import tempfile
 import time
 from typing import Literal
 
+import httpx
+
 from src.server import mcp
 from src.lib import _clock
 from src.lib.visualex import (
@@ -20,7 +22,11 @@ from src.lib.visualex import (
     strip_leading_particles,
     known_act_names,
 )
+from src.lib.visualex.models import ANNEX_ID, annex_reference, split_annex
 from src.lib.visualex.scraper import (
+    ARTICLE_NOT_FOUND,
+    CHECK_UNAVAILABLE,
+    _build_celex,
     fetch_article,
     fetch_annotations,
     download_eurlex_pdf,
@@ -42,6 +48,38 @@ _PARAGRAPH_PATTERN = re.compile(
 )
 
 
+# Connectives between an annex and its act: "allegato I.7 al D.Lgs. 36/2023".
+_ANNEX_LINK = r"(?:(?:al|del|della|dello|alla|all['’]|dell['’])\s*)?"
+
+# "allegato I.7 [art. 30] <atto>", "Allegato III, punto 4, lett. a) <atto>"
+_ANNEX_FIRST_PATTERN = re.compile(
+    rf"^allegato\s+(?P<id>{ANNEX_ID})(?=[\s,;]|$)"
+    r"(?:\s*,?\s*(?:articol[oi]|art)\.?\s*(?P<art>\d+(?:[-/.]\w+)*))?"
+    r"\s*[,;]?\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+
+# What follows "art. 30" when the article belongs to an annex: "dell'allegato I.7 al ..."
+_ANNEX_AFTER_ARTICLE = re.compile(
+    rf"^{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})(?=[\s,;]|$)\s*[,;]?\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+
+
+def _strip_paragraphs(rest: str) -> str:
+    """Drop leading paragraph/point/letter indicators, repeatedly ("comma 1 lett. a) GDPR" → "GDPR")."""
+    while True:
+        stripped = _PARAGRAPH_PATTERN.sub("", rest).strip()
+        if stripped == rest:
+            return rest
+        rest = stripped
+
+
+def _strip_annex_link(rest: str) -> str:
+    """Drop the connective before the act name ("al D.Lgs. 36/2023" → "D.Lgs. 36/2023")."""
+    return re.sub(rf"^{_ANNEX_LINK}", "", rest, flags=re.IGNORECASE).strip()
+
+
 def _parse_reference(reference: str) -> tuple[str, str]:
     """Parse a legal reference like 'art. 13 GDPR' into (article, act_name).
 
@@ -54,8 +92,16 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     - "art. 4 n. 11 GDPR"  → paragraph stripped → ("4", "GDPR")
     - "considerando 42 GDPR" → ("rec_42", "GDPR")
     - "recital 47 GDPR"     → ("rec_47", "GDPR")
+    - "allegato I.7 art. 30 D.Lgs. 36/2023", "art. 30 dell'allegato I.7 al D.Lgs. 36/2023"
+                             → ("allegato I.7 art. 30", "D.Lgs. 36/2023")
+    - "Allegato III AI Act"  → ("allegato III", "AI Act")
     """
     reference = reference.strip()
+
+    annex_match = _ANNEX_FIRST_PATTERN.match(reference)
+    if annex_match:
+        rest = _strip_annex_link(_strip_paragraphs(annex_match.group("rest").strip()))
+        return annex_reference(annex_match.group("id"), annex_match.group("art") or ""), rest
 
     # Considerando / recital — must be checked before "art." pattern
     rec_match = re.match(
@@ -74,14 +120,13 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     )
     if match:
         article = match.group(1).strip()
-        rest = match.group(2).strip()
         # Strip leading paragraph/point/comma indicators, applied repeatedly
         # to handle chains like "comma 1 lett. a) GDPR" → "GDPR".
-        while True:
-            stripped = _PARAGRAPH_PATTERN.sub("", rest).strip()
-            if stripped == rest:
-                break
-            rest = stripped
+        rest = _strip_paragraphs(match.group(2).strip())
+        annex_match = _ANNEX_AFTER_ARTICLE.match(rest)
+        if annex_match:
+            rest = _strip_annex_link(annex_match.group("rest").strip())
+            return annex_reference(annex_match.group("id"), article), rest
         return article, rest
 
     # No "art." prefix — try to parse as just act name (no article)
@@ -258,6 +303,8 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 
     if text:
         parts.append(f"**Fonte**: {source.title()} — {url}\n")
+        if article_result.get("allegato"):
+            parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         parts.append(text)
     else:
         parts.append(f"**Nessun testo trovato** — URL: {url}")
@@ -302,23 +349,48 @@ def _urn_from_url(url: str) -> str | None:
     return url.split("?", 1)[1] or None
 
 
+def _source_failure(exc: Exception) -> bool:
+    """Whether an exception says the source is down, slow or limiting us (not that the norm is absent)."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code if exc.response is not None else 0
+        return status == 429 or status >= 500
+    return isinstance(exc, (httpx.TransportError, asyncio.TimeoutError))
+
+
+def _failed_fetch(nv: NormaVisitata, exc: Exception) -> dict:
+    result = {"text": "", "url": nv.url(), "source": "", "error": str(exc)}
+    if _source_failure(exc):
+        result["esito"] = CHECK_UNAVAILABLE
+    return result
+
+
 async def _cite_law_struct(reference: str) -> dict:
     """Structured article lookup (no Brocardi): the JSON face of cite_law."""
+    return (await _cite_law_lookup(reference))[0]
+
+
+async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
+    """The JSON face of cite_law, plus the outcome of the existence check.
+
+    The outcome is ``ARTICLE_NOT_FOUND`` (the article is not in the act),
+    ``CHECK_UNAVAILABLE`` (the source could not tell) or None.
+    """
     today = _clock.today().isoformat()
     base = {
         "formato": "json", "riferimento": reference, "articolo": "",
         "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
-        "url": "", "urn": None, "fonte": "", "testo": "", "errore": None, "data_consultazione": today,
+        "url": "", "urn": None, "fonte": "", "allegato": None, "testo": "", "errore": None,
+        "data_consultazione": today,
     }
     article, act_name = _parse_reference(reference)
     if not act_name:
         base["errore"] = (f"impossibile interpretare il riferimento '{reference}'. "
                           "Formato atteso: 'art. <numero> <atto>'")
-        return base
+        return base, None
     act_info = _resolve_act(act_name)
     if not act_info:
         base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
-        return base
+        return base, None
 
     nv = _build_nv(act_info, article)
     base["articolo"] = article or ""
@@ -331,16 +403,27 @@ async def _cite_law_struct(reference: str) -> dict:
     try:
         result = await fetch_article(nv)
     except Exception as e:
-        result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+        result = _failed_fetch(nv, e)
     base["url"] = result.get("url", "") or nv.url()
     base["urn"] = _urn_from_url(base["url"])
+    # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
+    # with the act's real date (from the Normattiva page); when it could not, the URL still
+    # works but its date is a placeholder, so no URN is presented as the act's own.
+    full_date = result.get("data_atto") or ""
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", full_date):
+        base["atto"]["data"] = full_date
+        base["atto"]["descrizione"] = str(Norma(tipo_atto=nv.norma.tipo_atto, data=full_date,
+                                                numero_atto=nv.norma.numero_atto))
+    elif base["urn"] and re.fullmatch(r"\d{4}", act_info.get("data", "") or ""):
+        base["urn"] = None
     base["fonte"] = result.get("source", "") or ""
+    base["allegato"] = result.get("allegato") or None
     base["testo"] = result.get("text", "") or ""
     if result.get("error"):
         base["errore"] = result["error"]
     elif not base["testo"]:
         base["errore"] = "nessun testo trovato"
-    return base
+    return base, result.get("esito")
 
 
 async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
@@ -360,10 +443,15 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
     try:
         article_result = await fetch_article(nv)
     except Exception as e:
-        article_result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+        article_result = _failed_fetch(nv, e)
 
+    # An article the act does not have has nothing to annotate (and Brocardi would
+    # only be searched page by page for it).
+    annotate = include_annotations and article and article_result.get("esito") != ARTICLE_NOT_FOUND
     brocardi_md = ""
-    if include_annotations and article:
+    if annotate and split_annex(article):
+        brocardi_md = "\n\n**Annotazioni Brocardi**: non disponibili per gli allegati"
+    elif annotate:
         try:
             brocardi = await fetch_brocardi(
                 act_info["tipo_atto"], article, act_info.get("numero_atto", ""), act_info.get("data", "")
@@ -386,7 +474,7 @@ async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", a
     try:
         result = await fetch_article(nv)
     except Exception as e:
-        result = {"text": "", "url": nv.url(), "source": "", "error": str(e)}
+        result = _failed_fetch(nv, e)
 
     return _format_result(result)
 
@@ -419,6 +507,18 @@ async def cite_law(
       - "art. 6 D.Lgs. 231/2001" — articolo di decreto legislativo
       - "considerando 42 GDPR" — considerando (recital) di regolamento UE
       - "art. 13 regolamento UE 2016/679" — riferimento con nome completo
+      - "art. 30 dell'allegato I.7 al D.Lgs. 36/2023" — articolo di un allegato
+        (anche "allegato I.7 art. 30 D.Lgs. 36/2023")
+      - "Allegato III AI Act" — allegato di un atto UE, restituito per intero
+        (punti e lettere vengono ignorati, come i commi)
+
+    Un articolo che l'atto non ha produce un errore ("articolo N non trovato"), mai il
+    testo di un altro articolo: Normattiva risponde a un numero inesistente con l'art. 1
+    dell'atto. Se la fonte non permette di stabilire quale articolo ha restituito,
+    l'errore dice "verifica non disponibile" e il testo non viene presentato.
+
+    Senza "allegato" si ottiene sempre l'articolo del corpo dell'atto. Se il testo
+    proviene da un allegato, l'output lo dichiara ("Testo tratto dall'Allegato ...").
 
     I numeri di paragrafo (n. N, co. N, comma N) vengono automaticamente
     ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR".
@@ -430,10 +530,15 @@ async def cite_law(
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
                              massime giurisprudenziali). Default False.
         formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
-                 atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, testo,
-                 errore, data_consultazione. "urn" è l'estremo URN Normattiva quando la
-                 fonte è Normattiva, altrimenti null. In modalità json le annotazioni
-                 Brocardi non sono incluse (include_annotations viene ignorato).
+                 atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, allegato,
+                 testo, errore, data_consultazione. "allegato" è il nome dell'allegato da cui
+                 proviene il testo ("Allegato I.7"), null se è il corpo dell'atto; per un
+                 allegato "urn" è quello dell'atto. "urn" è l'estremo URN Normattiva quando la
+                 fonte è Normattiva, altrimenti null; se l'atto è citato con il solo anno
+                 ("L. 742/1969") la data completa è letta dalla pagina Normattiva
+                 ("1969-10-07"), e se non è ricavabile "urn" è null (mai una data fittizia).
+                 In modalità json le annotazioni Brocardi non sono incluse
+                 (include_annotations viene ignorato).
     """
     return await _cite_law_impl(reference, include_annotations, formato)
 
@@ -448,7 +553,9 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
     Args:
         act_type: Tipo di atto normativo, es. "decreto legislativo", "regolamento ue",
                   "codice civile", "codice penale", "costituzione", "legge", "decreto legge"
-        article: Numero dell'articolo, es. "13", "2-bis", "117"
+        article: Numero dell'articolo, es. "13", "2-bis", "117"; per un allegato
+                 "allegato I.7 art. 30" (articolo di un allegato) o "Allegato III"
+                 (allegato intero, es. di un regolamento UE)
         date: Anno o data dell'atto, es. "2016", "2003-06-30" (opzionale per i codici)
         act_number: Numero dell'atto, es. "196", "679" (opzionale per i codici)
     """
@@ -459,7 +566,10 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
 async def fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupera le annotazioni Brocardi per un articolo: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali. Da usare per approfondire la norma già recuperata con cite_law().
-    Restituisce: ratio legis, spiegazione dottrinale, massime giurisprudenziali da Brocardi.
+    Restituisce: rubrica e testo dell'articolo come li riporta Brocardi (con i rinvii tra parentesi
+    quadre; il testo ufficiale resta quello di cite_law), ratio legis, spiegazione dottrinale,
+    massime giurisprudenziali. Le massime non sono troncate: per articoli molto annotati
+    (art. 2043 c.c.: circa 500) la risposta supera i 500.000 caratteri.
 
     Args:
         act_type: Tipo di atto normativo, es. "codice civile", "codice penale", "costituzione"
@@ -479,6 +589,9 @@ async def _cerca_brocardi_impl(reference: str) -> str:
     if not act_name:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
 
+    if split_annex(article):
+        return "**Errore Brocardi**: Brocardi non annota gli allegati; per il testo usare cite_law()."
+
     act_info = _resolve_act(act_name)
     if not act_info:
         return _unresolved_act_error(act_name)
@@ -495,12 +608,29 @@ async def _cerca_brocardi_impl(reference: str) -> str:
 
     parts = [result.to_markdown()]
 
-    # Append Cassazione references for Italgiure cross-linking
+    # Append Cassazione references for Italgiure cross-linking. Italgiure indexes only a moving
+    # window of recent years: older decisions are listed apart, because leggi_sentenza cannot
+    # find them (answering "non trovata" for a decision that does exist).
     cass_refs = parse_massime_references(result.massime)
     if cass_refs:
+        first_year, first_date = 0, ""
+        if any(ref["anno"] <= _italgiure_window_year() for ref in cass_refs):
+            first_year, first_date = await _italgiure_archive_start("tutti")
+        leggibili = [ref for ref in cass_refs if ref["anno"] >= first_year]
+        fuori = [ref for ref in cass_refs if ref["anno"] < first_year]
         parts.append("\n---\n**Riferimenti Cassazione** (per approfondimento con `leggi_sentenza`):")
-        for ref in cass_refs:
+        for ref in leggibili:
             parts.append(f"- {ref['autorita']} n. {ref['numero']}/{ref['anno']}")
+        if not leggibili:
+            parts.append("- nessuno: tutte le decisioni citate sono anteriori all'archivio Italgiure")
+        if fuori:
+            since = f"anteriori al {_fmt_iso_date(first_date)}" if first_date else f"anteriori al {first_year}"
+            parts.append(
+                f"\n**Fuori archivio Italgiure** ({since}: `leggi_sentenza` non le trova, "
+                "il testo va cercato in altra fonte):"
+            )
+            for ref in fuori:
+                parts.append(f"- {ref['autorita']} n. {ref['numero']}/{ref['anno']}")
 
     return "\n".join(parts)
 
@@ -513,7 +643,9 @@ async def cerca_brocardi(reference: str) -> str:
 
     Rispetto a fetch_law_annotations, accetta un riferimento in formato naturale (come cite_law)
     e restituisce anche i riferimenti strutturati alle sentenze della Cassazione
-    (utilizzabili con leggi_sentenza per recuperare il testo completo).
+    (utilizzabili con leggi_sentenza per recuperare il testo completo). Italgiure indicizza solo
+    una finestra mobile di anni recenti (nel 2026 dal 2021): le decisioni anteriori sono elencate
+    a parte come "Fuori archivio Italgiure", perché leggi_sentenza non le trova.
     Dopo questo tool: leggi_sentenza() per il testo completo delle sentenze citate nelle massime.
     Restituisce: ratio legis, spiegazione, massime con numeri sentenza strutturati, relazioni storiche.
 
@@ -734,17 +866,15 @@ async def _download_law_pdf_impl(reference: str) -> str:
             with open(filepath, "wb") as f:
                 f.write(pdf_bytes)
 
-            from src.lib.visualex.map import EURLEX
-            eurlex_val = EURLEX.get(norma.tipo_atto_normalized.lower(), "reg")
-            type_letter = {"reg": "R", "dir": "L"}.get(eurlex_val, "R")
-            year = norma.data.split("-")[0] if "-" in norma.data else norma.data
-            number = norma.numero_atto.zfill(4)
-            pdf_url = f"https://eur-lex.europa.eu/legal-content/IT/TXT/PDF/?uri=CELEX:3{year}{type_letter}{number}"
+            # Quotable reference: the EUR-Lex PDF page of the act (the file itself comes from
+            # CELLAR, see download_eurlex_pdf).
+            pdf_url = f"https://eur-lex.europa.eu/legal-content/IT/TXT/PDF/?uri=CELEX:{_build_celex(norma)}"
 
             return (
                 f"**PDF scaricato** ({act_name})\n\n"
                 f"File: `{filepath}`\n"
                 f"Fonte: EUR-Lex — {pdf_url}\n"
+                f"Copia: CELLAR (Ufficio delle pubblicazioni dell'UE), versione italiana\n"
                 f"Dimensione: {len(pdf_bytes):,} bytes"
             )
         except Exception as e:
@@ -781,7 +911,9 @@ async def _download_law_pdf_impl(reference: str) -> str:
 async def download_law_pdf(reference: str) -> str:
     """Scarica o genera il PDF completo di una legge.
 
-    Per regolamenti/direttive UE: scarica il PDF ufficiale da EUR-Lex.
+    Per regolamenti/direttive UE: scarica il PDF ufficiale in italiano (edizione elettronica
+    della GU UE, servita dal repository CELLAR dell'Ufficio delle pubblicazioni; EUR-Lex
+    resta il riferimento citabile, il suo endpoint PDF blocca i client automatici).
     Per leggi italiane: genera un PDF dal testo ufficiale recuperato da Normattiva.
     Restituisce: path al file PDF salvato in /tmp con fonte e dimensione.
 
@@ -796,9 +928,70 @@ async def download_law_pdf(reference: str) -> str:
 # verifica_citazioni — citation existence + metadata verifier
 # ---------------------------------------------------------------------------
 
-# Earliest year covered by the Italgiure archive. Decisions before this cannot
-# be confirmed as existent or not — they are simply outside the searchable index.
-_ITALGIURE_MIN_YEAR = 2020
+# The Italgiure archive is a MOVING window, not "from 2020": on 2026-09-25 the civil archive
+# started on 17/02/2021 (2021 holds ~16k decisions against 35-38k of a full year, and nothing is
+# indexed for 2020), and the start advances every day. Decisions before the start cannot be
+# confirmed as existent or not; the first year is only partly covered, so a miss there proves
+# nothing either. The start is READ from the archive (oldest deposited decision, cached per day)
+# by `_italgiure_archive_start`, the single definition shared by verifica_citazioni and
+# cerca_brocardi. If that probe fails, the window is assumed to be at least this many years wide.
+_ITALGIURE_WINDOW_YEARS = 5
+
+_archive_start_cache: dict[tuple[str, str], tuple[int, str]] = {}
+
+
+def _italgiure_window_year() -> int:
+    """Newest year that can lie before, or on the edge of, the archive start.
+
+    A decision of a LATER year is always inside the archive window, so it needs no probe.
+    """
+    return _clock.today().year - _ITALGIURE_WINDOW_YEARS
+
+
+async def _italgiure_archive_start(archivio: str = "tutti") -> tuple[int, str]:
+    """First year and first deposit date ("YYYY-MM-DD") of the Italgiure archive.
+
+    Read as the oldest decision of the archive (sort by deposit date, one row) and cached for
+    the day. If the archive cannot be queried, returns the assumed window
+    (``today.year - 5``, no date) without caching it.
+    """
+    today = _clock.today()
+    key = (archivio, today.isoformat())
+    if key in _archive_start_cache:
+        return _archive_start_cache[key]
+    fallback = (_italgiure_window_year(), "")
+    try:
+        from src.lib.italgiure.client import get_kind_filter
+        from src.tools import italgiure as _italgiure
+
+        kind_clause = " OR ".join(f'kind:"{k}"' for k in get_kind_filter(archivio))
+        data = await _italgiure.solr_query(
+            {"q": f"({kind_clause})", "rows": 1, "sort": "pd asc", "fl": "id,anno,datdep,kind"}
+        )
+        docs = data.get("response", {}).get("docs", [])
+        if not docs:
+            return fallback
+        raw = docs[0].get("datdep")
+        raw = str(raw[0] if isinstance(raw, list) else raw or "").strip()
+        m = re.match(r"^(\d{4})-?(\d{2})-?(\d{2})", raw)
+        if not m:
+            return fallback
+        start = (int(m.group(1)), f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
+    except Exception:  # noqa: BLE001 - the probe is best effort; the caller keeps the fallback rule
+        return fallback
+    _archive_start_cache[key] = start
+    return start
+
+
+def _fmt_iso_date(iso: str) -> str:
+    """"2021-02-17" -> "17/02/2021"."""
+    y, m, d = iso.split("-")
+    return f"{d}/{m}/{y}"
+
+
+# Branch of the Cassazione named in a citation ("Cass. pen. ...", "Cassazione civile ...").
+# Lavoro and tributaria are chambers of the civil branch.
+_USER_RAMO = re.compile(r"\bcass(?:azione)?\.?\s*,?\s*(?:sez\.?\s*)?(civ|pen|lav|trib)", re.IGNORECASE)
 
 # Hard cap on the number of references resolved in a single call, to bound
 # concurrency against the slow government sources.
@@ -871,7 +1064,7 @@ def _split_citazioni(citazioni: str) -> list[str]:
         for frag in fragments:
             if not frag:
                 continue
-            if current and _starts_new_reference(frag):
+            if current and _starts_new_reference(frag) and not _continues_with_annex(current, frag):
                 refs.append(current)
                 current = frag
             elif current:
@@ -883,10 +1076,19 @@ def _split_citazioni(citazioni: str) -> list[str]:
     return refs
 
 
+def _continues_with_annex(current: str, fragment: str) -> bool:
+    """ "art. 30, allegato I.7, D.Lgs. 36/2023": the annex completes an article still
+    waiting for its act, it does not open a new reference."""
+    if not re.match(r"allegato\s", fragment.lstrip(), re.IGNORECASE):
+        return False
+    article, act_name = _parse_reference(current)
+    return not (article and act_name)
+
+
 def _starts_new_reference(fragment: str) -> bool:
     """True if a comma-fragment begins a fresh citation (not a continuation)."""
     low = fragment.lstrip().lower()
-    if re.match(r"(?:art(?:icol[oi])?\.?\s*\d|considerando\s+\d|recital\s+\d)", low):
+    if re.match(r"(?:art(?:icol[oi])?\.?\s*\d|considerando\s+\d|recital\s+\d|allegato\s+\w)", low):
         return True
     if re.match(r"(?:cass|sez|ss?\.?\s*uu)", low):
         return True
@@ -1022,17 +1224,17 @@ def _norma_misquote(reference: str, article_text: str) -> bool:
 
 async def _verifica_norma(reference: str) -> tuple[str, str]:
     """Verify a NORMA reference. Returns (verdetto, nota)."""
-    markdown = await _cite_law_impl(reference)
-    if markdown.startswith("**Errore**") or markdown.startswith("**Nessun testo trovato**"):
+    data, esito = await _cite_law_lookup(reference)
+    if esito == ARTICLE_NOT_FOUND:
+        return "inesistente", f"L'articolo non esiste nell'atto citato: {data['errore']}."
+    if esito == CHECK_UNAVAILABLE:
+        return "non verificata", f"Esistenza dell'articolo non verificabile ora: {data['errore']}."
+    if data["errore"] or not data["testo"]:
         return "non trovata", "Atto o articolo non reperibile su Normattiva/EUR-Lex."
 
-    # Source line: "**Fonte**: <Source> — <url>"
-    fonte = ""
-    fonte_m = re.search(r"\*\*Fonte\*\*:\s*(.+)", markdown)
-    if fonte_m:
-        fonte = fonte_m.group(1).strip()
+    fonte = f"{data['fonte'].title()} — {data['url']}" if data["fonte"] else ""
 
-    if _norma_misquote(reference, markdown):
+    if _norma_misquote(reference, data["testo"]):
         nota = "Comma/lettera citato non riscontrato nel testo dell'articolo."
         if fonte:
             nota += f" Fonte: {fonte}"
@@ -1048,12 +1250,26 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
         return "non interpretabile", "Numero/anno della decisione non riconosciuti."
     numero, anno = num_anno
 
-    if anno < _ITALGIURE_MIN_YEAR:
-        return (
-            "non verificabile",
-            f"Decisione n. {numero}/{anno} anteriore al {_ITALGIURE_MIN_YEAR}, "
-            "fuori archivio Italgiure.",
-        )
+    # "Cass. pen. ..." / "Cass. civ. ..." name the archive: with "tutti" a decision of the
+    # other branch with the same number and year (41994/2021 exists in both) must not be
+    # compared with the citation.
+    archivio_eff = archivio
+    ramo_m = _USER_RAMO.search(reference)
+    if archivio == "tutti" and ramo_m:
+        archivio_eff = "penale" if ramo_m.group(1).lower() == "pen" else "civile"
+
+    # Italgiure is a moving window: a decision before its start, or in the first (partly
+    # covered) year and not found, can be neither confirmed nor excluded.
+    first_year, first_date = 0, ""
+    if anno <= _italgiure_window_year():
+        first_year, first_date = await _italgiure_archive_start(archivio_eff)
+        if anno < first_year:
+            return (
+                "non verificabile",
+                f"Decisione n. {numero}/{anno} anteriore all'archivio Italgiure"
+                + (f", che parte dal {_fmt_iso_date(first_date)}" if first_date else f" (dal {first_year})")
+                + ": non si può stabilire se esista.",
+            )
 
     from src.tools.italgiure import _leggi_sentenza_impl
 
@@ -1062,13 +1278,24 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
     if sez_m:
         sezione_req = _normalize_sezione(sez_m.group(1))
 
-    result = await _leggi_sentenza_impl(numero, anno, archivio=archivio)
+    # The cited section narrows the lookup (Solr codes: 1-7, L, T, U = Sezioni Unite); the
+    # lookup itself retries without it, so a wrong section is still reported as a mismatch.
+    sezione_solr = {"SU": "U"}.get(sezione_req, sezione_req)
+    result = await _leggi_sentenza_impl(numero, anno, sezione=sezione_solr, archivio=archivio_eff)
 
     if not result.success:
         if result.error_type == "source_down":
             return (
                 "non verificata",
                 f"Italgiure non raggiungibile: {result.error_message}",
+            )
+        if first_year and anno == first_year:
+            return (
+                "non verificabile",
+                f"Decisione n. {numero}/{anno} non trovata su Italgiure, ma l'archivio copre il "
+                f"{anno} solo in parte"
+                + (f" (dal {_fmt_iso_date(first_date)})" if first_date else "")
+                + ": non si può escludere che esista.",
             )
         return (
             "inesistente",
@@ -1206,12 +1433,20 @@ async def verifica_citazioni(
     Verdetti possibili:
       - **verificata** — la fonte esiste e i metadati coincidono
       - **inesistente** — la decisione non risulta negli archivi (o la ricerca ha restituito
-        una decisione diversa da quella citata)
+        una decisione diversa da quella citata); per una norma, l'articolo non esiste
+        nell'atto citato (Normattiva risponde a un numero inesistente con un altro articolo)
       - **non trovata** — l'atto/articolo non è reperibile
       - **metadati discordanti** — la fonte esiste ma sezione/comma/lettera non coincidono
-      - **non verificabile** — sentenza anteriore al 2020 (fuori archivio Italgiure)
-      - **non verificata** — fonte temporaneamente non raggiungibile
+      - **non verificabile** — sentenza anteriore all'inizio dell'archivio Italgiure (finestra
+        mobile: nel 2026 parte dal 2021, letta dall'archivio stesso) o non trovata nel primo
+        anno, coperto solo in parte: non si può stabilire se esista
+      - **non verificata** — fonte temporaneamente non raggiungibile, o esistenza
+        dell'articolo non verificabile perché la fonte non ne restituisce la struttura
       - **Non interpretabile** — formato del riferimento non riconosciuto
+
+    Con "Cass. pen." / "Cass. civ." nella citazione e archivio "tutti" la ricerca è limitata
+    all'archivio corrispondente (lo stesso numero e anno può esistere in entrambi); la sezione
+    citata restringe la ricerca alla decisione di quella sezione.
 
     Args:
         citazioni: Elenco di riferimenti, uno per riga (o separati da virgola), es.

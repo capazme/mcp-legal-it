@@ -125,7 +125,7 @@ def _project_doc(
     *,
     command: bool,
     tool_template: str,
-    command_template: str,
+    command_template: list[str],
     strip_keys: list[str],
     description_max_chars: int | None = None,
 ) -> str:
@@ -141,7 +141,9 @@ def _project_doc(
             raise SystemExit(
                 f"{path}: target declares commands but no command_tool_namespace in targets.yaml"
             )
-        allowed = ", ".join(command_template.format(t) if t in vocab else t for t in tools)
+        allowed = ", ".join(
+            ", ".join(tpl.format(t) for tpl in command_template) if t in vocab else t for t in tools
+        )
         lines = fm.replace_line(lines, "tools", f"allowed-tools: {allowed}")
         remaining_keys = [k for k in strip_keys if k != "tools"]
     else:
@@ -202,7 +204,13 @@ def project(root: Path, out: Path, cfg: dict | None = None) -> None:
     # The manifest spells the placeholder as NAMED ({tool}) for readability;
     # toolnames.add_prefixes formats POSITIONALLY. Convert once here.
     tool_template = cfg["tool_namespace"].replace("{tool}", "{}")
-    command_template = (cfg.get("command_tool_namespace") or "").replace("{tool}", "{}")
+    # command_tool_namespace is one template or a list of them: a Claude plugin's
+    # tools are named mcp__plugin_<plugin>_<server>__* while the same server
+    # added by hand is mcp__<server>__*, and allowed-tools must match both.
+    raw_command_ns = cfg.get("command_tool_namespace") or []
+    if isinstance(raw_command_ns, str):
+        raw_command_ns = [raw_command_ns]
+    command_template = [t.replace("{tool}", "{}") for t in raw_command_ns]
     strip_keys = cfg["strip_frontmatter_keys"]
     out_map = cfg["out"]
     exclude = set(cfg.get("exclude") or [])

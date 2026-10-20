@@ -133,3 +133,135 @@ def test_dedup_understands_the_spelled_out_form_too(tmp_path):
 def test_citation_already_verified_in_session_is_not_re_nagged(tmp_path):
     text = "Ai sensi dell'art. 2043 c.c. il fatto illecito obbliga al risarcimento."
     assert run_gate(tmp_path, text, cite_law_refs=("art. 2043 c.c.",)) == SILENT
+
+
+# ---------------------------------------------------------------------------
+# A cite_law() call covers a citation only if it returned that article
+# ---------------------------------------------------------------------------
+
+def run_gate_with_results(tmp_path: Path, assistant_text: str, calls: tuple[tuple[str, object], ...]) -> int:
+    """Like run_gate, with each cite_law() followed by the tool_result it got."""
+    lines = []
+    for i, (ref, result) in enumerate(calls):
+        call_id = f"toolu_{i}"
+        lines.append(json.dumps({
+            "type": "assistant",
+            "message": {"content": [
+                {"type": "tool_use", "id": call_id,
+                 "name": "mcp__plugin_legal-it_legal-it__cite_law", "input": {"reference": ref}}
+            ]},
+        }))
+        block = {"type": "tool_result", "tool_use_id": call_id}
+        if isinstance(result, dict):
+            block.update(result)
+        else:
+            block["content"] = result
+        lines.append(json.dumps({"type": "user", "message": {"content": [block]}}))
+    lines.append(json.dumps({
+        "type": "assistant",
+        "message": {"content": [{"type": "text", "text": assistant_text}]},
+    }))
+    transcript = tmp_path / "transcript.jsonl"
+    transcript.write_text("\n".join(lines), encoding="utf-8")
+    return subprocess.run(
+        [sys.executable, str(HOOK)],
+        input=json.dumps({"transcript_path": str(transcript)}),
+        capture_output=True,
+        text=True,
+    ).returncode
+
+
+_FONTE = "**Fonte**: Normattiva — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262:2~art"
+
+
+@pytest.mark.parametrize("result", [
+    # The answer before the fix: art. 1 of the approving decree under the URL of art. 99999.
+    f"{_FONTE}99999\n\nArt. 1\n\nÈ approvato il testo del Codice civile...",
+    [{"type": "text", "text": f"{_FONTE}99999\n\nArt. 1\n\nÈ approvato il testo del Codice civile..."}],
+    "**Errore**: articolo 99999 non trovato in codice civile: per questo numero Normattiva restituisce l'art. 1",
+    "**Errore**: verifica non disponibile per l'art. 99999 di codice civile",
+    json.dumps({"formato": "json", "testo": "", "errore": "articolo 99999 non trovato in codice civile"}),
+    {"content": "connection reset", "is_error": True},
+])
+def test_a_cite_law_that_did_not_return_the_article_covers_nothing(tmp_path, result):
+    text = "Ai sensi dell'art. 99999 c.c. il contratto e' nullo."
+    assert run_gate_with_results(tmp_path, text, (("art. 99999 c.c.", result),)) == NAGS
+
+
+@pytest.mark.parametrize("result", [
+    f"{_FONTE}2043\n\nArt. 2043.\n(Risarcimento per fatto illecito).\n\nQualunque fatto doloso...",
+    "**Fonte**: Normattiva-Akn — https://x\n\n### Art. 2043\n\nArt. 2043.\n\n(Risarcimento per fatto illecito).",
+    [{"type": "text", "text": "**Fonte**: Normattiva-Akn — https://x\n\n### Art. 2043\n\nQualunque fatto..."}],
+    json.dumps({"formato": "json", "testo": "### Art. 2043\n\nQualunque fatto...", "errore": None}),
+])
+def test_a_cite_law_that_returned_the_article_covers_it(tmp_path, result):
+    text = "Ai sensi dell'art. 2043 c.c. il fatto illecito obbliga al risarcimento."
+    assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", result),)) == SILENT
+
+
+def test_a_failed_call_does_not_hide_a_later_successful_one(tmp_path):
+    text = "Ai sensi dell'art. 2043 c.c. il fatto illecito obbliga al risarcimento."
+    calls = (
+        ("art. 2043 c.c.", "**Errore**: verifica non disponibile per l'art. 2043 di codice civile"),
+        ("art. 2043 c.c.", f"{_FONTE}2043\n\nArt. 2043.\n(Risarcimento per fatto illecito)."),
+    )
+    assert run_gate_with_results(tmp_path, text, calls) == SILENT
+
+
+def _wrapped(markdown: str) -> str:
+    """The FastMCP structured wrapper Claude Code hands the hook for a str result."""
+    return json.dumps({"result": markdown})
+
+
+def test_the_fastmcp_result_wrapper_is_unwrapped_before_judging(tmp_path):
+    text = "Ai sensi dell'art. 2043 c.c. il fatto illecito obbliga al risarcimento."
+    wrapped = _wrapped(f"{_FONTE}2043\n\nArt. 2043.\n(Risarcimento per fatto illecito).\n\nQualunque fatto...")
+    assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", wrapped),)) == SILENT
+    as_blocks = [{"type": "text", "text": wrapped}]
+    assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", as_blocks),)) == SILENT
+
+
+@pytest.mark.parametrize("markdown", [
+    "**Errore**: articolo 99999 non trovato in codice civile",
+    "**Nessun testo trovato** per l'art. 99999",
+    # The answer before the cite_law fix: art. 1 of the decree under the URL of art. 99999.
+    f"{_FONTE}99999\n\nArt. 1\n\nÈ approvato il testo del Codice civile...",
+])
+def test_a_wrapped_failure_or_wrong_article_still_covers_nothing(tmp_path, markdown):
+    text = "Ai sensi dell'art. 99999 c.c. il contratto e' nullo."
+    assert run_gate_with_results(tmp_path, text, (("art. 99999 c.c.", _wrapped(markdown)),)) == NAGS
+
+
+def test_a_json_object_without_testo_or_result_covers_nothing(tmp_path):
+    text = "Ai sensi dell'art. 2043 c.c. il fatto illecito obbliga al risarcimento."
+    other = json.dumps({"qualcosa": "altro"})
+    assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", other),)) == NAGS
+
+
+def test_the_json_format_inside_the_wrapper_is_judged_as_json(tmp_path):
+    # cite_law(formato="json") answers through the same wrapper: an error inside it
+    # must still verify nothing, and its testo must still be checked.
+    text = "Ai sensi dell'art. 2043 c.c. il fatto illecito obbliga al risarcimento."
+    failed = _wrapped(json.dumps({"formato": "json", "testo": "", "errore": "articolo non trovato"}))
+    assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", failed),)) == NAGS
+    ok = _wrapped(json.dumps({"formato": "json", "testo": "Art. 2043.\nQualunque fatto...", "errore": None}))
+    assert run_gate_with_results(tmp_path, text, (("art. 2043 c.c.", ok),)) == SILENT
+
+
+# --- launcher -----------------------------------------------------------------
+
+HOOKS_JSON = HOOK.with_name("hooks.json")
+
+
+def test_the_hook_runs_in_the_plugin_server_environment():
+    """No bare `python3`: on Windows it is usually the Microsoft Store alias
+    (exit 9009), which turned every reply into a "Stop hook error". The hook
+    reuses the server's locked uv environment, which the plugin needs anyway."""
+    hook = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["hooks"][0]
+    assert hook["command"] == (
+        'uv run --frozen --python 3.12 --project "${CLAUDE_PLUGIN_ROOT}/server" '
+        'python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"'
+    )
+    # Seconds. The first Stop of a session may still be building the
+    # environment the server started.
+    assert 15 <= hook["timeout"] <= 600

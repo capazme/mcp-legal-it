@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 11 — detrazioni IRPEF."""
+"""Arithmetic verification tests for Sezione 11 - detrazioni IRPEF."""
 
 from tests.comparison.conftest import assert_close
 
@@ -15,10 +15,11 @@ class TestDetrazioneFigli:
 
     def test_reddito_30k_2figli(self):
         r = _call("detrazione_figli", reddito_complessivo=30000, n_figli_over21=2)
-        # 950 * (95000-30000)/95000 = 950 * 0.6842 = 650.0 per figlio
-        expected = 950 * (95000 - 30000) / 95000
-        assert_close(r["dettaglio"][0]["importo"], round(expected, 2), tolerance=0.01, label="figlio_1")
-        assert_close(r["detrazione_totale"], round(expected * 2, 2), tolerance=0.01, label="totale")
+        # Art. 12 co. 1 lett. c) TUIR: with two children the threshold is 95.000 + 15.000 =
+        # 110.000 for both; ratio 80.000/110.000 truncated to 0,7272 (co. 4);
+        # 950 x 0,7272 = 690,84 per child, 1.381,68 in total.
+        assert_close(r["dettaglio"][0]["importo"], 690.84, tolerance=0.01, label="figlio_1")
+        assert_close(r["detrazione_totale"], 1381.68, tolerance=0.01, label="totale")
 
     def test_reddito_over_soglia(self):
         r = _call("detrazione_figli", reddito_complessivo=100000, n_figli_over21=1)
@@ -26,15 +27,17 @@ class TestDetrazioneFigli:
 
     def test_figlio_disabile(self):
         r = _call("detrazione_figli", reddito_complessivo=40000, n_figli_over21=1, n_figli_disabili=1)
-        expected = 1350 * (95000 - 40000) / 95000
-        assert_close(r["detrazione_totale"], round(expected, 2), tolerance=0.01, label="disabile")
+        # Art. 12 co. 1 lett. c) TUIR: the 400 euro increase for a disabled child was
+        # suppressed by D.Lgs. 230/2021; 950 x 0,5789 (co. 4) = 549,955.
+        assert_close(r["detrazione_totale"], 549.96, tolerance=0.01, label="disabile")
 
 
 class TestDetrazioneConiuge:
 
     def test_reddito_10k(self):
         r = _call("detrazione_coniuge", reddito_complessivo=10000)
-        expected = max(800 - (110 * 10000 / 15000), 0)
+        # art. 12 co. 4 TUIR: ratio cut at 4 decimals (0.6666), not 0.66666...
+        expected = 800 - 110 * 0.6666
         assert_close(r["detrazione"], round(expected, 2), tolerance=0.01, label="coniuge_10k")
 
     def test_reddito_25k(self):
@@ -68,7 +71,8 @@ class TestDetrazioneLavoroDipendente:
 
     def test_reddito_20k(self):
         r = _call("detrazione_lavoro_dipendente", reddito_complessivo=20000)
-        expected = 1910 + 1190 * (28000 - 20000) / (28000 - 15000)
+        # art. 13 co. 6 TUIR: ratio 8,000/13,000 cut at 4 decimals (0.6153)
+        expected = 1910 + 1190 * 0.6153
         assert_close(r["detrazione_rapportata"], round(expected, 2), tolerance=0.01, label="lav_dip_20k")
 
     def test_reddito_60k(self):
@@ -84,7 +88,8 @@ class TestDetrazionePensione:
 
     def test_reddito_15k(self):
         r = _call("detrazione_pensione", reddito_complessivo=15000)
-        expected = 700 + 1255 * (28000 - 15000) / (28000 - 8500)
+        # art. 13 co. 6 TUIR: ratio 13,000/19,500 cut at 4 decimals (0.6666)
+        expected = 700 + 1255 * 0.6666
         assert_close(r["detrazione_rapportata"], round(expected, 2), tolerance=0.01, label="pens_15k")
 
 
@@ -92,11 +97,13 @@ class TestDetrazioneAssegnoConiuge:
 
     def test_reddito_4k(self):
         r = _call("detrazione_assegno_coniuge", reddito_complessivo=4000)
-        assert_close(r["detrazione"], 1265.0, tolerance=0.01, label="assegno_4k")
+        # art. 13 co. 5-bis TUIR: measure of co. 3 (1,955 up to 8,500); co. 5 excludes art. 10 c.1 lett. c) assegni
+        assert_close(r["detrazione"], 1955.0, tolerance=0.01, label="assegno_4k")
 
     def test_reddito_20k(self):
         r = _call("detrazione_assegno_coniuge", reddito_complessivo=20000)
-        expected = 500 + 765 * (28000 - 20000) / (28000 - 5500)
+        # co. 5-bis -> co. 3 lett. b): 8,000/19,500 = 0.4102 -> 700 + 1,255 x 0.4102
+        expected = 700 + 1255 * 0.4102
         assert_close(r["detrazione"], round(expected, 2), tolerance=0.01, label="assegno_20k")
 
 
@@ -112,4 +119,9 @@ class TestDetrazioneCanoneLocazione:
 
     def test_giovani_under31(self):
         r = _call("detrazione_canone_locazione", reddito_complessivo=10000, tipo_contratto="giovani_under31")
-        assert_close(r["detrazione"], 2000.0, tolerance=0.01, label="canone_giovani")
+        # Art. 16 co. 1-ter TUIR: 991,60 euro or, if higher, 20% of the rent within 2.000;
+        # without the rent the legal minimum applies.
+        assert_close(r["detrazione"], 991.60, tolerance=0.01, label="canone_giovani")
+        r = _call("detrazione_canone_locazione", reddito_complessivo=10000,
+                  tipo_contratto="giovani_under31", canone_annuo=6000)
+        assert_close(r["detrazione"], 1200.0, tolerance=0.01, label="canone_giovani_6000")

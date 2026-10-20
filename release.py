@@ -40,6 +40,7 @@ CHANGELOG_ROOT = PROJECT_DIR / "CHANGELOG.md"
 CHANGELOG_PLUGIN = PROJECT_DIR / "plugin" / "CHANGELOG.md"
 
 SERVER_PYPROJECT = PROJECT_DIR / "plugin" / "server" / "pyproject.toml"
+SERVER_LOCK = PROJECT_DIR / "plugin" / "server" / "uv.lock"
 MARKETPLACE_JSON = PROJECT_DIR / ".claude-plugin" / "marketplace.json"
 DXT_MANIFEST = PROJECT_DIR / "dxt" / "manifest.json"
 SERVER_MANIFEST = PROJECT_DIR / "plugin" / "server" / "manifest.json"
@@ -310,6 +311,23 @@ def bump_extra_manifests(
             SERVER_PYPROJECT.write_text(text)
             success(f"plugin/server/pyproject.toml → v{version}, {tc} tool")
         modified.append(str(SERVER_PYPROJECT))
+        # The plugin starts with `uv run --frozen`: the lock records the project
+        # version, so it is refreshed here. Dependency pins only move when the
+        # declared ranges no longer admit them.
+        if dry_run:
+            info("[DRY RUN] uv lock (plugin/server)")
+        else:
+            uv = shutil.which("uv")
+            if uv is None:
+                fatal("uv non trovato: serve per aggiornare plugin/server/uv.lock")
+            result = subprocess.run(
+                [uv, "lock", "--python", "3.12"],
+                cwd=str(SERVER_PYPROJECT.parent), capture_output=True, text=True,
+            )
+            if result.returncode != 0:
+                fatal(f"uv lock fallito: {result.stderr[:300]}")
+            success("plugin/server/uv.lock aggiornato")
+        modified.append(str(SERVER_LOCK))
 
     # 2-3. dxt/manifest.json, plugin/server/manifest.json — version + description
     for label, path in [
@@ -1206,9 +1224,6 @@ def run_from_develop(version: str, plugin_ver: str | None, args: argparse.Namesp
         files_to_add.extend(extra_files)
         if not args.no_plugin_bump:
             files_to_add.append(str(PLUGIN_JSON))
-            dist_dir = PROJECT_DIR / "plugin" / "dist" / "web-skills"
-            if dist_dir.exists():
-                files_to_add.append(str(dist_dir))
         if CHANGELOG_ROOT.exists():
             files_to_add.append(str(CHANGELOG_ROOT))
         if CHANGELOG_PLUGIN.exists():
@@ -1576,9 +1591,6 @@ def run_tag_only(version: str, plugin_ver: str | None, args: argparse.Namespace)
             files_to_add.extend(extra_files)
             if not args.no_plugin_bump:
                 files_to_add.append(str(PLUGIN_JSON))
-                dist_dir = PROJECT_DIR / "plugin" / "dist" / "web-skills"
-                if dist_dir.exists():
-                    files_to_add.append(str(dist_dir))
             if CHANGELOG_ROOT.exists():
                 files_to_add.append(str(CHANGELOG_ROOT))
             if CHANGELOG_PLUGIN.exists():
@@ -1751,9 +1763,6 @@ def run_plugin_only(version: str, args: argparse.Namespace) -> None:
     files_to_add.extend(extra_files)
     if CHANGELOG_PLUGIN.exists():
         files_to_add.append(str(CHANGELOG_PLUGIN))
-    dist_dir = PROJECT_DIR / "plugin" / "dist" / "web-skills"
-    if dist_dir.exists():
-        files_to_add.append(str(dist_dir))
 
     if not dry:
         run_git("add", "-f", *files_to_add)

@@ -18,6 +18,10 @@ from src.lib.dpa_probe.judge import (
 )
 
 TTL_GIORNI = 90
+#: A negative is the weakest determination (the probe is asymmetric on purpose: it
+#: prefers a false "not found" to a false confirmation), so it is re-probed sooner
+#: than a confirmation instead of freezing a false negative for 90 days.
+TTL_NON_TROVATO_GIORNI = 14
 VERDETTI_PERSISTIBILI = frozenset({VERDETTO_DEDICATO, VERDETTO_CLAUSOLA, VERDETTO_NON_TROVATO})
 
 _NOME_FILE = "dpa_probe.json"
@@ -55,7 +59,8 @@ def leggi(dominio: str, adesso: datetime) -> dict | None:
         verificato = datetime.fromisoformat(voce["verificato_il"])
     except (KeyError, TypeError, ValueError):
         return None
-    if (adesso - verificato).days > TTL_GIORNI:
+    ttl = TTL_NON_TROVATO_GIORNI if voce.get("verdetto") == VERDETTO_NON_TROVATO else TTL_GIORNI
+    if (adesso - verificato).days > ttl:
         return None
     return voce
 

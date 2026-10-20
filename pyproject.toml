@@ -9,7 +9,7 @@ description = "MCP server with 228 Italian legal tools: calculations, legislatio
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.0,<4",
+    "fastmcp>=3.4,<5",
     "httpx>=0.27",
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
@@ -21,6 +21,10 @@ dependencies = [
     # to a source build that needs Rust + OpenSSL and fails. 48.x still ships
     # macosx_10_9_universal2. Drop this pin once joserfc/cryptography restore Intel wheels.
     "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    # Everywhere else, the releases that fix PYSEC-2026-3552/3553/3554. Declared
+    # explicitly so that a lock (the plugin's uv.lock) forks by platform
+    # instead of shipping the Intel-only 48.x to every machine.
+    "cryptography>=50; sys_platform != 'darwin' or platform_machine != 'x86_64'",
 ]
 
 [project.optional-dependencies]

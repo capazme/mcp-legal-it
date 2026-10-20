@@ -106,7 +106,17 @@ Appendi ogni record completato ad `analisi` nel checkpoint a fine blocco.
 ### Modalità parallela (>~40 fornitori, su conferma dell'utente)
 
 Elabora a blocchi di ~15 fornitori; se il tuo ambiente supporta l'esecuzione parallela
-(subagent), lancia un blocco per subagent con questo prompt, compilando i placeholder:
+(subagent), lancia un blocco per subagent con questo prompt, compilando i placeholder.
+
+**Etichette di classe condivise.** I blocchi non si vedono fra loro: se ognuno
+inventa le proprie etichette, lo stesso tipo di fornitore torna come
+`giornalista` da un blocco e `giornalista freelance` da un altro, e il controllo
+di coerenza — che confronta le etichette per stringa esatta — non le riconosce
+come la stessa classe. Mantieni quindi un **elenco progressivo delle
+`classe_attivita` già emesse** (parte vuoto, si arricchisce a ogni blocco
+chiuso) e passalo a ogni blocco nel placeholder `{CLASSI GIA USATE}`. I blocchi
+vanno lanciati a ondate, non tutti insieme, proprio per poter propagare
+l'elenco.
 
 > Sei un DPO esperto di GDPR e prassi del Garante. Analizza questi fornitori del
 > cliente «{CLIENTE}» (titolare del trattamento) e restituisci SOLO un array JSON
@@ -119,6 +129,13 @@ Elabora a blocchi di ~15 fornitori; se il tuo ambiente supporta l'esecuzione par
 > non_trovato/bloccato/dominio_irraggiungibile; (5) taratura confidenza: `alto`
 > solo con P.IVA confermata, nel dubbio abbassa. Fornitore non identificabile o
 > omonimia → categoria più probabile, confidenza `basso`, alternative in `note`.
+> ETICHETTE DI CLASSE — VINCOLANTE: per `classe_attivita` DEVI riusare, identica
+> carattere per carattere, un'etichetta di questo elenco ogni volta che il
+> fornitore vi rientra: {CLASSI GIA USATE}. Non inventare varianti, sinonimi o
+> specificazioni di un'etichetta esistente (se l'elenco contiene `giornalista`,
+> usa `giornalista` — non `giornalista freelance`, non `giornalista pubblicista`).
+> Conia un'etichetta nuova SOLO per un tipo di fornitore che nessuna etichetta
+> dell'elenco copre, e tienila breve e generica.
 > REGOLE DI CLASSIFICAZIONE: {contenuto integrale di references/classificazione.md}
 > CONTRATTO RECORD: {sezione Contratto di references/metodologia.md}
 > FORNITORI DA ANALIZZARE: {blocco JSON da fornitori_unici}
@@ -126,9 +143,32 @@ Elabora a blocchi di ~15 fornitori; se il tuo ambiente supporta l'esecuzione par
 Al merge di ogni blocco applica i **guardrail**:
 - record con `confidenza: "alto"` senza P.IVA confermata → declassa a `"medio"`;
 - record che non rispettano il contratto → scarta e rifai quel blocco in
-  modalità sequenziale.
+  modalità sequenziale;
+- **riconciliazione delle etichette** (prima della coerenza di classe): elenca
+  le `classe_attivita` distinte presenti nel merge e cerca le sinonime — stessa
+  radice con qualificatore (`giornalista` / `giornalista freelance`), singolare
+  e plurale, sigla ed esteso, italiano e inglese (`hosting` / `hosting cloud`).
+  Ogni gruppo di sinonimi va **riscritto sull'etichetta unica** scelta, in tutti
+  i record, e l'etichetta unica va aggiunta all'elenco passato ai blocchi
+  successivi. Il controllo del tool confronta le etichette per stringa esatta:
+  due sinonimi restano due classi separate, ciascuna internamente coerente, e il
+  lotto incoerente passa. **Questa riconciliazione va fatta PRIMA di chiamare
+  `genera_report_fornitori`** — è l'unico punto in cui il problema è visibile;
+- **coerenza di classe**: sulle etichette già riconciliate, raggruppa i record
+  per `classe_attivita` e verifica che ogni classe porti UNA sola
+  qualificazione. Blocchi diversi non si vedono fra loro, quindi fornitori dello
+  stesso tipo possono tornare qualificati in modo diverso senza che nulla lo
+  segnali. Se una classe è incoerente, decidi la qualificazione corretta per
+  l'intera classe e riallinea i record — non spezzare la classe per far passare
+  il controllo. `genera_report_fornitori` rifiuta comunque il lotto.
 
 ## Fase 4 — Report
+
+Prima di chiamare il tool, **riconcilia le etichette `classe_attivita`**: scorri
+le etichette distinte presenti in `analisi` e unifica le sinonime su una sola
+(vedi il guardrail della modalità parallela). Il controllo di coerenza del tool
+confronta le etichette per stringa esatta, quindi due sinonimi gli nascondono
+l'incoerenza che deve intercettare.
 
 Chiama `genera_report_fornitori(fornitori=<analisi dal checkpoint>,
 cliente=..., data_analisi=..., file_sorgente=...)`. Se restituisce errori di

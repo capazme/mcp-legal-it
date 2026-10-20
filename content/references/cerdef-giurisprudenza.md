@@ -93,7 +93,7 @@ NOTE TECNICHE
 
 - Endpoint: def.finanze.it/DocTribFrontend/ (MEF — dati pubblici)
 - Ricerca: POST form-encoded, risultati in XML embedded in JS
-- Testo troncato a 25000 caratteri per evitare saturazione del contesto
+- Testo letto a blocchi di 25000 caratteri: la nota finale indica il `da_carattere` con cui leggere il seguito
 - Il GUID identifica univocamente ogni provvedimento
 - Date nei parametri di ricerca: formato DD/MM/YYYY
 - Una risposta anomala del portale è un **Errore** esplicito, mai "nessun

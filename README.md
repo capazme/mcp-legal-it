@@ -14,6 +14,10 @@
   <img src="https://img.shields.io/badge/tool-228-green?style=flat-square" alt="Tools">
 </p>
 
+<p align="center">
+  <a href="https://capazme.github.io/mcp-legal-it/"><strong>Guida all'installazione per Claude Desktop (Mac e Windows) →</strong></a>
+</p>
+
 
 ---
 
@@ -36,11 +40,15 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 
 ## Installazione
 
+> **Prima volta?** La [guida passo passo](https://capazme.github.io/mcp-legal-it/) porta da zero a Legal IT funzionante in Claude Desktop, su Mac e Windows, anche senza Python installato.
+
 > **Prerequisito unico: [`uv`](https://docs.astral.sh/uv/).** Gestisce automaticamente
 > Python 3.12 e le dipendenze, identico su Windows/macOS/Linux.
 > macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh` ·
 > Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
-> Riavvia il client dopo l'installazione. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
+> Dopo l'installazione di `uv` **chiudi Claude del tutto** (⌘Q su macOS, non basta chiudere la finestra) e riaprilo: un'app già aperta non vede il nuovo `PATH`. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
+>
+> **Per il marketplace di Claude Code serve anche `git`** (clona il repository del plugin). Su macOS: `xcode-select --install`; su Windows: [Git for Windows](https://git-scm.com/download/win). Il file `.mcpb` per Claude Desktop non lo richiede.
 
 > [!IMPORTANT]
 > **Claude Desktop "Cowork" (l'agente cloud) non è supportato.** Da giugno 2026 Cowork esegue i plugin in una VM cloud che non può avviare server MCP locali, quindi il marketplace lo rifiuta (`failed_content: local/stdio server`). Per Claude Desktop usa il file **`.mcpb`** qui sotto (gira in locale; l'unico prerequisito è `uv`). Per l'agente Cowork servirebbe un server remoto HTTPS.
@@ -82,11 +90,35 @@ claude plugin marketplace add capazme/mcp-legal-it
 claude plugin install legal-it@mcp-legal-it
 ```
 
+Richiede `uv` e `git` (vedi sopra). Il primo avvio può essere lento: vedi la tabella qui sotto.
+
+<details>
+<summary><strong>Claude Code: il server non si connette</strong></summary>
+
+| Sintomo | Causa | Rimedio |
+|---|---|---|
+| `connection timed out after 30000ms` al primo avvio | `uv` sta ancora scaricando Python: Claude Code aspetta 30 s e rinuncia (le librerie, invece, si scaricano dopo la connessione, senza limite di tempo) | Riprova da `/mcp` → *reconnect* (la cache è già popolata). Oppure avvia Claude Code con `MCP_TIMEOUT=120000 claude` |
+| `CONNECTION_CLOSED` | Il processo del server è terminato subito: di solito `uv` non è installato | Installa `uv` (vedi sopra; scarica da solo Python 3.12), apri un nuovo terminale e riavvia `claude` |
+| `marketplace add` fallisce subito | `git` mancante | `xcode-select --install` (macOS) e riprova |
+
+</details>
+
+### Claude.ai (web e mobile)
+
+**Al momento non esiste un connettore supportato per claude.ai web o mobile.** Il server gira in locale (stdio): le app web e mobile non possono avviarlo, e il plugin non è installabile da lì. Usa Claude Desktop (`.mcpb`) o Claude Code.
+
+### Archivio `legal-it-plugin-X.Y.Z.zip`
+
+Ogni Release pubblica, oltre al `.mcpb`, anche `legal-it-plugin-X.Y.Z.zip` (generato da `scripts/build-plugin.sh`): una copia autonoma del **plugin per Claude Code** — skill, comandi, agenti, hook e codice del server — pensata per chi non può usare il marketplace (per esempio senza `git`). Si carica, per la sola sessione, con `claude --plugin-dir legal-it-plugin-X.Y.Z.zip` (accetta lo zip o la cartella estratta). Al primo avvio serve comunque la rete: `uv` scarica Python e le dipendenze. **Non** è un file da caricare in Claude Desktop (per quello c'è il `.mcpb`) né in claude.ai.
+
+
+Ogni Release pubblica anche `legal-it-skills-X.Y.Z.zip`: le 30 skill in formato `.zip`, una per file, da caricare su claude.ai (**Impostazioni → Funzionalità → Skill**). Senza il server MCP le skill che usano gli strumenti di Legal IT non hanno i dati: servono soprattutto come guida di metodo.
+
 ### Docker
 
 ```bash
 docker build -t mcp-legal-it .
-docker run -p 8000:8000 mcp-legal-it    # SSE su porta 8000
+docker run -p 8000:8000 mcp-legal-it    # Streamable HTTP su porta 8000, endpoint /mcp
 ```
 
 Client MCP:
@@ -95,7 +127,7 @@ Client MCP:
 {
   "mcpServers": {
     "legal-it": {
-      "url": "http://localhost:8000/sse"
+      "url": "http://localhost:8000/mcp"
     }
   }
 }
@@ -141,7 +173,7 @@ plugin Claude Code, usa il **bundle OpenAI** generato dallo stesso corpus:
 
 1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 42 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
 2. **Codex CLI**: estrai `.agents/skills/` in `$HOME/.agents/skills/` (globale) o nella root del progetto; copia `AGENTS.md`; aggiungi il blocco `config.toml.example` a `~/.codex/config.toml` (server MCP separato, via `uv`).
-3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 227 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
+3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 228 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
 
 Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Claude Code): [`docs/openai.md`](docs/openai.md).
 
@@ -182,7 +214,7 @@ Per provare una beta:
 | 15 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
 | 16 | Rivalutazione monetaria | 12 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
 | 17 | Interessi e tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
-| 18 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche` |
+| 18 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche`, `termini_processuali_civili` (artt. 171-ter e 189 c.p.c., sospensione feriale contata giorno per giorno) |
 | 19 | Atti giudiziari | 23 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
 | 20 | Parcelle avvocati | 12 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
 | 21 | Parcelle professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
@@ -238,7 +270,7 @@ Invocabili con `/legal-it:<nome>` o attivati automaticamente da Claude in base a
 | `compliance-privacy` | Assessment GDPR completo: base giuridica, check DPIA, registro, informativa, DPA, data breach | tutti i 12 tool GDPR + `cite_law` |
 | `data-breach` | Gestione incidente: valutazione rischio, modulo notifica Garante entro 72h, stima sanzioni art. 83 | `valutazione_data_breach`, `genera_notifica_data_breach`, `calcolo_sanzione_gdpr`, `cite_law` |
 | `analisi-fornitori` | Screening privacy del mastrino fornitori: identificazione via web e VIES, ruolo art. 28, DPA pubblicato dal fornitore, report Excel e bozze di nomina | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori`, `genera_dpa` |
-| `cookie-audit` | Audit forense dei cookie di un sito (pre/post consenso, CMP, tracker, GTM) con report Word e remediation — Provv. Garante 10/06/2021 | `genera_informativa_cookie`, `cite_law` (+ strumenti browser di Claude) |
+| `cookie-audit` | Audit forense di cookie, pixel e tracciamento di un sito e delle sue newsletter (pre/post consenso, CMP, GTM tag per tag, pixel Meta, `.eml` delle newsletter) con report Word e remediation — Provv. Garante 10/06/2021 e Linee guida sui tracking pixel nelle e-mail 17/04/2026 | `genera_informativa_cookie`, `cite_law` (+ strumenti browser di Claude) |
 
 ### Redazione documenti
 
@@ -453,7 +485,7 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 
 ---
 
-## Slash command — 10
+## Slash command — 9
 
 | Comando | Descrizione | Logica di routing |
 |---------|-------------|-------------------|
@@ -466,7 +498,6 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 | `/legal-it:digest` | Briefing giuridico settimanale | Ultime novità da tutte le fonti (Cassazione, tributario, TAR/CdS, CGUE, Garante, CONSOB), raggruppate per fonte; pianificabile come cron |
 | `/legal-it:dati` | Stato delle tabelle dati | Freschezza e provenienza di ogni tabella del server e backlog di riconciliazione ordinato per quanto ha bloccato |
 | `/legal-it:verbale` | Verbale mensile dei rifiuti | Report mese su mese dei calcoli rifiutati o degradati per tabelle scadute o non verificate (`verbale_mensile`) |
-| `/legal-it:release` | Rilascio del plugin | Bump di tutti i manifest, changelog, release branch, merge in `main` e tag — solo per il maintainer |
 
 ---
 
@@ -476,19 +507,37 @@ La skill `genera-atto` supporta **100 modelli** in **10 categorie**. Il workflow
 |--------|------------------|--------------|
 | `civilista` | Contratti, responsabilita, successioni, diritti reali, obbligazioni, famiglia | Artt. 1321-1469 c.c. (contratti), art. 2043 ss. (resp. extracontrattuale), artt. 456-768 (successioni), artt. 832-1172 (diritti reali) |
 | `digest-giuridico` | Briefing giuridico settimanale: ultime novita da tutte le fonti, raggruppate per fonte | Cassazione, tributario (CeRDEF), TAR/CdS, CGUE, Garante Privacy, CONSOB — workflow: raccolta &rarr; deduplica &rarr; top 3 in evidenza &rarr; norme citate |
-| `penalista` | Reati, pene, prescrizione, misure cautelari, riti alternativi | Gestione automatica regime prescrizione: Bonafede (fatti 2020-2024), Cartabia (dal 2025) |
+| `penalista` | Reati, pene, prescrizione, misure cautelari, riti alternativi | Regime di prescrizione scelto dalla data del fatto: ordinario (fino al 02/08/2017), Orlando (2017-2019), blocco dopo il primo grado e improcedibilità ex art. 344-bis c.p.p. (fatti dal 2020) |
 | `privacy-specialist` | GDPR, Codice Privacy, provvedimenti Garante | Struttura: Quadro normativo &rarr; Analisi &rarr; Rischi e sanzioni &rarr; Raccomandazioni |
 | `redattore-atti` | Redazione atti giudiziari, stragiudiziali, procure, relate, attestazioni | Accesso a tutti i 100 modelli di atti + tool di calcolo (CU, interessi, parcelle) |
 | `ricerca-giurisprudenziale` | Ricerca sistematica su Italgiure, CeRDEF, TAR/CdS, CGUE, CONSOB, Garante | Strategia: esplora &rarr; filtra con facets &rarr; cerca con filtri &rarr; leggi decisioni chiave &rarr; Brocardi &rarr; fondamento normativo |
 
 ---
 
+## Tool a normativa previgente
+
+Due tool calcolano sotto una disciplina che non regola più i casi nuovi e servono solo per i
+casi residuali che ancora governa: `termini_183_190_cpc` (memorie ex artt. 183 co. 6 e 190
+c.p.c. nel testo anteriore alla Riforma Cartabia, per le cause iscritte a ruolo prima del
+28/02/2023) ed `equo_indennizzo` (DPR 834/1981, per i fatti anteriori al 06/12/2011). Sono
+marcati con una flag dichiarata una volta nel docstring e applicata in tre punti:
+
+| Dove | Cosa |
+|------|------|
+| Docstring | riga `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>`, la prima cosa che il modello legge prima di scegliere |
+| `tools/list` | tag `previgente` e blocco `mcp-legal-it/regime` in `_meta` (stato, casi residuali, tool vigenti) |
+| Ogni risposta | campo `regime_normativo` nel corpo e lo stesso blocco in `_meta` |
+
+Per impostazione predefinita i tool restano registrati e marcati; `LEGAL_PREVIGENTE=off` li
+nasconde del tutto. L'audit (`scripts/audit_tool_annotations.py`) fallisce se un tool dichiara
+il regime senza tag o senza wrapper `@previgente`, o se indica come tool vigente un nome non
+registrato. Dettagli in `src/lib/_regime.py`.
+
 ## Legal Grounding Protocol
 
 Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 - **Stop hook** — verifica che ogni norma citata nella risposta abbia un `cite_law()` corrispondente
-- **SessionStart hook** — dopo compaction, ricorda il protocollo di citazione
 
 **Regole per l'LLM**:
 
@@ -507,10 +556,11 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 
 | Variabile | Default | Descrizione |
 |-----------|---------|-------------|
-| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` o `sse` |
-| `MCP_HOST` | `0.0.0.0` | Bind address (solo SSE) |
-| `MCP_PORT` | `8000` | Porta (solo SSE) |
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio`, `http` (Streamable HTTP, endpoint `/mcp`; default nell'immagine Docker) o `sse` (legacy) |
+| `MCP_HOST` | `0.0.0.0` | Bind address (solo http/sse) |
+| `MCP_PORT` | `8000` | Porta (solo http/sse) |
 | `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
+| `LEGAL_PREVIGENTE` | `on` | `off` nasconde i tool a normativa previgente (tag `previgente`) |
 | `MCP_CACHE_DIR` | — | Directory cache Brocardi |
 
 ### Profili disponibili

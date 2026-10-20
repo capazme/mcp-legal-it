@@ -2,8 +2,7 @@
 name: verbale
 description: Report mensile dei rifiuti osservati dal verbale, con confronto mese su mese e classifica di cosa ha bloccato davvero
 argument-hint: "[mesi opzionale, default 6]"
-tools: [backlog_riconciliazione, verbale_mensile]
----
+tools: [backlog_riconciliazione, verbale_mensile, Bash, Read]
 ---
 
 # Comando /verbale — la serie storica dei rifiuti
