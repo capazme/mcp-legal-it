@@ -23,6 +23,10 @@ dependencies = [
     # to a source build that needs Rust + OpenSSL and fails. 48.x still ships
     # macosx_10_9_universal2. Drop this pin once joserfc/cryptography restore Intel wheels.
     "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    # Everywhere else, the releases that fix PYSEC-2026-3552/3553/3554. Declared
+    # explicitly so that a lock (the plugin's uv.lock) forks by platform
+    # instead of shipping the Intel-only 48.x to every machine.
+    "cryptography>=50; sys_platform != 'darwin' or platform_machine != 'x86_64'",
 ]
 
 [project.scripts]

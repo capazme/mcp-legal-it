@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   section listing everything the plugin downloads and every host it contacts.
 
 ### Fixed
+- Security: `cryptography` 50 for every platform except Intel Macs (which have
+  no wheels after 48.x and keep it). The plugin lock used to ship 48.0.1 to
+  every machine, with PYSEC-2026-3552/3553/3554; the per-platform declaration
+  makes the lock fork. `check_deps_sync.py` now tells per-platform entries apart.
 - Starting the server from a folder that holds a `pyproject.toml` no longer syncs
   that project's `.venv` (`uv run --with` resolved the session's working
   directory as a project). The `.mcpb` launcher passes `--no-project` as well.
