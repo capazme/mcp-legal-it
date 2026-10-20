@@ -35,20 +35,34 @@ SOURCE_OF_TRUTH = Path("pyproject.toml")
 
 
 def normalize(spec: str) -> tuple[str, str]:
-    """Split a requirement into (canonical name, specifier) per PEP 503/440.
+    """Key and version specifier of a requirement, per PEP 503/440.
 
-    `python_docx >= 1.0` and `python-docx>=1.0` must compare equal.
+    `python_docx >= 1.0` and `python-docx>=1.0` must compare equal. The marker
+    is part of the key, its `and`/`or` clauses sorted (uv rewrites markers in
+    its own order), so one package declared for two platforms (cryptography:
+    <49 on Intel Macs, >=50 elsewhere) stays two entries.
     """
-    match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(.*)$", spec.strip())
+    requirement, _, marker = spec.partition(";")
+    match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(.*)$", requirement.strip())
     if not match:
         raise ValueError(f"unparseable requirement: {spec!r}")
     name, specifier = match.groups()
-    canonical = re.sub(r"[-_.]+", "-", name).lower()
-    return canonical, specifier.replace(" ", "")
+    key = re.sub(r"[-_.]+", "-", name).lower()
+    marker = marker.replace(" ", "")
+    if marker:
+        joiner = "and" if "and" in marker else "or"
+        key += ";" + joiner.join(sorted(marker.split(joiner)))
+    return key, specifier.replace(" ", "")
 
 
 def as_mapping(specs: list[str]) -> dict[str, str]:
-    return dict(normalize(spec) for spec in specs)
+    mapping: dict[str, str] = {}
+    for spec in specs:
+        key, specifier = normalize(spec)
+        if key in mapping:
+            raise ValueError(f"declared twice: {spec!r}")
+        mapping[key] = specifier
+    return mapping
 
 
 def read_pyproject(path: Path) -> list[str]:
@@ -68,7 +82,6 @@ def read_uv_lock(path: Path) -> list[str]:
 
     `uv run --frozen` installs the lock without looking at pyproject.toml, so a
     range edited in pyproject but not relocked would silently never ship.
-    Markers are dropped: uv rewrites them in its own canonical order.
     """
     data = tomllib.loads((ROOT / path).read_text(encoding="utf-8"))
     root = next(
@@ -77,12 +90,9 @@ def read_uv_lock(path: Path) -> list[str]:
     )
     return [
         f'{entry["name"]}{entry.get("specifier", "")}'
+        + (f'; {entry["marker"]}' if entry.get("marker") else "")
         for entry in root["metadata"]["requires-dist"]
     ]
-
-
-def without_markers(specs: dict[str, str]) -> dict[str, str]:
-    return {name: specifier.split(";")[0] for name, specifier in specs.items()}
 
 
 # Launchers that deliberately pin a narrower range than pyproject.toml, by name.
@@ -142,7 +152,7 @@ def main() -> int:
         if reader is read_pyproject:
             wanted = expected
         elif reader is read_uv_lock:
-            wanted = without_markers(expected)
+            wanted = expected
         else:
             wanted = {**expected, **LAUNCHER_OVERRIDES}
         if report(label, wanted, actual):
