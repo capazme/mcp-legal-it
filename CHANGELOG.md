@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+The 3.0 line now carries everything shipped on the 2.x line from 2.13.0 to
+2.17.0 (the 2.x sections below): the benchmark corrections of 2.15.x, paged
+reading of long texts (`da_carattere`), the `cite_law` guard against an
+article the act does not have, the `Regime: PREVIGENTE` flag, the
+directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
+entry, it is the same feature as ported to the 3.0 line.
+
 ### Added
 - `stato_server()`: the diagnostics tool that tells the caller WHAT it is
   talking to — package version of the running code, active tool count after
@@ -347,6 +354,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- License: from 3.0.0 the project is distributed under the Mozilla Public
+  License 2.0 (`LICENSE`, every manifest and `pyproject.toml`). Up to the 2.x
+  line it was Apache-2.0; those releases, and the contributions received
+  under that license, stay available under it (`NOTICE`).
+- The plugin keeps the 2.17.0 layout on the 3.0 line: the server starts with
+  `uv run --frozen --no-sync` from `plugin/server/uv.lock` through
+  `plugin/server/bootstrap.py`; `start_server.sh` and `plugin/settings.json`
+  are gone. `scripts/build_targets.py` packages that layout: no launcher
+  script in the plugin zip or the `.mcpb`, no `server/.venv`, and the
+  claude.ai web-skills zips are built into `dist/web-skills/` and released as
+  one asset instead of living in the plugin folder.
+- `/release` is maintainer-only: it leaves `content/commands/` for
+  `.claude/commands/` (the plugin ships 9 slash commands). Command
+  `allowed-tools` now list each MCP tool under both prefixes, the manual
+  `mcp__legal-it__` and the plugin's `mcp__plugin_legal-it_legal-it__`:
+  `command_tool_namespace` in `content/targets.yaml` accepts a list.
+- `termini_separazione_divorzio`: the 6/12-month separation period before
+  divorce is no longer extended under art. 155 c.p.c. when it ends on a
+  Saturday or a holiday. It is a minimum duration, not a deadline for an act
+  (owner's legal reading). Example: 12 months from 15/03/2025 now end on
+  Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
 - CI also verifies the release tarball on every push and on every tag
   (`tarball-sync` job): `scripts/verify_tarball.py` compares `git archive` of
   the revision against the tree itself and fails when something forbidden
@@ -360,6 +388,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- Deadline tools: `giorno_settimana` is always the Italian name. It came from
+  `strftime("%A")`, which follows the process locale, so the same output mixed
+  «lunedì» and «Monday».
+- `termini_esecuzioni`: the art. 617 term (opposizione agli atti esecutivi) is
+  now `tipo='opposizione_atti_esecutivi'`. The old name `opposizione_esecuzione`,
+  which read as art. 615, is removed: it now returns an error listing the
+  accepted values.
 - CeRDEF (giurisprudenza tributaria) works again and a failure of the source
   no longer reads as "no results" (#46). The portal changed its advanced
   search form and its XML: it answered every request of the old client with
@@ -547,13 +582,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   anchoring every mention to `ddl_su_norma`/`cerca_ddl`/`iter_ddl` output —
   atto number, dated status and official scheda link — and states that no
   results never proves no reforms (titles-only search).
-
-### Changed
-- `termini_separazione_divorzio`: the 6/12-month separation period before
-  divorce is no longer extended under art. 155 c.p.c. when it ends on a
-  Saturday or a holiday. It is a minimum duration, not a deadline for an act
-  (owner's legal reading). Example: 12 months from 15/03/2025 now end on
-  Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
 
 ## [2.17.0] - 2026-10-20
 
