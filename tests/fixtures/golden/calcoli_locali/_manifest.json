@@ -85,8 +85,7 @@
     "termini_esecuzioni",
     "termini_memorie_repliche",
     "termini_procedimento_semplificato",
-    "termini_processuali_civili",
-    "termini_separazione_divorzio"
+    "termini_processuali_civili"
    ]
   },
   "gdpr_basi_giuridiche": {
@@ -287,6 +286,7 @@
     "tariffe_mediazione",
     "tassazione_atti",
     "tasso_alcolemico",
+    "termini_separazione_divorzio",
     "test_crisi_impresa",
     "testimonianza_scritta",
     "valutazione_data_breach",
@@ -705,9 +705,7 @@
   "termini_processuali_civili": [
    "festivita"
   ],
-  "termini_separazione_divorzio": [
-   "festivita"
-  ],
+  "termini_separazione_divorzio": [],
   "test_crisi_impresa": [],
   "testimonianza_scritta": [],
   "valutazione_data_breach": [],
