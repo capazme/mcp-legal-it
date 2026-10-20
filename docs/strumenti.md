@@ -484,7 +484,7 @@ _Calcola i termini nelle procedure esecutive: finestra utile per pignorare (10-9
 
 **Parametri**:
 - `data_notifica_titolo` (str, obbligatorio) — data di notifica del precetto al debitore (YYYY-MM-DD).
-- `tipo` (str, opzionale, default `"pignoramento_mobiliare"`) — `'pignoramento_mobiliare'`, `'pignoramento_immobiliare'`, `'pignoramento_presso_terzi'`, `'opposizione_esecuzione'`.
+- `tipo` (str, opzionale, default `"pignoramento_mobiliare"`) — `'pignoramento_mobiliare'`, `'pignoramento_immobiliare'`, `'pignoramento_presso_terzi'`, `'opposizione_atti_esecutivi'` (art. 617 c.p.c.; il vecchio nome `'opposizione_esecuzione'` è ancora accettato).
 
 **Quando usare**: pianificare il pignoramento dopo aver notificato il precetto, o verificare il termine per l'opposizione.
 
