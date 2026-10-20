@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   «lunedì» and «Monday».
 - `termini_esecuzioni`: the art. 617 term (opposizione agli atti esecutivi) is
   now `tipo='opposizione_atti_esecutivi'`. The old name `opposizione_esecuzione`,
-  which read as art. 615, still works and returns a notice (`avviso`).
+  which read as art. 615, is removed: it now returns an error listing the
+  accepted values.
 
 ### Changed
 - `termini_separazione_divorzio`: the 6/12-month separation period before

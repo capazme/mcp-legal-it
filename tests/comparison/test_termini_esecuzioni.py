@@ -82,7 +82,7 @@ def _efficacia(data: str, tipo: str = "pignoramento_mobiliare") -> date:
 
 
 def _opposizione(data: str) -> date:
-    return date.fromisoformat(_tool(data, "opposizione_esecuzione")["scadenza_opposizione"])
+    return date.fromisoformat(_tool(data, "opposizione_atti_esecutivi")["scadenza_opposizione"])
 
 
 # ---------------------------------------------------------------- efficacia del precetto (art. 481)

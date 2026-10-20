@@ -979,7 +979,7 @@ def termini_esecuzioni(
         tipo: Tipo di procedura: 'pignoramento_mobiliare', 'pignoramento_immobiliare',
               'pignoramento_presso_terzi' (tutti: minimo 10gg e max 90gg dall'efficacia del precetto),
               'opposizione_atti_esecutivi' (20gg per l'opposizione agli atti esecutivi ex
-              art. 617 c.p.c.; 'opposizione_esecuzione' è il vecchio nome, accettato ancora).
+              art. 617 c.p.c.).
               Per l'opposizione all'esecuzione (art. 615 c.p.c.) il tool non calcola termini.
     """
     err = _validate_date(data_notifica_titolo)
@@ -1015,18 +1015,6 @@ def termini_esecuzioni(
         },
     }
 
-    # The old name read as art. 615 (opposizione all'esecuzione) but has always
-    # computed art. 617; it still works, with a notice, so callers don't break.
-    avviso = None
-    if tipo == "opposizione_esecuzione":
-        avviso = (
-            "'opposizione_esecuzione' è il vecchio nome di questo calcolo: si tratta "
-            "dell'opposizione agli atti esecutivi (art. 617 c.p.c.). Usa "
-            "'opposizione_atti_esecutivi'. Per l'opposizione all'esecuzione "
-            "(art. 615 c.p.c.) il tool non calcola termini."
-        )
-        tipo = "opposizione_atti_esecutivi"
-
     if tipo not in config:
         return {
             "errore": f"tipo non valido: {tipo}",
@@ -1047,7 +1035,6 @@ def termini_esecuzioni(
             "prorogata_art_155": adjusted,
             "giorno_settimana": _giorno(scad),
             "riferimento_normativo": cfg["normativa"],
-            **({"avviso": avviso} if avviso else {}),
         }
 
     # Termine dilatorio minimo (10gg) — non si può pignorare prima
