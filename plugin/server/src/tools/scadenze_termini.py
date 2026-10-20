@@ -426,7 +426,9 @@ def termini_separazione_divorzio(
     L. 162/2014. Dal 28/02/2023 (D.Lgs. 149/2022, art. 473-bis.49 c.p.c.) la domanda di divorzio
     può essere proposta cumulativamente con quella di separazione: in tal caso i termini qui
     calcolati indicano solo quando il giudice può pronunciare sul divorzio.
-    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c. se cadono in giorno festivo).
+    Precisione: ESATTO (periodo di legge). È un periodo minimo di separazione, non un termine per
+    compiere un atto: non si proroga se cade di sabato o in un giorno festivo (art. 155 c.p.c. non
+    applicato).
 
     Args:
         data_evento: Data da cui decorre il termine (YYYY-MM-DD): per la separazione giudiziale o
@@ -484,15 +486,21 @@ def termini_separazione_divorzio(
         }
 
     mesi = cfg["mesi"]
-    scadenza_raw = _add_months(dt_evento, mesi)
-    scadenza, adjusted = _slide_forward(scadenza_raw)
+    # A waiting period, not a deadline for an act: no art. 155 extension
+    # (owner's decision on the legal reading, G-328: «proroga no»).
+    scadenza = _add_months(dt_evento, mesi)
 
     return {
         "data_evento": data_evento,
         "tipo": tipo,
         "descrizione": cfg["descrizione"],
         "mesi_termine": mesi,
-        **_voce_scadenza(scadenza, adjusted),
+        **_voce_scadenza(scadenza, False),
+        "nota": (
+            "Periodo minimo di separazione prima del divorzio, non un termine per "
+            "compiere un atto: non si proroga se cade di sabato o in un giorno "
+            "festivo (art. 155 c.p.c. non applicato)."
+        ),
         "riferimento_normativo": cfg["normativa"],
     }
 
