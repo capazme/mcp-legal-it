@@ -21,7 +21,7 @@
 
 ## Struttura directory
 
-> Stato attuale: **243 file di test** (102 unit + 141 comparison), 6610 test raccolti inclusi i `live`. Il numero di test
+> Stato attuale: **261 file di test** (120 unit + 141 comparison), 6996 test raccolti inclusi i `live`. Il numero di test
 > cambia a ogni aggiunta: per il numero aggiornato usa
 > `pytest tests/ --collect-only -q | tail -1` (aggiungi `-m ""` per includere i `live`). Il default di `pytest` esclude i test `live` (vedi `addopts` in `pyproject.toml`).
 
