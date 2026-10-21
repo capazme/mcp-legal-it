@@ -71,7 +71,11 @@ def leggi(url: str) -> dict | None:
         rec = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    if rec.get("schema") != SCHEMA or rec.get("url") != url or adesso - rec.get("salvato", 0) >= TTL_SECONDI:
+    # A record that is not one ("[]", a dict without its text) is dropped like a stale
+    # one: it would otherwise fail on every read of that URL, for ever.
+    if (not isinstance(rec, dict) or not isinstance(rec.get("testo"), str) or "servito" not in rec
+            or rec.get("schema") != SCHEMA or rec.get("url") != url
+            or not isinstance(rec.get("salvato", 0), (int, float)) or adesso - rec.get("salvato", 0) >= TTL_SECONDI):
         try:
             path.unlink()
         except OSError:

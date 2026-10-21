@@ -3,10 +3,13 @@
 The table is VisuaLex's (``lib/visualex/article_suffixes.py``, imported byte for
 byte); VisuaLex's ``apps/web`` and ``apps/server`` mirror it in TypeScript and its
 own tests pin the mirrors to it, so pinning our copy to VisuaLex's file keeps all
-four in step. The cases of ``TestTable`` and ``TestNormalizeArticleKey`` are
-VisuaLex's ``services/visualex/tests/test_article_suffixes.py`` (MPL-2.0, at
-``eca698dc``); the rest are the places in mcp-legal-it that kept a private copy
-stopping at "decies", where "art. 25-terdecies" was read as art. 25-ter.
+four in step. The cases of ``TestTable`` are VisuaLex's
+``services/visualex/tests/test_article_suffixes.py`` (MPL-2.0, at ``eca698dc``); those of
+``TestNormalizeArticleKey`` are VisuaLex's too, except the shapes the table cannot spell
+(``270 bis.1``, ``171 octies 1``, ``135 sex decies``, ``2 bis``, ``2043``), taken from the
+comments of VisuaLex's ``normalize_article_key``. The rest are the places in mcp-legal-it
+that kept a private copy stopping at "decies", where "art. 25-terdecies" was read as
+art. 25-ter.
 """
 
 from __future__ import annotations
@@ -137,3 +140,52 @@ class TestNoPrivateCopyStopsAtDecies:
     ])
     def test_spelling_variants_are_the_same_article(self, a, b):
         assert _article_identity(a) == _article_identity(b)
+
+
+class TestReviewOf62:
+    """The places a private suffix list or a missing separator still cut a suffix off."""
+
+    @pytest.mark.parametrize("testo,atteso", [
+        ("d.lgs. 231/2001, art. 25-undevicies", "25undevicies"),
+        ("d.lgs. 231/2001, art. 25-sexdecies", "25sexdecies"),
+        ("d.lgs. 231/2001, art. 25-quindecies", "25quindecies"),
+        ("art. 2409-noviesdecies c.c.", "2409noviesdecies"),
+    ])
+    def test_the_citation_reader_keeps_every_suffix(self, testo, atteso):
+        from mcp_legal_it.core.citazioni import norme_nel_testo
+
+        assert [n.articolo for n in norme_nel_testo(testo)] == [atteso]
+
+    @pytest.mark.parametrize("testo,atteso", [
+        ("Art. 25-sexdecies\nTesto.", "25sexdecies"),
+        ("Art. 25-undevicies\nTesto.", "25undevicies"),
+        ("Art. 2409-noviesdecies\nTesto.", "2409noviesdecies"),
+    ])
+    def test_the_article_a_tool_served_keeps_its_suffix(self, testo, atteso):
+        from mcp_legal_it.core.citazioni import articolo_servito
+
+        assert articolo_servito(testo) == atteso
+
+    @pytest.mark.parametrize("rif", ["art. 25 terdecies d.lgs. 231/2001", "art. 25-terdecies d.lgs. 231/2001",
+                                     "art. 25 - terdecies d.lgs. 231/2001"])
+    def test_italgiure_searches_the_suffixed_article_spaced_or_dashed(self, rif):
+        query = build_norma_variants(rif)
+        assert '"art. 25-terdecies' in query and '"art. 25 ' not in query
+
+    @pytest.mark.parametrize("article,suffix", [("135 sex decies", "~art135sexdecies"),
+                                                ("25 vicies semel", "~art25viciessemel")])
+    def test_an_urn_never_holds_a_space(self, article, suffix):
+        url = NormaVisitata(Norma("legge", "1941-04-22", "633"), article).url()
+        assert url.endswith(suffix) and " " not in url
+
+    @pytest.mark.parametrize("call", [
+        lambda blanks: build_norma_variants("art. 25" + blanks + "x"),
+        lambda blanks: __import__("mcp_legal_it.core.citazioni", fromlist=["x"]).norme_nel_testo("art. 25" + blanks + "x"),
+        lambda blanks: NormaVisitata(Norma("legge", "1941-04-22", "633"), "1" + blanks + "x").url(),
+    ])
+    def test_a_long_run_of_blanks_stays_linear(self, call):
+        import time
+
+        start = time.perf_counter()
+        call(" " * 20000)
+        assert time.perf_counter() - start < 0.1

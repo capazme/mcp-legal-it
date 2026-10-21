@@ -636,11 +636,19 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
         # Akoma Ntoso export, one more request, only on this path) decides.
         act = await _akn_act(nv)
         if requested is not None and act is not None:
-            if got is None and requested in _identita_articoli(act, part):
+            if (got is None and requested in _identita_articoli(act, part)
+                    and (part or not annex_id_of(act.main_part) or _URL_NOMINA_PARTE.search(url))):
                 # The page does not say which article it is ("Codice Penale-art. 524"
                 # with the repeal notice outside the label) and the act has it: the
-                # page is the article, as VisuaLex serves it.
+                # page is the article, as VisuaLex serves it. Not when the act's main
+                # text is a code in an annex and the URN names the decree's body
+                # (art. 2 of d.lgs. 104/2010 asked as the decree's): the unlabelled page
+                # is then the decree's, and the code's article comes from the export.
                 return result
+            if got is None and requested in _identita_articoli(act, part) and not part:
+                servito = _da_export(act, nv, url, part, result, etichetta=True)
+                if servito:
+                    return servito
             if got is not None and got[0] != requested[0] and requested[0] in _numeri_articoli(act, part):
                 # The page names another number, but the act's main text has the one asked
                 # for: it lives in a part the URN does not reach, a code approved in an
@@ -667,6 +675,10 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
     return {**result, "esito": CHECK_UNAVAILABLE,
             "error": (f"testo non leggibile per l'art. {nv.numero_articolo} di {nv.norma}: la pagina di "
                       "Normattiva non contiene il testo dell'articolo e l'export Akoma Ntoso non lo fornisce")}
+
+
+#: The ":k" after the act number of a Normattiva URL: the URN names one of the act's parts.
+_URL_NOMINA_PARTE = re.compile(r";[^;:~!@?]+:\d+(?=~|!|@|$)")
 
 
 def _identita_articoli(act, part: "str | None") -> "set[tuple[str, str]]":
