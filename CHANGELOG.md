@@ -425,7 +425,11 @@ entry, it is the same feature as ported to the 3.0 line.
   `termini_memorie_repliche` and `termini_procedimento_semplificato` appended to
   every answer is gone (it also said "opposizioni esecutive" where art. 92
   says "opposizione all'esecuzione"); the `scadenza` command and the
-  `procedura-civile` reference carry the same list.
+  `procedura-civile` reference carry the same list. `termini_esecuzioni` keeps
+  computing the art. 617 opposition without the suspension (the prudent
+  reading) and, when August falls in its 20 days, adds
+  `avvertenza_sospensione_feriale`: whether art. 617 is excluded is debated,
+  since art. 92 R.D. 12/1941 names only the "opposizione all'esecuzione".
 - **Tool tags follow one taxonomy, and some desktop profiles change.** Every
   tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (24),
   `autorita` (6), `registri` (5), `calcolo` (141), `redazione` (30),
@@ -549,7 +553,12 @@ entry, it is the same feature as ported to the 3.0 line.
   `parcella_volontaria_giurisdizione`, `preventivo_civile`,
   `preventivo_stragiudiziale`, `preventivo_volontaria_giurisdizione`,
   `calcolo_notula_penale`, `modello_notula`; `genera_quotazione_docx` already
-  used the exact half. Medium and maximum stay rounded to the euro.
+  used the exact half. The maximum follows the same rule: the medium "aumentati
+  fino al 50 per cento" is the exact one and a half, to the cent (131 → 196,50,
+  not 197), since a maximum rounded up overstates the ceiling. The table had it
+  rounded in 44 of 94 maximums (39 up, 3 down, 2 a whole euro too high); the
+  code-computed maximums and `modello_notula` at `livello='max'` changed too. The
+  medium stays rounded to the euro, as the table transcribes it.
 - `cerca_brocardi` now declares Italgiure among its online sources. Its probe of
   the archive window was missed by the sources audit (a call made through a
   module that only imports the function), so the answer's `_meta` listed
