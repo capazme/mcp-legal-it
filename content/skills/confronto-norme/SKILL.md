@@ -13,7 +13,7 @@ Differenze, sovrapposizioni, prevalenza e coordinamento.
 
 ### 1. Recupero testi
 
-Chiama `cite_law` per ciascuna norma. Per annotazioni: `cerca_brocardi`.
+Chiama `cite_law` per ciascuna norma. Per annotazioni: `cerca_brocardi` (se disponibile).
 
 ### 2. Analisi comparativa
 

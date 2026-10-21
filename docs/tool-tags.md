@@ -119,7 +119,8 @@ fonti.run()                                   # come server a sé
 # oppure: il_mio_server.mount(fonti, namespace="legal")
 ```
 
-- `include_tags`: tiene i tool con almeno una di queste etichette (`None` = tutti).
+- `include_tags`: tiene i tool con almeno una di queste etichette (`None` = tutti; un insieme
+  vuoto è rifiutato con `ValueError`, perché non selezionerebbe nulla).
 - `exclude_tags`: poi toglie quelli con una di queste etichette.
 - `brocardi=False`: nasconde i `solo_brocardi` e fa girare ogni chiamata di quel server
   con Brocardi spento; i tool misti rispondono senza Brocardi e lo dicono.
@@ -128,6 +129,10 @@ fonti.run()                                   # come server a sé
 - `prompts=False`: niente prompt né risorse `legal://` (non hanno etichette, i filtri
   non li toccano; i prompt possono nominare tool rimasti fuori dal sottoinsieme).
 - Un'etichetta sconosciuta solleva `ValueError` con il vocabolario.
+- Le istruzioni del server sono quelle standard senza i tool esclusi: un passo di workflow che
+  nomina un tool nascosto viene tolto dalla catena, una riga che lo nomina altrimenti viene
+  tolta. Lo stesso vale per il server standard con `LEGAL_BROCARDI=off`
+  («Norma → cite_law → giurisprudenza_su_norma → leggi_sentenza»).
 
 I tool esclusi non compaiono in `list_tools` e una chiamata riceve «Unknown tool».
 Nomi, firme, annotazioni, `_meta` e middleware restano quelli del server standard,

@@ -16,6 +16,7 @@ import ast
 import asyncio
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -343,14 +344,57 @@ def test_the_stock_server_hides_the_solo_brocardi_tools(tmp_path):
         "from mcp_legal_it.server import mcp\n"
         "async def main():\n"
         "    async with Client(mcp) as c:\n"
-        "        return sorted(t.name for t in await c.list_tools())\n"
+        "        instructions = getattr(c, 'instructions', None) or c.initialize_result.instructions\n"
+        "        return {'tools': sorted(t.name for t in await c.list_tools()), 'instructions': instructions}\n"
         "print(json.dumps(asyncio.run(main())))\n"
     )
     env = {**os.environ, "LEGAL_BROCARDI": "off", "HOME": str(tmp_path), "LEGAL_CACHE": "off"}
     env.pop("LEGAL_PROFILE", None)
     out = subprocess.run([sys.executable, "-c", snippet], cwd=REPO / "plugin" / "server", env=env,
                          capture_output=True, text=True, check=True)
-    names = set(json.loads(out.stdout.strip().splitlines()[-1]))
+    surface = json.loads(out.stdout.strip().splitlines()[-1])
+    names = set(surface["tools"])
     assert len(names) == 226
     assert not names & {"cerca_brocardi", "fetch_law_annotations"}
     assert "cite_law" in names
+    # The instructions never send the model to a tool the server does not list.
+    assert named_tools(surface["instructions"]) <= names
+    assert "cite_law → giurisprudenza_su_norma" in surface["instructions"]
+    assert "Brocardi per dottrina" not in surface["instructions"]
+
+
+def named_tools(text: str) -> set[str]:
+    from mcp_legal_it.server import _ALL_TOOL_NAMES
+
+    return set(re.findall(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b", text)) & _ALL_TOOL_NAMES
+
+
+def test_the_stock_instructions_are_untouched_with_brocardi_on():
+    from mcp_legal_it.server import _STOCK_INSTRUCTIONS, crea_server, mcp
+
+    assert mcp.instructions == _STOCK_INSTRUCTIONS
+    assert "cerca_brocardi" in mcp.instructions
+    assert crea_server().instructions == _STOCK_INSTRUCTIONS
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"brocardi": False},
+    {"include_tags": {"normativa", "giurisprudenza"}, "brocardi": False},
+    {"include_tags": {"calcolo"}},
+    {"include_tags": {"privacy"}},
+    {"exclude_tags": {"brocardi"}},
+    {"include_tags": {"diagnostica"}},
+])
+def test_crea_server_instructions_name_only_listed_tools(kwargs):
+    from mcp_legal_it.server import crea_server
+
+    server = crea_server(**kwargs)
+
+    async def surface():
+        async with Client(server) as c:
+            instructions = getattr(c, "instructions", None) or c.initialize_result.instructions
+            return instructions, {t.name for t in await c.list_tools()}
+
+    instructions, names = asyncio.run(surface())
+    assert instructions == server.instructions
+    assert named_tools(instructions) <= names, named_tools(instructions) - names

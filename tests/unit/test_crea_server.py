@@ -124,7 +124,13 @@ def test_the_name_is_reported():
     ({"include_tags": {"normatica"}}, ValueError),
     ({"exclude_tags": {"giurisprudenza", "tar"}}, ValueError),
     ({"include_tags": "normativa"}, TypeError),
+    ({"include_tags": set()}, ValueError),
+    ({"include_tags": []}, ValueError),
 ])
 def test_bad_tags_are_refused(kwargs, error):
     with pytest.raises(error):
         crea_server(**kwargs)
+
+
+def test_an_empty_exclusion_excludes_nothing():
+    assert len(surface(crea_server(exclude_tags=set()))["tools"]) == 228

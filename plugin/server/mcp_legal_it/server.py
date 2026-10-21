@@ -1,7 +1,10 @@
 """MCP Legal IT — 228 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
+import asyncio
 import os
+import re
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware
@@ -113,7 +116,7 @@ from mcp_legal_it.lib._regime import TAG as _PREVIGENTE_TAG  # noqa: E402
 from mcp_legal_it.lib._regime import hidden_by_environment as _previgenti_nascosti  # noqa: E402
 from mcp_legal_it.source_bindings import TOOL_SOURCES  # noqa: E402
 from mcp_legal_it.table_bindings import TABLE_CONSTANTS, TOOL_ALTERNATIVES, TOOL_TABLES  # noqa: E402
-from mcp_legal_it.tool_annotations import PREVIGENTE, apply_tool_annotations  # noqa: E402
+from mcp_legal_it.tool_annotations import PREVIGENTE, READ_ONLY, WRITES_FILES, apply_tool_annotations  # noqa: E402
 from mcp_legal_it.tool_taxonomy import VOCABULARY  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -192,8 +195,59 @@ if _brocardi_switch.off_by_environment():
 
 
 # ---------------------------------------------------------------------------
+# The instructions name tools, and a client reads them once, at initialize: a
+# server that hides some tools must not keep sending the model to them (it would
+# get "Unknown tool"). The literal above stays the single source (it is also
+# what scripts/corpus/agents_md.py copies into AGENTS.md); a narrowed server gets
+# it with the hidden tools taken out.
+# ---------------------------------------------------------------------------
+_STOCK_INSTRUCTIONS: str = mcp.instructions or ""
+_ALL_TOOL_NAMES: frozenset[str] = READ_ONLY | WRITES_FILES
+_TOOL_NAME = re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b")
+
+
+def _visible_tool_names(server: FastMCP) -> set[str]:
+    """The tools ``server`` lists, read on a private event loop (callable from async code too)."""
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        tools = pool.submit(asyncio.run, server.list_tools()).result()
+    return {t.name for t in tools}
+
+
+def _instructions_for(available: set[str], text: str = _STOCK_INSTRUCTIONS) -> str:
+    """``text`` without the tools a server does not list.
+
+    A workflow step that is just a hidden tool (``→ cerca_brocardi →``) is dropped
+    from its chain, and the chain goes when it keeps fewer than two steps after its
+    label; any other line that still names a hidden tool is dropped whole.
+    With every tool available the text comes back unchanged.
+    """
+    hidden = {name for name in _TOOL_NAME.findall(text) if name in _ALL_TOOL_NAMES} - available
+    if not hidden:
+        return text
+    lines = []
+    for line in text.split("\n"):
+        if "cerca_brocardi" in hidden:
+            line = line.replace(", Brocardi per dottrina", "")
+        if " → " in line:
+            steps = line.split(" → ")
+            kept = [s for s in steps if s.strip() not in hidden]
+            if len(kept) < len(steps) and len(kept) < 3:
+                continue  # a label and a single step left: no workflow any more
+            line = " → ".join(kept)
+        if set(_TOOL_NAME.findall(line)) & hidden:
+            continue
+        lines.append(line)
+    return "\n".join(lines)
+
+
+if _brocardi_switch.off_by_environment():
+    mcp.instructions = _instructions_for(_visible_tool_names(mcp))
+
+
+# ---------------------------------------------------------------------------
 # A server with only some of the tools, for a host that mounts mcp-legal-it into
-# its own surface (design: docs/specs/2026-10-19-library-and-vigenza-design.md §4.3).
+# its own surface: an application that needs the sources (norms, case law) and
+# none of the calculators, or a commercial deployment that must leave Brocardi out.
 # ---------------------------------------------------------------------------
 class _BrocardiOffMiddleware(Middleware):
     """Run every tool call of one server with Brocardi switched off."""
@@ -238,7 +292,8 @@ def crea_server(
 
     Args:
         include_tags: keep only the tools carrying at least one of these tags
-            (``None``: every tool). Tags are listed in ``docs/tool-tags.md``.
+            (``None``: every tool; an empty collection is refused, since it would
+            select nothing). Tags are listed in ``docs/tool-tags.md``.
         exclude_tags: then drop every tool carrying one of these tags. Excluding
             ``brocardi`` drops every tool that can show Brocardi content,
             ``cite_law`` included; to keep those tools without Brocardi, use
@@ -252,6 +307,9 @@ def crea_server(
             tagged, so the tag filters never touch them). The prompts name tools:
             a prompt may suggest a tool the subset left out.
 
+    The server's instructions are the stock ones without the tools it does not
+    list, so the model is never sent to a tool it cannot call.
+
     The process-level switches still apply underneath, because they act on the
     stock server: ``LEGAL_PROFILE``, ``LEGAL_PREVIGENTE=off`` and
     ``LEGAL_BROCARDI=off`` can only narrow what this factory selects.
@@ -263,9 +321,13 @@ def crea_server(
         fonti = crea_server(include_tags={"normativa", "giurisprudenza"}, brocardi=False)
         fonti.run()  # or mount it: my_server.mount(fonti, namespace="legal")
     """
+    if include_tags is not None and not set(include_tags):
+        raise ValueError(
+            "include_tags is empty, which would select no tool: pass None to keep every tool"
+        )
     include = _checked_tags(include_tags, "include_tags")
     exclude = _checked_tags(exclude_tags, "exclude_tags")
-    server = FastMCP(name, version=package_version(), instructions=mcp.instructions)
+    server = FastMCP(name, version=package_version(), instructions=_STOCK_INSTRUCTIONS)
     server.mount(mcp)
     if include:
         server.enable(tags=include, only=True)
@@ -278,4 +340,5 @@ def crea_server(
         server.enable(components=_PROMPTS_AND_RESOURCES)
     else:
         server.disable(components=_PROMPTS_AND_RESOURCES)
+    server.instructions = _instructions_for(_visible_tool_names(server))
     return server

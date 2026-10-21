@@ -17,7 +17,7 @@ Chiama `cite_law` per le norme del tipo contrattuale:
 - Norme specifiche del tipo (es. locazione artt. 1571 ss.)
 - Legislazione speciale (Cod. Consumo per B2C)
 
-Per orientamenti: `cerca_brocardi` sulle norme chiave.
+Per orientamenti: `cerca_brocardi` (se disponibile) sulle norme chiave.
 
 ### 2. Clausole essenziali
 
