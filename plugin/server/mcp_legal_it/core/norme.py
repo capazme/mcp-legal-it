@@ -62,10 +62,13 @@ _ART = r"(?:articol[oi]|art)\.?\s*\d+(?:[-/.]\w+)*"
 _PARAGRAPHS = (
     r"(?:[\s,;]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+\w*|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
 )
+# The act may not end on a separator and every separator run is one [\s,;]+: a lazy
+# ".+?" followed by "\s*[,;]?\s+" could split the same run of spaces many ways, which
+# made a failing match cubic in its length (5000 spaces: 92 s, synchronously).
 _ACT_FIRST_PATTERN = re.compile(
-    rf"^(?P<act>.+?)\s*[,;]?\s+(?P<ref>"
-    rf"{_ART}{_PARAGRAPHS}(?:\s*[,;]?\s*{_ANNEX_LINK}allegato\s+{ANNEX_ID})?"
-    rf"|allegato\s+{ANNEX_ID}(?:\s*,?\s*{_ART})?{_PARAGRAPHS}"
+    rf"^(?P<act>.*?[^\s,;])[\s,;]+(?P<ref>"
+    rf"{_ART}{_PARAGRAPHS}(?:[\s,;]*{_ANNEX_LINK}allegato\s+{ANNEX_ID})?"
+    rf"|allegato\s+{ANNEX_ID}(?:[\s,]*{_ART})?{_PARAGRAPHS}"
     r")\s*$",
     re.IGNORECASE,
 )
@@ -73,7 +76,7 @@ _ACT_FIRST_PATTERN = re.compile(
 
 # The annex written after the act: "D.Lgs. 36/2023, allegato I.7".
 _ANNEX_LAST = re.compile(
-    rf"^(?P<act>.+?)[\s,;]+{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})\s*$",
+    rf"^(?P<act>.*?[^\s,;])[\s,;]+{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})\s*$",
     re.IGNORECASE,
 )
 
@@ -108,7 +111,9 @@ def _parse_reference(reference: str) -> tuple[str, str]:
                              → ("allegato I.7 art. 30", "D.Lgs. 36/2023")
     - "Allegato III AI Act"  → ("allegato III", "AI Act")
     """
-    reference = reference.strip()
+    # One space for any run of whitespace (tabs, NBSP, newlines included): every
+    # pattern below then sees separators of bounded length.
+    reference = re.sub(r"\s+", " ", reference).strip()
 
     annex_match = _ANNEX_FIRST_PATTERN.match(reference)
     if annex_match:

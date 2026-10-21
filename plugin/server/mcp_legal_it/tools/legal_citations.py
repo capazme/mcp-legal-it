@@ -603,7 +603,9 @@ def _fmt_iso_date(iso: str) -> str:
 
 # Branch of the Cassazione named in a citation ("Cass. pen. ...", "Cassazione civile ...").
 # Lavoro and tributaria are chambers of the civil branch.
-_USER_RAMO = re.compile(r"\bcass(?:azione)?\.?\s*,?\s*(?:sez\.?\s*)?(civ|pen|lav|trib)", re.IGNORECASE)
+# One [\s,]* separator: "\s*,?\s*" split a run of spaces two ways and made a failing
+# search quadratic in its length (50k spaces after "cass": ~40 s).
+_USER_RAMO = re.compile(r"\bcass(?:azione)?\.?[\s,]*(?:sez\.?\s*)?(civ|pen|lav|trib)", re.IGNORECASE)
 
 # Hard cap on the number of references resolved in a single call, to bound
 # concurrency against the slow government sources.
