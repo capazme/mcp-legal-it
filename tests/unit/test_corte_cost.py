@@ -605,6 +605,56 @@ class TestCacheBehavior:
         assert len(data) == 2
 
 
+class TestCacheOff:
+    """LEGAL_CACHE=off: one download per decade bundle per process, kept in memory."""
+
+    @pytest.fixture(autouse=True)
+    def _cache_off(self, monkeypatch):
+        from mcp_legal_it.lib.corte_cost import client
+
+        from collections import OrderedDict
+
+        monkeypatch.setenv("LEGAL_CACHE", "off")
+        monkeypatch.setattr(client, "_bundle_memoria", OrderedDict(), raising=False)
+        monkeypatch.setattr(client, "_bundle_lock", {}, raising=False)
+
+    @pytest.mark.asyncio
+    async def test_many_searches_one_download(self, tmp_path):
+        mock = AsyncMock(side_effect=_download_router)
+        with patch("mcp_legal_it.lib.corte_cost.client._download", mock):
+            for terms in ([], ["pensioni"], ["lavoro"], []):
+                await search_pronunce(terms=terms, year_from=1956, year_to=1956, limit=10)
+        assert mock.call_count == 1
+        assert not (tmp_path / "corte_cost").exists(), "nothing on disk with the cache off"
+
+    @pytest.mark.asyncio
+    async def test_concurrent_searches_share_the_download(self):
+        import asyncio
+
+        started = []
+
+        async def slow(url):
+            started.append(url)
+            await asyncio.sleep(0.05)
+            return _download_router(url)
+
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=slow)):
+            await asyncio.gather(*(
+                search_pronunce(terms=[], year_from=1956, year_to=1956, limit=10) for _ in range(5)
+            ))
+        assert len(started) == 1, started
+
+    @pytest.mark.asyncio
+    async def test_memory_cap_drops_the_least_recent_bundle(self, monkeypatch):
+        from mcp_legal_it.lib.corte_cost import client
+
+        monkeypatch.setattr(client, "_MEMORIA_MAX_BYTES", 10)
+        with patch.object(client, "_download", AsyncMock(side_effect=lambda url: b"x" * 8)):
+            await client._bundle_in_memoria("a")
+            await client._bundle_in_memoria("b")
+        assert list(client._bundle_memoria) == ["b"]
+
+
 class TestFetchPronuncia:
     @pytest.mark.asyncio
     async def test_found(self):

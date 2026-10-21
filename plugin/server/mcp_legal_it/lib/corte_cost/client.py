@@ -31,12 +31,14 @@ nested year ZIP is unzipped in-memory, latin-1-decoded, and written to the
 per-year cache. Downloads are lazy per decade.
 """
 
+import asyncio
 import io
 import json
 import os
 import re
 import time
 import zipfile
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -213,6 +215,7 @@ def _unzip_decade(
     year_zip_tmpl: str,
     year_json_tmpl: str,
     root_key: str,
+    only_year: int | None = None,
 ) -> dict[int, list[dict]]:
     """Unzip a decade bundle (two nested levels) into {year: [records]}.
 
@@ -232,6 +235,8 @@ def _unzip_decade(
         if not m:
             continue
         year = int(m.group(1))
+        if only_year is not None and year != only_year:
+            continue
         inner_bytes = outer.read(entry)
         if inner_bytes[:2] != b"PK":
             continue
@@ -246,6 +251,41 @@ def _unzip_decade(
         records = obj.get(root_key, []) if isinstance(obj, dict) else obj
         out[year] = records if isinstance(records, list) else []
     return out
+
+
+# Without the disk cache (LEGAL_CACHE=off) every call used to download the whole
+# decade bundle again (2001-today: ~56 MB) and keep nothing, so a search over
+# several years hit the source several times. The compressed bundles are kept in
+# memory instead, one download per process: a lock makes concurrent calls wait for
+# the one download in flight, and past the cap the least recently used is dropped.
+_MEMORIA_MAX_BYTES = 256 * 1024 * 1024
+_bundle_memoria: "OrderedDict[str, bytes]" = OrderedDict()
+_bundle_lock: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Lock]] = {}
+
+
+def _lock_for(url: str) -> asyncio.Lock:
+    loop = asyncio.get_running_loop()
+    held = _bundle_lock.get(url)
+    if held is None or held[0] is not loop:
+        held = (loop, asyncio.Lock())
+        _bundle_lock[url] = held
+    return held[1]
+
+
+async def _bundle_in_memoria(url: str) -> bytes:
+    """The bundle at *url*, downloaded at most once per process while it fits the cap."""
+    if url in _bundle_memoria:
+        _bundle_memoria.move_to_end(url)
+        return _bundle_memoria[url]
+    async with _lock_for(url):
+        if url in _bundle_memoria:  # downloaded while this call waited
+            _bundle_memoria.move_to_end(url)
+            return _bundle_memoria[url]
+        data = await _download(url)
+        _bundle_memoria[url] = data
+        while len(_bundle_memoria) > 1 and sum(map(len, _bundle_memoria.values())) > _MEMORIA_MAX_BYTES:
+            _bundle_memoria.popitem(last=False)
+        return data
 
 
 async def _load_year(
@@ -272,6 +312,11 @@ async def _load_year(
     bundle = _decade_for_year(year, decades)
     if not bundle:
         return []
+
+    if not cache_enabled():
+        bundle_bytes = await _bundle_in_memoria(f"{base_url}/{bundle}")
+        only = _unzip_decade(bundle_bytes, year_zip_tmpl, year_json_tmpl, root_key, only_year=year)
+        return only.get(year, [])
 
     bundle_bytes = await _download(f"{base_url}/{bundle}")
     by_year = _unzip_decade(bundle_bytes, year_zip_tmpl, year_json_tmpl, root_key)
