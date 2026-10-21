@@ -36,8 +36,11 @@ from mcp_legal_it.api._decisioni import (
 from mcp_legal_it.api._norme import (
     ARTICLE_SUFFIX_ALTERNATION,
     SUFFISSI_ARTICOLO,
+    albero_atto,
     annotazioni_brocardi,
+    articolo_nell_albero,
     catalogo_alias,
+    dove_altrove,
     indice_atto,
     leggi_riferimento,
     riferimento_da_parametri,
@@ -46,6 +49,7 @@ from mcp_legal_it.api._norme import (
     testo_atto,
 )
 from mcp_legal_it.api.tipi import (
+    AlberoAtto,
     AnnotazioniBrocardi,
     Attributi,
     Avviso,
@@ -90,8 +94,11 @@ __all__ = [
     "ARTICLE_SUFFIX_ALTERNATION",
     "SUFFISSI_ARTICOLO",
     # norms
+    "albero_atto",
     "annotazioni_brocardi",
+    "articolo_nell_albero",
     "catalogo_alias",
+    "dove_altrove",
     "indice_atto",
     "leggi_riferimento",
     "riferimento_da_parametri",
@@ -113,6 +120,7 @@ __all__ = [
     "leggi_sentenza_cgue",
     "pronunce_costituzionali_su_norma",
     # types
+    "AlberoAtto",
     "AnnotazioniBrocardi",
     "Attributi",
     "Avviso",

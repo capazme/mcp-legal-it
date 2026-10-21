@@ -63,6 +63,21 @@ entry, it is the same feature as ported to the 3.0 line.
   switches the disk copy off): no request more than before when warm, one
   fewer for an article of a code when cold. Articles of one act cited with
   the year only share one lookup of its date.
+- **The act's index and tree, as VisuaLex serves them.** `api.indice_atto`
+  now reads the Akoma Ntoso export: the act's title as a heading, the
+  rubriche of its main text, the repealed articles, and every part (an
+  annex, the preleggi, a code's Dispositivo) with its own keys, rubriche,
+  repealed articles and Normattiva number (`allegato`). It was Normattiva's
+  `vediRubriche` list, two requests every time; it is now two requests the
+  first time and none after (`vediRubriche` stays the fallback when the
+  export cannot be read). New `api.albero_atto`: Normattiva's article tree
+  (VisuaLex's `/fetch_tree`, its parser imported), every article with the
+  part it belongs to, one request a day per act; `api.articolo_nell_albero`
+  and `api.dove_altrove` are VisuaLex's existence check as functions. An
+  `articolo_non_trovato` answer now says where else in the act the article
+  is ("su Normattiva l'art. 32-ter si trova nell'allegato 8"), read from the
+  export already fetched; never for a code's own part (art. 40 of the
+  preleggi is not art. 40 of the codice civile).
 - **The Akoma Ntoso parser merged with VisuaLex's, and tables in the text.**
   VisuaLex's parser is the base (its XML settings resolve no entity and open
   no connection; rubriche, repealed articles, act titles and each article's

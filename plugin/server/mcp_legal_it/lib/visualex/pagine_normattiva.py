@@ -15,6 +15,10 @@ extractor, ``normattiva_html``) and the article number the page gives it, a few 
 
 A record is written only when the page was read: a failed fetch, a page with no
 article body, are never kept.
+
+The act's article tree (``albero_normattiva``, read from the act's own page) is kept
+here too, under its own key (``albero|`` + the act's URL), for the same day: VisuaLex
+keeps its trees 24 hours as well. A failed or empty tree is never kept.
 """
 
 from __future__ import annotations
@@ -69,7 +73,11 @@ def leggi(url: str) -> dict | None:
         return None
     # A record that is not one ("[]", a dict without its text) is dropped like a stale
     # one: it would otherwise fail on every read of that URL, for ever.
-    if (not isinstance(rec, dict) or not isinstance(rec.get("testo"), str) or "servito" not in rec
+    pagina = isinstance(rec, dict) and isinstance(rec.get("testo"), str) and "servito" in rec
+    tree = rec.get("albero") if isinstance(rec, dict) else None
+    albero = (url.startswith("albero|") and isinstance(tree, dict) and isinstance(tree.get("result"), list)
+              and isinstance(tree.get("count"), int) and isinstance(tree.get("metadata"), dict))
+    if (not (pagina or albero)
             or rec.get("schema") != SCHEMA or rec.get("url") != url
             or not isinstance(rec.get("salvato", 0), (int, float)) or adesso - rec.get("salvato", 0) >= TTL_SECONDI):
         try:
@@ -83,7 +91,26 @@ def leggi(url: str) -> dict | None:
 
 def scrivi(url: str, testo: str, servito: str | None) -> None:
     """Keep what the page at *url* said (best effort: an unwritable directory only warns)."""
-    rec = {"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito}
+    _scrivi({"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito})
+
+
+def _chiave_albero(url: str) -> str:
+    return f"albero|{url}"
+
+
+def leggi_albero(url: str) -> dict | None:
+    """The tree of the act at *url* (``{"result", "count", "metadata"}``) if younger than a day."""
+    rec = leggi(_chiave_albero(url))
+    return rec.get("albero") if rec is not None else None
+
+
+def scrivi_albero(url: str, albero: dict) -> None:
+    """Keep the act's widest tree (links, section labels, metadata)."""
+    _scrivi({"schema": SCHEMA, "url": _chiave_albero(url), "salvato": time.time(), "albero": albero})
+
+
+def _scrivi(rec: dict) -> None:
+    url = rec["url"]
     _ricorda(url, rec)
     if not cache_enabled():
         return

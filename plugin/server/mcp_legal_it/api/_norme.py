@@ -8,6 +8,7 @@ from typing import Iterable
 
 from mcp_legal_it.api._comune import fonte_giu, registra
 from mcp_legal_it.api.tipi import (
+    AlberoAtto,
     AnnotazioniBrocardi,
     Canale,
     CatalogoAlias,
@@ -28,12 +29,14 @@ from mcp_legal_it.lib.visualex.map import (
     known_act_names,
     normalize_act_type,
 )
+from mcp_legal_it.lib.visualex import albero_normattiva as _albero
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _ALTERNANZA_SUFFISSI
 from mcp_legal_it.lib.visualex.models import Norma, annex_reference, intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
     fetch_act_index,
+    fetch_act_tree,
     fetch_normattiva_full_text,
 )
 
@@ -393,10 +396,14 @@ def _atto(atto: str | NormaDati) -> Norma | tuple[str, str]:
 
 
 async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
-    """The article headings of an Italian act (Normattiva ``vediRubriche``).
+    """The article headings of an Italian act: VisuaLex's ``/fetch_rubriche``.
 
-    ``rubriche`` maps each article key to its heading where the index line reads as one;
-    ``voci`` keeps every line as served. ``abrogati`` and ``parts`` are planned (migration).
+    From the act's Akoma Ntoso export: ``title`` (presentable), ``rubriche`` of the act's
+    main text (``count`` is ``len(rubriche)``), ``abrogati``, and ``parts``, one dict per
+    part (``name``, ``keys``, ``rubriche``, ``abrogati``, plus ``allegato``, its Normattiva
+    number). The export is the act's own (two requests cold, none warm). When it cannot be
+    read, Normattiva's ``vediRubriche`` answers: ``rubriche`` and ``voci`` (its lines),
+    without abrogati or parts.
     Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
     ``non_supportata`` (EU acts), ``verifica_non_disponibile``, ``errore_fonte``, ``testo_assente``.
     """
@@ -406,6 +413,9 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
     if norma._is_eurlex():
         return IndiceAtto(esito="non_supportata", errore="indice disponibile solo per gli atti su Normattiva")
     with registra() as registro:
+        act = await _export_atto(norma)
+        if act is not None:
+            return _indice_da_export(act, norma, registro.fonti())
         try:
             result = await fetch_act_index(norma)
         except Exception as exc:  # noqa: BLE001 - errors are data
@@ -431,6 +441,95 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
             errore=None if voci else "indice vuoto",
             fonti=registro.fonti(),
         )
+
+
+async def _export_atto(norma: Norma):
+    """The act's parsed Akoma Ntoso export (with its real date when cited by year), or None."""
+    from mcp_legal_it.lib.visualex import akn_fetch
+    from mcp_legal_it.lib.visualex.scraper import _akn_disabled, with_full_date
+
+    if _akn_disabled():
+        return None
+    try:
+        return await akn_fetch.fetch_act_akn(await with_full_date(norma))
+    except Exception:  # noqa: BLE001 - the export is one source: its failure is "no export"
+        return None
+
+
+def _indice_da_export(act, norma: Norma, fonti) -> IndiceAtto:
+    from mcp_legal_it.lib.visualex import akn_fetch
+    from mcp_legal_it.lib.visualex.akn_parser import presentable_title
+
+    rubriche = act.rubriche()
+    parts = tuple(
+        {
+            "name": name,
+            "keys": list(part.order),
+            "rubriche": act.rubriche(name),
+            "abrogati": act.abrogati(name),
+            "allegato": str(act.part_position(name)) if act.part_position(name) else None,
+        }
+        for name, part in act.parts.items()
+    )
+    codice, data_gu = akn_fetch._get_url_params(norma.url()) or ("", "")
+    return IndiceAtto(
+        esito="trovato" if act.article_count else "testo_assente",
+        title=presentable_title(act.title),
+        rubriche=rubriche,
+        abrogati=tuple(act.abrogati()),
+        parts=parts,
+        count=len(rubriche),
+        codice_redazionale=codice,
+        data_gu=data_gu,
+        url=norma.url(),
+        errore=None if act.article_count else "export senza articoli",
+        fonti=fonti,
+    )
+
+
+async def albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bool = False) -> AlberoAtto:
+    """Normattiva's article tree of an Italian act: VisuaLex's ``/fetch_tree``.
+
+    Every article with the part it belongs to (``allegato``, Normattiva's number; ``None``
+    for the act's own text), its URL when *link*, the section labels between them when
+    *dettagli*, and ``metadata["annexes"]``. One request (the act's page), kept a day.
+    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
+    ``non_supportata`` (EU acts), ``verifica_non_disponibile``, ``errore_fonte``.
+    """
+    norma = _atto(atto)
+    if isinstance(norma, tuple):
+        return AlberoAtto(esito=norma[0], errore=norma[1])
+    if norma._is_eurlex():
+        return AlberoAtto(esito="non_supportata", errore="albero disponibile solo per gli atti su Normattiva")
+    with registra() as registro:
+        try:
+            result = await fetch_act_tree(norma, link=link, details=dettagli)
+        except Exception as exc:  # noqa: BLE001 - errors are data
+            esito = "verifica_non_disponibile" if fonte_giu(exc) else "errore_fonte"
+            return AlberoAtto(esito=esito, url=norma.url(), errore=str(exc), fonti=registro.fonti())
+        if result.get("error"):
+            return AlberoAtto(esito="errore_fonte", url=result.get("url", ""), errore=result["error"],
+                              fonti=registro.fonti())
+        return AlberoAtto(esito="trovato", articles=tuple(result["articles"]), count=result["count"],
+                          metadata=result["metadata"], url=result["url"], fonti=registro.fonti())
+
+
+def articolo_nell_albero(albero: AlberoAtto, articolo: str, allegato: str | None = None) -> bool | None:
+    """Whether *articolo* is in the act's tree, in part *allegato* when given ("" = the act's own text).
+
+    ``None`` when the tree could not be read: an outage is never "the article does not exist".
+    VisuaLex's existence check, before an article is fetched. No network.
+    """
+    if albero.esito != "trovato":
+        return None
+    return _albero.articolo_nell_albero(list(albero.articles), articolo, allegato)
+
+
+def dove_altrove(albero: AlberoAtto, articolo: str, allegato: str | None) -> str:
+    """Where else in the act *articolo* is, as a sentence for a refusal (``""`` if nowhere). No network."""
+    if albero.esito != "trovato":
+        return ""
+    return _albero.dove_altrove(list(albero.articles), articolo, allegato)
 
 
 async def testo_atto(atto: str | NormaDati) -> TestoAtto:
