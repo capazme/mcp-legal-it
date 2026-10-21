@@ -132,7 +132,10 @@ async def _act_metadata(norma: Norma) -> dict:
             meta = act_page_metadata(resp.text)
     except BaseException as exc:
         if not futuro.done():
-            futuro.set_exception(exc)
+            # A cancelled leader must not cancel its waiters (other callers): they get a
+            # failed lookup instead, which with_full_date reads as "date not resolved".
+            condiviso = exc if isinstance(exc, Exception) else RuntimeError("ricerca della data annullata")
+            futuro.set_exception(condiviso)
             futuro.exception()  # retrieved: a waiter-less failure must not warn
         raise
     finally:
@@ -317,7 +320,8 @@ def _akn_article(act, numero_articolo: str, part: "str | None") -> "str | None":
 # "Art" is matched as written: an upper-case editorial note at the head of the
 # text ("((ARTICOLO ABROGATO DALL'ART. 106 ...))") must not read as art. 106.
 _ATTACHMENT_ARTICLE_RE = re.compile(
-    r"\b(?:Art(?:icolo)?\.?|ARTICOLO)\s*"
+    # "-art." is the label of an article whose page lost its heading ("Codice Penale-art. 524").
+    r"(?:\b(?:Art(?:icolo)?\.?|ARTICOLO)|(?<=-)art\.)\s*"
     r"((?i:\d+(?:[\s-]*(?:bis|ter|quater|sex|[a-z]*ies)\b)*(?:\.\d+)?|unico))\b"
 )
 # The all-caps "ART. 3" head (codice del turismo). Only at the very start: inside an
@@ -394,6 +398,9 @@ def _checked_html_article(result: dict, nv: NormaVisitata, served: "str | None",
         return _unavailable(base, nv, f"Normattiva restituisce l'art. {served}, che non coincide "
                                       "con quello richiesto, e la struttura dell'atto non basta a "
                                       "stabilire se l'articolo esista")
+    if act is not None:
+        return _unavailable(base, nv, "Normattiva non indica quale articolo ha restituito e la "
+                                      "struttura dell'atto non basta a stabilirlo")
     return _unavailable(base, nv, "Normattiva non indica quale articolo ha restituito e l'export "
                                   "strutturato dell'atto non è raggiungibile. Riprova più tardi")
 
@@ -511,6 +518,15 @@ def _testo_corpo(corpo: Tag) -> str:
         return ""
 
 
+def _testo_intero(corpo: Tag) -> str:
+    """Every visible text of a ``div.bodyTesto``, cleaned as VisuaLex cleans: the full act's
+    per-article fallback (no frozen contract there), which must not drop what lies outside
+    the commi as the scenario extractor would."""
+    testo, _ = normattiva_html.extract_text_recursive(corpo)
+    testo = re.sub(r"\n{3,}", "\n\n", testo).strip()
+    return re.sub(r"[ \t]+", " ", testo)
+
+
 def _extract_normattiva_article(html: str) -> str:
     return _normattiva_article_page(html)[0]
 
@@ -534,28 +550,69 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
         if errore_pagina is not None:
             raise errore_pagina
         return result
-    act = None
+    requested = _article_identity(normalize_article_key(nv.numero_articolo))
     if text:
-        requested = _article_identity(normalize_article_key(nv.numero_articolo))
         got = _article_identity(served) if served is not None else None
         if requested is not None and got == requested:
             return result
-        if requested is not None and got is not None and got[0] != requested[0]:
-            # Another number (99999 served as art. 1): the page settles it, no export needed.
-            return _checked_html_article(result, nv, served, None, part)
-        # The page does not say which article it is, or names the number with another
-        # suffix: the act's structure decides (one more request, only on this path).
+        # The page does not confirm the article asked for: the act's structure (its
+        # Akoma Ntoso export, one more request, only on this path) decides.
         act = await _akn_act(nv)
+        if requested is not None and act is not None:
+            if got is None and requested in _identita_articoli(act, part):
+                # The page does not say which article it is ("Codice Penale-art. 524"
+                # with the repeal notice outside the label) and the act has it: the
+                # page is the article, as VisuaLex serves it.
+                return result
+            if got is not None and got[0] != requested[0] and requested[0] in _numeri_articoli(act, part):
+                # The page names another number, but the act's main text has the one asked
+                # for: it lives in a part the URN does not reach, a code approved in an
+                # annex of its decree (art. 120 of d.lgs. 104/2010 asked as the decree's).
+                # The code's article from the export, with the part it comes from.
+                servito = _da_export(act, nv, url, part, result, etichetta=not part)
+                if servito:
+                    return servito
+                return _unavailable({**result, "text": ""}, nv,
+                                    f"Normattiva restituisce l'art. {served}, ma l'atto ha un art. "
+                                    f"{requested[0]}: la pagina non è quella dell'articolo richiesto")
         return _checked_html_article(result, nv, served, act, part)
     act = await _akn_act(nv)
-    akn_text = _akn_article(act, nv.numero_articolo, part) if act is not None else None
-    if akn_text:
-        return {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data}
+    servito = _da_export(act, nv, url, part, result) if act is not None else None
+    if servito:
+        return servito
     if errore_pagina is not None:
         raise errore_pagina
     return {**result, "esito": CHECK_UNAVAILABLE,
             "error": (f"testo non leggibile per l'art. {nv.numero_articolo} di {nv.norma}: la pagina di "
                       "Normattiva non contiene il testo dell'articolo e l'export Akoma Ntoso non lo fornisce")}
+
+
+def _identita_articoli(act, part: "str | None") -> "set[tuple[str, str]]":
+    """``(number, suffix)`` of every article of the act's part (main part by default)."""
+    return {ident for ident in map(_article_identity, act.article_keys(part)) if ident}
+
+
+def _numeri_articoli(act, part: "str | None") -> "set[str] | None":
+    """The article numbers of the act's part (main part by default), None without an export."""
+    if act is None:
+        return None
+    return {ident[0] for ident in map(_article_identity, act.article_keys(part)) if ident}
+
+
+def _da_export(act, nv: NormaVisitata, url: str, part: "str | None", base: dict, *,
+               etichetta: bool = False) -> "dict | None":
+    """The article from the Akoma Ntoso export, labelled as such, or None when the export lacks it.
+
+    ``allegato`` names the part it comes from when the act's main text is a code approved
+    in an annex, or when *etichetta* says the URN's page does not reach that part.
+    """
+    akn_text = _akn_article(act, nv.numero_articolo, part)
+    if not akn_text:
+        return None
+    servito = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": base.get("data_atto", "")}
+    if not part and (etichetta or annex_id_of(act.main_part)):
+        servito["allegato"] = act.main_part
+    return servito
 
 
 async def _akn_act(nv: NormaVisitata):
@@ -1175,7 +1232,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
 
         # Extract first article already in the DOM
         first_body = soup.find("div", class_="bodyTesto")
-        first_article_text = _testo_corpo(first_body) if first_body else ""
+        first_article_text = _testo_intero(first_body) if first_body else ""
 
         # Extract all article AJAX URLs from the sidebar tree
         article_urls = _extract_article_ajax_urls(html)
@@ -1203,7 +1260,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                 art_soup = BeautifulSoup(art_html, "lxml")
                 body = art_soup.find("div", class_="bodyTesto")
                 if body:
-                    text = _testo_corpo(body)
+                    text = _testo_intero(body)
                     if text and text != "[Articolo senza contenuto o abrogato]":
                         all_parts.append(text)
             except httpx.HTTPError:

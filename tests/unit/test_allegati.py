@@ -259,6 +259,23 @@ class TestNormattivaAnnexes:
         assert result["allegato"] == "Allegato 1"
 
     @pytest.mark.asyncio
+    async def test_html_channel_a_code_in_an_annex_is_served_from_the_export_and_labelled(self, monkeypatch):
+        """Art. 2 of a decree whose body has one article and whose main text is a code in an
+        annex: Normattiva's page for ~art2 serves the decree's art. 1. The default channel must
+        neither answer «non esiste» nor serve the decree's article: the code's art. 2, labelled."""
+        pagina = ('<html><body><div class="bodyTesto"><h2 class="article-num-akn" id="art_1">Art. 1</h2>'
+                  '<div class="article-heading-akn">(Approvazione)</div><div class="art-comma-div-akn">'
+                  "1. E' approvato il codice allegato.</div></div></body></html>")
+        _serve_akn(monkeypatch, parse_akn(_CODE_IN_ANNEX), pagine={";104~art2": pagina})
+        nv = NormaVisitata(
+            norma=Norma(tipo_atto="decreto legislativo", data="2010-07-02", numero_atto="104"),
+            numero_articolo="2",
+        )
+        result = await fetch_article(nv)
+        assert "Giusto processo" in result["text"], result
+        assert result["allegato"] == "Allegato 1" and result["source"] == "normattiva-akn"
+
+    @pytest.mark.asyncio
     async def test_cite_law_markdown_says_where_the_text_comes_from(self, monkeypatch, codice_appalti):
         _serve_akn(monkeypatch, codice_appalti)
         out = await lc._cite_law_impl("art. 30 dell'allegato I.7 al D.Lgs. 36/2023")

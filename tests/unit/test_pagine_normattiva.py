@@ -49,6 +49,7 @@ class TestCachePagine:
 
     def test_the_disk_is_capped_oldest_first(self, monkeypatch):
         monkeypatch.setattr(pn, "MAX_SU_DISCO", 3)
+        monkeypatch.setattr(pn, "OGNI_QUANTE_SCRITTURE", 1)
         for i in range(5):
             pn.scrivi(f"{URL}#{i}", f"t{i}", None)
             time.sleep(0.01)
@@ -90,3 +91,27 @@ class TestDataCompletaCondivisa:
             norme = await asyncio.gather(*(scraper.with_full_date(Norma("legge", "1990", "241")) for _ in range(3)))
         assert [n.data for n in norme] == ["1990"] * 3  # never guessed
         assert scraper._date_in_corso == {} and scraper._full_date_cache == {}
+
+
+async def test_a_cancelled_leader_does_not_cancel_the_waiters(monkeypatch):
+    monkeypatch.setattr(scraper, "_full_date_cache", {})
+    iniziata = asyncio.Event()
+
+    async def handler(request):
+        iniziata.set()
+        await asyncio.sleep(10)
+        return httpx.Response(200, text="")
+
+    def factory(fonte, **kwargs):
+        return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+    with api.configurazione(client_factory=factory):
+        capo = asyncio.create_task(scraper.with_full_date(Norma("legge", "1990", "241")))
+        await iniziata.wait()
+        altro = asyncio.create_task(scraper.with_full_date(Norma("legge", "1990", "241")))
+        await asyncio.sleep(0.01)
+        capo.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await capo
+        norma = await altro  # not cancelled: a lookup that failed, the year kept
+    assert not altro.cancelled() and norma.data == "1990"
