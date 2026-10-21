@@ -22,7 +22,7 @@ with open(_DATA / "modelli_atti.json", encoding="utf-8") as f:
 _CATEGORIE = sorted({v["categoria"] for v in _CATALOGO.values()})
 
 
-@mcp.tool(tags={"atti"})
+@mcp.tool(tags={"redazione", "atti"})
 @sourced("modelli_atti")
 def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
     """Restituisce i metadati per comporre un atto legale: struttura, campi obbligatori,
@@ -156,7 +156,7 @@ def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
     return result
 
 
-@mcp.tool(tags={"atti"})
+@mcp.tool(tags={"redazione", "atti"})
 def esporta_atto_docx(
     testo: str,
     titolo: str = "Atto",
@@ -254,7 +254,7 @@ def esporta_atto_docx(
     return f"File salvato: {filepath} ({size_kb} KB)"
 
 
-@mcp.tool(tags={"atti"})
+@mcp.tool(tags={"redazione", "atti"})
 @sourced("modelli_atti")
 def lista_categorie_atti() -> dict:
     """Restituisce le categorie di atti disponibili con il conteggio per ciascuna.

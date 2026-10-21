@@ -130,7 +130,7 @@ def _days_in_year(year: int) -> int:
     return 366 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 @sourced("tassi_legali")
 def interessi_legali(
     capitale: float,
@@ -206,7 +206,7 @@ def interessi_legali(
     }
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 @sourced("tassi_mora")
 def interessi_mora(
     capitale: float,
@@ -295,7 +295,7 @@ def interessi_mora(
     return risultato
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 def interessi_tasso_fisso(
     capitale: float,
     tasso_annuo: float,
@@ -344,7 +344,7 @@ def interessi_tasso_fisso(
     }
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 def calcolo_ammortamento(
     capitale: float,
     tasso_annuo: float,
@@ -421,7 +421,7 @@ def calcolo_ammortamento(
     }
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 @sourced("tegm")
 def verifica_usura(
     tasso_applicato: float,
@@ -525,7 +525,7 @@ def verifica_usura(
     return risultato
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 @sourced("tassi_legali")
 def interessi_acconti(
     capitale: float,
@@ -630,7 +630,7 @@ def interessi_acconti(
     }
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 @sourced("indici_foi", "tassi_legali")
 def calcolo_maggior_danno(
     capitale: float,
@@ -724,7 +724,7 @@ def _corso_causa_saggio_legale(capitale, data_citazione, data_sentenza, data_pag
     }
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 @sourced("tassi_mora", "tassi_legali")
 def interessi_corso_causa(
     capitale: float,
@@ -799,7 +799,7 @@ def interessi_corso_causa(
     }
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 def calcolo_surroga_mutuo(
     debito_residuo: float,
     rata_attuale: float,
@@ -869,7 +869,7 @@ def calcolo_surroga_mutuo(
     }
 
 
-@mcp.tool(tags={"interessi"})
+@mcp.tool(tags={"calcolo", "interessi"})
 def calcolo_taeg(
     capitale: float,
     rate: int,

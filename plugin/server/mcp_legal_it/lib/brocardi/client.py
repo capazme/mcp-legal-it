@@ -24,6 +24,7 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup, Tag
 
+from .. import _brocardi_switch
 from .._cache import cache_enabled, cache_root
 from .._http import note_source
 from ..visualex.map import find_brocardi_url
@@ -220,7 +221,12 @@ async def fetch_brocardi(
         articolo: Article number (e.g. "2043", "13", "640-bis")
         numero_atto: Act number for disambiguation (e.g. "196", "231")
         data: Act date or year — D.lgs. 81/2008 and 81/2015 differ only by it
+
+    With Brocardi switched off (``LEGAL_BROCARDI=off``, see ``lib/_brocardi_switch.py``)
+    nothing is fetched and the result carries the switch's note as its ``error``.
     """
+    if not _brocardi_switch.enabled():
+        return BrocardiResult(error=_brocardi_switch.DISABLED_NOTE)
     base_url = find_brocardi_url(tipo_atto, numero_atto, data)
     if not base_url:
         return BrocardiResult(error=f"Nessun mapping Brocardi per '{tipo_atto}'")
@@ -278,7 +284,9 @@ async def find_article_url(
     Uses persistent JSON cache to avoid repeated HTTP requests across sessions.
     Searches sub-pages without a fixed limit — stops as soon as the article is found.
     Set ``force_refresh`` to bypass (and overwrite) a stale cache entry.
+    Raises ``BrocardiDisabled`` while Brocardi is switched off.
     """
+    _brocardi_switch.guard(base_url)
     cache_key = f"{base_url}#{article_num}"
     if not force_refresh and cache_key in _url_cache:
         return _url_cache[cache_key]
@@ -314,6 +322,7 @@ async def find_article_url(
                 sub_urls.append(sub_url)
 
     for sub_url in sub_urls:
+        _brocardi_switch.guard(sub_url)
         try:
             sub_resp = await client.get(sub_url)
             sub_resp.raise_for_status()

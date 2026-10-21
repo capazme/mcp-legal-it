@@ -309,7 +309,7 @@ def _scrivi_analisi(ws, fornitori: list[dict]) -> None:
             cella.alignment = Alignment(wrap_text=True, vertical="top")
 
 
-@mcp.tool(tags={"privacy", "utility"})
+@mcp.tool(tags={"redazione", "privacy", "utility"})
 def genera_report_fornitori(
     fornitori: list[dict],
     cliente: str,
@@ -382,7 +382,7 @@ def genera_report_fornitori(
     return esito
 
 
-@mcp.tool(tags={"privacy", "utility"})
+@mcp.tool(tags={"registri", "privacy", "utility"})
 async def verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT") -> dict:
     """Verifica una partita IVA sul VIES (servizio UE gratuito): validità e, se disponibili, denominazione e indirizzo registrati.
 
@@ -424,7 +424,7 @@ async def verifica_partita_iva_vies(partita_iva: str, codice_paese: str = "IT") 
     }
 
 
-@mcp.tool(tags={"privacy", "utility"})
+@mcp.tool(tags={"registri", "privacy", "utility"})
 async def verifica_dpa_fornitore(dominio: str, nome_fornitore: str = "") -> dict:
     """Verifica se un fornitore pubblica un proprio atto di nomina a responsabile ex art. 28 GDPR, sondandone il dominio.
 

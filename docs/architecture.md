@@ -108,18 +108,23 @@ una *visibility transform* (`mcp.enable(tags=..., only=True)`): l'attributo
 vecchia assegnazione era un no-op che esponeva tutti i tool in ogni profilo.
 `tests/unit/test_profiles.py` fa fallire la suite se il filtro smette di agire.
 
+I profili nominano etichette di tipo e di area, mai singoli tool, secondo il vocabolario
+di `mcp_legal_it/tool_taxonomy.py` (tabella in [tool-tags.md](tool-tags.md));
+`tests/unit/test_tool_taxonomy.py` controlla il vocabolario e l'intento di ogni profilo
+(per esempio: `privacy` vede sempre il Garante, ogni profilo vede la diagnostica).
+
 ```python
 # mcp_legal_it/server.py
 _PROFILES: dict[str, set[str]] = {
-    "sinistro":  {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro"},
-    "credito":   {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
-    "penale":    {"penale", "normativa", "giurisprudenza"},
-    "fiscale":   {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario"},
-    "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob", "costituzionale"},
-    "privacy":   {"privacy", "normativa", "giurisprudenza"},
-    "studio":    {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro"},
-    "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
-    "cowork":    {"normativa", "giurisprudenza", "privacy", "parcelle_avv"},
+    "sinistro":  {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro", "diagnostica"},
+    "credito":   {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito", "diagnostica"},
+    "penale":    {"penale", "normativa", "giurisprudenza", "diagnostica"},
+    "fiscale":   {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario", "diagnostica"},
+    "normativa": {"normativa", "giurisprudenza", "autorita", "registri", "privacy", "diagnostica"},
+    "privacy":   {"privacy", "garante", "normativa", "giurisprudenza", "diagnostica"},
+    "studio":    {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro", "diagnostica"},
+    "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa", "diagnostica"},
+    "cowork":    {"normativa", "giurisprudenza", "privacy", "parcelle_avv", "diagnostica"},
 }
 
 _profile = os.environ.get("LEGAL_PROFILE", "full")
@@ -128,18 +133,23 @@ if _profile != "full" and _profile in _PROFILES:
     mcp.enable(components={"prompt", "resource", "template"})
 ```
 
+Dopo il profilo agiscono gli interruttori: `LEGAL_PREVIGENTE=off` nasconde il tag
+`previgente`, `LEGAL_BROCARDI=off` il tag `solo_brocardi` (e gli scraper rifiutano ogni
+richiesta a brocardi.it). `crea_server(include_tags, exclude_tags, brocardi)` costruisce
+un server nuovo che monta quello standard con gli stessi filtri, senza modificarlo.
+
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
 | `full` | 228 | Claude Code con Tool Search |
-| `sinistro` | 81 | Risarcimento danni e sinistri |
-| `credito` | 91 | Recupero crediti |
-| `penale` | 53 | Diritto penale |
-| `fiscale` | 65 | Calcoli fiscali, immobiliari, societari e di crisi |
-| `normativa` | 69 | Ricerca normativa e giurisprudenziale (tutte le corti) |
-| `privacy` | 66 | GDPR e privacy compliance |
-| `studio` | 73 | Gestione studio legale |
-| `redattore` | 86 | Redazione di atti giudiziari |
-| `cowork` | 79 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
+| `sinistro` | 79 | Risarcimento danni e sinistri |
+| `credito` | 89 | Recupero crediti |
+| `penale` | 51 | Diritto penale |
+| `fiscale` | 66 | Calcoli fiscali, immobiliari, societari e di crisi |
+| `normativa` | 70 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
+| `privacy` | 64 | GDPR e privacy compliance |
+| `studio` | 76 | Gestione studio legale |
+| `redattore` | 76 | Redazione di atti giudiziari |
+| `cowork` | 77 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
 
 Il profilo `full` è consigliato per Claude Code, che usa Tool Search per
 caricare i tool on-demand senza saturare il context window.
@@ -266,6 +276,7 @@ non parlano con fonti esterne: osservano le chiamate.
 | `_tables_open.py`, `_ledger.py` | Registrano, per chiamata, quali tabelle il tool ha *davvero* letto (wrapper trasparenti sulle costanti di `table_bindings.py`); il risultato finisce in `_meta` come `mcp-legal-it/opened_tables` |
 | `_precision.py` | Trasforma la riga `Precisione: ESATTO / INDICATIVO / STIMATO` del docstring in una regola: una tabella `da_verificare` ritira la pretesa di esattezza, una tabella scaduta blocca solo i calcoli ancorati a oggi; il rifiuto è negoziabile con `accetta_precisione` |
 | `_regime.py` | Legge la riga `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>` del docstring: il wrapper `@previgente` mette `regime_normativo` in ogni risposta, il middleware lo ripete in `_meta` (`mcp-legal-it/regime`) e in `tools/list`, il tag `previgente` permette a `LEGAL_PREVIGENTE=off` di nascondere il gruppo; l'audit tiene allineati riga, tag e wrapper |
+| `_brocardi_switch.py` | Interruttore di Brocardi (`LEGAL_BROCARDI=off`, `crea_server(brocardi=False)`, `disabled()`): gli scraper Brocardi chiamano `guard()`/`enabled()` prima di ogni richiesta, i tool misti dichiarano `DISABLED_NOTE`; uno spento nell'ambiente vince sul codice |
 | `_clock.py` | Unico lettore dell'orologio (`LEGAL_TODAY`/`LEGAL_NOW` lo pinnano); chi lo consulta è "ancorato al presente" ai fini della regola sopra; l'audit vieta `date.today()`/`datetime.now()` altrove |
 | `_cache.py` | Unico lettore di `MCP_CACHE_DIR` e dello switch `LEGAL_CACHE=off`; le cache su disco dichiarate sono in `docs/cache-inventory.md` (generato) |
 | `_sources.py`, `_http.py` | Provenienza delle fonti online: ogni fetch con `dataset=` viene annotato e la risposta espone `mcp-legal-it/fonti_consultate` (host e momento, URL senza query string) |

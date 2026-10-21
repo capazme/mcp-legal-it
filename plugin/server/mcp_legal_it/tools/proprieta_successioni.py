@@ -30,7 +30,7 @@ def _tasso_legale_oggi() -> float:
     return _TASSI_LEGALI_REGISTRO[-1]["tasso"]
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def calcolo_eredita(
     massa_ereditaria: float,
     eredi: dict,
@@ -129,7 +129,7 @@ def calcolo_eredita(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 @sourced("imposte_successione", alternativa="aliquote_franchigie")
 def imposte_successione(
     valore_beni: float,
@@ -202,7 +202,7 @@ def imposte_successione(
     return result
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 @sourced("usufrutto_coefficienti")
 def calcolo_usufrutto(
     valore_piena_proprieta: float,
@@ -248,7 +248,7 @@ def calcolo_usufrutto(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def calcolo_imu(
     rendita_catastale: float,
     categoria: str,
@@ -327,7 +327,7 @@ def calcolo_imu(
     return result
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 @sourced("imposte_successione", alternativa="aliquote_registro")
 def imposte_compravendita(
     prezzo: float,
@@ -428,7 +428,7 @@ def imposte_compravendita(
 _TRATTAMENTO_MINIMO_ANNUO = {2024: 7781.93, 2025: 7844.20, 2026: 7954.05}
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def pensione_reversibilita(
     pensione_de_cuius: float,
     beneficiari: dict,
@@ -538,7 +538,7 @@ def pensione_reversibilita(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def grado_parentela(
     relazione: str,
 ) -> dict:
@@ -619,7 +619,7 @@ def grado_parentela(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def calcolo_valore_catastale(
     rendita_catastale: float,
     categoria: str,
@@ -716,7 +716,7 @@ def calcolo_valore_catastale(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def calcolo_superficie_commerciale(
     superficie_calpestabile: float,
     balconi: float = 0,
@@ -808,7 +808,7 @@ def calcolo_superficie_commerciale(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def cedolare_secca(
     canone_annuo: float,
     tipo_contratto: str = "libero",
@@ -872,7 +872,7 @@ def cedolare_secca(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 @sourced("tassi_legali")
 def imposta_registro_locazioni(
     canone_annuo: float,
@@ -939,7 +939,7 @@ def imposta_registro_locazioni(
     }
 
 
-@mcp.tool(tags={"proprieta"})
+@mcp.tool(tags={"calcolo", "proprieta"})
 def spese_condominiali(
     importo_totale: float,
     millesimi_proprietario: float,

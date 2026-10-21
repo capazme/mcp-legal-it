@@ -25,7 +25,7 @@ def _add_months(d: date, months: int) -> date:
     return date(year, month, day)
 
 
-@mcp.tool(tags={"penale"})
+@mcp.tool(tags={"calcolo", "penale"})
 def aumenti_riduzioni_pena(
     pena_base_mesi: float,
     aggravanti: list[dict] | None = None,
@@ -130,7 +130,7 @@ def aumenti_riduzioni_pena(
     }
 
 
-@mcp.tool(tags={"penale"})
+@mcp.tool(tags={"calcolo", "penale"})
 def conversione_pena(
     importo: float,
     direzione: str = "detentiva_a_pecuniaria",
@@ -179,7 +179,7 @@ def conversione_pena(
         }
 
 
-@mcp.tool(tags={"penale"})
+@mcp.tool(tags={"calcolo", "penale"})
 def fine_pena(
     data_inizio_pena: str,
     pena_totale_mesi: float,
@@ -288,7 +288,7 @@ def _regime_prescrizione(dt_commissione: date) -> dict:
     }
 
 
-@mcp.tool(tags={"penale"})
+@mcp.tool(tags={"calcolo", "penale"})
 def prescrizione_reato(
     pena_massima_anni: float,
     data_commissione: str,
@@ -471,7 +471,7 @@ def prescrizione_reato(
     return result
 
 
-@mcp.tool(tags={"penale"})
+@mcp.tool(tags={"calcolo", "penale"})
 def pena_concordata(
     pena_base_mesi: float,
     attenuanti_generiche: bool = True,

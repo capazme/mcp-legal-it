@@ -20,7 +20,7 @@ def _normalizza_materia(materia: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", senza_accenti).strip("_")
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 def competenza_giudice(
     valore_causa: float,
     materia: str = "civile",
@@ -162,7 +162,7 @@ def competenza_giudice(
         }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 @sourced("mediazione_obbligatoria")
 def verifica_mediazione_obbligatoria(materia: str) -> dict:
     """Verifica se una materia è soggetta a mediazione obbligatoria (art. 5 D.Lgs. 28/2010).
@@ -243,7 +243,7 @@ def verifica_mediazione_obbligatoria(materia: str) -> dict:
     )
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 def gratuito_patrocinio(
     reddito_richiedente: float,
     n_familiari_conviventi: int = 0,
