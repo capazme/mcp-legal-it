@@ -85,7 +85,25 @@ def is_allowed(url: str) -> bool:
     """True when `url`'s host is one the running server may contact right now.
 
     Brocardi is on the list but switchable: with Brocardi off its host is refused.
+
+    The host must be the one every client reads, Python's `urlparse` as a browser
+    would (ported from VisuaLex's `tools/egress.py`): a backslash, a control
+    character, credentials before the host or a scheme other than http(s) is
+    refused, because Chromium reads `\\` as `/` and drops tabs and newlines, so
+    such a URL can name one host to `urlparse` and another to a browser. Every
+    request the libraries send is also checked at runtime, per source, by the
+    guard in `core/_http`.
     """
+    if not isinstance(url, str) or "\\" in url or any(ord(c) < 0x20 or ord(c) == 0x7F for c in url):
+        return False
     if _brocardi_switch.is_brocardi_url(url) and not _brocardi_switch.enabled():
         return False
-    return (urlparse(url).hostname or "") in ALLOWED_HOSTS
+    try:
+        parsed = urlparse(url)
+        return (
+            parsed.scheme in ("http", "https")
+            and "@" not in parsed.netloc
+            and (parsed.hostname or "") in ALLOWED_HOSTS
+        )
+    except ValueError:
+        return False
