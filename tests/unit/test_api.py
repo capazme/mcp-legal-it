@@ -270,7 +270,9 @@ class TestConfigurazione:
         with api.configurazione(client_factory=factory):
             d = await api.leggi_decisione(api.RiferimentoDecisione(corte="cassazione", numero=1, anno=2024))
         assert d.esito == "trovata" and d.testo_grezzo.testo == "testo"
-        assert seen and all(s == ("italgiure", False) for s in seen)
+        # Italgiure's TLS is verified with the bundled intermediate (lib/italgiure).
+        from mcp_legal_it.lib.italgiure.client import tls_context
+        assert seen and all(s == ("italgiure", tls_context()) for s in seen)
 
     async def test_concurrent_contexts_do_not_leak(self, tmp_path):
         async def dentro(path):
