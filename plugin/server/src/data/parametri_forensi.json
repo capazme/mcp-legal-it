@@ -1,9 +1,9 @@
 {
   "_vintage": {
-    "aggiornato_al": "2026-02-19",
-    "fonte": "DM 55/2014 come modificato dal DM 147/2022",
+    "aggiornato_al": "2026-09-29",
+    "fonte": "DM 55/2014 come modificato dal DM 147/2022 (GU 22-10-2022); tabelle VI, VIII, XVI, XVII, XVIII, XXV riscontrate su https://www.professionegiustizia.it/documenti/tabelle/parametri-forensi/",
     "verifica": "manuale",
-    "nota": "trascritti da avvocatoandreani.it, non dalla Gazzetta Ufficiale"
+    "nota": "civile, penale, stragiudiziale (scaglioni chiusi) e volontaria giurisdizione trascritti da avvocatoandreani.it; le tabelle VI, VIII, XVI, XVII, XVIII e la XXV oltre 520.000 sono state lette il 2026-09-29 dalla pubblicazione delle tabelle allegate al DM 147/2022 e coincidono con il sito. Il PDF della Gazzetta Ufficiale non era raggiungibile: il riscontro e' su pubblicazione secondaria. Importi arrotondati all'euro (le tabelle riportano i centesimi, minimo e massimo sono medio -/+ 50%)"
   },
   "_description": "Parametri compensi forensi — DM 55/2014 aggiornato DM 147/2022 (in vigore dal 23/10/2022)",
   "_source": "Scraped da avvocatoandreani.it/servizi/tabelle-parametri-forensi.php il 2026-02-19",
@@ -164,8 +164,25 @@
       {"fino_a": 52000,  "min": 1205, "medio": 2410, "max": 3615},
       {"fino_a": 260000, "min": 2268, "medio": 4536, "max": 6804},
       {"fino_a": 520000, "min": 3082, "medio": 6164, "max": 9246},
-      {"oltre": true,    "min": 3082, "medio": 6164, "max": 9246}
-    ]
+      {"oltre": true,    "_note": "Oltre 520.000 non vale una riga fissa: art. 22 DM 55/2014, Tab. 25, percentuale decrescente sul valore (vedi percentuali_oltre_520000)", "min": 3082, "medio": 6164, "max": 9246}
+    ],
+    "percentuali_oltre_520000": {
+      "_note": "Tab. 25 DM 55/2014 (agg. DM 147/2022): percentuale del valore dell'affare, medio; minimo e massimo -/+ 50% (art. 19). La percentuale della fascia in cui cade il valore si applica all'intero valore",
+      "fasce": [
+        {"fino_a": 2000000, "pct": 3.0},
+        {"fino_a": 4000000, "pct": 2.75},
+        {"fino_a": 6000000, "pct": 2.5},
+        {"fino_a": 8000000, "pct": 2.25},
+        {"fino_a": 10000000, "pct": 2.0},
+        {"fino_a": 12000000, "pct": 1.75},
+        {"fino_a": 14000000, "pct": 1.5},
+        {"fino_a": 16000000, "pct": 1.25},
+        {"fino_a": 18000000, "pct": 1.0},
+        {"fino_a": 20000000, "pct": 0.75},
+        {"fino_a": 22000000, "pct": 0.5},
+        {"oltre": true, "pct": 0.25}
+      ]
+    }
   },
   "volontaria_giurisdizione": {
     "_note": "Tab. 7 DM 55/2014 agg. DM 147/2022 — Procedimenti di volontaria giurisdizione (natura non contenziosa). Compenso unico per scaglione ripartito 50% studio / 50% trattazione.",
@@ -201,5 +218,66 @@
         "trattazione": {"min": 1134, "medio": 2268, "max": 3402}
       }
     ]
+  },
+  "notula_recupero_crediti": {
+    "_note": "Tabelle allegate al DM 55/2014 (agg. DM 147/2022) per i procedimenti tipici di recupero crediti: valori MEDI per fase, scaglioni al centesimo (da 0,01 a 5.200,00 ...). Minimo e massimo = medio -/+ 50% (art. 19). Oltre 520.000 le tabelle non hanno riga: si usa l'ultimo scaglione (l'art. 6 permette un aumento fino al 30%, non applicato)",
+    "monitorio": {
+      "_tabella": "Tab. VIII procedimenti monitori",
+      "fasi": ["unica"],
+      "scaglioni": [
+        {"fino_a": 5200, "unica": 473},
+        {"fino_a": 26000, "unica": 567},
+        {"fino_a": 52000, "unica": 1370},
+        {"fino_a": 260000, "unica": 2242},
+        {"fino_a": 520000, "unica": 4394}
+      ]
+    },
+    "precetto": {
+      "_tabella": "Tab. VI atto di precetto",
+      "fasi": ["unica"],
+      "scaglioni": [
+        {"fino_a": 5200, "unica": 142},
+        {"fino_a": 26000, "unica": 236},
+        {"fino_a": 52000, "unica": 331},
+        {"fino_a": 260000, "unica": 425},
+        {"fino_a": 520000, "unica": 567}
+      ]
+    },
+    "esecuzione_mobiliare": {
+      "_tabella": "Tab. XVI procedure esecutive mobiliari",
+      "fasi": ["studio", "trattazione"],
+      "scaglioni": [
+        {"fino_a": 1100, "studio": 126, "trattazione": 63},
+        {"fino_a": 5200, "studio": 368, "trattazione": 184},
+        {"fino_a": 26000, "studio": 552, "trattazione": 305},
+        {"fino_a": 52000, "studio": 861, "trattazione": 494},
+        {"fino_a": 260000, "studio": 1166, "trattazione": 735},
+        {"fino_a": 520000, "studio": 1533, "trattazione": 982}
+      ]
+    },
+    "esecuzione_presso_terzi": {
+      "_tabella": "Tab. XVII procedure esecutive presso terzi, consegna e rilascio, in forma specifica",
+      "fasi": ["introduttiva", "trattazione"],
+      "scaglioni": [
+        {"fino_a": 1100, "introduttiva": 110, "trattazione": 236},
+        {"fino_a": 5200, "introduttiva": 331, "trattazione": 567},
+        {"fino_a": 26000, "introduttiva": 552, "trattazione": 851},
+        {"fino_a": 52000, "introduttiva": 861, "trattazione": 1360},
+        {"fino_a": 260000, "introduttiva": 1166, "trattazione": 1927},
+        {"fino_a": 520000, "introduttiva": 1533, "trattazione": 2604}
+      ]
+    },
+    "esecuzione_immobiliare": {
+      "_tabella": "Tab. XVIII procedure esecutive immobiliari",
+      "fasi": ["introduttiva", "trattazione"],
+      "scaglioni": [
+        {"fino_a": 1100, "introduttiva": 147, "trattazione": 76},
+        {"fino_a": 5200, "introduttiva": 452, "trattazione": 299},
+        {"fino_a": 26000, "introduttiva": 683, "trattazione": 452},
+        {"fino_a": 52000, "introduttiva": 1050, "trattazione": 677},
+        {"fino_a": 260000, "introduttiva": 1433, "trattazione": 982},
+        {"fino_a": 520000, "introduttiva": 1890, "trattazione": 1281}
+      ]
+    }
   }
 }

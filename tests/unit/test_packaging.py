@@ -33,6 +33,8 @@ def test_wheel_ships_data_and_entry_point(tmp_path):
         names = z.namelist()
 
         assert "src/data/indici_foi.json" in names
+        assert "src/data/tabella_danno_bio.json" in names
+        # the 3.x line projects the legal:// resources from content/references
         assert any(
             n.startswith("src/data/references/") and n.endswith(".md") for n in names
         ), "no src/data/references/*.md shipped in the wheel"

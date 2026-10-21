@@ -38,7 +38,7 @@ writes a document is listed as a writer of the document, not of the cache.
 | `mappa_orientamento` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `pronunce_cost_su_norma` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `ultime_pronunce_cost` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
-| `verifica_citazioni` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
+| `verifica_citazioni` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts` |
 | `verifica_dpa_fornitore` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 
 ## Turning the caches off

@@ -194,7 +194,7 @@ is already visible from its side of the wire — no extra configuration beyond
 the connector itself.
 
 **Approval, once.** The connector's annotations (`readOnlyHint` /
-`openWorldHint`, audited from the call graph) let Freebuff pre-approve the 209
+`openWorldHint`, audited from the call graph) let Freebuff pre-approve the 210
 read-only lookups, so a refusal and a negotiated re-call are ordinary tool
 calls — no prompt, no click. The 18 tools that write a file (13 only refresh a cache) wait for a
 one-time manual approval in *Connectors*. `accetta_precisione` and the

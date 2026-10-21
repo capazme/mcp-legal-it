@@ -6,13 +6,15 @@ annullamento atti amministrativi, ricorso al TAR, CGARS.
 """
 
 from src.server import mcp
+from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.lib.giustizia_amm.client import (
     ProvvedimentoResult,
-    fetch_provvedimento_text,
+    fetch_provvedimento_document,
     format_full,
     format_result,
     search_provvedimenti,
+    search_provvedimenti_page,
 )
 
 # The portal dropped the standalone year filter in the 2026 reorganisation: a
@@ -23,6 +25,14 @@ _NO_YEAR_FILTER_NOTE = (
     "per anno indipendente dal numero del provvedimento. Il filtro è stato applicato sui "
     "risultati restituiti (ordinati dal più recente); per anni remoti indicare anche "
     "`numero`, oppure restringere la query.*"
+)
+
+# The search page carries no date: `<dataPubblicazione>` exists only in the
+# provvedimento's own XML, which leggi_provvedimento_amm reads.
+_NO_DATE_NOTE = (
+    "*Nota: la pagina di ricerca del portale non espone la data dei provvedimenti; la data di "
+    "pubblicazione (deposito in segreteria, art. 89 c.p.a.) è riportata da "
+    "`leggi_provvedimento_amm()`.*"
 )
 
 
@@ -52,7 +62,7 @@ async def _cerca_giurisprudenza_amministrativa_impl(
     max_risultati = min(max_risultati, 50)
 
     try:
-        docs = await search_provvedimenti(
+        docs, totale = await search_provvedimenti_page(
             query=query,
             tipo=tipo,
             sede=sede,
@@ -75,18 +85,36 @@ async def _cerca_giurisprudenza_amministrativa_impl(
         return SearchResult(success=False, source="giustizia_amm", error_type="no_results",
                           results_text=detail)
 
-    lines = [f"**Trovati {len(docs)} provvedimenti TAR/CdS per**: _{query}_\n"]
+    header = f"**Trovati {len(docs)} provvedimenti TAR/CdS per**: _{query}_"
+    if totale is not None and totale > len(docs) and not filtered_by_year:
+        # "Trovati N" alone would read as the whole answer of the portal.
+        header += f" (mostrati {len(docs)} su {totale} totali indicati dal portale, dal più recente)"
+    lines = [header + "\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
+    lines.append(_NO_DATE_NOTE)
     if filtered_by_year:
         lines.append(_NO_YEAR_FILTER_NOTE)
     return SearchResult(success=True, source="giustizia_amm", num_found=len(docs), results_text="\n".join(lines))
 
 
-async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str) -> str:
+async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str, da_carattere: int = 1) -> str:
+    if (error := invalid_start(da_carattere)) is not None:
+        return SearchResult(success=False, source="giustizia_amm", error_type="bad_input", results_text=error)
     try:
-        title, text = await fetch_provvedimento_text(sede, nrg, nome_file)
+        doc = await fetch_provvedimento_document(sede, nrg, nome_file)
+        title, text = doc.title, doc.text
+        if doc.pdf_only:
+            # The file is a PDF (the portal publishes about 30% of the latest CdS
+            # provvedimenti only that way): saying so beats handing over its bytes.
+            return SearchResult(success=False, source="giustizia_amm", error_type="pdf_only",
+                              results_text=(
+                                  f"Il provvedimento {sede}/{nrg} ({nome_file}) è pubblicato dal portale "
+                                  f"solo in formato PDF: questo tool legge soltanto il testo XML e non "
+                                  f"estrae il testo dei PDF. Il documento ufficiale è scaricabile da: "
+                                  f"{doc.url}"
+                              ))
         if not text.strip():
             return SearchResult(success=False, source="giustizia_amm", error_type="no_results",
                               results_text=(
@@ -96,7 +124,8 @@ async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str) -> 
                                   f"da risultati datati non sono più validi)."
                               ))
         return SearchResult(success=True, source="giustizia_amm", num_found=1,
-                          results_text=format_full(title, text, sede, nrg))
+                          results_text=format_full(title, text, sede, nrg, meta=doc.meta,
+                                                      da_carattere=da_carattere))
     except Exception as exc:
         return SearchResult(success=False, source="giustizia_amm", error_type="source_down",
                           error_message=str(exc))
@@ -180,7 +209,16 @@ async def cerca_giurisprudenza_amministrativa(
     appalti pubblici, urbanistica, edilizia, PA, accesso atti, silenzio-assenso,
     annullamento provvedimenti amministrativi, ricorso TAR, CGARS.
     Dopo aver trovato un provvedimento, usare leggi_provvedimento_amm() per il testo completo.
-    Restituisce: lista provvedimenti con sede, NRG, tipo, data e oggetto.
+    Restituisce: lista provvedimenti con sede, tipo, numero (nella forma del portale,
+    es. 202100017, e in quella di citazione, es. "n. 17/2021"), sezione (Adunanza
+    plenaria o generale per le sezioni P e C del Consiglio di Stato), ECLI, estratto,
+    NRG e i parametri per leggere il testo; il conteggio indica anche il totale
+    riportato dal portale. NON restituisce la data: la pagina di ricerca del portale
+    non la espone; la data di pubblicazione (deposito, art. 89 c.p.a.) si legge con
+    leggi_provvedimento_amm().
+    Vigenza: fonte ufficiale giustizia-amministrativa.it, letta al momento della chiamata.
+    Precisione: INDICATIVO (ricerca testuale del portale: pagina di risultati, non elenco
+    completo; filtro per anno lato server solo con `numero`).
 
     Args:
         query: Testo da cercare (es. "appalto pubblico esclusione", "silenzio-assenso", "DIA SCIA")
@@ -211,13 +249,22 @@ async def cerca_giurisprudenza_amministrativa(
 
 
 @mcp.tool(tags={"giurisprudenza_amm", "normativa"})
-async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str) -> str:
+async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp.
 
     Usare dopo cerca_giurisprudenza_amministrativa() o ultimi_provvedimenti_amm()
     per leggere il testo integrale. I parametri sede, nrg e nome_file sono riportati
     in ogni risultato della ricerca.
-    Restituisce: testo integrale del provvedimento (motivazione + dispositivo).
+    Restituisce: estremi (tipo, numero, data di pubblicazione, art. 89 c.p.a.) e testo
+    del provvedimento. Oltre ~15.000 caratteri la motivazione viene abbreviata (con
+    l'indicazione dei caratteri omessi) ma il DISPOSITIVO (P.Q.M., art. 88 c.p.a.)
+    è sempre riportato. La parte omessa si legge ripetendo la chiamata con il
+    da_carattere indicato nella nota (finestre di 15.000 caratteri). I provvedimenti che il portale pubblica solo in PDF non
+    vengono letti: la risposta lo dichiara e dà il link ufficiale al documento.
+    Vigenza: testo pubblicato dal portale ufficiale giustizia-amministrativa.it, letto
+    al momento della chiamata.
+    Precisione: ESATTO sul testo pubblicato (trascrizione dell'XML ufficiale, senza
+    elaborazioni; la lunghezza è dichiarata quando abbreviata).
 
     Args:
         sede: Codice sede restituito dalla ricerca (es. "cds", "tar_rm", "tar_mi").
@@ -225,8 +272,13 @@ async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str) -> str:
             estese ("consiglio_di_stato", "tar_lazio").
         nrg: Numero registro generale del ricorso (es. "202510565") — da risultati ricerca
         nome_file: Nome file sul sottodominio mdp (es. "202614035_01.html") — da risultati ricerca
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota indica il valore con cui ripetere la chiamata per leggere il seguito.
+            Le posizioni contano il testo integrale del provvedimento (epigrafe, motivazione e
+            DISPOSITIVO in sequenza); con da_carattere > 1 si riceve la finestra di testo che
+            parte da quella posizione, senza estrazione del dispositivo
     """
-    result = await _leggi_provvedimento_amm_impl(sede, nrg, nome_file)
+    result = await _leggi_provvedimento_amm_impl(sede, nrg, nome_file, da_carattere)
     return result.to_str() if isinstance(result, SearchResult) else result
 
 

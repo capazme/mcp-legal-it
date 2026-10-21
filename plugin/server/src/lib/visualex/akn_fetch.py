@@ -44,15 +44,21 @@ _HEADERS = {
 
 _TIMEOUT = httpx.Timeout(60.0, connect=15.0)
 
-# The cold error page is exactly 32254 bytes; require a comfortable margin below
-# the smallest real export (legge_241 ≈ 250 KB) to reject error pages.
-_MIN_XML_BYTES = 40000
+# The root element must appear within this many leading characters of the export
+# (the <akomaNtoso> start tag carries the namespace declarations, ~700 bytes).
+_AKN_ROOT_WINDOW = 4000
 
 # ---------------------------------------------------------------------------
 # Cache
 # ---------------------------------------------------------------------------
 
 _CACHE_MAX = max(1, int(os.environ.get("AKN_CACHE_MAX_ACTS", "50") or "50"))
+
+# Version of the parsed-act layout on disk. Bump it whenever parse_akn changes
+# what an act serves, so acts parsed by the previous parser are fetched again
+# instead of answering with the old result until the vigenza date rolls over.
+# 2: the body of an act with annexes is the default lookup (issue #47).
+_CACHE_SCHEMA = 2
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
@@ -147,10 +153,12 @@ def _bump_hits(key: tuple[str, str, str]) -> None:
 
 def _act_to_dict(act: ParsedAct) -> dict:
     return {
+        "schema": _CACHE_SCHEMA,
         "title": act.title,
         "articles": act.articles,
         "order": act.order,
         "structure": act.structure,
+        "main_part": act.main_part,
         "parts": {
             name: {"name": p.name, "articles": p.articles, "order": p.order}
             for name, p in act.parts.items()
@@ -173,6 +181,7 @@ def _act_from_dict(data: dict) -> ParsedAct:
         order=list(data.get("order", [])),
         structure=data.get("structure", "flat"),
         parts=parts,
+        main_part=data.get("main_part", ""),
     )
 
 
@@ -184,6 +193,8 @@ def _disk_load(key: tuple[str, str, str]) -> "ParsedAct | None":
         if not path.exists():
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("schema") != _CACHE_SCHEMA:
+            return None  # parsed by an older parser: fetch and parse again
         return _act_from_dict(data)
     except (ValueError, OSError) as exc:
         print(f"[akn_fetch] disk read failed: {exc}", file=sys.stderr)
@@ -373,10 +384,13 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             note_source("normattiva", str(akn_resp.url) if hasattr(akn_resp, "url") else "")
             xml = akn_resp.text
 
-        # Validate: real XML export, not the ~32 KB error page.
+        # Validate by structure, not by size: a real Akoma Ntoso export (its root is
+        # <akomaNtoso>, and parse_akn must find at least one article) versus the ~32 KB
+        # HTML error page. A size floor also rejected valid exports of short acts
+        # (L. 742/1969 is 24,555 bytes), which then fell back to the HTML walker.
         if not xml.lstrip().startswith("<?xml"):
             return None
-        if len(xml) < _MIN_XML_BYTES:
+        if "akomaNtoso" not in xml[:_AKN_ROOT_WINDOW]:
             return None
 
         act = parse_akn(xml)

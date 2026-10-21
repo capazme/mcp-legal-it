@@ -1,9 +1,8 @@
 /**
- * render_legal_docx.js — rende un deliverable markdown in un file .docx
- * applicando, quando disponibile, il canone tipografico SAPG (Times New Roman 12,
- * interlinea 1,5, rientro prima riga 0,5 cm, corpo giustificato). Se il modulo
- * SAPG non è installato si applica un fallback "plain" (Times/Arial di default
- * di docx-js) senza errori.
+ * render_legal_docx.js — rende un deliverable markdown in un file .docx con
+ * uno stile forense di base (Times New Roman 12, interlinea 1,5, rientro prima
+ * riga 0,5 cm, corpo giustificato). Usa solo codice di questa cartella e il
+ * pacchetto `docx`: non carica moduli da altre posizioni del disco.
  *
  * Esecuzione (docx-js è installato globalmente):
  *   NODE_PATH=$(npm root -g) node render_legal_docx.js \
@@ -24,7 +23,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 
 const docx = require('docx');
 const {
@@ -82,26 +80,6 @@ function slugify(value) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
   return base || 'documento';
-}
-
-// ---------------------------------------------------------------------------
-// SAPG canon — try-require with graceful fallback
-// ---------------------------------------------------------------------------
-
-function loadSapg() {
-  const candidate = path.join(
-    os.homedir(),
-    '.claude/skills/docx-sapg/assets/sapg_styles.js'
-  );
-  try {
-    if (fs.existsSync(candidate)) {
-      // eslint-disable-next-line global-require, import/no-dynamic-require
-      return require(candidate);
-    }
-  } catch (e) {
-    // fall through to null — plain defaults
-  }
-  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -260,7 +238,7 @@ function tokenize(md) {
 }
 
 // ---------------------------------------------------------------------------
-// Renderers — SAPG variant and plain variant share the same block model
+// Renderers
 // ---------------------------------------------------------------------------
 
 const PLAIN_FONT = 'Times New Roman';
@@ -323,56 +301,6 @@ function buildPlainParagraphs(blocks) {
   return children;
 }
 
-function buildSapgParagraphs(blocks, sapg) {
-  const { FONT, SIZE_BODY } = sapg.constants;
-  const children = [];
-  for (const b of blocks) {
-    if (b.type === 'heading') {
-      const styleId = { 1: 'SAPGHeading1', 2: 'SAPGHeading2', 3: 'SAPGHeading3' }[b.level];
-      children.push(
-        new Paragraph({
-          style: styleId,
-          children: inlineRuns(b.text, { font: FONT, bold: true, color: '000000' }),
-        })
-      );
-    } else if (b.type === 'paragraph') {
-      children.push(
-        new Paragraph({
-          style: 'SAPGBody',
-          children: inlineRuns(b.text, { font: FONT, size: SIZE_BODY, color: '000000' }),
-        })
-      );
-    } else if (b.type === 'list') {
-      b.items.forEach((it) => {
-        children.push(
-          new Paragraph({
-            style: 'SAPGBody',
-            indent: { left: 720, hanging: 360, firstLine: undefined },
-            numbering: {
-              reference: b.ordered ? 'sapg-numbers' : 'sapg-bullets',
-              level: 0,
-            },
-            children: inlineRuns(it, { font: FONT, size: SIZE_BODY, color: '000000' }),
-          })
-        );
-      });
-    } else if (b.type === 'quote') {
-      children.push(
-        new Paragraph({
-          style: 'SAPGQuote',
-          children: inlineRuns(b.text, { font: FONT, size: SIZE_BODY, color: '000000', italics: true }),
-        })
-      );
-    } else if (b.type === 'table') {
-      children.push(buildTable(b.rows, { font: FONT, size: SIZE_BODY }));
-      children.push(new Paragraph({ style: 'SAPGBody', children: [] }));
-    } else if (b.type === 'spacer') {
-      children.push(new Paragraph({ children: [] }));
-    }
-  }
-  return children;
-}
-
 function buildTable(rows, runOpts) {
   const border = { style: BorderStyle.SINGLE, size: 4, color: '999999' };
   const borders = {
@@ -417,7 +345,6 @@ function main() {
   }
 
   const blocks = tokenize(md);
-  const sapg = loadSapg();
 
   // Derive title: explicit --title, else first H1, else "Documento".
   let title = args.title;
@@ -430,46 +357,26 @@ function main() {
   const outDir = args.dir ? path.resolve(args.dir) : process.cwd();
   const outputPath = path.join(outDir, `${slug}.docx`);
 
-  let doc;
-  if (sapg) {
-    doc = new Document({
-      creator: 'mcp-legal-it',
-      title,
-      description: 'Deliverable generato da esporta-documento (canone SAPG)',
-      styles: {
-        default: sapg.sapgDefaults(),
-        paragraphStyles: sapg.sapgParagraphStyles(),
-      },
-      numbering: sapg.sapgNumbering(),
-      sections: [
+  const doc = new Document({
+    creator: 'mcp-legal-it',
+    title,
+    description: 'Deliverable generato da esporta-documento (stile predefinito)',
+    numbering: {
+      config: [
         {
-          properties: sapg.sapgPageProperties(),
-          children: buildSapgParagraphs(blocks, sapg),
+          reference: 'plain-numbers',
+          levels: [
+            { level: 0, format: 'decimal', text: '%1.', alignment: AlignmentType.LEFT },
+          ],
         },
       ],
-    });
-  } else {
-    doc = new Document({
-      creator: 'mcp-legal-it',
-      title,
-      description: 'Deliverable generato da esporta-documento (stile predefinito)',
-      numbering: {
-        config: [
-          {
-            reference: 'plain-numbers',
-            levels: [
-              { level: 0, format: 'decimal', text: '%1.', alignment: AlignmentType.LEFT },
-            ],
-          },
-        ],
+    },
+    sections: [
+      {
+        children: buildPlainParagraphs(blocks),
       },
-      sections: [
-        {
-          children: buildPlainParagraphs(blocks),
-        },
-      ],
-    });
-  }
+    ],
+  });
 
   Packer.toBuffer(doc)
     .then((buffer) => {

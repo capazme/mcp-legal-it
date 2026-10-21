@@ -9,9 +9,8 @@ description: Usa quando l'utente chiede di "esporta in word", "esporta in pdf", 
 
 Rendere un deliverable testuale gia' prodotto (un parere, un'informativa privacy, un DPA,
 una DPIA, un registro trattamenti, una parcella, un atto, una sintesi giurisprudenziale)
-in un file **.docx** e/o **.pdf** salvato nella **cartella attiva**, applicando — quando
-disponibile — il canone tipografico dello Studio SAPG (Times New Roman 12, interlinea 1,5,
-rientro prima riga 0,5 cm, corpo giustificato).
+in un file **.docx** e/o **.pdf** salvato nella **cartella attiva**, con uno stile forense
+di base (Times New Roman 12, interlinea 1,5, rientro prima riga 0,5 cm, corpo giustificato).
 
 Lo skill NON richiama alcun tool MCP: si limita a invocare due script locali via Bash.
 La generazione del contenuto (il parere, l'informativa, ecc.) avviene PRIMA, con i tool o
@@ -58,8 +57,8 @@ markdown → `documento`. Per controllare il nome finale, passa `--slug`.
 
 ## Formato di output
 
-- **Word (.docx)** — formato primario per la consegna allo studio/cliente; applica il canone
-  SAPG (titoli numerati, corpo giustificato con rientro, tabelle, citazioni in blocco corsive).
+- **Word (.docx)** — formato primario per la consegna allo studio/cliente (corpo giustificato
+  con rientro, tabelle, citazioni in blocco corsive).
 - **PDF (.pdf)** — formato di sola lettura; resa essenziale con font built-in fpdf2.
 
 Se l'utente non specifica il formato, **genera entrambi** (.docx + .pdf) e riporta i due path.
@@ -94,7 +93,7 @@ Serve un Python 3.12 con `fpdf2`; il system python NON funziona. Usa `uv`, che i
 plugin richiede gia' come prerequisito:
 
 ```bash
-uv run --python 3.12 --with "fpdf2>=2.7" python \
+uv run --frozen --python 3.12 --project "${CLAUDE_PLUGIN_ROOT}/server" python \
   "${CLAUDE_PLUGIN_ROOT}/skills/esporta-documento/scripts/render_legal_pdf.py" \
   --input /percorso/deliverable.md \
   --title "Parere — responsabilità medica" \
@@ -106,18 +105,14 @@ Entrambi gli script stampano su stdout SOLO il path assoluto del file generato (
 `FAIL: ...` su stderr con exit code 1 se manca il contenuto). Cattura quel path e mostralo
 all'utente come conferma di consegna.
 
-## Canone SAPG vs fallback
+## Stile del .docx
 
-`render_legal_docx.js` tenta un `require` di `~/.claude/skills/docx-sapg/assets/sapg_styles.js`:
+Times New Roman 12, interlinea 1,5, rientro prima riga 0,5 cm, corpo giustificato; titoli in
+grassetto con gli stili Word standard (`Titolo 1/2/3`), cosi' chi riceve il file puo'
+applicare il proprio modello di studio.
 
-- **Modulo presente** → applica il canone SAPG completo (stili `SAPGHeading1/2/3`, `SAPGBody`,
-  `SAPGQuote`, numerazione titoli multilivello 1. / 1.1 / 1.1.1, pagina A4, margini 1 inch).
-- **Modulo assente** → fallback "plain" con gli stessi valori tipografici di base
-  (Times New Roman 12, interlinea 1,5, rientro 0,5 cm, giustificato) ma senza la numerazione
-  multilivello degli heading. Nessun errore: lo skill funziona comunque.
-
-Il PDF non usa il canone SAPG (font built-in fpdf2 = Helvetica): e' una resa di lettura, non
-il deliverable tipografico finale. Per la consegna formale usa sempre il .docx.
+Il PDF usa il font built-in di fpdf2 (Helvetica): e' una resa di lettura, non il
+deliverable tipografico finale. Per la consegna formale usa sempre il .docx.
 
 ## Mappatura markdown → blocchi
 
@@ -127,10 +122,8 @@ cartella attiva, e i casi limite sono in **`references/mapping.md`**.
 ## Dipendenze
 
 - `node` con il pacchetto globale `docx` (`npm install -g docx`) — per il .docx.
-- `uv` con `fpdf2` — per il .pdf. Senza `uv`, la venv che `start_server.sh` crea
-  al primo avvio va bene: `"${MCP_CACHE_DIR:-$HOME/.cache/mcp-legal-it}/venv/bin/python"`.
-- (Opzionale) `~/.claude/skills/docx-sapg/assets/sapg_styles.js` per il canone SAPG;
-  in sua assenza il .docx usa il fallback plain.
+- `uv` — per il .pdf: usa lo stesso ambiente del server del plugin (`uv.lock`), che contiene
+  gia' `fpdf2`.
 - **Niente LibreOffice** (non installato): il PDF e' generato direttamente con fpdf2, non per
   conversione da .docx.
 
@@ -138,6 +131,6 @@ Lo skill non installa nulla. Se `docx` globale manca: `npm install -g docx`.
 
 ## Risorse
 
-- **`scripts/render_legal_docx.js`** — markdown → .docx (canone SAPG con fallback plain).
+- **`scripts/render_legal_docx.js`** — markdown → .docx (stile forense di base).
 - **`scripts/render_legal_pdf.py`** — markdown → .pdf (fpdf2, font built-in).
 - **`references/mapping.md`** — mappatura blocchi markdown → docx/pdf, regole slug e cartella attiva.

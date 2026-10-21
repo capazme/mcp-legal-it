@@ -1,0 +1,1511 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0" xmlns:eli="http://data.europa.eu/eli/ontology#" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:gu="http://www.gazzettaufficiale.it/eli/" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:na="http://www.normattiva.it/eli/" xmlns:nakn="http://normattiva.it/akn/vocabulary" xmlns:nrdfa="http://www.normattiva.it/rdfa/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfa="http://www.w3.org/1999/xhtml#">
+    <act name="monovigente">
+        <meta>
+            <identification source="">
+                <FRBRWork>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                    <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                    <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                    <FRBRdate date="2023-03-31" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826" aknrelname="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalResource"/>
+                            <nrdfa:span content="Codice dei contratti pubblici in attuazione dell'articolo 1 della legge 21 giugno 2022, n. 78, recante delega al Governo in materia di contratti pubblici. (23G00044)  " lang="it" property="eli:title" xml:lang="it"/>
+                            <nrdfa:span content="http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}" property="eli:uri_schema"/>
+                            <nrdfa:span content="23G00044" property="eli:id_local"/>
+                            <nrdfa:span property="eli:type_document" resource="gu:tables/resource-type#DECRETO LEGISLATIVO"/>
+                            <nrdfa:span content="2023-03-31" datatype="xsd:date" property="eli:date_document"/>
+                            <nrdfa:span property="eli:version" resource="gu:tables/versions#ORIGINAL"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRcountry value="it"/>
+                </FRBRWork>
+                <FRBRExpression>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                    <FRBRdate date="2026-08-26" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalExpression"/>
+                            <nrdfa:span property="eli:realizes" resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                            <nrdfa:span property="eli:is_embodied_by" resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn"/>
+                            <nrdfa:span property="eli:language" resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                            <nrdfa:span property="eli:publisher_agent" resource="http://www.ipzs.it"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRlanguage language="ita"/>
+                </FRBRExpression>
+                <FRBRManifestation>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main.xml"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                    <FRBRdate date="2023-03-31" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn">
+                            <nrdfa:span property="rdf:type" resource="eli:Format"/>
+                            <nrdfa:span property="eli:format" resource="http://www.iana.org/assignments/media-types/xml"/>
+                        </nrdfa:eli>
+                    </preservation>
+                </FRBRManifestation>
+            </identification>
+            <publication date="2023-03-31" name="" number="77" showAs=""/>
+            <lifecycle source="">
+                <eventRef date="2023-03-31" eId="eventRef_0" source="ro1"/>
+                <eventRef date="2023-05-10" eId="eventRef_1" source="rp1"/>
+                <eventRef date="2023-05-29" eId="eventRef_2" source="rp2"/>
+                <eventRef date="2023-07-05" eId="eventRef_3" source="rp3"/>
+                <eventRef date="2023-09-19" eId="eventRef_4" source="rp4"/>
+                <eventRef date="2023-09-29" eId="eventRef_5" source="rp5"/>
+                <eventRef date="2023-11-23" eId="eventRef_6" source="rp6"/>
+                <eventRef date="2023-11-28" eId="eventRef_7" source="rp7"/>
+                <eventRef date="2024-03-02" eId="eventRef_8" source="rp8"/>
+                <eventRef date="2024-12-27" eId="eventRef_9" source="rp9"/>
+                <eventRef date="2024-12-31" eId="eventRef_10" source="rp10"/>
+                <eventRef date="2025-03-14" eId="eventRef_11" source="rp11"/>
+                <eventRef date="2025-04-01" eId="eventRef_12" source="rp12"/>
+                <eventRef date="2025-04-04" eId="eventRef_13" source="rp13"/>
+                <eventRef date="2025-05-13" eId="eventRef_14" source="rp14"/>
+                <eventRef date="2025-05-21" eId="eventRef_15" source="rp15"/>
+                <eventRef date="2025-07-19" eId="eventRef_16" source="rp16"/>
+                <eventRef date="2025-09-09" eId="eventRef_17" source="rp17"/>
+                <eventRef date="2025-11-05" eId="eventRef_18" source="rp18"/>
+                <eventRef date="2025-12-30" eId="eventRef_19" source="rp19"/>
+                <eventRef date="2026-03-23" eId="eventRef_20" source="rp20"/>
+                <eventRef date="2026-08-11" eId="eventRef_21" source="rp21"/>
+            </lifecycle>
+            <references source="">
+                <original eId="ro1" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2023-03-31/36/!main" showAs=""/>
+                <passiveRef eId="rp1" href="/akn/it/act/DECRETO-LEGGE/stato/2023-05-10/51/!main" showAs=""/>
+                <passiveRef eId="rp2" href="/akn/it/act/DECRETO-LEGGE/stato/2023-05-29/57/!main" showAs=""/>
+                <passiveRef eId="rp3" href="/akn/it/act/LEGGE/stato/2023-07-03/87/!main" showAs=""/>
+                <passiveRef eId="rp4" href="/akn/it/act/DECRETO-LEGGE/stato/2023-09-19/124/!main" showAs=""/>
+                <passiveRef eId="rp5" href="/akn/it/act/DECRETO-LEGGE/stato/2023-09-29/132/!main" showAs=""/>
+                <passiveRef eId="rp6" href="/akn/it/act/CIRCOLARE/MINISTERO_DELLE_INFRASTRUTTURE_E_DEI_TRASPORTI/2023-11-20/298/!main" showAs=""/>
+                <passiveRef eId="rp7" href="/akn/it/act/LEGGE/stato/2023-11-27/170/!main" showAs=""/>
+                <passiveRef eId="rp8" href="/akn/it/act/DECRETO-LEGGE/stato/2024-03-02/19/!main" showAs=""/>
+                <passiveRef eId="rp9" href="/akn/it/act/DECRETO-LEGGE/stato/2024-12-27/201/!main" showAs=""/>
+                <passiveRef eId="rp10" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2024-12-31/209/!main" showAs=""/>
+                <passiveRef eId="rp11" href="/akn/it/act/DECRETO-LEGGE/stato/2025-03-14/25/!main" showAs=""/>
+                <passiveRef eId="rp12" href="/akn/it/act/LEGGE/stato/2025-03-18/40/!main" showAs=""/>
+                <passiveRef eId="rp13" href="/akn/it/act/LEGGE/stato/2025-04-04/42/!main" showAs=""/>
+                <passiveRef eId="rp14" href="/akn/it/act/LEGGE/stato/2025-05-09/69/!main" showAs=""/>
+                <passiveRef eId="rp15" href="/akn/it/act/DECRETO-LEGGE/stato/2025-05-21/73/!main" showAs=""/>
+                <passiveRef eId="rp16" href="/akn/it/act/LEGGE/stato/2025-07-18/105/!main" showAs=""/>
+                <passiveRef eId="rp17" href="/akn/it/act/DECRETO-LEGGE/stato/2025-09-09/127/!main" showAs=""/>
+                <passiveRef eId="rp18" href="/akn/it/act/LEGGE/stato/2025-10-30/164/!main" showAs=""/>
+                <passiveRef eId="rp19" href="/akn/it/act/LEGGE/stato/2025-12-30/199/!main" showAs=""/>
+                <passiveRef eId="rp20" href="/akn/it/act/LEGGE/stato/2026-03-11/34/!main" showAs=""/>
+                <passiveRef eId="rp21" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2026-08-07/149/!main" showAs=""/>
+            </references>
+            <proprietary source="">
+                <rdf:RDF>
+                    <rdf:Description rdf:about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826">
+                        <rdf:type rdf:resource="eli:LegalResource"/>
+                        <eli:title xml:lang="it">Codice dei contratti pubblici in attuazione dell'articolo 1 della legge 21 giugno 2022, n. 78, recante delega al Governo in materia di contratti pubblici. (23G00044)  </eli:title>
+                        <eli:uri_schema>http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}</eli:uri_schema>
+                        <eli:id_local>23G00044</eli:id_local>
+                        <eli:type_document rdf:resource="gu:tables/resource-type#DECRETO LEGISLATIVO"/>
+                        <eli:date_document rdf:datatype="xsd:date">2023-03-31</eli:date_document>
+                        <eli:version rdf:resource="gu:tables/versions#ORIGINAL"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita">
+                        <rdf:type rdf:resource="eli:LegalExpression"/>
+                        <eli:realizes rdf:resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                        <eli:is_embodied_by rdf:resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn"/>
+                        <eli:language rdf:resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                        <eli:publisher_agent rdf:resource="http://www.ipzs.it"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn">
+                        <rdf:type rdf:resource="eli:format"/>
+                        <eli:format rdf:resource="http://www.iana.org/assignments/media-types/xml"/>
+                    </rdf:Description>
+                </rdf:RDF>
+            </proprietary>
+        </meta>
+        <preface>
+            <p>
+                <docType>DECRETO LEGISLATIVO</docType>
+                <docDate date="2023-03-31">31 marzo 2023</docDate>
+                <docNumber>36</docNumber>
+                <docTitle>Codice dei contratti pubblici in attuazione dell'articolo 1 della legge 21 giugno 2022, n. 78, recante delega al Governo in materia di contratti pubblici. (23G00044) 
+</docTitle>
+            </p>
+            <p>
+                <authorialNote eId="atn1" placement="bottom">
+                    <p>Entrata in vigore del provvedimento: 01/04/2023</p>
+                </authorialNote>
+            </p>
+        </preface>
+        <preamble>
+            <formula name="formulaInizialePreambolo">
+                <p>IL PRESIDENTE DELLA REPUBBLICA</p>
+            </formula>
+            <citations eId="cits_1">
+                <citation eId="cits_1__cit_1">
+                    <p>Visti gli <ref eId="ref_1" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_76">articoli 76</ref> e <ref eId="ref_2" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_87">87 della Costituzione</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_2">
+                <citation eId="cits_2__cit_1">
+                    <p>Visto l'<ref eId="ref_3" href="/akn/it/act/legge/stato/1988-08-23/400/!main#art_14">articolo 14 della legge 23 agosto 1988, n. 400</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_3">
+                <citation eId="cits_3__cit_1">
+                    <p>Vista la <ref eId="ref_4" href="/akn/it/act/direttivaUe/eu/2014/23/!main">direttiva 2014/23/UE del Parlamento europeo e del Consiglio, del 26 febbraio 2014</ref>, sull'aggiudicazione dei contratti di concessione;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_4">
+                <citation eId="cits_4__cit_1">
+                    <p>Vista la <ref eId="ref_5" href="/akn/it/act/direttivaUe/eu/2014/24/!main">direttiva 2014/24/UE del Parlamento europeo e del Consiglio, del 26 febbraio 2014</ref>, sugli appalti pubblici e che abroga la <ref eId="ref_6" href="/akn/it/act/direttivaUe/eu/2004/18/!main">direttiva 2004/18/CE</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_5">
+                <citation eId="cits_5__cit_1">
+                    <p>Vista la <ref eId="ref_7" href="/akn/it/act/direttivaUe/eu/2014/25/!main">direttiva 2014/25/UE del Parlamento europeo e del Consiglio, del 26 febbraio 2014</ref>, sulle procedure d'appalto degli enti erogatori nei settori dell'acqua, dell'energia, dei trasporti e dei servizi postali e che abroga la <ref eId="ref_8" href="/akn/it/act/direttivaUe/eu/2004/17/!main">direttiva 2004/17/CE</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_6">
+                <citation eId="cits_6__cit_1">
+                    <p>Vista la <ref eId="ref_9" href="/akn/it/act/legge/stato/2012-12-24/234/!main">legge 24 dicembre 2012, n. 234</ref>, recante «Norme generali sulla partecipazione dell'Italia alla formazione e all'attuazione della normativa e delle politiche dell'Unione europea»;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_7">
+                <citation eId="cits_7__cit_1">
+                    <p>Visto il <ref eId="ref_10" href="/akn/it/act/decretoLegislativo/stato/2016-04-18/50/!main">decreto legislativo 18 aprile 2016, n. 50</ref>, recante «<ref eId="ref_11" href="/akn/it/act/decretoLegislativo/stato/2006-04-12/163/!main">Codice dei contratti pubblici</ref>»;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_8">
+                <citation eId="cits_8__cit_1">
+                    <p>Vista la <ref eId="ref_12" href="/akn/it/act/legge/stato/2022-06-21/78/!main">legge 21 giugno 2022, n. 78</ref>, recante «Delega al Governo in materia di contratti pubblici»;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_9">
+                <citation eId="cits_9__cit_1">
+                    <p>Visto, in particolare, l'articolo 1, comma 4, della citata <ref eId="ref_13" href="/akn/it/act/legge/stato/2022-06-21/78/!main">legge 21 giugno 2022, n. 78</ref>, il quale prevede che il Governo puo' avvalersi della facolta' di cui all'articolo 14, numero 2°, del testo unico delle leggi sul Consiglio di Stato, di cui al <ref eId="ref_14" href="/akn/it/act/regio.decreto/stato/1924-06-26/1054/!main">regio decreto 26 giugno 1924, n. 1054</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_10">
+                <citation eId="cits_10__cit_1">
+                    <p>Vista la nota in data 28 giugno 2022 con la quale il Presidente del Consiglio dei ministri ha affidato la formulazione del progetto di decreto legislativo recante la disciplina dei contratti pubblici al Consiglio di Stato, ai sensi dell'<ref eId="ref_15" href="/akn/it/act/legge/stato/2022-06-21/78/!main#art_1-com4">articolo 1, comma 4, della legge 21 giugno 2022, n. 78</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_11">
+                <citation eId="cits_11__cit_1">
+                    <p>Visto il decreto del Presidente del Consiglio di Stato in data 4 luglio 2022, con il quale la formulazione di detto progetto e' stata deferita ad una commissione speciale e ne e' stata stabilita la composizione;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_12">
+                <citation eId="cits_12__cit_1">
+                    <p>Visto lo schema di "<ref eId="ref_16" href="/akn/it/act/decretoLegislativo/stato/2006-04-12/163/!main">Codice dei contratti pubblici</ref> in attuazione dell'<ref eId="ref_17" href="/akn/it/act/legge/stato/2022-06-21/78/!main#art_1">articolo 1 della legge 21 giugno 2022, n. 78</ref>, recante «Delega al Governo in materia di contratti pubblici»", redatto da detta commissione speciale e trasmesso al Governo dal Consiglio di Stato in data 27 ottobre 2022 -7 dicembre 2022;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_13">
+                <citation eId="cits_13__cit_1">
+                    <p>Vista la preliminare deliberazione del Consiglio dei ministri, adottata nella riunione del 16 dicembre 2022;</p>
+                </citation>
+            </citations>
+            <p>Acquisito il parere della Conferenza unificata di cui all'<ref eId="ref_18" href="/akn/it/act/decretoLegislativo/stato/2023-01-26/281/!main#art_8">articolo 8 del decreto legislativo 28 agosto 1997, n. 281, reso in data 26 gennaio 2023</ref>;</p>
+            <p>Acquisiti i pareri delle competenti commissioni della Camera dei deputati e del Senato della Repubblica;</p>
+            <citations eId="cits_14">
+                <citation eId="cits_14__cit_1">
+                    <p>Vista la deliberazione del Consiglio dei ministri, adottata nella riunione del 28 marzo 2023;</p>
+                </citation>
+            </citations>
+            <formula name="formulaFinalePreambolo">
+                <p>Sulla proposta del Presidente del Consiglio dei ministri e del Ministro delle infrastrutture e dei trasporti, di concerto con i Ministri per gli affari europei, il Sud, le politiche di coesione e il PNRR, per le riforme istituzionali e la semplificazione normativa, per le disabilita', degli affari esteri e della cooperazione internazionale, dell'interno, della giustizia, della difesa, dell'economia e delle finanze, delle imprese e del made in Italy, dell'ambiente e della sicurezza energetica, del lavoro e delle politiche sociali, e della cultura; EMANA il seguente decreto legislativo:</p>
+            </formula>
+        </preamble>
+        <body>
+            <chapter eId="chp_I">
+                <num>-</num>
+                <heading>LIBRO I DEI PRINCIPI, DELLA DIGITALIZZAZIONE, DELLA PROGRAMMAZIONE, DELLA PROGETTAZIONE PARTE I DEI PRINCIPI Titolo I I principi generali</heading>
+                <article eId="art_1">
+                    <num>Articolo 1. </num>
+                    <heading> Principio del risultato</heading>
+                    <paragraph eId="art_1__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti perseguono il risultato dell'affidamento del contratto e della sua esecuzione con la massima tempestivita' e il migliore rapporto possibile tra qualita' e prezzo, nel rispetto dei principi di legalita', trasparenza e concorrenza. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_1__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>La concorrenza tra gli operatori economici e' funzionale a conseguire il miglior risultato possibile nell'affidare ed eseguire i contratti. La trasparenza e' funzionale alla massima semplicita' e celerita' nella corretta applicazione delle regole del presente decreto, di seguito denominato «codice» e ne assicura la piena verificabilita'. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_1__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>Il principio del risultato costituisce attuazione, nel settore dei contratti pubblici, del principio del buon andamento e dei correlati principi di efficienza, efficacia ed economicita'. Esso e' perseguito nell'interesse della comunita' e per il raggiungimento degli obiettivi dell'Unione europea. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_1__para_4">
+                        <num>4.</num>
+                        <list>
+                            <intro eId="art_1__para_4__intro_1">
+                                <p>Il principio del risultato costituisce criterio prioritario per l'esercizio del potere discrezionale e per l'individuazione della regola del caso concreto, nonche' per: 
+ </p>
+                            </intro>
+                            <point eId="art_1__para_4.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>valutare la responsabilita' del personale che svolge funzioni amministrative o tecniche nelle fasi di programmazione, progettazione, affidamento ed esecuzione dei contratti; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_1__para_4.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>attribuire gli incentivi secondo le modalita' previste dalla contrattazione collettiva. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                </article>
+                <article eId="art_2">
+                    <num>Articolo 2. </num>
+                    <heading> Principio della fiducia</heading>
+                    <paragraph eId="art_2__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>L'attribuzione e l'esercizio del potere nel settore dei contratti pubblici si fonda sul principio della reciproca fiducia nell'azione legittima, trasparente e corretta dell'amministrazione, dei suoi funzionari e degli operatori economici. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_2__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Il principio della fiducia favorisce e valorizza l'iniziativa e l'autonomia decisionale dei funzionari pubblici, con particolare riferimento alle valutazioni e alle scelte per l'acquisizione e l'esecuzione delle prestazioni secondo il principio del risultato. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_2__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>Nell'ambito delle attivita' svolte nelle fasi di programmazione, progettazione, affidamento ed esecuzione dei contratti, ai fini della responsabilita' amministrativa costituisce colpa grave la violazione di norme di diritto e degli auto-vincoli amministrativi, nonche' la palese violazione di regole di prudenza, perizia e diligenza e l'omissione delle cautele, verifiche ed informazioni preventive normalmente richieste nell'attivita' amministrativa, in quanto esigibili nei confronti dell'agente pubblico in base alle specifiche competenze e in relazione al caso concreto. Non costituisce colpa grave la violazione o l'omissione determinata dal riferimento a indirizzi giurisprudenziali prevalenti o a pareri delle autorita' competenti. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_2__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>Per promuovere la fiducia nell'azione legittima, trasparente e corretta dell'amministrazione, le stazioni appaltanti e gli enti concedenti adottano azioni per la copertura assicurativa dei rischi per il personale, nonche' per riqualificare le stazioni appaltanti e per rafforzare e dare valore alle capacita' professionali dei dipendenti, compresi i piani di formazione di cui all'articolo 15, comma 7. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_3">
+                    <num>Articolo 3. </num>
+                    <heading> Principio dell'accesso al mercato</heading>
+                    <paragraph eId="art_3__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti favoriscono, secondo le modalita' indicate dal codice, l'accesso al mercato degli operatori economici nel rispetto dei principi di concorrenza, di imparzialita', di non discriminazione, di pubblicita' e trasparenza, di proporzionalita'. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_4">
+                    <num>Articolo 4. </num>
+                    <heading> Criterio interpretativo e applicativo</heading>
+                    <paragraph eId="art_4__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Le disposizioni del codice si interpretano e si applicano in base ai principi di cui agli articoli 1, 2 e 3. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_5">
+                    <num>Articolo 5. </num>
+                    <heading> Principi di buona fede e di tutela dell'affidamento</heading>
+                    <paragraph eId="art_5__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Nella procedura di gara le stazioni appaltanti, gli enti concedenti e gli operatori economici si comportano reciprocamente nel rispetto dei principi di buona fede e di tutela dell'affidamento. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_5__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Nell'ambito del procedimento di gara, anche prima dell'aggiudicazione, sussiste un affidamento dell'operatore economico sul legittimo esercizio del potere e sulla conformita' del comportamento amministrativo al principio di buona fede. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_5__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>In caso di aggiudicazione annullata su ricorso di terzi o in autotutela, l'affidamento non si considera incolpevole se l'illegittimita' e' agevolmente rilevabile in base alla diligenza professionale richiesta ai concorrenti. Nei casi in cui non spetta l'aggiudicazione, il danno da lesione dell'affidamento e' limitato ai pregiudizi economici effettivamente subiti e provati, derivanti dall'interferenza del comportamento scorretto sulle scelte contrattuali dell'operatore economico. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_5__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>Ai fini dell'azione di rivalsa della stazione appaltante o dell'ente concedente condannati al risarcimento del danno a favore del terzo pretermesso, resta ferma la concorrente responsabilita' dell'operatore economico che ha conseguito l'aggiudicazione illegittima con un comportamento illecito. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_6">
+                    <num>Articolo 6. </num>
+                    <heading/>
+                    <paragraph>
+                        <content>
+                            <p>
+ 
+Principi di solidarieta' e di sussidiarieta' orizzontale. Rapporti con gli enti del Terzo settore. 
+ 
+ </p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_6__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>In attuazione dei principi di solidarieta' sociale e di sussidiarieta' orizzontale, la pubblica amministrazione puo' apprestare, in relazione ad attivita' a spiccata valenza sociale, modelli organizzativi di amministrazione condivisa, privi di rapporti sinallagmatici, fondati sulla condivisione della funzione amministrativa con gli enti del Terzo settore di cui al codice del Terzo settore di cui al <ref eId="content__ref_19" href="/akn/it/act/decretoLegislativo/stato/2017-07-03/117/!main">decreto legislativo 3 luglio 2017, n. 117</ref>, sempre che gli stessi contribuiscano al perseguimento delle finalita' sociali in condizioni di pari trattamento, in modo effettivo e trasparente e in base al principio del risultato. Non rientrano nel campo di applicazione del presente codice gli istituti disciplinati dal Titolo VII del codice del Terzo settore, di cui al <ref eId="content__ref_20" href="/akn/it/act/decretoLegislativo/stato/2017/117/!main">decreto legislativo n. 117 del 2017</ref>. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_7">
+                    <num>Articolo 7. </num>
+                    <heading> Principio di auto-organizzazione amministrativa</heading>
+                    <paragraph eId="art_7__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Le pubbliche amministrazioni organizzano autonomamente l'esecuzione di lavori o la prestazione di beni e servizi attraverso l'auto-produzione, l'esternalizzazione e la cooperazione nel rispetto della disciplina del codice e del diritto dell'Unione europea. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_7__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti possono affidare direttamente a societa' in house lavori, servizi o forniture, nel rispetto dei principi di cui agli articoli 1, 2 e 3. Le stazioni appaltanti e gli enti concedenti adottano per ciascun affidamento un provvedimento motivato in cui danno conto dei vantaggi per la collettivita', delle connesse esternalita' e della congruita' economica della prestazione, anche in relazione al perseguimento di obiettivi di universalita', socialita', efficienza, economicita', qualita' della prestazione, celerita' del procedimento e razionale impiego di risorse pubbliche. In caso di prestazioni strumentali, il provvedimento si intende sufficientemente motivato qualora dia conto dei vantaggi in termini di economicita', di celerita' o di perseguimento di interessi strategici. I vantaggi di economicita' possono emergere anche mediante la comparazione con gli standard di riferimento della societa' Consip S.p.a. e delle altre centrali di committenza, con i parametri ufficiali elaborati da altri enti regionali nazionali o esteri oppure, in mancanza, con gli standard di mercato. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_7__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>L'affidamento in house di servizi di interesse economico generale di livello locale e' disciplinato dal <ref eId="content__ref_21" href="/akn/it/act/decretoLegislativo/stato/2022-12-23/201/!main">decreto legislativo 23 dicembre 2022, n. 201</ref>. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_7__para_4">
+                        <num>4.</num>
+                        <list>
+                            <intro eId="art_7__para_4__intro_1">
+                                <p>La cooperazione tra stazioni appaltanti o enti concedenti volta al perseguimento di obiettivi di interesse comune non rientra nell'ambito di applicazione del codice quando concorrono tutte le seguenti condizioni: 
+ </p>
+                            </intro>
+                            <point eId="art_7__para_4.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>interviene esclusivamente tra due o piu' stazioni appaltanti o enti concedenti, anche con competenze diverse; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_7__para_4.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>garantisce la effettiva partecipazione di tutte le parti allo svolgimento di compiti funzionali all'attivita' di interesse comune, in un'ottica esclusivamente collaborativa e senza alcun rapporto sinallagmatico tra prestazioni; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_7__para_4.__point_c">
+                                <num>c)</num>
+                                <content>
+                                    <p>determina una convergenza sinergica su attivita' di interesse comune, pur nella eventuale diversita' del fine perseguito da ciascuna amministrazione, purche' l'accordo non tenda a realizzare la missione istituzionale di una sola delle amministrazioni aderenti; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_7__para_4.__point_d">
+                                <num>d)</num>
+                                <content>
+                                    <p>le stazioni appaltanti o gli enti concedenti partecipanti svolgono sul mercato aperto meno del 20 per cento delle attivita' interessate dalla cooperazione. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                </article>
+                <article eId="art_8">
+                    <num>Articolo 8. </num>
+                    <heading>Principio di autonomia contrattuale. Divieto di prestazioni d'opera intellettuale a titolo gratuito</heading>
+                    <paragraph eId="art_8__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Nel perseguire le proprie finalita' istituzionali le pubbliche amministrazioni sono dotate di autonomia contrattuale e possono concludere qualsiasi contratto, anche gratuito, salvi i divieti espressamente previsti dal codice e da altre disposizioni di legge. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_8__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Le prestazioni d'opera intellettuale non possono essere rese dai professionisti gratuitamente, salvo che in casi eccezionali e previa adeguata motivazione. Salvo i predetti casi eccezionali, la pubblica amministrazione garantisce comunque l'applicazione del principio dell'equo compenso <ins eId="ins_1">((secondo le modalita' previste dall'articolo 41, commi 15-bis, 15-ter e 15-quater))</ins>. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_8__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>Le pubbliche amministrazioni possono ricevere per donazione beni o prestazioni rispondenti all'interesse pubblico senza obbligo di gara. Restano ferme le disposizioni del <ref eId="content__ref_22" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">codice civile</ref> in materia di forma, revocazione e azione di riduzione delle donazioni. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_9">
+                    <num>Articolo 9. </num>
+                    <heading> Principio di conservazione dell'equilibrio contrattuale</heading>
+                    <paragraph eId="art_9__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Se sopravvengono circostanze straordinarie e imprevedibili, estranee alla normale alea, all'ordinaria fluttuazione economica e al rischio di mercato e tali da alterare in maniera rilevante l'equilibrio originario del contratto, la parte svantaggiata, che non abbia volontariamente assunto il relativo rischio, ha diritto alla rinegoziazione secondo buona fede delle condizioni contrattuali. Gli oneri per la rinegoziazione sono riconosciuti all'esecutore a valere sulle somme a disposizione indicate nel quadro economico dell'intervento, alle voci imprevisti e accantonamenti e, se necessario, anche utilizzando le economie da ribasso d'asta. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_9__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Nell'ambito delle risorse individuate al comma 1, la rinegoziazione si limita al ripristino dell'originario equilibrio del contratto oggetto dell'affidamento, quale risultante dal bando e dal provvedimento di aggiudicazione, senza alterarne la sostanza economica. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_9__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>Se le circostanze sopravvenute di cui al comma 1 rendono la prestazione, in parte o temporaneamente, inutile 
+ o inutilizzabile per uno dei contraenti, questi ha diritto a una riduzione proporzionale del corrispettivo, secondo le regole dell'impossibilita' parziale. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_9__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti favoriscono l'inserimento nel contratto di clausole di rinegoziazione, dandone pubblicita' nel bando o nell'avviso di indizione della gara, specie quando il contratto risulta particolarmente esposto per la sua durata, per il contesto economico di riferimento o per altre circostanze, al rischio delle interferenze da sopravvenienze. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_9__para_5">
+                        <num>5.</num>
+                        <content>
+                            <p>In applicazione del principio di conservazione dell'equilibrio contrattuale si applicano le disposizioni di cui agli articoli 60 e 120. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_10">
+                    <num>Articolo 10. </num>
+                    <heading/>
+                    <paragraph>
+                        <content>
+                            <p>
+ 
+Principi di tassativita' delle cause di esclusione e di massima partecipazione. 
+ 
+ </p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_10__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>I contratti pubblici non sono affidati agli operatori economici nei confronti dei quali sia stata accertata la sussistenza di cause di esclusione espressamente definite dal codice. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_10__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Le cause di esclusione di cui agli articoli 94 e 95 sono tassative e integrano di diritto i bandi e le lettere di invito; le clausole che prevedono cause ulteriori di esclusione sono nulle e si considerano non apposte. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_10__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>Fermi i necessari requisiti di abilitazione all'esercizio dell'attivita' professionale, le stazioni appaltanti e gli enti concedenti possono introdurre requisiti speciali, di carattere economico-finanziario e tecnico-professionale, attinenti e proporzionati all'oggetto del contratto, tenendo presente l'interesse pubblico al piu' ampio numero di potenziali concorrenti e favorendo, purche' sia compatibile con le prestazioni da acquisire e con l'esigenza di realizzare economie di scala funzionali alla riduzione della spesa pubblica, l'accesso al mercato e la possibilita' di crescita delle micro, piccole e medie imprese. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                </chapter>
+            <chapter eId="chp_II">
+                <num>-</num>
+                <heading>Titolo II L'ambito di applicazione, il responsabile unico e le fasi dell'affidamento.</heading>
+                <article eId="art_18">
+                    <num>Articolo 18. </num>
+                    <heading> Il contratto e la sua stipulazione</heading>
+                    <paragraph eId="art_18__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Il contratto e' stipulato, a pena di nullita', in forma scritta ai sensi dell'allegato I.1, articolo 3, comma 1, lettera b), in modalita' elettronica nel rispetto delle pertinenti disposizioni del <ref eId="content__ref_35" href="/akn/it/act/decretoLegislativo/stato/2005-03-07/82/!main">codice dell'amministrazione digitale</ref>, di cui al <ref eId="content__ref_36" href="/akn/it/act/decretoLegislativo/stato/2005-03-07/82/!main">decreto legislativo 7 marzo 2005, n. 82</ref>, in forma pubblica amministrativa a cura dell'ufficiale rogante della stazione appaltante, con atto pubblico notarile informatico oppure mediante scrittura privata. In caso di procedura negoziata oppure per gli affidamenti diretti, <ins eId="ins_13">((il contratto puo' essere stipulato anche))</ins> mediante corrispondenza secondo l'uso commerciale, consistente in un apposito scambio di lettere, anche tramite posta elettronica certificata o sistemi elettronici di recapito certificato qualificato ai sensi del regolamento UE n. 910/2014 del Parlamento europeo e del Consiglio del 23 luglio 2014. I capitolati e il computo metrico estimativo, richiamati nel bando o nell'invito, fanno parte integrante del contratto. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_18__para_2">
+                        <num>2.</num>
+                        <list>
+                            <intro eId="art_18__para_2__intro_1">
+                                <p>Divenuta efficace l'aggiudicazione ai sensi dell'articolo 17, comma 5 e fatto salvo l'esercizio dei poteri di autotutela, la stipula del contratto ha luogo entro i successivi sessanta giorni anche in pendenza di contenzioso.E' fatta eccezione: 
+ </p>
+                            </intro>
+                            <point eId="art_18__para_2.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>per le ipotesi previste dal comma 4 del presente articolo e dall'articolo 55, comma 2; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_18__para_2.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>nel caso di un diverso termine previsto nel bando o nell'invito a offrire; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_18__para_2.__point_c">
+                                <num>c)</num>
+                                <content>
+                                    <p>nell'ipotesi di differimento concordato con l'aggiudicatario e motivato in base all'interesse della stazione appaltante o dell'ente concedente, compatibilmente con quello generale alla sollecita esecuzione del contratto. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                    <paragraph eId="art_18__para_3">
+                        <num>3.</num>
+                        <list>
+                            <intro eId="art_18__para_3__intro_1">
+                                <p>Il contratto non puo' essere stipulato prima di <ins eId="ins_14">((trentadue))</ins> giorni dall'invio dell'ultima delle comunicazioni del provvedimento di aggiudicazione. Tale termine dilatorio non si applica nei casi: 
+ </p>
+                            </intro>
+                            <point eId="art_18__para_3.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>di procedura in cui e' stata presentata o ammessa una sola offerta e non sono state tempestivamente proposte impugnazioni del bando o della lettera di invito, o le impugnazioni sono gia' state respinte con decisione definitiva; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_18__para_3.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>di appalti basati su un accordo quadro; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_18__para_3.__point_c">
+                                <num>c)</num>
+                                <content>
+                                    <p>di appalti specifici basati su un sistema dinamico di acquisizione; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_18__para_3.__point_d">
+                                <num>d)</num>
+                                <content>
+                                    <p>di contratti di importo inferiore alle soglie europee <ins eId="ins_15">((...))</ins>. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                    <paragraph eId="art_18__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>Se e' proposto ricorso avverso l'aggiudicazione con contestuale domanda cautelare, il contratto non puo' essere stipulato dal momento della notificazione dell'istanza cautelare alla stazione appaltante o all'ente concedente fino alla pubblicazione del provvedimento cautelare di primo grado o del dispositivo o della sentenza di primo grado, in caso di decisione del merito all'udienza cautelare.
+L'effetto sospensivo cessa quando, in sede di esame della domanda cautelare, il giudice si dichiara incompetente ai sensi dell'<ref eId="content__ref_37" href="/akn/it/act/decretoLegislativo/stato/2010-07-02/104/!main#art_15-com4">articolo 15, comma 4, del codice del processo amministrativo</ref>, di cui all'allegato I al <ref eId="content__ref_38" href="/akn/it/act/decretoLegislativo/stato/2010-07-02/104/!main">decreto legislativo 2 luglio 2010, n. 104</ref>, o fissa con ordinanza la data di discussione del merito senza pronunciarsi sulle misure cautelari con il consenso delle parti, valevole quale implicita rinuncia all'immediato esame della domanda cautelare. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_18__para_5">
+                        <num>5.</num>
+                        <content>
+                            <p>Se la stipula del contratto non avviene nel termine per fatto della stazione appaltante o dell'ente concedente, l'aggiudicatario puo' farne constatare il silenzio inadempimento o, in alternativa, puo' sciogliersi da ogni vincolo mediante atto notificato.
+All'aggiudicatario non spetta alcun indennizzo, salvo il rimborso delle spese contrattuali. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_18__para_6">
+                        <num>6.</num>
+                        <content>
+                            <p>La mancata stipula del contratto nel termine fissato per fatto dell'aggiudicatario puo' costituire motivo di revoca dell'aggiudicazione. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_18__para_7">
+                        <num>7.</num>
+                        <content>
+                            <p>La mancata o tardiva stipula del contratto al di fuori delle ipotesi di cui ai commi 5 e 6 costituisce violazione del dovere di buona fede, anche in pendenza di contenzioso. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_18__para_8">
+                        <num>8.</num>
+                        <content>
+                            <p>Il contratto e' sottoposto alla condizione risolutiva dell'esito negativo della sua approvazione, laddove prevista, da effettuarsi entro trenta giorni dalla stipula. Decorso tale termine, il contratto si intende approvato. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_18__para_9">
+                        <num>9.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti hanno facolta' di stipulare contratti di assicurazione per la responsabilita' civile derivante dalla conclusione del contratto e dalla prosecuzione o sospensione della sua esecuzione. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_18__para_10">
+                        <num>10.</num>
+                        <content>
+                            <p>Con la tabella di cui all'allegato I.4 al codice e' individuato il valore dell'imposta di bollo che l'appaltatore assolve una tantum al momento della stipula del contratto e in proporzione al valore dello stesso. Con la medesima tabella sono sostituite le modalita' di calcolo e versamento dell'imposta di bollo di cui al <ref eId="content__ref_39" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1972-10-26/642/!main">decreto del Presidente della Repubblica 26 ottobre 1972, n. 642</ref>, in materia di contratti pubblici disciplinati dal codice. <ins eId="ins_16">((PERIODO SOPPRESSO DAL D.LGS. 31 DICEMBRE 2024, N. 209))</ins>. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+            </chapter>
+            <chapter eId="chp_III">
+                <num>-</num>
+                <heading>PARTE II DELLA DIGITALIZZAZIONE DEL CICLO DI VITA DEI CONTRATTI</heading>
+                <article eId="art_30">
+                    <num>Articolo 30. </num>
+                    <heading>Uso di procedure automatizzate nel ciclo di vita dei contratti pubblici</heading>
+                    <paragraph eId="art_30__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Per migliorare l'efficienza le stazioni appaltanti e gli enti concedenti provvedono, ove possibile, ad automatizzare le proprie attivita' ricorrendo a soluzioni tecnologiche, ivi incluse l'intelligenza artificiale e le tecnologie di registri distribuiti, nel rispetto delle specifiche disposizioni in materia. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_30__para_2">
+                        <num>2.</num>
+                        <list>
+                            <intro eId="art_30__para_2__intro_1">
+                                <p>Nell'acquisto o sviluppo delle soluzioni di cui al comma 1 le stazioni appaltanti e gli enti concedenti: 
+ </p>
+                            </intro>
+                            <point eId="art_30__para_2.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>assicurano la disponibilita' del codice sorgente, della relativa documentazione, nonche' di ogni altro elemento utile a comprenderne le logiche di funzionamento; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_30__para_2.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>introducono negli atti di indizione delle gare clausole volte ad assicurare le prestazioni di assistenza e manutenzione necessarie alla correzione degli errori e degli effetti indesiderati derivanti dall'automazione. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                    <paragraph eId="art_30__para_3">
+                        <num>3.</num>
+                        <list>
+                            <intro eId="art_30__para_3__intro_1">
+                                <p>Le decisioni assunte mediante automazione rispettano i principi di: 
+ </p>
+                            </intro>
+                            <point eId="art_30__para_3.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>conoscibilita' e comprensibilita', per cui ogni operatore economico ha diritto a conoscere l'esistenza di processi decisionali automatizzati che lo riguardino e, in tal caso, a ricevere informazioni significative sulla logica utilizzata; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_30__para_3.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>non esclusivita' della decisione algoritmica, per cui comunque esiste nel processo decisionale un contributo umano capace di controllare, validare ovvero smentire la decisione automatizzata; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_30__para_3.__point_c">
+                                <num>c)</num>
+                                <content>
+                                    <p>non discriminazione algoritmica, per cui il titolare mette in atto misure tecniche e organizzative adeguate al fine di impedire effetti discriminatori nei confronti degli operatori economici. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                    <paragraph eId="art_30__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti adottano ogni misura tecnica e organizzativa atta a garantire che siano rettificati i fattori che comportano inesattezze dei dati e sia minimizzato il rischio di errori, nonche' a impedire effetti discriminatori nei confronti di persone fisiche sulla base della nazionalita', dell'origine etnica, delle opinioni politiche, della religione, delle convinzioni personali, dell'appartenenza sindacale, dei caratteri somatici, dello status genetico, dello stato di salute, del genere o dell'orientamento sessuale. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_30__para_5">
+                        <num>5.</num>
+                        <content>
+                            <p>Le pubbliche amministrazioni pubblicano sul sito istituzionale, nella sezione «Amministrazione trasparente», l'elenco delle soluzioni tecnologiche di cui al comma 1 utilizzate ai fini dello svolgimento della propria attivita'. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                <article eId="art_31">
+                    <num>Articolo 31. </num>
+                    <heading> Anagrafe degli operatori economici partecipanti agli appalti</heading>
+                    <paragraph eId="art_31__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>E' istituita presso l'ANAC l'Anagrafe degli operatori economici a qualunque titolo coinvolti nei contratti pubblici, che si avvale del registro delle imprese. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_31__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>L'Anagrafe censisce gli operatori economici di cui al comma 1, nonche' i soggetti, le persone fisiche e i titolari di cariche ad essi riferibili. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_31__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>Per le persone fisiche di cui al comma 2 l'Anagrafe assume valore certificativo per i ruoli e le cariche rivestiti non risultanti dal registro delle imprese. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_31__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>I dati dell'Anagrafe sono resi disponibili a tutti i soggetti operanti nell'ambito dell'ecosistema nazionale di approvvigionamento digitale, attraverso le piattaforme di cui agli articoli 23, 24 e 25, per i trattamenti e le finalita' legati alla gestione del ciclo di vita dei contratti pubblici. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                </chapter>
+            <chapter eId="chp_IV">
+                <num>-</num>
+                <heading>PARTE III DELLA PROGRAMMAZIONE</heading>
+                </chapter>
+            <chapter eId="chp_V">
+                <num>-</num>
+                <heading>PARTE IV DELLA PROGETTAZIONE</heading>
+                </chapter>
+            <chapter eId="chp_VI">
+                <num>-</num>
+                <heading>LIBRO II DELL'APPALTO PARTE I DEI CONTRATTI DI IMPORTO INFERIORE ALLE SOGLIE EUROPEE</heading>
+                <article eId="art_50">
+                    <num>Articolo 50. </num>
+                    <heading> Procedure per l'affidamento</heading>
+                    <paragraph eId="art_50__para_1">
+                        <num>1.</num>
+                        <list>
+                            <intro eId="art_50__para_1__intro_1">
+                                <p>Salvo quanto previsto dagli articoli 62 e 63, le stazioni appaltanti procedono all'affidamento dei contratti di lavori, servizi e forniture di importo inferiore alle soglie di cui all'articolo 14 con le seguenti modalita': 
+ </p>
+                            </intro>
+                            <point eId="art_50__para_1.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>affidamento diretto per lavori di importo inferiore a 150.000 euro, anche senza consultazione di piu' operatori economici, assicurando che siano scelti soggetti in possesso di documentate esperienze pregresse idonee all'esecuzione delle prestazioni contrattuali anche individuati tra gli iscritti in elenchi o albi istituiti dalla stazione appaltante; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_50__para_1.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>affidamento diretto dei servizi e forniture, ivi compresi i servizi di ingegneria e architettura e l'attivita' di progettazione, di importo inferiore a 140.000 euro, anche senza consultazione di piu' operatori economici, assicurando che siano scelti soggetti in possesso di documentate esperienze pregresse idonee all'esecuzione delle prestazioni contrattuali, anche individuati tra gli iscritti in elenchi o albi istituiti dalla stazione appaltante; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_50__para_1.__point_c">
+                                <num>c)</num>
+                                <content>
+                                    <p>procedura negoziata senza bando, previa consultazione di almeno cinque operatori economici, ove esistenti, individuati in base a indagini di mercato o tramite elenchi di operatori economici, per i lavori di importo pari o superiore a 150.000 euro e inferiore a 1 milione di euro; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_50__para_1.__point_d">
+                                <num>d)</num>
+                                <content>
+                                    <p>procedura negoziata senza bando, previa consultazione di almeno dieci operatori economici, ove esistenti, individuati in base a indagini di mercato o tramite elenchi di operatori economici, per lavori di importo pari o superiore a 1 milione di euro e fino alle soglie di cui all'articolo 14, salva la possibilita' di ricorrere alle procedure di scelta del contraente di cui alla Parte IV del presente Libro; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_50__para_1.__point_e">
+                                <num>e)</num>
+                                <content>
+                                    <p>procedura negoziata senza bando, previa consultazione di almeno cinque operatori economici, ove esistenti, individuati in base ad indagini di mercato o tramite elenchi di operatori economici, per l'affidamento di servizi e forniture, ivi compresi i servizi di ingegneria e architettura e l'attivita' di progettazione, di importo pari o superiore a 140.000 euro e fino alle soglie di cui all'articolo 14. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                    <paragraph eId="art_50__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Gli elenchi e le indagini di mercato sono gestiti con le modalita' previste nell'allegato II.1. Per la selezione degli operatori da invitare alle procedure negoziate, le stazioni appaltanti non possono utilizzare il sorteggio o altro metodo di estrazione casuale dei nominativi, se non in presenza di situazioni particolari e specificamente motivate, nei casi in cui non risulti praticabile nessun altro metodo di selezione degli operatori. Le stazioni appaltanti pubblicano sul proprio sito istituzionale i nominativi degli operatori consultati nell'ambito delle procedure di cui al comma 1. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_2-bis">
+                        <num>2-bis.</num>
+                        <content>
+                            <p>
+                                <ins eId="ins_68">((Le stazioni appaltanti pubblicano sul proprio sito l'avvio di una consultazione ai sensi del comma 1, lettere c), d) ed e).))</ins>
+                            </p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>
+                                <ins eId="ins_69">((COMMA ABROGATO DAL D.LGS. 31 DICEMBRE 2024, N. 209))</ins>. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>Per gli affidamenti di cui al comma 1, lettere c), d) ed e), le stazioni appaltanti procedono all'aggiudicazione dei relativi appalti sulla base del criterio dell'offerta economicamente piu' vantaggiosa oppure del prezzo piu' basso ad eccezione delle ipotesi di cui all'articolo 108, comma 2. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_5">
+                        <num>5.</num>
+                        <content>
+                            <p>Le imprese pubbliche, per i contratti di lavori, forniture e servizi di importo inferiore alle soglie europee di cui all'articolo 14, rientranti nell'ambito definito dagli articoli da 146 a 152, applicano la disciplina stabilita nei rispettivi regolamenti, la quale, se i contratti presentano un interesse transfrontaliero certo, deve essere conforme ai principi del Trattato sull'Unione europea a tutela della concorrenza. Gli altri soggetti di cui all'articolo 141, comma 1, secondo periodo, applicano la disciplina stabilita nei rispettivi regolamenti, la quale deve essere conforme ai predetti principi del Trattato sull'Unione europea. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_6">
+                        <num>6.</num>
+                        <content>
+                            <p>Dopo la verifica dei requisiti dell'aggiudicatario la stazione appaltante puo' procedere all'esecuzione anticipata del contratto; nel caso di mancata stipulazione l'aggiudicatario ha diritto al rimborso delle spese sostenute per l'esecuzione dei lavori ordinati dal direttore dei lavori e, nel caso di servizi e forniture, per le prestazioni eseguite su ordine del direttore dell'esecuzione. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_7">
+                        <num>7.</num>
+                        <content>
+                            <p>Per i contratti di cui alla presente Parte la stazione appaltante puo' sostituire il certificato di collaudo o il certificato di verifica di conformita' con il certificato di regolare esecuzione, rilasciato per i lavori dal direttore dei lavori e per le forniture e i servizi dal RUP o dal direttore dell'esecuzione, se nominato. Il certificato di regolare esecuzione e' emesso non oltre tre mesi dalla data di ultimazione delle prestazioni oggetto del contratto. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_8">
+                        <num>8.</num>
+                        <content>
+                            <p>I bandi e gli avvisi di pre-informazione relativi ai contratti di cui alla presente Parte sono pubblicati a livello nazionale con le modalita' di cui all'articolo 85, con esclusione della trasmissione del bando di gara all'Ufficio delle pubblicazioni dell'Unione europea. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_50__para_9">
+                        <num>9.</num>
+                        <content>
+                            <p>Con le stesse modalita' di cui al comma 8 e' pubblicato l'avviso sui risultati delle procedure di affidamento di cui al presente articolo. Nei casi di cui alle lettere c), d) ed e) del comma 1, tale avviso contiene anche l'indicazione dei soggetti invitati. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                </chapter>
+            <chapter eId="chp_VII">
+                <num>-</num>
+                <heading>PARTE II DEGLI ISTITUTI E DELLE CLAUSOLE COMUNI</heading>
+                </chapter>
+            <chapter eId="chp_VIII">
+                <num>-</num>
+                <heading>PARTE III DEI SOGGETTI Titolo I Le stazioni appaltanti</heading>
+                </chapter>
+            <chapter eId="chp_IX">
+                <num>-</num>
+                <heading>Titolo II Gli operatori economici</heading>
+                </chapter>
+            <chapter eId="chp_X">
+                <num>-</num>
+                <heading>PARTE IV DELLE PROCEDURE DI SCELTA DEL CONTRAENTE</heading>
+                </chapter>
+            <chapter eId="chp_XI">
+                <num>-</num>
+                <heading>PARTE V DELLO SVOLGIMENTO DELLE PROCEDURE Titolo I Gli atti preparatori</heading>
+                </chapter>
+            <chapter eId="chp_XII">
+                <num>-</num>
+                <heading>Titolo II I bandi, gli avvisi e gli inviti</heading>
+                </chapter>
+            <chapter eId="chp_XIII">
+                <num>-</num>
+                <heading>Titolo III La documentazione dell'offerente e i termini per la presentazione delle domande e delle offerte</heading>
+                </chapter>
+            <chapter eId="chp_XIV">
+                <num>-</num>
+                <heading>Titolo IV I requisiti di partecipazione e la selezione dei partecipanti Capo I La commissione giudicatrice</heading>
+                </chapter>
+            <chapter eId="chp_XV">
+                <num>-</num>
+                <heading>Capo II I requisiti di ordine generale</heading>
+                </chapter>
+            <chapter eId="chp_XVI">
+                <num>-</num>
+                <heading>Capo III Gli altri requisiti di partecipazione alla gara</heading>
+                </chapter>
+            <chapter eId="chp_XVII">
+                <num>-</num>
+                <heading>Titolo V La selezione delle offerte</heading>
+                </chapter>
+            <chapter eId="chp_XVIII">
+                <num>-</num>
+                <heading>PARTE VI DELL'ESECUZIONE</heading>
+                </chapter>
+            <chapter eId="chp_XIX">
+                <num>-</num>
+                <heading>PARTE VII DISPOSIZIONI PARTICOLARI PER ALCUNI CONTRATTI DEI SETTORI ORDINARI Titolo I I servizi sociali e i servizi assimilati</heading>
+                </chapter>
+            <chapter eId="chp_XX">
+                <num>-</num>
+                <heading>Titolo II Gli appalti di servizi sociali e di altri servizi nei settori ordinari</heading>
+                </chapter>
+            <chapter eId="chp_XXI">
+                <num>-</num>
+                <heading>Titolo III I Contratti nel settore dei beni culturali</heading>
+                </chapter>
+            <chapter eId="chp_XXII">
+                <num>-</num>
+                <heading>Titolo IV I servizi di ricerca e sviluppo</heading>
+                </chapter>
+            <chapter eId="chp_XXIII">
+                <num>-</num>
+                <heading>Titolo V I contratti nel settore della difesa e sicurezza. I contratti secretati</heading>
+                </chapter>
+            <chapter eId="chp_XXIV">
+                <num>-</num>
+                <heading>Titolo VI Le procedure in caso di somma urgenza e di protezione civile</heading>
+                </chapter>
+            <chapter eId="chp_XXV">
+                <num>-</num>
+                <heading>LIBRO III DELL'APPALTO NEI SETTORI SPECIALI PARTE I DISPOSIZIONI GENERALI</heading>
+                </chapter>
+            <chapter eId="chp_XXVI">
+                <num>-</num>
+                <heading>PARTE II DELLE PROCEDURE DI SCELTA DEL CONTRAENTE</heading>
+                </chapter>
+            <chapter eId="chp_XXVII">
+                <num>-</num>
+                <heading>PARTE III DEI BANDI, DEGLI AVVISI E DEGLI INVITI</heading>
+                </chapter>
+            <chapter eId="chp_XXVIII">
+                <num>-</num>
+                <heading>PARTE IV DELLA SELEZIONE DEI PARTECIPANTI E DELLE OFFERTE</heading>
+                </chapter>
+            <chapter eId="chp_XXIX">
+                <num>-</num>
+                <heading>LIBRO IV DEL PARTENARIATO PUBBLICOPRIVATO E DELLE CONCESSIONI PARTE I DISPOSIZIONI GENERALI</heading>
+                </chapter>
+            <chapter eId="chp_XXX">
+                <num>-</num>
+                <heading>PARTE II DEI CONTRATTI DI CONCESSIONE Titolo I L'ambito di applicazione e i principi generali</heading>
+                </chapter>
+            <chapter eId="chp_XXXI">
+                <num>-</num>
+                <heading>Titolo II L'aggiudicazione delle concessioni: principi generali e garanzie procedurali</heading>
+                </chapter>
+            <chapter eId="chp_XXXII">
+                <num>-</num>
+                <heading>Titolo III L'esecuzione delle concessioni</heading>
+                </chapter>
+            <chapter eId="chp_XXXIII">
+                <num>-</num>
+                <heading>Titolo IV La finanza di progetto</heading>
+                </chapter>
+            <chapter eId="chp_XXXIV">
+                <num>-</num>
+                <heading>PARTE III DELLA LOCAZIONE FINANZIARIA</heading>
+                </chapter>
+            <chapter eId="chp_XXXV">
+                <num>-</num>
+                <heading>PARTE IV DEL CONTRATTO DI DISPONIBILITÀ</heading>
+                </chapter>
+            <chapter eId="chp_XXXVI">
+                <num>-</num>
+                <heading>PARTE V ALTRE DISPOSIZIONI IN MATERIA DI PARTENARIATO PUBBLICOPRIVATO</heading>
+                </chapter>
+            <chapter eId="chp_XXXVII">
+                <num>-</num>
+                <heading>PARTE VI DEI SERVIZI GLOBALI</heading>
+                </chapter>
+            <chapter eId="chp_XXXVIII">
+                <num>-</num>
+                <heading>LIBRO V DEL CONTENZIOSO E DELL'AUTORITÀ NAZIONALE ANTICORRUZIONE. DISPOSIZIONI FINALI E TRANSITORIE PARTE I DEL CONTENZIOSO Titolo I I ricorsi giurisdizionali</heading>
+                </chapter>
+            <chapter eId="chp_XXXIX">
+                <num>-</num>
+                <heading>Titolo II I rimedi alternativi alla tutela giurisdizionale</heading>
+                </chapter>
+            <chapter eId="chp_XL">
+                <num>-</num>
+                <heading>PARTE II DELLA GOVERNANCE</heading>
+                </chapter>
+            <chapter eId="chp_XLI">
+                <num>-</num>
+                <heading>PARTE III DISPOSIZIONI TRANSITORIE, DI COORDINAMENTO E ABROGAZIONI</heading>
+                </chapter>
+        </body>
+        <conclusions>
+            <formula name="formulaFinaleConclusioni">
+                <p>Il presente decreto, munito del sigillo dello Stato, sara' inserito nella Raccolta ufficiale degli atti normativi della Repubblica italiana. E' fatto obbligo a chiunque spetti di osservarlo e di farlo osservare. </p>
+            </formula>
+            <p> Dato a Roma, addi' 31 marzo 2023 </p>
+            <p>MATTARELLA Meloni, Presidente del Consiglio dei ministri Salvini, Ministro delle infrastrutture e dei trasporti Fitto, Ministro per gli affari europei, il Sud, le politiche di coesione e il PNRR Alberti Casellati, Ministro per le riforme istituzionali e la semplificazione normativa Locatelli, Ministro per le disabilita' Tajani, Ministro degli affari esteri e della cooperazione internazionale Piantedosi, Ministro dell'interno Nordio, Ministro della giustizia Crosetto, Ministro della difesa Giorgetti, Ministro dell'economia e delle finanze Urso, Ministro delle imprese e del made in Italy Pichetto Fratin, Ministro dell'ambiente e della sicurezza energetica Calderone, Ministro del lavoro e delle politiche sociali Sangiuliano, Ministro della cultura Visto, il Guardasigilli: Nordio</p>
+        </conclusions>
+        <attachments>
+            <attachment>
+                <doc name="Allegati - Allegato I.01 art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_2"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2024-12-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_2"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_2.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p>((Allegato I.01 
+ 
+Contratti collettivi 
+ 
+(Articolo 11, commi 2 e 4) )) 
+ 
+Articolo 1 
+ 
+<ins eId="ins_267">(( (Ambito di applicazione) ))</ins> 
+ 
+1. <ins eId="ins_268">((Il presente Allegato disciplina i criteri e le modalita' per l'individuazione, nei bandi, negli inviti e nella decisione di contrarre di cui all'articolo 17, comma 2, del codice, del contratto collettivo nazionale e territoriale da applicare al personale impiegato nei lavori, servizi e forniture oggetto di appalti pubblici e concessioni, in vigore per il settore e per la zona nella quale si eseguono le prestazioni di lavoro, stipulato dalle associazioni dei datori e dei prestatori di lavoro comparativamente piu' rappresentative sul piano nazionale e quello il cui ambito di applicazione sia strettamente connesso con l'attivita' oggetto dell'appalto o della concessione svolta dall'impresa anche in maniera prevalente di cui all'articolo 11, commi 1 e 2, nonche' per la presentazione e verifica della dichiarazione di equivalenza delle tutele ai sensi dell'articolo 11, comma 4. Il presente Allegato disciplina altresi' i criteri e le modalita' per l'individuazione, nei bandi, negli inviti e nella decisione di contrarre di cui all'articolo 17, comma 2, del codice, dei contratti collettivi applicabili ai sensi dell'articolo 11, comma 2-bis, nonche' per la presentazione e verifica della relativa dichiarazione di equivalenza delle tutele ai sensi dell'articolo 11, comma 4.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.1-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_7"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2024-12-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_7"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_7.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Allegato I.1 
+ 
+Definizioni dei soggetti, dei contratti, delle procedure e degli strumenti 
+ 
+ (Articolo 13, comma 6) 
+ 
+ Articolo 1. 
+ Definizioni dei soggetti 
+ 
+1. Nel codice si intende per: 
+a) «stazione appaltante», qualsiasi soggetto, pubblico o privato, che affida contratti di appalto di lavori, servizi e forniture e che e' comunque tenuto, nella scelta del contraente, al rispetto del codice; 
+b) «ente concedente», qualsiasi amministrazione aggiudicatrice o ente aggiudicatore, ovvero altro soggetto pubblico o privato, che affida contratti di concessione di lavori o di servizi e che e' comunque tenuto, nella scelta del contraente, al rispetto del codice; 
+c) «amministrazioni centrali», Presidenza del Consiglio dei ministri, Ministero degli affari esteri e cooperazione internazionale, Ministero dell'interno (incluse le Prefetture-Uffici Territoriali del Governo e le direzioni regionali e interregionali dei vigili del fuoco), Ministero della giustizia e uffici giudiziari (esclusi i giudici di pace), Ministero della difesa, Ministero dell'economia e delle finanze, Ministero delle imprese e del made in Italy, Ministero dell'agricoltura, della sovranita' alimentare e delle foreste, Ministero dell'Ambiente e della sicurezza energetica, Ministero delle infrastrutture e dei trasporti, Ministero del lavoro e delle politiche sociali (incluse le sue articolazioni periferiche), Ministero della salute, Ministero dell'istruzione e merito, Ministero dell'universita' e della ricerca, Ministero della cultura (comprensivo delle sue articolazioni periferiche), Ministero del turismo, CONSIP S.p.A. (solo quando CONSIP agisce come centrale di committenza per le amministrazioni centrali), Agenzia nazionale dei beni sequestrati e confiscati alla criminalita' organizzata e i soggetti giuridici che sono loro succeduti; 
+d) «amministrazioni sub-centrali», tutte le pubbliche amministrazioni diverse dalle amministrazioni centrali di cui alla lettera c); 
+d-bis) <ins eId="ins_289">((«amministrazione procedente», tutte le pubbliche amministrazioni che avviano un procedimento amministrativo ai sensi dell'articolo 7 della legge del 7 agosto 1990, n. 241, e a cui compete l'adozione del provvedimento finale, ivi compresa la convocazione di una conferenza di servizi in nome proprio o, previa stipula di apposito accordo, in nome e per conto di altre pubbliche amministrazioni;))</ins> 
+e) «organismo di diritto pubblico», qualsiasi soggetto, anche avente forma societaria: 
+1) dotato di capacita' giuridica; 
+2) istituito per soddisfare specificatamente esigenze di interesse generale, attraverso lo svolgimento di un'attivita' priva di carattere industriale o commerciale; 
+3) la cui attivita' sia finanziata in modo maggioritario dallo Stato, dagli enti pubblici territoriali o da altri organismi di diritto pubblico, oppure la cui gestione sia soggetta al controllo di questi ultimi, oppure il cui organo d'amministrazione, di direzione o di vigilanza sia costituito da membri dei quali piu' della meta' e' designata dallo Stato, dagli enti pubblici territoriali o da altri organismi di diritto pubblico; 
+f) «impresa pubblica», l'impresa sulla quale le stazioni appaltanti possono esercitare, direttamente o indirettamente, un'influenza dominante o perche' ne sono proprietarie, o perche' vi hanno una partecipazione finanziaria, o in virtu' delle norme che disciplinano detta impresa. L'influenza dominante e' presunta quando le stazioni appaltanti, direttamente o indirettamente, riguardo all'impresa, alternativamente o cumulativamente: 
+1) detengono la maggioranza del capitale sottoscritto; 
+2) controllano la maggioranza dei voti cui danno diritto le azioni emesse dall'impresa; 
+3) possono designare piu' della meta' dei membri del consiglio di amministrazione, di direzione o di vigilanza dell'impresa; 
+g) «soggetti titolari di diritti esclusivi o speciali», i titolari di diritti concessi dallo Stato o dagli enti locali ovvero da altre amministrazioni pubbliche attraverso atti di carattere legislativo, regolamentare o amministrativo, adeguatamente pubblicati, aventi l'effetto di riservare, rispettivamente, a uno o piu' operatori economici l'esercizio delle attivita' previste dagli articoli da 146 a 152 del codice e di incidere sostanzialmente sulla capacita' di altri enti di esercitare tale attivita'. Non costituiscono diritti esclusivi o speciali i diritti concessi in virtu' di un procedimento a evidenza pubblica basato su criteri oggettivi e idoneo a garantire un'adeguata trasparenza; 
+h) «joint venture», l'associazione tra stazioni appaltanti o enti concedenti, finalizzata all'attuazione di un progetto o di una serie di progetti o di determinate intese di natura commerciale o finanziaria; 
+i) «centrale di committenza», una stazione appaltante o un ente concedente che fornisce attivita' di centralizzazione delle committenze in favore di altre stazioni appaltanti o enti concedenti e, se del caso, attivita' di supporto all'attivita' di committenza; 
+l) «operatore economico», qualsiasi persona o ente, anche senza scopo di lucro, che, a prescindere dalla forma giuridica e dalla natura pubblica o privata, puo' offrire sul mercato, in forza del diritto nazionale, prestazioni di lavori, servizi o forniture corrispondenti a quelli oggetto della procedura di evidenza pubblica; 
+m) «raggruppamento temporaneo», un insieme di imprenditori, o fornitori, o prestatori di servizi, costituito o costituendo, anche mediante scrittura privata, allo scopo di partecipare alla procedura di affidamento di uno specifico contratto pubblico mediante presentazione di una unica offerta; 
+n) «aggiudicatario», un operatore economico cui e' affidato un appalto o una concessione; 
+o) «micro, piccole e medie imprese», le imprese come definite nella raccomandazione n. 2003/361/CE della Commissione europea, del 6 maggio 2003; 
+p) «soggetti aggregatori», i soggetti di cui all'<ref eId="content__ref_566" href="/akn/it/act/decretoLegge/stato/2014-04-24/66/!main#art_9">articolo 9 del decreto-legge 24 aprile 2014, n. 66</ref>, convertito, con modificazioni, dalla <ref eId="content__ref_567" href="/akn/it/act/legge/stato/2014-06-23/89/!main">legge 23 giugno 2014, n. 89</ref>, iscritti di diritto nell'elenco ANAC ai sensi dell'articolo 63, comma 4, del codice; 
+q) «amministrazioni aggiudicatrici», le amministrazioni dello Stato, gli enti pubblici territoriali, gli altri enti pubblici non economici, gli organismi di diritto pubblico, le associazioni, unioni, consorzi, comunque denominati, costituiti da detti soggetti; 
+r) «enti aggiudicatori», i soggetti indicati all'<ref eId="content__ref_568" href="/akn/it/act/direttivaUe/eu/2014/23/!main">articolo 7 della direttiva 2014/23/UE del Parlamento europeo e del Consiglio, del 26 febbraio 2014</ref>; 
+s) «candidato», un operatore economico che ha sollecitato un invito o e' stato invitato a partecipare a una procedura ristretta, a una procedura competitiva con negoziazione, a una procedura negoziata senza previa pubblicazione di un bando di gara, a un dialogo competitivo o a un partenariato per l'innovazione o ad una procedura per l'aggiudicazione di una concessione; 
+t) «stazione appaltante qualificata», qualsiasi soggetto, pubblico o privato qualificato ai sensi dell'allegato II.4 al codice per gli affidamenti di lavori di importo pari o superiore a 500 mila euro e per l'acquisizione di servizi e forniture d'importo pari o superiore alle soglie previste per gli affidamenti diretti. 
+t-bis) <ins eId="ins_290">((«persone con disabilita'»: le persone di cui all'articolo 1 della legge 12 marzo 1999, n. 68;))</ins> 
+t-ter) <ins eId="ins_291">((«persone svantaggiate»: le persone di cui all'articolo 4, comma 1, della legge 8 novembre 1991, n. 381.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.4-art 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_20"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2023-04-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_20"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_20.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Allegato I.4 
+ 
+ Imposta di bollo relativa alla stipulazione del contratto 
+ 
+ (Articolo 18, comma 10) 
+ 
+ Articolo 1 
+ 
+1. Il valore dell'imposta di bollo, che l'appaltatore e' tenuto a versare al momento della stipula del contratto, e' determinato sulla base della Tabella A annessa al presente allegato. 
+2. L'imposta e' determinata sulla base di scaglioni crescenti in relazione all'importo massimo previsto nel contratto, ivi comprese eventuali opzioni o rinnovi esplicitamente stabiliti. Sono esenti dall'imposta gli affidamenti di importo inferiore a 40.000 euro. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_43"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2024-12-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_43"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_43.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> ALLEGATO I.7 
+Contenuti minimi del quadro esigenziale, del documento di fattibilita' delle alternative progettuali, del documento di indirizzo della progettazione, del progetto di fattibilita' tecnica ed economica e del progetto esecutivo 
+ (Articoli da 41 a 44) 
+ 
+ Articolo 1. 
+ Quadro esigenziale. 
+ 
+1. Il quadro esigenziale tiene conto di quanto previsto negli strumenti di programmazione del committente. Esso, per ciascun intervento da realizzare, in relazione alla tipologia dell'intervento stesso, riporta: 
+a) gli obiettivi generali da perseguire attraverso la realizzazione dell'intervento, con gli associati indicatori chiave di prestazione; 
+b) i fabbisogni, le esigenze qualitative e quantitative del committente, della collettivita' o della specifica utenza alla quale l'intervento e' destinato, che dovranno essere soddisfatti attraverso la realizzazione dell'intervento stesso; 
+2. <ins eId="ins_363">((Il documento di fattibilita' delle alternative progettuali, di cui all'articolo 2, puo' essere supportato dall'adozione dei metodi e strumenti di gestione informativa digitale di cui all'articolo 43, eventualmente integrati con i sistemi informativi geografici (Geographical Information System - GIS). A questo fine, il documento di fattibilita' delle alternative progettuali puo' essere integrato dallo sviluppo di modelli informativi e GIS su scala urbana o territoriale comprensivi dei piani di cantiere e da modelli informativi che riflettano lo stato dei luoghi e delle opere immobiliari o infrastrutturali esistenti.))</ins> 
+3. La redazione del quadro esigenziale e' di esclusiva competenza del committente. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 18">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_64"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2024-12-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_64"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_64.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Articolo 18. 
+ Cronoprogramma. 
+ 
+1. In coerenza con quanto previsto nel documento di indirizzo alla progettazione, il cronoprogramma rappresenta, mediante diagramma lineare, lo sviluppo temporale della attivita' di progettazione, di affidamento e di esecuzione dei lavori (suddivisi per macro-categorie). Per ciascuna di tali attivita', il cronoprogramma indica i tempi massimi previsti per lo svolgimento. 
+2. <ins eId="ins_409">((In caso di adozione dei metodi e degli strumenti di cui all'articolo 43 del codice, la stazione appaltante puo' richiedere l'utilizzo di sistemi di gestione informativa digitale relativa allo sviluppo temporale delle attivita' di progettazione e di esecuzione dei lavori, in coerenza con quanto previsto all'allegato II.14.))</ins> 
+2-bis. <ins eId="ins_410">((Nei casi di cui al comma 2, la relazione specialistica sulla modellazione informativa riporta l'equivalenza tra i contenuti informativi presenti nel cronoprogramma dell'intervento e quelli presenti nei modelli informativi, nonche' la descrizione del processo di generazione dell'elaborato a partire dai modelli informativi.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 30">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_76"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2024-12-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_76"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_76.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Articolo 30. 
+ Cronoprogramma. 
+ 
+1. Il progetto esecutivo e' corredato del cronoprogramma, costituito da un diagramma che rappresenta graficamente, in forma chiaramente leggibile, tutte le fasi attuative dell'intervento, ivi comprese le fasi di redazione del progetto esecutivo, di approvazione del progetto, di affidamento dei lavori, di esecuzione dei lavori, nonche' di collaudo o di emissione del certificato di regolare esecuzione dei lavori, ove previsti secondo la normativa in materia, e per ciascuna fase indica i relativi tempi di attuazione. Il cronoprogramma, inoltre, riporta, in particolare, la sequenza delle lavorazioni che afferiscono alla fase di esecuzione dei lavori, con la pianificazione delle lavorazioni gestibili autonomamente, e per ciascuna lavorazione rappresenta graficamente i relativi tempi di esecuzione e i relativi costi. 
+2. Nel calcolo del tempo contrattuale deve tenersi conto della prevedibile incidenza dei giorni di andamento stagionale sfavorevole. 
+3. Nei casi in cui i lavori siano affidati sulla base del progetto di fattibilita', secondo quanto previsto dal codice, il cronoprogramma e' presentato dal concorrente insieme con l'offerta. 
+4. Per i lavori complessi di cui all'articolo 2, comma 1, lettera d), dell'allegato I.1 al codice, e', inoltre, predisposto, sulla base del computo metrico estimativo di cui all'articolo31, un modello di controllo e gestione del processo di realizzazione dell'intervento attraverso l'utilizzo della metodologia di cui alla norma UNI ISO 21500 relativa alle strutture analitiche di progetto, secondo la seguente articolazione: 
+a) sistema delle esigenze e dei requisiti a base del progetto; 
+b) elementi che compongono il progetto; 
+c) elenco completo delle attivita' da svolgere ai fini della realizzazione dell'intervento; 
+d) definizione delle tempistiche di ciascuna delle attivita'. 
+d-bis) <ins eId="ins_428">((nei casi di adozione dei metodi e strumenti di gestione digitale delle costruzioni di cui all'articolo 43, descrizione dell'eventuale associazione tra la scomposizione gerarchica delle attivita', i dati e le informazioni contenute nei modelli informativi anche in termini di tempi e costi, in coerenza con gli obiettivi di progetto esecutivo.))</ins> 
+5. <ins eId="ins_429">((In caso di adozione dei metodi e degli strumenti di cui all'articolo 43 del codice, la stazione appaltante puo' richiedere l'utilizzo di sistemi di gestione informativa digitale relativa allo sviluppo temporale della attivita' di progettazione e di esecuzione dei lavori, in coerenza con quanto previsto dall'allegato II.14 al codice.))</ins> 
+5-bis. <ins eId="ins_430">((Nei casi di cui al comma 5, la relazione specialistica sulla modellazione informativa riporta l'equivalenza tra i contenuti informativi presenti nel cronoprogramma dell'intervento e quelli presenti nei modelli informativi, nonche' la descrizione del processo di generazione dell'elaborato predetto a partire dai modelli informativi.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 31">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_77"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2024-12-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_77"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_77.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Articolo 31. 
+Elenco prezzi unitari, computo metrico estimativo e quadro economico. 
+ 
+1. Il computo metrico estimativo e' redatto applicando alle quantita' delle lavorazioni da contabilizzare <ins eId="ins_431">((...))</ins> i relativi prezzi unitari; tali prezzi unitari sono dedotti dai prezzari ai sensi dell'articolo 41, comma 13, del codice, ove esistenti; le quantita' totali delle singole lavorazioni sono ricavate da computi di quantita' parziali, con indicazione puntuale dei corrispondenti elaborati grafici. <ins eId="ins_432">((Fermo restando quanto previsto dall'articolo 5, comma 1, lettera a), nel caso di lavorazioni))</ins> da contabilizzare a corpo, il computo metrico estimativo riporta soltanto il prezzo a corpo; al solo fine di pervenire alla determinazione di ciascun prezzo a corpo, e' redatto un distinto elaborato, non facente parte del computo metrico estimativo, redatto con le stesse modalita' del computo metrico estimativo, con riferimento alle sotto-lavorazioni che complessivamente concorrono alla formazione del prezzo a corpo.
+Le singole lavorazioni, risultanti dall'aggregazione delle rispettive voci dedotte dal computo metrico estimativo, sono poi raggruppate <ins eId="ins_433">((, sulla base degli indici sintetici previsti nell'Allegato II.2-bis))</ins>, in sede di redazione dello schema di contratto e del bando di gara, ai fini della definizione dei gruppi di categorie ritenute omogenee.
+Tale aggregazione avviene in forma tabellare con riferimento alle specifiche parti di opere cui le aliquote si riferiscono. 
+2. Per eventuali voci mancanti il relativo prezzo viene determinato mediante analisi: 
+a) applicando alle quantita' stimate di materiali, manodopera, noli e trasporti, necessari per la realizzazione delle quantita' unitarie di ogni voce, i rispettivi prezzi elementari dedotti attraverso l'utilizzo, ove esistenti, dei prezzari predisposti dalle regioni e dalle province autonome territorialmente competenti, ovvero da listini ufficiali o dai listini delle locali camere di commercio, oppure, in difetto, dai prezzi correnti di mercato; 
+b) aggiungendo una percentuale variabile tra il 13 e il 17 per cento, a seconda della importanza, della natura, della durata e di particolari esigenze dell'intervento, per spese generali; 
+c) aggiungendo, infine, una percentuale del 10 per cento per utile dell'esecutore. 
+3. In relazione alle specifiche caratteristiche dell'intervento, il computo metrico estimativo puo' prevedere le somme da accantonare per eventuali lavorazioni in amministrazione diretta, da prevedere nel contratto d'appalto o da inserire nel quadro economico tra quelle a disposizione della stazione appaltante. 
+4. Per spese generali comprese nel prezzo dei lavori e percio' a carico dell'appaltatore, si intendono: 
+a) le spese di contratto e accessorie e l'imposta di registro; 
+b) gli oneri finanziari generali e particolari, ivi comprese la cauzione definitiva o la garanzia globale di esecuzione, ove prevista, e le polizze assicurative; 
+c) la quota delle spese di organizzazione e gestione tecnico-amministrativa di sede dell'appaltatore; 
+d) la gestione amministrativa del personale di cantiere e la direzione tecnica di cantiere; 
+e) le spese per l'impianto, la manutenzione, l'illuminazione e la dismissione finale del cantiere, ivi inclusi i costi per l'utilizzazione di aree diverse da quelle poste a disposizione dal committente; sono escluse le spese relative alla sicurezza nei cantieri stessi non assoggettate a ribasso; 
+f) le spese per trasporto di qualsiasi materiale o mezzo d'opera franco cantiere; 
+g) le spese per attrezzi e opere provvisionali e per quanto altro occorre alla completa e perfetta esecuzione dei lavori; 
+h) le spese per rilievi, tracciati, verifiche, esplorazioni, capisaldi e simili che possono occorrere, anche su motivata richiesta del direttore dei lavori o del RUP o dell'organo di collaudo, dal giorno in cui viene effettuata la consegna dei lavori fino all'emissione del certificato di collaudo o all'emissione del certificato di regolare esecuzione; 
+i) le spese per le vie di accesso al cantiere, l'installazione e l'esercizio delle attrezzature e dei mezzi d'opera di cantiere; 
+l) le spese per idonei locali e per la necessaria attrezzatura da mettere a disposizione per l'ufficio di direzione lavori; 
+m) le spese per passaggio, per occupazioni temporanee e per risarcimento di danni per abbattimento di piante, per depositi o estrazioni di materiali; 
+n) le spese per la custodia e la buona conservazione delle opere fino all'emissione del certificato di collaudo o all'emissione del certificato di regolare esecuzione; 
+o) le spese di adeguamento del cantiere, le misure per la gestione del rischio aziendale, nonche' gli ulteriori oneri aziendali in osservanza del <ref eId="content__ref_631" href="/akn/it/act/decretoLegislativo/stato/2008-04-09/81/!main">decreto legislativo 9 aprile 2008, n. 81</ref>, da indicarsi in attuazione delle previsioni di cui all'articolo 108, comma 9 del codice, ai fini di quanto previsto dall'articolo 110 del codice; 
+p) gli oneri generali e particolari previsti dal capitolato speciale d'appalto. 
+5. L'elaborazione del computo metrico dell'intervento puo' essere effettuata anche attraverso programmi di gestione informatizzata, nel rispetto di quanto previsto dal presente articolo; se la progettazione e' affidata a progettisti esterni, i programmi devono essere preventivamente accettati dalla stazione appaltante o dall'ente concedente. 
+6. Il risultato del computo metrico estimativo e delle espropriazioni confluisce in un quadro economico redatto secondo quanto previsto dall'articolo 6. 
+7. Le varie voci di lavoro del computo metrico estimativo vanno aggregate secondo le rispettive categorie di appartenenza, generali e specializzate, allo scopo di rilevare i rispettivi importi, in relazione ai quali individuare: 
+a) la categoria prevalente; 
+b) le categorie scorporabili; 
+c) nell'ambito delle categorie di cui alla lettera b), le categorie di opere relative a lavori o componenti di notevole contenuto tecnologico o di rilevante complessita' tecnica, quali strutture, impianti e opere speciali, individuate ai sensi dell'allegato II.12 al codice. 
+8. <ins eId="ins_434">((In caso di adozione dei metodi e degli strumenti di cui all'articolo 43 del codice, la stazione appaltante puo' richiedere l'utilizzo di sistemi di gestione informativa digitale economica per gli aspetti relativi alla computazione dei lavori.))</ins> 
+8-bis. <ins eId="ins_435">((Nei casi di cui al comma 8, la relazione specialistica sulla modellazione informativa riporta l'equivalenza tra i contenuti informativi presenti nel computo metrico estimativo dell'intervento e quelli eventualmente presenti nei modelli informativi, nonche' la descrizione del processo di generazione dell'elaborato predetto a partire dai modelli informativi.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main/annesso_96"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                                <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2023-04-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_96"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                                <FRBRdate date="2026-08-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main/annesso_96.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                                <FRBRdate date="2023-03-31" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Allegato I.11 
+ 
+ Disposizioni relative all'organizzazione, alle competenze, 
+ alle regole di funzionamento, nonche' alle ulteriori attribuzioni  del Consiglio superiore dei lavori pubblici 
+ 
+ (Articolo 47, comma 4) 
+ 
+ 
+ Articolo 1. 
+ Ulteriori competenze e attribuzioni. 
+ 
+1. Il Consiglio superiore dei lavori pubblici, nell'ambito dei compiti attribuiti allo Stato e nel rispetto delle prerogative delle regioni e delle province autonome, delle province, delle citta' metropolitane e dei comuni, oltre a quanto previsto dall'articolo 47 del codice, esercita altresi' funzioni consultive ed esprime pareri: 
+a) su ogni questione a esso attribuita, quando previsto dalla legislazione vigente; 
+b) sui testi delle norme tecniche predisposte in attuazione del <ref eId="content__ref_647" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/2001-06-06/380/!main">testo unico delle disposizioni legislative e regolamentari in materia di edilizia</ref> di cui al <ref eId="content__ref_648" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/2001-06-06/380/!main">decreto del Presidente della Repubblica 6 giugno 2001, n. 380</ref>, nonche' delle <ref eId="content__ref_649" href="/akn/it/act/legge/stato/1974-02-02/64/!main">leggi 5 novembre 1971, n. 1086, e 2 febbraio 1974, n. 64</ref>, per i campi di applicazione originariamente previsti dai relativi testi normativi e non applicabili alla Parte I - Attivita' edilizia dello stesso testo unico di cui al <ref eId="content__ref_650" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/2001/380/!main">decreto del Presidente della Repubblica n. 380 del 2001</ref>; 
+c) sui testi delle norme tecniche predisposte in attuazione del nuovo <ref eId="content__ref_651" href="/akn/it/act/decretoLegislativo/stato/1992-04-30/285/!main">codice della strada</ref> di cui al <ref eId="content__ref_652" href="/akn/it/act/decretoLegislativo/stato/1992-04-30/285/!main">decreto legislativo 30 aprile 1992, n. 285</ref>; 
+d) sulle circolari e linee guida predisposte in attuazione e nei limiti delle leggi di cui alle lettere a), b) e c). 
+2. Il Consiglio superiore dei lavori pubblici, attraverso il Servizio tecnico centrale: 
+a) cura la predisposizione delle norme tecniche sulla sicurezza minima strutturale delle costruzioni da osservarsi su tutto il territorio nazionale; 
+b) cura la predisposizione di linee guida, istruzioni operative, documenti tecnici inerenti alle norme tecniche di cui alla lettera a); 
+c) esercita il coordinamento tecnico-scientifico dell'attivita' normativa, nazionale e in ambito europeo, nel settore dell'ingegneria civile e dei materiali e dei prodotti da costruzione per i quali e' di prioritaria importanza garantire il rispetto del requisito di base n. 1, "resistenza meccanica e stabilita'", di cui all'allegato I al regolamento (UE) n. 305/2011 del Parlamento europeo e del Consiglio, del 9 marzo 2011, che fissa condizioni armonizzate per la commercializzazione dei prodotti da costruzione, e al <ref eId="content__ref_653" href="/akn/it/act/decretoLegislativo/stato/2017-06-16/106/!main">decreto legislativo 16 giugno 2017, n. 106</ref>; 
+d) esercita, d'intesa con il Consiglio nazionale delle ricerche, la vigilanza sugli enti di cui alla <ref eId="content__ref_654" href="/akn/it/act/direttivaUe/eu/2015/1535/!main">direttiva (UE) 2015/1535 del Parlamento europeo e del Consiglio, del 9 settembre 2015</ref>, che svolgono le funzioni di organismo di normalizzazione limitatamente al campo dell'ingegneria civile e strutturale, ai sensi degli <ref eId="content__ref_655" href="/akn/it/act/legge/stato/1986-06-21/317/!main#art_4">articoli 4</ref> e <ref eId="content__ref_656" href="/akn/it/act/legge/stato/1986-06-21/317/!main#art_5">5 della legge 21 giugno 1986, n. 317</ref>. 
+3. Il Consiglio superiore dei lavori pubblici assicura l'assolvimento dei compiti di rappresentanza presso gli organismi tecnici dell'Unione europea preposti all'attuazione del regolamento (UE) n. 305/2011, e del <ref eId="content__ref_657" href="/akn/it/act/decretoLegislativo/stato/2017/106/!main">decreto legislativo n. 106 del 2017</ref>, riguardanti la qualificazione e la sicurezza dei materiali e dei prodotti per l'ingegneria civile. Individua, per i fini predetti, i rappresentanti tecnici nazionali. 
+4. Il Consiglio superiore dei lavori pubblici esprime parere sulle questioni comunque pertinenti alle materie di cui al comma 1, sottoposte al suo esame dagli organi costituzionali, dal Presidente del Consiglio dei ministri, dai singoli ministri, dai presidenti delle regioni e delle province autonome di Trento e di Bolzano, dagli enti locali, da altri enti pubblici e dalle autorita' indipendenti e puo' redigere norme tecniche particolari su richiesta degli stessi soggetti. Su richiesta del Ministro delle infrastrutture e dei trasporti, il Consiglio superiore dei lavori pubblici svolge, inoltre, specifiche missioni tecniche in merito a problematiche di particolare complessita'. 
+5. Il Consiglio superiore dei lavori pubblici esprime, altresi', parere sulle questioni comunque pertinenti alle materie di cui al comma 1, sottoposte al suo esame da associazioni riconosciute a livello nazionale, dal Consiglio Nazionale degli Ingegneri, dal Consiglio Nazionale degli Architetti, Pianificatori, Paesaggisti e Conservatori e dal Consiglio Nazionale dei Geologi. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            </attachments>
+    </act>
+</akomaNtoso>

@@ -77,9 +77,18 @@ class TestDannoBiologicoMicro:
             res_si["danno_base"] * 0.10, abs=0.01
         )
 
-    def test_dettaglio_punti_lunghezza(self):
-        res = _call("danno_biologico_micro", percentuale_invalidita=4, eta_vittima=25)
-        assert len(res["dettaglio_punti"]) == 4
+    def test_formula_art_139_valore_punto_per_punti(self):
+        # Art. 139 co. 2 lett. a) e co. 6: valore punto = base x coefficiente del grado,
+        # totale = valore punto x punti (come nelle tabelle allegate ai DM annuali)
+        res = _call("danno_biologico_micro", percentuale_invalidita=9, eta_vittima=0)
+        assert res["coefficiente_grado"] == 2.3
+        assert res["valore_punto"] == pytest.approx(res["punto_base"] * 2.3, abs=0.01)
+        assert res["danno_permanente"] == pytest.approx(res["punto_base"] * 2.3 * 9, abs=0.05)
+        res4 = _call("danno_biologico_micro", percentuale_invalidita=4, eta_vittima=25)
+        assert len(res4["dettaglio_punti"]) == 1
+        assert res4["danno_permanente"] == pytest.approx(
+            res4["punto_base"] * 1.3 * 4 * (1 - 0.005 * 15), abs=0.05
+        )
 
     def test_errore_percentuale_zero(self):
         res = _call("danno_biologico_micro", percentuale_invalidita=0, eta_vittima=30)
@@ -137,15 +146,19 @@ class TestDannoBiologicoMacro:
         res = _call("danno_biologico_macro", percentuale_invalidita=12, eta_vittima=35)
         assert res["punto_base_interpolato"] == pytest.approx(3128.0, abs=1.0)
 
-    def test_personalizzazione_50pct(self):
+    def test_personalizzazione_30pct_tetto_art_138(self):
         res = _call(
             "danno_biologico_macro",
             percentuale_invalidita=20,
             eta_vittima=30,
-            personalizzazione_pct=50.0,
+            personalizzazione_pct=30.0,
         )
-        assert res["maggiorazione_morale"] == pytest.approx(res["danno_base"] * 0.50, abs=0.01)
-        assert res["totale_risarcimento"] == pytest.approx(res["danno_base"] * 1.50, abs=0.01)
+        assert res["maggiorazione_morale"] == pytest.approx(res["danno_base"] * 0.30, abs=0.01)
+        assert res["totale_risarcimento"] == pytest.approx(res["danno_base"] * 1.30, abs=0.01)
+        assert "avvertenza" in res
+        oltre = _call("danno_biologico_macro", percentuale_invalidita=20, eta_vittima=30,
+                      personalizzazione_pct=50.0)
+        assert "errore" in oltre
 
     def test_coefficiente_eta_0_10(self):
         res = _call("danno_biologico_macro", percentuale_invalidita=10, eta_vittima=5)
@@ -196,6 +209,22 @@ class TestDannoBiologicoMacro:
 # ---------------------------------------------------------------------------
 
 class TestDannoParentale:
+    def test_milano_cap_coincide_con_tabella_a_punti_2024(self):
+        # Tribunale di Milano, Osservatorio, Tabelle integrate a punti ed. 2024: cap di
+        # 391.103,18 (genitori/figli/coniuge, 3.911,00 x 100 rivalutato 1,162268 su 336.500)
+        # e 169.830,60 (fratelli/nonni/nipoti). The site rounds them to 391.103 / 169.831.
+        for vittima, superstite, cap in (("figlio", "genitore", 391103.18), ("fratello", "fratello", 169830.60)):
+            res = _call("danno_parentale", vittima=vittima, superstite=superstite, tabella="milano",
+                        personalizzazione_pct=100)
+            assert res["importo_liquidato"] == pytest.approx(cap, abs=0.005)
+
+    def test_avvertenza_minimo_non_e_pavimento(self):
+        # Milano 2024: "calcolo risarcitorio: si parte da 0,00", so the range minimum is not a floor
+        res = _call("danno_parentale", vittima="figlio", superstite="genitore", tabella="milano")
+        assert "non e' un pavimento" in res["avvertenza"]
+        roma = _call("danno_parentale", vittima="coniuge", superstite="coniuge", tabella="roma")
+        assert "stima" in roma["avvertenza"]
+
     def test_milano_figlio_genitore_minimo(self):
         res = _call(
             "danno_parentale",
@@ -398,10 +427,10 @@ class TestRisarcimentoInail:
         assert res["indennizzo_capitale"] == pytest.approx(21000.0, abs=0.01)
 
     def test_permanente_oltre_16_rendita(self):
-        # 20% invalidità, 30000 retribuzione
-        # quota_biologica = 30000 * 0.20 * 0.40 = 2400
-        # quota_patrimoniale = 30000 * (20-16)/100 * 0.60 = 720
-        # rendita_annua = 3120
+        # 20% invalidity, 30000 retribuzione
+        # quota_biologica (simplified, STIMATO) = 30000 * 0.20 * 0.40 = 2400
+        # quota_patrimoniale = retribuzione x coefficient x grado (art. 13 co. 2 lett. b D.Lgs. 38/2000;
+        #   Tabella dei coefficienti DM 12/07/2000: 16-20% -> 0.4) = 30000 * 0.4 * 0.20 = 2400
         res = _call(
             "risarcimento_inail",
             retribuzione_annua=30000.0,
@@ -409,11 +438,13 @@ class TestRisarcimentoInail:
             tipo="permanente",
         )
         assert res["forma"] == "rendita"
-        assert res["rendita_annua"] == pytest.approx(3120.0, abs=0.01)
-        assert res["rendita_mensile"] == pytest.approx(260.0, abs=0.01)
+        assert res["quota_danno_patrimoniale"] == pytest.approx(2400.0, abs=0.01)
+        assert res["rendita_annua"] == pytest.approx(4800.0, abs=0.01)
+        assert res["rendita_mensile"] == pytest.approx(400.0, abs=0.01)
 
-    def test_permanente_16_quota_patrimoniale_zero(self):
-        # esattamente 16%: quota_patrimoniale = 0 (condizione >16 non soddisfatta)
+    def test_permanente_16_quota_patrimoniale(self):
+        # exactly 16%: 30000 * 0.4 * 0.16 = 1920 (coefficient 0.4 for 16-20%, DM 12/07/2000);
+        # the previous formula gave 0 at 16%
         res = _call(
             "risarcimento_inail",
             retribuzione_annua=30000.0,
@@ -421,7 +452,43 @@ class TestRisarcimentoInail:
             tipo="permanente",
         )
         assert res["forma"] == "rendita"
-        assert res["quota_danno_patrimoniale"] == pytest.approx(0.0, abs=0.01)
+        assert res["quota_danno_patrimoniale"] == pytest.approx(1920.0, abs=0.01)
+
+    def test_coefficienti_patrimoniali_per_fascia(self):
+        # Tabella dei coefficienti, DM 12/07/2000: 21-25 -> 0.5, 26-35 -> 0.6, 36-50 -> 0.7,
+        # 51-70 -> 0.8, 71-85 -> 0.9, 86-100 -> 1.0. Quota = 10000 * coeff * grado
+        for grado, coeff in ((21, 0.5), (25, 0.5), (26, 0.6), (35, 0.6), (36, 0.7), (50, 0.7),
+                             (51, 0.8), (70, 0.8), (71, 0.9), (85, 0.9), (86, 1.0), (100, 1.0)):
+            res = _call(
+                "risarcimento_inail",
+                retribuzione_annua=10000.0,
+                percentuale_invalidita=float(grado),
+                tipo="permanente",
+            )
+            assert res["coefficiente_patrimoniale"] == coeff, grado
+            assert res["quota_danno_patrimoniale"] == pytest.approx(10000.0 * coeff * grado / 100, abs=0.01)
+
+    def test_temporanea_carenza_art_73(self):
+        # art. 73 DPR 1124/1965: the employer pays the whole day of the accident and 60% for the
+        # carenza days; art. 68: INAIL pays 60% from the fourth day after, 75% from the 91st
+        res = _call(
+            "risarcimento_inail",
+            retribuzione_annua=36500.0,
+            percentuale_invalidita=0.0,
+            tipo="temporanea",
+        )
+        assert "intera retribuzione" in res["giorno_infortunio"]
+        assert "60%" in res["primi_3_giorni"]
+
+    def test_confine_capitale_rendita_a_16(self):
+        # art. 13 co. 2 lett. a: capital below 16%, rendita from 16% (15.5 is still capital)
+        res = _call(
+            "risarcimento_inail",
+            retribuzione_annua=30000.0,
+            percentuale_invalidita=15.5,
+            tipo="permanente",
+        )
+        assert res["forma"] == "capitale"
 
     def test_errore_tipo_invalido(self):
         res = _call(
@@ -491,19 +558,21 @@ class TestDannoNonPatrimoniale:
             eta_vittima=30,
             giorni_itt=20,
         )
-        # ITT 20 * 57.64 = 1152.8
-        assert res["componenti"]["danno_patrimoniale_emergente"]["itt"]["importo"] == pytest.approx(1152.8, abs=0.01)
+        # ITT 20 * 57.64 = 1152.8: danno biologico temporaneo (art. 139 co. 1 lett. b), not patrimoniale
+        assert res["componenti"]["danno_biologico_temporaneo"]["itt"]["importo"] == pytest.approx(1152.8, abs=0.01)
+        assert "itt" not in res["componenti"]["danno_patrimoniale_emergente"]
+        assert res["componenti"]["danno_patrimoniale_emergente"]["totale"] == 0.0
 
     def test_danno_morale_percentuale(self):
         res = _call(
             "danno_non_patrimoniale",
             percentuale_invalidita=5,
             eta_vittima=30,
-            danno_morale_pct=25.0,
+            danno_morale_pct=20.0,  # art. 139 co. 3: micro cap 20%
         )
         bio = res["componenti"]["danno_biologico"]
         morale = res["componenti"]["danno_morale"]["importo"]
-        assert morale == pytest.approx(bio * 0.25, abs=0.01)
+        assert morale == pytest.approx(bio * 0.20, abs=0.01)
 
     def test_danno_esistenziale_percentuale(self):
         res = _call(
@@ -523,17 +592,61 @@ class TestDannoNonPatrimoniale:
             eta_vittima=25,
             giorni_itt=5,
             spese_mediche=1000.0,
-            danno_morale_pct=15.0,
-            danno_esistenziale_pct=10.0,
+            danno_morale_pct=10.0,
+            danno_esistenziale_pct=5.0,
         )
         c = res["componenti"]
         expected = (
             c["danno_biologico"]
+            + c["danno_biologico_temporaneo"]["totale"]
             + c["danno_morale"]["importo"]
             + c["danno_esistenziale"]["importo"]
             + c["danno_patrimoniale_emergente"]["totale"]
         )
         assert res["totale_risarcimento"] == pytest.approx(expected, abs=0.01)
+
+    def test_micro_biologico_moltiplica_punti_per_coefficiente_del_grado(self):
+        # Art. 139 co. 1 lett. a) e co. 6 Cod. Ass.: valore punto = 988,45 x coeff(grado) x
+        # (1 - 0,005 x (eta - 10)), moltiplicato per i punti (DM 20/07/2026).
+        # 9 punti a 10 anni: 988,45 x 2,3 x 9 = 20.460,915 (il tool sommava i gradi: 13.937,15)
+        res = _call("danno_non_patrimoniale", percentuale_invalidita=9, eta_vittima=10)
+        assert res["componenti"]["danno_biologico"] == pytest.approx(20460.92, abs=0.01)
+        # 2 punti a 11 anni: 988,45 x 1,1 x 0,995 x 2 = 2.163,72 (il tool sommava i gradi: 2.065,37)
+        res = _call("danno_non_patrimoniale", percentuale_invalidita=2, eta_vittima=11)
+        assert res["componenti"]["danno_biologico"] == pytest.approx(2163.72, abs=0.01)
+        # 5 punti a 35 anni: 988,45 x 1,5 x 0,875 x 5 = 6.486,70
+        res = _call("danno_non_patrimoniale", percentuale_invalidita=5, eta_vittima=35)
+        assert res["componenti"]["danno_biologico"] == pytest.approx(6486.70, abs=0.01)
+
+    def test_micro_biologico_coincide_con_danno_biologico_micro(self):
+        a = _call("danno_non_patrimoniale", percentuale_invalidita=7, eta_vittima=55)
+        b = _call("danno_biologico_micro", percentuale_invalidita=7, eta_vittima=55)
+        assert a["componenti"]["danno_biologico"] == pytest.approx(b["danno_permanente"], abs=0.01)
+
+    def test_micro_personalizzazione_oltre_20_rifiutata(self):
+        # Art. 139 co. 3 Cod. Ass.: aumento "fino al 20 per cento", importo esaustivo: morale +
+        # esistenziale non si cumulano oltre il 20%.
+        res = _call(
+            "danno_non_patrimoniale",
+            percentuale_invalidita=4,
+            eta_vittima=30,
+            danno_morale_pct=15.0,
+            danno_esistenziale_pct=10.0,
+        )
+        assert "errore" in res
+        ok = _call(
+            "danno_non_patrimoniale",
+            percentuale_invalidita=4,
+            eta_vittima=30,
+            danno_morale_pct=15.0,
+            danno_esistenziale_pct=5.0,
+        )
+        assert "errore" not in ok
+
+    def test_itt_sopra_9_percento_57_64(self):
+        # DPR 12/2025 art. 3 co. 1: temporary damage is liquidated as art. 139 co. 1 lett. b): 20 x 57,64
+        res = _call("danno_non_patrimoniale", percentuale_invalidita=10, eta_vittima=40, giorni_itt=20)
+        assert res["componenti"]["danno_biologico_temporaneo"]["totale"] == pytest.approx(1152.80, abs=0.01)
 
     def test_errore_percentuale_zero(self):
         res = _call(
@@ -575,47 +688,92 @@ class TestDannoNonPatrimoniale:
 # ---------------------------------------------------------------------------
 
 class TestEquoIndennizzo:
+    # Rule: art. 1 co. 119 L. 662/1996 (Tabella 1): 2 x stipendio tabellare x category percentage
+    # (1: 100, 2: 92, 3: 75, 4: 61, 5: 44, 6: 27, 7: 12, 8: 6, una tantum 3), then art. 49 DPR 686/1957
+    # (-25% over 50, -50% over 60, age at the event) and art. 50 (halved with pensione privilegiata).
     def test_categoria_1_stipendio_50000(self):
-        # coeff=8.0, 100% invalidita → 50000 * 8.0 * 1.0 = 400000
+        # 2 x 50000 x 100% = 100000; the invalidity percentage does not enter the formula
         res = _call(
             "equo_indennizzo",
             categoria_tabella="1",
             percentuale_invalidita=100.0,
             stipendio_annuo=50000.0,
         )
-        assert res["equo_indennizzo"] == pytest.approx(400000.0, abs=0.01)
-        assert res["pensione_privilegiata"] is True
-        assert "nota_pensione" in res
+        assert res["equo_indennizzo"] == pytest.approx(100000.0, abs=0.01)
 
     def test_categoria_8_valore_corretto(self):
-        # coeff=0.7, 10% → 30000 * 0.7 * 0.10 = 2100
+        # Tabella 1 L. 662/1996: cat. 8 = 6% -> 2 x 25000 x 0.06 = 3000
         res = _call(
             "equo_indennizzo",
             categoria_tabella="8",
             percentuale_invalidita=10.0,
-            stipendio_annuo=30000.0,
+            stipendio_annuo=25000.0,
         )
-        assert res["equo_indennizzo"] == pytest.approx(2100.0, abs=0.01)
-        assert res["pensione_privilegiata"] is False
-        assert "nota_pensione" not in res
+        assert res["equo_indennizzo"] == pytest.approx(3000.0, abs=0.01)
 
-    def test_categoria_5_pensione_privilegiata(self):
+    def test_categoria_5_44_per_cento(self):
+        # cat. 5 = 44% -> 2 x 30000 x 0.44 = 26400
         res = _call(
             "equo_indennizzo",
             categoria_tabella="5",
             percentuale_invalidita=35.0,
-            stipendio_annuo=40000.0,
+            stipendio_annuo=30000.0,
         )
-        assert res["pensione_privilegiata"] is True
+        assert res["equo_indennizzo"] == pytest.approx(26400.0, abs=0.01)
 
-    def test_categoria_6_no_pensione(self):
+    def test_categoria_6_27_per_cento_senza_limite_pensione(self):
+        # cat. 6 = 27% -> 2 x 28000 x 0.27 = 15120; art. 50 halving is by circumstance, not by category
         res = _call(
             "equo_indennizzo",
             categoria_tabella="6",
             percentuale_invalidita=25.0,
-            stipendio_annuo=40000.0,
+            stipendio_annuo=28000.0,
         )
-        assert res["pensione_privilegiata"] is False
+        assert res["equo_indennizzo"] == pytest.approx(15120.0, abs=0.01)
+        res = _call(
+            "equo_indennizzo",
+            categoria_tabella="6",
+            percentuale_invalidita=25.0,
+            stipendio_annuo=28000.0,
+            pensione_privilegiata=True,
+        )
+        assert res["equo_indennizzo"] == pytest.approx(7560.0, abs=0.01)
+
+    def test_categorie_2_3_4_7_da_tabella_1(self):
+        # Tabella 1 L. 662/1996: 92, 75, 61, 12 percent of 2 x 10000
+        for cat, atteso in (("2", 18400.0), ("3", 15000.0), ("4", 12200.0), ("7", 2400.0)):
+            res = _call(
+                "equo_indennizzo",
+                categoria_tabella=cat,
+                percentuale_invalidita=50.0,
+                stipendio_annuo=10000.0,
+            )
+            assert res["equo_indennizzo"] == pytest.approx(atteso, abs=0.01), cat
+
+    def test_riduzione_per_eta_art_49(self):
+        # art. 49 co. 2 DPR 686/1957: -25% if over 50, -50% if over 60 (age at the event)
+        # cat. 5, stipendio 30000: base 26400 -> 26400 (50 y), 19800 (51 y), 19800 (60 y), 13200 (61 y)
+        atteso = {50: 26400.0, 51: 19800.0, 60: 19800.0, 61: 13200.0}
+        for eta, valore in atteso.items():
+            res = _call(
+                "equo_indennizzo",
+                categoria_tabella="5",
+                percentuale_invalidita=35.0,
+                stipendio_annuo=30000.0,
+                eta_evento=eta,
+            )
+            assert res["equo_indennizzo"] == pytest.approx(valore, abs=0.01), eta
+
+    def test_una_tantum_tabella_b(self):
+        # Tabella B: 3% of the first-category amount -> 2 x 25000 x 0.03 = 1500
+        for cat in ("9", "B", "una_tantum"):
+            res = _call(
+                "equo_indennizzo",
+                categoria_tabella=cat,
+                percentuale_invalidita=10.0,
+                stipendio_annuo=25000.0,
+            )
+            assert res["equo_indennizzo"] == pytest.approx(1500.0, abs=0.01), cat
 
     def test_avviso_abrogazione_presente(self):
         res = _call(
@@ -626,6 +784,8 @@ class TestEquoIndennizzo:
         )
         assert "ABROGATO" in res["attenzione"]
         assert "DL 201/2011" in res["attenzione"]
+        # art. 6 co. 1 DL 201/2011: the abrogation does not reach the security and defence comparto
+        assert "sicurezza" in res["attenzione"]
 
     def test_riferimento_normativo_presente(self):
         res = _call(
@@ -634,7 +794,7 @@ class TestEquoIndennizzo:
             percentuale_invalidita=70.0,
             stipendio_annuo=40000.0,
         )
-        assert "DPR 834/1981" in res["riferimento_normativo"]
+        assert "L. 662/1996" in res["riferimento_normativo"]
 
     def test_categoria_stringa_con_spazi(self):
         res = _call(
@@ -648,7 +808,7 @@ class TestEquoIndennizzo:
     def test_errore_categoria_invalida(self):
         res = _call(
             "equo_indennizzo",
-            categoria_tabella="9",
+            categoria_tabella="10",
             percentuale_invalidita=50.0,
             stipendio_annuo=30000.0,
         )
@@ -664,7 +824,7 @@ class TestEquoIndennizzo:
         assert "errore" in res
 
     def test_categoria_tutti_i_valori_validi(self):
-        for cat in ["1", "2", "3", "4", "5", "6", "7", "8"]:
+        for cat in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             res = _call(
                 "equo_indennizzo",
                 categoria_tabella=cat,

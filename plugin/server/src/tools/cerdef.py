@@ -8,11 +8,13 @@ from datetime import timedelta
 
 from src.server import mcp
 from src.lib import _clock
+from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.lib.cerdef.client import (
     ENTI,
     TIPO_ESTREMI,
     CerdefError,
+    CerdefNonTrovato,
     EsitoRicerca,
     search_giurisprudenza,
     fetch_provvedimento,
@@ -36,6 +38,12 @@ def _errore(exc: Exception) -> SearchResult:
         return SearchResult(
             success=False, source="cerdef", error_type="bad_input", error_message=str(exc),
             results_text=f"**Errore**: parametri non validi per CeRDEF. {exc}",
+        )
+    if isinstance(exc, CerdefNonTrovato):
+        # The portal does not know the id: neither an outage nor a failed read.
+        return SearchResult(
+            success=False, source="cerdef", error_type="not_found", error_message=str(exc),
+            results_text=f"**Errore**: {exc}.",
         )
     error_type = "source_error" if isinstance(exc, CerdefError) else "source_down"
     return SearchResult(success=False, source="cerdef", error_type=error_type, error_message=str(exc))
@@ -106,12 +114,14 @@ async def _cerca_giurisprudenza_tributaria_impl(
     return SearchResult(success=True, source="cerdef", num_found=len(docs), results_text="\n".join(lines))
 
 
-async def _cerdef_leggi_provvedimento_impl(guid: str) -> SearchResult:
+async def _cerdef_leggi_provvedimento_impl(guid: str, da_carattere: int = 1) -> SearchResult:
+    if (error := invalid_start(da_carattere)) is not None:
+        return SearchResult(success=False, source="cerdef", error_type="bad_input", results_text=error)
     try:
         detail = await fetch_provvedimento(guid)
     except Exception as exc:
         return _errore(exc)
-    return SearchResult(success=True, source="cerdef", num_found=1, results_text=format_detail(detail))
+    return SearchResult(success=True, source="cerdef", num_found=1, results_text=format_detail(detail, da_carattere))
 
 
 async def _ultime_sentenze_tributarie_impl(
@@ -208,18 +218,27 @@ async def cerca_giurisprudenza_tributaria(
 
 
 @mcp.tool(tags={"giurisprudenza", "fiscale"})
-async def cerdef_leggi_provvedimento(guid: str) -> str:
+async def cerdef_leggi_provvedimento(guid: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di un provvedimento CeRDEF tramite GUID.
 
     Usare dopo cerca_giurisprudenza_tributaria() o ultime_sentenze_tributarie()
     per leggere massima e testo integrale del provvedimento.
-    Il GUID e riportato in ogni risultato della ricerca.
+    Il GUID e riportato in ogni risultato della ricerca. Un GUID inesistente o
+    malformato e' segnalato come "provvedimento non trovato o GUID non valido",
+    non come fonte irraggiungibile. Il testo integrale e' troncato a 25000 caratteri
+    (la nota indica la lunghezza totale); la parte omessa si legge ripetendo la chiamata
+    con il da_carattere indicato nella nota. Le posizioni contano i caratteri del testo
+    integrale (la massima non e' inclusa). Con da_carattere > 1 restituisce i 25000
+    caratteri del testo integrale che partono da quella posizione, senza la massima.
     Restituisce: massima e testo integrale del provvedimento tributario.
 
     Args:
-        guid: GUID del provvedimento (es. "abc-123-def-456")
+        guid: GUID del provvedimento, tra graffe come lo riporta la ricerca
+            (es. "{B0F76E21-B5FA-4415-9D1D-44FF7B5741C1}")
+        da_carattere: Carattere del testo integrale da cui leggere (1 = inizio, default). Se il testo
+            supera il limite, la nota indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    result = await _cerdef_leggi_provvedimento_impl(guid)
+    result = await _cerdef_leggi_provvedimento_impl(guid, da_carattere)
     return result.to_str() if isinstance(result, SearchResult) else result
 
 

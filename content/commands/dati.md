@@ -2,8 +2,7 @@
 name: dati
 description: Mostra lo stato di freschezza delle tabelle dati del server e il backlog di riconciliazione, ordinato per quanto blocca davvero
 argument-hint: "[nome tabella opzionale, es. contributo_unificato]"
-tools: backlog_riconciliazione
----
+tools: backlog_riconciliazione, verbale_mensile, Bash, Read
 ---
 
 # Comando /dati — aggiornare le tabelle senza aprire il codice
@@ -42,6 +41,8 @@ tool bloccati, o più rifiuti osservati dal verbale).
 - Il `verbale_rifiuti` nel risultato del tool ha `disponibile: false` quando il
   ledger è spento: è il comportamento previsto, non un errore. Per attivarlo,
   `LEGAL_REFUSAL_LEDGER=on` nell'ambiente del server.
+- La serie storica dei rifiuti osservati (mese su mese) è il report di
+  `verbale_mensile` (`scripts/verbale-report.py` da terminale).
 - Lo stesso comando esiste per la manutenzione da terminale:
   `python3 scripts/update-data.py` (stessa derivazione, vista da CLI).
 - Non modificare mai il codice dei tool per cambiare un importo: gli importi

@@ -56,10 +56,31 @@ class TestCompetenzaGiudice:
         assert result["giudice_competente"] == "Tribunale"
         assert result["materia_riservata"] is True
 
-    def test_condominio_tribunale_riservata(self):
+    def test_condominio_non_riservato_al_tribunale(self):
+        # Art. 9 c.p.c. non menziona il condominio; art. 7 co. 1 (mobili fino a 10.000 euro)
+        # e co. 3 n. 2 (cause in materia di condominio, qualunque valore): 500 euro -> GdP.
         result = _call("competenza_giudice", valore_causa=500.0, materia="condominio")
-        assert result["giudice_competente"] == "Tribunale"
-        assert result["materia_riservata"] is True
+        assert result["giudice_competente"] == "Giudice di Pace"
+        assert result["materia_riservata"] is False
+        assert _call("competenza_giudice", valore_causa=20_000.0, materia="condominio")["giudice_competente"] == "Tribunale"
+
+    def test_materie_esclusive_art_9_co_2_e_immobili_tribunale(self):
+        # Art. 9 co. 2 c.p.c. (letto su Normattiva): querela di falso, imposte e tasse, esecuzione forzata.
+        for m in ("querela_di_falso", "imposte_tasse", "esecuzione_forzata", "usucapione", "immobili"):
+            assert _call("competenza_giudice", valore_causa=1_000.0, materia=m)["giudice_competente"] == "Tribunale", m
+
+    def test_art_7_co_3_gdp_qualunque_valore(self):
+        r = _call("competenza_giudice", valore_causa=500_000.0, materia="servitu")
+        assert r["giudice_competente"] == "Giudice di Pace"
+
+    def test_materia_non_riconosciuta_rifiutata(self):
+        with pytest.raises(ValueError):
+            _call("competenza_giudice", valore_causa=1_000.0, materia="astrologia")
+
+    def test_crisi_impresa_tribunale_comi_art_27_ccii(self):
+        r = _call("competenza_giudice", valore_causa=1.0, materia="crisi_impresa")
+        assert "specializzata" not in r["giudice_competente"].lower()
+        assert "27" in r["articolo"]
 
     def test_famiglia_tribunale_riservata(self):
         result = _call("competenza_giudice", valore_causa=0.0, materia="famiglia")
@@ -149,6 +170,24 @@ class TestVerificaMediazione:
         result = _call("verifica_mediazione_obbligatoria", materia="locazione")
         assert "28/2010" in result["riferimento_normativo"]
 
+    def test_rete_e_accenti_art_5_co_1(self):
+        # Art. 5 co. 1 D.Lgs. 28/2010 elenca 'rete', 'responsabilita' medica e sanitaria',
+        # 'societa' di persone' (letto su Normattiva): alias e accenti devono agganciarle.
+        for m in ("rete", "contratto di rete", "responsabilità medica", "società di persone"):
+            assert _call("verifica_mediazione_obbligatoria", materia=m)["obbligatoria"] is True, m
+
+    def test_generico_o_vuoto_non_agganciano_una_voce(self):
+        for m in ("contratti", "", "  "):
+            r = _call("verifica_mediazione_obbligatoria", materia=m)
+            assert r["obbligatoria"] is None and r["materia_trovata"] is None, m
+
+    def test_esclusioni_art_5_co_6_otto_lettere(self):
+        # Art. 5 co. 6 D.Lgs. 28/2010, lett. a)-h); i provvedimenti cautelari (co. 5) non sono esclusi.
+        r = _call("verifica_mediazione_obbligatoria", materia="condominio")
+        assert len(r["esclusioni_applicabili"]) == 8
+        assert not any("cautelar" in e.lower() for e in r["esclusioni_applicabili"])
+        assert "non preclude" in r["nota_provvedimenti_urgenti"]
+
     def test_materia_generica_non_trovata(self):
         result = _call("verifica_mediazione_obbligatoria", materia="diritto_sportivo")
         assert result["obbligatoria"] is False
@@ -234,6 +273,45 @@ class TestGratuitoPatrocinio:
             vittima_violenza=True,
         )
         assert result["ammesso"] is True
+
+    def test_interessi_in_conflitto_solo_reddito_personale(self):
+        # Art. 76 co. 4 DPR 115/2002: only the applicant's own income counts when
+        # the applicant's interests conflict with those of the cohabiting family.
+        # 9000 <= 13659.64, margin 4659.64 (the household 39000 would exceed it).
+        result = _call(
+            "gratuito_patrocinio",
+            reddito_richiedente=9_000.0,
+            n_familiari_conviventi=1,
+            redditi_familiari=[30_000.0],
+            interessi_in_conflitto=True,
+        )
+        assert result["ammesso"] is True
+        assert result["reddito_totale_nucleo"] == pytest.approx(9_000.0, abs=0.01)
+        assert result["margine"] == pytest.approx(4_659.64, abs=0.01)
+        assert result["solo_reddito_personale"] is True
+
+    def test_diritti_personalita_solo_reddito_personale(self):
+        # Art. 76 co. 4 DPR 115/2002: same rule when the case concerns personality rights.
+        result = _call(
+            "gratuito_patrocinio",
+            reddito_richiedente=9_000.0,
+            n_familiari_conviventi=1,
+            redditi_familiari=[30_000.0],
+            diritti_personalita=True,
+        )
+        assert result["ammesso"] is True
+        assert result["margine"] == pytest.approx(4_659.64, abs=0.01)
+
+    def test_senza_flag_reddito_nucleo_sommato(self):
+        # Art. 76 co. 2: without the co. 4 flags the household income is summed.
+        result = _call(
+            "gratuito_patrocinio",
+            reddito_richiedente=9_000.0,
+            n_familiari_conviventi=1,
+            redditi_familiari=[30_000.0],
+        )
+        assert result["ammesso"] is False
+        assert result["margine"] == pytest.approx(-25_340.36, abs=0.01)
 
     def test_reddito_negativo_errore(self):
         with pytest.raises(ValueError):

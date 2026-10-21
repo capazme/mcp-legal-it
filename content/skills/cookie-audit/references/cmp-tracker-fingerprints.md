@@ -14,7 +14,9 @@
 
 > Se i cookie di consenso della policy non combaciano con la CMP reale (es. la policy dichiara `OptanonConsent` ma il sito usa Complianz), è un **inventario auto-scansionato generico**: segnalalo come difetto di accuratezza.
 
-## Pattern degli ID tracker (per `inspect_container.sh` o grep manuale)
+## Pattern degli ID tracker (per `inspect_container.py` o grep manuale)
+
+Per i pixel di marketing (ID, endpoint, parametri, piattaforme email sul sito, segnali di consenso nelle chiamate) vedi `pixel-fingerprints.md`.
 
 | Strumento | Pattern ID | Note |
 |-----------|-----------|------|

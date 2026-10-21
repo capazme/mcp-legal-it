@@ -2,9 +2,10 @@
 
 I valori attesi dei prospetti sono quelli validati su pratiche reali di recupero
 crediti seriale (D.M. 55/2014 agg. D.M. 147/2022): monitorio scaglione fino a
-€ 5.200 → totale documento € 378,70; scaglione € 5.201-26.000 → € 453,78;
+€ 5.200 → totale documento € 377,90; scaglione € 5.201-26.000 → € 452,98
+(minimi = medio / 2 esatto, art. 4 co. 1 D.M. 55/2014: 236,50 e 283,50);
 opposizione a valori medi su € 55.898,69 → € 22.534,57; esecuzione forzata
-(minimi, scaglione base) → liquidabile € 656,60 e complessivo € 942,60.
+(minimi Tabella 17 D.M. 147/2022, scaglione base 165,50 + 283,50) → liquidabile € 655,14.
 """
 
 import importlib
@@ -115,10 +116,13 @@ class TestGeneraQuotazioneDocx:
             **_QUOTAZIONE_KWARGS,
         )
         testo = _leggi_docx(result)
-        assert "€ 237,00" in testo          # fase unica, minimo
-        assert "€ 378,70" in testo          # totale documento
+        # Tabella 8 D.M. 147/2022: medio 473; minimo = 473 x 50% = 236,50 (art. 4 co. 1 D.M. 55/2014).
+        # 236,50 + 30% (art. 4 co. 1-bis) = 307,45; SG 15% 46,12; CPA 4% 14,14; IVA 22% 80,90;
+        # liquidabile 448,61; ritenuta 20% su 353,57 = 70,71; totale documento 377,90
+        assert "€ 236,50" in testo          # fase unica, minimo
+        assert "€ 377,90" in testo          # totale documento
         assert "€ 49,00" in testo           # CU dimezzato
-        assert "€ 525,56" in testo          # complessivo con oneri
+        assert "€ 524,61" in testo          # complessivo con oneri (448,61 + CU 49 + marca 27)
         assert "Per integrale accettazione" in testo
 
     def test_monitorio_secondo_scaglione(self):
@@ -128,8 +132,9 @@ class TestGeneraQuotazioneDocx:
             **_QUOTAZIONE_KWARGS,
         )
         testo = _leggi_docx(result)
-        assert "€ 284,00" in testo
-        assert "€ 453,78" in testo
+        # Tabella 8, scaglione 5.200,01-26.000: medio 567, minimo 283,50; totale documento 452,98
+        assert "€ 283,50" in testo
+        assert "€ 452,98" in testo
         assert "€ 118,50" in testo          # CU dimezzato scaglione 5.201-26.000
 
     def test_monitorio_medi_usa_tabella_ministeriale(self):
@@ -171,8 +176,9 @@ class TestGeneraQuotazioneDocx:
             **_QUOTAZIONE_KWARGS,
         )
         testo = _leggi_docx(result)
-        assert "€ 332,00" in testo          # 66+66+100+100 minimi fino a 1.100
-        assert "€ 530,48" in testo          # totale documento
+        # Tabella 2: medi fino a 1.100 = 131+131+200+200; minimi = medio / 2 = 65,50+65,50+100+100 = 331
+        assert "€ 331,00" in testo
+        assert "€ 528,89" in testo          # totale documento
 
     def test_esecuzione(self):
         result = _call(
@@ -181,9 +187,12 @@ class TestGeneraQuotazioneDocx:
             **_QUOTAZIONE_KWARGS,
         )
         testo = _leggi_docx(result)
-        assert "€ 450,00" in testo          # 166 + 284
-        assert "€ 656,60" in testo          # liquidabile
-        assert "€ 942,60" in testo          # con CU 139 + marca 27 + forfait 120
+        # Tabella 17 D.M. 147/2022, scaglione 1.100,01-5.200: minimi 165,50 + 283,50 = 449,00
+        assert "€ 449,00" in testo
+        assert "€ 655,14" in testo          # liquidabile
+        # CU esecuzione mobiliare sotto 2.500 euro: 43 (art. 13 co. 2 DPR 115/2002) + marca 27 + forfait 120
+        assert "€ 845,14" in testo
+        assert "€ 43,00" in testo
         assert "pignoramento" in testo
         assert "ritenuta" not in testo.lower()   # il prospetto esecuzione non ha RA
         assert "PCT" not in testo                # e nessun aumento 30%
@@ -253,3 +262,22 @@ class TestGeneraQuotazioneDocx:
             **_QUOTAZIONE_KWARGS,
         )
         assert "File salvato" in r
+
+
+    def test_esecuzione_default_sotto_1100_tabella_17(self):
+        """Tabella 17 D.M. 147/2022, scaglione fino a 1.100: minimi 55 + 118 = 173 (non 449)."""
+        testo = _leggi_docx(_call(
+            "genera_quotazione_docx", tipo="esecuzione",
+            valore_causa=1000, debitore="Delta S.r.l.", **_QUOTAZIONE_KWARGS,
+        ))
+        assert "€ 55,00" in testo and "€ 118,00" in testo
+        assert "€ 173,00" in testo
+        assert "€ 449,00" not in testo
+
+    def test_etichetta_aumento_pct_fino_al_30(self):
+        """Art. 4 co. 1-bis D.M. 55/2014 vigente: aumento 'fino al 30 per cento'."""
+        testo = _leggi_docx(_call(
+            "genera_quotazione_docx", tipo="monitorio", valore_causa=3633.77,
+            debitore="Delta S.r.l.", **_QUOTAZIONE_KWARGS,
+        ))
+        assert "fino al 30%" in testo and "D.M. 55/2014" in testo
