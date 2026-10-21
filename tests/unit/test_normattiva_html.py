@@ -99,3 +99,18 @@ class TestRepealedArticleWithMalformedMarkup:
 def test_the_amendment_markers_are_kept():
     """«(( … ))» says which words a later act inserted: part of the text a lawyer reads."""
     assert "((" in estrai_da_html(_html("cp_544_abrogato_trimmed.html"))
+
+
+@pytest.mark.parametrize("contenuto", ["[]", '"x"', '{"schema": 1}', '{"url": "u", "testo": null}'])
+def test_a_page_record_that_is_not_one_is_dropped(tmp_path, monkeypatch, contenuto):
+    # A valid JSON that is not a record failed every read of that URL, for ever.
+    from mcp_legal_it.lib.visualex import pagine_normattiva
+
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path))
+    pagine_normattiva.svuota_memoria()
+    url = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241~art1"
+    path = pagine_normattiva._dir() / f"{pagine_normattiva._chiave(url)}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(contenuto, encoding="utf-8")
+    assert pagine_normattiva.leggi(url) is None
+    assert not path.exists()
