@@ -531,6 +531,9 @@ entry, it is the same feature as ported to the 3.0 line.
 - The disposizioni di attuazione del c.p.c. are dated 18/12/1941 (R.D. n. 1368)
   in citations and URNs, not 25/08/1941; a test cross-checks the dates of every
   code across the three tables that state them.
+- Corte costituzionale with `LEGAL_CACHE=off`: each decade bundle (~56 MB) is
+  downloaded once per process and kept in memory (cap 256 MB), instead of on
+  every call; concurrent calls share one download.
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
   caller and was fetched as is: on the HTTP transport any client could read
   pages reachable from the server (localhost, cloud metadata, intranet). Only
