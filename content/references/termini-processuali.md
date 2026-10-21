@@ -16,8 +16,9 @@ PRIMO GRADO
 | Terza memoria (prove contrarie) | 10 gg prima dell'udienza | art. 171-ter, co. 3 |
 | Deposito CTU | termine fissato dal giudice | art. 195 |
 | Osservazioni alla CTU | 30 gg dal deposito CTU (salvo diverso) | art. 195, co. 3 |
-| Comparse conclusionali | 60 gg da rimessione | art. 190 |
-| Memorie di replica | 30 gg successivi | art. 190 |
+| Precisazione delle conclusioni | termine non superiore a 60 gg prima dell'udienza di rimessione | art. 189, co. 1, n. 1 |
+| Comparse conclusionali | termine non superiore a 30 gg prima dell'udienza | art. 189, co. 1, n. 2 |
+| Memorie di replica | termine non superiore a 15 gg prima dell'udienza | art. 189, co. 1, n. 3 |
 | Deposito sentenza | 30 gg (rito semplificato) / 60 gg (ordinario) | art. 275 |
 
 ═══════════════════════════════════════════════════════════

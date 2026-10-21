@@ -35,7 +35,7 @@ Indica una percentuale di personalizzazione motivata.
 ### 3. Attualizzazione
 
 1. `rivalutazione_monetaria` dalla data evento
-2. `interessi_legali` sulla somma rivalutata
+2. Interessi compensativi (Cass. SS.UU. 1712/1995) non sul capitale interamente rivalutato, che sarebbe una sovra-compensazione, ma sulla somma progressivamente rivalutata o, in via semplificata, sul valore medio: `interessi_legali` sulla base `(somma_originaria + somma_rivalutata) / 2`
 
 ## Formato output
 
