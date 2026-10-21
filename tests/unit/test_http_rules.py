@@ -216,9 +216,9 @@ class TestLimiti:
         client._transport.interno = httpx.MockTransport(handler)
         async with client:
             async with client.stream("GET", NORMATTIVA) as r:
-                assert _http._ciclo().semafori["normattiva"]._value == 2
+                assert _http._fonte("normattiva").in_volo == 1
                 await r.aread()
-            assert _http._ciclo().semafori["normattiva"]._value == 3
+            assert _http._fonte("normattiva").in_volo == 0
 
     async def test_a_failed_request_gives_its_slot_back(self):
         def rotto(request):
@@ -230,7 +230,47 @@ class TestLimiti:
             for _ in range(5):
                 with pytest.raises(httpx.ConnectError):
                     await client.get(NORMATTIVA)
-        assert _http._ciclo().semafori["normattiva"]._value == 3
+        assert _http._fonte("normattiva").in_volo == 0
+
+
+class TestTraThread:
+    """The limits are per process: several threads, each with its own event loop, share them."""
+
+    def test_three_threads_never_exceed_the_cap_nor_the_interval(self, monkeypatch):
+        import threading
+
+        monkeypatch.setattr(_http, "POLITICA", _http.Politica(concorrenza=3, intervallo=0.05))
+        lock = threading.Lock()
+        in_volo = massimo = 0
+        inizi: list[float] = []
+
+        async def lento(request):
+            nonlocal in_volo, massimo
+            with lock:
+                in_volo += 1
+                massimo = max(massimo, in_volo)
+                inizi.append(time.monotonic())
+            await asyncio.sleep(0.1)
+            with lock:
+                in_volo -= 1
+            return httpx.Response(200, stream=httpx.ByteStream(b"ok"))
+
+        async def lavora():
+            client = async_client("normattiva")
+            client._transport.interno = httpx.MockTransport(lento)
+            async with client:
+                await asyncio.gather(*(client.get(NORMATTIVA) for _ in range(4)))
+
+        threads = [threading.Thread(target=lambda: asyncio.run(lavora())) for _ in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+        assert len(inizi) == 12
+        assert massimo == 3
+        inizi.sort()
+        assert all(b - a >= 0.045 for a, b in zip(inizi, inizi[1:])), inizi
+        assert _http._fonte("normattiva").in_volo == 0
 
 
 # ---------------------------------------------------------------------------
@@ -263,22 +303,23 @@ class TestPausa:
             await client.get(NORMATTIVA)
         assert _http._fonte("normattiva").non_prima == 0.0
 
-    async def test_a_pause_longer_than_the_limit_is_refused_at_once(self):
-        copione = Copione(httpx.Response(429, headers={"Retry-After": "120"}))
+    async def test_a_long_retry_after_holds_the_source_only_up_to_the_cap(self, monkeypatch):
+        """A 503 announcing an hour of maintenance: the others wait the cap, not the hour."""
+        monkeypatch.setattr(_http, "MAX_ATTESA_PAUSA", 0.3)
+        copione = Copione(httpx.Response(503, headers={"Retry-After": "3600"}), httpx.Response(200, text="ok"))
         async with cliente("italgiure", copione) as client:
             await client.get("https://www.italgiure.giustizia.it/sncass/")
             t0 = time.monotonic()
-            with pytest.raises(FontePausata) as err:
-                await client.get("https://www.italgiure.giustizia.it/sncass/")
-        assert time.monotonic() - t0 < 0.1 and err.value.retry_after > 100
-        assert len(copione.richieste) == 1
+            r = await client.get("https://www.italgiure.giustizia.it/sncass/")  # the site is back
+        assert r.status_code == 200 and 0.25 <= time.monotonic() - t0 < 1.0
+        assert len(copione.richieste) == 2
 
     @pytest.mark.parametrize("valore", ["inf", "Infinity", "1e400", "nan"])
     def test_a_retry_after_that_is_not_finite_is_ignored(self, valore):
         assert pausa_dichiarata(httpx.Headers({"Retry-After": valore})) is None
 
-    def test_a_huge_retry_after_is_capped_at_a_day(self):
-        assert pausa_dichiarata(httpx.Headers({"Retry-After": "99999999"})) == _http.PAUSA_MASSIMA
+    def test_the_statement_is_read_as_given_and_capped_only_when_recorded(self):
+        assert pausa_dichiarata(httpx.Headers({"Retry-After": "3600"})) == 3600.0
 
     async def test_an_infinite_retry_after_does_not_hold_the_source(self):
         copione = Copione(httpx.Response(429, headers={"Retry-After": "inf"}), httpx.Response(200, text="ok"))
@@ -286,7 +327,9 @@ class TestPausa:
             await client.get("https://www.italgiure.giustizia.it/sncass/")
             assert (await client.get("https://www.italgiure.giustizia.it/sncass/")).status_code == 200
 
-    async def test_a_source_without_a_host_list_is_paused_per_host(self):
+    async def test_a_source_without_a_host_list_is_paused_per_host(self, monkeypatch):
+        monkeypatch.setattr(_http, "MAX_ATTESA_PAUSA", 0.3)
+
         def handler(request):
             if request.url.host == "lento.example.com":
                 return httpx.Response(429, headers={"Retry-After": "120"})
@@ -294,9 +337,11 @@ class TestPausa:
 
         async with cliente("dpa_probe", handler) as client:
             await client.get("https://lento.example.com/")
-            with pytest.raises(FontePausata):
-                await client.get("https://lento.example.com/legal/dpa")
+            t0 = time.monotonic()
             assert (await client.get("https://altro.example.com/legal/dpa")).status_code == 200
+            assert time.monotonic() - t0 < 0.2  # another vendor is not held
+            await client.get("https://lento.example.com/legal/dpa")
+            assert time.monotonic() - t0 >= 0.25  # the slow one waited its pause
 
     def test_retry_after_as_an_http_date(self):
         fra_dieci = email.utils.formatdate(time.time() + 10, usegmt=True)
@@ -319,12 +364,15 @@ class TestRetryRequest:
         assert r.status_code == 200 and len(copione.richieste) == 2 and time.monotonic() - t0 >= 0.18
 
     async def test_a_stated_wait_over_the_limit_ends_the_call_without_retrying(self):
-        copione = Copione(httpx.Response(429, headers={"Retry-After": "600"}))
+        copione = Copione(httpx.Response(503, headers={"Retry-After": "3600"}))
         async with cliente("italgiure", copione) as client:
             t0 = time.monotonic()
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(FontePausata) as err:
                 await retry_request(client, "GET", "https://www.italgiure.giustizia.it/sncass/", backoff_base=0.01)
         assert len(copione.richieste) == 1 and time.monotonic() - t0 < 0.1
+        assert err.value.retry_after == 3600 and "3600 s" in str(err.value)
+        # The source is held for the cap at most, never the hour it announced.
+        assert _http._fonte("italgiure").non_prima - time.monotonic() <= _http.MAX_ATTESA_PAUSA
 
     async def test_a_spent_budget_gives_up_without_sleeping_through_retry_after(self):
         copione = Copione(httpx.Response(503, headers={"Retry-After": "20"}))
@@ -444,7 +492,7 @@ class TestInterruttore:
                 await prova
             client._transport.interno = httpx.MockTransport(lambda r: httpx.Response(200))
             assert (await client.get(NORMATTIVA)).status_code == 200  # a new trial is admitted
-        assert stato.aperto_da is None and _http._ciclo().semafori["normattiva"]._value == 3
+        assert stato.aperto_da is None and stato.in_volo == 0
 
     async def test_a_trial_cancelled_before_it_leaves_does_not_keep_the_source_suspended(self, monkeypatch):
         """Cancelled while it waits for the interval: it never reached the network."""

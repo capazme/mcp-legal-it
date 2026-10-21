@@ -189,6 +189,9 @@ async def _sonda_dominio(dominio: str) -> EsitoSonda:
         try:
             r = await client.get(base + _SONDA_404)
             note_source("dpa_probe", str(r.url))
+            if r.status_code == 429:
+                # Rate-limited from the first request: asking eight more paths would only insist.
+                return EsitoSonda(VERDETTO_BLOCCATO, errore="il sito limita le richieste (429)")
             if r.status_code == 200:
                 impronta_404 = _impronta(r.text)
         except (FontePausata, FonteSospesa) as exc:
