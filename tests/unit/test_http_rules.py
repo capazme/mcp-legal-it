@@ -273,6 +273,31 @@ class TestPausa:
         assert time.monotonic() - t0 < 0.1 and err.value.retry_after > 100
         assert len(copione.richieste) == 1
 
+    @pytest.mark.parametrize("valore", ["inf", "Infinity", "1e400", "nan"])
+    def test_a_retry_after_that_is_not_finite_is_ignored(self, valore):
+        assert pausa_dichiarata(httpx.Headers({"Retry-After": valore})) is None
+
+    def test_a_huge_retry_after_is_capped_at_a_day(self):
+        assert pausa_dichiarata(httpx.Headers({"Retry-After": "99999999"})) == _http.PAUSA_MASSIMA
+
+    async def test_an_infinite_retry_after_does_not_hold_the_source(self):
+        copione = Copione(httpx.Response(429, headers={"Retry-After": "inf"}), httpx.Response(200, text="ok"))
+        async with cliente("italgiure", copione) as client:
+            await client.get("https://www.italgiure.giustizia.it/sncass/")
+            assert (await client.get("https://www.italgiure.giustizia.it/sncass/")).status_code == 200
+
+    async def test_a_source_without_a_host_list_is_paused_per_host(self):
+        def handler(request):
+            if request.url.host == "lento.example.com":
+                return httpx.Response(429, headers={"Retry-After": "120"})
+            return httpx.Response(200, text="ok")
+
+        async with cliente("dpa_probe", handler) as client:
+            await client.get("https://lento.example.com/")
+            with pytest.raises(FontePausata):
+                await client.get("https://lento.example.com/legal/dpa")
+            assert (await client.get("https://altro.example.com/legal/dpa")).status_code == 200
+
     def test_retry_after_as_an_http_date(self):
         fra_dieci = email.utils.formatdate(time.time() + 10, usegmt=True)
         assert 8 <= pausa_dichiarata(httpx.Headers({"Retry-After": fra_dieci})) <= 10
@@ -399,6 +424,46 @@ class TestInterruttore:
             await client.get(NORMATTIVA)
             with pytest.raises(FonteSospesa):
                 await client.get(NORMATTIVA)
+
+    async def test_a_cancelled_trial_does_not_keep_the_source_suspended(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_CIRCUIT_BREAKER", "on")
+
+        async def appeso(request):
+            await asyncio.sleep(10)
+            return httpx.Response(200)
+
+        client = async_client("normattiva")
+        client._transport.interno = httpx.MockTransport(appeso)
+        stato = _http._fonte("normattiva")
+        stato.guasti, stato.aperto_da = 3, time.monotonic() - _http.SOSPENSIONE - 1
+        async with client:
+            prova = asyncio.create_task(client.get(NORMATTIVA))
+            await asyncio.sleep(0.02)
+            prova.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await prova
+            client._transport.interno = httpx.MockTransport(lambda r: httpx.Response(200))
+            assert (await client.get(NORMATTIVA)).status_code == 200  # a new trial is admitted
+        assert stato.aperto_da is None and _http._ciclo().semafori["normattiva"]._value == 3
+
+    async def test_a_trial_cancelled_before_it_leaves_does_not_keep_the_source_suspended(self, monkeypatch):
+        """Cancelled while it waits for the interval: it never reached the network."""
+        monkeypatch.setenv("LEGAL_CIRCUIT_BREAKER", "on")
+        monkeypatch.setattr(_http, "POLITICA", _http.Politica(intervallo=0.5))
+        client = cliente("normattiva", Copione())
+        stato = _http._fonte("normattiva")
+        stato.guasti, stato.aperto_da = 3, time.monotonic() - _http.SOSPENSIONE - 1
+        stato.ultima = time.monotonic()  # the trial must wait the interval first
+        async with client:
+            prova = asyncio.create_task(client.get(NORMATTIVA))
+            await asyncio.sleep(0.05)
+            assert stato.prova_in_corso
+            prova.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await prova
+            assert not stato.prova_in_corso
+            assert (await client.get(NORMATTIVA)).status_code == 200  # a new trial is admitted
+        assert stato.aperto_da is None
 
     async def test_only_one_trial_at_a_time(self, monkeypatch):
         monkeypatch.setenv("LEGAL_CIRCUIT_BREAKER", "on")
