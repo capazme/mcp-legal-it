@@ -14,6 +14,35 @@ def _call(fn_name: str, **kwargs):
 # scadenza_processuale
 # ---------------------------------------------------------------------------
 
+class TestScadenzaProcessualeNatura:
+    """Art. 155 co. 5 c.p.c. (the Saturday) covers processual acts only."""
+
+    def test_sostanziale_non_proroga_il_sabato(self):
+        # 01/05/2025 + 30 = sabato 31/05/2025
+        r = _call("scadenza_processuale", data_evento="2025-05-01", giorni=30, natura="sostanziale")
+        assert r["scadenza"] == "2025-05-31"
+        assert r["prorogata_art_155"] is False
+
+    def test_processuale_proroga_il_sabato(self):
+        # sabato 31/05 -> domenica 01/06 -> 2 giugno festivo -> martedi 03/06
+        r = _call("scadenza_processuale", data_evento="2025-05-01", giorni=30)
+        assert r["scadenza"] == "2025-06-03"
+        assert r["natura"] == "processuale"
+
+    def test_sostanziale_proroga_domenica_e_festivi(self):
+        # 01/05/2025 + 31 = domenica 01/06, lunedi 02/06 festivo -> martedi 03/06
+        r = _call("scadenza_processuale", data_evento="2025-05-01", giorni=31, natura="sostanziale")
+        assert r["scadenza"] == "2025-06-03"
+
+    def test_sostanziale_rifiuta_sospensione_feriale(self):
+        r = _call("scadenza_processuale", data_evento="2025-07-01", giorni=30,
+                  natura="sostanziale", sospensione_feriale=True)
+        assert "errore" in r
+
+    def test_natura_non_valida(self):
+        assert "errore" in _call("scadenza_processuale", data_evento="2025-05-01", giorni=30, natura="x")
+
+
 class TestScadenzaProcessuale:
 
     def test_30_giorni_calendario_lunedi(self):

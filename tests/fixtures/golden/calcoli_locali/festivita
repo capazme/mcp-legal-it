@@ -22,7 +22,7 @@
     "data_evento": "2021-01-01",
     "giorni": 30
    },
-   "expected": "{\"data_evento\":\"2021-01-01\",\"giorni\":30,\"tipo\":\"calendario\",\"scadenza\":\"2021-02-01\",\"prorogata_art_155\":true,\"giorno_settimana\":\"lunedì\",\"sospensione_feriale_applicata\":false,\"sospensione_feriale_incidente\":false,\"riferimento_normativo\":\"Art. 155 c.p.c. — se il termine scade in giorno festivo, è prorogato al primo giorno seguente non festivo\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
+   "expected": "{\"data_evento\":\"2021-01-01\",\"giorni\":30,\"tipo\":\"calendario\",\"natura\":\"processuale\",\"scadenza\":\"2021-02-01\",\"prorogata_art_155\":true,\"giorno_settimana\":\"lunedì\",\"sospensione_feriale_applicata\":false,\"sospensione_feriale_incidente\":false,\"riferimento_normativo\":\"Art. 155 c.p.c. — se il termine scade in giorno festivo, è prorogato al primo giorno seguente non festivo\",\"dati_applicati\":[\"festivita: festività nazionali fisse; Pasqua e Lunedì dell'Angelo calcolati algoritmicamente — periodo di validità non dichiarato\"]}"
   },
   "scadenze_impugnazioni": {
    "arguments": {
