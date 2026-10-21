@@ -20,7 +20,14 @@ from mcp_legal_it.api.tipi import (
 )
 from mcp_legal_it.core import norme
 from mcp_legal_it.lib import _brocardi_switch, _clock
-from mcp_legal_it.lib.visualex.map import ATTI_NOTI, known_act_names
+from mcp_legal_it.lib.visualex.map import (
+    ATTI_NOTI,
+    EURLEX,
+    NORMATTIVA_SEARCH,
+    codice_urn,
+    known_act_names,
+    normalize_act_type,
+)
 from mcp_legal_it.lib.visualex.models import Norma, annex_reference, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
@@ -45,6 +52,9 @@ SUFFISSI_ARTICOLO: tuple[tuple[str, ...], ...] = (
 ARTICLE_SUFFIX_ALTERNATION: str = "|".join(
     sorted({s for gruppo in SUFFISSI_ARTICOLO for s in gruppo}, key=lambda s: (-len(s), s))
 )
+
+#: Italian act types Normattiva addresses by date and number (codes are known by name).
+_TIPI_NOTI = frozenset(v.lower() for v in NORMATTIVA_SEARCH.values()) | frozenset(norme._TIPO_CANONICO.values())
 
 _BROCARDI_SPENTO = (
     "Brocardi disattivato (LEGAL_BROCARDI=off nell'ambiente, o configurazione(brocardi=False)): "
@@ -151,6 +161,16 @@ def riferimento_da_parametri(
         )
     if not tipo_atto or not tipo_atto.strip():
         return EsitoRiferimento(esito="riferimento_non_valido", errore="tipo_atto mancante")
+    norm = normalize_act_type(tipo_atto.strip()).lower()
+    if not (norm in EURLEX or codice_urn(norm) or norm in _TIPI_NOTI):
+        return EsitoRiferimento(
+            esito="atto_non_riconosciuto",
+            errore=f"tipo d'atto '{tipo_atto}' non riconosciuto: usa il nome esteso ('decreto legislativo') "
+                   "o leggi_riferimento() con la citazione",
+        )
+    if norm in ("regolamento ue", "direttiva ue") and not (data and numero_atto):
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore="per un atto UE servono anno (data) e numero_atto")
     article = annex_reference(allegato, numero_articolo) if allegato else (numero_articolo or "")
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
     nv = norme._build_nv(act_info, article)

@@ -405,6 +405,21 @@ class TestInFlightDedupe:
             await first
         assert akn_fetch._in_flight == {}
 
+    async def test_every_waiter_names_the_source_of_the_shared_download(self, monkeypatch, norma, routes):
+        import asyncio
+
+        from mcp_legal_it.lib import _sources
+
+        self._install_slow(monkeypatch, routes)
+
+        async def one_call():
+            with _sources.recording() as noted:
+                await fetch_act_akn(norma, data_vigenza="20260614")
+            return {dataset for dataset, _ in noted}
+
+        seen = await asyncio.gather(*(one_call() for _ in range(4)))
+        assert seen == [{"normattiva"}] * 4
+
     async def test_different_acts_are_not_merged(self, monkeypatch, routes):
         import asyncio
 

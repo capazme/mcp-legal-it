@@ -349,33 +349,46 @@ async def leggi_provvedimento_amministrativo(sede: str, nrg: str, nome_file: str
                               testo_grezzo=TestoGrezzo(testo=doc.text), fonti=registro.fonti())
 
 
-def _uri_cellar(uri) -> bool:
-    """Only CELLAR resources are fetched: the URI comes from the caller, so any other
-    host (an internal address, a metadata endpoint) is refused before any request."""
+def _uri_cellar(uri) -> str | None:
+    """The URI, stripped, if it is a CELLAR resource; else None.
+
+    Only CELLAR resources are fetched: the URI comes from the caller, so any other
+    host (an internal address, a metadata endpoint) is refused before any request.
+    """
     if not isinstance(uri, str):
-        return False
+        return None
+    uri = uri.strip()
     try:
-        parsed = urlsplit(uri.strip())
-    except ValueError:
-        return False
-    return (
+        parsed = urlsplit(uri)
+        port = parsed.port
+    except ValueError:  # malformed authority or port
+        return None
+    ok = (
         parsed.scheme in ("http", "https")
         and parsed.hostname == "publications.europa.eu"
-        and parsed.port in (None, 80, 443)
+        and port in (None, 80, 443)
         and not parsed.username and not parsed.password
         and re.match(r"^/resource/(?:cellar|celex)/[\w.\-]+$", parsed.path or "") is not None
         and not parsed.query and not parsed.fragment
     )
+    return uri if ok else None
 
 
 _CAUSA = re.compile(r"^([CT])-(\d+)/(\d{2,4})")
 
 
 async def leggi_sentenza_cgue(cellar_uri: str) -> EsitoDecisione:
-    """A CJEU / General Court decision by the CELLAR URI a search returned (Italian text)."""
+    """A CJEU / General Court decision by the CELLAR URI a search returned (Italian text).
+
+    Only ``http(s)://publications.europa.eu/resource/{cellar,celex}/…`` URIs are
+    fetched; anything else is ``richiesta_non_valida`` before any request.
+    Esiti: ``trovata``, ``non_trovata`` (empty or invalid page), ``richiesta_non_valida``,
+    ``fonte_non_raggiungibile``, ``errore_fonte``.
+    """
     from mcp_legal_it.lib.cgue.client import celex_of, fetch_case_metadata, fetch_sentenza_text
 
-    if not _uri_cellar(cellar_uri):
+    cellar_uri = _uri_cellar(cellar_uri)
+    if cellar_uri is None:
         return EsitoDecisione(
             esito="richiesta_non_valida",
             errori={"cellar_uri": "atteso un URI di publications.europa.eu/resource/ (cellar/… o celex/…)"},

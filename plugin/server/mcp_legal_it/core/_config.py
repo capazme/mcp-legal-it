@@ -108,13 +108,20 @@ def configurazione(
 
     campi = _campi(client_factory=client_factory, cache_dir=cache_dir, cache=cache, brocardi=brocardi)
     nuovo = replace(attuale(), **campi)
-    if campi.get("brocardi") and _brocardi_switch.off_by_environment():
-        # Same rule as set_default(True): refused, not silently ignored.
-        raise ValueError(
-            f"{_brocardi_switch.ENV_SWITCH}=off is set in the environment: Brocardi cannot be switched back on"
-        )
+    if campi.get("brocardi"):
+        # An off cannot be undone from inside: not the environment's (same rule as
+        # set_default(True)), nor one set for this context (crea_server(brocardi=False),
+        # _brocardi_switch.disabled(), an enclosing configurazione(brocardi=False)).
+        if _brocardi_switch.off_by_environment():
+            raise ValueError(
+                f"{_brocardi_switch.ENV_SWITCH}=off is set in the environment: Brocardi cannot be switched back on"
+            )
+        if _brocardi_switch._context.get() is False:
+            raise ValueError("Brocardi is off for this context: it cannot be switched back on inside it")
     token = _context.set(nuovo)
-    brocardi_token = _brocardi_switch.set_for_context(nuovo.brocardi) if nuovo.brocardi is not None else None
+    # Only a field the caller passed touches the switch: an inherited value (the
+    # process default) must not override an off set for this context.
+    brocardi_token = _brocardi_switch.set_for_context(campi["brocardi"]) if campi.get("brocardi") is not None else None
     try:
         yield nuovo
     finally:

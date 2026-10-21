@@ -111,9 +111,14 @@ JSON-ready data:
 - **`brocardi=False`** sends no request to brocardi.it, as `LEGAL_BROCARDI=off`
   does.
 
-**The environment's *off* wins.** `cache=True` cannot override
-`LEGAL_CACHE=off`. `brocardi=True` raises `ValueError` under
-`LEGAL_BROCARDI=off`.
+**An *off* wins.**
+
+- `cache=True` cannot override `LEGAL_CACHE=off`.
+- `brocardi=True` raises `ValueError` under `LEGAL_BROCARDI=off`. Inside
+  `configurazione` it also raises inside a context where Brocardi was switched
+  off (`crea_server(brocardi=False)`, an enclosing `configurazione(brocardi=False)`).
+- A field a block does not pass is inherited and never overrides the switch of
+  the context it runs in.
 
 **Caches and limits that stay as they are.** The parsed-act cache keeps its
 in-memory LRU, capped by `AKN_CACHE_MAX_ACTS` (default 50), and its disk
@@ -174,9 +179,16 @@ r.norma_data[0].urn   # 'urn:nir:stato:regio.decreto:1942-03-16;262:2~art2043'
 
 The same, from explicit fields (the VisuaLex request body). No network.
 
-- **Esiti:** `trovato`, `riferimento_non_valido` (no type, or no date and number
-  to build the address), `non_supportata` (a `versione` other than `vigente`, or
-  any `data_versione`: vigenza phase).
+- **Esiti:**
+  - `trovato`;
+  - `atto_non_riconosciuto`: an act type the resolver does not know. Long and
+    short names are both accepted (`"decreto legislativo"`, `"d.lgs."`), and so
+    are the codes by name (`"codice civile"`, `"costituzione"`);
+  - `riferimento_non_valido`: no type; an EU regulation or directive without year
+    (`data`) and `numero_atto`; or an Italian act without the date and number
+    needed to build its address;
+  - `non_supportata`: a `versione` other than `vigente`, or any `data_versione`
+    (vigenza phase).
 
 ### `testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> TestoArticolo`
 
@@ -334,6 +346,13 @@ A TAR / Consiglio di Stato decision by the key a search result carries
 
 A Court of Justice / General Court decision in Italian, by the CELLAR URI a
 search returned. ECLI, case number and date are read from CELLAR, best effort.
+
+- **Only CELLAR is fetched.** The URI must be
+  `http(s)://publications.europa.eu/resource/cellar/…` or `…/resource/celex/…`:
+  no other host or port, no user info, query or fragment. Anything else is
+  `richiesta_non_valida` before any request.
+- **Esiti:** `trovata`, `non_trovata` (empty or invalid page),
+  `richiesta_non_valida`, `fonte_non_raggiungibile`, `errore_fonte`.
 
 ### `cerca_decisioni_cassazione(tema=None, norma=None, *, archivio=None, pagina=1, per_pagina=20, anno_dal=None, anno_al=None, materia=None, sezione=None, solo_sezioni_unite=False, tipo_provvedimento=None) -> RicercaDecisioni`
 
