@@ -430,6 +430,24 @@ entry, it is the same feature as ported to the 3.0 line.
   reading) and, when August falls in its 20 days, adds
   `avvertenza_sospensione_feriale`: whether art. 617 is excluded is debated,
   since art. 92 R.D. 12/1941 names only the "opposizione all'esecuzione".
+- **The citation gate reads like the server, and checks decisions too.** The
+  plugin's Stop hook, now also registered on `SubagentStop`, extracts citations
+  with the server's own parser and resolver (moved, unchanged, into the
+  stdlib-only `core/riferimenti.py` and `core/citazioni.py`, re-exported where
+  they were): an act is identified by the URL `cite_law` would fetch, so
+  aliases of one act coincide and "art. 2 Cost." no longer covers "art. 2 c.p.".
+  Credit comes from what a tool returned — a `cite_law`/`fetch_law_article`
+  result that served that article, a `fetch_full_act` text that contains it, a
+  `leggi_*`/`cerca_*` result of the same court naming a decision's number and
+  year in its heading (never the precedents cited in a decision's body) — anywhere in the session, its subagents included and other sessions
+  never. It reads every text block of the turn plus the prose written with
+  Write/Edit and the inputs of `esporta_atto_docx`/`genera_*`, finds acts away
+  from the article ("D.Lgs. 196/2003, art. 13", "art. 6, par. 1, lett. f), del
+  Regolamento (UE) 2016/679", "artt. 1218 e 1223 c.c.", TUB/TUF) and no longer
+  reads "atto di costituzione" as the Costituzione. Still advisory and
+  fail-open: one block per turn at most, "fuori copertura" on the line as the
+  escape for sources no tool covers, a stdlib fallback reader if the server's
+  code does not import; about 0.25 s on a 40 MB transcript.
 - **Tool tags follow one taxonomy, and some desktop profiles change.** Every
   tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (24),
   `autorita` (6), `registri` (5), `calcolo` (141), `redazione` (30),
@@ -559,6 +577,13 @@ entry, it is the same feature as ported to the 3.0 line.
   rounded in 44 of 94 maximums (39 up, 3 down, 2 a whole euro too high); the
   code-computed maximums and `modello_notula` at `livello='max'` changed too. The
   medium stays rounded to the euro, as the table transcribes it.
+- **`cite_law` reads constitutional laws, royal decree-laws and lieutenancy
+  decrees.** "art. 1 l. cost. 3/2001" answered "atto non riconosciuto": the
+  reference parser had no `l. cost.` / `legge costituzionale`, `r.d.l.` /
+  `regio decreto-legge` or `d.l.lgt.` / `d.lgs.lgt.`. They now resolve to the types
+  the URN builder knows (`legge.costituzionale`, `regio.decreto.legge`,
+  `decreto.legislativo.luogotenenziale`), and the citation gate never reads their
+  numbers as decisions.
 - `cerca_brocardi` now declares Italgiure among its online sources. Its probe of
   the archive window was missed by the sources audit (a call made through a
   module that only imports the function), so the answer's `_meta` listed

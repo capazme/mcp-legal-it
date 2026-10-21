@@ -61,7 +61,7 @@ plugin/
 │   └── digest-giuridico.md
 ├── server/                     # server MCP (mcp_legal_it/, run_server.py)
 ├── hooks/
-│   ├── hooks.json              # registra lo Stop hook
+│   ├── hooks.json              # registra lo hook su Stop e SubagentStop
 │   └── citation-gate.py        # implementazione del gate citazioni
 └── server/uv.lock              # versioni esatte installate da `uv run --frozen`
 ```
@@ -200,31 +200,64 @@ Specialista in protezione dei dati: GDPR (Reg. UE 2016/679), Codice Privacy (D.L
 
 **File**: `plugin/hooks/hooks.json`
 
-### Hook `Stop` — gate sulle citazioni
+### Hook `Stop` e `SubagentStop` — gate sulle citazioni
 
-Si attiva al termine di ogni risposta di Claude.
+Si attiva al termine di ogni risposta di Claude e di ogni subagente (lo stesso script
+sui due eventi: la citazione non letta di un subagente si ferma dove è stata scritta).
 
-**Tipo**: hook `command` — esegue `hooks/citation-gate.py` (Python 3, stdlib, nessun
-modello: deterministico e senza costo) con `uv run --frozen` nell'ambiente del server,
-così non dipende da un `python3` di sistema (su Windows spesso è l'alias del Microsoft Store). Sostituisce il precedente hook di tipo
-`prompt` (Haiku), che segnalava falsi positivi e ripeteva avvisi su norme già verificate.
+**Tipo**: hook `command` — esegue `hooks/citation-gate.py` (Python 3, nessun modello:
+deterministico e senza costo) con `uv run --frozen --no-sync` nell'ambiente del server,
+così non dipende da un `python3` di sistema (su Windows spesso è l'alias del Microsoft
+Store). Legge le citazioni con il codice del server (`mcp_legal_it.core.citazioni` e
+`core.riferimenti`, sola libreria standard: nessuno stack HTTP a ogni turno); se
+quell'import fallisce, un lettore ridotto interno allo script tiene in piedi il gate.
 
-**Funzione**: estrae le citazioni a livello di articolo dall'ultimo messaggio
-dell'assistente (`art.`, `artt.`, `articolo`) e le considera coperte se lo stesso
-numero di articolo compare in una qualunque `cite_law()` già presente nel transcript
-(dedup di sessione). Segnala **solo** le citazioni nuove e non coperte; altrimenti
-resta in silenzio.
+**Cosa legge**: il turno, cioè tutto quello che l'assistente ha scritto dall'ultimo
+prompt dell'utente: ogni blocco di testo (non solo l'ultimo), il testo scritto con
+Write/Edit/MultiEdit in file di prosa (`.md`, `.txt`, `.html`…; il codice sorgente cita,
+non afferma) e gli input dei tool documentali (`esporta_atto_docx`, `genera_*`).
 
-**Ignora**: blocchi di codice e span inline (citano, non affermano), norme senza
-numero di articolo, contenuto dei risultati dei tool.
+**Come riconosce una citazione**: l'atto è risolto con lo stesso resolver di
+`cite_law` e identificato dall'URL che `cite_law` interrogherebbe, quindi alias diversi
+dello stesso atto coincidono («codice privacy» e «D.Lgs. 196/2003») e atti diversi no
+(«art. 2 Cost.» non è «art. 2 c.p.»). La chiave è (atto, articolo con suffisso). L'atto
+può stare dopo l'articolo («art. 6, par. 1, lett. f), del Regolamento (UE) 2016/679»)
+o prima («D.Lgs. 196/2003, art. 13», «il TUF all'art. 21»); liste e intervalli
+(«artt. 1218 e 1223 c.c.») valgono articolo per articolo. Le decisioni sono
+(corte, numero, anno): Cassazione, Corte costituzionale, TAR/Consiglio di Stato,
+cause CGUE (`C-311/18`).
 
-**Output**: nessun messaggio se tutto è coperto, altrimenti un avviso con l'elenco
-delle norme citate senza `cite_law()`. È volutamente conservativo: l'enforcement
-forte resta sul gate pre-export delle skill e sul giudizio dell'avvocato.
+**Quando una citazione è coperta** (in qualunque punto della sessione, subagenti della
+stessa sessione compresi, mai transcript di altre sessioni):
+- una norma: un risultato di `cite_law` o `fetch_law_article` che ha restituito proprio
+  quell'articolo (non un errore, non un altro articolo; il formato JSON di `cite_law` si
+  legge dai suoi `atto` e `articolo`), oppure un risultato di `fetch_full_act` che lo
+  contiene;
+- una decisione: un risultato `leggi_*`/`cerca_*` (o `*_su_norma`, `ultime_*`) della
+  stessa corte che riporta quel numero e quell'anno **nella sua intestazione** (la
+  decisione che un lettore ha servito, i risultati che una ricerca ha elencato): i
+  precedenti e gli atti citati nel corpo di una sentenza letta non contano, e un numero
+  d'atto («D.Lgs. 196/2003») non diventa mai una decisione; un «non trovata» non copre nulla,
+  le massime di Brocardi e le mappe di orientamento nemmeno (una massima non è la
+  decisione); la ricerca unificata accredita ogni numero alla corte indicata accanto.
+  In un elenco («Cass. nn. 500/1999, 600/2000») ogni numero va letto.
+
+**Ignora**: blocchi di codice e span inline, articoli di documenti che non sono atti
+(«art. 5 del contratto», «l'atto di costituzione all'art. 3»), atti citati senza
+articolo, il contenuto dei risultati dei tool.
+
+**Via d'uscita**: per una fonte che nessun tool copre (CEDU, codice deontologico
+forense, allegati UE…) basta scrivere «fuori copertura» sulla stessa riga.
+
+**Output**: nessun messaggio se tutto è coperto, altrimenti un avviso con le citazioni
+non lette e il tool da usare. Consultivo e fail-open: al più un blocco per turno
+(`stop_hook_active`), e qualunque errore interno lascia passare la risposta. Su un
+transcript di 40 MB gira in circa 0,25 s (timeout 120 s). L'enforcement forte resta sul
+gate pre-export delle skill e sul giudizio dell'avvocato.
 
 ---
 
-Il plugin non registra altri hook: `hooks.json` dichiara il solo evento `Stop`.
+Il plugin non registra altri hook: `hooks.json` dichiara solo `Stop` e `SubagentStop`.
 
 ---
 
