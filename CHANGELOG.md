@@ -15,6 +15,21 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **Network rules per source, from VisuaLex** (`core/_http`). Every request
+  the readers send, redirects included, is checked before it leaves: scheme,
+  no credentials, and a host the source may reach; until now the host list was
+  only checked statically, in the tests. Per source and per process: at most 3
+  requests in flight, 0.5 s between two, and a `Retry-After` stated by a 429 or
+  503 pauses that source for every caller (a pause over 30 s refuses the
+  request at once). `retry_request` now retries a 429 too, waiting what the
+  source asked, with jitter. Optional circuit breaker,
+  `LEGAL_CIRCUIT_BREAKER=on` (off by default): 3 consecutive failures suspend
+  the source for 5 minutes; a 404 never counts. A library caller with its own
+  `client_factory` keeps the host guard and can put the limits under its own
+  cache with `con_regole`. Measured on VisuaLex's 19 timing requests: the same
+  requests as before, row by row (`scripts/measure_requests.py`).
+- `docs/migration/visualex-inventory.md`: the function-by-function inventory of
+  the VisuaLex readers that move into mcp-legal-it, with the choice for each.
 - **`mcp_legal_it.api`: mcp-legal-it as a library, and its only stable surface.**
   Pure `async` functions with typed returns (frozen dataclasses), no Markdown,
   errors as data (`esito` from a closed vocabulary, plus `errore`). Norms:
@@ -497,6 +512,12 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- Italgiure's bundled intermediate certificate is checked against its SHA-256
+  pin every time the TLS context is built, as VisuaLex does: a file swapped
+  inside an installed package is refused instead of trusted (the pin was
+  checked only by a test). `lib/_egress.is_allowed` refuses a backslash, a
+  control character, credentials and any scheme but http(s), the URLs that a
+  browser and Python read as different hosts.
 - `cerca_brocardi` now declares Italgiure among its online sources. Its probe of
   the archive window was missed by the sources audit (a call made through a
   module that only imports the function), so the answer's `_meta` listed

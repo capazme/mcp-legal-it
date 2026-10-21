@@ -663,6 +663,17 @@ Contributi benvenuti! Leggi [CONTRIBUTING.md](CONTRIBUTING.md) per i dettagli su
 [Mozilla Public License 2.0](LICENSE) — Copyright 2025-2026 [capazme](https://github.com/capazme).
 Fino alla linea 2.x il progetto era distribuito con licenza Apache-2.0: vedi [NOTICE](NOTICE).
 
+### Codice da VisuaLex
+
+Con la 3.0 i lettori delle fonti di [VisuaLex](https://github.com/capazme/VisuaLexAPI)
+(MPL-2.0, degli stessi autori) confluiscono in mcp-legal-it, che VisuaLex usa poi
+come dipendenza. Ogni file importato porta l'intestazione MPL-2.0 e la riga
+«Imported from VisuaLex (MPL-2.0), `<percorso>` at `<commit>`»; le parti
+riscritte da zero dicono nel commento da quale file di VisuaLex vengono. Finora:
+le regole di rete per fonte (`mcp_legal_it/core/_http.py`, da `http_client.py` e
+`circuit_breaker.py`). L'inventario della migrazione è in
+[`docs/migration/visualex-inventory.md`](docs/migration/visualex-inventory.md).
+
 [![MCP Badge](https://lobehub.com/badge/mcp/capazme-mcp-legal-it)](https://lobehub.com/mcp/capazme-mcp-legal-it)
 ---
 
