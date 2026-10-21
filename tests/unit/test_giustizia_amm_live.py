@@ -53,10 +53,10 @@ from datetime import datetime, timedelta
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib import _clock
-from src.lib.giustizia_amm.client import GASession, _parse_xml_text
-from src.tools import giustizia_amm as ga_tools
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib.giustizia_amm.client import GASession, _parse_xml_text
+from mcp_legal_it.tools import giustizia_amm as ga_tools
 
 pytestmark = pytest.mark.live
 

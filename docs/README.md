@@ -26,11 +26,11 @@ Client MCP (Claude Desktop / Claude Code)
   run_server.py        Entry point — seleziona transport
         │
         ▼
-  src/server.py        FastMCP — inizializzazione e profili
+  mcp_legal_it/server.py        FastMCP — inizializzazione e profili
         │
         │  import a livello di modulo → registrazione @mcp.tool()
         ▼
-  src/tools/           34 moduli tool (228 tool totali)
+  mcp_legal_it/tools/           34 moduli tool (228 tool totali)
   │
   ├─ calcolo (16 moduli)
   │  ├── rivalutazioni_istat     ├── proprieta_successioni
@@ -57,7 +57,7 @@ Client MCP (Claude Desktop / Claude Code)
         │
         │  chiamate HTTP async (httpx)
         ▼
-  src/lib/             15 client HTTP e parser
+  mcp_legal_it/lib/             15 client HTTP e parser
   ├── visualex/        Normattiva + EUR-Lex
   ├── brocardi/        scraper standalone Brocardi
   ├── italgiure/       Solr API Cassazione
@@ -123,7 +123,7 @@ romperebbe la registrazione dei tool senza preavviso.
 | [architecture.md](architecture.md) | Dettaglio layer, pattern `_impl`, profili, come aggiungere tool |
 | [tools-catalog.md](tools-catalog.md) | Catalogo dei 228 tool divisi per categoria |
 | [strumenti.md](strumenti.md) | Scheda per tool con parametri ed esempi (copertura parziale, vedi nota nel file) |
-| [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `src/lib/` (15 moduli, 4 documentati in dettaglio) |
+| [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `mcp_legal_it/lib/` (15 moduli, 4 documentati in dettaglio) |
 | [prompts-resources.md](prompts-resources.md) | 23 prompt guidati e 15 risorse statiche `legal://` |
 | [plugin.md](plugin.md) | Plugin Claude Code: 30 skill, 9 slash command, 6 agenti, hook, installazione |
 | [openai.md](openai.md) | Bundle OpenAI (Codex CLI / ChatGPT): 42 skill, AGENTS.md, config MCP, limiti |
@@ -162,7 +162,7 @@ Per le opzioni avanzate (flag CLI, Docker, configurazione manuale) vedere
 .venv/bin/python run_server.py
 
 # Conta i tool registrati
-.venv/bin/python -c "import asyncio; from src.server import mcp; print(len(asyncio.run(mcp.list_tools())))"
+.venv/bin/python -c "import asyncio; from mcp_legal_it.server import mcp; print(len(asyncio.run(mcp.list_tools())))"
 ```
 
 ### Test

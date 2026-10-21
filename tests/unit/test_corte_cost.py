@@ -19,8 +19,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.lib._result import SearchResult
-from src.lib.corte_cost.client import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib.corte_cost.client import (
     TIPOLOGIE,
     MassimaCost,
     ParametroNorma,
@@ -51,7 +51,7 @@ from src.lib.corte_cost.client import (
     search_pronunce,
     ultime_pronunce,
 )
-from src.tools.corte_cost import (
+from mcp_legal_it.tools.corte_cost import (
     _cerca_pronuncia_costituzionale_impl,
     _leggi_pronuncia_costituzionale_impl,
     leggi_pronuncia_costituzionale,
@@ -551,7 +551,7 @@ class TestFormatMassimaHit:
 class TestSearchPronunce:
     @pytest.mark.asyncio
     async def test_finds_by_keyword(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             results = await search_pronunce(
                 terms=["illegittimità"], year_from=1956, year_to=1956, limit=10
             )
@@ -560,7 +560,7 @@ class TestSearchPronunce:
 
     @pytest.mark.asyncio
     async def test_filters_by_tipo(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             results = await search_pronunce(
                 terms=[], tipo_code="O", year_from=1956, year_to=1956, limit=10
             )
@@ -569,13 +569,13 @@ class TestSearchPronunce:
 
     @pytest.mark.asyncio
     async def test_no_keyword_returns_all(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             results = await search_pronunce(terms=[], year_from=1956, year_to=1956, limit=10)
         assert len(results) == 2
 
     @pytest.mark.asyncio
     async def test_no_match(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             results = await search_pronunce(
                 terms=["inesistente_xyz"], year_from=1956, year_to=1956, limit=10
             )
@@ -586,7 +586,7 @@ class TestCacheBehavior:
     @pytest.mark.asyncio
     async def test_download_called_once_then_cache_hit(self):
         mock = AsyncMock(side_effect=_download_router)
-        with patch("src.lib.corte_cost.client._download", mock):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", mock):
             await search_pronunce(terms=[], year_from=1956, year_to=1956, limit=10)
             first_calls = mock.call_count
             # second query in same year must hit the cache, not re-download
@@ -597,7 +597,7 @@ class TestCacheBehavior:
     @pytest.mark.asyncio
     async def test_cache_file_written(self, tmp_path):
         mock = AsyncMock(side_effect=_download_router)
-        with patch("src.lib.corte_cost.client._download", mock):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", mock):
             await search_pronunce(terms=[], year_from=1956, year_to=1956, limit=10)
         cached = tmp_path / "corte_cost" / "pronunce" / "1956.json"
         assert cached.exists()
@@ -608,14 +608,14 @@ class TestCacheBehavior:
 class TestFetchPronuncia:
     @pytest.mark.asyncio
     async def test_found(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             doc = await fetch_pronuncia(1, 1956)
         assert doc is not None
         assert doc.ecli == "ECLI:IT:COST:1956:1"
 
     @pytest.mark.asyncio
     async def test_not_found(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             doc = await fetch_pronuncia(999, 1956)
         assert doc is None
 
@@ -623,7 +623,7 @@ class TestFetchPronuncia:
 class TestPronunceSuNorma:
     @pytest.mark.asyncio
     async def test_matches_invoked_norm(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             hits = await pronunce_su_norma("art. 23 legge 87/1953", year_from=1956, year_to=1956)
         assert len(hits) == 1
         numero, anno, massima = hits[0]
@@ -633,19 +633,19 @@ class TestPronunceSuNorma:
 
     @pytest.mark.asyncio
     async def test_matches_constitution_article(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             hits = await pronunce_su_norma("art. 3", year_from=1956, year_to=1956)
         assert len(hits) == 1
 
     @pytest.mark.asyncio
     async def test_no_match_for_other_norm(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             hits = await pronunce_su_norma("art. 999 legge 5000/2050", year_from=1956, year_to=1956)
         assert hits == []
 
     @pytest.mark.asyncio
     async def test_unparseable_reference_returns_empty(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             hits = await pronunce_su_norma("qualcosa di vago", year_from=1956, year_to=1956)
         assert hits == []
 
@@ -653,7 +653,7 @@ class TestPronunceSuNorma:
 class TestUltimePronunce:
     @pytest.mark.asyncio
     async def test_sorted_by_deposit_desc(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             # current_year=1956 so it scans our fixture year
             results = await ultime_pronunce(tipo_code="", current_year=1956, limit=10)
         assert len(results) == 2
@@ -683,7 +683,7 @@ class TestConstants:
 class TestCercaImpl:
     @pytest.mark.asyncio
     async def test_returns_results(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _cerca_pronuncia_costituzionale_impl(
                 "illegittimità", anno_da=1956, anno_a=1956
             )
@@ -699,7 +699,7 @@ class TestCercaImpl:
         # Without anno_da/anno_a only the current year is searched: "Trovate N pronunce" alone
         # reads as the whole archive, so the header says which year it covered.
         monkeypatch.setenv("LEGAL_TODAY", "1956-12-31")
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _cerca_pronuncia_costituzionale_impl("illegittimità")
         assert result.success
         header = result.results_text.split("\n### ", 1)[0]
@@ -708,7 +708,7 @@ class TestCercaImpl:
 
     @pytest.mark.asyncio
     async def test_no_results(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _cerca_pronuncia_costituzionale_impl(
                 "inesistente_xyz", anno_da=1956, anno_a=1956
             )
@@ -720,7 +720,7 @@ class TestCercaImpl:
     @pytest.mark.asyncio
     async def test_source_down(self):
         with patch(
-            "src.lib.corte_cost.client._download",
+            "mcp_legal_it.lib.corte_cost.client._download",
             AsyncMock(side_effect=RuntimeError("network down")),
         ):
             result = await _cerca_pronuncia_costituzionale_impl(
@@ -733,7 +733,7 @@ class TestCercaImpl:
 
     @pytest.mark.asyncio
     async def test_max_risultati_capped(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _cerca_pronuncia_costituzionale_impl(
                 "", anno_da=1956, anno_a=1956, max_risultati=999
             )
@@ -744,7 +744,7 @@ class TestCercaImpl:
 class TestLeggiImpl:
     @pytest.mark.asyncio
     async def test_full_text(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _leggi_pronuncia_costituzionale_impl(1, 1956)
         assert isinstance(result, SearchResult)
         assert result.success
@@ -753,7 +753,7 @@ class TestLeggiImpl:
 
     @pytest.mark.asyncio
     async def test_not_found(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _leggi_pronuncia_costituzionale_impl(999, 1956)
         assert isinstance(result, SearchResult)
         assert not result.success
@@ -763,7 +763,7 @@ class TestLeggiImpl:
     @pytest.mark.asyncio
     async def test_source_down(self):
         with patch(
-            "src.lib.corte_cost.client._download",
+            "mcp_legal_it.lib.corte_cost.client._download",
             AsyncMock(side_effect=RuntimeError("boom")),
         ):
             result = await _leggi_pronuncia_costituzionale_impl(1, 1956)
@@ -774,7 +774,7 @@ class TestLeggiImpl:
     @pytest.mark.parametrize("bad", [0, -5, "1", 1.5, True])
     async def test_invalid_da_carattere_errors_without_network(self, bad):
         download = AsyncMock(side_effect=_download_router)
-        with patch("src.lib.corte_cost.client._download", download):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", download):
             result = await _leggi_pronuncia_costituzionale_impl(1, 1956, bad)
         assert not result.success
         assert result.error_type == "bad_input"
@@ -786,7 +786,7 @@ class TestLeggiImpl:
         long_doc = PronunciaCost(
             numero_pronuncia="1", anno_pronuncia="1956", epigrafe="E", testo="t" * 30000, dispositivo="D"
         )
-        with patch("src.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
+        with patch("mcp_legal_it.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
             first = await _leggi_pronuncia_costituzionale_impl(1, 1956)
             window = await _leggi_pronuncia_costituzionale_impl(1, 1956, 24990)
         # budget = 25000 - len("## Epigrafe\nE") - len("## Dispositivo\nD") = 24971
@@ -798,7 +798,7 @@ class TestLeggiImpl:
         long_doc = PronunciaCost(
             numero_pronuncia="1", anno_pronuncia="1956", epigrafe="E", testo="t" * 30000, dispositivo="D"
         )
-        with patch("src.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
+        with patch("mcp_legal_it.tools.corte_cost.fetch_pronuncia", AsyncMock(return_value=long_doc)):
             out = await leggi_pronuncia_costituzionale(1, 1956, da_carattere=26001)
             bad = await leggi_pronuncia_costituzionale(1, 1956, da_carattere=0)
         assert "Caratteri della motivazione 26001-30000 su 30000 totali: fine della motivazione" in out
@@ -808,7 +808,7 @@ class TestLeggiImpl:
 class TestSuNormaImpl:
     @pytest.mark.asyncio
     async def test_returns_hits(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _pronunce_cost_su_norma_impl(
                 "art. 23 legge 87/1953", anno_da=1956, anno_a=1956
             )
@@ -819,7 +819,7 @@ class TestSuNormaImpl:
 
     @pytest.mark.asyncio
     async def test_no_hits(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
             result = await _pronunce_cost_su_norma_impl(
                 "art. 999 legge 5000/2050", anno_da=1956, anno_a=1956
             )
@@ -829,7 +829,7 @@ class TestSuNormaImpl:
     @pytest.mark.asyncio
     async def test_source_down(self):
         with patch(
-            "src.lib.corte_cost.client._download",
+            "mcp_legal_it.lib.corte_cost.client._download",
             AsyncMock(side_effect=RuntimeError("boom")),
         ):
             result = await _pronunce_cost_su_norma_impl(
@@ -843,9 +843,9 @@ class TestUltimeImpl:
     @pytest.mark.asyncio
     async def test_returns_latest(self):
         # Pin the clock to the fixture year. The tool reads the calendar through
-        # src/lib/_clock.py, so LEGAL_TODAY is what freezes it.
+        # mcp_legal_it/lib/_clock.py, so LEGAL_TODAY is what freezes it.
         with patch.dict(os.environ, {"LEGAL_TODAY": "1956-12-31"}), patch(
-            "src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)
+            "mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)
         ):
             result = await _ultime_pronunce_cost_impl()
         assert isinstance(result, SearchResult)
@@ -855,7 +855,7 @@ class TestUltimeImpl:
     @pytest.mark.asyncio
     async def test_source_down(self):
         with patch(
-            "src.lib.corte_cost.client._download",
+            "mcp_legal_it.lib.corte_cost.client._download",
             AsyncMock(side_effect=RuntimeError("boom")),
         ):
             result = await _ultime_pronunce_cost_impl()
@@ -933,7 +933,7 @@ class TestPronunceSuNormaRecentYears:
         # year (26 nested years, 2001-2026, read 2026-09-28), not to 2015 as the
         # bundle file name suggests. With no years the most recent massime must
         # come first: 1/2026, not 1/2015.
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
             hits = await pronunce_su_norma(
                 "art. 3 Costituzione", year_from=0, year_to=0, limit=10, current_year=2026
             )
@@ -943,7 +943,7 @@ class TestPronunceSuNormaRecentYears:
     @pytest.mark.asyncio
     async def test_default_range_uses_the_pinned_clock(self):
         with patch.dict(os.environ, {"LEGAL_TODAY": "2026-09-29"}), patch(
-            "src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)
+            "mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)
         ):
             result = await _pronunce_cost_su_norma_impl("art. 3 Costituzione")
         assert result.success
@@ -955,7 +955,7 @@ class TestPronunceSuNormaRecentYears:
     async def test_costituzione_excludes_statuto_and_norme_integrative(self):
         # Reference names the Constitution: art. 3 of a statuto speciale or of
         # the norme integrative is another act (open data parametri[].descrizione).
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
             hits = await pronunce_su_norma(
                 "art. 3 Costituzione", year_from=2018, year_to=2018, limit=50
             )
@@ -963,7 +963,7 @@ class TestPronunceSuNormaRecentYears:
 
     @pytest.mark.asyncio
     async def test_cost_abbreviation_is_the_constitution_too(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
             hits = await pronunce_su_norma(
                 "art. 3 Cost.", year_from=2018, year_to=2018, limit=50
             )
@@ -971,7 +971,7 @@ class TestPronunceSuNormaRecentYears:
 
     @pytest.mark.asyncio
     async def test_statuto_reference_selects_only_statuti(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
             hits = await pronunce_su_norma(
                 "art. 3 statuto Sardegna", year_from=2018, year_to=2018, limit=50
             )
@@ -979,7 +979,7 @@ class TestPronunceSuNormaRecentYears:
 
     @pytest.mark.asyncio
     async def test_reference_without_act_type_matches_any_act(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
             hits = await pronunce_su_norma(
                 "art. 3", year_from=2018, year_to=2018, limit=50
             )
@@ -987,7 +987,7 @@ class TestPronunceSuNormaRecentYears:
 
     @pytest.mark.asyncio
     async def test_impl_declares_when_the_act_is_not_named(self):
-        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_recent)):
             vague = await _pronunce_cost_su_norma_impl("art. 3", anno_da=2018, anno_a=2018)
             named = await _pronunce_cost_su_norma_impl(
                 "art. 3 Costituzione", anno_da=2018, anno_a=2018

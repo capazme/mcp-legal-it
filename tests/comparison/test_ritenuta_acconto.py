@@ -15,8 +15,8 @@ import pytest
 
 from tests.comparison.conftest import assert_close, goto, parse_euro
 
-import src.server  # noqa: E402,F401  (registers every tool module)
-from src.tools.parcelle_professionisti import ritenuta_acconto  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers every tool module)
+from mcp_legal_it.tools.parcelle_professionisti import ritenuta_acconto  # noqa: E402
 
 _fn = getattr(ritenuta_acconto, "fn", ritenuta_acconto)
 TOL = 0.01

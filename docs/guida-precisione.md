@@ -107,7 +107,7 @@ parentela che servono alla chiamata (quelle non indicate cadono):
 ```
 
 **`contributo_unificato`** — l'intera tabella sostitutiva, nella stessa forma
-di `src/data/contributo_unificato.json` (gli scaglioni che non servite possono
+di `mcp_legal_it/data/contributo_unificato.json` (gli scaglioni che non servite possono
 mancare):
 
 ```json

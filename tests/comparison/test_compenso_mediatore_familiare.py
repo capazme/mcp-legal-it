@@ -48,8 +48,8 @@ _COMPENSO_RE = re.compile(r"Compenso spettante[^:\n]*:\s*€\s*([\d.,]+)")
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  registers all tool modules
-    from src.tools.parcelle_professionisti import compenso_mediatore_familiare
+    import mcp_legal_it.server  # noqa: F401  registers all tool modules
+    from mcp_legal_it.tools.parcelle_professionisti import compenso_mediatore_familiare
 
     fn = getattr(compenso_mediatore_familiare, "fn", compenso_mediatore_familiare)
     return fn(**kwargs)

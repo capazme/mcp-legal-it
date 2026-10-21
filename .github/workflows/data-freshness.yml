@@ -33,7 +33,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -B data-refresh/auto
-          git add plugin/server/src/data/indici_foi.json plugin/server/src/data/tassi_mora.json
+          git add plugin/server/mcp_legal_it/data/indici_foi.json plugin/server/mcp_legal_it/data/tassi_mora.json
           git commit -m "chore(data): auto-refresh FOI / tassi mora from official sources"
           git push -f origin data-refresh/auto
           gh pr create --base develop --head data-refresh/auto \

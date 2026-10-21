@@ -19,12 +19,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import src.server  # noqa: E402,F401  (installs the ledger and the middleware)
+import mcp_legal_it.server  # noqa: E402,F401  (installs the ledger and the middleware)
 
 from fastmcp import FastMCP  # noqa: E402
 
-from src.lib import _data  # noqa: E402
-from src.lib._ledger import TableLedgerMiddleware  # noqa: E402
+from mcp_legal_it.lib import _data  # noqa: E402
+from mcp_legal_it.lib._ledger import TableLedgerMiddleware  # noqa: E402
 
 mcp = FastMCP("precision-probe")
 mcp.add_middleware(

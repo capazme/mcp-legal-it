@@ -49,10 +49,10 @@ import re
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.italgiure.client import SolrSession
-from src.tools import orientamento as orient_tools
-from src.tools.italgiure import _normalize_query
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.italgiure.client import SolrSession
+from mcp_legal_it.tools import orientamento as orient_tools
+from mcp_legal_it.tools.italgiure import _normalize_query
 from tests.unit._norme_live import assert_parole, contiene
 from tests.unit._norme_live import testo_vigente as _testo_vigente
 

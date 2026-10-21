@@ -33,7 +33,7 @@ def _parse_result(page) -> dict:
 
 
 def _our_ammortamento(capitale, tasso, mesi, tipo="francese"):
-    from src.tools.tassi_interessi import calcolo_ammortamento
+    from mcp_legal_it.tools.tassi_interessi import calcolo_ammortamento
     fn = getattr(calcolo_ammortamento, "fn", calcolo_ammortamento)
     return fn(capitale=capitale, tasso_annuo=tasso, durata_mesi=mesi, tipo=tipo)
 

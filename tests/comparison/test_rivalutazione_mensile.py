@@ -40,8 +40,8 @@ PAGE = "rivalutazione_mensile_assegni_importi_dovuti.php"
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers all modules)
-    from src.tools.rivalutazioni_istat import rivalutazione_mensile
+    import mcp_legal_it.server  # noqa: F401  (registers all modules)
+    from mcp_legal_it.tools.rivalutazioni_istat import rivalutazione_mensile
 
     fn = getattr(rivalutazione_mensile, "fn", rivalutazione_mensile)
     return fn(**kwargs)

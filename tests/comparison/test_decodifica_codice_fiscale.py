@@ -24,16 +24,16 @@ URL = "https://www.avvocatoandreani.it/servizi/decodifica_codice_fiscale.php"
 
 
 def _tool(cf):
-    import src.server  # noqa: F401
-    from src.tools.varie import decodifica_codice_fiscale
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.varie import decodifica_codice_fiscale
 
     fn = getattr(decodifica_codice_fiscale, "fn", decodifica_codice_fiscale)
     return fn(codice_fiscale=cf)
 
 
 def _check(base):
-    import src.server  # noqa: F401
-    from src.tools.varie import _cf_check_char
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.varie import _cf_check_char
 
     return base + _cf_check_char(base)
 

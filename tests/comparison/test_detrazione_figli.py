@@ -69,8 +69,8 @@ _HIDE_CMP = (
 # ---------------------------------------------------------------------------
 
 def _tool(reddito: float, n: int, disabili: int = 0) -> dict:
-    import src.server  # noqa: F401  -- registra i moduli (evita import circolari)
-    from src.tools.dichiarazione_redditi import detrazione_figli
+    import mcp_legal_it.server  # noqa: F401  -- registra i moduli (evita import circolari)
+    from mcp_legal_it.tools.dichiarazione_redditi import detrazione_figli
 
     fn = getattr(detrazione_figli, "fn", detrazione_figli)
     r = fn(reddito_complessivo=reddito, n_figli_over21=n, n_figli_disabili=disabili)

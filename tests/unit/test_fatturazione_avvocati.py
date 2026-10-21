@@ -1,4 +1,4 @@
-"""Unit tests for src.tools.fatturazione_avvocati."""
+"""Unit tests for mcp_legal_it.tools.fatturazione_avvocati."""
 
 import importlib
 
@@ -6,7 +6,7 @@ import pytest
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.fatturazione_avvocati")
+    mod = importlib.import_module("mcp_legal_it.tools.fatturazione_avvocati")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)

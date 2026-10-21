@@ -55,7 +55,7 @@ _OLTRE_32M = "130"
 # ---------------------------------------------------------------------------
 
 def _tool(**kwargs) -> dict:
-    from src.tools.fatturazione_avvocati import parcella_avvocato_civile
+    from mcp_legal_it.tools.fatturazione_avvocati import parcella_avvocato_civile
 
     fn = getattr(parcella_avvocato_civile, "fn", parcella_avvocato_civile)
     res = fn(**kwargs)

@@ -23,7 +23,7 @@ L'utente fornisce la versione target (es. `2.4.0`). Se non la fornisce, leggi la
 ## Step 2 — Conta i tool attuali
 
 ```bash
-grep -c "@mcp.tool" plugin/server/src/tools/*.py | awk -F: '{sum+=$2} END {print sum}'
+grep -c "@mcp.tool" plugin/server/mcp_legal_it/tools/*.py | awk -F: '{sum+=$2} END {print sum}'
 ```
 
 Salva il numero — serve per aggiornare le description.
@@ -101,7 +101,7 @@ python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); p
 
 # Tool count nelle description
 echo "--- Tool count ---"
-EXPECTED=$(grep -c "@mcp.tool" src/tools/*.py | awk -F: '{sum+=$2} END {print sum}')
+EXPECTED=$(grep -c "@mcp.tool" mcp_legal_it/tools/*.py | awk -F: '{sum+=$2} END {print sum}')
 echo "Attesi: $EXPECTED tool"
 grep -o '[0-9]* tool' plugin/.claude-plugin/plugin.json
 grep -o '[0-9]* tool' .claude-plugin/marketplace.json

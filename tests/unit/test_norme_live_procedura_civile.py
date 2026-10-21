@@ -1,6 +1,6 @@
 """Live gate: the procedura_civile tools against the vigente c.p.c., D.Lgs. 116/2017, CCII and D.Lgs. 28/2010.
 
-`src/tools/procedura_civile.py` hard-codes the rules it applies:
+`mcp_legal_it/tools/procedura_civile.py` hard-codes the rules it applies:
 
 - `competenza_giudice`: the thresholds of art. 7 co. 1 and co. 2 c.p.c. (10.000 and 25.000
   euro, in force since 28/02/2023 through D.Lgs. 149/2022), a comment dating the D.Lgs.
@@ -8,7 +8,7 @@
   matters it treats as reserved to the tribunale "ex art. 9 c.p.c." (locazione, condominio,
   lavoro, famiglia, fallimento, crisi d'impresa); every other matter falls through to the
   "beni mobili" rule of art. 7 co. 1.
-- `verifica_mediazione_obbligatoria`: the table `src/data/mediazione_obbligatoria.json`
+- `verifica_mediazione_obbligatoria`: the table `mcp_legal_it/data/mediazione_obbligatoria.json`
   (the matters of art. 5 co. 1 D.Lgs. 28/2010 and a list of exclusions) matched against the
   input by substring.
 
@@ -53,7 +53,7 @@ DL_100_2026 = "D.L. 100/2026"
 CCII = "D.Lgs. 14/2019"
 DLGS_28 = "D.Lgs. 28/2010"
 
-_TABELLA = Path(__file__).resolve().parents[2] / "src" / "data" / "mediazione_obbligatoria.json"
+_TABELLA = Path(__file__).resolve().parents[2] / "plugin" / "server" / "mcp_legal_it" / "data" / "mediazione_obbligatoria.json"
 
 
 @lru_cache(maxsize=None)
@@ -69,8 +69,8 @@ def _assert_testo(reference: str, *frasi: str) -> str:
 
 
 def _tool(name: str):
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools import procedura_civile
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools import procedura_civile
 
     obj = getattr(procedura_civile, name)
     return getattr(obj, "fn", obj)

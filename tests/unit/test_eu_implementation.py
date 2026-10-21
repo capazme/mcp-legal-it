@@ -17,8 +17,8 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib._result import SearchResult
-from src.lib.eu_implementation.client import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib.eu_implementation.client import (
     BasisResult,
     ImplementationResult,
     MappingResult,
@@ -37,7 +37,7 @@ from src.lib.eu_implementation.client import (
     parse_italian_act_ref,
     parse_mne_celex,
 )
-from src.tools.eu_implementation import (
+from mcp_legal_it.tools.eu_implementation import (
     _elenco_misure_nazionali_impl,
     _get_eu_basis_impl,
     _get_italian_implementation_impl,
@@ -580,7 +580,7 @@ class TestGetItalianImplementationImpl:
     @pytest.mark.asyncio
     async def test_dsm(self):
         mock = _sparql_mock(_EU_TO_IT_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_italian_implementation_impl("direttiva 2019/790")
         assert isinstance(result, SearchResult)
         assert result.success
@@ -589,7 +589,7 @@ class TestGetItalianImplementationImpl:
     @pytest.mark.asyncio
     async def test_nis2_celex_input(self):
         mock = _sparql_mock(_EU_TO_IT_NIS2)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_italian_implementation_impl("32022L2555")
         assert result.success
         assert "Decreto legislativo n. 138" in result.results_text
@@ -599,7 +599,7 @@ class TestGetItalianImplementationImpl:
         # A regulation is detected client-side before any SPARQL call: even with
         # an empty mock it must short-circuit to the regulation message.
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_italian_implementation_impl("32016R0679")
         assert not result.success
         assert "regolamento" in result.to_str().lower()
@@ -609,7 +609,7 @@ class TestGetItalianImplementationImpl:
     @pytest.mark.asyncio
     async def test_regulation_human_celex(self):
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_italian_implementation_impl("regolamento 2016/679")
         assert not result.success
         assert "regolamento" in result.to_str().lower()
@@ -617,7 +617,7 @@ class TestGetItalianImplementationImpl:
     @pytest.mark.asyncio
     async def test_no_results(self):
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_italian_implementation_impl("direttiva 2099/999")
         assert not result.success
         assert result.error_type == "no_results"
@@ -626,7 +626,7 @@ class TestGetItalianImplementationImpl:
     @pytest.mark.asyncio
     async def test_bad_input(self):
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_italian_implementation_impl("ciao")
         assert not result.success
         assert "Errore" in result.to_str()
@@ -637,7 +637,7 @@ class TestGetItalianImplementationImpl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("timeout"))
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock_client):
             result = await _get_italian_implementation_impl("direttiva 2019/790")
         assert not result.success
         assert result.error_type == "source_down"
@@ -648,7 +648,7 @@ class TestGetEuBasisImpl:
     @pytest.mark.asyncio
     async def test_from_mne_celex(self):
         mock = _sparql_mock(_IT_TO_EU_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("72019L0790ITA_202107973")
         assert result.success
         assert "32019L0790" in result.results_text
@@ -657,7 +657,7 @@ class TestGetEuBasisImpl:
     @pytest.mark.asyncio
     async def test_from_act_ref_dsm(self):
         mock = _sparql_mock(_IT_TO_EU_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("D.Lgs. 177/2021")
         assert result.success
         assert "32019L0790" in result.results_text
@@ -668,7 +668,7 @@ class TestGetEuBasisImpl:
         # resource_legal_id_local), the title fallback finds directive 32002L0058 and
         # discards the notice of D.Lgs. 69/2012 that only cites "n. 196".
         mock = _sparql_mock_sequence(_EMPTY, _IT_TO_EU_196_BY_TITLE)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("D.Lgs. 196/2003")
         assert result.success
         assert "### 32002L0058" in result.results_text
@@ -678,7 +678,7 @@ class TestGetEuBasisImpl:
     @pytest.mark.asyncio
     async def test_title_fallback_not_run_when_id_local_query_answers(self):
         mock = _sparql_mock_sequence(_IT_TO_EU_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("D.Lgs. 177/2021")
         assert result.success
         assert mock.post.await_count == 1
@@ -688,7 +688,7 @@ class TestGetEuBasisImpl:
         # An act that transposes no directive (e.g. D.Lgs. 101/2018 adapts to a regulation)
         # gets an honest message that does not blame a correct number/year.
         mock = _sparql_mock_sequence(_EMPTY, _EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("D.Lgs. 101/2018")
         assert not result.success
         text = result.to_str()
@@ -698,7 +698,7 @@ class TestGetEuBasisImpl:
     @pytest.mark.asyncio
     async def test_from_act_ref_nis2(self):
         mock = _sparql_mock(_IT_TO_EU_NIS2)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("D.Lgs. 138/2024")
         assert result.success
         assert "32022L2555" in result.results_text
@@ -706,7 +706,7 @@ class TestGetEuBasisImpl:
     @pytest.mark.asyncio
     async def test_no_results(self):
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("D.Lgs. 9999/2099")
         assert not result.success
         assert result.error_type == "no_results"
@@ -715,7 +715,7 @@ class TestGetEuBasisImpl:
     @pytest.mark.asyncio
     async def test_bad_input(self):
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _get_eu_basis_impl("non un atto")
         assert not result.success
         assert "Errore" in result.to_str()
@@ -726,7 +726,7 @@ class TestGetEuBasisImpl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("connection refused"))
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock_client):
             result = await _get_eu_basis_impl("72019L0790ITA_202107973")
         assert not result.success
         assert result.error_type == "source_down"
@@ -742,7 +742,7 @@ class TestElencoMisureNazionaliOtherCountry:
     @pytest.mark.asyncio
     async def test_fra_header_names_france_not_italy(self):
         mock = _sparql_mock(_EU_TO_FR_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="FRA")
         assert result.success
         header = result.results_text.splitlines()[0]
@@ -752,7 +752,7 @@ class TestElencoMisureNazionaliOtherCountry:
     @pytest.mark.asyncio
     async def test_fra_headings_carry_the_french_act_number(self):
         mock = _sparql_mock(_EU_TO_FR_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="fra")
         headings = [ln for ln in result.results_text.splitlines() if ln.startswith("### ")]
         assert headings == ["### Loi n. 2019-775", "### Ordonnance n. 2021-580"]
@@ -761,7 +761,7 @@ class TestElencoMisureNazionaliOtherCountry:
     async def test_fra_publication_is_not_called_gazzetta_ufficiale(self):
         # the JORF is not the Italian Gazzetta Ufficiale
         mock = _sparql_mock(_EU_TO_FR_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="FRA")
         assert "Gazzetta Ufficiale" not in result.results_text
         assert "**Pubblicazione ufficiale**: del 2021-05-13" in result.results_text
@@ -773,7 +773,7 @@ class TestElencoMisureNazionaliOtherCountry:
         # GBR left the EU before the 7 June 2021 deadline of art. 29(1): no measures, and the
         # message must not say "italiana".
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="GBR")
         assert not result.success
         assert result.to_str().startswith("Nessuna misura nazionale (GBR) trovata per la direttiva _32019L0790_")
@@ -782,14 +782,14 @@ class TestElencoMisureNazionaliOtherCountry:
     @pytest.mark.asyncio
     async def test_ita_keeps_italian_wording(self):
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790")
         assert result.to_str().startswith("Nessuna misura nazionale italiana trovata")
 
     @pytest.mark.asyncio
     async def test_unknown_country_code_falls_back_to_the_code(self):
         mock = _sparql_mock(_EU_TO_FR_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="XXX")
         assert result.results_text.startswith("**Recepimento in XXX della direttiva")
 
@@ -798,7 +798,7 @@ class TestElencoMisureNazionaliImpl:
     @pytest.mark.asyncio
     async def test_default_ita(self):
         mock = _sparql_mock(_EU_TO_IT_DSM)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790")
         assert result.success
         assert "Decreto legislativo n. 177" in result.results_text
@@ -806,7 +806,7 @@ class TestElencoMisureNazionaliImpl:
     @pytest.mark.asyncio
     async def test_other_country_builds_query(self):
         mock = _sparql_mock(_EMPTY)
-        with patch("src.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
+        with patch("mcp_legal_it.lib.eu_implementation.client.httpx.AsyncClient", return_value=mock):
             result = await _elenco_misure_nazionali_impl("direttiva 2019/790", paese="FRA")
         # no ITA measures in empty mock -> no_results, but the country routed through
         assert not result.success

@@ -1,10 +1,10 @@
 # Data Files — mcp-legal-it
 
-> Documentazione dei file JSON statici in `src/data/`: descrizione, fonte normativa, moduli che li usano.
+> Documentazione dei file JSON statici in `mcp_legal_it/data/`: descrizione, fonte normativa, moduli che li usano.
 
 ## Freschezza e provenienza (`_vintage`)
 
-Ogni file porta un blocco `_vintage` che il server legge a runtime (`src/lib/_data.py`):
+Ogni file porta un blocco `_vintage` che il server legge a runtime (`mcp_legal_it/lib/_data.py`):
 
 | Campo | Significato |
 |-------|-------------|
@@ -50,7 +50,7 @@ plausibilità — entrambe restano `da_verificare` e i relativi tool lo dichiara
 
 ## Panoramica
 
-I file JSON in `src/data/` contengono le tabelle normative e i dati di riferimento usati dai tool di calcolo. Sono caricati a runtime dai moduli tool e aggiornati manualmente a ogni variazione normativa.
+I file JSON in `mcp_legal_it/data/` contengono le tabelle normative e i dati di riferimento usati dai tool di calcolo. Sono caricati a runtime dai moduli tool e aggiornati manualmente a ogni variazione normativa.
 
 **Struttura tipo**: ogni file inizia con chiavi descrittive (`_description`, `_source`, `_note`) seguite dai dati operativi. Questo pattern permette l'auto-documentazione e la tracciabilità della fonte.
 

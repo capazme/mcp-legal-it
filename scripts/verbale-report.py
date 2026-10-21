@@ -6,7 +6,7 @@ script is the recurring habit around the same ledger: a cron line, a
 pre-release check, or the first thing you run when a caller says "the tool
 refused again". It reads the same file the middleware writes
 (`<MCP_CACHE_DIR>/refusals.jsonl`) with the same aggregation the tool uses
-(`src/lib/_refusals.py`), renders it, and exits non-zero when the current month
+(`mcp_legal_it/lib/_refusals.py`), renders it, and exits non-zero when the current month
 is *worse* than the last one -- so the same line that generates the report can
 gate a release.
 
@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "plugin" / "server"))
 
-from src.lib import _refusals  # noqa: E402
+from mcp_legal_it.lib import _refusals  # noqa: E402
 
 
 def _render_markdown(report: dict) -> str:

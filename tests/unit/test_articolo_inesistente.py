@@ -23,12 +23,12 @@ from pathlib import Path
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.visualex import akn_fetch, scraper
-from src.lib.visualex.akn_parser import ParsedAct, parse_akn
-from src.lib.visualex.models import Norma, NormaVisitata
-from src.lib.visualex.scraper import ARTICLE_NOT_FOUND, CHECK_UNAVAILABLE, _article_identity, fetch_article
-from src.tools import legal_citations as lc
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.visualex import akn_fetch, scraper
+from mcp_legal_it.lib.visualex.akn_parser import ParsedAct, parse_akn
+from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata
+from mcp_legal_it.lib.visualex.scraper import ARTICLE_NOT_FOUND, CHECK_UNAVAILABLE, _article_identity, fetch_article
+from mcp_legal_it.tools import legal_citations as lc
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 N2LS = FIXTURES / "normattiva"
@@ -488,7 +488,7 @@ class TestSuffixes:
 ])
 def test_head_of_a_code_article(head, expected):
     from bs4 import BeautifulSoup
-    from src.lib.visualex.scraper import _served_article_key
+    from mcp_legal_it.lib.visualex.scraper import _served_article_key
 
     corpo = BeautifulSoup(f'<div class="bodyTesto"><span class="attachment-just-text">{head}</span></div>', "lxml")
     assert _served_article_key(corpo.find("div")) == expected

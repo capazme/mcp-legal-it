@@ -16,7 +16,7 @@ projections:
       skills: plugin/skills
       agents: plugin/agents
       commands: plugin/commands
-      references: plugin/server/src/data/references
+      references: plugin/server/mcp_legal_it/data/references
   openai:
     tool_namespace: "{tool}"        # bare — stable across Codex's mcp__server__tool / server__tool modes
     strip_frontmatter_keys: [tools, prompt, standalone-description]

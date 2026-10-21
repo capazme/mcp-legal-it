@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.tools.privacy_gdpr import (
+from mcp_legal_it.tools.privacy_gdpr import (
     _genera_informativa_privacy_impl,
     _genera_informativa_cookie_impl,
     _genera_informativa_dipendenti_impl,
@@ -964,7 +964,7 @@ class TestVerificaNecessitaDpia:
 
     def test_elenco_garante_riproduce_le_dodici_voci_dell_allegato_1(self):
         # Allegato 1 to provv. 467/2018 (GU n. 269 of 19/11/2018): twelve items, numbered.
-        from src.tools.privacy_gdpr import _DPIA
+        from mcp_legal_it.tools.privacy_gdpr import _DPIA
 
         elenco = _DPIA["lista_garante_italiano"]
         assert [v.split(".")[0] for v in elenco] == [str(n) for n in range(1, 13)]
@@ -1479,6 +1479,6 @@ class TestRegistroArt30:
 
     # Art. 30(5): the exemption is for FEWER than 250 employees.
     def test_docstring_soglia_250(self):
-        from src.tools.privacy_gdpr import genera_registro_trattamenti
+        from mcp_legal_it.tools.privacy_gdpr import genera_registro_trattamenti
         doc = getattr(genera_registro_trattamenti, "fn", genera_registro_trattamenti).__doc__
         assert "più di 250" not in doc and "meno di 250" in doc

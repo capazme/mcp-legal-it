@@ -30,8 +30,8 @@ from .conftest import accept_cookies, parse_euro, assert_close
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import src.server  # noqa: E402,F401  (registers all modules)
-from src.tools.risarcimento_danni import danno_biologico_macro as _tool  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers all modules)
+from mcp_legal_it.tools.risarcimento_danni import danno_biologico_macro as _tool  # noqa: E402
 
 _fn = getattr(_tool, "fn", _tool)
 

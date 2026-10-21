@@ -16,8 +16,8 @@ from datetime import date
 
 import pytest
 
-import src.server  # noqa: F401,E402
-from src.tools.scadenze_termini import termini_memorie_repliche  # noqa: E402
+import mcp_legal_it.server  # noqa: F401,E402
+from mcp_legal_it.tools.scadenze_termini import termini_memorie_repliche  # noqa: E402
 
 from tests.comparison.conftest import accept_cookies  # noqa: E402
 

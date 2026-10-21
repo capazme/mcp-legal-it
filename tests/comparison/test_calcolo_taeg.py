@@ -91,8 +91,8 @@ def _site(page, cap, tasso, rate, **spese):
 
 
 def _tool(capitale, rate, importi_rate, spese_iniziali=0, spese_periodiche=0):
-    import src.server  # noqa: F401
-    from src.tools.tassi_interessi import calcolo_taeg
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.tassi_interessi import calcolo_taeg
 
     fn = getattr(calcolo_taeg, "fn", calcolo_taeg)
     return fn(capitale=capitale, rate=rate, importi_rate=importi_rate,

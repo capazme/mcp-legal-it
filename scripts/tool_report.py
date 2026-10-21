@@ -28,7 +28,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "plugin/server/src/lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "plugin/server/mcp_legal_it/lib"))
 
 from audit_tool_annotations import (  # noqa: E402
     REPO,
@@ -45,7 +45,7 @@ from _precision import decide  # noqa: E402
 DEFAULT_OUT = REPO / "docs/tool-report.html"
 
 # What each external client actually is, for the reader who has never seen the
-# inside of this repo. Names come from src/lib/<client>.
+# inside of this repo. Names come from mcp_legal_it/lib/<client>.
 CLIENT_SOURCES = {
     "brocardi": "Brocardi.it (article commentary)",
     "cerdef": "Corte di Cassazione, sezione tributaria",
@@ -121,7 +121,7 @@ footer { margin-top: 3rem; color: var(--dim); font-size: .8rem; }
 def vintage_lines(src: pathlib.Path) -> dict[str, str]:
     """One line per shipped table, read from its own `_vintage` block.
 
-    Read from the JSON rather than through `src.lib._data`, so the report needs
+    Read from the JSON rather than through `mcp_legal_it.lib._data`, so the report needs
     no running server and shows exactly what an answer would append.
     """
     lines: dict[str, str] = {}
@@ -144,7 +144,7 @@ def vintage_lines(src: pathlib.Path) -> dict[str, str]:
 def table_warnings(src: pathlib.Path, today: datetime.date) -> dict[str, str]:
     """Which of the two states that carry weight each shipped table is in.
 
-    The same rule as `src.lib._data.warnings`, and read from the JSON here so the
+    The same rule as `mcp_legal_it.lib._data.warnings`, and read from the JSON here so the
     page needs no running server. It is a snapshot taken when the page is
     generated: a table listed as `scaduta` is one whose covered period had
     already ended at that moment, which is exactly what an answer would say.
@@ -176,7 +176,7 @@ def group_tools(audit: Audit) -> dict[str, list[dict]]:
         clients = audit.upstream_clients(fq)
         entry = {
             "tool": tool,
-            "module": fq.rsplit(".", 1)[0].replace("src.tools.", "").replace("src.", ""),
+            "module": fq.rsplit(".", 1)[0].replace("mcp_legal_it.tools.", "").replace("mcp_legal_it.", ""),
             "clients": clients,
             "caches": audit.cache_locations(fq),
             "evidence": evidence,
@@ -365,7 +365,7 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         '<p class="sub">An AST walk over every <code>@mcp.tool()</code> call graph, '
         "not a hand-kept list: a tool is read-only when nothing reachable opens a file "
         "for writing or mutates an HTTP request, and open-world when its chain reaches "
-        "one of the <code>src/lib</code> clients. "
+        "one of the <code>mcp_legal_it/lib</code> clients. "
         "<code>scripts/audit_tool_annotations.py --check</code> fails the suite when the "
         "committed policy drifts from the source, and "
         "<code>tests/unit/test_read_only_contract.py</code> calls all %d local ones and "
@@ -381,7 +381,7 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "vintage in <code>dati_applicati</code>, and the audit fails when a tool reads "
         "a table without declaring it, declares one its code never reads, leaves a "
         "shipped table that no tool applies, or keeps a hand-written copy of one. "
-        "At runtime the server goes further: <code>src/lib/_ledger.py</code> wraps "
+        "At runtime the server goes further: <code>mcp_legal_it/lib/_ledger.py</code> wraps "
         "the table constants, so every call declares in its result "
         "<code>_meta</code> which tables it actually read, and a test compares that "
         "with this page's own mapping. The footer is written from that observation "
@@ -398,7 +398,7 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
         "Naming a state is not acting on it, so it also changes what the tool "
         "answers. Every tool declares a grade in its own docstring "
         "(<code>Precisione: ESATTO ...</code>), and "
-        "<code>src/lib/_precision.py</code> decides what an unsourced or expired "
+        "<code>mcp_legal_it/lib/_precision.py</code> decides what an unsourced or expired "
         "table does to that claim: an exact claim resting on a table nobody "
         "sources is withdrawn -- the tool returns "
         "<code>errore: dati_non_affidabili</code>, a figure-free refusal naming "
@@ -449,7 +449,7 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
     out.append("</tbody></table>")
     out.append(
         "<footer>Regenerate with <code>python scripts/tool_report.py</code>. "
-        "Annotation policy: <code>plugin/server/src/tool_annotations.py</code>. "
+        "Annotation policy: <code>plugin/server/mcp_legal_it/tool_annotations.py</code>. "
         "Cache inventory: <code>docs/cache-inventory.md</code>.</footer>"
     )
     out.append("</body></html>")
@@ -458,7 +458,7 @@ def render_html(audit: Audit, grouped: dict[str, list[dict]]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--src", default=str(REPO / "plugin/server/src"))
+    parser.add_argument("--src", default=str(REPO / "plugin/server/mcp_legal_it"))
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     parser.add_argument("--json", action="store_true", help="print the grouping instead")
     args = parser.parse_args()

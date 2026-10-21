@@ -35,8 +35,8 @@ import pytest
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-import src.server  # noqa: E402,F401  (registers every tool module)
-from src.tools.rivalutazioni_istat import variazioni_istat  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers every tool module)
+from mcp_legal_it.tools.rivalutazioni_istat import variazioni_istat  # noqa: E402
 
 _fn = getattr(variazioni_istat, "fn", variazioni_istat)
 URL = "https://www.avvocatoandreani.it/servizi/calcolo-rivalutazione-annuale-media.php"

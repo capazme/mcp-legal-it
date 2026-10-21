@@ -2,7 +2,7 @@
 """render_legal_pdf.py — rende un deliverable markdown in un file .pdf con fpdf2.
 
 La logica fpdf2 (sanitize per windows-1252, slug del nome file, scrittura del file
-e ritorno del path) è COPIATA da src/tools/legal_citations.py (NON importata) per
+e ritorno del path) è COPIATA da mcp_legal_it/tools/legal_citations.py (NON importata) per
 mantenere lo skill autonomo dal server MCP. Niente LibreOffice (non installato).
 
 Uso:

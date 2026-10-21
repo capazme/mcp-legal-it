@@ -278,8 +278,7 @@ def build_web_skills(*, dry_run: bool) -> None:
 def count_tools() -> int:
     """Count @mcp.tool() decorators across all tool files."""
     for tools_dir in [
-        PROJECT_DIR / "src" / "tools",
-        PROJECT_DIR / "plugin" / "server" / "src" / "tools",
+        PROJECT_DIR / "plugin" / "server" / "mcp_legal_it" / "tools",
     ]:
         if tools_dir.is_dir():
             total = sum(

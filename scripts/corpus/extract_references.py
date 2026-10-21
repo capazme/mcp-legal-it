@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "plugin" / "server"))
 
 STATIC = [
     "procedura_civile", "termini_processuali", "checklist_decreto_ingiuntivo",
@@ -18,7 +18,7 @@ STATIC = [
 ]
 
 def main() -> None:
-    from src import resources as res
+    from mcp_legal_it import resources as res
     out_dir = ROOT / "content" / "references"
     out_dir.mkdir(parents=True, exist_ok=True)
     for func_name in STATIC:

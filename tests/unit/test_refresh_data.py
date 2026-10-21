@@ -191,7 +191,7 @@ def test_append_foi_new_year_in_rebased_layout():
 def test_append_foi_accepts_the_shipped_file():
     # The surgery must keep recognising the file actually in the repository:
     # the next month after the latest one must append cleanly.
-    path = Path(__file__).parents[2] / "src" / "data" / "indici_foi.json"
+    path = Path(__file__).parents[2] / "plugin" / "server" / "mcp_legal_it" / "data" / "indici_foi.json"
     text = path.read_text(encoding="utf-8")
     data = json.loads(text)
     year = max(data["indici"], key=int)

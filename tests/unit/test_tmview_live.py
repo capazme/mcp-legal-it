@@ -1,7 +1,7 @@
 """Live smoke gate for the TMview trademark tools (www.tmdn.org/tmview, the JSON API behind the SPA).
 
 Tools under test: `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio`
-(src/tools/tmview.py over src/lib/tmview/client.py). The source is TMview, the EUIPO /
+(mcp_legal_it/tools/tmview.py over mcp_legal_it/lib/tmview/client.py). The source is TMview, the EUIPO /
 TMDN aggregator of the national registers (UIBM for Italy); no norm fixes the values, the
 checks are on the metadata of a known record.
 
@@ -51,8 +51,8 @@ from unittest.mock import patch
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools.tmview import cerca_marchi, leggi_marchio, verifica_anteriorita_marchio
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools.tmview import cerca_marchi, leggi_marchio, verifica_anteriorita_marchio
 
 pytestmark = pytest.mark.live
 

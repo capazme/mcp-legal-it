@@ -22,7 +22,7 @@ la spunta IVS si imposta con ``checked = true`` + ``App.OnClickContributoIVS()``
 checkbox non ne cambia lo stato.
 
 Tool: ``calcolo_tfr(retribuzione_annua_lorda, anni_servizio, rivalutazione_media_pct)``
-(src/tools/dichiarazione_redditi.py). Quota annua = retribuzione / 13,5 (art. 2120
+(mcp_legal_it/tools/dichiarazione_redditi.py). Quota annua = retribuzione / 13,5 (art. 2120
 co. 1 c.c.); rivalutazione composta al tasso costante 1,5% + 75% del FOI medio
 (art. 2120 co. 4 c.c.); reddito di riferimento = TFR lordo x 12 / anni; imposta =
 TFR lordo x aliquota media IRPEF calcolata con gli scaglioni dell'anno corrente
@@ -105,9 +105,9 @@ def _pin_today(monkeypatch):
 def _tool(**kwargs) -> dict:
     import importlib
 
-    import src.server  # noqa: F401  -- registra i moduli (evita import circolari)
+    import mcp_legal_it.server  # noqa: F401  -- registra i moduli (evita import circolari)
 
-    mod = importlib.import_module("src.tools.dichiarazione_redditi")
+    mod = importlib.import_module("mcp_legal_it.tools.dichiarazione_redditi")
     fn = getattr(mod.calcolo_tfr, "fn", mod.calcolo_tfr)
     return fn(**kwargs)
 

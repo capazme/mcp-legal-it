@@ -33,8 +33,8 @@ PAGE = "calcolo-eta-anagrafica.php"
 
 
 def _tool(data_nascita, data_riferimento):
-    import src.server  # noqa: F401  (registers every module)
-    from src.tools.varie import calcolo_eta_anagrafica
+    import mcp_legal_it.server  # noqa: F401  (registers every module)
+    from mcp_legal_it.tools.varie import calcolo_eta_anagrafica
 
     fn = getattr(calcolo_eta_anagrafica, "fn", calcolo_eta_anagrafica)
     return fn(data_nascita=data_nascita, data_riferimento=data_riferimento)

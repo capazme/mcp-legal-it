@@ -64,19 +64,20 @@ from pathlib import Path
 
 # --- make the project importable when run as a script -----------------------
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(_PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PROJECT_ROOT))
+_PACKAGE_ROOT = _PROJECT_ROOT / "plugin" / "server"
+if str(_PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PACKAGE_ROOT))
 
 # --- core (always present) --------------------------------------------------
-from src.lib.visualex.models import Norma, NormaVisitata  # noqa: E402
-from src.lib.visualex import scraper  # noqa: E402
+from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata  # noqa: E402
+from mcp_legal_it.lib.visualex import scraper  # noqa: E402
 
 # --- AKN cache control (may not exist yet) ----------------------------------
 # The cache-clear hook lives in akn_fetch. Guard the import so this file parses
 # and the HTML baseline still runs even before the AKN modules are written.
 _AKN_IMPORT_ERROR: str | None = None
 try:
-    from src.lib.visualex.akn_fetch import (  # noqa: E402
+    from mcp_legal_it.lib.visualex.akn_fetch import (  # noqa: E402
         clear_akn_cache,
         fetch_act_akn,  # imported to assert the module is wired; not called directly here
     )
@@ -469,7 +470,7 @@ def render_markdown(results: list[CellResult]) -> str:
             f"> **AKN modules unavailable** ({_AKN_IMPORT_ERROR}). "
             "AKN cells reflect the current scraper routing (likely identical to "
             "HTML until akn_fetch is wired). Re-run after implementing "
-            "`src/lib/visualex/akn_fetch.py` + `akn_parser.py`."
+            "`mcp_legal_it/lib/visualex/akn_fetch.py` + `akn_parser.py`."
         )
         lines.append("")
 

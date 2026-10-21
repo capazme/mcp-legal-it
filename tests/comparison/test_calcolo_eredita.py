@@ -168,8 +168,8 @@ def _need(site: dict, key: str):
 # ---------------------------------------------------------------------------
 
 def _tool(massa, coniuge=False, figli=0, ascendenti=False, fratelli=0) -> dict:
-    import src.server  # noqa: F401  (registers every tool module)
-    from src.tools.proprieta_successioni import calcolo_eredita
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module)
+    from mcp_legal_it.tools.proprieta_successioni import calcolo_eredita
 
     fn = getattr(calcolo_eredita, "fn", calcolo_eredita)
     return fn(

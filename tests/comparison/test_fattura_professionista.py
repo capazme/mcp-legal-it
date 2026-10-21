@@ -40,7 +40,7 @@ TOL_CENT = 0.005  # half-cent cases only, see module docstring
 
 def _call(**kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.parcelle_professionisti")
+    mod = importlib.import_module("mcp_legal_it.tools.parcelle_professionisti")
     fn = getattr(mod, "fattura_professionista")
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)

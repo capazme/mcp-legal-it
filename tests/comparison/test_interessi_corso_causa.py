@@ -21,8 +21,8 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-import src.server  # noqa: E402,F401
-from src.tools.tassi_interessi import interessi_corso_causa  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401
+from mcp_legal_it.tools.tassi_interessi import interessi_corso_causa  # noqa: E402
 
 from tests.comparison.conftest import accept_cookies, assert_close, parse_euro  # noqa: E402
 

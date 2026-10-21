@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from src.lib._egress import (
+from mcp_legal_it.lib._egress import (
     ALLOWED_HOSTS,
     CI_ONLY_HOSTS,
     NON_NETWORK_HOSTS,
@@ -38,7 +38,7 @@ def hosts_in(directory: Path) -> dict[str, list[str]]:
     return found
 
 
-SERVER_HOSTS = sorted(hosts_in(ROOT / "src"))
+SERVER_HOSTS = sorted(hosts_in(ROOT / "plugin" / "server" / "mcp_legal_it"))
 SCRIPT_HOSTS = sorted(hosts_in(ROOT / "scripts"))
 
 
@@ -46,9 +46,9 @@ SCRIPT_HOSTS = sorted(hosts_in(ROOT / "scripts"))
 def test_server_contacts_only_declared_hosts(host):
     consentiti = ALLOWED_HOSTS | NON_NETWORK_HOSTS
     assert host in consentiti, (
-        f"'{host}' compare in src/ ma non è dichiarato.\n"
+        f"'{host}' compare in mcp_legal_it/ ma non è dichiarato.\n"
         "Se il server lo contatta davvero, aggiungilo ad ALLOWED_HOSTS in "
-        "src/lib/_egress.py e documentalo in SECURITY.md; se è solo un "
+        "mcp_legal_it/lib/_egress.py e documentalo in SECURITY.md; se è solo un "
         "namespace o un segnaposto, aggiungilo a NON_NETWORK_HOSTS."
     )
 

@@ -30,8 +30,8 @@ from pathlib import Path  # noqa: E402
 # repository root of THIS checkout (a hard-coded path would import another working tree)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-import src.server  # noqa: E402,F401  (registers all tool modules)
-from src.tools.parcelle_professionisti import compenso_curatore_fallimentare  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers all tool modules)
+from mcp_legal_it.tools.parcelle_professionisti import compenso_curatore_fallimentare  # noqa: E402
 
 from .conftest import accept_cookies, goto, parse_euro  # noqa: E402
 

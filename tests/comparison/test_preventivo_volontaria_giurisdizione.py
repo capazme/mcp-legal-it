@@ -66,8 +66,8 @@ _SCAGLIONI_SITO = [
 # ---------------------------------------------------------------------------
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  (registers every tool module first)
-    from src.tools.fatturazione_avvocati import preventivo_volontaria_giurisdizione
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first)
+    from mcp_legal_it.tools.fatturazione_avvocati import preventivo_volontaria_giurisdizione
 
     fn = getattr(preventivo_volontaria_giurisdizione, "fn", preventivo_volontaria_giurisdizione)
     res = fn(**kwargs)

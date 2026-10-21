@@ -16,7 +16,7 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib.giustizia_amm.client import (
+from mcp_legal_it.lib.giustizia_amm.client import (
     SEDI,
     TIPI_PROVVEDIMENTO,
     ProvvedimentoResult,
@@ -37,7 +37,7 @@ from src.lib.giustizia_amm.client import (
     format_result,
 )
 
-from src.tools.giustizia_amm import (
+from mcp_legal_it.tools.giustizia_amm import (
     _cerca_giurisprudenza_amministrativa_impl,
     _giurisprudenza_amm_su_norma_impl,
     _leggi_provvedimento_amm_impl,
@@ -543,7 +543,7 @@ def _patch_session(search_html=_SEARCH_HTML, doc_bytes=_MDP_XML):
     session.portlet_id = _PORTLET
     session.__aenter__ = AsyncMock(return_value=session)
     session.__aexit__ = AsyncMock(return_value=None)
-    return patch("src.lib.giustizia_amm.client.GASession", return_value=session)
+    return patch("mcp_legal_it.lib.giustizia_amm.client.GASession", return_value=session)
 
 
 class TestCercaImpl:
@@ -565,7 +565,7 @@ class TestCercaImpl:
 
     @pytest.mark.asyncio
     async def test_network_error_surfaces_as_source_down(self):
-        with patch("src.lib.giustizia_amm.client.GASession") as mock:
+        with patch("mcp_legal_it.lib.giustizia_amm.client.GASession") as mock:
             mock.return_value.__aenter__ = AsyncMock(
                 side_effect=httpx.HTTPStatusError("boom", request=MagicMock(), response=MagicMock())
             )
@@ -762,7 +762,7 @@ class TestNoDateOnTheSearchPage:
         assert "leggi_provvedimento_amm()" in text
 
     def test_docstring_does_not_promise_a_date(self):
-        from src.tools import giustizia_amm as ga_tools
+        from mcp_legal_it.tools import giustizia_amm as ga_tools
 
         fn = getattr(ga_tools.cerca_giurisprudenza_amministrativa, "fn",
                      ga_tools.cerca_giurisprudenza_amministrativa)
@@ -810,7 +810,7 @@ _PDF_BYTES = b"%PDF-1.7\n%\xb5\xb5\xb5\xb5\n1 0 obj\n<</Type/Catalog>>\nendobj\n
 
 class TestXmlMeta:
     def test_reads_type_number_and_date_of_the_official_xml(self):
-        from src.lib.giustizia_amm.client import _parse_xml_meta
+        from mcp_legal_it.lib.giustizia_amm.client import _parse_xml_meta
 
         assert _parse_xml_meta(_MDP_XML_AP17) == {
             "tipologia": "Sentenza",          # leading space stripped
@@ -819,13 +819,13 @@ class TestXmlMeta:
         }
 
     def test_meta_empty_for_pdf_and_error_page(self):
-        from src.lib.giustizia_amm.client import _parse_xml_meta
+        from mcp_legal_it.lib.giustizia_amm.client import _parse_xml_meta
 
         assert _parse_xml_meta(_PDF_BYTES) == {}
         assert _parse_xml_meta(_MDP_404_PAGE) == {}
 
     def test_is_pdf_by_signature(self):
-        from src.lib.giustizia_amm.client import is_pdf
+        from mcp_legal_it.lib.giustizia_amm.client import is_pdf
 
         assert is_pdf(_PDF_BYTES)
         assert not is_pdf(_MDP_XML) and not is_pdf(_MDP_404_PAGE)
@@ -972,9 +972,9 @@ class TestPagedReading:
 
     @pytest.mark.asyncio
     async def test_mcp_tool_accepts_and_threads_da_carattere(self):
-        from src.tools.giustizia_amm import leggi_provvedimento_amm
+        from mcp_legal_it.tools.giustizia_amm import leggi_provvedimento_amm
 
-        with patch("src.tools.giustizia_amm._leggi_provvedimento_amm_impl",
+        with patch("mcp_legal_it.tools.giustizia_amm._leggi_provvedimento_amm_impl",
                    new=AsyncMock(return_value="ok")) as impl:
             out = await leggi_provvedimento_amm("cds", "1", "x.html", da_carattere=15001)
         assert out == "ok"
@@ -1032,7 +1032,7 @@ class TestLeggiPdfOnly:
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_live_search_returns_results():
-    from src.lib.giustizia_amm.client import search_provvedimenti
+    from mcp_legal_it.lib.giustizia_amm.client import search_provvedimenti
 
     docs = await search_provvedimenti(query="appalto pubblico esclusione", rows=10)
     assert docs, "il portale non ha restituito provvedimenti"
@@ -1043,7 +1043,7 @@ async def test_live_search_returns_results():
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_live_full_text_roundtrip():
-    from src.lib.giustizia_amm.client import fetch_provvedimento_text, search_provvedimenti
+    from mcp_legal_it.lib.giustizia_amm.client import fetch_provvedimento_text, search_provvedimenti
 
     docs = await search_provvedimenti(query="silenzio assenso", rows=20)
     assert docs
@@ -1061,7 +1061,7 @@ async def test_live_full_text_roundtrip():
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_live_sede_filter():
-    from src.lib.giustizia_amm.client import search_provvedimenti
+    from mcp_legal_it.lib.giustizia_amm.client import search_provvedimenti
 
     docs = await search_provvedimenti(query="", sede="consiglio_di_stato", rows=10)
     assert docs

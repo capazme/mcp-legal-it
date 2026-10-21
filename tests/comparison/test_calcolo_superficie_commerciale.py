@@ -41,8 +41,8 @@ _PCOD = {
 
 
 def _call_tool(**kwargs):
-    import src.server  # noqa: F401  (registers every module)
-    from src.tools.proprieta_successioni import calcolo_superficie_commerciale
+    import mcp_legal_it.server  # noqa: F401  (registers every module)
+    from mcp_legal_it.tools.proprieta_successioni import calcolo_superficie_commerciale
 
     fn = getattr(calcolo_superficie_commerciale, "fn", calcolo_superficie_commerciale)
     return fn(**kwargs)

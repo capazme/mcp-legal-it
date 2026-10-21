@@ -40,8 +40,8 @@ TOL_ARROTONDAMENTO_EURO = 0.50
 
 
 def _tool(reddito: float, giorni: int) -> dict:
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.dichiarazione_redditi import detrazione_pensione
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.dichiarazione_redditi import detrazione_pensione
 
     fn = getattr(detrazione_pensione, "fn", detrazione_pensione)
     return fn(reddito_complessivo=reddito, giorni=giorni)

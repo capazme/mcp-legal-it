@@ -10,11 +10,11 @@ so the tool cannot drift from the audit into a second handwritten 227.
 import asyncio
 import platform
 
-from src.cli_version import package_version
-from src.lib import _clock
-from src.server import mcp
-from src.tool_annotations import READ_ONLY, WRITES_FILES
-from src.tools.varie import stato_server
+from mcp_legal_it.cli_version import package_version
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.server import mcp
+from mcp_legal_it.tool_annotations import READ_ONLY, WRITES_FILES
+from mcp_legal_it.tools.varie import stato_server
 
 
 def test_stato_reports_version_surface_and_flags(monkeypatch):

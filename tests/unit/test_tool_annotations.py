@@ -12,8 +12,8 @@ import subprocess
 import sys
 
 from fastmcp import Client
-from src.server import mcp
-from src.tool_annotations import CACHE_WRITES, READ_ONLY, WRITES_FILES, annotations_for
+from mcp_legal_it.server import mcp
+from mcp_legal_it.tool_annotations import CACHE_WRITES, READ_ONLY, WRITES_FILES, annotations_for
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
@@ -76,8 +76,8 @@ def test_the_provenance_gate_is_not_vacuous(tmp_path):
     """
     import shutil
 
-    src = tmp_path / "src"
-    shutil.copytree(REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__"))
+    src = tmp_path / "mcp_legal_it"
+    shutil.copytree(REPO / "plugin/server/mcp_legal_it", src, ignore=shutil.ignore_patterns("__pycache__"))
     sys.path.insert(0, str(REPO / "scripts"))
     try:
         from audit_tool_annotations import (  # type: ignore[import-not-found]
@@ -125,9 +125,9 @@ def test_a_table_nobody_reads_is_a_failure(tmp_path):
         verify_provenance,
     )
 
-    src = tmp_path / "src"
+    src = tmp_path / "mcp_legal_it"
     shutil.copytree(
-        REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__")
+        REPO / "plugin/server/mcp_legal_it", src, ignore=shutil.ignore_patterns("__pycache__")
     )
     redditi = src / "tools" / "dichiarazione_redditi.py"
     text = redditi.read_text(encoding="utf-8")
@@ -143,9 +143,9 @@ def test_a_table_nobody_reads_is_a_failure(tmp_path):
 
 
 def test_a_lib_helper_missing_from_the_policy_is_a_failure(monkeypatch, tmp_path):
-    """A `src/lib` module the policy does not know becomes an "external service".
+    """A `mcp_legal_it/lib` module the policy does not know becomes an "external service".
 
-    Sabotage: add a plain helper to `src/lib`, which is how the ledger's own
+    Sabotage: add a plain helper to `mcp_legal_it/lib`, which is how the ledger's own
     `_tables_open` arrived. `upstream_clients` then reported it as an upstream
     client for every tool that imported it -- 71 read-only calculations moved to
     the report's "external" column and its open-world count went from 50 to 121,
@@ -161,9 +161,9 @@ def test_a_lib_helper_missing_from_the_policy_is_a_failure(monkeypatch, tmp_path
         verify_lib_modules,
     )
 
-    src = tmp_path / "src"
+    src = tmp_path / "mcp_legal_it"
     shutil.copytree(
-        REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__")
+        REPO / "plugin/server/mcp_legal_it", src, ignore=shutil.ignore_patterns("__pycache__")
     )
     assert verify_lib_modules(Audit(src)) == [], "the real tree is already undeclared"
 
@@ -222,9 +222,9 @@ def test_a_hand_kept_copy_of_a_table_is_a_failure(tmp_path):
         verify_table_copies,
     )
 
-    src = tmp_path / "src"
+    src = tmp_path / "mcp_legal_it"
     shutil.copytree(
-        REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__")
+        REPO / "plugin/server/mcp_legal_it", src, ignore=shutil.ignore_patterns("__pycache__")
     )
     assert verify_table_copies(Audit(src)) == [], "the tree already contains a copy"
 
@@ -239,7 +239,7 @@ def test_a_hand_kept_copy_of_a_table_is_a_failure(tmp_path):
         encoding="utf-8",
     )
     problems = verify_table_copies(Audit(src))
-    assert any("restates src/data/contributo_unificato.json" in p for p in problems), problems
+    assert any("restates mcp_legal_it/data/contributo_unificato.json" in p for p in problems), problems
 
     series = _json.loads((src / "data" / "indici_foi.json").read_text(encoding="utf-8"))["indici"]
     year = list(series.values())[-1]
@@ -247,7 +247,7 @@ def test_a_hand_kept_copy_of_a_table_is_a_failure(tmp_path):
         original + "\n_FOI_COPIATO = %r\n" % (list(year.values()),), encoding="utf-8"
     )
     problems = verify_table_copies(Audit(src))
-    assert any("restates src/data/indici_foi.json" in p for p in problems), problems
+    assert any("restates mcp_legal_it/data/indici_foi.json" in p for p in problems), problems
 
     # An exemption that no longer matches anything is a failure too, so the
     # allow-list cannot outlive the code it excused.
@@ -264,7 +264,7 @@ def _audit():
         sys.path.pop(0)
     from pathlib import Path
 
-    return Audit(Path(REPO / "plugin/server/src"))
+    return Audit(Path(REPO / "plugin/server/mcp_legal_it"))
 
 
 def test_cache_writers_refresh_a_cache_and_nothing_else():
@@ -308,7 +308,7 @@ def test_audit_sees_the_write_in_a_document_generator():
         sys.path.pop(0)
     from pathlib import Path
 
-    audit = Audit(Path(REPO / "plugin/server/src"))
+    audit = Audit(Path(REPO / "plugin/server/mcp_legal_it"))
     fq = next(name for name, tool in audit.tools.items() if tool == "esporta_atto_docx")
     assert any("ctor Document()" in item for item in audit.writes_for(fq))
     lookup = next(name for name, tool in audit.tools.items() if tool == "interessi_legali")

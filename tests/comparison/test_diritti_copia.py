@@ -76,8 +76,8 @@ def _site(page, n_pagine, formato="C", autentica=False, urgente=False, competenz
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  registra i moduli (evita import circolari)
-    from src.tools.atti_giudiziari import diritti_copia
+    import mcp_legal_it.server  # noqa: F401  registra i moduli (evita import circolari)
+    from mcp_legal_it.tools.atti_giudiziari import diritti_copia
 
     fn = getattr(diritti_copia, "fn", diritti_copia)
     r = fn(**kwargs)

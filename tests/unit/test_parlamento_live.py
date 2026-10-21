@@ -28,9 +28,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.parlamento.client import STATI_PENDENTI
-from src.tools.parlamento import _CAVEAT_TITOLI, _norma_search_groups, cerca_ddl, ddl_su_norma, iter_ddl
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.parlamento.client import STATI_PENDENTI
+from mcp_legal_it.tools.parlamento import _CAVEAT_TITOLI, _norma_search_groups, cerca_ddl, ddl_su_norma, iter_ddl
 from tests.unit._norme_live import cite_law_json, contiene
 
 pytestmark = pytest.mark.live
@@ -212,7 +212,7 @@ def test_iter_ddl_da_numero_camera():
 
 def test_iter_ddl_formato_non_riconosciuto_senza_rete():
     """Plan case 3: 'DDL 1939' is rejected before any network call."""
-    with patch("src.lib.parlamento.client.httpx.AsyncClient", side_effect=AssertionError("rete usata")):
+    with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", side_effect=AssertionError("rete usata")):
         out = asyncio.run(getattr(iter_ddl, "fn", iter_ddl)(atto="DDL 1939"))
     assert out.startswith("**Errore**"), out
     assert "non riconosciuto" in out
@@ -303,7 +303,7 @@ def test_ddl_su_norma_avvertenza_anche_senza_risultati():
     resp.json = MagicMock(return_value={"head": {"vars": []}, "results": {"bindings": []}})
     client.get = AsyncMock(return_value=resp)
     client.request = AsyncMock(return_value=resp)
-    with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+    with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
         out = asyncio.run(getattr(ddl_su_norma, "fn", ddl_su_norma)(riferimento="art. 2043 c.c."))
     assert out.startswith("Nessun DDL trovato che citi nel titolo"), out
     assert _CAVEAT_TITOLI in out

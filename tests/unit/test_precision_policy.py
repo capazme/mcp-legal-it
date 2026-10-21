@@ -30,7 +30,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.lib import _clock, _data, _precision, _tables_open
+from mcp_legal_it.lib import _clock, _data, _precision, _tables_open
 
 from .mcp_harness import (
     REPO,
@@ -301,9 +301,9 @@ def test_the_audit_and_the_runtime_read_the_same_line_the_same_way():
     independent implementations, over all 222 docstrings.
     """
     module = _audit_module()
-    audit = module.Audit(pathlib.Path(REPO / "plugin/server/src"))
+    audit = module.Audit(pathlib.Path(REPO / "plugin/server/mcp_legal_it"))
     assert module.runtime_grades() == list(_precision.GRADI), (
-        "the audit and src/lib/_precision.py disagree on the vocabulary"
+        "the audit and mcp_legal_it/lib/_precision.py disagree on the vocabulary"
     )
 
     disagree = {}
@@ -408,7 +408,7 @@ def test_every_table_reading_tool_declares_the_negotiation_parameter():
     what describes it: a docstring shape the injector mishandles would leave a
     parameter a model cannot interpret, and this is the check that notices.
     """
-    audit = _audit_module().Audit(pathlib.Path(REPO / "plugin/server/src"))
+    audit = _audit_module().Audit(pathlib.Path(REPO / "plugin/server/mcp_legal_it"))
     readers = sorted(
         name for fq, name in audit.tools.items() if audit.datasets(fq)
     )

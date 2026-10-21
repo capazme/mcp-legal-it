@@ -21,11 +21,11 @@ le mettono in cima alla lista.
    indicata nel campo `fonte`, confronta i valori della tabella con quelli
    ufficiali e riferisci le differenze una per una.
 3. Dopo la conferma dell'utente, aggiorna il file indicato dall'`azione`
-   (`src/data/<tabella>.json`): i valori, poi `verifica: manuale` e
+   (`mcp_legal_it/data/<tabella>.json`): i valori, poi `verifica: manuale` e
    `aggiornato_al` di oggi nel blocco `_vintage`. Se la fonte pubblica un
    periodo coperto, imposta anche `copre_fino_a`.
-4. Aggiorna la coppia speculare se esiste (il file vive in
-   `plugin/server/src/data/`, con `src/data` come symlink): non duplicare.
+4. Aggiorna la coppia speculare se esiste (il file vive in un solo posto,
+   `plugin/server/mcp_legal_it/data/`): non duplicare.
 5. Riesegui `python3 scripts/update-data.py` per la conferma, e la suite dei
    golden (`GOLDEN_UPDATE=1 pytest tests/unit/test_golden_calcoli.py`) se dei
    numeri sono cambiati. Riporta il riepilogo.
@@ -46,4 +46,4 @@ tool bloccati, o più rifiuti osservati dal verbale).
 - Lo stesso comando esiste per la manutenzione da terminale:
   `python3 scripts/update-data.py` (stessa derivazione, vista da CLI).
 - Non modificare mai il codice dei tool per cambiare un importo: gli importi
-  vivono solo in `src/data/*.json`, e la suite segnala ogni effetto collaterale.
+  vivono solo in `mcp_legal_it/data/*.json`, e la suite segnala ogni effetto collaterale.

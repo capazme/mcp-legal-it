@@ -19,7 +19,7 @@ import re
 import httpx
 import pytest
 
-from src.lib.visualex.map import _ATTI_DENOMINATI_SPEC, ATTI_NOTI
+from mcp_legal_it.lib.visualex.map import _ATTI_DENOMINATI_SPEC, ATTI_NOTI
 
 pytestmark = pytest.mark.live
 

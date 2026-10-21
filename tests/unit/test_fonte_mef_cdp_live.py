@@ -46,8 +46,8 @@ import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools.investimenti import rendimento_btp, rendimento_buoni_postali
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools.investimenti import rendimento_btp, rendimento_buoni_postali
 from tests.unit._norme_live import assert_parole
 
 pytestmark = pytest.mark.live
@@ -338,7 +338,7 @@ def test_bfp_ordinario_montante_vs_foglio_informativo_cdp(anni):
     # 2,25 (9), 2,50 (10-12), 3,00 (13), 3,40 (14), 3,50 (15-16), 4,00 (17-19), 5,00 (20).
     # Coefficients: 1a 1,0075/1,0065625; 4a 1,03033919/1,02654679; 10a 1,15745056/1,13776924;
     # 20a 1,63861891/1,55879154. The tool used to apply 0,50%...2,25% with no
-    # series reference; it now reads these coefficients from src/data/buoni_postali.json.
+    # series reference; it now reads these coefficients from mcp_legal_it/data/buoni_postali.json.
     serie, url, testo = _foglio_corrente("buono-ordinario/")
     lordo, netto = _coefficienti_bimestrali(testo)[(anni, 0)]
     r = _bfp(importo=10000, tipo="ordinario", anni=anni)
@@ -427,7 +427,7 @@ def test_bfp_dedicato_minori_vs_foglio_informativo_cdp():
     # 5,00% annuo effettivo lordo a scadenza (18th birthday) for every age; 0,50% nominal on
     # early redemption. Newborn subscriber (18 years): coefficient 2,38712870 / 2,21373761.
     # The tool used to apply 1,50% -> 3,50% by 4-year brackets; it now reads Tabella A (maturity
-    # coefficient by bimester of the 18th birthday) from src/data/buoni_postali.json.
+    # coefficient by bimester of the 18th birthday) from mcp_legal_it/data/buoni_postali.json.
     serie, url, testo = _foglio_corrente("buono-minori")
     m = re.search(r"N\.A\.\s*\(4\)\s+(\d,\d{8})\s+(\d,\d{8})\s+(\d+,\d{2})%", testo)
     assert m, serie
@@ -452,10 +452,10 @@ _MESI_IT = {m: i for i, m in enumerate(
 
 
 def test_tabella_buoni_postali_coincide_con_i_fogli_in_collocamento():
-    """src/data/buoni_postali.json holds the coefficients of the series in placement; when CDP
+    """mcp_legal_it/data/buoni_postali.json holds the coefficients of the series in placement; when CDP
     issues a new series poste.it links a different foglio and this test says the table must
     gain that series (and `serie_corrente` move), instead of the tool going silently stale."""
-    from src.lib import _data
+    from mcp_legal_it.lib import _data
 
     tipi = _data.load("buoni_postali")["tipi"]
 

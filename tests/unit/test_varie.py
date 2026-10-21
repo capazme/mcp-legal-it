@@ -6,7 +6,7 @@ from .mcp_harness import tool_body
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.varie")
+    mod = importlib.import_module("mcp_legal_it.tools.varie")
     actual = tool_body(getattr(mod, fn_name))
     return actual(**kwargs)
 

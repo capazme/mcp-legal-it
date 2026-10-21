@@ -67,7 +67,7 @@ _CLAUDE_CODE_PROJECTION = (
     "      skills: plugin/skills\n"
     "      agents: plugin/agents\n"
     "      commands: plugin/commands\n"
-    "      references: plugin/server/src/data/references\n"
+    "      references: plugin/server/mcp_legal_it/data/references\n"
 )
 
 
@@ -400,7 +400,7 @@ def _write_fake_openai_root(root: Path) -> None:
         encoding="utf-8",
     )
 
-    server_dir = root / "plugin" / "server" / "src"
+    server_dir = root / "plugin" / "server" / "mcp_legal_it"
     server_dir.mkdir(parents=True)
     (server_dir / "server.py").write_text(_FAKE_SERVER_PY, encoding="utf-8")
 

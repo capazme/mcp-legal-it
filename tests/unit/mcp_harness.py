@@ -261,7 +261,7 @@ def tools() -> list[dict]:
 
     sys.path.insert(0, str(REPO / "plugin/server"))
     try:
-        from src.server import mcp
+        from mcp_legal_it.server import mcp
     finally:
         sys.path.pop(0)
 

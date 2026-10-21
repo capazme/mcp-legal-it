@@ -33,8 +33,8 @@ ROMA = "https://www.avvocatoandreani.it/servizi/calcolo-risarcimento-danno-perdi
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers all modules)
-    from src.tools.risarcimento_danni import danno_parentale
+    import mcp_legal_it.server  # noqa: F401  (registers all modules)
+    from mcp_legal_it.tools.risarcimento_danni import danno_parentale
 
     fn = getattr(danno_parentale, "fn", danno_parentale)
     return fn(**kwargs)

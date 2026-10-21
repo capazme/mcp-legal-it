@@ -30,8 +30,8 @@ _SIZE_RE = re.compile(r"Dimensioni:\s*(\d+)\s*byte")
 
 
 def _tool(testo: str) -> dict:
-    import src.server  # noqa: F401  registers all tool modules
-    from src.tools.atti_giudiziari import calcolo_hash
+    import mcp_legal_it.server  # noqa: F401  registers all tool modules
+    from mcp_legal_it.tools.atti_giudiziari import calcolo_hash
 
     fn = getattr(calcolo_hash, "fn", calcolo_hash)
     return fn(testo=testo)

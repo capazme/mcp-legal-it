@@ -1,6 +1,6 @@
 """Comparison tests: aumenti_riduzioni_pena vs avvocatoandreani.it.
 
-Il tool (``src/tools/diritto_penale.py``) parte dalla pena base in MESI e applica in
+Il tool (``mcp_legal_it/tools/diritto_penale.py``) parte dalla pena base in MESI e applica in
 sequenza, nell'ordine fisso recidiva (+1/3, art. 99 co. 1 c.p.) -> aggravanti (aumenti
 percentuali) -> attenuanti (riduzioni percentuali), ciascuna variazione sul risultato
 della precedente. Restituisce ``pena_risultante_mesi`` arrotondata a due decimali e il
@@ -64,8 +64,8 @@ PCT = {"1/6": 16.6667, "1/4": 25.0, "1/3": 33.3333, "1/2": 50.0, "2/3": 66.6667}
 # ---------------------------------------------------------------------------
 
 def _tool(**kw) -> dict:
-    import src.server  # noqa: F401  (registra i moduli, evita import circolari)
-    from src.tools.diritto_penale import aumenti_riduzioni_pena
+    import mcp_legal_it.server  # noqa: F401  (registra i moduli, evita import circolari)
+    from mcp_legal_it.tools.diritto_penale import aumenti_riduzioni_pena
 
     fn = getattr(aumenti_riduzioni_pena, "fn", aumenti_riduzioni_pena)
     return fn(**kw)

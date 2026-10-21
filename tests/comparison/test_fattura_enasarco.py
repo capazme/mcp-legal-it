@@ -52,9 +52,9 @@ MASSIMALE_PLURI_2026 = 30_478.00
 def _call(**kwargs):
     import importlib
 
-    import src.server  # noqa: F401  (registers every tool module)
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module)
 
-    mod = importlib.import_module("src.tools.parcelle_professionisti")
+    mod = importlib.import_module("mcp_legal_it.tools.parcelle_professionisti")
     fn = getattr(mod, "fattura_enasarco")
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)

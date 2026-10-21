@@ -35,8 +35,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-import src.server  # noqa: E402,F401  (registers all tool modules)
-from src.tools.rivalutazioni_istat import (  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers all tool modules)
+from mcp_legal_it.tools.rivalutazioni_istat import (  # noqa: E402
     interessi_vari_capitale_rivalutato as _tool,
     rivalutazione_monetaria as _riv,
 )

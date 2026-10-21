@@ -12,8 +12,8 @@ from datetime import date
 
 import pytest
 
-from src.lib import _data
-from src.lib._data import (
+from mcp_legal_it.lib import _data
+from mcp_legal_it.lib._data import (
     AUTOMATIC,
     MANUAL,
     UNVERIFIED,
@@ -124,7 +124,7 @@ def test_sourced_keeps_the_signature_fastmcp_builds_its_schema_from():
 
 
 def test_a_real_tool_carries_its_table_vintage():
-    from src.tools.tassi_interessi import interessi_legali
+    from mcp_legal_it.tools.tassi_interessi import interessi_legali
 
     out = interessi_legali(
         capitale=1000.0, data_inizio="2024-01-01", data_fine="2024-06-30"

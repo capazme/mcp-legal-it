@@ -21,8 +21,8 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import src.server  # noqa: F401,E402  (registers all tool modules)
-from src.tools.fatturazione_avvocati import spese_trasferta_avvocati  # noqa: E402
+import mcp_legal_it.server  # noqa: F401,E402  (registers all tool modules)
+from mcp_legal_it.tools.fatturazione_avvocati import spese_trasferta_avvocati  # noqa: E402
 
 from .conftest import accept_cookies, assert_close, goto, parse_euro  # noqa: E402
 

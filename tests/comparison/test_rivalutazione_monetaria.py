@@ -38,8 +38,8 @@ TOL = 0.01
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.rivalutazioni_istat import rivalutazione_monetaria
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.rivalutazioni_istat import rivalutazione_monetaria
 
     fn = getattr(rivalutazione_monetaria, "fn", rivalutazione_monetaria)
     return fn(**kwargs)

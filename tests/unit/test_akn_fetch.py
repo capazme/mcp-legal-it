@@ -1,4 +1,4 @@
-"""Unit tests for the AKN network/cache layer (src/lib/visualex/akn_fetch.py).
+"""Unit tests for the AKN network/cache layer (mcp_legal_it/lib/visualex/akn_fetch.py).
 
 Network is fully mocked: a fake ``httpx.AsyncClient`` is injected via monkeypatch
 and records every GET so we can assert on round-trip counts. No live calls.
@@ -9,15 +9,15 @@ from pathlib import Path
 
 import pytest
 
-from src.lib.visualex import akn_fetch
-from src.lib.visualex.akn_fetch import (
+from mcp_legal_it.lib.visualex import akn_fetch
+from mcp_legal_it.lib.visualex.akn_fetch import (
     _akn_cache_stats,
     _extract_params,
     clear_akn_cache,
     fetch_act_akn,
 )
-from src.lib.visualex.akn_parser import ParsedAct
-from src.lib.visualex.models import Norma
+from mcp_legal_it.lib.visualex.akn_parser import ParsedAct
+from mcp_legal_it.lib.visualex.models import Norma
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "akn"
 
@@ -308,8 +308,8 @@ class TestPartsSerialization:
     """
 
     def test_act_dict_round_trip_preserves_parts(self):
-        from src.lib.visualex.akn_parser import ParsedAct, ParsedPart
-        from src.lib.visualex.akn_fetch import _act_to_dict, _act_from_dict
+        from mcp_legal_it.lib.visualex.akn_parser import ParsedAct, ParsedPart
+        from mcp_legal_it.lib.visualex.akn_fetch import _act_to_dict, _act_from_dict
 
         act = ParsedAct(
             title="Codice civile",
@@ -335,7 +335,7 @@ class TestPartsSerialization:
         # Cache files written before multi-part support have no "parts" key: they
         # must load without crashing and simply expose no parts (the article
         # lookup then falls back to the HTML path in the caller).
-        from src.lib.visualex.akn_fetch import _act_from_dict
+        from mcp_legal_it.lib.visualex.akn_fetch import _act_from_dict
 
         legacy = {
             "title": "Codice civile",

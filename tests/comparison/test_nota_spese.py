@@ -52,7 +52,7 @@ _SITE_ROWS = {
 
 
 def _tool(voci: list[dict]) -> dict:
-    from src.tools.fatturazione_avvocati import nota_spese
+    from mcp_legal_it.tools.fatturazione_avvocati import nota_spese
 
     fn = getattr(nota_spese, "fn", nota_spese)
     return fn(voci=voci)

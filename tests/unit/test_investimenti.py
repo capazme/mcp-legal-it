@@ -6,7 +6,7 @@ import pytest
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.investimenti")
+    mod = importlib.import_module("mcp_legal_it.tools.investimenti")
     fn = getattr(mod, fn_name)
     actual = fn.fn if hasattr(fn, "fn") else fn
     if inspect.iscoroutinefunction(actual):
@@ -457,7 +457,7 @@ class TestRendimentoBuoniPostali:
     def test_tabella_buoni_postali_netto_uguale_lordo_meno_12_5_per_cento(self):
         # Every netto coefficient of the table is 1 + (lordo - 1) x 0,875 (12,50%, D.Lgs. 239/1996),
         # as in the fogli; the historical series derive it the same way.
-        from src.lib import _data
+        from mcp_legal_it.lib import _data
 
         for cfg in _data.load("buoni_postali")["tipi"].values():
             for serie in cfg["serie"].values():
@@ -469,7 +469,7 @@ class TestRendimentoBuoniPostali:
                     assert netto == pytest.approx(1 + (lordo - 1) * 0.875, abs=2e-8)
 
     def test_tabella_buoni_postali_dichiara_la_provenienza(self):
-        from src.lib import _data
+        from mcp_legal_it.lib import _data
 
         v = _data.vintage("buoni_postali")
         assert v.verificato
@@ -482,7 +482,7 @@ class TestRendimentoBuoniPostali:
     def test_aggiungi_anni_29_febbraio(self):
         from datetime import date
 
-        from src.tools.investimenti import _aggiungi_anni
+        from mcp_legal_it.tools.investimenti import _aggiungi_anni
 
         assert _aggiungi_anni(date(2028, 2, 29), 1) == date(2029, 2, 28)
         assert _aggiungi_anni(date(2028, 2, 29), 4) == date(2032, 2, 29)

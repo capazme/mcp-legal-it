@@ -15,7 +15,7 @@ eta'). Dai valori osservati: base = 2 x stipendio x percentuale di categoria
 eta' 51-60 e del 50% oltre 60 (DPR 461/2001 art. 50 / DPR 349/1994).
 
 Il tool ``equo_indennizzo(categoria_tabella, percentuale_invalidita, stipendio_annuo)``
-(src/tools/risarcimento_danni.py) calcola invece stipendio x coefficiente di
+(mcp_legal_it/tools/risarcimento_danni.py) calcola invece stipendio x coefficiente di
 categoria (0,7-8) x percentuale di invalidita', senza eta'. Il confronto usa per
 il sito un'eta' fuori dalle riduzioni (30 anni) salvo i casi al limite sull'eta'.
 
@@ -32,8 +32,8 @@ import pytest
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import src.server  # noqa: E402,F401  registra i moduli
-from src.tools.risarcimento_danni import equo_indennizzo as _tool  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  registra i moduli
+from mcp_legal_it.tools.risarcimento_danni import equo_indennizzo as _tool  # noqa: E402
 
 from .conftest import accept_cookies, assert_close, parse_euro  # noqa: E402
 

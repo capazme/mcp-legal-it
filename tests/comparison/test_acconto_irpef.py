@@ -66,9 +66,9 @@ TOL = 0.01
 def _tool(imposta: float, metodo: str = "storico") -> dict:
     import importlib
 
-    import src.server  # noqa: F401  -- registra i moduli (evita import circolari)
+    import mcp_legal_it.server  # noqa: F401  -- registra i moduli (evita import circolari)
 
-    mod = importlib.import_module("src.tools.dichiarazione_redditi")
+    mod = importlib.import_module("mcp_legal_it.tools.dichiarazione_redditi")
     fn = getattr(mod.acconto_irpef, "fn", mod.acconto_irpef)
     r = fn(imposta_anno_precedente=imposta, metodo=metodo)
     assert "errore" not in r, r

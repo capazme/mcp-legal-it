@@ -2,11 +2,11 @@
 
 import importlib
 
-from src.tools.analisi_fornitori import _valida_fornitori, genera_report_fornitori
+from mcp_legal_it.tools.analisi_fornitori import _valida_fornitori, genera_report_fornitori
 
 
 def _tool(fn_name: str):
-    mod = importlib.import_module("src.tools.analisi_fornitori")
+    mod = importlib.import_module("mcp_legal_it.tools.analisi_fornitori")
     fn = getattr(mod, fn_name)
     return fn.fn if hasattr(fn, "fn") else fn
 
@@ -123,7 +123,7 @@ class TestValidazione:
 
 from openpyxl import load_workbook
 
-from src.tools.analisi_fornitori import _ordina
+from mcp_legal_it.tools.analisi_fornitori import _ordina
 
 _HEADER_ATTESO = [
     "Denominazione (da mastrino)",
@@ -186,7 +186,7 @@ class TestOrdina:
 
 class TestGeneraReport:
     def test_errore_validazione_non_scrive_file(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         out = _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(confidenza="x")], cliente="Cliente Srl"
         )
@@ -194,7 +194,7 @@ class TestGeneraReport:
         assert list(tmp_path.iterdir()) == []
 
     def test_file_generato_struttura(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         out = _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(), _titolare(), _fuori()],
             cliente="Cliente Srl",
@@ -230,7 +230,7 @@ class TestGeneraReport:
         assert riga_fuori[4] == "Fuori perimetro privacy"
 
     def test_avvertenze_contenuto(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(), _titolare(), _fuori()],
             cliente="Cliente Srl",
@@ -250,7 +250,7 @@ class TestGeneraReport:
         assert riga_totale[1].value == 3
 
     def test_fonti_multiple_su_piu_righe(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(fonti=["https://a.it", "https://b.it"])],
             cliente="X",
@@ -262,7 +262,7 @@ class TestGeneraReport:
     def test_denominazione_formula_neutralizzata(self, tmp_path, monkeypatch):
         """A ledger-supplied denominazione starting with '=' must never become a live
         Excel formula — it must be stored as a literal string cell."""
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         formula_payload = '=HYPERLINK("http://evil","x")'
         _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(denominazione_mastrino=formula_payload)],
@@ -288,7 +288,7 @@ class TestCaratteriDiControllo:
     stripped from every received text (tab, LF and CR are legal and stay) and counted."""
 
     def test_form_feed_and_vertical_tab_are_stripped_from_names(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         out = _tool("genera_report_fornitori")(
             fornitori=[
                 _fuori_varie("ACME\x0cSRL"),
@@ -303,7 +303,7 @@ class TestCaratteriDiControllo:
         assert nomi == ["ACMESRL", "BETASRL"]
 
     def test_every_free_text_field_is_cleaned(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         sporco = "x\x00y\x08z\x0e\x1fw"
         out = _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(
@@ -327,7 +327,7 @@ class TestCaratteriDiControllo:
         assert "rimossi 40 caratteri di controllo" in out
 
     def test_tab_lf_cr_are_legal_and_kept(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         out = _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(note="a\tb\nc\rd")], cliente="X",
         )
@@ -339,7 +339,7 @@ class TestCaratteriDiControllo:
     def test_required_field_made_only_of_control_chars_is_reported_missing(self, tmp_path, monkeypatch):
         """Cleaning runs before validation: a name that is all control characters must be
         rejected as empty, not written as an empty cell."""
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         out = _tool("genera_report_fornitori")(
             fornitori=[_riga_ok(denominazione_mastrino="\x0c\x0b")], cliente="X",
         )
@@ -350,7 +350,7 @@ class TestCaratteriDiControllo:
     def test_validation_errors_still_list_every_row(self, tmp_path, monkeypatch):
         """Docstring contract: all faulty rows together, no file, also when other rows carry
         control characters."""
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         out = _tool("genera_report_fornitori")(
             fornitori=[
                 _riga_ok(denominazione_mastrino="A\x0cB", confidenza="x"),
@@ -363,7 +363,7 @@ class TestCaratteriDiControllo:
         assert list(tmp_path.iterdir()) == []
 
     def test_input_records_are_not_mutated(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setattr("mcp_legal_it.tools.analisi_fornitori._OUTPUT_DIR", str(tmp_path))
         riga = _riga_ok(denominazione_mastrino="ACME\x0cSRL")
         _tool("genera_report_fornitori")(fornitori=[riga], cliente="X")
         assert riga["denominazione_mastrino"] == "ACME\x0cSRL"

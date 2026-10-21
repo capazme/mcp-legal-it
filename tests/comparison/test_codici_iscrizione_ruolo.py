@@ -3,7 +3,7 @@
 Fonte: provvedimenti DGSIA / Ministero della Giustizia, elenco degli oggetti dei giudizi per
 materia (codici oggetto della nota di iscrizione a ruolo delle cause civili; il _vintage
 della tabella cita "D.M. 32/2012 e provvedimenti DGSIA", estremo non verificato in questo
-confronto). Il tool legge ``src/data/codici_ruolo.json`` (_vintage manuale al
+confronto). Il tool legge ``mcp_legal_it/data/codici_ruolo.json`` (_vintage manuale al
 19/09/2026): un SOTTOINSIEME di 89 voci raggruppate sotto etichette di materia proprie del
 tool ("locazione", "responsabilità", "proprietà", ...), non quelle dell'indice ministeriale.
 
@@ -76,8 +76,8 @@ def _norm(s: str) -> str:
 
 
 def _tool(materia: str) -> dict[str, dict]:
-    import src.server  # noqa: F401  registra i moduli (evita import circolari)
-    from src.tools.atti_giudiziari import codici_iscrizione_ruolo
+    import mcp_legal_it.server  # noqa: F401  registra i moduli (evita import circolari)
+    from mcp_legal_it.tools.atti_giudiziari import codici_iscrizione_ruolo
 
     fn = getattr(codici_iscrizione_ruolo, "fn", codici_iscrizione_ruolo)
     r = fn(materia=materia)
@@ -87,8 +87,8 @@ def _tool(materia: str) -> dict[str, dict]:
 
 
 def _table_codes() -> set[str]:
-    import src.server  # noqa: F401
-    from src.tools.atti_giudiziari import _CODICI_RUOLO
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.atti_giudiziari import _CODICI_RUOLO
 
     return {c["codice"] for c in _CODICI_RUOLO}
 

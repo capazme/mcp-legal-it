@@ -20,8 +20,8 @@ import re
 import pytest
 
 
-import src.server  # noqa: E402,F401  (registers all tool modules)
-from src.tools.proprieta_successioni import spese_condominiali as _tool  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers all tool modules)
+from mcp_legal_it.tools.proprieta_successioni import spese_condominiali as _tool  # noqa: E402
 
 from .conftest import accept_cookies, assert_close, parse_euro  # noqa: E402
 

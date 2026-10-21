@@ -1,6 +1,6 @@
 """Live gate: `analisi_base_giuridica` against the vigente text of the norms it applies.
 
-`analisi_base_giuridica` (src/tools/privacy_gdpr.py) reads `src/data/gdpr_basi_giuridiche.json`:
+`analisi_base_giuridica` (mcp_legal_it/tools/privacy_gdpr.py) reads `mcp_legal_it/data/gdpr_basi_giuridiche.json`:
 a catalogue of the six legal bases of art. 6(1) GDPR, the ten exceptions of art. 9(2) and a
 context -> base matrix whose notes cite art. 7, 21, 22 GDPR, artt. 75, 122, 130 D.Lgs. 196/2003
 and art. 4 L. 300/1970. This file reads each of those articles through `cite_law()` (EUR-Lex /
@@ -33,7 +33,7 @@ from tests.unit._norme_live import testo_vigente as _testo_vigente  # alias: pyt
 
 pytestmark = pytest.mark.live
 
-_TABELLA = Path(__file__).resolve().parents[2] / "src" / "data" / "gdpr_basi_giuridiche.json"
+_TABELLA = Path(__file__).resolve().parents[2] / "plugin" / "server" / "mcp_legal_it" / "data" / "gdpr_basi_giuridiche.json"
 
 
 @lru_cache(maxsize=None)
@@ -54,8 +54,8 @@ def _tabella() -> dict:
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools.privacy_gdpr import analisi_base_giuridica
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools.privacy_gdpr import analisi_base_giuridica
 
     fn = getattr(analisi_base_giuridica, "fn", analisi_base_giuridica)
     risultato = fn(**kwargs)

@@ -24,8 +24,8 @@ import pytest
 
 from tests.comparison.conftest import assert_close, parse_euro
 
-import src.server  # noqa: F401  (registers modules, avoids circular imports)
-from src.tools.rivalutazioni_istat import rivalutazione_annuale_media as _tool
+import mcp_legal_it.server  # noqa: F401  (registers modules, avoids circular imports)
+from mcp_legal_it.tools.rivalutazioni_istat import rivalutazione_annuale_media as _tool
 
 _fn = getattr(_tool, "fn", _tool)
 
