@@ -521,7 +521,7 @@ from mcp_legal_it.lib.brocardi.client import BrocardiResult, Massima  # noqa: E4
 def pinned_today(monkeypatch):
     """2026-09-29: the day the archive was measured (civil archive from 17/02/2021)."""
     monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
-    monkeypatch.setattr(lc, "_archive_start_cache", {})
+    monkeypatch.setattr("mcp_legal_it.core.cassazione._archive_start_cache", {})
 
 
 def _archive_start(year=2021, date="2021-02-17"):

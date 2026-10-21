@@ -9,6 +9,7 @@ import re
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.core import cassazione
+from mcp_legal_it.core.cassazione import _IT_STOPWORDS, _normalize_query  # noqa: F401 - re-exported
 from mcp_legal_it.lib._paging import invalid_start
 from mcp_legal_it.lib._result import SearchResult
 from mcp_legal_it.lib import _brocardi_switch
@@ -39,69 +40,6 @@ _REFINEMENT_STEPS = [
     {"campo": "dispositivo", "label": "solo nel dispositivo"},
     {"tipo_provvedimento": "sentenza", "label": "solo sentenze"},
 ]
-
-_IT_STOPWORDS = frozenset({
-    "di", "del", "della", "dello", "delle", "dei", "degli",
-    "per", "con", "in", "da", "dal", "dalla", "dalle",
-    "che", "il", "la", "lo", "le", "li", "un", "una", "uno",
-    "al", "alla", "alle", "allo", "ai", "agli",
-    "su", "sul", "sulla", "sulle", "sullo", "sui", "sugli",
-    "tra", "fra", "nel", "nella", "nelle", "nello", "nei", "negli",
-    "ed", "si", "se", "non", "come", "anche", "sono", "essere",
-    "ha", "hanno", "è", "e", "o", "a",
-})
-
-
-def _normalize_query(query: str) -> str:
-    """Preprocess LLM query for better Solr matching.
-
-    Addresses common LLM query patterns that cause zero results:
-    - Quotes around normative references force exact OCR match (often fails)
-    - Single-word quotes are pointless
-    - Too many terms with default mm cause over-filtering
-    - Stopwords dilute relevance in long queries
-    """
-    if not query or not query.strip():
-        return query
-
-    q = query.strip()
-
-    # 1. Remove quotes around normative references like "art. 1-bis"
-    q = re.sub(
-        r'"((?:art(?:icol[oi])?\.?\s+\d+(?:-\w+)?))"',
-        r'\1',
-        q,
-    )
-    # Remove quotes around D.Lgs./D.L./L. references
-    q = re.sub(
-        r'"((?:D\.?(?:Lgs|L|P\.R|M)\.?|[Ll]egge|[Dd]ecreto\s+legislativo)\s*(?:n\.?\s*)?\d+(?:/\d+)?)"',
-        r'\1',
-        q,
-    )
-
-    # 2. Remove quotes around single words (pointless, same as unquoted)
-    q = re.sub(r'"(\w+)"', r'\1', q)
-
-    # 3. Drop Italian stopwords if query has 6+ terms (to reduce mm pressure)
-    terms = q.split()
-    if len(terms) >= 6:
-        filtered = []
-        for t in terms:
-            # Keep quoted phrases intact, keep operators, keep non-stopwords
-            if t.startswith('"') or t in ("AND", "OR", "NOT") or t.startswith("-"):
-                filtered.append(t)
-            elif t.lower().rstrip(".,;:") not in _IT_STOPWORDS:
-                filtered.append(t)
-        # Ensure we keep at least 3 terms
-        if len(filtered) >= 3:
-            terms = filtered
-
-    q = " ".join(terms)
-
-    # 4. Collapse multiple spaces
-    q = re.sub(r"\s{2,}", " ", q).strip()
-
-    return q
 
 
 # ---------------------------------------------------------------------------
