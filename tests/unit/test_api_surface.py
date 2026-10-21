@@ -56,6 +56,7 @@ EXPECTED = {
     'cerca_giurisprudenza_unificata': "async def(tema: 'str', *, fonti: 'Iterable[str]' = ('cassazione', 'tributaria', 'amministrativa', 'ue'), anno_dal: 'int | None' = None, anno_al: 'int | None' = None, max_risultati: 'int' = 5) -> 'dict[str, RicercaDecisioni]'",
     'come_dict': "def(valore: 'Any') -> 'Any'",
     'configura': "def(*, client_factory: 'ClientFactory | None | _NonIndicato' = NON_INDICATO, cache_dir: 'str | Path | None | _NonIndicato' = NON_INDICATO, cache: 'bool | None | _NonIndicato' = NON_INDICATO, brocardi: 'bool | None | _NonIndicato' = NON_INDICATO) -> 'Configurazione'",
+    'con_regole': "def(fonte: 'str', transport: 'httpx.AsyncBaseTransport') -> 'httpx.AsyncBaseTransport'",
     'configurazione': "def(*, client_factory: 'ClientFactory | None | _NonIndicato' = NON_INDICATO, cache_dir: 'str | Path | None | _NonIndicato' = NON_INDICATO, cache: 'bool | None | _NonIndicato' = NON_INDICATO, brocardi: 'bool | None | _NonIndicato' = NON_INDICATO) -> 'Iterator[Configurazione]'",
     'giurisprudenza_su_articolo': "async def(riferimento: 'str', *, archivio: 'str | None' = None, pagina: 'int' = 1, per_pagina: 'int' = 20, anno_dal: 'int | None' = None, anno_al: 'int | None' = None, sezione: 'str | None' = None, solo_sezioni_unite: 'bool' = False) -> 'RicercaDecisioni'",
     'giurisprudenza_ue_su_articolo': "async def(riferimento: 'str', *, corte: 'str' = '', anno_dal: 'str' = '', max_risultati: 'int' = 10) -> 'RicercaDecisioni'",
