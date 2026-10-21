@@ -394,7 +394,7 @@ _Calcola un singolo termine del rito ordinario post-Cartabia: memorie ex art. 17
 
 **Quando usare**: calcolare una singola scadenza per un procedimento iscritto a ruolo dopo il 28/02/2023.
 
-**Esempio**: `termini_processuali_civili(data_udienza="2025-10-01", tipo_termine="memoria_I")` → 2025-07-22 (40 giorni a ritroso saltando agosto; `sospensione_feriale_incidente: true`).
+**Esempio**: `termini_processuali_civili(data_udienza="2025-10-01", tipo_termine="memoria_I")` → 2025-07-22 (40 giorni a ritroso saltando agosto; `sospensione_feriale_incidente: true`). Quando la sospensione sposta il risultato, i tool di scadenza aggiungono `avviso_sospensione_feriale` con le materie escluse e le fonti (art. 3 L. 742/1969, art. 92 R.D. 12/1941); se non lo sposta, nessun avviso.
 
 ---
 
@@ -493,7 +493,7 @@ _Calcola i termini nelle procedure esecutive: finestra utile per pignorare (10-9
 ---
 
 ### `termini_deposito_atti_appello`
-_Calcola i termini del giudizio di appello: impugnazione (breve 30gg e lungo 6 mesi, con sospensione feriale), costituzione dell'appellante entro 10 giorni dalla notifica della citazione (artt. 165 e 347 c.p.c.) e comparsa di risposta dell'appellato almeno 70 giorni prima dell'udienza (artt. 166 e 343 c.p.c. post-Cartabia; 20 giorni per le cause ante 28/02/2023)._
+_Calcola i termini del giudizio di appello: impugnazione (breve 30gg e lungo 6 mesi, con sospensione feriale), costituzione dell'appellante entro 10 giorni dalla notifica della citazione (artt. 165 e 347 c.p.c.) e comparsa di risposta dell'appellato almeno 20 giorni prima dell'udienza (art. 347, co. 1, c.p.c. nel testo del D.Lgs. 164/2024, e art. 343 per l'appello incidentale). Per gli appelli introdotti tra il 28/02/2023 e il 26/11/2024, quando l'art. 347 rinviava ai 70 giorni dell'art. 166, la risposta porta `avvertenza_regime_transitorio`: l'applicazione retroattiva dei 20 giorni (art. 7 D.Lgs. 164/2024) è una valutazione dell'avvocato._
 
 **Parametri**:
 - `data_notifica_sentenza` (str, opzionale) — data di notifica della sentenza per il termine breve (YYYY-MM-DD).

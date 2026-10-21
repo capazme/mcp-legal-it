@@ -597,6 +597,20 @@ class TestTerminiEsecuzioni:
         assert r["scadenza_opposizione"] == "2025-06-23"
         assert r["riferimento_normativo"] == "Art. 617 c.p.c."
 
+    def test_617_agosto_nel_termine_avvertenza_e_scadenza_prudente(self):
+        # 20/07/2025 + 20 = 09/08/2025 (sabato) -> lunedi 11/08: agosto nel termine, scadenza invariata
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-07-20",
+                  tipo="opposizione_atti_esecutivi")
+        assert r["scadenza_opposizione"] == "2025-08-11"
+        avv = r["avvertenza_sospensione_feriale"]
+        assert "è discusso" in avv and "art. 92 R.D. 12/1941" in avv
+        assert "opposizione all'esecuzione" in avv and "art. 617" in avv
+
+    def test_617_senza_agosto_nessuna_avvertenza(self):
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                  tipo="opposizione_atti_esecutivi")
+        assert "avvertenza_sospensione_feriale" not in r
+
     def test_the_old_name_is_gone(self):
         """'opposizione_esecuzione' read as art. 615 but computed art. 617: removed, no alias."""
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
@@ -686,12 +700,51 @@ class TestTerminiDepositoAttiAppello:
         cost = next(t for t in r["termini"] if t["termine"] == "costituzione_appellante")
         assert cost["scadenza"] == "2025-06-11"
 
-    def test_comparsa_appellato_70_giorni_prima_udienza(self):
-        # Art. 166 c.p.c. post-Cartabia (via art. 347): 70 giorni prima dell'udienza
+    def test_comparsa_appellato_20_giorni_prima_udienza(self):
+        # Art. 347 co. 1 c.p.c. (D.Lgs. 164/2024): "almeno venti giorni prima dell'udienza"
+        # 15/12/2025 - 20 = martedi 25/11/2025
         r = _call("termini_deposito_atti_appello", data_udienza="2025-12-15")
         comp = next(t for t in r["termini"] if t["termine"] == "comparsa_risposta_appellato")
-        assert comp["giorni_prima_udienza"] == 70
-        assert comp["scadenza"] == "2025-10-06"
+        assert comp["giorni_prima_udienza"] == 20
+        assert comp["scadenza"] == "2025-11-25"
+        assert "347" in comp["normativa"] and "343" in comp["normativa"]
+        assert "166" not in comp["normativa"]
+
+    def test_comparsa_appellato_a_ritroso_oltre_agosto(self):
+        # Udienza 10/09/2026: 9 giorni in settembre, agosto non conta, 11 in luglio -> 21/07
+        r = _call("termini_deposito_atti_appello", data_udienza="2026-09-10",
+                  data_notifica_citazione="2025-05-10")
+        comp = next(t for t in r["termini"] if t["termine"] == "comparsa_risposta_appellato")
+        assert comp["scadenza"] == "2026-07-21"
+        assert r["sospensione_feriale_incidente"] is True
+
+    @pytest.mark.parametrize("notifica", ["2023-03-01", "2024-05-10", "2024-11-25"])
+    def test_avvertenza_appelli_introdotti_prima_del_correttivo(self, notifica):
+        # Tra il 28/02/2023 e il 26/11/2024 l'art. 347 rinviava ai 70 giorni dell'art. 166;
+        # i 20 giorni valgono per l'art. 7 co. 1 D.Lgs. 164/2024, la retroattivita' e' da valutare
+        r = _call("termini_deposito_atti_appello", data_udienza="2025-12-15",
+                  data_notifica_citazione=notifica)
+        avv = r["avvertenza_regime_transitorio"]
+        assert "art. 7, co. 1, D.Lgs. 164/2024" in avv
+        assert "26/11/2024" in avv and "70 giorni" in avv
+        assert "valutazione dell'avvocato" in avv
+
+    @pytest.mark.parametrize("notifica", ["2023-02-28", "2022-06-01", "2024-11-26", "2025-03-03"])
+    def test_nessuna_avvertenza_fuori_dal_periodo_transitorio(self, notifica):
+        # Prima del 28/02/2023: 20 giorni dell'art. 166 previgente; dal 26/11/2024: art. 347 vigente
+        r = _call("termini_deposito_atti_appello", data_udienza="2025-12-15",
+                  data_notifica_citazione=notifica)
+        assert "avvertenza_regime_transitorio" not in r
+
+    def test_avvertenza_se_la_data_di_introduzione_manca(self):
+        # Senza la data della citazione l'appello puo' cadere nel periodo transitorio
+        r = _call("termini_deposito_atti_appello", data_udienza="2025-12-15")
+        assert "avvertenza_regime_transitorio" in r
+
+    def test_nessuna_avvertenza_senza_il_calcolo_della_comparsa(self):
+        # Solo il termine d'impugnazione: la comparsa dell'appellato non e' calcolata
+        r = _call("termini_deposito_atti_appello", data_notifica_sentenza="2025-06-01")
+        assert "avvertenza_regime_transitorio" not in r
 
     def test_comparsa_risposta_appellato_presente(self):
         r = _call("termini_deposito_atti_appello",
@@ -897,3 +950,66 @@ class TestSospensioneFeriale:
         r2 = _call("scadenza_processuale", data_evento="2025-07-20", giorni=30)
         assert r2["scadenza"] == "2025-08-19"
         assert r2["sospensione_feriale_applicata"] is False
+
+
+# ---------------------------------------------------------------------------
+# avviso sospensione feriale (materie escluse, art. 3 L. 742/1969 e art. 92 R.D. 12/1941)
+# ---------------------------------------------------------------------------
+
+class TestAvvisoSospensioneFeriale:
+    """L'avviso compare solo quando la sospensione ha cambiato il risultato."""
+
+    CASI_INCISI = [
+        ("scadenza_processuale", {"data_evento": "2025-07-20", "giorni": 30, "sospensione_feriale": True}),
+        ("termini_processuali_civili", {"data_udienza": "2025-09-20", "tipo_termine": "memoria_I"}),
+        ("scadenze_impugnazioni", {"data_pubblicazione": "2025-07-20", "tipo_impugnazione": "appello_sentenza", "notificata": True}),
+        ("scadenze_multe", {"data_notifica": "2025-07-20", "tipo_ricorso": "giudice_pace"}),
+        ("termini_memorie_repliche", {"data_udienza": "2025-09-20"}),
+        ("termini_procedimento_semplificato", {"data_udienza": "2025-09-20"}),
+        ("termini_183_190_cpc", {"data_udienza": "2025-07-10"}),
+        ("termini_deposito_atti_appello", {"data_notifica_sentenza": "2025-07-20"}),
+        ("termini_deposito_ctu", {"data_conferimento": "2025-07-01"}),
+    ]
+    CASI_NON_INCISI = [
+        ("scadenza_processuale", {"data_evento": "2025-03-01", "giorni": 30, "sospensione_feriale": True}),
+        ("termini_processuali_civili", {"data_udienza": "2025-12-20", "tipo_termine": "memoria_I"}),
+        ("scadenze_impugnazioni", {"data_pubblicazione": "2025-02-03", "tipo_impugnazione": "appello_sentenza", "notificata": True}),
+        ("scadenze_multe", {"data_notifica": "2025-03-03", "tipo_ricorso": "giudice_pace"}),
+        ("termini_memorie_repliche", {"data_udienza": "2025-12-20"}),
+        ("termini_procedimento_semplificato", {"data_udienza": "2025-04-20"}),
+        ("termini_183_190_cpc", {"data_udienza": "2025-01-10"}),
+        ("termini_deposito_atti_appello", {"data_notifica_sentenza": "2025-02-03"}),
+        ("termini_deposito_ctu", {"data_conferimento": "2025-02-03"}),
+    ]
+
+    @pytest.mark.parametrize("tool,kwargs", CASI_INCISI, ids=[c[0] for c in CASI_INCISI])
+    def test_avviso_quando_la_sospensione_sposta_il_termine(self, tool, kwargs):
+        r = _call(tool, **kwargs)
+        assert r["sospensione_feriale_incidente"] is True
+        avviso = r["avviso_sospensione_feriale"]
+        assert "sospensione_feriale=False" in avviso["testo"]
+        materie = {m["materia"]: m["fonte"] for m in avviso["materie_escluse"]}
+        assert "controversie di lavoro e di previdenza e assistenza obbligatorie" in materie
+        for materia in ("cause relative ad alimenti", "procedimenti cautelari", "sfratto",
+                        "opposizione all'esecuzione"):
+            assert "art. 92, co. 1, R.D. 12/1941" in materie[materia]
+        assert all("art. 3 L. 742/1969" in fonte for fonte in materie.values())
+
+    @pytest.mark.parametrize("tool,kwargs", CASI_NON_INCISI, ids=[c[0] for c in CASI_NON_INCISI])
+    def test_nessun_avviso_se_la_sospensione_non_cambia_nulla(self, tool, kwargs):
+        r = _call(tool, **kwargs)
+        assert r["sospensione_feriale_incidente"] is False
+        assert "avviso_sospensione_feriale" not in r
+
+    def test_nessun_avviso_a_sospensione_disattivata(self):
+        r = _call("scadenze_impugnazioni", data_pubblicazione="2025-07-20",
+                  tipo_impugnazione="appello_sentenza", notificata=True, sospensione_feriale=False)
+        assert "avviso_sospensione_feriale" not in r
+
+    def test_la_sospensione_disattivata_anticipa_il_termine(self):
+        # Il senso dell'avviso: per una materia esclusa il termine in avanti scade 31 giorni prima
+        con = _call("scadenze_impugnazioni", data_pubblicazione="2025-07-20",
+                    tipo_impugnazione="appello_sentenza", notificata=True)
+        senza = _call("scadenze_impugnazioni", data_pubblicazione="2025-07-20",
+                      tipo_impugnazione="appello_sentenza", notificata=True, sospensione_feriale=False)
+        assert senza["scadenza"] < con["scadenza"]
