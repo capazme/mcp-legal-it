@@ -41,9 +41,9 @@ ROWS: list[tuple[str, str]] = [
     ("l241_1990_art1_3", "testi_articoli(['art. 1 l. 241/1990', 'art. 2 l. 241/1990', 'art. 3 l. 241/1990'])"),
     ("dlgs231_year_only", "testo_articolo('art. 5 d.lgs. 231/2001')"),
     ("cc_1284_historical", "riferimento_da_parametri('codice civile', '1284', data_versione='2010-01-01')"),
-    ("tree_l241_1990", "indice_atto('l. 241/1990')"),
+    ("tree_l241_1990", "albero_atto('l. 241/1990')"),
     ("rubriche_l241_1990", "indice_atto('l. 241/1990')"),
-    ("tree_cc", "indice_atto('c.c.')"),
+    ("tree_cc", "albero_atto('c.c.')"),
     ("rubriche_cc", "indice_atto('c.c.')"),
     ("gdpr_art6", "testo_articolo('art. 6 GDPR')"),
     ("gdpr_art17", "testo_articolo('art. 17 GDPR')"),
@@ -72,9 +72,12 @@ async def _call(api, row: str, canale: str):
     if row == "cc_1284_historical":
         r = api.riferimento_da_parametri("codice civile", "1284", data_versione="2010-01-01")
         return r.esito, 0
-    if row in ("tree_l241_1990", "rubriche_l241_1990", "tree_cc", "rubriche_cc"):
+    if row in ("tree_l241_1990", "tree_cc"):
+        a = await api.albero_atto("l. 241/1990" if "l241" in row else "c.c.")
+        return a.esito, a.count
+    if row in ("rubriche_l241_1990", "rubriche_cc"):
         i = await api.indice_atto("l. 241/1990" if "l241" in row else "c.c.")
-        return i.esito, len(i.voci)
+        return i.esito, i.count
     if row in ("rubriche_gdpr", "cass_pdf_12449_2024"):
         return "non_disponibile", 0
     if row == "cass_civ_12449_2024":
