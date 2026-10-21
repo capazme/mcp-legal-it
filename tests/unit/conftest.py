@@ -3,6 +3,8 @@
 import copy
 import importlib
 
+import re
+
 import pytest
 
 # Last (year, month) of the frozen FOI series served by `foi_serie_fissa`.
@@ -119,3 +121,32 @@ def _cache_isolata(tmp_path_factory, monkeypatch):
     pagine_normattiva.svuota_memoria()
     yield
     pagine_normattiva.svuota_memoria()
+
+
+@pytest.fixture(autouse=True)
+def _pagine_finte_in_vigore(request, monkeypatch):
+    """A made-up Normattiva page with no «Testo in vigore» block reads as in force since 2000.
+
+    Real pages state their window, and the HTML channel acts on it: a page whose window
+    starts after today, or that states none, is asked again at today's date (fail closed).
+    Most unit tests build pages from a few lines of markup, with no window: without this
+    every one of them would ask for a "!vig=" page they do not serve. Pages that carry the
+    block (VisuaLex's captures) are read as they are. Tests of the window itself opt out
+    with ``@pytest.mark.finestra_reale``.
+    """
+    if request.node.get_closest_marker("finestra_reale"):
+        yield
+        return
+    from mcp_legal_it.lib.visualex import scraper
+
+    originale = scraper._validita_da_pagina
+
+    def con_finestra(html, articolo):
+        validita = originale(html, articolo)
+        if validita is None and not re.search(r"""class=["'][^"']*\bvigore\b""", html or ""):
+            return {"state": "current", "valid_from": "2000-01-01", "valid_to": None, "version_number": None,
+                    "act_updated": None, "request_in_window": None}
+        return validita
+
+    monkeypatch.setattr(scraper, "_validita_da_pagina", con_finestra)
+    yield

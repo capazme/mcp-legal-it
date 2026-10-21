@@ -77,7 +77,13 @@ class FontiConsultate:
 
 @dataclass(frozen=True)
 class Vigenza:
-    """VisuaLex ``validity``. Filled in by the vigenza phase; ``None`` until then."""
+    """VisuaLex ``validity``: what the Normattiva page states of the text it served.
+
+    ``state`` is ``current``, ``historical`` (the window ended before today), ``not_yet``
+    or ``abrogated``; ``valid_from``/``valid_to`` the window «Testo in vigore dal … al …».
+    Read from the page of the text (no second request); ``None`` when the text did not
+    come from a page that says it.
+    """
 
     state: Literal["current", "historical", "not_yet", "abrogated"]
     valid_from: str | None = None
@@ -135,6 +141,16 @@ class TestoArticolo:
     data_consultazione: str = ""
     errore: str | None = None
     fonti: FontiConsultate | None = None
+    # ESATTO: the text of Normattiva's page, with the validity the page states for it.
+    # INDICATIVO: the Akoma Ntoso export's text, or a page whose validity could not be
+    # read. None when there is no text.
+    precisione: Literal["ESATTO", "INDICATIVO"] | None = None
+    # What the reader must know about the text: Normattiva's page without a date showed a
+    # version not in force yet, the page does not state its validity, the text is the export's.
+    avvisi: tuple[str, ...] = ()
+    # The act that repealed the article (or will), as the repeal notice names it, derived
+    # automatically: {"abrogato_da": "...", "precisione": "INDICATIVO", "fonte": ..., "dal"?}.
+    successione: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)

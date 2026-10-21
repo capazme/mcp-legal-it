@@ -294,8 +294,28 @@ The text in force of one article, from Normattiva or EUR-Lex.
   no NIR URN). An act cited with the year only whose full date could not be
   read keeps the URN derived from its URL. That URN has a placeholder date,
   `YYYY-01-01`, and `norma_data.data_risolta` is `False`.
-- **`validity`** is `None` until the vigenza phase. When it arrives it will come
-  from the same fetch as the text: no second request.
+- **A text without a date is the text in force today.** Normattiva's page
+  without a date can serve a version not in force yet: on 21/10/2026 art. 3 of
+  d.P.R. 131/1986 came back «ARTICOLO ABROGATO DAL D.LGS. 1 AGOSTO 2025, N. 123…»,
+  «Testo in vigore dal: 01-01-2027», while the article is in force today. When the
+  page states a window that starts after today, or states none, the page at
+  today's date (`!vig=<today>`) is read: one request more, only then, and `url`
+  is that page's. If it cannot be read, the export at today's date answers (never
+  the undated page). The coming version is an `avviso`, and its repealing act is
+  `successione` with `dal`. This is a deliberate, temporary divergence from
+  VisuaLex, which serves the undated page as it is: VisuaLex adopts the same rule
+  (its decision G-355), and the two converge with VisuaLex <SHA>.
+- **`validity`** is what the page states of the text it served: the window
+  «Testo in vigore dal … al …», the version, the repeal (VisuaLex's
+  `extract_validity`, imported). It is read from the same page as the text, when
+  it is fetched: no second request. `None` for the export's text or a page that
+  does not say.
+- **`precisione`**: `ESATTO` only for the text of Normattiva's page whose
+  validity the page states (decision LI-031); `INDICATIVO` for the export's text
+  or a page that does not say. **`avvisi`**: what the reader must know about the
+  text (the coming version, an unread window, the export's text).
+  **`successione`**: the act that repealed the article (or will), as the repeal
+  notice names it, derived automatically and always `INDICATIVO`.
 - **Esiti:** the whole `EsitoNorma` vocabulary.
 
 ```python
@@ -591,7 +611,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 |---|---|
 | `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta` |
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti` |
@@ -635,7 +655,6 @@ with their signature.
 
 | Planned operation | VisuaLex route it backs |
 |---|---|
-| `validity` with the text, from the same fetch | same |
 | Multi-article references (`"1,2"`, `"3-5"`) | `/fetch_norma_data` |
 | EU recitals | `/fetch_recitals` |
 | Per-article fingerprints | `/fetch_act_fingerprints` |
@@ -686,8 +705,10 @@ updates that test, this document and the CHANGELOG in the same change.
 **When to switch which route.** The text routes (`/fetch_article_text`,
 `/stream_article_text`, `/fetch_all_data`) can switch to `canale="html"`, which
 returns VisuaLex's `article_text` byte for byte (checked against VisuaLex's
-frozen hashes and a live run of its `collector_timing.py`); `validity` and
-multi-article references come with the next phases. `/fetch_decision` switches
+frozen hashes and a live run of its `collector_timing.py`), with `validity`
+read from the same page. One exception, until VisuaLex <SHA>: when the undated page
+serves a version not in force yet, this library serves today's page (see
+`testo_articolo`). Multi-article references come with the next phases. `/fetch_decision` switches
 **only once** the block form of §6 exists.
 
 - `canale="akn"` text is not VisuaLex's frozen `article_text`: AKN and HTML
