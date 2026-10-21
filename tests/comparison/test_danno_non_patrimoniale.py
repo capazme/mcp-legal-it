@@ -28,8 +28,8 @@ from tests.comparison.conftest import accept_cookies, assert_close, goto, parse_
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import src.server  # noqa: E402,F401  (registers all modules, avoids circular imports)
-from src.tools.risarcimento_danni import danno_non_patrimoniale as _t  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers all modules, avoids circular imports)
+from mcp_legal_it.tools.risarcimento_danni import danno_non_patrimoniale as _t  # noqa: E402
 
 _fn = getattr(_t, "fn", _t)
 

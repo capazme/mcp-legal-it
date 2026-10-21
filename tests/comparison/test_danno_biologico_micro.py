@@ -17,8 +17,8 @@ TOL = 0.01
 
 
 def _tool(**kw):
-    import src.server  # noqa: F401  (registers modules, avoids circular imports)
-    from src.tools.risarcimento_danni import danno_biologico_micro
+    import mcp_legal_it.server  # noqa: F401  (registers modules, avoids circular imports)
+    from mcp_legal_it.tools.risarcimento_danni import danno_biologico_micro
 
     fn = getattr(danno_biologico_micro, "fn", danno_biologico_micro)
     return fn(**kw)

@@ -15,8 +15,8 @@ import asyncio
 
 from fastmcp import Client, FastMCP
 
-from src.lib import _sources
-from src.lib._ledger import CONSULTED_SOURCES_KEY, apply_table_ledger
+from mcp_legal_it.lib import _sources
+from mcp_legal_it.lib._ledger import CONSULTED_SOURCES_KEY, apply_table_ledger
 
 
 def probe(tool_sources: dict[str, tuple[str, ...]] | None = None) -> FastMCP:
@@ -100,8 +100,8 @@ def test_a_source_outside_the_policy_is_flagged_as_undeclared():
 
 def test_every_tool_named_by_the_committed_bindings_exists_on_the_server():
     """A stale binding would silently stop matching any middleware pass."""
-    from src.server import mcp  # noqa: F401  (the real server registers the tools)
-    from src.source_bindings import TOOL_SOURCES
+    from mcp_legal_it.server import mcp  # noqa: F401  (the real server registers the tools)
+    from mcp_legal_it.source_bindings import TOOL_SOURCES
 
     assert TOOL_SOURCES, "the committed policy is not empty"
 
@@ -137,7 +137,7 @@ def test_the_undeclared_source_warning_never_reaches_stdout(capfd):
 
 
 def test_a_malformed_clock_override_warns_on_stderr_not_stdout(monkeypatch, capfd):
-    from src.lib import _clock
+    from mcp_legal_it.lib import _clock
 
     monkeypatch.setenv("LEGAL_TODAY", "not-a-date")
     _clock.today()
@@ -149,9 +149,9 @@ def test_a_malformed_clock_override_warns_on_stderr_not_stdout(monkeypatch, capf
 
 def test_the_real_server_installs_the_committed_source_policy():
     """Without it every consulted source reads as undeclared (warning + `non_dichiarate`)."""
-    from src.lib._ledger import TableLedgerMiddleware
-    from src.server import mcp
-    from src.source_bindings import TOOL_SOURCES
+    from mcp_legal_it.lib._ledger import TableLedgerMiddleware
+    from mcp_legal_it.server import mcp
+    from mcp_legal_it.source_bindings import TOOL_SOURCES
 
     installed = [m for m in mcp.middleware if isinstance(m, TableLedgerMiddleware)]
     assert len(installed) == 1

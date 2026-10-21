@@ -14,7 +14,7 @@ What it checks, on documents whose identifiers are fixed and public:
   URI, including whether the operative part ("Per questi motivi ...
   dichiara") reaches the user.
 - `ultime_sentenze_cgue`: latest judgments of the Court of Justice, and the
-  lag of CELLAR against today (`src.lib._clock`).
+  lag of CELLAR against today (`mcp_legal_it.lib._clock`).
 
 Reference values: the CELLAR SPARQL notice and the CELLAR Italian HTML of each
 decision (EUR-Lex answers automated requests with a WAF challenge, InfoCuria
@@ -39,9 +39,9 @@ from datetime import date, timedelta
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib import _clock
-from src.tools import cgue as cgue_tools
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.tools import cgue as cgue_tools
 
 pytestmark = pytest.mark.live
 

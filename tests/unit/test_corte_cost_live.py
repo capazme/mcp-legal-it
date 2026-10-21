@@ -45,10 +45,10 @@ from datetime import date
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib import _clock
-from src.lib.corte_cost import client as cc_client
-from src.tools import corte_cost as cc_tools
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib.corte_cost import client as cc_client
+from mcp_legal_it.tools import corte_cost as cc_tools
 
 pytestmark = pytest.mark.live
 

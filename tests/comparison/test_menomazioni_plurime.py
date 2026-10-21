@@ -24,8 +24,8 @@ TOL = 1e-4
 
 
 def _tool(percentuali):
-    import src.server  # noqa: F401  registers every module
-    from src.tools.risarcimento_danni import menomazioni_plurime
+    import mcp_legal_it.server  # noqa: F401  registers every module
+    from mcp_legal_it.tools.risarcimento_danni import menomazioni_plurime
 
     fn = getattr(menomazioni_plurime, "fn", menomazioni_plurime)
     return fn(percentuali=percentuali)

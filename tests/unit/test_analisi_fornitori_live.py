@@ -1,4 +1,4 @@
-"""Live smoke gate for the two online tools of `src/tools/analisi_fornitori.py`.
+"""Live smoke gate for the two online tools of `mcp_legal_it/tools/analisi_fornitori.py`.
 
 What it checks, one real call per tool on a known document:
 
@@ -33,11 +33,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib import _clock
-from src.lib.dpa_probe import cache as dpa_cache
-from src.lib.dpa_probe import client as dpa_client
-from src.tools import analisi_fornitori
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib.dpa_probe import cache as dpa_cache
+from mcp_legal_it.lib.dpa_probe import client as dpa_client
+from mcp_legal_it.tools import analisi_fornitori
 
 pytestmark = pytest.mark.live
 
@@ -139,7 +139,7 @@ def test_dpa_stripe_dpa_dedicato_art_28_gdpr(stripe):
     assert r["nome_fornitore"] == "Stripe"
     # Diagnosis on 2026-09-25 (fixed after the audit): without an Accept-Language header
     # Stripe geo-redirects an Italian client to /it/legal/dpa, titled "Accordo sul
-    # trattamento dei dati", which no strong marker of src/lib/dpa_probe/judge.py used to
+    # trattamento dei dati", which no strong marker of mcp_legal_it/lib/dpa_probe/judge.py used to
     # recognise. The probe now asks for English (/en-it/legal/dpa, "Data Processing
     # Agreement") and the judge also knows the Italian title.
     assert r["verdetto"] == "dpa_dedicato", (

@@ -1,6 +1,6 @@
 """Live gate: the numbers the deadline tools hard-code are the ones the vigente c.p.c. states.
 
-The procedural tools in `src/tools/scadenze_termini.py` and `src/tools/procedura_civile.py`
+The procedural tools in `mcp_legal_it/tools/scadenze_termini.py` and `mcp_legal_it/tools/procedura_civile.py`
 encode day counts (40/20/10 for the memorie ex art. 171-ter, 60/30/15 for the atti ex art.
 189, 10 and 70 for the costituzione ex artt. 165-166, 30/60 and six months ex artt. 325-327,
 10 and 40 for the rito semplificato ex art. 281-undecies, 20+10 ex art. 281-duodecies) and the
@@ -23,8 +23,8 @@ pytestmark = pytest.mark.live
 
 
 def _testo(reference: str) -> str:
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools.legal_citations import cite_law
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools.legal_citations import cite_law
 
     fn = getattr(cite_law, "fn", cite_law)
     raw = asyncio.run(fn(reference=reference, formato="json"))
@@ -58,8 +58,8 @@ def test_atti_per_la_decisione_189_sono_60_30_15_giorni():
 
 
 def test_art_190_e_abrogato():
-    import src.server  # noqa: F401
-    from src.tools.legal_citations import cite_law
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.legal_citations import cite_law
 
     fn = getattr(cite_law, "fn", cite_law)
     raw = asyncio.run(fn(reference="art. 190 c.p.c.", formato="json"))

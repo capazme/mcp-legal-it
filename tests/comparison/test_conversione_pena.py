@@ -44,8 +44,8 @@ _SITE_UNIT_DAYS = {"ann": 360, "mes": 30, "gio": 1}
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.diritto_penale import conversione_pena
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.diritto_penale import conversione_pena
 
     fn = getattr(conversione_pena, "fn", conversione_pena)
     return fn(**kwargs)

@@ -1,6 +1,6 @@
 """Live smoke gate for the Italgiure tools (Corte di cassazione, SentenzeWeb Solr backend).
 
-Tools under test (src/tools/italgiure.py over src/lib/italgiure/client.py): `leggi_sentenza`,
+Tools under test (mcp_legal_it/tools/italgiure.py over mcp_legal_it/lib/italgiure/client.py): `leggi_sentenza`,
 `cerca_giurisprudenza`, `giurisprudenza_su_norma`, `ultime_pronunce`, `giurisprudenza_articolo`.
 
 What it checks, one real call per plan case on a known document:
@@ -46,12 +46,12 @@ from datetime import date
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib import _clock
-from src.lib.brocardi.client import fetch_brocardi
-from src.lib.italgiure.client import SolrSession, build_explore_params
-from src.lib.visualex import resolve_atto
-from src.tools.italgiure import (
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib.brocardi.client import fetch_brocardi
+from mcp_legal_it.lib.italgiure.client import SolrSession, build_explore_params
+from mcp_legal_it.lib.visualex import resolve_atto
+from mcp_legal_it.tools.italgiure import (
     cerca_giurisprudenza,
     giurisprudenza_articolo,
     giurisprudenza_su_norma,

@@ -38,8 +38,8 @@ URL = "https://www.avvocatoandreani.it/servizi/calcolo-giorni-tra-date-e-ricorre
 
 
 def _tool(**kw):
-    import src.server  # noqa: F401  (registra i moduli)
-    from src.tools.varie import calcolo_tempo_trascorso
+    import mcp_legal_it.server  # noqa: F401  (registra i moduli)
+    from mcp_legal_it.tools.varie import calcolo_tempo_trascorso
 
     fn = getattr(calcolo_tempo_trascorso, "fn", calcolo_tempo_trascorso)
     return fn(**kw)

@@ -37,8 +37,8 @@ PCT_TOL = 0.0005  # site displays 3 decimals (see module docstring)
 
 
 def _tool(**kw):
-    import src.server  # noqa: F401  (registers modules)
-    from src.tools.investimenti import rendimento_bot
+    import mcp_legal_it.server  # noqa: F401  (registers modules)
+    from mcp_legal_it.tools.investimenti import rendimento_bot
 
     fn = getattr(rendimento_bot, "fn", rendimento_bot)
     return fn(**kw)

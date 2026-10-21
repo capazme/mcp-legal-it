@@ -22,8 +22,8 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import src.server  # noqa: E401,F401  (registers every tool module)
-from src.tools.rivalutazioni_istat import adeguamento_canone_locazione as _tool
+import mcp_legal_it.server  # noqa: E401,F401  (registers every tool module)
+from mcp_legal_it.tools.rivalutazioni_istat import adeguamento_canone_locazione as _tool
 
 from tests.comparison.conftest import accept_cookies, assert_close, parse_euro
 

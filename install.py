@@ -325,7 +325,7 @@ def verify_server() -> int:
     """Verify server starts and return actual tool count."""
     info("Verifico che il server si avvii correttamente...")
     result = subprocess.run(
-        [str(VENV_PYTHON), "-c", "import asyncio; from src.server import mcp; print(len(asyncio.run(mcp.list_tools())))"],
+        [str(VENV_PYTHON), "-c", "import asyncio; from mcp_legal_it.server import mcp; print(len(asyncio.run(mcp.list_tools())))"],
         capture_output=True,
         text=True,
         cwd=str(PROJECT_DIR),

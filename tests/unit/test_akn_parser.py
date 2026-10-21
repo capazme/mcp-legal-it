@@ -1,4 +1,4 @@
-"""Unit tests for the pure AKN parser (src/lib/visualex/akn_parser.py).
+"""Unit tests for the pure AKN parser (mcp_legal_it/lib/visualex/akn_parser.py).
 
 Uses committed real ``caricaAKN`` fixtures. No network. Primary fixtures:
 ``legge_241_1990.xml`` (flat) and ``codice_penale.xml`` (component).
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.lib.visualex.akn_parser import (
+from mcp_legal_it.lib.visualex.akn_parser import (
     ParsedAct,
     normalize_article_key,
     parse_akn,

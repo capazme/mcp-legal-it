@@ -55,7 +55,7 @@ def _parse_result(page) -> dict:
 
 
 def _our_irpef(reddito):
-    from src.tools.dichiarazione_redditi import calcolo_irpef
+    from mcp_legal_it.tools.dichiarazione_redditi import calcolo_irpef
     fn = getattr(calcolo_irpef, "fn", calcolo_irpef)
     return fn(reddito_complessivo=reddito, tipo_reddito="autonomo", deduzioni=0, detrazioni_extra=0)
 

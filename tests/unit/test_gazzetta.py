@@ -10,8 +10,8 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib._result import SearchResult
-from src.lib.gazzetta.client import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib.gazzetta.client import (
     ELI_SEGMENT,
     RSS_CODE,
     SERIE,
@@ -38,7 +38,7 @@ from src.lib.gazzetta.client import (
     search_atti,
 )
 
-from src.tools.gazzetta import (
+from mcp_legal_it.tools.gazzetta import (
     _cerca_gazzetta_ufficiale_impl,
     _leggi_atto_gazzetta_impl,
     _resolve_rss_code,
@@ -690,7 +690,7 @@ class TestUltimeGazzetteImpl:
     @pytest.mark.asyncio
     async def test_returns_results(self):
         client = _client_with_get(_make_resp(_RSS_XML))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _ultime_gazzette_impl()
         assert isinstance(result, SearchResult)
         assert result.success
@@ -701,7 +701,7 @@ class TestUltimeGazzetteImpl:
     @pytest.mark.asyncio
     async def test_empty_feed(self):
         client = _client_with_get(_make_resp(_RSS_XML_EMPTY))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _ultime_gazzette_impl()
         assert not result.success
         assert "Nessun atto" in result.to_str()
@@ -710,7 +710,7 @@ class TestUltimeGazzetteImpl:
     async def test_source_down(self):
         client = _client_with_get(_make_resp(""))
         client.get = AsyncMock(side_effect=httpx.RequestError("timeout"))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _ultime_gazzette_impl()
         assert not result.success
         assert "Errore" in result.to_str()
@@ -726,7 +726,7 @@ class TestCercaGazzettaImpl:
         client = _client_with_get(_make_resp("<html>seed</html>"))
         # first POST returns results, second POST returns empty -> loop stops
         client.post = AsyncMock(side_effect=[_make_resp(_SEARCH_HTML), _make_resp(_SEARCH_HTML_EMPTY)])
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_gazzetta_ufficiale_impl(query="liquidazione")
         assert isinstance(result, SearchResult)
         assert result.success
@@ -738,7 +738,7 @@ class TestCercaGazzettaImpl:
     async def test_no_results(self):
         client = _client_with_get(_make_resp("<html>seed</html>"))
         client.post = AsyncMock(return_value=_make_resp(_SEARCH_HTML_EMPTY))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_gazzetta_ufficiale_impl(query="inesistente")
         assert not result.success
         assert "Nessun atto" in result.to_str()
@@ -747,7 +747,7 @@ class TestCercaGazzettaImpl:
     async def test_query_sent_as_titolo(self):
         client = _client_with_get(_make_resp("<html>seed</html>"))
         client.post = AsyncMock(side_effect=[_make_resp(_SEARCH_HTML), _make_resp(_SEARCH_HTML_EMPTY)])
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             await _cerca_gazzetta_ufficiale_impl(query="liquidazione")
         # the POST data must carry query in the titolo field
         first_post = client.post.call_args_list[0]
@@ -758,7 +758,7 @@ class TestCercaGazzettaImpl:
     async def test_source_down(self):
         client = _client_with_get(_make_resp("<html>seed</html>"))
         client.post = AsyncMock(side_effect=httpx.RequestError("500"))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_gazzetta_ufficiale_impl(query="x")
         assert not result.success
         assert "Errore" in result.to_str()
@@ -779,7 +779,7 @@ class TestLeggiAttoImpl:
             _make_resp(_ARTICLE_HTML),
         ]
         client = _client_with_get(responses)
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_atto_gazzetta_impl("26A02808", "2026-06-13")
         assert isinstance(result, SearchResult)
         assert result.success
@@ -791,7 +791,7 @@ class TestLeggiAttoImpl:
     @pytest.mark.asyncio
     async def test_metadata_only(self):
         client = _client_with_get([_make_resp(_ELI_HEAD_HTML)])
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_atto_gazzetta_impl("26A02808", "2026-06-13", solo_metadati=True)
         assert result.success
         out = result.to_str()
@@ -804,7 +804,7 @@ class TestLeggiAttoImpl:
         # head ok, menu has no article anchors -> empty assembled text
         responses = [_make_resp(_ELI_HEAD_HTML), _make_resp("<html><body>vuoto</body></html>")]
         client = _client_with_get(responses)
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_atto_gazzetta_impl("26A02808", "2026-06-13")
         assert not result.success
         assert "Testo non disponibile" in result.to_str()
@@ -813,7 +813,7 @@ class TestLeggiAttoImpl:
     async def test_source_down(self):
         client = _client_with_get(_make_resp(""))
         client.get = AsyncMock(side_effect=httpx.RequestError("timeout"))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_atto_gazzetta_impl("X", "2026-06-13")
         assert not result.success
         assert "Errore" in result.to_str()
@@ -827,7 +827,7 @@ class TestSommarioImpl:
     @pytest.mark.asyncio
     async def test_returns_atti(self):
         client = _client_with_get(_make_resp(_SOMMARIO_HTML))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _sommario_gazzetta_impl("135", "2026-06-13")
         assert result.success
         out = result.to_str()
@@ -837,7 +837,7 @@ class TestSommarioImpl:
     @pytest.mark.asyncio
     async def test_empty(self):
         client = _client_with_get(_make_resp(_SOMMARIO_HTML_EMPTY))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _sommario_gazzetta_impl("999", "2026-06-13")
         assert not result.success
         assert "Nessun atto" in result.to_str()
@@ -846,7 +846,7 @@ class TestSommarioImpl:
     async def test_source_down(self):
         client = _client_with_get(_make_resp(""))
         client.get = AsyncMock(side_effect=httpx.RequestError("timeout"))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _sommario_gazzetta_impl("135", "2026-06-13")
         assert not result.success
         assert "Errore" in result.to_str()
@@ -942,7 +942,7 @@ class TestSearchPaginationAndRedirect:
         # /originario/0 and /originario/1 are the same page: starting at 0 lists every atto twice
         client = _client_with_get(_make_resp("<html>seed</html>"))
         client.post = AsyncMock(return_value=_make_resp(_SEARCH_HTML))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             total, docs = await search_atti("serie_generale", titolo="liquidazione")
         assert client.post.call_args_list[0].args[0].endswith("/do/ricerca/atto/serie_generale/originario/1")
         # a short page (< 100 results) is the last one: no second request, no duplicates
@@ -960,7 +960,7 @@ class TestSearchPaginationAndRedirect:
         second = _results_page(["26A00097", "26A00098", "26A00099", "26A00100"])
         client = _client_with_get(_make_resp("<html>seed</html>"))
         client.post = AsyncMock(side_effect=[_make_resp(first), _make_resp(second)])
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             total, docs = await search_atti("serie_generale", titolo="x", rows=100)
         assert client.post.call_count == 2
         assert client.post.call_args_list[0].args[0].endswith("/originario/1")
@@ -976,7 +976,7 @@ class TestSearchPaginationAndRedirect:
         redirected = _make_resp(_DETAIL_PAGE_HTML)
         redirected.url = _DETAIL_URL
         client.post = AsyncMock(return_value=redirected)
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_gazzetta_ufficiale_impl(
                 titolo="processo civile", tipo_provvedimento="DECRETO LEGISLATIVO",
                 anno_da="2022", anno_a="2022",
@@ -1105,7 +1105,7 @@ class TestRssSeries:
     @pytest.mark.asyncio
     async def test_ultime_corte_costituzionale_reads_the_s1_feed(self):
         client = _client_with_get(_make_resp(_RSS_S1_XML))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _ultime_gazzette_impl(serie="corte_costituzionale")
         assert result.success
         assert client.get.call_args_list[0].args[0].endswith("/rss/S1")
@@ -1114,7 +1114,7 @@ class TestRssSeries:
     @pytest.mark.asyncio
     async def test_ultime_regioni_reads_the_s3_feed(self):
         client = _client_with_get(_make_resp(_RSS_S1_XML))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             await _ultime_gazzette_impl(serie="regioni")
         assert client.get.call_args_list[0].args[0].endswith("/rss/S3")
 
@@ -1124,7 +1124,7 @@ class TestSpecialSeriesTools:
     async def test_leggi_special_series_atto_reads_the_inline_text(self):
         # head (/s1) -> menu (no article links, text in div.stampami)
         client = _client_with_get([_make_resp(_ELI_S1_HTML), _make_resp(_MENU_INLINE_HTML)])
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_atto_gazzetta_impl(
                 "26C00185", "2026-09-23", serie="corte_costituzionale",
             )
@@ -1140,7 +1140,7 @@ class TestSpecialSeriesTools:
     async def test_leggi_unione_europea_has_no_atto_page(self):
         # the ELI permalink of a 2a Serie speciale atto answers HTTP 500: no request is made
         client = _client_with_get(_make_resp(""))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_atto_gazzetta_impl("26CE2412", "2026-09-28", serie="unione_europea")
         assert not result.success
         assert result.error_type == "no_results"
@@ -1158,7 +1158,7 @@ class TestSpecialSeriesTools:
     @pytest.mark.asyncio
     async def test_sommario_special_series_requests_its_own_page(self):
         client = _client_with_get(_make_resp(_SOMMARIO_HTML))
-        with patch("src.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.gazzetta.client.httpx.AsyncClient", return_value=client):
             result = await _sommario_gazzetta_impl("10", "2026-02-06", serie="concorsi")
         assert result.success
         assert client.get.call_args_list[0].args[0] == "https://www.gazzettaufficiale.it/eli/gu/2026/02/06/10/s4"
@@ -1223,7 +1223,7 @@ class TestPagedReading:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("bad", [0, -3, "7", 1.5, None, True])
     async def test_invalid_da_carattere_errors_without_network(self, bad):
-        with patch("src.tools.gazzetta.fetch_atto", new=AsyncMock()) as fetch:
+        with patch("mcp_legal_it.tools.gazzetta.fetch_atto", new=AsyncMock()) as fetch:
             result = await _leggi_atto_gazzetta_impl("X", "2026-06-13", da_carattere=bad)
         assert not result.success
         assert result.error_type == "bad_input"
@@ -1233,18 +1233,18 @@ class TestPagedReading:
     @pytest.mark.asyncio
     async def test_impl_threads_da_carattere(self):
         d = _long_detail()
-        with patch("src.tools.gazzetta.fetch_atto", new=AsyncMock(return_value=d)):
+        with patch("mcp_legal_it.tools.gazzetta.fetch_atto", new=AsyncMock(return_value=d)):
             result = await _leggi_atto_gazzetta_impl("X", "2026-06-13", da_carattere=25001)
         assert result.success
         assert "Caratteri 25001-50000 su 60000 totali" in result.to_str()
 
     @pytest.mark.asyncio
     async def test_mcp_tool_accepts_da_carattere(self):
-        from src.tools.gazzetta import leggi_atto_gazzetta
+        from mcp_legal_it.tools.gazzetta import leggi_atto_gazzetta
 
         fn = getattr(leggi_atto_gazzetta, "fn", leggi_atto_gazzetta)
         d = _long_detail()
-        with patch("src.tools.gazzetta.fetch_atto", new=AsyncMock(return_value=d)):
+        with patch("mcp_legal_it.tools.gazzetta.fetch_atto", new=AsyncMock(return_value=d)):
             out = await fn("X", "2026-06-13", da_carattere=50001)
         assert "fine del testo" in out
         assert "da_carattere" in (fn.__doc__ or "")

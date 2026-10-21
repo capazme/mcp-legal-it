@@ -1,6 +1,6 @@
 """Comparison tests: pena_concordata vs avvocatoandreani.it.
 
-Il tool (``src/tools/diritto_penale.py``) simula la pena patteggiata (art. 444 c.p.p.):
+Il tool (``mcp_legal_it/tools/diritto_penale.py``) simula la pena patteggiata (art. 444 c.p.p.):
 dalla pena base in MESI toglie un terzo per le attenuanti generiche (art. 62-bis c.p.,
 nella misura massima dell'art. 65 n. 3 c.p.) e poi un terzo per la diminuente del rito
 (art. 444 co. 1 c.p.p., "diminuita fino a un terzo": il tool applica sempre il massimo).
@@ -63,8 +63,8 @@ _HIDE_CMP = (
 # ---------------------------------------------------------------------------
 
 def _tool(**kw) -> dict:
-    import src.server  # noqa: F401  (registra i moduli, evita import circolari)
-    from src.tools.diritto_penale import pena_concordata
+    import mcp_legal_it.server  # noqa: F401  (registra i moduli, evita import circolari)
+    from mcp_legal_it.tools.diritto_penale import pena_concordata
 
     fn = getattr(pena_concordata, "fn", pena_concordata)
     return fn(**kw)

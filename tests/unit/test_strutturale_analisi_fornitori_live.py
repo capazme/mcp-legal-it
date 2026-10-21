@@ -1,4 +1,4 @@
-"""Structural live gate for `genera_report_fornitori` (src/tools/analisi_fornitori.py).
+"""Structural live gate for `genera_report_fornitori` (mcp_legal_it/tools/analisi_fornitori.py).
 
 Benchmark phase 4, strategy "strutturale": the tool has no calculator on the
 benchmark site, so the Excel it writes is checked against its own contract and
@@ -43,8 +43,8 @@ from pathlib import Path
 import pytest
 from openpyxl import load_workbook
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools import analisi_fornitori
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools import analisi_fornitori
 from tests.unit._norme_live import cite_law_json, contiene, normalizza
 
 pytestmark = pytest.mark.live
@@ -370,7 +370,7 @@ def test_verifica_citazioni_riferimenti_dichiarati_dal_tool(out_dir):
     riferimenti = [r.strip() for r in re.findall(r"art\.\s*\d+\s+GDPR", vigenza)]
     assert riferimenti == ["art. 28 GDPR", "art. 4 GDPR"], vigenza
 
-    from src.tools.legal_citations import verifica_citazioni
+    from mcp_legal_it.tools.legal_citations import verifica_citazioni
 
     raw = asyncio.run(_fn(verifica_citazioni)(citazioni="\n".join(riferimenti), formato="json"))
     esito = json.loads(raw)

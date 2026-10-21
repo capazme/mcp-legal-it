@@ -20,8 +20,8 @@ os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 
 import pytest
 
-import src.server  # noqa: F401  (registra i moduli)
-from src.tools.varie import decurtazione_punti_patente
+import mcp_legal_it.server  # noqa: F401  (registra i moduli)
+from mcp_legal_it.tools.varie import decurtazione_punti_patente
 
 from tests.comparison.conftest import accept_cookies
 

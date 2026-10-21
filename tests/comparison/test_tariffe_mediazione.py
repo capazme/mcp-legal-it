@@ -26,8 +26,8 @@ import re
 
 import pytest
 
-import src.server  # noqa: E402,F401  (registers every tool module)
-from src.tools.parcelle_professionisti import tariffe_mediazione  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers every tool module)
+from mcp_legal_it.tools.parcelle_professionisti import tariffe_mediazione  # noqa: E402
 
 from .conftest import accept_cookies, parse_euro  # noqa: E402
 

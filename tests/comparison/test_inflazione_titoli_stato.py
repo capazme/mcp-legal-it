@@ -26,8 +26,8 @@ import pytest
 
 from tests.comparison.conftest import accept_cookies
 
-import src.server  # noqa: F401  (registers every tool module)
-from src.tools.rivalutazioni_istat import inflazione_titoli_stato as _tool
+import mcp_legal_it.server  # noqa: F401  (registers every tool module)
+from mcp_legal_it.tools.rivalutazioni_istat import inflazione_titoli_stato as _tool
 
 _fn = getattr(_tool, "fn", _tool)
 

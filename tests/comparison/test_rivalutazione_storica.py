@@ -1,7 +1,7 @@
 """Benchmark rivalutazione_storica vs avvocatoandreani.it (rivalutazione-monetaria-storica.php).
 
 Tool: coefficient = mean(FOI months of anno_arrivo) / mean(FOI months of anno_partenza),
-series from 1990 (src/data/indici_foi.json, base 2015=100 raccordata; from 2026 base
+series from 1990 (mcp_legal_it/data/indici_foi.json, base 2015=100 raccordata; from 2026 base
 2025=100 x 1,214).
 Site: ISTAT historical index of consumer prices for blue- and white-collar households (FOI)
 since 1861, annual values; capital in euro (TipoValuta=1). For the current year the
@@ -32,8 +32,8 @@ PAGE = "rivalutazione-monetaria-storica.php"
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers modules, avoids circular imports)
-    from src.tools.rivalutazioni_istat import rivalutazione_storica
+    import mcp_legal_it.server  # noqa: F401  (registers modules, avoids circular imports)
+    from mcp_legal_it.tools.rivalutazioni_istat import rivalutazione_storica
 
     fn = getattr(rivalutazione_storica, "fn", rivalutazione_storica)
     return fn(**kwargs)

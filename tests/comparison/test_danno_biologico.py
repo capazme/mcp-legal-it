@@ -40,7 +40,7 @@ def _parse_result(page) -> dict:
 
 
 def _our_danno(punti, eta):
-    from src.tools.risarcimento_danni import danno_biologico_micro
+    from mcp_legal_it.tools.risarcimento_danni import danno_biologico_micro
     fn = getattr(danno_biologico_micro, "fn", danno_biologico_micro)
     return fn(percentuale_invalidita=punti, eta_vittima=eta)
 

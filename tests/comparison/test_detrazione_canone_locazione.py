@@ -46,8 +46,8 @@ SITO_TIPO = {"libero": "1", "concordato": "2", "giovani_under31": "3"}
 
 
 def _tool(reddito, tipo):
-    import src.server  # noqa: F401  (registra i moduli ed evita import circolari)
-    from src.tools.dichiarazione_redditi import detrazione_canone_locazione
+    import mcp_legal_it.server  # noqa: F401  (registra i moduli ed evita import circolari)
+    from mcp_legal_it.tools.dichiarazione_redditi import detrazione_canone_locazione
 
     fn = getattr(detrazione_canone_locazione, "fn", detrazione_canone_locazione)
     return fn(reddito_complessivo=reddito, tipo_contratto=tipo)

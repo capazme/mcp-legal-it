@@ -42,7 +42,7 @@ IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".venv")
 MARKER = "**Dati applicati**"
 
 #: The error a tool answers with when the tables it rests on cannot support the
-#: grade it declares (`src/lib/_data.py`). Such an answer is about the table's
+#: grade it declares (`mcp_legal_it/lib/_data.py`). Such an answer is about the table's
 #: *state*, so perturbing the table's values leaves it identical -- which is why
 #: the mapping for those tables is demonstrated the other way round, by giving the
 #: table a source and watching the refusal turn into a computation.
@@ -164,7 +164,7 @@ def shake(node):
 
 def perturb(root: pathlib.Path, table: str) -> None:
     """Perturb a whole table inside a copy of the tree."""
-    path = root / "plugin/server/src/data" / f"{table}.json"
+    path = root / "plugin/server/mcp_legal_it/data" / f"{table}.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     path.write_text(
         json.dumps(shake(payload), ensure_ascii=False, indent=2), encoding="utf-8"
@@ -173,7 +173,7 @@ def perturb(root: pathlib.Path, table: str) -> None:
 
 def give_source(root: pathlib.Path, table: str) -> None:
     """Give a table a declared source, so tools may stop refusing it."""
-    path = root / "plugin/server/src/data" / f"{table}.json"
+    path = root / "plugin/server/mcp_legal_it/data" / f"{table}.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     block = payload.setdefault("_vintage", {})
     block["verifica"] = "manuale"

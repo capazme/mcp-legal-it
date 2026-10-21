@@ -22,7 +22,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from src.lib.parlamento.client import (
+from mcp_legal_it.lib.parlamento.client import (
     LEGISLATURA_CORRENTE,
     STATI_PENDENTI,
     CameraIter,
@@ -39,8 +39,8 @@ from src.lib.parlamento.client import (
     parse_atto_input,
     scheda_senato_url,
 )
-from src.lib._result import SearchResult
-from src.tools.parlamento import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.tools.parlamento import (
     _cerca_ddl_impl,
     _ddl_su_norma_impl,
     _iter_ddl_impl,
@@ -155,7 +155,7 @@ class TestBuildSearchQuery:
         an unfiltered listing presented as search results. The exception is a
         dedicated type: a bare ValueError would be indistinguishable from
         json.JSONDecodeError (its subclass) raised by a broken response."""
-        from src.lib.parlamento.client import NoValidSearchTerms
+        from mcp_legal_it.lib.parlamento.client import NoValidSearchTerms
 
         with pytest.raises(NoValidSearchTerms):
             _build_search_query([['"']], legislatura=19)
@@ -180,7 +180,7 @@ class TestBuildSearchQuery:
 
 class TestBuildIterQuery:
     def test_fase_branch_uses_typed_string_and_legislatura(self):
-        from src.lib.parlamento.client import _build_iter_query
+        from mcp_legal_it.lib.parlamento.client import _build_iter_query
 
         q = _build_iter_query(fase="S.1939", legislatura=19)
         assert 'osr:fase "S.1939"^^xsd:string' in q
@@ -190,7 +190,7 @@ class TestBuildIterQuery:
     def test_idddl_branch_uses_bare_integer(self):
         """idDdl is xsd:integer in the store: quoting it ("55442"^^xsd:string)
         would silently return zero rows."""
-        from src.lib.parlamento.client import _build_iter_query
+        from mcp_legal_it.lib.parlamento.client import _build_iter_query
 
         q = _build_iter_query(id_ddl="55442")
         assert "osr:idDdl 55442 ." in q
@@ -250,10 +250,10 @@ class TestParseAttoInput:
 class TestExecuteSenato:
     async def test_uses_get_not_post(self):
         """dati.senato.it rejects POST with a 403 WAF page: the client MUST use GET."""
-        from src.lib.parlamento.client import _execute_sparql_senato
+        from mcp_legal_it.lib.parlamento.client import _execute_sparql_senato
 
         client = _make_client(get_json=_SENATO_SEARCH)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             bindings = await _execute_sparql_senato("SELECT ?s WHERE { ?s ?p ?o }")
 
         assert client.get.await_count == 1
@@ -261,10 +261,10 @@ class TestExecuteSenato:
         assert len(bindings) == 2
 
     async def test_transport_error_propagates(self):
-        from src.lib.parlamento.client import _execute_sparql_senato
+        from mcp_legal_it.lib.parlamento.client import _execute_sparql_senato
 
         client = _make_client(get_exc=httpx.RequestError("timeout"))
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             with pytest.raises(httpx.RequestError):
                 await _execute_sparql_senato("SELECT ?s WHERE { ?s ?p ?o }")
 
@@ -471,7 +471,7 @@ class TestNormaSearchGroups:
 class TestCercaDdlImpl:
     async def test_returns_results(self):
         client = _make_client(get_json=_SENATO_SEARCH)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_ddl_impl("intelligenza artificiale")
 
         assert isinstance(result, SearchResult)
@@ -481,7 +481,7 @@ class TestCercaDdlImpl:
 
     async def test_empty_results(self):
         client = _make_client(get_json=_EMPTY)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_ddl_impl("inesistente")
 
         assert not result.success
@@ -489,7 +489,7 @@ class TestCercaDdlImpl:
 
     async def test_source_down(self):
         client = _make_client(get_exc=httpx.RequestError("timeout"))
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_ddl_impl("intelligenza artificiale")
 
         assert not result.success
@@ -503,7 +503,7 @@ class TestCercaDdlImpl:
         """Terms that vanish in sanitisation must not reach the endpoint and
         must not come back as an unfiltered listing."""
         client = _make_client(get_json=_SENATO_SEARCH)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_ddl_impl('"')
 
         assert not result.success
@@ -519,7 +519,7 @@ class TestCercaDdlImpl:
         client.get.return_value.json = MagicMock(
             side_effect=json.JSONDecodeError("Expecting value", "<html>", 0)
         )
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_ddl_impl("intelligenza artificiale")
 
         assert not result.success
@@ -533,7 +533,7 @@ class TestCercaDdlImpl:
 class TestIterDdlImpl:
     async def test_full_navette_with_camera_enrichment(self):
         client = _make_client(get_json=_SENATO_ITER, post_json=_CAMERA_ATTO)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _iter_ddl_impl("S.1939")
 
         assert result.success
@@ -545,7 +545,7 @@ class TestIterDdlImpl:
     async def test_camera_failure_is_fail_open(self):
         """Camera enrichment is a bonus: its failure must not sink the iter."""
         client = _make_client(get_json=_SENATO_ITER, post_exc=httpx.RequestError("down"))
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _iter_ddl_impl("S.1939")
 
         assert result.success
@@ -553,7 +553,7 @@ class TestIterDdlImpl:
 
     async def test_idddl_input(self):
         client = _make_client(get_json=_SENATO_ITER, post_json=_CAMERA_ATTO)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _iter_ddl_impl("55442")
 
         assert result.success
@@ -566,7 +566,7 @@ class TestIterDdlImpl:
 
     async def test_not_found(self):
         client = _make_client(get_json=_EMPTY)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _iter_ddl_impl("S.99999")
 
         assert not result.success
@@ -580,7 +580,7 @@ class TestIterDdlImpl:
 class TestDdlSuNormaImpl:
     async def test_resolved_reference(self):
         client = _make_client(get_json=_SENATO_SEARCH)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _ddl_su_norma_impl("codice civile")
 
         assert result.success
@@ -590,7 +590,7 @@ class TestDdlSuNormaImpl:
 
     async def test_unresolved_reference_still_searches(self):
         client = _make_client(get_json=_SENATO_SEARCH)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _ddl_su_norma_impl("atto fantasioso delle meraviglie")
 
         assert result.success
@@ -598,7 +598,7 @@ class TestDdlSuNormaImpl:
 
     async def test_empty_results(self):
         client = _make_client(get_json=_EMPTY)
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _ddl_su_norma_impl("codice civile")
 
         assert not result.success
@@ -609,7 +609,7 @@ class TestDdlSuNormaImpl:
         client.get.return_value.json = MagicMock(
             side_effect=json.JSONDecodeError("Expecting value", "<html>", 0)
         )
-        with patch("src.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             result = await _ddl_su_norma_impl("codice civile")
 
         assert not result.success
@@ -624,7 +624,7 @@ class TestDdlSuNormaImpl:
 @pytest.mark.live
 class TestLiveEndpoints:
     async def test_senato_get_answers_with_bindings(self):
-        from src.lib.parlamento.client import search_ddl
+        from mcp_legal_it.lib.parlamento.client import search_ddl
 
         fasi = await search_ddl([["intelligenza artificiale"]], legislatura=19, limit=2)
         assert fasi
@@ -641,7 +641,7 @@ class TestLiveEndpoints:
         assert resp.status_code != 200
 
     async def test_iter_live_navette(self):
-        from src.lib.parlamento.client import fetch_iter
+        from mcp_legal_it.lib.parlamento.client import fetch_iter
 
         fasi = await fetch_iter("fase", "S.1939", legislatura=19)
         assert len(fasi) >= 2
@@ -649,7 +649,7 @@ class TestLiveEndpoints:
         assert all(f.legislatura == 19 for f in fasi)
 
     async def test_camera_live_enrichment(self):
-        from src.lib.parlamento.client import fetch_camera_iter
+        from mcp_legal_it.lib.parlamento.client import fetch_camera_iter
 
         camera = await fetch_camera_iter("3053", legislatura=19)
         assert camera is not None

@@ -12,10 +12,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-# Tool modules import each other through src.server; importing one of them
+# Tool modules import each other through mcp_legal_it.server; importing one of them
 # before the server trips a circular import, so the server goes first.
-import src.server  # noqa: F401
-from src.lib.visualex.map import (
+import mcp_legal_it.server  # noqa: F401
+from mcp_legal_it.lib.visualex.map import (
     BROCARDI_CODICI,
     find_brocardi_url,
     parse_brocardi_estremi,
@@ -253,10 +253,10 @@ class TestDateReachesBrocardi:
 
     @pytest.mark.asyncio
     async def test_cerca_brocardi_passes_the_year(self):
-        from src.tools.legal_citations import _cerca_brocardi_impl
+        from mcp_legal_it.tools.legal_citations import _cerca_brocardi_impl
 
-        with patch("src.lib.brocardi.client.find_article_url", new=AsyncMock(return_value=None)) as find_url, \
-             patch("src.lib.brocardi.client.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.lib.brocardi.client.find_article_url", new=AsyncMock(return_value=None)) as find_url, \
+             patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient") as MockClient:
             MockClient.return_value.__aenter__.return_value = MagicMock()
             await _cerca_brocardi_impl("art. 2 d.lgs. 81/2008")
 
@@ -264,11 +264,11 @@ class TestDateReachesBrocardi:
 
     @pytest.mark.asyncio
     async def test_cite_law_annotations_pass_the_year(self):
-        from src.tools.legal_citations import _cite_law_impl
+        from mcp_legal_it.tools.legal_citations import _cite_law_impl
 
-        with patch("src.tools.legal_citations.fetch_article", new=AsyncMock(return_value={"text": "t", "url": "u", "source": "normattiva"})), \
-             patch("src.lib.brocardi.client.find_article_url", new=AsyncMock(return_value=None)) as find_url, \
-             patch("src.lib.brocardi.client.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.tools.legal_citations.fetch_article", new=AsyncMock(return_value={"text": "t", "url": "u", "source": "normattiva"})), \
+             patch("mcp_legal_it.lib.brocardi.client.find_article_url", new=AsyncMock(return_value=None)) as find_url, \
+             patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient") as MockClient:
             MockClient.return_value.__aenter__.return_value = MagicMock()
             await _cite_law_impl("art. 2 d.lgs. 81/2015", include_annotations=True)
 
@@ -276,10 +276,10 @@ class TestDateReachesBrocardi:
 
     @pytest.mark.asyncio
     async def test_fetch_law_annotations_passes_the_date(self):
-        from src.tools.legal_citations import _fetch_law_annotations_impl
+        from mcp_legal_it.tools.legal_citations import _fetch_law_annotations_impl
 
-        with patch("src.lib.brocardi.client.find_article_url", new=AsyncMock(return_value=None)) as find_url, \
-             patch("src.lib.brocardi.client.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.lib.brocardi.client.find_article_url", new=AsyncMock(return_value=None)) as find_url, \
+             patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient") as MockClient:
             MockClient.return_value.__aenter__.return_value = MagicMock()
             await _fetch_law_annotations_impl("decreto legislativo", "2", date="2008-04-09", act_number="81")
 
@@ -287,12 +287,12 @@ class TestDateReachesBrocardi:
 
     @pytest.mark.asyncio
     async def test_fetch_annotations_uses_the_act_date(self):
-        from src.lib.visualex.models import Norma, NormaVisitata
-        from src.lib.visualex.scraper import fetch_annotations
+        from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata
+        from mcp_legal_it.lib.visualex.scraper import fetch_annotations
 
         nv = NormaVisitata(norma=Norma("decreto legislativo", "2015-06-15", "81"), numero_articolo="2")
-        with patch("src.lib.visualex.scraper._find_brocardi_article_url", new=AsyncMock(return_value=None)) as find_url, \
-             patch("src.lib.visualex.scraper.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.lib.visualex.scraper._find_brocardi_article_url", new=AsyncMock(return_value=None)) as find_url, \
+             patch("mcp_legal_it.lib.visualex.scraper.httpx.AsyncClient") as MockClient:
             MockClient.return_value.__aenter__.return_value = MagicMock()
             result = await fetch_annotations(nv)
 
@@ -305,8 +305,8 @@ class TestOtherToolsPassTheDate:
 
     @pytest.mark.asyncio
     async def test_mappa_orientamento(self):
-        from src.tools import orientamento
-        from src.lib._result import SearchResult
+        from mcp_legal_it.tools import orientamento
+        from mcp_legal_it.lib._result import SearchResult
 
         with patch.object(orientamento, "fetch_brocardi", new=AsyncMock(side_effect=RuntimeError("stop"))) as fb, \
              patch.object(orientamento, "_orientamento_su_norma_impl",
@@ -318,8 +318,8 @@ class TestOtherToolsPassTheDate:
 
     @pytest.mark.asyncio
     async def test_giurisprudenza_articolo(self):
-        from src.tools import italgiure
-        from src.lib._result import SearchResult
+        from mcp_legal_it.tools import italgiure
+        from mcp_legal_it.lib._result import SearchResult
 
         with patch.object(italgiure, "fetch_brocardi", new=AsyncMock(side_effect=RuntimeError("stop"))) as fb, \
              patch.object(italgiure, "_giurisprudenza_su_norma_impl",

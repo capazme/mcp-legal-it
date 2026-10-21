@@ -58,7 +58,7 @@ _BASE = {"avvocato": "Mario Rossi", "cliente": "Alfa S.r.l.", "fasi": None}
 
 
 def _tool(**kwargs) -> dict:
-    from src.tools.fatturazione_avvocati import modello_notula
+    from mcp_legal_it.tools.fatturazione_avvocati import modello_notula
 
     fn = getattr(modello_notula, "fn", modello_notula)
     args = dict(_BASE)

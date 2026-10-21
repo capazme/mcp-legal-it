@@ -16,8 +16,8 @@ import types
 
 from fastmcp import Client, FastMCP
 
-from src.lib import _data
-from src.lib._ledger import (
+from mcp_legal_it.lib import _data
+from mcp_legal_it.lib._ledger import (
     DATA_WARNINGS_KEY,
     OPENED_TABLES_KEY,
     TableDict,
@@ -95,10 +95,10 @@ def test_install_wraps_imported_modules_and_leaves_the_rest_alone():
 
 
 def test_the_real_bindings_wrapped_the_real_constants():
-    """`src.server` installs the ledger, so importing it must show up here.
+    """`mcp_legal_it.server` installs the ledger, so importing it must show up here.
 
     The install runs at server import for the modules bound by then. One tool
-    module (`privacy_gdpr`) imports `src.server` itself before binding its own
+    module (`privacy_gdpr`) imports `mcp_legal_it.server` itself before binding its own
     dicts, so in a process that imports it first those three land after the
     first install -- a wrap-placement order artifact that never changes an
     answer (the tools read the dicts at call time). The check keeps its teeth
@@ -106,19 +106,66 @@ def test_the_real_bindings_wrapped_the_real_constants():
     if anything *beyond* that known trio is left out, or if a second pass
     wraps anything at all.
     """
-    import src.server  # noqa: F401  (importing the server is what installs it)
-    from src.lib._ledger import install
-    from src.table_bindings import TABLE_CONSTANTS
-    from src.tools import varie
+    import mcp_legal_it.server  # noqa: F401  (importing the server is what installs it)
+    from mcp_legal_it.lib._ledger import install
+    from mcp_legal_it.table_bindings import TABLE_CONSTANTS
+    from mcp_legal_it.tools import varie
 
     late = install(TABLE_CONSTANTS)
     assert late <= 3, (
-        "modules src.server imports directly stopped being wrapped at import: "
+        "modules mcp_legal_it.server imports directly stopped being wrapped at import: "
         "%d constants now wrap late" % late
     )
     assert isinstance(varie._COMUNI, TableDict), "the server stopped installing the ledger"
-    assert "_COMUNI" in TABLE_CONSTANTS["src.tools.varie"]
+    assert "_COMUNI" in TABLE_CONSTANTS["mcp_legal_it.tools.varie"]
     assert install(TABLE_CONSTANTS) == 0, "the constants were already wrapped once"
+
+
+def test_every_binding_key_names_a_module_that_imports():
+    """A stale module key in the generated bindings drops the ledger silently.
+
+    `install` skips a module it cannot find in `sys.modules` on purpose, so a
+    key that no longer matches an import path (a package rename that skipped
+    `audit_tool_annotations.py --write`) wraps nothing and fails nothing: every
+    result just loses `opened_tables` and its `dati_applicati`. Here each key has
+    to import under its own name, and each constant it names has to come out of
+    the server import wrapped.
+    """
+    import importlib
+
+    import mcp_legal_it.server  # noqa: F401  (importing the server is what installs it)
+    from mcp_legal_it.table_bindings import TABLE_CONSTANTS
+
+    install(TABLE_CONSTANTS)  # the late trio documented in the test above
+    assert TABLE_CONSTANTS, "the generated bindings are empty"
+    for module_name, constants in TABLE_CONSTANTS.items():
+        assert module_name.startswith("mcp_legal_it."), (
+            "%s is outside the package: regenerate the bindings" % module_name
+        )
+        module = importlib.import_module(module_name)
+        for name in constants:
+            assert hasattr(module, name), "%s.%s no longer exists" % (module_name, name)
+            value = getattr(module, name)
+            if isinstance(value, (dict, list)):
+                assert isinstance(value, (TableDict, TableList)), (
+                    "%s.%s was never wrapped by the ledger" % (module_name, name)
+                )
+
+
+def test_every_tool_named_by_the_bindings_is_registered():
+    """The tool-keyed halves of the bindings name tools the server really lists."""
+    # TOOL_ALTERNATIVES maps a tool to a parameter name: only its keys are tools.
+    from mcp_legal_it.server import mcp
+    from mcp_legal_it.source_bindings import TOOL_SOURCES
+    from mcp_legal_it.table_bindings import TOOL_ALTERNATIVES, TOOL_TABLES
+
+    registered = {tool.name for tool in asyncio.run(mcp.list_tools())}
+    for label, keys in (
+        ("TOOL_TABLES", set(TOOL_TABLES)),
+        ("TOOL_ALTERNATIVES", set(TOOL_ALTERNATIVES)),
+        ("TOOL_SOURCES", set(TOOL_SOURCES)),
+    ):
+        assert not keys - registered, "%s names unknown tools: %s" % (label, sorted(keys - registered))
 
 
 def test_the_middleware_flags_the_vintage_of_the_tables_the_answer_rests_on():

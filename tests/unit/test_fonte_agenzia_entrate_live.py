@@ -2,7 +2,7 @@
 
 Two tools, one benchmark group ("agenzia_entrate", strategy "fonte_ufficiale"):
 
-* ``cerca_codice_tributo`` (``src/data/codici_tributo.json``, 55 codes). Every code the tool
+* ``cerca_codice_tributo`` (``mcp_legal_it/data/codici_tributo.json``, 55 codes). Every code the tool
   returns is compared with the tables the Agenzia delle Entrate publishes, downloaded live:
   - "Tabella codici tributo erariali e regionali ordinata per codice tributo crescente" (xlsx,
     aggiornamento del 23 settembre 2026 at the time of writing), linked from
@@ -17,7 +17,7 @@ Two tools, one benchmark group ("agenzia_entrate", strategy "fonte_ufficiale"):
   noticed), and that the tool's description contains the same concept words. The section
   (erario / regioni / enti_locali) is compared with the "tipo tributo" column.
 
-* ``costi_costituzione`` (hard-coded amounts in ``src/tools/diritto_societario.py``):
+* ``costi_costituzione`` (hard-coded amounts in ``mcp_legal_it/tools/diritto_societario.py``):
   - tassa di concessione governativa sui libri sociali (309,87 / 516,46 euro, due by S.p.a.,
     S.r.l., S.a.p.a.): AdE scheda
     https://www.agenziaentrate.gov.it/portale/schede/pagamenti/f24verstassareg/f24-tassa-ccgg
@@ -179,8 +179,8 @@ def tabella_locali() -> dict[str, tuple[str, str]]:
 # ---------------------------------------------------------------------------
 
 def _cerca(query: str) -> list[dict]:
-    import src.server  # noqa: F401  (registers every tool module first)
-    from src.tools.dichiarazione_redditi import cerca_codice_tributo
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first)
+    from mcp_legal_it.tools.dichiarazione_redditi import cerca_codice_tributo
 
     fn = getattr(cerca_codice_tributo, "fn", cerca_codice_tributo)
     righe = []
@@ -192,7 +192,7 @@ def _cerca(query: str) -> list[dict]:
 
 
 def _codici_del_tool() -> list[str]:
-    dati = json.loads((ROOT / "src/data/codici_tributo.json").read_text(encoding="utf-8"))
+    dati = json.loads((ROOT / "mcp_legal_it/data/codici_tributo.json").read_text(encoding="utf-8"))
     return [c["codice"] for c in dati["codici"]]
 
 
@@ -272,7 +272,7 @@ _SEZIONE_DA_TIPO = {"erario": "erario", "regioni": "regioni", "enti locali": "en
 
 
 def test_ogni_codice_del_tool_ha_un_riscontro_dichiarato():
-    """The mapping above covers exactly the codes of src/data/codici_tributo.json."""
+    """The mapping above covers exactly the codes of mcp_legal_it/data/codici_tributo.json."""
     assert sorted(_codici_del_tool()) == sorted(CONCETTI), (
         "aggiungere/togliere la voce in CONCETTI per i codici: "
         f"{sorted(set(_codici_del_tool()) ^ set(CONCETTI))}"
@@ -335,8 +335,8 @@ def test_codice_1668_interessi_rateizzazione_presente(tabella_erel):
 # ---------------------------------------------------------------------------
 
 def _costi(tipo: str) -> dict:
-    import src.server  # noqa: F401
-    from src.tools.diritto_societario import costi_costituzione
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.diritto_societario import costi_costituzione
 
     fn = getattr(costi_costituzione, "fn", costi_costituzione)
     return fn(tipo_societa=tipo)

@@ -58,7 +58,7 @@ _VIGORE = re.compile(
 
 
 def _oggi() -> date:
-    from src.lib import _clock
+    from mcp_legal_it.lib import _clock
 
     return _clock.today()
 
@@ -68,7 +68,7 @@ def _vigente_oggi(urn: str, articolo: str) -> str:
     import httpx
     from bs4 import BeautifulSoup
 
-    from src.lib.visualex.scraper import _HEADERS
+    from mcp_legal_it.lib.visualex.scraper import _HEADERS
 
     oggi = _oggi()
     url = f"{_NORMATTIVA}{urn}~art{articolo}!vig={oggi.isoformat()}"
@@ -92,9 +92,9 @@ def _vigente_oggi(urn: str, articolo: str) -> str:
 
 def _tariffa_parte_prima(articolo: str) -> str:
     """Normalised text of an article of the Tariffa parte I, DPR 131/1986, in force today."""
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.lib.visualex.akn_fetch import fetch_act_akn
-    from src.lib.visualex.models import Norma
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.lib.visualex.akn_fetch import fetch_act_akn
+    from mcp_legal_it.lib.visualex.models import Norma
 
     atto = asyncio.run(fetch_act_akn(Norma("decreto del presidente della repubblica", "1986", "131")))
     assert atto is not None, "export Akoma Ntoso del DPR 131/1986 non disponibile"
@@ -118,8 +118,8 @@ def _aliquota_dopo(testo: str, etichetta: str) -> int:
 
 
 def _tassazione():
-    import src.server  # noqa: F401
-    from src.tools.atti_giudiziari import tassazione_atti
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.atti_giudiziari import tassazione_atti
 
     return getattr(tassazione_atti, "fn", tassazione_atti)
 

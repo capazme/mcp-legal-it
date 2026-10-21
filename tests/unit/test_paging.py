@@ -1,8 +1,8 @@
-"""Paged reading of long texts (src/lib/_paging.py): the da_carattere contract."""
+"""Paged reading of long texts (mcp_legal_it/lib/_paging.py): the da_carattere contract."""
 
 import pytest
 
-from src.lib._paging import invalid_start, page, resume_hint
+from mcp_legal_it.lib._paging import invalid_start, page, resume_hint
 
 
 class TestPage:

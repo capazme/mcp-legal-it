@@ -25,8 +25,8 @@ URL = "https://www.avvocatoandreani.it/servizi/calcolo-imposta-registro-contratt
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers modules)
-    from src.tools.proprieta_successioni import imposta_registro_locazioni
+    import mcp_legal_it.server  # noqa: F401  (registers modules)
+    from mcp_legal_it.tools.proprieta_successioni import imposta_registro_locazioni
 
     fn = getattr(imposta_registro_locazioni, "fn", imposta_registro_locazioni)
     return fn(**kwargs)

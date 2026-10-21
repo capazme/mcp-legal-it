@@ -1,4 +1,4 @@
-"""Generate src/prompts.py from content/skills/*/SKILL.md 'prompt:' blocks.
+"""Generate mcp_legal_it/prompts.py from content/skills/*/SKILL.md 'prompt:' blocks.
 
 Run from the repo root:  python scripts/corpus/generate_prompts.py [--out FILE]
 Deterministic: functions are emitted in alphabetical order of prompt name.
@@ -23,7 +23,7 @@ Do not edit by hand: run  python scripts/corpus/generate_prompts.py
 {count} guided legal workflow prompts, for MCP clients that support prompts.
 """
 
-from src.server import mcp
+from mcp_legal_it.server import mcp
 
 '''
 
@@ -72,7 +72,7 @@ def _emit(meta: dict, body: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--out", type=Path, default=ROOT / "plugin" / "server" / "src" / "prompts.py"
+        "--out", type=Path, default=ROOT / "plugin" / "server" / "mcp_legal_it" / "prompts.py"
     )
     args = parser.parse_args()
     items = _collect()

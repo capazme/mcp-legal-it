@@ -3,7 +3,7 @@
 `tests/unit/test_data_vintage.py` covers how a table declares its own currency.
 This file covers the other half -- what a *call* is told about it:
 
-* which tables the warnings are about is the observed set (`src/lib/_ledger.py`),
+* which tables the warnings are about is the observed set (`mcp_legal_it/lib/_ledger.py`),
   not the declaration, so a call that branches between two tables is flagged for
   the one it used;
 * an expired covered period and an unverified provenance are different states,
@@ -26,8 +26,8 @@ import tempfile
 
 import pytest
 
-from src.lib import _data, _tables_open
-from src.lib._data import warnings
+from mcp_legal_it.lib import _data, _tables_open
+from mcp_legal_it.lib._data import warnings
 
 from .mcp_harness import (
     REPO,
@@ -74,7 +74,7 @@ def _audit():
     try:
         from audit_tool_annotations import Audit  # type: ignore[import-not-found]
 
-        return Audit(pathlib.Path(REPO / "plugin/server/src"))
+        return Audit(pathlib.Path(REPO / "plugin/server/mcp_legal_it"))
     finally:
         sys.path.pop(0)
 

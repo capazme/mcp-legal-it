@@ -1,6 +1,6 @@
 """Comparison tests: prescrizione_reato vs avvocatoandreani.it.
 
-Il tool (``src/tools/diritto_penale.py``) calcola il termine base dell'art. 157 c.p. (massimo
+Il tool (``mcp_legal_it/tools/diritto_penale.py``) calcola il termine base dell'art. 157 c.p. (massimo
 edittale, minimo 6 anni per i delitti e 4 per le contravvenzioni), lo porta al massimo
 dell'art. 161 co. 2 c.p. quando ``interruzioni_giorni > 0`` (un quarto; la meta' con recidiva
 aggravata, due terzi con recidiva reiterata, il doppio con abitualita'), somma i giorni di
@@ -89,8 +89,8 @@ def _oggi(monkeypatch):
 # ---------------------------------------------------------------------------
 
 def _tool(**kw) -> dict:
-    import src.server  # noqa: F401  (registra i moduli, evita import circolari)
-    from src.tools.diritto_penale import prescrizione_reato
+    import mcp_legal_it.server  # noqa: F401  (registra i moduli, evita import circolari)
+    from mcp_legal_it.tools.diritto_penale import prescrizione_reato
 
     fn = getattr(prescrizione_reato, "fn", prescrizione_reato)
     return fn(**kw)

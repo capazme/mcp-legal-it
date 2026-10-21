@@ -24,8 +24,8 @@ os.environ["LEGAL_TODAY"] = "2026-09-25"
 
 import pytest  # noqa: E402
 
-import src.server  # noqa: E402,F401  (registra i moduli, evita import circolari)
-from src.tools.tassi_interessi import verifica_usura  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registra i moduli, evita import circolari)
+from mcp_legal_it.tools.tassi_interessi import verifica_usura  # noqa: E402
 from tests.comparison.conftest import accept_cookies, assert_close  # noqa: E402
 
 _FN = getattr(verifica_usura, "fn", verifica_usura)

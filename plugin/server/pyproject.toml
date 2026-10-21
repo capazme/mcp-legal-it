@@ -30,14 +30,14 @@ dependencies = [
 ]
 
 [project.scripts]
-mcp-legal-it = "src.cli:main"
+mcp-legal-it = "mcp_legal_it.cli:main"
 
 [tool.setuptools.package-data]
-src = ["data/*.json", "data/references/*.md"]
+mcp_legal_it = ["data/*.json", "data/references/*.md"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["mcp_legal_it*"]
 
 [tool.uv]
 # The plugin starts the server with `uv run --frozen --project <plugin>/server`:

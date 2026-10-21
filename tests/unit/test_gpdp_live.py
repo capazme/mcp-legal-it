@@ -1,7 +1,7 @@
 """Live smoke gate for the Garante privacy tools (www.garanteprivacy.it, Liferay portlet).
 
 Tools under test: `cerca_provvedimenti_garante`, `leggi_provvedimento_garante`,
-`ultimi_provvedimenti_garante` (src/tools/gpdp.py over src/lib/gpdp/client.py).
+`ultimi_provvedimenti_garante` (mcp_legal_it/tools/gpdp.py over mcp_legal_it/lib/gpdp/client.py).
 
 What it checks, one real call per case on a known document (reads are cached per session):
 
@@ -46,9 +46,9 @@ import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib import _clock
-from src.lib.gpdp.client import (
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib.gpdp.client import (
     _BASE,
     _HEADERS,
     _SEARCH_PATH,
@@ -56,7 +56,7 @@ from src.lib.gpdp.client import (
     _build_search_params,
     tipologie_provvedimenti,
 )
-from src.tools.gpdp import (
+from mcp_legal_it.tools.gpdp import (
     cerca_provvedimenti_garante,
     leggi_provvedimento_garante,
     ultimi_provvedimenti_garante,

@@ -1,4 +1,4 @@
-"""Structural live gate for the credit-recovery DOCX generators (src/tools/procure_quotazioni.py).
+"""Structural live gate for the credit-recovery DOCX generators (mcp_legal_it/tools/procure_quotazioni.py).
 
 Benchmark phase 4, strategy "strutturale", group ``procure_quotazioni``: the benchmark site
 has no calculator that produces these documents (its procura page is a free-text editor and
@@ -61,8 +61,8 @@ import pytest
 from docx import Document
 from docx.shared import Pt
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools import procure_quotazioni as pq
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools import procure_quotazioni as pq
 from tests.unit._norme_live import assert_parole, cite_law_json, contiene, normalizza
 
 pytestmark = pytest.mark.live
@@ -271,7 +271,7 @@ def _catena(tabellare: Decimal, aumento_pct: bool, ritenuta: bool = True) -> dic
 
 
 def _verifica_citazioni(citazioni: list[str]) -> list[dict]:
-    from src.tools.legal_citations import verifica_citazioni
+    from mcp_legal_it.tools.legal_citations import verifica_citazioni
 
     raw = asyncio.run(_fn(verifica_citazioni)(citazioni="\n".join(citazioni), formato="json"))
     payload = json.loads(raw)
@@ -383,8 +383,8 @@ def _fase(fasi: dict[str, list[Decimal]], chiave: str) -> list[Decimal]:
 @pytest.fixture(scope="module")
 def dm147_gu() -> str:
     """Full text of D.M. 147/2022 with its allegato, as published in GU n. 236 of 8-10-2022."""
-    from src.lib.gazzetta import client as gu
-    from src.tools.gazzetta import _resolve_serie_path
+    from mcp_legal_it.lib.gazzetta import client as gu
+    from mcp_legal_it.tools.gazzetta import _resolve_serie_path
 
     atto = asyncio.run(gu.fetch_atto(_resolve_serie_path("serie_generale"), GU_DM_147_DATA, GU_DM_147_CODICE))
     assert "Nuove tabelle parametri forensi" in atto.text, atto.text[:500]
@@ -776,7 +776,7 @@ def test_quotazione_aliquote_catena_nel_testo_vigente():
 def test_quotazione_dm_147_2022_estremi_gu_ed_entrata_in_vigore():
     """"D.M. 13 agosto 2022, n. 147, pubblicato nella GU n. 236 dell'8 ottobre 2022 ed in vigore dal
     23 ottobre 2022": estremi from the GU search, art. 7 (15th day after publication)."""
-    from src.tools.gazzetta import cerca_gazzetta_ufficiale
+    from mcp_legal_it.tools.gazzetta import cerca_gazzetta_ufficiale
 
     esito = asyncio.run(_fn(cerca_gazzetta_ufficiale)(titolo="professione forense", anno_da="2022", anno_a="2022"))
     assert "DECRETO 13 agosto 2022, n. 147" in esito, esito
@@ -796,9 +796,9 @@ def test_nessun_regolamento_parametri_forensi_successivo_al_dm_147_2022():
     """Vintage guard: no later regolamento on the parametri forensi in the GU (2023 to today).
 
     Positive control first (the 2022 search finds D.M. 147/2022), then the same title search on
-    the following years. A hit means the tables in the tool and in src/data need a new check.
+    the following years. A hit means the tables in the tool and in mcp_legal_it/data need a new check.
     """
-    from src.tools.gazzetta import cerca_gazzetta_ufficiale
+    from mcp_legal_it.tools.gazzetta import cerca_gazzetta_ufficiale
 
     cerca = _fn(cerca_gazzetta_ufficiale)
     controllo = asyncio.run(cerca(titolo="professione forense", anno_da="2022", anno_a="2022"))
@@ -864,7 +864,7 @@ def test_quotazione_medi_coincidono_con_tabelle_gu(dm147_gu, out_dir):
 def test_quotazione_minimi_pari_alla_meta_esatta_del_medio(dm147_gu):
     """Valori minimi = medio ridotto del 50% (art. 4, co. 1, D.M. 55/2014), to the cent.
 
-    The GU tables print only the medio. The tool (and src/data/parametri_forensi.json, "min")
+    The GU tables print only the medio. The tool (and mcp_legal_it/data/parametri_forensi.json, "min")
     round the half UP to the euro when the medio is odd: 473 -> 237 (not 236,50), 567 -> 284
     (not 283,50), and the esecuzione defaults 331 -> 166, 567 -> 284. The rounded figure is
     above the legal minimum, so the letter's "valori minimi" overstate it by 0,50 per phase.

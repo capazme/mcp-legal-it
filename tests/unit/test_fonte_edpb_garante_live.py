@@ -1,16 +1,16 @@
 """Live gate (phase 4, official source): the GDPR calculators against the EDPB and the Garante.
 
-Checks the three calculators of `src/tools/privacy_gdpr.py` that rest on a supervisory
+Checks the three calculators of `mcp_legal_it/tools/privacy_gdpr.py` that rest on a supervisory
 authority's method rather than on a number printed in a statute:
 
-- `calcolo_sanzione_gdpr` (table `src/data/gdpr_sanzioni.json`) against art. 83 GDPR (vigente
+- `calcolo_sanzione_gdpr` (table `mcp_legal_it/data/gdpr_sanzioni.json`) against art. 83 GDPR (vigente
   text via `cite_law`, EUR-Lex/CELLAR) and the EDPB Guidelines 04/2022 on the calculation of
   administrative fines, version 2.1 (adopted 24/05/2023, corrected 29/06/2023), PDF;
 - `valutazione_data_breach` (no table) against artt. 33-34 GDPR, the EDPB Guidelines 9/2022 on
   personal data breach notification, version 2.0 (adopted 28/03/2023), PDF, and the Garante's
   self-assessment tool at https://servizi.gpdp.it/databreach/s/self-assesment (driven with
   Playwright; the misspelt path is the Garante's own);
-- `verifica_necessita_dpia` (table `src/data/gdpr_dpia_criteri.json`) against art. 35 GDPR, the
+- `verifica_necessita_dpia` (table `mcp_legal_it/data/gdpr_dpia_criteri.json`) against art. 35 GDPR, the
   Garante's provv. n. 467 of 11/10/2018 [doc. web 9058979] (the nine WP248 rev.01 criteria and
   the two-criteria threshold) and its Allegato 1 [doc. web 9059358] (the art. 35(4) list, PDF).
 
@@ -89,8 +89,8 @@ _ATTENUANTI_PIANO = [
 
 
 def _tool(name: str):
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools import privacy_gdpr
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools import privacy_gdpr
 
     obj = getattr(privacy_gdpr, name)
     return getattr(obj, "fn", obj)
@@ -109,8 +109,8 @@ def _dpia(**kwargs) -> dict:
 
 
 def _tabella_dpia() -> dict:
-    import src.server  # noqa: F401
-    from src.tools.privacy_gdpr import _DPIA
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.privacy_gdpr import _DPIA
 
     return _DPIA
 
@@ -192,7 +192,7 @@ def edpb_breach() -> str:
 
 
 def _garante_headers() -> dict:
-    from src.lib.gpdp.client import _HEADERS
+    from mcp_legal_it.lib.gpdp.client import _HEADERS
 
     return dict(_HEADERS)
 
@@ -200,8 +200,8 @@ def _garante_headers() -> dict:
 @pytest.fixture(scope="module")
 def provv_467() -> str:
     """Normalised text of provv. n. 467 of 11/10/2018 [doc. web 9058979], via the project's client."""
-    import src.server  # noqa: F401
-    from src.lib.gpdp.client import fetch_doc
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.lib.gpdp.client import fetch_doc
 
     try:
         _, testo = asyncio.run(fetch_doc(9058979))

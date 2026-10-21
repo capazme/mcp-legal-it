@@ -1,6 +1,6 @@
 """Live gate: the company-law tools against the vigente text of the civil code.
 
-`src/tools/diritto_societario.py` hard-codes three sets of rules:
+`mcp_legal_it/tools/diritto_societario.py` hard-codes three sets of rules:
 
 - `quorum_assembleari`: the quorum costitutivi and deliberativi of artt. 2368-2369 (s.p.a.),
   2479 and 2479-bis (s.r.l.), 2484/2487 (scioglimento) and 2538 (cooperative);
@@ -45,8 +45,8 @@ def _assert_parole(reference: str, *frasi: str) -> str:
 
 
 def _tool(name: str):
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools import diritto_societario
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools import diritto_societario
 
     obj = getattr(diritto_societario, name)
     return getattr(obj, "fn", obj)

@@ -1,6 +1,6 @@
 """Live smoke gate for the Gazzetta Ufficiale tools (www.gazzettaufficiale.it).
 
-Tools under test (src/tools/gazzetta.py over src/lib/gazzetta/client.py):
+Tools under test (mcp_legal_it/tools/gazzetta.py over mcp_legal_it/lib/gazzetta/client.py):
 `cerca_gazzetta_ufficiale`, `leggi_atto_gazzetta`, `scarica_pdf_gazzetta`,
 `sommario_gazzetta`, `ultime_gazzette`.
 
@@ -48,15 +48,15 @@ from pathlib import Path
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.gazzetta.client import (
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.gazzetta.client import (
     _BASE,
     _HEADERS,
     _RSS_HEADERS,
     _build_search_data,
     _parse_search_results,
 )
-from src.tools.gazzetta import (
+from mcp_legal_it.tools.gazzetta import (
     cerca_gazzetta_ufficiale,
     leggi_atto_gazzetta,
     scarica_pdf_gazzetta,

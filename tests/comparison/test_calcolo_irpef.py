@@ -74,9 +74,9 @@ DETR_PAGE = {
 def _tool(**kwargs) -> dict:
     import importlib
 
-    import src.server  # noqa: F401  -- registra i moduli (evita import circolari)
+    import mcp_legal_it.server  # noqa: F401  -- registra i moduli (evita import circolari)
 
-    mod = importlib.import_module("src.tools.dichiarazione_redditi")
+    mod = importlib.import_module("mcp_legal_it.tools.dichiarazione_redditi")
     fn = getattr(mod.calcolo_irpef, "fn", mod.calcolo_irpef)
     r = fn(**kwargs)
     assert "errore" not in r, r
@@ -258,8 +258,8 @@ def test_anno_2023_assente_dalla_tabella():
     (15.000 x 23% + 13.000 x 25% + 2.000 x 35%, art. 11 TUIR nel testo vigente
     per il 2023). Il sito offre solo gli scaglioni 2025 e la simulazione 2026:
     non confrontabile. Si registra comunque cosa fa il tool."""
-    import src.server  # noqa: F401
-    from src.tools import dichiarazione_redditi as mod
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools import dichiarazione_redditi as mod
 
     fn = getattr(mod.calcolo_irpef, "fn", mod.calcolo_irpef)
     r = fn(reddito_complessivo=30000, tipo_reddito="autonomo", anno_fiscale=2023)

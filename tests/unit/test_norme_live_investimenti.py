@@ -32,9 +32,9 @@ import functools
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools import investimenti as modulo
-from src.tools.investimenti import confronto_investimenti
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools import investimenti as modulo
+from mcp_legal_it.tools.investimenti import confronto_investimenti
 from tests.unit import _norme_live  # module import: a bare `testo_vigente` would be collected as a test
 
 pytestmark = pytest.mark.live

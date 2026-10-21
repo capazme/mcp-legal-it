@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from src.tools.modelli_atti import genera_modello_atto, lista_categorie_atti, _CATALOGO
+from mcp_legal_it.tools.modelli_atti import genera_modello_atto, lista_categorie_atti, _CATALOGO
 
 
 # ---------------------------------------------------------------------------
@@ -67,10 +67,10 @@ class TestCatalogoIntegrity:
         """Every record in the file reaches the catalogue, and nothing else does.
 
         The loader drops `_`-prefixed keys because those carry the table's
-        vintage (see src/lib/_data.py), not an atto. Comparing raw lengths would
+        vintage (see mcp_legal_it/lib/_data.py), not an atto. Comparing raw lengths would
         now fail for a reason that has nothing to do with a missing model.
         """
-        data_path = Path(__file__).resolve().parent.parent.parent / "src" / "data" / "modelli_atti.json"
+        data_path = Path(__file__).resolve().parent.parent.parent / "plugin" / "server" / "mcp_legal_it" / "data" / "modelli_atti.json"
         with open(data_path) as f:
             raw = json.load(f)
         records = {k for k in raw if not k.startswith("_")}

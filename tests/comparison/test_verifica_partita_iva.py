@@ -17,8 +17,8 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-import src.server  # noqa: F401,E402
-from src.tools.varie import verifica_partita_iva  # noqa: E402
+import mcp_legal_it.server  # noqa: F401,E402
+from mcp_legal_it.tools.varie import verifica_partita_iva  # noqa: E402
 
 from tests.comparison.conftest import accept_cookies  # noqa: E402
 

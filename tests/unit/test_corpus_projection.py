@@ -42,7 +42,7 @@ TARGETS_YAML = (
     "      skills: plugin/skills\n"
     "      agents: plugin/agents\n"
     "      commands: plugin/commands\n"
-    "      references: plugin/server/src/data/references\n"
+    "      references: plugin/server/mcp_legal_it/data/references\n"
 )
 
 # Same shape, but WITHOUT command_tool_namespace — exercises the lazy read.
@@ -57,7 +57,7 @@ TARGETS_YAML_NO_COMMAND_NS = (
     "      skills: plugin/skills\n"
     "      agents: plugin/agents\n"
     "      commands: plugin/commands\n"
-    "      references: plugin/server/src/data/references\n"
+    "      references: plugin/server/mcp_legal_it/data/references\n"
 )
 
 def _make_content(root: Path):
@@ -97,7 +97,7 @@ def test_projection_shapes_all_four_asset_kinds(tmp_path):
     ag = (out / "plugin/agents/civilista.md").read_text(encoding="utf-8")
     assert "model: sonnet" in ag and "tools:" not in ag and "`legal-it:cite_law`" in ag
 
-    shared = (out / "plugin/server/src/data/references/fonti.md").read_text(encoding="utf-8")
+    shared = (out / "plugin/server/mcp_legal_it/data/references/fonti.md").read_text(encoding="utf-8")
     assert shared == REF
 
 def test_project_runtime_fallback_for_absent_supports(tmp_path):
@@ -120,7 +120,7 @@ def test_project_runtime_fallback_for_absent_supports(tmp_path):
             "skills": "plugin/skills",
             "agents": "plugin/agents",
             "commands": "plugin/commands",
-            "references": "plugin/server/src/data/references",
+            "references": "plugin/server/mcp_legal_it/data/references",
         },
     }
     assert "supports" not in cfg
@@ -142,7 +142,7 @@ def test_project_runtime_fallback_for_absent_supports(tmp_path):
     ag = (out / "plugin/agents/civilista.md").read_text(encoding="utf-8")
     assert "model: sonnet" in ag and "tools:" not in ag and "`legal-it:cite_law`" in ag
 
-    shared = (out / "plugin/server/src/data/references/fonti.md").read_text(encoding="utf-8")
+    shared = (out / "plugin/server/mcp_legal_it/data/references/fonti.md").read_text(encoding="utf-8")
     assert shared == REF
 
 

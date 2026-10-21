@@ -29,8 +29,8 @@ INQUADRAMENTO = "10"  # Industria: tutti i lavoratori
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers modules, avoids circular imports)
-    from src.tools.risarcimento_danni import risarcimento_inail
+    import mcp_legal_it.server  # noqa: F401  (registers modules, avoids circular imports)
+    from mcp_legal_it.tools.risarcimento_danni import risarcimento_inail
 
     fn = getattr(risarcimento_inail, "fn", risarcimento_inail)
     return fn(**kwargs)

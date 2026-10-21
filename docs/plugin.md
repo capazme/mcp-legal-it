@@ -59,7 +59,7 @@ plugin/
 │   ├── ricerca-giurisprudenziale.md
 │   ├── redattore-atti.md
 │   └── digest-giuridico.md
-├── server/                     # server MCP (src/, run_server.py)
+├── server/                     # server MCP (mcp_legal_it/, run_server.py)
 ├── hooks/
 │   ├── hooks.json              # registra lo Stop hook
 │   └── citation-gate.py        # implementazione del gate citazioni
@@ -348,7 +348,7 @@ python scripts/corpus/project_claude.py
 ```
 
 Il comando rigenera `plugin/skills/`, `plugin/agents/`, `plugin/commands/` e
-`plugin/server/src/data/references/` da `content/`. Committare **sia** il file sorgente
+`plugin/server/mcp_legal_it/data/references/` da `content/`. Committare **sia** il file sorgente
 sotto `content/skills/` **sia** l'intero output rigenerato sotto `plugin/` nello stesso
 commit — la CI verifica che le due copie siano allineate.
 
@@ -371,6 +371,6 @@ Verificare che la skill:
 
 ### Link correlati
 
-- Prompt corrispondenti: `src/prompts.py` — le skills spesso wrappano i prompt MCP
+- Prompt corrispondenti: `mcp_legal_it/prompts.py` — le skills spesso wrappano i prompt MCP
 - Tool disponibili: [tools-catalog.md](tools-catalog.md)
 - Hooks: modificare `plugin/hooks/hooks.json`

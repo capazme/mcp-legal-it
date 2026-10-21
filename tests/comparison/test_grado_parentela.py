@@ -15,8 +15,8 @@ import pytest
 
 from tests.comparison.conftest import goto
 
-import src.server  # noqa: E402,F401  (registers every tool module)
-from src.tools.proprieta_successioni import grado_parentela  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers every tool module)
+from mcp_legal_it.tools.proprieta_successioni import grado_parentela  # noqa: E402
 
 _fn = getattr(grado_parentela, "fn", grado_parentela)
 PAGE = "calcolo-grado-di-parentela.php"

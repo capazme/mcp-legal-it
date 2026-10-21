@@ -36,17 +36,22 @@ dev = [
 ]
 
 [project.scripts]
-mcp-legal-it = "src.cli:main"
+mcp-legal-it = "mcp_legal_it.cli:main"
 
 [tool.setuptools.package-data]
-src = ["data/*.json", "data/references/*.md"]
+mcp_legal_it = ["data/*.json", "data/references/*.md"]
 
+# The package lives in plugin/server/ (the plugin runs it from there); the
+# library build picks it up from the same folder, so there is one copy and no
+# link at the repository root.
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["src*"]
+where = ["plugin/server"]
+include = ["mcp_legal_it*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# The package is importable from a plain checkout, without an install.
+pythonpath = ["plugin/server"]
 addopts = "-m 'not live'"
 markers = ["live: live integration tests hitting real APIs"]

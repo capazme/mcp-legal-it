@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from bs4 import BeautifulSoup
 
-from src.lib.brocardi.client import (
+from mcp_legal_it.lib.brocardi.client import (
     BrocardiResult,
     Massima,
     Relazione,
@@ -22,7 +22,7 @@ from src.lib.brocardi.client import (
     find_article_url,
     fetch_brocardi,
 )
-from src.tools.legal_citations import _cerca_brocardi_impl
+from mcp_legal_it.tools.legal_citations import _cerca_brocardi_impl
 
 
 # ---------------------------------------------------------------------------
@@ -340,7 +340,7 @@ class TestFindArticleUrl:
         mock_client.get = AsyncMock(return_value=mock_resp)
 
         # Clear cache to avoid interference
-        from src.lib.brocardi.client import _url_cache
+        from mcp_legal_it.lib.brocardi.client import _url_cache
         _url_cache.clear()
 
         url = await find_article_url(mock_client, "https://www.brocardi.it/codice-civile/", "2043")
@@ -360,7 +360,7 @@ class TestFindArticleUrl:
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        from src.lib.brocardi.client import _url_cache
+        from mcp_legal_it.lib.brocardi.client import _url_cache
         _url_cache.clear()
 
         url = await find_article_url(mock_client, "https://www.brocardi.it/codice-civile/", "2043")
@@ -377,7 +377,7 @@ class TestFindArticleUrl:
         mock_client.get = AsyncMock(return_value=mock_resp)
 
         # Clear cache to avoid interference
-        from src.lib.brocardi.client import _url_cache
+        from mcp_legal_it.lib.brocardi.client import _url_cache
         _url_cache.clear()
 
         url = await find_article_url(mock_client, "https://www.brocardi.it/test/", "9999")
@@ -451,10 +451,10 @@ class TestFetchBrocardi:
         index_html = '<a href="/codice-civile/art2043.html">Art. 2043</a>'
 
         # Clear URL cache
-        from src.lib.brocardi.client import _url_cache
+        from mcp_legal_it.lib.brocardi.client import _url_cache
         _url_cache.clear()
 
-        with patch("src.lib.brocardi.client.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient") as MockClient:
             MockClient.return_value = _mock_httpx_brocardi(index_html, _BROCARDI_HTML)
 
             result = await fetch_brocardi("codice civile", "2043")
@@ -474,10 +474,10 @@ class TestFetchBrocardi:
     async def test_article_not_found(self):
         index_html = "<html><body>No articles</body></html>"
 
-        from src.lib.brocardi.client import _url_cache
+        from mcp_legal_it.lib.brocardi.client import _url_cache
         _url_cache.clear()
 
-        with patch("src.lib.brocardi.client.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient") as MockClient:
             MockClient.return_value = _mock_httpx_brocardi(index_html, "")
 
             result = await fetch_brocardi("codice civile", "9999")
@@ -489,7 +489,7 @@ class TestFetchBrocardi:
     async def test_self_healing_poisoned_cache(self):
         """A stale cache entry pointing at a 404 URL is dropped and re-resolved."""
         import httpx
-        from src.lib.brocardi.client import _url_cache
+        from mcp_legal_it.lib.brocardi.client import _url_cache
 
         base = "https://www.brocardi.it/codice-civile/"
         poisoned = "https://www.brocardi.it/codice-civile/art2043.html"  # 404
@@ -526,7 +526,7 @@ class TestFetchBrocardi:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.brocardi.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient", return_value=mock_client):
             result = await fetch_brocardi("codice civile", "2043")
 
         assert not result.error
@@ -556,10 +556,10 @@ class TestCercaBrocardiImpl:
     async def test_success_with_cassazione_refs(self):
         index_html = '<a href="/codice-civile/art2043.html">Art. 2043</a>'
 
-        from src.lib.brocardi.client import _url_cache
+        from mcp_legal_it.lib.brocardi.client import _url_cache
         _url_cache.clear()
 
-        with patch("src.lib.brocardi.client.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient") as MockClient:
             MockClient.return_value = _mock_httpx_brocardi(index_html, _BROCARDI_HTML)
 
             result = await _cerca_brocardi_impl("art. 2043 c.c.")

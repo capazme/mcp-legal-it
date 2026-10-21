@@ -60,8 +60,8 @@ _FASI_IMMOBILI = (
 
 
 def _tool(prezzo: float) -> dict:
-    import src.server  # noqa: F401  registers all tool modules
-    from src.tools.parcelle_professionisti import compenso_delegati_vendite
+    import mcp_legal_it.server  # noqa: F401  registers all tool modules
+    from mcp_legal_it.tools.parcelle_professionisti import compenso_delegati_vendite
 
     fn = getattr(compenso_delegati_vendite, "fn", compenso_delegati_vendite)
     return fn(prezzo_aggiudicazione=prezzo)

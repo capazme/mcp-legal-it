@@ -38,7 +38,7 @@ def _parse_int(text):
 
 
 def _our_parcella_penale(competenza, livello="medio"):
-    from src.tools.fatturazione_avvocati import parcella_avvocato_penale
+    from mcp_legal_it.tools.fatturazione_avvocati import parcella_avvocato_penale
     fn = getattr(parcella_avvocato_penale, "fn", parcella_avvocato_penale)
     return fn(competenza=competenza, livello=livello)
 

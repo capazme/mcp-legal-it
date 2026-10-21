@@ -7,7 +7,7 @@ import pytest
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.tassi_interessi")
+    mod = importlib.import_module("mcp_legal_it.tools.tassi_interessi")
     fn = getattr(mod, fn_name)
     actual = fn.fn if hasattr(fn, "fn") else fn
     return actual(**kwargs)
@@ -490,11 +490,11 @@ class TestVerificaUsura:
         # as long as the data-freshness workflow keeps tegm.json current.
         r = _call("verifica_usura", tasso_applicato=5.0, tipo_operazione="mutuo_prima_casa")
         trimestri = json.loads(
-            (Path(__file__).parents[2] / "src" / "data" / "tegm.json").read_text()
+            (Path(__file__).parents[2] / "plugin" / "server" / "mcp_legal_it" / "data" / "tegm.json").read_text()
         )["trimestri"]
         # The server's clock, not the wall clock: other modules in the same
         # session pin LEGAL_TODAY, and the tool reads the date from _clock.
-        from src.lib._clock import today as server_today
+        from mcp_legal_it.lib._clock import today as server_today
 
         today = server_today().isoformat()
         expected = next(

@@ -11,11 +11,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "plugin" / "server"))
 
 
 async def main() -> None:
-    from src.server import mcp  # imports all 33 tool modules
+    from mcp_legal_it.server import mcp  # imports all 33 tool modules
 
     tools = await mcp.list_tools()
     names = sorted(t.name for t in tools)

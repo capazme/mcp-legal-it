@@ -7,7 +7,7 @@ import asyncio
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[2]))
+sys.path.insert(0, str(Path(__file__).parents[2] / "plugin" / "server"))
 
 EXPECTED_RESOURCE_URIS = {
     "legal://riferimenti/procedura-civile", "legal://riferimenti/termini-processuali",
@@ -22,7 +22,7 @@ EXPECTED_RESOURCE_URIS = {
 
 def test_registration_surface():
     from fastmcp import Client
-    from src.server import mcp
+    from mcp_legal_it.server import mcp
     from tests.unit.test_prompt_surface import EXPECTED as EXPECTED_PROMPTS
 
     async def run():
@@ -41,7 +41,7 @@ def test_tool_vocabulary_matches_server():
     import json
 
     from fastmcp import Client
-    from src.server import mcp
+    from mcp_legal_it.server import mcp
 
     async def run():
         async with Client(mcp) as c:

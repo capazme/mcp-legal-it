@@ -57,7 +57,7 @@ import tempfile
 
 import pytest
 
-from src.lib import _data
+from mcp_legal_it.lib import _data
 
 from .mcp_harness import (
     REPO,
@@ -102,7 +102,7 @@ def _audit():
     try:
         from audit_tool_annotations import Audit  # type: ignore[import-not-found]
 
-        return Audit(pathlib.Path(REPO / "plugin/server/src"))
+        return Audit(pathlib.Path(REPO / "plugin/server/mcp_legal_it"))
     finally:
         sys.path.pop(0)
 
@@ -371,7 +371,7 @@ def test_the_reference_stores_results_not_failures(surface, monkeypatch):
 
     One error *is* an answer: `dati_non_affidabili`, the refusal a tool gives
     when the tables it rests on cannot support the grade it declares in its
-    docstring (`src/lib/_precision.py`). It is checked rather than merely
+    docstring (`mcp_legal_it/lib/_precision.py`). It is checked rather than merely
     allowed, because "the reference may contain errors" would otherwise be a
     licence for any argument drift: a refusal is only legitimate for a tool
     whose tables are actually flagged, it must say the grade is `nessuna`, and
@@ -446,7 +446,7 @@ def test_the_server_declares_the_tables_each_call_opened(surface):
     `@sourced(...)` and the audit are both static -- they say which tables a
     tool's code *can* read. Every call now also reports, in its result `_meta`,
     which tables it *did* read, observed by the ledger that wraps the table
-    constants (`src/lib/_ledger.py`). Comparing the two is the only check here
+    constants (`mcp_legal_it/lib/_ledger.py`). Comparing the two is the only check here
     that a reader the walk cannot follow fails: a table seen at runtime and not
     attributed to the tool by the audit means the audit is missing a path, which
     is exactly how three preloaded tables stayed invisible while six tools

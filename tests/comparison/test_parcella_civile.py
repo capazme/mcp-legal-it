@@ -31,7 +31,7 @@ def _parse_int(text):
 
 
 def _our_parcella(valore_causa, livello="medio"):
-    from src.tools.fatturazione_avvocati import parcella_avvocato_civile
+    from mcp_legal_it.tools.fatturazione_avvocati import parcella_avvocato_civile
     fn = getattr(parcella_avvocato_civile, "fn", parcella_avvocato_civile)
     return fn(valore_causa=valore_causa, livello=livello)
 

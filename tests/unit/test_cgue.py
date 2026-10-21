@@ -10,7 +10,7 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib.cgue.client import (
+from mcp_legal_it.lib.cgue.client import (
     CORTI,
     TIPI_DOCUMENTO,
     MATERIE_KEYWORDS,
@@ -30,8 +30,8 @@ from src.lib.cgue.client import (
     search_giurisprudenza,
 )
 
-from src.lib._result import SearchResult
-from src.tools.cgue import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.tools.cgue import (
     _cerca_giurisprudenza_cgue_impl,
     _leggi_sentenza_cgue_impl,
     _giurisprudenza_cgue_su_norma_impl,
@@ -186,7 +186,7 @@ class TestBuildSearchQuery:
 class TestExecuteSparql:
     @pytest.mark.asyncio
     async def test_success(self):
-        from src.lib.cgue.client import _execute_sparql
+        from mcp_legal_it.lib.cgue.client import _execute_sparql
 
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
@@ -197,7 +197,7 @@ class TestExecuteSparql:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _execute_sparql("SELECT * WHERE {}")
 
         assert len(result) == 2
@@ -205,7 +205,7 @@ class TestExecuteSparql:
 
     @pytest.mark.asyncio
     async def test_empty_results(self):
-        from src.lib.cgue.client import _execute_sparql
+        from mcp_legal_it.lib.cgue.client import _execute_sparql
 
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
@@ -216,21 +216,21 @@ class TestExecuteSparql:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _execute_sparql("SELECT * WHERE {}")
 
         assert result == []
 
     @pytest.mark.asyncio
     async def test_http_error(self):
-        from src.lib.cgue.client import _execute_sparql
+        from mcp_legal_it.lib.cgue.client import _execute_sparql
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("timeout"))
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             with pytest.raises(httpx.RequestError):
                 await _execute_sparql("SELECT * WHERE {}")
 
@@ -372,7 +372,7 @@ class TestParseTitle:
 class TestFetchHtmlText:
     @pytest.mark.asyncio
     async def test_success(self):
-        from src.lib.cgue.client import _fetch_html
+        from mcp_legal_it.lib.cgue.client import _fetch_html
 
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
@@ -383,14 +383,14 @@ class TestFetchHtmlText:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _fetch_html("http://publications.europa.eu/resource/cellar/abc.0006")
 
         assert "CORTE" in result
 
     @pytest.mark.asyncio
     async def test_http_error(self):
-        from src.lib.cgue.client import _fetch_html
+        from mcp_legal_it.lib.cgue.client import _fetch_html
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -401,7 +401,7 @@ class TestFetchHtmlText:
             "404", request=MagicMock(), response=mock_404
         ))
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             with pytest.raises(httpx.HTTPStatusError):
                 await _fetch_html("http://publications.europa.eu/resource/cellar/notfound.0006")
 
@@ -580,7 +580,7 @@ class TestCercaGiurisprudenzaCgueImpl:
     @pytest.mark.asyncio
     async def test_returns_results(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA")
 
         assert isinstance(result, SearchResult)
@@ -591,7 +591,7 @@ class TestCercaGiurisprudenzaCgueImpl:
     @pytest.mark.asyncio
     async def test_empty_results(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE_EMPTY)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("inesistente")
 
         assert isinstance(result, SearchResult)
@@ -606,7 +606,7 @@ class TestCercaGiurisprudenzaCgueImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("timeout"))
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA")
 
         assert isinstance(result, SearchResult)
@@ -617,7 +617,7 @@ class TestCercaGiurisprudenzaCgueImpl:
     @pytest.mark.asyncio
     async def test_max_risultati_capped_at_50(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA", max_risultati=100)
 
         assert isinstance(result, SearchResult)
@@ -627,7 +627,7 @@ class TestCercaGiurisprudenzaCgueImpl:
     @pytest.mark.asyncio
     async def test_with_corte_filter(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("IVA", corte="corte_di_giustizia")
 
         assert isinstance(result, SearchResult)
@@ -636,7 +636,7 @@ class TestCercaGiurisprudenzaCgueImpl:
     @pytest.mark.asyncio
     async def test_empty_query_still_works(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_cgue_impl("")
 
         assert isinstance(result, SearchResult)
@@ -659,7 +659,7 @@ class TestLeggiSentenzaCgueImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_cgue_impl(
                 "http://publications.europa.eu/resource/cellar/abc123.0006"
             )
@@ -680,7 +680,7 @@ class TestLeggiSentenzaCgueImpl:
             "404", request=MagicMock(), response=mock_404
         ))
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_cgue_impl(
                 "http://publications.europa.eu/resource/cellar/notfound.0006"
             )
@@ -698,7 +698,7 @@ class TestGiurisprudenzaCgueSuNormaImpl:
     @pytest.mark.asyncio
     async def test_delegates_to_search(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("art. 101 TFUE")
 
         assert isinstance(result, SearchResult)
@@ -709,7 +709,7 @@ class TestGiurisprudenzaCgueSuNormaImpl:
     @pytest.mark.asyncio
     async def test_empty_results(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE_EMPTY)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("art. 999 TFUE")
 
         assert isinstance(result, SearchResult)
@@ -724,7 +724,7 @@ class TestGiurisprudenzaCgueSuNormaImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("timeout"))
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("art. 101 TFUE")
 
         assert isinstance(result, SearchResult)
@@ -741,7 +741,7 @@ class TestUltimeSentenzeCgueImpl:
     @pytest.mark.asyncio
     async def test_returns_latest(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl()
 
         assert isinstance(result, SearchResult)
@@ -751,7 +751,7 @@ class TestUltimeSentenzeCgueImpl:
     @pytest.mark.asyncio
     async def test_empty_results(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE_EMPTY)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl()
 
         assert isinstance(result, SearchResult)
@@ -766,7 +766,7 @@ class TestUltimeSentenzeCgueImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("connection refused"))
 
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl()
 
         assert isinstance(result, SearchResult)
@@ -777,7 +777,7 @@ class TestUltimeSentenzeCgueImpl:
     @pytest.mark.asyncio
     async def test_with_court_filter(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl(corte="tribunale")
 
         assert isinstance(result, SearchResult)
@@ -786,7 +786,7 @@ class TestUltimeSentenzeCgueImpl:
     @pytest.mark.asyncio
     async def test_with_materia_filter(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_sentenze_cgue_impl(materia="iva")
 
         assert isinstance(result, SearchResult)
@@ -876,7 +876,7 @@ class TestParseResultsDeduplication:
             _binding("62020CJ0001", "http://x/a", year="2020", case_num="1", ecli="E3"),
         ]
         mock_client = _make_sparql_mock({"results": {"bindings": rows}})
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             docs = await search_giurisprudenza(keywords=[], limit=2)
         assert [d.celex for d in docs] == ["62018CJ0311", "62019CJ0693"]
         # more rows than wanted are requested, because several rows can be one decision
@@ -889,7 +889,7 @@ class TestMateriaNarrows:
     @pytest.mark.asyncio
     async def test_materia_is_a_separate_filter(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE_EMPTY)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             await search_giurisprudenza(keywords=["Schrems"], materia="protezione_dati")
         q = _sent_query(mock_client)
         filters = [line for line in q.splitlines() if line.startswith("  FILTER(") and "LCASE" in line]
@@ -904,7 +904,7 @@ class TestMateriaNarrows:
     @pytest.mark.asyncio
     async def test_comma_words_stay_alternatives(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE_EMPTY)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_cgue_impl("clausole abusive, ingiunzione")
         q = _sent_query(mock_client)
         line = next(ln for ln in q.splitlines() if '"clausole abusive"' in ln)
@@ -984,7 +984,7 @@ class TestSuNormaSendsAndOfTerms:
     @pytest.mark.asyncio
     async def test_art_abbreviato_becomes_articolo_and_tfue(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("art. 101 TFUE", anno_da="2020")
         assert result.success
         q = _sent_query(mock_client)
@@ -999,7 +999,7 @@ class TestSuNormaSendsAndOfTerms:
     @pytest.mark.asyncio
     async def test_corte_filter_with_reference_uses_str(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE_EMPTY)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_cgue_su_norma_impl("direttiva 2006/112", corte="corte_di_giustizia", anno_da="2025")
         q = _sent_query(mock_client)
         assert 'FILTER(STR(?type_code) IN ("CJ", "CC", "CO"))' in q
@@ -1008,7 +1008,7 @@ class TestSuNormaSendsAndOfTerms:
     @pytest.mark.asyncio
     async def test_empty_reference_is_bad_input(self):
         mock_client = _make_sparql_mock(_SPARQL_RESPONSE)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_cgue_su_norma_impl("   ")
         assert not result.success
         assert result.error_type == "bad_input"
@@ -1179,7 +1179,7 @@ class TestCaseMetadata:
     @pytest.mark.asyncio
     async def test_lookup_returns_official_case_number_and_ecli(self):
         mock_client = _make_sparql_mock(_celex_lookup_response())
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             meta = await fetch_case_metadata("62018CJ0311")
         assert meta == {"case_ref": "C-311/18", "date": "2020-07-16", "ecli": "ECLI:EU:C:2020:559"}
         assert '"62018CJ0311"^^xsd:string' in _sent_query(mock_client)
@@ -1189,7 +1189,7 @@ class TestCaseMetadata:
         response = _celex_lookup_response()
         response["results"]["bindings"].reverse()  # row without ECLI first
         mock_client = _make_sparql_mock(response)
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             meta = await fetch_case_metadata("62018CJ0311")
         assert meta["ecli"] == "ECLI:EU:C:2020:559"
 
@@ -1199,13 +1199,13 @@ class TestCaseMetadata:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("timeout"))
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             assert await fetch_case_metadata("62018CJ0311") == {}
 
     @pytest.mark.asyncio
     async def test_lookup_rejects_a_malformed_celex_without_a_request(self):
         mock_client = _make_sparql_mock(_celex_lookup_response())
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             assert await fetch_case_metadata('62018CJ0311"; DROP') == {}
         mock_client.post.assert_not_called()
 
@@ -1234,7 +1234,7 @@ class TestLeggiSentenzaHeader:
             + "<p>La decisione di esecuzione (UE) 2016/1250 della Commissione e' invalida.</p></body></html>"
         )
         mock_client = self._client(long_html, _celex_lookup_response())
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_cgue_impl("http://publications.europa.eu/resource/celex/62018CJ0311")
         assert result.success
         text = result.results_text
@@ -1249,7 +1249,7 @@ class TestLeggiSentenzaHeader:
         html = "<html><body><p>62018CJ0311</p><p>" + "Testo della sentenza. " * 30 + "</p></body></html>"
         mock_client = self._client(html, _celex_lookup_response())
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("timeout"))
-        with patch("src.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_cgue_impl("http://publications.europa.eu/resource/celex/62018CJ0311")
         assert result.success
         assert result.results_text.startswith("# 62018CJ0311\n")

@@ -48,7 +48,7 @@ descrizione di ogni tool.
 
 ## 1. Consultazione normativa
 
-**Modulo:** `src/tools/legal_citations.py`
+**Modulo:** `mcp_legal_it/tools/legal_citations.py`
 **Tag:** `normativa`
 **API esterne:** Normattiva, EUR-Lex, Brocardi
 
@@ -67,7 +67,7 @@ descrizione di ogni tool.
 
 ## 2. Giurisprudenza Cassazione
 
-**Modulo:** `src/tools/italgiure.py`
+**Modulo:** `mcp_legal_it/tools/italgiure.py`
 **Tag:** `giurisprudenza`
 **API esterne:** Italgiure (Cassazione Solr API, `https://www.italgiure.giustizia.it`)
 **Note:** SSL non valido → `verify=False`; collezioni `snciv` (civile) e `snpen` (penale); OCR letto a blocchi di 30.000 caratteri (inizio e fine nella prima risposta, il resto con `da_carattere`).
@@ -84,7 +84,7 @@ descrizione di ogni tool.
 
 ## 3. Provvedimenti Garante Privacy (GPDP)
 
-**Modulo:** `src/tools/gpdp.py`
+**Modulo:** `mcp_legal_it/tools/gpdp.py`
 **Tag:** `privacy`
 **API esterne:** Portale GPDP (`https://www.gpdp.it`)
 
@@ -98,7 +98,7 @@ descrizione di ogni tool.
 
 ## 4. Privacy / GDPR Compliance
 
-**Modulo:** `src/tools/privacy_gdpr.py`
+**Modulo:** `mcp_legal_it/tools/privacy_gdpr.py`
 **Tag:** `privacy`
 **Riferimento normativo:** GDPR (Reg. UE 2016/679); D.Lgs. 101/2018
 
@@ -121,9 +121,9 @@ descrizione di ogni tool.
 
 ## 5. Rivalutazioni ISTAT
 
-**Modulo:** `src/tools/rivalutazioni_istat.py`
+**Modulo:** `mcp_legal_it/tools/rivalutazioni_istat.py`
 **Tag:** `rivalutazione`
-**File dati:** `src/data/indici_foi.json`
+**File dati:** `mcp_legal_it/data/indici_foi.json`
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
@@ -144,9 +144,9 @@ descrizione di ogni tool.
 
 ## 6. Tassi e interessi
 
-**Modulo:** `src/tools/tassi_interessi.py`
+**Modulo:** `mcp_legal_it/tools/tassi_interessi.py`
 **Tag:** `interessi`
-**File dati:** `src/data/tassi_legali.json`, `src/data/tassi_mora.json`, `src/data/tegm.json`
+**File dati:** `mcp_legal_it/data/tassi_legali.json`, `mcp_legal_it/data/tassi_mora.json`, `mcp_legal_it/data/tegm.json`
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
@@ -165,9 +165,9 @@ descrizione di ogni tool.
 
 ## 7. Scadenze processuali
 
-**Modulo:** `src/tools/scadenze_termini.py`
+**Modulo:** `mcp_legal_it/tools/scadenze_termini.py`
 **Tag:** `scadenze`
-**File dati:** `src/data/festivita.json`
+**File dati:** `mcp_legal_it/data/festivita.json`
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
@@ -187,9 +187,9 @@ descrizione di ogni tool.
 
 ## 8. Atti giudiziari
 
-**Modulo:** `src/tools/atti_giudiziari.py`
+**Modulo:** `mcp_legal_it/tools/atti_giudiziari.py`
 **Tag:** `giudiziario`
-**File dati:** `src/data/contributo_unificato.json`, `src/data/codici_ruolo.json`, `src/data/tribunali_competenti.json`
+**File dati:** `mcp_legal_it/data/contributo_unificato.json`, `mcp_legal_it/data/codici_ruolo.json`, `mcp_legal_it/data/tribunali_competenti.json`
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
@@ -221,9 +221,9 @@ descrizione di ogni tool.
 
 ## 9. Parcelle avvocati
 
-**Modulo:** `src/tools/fatturazione_avvocati.py`
+**Modulo:** `mcp_legal_it/tools/fatturazione_avvocati.py`
 **Tag:** `parcelle_avv`
-**File dati:** `src/data/parametri_forensi.json`
+**File dati:** `mcp_legal_it/data/parametri_forensi.json`
 **Riferimento:** D.M. 55/2014 (mod. D.M. 147/2022)
 
 | Tool | Firma | Descrizione |
@@ -245,7 +245,7 @@ descrizione di ogni tool.
 
 ## 10. Parcelle professionisti
 
-**Modulo:** `src/tools/parcelle_professionisti.py`
+**Modulo:** `mcp_legal_it/tools/parcelle_professionisti.py`
 **Tag:** `parcelle_prof`
 **Riferimento:** DPR 115/2002 (CTU), DM 150/2023 (mediazione), DM 30/2012 (curatore), DM 227/2015 (delegati vendite)
 
@@ -267,7 +267,7 @@ descrizione di ogni tool.
 
 ## 11. Risarcimento danni
 
-**Modulo:** `src/tools/risarcimento_danni.py`
+**Modulo:** `mcp_legal_it/tools/risarcimento_danni.py`
 **Tag:** `danni`
 **Riferimento:** Tabelle Milano 2023, DM 3/7/2023 (macro-permanenti), INAIL
 
@@ -285,7 +285,7 @@ descrizione di ogni tool.
 
 ## 12. Diritto penale
 
-**Modulo:** `src/tools/diritto_penale.py`
+**Modulo:** `mcp_legal_it/tools/diritto_penale.py`
 **Tag:** `penale`
 
 | Tool | Firma | Descrizione |
@@ -300,9 +300,9 @@ descrizione di ogni tool.
 
 ## 13. Proprietà e successioni
 
-**Modulo:** `src/tools/proprieta_successioni.py`
+**Modulo:** `mcp_legal_it/tools/proprieta_successioni.py`
 **Tag:** `proprieta`
-**File dati:** `src/data/imposte_successione.json`, `src/data/usufrutto_coefficienti.json`
+**File dati:** `mcp_legal_it/data/imposte_successione.json`, `mcp_legal_it/data/usufrutto_coefficienti.json`
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
@@ -323,7 +323,7 @@ descrizione di ogni tool.
 
 ## 14. Investimenti
 
-**Modulo:** `src/tools/investimenti.py`
+**Modulo:** `mcp_legal_it/tools/investimenti.py`
 **Tag:** `investimenti`
 **Tassazione:** 12,5% titoli di Stato (D.Lgs. 239/1996); 26% altri strumenti
 
@@ -339,9 +339,9 @@ descrizione di ogni tool.
 
 ## 15. Dichiarazione redditi
 
-**Modulo:** `src/tools/dichiarazione_redditi.py`
+**Modulo:** `mcp_legal_it/tools/dichiarazione_redditi.py`
 **Tag:** `fiscale`
-**File dati:** `src/data/irpef_scaglioni.json`
+**File dati:** `mcp_legal_it/data/irpef_scaglioni.json`
 **Riferimento:** L. 199/2025 (scaglioni IRPEF 2026), TUIR (DPR 917/1986)
 
 | Tool | Firma | Descrizione |
@@ -368,9 +368,9 @@ descrizione di ogni tool.
 
 ## 16. Utilità generali
 
-**Modulo:** `src/tools/varie.py`
+**Modulo:** `mcp_legal_it/tools/varie.py`
 **Tag:** `utility`
-**File dati:** `src/data/comuni.json`, `src/data/festivita.json`, `src/data/codici_ateco.json`, `src/data/violazioni_patente.json`
+**File dati:** `mcp_legal_it/data/comuni.json`, `mcp_legal_it/data/festivita.json`, `mcp_legal_it/data/codici_ateco.json`, `mcp_legal_it/data/violazioni_patente.json`
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
@@ -405,7 +405,7 @@ descrizione di ogni tool.
 
 ## 18. Gazzetta Ufficiale
 
-**Modulo:** `src/tools/gazzetta.py`
+**Modulo:** `mcp_legal_it/tools/gazzetta.py`
 **Tag:** `normativa`
 **API esterne:** gazzettaufficiale.it (ricerca parametrica + RSS)
 
@@ -421,7 +421,7 @@ descrizione di ogni tool.
 
 ## 19. Corte Costituzionale
 
-**Modulo:** `src/tools/corte_cost.py`
+**Modulo:** `mcp_legal_it/tools/corte_cost.py`
 **Tag:** `giurisprudenza`, `normativa`
 **API esterne:** cortecostituzionale.it
 
@@ -436,7 +436,7 @@ descrizione di ogni tool.
 
 ## 20. Giurisprudenza tributaria (CeRDEF)
 
-**Modulo:** `src/tools/cerdef.py`
+**Modulo:** `mcp_legal_it/tools/cerdef.py`
 **Tag:** `giurisprudenza`, `fiscale`
 **API esterne:** def.finanze.it (MEF)
 **Note:** Ricerca POST con XML embeddato; paginazione via cookie di sessione; max 25.000 caratteri.
@@ -451,7 +451,7 @@ descrizione di ogni tool.
 
 ## 21. Giustizia amministrativa (TAR/CdS)
 
-**Modulo:** `src/tools/giustizia_amm.py`
+**Modulo:** `mcp_legal_it/tools/giustizia_amm.py`
 **Tag:** `giurisprudenza_amm`, `normativa`
 **API esterne:** giustizia-amministrativa.it + mdp.giustizia-amministrativa.it
 **Note:** Portlet Liferay con id d'istanza letto a runtime; sedi indicate per citta; il filtro per anno vale solo insieme al numero.
@@ -467,7 +467,7 @@ descrizione di ogni tool.
 
 ## 22. Giurisprudenza CGUE
 
-**Modulo:** `src/tools/cgue.py`
+**Modulo:** `mcp_legal_it/tools/cgue.py`
 **Tag:** `giurisprudenza_ue`, `normativa`
 **API esterne:** publications.europa.eu (CELLAR SPARQL)
 **Note:** CELEX case law `6{anno}{corte}{numero}`; literal CELEX con `^^xsd:string`; max 25.000 caratteri.
@@ -483,7 +483,7 @@ descrizione di ogni tool.
 
 ## 23. Delibere CONSOB
 
-**Modulo:** `src/tools/consob.py`
+**Modulo:** `mcp_legal_it/tools/consob.py`
 **Tag:** `consob`
 **API esterne:** consob.it (Liferay)
 **Note:** Max 8.000 caratteri per delibera.
@@ -498,7 +498,7 @@ descrizione di ogni tool.
 
 ## 24. Orientamenti giurisprudenziali
 
-**Modulo:** `src/tools/orientamento.py`
+**Modulo:** `mcp_legal_it/tools/orientamento.py`
 **Tag:** `giurisprudenza`
 **API esterne:** Italgiure + Brocardi
 **Note:** Output DESCRITTIVO: mappa conformi/contrasti e interventi delle Sezioni Unite, non predittivo.
@@ -513,7 +513,7 @@ descrizione di ogni tool.
 
 ## 25. Ricerca giurisprudenziale unificata
 
-**Modulo:** `src/tools/giurisprudenza_unificata.py`
+**Modulo:** `mcp_legal_it/tools/giurisprudenza_unificata.py`
 **Tag:** `giurisprudenza`
 **API esterne:** tutte le fonti giurisprudenziali in parallelo
 
@@ -525,7 +525,7 @@ descrizione di ogni tool.
 
 ## 26. Recepimento UE -> Italia
 
-**Modulo:** `src/tools/eu_implementation.py`
+**Modulo:** `mcp_legal_it/tools/eu_implementation.py`
 **Tag:** `normativa`
 **API esterne:** EUR-Lex (misure nazionali di recepimento)
 
@@ -539,7 +539,7 @@ descrizione di ogni tool.
 
 ## 27. Diritto del lavoro
 
-**Modulo:** `src/tools/diritto_lavoro.py`
+**Modulo:** `mcp_legal_it/tools/diritto_lavoro.py`
 **Tag:** `lavoro`
 
 | Tool | Firma | Descrizione |
@@ -555,7 +555,7 @@ descrizione di ogni tool.
 
 ## 28. Diritto societario
 
-**Modulo:** `src/tools/diritto_societario.py`
+**Modulo:** `mcp_legal_it/tools/diritto_societario.py`
 **Tag:** `societario`
 
 | Tool | Firma | Descrizione |
@@ -569,7 +569,7 @@ descrizione di ogni tool.
 
 ## 29. Crisi d'impresa
 
-**Modulo:** `src/tools/crisi_impresa.py`
+**Modulo:** `mcp_legal_it/tools/crisi_impresa.py`
 **Tag:** `crisi`
 **Note:** Codice della crisi d'impresa e dell'insolvenza (D.Lgs. 14/2019).
 
@@ -584,7 +584,7 @@ descrizione di ogni tool.
 
 ## 30. Procedura civile
 
-**Modulo:** `src/tools/procedura_civile.py`
+**Modulo:** `mcp_legal_it/tools/procedura_civile.py`
 **Tag:** `giudiziario`
 
 | Tool | Firma | Descrizione |
@@ -597,7 +597,7 @@ descrizione di ogni tool.
 
 ## 31. Modelli di atti
 
-**Modulo:** `src/tools/modelli_atti.py`
+**Modulo:** `mcp_legal_it/tools/modelli_atti.py`
 **Tag:** `atti`
 **Note:** 100 tipi di atti; vedere `legal://riferimenti/modelli-atti-catalogo`.
 
@@ -611,7 +611,7 @@ descrizione di ogni tool.
 
 ## 32. Procure e quotazioni (recupero crediti)
 
-**Modulo:** `src/tools/procure_quotazioni.py`
+**Modulo:** `mcp_legal_it/tools/procure_quotazioni.py`
 **Tag:** `credito`, `atti`
 **Note:** Output DOCX pronto-firma.
 
@@ -624,7 +624,7 @@ descrizione di ogni tool.
 
 ## 33. Iter parlamentare (DDL)
 
-**Modulo:** `src/tools/parlamento.py`
+**Modulo:** `mcp_legal_it/tools/parlamento.py`
 **Tag:** `parlamento`, `normativa`
 **Note:** Fonti: SPARQL open data del Senato (dati.senato.it, copre le fasi di entrambi i rami) e della Camera (dati.camera.it, dettaglio statoIter e PDF stampati). `ddl_su_norma` cerca solo nei TITOLI dei DDL — best-effort dichiarato nell'output.
 
@@ -679,7 +679,7 @@ descrizione di ogni tool.
 
 ---
 
-## File dati (`src/data/`)
+## File dati (`mcp_legal_it/data/`)
 
 24 file JSON. Struttura e fonte normativa di ciascuno in [data-files.md](data-files.md).
 
@@ -726,7 +726,7 @@ prima dell'uso — non sono documenti legali pronti alla firma.
 
 ## 34. Marchi (TMview)
 
-**Modulo:** `src/tools/tmview.py`
+**Modulo:** `mcp_legal_it/tools/tmview.py`
 **Tag:** `marchi`, `normativa`
 **API esterne:** tmdn.org (TMview — EUIPO/TMDN, JSON API)
 **Note:** Aggrega UIBM, EUIPO, WIPO e ~75 uffici nazionali (140M+ marchi). WAF anti-bot: richieste distanziate (min 1s); su blocco, riprovare dopo ~1 minuto.

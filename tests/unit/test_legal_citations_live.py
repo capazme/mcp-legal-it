@@ -1,4 +1,4 @@
-"""Live smoke gate for the norm-retrieval tools of src/tools/legal_citations.py.
+"""Live smoke gate for the norm-retrieval tools of mcp_legal_it/tools/legal_citations.py.
 
 Tools under test: `cite_law`, `fetch_law_article`, `fetch_law_annotations`,
 `cerca_brocardi`, `fetch_act_index`, `fetch_full_act`, `download_law_pdf`,
@@ -44,8 +44,8 @@ import zlib
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools import legal_citations as lc
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools import legal_citations as lc
 from tests.unit._norme_live import contiene, normalizza
 
 pytestmark = pytest.mark.live
