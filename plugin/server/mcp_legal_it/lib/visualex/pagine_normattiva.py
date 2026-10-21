@@ -15,6 +15,10 @@ extractor, ``normattiva_html``) and the article number the page gives it, a few 
 
 A record is written only when the page was read: a failed fetch, a page with no
 article body, are never kept.
+
+The act's article tree (``albero_normattiva``, read from the act's own page) is kept
+here too, under its own key (``albero|`` + the act's URL), for the same day: VisuaLex
+keeps its trees 24 hours as well. A failed or empty tree is never kept.
 """
 
 from __future__ import annotations
@@ -79,7 +83,26 @@ def leggi(url: str) -> dict | None:
 
 def scrivi(url: str, testo: str, servito: str | None) -> None:
     """Keep what the page at *url* said (best effort: an unwritable directory only warns)."""
-    rec = {"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito}
+    _scrivi({"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito})
+
+
+def _chiave_albero(url: str) -> str:
+    return f"albero|{url}"
+
+
+def leggi_albero(url: str) -> dict | None:
+    """The tree of the act at *url* (``{"result", "count", "metadata"}``) if younger than a day."""
+    rec = leggi(_chiave_albero(url))
+    return rec.get("albero") if rec is not None else None
+
+
+def scrivi_albero(url: str, albero: dict) -> None:
+    """Keep the act's widest tree (links, section labels, metadata)."""
+    _scrivi({"schema": SCHEMA, "url": _chiave_albero(url), "salvato": time.time(), "albero": albero})
+
+
+def _scrivi(rec: dict) -> None:
+    url = rec["url"]
     _ricorda(url, rec)
     if not cache_enabled():
         return
