@@ -638,11 +638,18 @@ def test_citazioni_nel_docx_verificate(esporta):
 
 def _numeri_resi(doc) -> list[int]:
     """Numbers Word shows for the List Number paragraphs: one counter per numId, no restart
-    unless a paragraph carries its own numbering (numPr) pointing to another list."""
+    unless a paragraph carries its own numbering (numPr) pointing to another list, which
+    starts from its level-0 startOverride when it has one."""
     from docx.oxml.ns import qn
 
     stile = doc.styles["List Number"].element
     num_stile = stile.find(f".//{qn('w:numId')}").get(qn("w:val"))
+    numbering = doc.part.numbering_part.element
+    inizi: dict[str, int] = {}
+    for num in numbering.findall(qn("w:num")):
+        start = num.find(f"./{qn('w:lvlOverride')}[@{qn('w:ilvl')}='0']/{qn('w:startOverride')}")
+        if start is not None:
+            inizi[num.get(qn("w:numId"))] = int(start.get(qn("w:val")))
     contatori: dict[str, int] = {}
     resi = []
     for p in doc.paragraphs:
@@ -651,7 +658,7 @@ def _numeri_resi(doc) -> list[int]:
         ppr = p._p.pPr
         own = ppr.find(f".//{qn('w:numId')}") if ppr is not None else None
         num_id = own.get(qn("w:val")) if own is not None else num_stile
-        contatori[num_id] = contatori.get(num_id, 0) + 1
+        contatori[num_id] = contatori.get(num_id, inizi.get(num_id, 1) - 1) + 1
         resi.append(contatori[num_id])
     return resi
 
