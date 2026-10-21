@@ -713,6 +713,17 @@ class TestLeggiSentenzaCgueImpl:
         assert "CELLAR URI non valido" in result.to_str()
 
     @pytest.mark.asyncio
+    def test_every_uri_the_api_accepts_passes_the_library_guard(self):
+        """api._decisioni filters first, the library second: they must not disagree."""
+        from mcp_legal_it.api._decisioni import _uri_cellar
+        from mcp_legal_it.lib.cgue.client import cellar_uri_error
+
+        for uri in ("http://publications.europa.eu/resource/cellar/abc.0006",
+                    "https://publications.europa.eu:443/resource/celex/62018CJ0311",
+                    "http://publications.europa.eu:80/resource/cellar/x-y_z.03"):
+            assert _uri_cellar(uri) == uri
+            assert cellar_uri_error(uri) is None, uri
+
     async def test_library_fetch_refuses_too(self):
         with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient") as client_cls:
             with pytest.raises(ValueError, match="CELLAR URI non valido"):

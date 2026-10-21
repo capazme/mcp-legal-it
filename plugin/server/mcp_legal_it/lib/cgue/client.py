@@ -589,7 +589,8 @@ def cellar_uri_error(cellar_uri: str) -> str | None:
         return "URI non leggibile"
     if parts.scheme not in ("http", "https"):
         return "serve un URI http(s)"
-    if host != CELLAR_HOST or port is not None or parts.username or parts.password:
+    # Explicit default ports are the same endpoint (api._decisioni accepts them too).
+    if host != CELLAR_HOST or port not in (None, 80, 443) or parts.username or parts.password:
         return f"l'URI deve puntare a {CELLAR_HOST}"
     if not parts.path.startswith("/resource/"):
         return "l'URI deve essere una risorsa CELLAR (/resource/...)"
