@@ -274,7 +274,11 @@ The text in force of one article, from Normattiva or EUR-Lex.
   | d.lgs. 36/2023 | Allegato I.7 / I.11 | Allegato I.7 / I.11 | `8` / `12` (a sub-part after a dash, "Allegato I.4-Tabella A", is not an entry) |
 
   Measured on the exports and checked live on 21/10/2026. A name the act gives
-  ("I.7", "III") stays a name. A citation of an annex by a digit name
+  ("I.7", "III") stays a name, and so does any `allegato` of an EU act (EUR-Lex
+  URLs have no part). A part number is a positive integer without leading zeros:
+  `"0"` or `"02"` is `riferimento_non_valido`. An annex article read from the
+  part's page on the HTML channel is served only if the page's text is the
+  export's article (accents aside); a position two parts share builds no URN. A citation of an annex by a digit name
   ("allegato 1 al d.lgs. 104/2010") keeps the annex in `numero_articolo`
   (`"allegato 1 art. 120"`) with `allegato=None`, so that it is never read back
   as a position.

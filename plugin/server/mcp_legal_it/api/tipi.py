@@ -95,7 +95,10 @@ class NormaDati:
     data: str                # act date, "YYYY-MM-DD" or only "YYYY" when not resolved
     numero_atto: str
     url: str                 # citable URL (Normattiva N2Ls or EUR-Lex)
-    allegato: str | None     # annex id when the article is in an annex ("I.7"), else None
+    # Normattiva's part number, the URN's ":k" ("2" for the c.c., "2" for the c.p.a. of
+    # d.lgs. 104/2010), as VisuaLex files the norm; an annex name ("I.7") for an annex
+    # named by the act; None otherwise. See docs/api.md, testo_articolo.
+    allegato: str | None
     numero_articolo: str     # "2043", "2-bis", "rec_42" (EU recital); "" for the whole act
     versione: str = "vigente"
     data_versione: str | None = None

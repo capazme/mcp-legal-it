@@ -5,6 +5,7 @@ keep every part of the export, so the parts' positions are the real ones, and em
 of the articles no test reads. No network.
 """
 
+import dataclasses
 import hashlib
 import re
 from pathlib import Path
@@ -131,6 +132,19 @@ class TestTables:
             "| solo |  |  |",
         ]
 
+    def test_a_rowspan_keeps_the_columns_a_nested_table_is_read_once_paragraphs_apart(self):
+        table = etree.fromstring(
+            "<table><tr><th rowspan='2'>Atto</th><th>Aliquota</th><th>Note</th></tr>"
+            "<tr><td>9 per cento</td><td><p>prima</p><p>seconda</p></td></tr>"
+            "<tr><td>Altro</td><td><table><tr><td>a</td><td>b</td></tr></table></td><td>c</td></tr>"
+            "</table>")
+        assert _render_table(table).split("\n") == [
+            "| Atto | Aliquota | Note |",
+            "| --- | --- | --- |",
+            "|  | 9 per cento | prima seconda |",
+            "| Altro | a b | c |",
+        ]
+
 
 # ---------------------------------------------------------------------------
 # Body vs annexes
@@ -162,6 +176,26 @@ class TestBodyOrAnnex:
         assert _body_approves_annex(cpa.parts["Dispositivo"].articles, cpa.parts["Dispositivo"].order)
         assert not _body_approves_annex(l654.articles, l654.order)
 
+    @pytest.mark.parametrize("testo", [
+        "Il Presidente della Repubblica e' autorizzato a ratificare la Convenzione internazionale, "
+        "approvata dall'Assemblea generale delle Nazioni Unite il 21 dicembre 1965.",
+        "Piena ed intera esecuzione e' data alla Convenzione, approvata a New York.",
+        "La Convenzione e' approvata dalle Parti contraenti.",
+    ])
+    def test_a_treaty_called_approved_is_not_an_approving_decree(self, testo):
+        # "approvata" alone describes the treaty; only the formula approves a text.
+        assert not _body_approves_annex({"1": f"### Art. 1.\n\n{testo}"}, ["1"])
+
+    @pytest.mark.parametrize("testo", [
+        "E' approvato il testo del Codice civile, il quale entra in vigore.",
+        "Il testo definitivo del codice penale portante la data di questo giorno e' approvato.",
+        "1. E' approvato il codice del processo amministrativo di cui all'allegato 1.",
+        "È approvato l'unito testo unico delle leggi di pubblica sicurezza.",
+        "Sono approvate le norme di attuazione del codice di procedura penale.",
+    ])
+    def test_the_approving_formula_of_a_decree(self, testo):
+        assert _body_approves_annex({"1": f"### Art. 1.\n\n{testo}"}, ["1"])
+
     def test_dpr_131_keeps_its_body_and_its_tariff_apart(self, tariffa):
         assert tariffa.main_part == "" and "1" in tariffa.order
 
@@ -189,6 +223,20 @@ class TestPositions:
         assert appalti.annex_position("I.01") == 1
         assert appalti.annex_position("I.7") == 8
         assert appalti.annex_position("I.11") == 12
+
+    def test_a_position_shared_by_two_parts_is_ambiguous(self):
+        # "Allegato A" and "Allegato A-Tabella" are one entry of the tree (:1): the URN would
+        # not say which of the two parts is meant, so no part URN is built for them.
+        xml = ("<akomaNtoso><act><body><article eId='art_1'><num>Art. 1.</num><content><p>Testo."
+               "</p></content></article></body><attachments>"
+               "<attachment><doc name='Allegato A-art. 1'><mainBody><paragraph><content><p>Uno.</p>"
+               "</content></paragraph></mainBody></doc></attachment>"
+               "<attachment><doc name='Allegato A-Tabella-art. 1'><mainBody><paragraph><content><p>Due."
+               "</p></content></paragraph></mainBody></doc></attachment>"
+               "</attachments></act></akomaNtoso>")
+        act = parse_akn(xml)
+        assert [p.position for p in act.parts.values()] == [1, 1]
+        assert act.annex_position("A") == 0
 
     def test_tariffa(self, tariffa):
         assert [(p.position, n.split()[0]) for n, p in tariffa.parts.items()] == [
@@ -247,9 +295,15 @@ def _serve(monkeypatch, act, pagine: "dict[str, str] | None" = None):
     return richieste
 
 
-_CPA_120 = ('<html><body><div class="bodyTesto"><span class="attachment-just-text">Art. 120. '
-            "(Disposizioni specifiche ai giudizi di cui all'articolo 119, comma 1, lettera a)) "
-            "1. Gli atti delle procedure di affidamento...</span></div></body></html>")
+def _cpa_120() -> str:
+    """The page of art. 120 of the c.p.a. (";104:2~art120"), from the export's text with real accents."""
+    act = parse_akn((FIXTURES / "dlgs_104_2010_trimmed.xml").read_text(encoding="utf-8"))
+    corpo = re.sub(r"^#+[^\n]*\n+", "", act.article("120")).replace("e'", "è")
+    return ('<html><body><div class="bodyTesto"><span class="attachment-just-text">'
+            + " ".join(corpo.split()) + "</span></div></body></html>")
+
+
+_CPA_120 = _cpa_120()
 
 
 class TestPositionalAllegato:
@@ -304,6 +358,30 @@ class TestPositionalAllegato:
         nd = api.riferimento_da_parametri("codice civile", "2043", allegato="2").norma_data[0]
         assert nd.url.endswith(";262:2~art2043") and nd.allegato == "2"
 
+    def test_an_eu_acts_allegato_is_never_a_position(self):
+        # EUR-Lex URLs have no part: a digit allegato of the GDPR names its annex, as before,
+        # never a position that would serve art. 5 while declaring allegato="1".
+        nd = api.riferimento_da_parametri("regolamento ue", "5", data="2016", numero_atto="679",
+                                          allegato="1").norma_data[0]
+        assert nd.allegato == "1" and nd.numero_articolo == "5"
+        assert "allegato 1" in api._norme._con_allegato("regolamento ue", "1", "5")
+
+    @pytest.mark.parametrize("allegato", ["0", "02", "007"])
+    def test_a_part_number_is_a_positive_integer(self, allegato):
+        esito = api.riferimento_da_parametri("decreto legislativo", "5", data="2010-07-02",
+                                             numero_atto="104", allegato=allegato)
+        assert esito.esito == "riferimento_non_valido" and "allegato" in esito.errore
+
+    async def test_a_norma_dati_with_an_invalid_part_is_refused_without_a_request(self):
+        nd = api.riferimento_da_parametri("decreto legislativo", "5", data="2010-07-02",
+                                          numero_atto="104", allegato="2").norma_data[0]
+        t = await api.testo_articolo(dataclasses.replace(nd, allegato="02"), canale="html")
+        assert t.esito == "riferimento_non_valido"
+
+    def test_a_codes_default_part_is_unchanged_too(self):
+        nd = api.riferimento_da_parametri("codice civile", "2043", allegato="2").norma_data[0]
+        assert nd.url.endswith(";262:2~art2043") and nd.allegato == "2"
+
     def test_an_annex_name_stays_a_name(self):
         nd = api.leggi_riferimento("allegato I.7 art. 30 d.lgs. 36/2023").norma_data[0]
         assert nd.allegato == "I.7" and nd.numero_articolo == "30"
@@ -320,7 +398,7 @@ class TestPositionalAllegato:
                                           numero_atto="104", allegato="2").norma_data[0]
         t = await api.testo_articolo(nd, canale="html")
         assert t.esito == "trovato" and t.fonte == "normattiva"
-        assert t.article_text.startswith("Art. 120.")
+        assert t.article_text.startswith("Art. 120 (Disposizioni specifiche")
         assert [r.split("?")[1] for r in richieste] == [
             "urn:nir:stato:decreto.legislativo:2010-07-02;104:2~art120"]
         assert t.norma_data.allegato == "2"

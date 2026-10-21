@@ -2,8 +2,10 @@
 
 import asyncio
 import dataclasses
+import difflib
 import os
 import re
+import unicodedata
 import warnings
 from urllib.parse import urljoin
 
@@ -456,7 +458,8 @@ async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str
             except httpx.HTTPError:
                 page_text, served = "", None
             requested = _article_identity(normalize_article_key(article))
-            if page_text and served is not None and _article_identity(served) == requested:
+            if (page_text and served is not None and _article_identity(served) == requested
+                    and _stesso_articolo(page_text, text)):
                 return {**base, "text": page_text, "url": part_url, "source": "normattiva", "allegato": name}
         return {**base, "text": text, "url": part_url, "allegato": name}
     return {**base, "text": text, "allegato": name}
@@ -648,6 +651,26 @@ def _da_export(act, nv: NormaVisitata, url: str, part: "str | None", base: dict,
     return servito
 
 
+def _confronto(testo: str) -> str:
+    """A text reduced for comparing a page with the export: no accents, case, markup or heading."""
+    testo = re.sub(r"^#+[^\n]*\n", "", testo or "", count=1)  # the export's "### Art. N" line
+    testo = unicodedata.normalize("NFKD", testo)
+    testo = "".join(c for c in testo if not unicodedata.combining(c)).lower()
+    return " ".join(re.sub(r"[^0-9a-z]+", " ", testo).split())
+
+
+def _stesso_articolo(pagina: str, export: str | None) -> bool:
+    """Whether a page's text is the export's article: their first 200 characters, compared.
+
+    The page of ``;k~artN`` names its article's number only, which every part of an act
+    may share: if ``k`` were not the part asked for, the number alone would let another
+    annex's article through under this one's name. The export, which knows the part,
+    has the last word.
+    """
+    a, b = _confronto(pagina)[:200], _confronto(export or "")[:200]
+    return bool(a and b) and difflib.SequenceMatcher(None, a, b).ratio() >= 0.8
+
+
 async def _pagina_della_parte(nv: NormaVisitata, url: str, act, requested) -> "dict | None":
     """The article from the page of the act's main part (``;104:2~art120``), or None.
 
@@ -663,6 +686,8 @@ async def _pagina_della_parte(nv: NormaVisitata, url: str, act, requested) -> "d
     except httpx.HTTPError:
         return None
     if not text or served is None or _article_identity(served) != requested:
+        return None
+    if not _stesso_articolo(text, _akn_article(act, nv.numero_articolo, None)):
         return None
     return {"text": text, "url": part_url, "source": "normattiva", "data_atto": nv.norma.data,
             "allegato": act.main_part}
