@@ -1074,3 +1074,48 @@ class TestNegativeTtl:
             dpa_cache.scrivi("example.com", EsitoSonda(verdetto, "u"), ADESSO)
             assert dpa_cache.leggi("example.com", ADESSO + timedelta(days=60)) is not None
             assert dpa_cache.leggi("example.com", ADESSO + timedelta(days=91)) is None
+
+
+class TestSondaConLeRegoleDiRete:
+    """The probe through the real client and the network rules of core/_http.
+
+    `dpa_probe` reaches whatever site the caller names, so its limits are kept per
+    host: one site's pause must neither hold another vendor nor turn into a cached
+    «non trovato».
+    """
+
+    @staticmethod
+    def _client_reale(handler):
+        reale = httpx.AsyncClient
+
+        def costruisci(**kwargs):
+            return reale(transport=httpx.MockTransport(handler), **kwargs)
+
+        return patch("httpx.AsyncClient", side_effect=costruisci)
+
+    @pytest.mark.asyncio
+    async def test_a_site_that_answers_429_is_blocked_not_absent(self):
+        chieste = []
+
+        def handler(request):
+            chieste.append(str(request.url))
+            return httpx.Response(429, headers={"Retry-After": "60"})
+
+        with self._client_reale(handler):
+            esito = await sonda_dominio("lento.example.com")
+        assert esito.verdetto == VERDETTO_BLOCCATO
+        assert len(chieste) <= 2  # the 404 probe, then nothing more: the site asked to wait
+
+    @pytest.mark.asyncio
+    async def test_one_sites_pause_does_not_hold_another_vendor(self):
+        def handler(request):
+            if request.url.host == "lento.example.com":
+                return httpx.Response(429, headers={"Retry-After": "60"})
+            if request.url.path.endswith("/legal/dpa"):
+                return httpx.Response(200, text=DPA_HTML)
+            return httpx.Response(404, text=ERROR_PAGE)
+
+        with self._client_reale(handler):
+            assert (await sonda_dominio("lento.example.com")).verdetto == VERDETTO_BLOCCATO
+            esito = await sonda_dominio("altro.example.com")
+        assert esito.verdetto == VERDETTO_DEDICATO

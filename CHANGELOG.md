@@ -15,6 +15,23 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **Network rules per source, from VisuaLex** (`core/_http`). Every request
+  the readers send, redirects included, is checked before it leaves: scheme,
+  no credentials, and a host the source may reach; until now the host list was
+  only checked statically, in the tests. Per source and per process: at most 3
+  requests in flight, 0.5 s between two, shared by every thread and event loop,
+  and a `Retry-After` stated by a 429 or 503 pauses that source for every
+  caller, for at most 30 s (a longer statement refuses that call at once with
+  `FontePausata` and never holds the source longer). The limits hold within one
+  process: N processes on one machine make N times the cap. `retry_request`
+  now retries a 429 too, waiting what the source asked, with jitter. Optional circuit breaker,
+  `LEGAL_CIRCUIT_BREAKER=on` (off by default): 3 consecutive failures suspend
+  the source for 5 minutes; a 404 never counts. A library caller with its own
+  `client_factory` keeps the host guard and can put the limits under its own
+  cache with `con_regole`. Measured on VisuaLex's 19 timing requests: the same
+  requests as before, row by row (`scripts/measure_requests.py`).
+- `docs/migration/visualex-inventory.md`: the function-by-function inventory of
+  the VisuaLex readers that move into mcp-legal-it, with the choice for each.
 - **`mcp_legal_it.api`: mcp-legal-it as a library, and its only stable surface.**
   Pure `async` functions with typed returns (frozen dataclasses), no Markdown,
   errors as data (`esito` from a closed vocabulary, plus `errore`). Norms:
@@ -537,6 +554,12 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- Italgiure's bundled intermediate certificate is checked against its SHA-256
+  pin every time the TLS context is built, as VisuaLex does: a file swapped
+  inside an installed package is refused instead of trusted (the pin was
+  checked only by a test). `lib/_egress.is_allowed` refuses a backslash, a
+  control character, credentials and any scheme but http(s), the URLs that a
+  browser and Python read as different hosts.
 - **Appellee's deadline: 20 days before the hearing, not 70 (decision LI-040).**
   `termini_deposito_atti_appello` computed the comparsa of the appellee (and so
   the cross-appeal deadline, a decadenza under art. 343 c.p.c.) 70 days before

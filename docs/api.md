@@ -99,6 +99,7 @@ JSON-ready data:
 | `configura` | `configura(*, client_factory=…, cache_dir=…, cache=…, brocardi=…) -> Configurazione` |
 | `Configurazione` | frozen dataclass of the four fields; `None` means "as the environment says" |
 | `ClientFactory` | `Callable[..., httpx.AsyncClient]`, called as `factory(fonte, **kwargs)` |
+| `con_regole` | `con_regole(fonte, transport) -> httpx.AsyncBaseTransport`: *transport* with the source's network limits around it, for a factory that builds its own (see **Network rules**) |
 
 - **`configurazione(...)`** applies to the current context only. Concurrent
   tasks can hold different configurations.
@@ -147,24 +148,45 @@ the in-memory LRU already gave), and each of them lists the download's sources
 in its own `fonti`. If the first caller is cancelled, the waiters get no AKN
 act and fall back to the HTML reader, as on any AKN failure.
 
-**Network rules (planned).** Every client is made in one place,
-`mcp_legal_it/core/_http.py`. The VisuaLex network rules will be added there
-in the migration phase, with two different keys:
+**Network rules.** Every client is made in one place,
+`mcp_legal_it/core/_http.py`, for a named source. Two kinds of rule hang on
+that name (VisuaLex's rules, ported):
 
-- **per source** (the `fonte` passed to the factory): maximum concurrency,
-  minimum interval between requests, retry budget, and the "not before" time
-  read from `Retry-After`, capped at 30 s, with per-caller overrides;
-- **per hostname**: the allowlist, because a hostname check is what stops a
-  request built from caller input from reaching an internal address.
-  `core/_http.HOST_PER_FONTE` maps each source to the hosts it may reach; a test
-  keeps it inside `lib/_egress.ALLOWED_HOSTS` and covers every call site.
+- **the host guard, per hostname** (security; a factory cannot drop it): every
+  request, each redirect hop included, must use http(s), carry no credentials
+  and name a host the source may reach (`HOST_PER_FONTE`, kept inside
+  `lib/_egress.ALLOWED_HOSTS` by a test). A request outside it raises
+  `HostNonConsentito` (an `httpx.TransportError`) and never reaches the
+  network. It travels in `event_hooks`, so it is re-applied like the other
+  guards;
+- **the limits, per source** (politeness), shared by every client, thread and
+  event loop of the process: at most 3 requests in flight and 0.5 s between two;
+  a `Retry-After` stated by a 429 or 503 pauses the source for every caller, for
+  at most 30 s. A longer statement refuses the call that received it at once
+  (`FontePausata`, with the wait the source asked for) and never holds the
+  source longer than 30 s, so a site that comes back is read again; with
+  `LEGAL_CIRCUIT_BREAKER=on` (off by default) 3 consecutive failures (network
+  error, 5xx, 429; never a 404) suspend the source for 5 minutes
+  (`FonteSospesa`). Retries are `retry_request`'s, at most two.
+
+**The limits hold within one process.** N processes against the same source
+(a server, a worker and a command-line tool on one machine) make N times the
+cap. A limiter shared between processes, for example through the cache
+backend, is a possible later step, not part of this release.
+
+The limits sit in a transport around the network one, so they count real
+requests. A factory that brings its own transport drops them, unless it builds
+its network transport with **`api.con_regole(fonte, transport)`**: put a cache
+above it and its hits are served without waiting, while every request that
+reaches the network keeps the source's limits.
 
 ```python
 import httpx
 from mcp_legal_it import api
 
 def con_cache(fonte, **kwargs):
-    return httpx.AsyncClient(transport=MyCachingTransport(fonte), **kwargs)
+    rete = api.con_regole(fonte, httpx.AsyncHTTPTransport(verify=kwargs.pop("verify", True)))
+    return httpx.AsyncClient(transport=MyCachingTransport(fonte, rete), **kwargs)
 
 with api.configurazione(client_factory=con_cache, cache=False):
     ...

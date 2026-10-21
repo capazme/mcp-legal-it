@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from mcp_legal_it.core._http import FontePausata
 from mcp_legal_it.lib._http import retry_request
 
 
@@ -104,4 +105,30 @@ class TestRetryRequest:
                 client, "GET", "http://test/backoff",
                 max_retries=2, backoff_base=1.0,
             )
-        assert sleep_calls == [1.0, 2.0]
+        # backoff_base * 2**n plus a jitter of at most JITTER seconds (VisuaLex's 0.3)
+        assert len(sleep_calls) == 2
+        assert 1.0 <= sleep_calls[0] <= 1.3 and 2.0 <= sleep_calls[1] <= 2.3
+
+    @pytest.mark.asyncio
+    async def test_429_is_retried_with_its_stated_wait(self):
+        resp_429 = httpx.Response(429, headers={"Retry-After": "5"}, request=httpx.Request("GET", "http://test"))
+        client = AsyncMock()
+        client.get = AsyncMock(side_effect=[resp_429, _make_response(200)])
+        sleep_calls = []
+
+        async def mock_sleep(duration):
+            sleep_calls.append(duration)
+
+        with patch("mcp_legal_it.lib._http.asyncio.sleep", side_effect=mock_sleep):
+            resp = await retry_request(client, "GET", "http://test/429", backoff_base=0.01)
+        assert resp.status_code == 200 and sleep_calls == [5.0]
+
+    @pytest.mark.asyncio
+    async def test_429_without_budget_or_with_a_long_wait_is_not_retried(self):
+        lungo = httpx.Response(429, headers={"Retry-After": "120"}, request=httpx.Request("GET", "http://test"))
+        client = AsyncMock()
+        client.get = AsyncMock(return_value=lungo)
+        with patch("mcp_legal_it.lib._http.asyncio.sleep", new_callable=AsyncMock) as sleep:
+            with pytest.raises(FontePausata):
+                await retry_request(client, "GET", "http://test/429")
+        assert client.get.call_count == 1 and sleep.call_count == 0
