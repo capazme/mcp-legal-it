@@ -1,0 +1,2535 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0" xmlns:eli="http://data.europa.eu/eli/ontology#" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:gu="http://www.gazzettaufficiale.it/eli/" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:na="http://www.normattiva.it/eli/" xmlns:nakn="http://normattiva.it/akn/vocabulary" xmlns:nrdfa="http://www.normattiva.it/rdfa/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfa="http://www.w3.org/1999/xhtml#">
+    <act name="monovigente">
+        <meta>
+            <identification source="">
+                <FRBRWork>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36"/>
+                    <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2023-03-31;36"/>
+                    <FRBRalias name="eli" value="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                    <FRBRdate date="2023-03-31" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826" aknrelname="eli/id/2023/03/31/23G00044/CONSOLIDATED/20260826">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalResource"/>
+                            <nrdfa:span content="Codice dei contratti pubblici in attuazione dell'articolo 1 della legge 21 giugno 2022, n. 78, recante delega al Governo in materia di contratti pubblici. (23G00044)  " lang="it" property="eli:title" xml:lang="it"/>
+                            <nrdfa:span content="http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}" property="eli:uri_schema"/>
+                            <nrdfa:span content="23G00044" property="eli:id_local"/>
+                            <nrdfa:span property="eli:type_document" resource="gu:tables/resource-type#DECRETO LEGISLATIVO"/>
+                            <nrdfa:span content="2023-03-31" datatype="xsd:date" property="eli:date_document"/>
+                            <nrdfa:span property="eli:version" resource="gu:tables/versions#ORIGINAL"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRcountry value="it"/>
+                </FRBRWork>
+                <FRBRExpression>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26"/>
+                    <FRBRdate date="2026-08-26" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalExpression"/>
+                            <nrdfa:span property="eli:realizes" resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                            <nrdfa:span property="eli:is_embodied_by" resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn"/>
+                            <nrdfa:span property="eli:language" resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                            <nrdfa:span property="eli:publisher_agent" resource="http://www.ipzs.it"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRlanguage language="ita"/>
+                </FRBRExpression>
+                <FRBRManifestation>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26/!main.xml"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2023-03-31/36/ita@2026-08-26.xml"/>
+                    <FRBRdate date="2023-03-31" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn">
+                            <nrdfa:span property="rdf:type" resource="eli:Format"/>
+                            <nrdfa:span property="eli:format" resource="http://www.iana.org/assignments/media-types/xml"/>
+                        </nrdfa:eli>
+                    </preservation>
+                </FRBRManifestation>
+            </identification>
+            <publication date="2023-03-31" name="" number="77" showAs=""/>
+            <lifecycle source="">
+                <eventRef date="2023-03-31" eId="eventRef_0" source="ro1"/>
+                <eventRef date="2023-05-10" eId="eventRef_1" source="rp1"/>
+                <eventRef date="2023-05-29" eId="eventRef_2" source="rp2"/>
+                <eventRef date="2023-07-05" eId="eventRef_3" source="rp3"/>
+                <eventRef date="2023-09-19" eId="eventRef_4" source="rp4"/>
+                <eventRef date="2023-09-29" eId="eventRef_5" source="rp5"/>
+                <eventRef date="2023-11-23" eId="eventRef_6" source="rp6"/>
+                <eventRef date="2023-11-28" eId="eventRef_7" source="rp7"/>
+                <eventRef date="2024-03-02" eId="eventRef_8" source="rp8"/>
+                <eventRef date="2024-12-27" eId="eventRef_9" source="rp9"/>
+                <eventRef date="2024-12-31" eId="eventRef_10" source="rp10"/>
+                <eventRef date="2025-03-14" eId="eventRef_11" source="rp11"/>
+                <eventRef date="2025-04-01" eId="eventRef_12" source="rp12"/>
+                <eventRef date="2025-04-04" eId="eventRef_13" source="rp13"/>
+                <eventRef date="2025-05-13" eId="eventRef_14" source="rp14"/>
+                <eventRef date="2025-05-21" eId="eventRef_15" source="rp15"/>
+                <eventRef date="2025-07-19" eId="eventRef_16" source="rp16"/>
+                <eventRef date="2025-09-09" eId="eventRef_17" source="rp17"/>
+                <eventRef date="2025-11-05" eId="eventRef_18" source="rp18"/>
+                <eventRef date="2025-12-30" eId="eventRef_19" source="rp19"/>
+                <eventRef date="2026-03-23" eId="eventRef_20" source="rp20"/>
+                <eventRef date="2026-08-11" eId="eventRef_21" source="rp21"/>
+            </lifecycle>
+            <references source="">
+                <original eId="ro1" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2023-03-31/36/!main" showAs=""/>
+                <passiveRef eId="rp1" href="/akn/it/act/DECRETO-LEGGE/stato/2023-05-10/51/!main" showAs=""/>
+                <passiveRef eId="rp2" href="/akn/it/act/DECRETO-LEGGE/stato/2023-05-29/57/!main" showAs=""/>
+                <passiveRef eId="rp3" href="/akn/it/act/LEGGE/stato/2023-07-03/87/!main" showAs=""/>
+                <passiveRef eId="rp4" href="/akn/it/act/DECRETO-LEGGE/stato/2023-09-19/124/!main" showAs=""/>
+                <passiveRef eId="rp5" href="/akn/it/act/DECRETO-LEGGE/stato/2023-09-29/132/!main" showAs=""/>
+                <passiveRef eId="rp6" href="/akn/it/act/CIRCOLARE/MINISTERO_DELLE_INFRASTRUTTURE_E_DEI_TRASPORTI/2023-11-20/298/!main" showAs=""/>
+                <passiveRef eId="rp7" href="/akn/it/act/LEGGE/stato/2023-11-27/170/!main" showAs=""/>
+                <passiveRef eId="rp8" href="/akn/it/act/DECRETO-LEGGE/stato/2024-03-02/19/!main" showAs=""/>
+                <passiveRef eId="rp9" href="/akn/it/act/DECRETO-LEGGE/stato/2024-12-27/201/!main" showAs=""/>
+                <passiveRef eId="rp10" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2024-12-31/209/!main" showAs=""/>
+                <passiveRef eId="rp11" href="/akn/it/act/DECRETO-LEGGE/stato/2025-03-14/25/!main" showAs=""/>
+                <passiveRef eId="rp12" href="/akn/it/act/LEGGE/stato/2025-03-18/40/!main" showAs=""/>
+                <passiveRef eId="rp13" href="/akn/it/act/LEGGE/stato/2025-04-04/42/!main" showAs=""/>
+                <passiveRef eId="rp14" href="/akn/it/act/LEGGE/stato/2025-05-09/69/!main" showAs=""/>
+                <passiveRef eId="rp15" href="/akn/it/act/DECRETO-LEGGE/stato/2025-05-21/73/!main" showAs=""/>
+                <passiveRef eId="rp16" href="/akn/it/act/LEGGE/stato/2025-07-18/105/!main" showAs=""/>
+                <passiveRef eId="rp17" href="/akn/it/act/DECRETO-LEGGE/stato/2025-09-09/127/!main" showAs=""/>
+                <passiveRef eId="rp18" href="/akn/it/act/LEGGE/stato/2025-10-30/164/!main" showAs=""/>
+                <passiveRef eId="rp19" href="/akn/it/act/LEGGE/stato/2025-12-30/199/!main" showAs=""/>
+                <passiveRef eId="rp20" href="/akn/it/act/LEGGE/stato/2026-03-11/34/!main" showAs=""/>
+                <passiveRef eId="rp21" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2026-08-07/149/!main" showAs=""/>
+            </references>
+            <proprietary source="">
+                <rdf:RDF>
+                    <rdf:Description rdf:about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826">
+                        <rdf:type rdf:resource="eli:LegalResource"/>
+                        <eli:title xml:lang="it">Codice dei contratti pubblici in attuazione dell'articolo 1 della legge 21 giugno 2022, n. 78, recante delega al Governo in materia di contratti pubblici. (23G00044)  </eli:title>
+                        <eli:uri_schema>http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}</eli:uri_schema>
+                        <eli:id_local>23G00044</eli:id_local>
+                        <eli:type_document rdf:resource="gu:tables/resource-type#DECRETO LEGISLATIVO"/>
+                        <eli:date_document rdf:datatype="xsd:date">2023-03-31</eli:date_document>
+                        <eli:version rdf:resource="gu:tables/versions#ORIGINAL"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita">
+                        <rdf:type rdf:resource="eli:LegalExpression"/>
+                        <eli:realizes rdf:resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826"/>
+                        <eli:is_embodied_by rdf:resource="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn"/>
+                        <eli:language rdf:resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                        <eli:publisher_agent rdf:resource="http://www.ipzs.it"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/2023/03/31/23G00044/CONSOLIDATED/20260826/ita/akn">
+                        <rdf:type rdf:resource="eli:format"/>
+                        <eli:format rdf:resource="http://www.iana.org/assignments/media-types/xml"/>
+                    </rdf:Description>
+                </rdf:RDF>
+            </proprietary>
+        </meta>
+        <preface>
+            <p>
+                <docType>DECRETO LEGISLATIVO</docType>
+                <docDate date="2023-03-31">31 marzo 2023</docDate>
+                <docNumber>36</docNumber>
+                <docTitle>Codice dei contratti pubblici in attuazione dell'articolo 1 della legge 21 giugno 2022, n. 78, recante delega al Governo in materia di contratti pubblici. (23G00044) 
+</docTitle>
+            </p>
+            <p>
+                <authorialNote eId="atn1" placement="bottom">
+                    <p>Entrata in vigore del provvedimento: 01/04/2023</p>
+                </authorialNote>
+            </p>
+        </preface>
+        <preamble>
+            <formula name="formulaInizialePreambolo">
+                <p>IL PRESIDENTE DELLA REPUBBLICA</p>
+            </formula>
+            <citations eId="cits_1">
+                <citation eId="cits_1__cit_1">
+                    <p>Visti gli <ref eId="ref_1" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_76">articoli 76</ref> e <ref eId="ref_2" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_87">87 della Costituzione</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_2">
+                <citation eId="cits_2__cit_1">
+                    <p>Visto l'<ref eId="ref_3" href="/akn/it/act/legge/stato/1988-08-23/400/!main#art_14">articolo 14 della legge 23 agosto 1988, n. 400</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_3">
+                <citation eId="cits_3__cit_1">
+                    <p>Vista la <ref eId="ref_4" href="/akn/it/act/direttivaUe/eu/2014/23/!main">direttiva 2014/23/UE del Parlamento europeo e del Consiglio, del 26 febbraio 2014</ref>, sull'aggiudicazione dei contratti di concessione;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_4">
+                <citation eId="cits_4__cit_1">
+                    <p>Vista la <ref eId="ref_5" href="/akn/it/act/direttivaUe/eu/2014/24/!main">direttiva 2014/24/UE del Parlamento europeo e del Consiglio, del 26 febbraio 2014</ref>, sugli appalti pubblici e che abroga la <ref eId="ref_6" href="/akn/it/act/direttivaUe/eu/2004/18/!main">direttiva 2004/18/CE</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_5">
+                <citation eId="cits_5__cit_1">
+                    <p>Vista la <ref eId="ref_7" href="/akn/it/act/direttivaUe/eu/2014/25/!main">direttiva 2014/25/UE del Parlamento europeo e del Consiglio, del 26 febbraio 2014</ref>, sulle procedure d'appalto degli enti erogatori nei settori dell'acqua, dell'energia, dei trasporti e dei servizi postali e che abroga la <ref eId="ref_8" href="/akn/it/act/direttivaUe/eu/2004/17/!main">direttiva 2004/17/CE</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_6">
+                <citation eId="cits_6__cit_1">
+                    <p>Vista la <ref eId="ref_9" href="/akn/it/act/legge/stato/2012-12-24/234/!main">legge 24 dicembre 2012, n. 234</ref>, recante «Norme generali sulla partecipazione dell'Italia alla formazione e all'attuazione della normativa e delle politiche dell'Unione europea»;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_7">
+                <citation eId="cits_7__cit_1">
+                    <p>Visto il <ref eId="ref_10" href="/akn/it/act/decretoLegislativo/stato/2016-04-18/50/!main">decreto legislativo 18 aprile 2016, n. 50</ref>, recante «<ref eId="ref_11" href="/akn/it/act/decretoLegislativo/stato/2006-04-12/163/!main">Codice dei contratti pubblici</ref>»;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_8">
+                <citation eId="cits_8__cit_1">
+                    <p>Vista la <ref eId="ref_12" href="/akn/it/act/legge/stato/2022-06-21/78/!main">legge 21 giugno 2022, n. 78</ref>, recante «Delega al Governo in materia di contratti pubblici»;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_9">
+                <citation eId="cits_9__cit_1">
+                    <p>Visto, in particolare, l'articolo 1, comma 4, della citata <ref eId="ref_13" href="/akn/it/act/legge/stato/2022-06-21/78/!main">legge 21 giugno 2022, n. 78</ref>, il quale prevede che il Governo puo' avvalersi della facolta' di cui all'articolo 14, numero 2°, del testo unico delle leggi sul Consiglio di Stato, di cui al <ref eId="ref_14" href="/akn/it/act/regio.decreto/stato/1924-06-26/1054/!main">regio decreto 26 giugno 1924, n. 1054</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_10">
+                <citation eId="cits_10__cit_1">
+                    <p>Vista la nota in data 28 giugno 2022 con la quale il Presidente del Consiglio dei ministri ha affidato la formulazione del progetto di decreto legislativo recante la disciplina dei contratti pubblici al Consiglio di Stato, ai sensi dell'<ref eId="ref_15" href="/akn/it/act/legge/stato/2022-06-21/78/!main#art_1-com4">articolo 1, comma 4, della legge 21 giugno 2022, n. 78</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_11">
+                <citation eId="cits_11__cit_1">
+                    <p>Visto il decreto del Presidente del Consiglio di Stato in data 4 luglio 2022, con il quale la formulazione di detto progetto e' stata deferita ad una commissione speciale e ne e' stata stabilita la composizione;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_12">
+                <citation eId="cits_12__cit_1">
+                    <p>Visto lo schema di "<ref eId="ref_16" href="/akn/it/act/decretoLegislativo/stato/2006-04-12/163/!main">Codice dei contratti pubblici</ref> in attuazione dell'<ref eId="ref_17" href="/akn/it/act/legge/stato/2022-06-21/78/!main#art_1">articolo 1 della legge 21 giugno 2022, n. 78</ref>, recante «Delega al Governo in materia di contratti pubblici»", redatto da detta commissione speciale e trasmesso al Governo dal Consiglio di Stato in data 27 ottobre 2022 -7 dicembre 2022;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_13">
+                <citation eId="cits_13__cit_1">
+                    <p>Vista la preliminare deliberazione del Consiglio dei ministri, adottata nella riunione del 16 dicembre 2022;</p>
+                </citation>
+            </citations>
+            <p>Acquisito il parere della Conferenza unificata di cui all'<ref eId="ref_18" href="/akn/it/act/decretoLegislativo/stato/2023-01-26/281/!main#art_8">articolo 8 del decreto legislativo 28 agosto 1997, n. 281, reso in data 26 gennaio 2023</ref>;</p>
+            <p>Acquisiti i pareri delle competenti commissioni della Camera dei deputati e del Senato della Repubblica;</p>
+            <citations eId="cits_14">
+                <citation eId="cits_14__cit_1">
+                    <p>Vista la deliberazione del Consiglio dei ministri, adottata nella riunione del 28 marzo 2023;</p>
+                </citation>
+            </citations>
+            <formula name="formulaFinalePreambolo">
+                <p>Sulla proposta del Presidente del Consiglio dei ministri e del Ministro delle infrastrutture e dei trasporti, di concerto con i Ministri per gli affari europei, il Sud, le politiche di coesione e il PNRR, per le riforme istituzionali e la semplificazione normativa, per le disabilita', degli affari esteri e della cooperazione internazionale, dell'interno, della giustizia, della difesa, dell'economia e delle finanze, delle imprese e del made in Italy, dell'ambiente e della sicurezza energetica, del lavoro e delle politiche sociali, e della cultura; EMANA il seguente decreto legislativo:</p>
+            </formula>
+        </preamble>
+        <body>
+            <chapter eId="chp_I">
+                <num>-</num>
+                <heading>LIBRO I DEI PRINCIPI, DELLA DIGITALIZZAZIONE, DELLA PROGRAMMAZIONE, DELLA PROGETTAZIONE PARTE I DEI PRINCIPI Titolo I I principi generali</heading>
+                <article eId="art_1">
+                    <num>Articolo 1. </num>
+                    <heading> Principio del risultato</heading>
+                    <paragraph eId="art_1__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti perseguono il risultato dell'affidamento del contratto e della sua esecuzione con la massima tempestivita' e il migliore rapporto possibile tra qualita' e prezzo, nel rispetto dei principi di legalita', trasparenza e concorrenza. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_1__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>La concorrenza tra gli operatori economici e' funzionale a conseguire il miglior risultato possibile nell'affidare ed eseguire i contratti. La trasparenza e' funzionale alla massima semplicita' e celerita' nella corretta applicazione delle regole del presente decreto, di seguito denominato «codice» e ne assicura la piena verificabilita'. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_1__para_3">
+                        <num>3.</num>
+                        <content>
+                            <p>Il principio del risultato costituisce attuazione, nel settore dei contratti pubblici, del principio del buon andamento e dei correlati principi di efficienza, efficacia ed economicita'. Esso e' perseguito nell'interesse della comunita' e per il raggiungimento degli obiettivi dell'Unione europea. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_1__para_4">
+                        <num>4.</num>
+                        <list>
+                            <intro eId="art_1__para_4__intro_1">
+                                <p>Il principio del risultato costituisce criterio prioritario per l'esercizio del potere discrezionale e per l'individuazione della regola del caso concreto, nonche' per: 
+ </p>
+                            </intro>
+                            <point eId="art_1__para_4.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>valutare la responsabilita' del personale che svolge funzioni amministrative o tecniche nelle fasi di programmazione, progettazione, affidamento ed esecuzione dei contratti; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_1__para_4.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>attribuire gli incentivi secondo le modalita' previste dalla contrattazione collettiva. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                </article>
+                </chapter>
+            <chapter eId="chp_II">
+                <num>-</num>
+                <heading>Titolo II L'ambito di applicazione, il responsabile unico e le fasi dell'affidamento.</heading>
+                </chapter>
+            <chapter eId="chp_III">
+                <num>-</num>
+                <heading>PARTE II DELLA DIGITALIZZAZIONE DEL CICLO DI VITA DEI CONTRATTI</heading>
+                <article eId="art_30">
+                    <num>Articolo 30. </num>
+                    <heading>Uso di procedure automatizzate nel ciclo di vita dei contratti pubblici</heading>
+                    <paragraph eId="art_30__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>Per migliorare l'efficienza le stazioni appaltanti e gli enti concedenti provvedono, ove possibile, ad automatizzare le proprie attivita' ricorrendo a soluzioni tecnologiche, ivi incluse l'intelligenza artificiale e le tecnologie di registri distribuiti, nel rispetto delle specifiche disposizioni in materia. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_30__para_2">
+                        <num>2.</num>
+                        <list>
+                            <intro eId="art_30__para_2__intro_1">
+                                <p>Nell'acquisto o sviluppo delle soluzioni di cui al comma 1 le stazioni appaltanti e gli enti concedenti: 
+ </p>
+                            </intro>
+                            <point eId="art_30__para_2.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>assicurano la disponibilita' del codice sorgente, della relativa documentazione, nonche' di ogni altro elemento utile a comprenderne le logiche di funzionamento; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_30__para_2.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>introducono negli atti di indizione delle gare clausole volte ad assicurare le prestazioni di assistenza e manutenzione necessarie alla correzione degli errori e degli effetti indesiderati derivanti dall'automazione. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                    <paragraph eId="art_30__para_3">
+                        <num>3.</num>
+                        <list>
+                            <intro eId="art_30__para_3__intro_1">
+                                <p>Le decisioni assunte mediante automazione rispettano i principi di: 
+ </p>
+                            </intro>
+                            <point eId="art_30__para_3.__point_a">
+                                <num>a)</num>
+                                <content>
+                                    <p>conoscibilita' e comprensibilita', per cui ogni operatore economico ha diritto a conoscere l'esistenza di processi decisionali automatizzati che lo riguardino e, in tal caso, a ricevere informazioni significative sulla logica utilizzata; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_30__para_3.__point_b">
+                                <num>b)</num>
+                                <content>
+                                    <p>non esclusivita' della decisione algoritmica, per cui comunque esiste nel processo decisionale un contributo umano capace di controllare, validare ovvero smentire la decisione automatizzata; 
+</p>
+                                </content>
+                            </point>
+                            <point eId="art_30__para_3.__point_c">
+                                <num>c)</num>
+                                <content>
+                                    <p>non discriminazione algoritmica, per cui il titolare mette in atto misure tecniche e organizzative adeguate al fine di impedire effetti discriminatori nei confronti degli operatori economici. 
+</p>
+                                </content>
+                            </point>
+                        </list>
+                    </paragraph>
+                    <paragraph eId="art_30__para_4">
+                        <num>4.</num>
+                        <content>
+                            <p>Le stazioni appaltanti e gli enti concedenti adottano ogni misura tecnica e organizzativa atta a garantire che siano rettificati i fattori che comportano inesattezze dei dati e sia minimizzato il rischio di errori, nonche' a impedire effetti discriminatori nei confronti di persone fisiche sulla base della nazionalita', dell'origine etnica, delle opinioni politiche, della religione, delle convinzioni personali, dell'appartenenza sindacale, dei caratteri somatici, dello status genetico, dello stato di salute, del genere o dell'orientamento sessuale. 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_30__para_5">
+                        <num>5.</num>
+                        <content>
+                            <p>Le pubbliche amministrazioni pubblicano sul sito istituzionale, nella sezione «Amministrazione trasparente», l'elenco delle soluzioni tecnologiche di cui al comma 1 utilizzate ai fini dello svolgimento della propria attivita'. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                </chapter>
+            <chapter eId="chp_IV">
+                <num>-</num>
+                <heading>PARTE III DELLA PROGRAMMAZIONE</heading>
+                </chapter>
+            <chapter eId="chp_V">
+                <num>-</num>
+                <heading>PARTE IV DELLA PROGETTAZIONE</heading>
+                </chapter>
+            <chapter eId="chp_VI">
+                <num>-</num>
+                <heading>LIBRO II DELL'APPALTO PARTE I DEI CONTRATTI DI IMPORTO INFERIORE ALLE SOGLIE EUROPEE</heading>
+                </chapter>
+            <chapter eId="chp_VII">
+                <num>-</num>
+                <heading>PARTE II DEGLI ISTITUTI E DELLE CLAUSOLE COMUNI</heading>
+                </chapter>
+            <chapter eId="chp_VIII">
+                <num>-</num>
+                <heading>PARTE III DEI SOGGETTI Titolo I Le stazioni appaltanti</heading>
+                </chapter>
+            <chapter eId="chp_IX">
+                <num>-</num>
+                <heading>Titolo II Gli operatori economici</heading>
+                </chapter>
+            <chapter eId="chp_X">
+                <num>-</num>
+                <heading>PARTE IV DELLE PROCEDURE DI SCELTA DEL CONTRAENTE</heading>
+                </chapter>
+            <chapter eId="chp_XI">
+                <num>-</num>
+                <heading>PARTE V DELLO SVOLGIMENTO DELLE PROCEDURE Titolo I Gli atti preparatori</heading>
+                </chapter>
+            <chapter eId="chp_XII">
+                <num>-</num>
+                <heading>Titolo II I bandi, gli avvisi e gli inviti</heading>
+                </chapter>
+            <chapter eId="chp_XIII">
+                <num>-</num>
+                <heading>Titolo III La documentazione dell'offerente e i termini per la presentazione delle domande e delle offerte</heading>
+                </chapter>
+            <chapter eId="chp_XIV">
+                <num>-</num>
+                <heading>Titolo IV I requisiti di partecipazione e la selezione dei partecipanti Capo I La commissione giudicatrice</heading>
+                </chapter>
+            <chapter eId="chp_XV">
+                <num>-</num>
+                <heading>Capo II I requisiti di ordine generale</heading>
+                </chapter>
+            <chapter eId="chp_XVI">
+                <num>-</num>
+                <heading>Capo III Gli altri requisiti di partecipazione alla gara</heading>
+                </chapter>
+            <chapter eId="chp_XVII">
+                <num>-</num>
+                <heading>Titolo V La selezione delle offerte</heading>
+                </chapter>
+            <chapter eId="chp_XVIII">
+                <num>-</num>
+                <heading>PARTE VI DELL'ESECUZIONE</heading>
+                </chapter>
+            <chapter eId="chp_XIX">
+                <num>-</num>
+                <heading>PARTE VII DISPOSIZIONI PARTICOLARI PER ALCUNI CONTRATTI DEI SETTORI ORDINARI Titolo I I servizi sociali e i servizi assimilati</heading>
+                </chapter>
+            <chapter eId="chp_XX">
+                <num>-</num>
+                <heading>Titolo II Gli appalti di servizi sociali e di altri servizi nei settori ordinari</heading>
+                </chapter>
+            <chapter eId="chp_XXI">
+                <num>-</num>
+                <heading>Titolo III I Contratti nel settore dei beni culturali</heading>
+                </chapter>
+            <chapter eId="chp_XXII">
+                <num>-</num>
+                <heading>Titolo IV I servizi di ricerca e sviluppo</heading>
+                </chapter>
+            <chapter eId="chp_XXIII">
+                <num>-</num>
+                <heading>Titolo V I contratti nel settore della difesa e sicurezza. I contratti secretati</heading>
+                </chapter>
+            <chapter eId="chp_XXIV">
+                <num>-</num>
+                <heading>Titolo VI Le procedure in caso di somma urgenza e di protezione civile</heading>
+                </chapter>
+            <chapter eId="chp_XXV">
+                <num>-</num>
+                <heading>LIBRO III DELL'APPALTO NEI SETTORI SPECIALI PARTE I DISPOSIZIONI GENERALI</heading>
+                </chapter>
+            <chapter eId="chp_XXVI">
+                <num>-</num>
+                <heading>PARTE II DELLE PROCEDURE DI SCELTA DEL CONTRAENTE</heading>
+                </chapter>
+            <chapter eId="chp_XXVII">
+                <num>-</num>
+                <heading>PARTE III DEI BANDI, DEGLI AVVISI E DEGLI INVITI</heading>
+                </chapter>
+            <chapter eId="chp_XXVIII">
+                <num>-</num>
+                <heading>PARTE IV DELLA SELEZIONE DEI PARTECIPANTI E DELLE OFFERTE</heading>
+                </chapter>
+            <chapter eId="chp_XXIX">
+                <num>-</num>
+                <heading>LIBRO IV DEL PARTENARIATO PUBBLICOPRIVATO E DELLE CONCESSIONI PARTE I DISPOSIZIONI GENERALI</heading>
+                </chapter>
+            <chapter eId="chp_XXX">
+                <num>-</num>
+                <heading>PARTE II DEI CONTRATTI DI CONCESSIONE Titolo I L'ambito di applicazione e i principi generali</heading>
+                </chapter>
+            <chapter eId="chp_XXXI">
+                <num>-</num>
+                <heading>Titolo II L'aggiudicazione delle concessioni: principi generali e garanzie procedurali</heading>
+                </chapter>
+            <chapter eId="chp_XXXII">
+                <num>-</num>
+                <heading>Titolo III L'esecuzione delle concessioni</heading>
+                </chapter>
+            <chapter eId="chp_XXXIII">
+                <num>-</num>
+                <heading>Titolo IV La finanza di progetto</heading>
+                </chapter>
+            <chapter eId="chp_XXXIV">
+                <num>-</num>
+                <heading>PARTE III DELLA LOCAZIONE FINANZIARIA</heading>
+                </chapter>
+            <chapter eId="chp_XXXV">
+                <num>-</num>
+                <heading>PARTE IV DEL CONTRATTO DI DISPONIBILITÀ</heading>
+                </chapter>
+            <chapter eId="chp_XXXVI">
+                <num>-</num>
+                <heading>PARTE V ALTRE DISPOSIZIONI IN MATERIA DI PARTENARIATO PUBBLICOPRIVATO</heading>
+                </chapter>
+            <chapter eId="chp_XXXVII">
+                <num>-</num>
+                <heading>PARTE VI DEI SERVIZI GLOBALI</heading>
+                </chapter>
+            <chapter eId="chp_XXXVIII">
+                <num>-</num>
+                <heading>LIBRO V DEL CONTENZIOSO E DELL'AUTORITÀ NAZIONALE ANTICORRUZIONE. DISPOSIZIONI FINALI E TRANSITORIE PARTE I DEL CONTENZIOSO Titolo I I ricorsi giurisdizionali</heading>
+                </chapter>
+            <chapter eId="chp_XXXIX">
+                <num>-</num>
+                <heading>Titolo II I rimedi alternativi alla tutela giurisdizionale</heading>
+                </chapter>
+            <chapter eId="chp_XL">
+                <num>-</num>
+                <heading>PARTE II DELLA GOVERNANCE</heading>
+                </chapter>
+            <chapter eId="chp_XLI">
+                <num>-</num>
+                <heading>PARTE III DISPOSIZIONI TRANSITORIE, DI COORDINAMENTO E ABROGAZIONI</heading>
+                </chapter>
+        </body>
+        <conclusions>
+            <formula name="formulaFinaleConclusioni">
+                <p>Il presente decreto, munito del sigillo dello Stato, sara' inserito nella Raccolta ufficiale degli atti normativi della Repubblica italiana. E' fatto obbligo a chiunque spetti di osservarlo e di farlo osservare. </p>
+            </formula>
+            <p> Dato a Roma, addi' 31 marzo 2023 </p>
+            <p>MATTARELLA Meloni, Presidente del Consiglio dei ministri Salvini, Ministro delle infrastrutture e dei trasporti Fitto, Ministro per gli affari europei, il Sud, le politiche di coesione e il PNRR Alberti Casellati, Ministro per le riforme istituzionali e la semplificazione normativa Locatelli, Ministro per le disabilita' Tajani, Ministro degli affari esteri e della cooperazione internazionale Piantedosi, Ministro dell'interno Nordio, Ministro della giustizia Crosetto, Ministro della difesa Giorgetti, Ministro dell'economia e delle finanze Urso, Ministro delle imprese e del made in Italy Pichetto Fratin, Ministro dell'ambiente e della sicurezza energetica Calderone, Ministro del lavoro e delle politiche sociali Sangiuliano, Ministro della cultura Visto, il Guardasigilli: Nordio</p>
+        </conclusions>
+        <attachments>
+            <attachment>
+                <doc name="Allegati - Indice allegati">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegati - Allegato I.01 art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegati - Allegato I.01 art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegati - Allegato I.01 art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegati - Allegato I.01 art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegati - Allegato I.01 art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.1-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.1-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.1-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.2-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.4-art 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.4-art 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.4-art 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.4-Tabella A">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.5-Schede">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.6-Tabella 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 1">
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> ALLEGATO I.7 
+Contenuti minimi del quadro esigenziale, del documento di fattibilita' delle alternative progettuali, del documento di indirizzo della progettazione, del progetto di fattibilita' tecnica ed economica e del progetto esecutivo 
+ (Articoli da 41 a 44) 
+ 
+ Articolo 1. 
+ Quadro esigenziale. 
+ 
+1. Il quadro esigenziale tiene conto di quanto previsto negli strumenti di programmazione del committente. Esso, per ciascun intervento da realizzare, in relazione alla tipologia dell'intervento stesso, riporta: 
+a) gli obiettivi generali da perseguire attraverso la realizzazione dell'intervento, con gli associati indicatori chiave di prestazione; 
+b) i fabbisogni, le esigenze qualitative e quantitative del committente, della collettivita' o della specifica utenza alla quale l'intervento e' destinato, che dovranno essere soddisfatti attraverso la realizzazione dell'intervento stesso; 
+2. <ins eId="ins_363">((Il documento di fattibilita' delle alternative progettuali, di cui all'articolo 2, puo' essere supportato dall'adozione dei metodi e strumenti di gestione informativa digitale di cui all'articolo 43, eventualmente integrati con i sistemi informativi geografici (Geographical Information System - GIS). A questo fine, il documento di fattibilita' delle alternative progettuali puo' essere integrato dallo sviluppo di modelli informativi e GIS su scala urbana o territoriale comprensivi dei piani di cantiere e da modelli informativi che riflettano lo stato dei luoghi e delle opere immobiliari o infrastrutturali esistenti.))</ins> 
+3. La redazione del quadro esigenziale e' di esclusiva competenza del committente. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 4 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 6 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 13 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 13 ter">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 14">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 15">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 17">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 18">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 19">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 20">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 21">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 22">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 23">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 24">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 25">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 26">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 27">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 28">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 29">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 30">
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Articolo 30. 
+ Cronoprogramma. 
+ 
+1. Il progetto esecutivo e' corredato del cronoprogramma, costituito da un diagramma che rappresenta graficamente, in forma chiaramente leggibile, tutte le fasi attuative dell'intervento, ivi comprese le fasi di redazione del progetto esecutivo, di approvazione del progetto, di affidamento dei lavori, di esecuzione dei lavori, nonche' di collaudo o di emissione del certificato di regolare esecuzione dei lavori, ove previsti secondo la normativa in materia, e per ciascuna fase indica i relativi tempi di attuazione. Il cronoprogramma, inoltre, riporta, in particolare, la sequenza delle lavorazioni che afferiscono alla fase di esecuzione dei lavori, con la pianificazione delle lavorazioni gestibili autonomamente, e per ciascuna lavorazione rappresenta graficamente i relativi tempi di esecuzione e i relativi costi. 
+2. Nel calcolo del tempo contrattuale deve tenersi conto della prevedibile incidenza dei giorni di andamento stagionale sfavorevole. 
+3. Nei casi in cui i lavori siano affidati sulla base del progetto di fattibilita', secondo quanto previsto dal codice, il cronoprogramma e' presentato dal concorrente insieme con l'offerta. 
+4. Per i lavori complessi di cui all'articolo 2, comma 1, lettera d), dell'allegato I.1 al codice, e', inoltre, predisposto, sulla base del computo metrico estimativo di cui all'articolo31, un modello di controllo e gestione del processo di realizzazione dell'intervento attraverso l'utilizzo della metodologia di cui alla norma UNI ISO 21500 relativa alle strutture analitiche di progetto, secondo la seguente articolazione: 
+a) sistema delle esigenze e dei requisiti a base del progetto; 
+b) elementi che compongono il progetto; 
+c) elenco completo delle attivita' da svolgere ai fini della realizzazione dell'intervento; 
+d) definizione delle tempistiche di ciascuna delle attivita'. 
+d-bis) <ins eId="ins_428">((nei casi di adozione dei metodi e strumenti di gestione digitale delle costruzioni di cui all'articolo 43, descrizione dell'eventuale associazione tra la scomposizione gerarchica delle attivita', i dati e le informazioni contenute nei modelli informativi anche in termini di tempi e costi, in coerenza con gli obiettivi di progetto esecutivo.))</ins> 
+5. <ins eId="ins_429">((In caso di adozione dei metodi e degli strumenti di cui all'articolo 43 del codice, la stazione appaltante puo' richiedere l'utilizzo di sistemi di gestione informativa digitale relativa allo sviluppo temporale della attivita' di progettazione e di esecuzione dei lavori, in coerenza con quanto previsto dall'allegato II.14 al codice.))</ins> 
+5-bis. <ins eId="ins_430">((Nei casi di cui al comma 5, la relazione specialistica sulla modellazione informativa riporta l'equivalenza tra i contenuti informativi presenti nel cronoprogramma dell'intervento e quelli presenti nei modelli informativi, nonche' la descrizione del processo di generazione dell'elaborato predetto a partire dai modelli informativi.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 31">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 32">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 32 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 32 ter">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 33">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 34">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 35">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 36">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 37">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 38">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 39">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 40">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 41">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 42">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 43">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.7-art. 44">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.8 - art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.9 - art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 1">
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Allegato I.11 
+ 
+ Disposizioni relative all'organizzazione, alle competenze, 
+ alle regole di funzionamento, nonche' alle ulteriori attribuzioni  del Consiglio superiore dei lavori pubblici 
+ 
+ (Articolo 47, comma 4) 
+ 
+ 
+ Articolo 1. 
+ Ulteriori competenze e attribuzioni. 
+ 
+1. Il Consiglio superiore dei lavori pubblici, nell'ambito dei compiti attribuiti allo Stato e nel rispetto delle prerogative delle regioni e delle province autonome, delle province, delle citta' metropolitane e dei comuni, oltre a quanto previsto dall'articolo 47 del codice, esercita altresi' funzioni consultive ed esprime pareri: 
+a) su ogni questione a esso attribuita, quando previsto dalla legislazione vigente; 
+b) sui testi delle norme tecniche predisposte in attuazione del <ref eId="content__ref_647" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/2001-06-06/380/!main">testo unico delle disposizioni legislative e regolamentari in materia di edilizia</ref> di cui al <ref eId="content__ref_648" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/2001-06-06/380/!main">decreto del Presidente della Repubblica 6 giugno 2001, n. 380</ref>, nonche' delle <ref eId="content__ref_649" href="/akn/it/act/legge/stato/1974-02-02/64/!main">leggi 5 novembre 1971, n. 1086, e 2 febbraio 1974, n. 64</ref>, per i campi di applicazione originariamente previsti dai relativi testi normativi e non applicabili alla Parte I - Attivita' edilizia dello stesso testo unico di cui al <ref eId="content__ref_650" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/2001/380/!main">decreto del Presidente della Repubblica n. 380 del 2001</ref>; 
+c) sui testi delle norme tecniche predisposte in attuazione del nuovo <ref eId="content__ref_651" href="/akn/it/act/decretoLegislativo/stato/1992-04-30/285/!main">codice della strada</ref> di cui al <ref eId="content__ref_652" href="/akn/it/act/decretoLegislativo/stato/1992-04-30/285/!main">decreto legislativo 30 aprile 1992, n. 285</ref>; 
+d) sulle circolari e linee guida predisposte in attuazione e nei limiti delle leggi di cui alle lettere a), b) e c). 
+2. Il Consiglio superiore dei lavori pubblici, attraverso il Servizio tecnico centrale: 
+a) cura la predisposizione delle norme tecniche sulla sicurezza minima strutturale delle costruzioni da osservarsi su tutto il territorio nazionale; 
+b) cura la predisposizione di linee guida, istruzioni operative, documenti tecnici inerenti alle norme tecniche di cui alla lettera a); 
+c) esercita il coordinamento tecnico-scientifico dell'attivita' normativa, nazionale e in ambito europeo, nel settore dell'ingegneria civile e dei materiali e dei prodotti da costruzione per i quali e' di prioritaria importanza garantire il rispetto del requisito di base n. 1, "resistenza meccanica e stabilita'", di cui all'allegato I al regolamento (UE) n. 305/2011 del Parlamento europeo e del Consiglio, del 9 marzo 2011, che fissa condizioni armonizzate per la commercializzazione dei prodotti da costruzione, e al <ref eId="content__ref_653" href="/akn/it/act/decretoLegislativo/stato/2017-06-16/106/!main">decreto legislativo 16 giugno 2017, n. 106</ref>; 
+d) esercita, d'intesa con il Consiglio nazionale delle ricerche, la vigilanza sugli enti di cui alla <ref eId="content__ref_654" href="/akn/it/act/direttivaUe/eu/2015/1535/!main">direttiva (UE) 2015/1535 del Parlamento europeo e del Consiglio, del 9 settembre 2015</ref>, che svolgono le funzioni di organismo di normalizzazione limitatamente al campo dell'ingegneria civile e strutturale, ai sensi degli <ref eId="content__ref_655" href="/akn/it/act/legge/stato/1986-06-21/317/!main#art_4">articoli 4</ref> e <ref eId="content__ref_656" href="/akn/it/act/legge/stato/1986-06-21/317/!main#art_5">5 della legge 21 giugno 1986, n. 317</ref>. 
+3. Il Consiglio superiore dei lavori pubblici assicura l'assolvimento dei compiti di rappresentanza presso gli organismi tecnici dell'Unione europea preposti all'attuazione del regolamento (UE) n. 305/2011, e del <ref eId="content__ref_657" href="/akn/it/act/decretoLegislativo/stato/2017/106/!main">decreto legislativo n. 106 del 2017</ref>, riguardanti la qualificazione e la sicurezza dei materiali e dei prodotti per l'ingegneria civile. Individua, per i fini predetti, i rappresentanti tecnici nazionali. 
+4. Il Consiglio superiore dei lavori pubblici esprime parere sulle questioni comunque pertinenti alle materie di cui al comma 1, sottoposte al suo esame dagli organi costituzionali, dal Presidente del Consiglio dei ministri, dai singoli ministri, dai presidenti delle regioni e delle province autonome di Trento e di Bolzano, dagli enti locali, da altri enti pubblici e dalle autorita' indipendenti e puo' redigere norme tecniche particolari su richiesta degli stessi soggetti. Su richiesta del Ministro delle infrastrutture e dei trasporti, il Consiglio superiore dei lavori pubblici svolge, inoltre, specifiche missioni tecniche in merito a problematiche di particolare complessita'. 
+5. Il Consiglio superiore dei lavori pubblici esprime, altresi', parere sulle questioni comunque pertinenti alle materie di cui al comma 1, sottoposte al suo esame da associazioni riconosciute a livello nazionale, dal Consiglio Nazionale degli Ingegneri, dal Consiglio Nazionale degli Architetti, Pianificatori, Paesaggisti e Conservatori e dal Consiglio Nazionale dei Geologi. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.11-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.12-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.12-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.12-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.12-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.12-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.13-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.13-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.13-art. 2 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.13-Tabella A">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.14-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.14-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.14-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.14-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.14-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.14-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato I.14-Tabelle">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.1-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.1-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.1-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 14">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 15">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis art. 16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis Tabella A">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis Tabella B">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis Tabella C">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.2-Allegato II.2 bis Tabella D">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.3 - art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 13 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-art. 13 ter">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.4-Tabelle">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.6-Allegato II.6 bis art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.6-Allegato II.6 bis art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.6-Allegato II.6 bis art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.6-Allegato II.6 bis art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.10-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.10-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.10-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.10-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 14">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 15">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 17">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 18">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 19">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 20">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 21">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 22">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 23">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 24">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 25">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 26">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 27">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 28">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 29">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 30">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 31">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 32">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 33">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 34">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 35">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 36">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 37">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 38">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 39">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 40">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 41">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 42">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 43">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 44">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 45">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-art. 46">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.12-Tabelle">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 14">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 15">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 17">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 18">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 19">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 20">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 21">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 22">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 23">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 24">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 25">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 26">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 27">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 28">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 29">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 29 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 30">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 31">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 32">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 33">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 34">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 35">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 36">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 37">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 38">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.14-art. 39">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.15-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.15-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.15-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.15-Tabella A">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.17-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.17-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.17-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.17-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.17-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.17-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 14">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 15">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 17">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 18">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 19">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 20">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 21">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 22">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 23">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 24">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.18-art. 25">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.19">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato II.20-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato IV.1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.1-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.1-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.2-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.3-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.3-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.3-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.3-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato V.3-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+        </attachments>
+    </act>
+</akomaNtoso>

@@ -1,8 +1,11 @@
 """Unified scraper for Normattiva, EUR-Lex, and Brocardi using httpx."""
 
 import asyncio
+import dataclasses
+import difflib
 import os
 import re
+import unicodedata
 import warnings
 from urllib.parse import urljoin
 
@@ -15,8 +18,8 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 from .. import _brocardi_switch
 from .._http import note_source
 from . import normattiva_html, pagine_normattiva
-from .akn_parser import annex_id_of, normalize_article_key
-from .models import Norma, NormaVisitata, names_an_annex, split_annex
+from .akn_parser import annex_id_of, normalize_article_key, position_hint
+from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
 
 
@@ -33,11 +36,15 @@ def _akn_disabled() -> bool:
 def _akn_part_hint(norma) -> "str | None":
     """Which component part of a multi-part AKN act to select (None = dominant).
 
-    The preleggi need a non-dominant part: the codice civile AKN export bundles
-    them as a separate "Disposizioni sulla legge in generale" part that the parser
-    would otherwise discard in favour of the ~3249-article code body. So does the
-    codice penale militare di guerra, the smaller of the two codes of R.D. 303/1941.
+    A part asked for by its Normattiva position (``Norma.allegato``, VisuaLex's
+    ``allegato``) is that part. Otherwise the preleggi need a non-dominant part:
+    the codice civile AKN export bundles them as a separate "Disposizioni sulla
+    legge in generale" part that the parser would otherwise discard in favour of
+    the ~3249-article code body. So does the codice penale militare di guerra, the
+    smaller of the two codes of R.D. 303/1941.
     """
+    if getattr(norma, "allegato", ""):
+        return position_hint(norma.allegato)
     tipo = norma.tipo_atto_normalized.strip().lower()
     if tipo == "preleggi":
         return "preleggi"
@@ -160,7 +167,7 @@ async def with_full_date(norma: Norma) -> Norma:
         return norma
     date = meta.get("date", "")
     if date and date.startswith(f"{norma.data}-"):
-        return Norma(tipo_atto=norma.tipo_atto, data=date, numero_atto=norma.numero_atto)
+        return dataclasses.replace(norma, data=date)
     return norma
 
 
@@ -204,7 +211,7 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
             return {"text": "", "url": url, "source": source, "esito": ARTICLE_NOT_FOUND,
                     "error": text.strip("[]")}
     elif annex:
-        return await _fetch_normattiva_annex(nv, *annex)
+        return await _fetch_normattiva_annex(nv, *annex, canale=canale)
     elif names_an_annex(nv.numero_articolo):
         # An annex the syntax cannot read: going on would look up a body article
         # under a malformed URN, the silent mix-up of issue #47.
@@ -235,9 +242,15 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
                 akn_text = _akn_article(act, nv.numero_articolo, part)
                 if akn_text:
                     result = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data}
-                    # The act's main text is a code approved in an annex: say so.
-                    if not part and annex_id_of(act.main_part):
-                        result["allegato"] = act.main_part
+                    if not part:
+                        served_url = url_in_part(url, act.part_position())
+                        # The act's main text is a code approved in an annex, cited by the
+                        # decree's number: say so, and point at the code's own article.
+                        if served_url != url:
+                            result["url"] = served_url
+                            result["allegato"] = act.main_part
+                        elif annex_id_of(act.main_part):
+                            result["allegato"] = act.main_part
                     return result
 
         text, served = await _normattiva_page(url)
@@ -405,12 +418,14 @@ def _checked_html_article(result: dict, nv: NormaVisitata, served: "str | None",
                                   "strutturato dell'atto non è raggiungibile. Riprova più tardi")
 
 
-async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str) -> dict:
-    """An annex (or an article of an annex) of a Normattiva act, from the AKN export.
+async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str, *,
+                                  canale: str = "html") -> dict:
+    """An annex (or an article of an annex) of a Normattiva act, named as the act names it.
 
-    Only the AKN export separates the annexes from the body: the HTML fallback
-    knows body articles only, so without AKN this is an error, never the body
-    article that happens to carry the same number.
+    Only the AKN export says which part the act calls "Allegato I.7": without it this
+    is an error, never the body article that happens to carry the same number. An
+    article of the annex then gets the URN of its part (";36:8~art30": Normattiva
+    numbers the parts by position) and, on the HTML channel, that page's text.
     """
     full = await with_full_date(nv.norma)
     url = full.url()
@@ -434,6 +449,19 @@ async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str
     text = act.annex_article(annex_id, article) if article else act.annex_text(annex_id)
     if not text:
         return {**base, "esito": ARTICLE_NOT_FOUND, "error": f"{label} non trovato in {name}"}
+    position = act.annex_position(annex_id)
+    if article and position:
+        part_url = url_in_part(full.url(article=article), position)
+        if canale == "html":
+            try:
+                page_text, served = await _normattiva_page(part_url)
+            except httpx.HTTPError:
+                page_text, served = "", None
+            requested = _article_identity(normalize_article_key(article))
+            if (page_text and served is not None and _article_identity(served) == requested
+                    and _stesso_articolo(page_text, text)):
+                return {**base, "text": page_text, "url": part_url, "source": "normattiva", "allegato": name}
+        return {**base, "text": text, "url": part_url, "allegato": name}
     return {**base, "text": text, "allegato": name}
 
 
@@ -576,7 +604,12 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
                 # The page names another number, but the act's main text has the one asked
                 # for: it lives in a part the URN does not reach, a code approved in an
                 # annex of its decree (art. 120 of d.lgs. 104/2010 asked as the decree's).
-                # The code's article from the export, with the part it comes from.
+                # The code's own page (";104:2~art120") when the URN can name the part, as
+                # VisuaLex reads it; else the code's article from the export.
+                if not part:
+                    pagina = await _pagina_della_parte(nv, url, act, requested)
+                    if pagina is not None:
+                        return pagina
                 servito = _da_export(act, nv, url, part, result, etichetta=not part)
                 if servito:
                     return servito
@@ -616,7 +649,8 @@ def _da_export(act, nv: NormaVisitata, url: str, part: "str | None", base: dict,
     """The article from the Akoma Ntoso export, labelled as such, or None when the export lacks it.
 
     ``allegato`` names the part it comes from when the act's main text is a code approved
-    in an annex, or when *etichetta* says the URN's page does not reach that part.
+    in an annex, or when *etichetta* says the URN's page does not reach that part; the URL
+    is then the part's own (``;104:2~art120``).
     """
     akn_text = _akn_article(act, nv.numero_articolo, part)
     if not akn_text:
@@ -624,7 +658,51 @@ def _da_export(act, nv: NormaVisitata, url: str, part: "str | None", base: dict,
     servito = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": base.get("data_atto", "")}
     if not part and (etichetta or annex_id_of(act.main_part)):
         servito["allegato"] = act.main_part
+        if etichetta:
+            servito["url"] = url_in_part(url, act.part_position())
     return servito
+
+
+def _confronto(testo: str) -> str:
+    """A text reduced for comparing a page with the export: no accents, case, markup or heading."""
+    testo = re.sub(r"^#+[^\n]*\n", "", testo or "", count=1)  # the export's "### Art. N" line
+    testo = unicodedata.normalize("NFKD", testo)
+    testo = "".join(c for c in testo if not unicodedata.combining(c)).lower()
+    return " ".join(re.sub(r"[^0-9a-z]+", " ", testo).split())
+
+
+def _stesso_articolo(pagina: str, export: str | None) -> bool:
+    """Whether a page's text is the export's article: their first 200 characters, compared.
+
+    The page of ``;k~artN`` names its article's number only, which every part of an act
+    may share: if ``k`` were not the part asked for, the number alone would let another
+    annex's article through under this one's name. The export, which knows the part,
+    has the last word.
+    """
+    a, b = _confronto(pagina)[:200], _confronto(export or "")[:200]
+    return bool(a and b) and difflib.SequenceMatcher(None, a, b).ratio() >= 0.8
+
+
+async def _pagina_della_parte(nv: NormaVisitata, url: str, act, requested) -> "dict | None":
+    """The article from the page of the act's main part (``;104:2~art120``), or None.
+
+    One more page, only when the decree's own URN served another article and the act's
+    main text is a part Normattiva numbers: the text is then the page's, VisuaLex's
+    ``article_text``, not the export's transliteration.
+    """
+    part_url = url_in_part(url, act.part_position())
+    if part_url == url:
+        return None
+    try:
+        text, served = await _normattiva_page(part_url)
+    except httpx.HTTPError:
+        return None
+    if not text or served is None or _article_identity(served) != requested:
+        return None
+    if not _stesso_articolo(text, _akn_article(act, nv.numero_articolo, None)):
+        return None
+    return {"text": text, "url": part_url, "source": "normattiva", "data_atto": nv.norma.data,
+            "allegato": act.main_part}
 
 
 async def _akn_act(nv: NormaVisitata):

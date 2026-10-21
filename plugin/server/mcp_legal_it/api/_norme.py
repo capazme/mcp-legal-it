@@ -72,22 +72,82 @@ _BROCARDI_SPENTO = (
 _ALLEGATO_URN = re.compile(r";[^;:~]+:(\w+)$")
 
 
+#: PROVISIONAL (depends on a decision open on VisuaLex's side, see docs/api.md §8).
+#: Codes whose URN gained its ":1" on 21/10/2026 (their articles sit in an annex of the
+#: approving decree; the row served the decree's own articles). VisuaLex's table still has
+#: them without it, so its saved norms carry no allegato: norma_data mirrors that, and the
+#: part is in the URN only. The three acts of ARTICOLATO_IN_ALLEGATO (c.p.p. minorile,
+#: TULPS, TU successioni) are not codes of the table and carry none either. Nor do the two
+#: military codes added on 21/10/2026 (di pace :1, di guerra :2): VisuaLex has no row for
+#: them, so no saved norm of its carries an allegato.
+_PARTE_SOLO_NELL_URN = frozenset({
+    "codice del turismo",
+    "codici penali militari di pace e di guerra",
+    "codice penale militare di pace",
+    "codice penale militare di guerra",
+    "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    "approvazione del regolamento per l'esecuzione del codice della navigazione (navigazione marittima)",
+})
+
+
 def _allegato_predefinito(tipo_atto: str) -> str | None:
     """The annex a code's URN points at ("2" for the c.c., "1" for c.p. and c.p.c.), else None.
 
     VisuaLex keys a saved norm on urn|allegato|article, so the annex is given even
-    when the citation does not name it.
+    when the citation does not name it — as VisuaLex gives it today, nothing more
+    (``_PARTE_SOLO_NELL_URN``).
     """
-    urn = codice_urn(normalize_act_type(tipo_atto or "").lower())
+    norm = normalize_act_type(tipo_atto or "").lower()
+    if norm in _PARTE_SOLO_NELL_URN:
+        return None
+    urn = codice_urn(norm)
     m = _ALLEGATO_URN.search(urn or "")
     return m.group(1) if m else None
 
 
+def _normattiva(tipo_atto: str) -> bool:
+    return normalize_act_type(tipo_atto or "").lower() not in EURLEX
+
+
+def _posizionale(tipo_atto: str, allegato: str | None) -> bool:
+    """Whether *allegato* is Normattiva's number for a part (the URN's ``:k``), not an annex's name.
+
+    VisuaLex's ``allegato`` is that number (``generate_urn`` writes ``;104:2``), and so is
+    this API's: d.lgs. 104/2010 ``allegato="2"`` is the codice del processo amministrativo,
+    the act's "Allegato 1". A name the act gives ("I.7") stays a name, and so does any
+    allegato of an EU act: EUR-Lex URLs have no part, an EU annex is read by its name.
+    """
+    return bool(allegato) and allegato.isdigit() and _normattiva(tipo_atto)
+
+
+#: A part number as Normattiva writes it: a positive integer, no leading zero.
+_NUMERO_PARTE = re.compile(r"[1-9]\d*")
+
+
+def _allegato_non_valido(tipo_atto: str, allegato: str | None) -> str | None:
+    """The error for a positional allegato Normattiva cannot have ("0", "02"), else None."""
+    if _posizionale(tipo_atto, allegato) and not _NUMERO_PARTE.fullmatch(allegato):
+        return (f"allegato '{allegato}' non valido: il numero della parte dell'atto su Normattiva "
+                "è un intero da 1 in su, senza zeri iniziali")
+    return None
+
+
 def _con_allegato(tipo_atto: str, allegato: str | None, numero_articolo: str) -> str:
-    """The article string for a lookup: an annex of the act, unless it is the code's own default annex."""
-    if allegato and allegato != _allegato_predefinito(tipo_atto):
+    """The article string for a lookup: an annex the act names, unless it is the code's own default annex.
+
+    A positional ``allegato`` is not in the article string: it goes into the URL (``_parte``).
+    """
+    if allegato and not _posizionale(tipo_atto, allegato) and allegato != _allegato_predefinito(tipo_atto):
         return annex_reference(allegato, numero_articolo)
     return numero_articolo or ""
+
+
+def _parte(tipo_atto: str, allegato: str | None) -> str:
+    """The positional part to put in the URL (``Norma.allegato``), "" for the act's default."""
+    if _posizionale(tipo_atto, allegato) and allegato != _allegato_predefinito(tipo_atto):
+        return allegato
+    return ""
+
 
 
 def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str = "",
@@ -99,6 +159,20 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
     nv = norme._build_nv(info, article)
     url = url or nv.url()
     annex = split_annex(article)
+    # allegato mirrors what VisuaLex gives the norm: the position the caller asked for, a
+    # code's default part, or none. The part an answer was served from is in url and urn
+    # only (";104:2~art120" for art. 120 d.lgs. 104/2010): putting it here would change
+    # the key VisuaLex files the norm under.
+    if annex and _posizionale(info.get("tipo_atto", ""), annex[0]):
+        # "allegato 1 al d.lgs. 104/2010" names the act's own Allegato 1, which Normattiva
+        # numbers :2. Read back as an allegato it would be taken for position 1, so the
+        # reference keeps the annex in the article until a lookup gives the position.
+        allegato, numero = None, article
+    elif annex:
+        allegato, numero = annex
+    else:
+        allegato = info.get("allegato") or _allegato_predefinito(info.get("tipo_atto", ""))
+        numero = article or ""
     data = info.get("data", "") or ""
     eu = nv.norma._is_eurlex()
     if urn is None and not eu:
@@ -111,8 +185,8 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
         data=data,
         numero_atto=info.get("numero_atto", "") or "",
         url=url,
-        allegato=annex[0] if annex else _allegato_predefinito(info.get("tipo_atto", "")),
-        numero_articolo=annex[1] if annex else (article or ""),
+        allegato=allegato,
+        numero_articolo=numero,
         urn=urn,
         descrizione=str(nv.norma),
         # EU acts are cited by year by design; an Italian act's year alone is a placeholder.
@@ -193,8 +267,12 @@ def riferimento_da_parametri(
                                 errore="per un atto UE servono anno (data) e numero_atto")
     if (motivo := intervallo_articoli(numero_articolo)) is not None:
         return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
+    if (motivo := _allegato_non_valido(tipo_atto, allegato)) is not None:
+        return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
+    if parte := _parte(tipo_atto, allegato):
+        act_info["allegato"] = parte
     nv = norme._build_nv(act_info, article)
     if not nv.url():
         return EsitoRiferimento(
@@ -206,7 +284,10 @@ def riferimento_da_parametri(
 
 def _act_info(norma: NormaDati) -> tuple[dict, str]:
     article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
-    return {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}, article
+    info = {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}
+    if parte := _parte(norma.tipo_atto, norma.allegato):
+        info["allegato"] = parte
+    return info, article
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +324,9 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         raise ValueError(f"canale sconosciuto: {canale!r} (attesi 'akn' o 'html')")
     oggi = _clock.today().isoformat()
     if isinstance(riferimento, NormaDati):
+        if (motivo := _allegato_non_valido(riferimento.tipo_atto, riferimento.allegato)) is not None:
+            return TestoArticolo(esito="riferimento_non_valido", article_text="", norma_data=None, url="",
+                                 canale=canale, data_consultazione=oggi, errore=motivo)
         act_info, article = _act_info(riferimento)
     else:
         letto = _leggi(riferimento)

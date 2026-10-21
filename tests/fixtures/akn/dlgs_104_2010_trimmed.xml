@@ -1,0 +1,1510 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0" xmlns:eli="http://data.europa.eu/eli/ontology#" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:gu="http://www.gazzettaufficiale.it/eli/" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:na="http://www.normattiva.it/eli/" xmlns:nakn="http://normattiva.it/akn/vocabulary" xmlns:nrdfa="http://www.normattiva.it/rdfa/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfa="http://www.w3.org/1999/xhtml#">
+    <act name="monovigente">
+        <meta>
+            <identification source="">
+                <FRBRWork>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104"/>
+                    <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2010-07-02;104"/>
+                    <FRBRalias name="eli" value="eli/id/2010/07/07/010G0127/CONSOLIDATED/20260826"/>
+                    <FRBRdate date="2010-07-02" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826" aknrelname="eli/id/2010/07/07/010G0127/CONSOLIDATED/20260826">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalResource"/>
+                            <nrdfa:span content="Attuazione dell'articolo 44 della legge 18 giugno 2009, n. 69, recante delega al governo per il riordino del processo amministrativo. (10G0127)  " lang="it" property="eli:title" xml:lang="it"/>
+                            <nrdfa:span content="http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}" property="eli:uri_schema"/>
+                            <nrdfa:span content="010G0127" property="eli:id_local"/>
+                            <nrdfa:span property="eli:type_document" resource="gu:tables/resource-type#DECRETO LEGISLATIVO"/>
+                            <nrdfa:span content="2010-07-02" datatype="xsd:date" property="eli:date_document"/>
+                            <nrdfa:span property="eli:version" resource="gu:tables/versions#ORIGINAL"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRcountry value="it"/>
+                </FRBRWork>
+                <FRBRExpression>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16"/>
+                    <FRBRdate date="2010-09-16" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826/ita">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalExpression"/>
+                            <nrdfa:span property="eli:realizes" resource="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826"/>
+                            <nrdfa:span property="eli:is_embodied_by" resource="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826/ita/akn"/>
+                            <nrdfa:span property="eli:language" resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                            <nrdfa:span property="eli:publisher_agent" resource="http://www.ipzs.it"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRlanguage language="ita"/>
+                </FRBRExpression>
+                <FRBRManifestation>
+                    <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main.xml"/>
+                    <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16.xml"/>
+                    <FRBRdate date="2010-07-02" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826/ita/akn">
+                            <nrdfa:span property="rdf:type" resource="eli:Format"/>
+                            <nrdfa:span property="eli:format" resource="http://www.iana.org/assignments/media-types/xml"/>
+                        </nrdfa:eli>
+                    </preservation>
+                </FRBRManifestation>
+            </identification>
+            <publication date="2010-07-07" name="" number="156" showAs=""/>
+            <lifecycle source="">
+                <eventRef date="2010-07-07" eId="eventRef_0" source="ro1"/>
+                <eventRef date="2011-03-31" eId="eventRef_1" source="rp1"/>
+                <eventRef date="2011-04-29" eId="eventRef_2" source="rp2"/>
+                <eventRef date="2011-11-23" eId="eventRef_3" source="rp3"/>
+                <eventRef date="2012-03-02" eId="eventRef_4" source="rp4"/>
+                <eventRef date="2012-03-15" eId="eventRef_5" source="rp5"/>
+                <eventRef date="2012-07-04" eId="eventRef_6" source="rp6"/>
+                <eventRef date="2012-09-18" eId="eventRef_7" source="rp7"/>
+                <eventRef date="2013-01-04" eId="eventRef_8" source="rp8"/>
+                <eventRef date="2013-04-05" eId="eventRef_9" source="rp9"/>
+                <eventRef date="2013-06-21" eId="eventRef_10" source="rp10"/>
+                <eventRef date="2014-04-23" eId="eventRef_11" source="rp11"/>
+                <eventRef date="2014-06-18" eId="eventRef_12" source="rp12"/>
+                <eventRef date="2014-06-24" eId="eventRef_13" source="rp13"/>
+                <eventRef date="2014-12-31" eId="eventRef_14" source="rp14"/>
+                <eventRef date="2015-06-27" eId="eventRef_15" source="rp15"/>
+                <eventRef date="2015-12-30" eId="eventRef_16" source="rp16"/>
+                <eventRef date="2015-12-30" eId="eventRef_17" source="rp17"/>
+                <eventRef date="2016-04-19" eId="eventRef_18" source="rp18"/>
+                <eventRef date="2016-06-30" eId="eventRef_19" source="rp19"/>
+                <eventRef date="2016-07-08" eId="eventRef_20" source="rp20"/>
+                <eventRef date="2016-08-31" eId="eventRef_21" source="rp21"/>
+                <eventRef date="2017-02-17" eId="eventRef_22" source="rp22"/>
+                <eventRef date="2017-12-28" eId="eventRef_23" source="rp23"/>
+                <eventRef date="2018-01-22" eId="eventRef_24" source="rp24"/>
+                <eventRef date="2018-07-04" eId="eventRef_25" source="rp25"/>
+                <eventRef date="2018-10-06" eId="eventRef_26" source="rp26"/>
+                <eventRef date="2018-12-31" eId="eventRef_27" source="rp27"/>
+                <eventRef date="2019-04-18" eId="eventRef_28" source="rp28"/>
+                <eventRef date="2020-03-08" eId="eventRef_29" source="rp29"/>
+                <eventRef date="2020-04-29" eId="eventRef_30" source="rp30"/>
+                <eventRef date="2020-04-30" eId="eventRef_31" source="rp31"/>
+                <eventRef date="2020-06-29" eId="eventRef_32" source="rp32"/>
+                <eventRef date="2020-07-16" eId="eventRef_33" source="rp33"/>
+                <eventRef date="2020-09-14" eId="eventRef_34" source="rp34"/>
+                <eventRef date="2021-06-09" eId="eventRef_35" source="rp35"/>
+                <eventRef date="2021-06-14" eId="eventRef_36" source="rp36"/>
+                <eventRef date="2021-07-14" eId="eventRef_37" source="rp37"/>
+                <eventRef date="2021-08-04" eId="eventRef_38" source="rp38"/>
+                <eventRef date="2021-08-07" eId="eventRef_39" source="rp39"/>
+                <eventRef date="2022-01-27" eId="eventRef_40" source="rp40"/>
+                <eventRef date="2022-03-28" eId="eventRef_41" source="rp41"/>
+                <eventRef date="2022-04-30" eId="eventRef_42" source="rp42"/>
+                <eventRef date="2022-05-12" eId="eventRef_43" source="rp43"/>
+                <eventRef date="2022-06-29" eId="eventRef_44" source="rp44"/>
+                <eventRef date="2022-10-17" eId="eventRef_45" source="rp45"/>
+                <eventRef date="2022-12-29" eId="eventRef_46" source="rp46"/>
+                <eventRef date="2023-03-31" eId="eventRef_47" source="rp47"/>
+                <eventRef date="2023-10-05" eId="eventRef_48" source="rp48"/>
+                <eventRef date="2024-01-16" eId="eventRef_49" source="rp49"/>
+                <eventRef date="2024-12-31" eId="eventRef_50" source="rp50"/>
+                <eventRef date="2024-12-31" eId="eventRef_51" source="rp51"/>
+                <eventRef date="2025-08-08" eId="eventRef_52" source="rp52"/>
+                <eventRef date="2025-10-07" eId="eventRef_53" source="rp53"/>
+                <eventRef date="2025-11-26" eId="eventRef_54" source="rp54"/>
+                <eventRef date="2026-08-11" eId="eventRef_55" source="rp55"/>
+            </lifecycle>
+            <references source="">
+                <original eId="ro1" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2010-07-02/104/!main" showAs=""/>
+                <passiveRef eId="rp1" href="/akn/it/act/DECRETO-LEGGE/stato/2011-03-31/34/!main" showAs=""/>
+                <passiveRef eId="rp2" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2011-03-31/58/!main" showAs=""/>
+                <passiveRef eId="rp3" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2011-11-15/195/!main" showAs=""/>
+                <passiveRef eId="rp4" href="/akn/it/act/DECRETO-LEGGE/stato/2012-03-02/16/!main" showAs=""/>
+                <passiveRef eId="rp5" href="/akn/it/act/DECRETO-LEGGE/stato/2012-03-15/21/!main" showAs=""/>
+                <passiveRef eId="rp6" href="" showAs=""/>
+                <passiveRef eId="rp7" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2012-09-14/160/!main" showAs=""/>
+                <passiveRef eId="rp8" href="/akn/it/act/LEGGE/stato/2012-12-24/234/!main" showAs=""/>
+                <passiveRef eId="rp9" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2013-03-14/33/!main" showAs=""/>
+                <passiveRef eId="rp10" href="/akn/it/act/DECRETO-LEGGE/stato/2013-06-21/69/!main" showAs=""/>
+                <passiveRef eId="rp11" href="" showAs=""/>
+                <passiveRef eId="rp12" href="" showAs=""/>
+                <passiveRef eId="rp13" href="/akn/it/act/DECRETO-LEGGE/stato/2014-06-24/90/!main" showAs=""/>
+                <passiveRef eId="rp14" href="/akn/it/act/DECRETO-LEGGE/stato/2014-12-31/192/!main" showAs=""/>
+                <passiveRef eId="rp15" href="/akn/it/act/DECRETO-LEGGE/stato/2015-06-27/83/!main" showAs=""/>
+                <passiveRef eId="rp16" href="/akn/it/act/LEGGE/stato/2015-12-28/208/!main" showAs=""/>
+                <passiveRef eId="rp17" href="/akn/it/act/DECRETO-LEGGE/stato/2015-12-30/210/!main" showAs=""/>
+                <passiveRef eId="rp18" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2016-04-18/50/!main" showAs=""/>
+                <passiveRef eId="rp19" href="/akn/it/act/DECRETO-LEGGE/stato/2016-06-30/117/!main" showAs=""/>
+                <passiveRef eId="rp20" href="/akn/it/act/LEGGE/stato/2016-07-07/122/!main" showAs=""/>
+                <passiveRef eId="rp21" href="/akn/it/act/DECRETO-LEGGE/stato/2016-08-31/168/!main" showAs=""/>
+                <passiveRef eId="rp22" href="/akn/it/act/DECRETO-LEGGE/stato/2017-02-17/13/!main" showAs=""/>
+                <passiveRef eId="rp23" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2017-12-07/203/!main" showAs=""/>
+                <passiveRef eId="rp24" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2018-01-02/1/!main" showAs=""/>
+                <passiveRef eId="rp25" href="" showAs=""/>
+                <passiveRef eId="rp26" href="/akn/it/act/DECRETO-LEGGE/stato/2018-10-05/115/!main" showAs=""/>
+                <passiveRef eId="rp27" href="/akn/it/act/LEGGE/stato/2018-12-30/145/!main" showAs=""/>
+                <passiveRef eId="rp28" href="/akn/it/act/DECRETO-LEGGE/stato/2019-04-18/32/!main" showAs=""/>
+                <passiveRef eId="rp29" href="/akn/it/act/DECRETO-LEGGE/stato/2020-03-08/11/!main" showAs=""/>
+                <passiveRef eId="rp30" href="/akn/it/act/LEGGE/stato/2020-04-24/27/!main" showAs=""/>
+                <passiveRef eId="rp31" href="/akn/it/act/DECRETO-LEGGE/stato/2020-04-30/28/!main" showAs=""/>
+                <passiveRef eId="rp32" href="/akn/it/act/LEGGE/stato/2020-06-25/70/!main" showAs=""/>
+                <passiveRef eId="rp33" href="/akn/it/act/DECRETO-LEGGE/stato/2020-07-16/76/!main" showAs=""/>
+                <passiveRef eId="rp34" href="/akn/it/act/LEGGE/stato/2020-09-11/120/!main" showAs=""/>
+                <passiveRef eId="rp35" href="/akn/it/act/DECRETO-LEGGE/stato/2021-06-09/80/!main" showAs=""/>
+                <passiveRef eId="rp36" href="/akn/it/act/DECRETO-LEGGE/stato/2021-06-14/82/!main" showAs=""/>
+                <passiveRef eId="rp37" href="" showAs=""/>
+                <passiveRef eId="rp38" href="/akn/it/act/LEGGE/stato/2021-08-04/109/!main" showAs=""/>
+                <passiveRef eId="rp39" href="/akn/it/act/LEGGE/stato/2021-08-06/113/!main" showAs=""/>
+                <passiveRef eId="rp40" href="/akn/it/act/DECRETO-LEGGE/stato/2022-01-27/4/!main" showAs=""/>
+                <passiveRef eId="rp41" href="/akn/it/act/LEGGE/stato/2022-03-28/25/!main" showAs=""/>
+                <passiveRef eId="rp42" href="/akn/it/act/DECRETO-LEGGE/stato/2022-04-30/36/!main" showAs=""/>
+                <passiveRef eId="rp43" href="/akn/it/act/LEGGE/stato/2022-04-28/46/!main" showAs=""/>
+                <passiveRef eId="rp44" href="/akn/it/act/LEGGE/stato/2022-06-29/79/!main" showAs=""/>
+                <passiveRef eId="rp45" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2022-10-10/149/!main" showAs=""/>
+                <passiveRef eId="rp46" href="/akn/it/act/LEGGE/stato/2022-12-29/197/!main" showAs=""/>
+                <passiveRef eId="rp47" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2023-03-31/36/!main" showAs=""/>
+                <passiveRef eId="rp48" href="/akn/it/act/DECRETO-LEGGE/stato/2023-10-05/133/!main" showAs=""/>
+                <passiveRef eId="rp49" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2023-12-06/224/!main" showAs=""/>
+                <passiveRef eId="rp50" href="/akn/it/act/LEGGE/stato/2024-12-30/207/!main" showAs=""/>
+                <passiveRef eId="rp51" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2024-12-31/209/!main" showAs=""/>
+                <passiveRef eId="rp52" href="/akn/it/act/DECRETO-LEGGE/stato/2025-08-08/117/!main" showAs=""/>
+                <passiveRef eId="rp53" href="/akn/it/act/LEGGE/stato/2025-10-03/148/!main" showAs=""/>
+                <passiveRef eId="rp54" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2025-11-26/178/!main" showAs=""/>
+                <passiveRef eId="rp55" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2026-08-07/149/!main" showAs=""/>
+            </references>
+            <proprietary source="">
+                <rdf:RDF>
+                    <rdf:Description rdf:about="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826">
+                        <rdf:type rdf:resource="eli:LegalResource"/>
+                        <eli:title xml:lang="it">Attuazione dell'articolo 44 della legge 18 giugno 2009, n. 69, recante delega al governo per il riordino del processo amministrativo. (10G0127)  </eli:title>
+                        <eli:uri_schema>http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}</eli:uri_schema>
+                        <eli:id_local>010G0127</eli:id_local>
+                        <eli:type_document rdf:resource="gu:tables/resource-type#DECRETO LEGISLATIVO"/>
+                        <eli:date_document rdf:datatype="xsd:date">2010-07-02</eli:date_document>
+                        <eli:version rdf:resource="gu:tables/versions#ORIGINAL"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826/ita">
+                        <rdf:type rdf:resource="eli:LegalExpression"/>
+                        <eli:realizes rdf:resource="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826"/>
+                        <eli:is_embodied_by rdf:resource="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826/ita/akn"/>
+                        <eli:language rdf:resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                        <eli:publisher_agent rdf:resource="http://www.ipzs.it"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/2010/07/07/010G0127/CONSOLIDATED/20260826/ita/akn">
+                        <rdf:type rdf:resource="eli:format"/>
+                        <eli:format rdf:resource="http://www.iana.org/assignments/media-types/xml"/>
+                    </rdf:Description>
+                </rdf:RDF>
+            </proprietary>
+        </meta>
+        <preface>
+            <p>
+                <docType>DECRETO LEGISLATIVO</docType>
+                <docDate date="2010-07-02">02 luglio 2010</docDate>
+                <docNumber>104</docNumber>
+                <docTitle>Attuazione dell'articolo 44 della legge 18 giugno 2009, n. 69, recante delega al governo per il riordino del processo amministrativo. (10G0127) 
+</docTitle>
+            </p>
+            <p>
+                <authorialNote eId="atn1" placement="bottom">
+                    <p>Entrata in vigore del provvedimento: 16/09/2010</p>
+                </authorialNote>
+            </p>
+        </preface>
+        <preamble>
+            <formula name="formulaInizialePreambolo">
+                <p>IL PRESIDENTE DELLA REPUBBLICA</p>
+            </formula>
+            <citations eId="cits_1">
+                <citation eId="cits_1__cit_1">
+                    <p>Visti gli <ref eId="ref_1" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_76">articoli 76</ref>, <ref eId="ref_2" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_87">87</ref> e <ref eId="ref_3" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_117-com2-letl">117, secondo comma, lettera l), della Costituzione</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_2">
+                <citation eId="cits_2__cit_1">
+                    <p>Vista la <ref eId="ref_4" href="/akn/it/act/legge/stato/2009-06-18/69/!main">legge 18 giugno 2009, n. 69</ref>, ed in particolare l'articolo 44, recante delega al Governo per il riassetto della disciplina del processo amministrativo, nel quale, al comma 4, e' previsto che il Governo puo' avvalersi della facolta' di cui all'articolo 14, numero 2), del testo unico sul Consiglio di Stato, di cui al <ref eId="ref_5" href="/akn/it/act/regio.decreto/stato/1924-06-26/1054/!main">regio decreto 26 giugno 1924, n. 1054</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_3">
+                <citation eId="cits_3__cit_1">
+                    <p>Vista la nota in data 8 luglio 2009 con la quale il Governo, avvalendosi della facolta' di cui all'articolo 14, numero 2), del citato <ref eId="ref_6" href="/akn/it/act///1924/1054/!main">testo unico n. 1054 del 1924</ref>, ha commesso al Consiglio di Stato la formulazione del progetto del suddetto decreto legislativo;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_4">
+                <citation eId="cits_4__cit_1">
+                    <p>Visto il decreto del Presidente del Consiglio di Stato in data 23 luglio 2009, con il quale la formulazione di detto progetto e' stata deferita ad una commissione speciale e ne e' stata stabilita la composizione;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_5">
+                <citation eId="cits_5__cit_1">
+                    <p>Visto il progetto del decreto legislativo recante il «<ref eId="ref_7" href="/akn/it/act/decretoLegislativo/stato/2010-07-02/104/!main">codice del processo amministrativo</ref>» e le relative norme di attuazione, transitorie, di coordinamento e di abrogazione, redatto da detta commissione speciale e trasmesso al Governo con nota del Presidente del Consiglio di Stato in data 10 febbraio 2010;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_6">
+                <citation eId="cits_6__cit_1">
+                    <p>Vista la deliberazione preliminare del Consiglio dei Ministri, adottata nella riunione del 16 aprile 2010;</p>
+                </citation>
+            </citations>
+            <p>Acquisito il parere reso dalle competenti Commissioni parlamentari;</p>
+            <citations eId="cits_7">
+                <citation eId="cits_7__cit_1">
+                    <p>Vista la deliberazione del Consiglio dei Ministri, adottata nella riunione del 24 giugno 2010;</p>
+                </citation>
+            </citations>
+            <p>Sulla proposta del Presidente del Consiglio dei Ministri;</p>
+            <formula name="formulaFinalePreambolo">
+                <p>Emana il seguente decreto legislativo:</p>
+            </formula>
+        </preamble>
+        <body>
+            <article eId="art_1">
+                <num>Art. 1.</num>
+                <heading> Approvazione del codice e delle disposizioni connesse</heading>
+                <paragraph eId="art_1__para_1">
+                    <num>1.</num>
+                    <content>
+                        <p>E' approvato il <ref eId="content__ref_8" href="/akn/it/act/decretoLegislativo/stato/2010-07-02/104/!main">codice del processo amministrativo</ref> di cui all'allegato 1 al presente decreto. 
+</p>
+                    </content>
+                </paragraph>
+                <paragraph eId="art_1__para_2">
+                    <num>2.</num>
+                    <content>
+                        <p>Sono altresi' approvate le norme di attuazione di cui all'allegato 2, le norme transitorie di cui all'allegato 3 e le norme di coordinamento e le abrogazioni di cui all'allegato 4. 
+</p>
+                    </content>
+                </paragraph>
+                <section>
+                    <content>
+                        <p>
+                            <authorialNote eId="authorialNote_1" placement="bottom">
+                                <p> Avvertenza: 
+ Il testo delle note qui pubblicato e' stato redatto dall'Amministrazione competente per materia, ai sensi dell'articolo 10, commi 2 e 3, del testo unico delle disposizioni sulla promulgazione delle leggi, sull'emanazione dei decreti del Presidente della Repubblica e sulle pubblicazioni ufficiali della Repubblica italiana, approvato con <ref eId="content__ref_9" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1985-12-28/1092/!main">decreto del Presidente della Repubblica 28 dicembre 1985, n. 1092</ref>, al solo fine di facilitare la lettura delle disposizioni di legge alle quali e' operato il rinvio. Restano invariati il valore e l'efficacia degli atti legislativi qui trascritti. 
+ Note alle premesse: 
+ - Si riporta il testo dell'<ref eId="content__ref_10" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_76">articolo 76 della Costituzione</ref>: 
+ «Art. 76. L'esercizio della funzione legislativa non puo' essere delegato al Governo se non con determinazione di principi e criteri direttivi e soltanto per tempo limitato e per oggetti definiti.». 
+ L'<ref eId="content__ref_11" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_87-com5">articolo 87, comma quinto, della Costituzione</ref> conferisce al Presidente della Repubblica il potere di promulgare le leggi e di emanare i decreti aventi valore di legge ed i regolamenti. 
+ L'<ref eId="content__ref_12" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_117-com2-letl">articolo 117, secondo comma, lettera l) della Costituzione</ref>, e' il seguente: 
+ «Lo Stato ha legislazione esclusiva nelle seguenti materie: 
+ a)- i) (omissis) 
+ l) giurisdizione e norme processuali; ordinamento civile e penale; giustizia amministrativa; 
+ m)- s) (omissis)» . 
+ - Si riporta il testo dell'<ref eId="content__ref_13" href="/akn/it/act/legge/stato/2009-06-18/69/!main#art_44">articolo 44 della legge 18 giugno 2009, n. 69</ref> («Disposizioni per lo sviluppo economico, la semplificazione, la competitivita' nonche' in materia di processo civile», pubblicata in Gazz. Uff., S.O., 19 giugno 2009, n. 140): 
+ «Art. 44. (Delega al Governo per il riassetto della disciplina del processo amministrativo) - 1. Il Governo e' delegato ad adottare, entro un anno dalla data di entrata in vigore della presente legge, uno o piu' decreti legislativi per il riassetto del processo avanti ai tribunali amministrativi regionali e al Consiglio di Stato, al fine di adeguare le norme vigenti alla giurisprudenza della Corte costituzionale e delle giurisdizioni superiori, di coordinarle con le norme del <ref eId="content__ref_14" href="/akn/it/act/codice.procedura.civile/stato/1940-10-28/1443/!main">codice di procedura civile</ref> in quanto espressione di principi generali e di assicurare la concentrazione delle tutele. 
+ 2. I decreti legislativi di cui al comma 1, oltre che ai principi e criteri direttivi di cui all'<ref eId="content__ref_15" href="/akn/it/act/legge/stato/1997-03-15/59/!main#art_20-com3">articolo 20, comma 3, della legge 15 marzo 1997, n. 59</ref>, in quanto applicabili, si attengono ai seguenti principi e criteri direttivi: 
+ a) assicurare la snellezza, concentrazione ed effettivita' della tutela, anche al fine di garantire la ragionevole durata del processo, anche mediante il ricorso a procedure informatiche e telematiche, nonche' la razionalizzazione dei termini processuali, l'estensione delle funzioni istruttorie esercitate in forma monocratica e l'individuazione di misure, anche transitorie, di eliminazione dell'arretrato; 
+ b) disciplinare le azioni e le funzioni del giudice: 
+ 1) riordinando le norme vigenti sulla giurisdizione del giudice amministrativo, anche rispetto alle altre giurisdizioni; 
+ 2) riordinando i casi di giurisdizione estesa al merito, anche mediante soppressione delle fattispecie non piu' coerenti con l'ordinamento vigente; 
+ 3) disciplinando, ed eventualmente riducendo, i termini di decadenza o prescrizione delle azioni esperibili e la tipologia dei provvedimenti del giudice; 
+ 4) prevedendo le pronunce dichiarative, costitutive e di condanna idonee a soddisfare la pretesa della parte vittoriosa; 
+ c) procedere alla revisione e razionalizzazione dei riti speciali, e delle materie cui essi si applicano, fatti salvi quelli previsti dalle norme di attuazione dello statuto speciale della regione Trentino-Alto Adige; 
+ d) razionalizzare e unificare le norme vigenti per il processo amministrativo sul contenzioso elettorale, prevedendo il dimezzamento, rispetto a quelli ordinari, di tutti i termini processuali, il deposito preventivo del ricorso e la successiva notificazione in entrambi i gradi e introducendo la giurisdizione esclusiva del giudice amministrativo nelle controversie concernenti atti del procedimento elettorale preparatorio per le elezioni per il rinnovo della Camera dei deputati e del Senato della Repubblica, mediante la previsione di un rito abbreviato in camera di consiglio che consenta la risoluzione del contenzioso in tempi compatibili con gli adempimenti organizzativi del procedimento elettorale e con la data di svolgimento delle elezioni; 
+ e) razionalizzare e unificare la disciplina della riassunzione del processo e dei relativi termini, anche a seguito di sentenze di altri ordini giurisdizionali, nonche' di sentenze dei tribunali amministrativi regionali o del Consiglio di Stato che dichiarano l'incompetenza funzionale; 
+ f) riordinare la tutela cautelare, anche generalizzando quella ante causam, nonche' il procedimento cautelare innanzi al giudice amministrativo in caso di ricorso per cassazione avverso le sentenze del Consiglio di Stato, prevedendo che: 
+ 1) la domanda di tutela interinale non puo' essere trattata fino a quando il ricorrente non presenta istanza di fissazione di udienza per la trattazione del merito; 
+ 2) in caso di istanza cautelare ante causam, il ricorso introduttivo del giudizio e' notificato e depositato, unitamente alla relativa istanza di fissazione di udienza per la trattazione del merito, entro i termini di decadenza previsti dalla legge o, in difetto di essi, nei sessanta giorni dalla istanza cautelare, perdendo altrimenti ogni effetto la concessa tutela interinale; 
+ 3) nel caso di accoglimento della domanda cautelare, l'istanza di fissazione di udienza non puo' essere revocata e l'udienza di merito e' celebrata entro il termine di un anno; 
+ g) riordinare il sistema delle impugnazioni, individuando le disposizioni applicabili, mediante rinvio a quelle del processo di primo grado, e disciplinando la concentrazione delle impugnazioni, l'effetto devolutivo dell'appello, la proposizione di nuove domande, prove ed eccezioni. 
+ 3. I decreti legislativi di cui al comma 1 abrogano espressamente tutte le disposizioni riordinate o con essi incompatibili, fatta salva l'applicazione dell'articolo 15 delle disposizioni sulla legge in generale premesse al <ref eId="content__ref_16" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">codice civile</ref>, e dettano le opportune disposizioni di coordinamento in relazione alle disposizioni non abrogate. 
+ 4. I decreti legislativi di cui al comma 1 sono adottati su proposta del Presidente del Consiglio dei ministri. Sugli schemi di decreto legislativo e' acquisito il parere del Consiglio di Stato e delle competenti Commissioni parlamentari. I pareri sono resi entro quarantacinque giorni dalla richiesta. Decorso tale termine, i decreti possono essere emanati anche senza i predetti pareri. Ove il Governo, nell'attuazione della delega di cui al presente articolo, intenda avvalersi della facolta' di cui all' articolo 14, numero 2°, del testo unico sul Consiglio di Stato, di cui al <ref eId="content__ref_17" href="/akn/it/act/regio.decreto/stato/1924-06-26/1054/!main">regio decreto 26 giugno 1924, n. 1054</ref>, il Consiglio di Stato puo' utilizzare, al fine della stesura dell'articolato normativo, magistrati di tribunale amministrativo regionale, esperti esterni e rappresentanti del libero foro e dell'Avvocatura generale dello Stato, i quali prestano la propria attivita' a titolo gratuito e senza diritto al rimborso delle spese. Sugli schemi redatti dal Consiglio di Stato non e' acquisito il parere dello stesso. Entro due anni dalla data di entrata in vigore dei decreti legislativi di cui al comma 1, possono ad essi essere apportate le correzioni e integrazioni che l'applicazione pratica renda necessarie od opportune, con lo stesso procedimento e in base ai medesimi principi e criteri direttivi previsti per l'emanazione degli originari decreti. 
+ 5. Dall'attuazione del presente articolo non devono derivare nuovi o maggiori oneri per la finanza pubblica. 
+ 6. All'<ref eId="content__ref_18" href="/akn/it/act/legge/stato/2004-12-30/311/!main#art_1-com309">articolo 1, comma 309, della legge 30 dicembre 2004, n. 311</ref>, dopo le parole: «tribunali amministrativi regionali» sono aggiunte le seguenti: «, ivi comprese quelle occorrenti per incentivare progetti speciali per lo smaltimento dell'arretrato e per il miglior funzionamento del processo amministrativo».». 
+ - Si riporta il testo dell'<ref eId="content__ref_19" href="/akn/it/act/regio.decreto/stato/1924-06-26/1054/!main#art_14">articolo 14 del regio decreto 26 giugno 1924, n. 1054</ref> («Approvazione del testo unico delle leggi sul Consiglio di Stato», pubblicato in Gazz. Uff. 7 luglio 1924, n. 158): 
+ «Art. 14. (<ref eId="content__ref_20" href="/akn/it/act///1907-08-17/638/!main#art_10">art. 10 del testo unico 17 agosto 1907, n. 638</ref>). - Il Consiglio di Stato: 
+ 1° da' parere sopra le proposte di legge e sugli affari di ogni natura, pei quali sia interrogato dai Ministri del Re; 
+ 2° formula quei progetti di legge ed i regolamenti che gli vengono commessi dal Governo.». 
+</p>
+                            </authorialNote>
+                        </p>
+                    </content>
+                </section>
+            </article>
+            <article eId="art_2">
+                <num>Art. 2.</num>
+                <heading> Entrata in vigore</heading>
+                <paragraph eId="art_2__para_1">
+                    <num>1.</num>
+                    <content>
+                        <p>Il presente decreto entra in vigore il 16 settembre 2010. 
+ </p>
+                    </content>
+                </paragraph>
+            </article>
+        </body>
+        <conclusions>
+            <formula name="formulaFinaleConclusioni">
+                <p>Il presente decreto, munito del sigillo dello Stato sara' inserito nella Raccolta ufficiale degli atti normativi della Repubblica italiana. E' fatto obbligo a chiunque spetti di osservarlo e di farlo osservare. </p>
+            </formula>
+            <p> Dato a Roma addi' 2 luglio 2010 </p>
+            <p>NAPOLITANO Berlusconi, Presidente del Consiglio dei Ministri Visto:il Guardasigilli Alfano</p>
+        </conclusions>
+        <attachments>
+            <attachment>
+                <doc name="Indice generale">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/!main/annesso_2"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2010-07-02;104"/>
+                                <FRBRalias name="eli" value="eli/id/2010/07/07/010G0127/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2010-09-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main/annesso_2"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16"/>
+                                <FRBRdate date="2010-09-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main/annesso_2.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16.xml"/>
+                                <FRBRdate date="2010-07-02" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> 
+ ALLEGATO 1 
+ 
+ 
+ <ref eId="content__ref_27" href="/akn/it/act/decretoLegislativo/stato/2010-07-02/104/!main#art_1">Codice del processo amministrativo 
+ 
+ Art. 1</ref> 
+ 
+ 
+ Effettivita' 
+ 
+ 1. La giurisdizione amministrativa assicura una tutela piena ed effettiva secondo i principi della Costituzione e del diritto europeo. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 14">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 15">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 17">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 18">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 19">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 20">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 21">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 22">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 23">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 24">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 25">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 26">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 27">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 28">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 29">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 30">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 31">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 32">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 33">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 34">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 35">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 36">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 37">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 38">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 39">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 40">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 41">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 42">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 43">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 44">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 45">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 46">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 47">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 48">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 49">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 50">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 51">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 52">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 53">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 54">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 55">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 56">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 57">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 58">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 59">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 60">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 61">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 62">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 63">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 64">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 65">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 66">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 67">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 68">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 69">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 70">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 71">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 71 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 72">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 72 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 73">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 74">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 75">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 76">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 77">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 78">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 79">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 80">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 81">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 82">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 83">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 84">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 85">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 86">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 87">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 88">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 89">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 90">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 91">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 92">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 93">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 94">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 95">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 96">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 97">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 98">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 99">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 100">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 101">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 102">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 103">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 104">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 105">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 106">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 107">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 108">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 109">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 110">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 111">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 112">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 113">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 114">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 115">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 116">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 117">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 118">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 119">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 120">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/!main/annesso_123"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2010-07-02;104"/>
+                                <FRBRalias name="eli" value="eli/id/2010/07/07/010G0127/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2023-04-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main/annesso_123"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16"/>
+                                <FRBRdate date="2010-09-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main/annesso_123.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16.xml"/>
+                                <FRBRdate date="2010-07-02" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 120 
+ 
+<ins eId="ins_62">(( (Disposizioni specifiche ai giudizi di cui all'articolo 119, comma 1, lettera a))</ins> )) 
+ 
+ <ins eId="ins_63">((1. Gli atti delle procedure di affidamento e di concessione disciplinate dal codice dei contratti pubblici, di cui al decreto legislativo di attuazione della legge 21 giugno 2022, n. 78, comprese le procedure di affidamento di incarichi e concorsi di progettazione e di attivita' tecnico-amministrative a esse connesse, i quali siano relativi a pubblici lavori, servizi o forniture, nonche' i provvedimenti dell'Autorita' nazionale anticorruzione in materia di contratti pubblici, sono impugnabili unicamente mediante ricorso al tribunale amministrativo regionale competente. In tutti gli atti di parte e in tutti i provvedimenti del giudice e' indicato il codice identificativo di gara (CIG); nel caso di mancata indicazione il giudice procede in ogni caso e anche d'ufficio, su segnalazione della segreteria, ai sensi dell'articolo 86, comma 1. 
+ 2. Per l'impugnazione degli atti di cui al presente articolo il ricorso, principale o incidentale, e i motivi aggiunti, anche avverso atti diversi da quelli gia' impugnati, sono proposti nel termine di trenta giorni. Il termine decorre, per il ricorso principale e per i motivi aggiunti, dalla ricezione della comunicazione di cui all'articolo 90 del codice dei contratti pubblici, di cui al decreto legislativo di attuazione della legge n. 78 del 2022 oppure dal momento in cui gli atti sono messi a disposizione ai sensi dell'articolo 36, commi 1 e 2, del medesimo codice. Per i bandi e gli avvisi con cui si indice una gara che siano autonomamente lesivi, il termine decorre dalla pubblicazione di cui agli articoli 84 e 85 del codice dei contratti pubblici, di cui al decreto legislativo di attuazione della legge n. 78 del 2022. Il ricorso incidentale e' disciplinato dall'articolo 42. 
+ 3. Nel caso in cui sia mancata la pubblicita' del bando, il ricorso e' comunque proposto entro trenta giorni dalla data di pubblicazione dell'avviso di aggiudicazione o della determinazione di procedere all'affidamento in house al soggetto partecipato o controllato. Per la decorrenza del termine l'avviso deve contenere la motivazione dell'atto di aggiudicazione e della scelta di affidare il contratto senza pubblicazione del bando e l'indicazione del sito dove sono visionabili gli atti e i documenti presupposti. Se sono omessi gli avvisi o le informazioni di cui al presente comma oppure se essi non sono conformi alle prescrizioni ivi indicate, il ricorso puo' essere proposto non oltre sei mesi dal giorno successivo alla data di stipulazione del contratto comunicata ai sensi del codice dei contratti pubblici, di cui al decreto legislativo di attuazione della legge n. 78 del 2022. 
+ 4. Se la stazione appaltante o l'ente concedente e' rappresentato dall'Avvocatura dello Stato, il ricorso e' notificato anche presso la sede dell'Amministrazione, ai soli fini della operativita' della sospensione obbligatoria del termine per la stipulazione del contratto. 
+ 5. Se le parti richiedono congiuntamente di limitare la decisione all'esame di un'unica questione, nonche' in ogni altro caso compatibilmente con le esigenze di difesa di tutte le parti in relazione alla complessita' della causa, il giudizio e' di norma definito, anche in deroga al comma 1, primo periodo, dell'articolo 74, in esito all'udienza cautelare ai sensi dell'articolo 60, ove ne ricorrano i presupposti, e, in mancanza, e' comunque definito con sentenza in forma semplificata a una udienza fissata d'ufficio, da tenersi entro quarantacinque giorni dalla scadenza del termine per la costituzione delle parti diverse dal ricorrente e nel rispetto dei termini per il deposito dei documenti e delle memorie. Della data di udienza e' dato immediato avviso alle parti a cura della segreteria, a mezzo posta elettronica certificata. In caso di esigenze istruttorie o quando e' necessario integrare il contraddittorio o assicurare il rispetto di termini a difesa, la definizione del merito e' rinviata, con l'ordinanza che dispone gli adempimenti istruttori o l'integrazione del contraddittorio o dispone il rinvio per l'esigenza di rispetto dei termini a difesa, a una udienza da tenersi non oltre trenta giorni. 
+ 6. In caso di istanza cautelare, all'esito dell'udienza in camera di consiglio e anche in caso di rigetto dell'istanza, il giudice provvede ai necessari approfondimenti istruttori. 
+ 7. I nuovi atti attinenti alla medesima procedura di gara sono impugnati con ricorso per motivi aggiunti, senza pagamento del contributo unificato. 
+ 8. Salvo quanto previsto dal presente articolo e dagli articoli da 121 a 125, si applica l'articolo 119. 
+ 9. Anche se dalla decisione sulla domanda cautelare non derivino effetti irreversibili, il collegio puo' subordinare la concessione o il diniego della misura cautelare alla prestazione, anche mediante fideiussione, di una cauzione di importo commisurato al valore dell'appalto e comunque non superiore allo 0,5 per cento di tale valore. La durata della misura subordinata alla cauzione e' indicata nell'ordinanza. Resta fermo quanto stabilito dal comma 3 dell'articolo 119. 
+ 10. Nella decisione cautelare il giudice tiene conto di quanto previsto dagli articoli 121, comma 1, e 122, e delle esigenze imperative connesse a un interesse generale all'esecuzione del contratto, dandone conto nella motivazione. 
+ 11. Il giudice deposita la sentenza con la quale definisce il giudizio entro quindici giorni dall'udienza di discussione. Quando la stesura della motivazione e' particolarmente complessa, il giudice pubblica il dispositivo nel termine di cui al primo periodo, indicando anche le domande eventualmente accolte e le misure per darvi attuazione, e comunque deposita la sentenza entro trenta giorni dall'udienza. 
+ 12. Le disposizioni dei commi 1, secondo periodo, 5, 6, 8, 9, 10 e 11 si applicano anche innanzi al Consiglio di Stato nel giudizio di appello proposto avverso la sentenza o avverso l'ordinanza cautelare, e nei giudizi di revocazione o opposizione di terzo. La parte puo' proporre appello avverso il dispositivo per ottenerne la sospensione prima della pubblicazione della sentenza. 
+ 13. Nel caso di presentazione di offerte per piu' lotti l'impugnazione si propone con ricorso cumulativo solo se sono dedotti identici motivi di ricorso avverso lo stesso atto.))</ins>
+                                    <ins eId="ins_64">((46))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>------------</p>
+                                <p>AGGIORNAMENTO (13)</p>
+                                <p>
+ Il <ref eId="127" href="/akn/it/act/decretoLegge/stato/2014-06-24/90/!main">D.L. 24 giugno 2014, n. 90</ref> convertito con modificazioni dalla <ref eId="128" href="/akn/it/act/legge/stato/2014-08-11/114/!main">L. 11 agosto 2014, n. 114</ref> ha disposto (con l'art. 40, comma 2) che le presenti modifiche si applicano ai giudizi introdotti con ricorso depositato, in primo grado o in grado di appello, in data successiva alla data di entrata in vigore del suindicato decreto. 
+ Ha inoltre disposto (con l'art. 40, comma 2-bis) che le disposizioni relative al contenimento del numero delle pagine, stabilite dal decreto del Presidente del Consiglio di Stato di cui al comma 6 del presente articolo, sono applicate in via sperimentale per due anni dalla data di entrata in vigore della legge di conversione del suindicato decreto. Al termine di un anno decorrente dalla medesima data, il Consiglio di presidenza della giustizia amministrativa effettua il monitoraggio degli esiti di tale sperimentazione. </p>
+                                <p>-----------</p>
+                                <p>AGGIORNAMENTO (21)</p>
+                                <p>
+ Il <ref eId="129" href="/akn/it/act/decretoLegge/stato/2016-08-31/168/!main">D.L. 31 agosto 2016, n. 168</ref>, convertito con modificazioni dalla <ref eId="130" href="/akn/it/act/legge/stato/2016-10-25/197/!main">L. 25 ottobre 2016, n. 197</ref>, ha disposto (con l'art. 7-bis, comma 2, alinea) che le presenti modifiche decorrono dalla data di entrata in vigore del decreto del presidente del Consiglio di Stato previsto al comma 1 dell'articolo 13-ter delle norme di attuazione, di cui all'allegato 2 al <ref eId="131" href="/akn/it/act/decretoLegislativo/stato/2010-07-02/104/!main">decreto legislativo 2 luglio 2010, n. 104</ref>. </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (27)</p>
+                                <p>
+ Il <ref eId="132" href="/akn/it/act/decretoLegge/stato/2019-04-18/32/!main">D.L. 18 aprile 2019, n. 32</ref>, convertito con modificazioni dalla <ref eId="133" href="/akn/it/act/legge/stato/2019-06-14/55/!main">L. 14 giugno 2019, n. 55</ref>, ha disposto (con l'art. 1, comma 23) che le presenti modifiche "si applicano ai processi iniziati dopo la data di entrata in vigore della legge di conversione del presente decreto". </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (46)</p>
+                                <p>
+ Il <ref eId="134" href="/akn/it/act/decretoLegislativo/stato/2023-03-31/36/!main">D.Lgs. 31 marzo 2023, n. 36</ref> ha disposto (con l'art. 229, comma 2) che la presente modifica acquista efficacia il 1° luglio 2023. </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 121">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 122">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 123">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 124">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 125">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 126">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 127">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 128">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 129">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 130">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 131">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 132">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 133">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 134">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 135">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 136">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 1 Codice del processo amministrativo-art. 137">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 5">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/!main/annesso_145"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.legislativo:2010-07-02;104"/>
+                                <FRBRalias name="eli" value="eli/id/2010/07/07/010G0127/CONSOLIDATED/20260826"/>
+                                <FRBRdate date="2016-10-30" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main/annesso_145"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16"/>
+                                <FRBRdate date="2010-09-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16/!main/annesso_145.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_legislativo/stato/2010-07-02/104/ita@2010-09-16.xml"/>
+                                <FRBRdate date="2010-07-02" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 5 
+ 
+ 
+Formazione e tenuta dei fascicoli di parte e d'ufficio. Surrogazione di copie agli originali mancanti e ricostituzione di atti 
+ 
+ 1. Ciascuna parte, all'atto della propria costituzione in giudizio, consegna il proprio fascicolo, contenente gli originali degli atti ed i documenti di cui intende avvalersi nonche' il relativo indice. 
+ 2. COMMA ABROGATO DAL <ref eId="content__ref_281" href="/akn/it/act/decretoLegge/stato/2015-06-27/83/!main">D.L. 27 GIUGNO 2015, N. 83</ref>, CONVERTITO CON MODIFICAZIONI DALLA <ref eId="content__ref_282" href="/akn/it/act/legge/stato/2015-08-06/132/!main">L. 6 AGOSTO 2015, N. 132</ref>. (15) <ins eId="ins_87">((21))</ins> 
+ 3. Allorche' riceve il deposito dell'atto introduttivo del giudizio, il segretario forma il fascicolo d'ufficio in formato digitale, corredato di indice cronologico degli atti e documenti delle parti, dei verbali di udienza per estratto, di ogni atto e provvedimento del giudice, dei suoi ausiliari e della segreteria. (15) <ins eId="ins_88">((21))</ins>
+                                    <ins eId="ins_89">((3-bis. Nei casi in cui e' previsto il deposito di atti e documenti in forma cartacea, il segretario forma un fascicolo cartaceo recante i dati identificativi del procedimento; nel fascicolo cartaceo, che si considera parte integrante del fascicolo d'ufficio, sono inseriti l'indice dei documenti depositati, gli atti legittimanti il deposito in forma cartacea e i documenti depositati.
+L'aggiornamento dell'indice e' curato dal segretario ai sensi del comma 4.))</ins>
+                                    <ins eId="ins_90">((21))</ins> 
+ 4. Il segretario, dopo aver controllato la regolarita' anche fiscale degli atti e dei documenti depositati da ciascuna parte, data e sottoscrive l'indice del fascicolo ogni qualvolta viene inserito in esso un atto o un documento. 
+ 5. In caso di smarrimento, furto o distruzione del fascicolo d'ufficio o di singoli atti il presidente del tribunale o della sezione, ovvero, se la questione sorge in udienza, il collegio, ne da' comunicazione al segretario e alle parti al fine, rispettivamente, di ricerca o deposito di copia autentica, che tiene luogo dell'originale. Qualora non si rinvenga copia autentica il presidente, con decreto, fissa una camera di consiglio, di cui e' dato avviso alle parti, per la ricostruzione degli atti o del fascicolo. Il collegio, con ordinanza, accerta il contenuto dell'atto mancante e stabilisce se, e in quale tenore, esso debba essere ricostituito; se non e' possibile accertare il contenuto dell'atto il collegio ne ordina la rinnovazione, se necessario e possibile, prescrivendone il modo. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (15)</p>
+                                <p>
+ Il <ref eId="283" href="/akn/it/act/decretoLegge/stato/2015-06-27/83/!main">D.L. 27 giugno 2015, n. 83</ref>, convertito con modificazioni dalla <ref eId="284" href="/akn/it/act/legge/stato/2015-08-06/132/!main">L. 6 agosto 2015, n. 132</ref>, ha disposto (con l'art. 20, comma 1-bis) che l'abrogazione del comma 2 e la modifica del comma 3 del presente articolo decorrono dall'entrata in vigore del processo amministrativo telematico. </p>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (21)</p>
+                                <p>
+ Il <ref eId="285" href="/akn/it/act/decretoLegge/stato/2016-08-31/168/!main">D.L. 31 agosto 2016, n. 168</ref>, convertito con modificazioni dalla <ref eId="286" href="/akn/it/act/legge/stato/2016-10-25/197/!main">L. 25 ottobre 2016, n. 197</ref>, ha disposto (con l'art. 7, comma 2, alinea) che la modifica del comma 3-bis del presente articolo decorre dal 1 gennaio 2017. 
+ Ha inoltre disposto (con l'art. 7, comma 3) che la modifica del comma 3-bis del presente articolo ha efficacia con riguardo ai giudizi introdotti con i ricorsi depositati, in primo o in secondo grado, a far data dal 1° gennaio 2017; ai ricorsi depositati anteriormente a tale data, continuano ad applicarsi, fino all'esaurimento del grado di giudizio nel quale sono pendenti alla data stessa e comunque non oltre il 1° gennaio 2018, le norme vigenti alla data di entrata in vigore del medesimo <ref eId="287" href="/akn/it/act/decretoLegge/stato/2016-08-31/168/!main">D.L. 31 agosto 2016, n. 168</ref>. 
+ Il <ref eId="288" href="/akn/it/act/decretoLegge/stato/2016-08-31/168/!main">D.L. 31 agosto 2016, n. 168</ref>, convertito con modificazioni dalla <ref eId="289" href="/akn/it/act/legge/stato/2016-10-25/197/!main">L. 25 ottobre 2016, n. 197</ref>, nel modificare l'<ref eId="290" href="/akn/it/act/decretoLegge/stato/2015-06-27/83/!main#art_20-com1bis">art. 20, comma 1-bis del D.L. 27 giugno 2015, n. 83</ref>, convertito con modificazioni dalla <ref eId="291" href="/akn/it/act/legge/stato/2015-08-06/132/!main">L. 6 agosto 2015, n. 132</ref>, ha conseguentemente disposto (con l'art. 7, comma 3) che l'abrogazione del comma 2 e la modifica del comma 3 del presente articolo hanno efficacia con riguardo ai giudizi introdotti con i ricorsi depositati, in primo o in secondo grado, a far data dal 1° gennaio 2017; ai ricorsi depositati anteriormente a tale data, continuano ad applicarsi, fino all'esaurimento del grado di giudizio nel quale sono pendenti alla data stessa e comunque non oltre il 1° gennaio 2018, le norme vigenti alla data di entrata in vigore del medesimo <ref eId="292" href="/akn/it/act/decretoLegge/stato/2016-08-31/168/!main">D.L. 31 agosto 2016, n. 168</ref>. </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 12">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 13">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 13 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 13 ter">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 13 quater">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 14">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 15">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 2 Norme di attuazione-art. 16">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 3 Norme transitorie-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 3 Norme transitorie-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 3 Norme transitorie-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 4 Norme di coordinamento e abrogazioni -art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 4 Norme di coordinamento e abrogazioni -art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 4 Norme di coordinamento e abrogazioni -art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Allegato 4 Norme di coordinamento e abrogazioni -art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+        </attachments>
+    </act>
+</akomaNtoso>

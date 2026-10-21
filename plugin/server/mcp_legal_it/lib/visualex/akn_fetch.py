@@ -23,6 +23,7 @@ import json
 import os
 import re
 import sys
+import time
 from collections import OrderedDict
 from datetime import date
 from pathlib import Path
@@ -60,7 +61,9 @@ _CACHE_MAX = max(1, int(os.environ.get("AKN_CACHE_MAX_ACTS", "50") or "50"))
 # what an act serves, so acts parsed by the previous parser are fetched again
 # instead of answering with the old result until the vigenza date rolls over.
 # 2: the body of an act with annexes is the default lookup (issue #47).
-_CACHE_SCHEMA = 2
+# 3: the parser merged with VisuaLex's (tables, the Dispositivo part, per-article dates,
+#    Normattiva positions of the parts, a treaty's law keeps its body).
+_CACHE_SCHEMA = 3
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
@@ -137,22 +140,37 @@ def _disk_path(key: tuple[str, str, str]) -> Path:
     return _cache_root() / fname
 
 
+#: Access counter per act, kept in memory and written to ``akn_hits.json`` at most every
+#: ``_HITS_WRITE_EVERY`` seconds: rewriting the file on every warm hit cost a disk write
+#: per article served from cache.
+_hits: "dict[str, int] | None" = None
+_hits_written_at: "float | None" = None
+_HITS_WRITE_EVERY = 30.0
+_now = time.monotonic
+
+
 def _bump_hits(key: tuple[str, str, str]) -> None:
-    """Increment the persisted access counter for a key (best-effort)."""
+    """Increment the access counter for a key; persist it now and then (best-effort)."""
+    global _hits, _hits_written_at
     if not cache_enabled():
         return
     try:
         path = _hits_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        hits: dict = {}
-        if path.exists():
-            try:
-                hits = json.loads(path.read_text(encoding="utf-8"))
-            except (ValueError, OSError):
-                hits = {}
+        if _hits is None:
+            _hits = {}
+            if path.exists():
+                try:
+                    _hits = {k: int(v) for k, v in json.loads(path.read_text(encoding="utf-8")).items()}
+                except (ValueError, OSError, AttributeError, TypeError):
+                    _hits = {}
         hit_key = "|".join(key)
-        hits[hit_key] = int(hits.get(hit_key, 0)) + 1
-        path.write_text(json.dumps(hits, ensure_ascii=False), encoding="utf-8")
+        _hits[hit_key] = _hits.get(hit_key, 0) + 1
+        adesso = _now()
+        if _hits_written_at is not None and adesso - _hits_written_at < _HITS_WRITE_EVERY:
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(_hits, ensure_ascii=False), encoding="utf-8")
+        _hits_written_at = adesso
     except OSError as exc:
         print(f"[akn_fetch] hit-counter write failed: {exc}", file=sys.stderr)
 
@@ -165,8 +183,10 @@ def _act_to_dict(act: ParsedAct) -> dict:
         "order": act.order,
         "structure": act.structure,
         "main_part": act.main_part,
+        "dates": act.dates,
         "parts": {
-            name: {"name": p.name, "articles": p.articles, "order": p.order}
+            name: {"name": p.name, "articles": p.articles, "order": p.order, "dates": p.dates,
+                   "position": p.position}
             for name, p in act.parts.items()
         },
     }
@@ -178,6 +198,8 @@ def _act_from_dict(data: dict) -> ParsedAct:
             name=pd.get("name", name),
             articles=dict(pd.get("articles", {})),
             order=list(pd.get("order", [])),
+            dates=dict(pd.get("dates", {})),
+            position=int(pd.get("position", 0) or 0),
         )
         for name, pd in (data.get("parts") or {}).items()
     }
@@ -185,6 +207,7 @@ def _act_from_dict(data: dict) -> ParsedAct:
         title=data.get("title", ""),
         articles=dict(data.get("articles", {})),
         order=list(data.get("order", [])),
+        dates=dict(data.get("dates", {})),
         structure=data.get("structure", "flat"),
         parts=parts,
         main_part=data.get("main_part", ""),
@@ -247,10 +270,11 @@ def _cache_lookup(key: tuple[str, str, str]) -> "ParsedAct | None":
 
 def clear_akn_cache(disk: bool = False) -> None:
     """Clear the in-memory caches; optionally wipe the on-disk parsed-act cache."""
-    global _url_params_loaded
+    global _url_params_loaded, _hits, _hits_written_at
     _lru.clear()
     _url_params.clear()
     _url_params_loaded = False
+    _hits, _hits_written_at = None, None
     if disk:
         root = _cache_root()
         if root.exists():
@@ -432,7 +456,9 @@ async def _download_act(landing_url: str, data_vigenza: str) -> "ParsedAct | Non
         if "akomaNtoso" not in xml[:_AKN_ROOT_WINDOW]:
             return None
 
-        act = parse_akn(xml)
+        # Off the event loop: the codice civile takes ~0.25 s to parse (VisuaLex's
+        # akn_fetch does the same).
+        act = await asyncio.to_thread(parse_akn, xml)
         if not act.article_count:
             return None
 

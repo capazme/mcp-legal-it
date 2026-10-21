@@ -258,11 +258,38 @@ The text in force of one article, from Normattiva or EUR-Lex.
     drops the amendment markers and adds a heading of its own: never
     VisuaLex's display text.
   - EUR-Lex is always read from its HTML; `fonte` is `eurlex`.
-- **`allegato` of the codes.** A code carries the annex its URN points at even
-  when the citation does not name it: c.c. `"2"`, c.p. and c.p.c. `"1"` (the
-  same annex is in the URN, `;262:2`). Passing that default annex back
-  (`riferimento_da_parametri(..., allegato="2")`, or a `NormaDati`) reads the
-  article, not an annex.
+- **`allegato` is Normattiva's position, as in VisuaLex.** A digit `allegato`
+  (in a `NormaDati`, or `riferimento_da_parametri(..., allegato="2")`) is the
+  `:k` of the URN, the entry of Normattiva's tree: it goes into the URL, and on
+  the HTML channel the text is that page's. It is not the name the act gives an
+  annex, which is often another number:
+
+  | Act | Part | Name in the act | Position (`allegato`, URN) |
+  |---|---|---|---|
+  | r.d. 262/1942 | preleggi | Disposizioni sulla legge in generale | `1`, `;262:1` |
+  | r.d. 262/1942 | codice civile | CODICE CIVILE | `2`, `;262:2` |
+  | r.d. 1398/1930 | codice penale | Codice Penale | `1`, `;1398:1` |
+  | d.lgs. 104/2010 | codice del processo amministrativo | Allegato 1 | `2`, `;104:2` ("Indice generale" is `:1`) |
+  | l. 654/1975 | the Convention it executes | Convenzione | `2`, `;654:2` |
+  | d.lgs. 36/2023 | Allegato I.7 / I.11 | Allegato I.7 / I.11 | `8` / `12` (a sub-part after a dash, "Allegato I.4-Tabella A", is not an entry) |
+
+  Measured on the exports and checked live on 21/10/2026. A name the act gives
+  ("I.7", "III") stays a name, and so does any `allegato` of an EU act (EUR-Lex
+  URLs have no part). A part number is a positive integer without leading zeros:
+  `"0"` or `"02"` is `riferimento_non_valido`. An annex article read from the
+  part's page on the HTML channel is served only if the page's text is the
+  export's article (accents aside); a position two parts share builds no URN. A citation of an annex by a digit name
+  ("allegato 1 al d.lgs. 104/2010") keeps the annex in `numero_articolo`
+  (`"allegato 1 art. 120"`) with `allegato=None`, so that it is never read back
+  as a position.
+- **`allegato` in `norma_data` is what VisuaLex files the norm under**, nothing
+  more: the `allegato` the caller gave, a code's default part (c.c. `"2"`, c.p.
+  and c.p.c. `"1"`, as VisuaLex gives them), or `None`. The part an answer was
+  served from is in `url` and `urn` only: "art. 120 d.lgs. 104/2010" answers
+  with `urn` `…;104:2~art120` and `allegato=None`. Passing a code's default
+  part back (`allegato="2"` for the c.c.) reads the article, not an annex.
+  The `None` of the codes whose URN gained its part on 21/10/2026 is
+  **provisional** (see §8, «Saved norms keep their key»).
 - **`url` and `urn`** are both always filled for Normattiva acts (EU acts have
   no NIR URN). An act cited with the year only whose full date could not be
   read keeps the URN derived from its URL. That URN has a placeholder date,
@@ -646,5 +673,27 @@ multi-article references come with the next phases. `/fetch_decision` switches
 - **`identita` does not drift.** Its fields are shared by page addresses,
   dossiers and remote clients. Adding a field is allowed; renaming or reshaping
   one is not.
+- **Saved norms keep their key.** VisuaLex identifies a saved norm by a key
+  derived from it, `norma_key`, not by its URN: `decreto_legislativo_AAAA_MM_GG_N`,
+  `codice_civile`, `codice_penale`, `regolamento-ue--AAAA--NNNN::art::N`. Any
+  change that alters that key for an existing norm (a code's URN, a date, an act
+  type) needs an alignment on VisuaLex's side before the shell switches to the
+  3.0 package. The shell switches only after realigning the saved norms whose
+  code URN differs from VisuaLex's table. Today these are the codes whose URN
+  gained the part holding their articles on 21/10/2026: codice del turismo
+  (`;79:1`), codici penali militari (`;303:1`), norme di attuazione del c.p.p.
+  (`;271:1`), regolamento per la navigazione marittima (`;328:1`), and the acts
+  cited by their own number whose articles are an annex: c.p.p. minorile
+  (d.P.R. 448/1988, `;448:1`), TULPS (r.d. 773/1931, `;773:1`), TU successioni
+  (d.lgs. 346/1990, `;346:1`). For the codice del turismo no saved norm depends
+  on it, so it needs no data migration, only the code fix in VisuaLex. VisuaLex
+  corrects the URN only, never `norma_data.allegato`: for these seven the
+  `:1` is in the URN and `allegato` stays `None`, as VisuaLex has it, so their
+  item keys do not change. The same holds for the codice penale militare di pace (`;303:1`)
+  and di guerra (`;303:2`), added on 21/10/2026 and absent from VisuaLex's table.
+  **Provisional:** this `allegato=None` rule for those nine depends on a decision
+  still open on VisuaLex's side, which may file them with `allegato` "1" (or "2")
+  as it does the c.c. and the c.p.; it is not part of the frozen contract until
+  that decision is taken.
 - **Serialisation stays the shell's job.** Key order, ASCII escaping, the NDJSON
   stream: `come_dict` returns data, not JSON text.
