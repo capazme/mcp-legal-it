@@ -56,11 +56,21 @@ Il server gira **sul tuo computer** e non invia telemetria. Contatta soltanto:
 
 A queste fonti arrivano solo i parametri della ricerca (per esempio il numero di un articolo, le parole cercate, una partita IVA da verificare con VIES). L'elenco degli host è verificato dai test del progetto (`_egress.py`).
 
-**Sul disco** il server scrive solo cache di testi pubblici in `~/.cache/mcp-legal-it` (`MCP_CACHE_DIR`; `LEGAL_CACHE=off` le disattiva) e i documenti che chiedi di generare. L'hook delle citazioni legge in locale la trascrizione della sessione e non la invia da nessuna parte.
+**Sul disco** il server scrive solo cache di testi pubblici in `~/.cache/mcp-legal-it` (`MCP_CACHE_DIR`; `LEGAL_CACHE=off` le disattiva) e i documenti che chiedi di generare. L'hook delle citazioni legge in locale la trascrizione della sessione e quelle dei suoi subagenti, mai di altre sessioni, e non le invia da nessuna parte.
 
 Le skill `esporta-documento` e `cookie-audit` usano Node.js con il pacchetto `docx`, se presente; la skill `cookie-audit` usa anche gli strumenti del browser di Claude, quando disponibili.
 
 Informativa privacy: <https://capazme.github.io/mcp-legal-it/privacy.html>. Assistenza: <https://github.com/capazme/mcp-legal-it/issues>.
+
+## Il controllo delle citazioni
+
+Alla fine di ogni risposta, e di ogni subagente, un hook controlla che le norme e le sentenze citate siano state **lette con un tool** nella sessione (Legal Grounding Protocol). Se ne trova di non lette, chiede una volta di leggerle prima di chiudere; non blocca mai la sessione.
+
+- **Norme**: conta un risultato di `cite_law` o `fetch_law_article` che ha restituito proprio quell'articolo, o un testo di `fetch_full_act` che lo contiene. Un errore, o un articolo diverso da quello chiesto, non conta.
+- **Sentenze** (Cassazione, Corte costituzionale, TAR e Consiglio di Stato, Corte di giustizia UE): conta un risultato dei tool di quella corte (`leggi_*`, `cerca_*`, `*_su_norma`, `ultime_*`) che riporta numero e anno nella sua intestazione: i precedenti citati dentro una sentenza letta non contano, vanno letti a loro volta. **Una massima di Brocardi o una sintesi di orientamento non basta**: riassume la decisione, non è la decisione. Per questo il controllo chiede di leggerla, per esempio con `leggi_sentenza`.
+- **Fonti che nessun tool copre** (CEDU, codice deontologico forense, allegati UE): basta scrivere «fuori copertura» sulla stessa riga.
+
+Controlla che la fonte sia stata letta, non che la risposta ne riporti correttamente il contenuto: quello resta al giudizio dell'avvocato.
 
 ## Cosa include
 
