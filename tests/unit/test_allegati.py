@@ -58,15 +58,35 @@ _CODE_IN_ANNEX = """<?xml version="1.0" encoding="UTF-8"?>
 </attachments></act></akomaNtoso>"""
 
 
-def _serve_akn(monkeypatch, act):
-    """Make fetch_article read ``act`` as the AKN export, and fail on any HTML fetch."""
+def _serve_akn(monkeypatch, act, pagine: "dict[str, str] | None" = None):
+    """Make fetch_article read ``act`` as the AKN export; HTML only from *pagine* (url suffix -> page)."""
 
     async def fake_fetch_act_akn(norma, data_vigenza=None):
         return act
 
+    class _Risposta:
+        def __init__(self, url, text):
+            self.url, self.text, self.status_code = url, text, 200
+
+        def raise_for_status(self):
+            return None
+
     class _NoNetwork:
         def __init__(self, *a, **k):
-            raise AssertionError("the HTML fallback must not be reached")
+            if not pagine:
+                raise AssertionError("the HTML fallback must not be reached")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def get(self, url):
+            for suffisso, pagina in pagine.items():
+                if url.endswith(suffisso):
+                    return _Risposta(url, pagina)
+            raise AssertionError(f"unexpected request: {url}")
 
     async def fake_metadata(norma):
         # Real date of an act cited with the year only, as the Normattiva page gives it.
@@ -199,7 +219,7 @@ class TestNormattivaAnnexes:
     @pytest.mark.asyncio
     async def test_art_30_is_the_codes_article(self, monkeypatch, codice_appalti):
         _serve_akn(monkeypatch, codice_appalti)
-        result = await fetch_article(_codice_appalti("30"))
+        result = await fetch_article(_codice_appalti("30"), canale="akn")
         assert "Uso di procedure automatizzate" in result["text"]
         assert result["source"] == "normattiva-akn"
         assert not result.get("allegato")
@@ -234,7 +254,7 @@ class TestNormattivaAnnexes:
             norma=Norma(tipo_atto="decreto legislativo", data="2010-07-02", numero_atto="104"),
             numero_articolo="2",
         )
-        result = await fetch_article(nv)
+        result = await fetch_article(nv, canale="akn")
         assert "Giusto processo" in result["text"]
         assert result["allegato"] == "Allegato 1"
 
@@ -248,7 +268,12 @@ class TestNormattivaAnnexes:
 
     @pytest.mark.asyncio
     async def test_cite_law_json_carries_the_annex(self, monkeypatch, codice_appalti):
-        _serve_akn(monkeypatch, codice_appalti)
+        # The body article comes from its page (HTML channel); an annex only from the export.
+        pagina = ('<html><body><div class="bodyTesto"><h2 class="article-num-akn" id="art_30">Art. 30</h2>'
+                  '<div class="article-heading-akn">(Uso di procedure automatizzate nel ciclo di vita dei '
+                  'contratti)</div><div class="art-comma-div-akn">1. Per migliorare l\'efficienza...</div>'
+                  '</div></body></html>')
+        _serve_akn(monkeypatch, codice_appalti, pagine={";36~art30": pagina})
         body = json.loads(await lc._cite_law_impl("art. 30 D.Lgs. 36/2023", formato="json"))
         assert body["allegato"] is None
         assert "Uso di procedure automatizzate" in body["testo"]

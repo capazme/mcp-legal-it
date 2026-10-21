@@ -5,7 +5,7 @@ Italian norms and case law as plain functions with structured returns::
     import asyncio
     from mcp_legal_it import api
 
-    t = asyncio.run(api.testo_articolo("art. 2043 c.c.", canale="akn"))
+    t = asyncio.run(api.testo_articolo("art. 2043 c.c.", canale="html"))
     t.esito, t.article_text, t.norma_data.urn
 
 Every network function is ``async`` and never raises for an expected outcome:

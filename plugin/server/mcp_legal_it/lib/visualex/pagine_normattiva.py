@@ -1,0 +1,115 @@
+"""What a Normattiva article page said, kept for a day: the HTML channel's cache.
+
+VisuaLex keeps every Normattiva page it fetched for 24 hours (its persistent
+``normattiva`` namespace, ``PERSISTENT_CACHE_TTL``), so an article asked again the
+same day costs no request. This is that cache for the HTML channel, with one
+difference: it keeps what the page said, not the page. A code's article page is
+about 2.6 MB of HTML; the record is the extracted ``article_text`` (VisuaLex's
+extractor, ``normattiva_html``) and the article number the page gives it, a few KB.
+
+- in memory, an LRU of ``MAX_IN_MEMORIA`` records;
+- on disk, ``${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine/<sha256 of the URL>.json``,
+  read back for ``TTL_SECONDI`` (24 h) after the fetch; an expired record is deleted
+  when met, and past ``MAX_SU_DISCO`` files the oldest go;
+- ``LEGAL_CACHE=off`` (``lib/_cache.py``): nothing is read from or written to disk.
+
+A record is written only when the page was read: a failed fetch, a page with no
+article body, are never kept.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import sys
+import time
+from collections import OrderedDict
+from pathlib import Path
+
+from .._cache import cache_enabled, cache_root
+
+#: How long a page's reading is reused: VisuaLex's PERSISTENT_CACHE_TTL.
+TTL_SECONDI = 86400
+MAX_IN_MEMORIA = 256
+MAX_SU_DISCO = 2000
+#: Raised when the record's shape changes, so records written before are not read.
+SCHEMA = 1
+
+_memoria: "OrderedDict[str, dict]" = OrderedDict()
+
+
+def _dir() -> Path:
+    return cache_root() / "normattiva_pagine"
+
+
+def _chiave(url: str) -> str:
+    return hashlib.sha256(url.encode("utf-8")).hexdigest()
+
+
+def leggi(url: str) -> dict | None:
+    """The record of *url* if it is younger than a day, else None."""
+    adesso = time.time()
+    rec = _memoria.get(url)
+    if rec is not None:
+        if adesso - rec["salvato"] < TTL_SECONDI:
+            _memoria.move_to_end(url)
+            return rec
+        del _memoria[url]
+    if not cache_enabled():
+        return None
+    path = _dir() / f"{_chiave(url)}.json"
+    try:
+        rec = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if rec.get("schema") != SCHEMA or rec.get("url") != url or adesso - rec.get("salvato", 0) >= TTL_SECONDI:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        return None
+    _ricorda(url, rec)
+    return rec
+
+
+def scrivi(url: str, testo: str, servito: str | None) -> None:
+    """Keep what the page at *url* said (best effort: an unwritable directory only warns)."""
+    rec = {"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito}
+    _ricorda(url, rec)
+    if not cache_enabled():
+        return
+    try:
+        cartella = _dir()
+        cartella.mkdir(parents=True, exist_ok=True)
+        path = cartella / f"{_chiave(url)}.json"
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        tmp.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
+        os.replace(tmp, path)
+        _sfoltisci(cartella)
+    except OSError as exc:
+        print(f"mcp-legal-it: cache delle pagine Normattiva non scrivibile ({exc})", file=sys.stderr)
+
+
+def _ricorda(url: str, rec: dict) -> None:
+    _memoria[url] = rec
+    _memoria.move_to_end(url)
+    while len(_memoria) > MAX_IN_MEMORIA:
+        _memoria.popitem(last=False)
+
+
+def _sfoltisci(cartella: Path) -> None:
+    files = list(cartella.glob("*.json"))
+    if len(files) <= MAX_SU_DISCO:
+        return
+    files.sort(key=lambda p: p.stat().st_mtime)
+    for p in files[: len(files) - MAX_SU_DISCO]:
+        try:
+            p.unlink()
+        except OSError:
+            pass
+
+
+def svuota_memoria() -> None:
+    """Forget the in-memory records (tests)."""
+    _memoria.clear()

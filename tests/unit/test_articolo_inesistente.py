@@ -277,7 +277,7 @@ class TestRealArticles:
     ])
     async def test_from_the_export(self, monkeypatch, codice_civile, article, marker):
         _serve(monkeypatch, codice_civile, pages={})
-        result = await fetch_article(_nv("codice civile", article))
+        result = await fetch_article(_nv("codice civile", article), canale="akn")
         assert marker in result["text"], result
         assert not result.get("error")
 
@@ -317,9 +317,10 @@ class TestRealArticles:
 
     @pytest.mark.asyncio
     async def test_cite_law_markdown_2043(self, monkeypatch, codice_civile):
-        _serve(monkeypatch, codice_civile, pages={})
+        # cite_law reads the page (VisuaLex's text, accents and all) since the HTML channel.
+        _serve(monkeypatch, codice_civile)
         out = await lc._cite_law_impl("art. 2043 c.c.")
-        assert out.startswith("**Fonte**: Normattiva-Akn"), out
+        assert out.startswith("**Fonte**: Normattiva — "), out
         assert "Risarcimento per fatto illecito" in out
 
     @pytest.mark.asyncio
@@ -345,10 +346,10 @@ class TestVerificaCitazioni:
 
     @pytest.mark.asyncio
     async def test_real_article_is_verificata(self, monkeypatch, codice_civile):
-        _serve(monkeypatch, codice_civile, pages={})
+        _serve(monkeypatch, codice_civile)
         verdetto, nota = await lc._verifica_norma("art. 2043 c.c.")
         assert verdetto == "verificata", nota
-        assert "Normattiva-Akn — https://www.normattiva.it/uri-res/N2Ls?" in nota
+        assert "Normattiva — https://www.normattiva.it/uri-res/N2Ls?" in nota
 
     @pytest.mark.asyncio
     async def test_unidentified_page_is_non_verificata(self, monkeypatch):
@@ -472,7 +473,7 @@ class TestSuffixes:
         act = ParsedAct(title="Codice privacy", articles={"2-sex-decies": "### Art. 2-sexiesdecies\n\nTesto."},
                         order=["2-sex-decies"])
         _serve(monkeypatch, act, pages={})
-        result = await fetch_article(_nv(_DLGS196[0], "2-sexiesdecies", _DLGS196[1], _DLGS196[2]))
+        result = await fetch_article(_nv(_DLGS196[0], "2-sexiesdecies", _DLGS196[1], _DLGS196[2]), canale="akn")
         assert result["source"] == "normattiva-akn" and "Testo." in result["text"], result
 
 
