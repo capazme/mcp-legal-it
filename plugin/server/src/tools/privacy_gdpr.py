@@ -14,13 +14,13 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "gdpr_sanzioni.json") as f:
+with open(_DATA / "gdpr_sanzioni.json", encoding="utf-8") as f:
     _SANZIONI = json.load(f)
 
-with open(_DATA / "gdpr_basi_giuridiche.json") as f:
+with open(_DATA / "gdpr_basi_giuridiche.json", encoding="utf-8") as f:
     _BASI = json.load(f)
 
-with open(_DATA / "gdpr_dpia_criteri.json") as f:
+with open(_DATA / "gdpr_dpia_criteri.json", encoding="utf-8") as f:
     _DPIA = json.load(f)
 
 

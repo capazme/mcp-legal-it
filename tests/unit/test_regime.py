@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import pathlib
 import re
 import shutil
@@ -41,7 +42,17 @@ print(json.dumps(asyncio.run(main())))
 
 
 def _surface(home: pathlib.Path, **extra: str) -> list[str]:
-    env = {"PATH": "/usr/bin:/bin", "HOME": str(home), "LEGAL_CACHE": "off", **extra}
+    # Only what the interpreter needs to boot -- PATH to find it, SYSTEMROOT
+    # for it on Windows -- and the home the test isolates: USERPROFILE
+    # beside HOME because Path.home() reads the Windows one.
+    env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "LEGAL_CACHE": "off",
+        **extra,
+    }
     out = subprocess.run(
         [sys.executable, "-c", SNIPPET], cwd=REPO, env=env, capture_output=True, text=True, check=True
     )

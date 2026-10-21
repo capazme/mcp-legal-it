@@ -1048,8 +1048,17 @@ def _module_tables(tree: ast.Module, allowed: set[str]) -> dict[str, str]:
 
 
 def _dotted(module: str) -> str:
-    """`src/lib/brocardi/client.py` -> `src.lib.brocardi.client`."""
-    return ".".join(pathlib.PurePosixPath(module).with_suffix("").parts)
+    r"""`src/lib/brocardi/client.py` -> `src.lib.brocardi.client`.
+
+    The input may arrive as a native path from the running interpreter, and
+    `PurePosixPath` does not split on the Windows separator: backslashes are
+    folded to slashes first, or a discovered module keeps `src\lib\_cache`
+    where the declaration says `src.lib._cache` and every cache and clock
+    invariant reads as violated on Windows.
+    """
+    return ".".join(
+        pathlib.PurePosixPath(str(module).replace("\\", "/")).with_suffix("").parts
+    )
 
 
 def _module_text(audit: "Audit", dotted: str) -> str:

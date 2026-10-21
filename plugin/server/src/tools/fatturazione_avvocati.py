@@ -10,14 +10,14 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "parametri_forensi.json") as f:
+with open(_DATA / "parametri_forensi.json", encoding="utf-8") as f:
     _PARAMETRI = json.load(f)
 
 #: Contributo unificato di cognizione, read from the shared table rather than
 #: copied here: a hand-kept copy does not age with the table, diverges from the
 #: answer of `contributo_unificato` without anything failing, and cannot report
 #: its own vintage to the reader.
-with open(_DATA / "contributo_unificato.json") as f:
+with open(_DATA / "contributo_unificato.json", encoding="utf-8") as f:
     _CU_CIVILE: list[dict] = json.load(f)["civile"]["cognizione"]
 
 def _q(x) -> float:
