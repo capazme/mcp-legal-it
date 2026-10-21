@@ -36,7 +36,7 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 ### 3. Giurisprudenza
 
-`legal-it:cerca_brocardi` per massime. `legal-it:cerca_giurisprudenza` per approfondimento.
+`legal-it:cerca_brocardi` (se disponibile) per massime. `legal-it:cerca_giurisprudenza` per approfondimento.
 
 Per le norme chiave, chiama `legal-it:cite_law` con `include_annotations=true` per recuperare da Brocardi:
 - Massime di Cassazione e Corte Costituzionale

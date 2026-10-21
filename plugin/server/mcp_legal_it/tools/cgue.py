@@ -187,7 +187,7 @@ async def _ultime_sentenze_cgue_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"giurisprudenza_ue", "normativa"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_ue"})
 async def cerca_giurisprudenza_cgue(
     query: str,
     corte: str = "",
@@ -225,7 +225,7 @@ async def cerca_giurisprudenza_cgue(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza_ue", "normativa"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_ue"})
 async def leggi_sentenza_cgue(cellar_uri: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di una sentenza CGUE tramite CELLAR URI.
 
@@ -252,7 +252,7 @@ async def leggi_sentenza_cgue(cellar_uri: str, da_carattere: int = 1) -> str:
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza_ue", "normativa"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_ue"})
 async def giurisprudenza_cgue_su_norma(
     riferimento: str,
     corte: str = "",
@@ -285,7 +285,7 @@ async def giurisprudenza_cgue_su_norma(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza_ue", "normativa"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_ue"})
 async def ultime_sentenze_cgue(
     corte: str = "",
     tipo_documento: str = "",

@@ -55,9 +55,30 @@ questo documento. Le due liste non possono divergere.
 **Brocardi è l'unica fonte non istituzionale**, ed è una scelta deliberata da
 conoscere. Fornisce annotazioni dottrinali e massime; **non fornisce mai il
 testo di una norma**, che arriva sempre da Normattiva o da EUR-Lex. Se questa
-dipendenza non ti va bene, i tool che la usano sono isolati in
-`mcp_legal_it/tools/legal_citations.py` (`cerca_brocardi`, `fetch_law_annotations`) e nel
-profilo che li carica.
+dipendenza non ti va bene, spegnila:
+
+```bash
+LEGAL_BROCARDI=off mcp-legal-it        # oppure crea_server(brocardi=False) in codice
+```
+
+Con Brocardi spento:
+
+- **nessuna richiesta parte verso `www.brocardi.it`**: i due scraper che costruiscono
+  URL Brocardi (`mcp_legal_it/lib/brocardi/client.py`, `mcp_legal_it/lib/visualex/scraper.py`)
+  passano da `mcp_legal_it/lib/_brocardi_switch.py` prima di qualunque I/O e si fermano
+  (è questo il blocco: `_egress.is_allowed()`, che a runtime riflette lo stato
+  dell'interruttore, è l'elenco consultabile, non un secondo strato di difesa);
+- `cerca_brocardi` e `fetch_law_annotations` (tag `solo_brocardi`) non sono esposti;
+- `cite_law(include_annotations=True)`, `giurisprudenza_articolo` e `mappa_orientamento`
+  (tag `brocardi`) rispondono senza Brocardi e lo dichiarano nella risposta;
+- uno *spento* nell'ambiente non può essere riacceso dal codice.
+
+Questo controllo è **a runtime**, non solo statico:
+`tests/unit/test_brocardi_switch.py` sostituisce la rete con un finto client che
+registra ogni richiesta, chiama ogni tool con tag `brocardi` e fallisce se anche una
+sola richiesta raggiunge un host Brocardi; un secondo test percorre il grafo delle
+chiamate dei moduli `tools/` e fallisce se un tool arriva agli scraper Brocardi senza
+il tag `brocardi`.
 
 ### L'unico host scelto da chi chiama: `verifica_dpa_fornitore`
 

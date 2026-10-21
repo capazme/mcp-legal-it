@@ -488,7 +488,7 @@ async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "
         return f"**Errore Brocardi**: {e}"
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa", "brocardi"})
 async def cite_law(
     reference: str,
     include_annotations: bool = False,
@@ -562,7 +562,7 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
     return await _fetch_law_article_impl(act_type, article, date, act_number)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"})
 async def fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupera le annotazioni Brocardi per un articolo: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali. Da usare per approfondire la norma già recuperata con cite_law().
@@ -635,7 +635,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
     return "\n".join(parts)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"})
 async def cerca_brocardi(reference: str) -> str:
     """Cerca annotazioni Brocardi per un articolo di legge: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali con riferimenti strutturati alla Cassazione, relazioni storiche,

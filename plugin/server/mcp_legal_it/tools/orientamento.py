@@ -20,6 +20,7 @@ import re
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib import _brocardi_switch
 from mcp_legal_it.lib.brocardi.client import fetch_brocardi, parse_massime_references
 from mcp_legal_it.lib.visualex import resolve_atto
 from mcp_legal_it.lib.italgiure.client import (
@@ -477,7 +478,9 @@ async def _mappa_orientamento_impl(
     anchor_refs: list[dict] = []
     n_massime = 0
     anchor_status = ""  # human-readable reason when there is no anchor
-    if articolo and atto_str:
+    if not _brocardi_switch.enabled():
+        anchor_status = _brocardi_switch.DISABLED_NOTE
+    elif articolo and atto_str:
         act_info = resolve_atto(atto_str)
         if act_info:
             try:
@@ -566,7 +569,7 @@ async def _mappa_orientamento_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
 async def orientamento_su_norma(
     riferimento: str,
     archivio: str = "tutti",
@@ -605,7 +608,7 @@ async def orientamento_su_norma(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
 async def orientamento_su_principio(
     principio: str,
     archivio: str = "tutti",
@@ -637,7 +640,7 @@ async def orientamento_su_principio(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass", "brocardi"})
 async def mappa_orientamento(
     riferimento: str,
     archivio: str = "tutti",

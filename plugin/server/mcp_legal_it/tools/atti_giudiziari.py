@@ -151,7 +151,7 @@ def _calcola_cu_base(
     return _lookup_scaglione(civile["cognizione"], valore_causa)
 
 
-@mcp.tool(tags={"giudiziario", "credito", "sinistro"})
+@mcp.tool(tags={"calcolo", "credito", "giudiziario", "sinistro"})
 @sourced("contributo_unificato", alternativa="tabella_contributo_unificato")
 def contributo_unificato(
     valore_causa: float,
@@ -277,7 +277,7 @@ def _diritto_copia_cartacea(n_pagine: int, tipo: str) -> float:
     return round(ultimo + (-(-(n_pagine - 100) // 100)) * t["incremento_100"], 2)
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 def diritti_copia(
     n_pagine: int,
     tipo: str = "semplice",
@@ -375,7 +375,7 @@ _ASSEGNO_SOCIALE_ANNO = 2026
 _MINIMO_IMPIGNORABILE_PENSIONI = 1000.0
 
 
-@mcp.tool(tags={"giudiziario", "credito"})
+@mcp.tool(tags={"calcolo", "credito", "giudiziario"})
 def pignoramento_stipendio(
     stipendio_netto_mensile: float,
     tipo_credito: str = "ordinario",
@@ -491,7 +491,7 @@ _FINE_REGIME_7_PUNTI = date(2012, 12, 31)
 _INIZIO_D_LGS_231 = date(2002, 8, 8)
 
 
-@mcp.tool(tags={"giudiziario", "credito"})
+@mcp.tool(tags={"redazione", "credito", "giudiziario"})
 @sourced("tassi_mora")
 def sollecito_pagamento(
     creditore: str,
@@ -640,7 +640,7 @@ Distinti saluti,
     return {"testo_lettera": testo, "calcoli": calcoli}
 
 
-@mcp.tool(tags={"giudiziario", "credito"})
+@mcp.tool(tags={"redazione", "credito", "giudiziario"})
 @sourced("contributo_unificato")
 def decreto_ingiuntivo(
     creditore: str,
@@ -777,7 +777,7 @@ Avv. [LEGALE]"""
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 def calcolo_hash(testo: str) -> dict:
     """Calcola l'impronta hash SHA-256 di un testo per il deposito telematico PCT.
     Vigenza: DM 44/2011 — Specifiche tecniche PCT (algoritmo SHA-256 obbligatorio).
@@ -796,7 +796,7 @@ def calcolo_hash(testo: str) -> dict:
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 def tassazione_atti(
     tipo_atto: str,
     valore: float,
@@ -917,7 +917,7 @@ _COPIA_TRIBUTARIO_OLTRE_100 = 15.00  # per ogni ulteriori 100 pagine o frazione
 _COPIA_TRIBUTARIO_CONFORMITA = 9.00
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 def copie_processo_tributario(
     n_pagine: int,
     tipo: str = "semplice",
@@ -968,7 +968,7 @@ def copie_processo_tributario(
     return result
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 @sourced("codici_ruolo", "contributo_unificato")
 def note_iscrizione_ruolo(
     tipo_procedimento: str,
@@ -1065,7 +1065,7 @@ def _fold_accenti(testo: str) -> str:
     return senza.replace("'", "").replace("’", "")
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 @sourced("codici_ruolo")
 def codici_iscrizione_ruolo(materia: str) -> dict:
     """Ricerca il codice oggetto per l'iscrizione a ruolo di cause civili.
@@ -1093,7 +1093,7 @@ def codici_iscrizione_ruolo(materia: str) -> dict:
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def fascicolo_di_parte(
     avvocato: str,
     parte: str,
@@ -1148,7 +1148,7 @@ INDICE DOCUMENTI:
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def procura_alle_liti(
     parte: str,
     avvocato: str,
@@ -1216,7 +1216,7 @@ Avv. {avvocato}"""
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def attestazione_conformita(
     avvocato: str,
     tipo_documento: str,
@@ -1279,7 +1279,7 @@ Avv. {avvocato}
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def relata_notifica_pec(
     avvocato: str,
     destinatario: str,
@@ -1388,7 +1388,7 @@ Avv. {avvocato}
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def indice_documenti(documenti: list[dict]) -> dict:
     """Genera bozza di indice numerato dei documenti per deposito telematico PCT.
     Vigenza: specifiche tecniche PCT DM 44/2011 — elenco allegati al deposito.
@@ -1422,7 +1422,7 @@ def indice_documenti(documenti: list[dict]) -> dict:
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def note_trattazione_scritta(
     avvocato: str,
     parte: str,
@@ -1502,7 +1502,7 @@ Avv. {avvocato}"""
     }
 
 
-@mcp.tool(tags={"giudiziario", "credito"})
+@mcp.tool(tags={"redazione", "credito", "giudiziario"})
 def sfratto_morosita(
     locatore: str,
     conduttore: str,
@@ -1591,7 +1591,7 @@ Avv. _______________"""
     }
 
 
-@mcp.tool(tags={"giudiziario", "credito"})
+@mcp.tool(tags={"redazione", "credito", "giudiziario"})
 def atto_di_precetto(
     creditore: str,
     debitore: str,
@@ -1668,7 +1668,7 @@ Avv. _______________
     }
 
 
-@mcp.tool(tags={"giudiziario", "credito"})
+@mcp.tool(tags={"redazione", "credito", "giudiziario"})
 def nota_precisazione_credito(
     creditore: str,
     debitore: str,
@@ -1744,7 +1744,7 @@ Avv. _______________"""
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def dichiarazione_553_cpc(
     terzo_pignorato: str,
     debitore: str,
@@ -1849,7 +1849,7 @@ Ai sensi dell'art. 548 c.p.c., in caso di mancata dichiarazione e di mancata com
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def testimonianza_scritta(
     teste: str,
     capitoli_prova: list[str],
@@ -1961,7 +1961,7 @@ Timbro e firma: {_}"""
     }
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"redazione", "giudiziario"})
 def istanza_visibilita_fascicolo(
     avvocato: str,
     parte: str,
@@ -2045,7 +2045,7 @@ _ALIAS_COMUNI_UFFICI = {
 _TIPI_UFFICIO = ("tribunale", "giudice_pace")
 
 
-@mcp.tool(tags={"giudiziario"})
+@mcp.tool(tags={"calcolo", "giudiziario"})
 @sourced("tribunali_competenti")
 def cerca_ufficio_giudiziario(
     comune: str,

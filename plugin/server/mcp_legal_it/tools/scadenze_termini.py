@@ -232,7 +232,7 @@ def _voce_scadenza(scadenza: date, prorogata: bool) -> dict:
     }
 
 
-@mcp.tool(tags={"scadenze", "sinistro"})
+@mcp.tool(tags={"calcolo", "scadenze", "sinistro"})
 @sourced("festivita")
 def scadenza_processuale(
     data_evento: str,
@@ -291,7 +291,7 @@ def scadenza_processuale(
     return result
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_processuali_civili(
     data_udienza: str,
@@ -415,7 +415,7 @@ def termini_processuali_civili(
     return result
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 def termini_separazione_divorzio(
     data_evento: str,
     tipo: str,
@@ -505,7 +505,7 @@ def termini_separazione_divorzio(
     }
 
 
-@mcp.tool(tags={"scadenze", "sinistro"})
+@mcp.tool(tags={"calcolo", "scadenze", "sinistro"})
 @sourced("festivita")
 def scadenze_impugnazioni(
     data_pubblicazione: str,
@@ -628,7 +628,7 @@ def _multe_scadenza(dt_notifica: date, tipo: str, giorni: int) -> tuple[date, bo
     return d, adj, False
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def scadenze_multe(
     data_notifica: str,
@@ -716,7 +716,7 @@ def scadenze_multe(
     return result
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_memorie_repliche(
     data_udienza: str,
@@ -776,7 +776,7 @@ def termini_memorie_repliche(
     }
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_procedimento_semplificato(
     data_udienza: str,
@@ -891,7 +891,7 @@ def termini_procedimento_semplificato(
     }
 
 
-@mcp.tool(tags={"scadenze", "previgente"})
+@mcp.tool(tags={"calcolo", "previgente", "scadenze"})
 @previgente
 @sourced("festivita")
 def termini_183_190_cpc(
@@ -964,7 +964,7 @@ def termini_183_190_cpc(
     }
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_esecuzioni(
     data_notifica_titolo: str,
@@ -1065,7 +1065,7 @@ def termini_esecuzioni(
     }
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_deposito_atti_appello(
     data_notifica_sentenza: str | None = None,
@@ -1182,7 +1182,7 @@ def termini_deposito_atti_appello(
     return result
 
 
-@mcp.tool(tags={"scadenze"})
+@mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_deposito_ctu(
     data_conferimento: str,
