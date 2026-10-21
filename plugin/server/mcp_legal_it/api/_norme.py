@@ -18,6 +18,7 @@ from mcp_legal_it.api.tipi import (
     NormaDati,
     TestoArticolo,
     TestoAtto,
+    Vigenza,
 )
 from mcp_legal_it.core import norme
 from mcp_legal_it.lib import _brocardi_switch, _clock
@@ -340,19 +341,33 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
     with registra() as registro:
         base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
+        validita, precisione, avvisi, successione, upcoming = _qualita(base)
         return TestoArticolo(
             esito=_esito_lookup(base, esito),
             article_text=base["testo"],
             norma_data=nd,
             url=base["url"],
-            validity=None,
+            validity=validita,
             urn=nd.urn,
             fonte=base["fonte"],
             canale=canale,
             data_consultazione=base["data_consultazione"],
             errore=base["errore"],
             fonti=registro.fonti(),
+            precisione=precisione,
+            avvisi=avvisi,
+            successione=successione,
+            upcoming=upcoming,
         )
+
+
+def _qualita(base: dict):
+    """``(validity, precisione, avvisi, successione, upcoming)`` of a served text (``norme.qualita_testo``)."""
+    q = norme.qualita_testo(base)
+    validita = q["validita"]
+    vigenza = Vigenza(**{k: validita[k] for k in ("state", "valid_from", "valid_to", "version_number",
+                                                   "act_updated", "request_in_window")}) if validita else None
+    return vigenza, q["precisione"], tuple(q["avvisi"]), q["successione"], q["upcoming"]
 
 
 async def testi_articoli(

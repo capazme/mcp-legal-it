@@ -118,6 +118,9 @@ def _lookup_base(reference: str) -> dict:
         "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
         "url": "", "urn": None, "fonte": "", "allegato": None, "testo": "", "errore": None,
         "data_consultazione": _clock.today().isoformat(),
+        # What the reader must know about the text (the coming version Normattiva showed
+        # without a date, the export's text, an unread window) and VisuaLex's "upcoming".
+        "avvisi": [], "upcoming": None,
     }
 
 
@@ -160,4 +163,48 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         base["errore"] = result["error"]
     elif not base["testo"]:
         base["errore"] = "nessun testo trovato"
+    q = qualita_testo(base)
+    base["avvisi"], base["upcoming"] = q["avvisi"], q["upcoming"]
     return base, result.get("esito")
+
+
+def qualita_testo(base: dict) -> dict:
+    """``{validita, precisione, avvisi, successione, upcoming}`` of a served text, with no request.
+
+    LI-031: ESATTO only for the text of Normattiva's page whose validity the page states;
+    the Akoma Ntoso export's text, or a page that does not say, is INDICATIVO. When the
+    page without a date showed a version not in force yet, the text served is today's (the
+    scraper asked for it) and the coming version is said: an avviso, and its repealing act
+    as ``successione``, INDICATIVO, with the day Normattiva gives for it.
+    """
+    from mcp_legal_it.lib.visualex.scraper import abrogato_da as _abrogato_da
+    from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, validita_pagina, versione_futura
+
+    testo, fonte, url = base.get("testo") or "", base.get("fonte") or "", base.get("url") or ""
+    if not testo or fonte not in ("normattiva", "normattiva-akn"):
+        return {"validita": None, "precisione": None, "avvisi": [], "successione": None, "upcoming": None}
+    # The validity is the served text's: the page's for the page's text, none for the export's.
+    validita = validita_pagina(url) if fonte == "normattiva" else None
+    avvisi: list[str] = []
+    if fonte == "normattiva":
+        precisione = "ESATTO" if validita else "INDICATIVO"
+        if validita is None:
+            avvisi.append("la pagina di Normattiva non indica la vigenza del testo: data di vigenza non verificata")
+    else:
+        precisione = "INDICATIVO"
+        avvisi.append("testo dall'export Akoma Ntoso di Normattiva: vigenza non verificata sulla pagina")
+    successione = None
+    if (atto := _abrogato_da(testo)) is not None:
+        successione = {"abrogato_da": atto, "precisione": "INDICATIVO", "fonte": "avviso di abrogazione nel testo"}
+    futura = versione_futura(url)
+    upcoming = ({"change": futura["change"], "valid_from": futura["valid_from"],
+                 "version_number": futura["version_number"]} if futura else None)
+    if futura:
+        atto_futuro = _abrogato_da(futura["testo"])
+        avvisi.append(avviso_versione_futura(futura))
+        if atto_futuro and successione is None:
+            successione = {"abrogato_da": atto_futuro, "dal": futura["valid_from"], "precisione": "INDICATIVO",
+                           "fonte": "versione futura della pagina di Normattiva"}
+    return {"validita": validita, "precisione": precisione, "avvisi": avvisi, "successione": successione,
+            "upcoming": upcoming}
+
