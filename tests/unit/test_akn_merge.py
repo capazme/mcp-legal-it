@@ -265,6 +265,32 @@ class TestPositionalAllegato:
         assert nd.url.endswith("1942-03-16;262:1~art12")
         assert nd.allegato == "1"
 
+    @pytest.mark.parametrize("codice", [
+        "codice del turismo", "codici penali militari di pace e di guerra",
+        "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+        "approvazione del Regolamento per l'esecuzione del Codice della navigazione (Navigazione marittima)",
+    ])
+    def test_codes_fixed_on_21_10_carry_their_part_in_the_urn_only(self, codice):
+        # VisuaLex files these norms without an allegato: a "1" would change their key.
+        nd = api.riferimento_da_parametri(codice, "3").norma_data[0]
+        assert ":1~art3" in nd.urn and nd.allegato is None
+
+    @pytest.mark.parametrize("riferimento,suffisso", [
+        ("art. 3 d.p.r. 448/1988", ";448:1~art3"),
+        ("art. 3 r.d. 773/1931", ";773:1~art3"),
+        ("art. 3 d.lgs. 346/1990", ";346:1~art3"),
+    ])
+    def test_acts_with_their_articles_in_an_annex_carry_no_allegato(self, riferimento, suffisso):
+        nd = api.leggi_riferimento(riferimento).norma_data[0]
+        assert nd.urn.endswith(suffisso) and nd.allegato is None
+
+    def test_a_positional_allegato_never_doubles_the_default_part(self):
+        nd = api.riferimento_da_parametri("decreto del presidente della repubblica", "3",
+                                          data="1988-09-22", numero_atto="448", allegato="2").norma_data[0]
+        assert nd.urn.endswith(";448:2~art3") and nd.allegato == "2"
+        turismo = api.riferimento_da_parametri("codice del turismo", "3", allegato="1").norma_data[0]
+        assert turismo.urn.endswith(";79:1~art3") and turismo.allegato == "1"
+
     def test_a_codes_default_part_is_unchanged(self):
         nd = api.riferimento_da_parametri("codice civile", "2043", allegato="2").norma_data[0]
         assert nd.url.endswith(";262:2~art2043") and nd.allegato == "2"
@@ -304,15 +330,18 @@ class TestPositionalAllegato:
         t = await api.testo_articolo("art. 120 d.lgs. 104/2010", canale="akn")
         assert t.esito == "trovato" and "Art. 120" in t.article_text
         assert t.urn == "urn:nir:stato:decreto.legislativo:2010-07-02;104:2~art120"
-        assert t.norma_data.allegato == "2" and t.norma_data.numero_articolo == "120"
+        # The part served is in the URN only: norma_data is what VisuaLex files the norm under.
+        assert t.norma_data.allegato is None and t.norma_data.numero_articolo == "120"
 
-    async def test_a_digit_annex_name_round_trips_to_the_position(self, monkeypatch, cpa):
+    async def test_a_digit_annex_name_round_trips(self, monkeypatch, cpa):
         _serve(monkeypatch, cpa)
         nd = api.leggi_riferimento("allegato 1 art. 120 d.lgs. 104/2010").norma_data[0]
         t = await api.testo_articolo(nd, canale="akn")
         assert t.esito == "trovato" and "Art. 120" in t.article_text
         assert t.urn.endswith(";104:2~art120")
-        assert (t.norma_data.allegato, t.norma_data.numero_articolo) == ("2", "120")
+        assert (t.norma_data.allegato, t.norma_data.numero_articolo) == (None, "allegato 1 art. 120")
+        again = await api.testo_articolo(t.norma_data, canale="akn")
+        assert again.article_text == t.article_text
 
     async def test_the_treatys_law_is_served_its_own_article(self, monkeypatch, l654):
         _serve(monkeypatch, l654)

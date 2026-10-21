@@ -72,13 +72,30 @@ _BROCARDI_SPENTO = (
 _ALLEGATO_URN = re.compile(r";[^;:~]+:(\w+)$")
 
 
+#: Codes whose URN gained its ":1" on 21/10/2026 (their articles sit in an annex of the
+#: approving decree; the row served the decree's own articles). VisuaLex's table still has
+#: them without it, so its saved norms carry no allegato: norma_data mirrors that, and the
+#: part is in the URN only. The three acts of ARTICOLATO_IN_ALLEGATO (c.p.p. minorile,
+#: TULPS, TU successioni) are not codes of the table and carry none either.
+_PARTE_SOLO_NELL_URN = frozenset({
+    "codice del turismo",
+    "codici penali militari di pace e di guerra",
+    "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    "approvazione del regolamento per l'esecuzione del codice della navigazione (navigazione marittima)",
+})
+
+
 def _allegato_predefinito(tipo_atto: str) -> str | None:
     """The annex a code's URN points at ("2" for the c.c., "1" for c.p. and c.p.c.), else None.
 
     VisuaLex keys a saved norm on urn|allegato|article, so the annex is given even
-    when the citation does not name it.
+    when the citation does not name it — as VisuaLex gives it today, nothing more
+    (``_PARTE_SOLO_NELL_URN``).
     """
-    urn = codice_urn(normalize_act_type(tipo_atto or "").lower())
+    norm = normalize_act_type(tipo_atto or "").lower()
+    if norm in _PARTE_SOLO_NELL_URN:
+        return None
+    urn = codice_urn(norm)
     m = _ALLEGATO_URN.search(urn or "")
     return m.group(1) if m else None
 
@@ -110,9 +127,6 @@ def _parte(tipo_atto: str, allegato: str | None) -> str:
     return ""
 
 
-#: The ":k" after the act number in a Normattiva URN: ";104:2~art120", ";262:2".
-_PARTE_URN = re.compile(r";[^;:~!@]+:(\d+)(?=~|!|@|$)")
-
 
 def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str = "",
                 urn: str | None = None) -> NormaDati:
@@ -123,12 +137,11 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
     nv = norme._build_nv(info, article)
     url = url or nv.url()
     annex = split_annex(article)
-    # The part the URL names, once a lookup served an article from it (";104:2~art120"):
-    # the norm's identity is then Normattiva's, as VisuaLex keys it.
-    parte = _PARTE_URN.search(norme._urn_from_url(url) or "") if "~art" in url else None
-    if annex and parte:
-        allegato, numero = parte.group(1), annex[1]
-    elif annex and _posizionale(annex[0]):
+    # allegato mirrors what VisuaLex gives the norm: the position the caller asked for, a
+    # code's default part, or none. The part an answer was served from is in url and urn
+    # only (";104:2~art120" for art. 120 d.lgs. 104/2010): putting it here would change
+    # the key VisuaLex files the norm under.
+    if annex and _posizionale(annex[0]):
         # "allegato 1 al d.lgs. 104/2010" names the act's own Allegato 1, which Normattiva
         # numbers :2. Read back as an allegato it would be taken for position 1, so the
         # reference keeps the annex in the article until a lookup gives the position.
@@ -136,8 +149,7 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
     elif annex:
         allegato, numero = annex
     else:
-        allegato = (parte.group(1) if parte else None) or info.get("allegato") or _allegato_predefinito(
-            info.get("tipo_atto", ""))
+        allegato = info.get("allegato") or _allegato_predefinito(info.get("tipo_atto", ""))
         numero = article or ""
     data = info.get("data", "") or ""
     eu = nv.norma._is_eurlex()

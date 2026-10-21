@@ -72,10 +72,11 @@ class Norma:
             return ""
         urn = f"{act_urn}:{formatted_date};{self.numero_atto}"
         if self.allegato:
+            # The part asked for by position wins over the act's default one, never both.
             urn += f":{self.allegato}"
         if article:
             allegato = articolato_in_allegato(act_urn, formatted_date, self.numero_atto)
-            if allegato and not names_an_annex(article):
+            if allegato and not self.allegato and not names_an_annex(article):
                 urn += f":{allegato}"
             urn = _append_article(urn, article)
         return _NORMATTIVA_BASE + urn
