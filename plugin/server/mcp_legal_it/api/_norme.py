@@ -76,10 +76,14 @@ _ALLEGATO_URN = re.compile(r";[^;:~]+:(\w+)$")
 #: approving decree; the row served the decree's own articles). VisuaLex's table still has
 #: them without it, so its saved norms carry no allegato: norma_data mirrors that, and the
 #: part is in the URN only. The three acts of ARTICOLATO_IN_ALLEGATO (c.p.p. minorile,
-#: TULPS, TU successioni) are not codes of the table and carry none either.
+#: TULPS, TU successioni) are not codes of the table and carry none either. Nor do the two
+#: military codes added on 21/10/2026 (di pace :1, di guerra :2): VisuaLex has no row for
+#: them, so no saved norm of its carries an allegato.
 _PARTE_SOLO_NELL_URN = frozenset({
     "codice del turismo",
     "codici penali militari di pace e di guerra",
+    "codice penale militare di pace",
+    "codice penale militare di guerra",
     "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
     "approvazione del regolamento per l'esecuzione del codice della navigazione (navigazione marittima)",
 })

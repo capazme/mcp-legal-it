@@ -276,6 +276,15 @@ class TestPositionalAllegato:
         assert ":1~art3" in nd.urn and nd.allegato is None
 
     @pytest.mark.parametrize("riferimento,suffisso", [
+        ("art. 3 c.p.m.p.", ";303:1~art3"),
+        ("art. 3 c.p.m.g.", ";303:2~art3"),
+    ])
+    def test_military_codes_carry_their_part_in_the_urn_only(self, riferimento, suffisso):
+        # Not in VisuaLex's table: no saved norm of its has an allegato for them.
+        nd = api.leggi_riferimento(riferimento).norma_data[0]
+        assert nd.urn.endswith(suffisso) and nd.allegato is None
+
+    @pytest.mark.parametrize("riferimento,suffisso", [
         ("art. 3 d.p.r. 448/1988", ";448:1~art3"),
         ("art. 3 r.d. 773/1931", ";773:1~art3"),
         ("art. 3 d.lgs. 346/1990", ";346:1~art3"),
