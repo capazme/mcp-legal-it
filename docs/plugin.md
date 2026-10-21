@@ -234,7 +234,10 @@ stessa sessione compresi, mai transcript di altre sessioni):
   legge dai suoi `atto` e `articolo`), oppure un risultato di `fetch_full_act` che lo
   contiene;
 - una decisione: un risultato `leggi_*`/`cerca_*` (o `*_su_norma`, `ultime_*`) della
-  stessa corte che riporta quel numero e quell'anno; un «non trovata» non copre nulla,
+  stessa corte che riporta quel numero e quell'anno **nella sua intestazione** (la
+  decisione che un lettore ha servito, i risultati che una ricerca ha elencato): i
+  precedenti e gli atti citati nel corpo di una sentenza letta non contano, e un numero
+  d'atto («D.Lgs. 196/2003») non diventa mai una decisione; un «non trovata» non copre nulla,
   le massime di Brocardi e le mappe di orientamento nemmeno (una massima non è la
   decisione); la ricerca unificata accredita ogni numero alla corte indicata accanto.
   In un elenco («Cass. nn. 500/1999, 600/2000») ogni numero va letto.
