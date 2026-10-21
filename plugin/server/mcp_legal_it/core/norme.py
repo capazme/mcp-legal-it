@@ -52,6 +52,23 @@ _ANNEX_AFTER_ARTICLE = re.compile(
 )
 
 
+# Act first, then the article or annex: "D.Lgs. 196/2003 art. 13", "GDPR, art. 6
+# par. 1 lett. f)", "D.Lgs. 36/2023 allegato I.1 art. 1". Only an article, its
+# paragraph/letter indicators and an annex may follow the act: any other trailing
+# text ("... convertito dalla L. 27/2020") would end up inside the act name.
+_ART = r"(?:articol[oi]|art)\.?\s*\d+(?:[-/.]\w+)*"
+_PARAGRAPHS = (
+    r"(?:\s*[,;]?\s*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+\w*|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
+)
+_ACT_FIRST_PATTERN = re.compile(
+    rf"^(?P<act>.+?)\s*[,;]?\s+(?P<ref>"
+    rf"{_ART}{_PARAGRAPHS}(?:\s*[,;]?\s*{_ANNEX_LINK}allegato\s+{ANNEX_ID})?"
+    rf"|allegato\s+{ANNEX_ID}(?:\s*,?\s*{_ART})?{_PARAGRAPHS}"
+    r")\s*$",
+    re.IGNORECASE,
+)
+
+
 def _strip_paragraphs(rest: str) -> str:
     """Drop leading paragraph/point/letter indicators, repeatedly ("comma 1 lett. a) GDPR" → "GDPR")."""
     while True:
@@ -114,6 +131,18 @@ def _parse_reference(reference: str) -> tuple[str, str]:
             rest = _strip_annex_link(annex_match.group("rest").strip())
             return annex_reference(annex_match.group("id"), article), rest
         return article, rest
+
+    # Act written first: put the article (or annex) in front and parse that.
+    # Read as an act name, "D.Lgs. 196/2003 art. 13" resolves to the decree and
+    # the article is lost: the caller got the start of the act instead of art. 13.
+    act_first = _ACT_FIRST_PATTERN.match(reference)
+    if act_first:
+        return _parse_reference(f"{act_first.group('ref')} {act_first.group('act')}")
+
+    # An article is named but cannot be told apart from the act: refuse (the
+    # caller reports the expected format) rather than resolve the act alone.
+    if re.search(rf"\b{_ART}", reference, re.IGNORECASE):
+        return "", ""
 
     # No "art." prefix — try to parse as just act name (no article)
     return "", reference

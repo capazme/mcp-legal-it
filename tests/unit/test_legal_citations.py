@@ -109,6 +109,42 @@ class TestParseReferenceExtended:
 
 
 # ---------------------------------------------------------------------------
+# _parse_reference — act written first
+# ---------------------------------------------------------------------------
+
+class TestParseReferenceActFirst:
+    """"D.Lgs. 196/2003 art. 13" used to resolve the decree alone: the caller got art. 1."""
+
+    @pytest.mark.parametrize("reference, expected", [
+        ("D.Lgs. 196/2003 art. 13", ("13", "D.Lgs. 196/2003")),
+        ("GDPR art. 6", ("6", "GDPR")),
+        ("GDPR, art. 6 par. 1 lett. f)", ("6", "GDPR")),
+        ("c.c. art. 2043", ("2043", "c.c.")),
+        ("c.p.c. art. 360-bis", ("360-bis", "c.p.c.")),
+        ("codice privacy art. 2-ter comma 1", ("2-ter", "codice privacy")),
+        ("Statuto dei lavoratori art. 18", ("18", "Statuto dei lavoratori")),
+        ("legge 30 dicembre 2004 n. 311 articolo 1 comma 311", ("1", "legge 30 dicembre 2004 n. 311")),
+        ("D.Lgs. 36/2023 allegato I.1 art. 1", ("allegato I.1 art. 1", "D.Lgs. 36/2023")),
+        ("D.Lgs. 36/2023 art. 1 dell'allegato I.1", ("allegato I.1 art. 1", "D.Lgs. 36/2023")),
+        ("AI Act allegato III", ("allegato III", "AI Act")),
+    ])
+    def test_act_first(self, reference, expected):
+        assert _parse_reference(reference) == expected
+
+    @pytest.mark.parametrize("reference", ["D.Lgs. 196/2003", "Statuto dei lavoratori", "GDPR"])
+    def test_act_alone_is_unchanged(self, reference):
+        assert _parse_reference(reference) == ("", reference)
+
+    def test_article_that_cannot_be_separated_is_refused(self):
+        # Trailing text after the article: never resolve D.L. 18/2020 alone and serve its art. 1.
+        assert _parse_reference("D.L. 18/2020 art. 103 convertito dalla L. 27/2020") == ("", "")
+
+    async def test_cite_law_refuses_instead_of_serving_the_first_article(self):
+        out = await _cite_law_impl("D.L. 18/2020 art. 103 convertito dalla L. 27/2020")
+        assert out.startswith("**Errore**: impossibile interpretare il riferimento")
+
+
+# ---------------------------------------------------------------------------
 # _resolve_act — GDPR after paragraph stripping
 # ---------------------------------------------------------------------------
 
