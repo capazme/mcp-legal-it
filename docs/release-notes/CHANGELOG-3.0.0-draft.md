@@ -228,6 +228,26 @@ feature from 2.13.0 to 2.17.0 is included (see those sections).
   one asset.
 - `orientamento_su_norma` orders sections with equal counts by section code;
   it followed the hash-seed order of a set, so two runs could disagree.
+- **The August suspension says when it moved a deadline, and what it does not
+  cover.** When the suspension changed the result, the nine
+  deadline tools that apply it (`scadenza_processuale`,
+  `termini_processuali_civili`, `scadenze_impugnazioni`, `scadenze_multe`,
+  `termini_memorie_repliche`, `termini_procedimento_semplificato`,
+  `termini_183_190_cpc`, `termini_deposito_atti_appello`,
+  `termini_deposito_ctu`) add `avviso_sospensione_feriale`: recompute with
+  `sospensione_feriale=False` if the case is excluded, and the excluded matters
+  with their source (art. 3 L. 742/1969: labour and social security; art. 92
+  R.D. 12/1941: alimenti, procedimenti cautelari, amministrazione di sostegno,
+  interdizione e inabilitazione, ordini di protezione, sfratto, opposizione
+  all'esecuzione, dichiarazione e revoca dei fallimenti, materia corporativa,
+  cases declared urgent). When it changed nothing there is no notice. The fixed
+  sentence on exclusions that `termini_memorie_repliche` and
+  `termini_procedimento_semplificato` appended to every answer is gone; the
+  `scadenza` command and the `procedura-civile` reference carry the same list.
+  `termini_esecuzioni` keeps computing the art. 617 opposition without the
+  suspension (the prudent reading) and, when August falls in its 20 days, adds
+  `avvertenza_sospensione_feriale`: whether art. 617 is excluded is debated,
+  since art. 92 R.D. 12/1941 names only the "opposizione all'esecuzione".
 
 ### Removed
 - `termini_esecuzioni(tipo="opposizione_esecuzione")`: the art. 617 c.p.c.
@@ -298,6 +318,30 @@ feature from 2.13.0 to 2.17.0 is included (see those sections).
   done instead of crashing.
 - Live gates realigned with their sources: CeRDEF unknown GUID is `not_found`,
   INPS reworded the ex-ENPALS split, Normattiva alternates "è"/"e'".
+- **Appellee's deadline: 20 days before the hearing, not 70.**
+  `termini_deposito_atti_appello` computed the comparsa of the appellee (and so
+  the cross-appeal deadline, a decadenza under art. 343 c.p.c.) 70 days before the hearing, through art. 166. Art. 347 co. 1 c.p.c.
+  as amended by D.Lgs. 164/2024 reads "almeno venti giorni prima dell'udienza",
+  and art. 7 co. 1 of that decree applies it to proceedings introduced after
+  28/02/2023. The tool counts 20 days back (August suspension and art. 155
+  anticipation as before), cites art. 347 co. 1 and art. 343, and adds
+  `avvertenza_regime_transitorio` for appeals introduced between 28/02/2023 and
+  26/11/2024 (in that window art. 347 pointed to the 70 days of art. 166:
+  whether the 20 days apply backwards is for the lawyer to assess); the warning
+  also appears when the notification date of the citation is not given. The 70
+  days of the first-instance comparsa (art. 166) are unchanged.
+- **D.M. 55/2014 minimums and maximums are the exact half and the exact one and
+  a half of the medium, to the cent.** Art. 4 co. 1 lets the
+  medium be reduced "in ogni caso non oltre il 50 per cento" and increased
+  "fino al 50 per cento". The table rounded them to the euro (42 of 94 minimums
+  and 44 of 94 maximums: 131 → 66 and 197 instead of 65,50 and 196,50);
+  `parametri_forensi.json` and the minimums and maximums computed in code now
+  carry the exact values. Affected at `livello='min'` and `'max'`:
+  `parcella_avvocato_civile`, `parcella_avvocato_penale`,
+  `parcella_stragiudiziale`, `parcella_volontaria_giurisdizione`,
+  `preventivo_civile`, `preventivo_stragiudiziale`,
+  `preventivo_volontaria_giurisdizione`, `calcolo_notula_penale`,
+  `modello_notula`. The medium stays rounded to the euro.
 
 ### Security
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from
