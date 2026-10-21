@@ -46,7 +46,7 @@ _REPO = Path(__file__).resolve().parents[2]
 _CATALOGO_JSON = _REPO / "src" / "data" / "modelli_atti.json"
 _DOCX_DIR = "/tmp/mcp-legal-it"  # fixed by the tool (src/tools/modelli_atti.py)
 _NORMATTIVA = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
-_DISP_ATT_CPC = "regio.decreto:1941-08-25;1368:1"
+_DISP_ATT_CPC = "regio.decreto:1941-12-18;1368:1"
 _BATCH = 20  # verifica_citazioni resolves at most 20 references per call
 
 
