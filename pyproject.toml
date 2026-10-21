@@ -42,7 +42,7 @@ dev = [
 mcp-legal-it = "mcp_legal_it.cli:main"
 
 [tool.setuptools.package-data]
-mcp_legal_it = ["data/*.json", "data/references/*.md"]
+mcp_legal_it = ["data/*.json", "data/references/*.md", "lib/italgiure/*.crt"]
 
 # The package lives in plugin/server/ (the plugin runs it from there); the
 # library build picks it up from the same folder, so there is one copy and no

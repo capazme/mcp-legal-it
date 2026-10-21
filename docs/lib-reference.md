@@ -333,7 +333,7 @@ Client asincrono per le API Solr di Italgiure (Corte di Cassazione).
 
 **Endpoint**: `POST https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?app.query`
 
-**SSL**: `verify=False` — certificato non valido su `www.italgiure.giustizia.it`. Hardcoded, necessario.
+**SSL**: verificato. Il server non invia l'intermedio che ha firmato il suo certificato (TI Trust Technologies OV CA): `tls_context()` lo aggiunge alle radici di certifi da `lib/italgiure/ti_trust_ov_ca.crt`.
 
 **Auth**: Nessuna API key. Il client recupera prima la homepage per ottenere il session cookie (anti-bot check).
 

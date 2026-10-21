@@ -39,6 +39,8 @@ def test_wheel_ships_data_and_entry_point(tmp_path):
             n.startswith("mcp_legal_it/data/references/") and n.endswith(".md") for n in names
         ), "no mcp_legal_it/data/references/*.md shipped in the wheel"
         assert "mcp_legal_it/cli.py" in names
+        # the Italgiure intermediate: without it the client cannot verify TLS
+        assert "mcp_legal_it/lib/italgiure/ti_trust_ov_ca.crt" in names
         # 3.0 renamed the package away from `src`: a published wheel must not
         # own a generic top-level name. A stale `build/` left by a pre-3.0
         # build would bring `src/` back in -- remove it and rebuild.

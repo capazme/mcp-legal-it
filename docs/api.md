@@ -109,12 +109,12 @@ JSON-ready data:
   - `fonte` is the stable source name: `normattiva`, `eur_lex`, `italgiure`,
     `brocardi`, `corte_cost`, `cerdef`, `giustizia_amm`, `cgue`, and so on.
   - `kwargs` are exactly what the library would pass to `httpx.AsyncClient`:
-    headers, timeout, `follow_redirects`, and `verify=False` for Italgiure.
+    headers, timeout, `follow_redirects`, and Italgiure's `verify` SSL context.
   - The client is used as `async with` and closed afterwards.
   - Use it to add a cache transport or a test transport. Pass the `kwargs` on
     to `httpx.AsyncClient`: `headers` (some sources refuse requests without
-    their `User-Agent`/`Accept`), `timeout`, `verify` (Italgiure's certificate
-    chain needs `verify=False`) and `follow_redirects`.
+    their `User-Agent`/`Accept`), `timeout`, `verify` (Italgiure's is an SSL
+    context that adds the intermediate its server fails to send) and `follow_redirects`.
   - **The guards cannot be dropped.** `event_hooks` (the request guards, such as
     `dpa_probe`'s check of every request and redirect against private
     addresses) and `follow_redirects=False` are re-applied to whatever the
