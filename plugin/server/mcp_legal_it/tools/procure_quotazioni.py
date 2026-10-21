@@ -282,7 +282,7 @@ def genera_procura_liti_docx(
         "di essere stato reso edotto circa i rischi del contenzioso e il grado di complessità dell’incarico che con la presente conferisce, delle caratteristiche e dell’importanza dell’incarico, delle attività da espletare, delle iniziative da intraprendere, delle ipotesi di soluzione e della prevedibile durata del processo;",
         "di avere ricevuto tutte le informazioni utili circa gli oneri ipotizzabili dal momento del conferimento sino alla conclusione dell’incarico, nonché di aver ricevuto ed accettato un preventivo scritto relativo alla prevedibile misura dei costi della prestazione, con distinzione analitica delle voci di costo tra oneri, anche fiscali e previdenziali, spese, anche forfettarie, e compenso professionale;",
         "di essere stato reso edotto degli estremi della polizza assicurativa professionale dei suoi difensori e della facoltà di recedere dall’incarico professionale costituendo giusta causa il mancato pagamento degli oneri così come convenuti e formalizzati nelle proforma da trasmettersi;",
-        "ai sensi e per gli effetti di cui al D.Lgs. n. 196/2003 e del Regolamento UE n. 679/2016 e ss.mm.ii., di essere stato informato che i dati personali, anche sensibili, verranno utilizzati per le finalità inerenti al presente mandato, autorizzando sin d’ora il rispettivo trattamento.",
+        "ai sensi e per gli effetti di cui al D.Lgs. n. 196/2003 e del Regolamento (UE) 2016/679 e ss.mm.ii., di essere stato informato che i dati personali, anche sensibili, verranno utilizzati per le finalità inerenti al presente mandato, autorizzando sin d’ora il rispettivo trattamento.",
     ]
     for voce in dichiarazioni:
         par("-  " + voce, hang=True)
