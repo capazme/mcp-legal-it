@@ -43,7 +43,8 @@ SECONDO GRADO — Corte d'Appello (artt. 339 ss. c.p.c.)
 
 - Atto d'appello (citazione)
 - Termini: 30 giorni (breve, dalla notifica sentenza) / 6 mesi (lungo, dal deposito)
-- Costituzione appellante e appellato
+- Costituzione dell'appellante: entro 10 giorni dalla notifica della citazione (artt. 165 e 347 c.p.c.)
+- Costituzione dell'appellato: almeno 20 giorni prima dell'udienza (art. 347, co. 1, c.p.c., testo D.Lgs. 164/2024, applicabile ai procedimenti introdotti dopo il 28/02/2023: art. 7 D.Lgs. 164/2024); l'appello incidentale si propone nella comparsa, a pena di decadenza (art. 343 c.p.c.)
 - Filtro di inammissibilità (art. 348-bis): ragionevole probabilità di accoglimento
 - Istruttoria: limitata a prove indispensabili (art. 345 c.p.c.)
 - Decisione: sentenza
@@ -63,4 +64,5 @@ SOSPENSIONE FERIALE
 ═══════════════════════════════════════════════════════════
 - Periodo: 1 agosto — 31 agosto (L. 742/1969 mod. D.L. 132/2014)
 - I termini processuali sono sospesi (non decorrono)
-- Eccezioni: procedimenti cautelari, alimenti, sfratti, procedimenti penali con detenuti
+- Eccezioni in materia civile (art. 3 L. 742/1969, che rinvia all'art. 92 R.D. 12/1941): controversie di lavoro e di previdenza, alimenti, procedimenti cautelari, amministrazione di sostegno, interdizione e inabilitazione, ordini di protezione contro gli abusi familiari, sfratto, opposizione all'esecuzione, dichiarazione e revoca dei fallimenti, cause dichiarate urgenti
+- Eccezioni in materia penale: procedimenti penali con detenuti
