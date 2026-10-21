@@ -171,7 +171,7 @@ descrizione di ogni tool.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `scadenza_processuale` | `scadenza_processuale(data_evento: str, giorni: int, tipo: str = "calendario", sospensione_feriale: bool = False, natura: str = "processuale")` | Termine generico con proroga art. 155 c.p.c. (sabato compreso); con `natura="sostanziale"` proroga solo domenica e festivi. |
+| `scadenza_processuale` | `scadenza_processuale(data_inizio: str, giorni: int, tipo: str = "calendario")` | Calcola la scadenza processuale escludendo festivi e weekend se richiesto. |
 | `termini_processuali_civili` | `termini_processuali_civili(data_udienza: str, tipo_termine: str, sospensione_feriale: bool = True, giorni: int | None = None)` | Memorie ex art. 171-ter (40/20/10) e atti per la decisione ex art. 189 c.p.c. (60/30/15), a ritroso, con sospensione feriale giorno per giorno. |
 | `termini_separazione_divorzio` | `termini_separazione_divorzio(tipo: str, data_udienza: str)` | Termini processuali per separazione e divorzio giudiziali. |
 | `scadenze_impugnazioni` | `scadenze_impugnazioni(tipo_atto: str, data_notifica: str, via_breve: bool = False)` | Termini per impugnare sentenze (appello, Cassazione, opposizione). |

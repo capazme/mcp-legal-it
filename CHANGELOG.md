@@ -514,16 +514,6 @@ entry, it is the same feature as ported to the 3.0 line.
   pages reachable from the server (localhost, cloud metadata, intranet). Only
   `http(s)://publications.europa.eu/resource/...` is accepted now, refused as
   `bad_input` before any request.
-- **`termini_esecuzioni`: the execution window opens on the eleventh day.** Art.
-  482 c.p.c. forbids execution before ten days "siano decorsi" from the
-  precetto; `finestra_utile` started on the tenth. New field
-  `primo_giorno_utile` (notifica + 11, not extended); `termine_minimo_10gg`
-  is unchanged.
-- **`scadenza_processuale(natura="sostanziale")`.** The tool is offered for
-  substantive terms too, but always applied the Saturday extension of art. 155
-  co. 5 c.p.c., which covers processual acts only: a decadenza ending on a
-  Saturday came out on the following Tuesday. With `natura="sostanziale"` only
-  Sundays and holidays extend the term; the default is unchanged.
 - **Generated documents are private.** Procure, quotazioni, atti, supplier
   reports and law PDFs are saved to `<tempdir>/mcp-legal-it` created 0700 (on
   Linux it was a world-readable `/tmp/mcp-legal-it`); a symlink or a folder
