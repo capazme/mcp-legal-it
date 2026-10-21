@@ -13,8 +13,9 @@ processuale, quindi L. 742/1969 non si applica) e "termine libero" disattivato. 
 fornisce l'aritmetica dei mesi di calendario (art. 155 co. 2 c.p.c.; clamp a fine mese, art. 2963
 co. 4 c.c.) e la proroga al primo giorno non festivo (art. 155 co. 4-5 c.p.c.). Dal 20/10/2026 il
 tool NON proroga: i 6/12 mesi sono un periodo minimo di separazione, non un termine per compiere un
-atto (decisione del titolare, G-328: «proroga no»). Il confronto col sito vale quindi solo quando
-il compimento cade in un giorno utile; negli altri casi i test fissano la data di calendario.
+atto (lettura giuridica del titolare: niente proroga ex art. 155). Il confronto col sito vale
+quindi solo quando il compimento cade in un giorno utile; negli altri casi i test fissano la data
+di calendario.
 
 Tolleranza: date esatte.
 """
@@ -87,14 +88,15 @@ def test_consensuale_sei_mesi(page):
 
 
 def test_giudiziale_dodici_mesi_domenica():
-    # Compimento 2026-03-15 (domenica): nessuna proroga (G-328). Il sito proroga al 16: non
-    # confrontabile.
+    # Compimento 2026-03-15 (domenica): nessuna proroga (durata minima, non termine per un
+    # atto). Il sito proroga al 16: non confrontabile.
     assert _tool("2025-03-15", "separazione_giudiziale")["scadenza"] == "2026-03-15"
 
 
 def test_dies_a_quo_31_agosto_febbraio_sabato():
     # Compimento 2026-02-28 (ultimo giorno di febbraio, art. 2963 co. 4 c.c.), sabato: nessuna
-    # proroga (G-328). Il sito proroga al 2 marzo: non confrontabile.
+    # proroga (durata minima, non termine per un atto). Il sito proroga al 2 marzo: non
+    # confrontabile.
     assert _tool("2025-08-31", "separazione_consensuale")["scadenza"] == "2026-02-28"
 
 
@@ -120,7 +122,7 @@ def test_limite_29_febbraio_dodici_mesi(page):
 
 
 def test_limite_natale_nessuna_proroga():
-    # Limite: 25/06/2025 + 6 mesi = 25/12/2025 (Natale): nessuna proroga (G-328).
+    # Limite: 25/06/2025 + 6 mesi = 25/12/2025 (Natale): nessuna proroga (durata minima).
     assert _tool("2025-06-25", "separazione_consensuale")["scadenza"] == "2025-12-25"
 
 
@@ -134,6 +136,6 @@ def test_limite_31_agosto_2024_febbraio_venerdi(page):
     _confronta(page, "2024-08-31", "separazione_consensuale")
 
 
-# DECIDED (20/10/2026, G-328 «proroga no»): the 6/12 months of art. 3 n. 2 lett. b) L. 898/1970
+# DECIDED (20/10/2026, owner's legal reading): the 6/12 months of art. 3 n. 2 lett. b) L. 898/1970
 # are a substantive minimum duration, not a deadline for an act, so art. 155 does not apply. The
 # site prorogues; only working-day completions are compared with it.

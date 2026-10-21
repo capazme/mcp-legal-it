@@ -59,7 +59,7 @@ ACCEPTED_HOLDS = {
         "the local MCP server and the hook start through `uv run --frozen`: "
         "the directory always holds a launcher that installs packages, even "
         "pinned ones (\"Runs a pinned npx or uvx package\"). A Python server "
-        "with compiled dependencies cannot ship without one (LI-011, B-23)"
+        "with compiled dependencies cannot ship without one (accepted by the owner)"
     ),
     "subfolder-program": (
         "the server and the hook run Python files from a plugin that lives in "

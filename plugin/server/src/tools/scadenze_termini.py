@@ -486,7 +486,8 @@ def termini_separazione_divorzio(
 
     mesi = cfg["mesi"]
     # A waiting period, not a deadline for an act: no art. 155 extension
-    # (owner's decision on the legal reading, G-328: «proroga no»).
+    # (owner's legal reading: the 6/12 months are a minimum duration of the
+    # separation, not a term within which an act must be done).
     scadenza = _add_months(dt_evento, mesi)
 
     return {
