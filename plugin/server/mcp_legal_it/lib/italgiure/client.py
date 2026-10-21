@@ -10,6 +10,7 @@ Collections: snciv (civile), snpen (penale) — filtered via kind field in query
 from __future__ import annotations
 
 import functools
+import hashlib
 import re
 import ssl
 import urllib.parse
@@ -48,13 +49,32 @@ _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
 #: The intermediate the server fails to send (see the header of the file).
 _INTERMEDIO = Path(__file__).with_name("ti_trust_ov_ca.crt")
+#: SHA-256 of that certificate (DER). Checked every time the context is built,
+#: as VisuaLex does (``tools/tls.py``), so a file swapped inside an installed
+#: package is refused instead of trusted. Renewal: see the file's header.
+_INTERMEDIO_SHA256 = "1BFD8702D8F9BB340F353820330C0BBA7E522C63164C91F295414DAC797F0863"
+
+
+class IntermedioNonRiconosciuto(ssl.SSLError):
+    """The bundled intermediate is not the pinned one: Italgiure is not trusted at all."""
+
+
+def _pem_intermedio() -> str:
+    testo = _INTERMEDIO.read_text(encoding="utf-8")  # the explanatory header is UTF-8 text
+    inizio = testo.index("-----BEGIN CERTIFICATE-----")
+    fine = testo.index("-----END CERTIFICATE-----", inizio) + len("-----END CERTIFICATE-----")
+    return testo[inizio:fine]
 
 
 @functools.lru_cache(maxsize=1)
 def tls_context() -> ssl.SSLContext:
     """certifi's public roots plus the missing intermediate: full verification, hostname included."""
+    pem = _pem_intermedio()
+    impronta = hashlib.sha256(ssl.PEM_cert_to_DER_cert(pem)).hexdigest().upper()
+    if impronta != _INTERMEDIO_SHA256:
+        raise IntermedioNonRiconosciuto(f"{_INTERMEDIO.name}: SHA-256 {impronta} is not the pinned intermediate")
     ctx = ssl.create_default_context(cafile=certifi.where())
-    ctx.load_verify_locations(cafile=str(_INTERMEDIO))
+    ctx.load_verify_locations(cadata=pem)
     return ctx
 _MAX_OCR_LENGTH = 30000
 # Long decisions keep their head (parties, facts) AND their tail: the holding (rigetto,
