@@ -408,6 +408,24 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **The August suspension says when it moved a deadline, and what it does not
+  cover (decision LI-042).** When the suspension changed the result, the nine
+  deadline tools that apply it (`scadenza_processuale`,
+  `termini_processuali_civili`, `scadenze_impugnazioni`, `scadenze_multe`,
+  `termini_memorie_repliche`, `termini_procedimento_semplificato`,
+  `termini_183_190_cpc`, `termini_deposito_atti_appello`,
+  `termini_deposito_ctu`) add `avviso_sospensione_feriale`: a line telling the
+  lawyer to recompute with `sospensione_feriale=False` if the case is excluded,
+  and the excluded matters with their source (art. 3 L. 742/1969: labour and
+  social security; art. 92 R.D. 12/1941: alimenti, procedimenti cautelari,
+  amministrazione di sostegno, interdizione e inabilitazione, ordini di
+  protezione, sfratto, opposizione all'esecuzione, dichiarazione e revoca dei
+  fallimenti, materia corporativa, cases declared urgent). When it changed
+  nothing there is no notice. The fixed sentence on exclusions that
+  `termini_memorie_repliche` and `termini_procedimento_semplificato` appended to
+  every answer is gone (it also said "opposizioni esecutive" where art. 92
+  says "opposizione all'esecuzione"); the `scadenza` command and the
+  `procedura-civile` reference carry the same list.
 - **Tool tags follow one taxonomy, and some desktop profiles change.** Every
   tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (24),
   `autorita` (6), `registri` (5), `calcolo` (141), `redazione` (30),
@@ -497,6 +515,41 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **Appellee's deadline: 20 days before the hearing, not 70 (decision LI-040).**
+  `termini_deposito_atti_appello` computed the comparsa of the appellee (and so
+  the cross-appeal deadline, a decadenza under art. 343 c.p.c.) 70 days before
+  the hearing, through art. 166 as the first Cartabia text of art. 347 implied.
+  Art. 347, co. 1, c.p.c. as amended by D.Lgs. 164/2024 reads "almeno venti
+  giorni prima dell'udienza indicata nell'atto di citazione o di quella fissata
+  ai sensi dell'articolo 349-bis", and art. 7, co. 1, of that decree applies it
+  to the proceedings introduced after 28/02/2023. The tool now counts 20 days
+  back (August suspension and art. 155 anticipation as before), cites art. 347
+  co. 1 and art. 343 instead of art. 166, and adds `avvertenza_regime_transitorio`
+  for appeals introduced between 28/02/2023 and 26/11/2024 (D.Lgs. 164/2024 is
+  in GU n. 264 of 11/11/2024 with no entry-into-force clause, so it applies
+  from the fifteenth day, art. 10 disp. prel. c.c.): in that window art. 347
+  pointed to the 70 days of art. 166, and whether the 20 days apply backwards
+  is for the lawyer to assess. The warning also appears when the notification
+  date of the citation is not given, since the appeal may fall in the window.
+  Before 28/02/2023 the term was already 20 days (art. 166 as then in force).
+  The reference `procedura-civile` and the docs say the same; the 70 days of
+  the first-instance comparsa (art. 166) are unchanged. All norms re-read on
+  Normattiva and the Gazzetta Ufficiale on 2026-10-21.
+- **D.M. 55/2014 minimums are the exact half of the medium, to the cent
+  (decision LI-041).** Art. 4, co. 1, lets the medium be "diminuiti in ogni caso
+  non oltre il 50 per cento": the floor is the half. The table rounded it to
+  the euro in 42 of its 94 minimums (40 up, e.g. 131 → 66 instead of 65,50;
+  2 down, below the floor: 354 for a medium of 709, now 354,50), and one
+  volontaria giurisdizione minimum was a whole euro too high (trattazione up to
+  5.200: 107 for a medium of 212, now 106). `parametri_forensi.json` now
+  carries the exact half (65.5, 212.5, ...), and the minimums computed in code
+  (civil bands above 32 million, stragiudiziale above 520.000, `modello_notula`)
+  use the same rule. Affected at `livello='min'`: `parcella_avvocato_civile`,
+  `parcella_avvocato_penale`, `parcella_stragiudiziale`,
+  `parcella_volontaria_giurisdizione`, `preventivo_civile`,
+  `preventivo_stragiudiziale`, `preventivo_volontaria_giurisdizione`,
+  `calcolo_notula_penale`, `modello_notula`; `genera_quotazione_docx` already
+  used the exact half. Medium and maximum stay rounded to the euro.
 - `cerca_brocardi` now declares Italgiure among its online sources. Its probe of
   the archive window was missed by the sources audit (a call made through a
   module that only imports the function), so the answer's `_meta` listed
