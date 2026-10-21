@@ -138,11 +138,14 @@ sopra, e passa comunque dal controllo su schema e credenziali.
 
 ### Quanto chiediamo alle fonti
 
-Le stesse regole di VisuaLex, per fonte e per processo: al massimo 3 richieste in
-corso e almeno 0,5 secondi tra due richieste alla stessa fonte; un `Retry-After`
-dichiarato da una risposta 429 o 503 ferma quella fonte per il tempo chiesto, per
-tutte le chiamate (oltre 30 secondi la richiesta è rifiutata subito, senza
-aspettare); i tentativi ripetuti sono al massimo due, con attesa crescente.
+Le stesse regole di VisuaLex, per fonte e per processo (condivise da tutti i
+thread): al massimo 3 richieste in corso e almeno 0,5 secondi tra due richieste
+alla stessa fonte; un `Retry-After` dichiarato da una risposta 429 o 503 ferma
+quella fonte per tutte le chiamate, al massimo per 30 secondi (se la fonte chiede
+di più, la chiamata che ha ricevuto la risposta è rifiutata subito e le altre
+riprovano dopo 30 secondi); i tentativi ripetuti sono al massimo due, con attesa
+crescente. I limiti valgono dentro un processo: più processi sulla stessa
+macchina contro la stessa fonte moltiplicano il tetto.
 Facoltativo, per chi espone il server a più utenti: `LEGAL_CIRCUIT_BREAKER=on`
 sospende per 5 minuti una fonte dopo 3 errori consecutivi (errori di rete, 5xx,
 429; mai un 404).

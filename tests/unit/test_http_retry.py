@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from mcp_legal_it.core._http import FontePausata
 from mcp_legal_it.lib._http import retry_request
 
 
@@ -128,6 +129,6 @@ class TestRetryRequest:
         client = AsyncMock()
         client.get = AsyncMock(return_value=lungo)
         with patch("mcp_legal_it.lib._http.asyncio.sleep", new_callable=AsyncMock) as sleep:
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(FontePausata):
                 await retry_request(client, "GET", "http://test/429")
         assert client.get.call_count == 1 and sleep.call_count == 0
