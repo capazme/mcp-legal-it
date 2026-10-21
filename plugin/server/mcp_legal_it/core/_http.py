@@ -28,6 +28,9 @@ and ``tools/circuit_breaker.py`` at ``eca698dc``, MPL-2.0):
   another 4xx) the source is refused for 300 s (``FonteSospesa``), then one trial
   request decides.
 
+A source with no host list (``dpa_probe``: whatever site the caller names) keeps
+its limits per host, so one site's pause or failures never hold another's.
+
 The limits live in a transport wrapped around the client's own (and around any
 proxy transport httpx mounted from the environment), so they count real network
 requests. A client an injected ``client_factory`` returns is the factory's: the
@@ -39,6 +42,7 @@ from __future__ import annotations
 
 import asyncio
 import email.utils
+import math
 import os
 import time
 import weakref
@@ -98,6 +102,9 @@ MAX_ATTESA_PAUSA = 30.0
 
 #: Statuses whose ``Retry-After`` pauses the source.
 STATI_LIMITE = frozenset({429, 503})
+
+#: The longest pause a ``Retry-After`` can set (a day): a larger statement is read as this.
+PAUSA_MASSIMA = 86400.0
 
 #: The real class, kept before any test patches ``httpx.AsyncClient`` with a stand-in.
 _ASYNC_CLIENT = httpx.AsyncClient
@@ -300,16 +307,19 @@ def pausa_dichiarata(headers: httpx.Headers | dict) -> float | None:
     if not valore:
         return None
     try:
-        return max(0.0, float(valore))
+        secondi = float(valore)
     except ValueError:
         pass
+    else:
+        # «inf», «nan» or «1e400» would hold the source for ever: not a statement we can honour.
+        return min(max(0.0, secondi), PAUSA_MASSIMA) if math.isfinite(secondi) else None
     try:
         quando = email.utils.parsedate_to_datetime(valore)
     except (TypeError, ValueError):
         return None
     if quando is None or quando.tzinfo is None:
         return None
-    return max(0.0, quando.timestamp() - time.time())
+    return min(max(0.0, quando.timestamp() - time.time()), PAUSA_MASSIMA)
 
 
 class _TrasportoConRegole(httpx.AsyncBaseTransport):
@@ -317,36 +327,49 @@ class _TrasportoConRegole(httpx.AsyncBaseTransport):
         self.fonte = fonte
         self.interno = interno
 
+    def _chiave(self, request: httpx.Request) -> str:
+        """Whose limits a request counts against: the source, or for a source with no host list its host."""
+        if HOST_PER_FONTE.get(self.fonte) is None:
+            return f"{self.fonte}@{request.url.host}"
+        return self.fonte
+
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        stato = _fonte(self.fonte)
+        chiave = self._chiave(request)
+        stato = _fonte(chiave)
         await self._attendi_pausa(stato, request)
         prova = self._ammetti(stato, request)
-        regole = politica(self.fonte)
-        ciclo = _ciclo()
-        semaforo = ciclo.semafori.setdefault(self.fonte, asyncio.Semaphore(max(1, regole.concorrenza)))
-        await semaforo.acquire()
-        rilasciato = False
+        esito_dato = False
         try:
-            await self._attendi_pausa(stato, request)  # a pause may have started while we queued
-            await self._rispetta_intervallo(stato, ciclo, regole)
+            regole = politica(self.fonte)
+            ciclo = _ciclo()
+            semaforo = ciclo.semafori.setdefault(chiave, asyncio.Semaphore(max(1, regole.concorrenza)))
+            await semaforo.acquire()
+            rilasciato = False
             try:
-                response = await self.interno.handle_async_request(request)
-            except httpx.TransportError:
-                self._esito(stato, prova, guasto=True)
-                raise
-            except BaseException:
-                self._esito(stato, prova, guasto=None)
-                raise
-            self._registra_pausa(stato, response)
-            self._esito(stato, prova, guasto=response.status_code >= 500 or response.status_code == 429)
-            if not response.is_closed:
-                # The body is still to come from the network: the slot goes with it.
-                response.stream = _FlussoCheRilascia(response.stream, semaforo)
-                rilasciato = True
-            return response
+                await self._attendi_pausa(stato, request)  # a pause may have started while we queued
+                await self._rispetta_intervallo(chiave, stato, ciclo, regole)
+                try:
+                    response = await self.interno.handle_async_request(request)
+                except httpx.TransportError:
+                    self._esito(stato, prova, guasto=True)
+                    esito_dato = True
+                    raise
+                self._registra_pausa(stato, response)
+                self._esito(stato, prova, guasto=response.status_code >= 500 or response.status_code == 429)
+                esito_dato = True
+                if not response.is_closed:
+                    # The body is still to come from the network: the slot goes with it.
+                    response.stream = _FlussoCheRilascia(response.stream, semaforo)
+                    rilasciato = True
+                return response
+            finally:
+                if not rilasciato:
+                    semaforo.release()
         finally:
-            if not rilasciato:
-                semaforo.release()
+            if not esito_dato:
+                # Cancelled, refused for a pause or a local bug: no outcome, but a
+                # half-open trial must not stay «in progress» for ever.
+                self._esito(stato, prova, guasto=None)
 
     async def aclose(self) -> None:
         await self.interno.aclose()
@@ -362,11 +385,12 @@ class _TrasportoConRegole(httpx.AsyncBaseTransport):
         if resta > 0:
             await asyncio.sleep(resta)
 
-    async def _rispetta_intervallo(self, stato: _StatoFonte, ciclo: _StatoCiclo, regole: Politica) -> None:
+    async def _rispetta_intervallo(self, chiave: str, stato: _StatoFonte, ciclo: _StatoCiclo,
+                                   regole: Politica) -> None:
         if regole.intervallo <= 0:
             stato.ultima = time.monotonic()
             return
-        lucchetto = ciclo.lucchetti.setdefault(self.fonte, asyncio.Lock())
+        lucchetto = ciclo.lucchetti.setdefault(chiave, asyncio.Lock())
         async with lucchetto:
             attesa = stato.ultima + regole.intervallo - time.monotonic()
             if attesa > 0:
