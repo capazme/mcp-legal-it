@@ -5,21 +5,31 @@ Records real HTTP exchanges once, then replays them offline against two
 checkouts and compares every tool answer (text, error flag and ``_meta``),
 taken through the FastMCP in-memory client.
 
-    # 1. once, with network: record a tape on the base checkout
-    python scripts/replay_mcp_outputs.py record --tape ~/tapes/base.json.gz
+    # 1. once, with network: record the tape on the BASE checkout
+    git worktree add --detach /tmp/base origin/develop
+    python scripts/replay_mcp_outputs.py record --checkout /tmp/base
+    git worktree remove /tmp/base
 
-    # 2. offline: replay against a git ref and the working tree, and compare
-    python scripts/replay_mcp_outputs.py compare --tape ~/tapes/base.json.gz --base origin/develop
+    # 2. offline: replay against the same ref and the working tree, and compare
+    python scripts/replay_mcp_outputs.py compare --base origin/develop
 
-The tape stays OUT of the repository. It holds what the sources served:
-Brocardi pages (third-party content), whole Akoma Ntoso acts and the
-Constitutional Court's open-data bundles (hundreds of MB). Keep it local.
+The tape (default ``.replay-tapes/mcp-calls.json.gz``, ``--tape`` to move it)
+is rebuilt the same way whenever it is missing or stale: record it again on
+the base ref before the refactor starts. Record on the base, not on the
+branch, so the tape holds what the code before the change asked for.
+
+NEVER COMMIT THE TAPE, not even a reduced one. It holds what the sources
+served: Italgiure decisions and Brocardi pages, whose terms limit reuse, whole
+Akoma Ntoso acts and the Constitutional Court's open-data bundles (hundreds of
+MB). ``.replay-tapes/`` and ``*.tape.json.gz`` are in ``.gitignore``.
 
 Replays pin the clock (``LEGAL_NOW``), turn the disk caches off
 (``LEGAL_CACHE=off``) and fix ``PYTHONHASHSEED``, so two replays of one
 checkout are identical. Every ``httpx.AsyncClient`` the process creates gets a
 recording or replaying transport keyed by method, URL and body hash; repeated
-identical requests are served in recorded order.
+identical requests are served in recorded order. A request missing from the
+tape fails like a network error: if a branch adds requests, the answers differ
+and the comparison says so.
 """
 
 from __future__ import annotations
@@ -38,6 +48,8 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+#: Where the tape lives unless --tape says otherwise (ignored by git: never commit it).
+DEFAULT_TAPE = REPO / ".replay-tapes" / "mcp-calls.json.gz"
 
 #: The calls replayed: every norm and case-law tool family, with error paths.
 CALLS: list[tuple[str, dict]] = [
@@ -195,15 +207,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     rec = sub.add_parser("record", help="record a tape (network) against a checkout")
-    rec.add_argument("--tape", type=Path, required=True)
+    rec.add_argument("--tape", type=Path, default=DEFAULT_TAPE)
     rec.add_argument("--checkout", type=Path, default=REPO)
     rec.add_argument("--out", type=Path, help="also keep the recorded answers here")
     rep = sub.add_parser("replay", help="replay a tape offline against a checkout")
-    rep.add_argument("--tape", type=Path, required=True)
+    rep.add_argument("--tape", type=Path, default=DEFAULT_TAPE)
     rep.add_argument("--checkout", type=Path, default=REPO)
     rep.add_argument("--out", type=Path, required=True)
     cmp_ = sub.add_parser("compare", help="replay a tape against a git ref and a checkout, and compare")
-    cmp_.add_argument("--tape", type=Path, required=True)
+    cmp_.add_argument("--tape", type=Path, default=DEFAULT_TAPE)
     cmp_.add_argument("--base", required=True, help="git ref of the base (e.g. origin/develop)")
     cmp_.add_argument("--head", type=Path, default=REPO, help="checkout to compare (default: this one)")
     w = sub.add_parser("_worker")
@@ -215,7 +227,10 @@ def main() -> int:
     if args.command == "_worker":
         _worker(args.mode, args.tape, args.out)
         return 0
+    if args.command != "record" and not args.tape.expanduser().exists():
+        sys.exit(f"no tape at {args.tape}: record one on the base ref first (see the module docstring)")
     if args.command == "record":
+        args.tape.expanduser().parent.mkdir(parents=True, exist_ok=True)
         out = args.out or Path(tempfile.mkdtemp()) / "recorded.json"
         _run_worker(args.checkout, "record", args.tape.expanduser(), out)
         return 0
