@@ -65,3 +65,21 @@ def foi_serie_fissa(monkeypatch) -> tuple[int, int]:
         mod, "_VARIAZIONI_UFFICIALI", _tronca(mod._VARIAZIONI_UFFICIALI, anno, mese)
     )
     return FOI_ULTIMO_MESE_FISSO
+
+
+@pytest.fixture(autouse=True)
+def _regole_di_rete_neutre(monkeypatch):
+    """Every test starts with no pause, no failure count and no interval between requests.
+
+    The per-source limits of ``core/_http`` are process-wide: without this a 429 or a
+    breaker opened in one test would hold the next one, and the 0.5 s interval would
+    slow every test that sends several requests. ``tests/unit/test_http_rules.py``
+    restores the real interval where it checks it.
+    """
+    from mcp_legal_it.core import _http
+
+    _http._azzera_stato()
+    monkeypatch.setattr(_http, "POLITICA", _http.Politica(intervallo=0.0))
+    monkeypatch.delenv("LEGAL_CIRCUIT_BREAKER", raising=False)
+    yield
+    _http._azzera_stato()
