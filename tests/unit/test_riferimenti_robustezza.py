@@ -45,7 +45,7 @@ def test_split_annex_keeps_every_article_form(reference, expected):
 
 # --- a range of articles is never a number ----------------------------------------
 
-@pytest.mark.parametrize("article", ["3-5", "3 - 5", "art. 3-5", "12-15bis"])
+@pytest.mark.parametrize("article", ["3-5", "3 - 5", "art. 3-5", "12-15bis", "3\u20135", "3 \u2014 5", "artt. 3-5"])
 def test_range_is_recognised(article):
     assert "intervallo di articoli" in intervallo_articoli(article)
 
@@ -149,3 +149,27 @@ async def test_other_courts_are_not_verifiable_and_never_sent_to_italgiure(refer
         verdetto, nota = await lc._verifica_sentenza(reference, "tutti")
     assert verdetto == "non verificabile"
     assert "non è sull'archivio della Cassazione" in nota
+
+
+@pytest.mark.parametrize("reference", [
+    "art. 3 - 5 c.c.", "art. 3\u20135 c.c.", "art. 3\u20145 c.c.", "artt. 3-5 c.c.", "artt. 3 - 5 c.c.",
+    "c.c. art. 3 \u2013 5",
+])
+def test_every_spelling_of_a_range_reaches_the_range_check(reference):
+    """Spaces, en/em dash and "artt." used to give art. 3 or an unrelated error."""
+    from mcp_legal_it.core.norme import _parse_reference
+
+    article, act = _parse_reference(reference)
+    assert (article, act) == ("3-5", "c.c.")
+    assert intervallo_articoli(article) is not None
+
+
+@pytest.mark.parametrize("reference, expected", [
+    ("art. 2-bis c.p.c.", ("2-bis", "c.p.c.")),
+    ("art. 2043 c.c.", ("2043", "c.c.")),
+    ("D.Lgs. 196/2003 art. 13", ("13", "D.Lgs. 196/2003")),
+])
+def test_range_normalisation_leaves_single_articles_alone(reference, expected):
+    from mcp_legal_it.core.norme import _parse_reference
+
+    assert _parse_reference(reference) == expected

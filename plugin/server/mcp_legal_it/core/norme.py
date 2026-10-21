@@ -114,6 +114,10 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     # One space for any run of whitespace (tabs, NBSP, newlines included): every
     # pattern below then sees separators of bounded length.
     reference = re.sub(r"\s+", " ", reference).strip()
+    # A range written with spaces, an en/em dash or "artt." is still a range: one form,
+    # "art. 3-5", so the entry points refuse it with the same message.
+    reference = re.sub(r"(\d) ?[-\u2013\u2014] ?(\d)", r"\1-\2", reference)
+    reference = re.sub(r"\bartt\.? ?(?=\d+-\d)", "art. ", reference, flags=re.IGNORECASE)
 
     annex_match = _ANNEX_FIRST_PATTERN.match(reference)
     if annex_match:

@@ -133,7 +133,7 @@ def annex_reference(annex_id: str, article: str = "") -> str:
 
 
 #: "3-5", "3 - 5", "3/5-bis"... after the number: a second number, i.e. a range.
-_ARTICLE_RANGE = re.compile(r"^\d+\s*-\s*\d")
+_ARTICLE_RANGE = re.compile(r"^\d+\s*[-\u2013\u2014]\s*\d")
 
 
 class IntervalloArticoli(ValueError):
@@ -150,7 +150,7 @@ def intervallo_articoli(article: str) -> "str | None":
     plain = re.sub(r"^\s*(?:articol[oi]|artt?)\.?\s*", "", article or "", flags=re.IGNORECASE).strip()
     if not _ARTICLE_RANGE.match(plain):
         return None
-    first, last = (x.strip() for x in plain.split("-", 1))
+    first, last = re.split(r"\s*[-\u2013\u2014]\s*", plain, maxsplit=1)
     return (f"«{plain}» indica un intervallo di articoli, non un articolo: "
             f"chiedere un articolo alla volta (es. art. {first}, poi art. {last})")
 
