@@ -21,7 +21,7 @@ Chiama `cite_law` con il riferimento normativo. Se modificato, recupera anche la
 
 ### 2. Annotazioni e giurisprudenza
 
-Chiama `cerca_brocardi` per:
+Chiama `cerca_brocardi` (se disponibile) per:
 - Ratio legis
 - Spiegazione dottrinale
 - Massime giurisprudenziali
@@ -436,7 +436,7 @@ Leggi SOLO le sentenze selezionate:
 - GA: `leggi_provvedimento_amm(sede, nrg, nome_file)`
 - CGUE: `leggi_sentenza_cgue(cellar_uri)`
 
-Per articoli specifici: `cerca_brocardi(reference)` per ratio legis.
+Per articoli specifici: `cerca_brocardi(reference)` (se disponibile) per ratio legis.
 
 ## Fase 4 — Fallback web (se necessario)
 
@@ -922,7 +922,7 @@ Differenze, sovrapposizioni, prevalenza e coordinamento.
 
 ### 1. Recupero testi
 
-Chiama `cite_law` per ciascuna norma. Per annotazioni: `cerca_brocardi`.
+Chiama `cite_law` per ciascuna norma. Per annotazioni: `cerca_brocardi` (se disponibile).
 
 ### 2. Analisi comparativa
 
@@ -1202,7 +1202,7 @@ Identifica:
 ## Step 2 — Verifica normativa
 Per OGNI norma che intendi citare nel parere:
 1. Chiama `cite_law` con il riferimento (es. "art. X legge Y") per ottenere il testo vigente
-2. Se serve approfondimento dottrinale: chiama `cerca_brocardi`
+2. Se serve approfondimento dottrinale: chiama `cerca_brocardi` (se disponibile)
 
 MAI citare una norma a memoria. Ogni citazione deve avere un `cite_law` corrispondente.
 
@@ -1555,7 +1555,7 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 ### 3. Giurisprudenza
 
-`cerca_brocardi` per massime. `cerca_giurisprudenza` per approfondimento.
+`cerca_brocardi` (se disponibile) per massime. `cerca_giurisprudenza` per approfondimento.
 
 Per le norme chiave, chiama `cite_law` con `include_annotations=true` per recuperare da Brocardi:
 - Massime di Cassazione e Corte Costituzionale

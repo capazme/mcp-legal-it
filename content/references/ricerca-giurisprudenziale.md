@@ -107,7 +107,7 @@ Ricerca su tema:
 Ricerca su norma specifica:
 1. giurisprudenza_su_norma(riferimento="art. 2043 c.c.")
 2. leggi_sentenza(numero, anno) per le decisioni chiave
-3. cerca_brocardi("art. 2043 c.c.") per massime e dottrina
+3. cerca_brocardi("art. 2043 c.c.") (se disponibile) per massime e dottrina
 
 ═══════════════════════════════════════════════════════════
 NOTE TECNICHE

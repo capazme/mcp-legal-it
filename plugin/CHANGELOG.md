@@ -37,7 +37,11 @@ entry, it is the same feature as ported to the 3.0 line.
   server and narrows it with visibility filters, so the tools keep names,
   schemas, annotations, `_meta` and middleware; an excluded tool is absent from
   `list_tools` and answered as unknown. Unknown tags raise `ValueError` with
-  the vocabulary. The stock server and the plugin are unchanged. Example and
+  the vocabulary, and so does an empty `include_tags` (it would select
+  nothing; `None` keeps every tool). The server's instructions are the stock
+  ones without the tools it hides, so the model is never pointed at a tool it
+  cannot call; the stock server does the same under `LEGAL_BROCARDI=off`, and
+  the skills, agents and prompts now say `cerca_brocardi` (se disponibile). The stock server and the plugin are unchanged. Example and
   parameters in `docs/tool-tags.md`.
 - `stato_server()`: the self-report diagnostics tool — package version,
   active tool count after the `LEGAL_PROFILE` filter, pinned clock, cache
