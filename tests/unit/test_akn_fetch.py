@@ -247,7 +247,8 @@ class TestDiskPersistence:
         _install_client(monkeypatch, routes)
         await fetch_act_akn(norma, data_vigenza="20260614")
         await fetch_act_akn(norma, data_vigenza="20260614")
-        later = akn_fetch._hits_written_at + akn_fetch._HITS_WRITE_EVERY
+        # One second past the interval: (T + 30) - T can fall a hair short of 30 in floats.
+        later = akn_fetch._hits_written_at + akn_fetch._HITS_WRITE_EVERY + 1.0
         monkeypatch.setattr(akn_fetch, "_now", lambda: later)
         await fetch_act_akn(norma, data_vigenza="20260614")
 
