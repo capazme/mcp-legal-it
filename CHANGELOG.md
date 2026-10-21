@@ -40,11 +40,15 @@ entry, it is the same feature as ported to the 3.0 line.
   (`tredecies`, which no source was found to print, is no longer listed).
   `normalize_act_type` reads case and spacing as VisuaLex does, and the act
   tables gain VisuaLex's rows: "d.l.", "l. cost.", "r.d.l.", "d.lgs.lgt."
-  (they built `urn:nir:stato:d.l.:…` and `l..cost.`), "c.p.a.", and the
-  implementing regulations of the c.p.p. and of the industrial property
-  code. VisuaLex's source convention (`golden.json`) is a pinned fixture:
-  18 of its 24 norm identities match, the 6 others are listed with the step
-  that closes them.
+  given as the act type (`fetch_law_article`, `api.riferimento_da_parametri`)
+  built `urn:nir:stato:d.l.:…` and `l..cost.`; "c.p.a."; the implementing
+  regulations of the c.p.p. and of the industrial property code. Written
+  inside a citation (`cite_law("art. 1 l. cost. 1/2012")`) these short forms
+  are still refused as an unknown act, never read as another: the citation
+  parser takes them with the citation-gate work. VisuaLex's source
+  convention (`golden.json`) is a pinned fixture: the norm identities
+  mcp-legal-it builds already must match it, the others are listed with the
+  step that closes them.
 - `docs/migration/visualex-inventory.md`: the function-by-function inventory of
   the VisuaLex readers that move into mcp-legal-it, with the choice for each.
 - **`mcp_legal_it.api`: mcp-legal-it as a library, and its only stable surface.**
