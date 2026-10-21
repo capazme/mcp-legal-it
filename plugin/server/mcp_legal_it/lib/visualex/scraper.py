@@ -321,9 +321,13 @@ def _akn_article(act, numero_articolo: str, part: "str | None") -> "str | None":
     wanted = _article_identity(normalize_article_key(numero_articolo))
     if wanted is None:
         return None
+    # The key as the export wrote it, read as is: normalising it again may spell it
+    # otherwise ("2-sex-decies" of an act parsed before) and miss it.
+    matched = act._resolve_part(part) if part else None
+    articles = matched.articles if matched is not None else ({} if part else act.articles)
     for key in act.article_keys(part):
         if _article_identity(key) == wanted:
-            return act.article(key, part=part)
+            return articles.get(key)
     return None
 
 
