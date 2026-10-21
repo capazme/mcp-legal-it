@@ -21,7 +21,6 @@ import httpx
 from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
-from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION
 from mcp_legal_it.lib._paging import page, resume_hint
 
 _BASE = "https://www.italgiure.giustizia.it/sncass"
@@ -591,7 +590,7 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
     rif = riferimento.strip().lower()
 
     match = re.match(
-        rf"(?:art\.?|articolo)\s+(\d+(?:-(?:{ARTICLE_SUFFIX_ALTERNATION})\b)?)",
+        r"(?:art\.?|articolo)\s+(\d+(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)",
         rif,
     )
     if not match:
@@ -658,7 +657,7 @@ def norma_is_qualified(riferimento: str) -> bool:
     """True when the reference names a code or an act after the article number."""
     rif = riferimento.strip().lower()
     m = re.match(
-        rf"(?:art\.?|articolo)\s+\d+(?:-(?:{ARTICLE_SUFFIX_ALTERNATION})\b)?",
+        r"(?:art\.?|articolo)\s+\d+(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?",
         rif,
     )
     return bool(m and rif[m.end():].strip())

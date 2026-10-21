@@ -50,9 +50,6 @@ NORMATTIVA_URN_CODICI = {
     "codice del Terzo settore": "decreto.legislativo:2017-07-03;117",
     "codice della protezione civile": "decreto.legislativo:2018-01-02;1",
     "codice della crisi d'impresa e dell'insolvenza": "decreto.legislativo:2019-01-12;14",
-    # From VisuaLex's table (tools/map.py at eca698dc), which had two regulations this one lacked.
-    "regolamento per l'esecuzione del codice di procedura penale": "decreto.ministeriale:1989-09-30;334",
-    "regolamento di attuazione del Codice della proprietà industriale": "decreto.ministeriale:2010-01-13;33",
 }
 
 
@@ -524,35 +521,7 @@ NORMATTIVA_SEARCH = {
     "norme in materia ambientale": "norme in materia ambientale",
     "prel.": "preleggi",
     "preleggi": "preleggi",
-    # --- From VisuaLex's table (tools/map.py at eca698dc) ---------------------
-    # The source convention's own short forms: every abbreviation VisuaLex's
-    # citations write must read back to its type. Without them "d.l. 18/2020"
-    # built ``urn:nir:stato:d.l.:…`` and "l. cost." built ``l..cost.``, URNs that
-    # name no act; "c.p.a." must never be read as "c.p.".
-    "c.p.a": "codice del processo amministrativo",
-    "c.p.a.": "codice del processo amministrativo",
-    "codice del Terzo settore": "codice del Terzo settore",
-    "disposizioni per l'attuazione del Codice civile e disposizioni transitorie": "disposizioni per l'attuazione del Codice civile e disposizioni transitorie",
-    "disposizioni per l'attuazione del Codice di procedura civile e disposizioni transitorie": "disposizioni per l'attuazione del Codice di procedura civile e disposizioni transitorie",
-    "d.l.": "decreto legge",
-    "decreto-legge": "decreto legge",
-    "l. cost.": "legge costituzionale",
-    "l.cost.": "legge costituzionale",
-    "l.cost": "legge costituzionale",
-    "legge cost.": "legge costituzionale",
-    "l. costituzionale": "legge costituzionale",
-    "legge costituzionale": "legge costituzionale",
-    "r.d.l.": "regio decreto legge",
-    "regio decreto legge": "regio decreto legge",
-    "regio decreto-legge": "regio decreto legge",
-    "d.lgs.lgt.": "decreto legislativo luogotenenziale",
-    "decreto legislativo luogotenenziale": "decreto legislativo luogotenenziale",
 }
-
-#: Case-insensitive index of NORMATTIVA_SEARCH (first spelling wins), for ``normalize_act_type``.
-_NORMATTIVA_SEARCH_LOWER: dict[str, str] = {}
-for _k, _v in NORMATTIVA_SEARCH.items():
-    _NORMATTIVA_SEARCH_LOWER.setdefault(_k.lower(), _v)
 
 
 # ---------------------------------------------------------------------------
@@ -836,22 +805,11 @@ def extract_codice_details(codice_name: str) -> dict | None:
 
 
 def normalize_act_type(input_type: str) -> str:
-    """Normalize act type abbreviation to full name using NORMATTIVA_SEARCH.
-
-    As VisuaLex's ``text_op.normalize_act_type`` (search table): the literal key
-    first, then a case-insensitive index (some keys carry capitals, "codice del
-    Terzo settore"), then the form without spaces ("cod.civ."). Each added
-    attempt only resolves more names, never changes one that already resolved.
-    """
+    """Normalize act type abbreviation to full name using NORMATTIVA_SEARCH."""
     if input_type in {"TUE", "TFUE", "CDFUE"}:
         return input_type
     key = input_type.lower().strip()
-    found = NORMATTIVA_SEARCH.get(key)
-    if found is None:
-        found = _NORMATTIVA_SEARCH_LOWER.get(key)
-    if found is None:
-        found = NORMATTIVA_SEARCH.get(key.replace(" ", ""), key)
-    return found
+    return NORMATTIVA_SEARCH.get(key, key)
 
 
 # Leading articles and prepositions: "art. 111 *della* Costituzione".

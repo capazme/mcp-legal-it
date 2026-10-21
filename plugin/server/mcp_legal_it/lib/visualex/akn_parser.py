@@ -18,8 +18,6 @@ from dataclasses import dataclass, field
 
 from lxml import etree
 
-from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
-
 
 _AGGIORNAMENTO_MARKER = "-----------"
 
@@ -27,6 +25,12 @@ _AGGIORNAMENTO_MARKER = "-----------"
 # ---------------------------------------------------------------------------
 # Article key normalization
 # ---------------------------------------------------------------------------
+
+_ORDINAL_SUFFIXES = (
+    "bis", "ter", "quater", "quinquies", "sexies", "septies",
+    "octies", "novies", "decies",
+)
+
 
 def normalize_article_key(numero_articolo: str) -> str:
     """Normalize an article reference to the canonical key form.
@@ -46,11 +50,7 @@ def normalize_article_key(numero_articolo: str) -> str:
 
     # Unify separators between the number and an ordinal suffix: a space, a dash
     # or nothing all collapse to a single dash. e.g. "2 bis" / "2bis" -> "2-bis".
-    # The table is the shared one (VisuaLex's ``normalize_article_key``, ported):
-    # numbering goes far past "decies" ("2409 octiesdecies" c.c., "25 undevicies"
-    # d.lgs. 231/2001), and the short list this used to carry left "25terdecies"
-    # to the fallback below, which cannot tell a suffix from a rubrica.
-    suffix_alt = ARTICLE_SUFFIX_ALTERNATION
+    suffix_alt = "|".join(_ORDINAL_SUFFIXES)
     m = re.match(rf"^(\d+)\s*[-\s]?\s*({suffix_alt})$", key)
     if m:
         return f"{m.group(1)}-{m.group(2)}"
@@ -61,13 +61,8 @@ def normalize_article_key(numero_articolo: str) -> str:
         return key.replace(" ", "-")
 
     # Fallback: collapse internal whitespace to dashes, strip stray chars.
-    # This is where the shapes the table cannot spell land — "270 bis.1" ->
-    # "270-bis.1", "314/2", "135 sex decies" -> "135-sex-decies". A bare digit
-    # after an ordinal is a dotted sub-number ("171 octies 1" in the tree of
-    # l. 633/1941 is ~art171octies.1 on Normattiva), so it joins with a dot.
     key = re.sub(r"\s+", "-", key)
     key = re.sub(r"-{2,}", "-", key).strip("-")
-    key = re.sub(r"(?<=[a-z])-(\d+)$", r".\1", key)
     return key
 
 
