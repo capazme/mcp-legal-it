@@ -15,6 +15,11 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **`LEGAL_CITATION_GATE=off` switches off the plugin's citation gate** (also
+  `0`, `false`, `no`, any case). Only the Stop/SubagentStop hook stops; the
+  plugin's tools stay. Meant for software-development sessions, for example
+  `"env": {"LEGAL_CITATION_GATE": "off"}` in a project's
+  `.claude/settings.local.json`; legal work should keep it on.
 - **Network rules per source, from VisuaLex** (`core/_http`). Every request
   the readers send, redirects included, is checked before it leaves: scheme,
   no credentials, and a host the source may reach; until now the host list was

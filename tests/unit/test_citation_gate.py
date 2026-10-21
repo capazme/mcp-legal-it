@@ -13,6 +13,7 @@ content of a real session.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -553,6 +554,47 @@ def test_the_escape_covers_only_its_own_line(tmp_path):
 def test_at_most_one_block_per_turn(tmp_path):
     t = session(tmp_path).prompt().say("Vale l'art. 2043 c.c.")
     assert gate(t, stop_hook_active=True) == SILENT
+
+
+# ---------------------------------------------------------------------------
+# Opt-out: LEGAL_CITATION_GATE=off switches the gate off for development sessions
+# ---------------------------------------------------------------------------
+
+_BLOCKING_TEXT = "Nel merito si applica l'art. 2043 c.c."
+
+
+@pytest.mark.parametrize("value", ["off", "OFF", "Off", "0", "false", "False", "no", "NO", " off "])
+def test_the_opt_out_values_skip_the_gate(tmp_path, monkeypatch, value):
+    t = session(tmp_path).prompt().say(_BLOCKING_TEXT)
+    monkeypatch.delenv("LEGAL_CITATION_GATE", raising=False)
+    assert gate(t) == NAGS  # the same transcript blocks without the opt-out
+    monkeypatch.setenv("LEGAL_CITATION_GATE", value)
+    done = run({"transcript_path": str(t.path), "hook_event_name": "Stop"})
+    assert done.returncode == SILENT
+    assert done.stdout == "" and done.stderr == ""
+
+
+def test_the_opt_out_applies_to_subagents_too(tmp_path, monkeypatch):
+    monkeypatch.setenv("LEGAL_CITATION_GATE", "off")
+    t = session(tmp_path).prompt().say(_BLOCKING_TEXT)
+    assert gate(t, hook_event_name="SubagentStop") == SILENT
+
+
+def test_the_opt_out_does_not_read_stdin_or_transcript():
+    done = subprocess.run([sys.executable, str(HOOK)], input="not json", capture_output=True,
+                          text=True, env={**os.environ, "LEGAL_CITATION_GATE": "off"}, timeout=60)
+    assert (done.returncode, done.stdout, done.stderr) == (SILENT, "", "")
+
+
+@pytest.mark.parametrize("value", ["", "on", "1", "true", "yes", "offf", "disabled"])
+def test_any_other_value_keeps_the_gate_on(tmp_path, monkeypatch, value):
+    monkeypatch.setenv("LEGAL_CITATION_GATE", value)
+    assert gate(session(tmp_path).prompt().say(_BLOCKING_TEXT)) == NAGS
+
+
+def test_with_the_variable_unset_the_gate_is_on(tmp_path, monkeypatch):
+    monkeypatch.delenv("LEGAL_CITATION_GATE", raising=False)
+    assert gate(session(tmp_path).prompt().say(_BLOCKING_TEXT)) == NAGS
 
 
 @pytest.mark.parametrize("payload", [
