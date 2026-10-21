@@ -544,6 +544,10 @@ entry, it is the same feature as ported to the 3.0 line.
   esecuzione del codice della navigazione, the c.p.p. minorile, the TULPS and
   the TU successioni e donazioni. A live gate (`test_codici_urn_live.py`) checks
   every code before a release.
+- `cite_law` recognises "c.p.m.p.", "c.p.m.g." (each military code on its own,
+  also through the AKN export, which bundles both), "disp. att. c.p.p." and
+  "att. c.p.p."; the all-caps "ART. 3" head (codice del turismo) is read as the
+  served article.
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
   caller and was fetched as is: on the HTTP transport any client could read
   pages reachable from the server (localhost, cloud metadata, intranet). Only
