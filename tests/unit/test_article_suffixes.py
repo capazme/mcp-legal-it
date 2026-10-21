@@ -205,3 +205,23 @@ def test_a_dashed_article_with_a_long_blank_run_stays_linear():
     start = time.perf_counter()
     NormaVisitata(Norma("legge", "1990-08-07", "241"), "1" + " " * 20000 + "!-x").url()
     assert time.perf_counter() - start < 0.1
+
+
+@pytest.mark.parametrize("article", ["1 " + "a" * 40 + "1-bis", "1 a" + " " * 20000 + "1-bis"])
+def test_a_dashed_article_with_letters_before_the_dash_stays_linear(article):
+    # "(letters blanks*)*" split a run of letters 2^n ways when the match failed (ReDoS).
+    import time
+
+    start = time.perf_counter()
+    NormaVisitata(Norma("legge", "1990-08-07", "241"), article).url()
+    assert time.perf_counter() - start < 0.1
+
+
+def test_the_two_word_suffix_join_stays_linear_on_letters():
+    # The join of a suffix written in two words. (A long run of blanks is still slow in the
+    # normaliser's two patterns that come from VisuaLex: their fix lands there first.)
+    import time
+
+    start = time.perf_counter()
+    normalize_article_key("1 " + "a" * 40 + " 1")
+    assert time.perf_counter() - start < 0.1

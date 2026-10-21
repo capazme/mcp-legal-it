@@ -203,7 +203,9 @@ def _append_article(urn: str, article: str) -> str:
     elif "-" in article:
         # "2-bis", "2 - bis", "135 sex-decies": no space nor dash stays in the URN.
         parts = article.split("-", 1)
-        head = re.match(r"^(\d+)\s*((?:[A-Za-z]+\s*)*)$", parts[0].strip())  # one blank run per gap
+        # Every repetition opens with blanks, so a run of letters cannot be split two ways
+        # (a nested "(letters blanks*)*" was exponential on "1 aaaa…1").
+        head = re.match(r"^(\d+)((?:\s+[A-Za-z]+)*)\s*$", parts[0])
         article = head.group(1) if head else parts[0].strip()
         extension = re.sub(r"[\s-]", "", (head.group(2) if head else "") + parts[1])
     elif (words := re.match(r"^(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*)$", article)):
