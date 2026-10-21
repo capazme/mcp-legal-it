@@ -37,7 +37,8 @@ KINDS: dict[str, str] = {
     "calcolo": "Answered locally from the inputs and the bundled tables: calculations, "
                "deadlines, fees, taxes, checks and look-ups. No online source.",
     "redazione": "Produces a draft document or text to be used as such: deeds, letters, "
-                 "privacy notices, DPAs, DOCX and Excel files.",
+                 "privacy notices, DPAs, DOCX and Excel files. Invoices, fee notes, "
+                 "receipts and quotes are `calcolo`: their content is the computation.",
     "diagnostica": "Reports on the server itself: version, data freshness, refusal log.",
 }
 

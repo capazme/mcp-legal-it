@@ -1110,6 +1110,8 @@ async def stato_server() -> dict:
     (orologio pinnato, cache accesa/spenta, profilo) e l'hostname della macchina
     — utile per accorgersi di due connettori che puntano a checkout diversi.
     Non consulta la rete e non tocca il disco (il percorso cache è solo descritto).
+    Dentro un server costruito con `crea_server()` il conteggio resta quello del
+    server standard, mentre `brocardi.attivo` vale per la chiamata in corso.
 
     Precisione: ESATTO (lettura dello stato del processo in esecuzione).
     """
@@ -1141,6 +1143,6 @@ async def stato_server() -> dict:
         "fastmcp": fastmcp.__version__,
         "context_hint": {
             "bytes_stima_per_tool_nascosto": _BYTES_PER_TOOL_STIMA,
-            "nota": "il conteggio `tools_attivi` è la superficie dopo il filtro LEGAL_PROFILE; il profilo si sceglie all'avvio, non a chiamata fatta",
+            "nota": "il conteggio `tools_attivi` è la superficie del server standard dopo LEGAL_PROFILE e gli interruttori d'ambiente (LEGAL_PREVIGENTE, LEGAL_BROCARDI), scelti all'avvio; un server costruito con crea_server() può esporne meno",
         },
     }

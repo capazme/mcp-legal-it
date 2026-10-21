@@ -65,8 +65,9 @@ Con Brocardi spento:
 
 - **nessuna richiesta parte verso `www.brocardi.it`**: i due scraper che costruiscono
   URL Brocardi (`mcp_legal_it/lib/brocardi/client.py`, `mcp_legal_it/lib/visualex/scraper.py`)
-  passano da `mcp_legal_it/lib/_brocardi_switch.py` prima di qualunque I/O e si fermano;
-  `_egress.is_allowed()` rifiuta l'host;
+  passano da `mcp_legal_it/lib/_brocardi_switch.py` prima di qualunque I/O e si fermano
+  (è questo il blocco: `_egress.is_allowed()`, che a runtime riflette lo stato
+  dell'interruttore, è l'elenco consultabile, non un secondo strato di difesa);
 - `cerca_brocardi` e `fetch_law_annotations` (tag `solo_brocardi`) non sono esposti;
 - `cite_law(include_annotations=True)`, `giurisprudenza_articolo` e `mappa_orientamento`
   (tag `brocardi`) rispondono senza Brocardi e lo dichiarano nella risposta;

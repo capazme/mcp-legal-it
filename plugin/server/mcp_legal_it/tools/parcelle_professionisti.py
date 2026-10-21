@@ -1002,7 +1002,7 @@ def _eur_it(valore: float) -> str:
     return f"{valore:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-@mcp.tool(tags={"redazione", "parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def ricevuta_prestazione_occasionale(
     compenso_lordo: float,
     committente: str,

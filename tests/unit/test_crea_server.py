@@ -105,7 +105,7 @@ def test_prompts_and_resources_can_be_left_out():
     assert kept["prompts"] == 23 and kept["resources"] == 15
     dropped = surface(crea_server(include_tags={"calcolo"}, prompts=False))
     assert dropped["prompts"] == 0 and dropped["resources"] == 0
-    assert len(dropped["tools"]) == 140
+    assert len(dropped["tools"]) == 141
 
 
 def test_excluding_brocardi_differs_from_switching_it_off():
