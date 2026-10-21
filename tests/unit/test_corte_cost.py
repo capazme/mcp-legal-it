@@ -628,6 +628,16 @@ class TestCacheOff:
         assert not (tmp_path / "corte_cost").exists(), "nothing on disk with the cache off"
 
     @pytest.mark.asyncio
+    async def test_a_memory_hit_still_declares_the_source(self):
+        from mcp_legal_it.lib import _sources
+
+        with patch("mcp_legal_it.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+            await search_pronunce(terms=[], year_from=1956, year_to=1956, limit=10)
+            with _sources.recording() as seen:
+                await search_pronunce(terms=["pensioni"], year_from=1956, year_to=1956, limit=10)
+        assert any(dataset == "corte_cost" for dataset, _ in seen), seen
+
+    @pytest.mark.asyncio
     async def test_concurrent_searches_share_the_download(self):
         import asyncio
 
