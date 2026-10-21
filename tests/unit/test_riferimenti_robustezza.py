@@ -89,6 +89,17 @@ async def test_entry_points_refuse_a_range_before_any_request():
     ("CGUE n. 1/2020", "cgue"),
     ("CTP Milano n. 5/2019", "tributaria"),
     ("Trib. Milano n. 100/2022", "merito"),
+    ("trib. milano n. 100/2022", "merito"),
+    ("app. roma n. 3/2020", "merito"),
+    ("Giudice di pace di Roma n. 5/2021", "merito"),
+    ("GdP Roma n. 5/2021", "merito"),
+    ("Corte giust. n. 1/2020", "cgue"),
+    ("C.G.U.E. n. 1/2020", "cgue"),
+    ("Corte dei conti n. 123/2020", "corte_conti"),
+    ("Corte conti n. 123/2020", "corte_conti"),
+    ("Corte EDU n. 1/2020", "cedu"),
+    ("CEDU n. 1/2020", "cedu"),
+    ("sez. trib. n. 1/2024", "cassazione"),
     ("Cass. sez. III n. 12345/2024", "cassazione"),
     ("Cass. sez. trib. n. 1/2024", "cassazione"),
     ("sez. lav. n. 5/2023", "cassazione"),
@@ -122,7 +133,11 @@ async def test_corte_costituzionale_is_checked_on_its_own_archive():
         assert (await lc._verifica_sentenza("Corte cost. n. 9999/2014", "tutti"))[0] == "inesistente"
 
 
-@pytest.mark.parametrize("reference", ["Cons. St. n. 1/2020", "TAR Lazio n. 123/2021", "Trib. Milano n. 100/2022"])
+@pytest.mark.parametrize("reference", [
+    "Cons. St. n. 1/2020", "TAR Lazio n. 123/2021", "Trib. Milano n. 100/2022", "trib. milano n. 100/2022",
+    "Giudice di pace di Roma n. 5/2021", "Corte giust. n. 1/2020", "C.G.U.E. n. 1/2020",
+    "Corte dei conti n. 123/2020", "Corte EDU n. 1/2020",
+])
 async def test_other_courts_are_not_verifiable_and_never_sent_to_italgiure(reference):
     from unittest.mock import AsyncMock, patch
 

@@ -641,15 +641,26 @@ _CORTI_NON_CASSAZIONE = (
     ("giustizia_amm", re.compile(
         r"\bcons(?:iglio)?\.?\s*(?:di\s+)?st(?:ato)?\b|\bc\.?d\.?s\.?(?![\w])|\bt\.?a\.?r\.?(?![\w])|\bcgars\b",
         re.IGNORECASE)),
-    ("cgue", re.compile(r"\bcgue\b|\bcorte\s+(?:di\s+)?giustizia\b|\btrib(?:unale)?\.?\s+ue\b", re.IGNORECASE)),
+    ("cgue", re.compile(
+        r"\bc\.?g\.?u\.?e\.?(?![\w])|\bcorte\s+(?:di\s+)?giust(?:izia)?\b|\btrib(?:unale)?\.?\s+ue\b",
+        re.IGNORECASE)),
+    ("cedu", re.compile(r"\bcorte\s+edu\b|\bc\.?e\.?d\.?u\.?(?![\w])", re.IGNORECASE)),
+    ("corte_conti", re.compile(r"\bcorte\s+(?:dei\s+)?conti\b|\bc\.\s*conti\b", re.IGNORECASE)),
     ("tributaria", re.compile(r"\bcgt\b|\bc\.?t\.?[pr]\.?(?![\w])|\bcomm(?:issione)?\.?\s+trib", re.IGNORECASE)),
-    ("merito", re.compile(r"\b(?:Trib\.|Tribunale|App\.|Corte\s+d['’]\s*[Aa]ppello)\s+(?:di\s+)?[A-Z]")),
+    # Merits courts, any case. "trib." / "app." followed by "n." or "sez." is a Cassazione
+    # section ("sez. trib. n. 1/2024"), not the Tribunale.
+    ("merito", re.compile(
+        r"\bgiudice\s+di\s+pace\b|\bg\.?d\.?p\.?(?![\w])"
+        r"|\b(?:trib\.|tribunale|app\.|corte\s+d['’]\s*appello)\s+(?:di\s+)?(?!n\b|n\.|sez)[a-z]",
+        re.IGNORECASE)),
 )
 _CORTI_NON_VERIFICABILI = {
     "giustizia_amm": ("Giustizia amministrativa (Consiglio di Stato, TAR)",
                       "cerca_giurisprudenza_amministrativa() e leggi_provvedimento_amm()"),
     "cgue": ("Corte di giustizia UE", "cerca_giurisprudenza_cgue() e leggi_sentenza_cgue()"),
     "tributaria": ("giurisdizione tributaria di merito", "cerca_giurisprudenza_tributaria()"),
+    "cedu": ("Corte europea dei diritti dell'uomo", "nessuno strumento di questo server (la banca dati è HUDOC)"),
+    "corte_conti": ("Corte dei conti", "nessuno strumento di questo server"),
     "merito": ("giudice di merito", "nessun archivio pubblico consultabile da questo server"),
 }
 
