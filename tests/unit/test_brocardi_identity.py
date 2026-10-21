@@ -266,7 +266,7 @@ class TestDateReachesBrocardi:
     async def test_cite_law_annotations_pass_the_year(self):
         from mcp_legal_it.tools.legal_citations import _cite_law_impl
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", new=AsyncMock(return_value={"text": "t", "url": "u", "source": "normattiva"})), \
+        with patch("mcp_legal_it.core.norme.fetch_article", new=AsyncMock(return_value={"text": "t", "url": "u", "source": "normattiva"})), \
              patch("mcp_legal_it.lib.brocardi.client.find_article_url", new=AsyncMock(return_value=None)) as find_url, \
              patch("mcp_legal_it.lib.brocardi.client.httpx.AsyncClient") as MockClient:
             MockClient.return_value.__aenter__.return_value = MagicMock()
