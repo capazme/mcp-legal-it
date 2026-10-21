@@ -145,6 +145,13 @@ class TestRiferimenti:
         nd = api.leggi_riferimento("art. 6 GDPR").norma_data[0]
         assert nd.urn is None and nd.data_risolta is True and nd.url.startswith("https://eur-lex")
 
+    def test_unknown_act_types_and_incomplete_eu_acts_are_refused(self):
+        assert api.riferimento_da_parametri("pippo", "1", "2020-01-01", "5").esito == "atto_non_riconosciuto"
+        assert api.riferimento_da_parametri("regolamento ue", "6").esito == "riferimento_non_valido"
+        assert api.riferimento_da_parametri("regolamento ue", "6", "2016", "679").esito == "trovato"
+        assert api.riferimento_da_parametri("d.lgs.", "1", "2001-06-08", "231").esito == "trovato"
+        assert api.riferimento_da_parametri("costituzione", "3").esito == "trovato"
+
     def test_other_versions_are_planned(self):
         assert api.riferimento_da_parametri("codice civile", "2043", versione="originale").esito == "non_supportata"
         assert api.riferimento_da_parametri("", "1").esito == "riferimento_non_valido"
@@ -180,6 +187,30 @@ class TestBrocardi:
             with api.configurazione(brocardi=False):
                 a = await api.annotazioni_brocardi("art. 2043 c.c.")
         assert a.esito == "brocardi_disattivato"
+
+    def test_an_inherited_value_does_not_switch_a_context_off_back_on(self):
+        from mcp_legal_it.lib import _brocardi_switch
+
+        api.configura(brocardi=True)
+        with _brocardi_switch.disabled():
+            with api.configurazione(cache=False):
+                assert _brocardi_switch.enabled() is False
+            with pytest.raises(ValueError):
+                with api.configurazione(brocardi=True):
+                    pass
+            assert _brocardi_switch.enabled() is False
+
+    async def test_found_with_structured_abstracts(self):
+        from mcp_legal_it.lib.brocardi.client import BrocardiResult, Massima
+
+        r = BrocardiResult(url="https://www.brocardi.it/x", ratio="r", spiegazione="s", brocardi=["b"],
+                           massime=[Massima(autorita="Cass. civ.", numero="100", anno="2024", testo="m")])
+        with patch("mcp_legal_it.lib.brocardi.client.fetch_brocardi", AsyncMock(return_value=r)):
+            a = await api.annotazioni_brocardi("art. 2043 c.c.")
+        assert a.esito == "trovato" and a.brocardi == ("b",)
+        assert a.massime == (api.MassimaBrocardi(autorita="Cass. civ.", numero="100", anno="2024", testo="m"),)
+        assert (await api.annotazioni_brocardi("art. 2043 c.c.".replace("art. 2043 ", ""))).esito == \
+            "riferimento_non_valido"
 
     async def test_env_off_cannot_be_switched_back_on(self, monkeypatch):
         monkeypatch.setenv("LEGAL_BROCARDI", "off")
@@ -373,6 +404,9 @@ def test_come_dict_is_json_ready():
     "http://publications.europa.eu:8080/resource/cellar/x",
     "http://publications.europa.eu/resource/cellar/x?redirect=http://evil",
     "http://publications.europa.eu/other/x",
+    "https://publications.europa.eu:abc/resource/cellar/x",
+    "https://publications.europa.eu:99999/resource/cellar/x",
+    "http://[::1/resource/cellar/x",
     "file:///etc/passwd",
     "",
 ])
@@ -394,3 +428,107 @@ async def test_cgue_reader_accepts_cellar_and_celex_uris():
         if "/celex/" in uri:  # a CELLAR id without a CELEX in the text has no metadata to read
             assert (d.identita.numero, d.identita.anno) == (311, 2019)
             assert d.attributi.ecli == "ECLI:EU:C:2020:981"
+
+
+
+class TestTestoAtto:
+    async def test_found_short_and_eu(self):
+        full = {"text": "x" * 80, "title": "LEGGE 20 maggio 1970, n. 300", "url": "u"}
+        with patch("mcp_legal_it.api._norme.fetch_normattiva_full_text", AsyncMock(return_value=full)):
+            t = await api.testo_atto("legge 20 maggio 1970, n. 300")
+        assert t.esito == "trovato" and t.titolo.startswith("LEGGE")
+        with patch("mcp_legal_it.api._norme.fetch_normattiva_full_text", AsyncMock(return_value={"text": "x"})):
+            assert (await api.testo_atto("legge 20 maggio 1970, n. 300")).esito == "testo_assente"
+        assert (await api.testo_atto("GDPR")).esito == "non_supportata"
+
+
+class TestLettoriPerChiave:
+    async def test_cerdef(self):
+        from mcp_legal_it.lib.cerdef.client import CerdefNonTrovato, ProvvedimentoDetail
+
+        d = ProvvedimentoDetail(guid="g-1", estremi="Sentenza del 12/03/2024 n. 1234", massima="M",
+                                testo_integrale="T")
+        with patch("mcp_legal_it.lib.cerdef.client.fetch_provvedimento", AsyncMock(return_value=d)):
+            r = await api.leggi_provvedimento_tributario("g-1")
+        assert r.esito == "trovata" and r.identita.chiave_fonte == "g-1"
+        assert (r.identita.numero, r.identita.anno) == (1234, 2024)
+        assert r.testo_grezzo == api.TestoGrezzo(testo="T", massima="M")
+        with patch("mcp_legal_it.lib.cerdef.client.fetch_provvedimento",
+                   AsyncMock(side_effect=CerdefNonTrovato("guid sconosciuto"))):
+            assert (await api.leggi_provvedimento_tributario("g-2")).esito == "non_trovata"
+        assert (await api.leggi_provvedimento_tributario("")).esito == "richiesta_non_valida"
+
+    async def test_giustizia_amministrativa(self):
+        from mcp_legal_it.lib.giustizia_amm.client import ProvvedimentoDocument
+
+        doc = ProvvedimentoDocument(title="Sentenza", text="testo", url="https://mdp/x", pdf_only=False,
+                                    meta={"tipologia": "Sentenza", "numero": "202614035",
+                                          "data_pubblicazione": "2026-07-01"})
+        with patch("mcp_legal_it.lib.giustizia_amm.client.fetch_provvedimento_document",
+                   AsyncMock(return_value=doc)):
+            r = await api.leggi_provvedimento_amministrativo("tar_rm", "202500001", "f.xml")
+        assert r.esito == "trovata" and r.identita.corte == "tar" and r.identita.sede == "tar_rm"
+        assert (r.identita.numero, r.identita.anno) == (14035, 2026)
+        assert r.identita.chiave_fonte == {"sede": "tar_rm", "nrg": "202500001", "nome_file": "f.xml"}
+        pdf = ProvvedimentoDocument(title="", text="", url="https://mdp/x.pdf", pdf_only=True, meta={})
+        with patch("mcp_legal_it.lib.giustizia_amm.client.fetch_provvedimento_document",
+                   AsyncMock(return_value=pdf)):
+            r = await api.leggi_provvedimento_amministrativo("cds", "1", "f.pdf")
+        assert r.esito == "trovata" and r.testo_grezzo is None and r.avvisi[0].tipo == "testo_non_disponibile"
+        assert r.identita.corte == "consiglio_di_stato"
+        assert (await api.leggi_provvedimento_amministrativo("", "", "")).esito == "richiesta_non_valida"
+
+
+class TestAltreRicerche:
+    async def test_costituzionale(self):
+        from mcp_legal_it.lib.corte_cost.client import MassimaCost, PronunciaCost
+
+        p = PronunciaCost(numero_pronuncia="242", anno_pronuncia="2019", tipologia_pronuncia="S")
+        with patch("mcp_legal_it.lib.corte_cost.client.search_pronunce", AsyncMock(return_value=[p])):
+            r = await api.cerca_decisioni_costituzionali("fine vita", anno_dal=2019, anno_al=2019)
+        assert r.esito == "risultati" and r.decisioni[0].identita.numero == 242
+        hit = ("242", "2019", MassimaCost(titolo="Aiuto al suicidio", testo="massima"))
+        with patch("mcp_legal_it.lib.corte_cost.client.pronunce_su_norma", AsyncMock(return_value=[hit])):
+            r = await api.pronunce_costituzionali_su_norma("art. 580 c.p.")
+        assert r.decisioni[0].frammento.testo == "massima" and r.decisioni[0].attributi.titolo == "Aiuto al suicidio"
+        assert (await api.cerca_decisioni_costituzionali("x", max_risultati=0)).esito == "richiesta_non_valida"
+
+    async def test_tributaria(self):
+        from mcp_legal_it.lib.cerdef.client import CerdefError, EsitoRicerca, ProvvedimentoResult
+
+        e = EsitoRicerca(risultati=[ProvvedimentoResult(guid="g", estremi="Sent. n. 5/2024", titoli="IVA",
+                                                        ente="CGT II grado", data="12/03/2024")],
+                         totale=7, esaminati=1, troncato=True)
+        with patch("mcp_legal_it.lib.cerdef.client.search_giurisprudenza", AsyncMock(return_value=e)):
+            r = await api.cerca_decisioni_tributarie("IVA")
+        assert r.esito == "risultati" and r.totale == 7 and r.troncato is True
+        assert r.decisioni[0].identita.chiave_fonte == "g" and r.decisioni[0].attributi.data_deposito == "2024-03-12"
+        with patch("mcp_legal_it.lib.cerdef.client.search_giurisprudenza", AsyncMock(side_effect=ValueError("ente?"))):
+            assert (await api.cerca_decisioni_tributarie("IVA", ente="x")).esito == "richiesta_non_valida"
+        with patch("mcp_legal_it.lib.cerdef.client.search_giurisprudenza", AsyncMock(side_effect=CerdefError("x"))):
+            assert (await api.cerca_decisioni_tributarie("IVA")).esito == "errore_fonte"
+
+    async def test_amministrativa_year_filter_is_flagged(self):
+        from mcp_legal_it.lib.giustizia_amm.client import ProvvedimentoResult
+
+        docs = [ProvvedimentoResult(sede="cds", sede_label="Consiglio di Stato", nrg="1", tipo="SENTENZA", anno=a,
+                                    nome_file="f", data_deposito="", oggetto="o", numero=f"{a}00001")
+                for a in ("2025", "2026")]
+        with patch("mcp_legal_it.lib.giustizia_amm.client.search_provvedimenti_page",
+                   AsyncMock(return_value=(docs, 99))):
+            r = await api.cerca_decisioni_amministrative("appalto", anno="2026")
+        assert [d.identita.anno for d in r.decisioni] == [2026]
+        assert r.totale is None and r.troncato is True
+
+    async def test_ue(self):
+        from mcp_legal_it.lib.cgue.client import CaseResult
+
+        c = CaseResult(celex="62019CJ0311", ecli="ECLI:EU:C:2020:981", case_number="C-311/19", date="2020-12-03",
+                       title="t", court="CJ", doc_type="JUDG", cellar_uri="http://publications.europa.eu/resource/cellar/x")
+        with patch("mcp_legal_it.lib.cgue.client.search_giurisprudenza", AsyncMock(return_value=[c])):
+            r = await api.cerca_decisioni_ue("dati")
+            r2 = await api.giurisprudenza_ue_su_articolo("art. 82 GDPR")
+        for res in (r, r2):
+            i = res.decisioni[0].identita
+            assert (i.corte, i.numero, i.anno, i.chiave_fonte) == ("corte_giustizia_ue", 311, 2019, c.cellar_uri)
+        assert (await api.giurisprudenza_ue_su_articolo("")).esito == "richiesta_non_valida"

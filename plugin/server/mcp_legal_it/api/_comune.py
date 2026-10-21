@@ -36,11 +36,14 @@ def registra() -> Iterator[Registro]:
     """
     esterna = _sources.CURRENT.get()
     registro = Registro()
-    with _sources.recording() as aperte:
-        registro.aperte = aperte  # the live set: fonti() reads what is noted so far
-        yield registro
-    if esterna is not None:
-        esterna |= registro.aperte
+    try:
+        with _sources.recording() as aperte:
+            registro.aperte = aperte  # the live set: fonti() reads what is noted so far
+            yield registro
+    finally:
+        # Also when the block fails or is cancelled: what was fetched was fetched.
+        if esterna is not None:
+            esterna |= registro.aperte
 
 
 def fonte_giu(exc: BaseException) -> bool:
