@@ -56,18 +56,18 @@ ROWS: list[tuple[str, str]] = [
 ]
 
 
-async def _call(api, row: str):
+async def _call(api, row: str, canale: str):
     if row in ("cc_2043", "cpc_183", "cp_612bis", "dlgs231_year_only", "gdpr_art6", "gdpr_art17"):
         ref = {"cc_2043": "art. 2043 c.c.", "cpc_183": "art. 183 c.p.c.", "cp_612bis": "art. 612-bis c.p.",
                "dlgs231_year_only": "art. 5 d.lgs. 231/2001", "gdpr_art6": "art. 6 GDPR",
                "gdpr_art17": "art. 17 GDPR"}[row]
-        t = await api.testo_articolo(ref, canale="akn")
+        t = await api.testo_articolo(ref, canale=canale)
         return t.esito, len(t.article_text or "")
     if row == "cc_2043_2044":
-        ts = await api.testi_articoli(["art. 2043 c.c.", "art. 2044 c.c."], canale="akn")
+        ts = await api.testi_articoli(["art. 2043 c.c.", "art. 2044 c.c."], canale=canale)
         return ",".join(t.esito for t in ts), sum(len(t.article_text or "") for t in ts)
     if row == "l241_1990_art1_3":
-        ts = await api.testi_articoli([f"art. {n} l. 241/1990" for n in (1, 2, 3)], canale="akn")
+        ts = await api.testi_articoli([f"art. {n} l. 241/1990" for n in (1, 2, 3)], canale=canale)
         return ",".join(t.esito for t in ts), sum(len(t.article_text or "") for t in ts)
     if row == "cc_1284_historical":
         r = api.riferimento_da_parametri("codice civile", "1284", data_versione="2010-01-01")
@@ -93,7 +93,7 @@ async def _call(api, row: str):
     raise KeyError(row)
 
 
-async def _measure(package: Path | None) -> dict:
+async def _measure(package: Path | None, canale: str) -> dict:
     if package:
         sys.path.insert(0, str(package))
     else:
@@ -110,7 +110,7 @@ async def _measure(package: Path | None) -> dict:
         return await original(self, request)
 
     httpx.AsyncHTTPTransport.handle_async_request = counting
-    out: dict = {"package": str(package or "this checkout"), "rows": {}}
+    out: dict = {"package": str(package or "this checkout"), "canale": canale, "rows": {}}
     with tempfile.TemporaryDirectory() as cache:
         api.configura(cache_dir=cache)
         for passata in ("cold", "warm"):
@@ -118,7 +118,7 @@ async def _measure(package: Path | None) -> dict:
                 sent.clear()
                 t0 = time.monotonic()
                 try:
-                    esito, size = await _call(api, row)
+                    esito, size = await _call(api, row, canale)
                 except Exception as exc:  # a row that crashes is a row to read, not a stop
                     esito, size = f"crash: {type(exc).__name__}: {exc}"[:160], 0
                 out["rows"].setdefault(row, {})[passata] = {
@@ -133,6 +133,7 @@ async def _measure(package: Path | None) -> dict:
 
 def _compare(before: Path, after: Path) -> int:
     a, b = json.loads(before.read_text()), json.loads(after.read_text())
+    print(f"Normattiva channel: before `{a.get('canale', 'akn')}`, after `{b.get('canale', 'akn')}`.\n")
     print("| row | call | cold before | cold after | warm before | warm after | s cold before → after | outcome after |")
     print("|---|---|---|---|---|---|---|---|")
     calls = dict(ROWS)
@@ -162,12 +163,15 @@ def main() -> int:
     parser.add_argument("--out", type=Path, help="where to write the measures (JSON)")
     parser.add_argument("--package", type=Path, help="directory holding the mcp_legal_it package to measure")
     parser.add_argument("--compare", nargs=2, type=Path, metavar=("BEFORE", "AFTER"))
+    parser.add_argument("--canale", choices=("akn", "html"), default="html",
+                        help="the Normattiva channel the article rows read (a checkout before the "
+                             "HTML channel supports only akn)")
     args = parser.parse_args()
     if args.compare:
         return _compare(*args.compare)
     if not args.out:
         parser.error("--out or --compare")
-    result = asyncio.run(_measure(args.package))
+    result = asyncio.run(_measure(args.package, args.canale))
     args.out.write_text(json.dumps(result, indent=1, ensure_ascii=False))
     return 0
 

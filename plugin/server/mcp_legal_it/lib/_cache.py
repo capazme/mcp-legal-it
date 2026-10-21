@@ -5,12 +5,13 @@ Three clients persist state under `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`:
     akn_acts/{codice}_{data_gu}_{data_vigenza}.json   parsed acts (cite_law,
     akn_acts/akn_hits.json                            fetch_full_act, ...)
     akn_acts/akn_url_params.json                      URL -> export params index
+    normattiva_pagine/<sha256 of the URL>.json        an article page's text, 24 h
     brocardi_urls.json                                article URL map
     corte_cost/{kind}/{year}.json                     Consulta massime, 7-day TTL
 
 Everything else the server keeps between calls is in memory only (the LRU in
 `visualex.akn_fetch`, the URL dictionaries, `lru_cache` over the bundled JSON
-tables). These four are the only files this server ever creates, and
+tables). These are the only files this server ever creates, and
 `scripts/audit_tool_annotations.py` fails when a new write site appears that is
 not declared as one of them.
 
