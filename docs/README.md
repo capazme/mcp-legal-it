@@ -131,6 +131,9 @@ romperebbe la registrazione dei tool senza preavviso.
 | [data-files.md](data-files.md) | 24 file JSON dati: contenuto, fonte normativa, aggiornamento |
 | [testing.md](testing.md) | Strategia test, comandi, copertura, come aggiungere test |
 | [deployment.md](deployment.md) | install.py, setup manuale, Docker, variabili d'ambiente, troubleshooting |
+| [api.md](api.md) | `mcp_legal_it.api`: la libreria, unica superficie stabile (semver), configurazione, deprecazioni |
+| [migration/2.x-to-3.0.md](migration/2.x-to-3.0.md) | Passaggio dalla 2.x alla 3.0 per tipo di utente: plugin, `.mcpb`, libreria, Docker/HTTP, cambi di comportamento, licenza |
+| [release-notes/](release-notes/) | Bozze per il rilascio 3.0.0: note di rilascio (IT/EN), sezione CHANGELOG ripulita, checklist pre-release, pagine GitHub Pages aggiornate |
 | [benchmark/piano-benchmark-andreani.md](benchmark/piano-benchmark-andreani.md) | Piano di benchmark dei 227 tool su avvocatoandreani.it e fonti ufficiali: strategia, pagina del sito, casi di prova per tool; [benchmark/PROMPT-sessione-locale.md](benchmark/PROMPT-sessione-locale.md) è il prompt che lo esegue in una sessione locale |
 | [001_mcp-legal-it_AuditNormativa_RV_SAPG.md](001_mcp-legal-it_AuditNormativa_RV_SAPG.md) | Audit normativo dei tool (settembre 2026): sospensione feriale, riforma Cartabia, flag `Regime: PREVIGENTE`, stato del benchmark su avvocatoandreani.it, voci aperte |
 | [guida-precisione.md](guida-precisione.md) / [precision-guide.md](precision-guide.md) | Provenienza dei dati in ogni risposta (`dati_applicati`, `fonti_consultate`), gradi di precisione, rifiuto negoziabile (`accetta_precisione`) |
