@@ -22,7 +22,7 @@ from src.lib.visualex import (
     strip_leading_particles,
     known_act_names,
 )
-from src.lib.visualex.models import ANNEX_ID, annex_reference, split_annex
+from src.lib.visualex.models import ANNEX_ID, annex_reference, intervallo_articoli, split_annex
 from src.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
@@ -128,6 +128,10 @@ def _parse_reference(reference: str) -> tuple[str, str]:
     # One space for any run of whitespace (tabs, NBSP, newlines included): every
     # pattern below then sees separators of bounded length.
     reference = re.sub(r"\s+", " ", reference).strip()
+    # A range written with spaces, an en/em dash or "artt." is still a range: one form,
+    # "art. 3-5", so the entry points refuse it with the same message.
+    reference = re.sub(r"(\d) ?[-\u2013\u2014] ?(\d)", r"\1-\2", reference)
+    reference = re.sub(r"\bartt\.? ?(?=\d+-\d)", "art. ", reference, flags=re.IGNORECASE)
 
     annex_match = _ANNEX_FIRST_PATTERN.match(reference)
     if annex_match:
@@ -438,6 +442,9 @@ async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
     if not act_info:
         base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
         return base, None
+    if (motivo := intervallo_articoli(article)) is not None:
+        base["errore"] = motivo
+        return base, None
 
     nv = _build_nv(act_info, article)
     base["articolo"] = article or ""
@@ -484,6 +491,8 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
     act_info = _resolve_act(act_name)
     if not act_info:
         return _unresolved_act_error(act_name)
+    if (motivo := intervallo_articoli(article)) is not None:
+        return f"**Errore**: {motivo}"
 
     nv = _build_nv(act_info, article)
 
@@ -515,6 +524,8 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
 
 async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Implementation of fetch_law_article (testable without MCP wrapper)."""
+    if (motivo := intervallo_articoli(article)) is not None:
+        return f"**Errore**: {motivo}"
     norma = Norma(tipo_atto=act_type, data=date, numero_atto=act_number)
     nv = NormaVisitata(norma=norma, numero_articolo=article)
 
@@ -1063,6 +1074,48 @@ _SENTENZA_BARE = re.compile(
 )
 _CASS_MARKER = re.compile(r"\b(?:cass(?:azione)?|sez(?:ione)?|ss?\.?\s*uu)\b", re.IGNORECASE)
 
+# Courts other than the Cassazione, recognised by the name a citation gives them. Their
+# decisions are not on Italgiure: looked up there, a valid Corte cost. 238/2014 or Cons.
+# St. 1/2020 came back "inesistente". Without any of these names (and always with
+# "Cass.") the citation is read as Cassazione, as before.
+_CORTI_NON_CASSAZIONE = (
+    ("corte_cost", re.compile(r"\bcorte\s+cost(?:ituzionale)?\b|\bc\.\s*cost\b|\bconsulta\b", re.IGNORECASE)),
+    ("giustizia_amm", re.compile(
+        r"\bcons(?:iglio)?\.?\s*(?:di\s+)?st(?:ato)?\b|\bc\.?d\.?s\.?(?![\w])|\bt\.?a\.?r\.?(?![\w])|\bcgars\b",
+        re.IGNORECASE)),
+    ("cgue", re.compile(
+        r"\bc\.?g\.?u\.?e\.?(?![\w])|\bcorte\s+(?:di\s+)?giust(?:izia)?\b|\btrib(?:unale)?\.?\s+ue\b",
+        re.IGNORECASE)),
+    ("cedu", re.compile(r"\bcorte\s+edu\b|\bc\.?e\.?d\.?u\.?(?![\w])", re.IGNORECASE)),
+    ("corte_conti", re.compile(r"\bcorte\s+(?:dei\s+)?conti\b|\bc\.\s*conti\b", re.IGNORECASE)),
+    ("tributaria", re.compile(r"\bcgt\b|\bc\.?t\.?[pr]\.?(?![\w])|\bcomm(?:issione)?\.?\s+trib", re.IGNORECASE)),
+    # Merits courts, any case. "trib." / "app." followed by "n." or "sez." is a Cassazione
+    # section ("sez. trib. n. 1/2024"), not the Tribunale.
+    ("merito", re.compile(
+        r"\bgiudice\s+di\s+pace\b|\bg\.?d\.?p\.?(?![\w])"
+        r"|\b(?:trib\.|tribunale|app\.|corte\s+d['’]\s*appello)\s+(?:di\s+)?(?!n\b|n\.|sez)[a-z]",
+        re.IGNORECASE)),
+)
+_CORTI_NON_VERIFICABILI = {
+    "giustizia_amm": ("Giustizia amministrativa (Consiglio di Stato, TAR)",
+                      "cerca_giurisprudenza_amministrativa() e leggi_provvedimento_amm()"),
+    "cgue": ("Corte di giustizia UE", "cerca_giurisprudenza_cgue() e leggi_sentenza_cgue()"),
+    "tributaria": ("giurisdizione tributaria di merito", "cerca_giurisprudenza_tributaria()"),
+    "cedu": ("Corte europea dei diritti dell'uomo", "nessuno strumento di questo server (la banca dati è HUDOC)"),
+    "corte_conti": ("Corte dei conti", "nessuno strumento di questo server"),
+    "merito": ("giudice di merito", "nessun archivio pubblico consultabile da questo server"),
+}
+
+
+def _corte_citata(reference: str) -> str:
+    """The court a decision citation names: "cassazione" unless another one is named."""
+    if re.search(r"\bcass", reference, re.IGNORECASE):
+        return "cassazione"
+    for corte, pattern in _CORTI_NON_CASSAZIONE:
+        if pattern.search(reference):
+            return corte
+    return "cassazione"
+
 # Section parsing from the user's citation (e.g. "sez. III", "Sezioni Unite").
 _USER_SEZIONE = re.compile(
     r"sez(?:ion[ei]|\.)?\s*"
@@ -1171,7 +1224,7 @@ def _sentenza_num_anno(reference: str) -> tuple[int, int] | None:
     m = _SENTENZA_NUM_ANNO.search(reference)
     if m:
         return int(m.group(1)), int(m.group(2))
-    if _CASS_MARKER.search(reference):
+    if _CASS_MARKER.search(reference) or _corte_citata(reference) != "cassazione":
         m = _SENTENZA_BARE.search(reference)
         if m:
             return int(m.group(1)), int(m.group(2))
@@ -1303,6 +1356,17 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
         return "non interpretabile", "Numero/anno della decisione non riconosciuti."
     numero, anno = num_anno
 
+    corte = _corte_citata(reference)
+    if corte == "corte_cost":
+        return await _verifica_pronuncia_costituzionale(numero, anno)
+    if corte in _CORTI_NON_VERIFICABILI:
+        nome, strumento = _CORTI_NON_VERIFICABILI[corte]
+        return (
+            "non verificabile",
+            f"Decisione n. {numero}/{anno} di {nome}: non è sull'archivio della Cassazione e la "
+            f"verifica per numero e anno non è disponibile; per cercarla: {strumento}.",
+        )
+
     # "Cass. pen. ..." / "Cass. civ. ..." name the archive: with "tutti" a decision of the
     # other branch with the same number and year (41994/2021 exists in both) must not be
     # compared with the citation.
@@ -1376,6 +1440,18 @@ async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
         )
 
     return "verificata", f"Cass. n. {numero}/{anno} reperita su Italgiure."
+
+
+async def _verifica_pronuncia_costituzionale(numero: int, anno: int) -> tuple[str, str]:
+    """A Corte costituzionale decision, checked on the Court's open-data archive."""
+    from src.tools.corte_cost import _leggi_pronuncia_costituzionale_impl
+
+    result = await _leggi_pronuncia_costituzionale_impl(numero, anno)
+    if result.success:
+        return "verificata", f"Corte cost. n. {numero}/{anno} reperita nell'archivio della Corte costituzionale."
+    if result.error_type == "no_results":
+        return "inesistente", f"Pronuncia n. {numero}/{anno} non trovata nell'archivio della Corte costituzionale."
+    return "non verificata", f"Archivio della Corte costituzionale non raggiungibile: {result.error_message}"
 
 
 _VERIFICA_AVVERTENZA = (
@@ -1477,7 +1553,10 @@ async def verifica_citazioni(
     comma/lettera per le norme) siano coerenti con la fonte ufficiale.
 
     Le sentenze sono risolte su Italgiure (`leggi_sentenza`), le norme su Normattiva/EUR-Lex
-    (`cite_law`). Utile per controllare le citazioni di un atto, un parere o un testo prodotto
+    (`cite_law`). Le pronunce della Corte costituzionale ("Corte cost. n. 238/2014") sono
+    verificate sull'archivio della Corte; quelle di altri giudici (Consiglio di Stato, TAR,
+    CGUE, giudici tributari e di merito) risultano "non verificabile", con lo strumento per
+    cercarle. Utile per controllare le citazioni di un atto, un parere o un testo prodotto
     da un altro modello prima di farne uso.
 
     ATTENZIONE: questo tool verifica l'**esistenza** della fonte e i **metadati**, NON
