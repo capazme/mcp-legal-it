@@ -75,7 +75,7 @@ print(json.dumps({
 }))
 ''')
     assert result["suffix"] is True
-    assert result["groups"] == 15
+    assert result["groups"] == 19  # bis (2nd) ... vicies (20th)
     assert result["esito"] == "trovato"
     assert result["urn"] == "urn:nir:stato:decreto.legislativo:2003-06-30;196~art2bis"
     assert result["gdpr"] == {"act_type": "regolamento ue", "act_number": "679", "date": "2016"}
