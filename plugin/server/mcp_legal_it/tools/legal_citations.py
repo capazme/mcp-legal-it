@@ -14,7 +14,7 @@ from mcp_legal_it.server import mcp
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
-from mcp_legal_it.lib.visualex.models import ANNEX_ID, split_annex
+from mcp_legal_it.lib.visualex.models import ANNEX_ID, intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
@@ -110,6 +110,8 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
     act_info = _resolve_act(act_name)
     if not act_info:
         return _unresolved_act_error(act_name)
+    if (motivo := intervallo_articoli(article)) is not None:
+        return f"**Errore**: {motivo}"
 
     nv = _build_nv(act_info, article)
 
@@ -138,6 +140,8 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
 
 async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Implementation of fetch_law_article (testable without MCP wrapper)."""
+    if (motivo := intervallo_articoli(article)) is not None:
+        return f"**Errore**: {motivo}"
     norma = Norma(tipo_atto=act_type, data=date, numero_atto=act_number)
     nv = NormaVisitata(norma=norma, numero_articolo=article)
 

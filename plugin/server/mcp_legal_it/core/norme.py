@@ -19,7 +19,7 @@ from mcp_legal_it.lib.visualex import (
     strip_leading_particles,
     known_act_names,
 )
-from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference
+from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference, intervallo_articoli
 from mcp_legal_it.lib.visualex.scraper import CHECK_UNAVAILABLE, fetch_article
 
 # ---------------------------------------------------------------------------
@@ -378,6 +378,9 @@ async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
     if not act_info:
         base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
         return base, None
+    if (motivo := intervallo_articoli(article)) is not None:
+        base["errore"] = motivo
+        return base, None
 
     return await _lookup_visitata(base, _build_nv(act_info, article), act_info)
 
@@ -394,6 +397,8 @@ def _lookup_base(reference: str) -> dict:
 
 async def lookup_parametri(act_info: dict, article: str) -> tuple[dict, str | None]:
     """``_cite_law_lookup`` for an act already resolved to ``{tipo_atto, data, numero_atto}``."""
+    if (motivo := intervallo_articoli(article)) is not None:
+        return {**_lookup_base(f"art. {article}"), "errore": motivo}, None
     reference = str(_build_nv(act_info, article))
     return await _lookup_visitata(_lookup_base(reference), _build_nv(act_info, article), act_info)
 
