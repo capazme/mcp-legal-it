@@ -360,6 +360,26 @@ def test_another_courts_tool_does_not_cover_a_decision(tmp_path):
     assert gate(t) == NAGS
 
 
+@pytest.mark.parametrize("text, court", [
+    ("Corte cost. n. 238/2014 ha escluso l'immunita'.", "cost"),
+    ("Cons. St. n. 1/2020 ha chiarito il punto.", "amm"),
+    ("La CGUE, causa C-311/18, ha deciso.", "cgue"),
+])
+def test_the_court_of_a_decision_is_the_one_named(tmp_path, text, court):
+    """The same citations verifica_citazioni routes away from Italgiure: never read as Cassazione.
+
+    A Cassazione result carrying the same number does not cover them; their own court's does."""
+    numero = {"cost": "238/2014", "amm": "1/2020", "cgue": "C-311/18"}[court]
+    t = session(tmp_path).prompt().call(
+        "leggi_sentenza", {}, f"# Cass. civ., sez. I, n. {numero}\n\nTesto").say(text)
+    assert gate(t) == NAGS, text
+    own = {"cost": ("leggi_pronuncia_costituzionale", f"# Sentenza Corte Costituzionale n. {numero}"),
+           "amm": ("leggi_provvedimento_amm", f"# Consiglio di Stato\n**Estremi**: Sentenza n. {numero}, pubblicata il 01/01/2020"),
+           "cgue": ("leggi_sentenza_cgue", f"# {numero}")}[court]
+    t.call(own[0], {}, own[1]).say(text)
+    assert gate(t) == SILENT, text
+
+
 @pytest.mark.parametrize("tool, result, text", [
     ("leggi_pronuncia_costituzionale", "# Sentenza Corte Costituzionale n. 242/2019\n\nTesto...",
      "Corte cost., sent. n. 242/2019, sul fine vita."),
