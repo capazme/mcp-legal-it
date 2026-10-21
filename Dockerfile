@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # The package lives in plugin/server/ (see pyproject.toml); install it as the
 # wheel would, so the image runs the same `mcp-legal-it` entry point as uvx.
-COPY pyproject.toml .
+COPY pyproject.toml LICENSE NOTICE ./
+COPY LICENSES/ LICENSES/
 COPY plugin/server/mcp_legal_it/ plugin/server/mcp_legal_it/
 RUN pip install --no-cache-dir . && rm -rf plugin build
 
@@ -19,8 +20,13 @@ ENV MCP_PORT=8000
 ENV MCP_PATH=/mcp
 EXPOSE 8000
 
-# Cache and temp directories
-RUN mkdir -p /app/.cache/mcp-legal-it /tmp/mcp-legal-it
+# An unprivileged user owns the cache. The generators create their own 0700
+# output folder under /tmp at the first document (a folder pre-created here by
+# root would be refused as not ours).
+RUN useradd --system --uid 10001 --home-dir /app legal \
+    && mkdir -p /app/.cache/mcp-legal-it \
+    && chown -R legal /app/.cache
 ENV MCP_CACHE_DIR=/app/.cache/mcp-legal-it
+USER legal
 
 CMD ["mcp-legal-it"]

@@ -226,10 +226,11 @@ def _format_sezione_clusters(docs: list[dict], szdec_raw: list | None = None) ->
         lines.append("_Solo decisioni delle Sezioni Unite (vedi blocco dedicato)._")
         return lines
     # Order sezioni by facet count desc (fall back to sample size), keeping SS.UU. out.
+    # Ties go by section name: iterating the set alone gave an order that changed
+    # with the hash seed, so the same query printed differently from run to run.
     ordered = sorted(
         all_sez,
-        key=lambda s: sez_counts.get(s, len(sample_clusters.get(s, []))),
-        reverse=True,
+        key=lambda s: (-sez_counts.get(s, len(sample_clusters.get(s, []))), str(s)),
     )
     for sez in ordered:
         sample = sample_clusters.get(sez, [])

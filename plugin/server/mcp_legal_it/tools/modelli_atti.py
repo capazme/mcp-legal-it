@@ -10,6 +10,9 @@ from pathlib import Path
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._data import sourced
+from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
+
+_OUTPUT_DIR = OUTPUT_DIR
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -189,24 +192,43 @@ def esporta_atto_docx(
         name = re.sub(r"[^a-z0-9_\-]", "", name)
         return name[:50] or "atto"
 
-    def _add_formatted_paragraph(doc, text, style=None):
-        if style:
-            para = doc.add_paragraph(style=style)
-        else:
-            para = doc.add_paragraph()
-
-        # Split on bold (**...**) and italic (*...*) markers
-        # Pattern: **bold**, *italic* (bold checked first to avoid conflict)
-        parts = re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", text)
+    def _add_runs(para, text):
+        # Split on bold italic (***...***), bold (**...**) and italic (*...*),
+        # longest marker first so "***x***" is not read as "**" + "*x*" + "*".
+        parts = re.split(r"(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*)", text)
         for part in parts:
-            if part.startswith("**") and part.endswith("**"):
+            if len(part) > 6 and part.startswith("***") and part.endswith("***"):
+                run = para.add_run(part[3:-3])
+                run.bold = True
+                run.italic = True
+            elif len(part) > 4 and part.startswith("**") and part.endswith("**"):
                 run = para.add_run(part[2:-2])
                 run.bold = True
-            elif part.startswith("*") and part.endswith("*"):
+            elif len(part) > 2 and part.startswith("*") and part.endswith("*"):
                 run = para.add_run(part[1:-1])
                 run.italic = True
-            else:
+            elif part:
                 para.add_run(part)
+        return para
+
+    def _add_formatted_paragraph(doc, text, style=None):
+        para = doc.add_paragraph(style=style) if style else doc.add_paragraph()
+        return _add_runs(para, text)
+
+    def _new_numbered_list(doc, start):
+        """A fresh 'List Number' list that Word starts at `start` (the number the text typed)."""
+        numbering = doc.part.numbering_part.numbering_definitions._numbering
+        style_num_id = doc.styles["List Number"].element.pPr.numPr.numId.val
+        abstract_id = numbering.num_having_numId(style_num_id).abstractNumId.val
+        num = numbering.add_num(abstract_id)
+        num.add_lvlOverride(ilvl=0).add_startOverride(start)
+        return num.numId
+
+    def _add_numbered_item(doc, text, num_id):
+        para = _add_formatted_paragraph(doc, text, style="List Number")
+        num_pr = para._p.get_or_add_pPr().get_or_add_numPr()
+        num_pr.get_or_add_ilvl().val = 0
+        num_pr.get_or_add_numId().val = num_id
         return para
 
     doc = Document()
@@ -217,21 +239,30 @@ def esporta_atto_docx(
     if autore:
         props.author = autore
 
+    # The title heads every page, so it is in the document and not only in its metadata.
+    doc.sections[0].header.paragraphs[0].text = titolo
+
+    # Numbered items keep the number the text typed: an item that does not follow
+    # the previous one (1, 2 ... 1, 2 ... 10) starts a new list from its own number.
+    list_num_id = None
+    next_number = None
+
     lines = testo.split("\n")
     for line in lines:
         stripped = line.rstrip()
 
-        if stripped.startswith("### "):
-            doc.add_heading(stripped[4:], level=3)
-        elif stripped.startswith("## "):
-            doc.add_heading(stripped[3:], level=2)
-        elif stripped.startswith("# "):
-            doc.add_heading(stripped[2:], level=1)
+        heading = re.match(r"^(#{1,3}) (.*)$", stripped)
+        if heading:
+            _add_runs(doc.add_heading("", level=len(heading.group(1))), heading.group(2))
         elif re.match(r"^[-*] ", stripped):
             _add_formatted_paragraph(doc, stripped[2:], style="List Bullet")
         elif re.match(r"^\d+\. ", stripped):
+            typed = int(re.match(r"^(\d+)\. ", stripped).group(1))
+            if list_num_id is None or typed != next_number:
+                list_num_id = _new_numbered_list(doc, typed)
+            next_number = typed + 1
             content = re.sub(r"^\d+\. ", "", stripped)
-            _add_formatted_paragraph(doc, content, style="List Number")
+            _add_numbered_item(doc, content, list_num_id)
         elif stripped.startswith("> "):
             para = _add_formatted_paragraph(doc, stripped[2:])
             for run in para.runs:
@@ -244,8 +275,7 @@ def esporta_atto_docx(
     # Save to temp file
     import os
     import uuid
-    tmp_dir = "/tmp/mcp-legal-it"
-    os.makedirs(tmp_dir, exist_ok=True)
+    tmp_dir = ensure_private_dir(_OUTPUT_DIR)
     filename = f"{_sanitize_filename(titolo)}_{uuid.uuid4().hex[:8]}.docx"
     filepath = os.path.join(tmp_dir, filename)
     doc.save(filepath)

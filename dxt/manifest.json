@@ -26,7 +26,7 @@
         "--python",
         "3.12",
         "--with",
-        "fastmcp>=2.0,<4",
+        "fastmcp>=3.4,<4",
         "--with",
         "httpx>=0.27",
         "--with",

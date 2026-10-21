@@ -501,6 +501,86 @@ entry, it is the same feature as ported to the 3.0 line.
   the archive window was missed by the sources audit (a call made through a
   module that only imports the function), so the answer's `_meta` listed
   `italgiure` under `non_dichiarate`. The audit now follows such calls.
+- **`cite_law` with the act written first.** `"D.Lgs. 196/2003 art. 13"` was read
+  as an act name: the decree resolved, the article was dropped and the answer
+  was art. 1 of the Codice privacy, with no warning. Same for
+  `"D.Lgs. 36/2023 allegato I.1 art. 1"` (art. 1 of the code). The act-first
+  form (act, then article with its comma/lettera indicators and/or an annex) is
+  now parsed like the article-first one; a reference naming an article that
+  cannot be told apart from the act is refused with the expected-format error.
+  Shared by every tool that uses the reference parser.
+- **Italgiure over verified TLS.** The server sends the wrong intermediate
+  certificates, so the client ran with `verify=False`. The missing one ("TI
+  Trust Technologies OV CA", signed by the USERTrust RSA root in certifi) ships
+  in `lib/italgiure/ti_trust_ov_ca.crt` and is added to certifi's roots; a test
+  fails if `verify=False` appears anywhere in the package, and raises a renewal
+  alarm 180 days before the intermediate expires (2029-07-29).
+- `.mcpb` and the OpenAI config pin `fastmcp>=3.4,<4` (the floor was 2.0, older
+  than the FastMCP the server needs). The change rebuilds the extension's uv
+  environment once, on the first start of 3.0.
+- **`verifica_citazioni` and other courts.** "Corte cost. n. 238/2014" and
+  "Cons. St. n. 1/2020" were looked up on Italgiure as Cassazione and reported
+  "inesistente". Corte costituzionale decisions are now checked on the Court's
+  archive; Consiglio di Stato, TAR, CGUE, Corte dei conti, Corte EDU, tax and
+  merits courts (giudice di pace included, in any case) are "non verificabile",
+  with the tool to search them.
+- **A range of articles is refused.** "art. 3-5 c.c." (also "3 - 5", "3–5",
+  "artt. 3-5") became `~art35`: the
+  library API returned the URN of art. 35 as "trovato". `cite_law`,
+  `fetch_law_article` and the API now answer "chiedere un articolo alla volta".
+- The annex parser (`split_annex`) ran in exponential time on a long article
+  string (20 characters: 0.44 s, x4 every 2 more); it is linear now.
+- The disposizioni di attuazione del c.p.c. are dated 18/12/1941 (R.D. n. 1368)
+  in citations and URNs, not 25/08/1941; a test cross-checks the dates of every
+  code across the three tables that state them.
+- Corte costituzionale with `LEGAL_CACHE=off`: each decade bundle (~56 MB) is
+  downloaded once per process and kept in memory (cap 256 MB, same 7-day expiry
+  as the disk cache), instead of on every call; concurrent calls share one
+  download.
+- **Seven codes served the approving decree.** Their articles sit in an annex
+  of the decree and the URN lacked it: "art. 3 codice del turismo" was the
+  decree's "Abrogazioni". Fixed for the codice del turismo, the codici penali
+  militari (di pace), the norme di attuazione c.p.p., the regolamento di
+  esecuzione del codice della navigazione, the c.p.p. minorile, the TULPS and
+  the TU successioni e donazioni. A live gate (`test_codici_urn_live.py`) checks
+  every code before a release.
+- `cite_law` recognises "c.p.m.p.", "c.p.m.g." (each military code on its own,
+  also through the AKN export, which bundles both), "disp. att. c.p.p." and
+  "att. c.p.p."; the all-caps "ART. 3" head (codice del turismo) is read as the
+  served article.
+- **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
+  caller and was fetched as is: on the HTTP transport any client could read
+  pages reachable from the server (localhost, cloud metadata, intranet). Only
+  `http(s)://publications.europa.eu/resource/...` is accepted now, refused as
+  `bad_input` before any request.
+- **Generated documents are private.** Procure, quotazioni, atti, supplier
+  reports and law PDFs are saved to `<tempdir>/mcp-legal-it` created 0700 (on
+  Linux it was a world-readable `/tmp/mcp-legal-it`); a symlink or a folder
+  owned by another user is refused. `esporta_atto_docx` used a hard-coded
+  `/tmp` instead of the temp dir.
+- `esporta_atto_docx`: numbered lists keep the typed numbers (1, 2 / 1, 2 / 10
+  instead of 1..5), `**`/`*` in headings and `***x***` no longer leak
+  asterisks, the title heads every page.
+- Content: the non-cumulation of mora and revaluation is art. 1224 co. 2 c.c.
+  (Cass. SS.UU. 19499/2008), not SS.UU. 16601/2017; giudice di pace 10.000 /
+  25.000 euro (art. 7 c.p.c.); conclusionali and repliche under art. 189 (not
+  the old art. 190); compensatory interest not on the fully revalued sum.
+- `genera_procura_liti_docx` cites "Regolamento (UE) 2016/679";
+  `indice_documenti` returns an error for non-numeric or negative pages
+  instead of raising.
+- Importing `mcp_legal_it.tools.legal_citations` first no longer fails on a
+  circular import (library callers, single test files).
+- Distribution: the citation-gate hook starts with `uv run --no-sync` (it
+  installed the server's 76 packages on a fresh plugin); the plugin zip and the
+  `.mcpb` no longer ship `*.egg-info`, `.DS_Store` or key files from the
+  checkout; wheel and sdist carry `LICENSES/Apache-2.0.txt`, which NOTICE
+  refers to; the Docker image runs as an unprivileged user (an `mcp-cache`
+  volume created by an older image is root-owned: chown or recreate it, or the
+  server runs without the disk cache); `scripts/corpus/extract_references.py`
+  explains that the migration is done instead of crashing.
+- Live gates realigned with their sources: CeRDEF unknown GUID is `not_found`,
+  INPS reworded the ex-ENPALS split, Normattiva alternates "è"/"e'", a stale
+  data path left by the package rename.
 - Deadline tools: `giorno_settimana` is always the Italian name. It came from
   `strftime("%A")`, which follows the process locale, so the same output mixed
   «lunedì» and «Monday».

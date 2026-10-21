@@ -33,7 +33,7 @@ dependencies = [
 mcp-legal-it = "mcp_legal_it.cli:main"
 
 [tool.setuptools.package-data]
-mcp_legal_it = ["data/*.json", "data/references/*.md"]
+mcp_legal_it = ["data/*.json", "data/references/*.md", "lib/italgiure/*.crt"]
 
 [tool.setuptools.packages.find]
 where = ["."]

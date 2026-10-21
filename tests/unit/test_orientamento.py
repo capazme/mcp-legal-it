@@ -752,3 +752,26 @@ class TestMappaAncoraggio:
         with qp, sp, bp, patch("mcp_legal_it.tools.orientamento.resolve_atto", return_value=None):
             result = await _mappa_orientamento_impl("art. 2043 c.c.")
         assert "atto non riconosciuto" in result.results_text
+
+
+def test_sezioni_with_equal_counts_are_ordered_by_name_whatever_the_hash_seed():
+    """Ties used to follow set iteration order, which changes with PYTHONHASHSEED."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    code = (
+        "from mcp_legal_it.tools.orientamento import _format_sezione_clusters as f;"
+        "print([l for l in f([], ['L', 5, '3', 5, '1', 5, '2', 9]) if l.startswith('###')])"
+    )
+    server = Path(__file__).resolve().parents[2] / "plugin" / "server"
+    outputs = {
+        subprocess.run([sys.executable, "-c", code], cwd=server, capture_output=True, text=True,
+                       env={"PYTHONHASHSEED": seed, "PATH": ""}, timeout=120).stdout
+        for seed in ("0", "1", "2", "3")
+    }
+    assert len(outputs) == 1, outputs
+    titoli = eval(outputs.pop())
+    assert [t.split("(")[-1] for t in titoli] == ["9)", "5)", "5)", "5)"]
+    # equal counts: by section code, "1" < "3" < "L"
+    assert titoli[1].startswith("### Sezione I ") and titoli[3].startswith("### Sezione L")

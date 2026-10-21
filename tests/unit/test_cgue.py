@@ -23,6 +23,7 @@ from mcp_legal_it.lib.cgue.client import (
     _term_filter,
     celex_of,
     fetch_case_metadata,
+    fetch_sentenza_text,
     format_result,
     format_full,
     normalize_riferimento,
@@ -689,6 +690,46 @@ class TestLeggiSentenzaCgueImpl:
         assert not result.success
         assert "Errore" in result.to_str()
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("uri", [
+        "http://127.0.0.1:8000/mcp",
+        "http://localhost/resource/cellar/x",
+        "http://169.254.169.254/latest/meta-data/",
+        "https://example.com/resource/cellar/x",
+        "https://publications.europa.eu.evil.example/resource/cellar/x",
+        "http://publications.europa.eu:8080/resource/cellar/x",
+        "http://user@publications.europa.eu/resource/cellar/x",
+        "file:///etc/passwd",
+        "http://publications.europa.eu/webapi/rdf/sparql",
+        "",
+    ])
+    async def test_uri_outside_cellar_is_refused_before_any_request(self, uri):
+        """The URI comes from the caller: nothing but a CELLAR resource is ever fetched (SSRF)."""
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient") as client_cls:
+            result = await _leggi_sentenza_cgue_impl(uri)
+        client_cls.assert_not_called()
+        assert not result.success
+        assert result.error_type == "bad_input"
+        assert "CELLAR URI non valido" in result.to_str()
+
+    @pytest.mark.asyncio
+    def test_every_uri_the_api_accepts_passes_the_library_guard(self):
+        """api._decisioni filters first, the library second: they must not disagree."""
+        from mcp_legal_it.api._decisioni import _uri_cellar
+        from mcp_legal_it.lib.cgue.client import cellar_uri_error
+
+        for uri in ("http://publications.europa.eu/resource/cellar/abc.0006",
+                    "https://publications.europa.eu:443/resource/celex/62018CJ0311",
+                    "http://publications.europa.eu:80/resource/cellar/x-y_z.03"):
+            assert _uri_cellar(uri) == uri
+            assert cellar_uri_error(uri) is None, uri
+
+    async def test_library_fetch_refuses_too(self):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient") as client_cls:
+            with pytest.raises(ValueError, match="CELLAR URI non valido"):
+                await fetch_sentenza_text("http://127.0.0.1/resource/cellar/x")
+        client_cls.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Tests: _giurisprudenza_cgue_su_norma_impl
@@ -1302,3 +1343,28 @@ class TestAdvocateGeneralProposal:
         body, _ = _excerpt(text)
         assert body.endswith("Firme")
         assert body.index("Per questi motivi, la Corte dichiara") > 25000
+
+
+async def test_redirect_away_from_cellar_is_not_followed():
+    """A 3xx from CELLAR to another host is refused by the request hook, not fetched."""
+    import httpx as _httpx
+    from mcp_legal_it.lib.cgue import client as cgue_client
+
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        if request.url.host == "publications.europa.eu":
+            return _httpx.Response(302, headers={"location": "http://169.254.169.254/latest/meta-data/"})
+        return _httpx.Response(200, text="secret " * 100)
+
+    real = _httpx.AsyncClient
+
+    def fake_client(*args, **kwargs):
+        kwargs["transport"] = _httpx.MockTransport(handler)
+        return real(*args, **kwargs)
+
+    with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", side_effect=fake_client):
+        with pytest.raises(Exception):
+            await cgue_client.fetch_sentenza_text("http://publications.europa.eu/resource/cellar/x.0006")
+    assert seen == ["http://publications.europa.eu/resource/cellar/x.0006"]

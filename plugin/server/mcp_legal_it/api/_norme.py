@@ -28,7 +28,7 @@ from mcp_legal_it.lib.visualex.map import (
     known_act_names,
     normalize_act_type,
 )
-from mcp_legal_it.lib.visualex.models import Norma, annex_reference, split_annex
+from mcp_legal_it.lib.visualex.models import Norma, annex_reference, intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
@@ -145,6 +145,8 @@ def _leggi(testo: str) -> tuple[dict, str] | EsitoRiferimento:
             esito="atto_non_riconosciuto",
             errore=_senza_tool(norme._unresolved_act_error(act_name)),
         )
+    if (motivo := intervallo_articoli(article)) is not None:
+        return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
     return act_info, article
 
 
@@ -192,6 +194,8 @@ def riferimento_da_parametri(
     if norm in ("regolamento ue", "direttiva ue") and not (data and numero_atto):
         return EsitoRiferimento(esito="riferimento_non_valido",
                                 errore="per un atto UE servono anno (data) e numero_atto")
+    if (motivo := intervallo_articoli(numero_articolo)) is not None:
+        return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
     nv = norme._build_nv(act_info, article)

@@ -70,7 +70,7 @@ descrizione di ogni tool.
 **Modulo:** `mcp_legal_it/tools/italgiure.py`
 **Tag:** `giurisprudenza`
 **API esterne:** Italgiure (Cassazione Solr API, `https://www.italgiure.giustizia.it`)
-**Note:** SSL non valido → `verify=False`; collezioni `snciv` (civile) e `snpen` (penale); OCR letto a blocchi di 30.000 caratteri (inizio e fine nella prima risposta, il resto con `da_carattere`).
+**Note:** TLS verificato con l'intermedio incluso nel pacchetto; collezioni `snciv` (civile) e `snpen` (penale); OCR letto a blocchi di 30.000 caratteri (inizio e fine nella prima risposta, il resto con `da_carattere`).
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|

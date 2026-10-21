@@ -115,5 +115,5 @@ NOTE TECNICHE
 
 - API: Solr REST su italgiure.giustizia.it (pubblica, nessuna autenticazione)
 - OCR letto a blocchi di 30000 caratteri (inizio e fine della sentenza nella prima risposta): la nota indica il `da_carattere` con cui leggere la parte omessa
-- Certificato SSL non valido → verify=False (necessario)
+- Certificato SSL verificato: il server non invia l'intermedio giusto, che viene fornito dal pacchetto
 - Campi chiave: numdec (numero), anno, datdep (data deposito), szdec (sezione), ocr (testo)

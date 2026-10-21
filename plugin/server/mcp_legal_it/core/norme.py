@@ -19,7 +19,7 @@ from mcp_legal_it.lib.visualex import (
     strip_leading_particles,
     known_act_names,
 )
-from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference
+from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference, intervallo_articoli
 from mcp_legal_it.lib.visualex.scraper import CHECK_UNAVAILABLE, fetch_article
 
 # ---------------------------------------------------------------------------
@@ -48,6 +48,35 @@ _ANNEX_FIRST_PATTERN = re.compile(
 # What follows "art. 30" when the article belongs to an annex: "dell'allegato I.7 al ..."
 _ANNEX_AFTER_ARTICLE = re.compile(
     rf"^{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})(?=[\s,;]|$)\s*[,;]?\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+
+
+# Act first, then the article or annex: "D.Lgs. 196/2003 art. 13", "GDPR, art. 6
+# par. 1 lett. f)", "D.Lgs. 36/2023 allegato I.1 art. 1". Only an article, its
+# paragraph/letter indicators and an annex may follow the act: any other trailing
+# text ("... convertito dalla L. 27/2020") would end up inside the act name.
+_ART = r"(?:articol[oi]|art)\.?\s*\d+(?:[-/.]\w+)*"
+# One separator class per repetition: "\s*[,;]?\s*" splits a run of spaces two ways and,
+# repeated, made a failing match exponential in the number of indicators.
+_PARAGRAPHS = (
+    r"(?:[\s,;]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+\w*|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
+)
+# The act may not end on a separator and every separator run is one [\s,;]+: a lazy
+# ".+?" followed by "\s*[,;]?\s+" could split the same run of spaces many ways, which
+# made a failing match cubic in its length (5000 spaces: 92 s, synchronously).
+_ACT_FIRST_PATTERN = re.compile(
+    rf"^(?P<act>.*?[^\s,;])[\s,;]+(?P<ref>"
+    rf"{_ART}{_PARAGRAPHS}(?:[\s,;]*{_ANNEX_LINK}allegato\s+{ANNEX_ID})?"
+    rf"|allegato\s+{ANNEX_ID}(?:[\s,]*{_ART})?{_PARAGRAPHS}"
+    r")\s*$",
+    re.IGNORECASE,
+)
+
+
+# The annex written after the act: "D.Lgs. 36/2023, allegato I.7".
+_ANNEX_LAST = re.compile(
+    rf"^(?P<act>.*?[^\s,;])[\s,;]+{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})\s*$",
     re.IGNORECASE,
 )
 
@@ -82,7 +111,13 @@ def _parse_reference(reference: str) -> tuple[str, str]:
                              → ("allegato I.7 art. 30", "D.Lgs. 36/2023")
     - "Allegato III AI Act"  → ("allegato III", "AI Act")
     """
-    reference = reference.strip()
+    # One space for any run of whitespace (tabs, NBSP, newlines included): every
+    # pattern below then sees separators of bounded length.
+    reference = re.sub(r"\s+", " ", reference).strip()
+    # A range written with spaces, an en/em dash or "artt." is still a range: one form,
+    # "art. 3-5", so the entry points refuse it with the same message.
+    reference = re.sub(r"(\d) ?[-\u2013\u2014] ?(\d)", r"\1-\2", reference)
+    reference = re.sub(r"\bartt\.? ?(?=\d+-\d)", "art. ", reference, flags=re.IGNORECASE)
 
     annex_match = _ANNEX_FIRST_PATTERN.match(reference)
     if annex_match:
@@ -113,7 +148,23 @@ def _parse_reference(reference: str) -> tuple[str, str]:
         if annex_match:
             rest = _strip_annex_link(annex_match.group("rest").strip())
             return annex_reference(annex_match.group("id"), article), rest
+        # "art. 30 D.Lgs. 36/2023, allegato I.7": the annex closes the reference.
+        annex_last = _ANNEX_LAST.match(rest)
+        if annex_last:
+            return annex_reference(annex_last.group("id"), article), annex_last.group("act").strip()
         return article, rest
+
+    # Act written first: put the article (or annex) in front and parse that.
+    # Read as an act name, "D.Lgs. 196/2003 art. 13" resolves to the decree and
+    # the article is lost: the caller got the start of the act instead of art. 13.
+    act_first = _ACT_FIRST_PATTERN.match(reference)
+    if act_first:
+        return _parse_reference(f"{act_first.group('ref')} {act_first.group('act')}")
+
+    # An article is named but cannot be told apart from the act: refuse (the
+    # caller reports the expected format) rather than resolve the act alone.
+    if re.search(rf"\b{_ART}", reference, re.IGNORECASE):
+        return "", ""
 
     # No "art." prefix — try to parse as just act name (no article)
     return "", reference
@@ -331,6 +382,9 @@ async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
     if not act_info:
         base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
         return base, None
+    if (motivo := intervallo_articoli(article)) is not None:
+        base["errore"] = motivo
+        return base, None
 
     return await _lookup_visitata(base, _build_nv(act_info, article), act_info)
 
@@ -347,6 +401,8 @@ def _lookup_base(reference: str) -> dict:
 
 async def lookup_parametri(act_info: dict, article: str) -> tuple[dict, str | None]:
     """``_cite_law_lookup`` for an act already resolved to ``{tipo_atto, data, numero_atto}``."""
+    if (motivo := intervallo_articoli(article)) is not None:
+        return {**_lookup_base(f"art. {article}"), "errore": motivo}, None
     reference = str(_build_nv(act_info, article))
     return await _lookup_visitata(_lookup_base(reference), _build_nv(act_info, article), act_info)
 

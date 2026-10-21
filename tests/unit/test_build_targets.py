@@ -174,6 +174,10 @@ def _write_fake_plugin_tree(root: Path) -> None:
     pycache.mkdir()
     (pycache / "foo.cpython-312.pyc").write_bytes(b"\x00\x01")
     (server / "stray.pyc").write_bytes(b"\x00\x01")
+    # An editable install (`pip install -e .`) writes its metadata next to the package.
+    (server / "mcp_legal_it.egg-info").mkdir()
+    (server / "mcp_legal_it.egg-info" / "SOURCES.txt").write_text("x\n", encoding="utf-8")
+    (server / ".DS_Store").write_bytes(b"\x00")
 
 
 def test_plugin_zip_stages_and_excludes(tmp_path):
@@ -213,6 +217,7 @@ def test_plugin_zip_stages_and_excludes(tmp_path):
         assert not any(n.endswith(".pyc") for n in names), names
         assert not any("__pycache__" in n for n in names), names
         assert not any(".venv" in n for n in names), names
+        assert not any(".egg-info" in n or ".DS_Store" in n for n in names), names
 
         staged_manifest = json.loads(zf.read(".claude-plugin/plugin.json"))
         assert staged_manifest["version"] == "9.9.9"
@@ -310,6 +315,7 @@ def test_mcpb_fallback_zip(tmp_path, monkeypatch):
         assert not any(n.endswith(".pyc") for n in names), names
         assert not any("__pycache__" in n for n in names), names
         assert not any(".venv" in n for n in names), names
+        assert not any(".egg-info" in n or ".DS_Store" in n for n in names), names
 
         staged_manifest = json.loads(zf.read("manifest.json"))
         assert staged_manifest["version"] == "1.2.3"

@@ -1401,10 +1401,17 @@ def indice_documenti(documenti: list[dict]) -> dict:
     """
     righe = []
     totale_pagine = 0
-    for doc in documenti:
+    for posizione, doc in enumerate(documenti, start=1):
+        if not isinstance(doc, dict):
+            return {"errore": f"documento {posizione}: atteso un oggetto con numero, descrizione e pagine"}
         num = doc.get("numero", 0)
-        desc = doc.get("descrizione", "")
-        pag = int(doc.get("pagine", 0) or 0)
+        desc = str(doc.get("descrizione", "") or "")
+        try:
+            pag = int(doc.get("pagine", 0) or 0)
+        except (TypeError, ValueError):
+            return {"errore": f"documento {posizione}: 'pagine' deve essere un numero intero, non {doc.get('pagine')!r}"}
+        if pag < 0:
+            return {"errore": f"documento {posizione}: 'pagine' non può essere negativo ({pag})"}
         totale_pagine += pag
         righe.append(f"Doc. {num:>3}  —  {desc:<60s}  (pagg. {pag})")
 
