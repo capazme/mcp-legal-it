@@ -18,6 +18,7 @@ Any failure (no params, HTTP error, non-XML response, parser exception) returns
 ``None`` so the caller can fall back to the HTML scraping path.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -27,6 +28,7 @@ from datetime import date
 from pathlib import Path
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from .. import _clock
 from .._cache import cache_enabled, cache_root
@@ -62,6 +64,9 @@ _CACHE_SCHEMA = 2
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
+
+#: Downloads in progress, keyed by (event loop, landing URL, dataVigenza).
+_in_flight: "dict[tuple[int, str, str], asyncio.Future]" = {}
 
 
 def _cache_root() -> Path:
@@ -350,8 +355,30 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             _bump_hits((codice, data_gu, data_vigenza))
             return cached
 
+    # In-flight dedupe: concurrent cold requests for the same act share one
+    # download. The key carries the running loop because a future belongs to it.
+    flight_key = (id(asyncio.get_running_loop()), landing_url, data_vigenza)
+    pending = _in_flight.get(flight_key)
+    if pending is not None:
+        return await asyncio.shield(pending)
+    future: "asyncio.Future[ParsedAct | None]" = asyncio.get_running_loop().create_future()
+    _in_flight[flight_key] = future
+    act = None
     try:
-        async with httpx.AsyncClient(
+        act = await _download_act(landing_url, data_vigenza)
+        return act
+    finally:
+        # A cancelled download hands its waiters None: they fall back to HTML,
+        # as on any other AKN failure, instead of inheriting the cancellation.
+        if not future.done():
+            future.set_result(act)
+        _in_flight.pop(flight_key, None)
+
+
+async def _download_act(landing_url: str, data_vigenza: str) -> "ParsedAct | None":
+    """The two-request caricaAKN flow for one act (see the module docstring); None on failure."""
+    try:
+        async with async_client("normattiva",
             headers=_HEADERS,
             timeout=_TIMEOUT,
             follow_redirects=True,

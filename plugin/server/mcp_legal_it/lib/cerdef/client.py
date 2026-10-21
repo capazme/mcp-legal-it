@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
@@ -214,7 +215,7 @@ class CerdefSession:
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "CerdefSession":
-        self._client = httpx.AsyncClient(
+        self._client = async_client("cerdef",
             timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
         )
         return self
@@ -636,7 +637,7 @@ async def fetch_provvedimento(guid: str) -> ProvvedimentoDetail:
             "{B0F76E21-B5FA-4415-9D1D-44FF7B5741C1} ed è riportato in ogni risultato di "
             "cerca_giurisprudenza_tributaria o ultime_sentenze_tributarie"
         )
-    async with httpx.AsyncClient(
+    async with async_client("cerdef",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         params = {"id": guid}

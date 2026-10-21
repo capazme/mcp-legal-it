@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
 
 import httpx
+from mcp_legal_it.core._http import async_client
 from bs4 import BeautifulSoup
 
 from mcp_legal_it.lib._paging import page, resume_hint
@@ -665,7 +666,7 @@ def format_sommario(heading: str, atti: list[AttoResult]) -> str:
 async def fetch_latest(rss_code: str, rows: int = 10) -> list[AttoResult]:
     """Read the RSS feed for the given serie code (SG, S1.. , P2)."""
     url = f"{_BASE}/rss/{rss_code}"
-    async with httpx.AsyncClient(
+    async with async_client("gazzetta",
         timeout=_TIMEOUT, headers=_RSS_HEADERS, follow_redirects=True
     ) as client:
         resp = await retry_request(client, "GET", url, dataset="gazzetta")
@@ -709,7 +710,7 @@ async def search_atti(
     total = 0
     page = 1  # result pages are numbered from 1 (0 renders the same page as 1)
 
-    async with httpx.AsyncClient(
+    async with async_client("gazzetta",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         # Seed the jsessionid on the same client first.
@@ -762,7 +763,7 @@ async def fetch_atto(
         metadata_only=metadata_only,
     )
 
-    async with httpx.AsyncClient(
+    async with async_client("gazzetta",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         # 1. ELI permalink head -> RDFa metadata + body header.
@@ -809,7 +810,7 @@ async def fetch_sommario(
 ) -> tuple[str, list[AttoResult]]:
     """Fetch a gazzetta sommario. Returns (heading, atti)."""
     url = _sommario_url(data_pubblicazione, numero_gazzetta, serie_path)
-    async with httpx.AsyncClient(
+    async with async_client("gazzetta",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         resp = await retry_request(client, "GET", url, dataset="gazzetta")
