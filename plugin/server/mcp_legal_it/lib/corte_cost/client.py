@@ -36,6 +36,7 @@ import io
 import json
 import os
 import re
+import threading
 import time
 import zipfile
 from collections import OrderedDict
@@ -259,36 +260,59 @@ def _unzip_decade(
 # memory instead, one download per process: a lock makes concurrent calls wait for
 # the one download in flight, and past the cap the least recently used is dropped.
 _MEMORIA_MAX_BYTES = 256 * 1024 * 1024
-_bundle_memoria: "OrderedDict[str, bytes]" = OrderedDict()
+#: url -> (download time, compressed bundle). Like the disk cache, an entry expires after
+#: _CACHE_TTL_SECONDS, so a long-running server does not miss the rulings published since.
+_bundle_memoria: "OrderedDict[str, tuple[float, bytes]]" = OrderedDict()
+#: Guards every read and write of _bundle_memoria (threads share the module); never held
+#: across the download.
+_memoria_guard = threading.Lock()
 _bundle_lock: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Lock]] = {}
 
 
 def _lock_for(url: str) -> asyncio.Lock:
     loop = asyncio.get_running_loop()
-    held = _bundle_lock.get(url)
-    if held is None or held[0] is not loop:
-        held = (loop, asyncio.Lock())
-        _bundle_lock[url] = held
-    return held[1]
+    with _memoria_guard:
+        held = _bundle_lock.get(url)
+        if held is None or held[0] is not loop:
+            held = (loop, asyncio.Lock())
+            _bundle_lock[url] = held
+        return held[1]
+
+
+def _da_memoria(url: str) -> bytes | None:
+    """The bundle kept for *url* if it is still fresh, else None (an expired one is dropped)."""
+    with _memoria_guard:
+        entry = _bundle_memoria.get(url)
+        if entry is None:
+            return None
+        if time.time() - entry[0] >= _CACHE_TTL_SECONDS:
+            del _bundle_memoria[url]
+            return None
+        _bundle_memoria.move_to_end(url)
+        return entry[1]
+
+
+def _in_memoria(url: str, data: bytes) -> None:
+    with _memoria_guard:
+        _bundle_memoria[url] = (time.time(), data)
+        _bundle_memoria.move_to_end(url)
+        while len(_bundle_memoria) > 1 and sum(len(b) for _, b in _bundle_memoria.values()) > _MEMORIA_MAX_BYTES:
+            _bundle_memoria.popitem(last=False)
 
 
 async def _bundle_in_memoria(url: str) -> bytes:
-    """The bundle at *url*, downloaded at most once per process while it fits the cap."""
-    if url in _bundle_memoria:
-        _bundle_memoria.move_to_end(url)
-        # The answer still rests on what the source served: it is declared as such.
-        note_source("corte_cost", url)
-        return _bundle_memoria[url]
-    async with _lock_for(url):
-        if url in _bundle_memoria:  # downloaded while this call waited
-            _bundle_memoria.move_to_end(url)
-            note_source("corte_cost", url)
-            return _bundle_memoria[url]
-        data = await _download(url)
-        _bundle_memoria[url] = data
-        while len(_bundle_memoria) > 1 and sum(map(len, _bundle_memoria.values())) > _MEMORIA_MAX_BYTES:
-            _bundle_memoria.popitem(last=False)
-        return data
+    """The bundle at *url*, downloaded at most once per process while fresh and within the cap."""
+    data = _da_memoria(url)
+    if data is None:
+        async with _lock_for(url):
+            data = _da_memoria(url)  # downloaded while this call waited?
+            if data is None:
+                data = await _download(url)
+                _in_memoria(url, data)
+                return data
+    # The answer still rests on what the source served: it is declared as such.
+    note_source("corte_cost", url)
+    return data
 
 
 async def _load_year(

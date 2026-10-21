@@ -655,6 +655,48 @@ class TestCacheOff:
         assert len(started) == 1, started
 
     @pytest.mark.asyncio
+    async def test_bundle_in_memory_expires_like_the_disk_cache(self, monkeypatch):
+        """A long-running server must not answer from a bundle older than the TTL."""
+        from mcp_legal_it.lib.corte_cost import client
+
+        now = [1_000_000.0]
+        monkeypatch.setattr(client.time, "time", lambda: now[0])
+        mock = AsyncMock(side_effect=lambda url: b"bundle")
+        with patch.object(client, "_download", mock):
+            await client._bundle_in_memoria("u")
+            now[0] += client._CACHE_TTL_SECONDS - 1
+            await client._bundle_in_memoria("u")
+            assert mock.call_count == 1
+            now[0] += 2
+            await client._bundle_in_memoria("u")
+        assert mock.call_count == 2
+
+    def test_memory_store_is_safe_across_threads(self, monkeypatch):
+        """Reads and writes of the store under eviction from many threads raise nothing."""
+        import threading
+
+        from mcp_legal_it.lib.corte_cost import client
+
+        monkeypatch.setattr(client, "_MEMORIA_MAX_BYTES", 40)
+        errors = []
+
+        def work(i):
+            try:
+                for j in range(300):
+                    client._in_memoria(f"u{(i + j) % 7}", b"x" * 8)
+                    client._da_memoria(f"u{j % 7}")
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
+
+        threads = [threading.Thread(target=work, args=(i,)) for i in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert not errors, errors[:3]
+        assert sum(len(b) for _, b in client._bundle_memoria.values()) <= 40
+
+    @pytest.mark.asyncio
     async def test_memory_cap_drops_the_least_recent_bundle(self, monkeypatch):
         from mcp_legal_it.lib.corte_cost import client
 
