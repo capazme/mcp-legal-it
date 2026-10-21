@@ -78,6 +78,11 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 
     if text:
         parts.append(f"**Fonte**: {source.title()} — {url}\n")
+        from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, versione_futura
+
+        if source.startswith("normattiva") and (futura := versione_futura(url)):
+            # The undated page showed tomorrow's text: today's is below, and the reader is told.
+            parts.append(f"**Attenzione**: {avviso_versione_futura(futura)}.\n")
         if article_result.get("allegato"):
             parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         parts.append(text)

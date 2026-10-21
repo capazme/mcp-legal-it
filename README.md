@@ -678,7 +678,8 @@ delle tabelle dei tipi d'atto e `normalize_act_type`; la convenzione delle fonti
 degli articoli dalla pagina di Normattiva (`mcp_legal_it/lib/visualex/normattiva_html.py`);
 il lettore dell'export Akoma Ntoso (`mcp_legal_it/lib/visualex/akn_parser.py`, unito al nostro)
 e i suoi test (`tests/unit/test_akn_parser_visualex.py`); l'albero degli articoli di Normattiva
-e il controllo d'esistenza (`mcp_legal_it/lib/visualex/albero_normattiva.py`). L'inventario della migrazione è in
+e il controllo d'esistenza (`mcp_legal_it/lib/visualex/albero_normattiva.py`); il lettore della vigenza dichiarata
+dalla pagina (`mcp_legal_it/lib/visualex/normattiva_validity.py`) e i suoi test. L'inventario della migrazione è in
 [`docs/migration/visualex-inventory.md`](docs/migration/visualex-inventory.md).
 
 [![MCP Badge](https://lobehub.com/badge/mcp/capazme-mcp-legal-it)](https://lobehub.com/mcp/capazme-mcp-legal-it)

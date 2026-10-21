@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
-from .. import _brocardi_switch
+from .. import _brocardi_switch, _clock
 from .._http import note_source
 from . import normattiva_html, pagine_normattiva
 from .akn_parser import annex_id_of, normalize_article_key, position_hint
@@ -254,7 +254,8 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
                             result["allegato"] = act.main_part
                     return result
 
-        text, served = await _normattiva_page(url)
+        text, served = await _normattiva_page(url, nv.numero_articolo)
+        url, text, served = await _di_oggi(url, text, served, nv.numero_articolo)
         result = {"text": text, "url": url, "source": source, "data_atto": nv.norma.data}
         if not nv.numero_articolo:
             return result
@@ -503,7 +504,8 @@ async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str
         part_url = url_in_part(full.url(article=article), position)
         if canale == "html":
             try:
-                page_text, served = await _normattiva_page(part_url)
+                page_text, served = await _normattiva_page(part_url, article)
+                part_url, page_text, served = await _di_oggi(part_url, page_text, served, article)
             except httpx.HTTPError:
                 page_text, served = "", None
             requested = _article_identity(normalize_article_key(article))
@@ -553,12 +555,14 @@ async def fetch_annotations(nv: NormaVisitata) -> dict:
 # Normattiva HTML channel: VisuaLex's extractor, VisuaLex's order
 # ---------------------------------------------------------------------------
 
-async def _normattiva_page(url: str) -> "tuple[str, str | None]":
+async def _normattiva_page(url: str, articolo: str | None = None) -> "tuple[str, str | None]":
     """``(article_text, the number the page gives the article)`` for a Normattiva article page.
 
     The text is VisuaLex's extraction, byte for byte (``normattiva_html``); ``""``
     when the page has no readable article body. The reading is kept for a day
-    (``pagine_normattiva``), so the same article asked again costs no request.
+    (``pagine_normattiva``), so the same article asked again costs no request, and
+    so is what the same page says of the text's validity (VisuaLex's
+    ``extract_validity``, checked against *articolo* when given).
     """
     rec = pagine_normattiva.leggi(url)
     if rec is not None:
@@ -571,8 +575,116 @@ async def _normattiva_page(url: str) -> "tuple[str, str | None]":
         html = resp.text
     text, served = _normattiva_article_page(html)
     if text:
-        pagine_normattiva.scrivi(url, text, served)
+        validita = await asyncio.to_thread(_validita_da_pagina, html, articolo)
+        pagine_normattiva.scrivi(url, text, served, validita)
     return text, served
+
+
+def _validita_da_pagina(html: str, articolo: str | None) -> "dict | None":
+    """What the page states of its text's validity (VisuaLex's ``extract_validity``), never raising."""
+    from . import normattiva_validity
+
+    try:
+        return normattiva_validity.extract_validity(html, article=articolo or None)
+    except Exception:  # noqa: BLE001 - best effort by contract: no validity, never a wrong one
+        return None
+
+
+def validita_pagina(url: str) -> "dict | None":
+    """VisuaLex's ``validity`` of the page at *url*, from the page already fetched (no request).
+
+    The state is reckoned against today: a window that ends before today is ``historical``.
+    None when the page was not read or does not say.
+    """
+    rec = pagine_normattiva.leggi(url)
+    validita = dict(rec["validita"]) if rec is not None and rec.get("validita") else None
+    if validita is None:
+        return None
+    if validita["state"] in ("current", "historical"):
+        oggi = _clock.today().isoformat()
+        validita["state"] = ("current" if validita["valid_to"] is None or validita["valid_to"] >= oggi
+                             else "historical")
+    return validita
+
+
+def _testo_di_oggi(url: str) -> "str | None":
+    """The URL of today's text when the undated page at *url* may not be it, else None.
+
+    Normattiva's page without a date can serve a version not in force yet: on 21/10/2026
+    art. 3 of d.P.R. 131/1986 came back «ARTICOLO ABROGATO», «Testo in vigore dal:
+    01-01-2027». A request without a date asks for the text in force today, so the page is
+    asked again at today's date (``!vig=``) when its window starts after today, or when it
+    states no window: fail closed, never the undated page without knowing which text it is.
+    """
+    if "!vig=" in url or "@originale" in url:
+        return None
+    rec = pagine_normattiva.leggi(url)
+    validita = (rec or {}).get("validita")
+    oggi = _clock.today().isoformat()
+    if validita is None or (validita.get("valid_from") and validita["valid_from"] > oggi):
+        return f"{url}!vig={oggi}"
+    return None
+
+
+async def _di_oggi(url: str, text: str, served: "str | None", articolo: str) -> "tuple[str, str, str | None]":
+    """``(url, text, served)`` of the text in force today, from a page just read for *articolo*.
+
+    Unchanged when the page is not the article asked for (the existence check decides) or
+    states a window that holds today. Otherwise today's page (``_testo_di_oggi``): one
+    request more; if it cannot be read, ``("", None)``, never the undated page, which may
+    be tomorrow's text: the export at today's date answers, or nothing does.
+    """
+    requested = _article_identity(normalize_article_key(articolo)) if articolo else None
+    if not text or requested is None or served is None or _article_identity(served) != requested:
+        return url, text, served
+    oggi_url = _testo_di_oggi(url)
+    if not oggi_url:
+        return url, text, served
+    try:
+        oggi_text, oggi_served = await _normattiva_page(oggi_url, articolo)
+    except httpx.HTTPError:
+        oggi_text, oggi_served = "", None
+    if oggi_text and oggi_served is not None and _article_identity(oggi_served) == requested:
+        return oggi_url, oggi_text, oggi_served
+    return url, "", None
+
+
+#: "((ARTICOLO ABROGATO DAL D.LGS. 1 AGOSTO 2025, N. 123, COME MODIFICATO DAL D.L. 31 DICEMBRE
+#: 2025, N. 200))", "PROVVEDIMENTO ABROGATO DAL D.LGS. 14 NOVEMBRE 2024, N. 175": the act a
+#: repeal notice names. Bounded, read on a text's first 600 characters only.
+_ABROGATO_DA = re.compile(
+    r"\b(?:ARTICOLO|PROVVEDIMENTO)\s+(?:ABROGAT|SOPPRESS)[OA]\s+(?:DAL|DALLA|DALL'|DAGLI|DAI|DA)\s*"
+    r"([^()\n]{3,240}?)\s*(?:\)\)|\n|$)",
+    re.IGNORECASE,
+)
+
+
+def abrogato_da(testo: str) -> "str | None":
+    """The act a repeal notice at the head of *testo* names, else None."""
+    m = _ABROGATO_DA.search((testo or "")[:600])
+    return " ".join(m.group(1).split()).rstrip(".,; ") if m else None
+
+
+def avviso_versione_futura(futura: dict) -> str:
+    """The sentence that tells the reader the undated page showed a version not in force yet."""
+    atto = abrogato_da(futura.get("testo") or "")
+    return (f"Normattiva mostra senza data il testo in vigore dal {futura['valid_from']}"
+            + (f" (abrogato dal {atto})" if atto else "")
+            + ": il testo riportato è quello in vigore oggi")
+
+
+def versione_futura(url: str) -> "dict | None":
+    """The version the undated page served, when it was not in force yet (no request).
+
+    ``{"valid_from", "testo"}`` from the page already kept, else None. *url* may carry the
+    ``!vig=`` of today's text: the page without it is the one looked up.
+    """
+    base = url.split("!vig=", 1)[0]
+    rec = pagine_normattiva.leggi(base)
+    validita = (rec or {}).get("validita") or {}
+    if validita.get("valid_from") and validita["valid_from"] > _clock.today().isoformat():
+        return {"valid_from": validita["valid_from"], "testo": rec.get("testo") or ""}
+    return None
 
 
 def _normattiva_article_page(html: str) -> "tuple[str, str | None]":
@@ -617,17 +729,18 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
     """
     errore_pagina: "httpx.HTTPError | None" = None
     try:
-        text, served = await _normattiva_page(url)
+        text, served = await _normattiva_page(url, nv.numero_articolo)
     except httpx.HTTPError as exc:
         # The page could not be fetched: the export is the last resort here too,
         # and if it has no text either, the page's error is the answer.
         errore_pagina, text, served = exc, "", None
+    requested = _article_identity(normalize_article_key(nv.numero_articolo)) if nv.numero_articolo else None
+    url, text, served = await _di_oggi(url, text, served, nv.numero_articolo)
     result = {"text": text, "url": url, "source": "normattiva", "data_atto": nv.norma.data}
     if not nv.numero_articolo:
         if errore_pagina is not None:
             raise errore_pagina
         return result
-    requested = _article_identity(normalize_article_key(nv.numero_articolo))
     if text:
         got = _article_identity(served) if served is not None else None
         if requested is not None and got == requested:
@@ -743,7 +856,8 @@ async def _pagina_della_parte(nv: NormaVisitata, url: str, act, requested) -> "d
     if part_url == url:
         return None
     try:
-        text, served = await _normattiva_page(part_url)
+        text, served = await _normattiva_page(part_url, nv.numero_articolo)
+        part_url, text, served = await _di_oggi(part_url, text, served, nv.numero_articolo)
     except httpx.HTTPError:
         return None
     if not text or served is None or _article_identity(served) != requested:
