@@ -19,10 +19,12 @@ entry, it is the same feature as ported to the 3.0 line.
   the readers send, redirects included, is checked before it leaves: scheme,
   no credentials, and a host the source may reach; until now the host list was
   only checked statically, in the tests. Per source and per process: at most 3
-  requests in flight, 0.5 s between two, and a `Retry-After` stated by a 429 or
-  503 pauses that source for every caller (a pause over 30 s refuses the
-  request at once). `retry_request` now retries a 429 too, waiting what the
-  source asked, with jitter. Optional circuit breaker,
+  requests in flight, 0.5 s between two, shared by every thread and event loop,
+  and a `Retry-After` stated by a 429 or 503 pauses that source for every
+  caller, for at most 30 s (a longer statement refuses that call at once with
+  `FontePausata` and never holds the source longer). The limits hold within one
+  process: N processes on one machine make N times the cap. `retry_request`
+  now retries a 429 too, waiting what the source asked, with jitter. Optional circuit breaker,
   `LEGAL_CIRCUIT_BREAKER=on` (off by default): 3 consecutive failures suspend
   the source for 5 minutes; a 404 never counts. A library caller with its own
   `client_factory` keeps the host guard and can put the limits under its own

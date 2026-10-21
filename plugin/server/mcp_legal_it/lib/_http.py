@@ -19,7 +19,7 @@ import random
 
 import httpx
 
-from mcp_legal_it.core._http import MAX_ATTESA_PAUSA, STATI_LIMITE, RifiutoLocale, pausa_dichiarata
+from mcp_legal_it.core._http import MAX_ATTESA_PAUSA, STATI_LIMITE, FontePausata, RifiutoLocale, pausa_dichiarata
 
 from . import _sources
 
@@ -48,8 +48,9 @@ async def retry_request(
     `max_retries` times after the first attempt, waiting `backoff_base * 2**n`
     plus up to `JITTER` seconds, or the `Retry-After` a 429/503 states when it
     is longer. A stated wait over `MAX_ATTESA_PAUSA` (30 s) ends the call at
-    once, and so does a spent budget: no wait is spent on an attempt that will
-    not follow. Other 4xx are not retried (client errors are not transient), nor
+    once with `FontePausata`, which says how long the source asked for; a spent
+    budget ends it with the source's own status: no wait is spent on an attempt
+    that will not follow. Other 4xx are not retried (client errors are not transient), nor
     is a request this process refused before it left (`RifiutoLocale`: a host
     the source may not reach, a paused or suspended source). On success, notes
     the consult as provenance for the current call when `dataset` is given.
@@ -79,7 +80,12 @@ async def retry_request(
                 if status in STATI_LIMITE:
                     stated = pausa_dichiarata(exc.response.headers)
                     if stated is not None and stated > MAX_ATTESA_PAUSA:
-                        raise
+                        raise FontePausata(
+                            f"la fonte risponde {status} e chiede di riprovare tra {round(stated)} s, "
+                            f"oltre il limite di {round(MAX_ATTESA_PAUSA)} s: richiesta non ripetuta",
+                            retry_after=stated,
+                            request=exc.request,
+                        ) from exc
             last_exc = exc
             if attempt < max_retries:
                 wait = backoff_base * (2 ** attempt) + random.uniform(0, JITTER)
