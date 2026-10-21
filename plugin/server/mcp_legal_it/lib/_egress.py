@@ -71,6 +71,7 @@ NON_NETWORK_HOSTS: dict[str, str] = {
     "www.camera.it": "link scheda atto (resolver URN) emesso per l'utente — mai richiesto dal server",
     "docs.oasis-open.org": "namespace Akoma Ntoso citato in un docstring",
     "www.esempio.it": "dominio segnaposto negli esempi dei docstring",
+    "mozilla.org": "testo della licenza MPL-2.0 citato nell'intestazione dei file importati da VisuaLex",
 }
 
 #: Like NON_NETWORK_HOSTS, but scoped to `scripts/` only. Kept separate so the
