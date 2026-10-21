@@ -820,10 +820,11 @@ class TestParcellaCivileOltre32Milioni:
         assert _call("parcella_avvocato_civile", valore_causa=64_000_000)["totale_compenso"] == 140912
 
     def test_minimo_massimo_oltre_32_milioni(self):
-        # min/max = medium -/+ 50% (art. 4 co. 1 as amended by DM 147/2022), rounded
+        # max = medium + 50% to the euro; min = exact half of the medium, to the cent
+        # (art. 4 co. 1: "diminuiti in ogni caso non oltre il 50 per cento")
         r_min = _call("parcella_avvocato_civile", valore_causa=40_000_000, livello="min")
         r_max = _call("parcella_avvocato_civile", valore_causa=40_000_000, livello="max")
-        assert [f["importo"] for f in r_min["fasi"]] == [11120, 7335, 32663, 19340]
+        assert [f["importo"] for f in r_min["fasi"]] == [11119.5, 7334.5, 32662.5, 19339.5]
         assert [f["importo"] for f in r_max["fasi"]] == [33359, 22004, 97988, 58019]
 
 
@@ -915,14 +916,91 @@ class TestArrotondamentoMetaCentesimo:
         assert r["totale_compensi"] == 0.3
 
     def test_notula_penale_iva_tie(self):
-        # DM 147/2022 penale, tribunale monocratico, studio+introduttiva+istruttoria at minimum:
-        # 237+284+567 = 1088; SG 163.20; CPA 4% of 1251.20 = 50.048 -> 50.05; taxable 1301.25;
-        # IVA 22% = 286.275 exactly -> 286.28; total 1587.53
+        # DM 147/2022 penale, giudice di pace, decisionale at the medium: 662; SG 99.30;
+        # CPA 4% of 761.30 = 30.452 -> 30.45; taxable 791.75; IVA 22% = 174.185 exactly -> 174.19
+        r = _call("calcolo_notula_penale", competenza="giudice_pace",
+                  fasi=["decisionale"], livello="medio")
+        assert r["imponibile_iva"] == 791.75
+        assert r["iva_22pct"] == 174.19
+        assert r["totale"] == 965.94
+
+    def test_notula_penale_minimi_al_centesimo_tie(self):
+        # Tribunale monocratico at the minimum: introduttiva 567/2 = 283.50, istruttoria
+        # 1134/2 = 567; 850.50; SG 15% = 127.575 exactly -> 127.58; CPA 4% of 978.08 = 39.1232
+        # -> 39.12; taxable 1017.20; IVA 223.784 -> 223.78; total 1240.98
         r = _call("calcolo_notula_penale", competenza="tribunale_monocratico",
-                  fasi=["studio", "introduttiva", "istruttoria"], livello="min")
-        assert r["imponibile_iva"] == 1301.25
-        assert r["iva_22pct"] == 286.28
-        assert r["totale"] == 1587.53
+                  fasi=["introduttiva", "istruttoria"], livello="min")
+        assert [f["importo"] for f in r["fasi"]] == [283.5, 567]
+        assert r["spese_generali_15pct"] == 127.58
+        assert r["imponibile_iva"] == 1017.2
+        assert r["totale"] == 1240.98
+
+
+class TestMinimiMetaEsattaAlCentesimo:
+    """Decision LI-041: the minimum is the exact half of the medium, to the cent (art. 4 co. 1)."""
+
+    def test_ogni_minimo_della_tabella_e_la_meta_esatta_del_medio(self):
+        import json
+        import pathlib
+        from decimal import Decimal
+
+        import mcp_legal_it
+
+        tabella = json.loads((pathlib.Path(mcp_legal_it.__file__).parent / "data" / "parametri_forensi.json").read_text())
+        scarti = []
+
+        def visita(nodo, percorso):
+            if isinstance(nodo, dict):
+                if "min" in nodo and "medio" in nodo:
+                    if Decimal(str(nodo["min"])) != Decimal(str(nodo["medio"])) / 2:
+                        scarti.append(f"{percorso}: min {nodo['min']}, medio {nodo['medio']}")
+                for chiave, valore in nodo.items():
+                    visita(valore, f"{percorso}.{chiave}")
+            elif isinstance(nodo, list):
+                for i, valore in enumerate(nodo):
+                    visita(valore, f"{percorso}[{i}]")
+
+        visita(tabella, "parametri_forensi")
+        assert not scarti, "\n".join(scarti)
+
+    def test_civile_primo_scaglione(self):
+        # Tab. 2, fino a 1.100: medi 131/131/200/200 -> minimi 65,50/65,50/100/100 = 331
+        r = _call("parcella_avvocato_civile", valore_causa=1000, livello="min")
+        assert [f["importo"] for f in r["fasi"]] == [65.5, 65.5, 100, 100]
+        assert r["totale_compenso"] == 331.0
+
+    def test_stragiudiziale_scaglione_chiuso(self):
+        # Tab. 25, 5.200,01-26.000: medio 1.985 -> minimo 992,50 (non 993)
+        assert _call("parcella_stragiudiziale", valore_pratica=10000, livello="min")["compenso"] == 992.5
+
+    def test_stragiudiziale_oltre_520000(self):
+        # 611.111 x 3% = 18.333,33 -> medio 18.333 (all'euro) -> minimo 9.166,50
+        assert _call("parcella_stragiudiziale", valore_pratica=611111, livello="min")["compenso"] == 9166.5
+
+    def test_volontaria_giurisdizione(self):
+        # Tab. 7 fino a 5.200: medi 213 (studio) e 212 (trattazione) -> 106,50 e 106 (prima 107)
+        r = _call("parcella_volontaria_giurisdizione", valore_causa=1000, livello="min")
+        assert [f["importo"] for f in r["fasi"]] == [106.5, 106]
+        assert r["totale_compenso"] == 212.5
+
+    def test_notula_monitorio(self):
+        # Tab. VIII fino a 5.200: medio 473 -> minimo 236,50, come nella quotazione
+        r = _call("modello_notula", tipo_procedimento="decreto_ingiuntivo", avvocato="A",
+                  cliente="B", valore_causa=3000, livello="min")
+        assert r["dettaglio_calcoli"]["fasi"] == [{"fase": "unica", "importo": 236.5}]
+        assert "€236.50" in r["testo_notula"]
+
+    def test_preventivo_civile_porta_i_centesimi(self):
+        # 65,50 + 65,50 + 100 + 100 = 331; SG 49,65; CPA 15,23 (15,226); IVA 87,09 (87,0936)
+        r = _call("preventivo_civile", valore_causa=1000, livello="min")
+        assert [f["importo"] for f in r["dettaglio_calcoli"]["fasi"]] == [65.5, 65.5, 100, 100]
+        assert r["dettaglio_calcoli"]["totale_onorari"] == 482.97
+        assert "Fase studio: €65.50" in r["testo_preventivo"]
+
+    def test_il_massimo_resta_all_euro(self):
+        # Fuori dalla decisione: il massimo resta medio + 50% all'euro (131 -> 197)
+        r = _call("parcella_avvocato_civile", valore_causa=1000, livello="max")
+        assert [f["importo"] for f in r["fasi"]][:2] == [197, 197]
 
 
 class TestSpeseTrasfertaArt27:
