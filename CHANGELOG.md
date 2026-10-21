@@ -537,6 +537,13 @@ entry, it is the same feature as ported to the 3.0 line.
   downloaded once per process and kept in memory (cap 256 MB, same 7-day expiry
   as the disk cache), instead of on every call; concurrent calls share one
   download.
+- **Seven codes served the approving decree.** Their articles sit in an annex
+  of the decree and the URN lacked it: "art. 3 codice del turismo" was the
+  decree's "Abrogazioni". Fixed for the codice del turismo, the codici penali
+  militari (di pace), the norme di attuazione c.p.p., the regolamento di
+  esecuzione del codice della navigazione, the c.p.p. minorile, the TULPS and
+  the TU successioni e donazioni. A live gate (`test_codici_urn_live.py`) checks
+  every code before a release.
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
   caller and was fetched as is: on the HTTP transport any client could read
   pages reachable from the server (localhost, cloud metadata, intranet). Only
