@@ -12,7 +12,7 @@ import socket
 from dataclasses import dataclass, field
 
 import httpx
-from mcp_legal_it.core._http import async_client
+from mcp_legal_it.core._http import FontePausata, FonteSospesa, async_client
 
 from mcp_legal_it.lib._http import note_source, retry_request
 from mcp_legal_it.lib.dpa_probe.judge import (
@@ -189,8 +189,13 @@ async def _sonda_dominio(dominio: str) -> EsitoSonda:
         try:
             r = await client.get(base + _SONDA_404)
             note_source("dpa_probe", str(r.url))
+            if r.status_code == 429:
+                # Rate-limited from the first request: asking eight more paths would only insist.
+                return EsitoSonda(VERDETTO_BLOCCATO, errore="il sito limita le richieste (429)")
             if r.status_code == 200:
                 impronta_404 = _impronta(r.text)
+        except (FontePausata, FonteSospesa) as exc:
+            return EsitoSonda(VERDETTO_BLOCCATO, errore=f"il sito chiede di rallentare ({exc.__class__.__name__})")
         except httpx.TransportError as exc:
             return EsitoSonda(VERDETTO_IRRAGGIUNGIBILE, errore=f"{exc.__class__.__name__}")
 
@@ -203,7 +208,14 @@ async def _sonda_dominio(dominio: str) -> EsitoSonda:
                 # 401/403/400 from a non-browser client is an anti-bot block, not an absence.
                 if exc.response.status_code in (400, 401, 403, 429):
                     bloccato = True
+                if exc.response.status_code == 429:
+                    break  # the site is rate-limiting us (after one retry): stop asking it
                 continue
+            except (FontePausata, FonteSospesa):
+                # Refused here, before leaving: a pause the site stated, or the breaker.
+                # Never an absence: the remaining paths were not asked.
+                bloccato = True
+                break
             except httpx.TransportError:
                 continue
 

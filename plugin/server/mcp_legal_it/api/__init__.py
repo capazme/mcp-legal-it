@@ -77,6 +77,7 @@ from mcp_legal_it.api.tipi import (
     come_dict,
 )
 from mcp_legal_it.core._config import ClientFactory, Configurazione, configura, configurazione
+from mcp_legal_it.core._http import con_regole
 
 __all__ = [
     # configuration
@@ -84,6 +85,7 @@ __all__ = [
     "Configurazione",
     "configura",
     "configurazione",
+    "con_regole",
     # constants
     "ARTICLE_SUFFIX_ALTERNATION",
     "SUFFISSI_ARTICOLO",
