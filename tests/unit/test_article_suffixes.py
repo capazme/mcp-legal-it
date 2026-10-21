@@ -93,7 +93,11 @@ class TestNormalizeArticleKey:
         # shapes the table cannot spell: the fallback keeps them, a trailing digit is a sub-number
         ("270 bis.1", "270-bis.1"),
         ("171 octies 1", "171-octies.1"),
-        ("135 sex decies", "135-sex-decies"),
+        # Documented adaptation (akn_parser header): a suffix split in two words is joined
+        # when the joined form is in the table; VisuaLex keeps "135-sex-decies" (sent upstream).
+        ("135 sex decies", "135-sexdecies"),
+        ("135 sex-decies", "135-sexdecies"),
+        ("135 foo bar", "135-foo-bar"),
         ("2 bis", "2-bis"),
         ("2043", "2043"),
     ])

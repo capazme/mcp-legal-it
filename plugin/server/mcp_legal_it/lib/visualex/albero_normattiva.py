@@ -331,11 +331,16 @@ def articolo_nell_albero(articoli, articolo: str, allegato=None) -> "bool | None
 def dove_altrove(articoli, articolo: str, allegato) -> str:
     """Where else in the act *articolo* is, as a sentence to append to a refusal, or ``""``.
 
+    *allegato* is the part the caller looked in (``""`` for the act's own text); with
+    ``None`` (no part named) the answer is ``""``.
+
     Normattiva numbers an act's annexes by position, not by the act's own wording (the
     c.p.a. is "Allegato 1" of d.lgs. 104/2010 and annex 2 on Normattiva), so a lawyer can
     name the annex the text names and miss: the refusal says where the article is.
     """
-    if isinstance(articoli, str) or not articoli:
+    if isinstance(articoli, str) or not articoli or allegato is None:
+        # No part named: there is no "elsewhere" (VisuaLex gives the hint only for a part
+        # the caller asked for, and str(None) would exclude nothing).
         return ""
     wanted = normalize_article_key(articolo)
     parts: list[str] = []
