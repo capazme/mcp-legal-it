@@ -6,13 +6,13 @@ import asyncio
 import json
 import os
 import re
-import tempfile
 import time
 from typing import Literal
 
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.models import split_annex
 from mcp_legal_it.lib.visualex.scraper import (
@@ -436,7 +436,7 @@ async def fetch_full_act(reference: str) -> str:
 # PDF generation helpers
 # ---------------------------------------------------------------------------
 
-_PDF_OUTPUT_DIR = os.path.join(tempfile.gettempdir(), "mcp-legal-it")
+_PDF_OUTPUT_DIR = OUTPUT_DIR
 _PDF_MAX_AGE_SECONDS = 3600  # 1 hour
 
 
@@ -522,7 +522,7 @@ async def _download_law_pdf_impl(reference: str) -> str:
         numero_atto=act_info.get("numero_atto", ""),
     )
 
-    os.makedirs(_PDF_OUTPUT_DIR, exist_ok=True)
+    ensure_private_dir(_PDF_OUTPUT_DIR)
     filename = _safe_filename(act_name) + ".pdf"
     filepath = os.path.join(_PDF_OUTPUT_DIR, filename)
 

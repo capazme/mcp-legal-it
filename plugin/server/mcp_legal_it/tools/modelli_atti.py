@@ -10,6 +10,9 @@ from pathlib import Path
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._data import sourced
+from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
+
+_OUTPUT_DIR = OUTPUT_DIR
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -244,8 +247,7 @@ def esporta_atto_docx(
     # Save to temp file
     import os
     import uuid
-    tmp_dir = "/tmp/mcp-legal-it"
-    os.makedirs(tmp_dir, exist_ok=True)
+    tmp_dir = ensure_private_dir(_OUTPUT_DIR)
     filename = f"{_sanitize_filename(titolo)}_{uuid.uuid4().hex[:8]}.docx"
     filepath = os.path.join(tmp_dir, filename)
     doc.save(filepath)

@@ -13,8 +13,8 @@ the registered MCP surface:
   the abrogated artt. 16-bis co. 9-bis and 16-undecies DL 179/2012), search for "196-octies",
   atto di precetto (artt. 479-481 c.p.c., art. 480 co. 2 warning in the direct tool) and
   citazione ordinaria (art. 163-bis c.p.c., 120/150 days).
-* `esporta_atto_docx` writes a .docx under /tmp/mcp-legal-it: each produced file is copied into
-  a `tempfile` directory, deleted from /tmp/mcp-legal-it straight away, and opened with
+* `esporta_atto_docx` writes a .docx under <tempdir>/mcp-legal-it: each produced file is copied into
+  a `tempfile` directory, deleted from that folder straight away, and opened with
   python-docx to check headings, runs, list styles, core properties, numbering and the
   citations it carries (again through `verifica_citazioni`).
 
@@ -44,7 +44,7 @@ pytestmark = pytest.mark.live
 
 _REPO = Path(__file__).resolve().parents[2]
 _CATALOGO_JSON = _REPO / "plugin" / "server" / "mcp_legal_it" / "data" / "modelli_atti.json"
-_DOCX_DIR = "/tmp/mcp-legal-it"  # fixed by the tool (mcp_legal_it/tools/modelli_atti.py)
+from mcp_legal_it.lib._output import OUTPUT_DIR as _DOCX_DIR  # where esporta_atto_docx saves
 _NORMATTIVA = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
 _DISP_ATT_CPC = "regio.decreto:1941-08-25;1368:1"
 _BATCH = 20  # verifica_citazioni resolves at most 20 references per call
