@@ -339,6 +339,54 @@ def test_decisions_of_other_courts_are_covered_by_their_tools(tmp_path, tool, re
     assert gate(t) == SILENT
 
 
+@pytest.mark.parametrize("text, uncovered", [
+    ("Cass. n. 500/1999; n. 600/2000.", "600/2000"),
+    ("Cass. nn. 500/1999, 600/2000 e 700/2001.", "700/2001"),
+    ("Corte cost. sentenze n. 242/2019 e n. 135/2024.", "135/2024"),
+])
+def test_every_number_of_a_list_keeps_its_court(tmp_path, text, uncovered):
+    """A court named once covers the whole list: reading the first number is not enough."""
+    first = text.split("n")[0]
+    results = {"Cass": ("leggi_sentenza", "# Cass. civ., sez. III, n. 500/1999\n\nTesto"),
+               "Corte cost": ("leggi_pronuncia_costituzionale", "# Sentenza Corte Costituzionale n. 242/2019")}
+    tool, result = results["Corte cost" if first.startswith("Corte") else "Cass"]
+    t = session(tmp_path).prompt().call(tool, {}, result).say(text)
+    done = run({"transcript_path": str(t.write())})
+    assert done.returncode == NAGS
+    assert uncovered.split("/")[0] in done.stderr
+
+
+@pytest.mark.parametrize("text", [
+    "Cassazione, sentenza 26972 del 2008, sul danno non patrimoniale.",
+    "Corte cost., sent. 242 del 2019, sul fine vita.",
+    "La CGUE, causa C\u2011311/18, ha deciso.",
+])
+def test_decisions_written_without_n_or_with_other_dashes_are_read(tmp_path, text):
+    assert gate(session(tmp_path).prompt().say(text)) == NAGS, text
+
+
+def test_a_docket_number_is_not_a_decision(tmp_path):
+    t = session(tmp_path).prompt().say("Il ricorso per cassazione e' iscritto al n. 1234/2023 R.G.")
+    assert gate(t) == SILENT
+
+
+def test_a_brocardi_abstract_does_not_cover_the_decision(tmp_path):
+    t = session(tmp_path).prompt().call(
+        "cerca_brocardi", {"reference": "art. 2043 c.c."},
+        "Massime: Cass. civ. n. 12345/2024 — il danno...").say("Cass. civ. n. 12345/2024 lo afferma.")
+    assert gate(t) == NAGS
+
+
+def test_the_unified_search_credits_each_number_to_its_own_court(tmp_path):
+    result = ("## Cassazione\n- Cass. civ., sez. III, n. 12345/2024\n"
+              "## Corte costituzionale\n- Corte cost., sent. n. 242/2019\n")
+    t = session(tmp_path).prompt().call("cerca_giurisprudenza_unificata", {"query": "danno"}, result).say(
+        "Cass. civ. n. 12345/2024 e Corte cost. n. 242/2019.")
+    assert gate(t) == SILENT
+    t.say("Anche Corte cost. n. 12345/2024.")
+    assert gate(t) == NAGS
+
+
 # ---------------------------------------------------------------------------
 # Not citations of law: silent
 # ---------------------------------------------------------------------------
@@ -485,6 +533,33 @@ def test_a_symlink_into_another_session_is_not_followed(tmp_path):
     assert gate(t) == NAGS
 
 
+def test_a_linked_subagents_folder_is_not_followed(tmp_path):
+    other = subagent(tmp_path, main="altra").prompt().cite_law("art. 2043 c.c.", article("2043")).write()
+    (tmp_path / "sessione").mkdir()
+    (tmp_path / "sessione" / "subagents").symlink_to(other.parent, target_is_directory=True)
+    t = session(tmp_path).prompt().say("Vale l'art. 2043 c.c.")
+    assert gate(t) == NAGS
+    payload = {"transcript_path": str(t.write()), "hook_event_name": "SubagentStop",
+               "agent_transcript_path": str(tmp_path / "sessione" / "subagents" / other.name)}
+    assert run(payload).returncode == SILENT  # not ours: not judged, fail-open
+
+
+def test_a_linked_session_folder_is_not_followed(tmp_path):
+    other = subagent(tmp_path, main="altra").prompt().cite_law("art. 2043 c.c.", article("2043")).write()
+    (tmp_path / "sessione").symlink_to(other.parent.parent, target_is_directory=True)
+    t = session(tmp_path).prompt().say("Vale l'art. 2043 c.c.")
+    assert gate(t) == NAGS
+
+
+def test_a_broken_link_does_not_drop_the_other_subagents(tmp_path):
+    folder = tmp_path / "sessione" / "subagents"
+    folder.mkdir(parents=True)
+    (folder / "agent-a0.jsonl").symlink_to(tmp_path / "missing.jsonl")
+    subagent(tmp_path, agent="agent-b1").prompt().cite_law("art. 2043 c.c.", article("2043")).write()
+    t = session(tmp_path).prompt().say("Vale l'art. 2043 c.c.")
+    assert gate(t) == SILENT
+
+
 # ---------------------------------------------------------------------------
 # The reader: the server's code, light; a stdlib fallback when it is missing
 # ---------------------------------------------------------------------------
@@ -519,6 +594,27 @@ def test_the_fallback_reader_still_gates(tmp_path, isolated_hook):
     t2 = session(tmp_path, "s2").prompt().say("Cass. civ. n. 12345/2024 ha deciso.")
     assert run({"transcript_path": str(t2.write())}, python_args=("-I", "-S"),
                hook=isolated_hook).returncode == NAGS
+
+
+def test_the_fallback_reader_handles_spelled_out_genitives(tmp_path, isolated_hook):
+    t = session(tmp_path).prompt().say("Il principio discende dall'art. 2 della Costituzione.")
+    assert run({"transcript_path": str(t.write())}, python_args=("-I", "-S"),
+               hook=isolated_hook).returncode == NAGS
+
+
+@pytest.mark.parametrize("text", [
+    "art. 1" + " " * 50000 + "x",
+    "\n" * 50000 + "x",
+    "x" + " art. 1" * 7000 + " ?",
+])
+def test_adversarial_text_is_read_quickly_by_both_readers(tmp_path, isolated_hook, text):
+    """Bounded separators everywhere: a failing match must stay linear in its length."""
+    t = session(tmp_path).prompt().call("fetch_full_act", {"reference": "D.Lgs. 231/2001"}, text).say(text)
+    payload = {"transcript_path": str(t.write())}
+    for kwargs in ({}, {"python_args": ("-I", "-S"), "hook": isolated_hook}):
+        start = time.monotonic()
+        run(payload, **kwargs)
+        assert time.monotonic() - start < 5, kwargs
 
 
 def test_a_long_session_is_judged_quickly(tmp_path):

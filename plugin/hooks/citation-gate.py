@@ -45,28 +45,29 @@ SILENT, BLOCK = 0, 2
 # Tools whose result can show that an article was read.
 NORM_TOOLS = {"cite_law", "fetch_law_article", "fetch_full_act"}
 
-# Tools whose result can show that a decision was read, per court.
-_UNIFICATA = {"cerca_giurisprudenza_unificata"}
+# Tools whose result can show that a decision was read, per court: the court's
+# readers and searches (leggi_*, cerca_*, *_su_norma, ultime_*). Not Brocardi's
+# abstracts nor the orientation maps: a massima is not the decision.
 DECISION_TOOLS = {
     "cass": {"leggi_sentenza", "cerca_giurisprudenza", "giurisprudenza_su_norma", "ultime_pronunce",
-             "orientamento_su_norma", "orientamento_su_principio", "mappa_orientamento",
-             "giurisprudenza_articolo", "cerca_brocardi",
              # Cassazione tributaria is published on CeRDEF too.
              "cerca_giurisprudenza_tributaria", "cerdef_leggi_provvedimento",
-             "ultime_sentenze_tributarie"} | _UNIFICATA,
+             "ultime_sentenze_tributarie"},
     "cost": {"leggi_pronuncia_costituzionale", "cerca_pronuncia_costituzionale",
-             "pronunce_cost_su_norma", "ultime_pronunce_cost"} | _UNIFICATA,
+             "pronunce_cost_su_norma", "ultime_pronunce_cost"},
     "amm": {"leggi_provvedimento_amm", "cerca_giurisprudenza_amministrativa",
-            "giurisprudenza_amm_su_norma", "ultimi_provvedimenti_amm"} | _UNIFICATA,
+            "giurisprudenza_amm_su_norma", "ultimi_provvedimenti_amm"},
     "cgue": {"leggi_sentenza_cgue", "cerca_giurisprudenza_cgue", "giurisprudenza_cgue_su_norma",
-             "ultime_sentenze_cgue"} | _UNIFICATA,
+             "ultime_sentenze_cgue"},
 }
+# Lists hits of every court: each number counts for the court named next to it.
+UNIFIED_SEARCH = "cerca_giurisprudenza_unificata"
 TOOL_PER_CORTE = {
     "cass": "leggi_sentenza", "cost": "leggi_pronuncia_costituzionale",
     "amm": "cerca_giurisprudenza_amministrativa + leggi_provvedimento_amm",
     "cgue": "cerca_giurisprudenza_cgue + leggi_sentenza_cgue",
 }
-ALL_TOOLS = NORM_TOOLS.union(*DECISION_TOOLS.values())
+ALL_TOOLS = NORM_TOOLS.union(*DECISION_TOOLS.values(), {UNIFIED_SEARCH})
 
 # Files whose text is prose: what is written there is asserted, like an answer.
 PROSE_SUFFIXES = {"", ".md", ".markdown", ".txt", ".text", ".rtf", ".html", ".htm",
@@ -116,9 +117,10 @@ class FallbackReader:
     }
     _TIPI = {"dlgs": "decreto legislativo", "dl": "decreto legge", "l": "legge", "legge": "legge",
              "dpr": "decreto del presidente della repubblica", "dm": "decreto ministeriale"}
-    _SUFFIX = r"(?:\s*-?\s*(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)\b)?"
+    # Bounded separators: "\s*-?\s*" split a run of spaces two ways (quadratic).
+    _SUFFIX = r"(?:[ \t]?-?[ \t]?(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)\b)?"
     _ART = re.compile(r"\b(?:artt?|articol[oi])\b\.?\s*(\d+" + _SUFFIX + r")\b"
-                      r"[\s,]*(?:(?:del|della|dello|dell['’])\s*)?(?P<atto>[^\n;]{0,40})", re.I)
+                      r"[\s,]*(?:(?:della|dello|dell['’]|del)\s*)?(?P<atto>[^\n;]{0,40})", re.I)
     _ATTO_NUM = re.compile(r"^(d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m)\.?\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{4})", re.I)
     _CASS = re.compile(r"\bcass(?:azione)?\b[^\n]{0,80}?\bn\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})", re.I)
     _NUM = re.compile(r"(?<![\d/.])(\d{1,6})\s*/\s*((?:19|20)\d{2})(?![\d/])|\bn\.?\s*(\d{1,6})\s+del\s+((?:19|20)\d{2})", re.I)
@@ -160,19 +162,19 @@ class FallbackReader:
 
     def articolo_servito(self, testo):
         corpo = next((r for r in testo.splitlines() if r.strip() and not r.lstrip().startswith("**")), "")
-        m = re.match(r"^\s*(?:#+\s*)?art(?:icolo)?\.?\s*(\d+" + self._SUFFIX + ")", corpo, re.I)
+        m = re.match(r"^[ \t]*(?:#+[ \t]*)?art(?:icolo)?\.?[ \t]*(\d+" + self._SUFFIX + ")", corpo, re.I)
         return self.normalizza_articolo(m.group(1)) if m else None
 
     def articoli_serviti(self, testo):
         return {self.normalizza_articolo(m.group(1)) for m in
-                re.finditer(r"^\s*(?:#+\s*)?art(?:icolo)?\.?\s*(\d+" + self._SUFFIX + ")", testo, re.I | re.M)}
+                re.finditer(r"^[ \t]*(?:#+[ \t]*)?art(?:icolo)?\.?[ \t]*(\d+" + self._SUFFIX + ")", testo, re.I | re.M)}
 
     def riferimento_in_identita(self, riferimento):
         m = re.match(r"\s*(?:artt?|articol[oi])\b\.?\s*(\d+" + self._SUFFIX + r")[\s,]*(.*)", riferimento, re.I)
         if not m:
             atto = self._atto(riferimento)
             return (atto, "") if atto else None
-        atto = self._atto(re.sub(r"^(?:del|della|dello|dell['’])\s*", "", m.group(2), flags=re.I))
+        atto = self._atto(re.sub(r"^(?:della|dello|dell['’]|del)\s*", "", m.group(2), flags=re.I))
         return (atto, self.normalizza_articolo(m.group(1))) if atto else None
 
     def identita_norma(self, act_info, articolo):
@@ -275,6 +277,9 @@ class Session:
         try:
             if name in NORM_TOOLS:
                 self._credit_norm(name, tool_input, text)
+            if name == UNIFIED_SEARCH and not self._failed(text):
+                for d in self.reader.decisioni_nel_testo(text):
+                    self.decisions.add((d.corte, d.numero, d.anno))
             for court, tools in DECISION_TOOLS.items():
                 if name in tools and not self._failed(text):
                     for numero, anno in self.reader.decisioni_nel_risultato(text):
@@ -429,26 +434,50 @@ def subagent_dir(transcript: Path) -> Path:
     return transcript.with_suffix("") / "subagents"
 
 
+def own_subagent_root(transcript: Path) -> "Path | None":
+    """<session>/subagents, refused when it or <session>/ is a link (into another session)."""
+    folder = subagent_dir(transcript)
+    try:
+        if folder.parent.is_symlink() or folder.is_symlink() or not folder.is_dir():
+            return None
+        root = folder.resolve(strict=True)
+        if root != transcript.resolve(strict=True).with_suffix("") / "subagents":
+            return None
+        return root
+    except OSError:
+        return None
+
+
 def session_transcripts(transcript: Path) -> list:
     """The session's transcript and its subagents' — never another session's."""
     found = [transcript]
-    folder = subagent_dir(transcript)
+    root = own_subagent_root(transcript)
+    if root is None:
+        return found
     try:
-        root = folder.resolve(strict=True)
-        for path in sorted(folder.glob("agent-*.jsonl")):
-            resolved = path.resolve(strict=True)
-            if resolved.parent == root and resolved.is_file():
-                found.append(resolved)
+        candidates = sorted(root.glob("agent-*.jsonl"))
     except OSError:
-        pass
+        return found
+    for path in candidates:
+        try:
+            if path.is_symlink() or not path.is_file() or path.resolve(strict=True).parent != root:
+                continue
+        except OSError:
+            continue
+        found.append(path)
     return found
 
 
 def own_subagent_transcript(transcript: Path, agent_path: str) -> "Path | None":
     """The SubagentStop transcript, accepted only inside this session's subagents folder."""
+    root = own_subagent_root(transcript)
+    if root is None or not agent_path:
+        return None
     try:
-        root = subagent_dir(transcript).resolve(strict=True)
-        path = Path(agent_path).resolve(strict=True)
+        given = Path(agent_path)
+        if given.is_symlink():
+            return None
+        path = given.resolve(strict=True)
     except OSError:
         return None
     if path.parent != root or not path.name.endswith(".jsonl") or not path.is_file():
