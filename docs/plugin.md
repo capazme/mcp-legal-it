@@ -255,6 +255,13 @@ non lette e il tool da usare. Consultivo e fail-open: al più un blocco per turn
 transcript di 40 MB gira in circa 0,25 s (timeout 120 s). L'enforcement forte resta sul
 gate pre-export delle skill e sul giudizio dell'avvocato.
 
+**Disattivarlo**: la variabile d'ambiente `LEGAL_CITATION_GATE=off` (anche `0`, `false`,
+`no`, maiuscole comprese) spegne solo questo hook, senza disabilitare il plugin e i suoi
+tool: lo script esce subito, senza leggere il transcript. È pensata per le sessioni di
+sviluppo software, dove il gate scatta su codice e documentazione; per il lavoro legale
+va lasciato acceso. Per esempio, nel `.claude/settings.local.json` del progetto:
+`{"env": {"LEGAL_CITATION_GATE": "off"}}`.
+
 ---
 
 Il plugin non registra altri hook: `hooks.json` dichiara solo `Stop` e `SubagentStop`.

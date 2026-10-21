@@ -178,7 +178,7 @@ diffidenza, sempre. Ecco cosa contiene questo:
   quelli dei suoi subagenti (mai di altre sessioni: i file fuori dalla cartella
   `subagents/` della sessione, link simbolici compresi, sono ignorati) e avvisa se una
   norma o una decisione è stata citata senza averla letta con un tool. Non fa rete e non
-  scrive file; `uv run --no-sync` lo avvia senza installare nulla. Leggilo prima di
+  scrive file; `LEGAL_CITATION_GATE=off` lo spegne (vedi `docs/plugin.md`); `uv run --no-sync` lo avvia senza installare nulla. Leggilo prima di
   approvarlo.
 - **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto, e avvia
   il server con `uv run --frozen`: le versioni esatte di `plugin/server/uv.lock`, in un
