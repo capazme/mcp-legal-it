@@ -1165,3 +1165,46 @@ class TestCiteLawJSON:
             as_md = await _cite_law_impl("art. 2043 c.c.")
         assert json.loads(as_json)["testo"] == "testo"
         assert as_md.startswith("**Fonte**: Normattiva — https://normattiva.it/a")
+
+
+class TestConstitutionalRoyalAndLieutenancyActs:
+    """Constitutional laws, royal decree-laws and lieutenancy legislative decrees resolve
+    to the types the URN builder knows (legge.costituzionale, regio.decreto.legge,
+    decreto.legislativo.luogotenenziale), in their usual written forms."""
+
+    @pytest.mark.parametrize("name, tipo, data, numero", [
+        ("l. cost. 3/2001", "legge costituzionale", "2001", "3"),
+        ("L. cost. n. 3 del 2001", "legge costituzionale", "2001", "3"),
+        ("legge cost. 3/2001", "legge costituzionale", "2001", "3"),
+        ("legge costituzionale 18 ottobre 2001, n. 3", "legge costituzionale", "2001-10-18", "3"),
+        ("r.d.l. 1728/1938", "regio decreto legge", "1938", "1728"),
+        ("R.D.L. 15 novembre 1938, n. 1728", "regio decreto legge", "1938-11-15", "1728"),
+        ("regio decreto-legge 1728/1938", "regio decreto legge", "1938", "1728"),
+        ("d.l.lgt. 151/1944", "decreto legislativo luogotenenziale", "1944", "151"),
+        ("d.lgs.lgt. 151/1944", "decreto legislativo luogotenenziale", "1944", "151"),
+        ("D.Lgs.Lgt. 25 giugno 1944, n. 151", "decreto legislativo luogotenenziale", "1944-06-25", "151"),
+    ])
+    def test_the_written_forms_resolve(self, name, tipo, data, numero):
+        assert _resolve_act(name) == {"tipo_atto": tipo, "data": data, "numero_atto": numero}
+
+    @pytest.mark.parametrize("name, tipo", [
+        ("L. 241/1990", "legge"), ("D.Lgs. 196/2003", "decreto legislativo"),
+        ("D.L. 18/2020", "decreto legge"), ("R.D. 262/1942", "regio decreto"),
+    ])
+    def test_the_shorter_forms_they_start_with_are_unchanged(self, name, tipo):
+        assert _resolve_act(name)["tipo_atto"] == tipo
+
+    def test_the_urn_names_the_act_type(self):
+        from mcp_legal_it.core.norme import _build_nv
+        nv = _build_nv(_resolve_act("l. cost. 3/2001"), "1")
+        assert "urn:nir:stato:legge.costituzionale:2001-01-01;3~art1" in nv.url()
+        assert _parse_reference("art. 1 l. cost. 3/2001") == ("1", "l. cost. 3/2001")
+
+
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_live_constitutional_law_article():
+    """One call: art. 1 of the l. cost. 3/2001 (Titolo V reform) comes from Normattiva."""
+    out = await _cite_law_impl("art. 1 l. cost. 3/2001")
+    assert not out.startswith("**Errore"), out[:300]
+    assert "costituzional" in out.lower() or "art. 1" in out.lower()

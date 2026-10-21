@@ -165,8 +165,13 @@ def _parse_reference(reference: str) -> tuple[str, str]:
 _TIPO_ALT = (
     r"decreto\s+del\s+presidente\s+della\s+repubblica"
     r"|decreto\s+del\s+presidente\s+del\s+consiglio(?:\s+dei\s+ministri)?"
+    r"|decreto\s+legislativo\s+luogotenenziale"
     r"|decreto\s+legislativo|decreto[-\s]legge|decreto\s+ministeriale"
-    r"|regio\s+decreto|legge"
+    r"|regio\s+decreto[-\s]legge|regio\s+decreto"
+    r"|legge\s+cost(?:ituzionale|\.)|legge"
+    # Constitutional laws, royal decree-laws and lieutenancy decrees before the
+    # forms they start with ("l.", "r.d.", "d.lgs."/"d.l.").
+    r"|L\.?\s?cost(?:ituzionale|\.)?|R\.?\s?D\.?\s?L\.?|D\.?\s?(?:Lgs|L)\.?\s?Lgt\.?"
     r"|D\.?\s?Lgs\.?|D\.?P\.?C\.?M\.?|D\.?P\.?R\.?|DPR|R\.?D\.?"
     r"|D\.?\s?M\.?|D\.?\s?L\.?|L\.?"
 )
@@ -189,6 +194,17 @@ _TIPO_CANONICO = {
     "regiodecreto": "regio decreto",
     "l": "legge",
     "legge": "legge",
+    # The names the URN builder knows: legge.costituzionale, regio.decreto.legge,
+    # decreto.legislativo.luogotenenziale.
+    "lcost": "legge costituzionale",
+    "lcostituzionale": "legge costituzionale",
+    "leggecost": "legge costituzionale",
+    "leggecostituzionale": "legge costituzionale",
+    "rdl": "regio decreto legge",
+    "regiodecretolegge": "regio decreto legge",
+    "dllgt": "decreto legislativo luogotenenziale",
+    "dlgslgt": "decreto legislativo luogotenenziale",
+    "decretolegislativoluogotenenziale": "decreto legislativo luogotenenziale",
 }
 
 _MESI_IT = {

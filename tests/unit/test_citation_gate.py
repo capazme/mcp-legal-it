@@ -360,6 +360,18 @@ def test_another_courts_tool_does_not_cover_a_decision(tmp_path):
     assert gate(t) == NAGS
 
 
+def test_constitutional_laws_are_acts_never_decisions(tmp_path):
+    """"art. 1 l. cost. 3/2001" is an article of a resolved act; "3/2001" next to the
+    Cassazione is that act's number, not a decision."""
+    from mcp_legal_it.core.citazioni import decisioni_nel_testo, norme_nel_testo
+    found = norme_nel_testo("L'art. 1 l. cost. 3/2001 ha riscritto il Titolo V.")
+    assert [(n.articolo, "legge.costituzionale:2001;3" in (n.atto or "")) for n in found] == [("1", True)]
+    assert decisioni_nel_testo("La Cassazione ha applicato la l. cost. 3/2001.") == []
+    t = session(tmp_path).prompt().cite_law("art. 1 l. cost. 3/2001", "Art. 1.\n\nTesto.").say(
+        "L'art. 1 l. cost. 3/2001 ha riscritto il Titolo V.")
+    assert gate(t) == SILENT
+
+
 @pytest.mark.parametrize("text, court", [
     ("Corte cost. n. 238/2014 ha escluso l'immunita'.", "cost"),
     ("Cons. St. n. 1/2020 ha chiarito il punto.", "amm"),
