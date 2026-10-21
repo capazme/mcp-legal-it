@@ -684,7 +684,7 @@ class TestVerificaCitazioniE2E:
                 "source": "normattiva",
             }
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _verifica_citazioni_impl("art. 2043 c.c.")
         assert "| 1 |" in out
         assert "Norma" in out
@@ -696,7 +696,7 @@ class TestVerificaCitazioniE2E:
         async def fake_fetch_article(nv):
             return {"text": "", "url": "https://normattiva.it/x", "source": "", "error": "404"}
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001")
         assert "non trovata" in out
 
@@ -817,15 +817,15 @@ class TestPreleggiRegression:
                 "source": "normattiva",
             }
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _verifica_citazioni_impl("art. 13 co. 7 D.Lgs. 196/2003")
         assert "metadati discordanti" in out
 
     @pytest.mark.asyncio
     async def test_sentenza_exists(self):
         resp = _solr_response([_solr_doc(12345, 2024, sez="3")])
-        with patch("mcp_legal_it.tools.italgiure.solr_query", _patch_solr(resp)), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession", return_value=_fake_session()):
+        with patch("mcp_legal_it.core.cassazione.solr_query", _patch_solr(resp)), \
+             patch("mcp_legal_it.core.cassazione.SolrSession", return_value=_fake_session()):
             out = await _verifica_citazioni_impl("Cass. sez. III n. 12345/2024")
         assert "Sentenza" in out
         assert "verificata" in out
@@ -834,8 +834,8 @@ class TestPreleggiRegression:
     async def test_sentenza_not_found(self):
         empty = _solr_response([])
         # leggi_sentenza tries up to 4 queries — all empty → no_results
-        with patch("mcp_legal_it.tools.italgiure.solr_query", _patch_solr(empty)), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession", return_value=_fake_session()):
+        with patch("mcp_legal_it.core.cassazione.solr_query", _patch_solr(empty)), \
+             patch("mcp_legal_it.core.cassazione.SolrSession", return_value=_fake_session()):
             out = await _verifica_citazioni_impl("Cass. n. 99999/2024")
         assert "inesistente" in out
 
@@ -848,7 +848,7 @@ class TestPreleggiRegression:
 
         forbidden = AsyncMock(side_effect=AssertionError("Italgiure interrogata per una decisione fuori archivio"))
         with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", archive_start), \
-             patch("mcp_legal_it.tools.italgiure.solr_query", forbidden):
+             patch("mcp_legal_it.core.cassazione.solr_query", forbidden):
             out = await _verifica_citazioni_impl("Cass. n. 5000/2015")
         assert "non verificabile" in out
         assert "17/02/2021" in out
@@ -858,8 +858,8 @@ class TestPreleggiRegression:
     async def test_sentenza_metadata_mismatch_sezione(self):
         # User says sez. I, but resolved decision is sez. III → discordanti.
         resp = _solr_response([_solr_doc(12345, 2024, sez="3")])
-        with patch("mcp_legal_it.tools.italgiure.solr_query", _patch_solr(resp)), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession", return_value=_fake_session()):
+        with patch("mcp_legal_it.core.cassazione.solr_query", _patch_solr(resp)), \
+             patch("mcp_legal_it.core.cassazione.SolrSession", return_value=_fake_session()):
             out = await _verifica_citazioni_impl("Cass. sez. I n. 12345/2024")
         assert "metadati discordanti" in out
 
@@ -871,8 +871,8 @@ class TestPreleggiRegression:
         empty = _solr_response([])
         # leggi_sentenza(numero=12345): step1 empty (no sezione passed → step2 skipped),
         # step3 empty, step4 returns the wrong doc.
-        with patch("mcp_legal_it.tools.italgiure.solr_query", _patch_solr([empty, empty, wrong])), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession", return_value=_fake_session()):
+        with patch("mcp_legal_it.core.cassazione.solr_query", _patch_solr([empty, empty, wrong])), \
+             patch("mcp_legal_it.core.cassazione.SolrSession", return_value=_fake_session()):
             out = await _verifica_citazioni_impl("Cass. n. 12345/2024")
         # Step-4 now rejects a full-text hit whose numdec/anno don't match the requested
         # decision, so the citing-but-different ruling (88888) is NOT surfaced as authoritative.
@@ -898,9 +898,9 @@ class TestPreleggiRegression:
             }
 
         resp = _solr_response([_solr_doc(12345, 2024, sez="3")])
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article), \
-             patch("mcp_legal_it.tools.italgiure.solr_query", _patch_solr(resp)), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession", return_value=_fake_session()):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article), \
+             patch("mcp_legal_it.core.cassazione.solr_query", _patch_solr(resp)), \
+             patch("mcp_legal_it.core.cassazione.SolrSession", return_value=_fake_session()):
             out = await _verifica_citazioni_impl(
                 "Cass. sez. III n. 12345/2024\nart. 2043 c.c.\nfrase non valida"
             )
@@ -957,7 +957,7 @@ class TestVerificaCitazioniJSON:
             return {"text": "Qualunque fatto doloso o colposo...", "url": "https://normattiva.it/art2043",
                     "source": "normattiva"}
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _verifica_citazioni_struct("art. 2043 c.c.")
         assert out["formato"] == "json"
         assert out["troncato"] is False and out["limite"] == 20
@@ -973,7 +973,7 @@ class TestVerificaCitazioniJSON:
         async def fake_fetch_article(nv):
             return {"text": "", "url": "https://normattiva.it/x", "source": "", "error": "404"}
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             as_json = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001", formato="json")
             as_md = await _verifica_citazioni_impl("art. 9999 D.Lgs. 231/2001")
         data = json.loads(as_json)
@@ -994,7 +994,7 @@ class TestVerificaCitazioniJSON:
             return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
 
         refs = "\n".join(f"art. {i} c.c." for i in range(1, 23))  # 22 references
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _verifica_citazioni_struct(refs)
         assert out["troncato"] is True
         assert len(out["citazioni"]) == 20
@@ -1020,7 +1020,7 @@ class TestCiteLawJSON:
             return {"text": "1. Qualunque fatto doloso o colposo...", "url": fake_url,
                     "source": "normattiva"}
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _cite_law_struct("art. 2043 c.c.")
         assert out["formato"] == "json"
         assert out["riferimento"] == "art. 2043 c.c."
@@ -1045,7 +1045,7 @@ class TestCiteLawJSON:
         async def fake_fetch_article(nv):
             raise RuntimeError("network down")
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _cite_law_struct("art. 2043 c.c.")
         assert out["errore"] == "network down"
         assert out["testo"] == ""
@@ -1059,7 +1059,7 @@ class TestCiteLawJSON:
         async def fake_fetch_article(nv):
             return {"text": "", "url": "https://normattiva.it/art2043", "source": "normattiva"}
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             out = await _cite_law_struct("art. 2043 c.c.")
         assert out["errore"] == "nessun testo trovato"
 
@@ -1070,7 +1070,7 @@ class TestCiteLawJSON:
         async def fake_fetch_article(nv):
             return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
 
-        with patch("mcp_legal_it.tools.legal_citations.fetch_article", side_effect=fake_fetch_article):
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
             as_json = await _cite_law_impl("art. 2043 c.c.", formato="json")
             as_md = await _cite_law_impl("art. 2043 c.c.")
         assert json.loads(as_json)["testo"] == "testo"

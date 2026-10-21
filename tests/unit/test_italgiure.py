@@ -2149,8 +2149,8 @@ class TestAutoRelax:
                 return _make_solr_response([], num_found=0)
             return _make_solr_response([doc], num_found=1)
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2174,8 +2174,8 @@ class TestAutoRelax:
                 return _make_solr_response([doc], num_found=3)
             return _make_solr_response([], num_found=0)
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2211,8 +2211,8 @@ class TestAutoRelax:
                 },
             }
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2230,7 +2230,7 @@ class TestAutoRelax:
     @pytest.mark.asyncio
     async def test_exception_returns_none(self):
         """Network errors should return None gracefully."""
-        with patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.core.cassazione.SolrSession") as mock_session_cls:
             mock_session_cls.return_value.__aenter__ = AsyncMock(side_effect=Exception("network"))
 
             result = await _auto_relax(
@@ -2253,8 +2253,8 @@ class TestAutoRelax:
             # Relaxation steps: return results
             return _make_solr_response([doc], num_found=1)
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2283,8 +2283,8 @@ class TestLeggiSentenzaFallback:
         async def mock_solr_query(params, session=None):
             return solr_resp
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2308,8 +2308,8 @@ class TestLeggiSentenzaFallback:
                 return _make_solr_response([], num_found=0)
             return _make_solr_response([doc], num_found=1)
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2334,8 +2334,8 @@ class TestLeggiSentenzaFallback:
             # Full-text search (has defType=edismax) → found
             return _make_solr_response([doc], num_found=1)
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2352,8 +2352,8 @@ class TestLeggiSentenzaFallback:
         async def mock_solr_query(params, session=None):
             return _make_solr_response([], num_found=0)
 
-        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.core.cassazione.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.core.cassazione.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2368,7 +2368,7 @@ class TestLeggiSentenzaFallback:
     @pytest.mark.asyncio
     async def test_network_error(self):
         """Network error returns source_down."""
-        with patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.core.cassazione.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(side_effect=Exception("timeout"))
             mock_cls.return_value = mock_s
