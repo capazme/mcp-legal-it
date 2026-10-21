@@ -25,7 +25,7 @@ Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
 
 ## Dove vanno le tue interrogazioni
 
-L'elenco autoritativo è codice, non prosa: [`mcp_legal_it/lib/_egress.py`](mcp_legal_it/lib/_egress.py).
+L'elenco autoritativo è codice, non prosa: [`mcp_legal_it/lib/_egress.py`](plugin/server/mcp_legal_it/lib/_egress.py).
 `tests/unit/test_egress_allowlist.py` fa fallire la CI se in `plugin/server/mcp_legal_it/` compare un
 URL verso un host non dichiarato, **e** se un host dichiarato non compare in
 questo documento. Le due liste non possono divergere.

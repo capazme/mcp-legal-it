@@ -101,7 +101,7 @@ python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); p
 
 # Tool count nelle description
 echo "--- Tool count ---"
-EXPECTED=$(grep -c "@mcp.tool" mcp_legal_it/tools/*.py | awk -F: '{sum+=$2} END {print sum}')
+EXPECTED=$(grep -c "@mcp.tool" plugin/server/mcp_legal_it/tools/*.py | awk -F: '{sum+=$2} END {print sum}')
 echo "Attesi: $EXPECTED tool"
 grep -o '[0-9]* tool' plugin/.claude-plugin/plugin.json
 grep -o '[0-9]* tool' .claude-plugin/marketplace.json

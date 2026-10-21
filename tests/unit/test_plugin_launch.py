@@ -56,6 +56,6 @@ def test_the_server_does_not_ask_pypi_for_fastmcp_updates():
     out = subprocess.run(
         [sys.executable, "-c",
          "import mcp_legal_it.cli, fastmcp; print(fastmcp.settings.check_for_updates)"],
-        capture_output=True, text=True, env=env, cwd=ROOT, check=True,
+        capture_output=True, text=True, env=env, cwd=ROOT / "plugin" / "server", check=True,
     )
     assert out.stdout.strip() == "off"
