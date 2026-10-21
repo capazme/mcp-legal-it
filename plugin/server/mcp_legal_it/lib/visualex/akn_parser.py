@@ -260,7 +260,9 @@ def normalize_article_key(numero_articolo: str) -> str:
 
     # A suffix the tree writes in two words ("135 sex decies", l. 633/1941) is the
     # suffix it spells ("135-sexdecies"): joined only when the joined form is one.
-    m = re.match(r"^(\d+)\s*[-\s]\s*([a-z]+)[\s-]+([a-z]+)$", key)
+    # One separator between the parts (a dash with blanks around it, or blanks): never
+    # several optional blank runs side by side, which split a long run of blanks many ways.
+    m = re.match(r"^(\d+)(?:\s*-\s*|\s+)([a-z]+)(?:\s*-\s*|\s+)([a-z]+)$", key)
     if m and re.fullmatch(suffix_alt, m.group(2) + m.group(3)):
         return f"{m.group(1)}-{m.group(2)}{m.group(3)}"
 
