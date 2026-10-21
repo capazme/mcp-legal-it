@@ -380,6 +380,32 @@ def test_the_court_of_a_decision_is_the_one_named(tmp_path, text, court):
     assert gate(t) == SILENT, text
 
 
+@pytest.mark.parametrize("text", [
+    "La Cassazione, richiamando la Corte EDU, ric. n. 123/2020, ha deciso.",
+    "Cass., richiamando Corte dei conti n. 123/2020, ha deciso.",
+    "Cass. civ. che richiama il giudice di pace di Roma n. 123/2020.",
+])
+def test_a_court_named_after_the_cassazione_owns_the_number(text):
+    """verifica_citazioni's court names: a number of the ECtHR, the Corte dei conti or a
+    merits court is never a Cassazione decision, so no Cassazione reader can cover it."""
+    from mcp_legal_it.core.citazioni import decisioni_nel_testo
+    assert all(d.corte != "cass" for d in decisioni_nel_testo(text)), text
+
+
+def test_a_cassazione_section_is_not_another_court():
+    from mcp_legal_it.core.citazioni import decisioni_nel_testo
+    for text in ("Cass., sez. trib., n. 1/2024.", "Cass. sez. trib. ord. n. 1/2024."):
+        assert [(d.corte, d.numero) for d in decisioni_nel_testo(text)] == [("cass", "1")], text
+
+
+def test_a_cassazione_reader_does_not_cover_the_council_of_state_it_cites(tmp_path):
+    text = "La Cassazione, che richiama Cons. St. n. 1/2020, ha deciso."
+    t = session(tmp_path).prompt().call("leggi_sentenza", {}, "# Cass. civ., sez. I, n. 1/2020\n\nTesto").say(text)
+    assert gate(t) == NAGS
+    t.call("leggi_provvedimento_amm", {}, "# Consiglio di Stato\n**Estremi**: Sentenza n. 1/2020, pubblicata il 01/01/2020").say(text)
+    assert gate(t) == SILENT
+
+
 @pytest.mark.parametrize("tool, result, text", [
     ("leggi_pronuncia_costituzionale", "# Sentenza Corte Costituzionale n. 242/2019\n\nTesto...",
      "Corte cost., sent. n. 242/2019, sul fine vita."),
