@@ -28,6 +28,7 @@ from mcp_legal_it.lib.visualex.map import (
     known_act_names,
     normalize_act_type,
 )
+from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _ALTERNANZA_SUFFISSI
 from mcp_legal_it.lib.visualex.models import Norma, annex_reference, intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
@@ -37,21 +38,22 @@ from mcp_legal_it.lib.visualex.scraper import (
 )
 
 #: Latin ordinals that follow an article number, in the order of the law
-#: (``bis`` = 2nd ... ``sexiesdecies`` = 16th), each with the other spellings
-#: Normattiva uses. Value parity with VisuaLex's suffix table is checked at the
-#: migration against VisuaLex's goldens (docs/api.md, «Migration constraints»).
+#: (``bis`` = 2nd ... ``vicies`` = 20th), each with the other spellings Normattiva
+#: prints. Built from the one table (``lib/visualex/article_suffixes.py``, imported
+#: from VisuaLex and pinned to it); ``semel`` ("vicies semel", 21st) is in the
+#: alternation below but is no ordinal of its own.
 SUFFISSI_ARTICOLO: tuple[tuple[str, ...], ...] = (
     ("bis",), ("ter",), ("quater",), ("quinquies",), ("sexies",), ("septies",),
     ("octies",), ("novies", "nonies"), ("decies",), ("undecies",), ("duodecies",),
-    ("terdecies", "tredecies"), ("quaterdecies",), ("quinquiesdecies", "quindecies"),
-    ("sexiesdecies", "sexdecies"),
+    ("terdecies",), ("quaterdecies",), ("quinquiesdecies", "quindecies"),
+    ("sexiesdecies", "sexdecies"), ("septiesdecies",), ("octiesdecies", "duodevicies"),
+    ("noviesdecies", "undevicies"), ("vicies", "vices"),
 )
 
-#: Regex alternation of every spelling above, longest first (so ``quinquies``
-#: never shadows ``quinquiesdecies``). Use inside a group: ``rf"(\d+)-?({ARTICLE_SUFFIX_ALTERNATION})"``.
-ARTICLE_SUFFIX_ALTERNATION: str = "|".join(
-    sorted({s for gruppo in SUFFISSI_ARTICOLO for s in gruppo}, key=lambda s: (-len(s), s))
-)
+#: Regex alternation of every spelling, longest first (so ``quinquies`` never
+#: shadows ``quinquiesdecies``): VisuaLex's, verbatim. Close the group with ``\b``:
+#: ``rf"(\d+)-?({ARTICLE_SUFFIX_ALTERNATION})\b"``.
+ARTICLE_SUFFIX_ALTERNATION: str = _ALTERNANZA_SUFFISSI
 
 #: Italian act types Normattiva addresses by date and number (codes are known by name).
 _TIPI_NOTI = frozenset(v.lower() for v in NORMATTIVA_SEARCH.values()) | frozenset(norme._TIPO_CANONICO.values())

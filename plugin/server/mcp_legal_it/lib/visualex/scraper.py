@@ -231,6 +231,10 @@ _ORDINAL_SPELLINGS = (
     ("septendecies", "septiesdecies"),
     ("octodecies", "octiesdecies"),
     ("novendecies", "noviesdecies"),
+    # VisuaLex's table lists these too, as Normattiva prints them (18, 19, 20).
+    ("duodevicies", "octiesdecies"),
+    ("undevicies", "noviesdecies"),
+    ("vices", "vicies"),
     ("nonies", "novies"),
 )
 
