@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass
 
 from mcp_legal_it.core.riferimenti import _parse_reference, _resolve_act
+from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, Norma
 
 # Cassazione decision shape: a decision number followed by a 4-digit year,
@@ -162,10 +163,9 @@ def _sentenza_num_anno(reference: str) -> tuple[int, int] | None:
 # Prose: what an answer cites, and what a tool result shows was read
 # ---------------------------------------------------------------------------
 
-_SUFFISSI = (
-    "bis|ter|quater|quinquies|sexies|septies|octies|novies|nonies|decies|undecies|"
-    "duodecies|terdecies|quaterdecies|quinquiesdecies|sexiesdecies|septiesdecies|octiesdecies"
-)
+# The one suffix table (VisuaLex's, lib/visualex/article_suffixes.py), longest first: a
+# private copy that stopped at "octiesdecies" read "art. 25-undevicies" as art. 25.
+_SUFFISSI = ARTICLE_SUFFIX_ALTERNATION
 # One article as prose writes it: "2043", "2-bis", "2 bis", "2bis".
 _NUMERO_ARTICOLO = rf"\d+(?:\s*-\s*(?:{_SUFFISSI})|\s+(?:{_SUFFISSI})|(?:{_SUFFISSI}))?\b"
 
