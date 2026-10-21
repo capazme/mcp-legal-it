@@ -144,13 +144,35 @@ class IndiceAtto:
     esito: EsitoNorma
     title: str = ""
     rubriche: dict[str, str] = field(default_factory=dict)
-    abrogati: tuple[str, ...] = ()   # planned (migration): always empty today
-    parts: tuple[dict[str, Any], ...] = ()  # planned (migration): always empty today
+    abrogati: tuple[str, ...] = ()   # keys of the repealed articles (main part)
+    # One dict per part: VisuaLex's name, keys, rubriche, abrogati, plus allegato (the
+    # part's Normattiva number, None for the act's own text or an ambiguous one).
+    parts: tuple[dict[str, Any], ...] = ()
     count: int = 0
     # --- additions ---
-    voci: tuple[str, ...] = ()       # the index lines as Normattiva lists them
+    voci: tuple[str, ...] = ()       # vediRubriche's lines, only when the export is unavailable
     codice_redazionale: str = ""
     data_gu: str = ""
+    url: str = ""
+    errore: str | None = None
+    fonti: FontiConsultate | None = None
+
+
+@dataclass(frozen=True)
+class AlberoAtto:
+    """The article tree of an Italian act: VisuaLex ``/fetch_tree`` keys, plus additions.
+
+    ``articles`` holds ``{"numero", "allegato", "url"?}`` dicts in the act's order (and the
+    section labels, as strings, when asked for); ``allegato`` is Normattiva's part number
+    (``None`` for the act's own text). ``metadata["annexes"]`` lists the parts with their
+    ``number``, ``label``, ``article_count`` and ``article_numbers``.
+    """
+
+    esito: EsitoNorma
+    articles: tuple[Any, ...] = ()
+    count: int = 0
+    metadata: dict[str, Any] = field(default_factory=dict)
+    # --- additions ---
     url: str = ""
     errore: str | None = None
     fonti: FontiConsultate | None = None
