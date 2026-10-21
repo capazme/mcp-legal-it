@@ -108,7 +108,7 @@ the call needs (others fall back to the shipped table):
 ```
 
 **`contributo_unificato`** — the whole replacement table, in the same shape as
-`src/data/contributo_unificato.json` (brackets you do not need may be left
+`mcp_legal_it/data/contributo_unificato.json` (brackets you do not need may be left
 out):
 
 ```json

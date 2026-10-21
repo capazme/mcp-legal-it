@@ -2,7 +2,7 @@
 
 Site page: calcolo-compenso-avvocati-parametri-penali-2014.php, "Tabelle: 2022 (vigenti)",
 i.e. DM 55/2014 as amended by DM 147/2022 (GU n. 236 of 8/10/2022) - the only table the
-tool carries (src/data/parametri_forensi.json, block "penale").
+tool carries (mcp_legal_it/data/parametri_forensi.json, block "penale").
 
 Norms: DM 55/2014 art. 12 co. 1 and the Tabella for criminal proceedings (values per
 phase and per competent court, as updated by DM 147/2022); art. 4 co. 1 / art. 12 co. 1
@@ -55,7 +55,7 @@ _AMOUNT_RE = re.compile(r"€\s*([\d.]+(?:,\d{2})?)")
 
 
 def _tool(**kwargs) -> dict:
-    from src.tools.fatturazione_avvocati import parcella_avvocato_penale
+    from mcp_legal_it.tools.fatturazione_avvocati import parcella_avvocato_penale
 
     fn = getattr(parcella_avvocato_penale, "fn", parcella_avvocato_penale)
     return fn(**kwargs)

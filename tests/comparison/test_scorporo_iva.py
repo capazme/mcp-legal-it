@@ -27,7 +27,7 @@ URL = "https://www.avvocatoandreani.it/servizi/scorporo-iva-calcoli-percentuali-
 
 
 def _tool(importo, aliquota):
-    from src.tools.varie import scorporo_iva
+    from mcp_legal_it.tools.varie import scorporo_iva
     fn = getattr(scorporo_iva, "fn", scorporo_iva)
     return fn(importo_ivato=importo, aliquota=aliquota)
 

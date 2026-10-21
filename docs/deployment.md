@@ -183,9 +183,8 @@ FROM python:3.12-slim AS base
 RUN apt-get update && apt-get install -y gcc libxml2-dev libxslt1-dev ...
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir .
-COPY src/ src/
-COPY run_server.py .
+COPY plugin/server/mcp_legal_it/ plugin/server/mcp_legal_it/
+RUN pip install --no-cache-dir . && rm -rf plugin build
 
 ENV LEGAL_PROFILE=full
 ENV MCP_TRANSPORT=sse
@@ -194,7 +193,7 @@ ENV MCP_PORT=8000
 ENV MCP_CACHE_DIR=/app/.cache/mcp-legal-it
 
 EXPOSE 8000
-CMD ["python", "run_server.py"]
+CMD ["mcp-legal-it"]
 ```
 
 ### docker-compose.yml
@@ -271,7 +270,7 @@ curl -s -X POST http://localhost:8000/mcp -H 'Content-Type: application/json' \
 .venv/bin/python run_server.py
 
 # Verifica import
-.venv/bin/python -c "from src.server import mcp; print('OK')"
+.venv/bin/python -c "from mcp_legal_it.server import mcp; print('OK')"
 ```
 
 Errori comuni:

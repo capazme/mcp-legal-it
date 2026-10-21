@@ -17,7 +17,7 @@
 
 ## Prompts — Workflow guidati
 
-**File sorgente**: `src/prompts.py`
+**File sorgente**: `mcp_legal_it/prompts.py`
 
 I prompt MCP sono workflow strutturati che guidano il modello LLM in sequenze di chiamate ai tool. Ogni prompt riceve parametri utente, li incorpora in un testo di istruzione e definisce l'ordine esatto dei tool da chiamare.
 
@@ -83,7 +83,7 @@ Assessment GDPR end-to-end. Se `verifica_necessita_dpia` restituisce `dpia_neces
 
 ## Resources — Risorse statiche
 
-**File sorgente**: `src/resources.py`
+**File sorgente**: `mcp_legal_it/resources.py`
 
 Le risorse MCP sono documenti di riferimento statici accessibili tramite URI `legal://`. Contengono tabelle, checklist e schemi normativi aggiornati.
 
@@ -152,7 +152,7 @@ content = await client.read_resource("legal://riferimenti/gdpr-checklist")
 # semplicemente citando il loro URI nel contesto della conversazione
 ```
 
-Le risorse sono più utili come contesto di background; i tool di calcolo applicano già le tabelle rilevanti internamente (il tool `contributo_unificato` usa `src/data/contributo_unificato.json`, non la risorsa testuale).
+Le risorse sono più utili come contesto di background; i tool di calcolo applicano già le tabelle rilevanti internamente (il tool `contributo_unificato` usa `mcp_legal_it/data/contributo_unificato.json`, non la risorsa testuale).
 
 ### Quando usare i prompt vs. chiamare i tool direttamente
 

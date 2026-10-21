@@ -1,8 +1,8 @@
 # Library Reference — mcp-legal-it
 
-> Documentazione delle librerie interne (`src/lib/`): API pubbliche, dataclass, dettagli tecnici.
+> Documentazione delle librerie interne (`mcp_legal_it/lib/`): API pubbliche, dataclass, dettagli tecnici.
 
-`src/lib/` contiene 15 client, uno per fonte esterna, più i moduli trasversali
+`mcp_legal_it/lib/` contiene 15 client, uno per fonte esterna, più i moduli trasversali
 (`_data`, `_ledger`, `_precision`, `_clock`, `_cache`, `_sources`, `_http`, `_refusals`,
 `_egress`) descritti in [architecture.md §5-bis](architecture.md#5-bis-layer-trasversale--provenienza-precisione-cache-orologio).
 Quattro client sono documentati in dettaglio qui sotto; per gli altri il riferimento è
@@ -47,7 +47,7 @@ Libreria per la risoluzione e il fetch di atti normativi italiani (Normattiva) e
 
 ### models.py — Norma, NormaVisitata
 
-**File**: `src/lib/visualex/models.py`
+**File**: `mcp_legal_it/lib/visualex/models.py`
 
 #### `Norma`
 
@@ -97,7 +97,7 @@ class NormaVisitata:
 
 ### map.py — Dizionari e helper
 
-**File**: `src/lib/visualex/map.py`
+**File**: `mcp_legal_it/lib/visualex/map.py`
 
 #### Dizionari principali
 
@@ -152,7 +152,7 @@ Estrae `tipo_atto_reale`, `data`, `numero_atto` dall'URN in `NORMATTIVA_URN_CODI
 
 ### scraper.py — Fetch articoli e PDF
 
-**File**: `src/lib/visualex/scraper.py`
+**File**: `mcp_legal_it/lib/visualex/scraper.py`
 
 **Dipendenze**: `httpx` (async), `BeautifulSoup4` + `lxml`, `NormaVisitata`, `find_brocardi_url`.
 
@@ -235,7 +235,7 @@ Scraper standalone per `brocardi.it`. Estrae struttura completa per ogni articol
 
 ### client.py — BrocardiResult, Massima
 
-**File**: `src/lib/brocardi/client.py`
+**File**: `mcp_legal_it/lib/brocardi/client.py`
 
 **Cache persistente**: `~/.cache/mcp-legal-it/brocardi_urls.json` (sovrascrivibile via `$MCP_CACHE_DIR`). Mappa `"base_url#article_num"` → URL articolo. Persiste tra sessioni.
 
@@ -329,7 +329,7 @@ Client asincrono per le API Solr di Italgiure (Corte di Cassazione).
 
 ### client.py — Query e formattazione
 
-**File**: `src/lib/italgiure/client.py`
+**File**: `mcp_legal_it/lib/italgiure/client.py`
 
 **Endpoint**: `POST https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?app.query`
 
@@ -440,7 +440,7 @@ Client HTTP per il sito del Garante per la Protezione dei Dati Personali (GPDP).
 
 ### client.py — DocResult, ricerca, fetch
 
-**File**: `src/lib/gpdp/client.py`
+**File**: `mcp_legal_it/lib/gpdp/client.py`
 
 **Backend**: Liferay Portal — nessuna API JSON pubblica. Scraping HTML via BeautifulSoup.
 

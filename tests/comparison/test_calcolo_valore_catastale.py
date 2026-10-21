@@ -29,8 +29,8 @@ URL = "https://www.avvocatoandreani.it/servizi/calcolo-valore-catastale-immobili
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers all tools)
-    from src.tools.proprieta_successioni import calcolo_valore_catastale
+    import mcp_legal_it.server  # noqa: F401  (registers all tools)
+    from mcp_legal_it.tools.proprieta_successioni import calcolo_valore_catastale
 
     fn = getattr(calcolo_valore_catastale, "fn", calcolo_valore_catastale)
     return fn(**kwargs)

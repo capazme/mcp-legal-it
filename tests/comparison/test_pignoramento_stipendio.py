@@ -49,8 +49,8 @@ ASSEGNO_SOCIALE_2026 = 546.24
 # ---------------------------------------------------------------------------
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401 - registers every tool module (avoids circular imports)
-    from src.tools.atti_giudiziari import pignoramento_stipendio
+    import mcp_legal_it.server  # noqa: F401 - registers every tool module (avoids circular imports)
+    from mcp_legal_it.tools.atti_giudiziari import pignoramento_stipendio
 
     fn = getattr(pignoramento_stipendio, "fn", pignoramento_stipendio)
     r = fn(**kwargs)

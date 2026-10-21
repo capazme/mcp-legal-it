@@ -3,10 +3,10 @@
 from unittest.mock import AsyncMock, patch
 import pytest
 
-from src.tools.giurisprudenza_unificata import _cerca_giurisprudenza_unificata_impl
-from src.lib._result import SearchResult
-from src.lib.cgue.client import CaseResult
-from src.lib.giustizia_amm.client import ProvvedimentoResult
+from mcp_legal_it.tools.giurisprudenza_unificata import _cerca_giurisprudenza_unificata_impl
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib.cgue.client import CaseResult
+from mcp_legal_it.lib.giustizia_amm.client import ProvvedimentoResult
 
 
 def _sr_ok(source: str, num: int, text: str) -> SearchResult:
@@ -31,9 +31,9 @@ def _make_fonti(mock_cass, mock_cer, mock_amm, mock_cgue):
     }
 
 
-_PATCH_GET_FONTI = "src.tools.giurisprudenza_unificata._get_fonti"
-_PATCH_GA_SEARCH = "src.lib.giustizia_amm.client.search_provvedimenti"
-_PATCH_CGUE_SEARCH = "src.lib.cgue.client.search_giurisprudenza"
+_PATCH_GET_FONTI = "mcp_legal_it.tools.giurisprudenza_unificata._get_fonti"
+_PATCH_GA_SEARCH = "mcp_legal_it.lib.giustizia_amm.client.search_provvedimenti"
+_PATCH_CGUE_SEARCH = "mcp_legal_it.lib.cgue.client.search_giurisprudenza"
 
 
 def _ga(anno: str, numero: str = "1") -> ProvvedimentoResult:

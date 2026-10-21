@@ -7,7 +7,7 @@ from tests.comparison.conftest import assert_close
 
 def _call_atti(fn_name, **kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.atti_giudiziari")
+    mod = importlib.import_module("mcp_legal_it.tools.atti_giudiziari")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)
@@ -15,7 +15,7 @@ def _call_atti(fn_name, **kwargs):
 
 def _call_fatt(fn_name, **kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.fatturazione_avvocati")
+    mod = importlib.import_module("mcp_legal_it.tools.fatturazione_avvocati")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)
@@ -23,7 +23,7 @@ def _call_fatt(fn_name, **kwargs):
 
 def _call_riv(fn_name, **kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.rivalutazioni_istat")
+    mod = importlib.import_module("mcp_legal_it.tools.rivalutazioni_istat")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)
@@ -31,7 +31,7 @@ def _call_riv(fn_name, **kwargs):
 
 def _call_parc(fn_name, **kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.parcelle_professionisti")
+    mod = importlib.import_module("mcp_legal_it.tools.parcelle_professionisti")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)

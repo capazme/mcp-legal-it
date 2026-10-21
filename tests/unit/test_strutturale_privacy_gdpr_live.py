@@ -1,4 +1,4 @@
-"""Live structural gate: the eight GDPR document generators of `src/tools/privacy_gdpr.py`.
+"""Live structural gate: the eight GDPR document generators of `mcp_legal_it/tools/privacy_gdpr.py`.
 
 Tools covered: genera_dpa, genera_dpia, genera_informativa_cookie,
 genera_informativa_dipendenti, genera_informativa_privacy,
@@ -76,8 +76,8 @@ def _caso(nome: str, descrizione: str) -> dict:
 
 
 def _fn(nome: str):
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    import src.tools.privacy_gdpr as mod
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    import mcp_legal_it.tools.privacy_gdpr as mod
 
     tool = getattr(mod, nome)
     return getattr(tool, "fn", tool)
@@ -116,7 +116,7 @@ def _commi(testo: str) -> dict[str, str]:
 @lru_cache(maxsize=None)
 def _gpdp_doc(docweb: int) -> tuple[str, str]:
     """Full text of a Garante doc. web (the MCP tool truncates at 6000 characters)."""
-    from src.lib.gpdp.client import fetch_doc
+    from mcp_legal_it.lib.gpdp.client import fetch_doc
 
     return asyncio.run(fetch_doc(docweb))
 
@@ -182,8 +182,8 @@ _VERIFICHE: dict[str, dict] = {}
 
 def _verifica(refs: list[str]) -> dict[str, dict]:
     """verifica_citazioni (json) on the references, 20 per call, cached for the module."""
-    import src.server  # noqa: F401
-    from src.tools.legal_citations import verifica_citazioni
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.legal_citations import verifica_citazioni
 
     fn = getattr(verifica_citazioni, "fn", verifica_citazioni)
     nuovi = [r for r in refs if r not in _VERIFICHE]

@@ -71,8 +71,8 @@ def _site(page, n_pagine: int, autentica: bool = False) -> float:
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.atti_giudiziari import copie_processo_tributario
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.atti_giudiziari import copie_processo_tributario
 
     fn = getattr(copie_processo_tributario, "fn", copie_processo_tributario)
     return fn(**kwargs)

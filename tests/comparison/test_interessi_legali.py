@@ -57,8 +57,8 @@ def _site_totale(page, capitale, data_inizio, data_fine, anatocismo="0"):
 
 
 def _ours(capitale, data_inizio, data_fine, tipo="semplici"):
-    import src.server  # noqa: F401
-    from src.tools.tassi_interessi import interessi_legali
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.tassi_interessi import interessi_legali
 
     fn = getattr(interessi_legali, "fn", interessi_legali)
     r = fn(capitale=capitale, data_inizio=data_inizio, data_fine=data_fine, tipo=tipo)

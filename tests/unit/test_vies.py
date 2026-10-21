@@ -7,7 +7,7 @@ import httpx
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib.vies.client import VIES_ENDPOINT, check_vat, checksum_partita_iva
+from mcp_legal_it.lib.vies.client import VIES_ENDPOINT, check_vat, checksum_partita_iva
 
 
 def _mock_async_client(json_payload=None, exc=None, status=200):
@@ -50,7 +50,7 @@ class TestChecksum:
 class TestCheckVat:
     async def test_valid_with_name(self):
         payload = {"valid": True, "name": "ACME SRL", "address": "VIA ROMA 1 MILANO"}
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
             out = await check_vat("12345670017")
         assert out == {
             "disponibile": True,
@@ -62,7 +62,7 @@ class TestCheckVat:
 
     async def test_valid_without_data(self):
         payload = {"valid": True, "name": "---", "address": ""}
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
             out = await check_vat("12345670017")
         assert out["valido"] is True
         assert out["denominazione"] is None
@@ -70,7 +70,7 @@ class TestCheckVat:
 
     async def test_invalid_vat(self):
         payload = {"valid": False, "name": "---", "address": "---"}
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
             out = await check_vat("12345670017")
         assert out["valido"] is False
         assert out["disponibile"] is True
@@ -78,13 +78,13 @@ class TestCheckVat:
     async def test_isvalid_key_variant(self):
         # Newer VIES REST deployments use isValid instead of valid.
         payload = {"isValid": True, "name": "ACME SRL", "address": "VIA ROMA 1"}
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
             out = await check_vat("12345670017")
         assert out["valido"] is True
 
     async def test_ms_unavailable(self):
         payload = {"userError": "MS_UNAVAILABLE"}
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
             out = await check_vat("12345670017")
         assert out["disponibile"] is False
         assert out["valido"] is None
@@ -92,7 +92,7 @@ class TestCheckVat:
 
     async def test_transport_error(self):
         exc = httpx.ConnectTimeout("timeout")
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(exc=exc)):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(exc=exc)):
             out = await check_vat("12345670017")
         assert out["disponibile"] is False
         assert out["valido"] is None
@@ -100,7 +100,7 @@ class TestCheckVat:
 
     async def test_http_5xx(self):
         with patch(
-            "src.lib.vies.client.httpx.AsyncClient",
+            "mcp_legal_it.lib.vies.client.httpx.AsyncClient",
             return_value=_mock_async_client({"error": "boom"}, status=500),
         ):
             out = await check_vat("12345670017")
@@ -117,7 +117,7 @@ class TestCheckVat:
     async def test_non_dict_json_response(self):
         # VIES occasionally returns a JSON list/string/null instead of an object.
         payload = ["unexpected", "list", "payload"]
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=_mock_async_client(payload)):
             out = await check_vat("12345670017")
         assert out["disponibile"] is False
         assert out["valido"] is None
@@ -132,7 +132,7 @@ class TestCheckVat:
         client.post = AsyncMock(return_value=resp)
         client.__aenter__ = AsyncMock(return_value=client)
         client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.lib.vies.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.vies.client.httpx.AsyncClient", return_value=client):
             out = await check_vat("12345670017")
         assert out["disponibile"] is False
         assert out["valido"] is None
@@ -147,14 +147,14 @@ import importlib
 
 
 def _tool(fn_name: str):
-    mod = importlib.import_module("src.tools.analisi_fornitori")
+    mod = importlib.import_module("mcp_legal_it.tools.analisi_fornitori")
     fn = getattr(mod, fn_name)
     return fn.fn if hasattr(fn, "fn") else fn
 
 
 class TestVerificaPartitaIvaViesTool:
     async def test_checksum_failure_skips_network(self):
-        with patch("src.tools.analisi_fornitori.check_vat", new=AsyncMock()) as mocked:
+        with patch("mcp_legal_it.tools.analisi_fornitori.check_vat", new=AsyncMock()) as mocked:
             out = await _tool("verifica_partita_iva_vies")(partita_iva="12345670018")
         mocked.assert_not_awaited()
         assert out["checksum_valido"] is False
@@ -170,7 +170,7 @@ class TestVerificaPartitaIvaViesTool:
             "indirizzo": "VIA ROMA 1",
             "errore": None,
         }
-        with patch("src.tools.analisi_fornitori.check_vat", new=AsyncMock(return_value=lib_result)):
+        with patch("mcp_legal_it.tools.analisi_fornitori.check_vat", new=AsyncMock(return_value=lib_result)):
             out = await _tool("verifica_partita_iva_vies")(partita_iva=" 12345670017 ")
         assert out["partita_iva"] == "12345670017"
         assert out["codice_paese"] == "IT"
@@ -186,7 +186,7 @@ class TestVerificaPartitaIvaViesTool:
             "indirizzo": None,
             "errore": None,
         }
-        with patch("src.tools.analisi_fornitori.check_vat", new=AsyncMock(return_value=lib_result)) as mocked:
+        with patch("mcp_legal_it.tools.analisi_fornitori.check_vat", new=AsyncMock(return_value=lib_result)) as mocked:
             out = await _tool("verifica_partita_iva_vies")(partita_iva="DE123456789", codice_paese="DE")
         mocked.assert_awaited_once()
         assert out["checksum_valido"] is None

@@ -5,7 +5,7 @@ from tests.comparison.conftest import assert_close
 
 def _call(fn_name, **kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.dichiarazione_redditi")
+    mod = importlib.import_module("mcp_legal_it.tools.dichiarazione_redditi")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)

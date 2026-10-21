@@ -18,7 +18,7 @@ import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-from src.lib.visualex.map import BROCARDI_CODICI
+from mcp_legal_it.lib.visualex.map import BROCARDI_CODICI
 
 pytestmark = pytest.mark.live
 

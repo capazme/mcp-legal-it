@@ -14,9 +14,9 @@ import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-from src.lib.dpa_probe import cache as dpa_cache
-from src.lib.dpa_probe import client as dpa_client
-from src.lib.dpa_probe.client import (
+from mcp_legal_it.lib.dpa_probe import cache as dpa_cache
+from mcp_legal_it.lib.dpa_probe import client as dpa_client
+from mcp_legal_it.lib.dpa_probe.client import (
     DestinazioneNonPubblica,
     motivo_rifiuto_dominio,
     PERCORSI,
@@ -26,7 +26,7 @@ from src.lib.dpa_probe.client import (
     normalizza_dominio,
     sonda_dominio,
 )
-from src.lib.dpa_probe.judge import (
+from mcp_legal_it.lib.dpa_probe.judge import (
     _FORTI,
     _SUPPORTO,
     VERDETTO_CLAUSOLA,
@@ -37,7 +37,7 @@ from src.lib.dpa_probe.judge import (
     giudica_html,
     giudica_pdf,
 )
-from src.tools.analisi_fornitori import verifica_dpa_fornitore
+from mcp_legal_it.tools.analisi_fornitori import verifica_dpa_fornitore
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "dpa"
 
@@ -839,7 +839,7 @@ class TestToolVerificaDpaFornitore:
     @pytest.mark.asyncio
     async def test_probe_result_is_returned_and_cached(self, cache_dir):
         esito = EsitoSonda(VERDETTO_DEDICATO, "https://example.com/legal/dpa", ["art_28"], "contenuto")
-        with patch("src.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
+        with patch("mcp_legal_it.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
             out = await _tool_fn(dominio="https://www.example.com/")
         assert out["verdetto"] == VERDETTO_DEDICATO
         assert out["dominio"] == "example.com"
@@ -849,10 +849,10 @@ class TestToolVerificaDpaFornitore:
     @pytest.mark.asyncio
     async def test_second_call_is_served_from_cache_without_probing(self, cache_dir):
         esito = EsitoSonda(VERDETTO_DEDICATO, "https://example.com/legal/dpa", ["art_28"], "contenuto")
-        with patch("src.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
+        with patch("mcp_legal_it.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
             await _tool_fn(dominio="example.com")
         sonda = AsyncMock(return_value=EsitoSonda(VERDETTO_NON_TROVATO))
-        with patch("src.tools.analisi_fornitori.sonda_dominio", sonda):
+        with patch("mcp_legal_it.tools.analisi_fornitori.sonda_dominio", sonda):
             out = await _tool_fn(dominio="example.com")
         assert out["da_cache"] is True
         assert out["verdetto"] == VERDETTO_DEDICATO
@@ -861,7 +861,7 @@ class TestToolVerificaDpaFornitore:
     @pytest.mark.asyncio
     async def test_blocked_is_reported_and_not_cached(self, cache_dir):
         esito = EsitoSonda(VERDETTO_BLOCCATO, errore="403")
-        with patch("src.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
+        with patch("mcp_legal_it.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
             out = await _tool_fn(dominio="example.com")
         assert out["verdetto"] == VERDETTO_BLOCCATO
         assert out["errore"]
@@ -877,7 +877,7 @@ class TestToolVerificaDpaFornitore:
             encoding="utf-8",
         )
         sonda = AsyncMock(return_value=EsitoSonda(VERDETTO_DEDICATO, "https://example.com/legal/dpa"))
-        with patch("src.tools.analisi_fornitori.sonda_dominio", sonda):
+        with patch("mcp_legal_it.tools.analisi_fornitori.sonda_dominio", sonda):
             out = await _tool_fn(dominio="example.com")
         assert out["verdetto"] == VERDETTO_DEDICATO
         assert out["da_cache"] is False
@@ -886,7 +886,7 @@ class TestToolVerificaDpaFornitore:
     @pytest.mark.asyncio
     async def test_empty_domain_is_rejected_without_network(self, cache_dir):
         sonda = AsyncMock()
-        with patch("src.tools.analisi_fornitori.sonda_dominio", sonda):
+        with patch("mcp_legal_it.tools.analisi_fornitori.sonda_dominio", sonda):
             out = await _tool_fn(dominio="   ")
         assert out["verdetto"] == VERDETTO_IRRAGGIUNGIBILE
         sonda.assert_not_awaited()
@@ -925,7 +925,7 @@ class TestCacheWriteSurvivesOSError:
     @pytest.mark.asyncio
     async def test_tool_still_returns_well_formed_result(self, unwritable_cache_dir):
         esito = EsitoSonda(VERDETTO_DEDICATO, "https://example.com/legal/dpa", ["art_28"], "contenuto")
-        with patch("src.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
+        with patch("mcp_legal_it.tools.analisi_fornitori.sonda_dominio", AsyncMock(return_value=esito)):
             out = await _tool_fn(dominio="example.com")  # must not raise
         assert out["verdetto"] == VERDETTO_DEDICATO
         assert out["dominio"] == "example.com"

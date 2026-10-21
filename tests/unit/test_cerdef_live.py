@@ -1,7 +1,7 @@
 """Live smoke gate for the CeRDEF tools (Dipartimento delle finanze, def.finanze.it/DocTribFrontend).
 
 Tools under test: `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento`,
-`ultime_sentenze_tributarie` (src/tools/cerdef.py over src/lib/cerdef/client.py).
+`ultime_sentenze_tributarie` (mcp_legal_it/tools/cerdef.py over mcp_legal_it/lib/cerdef/client.py).
 
 What it checks, one real call per case on a known document:
 
@@ -27,9 +27,9 @@ from datetime import datetime
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.cerdef.client import _BASE, _HEADERS, _SEARCH_URL, _extract_xml_from_js
-from src.tools.cerdef import (
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.cerdef.client import _BASE, _HEADERS, _SEARCH_URL, _extract_xml_from_js
+from mcp_legal_it.tools.cerdef import (
     cerca_giurisprudenza_tributaria,
     cerdef_leggi_provvedimento,
     ultime_sentenze_tributarie,

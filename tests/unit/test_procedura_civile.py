@@ -4,7 +4,7 @@ import pytest
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.procedura_civile")
+    mod = importlib.import_module("mcp_legal_it.tools.procedura_civile")
     fn = getattr(mod, fn_name)
     actual = fn.fn if hasattr(fn, "fn") else fn
     return actual(**kwargs)

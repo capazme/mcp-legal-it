@@ -15,10 +15,10 @@ import sys
 
 import pytest
 
-from src.lib._cache import cache_enabled
-from src.lib.brocardi import client as brocardi
-from src.lib.corte_cost import client as corte_cost
-from src.lib.visualex import akn_fetch
+from mcp_legal_it.lib._cache import cache_enabled
+from mcp_legal_it.lib.brocardi import client as brocardi
+from mcp_legal_it.lib.corte_cost import client as corte_cost
+from mcp_legal_it.lib.visualex import akn_fetch
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
@@ -96,7 +96,7 @@ def test_unset_switch_keeps_caching(monkeypatch):
 
 def test_only_the_shared_module_reads_the_cache_directory():
     """One module resolves the cache, so `LEGAL_CACHE=off` cannot be bypassed."""
-    src = REPO / "plugin/server/src"
+    src = REPO / "plugin/server/mcp_legal_it"
     readers = []
     for py in sorted(src.rglob("*.py")):
         if "__pycache__" in str(py):
@@ -116,13 +116,13 @@ def test_cache_writers_are_declared_in_the_audit():
     try:
         from audit_tool_annotations import Audit, verify_caches  # type: ignore[import-not-found]
 
-        audit = Audit(pathlib.Path(REPO / "plugin/server/src"))
+        audit = Audit(pathlib.Path(REPO / "plugin/server/mcp_legal_it"))
         problems = verify_caches(audit)
     finally:
         sys.path.pop(0)
 
     assert problems == []
     cache_tools = {tool for fq, tool in audit.tools.items() if audit.is_cache_only(fq)}
-    from src.tool_annotations import CACHE_WRITES
+    from mcp_legal_it.tool_annotations import CACHE_WRITES
 
     assert cache_tools == set(CACHE_WRITES)

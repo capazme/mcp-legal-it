@@ -16,8 +16,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from conftest import accept_cookies, goto, submit_form  # noqa: E402
 
-import src.server  # noqa: E402,F401
-from src.tools.varie import verifica_iban  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401
+from mcp_legal_it.tools.varie import verifica_iban  # noqa: E402
 
 fn = getattr(verifica_iban, "fn", verifica_iban)
 PAGE = "verifica-codice-iban-nazionale-estero.php"

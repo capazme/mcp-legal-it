@@ -86,9 +86,9 @@ _FRAZIONE_TOOL = {
 def _tool(imposta: float, giorni: int, tipo: str = "omesso_versamento", scadenza: date | None = None) -> dict:
     import importlib
 
-    import src.server  # noqa: F401  -- registra i moduli (evita import circolari)
+    import mcp_legal_it.server  # noqa: F401  -- registra i moduli (evita import circolari)
 
-    mod = importlib.import_module("src.tools.dichiarazione_redditi")
+    mod = importlib.import_module("mcp_legal_it.tools.dichiarazione_redditi")
     fn = getattr(mod.ravvedimento_operoso, "fn", mod.ravvedimento_operoso)
     r = fn(
         imposta_dovuta=imposta, giorni_ritardo=giorni, tipo=tipo,

@@ -6,7 +6,7 @@ strategy terms introduced in the Italgiure alignment.
 
 import pytest
 
-from src.prompts import (
+from mcp_legal_it.prompts import (
     analisi_giurisprudenziale,
     ricerca_normativa,
     analisi_delibere_consob,

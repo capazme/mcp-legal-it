@@ -41,8 +41,8 @@ _TOOL_TIME_RE = re.compile(r"(\d+)h\s*(\d+)min")
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  registers all tool modules
-    from src.tools.parcelle_professionisti import compenso_orario
+    import mcp_legal_it.server  # noqa: F401  registers all tool modules
+    from mcp_legal_it.tools.parcelle_professionisti import compenso_orario
 
     fn = getattr(compenso_orario, "fn", compenso_orario)
     return fn(**kwargs)

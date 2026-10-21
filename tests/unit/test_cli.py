@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src import cli
+from mcp_legal_it import cli
 
 
 def test_package_version_matches_pyproject():
@@ -22,7 +22,7 @@ def test_package_version_matches_pyproject():
 
 def test_main_defaults_to_stdio(monkeypatch):
     monkeypatch.delenv("MCP_TRANSPORT", raising=False)
-    with patch("src.cli.mcp.run") as run:
+    with patch("mcp_legal_it.cli.mcp.run") as run:
         cli.main([])
     run.assert_called_once_with(transport="stdio")
 
@@ -32,13 +32,13 @@ def test_main_http_reads_env(monkeypatch):
     monkeypatch.setenv("MCP_HOST", "127.0.0.1")
     monkeypatch.setenv("MCP_PORT", "8123")
     monkeypatch.setenv("MCP_PATH", "/mcp")
-    with patch("src.cli.mcp.run") as run:
+    with patch("mcp_legal_it.cli.mcp.run") as run:
         cli.main([])
     run.assert_called_once_with(transport="http", host="127.0.0.1", port=8123, path="/mcp")
 
 
 def test_server_declares_version():
-    from src.server import mcp
+    from mcp_legal_it.server import mcp
     assert mcp.version == cli.package_version()
 
 

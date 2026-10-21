@@ -1,6 +1,6 @@
 """Comparison tests: sollecito_pagamento vs avvocatoandreani.it.
 
-Il tool (``src/tools/atti_giudiziari.py``) genera la bozza della lettera di sollecito e
+Il tool (``mcp_legal_it/tools/atti_giudiziari.py``) genera la bozza della lettera di sollecito e
 calcola gli interessi di mora sul ritardo:
 - senza ``tasso_mora``: tasso D.Lgs. 231/2002 per semestre (tabella ``tassi_mora.json``,
   BCE + 8 punti, copre fino al 31/12/2026), decorrenza dal giorno successivo alla scadenza
@@ -52,8 +52,8 @@ _EURO = r"([\d.]+,\d{2})"
 # ---------------------------------------------------------------------------
 
 def _tool(**kw) -> dict:
-    import src.server  # noqa: F401  (registra i moduli, evita import circolari)
-    from src.tools.atti_giudiziari import sollecito_pagamento
+    import mcp_legal_it.server  # noqa: F401  (registra i moduli, evita import circolari)
+    from mcp_legal_it.tools.atti_giudiziari import sollecito_pagamento
 
     fn = getattr(sollecito_pagamento, "fn", sollecito_pagamento)
     return fn(creditore="Alfa S.r.l.", debitore="Beta S.p.A.", **kw)

@@ -1,10 +1,10 @@
-"""Unit tests for src/tools/scadenze_termini.py — Italian legal deadline calculations."""
+"""Unit tests for mcp_legal_it/tools/scadenze_termini.py — Italian legal deadline calculations."""
 
 import importlib
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.scadenze_termini")
+    mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)
@@ -586,7 +586,7 @@ class TestGiornoSettimana:
                       tipo="opposizione_atti_esecutivi")
             assert r["giorno_settimana"] == "lunedì"  # 2025-06-23
             r = _call("scadenza_processuale", data_evento="2025-06-01", giorni=10)
-            mod = importlib.import_module("src.tools.scadenze_termini")
+            mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
             assert r["giorno_settimana"] in mod._GIORNI
         finally:
             locale.setlocale(locale.LC_TIME, "")
@@ -734,61 +734,61 @@ class TestTerminiDepositoCtu:
 class TestHelpers:
 
     def test_easter_2025(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         assert mod._easter(2025) == __import__("datetime").date(2025, 4, 20)
 
     def test_easter_2024(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         assert mod._easter(2024) == __import__("datetime").date(2024, 3, 31)
 
     def test_is_holiday_natale(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 12, 25)) is True
 
     def test_is_holiday_capodanno(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 1, 1)) is True
 
     def test_is_holiday_santo_stefano(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 12, 26)) is True
 
     def test_is_holiday_ferragosto(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 8, 15)) is True
 
     def test_is_holiday_lunedi_angelo_2025(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 4, 21)) is True  # Lunedì dell'Angelo
 
     def test_is_holiday_sabato(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 6, 7)) is True  # sabato
 
     def test_is_holiday_domenica(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 6, 8)) is True  # domenica
 
     def test_not_holiday_lunedi_normale(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2025, 6, 9)) is False  # lunedì
 
     def test_san_francesco_2026_is_holiday(self):
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2026, 10, 4)) is True
 
     def test_san_francesco_2024_not_holiday(self):
         # 2024-10-04 is a Friday — San Francesco non ancora in vigore (dal_anno: 2026)
-        mod = importlib.import_module("src.tools.scadenze_termini")
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
         from datetime import date
         assert mod._is_holiday(date(2024, 10, 4)) is False
 
@@ -806,7 +806,7 @@ class TestSospensioneFeriale:
     """
 
     def _mod(self):
-        return importlib.import_module("src.tools.scadenze_termini")
+        return importlib.import_module("mcp_legal_it.tools.scadenze_termini")
 
     def test_avanti_termine_che_finisce_in_agosto(self):
         # 20/07 + 30: 21-31 luglio = 11 giorni, poi 1-19 settembre = 19 → 19/09

@@ -10,7 +10,7 @@
   },
   "server": {
     "type": "uv",
-    "entry_point": "src/__main__.py",
+    "entry_point": "mcp_legal_it/__main__.py",
     "mcp_config": {
       "command": "uv",
       "args": [
@@ -19,7 +19,7 @@
         "${__dirname}",
         "python",
         "-m",
-        "src"
+        "mcp_legal_it"
       ]
     }
   },

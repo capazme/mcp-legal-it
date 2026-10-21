@@ -60,8 +60,8 @@ _REMOVE_CMP = (
 
 
 def _tool(compenso_lordo: float, descrizione: str = "Traduzione di un contratto") -> dict:
-    import src.server  # noqa: F401  registers all tool modules
-    from src.tools.parcelle_professionisti import ricevuta_prestazione_occasionale
+    import mcp_legal_it.server  # noqa: F401  registers all tool modules
+    from mcp_legal_it.tools.parcelle_professionisti import ricevuta_prestazione_occasionale
 
     fn = getattr(ricevuta_prestazione_occasionale, "fn", ricevuta_prestazione_occasionale)
     r = fn(

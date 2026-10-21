@@ -14,7 +14,7 @@ imported clients included) looking for
     `ZipFile`, `NamedTemporaryFile`, `TemporaryDirectory`
   * mutating HTTP verbs -- `post`, `put`, `patch`, `send`
 
-and for the tools that reach outside the process (the `src/lib` clients other
+and for the tools that reach outside the process (the `mcp_legal_it/lib` clients other
 than `_data`, `_result`, `_egress`, `_http`, plus direct `httpx` usage).
 
 The other half of the promise is the disk. Four cache files are the only things
@@ -23,7 +23,7 @@ this server ever writes on its own, and they are enumerated in
 must still be in it, and the switch that turns it off.
 
 The calendar is audited as well: `date.today()`/`datetime.now()` may only be
-called in `src/lib/_clock.py`, which honours `LEGAL_TODAY`/`LEGAL_NOW`. Without
+called in `mcp_legal_it/lib/_clock.py`, which honours `LEGAL_TODAY`/`LEGAL_NOW`. Without
 that, the tools that are "as of today" could not be frozen in
 `tests/fixtures/golden/calcoli_locali/`, and a test on their numbers would
 drift with the calendar instead of failing when a rate or a forensic parameter
@@ -50,7 +50,7 @@ Usage:
     python scripts/audit_tool_annotations.py --caches   # cache inventory (md)
 
 `--check` regenerates the policy in memory and compares it with the committed
-`src/tool_annotations.py`, so a tool that starts writing a file fails the suite
+`mcp_legal_it/tool_annotations.py`, so a tool that starts writing a file fails the suite
 instead of quietly keeping the read-only hint. It also verifies the caches: an
 undeclared module resolving a cache directory, a declared cache that lost its
 literals, or a cache writer that stopped consulting the switch are all failures,
@@ -58,9 +58,9 @@ and the generated `docs/cache-inventory.md` has to match too. The provenance is
 checked the same way: a tool whose code reads a table it does not declare, a
 declaration no code backs, and a shipped table no tool opens at all.
 
-The same walk also emits the runtime side of that claim. `src/table_bindings.py`
+The same walk also emits the runtime side of that claim. `mcp_legal_it/table_bindings.py`
 (names, per module, which constant holds which table) is generated here and
-installed by `src/lib/_ledger.py`, which wraps the payloads so a call can declare
+installed by `mcp_legal_it/lib/_ledger.py`, which wraps the payloads so a call can declare
 in its result `_meta` the tables it actually read. The audit only checks that the
 bindings match the source and that the server still installs them; the comparison
 with `reads(fq)` happens in `tests/unit/test_golden_calcoli.py`, on the wire, so
@@ -88,7 +88,7 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-TARGET = REPO / "plugin/server/src/tool_annotations.py"
+TARGET = REPO / "plugin/server/mcp_legal_it/tool_annotations.py"
 
 WRITE_ATTRS = {
     "write_text", "write_bytes", "mkdir", "makedirs", "unlink", "rmdir", "rename",
@@ -105,13 +105,13 @@ WRITE_CTORS = {
 WRITE_OPEN_MODES = set("wax+")
 NET_READ_ATTRS = {"get", "request", "stream", "head", "Client", "AsyncClient"}
 NET_BASES = {"httpx", "client", "_client", "http", "_http", "session", "async_client"}
-# src/lib modules that only hold in-process helpers: reaching one of these is
+# mcp_legal_it/lib modules that only hold in-process helpers: reaching one of these is
 # not reaching outside the process. `_cache` resolves the local cache directory
 # and `_clock` reads the (pinnable) wall clock.
-# src/lib modules that only hold in-process helpers: reaching one of these is
+# mcp_legal_it/lib modules that only hold in-process helpers: reaching one of these is
 # not reaching outside the process. `_cache` resolves the local cache directory,
 # `_clock` reads the (pinnable) wall clock, `_ledger` and `_tables_open` are the
-# runtime half of the provenance. Every module directly under src/lib belongs
+# runtime half of the provenance. Every module directly under mcp_legal_it/lib belongs
 # here -- the clients are packages -- and `verify_lib_modules` fails when one is
 # missing, so a new helper cannot quietly become an "external service".
 LOCAL_LIB_MODULES = {
@@ -147,7 +147,7 @@ CACHE_BASES = ("cache", "disk_path", "hits_path", "url_params_path")
 # written twice.
 CACHE_LOCATIONS = (
     {
-        "module": "src/lib/visualex/akn_fetch.py",
+        "module": "mcp_legal_it/lib/visualex/akn_fetch.py",
         "label": "akn_acts",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts",
         "files": [
@@ -160,7 +160,7 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
-        "module": "src/lib/brocardi/client.py",
+        "module": "mcp_legal_it/lib/brocardi/client.py",
         "label": "cache root",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
         "files": ["brocardi_urls.json -- article URL map"],
@@ -169,7 +169,7 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
-        "module": "src/lib/corte_cost/client.py",
+        "module": "mcp_legal_it/lib/corte_cost/client.py",
         "label": "corte_cost",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost",
         "files": ["{kind}/{year}.json -- Consulta pronunce and massime"],
@@ -178,7 +178,7 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
-        "module": "src/lib/dpa_probe/cache.py",
+        "module": "mcp_legal_it/lib/dpa_probe/cache.py",
         "label": "dpa_probe",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
         "files": ["dpa_probe.json -- supplier DPA determinations, keyed by domain"],
@@ -187,7 +187,7 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
-        "module": "src/lib/_refusals.py",
+        "module": "mcp_legal_it/lib/_refusals.py",
         "label": "refusal ledger",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
         "files": ["refusals.jsonl -- refusal/acceptance tally per day, opt-in (LEGAL_REFUSAL_LEDGER)"],
@@ -198,11 +198,11 @@ CACHE_LOCATIONS = (
 )
 #: The module that reads the switch and resolves MCP_CACHE_DIR -- the one place
 #: both variables are read, so no tool can touch the disk without declaring it.
-CACHE_SWITCH_MODULE = "src/lib/_cache.py"
+CACHE_SWITCH_MODULE = "mcp_legal_it/lib/_cache.py"
 #: The module that reads the wall clock, with `LEGAL_TODAY`/`LEGAL_NOW` to pin it.
 #: Tools that are "as of today" are only reproducible if every calendar read
 #: goes through here, so nothing else may call today()/now().
-CLOCK_MODULE = "src/lib/_clock.py"
+CLOCK_MODULE = "mcp_legal_it/lib/_clock.py"
 CLOCK_CALLS = {"today", "now", "utcnow"}
 CLOCK_BASES = {"date", "datetime"}
 CACHE_DOC = REPO / "docs/cache-inventory.md"
@@ -211,7 +211,7 @@ TEMPLATE = '''"""MCP tool annotations, so hosts can tell a read-only lookup from
 
 `readOnlyHint` is asserted only for tools whose implementation cannot reach any
 filesystem or network write: `scripts/audit_tool_annotations.py` walks the call
-graph of every `@mcp.tool()` function in `src/` (helpers and imported clients
+graph of every `@mcp.tool()` function in `mcp_legal_it/` (helpers and imported clients
 included) looking for `open(..., "w"/"a"/"x")`, `Path.write_text/write_bytes`,
 `mkdir`, `unlink`, `replace`, `shutil.*`, the document constructors
 (`Document`, `Workbook`, `FPDF`, `ZipFile`) and HTTP verbs that mutate
@@ -229,7 +229,7 @@ counter and the URL-params index, `brocardi_urls.json` for article URLs,
 `corte_cost/{kind}/{year}.json` for the Consulta massime, 7-day TTL). The
 writes are best-effort -- with an unwritable cache directory `cite_law()` still
 answers -- and `LEGAL_CACHE=off` keeps the server off the disk entirely: the
-directory is then never read nor created (`src/lib/_cache.py` is the one module
+directory is then never read nor created (`mcp_legal_it/lib/_cache.py` is the one module
 that reads the switch, and the only one that resolves `MCP_CACHE_DIR`).
 `docs/cache-inventory.md` carries the per-cache and per-tool detail.
 
@@ -238,14 +238,14 @@ EUR-Lex, Italgiure, the Garante, SPARQL endpoints, VIES, ...); the %d
 local-only ones are pure calculations over the bundled JSON tables.
 
 `ONLINE_SOURCES` names those same tools from the provenance side: every one of
-them records what it consulted while answering (`src/lib/_sources.py`), and
+them records what it consulted while answering (`mcp_legal_it/lib/_sources.py`), and
 the answer carries a `fonti_consultate` block in `_meta` with the dataset
 names and the moment of the consult. The per-tool dataset map is
 `source_bindings.py`, regenerated together with this policy.
 
 `PREVIGENTE` names the tools that compute under a rule that no longer governs
 new cases (docstring line `Regime: PREVIGENTE`, tag `previgente`, wrapper
-`@previgente` from `src/lib/_regime.py`), with the residual cases each still
+`@previgente` from `mcp_legal_it/lib/_regime.py`), with the residual cases each still
 applies to and the tools to use for a current case. The middleware stamps the
 same block in the `_meta` of their `tools/list` entry, the ledger stamps it on
 every result, and `LEGAL_PREVIGENTE=off` hides the group.
@@ -268,8 +268,8 @@ from collections.abc import Iterable
 from fastmcp.server.middleware import Middleware
 from mcp.types import ToolAnnotations
 
-from src.lib._regime import META_KEY as REGIME_META_KEY
-from src.lib._regime import PREVIGENTE as REGIME_PREVIGENTE
+from mcp_legal_it.lib._regime import META_KEY as REGIME_META_KEY
+from mcp_legal_it.lib._regime import PREVIGENTE as REGIME_PREVIGENTE
 
 # No reachable filesystem/network write.
 READ_ONLY: frozenset[str] = frozenset({
@@ -403,12 +403,12 @@ class Audit:
         self.eager_tables: dict[str, dict[str, str]] = {}
         #: function -> names it references (to tie a tool to those constants)
         self.referenced: dict[str, set[str]] = {}
-        #: package re-exports (__init__.py aliases), e.g. "src.lib.vies.check_vat"
-        #: -> "src.lib.vies.client.check_vat"
+        #: package re-exports (__init__.py aliases), e.g. "mcp_legal_it.lib.vies.check_vat"
+        #: -> "mcp_legal_it.lib.vies.client.check_vat"
         self.reexports: dict[str, str] = {}
         #: function -> datasets it opens itself (function-local table loads)
         self.loaded: dict[str, set[str]] = {}
-        #: hand-maintained tables actually shipped in src/data
+        #: hand-maintained tables actually shipped in mcp_legal_it/data
         self.available_datasets: set[str] = {
             path.stem for path in (src / "data").glob("*.json")
         }
@@ -444,7 +444,7 @@ class Audit:
                         aliases[alias.asname or alias.name] = "%s.%s" % (origin, alias.name)
             self.imports[module] = aliases
             #: A package __init__ re-exports its submodules' names ("from .client
-            #: import check_vat"), so callers import "src.lib.vies.check_vat" --
+            #: import check_vat"), so callers import "mcp_legal_it.lib.vies.check_vat" --
             #: a name that exists nowhere as a function. Record those aliases so
             #: _resolve can follow re-exports without falling back to loose
             #: cross-module name matching.
@@ -515,7 +515,7 @@ class Audit:
         for node in ast.walk(fn):
             if isinstance(node, ast.Name) and node.id in aliases:
                 target = aliases[node.id]
-                if target.startswith("src.") and "." in target:
+                if target.startswith("mcp_legal_it.") and "." in target:
                     body.add((target, node.id))
         self.calls[name] = body
         self.sources[name] = ast.unparse(fn)
@@ -564,7 +564,7 @@ class Audit:
 
     def _net(self, fq: str) -> bool:
         def is_net_target(target: str) -> bool:
-            if not target.startswith("src.lib."):
+            if not target.startswith("mcp_legal_it.lib."):
                 return False
             parts = target.split(".")
             return (parts[2] if len(parts) > 2 else "") not in LOCAL_LIB_MODULES
@@ -603,7 +603,7 @@ class Audit:
         return selector(fq)
 
     def chain(self, fq: str) -> list[str]:
-        """Every function reachable from `fq` inside src/, `fq` included."""
+        """Every function reachable from `fq` inside mcp_legal_it/, `fq` included."""
         out: list[str] = []
         seen: set[str] = set()
 
@@ -700,11 +700,11 @@ class Audit:
         return {name.rsplit(".", 1)[0] for name in self.chain(fq)}
 
     def upstream_clients(self, fq: str) -> list[str]:
-        """External services reached: the `src/lib/<client>` packages in the chain."""
+        """External services reached: the `mcp_legal_it/lib/<client>` packages in the chain."""
         clients = set()
         for module in self.modules(fq):
             parts = module.split(".")
-            if len(parts) >= 3 and parts[:2] == ["src", "lib"] and parts[2] not in LOCAL_LIB_MODULES:
+            if len(parts) >= 3 and parts[:2] == ["mcp_legal_it", "lib"] and parts[2] not in LOCAL_LIB_MODULES:
                 clients.add(parts[2])
         return sorted(clients)
 
@@ -813,7 +813,7 @@ class Audit:
 
 
 LOADING_CALLS = ("open", "load", "loads", "read_text", "read_bytes")
-#: The one accessor that reads a table by name and records it (`src/lib/_data.py`).
+#: The one accessor that reads a table by name and records it (`mcp_legal_it/lib/_data.py`).
 #: A read through it is what the runtime ledger observes, so the static map has to
 #: recognise the same call -- `_data.load("tegm")` names its table without the
 #: `.json` suffix a filename carries.
@@ -995,7 +995,7 @@ def _json_dataset_literals(node: ast.AST, allowed: set[str]) -> list[str]:
 
 
 def _module_tables(tree: ast.Module, allowed: set[str]) -> dict[str, str]:
-    """Module-level constants tied to a `src/data/*.json` file, transitively.
+    """Module-level constants tied to a `mcp_legal_it/data/*.json` file, transitively.
 
     Both loading styles in this codebase are covered: the declared one
     (`@sourced("indici_foi")` + `lib._data.load`) and the eager one
@@ -1048,7 +1048,7 @@ def _module_tables(tree: ast.Module, allowed: set[str]) -> dict[str, str]:
 
 
 def _dotted(module: str) -> str:
-    """`src/lib/brocardi/client.py` -> `src.lib.brocardi.client`."""
+    """`mcp_legal_it/lib/brocardi/client.py` -> `mcp_legal_it.lib.brocardi.client`."""
     return ".".join(pathlib.PurePosixPath(module).with_suffix("").parts)
 
 
@@ -1090,13 +1090,13 @@ def verify_caches(audit: "Audit") -> list[str]:
     declared = {_dotted(entry["module"]) for entry in CACHE_LOCATIONS}
     declares_env: set[str] = set()
     resolves_dir: set[str] = set()
-    for py in sorted((server_root / "src").rglob("*.py")):
+    for py in sorted((server_root / "mcp_legal_it").rglob("*.py")):
         if "__pycache__" in str(py):
             continue
         dotted = _dotted(str(py.relative_to(server_root)))
         text = py.read_text(encoding="utf-8")
         # Only an actual read counts: the generated docstring in
-        # src/tool_annotations.py mentions the variable without touching it.
+        # mcp_legal_it/tool_annotations.py mentions the variable without touching it.
         if any(
             "MCP_CACHE_DIR" in line and "environ" in line for line in text.splitlines()
         ):
@@ -1174,7 +1174,7 @@ def verify_provenance(audit: "Audit") -> list[str]:
     for dataset in sorted(audit.available_datasets):
         if dataset not in applied:
             problems.append(
-                "src/data/%s.json is applied by no tool: either it is dead data "
+                "mcp_legal_it/data/%s.json is applied by no tool: either it is dead data "
                 "or the tool that reads it does so through a load this walk does "
                 "not follow, and then its answer carries no vintage" % dataset
             )
@@ -1183,7 +1183,7 @@ def verify_provenance(audit: "Audit") -> list[str]:
         declared = audit.declared(fq)
         unknown = [name for name in declared + derived if name not in audit.available_datasets]
         for name in unknown:
-            problems.append("%s: %r is not a table shipped in src/data" % (tool, name))
+            problems.append("%s: %r is not a table shipped in mcp_legal_it/data" % (tool, name))
         missing = sorted(set(derived) - set(declared))
         if missing:
             problems.append(
@@ -1238,7 +1238,7 @@ def verify_clock() -> list[str]:
     problems: list[str] = []
     server_root = REPO / "plugin/server"
     allowed = _dotted(CLOCK_MODULE)
-    for py in sorted((server_root / "src").rglob("*.py")):
+    for py in sorted((server_root / "mcp_legal_it").rglob("*.py")):
         if "__pycache__" in str(py):
             continue
         dotted = _dotted(str(py.relative_to(server_root)))
@@ -1428,7 +1428,7 @@ def _matches(kind: str, copy: tuple | frozenset, table: tuple | frozenset) -> bo
 
 
 def verify_table_copies(audit: "Audit") -> list[str]:
-    """No module may restate a table that ships in `src/data`.
+    """No module may restate a table that ships in `mcp_legal_it/data`.
 
     A hand-kept copy is invisible to every other check in this file: the tool
     reads no file, so it declares no provenance, the golden reference does not
@@ -1482,7 +1482,7 @@ def verify_table_copies(audit: "Audit") -> list[str]:
                         seen.setdefault((relative, dataset), node.lineno)
     for (relative, dataset), lineno in sorted(seen.items(), key=lambda item: (item[0][0], item[1])):
         problems.append(
-            "%s:%d restates src/data/%s.json as a literal; read the table instead, "
+            "%s:%d restates mcp_legal_it/data/%s.json as a literal; read the table instead, "
             "or its vintage cannot travel and the copy drifts from it in silence"
             % (relative, lineno, dataset)
         )
@@ -1494,14 +1494,14 @@ def verify_table_copies(audit: "Audit") -> list[str]:
     return problems
 
 
-BINDINGS_TARGET = REPO / "plugin/server/src/table_bindings.py"
-SOURCE_BINDINGS_TARGET = REPO / "plugin/server/src/source_bindings.py"
+BINDINGS_TARGET = REPO / "plugin/server/mcp_legal_it/table_bindings.py"
+SOURCE_BINDINGS_TARGET = REPO / "plugin/server/mcp_legal_it/source_bindings.py"
 
 BINDINGS_TEMPLATE = '''"""Which module-level constant holds which hand-maintained table.
 
 Generated by `scripts/audit_tool_annotations.py --write`; do not edit.
 
-`src/lib/_ledger.py` wraps every constant named here so a tool call can declare,
+`mcp_legal_it/lib/_ledger.py` wraps every constant named here so a tool call can declare,
 at runtime, which tables it actually read -- the other half of what
 `@sourced(...)` promises statically. A constant that disappears from this file is
 a table whose reader stops being observable, so `--check` regenerates and
@@ -1541,7 +1541,7 @@ SOURCE_BINDINGS_TEMPLATE = '''"""The online-source bindings: which dataset each 
 `scripts/audit_tool_annotations.py` derives this from the call graph: every
 `note_source("dataset", ...)` or `retry_request(..., dataset="dataset")` a
 tool can reach at runtime is a dataset its `fonti_consultate` block may name.
-The runtime record stays dynamic (`src/lib/_sources.py` notes per call); this
+The runtime record stays dynamic (`mcp_legal_it/lib/_sources.py` notes per call); this
 file is the committed surface a reviewer reads and the audit re-derives on
 every run, so a client that starts fetching a new dataset fails the suite
 until the policy is regenerated -- the same discipline as the table bindings
@@ -1605,7 +1605,7 @@ def render_table_bindings(audit: "Audit") -> str:
 
 
 def verify_lib_modules(audit: "Audit") -> list[str]:
-    """Every in-process helper under `src/lib` has to be declared as one.
+    """Every in-process helper under `mcp_legal_it/lib` has to be declared as one.
 
     A module the policy does not know is classified by `upstream_clients` as an
     upstream service, so a tool that merely imports it stops looking local: this
@@ -1624,19 +1624,19 @@ def verify_lib_modules(audit: "Audit") -> list[str]:
         if path.is_dir():
             if path.name in declared:
                 problems.append(
-                    "src/lib/%s is a client package and cannot be declared local" % path.name
+                    "mcp_legal_it/lib/%s is a client package and cannot be declared local" % path.name
                 )
             continue
         if path.suffix != ".py":
             continue
         if path.stem not in declared:
             problems.append(
-                "src/lib/%s is an in-process helper but is not in LOCAL_LIB_MODULES: "
+                "mcp_legal_it/lib/%s is an in-process helper but is not in LOCAL_LIB_MODULES: "
                 "tools that import it count as reaching an upstream service" % path.name
             )
     for name in sorted(declared):
         if not (lib / (name + ".py")).exists():
-            problems.append("LOCAL_LIB_MODULES declares src/lib/%s.py, which does not exist" % name)
+            problems.append("LOCAL_LIB_MODULES declares mcp_legal_it/lib/%s.py, which does not exist" % name)
     return problems
 
 
@@ -1651,7 +1651,7 @@ def verify_ledger(audit: "Audit") -> list[str]:
     server = (audit.src / "server.py").read_text(encoding="utf-8")
     if "apply_table_ledger" not in server:
         problems.append(
-            "src/server.py no longer calls apply_table_ledger: the table ledger is "
+            "mcp_legal_it/server.py no longer calls apply_table_ledger: the table ledger is "
             "generated but never installed, so no call declares what it read"
         )
     bindings = render_table_bindings(audit)
@@ -1661,20 +1661,20 @@ def verify_ledger(audit: "Audit") -> list[str]:
         )
     ledger = audit.src / "lib" / "_ledger.py"
     if not ledger.exists():
-        problems.append("src/lib/_ledger.py is missing: nothing records table reads")
+        problems.append("mcp_legal_it/lib/_ledger.py is missing: nothing records table reads")
     else:
         text = ledger.read_text(encoding="utf-8")
         for marker in ("def install", "TableDict", "TableList", "DATA_WARNINGS_KEY"):
             if marker not in text:
-                problems.append("src/lib/_ledger.py: %s is gone" % marker)
+                problems.append("mcp_legal_it/lib/_ledger.py: %s is gone" % marker)
     recorder = audit.src / "lib" / "_tables_open.py"
     if not recorder.exists():
-        problems.append("src/lib/_tables_open.py is missing: nothing records table reads")
+        problems.append("mcp_legal_it/lib/_tables_open.py is missing: nothing records table reads")
     else:
         text = recorder.read_text(encoding="utf-8")
         for marker in ("def recording", "def opened", "def note", "ContextVar"):
             if marker not in text:
-                problems.append("src/lib/_tables_open.py: %s is gone" % marker)
+                problems.append("mcp_legal_it/lib/_tables_open.py: %s is gone" % marker)
     if "TOOL_TABLES: dict[str, tuple[str, ...]] = {}" in bindings:
         problems.append("no tool was tied to a table: the ledger fallback is empty")
     if "TOOL_ALTERNATIVES: dict[str, str] = {}" in bindings:
@@ -1686,18 +1686,18 @@ def verify_ledger(audit: "Audit") -> list[str]:
         text = ledger.read_text(encoding="utf-8") if ledger.exists() else ""
         if "tool_alternatives" not in text:
             problems.append(
-                "src/lib/_ledger.py does not consult the tool alternatives: a call "
+                "mcp_legal_it/lib/_ledger.py does not consult the tool alternatives: a call "
                 "that supplied its own datum would still be flagged on its table"
             )
     data = audit.src / "lib" / "_data.py"
     for marker in ("def effective", "def warnings", "avvisi_dati"):
         if marker not in data.read_text(encoding="utf-8"):
-            problems.append("src/lib/_data.py: %s is gone" % marker)
+            problems.append("mcp_legal_it/lib/_data.py: %s is gone" % marker)
     return problems
 
 
 #: The line that declares a grade, e.g. `Precisione: ESATTO per indici FOI`.
-#: Kept in step with `src/lib/_precision.py`'s own pattern by
+#: Kept in step with `mcp_legal_it/lib/_precision.py`'s own pattern by
 #: `verify_precision`, so a docstring the audit accepts is one the runtime reads.
 PRECISION_RE = re.compile(r"^[ \t]*Precisione:[ \t]*([A-Za-zÀ-ÿ]+)", re.MULTILINE)
 
@@ -1738,7 +1738,7 @@ def _parameters(fn: ast.AST) -> dict[str, ast.arg | None]:
 
 
 def runtime_grades() -> list[str]:
-    """The grades `src/lib/_precision.py` knows, read from its own source.
+    """The grades `mcp_legal_it/lib/_precision.py` knows, read from its own source.
 
     Read rather than imported: the audit walks the source and must keep working
     without the server's dependencies installed, but a second copy of this
@@ -1748,7 +1748,7 @@ def runtime_grades() -> list[str]:
     way is reported as empty, which `verify_precision` fails on rather than
     silently accepting every grade.
     """
-    source = REPO / "plugin/server/src/lib/_precision.py"
+    source = REPO / "plugin/server/mcp_legal_it/lib/_precision.py"
     tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
     constants: dict[str, str] = {}
     for node in tree.body:
@@ -1775,7 +1775,7 @@ def runtime_grades() -> list[str]:
 
 #: The line that declares a regime, e.g. `Regime: PREVIGENTE — cause iscritte a
 #: ruolo prima del 28/02/2023; tool vigenti: termini_memorie_repliche`. Kept in
-#: step with `src/lib/_regime.py` by `verify_regime`: the declaration may run on
+#: step with `mcp_legal_it/lib/_regime.py` by `verify_regime`: the declaration may run on
 #: over the indented lines that follow, up to a blank line or the next field.
 REGIME_RE = re.compile(r"^[ \t]*Regime:[ \t]*([A-Za-zÀ-ÿ]+)[ \t]*(.*)$", re.MULTILINE)
 REGIME_FIELD_RE = re.compile(r"^[ \t]*[A-ZÀ-Ý][A-Za-zÀ-ÿ ]*:")
@@ -1785,7 +1785,7 @@ REGIME_PREVIGENTE = "PREVIGENTE"
 REGIME_STATI = (REGIME_VIGENTE, REGIME_PREVIGENTE)
 #: The tag a superseded tool has to carry in `@mcp.tool(tags=...)`.
 REGIME_TAG = "previgente"
-#: The wrapper that puts the block in every answer (`src/lib/_regime.py`).
+#: The wrapper that puts the block in every answer (`mcp_legal_it/lib/_regime.py`).
 REGIME_DECORATOR = "previgente"
 
 
@@ -1857,7 +1857,7 @@ def verify_regime(audit: "Audit") -> list[str]:
         wrapped = has_decorator(fn, REGIME_DECORATOR)
         if regime is not None and regime["stato"] not in REGIME_STATI:
             problems.append(
-                "%s declares `Regime: %s`, which src/lib/_regime.py does not know (it knows %s)"
+                "%s declares `Regime: %s`, which mcp_legal_it/lib/_regime.py does not know (it knows %s)"
                 % (name, regime["stato"], ", ".join(REGIME_STATI))
             )
             continue
@@ -1898,28 +1898,28 @@ def verify_regime(audit: "Audit") -> list[str]:
                 )
     regime_module = audit.src / "lib" / "_regime.py"
     if not regime_module.exists():
-        problems.append("src/lib/_regime.py is missing: nothing flags a superseded regime")
+        problems.append("mcp_legal_it/lib/_regime.py is missing: nothing flags a superseded regime")
     else:
         text = regime_module.read_text(encoding="utf-8")
         for marker in ("def previgente", "def declared", "def parse", "META_KEY", 'TAG = "%s"' % REGIME_TAG,
                        'PREVIGENTE = "%s"' % REGIME_PREVIGENTE, "def hidden_by_environment"):
             if marker not in text:
-                problems.append("src/lib/_regime.py: %s is gone" % marker)
+                problems.append("mcp_legal_it/lib/_regime.py: %s is gone" % marker)
     ledger = (audit.src / "lib" / "_ledger.py").read_text(encoding="utf-8")
     for marker in ("REGIME_KEY", "tool_regimes"):
         if marker not in ledger:
-            problems.append("src/lib/_ledger.py: %s is gone, so a result's _meta no longer names the regime" % marker)
+            problems.append("mcp_legal_it/lib/_ledger.py: %s is gone, so a result's _meta no longer names the regime" % marker)
     server = (audit.src / "server.py").read_text(encoding="utf-8")
     for marker in ("tool_regimes=PREVIGENTE", "hidden_by_environment", "mcp.disable(tags="):
         if marker not in server:
-            problems.append("src/server.py: %s is gone" % marker)
+            problems.append("mcp_legal_it/server.py: %s is gone" % marker)
     return problems
 
 
 def verify_precision(audit: "Audit") -> list[str]:
     """A tool that rests on a table has to declare how precise its answer is.
 
-    That grade is what the vintage acts on: `src/lib/_precision.py` withdraws an
+    That grade is what the vintage acts on: `mcp_legal_it/lib/_precision.py` withdraws an
     exact claim an unverified table cannot support and steps an indicative one
     down, and a tool that declares nothing would be read as claiming exactness.
     So the declaration is a condition of applying a table, and the mechanism has
@@ -1929,7 +1929,7 @@ def verify_precision(audit: "Audit") -> list[str]:
     gradi = runtime_grades()
     if not gradi:
         problems.append(
-            "src/lib/_precision.py declares no GRADI: nothing says which words a "
+            "mcp_legal_it/lib/_precision.py declares no GRADI: nothing says which words a "
             "docstring may claim"
         )
     for fq, name in sorted(audit.tools.items(), key=lambda kv: kv[1]):
@@ -1945,7 +1945,7 @@ def verify_precision(audit: "Audit") -> list[str]:
             )
         elif grado not in gradi:
             problems.append(
-                "%s declares `Precisione: %s`, which src/lib/_precision.py does not "
+                "%s declares `Precisione: %s`, which mcp_legal_it/lib/_precision.py does not "
                 "know (it knows %s): an unknown grade is read as %s"
                 % (name, grado, ", ".join(gradi), gradi[0] if gradi else "ESATTO")
             )
@@ -1971,32 +1971,32 @@ def verify_precision(audit: "Audit") -> list[str]:
     precision = audit.src / "lib" / "_precision.py"
     if not precision.exists():
         problems.append(
-            "src/lib/_precision.py is missing: a table's vintage would no longer "
+            "mcp_legal_it/lib/_precision.py is missing: a table's vintage would no longer "
             "change what an answer claims"
         )
     else:
         text = precision.read_text(encoding="utf-8")
         for marker in ("def declared", "def decide", "def to_dict", "ridotta", "rifiuta"):
             if marker not in text:
-                problems.append("src/lib/_precision.py: %s is gone" % marker)
+                problems.append("mcp_legal_it/lib/_precision.py: %s is gone" % marker)
 
     data = (audit.src / "lib" / "_data.py").read_text(encoding="utf-8")
     for marker in ("_precision.decide", "dati_non_affidabili", "come_sbloccare"):
         if marker not in data:
             problems.append(
-                "src/lib/_data.py: %s is gone, so the declared grade no longer "
+                "mcp_legal_it/lib/_data.py: %s is gone, so the declared grade no longer "
                 "changes the answer" % marker
             )
     for marker in ("CONSENT_PARAM", "accetta_precisione", "__signature__", "_documented"):
         if marker not in data:
             problems.append(
-                "src/lib/_data.py: %s is gone, so a refusal can no longer be "
+                "mcp_legal_it/lib/_data.py: %s is gone, so a refusal can no longer be "
                 "answered by accepting a lower grade" % marker
             )
     ledger = (audit.src / "lib" / "_ledger.py").read_text(encoding="utf-8")
     for marker in ("PRECISION_KEY", "_precision.recording", "_clock.recording"):
         if marker not in ledger:
-            problems.append("src/lib/_ledger.py: %s is gone" % marker)
+            problems.append("mcp_legal_it/lib/_ledger.py: %s is gone" % marker)
     return problems
 
 
@@ -2062,11 +2062,11 @@ def render_cache_doc(audit: "Audit") -> str:
         "`LEGAL_CACHE=off` (also `no`, `false`, `0`, `none`, `disabled`):",
         "`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` is then never read and never",
         "created, and the caches live only in memory for the life of the process.",
-        "`src/lib/_cache.py` is the only module that reads either variable.",
+        "`mcp_legal_it/lib/_cache.py` is the only module that reads either variable.",
         "",
         "Checks enforced by the audit:",
         "",
-        "* `MCP_CACHE_DIR` is read in `src/lib/_cache.py` and nowhere else;",
+        "* `MCP_CACHE_DIR` is read in `mcp_legal_it/lib/_cache.py` and nowhere else;",
         "* every module calling `cache_root()` is declared above;",
         "* every declared module still holds its literals and still consults",
         "  `cache_enabled()`;",
@@ -2115,7 +2115,7 @@ def render(policy: dict[str, list[str]]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--src", default=str(REPO / "plugin/server/src"))
+    parser.add_argument("--src", default=str(REPO / "plugin/server/mcp_legal_it"))
     parser.add_argument("--write", action="store_true", help="regenerate the policy file")
     parser.add_argument("--json", action="store_true", help="print the per-tool report")
     parser.add_argument("--caches", action="store_true", help="print the cache inventory")

@@ -38,12 +38,12 @@ import pytest
 
 from tests.comparison.conftest import assert_close, goto, parse_euro
 
-import src.server  # noqa: F401  (registers every tool module)
-from src.tools.dichiarazione_redditi import assegno_unico as _tool
+import mcp_legal_it.server  # noqa: F401  (registers every tool module)
+from mcp_legal_it.tools.dichiarazione_redditi import assegno_unico as _tool
 
 PAGE = "calcolo-assegno-unico-universale.php"
 
-# 2026 thresholds carried by the tool (src/tools/dichiarazione_redditi.py,
+# 2026 thresholds carried by the tool (mcp_legal_it/tools/dichiarazione_redditi.py,
 # ISEE_MIN / ISEE_MAX; they are not exposed in the tool output).
 TOOL_SOGLIA_MIN = 17468.51
 TOOL_SOGLIA_MAX = 46582.71

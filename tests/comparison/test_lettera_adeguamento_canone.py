@@ -29,8 +29,8 @@ os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-import src.server  # noqa: E402,F401  (registers all tool modules)
-from src.tools.rivalutazioni_istat import lettera_adeguamento_canone  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers all tool modules)
+from mcp_legal_it.tools.rivalutazioni_istat import lettera_adeguamento_canone  # noqa: E402
 
 _fn = getattr(lettera_adeguamento_canone, "fn", lettera_adeguamento_canone)
 

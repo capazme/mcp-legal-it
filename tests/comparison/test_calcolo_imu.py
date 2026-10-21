@@ -27,7 +27,7 @@ spunta "prima casa" si imposta con ``checked`` + ``OnClickAbitazionePrincipale()
 ``form.requestSubmit(#Calcola)``. Pausa di 1,5 s prima di ogni richiesta.
 
 Tool: ``calcolo_imu(rendita_catastale, categoria, aliquota_comunale=0.86,
-prima_casa=False)`` (src/tools/proprieta_successioni.py): base = rendita x 1,05 x
+prima_casa=False)`` (mcp_legal_it/tools/proprieta_successioni.py): base = rendita x 1,05 x
 moltiplicatore (L. 160/2019 art. 1 co. 745: 160 gruppo A e C/2, C/6, C/7; 140
 gruppo B e C/3, C/4, C/5; 80 A/10 e D/5; 65 gruppo D; 55 C/1); imposta = base x
 aliquota; abitazione principale esente salvo A/1, A/8, A/9 (co. 740), che hanno
@@ -62,8 +62,8 @@ _EPS = 1e-9
 # ---------------------------------------------------------------------------
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  (registra i moduli, evita import circolari)
-    from src.tools.proprieta_successioni import calcolo_imu
+    import mcp_legal_it.server  # noqa: F401  (registra i moduli, evita import circolari)
+    from mcp_legal_it.tools.proprieta_successioni import calcolo_imu
 
     fn = getattr(calcolo_imu, "fn", calcolo_imu)
     return fn(**kwargs)

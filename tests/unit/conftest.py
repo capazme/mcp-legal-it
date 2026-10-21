@@ -7,7 +7,7 @@ import pytest
 
 # Last (year, month) of the frozen FOI series served by `foi_serie_fissa`.
 #
-# The live table in src/data/indici_foi.json gains one month at every data
+# The live table in mcp_legal_it/data/indici_foi.json gains one month at every data
 # refresh (scripts/refresh_data.py, or the monthly PR opened by
 # .github/workflows/data-freshness.yml). Tests that exercise the "index not yet
 # published" fallback need to know which month is the last published one and
@@ -49,12 +49,12 @@ def foi_serie_fissa(monkeypatch) -> tuple[int, int]:
     """Freeze the FOI series and the official variations at FOI_ULTIMO_MESE_FISSO.
 
     Patches ``_INDICI_FOI`` and ``_VARIAZIONI_UFFICIALI`` on
-    ``src.tools.rivalutazioni_istat`` for the duration of the test; every tool
+    ``mcp_legal_it.tools.rivalutazioni_istat`` for the duration of the test; every tool
     reading the series (including ``calcolo_maggior_danno`` in
     ``tassi_interessi``, which shares the same lookup) sees the frozen copy.
     Returns the frozen (year, month).
     """
-    mod = importlib.import_module("src.tools.rivalutazioni_istat")
+    mod = importlib.import_module("mcp_legal_it.tools.rivalutazioni_istat")
     anno, mese = FOI_ULTIMO_MESE_FISSO
     assert f"{mese:02d}" in mod._INDICI_FOI.get(str(anno), {}), (
         f"indici_foi.json non contiene più {mese:02d}/{anno}: "

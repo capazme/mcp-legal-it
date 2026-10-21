@@ -47,8 +47,8 @@ import re
 import httpx
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools import eu_implementation as eu_tools
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools import eu_implementation as eu_tools
 from tests.unit._norme_live import assert_parole
 
 pytestmark = pytest.mark.live

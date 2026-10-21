@@ -1,7 +1,7 @@
 """Live smoke gate for the CONSOB tools (Bollettino, www.consob.it, Liferay portlet).
 
 Tools under test: `cerca_delibere_consob`, `leggi_delibera_consob`, `ultime_delibere_consob`
-(src/tools/consob.py over src/lib/consob/client.py).
+(mcp_legal_it/tools/consob.py over mcp_legal_it/lib/consob/client.py).
 
 What it checks, one real call per case on a known document:
 
@@ -37,9 +37,9 @@ import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.consob.client import _BASE, _HEADERS, _SEARCH_PATH, ARGOMENTI, TIPOLOGIE
-from src.tools.consob import (
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.consob.client import _BASE, _HEADERS, _SEARCH_PATH, ARGOMENTI, TIPOLOGIE
+from mcp_legal_it.tools.consob import (
     cerca_delibere_consob,
     leggi_delibera_consob,
     ultime_delibere_consob,

@@ -126,8 +126,8 @@ def _cerca(pattern: str, testo: str, fonte: str) -> re.Match:
 
 
 def _tool(nome: str):
-    import src.server  # noqa: F401  (registers every tool module first)
-    from src.tools import diritto_lavoro
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first)
+    from mcp_legal_it.tools import diritto_lavoro
 
     fn = getattr(diritto_lavoro, nome)
     return getattr(fn, "fn", fn)
@@ -388,7 +388,7 @@ def test_costo_lavoro_scaglioni_irpef_2026_art_11_tuir():
         "oltre 28.000 euro e fino a 50.000 euro, 33 per cento",
         "oltre 50.000 euro, 43 per cento",
     )
-    from src.tools.diritto_lavoro import _IRPEF
+    from mcp_legal_it.tools.diritto_lavoro import _IRPEF
 
     s2026 = _IRPEF["scaglioni_per_anno"]["2026"]
     assert [(s.get("fino_a"), s["aliquota"]) for s in s2026] == [(28000, 23), (50000, 33), (None, 43)]

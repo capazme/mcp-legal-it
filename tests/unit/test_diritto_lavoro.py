@@ -6,15 +6,15 @@ from .mcp_harness import tool_body
 
 
 def _call(fn_name, **kwargs):
-    mod = importlib.import_module("src.tools.diritto_lavoro")
+    mod = importlib.import_module("mcp_legal_it.tools.diritto_lavoro")
     return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 def _call_full(fn_name, **kwargs):
     """The tool under `@sourced` (table vintage and precision policy), as a host runs it."""
-    from src.lib import _clock, _precision, _tables_open
+    from mcp_legal_it.lib import _clock, _precision, _tables_open
 
-    mod = importlib.import_module("src.tools.diritto_lavoro")
+    mod = importlib.import_module("mcp_legal_it.tools.diritto_lavoro")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     with _tables_open.recording(), _clock.recording(), _precision.recording():

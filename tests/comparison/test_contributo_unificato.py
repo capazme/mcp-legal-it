@@ -52,8 +52,8 @@ def _pin_today(monkeypatch):
 # --------------------------------------------------------------------------- tool
 
 def _tool(**kwargs) -> float:
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.atti_giudiziari import contributo_unificato
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.atti_giudiziari import contributo_unificato
 
     fn = getattr(contributo_unificato, "fn", contributo_unificato)
     out = fn(**kwargs)

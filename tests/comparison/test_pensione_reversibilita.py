@@ -33,8 +33,8 @@ _AMOUNT = r"€\s*([\d.]+,\d{2})"
 
 
 def _call(**kwargs):
-    import src.server  # noqa: F401  registers every tool module
-    from src.tools.proprieta_successioni import pensione_reversibilita
+    import mcp_legal_it.server  # noqa: F401  registers every tool module
+    from mcp_legal_it.tools.proprieta_successioni import pensione_reversibilita
 
     fn = getattr(pensione_reversibilita, "fn", pensione_reversibilita)
     return fn(**kwargs)

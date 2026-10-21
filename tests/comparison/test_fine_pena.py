@@ -200,8 +200,8 @@ _SITE_CACHE: dict[str, dict] = {}
 
 
 def _tool(case: Case) -> dict:
-    import src.server  # noqa: F401  registers every module (avoids circular imports)
-    from src.tools.diritto_penale import fine_pena
+    import mcp_legal_it.server  # noqa: F401  registers every module (avoids circular imports)
+    from mcp_legal_it.tools.diritto_penale import fine_pena
 
     fn = getattr(fine_pena, "fn", fine_pena)
     return fn(**case.tool)

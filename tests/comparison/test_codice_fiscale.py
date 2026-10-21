@@ -72,7 +72,7 @@ def _site_cf(page, cognome, nome, sesso, data_ddmmyyyy, comune):
 
 
 def _tool(**kw):
-    from src.tools.varie import codice_fiscale
+    from mcp_legal_it.tools.varie import codice_fiscale
 
     fn = getattr(codice_fiscale, "fn", codice_fiscale)
     return fn(**kw)

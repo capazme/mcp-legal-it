@@ -8,7 +8,7 @@ exists to prevent.
 
 import pytest
 
-from src.tools.legal_citations import _parse_reference, _resolve_act
+from mcp_legal_it.tools.legal_citations import _parse_reference, _resolve_act
 
 
 def assert_resolves(reference: str, tipo: str, numero: str, *, numero_optional: bool = False) -> None:
@@ -214,7 +214,7 @@ class TestTrattatiUe:
         assert_resolves(reference, tipo, numero)
 
     def test_treaty_url_routes_to_eurlex(self):
-        from src.tools.legal_citations import _build_nv
+        from mcp_legal_it.tools.legal_citations import _build_nv
 
         nv = _build_nv(_resolve_act("TFUE"), "101")
         assert "eur-lex.europa.eu" in nv.url()
@@ -255,12 +255,12 @@ class TestAttoSconosciuto:
         assert _resolve_act("legge fantasiosa inesistente 99999") is None
 
     def test_typo_produces_suggestion(self):
-        from src.tools.legal_citations import _suggest_acts
+        from mcp_legal_it.tools.legal_citations import _suggest_acts
 
         assert "legge fallimentare" in _suggest_acts("legge fallimentre")
 
     def test_unknown_act_produces_no_suggestion(self):
-        from src.tools.legal_citations import _suggest_acts
+        from mcp_legal_it.tools.legal_citations import _suggest_acts
 
         assert _suggest_acts("zzzzzzzz qqqqqqqq") == []
 
@@ -271,14 +271,14 @@ class TestAttoSconosciuto:
 
 class TestMessaggioErrore:
     async def test_error_message_lists_near_misses(self):
-        from src.tools.legal_citations import _cite_law_impl
+        from mcp_legal_it.tools.legal_citations import _cite_law_impl
 
         out = await _cite_law_impl("art. 67 legge fallimentre")
         assert "non riconosciuto" in out
         assert "legge fallimentare" in out
 
     async def test_error_message_without_near_misses_still_explains(self):
-        from src.tools.legal_citations import _cite_law_impl
+        from mcp_legal_it.tools.legal_citations import _cite_law_impl
 
         out = await _cite_law_impl("art. 1 zzzzzzzz qqqqqqqq")
         assert "non riconosciuto" in out
@@ -289,7 +289,7 @@ class TestMessaggioErrore:
         ["_cerca_brocardi_impl", "_fetch_act_index_impl", "_fetch_full_act_impl", "_download_law_pdf_impl"],
     )
     async def test_every_entry_point_suggests_near_misses(self, impl_name):
-        import src.tools.legal_citations as mod
+        import mcp_legal_it.tools.legal_citations as mod
 
         impl = getattr(mod, impl_name)
         out = await impl("art. 67 legge fallimentre")
@@ -311,8 +311,8 @@ class TestEurlexTreatyRouting:
         [("TUE", "12016M%2FTXT"), ("TFUE", "12016E%2FTXT"), ("CDFUE", "12016P%2FTXT")],
     )
     def test_treaty_fetch_url_uses_cellar(self, tipo, celex_encoded):
-        from src.lib.visualex.models import Norma
-        from src.lib.visualex.scraper import _eurlex_urls
+        from mcp_legal_it.lib.visualex.models import Norma
+        from mcp_legal_it.lib.visualex.scraper import _eurlex_urls
 
         fetch_url, display_url = _eurlex_urls(Norma(tipo_atto=tipo))
         assert "publications.europa.eu/resource/celex/" in fetch_url
@@ -320,15 +320,15 @@ class TestEurlexTreatyRouting:
         assert "eur-lex.europa.eu" in display_url
 
     def test_regulation_still_uses_cellar_celex(self):
-        from src.lib.visualex.models import Norma
-        from src.lib.visualex.scraper import _eurlex_urls
+        from mcp_legal_it.lib.visualex.models import Norma
+        from mcp_legal_it.lib.visualex.scraper import _eurlex_urls
 
         fetch_url, _ = _eurlex_urls(Norma(tipo_atto="regolamento ue", data="2016", numero_atto="679"))
         assert fetch_url.endswith("32016R0679")
 
     def test_unknown_act_type_has_no_eurlex_url(self):
-        from src.lib.visualex.models import Norma
-        from src.lib.visualex.scraper import _eurlex_urls
+        from mcp_legal_it.lib.visualex.models import Norma
+        from mcp_legal_it.lib.visualex.scraper import _eurlex_urls
 
         assert _eurlex_urls(Norma(tipo_atto="legge", data="1990", numero_atto="241")) == ("", "")
 
@@ -355,19 +355,19 @@ class TestEurlexSubtitleTruncation:
     """
 
     def test_article_body_is_collected(self):
-        from src.lib.visualex.scraper import _extract_eurlex_article
+        from mcp_legal_it.lib.visualex.scraper import _extract_eurlex_article
 
         out = _extract_eurlex_article(self.HTML, "101")
         assert "Sono incompatibili" in out
         assert "nulli di pieno diritto" in out
 
     def test_subtitle_is_kept(self):
-        from src.lib.visualex.scraper import _extract_eurlex_article
+        from mcp_legal_it.lib.visualex.scraper import _extract_eurlex_article
 
         assert "ex articolo 81" in _extract_eurlex_article(self.HTML, "101")
 
     def test_collection_stops_at_next_article(self):
-        from src.lib.visualex.scraper import _extract_eurlex_article
+        from mcp_legal_it.lib.visualex.scraper import _extract_eurlex_article
 
         assert "Testo estraneo" not in _extract_eurlex_article(self.HTML, "101")
 
@@ -436,7 +436,7 @@ class TestCodiceTerzoSettore:
 
     def test_url_uses_the_codice_urn(self):
         """Norma.url() lowercases too, so the same capital-T key broke the URN."""
-        from src.lib.visualex.models import Norma
+        from mcp_legal_it.lib.visualex.models import Norma
 
         url = Norma(tipo_atto="codice del Terzo settore").url(article="5")
         assert "decreto.legislativo:2017-07-03;117" in url

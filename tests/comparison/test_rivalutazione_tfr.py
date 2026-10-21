@@ -14,7 +14,7 @@ Pagina secondaria: https://www.avvocatoandreani.it/servizi/calcolo-tfr.php
   coefficiente, rivalutazione, imposta sostitutiva e fondo, piu' la riga TOT.
 
 Tool: ``rivalutazione_tfr(retribuzione_annua, anni_servizio, anno_cessazione)``
-(src/tools/rivalutazioni_istat.py). Anni di servizio = anno_cessazione - anni ...
+(mcp_legal_it/tools/rivalutazioni_istat.py). Anni di servizio = anno_cessazione - anni ...
 anno_cessazione - 1, quota annua = retribuzione / 13,5 (art. 2120 co. 1 c.c.),
 rivalutazione del fondo al 31/12 dell'anno precedente con 1,5% + 75% della
 variazione FOI dicembre su dicembre (art. 2120 co. 4 c.c.), imposta sostitutiva
@@ -54,8 +54,8 @@ def _tool(**kwargs) -> dict:
     import sys
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    import src.server  # noqa: F401  (registers all tool modules)
-    from src.tools.rivalutazioni_istat import rivalutazione_tfr
+    import mcp_legal_it.server  # noqa: F401  (registers all tool modules)
+    from mcp_legal_it.tools.rivalutazioni_istat import rivalutazione_tfr
 
     fn = getattr(rivalutazione_tfr, "fn", rivalutazione_tfr)
     return fn(**kwargs)

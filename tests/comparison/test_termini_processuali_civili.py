@@ -25,8 +25,8 @@ import pytest
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import src.server  # noqa: E402,F401  (registers all tool modules)
-from src.tools.scadenze_termini import termini_processuali_civili  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers all tool modules)
+from mcp_legal_it.tools.scadenze_termini import termini_processuali_civili  # noqa: E402
 
 from .conftest import goto  # noqa: E402
 

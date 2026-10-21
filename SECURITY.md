@@ -18,15 +18,15 @@ necessarie per rispondere alla domanda che hai posto.
 Verificabile in un comando:
 
 ```bash
-grep -rnE "https?://" --include="*.py" src/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it"
+grep -rnE "https?://" --include="*.py" plugin/server/mcp_legal_it/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it"
 ```
 
 Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
 
 ## Dove vanno le tue interrogazioni
 
-L'elenco autoritativo è codice, non prosa: [`src/lib/_egress.py`](src/lib/_egress.py).
-`tests/unit/test_egress_allowlist.py` fa fallire la CI se in `src/` compare un
+L'elenco autoritativo è codice, non prosa: [`mcp_legal_it/lib/_egress.py`](mcp_legal_it/lib/_egress.py).
+`tests/unit/test_egress_allowlist.py` fa fallire la CI se in `plugin/server/mcp_legal_it/` compare un
 URL verso un host non dichiarato, **e** se un host dichiarato non compare in
 questo documento. Le due liste non possono divergere.
 
@@ -56,13 +56,13 @@ questo documento. Le due liste non possono divergere.
 conoscere. Fornisce annotazioni dottrinali e massime; **non fornisce mai il
 testo di una norma**, che arriva sempre da Normattiva o da EUR-Lex. Se questa
 dipendenza non ti va bene, i tool che la usano sono isolati in
-`src/tools/legal_citations.py` (`cerca_brocardi`, `fetch_law_annotations`) e nel
+`mcp_legal_it/tools/legal_citations.py` (`cerca_brocardi`, `fetch_law_annotations`) e nel
 profilo che li carica.
 
 ### L'unico host scelto da chi chiama: `verifica_dpa_fornitore`
 
 Un solo tool contatta un host che non è nell'elenco qui sopra:
-`verifica_dpa_fornitore(dominio)` (modulo `src/lib/dpa_probe/`) visita il sito
+`verifica_dpa_fornitore(dominio)` (modulo `mcp_legal_it/lib/dpa_probe/`) visita il sito
 del fornitore che il chiamante indica, su un elenco fisso di percorsi
 convenzionali (`/legal/dpa`, `/privacy/dpa`, `/gdpr`, …), per accertare se
 pubblica un DPA ex art. 28 GDPR. È l'eccezione dichiarata alla regola, e ha
@@ -158,7 +158,7 @@ si legge in pochi minuti.
 ## Verificare l'affidabilità dei dati
 
 I calcoli poggiano su tabelle scritte a mano, che invecchiano. Ogni tabella in
-`src/data/` dichiara un blocco `_vintage` con fonte e periodo di copertura, i
+`mcp_legal_it/data/` dichiara un blocco `_vintage` con fonte e periodo di copertura, i
 tool lo stampano accanto al risultato, e `scripts/update-data.py --strict` fa
 fallire la CI su una tabella scaduta o priva di dichiarazione. Le tabelle la cui
 provenienza non è ancora stata accertata sono marcate `da_verificare` e lo

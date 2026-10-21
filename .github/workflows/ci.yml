@@ -52,9 +52,9 @@ jobs:
       - name: Regenerate the policy and require no diff
         run: |
           python scripts/audit_tool_annotations.py --write
-          git diff --exit-code plugin/server/src/tool_annotations.py \
-            plugin/server/src/source_bindings.py \
-            plugin/server/src/table_bindings.py docs/cache-inventory.md
+          git diff --exit-code plugin/server/mcp_legal_it/tool_annotations.py \
+            plugin/server/mcp_legal_it/source_bindings.py \
+            plugin/server/mcp_legal_it/table_bindings.py docs/cache-inventory.md
 
   # The directory reads plugin/ from this repository and rescans every commit
   # on main before it can be published. Replays its automated checks so a

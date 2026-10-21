@@ -16,8 +16,8 @@ from datetime import date
 
 import pytest
 
-import src.server  # noqa: F401  (registra i moduli)
-from src.tools.scadenze_termini import scadenze_impugnazioni
+import mcp_legal_it.server  # noqa: F401  (registra i moduli)
+from mcp_legal_it.tools.scadenze_termini import scadenze_impugnazioni
 from tests.comparison.conftest import accept_cookies
 
 URL = "https://www.avvocatoandreani.it/servizi/termini-impugnazioni-civile-amministrativo-tributario.php"

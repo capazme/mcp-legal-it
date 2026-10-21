@@ -72,8 +72,8 @@ def _site(page, capitale, data_inizio, data_fine, previgente=False):
 
 
 def _ours(capitale, data_inizio, data_fine):
-    import src.server  # noqa: F401
-    from src.tools.tassi_interessi import interessi_mora
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.tassi_interessi import interessi_mora
 
     fn = getattr(interessi_mora, "fn", interessi_mora)
     return fn(capitale=capitale, data_inizio=data_inizio, data_fine=data_fine)

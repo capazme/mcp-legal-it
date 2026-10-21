@@ -75,9 +75,9 @@ _MESI = {
 def _tool_raw(**kwargs) -> dict:
     import importlib
 
-    import src.server  # noqa: F401  -- registra i moduli (evita import circolari)
+    import mcp_legal_it.server  # noqa: F401  -- registra i moduli (evita import circolari)
 
-    mod = importlib.import_module("src.tools.dichiarazione_redditi")
+    mod = importlib.import_module("mcp_legal_it.tools.dichiarazione_redditi")
     fn = getattr(mod.rateizzazione_imposte, "fn", mod.rateizzazione_imposte)
     return fn(**kwargs)
 

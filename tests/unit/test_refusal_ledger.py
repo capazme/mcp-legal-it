@@ -2,7 +2,7 @@
 
 Two halves, tested apart:
 
-* the recording (`src/lib/_refusals.py`): opt-in (`LEGAL_REFUSAL_LEDGER=on`),
+* the recording (`mcp_legal_it/lib/_refusals.py`): opt-in (`LEGAL_REFUSAL_LEDGER=on`),
   one JSONL line under the cache root, best-effort -- off by default, because a
   read-only tool that refuses must not start writing files the host never asked
   for (that is the same discipline as `LEGAL_CACHE`, and for the same reason:
@@ -12,7 +12,7 @@ Two halves, tested apart:
 
 The ledger is exercised over a real server on the wire, with `LEGAL_NOW` pinned:
 a file whose timestamp came from anywhere else would not be deterministic, and
-the audit already forces every calendar read through `src/lib/_clock.py`.
+the audit already forces every calendar read through `mcp_legal_it/lib/_clock.py`.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import tempfile
 
 import pytest
 
-from src.lib import _refusals
+from mcp_legal_it.lib import _refusals
 
 from .mcp_harness import (
     REPO,
@@ -180,7 +180,7 @@ def test_the_backlog_says_so_when_the_ledger_is_off():
 
 def test_the_readout_names_every_alternative_the_server_declares():
     """The `alternativa` registry and the tools must tell the same story."""
-    audit_path = REPO / "plugin/server/src/table_bindings.py"
+    audit_path = REPO / "plugin/server/mcp_legal_it/table_bindings.py"
     namespace: dict = {}
     exec(compile(audit_path.read_text(), str(audit_path), "exec"), namespace)
     alternatives = namespace["TOOL_ALTERNATIVES"]

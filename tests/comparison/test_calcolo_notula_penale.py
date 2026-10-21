@@ -53,7 +53,7 @@ _AMOUNT_RE = re.compile(r"€\s*([\d.]+,\d{2})\s*$")
 
 
 def _tool(**kwargs) -> dict:
-    from src.tools.fatturazione_avvocati import calcolo_notula_penale
+    from mcp_legal_it.tools.fatturazione_avvocati import calcolo_notula_penale
 
     fn = getattr(calcolo_notula_penale, "fn", calcolo_notula_penale)
     return fn(**kwargs)

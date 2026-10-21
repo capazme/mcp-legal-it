@@ -1,6 +1,6 @@
 """Live gate: the crisis tools against the vigente text of the CCII and of the OCC fee decrees.
 
-`src/tools/crisi_impresa.py` hard-codes thresholds, terms and references taken from the
+`mcp_legal_it/tools/crisi_impresa.py` hard-codes thresholds, terms and references taken from the
 Codice della crisi d'impresa e dell'insolvenza (D.Lgs. 14/2019, CCII) and from the fee
 regime of the organismi di composizione della crisi (D.M. 202/2014, which refers to the
 curatore percentages of D.M. 30/2012):
@@ -55,8 +55,8 @@ def _assert_testo(reference: str, *frasi: str) -> str:
 
 
 def _tool(name: str):
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools import crisi_impresa
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools import crisi_impresa
 
     obj = getattr(crisi_impresa, name)
     return getattr(obj, "fn", obj)

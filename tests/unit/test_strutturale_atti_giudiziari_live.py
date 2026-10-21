@@ -51,8 +51,8 @@ pytestmark = pytest.mark.live
 
 
 def _tool(name: str):
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools import atti_giudiziari
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools import atti_giudiziari
 
     obj = getattr(atti_giudiziari, name)
     return getattr(obj, "fn", obj)
@@ -95,8 +95,8 @@ def _normattiva_oggi(urn: str) -> str:
     import httpx
     from bs4 import BeautifulSoup
 
-    from src.lib import _clock
-    from src.lib.visualex.scraper import _HEADERS
+    from mcp_legal_it.lib import _clock
+    from mcp_legal_it.lib.visualex.scraper import _HEADERS
 
     url = f"https://www.normattiva.it/uri-res/N2Ls?{urn}!vig={_clock.today().isoformat()}"
     with httpx.Client(headers=_HEADERS, timeout=40, follow_redirects=True) as client:
@@ -168,8 +168,8 @@ def estrai_sentenze(testo: str) -> list[str]:
 
 def _verifica_citazioni(refs: list[str]) -> dict[str, dict]:
     """Run `verifica_citazioni` (json) in chunks of 20 (its per-call limit)."""
-    import src.server  # noqa: F401
-    from src.tools.legal_citations import verifica_citazioni
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools.legal_citations import verifica_citazioni
 
     fn = getattr(verifica_citazioni, "fn", verifica_citazioni)
     esiti: dict[str, dict] = {}
@@ -432,7 +432,7 @@ def test_decreto_ingiuntivo_giudice_competente_e_contributo():
            "euro 98 per i processi di valore superiore a euro 1.100 e fino a euro 5.200",
            "euro 237 per i processi di valore superiore a euro 5.200 e fino a euro 26.000",
            "il contributo e' ridotto alla meta' per i processi speciali previsti nel libro iv, titolo i")
-    from src.lib import _clock
+    from mcp_legal_it.lib import _clock
     from datetime import date
 
     assert _clock.today() < date(2027, 10, 31), "dal 31/10/2027 il giudice di pace sale a 30.000 euro"

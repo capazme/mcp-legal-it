@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for src/tools/dichiarazione_redditi.py."""
+"""Comprehensive unit tests for mcp_legal_it/tools/dichiarazione_redditi.py."""
 
 import importlib
 
@@ -6,7 +6,7 @@ import pytest
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.dichiarazione_redditi")
+    mod = importlib.import_module("mcp_legal_it.tools.dichiarazione_redditi")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)

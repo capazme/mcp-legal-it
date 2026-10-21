@@ -7,8 +7,8 @@ import inspect
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[2]))
-from src import prompts  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parents[2] / "plugin" / "server"))
+from mcp_legal_it import prompts  # noqa: E402
 
 E = inspect.Parameter.empty
 EXPECTED = {

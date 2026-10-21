@@ -69,8 +69,8 @@ _OLTRE_32M = "130"
 # ---------------------------------------------------------------------------
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.fatturazione_avvocati import parcella_volontaria_giurisdizione
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.fatturazione_avvocati import parcella_volontaria_giurisdizione
 
     fn = getattr(parcella_volontaria_giurisdizione, "fn", parcella_volontaria_giurisdizione)
     res = fn(**kwargs)

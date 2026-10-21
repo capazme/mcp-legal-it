@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 import pytest
 
-import src.server  # noqa: F401
-from src.tools.scadenze_termini import termini_procedimento_semplificato
+import mcp_legal_it.server  # noqa: F401
+from mcp_legal_it.tools.scadenze_termini import termini_procedimento_semplificato
 
 from .conftest import accept_cookies
 

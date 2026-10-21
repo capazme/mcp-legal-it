@@ -3,6 +3,9 @@
 Documento tecnico per sviluppatori che lavorano sul codebase.
 Per la panoramica ad alto livello vedere [README.md](README.md).
 
+Il pacchetto Python è `mcp_legal_it` e vive in `plugin/server/mcp_legal_it/`: i percorsi
+`mcp_legal_it/...` citati qui sono relativi a `plugin/server/`.
+
 ---
 
 ## Indice
@@ -38,18 +41,18 @@ else:
 ```
 
 Con `MCP_TRANSPORT=http` l'endpoint Streamable HTTP è `MCP_PATH` (default
-`/mcp`); `sse` resta come transport legacy. La logica vive in `src/cli.py`
+`/mcp`); `sse` resta come transport legacy. La logica vive in `mcp_legal_it/cli.py`
 (`run_server.py` è un guscio che vi delega), che è anche l'entry point
 `mcp-legal-it` della wheel.
 
-### `src/server.py` — FastMCP init
+### `mcp_legal_it/server.py` — FastMCP init
 
 Costruisce l'istanza `mcp` e registra tutti i moduli:
 
 ```python
 mcp = FastMCP("Legal IT", instructions="...")
 
-from src.tools import (  # 34 moduli — l'elenco completo è in src/server.py
+from mcp_legal_it.tools import (  # 34 moduli — l'elenco completo è in mcp_legal_it/server.py
     rivalutazioni_istat, tassi_interessi, scadenze_termini,
     atti_giudiziari, fatturazione_avvocati, parcelle_professionisti,
     risarcimento_danni, diritto_penale, diritto_societario, diritto_lavoro,
@@ -59,7 +62,7 @@ from src.tools import (  # 34 moduli — l'elenco completo è in src/server.py
     eu_implementation, giurisprudenza_unificata, modelli_atti,
     procure_quotazioni, analisi_fornitori,
 )
-from src import prompts, resources
+from mcp_legal_it import prompts, resources
 ```
 
 Il parametro `instructions` è la stringa che FastMCP espone all'LLM client
@@ -72,21 +75,21 @@ regole di formattazione output (`€ 1.234,56`, `GG/MM/AAAA`).
 ## 2. Catena di import e registrazione tool
 
 La registrazione avviene per **side-effect di import**: quando Python esegue
-`from src.tools import rivalutazioni_istat`, il corpo del modulo viene eseguito
+`from mcp_legal_it.tools import rivalutazioni_istat`, il corpo del modulo viene eseguito
 e i decorator `@mcp.tool()` registrano le funzioni nell'istanza `mcp` globale.
 
 ```
 run_server.py
-  └─ from src.server import mcp
+  └─ from mcp_legal_it.server import mcp
        └─ FastMCP("Legal IT") → istanza mcp
-       └─ from src.tools import rivalutazioni_istat
+       └─ from mcp_legal_it.tools import rivalutazioni_istat
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
-       └─ from src.tools import tassi_interessi
+       └─ from mcp_legal_it.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
        └─ ... (34 moduli, 228 tool totali)
-       └─ from src import prompts
+       └─ from mcp_legal_it import prompts
             └─ @mcp.prompt() → 23 prompt registrati
-       └─ from src import resources
+       └─ from mcp_legal_it import resources
             └─ @mcp.resource() → 15 resource statiche registrate
 ```
 
@@ -106,7 +109,7 @@ vecchia assegnazione era un no-op che esponeva tutti i tool in ogni profilo.
 `tests/unit/test_profiles.py` fa fallire la suite se il filtro smette di agire.
 
 ```python
-# src/server.py
+# mcp_legal_it/server.py
 _PROFILES: dict[str, set[str]] = {
     "sinistro":  {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro"},
     "credito":   {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
@@ -150,7 +153,7 @@ I moduli tool seguono di norma il pattern `_impl` + wrapper `@mcp.tool()`:
 ```python
 # Logica pura — testabile in isolamento, senza dipendenze FastMCP
 async def _nome_tool_impl(param1: str, param2: str = "default") -> str:
-    # chiama src/lib/, esegue calcoli, formatta risultato
+    # chiama mcp_legal_it/lib/, esegue calcoli, formatta risultato
     return risultato
 
 # Wrapper MCP — solo decoratore + docstring per l'LLM + delega
@@ -170,9 +173,9 @@ essere importata e testata in isolamento:
 
 ```python
 # In test:
-@patch("src.lib.visualex.scraper.httpx.AsyncClient")
+@patch("mcp_legal_it.lib.visualex.scraper.httpx.AsyncClient")
 async def test_fetch_article(mock_client):
-    from src.tools.legal_citations import _fetch_law_article_impl
+    from mcp_legal_it.tools.legal_citations import _fetch_law_article_impl
     result = await _fetch_law_article_impl("decreto legislativo", "2003", "196", "13")
     assert "art. 13" in result
 ```
@@ -184,9 +187,9 @@ sia per `_impl` che per il wrapper. FastMCP gestisce entrambi correttamente.
 
 ## 5. Layer lib/ — client esterni
 
-`src/lib/` contiene 15 client, uno per fonte esterna, più i moduli trasversali
+`mcp_legal_it/lib/` contiene 15 client, uno per fonte esterna, più i moduli trasversali
 descritti nella sezione 5-bis. Nessun client importa
-`src.server`: dipendono solo da httpx, BeautifulSoup e dalla stdlib, così restano
+`mcp_legal_it.server`: dipendono solo da httpx, BeautifulSoup e dalla stdlib, così restano
 testabili senza il server MCP.
 
 | Modulo | Fonte | Trasporto | Note |
@@ -210,7 +213,7 @@ testabili senza il server MCP.
 I quattro moduli storici sono documentati in dettaglio qui sotto; per gli altri il
 riferimento è il rispettivo `client.py`, che espone le funzioni pubbliche via `__init__.py`.
 
-### `src/lib/visualex/` — Normattiva, EUR-Lex, Brocardi
+### `mcp_legal_it/lib/visualex/` — Normattiva, EUR-Lex, Brocardi
 
 Tre file distinti:
 
@@ -226,7 +229,7 @@ Tre file distinti:
   `fetch_normattiva_full_text()`. Il parser Normattiva gestisce 4 scenari di
   struttura HTML (AKN dettagliato, AKN semplice, allegato, fallback).
 
-### `src/lib/italgiure/` — Corte di Cassazione
+### `mcp_legal_it/lib/italgiure/` — Corte di Cassazione
 
 API Solr su `italgiure.giustizia.it` (pubblica, SSL non valido → `verify=False`).
 Cookie anti-bot: GET homepage prima di ogni query POST.
@@ -237,14 +240,14 @@ Funzioni principali: `solr_query()`, `build_search_params()`, `build_lookup_para
 Archivi: `snciv` (civile, ~186K doc), `snpen` (penale, ~238K doc).
 Campo `ocr` = testo completo OCR, troncato a 30.000 caratteri.
 
-### `src/lib/brocardi/` — Brocardi standalone
+### `mcp_legal_it/lib/brocardi/` — Brocardi standalone
 
 Client separato (rispetto a `visualex/`) per il parsing strutturato delle massime.
 Espone `BrocardiResult` con `massime: list[Massima]` e property `cassazione_references`
 (filtra solo massime Cass.). `parse_massime_references()` estrae numero e anno per
 `leggi_sentenza()`.
 
-### `src/lib/gpdp/` — Garante Privacy
+### `mcp_legal_it/lib/gpdp/` — Garante Privacy
 
 Scraping Liferay Portal (nessuna API JSON). Ricerca tramite GET su `/web/guest/home/ricerca`
 con parametri portlet. Lettura documento via endpoint "stampa" (`/docweb-display/print/{ID}`).
@@ -254,12 +257,12 @@ Dataclass `DocResult` con `docweb_id`, `title`, `date`, `tipologia`, `argomenti`
 
 ## 5-bis. Layer trasversale — provenienza, precisione, cache, orologio
 
-Dalla 2.14.0 ogni risposta dichiara su cosa poggia. I moduli `src/lib/_*.py`
+Dalla 2.14.0 ogni risposta dichiara su cosa poggia. I moduli `mcp_legal_it/lib/_*.py`
 non parlano con fonti esterne: osservano le chiamate.
 
 | Modulo | Ruolo |
 |--------|-------|
-| `_data.py` | Carica le tabelle di `src/data/*.json` con il loro `_vintage` (fonte, `copre_fino_a`/`aggiornato_al`, `verifica`: `manuale`, `automatica`, `da_verificare`) e scrive il footer `dati_applicati` |
+| `_data.py` | Carica le tabelle di `mcp_legal_it/data/*.json` con il loro `_vintage` (fonte, `copre_fino_a`/`aggiornato_al`, `verifica`: `manuale`, `automatica`, `da_verificare`) e scrive il footer `dati_applicati` |
 | `_tables_open.py`, `_ledger.py` | Registrano, per chiamata, quali tabelle il tool ha *davvero* letto (wrapper trasparenti sulle costanti di `table_bindings.py`); il risultato finisce in `_meta` come `mcp-legal-it/opened_tables` |
 | `_precision.py` | Trasforma la riga `Precisione: ESATTO / INDICATIVO / STIMATO` del docstring in una regola: una tabella `da_verificare` ritira la pretesa di esattezza, una tabella scaduta blocca solo i calcoli ancorati a oggi; il rifiuto è negoziabile con `accetta_precisione` |
 | `_regime.py` | Legge la riga `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>` del docstring: il wrapper `@previgente` mette `regime_normativo` in ogni risposta, il middleware lo ripete in `_meta` (`mcp-legal-it/regime`) e in `tools/list`, il tag `previgente` permette a `LEGAL_PREVIGENTE=off` di nascondere il gruppo; l'audit tiene allineati riga, tag e wrapper |
@@ -269,7 +272,7 @@ non parlano con fonti esterne: osservano le chiamate.
 | `_refusals.py` | Verbale JSONL opt-in (`LEGAL_REFUSAL_LEDGER=on`) dei rifiuti e delle accettazioni — solo tool, tabelle, stati e timestamp, mai dati di causa; letto da `verbale_mensile` e `backlog_riconciliazione` |
 | `_egress.py` | Allowlist degli host contattabili, verificata da `tests/unit/test_egress_allowlist.py` e pubblicata in `SECURITY.md` |
 
-Tre file in `src/` sono **generati** da `scripts/audit_tool_annotations.py --write`
+Tre file in `mcp_legal_it/` sono **generati** da `scripts/audit_tool_annotations.py --write`
 e verificati in CI (`policy-sync`): `tool_annotations.py` (`readOnlyHint`/`openWorldHint`
 per ciascuno dei 228 tool, derivati dal grafo delle chiamate), `table_bindings.py`
 (tabella → costante) e `source_bindings.py` (tool → dataset online). Modificarli a
@@ -281,7 +284,7 @@ gruppo di tabelle: dopo un refresh dati si rigenera con `GOLDEN_UPDATE=1`.
 
 ## 6. Prompts e Resources
 
-### `src/prompts.py` — 23 prompt guidati (`@mcp.prompt()`), GENERATED dal corpus
+### `mcp_legal_it/prompts.py` — 23 prompt guidati (`@mcp.prompt()`), GENERATED dal corpus
 
 > Dal 2026-08 questo file è generato da `scripts/corpus/generate_prompts.py` a
 > partire dai blocchi `prompt:` delle skill in `content/skills/`. Non modificarlo
@@ -297,7 +300,7 @@ Workflow pre-definiti che l'LLM può attivare: `analisi_sinistro`, `recupero_cre
 
 Elenco con parametri e catena di tool in [prompts-resources.md](prompts-resources.md).
 
-### `src/resources.py` — 15 resource statiche (`@mcp.resource("legal://...")`)
+### `mcp_legal_it/resources.py` — 15 resource statiche (`@mcp.resource("legal://...")`)
 
 Dati di riferimento sempre disponibili:
 - `legal://riferimenti/procedura-civile`
@@ -325,8 +328,8 @@ Dati di riferimento sempre disponibili:
 **1. Creare il modulo tool**
 
 ```python
-# src/tools/nuovo.py
-from src.server import mcp
+# mcp_legal_it/tools/nuovo.py
+from mcp_legal_it.server import mcp
 
 async def _mio_calcolo_impl(valore: float, anno: int) -> str:
     # logica pura
@@ -348,7 +351,7 @@ async def mio_calcolo(valore: float, anno: int) -> str:
 **2. Registrare in `server.py`**
 
 ```python
-from src.tools import (
+from mcp_legal_it.tools import (
     ...,
     nuovo,  # aggiungere qui
 )
@@ -370,7 +373,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_mio_calcolo_base():
-    from src.tools.nuovo import _mio_calcolo_impl
+    from mcp_legal_it.tools.nuovo import _mio_calcolo_impl
     result = await _mio_calcolo_impl(1000.0, 2024)
     assert "Risultato" in result
 ```
@@ -381,16 +384,16 @@ async def test_mio_calcolo_base():
 
 | Obiettivo | File |
 |-----------|------|
-| Aggiungere tool di calcolo | `src/tools/` — modulo per categoria, pattern `_impl` + wrapper |
-| Aggiungere codice a Normattiva | `src/lib/visualex/map.py` → `NORMATTIVA_URN_CODICI` |
-| Aggiungere codice a Brocardi | `src/lib/visualex/map.py` → `BROCARDI_CODICI` |
-| Modificare istruzioni all'LLM | `src/server.py` → parametro `instructions` |
-| Debug URL Normattiva | `src/lib/visualex/models.py` → `Norma.url()` |
-| Debug parsing HTML Normattiva | `src/lib/visualex/scraper.py` → `_extract_normattiva_article()` |
-| Debug query Solr Cassazione | `src/lib/italgiure/client.py` → `solr_query()` |
-| Debug scraping GPDP | `src/lib/gpdp/client.py` → `_parse_results()`, `_parse_doc()` |
-| Aggiungere prompt guidato | `src/prompts.py` → `@mcp.prompt()` |
-| Aggiungere resource statica | `src/resources.py` → `@mcp.resource()` |
-| Configurare un profilo | `src/server.py` → `_PROFILES` dict (+ `tests/unit/test_profiles.py`) |
+| Aggiungere tool di calcolo | `mcp_legal_it/tools/` — modulo per categoria, pattern `_impl` + wrapper |
+| Aggiungere codice a Normattiva | `mcp_legal_it/lib/visualex/map.py` → `NORMATTIVA_URN_CODICI` |
+| Aggiungere codice a Brocardi | `mcp_legal_it/lib/visualex/map.py` → `BROCARDI_CODICI` |
+| Modificare istruzioni all'LLM | `mcp_legal_it/server.py` → parametro `instructions` |
+| Debug URL Normattiva | `mcp_legal_it/lib/visualex/models.py` → `Norma.url()` |
+| Debug parsing HTML Normattiva | `mcp_legal_it/lib/visualex/scraper.py` → `_extract_normattiva_article()` |
+| Debug query Solr Cassazione | `mcp_legal_it/lib/italgiure/client.py` → `solr_query()` |
+| Debug scraping GPDP | `mcp_legal_it/lib/gpdp/client.py` → `_parse_results()`, `_parse_doc()` |
+| Aggiungere prompt guidato | `mcp_legal_it/prompts.py` → `@mcp.prompt()` |
+| Aggiungere resource statica | `mcp_legal_it/resources.py` → `@mcp.resource()` |
+| Configurare un profilo | `mcp_legal_it/server.py` → `_PROFILES` dict (+ `tests/unit/test_profiles.py`) |
 | Dichiarare una nuova cache o fonte online | `scripts/audit_tool_annotations.py` → `CACHE_LOCATIONS`; fetch con `dataset=` in `retry_request` |
 | Rigenerare policy annotazioni / binding | `python scripts/audit_tool_annotations.py --write` |

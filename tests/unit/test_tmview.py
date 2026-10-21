@@ -8,7 +8,7 @@ import httpx
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib.tmview.client import (
+from mcp_legal_it.lib.tmview.client import (
     STATI,
     STATO_LABELS_IT,
     TMviewBlockedError,
@@ -25,8 +25,8 @@ from src.lib.tmview.client import (
     format_result,
     search_trademarks,
 )
-from src.lib._result import SearchResult
-from src.tools.tmview import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.tools.tmview import (
     _cerca_marchi_impl,
     _leggi_marchio_impl,
     _verifica_anteriorita_marchio_impl,
@@ -344,8 +344,8 @@ class TestSearchTrademarks:
     @pytest.mark.asyncio
     async def test_success(self):
         mock_client = _mock_http_client(post_response=_json_response(_SEARCH_RESPONSE))
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             total, results = await search_trademarks("FUORI CORSO")
         assert total == 9
         assert len(results) == 3
@@ -357,8 +357,8 @@ class TestSearchTrademarks:
     @pytest.mark.asyncio
     async def test_filters_forwarded(self):
         mock_client = _mock_http_client(post_response=_json_response(_SEARCH_RESPONSE_EMPTY))
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             await search_trademarks(
                 "BARILLA", offices=["IT"], nice_classes=["30"], statuses=["Registered"]
             )
@@ -370,8 +370,8 @@ class TestSearchTrademarks:
     @pytest.mark.asyncio
     async def test_waf_challenge_raises(self):
         mock_client = _mock_http_client(post_response=_html_response())
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             with pytest.raises(TMviewBlockedError):
                 await search_trademarks("FUORI CORSO")
 
@@ -381,8 +381,8 @@ class TestSearchTrademarks:
         mock_client = _mock_http_client(
             post_response=_json_response(_SEARCH_RESPONSE), cookies={}
         )
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             with pytest.raises(TMviewBlockedError):
                 await search_trademarks("FUORI CORSO")
         assert mock_client.post.await_count == 0
@@ -394,8 +394,8 @@ class TestFetchTrademark:
         detail_resp = _json_response(_DETAIL_RESPONSE)
         mock_client = _mock_http_client(get_response=detail_resp)
         # warm-up GET and detail GET share the mock; first call is home, second is API
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             detail = await fetch_trademark("IT502013902128590")
         assert detail.name == "FUORICORSO"
         called_urls = [c.args[0] for c in mock_client.get.await_args_list]
@@ -404,8 +404,8 @@ class TestFetchTrademark:
     @pytest.mark.asyncio
     async def test_waf_challenge_raises(self):
         mock_client = _mock_http_client(get_response=_html_response())
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             with pytest.raises(TMviewBlockedError):
                 await fetch_trademark("IT502013902128590")
 
@@ -414,8 +414,8 @@ class TestFetchTrademark:
         mock_client = _mock_http_client(
             get_response=_json_response(_DETAIL_RESPONSE), cookies={}
         )
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             with pytest.raises(TMviewBlockedError):
                 await fetch_trademark("IT502013902128590")
         # only the warm-up GET happened, no detail request
@@ -439,8 +439,8 @@ class TestFetchTrademark:
         )
         mock_client = _mock_http_client()
         mock_client.get = AsyncMock(side_effect=[_json_response({}), no_record])
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
             with pytest.raises(TMviewNotFoundError):
                 await fetch_trademark("IT500000000000000")
         # warm-up GET + exactly one detail GET (before: 1 + 3)
@@ -452,9 +452,9 @@ class TestFetchTrademark:
         outage = self._status_response(503)
         mock_client = _mock_http_client()
         mock_client.get = AsyncMock(side_effect=[_json_response({}), outage, outage, outage])
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0), \
-             patch("src.lib.tmview.client.asyncio.sleep", AsyncMock()):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0), \
+             patch("mcp_legal_it.lib.tmview.client.asyncio.sleep", AsyncMock()):
             with pytest.raises(httpx.HTTPStatusError):
                 await fetch_trademark("IT502013902128590")
         assert mock_client.get.await_count == 4
@@ -466,9 +466,9 @@ class TestFetchTrademark:
         mock_client.get = AsyncMock(
             side_effect=[_json_response({}), outage, _json_response(_DETAIL_RESPONSE)]
         )
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0), \
-             patch("src.lib.tmview.client.asyncio.sleep", AsyncMock()):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0), \
+             patch("mcp_legal_it.lib.tmview.client.asyncio.sleep", AsyncMock()):
             detail = await fetch_trademark("IT502013902128590")
         assert detail.name == "FUORICORSO"
 
@@ -477,9 +477,9 @@ class TestFetchTrademark:
         other = self._status_response(500, {"message": "Internal error"})
         mock_client = _mock_http_client()
         mock_client.get = AsyncMock(side_effect=[_json_response({}), other, other, other])
-        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
-             patch("src.lib.tmview.client._MIN_INTERVAL", 0), \
-             patch("src.lib.tmview.client.asyncio.sleep", AsyncMock()):
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0), \
+             patch("mcp_legal_it.lib.tmview.client.asyncio.sleep", AsyncMock()):
             with pytest.raises(httpx.HTTPStatusError):
                 await fetch_trademark("IT502013902128590")
 
@@ -492,7 +492,7 @@ class TestCercaMarchiImpl:
     @pytest.mark.asyncio
     async def test_success(self):
         _, results = _parse_search_response(_SEARCH_RESPONSE)
-        with patch("src.tools.tmview.search_trademarks", AsyncMock(return_value=(9, results))):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", AsyncMock(return_value=(9, results))):
             result = await _cerca_marchi_impl("FUORI CORSO")
         assert isinstance(result, SearchResult)
         assert result.success is True
@@ -504,7 +504,7 @@ class TestCercaMarchiImpl:
     @pytest.mark.asyncio
     async def test_filters_translated(self):
         mock_search = AsyncMock(return_value=(0, []))
-        with patch("src.tools.tmview.search_trademarks", mock_search):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", mock_search):
             await _cerca_marchi_impl(
                 "BARILLA", uffici="it, em", classi_nizza="30", stato="registrato"
             )
@@ -527,7 +527,7 @@ class TestCercaMarchiImpl:
 
     @pytest.mark.asyncio
     async def test_no_results(self):
-        with patch("src.tools.tmview.search_trademarks", AsyncMock(return_value=(0, []))):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", AsyncMock(return_value=(0, []))):
             result = await _cerca_marchi_impl("XYZNONESISTE")
         assert result.success is False
         assert result.error_type == "no_results"
@@ -535,7 +535,7 @@ class TestCercaMarchiImpl:
     @pytest.mark.asyncio
     async def test_source_down(self):
         with patch(
-            "src.tools.tmview.search_trademarks",
+            "mcp_legal_it.tools.tmview.search_trademarks",
             AsyncMock(side_effect=httpx.RequestError("timeout")),
         ):
             result = await _cerca_marchi_impl("FUORI CORSO")
@@ -545,7 +545,7 @@ class TestCercaMarchiImpl:
     @pytest.mark.asyncio
     async def test_waf_block_message(self):
         with patch(
-            "src.tools.tmview.search_trademarks",
+            "mcp_legal_it.tools.tmview.search_trademarks",
             AsyncMock(side_effect=TMviewBlockedError("blocked")),
         ):
             result = await _cerca_marchi_impl("FUORI CORSO")
@@ -558,7 +558,7 @@ class TestLeggiMarchioImpl:
     @pytest.mark.asyncio
     async def test_success(self):
         detail = _parse_detail_response(_DETAIL_RESPONSE)
-        with patch("src.tools.tmview.fetch_trademark", AsyncMock(return_value=detail)):
+        with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(return_value=detail)):
             result = await _leggi_marchio_impl("IT502013902128590")
         assert result.success is True
         assert "MENNUCCI" in result.results_text
@@ -566,7 +566,7 @@ class TestLeggiMarchioImpl:
     @pytest.mark.asyncio
     async def test_source_down(self):
         with patch(
-            "src.tools.tmview.fetch_trademark",
+            "mcp_legal_it.tools.tmview.fetch_trademark",
             AsyncMock(side_effect=httpx.RequestError("boom")),
         ):
             result = await _leggi_marchio_impl("IT502013902128590")
@@ -579,7 +579,7 @@ class TestLeggiMarchioImpl:
         reachable, so the answer is 'no record returned', worded so as not to claim that
         the mark does not exist (the same reply also covers a momentary office outage)."""
         with patch(
-            "src.tools.tmview.fetch_trademark",
+            "mcp_legal_it.tools.tmview.fetch_trademark",
             AsyncMock(side_effect=TMviewNotFoundError("IT500000000000000")),
         ):
             result = await _leggi_marchio_impl(" IT500000000000000 ")
@@ -596,7 +596,7 @@ class TestVerificaAnterioritaImpl:
     @pytest.mark.asyncio
     async def test_classifies_identical_and_similar(self):
         _, results = _parse_search_response(_SEARCH_RESPONSE)
-        with patch("src.tools.tmview.search_trademarks", AsyncMock(return_value=(9, results))):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", AsyncMock(return_value=(9, results))):
             result = await _verifica_anteriorita_marchio_impl("FUORI CORSO")
         assert result.success is True
         text = result.results_text
@@ -610,27 +610,27 @@ class TestVerificaAnterioritaImpl:
     @pytest.mark.asyncio
     async def test_reports_class_overlap(self):
         _, results = _parse_search_response(_SEARCH_RESPONSE)
-        with patch("src.tools.tmview.search_trademarks", AsyncMock(return_value=(9, results))):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", AsyncMock(return_value=(9, results))):
             result = await _verifica_anteriorita_marchio_impl("FUORI CORSO", classi_nizza="25")
         assert "25" in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_results_is_green_light(self):
-        with patch("src.tools.tmview.search_trademarks", AsyncMock(return_value=(0, []))):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", AsyncMock(return_value=(0, []))):
             result = await _verifica_anteriorita_marchio_impl("XKCD9999")
         assert result.success is True
         assert "nessun" in result.results_text.lower()
 
     @pytest.mark.asyncio
     async def test_disclaimer_present(self):
-        with patch("src.tools.tmview.search_trademarks", AsyncMock(return_value=(0, []))):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", AsyncMock(return_value=(0, []))):
             result = await _verifica_anteriorita_marchio_impl("XKCD9999")
         assert "preliminare" in result.results_text.lower()
 
     @pytest.mark.asyncio
     async def test_source_down(self):
         with patch(
-            "src.tools.tmview.search_trademarks",
+            "mcp_legal_it.tools.tmview.search_trademarks",
             AsyncMock(side_effect=httpx.RequestError("timeout")),
         ):
             result = await _verifica_anteriorita_marchio_impl("FUORI CORSO")

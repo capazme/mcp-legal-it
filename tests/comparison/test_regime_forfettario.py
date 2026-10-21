@@ -18,7 +18,7 @@ la spunta si imposta con ``checked = true`` e l'invio usa
 ``form.requestSubmit(#button1)`` perche' il click forzato puo' colpire l'overlay.
 
 Tool: ``regime_forfettario(ricavi, coefficiente_redditivita, anni_attivita,
-contributi_inps)`` (src/tools/dichiarazione_redditi.py, tabella irpef_scaglioni.json
+contributi_inps)`` (mcp_legal_it/tools/dichiarazione_redditi.py, tabella irpef_scaglioni.json
 blocco ``forfettario``: limite 85.000, aliquota 15%, startup 5%).
 Corrispondenze: coefficiente -> settore del sito (40 -> 2 o 7, 54 -> 4, 62 -> 6,
 67 -> 9, 78 -> 8, 86 -> 5); ``anni_attivita`` 1-5 -> spunta "Nuova attivita'",
@@ -63,8 +63,8 @@ _SITE_CACHE: dict[tuple, dict] = {}
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  registra i moduli ed evita import circolari
-    from src.tools.dichiarazione_redditi import regime_forfettario
+    import mcp_legal_it.server  # noqa: F401  registra i moduli ed evita import circolari
+    from mcp_legal_it.tools.dichiarazione_redditi import regime_forfettario
 
     fn = getattr(regime_forfettario, "fn", regime_forfettario)
     return fn(**kwargs)

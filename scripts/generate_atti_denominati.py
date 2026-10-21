@@ -3,7 +3,7 @@
 
 The Brocardi keys embed each act's extremes — "Legge fallimentare(R.D. 16 marzo
 1942, n. 267)". This script turns them into `_ATTI_DENOMINATI_SPEC` rows to be
-pasted into src/lib/visualex/map.py. It is deliberately one-shot: the checked-in
+pasted into mcp_legal_it/lib/visualex/map.py. It is deliberately one-shot: the checked-in
 table is the source of truth, so an act can be corrected without touching a
 display label, and every row stays reviewable in a diff.
 
@@ -14,9 +14,9 @@ display label, and every row stays reviewable in a diff.
 import json
 import sys
 
-sys.path.insert(0, ".")
+sys.path.insert(0, "plugin/server")
 
-from src.lib.visualex.map import BROCARDI_CODICI, parse_brocardi_estremi  # noqa: E402
+from mcp_legal_it.lib.visualex.map import BROCARDI_CODICI, parse_brocardi_estremi  # noqa: E402
 
 
 def parse(key: str) -> dict | None:
@@ -42,7 +42,7 @@ def main() -> int:
     if "--check" in sys.argv:
         # The question is whether the resolver handles the act at all — an act
         # covered by ATTI_NOTI or NORMATTIVA_URN_CODICI needs no row here.
-        from src.lib.visualex.map import resolve_atto
+        from mcp_legal_it.lib.visualex.map import resolve_atto
 
         missing = [r for r in rows if not resolve_atto(r["alias"])]
         for r in missing:

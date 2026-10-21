@@ -23,7 +23,7 @@ documents whose identifiers are fixed and public:
 - CGUE: a three-word query without commas becomes one title substring, so
   "clausole abusive consumatori" finds nothing although CELLAR titles read
   "Clausole abusive nei contratti stipulati con i consumatori" (canary on the
-  source through `src.lib.cgue.search_giurisprudenza`); document types must
+  source through `mcp_legal_it.lib.cgue.search_giurisprudenza`); document types must
   match the title ("Ordinanza della Corte" is an order, not an AG opinion).
 - the footer branch "risultati con criteri ampliati" (Italgiure auto-relaxation).
 
@@ -48,8 +48,8 @@ import re
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.tools import giurisprudenza_unificata as gu_tools
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.tools import giurisprudenza_unificata as gu_tools
 
 pytestmark = pytest.mark.live
 
@@ -204,7 +204,7 @@ def test_caso1_cgue_riepilogo_conta_decisioni_distinte():
 
 def test_portale_ga_espone_adunanza_plenaria_17_2021():
     """Canary on the source: Ad. plen. 17/2021 is reachable with sede + numero (2021 + 00017)."""
-    from src.lib.giustizia_amm.client import search_provvedimenti
+    from mcp_legal_it.lib.giustizia_amm.client import search_provvedimenti
 
     try:
         docs = asyncio.run(search_provvedimenti(
@@ -324,7 +324,7 @@ def test_cgue_frase_di_tre_parole():
     con i consumatori" (SPV Project 1503 among them). The unified tool forwards the query to
     CGUE unchanged, where it becomes a single title substring.
     """
-    from src.lib.cgue import search_giurisprudenza
+    from mcp_legal_it.lib.cgue import search_giurisprudenza
 
     try:
         canary = asyncio.run(search_giurisprudenza(

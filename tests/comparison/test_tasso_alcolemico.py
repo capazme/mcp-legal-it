@@ -25,8 +25,8 @@ import pytest
 
 os.environ.setdefault("LEGAL_TODAY", "2026-09-29")
 
-import src.server  # noqa: F401,E402
-from src.tools import varie  # noqa: E402
+import mcp_legal_it.server  # noqa: F401,E402
+from mcp_legal_it.tools import varie  # noqa: E402
 
 from .conftest import accept_cookies, assert_close  # noqa: E402
 

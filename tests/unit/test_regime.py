@@ -3,7 +3,7 @@
 A tool that computes under a rule that no longer governs new cases (the memorie
 ex art. 183 co. 6 c.p.c. before the Riforma Cartabia, the equo indennizzo of DPR
 834/1981) is right for the residual cases it names and wrong for everything
-else. `src/lib/_regime.py` reads the `Regime: PREVIGENTE` line, the wrapper puts
+else. `mcp_legal_it/lib/_regime.py` reads the `Regime: PREVIGENTE` line, the wrapper puts
 a `regime_normativo` block in every answer, the policy in `tool_annotations.py`
 carries the group so `tools/list` and every result `_meta` name it, and
 `LEGAL_PREVIGENTE=off` hides the group. This file checks each of those, and that
@@ -23,16 +23,16 @@ import sys
 import pytest
 from fastmcp import Client
 
-from src.lib import _regime
-from src.lib._ledger import REGIME_KEY
-from src.tool_annotations import PREVIGENTE
+from mcp_legal_it.lib import _regime
+from mcp_legal_it.lib._ledger import REGIME_KEY
+from mcp_legal_it.tool_annotations import PREVIGENTE
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 SNIPPET = """
 import asyncio, json, sys
 sys.path.insert(0, "plugin/server")
 from fastmcp import Client
-from src.server import mcp
+from mcp_legal_it.server import mcp
 async def main():
     async with Client(mcp) as c:
         return sorted(t.name for t in await c.list_tools())
@@ -134,7 +134,7 @@ def test_the_policy_names_the_two_superseded_tools_with_their_successors():
 
 
 def test_tools_list_and_results_carry_the_regime_over_the_wire():
-    from src.server import mcp
+    from mcp_legal_it.server import mcp
 
     async def run():
         async with Client(mcp) as client:
@@ -189,14 +189,14 @@ def _audit_module():
 
 
 def _copy_src(tmp_path: pathlib.Path) -> pathlib.Path:
-    src = tmp_path / "src"
-    shutil.copytree(REPO / "plugin/server/src", src, ignore=shutil.ignore_patterns("__pycache__"))
+    src = tmp_path / "mcp_legal_it"
+    shutil.copytree(REPO / "plugin/server/mcp_legal_it", src, ignore=shutil.ignore_patterns("__pycache__"))
     return src
 
 
 def test_the_committed_source_passes_the_regime_audit():
     Audit, verify_regime = _audit_module()
-    assert verify_regime(Audit(REPO / "plugin/server/src")) == []
+    assert verify_regime(Audit(REPO / "plugin/server/mcp_legal_it")) == []
 
 
 def test_a_dropped_tag_or_wrapper_fails_the_audit(tmp_path):

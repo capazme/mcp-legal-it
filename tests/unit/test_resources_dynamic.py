@@ -1,4 +1,4 @@
-"""Tests binding the data-driven resources to the src/data JSON files.
+"""Tests binding the data-driven resources to the mcp_legal_it/data JSON files.
 
 Expectations are computed from the same JSONs the renderers read, so these
 tests prove the binding (a value changed in the dataset shows up in the
@@ -8,9 +8,9 @@ resource) without pinning any specific year or rate.
 import json
 from pathlib import Path
 
-import src.resources as res
+import mcp_legal_it.resources as res
 
-_DATA = Path(__file__).parents[2] / "src" / "data"
+_DATA = Path(__file__).parents[2] / "plugin" / "server" / "mcp_legal_it" / "data"
 
 
 def _load(name: str) -> dict:
