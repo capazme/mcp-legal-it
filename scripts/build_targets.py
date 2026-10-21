@@ -215,6 +215,11 @@ def build_mcpb(root: Path, version: str | None = None) -> Path:
         shutil.copy2(root / "pyproject.toml", stage / "pyproject.toml")
         # the manifest runs server/run_server.py through uv: no launcher script
         shutil.copytree(root / "plugin" / "server", stage / "server")
+        # the licence travels with the code: MPL-2.0, the NOTICE on the
+        # Apache-2.0 past and that licence's full text (art. 4(a) Apache-2.0)
+        shutil.copy2(root / "LICENSE", stage / "LICENSE")
+        shutil.copy2(root / "NOTICE", stage / "NOTICE")
+        shutil.copytree(root / "LICENSES", stage / "LICENSES")
 
         _purge_caches(stage)
 

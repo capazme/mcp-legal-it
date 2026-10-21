@@ -161,6 +161,9 @@ def _write_fake_plugin_tree(root: Path) -> None:
     (plugin / ".mcp.json").write_text("{}\n", encoding="utf-8")
     (plugin / "README.md").write_text("# plugin\n", encoding="utf-8")
     (plugin / "LICENSE").write_text("license\n", encoding="utf-8")
+    (plugin / "NOTICE").write_text("notice\n", encoding="utf-8")
+    (plugin / "LICENSES").mkdir()
+    (plugin / "LICENSES" / "Apache-2.0.txt").write_text("apache\n", encoding="utf-8")
     server = plugin / "server"
     server.mkdir()
     (server / "__init__.py").write_text("# server\n", encoding="utf-8")
@@ -180,7 +183,7 @@ def test_plugin_zip_stages_and_excludes(tmp_path):
         "  plugin-zip:\n"
         "    from: claude-code\n"
         '    artifact: "dist/legal-it-plugin-{version}.zip"\n'
-        "    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE]\n"
+        "    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE, NOTICE, LICENSES]\n"
         "    root: plugin\n"
         '    version_manifest: ".claude-plugin/plugin.json"\n',
     )
@@ -201,6 +204,8 @@ def test_plugin_zip_stages_and_excludes(tmp_path):
             ".mcp.json",
             "README.md",
             "LICENSE",
+            "NOTICE",
+            "LICENSES/Apache-2.0.txt",
             "server/__init__.py",
         ):
             assert expected in names, f"{expected} missing from {names}"
@@ -229,7 +234,7 @@ def test_plugin_zip_default_version(tmp_path):
         "  plugin-zip:\n"
         "    from: claude-code\n"
         '    artifact: "dist/legal-it-plugin-{version}.zip"\n'
-        "    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE]\n"
+        "    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE, NOTICE, LICENSES]\n"
         "    root: plugin\n"
         '    version_manifest: ".claude-plugin/plugin.json"\n',
     )
@@ -260,6 +265,10 @@ def _write_fake_dxt_tree(root: Path) -> None:
     )
     (dxt / ".mcpbignore").write_text(".venv/\n__pycache__/\n", encoding="utf-8")
     (root / "pyproject.toml").write_text("[project]\nname = \"legal-it-test\"\n", encoding="utf-8")
+    (root / "LICENSE").write_text("license\n", encoding="utf-8")
+    (root / "NOTICE").write_text("notice\n", encoding="utf-8")
+    (root / "LICENSES").mkdir()
+    (root / "LICENSES" / "Apache-2.0.txt").write_text("apache\n", encoding="utf-8")
     plugin = root / "plugin"
     plugin.mkdir(parents=True, exist_ok=True)
     server = plugin / "server"
@@ -291,7 +300,10 @@ def test_mcpb_fallback_zip(tmp_path, monkeypatch):
 
     with zipfile.ZipFile(output) as zf:
         names = zf.namelist()
-        for expected in ("manifest.json", ".mcpbignore", "pyproject.toml", "server/__init__.py"):
+        for expected in (
+            "manifest.json", ".mcpbignore", "pyproject.toml", "server/__init__.py",
+            "LICENSE", "NOTICE", "LICENSES/Apache-2.0.txt",
+        ):
             assert expected in names, f"{expected} missing from {names}"
         # the manifest runs server/run_server.py through uv: no launcher script
         assert "start_server.sh" not in names, names
@@ -480,3 +492,22 @@ def test_cli_rejects_unknown_target():
     )
     assert r.returncode != 0
     assert "nonsense" in r.stderr or "invalid choice" in r.stderr
+
+
+# ---------------------------------------------------------------------------
+# Licence files travel with every artifact
+# ---------------------------------------------------------------------------
+
+def test_real_targets_ship_the_licence_files():
+    # MPL-2.0 (LICENSE), the NOTICE on the Apache-2.0 past and that licence's
+    # full text (art. 4(a) Apache-2.0 wants it to travel with the code).
+    include = bt.tg.get_target(REPO, "plugin-zip")["include"]
+    for item in ("LICENSE", "NOTICE", "LICENSES"):
+        assert item in include, f"plugin-zip does not ship {item}"
+
+
+def test_plugin_licence_files_mirror_the_repository():
+    for rel in ("LICENSE", "NOTICE", "LICENSES/Apache-2.0.txt"):
+        assert (REPO / "plugin" / rel).read_bytes() == (REPO / rel).read_bytes(), (
+            f"plugin/{rel} differs from {rel}"
+        )
