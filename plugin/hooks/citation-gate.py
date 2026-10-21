@@ -32,8 +32,15 @@ What counts as read (anywhere in the session, subagents of this session included
 
 The server's code is imported from the plugin (stdlib only, no HTTP stack);
 if that import fails, a reduced stdlib reader keeps the gate working.
+
+Opt-out: ``LEGAL_CITATION_GATE=off`` (also ``0``, ``false``, ``no``; any case)
+switches the gate off for that session. It is meant for software-development
+sessions that only happen to quote a norm in code or docs; legal work should
+keep it on. The check is the first thing ``main`` does: no stdin, no
+transcript, no reader import.
 """
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -41,6 +48,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 SILENT, BLOCK = 0, 2
+
+# Values of LEGAL_CITATION_GATE that switch the gate off (compared lowercase).
+OPT_OUT_VALUES = {"off", "0", "false", "no"}
 
 # Tools whose result can show that an article was read.
 NORM_TOOLS = {"cite_law", "fetch_law_article", "fetch_full_act"}
@@ -571,7 +581,14 @@ def uncovered(session: Session) -> list:
     return missing
 
 
+def opted_out() -> bool:
+    """True when the environment switches the gate off (``LEGAL_CITATION_GATE=off``)."""
+    return os.environ.get("LEGAL_CITATION_GATE", "").strip().lower() in OPT_OUT_VALUES
+
+
 def main() -> int:
+    if opted_out():
+        return SILENT
     try:
         data = json.load(sys.stdin)
     except Exception:

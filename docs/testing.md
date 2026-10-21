@@ -21,7 +21,7 @@
 
 ## Struttura directory
 
-> Stato attuale: **261 file di test** (120 unit + 141 comparison), 6996 test raccolti inclusi i `live`. Il numero di test
+> Stato attuale: **261 file di test** (120 unit + 141 comparison), 7015 test raccolti inclusi i `live`. Il numero di test
 > cambia a ogni aggiunta: per il numero aggiornato usa
 > `pytest tests/ --collect-only -q | tail -1` (aggiungi `-m ""` per includere i `live`). Il default di `pytest` esclude i test `live` (vedi `addopts` in `pyproject.toml`).
 
@@ -44,7 +44,7 @@ tests/
 │   ├── test_calculations.py                         18 test
 │   ├── test_cerdef.py                              133 test  ← include il gate live (8 test, -m live): il modulo CeRDEF offre ancora i campi e i valori che il client invia
 │   ├── test_cgue.py                                 76 test
-│   ├── test_citation_gate.py                       120 test
+│   ├── test_citation_gate.py                       139 test
 │   ├── test_cli.py                                   6 test
 │   ├── test_consob.py                               38 test
 │   ├── test_corpus_build.py                          2 test
