@@ -23,6 +23,7 @@ from mcp_legal_it.lib.cgue.client import (
     _term_filter,
     celex_of,
     fetch_case_metadata,
+    fetch_sentenza_text,
     format_result,
     format_full,
     normalize_riferimento,
@@ -688,6 +689,35 @@ class TestLeggiSentenzaCgueImpl:
         assert isinstance(result, SearchResult)
         assert not result.success
         assert "Errore" in result.to_str()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("uri", [
+        "http://127.0.0.1:8000/mcp",
+        "http://localhost/resource/cellar/x",
+        "http://169.254.169.254/latest/meta-data/",
+        "https://example.com/resource/cellar/x",
+        "https://publications.europa.eu.evil.example/resource/cellar/x",
+        "http://publications.europa.eu:8080/resource/cellar/x",
+        "http://user@publications.europa.eu/resource/cellar/x",
+        "file:///etc/passwd",
+        "http://publications.europa.eu/webapi/rdf/sparql",
+        "",
+    ])
+    async def test_uri_outside_cellar_is_refused_before_any_request(self, uri):
+        """The URI comes from the caller: nothing but a CELLAR resource is ever fetched (SSRF)."""
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient") as client_cls:
+            result = await _leggi_sentenza_cgue_impl(uri)
+        client_cls.assert_not_called()
+        assert not result.success
+        assert result.error_type == "bad_input"
+        assert "CELLAR URI non valido" in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_library_fetch_refuses_too(self):
+        with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient") as client_cls:
+            with pytest.raises(ValueError, match="CELLAR URI non valido"):
+                await fetch_sentenza_text("http://127.0.0.1/resource/cellar/x")
+        client_cls.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
