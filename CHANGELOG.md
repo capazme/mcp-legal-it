@@ -416,8 +416,8 @@ entry, it is the same feature as ported to the 3.0 line.
   aliases of one act coincide and "art. 2 Cost." no longer covers "art. 2 c.p.".
   Credit comes from what a tool returned — a `cite_law`/`fetch_law_article`
   result that served that article, a `fetch_full_act` text that contains it, a
-  `leggi_*`/`cerca_*` result of the same court carrying a decision's number and
-  year — anywhere in the session, its subagents included and other sessions
+  `leggi_*`/`cerca_*` result of the same court naming a decision's number and
+  year in its heading (never the precedents cited in a decision's body) — anywhere in the session, its subagents included and other sessions
   never. It reads every text block of the turn plus the prose written with
   Write/Edit and the inputs of `esporta_atto_docx`/`genera_*`, finds acts away
   from the article ("D.Lgs. 196/2003, art. 13", "art. 6, par. 1, lett. f), del
