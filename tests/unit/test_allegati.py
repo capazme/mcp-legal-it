@@ -413,3 +413,32 @@ class TestAnnexEdgeCases:
         monkeypatch.setattr(lc, "fetch_brocardi", boom)
         out = await lc._cerca_brocardi_impl("allegato I.7 art. 30 D.Lgs. 36/2023")
         assert "allegat" in out.lower()
+
+
+class TestReviewOf64:
+    @pytest.mark.asyncio
+    async def test_an_unlabelled_page_of_the_decree_is_not_the_codes_article(self, monkeypatch):
+        """Art. 2 of a decree whose main text is a code in an annex: the ~art2 page has no
+        heading and holds the decree's own art. 1. It must not be served as art. 2: the
+        code's art. 2 comes from the export, labelled with its part."""
+        senza_titolo = ('<html><body><div class="bodyTesto"><span class="art-just-text-akn">'
+                        "E' approvato il codice allegato.</span></div></body></html>")
+        _serve_akn(monkeypatch, parse_akn(_CODE_IN_ANNEX), pagine={";104~art2": senza_titolo})
+        nv = NormaVisitata(
+            norma=Norma(tipo_atto="decreto legislativo", data="2010-07-02", numero_atto="104"),
+            numero_articolo="2",
+        )
+        result = await fetch_article(nv)
+        assert "approvato" not in result["text"], result
+        assert "Giusto processo" in result["text"]
+        assert result["source"] == "normattiva-akn" and result["allegato"] == "Allegato 1"
+
+    @pytest.mark.asyncio
+    async def test_an_unlabelled_page_of_a_code_named_by_its_urn_is_still_the_article(self, monkeypatch):
+        # c.p. 524: the page lost its heading, the URN names the code (;1398:1): the page is it.
+        cp = parse_akn((FIXTURES / "akn" / "codice_penale.xml").read_text(encoding="utf-8"))
+        pagina = ('<html><body><div class="bodyTesto"><span class="art-just-text-akn">'
+                  "((ARTICOLO ABROGATO DALLA L. 15 FEBBRAIO 1996, N. 66))</span></div></body></html>")
+        _serve_akn(monkeypatch, cp, pagine={";1398:1~art524": pagina})
+        result = await fetch_article(NormaVisitata(norma=Norma(tipo_atto="codice penale"), numero_articolo="524"))
+        assert result["source"] == "normattiva" and "ARTICOLO ABROGATO" in result["text"]
