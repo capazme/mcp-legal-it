@@ -590,14 +590,16 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
     """
     rif = riferimento.strip().lower()
 
+    # The suffix after a dash or a space ("25-terdecies", "25 terdecies"): one whitespace run
+    # on either side, never two adjacent optional ones (a long run of blanks must stay linear).
     match = re.match(
-        rf"(?:art\.?|articolo)\s+(\d+(?:-(?:{ARTICLE_SUFFIX_ALTERNATION})\b)?)",
+        rf"(?:art\.?|articolo)\s+(\d+)(?:(?:\s*-\s*|\s+)({ARTICLE_SUFFIX_ALTERNATION})\b)?",
         rif,
     )
     if not match:
         return f'ocr:("{riferimento}")'
 
-    num = match.group(1)
+    num = match.group(1) + (f"-{match.group(2)}" if match.group(2) else "")
     rest = rif[match.end():].strip()
 
     bare = [f'"art. {num}"', f'"articolo {num}"']

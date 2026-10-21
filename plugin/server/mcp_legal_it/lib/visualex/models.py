@@ -173,6 +173,12 @@ def _append_article(urn: str, article: str) -> str:
         parts = article.split("-", 1)
         article = parts[0]
         extension = parts[1].replace("-", "")
+    elif (words := re.match(r"^(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*)$", article)):
+        # A suffix written in words the table does not list as one ("135 sex decies",
+        # "25 vicies semel"): joined, as VisuaLex's controller joins them before the URN
+        # ("135 sex decies" -> "135-sex-decies" -> ~art135sexdecies). Never a space in a URN.
+        article = words.group(1)
+        extension = "".join(words.group(2).split())
     urn += f"~art{article}"
     if extension:
         urn += extension
