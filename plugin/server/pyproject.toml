@@ -6,10 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "mcp-legal-it"
 version = "3.0.0"
 description = "MCP server with 228 Italian legal tools: calculations, legislation (incl. Gazzetta Ufficiale), case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), orientamento, EU→IT implementation mapping, citation verification, CONSOB, GDPR, document generation"
-license = {text = "Apache-2.0"}
-requires-python = ">=3.10"
+license = {text = "MPL-2.0"}
+# The plugin always runs on uv's Python 3.12 (`uv run --python 3.12`); keeping the
+# lock to that one interpreter keeps uv.lock small enough for the plugin directory.
+requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastmcp>=2.0,<4",
+    "fastmcp>=3.4,<5",
     "httpx>=0.27",
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
@@ -21,13 +23,10 @@ dependencies = [
     # to a source build that needs Rust + OpenSSL and fails. 48.x still ships
     # macosx_10_9_universal2. Drop this pin once joserfc/cryptography restore Intel wheels.
     "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-asyncio>=0.21",
-    "playwright>=1.40",
+    # Everywhere else, the releases that fix PYSEC-2026-3552/3553/3554. Declared
+    # explicitly so that a lock (the plugin's uv.lock) forks by platform
+    # instead of shipping the Intel-only 48.x to every machine.
+    "cryptography>=50; sys_platform != 'darwin' or platform_machine != 'x86_64'",
 ]
 
 [project.scripts]
@@ -39,3 +38,13 @@ src = ["data/*.json", "data/references/*.md"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
+
+[tool.uv]
+# The plugin starts the server with `uv run --frozen --project <plugin>/server`:
+# only the locked dependencies are installed, this folder is not built as a
+# package, and the user's own project (the session's working directory) is
+# never touched.
+package = false
+# The plugin stays on FastMCP 3 until the 3.x/4.x switch is validated in the
+# plugin as well; the declared range above is shared with the library.
+constraint-dependencies = ["fastmcp<4"]

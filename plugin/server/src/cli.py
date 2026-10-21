@@ -5,7 +5,13 @@ import argparse
 import os
 import sys
 
-from src.cli_version import package_version  # re-export
+# FastMCP asks PyPI for a newer release every time it prints its startup
+# banner. This server contacts only the hosts listed in src/lib/_egress.py, so
+# the check is off unless the operator turns it back on. It has to be set
+# before fastmcp is imported: its settings are read once, at import time.
+os.environ.setdefault("FASTMCP_CHECK_FOR_UPDATES", "off")
+
+from src.cli_version import package_version  # noqa: E402  re-export
 from src.server import mcp  # noqa: E402  (module-level for patching in tests)
 
 __all__ = ["main", "package_version", "mcp"]

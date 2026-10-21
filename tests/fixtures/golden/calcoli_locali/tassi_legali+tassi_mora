@@ -1,0 +1,16 @@
+{
+ "datasets": [
+  "tassi_legali",
+  "tassi_mora"
+ ],
+ "tools": {
+  "interessi_corso_causa": {
+   "arguments": {
+    "capitale": 10000.0,
+    "data_citazione": "2021-01-01",
+    "data_sentenza": "2024-06-30"
+   },
+   "expected": "{\"capitale\":10000.0,\"data_citazione\":\"2021-01-01\",\"data_sentenza\":\"2024-06-30\",\"data_pagamento\":\"2024-06-30\",\"totale_interessi\":3346.71,\"totale_dovuto\":13346.71,\"tasso_applicato\":\"mora D.Lgs. 231/2002 (art. 1284 co. 4 c.c.)\",\"riferimento_normativo\":\"Art. 1284, co. 4 c.c. (L. 162/2014) — tasso mora D.Lgs. 231/2002 BCE+8pp\",\"periodi\":[{\"tipo\":\"in_corso_causa\",\"dal\":\"2021-01-01\",\"al\":\"2024-06-30\",\"tasso_tipo\":\"mora D.Lgs. 231/2002\",\"interessi\":3346.71}],\"dati_applicati\":[\"tassi mora: copre fino al 31/12/2026 (tasso BCE MRO + 8 punti, D.Lgs. 231/2002) — rinfrescata da scripts/refresh_data.py sul Data Portal BCE\"]}"
+  }
+ }
+}

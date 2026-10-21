@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 1 — Rivalutazioni ISTAT."""
+"""Arithmetic verification tests for Sezione 1 - Rivalutazioni ISTAT."""
 
 from tests.comparison.conftest import assert_close
 

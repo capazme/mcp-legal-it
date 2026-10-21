@@ -1,0 +1,37 @@
+Return-Path: <bounce@em.negozio-esempio.example>
+DKIM-Signature: v=1; a=rsa-sha256; d=klaviyomail.com; s=kl; h=from; bh=a=; b=b=
+From: Negozio Esempio <offerte@negozio-esempio.example>
+To: prova1@studio-esempio.example
+Subject: Offerte della settimana
+Date: Thu, 15 Oct 2026 09:00:00 +0200
+Message-ID: <offerte@em.negozio-esempio.example>
+List-Unsubscribe: <https://click.negozio-esempio.example/unsubscribe>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1"
+
+--b1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Versione testo della newsletter.
+--b1
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><body>
+<p>Offerte della settimana.</p>
+<a href=3D"https://click.negozio-esempio.example/c/cHJvdmExQHN0dWRpby1lc2Vt=
+cGlvLmV4YW1wbGU/Q2xpY2tUb2tlbjEyMzQ1Njc4OTA">Scopri le offerte</a>
+<a href=3D"https://www.negozio-esempio.example/offerte?utm_source=3Ddem&amp=
+;_kx=3DZk9xQ2x2RzFaYktqTnB3Ng.ABCDEF">Offerte</a>
+<img src=3D"https://www.google-analytics.com/collect?v=3D1&amp;tid=3DUA-123=
+4567-1&amp;cid=3Dfa0176f565274a7d4f356cd429ca3905&amp;t=3Devent&amp;ec=3Dem=
+ail&amp;ea=3Dopen" width=3D"1" height=3D"1" alt=3D"">
+<img src=3D"https://p.liadm.com/imp?li_campaign=3D55&amp;e=3Dfa0176f565274a=
+7d4f356cd429ca3905" style=3D"width:1px;height:1px" alt=3D"">
+<img src=3D"https://tracking.negozio-esempio.example/o/pixel?email=3Dprova1=
+%40studio-esempio.example" width=3D"1" height=3D"1">
+<p><a href=3D"https://click.negozio-esempio.example/unsubscribe/cHJvdmExQHN=
+0dWRpby1lc2VtcGlvLmV4YW1wbGU">Annulla iscrizione</a></p>
+</body></html>
+--b1--

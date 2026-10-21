@@ -256,3 +256,47 @@ class TestCrossReference:
                 assert tool in self._KNOWN_TOOLS, (
                     f"{tipo} references unknown calcolo tool: {tool}"
                 )
+
+
+# ---------------------------------------------------------------------------
+# Riferimenti normativi riletti sul testo vigente (benchmark fase 3)
+# ---------------------------------------------------------------------------
+
+class TestCatalogoNormeVigenti:
+    def test_attestazioni_citano_artt_196_disp_att_cpc(self):
+        # D.Lgs. 149/2022 art. 11 abroga artt. 16-bis e 16-undecies DL 179/2012; le attestazioni
+        # sono negli artt. 196-octies..196-undecies disp. att. c.p.c. (procedimenti dal 28/02/2023,
+        # art. 35 co. 1 D.Lgs. 149/2022)
+        r = genera_modello_atto("attestazione_copia_informatica")
+        rif = " ".join(r["riferimenti_normativi"])
+        assert "196-undecies" in rif and "196-novies" in rif and "196-decies" in rif
+        assert "16-bis" not in rif
+        assert any("28/02/2023" in a for a in r["avvertenze"])
+
+    def test_cerca_196_octies_trova_le_attestazioni(self):
+        r = genera_modello_atto("cerca", {"query": "196-octies"})
+        assert r["totale"] >= 1
+
+    def test_nessuna_voce_richiede_la_formula_esecutiva(self):
+        # art. 475 c.p.c.: titolo in copia attestata conforme o duplicato informatico
+        for tipo, e in _CATALOGO.items():
+            testo = " ".join([e["descrizione"], *e.get("avvertenze", [])]).lower()
+            assert "formula esecutiva" not in testo, tipo
+
+    def test_appello_appellato_20_giorni_art_347(self):
+        # art. 347 co. 1 c.p.c. (D.Lgs. 164/2024): almeno venti giorni prima dell'udienza
+        avv = " ".join(_CATALOGO["atto_appello"]["avvertenze"])
+        assert "20 gg" in avv and "70 gg" not in avv
+
+    def test_sfratto_nessuna_soglia_due_canoni(self):
+        # art. 5 L. 392/1978: un canone non pagato dopo 20 giorni; le due mensilita' solo per gli oneri
+        avv = " ".join(_CATALOGO["sfratto_morosita"]["avvertenze"])
+        assert ">= 2 canoni" not in avv and "20 gg" in avv
+
+    def test_relata_penale_art_152_cpp(self):
+        rif = _CATALOGO["relata_pec_penale"]["riferimenti_normativi"]
+        assert "art. 152 c.p.p." in rif and "L. 53/1994" not in rif
+
+    def test_parametri_fissi_solo_parametri_del_tool_e_variante_separata(self):
+        r = genera_modello_atto("relata_pec_appello")
+        assert r["parametri_fissi"] == {} and r["variante"] == {"tipo_relata": "appello"}

@@ -5,12 +5,14 @@ finanziari, abusi di mercato, intermediari, emittenti, OPA, crowdfunding, cripto
 """
 
 from src.server import mcp
+from src.lib._paging import invalid_start
 from src.lib.consob.client import (
     ARGOMENTI,
     TIPOLOGIE,
     fetch_delibera,
     format_full,
     format_result,
+    is_delibera,
     search_delibere,
 )
 
@@ -60,17 +62,24 @@ async def _cerca_delibere_consob_impl(
     if not docs:
         return f"Nessuna delibera CONSOB trovata per: _{query}_"
 
-    lines = [f"**Trovate {len(docs)} delibere CONSOB per**: _{query}_\n"]
+    # The Bollettino also lists comunicazioni, richiami di attenzione and avvisi: say so
+    # instead of calling every hit a "delibera".
+    if all(is_delibera(d) for d in docs):
+        lines = [f"**Trovate {len(docs)} delibere CONSOB per**: _{query}_\n"]
+    else:
+        lines = [f"**Trovati {len(docs)} documenti del Bollettino CONSOB per**: _{query}_\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
     return "\n".join(lines)
 
 
-async def _leggi_delibera_consob_impl(numero: str) -> str:
+async def _leggi_delibera_consob_impl(numero: str, da_carattere: int = 1) -> str:
+    if (error := invalid_start(da_carattere)) is not None:
+        return f"Errore nel recupero della delibera CONSOB n. {numero}: {error}"
     try:
         title, text = await fetch_delibera(numero)
-        return format_full(title, text, numero)
+        return format_full(title, text, numero, da_carattere)
     except Exception as exc:
         return f"Errore nel recupero della delibera CONSOB n. {numero}: {exc}"
 
@@ -96,7 +105,10 @@ async def _ultime_delibere_consob_impl(
     if not docs:
         return "Nessuna delibera CONSOB recente trovata."
 
-    lines = ["**Ultime delibere CONSOB**\n"]
+    if all(is_delibera(d) for d in docs):
+        lines = ["**Ultime delibere CONSOB**\n"]
+    else:
+        lines = ["**Ultimi documenti del Bollettino CONSOB**\n"]
     for doc in docs:
         lines.append(format_result(doc))
         lines.append("")
@@ -121,7 +133,13 @@ async def cerca_delibere_consob(
     USARE quando si parla di: delibere CONSOB, sanzioni mercati finanziari, abusi di mercato,
     intermediari, emittenti, OPA, crowdfunding, cripto-attivita, regolamenti CONSOB.
     Dopo aver trovato una delibera, usare leggi_delibera_consob() per il testo completo.
-    Restituisce: lista delibere con numero, titolo, data e link.
+    Restituisce: lista di documenti del Bollettino con tipo effettivo (Delibera, Comunicazione,
+    Richiamo di attenzione, Avviso...), numero completo (es. "13/25"), titolo, data e link
+    alla pagina reale del documento. Solo le delibere si leggono con leggi_delibera_consob():
+    per gli altri documenti il testo e' alla pagina del link.
+    Avvertenza: il filtro argomento segue la tassonomia del Bollettino, che non e' applicata in modo
+    uniforme (es. "abusi_di_mercato" non e' assegnato ai documenti dopo il 2017): per i temi recenti
+    usare la ricerca testuale in query e i filtri di data.
 
     Args:
         query: Testo da cercare (es. "abusi di mercato", "sanzione intermediario", "OPA")
@@ -140,17 +158,22 @@ async def cerca_delibere_consob(
 
 
 @mcp.tool(tags={"consob"})
-async def leggi_delibera_consob(numero: str) -> str:
+async def leggi_delibera_consob(numero: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di una delibera CONSOB tramite numero.
 
     Usare dopo cerca_delibere_consob() o ultime_delibere_consob() per leggere
     il testo completo. Il numero delibera e riportato in ogni risultato della ricerca.
-    Restituisce: testo integrale della delibera con titolo e link alla fonte CONSOB.
+    Restituisce: testo della delibera con titolo e link alla fonte CONSOB. Oltre 8000 caratteri
+    il testo e' troncato; la parte omessa si legge ripetendo la chiamata con il da_carattere
+    indicato nella nota. Le posizioni contano i caratteri del testo della pagina (senza titolo e link).
+    Con da_carattere > 1 restituisce gli 8000 caratteri che partono da quella posizione.
 
     Args:
         numero: Numero della delibera (es. "23257", "23256-1")
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    return await _leggi_delibera_consob_impl(numero)
+    return await _leggi_delibera_consob_impl(numero, da_carattere)
 
 
 @mcp.tool(tags={"consob"})
@@ -162,7 +185,9 @@ async def ultime_delibere_consob(
     """Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale.
 
     Dopo questo tool: leggi_delibera_consob() con il numero per il testo completo.
-    Restituisce: lista cronologica delle ultime delibere con numero, titolo e data.
+    Restituisce: lista dei documenti piu' recenti del Bollettino, in ordine di data di pubblicazione
+    decrescente (non di data dell'atto), con tipo effettivo (Delibera, Comunicazione, Richiamo di
+    attenzione, Avviso...), numero completo, titolo, date e link alla pagina reale del documento.
 
     Args:
         tipologia: Filtra per tipo (es. "delibere", "comunicazioni", "provvedimenti_urgenti")

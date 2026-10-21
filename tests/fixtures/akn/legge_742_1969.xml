@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?><akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0" xmlns:eli="http://data.europa.eu/eli/ontology#" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:gu="http://www.gazzettaufficiale.it/eli/" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:na="http://www.normattiva.it/eli/" xmlns:nakn="http://normattiva.it/akn/vocabulary" xmlns:nrdfa="http://www.normattiva.it/rdfa/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfa="http://www.w3.org/1999/xhtml#">
+    <act name="monovigente">
+        <meta>
+            <identification source="">
+                <FRBRWork>
+                    <FRBRthis value="/akn/it/act/legge/stato/1969-10-07/742/!main"/>
+                    <FRBRuri value="/akn/it/act/legge/stato/1969-10-07/742"/>
+                    <FRBRalias name="urn:nir" value="urn:nir:stato:legge:1969-10-07;742"/>
+                    <FRBRalias name="eli" value="eli/id/1969/11/06/069U0742/CONSOLIDATED/20150821"/>
+                    <FRBRdate date="1969-10-07" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821" aknrelname="eli/id/1969/11/06/069U0742/CONSOLIDATED/20150821">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalResource"/>
+                            <nrdfa:span content="Sospensione dei termini processuali nel periodo feriale. " lang="it" property="eli:title" xml:lang="it"/>
+                            <nrdfa:span content="http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}" property="eli:uri_schema"/>
+                            <nrdfa:span content="069U0742" property="eli:id_local"/>
+                            <nrdfa:span property="eli:type_document" resource="gu:tables/resource-type#LEGGE"/>
+                            <nrdfa:span content="1969-10-07" datatype="xsd:date" property="eli:date_document"/>
+                            <nrdfa:span property="eli:version" resource="gu:tables/versions#ORIGINAL"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRcountry value="it"/>
+                </FRBRWork>
+                <FRBRExpression>
+                    <FRBRthis value="/akn/it/act/legge/stato/1969-10-07/742/ita@2015-08-21/!main"/>
+                    <FRBRuri value="/akn/it/act/legge/stato/1969-10-07/742/ita@2015-08-21"/>
+                    <FRBRdate date="2015-08-21" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821/ita">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalExpression"/>
+                            <nrdfa:span property="eli:realizes" resource="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821"/>
+                            <nrdfa:span property="eli:is_embodied_by" resource="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821/ita/akn"/>
+                            <nrdfa:span property="eli:language" resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                            <nrdfa:span property="eli:publisher_agent" resource="http://www.ipzs.it"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRlanguage language="ita"/>
+                </FRBRExpression>
+                <FRBRManifestation>
+                    <FRBRthis value="/akn/it/act/legge/stato/1969-10-07/742/ita@2015-08-21/!main.xml"/>
+                    <FRBRuri value="/akn/it/act/legge/stato/1969-10-07/742/ita@2015-08-21.xml"/>
+                    <FRBRdate date="1969-10-07" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821/ita/akn">
+                            <nrdfa:span property="rdf:type" resource="eli:Format"/>
+                            <nrdfa:span property="eli:format" resource="http://www.iana.org/assignments/media-types/xml"/>
+                        </nrdfa:eli>
+                    </preservation>
+                </FRBRManifestation>
+            </identification>
+            <publication date="1969-11-06" name="" number="281" showAs=""/>
+            <lifecycle source="">
+                <eventRef date="1969-11-06" eId="eventRef_0" source="ro1"/>
+                <eventRef date="1985-02-20" eId="eventRef_1" source="rp1"/>
+                <eventRef date="1987-07-15" eId="eventRef_2" source="rp2"/>
+                <eventRef date="1987-07-29" eId="eventRef_3" source="rp3"/>
+                <eventRef date="1990-02-07" eId="eventRef_4" source="rp4"/>
+                <eventRef date="1990-03-23" eId="eventRef_5" source="rp5"/>
+                <eventRef date="1990-07-21" eId="eventRef_6" source="rp6"/>
+                <eventRef date="1992-06-08" eId="eventRef_7" source="rp7"/>
+                <eventRef date="1992-08-05" eId="eventRef_8" source="rp8"/>
+                <eventRef date="2009-12-14" eId="eventRef_9" source="rp9"/>
+                <eventRef date="2014-09-12" eId="eventRef_10" source="rp10"/>
+                <eventRef date="2015-06-27" eId="eventRef_11" source="rp11"/>
+            </lifecycle>
+            <workflow source="">
+                <step by="#camera" date="1969-10-07" refersTo="#C.377"/>
+                <step by="#senato" date="1969-10-07" refersTo="#S.716"/>
+            </workflow>
+            <analysis source="">
+                <activeModifications>
+                    <textualMod eId="amod_0" type="insertion">
+                        <source href="urn:nir:stato:legge:1969-10-07;742#1"/>
+                        <destination href="urn:nir:stato:regio.decreto:1930-10-19;1399#Codice di procedura penale-art. 201"/>
+                        <new>
+                            <nakn:text>ha disposto (con l'art. 1, commi 1 e 2) la modifica dell'art. 201.</nakn:text>
+                        </new>
+                    </textualMod>
+                </activeModifications>
+                <passiveModifications>
+                    <textualMod eId="pmod_0" type="insertion">
+                        <source href="#"/>
+                        <destination href="#ins_1"/>
+                        <new>
+                            <nakn:text>((10))</nakn:text>
+                        </new>
+                    </textualMod>
+                    <textualMod eId="pmod_1" type="insertion">
+                        <source href="#"/>
+                        <destination href="#ins_2"/>
+                        <new>
+                            <nakn:text>((La sospensione dei termini delle indagini preliminari di cui al primo comma non opera nei procedimenti per reati di criminalita' organizzata))</nakn:text>
+                        </new>
+                    </textualMod>
+                    <textualMod eId="pmod_2" type="insertion">
+                        <source href="#"/>
+                        <destination href="#ins_3"/>
+                        <new>
+                            <nakn:text>((1. Nei procedimenti per l'applicazione di una misura di prevenzione, le disposizioni dell'articolo 1 non si applicano quando sia stata provvisoriamente disposta una misura personale o interdittiva o sia stato disposto il sequestro dei beni, qualora gli interessati o i loro difensori espressamente rinunzino alla sospensione dei termini, ovvero il giudice, a richiesta del pubblico ministero, dichiari, con ordinanza motivata non impugnabile, l'urgenza del procedimento))</nakn:text>
+                        </new>
+                    </textualMod>
+                </passiveModifications>
+            </analysis>
+            <references source="">
+                <original eId="ro1" href="/akn/it/act/LEGGE/stato/1969-10-07/742/!main" showAs=""/>
+                <passiveRef eId="rp1" href="" showAs=""/>
+                <passiveRef eId="rp2" href="" showAs=""/>
+                <passiveRef eId="rp3" href="" showAs=""/>
+                <passiveRef eId="rp4" href="" showAs=""/>
+                <passiveRef eId="rp5" href="/akn/it/act/LEGGE/stato/1990-03-19/55/!main" showAs=""/>
+                <passiveRef eId="rp6" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/1990-07-20/193/!main" showAs=""/>
+                <passiveRef eId="rp7" href="/akn/it/act/DECRETO-LEGGE/stato/1992-06-08/306/!main" showAs=""/>
+                <passiveRef eId="rp8" href="" showAs=""/>
+                <passiveRef eId="rp9" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2009-12-01/179/!main" showAs=""/>
+                <passiveRef eId="rp10" href="/akn/it/act/DECRETO-LEGGE/stato/2014-09-12/132/!main" showAs=""/>
+                <passiveRef eId="rp11" href="/akn/it/act/DECRETO-LEGGE/stato/2015-06-27/83/!main" showAs=""/>
+                <passiveRef eId="C.377" href="/akn/it/camera-it:parlamento:scheda.progetto.legge:camera;5.legislatura;377" showAs=""/>
+                <passiveRef eId="S.716" href="/akn/it/l" showAs=""/>
+            </references>
+            <proprietary source="">
+                <rdf:RDF>
+                    <rdf:Description rdf:about="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821">
+                        <rdf:type rdf:resource="eli:LegalResource"/>
+                        <eli:title xml:lang="it">Sospensione dei termini processuali nel periodo feriale. </eli:title>
+                        <eli:uri_schema>http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}</eli:uri_schema>
+                        <eli:id_local>069U0742</eli:id_local>
+                        <eli:type_document rdf:resource="gu:tables/resource-type#LEGGE"/>
+                        <eli:date_document rdf:datatype="xsd:date">1969-10-07</eli:date_document>
+                        <eli:version rdf:resource="gu:tables/versions#ORIGINAL"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821/ita">
+                        <rdf:type rdf:resource="eli:LegalExpression"/>
+                        <eli:realizes rdf:resource="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821"/>
+                        <eli:is_embodied_by rdf:resource="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821/ita/akn"/>
+                        <eli:language rdf:resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                        <eli:publisher_agent rdf:resource="http://www.ipzs.it"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/1969/11/06/069U0742/CONSOLIDATED/20150821/ita/akn">
+                        <rdf:type rdf:resource="eli:format"/>
+                        <eli:format rdf:resource="http://www.iana.org/assignments/media-types/xml"/>
+                    </rdf:Description>
+                </rdf:RDF>
+            </proprietary>
+        </meta>
+        <preface>
+            <p>
+                <docType>LEGGE</docType>
+                <docDate date="1969-10-07">07 ottobre 1969</docDate>
+                <docNumber>742</docNumber>
+                <docTitle>Sospensione dei termini processuali nel periodo feriale.
+</docTitle>
+            </p>
+        </preface>
+        <preamble>
+            <formula name="primaDiFormulaInizialePreambolo">
+                <p>La Camera dei deputati ed il Senato della Repubblica hanno approvato;</p>
+            </formula>
+            <formula name="formulaInizialePreambolo">
+                <p>IL PRESIDENTE DELLA REPUBBLICA</p>
+            </formula>
+            <formula name="formulaFinalePreambolo">
+                <p>PROMULGA la seguente legge:</p>
+            </formula>
+        </preamble>
+        <body>
+            <article eId="art_1">
+                <num>Art. 1.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ 
+ Il decorso dei termini processuali relativi alle giurisdizioni ordinarie ed a quelle amministrative e' sospeso di diritto dal 1º al 31 agosto di ciascun anno, e riprende a decorrere dalla fine del periodo di sospensione. Ove il decorso abbia inizio durante il periodo di sospensione, l'inizio stesso e' differito alla fine di detto periodo. (6) <ins eId="ins_1">((10))</ins> 
+ La stessa disposizione si applica per il termine stabilito dall'<ref eId="content__ref_1" href="/akn/it/act/codice.procedura.penale/presidente.repubblica/1988-09-22/447/!main#art_201">articolo 201 del codice di procedura penale</ref>. (1) (2) (3) (4) (5) 
+ 
+</p>
+                    </content>
+                </paragraph>
+                <paragraph>
+                    <content>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (1)</p>
+                        <p>
+ La Corte Costituzionale, con sentenza del 7 - 13 febbraio 1985, n. 40 (in G.U. 1a s.s. 20/02/1985, n. 44), ha dichiarato "l'illegittimita' costituzionale dell'<ref eId="2" href="/akn/it/act/legge/stato/1969-10-07/742/!main#art_1">art. 1 l. 7 ottobre 1969, n. 742</ref> (Sospensione dei termini processuali nel periodo feriale) nella parte in cui non dispone che la sospensione ivi prevista si applica anche al termine di cui all'<ref eId="3" href="/akn/it/act/legge/stato/1865-06-25/2359/!main#art_51-com1">art. 51, commi primo</ref> e <ref eId="4" href="/akn/it/act/legge/stato/1865-06-25/2359/!main#art_51-com2">secondo, l. 25 giugno 1865, n. 2359</ref>". </p>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (2)</p>
+                        <p>
+ La Corte Costituzionale, con sentenza del 22 maggio-13 luglio 1987, n. 255 (in G.U. 1a s.s. 15/07/1987, n. 29), ha dichiarato "l'illegittimita' costituzionale dell'<ref eId="5" href="/akn/it/act/legge/stato/1969-10-07/742/!main#art_1">art. 1 della legge 7 ottobre 1969, n. 742</ref> ("Sospensione dei termini processuali in periodo feriale") nella parte in cui non dispone che la sospensione ivi prevista si applichi anche al termine di cui all'<ref eId="6" href="/akn/it/act/legge/stato/1971-10-22/865/!main#art_19-com1">art. 19, comma primo, della legge 22 ottobre 1971, n. 865</ref> ("Programmi e coordinamento dell'edilizia residenziale pubblica; norme sull'espropriazione per pubblica utilita'; modifiche ed integrazioni alle <ref eId="7" href="/akn/it/act/legge/stato/1964-09-29/847/!main">leggi 17 agosto 1942, n. 1150; 18 aprile 1962, n. 167; 29 settembre 1964, n. 847</ref>; ed autorizzazione di spesa per interventi straordinari nel settore dell'edilizia residenziale, agevolata e convenzionata") nel testo sostituito dall'<ref eId="8" href="/akn/it/act/legge/stato/1977-01-28/10/!main#art_14">art. 14 della legge 28 gennaio 1977, n. 10</ref> ("Norme per la edificabilita' dei suoli")". </p>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (3)</p>
+                        <p>
+ La Corte Costituzionale, con sentenza del 22 maggio-23 luglio 1987, n. 278 (in G.U. 1a s.s. 29/07/1987, n. 31), ha dichiarato "l'illegittimita' costituzionale, in riferimento all'<ref eId="9" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_3-com1">art. 3, primo comma, Cost.</ref>, dell'<ref eId="10" href="/akn/it/act/legge/stato/1969-10-07/742/!main#art_1">art. 1 della legge 7 ottobre 1969, n. 742</ref>, nella parte in cui non prevede la sospensione dei termini processuali, nel periodo feriale, relativamente ai processi militari in tempo di pace". </p>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (4)</p>
+                        <p>
+ La Corte Costituzionale, con sentenza del 31 gennaio-2 febbraio 1990, n. 49 (in G.U. 1a s.s. 07/02/1990, n. 6), ha dichiarato "l'illegittimita' costituzionale dell'<ref eId="11" href="/akn/it/act/legge/stato/1969-10-07/742/!main#art_1">art. 1 della legge 7 ottobre 1969, n. 742</ref> (Sospensione dei termini processuali nel periodo feriale) nella parte in cui non dispone che la sospensione ivi prevista si applichi anche al termine di trenta giorni, di cui all'<ref eId="12" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main#art_1137">art. 1137 del codice civile</ref>, per l'impugnazione delle delibere dell'assemblea di condominio". </p>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (5)</p>
+                        <p>
+ La Corte Costituzionale, con sentenza del 21 - 29 luglio 1992, n. 380 (in G.U. 1a s.s. 05/08/1992, n. 33), ha dichiarato "l'illegittimita' costituzionale , in relazione agli <ref eId="13" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_3">articoli 3</ref> e <ref eId="14" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_24">24 della Costituzione</ref>, dell'<ref eId="15" href="/akn/it/act/legge/stato/1969-10-07/742/!main#art_1">articolo 1 della legge 7 ottobre 1969, n. 742</ref> (Sospensione dei termini processuali nel periodo feriale), nella parte in cui non dispone che l'istituto della sospensione dei termini si applichi anche a quello stabilito per ricorrere, avverso le delibere dei Consigli provinciali, al Consiglio nazionale degli architetti". </p>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (6)</p>
+                        <p>
+ Il <ref eId="16" href="/akn/it/act/decretoLegge/stato/2014-09-12/132/!main">D.L. 12 settembre 2014, n. 132</ref>, convertito con modificazioni dalla <ref eId="17" href="/akn/it/act/legge/stato/2014-11-10/162/!main">L. 10 novembre 2014, n. 162</ref>, ha disposto (con l'art. 16, comma 3) che la presente modifica acquista efficacia a decorrere dall'anno 2015. </p>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (10)</p>
+                        <p>
+ Il <ref eId="18" href="/akn/it/act/decretoLegge/stato/2015-06-27/83/!main">D.L. 27 giugno 2015, n. 83</ref>, convertito con modificazioni dalla <ref eId="19" href="/akn/it/act/legge/stato/2015-08-06/132/!main">L. 6 agosto 2015, n. 132</ref>, nel modificare l'<ref eId="20" href="/akn/it/act/decretoLegge/stato/2014-09-12/132/!main#art_16-com1">art. 16, comma 1 del D.L. 12 settembre 2014, n. 132</ref>, convertito con modificazioni dalla <ref eId="21" href="/akn/it/act/legge/stato/2014-11-10/162/!main">L. 10 novembre 2014, n. 162</ref>, ha conseguentemente disposto (con l'art. 20, comma 1-ter) che il comma 1 del suddetto articolo si interpreta nel senso che si applica anche al processo davanti ai tribunali amministrativi regionali e al Consiglio di Stato. </p>
+                    </content>
+                </paragraph>
+            </article>
+            <article eId="art_2">
+                <num>Art. 2.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ In materia penale la sospensione dei termini procedurali, compresi quelli stabiliti per la fase delle indagini preliminari, non opera nei procedimenti relativi ad imputati in stato di custodia cautelare, qualora essi o i loro difensori rinunzino alla sospensione dei termini.
+ <ins eId="ins_2">((La sospensione dei termini delle indagini preliminari di cui al primo comma non opera nei procedimenti per reati di criminalita' organizzata))</ins>.
+ Nei procedimenti per reati la cui prescrizione maturi durante la sospensione o nei successivi quarantacinque giorni, ovvero nelle ipotesi in cui durante il medesimo periodo scadano o siano prossimi a scadere i termini della custodia cautelare, il giudice che procede pronuncia, anche di ufficio, ordinanza non impugnabile con la quale e' specificamente motivata e dichiarata l'urgenza del processo. In tal caso i termini processuali decorrono, anche nel periodo feriale, dalla data di notificazione dell'ordinanza. Nel corso delle indagini preliminari l'urgenza e' dichiarata nella stessa forma dal giudice su richiesta del pubblico ministero.
+ Nel corso delle indagini preliminari, quando occorre procedere con la massima urgenza nel periodo feriale al compimento di atti rispetto ai quali opera la sospensione dei termini stabilita dall'articolo 1, il giudice per le indagini preliminari, su richiesta del pubblico ministero o della persona sottoposta alle indagini o del suo difensore, pronuncia ordinanza nella quale sono specificamente enunciate le ragioni dell'urgenza e la natura degli atti da compiere.
+Allo stesso modo il pubblico ministero provvede con decreto motivato quando deve procedere al compimento degli atti previsti dall'<ref eId="content__ref_22" href="/akn/it/act/codice.procedura.penale/presidente.repubblica/1988-09-22/447/!main#art_360">articolo 360 del codice di procedura penale</ref>.
+ Gli avvisi sono notificati alle parti o ai difensori. Essi devono far menzione dell'ordinanza o del decreto e i termini decorrono dalla data di notificazione.
+ La sospensione dei termini non opera nelle ipotesi previste dall'<ref eId="content__ref_23" href="/akn/it/act/codice.procedura.penale/presidente.repubblica/1988-09-22/447/!main#art_467">articolo 467 del codice di procedura penale</ref>.
+ Quando nel corso del dibattimento si presenta la necessita' di assumere prove nel periodo feriale, si procede a norma dell'<ref eId="content__ref_24" href="/akn/it/act/codice.procedura.penale/presidente.repubblica/1988-09-22/447/!main#art_467">articolo 467 del codice di procedura penale</ref>. Se le prove non sono state gia' ammesse, il giudice, nella prima udienza successiva, provvede a norma dell'articolo 495 dello stesso codice; le prove dichiarate inammissibili non possono essere utilizzate.
+</p>
+                    </content>
+                </paragraph>
+            </article>
+            <article eId="art_2-bis">
+                <num>Art. 2-bis.</num>
+                <heading/>
+                <paragraph>
+                    <content/>
+                </paragraph>
+            </article>
+            <article eId="art_3">
+                <num>Art. 3.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ In materia civile, l'articolo 1 non si applica alle cause ed ai procedimenti indicati nell'articolo 92 dell'ordinamento giudiziario 30 gennaio 1941, n. 12, nonche' alle controversie previste dagli <ref eId="content__ref_25" href="/akn/it/act/codice.procedura.civile/stato/1940-10-28/1443/!main#art_429">articoli 429</ref> e <ref eId="content__ref_26" href="/akn/it/act/codice.procedura.civile/stato/1940-10-28/1443/!main#art_459">459 del codice di procedura civile</ref>.
+</p>
+                    </content>
+                </paragraph>
+            </article>
+            <article eId="art_4">
+                <num>Art. 4.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ Le norme degli articoli 2 e 3 si applicano alle cause prevedute dagli articoli 91 e 92 dell'ordinamento giudiziario di competenza del pretore e, per quelle indicate dall'articolo 92, anche a quelle di competenza del conciliatore.
+</p>
+                    </content>
+                </paragraph>
+            </article>
+            <article eId="art_5">
+                <num>Art. 5.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ In materia amministrativa, l'articolo 1 non si applica nel procedimento per la sospensione della esecuzione del provvedimento impugnato.
+</p>
+                    </content>
+                </paragraph>
+            </article>
+            <article eId="art_6">
+                <num>Art. 6.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ 
+ La presente legge entra in vigore il giorno stesso della sua pubblicazione nella Gazzetta Ufficiale. 
+ 
+ </p>
+                    </content>
+                </paragraph>
+            </article>
+        </body>
+        <conclusions>
+            <formula name="formulaFinaleConclusioni">
+                <p>La presente legge, munita del sigillo dello Stato, sara' inserta nella Raccolta ufficiale delle leggi e dei decreti della Repubblica italiana. E' fatto obbligo a chiunque spetti di osservarla e di farla osservare come legge dello Stato. </p>
+            </formula>
+            <p> Data a Roma, addi' 7 ottobre 1969 </p>
+            <p>SARAGAT RUMOR - GAVA Visto, il Guardasigilli: GAVA</p>
+        </conclusions>
+    </act>
+</akomaNtoso>

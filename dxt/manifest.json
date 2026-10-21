@@ -14,7 +14,7 @@
     "url": "https://github.com/capazme/mcp-legal-it.git"
   },
   "homepage": "https://github.com/capazme/mcp-legal-it",
-  "license": "Apache-2.0",
+  "license": "MPL-2.0",
   "server": {
     "type": "python",
     "entry_point": "server/run_server.py",
@@ -22,6 +22,7 @@
       "command": "uv",
       "args": [
         "run",
+        "--no-project",
         "--python",
         "3.12",
         "--with",
@@ -40,6 +41,8 @@
         "openpyxl>=3.1",
         "--with",
         "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+        "--with",
+        "cryptography>=50; sys_platform != 'darwin' or platform_machine != 'x86_64'",
         "${__dirname}/server/run_server.py"
       ]
     }

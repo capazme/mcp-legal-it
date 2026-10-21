@@ -49,7 +49,7 @@ def _setup_page(page):
 class TestParcellaCivileComparison:
 
     def test_scaglione_26000_medio(self, page):
-        """Scaglione 5201-26000 medio — our most common test case."""
+        """Scaglione 5201-26000 medio - our most common test case."""
         _setup_page(page)
         site = _get_site_values(page, "30", "2")
         ours = _our_parcella(15000, "medio")  # 15000 falls in 5201-26000

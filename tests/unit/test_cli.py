@@ -60,7 +60,9 @@ async def test_uv_run_entry_point_handshake():
     transport = StdioTransport("uv", ["run", "--project", ".", "mcp-legal-it"],
                                env={"LEGAL_PROFILE": "normativa", "MCP_TRANSPORT": "stdio"})
     async with Client(transport, timeout=120) as client:
-        info = client.initialize_result.serverInfo
+        # FastMCP 4.1+ negotiates the modern protocol (server/discover), where
+        # initialize_result is None: server_info is the era-neutral accessor.
+        info = getattr(client, "server_info", None) or client.initialize_result.serverInfo
         assert info.version == cli.package_version()
         names = {t.name for t in await client.list_tools()}
         assert {"cite_law", "verifica_citazioni"} <= names

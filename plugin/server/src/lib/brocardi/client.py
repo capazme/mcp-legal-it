@@ -14,6 +14,7 @@ Extracts from each article page:
 - Articoli correlati (precedente/successivo)
 """
 
+import copy
 import json
 import re
 from dataclasses import dataclass, field
@@ -129,6 +130,7 @@ class BrocardiResult:
 
     url: str = ""
     position: str = ""
+    rubrica: str = ""
     dispositivo: str = ""
     brocardi: list[str] = field(default_factory=list)
     ratio: str = ""
@@ -156,6 +158,9 @@ class BrocardiResult:
 
         if self.position:
             parts.append(f"**Posizione**: {self.position}\n")
+
+        if self.rubrica:
+            parts.append(f"**Rubrica**: {self.rubrica}\n")
 
         if self.dispositivo:
             parts.append(f"## Testo dell'articolo\n{self.dispositivo}\n")
@@ -378,6 +383,7 @@ def _extract_all_sections(soup: BeautifulSoup, result: BrocardiResult) -> None:
         if not corpo:
             return
 
+    _extract_rubrica(soup, result)
     _extract_dispositivo(soup, result)
     _extract_brocardi_adagi(corpo, result)
     _extract_ratio(corpo, result)
@@ -390,20 +396,57 @@ def _extract_all_sections(soup: BeautifulSoup, result: BrocardiResult) -> None:
     _extract_related_articles(soup, result)
 
 
+def _text_without_note_refs(node: Tag) -> str:
+    """Text of a node without the footnote calls "(1)", "(2)" ... of Brocardi.
+
+    The calls are ``<sup><a class="nota-ref">``; they are dropped from a COPY of the node
+    (the footnote extractor still needs them in the page), and the notes themselves are
+    reported in the "Note" section.
+    """
+    clone = copy.copy(node)
+    for sup in clone.find_all("sup"):
+        if sup.find("a", class_="nota-ref"):
+            sup.decompose()
+    return _clean_text(clone.get_text())
+
+
+def _extract_rubrica(soup: BeautifulSoup, result: BrocardiResult) -> None:
+    """Extract the heading (rubrica) of the article, e.g. "Risarcimento per fatto illecito".
+
+    On the article page it is the ``<h3 class="hbox-content">`` under the title block (the
+    ``<h2 class="hbox-header">`` next to the h1 holds the act's estremi, not the rubrica).
+    """
+    for h3 in soup.find_all("h3", class_="hbox-content"):
+        text = _clean_text(h3.get_text())
+        if text:
+            result.rubrica = text
+            return
+
+
 def _extract_dispositivo(soup: BeautifulSoup, result: BrocardiResult) -> None:
-    """Extract the article text from the #dispositivo tab section."""
-    # The dispositivo is in a div targeted by the #dispositivo anchor
-    disp = soup.find("div", id="dispositivo")
-    if disp:
-        text = _clean_text(disp.get_text())
+    """Extract the article text (the "Dispositivo" tab of the page).
+
+    Brocardi marks the block ``<div class="corpoDelTesto dispositivo">`` with no id (the
+    ``#dispositivo`` anchor is an ``<a name>``); the id lookup is kept as a fallback for the
+    older markup.
+    """
+    disp = soup.select_one("div.corpoDelTesto.dispositivo") or soup.find("div", class_="dispositivo")
+    if disp is not None:
+        text = _text_without_note_refs(disp)
         if text:
             result.dispositivo = text
             return
-    # Fallback: look for the corpoDelTesto inside the dispositivo area
+    # Older markup: a div with id="dispositivo", or a corpoDelTesto inside one.
+    disp = soup.find("div", id="dispositivo")
+    if disp:
+        text = _text_without_note_refs(disp)
+        if text:
+            result.dispositivo = text
+            return
     for div in soup.find_all("div", class_="corpoDelTesto"):
         parent = div.find_parent("div", id="dispositivo")
         if parent:
-            result.dispositivo = _clean_text(div.get_text())
+            result.dispositivo = _text_without_note_refs(div)
             return
 
 

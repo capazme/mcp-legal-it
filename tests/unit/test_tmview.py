@@ -12,6 +12,7 @@ from src.lib.tmview.client import (
     STATI,
     STATO_LABELS_IT,
     TMviewBlockedError,
+    TMviewNotFoundError,
     TrademarkDetail,
     TrademarkResult,
     _build_search_payload,
@@ -420,6 +421,68 @@ class TestFetchTrademark:
         # only the warm-up GET happened, no detail request
         assert mock_client.get.await_count == 1
 
+    @staticmethod
+    def _status_response(status, payload=None):
+        """A real httpx.Response, so that raise_for_status() raises HTTPStatusError."""
+        request = httpx.Request("GET", "https://www.tmdn.org/tmview/api/trademark/detail/X")
+        if payload is None:
+            return httpx.Response(status, text="Bad gateway", request=request)
+        return httpx.Response(status, json=payload, request=request)
+
+    @pytest.mark.asyncio
+    async def test_unknown_st13_is_not_found_and_not_retried(self):
+        """Unknown ST13: TMview answers HTTP 500 {"message": "Can't get trademark/design detail..."}
+        (verified live 2026-09-25/28). That is a reply, not an outage: no retry (the WAF counts
+        every hit) and a dedicated error instead of the generic 5xx one."""
+        no_record = self._status_response(
+            500, {"message": "Can't get trademark/design detail from resource url:{}"}
+        )
+        mock_client = _mock_http_client()
+        mock_client.get = AsyncMock(side_effect=[_json_response({}), no_record])
+        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.tmview.client._MIN_INTERVAL", 0):
+            with pytest.raises(TMviewNotFoundError):
+                await fetch_trademark("IT500000000000000")
+        # warm-up GET + exactly one detail GET (before: 1 + 3)
+        assert mock_client.get.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_generic_5xx_is_still_retried_then_raised(self):
+        """A 5xx without the "no record" body is a plain outage: retried, then re-raised."""
+        outage = self._status_response(503)
+        mock_client = _mock_http_client()
+        mock_client.get = AsyncMock(side_effect=[_json_response({}), outage, outage, outage])
+        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.tmview.client._MIN_INTERVAL", 0), \
+             patch("src.lib.tmview.client.asyncio.sleep", AsyncMock()):
+            with pytest.raises(httpx.HTTPStatusError):
+                await fetch_trademark("IT502013902128590")
+        assert mock_client.get.await_count == 4
+
+    @pytest.mark.asyncio
+    async def test_transient_5xx_then_success(self):
+        outage = self._status_response(502)
+        mock_client = _mock_http_client()
+        mock_client.get = AsyncMock(
+            side_effect=[_json_response({}), outage, _json_response(_DETAIL_RESPONSE)]
+        )
+        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.tmview.client._MIN_INTERVAL", 0), \
+             patch("src.lib.tmview.client.asyncio.sleep", AsyncMock()):
+            detail = await fetch_trademark("IT502013902128590")
+        assert detail.name == "FUORICORSO"
+
+    @pytest.mark.asyncio
+    async def test_500_with_other_body_is_not_a_not_found(self):
+        other = self._status_response(500, {"message": "Internal error"})
+        mock_client = _mock_http_client()
+        mock_client.get = AsyncMock(side_effect=[_json_response({}), other, other, other])
+        with patch("src.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("src.lib.tmview.client._MIN_INTERVAL", 0), \
+             patch("src.lib.tmview.client.asyncio.sleep", AsyncMock()):
+            with pytest.raises(httpx.HTTPStatusError):
+                await fetch_trademark("IT502013902128590")
+
 
 # ---------------------------------------------------------------------------
 # Tool impl functions (client functions patched)
@@ -509,6 +572,24 @@ class TestLeggiMarchioImpl:
             result = await _leggi_marchio_impl("IT502013902128590")
         assert result.success is False
         assert result.error_type == "source_down"
+
+    @pytest.mark.asyncio
+    async def test_unknown_st13_is_no_results_not_source_down(self):
+        """TMview replied (HTTP 500 "Can't get trademark/design detail"): the source is
+        reachable, so the answer is 'no record returned', worded so as not to claim that
+        the mark does not exist (the same reply also covers a momentary office outage)."""
+        with patch(
+            "src.tools.tmview.fetch_trademark",
+            AsyncMock(side_effect=TMviewNotFoundError("IT500000000000000")),
+        ):
+            result = await _leggi_marchio_impl(" IT500000000000000 ")
+        assert result.success is False
+        assert result.error_type == "no_results"
+        text = result.to_str()
+        assert "non raggiungibile" not in text
+        assert "Nessuna scheda restituita da TMview per ST13 `IT500000000000000`" in text
+        assert "inesistente o scheda dell'ufficio d'origine momentaneamente non disponibile" in text
+        assert "cerca_marchi()" in text
 
 
 class TestVerificaAnterioritaImpl:

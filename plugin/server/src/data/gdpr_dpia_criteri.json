@@ -1,7 +1,9 @@
 {
   "_vintage": {
-    "fonte": "linee guida WP248 rev.01 e lista del Garante italiano",
-    "verifica": "manuale"
+    "aggiornato_al": "2026-09-29",
+    "fonte": "art. 35 Reg. UE 2016/679; WP248 rev.01; Garante privacy, provv. n. 467 dell'11/10/2018 e Allegato 1 (doc. web 9058979, 9059358), GU n. 269 del 19/11/2018; chiarimento interpretativo del Garante",
+    "verifica": "manuale",
+    "nota": "nove criteri e soglia dal provv. 467/2018; le dodici voci dell'elenco ex art. 35(4) trascritte alla lettera dall'Allegato 1 (PDF del Garante, letto il 29/09/2026); le esenzioni dall'art. 35(1), (5), (10) e (11); il tool legge come 'larga scala' i trattamenti 'non occasionali' e 'sistematici' delle voci 6, 11 e 12, come nel chiarimento del Garante"
   },
   "criteri_wp248": [
     {
@@ -62,27 +64,28 @@
   "soglia_criteri": 2,
   "nota_soglia": "Se il trattamento soddisfa almeno 2 dei 9 criteri, la DPIA è generalmente necessaria (WP248 rev.01, par. III.C)",
   "lista_garante_italiano": [
-    "Trattamenti valutativi o di scoring su larga scala",
-    "Trattamenti automatizzati con effetto giuridico significativo",
-    "Monitoraggio sistematico su larga scala (videosorveglianza, geolocalizzazione)",
-    "Trattamento su larga scala di dati ex art. 9 o 10 GDPR",
-    "Trattamento sistematico di dati biometrici",
-    "Trattamento sistematico di dati genetici",
-    "Trattamento su larga scala di dati di localizzazione",
-    "Trattamento di dati di soggetti vulnerabili (minori, dipendenti, pazienti)",
-    "Utilizzo di tecnologie innovative per il trattamento di dati personali",
-    "Trattamenti che comportano scambio tra diversi titolari su larga scala",
-    "Trattamenti di dati personali tramite interconnessione di banche dati",
-    "Trattamenti sistematici di dati biometrici di dipendenti"
+    "1. Trattamenti valutativi o di scoring su larga scala, nonché trattamenti che comportano la profilazione degli interessati nonché lo svolgimento di attività predittive effettuate anche on-line o attraverso app, relativi ad “aspetti riguardanti il rendimento professionale, la situazione economica, la salute, le preferenze o gli interessi personali, l'affidabilità o il comportamento, l'ubicazione o gli spostamenti dell'interessato”.",
+    "2. Trattamenti automatizzati finalizzati ad assumere decisioni che producono “effetti giuridici” oppure che incidono “in modo analogo significativamente” sull’interessato, comprese le decisioni che impediscono di esercitare un diritto o di avvalersi di un bene o di un servizio o di continuare ad esser parte di un contratto in essere (ad es. screening dei clienti di una banca attraverso l’utilizzo di dati registrati in una centrale rischi).",
+    "3. Trattamenti che prevedono un utilizzo sistematico di dati per l’osservazione, il monitoraggio o il controllo degli interessati, compresa la raccolta di dati attraverso reti, effettuati anche on-line o attraverso app, nonché il trattamento di identificativi univoci in grado di identificare gli utenti di servizi della società dell’informazione inclusi servizi web, tv interattiva, ecc. rispetto alle abitudini d’uso e ai dati di visione per periodi prolungati. Rientrano in tale previsione anche i trattamenti di metadati ad es. in ambito telecomunicazioni, banche, ecc. effettuati non soltanto per profilazione, ma più in generale per ragioni organizzative, di previsioni di budget, di upgrade tecnologico, miglioramento reti, offerta di servizi antifrode, antispam, sicurezza etc.",
+    "4. Trattamenti su larga scala di dati aventi carattere estremamente personale (v. WP 248, rev. 01): si fa riferimento, fra gli altri, ai dati connessi alla vita familiare o privata (quali i dati relativi alle comunicazioni elettroniche dei quali occorre tutelare la riservatezza), o che incidono sull’esercizio di un diritto fondamentale (quali i dati sull’ubicazione, la cui raccolta mette in gioco la libertà di circolazione) oppure la cui violazione comporta un grave impatto sulla vita quotidiana dell’interessato (quali i dati finanziari che potrebbero essere utilizzati per commettere frodi in materia di pagamenti).",
+    "5. Trattamenti effettuati nell’ambito del rapporto di lavoro mediante sistemi tecnologici (anche con riguardo ai sistemi di videosorveglianza e di geolocalizzazione) dai quali derivi la possibilità di effettuare un controllo a distanza dell’attività dei dipendenti (si veda quanto stabilito dal WP 248, rev. 01, in relazione ai criteri nn. 3, 7 e 8).",
+    "6. Trattamenti non occasionali di dati relativi a soggetti vulnerabili (minori, disabili, anziani, infermi di mente, pazienti, richiedenti asilo).",
+    "7. Trattamenti effettuati attraverso l’uso di tecnologie innovative, anche con particolari misure di carattere organizzativo (es. IoT; sistemi di intelligenza artificiale; utilizzo di assistenti vocali on-line attraverso lo scanning vocale e testuale; monitoraggi effettuati da dispositivi wearable; tracciamenti di prossimità come ad es. il wi-fi tracking) ogniqualvolta ricorra anche almeno un altro dei criteri individuati nel WP 248, rev. 01.",
+    "8. Trattamenti che comportano lo scambio tra diversi titolari di dati su larga scala con modalità telematiche.",
+    "9. Trattamenti di dati personali effettuati mediante interconnessione, combinazione o raffronto di informazioni, compresi i trattamenti che prevedono l’incrocio dei dati di consumo di beni digitali con dati di pagamento (es. mobile payment).",
+    "10. Trattamenti di categorie particolari di dati ai sensi dell’art. 9 oppure di dati relativi a condanne penali e a reati di cui all’art. 10 interconnessi con altri dati personali raccolti per finalità diverse.",
+    "11. Trattamenti sistematici di dati biometrici, tenendo conto, in particolare, del volume dei dati, della durata, ovvero della persistenza, dell’attività di trattamento.",
+    "12. Trattamenti sistematici di dati genetici, tenendo conto, in particolare, del volume dei dati, della durata, ovvero della persistenza, dell’attività di trattamento."
   ],
   "esenzioni_dpia": [
-    "Trattamento necessario per obblighi legali con base giuridica specifica",
-    "Trattamento già sottoposto a DPIA con esito positivo senza modifiche",
-    "Trattamento inserito nell'elenco delle esenzioni dell'autorità di controllo"
+    "Art. 35(1): la valutazione d'impatto è richiesta quando il trattamento può presentare un rischio elevato per i diritti e le libertà delle persone fisiche",
+    "Art. 35(10): trattamento ex art. 6(1), lett. c) o e), che trova la base giuridica nel diritto dell'Unione o dello Stato membro, quando tale diritto disciplina il trattamento specifico o l'insieme di trattamenti e una valutazione d'impatto è già stata effettuata nell'ambito di una valutazione d'impatto generale nel contesto dell'adozione di tale base giuridica, salvo che lo Stato membro ritenga necessario effettuarla prima del trattamento",
+    "Art. 35(1), ultimo periodo, e art. 35(11): una singola valutazione può esaminare un insieme di trattamenti simili che presentano rischi elevati analoghi, con riesame quando insorgono variazioni del rischio",
+    "Art. 35(5): tipologie di trattamento inserite nell'eventuale elenco pubblicato dall'autorità di controllo per le quali non è richiesta una valutazione d'impatto"
   ],
   "riferimenti_normativi": {
     "gdpr": "Art. 35 Reg. UE 2016/679",
     "wp248": "WP248 rev.01 — Linee guida sulla valutazione d'impatto (DPIA)",
-    "garante": "Elenco delle tipologie di trattamenti soggetti a DPIA — Provvedimento Garante 11/10/2018 [doc. web 9058979]"
+    "garante": "Elenco delle tipologie di trattamenti soggetti a DPIA (art. 35(4)) — Provvedimento Garante n. 467 dell'11/10/2018 [doc. web 9058979], Allegato 1 [doc. web 9059358], GU n. 269 del 19/11/2018"
   }
 }

@@ -40,7 +40,12 @@ _UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/126 Safari/537.36"
 )
-_PATH_LEGALE = re.compile(r"/(legal|privacy|dpa|gdpr|trust|termini|condizioni)", re.I)
+#: Suppliers with a localised site serve the translation matching the caller's IP when no
+#: language is sent (Stripe: /legal/dpa becomes /it/legal/dpa from Italy), so the outcome
+#: would depend on where the server runs. SaaS suppliers publish the DPA in English as the
+#: reference text, and the judge also knows the Italian titles: ask for English, be fixed.
+_ACCEPT_LANGUAGE = "en-US,en;q=0.9"
+_PATH_LEGALE =re.compile(r"/(legal|privacy|dpa|gdpr|trust|termini|condizioni)", re.I)
 
 
 @dataclass
@@ -170,7 +175,7 @@ async def _sonda_dominio(dominio: str) -> EsitoSonda:
     if motivo:
         return EsitoSonda(VERDETTO_IRRAGGIUNGIBILE, errore=motivo)
     base = f"https://{host}"
-    headers = {"User-Agent": _UA}
+    headers = {"User-Agent": _UA, "Accept-Language": _ACCEPT_LANGUAGE}
 
     async with httpx.AsyncClient(
         timeout=_TIMEOUT,

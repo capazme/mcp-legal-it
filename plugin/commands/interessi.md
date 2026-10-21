@@ -2,7 +2,7 @@
 name: interessi
 description: Calcola interessi legali o di mora su un importo
 argument-hint: "[importo data_inizio data_fine tipo(legale|mora)]"
-allowed-tools: mcp__legal-it__interessi_legali, mcp__legal-it__interessi_mora, mcp__legal-it__rivalutazione_monetaria
+allowed-tools: mcp__legal-it__interessi_legali, mcp__plugin_legal-it_legal-it__interessi_legali, mcp__legal-it__interessi_mora, mcp__plugin_legal-it_legal-it__interessi_mora, mcp__legal-it__rivalutazione_monetaria, mcp__plugin_legal-it_legal-it__rivalutazione_monetaria
 ---
 
 Chiedi all'utente (se non ha gia specificato): importo (capitale), data inizio decorrenza (data_inizio), data fine/calcolo (data_fine), tipo (legale o mora commerciale).

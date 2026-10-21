@@ -17,11 +17,15 @@ from src.lib.italgiure.client import (
     CONFLICT_SIGNALS,
     CONFORMITY_SIGNALS,
     build_orientamento_params,
+    group_signal_facet_query,
 )
 from src.tools.orientamento import (
+    _ARCHIVE_NOTE,
     _DISCLAIMER,
+    _PRINCIPIO_MM,
     _cluster_by_sezione,
     _doc_key,
+    _format_signal_block,
     _mappa_orientamento_impl,
     _orientamento_su_norma_impl,
     _orientamento_su_principio_impl,
@@ -61,12 +65,15 @@ _SS_UU_DOC = {
 }
 
 # facet.query keys are the literal Solr query strings the helper emits.
+# The group keys carry the DISTINCT decisions (one OR query per group): 12 + 3 = 15 phrase hits
+# but 14 decisions (one uses both expressions); 40 + 18 = 58 hits but 55 decisions.
 _FACET_QUERIES = {
     f'ocr:"{CONFLICT_SIGNALS[0]}"': 12,
     f'ocr:"{CONFLICT_SIGNALS[1]}"': 3,
-    f'ocr:"{CONFLICT_SIGNALS[2]}"': 5,
     f'ocr:"{CONFORMITY_SIGNALS[0]}"': 40,
     f'ocr:"{CONFORMITY_SIGNALS[1]}"': 18,
+    group_signal_facet_query(CONFLICT_SIGNALS): 14,
+    group_signal_facet_query(CONFORMITY_SIGNALS): 55,
 }
 
 _FACET_FIELDS = {
@@ -175,15 +182,18 @@ class TestBuildOrientamentoParams:
         assert 'ocr:("art. 2043"' in p["q"]
         assert p["sort"] == "pd desc"
         # facet.query still present in field-query mode (faceting is defType-independent)
-        assert len(p["facet.query"]) == len(CONFLICT_SIGNALS) + len(CONFORMITY_SIGNALS)
+        assert len(p["facet.query"]) == len(CONFLICT_SIGNALS) + len(CONFORMITY_SIGNALS) + 2
 
     def test_facet_query_emits_all_signals_in_one_request(self):
         p = build_orientamento_params("responsabilita")
         fq = p["facet.query"]
-        # ALL conflict + conformity signals must be present in the SAME request
+        # ALL conflict + conformity signals must be present in the SAME request,
+        # plus one OR query per group for the DISTINCT decision count
         for phrase in CONFLICT_SIGNALS + CONFORMITY_SIGNALS:
             assert f'ocr:"{phrase}"' in fq
-        assert len(fq) == len(CONFLICT_SIGNALS) + len(CONFORMITY_SIGNALS)
+        assert group_signal_facet_query(CONFLICT_SIGNALS) in fq
+        assert group_signal_facet_query(CONFORMITY_SIGNALS) in fq
+        assert len(fq) == len(CONFLICT_SIGNALS) + len(CONFORMITY_SIGNALS) + 2
 
     def test_sezioni_unite_uses_szdec_U_not_SU(self):
         p = build_orientamento_params("x", sezione="U")
@@ -315,9 +325,10 @@ class TestOrientamentoSuNorma:
         # The self-flag signal phrases must surface with their counts
         assert CONFLICT_SIGNALS[0] in text
         assert CONFORMITY_SIGNALS[0] in text
-        # Conflict total = 12+3+5 = 20 ; conformity total = 40+18 = 58
-        assert "(20)" in text
-        assert "(58)" in text
+        # Totals are DISTINCT decisions from the group OR query (14 and 55), not the sums of the
+        # per-phrase hits (15 and 58): a decision using two expressions counts once.
+        assert "contrasto/difformità** (14)" in text
+        assert "consolidato/conforme** (55)" in text
 
     @pytest.mark.asyncio
     async def test_temporal_split_present(self):
@@ -362,7 +373,11 @@ class TestOrientamentoSuNorma:
         query_patch, session_cls, _ = _patch_two_query(_main_response(), _ss_uu_response())
         with query_patch, session_cls:
             result = await _orientamento_su_norma_impl("art. 2043 c.c.")
-        assert "2020" in result.results_text
+        # The archive is a rolling window of about five years (no decision of 2020 exists;
+        # continuous coverage from 27/09/2021, read on Italgiure 2026-09-25).
+        assert _ARCHIVE_NOTE in result.results_text
+        assert "2020" not in result.results_text
+        assert "27/09/2021" in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_results(self):
@@ -486,7 +501,9 @@ class TestMappaOrientamento:
         # Map still produced (fail-open on Brocardi)
         assert result.success is True
         assert "Cluster per sezione" in result.results_text
-        assert "Ancoraggio Brocardi" not in result.results_text
+        # ... and the missing anchor is declared, not silently dropped
+        assert "## Ancoraggio Brocardi" in result.results_text
+        assert "Brocardi non raggiungibile" in result.results_text
 
     @pytest.mark.asyncio
     async def test_no_predictive_phrasing(self):
@@ -514,3 +531,224 @@ async def test_live_orientamento_su_norma():
     result = await _orientamento_su_norma_impl("art. 2043 c.c.", anno_da=2020)
     assert isinstance(result, SearchResult)
     assert _DISCLAIMER in (result.results_text or "")
+
+
+
+# ---------------------------------------------------------------------------
+# Corrections of the italgiure_orientamento benchmark cluster (2026-09-29)
+# ---------------------------------------------------------------------------
+
+def _two_call_capture(main: dict, ss_uu: dict):
+    captured: dict = {"params": []}
+
+    async def mock_solr_query(params, session=None):
+        captured["params"].append(params)
+        return main if len(captured["params"]) == 1 else ss_uu
+
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=cm)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    return (
+        patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query),
+        patch("src.tools.orientamento.SolrSession", return_value=cm),
+        captured,
+    )
+
+
+class TestSegnaliDecisioniDistinte:
+    """The 'SEGNALANO' headers count decisions, not phrase hits.
+
+    Read on Italgiure 2026-09-25 (art. 1419 c.c., civile, dal 2021): conformity 37 as the sum of
+    12 + 25 phrase hits, 33 distinct decisions (4 use both expressions).
+    """
+
+    def test_header_uses_group_query_not_sum(self):
+        text = "\n".join(_format_signal_block(_FACET_QUERIES))
+        assert "contrasto/difformità** (14)" in text  # not 12 + 3
+        assert "consolidato/conforme** (55)" in text  # not 40 + 18
+        # the single expressions keep their own counts
+        assert f"_«{CONFLICT_SIGNALS[0]}»_: 12" in text
+
+    def test_header_falls_back_to_sum_without_group_key(self):
+        legacy = {k: v for k, v in _FACET_QUERIES.items() if k.startswith('ocr:"')}
+        text = "\n".join(_format_signal_block(legacy))
+        assert "contrasto/difformità** (15)" in text
+
+    def test_group_query_is_one_or_over_the_phrases(self):
+        assert group_signal_facet_query(["a b", "c"]) == 'ocr:("a b" OR "c")'
+
+    def test_discostarsi_is_not_a_conflict_signal(self):
+        # Read on Italgiure 2026-09-25: 13 of the 22 decisions on art. 1419 c.c. using
+        # "discostarsi" use the negated formula "non vi sono ragioni per discostarsi", which
+        # declares conformity (65% of the civil archive): it must not be filed as contrasto.
+        assert "discostarsi" not in CONFLICT_SIGNALS
+
+
+class TestOrizzonteArchivio:
+    def test_footer_does_not_claim_2020(self):
+        assert "2020" not in _ARCHIVE_NOTE
+        assert "cinque anni" in _ARCHIVE_NOTE
+
+    def test_disclaimer_quotes_art_15_as_reservation_to_the_magistrate(self):
+        # Art. 15, co. 1, L. 132/2025: with AI used in the judicial activity, every decision
+        # on interpretation, facts and measures is reserved to the magistrate; the text says
+        # nothing about "giustizia predittiva".
+        assert "(art. 15, L. 132/2025)" in _DISCLAIMER
+        assert "riservate al magistrato" in _DISCLAIMER
+        assert "predittiv" not in _DISCLAIMER.lower()
+
+
+class TestDocstringsArt15:
+    def test_wrappers_do_not_attribute_a_ban_to_l_132_2025(self):
+        from src.tools import orientamento as mod
+
+        for name in ("orientamento_su_norma", "orientamento_su_principio", "mappa_orientamento"):
+            tool = getattr(mod, name)
+            doc = (getattr(tool, "fn", tool).__doc__ or "").lower()
+            assert "vietata la giustizia predittiva" not in doc, name
+            assert "non è una previsione (l. 132/2025)" not in doc, name
+            assert "riservat" in doc, name
+
+
+class TestPrincipioPertinenza:
+    """orientamento_su_principio: strict matching and a relevance-ordered SS.UU. block.
+
+    Read on Italgiure 2026-09-29 for 'fideiussione omnibus schema ABI nullità parziale'
+    (civile, dal 2021): with the default mm '2<75% 5<60%' 14 SS.UU. and 1598 decisions, the five
+    most recent SS.UU. shown were unrelated (IVA, IRPEF) and SS.UU. 41994/2021 missing; with
+    mm '3<90%' the SS.UU. are 2 (24825/2026 and 41994/2021) and the total 248.
+    """
+
+    @pytest.mark.asyncio
+    async def test_strict_mm_and_score_sort_for_ss_uu_block(self):
+        qp, sp, captured = _two_call_capture(_main_response(), _ss_uu_response())
+        with qp, sp:
+            await _orientamento_su_principio_impl("fideiussione omnibus schema ABI nullità parziale")
+        main, ss_uu = captured["params"]
+        assert main["mm"] == _PRINCIPIO_MM == "3<90%"
+        assert ss_uu["mm"] == "3<90%"
+        assert ss_uu["sort"] == "score desc"
+        assert "pf" in ss_uu and "pf2" in ss_uu
+        assert any("szdec:U" in f for f in ss_uu["fq"])
+        assert main["sort"] == "pd desc"  # the sample of later decisions stays by date
+
+    @pytest.mark.asyncio
+    async def test_output_declares_total_semantics_and_shows_materia(self):
+        qp, sp, _ = _two_call_capture(_main_response(), _ss_uu_response())
+        with qp, sp:
+            result = await _orientamento_su_principio_impl("fideiussione omnibus schema ABI")
+        text = result.results_text
+        assert "almeno il 90% dei termini" in text
+        assert "per pertinenza al principio" in text
+        assert "— *RIC.CONTRO DECISIONI DI GIUDICI SPECIALI" in text  # materia next to the SS.UU.
+
+    @pytest.mark.asyncio
+    async def test_relaxes_once_when_strict_matching_finds_nothing(self):
+        calls: list = []
+
+        async def mock_solr_query(params, session=None):
+            calls.append(params)
+            if len(calls) <= 2:  # strict main + strict SS.UU.
+                return _empty_response()
+            return _main_response() if len(calls) == 3 else _ss_uu_response()
+
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=cm)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query), \
+             patch("src.tools.orientamento.SolrSession", return_value=cm):
+            result = await _orientamento_su_principio_impl("buona fede oggettiva recesso")
+        assert result.success is True
+        assert len(calls) == 4
+        assert calls[2]["mm"] == "2<75% 5<60%"
+        assert "criteri allargati" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_invalid_sezione_is_rejected_with_valid_codes(self):
+        result = await _orientamento_su_principio_impl("danno biologico", sezione="9")
+        assert result.success is False
+        assert result.error_type == "bad_input"
+        assert "1-7" in result.results_text and "U" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_sezione_su_becomes_u(self):
+        qp, sp, captured = _two_call_capture(_main_response(), _ss_uu_response())
+        with qp, sp:
+            await _orientamento_su_principio_impl("danno biologico", sezione="SU")
+        assert any("szdec:U" in f for f in captured["params"][0]["fq"])
+
+
+class TestOrientamentoSuNormaGdpr:
+    """The norma variants no longer OR the bare 'art. 13' for an act.
+
+    Read on Italgiure 2026-09-29 (civile, anno 2022): bare 'art. 13' / 'articolo 13' 12966
+    decisions (art. 13 co. 1-quater d.P.R. 115/2002), the same with a GDPR marker
+    (2016/679, 679/2016, 679 del 2016, gdpr) anywhere in the decision: 2, none of which cites
+    art. 13 of the Regulation. Since 2021 the proximity phrase 'art. 13 2016/679'~15 finds 7
+    decisions, 5 of them pertinent.
+    """
+
+    @pytest.mark.asyncio
+    async def test_query_for_gdpr_requires_act_markers(self):
+        qp, sp, captured = _two_call_capture(_main_response(), _ss_uu_response())
+        with qp, sp:
+            await _orientamento_su_norma_impl("art. 13 GDPR", archivio="civile", anno_da=2022)
+        q = captured["params"][0]["q"]
+        assert '"art. 13"' not in q and '"articolo 13"' not in q
+        for marker in ("2016/679", "679/2016", "679 del 2016", "gdpr"):
+            assert f'"art. 13 {marker}"~15' in q
+        assert q.count("(kind:") == 1
+
+
+class TestMappaAncoraggio:
+    """mappa_orientamento: the Brocardi anchor is honest about what it is and what it lacks."""
+
+    @staticmethod
+    def _run(massime, resolve=None):
+        async def fake_brocardi(*a, **k):
+            from src.lib.brocardi.client import BrocardiResult
+            return BrocardiResult(url="x", massime=massime)
+
+        qp, sp, _ = _patch_two_query(_main_response(), _ss_uu_response())
+        return qp, sp, patch("src.tools.orientamento.fetch_brocardi", side_effect=fake_brocardi), \
+            patch("src.tools.orientamento.resolve_atto",
+                  return_value=resolve if resolve is not None
+                  else {"tipo_atto": "codice civile", "numero_atto": ""})
+
+    @pytest.mark.asyncio
+    async def test_title_does_not_call_the_massime_consolidate(self):
+        massime = [Massima(autorita="Cass. civ.", numero="31191", anno="2025", testo="x")]
+        qp, sp, bp, rp = self._run(massime)
+        with qp, sp, bp, rp:
+            result = await _mappa_orientamento_impl("art. 2043 c.c.")
+        assert "## Ancoraggio Brocardi\n" in result.results_text
+        assert "massime consolidate" not in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_reports_references_before_the_archive_window(self):
+        # Read on Brocardi 2026-09-25: for art. 2043 c.c. 204 of the 500 Cassazione
+        # references predate 2021 and cannot be read with leggi_sentenza.
+        massime = [
+            Massima(autorita="Cass. civ.", numero="31191", anno="2025", testo="a"),
+            Massima(autorita="Cass. civ.", numero="100", anno="2019", testo="b"),
+            Massima(autorita="Cass. civ.", numero="200", anno="2020", testo="c"),
+        ]
+        qp, sp, bp, rp = self._run(massime)
+        with qp, sp, bp, rp:
+            result = await _mappa_orientamento_impl("art. 2043 c.c.")
+        assert "2 su 3 riferimenti precedono il 2021" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_declares_when_brocardi_has_no_massime(self):
+        qp, sp, bp, rp = self._run([])
+        with qp, sp, bp, rp:
+            result = await _mappa_orientamento_impl("art. 2043 c.c.")
+        assert "Brocardi non riporta massime per art. 2043 c.c." in result.results_text
+        assert "Cluster per sezione" in result.results_text
+
+    @pytest.mark.asyncio
+    async def test_declares_when_the_act_is_not_recognised(self):
+        qp, sp, bp, rp = self._run([], resolve=None)
+        with qp, sp, bp, patch("src.tools.orientamento.resolve_atto", return_value=None):
+            result = await _mappa_orientamento_impl("art. 2043 c.c.")
+        assert "atto non riconosciuto" in result.results_text

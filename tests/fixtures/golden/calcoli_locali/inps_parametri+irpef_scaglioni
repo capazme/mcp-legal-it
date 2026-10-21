@@ -1,0 +1,14 @@
+{
+ "datasets": [
+  "inps_parametri",
+  "irpef_scaglioni"
+ ],
+ "tools": {
+  "costo_lavoro": {
+   "arguments": {
+    "retribuzione_lorda_annua": 10000.0
+   },
+   "expected": "{\"tipo_contratto\":\"dipendente\",\"lordo_annuo\":10000.0,\"contributi_dipendente\":919.0,\"aliquota_contributi_dipendente_pct\":9.19,\"contributo_aggiuntivo_1_pct\":0.0,\"imponibile_irpef\":9081.0,\"irpef_lorda\":2088.63,\"detrazione_lavoro_dipendente\":1955.0,\"detrazione_ulteriore_l_207_2024\":0.0,\"irpef_stimata\":133.63,\"somma_non_imponibile_l_207_2024\":481.29,\"netto_stimato\":9428.66,\"contributi_datore\":3000.0,\"aliquota_contributi_datore_pct\":30.0,\"tfr_annuo\":690.74,\"irap_stimata\":0.0,\"costo_azienda_totale\":13690.74,\"cuneo_fiscale_pct\":31.1,\"nota\":\"Aliquote medie dipendente ordinario — variano per settore e dimensione\",\"avvertenze\":[],\"avvertimento\":\"INDICATIVO — le aliquote variano per settore INAIL, dimensione, regione e agevolazioni. Verificare con consulente del lavoro. IRAP sul personale a tempo indeterminato: costo deducibile (art. 11 co. 4-octies D.Lgs. 446/1997), non sommata.\",\"riferimento_normativo\":\"D.P.R. 917/1986 artt. 11 e 13 (IRPEF) — L. 207/2024 art. 1 co. 4-6 — D.L. 384/1992 art. 3-ter e circ. INPS 128/2012 e 6/2026 (contributi) — D.Lgs. 446/1997 art. 11 co. 4-octies (IRAP) — Art. 2120 c.c. e art. 3 L. 297/1982 (TFR)\",\"dati_applicati\":[\"irpef scaglioni: copre fino al 31/12/2026 (TUIR art. 11, scaglioni per anno d'imposta)\",\"inps parametri: copre fino al 31/12/2026 (INPS, circolare n. 4 del 28-01-2026 par. 6 (NASpI: retribuzione di riferimento e importo massimo mensile 2026); circolare n. 6 del 30-01-2026 parr. 5-6 (prima fascia di retribuzione pensionabile e massimale annuo della base contributiva 2026)) — valori annuali rivalutati con l'indice ISTAT dei prezzi al consumo per le famiglie di operai e impiegati: ogni gennaio l'INPS pubblica le nuove circolari e la tabella va aggiornata con una nuova voce in `anni`\"]}"
+  }
+ }
+}

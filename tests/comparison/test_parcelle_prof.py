@@ -1,4 +1,4 @@
-"""Arithmetic verification tests for Sezione 6 — Parcelle Professionisti."""
+"""Arithmetic verification tests for Sezione 6 - Parcelle Professionisti."""
 
 from tests.comparison.conftest import assert_close
 
@@ -13,8 +13,10 @@ def _call(fn_name, **kwargs):
 
 class TestFatturaProfessionista:
 
-    def test_ingegnere_ordinario(self):
-        r = _call("fattura_professionista", imponibile=1000, tipo="ingegnere", regime="ordinario")
+    def test_gestione_separata_ordinario(self):
+        # Rivalsa INPS 4% della gestione separata: concorre alla base della ritenuta (come il
+        # calcolatore di avvocatoandreani.it per il professionista senza cassa)
+        r = _call("fattura_professionista", imponibile=1000, tipo="gestione_separata", regime="ordinario")
         rivalsa = 1000 * 4 / 100  # 40
         base = 1000 + 40  # 1040
         iva = base * 22 / 100  # 228.80
@@ -24,6 +26,14 @@ class TestFatturaProfessionista:
         assert_close(r["iva"], 228.80, tolerance=0.01, label="iva")
         assert_close(r["ritenuta_acconto"], 208.0, tolerance=0.01, label="ritenuta")
         assert_close(r["netto_a_pagare"], round(netto, 2), tolerance=0.01, label="netto")
+
+    def test_ingegnere_ordinario(self):
+        # Contributo integrativo Inarcassa 4%: soggetto a IVA, escluso dalla ritenuta
+        r = _call("fattura_professionista", imponibile=1000, tipo="ingegnere", regime="ordinario")
+        assert_close(r["contributo_previdenziale"], 40.0, tolerance=0.01, label="contributo")
+        assert_close(r["iva"], 228.80, tolerance=0.01, label="iva")
+        assert_close(r["ritenuta_acconto"], 200.0, tolerance=0.01, label="ritenuta")
+        assert_close(r["netto_a_pagare"], 1040 + 228.80 - 200, tolerance=0.01, label="netto")
 
     def test_forfettario(self):
         r = _call("fattura_professionista", imponibile=1000, tipo="architetto", regime="forfettario")
@@ -53,14 +63,15 @@ class TestSpeseMediazione:
 
     def test_valore_15k_positivo(self):
         r = _call("spese_mediazione", valore_controversia=15000, esito="positivo")
-        # 15000 falls in 10001-25000 bracket: positivo=480
-        assert_close(r["indennita_per_parte"], 480.0, tolerance=0.01, label="med_15k")
-        assert_close(r["iva_22_per_parte"], 480 * 22 / 100, tolerance=0.01, label="med_iva")
+        # DM 150/2023 arts. 28 and 30: 15000 falls in 10.001-25.000 (Tabella A 440-720, medio 580):
+        # avvio 75 + primo incontro 120 + (580 - 120) x 1,10 = 701; the old DM 180/2010 figure (480) is gone.
+        assert_close(r["indennita_per_parte"], 701.0, tolerance=0.01, label="med_15k")
+        assert_close(r["iva_22_per_parte"], 701 * 22 / 100, tolerance=0.01, label="med_iva")
 
     def test_valore_3k_negativo(self):
         r = _call("spese_mediazione", valore_controversia=3000, esito="negativo")
-        # 3000 falls in 1001-5000 bracket: negativo=100
-        assert_close(r["indennita_per_parte"], 100.0, tolerance=0.01, label="med_3k_neg")
+        # DM 150/2023 art. 28 co. 6: mancato accordo al primo incontro = avvio 75 + primo incontro 120.
+        assert_close(r["indennita_per_parte"], 195.0, tolerance=0.01, label="med_3k_neg")
 
 
 class TestCompensoOrario:
@@ -113,6 +124,7 @@ class TestTariffeMediazione:
 
     def test_valore_30k(self):
         r = _call("tariffe_mediazione", valore_controversia=30000)
-        # 30000 falls in 25001-50000 bracket
-        assert r["esito_negativo"]["indennita_per_parte"] == 360
-        assert r["esito_positivo"]["indennita_per_parte"] == 720
+        # DM 150/2023: 30000 falls in 25.001-50.000 (Tabella A 720-1.200, medio 960): mancato accordo
+        # 75 + 120 = 195; accordo al primo incontro 75 + 120 + (960 - 120) x 1,10 = 1.119.
+        assert r["esito_negativo"]["indennita_per_parte"] == 195
+        assert r["esito_positivo"]["indennita_per_parte"] == 1119
