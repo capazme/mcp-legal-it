@@ -72,6 +72,7 @@ _BROCARDI_SPENTO = (
 _ALLEGATO_URN = re.compile(r";[^;:~]+:(\w+)$")
 
 
+#: PROVISIONAL (depends on a decision open on VisuaLex's side, see docs/api.md §8).
 #: Codes whose URN gained its ":1" on 21/10/2026 (their articles sit in an annex of the
 #: approving decree; the row served the decree's own articles). VisuaLex's table still has
 #: them without it, so its saved norms carry no allegato: norma_data mirrors that, and the

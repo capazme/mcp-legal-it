@@ -288,6 +288,8 @@ The text in force of one article, from Normattiva or EUR-Lex.
   served from is in `url` and `urn` only: "art. 120 d.lgs. 104/2010" answers
   with `urn` `…;104:2~art120` and `allegato=None`. Passing a code's default
   part back (`allegato="2"` for the c.c.) reads the article, not an annex.
+  The `None` of the codes whose URN gained its part on 21/10/2026 is
+  **provisional** (see §8, «Saved norms keep their key»).
 - **`url` and `urn`** are both always filled for Normattiva acts (EU acts have
   no NIR URN). An act cited with the year only whose full date could not be
   read keeps the URN derived from its URL. That URN has a placeholder date,
@@ -689,5 +691,9 @@ multi-article references come with the next phases. `/fetch_decision` switches
   `:1` is in the URN and `allegato` stays `None`, as VisuaLex has it, so their
   item keys do not change. The same holds for the codice penale militare di pace (`;303:1`)
   and di guerra (`;303:2`), added on 21/10/2026 and absent from VisuaLex's table.
+  **Provisional:** this `allegato=None` rule for those nine depends on a decision
+  still open on VisuaLex's side, which may file them with `allegato` "1" (or "2")
+  as it does the c.c. and the c.p.; it is not part of the frozen contract until
+  that decision is taken.
 - **Serialisation stays the shell's job.** Key order, ASCII escaping, the NDJSON
   stream: `come_dict` returns data, not JSON text.
