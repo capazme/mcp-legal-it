@@ -429,7 +429,8 @@ def _altra_corte(tratto: str) -> "str | None":
 
 # A number/year that belongs to an act, not to a decision: "D.Lgs. 196/2003", "L. n. 241 del 1990".
 _NUMERO_DI_ATTO = re.compile(
-    r"(?:\b(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
+    r"(?:\b(?:l\.?\s?cost(?:ituzionale|\.)?|legge\s+cost(?:ituzionale|\.)|r\.?\s?d\.?\s?l|d\.?\s?(?:lgs|l)\.?\s?lgt|"
+    r"d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
     r"reg(?:olamento)?|dir(?:ettiva)?|delibera|provv(?:edimento)?)\.?\s*(?:\(\s*(?:ue|ce|cee)\s*\)\s*)?(?:n\.?\s*)?)$",
     re.IGNORECASE,
 )

@@ -468,6 +468,13 @@ entry, it is the same feature as ported to the 3.0 line.
   `mcp-legal-it/fonti_consultate` dal `_meta`).
 
 ### Fixed
+- **`cite_law` reads constitutional laws, royal decree-laws and lieutenancy
+  decrees.** "art. 1 l. cost. 3/2001" answered "atto non riconosciuto": the
+  reference parser had no `l. cost.` / `legge costituzionale`, `r.d.l.` /
+  `regio decreto-legge` or `d.l.lgt.` / `d.lgs.lgt.`. They now resolve to the types
+  the URN builder knows (`legge.costituzionale`, `regio.decreto.legge`,
+  `decreto.legislativo.luogotenenziale`), and the citation gate never reads their
+  numbers as decisions.
 - Deadline tools: `giorno_settimana` is always the Italian name. It came from
   `strftime("%A")`, which follows the process locale, so the same output mixed
   «lunedì» and «Monday».
