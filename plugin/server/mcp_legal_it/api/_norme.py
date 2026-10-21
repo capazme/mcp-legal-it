@@ -72,6 +72,27 @@ _NON_SUPPORTATA_HTML = (
 # ---------------------------------------------------------------------------
 
 
+_ALLEGATO_URN = re.compile(r";[^;:~]+:(\w+)$")
+
+
+def _allegato_predefinito(tipo_atto: str) -> str | None:
+    """The annex a code's URN points at ("2" for the c.c., "1" for c.p. and c.p.c.), else None.
+
+    VisuaLex keys a saved norm on urn|allegato|article, so the annex is given even
+    when the citation does not name it.
+    """
+    urn = codice_urn(normalize_act_type(tipo_atto or "").lower())
+    m = _ALLEGATO_URN.search(urn or "")
+    return m.group(1) if m else None
+
+
+def _con_allegato(tipo_atto: str, allegato: str | None, numero_articolo: str) -> str:
+    """The article string for a lookup: an annex of the act, unless it is the code's own default annex."""
+    if allegato and allegato != _allegato_predefinito(tipo_atto):
+        return annex_reference(allegato, numero_articolo)
+    return numero_articolo or ""
+
+
 def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str = "",
                 urn: str | None = None) -> NormaDati:
     """The NormaDati of a resolved act. A lookup passes the full date it read, its URL and URN."""
@@ -93,7 +114,7 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
         data=data,
         numero_atto=info.get("numero_atto", "") or "",
         url=url,
-        allegato=annex[0] if annex else None,
+        allegato=annex[0] if annex else _allegato_predefinito(info.get("tipo_atto", "")),
         numero_articolo=annex[1] if annex else (article or ""),
         urn=urn,
         descrizione=str(nv.norma),
@@ -171,7 +192,7 @@ def riferimento_da_parametri(
     if norm in ("regolamento ue", "direttiva ue") and not (data and numero_atto):
         return EsitoRiferimento(esito="riferimento_non_valido",
                                 errore="per un atto UE servono anno (data) e numero_atto")
-    article = annex_reference(allegato, numero_articolo) if allegato else (numero_articolo or "")
+    article = _con_allegato(tipo_atto, allegato, numero_articolo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
     nv = norme._build_nv(act_info, article)
     if not nv.url():
@@ -183,7 +204,7 @@ def riferimento_da_parametri(
 
 
 def _act_info(norma: NormaDati) -> tuple[dict, str]:
-    article = annex_reference(norma.allegato, norma.numero_articolo) if norma.allegato else norma.numero_articolo
+    article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
     return {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}, article
 
 

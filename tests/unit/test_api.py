@@ -141,6 +141,16 @@ class TestRiferimenti:
         nd = r.norma_data[0]
         assert (nd.allegato, nd.numero_articolo, nd.tipo_atto) == ("I.7", "30", "decreto legislativo")
 
+    def test_a_year_only_act_is_never_resolved_over_the_network(self):
+        boom = AssertionError("leggi_riferimento must stay offline")
+        with patch("mcp_legal_it.lib.visualex.scraper.with_full_date", side_effect=boom), \
+             patch("mcp_legal_it.lib.visualex.scraper._act_metadata", side_effect=boom), \
+             patch("httpx.AsyncClient", side_effect=boom):
+            r = api.leggi_riferimento("art. 3 L. 12/2023")
+            p = api.riferimento_da_parametri("legge", "3", "2023", "12")
+        for nd in (r.norma_data[0], p.norma_data[0]):
+            assert nd.data == "2023" and nd.data_risolta is False
+
     def test_eu_act_has_no_urn(self):
         nd = api.leggi_riferimento("art. 6 GDPR").norma_data[0]
         assert nd.urn is None and nd.data_risolta is True and nd.url.startswith("https://eur-lex")
@@ -532,3 +542,142 @@ class TestAltreRicerche:
             i = res.decisioni[0].identita
             assert (i.corte, i.numero, i.anno, i.chiave_fonte) == ("corte_giustizia_ue", 311, 2019, c.cellar_uri)
         assert (await api.giurisprudenza_ue_su_articolo("")).esito == "richiesta_non_valida"
+
+
+
+class TestRisposteVisuaLex:
+    """Alfred's answers on PR #59: the shapes VisuaLex's shell and saved records depend on."""
+
+    @pytest.mark.parametrize("citazione,allegato,urn", [
+        ("art. 2043 c.c.", "2", "urn:nir:stato:regio.decreto:1942-03-16;262:2~art2043"),
+        ("art. 575 c.p.", "1", "urn:nir:stato:regio.decreto:1930-10-19;1398:1~art575"),
+        ("art. 700 c.p.c.", "1", "urn:nir:stato:regio.decreto:1940-10-28;1443:1~art700"),
+        ("art. 13 D.Lgs. 196/2003", None, "urn:nir:stato:decreto.legislativo:2003-06-30;196~art13"),
+    ])
+    def test_codes_carry_their_default_annex_in_allegato_and_urn(self, citazione, allegato, urn):
+        nd = api.leggi_riferimento(citazione).norma_data[0]
+        assert (nd.allegato, nd.urn) == (allegato, urn)
+
+    async def test_the_default_annex_round_trips_as_the_article_not_as_an_annex(self):
+        nd = api.riferimento_da_parametri("codice civile", "2043", allegato="2").norma_data[0]
+        assert nd.url == CC_URL and nd.allegato == "2" and nd.numero_articolo == "2043"
+        seen = []
+
+        async def fake(nv):
+            seen.append(nv.numero_articolo)
+            return {"text": "x", "url": nv.url(), "source": "normattiva-akn"}
+
+        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake):
+            t = await api.testo_articolo(nd, canale="akn")
+        assert seen == ["2043"] and t.url == CC_URL
+
+    async def test_sezione_is_the_italgiure_code_in_upper_case(self):
+        with patch("mcp_legal_it.core.cassazione.lookup_decisione",
+                   AsyncMock(return_value=([_doc("a", szdec="u")], True))):
+            d = await api.leggi_decisione(api.RiferimentoDecisione(corte="cassazione", numero=1, anno=2024))
+        assert d.attributi.sezione == "U"
+
+    @pytest.mark.parametrize("chiamata,patch_target,codice", [
+        (lambda: api.leggi_decisione(api.RiferimentoDecisione(corte="cassazione", numero=1, anno=2024)),
+         "mcp_legal_it.core.cassazione.lookup_decisione", "cassazione"),
+        (lambda: api.leggi_decisione(api.RiferimentoDecisione(corte="corte_costituzionale", numero=1, anno=2024)),
+         "mcp_legal_it.lib.corte_cost.client.fetch_pronuncia", "corte_costituzionale"),
+        (lambda: api.leggi_sentenza_cgue("http://publications.europa.eu/resource/celex/62019CJ0311"),
+         "mcp_legal_it.lib.cgue.client.fetch_sentenza_text", "curia"),
+        (lambda: api.leggi_provvedimento_amministrativo("cds", "1", "f.xml"),
+         "mcp_legal_it.lib.giustizia_amm.client.fetch_provvedimento_document", "giustizia_amministrativa"),
+    ])
+    async def test_source_down_names_the_source_as_visualex_does(self, chiamata, patch_target, codice):
+        with patch(patch_target, AsyncMock(side_effect=httpx.ConnectError("down"))):
+            d = await chiamata()
+        assert d.esito == "fonte_non_raggiungibile"
+        assert d.fonte.codice == codice
+
+    @pytest.mark.parametrize("chiamata,patch_target,codice", [
+        (lambda: api.cerca_decisioni_cassazione("x"), "mcp_legal_it.core.cassazione.solr_query", "cassazione"),
+        (lambda: api.cerca_decisioni_costituzionali("x"), "mcp_legal_it.lib.corte_cost.client.search_pronunce",
+         "corte_costituzionale"),
+        (lambda: api.cerca_decisioni_ue("x"), "mcp_legal_it.lib.cgue.client.search_giurisprudenza", "curia"),
+        (lambda: api.cerca_decisioni_amministrative("x"),
+         "mcp_legal_it.lib.giustizia_amm.client.search_provvedimenti_page", "giustizia_amministrativa"),
+    ])
+    async def test_searches_use_the_same_source_codes(self, chiamata, patch_target, codice):
+        with patch(patch_target, AsyncMock(side_effect=httpx.ConnectError("down"))):
+            r = await chiamata()
+        assert (r.esito, r.fonte) == ("fonte_non_raggiungibile", codice)
+
+
+def test_every_source_maps_to_allowed_hosts_and_every_call_site_to_a_source():
+    import re
+    from pathlib import Path
+
+    from mcp_legal_it.core._http import HOST_PER_FONTE
+    from mcp_legal_it.lib._egress import ALLOWED_HOSTS
+
+    for fonte, hosts in HOST_PER_FONTE.items():
+        if hosts is not None:
+            assert hosts <= set(ALLOWED_HOSTS), (fonte, hosts - set(ALLOWED_HOSTS))
+    lib = Path(api.__file__).resolve().parents[1] / "lib"
+    used = {m for py in lib.rglob("*.py") for m in re.findall(r'async_client\(\s*"([a-z_]+)"', py.read_text())}
+    assert used and used <= set(HOST_PER_FONTE), used - set(HOST_PER_FONTE)
+
+
+
+class TestGuardieDellaFactory:
+    """A client factory cannot remove the library's request guards (SSRF)."""
+
+    @staticmethod
+    def _ignora_tutto(chiamate):
+        def handler(request):
+            chiamate.append(str(request.url))
+            return httpx.Response(200, text="ok")
+
+        # Ignores every kwarg it receives, event_hooks included.
+        return lambda fonte, **kwargs: httpx.AsyncClient(transport=httpx.MockTransport(handler),
+                                                         follow_redirects=True)
+
+    async def test_dpa_probe_guard_survives_a_factory_that_drops_the_kwargs(self):
+        from mcp_legal_it.lib.dpa_probe.client import DestinazioneNonPubblica, _guardia_destinazioni
+
+        chiamate: list = []
+        with api.configurazione(client_factory=self._ignora_tutto(chiamate)):
+            from mcp_legal_it.core._http import async_client
+
+            async with async_client("dpa_probe", event_hooks={"request": [_guardia_destinazioni({})]}) as client:
+                with pytest.raises(DestinazioneNonPubblica):
+                    await client.get("http://127.0.0.1/admin")
+                with pytest.raises(DestinazioneNonPubblica):
+                    await client.get("http://169.254.169.254/latest/meta-data/")
+        assert chiamate == []  # nothing reached the transport
+
+    async def test_a_process_wide_factory_does_not_disarm_the_mcp_tool(self):
+        from mcp_legal_it.lib.dpa_probe.client import sonda_dominio
+
+        chiamate: list = []
+        api.configura(client_factory=self._ignora_tutto(chiamate))
+        with patch("mcp_legal_it.lib.dpa_probe.client._verifica_destinazione",
+                   AsyncMock(side_effect=[None, "indirizzo privato"] * 20)):
+            esito = await sonda_dominio("example.com")
+        assert esito.errore and chiamate == []
+
+    async def test_follow_redirects_false_is_kept_and_factory_hooks_run_after(self):
+        from mcp_legal_it.core._http import async_client
+
+        ordine = []
+
+        async def guardia(request):
+            ordine.append("guardia")
+
+        async def della_factory(request):
+            ordine.append("factory")
+
+        def factory(fonte, **kwargs):
+            return httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200)),
+                                     follow_redirects=True, event_hooks={"request": [della_factory]})
+
+        with api.configurazione(client_factory=factory):
+            async with async_client("normattiva", follow_redirects=False,
+                                    event_hooks={"request": [guardia]}) as client:
+                assert client.follow_redirects is False
+                await client.get("https://www.normattiva.it/")
+        assert ordine == ["guardia", "factory"]

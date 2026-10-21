@@ -239,6 +239,7 @@ class Identita:
 class Attributi:
     """VisuaLex ``attributi``. ``come_dict`` keeps only the filled ones, as VisuaLex does."""
 
+    #: Cassazione: the Italgiure code (upper case: 1-7, L, U, F), as VisuaLex stores it.
     sezione: str | None = None
     tipo: str | None = None
     data_deposito: str | None = None   # ISO date
@@ -271,13 +272,20 @@ class TestoGrezzo:
     massima: str | None = None
 
 
+#: Code of a decision source: VisuaLex's ``fonte`` string ("fonte_non_raggiungibile"
+#: answers carry it as is), plus ``cerdef``, which VisuaLex does not read.
+CodiceFonte = Literal["cassazione", "corte_costituzionale", "curia", "giustizia_amministrativa", "cerdef"]
+
+
 @dataclass(frozen=True)
 class FonteDecisione:
-    """VisuaLex ``fonte`` of a decision."""
+    """VisuaLex ``fonte`` of a decision, plus its ``codice``."""
 
     nome: str
     licenza: str | None = None
     url: str | None = None
+    #: The source as VisuaLex names it in ``{"esito": "fonte_non_raggiungibile", "fonte": …}``.
+    codice: CodiceFonte | None = None
 
 
 @dataclass(frozen=True)
@@ -336,7 +344,7 @@ class RicercaDecisioni:
     """A search: VisuaLex ``/search_decisions`` keys, plus additions."""
 
     esito: EsitoRicerca
-    fonte: str = ""                  # "italgiure" | "corte_cost" | "cerdef" | "giustizia_amm" | "cgue"
+    fonte: str = ""                  # a CodiceFonte: "cassazione" | "corte_costituzionale" | "cerdef" | ...
     totale: int | None = None        # the source's own count, None when it gives none
     pagina: int = 1
     modo: Literal["indice", "testo"] = "testo"
