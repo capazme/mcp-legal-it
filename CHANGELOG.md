@@ -617,6 +617,22 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **A citation without a date is the text in force today, even when Normattiva's
+  page is not.** The page Normattiva serves without a date can be a version not
+  in force yet: on 21/10/2026 art. 3 of d.P.R. 131/1986 (and of d.lgs. 546/1992,
+  d.P.R. 633/1972, d.lgs. 346/1990) came back «ARTICOLO ABROGATO», in force from
+  1/1/2027, and `cite_law` and `api.testo_articolo` served the repeal as today's
+  text. The page's window is now read with the text (VisuaLex's
+  `extract_validity`, imported): when it starts after today, or the page states
+  none, the page at today's date is read (one request more, only then), or the
+  export at today's date when that page cannot be read; never the undated page.
+  `api.testo_articolo` fills `validity` from the same page and adds `precisione`
+  (`ESATTO` for the page's text with its validity, `INDICATIVO` otherwise),
+  `avvisi` (the coming version, with its day), `successione` (the repealing
+  act a notice names, `INDICATIVO`) and `upcoming` (VisuaLex's: `change`,
+  `valid_from`, `version_number`). `cite_law`'s JSON gains the keys `avvisi`
+  (a list) and `upcoming` (an object or `null`), always present; its Markdown
+  adds the line «**Attenzione**: …».
 - **Art. 3 of l. 654/1975 is the law's, not the Convention's.** On the Akoma
   Ntoso path the largest part of an act won, so a law that executes a treaty
   served the treaty's articles under its own numbers (art. 3 on apartheid for
