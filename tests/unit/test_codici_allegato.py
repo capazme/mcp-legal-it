@@ -41,3 +41,36 @@ def test_other_acts_and_annex_references_are_untouched():
     assert Norma(tipo_atto="regio decreto", data="1931-06-18", numero_atto="773").url().endswith(";773")
     assert ":1~" not in Norma(tipo_atto="decreto legislativo", data="1990-10-31", numero_atto="346").url(
         article="allegato A")
+
+
+@pytest.mark.parametrize("reference, urn", [
+    ("art. 3 c.p.m.p.", "regio.decreto:1941-02-20;303:1~art3"),
+    ("art. 47 cpmp", "regio.decreto:1941-02-20;303:1~art47"),
+    ("art. 3 c.p.m.g.", "regio.decreto:1941-02-20;303:2~art3"),
+    ("art. 3 codice penale militare di guerra", "regio.decreto:1941-02-20;303:2~art3"),
+    ("art. 4 disp. att. c.p.p.", "decreto.legislativo:1989-07-28;271:1~art4"),
+    ("art. 4 att. c.p.p.", "decreto.legislativo:1989-07-28;271:1~art4"),
+    # unchanged neighbours
+    ("art. 125 disp. att. c.p.c.", "regio.decreto:1941-12-18;1368:1~art125"),
+    ("art. 3 c.p.p.", "decreto.del.presidente.della.repubblica:1988-09-22;447~art3"),
+])
+def test_abbreviations_resolve_to_the_right_code(reference, urn):
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.core.norme import _build_nv, _parse_reference, _resolve_act
+
+    article, act = _parse_reference(reference)
+    assert _build_nv(_resolve_act(act), article).url().endswith(urn)
+
+
+@pytest.mark.parametrize("tipo, part", [
+    ("codice penale militare di guerra", "codice penale militare di guerra"),
+    ("codice penale militare di pace", "codice penale militare di pace"),
+    ("preleggi", "preleggi"),
+    ("codice civile", None),
+])
+def test_akn_part_of_the_military_codes(tipo, part):
+    # R.D. 303/1941 exports both codes as parts: without the hint the dominant one
+    # (di pace) answered "art. 3 c.p.m.g." with the art. 3 of the code of peace.
+    from mcp_legal_it.lib.visualex.scraper import _akn_part_hint
+
+    assert _akn_part_hint(Norma(tipo_atto=tipo)) == part
