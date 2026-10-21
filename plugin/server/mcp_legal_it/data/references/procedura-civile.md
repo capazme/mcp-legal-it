@@ -34,7 +34,7 @@ PRIMO GRADO — Tribunale (artt. 163 ss. c.p.c.)
 
 4. FASE DECISORIA
    - Precisazione delle conclusioni
-   - Scambio comparse conclusionali (60 giorni) e repliche (30 giorni)
+   - Note di precisazione delle conclusioni, comparse conclusionali e repliche: termini non superiori a 60, 30 e 15 giorni prima dell'udienza di rimessione (art. 189)
    - Sentenza: deposito in cancelleria
 
 ═══════════════════════════════════════════════════════════
