@@ -36,6 +36,7 @@ import re
 from dataclasses import dataclass, field
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 
@@ -251,7 +252,7 @@ def parse_atto_input(atto: str) -> tuple[str, str]:
 
 async def _execute_sparql_senato(query: str) -> list[dict]:
     """GET only: dati.senato.it answers POST with a 403 WAF page."""
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
+    async with async_client("parlamento_senato", timeout=_TIMEOUT, headers=_HEADERS) as client:
         resp = await retry_request(
             client, "GET", SENATO_SPARQL_URL, dataset="parlamento_senato",
             params={"query": query, "format": "application/sparql-results+json"},
@@ -260,7 +261,7 @@ async def _execute_sparql_senato(query: str) -> list[dict]:
 
 
 async def _execute_sparql_camera(query: str) -> list[dict]:
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
+    async with async_client("parlamento_camera", timeout=_TIMEOUT, headers=_HEADERS) as client:
         resp = await retry_request(
             client, "POST", CAMERA_SPARQL_URL, dataset="parlamento_camera", data={"query": query},
         )

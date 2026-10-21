@@ -47,6 +47,7 @@ import re
 from dataclasses import dataclass, field
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 
@@ -413,7 +414,7 @@ LIMIT 5"""
 # ---------------------------------------------------------------------------
 
 async def _execute_sparql(query: str) -> list[dict]:
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS_SPARQL) as client:
+    async with async_client("eur_lex", timeout=_TIMEOUT, headers=_HEADERS_SPARQL) as client:
         resp = await retry_request(client, "POST", _SPARQL_URL, dataset="eur_lex", data={"query": query})
         data = resp.json()
         return data["results"]["bindings"]

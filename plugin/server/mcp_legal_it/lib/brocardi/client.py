@@ -22,6 +22,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import httpx
+from mcp_legal_it.core._http import async_client
 from bs4 import BeautifulSoup, Tag
 
 from .. import _brocardi_switch
@@ -235,7 +236,7 @@ async def fetch_brocardi(
     if not article_num:
         return BrocardiResult(url=base_url, error="Numero articolo richiesto per Brocardi")
 
-    async with httpx.AsyncClient(
+    async with async_client("brocardi",
         headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True
     ) as client:
         article_url = await find_article_url(client, base_url, article_num)

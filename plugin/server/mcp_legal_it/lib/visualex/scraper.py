@@ -7,6 +7,7 @@ import warnings
 from urllib.parse import urljoin
 
 import httpx
+from mcp_legal_it.core._http import async_client
 from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
@@ -105,7 +106,7 @@ async def _act_metadata(norma: Norma) -> dict:
         return {}
     if url in _full_date_cache:
         return _full_date_cache[url]
-    async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+    async with async_client("normattiva", headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
@@ -194,7 +195,7 @@ async def fetch_article(nv: NormaVisitata) -> dict:
                         result["allegato"] = act.main_part
                     return result
 
-        async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+        async with async_client("normattiva", headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
@@ -400,7 +401,7 @@ async def fetch_annotations(nv: NormaVisitata) -> dict:
         return {"annotations": {}, "url": brocardi_url, "source": "brocardi",
                 "error": "Article number required for Brocardi annotations"}
 
-    async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+    async with async_client("brocardi", headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
         # Step 1: fetch main page and find article link
         article_url = await _find_brocardi_article_url(client, brocardi_url, article_num)
         if not article_url:
@@ -582,7 +583,7 @@ async def _fetch_eurlex_html(norma) -> tuple[str, str]:
     if not url:
         return "", ""
 
-    async with httpx.AsyncClient(
+    async with async_client("eur_lex",
         headers={
             **_HEADERS,
             "Accept": "application/xhtml+xml,text/html",
@@ -968,7 +969,7 @@ async def download_eurlex_pdf(norma: "Norma") -> bytes:
     eurlex_url = f"https://eur-lex.europa.eu/legal-content/IT/TXT/PDF/?uri=CELEX:{celex}"
 
     last_error = "no PDF returned"
-    async with httpx.AsyncClient(
+    async with async_client("eur_lex",
         headers=_HEADERS,
         timeout=httpx.Timeout(60.0, connect=10.0),
         follow_redirects=True,
@@ -1006,7 +1007,7 @@ async def fetch_act_index(norma: "Norma") -> dict:
     if not act_url:
         return {"index": [], "url": "", "error": "Could not generate URL"}
 
-    async with httpx.AsyncClient(
+    async with async_client("normattiva",
         headers=_HEADERS,
         timeout=httpx.Timeout(60.0, connect=10.0),
         follow_redirects=True,
@@ -1110,7 +1111,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
 
     ajax_headers = {**_HEADERS, "X-Requested-With": "XMLHttpRequest"}
 
-    async with httpx.AsyncClient(
+    async with async_client("normattiva",
         headers=_HEADERS,
         timeout=httpx.Timeout(120.0, connect=15.0),
         follow_redirects=True,

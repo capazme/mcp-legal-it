@@ -24,13 +24,17 @@ memory for the life of the process, and the directory is never created.
 `MCP_CACHE_DIR` only relocates the files; it does not stop them.
 
 This module is the single place that reads either variable, so the audit can
-find the switch by looking at one function.
+find the switch by looking at one function. A library caller can set both in
+code (``mcp_legal_it.api.configurazione(cache_dir=..., cache=False)``); the
+variable ``LEGAL_CACHE=off`` still wins over ``cache=True``.
 """
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
+
+from mcp_legal_it.core import _config
 
 #: Directory holding every cache file, if the caller does not relocate it.
 DIR_ENV = "MCP_CACHE_DIR"
@@ -41,12 +45,17 @@ DEFAULT_DIR = Path.home() / ".cache" / "mcp-legal-it"
 
 
 def cache_enabled() -> bool:
-    """False when `LEGAL_CACHE` asks for no on-disk caching."""
-    return os.environ.get(DISABLE_ENV, "").strip().lower() not in DISABLED_VALUES
+    """False when `LEGAL_CACHE` (or the library configuration) asks for no on-disk caching."""
+    if os.environ.get(DISABLE_ENV, "").strip().lower() in DISABLED_VALUES:
+        return False
+    return _config.attuale().cache is not False
 
 
 def cache_root() -> Path:
     """Base cache directory; each client appends its own subdirectory."""
+    configured = _config.attuale().cache_dir
+    if configured:
+        return Path(configured)
     return Path(os.environ.get(DIR_ENV) or DEFAULT_DIR)
 
 

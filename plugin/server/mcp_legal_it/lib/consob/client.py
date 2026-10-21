@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from urllib.parse import urljoin
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
@@ -284,7 +285,7 @@ async def search_delibere(
     cur = 1
     delta = min(rows, _RESULTS_PER_PAGE)
 
-    async with httpx.AsyncClient(
+    async with async_client("consob",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         while len(results) < rows:
@@ -323,7 +324,7 @@ async def search_delibere(
 async def fetch_delibera(numero: str) -> tuple[str, str]:
     """Fetch full delibera text. Returns (title, text)."""
     url = f"{_BASE}{_DOC_PATH}-{numero}"
-    async with httpx.AsyncClient(
+    async with async_client("consob",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         resp = await retry_request(client, "GET", url, dataset="consob")

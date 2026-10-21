@@ -12,6 +12,7 @@ import socket
 from dataclasses import dataclass, field
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import note_source, retry_request
 from mcp_legal_it.lib.dpa_probe.judge import (
@@ -177,7 +178,7 @@ async def _sonda_dominio(dominio: str) -> EsitoSonda:
     base = f"https://{host}"
     headers = {"User-Agent": _UA, "Accept-Language": _ACCEPT_LANGUAGE}
 
-    async with httpx.AsyncClient(
+    async with async_client("dpa_probe",
         timeout=_TIMEOUT,
         follow_redirects=True,
         headers=headers,

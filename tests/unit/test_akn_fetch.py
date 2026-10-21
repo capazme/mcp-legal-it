@@ -347,3 +347,84 @@ class TestPartsSerialization:
         assert act.parts == {}
         assert act.article("12") == "body 12"
         assert act.article("12", part="preleggi") is None
+
+
+# ---------------------------------------------------------------------------
+# In-flight dedupe and the memory cap (contract with the library callers)
+# ---------------------------------------------------------------------------
+
+class _SlowClient(_FakeClient):
+    """A fake whose GETs yield to the loop, so concurrent fetches overlap."""
+
+    async def get(self, url, **kwargs):
+        import asyncio
+
+        await asyncio.sleep(0.01)
+        return await super().get(url, **kwargs)
+
+
+class TestInFlightDedupe:
+    @pytest.fixture
+    def norma(self):
+        return Norma(tipo_atto="legge", data="1990", numero_atto="241")
+
+    @pytest.fixture
+    def routes(self):
+        return {
+            "uri-res": _load("landing_legge_241_1990.html"),
+            "caricaAKN": _load("legge_241_1990.xml"),
+        }
+
+    def _install_slow(self, monkeypatch, routes) -> list:
+        calls: list = []
+        monkeypatch.setattr(akn_fetch.httpx, "AsyncClient", lambda *a, **kw: _SlowClient(routes, calls, **kw))
+        return calls
+
+    async def test_concurrent_cold_requests_download_the_act_once(self, monkeypatch, norma, routes):
+        import asyncio
+
+        calls = self._install_slow(monkeypatch, routes)
+        acts = await asyncio.gather(*(fetch_act_akn(norma, data_vigenza="20260614") for _ in range(8)))
+        assert all(a is not None for a in acts)
+        assert all(a is acts[0] for a in acts)  # one parsed act, shared
+        assert sum("caricaAKN" in c for c in calls) == 1
+        assert sum("uri-res" in c for c in calls) == 1
+        assert akn_fetch._in_flight == {}
+
+    async def test_a_cancelled_download_hands_waiters_none_not_the_cancellation(self, monkeypatch, norma, routes):
+        import asyncio
+
+        self._install_slow(monkeypatch, routes)
+        first = asyncio.ensure_future(fetch_act_akn(norma, data_vigenza="20260614"))
+        await asyncio.sleep(0)  # first one is now downloading
+        waiter = asyncio.ensure_future(fetch_act_akn(norma, data_vigenza="20260614"))
+        await asyncio.sleep(0)
+        first.cancel()
+        assert await waiter is None  # falls back to HTML, like any AKN failure
+        with pytest.raises(asyncio.CancelledError):
+            await first
+        assert akn_fetch._in_flight == {}
+
+    async def test_different_acts_are_not_merged(self, monkeypatch, routes):
+        import asyncio
+
+        calls = self._install_slow(monkeypatch, routes)
+        a = Norma(tipo_atto="legge", data="1990", numero_atto="241")
+        b = Norma(tipo_atto="legge", data="1990", numero_atto="242")
+        await asyncio.gather(fetch_act_akn(a, data_vigenza="20260614"), fetch_act_akn(b, data_vigenza="20260614"))
+        assert sum("uri-res" in c for c in calls) == 2
+
+
+class TestMemoryCapFromEnvironment:
+    def test_akn_cache_max_acts_sets_the_cap(self):
+        import os
+        import subprocess
+        import sys
+
+        code = "from mcp_legal_it.lib.visualex import akn_fetch as a; print(a._CACHE_MAX)"
+        env = {**os.environ, "AKN_CACHE_MAX_ACTS": "3"}
+        out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
+        assert out.stdout.strip() == "3"
+        env["AKN_CACHE_MAX_ACTS"] = ""
+        out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
+        assert out.stdout.strip() == "50"
