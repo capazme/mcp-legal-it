@@ -121,9 +121,31 @@ Girano in CI, mai nel server:
 
 ### Cosa il test garantisce, e cosa no
 
-Il controllo è **statico**: legge gli URL scritti nel codice. Intercetta
+Il test è **statico**: legge gli URL scritti nel codice. Intercetta
 l'aggiunta di un nuovo host, che è la deriva realistica. Non intercetterebbe un
-URL assemblato a runtime da frammenti. Nessuno qui sostiene il contrario.
+URL assemblato a runtime da frammenti.
+
+Per questo c'è anche un controllo **a runtime**, su ogni richiesta: ogni client
+HTTP del server nasce in `mcp_legal_it/core/_http.py` per una fonte precisa, e una
+guardia controlla ogni richiesta prima che parta, **redirect compresi**: schema
+http(s), nessuna credenziale nell'URL, e un host previsto per quella fonte
+(`HOST_PER_FONTE`, sottoinsieme dell'elenco qui sopra; Brocardi rifiutato quando è
+spento). Una richiesta fuori regola non raggiunge la rete (`HostNonConsentito`). La
+guardia resta anche quando un programma che usa la libreria inietta il proprio
+client HTTP (`client_factory`): viene riapplicata al client che riceve.
+`verifica_dpa_fornitore` è l'unica fonte senza elenco di host, per i motivi detti
+sopra, e passa comunque dal controllo su schema e credenziali.
+
+### Quanto chiediamo alle fonti
+
+Le stesse regole di VisuaLex, per fonte e per processo: al massimo 3 richieste in
+corso e almeno 0,5 secondi tra due richieste alla stessa fonte; un `Retry-After`
+dichiarato da una risposta 429 o 503 ferma quella fonte per il tempo chiesto, per
+tutte le chiamate (oltre 30 secondi la richiesta è rifiutata subito, senza
+aspettare); i tentativi ripetuti sono al massimo due, con attesa crescente.
+Facoltativo, per chi espone il server a più utenti: `LEGAL_CIRCUIT_BREAKER=on`
+sospende per 5 minuti una fonte dopo 3 errori consecutivi (errori di rete, 5xx,
+429; mai un 404).
 
 ## I tuoi dati
 
