@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Informativa privacy del plugin open source Legal IT (mcp-legal-it): quali dati tratta, dove vanno, cosa resta sul computer dell'utente.">
+<title>Informativa privacy Legal IT</title>
+<style>
+html { color-scheme: light; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, numbered steps on a left rail, OS switch pinned at the top of the steps */
+:root {
+  --bg: #f6f8f8;
+  --surface: #ffffff;
+  --fg: #16232a;
+  --muted: #55666e;
+  --line: #d6dfe1;
+  --accent: #0f5c63;
+  --accent-soft: #e2eff0;
+  --code-bg: #10252b;
+  --code-fg: #e6f1f2;
+  --warn-bg: #fdf3e1;
+  --warn-fg: #6b4a12;
+  --f-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1719; --surface: #152226; --fg: #e3ecee; --muted: #9db0b6; --line: #2a3b40;
+    --accent: #6cc3c9; --accent-soft: #1b3236; --code-bg: #071114; --code-fg: #d9ecee;
+    --warn-bg: #33280f; --warn-fg: #f0d49a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1719; --surface: #152226; --fg: #e3ecee; --muted: #9db0b6; --line: #2a3b40;
+  --accent: #6cc3c9; --accent-soft: #1b3236; --code-bg: #071114; --code-fg: #d9ecee;
+  --warn-bg: #33280f; --warn-fg: #f0d49a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--f-body); font-size: 1rem; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 2.5rem 4rem;
+}
+.wrap { max-width: 44rem; margin: 0 auto; display: grid; gap: 2.25rem; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); }
+h2 { font-size: 1.45rem; }
+h3 { font-size: 1.12rem; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+header { display: grid; gap: .75rem; }
+.lead { color: var(--muted); font-size: 1.06rem; max-width: 38rem; }
+.need { display: grid; gap: .5rem; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.need ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .25rem; }
+
+.switch { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.seg button {
+  font: inherit; font-weight: 500; border: 0; background: transparent; color: var(--fg);
+  padding: .4rem 1.1rem; border-radius: 999px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.switch .hint { color: var(--muted); font-size: .9rem; }
+
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.75rem; counter-reset: s; }
+ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: .9rem; }
+ol.steps > li::before {
+  content: counter(s); font-family: var(--f-display); font-weight: 700; font-size: 1.15rem;
+  width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+}
+.step { display: grid; gap: .6rem; min-width: 0; }
+.step ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .3rem; }
+
+.cmd { position: relative; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; min-width: 0; }
+.cmd pre { margin: 0; padding: .85rem 6.2rem .85rem 1rem; overflow-x: auto; font-family: var(--f-mono); font-size: .88rem; line-height: 1.5; }
+.cmd button {
+  position: absolute; top: .5rem; right: .5rem; font: inherit; font-size: .8rem; font-weight: 500;
+  background: transparent; color: var(--code-fg); border: 1px solid currentColor; border-radius: 6px;
+  padding: .2rem .6rem; cursor: pointer; opacity: .85;
+}
+.cmd button:hover { opacity: 1; }
+code { font-family: var(--f-mono); font-size: .9em; background: var(--accent-soft); padding: .05em .35em; border-radius: 4px; }
+kbd { font-family: var(--f-mono); font-size: .85em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .35em; background: var(--surface); }
+.path { font-weight: 500; }
+
+.dl {
+  display: inline-flex; align-items: center; gap: .5rem; justify-self: start;
+  background: var(--accent); color: var(--surface); text-decoration: none; font-weight: 600;
+  padding: .65rem 1.15rem; border-radius: 8px;
+}
+.note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: .75rem 1rem; font-size: .95rem; }
+
+.try { display: grid; gap: .6rem; }
+.prompts { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.prompts li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .6rem .9rem; font-style: italic; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { text-align: left; vertical-align: top; padding: .7rem .9rem; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td:first-child { width: 42%; }
+footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+
+[data-os="mac"] .only-win, [data-os="win"] .only-mac { display: none; }
+@media (prefers-reduced-motion: no-preference) { .seg button { transition: background .15s, color .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="page">
+  <header>
+    <span class="eyebrow">Legal IT · mcp-legal-it · versione 3.0 · aggiornata al GG mese 2026</span>
+    <h1>Informativa privacy</h1>
+    <p class="lead">Legal IT è un software open source che gira sul computer di chi lo usa. Il progetto non gestisce server, non raccoglie dati e non riceve nulla di ciò che fai con il plugin.</p>
+  </header>
+
+  <section style="display:grid;gap:.75rem">
+    <h2>Cosa resta sul tuo computer</h2>
+    <ul>
+      <li>Le conversazioni con Claude e i documenti su cui lavori: Legal IT non li legge per conto proprio e non li invia a nessuno. Li tratta Claude secondo le condizioni del tuo account Anthropic.</li>
+      <li>Cache di testi pubblici già scaricati (norme, sentenze, indici) in <code>~/.cache/mcp-legal-it</code>, per non riscaricarli. Si disattivano con <code>LEGAL_CACHE=off</code> e si cancellano eliminando la cartella.</li>
+      <li>I file che chiedi di generare (Word, PDF, Excel): procure, quotazioni, atti, report e PDF di norme vanno in una cartella <code>mcp-legal-it</code> dentro la cartella temporanea del sistema, leggibile solo dal tuo utente. Il sistema può svuotare i file temporanei: sposta altrove quelli da conservare.</li>
+      <li>Un registro dei calcoli rifiutati per dati non aggiornati, solo se lo attivi con <code>LEGAL_REFUSAL_LEDGER=on</code>. Contiene solo lo strumento, la tabella, l'esito e l'ora, mai i dati della pratica.</li>
+      <li>Il controllo delle citazioni (un hook del plugin Claude Code) legge in locale la trascrizione della sessione in corso: i testi della risposta, i testi che Claude scrive nei file, i risultati degli strumenti e le trascrizioni dei sotto-agenti della stessa sessione. Non legge altre sessioni né altri file, non salva nulla e non invia nulla da nessuna parte.</li>
+    </ul>
+  </section>
+
+  <section style="display:grid;gap:.75rem">
+    <h2>Cosa esce, e verso chi</h2>
+    <p>Quando uno strumento deve consultare una fonte, il tuo computer invia la richiesta direttamente alla fonte, senza passare da server del progetto. Partono solo i parametri della ricerca: per esempio il numero di un articolo, le parole cercate, il numero di una sentenza, una partita IVA da verificare.</p>
+    <ul>
+      <li>Legislazione: Normattiva, Gazzetta Ufficiale.</li>
+      <li>Giurisprudenza: Corte di cassazione (Italgiure), giustizia amministrativa, Corte costituzionale, CeRDEF del Ministero dell'economia e delle finanze.</li>
+      <li>Parlamento: open data di Senato e Camera.</li>
+      <li>Autorità: Garante per la protezione dei dati personali, CONSOB.</li>
+      <li>Unione europea: EUR-Lex e Ufficio delle pubblicazioni, VIES della Commissione europea (verifica delle partite IVA), TMview (marchi).</li>
+      <li>Brocardi.it, unica fonte privata, per annotazioni e massime. Si può escludere del tutto avviando il programma con <code>LEGAL_BROCARDI=off</code>: nessuna richiesta parte più verso quel sito.</li>
+      <li>Il sito pubblico di un fornitore, solo quando chiedi di cercarne il DPA.</li>
+    </ul>
+    <p>Prima di partire, ogni richiesta (e ogni reindirizzamento) è controllata: può raggiungere solo gli indirizzi previsti per quella fonte, solo con connessione http o https e senza credenziali nell'indirizzo. Verso ciascuna fonte partono al massimo tre richieste alla volta, distanziate, e se la fonte chiede di aspettare il programma aspetta. Le connessioni cifrate verificano il certificato della fonte, anche per la Corte di cassazione.</p>
+    <p>Ogni fonte tratta le richieste secondo le proprie condizioni e la propria informativa. Al primo avvio, e a ogni nuova versione, il programma <code>uv</code> scarica Python e le librerie del server da GitHub e da PyPI.</p>
+    <p>Il server non invia telemetria, statistiche d'uso o segnalazioni di errore, e non controlla da solo la presenza di aggiornamenti. L'elenco completo degli indirizzi è nel codice (<code>_egress.py</code>) ed è verificato dai test.</p>
+  </section>
+
+  <section style="display:grid;gap:.75rem">
+    <h2>Dati di altre persone</h2>
+    <p>Se nelle richieste inserisci dati di clienti o di terzi (per esempio per generare un'informativa o un DPA), quei dati restano nella tua conversazione con Claude e nei file che generi. Ne rispondi tu come titolare o responsabile del trattamento. Legal IT li invia a una fonte esterna solo quando servono a una consultazione che chiedi (per esempio una partita IVA a VIES).</p>
+  </section>
+
+  <section style="display:grid;gap:.75rem">
+    <h2>Minori</h2>
+    <p>Legal IT è pensato per professionisti del diritto e non è destinato a persone sotto i 18 anni.</p>
+  </section>
+
+  <section style="display:grid;gap:.75rem">
+    <h2>Contatti</h2>
+    <p>Per domande sul trattamento dei dati o per segnalare un problema: <a href="https://github.com/capazme/mcp-legal-it/issues" target="_blank" rel="noopener">github.com/capazme/mcp-legal-it/issues</a>. Il codice è pubblico e verificabile.</p>
+  </section>
+
+  <section style="display:grid;gap:.75rem" lang="en">
+    <h2>In English</h2>
+    <p>Legal IT is open-source software that runs on the user's computer. The project operates no server and collects no data. When a tool needs a public source (Normattiva, Italian and EU courts, Parliament open data, the Italian DPA, CONSOB, EUR-Lex, VIES, TMview, Brocardi.it, or a supplier's public website for a DPA lookup), the user's computer queries that source directly, sending only the query parameters. Every request, redirects included, is checked against the hosts allowed for that source before it leaves; <code>LEGAL_BROCARDI=off</code> excludes Brocardi.it entirely. Local caches of public texts live in <code>~/.cache/mcp-legal-it</code> (<code>LEGAL_CACHE=off</code> disables them); generated documents go to a private <code>mcp-legal-it</code> folder in the system temp directory. The plugin's citation check reads the current session's transcript (and its subagents') locally and sends nothing. No telemetry, usage statistics, crash reports or update checks. <code>uv</code> downloads Python and the pinned libraries from GitHub and PyPI on first start. Contact: <a href="https://github.com/capazme/mcp-legal-it/issues" target="_blank" rel="noopener">GitHub issues</a>.</p>
+  </section>
+
+  <footer>
+    <p><a href="./">Guida all'installazione</a> · <a href="https://github.com/capazme/mcp-legal-it" target="_blank" rel="noopener">Codice sorgente</a></p>
+  </footer>
+</div>
+</body>
+</html>
