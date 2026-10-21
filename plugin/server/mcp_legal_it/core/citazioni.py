@@ -407,6 +407,26 @@ _CORTE_COME_RIMEDIO = re.compile(r"\b(?:per|in)\s+$", re.IGNORECASE)
 # The docket number of a case (ruolo generale), not a decision.
 _RUOLO = re.compile(r"^\s*,?\s*(?:(?-i:R\.?\s?G\.?|N\.?\s?R\.?\s?G\.?)|r\.g\.|reg\.?\s*gen)", re.IGNORECASE)
 
+# verifica_citazioni's court names (``_CORTI_NON_CASSAZIONE``) as the gate's courts.
+# Those with no reader here (ECtHR, Corte dei conti, tax and merits courts) are not
+# decisions the gate can ask the session to read.
+_CORTE_DA_VERIFICA = {"corte_cost": "cost", "giustizia_amm": "amm", "cgue": "cgue"}
+
+
+def _altra_corte(tratto: str) -> "str | None":
+    """The court other than the Cassazione named in *tratto*, as verifica_citazioni names it.
+
+    "La Cassazione, richiamando la Corte EDU, ric. n. 123/2020": the number is the
+    ECtHR's, not the Cassazione's. A name right after "sez." is a section of the
+    Cassazione ("sez. trib."), not another court.
+    """
+    for corte, pattern in _CORTI_NON_CASSAZIONE:
+        for m in pattern.finditer(tratto):
+            if not re.search(r"\bsez\.?\s*$", tratto[: m.start()], re.IGNORECASE):
+                return corte
+    return None
+
+
 # A number/year that belongs to an act, not to a decision: "D.Lgs. 196/2003", "L. n. 241 del 1990".
 _NUMERO_DI_ATTO = re.compile(
     r"(?:\b(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
@@ -471,6 +491,13 @@ def decisioni_nel_testo(testo: str) -> list[DecisioneCitata]:
             for c in marcatore.finditer(prima):
                 if c.start() > posizione and not _CORTE_COME_RIMEDIO.search(prima, 0, c.start()):
                     corte, posizione = nome, c.start()
+        if corte == "cass":
+            fine_marcatore = _CORTI[0][1].match(prima, posizione)
+            altra = _altra_corte(prima[fine_marcatore.end() if fine_marcatore else posizione:])
+            if altra is not None:
+                if altra not in _CORTE_DA_VERIFICA:
+                    continue
+                corte = _CORTE_DA_VERIFICA[altra]
         if corte is None:
             dopo = testo[m.end(): m.end() + 40]
             for nome, marcatore in _CORTI:
