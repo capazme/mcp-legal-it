@@ -7,7 +7,6 @@ P.IVA sul VIES, o produrre il report Excel standard dell'analisi fornitori.
 
 import os
 import re
-import tempfile
 import uuid
 from datetime import date, datetime
 
@@ -17,6 +16,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.lib.dpa_probe import cache as dpa_cache
 from mcp_legal_it.lib.dpa_probe.client import (
     VERDETTO_IRRAGGIUNGIBILE,
@@ -182,7 +182,7 @@ def _valida_fornitori(fornitori) -> list[str]:
     return errori
 
 
-_OUTPUT_DIR = os.path.join(tempfile.gettempdir(), "mcp-legal-it")
+_OUTPUT_DIR = OUTPUT_DIR
 
 _HEADERS = (
     "Denominazione (da mastrino)",
@@ -367,7 +367,7 @@ def genera_report_fornitori(
     _scrivi_avvertenze(ws_avvertenze, cliente.strip(), data_analisi, file_sorgente.strip(), ordinate)
     _scrivi_analisi(wb.create_sheet("Analisi fornitori"), ordinate)
 
-    os.makedirs(_OUTPUT_DIR, exist_ok=True)
+    ensure_private_dir(_OUTPUT_DIR)
     nome_file = nome_file.strip()
     if not nome_file:
         nome_file = f"analisi_fornitori_{_sanitize_filename(cliente)}_{uuid.uuid4().hex[:8]}.xlsx"
