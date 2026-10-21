@@ -32,12 +32,17 @@ def _akn_disabled() -> bool:
 def _akn_part_hint(norma) -> "str | None":
     """Which component part of a multi-part AKN act to select (None = dominant).
 
-    Only the preleggi need a non-dominant part: the codice civile AKN export
-    bundles them as a separate "Disposizioni sulla legge in generale" part that
-    the parser would otherwise discard in favour of the ~3249-article code body.
+    The preleggi need a non-dominant part: the codice civile AKN export bundles
+    them as a separate "Disposizioni sulla legge in generale" part that the parser
+    would otherwise discard in favour of the ~3249-article code body. So does the
+    codice penale militare di guerra, the smaller of the two codes of R.D. 303/1941.
     """
-    if norma.tipo_atto_normalized.strip().lower() == "preleggi":
+    tipo = norma.tipo_atto_normalized.strip().lower()
+    if tipo == "preleggi":
         return "preleggi"
+    # R.D. 303/1941 bundles both military codes; the parts carry the codes' names.
+    if tipo in ("codice penale militare di pace", "codice penale militare di guerra"):
+        return tipo
     return None
 
 
@@ -283,6 +288,11 @@ _ATTACHMENT_ARTICLE_RE = re.compile(
     r"\b(?:Art(?:icolo)?\.?|ARTICOLO)\s*"
     r"((?i:\d+(?:[\s-]*(?:bis|ter|quater|sex|[a-z]*ies)\b)*(?:\.\d+)?|unico))\b"
 )
+# The all-caps "ART. 3" head (codice del turismo). Only at the very start: inside an
+# editorial note ("((ARTICOLO ABROGATO DALL'ART. 106 ...))") it names another article.
+_ATTACHMENT_CAPS_HEAD_RE = re.compile(
+    r"^\s*ART\.?\s*((?i:\d+(?:[\s-]*(?:bis|ter|quater|sex|[a-z]*ies)\b)*(?:\.\d+)?|unico))\b"
+)
 
 
 def _served_article_key(corpo: Tag) -> "str | None":
@@ -300,7 +310,8 @@ def _served_article_key(corpo: Tag) -> "str | None":
         return key or None
     attachment = corpo.find(class_="attachment-just-text")
     if attachment is not None:
-        m = _ATTACHMENT_ARTICLE_RE.search(attachment.get_text(" ", strip=True)[:400])
+        head = attachment.get_text(" ", strip=True)[:400]
+        m = _ATTACHMENT_CAPS_HEAD_RE.match(head) or _ATTACHMENT_ARTICLE_RE.search(head)
         if m:
             return normalize_article_key(m.group(1)) or None
     return None

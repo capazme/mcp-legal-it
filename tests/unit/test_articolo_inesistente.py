@@ -485,6 +485,9 @@ class TestSuffixes:
     ("ARTICOLO UNICO Testo", "unico"),
     # An editorial note before the head names another act's article, not this one.
     ("((ARTICOLO ABROGATO DALL'ART. 106 DEL D.LGS. 1/2020)) Art. 155-bis.", "155-bis"),
+    # All-caps head, as the codice del turismo prints it.
+    ("ART. 3 (Principi in tema di turismo accessibile) 1. In attuazione dell'articolo 30", "3"),
+    ("ART. 12-bis (Titolo)", "12-bis"),
 ])
 def test_head_of_a_code_article(head, expected):
     from bs4 import BeautifulSoup

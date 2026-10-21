@@ -3,8 +3,7 @@
 import re
 from dataclasses import dataclass, field
 
-from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
-from .map import EURLEX, codice_urn, normalize_act_type
+from .map import EURLEX, articolato_in_allegato, codice_urn, normalize_act_type
 
 
 _NORMATTIVA_BASE = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
@@ -59,6 +58,9 @@ class Norma:
             return ""
         urn = f"{act_urn}:{formatted_date};{self.numero_atto}"
         if article:
+            allegato = articolato_in_allegato(act_urn, formatted_date, self.numero_atto)
+            if allegato and not names_an_annex(article):
+                urn += f":{allegato}"
             urn = _append_article(urn, article)
         return _NORMATTIVA_BASE + urn
 
@@ -162,7 +164,7 @@ def _append_article(urn: str, article: str) -> str:
         raise IntervalloArticoli(motivo)
     article = re.sub(r"\b[Aa]rticoli?\b|\b[Aa]rt\.?\b", "", article).strip()
     extension = ""
-    space_match = re.match(rf"^(\d+)\s+({ARTICLE_SUFFIX_ALTERNATION})$", article, re.IGNORECASE)
+    space_match = re.match(r"^(\d+)\s+(bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)$", article, re.IGNORECASE)
     if space_match:
         article = space_match.group(1)
         extension = space_match.group(2)
