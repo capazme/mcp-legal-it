@@ -25,7 +25,7 @@ def _clean_config(monkeypatch):
 
 
 def _fetch(result=None, exc=None, note=None):
-    async def fake(nv):
+    async def fake(nv, **kw):
         if note:
             _sources.note(*note)
         if exc:
@@ -46,11 +46,31 @@ class TestTestoArticolo:
         with pytest.raises(ValueError):
             await api.testo_articolo("art. 2043 c.c.", canale="pdf")  # type: ignore[arg-type]
 
-    async def test_html_channel_is_planned_and_makes_no_request(self):
-        with patch("mcp_legal_it.core.norme.fetch_article", side_effect=AssertionError("no request")):
+    async def test_html_channel_reads_the_page_with_visualex_s_extractor(self):
+        from pathlib import Path
+
+        from mcp_legal_it.lib.visualex.normattiva_html import estrai_da_html
+
+        pagina = (Path(__file__).resolve().parents[1] / "fixtures" / "normattiva" / "cc_n2ls_art2043.html").read_text(
+            encoding="utf-8")
+        chieste = []
+
+        def handler(request):
+            chieste.append(str(request.url))
+            return httpx.Response(200, text=pagina)
+
+        def factory(fonte, **kwargs):
+            kwargs.pop("verify", None)
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory):
             t = await api.testo_articolo("art. 2043 c.c.", canale="html")
-        assert t.esito == "non_supportata" and t.article_text == "" and t.canale == "html"
-        assert t.norma_data.urn and t.url == CC_URL
+            di_nuovo = await api.testo_articolo("art. 2043 c.c.", canale="html")
+        assert t.esito == "trovato" and t.canale == "html" and t.fonte == "normattiva"
+        assert t.article_text == estrai_da_html(pagina)  # VisuaLex's text, byte for byte
+        assert t.url == CC_URL and t.urn == CC_URL.split("?", 1)[1]
+        assert chieste == [CC_URL]  # the second read comes from the page cache
+        assert di_nuovo.article_text == t.article_text
 
     async def test_found_keeps_visualex_keys_and_both_url_and_urn(self):
         fake = _fetch({"text": "Qualunque fatto doloso...", "source": "normattiva-akn", "data_atto": ""},
@@ -113,7 +133,7 @@ class TestTestoArticolo:
     async def test_many_articles_keep_order_and_respect_the_cap(self):
         running, peak = 0, 0
 
-        async def fake(nv):
+        async def fake(nv, **kw):
             nonlocal running, peak
             running += 1
             peak = max(peak, running)
@@ -565,7 +585,7 @@ class TestRisposteVisuaLex:
         assert nd.url == CC_URL and nd.allegato == "2" and nd.numero_articolo == "2043"
         seen = []
 
-        async def fake(nv):
+        async def fake(nv, **kw):
             seen.append(nv.numero_articolo)
             return {"text": "x", "url": nv.url(), "source": "normattiva-akn"}
 
