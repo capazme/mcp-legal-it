@@ -10,36 +10,38 @@ is shipped as it is today, stated as such in the release notes. None may be
 «completed» by whoever runs the release.
 
 - [ ] Merge order and approval of the 3.0 chain (§2).
-- [ ] Appellee's term (art. 347 c.p.c.): the tool applies 70 days before the
-      hearing (art. 166 through art. 347); art. 347 co. 1 in force says the
-      other parties appear at least 20 days before it.
 - [ ] Start of the art. 482 c.p.c. window (day 10 or day 11). Drafted code on
       the branch `feature/termini-decisioni-pendenti`; tests are strict
       `xfail` «pending owner decision».
 - [ ] A «substantive» mode of `scadenza_processuale` without the Saturday
       extension (same branch, same `xfail`).
-- [ ] August suspension: note on the proceedings excluded by art. 3 L.
-      742/1969.
+- [ ] Art. 617 c.p.c. and the August suspension: `termini_esecuzioni` applies
+      the prudent reading (no suspension) and warns when August falls in the
+      20 days; decide whether that stays.
 - [ ] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
-      its live gate is red on purpose.
-- [ ] D.M. 55/2014: rounding of the minimum fees: its live gate is red on
-      purpose.
-- [ ] Open content items: TUN vs Milan tables, memorie under art. 171-ter,
-      abuso d'ufficio.
-- [ ] The 2.17.1 patches for the 2.x line: release them before, with, or after
-      the GA.
+      how the yield is calculated; its live gate is red on purpose.
+- [ ] Registration tax: whether the text of D.P.R. 131/1986 is still
+      applicable or D.Lgs. 123/2025 replaces it.
+- [ ] How long the 2.x line keeps receiving fixes after 3.0.
+- [ ] Review of twelve content items: non-pecuniary damage tables (Milan vs
+      TUN), art. 139 Codice delle assicurazioni in work accidents, order of the
+      briefs under art. 171-ter c.p.c., 2012 text of art. 348-bis c.p.c.,
+      mediation duration, naming of the «sommario» procedure, abrogated abuse
+      of office, some CONSOB identifiers, the labour consultant as independent
+      controller, Cass. SS.UU. 19499/2008, Cass. SS.UU. 1712/1995, Italgiure
+      archive coverage if listed.
 - [ ] Where the 2.x line lives after the GA. Today `main` is 2.x; the GA merges
       3.0 into `main`. If 2.x keeps receiving hotfixes, it needs its own
-      branch (for example `support/2.x` from `v2.17.x`) before the GA.
+      branch (for example `support/2.x` from `v2.17.1`) before the GA.
 - [ ] `main → develop`: until #55 the 2.x and 3.x lines were kept divergent
       on purpose and `main` was never merged into `develop`. Since #55 develop
       descends from `v2.17.0`, and that PR's stated intent is that 2.x hotfixes
-      merge forward. The rule needs restating before any 2.17.x reaches `main`
-      after #55.
-- [ ] Relicensing: written consent to MPL-2.0 from every contributor whose
-      commits are in the tree besides the owner (the repository has one). Until
-      then the Apache-2.0 notice in `NOTICE` covers their material, but consent
-      is the clean path.
+      merge forward. 2.17.1 (released, tag `v2.17.1` on `main`) is not an
+      ancestor of `develop`: its fixes reached the 3.0 line as separate
+      commits. The rule needs restating before the next 2.x release.
+- [x] Relicensing: written consent to MPL-2.0 obtained from every past
+      contributor. `NOTICE` still says that the 2.x releases remain available
+      under Apache-2.0.
 
 ## 2. The 3.0 chain is merged
 
@@ -81,7 +83,7 @@ Run long jobs under `caffeinate -dims`: a sleeping Mac stalls the live suites.
 - [ ] Every other live module, one at a time (`ls tests/unit/*_live.py`),
       including the CeRDEF canary and `test_italgiure_live.py` with TLS
       verification on. Red gates are either fixed or listed in §1 (today:
-      BTP 50-year yield, D.M. 55/2014 rounding).
+      BTP 50-year yield; the D.M. 55/2014 gate is no longer red).
 - [ ] The citation gate on a real session: a reply citing an article not read
       is stopped once with «ATTENZIONE — gate citazioni»; after `cite_law` it
       passes; «fuori copertura» passes; a subagent's read counts.
@@ -110,7 +112,7 @@ The Mac Intel column checks the `cryptography` platform split of the lock.
 The marketplace is git-sourced from `main` on GitHub: when `main` moves to 3.0,
 every 2.x plugin user with auto-update receives it.
 
-- [ ] On a machine with 2.17.0 installed from the marketplace:
+- [ ] On a machine with 2.17.1 installed from the marketplace:
       `claude plugin marketplace update mcp-legal-it`, then
       `claude plugin update legal-it@mcp-legal-it`, restart. The first start
       syncs the new lock in the background (two-phase start) and the tools
@@ -118,7 +120,7 @@ every 2.x plugin user with auto-update receives it.
 - [ ] The same with auto-update on, without typing anything.
 - [ ] The hooks are the new ones: `Stop` and `SubagentStop` in the installed
       `hooks/hooks.json`.
-- [ ] A 2.17.0 `.mcpb` replaced by the 3.0.0 one keeps working after the
+- [ ] A 2.17.1 `.mcpb` replaced by the 3.0.0 one keeps working after the
       one-time uv rebuild.
 - [ ] A 3.0.0-beta user (pre-release artifacts) moves to the GA the same way.
 - [ ] `marketplace.json` and `plugin.json` on `main` say 3.0.0 after the

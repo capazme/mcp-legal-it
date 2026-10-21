@@ -247,7 +247,7 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
         <thead><tr><th>Cosa vedi</th><th>Cosa fare</th></tr></thead>
         <tbody>
           <tr><td><code>marketplace add</code> fallisce subito</td><td>Manca <code>git</code>: ripeti il passo 2, poi riprova.</td></tr>
-          <tr><td>In <code>/mcp</code> legal-it è <em>failed</em> (connection timed out)</td><td>Rete molto lenta: anche il solo Python ha superato i 30 secondi. Scegli <strong>Reconnect</strong> (il download riprende da dove era), oppure avvia Claude Code con <code>MCP_TIMEOUT=120000 claude</code>.</td></tr>
+          <tr><td>In <code>/mcp</code> legal-it è <em>failed</em> (connection timed out)</td><td>Rete molto lenta: anche il solo Python ha superato i 30 secondi. Scegli <strong>Reconnect</strong> (il download riprende da dove era), oppure avvia Claude Code con <code>MCP_TIMEOUT=120000 claude</code> (Windows PowerShell: <code>$env:MCP_TIMEOUT="120000"; claude</code>).</td></tr>
           <tr><td><code>uv: command not found</code> o <em>CONNECTION_CLOSED</em></td><td>Manca <code>uv</code> oppure la finestra era aperta da prima: ripeti il passo 1 e riapri Claude Code.</td></tr>
           <tr><td>Strumenti di Legal IT doppi</td><td>È installata anche l'estensione <code>.mcpb</code>: toglila (passo 4).</td></tr>
           <tr><td>Claude scrive «gate citazioni» e rilegge le fonti prima di rispondere</td><td>È il controllo delle citazioni: una norma o una sentenza citata non era stata letta con uno strumento. Lascia che la legga. Per una fonte che nessuno strumento copre (per esempio la CEDU o il codice deontologico forense), chiedi a Claude di scrivere «fuori copertura» accanto alla citazione.</td></tr>
