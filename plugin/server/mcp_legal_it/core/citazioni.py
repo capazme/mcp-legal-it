@@ -370,7 +370,9 @@ _MESI = "gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ott
 
 # A decision's number and year, in the shapes Italian writing uses.
 _NUMERO_DECISIONE = re.compile(
-    rf"\bn\.?\s*(?P<n1>\d{{1,6}})\s*(?:/|\s+del\s+(?:\d{{1,2}}\s+(?:{_MESI})\s+)?)\s*(?P<a1>(?:19|20)\d{{2}})(?!\d)"
+    # "sentenza 26972 del 2008", "sent. n. 242/2019", "ordinanze nn. ..." (n. optional).
+    rf"\b(?:sent(?:enz[ae])?|ord(?:inanz[ae])?)\.?\s*(?:n\.?\s*)?(?P<n5>\d{{1,6}})\s*(?:/|\s+del\s+)\s*(?P<a5>(?:19|20)\d{{2}})(?!\d)"
+    rf"|\bn\.?\s*(?P<n1>\d{{1,6}})\s*(?:/|\s+del\s+(?:\d{{1,2}}\s+(?:{_MESI})\s+)?)\s*(?P<a1>(?:19|20)\d{{2}})(?!\d)"
     rf"|(?P<a2>(?:19|20)\d{{2}})\s*,?\s*n\.?\s*(?P<n2>\d{{1,6}})\b"
     rf"|(?<![\d/.])(?P<n3>\d{{1,6}})\s*/\s*(?P<a3>(?:19|20)\d{{2}})(?![\d/])"
     # "Sentenza n. 123 (2024)": the heading of a TAR/CdS search hit.
@@ -379,7 +381,7 @@ _NUMERO_DECISIONE = re.compile(
 )
 
 # A Court of Justice / General Court case: "C-311/18", "T-604/18".
-_CAUSA_UE = re.compile(r"(?<![\w-])(?P<lettera>[CT])\s*[-‐–]\s*(?P<numero>\d{1,4})\s*/\s*(?P<anno>\d{4}|\d{2})(?!\d)")
+_CAUSA_UE = re.compile(r"(?<![\w-])(?P<lettera>[CT])\s*[-‐‑‒–−]\s*(?P<numero>\d{1,4})\s*/\s*(?P<anno>\d{4}|\d{2})(?!\d)")
 
 _CORTI = (
     ("cass", re.compile(
@@ -390,6 +392,20 @@ _CORTI = (
         r"\bcons(?:iglio)?\.?\s*(?:di\s+)?st(?:ato)?\b\.?|\b(?-i:T\.?A\.?R\.?)(?!\w)|\b(?-i:CGARS|C\.G\.A\.)",
         re.IGNORECASE)),
 )
+
+# Connectives between two numbers of one list: the second keeps the court of the first
+# ("Cass. nn. 500/1999, 600/2000 e 700/2001", "Corte cost. sentenze n. 242/2019 e n. 135/2024").
+_SOLO_CONNETTIVI = re.compile(
+    r"[\s,;()]*(?:(?:e|ed|nonché|anche|conf\.?|cfr\.?|v\.|nn?\.?|sent(?:enz[ae])?\.?|ord(?:inanz[ae])?\.?)[\s,;()]*)*",
+    re.IGNORECASE,
+)
+
+# A court named as the object of an appeal is not the author of the number that follows:
+# "ricorso per cassazione iscritto al n. 1234/2023 R.G.".
+_CORTE_COME_RIMEDIO = re.compile(r"\b(?:per|in)\s+$", re.IGNORECASE)
+
+# The docket number of a case (ruolo generale), not a decision.
+_RUOLO = re.compile(r"^\s*,?\s*(?:(?-i:R\.?\s?G\.?|N\.?\s?R\.?\s?G\.?)|r\.g\.|reg\.?\s*gen)", re.IGNORECASE)
 
 # A number/year that belongs to an act, not to a decision: "D.Lgs. 196/2003", "L. n. 241 del 1990".
 _NUMERO_DI_ATTO = re.compile(
@@ -408,8 +424,8 @@ def _anno_pieno(anno: str) -> int:
 
 def _numeri_decisione(testo: str):
     for m in _NUMERO_DECISIONE.finditer(testo):
-        numero = m.group("n1") or m.group("n2") or m.group("n3") or m.group("n4")
-        anno = m.group("a1") or m.group("a2") or m.group("a3") or m.group("a4")
+        numero = m.group("n5") or m.group("n1") or m.group("n2") or m.group("n3") or m.group("n4")
+        anno = m.group("a5") or m.group("a1") or m.group("a2") or m.group("a3") or m.group("a4")
         yield m, str(int(numero)), int(anno)
 
 
@@ -427,13 +443,21 @@ def decisioni_nel_testo(testo: str) -> list[DecisioneCitata]:
             "cgue", f"{m.group('lettera')}-{int(m.group('numero'))}", _anno_pieno(m.group("anno")),
             _estratto(testo, max(0, m.start() - 30), m.end()),
         ))
-    fine_precedente = 0
+    fine_precedente, corte_precedente = 0, None
     for m, numero, anno in _numeri_decisione(testo):
+        if _RUOLO.match(testo, m.end()):
+            fine_precedente, corte_precedente = m.end(), None
+            continue
+        if corte_precedente and _SOLO_CONNETTIVI.fullmatch(testo, fine_precedente, m.start()):
+            fine_precedente = m.end()
+            trovate.append(DecisioneCitata(corte_precedente, numero, anno,
+                                           _estratto(testo, max(0, m.start() - 30), m.end())))
+            continue
         # The court named for this number sits in the same sentence and after the
         # previous number: "Sez. Un. n. 500/1999. La sentenza n. 242/2019 della
         # Corte costituzionale" names two courts.
         inizio_finestra = max(fine_precedente, m.start() - 120)
-        fine_precedente = m.end()
+        fine_precedente, corte_precedente = m.end(), None
         prima = testo[inizio_finestra: m.start()]
         paragrafo = prima.rfind("\n\n")
         if paragrafo != -1:
@@ -445,7 +469,7 @@ def decisioni_nel_testo(testo: str) -> list[DecisioneCitata]:
         corte, posizione = None, -1
         for nome, marcatore in _CORTI:
             for c in marcatore.finditer(prima):
-                if c.start() > posizione:
+                if c.start() > posizione and not _CORTE_COME_RIMEDIO.search(prima, 0, c.start()):
                     corte, posizione = nome, c.start()
         if corte is None:
             dopo = testo[m.end(): m.end() + 40]
@@ -455,6 +479,7 @@ def decisioni_nel_testo(testo: str) -> list[DecisioneCitata]:
                     break
         if corte is None:
             continue
+        corte_precedente = corte
         inizio = max(0, m.start() - (len(prima) - posizione if posizione >= 0 else 0))
         trovate.append(DecisioneCitata(corte, numero, anno, _estratto(testo, inizio, m.end())))
     return trovate
@@ -473,7 +498,7 @@ def decisioni_nel_risultato(testo: str) -> set[tuple[str, int]]:
 # --- articles a result served -----------------------------------------------------
 
 _TITOLO_ARTICOLO = re.compile(
-    rf"^\s*(?:#+\s*)?art(?:icolo)?\.?\s*(?P<numero>{_NUMERO_ARTICOLO})", re.IGNORECASE | re.MULTILINE
+    rf"^[ \t]*(?:#+[ \t]*)?art(?:icolo)?\.?[ \t]*(?P<numero>{_NUMERO_ARTICOLO})", re.IGNORECASE | re.MULTILINE
 )
 
 
