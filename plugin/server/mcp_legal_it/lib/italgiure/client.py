@@ -2,15 +2,20 @@
 
 Endpoint: POST sncass/isapi/hc.dll/sn.solr/sn-collection/select?app.query
 Auth: session cookie from homepage (anti-bot check).
-SSL: verify=False (invalid cert on www.italgiure.giustizia.it).
+SSL: verified. The server sends the wrong intermediates, so the missing one ships
+with the package (ti_trust_ov_ca.crt) and is added to certifi's roots.
 Collections: snciv (civile), snpen (penale) — filtered via kind field in query.
 """
 
 from __future__ import annotations
 
+import functools
 import re
+import ssl
 import urllib.parse
+from pathlib import Path
 
+import certifi
 import httpx
 from mcp_legal_it.core._http import async_client
 
@@ -40,6 +45,17 @@ _KIND_FILTER = {
 TIPO_PROV = {"sentenza": "Sentenza", "ordinanza": "Ordinanza", "decreto": "Decreto"}
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
+
+#: The intermediate the server fails to send (see the header of the file).
+_INTERMEDIO = Path(__file__).with_name("ti_trust_ov_ca.crt")
+
+
+@functools.lru_cache(maxsize=1)
+def tls_context() -> ssl.SSLContext:
+    """certifi's public roots plus the missing intermediate: full verification, hostname included."""
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    ctx.load_verify_locations(cafile=str(_INTERMEDIO))
+    return ctx
 _MAX_OCR_LENGTH = 30000
 # Long decisions keep their head (parties, facts) AND their tail: the holding (rigetto,
 # accoglimento, principio di diritto, P.Q.M.) sits at the end of the OCR text, and for many
@@ -192,7 +208,7 @@ class SolrSession:
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> SolrSession:
-        self._client = async_client("italgiure", verify=False, timeout=_TIMEOUT, headers=_HEADERS)
+        self._client = async_client("italgiure", verify=tls_context(), timeout=_TIMEOUT, headers=_HEADERS)
         await self._client.get(_HOMEPAGE)
         return self
 
@@ -213,14 +229,14 @@ async def solr_query(params: dict, session: SolrSession | None = None) -> dict:
     """Execute Solr query against Italgiure unified endpoint.
 
     Uses POST to /sn-collection/select?app.query with form-encoded body.
-    Fetches homepage first to obtain session cookie. verify=False for invalid SSL.
+    Fetches homepage first to obtain session cookie. TLS verified (see tls_context).
     Handles list-valued params (e.g. multiple fq) via urlencode(doseq=True).
 
     If *session* is provided, reuses its client (no extra homepage fetch).
     """
     if session is not None:
         return await session.query(params)
-    async with async_client("italgiure", verify=False, timeout=_TIMEOUT, headers=_HEADERS) as client:
+    async with async_client("italgiure", verify=tls_context(), timeout=_TIMEOUT, headers=_HEADERS) as client:
         await client.get(_HOMEPAGE)
         body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
         resp = await retry_request(client, "POST", _SOLR_URL, dataset="italgiure", content=body)

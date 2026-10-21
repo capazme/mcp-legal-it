@@ -24,8 +24,8 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 
 #: ``factory(fonte, **kwargs) -> httpx.AsyncClient``. ``fonte`` is the stable source
 #: name (``"normattiva"``, ``"italgiure"``, ...); ``kwargs`` are exactly what the
-#: library would pass to ``httpx.AsyncClient`` (headers, timeout, ``verify=False``
-#: for Italgiure, ...). The client is used as an async context manager and closed.
+#: library would pass to ``httpx.AsyncClient`` (headers, timeout, the ``verify``
+#: SSL context for Italgiure, ...). The client is used as an async context manager and closed.
 ClientFactory = Callable[..., "httpx.AsyncClient"]
 
 
