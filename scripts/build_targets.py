@@ -121,17 +121,22 @@ def build_claude_web(root: Path, out_dir: Path | None = None) -> int:
 # shared staging helpers for plugin-zip / mcpb
 # ---------------------------------------------------------------------------
 
+#: Local leftovers of a checkout that must never ship: a uv environment (created by
+#: `uv run --project`), the metadata an editable install writes next to the package
+#: (`pip install -e .` puts mcp_legal_it.egg-info in plugin/server/), tool caches.
+_PURGE_DIRS = (".venv", "__pycache__", "*.egg-info", ".pytest_cache", "build")
+_PURGE_FILES = ("*.pyc", ".DS_Store", ".env", "*.pem", "*.key")
+
+
 def _purge_caches(stage: Path) -> None:
-    # Never ship a local uv environment (created by `uv run --project` in a checkout).
-    for d in list(stage.rglob(".venv")):
-        if d.is_dir():
-            shutil.rmtree(d, ignore_errors=True)
-    for d in list(stage.rglob("__pycache__")):
-        if d.is_dir():
-            shutil.rmtree(d, ignore_errors=True)
-    for f in list(stage.rglob("*.pyc")):
-        if f.is_file():
-            f.unlink()
+    for pattern in _PURGE_DIRS:
+        for d in list(stage.rglob(pattern)):
+            if d.is_dir():
+                shutil.rmtree(d, ignore_errors=True)
+    for pattern in _PURGE_FILES:
+        for f in list(stage.rglob(pattern)):
+            if f.is_file():
+                f.unlink()
 
 
 def _rewrite_manifest_version(path: Path, version: str) -> None:
