@@ -49,6 +49,20 @@ entry, it is the same feature as ported to the 3.0 line.
   convention (`golden.json`) is a pinned fixture: the norm identities
   mcp-legal-it builds already must match it, the others are listed with the
   step that closes them.
+- **Normattiva articles are read from their page, with VisuaLex's extractor.**
+  `cite_law`, `fetch_law_article` and `verifica_citazioni` now read the
+  article's Normattiva page (the HTML channel, `api.testo_articolo(...,
+  canale="html")`) instead of the Akoma Ntoso export first. The text is
+  VisuaLex's `article_text`, byte for byte (`lib/visualex/normattiva_html.py`,
+  imported unchanged; 11 of 11 texts identical to a live VisuaLex run, its
+  frozen hashes pass): real accents ("è", "attività", not "e'", "attivita'"),
+  Normattiva's «(( … ))» marks of amended words, no `### Art. N` heading, and
+  the source line says "Normattiva" instead of "Normattiva-Akn". The export
+  is the last resort, when the page cannot be read, and the answer says so.
+  A page's reading is kept 24 hours (`normattiva_pagine/`, `LEGAL_CACHE=off`
+  switches the disk copy off): no request more than before when warm, one
+  fewer for an article of a code when cold. Articles of one act cited with
+  the year only share one lookup of its date.
 - `docs/migration/visualex-inventory.md`: the function-by-function inventory of
   the VisuaLex readers that move into mcp-legal-it, with the choice for each.
 - **`mcp_legal_it.api`: mcp-legal-it as a library, and its only stable surface.**
