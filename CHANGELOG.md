@@ -518,6 +518,19 @@ entry, it is the same feature as ported to the 3.0 line.
 - `.mcpb` and the OpenAI config pin `fastmcp>=3.4,<4` (the floor was 2.0, older
   than the FastMCP the server needs). The change rebuilds the extension's uv
   environment once, on the first start of 3.0.
+- **`verifica_citazioni` and other courts.** "Corte cost. n. 238/2014" and
+  "Cons. St. n. 1/2020" were looked up on Italgiure as Cassazione and reported
+  "inesistente". Corte costituzionale decisions are now checked on the Court's
+  archive; Consiglio di Stato, TAR, CGUE, tax and merits courts are "non
+  verificabile", with the tool to search them.
+- **A range of articles is refused.** "art. 3-5 c.c." became `~art35`: the
+  library API returned the URN of art. 35 as "trovato". `cite_law`,
+  `fetch_law_article` and the API now answer "chiedere un articolo alla volta".
+- The annex parser (`split_annex`) ran in exponential time on a long article
+  string (20 characters: 0.44 s, x4 every 2 more); it is linear now.
+- The disposizioni di attuazione del c.p.c. are dated 18/12/1941 (R.D. n. 1368)
+  in citations and URNs, not 25/08/1941; a test cross-checks the dates of every
+  code across the three tables that state them.
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
   caller and was fetched as is: on the HTTP transport any client could read
   pages reachable from the server (localhost, cloud metadata, intranet). Only
