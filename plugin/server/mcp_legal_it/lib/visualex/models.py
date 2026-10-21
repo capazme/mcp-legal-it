@@ -201,9 +201,11 @@ def _append_article(urn: str, article: str) -> str:
         article = space_match.group(1)
         extension = space_match.group(2)
     elif "-" in article:
+        # "2-bis", "2 - bis", "135 sex-decies": no space nor dash stays in the URN.
         parts = article.split("-", 1)
-        article = parts[0]
-        extension = parts[1].replace("-", "")
+        head = re.match(r"^(\d+)\s*((?:[A-Za-z]+\s*)*)$", parts[0].strip())  # one blank run per gap
+        article = head.group(1) if head else parts[0].strip()
+        extension = re.sub(r"[\s-]", "", (head.group(2) if head else "") + parts[1])
     elif (words := re.match(r"^(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*)$", article)):
         # A suffix written in words the table does not list as one ("135 sex decies",
         # "25 vicies semel"): joined, as VisuaLex's controller joins them before the URN
