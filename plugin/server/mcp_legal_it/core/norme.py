@@ -57,14 +57,23 @@ _ANNEX_AFTER_ARTICLE = re.compile(
 # paragraph/letter indicators and an annex may follow the act: any other trailing
 # text ("... convertito dalla L. 27/2020") would end up inside the act name.
 _ART = r"(?:articol[oi]|art)\.?\s*\d+(?:[-/.]\w+)*"
+# One separator class per repetition: "\s*[,;]?\s*" splits a run of spaces two ways and,
+# repeated, made a failing match exponential in the number of indicators.
 _PARAGRAPHS = (
-    r"(?:\s*[,;]?\s*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+\w*|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
+    r"(?:[\s,;]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+\w*|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
 )
 _ACT_FIRST_PATTERN = re.compile(
     rf"^(?P<act>.+?)\s*[,;]?\s+(?P<ref>"
     rf"{_ART}{_PARAGRAPHS}(?:\s*[,;]?\s*{_ANNEX_LINK}allegato\s+{ANNEX_ID})?"
     rf"|allegato\s+{ANNEX_ID}(?:\s*,?\s*{_ART})?{_PARAGRAPHS}"
     r")\s*$",
+    re.IGNORECASE,
+)
+
+
+# The annex written after the act: "D.Lgs. 36/2023, allegato I.7".
+_ANNEX_LAST = re.compile(
+    rf"^(?P<act>.+?)[\s,;]+{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})\s*$",
     re.IGNORECASE,
 )
 
@@ -130,6 +139,10 @@ def _parse_reference(reference: str) -> tuple[str, str]:
         if annex_match:
             rest = _strip_annex_link(annex_match.group("rest").strip())
             return annex_reference(annex_match.group("id"), article), rest
+        # "art. 30 D.Lgs. 36/2023, allegato I.7": the annex closes the reference.
+        annex_last = _ANNEX_LAST.match(rest)
+        if annex_last:
+            return annex_reference(annex_last.group("id"), article), annex_last.group("act").strip()
         return article, rest
 
     # Act written first: put the article (or annex) in front and parse that.

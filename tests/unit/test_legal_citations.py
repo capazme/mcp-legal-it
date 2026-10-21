@@ -135,6 +135,31 @@ class TestParseReferenceActFirst:
     def test_act_alone_is_unchanged(self, reference):
         assert _parse_reference(reference) == ("", reference)
 
+    @pytest.mark.parametrize("reference", [
+        "art. 30 D.Lgs. 36/2023, allegato I.7",
+        "D.Lgs. 36/2023 art. 30, allegato I.7",
+        "art. 30, allegato I.7, D.Lgs. 36/2023",
+    ])
+    def test_annex_written_last(self, reference):
+        assert _parse_reference(reference) == ("allegato I.7 art. 30", "D.Lgs. 36/2023")
+
+    @pytest.mark.parametrize("tail", [" comma 1", " lett. a", ", comma 1"])
+    def test_long_reference_is_parsed_in_linear_time(self, tail):
+        # One separator per repetition: the old "\s*[,;]?\s*" made a failing match
+        # exponential (22 indicators took ~6 s and blocked the event loop).
+        import time
+        reference = "x art. 1" + tail * 200 + " ?"
+        start = time.perf_counter()
+        _parse_reference(reference)
+        assert time.perf_counter() - start < 0.1
+
+    def test_verifica_citazioni_keeps_a_bare_annex_with_its_article(self):
+        from mcp_legal_it.tools.legal_citations import _split_citazioni
+        assert _split_citazioni("D.Lgs. 36/2023 art. 30, allegato I.7, art. 13 GDPR") == [
+            "D.Lgs. 36/2023 art. 30, allegato I.7", "art. 13 GDPR",
+        ]
+        assert _split_citazioni("art. 13 GDPR, allegato III AI Act") == ["art. 13 GDPR", "allegato III AI Act"]
+
     def test_article_that_cannot_be_separated_is_refused(self):
         # Trailing text after the article: never resolve D.L. 18/2020 alone and serve its art. 1.
         assert _parse_reference("D.L. 18/2020 art. 103 convertito dalla L. 27/2020") == ("", "")
