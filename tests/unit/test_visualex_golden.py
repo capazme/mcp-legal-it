@@ -38,9 +38,21 @@ def _golden() -> dict:
     return json.loads(GOLDEN.read_text(encoding="utf-8"))
 
 
-def _identita(norma: dict) -> dict | None:
+def _confronti(norma: dict) -> list[tuple[str, str | None, str]]:
+    """``(kind, expected, built)`` for the act and the article identity the file asserts."""
+    i = norma["input"]
     ide = norma.get("identity", {})
-    return ide.get("article") or ide.get("act")
+    n = Norma(i["tipo_atto"], i.get("data", ""), i.get("numero_atto", ""))
+    out = []
+    for kind in ("act", "article"):
+        atteso = ide.get(kind)
+        if not atteso or atteso["status"] not in ("decided", "current", "proposed"):
+            continue
+        if kind == "article" and not i.get("numero_articolo"):
+            continue
+        costruito = NormaVisitata(n, i["numero_articolo"]).url() if kind == "article" else n.url()
+        out.append((kind, atteso["value"], costruito or None))
+    return out
 
 
 def test_the_copy_is_visualex_s_file():
@@ -54,13 +66,11 @@ def test_every_gap_names_a_norm_of_the_file():
 
 @pytest.mark.parametrize("norma", _golden()["norms"], ids=lambda n: n["id"])
 def test_norm_identity(norma):
-    atteso = _identita(norma)
-    if atteso is None or atteso["status"] not in ("decided", "current", "proposed"):
+    confronti = _confronti(norma)
+    if not confronti:
         pytest.skip("no identity asserted for this norm")
-    i = norma["input"]
-    n = Norma(i["tipo_atto"], i.get("data", ""), i.get("numero_atto", ""))
-    ottenuto = NormaVisitata(n, i["numero_articolo"]).url() if i.get("numero_articolo") else n.url()
+    diversi = [(k, a, c) for k, a, c in confronti if a != c]
     if norma["id"] in LACUNE:
-        assert ottenuto != atteso["value"], f"gap closed, remove it from LACUNE: {norma['id']}"
+        assert diversi, f"gap closed, remove it from LACUNE: {norma['id']}"
         pytest.xfail(LACUNE[norma["id"]])
-    assert ottenuto == atteso["value"]
+    assert not diversi, diversi

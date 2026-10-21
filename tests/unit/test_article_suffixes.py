@@ -114,8 +114,10 @@ class TestNoPrivateCopyStopsAtDecies:
     def test_italgiure_sees_the_act_after_a_long_suffix(self):
         assert norma_is_qualified("art. 25-terdecies d.lgs. 231/2001")
         assert not norma_is_qualified("art. 25-terdecies")
-        # "bisogna" is a word, not art. 5-bis followed by "ogna"
-        assert norma_is_qualified("art. 5 bisogna")
+
+    def test_a_suffix_does_not_claim_the_head_of_a_word(self):
+        # Without the closing \b, "5-bisogna" was art. 5-bis followed by "ogna".
+        assert "5-bis ogna" not in build_norma_variants("art. 5-bisogna c.c.")
 
     def test_the_act_index_reads_suffixes_past_sexiesdecies(self):
         from mcp_legal_it.api._norme import _VOCE_ARTICOLO

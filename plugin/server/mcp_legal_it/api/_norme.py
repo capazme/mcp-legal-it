@@ -39,9 +39,10 @@ from mcp_legal_it.lib.visualex.scraper import (
 
 #: Latin ordinals that follow an article number, in the order of the law
 #: (``bis`` = 2nd ... ``vicies`` = 20th), each with the other spellings Normattiva
-#: prints. Built from the one table (``lib/visualex/article_suffixes.py``, imported
-#: from VisuaLex and pinned to it); ``semel`` ("vicies semel", 21st) is in the
-#: alternation below but is no ordinal of its own.
+#: prints: the spellings of the one table (``lib/visualex/article_suffixes.py``,
+#: imported from VisuaLex and pinned to it) grouped by ordinal, which
+#: ``tests/unit/test_article_suffixes.py`` checks; ``semel`` ("vicies semel", 21st)
+#: is in the alternation below but is no ordinal of its own.
 SUFFISSI_ARTICOLO: tuple[tuple[str, ...], ...] = (
     ("bis",), ("ter",), ("quater",), ("quinquies",), ("sexies",), ("septies",),
     ("octies",), ("novies", "nonies"), ("decies",), ("undecies",), ("duodecies",),
