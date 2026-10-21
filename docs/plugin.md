@@ -234,7 +234,10 @@ stessa sessione compresi, mai transcript di altre sessioni):
   legge dai suoi `atto` e `articolo`), oppure un risultato di `fetch_full_act` che lo
   contiene;
 - una decisione: un risultato `leggi_*`/`cerca_*` (o `*_su_norma`, `ultime_*`) della
-  stessa corte che riporta quel numero e quell'anno; un «non trovata» non copre nulla.
+  stessa corte che riporta quel numero e quell'anno; un «non trovata» non copre nulla,
+  le massime di Brocardi e le mappe di orientamento nemmeno (una massima non è la
+  decisione); la ricerca unificata accredita ogni numero alla corte indicata accanto.
+  In un elenco («Cass. nn. 500/1999, 600/2000») ogni numero va letto.
 
 **Ignora**: blocchi di codice e span inline, articoli di documenti che non sono atti
 («art. 5 del contratto», «l'atto di costituzione all'art. 3»), atti citati senza
