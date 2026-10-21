@@ -674,7 +674,10 @@ le regole di rete per fonte (`mcp_legal_it/core/_http.py`, da `http_client.py` e
 `circuit_breaker.py`); la tabella dei suffissi degli articoli
 (`mcp_legal_it/lib/visualex/article_suffixes.py`, importata così com'è); le righe
 delle tabelle dei tipi d'atto e `normalize_act_type`; la convenzione delle fonti
-`golden.json` come fixture dei test (`tests/fixtures/visualex/`). L'inventario della migrazione è in
+`golden.json` come fixture dei test (`tests/fixtures/visualex/`); il lettore del testo
+degli articoli dalla pagina di Normattiva (`mcp_legal_it/lib/visualex/normattiva_html.py`);
+il lettore dell'export Akoma Ntoso (`mcp_legal_it/lib/visualex/akn_parser.py`, unito al nostro)
+e i suoi test (`tests/unit/test_akn_parser_visualex.py`). L'inventario della migrazione è in
 [`docs/migration/visualex-inventory.md`](docs/migration/visualex-inventory.md).
 
 [![MCP Badge](https://lobehub.com/badge/mcp/capazme-mcp-legal-it)](https://lobehub.com/mcp/capazme-mcp-legal-it)

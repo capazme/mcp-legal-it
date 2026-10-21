@@ -18,6 +18,10 @@ Two structures exist. The parser MUST handle both.
 | `codice_civile.xml` | component | ~2969 + preleggi | 10.6 MB | `<doc>` per article |
 | `codice_penale.xml` | component | ~734 | 4.1 MB | `<doc>` per article |
 | `dlgs_36_2023_trimmed.xml` | flat + annexes | 14 + 8 annex docs | 0.1 MB | trimmed (2026-10-01): body artt. 1-10, 18, 30, 31, 50; Allegati I.01, I.1, I.4, I.7, I.11; `meta/analysis` dropped |
+| `dlgs_36_2023_positions.xml` | flat + annexes | 2 + every annex doc | 0.1 MB | captured 2026-10-21; body artt. 1, 30; every attachment doc kept with its name, texts only for I.7 artt. 1, 30 and I.11 art. 1: the parts' Normattiva positions are the real ones (I.7 :8, I.11 :12, checked live) |
+| `dlgs_104_2010_trimmed.xml` | component (code in Allegato 1) | 2 + 166 docs | 0.1 MB | captured 2026-10-21; texts only for c.p.a. artt. 1, 120 and Allegato 2 art. 5; "Indice generale" doc kept (c.p.a. is :2) |
+| `legge_654_1975.xml` | flat + a treaty | 4 + 25 | 0.1 MB | captured 2026-10-21, whole; the law's art. 3 (repealed) vs the Convention's |
+| `dpr_131_1986_tariffa.xml` | flat + Tariffa | 2 + 40 docs | 0.1 MB | captured 2026-10-21; body artt. 1, 40; texts only for Tariffa I artt. 1, 3 and II art. 1: `<table>` inside `<content>` |
 
 ## Structure 1 — FLAT (laws, decrees, Costituzione)
 

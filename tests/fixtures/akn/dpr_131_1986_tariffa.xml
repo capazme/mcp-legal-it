@@ -1,0 +1,960 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0" xmlns:eli="http://data.europa.eu/eli/ontology#" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:gu="http://www.gazzettaufficiale.it/eli/" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:na="http://www.normattiva.it/eli/" xmlns:nakn="http://normattiva.it/akn/vocabulary" xmlns:nrdfa="http://www.normattiva.it/rdfa/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfa="http://www.w3.org/1999/xhtml#">
+    <act name="monovigente">
+        <meta>
+            <identification source="">
+                <FRBRWork>
+                    <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131"/>
+                    <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.del.presidente.della.repubblica:1986-04-26;131"/>
+                    <FRBRalias name="eli" value="eli/id/1986/04/30/086U0131/CONSOLIDATED/20260604"/>
+                    <FRBRdate date="1986-04-26" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604" aknrelname="eli/id/1986/04/30/086U0131/CONSOLIDATED/20260604">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalResource"/>
+                            <nrdfa:span content="Approvazione del testo unico delle disposizioni concernenti l'imposta di registro. " lang="it" property="eli:title" xml:lang="it"/>
+                            <nrdfa:span content="http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}" property="eli:uri_schema"/>
+                            <nrdfa:span content="086U0131" property="eli:id_local"/>
+                            <nrdfa:span property="eli:type_document" resource="gu:tables/resource-type#DECRETO DEL PRESIDENTE DELLA REPUBBLICA"/>
+                            <nrdfa:span content="1986-04-26" datatype="xsd:date" property="eli:date_document"/>
+                            <nrdfa:span property="eli:version" resource="gu:tables/versions#ORIGINAL"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRcountry value="it"/>
+                </FRBRWork>
+                <FRBRExpression>
+                    <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main"/>
+                    <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04"/>
+                    <FRBRdate date="2026-06-04" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604/ita">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalExpression"/>
+                            <nrdfa:span property="eli:realizes" resource="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604"/>
+                            <nrdfa:span property="eli:is_embodied_by" resource="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604/ita/akn"/>
+                            <nrdfa:span property="eli:language" resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                            <nrdfa:span property="eli:publisher_agent" resource="http://www.ipzs.it"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRlanguage language="ita"/>
+                </FRBRExpression>
+                <FRBRManifestation>
+                    <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main.xml"/>
+                    <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04.xml"/>
+                    <FRBRdate date="1986-04-26" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604/ita/akn">
+                            <nrdfa:span property="rdf:type" resource="eli:Format"/>
+                            <nrdfa:span property="eli:format" resource="http://www.iana.org/assignments/media-types/xml"/>
+                        </nrdfa:eli>
+                    </preservation>
+                </FRBRManifestation>
+            </identification>
+            <publication date="1986-04-30" name="" number="99" showAs=""/>
+            <lifecycle source="">
+                <eventRef date="1986-04-30" eId="eventRef_0" source="ro1"/>
+                <eventRef date="1986-05-12" eId="eventRef_1" source="rp1"/>
+                <eventRef date="1986-06-21" eId="eventRef_2" source="rp2"/>
+                <eventRef date="1989-03-02" eId="eventRef_3" source="rp3"/>
+                <eventRef date="1989-05-12" eId="eventRef_4" source="rp4"/>
+                <eventRef date="1989-09-30" eId="eventRef_5" source="rp5"/>
+                <eventRef date="1989-11-18" eId="eventRef_6" source="rp6"/>
+                <eventRef date="1990-12-31" eId="eventRef_7" source="rp7"/>
+                <eventRef date="1991-05-13" eId="eventRef_8" source="rp8"/>
+                <eventRef date="1991-08-05" eId="eventRef_9" source="rp9"/>
+                <eventRef date="1991-12-18" eId="eventRef_10" source="rp10"/>
+                <eventRef date="1993-01-23" eId="eventRef_11" source="rp11"/>
+                <eventRef date="1993-05-22" eId="eventRef_12" source="rp12"/>
+                <eventRef date="1993-08-30" eId="eventRef_13" source="rp13"/>
+                <eventRef date="1993-12-28" eId="eventRef_14" source="rp14"/>
+                <eventRef date="1995-12-29" eId="eventRef_15" source="rp15"/>
+                <eventRef date="1996-06-20" eId="eventRef_16" source="rp16"/>
+                <eventRef date="1996-12-28" eId="eventRef_17" source="rp17"/>
+                <eventRef date="1996-12-31" eId="eventRef_18" source="rp18"/>
+                <eventRef date="1997-12-23" eId="eventRef_19" source="rp19"/>
+                <eventRef date="1997-12-30" eId="eventRef_20" source="rp20"/>
+                <eventRef date="1998-01-02" eId="eventRef_21" source="rp21"/>
+                <eventRef date="1998-01-08" eId="eventRef_22" source="rp22"/>
+                <eventRef date="1998-07-11" eId="eventRef_23" source="rp23"/>
+                <eventRef date="1998-12-29" eId="eventRef_24" source="rp24"/>
+                <eventRef date="1999-02-22" eId="eventRef_25" source="rp25"/>
+                <eventRef date="1999-03-03" eId="eventRef_26" source="rp26"/>
+                <eventRef date="1999-05-17" eId="eventRef_27" source="rp27"/>
+                <eventRef date="1999-06-04" eId="eventRef_28" source="rp28"/>
+                <eventRef date="1999-12-27" eId="eventRef_29" source="rp29"/>
+                <eventRef date="2000-02-07" eId="eventRef_30" source="rp30"/>
+                <eventRef date="2000-10-30" eId="eventRef_31" source="rp31"/>
+                <eventRef date="2000-11-25" eId="eventRef_32" source="rp32"/>
+                <eventRef date="2000-12-29" eId="eventRef_33" source="rp33"/>
+                <eventRef date="2001-03-05" eId="eventRef_34" source="rp34"/>
+                <eventRef date="2001-06-01" eId="eventRef_35" source="rp35"/>
+                <eventRef date="2002-06-15" eId="eventRef_36" source="rp36"/>
+                <eventRef date="2002-12-11" eId="eventRef_37" source="rp37"/>
+                <eventRef date="2003-06-18" eId="eventRef_38" source="rp38"/>
+                <eventRef date="2003-10-02" eId="eventRef_39" source="rp39"/>
+                <eventRef date="2003-12-27" eId="eventRef_40" source="rp40"/>
+                <eventRef date="2004-07-12" eId="eventRef_41" source="rp41"/>
+                <eventRef date="2004-12-31" eId="eventRef_42" source="rp42"/>
+                <eventRef date="2005-01-31" eId="eventRef_43" source="rp43"/>
+                <eventRef date="2005-12-29" eId="eventRef_44" source="rp44"/>
+                <eventRef date="2006-07-04" eId="eventRef_45" source="rp45"/>
+                <eventRef date="2006-10-03" eId="eventRef_46" source="rp46"/>
+                <eventRef date="2006-12-27" eId="eventRef_47" source="rp47"/>
+                <eventRef date="2007-12-28" eId="eventRef_48" source="rp48"/>
+                <eventRef date="2007-12-31" eId="eventRef_49" source="rp49"/>
+                <eventRef date="2008-01-11" eId="eventRef_50" source="rp50"/>
+                <eventRef date="2008-06-25" eId="eventRef_51" source="rp51"/>
+                <eventRef date="2009-12-31" eId="eventRef_52" source="rp52"/>
+                <eventRef date="2010-06-16" eId="eventRef_53" source="rp53"/>
+                <eventRef date="2010-12-21" eId="eventRef_54" source="rp54"/>
+                <eventRef date="2010-12-29" eId="eventRef_55" source="rp55"/>
+                <eventRef date="2010-12-31" eId="eventRef_56" source="rp56"/>
+                <eventRef date="2011-03-23" eId="eventRef_57" source="rp57"/>
+                <eventRef date="2011-07-06" eId="eventRef_58" source="rp58"/>
+                <eventRef date="2011-12-30" eId="eventRef_59" source="rp59"/>
+                <eventRef date="2012-03-02" eId="eventRef_60" source="rp60"/>
+                <eventRef date="2012-07-06" eId="eventRef_61" source="rp61"/>
+                <eventRef date="2013-12-27" eId="eventRef_62" source="rp62"/>
+                <eventRef date="2013-12-28" eId="eventRef_63" source="rp63"/>
+                <eventRef date="2014-01-29" eId="eventRef_64" source="rp64"/>
+                <eventRef date="2014-05-12" eId="eventRef_65" source="rp65"/>
+                <eventRef date="2015-10-07" eId="eventRef_66" source="rp66"/>
+                <eventRef date="2015-12-30" eId="eventRef_67" source="rp67"/>
+                <eventRef date="2016-10-24" eId="eventRef_68" source="rp68"/>
+                <eventRef date="2016-12-21" eId="eventRef_69" source="rp69"/>
+                <eventRef date="2016-12-31" eId="eventRef_70" source="rp70"/>
+                <eventRef date="2017-07-19" eId="eventRef_71" source="rp71"/>
+                <eventRef date="2017-12-28" eId="eventRef_72" source="rp72"/>
+                <eventRef date="2017-12-29" eId="eventRef_73" source="rp73"/>
+                <eventRef date="2018-12-28" eId="eventRef_74" source="rp74"/>
+                <eventRef date="2018-12-31" eId="eventRef_75" source="rp75"/>
+                <eventRef date="2019-12-30" eId="eventRef_76" source="rp76"/>
+                <eventRef date="2020-04-08" eId="eventRef_77" source="rp77"/>
+                <eventRef date="2020-08-14" eId="eventRef_78" source="rp78"/>
+                <eventRef date="2020-10-13" eId="eventRef_79" source="rp79"/>
+                <eventRef date="2020-12-30" eId="eventRef_80" source="rp80"/>
+                <eventRef date="2020-12-31" eId="eventRef_81" source="rp81"/>
+                <eventRef date="2021-03-01" eId="eventRef_82" source="rp82"/>
+                <eventRef date="2021-12-30" eId="eventRef_83" source="rp83"/>
+                <eventRef date="2021-12-30" eId="eventRef_84" source="rp84"/>
+                <eventRef date="2022-02-28" eId="eventRef_85" source="rp85"/>
+                <eventRef date="2022-06-08" eId="eventRef_86" source="rp86"/>
+                <eventRef date="2022-06-21" eId="eventRef_87" source="rp87"/>
+                <eventRef date="2022-12-29" eId="eventRef_88" source="rp88"/>
+                <eventRef date="2022-12-30" eId="eventRef_89" source="rp89"/>
+                <eventRef date="2023-02-27" eId="eventRef_90" source="rp90"/>
+                <eventRef date="2023-06-13" eId="eventRef_91" source="rp91"/>
+                <eventRef date="2023-12-29" eId="eventRef_92" source="rp92"/>
+                <eventRef date="2024-06-28" eId="eventRef_93" source="rp93"/>
+                <eventRef date="2024-10-02" eId="eventRef_94" source="rp94"/>
+                <eventRef date="2024-11-28" eId="eventRef_95" source="rp95"/>
+                <eventRef date="2024-12-16" eId="eventRef_96" source="rp96"/>
+                <eventRef date="2024-12-31" eId="eventRef_97" source="rp97"/>
+                <eventRef date="2024-12-31" eId="eventRef_98" source="rp98"/>
+                <eventRef date="2025-06-12" eId="eventRef_99" source="rp99"/>
+                <eventRef date="2025-08-12" eId="eventRef_100" source="rp100"/>
+                <eventRef date="2025-12-02" eId="eventRef_101" source="rp101"/>
+                <eventRef date="2025-12-19" eId="eventRef_102" source="rp102"/>
+                <eventRef date="2025-12-31" eId="eventRef_103" source="rp103"/>
+                <eventRef date="2026-06-03" eId="eventRef_104" source="rp104"/>
+            </lifecycle>
+            <references source="">
+                <original eId="ro1" href="/akn/it/act/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/stato/1986-04-26/131/!main" showAs=""/>
+                <passiveRef eId="rp1" href="" showAs=""/>
+                <passiveRef eId="rp2" href="/akn/it/act/CIRCOLARE/MINISTERO_DELLE_FINANZE/1986-06-10/37/!main" showAs=""/>
+                <passiveRef eId="rp3" href="/akn/it/act/DECRETO-LEGGE/stato/1989-03-02/69/!main" showAs=""/>
+                <passiveRef eId="rp4" href="/akn/it/act/LEGGE/stato/1989-05-05/171/!main" showAs=""/>
+                <passiveRef eId="rp5" href="/akn/it/act/DECRETO-LEGGE/stato/1989-09-30/332/!main" showAs=""/>
+                <passiveRef eId="rp6" href="" showAs=""/>
+                <passiveRef eId="rp7" href="/akn/it/act/LEGGE/stato/1990-12-29/408/!main" showAs=""/>
+                <passiveRef eId="rp8" href="/akn/it/act/DECRETO-LEGGE/stato/1991-05-13/151/!main" showAs=""/>
+                <passiveRef eId="rp9" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/1991-07-23/240/!main" showAs=""/>
+                <passiveRef eId="rp10" href="/akn/it/act/LEGGE/stato/1991-12-02/399/!main" showAs=""/>
+                <passiveRef eId="rp11" href="/akn/it/act/DECRETO-LEGGE/stato/1993-01-23/16/!main" showAs=""/>
+                <passiveRef eId="rp12" href="/akn/it/act/DECRETO-LEGGE/stato/1993-05-22/155/!main" showAs=""/>
+                <passiveRef eId="rp13" href="/akn/it/act/DECRETO-LEGGE/stato/1993-08-30/331/!main" showAs=""/>
+                <passiveRef eId="rp14" href="/akn/it/act/LEGGE/stato/1993-12-24/537/!main" showAs=""/>
+                <passiveRef eId="rp15" href="/akn/it/act/LEGGE/stato/1995-12-28/549/!main" showAs=""/>
+                <passiveRef eId="rp16" href="/akn/it/act/DECRETO-LEGGE/stato/1996-06-20/323/!main" showAs=""/>
+                <passiveRef eId="rp17" href="/akn/it/act/LEGGE/stato/1996-12-23/662/!main" showAs=""/>
+                <passiveRef eId="rp18" href="/akn/it/act/DECRETO-LEGGE/stato/1996-12-31/669/!main" showAs=""/>
+                <passiveRef eId="rp19" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/1997-12-15/446/!main" showAs=""/>
+                <passiveRef eId="rp20" href="/akn/it/act/LEGGE/stato/1997-12-27/449/!main" showAs=""/>
+                <passiveRef eId="rp21" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/1997-12-04/460/!main" showAs=""/>
+                <passiveRef eId="rp22" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/1997-12-18/473/!main" showAs=""/>
+                <passiveRef eId="rp23" href="/akn/it/act/DECRETO/MINISTERO_DELLE_FINANZE/1998-07-08/223/!main" showAs=""/>
+                <passiveRef eId="rp24" href="/akn/it/act/LEGGE/stato/1998-12-23/448/!main" showAs=""/>
+                <passiveRef eId="rp25" href="/akn/it/act/LEGGE/stato/1999-02-18/28/!main" showAs=""/>
+                <passiveRef eId="rp26" href="" showAs=""/>
+                <passiveRef eId="rp27" href="/akn/it/act/LEGGE/stato/1999-05-13/133/!main" showAs=""/>
+                <passiveRef eId="rp28" href="/akn/it/act/LEGGE/stato/1999-06-03/157/!main" showAs=""/>
+                <passiveRef eId="rp29" href="/akn/it/act/LEGGE/stato/1999-12-23/488/!main" showAs=""/>
+                <passiveRef eId="rp30" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2000-01-18/9/!main" showAs=""/>
+                <passiveRef eId="rp31" href="/akn/it/act/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/stato/2000-08-18/308/!main" showAs=""/>
+                <passiveRef eId="rp32" href="/akn/it/act/LEGGE/stato/2000-11-21/342/!main" showAs=""/>
+                <passiveRef eId="rp33" href="/akn/it/act/LEGGE/stato/2000-12-23/388/!main" showAs=""/>
+                <passiveRef eId="rp34" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2001-01-26/32/!main" showAs=""/>
+                <passiveRef eId="rp35" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2001-05-04/207/!main" showAs=""/>
+                <passiveRef eId="rp36" href="/akn/it/act/DECRETO_DEL_PRESIDENTE_DELLA_REPUBBLICA/stato/2002-05-30/115/!main" showAs=""/>
+                <passiveRef eId="rp37" href="" showAs=""/>
+                <passiveRef eId="rp38" href="" showAs=""/>
+                <passiveRef eId="rp39" href="/akn/it/act/DECRETO-LEGGE/stato/2003-09-30/269/!main" showAs=""/>
+                <passiveRef eId="rp40" href="/akn/it/act/LEGGE/stato/2003-12-24/350/!main" showAs=""/>
+                <passiveRef eId="rp41" href="/akn/it/act/DECRETO-LEGGE/stato/2004-07-12/168/!main" showAs=""/>
+                <passiveRef eId="rp42" href="/akn/it/act/LEGGE/stato/2004-12-30/311/!main" showAs=""/>
+                <passiveRef eId="rp43" href="/akn/it/act/DECRETO-LEGGE/stato/2005-01-31/7/!main" showAs=""/>
+                <passiveRef eId="rp44" href="/akn/it/act/LEGGE/stato/2005-12-23/266/!main" showAs=""/>
+                <passiveRef eId="rp45" href="/akn/it/act/DECRETO-LEGGE/stato/2006-07-04/223/!main" showAs=""/>
+                <passiveRef eId="rp46" href="/akn/it/act/DECRETO-LEGGE/stato/2006-10-03/262/!main" showAs=""/>
+                <passiveRef eId="rp47" href="/akn/it/act/LEGGE/stato/2006-12-27/296/!main" showAs=""/>
+                <passiveRef eId="rp48" href="/akn/it/act/LEGGE/stato/2007-12-24/244/!main" showAs=""/>
+                <passiveRef eId="rp49" href="/akn/it/act/DECRETO-LEGGE/stato/2007-12-31/248/!main" showAs=""/>
+                <passiveRef eId="rp50" href="" showAs=""/>
+                <passiveRef eId="rp51" href="/akn/it/act/DECRETO-LEGGE/stato/2008-06-25/112/!main" showAs=""/>
+                <passiveRef eId="rp52" href="" showAs=""/>
+                <passiveRef eId="rp53" href="" showAs=""/>
+                <passiveRef eId="rp54" href="/akn/it/act/LEGGE/stato/2010-12-13/220/!main" showAs=""/>
+                <passiveRef eId="rp55" href="/akn/it/act/DECRETO-LEGGE/stato/2010-12-29/225/!main" showAs=""/>
+                <passiveRef eId="rp56" href="" showAs=""/>
+                <passiveRef eId="rp57" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2011-03-14/23/!main" showAs=""/>
+                <passiveRef eId="rp58" href="/akn/it/act/DECRETO-LEGGE/stato/2011-07-06/98/!main" showAs=""/>
+                <passiveRef eId="rp59" href="" showAs=""/>
+                <passiveRef eId="rp60" href="/akn/it/act/DECRETO-LEGGE/stato/2012-03-02/16/!main" showAs=""/>
+                <passiveRef eId="rp61" href="/akn/it/act/DECRETO-LEGGE/stato/2012-07-06/95/!main" showAs=""/>
+                <passiveRef eId="rp62" href="/akn/it/act/LEGGE/stato/2013-12-27/147/!main" showAs=""/>
+                <passiveRef eId="rp63" href="" showAs=""/>
+                <passiveRef eId="rp64" href="" showAs=""/>
+                <passiveRef eId="rp65" href="/akn/it/act/DECRETO-LEGGE/stato/2014-05-12/74/!main" showAs=""/>
+                <passiveRef eId="rp66" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2015-09-24/158/!main" showAs=""/>
+                <passiveRef eId="rp67" href="/akn/it/act/LEGGE/stato/2015-12-28/208/!main" showAs=""/>
+                <passiveRef eId="rp68" href="/akn/it/act/DECRETO-LEGGE/stato/2016-10-22/193/!main" showAs=""/>
+                <passiveRef eId="rp69" href="/akn/it/act/LEGGE/stato/2016-12-11/232/!main" showAs=""/>
+                <passiveRef eId="rp70" href="" showAs=""/>
+                <passiveRef eId="rp71" href="" showAs=""/>
+                <passiveRef eId="rp72" href="" showAs=""/>
+                <passiveRef eId="rp73" href="/akn/it/act/LEGGE/stato/2017-12-27/205/!main" showAs=""/>
+                <passiveRef eId="rp74" href="" showAs=""/>
+                <passiveRef eId="rp75" href="/akn/it/act/LEGGE/stato/2018-12-30/145/!main" showAs=""/>
+                <passiveRef eId="rp76" href="" showAs=""/>
+                <passiveRef eId="rp77" href="/akn/it/act/DECRETO-LEGGE/stato/2020-04-08/23/!main" showAs=""/>
+                <passiveRef eId="rp78" href="/akn/it/act/DECRETO-LEGGE/stato/2020-08-14/104/!main" showAs=""/>
+                <passiveRef eId="rp79" href="/akn/it/act/LEGGE/stato/2020-10-13/126/!main" showAs=""/>
+                <passiveRef eId="rp80" href="" showAs=""/>
+                <passiveRef eId="rp81" href="/akn/it/act/DECRETO-LEGGE/stato/2020-12-31/183/!main" showAs=""/>
+                <passiveRef eId="rp82" href="/akn/it/act/LEGGE/stato/2021-02-26/21/!main" showAs=""/>
+                <passiveRef eId="rp83" href="" showAs=""/>
+                <passiveRef eId="rp84" href="/akn/it/act/DECRETO-LEGGE/stato/2021-12-30/228/!main" showAs=""/>
+                <passiveRef eId="rp85" href="/akn/it/act/LEGGE/stato/2022-02-25/15/!main" showAs=""/>
+                <passiveRef eId="rp86" href="" showAs=""/>
+                <passiveRef eId="rp87" href="/akn/it/act/DECRETO-LEGGE/stato/2022-06-21/73/!main" showAs=""/>
+                <passiveRef eId="rp88" href="/akn/it/act/DECRETO-LEGGE/stato/2022-12-29/198/!main" showAs=""/>
+                <passiveRef eId="rp89" href="" showAs=""/>
+                <passiveRef eId="rp90" href="/akn/it/act/LEGGE/stato/2023-02-24/14/!main" showAs=""/>
+                <passiveRef eId="rp91" href="/akn/it/act/DECRETO-LEGGE/stato/2023-06-13/69/!main" showAs=""/>
+                <passiveRef eId="rp92" href="" showAs=""/>
+                <passiveRef eId="rp93" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2024-06-14/87/!main" showAs=""/>
+                <passiveRef eId="rp94" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2024-09-18/139/!main" showAs=""/>
+                <passiveRef eId="rp95" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2024-11-05/173/!main" showAs=""/>
+                <passiveRef eId="rp96" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2024-12-13/192/!main" showAs=""/>
+                <passiveRef eId="rp97" href="" showAs=""/>
+                <passiveRef eId="rp98" href="/akn/it/act/LEGGE/stato/2024-12-30/207/!main" showAs=""/>
+                <passiveRef eId="rp99" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2025-06-12/81/!main" showAs=""/>
+                <passiveRef eId="rp100" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2025-08-01/123/!main" showAs=""/>
+                <passiveRef eId="rp101" href="/akn/it/act/LEGGE/stato/2025-12-02/181/!main" showAs=""/>
+                <passiveRef eId="rp102" href="/akn/it/act/DECRETO_LEGISLATIVO/stato/2025-12-18/192/!main" showAs=""/>
+                <passiveRef eId="rp103" href="" showAs=""/>
+                <passiveRef eId="rp104" href="" showAs=""/>
+            </references>
+            <proprietary source="">
+                <rdf:RDF>
+                    <rdf:Description rdf:about="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604">
+                        <rdf:type rdf:resource="eli:LegalResource"/>
+                        <eli:title xml:lang="it">Approvazione del testo unico delle disposizioni concernenti l'imposta di registro. </eli:title>
+                        <eli:uri_schema>http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}</eli:uri_schema>
+                        <eli:id_local>086U0131</eli:id_local>
+                        <eli:type_document rdf:resource="gu:tables/resource-type#DECRETO DEL PRESIDENTE DELLA REPUBBLICA"/>
+                        <eli:date_document rdf:datatype="xsd:date">1986-04-26</eli:date_document>
+                        <eli:version rdf:resource="gu:tables/versions#ORIGINAL"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604/ita">
+                        <rdf:type rdf:resource="eli:LegalExpression"/>
+                        <eli:realizes rdf:resource="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604"/>
+                        <eli:is_embodied_by rdf:resource="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604/ita/akn"/>
+                        <eli:language rdf:resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                        <eli:publisher_agent rdf:resource="http://www.ipzs.it"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/1986/04/30/086U0131/CONSOLIDATED/20260604/ita/akn">
+                        <rdf:type rdf:resource="eli:format"/>
+                        <eli:format rdf:resource="http://www.iana.org/assignments/media-types/xml"/>
+                    </rdf:Description>
+                </rdf:RDF>
+            </proprietary>
+        </meta>
+        <preface>
+            <p>
+                <docType>DECRETO DEL PRESIDENTE DELLA REPUBBLICA</docType>
+                <docDate date="1986-04-26">26 aprile 1986</docDate>
+                <docNumber>131</docNumber>
+                <docTitle>Approvazione del testo unico delle disposizioni concernenti l'imposta di registro.
+</docTitle>
+            </p>
+        </preface>
+        <preamble>
+            <formula name="formulaInizialePreambolo">
+                <p>IL PRESIDENTE DELLA REPUBBLICA</p>
+            </formula>
+            <citations eId="cits_1">
+                <citation eId="cits_1__cit_1">
+                    <p>Visti gli <ref eId="ref_1" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_76">articoli 76</ref> e <ref eId="ref_2" href="/akn/it/act/costituzione/stato/1947-12-27/const/!main#art_87">87 della Costituzione</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_2">
+                <citation eId="cits_2__cit_1">
+                    <p>Visto l'<ref eId="ref_3" href="/akn/it/act/legge/stato/1971-10-09/825/!main#art_17-com3">art. 17, terzo comma, della legge 9 ottobre 1971, n. 825</ref>;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_3">
+                <citation eId="cits_3__cit_1">
+                    <p>Vista la <ref eId="ref_4" href="/akn/it/act/legge/stato/1985-12-24/777/!main">legge 24 dicembre 1985, n. 777</ref>, che ha prorogato, da ultimo, il termine per l'emanazione dei testi unici previsti dall'<ref eId="ref_5" href="/akn/it/act/legge/stato/1971/825/!main#art_17">art. 17 della legge n. 825 del 1971</ref>;</p>
+                </citation>
+            </citations>
+            <p>Udito il parere della commissione parlamentare istituita a norma dell'<ref eId="ref_6" href="/akn/it/act/legge/stato/1971/825/!main#art_17">art. 17 della legge n. 825 del 1971</ref>;</p>
+            <citations eId="cits_4">
+                <citation eId="cits_4__cit_1">
+                    <p>Vista la deliberazione del Consiglio dei Ministri, adottata nella riunione del 18 aprile 1986;</p>
+                </citation>
+            </citations>
+            <p>Sulla proposta del Presidente del Consiglio dei Ministri, di concerto con i Ministri delle finanze, del tesoro, del bilancio e della programmazione economica e dell'interno;</p>
+            <p>EMANA</p>
+            <p>il seguente decreto:</p>
+            <p>Art. 1.</p>
+            <p>1. E' approvato l'unito testo unico delle disposizioni concernenti l'imposta di registro, vistato dal proponente.</p>
+            <p>Il presente decreto, munito del sigillo dello Stato, sara' inserto nella Raccolta ufficiale delle leggi e dei decreti della Repubblica italiana. E' fatto obbligo a chiunque spetti di osservarlo e di farlo osservare.</p>
+            <p>Dato a Roma, addi' 26 aprile 1986</p>
+            <p>COSSIGA</p>
+            <p>CRAXI, Presidente del Consiglio dei</p>
+            <p>Ministri</p>
+            <p>VISENTINI, Ministro delle finanze</p>
+            <p>GORIA, Ministro del tesoro</p>
+            <p>ROMITA, Ministro del bilancio e della  programmazione economica</p>
+            <p>SCALFARO, Ministro dell'interno</p>
+            <citations eId="cits_5">
+                <citation eId="cits_5__cit_1">
+                    <p>Visto, il Guardasigilli: MARTINAZZOLI</p>
+                </citation>
+            </citations>
+            <formula name="formulaFinalePreambolo">
+                <p>Registrato alla Corte dei conti, addi' 29 aprile 1986 Atti di Governo, registro n. 60, foglio n. 22</p>
+            </formula>
+        </preamble>
+        <body>
+            <chapter eId="chp_II">
+                <num>Titolo I</num>
+                <heading>DISPOSIZIONI GENERALI</heading>
+                <article eId="art_1">
+                    <num>Art. 1.</num>
+                    <heading> Oggetto dell'imposta</heading>
+                    <paragraph eId="art_1__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>L'imposta di registro si applica, nella misura indicata nella  tariffa allegata al presente testo unico, agli atti soggetti a 
+ registrazione e a quelli volontariamente presentati per la registrazione. 
+</p>
+                        </content>
+                    </paragraph>
+                </article>
+                </chapter>
+            <chapter eId="chp_III">
+                <num>Titolo II</num>
+                <heading>REGISTRAZIONE DEGLI ATTI</heading>
+                </chapter>
+            <chapter eId="chp_IV">
+                <num>Titolo III</num>
+                <heading>APPLICAZIONE DELL'IMPOSTA</heading>
+                <article eId="art_40">
+                    <num>Art. 40.</num>
+                    <heading>Atti relativi ad operazioni soggette all'imposta sul valore aggiunto </heading>
+                    <paragraph eId="art_40__para_1">
+                        <num>1.</num>
+                        <content>
+                            <p>
+                                <ins eId="ins_66">((Per gli atti relativi a cessioni di beni e prestazioni di servizi soggetti all'imposta sul valore aggiunto, l'imposta si applica in misura fissa. Si considerano soggette all'imposta sul valore aggiunto anche le cessioni e le prestazioni tra soggetti partecipanti a un gruppo IVA, le cessioni e le prestazioni per le quali l'imposta non e' dovuta a norma degli articoli da 7 a 7-septies del decreto del Presidente della Repubblica 26 ottobre 1972, n. 633, e quelle di cui al comma 6 dell'articolo 21 del medesimo decreto del Presidente della Repubblica n. 633 del 1972. La disposizione del periodo precedente non si applica alle operazioni esenti ai sensi dei numeri 8), 8-bis) e 27-quinquies) del primo comma dell'articolo 10 del citato decreto n. 633 del 1972 e alle locazioni di immobili esenti ai sensi del secondo comma del medesimo articolo 10, nonche' alle cessioni di beni e alle prestazioni di servizi tra soggetti partecipanti a un gruppo IVA per le quali, se effettuate nei confronti di un soggetto non partecipante al gruppo IVA, si applicherebbero le suddette disposizioni))</ins>. <ins eId="ins_67">((68))</ins>
+                            </p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_40__para_1-bis">
+                        <num>1-bis.</num>
+                        <content>
+                            <p>
+                                <ins eId="ins_68">((Sono soggette all'imposta proporzionale di registro le locazioni di immobili strumentali di cui all'articolo 10, primo comma, numero 8), del decreto del Presidente della Repubblica 26 ottobre 1972, n. 633, ancorche' siano imponibili agli effetti dell'imposta sul valore aggiunto ovvero intervengano tra soggetti partecipanti a un gruppo IVA))</ins>. <ins eId="ins_69">((68))</ins>
+                            </p>
+                        </content>
+                    </paragraph>
+                    <paragraph eId="art_40__para_2">
+                        <num>2.</num>
+                        <content>
+                            <p>Per le operazioni indicate nell'<ref eId="content__ref_45" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1972-10-26/633/!main#art_11">art. 11 del decreto del Presidente della Repubblica 26 ottobre 1972, n. 633</ref>, l'imposta si applica sulla cessione o prestazione non soggetta all'imposta sul valore aggiunto. 
+ 
+</p>
+                        </content>
+                    </paragraph>
+                    <paragraph>
+                        <content>
+                            <p>--------------</p>
+                            <p>AGGIORNAMENTO (59)</p>
+                            <p>
+ La <ref eId="46" href="/akn/it/act/legge/stato/2013-12-27/147/!main">L. 27 dicembre 2013, n. 147</ref> ha disposto (con l'art. 1, comma 166) che la presente modifica si applica a decorrere dal 1º gennaio 2014. </p>
+                            <p>--------------</p>
+                            <p>AGGIORNAMENTO (63)</p>
+                            <p>
+ La <ref eId="47" href="/akn/it/act/legge/stato/2015-12-28/208/!main">L. 28 dicembre 2015, n. 208</ref>, ha disposto (con l'art. 1, comma 84) che la presente modifica si applica dal 1° gennaio 2016 al 31 dicembre 2020. </p>
+                            <p>--------------</p>
+                            <p>AGGIORNAMENTO (68)</p>
+                            <p>
+ La <ref eId="48" href="/akn/it/act/legge/stato/2016-12-11/232/!main">L. 11 dicembre 2016, n. 232</ref> ha disposto (con l'art. 1, comma 30) che le presenti modifiche si applicano dal 1º gennaio 2018. </p>
+                        </content>
+                    </paragraph>
+                </article>
+                </chapter>
+            <chapter eId="chp_V">
+                <num>Titolo IV</num>
+                <heading>DETERMINAZIONE DELLA BASE IMPONIBILE</heading>
+                </chapter>
+            <chapter eId="chp_VI">
+                <num>Titolo V</num>
+                <heading>RISCOSSIONE DELL'IMPOSTA</heading>
+                </chapter>
+            <chapter eId="chp_VII">
+                <num>Titolo VI</num>
+                <heading>DISPOSIZIONI VARIE</heading>
+                </chapter>
+            <chapter eId="chp_VIII">
+                <num>Titolo VII</num>
+                <heading>SANZIONI</heading>
+                </chapter>
+            <chapter eId="chp_IX">
+                <num>Titolo VIII</num>
+                <heading>DECADENZA E PRESCRIZIONE</heading>
+                </chapter>
+            <chapter eId="chp_X">
+                <num>Titolo IX</num>
+                <heading>DISPOSIZIONI TRANSITORIE E FINALI</heading>
+                </chapter>
+        </body>
+        <attachments>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/!main/annesso_1"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.del.presidente.della.repubblica:1986-04-26;131"/>
+                                <FRBRalias name="eli" value="eli/id/1986/04/30/086U0131/CONSOLIDATED/20260604"/>
+                                <FRBRdate date="2025-01-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main/annesso_1"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04"/>
+                                <FRBRdate date="2026-06-04" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main/annesso_1.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04.xml"/>
+                                <FRBRdate date="1986-04-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> TARIFFA 
+ 
+ PARTE PRIMA 
+ Atti soggetti a registrazione in termine fisso 
+ 
+ Art. 1. 
+ </p>
+                                <table>
+                                    <tr>
+                                        <th>
+                                            <p>1. Atti  traslativi  a  titolo  oneroso  della proprieta'  di  beni  immobili  in  genere  e atti traslativi o costitutivi  di diritti reali immobiliari  di godimento, compresi la rinuncia pura e semplice agli stessi, i provvedimenti di espropriazione per pubblica utilita' e i trasferimenti coattivi </p>
+                                        </th>
+                                        <th>
+                                            <p>      9 per cento </p>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p>Se il trasferimento ha per oggetto case di abitazione, ad eccezione di quelle di categoria  catastale  A1, A8  e A9 , ove ricorrano le condizioni di cui alla nota II-bis) </p>
+                                        </td>
+                                        <td>
+                                            <p>    2 per cento </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p>Se il trasferimento  ha  per oggetto terreni agricoli e relative pertinenze a favore  di  soggetti diversi dai coltivatori diretti e dagli imprenditori  agricoli professionali, iscritti  nella  relativa  gestione previdenziale  ed assistenziale  (77) </p>
+                                        </td>
+                                        <td>
+                                            <p>    15 per cento </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p>Se il trasferimento  e'  effettuato  nei  confronti di  banche  e intermediari finanziari autorizzati all'esercizio  dell'attivita' di leasing finanziario, e  ha  per  oggetto  case  di  abitazione,  di categoria catastale diversa da Al, A8 e A9,  acquisite in  locazione finanziaria da utilizzatori per i quali ricorrono  le  condizioni  di cui alle note II-bis) e II-sexies): </p>
+                                        </td>
+                                        <td>
+                                            <p>       1,5 per cento </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <p>
+
+ 
+ (4) (47) (54) (55) (63) 
+ 
+Note: 
+ 
+ I) NOTA ABROGATA DAL <ref eId="content__ref_161" href="/akn/it/act/decretoLegislativo/stato/2011-03-14/23/!main">D.LGS. 14 MARZO 2011, N. 23</ref>. 
+ II) NOTA ABROGATA DAL <ref eId="content__ref_162" href="/akn/it/act/decretoLegislativo/stato/2011-03-14/23/!main">D.LGS. 14 MARZO 2011, N. 23</ref>. 
+ II-bis) 1. Ai fini dell'applicazione dell'aliquota del 2 per cento agli atti traslativi a titolo oneroso della proprieta' di case di abitazione non di lusso e agli atti traslativi o costitutivi della nuda proprieta', dell'usufrutto, dell'uso e dell'abitazione relativi alle stesse, devono ricorrere le seguenti condizioni: 
+ a) che l'immobile sia ubicato nel territorio del comune in cui l'acquirente ha o stabilisca entro diciotto mesi dall'acquisto la propria residenza o, se diverso, in quello in cui l'acquirente svolge la propria attivita' ovvero, se l'acquirente si e' trasferito all'estero per ragioni di lavoro e abbia risieduto o svolto la propria attivita' in Italia per almeno cinque anni, nel comune di nascita o in quello in cui aveva la residenza o svolgeva la propria attivita' prima del trasferimento. La dichiarazione di voler stabilire la residenza nel comune ove e' ubicato l'immobile acquistato deve essere resa, a pena di decadenza, dall'acquirente nell'atto di acquisto; (61) 
+ b) che nell'atto di acquisto l'acquirente dichiari di non essere titolare esclusivo o in comunione con il coniuge dei diritti di proprieta', usufrutto, uso e abitazione di altra casa di abitazione nel territorio del comune in cui e' situato l'immobile da acquistare. 
+ c) che nell'atto di acquisto l'acquirente dichiari di non essere titolare, neppure per quote, anche in regime di comunione legale su tutto il territorio nazionale dei diritti di proprieta', usufrutto, uso, abitazione e nuda proprieta' su altra casa di abitazione acquistata dallo stesso soggetto o dal coniuge con le agevolazioni di cui al presente articolo ovvero di cui all'<ref eId="content__ref_163" href="/akn/it/act/legge/stato/1982-04-22/168/!main#art_1">articolo 1 della legge 22 aprile 1982, n. 168</ref>, all'<ref eId="content__ref_164" href="/akn/it/act/decretoLegge/stato/1985-02-07/12/!main#art_2">articolo 2 del decreto-legge 7 febbraio 1985, n. 12</ref>, convertito, con modificazioni, dalla <ref eId="content__ref_165" href="/akn/it/act/legge/stato/1985-04-05/118/!main#art_3-com2">legge 5 aprile 1985, n. 118, all'articolo 3, comma 2</ref>, della <ref eId="content__ref_166" href="/akn/it/act/legge/stato/1991-12-31/415/!main#art_5-com2">legge 31 dicembre 1991, n. 415, all'articolo 5, commi 2</ref> e <ref eId="content__ref_167" href="/akn/it/act/legge/stato/1991-12-31/415/!main#art_5-com3">3</ref>, dei <ref eId="content__ref_168" href="/akn/it/act/decretoLegge/stato/1992-05-20/293/!main#art_2-com2">decreti-legge 21 gennaio 1992, n. 14, 20 marzo 1992, n. 237, e 20 maggio 1992, n. 293, all'articolo 2, commi 2</ref> e <ref eId="content__ref_169" href="/akn/it/act/decretoLegge/stato/1992-05-20/293/!main#art_2-com3">3</ref>, del <ref eId="content__ref_170" href="/akn/it/act/decretoLegge/stato/1992-07-24/348/!main#art_1-com2">decreto-legge 24 luglio 1992, n. 348, all'articolo 1, commi 2</ref> e <ref eId="content__ref_171" href="/akn/it/act/decretoLegge/stato/1992-07-24/348/!main#art_1-com3">3</ref>, del <ref eId="content__ref_172" href="/akn/it/act/decretoLegge/stato/1992-09-24/388/!main#art_1-com2">decreto-legge 24 settembre 1992, n. 388, all'articolo 1, commi 2</ref> e <ref eId="content__ref_173" href="/akn/it/act/decretoLegge/stato/1992-09-24/388/!main#art_1-com3">3</ref>, del <ref eId="content__ref_174" href="/akn/it/act/decretoLegge/stato/1992-11-24/455/!main#art_1-com2">decreto-legge 24 novembre 1992, n. 455, all'articolo 1, comma 2</ref>, del <ref eId="content__ref_175" href="/akn/it/act/decretoLegge/stato/1993-01-23/16/!main">decreto-legge 23 gennaio 1993, n. 16</ref>, convertito, con modificazioni, dalla <ref eId="content__ref_176" href="/akn/it/act/legge/stato/1993-03-24/75/!main#art_16">legge 24 marzo 1993, n. 75 e all'articolo 16</ref> del <ref eId="content__ref_177" href="/akn/it/act/decretoLegge/stato/1993-05-22/155/!main">decreto-legge 22 maggio 1993, n. 155</ref>, convertito, con modificazioni, dalla <ref eId="content__ref_178" href="/akn/it/act/legge/stato/1993-07-19/243/!main">legge 19 luglio 1993, n. 243</ref>. 
+ 2. In caso di cessioni soggette ad imposta sul valore aggiunto le dichiarazioni di cui alle lettere a), b) e c) del comma 1, comunque riferite al momento in cui si realizza l'effetto traslativo possono essere effettuate, oltre che nell'atto di acquisto, anche in sede di contratto preliminare. 
+ 3. Le agevolazioni di cui al comma 1, sussistendo le condizioni di cui alle lettere a), b) e c) del medesimo comma 1, spettano per l'acquisto, anche se con atto separato, delle pertinenze dell'immobile di cui alla lettera a). Sono ricomprese tra le pertinenze, limitatamente ad una per ciascuna categoria, le unita' immobiliari classificate o classificabili nelle categorie catastali C/2, C/6 e C/7, che siano destinate a servizio della casa di abitazione oggetto dell'acquisto agevolato. 
+ 4. In caso di dichiarazione mendace, o di trasferimento per atto a titolo oneroso o gratuito degli immobili acquistati con i benefici di cui al presente articolo prima del decorso del termine di cinque anni dalla data del loro acquisto, sono dovute le imposte di registro, ipotecaria e catastale nella misura ordinaria, nonche' una sovrattassa pari al 30 per cento delle stesse imposte. Se si tratta di cessioni soggette all'imposta sul valore aggiunto, l'ufficio dell'Agenzia delle entrate presso cui sono stati registrati i relativi atti deve recuperare nei confronti degli acquirenti la differenza fra l'imposta calcolata in base all'aliquota applicabile in assenza di agevolazioni e quella risultante dall'applicazione dell'aliquota agevolata, nonche' irrogare la sanzione amministrativa, pari al 30 per cento della differenza medesima. Sono dovuti gli interessi di mora di cui al comma 4 dell'articolo 55 del presente testo unico. Le predette disposizioni non si applicano nel caso in cui il contribuente, entro un anno ll'alienazione dell'immobile acquistato con i benefici di cui al presente articolo, proceda all'acquisto di altro immobile da adibire a propria abitazione principale. 
+ 4-bis. L'aliquota del 2 per cento si applica anche agli atti di acquisto per i quali l'acquirente non soddisfa il requisito di cui alla lettera c) del comma 1 e per i quali i requisiti di cui alle lettere a) e b) del medesimo comma si verificano senza tener conto dell'immobile acquistato con le agevolazioni elencate nella lettera c), a condizione che quest'ultimo immobile sia alienato <ins eId="ins_160">((entro due anni))</ins> dalla data dell'atto. In mancanza di detta alienazione, all'atto di cui al periodo precedente si applica quanto previsto dal comma 4. (76) (80) (83) (87) 
+ II-ter). NOTA ABROGATA DAL <ref eId="content__ref_179" href="/akn/it/act/decretoLegislativo/stato/2011-03-14/23/!main">D.LGS. 14 MARZO 2011, N. 23</ref>. 
+ II-quater). NOTA ABROGATA DAL <ref eId="content__ref_180" href="/akn/it/act/decretoLegislativo/stato/2011-03-14/23/!main">D.LGS. 14 MARZO 2011, N. 23</ref>. 
+ II-quinquies). NOTA ABROGATA DAL <ref eId="content__ref_181" href="/akn/it/act/decretoLegislativo/stato/2011-03-14/23/!main">D.LGS. 14 MARZO 2011, N. 23</ref>. 
+ II-sexies) Nell'applicazione della nota II-bis) ai trasferimenti effettuati nei confronti di banche e intermediari finanziari autorizzati all'esercizio dell'attivita' di leasing finanziario, si considera, in luogo dell'acquirente, l'utilizzatore e, in luogo dell'atto di acquisto, il contratto di locazione finanziaria. (60) 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (4)</p>
+                                <p>
+ Il <ref eId="182" href="/akn/it/act/decretoLegge/stato/1989-09-30/332/!main">D.L. 30 settembre 1989 n. 332</ref>, convertito con modificazioni dalla <ref eId="183" href="/akn/it/act/legge/stato/1989-11-27/304/!main">L. 27 novembre 1989 n. 304</ref> ha disposto (con l'art. 6 comma 1) che "l'imposta fissa di registro di lire cinquantamila, prevista dalla tariffa allegata al <ref eId="184" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, e' raddoppiata". </p>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (27)</p>
+                                <p>
+ La <ref eId="185" href="/akn/it/act/legge/stato/1999-12-23/488/!main">L. 23 dicembre 1999 n. 488</ref> ha disposto (con l'art. 7 comma 6) che "l'aliquota del 4 per cento prevista dall'articolo 1 e relative note della Tariffa, parte I, allegata al testo unico delle disposizioni concernenti l'imposta di registro, approvato con <ref eId="186" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, e' ridotta al 3 per cento". </p>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (47)</p>
+                                <p>
+ La <ref eId="187" href="/akn/it/act/legge/stato/2007-12-24/244/!main">L. 24 dicembre 2007, n. 244</ref> ha disposto (con l'art. 1, comma 28) che le disposizioni di cui all'articolo 1 della presente Tariffa, parte I "si applicano agli atti pubblici formati, agli atti giudiziari pubblicati o emanati, alle scritture private autenticate poste in essere a decorrere dalla data di entrata in vigore della presente legge, nonche' alle scritture private non autenticate presentate per la registrazione a decorrere dalla stessa data". </p>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (54)</p>
+                                <p>
+ Il <ref eId="188" href="/akn/it/act/decretoLegge/stato/2010-12-29/225/!main">D.L. 29 dicembre 2010, n. 225</ref>, convertito con modificazioni dalla <ref eId="189" href="/akn/it/act/legge/stato/2011-02-26/10/!main">L. 26 febbraio 2011, n. 10</ref>, nel modificare l'<ref eId="190" href="/akn/it/act/legge/stato/2007-12-24/244/!main#art_1-com25">art. 1, comma 25 della L. 24 dicembre 2007, n. 244</ref>, ha disposto (con l'art. 2, comma 23) che "Il termine di cinque anni di cui all'<ref eId="191" href="/akn/it/act/legge/stato/2007-12-24/244/!main#art_1-com25">articolo 1, comma 25, della legge 24 dicembre 2007, n. 244</ref>, e' prorogato di tre anni.
+All'<ref eId="192" href="/akn/it/act/legge/stato/2007-12-24/244/!main#art_1-com28">articolo 1, comma 28, della legge 24 dicembre 2007, n. 244</ref>, il termine di riferimento degli atti pubblici formati, degli atti giudiziari pubblicati o emanati e delle scritture private autenticate a cui si applicano le disposizioni di cui ai <ref eId="193" href="/akn/it/act/legge/stato/2007-12-24/244/!main#art_1-com25">commi 25</ref>, <ref eId="194" href="/akn/it/act/legge/stato/2007-12-24/244/!main#art_1-com26">26</ref> e <ref eId="195" href="/akn/it/act/legge/stato/2007-12-24/244/!main#art_1-com27">27 dell'articolo 1 della legge 24 dicembre 2007, n. 244</ref>, decorre dall'anno 2005". </p>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (55)</p>
+                                <p>
+ Il <ref eId="196" href="/akn/it/act/decretoLegislativo/stato/2011-03-14/23/!main">D.Lgs. 14 marzo 2011, n. 23</ref> ha disposto: 
+ - (con l'art. 10, comma 2) che "Nei casi di cui al comma 1, l'imposta, comunque, non puo' essere inferiore a 1.000 euro"; 
+ - (con l'art. 10, comma 5) che "Le disposizioni del presente articolo si applicano a decorrere dal 1° gennaio 2014". </p>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (61)</p>
+                                <p>
+ Il <ref eId="197" href="/akn/it/act/decretoLegge/stato/2014-05-12/74/!main">D.L. 12 maggio 2014, n. 74</ref>, convertito con modificazioni dalla <ref eId="198" href="/akn/it/act/legge/stato/2014-06-26/93/!main">L. 26 giugno 2014, n. 93</ref>, ha disposto (con l'art. 1, comma 9-quinquies) che "I termini previsti alla lettera a) del comma 1 della nota II-bis) all'articolo 1 della parte prima della tariffa annessa al testo unico di cui al <ref eId="199" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, e successive modificazioni, nonche' alla lettera b) del comma 1 dell'articolo 15 del testo unico delle imposte sui redditi, di cui al <ref eId="200" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-12-22/917/!main">decreto del Presidente della Repubblica 22 dicembre 1986, n. 917</ref>, e successive modificazioni, sono prorogati fino al termine di un anno dalla data di entrata in vigore della legge di conversione del presente decreto. La disposizione del presente comma si applica ai contribuenti proprietari di immobili situati nei comuni interessati dagli eventi sismici elencati nel <ref eId="201" href="/akn/it/act/decretoLegge/stato/2012-06-06/74/!main">decreto-legge 6 giugno 2012, n. 74</ref>, convertito, con modificazioni, dalla <ref eId="202" href="/akn/it/act/legge/stato/2012-08-01/122/!main">legge 1º agosto 2012, n. 122</ref>". </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (63)</p>
+                                <p>
+ La <ref eId="203" href="/akn/it/act/legge/stato/2015-12-28/208/!main">L. 28 dicembre 2015, n. 208</ref>, ha disposto (con l'art. 1, comma 84) che le presenti modifiche si applicano dal 1° gennaio 2016 al 31 dicembre 2020. </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (76)</p>
+                                <p>
+ Il <ref eId="204" href="/akn/it/act/decretoLegge/stato/2020-04-08/23/!main">D.L. 8 aprile 2020, n. 23</ref> ha disposto (con l'art. 24, comma 1) che "I termini previsti dalla nota II-bis all'articolo 1 della Tariffa parte prima, allegata al testo unico delle disposizioni concernenti l'imposta di registro, approvato con <ref eId="205" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, nonche' il termine previsto dall'<ref eId="206" href="/akn/it/act/legge/stato/1998-12-23/448/!main#art_7">articolo 7 della legge 23 dicembre 1998, n. 448</ref>, ai fini del riconoscimento del credito d'imposta per il riacquisto della prima casa, sono sospesi nel periodo compreso tra il 23 febbraio 2020 e il 31 dicembre 2020". </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (77)</p>
+                                <p>
+ Il <ref eId="207" href="/akn/it/act/decretoLegge/stato/2020-08-14/104/!main">D.L. 14 agosto 2020, n. 104</ref>, convertito con modificazioni dalla <ref eId="208" href="/akn/it/act/legge/stato/2020-10-13/126/!main">L. 13 ottobre 2020, n. 126</ref>, ha disposto (con l'art. 51, comma 1-ter) che "Al fine di contenere l'inquinamento e il dissesto idrogeologico, fino al 31 dicembre 2020, l'aliquota dell'imposta di registro per gli atti traslativi a titolo oneroso della proprieta' di terreni agricoli, di cui all'articolo 1, comma 1, terzo capoverso, della tariffa, parte prima, allegata al testo unico delle disposizioni concernenti l'imposta di registro, di cui al <ref eId="209" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, e' ridotta all'1 per cento per i terreni agricoli adibiti all'imboschimento". </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (80)</p>
+                                <p>
+ Il <ref eId="210" href="/akn/it/act/decretoLegge/stato/2020-04-08/23/!main">D.L. 8 aprile 2020, n. 23</ref>, convertito con modificazioni dalla <ref eId="211" href="/akn/it/act/legge/stato/2020-06-05/40/!main">L. 5 giugno 2020, n. 40</ref>, come modificato dal <ref eId="212" href="/akn/it/act/decretoLegge/stato/2020-12-31/183/!main">D.L. 31 dicembre 2020, n. 183</ref>, convertito con modificazioni dalla <ref eId="213" href="/akn/it/act/legge/stato/2021-02-26/21/!main">L. 26 febbraio 2021, n. 21</ref>, ha disposto (con l'art. 24, comma 1) che "I termini previsti dalla nota II-bis all'articolo 1 della Tariffa parte prima, allegata al testo unico delle disposizioni concernenti l'imposta di registro, approvato con <ref eId="214" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, nonche' il termine previsto dall'<ref eId="215" href="/akn/it/act/legge/stato/1998-12-23/448/!main#art_7">articolo 7 della legge 23 dicembre 1998, n. 448</ref>, ai fini del riconoscimento del credito d'imposta per il riacquisto della prima casa, sono sospesi nel periodo compreso tra il 23 febbraio 2020 e il 31 dicembre 2021". </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (83)</p>
+                                <p>
+ Il <ref eId="216" href="/akn/it/act/decretoLegge/stato/2020-04-08/23/!main">D.L. 8 aprile 2020, n. 23</ref>, convertito con modificazioni dalla <ref eId="217" href="/akn/it/act/legge/stato/2020-06-05/40/!main">L. 5 giugno 2020, n. 40</ref>, come modificato dal <ref eId="218" href="/akn/it/act/decretoLegge/stato/2021-12-30/228/!main">D.L. 30 dicembre 2021, n. 228</ref>, convertito con modificazioni dalla <ref eId="219" href="/akn/it/act/legge/stato/2022-02-25/15/!main">L. 25 febbraio 2022, n. 15</ref>, ha disposto (con l'art. 24, comma 1) che "I termini previsti dalla nota II-bis all'articolo 1 della Tariffa parte prima, allegata al testo unico delle disposizioni concernenti l'imposta di registro, approvato con <ref eId="220" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, nonche' il termine previsto dall'<ref eId="221" href="/akn/it/act/legge/stato/1998-12-23/448/!main#art_7">articolo 7 della legge 23 dicembre 1998, n. 448</ref>, ai fini del riconoscimento del credito d'imposta per il riacquisto della prima casa, sono sospesi nel periodo compreso tra il 23 febbraio 2020 e il 31 marzo 2022". </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (87)</p>
+                                <p>
+ Il <ref eId="222" href="/akn/it/act/decretoLegge/stato/2022-12-29/198/!main">D.L.29 dicembre 2022, n. 198</ref>, convertito con modificazioni dalla <ref eId="223" href="/akn/it/act/legge/stato/2023-02-24/14/!main">L. 24 febbraio 2023, n. 14</ref>, ha disposto (con l'art. 3, comma 10-quinquies) che "I termini previsti dalla nota II-bis all'articolo 1 della tariffa, parte prima, allegata al testo unico delle disposizioni concernenti l'imposta di registro, di cui al <ref eId="224" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, nonche' il termine previsto dall'<ref eId="225" href="/akn/it/act/legge/stato/1998-12-23/448/!main#art_7">articolo 7 della legge 23 dicembre 1998, n. 448</ref>, ai fini del riconoscimento del credito d'imposta per il riacquisto della prima casa, sono sospesi nel periodo compreso tra il 1° aprile 2022 e il 30 ottobre 2023. Sono fatti salvi gli atti notificati dall'Agenzia delle entrate alla data di entrata in vigore della legge di conversione del presente decreto, emessi per il mancato rispetto dei termini di cui alla nota II-bis all'articolo 1 della tariffa, parte prima, allegata al testo unico di cui al <ref eId="226" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, e del termine di cui all'<ref eId="227" href="/akn/it/act/legge/stato/1998-12-23/448/!main#art_7">articolo 7 della legge 23 dicembre 1998, n. 448</ref>, e non si fa luogo al rimborso di quanto gia' versato". </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 3">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/!main/annesso_3"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.del.presidente.della.repubblica:1986-04-26;131"/>
+                                <FRBRalias name="eli" value="eli/id/1986/04/30/086U0131/CONSOLIDATED/20260604"/>
+                                <FRBRdate date="1986-07-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main/annesso_3"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04"/>
+                                <FRBRdate date="2026-06-04" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main/annesso_3.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04.xml"/>
+                                <FRBRdate date="1986-04-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 3. 
+ 
+ 
+ </p>
+                                <table>
+                                    <tr>
+                                        <th>
+                                            <p>1. Atti di natura dichiarativa relativi a beni o rapporti di qualsiasi natura, salvo il successivo art. 7 </p>
+                                        </th>
+                                        <th>
+                                            <p> 1% </p>
+                                        </th>
+                                    </tr>
+                                </table>
+                                <p/>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 8 bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 11-bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte I Atti soggetti a registrazione in termine fisso-art. 11-ter">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/!main/annesso_15"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:decreto.del.presidente.della.repubblica:1986-04-26;131"/>
+                                <FRBRalias name="eli" value="eli/id/1986/04/30/086U0131/CONSOLIDATED/20260604"/>
+                                <FRBRdate date="2011-01-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main/annesso_15"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04"/>
+                                <FRBRdate date="2026-06-04" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04/!main/annesso_15.xml"/>
+                                <FRBRuri value="/akn/it/act/decreto_del_presidente_della_repubblica/stato/1986-04-26/131/ita@2026-06-04.xml"/>
+                                <FRBRdate date="1986-04-26" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> PARTE SECONDA 
+ Atti soggetti a registrazione solo in caso d'uso 
+ 
+ 
+ Art. 1. 
+ 
+ </p>
+                                <table>
+                                    <tr>
+                                        <th>
+                                            <p>1. Atti indicati: </p>
+                                        </th>
+                                        <th>
+                                            <p/>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p>a) negli  articoli  2,  comma  1,  3,  6,  9  e 10 della parte prima formati mediante corrispondenza, ad eccezione di quelli  per  i  quali  dal  <ref eId="content__ref_288" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">codice civile</ref> e' richiesta a  pena  di  nullita' la forma scritta e di quelli aventi  per  oggetto  cessioni di aziende o costituzioni di  diritti di godimento reali o personali sulle stesse       </p>
+                                        </td>
+                                        <td>
+                                            <p>      le stesse imposte previste per i corrispon- denti atti nella parte prima </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p>b) nell'art. 5, comma 2,  del testo  unico  quando riguardano  cessioni  di  beni  o  prestazioni  di servizi soggette all'imposta sul valore aggiunto </p>
+                                        </td>
+                                        <td>
+                                            <p>  L. 50.000 </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <p>
+    
+NOTA: I contratti relativi alle operazioni e ai servizi bancari e finanziari e al credito al consumo, <ins eId="ins_227">((ivi compresi quelli di locazione finanziaria immobiliare,))</ins> per i quali il titolo VI, del <ref eId="content__ref_289" href="/akn/it/act/decretoLegislativo/stato/1993-09-01/385/!main">decreto legislativo 1 settembre 1993, n. 385</ref>, prescrive a pena di nullita' la forma scritta, sono assoggettati a registrazione solo in caso d'uso. 
+ (4) 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (4)</p>
+                                <p>
+ Il <ref eId="290" href="/akn/it/act/decretoLegge/stato/1989-09-30/332/!main">D.L. 30 settembre 1989 n. 332</ref>, convertito con modificazioni dalla <ref eId="291" href="/akn/it/act/legge/stato/1989-11-27/304/!main">L. 27 novembre 1989 n. 304</ref> ha disposto (con l'art. 6 comma 1) che "l'imposta fissa di registro di lire cinquantamila, prevista dalla tariffa allegata al <ref eId="292" href="/akn/it/act/decretoDelPresidenteDellaRepubblica/stato/1986-04-26/131/!main">decreto del Presidente della Repubblica 26 aprile 1986, n. 131</ref>, e' raddoppiata". </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 2-bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tariffa Parte II Atti soggetti a registrazione solo in caso d'uso-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 1">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 2">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 3">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 4">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 5">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 6">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 7">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 8">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione- art. 9">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 10">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 11">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 11-bis">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Tabella Atti per i quali non vi è obbligo di chiedere la registrazione-art. 11-ter">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Prospetto">
+                    <mainBody>
+                        </mainBody>
+                </doc>
+            </attachment>
+        </attachments>
+    </act>
+</akomaNtoso>

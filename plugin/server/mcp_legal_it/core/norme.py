@@ -43,6 +43,7 @@ def _build_nv(act_info: dict, article: str) -> NormaVisitata:
         tipo_atto=act_info["tipo_atto"],
         data=act_info.get("data", ""),
         numero_atto=act_info.get("numero_atto", ""),
+        allegato=act_info.get("allegato", ""),  # Normattiva's ":k", VisuaLex's allegato (api._norme)
     )
     return NormaVisitata(norma=norma, numero_articolo=article)
 
