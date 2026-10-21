@@ -420,9 +420,20 @@ class ParsedAct:
         return None
 
     def part_position(self, name: str | None = None) -> int:
-        """Normattiva position of a part (the default lookup's when *name* is None); 0 for the body."""
+        """Normattiva position of a part (the default lookup's when *name* is None).
+
+        0 for the body, and 0 when the position is shared by more than one part
+        ("Allegato I.4" and "Allegato I.4-Tabella A" are one entry of the tree):
+        the URN's ``:k`` would not say which of them is meant.
+        """
         part = self.parts.get(self.main_part if name is None else name)
-        return part.position if part is not None else 0
+        return self._unique(part.position) if part is not None else 0
+
+    def _unique(self, position: int) -> int:
+        if position < 1:
+            return 0
+        same = [p for p in self.parts.values() if p.position == position]
+        return position if len(same) == 1 else 0
 
     def part_article_count(self, part: str | None = None) -> int:
         """Article count of a component part (dominant part when ``part`` is None)."""
@@ -499,9 +510,9 @@ class ParsedAct:
         return part.name if part is not None else None
 
     def annex_position(self, annex_id: str) -> int:
-        """Normattiva position of the annex the act calls *annex_id*, 0 if it has none."""
+        """Normattiva position of the annex the act calls *annex_id*, 0 if it has none or shares it."""
         part = self._resolve_annex(annex_id)
-        return part.position if part is not None else 0
+        return self._unique(part.position) if part is not None else 0
 
 
 # ---------------------------------------------------------------------------
@@ -549,25 +560,74 @@ def _collect(node, parts: list[str]) -> None:
 # content/p lost every cell — the rates of the imposta di registro — in both
 # parsers. A table is rendered as a Markdown table: one line per row, the first
 # row as the header (the export has no other way to say which row heads the
-# table), every cell kept, "|" escaped, a cell's lines joined by spaces.
+# table), every cell kept, "|" escaped, a cell's lines joined by spaces. A cell
+# spanning rows keeps its column (empty in the rows below), a cell spanning
+# columns leaves empty cells after it, a table nested in a cell is read into that
+# cell once (its rows are not the outer table's).
 
 def _cell_text(cell) -> str:
-    text = " ".join(_flatten(cell).split())
-    return text.replace("|", "\\|")
+    """A cell's text on one line: its paragraphs (and any table inside it) one space apart."""
+    blocks = [child for child in cell if isinstance(child.tag, str) and etree.QName(child).localname in ("p", "table")]
+    if blocks:
+        pieces = []
+        if cell.text and cell.text.strip():
+            pieces.append(cell.text)
+        for child in blocks:
+            if etree.QName(child).localname == "table":
+                pieces.extend(_flatten(c) for c in _own_cells(child))
+            else:
+                pieces.append(_flatten(child))
+        text = " ".join(pieces)
+    else:
+        text = _flatten(cell)
+    return " ".join(text.split()).replace("|", "\\|")
+
+
+def _own_rows(table) -> list:
+    """The table's own rows, never those of a table nested in one of its cells."""
+    return [tr for tr in table.iter("{*}tr") if next(tr.iterancestors("{*}table"), None) is table]
+
+
+def _own_cells(table) -> list:
+    return [cell for tr in _own_rows(table) for cell in tr.xpath(f"{_local('th')}|{_local('td')}")]
+
+
+def _span(cell, attr: str) -> int:
+    try:
+        return max(1, min(int(cell.get(attr) or 1), 50))
+    except ValueError:
+        return 1
 
 
 def _render_table(table) -> str:
     rows: list[list[str]] = []
-    for tr in table.xpath(f".//{_local('tr')}"):
+    # Column -> (text, rows still to cover) of a cell spanning down from a row above: it
+    # holds its column in the rows it covers, so the cells after it do not slide left.
+    carried: dict[int, list] = {}
+    for tr in _own_rows(table):
         row: list[str] = []
+        col = 0
+
+        def fill_carried():
+            nonlocal col
+            while col in carried:
+                text, left = carried[col]
+                row.append("")  # the spanning cell's text stays in its first row
+                carried[col][1] = left - 1
+                if carried[col][1] == 0:
+                    del carried[col]
+                col += 1
+
         for cell in tr.xpath(f"{_local('th')}|{_local('td')}"):
-            row.append(_cell_text(cell))
-            # A cell spanning several columns keeps the grid: empty cells after it.
-            try:
-                span = int(cell.get("colspan") or 1)
-            except ValueError:
-                span = 1
-            row.extend([""] * (min(span, 50) - 1))
+            fill_carried()
+            text = _cell_text(cell)
+            down = _span(cell, "rowspan")
+            for i in range(_span(cell, "colspan")):
+                row.append(text if i == 0 else "")
+                if down > 1:
+                    carried[col] = [text, down - 1]
+                col += 1
+        fill_carried()
         if row:
             rows.append(row)
     if not rows:
@@ -829,14 +889,19 @@ def _parse_component(root) -> tuple[dict[str, ParsedPart], str]:
     return parts, main_part
 
 
-# The enacting formula of a decree that approves the text it annexes: "E' approvato il
-# testo del Codice civile" (r.d. 262/1942), "Il testo definitivo del codice penale … e'
-# approvato" (r.d. 1398/1930), "E' approvato il codice del processo amministrativo di cui
-# all'allegato 1" (d.lgs. 104/2010). A law that ratifies a treaty says something else
-# ("è autorizzato a ratificare", "Piena ed intera esecuzione è data", l. 654/1975).
-_APPROVA = re.compile(r"\bapprovat[oaie]\b", re.IGNORECASE)
-
-
+# The enacting formula of a decree that approves the text it annexes: "E' approvato il testo
+# del Codice civile" (r.d. 262/1942), "Il testo definitivo del codice penale … e' approvato"
+# (r.d. 1398/1930), "E' approvato il codice del processo amministrativo di cui all'allegato 1"
+# (d.lgs. 104/2010), "È approvato l'unito testo unico" (TULPS), "Sono approvate le norme …".
+# A law that executes a treaty says something else ("è autorizzato a ratificare", "Piena ed
+# intera esecuzione è data", l. 654/1975) and may call the treaty itself "approvata" ("la
+# Convenzione …, approvata dall'Assemblea generale"): the formula, not the word, decides.
+_OGGETTO = r"(?:testo|codic\w*|regolament\w*|norme|disposizioni|tariff\w*)"
+_APPROVA = re.compile(
+    r"\b(?:è|e'|sono)\s+approvat[oaie]\b[^.;]{0,60}?\b" + _OGGETTO + r"\b"
+    r"|\b(?:testo|codic\w*)\b[^.;]{0,160}?\b(?:è|e')\s+approvat[oaie]\b",
+    re.IGNORECASE,
+)
 def _body_approves_annex(articles: dict[str, str], order: list[str]) -> bool:
     """Whether the act's body opens by approving the text it annexes (see ``_APPROVA``)."""
     return any(_APPROVA.search(articles[key]) for key in order[:2])

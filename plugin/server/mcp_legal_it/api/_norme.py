@@ -104,14 +104,31 @@ def _allegato_predefinito(tipo_atto: str) -> str | None:
     return m.group(1) if m else None
 
 
-def _posizionale(allegato: str | None) -> bool:
+def _normattiva(tipo_atto: str) -> bool:
+    return normalize_act_type(tipo_atto or "").lower() not in EURLEX
+
+
+def _posizionale(tipo_atto: str, allegato: str | None) -> bool:
     """Whether *allegato* is Normattiva's number for a part (the URN's ``:k``), not an annex's name.
 
     VisuaLex's ``allegato`` is that number (``generate_urn`` writes ``;104:2``), and so is
     this API's: d.lgs. 104/2010 ``allegato="2"`` is the codice del processo amministrativo,
-    the act's "Allegato 1". A name the act gives ("I.7") stays a name.
+    the act's "Allegato 1". A name the act gives ("I.7") stays a name, and so does any
+    allegato of an EU act: EUR-Lex URLs have no part, an EU annex is read by its name.
     """
-    return bool(allegato) and allegato.isdigit()
+    return bool(allegato) and allegato.isdigit() and _normattiva(tipo_atto)
+
+
+#: A part number as Normattiva writes it: a positive integer, no leading zero.
+_NUMERO_PARTE = re.compile(r"[1-9]\d*")
+
+
+def _allegato_non_valido(tipo_atto: str, allegato: str | None) -> str | None:
+    """The error for a positional allegato Normattiva cannot have ("0", "02"), else None."""
+    if _posizionale(tipo_atto, allegato) and not _NUMERO_PARTE.fullmatch(allegato):
+        return (f"allegato '{allegato}' non valido: il numero della parte dell'atto su Normattiva "
+                "è un intero da 1 in su, senza zeri iniziali")
+    return None
 
 
 def _con_allegato(tipo_atto: str, allegato: str | None, numero_articolo: str) -> str:
@@ -119,14 +136,14 @@ def _con_allegato(tipo_atto: str, allegato: str | None, numero_articolo: str) ->
 
     A positional ``allegato`` is not in the article string: it goes into the URL (``_parte``).
     """
-    if allegato and not _posizionale(allegato) and allegato != _allegato_predefinito(tipo_atto):
+    if allegato and not _posizionale(tipo_atto, allegato) and allegato != _allegato_predefinito(tipo_atto):
         return annex_reference(allegato, numero_articolo)
     return numero_articolo or ""
 
 
 def _parte(tipo_atto: str, allegato: str | None) -> str:
     """The positional part to put in the URL (``Norma.allegato``), "" for the act's default."""
-    if _posizionale(allegato) and allegato != _allegato_predefinito(tipo_atto):
+    if _posizionale(tipo_atto, allegato) and allegato != _allegato_predefinito(tipo_atto):
         return allegato
     return ""
 
@@ -145,7 +162,7 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
     # code's default part, or none. The part an answer was served from is in url and urn
     # only (";104:2~art120" for art. 120 d.lgs. 104/2010): putting it here would change
     # the key VisuaLex files the norm under.
-    if annex and _posizionale(annex[0]):
+    if annex and _posizionale(info.get("tipo_atto", ""), annex[0]):
         # "allegato 1 al d.lgs. 104/2010" names the act's own Allegato 1, which Normattiva
         # numbers :2. Read back as an allegato it would be taken for position 1, so the
         # reference keeps the annex in the article until a lookup gives the position.
@@ -249,6 +266,8 @@ def riferimento_da_parametri(
                                 errore="per un atto UE servono anno (data) e numero_atto")
     if (motivo := intervallo_articoli(numero_articolo)) is not None:
         return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
+    if (motivo := _allegato_non_valido(tipo_atto, allegato)) is not None:
+        return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
     if parte := _parte(tipo_atto, allegato):
@@ -304,6 +323,9 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         raise ValueError(f"canale sconosciuto: {canale!r} (attesi 'akn' o 'html')")
     oggi = _clock.today().isoformat()
     if isinstance(riferimento, NormaDati):
+        if (motivo := _allegato_non_valido(riferimento.tipo_atto, riferimento.allegato)) is not None:
+            return TestoArticolo(esito="riferimento_non_valido", article_text="", norma_data=None, url="",
+                                 canale=canale, data_consultazione=oggi, errore=motivo)
         act_info, article = _act_info(riferimento)
     else:
         letto = _leggi(riferimento)

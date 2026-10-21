@@ -568,7 +568,9 @@ entry, it is the same feature as ported to the 3.0 line.
   name the act gives an annex, so `allegato="2"` of d.lgs. 104/2010 reached its
   "Allegato 2", the implementing rules, and the preleggi by `allegato="1"`
   were not found. On the HTML channel these articles are now VisuaLex's page,
-  no longer the export's text. A name ("I.7") stays a name. `norma_data`
+  no longer the export's text (a page is accepted only if its text is the
+  export's article). A name ("I.7") stays a name, so does an EU act's
+  `allegato`, and `"0"`/`"02"` are refused. `norma_data`
   carries what VisuaLex files the norm under: the `allegato` the caller gave,
   a code's default part, or none (see `docs/api.md`).
 - **An article of an annex has its own URN.** "allegato I.7 art. 30 d.lgs.

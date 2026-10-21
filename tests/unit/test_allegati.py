@@ -18,6 +18,7 @@ Allegati II and III).
 """
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -44,10 +45,24 @@ def codice_appalti_posizioni():
     return parse_akn((FIXTURES / "akn" / "dlgs_36_2023_positions.xml").read_text(encoding="utf-8"))
 
 
+def _pagina_da_export(testo: str) -> str:
+    """A Normattiva annex page carrying *testo* (an export article) as the page writes it:
+    no "### Art." heading, real accents for the export's transliterated ones."""
+    corpo = re.sub(r"^#+[^\n]*\n+", "", testo)
+    corpo = re.sub(r"\b([A-Za-z]*)e'(?![A-Za-z])", lambda m: m.group(1) + "è", corpo)
+    corpo = re.sub(r"\b([A-Za-z]+)a'(?![A-Za-z])", lambda m: m.group(1) + "à", corpo)
+    return ('<html><body><div class="bodyTesto"><span class="attachment-just-text">'
+            + " ".join(corpo.split()) + "</span></div></body></html>")
+
+
 #: The page of art. 30 of Allegato I.7 (";36:8~art30"), in the attachment shape of annex pages.
-_PAGINA_I7_ART30 = ('<html><body><div class="bodyTesto"><span class="attachment-just-text">'
-                    "Articolo 30. Cronoprogramma. 1. Il progetto esecutivo è corredato del "
-                    "cronoprogramma.</span></div></body></html>")
+_PAGINA_I7_ART30 = _pagina_da_export(
+    parse_akn((FIXTURES / "akn" / "dlgs_36_2023_positions.xml").read_text(encoding="utf-8"))
+    .annex_article("I.7", "30"))
+#: Art. 1 of Allegato I.11: what a page of the wrong part would serve under the same number.
+_PAGINA_I11_ART1 = _pagina_da_export(
+    parse_akn((FIXTURES / "akn" / "dlgs_36_2023_positions.xml").read_text(encoding="utf-8"))
+    .annex_article("I.11", "1"))
 
 
 @pytest.fixture(scope="module")
@@ -252,7 +267,7 @@ class TestNormattivaAnnexes:
         # The export says which part the act calls "I.7"; the text is that part's page.
         _serve_akn(monkeypatch, codice_appalti_posizioni, pagine={";36:8~art30": _PAGINA_I7_ART30})
         result = await fetch_article(_codice_appalti("allegato I.7 art. 30"))
-        assert result["text"].startswith("Articolo 30. Cronoprogramma.")
+        assert result["text"].startswith("Articolo 30. Cronoprogramma.") and "è corredato" in result["text"]
         assert result["source"] == "normattiva" and result["allegato"] == "Allegato I.7"
         assert result["url"].endswith(";36:8~art30")
 
@@ -261,6 +276,16 @@ class TestNormattivaAnnexes:
                                                                                 codice_appalti_posizioni):
         altra = _PAGINA_I7_ART30.replace("Articolo 30.", "Articolo 1.")
         _serve_akn(monkeypatch, codice_appalti_posizioni, pagine={";36:8~art30": altra})
+        result = await fetch_article(_codice_appalti("allegato I.7 art. 30"))
+        assert result["source"] == "normattiva-akn" and "Cronoprogramma" in result["text"]
+
+    @pytest.mark.asyncio
+    async def test_html_channel_a_page_of_another_part_with_the_same_number_is_refused(
+            self, monkeypatch, codice_appalti_posizioni):
+        # Were :8 not I.7, its page would serve another annex's article under the number
+        # asked for: the export's text, which knows the part, refuses it.
+        fuori_parte = _PAGINA_I11_ART1.replace("Articolo 1.", "Articolo 30.", 1)
+        _serve_akn(monkeypatch, codice_appalti_posizioni, pagine={";36:8~art30": fuori_parte})
         result = await fetch_article(_codice_appalti("allegato I.7 art. 30"))
         assert result["source"] == "normattiva-akn" and "Cronoprogramma" in result["text"]
 
@@ -320,16 +345,14 @@ class TestNormattivaAnnexes:
         decreto = ('<html><body><div class="bodyTesto"><h2 class="article-num-akn" id="art_2">Art. 2</h2>'
                    '<div class="art-comma-div-akn">1. Il presente decreto entra in vigore il 16 settembre '
                    "2010.</div></div></body></html>")
-        codice = ('<html><body><div class="bodyTesto"><span class="attachment-just-text">Art. 120. '
-                  "(Disposizioni specifiche ai giudizi di cui all'articolo 119, comma 1, lettera a)) "
-                  "1. Gli atti delle procedure di affidamento...</span></div></body></html>")
+        codice = _pagina_da_export(act.article("120"))
         _serve_akn(monkeypatch, act, pagine={";104~art120": decreto, ";104:2~art120": codice})
         nv = NormaVisitata(
             norma=Norma(tipo_atto="decreto legislativo", data="2010-07-02", numero_atto="104"),
             numero_articolo="120",
         )
         result = await fetch_article(nv)
-        assert result["text"].startswith("Art. 120.") and result["source"] == "normattiva"
+        assert result["text"].startswith("Art. 120 (Disposizioni specifiche") and result["source"] == "normattiva"
         assert result["url"].endswith(";104:2~art120")
         assert result["allegato"] == "Allegato 1 Codice del processo amministrativo"
 
