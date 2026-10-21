@@ -683,7 +683,9 @@ def versione_futura(url: str) -> "dict | None":
     rec = pagine_normattiva.leggi(base)
     validita = (rec or {}).get("validita") or {}
     if validita.get("valid_from") and validita["valid_from"] > _clock.today().isoformat():
-        return {"valid_from": validita["valid_from"], "testo": rec.get("testo") or ""}
+        return {"valid_from": validita["valid_from"], "testo": rec.get("testo") or "",
+                "change": "abrogated" if validita.get("state") == "abrogated" else "amended",
+                "version_number": validita.get("version_number")}
     return None
 
 

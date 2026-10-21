@@ -302,7 +302,10 @@ The text in force of one article, from Normattiva or EUR-Lex.
   today's date (`!vig=<today>`) is read: one request more, only then, and `url`
   is that page's. If it cannot be read, the export at today's date answers (never
   the undated page). The coming version is an `avviso`, and its repealing act is
-  `successione` with `dal`. This is a deliberate, temporary divergence from
+  `successione` with `dal`. **`upcoming`** carries the same facts as VisuaLex's
+  `upcoming`, key for key: `change` (`abrogated` when the coming version repeals
+  the article, else `amended`), `valid_from`, `version_number`; `None` when the
+  undated page was today's text. This is a deliberate, temporary divergence from
   VisuaLex, which serves the undated page as it is: VisuaLex adopts the same rule
   (its decision G-355), and the two converge with VisuaLex <SHA>.
 - **`validity`** is what the page states of the text it served: the window
@@ -611,7 +614,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 |---|---|
 | `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta` |
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti` |
