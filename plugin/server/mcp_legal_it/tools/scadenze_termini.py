@@ -239,6 +239,7 @@ def scadenza_processuale(
     giorni: int,
     tipo: str = "calendario",
     sospensione_feriale: bool = False,
+    natura: str = "processuale",
 ) -> dict:
     """Calcola una scadenza processuale generica con proroga festiva ex art. 155 c.p.c.
     Vigenza: art. 155 c.p.c. (testo vigente — non modificato dalla Riforma Cartabia); L. 742/1969
@@ -256,6 +257,10 @@ def scadenza_processuale(
         sospensione_feriale: True per non contare i giorni 1-31 agosto (L. 742/1969) — solo per
                              termini processuali di cause non escluse dall'art. 3 L. 742/1969.
                              Default False perché il tool serve anche per termini sostanziali.
+        natura: 'processuale' (default: proroga al primo giorno non festivo, sabato compreso,
+                art. 155 co. 4-5 c.p.c.) o 'sostanziale' (termini di decadenza e simili: proroga
+                solo se il termine scade di domenica o in un giorno festivo, il sabato non
+                proroga; sospensione feriale non applicabile)
     """
     err = _validate_date(data_evento)
     if err:
@@ -267,6 +272,12 @@ def scadenza_processuale(
             "errore": f"tipo non valido: {tipo}",
             "valori_ammessi": ["calendario", "lavorativi"],
         }
+    if natura not in ("processuale", "sostanziale"):
+        return {"errore": f"natura non valida: {natura}", "valori_ammessi": ["processuale", "sostanziale"]}
+    if natura == "sostanziale" and sospensione_feriale:
+        return {"errore": "la sospensione feriale (L. 742/1969) riguarda solo i termini processuali"}
+    if natura == "sostanziale" and tipo == "lavorativi":
+        return {"errore": "per un termine sostanziale usare tipo='calendario'"}
     dt_evento = _parse_date(data_evento)
 
     incisa = False
@@ -275,16 +286,26 @@ def scadenza_processuale(
         adjusted = False
     else:
         scadenza_raw, incisa = _conta_avanti(dt_evento, giorni, sospensione_feriale)
-        scadenza, adjusted = _slide_forward(scadenza_raw)
+        # Art. 155 co. 5 (the Saturday) is limited to processual acts: a substantive term
+        # is extended only past a Sunday or a public holiday.
+        slide = _slide_forward_festivi if natura == "sostanziale" else _slide_forward
+        scadenza, adjusted = slide(scadenza_raw)
 
     result = {
         "data_evento": data_evento,
         "giorni": giorni,
         "tipo": tipo,
+        "natura": natura,
         **_voce_scadenza(scadenza, adjusted),
         "sospensione_feriale_applicata": sospensione_feriale,
         "sospensione_feriale_incidente": incisa,
-        "riferimento_normativo": "Art. 155 c.p.c. — se il termine scade in giorno festivo, è prorogato al primo giorno seguente non festivo",
+        "riferimento_normativo": (
+            "Termine sostanziale — se scade di domenica o in giorno festivo è prorogato al primo "
+            "giorno seguente non festivo; il sabato non proroga (art. 155 co. 5 c.p.c. vale per i "
+            "soli atti processuali)"
+            if natura == "sostanziale" else
+            "Art. 155 c.p.c. — se il termine scade in giorno festivo, è prorogato al primo giorno seguente non festivo"
+        ),
     }
     if sospensione_feriale:
         result["riferimento_normativo"] += f"; {_RIF_FERIALE}"
