@@ -316,11 +316,14 @@ No network.
 ### Constants
 
 - **`SUFFISSI_ARTICOLO`**: the Latin ordinals after an article number, from
-  `bis` (2nd) to `sexiesdecies` (16th), each with the other spellings Normattiva
-  uses (`novies`/`nonies`, `quinquiesdecies`/`quindecies` …).
-- **`ARTICLE_SUFFIX_ALTERNATION`**: a regex alternation of all those spellings,
-  longest first. Use it inside a group:
-  `rf"(\d+)-?({ARTICLE_SUFFIX_ALTERNATION})"`.
+  `bis` (2nd) to `vicies` (20th), each with the other spellings Normattiva
+  prints (`novies`/`nonies`, `quinquiesdecies`/`quindecies`,
+  `octiesdecies`/`duodevicies` …). Built from VisuaLex's suffix table, which
+  mcp-legal-it imports byte for byte (`lib/visualex/article_suffixes.py`).
+- **`ARTICLE_SUFFIX_ALTERNATION`**: VisuaLex's regex alternation of all those
+  spellings plus `semel` ("vicies semel", 21st), longest first. Close the group
+  with `\b`, or a suffix matches the head of an ordinary word ("art. 5 bisogna"):
+  `rf"(\d+)-?({ARTICLE_SUFFIX_ALTERNATION})\b"`.
 
 ## 4. Decisions
 
@@ -627,7 +630,9 @@ library **only once** the HTML channel and the block form of §6 exist.
 - **The TypeScript copies stay in sync.** VisuaLex keeps TypeScript copies of
   its article-suffix and act-type tables, checked by the sources golden. Any
   change to `SUFFISSI_ARTICOLO`, `ARTICLE_SUFFIX_ALTERNATION` or the act tables
-  that VisuaLex consumes must keep that golden green.
+  that VisuaLex consumes must keep that golden green. mcp-legal-it's copies are
+  pinned to VisuaLex's files by sha256 (`tests/unit/test_article_suffixes.py`,
+  `tests/unit/test_visualex_golden.py`): VisuaLex changes them first.
 - **`identita` does not drift.** Its fields are shared by page addresses,
   dossiers and remote clients. Adding a field is allowed; renaming or reshaping
   one is not.

@@ -3,6 +3,7 @@
 import re
 from dataclasses import dataclass, field
 
+from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
 from .map import EURLEX, articolato_in_allegato, codice_urn, normalize_act_type
 
 
@@ -164,7 +165,7 @@ def _append_article(urn: str, article: str) -> str:
         raise IntervalloArticoli(motivo)
     article = re.sub(r"\b[Aa]rticoli?\b|\b[Aa]rt\.?\b", "", article).strip()
     extension = ""
-    space_match = re.match(r"^(\d+)\s+(bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)$", article, re.IGNORECASE)
+    space_match = re.match(rf"^(\d+)\s+({ARTICLE_SUFFIX_ALTERNATION})$", article, re.IGNORECASE)
     if space_match:
         article = space_match.group(1)
         extension = space_match.group(2)
@@ -172,6 +173,12 @@ def _append_article(urn: str, article: str) -> str:
         parts = article.split("-", 1)
         article = parts[0]
         extension = parts[1].replace("-", "")
+    elif (words := re.match(r"^(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*)$", article)):
+        # A suffix written in words the table does not list as one ("135 sex decies",
+        # "25 vicies semel"): joined, as VisuaLex's controller joins them before the URN
+        # ("135 sex decies" -> "135-sex-decies" -> ~art135sexdecies). Never a space in a URN.
+        article = words.group(1)
+        extension = "".join(words.group(2).split())
     urn += f"~art{article}"
     if extension:
         urn += extension

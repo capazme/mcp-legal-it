@@ -30,6 +30,25 @@ entry, it is the same feature as ported to the 3.0 line.
   `client_factory` keeps the host guard and can put the limits under its own
   cache with `con_regole`. Measured on VisuaLex's 19 timing requests: the same
   requests as before, row by row (`scripts/measure_requests.py`).
+- **Article suffixes and act types from VisuaLex.** One suffix table,
+  VisuaLex's, imported byte for byte and pinned to it (it runs from `bis` to
+  `vicies` and its spelling variants): the private copies that stopped at
+  `decies` read "art. 25-terdecies d.lgs. 231/2001" as art. 25-ter in the
+  Cassazione searches (`giurisprudenza_su_norma` looked for the wrong article)
+  and built a URN with a space for "25 terdecies". `api.SUFFISSI_ARTICOLO`
+  now runs to the 20th and `api.ARTICLE_SUFFIX_ALTERNATION` is VisuaLex's
+  (`tredecies`, which no source was found to print, is no longer listed).
+  `normalize_act_type` reads case and spacing as VisuaLex does, and the act
+  tables gain VisuaLex's rows: "d.l.", "l. cost.", "r.d.l.", "d.lgs.lgt."
+  given as the act type (`fetch_law_article`, `api.riferimento_da_parametri`)
+  built `urn:nir:stato:d.l.:…` and `l..cost.`; "c.p.a."; the implementing
+  regulations of the c.p.p. and of the industrial property code. Written
+  inside a citation (`cite_law("art. 1 l. cost. 1/2012")`) these short forms
+  are still refused as an unknown act, never read as another: the citation
+  parser takes them with the citation-gate work. VisuaLex's source
+  convention (`golden.json`) is a pinned fixture: the norm identities
+  mcp-legal-it builds already must match it, the others are listed with the
+  step that closes them.
 - `docs/migration/visualex-inventory.md`: the function-by-function inventory of
   the VisuaLex readers that move into mcp-legal-it, with the choice for each.
 - **`mcp_legal_it.api`: mcp-legal-it as a library, and its only stable surface.**
