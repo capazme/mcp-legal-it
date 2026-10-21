@@ -9,7 +9,11 @@
 # From mcp-legal-it: which text serves the default lookup (issue #47, plus the approving-decree
 # rule below), the looser component names of some annexes, the annex API, ``article_keys``.
 # New in the merge: ``<table>`` rendered as a Markdown table (both parsers lost the cells),
-# the Normattiva position of each part, and structlog replaced by a line on stderr.
+# the Normattiva position of each part, and structlog replaced by a line on stderr. And one
+# documented change to VisuaLex's ``normalize_article_key``: a suffix written in two words
+# ("135 sex decies", as Normattiva's tree prints it) is joined when the joined form is a
+# suffix of the table ("135-sexdecies"); VisuaLex's version keeps "135-sex-decies", which no
+# request spells, so the existence check declared the article missing (sent upstream).
 
 """Pure parser for Akoma Ntoso 3.0 XML exported by Normattiva (caricaAKN).
 
@@ -254,9 +258,15 @@ def normalize_article_key(numero_articolo: str) -> str:
     if m and re.fullmatch(rf"\d+(?:\s*[-\s]\s*(?:{suffix_alt}))?", key):
         return key.replace(" ", "-")
 
+    # A suffix the tree writes in two words ("135 sex decies", l. 633/1941) is the
+    # suffix it spells ("135-sexdecies"): joined only when the joined form is one.
+    m = re.match(r"^(\d+)\s*[-\s]\s*([a-z]+)[\s-]+([a-z]+)$", key)
+    if m and re.fullmatch(suffix_alt, m.group(2) + m.group(3)):
+        return f"{m.group(1)}-{m.group(2)}{m.group(3)}"
+
     # Fallback: collapse internal whitespace to dashes, strip stray chars.
     # This is where the shapes the table cannot spell land — "270 bis.1" ->
-    # "270-bis.1", "314/2", "135 sex decies" -> "135-sex-decies" — and they
+    # "270-bis.1", "314/2" — and they
     # need nothing more. A bare digit after an ordinal is a dotted sub-number
     # ("171 octies 1" in the tree of l. 633/1941 is ~art171octies.1 on
     # Normattiva), so it joins with a dot: the tree's spelling, the archive's

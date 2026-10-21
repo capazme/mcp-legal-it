@@ -263,3 +263,40 @@ class TestIndiceDaExport:
         monkeypatch.setattr("mcp_legal_it.api._norme.fetch_act_index", AsyncMock(return_value=result))
         i = await api.indice_atto("D.Lgs. 231/2001")
         assert i.rubriche == {"1": "Soggetti"} and i.voci == ("1-  Soggetti",) and i.parts == ()
+
+
+# ---------------------------------------------------------------------------
+# Review of PR 3c
+# ---------------------------------------------------------------------------
+
+class TestReview3c:
+    def test_a_suffix_the_tree_writes_in_two_words_is_found(self):
+        # Normattiva's tree of l. 633/1941 prints "135 sex decies": the reader asks "135-sexdecies".
+        tree = [{"numero": "135 sex decies", "allegato": None}]
+        assert albero.articolo_nell_albero(tree, "135-sexdecies") is True
+        assert albero.articolo_nell_albero(tree, "135 sexdecies") is True
+        assert albero.articolo_nell_albero(tree, "135-septiesdecies") is False
+
+    def test_no_part_named_gives_no_hint(self):
+        # str(None) would exclude nothing and point at the place the reader already looked.
+        assert albero.dove_altrove(CPA_TREE, "29", None) == ""
+
+    def test_a_repealed_article_is_said_repealed_in_the_hint(self):
+        act = parse_akn((FIXTURES / "legge_654_1975.xml").read_text(encoding="utf-8"))
+        # Asked in the Convention (:2), art. 3 of the law's own text is repealed.
+        nv = NormaVisitata(Norma("legge", "1975-10-13", "654", allegato="2"), "3")
+        assert scraper._altrove(act, nv, {"url": nv.url()}) == (
+            ": su Normattiva l'art. 3 si trova nel testo dell'atto (abrogato)")
+        # Asked in the law's own text, art. 3 of the Convention is in force: no mark.
+        nv = NormaVisitata(Norma("legge", "1975-10-13", "654"), "3")
+        assert scraper._altrove(act, nv, {"url": nv.url()}) == (
+            ": su Normattiva l'art. 3 si trova nell'allegato 2")
+
+    async def test_the_tree_kept_in_memory_cannot_be_altered_by_a_caller(self, monkeypatch):
+        _serve_landing(monkeypatch)
+        l241 = api.riferimento_da_parametri("legge", "", data="1990-08-07", numero_atto="241").norma_data[0]
+        a = await api.albero_atto(l241, dettagli=True)
+        a.metadata["annexes"].clear()
+        a.articles[1]["numero"] = "999"
+        b = await api.albero_atto(l241, dettagli=True)
+        assert b.metadata["annexes"] and b.articles[1]["numero"] == "1"

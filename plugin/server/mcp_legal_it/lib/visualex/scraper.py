@@ -1,6 +1,7 @@
 """Unified scraper for Normattiva, EUR-Lex, and Brocardi using httpx."""
 
 import asyncio
+import copy
 import dataclasses
 import difflib
 import os
@@ -386,12 +387,28 @@ def _altrove(act, nv: NormaVisitata, result: dict) -> str:
 
     body = act.parts.get("Dispositivo") if act.main_part else None
     entries = [{"numero": k, "allegato": None} for k in (body.order if body else act.order if not act.main_part else [])]
+    abrogati = {"": set(act.abrogati("Dispositivo") if body else act.abrogati() if not act.main_part else [])}
     for name, p in act.parts.items():
         if name != "Dispositivo" and act.part_position(name):
             entries += [{"numero": k, "allegato": str(p.position)} for k in p.order]
+            abrogati[str(p.position)] = set(act.abrogati(name))
     m = _URL_PARTE.search(result.get("url") or nv.url())
     asked = m.group(1) if m else ""
-    return dove_altrove(entries, nv.numero_articolo, asked)
+    hint = dove_altrove(entries, nv.numero_articolo, asked)
+    if not hint:
+        return ""
+    # Where it is, but repealed there: said, so that a repealed article is not taken for
+    # the text the reader was looking for (read from the export: no request).
+    wanted = normalize_article_key(nv.numero_articolo)
+    trovato = {str(e["allegato"] or "") for e in entries
+               if normalize_article_key(e["numero"]) == wanted and str(e["allegato"] or "") != asked}
+    abrogato = sorted(part for part in trovato if any(normalize_article_key(k) == wanted for k in abrogati.get(part, ())))
+    if abrogato and len(abrogato) == len(trovato):
+        return hint + " (abrogato)"
+    if abrogato:
+        luoghi = ["nel testo dell'atto" if part == "" else f"nell'allegato {part}" for part in abrogato]
+        return hint + f" (abrogato {' e '.join(luoghi)})"
+    return hint
 
 
 def _unavailable(base: dict, nv: NormaVisitata, why: str) -> dict:
@@ -1244,6 +1261,8 @@ async def fetch_act_tree(norma: "Norma", *, link: bool = False, details: bool = 
         pagine_normattiva.scrivi_albero(act_url, full)
     else:
         note_source("normattiva", act_url)
+    # A copy: the tree kept in memory for a day is never the caller's to alter.
+    full = copy.deepcopy(full)
     result = full["result"]
     if not link:
         result = [{k: v for k, v in e.items() if k != "url"} if isinstance(e, dict) else e for e in result]
