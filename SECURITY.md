@@ -172,10 +172,14 @@ diffidenza, sempre. Ecco cosa contiene questo:
 - **`.claude/settings.json`** registra un solo hook, di tipo `prompt` all'avvio della
   sessione: un promemoria del Legal Grounding Protocol, nessun comando eseguito.
 - **`plugin/hooks/hooks.json`** (solo con il plugin installato) registra
-  `plugin/hooks/citation-gate.py` sullo Stop: uno script deterministico che usa la sola
-  libreria standard, rilegge il transcript e avvisa se una norma è stata citata senza
-  passare da `cite_law()`. Non fa rete e non scrive file; `uv run --no-sync` lo avvia
-  senza installare nulla. Leggilo prima di approvarlo — è breve apposta.
+  `plugin/hooks/citation-gate.py` su Stop e SubagentStop: uno script deterministico che
+  usa la sola libreria standard più i moduli `core/citazioni.py` e `core/riferimenti.py`
+  del server (anch'essi solo libreria standard), rilegge il transcript della sessione e
+  quelli dei suoi subagenti (mai di altre sessioni: i file fuori dalla cartella
+  `subagents/` della sessione, link simbolici compresi, sono ignorati) e avvisa se una
+  norma o una decisione è stata citata senza averla letta con un tool. Non fa rete e non
+  scrive file; `uv run --no-sync` lo avvia senza installare nulla. Leggilo prima di
+  approvarlo.
 - **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto, e avvia
   il server con `uv run --frozen`: le versioni esatte di `plugin/server/uv.lock`, in un
   ambiente del plugin, senza toccare il progetto dell'utente.
