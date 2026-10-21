@@ -13,7 +13,7 @@ Regenerate with `python scripts/audit_tool_annotations.py --write`.
 """
 
 TOOL_SOURCES: dict[str, tuple[str, ...]] = {
-    "cerca_brocardi": ("brocardi",),
+    "cerca_brocardi": ("brocardi", "italgiure"),
     "cerca_ddl": ("parlamento_senato",),
     "cerca_delibere_consob": ("consob",),
     "cerca_gazzetta_ufficiale": ("gazzetta",),
