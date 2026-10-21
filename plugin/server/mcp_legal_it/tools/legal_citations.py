@@ -14,7 +14,7 @@ from mcp_legal_it.server import mcp
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
-from mcp_legal_it.lib.visualex.models import split_annex
+from mcp_legal_it.lib.visualex.models import ANNEX_ID, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
@@ -694,7 +694,11 @@ def _continues_with_annex(current: str, fragment: str) -> bool:
     if not re.match(r"allegato\s", fragment.lstrip(), re.IGNORECASE):
         return False
     article, act_name = _parse_reference(current)
-    return not (article and act_name)
+    if not (article and act_name):
+        return True
+    # "D.Lgs. 36/2023 art. 30, allegato I.7": a bare annex after a complete reference
+    # names where that article sits, it is not a citation of its own.
+    return bool(re.fullmatch(rf"\s*allegato\s+{ANNEX_ID}\s*", fragment, re.IGNORECASE))
 
 
 def _starts_new_reference(fragment: str) -> bool:
