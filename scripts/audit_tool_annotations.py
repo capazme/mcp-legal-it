@@ -123,6 +123,7 @@ LOCAL_LIB_MODULES = {
     "_egress",
     "_http",
     "_ledger",
+    "_output",
     "_paging",
     "_precision",
     "_refusals",

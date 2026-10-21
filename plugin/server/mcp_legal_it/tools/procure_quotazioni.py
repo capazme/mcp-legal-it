@@ -5,13 +5,13 @@ per procedimento monitorio, esecuzione forzata e opposizione a decreto ingiuntiv
 import json
 import os
 import re
-import tempfile
 import uuid
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._data import sourced
 
@@ -23,7 +23,7 @@ with open(_DATA / "parametri_forensi.json") as f:
 with open(_DATA / "contributo_unificato.json") as f:
     _CU = json.load(f)
 
-_OUTPUT_DIR = os.path.join(tempfile.gettempdir(), "mcp-legal-it")
+_OUTPUT_DIR = OUTPUT_DIR
 
 # ---------------------------------------------------------------------------
 # Tabelle D.M. 55/2014 (agg. D.M. 147/2022) — procedimenti monitori, fase unica.
@@ -99,7 +99,7 @@ def _sanitize_filename(name: str) -> str:
 
 
 def _salva(doc, prefisso: str) -> str:
-    os.makedirs(_OUTPUT_DIR, exist_ok=True)
+    ensure_private_dir(_OUTPUT_DIR)
     filename = f"{_sanitize_filename(prefisso)}_{uuid.uuid4().hex[:8]}.docx"
     filepath = os.path.join(_OUTPUT_DIR, filename)
     doc.save(filepath)
@@ -282,7 +282,7 @@ def genera_procura_liti_docx(
         "di essere stato reso edotto circa i rischi del contenzioso e il grado di complessità dell’incarico che con la presente conferisce, delle caratteristiche e dell’importanza dell’incarico, delle attività da espletare, delle iniziative da intraprendere, delle ipotesi di soluzione e della prevedibile durata del processo;",
         "di avere ricevuto tutte le informazioni utili circa gli oneri ipotizzabili dal momento del conferimento sino alla conclusione dell’incarico, nonché di aver ricevuto ed accettato un preventivo scritto relativo alla prevedibile misura dei costi della prestazione, con distinzione analitica delle voci di costo tra oneri, anche fiscali e previdenziali, spese, anche forfettarie, e compenso professionale;",
         "di essere stato reso edotto degli estremi della polizza assicurativa professionale dei suoi difensori e della facoltà di recedere dall’incarico professionale costituendo giusta causa il mancato pagamento degli oneri così come convenuti e formalizzati nelle proforma da trasmettersi;",
-        "ai sensi e per gli effetti di cui al D.Lgs. n. 196/2003 e del Regolamento UE n. 679/2016 e ss.mm.ii., di essere stato informato che i dati personali, anche sensibili, verranno utilizzati per le finalità inerenti al presente mandato, autorizzando sin d’ora il rispettivo trattamento.",
+        "ai sensi e per gli effetti di cui al D.Lgs. n. 196/2003 e del Regolamento (UE) 2016/679 e ss.mm.ii., di essere stato informato che i dati personali, anche sensibili, verranno utilizzati per le finalità inerenti al presente mandato, autorizzando sin d’ora il rispettivo trattamento.",
     ]
     for voce in dichiarazioni:
         par("-  " + voce, hang=True)

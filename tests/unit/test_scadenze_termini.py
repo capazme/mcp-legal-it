@@ -2,6 +2,8 @@
 
 import importlib
 
+import pytest
+
 
 def _call(fn_name: str, **kwargs):
     mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
@@ -13,6 +15,29 @@ def _call(fn_name: str, **kwargs):
 # ---------------------------------------------------------------------------
 # scadenza_processuale
 # ---------------------------------------------------------------------------
+
+@pytest.mark.xfail(strict=True, reason=(
+    "pending owner decision (Saturday rules): art. 155 co. 5 c.p.c. covers processual "
+    "acts only; a natura='sostanziale' mode is drafted on branch feature/termini-decisioni-pendenti"))
+class TestScadenzaProcessualeNatura:
+    """Art. 155 co. 5 c.p.c. (the Saturday) covers processual acts only."""
+
+    def test_sostanziale_non_proroga_il_sabato(self):
+        # 01/05/2025 + 30 = sabato 31/05/2025
+        r = _call("scadenza_processuale", data_evento="2025-05-01", giorni=30, natura="sostanziale")
+        assert r["scadenza"] == "2025-05-31"
+        assert r["prorogata_art_155"] is False
+
+    def test_sostanziale_proroga_domenica_e_festivi(self):
+        # 01/05/2025 + 31 = domenica 01/06, lunedi 02/06 festivo -> martedi 03/06
+        r = _call("scadenza_processuale", data_evento="2025-05-01", giorni=31, natura="sostanziale")
+        assert r["scadenza"] == "2025-06-03"
+
+    def test_sostanziale_rifiuta_sospensione_feriale(self):
+        r = _call("scadenza_processuale", data_evento="2025-07-01", giorni=30,
+                  natura="sostanziale", sospensione_feriale=True)
+        assert "errore" in r
+
 
 class TestScadenzaProcessuale:
 
@@ -527,6 +552,15 @@ class TestTerminiEsecuzioni:
     def test_finestra_utile_presente(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01")
         assert "finestra_utile" in r
+
+    @pytest.mark.xfail(strict=True, reason=(
+        "pending owner decision (start of the art. 482 window): \"decorsi dieci giorni\" "
+        "read as first day = notifica + 11; drafted on branch feature/termini-decisioni-pendenti"))
+    def test_primo_giorno_utile_e_l_undicesimo(self):
+        """Art. 482: notifica 01/06, dieci giorni dal 02/06 all'11/06, esecuzione dal 12/06."""
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01")
+        assert r["primo_giorno_utile"]["data"] == "2025-06-12"
+        assert r["finestra_utile"].startswith("dal 2025-06-12 ")
 
     def test_pignoramento_immobiliare_stessi_termini(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",

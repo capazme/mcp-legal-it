@@ -18,6 +18,14 @@ import re
 import unicodedata
 
 _ORDINALS = {"º": "°", "ª": "°"}
+# Normattiva writes a stressed vowel either accented or followed by an apostrophe
+# ("è consentito" / "e' consentito") and has switched between the two for the same
+# article: phrase checks compare on one form.
+_ACCENTI = str.maketrans({"à": "a'", "è": "e'", "é": "e'", "ì": "i'", "ò": "o'", "ù": "u'"})
+
+
+def _senza_accenti(testo: str) -> str:
+    return re.sub(r"[’`]", "'", testo).translate(_ACCENTI)
 
 
 def normalizza(testo: str) -> str:
@@ -49,10 +57,10 @@ def testo_vigente(reference: str) -> str:
 
 def contiene(testo: str, *frasi: str) -> list[str]:
     """Return the phrases (any of the alternatives separated by '|') missing from the text."""
-    testo = normalizza(testo)
+    testo = _senza_accenti(normalizza(testo))
     missing = []
     for frase in frasi:
-        if not any(normalizza(alt) in testo for alt in frase.split("|")):
+        if not any(_senza_accenti(normalizza(alt)) in testo for alt in frase.split("|")):
             missing.append(frase)
     return missing
 

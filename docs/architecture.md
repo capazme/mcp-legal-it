@@ -206,7 +206,7 @@ testabili senza il server MCP.
 |--------|-------|-----------|------|
 | `visualex/` | Normattiva, EUR-Lex | HTML scraping | Vedi dettaglio sotto |
 | `brocardi/` | Brocardi.it | HTML scraping | Massime strutturate, cache URL su disco |
-| `italgiure/` | Cassazione | API Solr | `verify=False`, cookie anti-bot |
+| `italgiure/` | Cassazione | API Solr | TLS verificato (intermedio incluso), cookie anti-bot |
 | `corte_cost/` | Corte Costituzionale | HTML scraping | Sentenze e ordinanze, parametri costituzionali |
 | `cerdef/` | CeRDEF (MEF) | POST + XML embeddato | Paginazione via cookie di sessione |
 | `giustizia_amm/` | TAR e Consiglio di Stato | Liferay + XML | Portlet con id d'istanza letto a runtime |
@@ -241,7 +241,7 @@ Tre file distinti:
 
 ### `mcp_legal_it/lib/italgiure/` — Corte di Cassazione
 
-API Solr su `italgiure.giustizia.it` (pubblica, SSL non valido → `verify=False`).
+API Solr su `italgiure.giustizia.it` (pubblica; il server non invia l'intermedio TLS corretto, che il client aggiunge da `lib/italgiure/ti_trust_ov_ca.crt` alla verifica).
 Cookie anti-bot: GET homepage prima di ogni query POST.
 
 Funzioni principali: `solr_query()`, `build_search_params()`, `build_lookup_params()`,

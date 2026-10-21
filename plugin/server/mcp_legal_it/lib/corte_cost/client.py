@@ -31,12 +31,15 @@ nested year ZIP is unzipped in-memory, latin-1-decoded, and written to the
 per-year cache. Downloads are lazy per decade.
 """
 
+import asyncio
 import io
 import json
 import os
 import re
+import threading
 import time
 import zipfile
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -46,7 +49,7 @@ from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._cache import cache_enabled, cache_root
-from mcp_legal_it.lib._http import retry_request
+from mcp_legal_it.lib._http import note_source, retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
 
 _BASE = "https://dati.cortecostituzionale.it/opendata/distribuzione"
@@ -213,6 +216,7 @@ def _unzip_decade(
     year_zip_tmpl: str,
     year_json_tmpl: str,
     root_key: str,
+    only_year: int | None = None,
 ) -> dict[int, list[dict]]:
     """Unzip a decade bundle (two nested levels) into {year: [records]}.
 
@@ -232,6 +236,8 @@ def _unzip_decade(
         if not m:
             continue
         year = int(m.group(1))
+        if only_year is not None and year != only_year:
+            continue
         inner_bytes = outer.read(entry)
         if inner_bytes[:2] != b"PK":
             continue
@@ -246,6 +252,67 @@ def _unzip_decade(
         records = obj.get(root_key, []) if isinstance(obj, dict) else obj
         out[year] = records if isinstance(records, list) else []
     return out
+
+
+# Without the disk cache (LEGAL_CACHE=off) every call used to download the whole
+# decade bundle again (2001-today: ~56 MB) and keep nothing, so a search over
+# several years hit the source several times. The compressed bundles are kept in
+# memory instead, one download per process: a lock makes concurrent calls wait for
+# the one download in flight, and past the cap the least recently used is dropped.
+_MEMORIA_MAX_BYTES = 256 * 1024 * 1024
+#: url -> (download time, compressed bundle). Like the disk cache, an entry expires after
+#: _CACHE_TTL_SECONDS, so a long-running server does not miss the rulings published since.
+_bundle_memoria: "OrderedDict[str, tuple[float, bytes]]" = OrderedDict()
+#: Guards every read and write of _bundle_memoria (threads share the module); never held
+#: across the download.
+_memoria_guard = threading.Lock()
+_bundle_lock: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Lock]] = {}
+
+
+def _lock_for(url: str) -> asyncio.Lock:
+    loop = asyncio.get_running_loop()
+    with _memoria_guard:
+        held = _bundle_lock.get(url)
+        if held is None or held[0] is not loop:
+            held = (loop, asyncio.Lock())
+            _bundle_lock[url] = held
+        return held[1]
+
+
+def _da_memoria(url: str) -> bytes | None:
+    """The bundle kept for *url* if it is still fresh, else None (an expired one is dropped)."""
+    with _memoria_guard:
+        entry = _bundle_memoria.get(url)
+        if entry is None:
+            return None
+        if time.time() - entry[0] >= _CACHE_TTL_SECONDS:
+            del _bundle_memoria[url]
+            return None
+        _bundle_memoria.move_to_end(url)
+        return entry[1]
+
+
+def _in_memoria(url: str, data: bytes) -> None:
+    with _memoria_guard:
+        _bundle_memoria[url] = (time.time(), data)
+        _bundle_memoria.move_to_end(url)
+        while len(_bundle_memoria) > 1 and sum(len(b) for _, b in _bundle_memoria.values()) > _MEMORIA_MAX_BYTES:
+            _bundle_memoria.popitem(last=False)
+
+
+async def _bundle_in_memoria(url: str) -> bytes:
+    """The bundle at *url*, downloaded at most once per process while fresh and within the cap."""
+    data = _da_memoria(url)
+    if data is None:
+        async with _lock_for(url):
+            data = _da_memoria(url)  # downloaded while this call waited?
+            if data is None:
+                data = await _download(url)
+                _in_memoria(url, data)
+                return data
+    # The answer still rests on what the source served: it is declared as such.
+    note_source("corte_cost", url)
+    return data
 
 
 async def _load_year(
@@ -272,6 +339,11 @@ async def _load_year(
     bundle = _decade_for_year(year, decades)
     if not bundle:
         return []
+
+    if not cache_enabled():
+        bundle_bytes = await _bundle_in_memoria(f"{base_url}/{bundle}")
+        only = _unzip_decade(bundle_bytes, year_zip_tmpl, year_json_tmpl, root_key, only_year=year)
+        return only.get(year, [])
 
     bundle_bytes = await _download(f"{base_url}/{bundle}")
     by_year = _unzip_decade(bundle_bytes, year_zip_tmpl, year_json_tmpl, root_key)

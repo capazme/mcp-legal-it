@@ -1132,5 +1132,6 @@ async def test_live_leggi_ssuu_24823_2015():
 @pytest.mark.live
 async def test_live_guid_inesistente():
     result = await _cerdef_leggi_provvedimento_impl("{00000000-0000-4000-8000-000000000000}")
-    assert result.error_type == "source_error", result.to_str()[:400]
-    assert "inesistente" in result.to_str()
+    # The portal does not know the id: typed as not_found, never as an outage (#46).
+    assert result.error_type == "not_found", result.to_str()[:400]
+    assert "non trovato" in result.to_str()

@@ -15,6 +15,7 @@ CELEX format for case law: 6{year}{court_code}{case_number_padded}
 import re
 import warnings
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 import httpx
 from mcp_legal_it.core._http import async_client
@@ -390,8 +391,18 @@ def _parse_title(raw_title: str) -> tuple[str, str, str]:
     return header, parties, subject
 
 
+async def _only_cellar(request: httpx.Request) -> None:
+    """httpx request hook: a redirect may not leave CELLAR either."""
+    if request.url.scheme not in ("http", "https") or (request.url.host or "").lower() != CELLAR_HOST:
+        raise httpx.InvalidURL(f"redirect fuori da {CELLAR_HOST}: {request.url.host}")
+
+
 async def _fetch_html(cellar_uri: str) -> str:
-    async with async_client("cgue", timeout=_TIMEOUT, headers=_HEADERS_HTML, follow_redirects=True) as client:
+    # The hook is one of core._http.GUARDIE: an injected client factory cannot drop it.
+    async with async_client(
+        "cgue", timeout=_TIMEOUT, headers=_HEADERS_HTML, follow_redirects=True,
+        event_hooks={"request": [_only_cellar]},
+    ) as client:
         resp = await retry_request(client, "GET", cellar_uri, dataset="cgue")
         return resp.text
 
@@ -559,8 +570,37 @@ async def search_giurisprudenza(
     return _parse_results(bindings)[:limit]
 
 
+#: The only host a caller-supplied CELLAR URI may point at.
+CELLAR_HOST = "publications.europa.eu"
+
+
+def cellar_uri_error(cellar_uri: str) -> str | None:
+    """Why `cellar_uri` is not a CELLAR resource URI, or None when it is.
+
+    The URI comes from the caller and is fetched as is, so anything else would
+    turn the tool into a way to read whatever the machine running the server
+    can reach (localhost, the cloud metadata endpoint, an intranet page).
+    """
+    try:
+        parts = urlsplit(cellar_uri.strip())
+        host = (parts.hostname or "").lower()
+        port = parts.port
+    except ValueError:
+        return "URI non leggibile"
+    if parts.scheme not in ("http", "https"):
+        return "serve un URI http(s)"
+    # Explicit default ports are the same endpoint (api._decisioni accepts them too).
+    if host != CELLAR_HOST or port not in (None, 80, 443) or parts.username or parts.password:
+        return f"l'URI deve puntare a {CELLAR_HOST}"
+    if not parts.path.startswith("/resource/"):
+        return "l'URI deve essere una risorsa CELLAR (/resource/...)"
+    return None
+
+
 async def fetch_sentenza_text(cellar_uri: str) -> str:
-    html = await _fetch_html(cellar_uri)
+    if (motivo := cellar_uri_error(cellar_uri)) is not None:
+        raise ValueError(f"CELLAR URI non valido: {motivo}")
+    html = await _fetch_html(cellar_uri.strip())
     return _parse_html_text(html)
 
 

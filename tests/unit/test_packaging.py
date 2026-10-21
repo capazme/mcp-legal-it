@@ -39,6 +39,8 @@ def test_wheel_ships_data_and_entry_point(tmp_path):
             n.startswith("mcp_legal_it/data/references/") and n.endswith(".md") for n in names
         ), "no mcp_legal_it/data/references/*.md shipped in the wheel"
         assert "mcp_legal_it/cli.py" in names
+        # the Italgiure intermediate: without it the client cannot verify TLS
+        assert "mcp_legal_it/lib/italgiure/ti_trust_ov_ca.crt" in names
         # 3.0 renamed the package away from `src`: a published wheel must not
         # own a generic top-level name. A stale `build/` left by a pre-3.0
         # build would bring `src/` back in -- remove it and rebuild.
@@ -49,3 +51,8 @@ def test_wheel_ships_data_and_entry_point(tmp_path):
         entry_points_name = next(n for n in names if n.endswith(".dist-info/entry_points.txt"))
         entry_points = z.read(entry_points_name).decode("utf-8")
         assert "mcp-legal-it = mcp_legal_it.cli:main" in entry_points
+
+        # MPL-2.0 from 3.0, Apache-2.0 for the 2.x contributions: NOTICE points at
+        # LICENSES/Apache-2.0.txt, so the wheel must carry that text as well.
+        licences = {n.split(".dist-info/licenses/", 1)[1] for n in names if ".dist-info/licenses/" in n}
+        assert {"LICENSE", "NOTICE", "LICENSES/Apache-2.0.txt"} <= licences, sorted(licences)

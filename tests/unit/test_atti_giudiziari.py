@@ -1042,6 +1042,14 @@ class TestIndiceDocumenti:
         r = _call("indice_documenti", documenti=[])
         assert r["tipo_atto"] == "indice_documenti"
 
+    @pytest.mark.parametrize("pagine", ["abc", "3 pagine", [2], -1])
+    def test_pagine_non_valide_errore(self, pagine):
+        r = _call("indice_documenti", documenti=[{"numero": 1, "descrizione": "Contratto", "pagine": pagine}])
+        assert "errore" in r and "documento 1" in r["errore"]
+
+    def test_documento_non_oggetto_errore(self):
+        assert "errore" in _call("indice_documenti", documenti=["Contratto"])
+
 
 # ---------------------------------------------------------------------------
 # note_trattazione_scritta

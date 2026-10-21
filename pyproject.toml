@@ -1,12 +1,15 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-legal-it"
 version = "3.0.0"
 description = "MCP server with 228 Italian legal tools: calculations, legislation, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, EU→IT transposition, citation verification, CONSOB, GDPR, document generation"
-license = {text = "MPL-2.0"}
+license = "MPL-2.0"
+# NOTICE points at LICENSES/Apache-2.0.txt for the 2.x contributions: every
+# artefact that carries the code carries that text too.
+license-files = ["LICENSE", "NOTICE", "LICENSES/*"]
 requires-python = ">=3.10"
 dependencies = [
     "fastmcp>=3.4,<5",
@@ -39,7 +42,7 @@ dev = [
 mcp-legal-it = "mcp_legal_it.cli:main"
 
 [tool.setuptools.package-data]
-mcp_legal_it = ["data/*.json", "data/references/*.md"]
+mcp_legal_it = ["data/*.json", "data/references/*.md", "lib/italgiure/*.crt"]
 
 # The package lives in plugin/server/ (the plugin runs it from there); the
 # library build picks it up from the same folder, so there is one copy and no

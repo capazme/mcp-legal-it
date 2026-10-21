@@ -109,6 +109,96 @@ class TestParseReferenceExtended:
 
 
 # ---------------------------------------------------------------------------
+# _parse_reference — act written first
+# ---------------------------------------------------------------------------
+
+class TestParseReferenceActFirst:
+    """"D.Lgs. 196/2003 art. 13" used to resolve the decree alone: the caller got art. 1."""
+
+    @pytest.mark.parametrize("reference, expected", [
+        ("D.Lgs. 196/2003 art. 13", ("13", "D.Lgs. 196/2003")),
+        ("GDPR art. 6", ("6", "GDPR")),
+        ("GDPR, art. 6 par. 1 lett. f)", ("6", "GDPR")),
+        ("c.c. art. 2043", ("2043", "c.c.")),
+        ("c.p.c. art. 360-bis", ("360-bis", "c.p.c.")),
+        ("codice privacy art. 2-ter comma 1", ("2-ter", "codice privacy")),
+        ("Statuto dei lavoratori art. 18", ("18", "Statuto dei lavoratori")),
+        ("legge 30 dicembre 2004 n. 311 articolo 1 comma 311", ("1", "legge 30 dicembre 2004 n. 311")),
+        ("D.Lgs. 36/2023 allegato I.1 art. 1", ("allegato I.1 art. 1", "D.Lgs. 36/2023")),
+        ("D.Lgs. 36/2023 art. 1 dell'allegato I.1", ("allegato I.1 art. 1", "D.Lgs. 36/2023")),
+        ("AI Act allegato III", ("allegato III", "AI Act")),
+    ])
+    def test_act_first(self, reference, expected):
+        assert _parse_reference(reference) == expected
+
+    @pytest.mark.parametrize("reference", ["D.Lgs. 196/2003", "Statuto dei lavoratori", "GDPR"])
+    def test_act_alone_is_unchanged(self, reference):
+        assert _parse_reference(reference) == ("", reference)
+
+    @pytest.mark.parametrize("reference", [
+        "art. 30 D.Lgs. 36/2023, allegato I.7",
+        "D.Lgs. 36/2023 art. 30, allegato I.7",
+        "art. 30, allegato I.7, D.Lgs. 36/2023",
+    ])
+    def test_annex_written_last(self, reference):
+        assert _parse_reference(reference) == ("allegato I.7 art. 30", "D.Lgs. 36/2023")
+
+    @pytest.mark.parametrize("tail", [" comma 1", " lett. a", ", comma 1"])
+    def test_long_reference_is_parsed_in_linear_time(self, tail):
+        # One separator per repetition: the old "\s*[,;]?\s*" made a failing match
+        # exponential (22 indicators took ~6 s and blocked the event loop).
+        import time
+        reference = "x art. 1" + tail * 200 + " ?"
+        start = time.perf_counter()
+        _parse_reference(reference)
+        assert time.perf_counter() - start < 0.1
+
+    @pytest.mark.parametrize("reference", [
+        "D.Lgs. 196/2003" + " " * 5000 + "x",
+        "D.Lgs. 196/2003" + " \t\u00a0" * 3000 + "x",
+        "D.Lgs. 196/2003" + "," * 5000 + "x",
+        "D.Lgs. 196/2003" + " ,;" * 3000 + "art. 1 x",
+        "art. 30 D.Lgs. 36/2023" + ", " * 5000 + "allegato I.7 x",
+        "a " * 25000,
+        "x" + " art. 1" * 7000 + " ?",
+    ], ids=["spaces", "tabs-nbsp", "commas", "mixed-separators", "annex-last", "50k", "many-articles"])
+    def test_adversarial_input_is_parsed_in_linear_time(self, reference):
+        # A lazy act name followed by "\s*[,;]?\s+" split each run of spaces many ways:
+        # 5000 spaces took 92 s, synchronously, inside async tools.
+        import time
+        start = time.perf_counter()
+        _parse_reference(reference)
+        assert time.perf_counter() - start < 0.1
+
+    def test_whitespace_of_any_kind_is_one_space(self):
+        assert _parse_reference("D.Lgs.\t196/2003\u00a0art.  13") == ("13", "D.Lgs. 196/2003")
+        assert _parse_reference("art.\n13\tGDPR") == ("13", "GDPR")
+
+    def test_cassazione_branch_search_is_linear(self):
+        import time
+        from mcp_legal_it.tools.legal_citations import _USER_RAMO
+        start = time.perf_counter()
+        assert _USER_RAMO.search("cass" + " " * 50000 + "x") is None
+        assert time.perf_counter() - start < 0.1
+        assert _USER_RAMO.search("Cass. , sez. pen. n. 1/2024").group(1).lower() == "pen"
+
+    def test_verifica_citazioni_keeps_a_bare_annex_with_its_article(self):
+        from mcp_legal_it.tools.legal_citations import _split_citazioni
+        assert _split_citazioni("D.Lgs. 36/2023 art. 30, allegato I.7, art. 13 GDPR") == [
+            "D.Lgs. 36/2023 art. 30, allegato I.7", "art. 13 GDPR",
+        ]
+        assert _split_citazioni("art. 13 GDPR, allegato III AI Act") == ["art. 13 GDPR", "allegato III AI Act"]
+
+    def test_article_that_cannot_be_separated_is_refused(self):
+        # Trailing text after the article: never resolve D.L. 18/2020 alone and serve its art. 1.
+        assert _parse_reference("D.L. 18/2020 art. 103 convertito dalla L. 27/2020") == ("", "")
+
+    async def test_cite_law_refuses_instead_of_serving_the_first_article(self):
+        out = await _cite_law_impl("D.L. 18/2020 art. 103 convertito dalla L. 27/2020")
+        assert out.startswith("**Errore**: impossibile interpretare il riferimento")
+
+
+# ---------------------------------------------------------------------------
 # _resolve_act — GDPR after paragraph stripping
 # ---------------------------------------------------------------------------
 
