@@ -864,10 +864,10 @@ def test_quotazione_medi_coincidono_con_tabelle_gu(dm147_gu, out_dir):
 def test_quotazione_minimi_pari_alla_meta_esatta_del_medio(dm147_gu):
     """Valori minimi = medio ridotto del 50% (art. 4, co. 1, D.M. 55/2014), to the cent.
 
-    The GU tables print only the medio. The tool (and mcp_legal_it/data/parametri_forensi.json, "min")
-    round the half UP to the euro when the medio is odd: 473 -> 237 (not 236,50), 567 -> 284
-    (not 283,50), and the esecuzione defaults 331 -> 166, 567 -> 284. The rounded figure is
-    above the legal minimum, so the letter's "valori minimi" overstate it by 0,50 per phase.
+    The GU tables print only the medio. The minimum is its exact half, never rounded to the
+    euro: 473 -> 236,50, 567 -> 283,50, and so the "min" of
+    mcp_legal_it/data/parametri_forensi.json, which once rounded the half up (131 -> 66) and
+    made the letter's "valori minimi" overstate the legal minimum by 0,50 per phase.
     """
     scarti = []
     _, fasi8 = _tabella_gu(dm147_gu, 8)

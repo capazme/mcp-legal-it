@@ -671,10 +671,7 @@ come dipendenza. Ogni file importato porta l'intestazione MPL-2.0 e la riga
 «Imported from VisuaLex (MPL-2.0), `<percorso>` at `<commit>`»; le parti
 riscritte da zero dicono nel commento da quale file di VisuaLex vengono. Finora:
 le regole di rete per fonte (`mcp_legal_it/core/_http.py`, da `http_client.py` e
-`circuit_breaker.py`); la tabella dei suffissi degli articoli
-(`mcp_legal_it/lib/visualex/article_suffixes.py`, importata così com'è); le righe
-delle tabelle dei tipi d'atto e `normalize_act_type`; la convenzione delle fonti
-`golden.json` come fixture dei test (`tests/fixtures/visualex/`). L'inventario della migrazione è in
+`circuit_breaker.py`). L'inventario della migrazione è in
 [`docs/migration/visualex-inventory.md`](docs/migration/visualex-inventory.md).
 
 [![MCP Badge](https://lobehub.com/badge/mcp/capazme-mcp-legal-it)](https://lobehub.com/mcp/capazme-mcp-legal-it)

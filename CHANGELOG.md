@@ -444,6 +444,46 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **The August suspension says when it moved a deadline, and what it does not
+  cover (decision LI-042).** When the suspension changed the result, the nine
+  deadline tools that apply it (`scadenza_processuale`,
+  `termini_processuali_civili`, `scadenze_impugnazioni`, `scadenze_multe`,
+  `termini_memorie_repliche`, `termini_procedimento_semplificato`,
+  `termini_183_190_cpc`, `termini_deposito_atti_appello`,
+  `termini_deposito_ctu`) add `avviso_sospensione_feriale`: a line telling the
+  lawyer to recompute with `sospensione_feriale=False` if the case is excluded,
+  and the excluded matters with their source (art. 3 L. 742/1969: labour and
+  social security; art. 92 R.D. 12/1941: alimenti, procedimenti cautelari,
+  amministrazione di sostegno, interdizione e inabilitazione, ordini di
+  protezione, sfratto, opposizione all'esecuzione, dichiarazione e revoca dei
+  fallimenti, materia corporativa, cases declared urgent). When it changed
+  nothing there is no notice. The fixed sentence on exclusions that
+  `termini_memorie_repliche` and `termini_procedimento_semplificato` appended to
+  every answer is gone (it also said "opposizioni esecutive" where art. 92
+  says "opposizione all'esecuzione"); the `scadenza` command and the
+  `procedura-civile` reference carry the same list. `termini_esecuzioni` keeps
+  computing the art. 617 opposition without the suspension (the prudent
+  reading) and, when August falls in its 20 days, adds
+  `avvertenza_sospensione_feriale`: whether art. 617 is excluded is debated,
+  since art. 92 R.D. 12/1941 names only the "opposizione all'esecuzione".
+- **The citation gate reads like the server, and checks decisions too.** The
+  plugin's Stop hook, now also registered on `SubagentStop`, extracts citations
+  with the server's own parser and resolver (moved, unchanged, into the
+  stdlib-only `core/riferimenti.py` and `core/citazioni.py`, re-exported where
+  they were): an act is identified by the URL `cite_law` would fetch, so
+  aliases of one act coincide and "art. 2 Cost." no longer covers "art. 2 c.p.".
+  Credit comes from what a tool returned — a `cite_law`/`fetch_law_article`
+  result that served that article, a `fetch_full_act` text that contains it, a
+  `leggi_*`/`cerca_*` result of the same court naming a decision's number and
+  year in its heading (never the precedents cited in a decision's body) — anywhere in the session, its subagents included and other sessions
+  never. It reads every text block of the turn plus the prose written with
+  Write/Edit and the inputs of `esporta_atto_docx`/`genera_*`, finds acts away
+  from the article ("D.Lgs. 196/2003, art. 13", "art. 6, par. 1, lett. f), del
+  Regolamento (UE) 2016/679", "artt. 1218 e 1223 c.c.", TUB/TUF) and no longer
+  reads "atto di costituzione" as the Costituzione. Still advisory and
+  fail-open: one block per turn at most, "fuori copertura" on the line as the
+  escape for sources no tool covers, a stdlib fallback reader if the server's
+  code does not import; about 0.25 s on a 40 MB transcript.
 - **Tool tags follow one taxonomy, and some desktop profiles change.** Every
   tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (24),
   `autorita` (6), `registri` (5), `calcolo` (141), `redazione` (30),
@@ -539,6 +579,53 @@ entry, it is the same feature as ported to the 3.0 line.
   checked only by a test). `lib/_egress.is_allowed` refuses a backslash, a
   control character, credentials and any scheme but http(s), the URLs that a
   browser and Python read as different hosts.
+- **Appellee's deadline: 20 days before the hearing, not 70 (decision LI-040).**
+  `termini_deposito_atti_appello` computed the comparsa of the appellee (and so
+  the cross-appeal deadline, a decadenza under art. 343 c.p.c.) 70 days before
+  the hearing, through art. 166 as the first Cartabia text of art. 347 implied.
+  Art. 347, co. 1, c.p.c. as amended by D.Lgs. 164/2024 reads "almeno venti
+  giorni prima dell'udienza indicata nell'atto di citazione o di quella fissata
+  ai sensi dell'articolo 349-bis", and art. 7, co. 1, of that decree applies it
+  to the proceedings introduced after 28/02/2023. The tool now counts 20 days
+  back (August suspension and art. 155 anticipation as before), cites art. 347
+  co. 1 and art. 343 instead of art. 166, and adds `avvertenza_regime_transitorio`
+  for appeals introduced between 28/02/2023 and 26/11/2024 (D.Lgs. 164/2024 is
+  in GU n. 264 of 11/11/2024 with no entry-into-force clause, so it applies
+  from the fifteenth day, art. 10 disp. prel. c.c.): in that window art. 347
+  pointed to the 70 days of art. 166, and whether the 20 days apply backwards
+  is for the lawyer to assess. The warning also appears when the notification
+  date of the citation is not given, since the appeal may fall in the window.
+  Before 28/02/2023 the term was already 20 days (art. 166 as then in force).
+  The reference `procedura-civile` and the docs say the same; the 70 days of
+  the first-instance comparsa (art. 166) are unchanged. All norms re-read on
+  Normattiva and the Gazzetta Ufficiale on 2026-10-21.
+- **D.M. 55/2014 minimums are the exact half of the medium, to the cent
+  (decision LI-041).** Art. 4, co. 1, lets the medium be "diminuiti in ogni caso
+  non oltre il 50 per cento": the floor is the half. The table rounded it to
+  the euro in 42 of its 94 minimums (40 up, e.g. 131 → 66 instead of 65,50;
+  2 down, below the floor: 354 for a medium of 709, now 354,50), and one
+  volontaria giurisdizione minimum was a whole euro too high (trattazione up to
+  5.200: 107 for a medium of 212, now 106). `parametri_forensi.json` now
+  carries the exact half (65.5, 212.5, ...), and the minimums computed in code
+  (civil bands above 32 million, stragiudiziale above 520.000, `modello_notula`)
+  use the same rule. Affected at `livello='min'`: `parcella_avvocato_civile`,
+  `parcella_avvocato_penale`, `parcella_stragiudiziale`,
+  `parcella_volontaria_giurisdizione`, `preventivo_civile`,
+  `preventivo_stragiudiziale`, `preventivo_volontaria_giurisdizione`,
+  `calcolo_notula_penale`, `modello_notula`; `genera_quotazione_docx` already
+  used the exact half. The maximum follows the same rule: the medium "aumentati
+  fino al 50 per cento" is the exact one and a half, to the cent (131 → 196,50,
+  not 197), since a maximum rounded up overstates the ceiling. The table had it
+  rounded in 44 of 94 maximums (39 up, 3 down, 2 a whole euro too high); the
+  code-computed maximums and `modello_notula` at `livello='max'` changed too. The
+  medium stays rounded to the euro, as the table transcribes it.
+- **`cite_law` reads constitutional laws, royal decree-laws and lieutenancy
+  decrees.** "art. 1 l. cost. 3/2001" answered "atto non riconosciuto": the
+  reference parser had no `l. cost.` / `legge costituzionale`, `r.d.l.` /
+  `regio decreto-legge` or `d.l.lgt.` / `d.lgs.lgt.`. They now resolve to the types
+  the URN builder knows (`legge.costituzionale`, `regio.decreto.legge`,
+  `decreto.legislativo.luogotenenziale`), and the citation gate never reads their
+  numbers as decisions.
 - `cerca_brocardi` now declares Italgiure among its online sources. Its probe of
   the archive window was missed by the sources audit (a call made through a
   module that only imports the function), so the answer's `_meta` listed
@@ -579,6 +666,17 @@ entry, it is the same feature as ported to the 3.0 line.
   downloaded once per process and kept in memory (cap 256 MB, same 7-day expiry
   as the disk cache), instead of on every call; concurrent calls share one
   download.
+- **Seven codes served the approving decree.** Their articles sit in an annex
+  of the decree and the URN lacked it: "art. 3 codice del turismo" was the
+  decree's "Abrogazioni". Fixed for the codice del turismo, the codici penali
+  militari (di pace), the norme di attuazione c.p.p., the regolamento di
+  esecuzione del codice della navigazione, the c.p.p. minorile, the TULPS and
+  the TU successioni e donazioni. A live gate (`test_codici_urn_live.py`) checks
+  every code before a release.
+- `cite_law` recognises "c.p.m.p.", "c.p.m.g." (each military code on its own,
+  also through the AKN export, which bundles both), "disp. att. c.p.p." and
+  "att. c.p.p."; the all-caps "ART. 3" head (codice del turismo) is read as the
+  served article.
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
   caller and was fetched as is: on the HTTP transport any client could read
   pages reachable from the server (localhost, cloud metadata, intranet). Only

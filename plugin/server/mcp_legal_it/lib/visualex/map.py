@@ -12,16 +12,22 @@ NORMATTIVA_URN_CODICI = {
     "codice penale": "regio.decreto:1930-10-19;1398:1",
     "codice di procedura civile": "regio.decreto:1940-10-28;1443:1",
     "disposizioni per l'attuazione del Codice di procedura civile e disposizioni transitorie": "regio.decreto:1941-12-18;1368:1",
-    "codici penali militari di pace e di guerra": "relazione.e.regio.decreto:1941-02-20;303",
+    # The articles of these codes sit in an annex of the approving decree (":1", ":2"):
+    # without it Normattiva serves the decree's own few articles (approval, repeals,
+    # entry into force). Checked live on 21/10/2026, art. 3 of every row.
+    # The combined entry reads the codice penale militare di pace (:1); di guerra is :2.
+    "codici penali militari di pace e di guerra": "regio.decreto:1941-02-20;303:1",
+    "codice penale militare di pace": "regio.decreto:1941-02-20;303:1",
+    "codice penale militare di guerra": "regio.decreto:1941-02-20;303:2",
     "disposizioni di coordinamento, transitorie e di attuazione dei Codici penali militari di pace e di guerra": "regio.decreto:1941-09-09;1023",
     "codice civile": "regio.decreto:1942-03-16;262:2",
     "preleggi": "regio.decreto:1942-03-16;262:1",
     "disposizioni per l'attuazione del Codice civile e disposizioni transitorie": "regio.decreto:1942-03-30;318:1",
     "codice della navigazione": "regio.decreto:1942-03-30;327:1",
-    "approvazione del Regolamento per l'esecuzione del Codice della navigazione (Navigazione marittima)": "decreto.del.presidente.della.repubblica:1952-02-15;328",
+    "approvazione del Regolamento per l'esecuzione del Codice della navigazione (Navigazione marittima)": "decreto.del.presidente.della.repubblica:1952-02-15;328:1",
     "codice postale e delle telecomunicazioni": "decreto.del.presidente.della.repubblica:1973-03-29;156:1",
     "codice di procedura penale": "decreto.del.presidente.della.repubblica:1988-09-22;447",
-    "norme di attuazione, di coordinamento e transitorie del codice di procedura penale": "decreto.legislativo:1989-07-28;271",
+    "norme di attuazione, di coordinamento e transitorie del codice di procedura penale": "decreto.legislativo:1989-07-28;271:1",
     "codice della strada": "decreto.legislativo:1992-04-30;285",
     "regolamento di esecuzione e di attuazione del nuovo codice della strada.": "decreto.del.presidente.della.repubblica:1992-12-16;495",
     "codice del processo tributario": "decreto.legislativo:1992-12-31;546",
@@ -38,7 +44,7 @@ NORMATTIVA_URN_CODICI = {
     "codice delle pari opportunità": "decreto.legislativo:2006-04-11;198",
     "codice dell'ordinamento militare": "decreto.legislativo:2010-03-15;66",
     "codice del processo amministrativo": "decreto.legislativo:2010-07-02;104:2",
-    "codice del turismo": "decreto.legislativo:2011-05-23;79",
+    "codice del turismo": "decreto.legislativo:2011-05-23;79:1",
     "codice antimafia": "decreto.legislativo:2011-09-06;159",
     "codice di giustizia contabile": "decreto.legislativo:2016-08-26;174:1",
     "codice del Terzo settore": "decreto.legislativo:2017-07-03;117",
@@ -51,6 +57,25 @@ NORMATTIVA_URN_CODICI = {
 
 
 _URN_CODICI_LOWER = {_k.lower(): _v for _k, _v in NORMATTIVA_URN_CODICI.items()}
+
+
+#: Acts outside the table above whose citable articles are those of an annex: the
+#: decree only approves the text "allegato al presente decreto". Their articles are
+#: cited as "art. N D.P.R. 448/1988", so the annex is added to the URN of an article.
+ARTICOLATO_IN_ALLEGATO: dict[str, str] = {
+    "decreto.del.presidente.della.repubblica:1988-09-22;448": "1",  # c.p.p. minorile
+    "regio.decreto:1931-06-18;773": "1",  # TULPS
+    "decreto.legislativo:1990-10-31;346": "1",  # TU imposta successioni e donazioni
+}
+_ALLEGATO_PER_ATTO = {
+    (u.split(":")[0], u.split(":")[1][:4], u.split(";")[1]): a for u, a in ARTICOLATO_IN_ALLEGATO.items()
+}
+
+
+def articolato_in_allegato(act_urn: str, date: str, numero: str) -> "str | None":
+    """The annex holding the articles of this act, if any. Type, year and number identify it:
+    a citation with the year only ("D.P.R. 448/1988") carries a placeholder day and month."""
+    return _ALLEGATO_PER_ATTO.get((act_urn, (date or "")[:4], str(numero)))
 
 
 # ---------------------------------------------------------------------------
@@ -476,6 +501,16 @@ NORMATTIVA_SEARCH = {
     "ctu": "codice del turismo",
     "disp. att. c.c.": "disposizioni per l'attuazione del Codice civile e disposizioni transitorie",
     "disp. att. c.p.c.": "disposizioni per l'attuazione del Codice di procedura civile e disposizioni transitorie",
+    "disp. att. c.p.p.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    "disp. att. cpp": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    "att. c.p.p.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    "norme att. c.p.p.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    "c.p.m.p.": "codice penale militare di pace",
+    "c.p.m.p": "codice penale militare di pace",
+    "cpmp": "codice penale militare di pace",
+    "c.p.m.g.": "codice penale militare di guerra",
+    "c.p.m.g": "codice penale militare di guerra",
+    "cpmg": "codice penale militare di guerra",
     "disp. prel.": "preleggi",
     "disp. prel. c.c.": "preleggi",
     "disp. prel. cc": "preleggi",
