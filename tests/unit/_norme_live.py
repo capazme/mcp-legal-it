@@ -30,8 +30,8 @@ def normalizza(testo: str) -> str:
 
 def cite_law_json(reference: str) -> dict:
     """Return the JSON payload of `cite_law(reference, formato="json")`."""
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools.legal_citations import cite_law
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools.legal_citations import cite_law
 
     fn = getattr(cite_law, "fn", cite_law)
     raw = asyncio.run(fn(reference=reference, formato="json"))

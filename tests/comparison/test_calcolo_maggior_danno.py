@@ -15,8 +15,8 @@ os.environ["LEGAL_TODAY"] = "2026-09-25"
 
 import pytest
 
-import src.server  # noqa: F401,E402
-from src.tools.tassi_interessi import calcolo_maggior_danno  # noqa: E402
+import mcp_legal_it.server  # noqa: F401,E402
+from mcp_legal_it.tools.tassi_interessi import calcolo_maggior_danno  # noqa: E402
 from tests.comparison.conftest import accept_cookies, assert_close, parse_euro  # noqa: E402
 
 URL = "https://www.avvocatoandreani.it/servizi/calcolo-maggior-danno-obbligazioni-pecuniarie.php"

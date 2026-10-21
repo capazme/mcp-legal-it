@@ -1,7 +1,7 @@
 """Guards the wheel actually ships the runtime data the server needs.
 
 `uvx --from git+... mcp-legal-it` used to fail with a FileNotFoundError on
-``src/data/indici_foi.json`` because the wheel built by setuptools contained
+``mcp_legal_it/data/indici_foi.json`` because the wheel built by setuptools contained
 only ``.py`` files — ``[tool.setuptools.package-data]`` was missing. This
 test builds a real wheel with ``uv build`` and inspects its contents.
 """
@@ -32,14 +32,20 @@ def test_wheel_ships_data_and_entry_point(tmp_path):
     with zipfile.ZipFile(wheels[0]) as z:
         names = z.namelist()
 
-        assert "src/data/indici_foi.json" in names
-        assert "src/data/tabella_danno_bio.json" in names
+        assert "mcp_legal_it/data/indici_foi.json" in names
+        assert "mcp_legal_it/data/tabella_danno_bio.json" in names
         # the 3.x line projects the legal:// resources from content/references
         assert any(
-            n.startswith("src/data/references/") and n.endswith(".md") for n in names
-        ), "no src/data/references/*.md shipped in the wheel"
-        assert "src/cli.py" in names
+            n.startswith("mcp_legal_it/data/references/") and n.endswith(".md") for n in names
+        ), "no mcp_legal_it/data/references/*.md shipped in the wheel"
+        assert "mcp_legal_it/cli.py" in names
+        # 3.0 renamed the package away from `src`: a published wheel must not
+        # own a generic top-level name. A stale `build/` left by a pre-3.0
+        # build would bring `src/` back in -- remove it and rebuild.
+        top_level = {n.split("/", 1)[0] for n in names}
+        packages = {t for t in top_level if not t.endswith(".dist-info")}
+        assert packages == {"mcp_legal_it"}, sorted(top_level)
 
         entry_points_name = next(n for n in names if n.endswith(".dist-info/entry_points.txt"))
         entry_points = z.read(entry_points_name).decode("utf-8")
-        assert "mcp-legal-it = src.cli:main" in entry_points
+        assert "mcp-legal-it = mcp_legal_it.cli:main" in entry_points

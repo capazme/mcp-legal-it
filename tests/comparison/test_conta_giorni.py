@@ -55,7 +55,7 @@ def _parse_result(page) -> int:
 
 
 def _our_conta_giorni(data_inizio, data_fine, tipo="calendario"):
-    from src.tools.varie import conta_giorni
+    from mcp_legal_it.tools.varie import conta_giorni
     fn = getattr(conta_giorni, "fn", conta_giorni)
     return fn(data_inizio=data_inizio, data_fine=data_fine, tipo=tipo)
 

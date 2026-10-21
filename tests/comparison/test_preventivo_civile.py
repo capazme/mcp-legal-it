@@ -36,8 +36,8 @@ import pytest
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import src.server  # noqa: E402,F401  (registers every tool module)
-from src.tools.fatturazione_avvocati import preventivo_civile as _pc  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers every tool module)
+from mcp_legal_it.tools.fatturazione_avvocati import preventivo_civile as _pc  # noqa: E402
 from tests.comparison.conftest import accept_cookies, assert_close, goto, parse_euro  # noqa: E402
 
 _fn = getattr(_pc, "fn", _pc)

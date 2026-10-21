@@ -5,7 +5,7 @@ The benchmark site has no counterpart for either tool, so this file checks what 
 against the vigente text of the norms (Normattiva / EUR-Lex through `cite_law`) and against
 the registered MCP surface:
 
-* `genera_modello_atto` is a catalogue (src/data/modelli_atti.json, 100 entries): every entry
+* `genera_modello_atto` is a catalogue (mcp_legal_it/data/modelli_atti.json, 100 entries): every entry
   must route to a registered tool with parameters that tool accepts, its `riferimenti_normativi`
   must exist (`verifica_citazioni`) and be in force (no "ARTICOLO/PROVVEDIMENTO ABROGATO"), and
   its `avvertenze` must match the vigente text of the article they cite. The plan's four cases
@@ -43,8 +43,8 @@ from tests.unit._norme_live import assert_parole, cite_law_json, contiene, norma
 pytestmark = pytest.mark.live
 
 _REPO = Path(__file__).resolve().parents[2]
-_CATALOGO_JSON = _REPO / "src" / "data" / "modelli_atti.json"
-_DOCX_DIR = "/tmp/mcp-legal-it"  # fixed by the tool (src/tools/modelli_atti.py)
+_CATALOGO_JSON = _REPO / "plugin" / "server" / "mcp_legal_it" / "data" / "modelli_atti.json"
+_DOCX_DIR = "/tmp/mcp-legal-it"  # fixed by the tool (mcp_legal_it/tools/modelli_atti.py)
 _NORMATTIVA = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
 _DISP_ATT_CPC = "regio.decreto:1941-08-25;1368:1"
 _BATCH = 20  # verifica_citazioni resolves at most 20 references per call
@@ -57,9 +57,9 @@ _BATCH = 20  # verifica_citazioni resolves at most 20 references per call
 def _tool(module: str, name: str):
     import importlib
 
-    import src.server  # noqa: F401  (registers every tool module first)
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first)
 
-    obj = getattr(importlib.import_module(f"src.tools.{module}"), name)
+    obj = getattr(importlib.import_module(f"mcp_legal_it.tools.{module}"), name)
     return getattr(obj, "fn", obj)
 
 
@@ -90,7 +90,7 @@ def _superficie_mcp() -> tuple[dict[str, dict], list[str]]:
     """Registered tools (name -> inputSchema) and static resources, read in-process."""
     from fastmcp import Client
 
-    from src.server import mcp
+    from mcp_legal_it.server import mcp
 
     async def run():
         async with Client(mcp) as client:
@@ -264,8 +264,8 @@ def _albero_disp_att() -> str:
     import httpx
     from bs4 import BeautifulSoup
 
-    from src.lib import _clock
-    from src.lib.visualex.scraper import _HEADERS
+    from mcp_legal_it.lib import _clock
+    from mcp_legal_it.lib.visualex.scraper import _HEADERS
 
     url = f"{_NORMATTIVA}{_DISP_ATT_CPC}~art196octies!vig={_clock.today().isoformat()}"
     with httpx.Client(headers=_HEADERS, timeout=40, follow_redirects=True) as client:

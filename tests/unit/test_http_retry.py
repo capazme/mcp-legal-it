@@ -1,11 +1,11 @@
-"""Unit tests for src/lib/_http.py retry helper."""
+"""Unit tests for mcp_legal_it/lib/_http.py retry helper."""
 
 from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 
-from src.lib._http import retry_request
+from mcp_legal_it.lib._http import retry_request
 
 
 def _make_response(status_code: int = 200) -> httpx.Response:
@@ -32,7 +32,7 @@ class TestRetryRequest:
             _make_response(200),
         ])
 
-        with patch("src.lib._http.asyncio.sleep", new_callable=AsyncMock):
+        with patch("mcp_legal_it.lib._http.asyncio.sleep", new_callable=AsyncMock):
             resp = await retry_request(client, "GET", "http://test/retry", backoff_base=0.01)
         assert resp.status_code == 200
         assert client.get.call_count == 2
@@ -54,7 +54,7 @@ class TestRetryRequest:
             _make_response(200),
         ])
 
-        with patch("src.lib._http.asyncio.sleep", new_callable=AsyncMock):
+        with patch("mcp_legal_it.lib._http.asyncio.sleep", new_callable=AsyncMock):
             resp = await retry_request(client, "GET", "http://test/conn", backoff_base=0.01)
         assert resp.status_code == 200
         assert client.get.call_count == 2
@@ -64,7 +64,7 @@ class TestRetryRequest:
         client = AsyncMock()
         client.get = AsyncMock(side_effect=httpx.ConnectError("connection refused"))
 
-        with patch("src.lib._http.asyncio.sleep", new_callable=AsyncMock):
+        with patch("mcp_legal_it.lib._http.asyncio.sleep", new_callable=AsyncMock):
             with pytest.raises(httpx.ConnectError):
                 await retry_request(
                     client, "GET", "http://test/fail",
@@ -99,7 +99,7 @@ class TestRetryRequest:
         async def mock_sleep(duration):
             sleep_calls.append(duration)
 
-        with patch("src.lib._http.asyncio.sleep", side_effect=mock_sleep):
+        with patch("mcp_legal_it.lib._http.asyncio.sleep", side_effect=mock_sleep):
             await retry_request(
                 client, "GET", "http://test/backoff",
                 max_retries=2, backoff_base=1.0,

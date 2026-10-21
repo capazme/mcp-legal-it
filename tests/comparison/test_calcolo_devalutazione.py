@@ -18,8 +18,8 @@ os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module)
-from src.tools.rivalutazioni_istat import calcolo_devalutazione as _tool
+import mcp_legal_it.server  # noqa: F401  (registers every tool module)
+from mcp_legal_it.tools.rivalutazioni_istat import calcolo_devalutazione as _tool
 
 from tests.comparison.conftest import accept_cookies, assert_close, parse_euro
 

@@ -36,7 +36,7 @@ from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "src" / "data"
+DATA_DIR = Path(__file__).parent.parent / "plugin" / "server" / "mcp_legal_it" / "data"
 
 ISTAT_FOI_URL = "https://www.istat.it/notizia/indice-dei-prezzi-per-le-rivalutazioni-monetarie/"
 ECB_MRO_URL = (

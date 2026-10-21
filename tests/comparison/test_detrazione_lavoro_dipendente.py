@@ -37,8 +37,8 @@ TOL_ARROTONDAMENTO_EURO = 0.50
 
 
 def _tool(reddito: float, giorni: int, tipo: str = "1") -> dict:
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.dichiarazione_redditi import detrazione_lavoro_dipendente
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.dichiarazione_redditi import detrazione_lavoro_dipendente
 
     fn = getattr(detrazione_lavoro_dipendente, "fn", detrazione_lavoro_dipendente)
     # site TipoRedditoLavoroDipendente "2" = fixed-term contract (art. 13 co. 1 lett. a, minimum 1,380)

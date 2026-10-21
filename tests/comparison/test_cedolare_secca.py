@@ -37,8 +37,8 @@ URL = "https://www.avvocatoandreani.it/servizi/calcolo-convenienza-cedolare-secc
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers every module)
-    from src.tools.proprieta_successioni import cedolare_secca
+    import mcp_legal_it.server  # noqa: F401  (registers every module)
+    from mcp_legal_it.tools.proprieta_successioni import cedolare_secca
 
     fn = getattr(cedolare_secca, "fn", cedolare_secca)
     return fn(**kwargs)

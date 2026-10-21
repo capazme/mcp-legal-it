@@ -22,12 +22,12 @@ from pathlib import Path
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.visualex import akn_fetch, scraper
-from src.lib.visualex.akn_parser import parse_akn
-from src.lib.visualex.models import Norma, NormaVisitata, split_annex
-from src.lib.visualex.scraper import _extract_eurlex_article, fetch_article
-from src.tools import legal_citations as lc
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.visualex import akn_fetch, scraper
+from mcp_legal_it.lib.visualex.akn_parser import parse_akn
+from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata, split_annex
+from mcp_legal_it.lib.visualex.scraper import _extract_eurlex_article, fetch_article
+from mcp_legal_it.tools import legal_citations as lc
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 

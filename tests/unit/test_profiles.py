@@ -17,7 +17,7 @@ SNIPPET = """
 import asyncio, json, sys
 sys.path.insert(0, "plugin/server")
 from fastmcp import Client
-from src.server import mcp
+from mcp_legal_it.server import mcp
 async def main():
     async with Client(mcp) as c:
         tools = await c.list_tools()

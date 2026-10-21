@@ -1,4 +1,4 @@
-"""Unit tests for src/lib/italgiure/client.py and src/tools/italgiure.py.
+"""Unit tests for mcp_legal_it/lib/italgiure/client.py and mcp_legal_it/tools/italgiure.py.
 
 HTTP calls are mocked — no real network access required.
 """
@@ -6,7 +6,7 @@ HTTP calls are mocked — no real network access required.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib.italgiure.client import (
+from mcp_legal_it.lib.italgiure.client import (
     ARCHIVE_START_YEAR,
     SolrSession,
     build_explore_params,
@@ -26,8 +26,8 @@ from src.lib.italgiure.client import (
 )
 
 # Import _impl functions at module level to avoid metaclass conflict when patching httpx
-from src.lib._result import SearchResult
-from src.tools.italgiure import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.tools.italgiure import (
     _auto_relax,
     _cerca_giurisprudenza_impl,
     _esplora_impl,
@@ -719,8 +719,8 @@ class TestSolrQuery:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
-            from src.lib.italgiure.client import solr_query
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            from mcp_legal_it.lib.italgiure.client import solr_query
             await solr_query({"q": "test"})
 
         assert any("sncass" in url and "isapi" not in url for url in get_urls), "Homepage not fetched"
@@ -731,8 +731,8 @@ class TestSolrQuery:
         expected = _make_solr_response([_civile_doc()])
         mock_client = _mock_httpx_client(solr_resp=expected)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
-            from src.lib.italgiure.client import solr_query
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            from mcp_legal_it.lib.italgiure.client import solr_query
             result = await solr_query({"q": "test"})
 
         assert result["response"]["numFound"] == 1
@@ -750,7 +750,7 @@ class TestLeggiSentenzaImpl:
         solr_resp = _make_solr_response([doc])
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(24003, 2025, archivio="civile")
 
         assert result.success
@@ -762,7 +762,7 @@ class TestLeggiSentenzaImpl:
     async def test_not_found(self):
         mock_client = _mock_httpx_client(solr_resp=_make_solr_response([]))
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(99999, 2099)
 
         assert not result.success
@@ -779,7 +779,7 @@ class TestLeggiSentenzaImpl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_sentenza_impl(1, 2024)
 
         assert not result.success
@@ -798,7 +798,7 @@ class TestCercaGiurisprudenzaImpl:
         solr_resp = _make_solr_response([doc], highlighting=hl)
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("danno biologico")
 
         assert result.success
@@ -809,7 +809,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_empty_result(self):
         mock_client = _mock_httpx_client(solr_resp=_make_solr_response([]))
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("xyz nessun risultato")
 
         assert result.success
@@ -819,7 +819,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_max_risultati_capped(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test", max_risultati=999)
 
         assert "rows=50" in captured.get("body", ""), "max_risultati should be capped at 50"
@@ -828,7 +828,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_default_ordinamento_rilevanza(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("danno biologico")
 
         body = captured.get("body", "")
@@ -838,7 +838,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_ordinamento_data(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("danno biologico", ordinamento="data")
 
         body = captured.get("body", "")
@@ -850,12 +850,12 @@ class TestCercaGiurisprudenzaImpl:
         solr_resp = _make_solr_response([doc], num_found=100)
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", ordinamento="rilevanza")
         assert "per rilevanza" in result.results_text
 
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", ordinamento="data")
         assert "per data" in result.results_text
 
@@ -863,7 +863,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_tipo_provvedimento_sentenza(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test", tipo_provvedimento="sentenza")
 
         body = captured.get("body", "")
@@ -879,7 +879,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_solo_sezioni_unite(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test", solo_sezioni_unite=True)
 
         body = captured.get("body", "")
@@ -889,7 +889,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_solo_sezioni_unite_false_no_filter(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test", solo_sezioni_unite=False)
 
         body = captured.get("body", "")
@@ -900,7 +900,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_mm_present_in_body(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("danno biologico responsabilita")
 
         body = captured.get("body", "")
@@ -910,7 +910,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_pf2_present_in_body(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("danno biologico")
 
         body = captured.get("body", "")
@@ -920,7 +920,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_default_max_risultati_is_5(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test")
 
         body = captured.get("body", "")
@@ -930,7 +930,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_pagination(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test", max_risultati=5, pagina=2)
 
         body = captured.get("body", "")
@@ -940,7 +940,7 @@ class TestCercaGiurisprudenzaImpl:
     async def test_combined_filters(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl(
                 "test",
                 archivio="civile",
@@ -970,7 +970,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_builds_norma_variants(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
         body = captured.get("body", "")
@@ -980,7 +980,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_not_found_message(self):
         mock_client = _mock_httpx_client(solr_resp=_make_solr_response([]))
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 9999 c.c.")
 
         assert not result.success
@@ -991,7 +991,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_solo_sezioni_unite(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.", solo_sezioni_unite=True)
 
         body = captured.get("body", "")
@@ -1001,7 +1001,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_anno_range(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.", anno_da=2020, anno_a=2025)
 
         body = captured.get("body", "")
@@ -1012,7 +1012,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_anno_da_only(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.", anno_da=2022)
 
         body = captured.get("body", "")
@@ -1022,7 +1022,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_anno_a_only(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.", anno_a=2023)
 
         body = captured.get("body", "")
@@ -1032,7 +1032,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_default_rows_5(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
         body = captured.get("body", "")
@@ -1045,7 +1045,7 @@ class TestGiurisprudenzaSuNormaImpl:
         solr_resp = _make_solr_response([doc], num_found=50, highlighting=hl)
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
         assert result.success
@@ -1056,7 +1056,7 @@ class TestGiurisprudenzaSuNormaImpl:
     async def test_no_fq_when_no_filters(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
         body = captured.get("body", "")
@@ -1073,7 +1073,7 @@ class TestGiurisprudenzaSuNormaImpl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
 
         assert not result.success
@@ -1090,7 +1090,7 @@ class TestUltimePronunceImpl:
         docs = [_civile_doc(str(i), "2025") for i in range(3)]
         mock_client = _mock_httpx_client(solr_resp=_make_solr_response(docs))
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_pronunce_impl()
 
         assert result.success
@@ -1101,7 +1101,7 @@ class TestUltimePronunceImpl:
     async def test_empty(self):
         mock_client = _mock_httpx_client(solr_resp=_make_solr_response([]))
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_pronunce_impl()
 
         assert not result.success
@@ -1112,7 +1112,7 @@ class TestUltimePronunceImpl:
     async def test_fq_with_materia(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _ultime_pronunce_impl(materia="contratti")
 
         body = captured.get("body", "")
@@ -1123,7 +1123,7 @@ class TestUltimePronunceImpl:
     async def test_solo_sezioni_unite(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _ultime_pronunce_impl(solo_sezioni_unite=True)
 
         body = captured.get("body", "")
@@ -1133,7 +1133,7 @@ class TestUltimePronunceImpl:
     async def test_solo_sezioni_unite_false(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _ultime_pronunce_impl(solo_sezioni_unite=False)
 
         body = captured.get("body", "")
@@ -1144,7 +1144,7 @@ class TestUltimePronunceImpl:
     async def test_default_rows_5(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _ultime_pronunce_impl()
 
         body = captured.get("body", "")
@@ -1154,7 +1154,7 @@ class TestUltimePronunceImpl:
     async def test_tipo_provvedimento(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _ultime_pronunce_impl(tipo_provvedimento="sentenza")
 
         body = captured.get("body", "")
@@ -1164,7 +1164,7 @@ class TestUltimePronunceImpl:
     async def test_combined_filters(self):
         mock_client, captured = _capturing_mock_client()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _ultime_pronunce_impl(
                 materia="contratti",
                 sezione="3",
@@ -1210,7 +1210,7 @@ class TestSolrSession:
         mock_client.post = mock_post
         mock_client.aclose = AsyncMock()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             async with SolrSession() as session:
                 await session.query({"q": "test1"})
                 await session.query({"q": "test2"})
@@ -1244,8 +1244,8 @@ class TestSolrSession:
         mock_client.post = mock_post
         mock_client.aclose = AsyncMock()
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
-            from src.lib.italgiure.client import solr_query as sq
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            from mcp_legal_it.lib.italgiure.client import solr_query as sq
             async with SolrSession() as session:
                 result = await sq({"q": "test"}, session=session)
 
@@ -1255,8 +1255,8 @@ class TestSolrSession:
     async def test_solr_query_without_session_backward_compat(self):
         """solr_query(params) without session should still work (backward compat)."""
         mock_client = _mock_httpx_client(solr_resp=_make_solr_response([_civile_doc()]))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
-            from src.lib.italgiure.client import solr_query as sq
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+            from mcp_legal_it.lib.italgiure.client import solr_query as sq
             result = await sq({"q": "test"})
         assert result["response"]["numFound"] == 1
 
@@ -1498,7 +1498,7 @@ class TestModalitaEsplora:
             },
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("responsabilità medica", modalita="esplora")
         assert "Esplorazione" in result
         assert "15000" in result
@@ -1509,7 +1509,7 @@ class TestModalitaEsplora:
     async def test_esplora_no_results(self):
         solr_resp = _make_solr_response([], num_found=0)
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("xyz nessun risultato", modalita="esplora")
         assert "Nessuna" in result
 
@@ -1523,7 +1523,7 @@ class TestModalitaEsplora:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", modalita="esplora")
         assert "Errore" in result
 
@@ -1584,7 +1584,7 @@ class TestAutoRefinement:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("responsabilità medica")
 
         assert result.success
@@ -1604,7 +1604,7 @@ class TestAutoRefinement:
             "facet_counts": {"facet_fields": {}},
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test specifico")
         assert result.success
         assert "Raffinamento" not in result.results_text
@@ -1641,7 +1641,7 @@ class TestAutoRefinement:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test", materia="contratti")
 
         # Only 1 POST (no refinement calls)
@@ -1681,7 +1681,7 @@ class TestAutoRefinement:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test generico")
 
         assert result.success
@@ -1732,7 +1732,7 @@ class TestAutoRefinement:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test ampio")
 
         assert result.success
@@ -1748,7 +1748,7 @@ class TestCercaGiurisprudenzaEnhanced:
     @pytest.mark.asyncio
     async def test_campo_dispositivo_passed(self):
         mock_client, captured = _capturing_mock_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test", campo="dispositivo")
         body = captured.get("body", "")
         # qf should only have ocrdis, not ocr
@@ -1768,7 +1768,7 @@ class TestCercaGiurisprudenzaEnhanced:
             "facet_counts": {"facet_fields": {}},
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test")
         assert result.success
         assert "Trovate" in result.results_text
@@ -1789,7 +1789,7 @@ class TestCercaGiurisprudenzaEnhanced:
             "facet_counts": {"facet_fields": {}},
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test")
         assert result.success
         assert "2 ad alta rilevanza" in result.results_text
@@ -1815,7 +1815,7 @@ class TestCercaGiurisprudenzaEnhanced:
             },
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             # Use explicit filter to avoid auto-refinement
             result = await _cerca_giurisprudenza_impl("test", materia="contratti")
         assert result.success
@@ -1834,7 +1834,7 @@ class TestCercaGiurisprudenzaEnhanced:
             "facet_counts": {"facet_fields": {"materia": ["contratti", 10]}},
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_giurisprudenza_impl("test specifico")
         assert result.success
         assert "Distribuzione" not in result.results_text
@@ -1842,7 +1842,7 @@ class TestCercaGiurisprudenzaEnhanced:
     @pytest.mark.asyncio
     async def test_include_facets_in_params(self):
         mock_client, captured = _capturing_mock_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_giurisprudenza_impl("test")
         body = captured.get("body", "")
         assert "facet=true" in body
@@ -1884,12 +1884,12 @@ class TestParseArticoloRiferimento:
 # ---------------------------------------------------------------------------
 
 def _make_massima(autorita: str, numero: str | None, anno: str | None, testo: str) -> "object":
-    from src.lib.brocardi.client import Massima
+    from mcp_legal_it.lib.brocardi.client import Massima
     return Massima(autorita=autorita, numero=numero, anno=anno, testo=testo)
 
 
 def _make_brocardi_result(massime: list) -> "object":
-    from src.lib.brocardi.client import BrocardiResult
+    from mcp_legal_it.lib.brocardi.client import BrocardiResult
     return BrocardiResult(url="https://brocardi.it/codice-civile/art2043.html", massime=massime)
 
 
@@ -1907,9 +1907,9 @@ class TestGiurisprudenzaArticoloImpl:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
         with (
-            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
-            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("mcp_legal_it.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
         ):
             result = await _giurisprudenza_articolo_impl("art. 2043 c.c.", max_risultati=3)
 
@@ -1925,9 +1925,9 @@ class TestGiurisprudenzaArticoloImpl:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
         with (
-            patch("src.tools.italgiure.fetch_brocardi", side_effect=Exception("timeout")),
-            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("mcp_legal_it.tools.italgiure.fetch_brocardi", side_effect=Exception("timeout")),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
         ):
             result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
 
@@ -1943,9 +1943,9 @@ class TestGiurisprudenzaArticoloImpl:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
         with (
-            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
-            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("mcp_legal_it.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
         ):
             result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
 
@@ -1955,16 +1955,16 @@ class TestGiurisprudenzaArticoloImpl:
     @pytest.mark.asyncio
     async def test_brocardi_error_field_falls_back(self):
         """BrocardiResult with error field set falls back to _giurisprudenza_su_norma_impl."""
-        from src.lib.brocardi.client import BrocardiResult
+        from mcp_legal_it.lib.brocardi.client import BrocardiResult
         brocardi_result = BrocardiResult(error="articolo non trovato")
         doc = _civile_doc()
         solr_resp = _make_solr_response([doc], num_found=1)
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
         with (
-            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
-            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("mcp_legal_it.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
         ):
             result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
 
@@ -1984,9 +1984,9 @@ class TestGiurisprudenzaArticoloImpl:
         mock_client.post = failing_post
 
         with (
-            patch("src.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
-            patch("src.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("mcp_legal_it.tools.italgiure.fetch_brocardi", return_value=brocardi_result),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
         ):
             result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
 
@@ -2000,8 +2000,8 @@ class TestGiurisprudenzaArticoloImpl:
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
         with (
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
-            patch("src.tools.italgiure.resolve_atto", return_value=None),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto", return_value=None),
         ):
             result = await _giurisprudenza_articolo_impl("art. 2043 c.c.")
 
@@ -2014,7 +2014,7 @@ class TestGiurisprudenzaArticoloImpl:
         solr_resp = _make_solr_response([doc], num_found=1)
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _giurisprudenza_articolo_impl("danno biologico")
 
         assert result.source == "italgiure"
@@ -2149,8 +2149,8 @@ class TestAutoRelax:
                 return _make_solr_response([], num_found=0)
             return _make_solr_response([doc], num_found=1)
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2174,8 +2174,8 @@ class TestAutoRelax:
                 return _make_solr_response([doc], num_found=3)
             return _make_solr_response([], num_found=0)
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2211,8 +2211,8 @@ class TestAutoRelax:
                 },
             }
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2230,7 +2230,7 @@ class TestAutoRelax:
     @pytest.mark.asyncio
     async def test_exception_returns_none(self):
         """Network errors should return None gracefully."""
-        with patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
             mock_session_cls.return_value.__aenter__ = AsyncMock(side_effect=Exception("network"))
 
             result = await _auto_relax(
@@ -2253,8 +2253,8 @@ class TestAutoRelax:
             # Relaxation steps: return results
             return _make_solr_response([doc], num_found=1)
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_session_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_session_cls:
             mock_session = AsyncMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session.__aexit__ = AsyncMock(return_value=False)
@@ -2283,8 +2283,8 @@ class TestLeggiSentenzaFallback:
         async def mock_solr_query(params, session=None):
             return solr_resp
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2308,8 +2308,8 @@ class TestLeggiSentenzaFallback:
                 return _make_solr_response([], num_found=0)
             return _make_solr_response([doc], num_found=1)
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2334,8 +2334,8 @@ class TestLeggiSentenzaFallback:
             # Full-text search (has defType=edismax) → found
             return _make_solr_response([doc], num_found=1)
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2352,8 +2352,8 @@ class TestLeggiSentenzaFallback:
         async def mock_solr_query(params, session=None):
             return _make_solr_response([], num_found=0)
 
-        with patch("src.tools.italgiure.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.tools.italgiure.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(return_value=mock_s)
             mock_s.__aexit__ = AsyncMock(return_value=False)
@@ -2368,7 +2368,7 @@ class TestLeggiSentenzaFallback:
     @pytest.mark.asyncio
     async def test_network_error(self):
         """Network error returns source_down."""
-        with patch("src.tools.italgiure.SolrSession") as mock_cls:
+        with patch("mcp_legal_it.tools.italgiure.SolrSession") as mock_cls:
             mock_s = AsyncMock()
             mock_s.__aenter__ = AsyncMock(side_effect=Exception("timeout"))
             mock_cls.return_value = mock_s
@@ -2449,7 +2449,7 @@ class TestEsploraSmartSuggestions:
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _esplora_impl("collaboratori coordinati monitoraggio")
 
         assert "troppo generica" in result
@@ -2473,7 +2473,7 @@ class TestEsploraSmartSuggestions:
         }
         mock_client = _mock_httpx_client(solr_resp=solr_resp)
 
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=mock_client):
             result = await _esplora_impl("etero-organizzazione lavoro")
 
         assert "troppo generica" not in result
@@ -2563,7 +2563,7 @@ class TestMateriaFilterQuoted:
     @pytest.mark.asyncio
     async def test_ultime_pronunce_quotes_materia(self):
         client, bodies = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _ultime_pronunce_impl(materia="responsabilita' civile")
         assert 'materia:"responsabilita\' civile"' in bodies[0]["fq"]
 
@@ -2573,7 +2573,7 @@ class TestSezioneNormalisedInTools:
     async def test_cerca_sezione_su_reaches_solr_as_u(self):
         # Read on Italgiure 2026-09-25: fq szdec:SU returns 0, szdec:U returns SS.UU. 41994/2021.
         client, bodies = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _cerca_giurisprudenza_impl("fideiussione schema ABI", archivio="civile", sezione="SU")
         assert "szdec:U" in bodies[0]["fq"]
         assert "szdec:SU" not in bodies[0]["fq"]
@@ -2581,7 +2581,7 @@ class TestSezioneNormalisedInTools:
     @pytest.mark.asyncio
     async def test_cerca_sezione_t_becomes_5_and_civil_only(self):
         client, bodies = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _cerca_giurisprudenza_impl("accertamento", sezione="T")
         fq = bodies[0]["fq"]
         assert "szdec:5" in fq
@@ -2590,7 +2590,7 @@ class TestSezioneNormalisedInTools:
     @pytest.mark.asyncio
     async def test_cerca_unknown_sezione_is_an_error_not_an_empty_result(self):
         client, bodies = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_giurisprudenza_impl("danno", sezione="XX")
         assert result.success is False and result.error_type == "bad_input"
         assert "Codici ammessi" in result.to_str()
@@ -2599,7 +2599,7 @@ class TestSezioneNormalisedInTools:
     @pytest.mark.asyncio
     async def test_ultime_pronunce_sezione_su_reaches_solr_as_u(self):
         client, bodies = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _ultime_pronunce_impl(archivio="civile", sezione="SU")
         assert "szdec:U" in bodies[0]["fq"]
 
@@ -2611,7 +2611,7 @@ class TestSezioneNormalisedInTools:
     @pytest.mark.asyncio
     async def test_leggi_sentenza_accepts_su(self):
         client, bodies = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _leggi_sentenza_impl(41994, 2021, sezione="SU", archivio="civile")
         assert "szdec:U" in bodies[0]["q"][0]
 
@@ -2630,7 +2630,7 @@ class TestUltimePronunceTipo:
     @pytest.mark.asyncio
     async def test_ultime_pronunce_lists_the_type(self):
         client, _ = _recording_client(default=_make_solr_response([_penale_doc("33825", "2026")]))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _ultime_pronunce_impl(archivio="penale")
         assert "n. 33825/2026, dep. 15/03/2024 (sent.)" in result.results_text
 
@@ -2722,7 +2722,7 @@ class TestLeggiSentenzaPaged:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("bad", [0, -5, "2", 1.5, True])
     async def test_invalid_start_is_an_error_without_network(self, bad):
-        with patch("src.lib.italgiure.client.httpx.AsyncClient") as client:
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient") as client:
             result = await _leggi_sentenza_impl(24003, 2025, da_carattere=bad)
         client.assert_not_called()
         assert result.success is False and result.error_type == "bad_input"
@@ -2731,26 +2731,26 @@ class TestLeggiSentenzaPaged:
     @pytest.mark.asyncio
     async def test_impl_threads_the_parameter(self):
         client, _ = _recording_client(default=_make_solr_response([self._doc()]))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_sentenza_impl(24003, 2025, archivio="civile", da_carattere=12001)
         assert result.success
         assert "Caratteri 12001-42000 su 75000 totali" in result.results_text
 
     @pytest.mark.asyncio
     async def test_mcp_tool_accepts_the_parameter(self):
-        from src.tools.italgiure import leggi_sentenza
+        from mcp_legal_it.tools.italgiure import leggi_sentenza
 
         fn = getattr(leggi_sentenza, "fn", leggi_sentenza)
         assert "da_carattere" in (fn.__doc__ or "")
         client, _ = _recording_client(default=_make_solr_response([self._doc()]))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             out = await fn(24003, 2025, archivio="civile", da_carattere=42001)
         assert "Caratteri 42001-72000 su 75000 totali" in out
 
     @pytest.mark.asyncio
     async def test_summary_formatter_keeps_working_with_the_default(self):
         client, _ = _recording_client(default=_make_solr_response([_civile_doc()]))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_sentenza_impl(24003, 2025, archivio="civile", formatter=format_summary)
         assert result.success
 
@@ -2761,7 +2761,7 @@ class TestLeggiSentenzaMessages:
         # Read on Italgiure 2026-09-25: no decision of 2020; oldest civil 17/02/2021; continuous
         # coverage from 27/09/2021 (rolling window of about five years).
         client, _ = _recording_client(default=_make_solr_response([], num_found=0))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_sentenza_impl(10579, 2021, sezione="3", archivio="civile")
         assert result.error_type == "no_results"
         txt = result.results_text
@@ -2777,7 +2777,7 @@ class TestLeggiSentenzaMessages:
         civ = {**_civile_doc("10579", "2022", "5"), "datdep": ["20220401"]}
         pen = {**_penale_doc("10579", "2022", "7"), "datdep": ["20220324"]}
         client, _ = _recording_client(default=_make_solr_response([civ, pen]))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_sentenza_impl(10579, 2022, archivio="tutti")
         txt = result.results_text
         assert txt.startswith("# Cass. civ., sez. V, n. 10579/2022, dep. 01/04/2022")
@@ -2788,12 +2788,12 @@ class TestLeggiSentenzaMessages:
     @pytest.mark.asyncio
     async def test_no_homonym_note_for_a_single_decision(self):
         client, _ = _recording_client(default=_make_solr_response([_civile_doc()]))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _leggi_sentenza_impl(24003, 2025, archivio="tutti")
         assert "Attenzione" not in result.results_text
 
     def test_docstring_does_not_promise_a_massima_ufficiale(self):
-        from src.tools.italgiure import leggi_sentenza
+        from mcp_legal_it.tools.italgiure import leggi_sentenza
 
         doc = getattr(leggi_sentenza, "fn", leggi_sentenza).__doc__
         assert "massima ufficiale" not in doc.replace("NON fornisce una massima ufficiale", "")
@@ -2866,7 +2866,7 @@ class TestNormaVariantsForActs:
     @pytest.mark.asyncio
     async def test_su_norma_query_for_gdpr_reaches_solr_anchored(self):
         client, bodies = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _giurisprudenza_su_norma_impl("art. 13 GDPR", archivio="civile", anno_da=2022, anno_a=2022)
         q = bodies[0]["q"][0]
         assert '"art. 13 2016/679"~15' in q and '"art. 13"' not in q
@@ -2898,7 +2898,7 @@ class TestNormaVariantsForActs:
         client.post = mock_post
         client.__aenter__ = AsyncMock(return_value=client)
         client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _giurisprudenza_su_norma_impl("art. 13 GDPR")
         assert result.success is True
         assert len(calls) == 2 and "hl" in calls[0] and "hl" not in calls[1]
@@ -2906,7 +2906,7 @@ class TestNormaVariantsForActs:
     @pytest.mark.asyncio
     async def test_su_norma_warns_about_an_unqualified_reference(self):
         client, _ = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _giurisprudenza_su_norma_impl("art. 13")
         assert "non indica il codice o l'atto" in result.results_text
         assert "precisione bassa" in result.results_text
@@ -2914,7 +2914,7 @@ class TestNormaVariantsForActs:
     @pytest.mark.asyncio
     async def test_su_norma_no_warning_for_a_code(self):
         client, _ = _recording_client()
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _giurisprudenza_su_norma_impl("art. 2043 c.c.")
         assert "non indica il codice" not in result.results_text
 
@@ -2929,7 +2929,7 @@ class TestAutoRefineCount:
         first = _make_solr_response(docs, num_found=501)
         refined = _make_solr_response(docs, num_found=30)
         client, bodies = _recording_client(responses=[first, refined])
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_giurisprudenza_impl("concessioni demaniali marittime")
         assert "(501 → 30)" in result.results_text
         assert result.num_found == 30
@@ -2945,7 +2945,7 @@ class TestAnchoredSearch:
         docs = [_civile_doc(str(i)) for i in range(3)]
         broad = _make_solr_response(docs, num_found=299)
         client, bodies = _recording_client(default=broad)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             result = await _cerca_giurisprudenza_impl(
                 "capo nave responsabilita", ancora_norma="art. 2043 c.c.", auto_refine=False,
             )
@@ -2959,7 +2959,7 @@ class TestAnchoredSearch:
         docs = [_civile_doc(str(i)) for i in range(3)]
         client, bodies = _recording_client(responses=[_make_solr_response(docs, num_found=299)],
                                            default=_make_solr_response(docs, num_found=20))
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _cerca_giurisprudenza_impl("capo nave responsabilita")
         assert len(bodies) >= 2
 
@@ -2967,7 +2967,7 @@ class TestAnchoredSearch:
     async def test_anchor_survives_the_zero_result_relaxation(self):
         empty = _make_solr_response([], num_found=0)
         client, bodies = _recording_client(default=empty)
-        with patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client):
+        with patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client):
             await _cerca_giurisprudenza_impl('"frase esatta" xyz', ancora_norma="art. 2043 c.c.")
         assert len(bodies) > 1
         assert all(any("2043 c.c." in f for f in b["fq"]) for b in bodies[:2])
@@ -2976,10 +2976,10 @@ class TestAnchoredSearch:
 class TestGiurisprudenzaArticoloReport:
     def _patches(self, massime, client):
         return (
-            patch("src.tools.italgiure.fetch_brocardi", return_value=_make_brocardi_result(massime)),
-            patch("src.tools.italgiure.resolve_atto",
+            patch("mcp_legal_it.tools.italgiure.fetch_brocardi", return_value=_make_brocardi_result(massime)),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto",
                   return_value={"tipo_atto": "codice civile", "numero_atto": ""}),
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client),
         )
 
     @pytest.mark.asyncio
@@ -3068,10 +3068,10 @@ class TestGiurisprudenzaArticoloReport:
     async def test_fallback_declares_that_brocardi_had_nothing(self):
         client, _ = _recording_client(default=_make_solr_response([_civile_doc()]))
         with (
-            patch("src.tools.italgiure.fetch_brocardi", return_value=_make_brocardi_result([])),
-            patch("src.tools.italgiure.resolve_atto",
+            patch("mcp_legal_it.tools.italgiure.fetch_brocardi", return_value=_make_brocardi_result([])),
+            patch("mcp_legal_it.tools.italgiure.resolve_atto",
                   return_value={"tipo_atto": "decreto legislativo", "numero_atto": "231", "data": "2001-06-08"}),
-            patch("src.lib.italgiure.client.httpx.AsyncClient", return_value=client),
+            patch("mcp_legal_it.lib.italgiure.client.httpx.AsyncClient", return_value=client),
         ):
             result = await _giurisprudenza_articolo_impl("art. 6 D.Lgs. 231/2001", archivio="penale")
         assert result.results_text.startswith("*Brocardi: nessuna massima disponibile per art. 6 D.Lgs. 231/2001")

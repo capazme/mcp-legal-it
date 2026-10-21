@@ -339,6 +339,23 @@ entry, it is the same feature as ported to the 3.0 line.
   `/verbale` mostra prima il grafico, poi la tabella dei dettagli.
 
 ### Changed
+- **BREAKING — the import package is now `mcp_legal_it`, no longer `src`.**
+  A published package must not own the name `src`: installed next to any
+  project whose own code is a `src` package, one of the two shadowed the
+  other. The sources moved from `plugin/server/src/` to
+  `plugin/server/mcp_legal_it/` and the `src` symlink at the repository root
+  is gone (the library build reads the package from `plugin/server/`). The
+  distribution name and the console script stay `mcp-legal-it`; the script
+  now points at `mcp_legal_it.cli:main`, and `python -m mcp_legal_it` replaces
+  `python -m src`. There is no `src` compatibility shim, since a shim would keep
+  owning the colliding name: code that imports `src.*` (for example
+  `from src.tools.varie import ...`) has to switch to `mcp_legal_it.*`. The
+  MCP surface (tool names, parameters, outputs) does not change, except that
+  `backlog_riconciliazione` now names a table as `mcp_legal_it/data/<name>.json`.
+  The generated bindings are keyed on the new module names, and a new test
+  fails when any of their keys stops naming a module that imports, because
+  the runtime ledger skips an unknown module silently and every result would
+  lose `dati_applicati`.
 - License: from 3.0.0 the project is distributed under the Mozilla Public
   License 2.0 (`LICENSE`, every manifest and `pyproject.toml`). Up to the 2.x
   line it was Apache-2.0; those releases, and the contributions received

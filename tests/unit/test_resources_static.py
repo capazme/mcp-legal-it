@@ -3,13 +3,13 @@ import asyncio
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[2]))
+sys.path.insert(0, str(Path(__file__).parents[2] / "plugin" / "server"))
 
 REPO = Path(__file__).parents[2]
 
 def test_static_resources_serve_the_reference_files():
     from fastmcp import Client
-    from src.server import mcp
+    from mcp_legal_it.server import mcp
 
     async def run():
         async with Client(mcp) as c:
@@ -20,7 +20,7 @@ def test_static_resources_serve_the_reference_files():
             return out
 
     def _table():
-        from src.resources import _STATIC_RESOURCES
+        from mcp_legal_it.resources import _STATIC_RESOURCES
         return _STATIC_RESOURCES
 
     served = asyncio.run(run())

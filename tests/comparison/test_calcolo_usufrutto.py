@@ -21,8 +21,8 @@ TABLE_URL = "https://www.avvocatoandreani.it/servizi/tab_coefficienti_usufrutto.
 
 
 def _tool(valore, eta):
-    import src.server  # noqa: F401  (registers modules, avoids circular imports)
-    from src.tools.proprieta_successioni import calcolo_usufrutto
+    import mcp_legal_it.server  # noqa: F401  (registers modules, avoids circular imports)
+    from mcp_legal_it.tools.proprieta_successioni import calcolo_usufrutto
 
     fn = getattr(calcolo_usufrutto, "fn", calcolo_usufrutto)
     return fn(valore_piena_proprieta=valore, eta_usufruttuario=eta)
@@ -138,7 +138,7 @@ def test_tabella_coefficienti_2026(page):
     assert rows, "published table not parsed"
     site = {(int(a), int(b)): float(c.replace(",", ".")) for a, b, c, _, _ in rows}
     data = json.loads(
-        (Path(__file__).resolve().parents[2] / "src/data/usufrutto_coefficienti.json").read_text()
+        (Path(__file__).resolve().parents[2] / "mcp_legal_it/data/usufrutto_coefficienti.json").read_text()
     )
     tool = {(f["eta_min"], f["eta_max"]): f["coefficiente"] for f in data["coefficienti"]}
     tool_in_prospetto = {k: v for k, v in tool.items() if k[1] <= 99}

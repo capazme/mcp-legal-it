@@ -34,8 +34,8 @@ URL = "https://www.avvocatoandreani.it/servizi/calcolo-rendimento-pronti-contro-
 
 
 def _tool(**kw):
-    import src.server  # noqa: F401  (registers modules, avoids circular imports)
-    from src.tools.investimenti import pronti_termine
+    import mcp_legal_it.server  # noqa: F401  (registers modules, avoids circular imports)
+    from mcp_legal_it.tools.investimenti import pronti_termine
 
     fn = getattr(pronti_termine, "fn", pronti_termine)
     return fn(**kw)

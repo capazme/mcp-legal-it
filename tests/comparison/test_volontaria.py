@@ -4,7 +4,7 @@ from tests.comparison.conftest import assert_close
 
 def _call(fn_name, **kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.fatturazione_avvocati")
+    mod = importlib.import_module("mcp_legal_it.tools.fatturazione_avvocati")
     fn = getattr(mod, fn_name)
     fn = getattr(fn, "fn", fn)
     return fn(**kwargs)

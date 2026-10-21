@@ -30,8 +30,8 @@ CONIUGE, DISCENDENTE, ASCENDENTE, FRATELLO, PARENTE_4, AFFINE_3, ALTRO = "123456
 
 
 def _call(**kwargs):
-    import src.server  # noqa: F401  (registers modules)
-    from src.tools.proprieta_successioni import imposte_successione
+    import mcp_legal_it.server  # noqa: F401  (registers modules)
+    from mcp_legal_it.tools.proprieta_successioni import imposte_successione
 
     fn = getattr(imposte_successione, "fn", imposte_successione)
     return fn(**kwargs)

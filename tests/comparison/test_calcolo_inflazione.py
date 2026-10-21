@@ -25,8 +25,8 @@ import pytest
 from tests.comparison.conftest import goto
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-import src.server  # noqa: E402,F401  (registers every tool module)
-from src.tools.rivalutazioni_istat import calcolo_inflazione  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401  (registers every tool module)
+from mcp_legal_it.tools.rivalutazioni_istat import calcolo_inflazione  # noqa: E402
 
 _fn = getattr(calcolo_inflazione, "fn", calcolo_inflazione)
 _PAGE = "calcolo-inflazione.php"

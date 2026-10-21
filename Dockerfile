@@ -6,13 +6,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc libxml2-dev libxslt1-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# The package lives in plugin/server/ (see pyproject.toml); install it as the
+# wheel would, so the image runs the same `mcp-legal-it` entry point as uvx.
 COPY pyproject.toml .
-RUN pip install --no-cache-dir .
-
-# Replicate plugin/server structure expected by run_server.py
-COPY plugin/server/src/ plugin/server/src/
-COPY plugin/server/run_server.py plugin/server/run_server.py
-COPY run_server.py .
+COPY plugin/server/mcp_legal_it/ plugin/server/mcp_legal_it/
+RUN pip install --no-cache-dir . && rm -rf plugin build
 
 ENV LEGAL_PROFILE=full
 ENV MCP_TRANSPORT=http
@@ -25,4 +23,4 @@ EXPOSE 8000
 RUN mkdir -p /app/.cache/mcp-legal-it /tmp/mcp-legal-it
 ENV MCP_CACHE_DIR=/app/.cache/mcp-legal-it
 
-CMD ["python", "run_server.py"]
+CMD ["mcp-legal-it"]

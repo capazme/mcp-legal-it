@@ -25,9 +25,9 @@ import httpx
 import pytest
 from bs4 import BeautifulSoup
 
-from src.lib import _clock
-from src.lib._result import SearchResult
-from src.lib.cerdef.client import (
+from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib.cerdef.client import (
     CerdefNonTrovato,
     CRITERI_RICERCA,
     ENTI,
@@ -53,7 +53,7 @@ from src.lib.cerdef.client import (
     format_result,
     search_giurisprudenza,
 )
-from src.tools.cerdef import (
+from mcp_legal_it.tools.cerdef import (
     _cerca_giurisprudenza_tributaria_impl,
     _cerdef_leggi_provvedimento_impl,
     _ultime_sentenze_tributarie_impl,
@@ -117,12 +117,12 @@ class _Portale:
             kwargs["transport"] = httpx.MockTransport(self._rispondi)
             return reale(*args, **kwargs)
 
-        return patch("src.lib.cerdef.client.httpx.AsyncClient", side_effect=_client)
+        return patch("mcp_legal_it.lib.cerdef.client.httpx.AsyncClient", side_effect=_client)
 
 
 def _senza_attese():
     """retry_request backs off between attempts: not in a unit test."""
-    return patch("src.lib._http.asyncio.sleep", new_callable=AsyncMock)
+    return patch("mcp_legal_it.lib._http.asyncio.sleep", new_callable=AsyncMock)
 
 
 def _risposta_secondo_grado(n: int, con_primo_grado: bool = False) -> str:
@@ -874,18 +874,18 @@ class TestCerdefLeggiProvvedimentoImpl:
     async def test_da_carattere_is_threaded_to_the_formatter(self):
         testo = "".join(f"{i:05d}" for i in range(12000))
         detail = ProvvedimentoDetail(guid="g", estremi="E", massima="M", testo_integrale=testo)
-        with patch("src.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)) as fetch:
+        with patch("mcp_legal_it.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)) as fetch:
             result = await _cerdef_leggi_provvedimento_impl("{G}", 25001)
         fetch.assert_awaited_once_with("{G}")
         assert result.success
         assert testo[25000:50000] in result.results_text
 
     async def test_mcp_tool_accepts_da_carattere(self):
-        from src.tools.cerdef import cerdef_leggi_provvedimento
+        from mcp_legal_it.tools.cerdef import cerdef_leggi_provvedimento
 
         testo = "".join(f"{i:05d}" for i in range(12000))
         detail = ProvvedimentoDetail(guid="g", estremi="E", massima="M", testo_integrale=testo)
-        with patch("src.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)):
+        with patch("mcp_legal_it.tools.cerdef.fetch_provvedimento", AsyncMock(return_value=detail)):
             out = await cerdef_leggi_provvedimento("{G}", da_carattere=50001)
         assert out.endswith("fine del testo]*")
 
@@ -1029,7 +1029,7 @@ class TestCerdefSession:
             _ = CerdefSession().client
 
     async def test_aexit_closes_and_forgets_the_client(self):
-        with patch("src.lib.cerdef.client.httpx.AsyncClient") as MockClient:
+        with patch("mcp_legal_it.lib.cerdef.client.httpx.AsyncClient") as MockClient:
             instance = AsyncMock()
             MockClient.return_value = instance
             session = CerdefSession()

@@ -6,8 +6,8 @@
 static references. These paths are GENERATED from it and committed:
 
 - `plugin/skills/`, `plugin/agents/`, `plugin/commands/` — run `python scripts/corpus/project_claude.py`
-- `src/prompts.py` — run `python scripts/corpus/generate_prompts.py`
-- `src/data/references/` — copied by the projector
+- `mcp_legal_it/prompts.py` — run `python scripts/corpus/generate_prompts.py`
+- `mcp_legal_it/data/references/` — copied by the projector
 - `content/tool-vocabulary.json` — run `python scripts/corpus/dump_vocabulary.py` (guarded by `test_tool_vocabulary_matches_server`)
 
 Never edit those paths by hand: `tests/unit/test_corpus_build.py` fails the
@@ -48,6 +48,11 @@ pip install -e ".[dev]"
 pytest  # deve passare tutto
 ```
 
+Il pacchetto Python si chiama `mcp_legal_it` e vive in `plugin/server/mcp_legal_it/`
+(dalla 3.0; prima si chiamava `src`). I percorsi `mcp_legal_it/...` di questa guida sono
+relativi a `plugin/server/`. Pytest lo trova anche senza installazione (`pythonpath` in
+`pyproject.toml`).
+
 ---
 
 ## 2. Aggiungere un tool di calcolo (no HTTP)
@@ -56,19 +61,19 @@ Il caso più semplice: il tool riceve parametri, calcola, restituisce una string
 
 **Passaggi:**
 
-1. Scegli il modulo in `src/tools/` in base alla categoria (es. `varie.py` per calcoli generali)
+1. Scegli il modulo in `mcp_legal_it/tools/` in base alla categoria (es. `varie.py` per calcoli generali)
 2. Aggiungi la funzione con il decorator `@mcp.tool()` e una docstring chiara per l'LLM
 3. Nessuna modifica a `server.py` se il modulo esiste già
-4. Se il tool legge una tabella di `src/data/`, dichiarala con `@sourced("nome_tabella")`
-   (vedi `src/lib/_data.py`) e scrivi il grado nel docstring (`Precisione: ESATTO |
+4. Se il tool legge una tabella di `mcp_legal_it/data/`, dichiarala con `@sourced("nome_tabella")`
+   (vedi `mcp_legal_it/lib/_data.py`) e scrivi il grado nel docstring (`Precisione: ESATTO |
    INDICATIVO | STIMATO`): l'audit fallisce sui tool che applicano una tabella senza grado
-5. Leggi la data solo tramite `src.lib._clock` (`_clock.today()` / `_clock.now()`):
+5. Leggi la data solo tramite `mcp_legal_it.lib._clock` (`_clock.today()` / `_clock.now()`):
    `date.today()` altrove fa fallire l'audit, perché `LEGAL_TODAY` deve poter pinnare ogni tool
 6. Se il tool calcola sotto una disciplina superata, che serve solo per casi residuali (una
    causa iscritta prima della Riforma Cartabia, un istituto abrogato per i fatti successivi a
    una data), dichiaralo in tre punti che l'audit tiene allineati: la riga
    `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>` nel docstring, il tag
-   `previgente` in `@mcp.tool(tags=...)` e il wrapper `@previgente` di `src/lib/_regime.py`
+   `previgente` in `@mcp.tool(tags=...)` e il wrapper `@previgente` di `mcp_legal_it/lib/_regime.py`
    (sotto `@mcp.tool`, sopra `@sourced`). Ogni risposta porta così `regime_normativo` e
    `LEGAL_PREVIGENTE=off` può nascondere il gruppo. Un tool senza riga `Regime:` è vigente.
 7. Rigenera policy e binding: `python scripts/audit_tool_annotations.py --write`
@@ -78,7 +83,7 @@ Il caso più semplice: il tool riceve parametri, calcola, restituisce una string
 **Esempio:**
 
 ```python
-# In src/tools/varie.py
+# In mcp_legal_it/tools/varie.py
 
 @mcp.tool()
 def calcola_interessi_legali(
@@ -115,22 +120,22 @@ def calcola_interessi_legali(
 
 I tool che fanno scraping o chiamano API esterne seguono il pattern `_impl` + wrapper.
 
-**Struttura del client** (`src/lib/<nome>/client.py`):
+**Struttura del client** (`mcp_legal_it/lib/<nome>/client.py`):
 
 - Costanti di configurazione in cima (URL base, timeout, header)
 - Funzioni pure: `build_params(...)`, `parse_response(...)`, `format_result(...)`
 - Una funzione async per la chiamata HTTP che usa `httpx.AsyncClient`
 - Nessuna logica di business nel client — solo I/O e parsing
 
-**Re-export** in `src/lib/<nome>/__init__.py`.
+**Re-export** in `mcp_legal_it/lib/<nome>/__init__.py`.
 
 **Nel modulo tools** — pattern `_impl` + wrapper:
 
 ```python
-# In src/tools/nuovo_modulo.py
+# In mcp_legal_it/tools/nuovo_modulo.py
 
-from src.server import mcp
-from src.lib.nuovo.client import fetch_data, format_result
+from mcp_legal_it.server import mcp
+from mcp_legal_it.lib.nuovo.client import fetch_data, format_result
 
 
 async def _cerca_qualcosa_impl(query: str, max_risultati: int = 10) -> str:
@@ -160,10 +165,10 @@ async def cerca_qualcosa(query: str, max_risultati: int = 10) -> str:
     return await _cerca_qualcosa_impl(query=query, max_risultati=max_risultati)
 ```
 
-**Se il modulo è nuovo** (nuova categoria), aggiorna `src/server.py`:
+**Se il modulo è nuovo** (nuova categoria), aggiorna `mcp_legal_it/server.py`:
 
 ```python
-from src.tools import (
+from mcp_legal_it.tools import (
     ...
     nuovo_modulo,  # aggiungere qui
 )
@@ -181,7 +186,7 @@ Test diretti sulla funzione `@mcp.tool()` — oppure sulla `_impl` se esiste:
 
 ```python
 import pytest
-from src.tools.varie import calcola_interessi_legali
+from mcp_legal_it.tools.varie import calcola_interessi_legali
 
 def test_interessi_legali_base():
     result = calcola_interessi_legali(1000.0, 5.0, 365)
@@ -202,7 +207,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Import a livello modulo per evitare conflitti con il metaclass MCP
-from src.tools.nuovo_modulo import _cerca_qualcosa_impl
+from mcp_legal_it.tools.nuovo_modulo import _cerca_qualcosa_impl
 
 
 def _mock_response(html: str, status: int = 200):
@@ -220,7 +225,7 @@ async def test_cerca_qualcosa_ok():
     mock_client.__aexit__ = AsyncMock(return_value=None)
     mock_client.get = AsyncMock(return_value=_mock_response("<html>...</html>"))
 
-    with patch("src.lib.nuovo.client.httpx.AsyncClient", return_value=mock_client):
+    with patch("mcp_legal_it.lib.nuovo.client.httpx.AsyncClient", return_value=mock_client):
         result = await _cerca_qualcosa_impl("test")
 
     assert "Trovati" in result
@@ -234,7 +239,7 @@ async def test_cerca_qualcosa_http_error():
     mock_client.__aexit__ = AsyncMock(return_value=None)
     mock_client.get = AsyncMock(side_effect=httpx.RequestError("timeout"))
 
-    with patch("src.lib.nuovo.client.httpx.AsyncClient", return_value=mock_client):
+    with patch("mcp_legal_it.lib.nuovo.client.httpx.AsyncClient", return_value=mock_client):
         result = await _cerca_qualcosa_impl("test")
 
     assert "Errore" in result
@@ -257,13 +262,13 @@ Esecuzione: `pytest -m live`
 
 ## 5. Aggiungere un prompt
 
-In `src/prompts.py`, aggiungi tramite il decorator `@mcp.prompt()`. Segui il pattern degli altri prompt già presenti nel file.
+In `mcp_legal_it/prompts.py`, aggiungi tramite il decorator `@mcp.prompt()`. Segui il pattern degli altri prompt già presenti nel file.
 
 ---
 
 ## 6. Aggiungere una risorsa statica
 
-In `src/resources.py`, aggiungi tramite `@mcp.resource()` con URI nel formato `legal://riferimenti/<nome>`. Le risorse sono stringhe markdown — tabelle, checklist, schemi.
+In `mcp_legal_it/resources.py`, aggiungi tramite `@mcp.resource()` con URI nel formato `legal://riferimenti/<nome>`. Le risorse sono stringhe markdown — tabelle, checklist, schemi.
 
 ---
 
@@ -317,9 +322,9 @@ devono poter arrivare agli utenti senza una release. L'unica eccezione è
 - [ ] Se è un modulo nuovo, `server.py` è aggiornato (import + instructions) e il conteggio in
       `tests/unit/test_server_registration.py` e nel vocabolario (`scripts/corpus/dump_vocabulary.py`)
 - [ ] `python scripts/audit_tool_annotations.py --check` passa (annotazioni, cache dichiarate, orologio, fonti online)
-- [ ] Se il tool contatta un host nuovo: aggiunto a `src/lib/_egress.py` e a `SECURITY.md`; il fetch passa da
+- [ ] Se il tool contatta un host nuovo: aggiunto a `mcp_legal_it/lib/_egress.py` e a `SECURITY.md`; il fetch passa da
       `retry_request(..., dataset="...")` così la risposta dichiara `fonti_consultate`
-- [ ] Se hai toccato `src/data/`: golden rigenerato e `python scripts/update-data.py --strict` verde
+- [ ] Se hai toccato `mcp_legal_it/data/`: golden rigenerato e `python scripts/update-data.py --strict` verde
 - [ ] L'output rispetta le convenzioni (importi, date, ESATTO/INDICATIVO)
 
 ## 9. Licenza dei contributi

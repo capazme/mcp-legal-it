@@ -11,15 +11,15 @@ disclaimer is present and that NO predictive phrasing leaks into the output.
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from src.lib._result import SearchResult
-from src.lib.brocardi.client import Massima
-from src.lib.italgiure.client import (
+from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib.brocardi.client import Massima
+from mcp_legal_it.lib.italgiure.client import (
     CONFLICT_SIGNALS,
     CONFORMITY_SIGNALS,
     build_orientamento_params,
     group_signal_facet_query,
 )
-from src.tools.orientamento import (
+from mcp_legal_it.tools.orientamento import (
     _ARCHIVE_NOTE,
     _DISCLAIMER,
     _PRINCIPIO_MM,
@@ -151,8 +151,8 @@ def _patch_two_query(main: dict, ss_uu: dict):
     cm_session = AsyncMock()
     cm_session.__aenter__ = AsyncMock(return_value=cm_session)
     cm_session.__aexit__ = AsyncMock(return_value=False)
-    session_cls = patch("src.tools.orientamento.SolrSession", return_value=cm_session)
-    query_patch = patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query)
+    session_cls = patch("mcp_legal_it.tools.orientamento.SolrSession", return_value=cm_session)
+    query_patch = patch("mcp_legal_it.tools.orientamento.solr_query", side_effect=mock_solr_query)
     return query_patch, session_cls, call_count
 
 
@@ -307,8 +307,8 @@ class TestOrientamentoSuNorma:
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=cm)
         cm.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.orientamento.SolrSession", return_value=cm):
+        with patch("mcp_legal_it.tools.orientamento.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.orientamento.SolrSession", return_value=cm):
             await _orientamento_su_norma_impl("art. 2043 c.c.")
 
         ss_uu_params = captured["params"][1]
@@ -393,7 +393,7 @@ class TestOrientamentoSuNorma:
     async def test_source_down(self):
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(side_effect=Exception("network"))
-        with patch("src.tools.orientamento.SolrSession", return_value=cm):
+        with patch("mcp_legal_it.tools.orientamento.SolrSession", return_value=cm):
             result = await _orientamento_su_norma_impl("art. 2043 c.c.")
         assert result.success is False
         assert result.error_type == "source_down"
@@ -411,8 +411,8 @@ class TestOrientamentoSuNorma:
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=cm)
         cm.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.orientamento.SolrSession", return_value=cm):
+        with patch("mcp_legal_it.tools.orientamento.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.orientamento.SolrSession", return_value=cm):
             await _orientamento_su_norma_impl("art. 2043 c.c.", max_risultati=999)
         assert captured["params"][0]["rows"] == 50
 
@@ -444,8 +444,8 @@ class TestOrientamentoSuPrincipio:
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=cm)
         cm.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.orientamento.SolrSession", return_value=cm):
+        with patch("mcp_legal_it.tools.orientamento.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.orientamento.SolrSession", return_value=cm):
             await _orientamento_su_principio_impl("danno biologico", sezione="3")
         assert any("szdec:3" in f for f in captured["params"][0]["fq"])
 
@@ -472,13 +472,13 @@ class TestMappaOrientamento:
         ]
 
         async def fake_brocardi(*a, **k):
-            from src.lib.brocardi.client import BrocardiResult
+            from mcp_legal_it.lib.brocardi.client import BrocardiResult
             return BrocardiResult(url="x", massime=massime)
 
         query_patch, session_cls, _ = _patch_two_query(_main_response(), _ss_uu_response())
         with query_patch, session_cls, \
-             patch("src.tools.orientamento.fetch_brocardi", side_effect=fake_brocardi), \
-             patch("src.tools.orientamento.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}):
+             patch("mcp_legal_it.tools.orientamento.fetch_brocardi", side_effect=fake_brocardi), \
+             patch("mcp_legal_it.tools.orientamento.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}):
             result = await _mappa_orientamento_impl("art. 2043 c.c.")
         assert result.success is True
         text = result.results_text
@@ -495,8 +495,8 @@ class TestMappaOrientamento:
 
         query_patch, session_cls, _ = _patch_two_query(_main_response(), _ss_uu_response())
         with query_patch, session_cls, \
-             patch("src.tools.orientamento.fetch_brocardi", side_effect=boom), \
-             patch("src.tools.orientamento.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}):
+             patch("mcp_legal_it.tools.orientamento.fetch_brocardi", side_effect=boom), \
+             patch("mcp_legal_it.tools.orientamento.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}):
             result = await _mappa_orientamento_impl("art. 2043 c.c.")
         # Map still produced (fail-open on Brocardi)
         assert result.success is True
@@ -508,13 +508,13 @@ class TestMappaOrientamento:
     @pytest.mark.asyncio
     async def test_no_predictive_phrasing(self):
         async def fake_brocardi(*a, **k):
-            from src.lib.brocardi.client import BrocardiResult
+            from mcp_legal_it.lib.brocardi.client import BrocardiResult
             return BrocardiResult(url="x", massime=[])
 
         query_patch, session_cls, _ = _patch_two_query(_main_response(), _ss_uu_response())
         with query_patch, session_cls, \
-             patch("src.tools.orientamento.fetch_brocardi", side_effect=fake_brocardi), \
-             patch("src.tools.orientamento.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}):
+             patch("mcp_legal_it.tools.orientamento.fetch_brocardi", side_effect=fake_brocardi), \
+             patch("mcp_legal_it.tools.orientamento.resolve_atto", return_value={"tipo_atto": "codice civile", "numero_atto": ""}):
             result = await _mappa_orientamento_impl("art. 2043 c.c.")
         low = _body_without_disclaimer(result.results_text).lower()
         for forbidden in _PREDICTIVE_FORBIDDEN:
@@ -549,8 +549,8 @@ def _two_call_capture(main: dict, ss_uu: dict):
     cm.__aenter__ = AsyncMock(return_value=cm)
     cm.__aexit__ = AsyncMock(return_value=False)
     return (
-        patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query),
-        patch("src.tools.orientamento.SolrSession", return_value=cm),
+        patch("mcp_legal_it.tools.orientamento.solr_query", side_effect=mock_solr_query),
+        patch("mcp_legal_it.tools.orientamento.SolrSession", return_value=cm),
         captured,
     )
 
@@ -600,7 +600,7 @@ class TestOrizzonteArchivio:
 
 class TestDocstringsArt15:
     def test_wrappers_do_not_attribute_a_ban_to_l_132_2025(self):
-        from src.tools import orientamento as mod
+        from mcp_legal_it.tools import orientamento as mod
 
         for name in ("orientamento_su_norma", "orientamento_su_principio", "mappa_orientamento"):
             tool = getattr(mod, name)
@@ -655,8 +655,8 @@ class TestPrincipioPertinenza:
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=cm)
         cm.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.tools.orientamento.solr_query", side_effect=mock_solr_query), \
-             patch("src.tools.orientamento.SolrSession", return_value=cm):
+        with patch("mcp_legal_it.tools.orientamento.solr_query", side_effect=mock_solr_query), \
+             patch("mcp_legal_it.tools.orientamento.SolrSession", return_value=cm):
             result = await _orientamento_su_principio_impl("buona fede oggettiva recesso")
         assert result.success is True
         assert len(calls) == 4
@@ -706,12 +706,12 @@ class TestMappaAncoraggio:
     @staticmethod
     def _run(massime, resolve=None):
         async def fake_brocardi(*a, **k):
-            from src.lib.brocardi.client import BrocardiResult
+            from mcp_legal_it.lib.brocardi.client import BrocardiResult
             return BrocardiResult(url="x", massime=massime)
 
         qp, sp, _ = _patch_two_query(_main_response(), _ss_uu_response())
-        return qp, sp, patch("src.tools.orientamento.fetch_brocardi", side_effect=fake_brocardi), \
-            patch("src.tools.orientamento.resolve_atto",
+        return qp, sp, patch("mcp_legal_it.tools.orientamento.fetch_brocardi", side_effect=fake_brocardi), \
+            patch("mcp_legal_it.tools.orientamento.resolve_atto",
                   return_value=resolve if resolve is not None
                   else {"tipo_atto": "codice civile", "numero_atto": ""})
 
@@ -749,6 +749,6 @@ class TestMappaAncoraggio:
     @pytest.mark.asyncio
     async def test_declares_when_the_act_is_not_recognised(self):
         qp, sp, bp, rp = self._run([], resolve=None)
-        with qp, sp, bp, patch("src.tools.orientamento.resolve_atto", return_value=None):
+        with qp, sp, bp, patch("mcp_legal_it.tools.orientamento.resolve_atto", return_value=None):
             result = await _mappa_orientamento_impl("art. 2043 c.c.")
         assert "atto non riconosciuto" in result.results_text

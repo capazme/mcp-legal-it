@@ -1,6 +1,6 @@
 """Generate the openai bundle's AGENTS.md from a hand-written header/footer
 plus the REGOLE/OUTPUT/WORKFLOW block extracted verbatim from
-plugin/server/src/server.py's FastMCP `instructions` string.
+plugin/server/mcp_legal_it/server.py's FastMCP `instructions` string.
 
 Single source of truth: the REGOLE/OUTPUT/WORKFLOW text is never copied into
 this module — it is read out of server.py at build time so the two can never
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-_SERVER_PY_REL = Path("plugin") / "server" / "src" / "server.py"
+_SERVER_PY_REL = Path("plugin") / "server" / "mcp_legal_it" / "server.py"
 
 _START_MARKER = "REGOLE:"
 _WORKFLOW_MARKER = "WORKFLOW:"

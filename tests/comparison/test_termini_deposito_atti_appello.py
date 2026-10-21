@@ -46,8 +46,8 @@ _MESI = {
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  (registers every module, avoids circular imports)
-    from src.tools.scadenze_termini import termini_deposito_atti_appello
+    import mcp_legal_it.server  # noqa: F401  (registers every module, avoids circular imports)
+    from mcp_legal_it.tools.scadenze_termini import termini_deposito_atti_appello
 
     fn = getattr(termini_deposito_atti_appello, "fn", termini_deposito_atti_appello)
     r = fn(**kwargs)

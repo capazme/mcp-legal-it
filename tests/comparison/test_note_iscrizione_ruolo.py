@@ -58,8 +58,8 @@ def _pin_today(monkeypatch):
 
 
 def _tool(tipo_procedimento: str, valore_causa: float | None, **flags) -> dict:
-    import src.server  # noqa: F401  registers every module (avoids circular imports)
-    from src.tools.atti_giudiziari import note_iscrizione_ruolo
+    import mcp_legal_it.server  # noqa: F401  registers every module (avoids circular imports)
+    from mcp_legal_it.tools.atti_giudiziari import note_iscrizione_ruolo
 
     fn = getattr(note_iscrizione_ruolo, "fn", note_iscrizione_ruolo)
     return fn(tipo_procedimento=tipo_procedimento, valore_causa=valore_causa, **flags)

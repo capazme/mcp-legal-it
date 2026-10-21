@@ -8,7 +8,7 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib.gpdp.client import (
+from mcp_legal_it.lib.gpdp.client import (
     TIPOLOGIE,
     DocNotAvailable,
     DocResult,
@@ -23,7 +23,7 @@ from src.lib.gpdp.client import (
 )
 
 # Import _impl functions at module level to avoid metaclass conflict when patching httpx
-from src.tools.gpdp import (
+from mcp_legal_it.tools.gpdp import (
     _cerca_provvedimenti_garante_impl,
     _leggi_provvedimento_garante_impl,
     _ultimi_provvedimenti_garante_impl,
@@ -540,7 +540,7 @@ class TestCercaProvvedimentiImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_provvedimenti_garante_impl("cookie")
 
         assert "Trovati" in result
@@ -554,7 +554,7 @@ class TestCercaProvvedimentiImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_provvedimenti_garante_impl("inesistente")
 
         assert "Nessun" in result
@@ -563,7 +563,7 @@ class TestCercaProvvedimentiImpl:
     async def test_tipologia_is_sent_to_the_portal_not_filtered_locally(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_provvedimenti_garante_impl("cookie", tipologia="parere")
 
         # The portal filters by node id (10527 = "Parere del Garante"); the client keeps every
@@ -577,7 +577,7 @@ class TestCercaProvvedimentiImpl:
     async def test_provvedimento_sends_the_family_of_nodes(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_provvedimenti_garante_impl("OpenAI ChatGPT", tipologia="provvedimento")
 
         ids = _sent_params(mock_client)[_PFX + "idsTipologia"].split(",")
@@ -592,7 +592,7 @@ class TestCercaProvvedimentiImpl:
         # plan case: linee guida cookie, 01/06/2021-30/06/2021 (DocWeb 9677876 of 10/06/2021)
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_provvedimenti_garante_impl(
                 "linee guida cookie", data_da="01/06/2021", data_a="30/06/2021",
             )
@@ -605,7 +605,7 @@ class TestCercaProvvedimentiImpl:
     async def test_invalid_date_is_an_error_and_sends_nothing(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_provvedimenti_garante_impl("x", data_da="2021/06/01")
 
         assert result.startswith("Errore:")
@@ -616,7 +616,7 @@ class TestCercaProvvedimentiImpl:
     async def test_unknown_tipologia_is_an_error_and_sends_nothing(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_provvedimenti_garante_impl("x", tipologia="pippo")
 
         assert result.startswith("Errore:")
@@ -627,7 +627,7 @@ class TestCercaProvvedimentiImpl:
     async def test_no_tipologia_sends_no_node_filter(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_provvedimenti_garante_impl("cookie")
 
         assert _sent_params(mock_client)[_PFX + "idsTipologia"] == ""
@@ -639,7 +639,7 @@ class TestCercaProvvedimentiImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(side_effect=httpx.RequestError("timeout"))
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_provvedimenti_garante_impl("test")
 
         assert "Errore" in result
@@ -654,7 +654,7 @@ class TestLeggiProvvedimentoImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_provvedimento_garante_impl(9677876)
 
         assert "Linee guida" in result
@@ -670,7 +670,7 @@ class TestLeggiProvvedimentoImpl:
             "404", request=MagicMock(), response=MagicMock()
         ))
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_provvedimento_garante_impl(9999999)
 
         assert "Errore" in result
@@ -683,7 +683,7 @@ class TestLeggiProvvedimentoImpl:
                 "</body></html>")
         mock_client = _mock_client(html)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_provvedimento_garante_impl(10000069)
 
         assert result.startswith("Errore: DocWeb 10000069 non disponibile")
@@ -694,7 +694,7 @@ class TestLeggiProvvedimentoImpl:
     async def test_full_text_link_is_absolute(self):
         mock_client = _mock_client(_DOC_PRINT_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_provvedimento_garante_impl(9677876)
 
         assert ("https://www.garanteprivacy.it/web/guest/home/docweb/-/docweb-display/"
@@ -705,11 +705,11 @@ class TestLeggiProvvedimentoImpl:
         body = "x" * 3000 + "MARKER" + "y" * 6000
         html = f"<html><body><div class='doc'><p>{body}</p></div></body></html>"
         mock_client = _mock_client(html)
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             first = await _leggi_provvedimento_garante_impl(1)
         assert "da_carattere=6001]*" in first
         mock_client = _mock_client(html)
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             second = await _leggi_provvedimento_garante_impl(1, da_carattere=6001)
         assert "Caratteri 6001-" in second
         assert "MARKER" not in second
@@ -717,16 +717,16 @@ class TestLeggiProvvedimentoImpl:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("bad", [0, -3, "2", 1.5, True])
     async def test_invalid_da_carattere_errors_without_network(self, bad):
-        with patch("src.lib.gpdp.client.httpx.AsyncClient") as client_cls:
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient") as client_cls:
             result = await _leggi_provvedimento_garante_impl(9677876, da_carattere=bad)
         assert result.startswith("Errore: da_carattere deve essere un intero")
         client_cls.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_mcp_tool_accepts_da_carattere(self):
-        from src.tools.gpdp import leggi_provvedimento_garante
+        from mcp_legal_it.tools.gpdp import leggi_provvedimento_garante
         fn = getattr(leggi_provvedimento_garante, "fn", leggi_provvedimento_garante)
-        with patch("src.tools.gpdp._leggi_provvedimento_garante_impl",
+        with patch("mcp_legal_it.tools.gpdp._leggi_provvedimento_garante_impl",
                    new=AsyncMock(return_value="ok")) as impl:
             assert await fn(9677876, da_carattere=6001) == "ok"
         impl.assert_awaited_once_with(9677876, 6001)
@@ -735,7 +735,7 @@ class TestLeggiProvvedimentoImpl:
     def test_docstring_examples_are_labelled_correctly(self):
         # DocWeb 9870832 is the Provvedimento of 30/03/2023 (reg. n. 112, OpenAI/ChatGPT),
         # not "Linee guida AI 2023"; 10000069 does not exist on the portal.
-        from src.tools.gpdp import leggi_provvedimento_garante
+        from mcp_legal_it.tools.gpdp import leggi_provvedimento_garante
         doc = getattr(leggi_provvedimento_garante, "fn", leggi_provvedimento_garante).__doc__
         assert "9870832: Provvedimento 30 marzo 2023" in doc
         assert "Linee guida AI 2023" not in doc
@@ -748,7 +748,7 @@ class TestUltimiProvvedimentiImpl:
     async def test_returns_latest(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultimi_provvedimenti_garante_impl()
 
         # Without a filter the portal lists every kind of document (press reviews, news,
@@ -762,7 +762,7 @@ class TestUltimiProvvedimentiImpl:
     async def test_tipologia_is_sent_to_the_portal(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultimi_provvedimenti_garante_impl(tipologia="ordinanza", max_risultati=5)
 
         # "Ordinanza ingiunzione o revoca" = node 10526 in the portal tree; the filter runs on
@@ -780,7 +780,7 @@ class TestUltimiProvvedimentiImpl:
         # "Ordinanza ingiunzione o revoca", child of "Provvedimenti" 10533).
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             await _ultimi_provvedimenti_garante_impl(tipologia="provvedimento", max_risultati=5)
 
         ids = _sent_params(mock_client)[_PFX + "idsTipologia"].split(",")
@@ -792,7 +792,7 @@ class TestUltimiProvvedimentiImpl:
     async def test_unknown_tipologia_is_an_error_and_sends_nothing(self):
         mock_client = _mock_client(_SEARCH_HTML)
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultimi_provvedimenti_garante_impl(tipologia="pippo")
 
         assert result.startswith("Errore:")
@@ -803,7 +803,7 @@ class TestUltimiProvvedimentiImpl:
     async def test_empty_result_message(self):
         mock_client = _mock_client("<html><body></body></html>")
 
-        with patch("src.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.gpdp.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultimi_provvedimenti_garante_impl(tipologia="parere")
 
         assert "Nessun" in result

@@ -37,7 +37,7 @@ same fields as pressing the button.
 Tolerance: 0,01 EUR per the benchmark brief; the extra 1e-9 only absorbs float
 representation error, it does not widen the tolerance.
 
-Note on circularity: the tool's table (src/data/parametri_forensi.json,
+Note on circularity: the tool's table (mcp_legal_it/data/parametri_forensi.json,
 _vintage.nota) was transcribed from avvocatoandreani.it, not from the Gazzetta
 Ufficiale; agreement on the compenso therefore confirms the transcription, not
 the norm. The accessory chain (15% / 4% / 22%) is independently derivable from
@@ -75,8 +75,8 @@ _DUMMY = {
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers every tool module)
-    from src.tools.fatturazione_avvocati import preventivo_stragiudiziale
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module)
+    from mcp_legal_it.tools.fatturazione_avvocati import preventivo_stragiudiziale
 
     fn = getattr(preventivo_stragiudiziale, "fn", preventivo_stragiudiziale)
     r = fn(**kwargs)

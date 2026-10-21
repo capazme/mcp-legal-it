@@ -30,10 +30,10 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from src.lib._data import UNVERIFIED, all_datasets, vintage  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "plugin" / "server"))
+from mcp_legal_it.lib._data import UNVERIFIED, all_datasets, vintage  # noqa: E402
 
-DATA_DIR = Path(__file__).parent.parent / "src" / "data"
+DATA_DIR = Path(__file__).parent.parent / "plugin" / "server" / "mcp_legal_it" / "data"
 
 TEGM_SOURCE = "https://www.bancaditalia.it/compiti/vigilanza/compiti-vigilanza/tegm/"
 FOI_SOURCE = "https://www.istat.it/notizia/indice-dei-prezzi-per-le-rivalutazioni-monetarie/"
@@ -92,7 +92,7 @@ def check_tegm(today: date) -> bool:
         expected_q = quarter if quarter <= 4 else 1
         print(stale(f"Scaduto il {threshold} — aggiornare al trimestre {expected_year}-Q{expected_q}"))
         print(f"  Fonte : {TEGM_SOURCE}")
-        print(f"  Azione: aggiornare src/data/tegm.json con il nuovo trimestre dal DM MEF in GU")
+        print(f"  Azione: aggiornare mcp_legal_it/data/tegm.json con il nuovo trimestre dal DM MEF in GU")
         return True
     else:
         days_left = (threshold - today).days
@@ -136,7 +136,7 @@ def check_foi(today: date) -> bool:
         next_m = ((next_m - 1) % 12) + 1
         print(stale(f"Scaduto — mancano i dati da {next_y}/{next_m:02d} in poi"))
         print(f"  Fonte : {FOI_SOURCE}")
-        print(f"  Azione: aggiornare src/data/indici_foi.json con gli indici FOI mensili mancanti")
+        print(f"  Azione: aggiornare mcp_legal_it/data/indici_foi.json con gli indici FOI mensili mancanti")
         return True
     else:
         months_until = (stale_threshold.year - today.year) * 12 + (stale_threshold.month - today.month)
@@ -163,7 +163,7 @@ def check_tassi_legali(today: date) -> bool:
     if is_stale:
         print(stale(f"Manca il tasso legale per {current_year} (e anni successivi se più di uno)"))
         print(f"  Fonte : {TASSI_LEGALI_SOURCE}")
-        print(f"  Azione: aggiornare src/data/tassi_legali.json con il DM MEF pubblicato in GU a dicembre {current_year - 1}")
+        print(f"  Azione: aggiornare mcp_legal_it/data/tassi_legali.json con il DM MEF pubblicato in GU a dicembre {current_year - 1}")
         return True
     else:
         print(ok(f"Tasso {current_year} presente"))
@@ -203,7 +203,7 @@ def check_tassi_mora(today: date) -> bool:
         new_sem = f"{current_sem_start.year}/{'H1' if current_sem_start.month == 1 else 'H2'}"
         print(stale(f"Manca il tasso mora per {new_sem}"))
         print(f"  Fonte : {TASSI_MORA_SOURCE}")
-        print(f"  Azione: aggiornare src/data/tassi_mora.json con il tasso BCE del semestre corrente (+8pp)")
+        print(f"  Azione: aggiornare mcp_legal_it/data/tassi_mora.json con il tasso BCE del semestre corrente (+8pp)")
         return True
     else:
         print(ok(f"Semestre corrente ({current_sem_start} → {current_sem_end}) coperto"))
@@ -233,7 +233,7 @@ def check_irpef(today: date) -> bool:
     if is_stale:
         print(stale(f"Mancano gli scaglioni {current_year} (legge di bilancio in GU a dicembre {current_year - 1})"))
         print(f"  Fonte : {IRPEF_SOURCE}")
-        print(f"  Azione: aggiungere l'anno {current_year} a src/data/irpef_scaglioni.json (scaglioni_per_anno)")
+        print(f"  Azione: aggiungere l'anno {current_year} a mcp_legal_it/data/irpef_scaglioni.json (scaglioni_per_anno)")
         return True
     if missing:
         print(warn(f"Scaglioni {current_year} non ancora inseriti — finestra di grazia fino al 1° febbraio"))
@@ -264,7 +264,7 @@ def check_danno_bio(today: date) -> bool:
     if is_stale:
         print(stale(f"Manca la rivalutazione {today.year} del punto base (DM MIMIT atteso entro l'estate)"))
         print(f"  Fonte : {DANNO_BIO_SOURCE}")
-        print(f"  Azione: aggiornare punto_base, importi ITT e anno_ultimo_dm in src/data/tabella_danno_bio.json")
+        print(f"  Azione: aggiornare punto_base, importi ITT e anno_ultimo_dm in mcp_legal_it/data/tabella_danno_bio.json")
         return True
     if behind:
         print(warn(f"DM {today.year} non ancora recepito — verifica in estate, segnalazione dal 1° settembre"))
@@ -306,7 +306,7 @@ def check_usufrutto(today: date) -> bool:
         else:
             print(stale(f"Conferma annuale {today.year} non recepita (decreto direttoriale MEF di fine dicembre)"))
         print(f"  Fonte : {USUFRUTTO_SOURCE}")
-        print(f"  Azione: aggiornare src/data/usufrutto_coefficienti.json (coefficienti, tasso_legale, anno_verifica)")
+        print(f"  Azione: aggiornare mcp_legal_it/data/usufrutto_coefficienti.json (coefficienti, tasso_legale, anno_verifica)")
         return True
     if behind:
         print(warn(f"Conferma annuale {today.year} da recepire — finestra di grazia fino al 1° febbraio"))
@@ -328,7 +328,7 @@ def check_usufrutto(today: date) -> bool:
 #
 # The warning is not cosmetic any more, so it now says what it costs. A table
 # marked `da_verificare` takes every tool that declares an exact grade out of
-# service (`src/lib/_precision.py`: the answer is refused, not annotated), and a
+# service (`mcp_legal_it/lib/_precision.py`: the answer is refused, not annotated), and a
 # caller can only get past that by supplying the datum the table provides or by
 # accepting a lower grade. Those are the two things printed next to each table,
 # derived from the audit rather than kept by hand -- this file is the to-do list,
@@ -351,12 +351,12 @@ def _who_needs(table: str) -> list[tuple[str, str, str]]:
     declaring a different grade, changes this list instead of outdating it.
     """
     sys.path.insert(0, str(REPO / "scripts"))
-    sys.path.insert(0, str(REPO / "plugin/server/src/lib"))
+    sys.path.insert(0, str(REPO / "plugin/server/mcp_legal_it/lib"))
     try:
         from audit_tool_annotations import Audit, declared_precision  # noqa: E402
         from _precision import decide  # noqa: E402
 
-        audit = Audit(REPO / "plugin/server/src")
+        audit = Audit(REPO / "plugin/server/mcp_legal_it")
         out = []
         for fq, name in sorted(audit.tools.items(), key=lambda item: item[1]):
             if table not in audit.reads(fq):
@@ -425,7 +425,7 @@ def check_vintages(today: date) -> bool:
             _report_blockers(name)
             print(
                 "  Azione             : verificare la fonte sopra e aggiornare i valori, poi "
-                f"`verifica: manuale` e `aggiornato_al` in src/data/{name}.json"
+                f"`verifica: manuale` e `aggiornato_al` in mcp_legal_it/data/{name}.json"
             )
     if not mancanti and not scadute:
         print(ok(f"{len(all_datasets()) - len(da_verificare)} tabelle con provenienza dichiarata"))
@@ -444,7 +444,7 @@ def _report_osservazioni(tabelle: list[str]) -> None:
     """
     sys.path.insert(0, str(REPO / "plugin/server"))
     try:
-        from src.lib._refusals import ledger_enabled, ledger_path, summarize  # noqa: E402
+        from mcp_legal_it.lib._refusals import ledger_enabled, ledger_path, summarize  # noqa: E402
     finally:
         sys.path.pop(0)
     if not ledger_enabled():

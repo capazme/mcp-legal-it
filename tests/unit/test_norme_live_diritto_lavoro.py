@@ -1,6 +1,6 @@
 """Live gate: the labour-law tools apply the numbers the vigente text states.
 
-Three tools in `src/tools/diritto_lavoro.py` hard-code figures taken from the law:
+Three tools in `mcp_legal_it/tools/diritto_lavoro.py` hard-code figures taken from the law:
 
 - `indennita_licenziamento`: 6-36 mensilita (art. 3 co. 1 D.Lgs. 23/2015 after Corte cost.
   194/2018), halved to 3-18 for employers below the art. 18 St. lav. threshold (art. 9 co. 1,
@@ -60,9 +60,9 @@ def _aggiornamento(testo: str, marcatore: str) -> str:
 
 
 def _call(name: str, **kwargs):
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
 
-    mod = importlib.import_module("src.tools.diritto_lavoro")
+    mod = importlib.import_module("mcp_legal_it.tools.diritto_lavoro")
     fn = getattr(mod, name)
     return getattr(fn, "fn", fn)(**kwargs)
 

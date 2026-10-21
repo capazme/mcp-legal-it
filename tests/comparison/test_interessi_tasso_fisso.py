@@ -16,8 +16,8 @@ import time
 
 import pytest
 
-import src.server  # noqa: F401  (registers all tool modules)
-from src.tools.tassi_interessi import interessi_tasso_fisso as _tool
+import mcp_legal_it.server  # noqa: F401  (registers all tool modules)
+from mcp_legal_it.tools.tassi_interessi import interessi_tasso_fisso as _tool
 
 from .conftest import accept_cookies, assert_close, extract_amount
 

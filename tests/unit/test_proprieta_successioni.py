@@ -8,7 +8,7 @@ from .mcp_harness import tool_body
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.proprieta_successioni")
+    mod = importlib.import_module("mcp_legal_it.tools.proprieta_successioni")
     actual = tool_body(getattr(mod, fn_name))
     if inspect.iscoroutinefunction(actual):
         return asyncio.get_event_loop().run_until_complete(actual(**kwargs))

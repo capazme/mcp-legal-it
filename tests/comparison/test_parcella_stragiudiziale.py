@@ -36,8 +36,8 @@ _LABEL_LIVELLO = {"min": "minimo", "medio": "medio", "max": "massimo"}
 
 
 def _tool(valore_pratica, livello):
-    import src.server  # noqa: F401  (registers every tool module, avoids circular imports)
-    from src.tools.fatturazione_avvocati import parcella_stragiudiziale
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module, avoids circular imports)
+    from mcp_legal_it.tools.fatturazione_avvocati import parcella_stragiudiziale
 
     fn = getattr(parcella_stragiudiziale, "fn", parcella_stragiudiziale)
     out = fn(valore_pratica=valore_pratica, livello=livello)

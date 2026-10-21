@@ -7,8 +7,8 @@ Justice judicial geography; for the selected comune it lists the competent offic
 must be picked from the jQuery-UI autocomplete (it fills the ISTAT code and submits), so
 the driver types the name, waits for the menu and clicks the exact ISTAT label.
 
-Tool: src/tools/atti_giudiziari.py::cerca_ufficio_giudiziario, table
-src/data/tribunali_competenti.json (102 capoluoghi, _vintage "da_verificare", grado
+Tool: mcp_legal_it/tools/atti_giudiziari.py::cerca_ufficio_giudiziario, table
+mcp_legal_it/data/tribunali_competenti.json (102 capoluoghi, _vintage "da_verificare", grado
 INDICATIVO). Exact key match first; otherwise a substring match in both directions
 (`key in k or k in key`) returned as "suggerimenti" with trovato=False.
 
@@ -118,8 +118,8 @@ def _ufficio_sito(uffici: list[str], tipo: str) -> str:
 
 
 def _tool(comune: str, tipo: str) -> dict:
-    import src.server  # noqa: F401  registers every module (avoids circular imports)
-    from src.tools.atti_giudiziari import cerca_ufficio_giudiziario
+    import mcp_legal_it.server  # noqa: F401  registers every module (avoids circular imports)
+    from mcp_legal_it.tools.atti_giudiziari import cerca_ufficio_giudiziario
 
     fn = getattr(cerca_ufficio_giudiziario, "fn", cerca_ufficio_giudiziario)
     return fn(comune=comune, tipo=tipo)

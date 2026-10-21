@@ -4,7 +4,7 @@ import pytest
 
 
 def _call(fn_name: str, **kwargs):
-    mod = importlib.import_module("src.tools.rivalutazioni_istat")
+    mod = importlib.import_module("mcp_legal_it.tools.rivalutazioni_istat")
     fn = getattr(mod, fn_name)
     actual = fn.fn if hasattr(fn, "fn") else fn
     return actual(**kwargs)
@@ -908,7 +908,7 @@ class TestInflazioneTitoliStato:
 # ---------------------------------------------------------------------------
 
 def _mod():
-    return importlib.import_module("src.tools.rivalutazioni_istat")
+    return importlib.import_module("mcp_legal_it.tools.rivalutazioni_istat")
 
 
 class TestSerieFoiUfficiale:

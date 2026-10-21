@@ -531,7 +531,7 @@ marcati con una flag dichiarata una volta nel docstring e applicata in tre punti
 Per impostazione predefinita i tool restano registrati e marcati; `LEGAL_PREVIGENTE=off` li
 nasconde del tutto. L'audit (`scripts/audit_tool_annotations.py`) fallisce se un tool dichiara
 il regime senza tag o senza wrapper `@previgente`, o se indica come tool vigente un nome non
-registrato. Dettagli in `src/lib/_regime.py`.
+registrato. Dettagli in `mcp_legal_it/lib/_regime.py`.
 
 ## Legal Grounding Protocol
 

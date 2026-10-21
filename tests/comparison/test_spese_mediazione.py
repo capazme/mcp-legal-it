@@ -25,8 +25,8 @@ TOL = 0.01
 
 
 def _tool(**kwargs):
-    import src.server  # noqa: F401  (registers all modules)
-    from src.tools.parcelle_professionisti import spese_mediazione
+    import mcp_legal_it.server  # noqa: F401  (registers all modules)
+    from mcp_legal_it.tools.parcelle_professionisti import spese_mediazione
 
     fn = getattr(spese_mediazione, "fn", spese_mediazione)
     r = fn(**kwargs)

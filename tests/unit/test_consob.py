@@ -8,7 +8,7 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.lib.consob.client import (
+from mcp_legal_it.lib.consob.client import (
     ARGOMENTI,
     TIPOLOGIE,
     DocResult,
@@ -19,7 +19,7 @@ from src.lib.consob.client import (
     format_result,
 )
 
-from src.tools.consob import (
+from mcp_legal_it.tools.consob import (
     _cerca_delibere_consob_impl,
     _leggi_delibera_consob_impl,
     _ultime_delibere_consob_impl,
@@ -364,7 +364,7 @@ class TestCercaDelibereImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_delibere_consob_impl("abusi di mercato")
 
         assert "Trovate" in result
@@ -378,7 +378,7 @@ class TestCercaDelibereImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_delibere_consob_impl("inesistente")
 
         assert "Nessuna" in result
@@ -391,7 +391,7 @@ class TestCercaDelibereImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_delibere_consob_impl("abusi", tipologia="delibere")
 
         # Tipologia is sent as search param, not filtered client-side
@@ -405,7 +405,7 @@ class TestCercaDelibereImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             await _cerca_delibere_consob_impl("test", argomento="abusi_di_mercato")
 
         # Should resolve "abusi_di_mercato" to "4989535" and pass to search
@@ -426,7 +426,7 @@ class TestCercaDelibereImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(side_effect=httpx.RequestError("timeout"))
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _cerca_delibere_consob_impl("test")
 
         assert "Errore" in result
@@ -441,7 +441,7 @@ class TestLeggiDeliberaImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_delibera_consob_impl("23257")
 
         assert "23257" in result
@@ -459,7 +459,7 @@ class TestLeggiDeliberaImpl:
             "404", request=MagicMock(), response=mock_404
         ))
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _leggi_delibera_consob_impl("99999")
 
         assert "Errore" in result
@@ -477,7 +477,7 @@ class TestLeggiDeliberaPaging:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("bad", [0, -3, "2", 1.5, True])
     async def test_invalid_da_carattere_errors_without_network(self, bad):
-        with patch("src.lib.consob.client.httpx.AsyncClient") as client_cls:
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient") as client_cls:
             result = await _leggi_delibera_consob_impl("23257", bad)
         assert result.startswith("Errore nel recupero della delibera CONSOB n. 23257")
         assert "da_carattere deve essere un intero maggiore o uguale a 1" in result
@@ -487,18 +487,18 @@ class TestLeggiDeliberaPaging:
     async def test_impl_threads_da_carattere_to_the_window(self):
         words = " ".join(f"w{i:05d}" for i in range(3000))  # 20,999 chars
         html = f'<html><body><div class="journal-content-article" data-analytics-asset-title="Delibera n. 1"><p>{words}</p></div></body></html>'
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=self._client_returning(html)):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=self._client_returning(html)):
             first = await _leggi_delibera_consob_impl("1")
         assert first.endswith("da_carattere=8001]*")
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=self._client_returning(html)):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=self._client_returning(html)):
             second = await _leggi_delibera_consob_impl("1", 8001)
         assert words[8000:16000] in second
         assert "*[Caratteri 8001-16000 su 20999 totali: " in second
 
     @pytest.mark.asyncio
     async def test_mcp_tool_accepts_da_carattere(self):
-        from src.tools.consob import leggi_delibera_consob
-        with patch("src.tools.consob._leggi_delibera_consob_impl", new=AsyncMock(return_value="ok")) as impl:
+        from mcp_legal_it.tools.consob import leggi_delibera_consob
+        with patch("mcp_legal_it.tools.consob._leggi_delibera_consob_impl", new=AsyncMock(return_value="ok")) as impl:
             assert await leggi_delibera_consob("23257", da_carattere=8001) == "ok"
         impl.assert_awaited_once_with("23257", 8001)
 
@@ -512,7 +512,7 @@ class TestUltimeDelibereImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_resp)
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_delibere_consob_impl()
 
         assert "Ultime delibere" in result
@@ -525,7 +525,7 @@ class TestUltimeDelibereImpl:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(side_effect=httpx.RequestError("connection refused"))
 
-        with patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
+        with patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client):
             result = await _ultime_delibere_consob_impl()
 
         assert "Errore" in result
@@ -680,7 +680,7 @@ class TestNonDeliberaImpl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=_make_mock_response(html))
-        return patch("src.lib.consob.client.httpx.AsyncClient", return_value=mock_client)
+        return patch("mcp_legal_it.lib.consob.client.httpx.AsyncClient", return_value=mock_client)
 
     @pytest.mark.asyncio
     async def test_search_labels_comunicazioni_and_keeps_every_document(self):

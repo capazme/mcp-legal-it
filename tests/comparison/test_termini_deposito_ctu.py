@@ -14,8 +14,8 @@ import pytest
 
 os.environ.setdefault("LEGAL_TODAY", "2026-09-25")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-import src.server  # noqa: F401,E402
-from src.tools.scadenze_termini import termini_deposito_ctu  # noqa: E402
+import mcp_legal_it.server  # noqa: F401,E402
+from mcp_legal_it.tools.scadenze_termini import termini_deposito_ctu  # noqa: E402
 
 from .conftest import accept_cookies  # noqa: E402
 

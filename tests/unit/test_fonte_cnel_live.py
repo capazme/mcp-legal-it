@@ -2,7 +2,7 @@
 
 Phase 4 of the avvocatoandreani.it benchmark, strategy `fonte_ufficiale`, group `cnel`.
 The benchmark site has no notice-pay calculator, so the periods the tool reads from
-`src/data/preavviso_ccnl.json` are compared with the collective agreements deposited in
+`mcp_legal_it/data/preavviso_ccnl.json` are compared with the collective agreements deposited in
 the CNEL national archive (Archivio nazionale dei contratti collettivi, art. 17 L. 936/1986),
 and the formula with the vigente text of artt. 2118 and 2121 c.c. (Normattiva, `cite_law`).
 
@@ -109,8 +109,8 @@ STUDI_PROFESSIONALI = {
 
 def _tool(**kwargs) -> dict:
     """The tool through its full stack (MCP object and `@sourced`), as a client calls it."""
-    import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-    from src.tools.diritto_lavoro import indennita_preavviso
+    import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+    from mcp_legal_it.tools.diritto_lavoro import indennita_preavviso
 
     fn = getattr(indennita_preavviso, "fn", indennita_preavviso)
     return fn(**kwargs)
@@ -171,7 +171,7 @@ def test_cnel_archivio_elenca_ancora_il_testo_letto(codice):
     assert vigenti == [atteso["idAccordo"]], (
         f"{codice}: il CNEL elenca come testo vigente {ccnl['accordiVigenti']} invece dell'accordo "
         f"{atteso['idAccordo']} letto il {CONSULTATO_IL}: rileggere gli articoli sul preavviso e "
-        "riconciliare src/data/preavviso_ccnl.json"
+        "riconciliare mcp_legal_it/data/preavviso_ccnl.json"
     )
     accordo = _cnel_accordi_vigenti(codice)[atteso["idAccordo"]]
     assert accordo["dataStipula"] == atteso["dataStipula"], accordo

@@ -57,7 +57,7 @@ def _parse_result(page) -> dict:
 
 
 def _our_eredita(patrimonio, coniuge=False, figli=0, ascendenti=False, fratelli=0):
-    from src.tools.proprieta_successioni import calcolo_eredita
+    from mcp_legal_it.tools.proprieta_successioni import calcolo_eredita
     fn = getattr(calcolo_eredita, "fn", calcolo_eredita)
     return fn(massa_ereditaria=patrimonio, eredi={
         "coniuge": coniuge, "figli": figli, "ascendenti": ascendenti, "fratelli": fratelli

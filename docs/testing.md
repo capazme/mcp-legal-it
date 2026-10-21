@@ -60,7 +60,7 @@ tests/
 │   ├── test_diritto_penale.py                       49 test
 │   ├── test_diritto_societario.py                   38 test
 │   ├── test_dpa_probe.py                           112 test
-│   ├── test_egress_allowlist.py                     55 test  ← nessun URL in src/ verso host non dichiarati in _egress.py
+│   ├── test_egress_allowlist.py                     55 test  ← nessun URL in mcp_legal_it/ verso host non dichiarati in _egress.py
 │   ├── test_eu_implementation.py                    69 test
 │   ├── test_fatturazione_avvocati.py               100 test
 │   ├── test_gazzetta.py                             62 test
@@ -151,7 +151,7 @@ Tutti i file seguenti sono marcati `live` e restano fuori dalla suite predefinit
 |---|---|---|
 | Confronto con il sito | `tests/comparison/test_<tool>.py` (uno per ogni tool con calcolatore, 141 file) | tool e calcolatore di avvocatoandreani.it, tolleranza 0,01 euro, date esatte, almeno tre casi con uno al limite; uno scostamento resta un test rosso finché non è giudicato sulla fonte primaria |
 | Norme | `tests/unit/test_norme_live_<modulo>.py` (7 file: atti giudiziari, crisi d'impresa, lavoro, societario, investimenti, privacy, procedura civile) | i numeri e le soglie usati dai tool, asseriti sul testo vigente letto con `cite_law` |
-| Fonti ufficiali | `tests/unit/test_fonte_<ente>_live.py` (agenzia_entrate, cnel, edpb_garante, inps, mef_cdp) | i valori del tool e delle tabelle in `src/data` contro la tabella o il calcolatore dell'ente |
+| Fonti ufficiali | `tests/unit/test_fonte_<ente>_live.py` (agenzia_entrate, cnel, edpb_garante, inps, mef_cdp) | i valori del tool e delle tabelle in `mcp_legal_it/data` contro la tabella o il calcolatore dell'ente |
 | Chiamate reali | `tests/unit/test_<fonte>_live.py` (15 file: Italgiure, CeRDEF, CGUE, CONSOB, Consulta, TAR e Consiglio di Stato, Garante, Gazzetta Ufficiale, EUR-Lex e Normattiva, Brocardi, Senato e Camera, TMview, VIES e sonda dei DPA) | una chiamata su un documento noto con verifica dei metadati |
 | Documenti | `tests/unit/test_strutturale_<modulo>_live.py` (5 file: fornitori, atti giudiziari, modelli di atti, privacy, procure e quotazioni) | struttura dei generatori e riferimenti normativi verificati con `verifica_citazioni` |
 | Helper | `tests/unit/_norme_live.py` | normalizza le particolarità del testo di Normattiva ("giorni sessanta", indicatore ordinale) così che una differenza di forma non sia letta come un cambio di legge |
@@ -211,7 +211,7 @@ def _call(module_path, fn_name, **kwargs):
 
 Per i tool async:
 ```python
-result = await _call_async("src.tools.italgiure", "leggi_sentenza", numero=12345, anno=2024)
+result = await _call_async("mcp_legal_it.tools.italgiure", "leggi_sentenza", numero=12345, anno=2024)
 ```
 
 ---
@@ -381,7 +381,7 @@ pytest tests/ -m "live" -v
 pytest tests/unit/ -v -s
 
 # Test con coverage
-pytest tests/unit/ --cov=src --cov-report=html
+pytest tests/unit/ --cov=mcp_legal_it --cov-report=html
 
 # Test comparison senza live
 pytest tests/comparison/test_privacy_docs.py -v
@@ -410,12 +410,12 @@ def _call(module_path, fn_name, **kwargs):
 class TestNuovoTool:
 
     def test_caso_base(self):
-        r = _call("src.tools.nuovo_modulo", "nome_tool",
+        r = _call("mcp_legal_it.tools.nuovo_modulo", "nome_tool",
                   param1="valore1", param2=100)
         assert r["campo_atteso"] == pytest.approx(valore_atteso, abs=0.01)
 
     def test_input_invalido(self):
-        r = _call("src.tools.nuovo_modulo", "nome_tool",
+        r = _call("mcp_legal_it.tools.nuovo_modulo", "nome_tool",
                   param1="")
         assert "errore" in r   # tutti i tool restituiscono {"errore": "..."} per input invalidi
 ```
@@ -444,7 +444,7 @@ class TestNuovoToolHTTP:
             mock_client.get = AsyncMock(return_value=mock_response)
             mock_client_cls.return_value = mock_client
 
-            from src.tools.nuovo_modulo import _nuova_funzione_impl
+            from mcp_legal_it.tools.nuovo_modulo import _nuova_funzione_impl
             result = await _nuova_funzione_impl(param="valore")
 
         assert result["campo"] == "valore atteso"
@@ -453,7 +453,7 @@ class TestNuovoToolHTTP:
 ### Per un tool di libreria interna
 
 ```python
-from src.lib.nuova_lib.client import NuovaFunzione, NuovoDataclass
+from mcp_legal_it.lib.nuova_lib.client import NuovaFunzione, NuovoDataclass
 
 class TestNuovaLib:
 

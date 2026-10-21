@@ -6,7 +6,7 @@ and that normative references are correct.
 
 import pytest
 
-from src.tools.privacy_gdpr import (
+from mcp_legal_it.tools.privacy_gdpr import (
     _genera_informativa_privacy_impl,
     _genera_informativa_cookie_impl,
     _genera_informativa_dipendenti_impl,

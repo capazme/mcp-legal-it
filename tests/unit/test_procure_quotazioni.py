@@ -1,4 +1,4 @@
-"""Test per src/tools/procure_quotazioni.py — procura alle liti e quotazioni DOCX.
+"""Test per mcp_legal_it/tools/procure_quotazioni.py — procura alle liti e quotazioni DOCX.
 
 I valori attesi dei prospetti sono quelli validati su pratiche reali di recupero
 crediti seriale (D.M. 55/2014 agg. D.M. 147/2022): monitorio scaglione fino a
@@ -11,7 +11,7 @@ opposizione a valori medi su € 55.898,69 → € 22.534,57; esecuzione forzata
 import importlib
 import os
 
-_mod = importlib.import_module("src.tools.procure_quotazioni")
+_mod = importlib.import_module("mcp_legal_it.tools.procure_quotazioni")
 
 
 def _call(fn_name, **kwargs):

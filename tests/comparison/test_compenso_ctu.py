@@ -16,7 +16,7 @@ Server-side form ``OnorariCtu`` (POST). Two independent sections, totalised in a
   RIEPILOGO line "Onorari tabellari EUR x" is the selected tariff after any reduction
   (e.g. art. 3: art. 2 halved, shown only for the selected tariff).
 
-What the tool computes (src/tools/parcelle_professionisti.py, ``compenso_ctu``,
+What the tool computes (mcp_legal_it/tools/parcelle_professionisti.py, ``compenso_ctu``,
 Precisione: INDICATIVO): market estimates, NOT the DM tables - a percentage band on
 ``valore_causa`` (``calcolo_a_percentuale``: compenso_min/compenso_max) and an hourly
 band on ``ore_lavoro`` (``calcolo_orario``: compenso_min/compenso_max). The docstring
@@ -81,8 +81,8 @@ _E = r"€\s*([\d.]+,\d{2})"
 
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401  registers all tool modules
-    from src.tools.parcelle_professionisti import compenso_ctu
+    import mcp_legal_it.server  # noqa: F401  registers all tool modules
+    from mcp_legal_it.tools.parcelle_professionisti import compenso_ctu
 
     fn = getattr(compenso_ctu, "fn", compenso_ctu)
     return fn(**kwargs)

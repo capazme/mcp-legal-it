@@ -17,8 +17,8 @@ import pytest
 
 os.environ.setdefault("LEGAL_TODAY", "2026-09-29")
 
-import src.server  # noqa: E402,F401
-from src.tools.varie import ricerca_codici_ateco  # noqa: E402
+import mcp_legal_it.server  # noqa: E402,F401
+from mcp_legal_it.tools.varie import ricerca_codici_ateco  # noqa: E402
 from tests.comparison.conftest import accept_cookies  # noqa: E402
 
 _fn = getattr(ricerca_codici_ateco, "fn", ricerca_codici_ateco)

@@ -1,4 +1,4 @@
-"""Unit tests for src/tools/atti_giudiziari.py."""
+"""Unit tests for mcp_legal_it/tools/atti_giudiziari.py."""
 
 import importlib
 
@@ -8,7 +8,7 @@ from .mcp_harness import tool_body
 
 
 def _call(fn_name, **kwargs):
-    mod = importlib.import_module("src.tools.atti_giudiziari")
+    mod = importlib.import_module("mcp_legal_it.tools.atti_giudiziari")
     return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
@@ -1527,7 +1527,7 @@ class TestCercaUfficioGiudiziario:
 
 def _call_modelli(fn_name, **kwargs):
     import importlib
-    mod = importlib.import_module("src.tools.modelli_atti")
+    mod = importlib.import_module("mcp_legal_it.tools.modelli_atti")
     return tool_body(getattr(mod, fn_name))(**kwargs)
 
 

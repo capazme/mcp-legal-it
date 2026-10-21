@@ -57,8 +57,8 @@ RAPPORTO = {"coniuge": "1", "unito": "2", "figlio": "3", "genitore": "4", "frate
 # ---------------------------------------------------------------------------
 
 def _tool(**kwargs) -> dict:
-    import src.server  # noqa: F401 - registers every tool module (avoids circular imports)
-    from src.tools.procedura_civile import gratuito_patrocinio
+    import mcp_legal_it.server  # noqa: F401 - registers every tool module (avoids circular imports)
+    from mcp_legal_it.tools.procedura_civile import gratuito_patrocinio
 
     fn = getattr(gratuito_patrocinio, "fn", gratuito_patrocinio)
     r = fn(**kwargs)

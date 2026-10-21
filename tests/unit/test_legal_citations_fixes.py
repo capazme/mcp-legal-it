@@ -1,4 +1,4 @@
-"""Regression tests for the norm-retrieval tools of src/tools/legal_citations.py (benchmark phase 3).
+"""Regression tests for the norm-retrieval tools of mcp_legal_it/tools/legal_citations.py (benchmark phase 3).
 
 Each test pins a value checked by hand against the primary source on 2026-09-29, with mocked
 HTTP (fixtures copied from the real markup: no network). The live counterparts are in
@@ -14,17 +14,17 @@ from pathlib import Path
 
 import pytest
 
-import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
-from src.lib.visualex import akn_fetch, scraper
-from src.lib.visualex.models import Norma, NormaVisitata
-from src.lib.visualex.scraper import (
+import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
+from mcp_legal_it.lib.visualex import akn_fetch, scraper
+from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata
+from mcp_legal_it.lib.visualex.scraper import (
     _eurlex_urls,
     _extract_eurlex_article,
     act_display_title,
     act_page_metadata,
     with_full_date,
 )
-from src.tools import legal_citations as lc
+from mcp_legal_it.tools import legal_citations as lc
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "akn"
 
@@ -408,7 +408,7 @@ class TestEurlexPdfFromCellar:
 
 from bs4 import BeautifulSoup  # noqa: E402
 
-from src.lib.brocardi import client as brocardi  # noqa: E402
+from mcp_legal_it.lib.brocardi import client as brocardi  # noqa: E402
 
 # Copied from https://www.brocardi.it/codice-civile/libro-quarto/titolo-ix/art2043.html (2026-09-29):
 # the article text is <div class="corpoDelTesto dispositivo"> (no id), with footnote calls
@@ -513,8 +513,8 @@ class TestBrocardiArticleText:
 
 from unittest.mock import AsyncMock, patch  # noqa: E402
 
-from src.lib._result import SearchResult  # noqa: E402
-from src.lib.brocardi.client import BrocardiResult, Massima  # noqa: E402
+from mcp_legal_it.lib._result import SearchResult  # noqa: E402
+from mcp_legal_it.lib.brocardi.client import BrocardiResult, Massima  # noqa: E402
 
 
 @pytest.fixture
@@ -545,7 +545,7 @@ class TestArchiveStart:
         # (Cass. civ. 4215/2021); nothing is indexed for 2020.
         response = {"response": {"docs": [{"id": "x", "anno": "2021", "datdep": ["20210217"], "kind": "snciv"}]}}
         solr = AsyncMock(return_value=response)
-        with patch("src.tools.italgiure.solr_query", solr):
+        with patch("mcp_legal_it.tools.italgiure.solr_query", solr):
             assert await lc._italgiure_archive_start("civile") == (2021, "2021-02-17")
             assert await lc._italgiure_archive_start("civile") == (2021, "2021-02-17")
         assert solr.await_count == 1  # cached for the day
@@ -556,14 +556,14 @@ class TestArchiveStart:
     @pytest.mark.asyncio
     async def test_all_archives_are_probed_together(self, pinned_today):
         solr = AsyncMock(return_value={"response": {"docs": [{"datdep": ["20210127"], "kind": "snpen"}]}})
-        with patch("src.tools.italgiure.solr_query", solr):
+        with patch("mcp_legal_it.tools.italgiure.solr_query", solr):
             assert await lc._italgiure_archive_start("tutti") == (2021, "2021-01-27")
         assert 'kind:"snciv"' in solr.await_args.args[0]["q"] and 'kind:"snpen"' in solr.await_args.args[0]["q"]
 
     @pytest.mark.asyncio
     async def test_probe_failure_falls_back_to_the_window_rule_and_is_not_cached(self, pinned_today):
         solr = AsyncMock(side_effect=RuntimeError("Italgiure down"))
-        with patch("src.tools.italgiure.solr_query", solr):
+        with patch("mcp_legal_it.tools.italgiure.solr_query", solr):
             assert await lc._italgiure_archive_start("civile") == (2021, "")  # 2026 - 5
             await lc._italgiure_archive_start("civile")
         assert solr.await_count == 2
@@ -576,8 +576,8 @@ class TestVerificaSentenzaArchiveWindow:
         # index, which covers 2021 only in part (from 17/02/2021, ~16k decisions against 35-38k
         # of a full year): the verdict is "non verificabile", never "inesistente".
         lookup = AsyncMock(return_value=_NOT_FOUND)
-        with patch("src.tools.legal_citations._italgiure_archive_start", _archive_start()), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", _archive_start()), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             verdetto, nota = await lc._verifica_sentenza("Cass. civ. sez. III n. 10579/2021", "civile")
         assert verdetto == "non verificabile"
         assert "solo in parte" in nota and "17/02/2021" in nota
@@ -586,16 +586,16 @@ class TestVerificaSentenzaArchiveWindow:
     async def test_not_found_in_a_fully_covered_year_is_inexistent(self, pinned_today):
         # 2023 is inside the window: Cass. civ. n. 99999/2023 does not exist.
         lookup = AsyncMock(return_value=_NOT_FOUND)
-        with patch("src.tools.legal_citations._italgiure_archive_start", AsyncMock(side_effect=AssertionError)), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", AsyncMock(side_effect=AssertionError)), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             verdetto, _ = await lc._verifica_sentenza("Cass. civ. n. 99999/2023", "civile")
         assert verdetto == "inesistente"  # and no probe was needed: 2023 cannot precede the window
 
     @pytest.mark.asyncio
     async def test_decision_before_the_start_is_not_looked_up(self, pinned_today):
         lookup = AsyncMock(side_effect=AssertionError("lookup of a decision before the archive"))
-        with patch("src.tools.legal_citations._italgiure_archive_start", _archive_start()), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", _archive_start()), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             # Cass. civ. n. 29711/2020: not indexed (0 results), the archive starts on 17/02/2021.
             verdetto, nota = await lc._verifica_sentenza("Cass. civ. n. 29711/2020", "tutti")
         assert verdetto == "non verificabile"
@@ -604,8 +604,8 @@ class TestVerificaSentenzaArchiveWindow:
     @pytest.mark.asyncio
     async def test_first_year_found_is_verified(self, pinned_today):
         lookup = AsyncMock(return_value=_found("Cass. civ., sez. un., n. 41994/2021, dep. 30/12/2021"))
-        with patch("src.tools.legal_citations._italgiure_archive_start", _archive_start()), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", _archive_start()), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             verdetto, _ = await lc._verifica_sentenza("Cass. SS.UU. n. 41994/2021", "civile")
         assert verdetto == "verificata"
 
@@ -614,8 +614,8 @@ class TestVerificaSentenzaArchiveWindow:
         # No archive start available: the assumed window (2026 - 5 = 2021) still stops a
         # decision of 2021 from being called inexistent.
         lookup = AsyncMock(return_value=_NOT_FOUND)
-        with patch("src.tools.italgiure.solr_query", AsyncMock(side_effect=RuntimeError("down"))), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.italgiure.solr_query", AsyncMock(side_effect=RuntimeError("down"))), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             verdetto, _ = await lc._verifica_sentenza("Cass. civ. n. 10579/2021", "civile")
         assert verdetto == "non verificabile"
 
@@ -625,8 +625,8 @@ class TestVerificaSentenzaArchiveWindow:
         # SS.UU. (dep. 30/12/2021). "Cass. pen. sez. II" with archivio "tutti" must be verified
         # against the criminal decision, not reported as discordant with the civil namesake.
         lookup = AsyncMock(return_value=_found("Cass. pen., sez. II, n. 41994/2021, dep. 17/11/2021"))
-        with patch("src.tools.legal_citations._italgiure_archive_start", _archive_start()), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", _archive_start()), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             verdetto, _ = await lc._verifica_sentenza("Cass. pen. sez. II n. 41994/2021", "tutti")
         assert verdetto == "verificata"
         assert lookup.await_args.kwargs == {"sezione": "2", "archivio": "penale"}
@@ -634,25 +634,25 @@ class TestVerificaSentenzaArchiveWindow:
     @pytest.mark.asyncio
     async def test_cass_civ_selects_the_civil_archive_and_lavoro_is_civil(self, pinned_today):
         lookup = AsyncMock(return_value=_found("Cass. civ., lav., n. 12345/2024, dep. 22/04/2024"))
-        with patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             await lc._verifica_sentenza("Cass. lav. n. 12345/2024", "tutti")
         assert lookup.await_args.kwargs["archivio"] == "civile"
-        with patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             await lc._verifica_sentenza("Cassazione civile n. 12345/2024", "tutti")
         assert lookup.await_args.kwargs["archivio"] == "civile"
 
     @pytest.mark.asyncio
     async def test_explicit_archive_is_not_overridden_by_the_citation(self, pinned_today):
         lookup = AsyncMock(return_value=_found("Cass. civ., sez. III, n. 12345/2024, dep. 22/04/2024"))
-        with patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             await lc._verifica_sentenza("Cass. pen. n. 12345/2024", "civile")
         assert lookup.await_args.kwargs["archivio"] == "civile"
 
     @pytest.mark.asyncio
     async def test_section_is_passed_with_the_solr_code(self, pinned_today):
         lookup = AsyncMock(return_value=_found("Cass. civ., sez. un., n. 41994/2021, dep. 30/12/2021"))
-        with patch("src.tools.legal_citations._italgiure_archive_start", _archive_start()), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", _archive_start()), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             await lc._verifica_sentenza("Cass. sez. un. n. 41994/2021", "civile")
         assert lookup.await_args.kwargs["sezione"] == "U"  # Sezioni Unite = szdec:U
 
@@ -660,8 +660,8 @@ class TestVerificaSentenzaArchiveWindow:
     async def test_wrong_section_is_still_a_mismatch(self, pinned_today):
         # Cass. sez. I n. 41994/2021 is a Sezioni Unite decision (civil, dep. 30/12/2021).
         lookup = AsyncMock(return_value=_found("Cass. civ., sez. un., n. 41994/2021, dep. 30/12/2021"))
-        with patch("src.tools.legal_citations._italgiure_archive_start", _archive_start()), \
-             patch("src.tools.italgiure._leggi_sentenza_impl", lookup):
+        with patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", _archive_start()), \
+             patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             verdetto, nota = await lc._verifica_sentenza("Cass. sez. I n. 41994/2021", "civile")
         assert verdetto == "metadati discordanti"
         assert "(SU)" in nota
@@ -684,8 +684,8 @@ class TestCercaBrocardiArchiveWindow:
     async def test_references_before_the_archive_are_listed_apart(self, pinned_today):
         # Cass. civ. 887/2002 and 29711/2020 exist but leggi_sentenza answers "non trovata"
         # (Italgiure holds only decisions from 17/02/2021): they are not offered for leggi_sentenza.
-        with patch("src.tools.legal_citations.fetch_brocardi", AsyncMock(return_value=self._result())), \
-             patch("src.tools.legal_citations._italgiure_archive_start", _archive_start()):
+        with patch("mcp_legal_it.tools.legal_citations.fetch_brocardi", AsyncMock(return_value=self._result())), \
+             patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", _archive_start()):
             out = await lc._cerca_brocardi_impl("art. 2043 c.c.")
         block = out.split("**Riferimenti Cassazione**", 1)[1]
         readable, apart = block.split("**Fuori archivio Italgiure**", 1)
@@ -700,8 +700,8 @@ class TestCercaBrocardiArchiveWindow:
             url="https://www.brocardi.it/codice-civile/libro-quarto/titolo-ix/art2043.html",
             massime=[Massima(autorita="Cass. civ.", numero="100", anno="2024", testo="t")],
         )
-        with patch("src.tools.legal_citations.fetch_brocardi", AsyncMock(return_value=recent)), \
-             patch("src.tools.legal_citations._italgiure_archive_start", AsyncMock(side_effect=AssertionError)):
+        with patch("mcp_legal_it.tools.legal_citations.fetch_brocardi", AsyncMock(return_value=recent)), \
+             patch("mcp_legal_it.tools.legal_citations._italgiure_archive_start", AsyncMock(side_effect=AssertionError)):
             out = await lc._cerca_brocardi_impl("art. 2043 c.c.")
         assert "- Cass. civ. n. 100/2024" in out
         assert "Fuori archivio" not in out
