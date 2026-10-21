@@ -27,6 +27,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from xml.etree import ElementTree
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
@@ -733,7 +734,7 @@ class GASession:
         self.portlet_id: str = _PORTLET
 
     async def __aenter__(self) -> "GASession":
-        self._client = httpx.AsyncClient(
+        self._client = async_client("giustizia_amm",
             timeout=_TIMEOUT,
             headers=_HEADERS,
             follow_redirects=True,

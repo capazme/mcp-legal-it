@@ -25,7 +25,7 @@ from mcp_legal_it.lib.parlamento.client import (
     search_ddl,
     _sanitize_phrase,
 )
-from mcp_legal_it.tools.legal_citations import _resolve_act
+from mcp_legal_it.core.norme import _resolve_act
 
 _CAVEAT_TITOLI = (
     "_Ricerca best-effort sui **titoli** dei DDL (i testi non sono indicizzati): "

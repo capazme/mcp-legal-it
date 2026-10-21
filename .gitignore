@@ -77,3 +77,7 @@ AGENTS.md
 .claude/worktrees/
 .claude/settings.local.json
 CLAUDE.md
+
+# HTTP tapes of scripts/replay_mcp_outputs.py: third-party content, never commit
+.replay-tapes/
+*.tape.json.gz

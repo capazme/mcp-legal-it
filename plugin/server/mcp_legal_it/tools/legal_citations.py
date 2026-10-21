@@ -3,7 +3,6 @@ e Brocardi (annotazioni dottrinali e giurisprudenziali). Usare cite_law() come p
 principale prima di citare qualsiasi norma in un parere o documento legale."""
 
 import asyncio
-import difflib
 import json
 import os
 import re
@@ -11,282 +10,44 @@ import tempfile
 import time
 from typing import Literal
 
-import httpx
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib import _clock
-from mcp_legal_it.lib.visualex import (
-    Norma,
-    NormaVisitata,
-    resolve_atto,
-    strip_leading_particles,
-    known_act_names,
-)
-from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference, split_annex
+from mcp_legal_it.lib.visualex import Norma, NormaVisitata
+from mcp_legal_it.lib.visualex.models import split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
     _build_celex,
-    fetch_article,
     fetch_annotations,
     download_eurlex_pdf,
     fetch_normattiva_full_text,
     fetch_act_index as _fetch_act_index_scraper,
 )
 from mcp_legal_it.lib.brocardi.client import fetch_brocardi, BrocardiResult, parse_massime_references
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-# Strips paragraph/point/comma indicators from the start of the act name
-# so that "art. 4 n. 11 GDPR" → article="4", act="GDPR".
-_PARAGRAPH_PATTERN = re.compile(
-    r"^[,;\s]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?)\s*[,;]?\s*",
-    re.IGNORECASE,
+# The parsing, resolution and structured lookup live in core (no FastMCP there);
+# the names stay importable from this module, where tests and tools expect them.
+from mcp_legal_it.core.norme import (  # noqa: F401 - re-exported
+    _build_nv,
+    _canonical_tipo,
+    _cite_law_lookup,
+    _cite_law_struct,
+    _failed_fetch,
+    _parse_reference,
+    _resolve_act,
+    _source_failure,
+    _split_eu_year_number,
+    _suggest_acts,
+    _unresolved_act_error,
+    _urn_from_url,
+    fetch_norma,
+)
+from mcp_legal_it.core.cassazione import (  # noqa: F401 - re-exported
+    _ITALGIURE_WINDOW_YEARS,
+    _italgiure_archive_start,
+    _italgiure_window_year,
 )
 
-
-# Connectives between an annex and its act: "allegato I.7 al D.Lgs. 36/2023".
-_ANNEX_LINK = r"(?:(?:al|del|della|dello|alla|all['’]|dell['’])\s*)?"
-
-# "allegato I.7 [art. 30] <atto>", "Allegato III, punto 4, lett. a) <atto>"
-_ANNEX_FIRST_PATTERN = re.compile(
-    rf"^allegato\s+(?P<id>{ANNEX_ID})(?=[\s,;]|$)"
-    r"(?:\s*,?\s*(?:articol[oi]|art)\.?\s*(?P<art>\d+(?:[-/.]\w+)*))?"
-    r"\s*[,;]?\s*(?P<rest>.+)$",
-    re.IGNORECASE,
-)
-
-# What follows "art. 30" when the article belongs to an annex: "dell'allegato I.7 al ..."
-_ANNEX_AFTER_ARTICLE = re.compile(
-    rf"^{_ANNEX_LINK}allegato\s+(?P<id>{ANNEX_ID})(?=[\s,;]|$)\s*[,;]?\s*(?P<rest>.+)$",
-    re.IGNORECASE,
-)
-
-
-def _strip_paragraphs(rest: str) -> str:
-    """Drop leading paragraph/point/letter indicators, repeatedly ("comma 1 lett. a) GDPR" → "GDPR")."""
-    while True:
-        stripped = _PARAGRAPH_PATTERN.sub("", rest).strip()
-        if stripped == rest:
-            return rest
-        rest = stripped
-
-
-def _strip_annex_link(rest: str) -> str:
-    """Drop the connective before the act name ("al D.Lgs. 36/2023" → "D.Lgs. 36/2023")."""
-    return re.sub(rf"^{_ANNEX_LINK}", "", rest, flags=re.IGNORECASE).strip()
-
-
-def _parse_reference(reference: str) -> tuple[str, str]:
-    """Parse a legal reference like 'art. 13 GDPR' into (article, act_name).
-
-    Supports:
-    - "art. 13 GDPR"
-    - "art. 2-ter D.Lgs. 196/2003"
-    - "ART 117 Costituzione"
-    - "art. 2043 c.c."
-    - "art. 6 D.Lgs. 231/2001"
-    - "art. 4 n. 11 GDPR"  → paragraph stripped → ("4", "GDPR")
-    - "considerando 42 GDPR" → ("rec_42", "GDPR")
-    - "recital 47 GDPR"     → ("rec_47", "GDPR")
-    - "allegato I.7 art. 30 D.Lgs. 36/2023", "art. 30 dell'allegato I.7 al D.Lgs. 36/2023"
-                             → ("allegato I.7 art. 30", "D.Lgs. 36/2023")
-    - "Allegato III AI Act"  → ("allegato III", "AI Act")
-    """
-    reference = reference.strip()
-
-    annex_match = _ANNEX_FIRST_PATTERN.match(reference)
-    if annex_match:
-        rest = _strip_annex_link(_strip_paragraphs(annex_match.group("rest").strip()))
-        return annex_reference(annex_match.group("id"), annex_match.group("art") or ""), rest
-
-    # Considerando / recital — must be checked before "art." pattern
-    rec_match = re.match(
-        r"(?:considerando|recital)\s+(\d+)\s+(.+)",
-        reference,
-        re.IGNORECASE,
-    )
-    if rec_match:
-        return f"rec_{rec_match.group(1)}", rec_match.group(2).strip()
-
-    # Pattern: art[.] <number[-ext]> <act_name>
-    match = re.match(
-        r"(?:articol[oi]|art)\.?\s*(\d+(?:[-/.]\w+)*)\s*[,;]?\s+(.+)",
-        reference,
-        re.IGNORECASE,
-    )
-    if match:
-        article = match.group(1).strip()
-        # Strip leading paragraph/point/comma indicators, applied repeatedly
-        # to handle chains like "comma 1 lett. a) GDPR" → "GDPR".
-        rest = _strip_paragraphs(match.group(2).strip())
-        annex_match = _ANNEX_AFTER_ARTICLE.match(rest)
-        if annex_match:
-            rest = _strip_annex_link(annex_match.group("rest").strip())
-            return annex_reference(annex_match.group("id"), article), rest
-        return article, rest
-
-    # No "art." prefix — try to parse as just act name (no article)
-    return "", reference
-
-
-# Act types as they appear in citations, spelled-out forms first so the
-# alternation never settles for the "L." inside "legge".
-_TIPO_ALT = (
-    r"decreto\s+del\s+presidente\s+della\s+repubblica"
-    r"|decreto\s+del\s+presidente\s+del\s+consiglio(?:\s+dei\s+ministri)?"
-    r"|decreto\s+legislativo|decreto[-\s]legge|decreto\s+ministeriale"
-    r"|regio\s+decreto|legge"
-    r"|D\.?\s?Lgs\.?|D\.?P\.?C\.?M\.?|D\.?P\.?R\.?|DPR|R\.?D\.?"
-    r"|D\.?\s?M\.?|D\.?\s?L\.?|L\.?"
-)
-
-# Canonical name per act type, keyed on the citation stripped of dots, spaces
-# and hyphens ("D. Lgs." and "decreto legislativo" both land on one entry).
-_TIPO_CANONICO = {
-    "dlgs": "decreto legislativo",
-    "decretolegislativo": "decreto legislativo",
-    "dl": "decreto legge",
-    "decretolegge": "decreto legge",
-    "dm": "decreto ministeriale",
-    "decretoministeriale": "decreto ministeriale",
-    "dpcm": "decreto del presidente del consiglio dei ministri",
-    "decretodelpresidentedelconsiglio": "decreto del presidente del consiglio dei ministri",
-    "decretodelpresidentedelconsigliodeiministri": "decreto del presidente del consiglio dei ministri",
-    "dpr": "decreto del presidente della repubblica",
-    "decretodelpresidentedellarepubblica": "decreto del presidente della repubblica",
-    "rd": "regio decreto",
-    "regiodecreto": "regio decreto",
-    "l": "legge",
-    "legge": "legge",
-}
-
-_MESI_IT = {
-    "gennaio": "01", "febbraio": "02", "marzo": "03", "aprile": "04",
-    "maggio": "05", "giugno": "06", "luglio": "07", "agosto": "08",
-    "settembre": "09", "ottobre": "10", "novembre": "11", "dicembre": "12",
-}
-
-# "regolamento (UE) 2016/679", "reg. UE n. 679/2016", "direttiva 95/46/CE"
-_EU_PATTERN = re.compile(
-    r"^(reg(?:olamento)?|dir(?:ettiva)?)\.?\s*"
-    r"(?:\(?\s*(?:UE|EU|CE|CEE)\s*\)?)?\s*"
-    r"(?:n\.?\s*)?(\d{1,4})\s*/\s*(\d{1,4})"
-    r"(?:\s*/\s*(?:UE|EU|CE|CEE))?",
-    re.IGNORECASE,
-)
-
-# "D.Lgs. 30 giugno 2003, n. 196"
-_IT_LONG_PATTERN = re.compile(
-    rf"^({_TIPO_ALT})\s+(\d{{1,2}})\s+"
-    r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
-    r"\s+(\d{4})[,]?\s*n\.?\s*(\d+)",
-    re.IGNORECASE,
-)
-
-# "D.Lgs. 196/2003", "legge n. 241 del 1990", "legge n. 241/1990"
-_IT_SHORT_PATTERN = re.compile(
-    rf"^({_TIPO_ALT})\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{{4}})",
-    re.IGNORECASE,
-)
-
-
-def _canonical_tipo(raw: str) -> str:
-    """Map a cited act type to its canonical Normattiva name."""
-    key = re.sub(r"[.\s-]", "", raw.lower())
-    return _TIPO_CANONICO.get(key, raw.lower().strip())
-
-
-def _split_eu_year_number(first: str, second: str) -> tuple[str, str]:
-    """Decide which half of an EU act's "NNNN/NNNN" is the year.
-
-    Directives switched notation in 2015: "95/46/CE" is year/number with a
-    two-digit year, "2019/1937" is year/number with a four-digit one, and some
-    citations still invert it as "679/2016". The four-digit plausible year wins;
-    a leading two-digit group is a 20th-century year.
-    """
-    def is_year(v: str) -> bool:
-        return len(v) == 4 and 1950 <= int(v) <= 2099
-
-    if is_year(first):
-        return first, second
-    if is_year(second):
-        return second, first
-    if len(first) == 2:
-        return f"19{first}", second
-    return first, second
-
-
-def _resolve_act(act_name: str) -> dict | None:
-    """Resolve an act name to scraper parameters {tipo_atto, data, numero_atto}.
-
-    Resolution chain:
-    1. resolve_atto() — hand-verified tables (ATTI_NOTI, codici, ATTI_DENOMINATI)
-    2. citation patterns — EU acts, then Italian acts in long and short form
-
-    Returns None rather than guessing: a caller that cannot resolve an act must
-    say so, never cite a different one.
-    """
-    result = resolve_atto(act_name)
-    if result:
-        return result
-
-    # Patterns run against the name stripped of any leading preposition
-    # ("del D.Lgs. 231/2001"), which resolve_atto has already normalized away.
-    candidate = strip_leading_particles(act_name)
-
-    eu_match = _EU_PATTERN.match(candidate)
-    if eu_match:
-        tipo_raw, first, second = eu_match.groups()
-        anno, numero = _split_eu_year_number(first, second)
-        tipo = "regolamento ue" if tipo_raw.lower().startswith("reg") else "direttiva ue"
-        return {"tipo_atto": tipo, "data": anno, "numero_atto": numero}
-
-    long_match = _IT_LONG_PATTERN.match(candidate)
-    if long_match:
-        tipo_raw, giorno, mese_it, anno, numero = long_match.groups()
-        data = f"{anno}-{_MESI_IT[mese_it.lower()]}-{giorno.zfill(2)}"
-        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": data, "numero_atto": numero}
-
-    short_match = _IT_SHORT_PATTERN.match(candidate)
-    if short_match:
-        tipo_raw, numero, anno = short_match.groups()
-        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": anno, "numero_atto": numero}
-
-    return None
-
-
-def _suggest_acts(act_name: str, limit: int = 3) -> list[str]:
-    """Names close to an unrecognised one, so the caller can retry knowingly."""
-    return difflib.get_close_matches(
-        strip_leading_particles(act_name), known_act_names(), n=limit, cutoff=0.7
-    )
-
-
-def _unresolved_act_error(act_name: str) -> str:
-    """Error text for an act the resolver could not identify, with near misses."""
-    message = f"**Errore**: atto '{act_name}' non riconosciuto."
-    suggestions = _suggest_acts(act_name)
-    if suggestions:
-        message += " Forse intendevi: " + ", ".join(f"'{s}'" for s in suggestions) + "."
-    message += (
-        " Prova con il nome completo (es. 'D.Lgs. 196/2003')"
-        " o usa fetch_law_article() con parametri espliciti."
-    )
-    return message
-
-
-def _build_nv(act_info: dict, article: str) -> NormaVisitata:
-    """Build a NormaVisitata from resolved act info + article number."""
-    norma = Norma(
-        tipo_atto=act_info["tipo_atto"],
-        data=act_info.get("data", ""),
-        numero_atto=act_info.get("numero_atto", ""),
-    )
-    return NormaVisitata(norma=norma, numero_articolo=article)
 
 
 def _format_result(article_result: dict, annotations_result: dict | None = None) -> str:
@@ -337,94 +98,6 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 # MCP Tools
 # ---------------------------------------------------------------------------
 
-def _urn_from_url(url: str) -> str | None:
-    """Extract the URN from a Normattiva ``uri-res`` URL, else None.
-
-    Normattiva citable URLs look like
-    ``https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:...`` — the URN is
-    the substring after the ``?``. Any other URL (EUR-Lex, etc.) has no URN.
-    """
-    if "normattiva.it/uri-res/N2Ls?" not in url:
-        return None
-    return url.split("?", 1)[1] or None
-
-
-def _source_failure(exc: Exception) -> bool:
-    """Whether an exception says the source is down, slow or limiting us (not that the norm is absent)."""
-    if isinstance(exc, httpx.HTTPStatusError):
-        status = exc.response.status_code if exc.response is not None else 0
-        return status == 429 or status >= 500
-    return isinstance(exc, (httpx.TransportError, asyncio.TimeoutError))
-
-
-def _failed_fetch(nv: NormaVisitata, exc: Exception) -> dict:
-    result = {"text": "", "url": nv.url(), "source": "", "error": str(exc)}
-    if _source_failure(exc):
-        result["esito"] = CHECK_UNAVAILABLE
-    return result
-
-
-async def _cite_law_struct(reference: str) -> dict:
-    """Structured article lookup (no Brocardi): the JSON face of cite_law."""
-    return (await _cite_law_lookup(reference))[0]
-
-
-async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
-    """The JSON face of cite_law, plus the outcome of the existence check.
-
-    The outcome is ``ARTICLE_NOT_FOUND`` (the article is not in the act),
-    ``CHECK_UNAVAILABLE`` (the source could not tell) or None.
-    """
-    today = _clock.today().isoformat()
-    base = {
-        "formato": "json", "riferimento": reference, "articolo": "",
-        "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
-        "url": "", "urn": None, "fonte": "", "allegato": None, "testo": "", "errore": None,
-        "data_consultazione": today,
-    }
-    article, act_name = _parse_reference(reference)
-    if not act_name:
-        base["errore"] = (f"impossibile interpretare il riferimento '{reference}'. "
-                          "Formato atteso: 'art. <numero> <atto>'")
-        return base, None
-    act_info = _resolve_act(act_name)
-    if not act_info:
-        base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
-        return base, None
-
-    nv = _build_nv(act_info, article)
-    base["articolo"] = article or ""
-    base["atto"] = {
-        "tipo_atto": nv.norma.tipo_atto_normalized,
-        "data": act_info.get("data", ""),
-        "numero_atto": act_info.get("numero_atto", ""),
-        "descrizione": str(nv.norma),
-    }
-    try:
-        result = await fetch_article(nv)
-    except Exception as e:
-        result = _failed_fetch(nv, e)
-    base["url"] = result.get("url", "") or nv.url()
-    base["urn"] = _urn_from_url(base["url"])
-    # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
-    # with the act's real date (from the Normattiva page); when it could not, the URL still
-    # works but its date is a placeholder, so no URN is presented as the act's own.
-    full_date = result.get("data_atto") or ""
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", full_date):
-        base["atto"]["data"] = full_date
-        base["atto"]["descrizione"] = str(Norma(tipo_atto=nv.norma.tipo_atto, data=full_date,
-                                                numero_atto=nv.norma.numero_atto))
-    elif base["urn"] and re.fullmatch(r"\d{4}", act_info.get("data", "") or ""):
-        base["urn"] = None
-    base["fonte"] = result.get("source", "") or ""
-    base["allegato"] = result.get("allegato") or None
-    base["testo"] = result.get("text", "") or ""
-    if result.get("error"):
-        base["errore"] = result["error"]
-    elif not base["testo"]:
-        base["errore"] = "nessun testo trovato"
-    return base, result.get("esito")
-
 
 async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
     """Implementation of cite_law (testable without MCP wrapper)."""
@@ -440,10 +113,7 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
 
     nv = _build_nv(act_info, article)
 
-    try:
-        article_result = await fetch_article(nv)
-    except Exception as e:
-        article_result = _failed_fetch(nv, e)
+    article_result = await fetch_norma(nv)
 
     # An article the act does not have has nothing to annotate (and Brocardi would
     # only be searched page by page for it).
@@ -471,10 +141,7 @@ async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", a
     norma = Norma(tipo_atto=act_type, data=date, numero_atto=act_number)
     nv = NormaVisitata(norma=norma, numero_articolo=article)
 
-    try:
-        result = await fetch_article(nv)
-    except Exception as e:
-        result = _failed_fetch(nv, e)
+    result = await fetch_norma(nv)
 
     return _format_result(result)
 
@@ -927,61 +594,6 @@ async def download_law_pdf(reference: str) -> str:
 # ---------------------------------------------------------------------------
 # verifica_citazioni — citation existence + metadata verifier
 # ---------------------------------------------------------------------------
-
-# The Italgiure archive is a MOVING window, not "from 2020": on 2026-09-25 the civil archive
-# started on 17/02/2021 (2021 holds ~16k decisions against 35-38k of a full year, and nothing is
-# indexed for 2020), and the start advances every day. Decisions before the start cannot be
-# confirmed as existent or not; the first year is only partly covered, so a miss there proves
-# nothing either. The start is READ from the archive (oldest deposited decision, cached per day)
-# by `_italgiure_archive_start`, the single definition shared by verifica_citazioni and
-# cerca_brocardi. If that probe fails, the window is assumed to be at least this many years wide.
-_ITALGIURE_WINDOW_YEARS = 5
-
-_archive_start_cache: dict[tuple[str, str], tuple[int, str]] = {}
-
-
-def _italgiure_window_year() -> int:
-    """Newest year that can lie before, or on the edge of, the archive start.
-
-    A decision of a LATER year is always inside the archive window, so it needs no probe.
-    """
-    return _clock.today().year - _ITALGIURE_WINDOW_YEARS
-
-
-async def _italgiure_archive_start(archivio: str = "tutti") -> tuple[int, str]:
-    """First year and first deposit date ("YYYY-MM-DD") of the Italgiure archive.
-
-    Read as the oldest decision of the archive (sort by deposit date, one row) and cached for
-    the day. If the archive cannot be queried, returns the assumed window
-    (``today.year - 5``, no date) without caching it.
-    """
-    today = _clock.today()
-    key = (archivio, today.isoformat())
-    if key in _archive_start_cache:
-        return _archive_start_cache[key]
-    fallback = (_italgiure_window_year(), "")
-    try:
-        from mcp_legal_it.lib.italgiure.client import get_kind_filter
-        from mcp_legal_it.tools import italgiure as _italgiure
-
-        kind_clause = " OR ".join(f'kind:"{k}"' for k in get_kind_filter(archivio))
-        data = await _italgiure.solr_query(
-            {"q": f"({kind_clause})", "rows": 1, "sort": "pd asc", "fl": "id,anno,datdep,kind"}
-        )
-        docs = data.get("response", {}).get("docs", [])
-        if not docs:
-            return fallback
-        raw = docs[0].get("datdep")
-        raw = str(raw[0] if isinstance(raw, list) else raw or "").strip()
-        m = re.match(r"^(\d{4})-?(\d{2})-?(\d{2})", raw)
-        if not m:
-            return fallback
-        start = (int(m.group(1)), f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
-    except Exception:  # noqa: BLE001 - the probe is best effort; the caller keeps the fallback rule
-        return fallback
-    _archive_start_cache[key] = start
-    return start
-
 
 def _fmt_iso_date(iso: str) -> str:
     """"2021-02-17" -> "17/02/2021"."""

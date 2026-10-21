@@ -12,6 +12,7 @@ import re
 import urllib.parse
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
@@ -191,7 +192,7 @@ class SolrSession:
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> SolrSession:
-        self._client = httpx.AsyncClient(verify=False, timeout=_TIMEOUT, headers=_HEADERS)
+        self._client = async_client("italgiure", verify=False, timeout=_TIMEOUT, headers=_HEADERS)
         await self._client.get(_HOMEPAGE)
         return self
 
@@ -219,7 +220,7 @@ async def solr_query(params: dict, session: SolrSession | None = None) -> dict:
     """
     if session is not None:
         return await session.query(params)
-    async with httpx.AsyncClient(verify=False, timeout=_TIMEOUT, headers=_HEADERS) as client:
+    async with async_client("italgiure", verify=False, timeout=_TIMEOUT, headers=_HEADERS) as client:
         await client.get(_HOMEPAGE)
         body = urllib.parse.urlencode({**params, "wt": "json", "indent": "off"}, doseq=True)
         resp = await retry_request(client, "POST", _SOLR_URL, dataset="italgiure", content=body)

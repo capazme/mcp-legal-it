@@ -8,6 +8,8 @@ import asyncio
 import re
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.core import cassazione
+from mcp_legal_it.core.cassazione import _IT_STOPWORDS, _normalize_query  # noqa: F401 - re-exported
 from mcp_legal_it.lib._paging import invalid_start
 from mcp_legal_it.lib._result import SearchResult
 from mcp_legal_it.lib import _brocardi_switch
@@ -17,9 +19,7 @@ from mcp_legal_it.lib.italgiure.client import (
     ARCHIVE_START_YEAR,
     ARCHIVE_WINDOW_NOTE,
     TIPO_PROV,
-    SolrSession,
     build_explore_params,
-    build_lookup_params,
     build_norma_variants,
     build_search_params,
     format_estremi,
@@ -30,7 +30,6 @@ from mcp_legal_it.lib.italgiure.client import (
     norma_is_qualified,
     quote_fq_value,
     resolve_sezione,
-    solr_query,
 )
 
 _SCORE_RATIO_THRESHOLD = 0.2
@@ -41,69 +40,6 @@ _REFINEMENT_STEPS = [
     {"campo": "dispositivo", "label": "solo nel dispositivo"},
     {"tipo_provvedimento": "sentenza", "label": "solo sentenze"},
 ]
-
-_IT_STOPWORDS = frozenset({
-    "di", "del", "della", "dello", "delle", "dei", "degli",
-    "per", "con", "in", "da", "dal", "dalla", "dalle",
-    "che", "il", "la", "lo", "le", "li", "un", "una", "uno",
-    "al", "alla", "alle", "allo", "ai", "agli",
-    "su", "sul", "sulla", "sulle", "sullo", "sui", "sugli",
-    "tra", "fra", "nel", "nella", "nelle", "nello", "nei", "negli",
-    "ed", "si", "se", "non", "come", "anche", "sono", "essere",
-    "ha", "hanno", "è", "e", "o", "a",
-})
-
-
-def _normalize_query(query: str) -> str:
-    """Preprocess LLM query for better Solr matching.
-
-    Addresses common LLM query patterns that cause zero results:
-    - Quotes around normative references force exact OCR match (often fails)
-    - Single-word quotes are pointless
-    - Too many terms with default mm cause over-filtering
-    - Stopwords dilute relevance in long queries
-    """
-    if not query or not query.strip():
-        return query
-
-    q = query.strip()
-
-    # 1. Remove quotes around normative references like "art. 1-bis"
-    q = re.sub(
-        r'"((?:art(?:icol[oi])?\.?\s+\d+(?:-\w+)?))"',
-        r'\1',
-        q,
-    )
-    # Remove quotes around D.Lgs./D.L./L. references
-    q = re.sub(
-        r'"((?:D\.?(?:Lgs|L|P\.R|M)\.?|[Ll]egge|[Dd]ecreto\s+legislativo)\s*(?:n\.?\s*)?\d+(?:/\d+)?)"',
-        r'\1',
-        q,
-    )
-
-    # 2. Remove quotes around single words (pointless, same as unquoted)
-    q = re.sub(r'"(\w+)"', r'\1', q)
-
-    # 3. Drop Italian stopwords if query has 6+ terms (to reduce mm pressure)
-    terms = q.split()
-    if len(terms) >= 6:
-        filtered = []
-        for t in terms:
-            # Keep quoted phrases intact, keep operators, keep non-stopwords
-            if t.startswith('"') or t in ("AND", "OR", "NOT") or t.startswith("-"):
-                filtered.append(t)
-            elif t.lower().rstrip(".,;:") not in _IT_STOPWORDS:
-                filtered.append(t)
-        # Ensure we keep at least 3 terms
-        if len(filtered) >= 3:
-            terms = filtered
-
-    q = " ".join(terms)
-
-    # 4. Collapse multiple spaces
-    q = re.sub(r"\s{2,}", " ", q).strip()
-
-    return q
 
 
 # ---------------------------------------------------------------------------
@@ -182,58 +118,15 @@ async def _leggi_sentenza_impl(
     except ValueError as exc:
         return SearchResult(success=False, source="italgiure", error_type="bad_input", results_text=str(exc))
 
-    def _found(docs: list[dict]) -> SearchResult:
-        text = formatter(docs[0]) + _omonimi_note(docs, docs[0], archivio, numero, anno)
-        return SearchResult(success=True, source="italgiure", num_found=1, results_text=text)
-
     try:
-        async with SolrSession() as session:
-            # Step 1: Standard lookup (zero-padded + sezione)
-            params = build_lookup_params(numero, anno, archivio=archivio, sezione=sezione or None)
-            data = await solr_query(params, session=session)
-            docs = data.get("response", {}).get("docs", [])
-            if docs:
-                return _found(docs)
-
-            # Step 2: Retry without sezione filter (if provided)
-            if sezione:
-                params = build_lookup_params(numero, anno, archivio=archivio, sezione=None)
-                data = await solr_query(params, session=session)
-                docs = data.get("response", {}).get("docs", [])
-                if docs:
-                    return _found(docs)
-
-            # Step 3: Retry with raw number (no zero-padding)
-            kinds = get_kind_filter(archivio)
-            kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
-            raw_params = {
-                "q": f"({kind_clause}) AND numdec:{numero} AND anno:{anno}",
-                "rows": 5,
-                "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocr,ocrdis,relatore,presidente,kind",
-            }
-            data = await solr_query(raw_params, session=session)
-            docs = data.get("response", {}).get("docs", [])
-            if docs:
-                return _found(docs)
-
-            # Step 4: Full-text search for "n. {numero}/{anno}"
-            ft_query = f'"n. {numero}/{anno}" OR "n. {numero} del {anno}"'
-            ft_params = build_search_params(
-                ft_query, archivio=archivio, rows=3, start=0, campo="tutto",
-            )
-            data = await solr_query(ft_params, session=session)
-            docs = data.get("response", {}).get("docs", [])
-            if docs:
-                # Validate that a returned doc actually IS the requested decision —
-                # a full-text hit merely citing "n. {numero}/{anno}" in its OCR text
-                # would otherwise be returned as the authoritative text (wrong ruling).
-                numdec_candidates = {str(numero), str(numero).zfill(5)}
-                for doc in docs:
-                    if str(doc.get("numdec")) in numdec_candidates and str(doc.get("anno")) == str(anno):
-                        return SearchResult(
-                            success=True, source="italgiure", num_found=1, results_text=formatter(doc),
-                        )
-
+        docs, omonimi = await cassazione.lookup_decisione(numero, anno, sezione, archivio)
+        # Rendering stays inside the try, as before the lookup moved to core: a
+        # document the formatter cannot read is reported like a source failure.
+        if docs:
+            text = formatter(docs[0])
+            if omonimi:
+                text += _omonimi_note(docs, docs[0], archivio, numero, anno)
+            return SearchResult(success=True, source="italgiure", num_found=1, results_text=text)
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
 
@@ -303,7 +196,7 @@ async def _cerca_giurisprudenza_impl(
         include_facets=True,
     )
     try:
-        data = await solr_query(params)
+        data = await cassazione.solr_query(params)
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
 
@@ -400,7 +293,7 @@ async def _esplora_impl(
     """Facet-only exploration: returns distribution without documents."""
     params = build_explore_params(query, archivio=archivio, campo=campo)
     try:
-        data = await solr_query(params)
+        data = await cassazione.solr_query(params)
     except Exception as exc:
         return f"Errore nell'esplorazione: {exc}"
     num_found = data.get("response", {}).get("numFound", 0)
@@ -470,7 +363,7 @@ async def _auto_relax(
     Returns formatted output if relaxation found results, None otherwise.
     """
     try:
-        async with SolrSession() as session:
+        async with cassazione.SolrSession() as session:
             for step in _RELAXATION_STEPS:
                 step_query = query
                 step_mm = None
@@ -503,7 +396,7 @@ async def _auto_relax(
                     include_facets=True,
                     fq_extra=fq_extra,
                 )
-                step_data = await solr_query(step_params, session=session)
+                step_data = await cassazione.solr_query(step_params, session=session)
                 step_count = step_data.get("response", {}).get("numFound", 0)
                 if step_count > 0:
                     return _format_search_results(
@@ -553,7 +446,7 @@ async def _auto_refine(
     best_label = ""
 
     try:
-        async with SolrSession() as session:
+        async with cassazione.SolrSession() as session:
             for step in _REFINEMENT_STEPS:
                 step_params = build_search_params(
                     query,
@@ -567,7 +460,7 @@ async def _auto_refine(
                     tipo_provvedimento=step.get("tipo_provvedimento"),
                     include_facets=True,
                 )
-                step_data = await solr_query(step_params, session=session)
+                step_data = await cassazione.solr_query(step_params, session=session)
                 step_count = step_data.get("response", {}).get("numFound", 0)
                 if 0 < step_count <= _REFINEMENT_THRESHOLD:
                     return _format_search_results(
@@ -655,40 +548,12 @@ async def _giurisprudenza_su_norma_impl(
     pagina: int = 0,
 ) -> SearchResult:
     max_risultati = min(max_risultati, 50)
-    kinds = get_kind_filter(archivio)
-    kind_clause = " OR ".join(f'kind:"{k}"' for k in kinds)
-    norma_q = build_norma_variants(riferimento)
-    fq_parts: list[str] = []
-    if solo_sezioni_unite:
-        fq_parts.append("szdec:(SU OR U)")
-    if anno_da and anno_a:
-        fq_parts.append(f"anno:[{anno_da} TO {anno_a}]")
-    elif anno_da:
-        fq_parts.append(f"anno:[{anno_da} TO *]")
-    elif anno_a:
-        fq_parts.append(f"anno:[* TO {anno_a}]")
-    params: dict = {
-        "q": f"({kind_clause}) AND {norma_q}",
-        "sort": "score desc",
-        "rows": max_risultati,
-        "start": pagina * max_risultati,
-        "fl": "id,numdec,anno,datdep,szdec,materia,tipoprov,ocrdis,kind",
-        "hl": "true",
-        "hl.fl": "ocr,ocrdis",
-        "hl.fragsize": "400",
-        "hl.snippets": "2",
-    }
-    if fq_parts:
-        params["fq"] = fq_parts
+    params = cassazione.params_su_norma(
+        riferimento, archivio=archivio, solo_sezioni_unite=solo_sezioni_unite,
+        anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati, pagina=pagina,
+    )
     try:
-        try:
-            data = await solr_query(params)
-        except Exception:
-            # The Solr highlighter answers 500 on some decisions matched by phrase queries
-            # (read 2026-09-29): retry once without highlighting, so a highlighter fault is not
-            # reported as "source down".
-            plain = {k: v for k, v in params.items() if not k.startswith("hl")}
-            data = await solr_query(plain)
+        data = await cassazione.query_con_ripiego(params)
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
     docs = data.get("response", {}).get("docs", [])
@@ -746,7 +611,7 @@ async def _ultime_pronunce_impl(
     if fq_parts:
         params["fq"] = fq_parts
     try:
-        data = await solr_query(params)
+        data = await cassazione.solr_query(params)
     except Exception as exc:
         return SearchResult(success=False, source="italgiure", error_type="source_down", error_message=str(exc))
     docs = data.get("response", {}).get("docs", [])
