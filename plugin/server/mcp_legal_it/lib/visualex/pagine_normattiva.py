@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import sys
+import threading
 import time
 from collections import OrderedDict
 from pathlib import Path
@@ -37,6 +38,9 @@ MAX_SU_DISCO = 2000
 SCHEMA = 1
 
 _memoria: "OrderedDict[str, dict]" = OrderedDict()
+#: The disk is pruned once every this many writes, not at each one (a glob of up to 2000 files).
+OGNI_QUANTE_SCRITTURE = 50
+_scritture = 0
 
 
 def _dir() -> Path:
@@ -83,10 +87,13 @@ def scrivi(url: str, testo: str, servito: str | None) -> None:
         cartella = _dir()
         cartella.mkdir(parents=True, exist_ok=True)
         path = cartella / f"{_chiave(url)}.json"
-        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
         tmp.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
         os.replace(tmp, path)
-        _sfoltisci(cartella)
+        global _scritture
+        _scritture += 1
+        if _scritture % OGNI_QUANTE_SCRITTURE == 0:
+            _sfoltisci(cartella)
     except OSError as exc:
         print(f"mcp-legal-it: cache delle pagine Normattiva non scrivibile ({exc})", file=sys.stderr)
 
@@ -99,6 +106,13 @@ def _ricorda(url: str, rec: dict) -> None:
 
 
 def _sfoltisci(cartella: Path) -> None:
+    adesso = time.time()
+    for tmp in cartella.glob("*.tmp"):  # left by a crash between write and rename
+        try:
+            if adesso - tmp.stat().st_mtime > 3600:
+                tmp.unlink()
+        except OSError:
+            pass
     files = list(cartella.glob("*.json"))
     if len(files) <= MAX_SU_DISCO:
         return

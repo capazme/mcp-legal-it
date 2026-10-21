@@ -478,6 +478,8 @@ class TestSuffixes:
 
 
 @pytest.mark.parametrize("head,expected", [
+    ("ART. 3 (Principi in tema di turismo accessibile)", "3"),
+    ("Codice Penale-art. 524 ((ARTICOLO ABROGATO DALLA L. 15 FEBBRAIO 1996, N. 66))", "524"),
     ("Art. 2043. (Risarcimento per fatto illecito).", "2043"),
     ("CODICE CIVILE Art. 1. (Capacità giuridica).", "1"),
     ("Art. 609-undecies. (Adescamento di minorenni).", "609-undecies"),
@@ -496,3 +498,40 @@ def test_head_of_a_code_article(head, expected):
 
     corpo = BeautifulSoup(f'<div class="bodyTesto"><span class="attachment-just-text">{head}</span></div>', "lxml")
     assert _served_article_key(corpo.find("div")) == expected
+
+
+# ---------------------------------------------------------------------------
+# The HTML channel (the default) on pages that do not plainly name the article
+# ---------------------------------------------------------------------------
+
+_CP_524 = (FIXTURES / "visualex" / "normattiva" / "cp_524_abrogato_malformed_trimmed.html").read_text(encoding="utf-8")
+
+
+class TestHtmlChannelUnlabelledPages:
+    """c.p. art. 524 (and 523-526, 530, 539, 541-543, 545-555): the page's only label
+    is "Codice Penale-art. 524" and the repeal notice sits outside it. VisuaLex serves
+    its text; so must the default channel, with or without the export."""
+
+    @pytest.mark.asyncio
+    async def test_the_lower_case_label_is_read_and_the_text_is_visualex_s(self, monkeypatch):
+        _serve(monkeypatch, None, pages={}, fallback=_CP_524)
+        result = await fetch_article(_nv("codice penale", "524"))
+        assert result["text"] == ("Codice Penale-art. 524\n\n"
+                                  "((ARTICOLO ABROGATO DALLA L. 15 FEBBRAIO 1996, N. 66))"), result
+        assert result["source"] == "normattiva" and not result.get("error")
+
+    @pytest.mark.asyncio
+    async def test_an_unlabelled_page_is_the_article_when_the_act_has_it(self, monkeypatch):
+        senza_etichetta = _CP_524.replace("Codice Penale-art. 524", "Codice Penale")
+        _serve(monkeypatch, _load_akn("codice_penale.xml"), pages={}, fallback=senza_etichetta)
+        result = await fetch_article(_nv("codice penale", "524"))
+        assert "ARTICOLO ABROGATO DALLA L. 15 FEBBRAIO 1996" in result["text"], result
+        assert result["source"] == "normattiva" and not result.get("error")
+
+    @pytest.mark.asyncio
+    async def test_an_unlabelled_page_with_the_export_unreachable_says_so(self, monkeypatch):
+        senza_etichetta = _CP_524.replace("Codice Penale-art. 524", "Codice Penale")
+        _serve(monkeypatch, None, pages={}, fallback=senza_etichetta)
+        result = await fetch_article(_nv("codice penale", "524"))
+        assert result["esito"] == CHECK_UNAVAILABLE and result["text"] == ""
+        assert "non è raggiungibile" in result["error"]
