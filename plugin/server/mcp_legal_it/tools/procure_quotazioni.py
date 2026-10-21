@@ -393,8 +393,8 @@ def genera_quotazione_docx(
                 break
         tabellare = Decimal("0")
         for fase in _FASI_OPPOSIZIONE:
-            # minimo = medio / 2 esatto (art. 4, co. 1, D.M. 55/2014), non il "min"
-            # arrotondato all'euro della tabella dati
+            # minimo = medio / 2 esatto (art. 4, co. 1, D.M. 55/2014), lo stesso valore
+            # che la tabella dati porta come "min"
             importo = (
                 Decimal(str(scaglione[fase]["medio"]))
                 if livello == "medi"

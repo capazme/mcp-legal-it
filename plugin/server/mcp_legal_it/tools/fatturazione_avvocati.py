@@ -35,6 +35,29 @@ def _pct(base, pct: str) -> float:
     return _q(Decimal(str(base)) * Decimal(pct) / Decimal(100))
 
 
+def _al_centesimo(x: Decimal) -> int | float:
+    """A whole amount stays an int, so a figure that never had cents reads as before."""
+    return int(x) if x == x.to_integral_value() else _q(x)
+
+
+def _minimo(medio) -> int | float:
+    """The minimum of a phase: the medium diminished by 50%, to the cent (art. 4 co. 1 DM 55/2014).
+
+    "possono essere diminuiti in ogni caso non oltre il 50 per cento": the floor is the exact half,
+    never rounded to the euro (131 -> 65,50, not 66).
+    """
+    return _al_centesimo(Decimal(str(medio)) / 2)
+
+
+def _massimo(medio) -> int | float:
+    """The maximum of a phase: the medium increased by 50%, to the cent (art. 4 co. 1 DM 55/2014).
+
+    "possono essere aumentati fino al 50 per cento": the ceiling is the exact one and a half,
+    never rounded up to the euro (131 -> 196,50, not 197), as the minimum is the exact half.
+    """
+    return _al_centesimo(Decimal(str(medio)) * Decimal("1.5"))
+
+
 _FASI_CIVILE = ["studio", "introduttiva", "istruttoria", "decisionale"]
 _FASI_PENALE = ["studio", "introduttiva", "istruttoria", "decisionale"]
 _FASI_VOLONTARIA = ["studio", "trattazione"]
@@ -56,7 +79,7 @@ def _scaglione_civile_oltre_32_milioni(valore_causa: float, ultimo: dict, limite
     doubling (32-64 million +30%, 64-128 million +30% on the result, ...). Same
     convention as the bands the table already carries up to 32 million (verified
     against all of them): the medium is the previous rounded medium x 1,3 rounded to
-    the euro half up, minimum and maximum are that medium -/+ 50%, rounded.
+    the euro half up, minimum and maximum its exact half and one and a half, to the cent.
     """
     fasi = {f: int(ultimo[f]["medio"]) for f in _FASI_CIVILE}
     while valore_causa > limite:
@@ -66,9 +89,9 @@ def _scaglione_civile_oltre_32_milioni(valore_causa: float, ultimo: dict, limite
         "oltre": True,
         **{
             f: {
-                "min": int(_round_euro(Decimal(m) * Decimal("0.5"))),
+                "min": _minimo(m),
                 "medio": m,
-                "max": int(_round_euro(Decimal(m) * Decimal("1.5"))),
+                "max": _massimo(m),
             }
             for f, m in fasi.items()
         },
@@ -93,7 +116,7 @@ def _find_scaglione_stragiudiziale(valore_pratica: float) -> dict:
     decrescente del valore dell'affare, secondo quanto previsto dalla allegata tabella
     n. 25". The percentage of the bracket the value falls in (3% up to 2 million, ...,
     0,25% above 22 million) is applied to the WHOLE value: the medium, whole euro half
-    up; minimum and maximum are that medium -/+ 50% (art. 19 co. 1).
+    up; minimum and maximum are its exact half and one and a half, to the cent (art. 19 co. 1).
     """
     scaglioni = _PARAMETRI["stragiudiziale"]["scaglioni"]
     for s in scaglioni:
@@ -109,9 +132,9 @@ def _find_scaglione_stragiudiziale(valore_pratica: float) -> dict:
     return {
         "oltre": True,
         "pct": float(pct),
-        "min": int(_round_euro(Decimal(medio) * Decimal("0.5"))),
+        "min": _minimo(medio),
         "medio": medio,
-        "max": int(_round_euro(Decimal(medio) * Decimal("1.5"))),
+        "max": _massimo(medio),
     }
 
 
@@ -912,12 +935,20 @@ _CU_CIVILE_TUTTO: dict = json.loads((_DATA / "contributo_unificato.json").read_t
 _CU_ESEC_MOBILIARE: list[dict] = _CU_CIVILE_TUTTO["esecuzione_mobiliare"]["scaglioni"]
 _CU_ESEC_IMMOBILIARE: float = float(_CU_CIVILE_TUTTO["esecuzione_immobiliare"])
 
-_LIVELLO_FATTORE = {"min": Decimal("0.5"), "medio": Decimal("1"), "max": Decimal("1.5")}
 
 
 def _round_euro(x: Decimal | float) -> float:
     """Whole euro, half up: the convention of the module (the tables print cents)."""
     return float(Decimal(str(x)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def _importo_notula(medio, livello: str) -> float:
+    """Phase amount of a notula: the medium; minimum and maximum to the cent (art. 19)."""
+    if livello == "min":
+        return float(_minimo(medio))
+    if livello == "max":
+        return float(_massimo(medio))
+    return _round_euro(Decimal(str(medio)))
 
 
 def _find_notula_scaglione(scaglioni: list[dict], valore: float) -> dict:
@@ -978,12 +1009,11 @@ def modello_notula(
             return {"errore": f"Fasi duplicate: {fasi}"}
 
     scaglione = _find_notula_scaglione(tabella["scaglioni"], valore_causa)
-    fattore = _LIVELLO_FATTORE[livello]
 
     dettaglio_fasi = []
     totale_compensi = 0.0
     for fase in fasi:
-        importo = _round_euro(Decimal(str(scaglione[fase])) * fattore)
+        importo = _importo_notula(scaglione[fase], livello)
         totale_compensi += importo
         dettaglio_fasi.append({"fase": fase, "importo": importo})
 
