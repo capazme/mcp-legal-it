@@ -35,6 +35,10 @@ entry, it is the same feature as ported to the 3.0 line.
   the environment's *off* still wins. Reference, deprecation policy and the
   operations planned for the VisuaLex migration: `docs/api.md`. The public
   names and signatures are frozen by `tests/unit/test_api_surface.py`.
+- `scripts/replay_mcp_outputs.py`: records the real HTTP exchanges of 36 MCP
+  tool calls once, then replays them offline against a git ref and the working
+  tree and compares every answer, `_meta` included, so a refactor can prove
+  the tools' outputs did not change. The tape stays local.
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **`LEGAL_BROCARDI=off`: the server without Brocardi.** Brocardi.it, the only

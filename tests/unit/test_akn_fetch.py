@@ -436,8 +436,11 @@ class TestMemoryCapFromEnvironment:
         import subprocess
         import sys
 
+        from pathlib import Path
+
         code = "from mcp_legal_it.lib.visualex import akn_fetch as a; print(a._CACHE_MAX)"
-        env = {**os.environ, "AKN_CACHE_MAX_ACTS": "3"}
+        package_root = Path(__file__).resolve().parents[2] / "plugin" / "server"
+        env = {**os.environ, "AKN_CACHE_MAX_ACTS": "3", "PYTHONPATH": str(package_root)}
         out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
         assert out.stdout.strip() == "3"
         env["AKN_CACHE_MAX_ACTS"] = ""

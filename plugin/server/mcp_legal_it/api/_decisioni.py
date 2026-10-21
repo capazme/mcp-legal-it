@@ -41,11 +41,11 @@ from mcp_legal_it.lib.italgiure.client import (
 
 _CORTI = ("cassazione", "corte_costituzionale", "corte_giustizia_ue", "tribunale_ue",
           "consiglio_di_stato", "cgars", "tar")
-_FONTE_CASSAZIONE = FonteDecisione(nome="Corte suprema di cassazione — Italgiure (SentenzeWeb)")
-_FONTE_CONSULTA = FonteDecisione(nome="Corte costituzionale — open data")
-_FONTE_CERDEF = FonteDecisione(nome="CeRDEF — Dipartimento delle Finanze")
-_FONTE_GA = FonteDecisione(nome="Giustizia amministrativa")
-_FONTE_CGUE = FonteDecisione(nome="CURIA — CELLAR (Ufficio delle pubblicazioni dell'UE)")
+_FONTE_CASSAZIONE = FonteDecisione(nome="Corte suprema di cassazione — Italgiure (SentenzeWeb)", codice="cassazione")
+_FONTE_CONSULTA = FonteDecisione(nome="Corte costituzionale — open data", codice="corte_costituzionale")
+_FONTE_CERDEF = FonteDecisione(nome="CeRDEF — Dipartimento delle Finanze", codice="cerdef")
+_FONTE_GA = FonteDecisione(nome="Giustizia amministrativa", codice="giustizia_amministrativa")
+_FONTE_CGUE = FonteDecisione(nome="CURIA — CELLAR (Ufficio delle pubblicazioni dell'UE)", codice="curia")
 
 
 def _non_raggiungibile(fonte: FonteDecisione, exc: BaseException) -> EsitoDecisione:
@@ -97,7 +97,7 @@ def _identita_cass(doc: dict) -> Identita:
 
 def _attributi_cass(doc: dict) -> Attributi:
     return Attributi(
-        sezione=_v(doc, "szdec") or None,
+        sezione=_v(doc, "szdec").upper() or None,
         tipo=_v(doc, "tipoprov") or None,
         data_deposito=_iso(_v(doc, "datdep")),
         relatore=_v(doc, "relatore") or None,
@@ -171,7 +171,7 @@ async def _leggi_cassazione(rif: RiferimentoDecisione) -> EsitoDecisione:
             )
         doc = distinti[0]
         avvisi: list[Avviso] = []
-        effettiva = _v(doc, "szdec")
+        effettiva = _v(doc, "szdec").upper()
         if sezione and effettiva and effettiva != sezione:
             avvisi.append(Avviso("sezione_diversa", {"citata": rif.sezione, "effettiva": effettiva}))
         testo = _v(doc, "ocr")
@@ -323,7 +323,7 @@ async def leggi_provvedimento_amministrativo(sede: str, nrg: str, nome_file: str
             doc = await fetch_provvedimento_document(sede, nrg, nome_file)
         except Exception as exc:  # noqa: BLE001 - errors are data
             return replace(_non_raggiungibile(_FONTE_GA, exc), fonti=registro.fonti())
-        fonte = FonteDecisione(nome=_FONTE_GA.nome, url=doc.url or None)
+        fonte = replace(_FONTE_GA, url=doc.url or None)
         numero = (doc.meta or {}).get("numero", "")
         corte = _corte_ga(sede)
         identita = Identita(
@@ -421,7 +421,7 @@ async def leggi_sentenza_cgue(cellar_uri: str) -> EsitoDecisione:
                               chiave_fonte=cellar_uri),
             attributi=Attributi(ecli=meta.get("ecli") or None, data_decisione=_iso(meta.get("date", "")),
                                 estremi=causa or celex or None),
-            fonte=FonteDecisione(nome=_FONTE_CGUE.nome, url=cellar_uri),
+            fonte=replace(_FONTE_CGUE, url=cellar_uri),
             testo_grezzo=TestoGrezzo(testo=text),
             fonti=registro.fonti(),
         )
@@ -479,7 +479,7 @@ async def cerca_decisioni_cassazione(
         except ValueError as exc:
             errori["sezione"] = str(exc)
     if errori:
-        return RicercaDecisioni(esito="richiesta_non_valida", fonte="italgiure", errori=errori)
+        return RicercaDecisioni(esito="richiesta_non_valida", fonte="cassazione", errori=errori)
     start = (pagina - 1) * per_pagina
     if tema and tema.strip():
         params = build_search_params(
@@ -508,7 +508,7 @@ async def cerca_decisioni_cassazione(
             primo_anno, primo_giorno = await cassazione._italgiure_archive_start(arch)
         except Exception as exc:  # noqa: BLE001 - errors are data
             return RicercaDecisioni(esito="fonte_non_raggiungibile" if fonte_giu(exc) else "errore_fonte",
-                                    fonte="italgiure", errore=str(exc), fonti=registro.fonti())
+                                    fonte="cassazione", errore=str(exc), fonti=registro.fonti())
         response = data.get("response", {})
         highlighting = data.get("highlighting", {}) or {}
         decisioni = []
@@ -519,7 +519,7 @@ async def cerca_decisioni_cassazione(
                 frammento=_frammento(hl.get("ocrdis") or hl.get("ocr")),
             ))
         return RicercaDecisioni(
-            esito="risultati", fonte="italgiure", totale=response.get("numFound", 0), pagina=pagina,
+            esito="risultati", fonte="cassazione", totale=response.get("numFound", 0), pagina=pagina,
             modo="testo", archivio=archivio, archivio_dal=primo_giorno or str(primo_anno),
             decisioni=tuple(decisioni), anni=_anni(data.get("facet_counts", {})), fonti=registro.fonti(),
         )
@@ -572,7 +572,7 @@ async def cerca_decisioni_costituzionali(
     try:
         limite = _limite(max_risultati, 50)
     except ValueError as exc:
-        return _ricerca_errore("corte_cost", exc)
+        return _ricerca_errore("corte_costituzionale", exc)
     terms = [t.strip().lower() for t in (tema or "").split(",") if t.strip()]
     with registra() as registro:
         try:
@@ -580,9 +580,9 @@ async def cerca_decisioni_costituzionali(
                                          year_from=anno_dal or 0, year_to=anno_al or 0, limit=limite,
                                          current_year=_clock.today().year)
         except Exception as exc:  # noqa: BLE001 - errors are data
-            return replace(_ricerca_errore("corte_cost", exc), fonti=registro.fonti())
+            return replace(_ricerca_errore("corte_costituzionale", exc), fonti=registro.fonti())
         return RicercaDecisioni(
-            esito="risultati", fonte="corte_cost", totale=None, troncato=len(docs) >= limite,
+            esito="risultati", fonte="corte_costituzionale", totale=None, troncato=len(docs) >= limite,
             decisioni=tuple(DecisioneTrovata(identita=_identita_cost(p.numero_pronuncia, p.anno_pronuncia),
                                              attributi=_attributi_cost(p)) for p in docs),
             fonti=registro.fonti(),
@@ -601,15 +601,15 @@ async def pronunce_costituzionali_su_norma(
     try:
         limite = _limite(max_risultati, 50)
     except ValueError as exc:
-        return _ricerca_errore("corte_cost", exc)
+        return _ricerca_errore("corte_costituzionale", exc)
     with registra() as registro:
         try:
             hits = await pronunce_su_norma(riferimento=riferimento, year_from=anno_dal or 0, year_to=anno_al or 0,
                                            limit=limite, current_year=_clock.today().year)
         except Exception as exc:  # noqa: BLE001 - errors are data
-            return replace(_ricerca_errore("corte_cost", exc), fonti=registro.fonti())
+            return replace(_ricerca_errore("corte_costituzionale", exc), fonti=registro.fonti())
         return RicercaDecisioni(
-            esito="risultati", fonte="corte_cost", totale=None, troncato=len(hits) >= limite,
+            esito="risultati", fonte="corte_costituzionale", totale=None, troncato=len(hits) >= limite,
             decisioni=tuple(
                 DecisioneTrovata(identita=_identita_cost(numero, anno),
                                  attributi=Attributi(titolo=massima.titolo or None),
@@ -665,13 +665,13 @@ async def cerca_decisioni_amministrative(
     try:
         limite = _limite(max_risultati, 50)
     except ValueError as exc:
-        return _ricerca_errore("giustizia_amm", exc)
+        return _ricerca_errore("giustizia_amministrativa", exc)
     with registra() as registro:
         try:
             docs, totale = await search_provvedimenti_page(query=tema, tipo=tipo, sede=sede, anno=anno,
                                                            numero=numero, rows=limite)
         except Exception as exc:  # noqa: BLE001 - errors are data
-            return replace(_ricerca_errore("giustizia_amm", exc), fonti=registro.fonti())
+            return replace(_ricerca_errore("giustizia_amministrativa", exc), fonti=registro.fonti())
         per_anno = bool(anno and anno.strip().isdigit()) and not numero
         if per_anno:
             docs = [d for d in docs if d.anno == anno.strip()]
@@ -692,7 +692,7 @@ async def cerca_decisioni_amministrative(
                                     titolo=d.sede_label or None),
                 frammento=Frammento(testo=d.oggetto) if d.oggetto else None,
             ))
-        return RicercaDecisioni(esito="risultati", fonte="giustizia_amm", totale=None if per_anno else totale,
+        return RicercaDecisioni(esito="risultati", fonte="giustizia_amministrativa", totale=None if per_anno else totale,
                                 troncato=per_anno, decisioni=tuple(decisioni), fonti=registro.fonti())
 
 
@@ -723,15 +723,15 @@ async def cerca_decisioni_ue(
     try:
         limite = _limite(max_risultati, 50)
     except ValueError as exc:
-        return _ricerca_errore("cgue", exc)
+        return _ricerca_errore("curia", exc)
     keywords = [k.strip() for k in (tema or "").split(",") if k.strip()]
     with registra() as registro:
         try:
             docs = await search_giurisprudenza(keywords=keywords, court=corte, doc_type=tipo, year_from=anno_dal,
                                                year_to=anno_al, materia=materia, limit=limite)
         except Exception as exc:  # noqa: BLE001 - errors are data
-            return replace(_ricerca_errore("cgue", exc), fonti=registro.fonti())
-        return RicercaDecisioni(esito="risultati", fonte="cgue", totale=None, troncato=len(docs) >= limite,
+            return replace(_ricerca_errore("curia", exc), fonti=registro.fonti())
+        return RicercaDecisioni(esito="risultati", fonte="curia", totale=None, troncato=len(docs) >= limite,
                                 decisioni=tuple(_decisione_cgue(c) for c in docs), fonti=registro.fonti())
 
 
@@ -747,19 +747,19 @@ async def giurisprudenza_ue_su_articolo(
 
     terms = normalize_riferimento(riferimento or "")
     if not terms:
-        return RicercaDecisioni(esito="richiesta_non_valida", fonte="cgue",
+        return RicercaDecisioni(esito="richiesta_non_valida", fonte="curia",
                                 errori={"riferimento": 'indicare una norma UE (es. "art. 101 TFUE")'})
     try:
         limite = _limite(max_risultati, 50)
     except ValueError as exc:
-        return _ricerca_errore("cgue", exc)
+        return _ricerca_errore("curia", exc)
     with registra() as registro:
         try:
             docs = await search_giurisprudenza(keywords=[], required_terms=terms, court=corte, year_from=anno_dal,
                                                limit=limite)
         except Exception as exc:  # noqa: BLE001 - errors are data
-            return replace(_ricerca_errore("cgue", exc), fonti=registro.fonti())
-        return RicercaDecisioni(esito="risultati", fonte="cgue", totale=None, troncato=len(docs) >= limite,
+            return replace(_ricerca_errore("curia", exc), fonti=registro.fonti())
+        return RicercaDecisioni(esito="risultati", fonte="curia", totale=None, troncato=len(docs) >= limite,
                                 decisioni=tuple(_decisione_cgue(c) for c in docs), fonti=registro.fonti())
 
 

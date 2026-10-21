@@ -46,8 +46,16 @@ runs the import with FastMCP made to fail and every socket blocked. Constants
 (`leggi_riferimento`, `riferimento_da_parametri`, `catalogo_alias`) work in
 that state.
 
-**Async.** Every function that may reach the network is `async`. There are no
-sync wrappers: from sync code use `asyncio.run(...)`.
+**Async where the network is.** Functions that can reach the network are
+`async`; pure parsing and catalogue functions are sync (`leggi_riferimento`,
+`riferimento_da_parametri`, `catalogo_alias`: CPU only). There are no sync
+wrappers of the network functions: from sync code use `asyncio.run(...)`.
+
+The sync functions stay sync and offline. `leggi_riferimento` never resolves
+over the network the full date of an act cited with the year only: that is a
+separate async function (`risolvi_date_atti`, planned, §6). If a remote
+catalogue is ever needed, it gets an async variant next to the sync one, and
+the existing signature does not change.
 
 **Errors are data.** A function never raises for an outcome a caller must
 expect: an unknown act, a missing article, a source that is down, an ambiguous
@@ -103,10 +111,21 @@ JSON-ready data:
   - `kwargs` are exactly what the library would pass to `httpx.AsyncClient`:
     headers, timeout, `follow_redirects`, and `verify=False` for Italgiure.
   - The client is used as `async with` and closed afterwards.
-  - Use it to add a cache transport or a test transport. Keep the `kwargs`.
+  - Use it to add a cache transport or a test transport. Pass the `kwargs` on
+    to `httpx.AsyncClient`: `headers` (some sources refuse requests without
+    their `User-Agent`/`Accept`), `timeout`, `verify` (Italgiure's certificate
+    chain needs `verify=False`) and `follow_redirects`.
+  - **The guards cannot be dropped.** `event_hooks` (the request guards, such as
+    `dpa_probe`'s check of every request and redirect against private
+    addresses) and `follow_redirects=False` are re-applied to whatever the
+    factory returns, before the factory's own hooks. A factory set for the
+    whole process with `configura()` therefore cannot disarm the MCP server
+    either. The factory must return an `httpx.AsyncClient`.
 - **`cache_dir`** relocates the disk caches, in place of `MCP_CACHE_DIR`. The
   caches are parsed Akoma Ntoso acts, the Brocardi URL map and the
-  Constitutional Court open data.
+  Constitutional Court open data. Set it per process (`configura(cache_dir=…)`):
+  the in-memory caches are shared by the process, so a per-request directory
+  would split only the disk part.
 - **`cache=False`** turns the disk caches off, as `LEGAL_CACHE=off` does.
 - **`brocardi=False`** sends no request to brocardi.it, as `LEGAL_BROCARDI=off`
   does.
@@ -122,16 +141,23 @@ JSON-ready data:
 
 **Caches and limits that stay as they are.** The parsed-act cache keeps its
 in-memory LRU, capped by `AKN_CACHE_MAX_ACTS` (default 50), and its disk
-layout. Concurrent cold requests for the same act share one download.
+layout. Concurrent cold requests for the same act share one download: the
+callers waiting on it get the first caller's result (the same parsed act, as
+the in-memory LRU already gave), and each of them lists the download's sources
+in its own `fonti`. If the first caller is cancelled, the waiters get no AKN
+act and fall back to the HTML reader, as on any AKN failure.
 
 **Network rules (planned).** Every client is made in one place,
 `mcp_legal_it/core/_http.py`. The VisuaLex network rules will be added there
-in the migration phase:
+in the migration phase, with two different keys:
 
-- a per-source rate limit;
-- a per-source "not before" time taken from `Retry-After`, capped at 30 s;
-- a retry budget;
-- the host allowlist.
+- **per source** (the `fonte` passed to the factory): maximum concurrency,
+  minimum interval between requests, retry budget, and the "not before" time
+  read from `Retry-After`, capped at 30 s, with per-caller overrides;
+- **per hostname**: the allowlist, because a hostname check is what stops a
+  request built from caller input from reaching an internal address.
+  `core/_http.HOST_PER_FONTE` maps each source to the hosts it may reach; a test
+  keeps it inside `lib/_egress.ALLOWED_HOSTS` and covers every call site.
 
 ```python
 import httpx
@@ -202,6 +228,11 @@ The text in force of one article, from Normattiva or EUR-Lex.
     `normattiva` or `eurlex`.
   - `"html"` is VisuaLex's frozen HTML reader. It is **planned**; until then it
     answers `non_supportata` and makes no request.
+- **`allegato` of the codes.** A code carries the annex its URN points at even
+  when the citation does not name it: c.c. `"2"`, c.p. and c.p.c. `"1"` (the
+  same annex is in the URN, `;262:2`). Passing that default annex back
+  (`riferimento_da_parametri(..., allegato="2")`, or a `NormaDati`) reads the
+  article, not an annex.
 - **`url` and `urn`** are both always filled for Normattiva acts (EU acts have
   no NIR URN). An act cited with the year only whose full date could not be
   read keeps the URN derived from its URL. That URN has a placeholder date,
@@ -275,6 +306,16 @@ One result shape for every court:
 
 - `EsitoDecisione` for a decision read (VisuaLex `/fetch_decision`);
 - `RicercaDecisioni` for a search (VisuaLex `/search_decisions`).
+
+**Source codes.** `fonte.codice` (`CodiceFonte`) and `RicercaDecisioni.fonte`
+name the source as VisuaLex does: `cassazione`, `corte_costituzionale`, `curia`,
+`giustizia_amministrativa`, plus `cerdef`. A `fonte_non_raggiungibile` answer
+always carries it, so the shell can write
+`{"esito": "fonte_non_raggiungibile", "fonte": fonte.codice}`.
+
+**Sezione.** For the Cassazione, `attributi.sezione` is the Italgiure code in
+upper case (`1`–`7`, `L`, `U`, `F`), the form VisuaLex's resolver and saved
+records accept.
 
 **Text.** `testo_grezzo` is the text exactly as the source serves it:
 
@@ -464,10 +505,11 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 |---|---|
 | `RiferimentoDecisione` | `corte, numero, anno, archivio, sezione, sede, provvedimento, tipo` |
 | `Identita` | `corte, numero, anno, archivio, sede, provvedimento`, plus `chiave_fonte` (the CeRDEF guid, `{sede, nrg, nome_file}` for TAR/CdS, the CELLAR URI for the CJEU) |
-| `Attributi` | `sezione, tipo, data_deposito, data_decisione, ecli, relatore, presidente, materia`, plus `estremi, titolo` (dates ISO) |
+| `Attributi` | `sezione` (Cassazione: Italgiure code), `tipo, data_deposito, data_decisione, ecli, relatore, presidente, materia`, plus `estremi, titolo` (dates ISO) |
 | `TestoDecisione` | VisuaLex blocks: `epigrafe, motivazione, dispositivo` (planned) |
 | `TestoGrezzo` | `testo, epigrafe, dispositivo, massima`, as the source serves them |
-| `FonteDecisione` | `nome, licenza, url` |
+| `FonteDecisione` | `nome, licenza, url`, plus `codice` |
+| `CodiceFonte` | `"cassazione"` \| `"corte_costituzionale"` \| `"curia"` \| `"giustizia_amministrativa"` \| `"cerdef"` |
 | `Avviso` | `tipo, dettagli` (`come_dict` flattens it) |
 | `Candidato` | `identita, attributi` |
 | `EsitoDecisione` | `esito, identita, attributi, testo, fonte, avvisi, candidati, motivo, archivio_dal, errori`, plus `testo_grezzo, errore, fonti` |
@@ -527,6 +569,12 @@ with their signature.
 2. It is removed no earlier than the next major release, and at least 90 days
    after the deprecating release.
 3. The replacement is available from the deprecating release on.
+
+**Refactors behind the API** must leave the MCP tools' answers unchanged.
+`scripts/replay_mcp_outputs.py` proves it: it records the real HTTP exchanges
+of 36 tool calls once, then replays them offline against a git ref and the
+working tree and compares every answer, `_meta` included. The tape stays
+local: it holds third-party content and hundreds of MB of open data.
 
 The frozen surface is `tests/unit/test_api_surface.py`. It pins every public
 name with its signature, or with its fields for a type. An intentional change
