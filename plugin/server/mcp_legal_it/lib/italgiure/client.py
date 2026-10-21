@@ -21,6 +21,7 @@ import httpx
 from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
+from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION
 from mcp_legal_it.lib._paging import page, resume_hint
 
 _BASE = "https://www.italgiure.giustizia.it/sncass"
@@ -589,14 +590,16 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
     """
     rif = riferimento.strip().lower()
 
+    # The suffix after a dash or a space ("25-terdecies", "25 terdecies"): one whitespace run
+    # on either side, never two adjacent optional ones (a long run of blanks must stay linear).
     match = re.match(
-        r"(?:art\.?|articolo)\s+(\d+(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)",
+        rf"(?:art\.?|articolo)\s+(\d+)(?:(?:\s*-\s*|\s+)({ARTICLE_SUFFIX_ALTERNATION})\b)?",
         rif,
     )
     if not match:
         return f'ocr:("{riferimento}")'
 
-    num = match.group(1)
+    num = match.group(1) + (f"-{match.group(2)}" if match.group(2) else "")
     rest = rif[match.end():].strip()
 
     bare = [f'"art. {num}"', f'"articolo {num}"']
@@ -657,7 +660,7 @@ def norma_is_qualified(riferimento: str) -> bool:
     """True when the reference names a code or an act after the article number."""
     rif = riferimento.strip().lower()
     m = re.match(
-        r"(?:art\.?|articolo)\s+\d+(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?",
+        rf"(?:art\.?|articolo)\s+\d+(?:-(?:{ARTICLE_SUFFIX_ALTERNATION})\b)?",
         rif,
     )
     return bool(m and rif[m.end():].strip())
