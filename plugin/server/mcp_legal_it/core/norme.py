@@ -321,13 +321,7 @@ async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
     The outcome is ``ARTICLE_NOT_FOUND`` (the article is not in the act),
     ``CHECK_UNAVAILABLE`` (the source could not tell) or None.
     """
-    today = _clock.today().isoformat()
-    base = {
-        "formato": "json", "riferimento": reference, "articolo": "",
-        "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
-        "url": "", "urn": None, "fonte": "", "allegato": None, "testo": "", "errore": None,
-        "data_consultazione": today,
-    }
+    base = _lookup_base(reference)
     article, act_name = _parse_reference(reference)
     if not act_name:
         base["errore"] = (f"impossibile interpretare il riferimento '{reference}'. "
@@ -338,7 +332,28 @@ async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
         base["errore"] = _unresolved_act_error(act_name).replace("**Errore**: ", "")
         return base, None
 
-    nv = _build_nv(act_info, article)
+    return await _lookup_visitata(base, _build_nv(act_info, article), act_info)
+
+
+def _lookup_base(reference: str) -> dict:
+    """The JSON face of cite_law before any lookup: every key, empty."""
+    return {
+        "formato": "json", "riferimento": reference, "articolo": "",
+        "atto": {"tipo_atto": "", "data": "", "numero_atto": "", "descrizione": ""},
+        "url": "", "urn": None, "fonte": "", "allegato": None, "testo": "", "errore": None,
+        "data_consultazione": _clock.today().isoformat(),
+    }
+
+
+async def lookup_parametri(act_info: dict, article: str) -> tuple[dict, str | None]:
+    """``_cite_law_lookup`` for an act already resolved to ``{tipo_atto, data, numero_atto}``."""
+    reference = str(_build_nv(act_info, article))
+    return await _lookup_visitata(_lookup_base(reference), _build_nv(act_info, article), act_info)
+
+
+async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict) -> tuple[dict, str | None]:
+    """Fetch *nv* and fill *base* (see ``_cite_law_lookup``)."""
+    article = nv.numero_articolo
     base["articolo"] = article or ""
     base["atto"] = {
         "tipo_atto": nv.norma.tipo_atto_normalized,

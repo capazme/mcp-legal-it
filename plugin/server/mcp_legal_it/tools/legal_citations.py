@@ -42,6 +42,11 @@ from mcp_legal_it.core.norme import (  # noqa: F401 - re-exported
     _urn_from_url,
     fetch_norma,
 )
+from mcp_legal_it.core.cassazione import (  # noqa: F401 - re-exported
+    _ITALGIURE_WINDOW_YEARS,
+    _italgiure_archive_start,
+    _italgiure_window_year,
+)
 
 
 
@@ -589,61 +594,6 @@ async def download_law_pdf(reference: str) -> str:
 # ---------------------------------------------------------------------------
 # verifica_citazioni — citation existence + metadata verifier
 # ---------------------------------------------------------------------------
-
-# The Italgiure archive is a MOVING window, not "from 2020": on 2026-09-25 the civil archive
-# started on 17/02/2021 (2021 holds ~16k decisions against 35-38k of a full year, and nothing is
-# indexed for 2020), and the start advances every day. Decisions before the start cannot be
-# confirmed as existent or not; the first year is only partly covered, so a miss there proves
-# nothing either. The start is READ from the archive (oldest deposited decision, cached per day)
-# by `_italgiure_archive_start`, the single definition shared by verifica_citazioni and
-# cerca_brocardi. If that probe fails, the window is assumed to be at least this many years wide.
-_ITALGIURE_WINDOW_YEARS = 5
-
-_archive_start_cache: dict[tuple[str, str], tuple[int, str]] = {}
-
-
-def _italgiure_window_year() -> int:
-    """Newest year that can lie before, or on the edge of, the archive start.
-
-    A decision of a LATER year is always inside the archive window, so it needs no probe.
-    """
-    return _clock.today().year - _ITALGIURE_WINDOW_YEARS
-
-
-async def _italgiure_archive_start(archivio: str = "tutti") -> tuple[int, str]:
-    """First year and first deposit date ("YYYY-MM-DD") of the Italgiure archive.
-
-    Read as the oldest decision of the archive (sort by deposit date, one row) and cached for
-    the day. If the archive cannot be queried, returns the assumed window
-    (``today.year - 5``, no date) without caching it.
-    """
-    today = _clock.today()
-    key = (archivio, today.isoformat())
-    if key in _archive_start_cache:
-        return _archive_start_cache[key]
-    fallback = (_italgiure_window_year(), "")
-    try:
-        from mcp_legal_it.lib.italgiure.client import get_kind_filter
-        from mcp_legal_it.core import cassazione as _cassazione
-
-        kind_clause = " OR ".join(f'kind:"{k}"' for k in get_kind_filter(archivio))
-        data = await _cassazione.solr_query(
-            {"q": f"({kind_clause})", "rows": 1, "sort": "pd asc", "fl": "id,anno,datdep,kind"}
-        )
-        docs = data.get("response", {}).get("docs", [])
-        if not docs:
-            return fallback
-        raw = docs[0].get("datdep")
-        raw = str(raw[0] if isinstance(raw, list) else raw or "").strip()
-        m = re.match(r"^(\d{4})-?(\d{2})-?(\d{2})", raw)
-        if not m:
-            return fallback
-        start = (int(m.group(1)), f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
-    except Exception:  # noqa: BLE001 - the probe is best effort; the caller keeps the fallback rule
-        return fallback
-    _archive_start_cache[key] = start
-    return start
-
 
 def _fmt_iso_date(iso: str) -> str:
     """"2021-02-17" -> "17/02/2021"."""

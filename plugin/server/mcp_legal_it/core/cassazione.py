@@ -6,6 +6,9 @@ queries behind the searches. The Solr calls go through this module's
 binding (and tests patch one place). Formatting stays in ``tools/italgiure.py``.
 """
 
+import re
+
+from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib.italgiure.client import (
     SolrSession,
     build_lookup_params,
@@ -22,6 +25,122 @@ __all__ = [
     "query_con_ripiego",
     "solr_query",
 ]
+
+_IT_STOPWORDS = frozenset({
+    "di", "del", "della", "dello", "delle", "dei", "degli",
+    "per", "con", "in", "da", "dal", "dalla", "dalle",
+    "che", "il", "la", "lo", "le", "li", "un", "una", "uno",
+    "al", "alla", "alle", "allo", "ai", "agli",
+    "su", "sul", "sulla", "sulle", "sullo", "sui", "sugli",
+    "tra", "fra", "nel", "nella", "nelle", "nello", "nei", "negli",
+    "ed", "si", "se", "non", "come", "anche", "sono", "essere",
+    "ha", "hanno", "è", "e", "o", "a",
+})
+
+
+def _normalize_query(query: str) -> str:
+    """Preprocess LLM query for better Solr matching.
+
+    Addresses common LLM query patterns that cause zero results:
+    - Quotes around normative references force exact OCR match (often fails)
+    - Single-word quotes are pointless
+    - Too many terms with default mm cause over-filtering
+    - Stopwords dilute relevance in long queries
+    """
+    if not query or not query.strip():
+        return query
+
+    q = query.strip()
+
+    # 1. Remove quotes around normative references like "art. 1-bis"
+    q = re.sub(
+        r'"((?:art(?:icol[oi])?\.?\s+\d+(?:-\w+)?))"',
+        r'\1',
+        q,
+    )
+    # Remove quotes around D.Lgs./D.L./L. references
+    q = re.sub(
+        r'"((?:D\.?(?:Lgs|L|P\.R|M)\.?|[Ll]egge|[Dd]ecreto\s+legislativo)\s*(?:n\.?\s*)?\d+(?:/\d+)?)"',
+        r'\1',
+        q,
+    )
+
+    # 2. Remove quotes around single words (pointless, same as unquoted)
+    q = re.sub(r'"(\w+)"', r'\1', q)
+
+    # 3. Drop Italian stopwords if query has 6+ terms (to reduce mm pressure)
+    terms = q.split()
+    if len(terms) >= 6:
+        filtered = []
+        for t in terms:
+            # Keep quoted phrases intact, keep operators, keep non-stopwords
+            if t.startswith('"') or t in ("AND", "OR", "NOT") or t.startswith("-"):
+                filtered.append(t)
+            elif t.lower().rstrip(".,;:") not in _IT_STOPWORDS:
+                filtered.append(t)
+        # Ensure we keep at least 3 terms
+        if len(filtered) >= 3:
+            terms = filtered
+
+    q = " ".join(terms)
+
+    # 4. Collapse multiple spaces
+    q = re.sub(r"\s{2,}", " ", q).strip()
+
+    return q
+
+
+# The Italgiure archive is a MOVING window, not "from 2020": on 2026-09-25 the civil archive
+# started on 17/02/2021 (2021 holds ~16k decisions against 35-38k of a full year, and nothing is
+# indexed for 2020), and the start advances every day. Decisions before the start cannot be
+# confirmed as existent or not; the first year is only partly covered, so a miss there proves
+# nothing either. The start is READ from the archive (oldest deposited decision, cached per day)
+# by `_italgiure_archive_start`, the single definition shared by verifica_citazioni and
+# cerca_brocardi. If that probe fails, the window is assumed to be at least this many years wide.
+_ITALGIURE_WINDOW_YEARS = 5
+
+_archive_start_cache: dict[tuple[str, str], tuple[int, str]] = {}
+
+
+def _italgiure_window_year() -> int:
+    """Newest year that can lie before, or on the edge of, the archive start.
+
+    A decision of a LATER year is always inside the archive window, so it needs no probe.
+    """
+    return _clock.today().year - _ITALGIURE_WINDOW_YEARS
+
+
+async def _italgiure_archive_start(archivio: str = "tutti") -> tuple[int, str]:
+    """First year and first deposit date ("YYYY-MM-DD") of the Italgiure archive.
+
+    Read as the oldest decision of the archive (sort by deposit date, one row) and cached for
+    the day. If the archive cannot be queried, returns the assumed window
+    (``today.year - 5``, no date) without caching it.
+    """
+    today = _clock.today()
+    key = (archivio, today.isoformat())
+    if key in _archive_start_cache:
+        return _archive_start_cache[key]
+    fallback = (_italgiure_window_year(), "")
+    try:
+        kind_clause = " OR ".join(f'kind:"{k}"' for k in get_kind_filter(archivio))
+        data = await solr_query(
+            {"q": f"({kind_clause})", "rows": 1, "sort": "pd asc", "fl": "id,anno,datdep,kind"}
+        )
+        docs = data.get("response", {}).get("docs", [])
+        if not docs:
+            return fallback
+        raw = docs[0].get("datdep")
+        raw = str(raw[0] if isinstance(raw, list) else raw or "").strip()
+        m = re.match(r"^(\d{4})-?(\d{2})-?(\d{2})", raw)
+        if not m:
+            return fallback
+        start = (int(m.group(1)), f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
+    except Exception:  # noqa: BLE001 - the probe is best effort; the caller keeps the fallback rule
+        return fallback
+    _archive_start_cache[key] = start
+    return start
+
 
 #: Fields read for a decision found by number.
 _LOOKUP_FIELDS = "id,numdec,anno,datdep,szdec,materia,tipoprov,ocr,ocrdis,relatore,presidente,kind"
