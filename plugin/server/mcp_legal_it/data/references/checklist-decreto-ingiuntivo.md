@@ -21,8 +21,8 @@ PRESUPPOSTI (art. 633 c.p.c.)
 COMPETENZA (artt. 637-638 c.p.c.)
 ═══════════════════════════════════════════════════════════
 
-☐ Giudice di Pace: crediti fino a € 5.000 (beni mobili fino a € 20.000)
-☐ Tribunale: crediti oltre € 5.000 o materie riservate
+☐ Giudice di Pace: beni mobili fino a € 10.000; risarcimento da circolazione di veicoli e natanti fino a € 25.000 (art. 7 c.p.c.)
+☐ Tribunale: oltre tali valori o materie riservate
 ☐ Foro competente:
   ☐ Foro del debitore (residenza/domicilio) — regola generale
   ☐ Foro dell'obbligazione (luogo di adempimento) — alternativo

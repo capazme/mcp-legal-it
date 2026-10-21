@@ -20,7 +20,7 @@ Chiama `legal-it:interessi_mora` con capitale, data_inizio (decorrenza della mor
 
 Chiama `legal-it:rivalutazione_monetaria` con l'importo del credito, dalla data di scadenza a oggi.
 
-**Nota**: mora e rivalutazione NON si cumulano (Cass. SS.UU. 16601/2017). Presenta entrambi, indica il piu favorevole.
+**Nota**: per un credito di denaro la rivalutazione non è automatica: è il maggior danno dell'art. 1224, co. 2, c.c., da chiedere e provare (anche in via presuntiva, Cass. SS.UU. n. 19499/2008), e spetta solo per la parte che eccede gli interessi moratori: i due importi non si sommano. Presenta entrambi i calcoli e indica il più favorevole.
 
 ### 3. Decreto ingiuntivo
 
