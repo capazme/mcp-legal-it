@@ -74,7 +74,9 @@ def leggi(url: str) -> dict | None:
     # A record that is not one ("[]", a dict without its text) is dropped like a stale
     # one: it would otherwise fail on every read of that URL, for ever.
     pagina = isinstance(rec, dict) and isinstance(rec.get("testo"), str) and "servito" in rec
-    albero = isinstance(rec, dict) and url.startswith("albero|") and isinstance(rec.get("albero"), dict)
+    tree = rec.get("albero") if isinstance(rec, dict) else None
+    albero = (url.startswith("albero|") and isinstance(tree, dict) and isinstance(tree.get("result"), list)
+              and isinstance(tree.get("count"), int) and isinstance(tree.get("metadata"), dict))
     if (not (pagina or albero)
             or rec.get("schema") != SCHEMA or rec.get("url") != url
             or not isinstance(rec.get("salvato", 0), (int, float)) or adesso - rec.get("salvato", 0) >= TTL_SECONDI):

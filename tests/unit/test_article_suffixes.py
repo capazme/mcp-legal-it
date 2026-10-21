@@ -189,3 +189,19 @@ class TestReviewOf62:
         start = time.perf_counter()
         call(" " * 20000)
         assert time.perf_counter() - start < 0.1
+
+
+@pytest.mark.parametrize("article,suffix", [("2 - bis", "~art2bis"), ("135 sex-decies", "~art135sexdecies"),
+                                            ("2-bis", "~art2bis"), ("13-bis", "~art13bis")])
+def test_a_dashed_article_leaves_no_space_in_the_urn(article, suffix):
+    # VisuaLex's controller sends "2-bis" (spaces joined first): the same URN, byte for byte.
+    url = NormaVisitata(Norma("legge", "1990-08-07", "241"), article).url()
+    assert url.endswith(suffix) and " " not in url
+
+
+def test_a_dashed_article_with_a_long_blank_run_stays_linear():
+    import time
+
+    start = time.perf_counter()
+    NormaVisitata(Norma("legge", "1990-08-07", "241"), "1" + " " * 20000 + "!-x").url()
+    assert time.perf_counter() - start < 0.1
