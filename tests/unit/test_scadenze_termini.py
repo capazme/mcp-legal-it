@@ -528,6 +528,20 @@ class TestTerminiEsecuzioni:
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01")
         assert "finestra_utile" in r
 
+    def test_primo_giorno_utile_e_l_undicesimo(self):
+        """Art. 482: "non prima che siano decorsi dieci giorni": notifica 01/06, dieci giorni
+        dal 02/06 all'11/06, esecuzione dal 12/06 (il 10° giorno non basta)."""
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01")
+        assert r["primo_giorno_utile"]["data"] == "2025-06-12"
+        assert r["finestra_utile"].startswith("dal 2025-06-12 ")
+
+    def test_primo_giorno_utile_non_prorogato(self):
+        """A dilatory term needs no art. 155 extension: 16/12 + 10 = 26/12 (festivo), the
+        eleventh day is Saturday 27/12 even though the term's own date moves to Monday 29/12."""
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-12-16", tipo="pignoramento_presso_terzi")
+        assert r["termine_minimo_10gg"]["data"] == "2025-12-29"
+        assert r["primo_giorno_utile"]["data"] == "2025-12-27"
+
     def test_pignoramento_immobiliare_stessi_termini(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
                   tipo="pignoramento_immobiliare")

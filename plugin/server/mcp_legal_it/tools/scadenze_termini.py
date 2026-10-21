@@ -1041,6 +1041,9 @@ def termini_esecuzioni(
     # Termine dilatorio minimo (10gg) — non si può pignorare prima
     termine_min_raw = dt_notifica + timedelta(days=cfg["termine_minimo_giorni"])
     termine_min, termine_min_adj = _slide_forward(termine_min_raw)
+    # Art. 482: "non prima che siano decorsi dieci giorni" — the tenth day must have
+    # elapsed, so the first day the execution may start is the eleventh.
+    primo_utile = termine_min_raw + timedelta(days=1)
 
     # Efficacia precetto (90gg)
     efficacia_raw = dt_notifica + timedelta(days=cfg["efficacia_precetto_giorni"])
@@ -1055,12 +1058,16 @@ def termini_esecuzioni(
             "nota": "Il pignoramento non può essere eseguito prima di 10gg dalla notifica del precetto (art. 482 c.p.c.)",
             "prorogata_art_155": termine_min_adj,
         },
+        "primo_giorno_utile": {
+            "data": primo_utile.isoformat(),
+            "nota": "Primo giorno in cui l'esecuzione può iniziare: i dieci giorni devono essere interamente decorsi (art. 482 c.p.c.)",
+        },
         "scadenza_efficacia_precetto": {
             "data": efficacia.isoformat(),
             "nota": "Il precetto perde efficacia se l'esecuzione non è iniziata entro 90gg dalla notifica (art. 481 c.p.c.)",
             "prorogata_art_155": efficacia_adj,
         },
-        "finestra_utile": f"dal {termine_min.isoformat()} al {efficacia.isoformat()}",
+        "finestra_utile": f"dal {primo_utile.isoformat()} al {efficacia.isoformat()}",
         "riferimento_normativo": cfg["normativa"],
     }
 
