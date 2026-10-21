@@ -509,6 +509,15 @@ entry, it is the same feature as ported to the 3.0 line.
   now parsed like the article-first one; a reference naming an article that
   cannot be told apart from the act is refused with the expected-format error.
   Shared by every tool that uses the reference parser.
+- **Italgiure over verified TLS.** The server sends the wrong intermediate
+  certificates, so the client ran with `verify=False`. The missing one ("TI
+  Trust Technologies OV CA", signed by the USERTrust RSA root in certifi) ships
+  in `lib/italgiure/ti_trust_ov_ca.crt` and is added to certifi's roots; a test
+  fails if `verify=False` appears anywhere in the package, and raises a renewal
+  alarm 180 days before the intermediate expires (2029-07-29).
+- `.mcpb` and the OpenAI config pin `fastmcp>=3.4,<4` (the floor was 2.0, older
+  than the FastMCP the server needs). The change rebuilds the extension's uv
+  environment once, on the first start of 3.0.
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
   caller and was fetched as is: on the HTTP transport any client could read
   pages reachable from the server (localhost, cloud metadata, intranet). Only
