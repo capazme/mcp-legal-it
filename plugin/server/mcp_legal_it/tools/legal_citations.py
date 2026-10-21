@@ -14,7 +14,7 @@ from mcp_legal_it.server import mcp
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
-from mcp_legal_it.lib.visualex.models import ANNEX_ID, intervallo_articoli, split_annex
+from mcp_legal_it.lib.visualex.models import intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
@@ -41,6 +41,20 @@ from mcp_legal_it.core.norme import (  # noqa: F401 - re-exported
     _unresolved_act_error,
     _urn_from_url,
     fetch_norma,
+)
+# The splitter and the decision shape of verifica_citazioni live in core too: the
+# plugin's citation gate reads prose with the same code.
+from mcp_legal_it.core.citazioni import (  # noqa: F401 - re-exported
+    _CASS_MARKER,
+    _SENTENZA_BARE,
+    _SENTENZA_NUM_ANNO,
+    _CORTI_NON_CASSAZIONE,
+    _classify_citazione,
+    _corte_citata,
+    _continues_with_annex,
+    _sentenza_num_anno,
+    _split_citazioni,
+    _starts_new_reference,
 )
 from mcp_legal_it.core.cassazione import (  # noqa: F401 - re-exported
     _ITALGIURE_WINDOW_YEARS,
@@ -619,41 +633,8 @@ _MAX_CITAZIONI = 20
 # from the slow government endpoints (Normattiva, EUR-Lex, Italgiure).
 _MAX_CONCURRENT_VERIFICHE = 4
 
-# Cassazione decision shape: a decision number followed by a 4-digit year,
-# in either "n. 12345/2024" / "12345/2024" or "n. 12345 del 2024" form,
-# optionally preceded by "Cass." / "sez. ...". The presence of an explicit
-# court/section marker OR the "n. .../YYYY" pattern marks a SENTENZA.
-_SENTENZA_NUM_ANNO = re.compile(
-    r"n\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})",
-    re.IGNORECASE,
-)
-_SENTENZA_BARE = re.compile(
-    r"(?<!\d)(\d{1,6})\s*/\s*((?:19|20)\d{2})(?!\d)",
-)
-_CASS_MARKER = re.compile(r"\b(?:cass(?:azione)?|sez(?:ione)?|ss?\.?\s*uu)\b", re.IGNORECASE)
-
-# Courts other than the Cassazione, recognised by the name a citation gives them. Their
-# decisions are not on Italgiure: looked up there, a valid Corte cost. 238/2014 or Cons.
-# St. 1/2020 came back "inesistente". Without any of these names (and always with
-# "Cass.") the citation is read as Cassazione, as before.
-_CORTI_NON_CASSAZIONE = (
-    ("corte_cost", re.compile(r"\bcorte\s+cost(?:ituzionale)?\b|\bc\.\s*cost\b|\bconsulta\b", re.IGNORECASE)),
-    ("giustizia_amm", re.compile(
-        r"\bcons(?:iglio)?\.?\s*(?:di\s+)?st(?:ato)?\b|\bc\.?d\.?s\.?(?![\w])|\bt\.?a\.?r\.?(?![\w])|\bcgars\b",
-        re.IGNORECASE)),
-    ("cgue", re.compile(
-        r"\bc\.?g\.?u\.?e\.?(?![\w])|\bcorte\s+(?:di\s+)?giust(?:izia)?\b|\btrib(?:unale)?\.?\s+ue\b",
-        re.IGNORECASE)),
-    ("cedu", re.compile(r"\bcorte\s+edu\b|\bc\.?e\.?d\.?u\.?(?![\w])", re.IGNORECASE)),
-    ("corte_conti", re.compile(r"\bcorte\s+(?:dei\s+)?conti\b|\bc\.\s*conti\b", re.IGNORECASE)),
-    ("tributaria", re.compile(r"\bcgt\b|\bc\.?t\.?[pr]\.?(?![\w])|\bcomm(?:issione)?\.?\s+trib", re.IGNORECASE)),
-    # Merits courts, any case. "trib." / "app." followed by "n." or "sez." is a Cassazione
-    # section ("sez. trib. n. 1/2024"), not the Tribunale.
-    ("merito", re.compile(
-        r"\bgiudice\s+di\s+pace\b|\bg\.?d\.?p\.?(?![\w])"
-        r"|\b(?:trib\.|tribunale|app\.|corte\s+d['’]\s*appello)\s+(?:di\s+)?(?!n\b|n\.|sez)[a-z]",
-        re.IGNORECASE)),
-)
+# Courts whose decisions verifica_citazioni cannot look up by number and year
+# (_corte_citata, in core.citazioni, tells them apart).
 _CORTI_NON_VERIFICABILI = {
     "giustizia_amm": ("Giustizia amministrativa (Consiglio di Stato, TAR)",
                       "cerca_giurisprudenza_amministrativa() e leggi_provvedimento_amm()"),
@@ -663,16 +644,6 @@ _CORTI_NON_VERIFICABILI = {
     "corte_conti": ("Corte dei conti", "nessuno strumento di questo server"),
     "merito": ("giudice di merito", "nessun archivio pubblico consultabile da questo server"),
 }
-
-
-def _corte_citata(reference: str) -> str:
-    """The court a decision citation names: "cassazione" unless another one is named."""
-    if re.search(r"\bcass", reference, re.IGNORECASE):
-        return "cassazione"
-    for corte, pattern in _CORTI_NON_CASSAZIONE:
-        if pattern.search(reference):
-            return corte
-    return "cassazione"
 
 # Section parsing from the user's citation (e.g. "sez. III", "Sezioni Unite").
 _USER_SEZIONE = re.compile(
@@ -699,98 +670,6 @@ _USER_LETTERA = re.compile(r"\blett(?:era)?\.?\s*([a-z])\b", re.IGNORECASE)
 _ROMAN_TO_INT = {
     "i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7,
 }
-
-
-def _split_citazioni(citazioni: str) -> list[str]:
-    """Split raw input into individual references.
-
-    Primary separator is the newline. Within a line, comma-separated lists are
-    supported, but a comma that merely separates a section from its number
-    (e.g. "Cass. sez. III, n. 12345/2024") must NOT break the reference. A
-    fragment starts a NEW reference only when it begins with a known opener
-    (art./articolo, considerando/recital, Cass./sez., or a bare digit); any
-    other fragment is a continuation and is re-joined to the previous one.
-    """
-    refs: list[str] = []
-    for line in citazioni.replace("\r", "").split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-        if "," not in line:
-            refs.append(line)
-            continue
-        fragments = [f.strip() for f in line.split(",")]
-        current = ""
-        for frag in fragments:
-            if not frag:
-                continue
-            if current and _starts_new_reference(frag) and not _continues_with_annex(current, frag):
-                refs.append(current)
-                current = frag
-            elif current:
-                current = f"{current}, {frag}"
-            else:
-                current = frag
-        if current:
-            refs.append(current)
-    return refs
-
-
-def _continues_with_annex(current: str, fragment: str) -> bool:
-    """ "art. 30, allegato I.7, D.Lgs. 36/2023": the annex completes an article still
-    waiting for its act, it does not open a new reference."""
-    if not re.match(r"allegato\s", fragment.lstrip(), re.IGNORECASE):
-        return False
-    article, act_name = _parse_reference(current)
-    if not (article and act_name):
-        return True
-    # "D.Lgs. 36/2023 art. 30, allegato I.7": a bare annex after a complete reference
-    # names where that article sits, it is not a citation of its own.
-    return bool(re.fullmatch(rf"\s*allegato\s+{ANNEX_ID}\s*", fragment, re.IGNORECASE))
-
-
-def _starts_new_reference(fragment: str) -> bool:
-    """True if a comma-fragment begins a fresh citation (not a continuation)."""
-    low = fragment.lstrip().lower()
-    if re.match(r"(?:art(?:icol[oi])?\.?\s*\d|considerando\s+\d|recital\s+\d|allegato\s+\w)", low):
-        return True
-    if re.match(r"(?:cass|sez|ss?\.?\s*uu)", low):
-        return True
-    if re.match(r"\d", low):
-        return True
-    return False
-
-
-def _classify_citazione(reference: str) -> str:
-    """Classify a reference as 'sentenza', 'norma', or 'non interpretabile'."""
-    article, act_name = _parse_reference(reference)
-    if article and act_name:
-        return "norma"
-    if _sentenza_num_anno(reference) is not None:
-        return "sentenza"
-    return "non interpretabile"
-
-
-def _sentenza_num_anno(reference: str) -> tuple[int, int] | None:
-    """Extract (numero, anno) if the reference has a Cassazione decision shape.
-
-    Recognised forms:
-      - "Cass. n. 12345/2024", "sez. III n. 12345/2024", "n. 12345 del 2024"
-      - "12345/2024" only when an explicit court/section marker is present,
-        to avoid mistaking "196/2003" (a D.Lgs. number) for a decision.
-    """
-    m = _SENTENZA_NUM_ANNO.search(reference)
-    if m:
-        return int(m.group(1)), int(m.group(2))
-    if _CASS_MARKER.search(reference) or _corte_citata(reference) != "cassazione":
-        m = _SENTENZA_BARE.search(reference)
-        if m:
-            return int(m.group(1)), int(m.group(2))
-        # "Cass. 999 del 2021" — number + year without the "n." prefix.
-        m = re.search(r"(?<!\d)(\d{1,6})\s+del\s+((?:19|20)\d{2})", reference, re.IGNORECASE)
-        if m:
-            return int(m.group(1)), int(m.group(2))
-    return None
 
 
 def _normalize_sezione(raw: str) -> str:
