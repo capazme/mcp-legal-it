@@ -83,11 +83,35 @@ def _allegato_predefinito(tipo_atto: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _posizionale(allegato: str | None) -> bool:
+    """Whether *allegato* is Normattiva's number for a part (the URN's ``:k``), not an annex's name.
+
+    VisuaLex's ``allegato`` is that number (``generate_urn`` writes ``;104:2``), and so is
+    this API's: d.lgs. 104/2010 ``allegato="2"`` is the codice del processo amministrativo,
+    the act's "Allegato 1". A name the act gives ("I.7") stays a name.
+    """
+    return bool(allegato) and allegato.isdigit()
+
+
 def _con_allegato(tipo_atto: str, allegato: str | None, numero_articolo: str) -> str:
-    """The article string for a lookup: an annex of the act, unless it is the code's own default annex."""
-    if allegato and allegato != _allegato_predefinito(tipo_atto):
+    """The article string for a lookup: an annex the act names, unless it is the code's own default annex.
+
+    A positional ``allegato`` is not in the article string: it goes into the URL (``_parte``).
+    """
+    if allegato and not _posizionale(allegato) and allegato != _allegato_predefinito(tipo_atto):
         return annex_reference(allegato, numero_articolo)
     return numero_articolo or ""
+
+
+def _parte(tipo_atto: str, allegato: str | None) -> str:
+    """The positional part to put in the URL (``Norma.allegato``), "" for the act's default."""
+    if _posizionale(allegato) and allegato != _allegato_predefinito(tipo_atto):
+        return allegato
+    return ""
+
+
+#: The ":k" after the act number in a Normattiva URN: ";104:2~art120", ";262:2".
+_PARTE_URN = re.compile(r";[^;:~!@]+:(\d+)(?=~|!|@|$)")
 
 
 def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str = "",
@@ -99,6 +123,22 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
     nv = norme._build_nv(info, article)
     url = url or nv.url()
     annex = split_annex(article)
+    # The part the URL names, once a lookup served an article from it (";104:2~art120"):
+    # the norm's identity is then Normattiva's, as VisuaLex keys it.
+    parte = _PARTE_URN.search(norme._urn_from_url(url) or "") if "~art" in url else None
+    if annex and parte:
+        allegato, numero = parte.group(1), annex[1]
+    elif annex and _posizionale(annex[0]):
+        # "allegato 1 al d.lgs. 104/2010" names the act's own Allegato 1, which Normattiva
+        # numbers :2. Read back as an allegato it would be taken for position 1, so the
+        # reference keeps the annex in the article until a lookup gives the position.
+        allegato, numero = None, article
+    elif annex:
+        allegato, numero = annex
+    else:
+        allegato = (parte.group(1) if parte else None) or info.get("allegato") or _allegato_predefinito(
+            info.get("tipo_atto", ""))
+        numero = article or ""
     data = info.get("data", "") or ""
     eu = nv.norma._is_eurlex()
     if urn is None and not eu:
@@ -111,8 +151,8 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
         data=data,
         numero_atto=info.get("numero_atto", "") or "",
         url=url,
-        allegato=annex[0] if annex else _allegato_predefinito(info.get("tipo_atto", "")),
-        numero_articolo=annex[1] if annex else (article or ""),
+        allegato=allegato,
+        numero_articolo=numero,
         urn=urn,
         descrizione=str(nv.norma),
         # EU acts are cited by year by design; an Italian act's year alone is a placeholder.
@@ -195,6 +235,8 @@ def riferimento_da_parametri(
         return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
+    if parte := _parte(tipo_atto, allegato):
+        act_info["allegato"] = parte
     nv = norme._build_nv(act_info, article)
     if not nv.url():
         return EsitoRiferimento(
@@ -206,7 +248,10 @@ def riferimento_da_parametri(
 
 def _act_info(norma: NormaDati) -> tuple[dict, str]:
     article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
-    return {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}, article
+    info = {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}
+    if parte := _parte(norma.tipo_atto, norma.allegato):
+        info["allegato"] = parte
+    return info, article
 
 
 # ---------------------------------------------------------------------------
