@@ -192,7 +192,7 @@ def _cerca(query: str) -> list[dict]:
 
 
 def _codici_del_tool() -> list[str]:
-    dati = json.loads((ROOT / "mcp_legal_it/data/codici_tributo.json").read_text(encoding="utf-8"))
+    dati = json.loads((ROOT / "plugin/server/mcp_legal_it/data/codici_tributo.json").read_text(encoding="utf-8"))
     return [c["codice"] for c in dati["codici"]]
 
 
