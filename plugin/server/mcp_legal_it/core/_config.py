@@ -54,14 +54,37 @@ def attuale() -> Configurazione:
     return ctx if ctx is not None else _process
 
 
-def configura(**campi) -> Configurazione:
+class _NonIndicato:
+    """Marks a field the caller did not pass (``None`` is a value: "as the environment says")."""
+
+    def __repr__(self) -> str:
+        return "NON_INDICATO"
+
+
+NON_INDICATO = _NonIndicato()
+
+
+def _campi(**valori) -> dict:
+    return {k: v for k, v in valori.items() if v is not NON_INDICATO}
+
+
+def configura(
+    *,
+    client_factory: ClientFactory | None | _NonIndicato = NON_INDICATO,
+    cache_dir: str | Path | None | _NonIndicato = NON_INDICATO,
+    cache: bool | None | _NonIndicato = NON_INDICATO,
+    brocardi: bool | None | _NonIndicato = NON_INDICATO,
+) -> Configurazione:
     """Set fields of the process default (``configura(cache=False)``); returns the new default.
 
-    ``configura()`` with no field resets it to the built-in default.
+    Fields not passed keep their value; ``configura()`` with no field resets the
+    default to the built-in one. ``brocardi=True`` is refused (``ValueError``) when
+    ``LEGAL_BROCARDI=off`` is set.
     """
     global _process
     from mcp_legal_it.lib import _brocardi_switch
 
+    campi = _campi(client_factory=client_factory, cache_dir=cache_dir, cache=cache, brocardi=brocardi)
     nuovo = replace(_process, **campi) if campi else _DEFAULT
     if "brocardi" in campi or not campi:
         _brocardi_switch.set_default(nuovo.brocardi)
@@ -70,10 +93,20 @@ def configura(**campi) -> Configurazione:
 
 
 @contextmanager
-def configurazione(**campi) -> Iterator[Configurazione]:
-    """Run a block with these fields overriding the configuration in force."""
+def configurazione(
+    *,
+    client_factory: ClientFactory | None | _NonIndicato = NON_INDICATO,
+    cache_dir: str | Path | None | _NonIndicato = NON_INDICATO,
+    cache: bool | None | _NonIndicato = NON_INDICATO,
+    brocardi: bool | None | _NonIndicato = NON_INDICATO,
+) -> Iterator[Configurazione]:
+    """Run a block with these fields overriding the configuration in force (this context only).
+
+    ``brocardi=True`` is refused (``ValueError``) when ``LEGAL_BROCARDI=off`` is set.
+    """
     from mcp_legal_it.lib import _brocardi_switch
 
+    campi = _campi(client_factory=client_factory, cache_dir=cache_dir, cache=cache, brocardi=brocardi)
     nuovo = replace(attuale(), **campi)
     if campi.get("brocardi") and _brocardi_switch.off_by_environment():
         # Same rule as set_default(True): refused, not silently ignored.

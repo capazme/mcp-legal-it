@@ -613,6 +613,24 @@ fonti.run()                                   # oppure: il_mio_server.mount(font
 I tool esclusi non compaiono in `list_tools`; quelli inclusi restano identici a quelli del
 server standard. Parametri ed esempi: [docs/tool-tags.md](docs/tool-tags.md#un-server-con-una-parte-dei-tool-crea_server).
 
+### Come libreria Python: `mcp_legal_it.api`
+
+```python
+import asyncio
+from mcp_legal_it import api
+
+t = asyncio.run(api.testo_articolo("art. 2043 c.c.", canale="akn"))
+print(t.esito, t.norma_data.urn)
+print(t.article_text)
+```
+
+Funzioni `async` con risultati tipizzati (dataclass), senza Markdown: norme (riferimento, testo
+dell'articolo, indice, testo dell'atto, Brocardi) e giurisprudenza (Cassazione, Corte costituzionale,
+CeRDEF, TAR/CdS, CGUE, ricerca unificata). Gli errori sono dati (`esito`, `errore`), non eccezioni.
+Importare `mcp_legal_it.api` non carica FastMCP né il server e non apre connessioni; client HTTP,
+cache e Brocardi si iniettano con `api.configurazione(...)`. È l'unica superficie stabile del
+pacchetto (semver): riferimento completo in [docs/api.md](docs/api.md).
+
 ---
 
 ## Sviluppo
