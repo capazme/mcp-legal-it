@@ -9,7 +9,9 @@ from src.lib._paging import invalid_start
 from src.lib._result import SearchResult
 from src.server import mcp
 from src.lib.cgue.client import (
+    CELLAR_HOST,
     celex_of,
+    cellar_uri_error,
     fetch_case_metadata,
     fetch_sentenza_text,
     format_full,
@@ -67,6 +69,17 @@ async def _cerca_giurisprudenza_cgue_impl(
 async def _leggi_sentenza_cgue_impl(cellar_uri: str, da_carattere: int = 1) -> SearchResult:
     if (error := invalid_start(da_carattere)) is not None:
         return SearchResult(success=False, source="cgue", error_type="bad_input", results_text=error)
+    if (motivo := cellar_uri_error(cellar_uri)) is not None:
+        return SearchResult(
+            success=False,
+            source="cgue",
+            error_type="bad_input",
+            results_text=(
+                f"CELLAR URI non valido ({motivo}): usare il CELLAR URI riportato da "
+                "cerca_giurisprudenza_cgue() o ultime_sentenze_cgue() "
+                f"(es. http://{CELLAR_HOST}/resource/cellar/...)."
+            ),
+        )
     try:
         text = await fetch_sentenza_text(cellar_uri)
         stripped = text.strip()

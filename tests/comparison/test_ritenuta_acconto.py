@@ -10,13 +10,11 @@ Tolerance: 0.01 euro (brief).
 """
 
 import re
-import sys
 
 import pytest
 
 from tests.comparison.conftest import assert_close, goto, parse_euro
 
-sys.path.insert(0, "/Users/gpuzio/Desktop/CODE/server-infra2.0/mcp-legal-it")
 import src.server  # noqa: E402,F401  (registers every tool module)
 from src.tools.parcelle_professionisti import ritenuta_acconto  # noqa: E402
 

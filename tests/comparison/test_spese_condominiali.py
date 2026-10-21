@@ -16,11 +16,9 @@ Site conventions observed (Phase 1, 2026-09-28):
 """
 
 import re
-import sys
 
 import pytest
 
-sys.path.insert(0, "/Users/gpuzio/Desktop/CODE/server-infra2.0/mcp-legal-it")
 
 import src.server  # noqa: E402,F401  (registers all tool modules)
 from src.tools.proprieta_successioni import spese_condominiali as _tool  # noqa: E402

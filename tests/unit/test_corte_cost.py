@@ -605,6 +605,108 @@ class TestCacheBehavior:
         assert len(data) == 2
 
 
+class TestCacheOff:
+    """LEGAL_CACHE=off: one download per decade bundle per process, kept in memory."""
+
+    @pytest.fixture(autouse=True)
+    def _cache_off(self, monkeypatch):
+        from src.lib.corte_cost import client
+
+        from collections import OrderedDict
+
+        monkeypatch.setenv("LEGAL_CACHE", "off")
+        monkeypatch.setattr(client, "_bundle_memoria", OrderedDict(), raising=False)
+        monkeypatch.setattr(client, "_bundle_lock", {}, raising=False)
+
+    @pytest.mark.asyncio
+    async def test_many_searches_one_download(self, tmp_path):
+        mock = AsyncMock(side_effect=_download_router)
+        with patch("src.lib.corte_cost.client._download", mock):
+            for terms in ([], ["pensioni"], ["lavoro"], []):
+                await search_pronunce(terms=terms, year_from=1956, year_to=1956, limit=10)
+        assert mock.call_count == 1
+        assert not (tmp_path / "corte_cost").exists(), "nothing on disk with the cache off"
+
+    @pytest.mark.asyncio
+    async def test_a_memory_hit_still_declares_the_source(self):
+        from src.lib import _sources
+
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)):
+            await search_pronunce(terms=[], year_from=1956, year_to=1956, limit=10)
+            with _sources.recording() as seen:
+                await search_pronunce(terms=["pensioni"], year_from=1956, year_to=1956, limit=10)
+        assert any(dataset == "corte_cost" for dataset, _ in seen), seen
+
+    @pytest.mark.asyncio
+    async def test_concurrent_searches_share_the_download(self):
+        import asyncio
+
+        started = []
+
+        async def slow(url):
+            started.append(url)
+            await asyncio.sleep(0.05)
+            return _download_router(url)
+
+        with patch("src.lib.corte_cost.client._download", AsyncMock(side_effect=slow)):
+            await asyncio.gather(*(
+                search_pronunce(terms=[], year_from=1956, year_to=1956, limit=10) for _ in range(5)
+            ))
+        assert len(started) == 1, started
+
+    @pytest.mark.asyncio
+    async def test_bundle_in_memory_expires_like_the_disk_cache(self, monkeypatch):
+        """A long-running server must not answer from a bundle older than the TTL."""
+        from src.lib.corte_cost import client
+
+        now = [1_000_000.0]
+        monkeypatch.setattr(client.time, "time", lambda: now[0])
+        mock = AsyncMock(side_effect=lambda url: b"bundle")
+        with patch.object(client, "_download", mock):
+            await client._bundle_in_memoria("u")
+            now[0] += client._CACHE_TTL_SECONDS - 1
+            await client._bundle_in_memoria("u")
+            assert mock.call_count == 1
+            now[0] += 2
+            await client._bundle_in_memoria("u")
+        assert mock.call_count == 2
+
+    def test_memory_store_is_safe_across_threads(self, monkeypatch):
+        """Reads and writes of the store under eviction from many threads raise nothing."""
+        import threading
+
+        from src.lib.corte_cost import client
+
+        monkeypatch.setattr(client, "_MEMORIA_MAX_BYTES", 40)
+        errors = []
+
+        def work(i):
+            try:
+                for j in range(300):
+                    client._in_memoria(f"u{(i + j) % 7}", b"x" * 8)
+                    client._da_memoria(f"u{j % 7}")
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
+
+        threads = [threading.Thread(target=work, args=(i,)) for i in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert not errors, errors[:3]
+        assert sum(len(b) for _, b in client._bundle_memoria.values()) <= 40
+
+    @pytest.mark.asyncio
+    async def test_memory_cap_drops_the_least_recent_bundle(self, monkeypatch):
+        from src.lib.corte_cost import client
+
+        monkeypatch.setattr(client, "_MEMORIA_MAX_BYTES", 10)
+        with patch.object(client, "_download", AsyncMock(side_effect=lambda url: b"x" * 8)):
+            await client._bundle_in_memoria("a")
+            await client._bundle_in_memoria("b")
+        assert list(client._bundle_memoria) == ["b"]
+
+
 class TestFetchPronuncia:
     @pytest.mark.asyncio
     async def test_found(self):
@@ -843,7 +945,7 @@ class TestUltimeImpl:
     @pytest.mark.asyncio
     async def test_returns_latest(self):
         # Pin the clock to the fixture year. The tool reads the calendar through
-        # src/lib/_clock.py, so LEGAL_TODAY is what freezes it.
+        # mcp_legal_it/lib/_clock.py, so LEGAL_TODAY is what freezes it.
         with patch.dict(os.environ, {"LEGAL_TODAY": "1956-12-31"}), patch(
             "src.lib.corte_cost.client._download", AsyncMock(side_effect=_download_router)
         ):

@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.1] - 2026-10-21
+
+### Security
+- `leggi_sentenza_cgue` read any address it was given. On the hosted (HTTP)
+  connector, a client could use it to read pages that only the server can reach
+  (internal services, cloud metadata). It now opens only Court of Justice
+  documents on publications.europa.eu, redirects included, and refuses anything
+  else before sending a request.
+- A crafted citation could keep the server busy for minutes: the parsers of
+  `cite_law`, `verifica_citazioni` and the annex references slowed down
+  exponentially on long inputs. They now take a fraction of a millisecond on any
+  input.
+- certifi 2026.10.19 in the plugin's locked dependencies (PYSEC-2026-4320).
+
+### Fixed
+- **`cite_law` returned the wrong article for "D.Lgs. 196/2003 art. 13".** When the
+  act came before the article, the article was dropped and the answer was art. 1
+  of the act, with no warning; "D.Lgs. 36/2023 allegato I.1 art. 1" returned art. 1
+  of the code instead of the annex. Both orders are now read the same way, and a
+  reference whose article cannot be separated from the act is refused.
+- **Seven codes answered with the approving decree instead of the code.** Their
+  articles sit in an annex of the decree: "art. 3 codice del turismo" returned the
+  decree's art. 3, "Abrogazioni". Fixed for the codice del turismo, the codici
+  penali militari (di pace), the norme di attuazione del c.p.p., the regolamento
+  di esecuzione del codice della navigazione, the c.p.p. minorile, the TULPS and
+  the testo unico sulle successioni e donazioni. Every code is now checked against
+  Normattiva before each release.
+- **A range of articles was read as one number.** "art. 3-5 c.c." asked Normattiva
+  for art. 35. A range is now refused with "chiedere un articolo alla volta",
+  whatever its spelling ("3 - 5", "3–5", "artt. 3-5").
+- **`verifica_citazioni` called valid decisions non-existent.** "Corte cost. n.
+  238/2014" or "Cons. St. n. 1/2020" were looked up among the Cassazione's
+  decisions. Corte costituzionale decisions are now checked on the Court's own
+  archive; those of the Consiglio di Stato, TAR, Court of Justice, Corte dei conti,
+  European Court of Human Rights, tax courts and merits courts (giudice di pace
+  included) are reported as "non verificabile", with the tool to search them.
+- The disposizioni di attuazione del c.p.c. are R.D. 18 dicembre 1941, n. 1368:
+  citations, URNs and links carried 25/08/1941.
+- Without the disk cache (`LEGAL_CACHE=off`), every Corte costituzionale search
+  downloaded the decade archive again (~56 MB). It is now downloaded once per
+  process and kept in memory for at most seven days, like the disk cache.
+- Tests no longer carry a developer's local path.
+
 ## [2.17.0] - 2026-10-20
 
 ### Changed

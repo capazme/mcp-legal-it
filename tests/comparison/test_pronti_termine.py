@@ -24,13 +24,11 @@ comparison is impossible with what the site prints.
 """
 
 import re
-import sys
 
 import pytest
 
 from tests.comparison.conftest import accept_cookies, assert_close, parse_euro
 
-sys.path.insert(0, "/Users/gpuzio/Desktop/CODE/server-infra2.0/mcp-legal-it")
 
 URL = "https://www.avvocatoandreani.it/servizi/calcolo-rendimento-pronti-contro-termine.php"
 
