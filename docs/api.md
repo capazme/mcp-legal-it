@@ -683,6 +683,7 @@ multi-article references come with the next phases. `/fetch_decision` switches
   on it, so it needs no data migration, only the code fix in VisuaLex. VisuaLex
   corrects the URN only, never `norma_data.allegato`: for these seven the
   `:1` is in the URN and `allegato` stays `None`, as VisuaLex has it, so their
-  item keys do not change.
+  item keys do not change. The same holds for the codice penale militare di pace (`;303:1`)
+  and di guerra (`;303:2`), added on 21/10/2026 and absent from VisuaLex's table.
 - **Serialisation stays the shell's job.** Key order, ASCII escaping, the NDJSON
   stream: `come_dict` returns data, not JSON text.
