@@ -625,7 +625,9 @@ entry, it is the same feature as ported to the 3.0 line.
   (`ESATTO` for the page's text with its validity, `INDICATIVO` otherwise),
   `avvisi` (the coming version, with its day), `successione` (the repealing
   act a notice names, `INDICATIVO`) and `upcoming` (VisuaLex's: `change`,
-  `valid_from`, `version_number`).
+  `valid_from`, `version_number`). `cite_law`'s JSON gains the keys `avvisi`
+  (a list) and `upcoming` (an object or `null`), always present; its Markdown
+  adds the line «**Attenzione**: …».
 - **Art. 3 of l. 654/1975 is the law's, not the Convention's.** On the Akoma
   Ntoso path the largest part of an act won, so a law that executes a treaty
   served the treaty's articles under its own numbers (art. 3 on apartheid for

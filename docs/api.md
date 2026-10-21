@@ -308,6 +308,11 @@ The text in force of one article, from Normattiva or EUR-Lex.
   undated page was today's text. This is a deliberate, temporary divergence from
   VisuaLex, which serves the undated page as it is: VisuaLex adopts the same rule
   (its decision G-355), and the two converge with VisuaLex <SHA>.
+- **`cite_law(..., formato="json")`** carries the same two facts under the same
+  names, and both keys are always present so the schema does not change with the
+  answer: `avvisi` (a list, `[]` when there is nothing to say) and `upcoming` (the
+  object above, or `null`). The Markdown form prints the notice as a line
+  «**Attenzione**: …».
 - **`validity`** is what the page states of the text it served: the window
   «Testo in vigore dal … al …», the version, the repeal (VisuaLex's
   `extract_validity`, imported). It is read from the same page as the text, when

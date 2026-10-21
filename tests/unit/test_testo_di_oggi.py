@@ -167,3 +167,56 @@ async def test_cite_law_tells_the_reader(monkeypatch):
     assert "Sono soggetti a registrazione" in out and "ABROGATO" not in out.split("**Attenzione**")[0]
     assert ("**Attenzione**: Normattiva mostra senza data il testo in vigore dal 2027-01-01 (abrogato dal "
             "D.LGS. 1 AGOSTO 2025") in out
+
+
+class TestReviewOf69:
+    async def test_a_page_that_does_not_name_its_article_is_checked_too(self, monkeypatch):
+        # «Testo Unico-art. 3» instead of the heading: the shape of repealed-article pages.
+        senza_titolo = FUTURA.replace('<h2 class="article-num-akn">Art. 3</h2>', "<div>Testo Unico-art. 3</div>")
+        richieste = _serve(monkeypatch, {DPR131: senza_titolo, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
+        t = await api.testo_articolo(_dpr131(), canale="html")
+        assert len(richieste) == 2 and "Sono soggetti a registrazione" in t.article_text
+        assert "ABROGATO" not in t.article_text and t.precisione == "ESATTO"
+
+    async def test_today_s_page_must_say_it_is_today_s(self, monkeypatch):
+        # The page at today's date states the 2027 window again: never served as today's text.
+        act = ParsedAct(title="TU registro", articles={"3": "### Art. 3.\n\n1. Testo dell'export."}, order=["3"])
+        _serve(monkeypatch, {DPR131: FUTURA, f"{DPR131}!vig={OGGI}": FUTURA}, act=act)
+        t = await api.testo_articolo(_dpr131(), canale="html")
+        assert t.fonte == "normattiva-akn" and "Testo dell'export" in t.article_text
+        assert t.validity is None and t.precisione == "INDICATIVO"  # the export's text has no page window
+
+    async def test_today_s_page_that_says_another_day_and_no_export_serves_nothing(self, monkeypatch):
+        _serve(monkeypatch, {DPR131: FUTURA, f"{DPR131}!vig={OGGI}": FUTURA}, act=None)
+        t = await api.testo_articolo(_dpr131(), canale="html")
+        assert t.article_text == "" and t.esito != "trovato"
+
+    async def test_a_window_that_ended_before_today_is_read_again(self, monkeypatch):
+        # A record read before midnight and kept a day: «al 20-10-2026» is yesterday's text.
+        chiusa = synthetic(dal="01-01-2000", al="20-10-2026", label="Art. 3",
+                           content='<span class="art-just-text-akn">Il testo di ieri.</span>')
+        richieste = _serve(monkeypatch, {DPR131: chiusa, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
+        t = await api.testo_articolo(_dpr131(), canale="html")
+        assert len(richieste) == 2 and "Sono soggetti a registrazione" in t.article_text
+        assert t.validity.state == "current"
+
+    async def test_cite_law_json_carries_avvisi_and_upcoming(self, monkeypatch):
+        import json
+
+        import mcp_legal_it.server  # noqa: F401
+        from mcp_legal_it.tools import legal_citations as lc
+
+        _serve(monkeypatch, {DPR131: FUTURA, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
+        out = json.loads(await lc._cite_law_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
+        assert out["upcoming"] == {"change": "abrogated", "valid_from": "2027-01-01", "version_number": None}
+        assert out["avvisi"][0].startswith("Normattiva mostra senza data il testo in vigore dal 2027-01-01")
+
+    async def test_cite_law_json_keys_are_always_there(self, monkeypatch):
+        import json
+
+        import mcp_legal_it.server  # noqa: F401
+        from mcp_legal_it.tools import legal_citations as lc
+
+        _serve(monkeypatch, {DPR131: OGGI_PAGINA})
+        out = json.loads(await lc._cite_law_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
+        assert out["avvisi"] == [] and out["upcoming"] is None
