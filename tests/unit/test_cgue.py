@@ -1332,3 +1332,28 @@ class TestAdvocateGeneralProposal:
         body, _ = _excerpt(text)
         assert body.endswith("Firme")
         assert body.index("Per questi motivi, la Corte dichiara") > 25000
+
+
+async def test_redirect_away_from_cellar_is_not_followed():
+    """A 3xx from CELLAR to another host is refused by the request hook, not fetched."""
+    import httpx as _httpx
+    from mcp_legal_it.lib.cgue import client as cgue_client
+
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        if request.url.host == "publications.europa.eu":
+            return _httpx.Response(302, headers={"location": "http://169.254.169.254/latest/meta-data/"})
+        return _httpx.Response(200, text="secret " * 100)
+
+    real = _httpx.AsyncClient
+
+    def fake_client(*args, **kwargs):
+        kwargs["transport"] = _httpx.MockTransport(handler)
+        return real(*args, **kwargs)
+
+    with patch("mcp_legal_it.lib.cgue.client.httpx.AsyncClient", side_effect=fake_client):
+        with pytest.raises(Exception):
+            await cgue_client.fetch_sentenza_text("http://publications.europa.eu/resource/cellar/x.0006")
+    assert seen == ["http://publications.europa.eu/resource/cellar/x.0006"]
