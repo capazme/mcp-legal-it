@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass, field
 
-from .map import EURLEX, codice_urn, normalize_act_type
+from .map import EURLEX, articolato_in_allegato, codice_urn, normalize_act_type
 
 
 _NORMATTIVA_BASE = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
@@ -58,6 +58,9 @@ class Norma:
             return ""
         urn = f"{act_urn}:{formatted_date};{self.numero_atto}"
         if article:
+            allegato = articolato_in_allegato(act_urn, formatted_date, self.numero_atto)
+            if allegato and not names_an_annex(article):
+                urn += f":{allegato}"
             urn = _append_article(urn, article)
         return _NORMATTIVA_BASE + urn
 
