@@ -7,7 +7,8 @@ difference: it keeps what the page said, not the page. A code's article page is
 about 2.6 MB of HTML; the record is the extracted ``article_text`` (VisuaLex's
 extractor, ``normattiva_html``) and the article number the page gives it, a few KB.
 
-- in memory, an LRU of ``MAX_IN_MEMORIA`` records;
+- in memory, an LRU of ``MAX_IN_MEMORIA`` records, each with the validity the page
+  states for its text (``validita``: window, version, repeal), read from the same page;
 - on disk, ``${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine/<sha256 of the URL>.json``,
   read back for ``TTL_SECONDI`` (24 h) after the fetch; an expired record is deleted
   when met, and past ``MAX_SU_DISCO`` files the oldest go;
@@ -39,7 +40,8 @@ TTL_SECONDI = 86400
 MAX_IN_MEMORIA = 256
 MAX_SU_DISCO = 2000
 #: Raised when the record's shape changes, so records written before are not read.
-SCHEMA = 1
+#: 2: the record keeps what the page says of its own validity (``validita``).
+SCHEMA = 2
 
 _memoria: "OrderedDict[str, dict]" = OrderedDict()
 #: The disk is pruned once every this many writes, not at each one (a glob of up to 2000 files).
@@ -89,9 +91,14 @@ def leggi(url: str) -> dict | None:
     return rec
 
 
-def scrivi(url: str, testo: str, servito: str | None) -> None:
-    """Keep what the page at *url* said (best effort: an unwritable directory only warns)."""
-    _scrivi({"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito})
+def scrivi(url: str, testo: str, servito: str | None, validita: dict | None = None) -> None:
+    """Keep what the page at *url* said (best effort: an unwritable directory only warns).
+
+    *validita* is what the page states of the text's validity (``normattiva_validity``),
+    read from the same page: the window, the version, the repeal.
+    """
+    _scrivi({"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito,
+             "validita": validita})
 
 
 def _chiave_albero(url: str) -> str:
