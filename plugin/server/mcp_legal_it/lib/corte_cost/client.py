@@ -48,7 +48,7 @@ from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._cache import cache_enabled, cache_root
-from mcp_legal_it.lib._http import retry_request
+from mcp_legal_it.lib._http import note_source, retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
 
 _BASE = "https://dati.cortecostituzionale.it/opendata/distribuzione"
@@ -276,10 +276,13 @@ async def _bundle_in_memoria(url: str) -> bytes:
     """The bundle at *url*, downloaded at most once per process while it fits the cap."""
     if url in _bundle_memoria:
         _bundle_memoria.move_to_end(url)
+        # The answer still rests on what the source served: it is declared as such.
+        note_source("corte_cost", url)
         return _bundle_memoria[url]
     async with _lock_for(url):
         if url in _bundle_memoria:  # downloaded while this call waited
             _bundle_memoria.move_to_end(url)
+            note_source("corte_cost", url)
             return _bundle_memoria[url]
         data = await _download(url)
         _bundle_memoria[url] = data
