@@ -391,8 +391,18 @@ def _parse_title(raw_title: str) -> tuple[str, str, str]:
     return header, parties, subject
 
 
+async def _only_cellar(request: httpx.Request) -> None:
+    """httpx request hook: a redirect may not leave CELLAR either."""
+    if request.url.scheme not in ("http", "https") or (request.url.host or "").lower() != CELLAR_HOST:
+        raise httpx.InvalidURL(f"redirect fuori da {CELLAR_HOST}: {request.url.host}")
+
+
 async def _fetch_html(cellar_uri: str) -> str:
-    async with async_client("cgue", timeout=_TIMEOUT, headers=_HEADERS_HTML, follow_redirects=True) as client:
+    # The hook is one of core._http.GUARDIE: an injected client factory cannot drop it.
+    async with async_client(
+        "cgue", timeout=_TIMEOUT, headers=_HEADERS_HTML, follow_redirects=True,
+        event_hooks={"request": [_only_cellar]},
+    ) as client:
         resp = await retry_request(client, "GET", cellar_uri, dataset="cgue")
         return resp.text
 
