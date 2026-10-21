@@ -38,7 +38,7 @@ packaging:
   plugin-zip:
     from: claude-code
     artifact: "dist/legal-it-plugin-{version}.zip"
-    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE]
+    include: [.claude-plugin, skills, agents, commands, hooks, .mcp.json, server, README.md, LICENSE, NOTICE, LICENSES]
     root: plugin
     version_manifest: ".claude-plugin/plugin.json"
   # staging file-set kept in code: the server→server/ remap doesn't fit a flat include list
