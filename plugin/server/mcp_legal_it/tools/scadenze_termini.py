@@ -20,12 +20,61 @@ with open(_DATA / "festivita.json") as f:
 
 #: Riferimento unico alla sospensione feriale, ripetuto nelle risposte.
 _RIF_FERIALE = "L. 742/1969, art. 1 (sospensione dal 1° al 31 agosto, come modificato dall'art. 16 DL 132/2014)"
-#: Le materie sottratte alla sospensione (art. 3 L. 742/1969, che rinvia all'art. 92 R.D. 12/1941).
-_NOTA_ESCLUSIONI_FERIALE = (
-    "La sospensione feriale non si applica alle cause di lavoro e previdenza, alimenti, "
-    "sfratti, opposizioni esecutive, procedimenti cautelari e alle altre materie dell'art. 3 "
-    "L. 742/1969: in quei casi impostare sospensione_feriale=False."
+#: Le materie sottratte alla sospensione: art. 3 L. 742/1969, che rinvia all'art. 92 R.D. 12/1941
+#: (ordinamento giudiziario) e alle controversie di lavoro e previdenza. Testi riletti su Normattiva
+#: il 2026-10-21.
+_FONTE_ART_92 = "art. 3 L. 742/1969; art. 92, co. 1, R.D. 12/1941"
+_MATERIE_ESCLUSE_FERIALE = (
+    {
+        "materia": "controversie di lavoro e di previdenza e assistenza obbligatorie",
+        "fonte": (
+            "art. 3 L. 742/1969, che richiama gli artt. 429 e 459 c.p.c. nella numerazione "
+            "anteriore alla L. 533/1973 (oggi artt. 409 e 442 c.p.c.)"
+        ),
+    },
+    {"materia": "cause relative ad alimenti", "fonte": _FONTE_ART_92},
+    {"materia": "procedimenti cautelari", "fonte": _FONTE_ART_92},
+    {
+        "materia": "amministrazione di sostegno, interdizione e inabilitazione",
+        "fonte": _FONTE_ART_92,
+    },
+    {"materia": "ordini di protezione contro gli abusi familiari", "fonte": _FONTE_ART_92},
+    {"materia": "sfratto", "fonte": _FONTE_ART_92},
+    {"materia": "opposizione all'esecuzione", "fonte": _FONTE_ART_92},
+    {"materia": "dichiarazione e revoca dei fallimenti", "fonte": _FONTE_ART_92},
+    {"materia": "materia corporativa", "fonte": _FONTE_ART_92},
+    {
+        "materia": (
+            "cause la cui ritardata trattazione potrebbe produrre grave pregiudizio alle parti, "
+            "con dichiarazione d'urgenza del presidente o del giudice"
+        ),
+        "fonte": "art. 3 L. 742/1969; art. 92, co. 1 e 2, R.D. 12/1941",
+    },
 )
+
+
+def _avviso_feriale() -> dict:
+    """L'avviso che accompagna una scadenza spostata dalla sospensione feriale.
+
+    Compare solo quando la sospensione ha cambiato il risultato: è lì che l'avvocato deve
+    chiedersi se la causa rientra in una materia esclusa, perché in quel caso la scadenza
+    vera è più vicina (un termine in avanti anticipa fino a 31 giorni).
+    """
+    return {
+        "testo": (
+            "La sospensione feriale (1-31 agosto) ha spostato il risultato di questo calcolo. Non "
+            "si applica alle materie elencate qui sotto: se la causa rientra in una di esse, "
+            "ricalcolare con sospensione_feriale=False (i termini in avanti scadono prima)."
+        ),
+        "materie_escluse": [dict(m) for m in _MATERIE_ESCLUSE_FERIALE],
+    }
+
+
+def _con_avviso_feriale(result: dict) -> dict:
+    """Aggiunge `avviso_sospensione_feriale` quando la sospensione ha inciso sul risultato."""
+    if result.get("sospensione_feriale_incidente"):
+        result["avviso_sospensione_feriale"] = _avviso_feriale()
+    return result
 
 
 def _parse_date(d: str) -> date:
@@ -288,7 +337,7 @@ def scadenza_processuale(
     }
     if sospensione_feriale:
         result["riferimento_normativo"] += f"; {_RIF_FERIALE}"
-    return result
+    return _con_avviso_feriale(result)
 
 
 @mcp.tool(tags={"calcolo", "scadenze"})
@@ -412,7 +461,7 @@ def termini_processuali_civili(
             "L'art. 189 fissa i termini massimi (60/30/15 giorni prima dell'udienza): il giudice "
             "può assegnarne di più brevi — in tal caso passare `giorni`."
         )
-    return result
+    return _con_avviso_feriale(result)
 
 
 @mcp.tool(tags={"calcolo", "scadenze"})
@@ -604,7 +653,7 @@ def scadenze_impugnazioni(
             "riferimento_normativo": cfg["normativa"],
         }
 
-    return {
+    return _con_avviso_feriale({
         "data_pubblicazione": data_pubblicazione,
         "tipo_impugnazione": tipo_impugnazione,
         "descrizione": cfg["descrizione"],
@@ -615,7 +664,7 @@ def scadenze_impugnazioni(
         "sospensione_feriale_applicata": sospensione_feriale,
         "sospensione_feriale_incidente": incisa,
         "riferimento_normativo": riferimento,
-    }
+    })
 
 
 def _multe_scadenza(dt_notifica: date, tipo: str, giorni: int) -> tuple[date, bool, bool]:
@@ -705,6 +754,7 @@ def scadenze_multe(
             f"Termine processuale: sospensione feriale 1-31 agosto applicata ({_RIF_FERIALE}); "
             "proroga del sabato art. 155 co. 5 c.p.c."
         )
+        _con_avviso_feriale(result)
 
     # Show all options for context
     riepilogo = {}
@@ -761,7 +811,7 @@ def termini_memorie_repliche(
         })
 
     riferimento = "Art. 171-ter c.p.c." + (f"; {_RIF_FERIALE}" if sospensione_feriale else "")
-    return {
+    return _con_avviso_feriale({
         "data_udienza": data_udienza,
         "rito": "ordinario post-Cartabia (D.Lgs. 149/2022)",
         "riferimento_normativo": riferimento,
@@ -770,10 +820,9 @@ def termini_memorie_repliche(
         "scadenze": scadenze,
         "nota": (
             "I termini sono a ritroso rispetto alla data di udienza. Se cadono in giorno festivo "
-            "o di sabato anticipano al giorno non festivo precedente (art. 155 c.p.c.). "
-            + _NOTA_ESCLUSIONI_FERIALE
+            "o di sabato anticipano al giorno non festivo precedente (art. 155 c.p.c.)."
         ),
-    }
+    })
 
 
 @mcp.tool(tags={"calcolo", "scadenze"})
@@ -874,7 +923,7 @@ def termini_procedimento_semplificato(
     riferimento = "Artt. 281-decies, 281-undecies, 281-duodecies c.p.c." + (
         f"; {_RIF_FERIALE}" if sospensione_feriale else ""
     )
-    return {
+    return _con_avviso_feriale({
         "data_udienza": data_udienza,
         "rito": "semplificato di cognizione (D.Lgs. 149/2022)",
         "riferimento_normativo": riferimento,
@@ -885,10 +934,9 @@ def termini_procedimento_semplificato(
             "Il procedimento semplificato è applicabile quando i fatti di causa non sono controversi, "
             "o la domanda è fondata su prova documentale, o è di pronta soluzione (art. 281-decies). "
             "Se il giudice rileva che mancano i presupposti dispone il mutamento in rito ordinario, con "
-            "udienza ex art. 183 e termini ex art. 171-ter (art. 281-duodecies co. 1). "
-            + _NOTA_ESCLUSIONI_FERIALE
+            "udienza ex art. 183 e termini ex art. 171-ter (art. 281-duodecies co. 1)."
         ),
-    }
+    })
 
 
 @mcp.tool(tags={"calcolo", "previgente", "scadenze"})
@@ -953,7 +1001,7 @@ def termini_183_190_cpc(
     riferimento = "Artt. 183, co. 6 e 190 c.p.c. (testo previgente)" + (
         f"; {_RIF_FERIALE}" if sospensione_feriale else ""
     )
-    return {
+    return _con_avviso_feriale({
         "data_udienza": data_udienza,
         "rito": "ordinario pre-Cartabia (ante 28/02/2023)",
         "riferimento_normativo": riferimento,
@@ -961,7 +1009,18 @@ def termini_183_190_cpc(
         "sospensione_feriale_incidente": incisa_totale,
         "scadenze": scadenze,
         "nota": "Applicabile solo a cause iscritte a ruolo prima del 28/02/2023. Le memorie 183 decorrono dall'udienza di trattazione; conclusionali e repliche dall'udienza di PC.",
-    }
+    })
+
+
+#: Art. 617 e sospensione feriale: questione interpretativa aperta. Il tool resta sulla lettura
+#: prudente (nessuna sospensione) e lo dice quando agosto cade nel termine.
+_AVVERTENZA_617_FERIALE = (
+    "Il termine è calcolato senza sospensione feriale, la lettura prudente. Che l'opposizione agli "
+    "atti esecutivi (art. 617 c.p.c.) sia esclusa dalla sospensione è discusso: l'art. 3 L. 742/1969 "
+    "rinvia all'art. 92 R.D. 12/1941, che nomina la sola «opposizione all'esecuzione». Se la "
+    "sospensione si applicasse, il termine scadrebbe più tardi: la scadenza indicata resta la più "
+    "sicura."
+)
 
 
 @mcp.tool(tags={"calcolo", "scadenze"})
@@ -973,7 +1032,9 @@ def termini_esecuzioni(
     """Calcola i termini nelle procedure esecutive civili (pignoramento, opposizione).
     Vigenza: artt. 480-482, 543, 555, 617 c.p.c. (testo vigente).
     Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c.). La sospensione feriale non viene
-    applicata: le opposizioni esecutive sono escluse dall'art. 3 L. 742/1969.
+    applicata, lettura prudente: per l'opposizione agli atti esecutivi l'esclusione è discussa (l'art. 92
+    R.D. 12/1941, richiamato dall'art. 3 L. 742/1969, nomina la sola opposizione all'esecuzione) e la
+    risposta lo segnala quando agosto cade nel termine.
 
     Args:
         data_notifica_titolo: Data di notifica del precetto al debitore (YYYY-MM-DD)
@@ -1027,7 +1088,7 @@ def termini_esecuzioni(
     if tipo == "opposizione_atti_esecutivi":
         scad_raw = dt_notifica + timedelta(days=cfg["termine_opposizione_giorni"])
         scad, adjusted = _slide_forward(scad_raw)
-        return {
+        result = {
             "data_notifica": data_notifica_titolo,
             "tipo": tipo,
             "descrizione": cfg["descrizione"],
@@ -1037,6 +1098,10 @@ def termini_esecuzioni(
             "giorno_settimana": _giorno(scad),
             "riferimento_normativo": cfg["normativa"],
         }
+        _, agosto_nel_termine = _conta_avanti(dt_notifica, cfg["termine_opposizione_giorni"], True)
+        if agosto_nel_termine:
+            result["avvertenza_sospensione_feriale"] = _AVVERTENZA_617_FERIALE
+        return result
 
     # Termine dilatorio minimo (10gg) — non si può pignorare prima
     termine_min_raw = dt_notifica + timedelta(days=cfg["termine_minimo_giorni"])
@@ -1065,6 +1130,36 @@ def termini_esecuzioni(
     }
 
 
+#: Art. 347, co. 1, c.p.c. (D.Lgs. 164/2024): le altre parti si costituiscono in appello "almeno
+#: venti giorni prima dell'udienza"; è anche il termine, a pena di decadenza, dell'appello
+#: incidentale (art. 343).
+_GIORNI_APPELLATO = 20
+#: Il D.Lgs. 164/2024 è in GU n. 264 dell'11/11/2024, senza clausola di entrata in vigore:
+#: vale il quindicesimo giorno successivo (art. 10 disp. prel. c.c.).
+_VIGORE_DLGS_164_2024 = date(2024, 11, 26)
+_CARTABIA = date(2023, 2, 28)
+_AVVERTENZA_347_TRANSITORIO = (
+    "Appelli introdotti tra il 28/02/2023 e il 26/11/2024 (entrata in vigore del D.Lgs. 164/2024): "
+    "in quel periodo l'art. 347 c.p.c. rinviava ai termini del tribunale e quindi ai 70 giorni "
+    "dell'art. 166. Il tool applica i 20 giorni dell'art. 347 vigente perché l'art. 7, co. 1, "
+    "D.Lgs. 164/2024 ne estende le disposizioni ai procedimenti introdotti dopo il 28/02/2023; "
+    "se questa efficacia retroattiva valga per l'appello in esame è una valutazione dell'avvocato. "
+    "Costituirsi almeno 70 giorni prima dell'udienza soddisfa entrambe le letture, e con la "
+    "comparsa scade l'appello incidentale (a pena di decadenza, art. 343)."
+)
+
+
+def _appello_nel_periodo_transitorio(data_notifica_citazione: str | None) -> bool:
+    """True unless the citation date shows the appeal was introduced outside the window.
+
+    Without the date the appeal may fall in the window, so the warning stays: missing it is the
+    expensive mistake (a forfeited cross-appeal), reading it once too often is not.
+    """
+    if not data_notifica_citazione:
+        return True
+    return _CARTABIA < _parse_date(data_notifica_citazione) < _VIGORE_DLGS_164_2024
+
+
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_deposito_atti_appello(
@@ -1076,12 +1171,14 @@ def termini_deposito_atti_appello(
 ) -> dict:
     """Calcola i termini del giudizio di appello civile: impugnazione (breve e lungo), costituzione
     dell'appellante e comparsa di risposta dell'appellato.
-    Vigenza: artt. 325-327 c.p.c. (termini di impugnazione, invariati); artt. 347, 165 e 166 c.p.c.
-    nel testo del D.Lgs. 149/2022 (dal 28/02/2023): l'appellante si costituisce entro 10 giorni
-    dalla notifica della citazione (art. 165 via art. 347) e l'appellato almeno 70 giorni prima
-    dell'udienza (art. 166 via art. 347), proponendo nella comparsa l'appello incidentale a pena di
-    decadenza (art. 343). Per le cause ante 28/02/2023 la comparsa dell'appellato era dovuta 20
-    giorni prima dell'udienza (art. 166 previgente).
+    Vigenza: artt. 325-327 c.p.c. (termini di impugnazione, invariati); art. 347 c.p.c. nel testo
+    del D.Lgs. 164/2024: l'appellante si costituisce nei termini del tribunale, entro 10 giorni
+    dalla notifica della citazione (art. 165 via art. 347); le altre parti almeno 20 giorni prima
+    dell'udienza indicata nella citazione o fissata ex art. 349-bis (art. 347 co. 1), proponendo
+    nella comparsa l'appello incidentale a pena di decadenza (art. 343). Il D.Lgs. 164/2024 si
+    applica ai procedimenti introdotti dopo il 28/02/2023 (art. 7 co. 1); per gli appelli introdotti
+    prima della sua entrata in vigore (26/11/2024), quando l'art. 347 rinviava ai 70 giorni
+    dell'art. 166, il calcolo della comparsa lo segnala in `avvertenza_regime_transitorio`.
     Precisione: ESATTO (termini di legge; sospensione feriale contata giorno per giorno; proroga o
     anticipazione art. 155 c.p.c.).
 
@@ -1090,8 +1187,9 @@ def termini_deposito_atti_appello(
         data_pubblicazione: Data di pubblicazione della sentenza per il termine lungo (YYYY-MM-DD), opzionale
         data_notifica_citazione: Data di notifica della citazione in appello, per la costituzione
                                  dell'appellante entro 10 giorni (YYYY-MM-DD), opzionale
-        data_udienza: Data dell'udienza di comparizione indicata nella citazione in appello, per la
-                      comparsa di risposta dell'appellato 70 giorni prima (YYYY-MM-DD), opzionale
+        data_udienza: Data dell'udienza di comparizione indicata nella citazione in appello (o fissata
+                      ex art. 349-bis), per la comparsa di risposta dell'appellato 20 giorni prima
+                      (YYYY-MM-DD), opzionale
         sospensione_feriale: Applica la sospensione feriale 1-31 agosto ex L. 742/1969 (default
                              True; False per le materie escluse dall'art. 3 L. 742/1969)
     """
@@ -1108,7 +1206,7 @@ def termini_deposito_atti_appello(
             if err:
                 return err
 
-    riferimento = "Artt. 325, 327, 347, 165, 166 e 343 c.p.c." + (
+    riferimento = "Artt. 325, 327, 347, 165 e 343 c.p.c.; art. 7 D.Lgs. 164/2024" + (
         f"; {_RIF_FERIALE}" if sospensione_feriale else ""
     )
     result = {
@@ -1164,13 +1262,16 @@ def termini_deposito_atti_appello(
 
     voce_appellato = {
         "termine": "comparsa_risposta_appellato",
-        "descrizione": "Costituzione dell'appellato con comparsa di risposta almeno 70 giorni prima dell'udienza (appello incidentale a pena di decadenza)",
-        "giorni_prima_udienza": 70,
-        "normativa": "Artt. 166 e 343 c.p.c. (via art. 347) — testo D.Lgs. 149/2022; 20 giorni per le cause ante 28/02/2023",
+        "descrizione": (
+            "Costituzione dell'appellato con comparsa di risposta almeno 20 giorni prima dell'udienza "
+            "indicata nella citazione o fissata ex art. 349-bis (appello incidentale a pena di decadenza)"
+        ),
+        "giorni_prima_udienza": _GIORNI_APPELLATO,
+        "normativa": "Art. 347, co. 1, c.p.c. (testo D.Lgs. 164/2024) e art. 343 c.p.c.",
     }
     if data_udienza:
         dt_ud = _parse_date(data_udienza)
-        scad_raw, incisa = _conta_ritroso(dt_ud, 70, sospensione_feriale)
+        scad_raw, incisa = _conta_ritroso(dt_ud, _GIORNI_APPELLATO, sospensione_feriale)
         incisa_totale = incisa_totale or incisa
         scad, adj = _slide_backward(scad_raw)
         voce_appellato.update({"udienza": data_udienza, **_voce_scadenza(scad, adj)})
@@ -1178,8 +1279,11 @@ def termini_deposito_atti_appello(
         voce_appellato["nota"] = "Termine a ritroso dall'udienza fissata: passare data_udienza per il calcolo"
     result["termini"].append(voce_appellato)
 
+    if data_udienza and _appello_nel_periodo_transitorio(data_notifica_citazione):
+        result["avvertenza_regime_transitorio"] = _AVVERTENZA_347_TRANSITORIO
+
     result["sospensione_feriale_incidente"] = incisa_totale
-    return result
+    return _con_avviso_feriale(result)
 
 
 @mcp.tool(tags={"calcolo", "scadenze"})
@@ -1228,7 +1332,7 @@ def termini_deposito_ctu(
     replica, replica_adj = _slide_forward(replica_raw)
 
     riferimento = "Art. 195, co. 3 c.p.c." + (f"; {_RIF_FERIALE}" if sospensione_feriale else "")
-    return {
+    return _con_avviso_feriale({
         "data_conferimento": data_conferimento,
         "giorni_termine_ctu": giorni_termine,
         "riferimento_normativo": riferimento,
@@ -1259,4 +1363,4 @@ def termini_deposito_ctu(
             "passare i giorni effettivamente assegnati. Il deposito definitivo deve comunque "
             "precedere l'udienza successiva (art. 195 co. 3)."
         ),
-    }
+    })
