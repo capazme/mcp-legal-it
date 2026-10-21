@@ -740,8 +740,8 @@ class TestModelloNotulaTabelleDedicate:
         assert d["spese_vive"]["anticipazione_forfettaria_art_30"] == 27.0
 
     def test_decreto_ingiuntivo_max_primo_scaglione(self):
-        # Tab. VIII, fino a 5.200: medio 473, max +50% = 709.50, whole euro half up = 710
-        assert _notula("decreto_ingiuntivo", 5200, "max")["totale_compensi"] == 710
+        # Tab. VIII, fino a 5.200: medio 473, max +50% = 709.50, to the cent (not 710)
+        assert _notula("decreto_ingiuntivo", 5200, "max")["totale_compensi"] == 709.5
 
     def test_precetto_tab_vi_senza_bollo(self):
         # Tab. VI (atto di precetto), fino a 5.200: medio 142, min -50% = 71.
@@ -820,11 +820,12 @@ class TestParcellaCivileOltre32Milioni:
         assert _call("parcella_avvocato_civile", valore_causa=64_000_000)["totale_compenso"] == 140912
 
     def test_minimo_massimo_oltre_32_milioni(self):
-        # min/max = medium -/+ 50% (art. 4 co. 1 as amended by DM 147/2022), rounded
+        # min/max = exact half and one and a half of the medium, to the cent (art. 4 co. 1:
+        # "aumentati fino al 50 per cento, ovvero ... diminuiti in ogni caso non oltre il 50 per cento")
         r_min = _call("parcella_avvocato_civile", valore_causa=40_000_000, livello="min")
         r_max = _call("parcella_avvocato_civile", valore_causa=40_000_000, livello="max")
-        assert [f["importo"] for f in r_min["fasi"]] == [11120, 7335, 32663, 19340]
-        assert [f["importo"] for f in r_max["fasi"]] == [33359, 22004, 97988, 58019]
+        assert [f["importo"] for f in r_min["fasi"]] == [11119.5, 7334.5, 32662.5, 19339.5]
+        assert [f["importo"] for f in r_max["fasi"]] == [33358.5, 22003.5, 97987.5, 58018.5]
 
 
 # ---------------------------------------------------------------------------
@@ -915,14 +916,123 @@ class TestArrotondamentoMetaCentesimo:
         assert r["totale_compensi"] == 0.3
 
     def test_notula_penale_iva_tie(self):
-        # DM 147/2022 penale, tribunale monocratico, studio+introduttiva+istruttoria at minimum:
-        # 237+284+567 = 1088; SG 163.20; CPA 4% of 1251.20 = 50.048 -> 50.05; taxable 1301.25;
-        # IVA 22% = 286.275 exactly -> 286.28; total 1587.53
+        # DM 147/2022 penale, giudice di pace, decisionale at the medium: 662; SG 99.30;
+        # CPA 4% of 761.30 = 30.452 -> 30.45; taxable 791.75; IVA 22% = 174.185 exactly -> 174.19
+        r = _call("calcolo_notula_penale", competenza="giudice_pace",
+                  fasi=["decisionale"], livello="medio")
+        assert r["imponibile_iva"] == 791.75
+        assert r["iva_22pct"] == 174.19
+        assert r["totale"] == 965.94
+
+    def test_notula_penale_minimi_al_centesimo_tie(self):
+        # Tribunale monocratico at the minimum: introduttiva 567/2 = 283.50, istruttoria
+        # 1134/2 = 567; 850.50; SG 15% = 127.575 exactly -> 127.58; CPA 4% of 978.08 = 39.1232
+        # -> 39.12; taxable 1017.20; IVA 223.784 -> 223.78; total 1240.98
         r = _call("calcolo_notula_penale", competenza="tribunale_monocratico",
-                  fasi=["studio", "introduttiva", "istruttoria"], livello="min")
-        assert r["imponibile_iva"] == 1301.25
-        assert r["iva_22pct"] == 286.28
-        assert r["totale"] == 1587.53
+                  fasi=["introduttiva", "istruttoria"], livello="min")
+        assert [f["importo"] for f in r["fasi"]] == [283.5, 567]
+        assert r["spese_generali_15pct"] == 127.58
+        assert r["imponibile_iva"] == 1017.2
+        assert r["totale"] == 1240.98
+
+
+class TestMinimiMetaEsattaAlCentesimo:
+    """Art. 4, comma 1, D.M. 55/2014: the minimum is the exact half of the medium, to the cent;
+    the maximum, by the same rule, the exact one and a half."""
+
+    def test_ogni_minimo_della_tabella_e_la_meta_esatta_del_medio(self):
+        import json
+        import pathlib
+        from decimal import Decimal
+
+        import mcp_legal_it
+
+        tabella = json.loads((pathlib.Path(mcp_legal_it.__file__).parent / "data" / "parametri_forensi.json").read_text())
+        scarti = []
+
+        def visita(nodo, percorso):
+            if isinstance(nodo, dict):
+                if "min" in nodo and "medio" in nodo:
+                    if Decimal(str(nodo["min"])) != Decimal(str(nodo["medio"])) / 2:
+                        scarti.append(f"{percorso}: min {nodo['min']}, medio {nodo['medio']}")
+                for chiave, valore in nodo.items():
+                    visita(valore, f"{percorso}.{chiave}")
+            elif isinstance(nodo, list):
+                for i, valore in enumerate(nodo):
+                    visita(valore, f"{percorso}[{i}]")
+
+        visita(tabella, "parametri_forensi")
+        assert not scarti, "\n".join(scarti)
+
+    def test_civile_primo_scaglione(self):
+        # Tab. 2, fino a 1.100: medi 131/131/200/200 -> minimi 65,50/65,50/100/100 = 331
+        r = _call("parcella_avvocato_civile", valore_causa=1000, livello="min")
+        assert [f["importo"] for f in r["fasi"]] == [65.5, 65.5, 100, 100]
+        assert r["totale_compenso"] == 331.0
+
+    def test_stragiudiziale_scaglione_chiuso(self):
+        # Tab. 25, 5.200,01-26.000: medio 1.985 -> minimo 992,50 (non 993)
+        assert _call("parcella_stragiudiziale", valore_pratica=10000, livello="min")["compenso"] == 992.5
+
+    def test_stragiudiziale_oltre_520000(self):
+        # 611.111 x 3% = 18.333,33 -> medio 18.333 (all'euro) -> minimo 9.166,50
+        assert _call("parcella_stragiudiziale", valore_pratica=611111, livello="min")["compenso"] == 9166.5
+
+    def test_volontaria_giurisdizione(self):
+        # Tab. 7 fino a 5.200: medi 213 (studio) e 212 (trattazione) -> 106,50 e 106 (prima 107)
+        r = _call("parcella_volontaria_giurisdizione", valore_causa=1000, livello="min")
+        assert [f["importo"] for f in r["fasi"]] == [106.5, 106]
+        assert r["totale_compenso"] == 212.5
+
+    def test_notula_monitorio(self):
+        # Tab. VIII fino a 5.200: medio 473 -> minimo 236,50, come nella quotazione
+        r = _call("modello_notula", tipo_procedimento="decreto_ingiuntivo", avvocato="A",
+                  cliente="B", valore_causa=3000, livello="min")
+        assert r["dettaglio_calcoli"]["fasi"] == [{"fase": "unica", "importo": 236.5}]
+        assert "€236.50" in r["testo_notula"]
+
+    def test_preventivo_civile_porta_i_centesimi(self):
+        # 65,50 + 65,50 + 100 + 100 = 331; SG 49,65; CPA 15,23 (15,226); IVA 87,09 (87,0936)
+        r = _call("preventivo_civile", valore_causa=1000, livello="min")
+        assert [f["importo"] for f in r["dettaglio_calcoli"]["fasi"]] == [65.5, 65.5, 100, 100]
+        assert r["dettaglio_calcoli"]["totale_onorari"] == 482.97
+        assert "Fase studio: €65.50" in r["testo_preventivo"]
+
+    def test_il_massimo_e_una_volta_e_mezza_esatta_al_centesimo(self):
+        # Come il minimo: 131 x 1,5 = 196,50 (non 197); 200 x 1,5 = 300
+        r = _call("parcella_avvocato_civile", valore_causa=1000, livello="max")
+        assert [f["importo"] for f in r["fasi"]] == [196.5, 196.5, 300, 300]
+        assert r["totale_compenso"] == 993.0
+
+    def test_ogni_massimo_della_tabella_e_una_volta_e_mezza_il_medio(self):
+        import json
+        import pathlib
+        from decimal import Decimal
+
+        import mcp_legal_it
+
+        tabella = json.loads((pathlib.Path(mcp_legal_it.__file__).parent / "data" / "parametri_forensi.json").read_text())
+        scarti = []
+
+        def visita(nodo, percorso):
+            if isinstance(nodo, dict):
+                if "max" in nodo and "medio" in nodo:
+                    if Decimal(str(nodo["max"])) != Decimal(str(nodo["medio"])) * Decimal("1.5"):
+                        scarti.append(f"{percorso}: max {nodo['max']}, medio {nodo['medio']}")
+                for chiave, valore in nodo.items():
+                    visita(valore, f"{percorso}.{chiave}")
+            elif isinstance(nodo, list):
+                for i, valore in enumerate(nodo):
+                    visita(valore, f"{percorso}[{i}]")
+
+        visita(tabella, "parametri_forensi")
+        assert not scarti, "\n".join(scarti)
+
+    def test_notula_massimo_al_centesimo(self):
+        # Tab. VIII fino a 5.200: medio 473 -> massimo 709,50 (non 710)
+        r = _call("modello_notula", tipo_procedimento="decreto_ingiuntivo", avvocato="A",
+                  cliente="B", valore_causa=3000, livello="max")
+        assert r["dettaglio_calcoli"]["fasi"] == [{"fase": "unica", "importo": 709.5}]
 
 
 class TestSpeseTrasfertaArt27:

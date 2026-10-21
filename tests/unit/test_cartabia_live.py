@@ -2,7 +2,7 @@
 
 The procedural tools in `mcp_legal_it/tools/scadenze_termini.py` and `mcp_legal_it/tools/procedura_civile.py`
 encode day counts (40/20/10 for the memorie ex art. 171-ter, 60/30/15 for the atti ex art.
-189, 10 and 70 for the costituzione ex artt. 165-166, 30/60 and six months ex artt. 325-327,
+189, 10 and 70 for the costituzione ex artt. 165-166, 20 for the appellee ex art. 347, 30/60 and six months ex artt. 325-327,
 10 and 40 for the rito semplificato ex art. 281-undecies, 20+10 ex art. 281-duodecies) and the
 1-31 August window of L. 742/1969. A correttivo can move any of them without touching this
 repository, so this file reads each article through `cite_law()` (Normattiva, vigente text)
@@ -73,9 +73,12 @@ def test_costituzione_attore_e_convenuto_165_166():
     _assert_words("art. 166 c.p.c.", "settanta giorni")
 
 
-def test_appello_347_rinvia_ai_termini_del_tribunale():
-    _assert_words("art. 347 c.p.c.", "tribunale")
-    _assert_words("art. 343 c.p.c.", "comparsa di risposta")
+def test_appello_347_venti_giorni_e_343():
+    # D.Lgs. 164/2024: the appellee's (and the cross-appeal's) deadline is art. 347's own
+    # "almeno venti giorni prima dell'udienza", no longer art. 166 through the tribunal's terms
+    _assert_words("art. 347 c.p.c.", "tribunale", "venti giorni prima dell'udienza", "349-bis")
+    _assert_words("art. 343 c.p.c.", "comparsa di risposta", "articolo 347")
+    _assert_words("art. 7 D.Lgs. 164/2024", "successivamente al 28 febbraio 2023")
 
 
 def test_impugnazioni_325_327():

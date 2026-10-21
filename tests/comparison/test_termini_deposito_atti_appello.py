@@ -9,14 +9,14 @@ the tool does not compute. The tool's four terms are therefore matched on two ot
   Decorrenza 1 notifica / 2 pubblicazione, three date selects, SospensioneFeriale checkbox,
   submit #button1). Result: "Termine ultimo: <Giorno> <dd> <Mese> <yyyy>".
 - costituzione dell'appellante (10 days forward, art. 165 via art. 347 c.p.c.) and comparsa
-  dell'appellato (70 days backward, art. 166 via art. 347 c.p.c., text of D.Lgs. 149/2022):
+  dell'appellato (20 days backward, art. 347 co. 1 c.p.c., text of D.Lgs. 164/2024):
   calcolo_scadenze_termini_udienze.php, form ``Scadenze`` (GiornoInizio1/MeseInizio1/
   AnnoInizio1, NumeroGiorni, PrimaDopo radio, SospensioneFeriale checkbox, submit #btn_calc).
   Result: "La data di scadenza calcolata è: ..." and, when the raw day is a holiday, a second
   line "Primo giorno precedente|successivo non festivo: dd/mm/yyyy". The adjusted date (second
   line when present) is what is compared with the tool, which returns the adjusted deadline.
 
-Norms: artt. 155, 165, 166, 325, 327, 343, 347 c.p.c.; art. 1 L. 742/1969 (sospensione
+Norms: artt. 155, 165, 325, 327, 343, 347 c.p.c.; art. 7 D.Lgs. 164/2024; art. 1 L. 742/1969 (sospensione
 feriale 1-31 agosto); L. 260/1949 as amended by L. 151/2025 (4 ottobre festivo dal 2026).
 Tolerance: dates must match exactly.
 """
@@ -152,14 +152,15 @@ def test_costituzione_appellante_agosto(page):
     assert tool == site, f"tool {tool} != site {site}"
 
 
-# Plan case 2 (limit: August + Sunday, backward). Art. 166 via art. 347 c.p.c. (70 days
-# before the hearing, D.Lgs. 149/2022) + L. 742/1969 + art. 155 c.p.c.
-# Expected 2025-07-04: 44 days Oct-Sep, 26 in July down to Sunday 6, anticipated to Friday 4
-# (the tool also skips Saturday, art. 155 co. 5 applied to a backward term). The site
-# declares Saturday a working day, so it anticipates only to Saturday 5: convention gap.
+# Plan case 2 (limit: August + Sunday, backward). Art. 347 co. 1 c.p.c. (20 days before the
+# hearing, D.Lgs. 164/2024) + L. 742/1969 + art. 155 c.p.c.
+# Expected 2025-07-18: 8 days in September, August skipped, 12 in July down to Sunday 20,
+# anticipated to Friday 18 (the tool also skips Saturday, art. 155 co. 5 applied to a
+# backward term). The site declares Saturday a working day, so it anticipates only to
+# Saturday 19: convention gap.
 def test_comparsa_appellato_agosto_domenica(page):
-    tool = _tool(data_udienza="2025-10-15")["comparsa_risposta_appellato"]
-    site, _ = _site_scadenza(page, "2025-10-15", 70, "prima", True)
+    tool = _tool(data_udienza="2025-09-09")["comparsa_risposta_appellato"]
+    site, _ = _site_scadenza(page, "2025-09-09", 20, "prima", True)
     assert tool == site, f"tool {tool} != site {site}"
 
 
@@ -173,20 +174,20 @@ def test_costituzione_appellante_senza_sospensione(page):
     assert tool == site, f"tool {tool} != site {site}"
 
 
-# Plan case 3 (limit: suspension off). Expected comparsa 2025-08-06 (art. 166 via 347).
+# Plan case 3 (limit: suspension off). Expected comparsa 2025-08-20 (art. 347 co. 1).
 def test_comparsa_appellato_senza_sospensione(page):
-    tool = _tool(data_udienza="2025-10-15", sospensione_feriale=False)[
+    tool = _tool(data_udienza="2025-09-09", sospensione_feriale=False)[
         "comparsa_risposta_appellato"
     ]
-    site, _ = _site_scadenza(page, "2025-10-15", 70, "prima", False)
+    site, _ = _site_scadenza(page, "2025-09-09", 20, "prima", False)
     assert tool == site, f"tool {tool} != site {site}"
 
 
-# Plan case 4. Art. 166 via art. 347 c.p.c. (D.Lgs. 149/2022): 70 days before 2025-12-15
-# -> 2025-10-06 (Monday). The pre-2023 20-day term (2025-11-25) is not computed by the tool.
+# Plan case 4. Art. 347 co. 1 c.p.c. (D.Lgs. 164/2024): 20 days before 2025-12-15
+# -> 2025-11-25 (Tuesday), the same term the pre-2023 text of art. 166 gave.
 def test_comparsa_appellato_ordinaria(page):
     tool = _tool(data_udienza="2025-12-15")["comparsa_risposta_appellato"]
-    site, _ = _site_scadenza(page, "2025-12-15", 70, "prima", True)
+    site, _ = _site_scadenza(page, "2025-12-15", 20, "prima", True)
     assert tool == site, f"tool {tool} != site {site}"
 
 
@@ -221,6 +222,6 @@ def test_pagina_art_352_non_confrontabile(page):
 # Benchmark phase 3 verdicts (2026-09-29).
 # - Appellant filing with raw date on Saturday: art. 155 co. 5 c.p.c. prorogues to Monday for procedural
 #   acts outside the hearing; the tool is right, the site treats Saturday as a working day (site wrong).
-# - 70-day term counted backwards, raw date on Sunday: CONVENTION. The tool anticipates to Friday
+# - Appellee's term counted backwards, raw date on Sunday: CONVENTION. The tool anticipates to Friday
 #   (prudential, same as _slide_backward in every backward term); Saturday would also be defensible
 #   (art. 155 co. 6: Saturday is a working day). No tool change.
