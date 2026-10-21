@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 import httpx
+from mcp_legal_it.core._http import async_client
 from bs4 import BeautifulSoup
 
 from .._http import note_source
@@ -417,7 +418,7 @@ async def search_docs(
     results: list[DocResult] = []
     page = 1
 
-    async with httpx.AsyncClient(
+    async with async_client("gpdp",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         while len(results) < rows:
@@ -450,7 +451,7 @@ async def search_docs(
 async def fetch_doc(docweb_id: int) -> tuple[str, str]:
     """Fetch full document text via print URL. Returns (title, text)."""
     url = f"{_BASE}{_PRINT_PATH}/{docweb_id}"
-    async with httpx.AsyncClient(
+    async with async_client("gpdp",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         resp = await client.get(url)

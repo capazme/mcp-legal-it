@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 
@@ -328,7 +329,7 @@ async def search_trademarks(
     page_size = max(1, min(page_size, _MAX_PAGE_SIZE))
     payload = _build_search_payload(term, offices, nice_classes, statuses, page, page_size)
     await _throttle()
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
+    async with async_client("tmview", timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         await _warm_up(client)
         resp = await retry_request(client, "POST", _SEARCH_URL, dataset="tmview", json=payload)
         return _parse_search_response(_json_or_blocked(resp))
@@ -355,7 +356,7 @@ async def fetch_trademark(st13: str) -> TrademarkDetail:
     """
     await _throttle()
     url = _DETAIL_URL.format(st13=st13)
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
+    async with async_client("tmview", timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         await _warm_up(client)
         for attempt in range(_DETAIL_ATTEMPTS):
             try:

@@ -535,6 +535,13 @@ class Audit:
         target = self.reexports.get(target, target)
         if target in self.functions:
             return target
+        #: A name another module imported and is called through it
+        #: ("cassazione.solr_query", where core/cassazione.py imports solr_query
+        #: from the Italgiure client): follow that module's own import.
+        owner, _, attr = target.rpartition(".")
+        origin = self.imports.get(owner, {}).get(attr)
+        if origin and origin != target and origin in self.functions:
+            return origin
         short = target.split(".")[-1]
         candidate = "%s.%s" % (module, short)
         if candidate in self.functions:

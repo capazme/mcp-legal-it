@@ -6,6 +6,7 @@ checksum pre-check avoids useless network calls. Member-state data
 """
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib._http import retry_request
 
@@ -45,7 +46,7 @@ async def check_vat(vat_number: str, country_code: str = "IT") -> dict:
     """
     try:
         payload = {"countryCode": country_code.upper(), "vatNumber": vat_number.strip().replace(" ", "")}
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        async with async_client("vies", timeout=_TIMEOUT) as client:
             resp = await retry_request(client, "post", VIES_ENDPOINT, dataset="vies", json=payload)
             data = resp.json()
     except (httpx.TransportError, httpx.HTTPStatusError, ValueError, AttributeError) as exc:

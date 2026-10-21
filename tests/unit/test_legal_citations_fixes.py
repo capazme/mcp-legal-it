@@ -521,7 +521,7 @@ from mcp_legal_it.lib.brocardi.client import BrocardiResult, Massima  # noqa: E4
 def pinned_today(monkeypatch):
     """2026-09-29: the day the archive was measured (civil archive from 17/02/2021)."""
     monkeypatch.setenv("LEGAL_TODAY", "2026-09-29")
-    monkeypatch.setattr(lc, "_archive_start_cache", {})
+    monkeypatch.setattr("mcp_legal_it.core.cassazione._archive_start_cache", {})
 
 
 def _archive_start(year=2021, date="2021-02-17"):
@@ -545,7 +545,7 @@ class TestArchiveStart:
         # (Cass. civ. 4215/2021); nothing is indexed for 2020.
         response = {"response": {"docs": [{"id": "x", "anno": "2021", "datdep": ["20210217"], "kind": "snciv"}]}}
         solr = AsyncMock(return_value=response)
-        with patch("mcp_legal_it.tools.italgiure.solr_query", solr):
+        with patch("mcp_legal_it.core.cassazione.solr_query", solr):
             assert await lc._italgiure_archive_start("civile") == (2021, "2021-02-17")
             assert await lc._italgiure_archive_start("civile") == (2021, "2021-02-17")
         assert solr.await_count == 1  # cached for the day
@@ -556,14 +556,14 @@ class TestArchiveStart:
     @pytest.mark.asyncio
     async def test_all_archives_are_probed_together(self, pinned_today):
         solr = AsyncMock(return_value={"response": {"docs": [{"datdep": ["20210127"], "kind": "snpen"}]}})
-        with patch("mcp_legal_it.tools.italgiure.solr_query", solr):
+        with patch("mcp_legal_it.core.cassazione.solr_query", solr):
             assert await lc._italgiure_archive_start("tutti") == (2021, "2021-01-27")
         assert 'kind:"snciv"' in solr.await_args.args[0]["q"] and 'kind:"snpen"' in solr.await_args.args[0]["q"]
 
     @pytest.mark.asyncio
     async def test_probe_failure_falls_back_to_the_window_rule_and_is_not_cached(self, pinned_today):
         solr = AsyncMock(side_effect=RuntimeError("Italgiure down"))
-        with patch("mcp_legal_it.tools.italgiure.solr_query", solr):
+        with patch("mcp_legal_it.core.cassazione.solr_query", solr):
             assert await lc._italgiure_archive_start("civile") == (2021, "")  # 2026 - 5
             await lc._italgiure_archive_start("civile")
         assert solr.await_count == 2
@@ -614,7 +614,7 @@ class TestVerificaSentenzaArchiveWindow:
         # No archive start available: the assumed window (2026 - 5 = 2021) still stops a
         # decision of 2021 from being called inexistent.
         lookup = AsyncMock(return_value=_NOT_FOUND)
-        with patch("mcp_legal_it.tools.italgiure.solr_query", AsyncMock(side_effect=RuntimeError("down"))), \
+        with patch("mcp_legal_it.core.cassazione.solr_query", AsyncMock(side_effect=RuntimeError("down"))), \
              patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", lookup):
             verdetto, _ = await lc._verifica_sentenza("Cass. civ. n. 10579/2021", "civile")
         assert verdetto == "non verificabile"

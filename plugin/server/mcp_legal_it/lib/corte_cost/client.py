@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import Callable
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._cache import cache_enabled, cache_root
@@ -200,7 +201,7 @@ def _decade_for_year(year: int, decades: list[tuple[int, int, str]]) -> str | No
 
 
 async def _download(url: str) -> bytes:
-    async with httpx.AsyncClient(
+    async with async_client("corte_cost",
         timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True
     ) as client:
         resp = await retry_request(client, "GET", url, dataset="corte_cost")

@@ -18,6 +18,7 @@ Any failure (no params, HTTP error, non-XML response, parser exception) returns
 ``None`` so the caller can fall back to the HTML scraping path.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -27,8 +28,9 @@ from datetime import date
 from pathlib import Path
 
 import httpx
+from mcp_legal_it.core._http import async_client
 
-from .. import _clock
+from .. import _clock, _sources
 from .._cache import cache_enabled, cache_root
 from .._http import note_source
 from .akn_parser import ParsedAct, ParsedPart, parse_akn
@@ -62,6 +64,10 @@ _CACHE_SCHEMA = 2
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
+
+#: Downloads in progress, keyed by (event loop, landing URL, dataVigenza); each
+#: future gives the parsed act and the sources its download consulted.
+_in_flight: "dict[tuple[asyncio.AbstractEventLoop, str, str], asyncio.Future]" = {}
 
 
 def _cache_root() -> Path:
@@ -350,8 +356,41 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             _bump_hits((codice, data_gu, data_vigenza))
             return cached
 
+    # In-flight dedupe: concurrent cold requests for the same act share one
+    # download. The key carries the running loop because a future belongs to it.
+    loop = asyncio.get_running_loop()
+    flight_key = (loop, landing_url, data_vigenza)
+    pending = _in_flight.get(flight_key)
+    if pending is not None:
+        act, consulted = await asyncio.shield(pending)
+        # The download happened for this caller too: its answer names the source.
+        for dataset, url in consulted:
+            _sources.note(dataset, url)
+        return act
+    future: "asyncio.Future[tuple[ParsedAct | None, frozenset]]" = loop.create_future()
+    _in_flight[flight_key] = future
+    act, consulted = None, frozenset()
     try:
-        async with httpx.AsyncClient(
+        with _sources.recording() as noted:
+            try:
+                act = await _download_act(landing_url, data_vigenza)
+            finally:
+                consulted = frozenset(noted)
+        return act
+    finally:
+        for dataset, url in consulted:
+            _sources.note(dataset, url)  # back into the caller's own record
+        # A cancelled download hands its waiters None: they fall back to HTML,
+        # as on any other AKN failure, instead of inheriting the cancellation.
+        if not future.done():
+            future.set_result((act, consulted))
+        _in_flight.pop(flight_key, None)
+
+
+async def _download_act(landing_url: str, data_vigenza: str) -> "ParsedAct | None":
+    """The two-request caricaAKN flow for one act (see the module docstring); None on failure."""
+    try:
+        async with async_client("normattiva",
             headers=_HEADERS,
             timeout=_TIMEOUT,
             follow_redirects=True,
