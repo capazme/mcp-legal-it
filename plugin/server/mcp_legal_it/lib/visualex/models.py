@@ -97,8 +97,11 @@ ANNEX_ID = r"(?:[IVXLCDM]+|\d+|[A-Z])(?:\.\d+)*"
 
 _ANNEX_RE = re.compile(
     rf"^\s*allegato\s+(?P<id>{ANNEX_ID})"
-    # The article forms of the reference parser: "30", "2-bis", "2 bis", "30.1", "3-quater.1".
-    r"(?:\s*,?\s*(?:art(?:icolo)?\.?)\s*(?P<art>\d+(?:[-/.\s]?\w+)*))?\s*$",
+    # The article forms of the reference parser: "30", "2-bis", "2 bis", "2bis", "30.1",
+    # "3-quater.1". Each repetition starts with a separator that \w cannot match: with
+    # the separator optional ("[-/.\s]?\w+") a run of digits split in exponentially
+    # many ways and a failing match took 0.44 s at 20 characters, x4 every 2 more.
+    r"(?:[\s,]*(?:art(?:icolo)?\.?)\s*(?P<art>\d+[a-z]*(?:[-/.\s]\w+)*))?\s*$",
     re.IGNORECASE,
 )
 
@@ -129,8 +132,33 @@ def annex_reference(annex_id: str, article: str = "") -> str:
     return f"{ref} art. {article}" if article else ref
 
 
+#: "3-5", "3 - 5", "3/5-bis"... after the number: a second number, i.e. a range.
+_ARTICLE_RANGE = re.compile(r"^\d+\s*-\s*\d")
+
+
+class IntervalloArticoli(ValueError):
+    """An article string that names a range of articles, not one article."""
+
+
+def intervallo_articoli(article: str) -> "str | None":
+    """The error to show when *article* is a range ("3-5"), else None.
+
+    "3-5" is not article 3 with extension "5": as a URN it becomes ~art35 and
+    serves art. 35, a real article, without a word. Entry points check this
+    before building a reference; ``_append_article`` refuses it as a last resort.
+    """
+    plain = re.sub(r"^\s*(?:articol[oi]|artt?)\.?\s*", "", article or "", flags=re.IGNORECASE).strip()
+    if not _ARTICLE_RANGE.match(plain):
+        return None
+    first, last = (x.strip() for x in plain.split("-", 1))
+    return (f"«{plain}» indica un intervallo di articoli, non un articolo: "
+            f"chiedere un articolo alla volta (es. art. {first}, poi art. {last})")
+
+
 def _append_article(urn: str, article: str) -> str:
     """Append ~artXXX to URN, handling extensions like '13-bis' or '2 bis'."""
+    if (motivo := intervallo_articoli(article)) is not None:
+        raise IntervalloArticoli(motivo)
     article = re.sub(r"\b[Aa]rticoli?\b|\b[Aa]rt\.?\b", "", article).strip()
     extension = ""
     space_match = re.match(r"^(\d+)\s+(bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)$", article, re.IGNORECASE)
