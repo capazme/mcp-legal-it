@@ -1362,7 +1362,7 @@ Indica una percentuale di personalizzazione motivata.
 ### 3. Attualizzazione
 
 1. `rivalutazione_monetaria` dalla data evento
-2. `interessi_legali` sulla somma rivalutata
+2. Interessi compensativi (Cass. SS.UU. 1712/1995) non sul capitale interamente rivalutato, che sarebbe una sovra-compensazione, ma sulla somma progressivamente rivalutata o, in via semplificata, sul valore medio: `interessi_legali` sulla base `(somma_originaria + somma_rivalutata) / 2`
 
 ## Formato output
 
@@ -1419,7 +1419,7 @@ Chiama `interessi_mora` con capitale, data_inizio (decorrenza della mora) e data
 
 Chiama `rivalutazione_monetaria` con l'importo del credito, dalla data di scadenza a oggi.
 
-**Nota**: mora e rivalutazione NON si cumulano (Cass. SS.UU. 16601/2017). Presenta entrambi, indica il piu favorevole.
+**Nota**: per un credito di denaro la rivalutazione non è automatica: è il maggior danno dell'art. 1224, co. 2, c.c., da chiedere e provare (anche in via presuntiva, Cass. SS.UU. n. 19499/2008), e spetta solo per la parte che eccede gli interessi moratori: i due importi non si sommano. Presenta entrambi i calcoli e indica il più favorevole.
 
 ### 3. Decreto ingiuntivo
 
