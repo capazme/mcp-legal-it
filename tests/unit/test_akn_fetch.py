@@ -239,7 +239,21 @@ class TestDiskPersistence:
         hits_file = tmp_path / "cache" / "akn_acts" / "akn_hits.json"
         assert hits_file.exists()
         hits = json.loads(hits_file.read_text(encoding="utf-8"))
-        assert hits["090G0294|19900818|20260614"] == 2
+        # A warm hit counts in memory and does not rewrite the file at once.
+        assert hits["090G0294|19900818|20260614"] == 1
+        assert akn_fetch._hits["090G0294|19900818|20260614"] == 2
+
+    async def test_hit_counter_is_written_again_after_a_while(self, monkeypatch, tmp_path, norma, routes):
+        _install_client(monkeypatch, routes)
+        await fetch_act_akn(norma, data_vigenza="20260614")
+        await fetch_act_akn(norma, data_vigenza="20260614")
+        later = akn_fetch._hits_written_at + akn_fetch._HITS_WRITE_EVERY
+        monkeypatch.setattr(akn_fetch, "_now", lambda: later)
+        await fetch_act_akn(norma, data_vigenza="20260614")
+
+        hits_file = tmp_path / "cache" / "akn_acts" / "akn_hits.json"
+        hits = json.loads(hits_file.read_text(encoding="utf-8"))
+        assert hits["090G0294|19900818|20260614"] == 3
 
 
 # ---------------------------------------------------------------------------
