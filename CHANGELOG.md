@@ -15,6 +15,28 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **`mcp_legal_it.api`: mcp-legal-it as a library, and its only stable surface.**
+  Pure `async` functions with typed returns (frozen dataclasses), no Markdown,
+  errors as data (`esito` from a closed vocabulary, plus `errore`). Norms:
+  `leggi_riferimento`, `riferimento_da_parametri`, `testo_articolo` (with a
+  required `canale`), `testi_articoli`, `indice_atto`, `testo_atto`,
+  `annotazioni_brocardi`, `catalogo_alias`. Decisions, in one shape for every
+  court: `leggi_decisione` (Cassazione, Corte costituzionale; a number found in
+  both archives is `ambigua`; a miss says whether it is outside the archive
+  window), the readers by source key for CeRDEF, TAR/CdS and the CJEU, and the
+  searches (`cerca_decisioni_*`, `giurisprudenza_su_articolo`,
+  `pronunce_costituzionali_su_norma`, `giurisprudenza_ue_su_articolo`,
+  `cerca_giurisprudenza_unificata`). Field names follow VisuaLex's JSON where
+  VisuaLex answers the same question; `come_dict` gives JSON-ready data; every
+  network result carries its `fonti`. Importing it loads neither FastMCP nor the
+  server and opens no connection (tested with FastMCP blocked and sockets
+  blocked). `configurazione(client_factory=…, cache_dir=…, cache=…, brocardi=…)`
+  injects the HTTP client factory, the cache settings and the Brocardi switch;
+  the environment's *off* still wins. Reference, deprecation policy and the
+  operations planned for the VisuaLex migration: `docs/api.md`. The public
+  names and signatures are frozen by `tests/unit/test_api_surface.py`.
+- Concurrent cold requests for the same act now share one download of its
+  Akoma Ntoso export (before, N callers downloaded it N times).
 - **`LEGAL_BROCARDI=off`: the server without Brocardi.** Brocardi.it, the only
   private source (doctrinal notes and case-law abstracts, never the text of a
   norm), stays on by default and can now be switched off in one place. Off
@@ -471,6 +493,10 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- `cerca_brocardi` now declares Italgiure among its online sources. Its probe of
+  the archive window was missed by the sources audit (a call made through a
+  module that only imports the function), so the answer's `_meta` listed
+  `italgiure` under `non_dichiarate`. The audit now follows such calls.
 - Deadline tools: `giorno_settimana` is always the Italian name. It came from
   `strftime("%A")`, which follows the process locale, so the same output mixed
   «lunedì» and «Monday».
