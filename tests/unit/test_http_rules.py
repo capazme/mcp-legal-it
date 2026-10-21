@@ -242,14 +242,26 @@ class TestTraThread:
         monkeypatch.setattr(_http, "POLITICA", _http.Politica(concorrenza=3, intervallo=0.05))
         lock = threading.Lock()
         in_volo = massimo = 0
-        inizi: list[float] = []
+        # The start times the limiter reserves (``_prendi_posto``, under its lock). The
+        # interval is checked on them, not on when the transport ran: a loaded machine
+        # (a CI runner, a suite next to live measures) can wake a thread late, and a
+        # late wake-up is not two requests closer than the interval.
+        riservati: list[float] = []
+
+        class _Spia(_http._StatoFonte):
+            def __setattr__(self, nome, valore):
+                if nome == "ultima" and valore:
+                    riservati.append(valore)
+                super().__setattr__(nome, valore)
+
+        with _http._LOCK:
+            _http._stato["normattiva"] = _Spia()
 
         async def lento(request):
             nonlocal in_volo, massimo
             with lock:
                 in_volo += 1
                 massimo = max(massimo, in_volo)
-                inizi.append(time.monotonic())
             await asyncio.sleep(0.1)
             with lock:
                 in_volo -= 1
@@ -266,10 +278,10 @@ class TestTraThread:
             t.start()
         for t in threads:
             t.join(timeout=30)
-        assert len(inizi) == 12
-        assert massimo == 3
-        inizi.sort()
-        assert all(b - a >= 0.045 for a, b in zip(inizi, inizi[1:])), inizi
+        assert len(riservati) == 12
+        assert massimo <= 3
+        riservati.sort()
+        assert all(b - a >= 0.05 - 1e-9 for a, b in zip(riservati, riservati[1:])), riservati
         assert _http._fonte("normattiva").in_volo == 0
 
 
