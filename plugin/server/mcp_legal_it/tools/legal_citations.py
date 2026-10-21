@@ -221,7 +221,11 @@ async def cite_law(
                              massime giurisprudenziali). Default False.
         formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
                  atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, allegato,
-                 testo, errore, data_consultazione. "allegato" è il nome dell'allegato da cui
+                 testo, errore, data_consultazione, avvisi, upcoming. "avvisi" (lista, vuota se
+                 nulla da dire) dice ciò che il lettore deve sapere del testo: per esempio che
+                 Normattiva mostra senza data una versione futura e qui c'è quella in vigore
+                 oggi; "upcoming" è quella versione futura ({change: abrogated|amended,
+                 valid_from, version_number}) o null. "allegato" è il nome dell'allegato da cui
                  proviene il testo ("Allegato I.7"), null se è il corpo dell'atto; per un
                  allegato "urn" è quello dell'atto. "urn" è l'estremo URN Normattiva quando la
                  fonte è Normattiva, altrimenti null; se l'atto è citato con il solo anno

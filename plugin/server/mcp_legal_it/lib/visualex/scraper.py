@@ -619,11 +619,21 @@ def _testo_di_oggi(url: str) -> "str | None":
     if "!vig=" in url or "@originale" in url:
         return None
     rec = pagine_normattiva.leggi(url)
-    validita = (rec or {}).get("validita")
     oggi = _clock.today().isoformat()
-    if validita is None or (validita.get("valid_from") and validita["valid_from"] > oggi):
+    if not _in_vigore_oggi((rec or {}).get("validita"), oggi):
         return f"{url}!vig={oggi}"
     return None
+
+
+def _in_vigore_oggi(validita: "dict | None", oggi: str) -> bool:
+    """Whether a page's stated window holds today: started, and not ended.
+
+    A window that ended before today is not today's text either: a page read before
+    midnight and kept a day can be «al 31-12-2026» on 1 January.
+    """
+    if not validita or not validita.get("valid_from"):
+        return False
+    return validita["valid_from"] <= oggi and (validita.get("valid_to") is None or validita["valid_to"] >= oggi)
 
 
 async def _di_oggi(url: str, text: str, served: "str | None", articolo: str) -> "tuple[str, str, str | None]":
@@ -635,8 +645,12 @@ async def _di_oggi(url: str, text: str, served: "str | None", articolo: str) -> 
     be tomorrow's text: the export at today's date answers, or nothing does.
     """
     requested = _article_identity(normalize_article_key(articolo)) if articolo else None
-    if not text or requested is None or served is None or _article_identity(served) != requested:
+    if not text or requested is None:
         return url, text, served
+    if served is not None and _article_identity(served) != requested:
+        return url, text, served  # another article: the existence check decides
+    # A page that does not say which article it is ("Testo Unico-art. 3", a repeal notice
+    # outside the label) is checked too: it may be tomorrow's text all the same.
     oggi_url = _testo_di_oggi(url)
     if not oggi_url:
         return url, text, served
@@ -644,8 +658,12 @@ async def _di_oggi(url: str, text: str, served: "str | None", articolo: str) -> 
         oggi_text, oggi_served = await _normattiva_page(oggi_url, articolo)
     except httpx.HTTPError:
         oggi_text, oggi_served = "", None
-    if oggi_text and oggi_served is not None and _article_identity(oggi_served) == requested:
+    rec = pagine_normattiva.leggi(oggi_url) if oggi_text else None
+    if (oggi_text and (oggi_served is None or _article_identity(oggi_served) == requested)
+            and _in_vigore_oggi((rec or {}).get("validita"), _clock.today().isoformat())):
         return oggi_url, oggi_text, oggi_served
+    # Today's page could not be read, or does not say it is today's text: the export at
+    # today's date answers, or nothing does.
     return url, "", None
 
 

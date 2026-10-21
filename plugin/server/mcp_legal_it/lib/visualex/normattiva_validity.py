@@ -109,6 +109,11 @@ STATES = ("current", "historical", "not_yet", "abrogated")
 # abrogation notice all sit at the very start of the body.
 _BODY_SLICE = 200_000
 
+# Load-bearing bounds (mcp-legal-it's review, 21/10/2026): ``_LABEL`` (40 s), the whole-article
+# notice (11 s) and ``_WINDOW`` (1.5 s) are slow on 20,000 raw characters. They are safe here
+# only because their input is bounded first: the label is searched on the body's first 400
+# characters, a notice on its first 200 (``_head``), the window on one block's
+# whitespace-collapsed text. Keep those cuts; VisuaLex's #271 did not touch these patterns.
 # These patterns run on a page the portal served and must stay linear on one it did
 # not (a changed or compromised portal): `re` holds the GIL, so a quadratic pattern
 # stalls the whole event loop even from a thread. Hence no character class here may run
