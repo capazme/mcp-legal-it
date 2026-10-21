@@ -366,6 +366,34 @@ def _served_article_key(corpo: Tag) -> "str | None":
     return None
 
 
+#: The ":k" after the act number of a Normattiva URL: the part the URL asks for.
+_URL_PARTE = re.compile(r";[^;:~!@?]+:(\d+)(?=~|!|@|$)")
+
+
+def _altrove(act, nv: NormaVisitata, result: dict) -> str:
+    """Where else in the act the article is (VisuaLex's hint), read from the export already fetched.
+
+    The parts as Normattiva numbers them: the act's own text (``""``), each part by its
+    position. ``""`` without an export, or when the article is nowhere else.
+    """
+    if act is None:
+        return ""
+    if not nv.norma.allegato and re.search(r";[^;:~]+:\d+$", codice_urn(nv.norma.tipo_atto_normalized.lower()) or ""):
+        # A code's own part: another part of the act is another code (art. 40 of the
+        # preleggi is not art. 40 of the codice civile), so the refusal points nowhere.
+        return ""
+    from .albero_normattiva import dove_altrove
+
+    body = act.parts.get("Dispositivo") if act.main_part else None
+    entries = [{"numero": k, "allegato": None} for k in (body.order if body else act.order if not act.main_part else [])]
+    for name, p in act.parts.items():
+        if name != "Dispositivo" and act.part_position(name):
+            entries += [{"numero": k, "allegato": str(p.position)} for k in p.order]
+    m = _URL_PARTE.search(result.get("url") or nv.url())
+    asked = m.group(1) if m else ""
+    return dove_altrove(entries, nv.numero_articolo, asked)
+
+
 def _unavailable(base: dict, nv: NormaVisitata, why: str) -> dict:
     return {**base, "esito": CHECK_UNAVAILABLE,
             "error": (f"verifica non disponibile per l'art. {nv.numero_articolo} di {nv.norma}: "
@@ -399,14 +427,14 @@ def _checked_html_article(result: dict, nv: NormaVisitata, served: "str | None",
         return {**base, "esito": ARTICLE_NOT_FOUND,
                 "error": (f"articolo {nv.numero_articolo} non trovato in {nv.norma}: per questo "
                           f"numero Normattiva restituisce l'art. {served}, quindi l'articolo "
-                          "non esiste nell'atto (controlla il numero)")}
+                          "non esiste nell'atto (controlla il numero)" + _altrove(act, nv, result))}
     if act is not None and requested is not None:
         numbers = {ident[0] for ident in map(_article_identity, act.article_keys(part)) if ident}
         if requested[0] not in numbers:
             return {**base, "esito": ARTICLE_NOT_FOUND,
                     "error": (f"articolo {nv.numero_articolo} non trovato in {nv.norma}: nessun "
                               f"articolo con il numero {requested[0]} tra i {len(numbers)} numeri "
-                              "dell'atto (export Akoma Ntoso di Normattiva)")}
+                              "dell'atto (export Akoma Ntoso di Normattiva)" + _altrove(act, nv, result))}
     if served is not None:
         return _unavailable(base, nv, f"Normattiva restituisce l'art. {served}, che non coincide "
                                       "con quello richiesto, e la struttura dell'atto non basta a "
@@ -1179,6 +1207,48 @@ async def download_eurlex_pdf(norma: "Norma") -> bytes:
         if resp.content[:5] == b"%PDF-":
             return resp.content
     raise ValueError(f"EUR-Lex did not return a PDF (CELLAR: {last_error})")
+
+
+async def fetch_act_tree(norma: "Norma", *, link: bool = False, details: bool = False) -> dict:
+    """Normattiva's article tree of an act, as VisuaLex's ``get_tree(..., return_metadata=True)``.
+
+    ``{"articles": [...], "count": n, "metadata": {"annexes": [...]}, "url": act URL}``, or
+    ``{"error": ..., "url": ...}`` when the page cannot be read or holds no tree. One page,
+    the act's own; the widest tree of it is kept a day (``pagine_normattiva``), and every
+    variant (``link``, ``details``) is read from that one, as VisuaLex does: a tree costs
+    one request a day per act. A failure is never kept.
+    """
+    from .albero_normattiva import _narrow, _parse_normattiva_tree
+
+    norma = await with_full_date(norma)  # a year-only act's tree is its real date's
+    # The act's own URL, without a code's default part (";262:2" -> ";262"): the tree
+    # numbers the parts itself, and builds each article's URL from this one.
+    act_url = re.sub(r"(;[^;:~!@?]+):\d+$", r"\1",
+                     Norma(tipo_atto=norma.tipo_atto, data=norma.data, numero_atto=norma.numero_atto).url())
+    if not act_url:
+        return {"error": "Could not generate URL", "url": ""}
+    full = pagine_normattiva.leggi_albero(act_url)
+    if full is None:
+        async with async_client("normattiva", headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(act_url)
+            resp.raise_for_status()
+            note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
+            html = resp.text
+        if not html or len(html) < 500:
+            return {"error": "Empty response from server", "url": act_url}
+        result, count, metadata = _parse_normattiva_tree(
+            BeautifulSoup(html, "html.parser"), act_url, True, True, return_metadata=True)
+        if not count:
+            return {"error": result if isinstance(result, str) else "albero dell'atto vuoto", "url": act_url}
+        full = {"result": result, "count": count, "metadata": metadata}
+        pagine_normattiva.scrivi_albero(act_url, full)
+    else:
+        note_source("normattiva", act_url)
+    result = full["result"]
+    if not link:
+        result = [{k: v for k, v in e.items() if k != "url"} if isinstance(e, dict) else e for e in result]
+    articles, count, metadata = _narrow(result, full["count"], full["metadata"], details, True)
+    return {"articles": articles, "count": count, "metadata": metadata, "url": act_url}
 
 
 async def fetch_act_index(norma: "Norma") -> dict:
