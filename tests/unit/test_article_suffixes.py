@@ -96,7 +96,11 @@ class TestNormalizeArticleKey:
         # shapes the table cannot spell: the fallback keeps them, a trailing digit is a sub-number
         ("270 bis.1", "270-bis.1"),
         ("171 octies 1", "171-octies.1"),
-        ("135 sex decies", "135-sex-decies"),
+        # Documented adaptation (akn_parser header): a suffix split in two words is joined
+        # when the joined form is in the table; VisuaLex keeps "135-sex-decies" (sent upstream).
+        ("135 sex decies", "135-sexdecies"),
+        ("135 sex-decies", "135-sexdecies"),
+        ("135 foo bar", "135-foo-bar"),
         ("2 bis", "2-bis"),
         ("2043", "2043"),
     ])
@@ -185,3 +189,39 @@ class TestReviewOf62:
         start = time.perf_counter()
         call(" " * 20000)
         assert time.perf_counter() - start < 0.1
+
+
+@pytest.mark.parametrize("article,suffix", [("2 - bis", "~art2bis"), ("135 sex-decies", "~art135sexdecies"),
+                                            ("2-bis", "~art2bis"), ("13-bis", "~art13bis")])
+def test_a_dashed_article_leaves_no_space_in_the_urn(article, suffix):
+    # VisuaLex's controller sends "2-bis" (spaces joined first): the same URN, byte for byte.
+    url = NormaVisitata(Norma("legge", "1990-08-07", "241"), article).url()
+    assert url.endswith(suffix) and " " not in url
+
+
+def test_a_dashed_article_with_a_long_blank_run_stays_linear():
+    import time
+
+    start = time.perf_counter()
+    NormaVisitata(Norma("legge", "1990-08-07", "241"), "1" + " " * 20000 + "!-x").url()
+    assert time.perf_counter() - start < 0.1
+
+
+@pytest.mark.parametrize("article", ["1 " + "a" * 40 + "1-bis", "1 a" + " " * 20000 + "1-bis"])
+def test_a_dashed_article_with_letters_before_the_dash_stays_linear(article):
+    # "(letters blanks*)*" split a run of letters 2^n ways when the match failed (ReDoS).
+    import time
+
+    start = time.perf_counter()
+    NormaVisitata(Norma("legge", "1990-08-07", "241"), article).url()
+    assert time.perf_counter() - start < 0.1
+
+
+def test_the_two_word_suffix_join_stays_linear_on_letters():
+    # The join of a suffix written in two words. (A long run of blanks is still slow in the
+    # normaliser's two patterns that come from VisuaLex: their fix lands there first.)
+    import time
+
+    start = time.perf_counter()
+    normalize_article_key("1 " + "a" * 40 + " 1")
+    assert time.perf_counter() - start < 0.1

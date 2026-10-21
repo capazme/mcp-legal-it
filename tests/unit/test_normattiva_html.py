@@ -114,3 +114,23 @@ def test_a_page_record_that_is_not_one_is_dropped(tmp_path, monkeypatch, contenu
     path.write_text(contenuto, encoding="utf-8")
     assert pagine_normattiva.leggi(url) is None
     assert not path.exists()
+
+
+@pytest.mark.parametrize("albero", ["{}", '{"result": [], "count": 1}', '{"result": {}, "count": 1, "metadata": {}}',
+                                    '{"result": [], "count": "1", "metadata": {}}'])
+def test_a_tree_record_without_its_tree_is_dropped(tmp_path, monkeypatch, albero):
+    # A tree record without result/count/metadata made fetch_act_tree raise on every read for a day.
+    import json
+    import time
+
+    from mcp_legal_it.lib.visualex import pagine_normattiva
+
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path))
+    pagine_normattiva.svuota_memoria()
+    chiave = "albero|https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241"
+    path = pagine_normattiva._dir() / f"{pagine_normattiva._chiave(chiave)}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema": pagine_normattiva.SCHEMA, "url": chiave, "salvato": time.time(),
+                                "albero": json.loads(albero)}), encoding="utf-8")
+    assert pagine_normattiva.leggi(chiave) is None
+    assert not path.exists()

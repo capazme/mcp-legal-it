@@ -310,15 +310,55 @@ time. Articles of the same act share one download of the act.
 
 ### `indice_atto(atto: str | NormaDati) -> IndiceAtto`
 
-The article headings of an Italian act (Normattiva `vediRubriche`).
+The article headings of an Italian act: VisuaLex's `/fetch_rubriche`, from the
+act's Akoma Ntoso export (two requests cold, none warm: the export is cached).
 
-- `rubriche` maps each article key (`"1"`, `"2-bis"`) to its heading, wherever
-  an index line reads as one. `count` is `len(rubriche)`.
-- `voci` keeps every line as Normattiva lists it.
-- `title`, `abrogati` and `parts` are **planned** and empty today.
+- `title`: the act's title as a heading (`presentable_title`: no Gazzetta code,
+  no amendment brackets, accents restored).
+- `rubriche` maps each article key of the act's main text (`"1"`, `"2-bis"`) to
+  its heading, accents restored; an article without a heading is absent.
+  `count` is `len(rubriche)`. `abrogati`: the keys of the repealed articles.
+- `parts`: one dict per part of the export, VisuaLex's keys `name`, `keys`,
+  `rubriche`, `abrogati`, plus `allegato`, the part's Normattiva number (`None`
+  for the Dispositivo or a position two parts share). Each annex has its own
+  art. 1 with its own heading.
+- When the export cannot be read (Normattiva down, `AKN_DISABLED`), Normattiva's
+  `vediRubriche` answers: `rubriche` from its lines and `voci` (the lines as
+  listed), with no `title`, `abrogati` or `parts`. `voci` is empty when the export
+  answered.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
   `non_supportata` (EU acts), `verifica_non_disponibile`, `errore_fonte`,
   `testo_assente`.
+
+### `albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bool = False) -> AlberoAtto`
+
+Normattiva's article tree of an Italian act: VisuaLex's `/fetch_tree`, read by
+VisuaLex's parser (`lib/visualex/albero_normattiva.py`, imported) from the
+act's page. One request, kept a day; every variant is read from the same page.
+
+- `articles`: `{"numero", "allegato"}` per article in the act's order, plus `url`
+  with `link=True` and the section labels (strings) with `dettagli=True`.
+  `allegato` is Normattiva's part number (`None` for the act's own text): the
+  same number as `NormaDati.allegato`.
+- `metadata["annexes"]`: `number`, `label`, `article_count`, `article_numbers`
+  per part.
+- **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
+  `non_supportata` (EU acts), `verifica_non_disponibile`, `errore_fonte`.
+
+### `articolo_nell_albero(albero: AlberoAtto, articolo: str, allegato: str | None = None) -> bool | None`
+
+VisuaLex's existence check, before an article is fetched, as a function. Whether
+*articolo* is in the tree, in part *allegato* when given (`""` is the act's own
+text). `None` when the tree was not read: an outage is never "the article does not
+exist". Article numbers are compared in canonical form ("1-bis" = "1 bis"). No
+network.
+
+### `dove_altrove(albero: AlberoAtto, articolo: str, allegato: str | None) -> str`
+
+Where else in the act *articolo* is, as a sentence to append to a refusal
+(`": su Normattiva l'art. 120 si trova nell'allegato 2"`), or `""`. No network.
+`testo_articolo` adds the same sentence to its `articolo_non_trovato` answers,
+read from the export it already has.
 
 ### `testo_atto(atto: str | NormaDati) -> TestoAtto`
 
@@ -554,6 +594,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti` |
+| `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti` |
 | `TestoAtto` | `esito, testo, titolo, url, errore, fonti` |
 | `AnnotazioniBrocardi` | `esito, url, ratio, spiegazione, brocardi, massime, errore, fonti` |
 | `MassimaBrocardi` | `autorita, numero, anno, testo` |
@@ -596,8 +637,6 @@ with their signature.
 |---|---|
 | `validity` with the text, from the same fetch | same |
 | Multi-article references (`"1,2"`, `"3-5"`) | `/fetch_norma_data` |
-| Act tree with annexes and metadata | `/fetch_tree` |
-| `title`, `abrogati`, `parts` of the index | `/fetch_rubriche` |
 | EU recitals | `/fetch_recitals` |
 | Per-article fingerprints | `/fetch_act_fingerprints` |
 | Full dates of year-only URNs, in batch | `/resolve_act_dates` |
