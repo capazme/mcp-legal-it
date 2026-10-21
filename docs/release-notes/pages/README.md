@@ -22,8 +22,8 @@ and the tone (written for lawyers, no Python knowledge assumed) are unchanged.
 - New section **«Usare Legal IT senza Brocardi»**: `LEGAL_BROCARDI=off` for Mac
   (`LEGAL_BROCARDI=off claude`) and Windows PowerShell
   (`$env:LEGAL_BROCARDI="off"; claude`), and for the app's Code tab the `env`
-  block of `~/.claude/settings.json` (to be confirmed on a fresh install, see
-  the checklist §4), checked with `stato_server`.
+  block of `~/.claude/settings.json` (verified: Claude Code passes that block
+  to a plugin's MCP server), checked with `stato_server`.
 - Troubleshooting table: two rows, the citation gate («gate citazioni» and
   «fuori copertura») and a value no longer accepted after the update
   (`opposizione_atti_esecutivi`).
