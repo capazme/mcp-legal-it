@@ -20,11 +20,20 @@ def _parse_date(date: str) -> str:
     return date
 
 
+#: The ":k" that ends a code's URN in NORMATTIVA_URN_CODICI (";262:2" is the codice civile).
+_URN_ALLEGATO = re.compile(r"^(.+;[^;:~]+):(\w+)$")
+
+
 @dataclass
 class Norma:
     tipo_atto: str
     data: str = ""
     numero_atto: str = ""
+    # Normattiva's number for a part of the act, the ":k" of its URN (";104:2" is the
+    # codice del processo amministrativo, the second part of d.lgs. 104/2010's export).
+    # It is VisuaLex's ``allegato``: a position, not the name the act gives the annex
+    # ("Allegato 1"). Empty: the act's body, or a code's own default part.
+    allegato: str = ""
 
     def __post_init__(self):
         self.tipo_atto_normalized = normalize_act_type(self.tipo_atto)
@@ -47,7 +56,11 @@ class Norma:
         # Normattiva: check codici first
         urn = codice_urn(norm)
         if urn:
-            # Keep allegato suffix (e.g. :2 for codice civile) — it must precede ~artNNN
+            # Keep allegato suffix (e.g. :2 for codice civile) — it must precede ~artNNN —
+            # unless another part of the act is asked for.
+            if self.allegato:
+                m = _URN_ALLEGATO.match(urn)
+                urn = f"{m.group(1) if m else urn}:{self.allegato}"
             if article:
                 urn = _append_article(urn, article)
             return _NORMATTIVA_BASE + urn
@@ -58,6 +71,8 @@ class Norma:
         if not formatted_date:
             return ""
         urn = f"{act_urn}:{formatted_date};{self.numero_atto}"
+        if self.allegato:
+            urn += f":{self.allegato}"
         if article:
             allegato = articolato_in_allegato(act_urn, formatted_date, self.numero_atto)
             if allegato and not names_an_annex(article):
@@ -157,6 +172,21 @@ def intervallo_articoli(article: str) -> "str | None":
     first, last = re.split(r"\s*[-\u2013\u2014]\s*", plain, maxsplit=1)
     return (f"«{plain}» indica un intervallo di articoli, non un articolo: "
             f"chiedere un articolo alla volta (es. art. {first}, poi art. {last})")
+
+
+#: ";104~art120", ";104" at the end of a Normattiva URL: the act number without a ":k".
+_URL_SENZA_PARTE = re.compile(r"(;[^;:~!@?]+)(?=~|!|@|$)")
+
+
+def url_in_part(url: str, position: "int | str") -> str:
+    """*url* pointing at the part at Normattiva position *position*, if it names no part yet.
+
+    ``…;104~art120`` -> ``…;104:2~art120``; a URL that already ends its act number
+    with ``:k`` (``…;262:2~art2043``) is returned unchanged.
+    """
+    if not position or "normattiva.it" not in url:
+        return url
+    return _URL_SENZA_PARTE.sub(lambda m: f"{m.group(1)}:{position}", url, count=1)
 
 
 def _append_article(urn: str, article: str) -> str:
