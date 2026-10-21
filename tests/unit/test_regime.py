@@ -204,7 +204,7 @@ def test_a_dropped_tag_or_wrapper_fails_the_audit(tmp_path):
     src = _copy_src(tmp_path)
     scadenze = src / "tools" / "scadenze_termini.py"
     text = scadenze.read_text(encoding="utf-8")
-    sabotaged, n = re.subn(r'tags=\{"scadenze", "previgente"\}', 'tags={"scadenze"}', text, count=1)
+    sabotaged, n = re.subn(r'tags=\{"calcolo", "previgente", "scadenze"\}', 'tags={"calcolo", "scadenze"}', text, count=1)
     assert n == 1
     scadenze.write_text(sabotaged, encoding="utf-8")
     problems = verify_regime(Audit(src))
@@ -225,8 +225,8 @@ def test_a_tag_without_a_declaration_and_an_unknown_successor_fail_the_audit(tmp
     src = _copy_src(tmp_path)
     varie = src / "tools" / "varie.py"
     text = varie.read_text(encoding="utf-8")
-    sabotaged, n = re.subn(r'@mcp\.tool\(tags=\{"utility"\}\)\n@sourced\("festivita"\)\ndef conta_giorni\(',
-                           '@mcp.tool(tags={"utility", "previgente"})\n@sourced("festivita")\ndef conta_giorni(',
+    sabotaged, n = re.subn(r'@mcp\.tool\(tags=\{"calcolo", "utility"\}\)\n@sourced\("festivita"\)\ndef conta_giorni\(',
+                           '@mcp.tool(tags={"calcolo", "utility", "previgente"})\n@sourced("festivita")\ndef conta_giorni(',
                            text, count=1)
     assert n == 1
     varie.write_text(sabotaged, encoding="utf-8")

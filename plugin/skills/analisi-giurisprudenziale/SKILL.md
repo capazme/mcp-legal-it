@@ -45,7 +45,7 @@ Leggi SOLO le sentenze selezionate:
 - GA: `legal-it:leggi_provvedimento_amm(sede, nrg, nome_file)`
 - CGUE: `legal-it:leggi_sentenza_cgue(cellar_uri)`
 
-Per articoli specifici: `legal-it:cerca_brocardi(reference)` per ratio legis.
+Per articoli specifici: `legal-it:cerca_brocardi(reference)` (se disponibile) per ratio legis.
 
 ## Fase 4 — Fallback web (se necessario)
 

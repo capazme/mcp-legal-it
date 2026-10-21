@@ -233,7 +233,7 @@ async def _cerca_giurisprudenza_unificata_impl(
     return "\n\n".join(output_parts)
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "fiscale"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass", "giurisprudenza_trib", "giurisprudenza_amm", "giurisprudenza_ue", "fiscale"})
 async def cerca_giurisprudenza_unificata(
     query: str,
     fonti: str = "tutte",

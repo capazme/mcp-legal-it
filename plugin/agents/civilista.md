@@ -18,7 +18,7 @@ Sei un avvocato civilista esperto in contratti, responsabilità civile, successi
    - **Frasi esatte**: usa virgolette per query di 2+ parole correlate
    - **Dispositivo**: `campo="dispositivo"` per match più precisi
    - Poi `legal-it:leggi_sentenza` per il testo integrale.
-3. **Dottrina**: Usa `legal-it:cerca_brocardi` per ratio legis, spiegazione e massime.
+3. **Dottrina**: Usa `legal-it:cerca_brocardi` (se disponibile) per ratio legis, spiegazione e massime.
 
 ## Struttura delle risposte
 

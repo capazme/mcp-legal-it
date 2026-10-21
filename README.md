@@ -561,17 +561,57 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 | `MCP_PORT` | `8000` | Porta (solo http/sse) |
 | `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
 | `LEGAL_PREVIGENTE` | `on` | `off` nasconde i tool a normativa previgente (tag `previgente`) |
+| `LEGAL_BROCARDI` | `on` | `off` spegne Brocardi: nessuna richiesta a brocardi.it, tool `solo_brocardi` non esposti |
 | `MCP_CACHE_DIR` | — | Directory cache Brocardi |
 
 ### Profili disponibili
 
-| Profilo | Tool caricati |
-|---------|---------------|
-| `full` | Tutti i 228 tool |
-| `calcoli` | Solo tool di calcolo (nessuna connessione HTTP) |
-| `normativa` | Normattiva + EUR-Lex + Brocardi + Italgiure + TAR/CdS + CGUE + CONSOB |
-| `fiscale` | Calcoli fiscali + IRPEF + investimenti + CeRDEF + CONSOB |
-| `privacy` | Tool GDPR/Privacy + Garante |
+Un profilo espone i tool che hanno almeno una delle sue etichette; prompt e risorse restano
+sempre disponibili. Etichette e regole: [docs/tool-tags.md](docs/tool-tags.md).
+
+| Profilo | Tool | Contenuto |
+|---------|------|-----------|
+| `full` | 228 | Tutti i tool |
+| `sinistro` | 79 | Danni, rivalutazione, interessi + norme e giurisprudenza |
+| `credito` | 89 | Interessi, rivalutazione, parcelle, recupero crediti + norme e giurisprudenza |
+| `penale` | 51 | Diritto penale + norme e giurisprudenza |
+| `fiscale` | 66 | Fisco, immobili, società, crisi, investimenti, CeRDEF, CONSOB |
+| `normativa` | 70 | Tutte le fonti: norme, ogni giurisprudenza, Garante e CONSOB, registri, privacy |
+| `privacy` | 64 | GDPR + Garante + norme e giurisprudenza |
+| `studio` | 76 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
+| `redattore` | 76 | Atti, procedura, parcelle, scadenze + norme |
+| `cowork` | 77 | Norme, giurisprudenza, privacy, parcelle (set ridotto) |
+
+Ogni profilo include i tre tool di diagnostica (`stato_server`, `verbale_mensile`,
+`backlog_riconciliazione`).
+
+### Senza Brocardi
+
+Brocardi.it è l'unica fonte privata del server (note dottrinali e massime, mai il testo di una
+norma) ed è attiva per impostazione predefinita. Per usare il server senza Brocardi:
+
+```bash
+LEGAL_BROCARDI=off mcp-legal-it
+```
+
+Con l'interruttore spento `cerca_brocardi` e `fetch_law_annotations` non sono esposti (226 tool
+invece di 228), nessuna richiesta parte verso brocardi.it, e `cite_law(include_annotations=True)`,
+`giurisprudenza_articolo` e `mappa_orientamento` rispondono senza Brocardi e lo dichiarano.
+In codice: `crea_server(brocardi=False)` (vedi sotto) o, per chi chiama direttamente gli scraper,
+`mcp_legal_it.lib._brocardi_switch.disabled()`. Uno *spento* impostato nell'ambiente non può essere
+riacceso dal codice.
+
+### Un server con una parte dei tool
+
+```python
+from mcp_legal_it.server import crea_server
+
+fonti = crea_server(include_tags={"normativa", "giurisprudenza"}, brocardi=False)
+fonti.run()                                   # oppure: il_mio_server.mount(fonti)
+```
+
+I tool esclusi non compaiono in `list_tools`; quelli inclusi restano identici a quelli del
+server standard. Parametri ed esempi: [docs/tool-tags.md](docs/tool-tags.md#un-server-con-una-parte-dei-tool-crea_server).
 
 ---
 

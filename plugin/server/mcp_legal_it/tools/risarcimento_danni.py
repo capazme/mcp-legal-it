@@ -51,7 +51,7 @@ def _interpola_punto_base(percentuale: int) -> float:
     return punti[soglie[-1]]
 
 
-@mcp.tool(tags={"danni"})
+@mcp.tool(tags={"calcolo", "danni"})
 @sourced("tabella_danno_bio")
 def danno_biologico_micro(
     percentuale_invalidita: int,
@@ -161,7 +161,7 @@ def danno_biologico_micro(
     }
 
 
-@mcp.tool(tags={"danni"})
+@mcp.tool(tags={"calcolo", "danni"})
 @sourced("tabella_danno_bio")
 def danno_biologico_macro(
     percentuale_invalidita: int,
@@ -224,7 +224,7 @@ def danno_biologico_macro(
     }
 
 
-@mcp.tool(tags={"danni"})
+@mcp.tool(tags={"calcolo", "danni"})
 @sourced("tabella_milano_roma")
 def danno_parentale(
     vittima: str,
@@ -309,7 +309,7 @@ def danno_parentale(
     }
 
 
-@mcp.tool(tags={"danni"})
+@mcp.tool(tags={"calcolo", "danni"})
 def menomazioni_plurime(
     percentuali: list[float],
 ) -> dict:
@@ -360,7 +360,7 @@ def menomazioni_plurime(
     }
 
 
-@mcp.tool(tags={"danni"})
+@mcp.tool(tags={"calcolo", "danni"})
 def risarcimento_inail(
     retribuzione_annua: float,
     percentuale_invalidita: float,
@@ -487,7 +487,7 @@ def risarcimento_inail(
     }
 
 
-@mcp.tool(tags={"danni"})
+@mcp.tool(tags={"calcolo", "danni"})
 @sourced("tabella_danno_bio")
 def danno_non_patrimoniale(
     percentuale_invalidita: int,
@@ -622,7 +622,7 @@ def danno_non_patrimoniale(
     }
 
 
-@mcp.tool(tags={"danni", "previgente"})
+@mcp.tool(tags={"calcolo", "danni", "previgente"})
 @previgente
 def equo_indennizzo(
     categoria_tabella: str,

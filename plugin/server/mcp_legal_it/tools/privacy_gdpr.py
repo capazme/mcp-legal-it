@@ -290,7 +290,7 @@ come modificato dal D.Lgs. 101/2018.
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_informativa_privacy(
     titolare: str,
     finalita: list[str],
@@ -552,7 +552,7 @@ e delle Linee Guida del Garante del 10/06/2021.
     return risultato
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_informativa_cookie(
     titolare: str,
     cookie_tecnici: list[str],
@@ -762,7 +762,7 @@ Data: ___________    Firma per ricevuta: ___________________________
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_informativa_dipendenti(
     titolare: str,
     dpo: str = "",
@@ -918,7 +918,7 @@ Garante per la protezione dei dati personali — www.garanteprivacy.it
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_informativa_videosorveglianza(
     titolare: str,
     finalita: list[str],
@@ -1153,7 +1153,7 @@ Per il Responsabile: _______________________
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_dpa(
     titolare: str,
     responsabile: str,
@@ -1313,7 +1313,7 @@ tiene un registro distinto delle categorie di attività svolte come responsabile
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_registro_trattamenti(
     titolare: str,
     trattamento: str,
@@ -1605,7 +1605,7 @@ Riferimento normativo: Art. 35 Reg. UE 2016/679 (GDPR); WP248 rev.01 (Linee Guid
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_dpia(
     titolare: str,
     descrizione: str,
@@ -1779,7 +1779,7 @@ def _analisi_base_giuridica_impl(
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"calcolo", "privacy"})
 @sourced("gdpr_basi_giuridiche")
 def analisi_base_giuridica(
     tipo_trattamento: str,
@@ -2022,7 +2022,7 @@ def _verifica_necessita_dpia_impl(
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"calcolo", "privacy"})
 @sourced("gdpr_dpia_criteri")
 def verifica_necessita_dpia(
     tipo_trattamento: str,
@@ -2240,7 +2240,7 @@ def _valutazione_data_breach_impl(
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"calcolo", "privacy"})
 def valutazione_data_breach(
     tipo_violazione: str,
     categorie_dati: list[str],
@@ -2475,7 +2475,7 @@ def _calcolo_sanzione_gdpr_impl(
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"calcolo", "privacy"})
 @sourced("gdpr_sanzioni")
 def calcolo_sanzione_gdpr(
     tipo_violazione: str,
@@ -2714,7 +2714,7 @@ Riferimento normativo: Art. 33 Reg. UE 2016/679 (GDPR) — Notifica all'autorit�
     }
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"redazione", "privacy"})
 def genera_notifica_data_breach(
     titolare: str,
     data_violazione: str,

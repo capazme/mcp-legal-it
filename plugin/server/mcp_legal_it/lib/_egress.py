@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
+from . import _brocardi_switch
+
 #: Hosts the running server may contact, mapped to who operates them.
 ALLOWED_HOSTS: dict[str, str] = {
     # --- Italian State: legislation ---
@@ -43,6 +45,9 @@ ALLOWED_HOSTS: dict[str, str] = {
     # case-law abstracts, never the text of a norm: that always comes from
     # Normattiva or EUR-Lex. Named explicitly because an auditor should see
     # that this project's single private dependency was a deliberate choice.
+    # LEGAL_BROCARDI=off (or crea_server(brocardi=False)) removes it at runtime:
+    # `is_allowed` refuses it and the scrapers never build a request for it
+    # (lib/_brocardi_switch.py).
     "www.brocardi.it": "Brocardi.it — annotazioni dottrinali (fonte privata)",
 }
 
@@ -77,5 +82,10 @@ SCRIPT_ONLY_NON_NETWORK_HOSTS: dict[str, str] = {
 
 
 def is_allowed(url: str) -> bool:
-    """True when `url`'s host is one the running server may contact."""
+    """True when `url`'s host is one the running server may contact right now.
+
+    Brocardi is on the list but switchable: with Brocardi off its host is refused.
+    """
+    if _brocardi_switch.is_brocardi_url(url) and not _brocardi_switch.enabled():
+        return False
     return (urlparse(url).hostname or "") in ALLOWED_HOSTS

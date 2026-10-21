@@ -17,7 +17,7 @@ Chiama `legal-it:cite_law` con il riferimento normativo. Se modificato, recupera
 
 ### 2. Annotazioni e giurisprudenza
 
-Chiama `legal-it:cerca_brocardi` per:
+Chiama `legal-it:cerca_brocardi` (se disponibile) per:
 - Ratio legis
 - Spiegazione dottrinale
 - Massime giurisprudenziali

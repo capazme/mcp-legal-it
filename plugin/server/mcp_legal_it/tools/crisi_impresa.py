@@ -18,7 +18,7 @@ _SOGLIE_ADER = {
 }
 
 
-@mcp.tool(tags={"crisi_impresa"})
+@mcp.tool(tags={"calcolo", "crisi_impresa"})
 def test_crisi_impresa(
     dscr: float | None = None,
     giorni_ritardo_inps: int = 0,
@@ -310,7 +310,7 @@ def test_crisi_impresa(
     }
 
 
-@mcp.tool(tags={"crisi_impresa"})
+@mcp.tool(tags={"calcolo", "crisi_impresa"})
 def composizione_negoziata(
     fatturato: float,
     attivo: float,
@@ -473,7 +473,7 @@ def composizione_negoziata(
     }
 
 
-@mcp.tool(tags={"crisi_impresa"})
+@mcp.tool(tags={"calcolo", "crisi_impresa"})
 def concordato_preventivo(
     creditori_privilegiati: float,
     creditori_chirografari: float,
@@ -596,7 +596,7 @@ def concordato_preventivo(
     }
 
 
-@mcp.tool(tags={"crisi_impresa"})
+@mcp.tool(tags={"calcolo", "crisi_impresa"})
 def compenso_occ(
     passivo: float,
     tipo: str = "ristrutturazione",

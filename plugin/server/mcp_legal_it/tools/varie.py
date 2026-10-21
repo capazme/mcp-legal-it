@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import fastmcp
-from mcp_legal_it.lib import _cache, _clock, _data, _refusals
+from mcp_legal_it.lib import _brocardi_switch, _cache, _clock, _data, _refusals
 from mcp_legal_it.cli_version import package_version
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._data import sourced
@@ -163,7 +163,7 @@ def _lookup_codice_catastale(comune: str) -> str | None:
     return _STATI_ESTERI.get(comune_up)
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 @sourced("comuni", alternativa="codice_catastale")
 def codice_fiscale(
     cognome: str,
@@ -234,7 +234,7 @@ def codice_fiscale(
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 @sourced("comuni", alternativa="mappa_comuni")
 def decodifica_codice_fiscale(codice_fiscale: str, mappa_comuni: dict | None = None) -> dict:
     """Decodifica un codice fiscale italiano a 16 caratteri estraendo i dati anagrafici.
@@ -332,7 +332,7 @@ def decodifica_codice_fiscale(codice_fiscale: str, mappa_comuni: dict | None = N
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 def verifica_iban(iban: str) -> dict:
     """Valida un IBAN italiano (27 caratteri) ed estrae le componenti ABI, CAB e conto.
 
@@ -416,7 +416,7 @@ def _get_holidays(year: int) -> dict[date, str]:
     return holidays
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 @sourced("festivita")
 def conta_giorni(
     data_inizio: str,
@@ -492,7 +492,7 @@ def conta_giorni(
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 def scorporo_iva(
     importo_ivato: float,
     aliquota: float = 22,
@@ -522,7 +522,7 @@ def scorporo_iva(
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 @sourced("violazioni_patente", alternativa="tabella_violazioni")
 def decurtazione_punti_patente(violazione: str, tabella_violazioni: dict | None = None) -> dict:
     """Restituisce punti decurtati, sanzione pecuniaria e sospensione patente per violazione CdS.
@@ -566,7 +566,7 @@ def decurtazione_punti_patente(violazione: str, tabella_violazioni: dict | None 
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 def tasso_alcolemico(
     sesso: str,
     peso_kg: float,
@@ -648,7 +648,7 @@ def tasso_alcolemico(
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 @sourced("festivita")
 def prescrizione_diritti(
     tipo_diritto: str,
@@ -718,7 +718,7 @@ def prescrizione_diritti(
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 def calcolo_tempo_trascorso(
     data_inizio: str,
     data_fine: str | None = None,
@@ -765,7 +765,7 @@ def calcolo_tempo_trascorso(
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 def verifica_partita_iva(partita_iva: str) -> dict:
     """Valida formalmente una partita IVA italiana tramite algoritmo di controllo (11 cifre).
 
@@ -815,7 +815,7 @@ def verifica_partita_iva(partita_iva: str) -> dict:
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 def calcolo_eta_anagrafica(
     data_nascita: str,
     data_riferimento: str | None = None,
@@ -876,7 +876,7 @@ def calcolo_eta_anagrafica(
     }
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"calcolo", "utility"})
 @sourced("codici_ateco")
 def ricerca_codici_ateco(keyword: str) -> dict:
     """Ricerca codici ATECO per parola chiave, con coefficiente di redditività per il regime forfettario.
@@ -911,7 +911,7 @@ def ricerca_codici_ateco(keyword: str) -> dict:
     }
 
 
-@mcp.tool(tags={"utility", "normativa"})
+@mcp.tool(tags={"diagnostica"})
 def verbale_mensile(months: int = 6) -> dict:
     """Report mensile dei rifiuti osservati dal verbale, con confronto mese su mese.
 
@@ -942,7 +942,7 @@ def verbale_mensile(months: int = 6) -> dict:
     return _refusals.monthly(months)
 
 
-@mcp.tool(tags={"utility", "normativa"})
+@mcp.tool(tags={"diagnostica"})
 def backlog_riconciliazione() -> dict:
     """Elenca le tabelle dati ancora da riconciliare, ordinate per quanto bloccano davvero.
 
@@ -1100,7 +1100,7 @@ def _lettori_statici() -> dict[str, list]:
 _BYTES_PER_TOOL_STIMA = 1024
 
 
-@mcp.tool(tags={"utility"})
+@mcp.tool(tags={"diagnostica"})
 async def stato_server() -> dict:
     """Riporta versione, superficie attiva, orologio, cache e profilo del server.
 
@@ -1110,6 +1110,8 @@ async def stato_server() -> dict:
     (orologio pinnato, cache accesa/spenta, profilo) e l'hostname della macchina
     — utile per accorgersi di due connettori che puntano a checkout diversi.
     Non consulta la rete e non tocca il disco (il percorso cache è solo descritto).
+    Dentro un server costruito con `crea_server()` il conteggio resta quello del
+    server standard, mentre `brocardi.attivo` vale per la chiamata in corso.
 
     Precisione: ESATTO (lettura dello stato del processo in esecuzione).
     """
@@ -1133,10 +1135,14 @@ async def stato_server() -> dict:
             "percorso": _cache.cache_root_display(),
             "sovrascritto": bool(os.environ.get(_cache.DIR_ENV, "").strip()),
         },
+        "brocardi": {
+            "attivo": _brocardi_switch.enabled(),
+            "nota": "con LEGAL_BROCARDI=off nessuna richiesta a brocardi.it e i tool solo_brocardi non sono esposti",
+        },
         "macchina": platform.node(),
         "fastmcp": fastmcp.__version__,
         "context_hint": {
             "bytes_stima_per_tool_nascosto": _BYTES_PER_TOOL_STIMA,
-            "nota": "il conteggio `tools_attivi` è la superficie dopo il filtro LEGAL_PROFILE; il profilo si sceglie all'avvio, non a chiamata fatta",
+            "nota": "il conteggio `tools_attivi` è la superficie del server standard dopo LEGAL_PROFILE e gli interruttori d'ambiente (LEGAL_PREVIGENTE, LEGAL_BROCARDI), scelti all'avvio; un server costruito con crea_server() può esporne meno",
         },
     }

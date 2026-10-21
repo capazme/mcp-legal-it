@@ -160,7 +160,7 @@ def _prospetto_importi(tabellare: Decimal, aumento_pct30: bool) -> dict:
     }
 
 
-@mcp.tool(tags={"atti", "credito", "giudiziario"})
+@mcp.tool(tags={"redazione", "atti", "credito", "giudiziario"})
 def genera_procura_liti_docx(
     mandante_denominazione: str,
     mandante_sede: str,
@@ -302,7 +302,7 @@ def genera_procura_liti_docx(
     return _salva(doc, f"procura_{mandante_denominazione}_{controparte_breve}")
 
 
-@mcp.tool(tags={"atti", "credito", "parcelle_avv"})
+@mcp.tool(tags={"redazione", "atti", "credito", "parcelle_avv"})
 @sourced("contributo_unificato", "parametri_forensi")
 def genera_quotazione_docx(
     tipo: str,

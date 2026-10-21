@@ -104,7 +104,7 @@ Se fonti istituzionali restituiscono errore o zero risultati:
 
 ### Passo 6 — Arricchisci con Brocardi
 
-Se il tema ruota attorno a un articolo specifico, chiama `legal-it:cerca_brocardi` per:
+Se il tema ruota attorno a un articolo specifico, chiama `legal-it:cerca_brocardi` (se disponibile) per:
 - Ratio legis e spiegazione dottrinale
 - Massime strutturate con riferimenti Cassazione
 - I riferimenti Cassazione nelle massime possono essere letti con `legal-it:leggi_sentenza`

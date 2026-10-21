@@ -118,7 +118,7 @@ async def _ultimi_provvedimenti_garante_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"autorita", "garante", "privacy"})
 async def cerca_provvedimenti_garante(
     query: str,
     tipologia: str = "",
@@ -152,7 +152,7 @@ async def cerca_provvedimenti_garante(
     )
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"autorita", "garante", "privacy"})
 async def leggi_provvedimento_garante(docweb_id: int, da_carattere: int = 1) -> str:
     """Legge il testo completo di un provvedimento del Garante Privacy tramite DocWeb ID.
 
@@ -179,7 +179,7 @@ async def leggi_provvedimento_garante(docweb_id: int, da_carattere: int = 1) -> 
     return await _leggi_provvedimento_garante_impl(docweb_id, da_carattere)
 
 
-@mcp.tool(tags={"privacy"})
+@mcp.tool(tags={"autorita", "garante", "privacy"})
 async def ultimi_provvedimenti_garante(
     tipologia: str = "",
     max_risultati: int = 10,

@@ -15,6 +15,34 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **`LEGAL_BROCARDI=off`: the server without Brocardi.** Brocardi.it, the only
+  private source (doctrinal notes and case-law abstracts, never the text of a
+  norm), stays on by default and can now be switched off in one place. Off
+  means: `cerca_brocardi` and `fetch_law_annotations` (tag `solo_brocardi`) are
+  not listed (228 → 226 tools); no request reaches brocardi.it, because the two
+  scrapers that build Brocardi URLs ask `lib/_brocardi_switch.py` before any
+  I/O (and `_egress.is_allowed()` reports the host as refused); `cite_law(include_annotations=True)`,
+  `giurisprudenza_articolo` and `mappa_orientamento` (tag `brocardi`) answer
+  without it and say so. In code: `crea_server(brocardi=False)` for one server,
+  `_brocardi_switch.disabled()` / `set_default(False)` for library calls (these
+  two stop every request but do not change a server's tool list); an
+  *off* set in the environment cannot be switched back on from code.
+  `stato_server` reports the state. `tests/unit/test_brocardi_switch.py` mocks
+  the network and fails if any Brocardi-tagged tool, or either scraper, sends a
+  request to a Brocardi host, and walks the call graph of `tools/` so that a
+  new tool reaching the scrapers without the `brocardi` tag fails too.
+- **`crea_server(include_tags=None, exclude_tags=None, brocardi=True, *, name, prompts)`**
+  in `mcp_legal_it.server`: a FastMCP server exposing only the selected tools,
+  for a host that mounts mcp-legal-it into its own surface. It mounts the stock
+  server and narrows it with visibility filters, so the tools keep names,
+  schemas, annotations, `_meta` and middleware; an excluded tool is absent from
+  `list_tools` and answered as unknown. Unknown tags raise `ValueError` with
+  the vocabulary, and so does an empty `include_tags` (it would select
+  nothing; `None` keeps every tool). The server's instructions are the stock
+  ones without the tools it hides, so the model is never pointed at a tool it
+  cannot call; the stock server does the same under `LEGAL_BROCARDI=off`, and
+  the skills, agents and prompts now say `cerca_brocardi` (se disponibile). The stock server and the plugin are unchanged. Example and
+  parameters in `docs/tool-tags.md`.
 - `stato_server()`: the diagnostics tool that tells the caller WHAT it is
   talking to — package version of the running code, active tool count after
   the `LEGAL_PROFILE` filter, pinned clock, cache switch and directory,
@@ -354,6 +382,44 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **Tool tags follow one taxonomy, and some desktop profiles change.** Every
+  tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (24),
+  `autorita` (6), `registri` (5), `calcolo` (141), `redazione` (30),
+  `diagnostica` (3) — plus, for case law, its court (`giurisprudenza_cass`,
+  `giurisprudenza_cost`, `giurisprudenza_trib`, `giurisprudenza_amm`,
+  `giurisprudenza_ue`) and, for an authority, `garante` or `consob`. The
+  vocabulary is data (`mcp_legal_it/tool_taxonomy.py`), the table is
+  `docs/tool-tags.md`, and `tests/unit/test_tool_taxonomy.py` fails on a tool
+  without a kind or with a tag outside the vocabulary. Renamed or moved tags:
+  TAR/CdS and CGUE tools are `giurisprudenza` (no longer `normativa`);
+  `costituzionale` → `giurisprudenza_cost`; the Garante tools are
+  `autorita` + `garante` + `privacy`, CONSOB `autorita` + `consob`; TMview is
+  `registri` + `marchi` and the diagnostics `diagnostica` (none of them
+  `normativa` any more); the EU-transposition tools are `normativa` +
+  `recepimento_ue` (no longer `giurisprudenza_ue`). Hosts filtering on the old
+  tags must update them.
+
+  `LEGAL_PROFILE` now names kinds and areas, and every profile carries
+  `diagnostica`. Tool counts, before → after:
+
+  | Profile | Before | After | What changed |
+  |---|---|---|---|
+  | `full` | 228 | 228 | — |
+  | `sinistro` | 81 | 79 | − TMview (3), + `stato_server` |
+  | `credito` | 91 | 89 | − TMview (3), + `stato_server` |
+  | `penale` | 53 | 51 | − TMview (3), + `stato_server` |
+  | `fiscale` | 66 | 66 | — |
+  | `normativa` | 69 | 70 | + `stato_server` (TMview kept through `registri`) |
+  | `privacy` | 66 | 64 | − TMview (3), + `stato_server`; Garante kept (now named by `garante`) |
+  | `studio` | 73 | 76 | + `stato_server`, `verbale_mensile`, `backlog_riconciliazione` |
+  | `redattore` | 86 | 76 | − TAR/CdS (4), CGUE (4), TMview (3), + `stato_server` |
+  | `cowork` | 79 | 77 | − TMview (3), + `stato_server` |
+
+  The tools that leave a profile were in it only by the stray `normativa` tag:
+  trademarks are not a subject of any profile except the all-sources
+  `normativa` one, and `redattore` never included case law (no Cassazione),
+  so TAR/CdS and CGUE do not belong there either. With `LEGAL_BROCARDI=off`
+  every profile containing `normativa` shows two tools fewer.
 - **BREAKING — the import package is now `mcp_legal_it`, no longer `src`.**
   A published package must not own the name `src`: installed next to any
   project whose own code is a `src` package, one of the two shadowed the

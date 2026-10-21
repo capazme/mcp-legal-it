@@ -250,6 +250,8 @@ curl -s -X POST http://localhost:8000/mcp -H 'Content-Type: application/json' \
 | `MCP_PORT` | `8000` | Porta — solo `http`/`sse` |
 | `MCP_PATH` | `/mcp` | Path dell'endpoint Streamable HTTP |
 | `LEGAL_PROFILE` | `full` | Profilo tool: vedi tabella sopra |
+| `LEGAL_PREVIGENTE` | *(attivo)* | `off`: nasconde i tool a normativa previgente (tag `previgente`) |
+| `LEGAL_BROCARDI` | *(attivo)* | `off` (anche `0`, `false`, `no`): nessuna richiesta a brocardi.it, `cerca_brocardi` e `fetch_law_annotations` non esposti (226 tool), i tool misti rispondono senza Brocardi e lo dicono. Vedi [tool-tags.md](tool-tags.md) |
 | `MCP_CACHE_DIR` | `~/.cache/mcp-legal-it` | Directory delle cache su disco (atti AKN, URL Brocardi, massime Consulta, determinazioni DPA, verbale) |
 | `LEGAL_CACHE` | *(attiva)* | `off` (anche `no`, `false`, `0`, `none`, `disabled`): nessuna lettura o scrittura su disco, cache solo in memoria per la vita del processo |
 | `LEGAL_TODAY` / `LEGAL_NOW` | *(orologio reale)* | Pinnano la data/ora vista dal server (`YYYY-MM-DD` / ISO 8601): riproducibilità dei calcoli «a oggi», usati dai golden test |

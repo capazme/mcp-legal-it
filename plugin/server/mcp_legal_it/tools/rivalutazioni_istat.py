@@ -215,7 +215,7 @@ def _days_in_year(year: int) -> int:
     return 366 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi", "tassi_legali")
 def rivalutazione_monetaria(
     capitale: float,
@@ -320,7 +320,7 @@ def rivalutazione_monetaria(
     return result
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def rivalutazione_mensile(
     importo_mensile: float,
@@ -401,7 +401,7 @@ def rivalutazione_mensile(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def adeguamento_canone_locazione(
     canone_annuo: float,
@@ -487,7 +487,7 @@ def adeguamento_canone_locazione(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def calcolo_inflazione(
     data_inizio: str,
@@ -557,7 +557,7 @@ _ALIQUOTA_IMPOSTA_TFR_FINO_2014 = 0.11
 _ALIQUOTA_IMPOSTA_TFR_DAL_2015 = 0.17
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def rivalutazione_tfr(
     retribuzione_annua: float,
@@ -666,7 +666,7 @@ def rivalutazione_tfr(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi", "tassi_legali")
 def interessi_vari_capitale_rivalutato(
     capitale: float,
@@ -758,7 +758,7 @@ def interessi_vari_capitale_rivalutato(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"redazione", "rivalutazione"})
 @sourced("indici_foi")
 def lettera_adeguamento_canone(
     locatore: str,
@@ -875,7 +875,7 @@ def lettera_adeguamento_canone(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def calcolo_devalutazione(
     importo_attuale: float,
@@ -926,7 +926,7 @@ def calcolo_devalutazione(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def rivalutazione_storica(
     importo: float,
@@ -1002,7 +1002,7 @@ def rivalutazione_storica(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def variazioni_istat(
     anno_inizio: int,
@@ -1086,7 +1086,7 @@ def variazioni_istat(
     return risultato
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def rivalutazione_annuale_media(
     importo: float,
@@ -1151,7 +1151,7 @@ def rivalutazione_annuale_media(
     }
 
 
-@mcp.tool(tags={"rivalutazione"})
+@mcp.tool(tags={"calcolo", "rivalutazione"})
 @sourced("indici_foi")
 def inflazione_titoli_stato(
     capitale_investito: float,

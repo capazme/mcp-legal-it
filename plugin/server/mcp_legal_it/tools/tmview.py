@@ -196,7 +196,7 @@ async def _verifica_anteriorita_marchio_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"marchi", "normativa"})
+@mcp.tool(tags={"registri", "marchi"})
 async def cerca_marchi(
     query: str,
     uffici: str = "",
@@ -227,7 +227,7 @@ async def cerca_marchi(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"marchi", "normativa"})
+@mcp.tool(tags={"registri", "marchi"})
 async def leggi_marchio(st13: str) -> str:
     """Legge la scheda completa di un marchio da TMview tramite identificativo ST13.
 
@@ -248,7 +248,7 @@ async def leggi_marchio(st13: str) -> str:
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"marchi", "normativa"})
+@mcp.tool(tags={"registri", "marchi"})
 async def verifica_anteriorita_marchio(
     nome: str,
     classi_nizza: str = "",

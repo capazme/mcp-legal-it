@@ -1,8 +1,13 @@
 """MCP Legal IT — 228 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
+import asyncio
 import os
+import re
+from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware import Middleware
 
 from mcp_legal_it.cli_version import package_version
 
@@ -104,13 +109,15 @@ from mcp_legal_it.tools import (  # noqa: E402, F401
 )
 
 from mcp_legal_it import prompts, resources  # noqa: E402, F401
+from mcp_legal_it.lib import _brocardi_switch  # noqa: E402
 from mcp_legal_it.lib._ledger import apply_table_ledger  # noqa: E402
 from mcp_legal_it.lib._regime import ENV_SWITCH as _PREVIGENTE_SWITCH  # noqa: E402
 from mcp_legal_it.lib._regime import TAG as _PREVIGENTE_TAG  # noqa: E402
 from mcp_legal_it.lib._regime import hidden_by_environment as _previgenti_nascosti  # noqa: E402
 from mcp_legal_it.source_bindings import TOOL_SOURCES  # noqa: E402
 from mcp_legal_it.table_bindings import TABLE_CONSTANTS, TOOL_ALTERNATIVES, TOOL_TABLES  # noqa: E402
-from mcp_legal_it.tool_annotations import PREVIGENTE, apply_tool_annotations  # noqa: E402
+from mcp_legal_it.tool_annotations import PREVIGENTE, READ_ONLY, WRITES_FILES, apply_tool_annotations  # noqa: E402
+from mcp_legal_it.tool_taxonomy import VOCABULARY  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Tool annotations: readOnlyHint/openWorldHint per tool, so hosts can tell a
@@ -137,18 +144,25 @@ _TABLES_WRAPPED = apply_table_ledger(
 # Profile-based tool filtering (for Desktop/Browser — lighter context)
 # Usage: LEGAL_PROFILE=sinistro python -m mcp_legal_it.server
 # Default: "full" (all tools — for Claude Code with Tool Search)
+# The tags are the vocabulary in mcp_legal_it/tool_taxonomy.py (docs/tool-tags.md):
+# a profile names kinds (normativa, giurisprudenza, autorita, diagnostica) and
+# areas, never a single tool, so a new tool lands in the right profiles by its tags.
+# Every profile carries `diagnostica`, so stato_server and the data report answer
+# whatever surface was chosen.
 # ---------------------------------------------------------------------------
 _PROFILES: dict[str, set[str]] = {
-    "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro"},
-    "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
-    "penale": {"penale", "normativa", "giurisprudenza"},
-    "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario"},
-    "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob", "costituzionale"},
-    "privacy": {"privacy", "normativa", "giurisprudenza"},
-    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro"},
-    "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
-    "cowork": {"normativa", "giurisprudenza", "privacy", "parcelle_avv"},
+    "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro", "diagnostica"},
+    "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito", "diagnostica"},
+    "penale": {"penale", "normativa", "giurisprudenza", "diagnostica"},
+    "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario", "diagnostica"},
+    "normativa": {"normativa", "giurisprudenza", "autorita", "registri", "privacy", "diagnostica"},
+    "privacy": {"privacy", "garante", "normativa", "giurisprudenza", "diagnostica"},
+    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro", "diagnostica"},
+    "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa", "diagnostica"},
+    "cowork": {"normativa", "giurisprudenza", "privacy", "parcelle_avv", "diagnostica"},
 }
+
+_PROMPTS_AND_RESOURCES = {"prompt", "resource", "template"}
 
 _profile = os.environ.get("LEGAL_PROFILE", "full")
 if _profile != "full" and _profile in _PROFILES:
@@ -157,7 +171,7 @@ if _profile != "full" and _profile in _PROFILES:
     # profile; prompts and resources carry no tags, so the second transform
     # (the later one wins) keeps them available in every profile.
     mcp.enable(tags=_PROFILES[_profile], only=True)
-    mcp.enable(components={"prompt", "resource", "template"})
+    mcp.enable(components=_PROMPTS_AND_RESOURCES)
 
 # ---------------------------------------------------------------------------
 # Superseded-regime tools (`Regime: PREVIGENTE`, tag `previgente`): registered
@@ -168,3 +182,163 @@ if _profile != "full" and _profile in _PROFILES:
 # ---------------------------------------------------------------------------
 if _previgenti_nascosti(os.environ.get(_PREVIGENTE_SWITCH)):
     mcp.disable(tags={_PREVIGENTE_TAG})
+
+# ---------------------------------------------------------------------------
+# Brocardi switch: on by default; LEGAL_BROCARDI=off hides the tools whose answer
+# is Brocardi content only (tag `solo_brocardi`), and the scrapers refuse every
+# request to brocardi.it, so the mixed tools (tag `brocardi`) answer without it
+# and say so (see mcp_legal_it/lib/_brocardi_switch.py). Applied last, like the
+# regime switch, so no profile can bring the group back.
+# ---------------------------------------------------------------------------
+if _brocardi_switch.off_by_environment():
+    mcp.disable(tags={_brocardi_switch.TAG_SOLO})
+
+
+# ---------------------------------------------------------------------------
+# The instructions name tools, and a client reads them once, at initialize: a
+# server that hides some tools must not keep sending the model to them (it would
+# get "Unknown tool"). The literal above stays the single source (it is also
+# what scripts/corpus/agents_md.py copies into AGENTS.md); a narrowed server gets
+# it with the hidden tools taken out.
+# ---------------------------------------------------------------------------
+_STOCK_INSTRUCTIONS: str = mcp.instructions or ""
+_ALL_TOOL_NAMES: frozenset[str] = READ_ONLY | WRITES_FILES
+_TOOL_NAME = re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b")
+
+
+def _visible_tool_names(server: FastMCP) -> set[str]:
+    """The tools ``server`` lists, read on a private event loop (callable from async code too)."""
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        tools = pool.submit(asyncio.run, server.list_tools()).result()
+    return {t.name for t in tools}
+
+
+def _instructions_for(available: set[str], text: str = _STOCK_INSTRUCTIONS) -> str:
+    """``text`` without the tools a server does not list.
+
+    A workflow step that is just a hidden tool (``→ cerca_brocardi →``) is dropped
+    from its chain, and the chain goes when it keeps fewer than two steps after its
+    label; any other line that still names a hidden tool is dropped whole.
+    With every tool available the text comes back unchanged.
+    """
+    hidden = {name for name in _TOOL_NAME.findall(text) if name in _ALL_TOOL_NAMES} - available
+    if not hidden:
+        return text
+    lines = []
+    for line in text.split("\n"):
+        if "cerca_brocardi" in hidden:
+            line = line.replace(", Brocardi per dottrina", "")
+        if " → " in line:
+            steps = line.split(" → ")
+            kept = [s for s in steps if s.strip() not in hidden]
+            if len(kept) < len(steps) and len(kept) < 3:
+                continue  # a label and a single step left: no workflow any more
+            line = " → ".join(kept)
+        if set(_TOOL_NAME.findall(line)) & hidden:
+            continue
+        lines.append(line)
+    return "\n".join(lines)
+
+
+if _brocardi_switch.off_by_environment():
+    mcp.instructions = _instructions_for(_visible_tool_names(mcp))
+
+
+# ---------------------------------------------------------------------------
+# A server with only some of the tools, for a host that mounts mcp-legal-it into
+# its own surface: an application that needs the sources (norms, case law) and
+# none of the calculators, or a commercial deployment that must leave Brocardi out.
+# ---------------------------------------------------------------------------
+class _BrocardiOffMiddleware(Middleware):
+    """Run every tool call of one server with Brocardi switched off."""
+
+    async def on_call_tool(self, context, call_next):
+        token = _brocardi_switch.set_for_context(False)
+        try:
+            return await call_next(context)
+        finally:
+            _brocardi_switch.reset(token)
+
+
+def _checked_tags(tags: Iterable[str] | None, argument: str) -> set[str]:
+    if tags is None:
+        return set()
+    if isinstance(tags, str):
+        raise TypeError(f"{argument} takes a collection of tags, not the string {tags!r}")
+    chosen = set(tags)
+    unknown = sorted(chosen - VOCABULARY.keys())
+    if unknown:
+        raise ValueError(
+            f"{argument}: unknown tags {unknown}; the vocabulary is in "
+            f"mcp_legal_it/tool_taxonomy.py (docs/tool-tags.md): {sorted(VOCABULARY)}"
+        )
+    return chosen
+
+
+def crea_server(
+    include_tags: Iterable[str] | None = None,
+    exclude_tags: Iterable[str] | None = None,
+    brocardi: bool = True,
+    *,
+    name: str = "Legal IT",
+    prompts: bool = True,
+) -> FastMCP:
+    """Build a FastMCP server that exposes only the selected tools.
+
+    The stock server (``mcp``) is mounted into a new one and narrowed with
+    visibility filters, so the tools keep their names, signatures, annotations,
+    ``_meta`` and middleware; a tool left out is absent from ``list_tools`` and a
+    call to it is answered as an unknown tool. The stock server is not changed.
+
+    Args:
+        include_tags: keep only the tools carrying at least one of these tags
+            (``None``: every tool; an empty collection is refused, since it would
+            select nothing). Tags are listed in ``docs/tool-tags.md``.
+        exclude_tags: then drop every tool carrying one of these tags. Excluding
+            ``brocardi`` drops every tool that can show Brocardi content,
+            ``cite_law`` included; to keep those tools without Brocardi, use
+            ``brocardi=False``.
+        brocardi: ``False`` hides the ``solo_brocardi`` tools and runs every call
+            of this server with Brocardi off, so no request reaches brocardi.it and
+            the mixed tools say Brocardi is off. ``True`` follows the process
+            (``LEGAL_BROCARDI=off`` in the environment still wins).
+        name: the server name reported to clients.
+        prompts: keep the prompts and the ``legal://`` resources (they are not
+            tagged, so the tag filters never touch them). The prompts name tools:
+            a prompt may suggest a tool the subset left out.
+
+    The server's instructions are the stock ones without the tools it does not
+    list, so the model is never sent to a tool it cannot call.
+
+    The process-level switches still apply underneath, because they act on the
+    stock server: ``LEGAL_PROFILE``, ``LEGAL_PREVIGENTE=off`` and
+    ``LEGAL_BROCARDI=off`` can only narrow what this factory selects.
+
+    Example::
+
+        from mcp_legal_it.server import crea_server
+
+        fonti = crea_server(include_tags={"normativa", "giurisprudenza"}, brocardi=False)
+        fonti.run()  # or mount it: my_server.mount(fonti, namespace="legal")
+    """
+    if include_tags is not None and not set(include_tags):
+        raise ValueError(
+            "include_tags is empty, which would select no tool: pass None to keep every tool"
+        )
+    include = _checked_tags(include_tags, "include_tags")
+    exclude = _checked_tags(exclude_tags, "exclude_tags")
+    server = FastMCP(name, version=package_version(), instructions=_STOCK_INSTRUCTIONS)
+    server.mount(mcp)
+    if include:
+        server.enable(tags=include, only=True)
+    if exclude:
+        server.disable(tags=exclude)
+    if not brocardi:
+        server.disable(tags={_brocardi_switch.TAG_SOLO})
+        server.add_middleware(_BrocardiOffMiddleware())
+    if prompts:
+        server.enable(components=_PROMPTS_AND_RESOURCES)
+    else:
+        server.disable(components=_PROMPTS_AND_RESOURCES)
+    server.instructions = _instructions_for(_visible_tool_names(server))
+    return server
