@@ -1012,6 +1012,17 @@ def termini_183_190_cpc(
     })
 
 
+#: Art. 617 e sospensione feriale: questione interpretativa aperta. Il tool resta sulla lettura
+#: prudente (nessuna sospensione) e lo dice quando agosto cade nel termine.
+_AVVERTENZA_617_FERIALE = (
+    "Il termine è calcolato senza sospensione feriale, la lettura prudente. Che l'opposizione agli "
+    "atti esecutivi (art. 617 c.p.c.) sia esclusa dalla sospensione è discusso: l'art. 3 L. 742/1969 "
+    "rinvia all'art. 92 R.D. 12/1941, che nomina la sola «opposizione all'esecuzione». Se la "
+    "sospensione si applicasse, il termine scadrebbe più tardi: la scadenza indicata resta la più "
+    "sicura."
+)
+
+
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_esecuzioni(
@@ -1021,7 +1032,9 @@ def termini_esecuzioni(
     """Calcola i termini nelle procedure esecutive civili (pignoramento, opposizione).
     Vigenza: artt. 480-482, 543, 555, 617 c.p.c. (testo vigente).
     Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c.). La sospensione feriale non viene
-    applicata: le opposizioni esecutive sono escluse dall'art. 3 L. 742/1969.
+    applicata, lettura prudente: per l'opposizione agli atti esecutivi l'esclusione è discussa (l'art. 92
+    R.D. 12/1941, richiamato dall'art. 3 L. 742/1969, nomina la sola opposizione all'esecuzione) e la
+    risposta lo segnala quando agosto cade nel termine.
 
     Args:
         data_notifica_titolo: Data di notifica del precetto al debitore (YYYY-MM-DD)
@@ -1075,7 +1088,7 @@ def termini_esecuzioni(
     if tipo == "opposizione_atti_esecutivi":
         scad_raw = dt_notifica + timedelta(days=cfg["termine_opposizione_giorni"])
         scad, adjusted = _slide_forward(scad_raw)
-        return {
+        result = {
             "data_notifica": data_notifica_titolo,
             "tipo": tipo,
             "descrizione": cfg["descrizione"],
@@ -1085,6 +1098,10 @@ def termini_esecuzioni(
             "giorno_settimana": _giorno(scad),
             "riferimento_normativo": cfg["normativa"],
         }
+        _, agosto_nel_termine = _conta_avanti(dt_notifica, cfg["termine_opposizione_giorni"], True)
+        if agosto_nel_termine:
+            result["avvertenza_sospensione_feriale"] = _AVVERTENZA_617_FERIALE
+        return result
 
     # Termine dilatorio minimo (10gg) — non si può pignorare prima
     termine_min_raw = dt_notifica + timedelta(days=cfg["termine_minimo_giorni"])

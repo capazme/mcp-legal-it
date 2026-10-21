@@ -597,6 +597,20 @@ class TestTerminiEsecuzioni:
         assert r["scadenza_opposizione"] == "2025-06-23"
         assert r["riferimento_normativo"] == "Art. 617 c.p.c."
 
+    def test_617_agosto_nel_termine_avvertenza_e_scadenza_prudente(self):
+        # 20/07/2025 + 20 = 09/08/2025 (sabato) -> lunedi 11/08: agosto nel termine, scadenza invariata
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-07-20",
+                  tipo="opposizione_atti_esecutivi")
+        assert r["scadenza_opposizione"] == "2025-08-11"
+        avv = r["avvertenza_sospensione_feriale"]
+        assert "è discusso" in avv and "art. 92 R.D. 12/1941" in avv
+        assert "opposizione all'esecuzione" in avv and "art. 617" in avv
+
+    def test_617_senza_agosto_nessuna_avvertenza(self):
+        r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
+                  tipo="opposizione_atti_esecutivi")
+        assert "avvertenza_sospensione_feriale" not in r
+
     def test_the_old_name_is_gone(self):
         """'opposizione_esecuzione' read as art. 615 but computed art. 617: removed, no alias."""
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
