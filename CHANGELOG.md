@@ -63,6 +63,16 @@ entry, it is the same feature as ported to the 3.0 line.
   switches the disk copy off): no request more than before when warm, one
   fewer for an article of a code when cold. Articles of one act cited with
   the year only share one lookup of its date.
+- **The Akoma Ntoso parser merged with VisuaLex's, and tables in the text.**
+  VisuaLex's parser is the base (its XML settings resolve no entity and open
+  no connection; rubriche, repealed articles, act titles and each article's
+  date are read from the export, for the act index that comes next), with
+  mcp-legal-it's choice of which text an act serves on top. Tables are now in
+  the text, as Markdown tables: the rates of the Tariffa of d.P.R. 131/1986
+  ("9 per cento", "2 per cento"…) were missing from both parsers. Every other
+  article text is byte for byte what it was (checked on 9 exports). The export
+  is parsed off the event loop, and its access counter is no longer rewritten
+  on every article served from cache.
 - `docs/migration/visualex-inventory.md`: the function-by-function inventory of
   the VisuaLex readers that move into mcp-legal-it, with the choice for each.
 - **`mcp_legal_it.api`: mcp-legal-it as a library, and its only stable surface.**
@@ -547,6 +557,24 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **Art. 3 of l. 654/1975 is the law's, not the Convention's.** On the Akoma
+  Ntoso path the largest part of an act won, so a law that executes a treaty
+  served the treaty's articles under its own numbers (art. 3 on apartheid for
+  the law's repealed art. 3). The annexed part is now the act's text only when
+  the act approves it, as a code's decree does ("È approvato il codice…").
+- **`allegato` is Normattiva's position, as in VisuaLex.** In `NormaDati` and
+  `api.riferimento_da_parametri`, a digit `allegato` is the `:k` of the URN
+  (`;104:2` is the codice del processo amministrativo); it was read as the
+  name the act gives an annex, so `allegato="2"` of d.lgs. 104/2010 reached its
+  "Allegato 2", the implementing rules, and the preleggi by `allegato="1"`
+  were not found. On the HTML channel these articles are now VisuaLex's page,
+  no longer the export's text. A name ("I.7") stays a name. `norma_data`
+  carries what VisuaLex files the norm under: the `allegato` the caller gave,
+  a code's default part, or none (see `docs/api.md`).
+- **An article of an annex has its own URN.** "allegato I.7 art. 30 d.lgs.
+  36/2023" answers with `;36:8~art30` (the act's URN before) and, on the HTML
+  channel, that page's text. "art. 120 d.lgs. 104/2010" is read from the
+  code's own page, `;104:2~art120`, instead of the export.
 - Italgiure's bundled intermediate certificate is checked against its SHA-256
   pin every time the TLS context is built, as VisuaLex does: a file swapped
   inside an installed package is refused instead of trusted (the pin was
