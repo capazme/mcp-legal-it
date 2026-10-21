@@ -501,6 +501,57 @@ entry, it is the same feature as ported to the 3.0 line.
   the archive window was missed by the sources audit (a call made through a
   module that only imports the function), so the answer's `_meta` listed
   `italgiure` under `non_dichiarate`. The audit now follows such calls.
+- **`cite_law` with the act written first.** `"D.Lgs. 196/2003 art. 13"` was read
+  as an act name: the decree resolved, the article was dropped and the answer
+  was art. 1 of the Codice privacy, with no warning. Same for
+  `"D.Lgs. 36/2023 allegato I.1 art. 1"` (art. 1 of the code). The act-first
+  form (act, then article with its comma/lettera indicators and/or an annex) is
+  now parsed like the article-first one; a reference naming an article that
+  cannot be told apart from the act is refused with the expected-format error.
+  Shared by every tool that uses the reference parser.
+- **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
+  caller and was fetched as is: on the HTTP transport any client could read
+  pages reachable from the server (localhost, cloud metadata, intranet). Only
+  `http(s)://publications.europa.eu/resource/...` is accepted now, refused as
+  `bad_input` before any request.
+- **`termini_esecuzioni`: the execution window opens on the eleventh day.** Art.
+  482 c.p.c. forbids execution before ten days "siano decorsi" from the
+  precetto; `finestra_utile` started on the tenth. New field
+  `primo_giorno_utile` (notifica + 11, not extended); `termine_minimo_10gg`
+  is unchanged.
+- **`scadenza_processuale(natura="sostanziale")`.** The tool is offered for
+  substantive terms too, but always applied the Saturday extension of art. 155
+  co. 5 c.p.c., which covers processual acts only: a decadenza ending on a
+  Saturday came out on the following Tuesday. With `natura="sostanziale"` only
+  Sundays and holidays extend the term; the default is unchanged.
+- **Generated documents are private.** Procure, quotazioni, atti, supplier
+  reports and law PDFs are saved to `<tempdir>/mcp-legal-it` created 0700 (on
+  Linux it was a world-readable `/tmp/mcp-legal-it`); a symlink or a folder
+  owned by another user is refused. `esporta_atto_docx` used a hard-coded
+  `/tmp` instead of the temp dir.
+- `esporta_atto_docx`: numbered lists keep the typed numbers (1, 2 / 1, 2 / 10
+  instead of 1..5), `**`/`*` in headings and `***x***` no longer leak
+  asterisks, the title heads every page.
+- Content: the non-cumulation of mora and revaluation is art. 1224 co. 2 c.c.
+  (Cass. SS.UU. 19499/2008), not SS.UU. 16601/2017; giudice di pace 10.000 /
+  25.000 euro (art. 7 c.p.c.); conclusionali and repliche under art. 189 (not
+  the old art. 190); compensatory interest not on the fully revalued sum.
+- `genera_procura_liti_docx` cites "Regolamento (UE) 2016/679";
+  `indice_documenti` returns an error for non-numeric or negative pages
+  instead of raising.
+- Importing `mcp_legal_it.tools.legal_citations` first no longer fails on a
+  circular import (library callers, single test files).
+- Distribution: the citation-gate hook starts with `uv run --no-sync` (it
+  installed the server's 76 packages on a fresh plugin); the plugin zip and the
+  `.mcpb` no longer ship `*.egg-info`, `.DS_Store` or key files from the
+  checkout; wheel and sdist carry `LICENSES/Apache-2.0.txt`, which NOTICE
+  refers to; the Docker image runs as an unprivileged user (an `mcp-cache`
+  volume created by an older image is root-owned: chown or recreate it, or the
+  server runs without the disk cache); `scripts/corpus/extract_references.py`
+  explains that the migration is done instead of crashing.
+- Live gates realigned with their sources: CeRDEF unknown GUID is `not_found`,
+  INPS reworded the ex-ENPALS split, Normattiva alternates "è"/"e'", a stale
+  data path left by the package rename.
 - Deadline tools: `giorno_settimana` is always the Italian name. It came from
   `strftime("%A")`, which follows the process locale, so the same output mixed
   «lunedì» and «Monday».
