@@ -300,3 +300,12 @@ class TestReview3c:
         a.articles[1]["numero"] = "999"
         b = await api.albero_atto(l241, dettagli=True)
         assert b.metadata["annexes"] and b.articles[1]["numero"] == "1"
+
+
+async def test_a_tree_kept_on_disk_is_read_back_after_a_restart(monkeypatch):
+    richieste = _serve_landing(monkeypatch)
+    l241 = api.riferimento_da_parametri("legge", "", data="1990-08-07", numero_atto="241").norma_data[0]
+    await api.albero_atto(l241)
+    pagine_normattiva.svuota_memoria()  # a new process: only the disk remains
+    again = await api.albero_atto(l241)
+    assert again.esito == "trovato" and again.count == 51 and richieste == [L241]
