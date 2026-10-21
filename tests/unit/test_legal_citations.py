@@ -153,6 +153,35 @@ class TestParseReferenceActFirst:
         _parse_reference(reference)
         assert time.perf_counter() - start < 0.1
 
+    @pytest.mark.parametrize("reference", [
+        "D.Lgs. 196/2003" + " " * 5000 + "x",
+        "D.Lgs. 196/2003" + " \t\u00a0" * 3000 + "x",
+        "D.Lgs. 196/2003" + "," * 5000 + "x",
+        "D.Lgs. 196/2003" + " ,;" * 3000 + "art. 1 x",
+        "art. 30 D.Lgs. 36/2023" + ", " * 5000 + "allegato I.7 x",
+        "a " * 25000,
+        "x" + " art. 1" * 7000 + " ?",
+    ], ids=["spaces", "tabs-nbsp", "commas", "mixed-separators", "annex-last", "50k", "many-articles"])
+    def test_adversarial_input_is_parsed_in_linear_time(self, reference):
+        # A lazy act name followed by "\s*[,;]?\s+" split each run of spaces many ways:
+        # 5000 spaces took 92 s, synchronously, inside async tools.
+        import time
+        start = time.perf_counter()
+        _parse_reference(reference)
+        assert time.perf_counter() - start < 0.1
+
+    def test_whitespace_of_any_kind_is_one_space(self):
+        assert _parse_reference("D.Lgs.\t196/2003\u00a0art.  13") == ("13", "D.Lgs. 196/2003")
+        assert _parse_reference("art.\n13\tGDPR") == ("13", "GDPR")
+
+    def test_cassazione_branch_search_is_linear(self):
+        import time
+        from mcp_legal_it.tools.legal_citations import _USER_RAMO
+        start = time.perf_counter()
+        assert _USER_RAMO.search("cass" + " " * 50000 + "x") is None
+        assert time.perf_counter() - start < 0.1
+        assert _USER_RAMO.search("Cass. , sez. pen. n. 1/2024").group(1).lower() == "pen"
+
     def test_verifica_citazioni_keeps_a_bare_annex_with_its_article(self):
         from mcp_legal_it.tools.legal_citations import _split_citazioni
         assert _split_citazioni("D.Lgs. 36/2023 art. 30, allegato I.7, art. 13 GDPR") == [
