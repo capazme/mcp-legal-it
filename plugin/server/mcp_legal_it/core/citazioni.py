@@ -486,8 +486,16 @@ def decisioni_nel_testo(testo: str) -> list[DecisioneCitata]:
 
 
 def decisioni_nel_risultato(testo: str) -> set[tuple[str, int]]:
-    """Every (number, year) and CJEU case a tool result shows: what it lets the session cite."""
-    trovate = {(numero, anno) for _m, numero, anno in _numeri_decisione(testo)}
+    """Every (number, year) and CJEU case in *testo* that is not an act's number.
+
+    The gate passes only the headings of a result (the decision a reader served,
+    the hits a search listed), never its body: a decision's body cites precedents
+    the session has not read.
+    """
+    trovate = {
+        (numero, anno) for m, numero, anno in _numeri_decisione(testo)
+        if m.group("n2") or not _NUMERO_DI_ATTO.search(testo[max(0, m.start() - 30): m.start()].rstrip())
+    }
     trovate |= {
         (f"{m.group('lettera')}-{int(m.group('numero'))}", _anno_pieno(m.group("anno")))
         for m in _CAUSA_UE.finditer(testo)

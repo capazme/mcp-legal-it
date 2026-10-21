@@ -60,8 +60,17 @@ DECISION_TOOLS = {
     "cgue": {"leggi_sentenza_cgue", "cerca_giurisprudenza_cgue", "giurisprudenza_cgue_su_norma",
              "ultime_sentenze_cgue"},
 }
-# Lists hits of every court: each number counts for the court named next to it.
+# Lists hits of every court, one "## <source>" section each.
 UNIFIED_SEARCH = "cerca_giurisprudenza_unificata"
+UNIFIED_SECTIONS = (("cassazione", "cass"), ("tributaria", "cass"), ("amministrativa", "amm"),
+                    ("tar", "amm"), ("cgue", "cgue"), ("costituzional", "cost"))
+
+# A decision counts only where the result names it: the heading of a reader
+# ("# Cass. civ., sez. III, n. 12345/2024") or of a search hit ("### ..."), and its
+# **Estremi** / **Causa** / **ECLI** lines. Not the body: a decision cites precedents
+# and acts ("Cass. n. 5678/2015", "D.Lgs. 196/2003") that the session has not read.
+_HEADING = re.compile(r"^ {0,3}(#{1,6})\s")
+_DECISION_META = re.compile(r"^\s*\*\*(?:Estremi|Causa|ECLI)\*\*\s*:", re.I)
 TOOL_PER_CORTE = {
     "cass": "leggi_sentenza", "cost": "leggi_pronuncia_costituzionale",
     "amm": "cerca_giurisprudenza_amministrativa + leggi_provvedimento_amm",
@@ -123,6 +132,7 @@ class FallbackReader:
                       r"[\s,]*(?:(?:della|dello|dell['’]|del)\s*)?(?P<atto>[^\n;]{0,40})", re.I)
     _ATTO_NUM = re.compile(r"^(d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m)\.?\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{4})", re.I)
     _CASS = re.compile(r"\bcass(?:azione)?\b[^\n]{0,80}?\bn\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})", re.I)
+    _ATTO_PRIMA = re.compile(r"\b(?:d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m|reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:n\.?\s*)?$", re.I)
     _NUM = re.compile(r"(?<![\d/.])(\d{1,6})\s*/\s*((?:19|20)\d{2})(?![\d/])|\bn\.?\s*(\d{1,6})\s+del\s+((?:19|20)\d{2})", re.I)
 
     @staticmethod
@@ -156,6 +166,8 @@ class FallbackReader:
     def decisioni_nel_risultato(self, testo):
         out = set()
         for m in self._NUM.finditer(testo):
+            if self._ATTO_PRIMA.search(testo, max(0, m.start() - 25), m.start()):
+                continue
             numero, anno = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
             out.add((str(int(numero)), int(anno)))
         return out
@@ -277,12 +289,19 @@ class Session:
         try:
             if name in NORM_TOOLS:
                 self._credit_norm(name, tool_input, text)
-            if name == UNIFIED_SEARCH and not self._failed(text):
-                for d in self.reader.decisioni_nel_testo(text):
-                    self.decisions.add((d.corte, d.numero, d.anno))
+            if self._failed(text):
+                return
+            if name == UNIFIED_SEARCH:
+                for court, section in unified_sections(text):
+                    for numero, anno in self.reader.decisioni_nel_risultato(decision_headings(section)):
+                        self.decisions.add((court, numero, anno))
+                return
+            # A reader serves one decision: its own heading. A search lists hits: theirs.
+            reader_tool = name.startswith("leggi_") or name == "cerdef_leggi_provvedimento"
+            headings = decision_headings(text, first_only=reader_tool)
             for court, tools in DECISION_TOOLS.items():
-                if name in tools and not self._failed(text):
-                    for numero, anno in self.reader.decisioni_nel_risultato(text):
+                if name in tools:
+                    for numero, anno in self.reader.decisioni_nel_risultato(headings):
                         self.decisions.add((court, numero, anno))
         except Exception:
             return
@@ -379,6 +398,38 @@ class Session:
                 elif c.get("type") == "tool_use":
                     texts.extend(written_text(c.get("name") or "", c.get("input") or {}))
         self.texts = texts
+
+
+def decision_headings(text: str, first_only: bool = False) -> str:
+    """The heading lines of a decision result (see ``_HEADING``), with their metadata lines.
+
+    ``first_only``: the opening heading of a reader, up to its first sub-heading
+    ("## Testo"); a search keeps every hit's heading.
+    """
+    kept: list = []
+    in_meta = False
+    for line in text.splitlines():
+        if _HEADING.match(line):
+            if first_only and kept:
+                break
+            kept.append(line)
+            in_meta = True
+        elif in_meta and line.lstrip().startswith("**"):
+            if _DECISION_META.match(line):
+                kept.append(line)
+        else:
+            in_meta = False
+    return "\n".join(kept)
+
+
+def unified_sections(text: str):
+    """``(court, section text)`` for each "## <source>" section of the unified search."""
+    parts = re.split(r"(?m)^## ", text)
+    for part in parts[1:]:
+        label = part.split("\n", 1)[0].lower()
+        court = next((c for key, c in UNIFIED_SECTIONS if key in label), None)
+        if court:
+            yield court, "\n".join(part.split("\n")[1:])
 
 
 def written_text(raw_name: str, tool_input: dict) -> list:

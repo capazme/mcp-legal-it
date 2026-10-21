@@ -301,12 +301,47 @@ def test_only_the_last_turn_is_judged(tmp_path):
 
 @pytest.mark.parametrize("tool, result", [
     ("leggi_sentenza", "# Cass. civ., sez. III, n. 12345/2024, dep. 22/04/2024\n\nTesto..."),
-    ("cerca_giurisprudenza", "## Risultati\n1. Cass. civ., sez. III, n. 12345/2024 — massima..."),
+    ("cerca_giurisprudenza", "**Distribuzione risultati** (2 totali):\n\n### Cass. civ., sez. III, n. 12345/2024\n\nmassima..."),
 ])
 def test_a_decision_read_with_its_court_tool_is_covered(tmp_path, tool, result):
     t = session(tmp_path).prompt().call(tool, {"numero": 12345, "anno": 2024}, result).say(
         "Cass. civ., sez. III, n. 12345/2024 ha affermato il principio.")
     assert gate(t) == SILENT
+
+
+_READ_DECISION = ("# Cass. civ., sez. III, n. 1234/2020, dep. 03/03/2020\n**Materia**: privacy\n\n"
+                  "## Testo della decisione\nRichiamata Cass. n. 5678/2015 e il D.Lgs. 196/2003, "
+                  "nonche' la sentenza n. 99/2018 della Corte costituzionale, la Corte rigetta.")
+
+
+@pytest.mark.parametrize("text", [
+    "Secondo Cass. n. 5678/2015 il trattamento e' lecito.",   # a precedent cited inside the decision
+    "Vedi Cass. n. 196/2003.",                               # a decree number, never a decision
+    "Corte cost. n. 99/2018.",                               # another court's decision in the body
+])
+def test_a_read_decision_credits_itself_and_nothing_it_cites(tmp_path, text):
+    t = session(tmp_path).prompt().call("leggi_sentenza", {"numero": 1234, "anno": 2020}, _READ_DECISION)
+    t.say("Cass. civ., sez. III, n. 1234/2020 ha rigettato.")
+    assert gate(t) == SILENT
+    t.say(text)
+    assert gate(t) == NAGS, text
+
+
+def test_a_search_credits_its_hits_not_their_abstracts(tmp_path):
+    result = ("### Cass. civ., sez. I, n. 1111/2021\n\nmassima: conforme a Cass. n. 2222/2019.\n\n"
+              "### Cass. civ., sez. II, n. 3333/2022\n\nmassima.")
+    t = session(tmp_path).prompt().call("cerca_giurisprudenza", {"query": "x"}, result).say(
+        "Cass. n. 1111/2021 e Cass. n. 3333/2022.")
+    assert gate(t) == SILENT
+    t.say("Cass. n. 2222/2019.")
+    assert gate(t) == NAGS
+
+
+def test_a_decree_number_in_a_heading_is_not_a_decision(tmp_path):
+    t = session(tmp_path).prompt().call(
+        "cerca_giurisprudenza", {"query": "x"}, "### Applicazione del D.Lgs. 196/2003\n\ntesto").say(
+        "Cass. n. 196/2003.")
+    assert gate(t) == NAGS
 
 
 def test_a_decision_not_found_covers_nothing(tmp_path):
@@ -378,12 +413,14 @@ def test_a_brocardi_abstract_does_not_cover_the_decision(tmp_path):
 
 
 def test_the_unified_search_credits_each_number_to_its_own_court(tmp_path):
-    result = ("## Cassazione\n- Cass. civ., sez. III, n. 12345/2024\n"
-              "## Corte costituzionale\n- Corte cost., sent. n. 242/2019\n")
+    result = ("# Ricerca giurisprudenziale unificata: danno\n\n"
+              "## Cassazione (Italgiure)\n\n### Cass. civ., sez. III, n. 12345/2024\n\nmassima...\n\n"
+              "## Amministrativa (TAR/CdS)\n\n### TAR Lazio — Sentenza n. 202400123 (2024)\n"
+              "**Estremi**: TAR Lazio, sentenza n. 123/2024\n\n---\n**Fonti consultate**: ...")
     t = session(tmp_path).prompt().call("cerca_giurisprudenza_unificata", {"query": "danno"}, result).say(
-        "Cass. civ. n. 12345/2024 e Corte cost. n. 242/2019.")
+        "Cass. civ. n. 12345/2024 e TAR Lazio n. 123/2024.")
     assert gate(t) == SILENT
-    t.say("Anche Corte cost. n. 12345/2024.")
+    t.say("Anche Cons. Stato n. 12345/2024.")
     assert gate(t) == NAGS
 
 
@@ -615,6 +652,15 @@ def test_adversarial_text_is_read_quickly_by_both_readers(tmp_path, isolated_hoo
         start = time.monotonic()
         run(payload, **kwargs)
         assert time.monotonic() - start < 5, kwargs
+
+
+def test_the_fallback_reader_credits_only_headings_too(tmp_path, isolated_hook):
+    t = session(tmp_path).prompt().call("leggi_sentenza", {"numero": 1234, "anno": 2020}, _READ_DECISION)
+    t.say("Cass. civ. n. 1234/2020 ha rigettato.")
+    args = {"python_args": ("-I", "-S"), "hook": isolated_hook}
+    assert run({"transcript_path": str(t.write())}, **args).returncode == SILENT
+    t.say("Secondo Cass. n. 5678/2015 e Cass. n. 196/2003.")
+    assert run({"transcript_path": str(t.write())}, **args).returncode == NAGS
 
 
 def test_a_long_session_is_judged_quickly(tmp_path):
