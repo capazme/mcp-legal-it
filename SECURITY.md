@@ -144,10 +144,13 @@ diffidenza, sempre. Ecco cosa contiene questo:
   inutilizzabile altrove e un file che chiedeva fiducia senza darne motivo.
   Oggi c'è [`.mcp.json.example`](.mcp.json.example), che risolve tutto dal
   checkout e che copi tu.
-- **`.claude/settings.json`** registra un solo hook, `plugin/hooks/citation-gate.py`:
-  uno script deterministico di ~100 righe che rilegge il transcript e avvisa se
-  una norma è stata citata senza passare da `cite_law()`. Non fa rete, non
-  scrive file. Leggilo prima di approvarlo — è breve apposta.
+- **`.claude/settings.json`** registra un solo hook, di tipo `prompt` all'avvio della
+  sessione: un promemoria del Legal Grounding Protocol, nessun comando eseguito.
+- **`plugin/hooks/hooks.json`** (solo con il plugin installato) registra
+  `plugin/hooks/citation-gate.py` sullo Stop: uno script deterministico che usa la sola
+  libreria standard, rilegge il transcript e avvisa se una norma è stata citata senza
+  passare da `cite_law()`. Non fa rete e non scrive file; `uv run --no-sync` lo avvia
+  senza installare nulla. Leggilo prima di approvarlo — è breve apposta.
 - **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto, e avvia
   il server con `uv run --frozen`: le versioni esatte di `plugin/server/uv.lock`, in un
   ambiente del plugin, senza toccare il progetto dell'utente.
