@@ -619,7 +619,7 @@ server standard. Parametri ed esempi: [docs/tool-tags.md](docs/tool-tags.md#un-s
 import asyncio
 from mcp_legal_it import api
 
-t = asyncio.run(api.testo_articolo("art. 2043 c.c.", canale="akn"))
+t = asyncio.run(api.testo_articolo("art. 2043 c.c.", canale="html"))
 print(t.esito, t.norma_data.urn)
 print(t.article_text)
 ```

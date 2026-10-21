@@ -64,12 +64,6 @@ _BROCARDI_SPENTO = (
     "nessuna richiesta a brocardi.it"
 )
 
-_NON_SUPPORTATA_HTML = (
-    "canale 'html' (il lettore HTML congelato di VisuaLex): previsto dalla fase di migrazione, "
-    "non ancora disponibile in questa versione"
-)
-
-
 # ---------------------------------------------------------------------------
 # Reference reading (no network)
 # ---------------------------------------------------------------------------
@@ -235,9 +229,11 @@ def _esito_lookup(base: dict, esito: str | None) -> str:
 async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> TestoArticolo:
     """The text in force of one article, from Normattiva or EUR-Lex.
 
-    *canale* is required: ``"akn"`` is mcp-legal-it's pipeline (``fonte`` says whether
-    the Akoma Ntoso export or the HTML reader served the text); ``"html"`` (VisuaLex's
-    frozen reader) answers ``non_supportata`` until the migration phase.
+    *canale* is required. ``"html"``: the article page read by VisuaLex's frozen
+    extractor, byte for byte VisuaLex's ``article_text`` (the Akoma Ntoso export only
+    when the page cannot be read, and ``fonte`` then says ``normattiva-akn``).
+    ``"akn"``: the Akoma Ntoso export first, the page as fallback: accents
+    transliterated, no «(( … ))» amendment markers, never VisuaLex's display text.
 
     Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
     ``articolo_non_trovato``, ``verifica_non_disponibile``, ``testo_assente``,
@@ -254,12 +250,8 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
             return TestoArticolo(esito=letto.esito, article_text="", norma_data=None, url="",
                                  canale=canale, data_consultazione=oggi, errore=letto.errore)
         act_info, article = letto
-    if canale == "html":
-        nd = _norma_dati(act_info, article)
-        return TestoArticolo(esito="non_supportata", article_text="", norma_data=nd, url=nd.url, urn=nd.urn,
-                             canale=canale, data_consultazione=oggi, errore=_NON_SUPPORTATA_HTML)
     with registra() as registro:
-        base, esito = await norme.lookup_parametri(act_info, article)
+        base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
         return TestoArticolo(
             esito=_esito_lookup(base, esito),

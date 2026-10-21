@@ -13,7 +13,7 @@ import asyncio
 from mcp_legal_it import api
 
 async def main():
-    t = await api.testo_articolo("art. 2043 c.c.", canale="akn")
+    t = await api.testo_articolo("art. 2043 c.c.", canale="html")
     if t.esito == "trovato":
         print(t.norma_data.urn)
         print(t.article_text)
@@ -244,12 +244,20 @@ The text in force of one article, from Normattiva or EUR-Lex.
 
 - **`canale` is required**, so that no default text channel reaches a caller by
   accident:
-  - `"akn"` is mcp-legal-it's pipeline. It reads Normattiva's Akoma Ntoso
-    export first and falls back to mcp-legal-it's own HTML reader. EUR-Lex is
-    always HTML. `fonte` says which reader served the text: `normattiva-akn`,
-    `normattiva` or `eurlex`.
-  - `"html"` is VisuaLex's frozen HTML reader. It is **planned**; until then it
-    answers `non_supportata` and makes no request.
+  - `"html"` reads the article's Normattiva page with VisuaLex's extractor,
+    imported unchanged (`lib/visualex/normattiva_html.py`): `article_text` is
+    VisuaLex's, byte for byte, accents and «(( … ))» amendment markers
+    included. The Akoma Ntoso export is the last resort, when the page cannot
+    be fetched or holds no article text, and `fonte` then says
+    `normattiva-akn`. A page's reading is kept for 24 hours (memory and
+    `MCP_CACHE_DIR/normattiva_pagine/`), so the same article asked again
+    makes no request. This is what the MCP tools (`cite_law`,
+    `fetch_law_article`, `verifica_citazioni`) read.
+  - `"akn"` reads the Akoma Ntoso export first and the page as fallback. It is
+    faster when warm, but the export transliterates accents (`attivita'`),
+    drops the amendment markers and adds a heading of its own: never
+    VisuaLex's display text.
+  - EUR-Lex is always read from its HTML; `fonte` is `eurlex`.
 - **`allegato` of the codes.** A code carries the annex its URN points at even
   when the citation does not name it: c.c. `"2"`, c.p. and c.p.c. `"1"` (the
   same annex is in the URN, `;262:2`). Passing that default annex back
@@ -264,7 +272,7 @@ The text in force of one article, from Normattiva or EUR-Lex.
 - **Esiti:** the whole `EsitoNorma` vocabulary.
 
 ```python
-t = await api.testo_articolo("art. 99999 c.c.", canale="akn")
+t = await api.testo_articolo("art. 99999 c.c.", canale="html")
 t.esito    # 'articolo_non_trovato'
 ```
 
@@ -559,7 +567,6 @@ with their signature.
 
 | Planned operation | VisuaLex route it backs |
 |---|---|
-| HTML text channel (`canale="html"`), byte-identical to VisuaLex's frozen `article_text` | `/fetch_article_text`, `/stream_article_text`, `/fetch_all_data` |
 | `validity` with the text, from the same fetch | same |
 | Multi-article references (`"1,2"`, `"3-5"`) | `/fetch_norma_data` |
 | Act tree with annexes and metadata | `/fetch_tree` |
@@ -611,11 +618,14 @@ updates that test, this document and the CHANGELOG in the same change.
 `annotazioni_brocardi`: VisuaLex does not serve Brocardi content.
 
 **When to switch which route.** The text routes (`/fetch_article_text`,
-`/stream_article_text`, `/fetch_all_data`) and `/fetch_decision` switch to this
-library **only once** the HTML channel and the block form of §6 exist.
+`/stream_article_text`, `/fetch_all_data`) can switch to `canale="html"`, which
+returns VisuaLex's `article_text` byte for byte (checked against VisuaLex's
+frozen hashes and a live run of its `collector_timing.py`); `validity` and
+multi-article references come with the next phases. `/fetch_decision` switches
+**only once** the block form of §6 exists.
 
-- Today's `canale="akn"` text is not VisuaLex's frozen `article_text`: AKN and
-  HTML readings differ.
+- `canale="akn"` text is not VisuaLex's frozen `article_text`: AKN and HTML
+  readings differ, and must never reach VisuaLex's anchors.
 - Today's `testo_grezzo` is not VisuaLex's block projection, so its hashes would
   differ.
 

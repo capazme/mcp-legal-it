@@ -83,3 +83,39 @@ def _regole_di_rete_neutre(monkeypatch):
     monkeypatch.delenv("LEGAL_CIRCUIT_BREAKER", raising=False)
     yield
     _http._azzera_stato()
+
+
+@pytest.fixture(autouse=True)
+def _niente_rete_nei_test_unitari(request, monkeypatch):
+    """A unit test never reaches a real source: a request that gets to httpx's network
+    transport fails at once. Tests marked ``live`` are the only ones allowed out.
+
+    Without this, a test written for one path (say the Akoma Ntoso export, mocked)
+    silently sends real requests to Normattiva when the code takes another one.
+    """
+    if request.node.get_closest_marker("live"):
+        yield
+        return
+    import httpx
+
+    async def bloccata(self, req):
+        raise httpx.ConnectError(f"rete bloccata nei test unitari: {req.method} {req.url}", request=req)
+
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", bloccata)
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _cache_isolata(tmp_path_factory, monkeypatch):
+    """Every unit test writes its disk caches to a folder of its own, never the user's.
+
+    A test that serves made-up pages through a fake client must not leave them where a
+    real lookup would read them back (the Normattiva page cache keeps a reading for a
+    day). A test that sets ``MCP_CACHE_DIR`` itself overrides this one.
+    """
+    from mcp_legal_it.lib.visualex import pagine_normattiva
+
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path_factory.mktemp("mcp-cache")))
+    pagine_normattiva.svuota_memoria()
+    yield
+    pagine_normattiva.svuota_memoria()

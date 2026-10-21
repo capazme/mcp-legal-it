@@ -89,3 +89,10 @@ class TestUrns:
     def test_the_new_codes_build_their_urn(self):
         nv = NormaVisitata(Norma("regolamento di attuazione del Codice della proprietà industriale", "", ""), "1")
         assert nv.url().endswith("urn:nir:stato:decreto.ministeriale:2010-01-13;33~art1")
+
+
+def test_the_tourism_code_is_the_decree_s_annex():
+    """D.Lgs. 79/2011 approves the Codice del turismo as Allegato 1: without ":1"
+    Normattiva serves the decree's own art. 3 («Abrogazioni») for the code's art. 3."""
+    nv = NormaVisitata(Norma("codice del turismo", "", ""), "3")
+    assert nv.url().endswith("urn:nir:stato:decreto.legislativo:2011-05-23;79:1~art3")

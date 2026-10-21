@@ -767,7 +767,7 @@ def _fake_session():
 class TestVerificaCitazioniE2E:
     @pytest.mark.asyncio
     async def test_norma_exists(self):
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {
                 "text": "Qualunque fatto doloso o colposo obbliga a risarcire il danno.",
                 "url": "https://normattiva.it/art2043",
@@ -783,7 +783,7 @@ class TestVerificaCitazioniE2E:
 
     @pytest.mark.asyncio
     async def test_norma_not_found(self):
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {"text": "", "url": "https://normattiva.it/x", "source": "", "error": "404"}
 
         with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
@@ -900,7 +900,7 @@ class TestPreleggiRegression:
 
     @pytest.mark.asyncio
     async def test_norma_misquote_comma_absent(self):
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {
                 "text": "1. Unico comma dell'articolo.",
                 "url": "https://normattiva.it/art13",
@@ -980,7 +980,7 @@ class TestPreleggiRegression:
 
     @pytest.mark.asyncio
     async def test_mixed_batch_table_shape(self):
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {
                 "text": "Testo articolo.",
                 "url": "https://normattiva.it/x",
@@ -1043,7 +1043,7 @@ import json
 class TestVerificaCitazioniJSON:
     @pytest.mark.asyncio
     async def test_struct_norma_verificata(self):
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {"text": "Qualunque fatto doloso o colposo...", "url": "https://normattiva.it/art2043",
                     "source": "normattiva"}
 
@@ -1060,7 +1060,7 @@ class TestVerificaCitazioniJSON:
 
     @pytest.mark.asyncio
     async def test_json_output_is_parseable_and_markdown_unchanged(self):
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {"text": "", "url": "https://normattiva.it/x", "source": "", "error": "404"}
 
         with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
@@ -1080,7 +1080,7 @@ class TestVerificaCitazioniJSON:
 
     @pytest.mark.asyncio
     async def test_truncation_flag(self):
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
 
         refs = "\n".join(f"art. {i} c.c." for i in range(1, 23))  # 22 references
@@ -1106,7 +1106,7 @@ class TestCiteLawJSON:
             "urn:nir:stato:regio.decreto:1942-03-16;262:2~art2043"
         )
 
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {"text": "1. Qualunque fatto doloso o colposo...", "url": fake_url,
                     "source": "normattiva"}
 
@@ -1132,7 +1132,7 @@ class TestCiteLawJSON:
     async def test_struct_fetch_exception(self, monkeypatch):
         monkeypatch.setenv("AKN_DISABLED", "1")
 
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             raise RuntimeError("network down")
 
         with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
@@ -1146,7 +1146,7 @@ class TestCiteLawJSON:
     async def test_struct_empty_text(self, monkeypatch):
         monkeypatch.setenv("AKN_DISABLED", "1")
 
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {"text": "", "url": "https://normattiva.it/art2043", "source": "normattiva"}
 
         with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):
@@ -1157,7 +1157,7 @@ class TestCiteLawJSON:
     async def test_impl_json_and_markdown(self, monkeypatch):
         monkeypatch.setenv("AKN_DISABLED", "1")
 
-        async def fake_fetch_article(nv):
+        async def fake_fetch_article(nv, **kw):
             return {"text": "testo", "url": "https://normattiva.it/a", "source": "normattiva"}
 
         with patch("mcp_legal_it.core.norme.fetch_article", side_effect=fake_fetch_article):

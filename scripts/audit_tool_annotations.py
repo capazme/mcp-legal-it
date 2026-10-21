@@ -162,6 +162,15 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
+        "module": "mcp_legal_it/lib/visualex/pagine_normattiva.py",
+        "label": "normattiva_pagine",
+        "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine",
+        "files": ["<sha256 of the article URL>.json -- the article text a Normattiva page gave (HTML channel)"],
+        "retention": "24 hours (TTL_SECONDI, VisuaLex's page TTL); at most MAX_SU_DISCO (2000) files, oldest first",
+        "markers": ("normattiva_pagine",),
+        "switch": "cache_enabled()",
+    },
+    {
         "module": "mcp_legal_it/lib/brocardi/client.py",
         "label": "cache root",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",

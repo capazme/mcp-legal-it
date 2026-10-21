@@ -74,10 +74,10 @@ def _failed_fetch(nv: NormaVisitata, exc: Exception) -> dict:
     return result
 
 
-async def fetch_norma(nv: NormaVisitata) -> dict:
+async def fetch_norma(nv: NormaVisitata, *, canale: str = "html") -> dict:
     """``fetch_article`` with a failure turned into the scraper's error shape, never raised."""
     try:
-        return await fetch_article(nv)
+        return await fetch_article(nv, canale=canale)
     except Exception as e:
         return _failed_fetch(nv, e)
 
@@ -87,7 +87,7 @@ async def _cite_law_struct(reference: str) -> dict:
     return (await _cite_law_lookup(reference))[0]
 
 
-async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
+async def _cite_law_lookup(reference: str, *, canale: str = "html") -> tuple[dict, str | None]:
     """The JSON face of cite_law, plus the outcome of the existence check.
 
     The outcome is ``ARTICLE_NOT_FOUND`` (the article is not in the act),
@@ -107,7 +107,7 @@ async def _cite_law_lookup(reference: str) -> tuple[dict, str | None]:
         base["errore"] = motivo
         return base, None
 
-    return await _lookup_visitata(base, _build_nv(act_info, article), act_info)
+    return await _lookup_visitata(base, _build_nv(act_info, article), act_info, canale=canale)
 
 
 def _lookup_base(reference: str) -> dict:
@@ -120,15 +120,16 @@ def _lookup_base(reference: str) -> dict:
     }
 
 
-async def lookup_parametri(act_info: dict, article: str) -> tuple[dict, str | None]:
+async def lookup_parametri(act_info: dict, article: str, *, canale: str = "html") -> tuple[dict, str | None]:
     """``_cite_law_lookup`` for an act already resolved to ``{tipo_atto, data, numero_atto}``."""
     if (motivo := intervallo_articoli(article)) is not None:
         return {**_lookup_base(f"art. {article}"), "errore": motivo}, None
     reference = str(_build_nv(act_info, article))
-    return await _lookup_visitata(_lookup_base(reference), _build_nv(act_info, article), act_info)
+    return await _lookup_visitata(_lookup_base(reference), _build_nv(act_info, article), act_info, canale=canale)
 
 
-async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict) -> tuple[dict, str | None]:
+async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
+                           canale: str = "html") -> tuple[dict, str | None]:
     """Fetch *nv* and fill *base* (see ``_cite_law_lookup``)."""
     article = nv.numero_articolo
     base["articolo"] = article or ""
@@ -138,7 +139,7 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict) -> tup
         "numero_atto": act_info.get("numero_atto", ""),
         "descrizione": str(nv.norma),
     }
-    result = await fetch_norma(nv)
+    result = await fetch_norma(nv, canale=canale)
     base["url"] = result.get("url", "") or nv.url()
     base["urn"] = _urn_from_url(base["url"])
     # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
