@@ -33,6 +33,13 @@ LACUNE = {
     "tfue-101": "EU identity as celex:…: citations/URN PR",
 }
 
+#: Norm ids where the golden file is behind mcp-legal-it, checked live: VisuaLex aligns its
+#: table first (its saved norms are keyed on norma_key, not on the URN), then the golden.
+DIVERGENZE = {
+    "rd-773-1931-86": ("TULPS: its articles are an annex of r.d. 773/1931, ;773~art86 serves the "
+                       "decree's own text; ;773:1 checked live on 21/10/2026 (ARTICOLATO_IN_ALLEGATO)"),
+}
+
 
 def _golden() -> dict:
     return json.loads(GOLDEN.read_text(encoding="utf-8"))
@@ -62,6 +69,7 @@ def test_the_copy_is_visualex_s_file():
 def test_every_gap_names_a_norm_of_the_file():
     ids = {n["id"] for n in _golden()["norms"]}
     assert set(LACUNE) <= ids
+    assert set(DIVERGENZE) <= ids
 
 
 @pytest.mark.parametrize("norma", _golden()["norms"], ids=lambda n: n["id"])
@@ -70,7 +78,7 @@ def test_norm_identity(norma):
     if not confronti:
         pytest.skip("no identity asserted for this norm")
     diversi = [(k, a, c) for k, a, c in confronti if a != c]
-    if norma["id"] in LACUNE:
-        assert diversi, f"gap closed, remove it from LACUNE: {norma['id']}"
-        pytest.xfail(LACUNE[norma["id"]])
+    if norma["id"] in LACUNE or norma["id"] in DIVERGENZE:
+        assert diversi, f"gap closed, remove it from LACUNE/DIVERGENZE: {norma['id']}"
+        pytest.xfail(LACUNE.get(norma["id"]) or DIVERGENZE[norma["id"]])
     assert not diversi, diversi
