@@ -21,10 +21,11 @@ entry, it is the same feature as ported to the 3.0 line.
   means: `cerca_brocardi` and `fetch_law_annotations` (tag `solo_brocardi`) are
   not listed (228 → 226 tools); no request reaches brocardi.it, because the two
   scrapers that build Brocardi URLs ask `lib/_brocardi_switch.py` before any
-  I/O and `_egress.is_allowed()` refuses the host; `cite_law(include_annotations=True)`,
+  I/O (and `_egress.is_allowed()` reports the host as refused); `cite_law(include_annotations=True)`,
   `giurisprudenza_articolo` and `mappa_orientamento` (tag `brocardi`) answer
   without it and say so. In code: `crea_server(brocardi=False)` for one server,
-  `_brocardi_switch.disabled()` / `set_default(False)` for library calls; an
+  `_brocardi_switch.disabled()` / `set_default(False)` for library calls (these
+  two stop every request but do not change a server's tool list); an
   *off* set in the environment cannot be switched back on from code.
   `stato_server` reports the state. `tests/unit/test_brocardi_switch.py` mocks
   the network and fails if any Brocardi-tagged tool, or either scraper, sends a
@@ -379,7 +380,7 @@ entry, it is the same feature as ported to the 3.0 line.
 ### Changed
 - **Tool tags follow one taxonomy, and some desktop profiles change.** Every
   tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (24),
-  `autorita` (6), `registri` (5), `calcolo` (140), `redazione` (31),
+  `autorita` (6), `registri` (5), `calcolo` (141), `redazione` (30),
   `diagnostica` (3) — plus, for case law, its court (`giurisprudenza_cass`,
   `giurisprudenza_cost`, `giurisprudenza_trib`, `giurisprudenza_amm`,
   `giurisprudenza_ue`) and, for an authority, `garante` or `consob`. The

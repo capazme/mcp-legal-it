@@ -25,8 +25,8 @@ se questa pagina smette di coincidere con il vocabolario.
 | `giurisprudenza` | 24 | Decisioni di un giudice: ricerca, testo integrale, giurisprudenza su una norma, orientamenti. |
 | `autorita` | 6 | Provvedimenti e indirizzi di un'autorità indipendente (Garante privacy, CONSOB). |
 | `registri` | 5 | Fatti cercati online in un registro pubblico o su un sito di terzi, non diritto: marchi (TMview), partite IVA (VIES), DPA pubblicato da un fornitore. |
-| `calcolo` | 140 | Risposta calcolata in locale dagli input e dalle tabelle incluse: calcoli, termini, compensi, imposte, verifiche e ricerche in tabella. Nessuna fonte online. |
-| `redazione` | 31 | Produce una bozza di documento o di testo da usare come tale: atti, lettere, informative, DPA, file DOCX ed Excel. |
+| `calcolo` | 141 | Risposta calcolata in locale dagli input e dalle tabelle incluse: calcoli, termini, compensi, imposte, verifiche e ricerche in tabella. Nessuna fonte online. |
+| `redazione` | 30 | Produce una bozza di documento o di testo da usare come tale: atti, lettere, informative, DPA, file DOCX ed Excel. Fatture, notule, ricevute e preventivi sono `calcolo`: il loro contenuto è il conto. |
 | `diagnostica` | 3 | Riferisce sul server stesso: versione, freschezza dei dati, verbale dei rifiuti. |
 
 ## Organo (per i tool di giurisprudenza)
