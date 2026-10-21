@@ -341,7 +341,7 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
     with registra() as registro:
         base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
-        validita, precisione, avvisi, successione = _qualita(base)
+        validita, precisione, avvisi, successione, upcoming = _qualita(base)
         return TestoArticolo(
             esito=_esito_lookup(base, esito),
             article_text=base["testo"],
@@ -357,11 +357,12 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
             precisione=precisione,
             avvisi=avvisi,
             successione=successione,
+            upcoming=upcoming,
         )
 
 
 def _qualita(base: dict):
-    """``(validity, precisione, avvisi, successione)`` of a served text, with no request.
+    """``(validity, precisione, avvisi, successione, upcoming)`` of a served text, with no request.
 
     LI-031: ESATTO only for the text of Normattiva's page whose validity the page states;
     the Akoma Ntoso export's text, or a page that does not say, is INDICATIVO. When the
@@ -374,7 +375,7 @@ def _qualita(base: dict):
 
     testo, fonte, url = base.get("testo") or "", base.get("fonte") or "", base.get("url") or ""
     if not testo or fonte not in ("normattiva", "normattiva-akn"):
-        return None, None, (), None
+        return None, None, (), None, None
     validita = validita_pagina(url)
     avvisi: list[str] = []
     if fonte == "normattiva":
@@ -388,6 +389,8 @@ def _qualita(base: dict):
     if (atto := _abrogato_da(testo)) is not None:
         successione = {"abrogato_da": atto, "precisione": "INDICATIVO", "fonte": "avviso di abrogazione nel testo"}
     futura = versione_futura(url)
+    upcoming = ({"change": futura["change"], "valid_from": futura["valid_from"],
+                 "version_number": futura["version_number"]} if futura else None)
     if futura:
         atto_futuro = _abrogato_da(futura["testo"])
         avvisi.append(avviso_versione_futura(futura))
@@ -396,7 +399,7 @@ def _qualita(base: dict):
                            "fonte": "versione futura della pagina di Normattiva"}
     vigenza = Vigenza(**{k: validita[k] for k in ("state", "valid_from", "valid_to", "version_number",
                                                    "act_updated", "request_in_window")}) if validita else None
-    return vigenza, precisione, tuple(avvisi), successione
+    return vigenza, precisione, tuple(avvisi), successione, upcoming
 
 
 async def testi_articoli(

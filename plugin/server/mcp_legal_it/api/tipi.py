@@ -151,6 +151,10 @@ class TestoArticolo:
     # The act that repealed the article (or will), as the repeal notice names it, derived
     # automatically: {"abrogato_da": "...", "precisione": "INDICATIVO", "fonte": ..., "dal"?}.
     successione: dict[str, str] | None = None
+    # VisuaLex's ``upcoming``: the undated page served a version not in force yet, and the
+    # text above is today's. {"change": "abrogated" | "amended", "valid_from": "YYYY-MM-DD",
+    # "version_number": int | None}; None otherwise.
+    upcoming: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

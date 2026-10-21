@@ -623,8 +623,9 @@ entry, it is the same feature as ported to the 3.0 line.
   export at today's date when that page cannot be read; never the undated page.
   `api.testo_articolo` fills `validity` from the same page and adds `precisione`
   (`ESATTO` for the page's text with its validity, `INDICATIVO` otherwise),
-  `avvisi` (the coming version, with its day) and `successione` (the repealing
-  act a notice names, `INDICATIVO`).
+  `avvisi` (the coming version, with its day), `successione` (the repealing
+  act a notice names, `INDICATIVO`) and `upcoming` (VisuaLex's: `change`,
+  `valid_from`, `version_number`).
 - **Art. 3 of l. 654/1975 is the law's, not the Convention's.** On the Akoma
   Ntoso path the largest part of an act won, so a law that executes a treaty
   served the treaty's articles under its own numbers (art. 3 on apartheid for

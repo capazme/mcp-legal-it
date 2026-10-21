@@ -102,6 +102,8 @@ class TestAFutureVersion:
         assert t.successione == {
             "abrogato_da": "D.LGS. 1 AGOSTO 2025, N. 123, COME MODIFICATO DAL D.L. 31 DICEMBRE 2025, N. 200",
             "dal": "2027-01-01", "precisione": "INDICATIVO", "fonte": "versione futura della pagina di Normattiva"}
+        # VisuaLex's "upcoming", 1:1.
+        assert t.upcoming == {"change": "abrogated", "valid_from": "2027-01-01", "version_number": None}
 
     async def test_any_window_starting_after_today_not_only_a_repeal(self, monkeypatch):
         modificata = synthetic(dal="01-03-2027", label="Art. 3",
@@ -110,6 +112,7 @@ class TestAFutureVersion:
         t = await api.testo_articolo(_dpr131(), canale="html")
         assert "Sono soggetti a registrazione" in t.article_text and t.successione is None
         assert t.avvisi[0].startswith("Normattiva mostra senza data il testo in vigore dal 2027-03-01:")
+        assert t.upcoming == {"change": "amended", "valid_from": "2027-03-01", "version_number": None}
 
     async def test_the_cache_serves_today_s_text_again_without_a_request(self, monkeypatch):
         richieste = _serve(monkeypatch, {DPR131: FUTURA, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
@@ -123,7 +126,7 @@ class TestAWindowAlreadyStarted:
         richieste = _serve(monkeypatch, {DPR131: OGGI_PAGINA})
         t = await api.testo_articolo(_dpr131(), canale="html")
         assert richieste == [DPR131] and t.url.endswith("~art3")
-        assert t.precisione == "ESATTO" and t.avvisi == () and t.successione is None
+        assert t.precisione == "ESATTO" and t.avvisi == () and t.successione is None and t.upcoming is None
 
     async def test_a_window_that_starts_today_is_today_s(self, monkeypatch):
         richieste = _serve(monkeypatch, {DPR131: synthetic(dal="21-10-2026", label="Art. 3")})
