@@ -25,7 +25,10 @@ from src.lib.parlamento.client import (
     search_ddl,
     _sanitize_phrase,
 )
-from src.tools.legal_citations import _resolve_act
+# A module reference, not `from ... import _resolve_act`: importing
+# legal_citations first runs server.py, which imports this module while
+# legal_citations is still half-initialised and has no `_resolve_act` yet.
+from src.tools import legal_citations
 
 _CAVEAT_TITOLI = (
     "_Ricerca best-effort sui **titoli** dei DDL (i testi non sono indicizzati): "
@@ -50,7 +53,7 @@ def _norma_search_groups(riferimento: str) -> tuple[list[list[str]], dict | None
     text = riferimento.strip()
     act_part = _ART_PREFIX.sub("", text) or text
 
-    resolved = _resolve_act(act_part)
+    resolved = legal_citations._resolve_act(act_part)
     groups: list[list[str]] = []
     if resolved:
         tipo = resolved.get("tipo_atto", "")
