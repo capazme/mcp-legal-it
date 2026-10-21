@@ -12,17 +12,19 @@ client's ``event_hooks``, so ``GUARDIE`` re-applies it to a client an injected
 factory returns.
 
 **Limits** (politeness towards the sources), per source and shared by every
-client of the process, ported from VisuaLex's ``ThrottledHttpClient`` and
+client, thread and event loop of the process (one ``threading.Lock``), ported from VisuaLex's ``ThrottledHttpClient`` and
 ``CircuitBreaker`` (VisuaLexAPI ``services/visualex/visualex_api/services/http_client.py``
 and ``tools/circuit_breaker.py`` at ``eca698dc``, MPL-2.0):
 
 * at most ``Politica.concorrenza`` requests in flight to a source (3), body
   included, and at least ``Politica.intervallo`` seconds between two requests to
   it (0.5 s);
-* a 429 or 503 that states a ``Retry-After`` pauses the source: the next request
-  to it, from any caller, waits the pause out first, or is refused at once
-  (``FontePausata``) when more than ``MAX_ATTESA_PAUSA`` (30 s) is left. Our own
-  backoff never pauses a source (``lib/_http.retry_request`` owns retries);
+* a 429 or 503 that states a ``Retry-After`` pauses the source, for at most
+  ``MAX_ATTESA_PAUSA`` (30 s): the next request to it, from any caller, waits the
+  pause out first. A longer statement refuses the call that received it at once
+  (``FontePausata``, in ``lib/_http.retry_request``) and never holds the source
+  longer than the cap, so a site that comes back is read again. Our own backoff
+  never pauses a source (``retry_request`` owns retries);
 * an optional circuit breaker (``LEGAL_CIRCUIT_BREAKER=on``; off by default):
   after 3 consecutive failures (a network error, a 5xx or a 429, never a 404 or
   another 4xx) the source is refused for 300 s (``FonteSospesa``), then one trial
@@ -30,6 +32,11 @@ and ``tools/circuit_breaker.py`` at ``eca698dc``, MPL-2.0):
 
 A source with no host list (``dpa_probe``: whatever site the caller names) keeps
 its limits per host, so one site's pause or failures never hold another's.
+
+The limits hold within one process. N processes against the same source (a
+server, a worker and a command-line tool on one machine) make N times the cap:
+a limiter shared between processes (through the cache backend, say) is a later
+step, not this one.
 
 The limits live in a transport wrapped around the client's own (and around any
 proxy transport httpx mounted from the environment), so they count real network
@@ -44,9 +51,9 @@ import asyncio
 import email.utils
 import math
 import os
+import threading
 import time
-import weakref
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import httpx
 
@@ -102,9 +109,6 @@ MAX_ATTESA_PAUSA = 30.0
 
 #: Statuses whose ``Retry-After`` pauses the source.
 STATI_LIMITE = frozenset({429, 503})
-
-#: The longest pause a ``Retry-After`` can set (a day): a larger statement is read as this.
-PAUSA_MASSIMA = 86400.0
 
 #: The real class, kept before any test patches ``httpx.AsyncClient`` with a stand-in.
 _ASYNC_CLIENT = httpx.AsyncClient
@@ -264,41 +268,36 @@ def _avvolgi_trasporti(client: httpx.AsyncClient, fonte: str) -> None:
 
 @dataclass
 class _StatoFonte:
+    """One source's limits, shared by every thread and event loop of the process (under ``_LOCK``)."""
+
+    in_volo: int = 0  # requests holding a slot: from the reservation until their body is closed
+    ultima: float = 0.0  # monotonic time reserved for the latest request's start
     non_prima: float = 0.0  # monotonic time before which no request goes to the source
     guasti: int = 0
     aperto_da: float | None = None  # monotonic time the breaker opened
     prova_in_corso: bool = False
-    ultima: float = 0.0  # monotonic time the last request to the source started
 
 
-@dataclass
-class _StatoCiclo:
-    """What must be bound to one event loop: the semaphores and the interval locks."""
-
-    semafori: dict[str, asyncio.Semaphore] = field(default_factory=dict)
-    lucchetti: dict[str, asyncio.Lock] = field(default_factory=dict)
-
-
+#: Guards every ``_StatoFonte``. A ``threading.Lock``, never held across an
+#: ``await``: the limits must hold for a library caller that runs several threads,
+#: each with its own event loop, against the same source.
+_LOCK = threading.Lock()
 _stato: dict[str, _StatoFonte] = {}
-_per_ciclo: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, _StatoCiclo]" = weakref.WeakKeyDictionary()
+
+#: How often a request waiting for a free slot looks again (the slots are shared
+#: across event loops, so no asyncio primitive can wake it).
+_PASSO_ATTESA = 0.02
 
 
 def _azzera_stato() -> None:
-    """Forget every pause, failure count and interval (tests)."""
-    _stato.clear()
-    _per_ciclo.clear()
+    """Forget every slot, pause, failure count and interval (tests)."""
+    with _LOCK:
+        _stato.clear()
 
 
 def _fonte(fonte: str) -> _StatoFonte:
-    return _stato.setdefault(fonte, _StatoFonte())
-
-
-def _ciclo() -> _StatoCiclo:
-    loop = asyncio.get_running_loop()
-    stato = _per_ciclo.get(loop)
-    if stato is None:
-        stato = _per_ciclo[loop] = _StatoCiclo()
-    return stato
+    with _LOCK:
+        return _stato.setdefault(fonte, _StatoFonte())
 
 
 def pausa_dichiarata(headers: httpx.Headers | dict) -> float | None:
@@ -311,15 +310,15 @@ def pausa_dichiarata(headers: httpx.Headers | dict) -> float | None:
     except ValueError:
         pass
     else:
-        # «inf», «nan» or «1e400» would hold the source for ever: not a statement we can honour.
-        return min(max(0.0, secondi), PAUSA_MASSIMA) if math.isfinite(secondi) else None
+        # «inf», «nan» or «1e400» are no statement we can honour.
+        return max(0.0, secondi) if math.isfinite(secondi) else None
     try:
         quando = email.utils.parsedate_to_datetime(valore)
     except (TypeError, ValueError):
         return None
     if quando is None or quando.tzinfo is None:
         return None
-    return min(max(0.0, quando.timestamp() - time.time()), PAUSA_MASSIMA)
+    return max(0.0, quando.timestamp() - time.time())
 
 
 class _TrasportoConRegole(httpx.AsyncBaseTransport):
@@ -334,20 +333,15 @@ class _TrasportoConRegole(httpx.AsyncBaseTransport):
         return self.fonte
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        chiave = self._chiave(request)
-        stato = _fonte(chiave)
+        stato = _fonte(self._chiave(request))
         await self._attendi_pausa(stato, request)
         prova = self._ammetti(stato, request)
         esito_dato = False
         try:
-            regole = politica(self.fonte)
-            ciclo = _ciclo()
-            semaforo = ciclo.semafori.setdefault(chiave, asyncio.Semaphore(max(1, regole.concorrenza)))
-            await semaforo.acquire()
+            await self._prendi_posto(stato, politica(self.fonte))
             rilasciato = False
             try:
                 await self._attendi_pausa(stato, request)  # a pause may have started while we queued
-                await self._rispetta_intervallo(chiave, stato, ciclo, regole)
                 try:
                     response = await self.interno.handle_async_request(request)
                 except httpx.TransportError:
@@ -359,12 +353,12 @@ class _TrasportoConRegole(httpx.AsyncBaseTransport):
                 esito_dato = True
                 if not response.is_closed:
                     # The body is still to come from the network: the slot goes with it.
-                    response.stream = _FlussoCheRilascia(response.stream, semaforo)
+                    response.stream = _FlussoCheRilascia(response.stream, stato)
                     rilasciato = True
                 return response
             finally:
                 if not rilasciato:
-                    semaforo.release()
+                    _rilascia(stato)
         finally:
             if not esito_dato:
                 # Cancelled, refused for a pause or a local bug: no outcome, but a
@@ -374,9 +368,35 @@ class _TrasportoConRegole(httpx.AsyncBaseTransport):
     async def aclose(self) -> None:
         await self.interno.aclose()
 
+    async def _prendi_posto(self, stato: _StatoFonte, regole: Politica) -> None:
+        """Take one of the source's slots and the next start time the interval allows, then wait for it.
+
+        Both are reserved under the process lock, so they hold across threads and
+        event loops; only the waiting is done in this loop. A cancelled wait gives
+        the slot back (the reserved start time stays used: harmless, it only spaces
+        the next request a little more).
+        """
+        while True:
+            with _LOCK:
+                if stato.in_volo < max(1, regole.concorrenza):
+                    stato.in_volo += 1
+                    adesso = time.monotonic()
+                    inizio = max(adesso, stato.ultima + max(0.0, regole.intervallo))
+                    stato.ultima = inizio
+                    attesa = inizio - adesso
+                    break
+            await asyncio.sleep(_PASSO_ATTESA)
+        if attesa > 0:
+            try:
+                await asyncio.sleep(attesa)
+            except BaseException:
+                _rilascia(stato)
+                raise
+
     async def _attendi_pausa(self, stato: _StatoFonte, request: httpx.Request) -> None:
-        resta = stato.non_prima - time.monotonic()
-        if resta > MAX_ATTESA_PAUSA:
+        with _LOCK:
+            resta = stato.non_prima - time.monotonic()
+        if resta > MAX_ATTESA_PAUSA:  # never set by _registra_pausa; kept as the documented guarantee
             raise FontePausata(
                 f"{self.fonte}: la fonte ha chiesto di attendere ancora {round(resta)} s",
                 retry_after=resta,
@@ -385,60 +405,67 @@ class _TrasportoConRegole(httpx.AsyncBaseTransport):
         if resta > 0:
             await asyncio.sleep(resta)
 
-    async def _rispetta_intervallo(self, chiave: str, stato: _StatoFonte, ciclo: _StatoCiclo,
-                                   regole: Politica) -> None:
-        if regole.intervallo <= 0:
-            stato.ultima = time.monotonic()
-            return
-        lucchetto = ciclo.lucchetti.setdefault(chiave, asyncio.Lock())
-        async with lucchetto:
-            attesa = stato.ultima + regole.intervallo - time.monotonic()
-            if attesa > 0:
-                await asyncio.sleep(attesa)
-            stato.ultima = time.monotonic()
-
     def _registra_pausa(self, stato: _StatoFonte, response: httpx.Response) -> None:
+        """A stated Retry-After pauses the source, for at most ``MAX_ATTESA_PAUSA``.
+
+        A longer statement (a 503 announcing an hour of maintenance) does not hold
+        the source for that long: the call that received it is refused at once by
+        ``retry_request`` (``FontePausata``), and the others wait at most the cap
+        and try again, so a site that comes back early is read again.
+        """
         if response.status_code not in STATI_LIMITE:
             return
         pausa = pausa_dichiarata(response.headers)
         if pausa is None:
             return
-        fino = time.monotonic() + pausa
-        if fino > stato.non_prima:
-            stato.non_prima = fino
+        with _LOCK:
+            fino = time.monotonic() + min(pausa, MAX_ATTESA_PAUSA)
+            if fino > stato.non_prima:
+                stato.non_prima = fino
 
     def _ammetti(self, stato: _StatoFonte, request: httpx.Request) -> bool:
         """Whether the circuit breaker lets the request through; True when it is the half-open trial."""
-        if not interruttore_attivo() or stato.aperto_da is None:
+        if not interruttore_attivo():
             return False
-        if time.monotonic() - stato.aperto_da < SOSPENSIONE or stato.prova_in_corso:
-            raise FonteSospesa(
-                f"{self.fonte}: sospesa dopo {SOGLIA_GUASTI} errori consecutivi", request=request
-            )
-        stato.prova_in_corso = True
+        with _LOCK:
+            if stato.aperto_da is None:
+                return False
+            if time.monotonic() - stato.aperto_da < SOSPENSIONE or stato.prova_in_corso:
+                sospesa = True
+            else:
+                stato.prova_in_corso = True
+                sospesa = False
+        if sospesa:
+            raise FonteSospesa(f"{self.fonte}: sospesa dopo {SOGLIA_GUASTI} errori consecutivi", request=request)
         return True
 
     def _esito(self, stato: _StatoFonte, prova: bool, *, guasto: bool | None) -> None:
         """Record a request's outcome; ``guasto=None`` (cancelled, a local bug) counts for nothing."""
-        if prova:
-            stato.prova_in_corso = False
-        if guasto is None:
-            return
-        if not guasto:
-            stato.guasti = 0
-            stato.aperto_da = None
-            return
-        stato.guasti += 1
-        if interruttore_attivo() and (prova or stato.guasti >= SOGLIA_GUASTI):
-            stato.aperto_da = time.monotonic()
+        with _LOCK:
+            if prova:
+                stato.prova_in_corso = False
+            if guasto is None:
+                return
+            if not guasto:
+                stato.guasti = 0
+                stato.aperto_da = None
+                return
+            stato.guasti += 1
+            if interruttore_attivo() and (prova or stato.guasti >= SOGLIA_GUASTI):
+                stato.aperto_da = time.monotonic()
+
+
+def _rilascia(stato: _StatoFonte) -> None:
+    with _LOCK:
+        stato.in_volo -= 1
 
 
 class _FlussoCheRilascia(httpx.AsyncByteStream):
     """The response body; the source's slot is released when the body is closed."""
 
-    def __init__(self, interno, semaforo: asyncio.Semaphore) -> None:
+    def __init__(self, interno, stato: _StatoFonte) -> None:
         self._interno = interno
-        self._semaforo = semaforo
+        self._stato = stato
         self._rilasciato = False
 
     async def __aiter__(self):
@@ -452,4 +479,4 @@ class _FlussoCheRilascia(httpx.AsyncByteStream):
         finally:
             if not self._rilasciato:
                 self._rilasciato = True
-                self._semaforo.release()
+                _rilascia(self._stato)

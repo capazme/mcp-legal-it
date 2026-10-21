@@ -159,13 +159,20 @@ that name (VisuaLex's rules, ported):
   `HostNonConsentito` (an `httpx.TransportError`) and never reaches the
   network. It travels in `event_hooks`, so it is re-applied like the other
   guards;
-- **the limits, per source** (politeness), shared by every client of the
-  process: at most 3 requests in flight and 0.5 s between two; a `Retry-After`
-  stated by a 429 or 503 pauses the source for every caller, and a pause over
-  30 s refuses the request at once (`FontePausata`); with
+- **the limits, per source** (politeness), shared by every client, thread and
+  event loop of the process: at most 3 requests in flight and 0.5 s between two;
+  a `Retry-After` stated by a 429 or 503 pauses the source for every caller, for
+  at most 30 s. A longer statement refuses the call that received it at once
+  (`FontePausata`, with the wait the source asked for) and never holds the
+  source longer than 30 s, so a site that comes back is read again; with
   `LEGAL_CIRCUIT_BREAKER=on` (off by default) 3 consecutive failures (network
   error, 5xx, 429; never a 404) suspend the source for 5 minutes
   (`FonteSospesa`). Retries are `retry_request`'s, at most two.
+
+**The limits hold within one process.** N processes against the same source
+(a server, a worker and a command-line tool on one machine) make N times the
+cap. A limiter shared between processes, for example through the cache
+backend, is a possible later step, not part of this release.
 
 The limits sit in a transport around the network one, so they count real
 requests. A factory that brings its own transport drops them, unless it builds
