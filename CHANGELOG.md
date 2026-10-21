@@ -521,9 +521,11 @@ entry, it is the same feature as ported to the 3.0 line.
 - **`verifica_citazioni` and other courts.** "Corte cost. n. 238/2014" and
   "Cons. St. n. 1/2020" were looked up on Italgiure as Cassazione and reported
   "inesistente". Corte costituzionale decisions are now checked on the Court's
-  archive; Consiglio di Stato, TAR, CGUE, tax and merits courts are "non
-  verificabile", with the tool to search them.
-- **A range of articles is refused.** "art. 3-5 c.c." became `~art35`: the
+  archive; Consiglio di Stato, TAR, CGUE, Corte dei conti, Corte EDU, tax and
+  merits courts (giudice di pace included, in any case) are "non verificabile",
+  with the tool to search them.
+- **A range of articles is refused.** "art. 3-5 c.c." (also "3 - 5", "3–5",
+  "artt. 3-5") became `~art35`: the
   library API returned the URN of art. 35 as "trovato". `cite_law`,
   `fetch_law_article` and the API now answer "chiedere un articolo alla volta".
 - The annex parser (`split_annex`) ran in exponential time on a long article
@@ -532,8 +534,9 @@ entry, it is the same feature as ported to the 3.0 line.
   in citations and URNs, not 25/08/1941; a test cross-checks the dates of every
   code across the three tables that state them.
 - Corte costituzionale with `LEGAL_CACHE=off`: each decade bundle (~56 MB) is
-  downloaded once per process and kept in memory (cap 256 MB), instead of on
-  every call; concurrent calls share one download.
+  downloaded once per process and kept in memory (cap 256 MB, same 7-day expiry
+  as the disk cache), instead of on every call; concurrent calls share one
+  download.
 - **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
   caller and was fetched as is: on the HTTP transport any client could read
   pages reachable from the server (localhost, cloud metadata, intranet). Only
