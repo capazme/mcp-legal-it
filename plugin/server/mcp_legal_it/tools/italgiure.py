@@ -10,6 +10,7 @@ import re
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._paging import invalid_start
 from mcp_legal_it.lib._result import SearchResult
+from mcp_legal_it.lib import _brocardi_switch
 from mcp_legal_it.lib.brocardi.client import fetch_brocardi, parse_massime_references
 from mcp_legal_it.lib.visualex import resolve_atto
 from mcp_legal_it.lib.italgiure.client import (
@@ -763,7 +764,7 @@ async def _ultime_pronunce_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
 async def leggi_sentenza(
     numero: int,
     anno: int,
@@ -802,7 +803,7 @@ async def leggi_sentenza(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
 async def cerca_giurisprudenza(
     query: str,
     archivio: str = "tutti",
@@ -865,7 +866,7 @@ async def cerca_giurisprudenza(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
 async def giurisprudenza_su_norma(
     riferimento: str,
     archivio: str = "tutti",
@@ -949,9 +950,10 @@ async def _giurisprudenza_articolo_impl(
 ) -> SearchResult:
     articolo, atto_str = _parse_articolo_riferimento(riferimento)
 
-    # Attempt Brocardi lookup only when we can resolve act + article
+    # Attempt Brocardi lookup only when we can resolve act + article (and Brocardi is on)
     brocardi_result = None
-    if articolo and atto_str:
+    brocardi_on = _brocardi_switch.enabled()
+    if articolo and atto_str and brocardi_on:
         act_info = resolve_atto(atto_str)
         if act_info:
             try:
@@ -976,9 +978,12 @@ async def _giurisprudenza_articolo_impl(
             max_risultati=max_risultati,
         )
         if fallback.success:
+            why = (
+                _brocardi_switch.DISABLED_NOTE if not brocardi_on
+                else f"Brocardi: nessuna massima disponibile per {riferimento} (o fonte non raggiungibile)"
+            )
             fallback.results_text = (
-                f"*Brocardi: nessuna massima disponibile per {riferimento} (o fonte non raggiungibile): "
-                f"ricerca per citazione dell'articolo su Italgiure.*\n\n{fallback.results_text}"
+                f"*{why}: ricerca per citazione dell'articolo su Italgiure.*\n\n{fallback.results_text}"
             )
         return fallback
 
@@ -1096,7 +1101,7 @@ async def _giurisprudenza_articolo_impl(
     )
 
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
 async def ultime_pronunce(
     materia: str = "",
     sezione: str = "",
@@ -1128,7 +1133,7 @@ async def ultime_pronunce(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass", "brocardi"})
 async def giurisprudenza_articolo(
     riferimento: str,
     archivio: str = "tutti",

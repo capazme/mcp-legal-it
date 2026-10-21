@@ -115,6 +115,7 @@ NET_BASES = {"httpx", "client", "_client", "http", "_http", "session", "async_cl
 # here -- the clients are packages -- and `verify_lib_modules` fails when one is
 # missing, so a new helper cannot quietly become an "external service".
 LOCAL_LIB_MODULES = {
+    "_brocardi_switch",
     "_cache",
     "_clock",
     "_data",

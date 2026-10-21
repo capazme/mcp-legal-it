@@ -119,7 +119,7 @@ async def _ultime_delibere_consob_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"consob"})
+@mcp.tool(tags={"autorita", "consob"})
 async def cerca_delibere_consob(
     query: str,
     tipologia: str = "",
@@ -157,7 +157,7 @@ async def cerca_delibere_consob(
     )
 
 
-@mcp.tool(tags={"consob"})
+@mcp.tool(tags={"autorita", "consob"})
 async def leggi_delibera_consob(numero: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di una delibera CONSOB tramite numero.
 
@@ -176,7 +176,7 @@ async def leggi_delibera_consob(numero: str, da_carattere: int = 1) -> str:
     return await _leggi_delibera_consob_impl(numero, da_carattere)
 
 
-@mcp.tool(tags={"consob"})
+@mcp.tool(tags={"autorita", "consob"})
 async def ultime_delibere_consob(
     tipologia: str = "",
     argomento: str = "",

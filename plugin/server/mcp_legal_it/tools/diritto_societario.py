@@ -15,7 +15,7 @@ def _add_days(d: date, days: int) -> date:
     return d + timedelta(days=days)
 
 
-@mcp.tool(tags={"societario"})
+@mcp.tool(tags={"calcolo", "societario"})
 def quorum_assembleari(
     tipo_societa: str,
     tipo_delibera: str,
@@ -235,7 +235,7 @@ def quorum_assembleari(
     return result
 
 
-@mcp.tool(tags={"societario"})
+@mcp.tool(tags={"calcolo", "societario"})
 def soglie_organo_controllo_srl(
     ricavi: float,
     attivo: float,
@@ -369,7 +369,7 @@ def soglie_organo_controllo_srl(
     }
 
 
-@mcp.tool(tags={"societario"})
+@mcp.tool(tags={"calcolo", "societario"})
 def scadenze_societarie(
     data_chiusura_esercizio: str,
     bilancio_differito: bool = False,
@@ -467,7 +467,7 @@ def scadenze_societarie(
     }
 
 
-@mcp.tool(tags={"societario"})
+@mcp.tool(tags={"calcolo", "societario"})
 def costi_costituzione(
     tipo_societa: str,
 ) -> dict:

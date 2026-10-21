@@ -216,7 +216,7 @@ def _ctu_vacazioni(ore: float) -> float:
     return intere + (0.5 if resto <= 1.25 else 1.0)
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def fattura_professionista(
     imponibile: float,
     tipo: str = "ingegnere",
@@ -310,7 +310,7 @@ def fattura_professionista(
             "nota": "Regime forfettario: operazione senza IVA ex art. 1 co. 54-89 L. 190/2014, non soggetta a ritenuta",
         }
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def compenso_ctu(
     tipo_incarico: str,
     valore_causa: float | None = None,
@@ -407,7 +407,7 @@ def compenso_ctu(
     return risultato
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def spese_mediazione(
     valore_controversia: float,
     esito: str = "positivo",
@@ -479,7 +479,7 @@ def spese_mediazione(
     return risultato
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def compenso_orario(
     tariffa_oraria: float,
     ore: int,
@@ -523,7 +523,7 @@ def compenso_orario(
     }
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def ritenuta_acconto(
     compenso_lordo: float,
     aliquota: float = 20.0,
@@ -609,7 +609,7 @@ def _curatore_scaglioni(importo: float, scaglioni: list) -> list:
     return dettaglio
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def compenso_curatore_fallimentare(
     attivo_realizzato: float,
     passivo_accertato: float,
@@ -681,7 +681,7 @@ def compenso_curatore_fallimentare(
     }
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def compenso_delegati_vendite(
     prezzo_aggiudicazione: float,
     tipo_vendita: str = "immobili",
@@ -788,7 +788,7 @@ _MEDIAZIONE_FAM_BASE = 40.0  # art. 8 c. 4 DM 151/2023: euro per incontro, a car
 _MEDIAZIONE_FAM_COEFF = {"bassa": 1.0, "media": 1.5, "alta": 2.0}  # art. 8 c. 5 lett. a, b, c
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def compenso_mediatore_familiare(
     n_incontri: int,
     tariffa_incontro: float | None = None,
@@ -878,7 +878,7 @@ _ENASARCO_LIMITI = {
 }
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def fattura_enasarco(
     provvigioni: float,
     tipo_agente: str = "monocommittente",
@@ -1002,7 +1002,7 @@ def _eur_it(valore: float) -> str:
     return f"{valore:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"redazione", "parcelle_prof"})
 def ricevuta_prestazione_occasionale(
     compenso_lordo: float,
     committente: str,
@@ -1122,7 +1122,7 @@ def ricevuta_prestazione_occasionale(
     }
 
 
-@mcp.tool(tags={"parcelle_prof"})
+@mcp.tool(tags={"calcolo", "parcelle_prof"})
 def tariffe_mediazione(
     valore_controversia: float,
     mediazione_obbligatoria: bool = False,

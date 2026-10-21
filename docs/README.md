@@ -122,6 +122,7 @@ romperebbe la registrazione dei tool senza preavviso.
 |------|-------------|
 | [architecture.md](architecture.md) | Dettaglio layer, pattern `_impl`, profili, come aggiungere tool |
 | [tools-catalog.md](tools-catalog.md) | Catalogo dei 228 tool divisi per categoria |
+| [tool-tags.md](tool-tags.md) | Etichette dei tool (tipo, organo, autorità, area), profili `LEGAL_PROFILE`, `crea_server`, interruttore Brocardi |
 | [strumenti.md](strumenti.md) | Scheda per tool con parametri ed esempi (copertura parziale, vedi nota nel file) |
 | [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `mcp_legal_it/lib/` (15 moduli, 4 documentati in dettaglio) |
 | [prompts-resources.md](prompts-resources.md) | 23 prompt guidati e 15 risorse statiche `legal://` |

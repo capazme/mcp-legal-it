@@ -43,7 +43,7 @@ def _aggiungi_anni(giorno: date, anni: int) -> date:
         return giorno.replace(year=giorno.year + anni, day=28)
 
 
-@mcp.tool(tags={"investimenti"})
+@mcp.tool(tags={"calcolo", "investimenti"})
 def rendimento_bot(
     valore_nominale: float,
     prezzo_acquisto: float,
@@ -122,7 +122,7 @@ def rendimento_bot(
     return risultato
 
 
-@mcp.tool(tags={"investimenti"})
+@mcp.tool(tags={"calcolo", "investimenti"})
 def rendimento_btp(
     valore_nominale: float,
     prezzo_acquisto: float,
@@ -194,7 +194,7 @@ def rendimento_btp(
     }
 
 
-@mcp.tool(tags={"investimenti"})
+@mcp.tool(tags={"calcolo", "investimenti"})
 def pronti_termine(
     capitale: float,
     tasso_lordo_pct: float,
@@ -238,7 +238,7 @@ def pronti_termine(
     }
 
 
-@mcp.tool(tags={"investimenti"})
+@mcp.tool(tags={"calcolo", "investimenti"})
 @sourced("buoni_postali")
 def rendimento_buoni_postali(
     importo: float,
@@ -414,7 +414,7 @@ def rendimento_buoni_postali(
     }
 
 
-@mcp.tool(tags={"investimenti"})
+@mcp.tool(tags={"calcolo", "investimenti"})
 def confronto_investimenti(
     importo: float,
     investimenti: list[dict],

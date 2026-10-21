@@ -86,7 +86,7 @@ def _calcola_irpef_semplificata(imponibile: float) -> float:
     return float(_cent(imposta))
 
 
-@mcp.tool(tags={"lavoro"})
+@mcp.tool(tags={"calcolo", "lavoro"})
 def indennita_licenziamento(
     anni_servizio: float,
     retribuzione_mensile: float,
@@ -181,7 +181,7 @@ def indennita_licenziamento(
     }
 
 
-@mcp.tool(tags={"lavoro"})
+@mcp.tool(tags={"calcolo", "lavoro"})
 @sourced("preavviso_ccnl", alternativa="giorni_preavviso")
 def indennita_preavviso(
     ccnl: str,
@@ -284,7 +284,7 @@ def indennita_preavviso(
     }
 
 
-@mcp.tool(tags={"lavoro"})
+@mcp.tool(tags={"calcolo", "lavoro"})
 @sourced("inps_parametri")
 def calcolo_naspi(
     retribuzione_media_mensile: float,
@@ -409,7 +409,7 @@ def calcolo_naspi(
     }
 
 
-@mcp.tool(tags={"lavoro"})
+@mcp.tool(tags={"calcolo", "lavoro"})
 def scadenze_licenziamento(
     data_licenziamento: str,
     data_impugnazione: str | None = None,
@@ -516,7 +516,7 @@ def scadenze_licenziamento(
     }
 
 
-@mcp.tool(tags={"lavoro"})
+@mcp.tool(tags={"calcolo", "lavoro"})
 @sourced("irpef_scaglioni", "inps_parametri")
 def costo_lavoro(
     retribuzione_lorda_annua: float,
@@ -640,7 +640,7 @@ def costo_lavoro(
     }
 
 
-@mcp.tool(tags={"lavoro"})
+@mcp.tool(tags={"calcolo", "lavoro"})
 def offerta_conciliativa(
     anni_servizio: float,
     retribuzione_mensile: float,

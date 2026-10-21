@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
+from .. import _brocardi_switch
 from .._http import note_source
 from .akn_parser import annex_id_of, normalize_article_key
 from .models import Norma, NormaVisitata, names_an_annex, split_annex
@@ -384,8 +385,11 @@ async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str
 async def fetch_annotations(nv: NormaVisitata) -> dict:
     """Fetch Brocardi annotations (ratio legis, spiegazione, massime).
 
-    Returns: {"annotations": dict, "url": str, "source": "brocardi"}
+    Returns: {"annotations": dict, "url": str, "source": "brocardi"}; with Brocardi
+    switched off (``lib/_brocardi_switch.py``) nothing is fetched and ``error`` says so.
     """
+    if not _brocardi_switch.enabled():
+        return {"annotations": {}, "url": "", "source": "brocardi", "error": _brocardi_switch.DISABLED_NOTE}
     brocardi_url = find_brocardi_url(nv.norma.tipo_atto_normalized, nv.norma.numero_atto, nv.norma.data)
     if not brocardi_url:
         return {"annotations": {}, "url": "", "source": "brocardi",
@@ -808,7 +812,8 @@ def _extract_eurlex_siblings(start_tag: Tag) -> str:
 # ---------------------------------------------------------------------------
 
 async def _find_brocardi_article_url(client: httpx.AsyncClient, base_url: str, article_num: str) -> str | None:
-    """Navigate Brocardi to find the article page URL."""
+    """Navigate Brocardi to find the article page URL (``BrocardiDisabled`` while switched off)."""
+    _brocardi_switch.guard(base_url)
     cache_key = f"{base_url}#{article_num}"
     if cache_key in _brocardi_url_cache:
         return _brocardi_url_cache[cache_key]
@@ -844,6 +849,7 @@ async def _find_brocardi_article_url(client: httpx.AsyncClient, base_url: str, a
             sub_url = urljoin(page_url, a_tag.get("href", ""))
             if not sub_url.startswith("https://www.brocardi.it"):
                 continue
+            _brocardi_switch.guard(sub_url)
             fetched += 1
             await asyncio.sleep(0.5)
             try:

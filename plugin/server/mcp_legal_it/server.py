@@ -1,8 +1,10 @@
 """MCP Legal IT — 228 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
 
 import os
+from collections.abc import Iterable
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware import Middleware
 
 from mcp_legal_it.cli_version import package_version
 
@@ -104,6 +106,7 @@ from mcp_legal_it.tools import (  # noqa: E402, F401
 )
 
 from mcp_legal_it import prompts, resources  # noqa: E402, F401
+from mcp_legal_it.lib import _brocardi_switch  # noqa: E402
 from mcp_legal_it.lib._ledger import apply_table_ledger  # noqa: E402
 from mcp_legal_it.lib._regime import ENV_SWITCH as _PREVIGENTE_SWITCH  # noqa: E402
 from mcp_legal_it.lib._regime import TAG as _PREVIGENTE_TAG  # noqa: E402
@@ -111,6 +114,7 @@ from mcp_legal_it.lib._regime import hidden_by_environment as _previgenti_nascos
 from mcp_legal_it.source_bindings import TOOL_SOURCES  # noqa: E402
 from mcp_legal_it.table_bindings import TABLE_CONSTANTS, TOOL_ALTERNATIVES, TOOL_TABLES  # noqa: E402
 from mcp_legal_it.tool_annotations import PREVIGENTE, apply_tool_annotations  # noqa: E402
+from mcp_legal_it.tool_taxonomy import VOCABULARY  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Tool annotations: readOnlyHint/openWorldHint per tool, so hosts can tell a
@@ -137,18 +141,25 @@ _TABLES_WRAPPED = apply_table_ledger(
 # Profile-based tool filtering (for Desktop/Browser — lighter context)
 # Usage: LEGAL_PROFILE=sinistro python -m mcp_legal_it.server
 # Default: "full" (all tools — for Claude Code with Tool Search)
+# The tags are the vocabulary in mcp_legal_it/tool_taxonomy.py (docs/tool-tags.md):
+# a profile names kinds (normativa, giurisprudenza, autorita, diagnostica) and
+# areas, never a single tool, so a new tool lands in the right profiles by its tags.
+# Every profile carries `diagnostica`, so stato_server and the data report answer
+# whatever surface was chosen.
 # ---------------------------------------------------------------------------
 _PROFILES: dict[str, set[str]] = {
-    "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro"},
-    "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito"},
-    "penale": {"penale", "normativa", "giurisprudenza"},
-    "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario"},
-    "normativa": {"normativa", "giurisprudenza", "giurisprudenza_amm", "giurisprudenza_ue", "privacy", "consob", "costituzionale"},
-    "privacy": {"privacy", "normativa", "giurisprudenza"},
-    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro"},
-    "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa"},
-    "cowork": {"normativa", "giurisprudenza", "privacy", "parcelle_avv"},
+    "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro", "diagnostica"},
+    "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito", "diagnostica"},
+    "penale": {"penale", "normativa", "giurisprudenza", "diagnostica"},
+    "fiscale": {"fiscale", "proprieta", "utility", "consob", "investimenti", "crisi_impresa", "societario", "diagnostica"},
+    "normativa": {"normativa", "giurisprudenza", "autorita", "registri", "privacy", "diagnostica"},
+    "privacy": {"privacy", "garante", "normativa", "giurisprudenza", "diagnostica"},
+    "studio": {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro", "diagnostica"},
+    "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa", "diagnostica"},
+    "cowork": {"normativa", "giurisprudenza", "privacy", "parcelle_avv", "diagnostica"},
 }
+
+_PROMPTS_AND_RESOURCES = {"prompt", "resource", "template"}
 
 _profile = os.environ.get("LEGAL_PROFILE", "full")
 if _profile != "full" and _profile in _PROFILES:
@@ -157,7 +168,7 @@ if _profile != "full" and _profile in _PROFILES:
     # profile; prompts and resources carry no tags, so the second transform
     # (the later one wins) keeps them available in every profile.
     mcp.enable(tags=_PROFILES[_profile], only=True)
-    mcp.enable(components={"prompt", "resource", "template"})
+    mcp.enable(components=_PROMPTS_AND_RESOURCES)
 
 # ---------------------------------------------------------------------------
 # Superseded-regime tools (`Regime: PREVIGENTE`, tag `previgente`): registered
@@ -168,3 +179,103 @@ if _profile != "full" and _profile in _PROFILES:
 # ---------------------------------------------------------------------------
 if _previgenti_nascosti(os.environ.get(_PREVIGENTE_SWITCH)):
     mcp.disable(tags={_PREVIGENTE_TAG})
+
+# ---------------------------------------------------------------------------
+# Brocardi switch: on by default; LEGAL_BROCARDI=off hides the tools whose answer
+# is Brocardi content only (tag `solo_brocardi`), and the scrapers refuse every
+# request to brocardi.it, so the mixed tools (tag `brocardi`) answer without it
+# and say so (see mcp_legal_it/lib/_brocardi_switch.py). Applied last, like the
+# regime switch, so no profile can bring the group back.
+# ---------------------------------------------------------------------------
+if _brocardi_switch.off_by_environment():
+    mcp.disable(tags={_brocardi_switch.TAG_SOLO})
+
+
+# ---------------------------------------------------------------------------
+# A server with only some of the tools, for a host that mounts mcp-legal-it into
+# its own surface (design: docs/specs/2026-10-19-library-and-vigenza-design.md §4.3).
+# ---------------------------------------------------------------------------
+class _BrocardiOffMiddleware(Middleware):
+    """Run every tool call of one server with Brocardi switched off."""
+
+    async def on_call_tool(self, context, call_next):
+        token = _brocardi_switch.set_for_context(False)
+        try:
+            return await call_next(context)
+        finally:
+            _brocardi_switch.reset(token)
+
+
+def _checked_tags(tags: Iterable[str] | None, argument: str) -> set[str]:
+    if tags is None:
+        return set()
+    if isinstance(tags, str):
+        raise TypeError(f"{argument} takes a collection of tags, not the string {tags!r}")
+    chosen = set(tags)
+    unknown = sorted(chosen - VOCABULARY.keys())
+    if unknown:
+        raise ValueError(
+            f"{argument}: unknown tags {unknown}; the vocabulary is in "
+            f"mcp_legal_it/tool_taxonomy.py (docs/tool-tags.md): {sorted(VOCABULARY)}"
+        )
+    return chosen
+
+
+def crea_server(
+    include_tags: Iterable[str] | None = None,
+    exclude_tags: Iterable[str] | None = None,
+    brocardi: bool = True,
+    *,
+    name: str = "Legal IT",
+    prompts: bool = True,
+) -> FastMCP:
+    """Build a FastMCP server that exposes only the selected tools.
+
+    The stock server (``mcp``) is mounted into a new one and narrowed with
+    visibility filters, so the tools keep their names, signatures, annotations,
+    ``_meta`` and middleware; a tool left out is absent from ``list_tools`` and a
+    call to it is answered as an unknown tool. The stock server is not changed.
+
+    Args:
+        include_tags: keep only the tools carrying at least one of these tags
+            (``None``: every tool). Tags are listed in ``docs/tool-tags.md``.
+        exclude_tags: then drop every tool carrying one of these tags. Excluding
+            ``brocardi`` drops every tool that can show Brocardi content,
+            ``cite_law`` included; to keep those tools without Brocardi, use
+            ``brocardi=False``.
+        brocardi: ``False`` hides the ``solo_brocardi`` tools and runs every call
+            of this server with Brocardi off, so no request reaches brocardi.it and
+            the mixed tools say Brocardi is off. ``True`` follows the process
+            (``LEGAL_BROCARDI=off`` in the environment still wins).
+        name: the server name reported to clients.
+        prompts: keep the prompts and the ``legal://`` resources (they are not
+            tagged, so the tag filters never touch them). The prompts name tools:
+            a prompt may suggest a tool the subset left out.
+
+    The process-level switches still apply underneath, because they act on the
+    stock server: ``LEGAL_PROFILE``, ``LEGAL_PREVIGENTE=off`` and
+    ``LEGAL_BROCARDI=off`` can only narrow what this factory selects.
+
+    Example::
+
+        from mcp_legal_it.server import crea_server
+
+        fonti = crea_server(include_tags={"normativa", "giurisprudenza"}, brocardi=False)
+        fonti.run()  # or mount it: my_server.mount(fonti, namespace="legal")
+    """
+    include = _checked_tags(include_tags, "include_tags")
+    exclude = _checked_tags(exclude_tags, "exclude_tags")
+    server = FastMCP(name, version=package_version(), instructions=mcp.instructions)
+    server.mount(mcp)
+    if include:
+        server.enable(tags=include, only=True)
+    if exclude:
+        server.disable(tags=exclude)
+    if not brocardi:
+        server.disable(tags={_brocardi_switch.TAG_SOLO})
+        server.add_middleware(_BrocardiOffMiddleware())
+    if prompts:
+        server.enable(components=_PROMPTS_AND_RESOURCES)
+    else:
+        server.disable(components=_PROMPTS_AND_RESOURCES)
+    return server

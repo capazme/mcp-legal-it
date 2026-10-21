@@ -89,7 +89,7 @@ def _detrazione_pensione(reddito: float) -> float:
     return 0
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 @sourced("irpef_scaglioni")
 def calcolo_irpef(
     reddito_complessivo: float,
@@ -173,7 +173,7 @@ def calcolo_irpef(
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 @sourced("irpef_scaglioni")
 def regime_forfettario(
     ricavi: float,
@@ -252,7 +252,7 @@ _TFR_CONTRIBUTO_IVS = 0.005
 _TFR_DETRAZIONE_TD_ANNO = 61.97
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 @sourced("irpef_scaglioni")
 def calcolo_tfr(
     retribuzione_annua_lorda: float,
@@ -399,7 +399,7 @@ def _interessi_legali_giorno_per_giorno(imposta, dal, al) -> tuple:
     return totale, segmenti
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 @sourced("tassi_legali")
 def ravvedimento_operoso(
     imposta_dovuta: float,
@@ -530,7 +530,7 @@ def ravvedimento_operoso(
     return out
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def assegno_unico(
     isee: float,
     n_figli: int,
@@ -650,7 +650,7 @@ def assegno_unico(
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def detrazione_figli(
     reddito_complessivo: float,
     n_figli_over21: int,
@@ -715,7 +715,7 @@ def detrazione_figli(
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def detrazione_coniuge(reddito_complessivo: float) -> dict:
     """Calcola la detrazione IRPEF annua (12 mesi) per coniuge a carico (art. 12 TUIR).
     Il coniuge è a carico se il suo reddito non supera €2.840,51 (art. 12 co. 2; il limite di
@@ -771,7 +771,7 @@ def detrazione_coniuge(reddito_complessivo: float) -> dict:
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def detrazione_altri_familiari(
     reddito_complessivo: float,
     n_familiari: int,
@@ -814,7 +814,7 @@ def detrazione_altri_familiari(
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 @sourced("irpef_scaglioni")
 def detrazione_lavoro_dipendente(
     reddito_complessivo: float,
@@ -872,7 +872,7 @@ def detrazione_lavoro_dipendente(
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def detrazione_pensione(
     reddito_complessivo: float,
     giorni: int = 365,
@@ -925,7 +925,7 @@ def detrazione_pensione(
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def detrazione_assegno_coniuge(reddito_complessivo: float) -> dict:
     """Calcola la detrazione per assegno periodico percepito dal coniuge separato o divorziato.
     L'assegno periodico è reddito assimilato al lavoro dipendente per il percipiente
@@ -964,7 +964,7 @@ def detrazione_assegno_coniuge(reddito_complessivo: float) -> dict:
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def detrazione_canone_locazione(
     reddito_complessivo: float,
     tipo_contratto: str = "libero",
@@ -1044,7 +1044,7 @@ def _acconto_due_rate(acconto_totale: float) -> bool:
     return prima > Decimal("103")
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def acconto_irpef(
     imposta_anno_precedente: float,
     metodo: str = "storico",
@@ -1119,7 +1119,7 @@ def acconto_irpef(
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
     """Calcola l'acconto cedolare secca (primo e secondo acconto) con importi e scadenze.
     Vigenza: art. 3, comma 4, D.Lgs. 23/2011 (versamento nei termini IRPEF); art. 17, c. 3,
@@ -1180,7 +1180,7 @@ def acconto_cedolare_secca(imposta_anno_precedente: float) -> dict:
     }
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 def rateizzazione_imposte(
     importo_totale: float,
     n_rate: int,
@@ -1290,7 +1290,7 @@ def rateizzazione_imposte(
     return out
 
 
-@mcp.tool(tags={"fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"})
 @sourced("codici_tributo")
 def cerca_codice_tributo(query: str) -> str:
     """Cerca un codice tributo F24 per codice o descrizione.
