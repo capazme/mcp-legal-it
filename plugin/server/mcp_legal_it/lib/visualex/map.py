@@ -11,7 +11,7 @@ NORMATTIVA_URN_CODICI = {
     "costituzione": "costituzione",
     "codice penale": "regio.decreto:1930-10-19;1398:1",
     "codice di procedura civile": "regio.decreto:1940-10-28;1443:1",
-    "disposizioni per l'attuazione del Codice di procedura civile e disposizioni transitorie": "regio.decreto:1941-08-25;1368:1",
+    "disposizioni per l'attuazione del Codice di procedura civile e disposizioni transitorie": "regio.decreto:1941-12-18;1368:1",
     "codici penali militari di pace e di guerra": "relazione.e.regio.decreto:1941-02-20;303",
     "disposizioni di coordinamento, transitorie e di attuazione dei Codici penali militari di pace e di guerra": "regio.decreto:1941-09-09;1023",
     "codice civile": "regio.decreto:1942-03-16;262:2",
