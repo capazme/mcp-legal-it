@@ -272,8 +272,11 @@ def test_costo_lavoro_aliquota_ivs_lavoratore_9_19_inps():
     _cerca(r"è pari al 33%", aliquote, "INPS, Aliquote contributive")
     enpals = _pagina_inps(PAGINA_EX_ENPALS)
     m = _cerca(
-        r"pari al 33% della retribuzione giornaliera lorda \(o compenso\), di cui il (\d+,\d+)% a carico "
-        r"del datore di lavoro \(o committente\) e il (\d+,\d+)% a carico del lavoratore",
+        # Reworded by INPS in 2026 ("di questa quota: il 23,81% è a carico del datore...;
+        # il 9,19% è a carico del lavoratore"); the split itself is unchanged.
+        r"pari al 33% della retribuzione giornaliera lorda o del compenso\. di questa quota: "
+        r"il (\d+,\d+)% è a carico del datore di lavoro o del committente; "
+        r"il (\d+,\d+)% è a carico del lavoratore",
         enpals,
         "INPS, contributi ex ENPALS",
     )
