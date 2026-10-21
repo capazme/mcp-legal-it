@@ -300,3 +300,67 @@ class TestCatalogoNormeVigenti:
     def test_parametri_fissi_solo_parametri_del_tool_e_variante_separata(self):
         r = genera_modello_atto("relata_pec_appello")
         assert r["parametri_fissi"] == {} and r["variante"] == {"tipo_relata": "appello"}
+
+
+# ---------------------------------------------------------------------------
+# esporta_atto_docx — Markdown to Word, offline (the live gate repeats these)
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+import pytest as _pytest
+
+
+@_pytest.fixture
+def esporta(tmp_path, monkeypatch):
+    from docx import Document
+
+    from mcp_legal_it.tools import modelli_atti
+
+    monkeypatch.setattr(modelli_atti, "_OUTPUT_DIR", str(tmp_path / "out"))
+    fn = getattr(modelli_atti.esporta_atto_docx, "fn", modelli_atti.esporta_atto_docx)
+
+    def run(testo, titolo="Atto"):
+        out = fn(testo=testo, titolo=titolo)
+        path = _re.search(r"File salvato: (.+\.docx)", out).group(1)
+        return Document(path)
+    return run
+
+
+def _numeri(doc):
+    """Numbers Word shows for 'List Number' paragraphs (counter per numId, from startOverride)."""
+    from docx.oxml.ns import qn
+
+    inizi = {}
+    for num in doc.part.numbering_part.element.findall(qn("w:num")):
+        start = num.find(f"./{qn('w:lvlOverride')}[@{qn('w:ilvl')}='0']/{qn('w:startOverride')}")
+        if start is not None:
+            inizi[num.get(qn("w:numId"))] = int(start.get(qn("w:val")))
+    contatori, resi = {}, []
+    for p in doc.paragraphs:
+        if p.style.name != "List Number":
+            continue
+        num_id = p._p.pPr.find(f".//{qn('w:numId')}").get(qn("w:val"))
+        contatori[num_id] = contatori.get(num_id, inizi.get(num_id, 1) - 1) + 1
+        resi.append(contatori[num_id])
+    return resi
+
+
+def test_docx_liste_numerate_conservano_i_numeri(esporta):
+    doc = esporta("1. primo\n2. secondo\n\nParagrafo\n\n1. nuova\n2. seconda\n\n10. decimo")
+    assert _numeri(doc) == [1, 2, 1, 2, 10]
+
+
+def test_docx_titoli_e_grassetto_corsivo_senza_asterischi(esporta):
+    doc = esporta("## **Fatto** e *diritto*\nTesto con ***grassetto corsivo*** e resto")
+    heading, par = doc.paragraphs[0], doc.paragraphs[1]
+    assert heading.style.name == "Heading 2" and "*" not in heading.text
+    assert "*" not in par.text
+    runs = {r.text: (bool(r.bold), bool(r.italic)) for r in par.runs}
+    assert runs["grassetto corsivo"] == (True, True)
+    assert runs[" e resto"] == (False, False)
+
+
+def test_docx_titolo_in_intestazione(esporta):
+    doc = esporta("Corpo.", titolo="Parere pro veritate")
+    assert "Parere pro veritate" in doc.sections[0].header.paragraphs[0].text
