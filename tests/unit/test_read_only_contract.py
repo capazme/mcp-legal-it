@@ -12,8 +12,11 @@ reach). This test supplies the dynamic half:
 * every local read-only tool (no network) is called once with arguments
   generated from its input schema, plus curated values where the schema is not
   enough;
-* the sandbox, the checkout and the real MCP cache are fingerprinted before and
-  after, and any difference fails the test.
+* the sandbox and the checkout are fingerprinted before and after, and any
+  difference fails the test. The user's real MCP cache is not watched: another
+  mcp-legal-it server running on the machine writes there legitimately and made
+  the test fail at random, and the server under test cannot reach it (HOME,
+  XDG_CACHE_HOME and MCP_CACHE_DIR all point into the sandbox).
 
 Tools that reach an external service are excluded: they need real upstream
 data, they are exercised by the `live` marker suite instead.
@@ -75,10 +78,9 @@ def test_local_read_only_tools_do_not_touch_the_disk(tmp_path):
     ]
     assert len(local) > 100, "the local read-only surface shrank unexpectedly: %d" % len(local)
 
-    real_cache = pathlib.Path(os.environ.get("MCP_CACHE_DIR") or (pathlib.Path.home() / ".cache" / "mcp-legal-it"))
     sandbox = tmp_path / "home"
     (sandbox / ".cache").mkdir(parents=True)
-    watched = [tmp_path, REPO, real_cache]
+    watched = [tmp_path, REPO]
     before = _fingerprint(watched)
 
     env = server_env(sandbox, tmp_path)
