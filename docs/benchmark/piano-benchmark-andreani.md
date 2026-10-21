@@ -2656,15 +2656,15 @@ Termini del rito ordinario previgente (cause iscritte prima del 28/02/2023): mem
 
 ### `termini_deposito_atti_appello`
 
-Termini del giudizio di appello civile: impugnazione breve e lunga, costituzione dell'appellante entro 10 giorni dalla notifica della citazione e comparsa dell'appellato 70 giorni prima dell'udienza.
+Termini del giudizio di appello civile: impugnazione breve e lunga, costituzione dell'appellante entro 10 giorni dalla notifica della citazione e comparsa dell'appellato 20 giorni prima dell'udienza.
 
 - Parametri: `data_notifica_sentenza: str \| None = None; data_pubblicazione: str \| None = None; data_notifica_citazione: str \| None = None; data_udienza: str \| None = None; sospensione_feriale: bool = True (almeno una data obbligatoria, formato YYYY-MM-DD)`
-- Fonte normativa dichiarata: Artt. 325-327 c.p.c.; artt. 347, 165, 166 e 343 c.p.c. nel testo del D.Lgs. 149/2022 (dal 28/02/2023)
+- Fonte normativa dichiarata: Artt. 325-327 c.p.c.; art. 347 co. 1 c.p.c. nel testo del D.Lgs. 164/2024 (procedimenti introdotti dopo il 28/02/2023, art. 7 D.Lgs. 164/2024), artt. 165 e 343 c.p.c.
 - Casi di prova:
   - Termine breve attraverso agosto e termine lungo con scadenza a Capodanno: `{"data_notifica_sentenza": "2025-07-20", "data_pubblicazione": "2025-06-01"}` → atteso: appello_termine_breve 2025-09-19 (art. 325 co. 1 c.p.c.), appello_termine_lungo 2026-01-02 (art. 327, sei mesi più 31 giorni, 1° gennaio festivo): stessi valori di scadenze_impugnazioni
-  - Costituzione dell'appellante e comparsa dell'appellato attraverso agosto: `{"data_notifica_citazione": "2025-07-25", "data_udienza": "2025-10-15"}` → atteso: costituzione_appellante 2025-09-04 (10 giorni, art. 165 via art. 347 c.p.c.: 6 in luglio, 4 in settembre); comparsa_risposta_appellato 2025-07-04 (70 giorni prima, art. 166 via art. 347: 44 tra ottobre e settembre, 26 in luglio fino a domenica 6, anticipata a venerdì 4)
-  - Stesse date senza sospensione: `{"data_notifica_citazione": "2025-07-25", "data_udienza": "2025-10-15", "sospensione_feriale": false}` → atteso: costituzione_appellante 2025-08-04; comparsa_risposta_appellato 2025-08-06
-  - Comparsa dell'appellato, confronto con il termine previgente: `{"data_udienza": "2025-12-15"}` → atteso: comparsa_risposta_appellato 2025-10-06 (70 giorni prima, lunedì); con il testo previgente dell'art. 166 (20 giorni) sarebbe 2025-11-25, che il tool non calcola
+  - Costituzione dell'appellante e comparsa dell'appellato attraverso agosto: `{"data_notifica_citazione": "2025-07-25", "data_udienza": "2025-09-09"}` → atteso: costituzione_appellante 2025-09-04 (10 giorni, art. 165 via art. 347 c.p.c.: 6 in luglio, 4 in settembre); comparsa_risposta_appellato 2025-07-18 (20 giorni prima, art. 347 co. 1 c.p.c.: 8 in settembre, agosto escluso, 12 in luglio fino a domenica 20, anticipata a venerdì 18)
+  - Stesse date senza sospensione: `{"data_notifica_citazione": "2025-07-25", "data_udienza": "2025-09-09", "sospensione_feriale": false}` → atteso: costituzione_appellante 2025-08-04; comparsa_risposta_appellato 2025-08-20
+  - Comparsa dell'appellato, confronto con il termine previgente: `{"data_udienza": "2025-12-15"}` → atteso: comparsa_risposta_appellato 2025-11-25 (20 giorni prima, martedì: art. 347 co. 1 vigente, e lo stesso termine del testo previgente dell'art. 166); senza data della citazione la risposta porta avvertenza_regime_transitorio (appelli introdotti tra il 28/02/2023 e il 26/11/2024, quando l'art. 347 rinviava ai 70 giorni dell'art. 166)
 
 ### `termini_deposito_ctu`
 
