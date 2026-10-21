@@ -144,7 +144,7 @@ class TestTerminiSeparazioneDivorzio:
 
     def test_separazione_giudiziale_12_mesi_non_si_proroga(self):
         # 12 mesi da 2025-03-15 = 2026-03-15 (domenica). Periodo di attesa, non
-        # termine per un atto: niente proroga art. 155 (decisione G-328).
+        # termine per un atto: niente proroga art. 155 (lettura giuridica del titolare).
         r = _call("termini_separazione_divorzio", data_evento="2025-03-15", tipo="separazione_giudiziale")
         assert r["scadenza"] == "2026-03-15"
         assert r["prorogata_art_155"] is False
