@@ -12,12 +12,10 @@ import os
 os.environ["LEGAL_TODAY"] = "2026-09-25"
 
 import re
-import sys
 from datetime import date
 
 import pytest
 
-sys.path.insert(0, ".")
 import src.server  # noqa: F401,E402
 from src.tools.scadenze_termini import termini_memorie_repliche  # noqa: E402
 

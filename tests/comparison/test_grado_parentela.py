@@ -10,13 +10,11 @@ The site distinguishes "retta ascendente/discendente"; the tool only says
 """
 
 import re
-import sys
 
 import pytest
 
 from tests.comparison.conftest import goto
 
-sys.path.insert(0, ".")
 import src.server  # noqa: E402,F401  (registers every tool module)
 from src.tools.proprieta_successioni import grado_parentela  # noqa: E402
 

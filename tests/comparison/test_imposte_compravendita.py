@@ -24,13 +24,11 @@ DPR 633/1972 Tabella A (IVA 4% / 10% / 22%); art. 26 D.Lgs. 104/2013 (imposte fi
 """
 
 import re
-import sys
 
 import pytest
 
 from tests.comparison.conftest import accept_cookies, assert_close, goto, parse_euro
 
-sys.path.insert(0, ".")
 import src.server  # noqa: E402,F401  (registers every tool module)
 from src.tools.proprieta_successioni import imposte_compravendita  # noqa: E402
 
