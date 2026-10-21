@@ -76,3 +76,61 @@ async def test_entry_points_refuse_a_range_before_any_request():
     assert (await fetch(act_type="codice civile", article="3-5")).startswith("**Errore**: «3-5»")
     assert api.riferimento_da_parametri(tipo_atto="codice civile", numero_articolo="3-5").esito == "riferimento_non_valido"
     assert api.leggi_riferimento("art. 3-5 c.c.").esito == "riferimento_non_valido"
+
+
+# --- verifica_citazioni: the court a decision belongs to ---------------------------
+
+@pytest.mark.parametrize("reference, corte", [
+    ("Corte cost. n. 238/2014", "corte_cost"),
+    ("C. cost. 238/2014", "corte_cost"),
+    ("Cons. St. n. 1/2020", "giustizia_amm"),
+    ("Cons. St., sez. VI, n. 1/2020", "giustizia_amm"),
+    ("TAR Lazio n. 123/2021", "giustizia_amm"),
+    ("CGUE n. 1/2020", "cgue"),
+    ("CTP Milano n. 5/2019", "tributaria"),
+    ("Trib. Milano n. 100/2022", "merito"),
+    ("Cass. sez. III n. 12345/2024", "cassazione"),
+    ("Cass. sez. trib. n. 1/2024", "cassazione"),
+    ("sez. lav. n. 5/2023", "cassazione"),
+    ("n. 12345/2024", "cassazione"),
+])
+def test_court_named_by_the_citation(reference, corte):
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools import legal_citations as lc
+
+    assert lc._corte_citata(reference) == corte
+    assert lc._classify_citazione(reference) == "sentenza"
+
+
+async def test_corte_costituzionale_is_checked_on_its_own_archive():
+    from unittest.mock import AsyncMock, patch
+
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.lib._result import SearchResult
+    from mcp_legal_it.tools import legal_citations as lc
+
+    trovata = AsyncMock(return_value=SearchResult(success=True, source="corte_cost", results_text="x"))
+    italgiure = AsyncMock(side_effect=AssertionError("Italgiure must not be asked"))
+    with patch("mcp_legal_it.tools.corte_cost._leggi_pronuncia_costituzionale_impl", trovata), \
+         patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", italgiure):
+        verdetto, nota = await lc._verifica_sentenza("Corte cost. n. 238/2014", "tutti")
+    assert verdetto == "verificata" and "Corte cost. n. 238/2014" in nota
+    trovata.assert_awaited_once_with(238, 2014)
+
+    assente = AsyncMock(return_value=SearchResult(success=False, source="corte_cost", error_type="no_results"))
+    with patch("mcp_legal_it.tools.corte_cost._leggi_pronuncia_costituzionale_impl", assente):
+        assert (await lc._verifica_sentenza("Corte cost. n. 9999/2014", "tutti"))[0] == "inesistente"
+
+
+@pytest.mark.parametrize("reference", ["Cons. St. n. 1/2020", "TAR Lazio n. 123/2021", "Trib. Milano n. 100/2022"])
+async def test_other_courts_are_not_verifiable_and_never_sent_to_italgiure(reference):
+    from unittest.mock import AsyncMock, patch
+
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools import legal_citations as lc
+
+    italgiure = AsyncMock(side_effect=AssertionError("Italgiure must not be asked"))
+    with patch("mcp_legal_it.tools.italgiure._leggi_sentenza_impl", italgiure):
+        verdetto, nota = await lc._verifica_sentenza(reference, "tutti")
+    assert verdetto == "non verificabile"
+    assert "non è sull'archivio della Cassazione" in nota
