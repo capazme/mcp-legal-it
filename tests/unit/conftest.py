@@ -141,7 +141,7 @@ def _nessuna_consolidazione(request, monkeypatch):
     from mcp_legal_it.lib.visualex import eurlex_consolidate
 
     async def nessuna(celex_base):
-        return {"data_atto": None, "versioni": []}
+        return {"data_gu": None, "in_vigore_dal": None, "versioni": []}
 
     monkeypatch.setattr(eurlex_consolidate, "consolidazioni", nessuna)
     yield
