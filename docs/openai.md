@@ -34,7 +34,7 @@ Dei 10 slash command del plugin Claude Code solo 8 diventano skill: i comandi
 sono esclusi, come `cookie-audit` ed `esporta-documento`.
 
 Il bundle **non include il server MCP**: le skill sono istruzioni per
-l'agente, il server (228 tool) resta un checkout separato di questo repository
+l'agente, il server (231 tool) resta un checkout separato di questo repository
 o un endpoint remoto — vedi «Server MCP» sotto.
 
 > Nota sui numeri: prompt MCP (23) e risorse `legal://` (15) restano feature
@@ -47,7 +47,7 @@ o un endpoint remoto — vedi «Server MCP» sotto.
 
 | Feature | Claude Desktop/Code | ChatGPT | Codex CLI | Manus |
 |---------|--------------------:|--------:|----------:|------:|
-| 228 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
+| 231 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — | — |
 | 15 risorse `legal://` | ✓ | — | — | — |
 | 30 skill + 10 comandi + 6 agenti (plugin Claude) | ✓ | ✓ 42 skill via bundle | ✓ 42 skill via bundle | — |
@@ -55,7 +55,7 @@ o un endpoint remoto — vedi «Server MCP» sotto.
 | Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? | ? |
 
-I 228 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano
+I 231 tool funzionano su tutti i provider. Prompt MCP e risorse `legal://` restano
 feature Claude-only; le skill raggiungono ChatGPT e Codex tramite il bundle.
 
 ---

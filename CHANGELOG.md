@@ -15,6 +15,19 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **ANAC acts** (#51): `cerca_atti_anac`, `leggi_atto_anac` and
+  `ultimi_atti_anac` search the acts of the Autorità Nazionale Anticorruzione
+  (delibere, pareri di precontenzioso and sulla normativa, linee guida, bandi
+  tipo, comunicati del Presidente, regolamenti…) on www.anticorruzione.it's
+  public «Consulta i documenti» search, newest first, by type. An act is read
+  by the reference the search returns or by type, number and year: its
+  particulars (year, topic, category, type, recipients), subject, «Riferimenti
+  normativi», «Parole chiave» and the link to the official PDF. The full text is
+  published only in that PDF and is not extracted. A page the client cannot
+  read is an error, never «no results». New host `www.anticorruzione.it`
+  (robots.txt allows every agent); the open-data portal refuses automated
+  requests and is not used. New authority tag `anac`, in the `normativa`
+  profile.
 - **EU consolidated versions** (`api`): `riferimento_da_parametri(...,
   celex_consolidated="02002L0058-20091219")` and `NormaDati.celex_consolidated`
   (VisuaLex's key, last in the dataclass) ask for the text of an EU regulation or

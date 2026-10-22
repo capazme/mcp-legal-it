@@ -18,7 +18,7 @@ necessarie per rispondere alla domanda che hai posto.
 Verificabile in un comando:
 
 ```bash
-grep -rnE "https?://" --include="*.py" plugin/server/mcp_legal_it/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it|mozilla\.org"
+grep -rnE "https?://" --include="*.py" plugin/server/mcp_legal_it/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|anticorruzione|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it|mozilla\.org"
 ```
 
 Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
@@ -46,6 +46,7 @@ questo documento. Le due liste non possono divergere.
 | `www.garanteprivacy.it` | Garante per la protezione dei dati personali |
 | `servizi.gpdp.it` | Garante privacy — servizi |
 | `www.consob.it` | CONSOB |
+| `www.anticorruzione.it` | ANAC — Autorità Nazionale Anticorruzione |
 | `eur-lex.europa.eu` | EUR-Lex — Ufficio delle pubblicazioni UE |
 | `publications.europa.eu` | CELLAR / SPARQL — Ufficio delle pubblicazioni UE |
 | `ec.europa.eu` | VIES — Commissione europea (validazione partite IVA) |

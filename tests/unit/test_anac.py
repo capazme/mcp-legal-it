@@ -1,0 +1,224 @@
+"""ANAC acts (issue #51): search, the page of an act, the latest acts.
+
+The fixtures in tests/fixtures/anac/ are trimmed copies of the REAL markup served by
+www.anticorruzione.it on 2026-10-22. Every request here goes through an httpx.MockTransport.
+"""
+
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+import httpx
+import pytest
+
+from mcp_legal_it import api
+from mcp_legal_it.lib.anac.client import (
+    TIPOLOGIE,
+    AnacPaginaInattesa,
+    build_search_params,
+    parse_atto,
+    parse_search,
+    path_atto,
+    resolve_tipologia,
+    titolo_corrisponde,
+)
+from mcp_legal_it.tools.anac import _cerca_atti_anac_impl, _leggi_atto_anac_impl, _ultimi_atti_anac_impl
+
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "anac"
+SEARCH = (FIXTURES / "search_delibere.html").read_text(encoding="utf-8")
+EMPTY = (FIXTURES / "search_empty.html").read_text(encoding="utf-8")
+DELIBERA = (FIXTURES / "delibera_444_2025.html").read_text(encoding="utf-8")
+URL_444 = "https://www.anticorruzione.it/-/delibera-n.-444-del-11-novembre-2025"
+
+
+def _portal(search: str = SEARCH, act: str = DELIBERA, status: int = 200):
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        if status != 200:
+            return httpx.Response(status, text="errore")
+        if request.url.path == "/consulta-i-documenti":
+            return httpx.Response(200, text=search)
+        return httpx.Response(200, text=act)
+
+    def factory(fonte, **kwargs):
+        assert fonte == "anac"
+        return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+    return factory, sent
+
+
+@pytest.fixture(autouse=True)
+def _no_backoff(monkeypatch):
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr("mcp_legal_it.lib._http.asyncio.sleep", no_sleep)
+
+
+class TestTipologie:
+    @pytest.mark.parametrize("value,key", [
+        ("delibere", "delibere"), ("Delibera", "delibere"), ("Pareri di precontenzioso", "pareri_precontenzioso"),
+        ("precontenzioso", "pareri_precontenzioso"), ("pareri_normativa", "pareri_normativa"),
+        ("parere sulla normativa", "pareri_normativa"), ("linee guida", "linee_guida"),
+        ("Provvedimenti d’ordine", "provvedimenti_ordine"), ("", ""),
+    ])
+    def test_resolve(self, value, key):
+        assert resolve_tipologia(value) == key
+
+    def test_unknown_type_is_an_error(self):
+        with pytest.raises(ValueError, match="tipologia ANAC non riconosciuta"):
+            resolve_tipologia("sentenze")
+
+    def test_every_type_has_a_numeric_portal_id(self):
+        assert all(type_id.isdigit() for type_id, _label, _singular in TIPOLOGIE.values())
+
+
+class TestSearchParams:
+    def test_newest_first_with_type_page_size_and_page(self):
+        p = build_search_params("rinnovo tacito", "delibere", rows=7, pagina=2)
+        assert p == {"isDocumentSearchPortlet": "true", "q": "rinnovo tacito",
+                     "sort": "ddm__Dataclu0__date_Number_sortableDESC", "delta": "10",
+                     "type": "119160", "start": "2"}
+
+    def test_first_page_and_no_type(self):
+        p = build_search_params("x", rows=50)
+        assert "type" not in p and "start" not in p and p["delta"] == "50"
+
+
+class TestParse:
+    def test_search_cards_and_total(self):
+        risultati, totale = parse_search(SEARCH)
+        assert totale == 6169
+        assert [r.titolo for r in risultati] == ["Delibera n. 350 del 9 settembre 2026",
+                                                  "Delibera n. 347 del 9 settembre 2026"]
+        first = risultati[0]
+        assert first.path == "/-/delibera-n.-350-del-9-settembre-2026"
+        assert first.data == "09 set 2026"
+        assert first.etichette == ["Contratti pubblici", "Vigilanza", "Delibere"]
+        assert first.oggetto.startswith("Oggetto:")
+
+    def test_no_result_is_an_empty_list(self):
+        assert parse_search(EMPTY) == ([], 0)
+
+    def test_a_page_without_results_block_is_not_no_results(self):
+        with pytest.raises(AnacPaginaInattesa):
+            parse_search("<html><body><h1>Manutenzione</h1></body></html>")
+
+    def test_act_page(self):
+        atto = parse_atto(DELIBERA, URL_444)
+        assert atto.titolo == "Delibera n. 444 del 11 novembre 2025"
+        assert atto.data == "11 nov 2025"
+        assert atto.estremi == {"Anno": "2025", "Argomento": "Contratti pubblici", "Categorie": "Vigilanza",
+                                "Tipologie": "Delibere", "Destinatari": "Amministrazioni Pubbliche"}
+        assert atto.oggetto.startswith("Contratto per il servizio di elisoccorso")
+        assert atto.riferimenti_normativi.startswith("art. 23 della Legge n. 62/2005")
+        assert "Proroga tecnica" in atto.parole_chiave
+        assert [a.nome for a in atto.allegati] == ["Delibera n. 444 del 11 novembre 2025.pdf"]
+        assert atto.allegati[0].url.startswith("https://www.anticorruzione.it/documents/")
+        assert atto.testo == ""
+
+    def test_a_page_that_is_not_an_act(self):
+        with pytest.raises(AnacPaginaInattesa):
+            parse_atto(EMPTY, URL_444)
+
+
+class TestReferences:
+    @pytest.mark.parametrize("rif", [URL_444, "/-/delibera-n.-444-del-11-novembre-2025"])
+    def test_path_from_search(self, rif):
+        assert path_atto(rif) == "/-/delibera-n.-444-del-11-novembre-2025"
+
+    @pytest.mark.parametrize("rif", ["https://evil.example/-/delibera", "/web/guest/home", "delibera 444",
+                                     "/-/../../etc", "http://www.anticorruzione.it.evil.example/-/x"])
+    def test_anything_else_is_refused(self, rif):
+        with pytest.raises(ValueError):
+            path_atto(rif)
+
+    @pytest.mark.parametrize("titolo,ok", [
+        ("Delibera n. 444 del 11 novembre 2025", True),
+        ("Delibera n. 4444 del 11 novembre 2025", False),
+        ("Delibera n. 444 del 11 novembre 2024", False),
+        ("Parere di precontenzioso n. 444 del 2 maggio 2025", True),
+    ])
+    def test_title_matches_number_and_year(self, titolo, ok):
+        assert titolo_corrisponde(titolo, "444", "2025") is ok
+
+
+class TestTools:
+    async def test_search(self):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            result = await _cerca_atti_anac_impl("vigilanza", "delibere", max_risultati=2)
+        query = parse_qs(urlparse(str(sent[0].url)).query)
+        assert query["type"] == ["119160"] and query["q"] == ["vigilanza"]
+        text = result.to_str()
+        assert result.success and "mostrati 2 su 6169" in text
+        assert "`/-/delibera-n.-350-del-9-settembre-2026`" in text
+
+    async def test_search_without_results(self):
+        factory, _sent = _portal(search=EMPTY)
+        with api.configurazione(client_factory=factory):
+            result = await _cerca_atti_anac_impl("zzqxjvw")
+        assert result.error_type == "no_results"
+
+    async def test_unknown_type_sends_nothing(self):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            result = await _cerca_atti_anac_impl("x", "sentenze")
+        assert sent == [] and result.error_type == "bad_input"
+
+    async def test_unreadable_page_is_an_error_not_zero_results(self):
+        factory, _sent = _portal(search="<html><body>Request Rejected</body></html>")
+        with api.configurazione(client_factory=factory):
+            result = await _cerca_atti_anac_impl("x")
+        assert result.error_type == "source_error"
+        assert "non equivale a zero risultati" in result.to_str()
+
+    async def test_source_down(self):
+        factory, sent = _portal(status=503)
+        with api.configurazione(client_factory=factory):
+            result = await _cerca_atti_anac_impl("x")
+        assert result.error_type == "source_down" and len(sent) == 3
+
+    async def test_read_by_reference(self):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            result = await _leggi_atto_anac_impl("/-/delibera-n.-444-del-11-novembre-2025")
+        assert [str(r.url) for r in sent] == [URL_444]
+        text = result.to_str()
+        assert text.startswith("# Delibera n. 444 del 11 novembre 2025")
+        assert "## Riferimenti normativi" in text and "Delibera n. 444 del 11 novembre 2025.pdf" in text
+        assert "nel PDF ufficiale" in text and f"Fonte: {URL_444}" in text
+
+    async def test_read_by_number_and_year(self):
+        search = SEARCH.replace("Delibera n. 347 del 9 settembre 2026", "Delibera n. 444 del 11 novembre 2025") \
+                       .replace("/-/delibera-n.-347-del-9-settembre-2026", "/-/delibera-n.-444-del-11-novembre-2025")
+        factory, sent = _portal(search=search)
+        with api.configurazione(client_factory=factory):
+            result = await _leggi_atto_anac_impl(tipologia="delibera", numero="444", anno="2025")
+        assert result.success
+        assert str(sent[1].url) == URL_444
+        assert parse_qs(urlparse(str(sent[0].url)).query)["q"] == ["delibera n. 444 2025"]
+
+    async def test_number_not_found(self):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            result = await _leggi_atto_anac_impl(tipologia="delibere", numero="999", anno="2025")
+        assert len(sent) == 1 and result.error_type == "no_results"
+        assert "nessun atto ANAC «Delibere» n. 999 del 2025" in result.to_str()
+
+    async def test_number_without_type_or_reference(self):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            senza_tipo = await _leggi_atto_anac_impl(numero="444", anno="2025")
+            niente = await _leggi_atto_anac_impl()
+        assert sent == []
+        assert senza_tipo.error_type == "bad_input" and niente.error_type == "bad_input"
+
+    async def test_latest(self):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            result = await _ultimi_atti_anac_impl("pareri_precontenzioso", 5)
+        query = parse_qs(urlparse(str(sent[0].url)).query)
+        assert query["type"] == ["119168"] and query.get("q", [""]) == [""]
+        assert result.success and "Ultimi atti ANAC" in result.to_str()
