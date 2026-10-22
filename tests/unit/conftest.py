@@ -128,6 +128,26 @@ def _cache_isolata(tmp_path_factory, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _nessuna_consolidazione(request, monkeypatch):
+    """CELLAR's consolidation lookup answers «no consolidation» (the Official Journal text).
+
+    The lookup is a SPARQL request of its own (``eurlex_consolidate``), which the fake CELLAR
+    pages of most EU tests do not serve. Tests of the consolidated default opt out with
+    ``@pytest.mark.consolidazioni_reali`` and stub it themselves.
+    """
+    if request.node.get_closest_marker("consolidazioni_reali"):
+        yield
+        return
+    from mcp_legal_it.lib.visualex import eurlex_consolidate
+
+    async def nessuna(celex_base):
+        return {"data_gu": None, "in_vigore_dal": None, "versioni": []}
+
+    monkeypatch.setattr(eurlex_consolidate, "consolidazioni", nessuna)
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _pagine_finte_in_vigore(request, monkeypatch):
     """A made-up Normattiva page with no «Testo in vigore» block reads as in force since 2000.
 

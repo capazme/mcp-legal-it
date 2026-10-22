@@ -260,6 +260,63 @@ The same, from explicit fields (the VisuaLex request body). No network.
   `data_versione` carry the version to `testo_articolo`. The whole act, its index
   and its tree are today's: `indice_atto`, `testo_atto` and `albero_atto` answer
   `non_supportata` for a `NormaDati` with a version.
+- **The text in force of an EU act** (issue #50). For a regulation or a directive
+  without a date, `testo_articolo` serves the **latest consolidation** EUR-Lex
+  publishes that applies today, when that consolidation includes an amending act or
+  a corrigendum. A consolidation dated after today is not the text in force: it is
+  said in `upcoming` (`{change: "amended", valid_from, version_number: None,
+  celex}`) and in an `avviso`. The lookup is one SPARQL query to CELLAR per act,
+  kept a day in memory under the base CELEX, through the `eur_lex` network rules,
+  with a 12 s timeout and no retry; a failure is remembered for five minutes, so a
+  down endpoint costs one wait per act, not one per citation. Art. 111 of the AI Act is read
+  from 02024R1689-20260727, which includes Reg. (UE) 2026/1744. The GDPR is read from
+  02016R0679-20160504, which includes the corrigenda: the Official Journal page lacks
+  the Italian corrigendum, and 36 of its 99 articles differ in their words (art. 7
+  «presta» il consenso, art. 41 «controllo»). The answer says which text it is:
+  `consolidato` = `{celex, data, modificato_da: [{celex, atto}]}`, `precisione`
+  `INDICATIVO`, and an `avviso` that a consolidated text is EUR-Lex's documentation,
+  not authentic, and that only the text published in the Official Journal is. A
+  corrigendum published in the Official Journal changes the text in force, so it
+  counts; a consolidation made of corrigenda only says it «incorpora le rettifiche
+  pubblicate in GUUE».
+  - **No amending consolidation, or none at all:** the Official Journal text,
+    `ESATTO`, `consolidato` None. Dir. 2019/790 has only its initial consolidation,
+    the base act again.
+  - **CELLAR could not say:** the Official Journal text, served anyway because it is
+    authentic. `consolidato_verificato` is `False`, `precisione` is `INDICATIVO`, and
+    the **first** `avviso` says the text may not be the one in force. `cite_law`
+    prints it as its first line.
+  - **`versione="originale"`:** the Official Journal text, with no lookup.
+  - **`data_versione`:** the latest consolidation dated on or before that day,
+    `INDICATIVO`. The `avviso` adds that EUR-Lex consolidations can lag behind
+    amendments, so the Official Journal should be checked for amending acts published
+    after the consolidation's date. A day after the act's publication in the
+    Official Journal but before its first amending consolidation gives the Official
+    Journal text; before the act's entry into force an `avviso` says it was
+    published but not in force yet. A day before the act's publication in the
+    Official Journal (not its adoption: the AI Act was adopted on 13.6.2024 and
+    published on 12.7.2024) is `riferimento_non_valido`.
+  - **An article the consolidation does not have** (a later act repealed or deleted it:
+    art. 1 of dir. 2009/136 is not in 02009L0136-20201221) is `articolo_non_trovato`,
+    and `errore` and an `avviso` say so: «non presente nel testo consolidato al … (CELEX
+    …): probabilmente abrogato o soppresso da un atto successivo; il testo pubblicato
+    in GUUE è disponibile con versione="originale"». `consolidato` names the
+    consolidation checked. The Official Journal article is not served in its place: it
+    would present a repealed text as current. No extra request.
+  - **Not looked up:** treaties (unchanged), recitals (a consolidation has no
+    preamble, and amendments do not rewrite recitals), and annexes. A consolidation's
+    annexes are not read yet, so an annex is the Official Journal's, `INDICATIVO`,
+    with an `avviso` that it may not be the one in force.
+  - `consolidato_verificato`: `True` when CELLAR was asked, `False` when it could
+    not say, `None` when not asked (an Italian act, a treaty, the original, a recital,
+    an annex, a consolidation named by the caller).
+  - This is a temporary divergence from VisuaLex, which serves the Official Journal
+    text by default, **until VisuaLex follows**: it has adopted the same rule.
+  - `cite_law(..., versione="originale")` asks for the original text: the Official
+    Journal text of an EU act, or Normattiva's original of an Italian act (`@originale`;
+    an act cited with the year only whose full date cannot be read has none). Its
+    JSON carries `consolidato` and `consolidato_verificato` always (`null` when they
+    do not apply).
 - **EU consolidated versions.** `celex_consolidated` (VisuaLex's key) names a
   consolidated version of an EU regulation or directive by its sector-0 CELEX:
   `"02002L0058-20091219"` is directive 2002/58/CE as amended up to 19 December
@@ -662,7 +719,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 |---|---|
 | `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta`, and VisuaLex's `celex_consolidated` last |
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, consolidato, consolidato_verificato` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti` |
