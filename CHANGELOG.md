@@ -19,7 +19,10 @@ entry, it is the same feature as ported to the 3.0 line.
   `riferimento_da_parametri(..., data_versione="2010-01-01")` (or «1 gennaio
   2010») and a `NormaDati` with `data_versione` ask for the text in force on that
   day: the page at that date (`!vig=`) and the export at that day.
-  `versione="originale"` asks for the original text (`@originale`). A date always
+  `versione="originale"` asks for the original text, from the page only
+  (`@originale`), never the export. An article that did not exist yet on that day
+  is `articolo_non_trovato`; a version of a year-only act whose full date could
+  not be read is `verifica_non_disponibile`, never today's text. A date always
   means the text in force on that date, with or without `versione="vigente"`:
   VisuaLex reads the date only with `"vigente"` and otherwise serves today's text
   under the date asked for, until its PR #276 (the same rule) lands. A future date, a date with `"originale"` or another
@@ -656,7 +659,8 @@ entry, it is the same feature as ported to the 3.0 line.
   asked, and the page's ELI date used to be accepted on the year alone. A type
   outside VisuaLex's nine keeps the ELI rule. A found date is kept a year in
   `${MCP_CACHE_DIR}/act_dates.json`: after a restart a year-only citation costs
-  no request for its date.
+  no request for its date. A date read from the ELI alone (a kind the titles do
+  not cover) serves the call and is not kept.
 - **A page asked for an article with no digits is checked against today's
   window too.** Such a number has nothing to compare with the page's, and the
   undated page went through unchecked.

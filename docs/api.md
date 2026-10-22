@@ -249,8 +249,14 @@ The same, from explicit fields (the VisuaLex request body). No network.
   reads the date only together with `versione="vigente"`, so a date sent alone
   gets today's text under the date asked for (art. 1284 c.c. «at 2010-01-01»
   came back with the 4th and 5th commi added in 2014). VisuaLex adopts the same
-  rule there. `versione="originale"` asks for the original text
-  (`@originale`; the export at the act's own day). `NormaDati.versione` and
+  rule there. `versione="originale"` asks for the original text, read from the
+  page only (`@originale`): the export is a text in force on a day, and an act's
+  own day can precede its entry into force. An article that did not exist yet on
+  the day asked for (the page says «NON ANCORA ESISTENTE O VIGENTE») is
+  `articolo_non_trovato`, and `errore` says from when it is in force. A version of
+  an act cited with the year only whose full date could not be read is
+  `verifica_non_disponibile`, asking for the date: the export would otherwise be
+  asked at today's date. `NormaDati.versione` and
   `data_versione` carry the version to `testo_articolo`. The whole act, its index
   and its tree are today's: `indice_atto`, `testo_atto` and `albero_atto` answer
   `non_supportata` for a `NormaDati` with a version.

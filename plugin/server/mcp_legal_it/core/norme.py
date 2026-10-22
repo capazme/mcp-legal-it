@@ -170,6 +170,13 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     return base, result.get("esito")
 
 
+def non_ancora_vigente(validita: dict, data_rich: "str | None") -> str:
+    """The sentence for a page that says its article did not exist yet on the day asked for."""
+    giorno = f"il {data_rich}" if data_rich else "alla data richiesta"
+    entra = f": entra in vigore dopo il {validita['valid_to']}" if validita.get("valid_to") else ""
+    return f"l'articolo non esisteva {giorno}{entra}"
+
+
 def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "") -> dict:
     """``{validita, precisione, avvisi, successione, upcoming}`` of a served text, with no request.
 
@@ -185,7 +192,7 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
     """
     from mcp_legal_it.lib.visualex import akn_fetch
     from mcp_legal_it.lib.visualex.akn_parser import is_abrogato
-    from mcp_legal_it.lib.visualex.scraper import _akn_article, _vigenza_akn
+    from mcp_legal_it.lib.visualex.scraper import _akn_article, _vigenza_akn, senza_export
     from mcp_legal_it.lib.visualex.scraper import abrogato_da as _abrogato_da
     from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, validita_pagina, versione_futura
 
@@ -199,12 +206,16 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
     act = None
     if act_info is not None:
         nv = _build_nv(dict(act_info, data=(base.get("atto") or {}).get("data") or act_info.get("data", "")), article)
-        act = akn_fetch.cached_act(nv.norma, _vigenza_akn(nv))
+        act = None if senza_export(nv) else akn_fetch.cached_act(nv.norma, _vigenza_akn(nv))
     avvisi: list[str] = []
     if fonte == "normattiva":
         precisione = "ESATTO" if validita else "INDICATIVO"
         if validita is None:
             avvisi.append("la pagina di Normattiva non indica la vigenza del testo: data di vigenza non verificata")
+        elif validita["state"] == "not_yet":
+            # «NON ANCORA ESISTENTE O VIGENTE»: the page's text is a notice, not the article.
+            precisione = "INDICATIVO"
+            avvisi.append(non_ancora_vigente(validita, data_rich))
         elif data_rich and validita.get("request_in_window") is False:
             precisione = "INDICATIVO"
             avvisi.append(f"la pagina serve il testo in vigore dal {validita.get('valid_from') or '?'} al "
