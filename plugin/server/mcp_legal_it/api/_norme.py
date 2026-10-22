@@ -286,8 +286,8 @@ def riferimento_da_parametri(
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     if letta and split_annex(article):
         return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
-    if consolidato and split_annex(article):
-        return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_CONSOLIDATO)
+    if consolidato and (motivo := _non_nel_consolidato(article)):
+        return EsitoRiferimento(esito="non_supportata", errore=motivo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
     if parte := _parte(tipo_atto, allegato):
         act_info["allegato"] = parte
@@ -355,8 +355,8 @@ def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
     article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
     if letta and split_annex(article):
         return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
-    if consolidato and split_annex(article):
-        return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_CONSOLIDATO)
+    if consolidato and (motivo := _non_nel_consolidato(article)):
+        return EsitoRiferimento(esito="non_supportata", errore=motivo)
     info = {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}
     if parte := _parte(norma.tipo_atto, norma.allegato):
         info["allegato"] = parte
@@ -366,7 +366,19 @@ def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
     return info, article
 
 
-_ALLEGATO_CONSOLIDATO = "gli allegati di una versione consolidata UE non sono ancora disponibili"
+def _non_nel_consolidato(article: str) -> "str | None":
+    """Why *article* is not served from a consolidated EU version, or None.
+
+    A consolidated text has no preamble: asked for a recital, the page's only «(N)»
+    paragraphs are its footnotes («(2) GU L 204 del 21.7.1998…»), which a lookup would
+    serve as the recital. Its annexes are not read yet.
+    """
+    if (article or "").startswith("rec_"):
+        return ("i considerando non sono nel testo consolidato UE: chiederli senza celex_consolidated "
+                "(versione della Gazzetta ufficiale)")
+    if split_annex(article):
+        return "gli allegati di una versione consolidata UE non sono ancora disponibili"
+    return None
 
 
 def _consolidato(tipo_atto: str, data: str, numero_atto: str, celex: str | None) -> "str | EsitoRiferimento":

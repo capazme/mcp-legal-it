@@ -20,6 +20,7 @@ from .. import _brocardi_switch, _clock
 from .._http import note_source
 from . import act_dates, normattiva_html, pagine_eurlex, pagine_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
+from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
 
@@ -1009,6 +1010,29 @@ def _eurlex_urls(norma) -> tuple[str, str]:
     return f"{_CELLAR_BASE}{celex}", eurlex_citable_url(celex)
 
 
+#: An article heading of an EU act's page, in any of its markups: OJ (``oj-ti-art``), consolidated
+#: (``title-article-norm``), the ``eli-subdivision`` wrappers, or the legacy class-less page's
+#: «<p>Articolo 1</p>» (dir. 2002/58, which carries none of the classes).
+_PAGINA_EURLEX = re.compile(r"ti-art|title-article-norm|eli-subdivision|>\s*Articolo\s")
+
+
+def _altro_suffisso(text: str, article: str) -> bool:
+    """Whether *text* opens with the heading of a suffixed article ("Articolo 15 bis") when a
+    plain number ("15") was asked for: another article, not the one asked."""
+    numero = (article or "").strip()
+    if not numero.isdigit():
+        return False
+    # The suffix may be glued to what follows on a class-less page ("Articolo 15 bisTesto…"):
+    # a table suffix, in any case, not followed by another lowercase letter.
+    return re.match(rf"(?:Articolo|Article|Art\.)\s+{numero}[ \t\xa0-]{{0,3}}(?i:{ARTICLE_SUFFIX_ALTERNATION})(?![a-z])",
+                    text[:120]) is not None
+
+
+def _pagina_eurlex(html: str) -> bool:
+    """Whether *html* is an EU act's page (worth keeping a day), not an empty or error page."""
+    return bool(html) and _PAGINA_EURLEX.search(html) is not None
+
+
 def eurlex_citable_url(celex: str) -> str:
     """The quotable EUR-Lex page of a CELEX document (Italian version)."""
     return f"https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:{celex}"
@@ -1047,7 +1071,9 @@ async def _fetch_eurlex_html(norma) -> tuple[str, str]:
     # Detect WAF challenge (202 + tiny body)
     if resp.status_code == 202 or (len(html) < 5000 and "WAF" in html):
         return "", url
-    pagine_eurlex.scrivi(url, html, str(resp.url) if hasattr(resp, "url") else url)
+    if _pagina_eurlex(html):
+        # An empty 200, an error page: not kept, so the next call asks again.
+        pagine_eurlex.scrivi(url, html, str(resp.url) if hasattr(resp, "url") else url)
 
     final_url = display_url or (str(resp.url) if hasattr(resp, "url") else url)
     return html, final_url
@@ -1091,9 +1117,15 @@ def _extract_eurlex_article(html: str, article: str) -> str:
     from . import eurlex_text
 
     try:
-        return eurlex_text.extract_article_text(BeautifulSoup(html, "html.parser"), article)
+        text = eurlex_text.extract_article_text(BeautifulSoup(html, "html.parser"), article)
     except eurlex_text.DocumentNotFoundError:
         return f"[Articolo {article} non trovato nel documento EUR-Lex]"
+    if _altro_suffisso(text, article):
+        # VisuaLex's OJ strategies take "Articolo 15 bis" for a request of art. 15 when the
+        # page has no art. 15 (its heading check stops digits, not a suffix): reported
+        # upstream; checked here, outside the imported code, whose text stays VisuaLex's.
+        return f"[Articolo {article} non trovato nel documento EUR-Lex]"
+    return text
 
 
 def _extract_eurlex_annex(soup: BeautifulSoup, annex_id: str, article: str) -> str:

@@ -270,7 +270,9 @@ The same, from explicit fields (the VisuaLex request body). No network.
   is `riferimento_non_valido`, as is the field on an act that is not an EU
   regulation or directive. `url` is the consolidated page (VisuaLex's URL); the text
   is read from CELLAR's copy of it, with VisuaLex's reader: no «▼M2» marker, one
-  line per point. An annex of a consolidated version is `non_supportata` for now.
+  line per point. A recital of a consolidated version is `non_supportata`: a
+  consolidated text has no preamble, and its «(N)» paragraphs are footnotes. An annex
+  of a consolidated version is `non_supportata` for now.
 
 ### `testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> TestoArticolo`
 
