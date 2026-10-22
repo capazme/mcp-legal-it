@@ -26,36 +26,36 @@ def _call_full(fn_name, **kwargs):
 # ---------------------------------------------------------------------------
 
 class TestIndennitaLicenziamento:
-    def test_grande_standard(self):
-        r = _call("indennita_licenziamento", anni_servizio=5.0, retribuzione_mensile=2000.0)
-        assert r["mensilita"] == 10.0
-        assert r["importo"] == 20000.0
-        assert r["dimensione_azienda"] == "grande"
-        assert r["tipo"] == "indennitario"
+    # #76: after C.Cost. 194/2018 there is no "two mensilita per year": the amount is the
+    # judge's, within the range. The tool returns the range and the criteria, never one figure.
+    @pytest.mark.parametrize("anni", [0.5, 1.0, 4.0, 5.0, 20.0, 40.0])
+    def test_grande_returns_the_6_36_range_whatever_the_seniority(self, anni):
+        r = _call("indennita_licenziamento", anni_servizio=anni, retribuzione_mensile=2000.0)
+        assert (r["minimo_mensilita"], r["massimo_mensilita"]) == (6, 36)
+        assert (r["importo_minimo"], r["importo_massimo"]) == (12000.0, 72000.0)
+        assert "mensilita" not in r and "importo" not in r
+        assert r["dimensione_azienda"] == "grande" and r["tipo"] == "indennitario"
 
-    def test_grande_floor_applicato(self):
-        # 1 anno × 2 = 2, ma floor è 6
-        r = _call("indennita_licenziamento", anni_servizio=1.0, retribuzione_mensile=2000.0)
-        assert r["mensilita"] == 6.0
-        assert r["importo"] == 12000.0
+    def test_the_issue_case_is_a_range_not_eight_mensilita(self):
+        # 4 years, 2,000 euro, large employer: 2.17.1 answered 8 mensilita = 16,000 euro.
+        r = _call("indennita_licenziamento", anni_servizio=4, retribuzione_mensile=2000,
+                  dimensione_azienda="grande", tipo="indennitario")
+        assert (r["importo_minimo"], r["importo_massimo"]) == (12000, 72000)
+        assert "16000" not in str(r)
 
-    def test_grande_cap_applicato(self):
-        # 20 anni × 2 = 40, ma cap è 36
-        r = _call("indennita_licenziamento", anni_servizio=20.0, retribuzione_mensile=1000.0)
-        assert r["mensilita"] == 36.0
-        assert r["importo"] == 36000.0
+    @pytest.mark.parametrize("anni", [1.0, 3.0, 20.0])
+    def test_piccola_returns_the_halved_3_18_range(self, anni):
+        r = _call("indennita_licenziamento", anni_servizio=anni, retribuzione_mensile=1000.0,
+                  dimensione_azienda="piccola")
+        assert (r["minimo_mensilita"], r["massimo_mensilita"]) == (3, 18)
+        assert (r["importo_minimo"], r["importo_massimo"]) == (3000.0, 18000.0)
+        assert "118/2025" in r["dettaglio_formula"]
 
-    def test_piccola_floor_applicato(self):
-        # 1 anno × 2 = 2, floor piccola = 3
-        r = _call("indennita_licenziamento", anni_servizio=1.0, retribuzione_mensile=2000.0, dimensione_azienda="piccola")
-        assert r["mensilita"] == 3.0
-        assert r["importo"] == 6000.0
-
-    def test_piccola_cap_applicato(self):
-        # 20 anni × 2 = 40, cap piccola = 18
-        r = _call("indennita_licenziamento", anni_servizio=20.0, retribuzione_mensile=1000.0, dimensione_azienda="piccola")
-        assert r["mensilita"] == 18.0
-        assert r["importo"] == 18000.0
+    def test_the_criteria_of_art_8_l_604_1966_are_returned(self):
+        r = _call("indennita_licenziamento", anni_servizio=3.0, retribuzione_mensile=2000.0)
+        assert r["criteri"] == ["anzianità di servizio", "numero dei dipendenti occupati",
+                                "dimensioni dell'impresa", "comportamento e condizioni delle parti"]
+        assert "giudice" in r["nota"] and "194/2018" in r["dettaglio_formula"]
 
     def test_reintegra(self):
         r = _call("indennita_licenziamento", anni_servizio=8.0, retribuzione_mensile=3000.0, tipo="reintegra")
@@ -91,7 +91,7 @@ class TestIndennitaLicenziamento:
         r = _call("indennita_licenziamento", anni_servizio=3.0, retribuzione_mensile=2000.0,
                   dimensione_azienda="piccola")
         assert (r["minimo_mensilita"], r["massimo_mensilita"]) == (3, 18)
-        assert r["mensilita"] == 3.0 and r["importo"] == 6000.0
+        assert (r["importo_minimo"], r["importo_massimo"]) == (6000.0, 36000.0)
 
     def test_errore_anni_zero(self):
         with pytest.raises(ValueError, match="anni_servizio"):

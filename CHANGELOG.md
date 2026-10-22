@@ -516,6 +516,20 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **`indennita_licenziamento` returns the range, not an amount** (#76). After
+  C.Cost. 194/2018 struck the words «di importo pari a due mensilità … per ogni
+  anno di servizio» from art. 3 co. 1 d.lgs. 23/2015, the amount is set by the
+  judge between 6 and 36 mensilità, weighing seniority and the other criteria of
+  art. 8 L. 604/1966; the tool still computed years × 2 (years × 1 for small
+  employers) and returned it as `mensilita` and `importo`. The indemnity branch
+  now returns `minimo_mensilita`/`massimo_mensilita`, `importo_minimo`/
+  `importo_massimo` and the `criteri`, and no single figure: 6-36, or 3-18 for an
+  employer below the art. 18 St. lav. threshold (halved by art. 9 co. 1, with no
+  six-month cap after C.Cost. 118/2025). **Breaking**: the indemnity no longer
+  has `mensilita`/`importo`, because no single figure follows from the law; a
+  caller that read them reads the range. `tipo="reintegra"` is unchanged. The
+  answer also warns that Normattiva still prints the words struck down by
+  194/2018 in art. 3.
 - **EU article text: VisuaLex's reader, from CELLAR, one page per act.** The text
   of an article of an EU act is read by VisuaLex's extractor
   (`lib/visualex/eurlex_text.py`, `eurlex_scraper.py` at `493a8dd1`), whose text is
@@ -679,6 +693,19 @@ entry, it is the same feature as ported to the 3.0 line.
   `calcoli` exposes the 144 calculators and diagnostics, none of which goes
   online (a test checks the policy's sources and open-world hints). A blank
   value is still `full`.
+- **The server starts on Windows without `PYTHONUTF8`** (#76). Thirty reads and
+  writes of text files (the bundled JSON tables, the Brocardi cache, the
+  `legal://` resources) named no encoding, so Python used the locale's: cp1252 on
+  Windows, where the server failed at start with a `UnicodeDecodeError`. Every one
+  says `encoding="utf-8"` now; a test scans the package for text I/O without an
+  encoding and another imports the server with `-X warn_default_encoding`, so the
+  mistake cannot come back.
+- **Installing from git works on Windows** (#76). The 2.x root held `src` as a
+  symlink to the package: on Windows, without `core.symlinks`, git checks it
+  out as a text file and `pip install git+https://…` built a wheel with no code.
+  The 3.0 package is found under `plugin/server` with no link (a wheel built
+  from the repository root ships the whole `mcp_legal_it`), and a test now fails
+  if git ever tracks a symlink again.
 - **An EU article the text in force no longer has says so.** Without a date an EU
   act is read from its latest consolidation, and an article a later act repealed
   is not in it: art. 1 of dir. 2009/136 is not in 02009L0136-20201221. The answer
