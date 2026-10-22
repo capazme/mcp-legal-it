@@ -5,6 +5,9 @@ amministrativa, appalti pubblici, urbanistica, edilizia, PA, accesso atti, silen
 annullamento atti amministrativi, ricorso al TAR, CGARS.
 """
 
+import httpx
+
+from mcp_legal_it.core._http import FontePausata
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._paging import invalid_start
 from mcp_legal_it.lib._result import SearchResult
@@ -42,15 +45,29 @@ _NO_DATE_NOTE = (
 # Impl functions (testable without MCP context)
 # ---------------------------------------------------------------------------
 
+_MSG_TROPPE_RICHIESTE = (
+    "il portale della Giustizia Amministrativa ha ricevuto troppe richieste (HTTP 429): "
+    "riprovare tra qualche minuto. La fonte risponde: non è un'indisponibilità."
+)
+
+
 def _rifiuto(exc: Exception) -> SearchResult | None:
     """A query the portal refuses (or would): an error that says how to rephrase it.
 
-    Never "non raggiungibile": the portal answered (#52). None for any other failure.
+    Never "non raggiungibile": the portal answered (#52). A 429, or a pause it asked for, says
+    to retry later. None for any other failure.
     """
     if isinstance(exc, (QueryNonSupportata, PortaleRifiuta)):
         error_type = "bad_input" if isinstance(exc, QueryNonSupportata) else "refused"
         return SearchResult(success=False, source="giustizia_amm", error_type=error_type,
                             results_text=f"**Errore**: {exc}")
+    troppe = isinstance(exc, FontePausata) or (
+        isinstance(exc, httpx.HTTPStatusError) and exc.response is not None and exc.response.status_code == 429
+    )
+    if troppe:
+        dettaglio = f" Dettaglio: {exc}." if isinstance(exc, FontePausata) else ""
+        return SearchResult(success=False, source="giustizia_amm", error_type="rate_limited",
+                            results_text=f"**Errore**: {_MSG_TROPPE_RICHIESTE}{dettaglio}")
     return None
 
 
