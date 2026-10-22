@@ -187,6 +187,9 @@ class IndiceAtto:
     url: str = ""
     errore: str | None = None
     fonti: FontiConsultate | None = None
+    # An EU act: the consolidation indexed (as in TestoArticolo), None for the Official Journal text.
+    consolidato: dict[str, Any] | None = None
+    consolidato_verificato: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -204,6 +207,24 @@ class AlberoAtto:
     count: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
     # --- additions ---
+    url: str = ""
+    errore: str | None = None
+    fonti: FontiConsultate | None = None
+    # An EU act: the consolidation the tree is read from (as in TestoArticolo).
+    consolidato: dict[str, Any] | None = None
+    consolidato_verificato: bool | None = None
+
+
+@dataclass(frozen=True)
+class ConsiderandiAtto:
+    """Every recital of an EU act: VisuaLex ``/fetch_recitals`` items, ``{"number", "text"}``.
+
+    Read from the Official Journal page (a consolidated text has no preamble), without the
+    «(N)» and without the footnote calls.
+    """
+
+    esito: EsitoNorma
+    considerando: tuple[dict[str, str], ...] = ()
     url: str = ""
     errore: str | None = None
     fonti: FontiConsultate | None = None

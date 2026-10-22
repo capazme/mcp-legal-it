@@ -104,7 +104,8 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
             parts.append(f"**Attenzione**: {avviso_versione_futura(futura)}.\n")
         if article_result.get("allegato"):
             parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
-        parts.append(text)
+        # A recital reads «(42) …»: the number is the label, the text is VisuaLex's (without it).
+        parts.append(f"({article_result['considerando']}) {text}" if article_result.get("considerando") else text)
     else:
         parts.append(f"**Nessun testo trovato** — URL: {url}")
 
