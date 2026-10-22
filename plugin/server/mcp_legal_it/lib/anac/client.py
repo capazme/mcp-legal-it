@@ -29,11 +29,38 @@ _HOST = "www.anticorruzione.it"
 _SEARCH_PATH = "/consulta-i-documenti"
 # The only order this client asks for: newest first (the portal's "Più recente").
 _SORT_DATA = "ddm__Dataclu0__date_Number_sortableDESC"
-# "Più rilevante" in the portal's own order select (read 2026-10-22). Without `sort` the portal
-# does NOT rank by relevance: it still lists the newest first.
-_SORT_RILEVANZA = "_scoreASC"
-# The form's "Tipologia di ricerca": or (default, "almeno una delle parole"), and, exact.
-_SEARCH_TYPES = ("or", "and", "exact")
+# The search's "Anno" filter (`year`): year -> the portal's category id, read from the form on
+# 2026-10-22 (the same ids on every search page). A year not listed is searched without it.
+ANNI: dict[str, str] = {
+    "2026": "363294180",
+    "2025": "276731294",
+    "2024": "191123340",
+    "2023": "94468268",
+    "2022": "2731479",
+    "2021": "2295812",
+    "2020": "119139",
+    "2019": "119138",
+    "2018": "119137",
+    "2017": "119191",
+    "2016": "119190",
+    "2015": "119189",
+    "2014": "119188",
+    "2013": "119187",
+    "2012": "119192",
+    "2011": "119193",
+    "2010": "119194",
+    "2009": "119195",
+    "2008": "119196",
+    "2007": "119197",
+    "2006": "119198",
+    "2005": "119199",
+    "2004": "119200",
+    "2003": "119201",
+    "2002": "119202",
+    "2001": "119203",
+    "2000": "119204",
+    "1999": "119214",
+}
 # Page sizes the portal offers (its own links); a request names one of these.
 _DELTAS = (5, 10, 20, 30, 50, 75)
 
@@ -162,14 +189,20 @@ def page_size(rows: int) -> int:
 
 def build_search_params(
     query: str = "", tipologia: str = "", rows: int = 10, pagina: int = 1, *,
-    per_data: bool = True, tutte_le_parole: bool = False,
+    anno: str = "", tutte_le_parole: bool = False,
 ) -> dict:
-    """The portal's GET parameters. *per_data*: newest first, else by relevance. The portal ORs
-    the words by default: *tutte_le_parole* asks for every word (`searchType=and`)."""
-    params = {"isDocumentSearchPortlet": "true", "q": query or "", "delta": str(page_size(rows)),
-              "sort": _SORT_DATA if per_data else _SORT_RILEVANZA}
+    """The portal's GET parameters, newest first. The portal ORs the words by default:
+    *tutte_le_parole* asks for every word (`searchType=and`). *anno* uses the "Anno" filter."""
+    params = {"isDocumentSearchPortlet": "true", "q": query or "", "sort": _SORT_DATA,
+              "delta": str(page_size(rows))}
     if tutte_le_parole:
         params["searchType"] = "and"
+    anno = str(anno or "").strip()
+    if anno:
+        if anno not in ANNI:
+            raise ValueError(f"anno ANAC non disponibile nel filtro del portale: {anno!r} "
+                             f"(anni: {min(ANNI)}-{max(ANNI)})")
+        params["year"] = ANNI[anno]
     key = resolve_tipologia(tipologia)
     if key:
         params["type"] = TIPOLOGIE[key][0]
@@ -319,10 +352,10 @@ def titolo_corrisponde(titolo: str, numero: str, anno: str) -> bool:
 
 async def search_atti(
     query: str = "", tipologia: str = "", rows: int = 10, pagina: int = 1, *,
-    per_data: bool = True, tutte_le_parole: bool = False,
+    anno: str = "", tutte_le_parole: bool = False,
 ) -> tuple[list[RisultatoAnac], int]:
-    """One page of results (newest first, or by relevance) and the portal's total."""
-    params = build_search_params(query, tipologia, rows, pagina, per_data=per_data,
+    """One page of results, newest first, and the portal's total."""
+    params = build_search_params(query, tipologia, rows, pagina, anno=anno,
                                  tutte_le_parole=tutte_le_parole)
     async with async_client("anac", timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         resp = await retry_request(client, "GET", _BASE + _SEARCH_PATH, dataset="anac", params=params)
@@ -350,18 +383,24 @@ async def find_atto(tipologia: str, numero: str, anno: str) -> RisultatoAnac:
         )
     if not (numero.isdigit() and re.fullmatch(r"\d{4}", anno)):
         raise ValueError("numero e anno devono essere numerici (es. numero=\"444\", anno=\"2025\")")
-    singolare = TIPOLOGIE[key][2]
-    query = f"{singolare} n. {numero} {anno}"
-    # Every word, by relevance: the portal ORs the words by default, and newest first the act is
-    # lost among every act of the type (#82 review: 6169 delibere, the first 50 all of 2026).
-    risultati, _totale = await search_atti(query, key, rows=_RIGHE_RICERCA_NUMERO,
-                                           per_data=False, tutte_le_parole=True)
+    # The number, within the type and the year's filter: one result for delibera 444/2025 (read
+    # 2026-10-22). Without the year filter the portal ORs the words over every act of the type
+    # (6169 delibere) and newest first the act is buried (#82 review).
+    if anno in ANNI:
+        risultati, _totale = await search_atti(numero, key, rows=_RIGHE_RICERCA_NUMERO,
+                                               anno=anno, tutte_le_parole=True)
+        ambito = f"tra gli atti del {anno} che contengono «{numero}»"
+    else:
+        risultati, _totale = await search_atti(f"{numero} {anno}", key, rows=_RIGHE_RICERCA_NUMERO,
+                                               tutte_le_parole=True)
+        ambito = (f"tra i {len(risultati)} atti più recenti che contengono «{numero}» e «{anno}» "
+                  "(l'anno non è tra quelli del filtro del portale)")
     for r in risultati:
         if titolo_corrisponde(r.titolo, numero, anno):
             return r
     raise AnacNonTrovato(
-        f"nessun atto ANAC «{TIPOLOGIE[key][1]}» n. {numero} del {anno} tra i primi "
-        f"{len(risultati)} risultati per rilevanza della ricerca «{query}»: verificare con cerca_atti_anac"
+        f"nessun atto ANAC «{TIPOLOGIE[key][1]}» n. {numero} del {anno} {ambito}: "
+        "verificare con cerca_atti_anac e leggere l'atto dal riferimento restituito"
     )
 
 

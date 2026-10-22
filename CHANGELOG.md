@@ -19,8 +19,10 @@ entry, it is the same feature as ported to the 3.0 line.
   `ultimi_atti_anac` search the acts of the Autorità Nazionale Anticorruzione
   (delibere, pareri di precontenzioso and sulla normativa, linee guida, bandi
   tipo, comunicati del Presidente, regolamenti…) on www.anticorruzione.it's
-  public «Consulta i documenti» search, newest first, by type. An act is read
-  by the reference the search returns or by type, number and year: its
+  public «Consulta i documenti» search, newest first, by type and year (the
+  portal's own «Anno» filter). An act is read by the reference the search
+  returns or by type, number and year (the number searched within the type
+  and the year: one result for delibera 444/2025): its
   particulars (year, topic, category, type, recipients), subject, «Riferimenti
   normativi», «Parole chiave» and the link to the official PDF. The full text is
   published only in that PDF and is not extracted. A page the client cannot

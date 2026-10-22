@@ -750,7 +750,7 @@ prima dell'uso — non sono documenti legali pronti alla firma.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `cerca_atti_anac` | `cerca_atti_anac(query: str, tipologia: str = '', max_risultati: int = 10, pagina: int = 1)` | Cerca delibere, pareri, linee guida e altri atti dell'ANAC (Autorità Nazionale Anticorruzione). |
+| `cerca_atti_anac` | `cerca_atti_anac(query: str, tipologia: str = '', max_risultati: int = 10, pagina: int = 1, anno: str = '')` | Cerca delibere, pareri, linee guida e altri atti dell'ANAC (Autorità Nazionale Anticorruzione). |
 | `leggi_atto_anac` | `leggi_atto_anac(riferimento: str = '', tipologia: str = '', numero: str = '', anno: str = '')` | Legge la scheda di un atto ANAC: estremi, oggetto, riferimenti normativi, parole chiave e PDF. |
 | `ultimi_atti_anac` | `ultimi_atti_anac(tipologia: str = '', max_risultati: int = 10)` | Ultimi atti pubblicati dall'ANAC, dal più recente, con filtro opzionale per tipologia. |
 
