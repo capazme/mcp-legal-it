@@ -5,11 +5,16 @@ amministrativa, appalti pubblici, urbanistica, edilizia, PA, accesso atti, silen
 annullamento atti amministrativi, ricorso al TAR, CGARS.
 """
 
+import httpx
+
+from mcp_legal_it.core._http import FontePausata
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._paging import invalid_start
 from mcp_legal_it.lib._result import SearchResult
 from mcp_legal_it.lib.giustizia_amm.client import (
+    PortaleRifiuta,
     ProvvedimentoResult,
+    QueryNonSupportata,
     fetch_provvedimento_document,
     format_full,
     format_result,
@@ -39,6 +44,32 @@ _NO_DATE_NOTE = (
 # ---------------------------------------------------------------------------
 # Impl functions (testable without MCP context)
 # ---------------------------------------------------------------------------
+
+_MSG_TROPPE_RICHIESTE = (
+    "il portale della Giustizia Amministrativa ha ricevuto troppe richieste (HTTP 429): "
+    "riprovare tra qualche minuto. La fonte risponde: non è un'indisponibilità."
+)
+
+
+def _rifiuto(exc: Exception) -> SearchResult | None:
+    """A query the portal refuses (or would): an error that says how to rephrase it.
+
+    Never "non raggiungibile": the portal answered (#52). A 429, or a pause it asked for, says
+    to retry later. None for any other failure.
+    """
+    if isinstance(exc, (QueryNonSupportata, PortaleRifiuta)):
+        error_type = "bad_input" if isinstance(exc, QueryNonSupportata) else "refused"
+        return SearchResult(success=False, source="giustizia_amm", error_type=error_type,
+                            results_text=f"**Errore**: {exc}")
+    troppe = isinstance(exc, FontePausata) or (
+        isinstance(exc, httpx.HTTPStatusError) and exc.response is not None and exc.response.status_code == 429
+    )
+    if troppe:
+        dettaglio = f" Dettaglio: {exc}." if isinstance(exc, FontePausata) else ""
+        return SearchResult(success=False, source="giustizia_amm", error_type="rate_limited",
+                            results_text=f"**Errore**: {_MSG_TROPPE_RICHIESTE}{dettaglio}")
+    return None
+
 
 def _filter_by_anno(
     docs: list[ProvvedimentoResult], anno: str, *, since: bool = False
@@ -71,7 +102,8 @@ async def _cerca_giurisprudenza_amministrativa_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return SearchResult(success=False, source="giustizia_amm", error_type="source_down", error_message=str(exc))
+        return _rifiuto(exc) or SearchResult(success=False, source="giustizia_amm", error_type="source_down",
+                                             error_message=str(exc))
 
     # A year without a number can only be honoured client-side.
     filtered_by_year = bool(anno) and not numero
@@ -127,8 +159,8 @@ async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str, da_
                           results_text=format_full(title, text, sede, nrg, meta=doc.meta,
                                                       da_carattere=da_carattere))
     except Exception as exc:
-        return SearchResult(success=False, source="giustizia_amm", error_type="source_down",
-                          error_message=str(exc))
+        return _rifiuto(exc) or SearchResult(success=False, source="giustizia_amm", error_type="source_down",
+                                             error_message=str(exc))
 
 
 async def _giurisprudenza_amm_su_norma_impl(
@@ -147,7 +179,8 @@ async def _giurisprudenza_amm_su_norma_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return SearchResult(success=False, source="giustizia_amm", error_type="source_down", error_message=str(exc))
+        return _rifiuto(exc) or SearchResult(success=False, source="giustizia_amm", error_type="source_down",
+                                             error_message=str(exc))
 
     if anno_da:
         docs = _filter_by_anno(docs, anno_da, since=True)
@@ -177,7 +210,8 @@ async def _ultimi_provvedimenti_amm_impl(
             rows=max_risultati,
         )
     except Exception as exc:
-        return SearchResult(success=False, source="giustizia_amm", error_type="source_down", error_message=str(exc))
+        return _rifiuto(exc) or SearchResult(success=False, source="giustizia_amm", error_type="source_down",
+                                             error_message=str(exc))
 
     if not docs:
         return SearchResult(success=False, source="giustizia_amm", error_type="no_results",
@@ -219,6 +253,11 @@ async def cerca_giurisprudenza_amministrativa(
     Vigenza: fonte ufficiale giustizia-amministrativa.it, letta al momento della chiamata.
     Precisione: INDICATIVO (ricerca testuale del portale: pagina di risultati, non elenco
     completo; filtro per anno lato server solo con `numero`).
+
+    Sintassi: al massimo UNA frase tra virgolette per ricerca, le altre parole libere
+    (es. '"rinnovo tacito" accordi tra pubbliche amministrazioni'). Il filtro di sicurezza del
+    portale respinge due frasi tra virgolette: la ricerca non viene inviata e la risposta
+    spiega come riformularla.
 
     Args:
         query: Testo da cercare (es. "appalto pubblico esclusione", "silenzio-assenso", "DIA SCIA")
