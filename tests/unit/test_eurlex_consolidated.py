@@ -505,3 +505,65 @@ async def test_a_kept_page_reports_the_url_it_was_served_from(cellar, monkeypatc
     await scraper._fetch_eurlex_html(norma)
     await scraper._fetch_eurlex_html(norma)
     assert notate == [("eur_lex", fine), ("eur_lex", fine)] and len(cellar.asked) == 1
+
+
+class TestReviewOf74:
+    @pytest.mark.parametrize("art", ["rec_2", "rec_42"])
+    def test_a_recital_of_a_consolidation_is_not_served(self, art):
+        # A consolidated text has no preamble: its «(2)» paragraphs are footnotes.
+        from dataclasses import replace
+
+        from mcp_legal_it import api
+
+        r = api.riferimento_da_parametri("direttiva ue", art, data="2002", numero_atto="58",
+                                         celex_consolidated="02002L0058-20091219")
+        assert r.esito == "non_supportata" and "considerando" in r.errore
+        oj = api.riferimento_da_parametri("direttiva ue", art, data="2002", numero_atto="58").norma_data[0]
+        assert oj.celex_consolidated is None
+
+    async def test_a_recital_given_as_normadati_with_a_consolidation(self, cellar):
+        from dataclasses import replace
+
+        from mcp_legal_it import api
+
+        oj = api.riferimento_da_parametri("direttiva ue", "rec_2", data="2002", numero_atto="58").norma_data[0]
+        t = await api.testo_articolo(replace(oj, celex_consolidated="02002L0058-20091219"), canale="html")
+        assert t.esito == "non_supportata" and t.article_text == "" and cellar.asked == []
+
+    async def test_an_empty_page_is_not_kept(self, cellar):
+        # An empty 200 kept a day answered «Could not fetch» for every article of the act.
+        from mcp_legal_it import api
+
+        url = "https://publications.europa.eu/resource/celex/32002L0058"
+        pagina = cellar.pages[url]
+        cellar.pages[url] = ""
+        nd = api.riferimento_da_parametri("direttiva ue", "5", data="2002", numero_atto="58").norma_data[0]
+        assert (await api.testo_articolo(nd, canale="html")).esito != "trovato"
+        cellar.pages[url] = pagina
+        t = await api.testo_articolo(nd, canale="html")
+        assert t.esito == "trovato" and t.article_text.startswith("Articolo 5") and len(cellar.asked) == 2
+
+    def test_what_counts_as_a_page(self):
+        from mcp_legal_it.lib.visualex.scraper import _pagina_eurlex
+
+        for name in ("gdpr_oj_trimmed.html", "eprivacy_oj_legacy.html", "eprivacy_consolidated_20091219.html",
+                     "eidas_consolidated_20241018_trimmed.html"):
+            assert _pagina_eurlex((FIXTURES / name).read_text(encoding="utf-8")), name
+        assert not _pagina_eurlex("") and not _pagina_eurlex("<html><body>Errore</body></html>")
+
+    @pytest.mark.parametrize("html", [
+        '<html><body><p class="oj-ti-art">Articolo 15 bis</p><p class="oj-normal">Testo del 15-bis.</p></body></html>',
+        '<html><body><div class="eli-subdivision"><p>Articolo 15 bis</p><p>Testo del 15-bis.</p></div></body></html>',
+    ])
+    def test_a_plain_number_is_not_served_its_suffixed_neighbour(self, html):
+        # VisuaLex's heading check stops a digit ("Articolo 17" is not art. 1), not a suffix.
+        from mcp_legal_it.lib.visualex.scraper import _extract_eurlex_article
+
+        assert _extract_eurlex_article(html, "15") == "[Articolo 15 non trovato nel documento EUR-Lex]"
+        assert "Testo del 15-bis" in _extract_eurlex_article(html, "15 bis")
+
+    def test_a_plain_number_whose_rubrica_reads_like_a_word_is_served(self):
+        from mcp_legal_it.lib.visualex.scraper import _extract_eurlex_article
+
+        html = '<html><body><p class="oj-ti-art">Articolo 15</p><p class="oj-sti-art">Bis in idem</p></body></html>'
+        assert _extract_eurlex_article(html, "15").startswith("Articolo 15")
