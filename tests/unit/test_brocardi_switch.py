@@ -312,7 +312,7 @@ def _tool_reach() -> dict[str, tuple[bool, set[str]]]:
 
 def test_every_tool_reaching_brocardi_carries_the_tag():
     reach = _tool_reach()
-    assert len(reach) == 228
+    assert len(reach) == 231
     reaching = {n for n, (r, _) in reach.items() if r}
     tagged = {n for n, (_, tags) in reach.items() if switch.TAG in tags}
     assert reaching == tagged == set(CALLS)
@@ -354,7 +354,7 @@ def test_the_stock_server_hides_the_solo_brocardi_tools(tmp_path):
                          capture_output=True, text=True, check=True)
     surface = json.loads(out.stdout.strip().splitlines()[-1])
     names = set(surface["tools"])
-    assert len(names) == 226
+    assert len(names) == 229
     assert not names & {"cerca_brocardi", "fetch_law_annotations"}
     assert "cite_law" in names
     # The instructions never send the model to a tool the server does not list.
