@@ -309,7 +309,10 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
             return result
         return _checked_html_article(result, nv, served, act, part)
 
-    return {"text": text, "url": url, "source": source, **ue}
+    result = {"text": text, "url": url, "source": source, **ue}
+    if is_eurlex and (nv.numero_articolo or "").startswith("rec_"):
+        result["considerando"] = nv.numero_articolo[4:]  # cite_law prints it as the label, «(42)»
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -1008,6 +1011,53 @@ async def _versione_ue(nv: NormaVisitata) -> "tuple[NormaVisitata, dict]":
                                    "modificato_da": versione["modifiche"]}, **extra}
 
 
+async def _pagina_ue(norma: Norma, *, oj: bool = False) -> "tuple[str, str, dict]":
+    """``(page, citable URL, extra keys)`` of an EU act: its text in force (``_versione_ue``),
+    or with *oj* its Official Journal text. An empty page when it could not be read."""
+    nv = NormaVisitata(norma=norma, numero_articolo="", versione="originale" if oj else "")
+    nv, ue = await _versione_ue(nv)
+    if ue.get("error"):
+        return "", nv.norma.url(), ue
+    html, url = await _fetch_eurlex_html(nv.norma)
+    return html, url or nv.norma.url(), {**ue, "norma": nv.norma}
+
+
+async def fetch_eurlex_tree(norma: Norma, *, link: bool = False, details: bool = False) -> dict:
+    """The article tree, the rubriche and the title of an EU act's text in force (VisuaLex's
+    ``_parse_eurlex_tree`` on the same page the articles are read from: one request, kept a day).
+
+    ``{"articles", "count", "metadata": {"rubriche", "title"}, "url", "consolidato",
+    "consolidato_verificato"}``, or ``{"error", "url", …}``.
+    """
+    from . import eurlex_tree
+
+    html, url, ue = await _pagina_ue(norma)
+    letta = ue.pop("norma", norma)
+    if not html:
+        return {"error": ue.get("error") or "Could not fetch EUR-Lex document", "url": url, **ue}
+    soup = BeautifulSoup(html, "html.parser")
+    articles, count, metadata = eurlex_tree._parse_eurlex_tree(soup, letta.url(), link, details)
+    if not metadata.get("title"):
+        # A consolidated page can carry the act's name, date and subject in its `title-doc-first`
+        # lines and only the EEA note in `title-doc-last` (the GDPR's 02016R0679-20160504): VisuaLex
+        # reads the latter and finds no subject (reported upstream). The same subject reader, here.
+        lines = [p.get_text(" ", strip=True) for p in soup.find_all("p", class_="title-doc-first")]
+        if any(eurlex_tree._EURLEX_DATE_LINE.match(line) for line in lines):
+            metadata = {**metadata, "title": eurlex_tree._eurlex_subject(lines)}
+    return {"articles": articles, "count": count, "metadata": metadata, "url": url, **ue}
+
+
+async def fetch_eurlex_recitals(norma: Norma) -> dict:
+    """Every recital of an EU act, ``{"recitals": [{"number", "text"}], "url"}``: VisuaLex's
+    ``extract_recitals`` on the Official Journal page (a consolidated text has no preamble)."""
+    from . import eurlex_text
+
+    html, url, ue = await _pagina_ue(norma, oj=True)
+    if not html:
+        return {"error": ue.get("error") or "Could not fetch EUR-Lex document", "url": url}
+    return {"recitals": eurlex_text.extract_recitals(BeautifulSoup(html, "html.parser")), "url": url}
+
+
 def senza_export(nv: NormaVisitata) -> bool:
     """Whether the Akoma Ntoso export cannot give the text asked for: the original text.
 
@@ -1231,27 +1281,15 @@ def _extract_eurlex_article(html: str, article: str) -> str:
 
     # Recital / considerando — encoded as "rec_N" by _parse_reference
     if article.startswith("rec_"):
-        recital_num = article[4:]
-        # On CELLAR a recital is a two-cell table row inside div#rct_N:
-        # <td><p>(42)</p></td><td><p>text</p></td>. The number and the text are
-        # separate cells, so both must be read (the number cell alone is not the recital).
-        recital_div = soup.find("div", id=f"rct_{recital_num}")
-        if recital_div:
-            text = _table_rows_text(recital_div)
-            if text:
-                return text
-        pat = re.compile(rf"^\(\s*{re.escape(recital_num)}\s*\)")
-        for p in soup.find_all("p"):
-            text = p.get_text(strip=True)
-            if pat.match(text):
-                # Same layout without the div id: take the whole row, not just the number cell.
-                row = p.find_parent("tr")
-                if row is not None:
-                    row_text = _row_text(row)
-                    if row_text:
-                        return row_text
-                return text
-        return f"[Considerando {recital_num} non trovato nel documento EUR-Lex]"
+        # VisuaLex's reader (``extract_recitals``): the text without its «(N)» and without the
+        # footnote calls; cite_law prints «(N)» as the label.
+        from . import eurlex_text
+
+        numero = article[4:]
+        for recital in eurlex_text.extract_recitals(BeautifulSoup(html, "html.parser")):
+            if recital["number"] == numero:
+                return recital["text"]
+        return f"[Considerando {numero} non trovato nel documento EUR-Lex]"
 
     annex = split_annex(article)
     if annex:
@@ -1329,24 +1367,6 @@ def _eurlex_block_lines(node: Tag, indent: str = "") -> list[str]:
         else:
             lines.extend(_eurlex_block_lines(child, indent))
     return lines
-
-
-def _row_text(row: Tag) -> str:
-    """Text of a table row: its cells joined by a space ("(42)" + recital text)."""
-    for note in row.find_all("a"):
-        # OJ footnote call ("(10)"): keep it apart from the words around it.
-        if note.find("span", class_=lambda c: c and "note-tag" in c):
-            note.replace_with(f" {note.get_text(strip=True)} ")
-    cells = (" ".join(c.get_text().split()) for c in row.find_all("td"))
-    return " ".join(t for t in cells if t)
-
-
-def _table_rows_text(node: Tag) -> str:
-    """Rows of the tables inside ``node``, one per line; plain text if it holds no table."""
-    rows = [t for t in (_row_text(r) for r in node.find_all("tr")) if t]
-    if rows:
-        return "\n".join(rows)
-    return node.get_text(strip=True)
 
 
 # ---------------------------------------------------------------------------

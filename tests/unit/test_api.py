@@ -205,8 +205,17 @@ class TestIndiceAtto:
         assert i.rubriche == {"1": "Soggetti", "2-bis": "Rubrica bis"} and i.count == 2
         assert i.voci[0] == "Articoli" and i.abrogati == () and i.parts == ()
 
-    async def test_eu_act_is_not_supported(self):
-        assert (await api.indice_atto("GDPR")).esito == "non_supportata"
+    async def test_an_eu_act_has_an_index(self, monkeypatch):
+        # Since the 3.0 migration: VisuaLex's EU tree on the act's page (test_eurlex_indice.py).
+        from mcp_legal_it.lib.visualex import scraper
+
+        async def pagina(norma):
+            return ('<html><body><p class="oj-ti-art">Articolo 1</p><p class="oj-sti-art">Oggetto</p>'
+                    '</body></html>'), "https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:32016R0679"
+
+        monkeypatch.setattr(scraper, "_fetch_eurlex_html", pagina)
+        i = await api.indice_atto("GDPR")
+        assert i.esito == "trovato" and i.rubriche == {"1": "Oggetto"}
 
     async def test_source_down(self):
         with patch("mcp_legal_it.api._norme.fetch_act_index", AsyncMock(side_effect=httpx.ConnectTimeout("t"))):

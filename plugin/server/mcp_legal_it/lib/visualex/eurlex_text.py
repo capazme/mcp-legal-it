@@ -2,30 +2,31 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at 493a8dd1
-# (the consolidated-text reader, and ``extract_article_text`` with ``extract_table_text``) and
-# services/visualex/visualex_api/tools/treextractor.py at 493a8dd1 (``strip_amendment_markers``).
-# Adapted: the scraper's two methods are plain functions (no ``self``); structlog is a no-op
-# ``log``, so the calls stay as they are; the Playwright fetch, the persistent cache and the
-# recitals are left out (the page comes from CELLAR, ``scraper._fetch_eurlex_html``);
-# ``DocumentNotFoundError`` is a local ``LookupError`` with VisuaLex's signature;
-# ``normalize_article_key`` is this package's (VisuaLex's at 0f1477c2, linear: 493a8dd1 still
-# carries the older quadratic one, with the same keys). The code is otherwise VisuaLex's, line
-# for line: the article text it returns is frozen (docs/migration/visualex-inventory.md, rows
-# 3.1 and 3.4).
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at 36ed6942
+# (the recitals, the consolidated-text reader, ``extract_article_text`` with ``extract_table_text``)
+# and services/visualex/visualex_api/tools/treextractor.py at 36ed6942 (``strip_amendment_markers``);
+# first at 493a8dd1. Generated, not edited: the scratch generator ``gen_eurlex.py`` rebuilds it for a
+# re-pin. Adapted: the scraper's two methods are plain functions (no ``self``); structlog is a no-op
+# ``log``, so the calls stay as they are; the Playwright fetch and the persistent cache are left out
+# (the page comes from CELLAR, ``scraper._fetch_eurlex_html``); ``DocumentNotFoundError`` is a local
+# ``LookupError`` with VisuaLex's signature. The code is otherwise VisuaLex's, line for line: the
+# article text it returns is frozen (docs/migration/visualex-inventory.md, rows 3.1, 3.3 and 3.4).
 
-"""EUR-Lex article text, as VisuaLex reads it: the Official Journal page and the consolidated one.
+"""EUR-Lex article text and recitals, as VisuaLex reads them: the Official Journal page and the
+consolidated one.
 
-``extract_article_text(soup, article)`` is the entry point: a consolidated page
+``extract_article_text(soup, article)`` is the article entry point: a consolidated page
 (``title-article-norm`` markup, a sector-0 CELEX) goes through ``extract_article_consolidated``,
-any other page through the OJ strategies. It raises ``DocumentNotFoundError`` when the page
-has no such article. The soup is VisuaLex's, ``html.parser``.
+any other page through the OJ strategies; it raises ``DocumentNotFoundError`` when the page has
+no such article. ``extract_recitals(soup)`` gives every recital as ``{"number", "text"}``. The soup
+is VisuaLex's, ``html.parser``.
 """
 
 import copy
 import re
 
 from .akn_parser import normalize_article_key
+from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
 
 
 class _NoLog:
@@ -59,12 +60,98 @@ _CONSOLIDATED_CELEX = re.compile(r"0\d{4}[A-Z]\d{4}-\d{8}", re.ASCII)
 # "►M2 … ◄" (amending act), "►C2 … ◄" (corrigendum), "►B" (base act), and
 # "▼M2" / "▼B" at the head of a replaced block. The glyphs are never part of
 # the legal text.
-_AMENDMENT_MARK = re.compile(r"\s*[►◄▼](?:[A-Z]\d*)?\s*")
+# A marker with the whitespace on both sides. The leading run is matched only from its first
+# character (`(?<!\s)`), or a search restarted at every blank of a long run and scanned the
+# rest of it each time: 0.85 s on 20,000 blanks. A marker right after an earlier match, whose
+# trailing run took the blanks, is the second branch. Same matches as `\s*[►◄▼]…\s*`.
+_AMENDMENT_MARK = re.compile(r"(?:(?<!\s)\s++)?[►◄▼](?:[A-Z]\d*)?\s*")
 
 
 def strip_amendment_markers(text: str) -> str:
     """Drop inline "►M2 … ◄" / "▼M2" markers and collapse the whitespace they leave."""
     return re.sub(r"[ \t\xa0]+", " ", _AMENDMENT_MARK.sub(" ", text or "")).strip()
+
+
+
+
+# --- Recitals -------------------------------------------------------------
+#
+# Two markups. The modern OJ page (acts published since ~2014) wraps every
+# recital in <div class="eli-subdivision" id="rct_N"> holding a two-cell table:
+# "(N)" on the left, the text on the right. Older acts are served class-less:
+# a run of <p>(N) …</p> between "considerando quanto segue:" and the enacting
+# formula ("HA/HANNO ADOTTATO …"). Consolidated texts have no preamble at all.
+_RECITAL_DIV_ID = re.compile(r"^rct_(\d+)$")
+_RECITAL_NUMBER_ONLY = re.compile(r"^\(\d+\)$")
+_LEGACY_RECITAL = re.compile(r"^\((\d+)\)\s+(.*)$", re.S)
+_LEGACY_PREAMBLE_MARKER = re.compile(r"considerando quanto segue", re.I)
+_LEGACY_ENACTING_FORMULA = re.compile(r"^HA(?:NNO)?\s+ADOTTAT[OA]\b", re.I)
+
+
+def _strip_footnote_marks(element) -> None:
+    """Remove "(18)"-style footnote call-outs in place.
+
+    EUR-Lex renders them as <a>(<span class="oj-note-tag">18</span>)</a>; the
+    anchor's whole text is the parenthesised number, so dropping the anchor
+    leaves the sentence intact. The soup is built per request from the cached
+    HTML, so mutating it here is local to this call.
+    """
+    for span in element.find_all("span", class_="oj-note-tag"):
+        anchor = span.find_parent("a")
+        target = anchor if anchor is not None else span
+        if _RECITAL_NUMBER_ONLY.match(target.get_text(strip=True) or ""):
+            target.decompose()
+
+
+def _extract_recitals_modern(soup) -> list[dict]:
+    recitals = []
+    for div in soup.find_all("div", id=_RECITAL_DIV_ID):
+        number = _RECITAL_DIV_ID.match(div["id"]).group(1)
+        _strip_footnote_marks(div)
+        paragraphs = []
+        for p in div.find_all("p"):
+            text = p.get_text(" ", strip=True)
+            if not text or _RECITAL_NUMBER_ONLY.match(text):
+                continue  # the "(N)" cell
+            paragraphs.append(text)
+        if paragraphs:
+            recitals.append({"number": number, "text": "\n".join(paragraphs)})
+    return recitals
+
+
+def _extract_recitals_legacy(soup) -> list[dict]:
+    marker = soup.find("p", string=_LEGACY_PREAMBLE_MARKER)
+    if marker is None:
+        return []
+    recitals = []
+    expected = 1
+    for p in marker.find_all_next("p"):
+        text = p.get_text(" ", strip=True)
+        if _LEGACY_ENACTING_FORMULA.match(text):
+            break
+        match = _LEGACY_RECITAL.match(text)
+        if not match:
+            continue
+        number, body = match.group(1), match.group(2).strip()
+        # Footnote paragraphs also read "(4) …"; a recital number is the next
+        # one in the sequence, nothing else.
+        if int(number) != expected:
+            continue
+        recitals.append({"number": number, "text": body})
+        expected += 1
+    return recitals
+
+
+def extract_recitals(soup) -> list[dict]:
+    """Recitals of an EU act as ``[{"number": "1", "text": "…"}, …]``.
+
+    Modern markup first; the legacy paragraph walk only when the page has no
+    ``rct_N`` divs. A consolidated text yields ``[]``: it has no preamble.
+    """
+    recitals = _extract_recitals_modern(soup)
+    if recitals:
+        return recitals
+    return _extract_recitals_legacy(soup)
 
 
 # --- Consolidated texts ---------------------------------------------------
@@ -91,6 +178,11 @@ def _element_classes(element) -> set:
     return set(element.get("class", []) or [])
 
 
+# Blanks before closing punctuation, matched only from the run's first blank (see
+# `_AMENDMENT_MARK` in treextractor): `\s+([.,;:)])` restarted at every blank of a long run.
+_SPACE_BEFORE_PUNCTUATION = re.compile(r"(?<!\s)\s++([.,;:)])")
+
+
 def _cons_text(element) -> str:
     # A `modref` marker ("▼M2", or "▼M2 —————" for a deleted point) is a
     # sibling of the article title only on older pages; a recent consolidation
@@ -107,7 +199,7 @@ def _cons_text(element) -> str:
     # read "1 quater ." while "1 bis." elsewhere keeps the period inside the
     # span, and "lettera a )" / "articolo 14 bis , paragrafo 2" likewise.
     # Consolidated path only: the OJ extractor never comes through here.
-    text = re.sub(r"\s+([.,;:)])", r"\1", text)
+    text = _SPACE_BEFORE_PUNCTUATION.sub(r"\1", text)
     # The same separator lands after an opening bracket: a footnote reference
     # is literal parens around a superscript link, (<a><span>1</span></a>),
     # and read "( 1 )" — the page shows "(1)".
@@ -177,11 +269,23 @@ def _cons_lines(element) -> list[str]:
     return lines
 
 
+# An ordinal right after a heading's number ("Articolo 15 bis", "Articolo 15bis"), a whole
+# word: "Articolo 1 Terzi" is art. 1 with its rubrica run on, not an ordinal.
+_ORDINAL_AFTER_NUMBER = re.compile(
+    rf"[\s\-]*+(?:{ARTICLE_SUFFIX_ALTERNATION})(?![^\W\d_])", re.IGNORECASE)
+
+
+def _number_ends_here(rest) -> bool:
+    """True when the heading's number ends where `rest` starts: no digit and no ordinal follow."""
+    return not rest[:1].isdigit() and not _ORDINAL_AFTER_NUMBER.match(rest)
+
+
 def _heads_article(text, pattern) -> bool:
     """True when `text` opens with the heading `pattern` ("Articolo 1") and the
     number ends there: "Articolo 17" does not head article 1, or a request for a
-    missing art. 1 would be served art. 17."""
-    return text.startswith(pattern) and not text[len(pattern):len(pattern) + 1].isdigit()
+    missing art. 1 would be served art. 17; nor does "Articolo 15 bis" head
+    article 15 (the suffix served must be the one asked, none for none)."""
+    return text.startswith(pattern) and _number_ends_here(text[len(pattern):])
 
 
 def _cons_find_title(soup, article):
@@ -268,10 +372,23 @@ def extract_article_text(soup, article):
                 log.debug(f"Found article with art/title class using pattern: {pattern}")
                 break
 
-    # Strategy 3: Look for any element whose text matches article pattern exactly
+    # Strategy 3: Look for any element whose text matches article pattern exactly. The modern
+    # OJ page writes "Articolo\xa0N", which only this one reads; the number must end there,
+    # as in `_heads_article`, or art. 15 asked would be served "Articolo 15 bis". An article
+    # asked with its suffix («15 bis», «15-bis», «15bis») reads "Articolo\xa015\xa0bis" too.
     if not article_section:
-        article_regex = re.compile(rf'^Articolo\s+{re.escape(str(article))}\b', re.IGNORECASE)
-        article_section = soup.find(lambda tag: tag.name in ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] and article_regex.match(tag.get_text(strip=True)))
+        asked = re.fullmatch(rf'(\d+)[\s\-]*({ARTICLE_SUFFIX_ALTERNATION})?', str(article).strip(), re.IGNORECASE)
+        if asked:
+            spelled = asked.group(1) + (rf'[\s\-]*{asked.group(2)}' if asked.group(2) else '')
+        else:
+            spelled = re.escape(str(article))
+        article_regex = re.compile(rf'^Articolo\s+{spelled}\b', re.IGNORECASE)
+
+        def heads_by_regex(text):
+            match = article_regex.match(text)
+            return bool(match) and _number_ends_here(text[match.end():])
+
+        article_section = soup.find(lambda tag: tag.name in ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] and heads_by_regex(tag.get_text(strip=True)))
         if article_section:
             log.debug("Found article using regex text match")
 

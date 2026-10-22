@@ -122,28 +122,30 @@ _CELLAR_DOC = f"<html><body>{_RCT_1}{_RCT_42}</body></html>"
 
 
 class TestRecitals:
-    def test_recital_returns_number_and_text(self):
-        # Reg. (UE) 2016/679, considerando 42: the tool used to return only "(42)".
+    # Since the 3.0 migration a recital is VisuaLex's (``extract_recitals``): its text without
+    # the «(N)» and without the OJ footnote calls; cite_law prints «(N)» as the label.
+    def test_recital_returns_its_text(self):
+        # Reg. (UE) 2016/679, considerando 42: the tool once returned only "(42)".
         text = _extract_eurlex_article(_CELLAR_DOC, "rec_42")
-        assert text.startswith("(42) Per i trattamenti basati sul consenso dell'interessato")
-        assert text != "(42)"
+        assert text.startswith("Per i trattamenti basati sul consenso dell'interessato")
         assert text.endswith("senza subire pregiudizio.")
-        # The OJ footnote call keeps its own spaces: "Consiglio (10) è", not "Consiglio(10)è".
-        assert "direttiva 93/13/CEE del Consiglio (10) è opportuno" in text
+        # The footnote call «(10)» is not part of the recital's text.
+        assert "direttiva 93/13/CEE del Consiglio è opportuno" in text
 
     def test_recital_one_is_complete(self):
         # Reg. (UE) 2016/679, considerando 1 (verified on CELLAR 2026-09-29).
         assert _extract_eurlex_article(_CELLAR_DOC, "rec_1") == (
-            "(1) La protezione delle persone fisiche con riguardo al trattamento dei dati di "
+            "La protezione delle persone fisiche con riguardo al trattamento dei dati di "
             "carattere personale è un diritto fondamentale."
         )
 
-    def test_recital_without_div_id_takes_the_whole_row(self):
-        html = (
-            "<html><body><table><tr><td><p>(7)</p></td>"
-            "<td><p>Testo del considerando sette.</p></td></tr></table></body></html>"
-        )
-        assert _extract_eurlex_article(html, "rec_7") == "(7) Testo del considerando sette."
+    def test_a_legacy_recital_is_read_in_its_sequence(self):
+        # VisuaLex's legacy reader: the «(N) …» paragraphs between «considerando quanto segue»
+        # and the enacting formula, in sequence (a footnote «(4) …» out of sequence is not one).
+        html = ("<html><body><p>considerando quanto segue:</p><p>(1) Primo.</p><p>(2) Secondo.</p>"
+                "<p>(4) GU L 1 del 1.1.2000.</p><p>HANNO ADOTTATO LA PRESENTE DIRETTIVA:</p></body></html>")
+        assert _extract_eurlex_article(html, "rec_2") == "Secondo."
+        assert "non trovato" in _extract_eurlex_article(html, "rec_4")
 
     def test_recital_missing(self):
         assert "non trovato" in _extract_eurlex_article(_CELLAR_DOC, "rec_999")
