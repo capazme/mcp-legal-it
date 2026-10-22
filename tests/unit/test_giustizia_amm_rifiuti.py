@@ -139,7 +139,7 @@ class TestA403IsARefusalNotAnOutage:
         assert [s.split()[0] for s in sent] == ["GET", "POST"]  # a 4xx is not retried
         assert result.success is False and result.error_type == "refused"
         text = result.to_str()
-        assert "HTTP 403" in text and "riformulare" in text
+        assert "HTTP 403" in text and "Riformulare" in text
         _assert_clean(text)
 
     async def test_client_raises_without_the_url(self):
