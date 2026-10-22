@@ -700,6 +700,35 @@ entry, it is the same feature as ported to the 3.0 line.
   portal refused the request, not that it is unreachable, and no error repeats
   the request URL (a 5xx is still the source down). Same rules in
   `giurisprudenza_amm_su_norma`, `cerca_giurisprudenza_unificata` and
+  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`).
+- **An EU regulation or directive is served in its text in force** (issue #50).
+  `cite_law("art. 111 Regolamento UE 2024/1689")` served the Official Journal text
+  of 12.7.2024, while Reg. (UE) 2026/1744 had rewritten par. 2 and added par. 4.
+  Without a date, an EU act is now read from its latest consolidation when that
+  consolidation includes an amending act or a corrigendum, with one SPARQL query to
+  CELLAR per act, kept a day. A corrigendum published in the Official Journal
+  changes the text in force, so it counts as an amendment. **The Italian text of
+  the GDPR served until now (2.x included) lacked the Italian corrigendum**: 36 of
+  its 99 articles read differently from the corrected text, e.g. art. 7 the data
+  subject «presta» (not «esprime») consent, art. 17 «obbligo giuridico» (not
+  «legale»), art. 41 «controllo» of codes of conduct (not «monitoraggio»). It is
+  now read from 02016R0679-20160504, whose notice says it incorporates the
+  corrigenda published in the Official Journal. A consolidated text is `INDICATIVO`, and an `avviso` says it is
+  EUR-Lex's documentation and that only the Official Journal text is authentic.
+  `consolidato` (CELEX, date, amending acts) and `consolidato_verificato` are in
+  `api.testo_articolo` and in `cite_law`'s JSON, always present. Without an
+  amending consolidation, the Official Journal text is served, `ESATTO`. When
+  CELLAR cannot say, the Official Journal text is served with a notice as its
+  first line, `INDICATIVO`. `cite_law(..., versione="originale")`, new and
+  optional, gives the Official Journal text of an EU act or Normattiva's original
+  of an Italian one. In the api an EU act now has a text at a date: the latest
+  consolidation dated on or before that day, with a notice that consolidations can
+  lag behind amendments; a day before the act's publication in the Official
+  Journal is `riferimento_non_valido`, and a day before its entry into force has a
+  notice. A consolidation dated after today is not served as in force: it is
+  announced in `upcoming` and an `avviso`. The lookup waits at most 12 s, never
+  retries, and remembers a failure for five minutes. Treaties, recitals and annexes
+  are not looked up.
   `api.cerca_decisioni_amministrative` (`richiesta_non_valida`). A 429, or a
   pause the portal asks for, reads «troppe richieste: riprovare tra qualche
   minuto», not «non raggiungibile» (the api outcome is unchanged); reading a
