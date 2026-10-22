@@ -51,7 +51,7 @@ def _load_url_cache() -> dict[str, str]:
     try:
         path = _cache_file()
         if path.exists():
-            return json.loads(path.read_text())
+            return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         pass
     return {}
@@ -63,7 +63,7 @@ def _save_url_cache(cache: dict[str, str]) -> None:
     try:
         path = _cache_file()
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        path.write_text(json.dumps(cache, ensure_ascii=False))
+        path.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
     except OSError:
         pass
 

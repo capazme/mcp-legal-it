@@ -685,6 +685,13 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **The server starts on Windows without `PYTHONUTF8`** (#76). Thirty reads and
+  writes of text files (the bundled JSON tables, the Brocardi cache, the
+  `legal://` resources) named no encoding, so Python used the locale's: cp1252 on
+  Windows, where the server failed at start with a `UnicodeDecodeError`. Every one
+  says `encoding="utf-8"` now; a test scans the package for text I/O without an
+  encoding and another imports the server with `-X warn_default_encoding`, so the
+  mistake cannot come back.
 - **Installing from git works on Windows** (#76). The 2.x root held `src` as a
   symlink to the package: on Windows, without `core.symlinks`, git checks it
   out as a text file and `pip install git+https://…` built a wheel with no code.
