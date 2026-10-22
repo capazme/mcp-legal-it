@@ -671,6 +671,12 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **Installing from git works on Windows** (#76). The 2.x root held `src` as a
+  symlink to the package: on Windows, without `core.symlinks`, git checks it
+  out as a text file and `pip install git+https://…` built a wheel with no code.
+  The 3.0 package is found under `plugin/server` with no link (a wheel built
+  from the repository root ships the whole `mcp_legal_it`), and a test now fails
+  if git ever tracks a symlink again.
 - **Giustizia Amministrativa: two quoted phrases no longer end in «non
   raggiungibile»** (#52). The firewall in front of the portal answers 403 to a
   search holding two phrases in quotes, and the tools reported the source as
