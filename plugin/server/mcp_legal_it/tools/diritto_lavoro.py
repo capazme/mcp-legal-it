@@ -109,10 +109,12 @@ def indennita_licenziamento(
     «di importo pari a due mensilità ... per ogni anno di servizio»: resta solo la forbice da 6 a
     36 mensilità, entro cui la misura la determina il giudice, tenendo conto dell'anzianità di
     servizio e degli altri criteri dell'art. 8 L. 604/1966 (numero dei dipendenti occupati,
-    dimensioni dell'impresa, comportamento e condizioni delle parti). Per i datori sotto la soglia
-    dell'art. 18 St. lav. l'importo è dimezzato (art. 9 co. 1) e, dopo C.Cost. 118/2025 che ha
-    eliminato il tetto di sei mensilità, la forbice è da 3 a 18. Per questo NON restituisce un
-    importo unico: restituisce minimo e massimo, in mensilità e in euro, e i criteri.
+    dimensioni dell'impresa, comportamento e condizioni delle parti). Per i datori di lavoro
+    dell'art. 9 (sotto la soglia dell'art. 18 St. lav.): importi dimezzati (art. 9, co. 1), quindi
+    3-18 mensilità; il limite di sei mensilità è stato dichiarato illegittimo da C.Cost. 118/2025.
+    Per questo NON restituisce un importo unico: restituisce minimo e massimo, in mensilità e in
+    euro, e i criteri. Attenzione: il testo dell'art. 3 su Normattiva riporta ancora le parole
+    dichiarate illegittime da C.Cost. 194/2018 (vedi le sue note di aggiornamento).
     Con tipo='reintegra' restituisce il tetto di 12 mensilità
     dell'indennità risarcitoria dell'art. 3 co. 2 (esteso da C.Cost. 128/2024 al licenziamento
     per giustificato motivo oggettivo con fatto materiale insussistente), che non dipende
@@ -171,8 +173,8 @@ def indennita_licenziamento(
         regime = (
             "datore sopra la soglia dell'art. 18 St. lav.: art. 3 co. 1"
             if dimensione_azienda == "grande"
-            else "datore sotto la soglia dell'art. 18 St. lav.: art. 3 co. 1 dimezzato dall'art. 9 co. 1, "
-                 "senza il tetto di sei mensilità dopo C.Cost. 118/2025"
+            else "datore di lavoro dell'art. 9: importi dimezzati (art. 9, co. 1), quindi 3-18 mensilità; "
+                 "il limite di sei mensilità è stato dichiarato illegittimo da C.Cost. 118/2025"
         )
         return {
             "anni_servizio": anni_servizio,
@@ -191,8 +193,10 @@ def indennita_licenziamento(
             "nota": (
                 "La misura dell'indennità è determinata dal giudice entro la forbice, tenendo conto "
                 f"dell'anzianità di servizio ({anni_servizio} anni) e degli altri criteri dell'art. 8 "
-                "L. 604/1966: non esiste un importo calcolabile in anticipo. Per la conciliazione "
-                "agevolata dell'art. 6 vedi offerta_conciliativa()."
+                "L. 604/1966: non esiste un importo calcolabile in anticipo. Il testo dell'art. 3 su "
+                "Normattiva riporta ancora le parole «di importo pari a due mensilità ... per ogni anno "
+                "di servizio», dichiarate illegittime da C.Cost. 194/2018 (vedi le note "
+                "dell'articolo). Per la conciliazione agevolata dell'art. 6 vedi offerta_conciliativa()."
             ),
             "riferimento_normativo": "D.Lgs. 23/2015 artt. 3 co. 1, 9 co. 1 — C.Cost. 194/2018, 118/2025 — art. 8 L. 604/1966",
         }
