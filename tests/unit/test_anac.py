@@ -82,6 +82,10 @@ class TestSearchParams:
                      "sort": "ddm__Dataclu0__date_Number_sortableDESC", "delta": "10",
                      "type": "119160", "start": "2"}
 
+    def test_by_relevance_with_every_word(self):
+        p = build_search_params("delibera n. 444 2025", "delibere", rows=50, per_data=False, tutte_le_parole=True)
+        assert p["sort"] == "_scoreASC" and p["searchType"] == "and"
+
     def test_first_page_and_no_type(self):
         p = build_search_params("x", rows=50)
         assert "type" not in p and "start" not in p and p["delta"] == "50"
@@ -144,6 +148,11 @@ class TestReferences:
         # the act's own number is the first one, and the year must follow it
         ("Delibera n. 500 del 3 marzo 2025 - annullamento delibera n. 444 del 2025", False),
         ("Delibera 2025 - n. 444 del 3 marzo 2024", False),
+        # the year is the one of the date right after the number (#82 review)
+        ("Delibera n. 444 del 11 novembre 2025 - annullamento della delibera n. 12 del 2024", True),
+        ("Delibera n. 444 del 11 novembre 2024 - annullamento della delibera n. 12 del 2025", False),
+        ("Delibera n. 444 del 07/02/2025", True),
+        ("Linee guida n. 444/2025", True),
     ])
     def test_title_matches_number_and_year(self, titolo, ok):
         assert titolo_corrisponde(titolo, "444", "2025") is ok
@@ -203,7 +212,10 @@ class TestTools:
             result = await _leggi_atto_anac_impl(tipologia="delibera", numero="444", anno="2025")
         assert result.success
         assert str(sent[1].url) == URL_444
-        assert parse_qs(urlparse(str(sent[0].url)).query)["q"] == ["delibera n. 444 2025"]
+        query = parse_qs(urlparse(str(sent[0].url)).query)
+        assert query["q"] == ["delibera n. 444 2025"]
+        # every word, by relevance: by date and OR-ed the act is buried among 6169 delibere (#82)
+        assert query["sort"] == ["_scoreASC"] and query["searchType"] == ["and"]
 
     async def test_number_not_found(self):
         factory, sent = _portal()
@@ -284,4 +296,4 @@ class TestReviewCases:
         factory, _sent = _portal()
         with api.configurazione(client_factory=factory):
             result = await _leggi_atto_anac_impl(tipologia="delibere", numero="999", anno="2025")
-        assert "tra i primi 2 risultati" in result.to_str()
+        assert "tra i primi 2 risultati per rilevanza" in result.to_str()
