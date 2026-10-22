@@ -224,18 +224,22 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
     annex = split_annex(nv.numero_articolo)
 
     if is_eurlex:
+        # The text in force of an amended act is its latest consolidation (issue #50).
+        nv, ue = await _versione_ue(nv)
+        if ue.get("error"):
+            return {"text": "", "url": nv.norma.url(), "source": source, **ue}
         html, url = await _fetch_eurlex_html(nv.norma)
         if not html:
-            return {"text": "", "url": url, "source": source, "error": "Could not fetch EUR-Lex document"}
+            return {"text": "", "url": url, "source": source, **ue, "error": "Could not fetch EUR-Lex document"}
         text = _extract_eurlex_article(html, nv.numero_articolo)
         if annex:
             if text.startswith("["):  # not found / not divided into articles
-                return {"text": "", "url": url, "source": source, "error": text.strip("[]")}
-            return {"text": text, "url": url, "source": source, "allegato": f"Allegato {annex[0]}"}
+                return {"text": "", "url": url, "source": source, **ue, "error": text.strip("[]")}
+            return {"text": text, "url": url, "source": source, **ue, "allegato": f"Allegato {annex[0]}"}
         if nv.numero_articolo and _EURLEX_NOT_FOUND_RE.match(text):
             # The extractor's "[Articolo N non trovato ...]" is an answer about the
             # document, not its text: returned as text it read as the article.
-            return {"text": "", "url": url, "source": source, "esito": ARTICLE_NOT_FOUND,
+            return {"text": "", "url": url, "source": source, **ue, "esito": ARTICLE_NOT_FOUND,
                     "error": text.strip("[]")}
     elif annex:
         return await _fetch_normattiva_annex(nv, *annex, canale=canale)
@@ -295,7 +299,7 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
             return result
         return _checked_html_article(result, nv, served, act, part)
 
-    return {"text": text, "url": url, "source": source}
+    return {"text": text, "url": url, "source": source, **ue}
 
 
 # ---------------------------------------------------------------------------
@@ -940,6 +944,51 @@ async def _akn_act(nv: NormaVisitata):
         return await fetch_act_akn(nv.norma, _vigenza_akn(nv))
     except Exception:  # noqa: BLE001 - the export is a fallback: its failure is "no export"
         return None
+
+
+async def _versione_ue(nv: NormaVisitata) -> "tuple[NormaVisitata, dict]":
+    """The EU text asked for, and what the answer says of it: ``(nv to read, extra keys)``.
+
+    The extra keys are ``consolidato`` (``{"celex", "data", "modificato_da"}`` of the
+    consolidation read, None for the Official Journal text) and ``consolidato_verificato``
+    (True: CELLAR was asked; False: it could not say, and the OJ text is served with a
+    notice; None: not asked, as for a treaty, the original text or a consolidation named
+    by the caller). A day before the act's own date is an ``error`` with
+    ``esito="riferimento_non_valido"``.
+    """
+    from . import eurlex_consolidate as ec
+    from .map import EURLEX_TREATY_CELEX
+
+    norma = nv.norma
+    if norma.celex_consolidated:
+        data = norma.celex_consolidated.split("-", 1)[1]
+        return nv, {"consolidato": {"celex": norma.celex_consolidated, "data": f"{data[:4]}-{data[4:6]}-{data[6:]}",
+                                    "modificato_da": None},
+                    "consolidato_verificato": None}
+    if (norma.tipo_atto_normalized.lower() in EURLEX_TREATY_CELEX
+            or (nv.versione or "").strip().lower() == "originale"
+            or (nv.numero_articolo or "").startswith("rec_")):
+        # A treaty, the original text asked for, a recital (a consolidation has no preamble,
+        # and amendments do not rewrite recitals): the Official Journal text, as before.
+        return nv, {"consolidato": None, "consolidato_verificato": None}
+    if split_annex(nv.numero_articolo):
+        # A consolidation's annexes are not read yet: the OJ annex, said to be possibly outdated.
+        return nv, {"consolidato": None, "consolidato_verificato": None, "allegato_oj": True}
+    base = _build_celex(norma)
+    info = await ec.consolidazioni(base) if base else None
+    if info is None:
+        return nv, {"consolidato": None, "consolidato_verificato": False}
+    giorno = nv.data_versione or None
+    scelta, versione = ec.scegli(info, giorno)
+    if scelta == "prima":
+        return nv, {"consolidato": None, "consolidato_verificato": True, "esito": "riferimento_non_valido",
+                    "error": f"{norma} è del {info['data_atto']}: non esisteva il {giorno}"}
+    if scelta == "oj":
+        return nv, {"consolidato": None, "consolidato_verificato": True}
+    letta = dataclasses.replace(nv, norma=dataclasses.replace(norma, celex_consolidated=versione["celex"]))
+    return letta, {"consolidato": {"celex": versione["celex"], "data": versione["data"],
+                                   "modificato_da": versione["modifiche"]},
+                   "consolidato_verificato": True}
 
 
 def senza_export(nv: NormaVisitata) -> bool:

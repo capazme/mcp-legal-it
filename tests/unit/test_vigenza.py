@@ -87,9 +87,12 @@ class TestTheTextAtADate:
     def test_what_cannot_be_a_version_is_refused(self, kw, esito):
         assert api.riferimento_da_parametri("codice civile", "1284", **kw).esito == esito
 
-    def test_eu_acts_and_annexes_have_no_version_yet(self):
+    def test_eu_acts_have_versions_treaties_and_annexes_do_not(self):
+        # Since issue #50 an EU regulation or directive has a text at a date (its consolidation)
+        # and an original (the OJ text): test_eurlex_vigente.py.
         assert api.riferimento_da_parametri("regolamento ue", "5", data="2016", numero_atto="679",
-                                            data_versione="2020-01-01").esito == "non_supportata"
+                                            data_versione="2020-01-01").esito == "trovato"
+        assert api.riferimento_da_parametri("tfue", "101", data_versione="2020-01-01").esito == "non_supportata"
         assert api.riferimento_da_parametri("decreto legislativo", "allegato I.7 art. 30", data="2023-03-31",
                                             numero_atto="36", data_versione="2024-01-01").esito == "non_supportata"
 
