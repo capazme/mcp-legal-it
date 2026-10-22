@@ -151,6 +151,12 @@ _CODICI = {
     "c.n.": ["c.n.", "cod. nav.", "codice della navigazione"],
 }
 
+# Codes cited by the article number alone ("art. 2043", "art. 360"): their bare "art. N" forms
+# are ORed in. The other codes are numbered acts (the t.u.b. is d.lgs. 385/1993): a bare
+# "art. 33" matches every decision citing any art. 33, so they are tied to the act by
+# proximity, like the acts below.
+_CODICI_NUDI = frozenset({"c.c.", "c.p.", "c.p.c.", "c.p.p.", "cost."})
+
 # Act types and their spellings; matched like _CODICI, longest spelling first.
 _TIPI_ATTO = {
     "d.lgs.": ["D.Lgs.", "decreto legislativo", "d.lgs."],
@@ -161,43 +167,90 @@ _TIPI_ATTO = {
     "l.": ["L.", "legge", "l."],
 }
 
+# Spellings that name an act type without being one of its query variants.
+_TIPI_ATTO_ALIAS = {"d.lgs.vo": "d.lgs.", "d.l.vo": "d.lgs."}
 
-def _spelling_index(table: dict[str, list[str]]) -> list[tuple[str, str]]:
+
+def _spelling_index(
+    table: dict[str, list[str]], aliases: dict[str, str] | None = None,
+) -> list[tuple[str, str]]:
     """(spelling, key) for every way a key of *table* is written, longest spelling first.
 
     A key is recognised by itself ("c.c."), without the final dot ("c.c"), without any dot
     ("cc"), or by any of its variants ("cod. civ.", "codice civile"; "cod.civ." too). The
     longest spelling wins, so "c.p.c." is tried before "c.p." whatever the order of the table.
     """
+    forms = [(form, key) for key, variants in table.items() for form in (key, *variants)]
+    forms += list((aliases or {}).items())
     index: dict[str, str] = {}
-    for key, variants in table.items():
-        for form in (key, *variants):
-            form = form.lower()
-            for spelling in (form, form.rstrip("."), form.replace(".", ""), form.replace(". ", ".")):
-                if spelling:
-                    index.setdefault(spelling, key)
+    for form, key in forms:
+        form = form.lower()
+        for spelling in (form, form.rstrip("."), form.replace(".", ""), form.replace(". ", ".")):
+            if spelling:
+                index.setdefault(spelling, key)
     return sorted(index.items(), key=lambda item: -len(item[0]))
 
 
 _CODICI_SPELLINGS = _spelling_index(_CODICI)
-_TIPI_ATTO_SPELLINGS = _spelling_index(_TIPI_ATTO)
+_TIPI_ATTO_SPELLINGS = _spelling_index(_TIPI_ATTO, _TIPI_ATTO_ALIAS)
 
 
 def _leading_key(rest: str, spellings: list[tuple[str, str]]) -> str | None:
     """Key of the code or act type that *rest* starts with, or None.
 
     The spelling must end where a word ends: "cp" is not "cpi", "c.p." is not "c.p.i."
-    (codice della proprietà industriale), "l." is not "l.r." (regional law). Plain prefix
-    checks, no regular expression: linear in the length of *rest*.
+    (codice della proprietà industriale), "l." is not "l.r." (regional law), "l" is not
+    "l'impresa". Plain prefix checks, no regular expression: linear in the length of *rest*.
     """
     for spelling, key in spellings:
         if not rest.startswith(spelling):
             continue
         after = rest[len(spelling):len(spelling) + 2]
-        if after[:1].isalpha() or (after[:1] == "." and after[1:2].isalpha()):
+        first = after[:1]
+        if first and (first.isalpha() or first in "'’"):
+            continue
+        if first == "." and after[1:2].isalpha():
             continue
         return key
     return None
+
+
+def _number_markers(numero: str, anno: str) -> list[str]:
+    """The forms an act's number and year take in a decision: 231/2001, 2001/231, 231 del 2001."""
+    return [f"{numero}/{anno}", f"{anno}/{numero}", f"{numero} del {anno}"]
+
+
+@functools.lru_cache(maxsize=None)
+def _codice_markers(codice: str) -> tuple[str, ...]:
+    """Number/year markers of a code that is a numbered act, read from the act resolver.
+
+    The first spelling of the code the resolver knows by number wins (it knows "codice del
+    consumo", not "c.cons."). () when none: the code then keeps its bare forms.
+    """
+    try:  # lazy: keeps the client free of a hard import-time dependency on visualex
+        from mcp_legal_it.lib.visualex import resolve_atto
+    except Exception:  # noqa: BLE001 - identity by number is best effort
+        return ()
+    for name in (codice, *_CODICI[codice]):
+        try:
+            atto = resolve_atto(name) or {}
+        except Exception:  # noqa: BLE001 - identity by number is best effort
+            continue
+        numero = str(atto.get("numero_atto") or "")
+        anno = str(atto.get("data") or "")[:4]
+        if numero.isdigit() and anno.isdigit():
+            return tuple(_number_markers(numero, anno))
+    return ()
+
+
+def _near(num: str, markers) -> list[str]:
+    # Only "art." and "articolo": phrase queries on "artt." make the Solr highlighter answer
+    # 500 on some decisions (read 2026-09-29).
+    return [
+        f'"{art} {num} {marker}"~{_NORMA_PROXIMITY}'
+        for art in ("art.", "articolo")
+        for marker in markers
+    ]
 
 
 def get_kind_filter(archivio: str) -> list[str]:
@@ -607,7 +660,7 @@ def _act_identity_markers(rest: str) -> list[str]:
         if numero.isdigit() and anno.isdigit():
             a, b = numero, anno
     if a and b:
-        markers += [f"{a}/{b}", f"{b}/{a}", f"{a} del {b}"]
+        markers += _number_markers(a, b)
     if not any(ch.isdigit() for ch in rest):
         markers.append(rest)
     return list(dict.fromkeys(markers))
@@ -616,9 +669,11 @@ def _act_identity_markers(rest: str) -> list[str]:
 def build_norma_variants(riferimento: str, strict: bool = False) -> str:
     """Convert 'art. 2043 c.c.' to a Solr query with common text variants.
 
-    Codes ('art. 2043 c.c.'): the bare "art. N" / "articolo N" plus the code-qualified forms
-    ("2043 c.c.", "2043 cod. civ.", ...). With *strict* the bare forms are dropped, leaving
-    only the code-qualified ones (used to ANCHOR a search to one article).
+    Codes ('art. 2043 c.c.', however spelled): the bare "art. N" / "articolo N" plus the
+    code-qualified forms ("2043 c.c.", "2043 cod. civ.", ...). With *strict* the bare forms are
+    dropped, leaving only the code-qualified ones (used to ANCHOR a search to one article).
+    A code that is a numbered act (t.u.b., codice del consumo, CCII: see _CODICI_NUDI) gets no
+    bare forms: its qualified forms plus the proximity phrases of the act, as below.
 
     Acts ('art. 13 GDPR', 'art. 6 D.Lgs. 231/2001'): the bare forms are NOT ORed in, because
     they match every decision that cites ANY article N (art. 13 co. 1-quater d.P.R. 115/2002
@@ -652,6 +707,9 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
     codice = _leading_key(rest, _CODICI_SPELLINGS)
     if codice:
         qualified = [f'"{num} {exp}"' for exp in _CODICI[codice]]
+        markers = () if codice in _CODICI_NUDI else _codice_markers(codice)
+        if markers:
+            return "ocr:(" + " OR ".join(qualified + _near(num, markers)) + ")"
         variants = qualified if strict else bare + qualified
         return "ocr:(" + " OR ".join(variants) + ")"
 
@@ -680,14 +738,7 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
     if not markers:
         # No way to tell the act apart: keep the historical (low precision) OR of bare forms.
         return "ocr:(" + " OR ".join(bare + qualified) + ")"
-    # Only "art." and "articolo": phrase queries on "artt." make the Solr highlighter answer
-    # 500 on some decisions (read 2026-09-29).
-    near = [
-        f'"{art} {num} {marker}"~{_NORMA_PROXIMITY}'
-        for art in ("art.", "articolo")
-        for marker in markers
-    ]
-    return "ocr:(" + " OR ".join(qualified + near) + ")"
+    return "ocr:(" + " OR ".join(qualified + _near(num, markers)) + ")"
 
 
 def norma_is_qualified(riferimento: str) -> bool:
