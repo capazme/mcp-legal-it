@@ -56,3 +56,12 @@ def test_wheel_ships_data_and_entry_point(tmp_path):
         # LICENSES/Apache-2.0.txt, so the wheel must carry that text as well.
         licences = {n.split(".dist-info/licenses/", 1)[1] for n in names if ".dist-info/licenses/" in n}
         assert {"LICENSE", "NOTICE", "LICENSES/Apache-2.0.txt"} <= licences, sorted(licences)
+
+
+@pytest.mark.skipif(shutil.which("git") is None or not (REPO_ROOT / ".git").exists(), reason="not a git checkout")
+def test_the_repository_tracks_no_symlink():
+    # #76: on Windows, without core.symlinks, a tracked symlink is checked out as a text file.
+    # The 2.x root `src` was one: `pip install git+https://...` then built a wheel without code.
+    out = subprocess.run(["git", "ls-files", "-s"], check=True, capture_output=True, text=True, cwd=REPO_ROOT)
+    links = [line.split("\t", 1)[1] for line in out.stdout.splitlines() if line.startswith("120000 ")]
+    assert links == [], f"symlinks tracked by git: {links}"
