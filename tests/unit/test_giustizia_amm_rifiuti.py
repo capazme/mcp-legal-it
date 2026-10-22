@@ -155,7 +155,9 @@ class TestA403IsARefusalNotAnOutage:
         with api.configurazione(client_factory=factory):
             result = await _leggi_provvedimento_amm_impl("cds", "202301234", "202301234_11.xml")
         assert result.error_type == "refused"
-        _assert_clean(result.to_str())
+        text = result.to_str()
+        assert "lettura del documento" in text and "sintassi" not in text  # no query was sent
+        _assert_clean(text)
 
     async def test_api(self):
         factory, _sent = _portal(post_status=403)
@@ -184,3 +186,23 @@ class TestA5xxStaysAnOutageWithoutTheUrl:
         assert ricerca.esito == "fonte_non_raggiungibile"
         for piece in _URL_PIECES:
             assert piece not in ricerca.errore, piece
+
+
+async def test_a_form_action_on_a_foreign_host_is_refused_without_its_url():
+    # The host guard quotes the URL it refuses; the form's action carries p_auth.
+    page = _SEARCH_PAGE_HTML.replace("https://www.giustizia-amministrativa.it", "https://evil.example")
+    sent: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(str(request.url))
+        return httpx.Response(200, text=page)
+
+    def factory(fonte, **kwargs):
+        return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+    with api.configurazione(client_factory=factory):
+        result = await _cerca_giurisprudenza_amministrativa_impl(query="rinnovo tacito")
+    assert all("evil.example" not in url for url in sent)
+    assert result.error_type == "source_down" and "URL omesso" in result.to_str()
+    for piece in _URL_PIECES + ("evil.example",):
+        assert piece not in result.to_str(), piece
