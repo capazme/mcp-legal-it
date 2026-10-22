@@ -734,6 +734,16 @@ entry, it is the same feature as ported to the 3.0 line.
   minuto», not «non raggiungibile» (the api outcome is unchanged); reading a
   provvedimento never talks about a query's syntax, not even when the search
   page it opens first is refused.
+- **An article an EU amending act quotes is no longer served as the act's own.**
+  Dir. 2009/136/CE rewrites articles of dir. 2002/22/CE and quotes each one inside
+  its art. 1. «art. 23 dir. 2009/136» was served art. 23 of dir. 2002/22 as amended,
+  and so were 21, 22 and 27. On a modern Official Journal page an article whose
+  every heading sits in a table cell or opens with « is a quotation, now «non
+  trovato»; where the act's own article has its `div#art_N`, a text whose first
+  lines are not the own heading and the line after it is refused. On the legacy
+  class-less page the first heading naming the article decides (a «-heading is
+  skipped): inside a table cell it is a quotation. These checks sit in our
+  wrapper and only refuse; the imported reader is untouched (reported upstream).
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the
