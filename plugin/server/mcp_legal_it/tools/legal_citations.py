@@ -76,8 +76,27 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
     url = article_result.get("url", "")
     source = article_result.get("source", "")
 
+    if source == "eurlex":
+        from mcp_legal_it.lib.visualex import eurlex_consolidate as ec
+
+        consolidato = article_result.get("consolidato")
+        avvisi_ue = ec.avvisi(consolidato, article_result.get("consolidato_verificato"), None,
+                              bool(article_result.get("allegato_oj")))
+        if text and article_result.get("consolidato_verificato") is False:
+            # CELLAR could not say: the first line says so, before anything else (fail open).
+            parts.append(f"**Attenzione**: {avvisi_ue[0]}.\n")
+            avvisi_ue = avvisi_ue[1:]
+    else:
+        consolidato, avvisi_ue = None, []
     if text:
         parts.append(f"**Fonte**: {source.title()} — {url}\n")
+        if consolidato:
+            modifiche = consolidato.get("modificato_da") or []
+            elenco = "; ".join(f"{m['atto']} (CELEX {m['celex']})" for m in modifiche)
+            parts.append(f"**Testo consolidato** EUR-Lex al {consolidato['data']} (CELEX {consolidato['celex']})"
+                         + (f", modifiche: {elenco}" if elenco else "") + ".\n")
+        for avviso in avvisi_ue:
+            parts.append(f"**Attenzione**: {avviso}.\n")
         from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, versione_futura
 
         if source.startswith("normattiva") and (futura := versione_futura(url)):
@@ -118,10 +137,13 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 # ---------------------------------------------------------------------------
 
 
-async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown") -> str:
+async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown",
+                         versione: str = "vigente") -> str:
     """Implementation of cite_law (testable without MCP wrapper)."""
+    if versione not in ("vigente", "originale"):
+        return f"**Errore**: versione '{versione}' non valida: attese 'vigente' o 'originale'"
     if formato == "json":
-        return json.dumps(await _cite_law_struct(reference), ensure_ascii=False)
+        return json.dumps(await _cite_law_struct(reference, versione), ensure_ascii=False)
     article, act_name = _parse_reference(reference)
     if not act_name:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'. Formato atteso: 'art. <numero> <atto>'"
@@ -132,6 +154,8 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
     if (motivo := intervallo_articoli(article)) is not None:
         return f"**Errore**: {motivo}"
 
+    if versione == "originale":
+        act_info = {**act_info, "versione": "originale"}
     nv = _build_nv(act_info, article)
 
     article_result = await fetch_norma(nv)
@@ -183,6 +207,7 @@ async def cite_law(
     reference: str,
     include_annotations: bool = False,
     formato: Literal["markdown", "json"] = "markdown",
+    versione: Literal["vigente", "originale"] = "vigente",
 ) -> str:
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
@@ -213,6 +238,13 @@ async def cite_law(
     I numeri di paragrafo (n. N, co. N, comma N) vengono automaticamente
     ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR".
 
+    Atti UE (regolamenti e direttive): il testo vigente è l'ultima versione consolidata
+    di EUR-Lex quando questa include un atto modificativo; l'output lo dichiara (CELEX
+    consolidato, data, atti modificativi) e avverte che il consolidato è documentazione,
+    non fa fede: fa fede solo il testo pubblicato in GUUE (versione="originale").
+    Senza modifiche consolidate si ottiene il testo GUUE. Se non è possibile verificare
+    l'esistenza di una consolidata, la prima riga lo dice e il testo è quello GUUE.
+
     Args:
         reference: Riferimento normativo, es. "art. 13 GDPR", "art. 2043 c.c.",
                    "art. 6 D.Lgs. 231/2001", "art. 117 Costituzione",
@@ -231,10 +263,18 @@ async def cite_law(
                  fonte è Normattiva, altrimenti null; se l'atto è citato con il solo anno
                  ("L. 742/1969") la data completa è letta dalla pagina Normattiva
                  ("1969-10-07"), e se non è ricavabile "urn" è null (mai una data fittizia).
-                 In modalità json le annotazioni Brocardi non sono incluse
+                 "consolidato" ({celex, data, modificato_da: [{celex, atto}] o null}) è la
+                 versione consolidata UE letta, null per il testo GUUE o per un atto italiano;
+                 "consolidato_verificato" è true se EUR-Lex è stato interrogato, false se non
+                 è stato possibile (testo GUUE, con l'avviso per primo in "avvisi"), null se
+                 non pertinente. In modalità json le annotazioni Brocardi non sono incluse
                  (include_annotations viene ignorato).
+        versione: "vigente" (default) oppure "originale": il testo originario. Per un atto
+                  UE è il testo pubblicato in GUUE, l'unico che fa fede; per un atto italiano
+                  è la versione originaria di Normattiva (un atto citato con il solo anno
+                  di cui non si legge la data completa non ha versione originale).
     """
-    return await _cite_law_impl(reference, include_annotations, formato)
+    return await _cite_law_impl(reference, include_annotations, formato, versione)
 
 
 @mcp.tool(tags={"normativa"})

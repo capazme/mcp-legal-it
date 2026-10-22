@@ -14,7 +14,7 @@ import httpx
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
-from mcp_legal_it.lib.visualex.models import intervallo_articoli
+from mcp_legal_it.lib.visualex.models import intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import CHECK_UNAVAILABLE, fetch_article
 from mcp_legal_it.core.riferimenti import (  # noqa: F401 - re-exported
     _ACT_FIRST_PATTERN,
@@ -86,12 +86,13 @@ async def fetch_norma(nv: NormaVisitata, *, canale: str = "html") -> dict:
         return _failed_fetch(nv, e)
 
 
-async def _cite_law_struct(reference: str) -> dict:
+async def _cite_law_struct(reference: str, versione: str = "vigente") -> dict:
     """Structured article lookup (no Brocardi): the JSON face of cite_law."""
-    return (await _cite_law_lookup(reference))[0]
+    return (await _cite_law_lookup(reference, versione=versione))[0]
 
 
-async def _cite_law_lookup(reference: str, *, canale: str = "html") -> tuple[dict, str | None]:
+async def _cite_law_lookup(reference: str, *, canale: str = "html",
+                           versione: str = "vigente") -> tuple[dict, str | None]:
     """The JSON face of cite_law, plus the outcome of the existence check.
 
     The outcome is ``ARTICLE_NOT_FOUND`` (the article is not in the act),
@@ -111,6 +112,8 @@ async def _cite_law_lookup(reference: str, *, canale: str = "html") -> tuple[dic
         base["errore"] = motivo
         return base, None
 
+    if versione == "originale":
+        act_info = {**act_info, "versione": "originale"}
     return await _lookup_visitata(base, _build_nv(act_info, article), act_info, canale=canale)
 
 
@@ -124,6 +127,9 @@ def _lookup_base(reference: str) -> dict:
         # What the reader must know about the text (the coming version Normattiva showed
         # without a date, the export's text, an unread window) and VisuaLex's "upcoming".
         "avvisi": [], "upcoming": None,
+        # An EU act's text: the consolidation read ({celex, data, modificato_da}, None for the
+        # Official Journal text), and whether CELLAR was asked (False: it could not say).
+        "consolidato": None, "consolidato_verificato": None,
     }
 
 
@@ -162,6 +168,8 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     base["fonte"] = result.get("source", "") or ""
     base["allegato"] = result.get("allegato") or None
     base["testo"] = result.get("text", "") or ""
+    base["consolidato"] = result.get("consolidato")
+    base["consolidato_verificato"] = result.get("consolidato_verificato")
     if result.get("error"):
         base["errore"] = result["error"]
     elif not base["testo"]:
@@ -176,6 +184,24 @@ def non_ancora_vigente(validita: dict, data_rich: "str | None") -> str:
     giorno = f"il {data_rich}" if data_rich else "alla data richiesta"
     entra = f": entra in vigore dopo il {validita['valid_to']}" if validita.get("valid_to") else ""
     return f"l'articolo non esisteva {giorno}{entra}"
+
+
+def _qualita_ue(base: dict, act_info: "dict | None", article: str) -> dict:
+    """``qualita_testo`` of an EU text (issue #50): ESATTO for the Official Journal text, which
+    is authentic; INDICATIVO for a consolidation (EUR-Lex's documentation), for the OJ text
+    when CELLAR could not say whether a consolidation exists, and for an OJ annex of an act
+    that may have been amended. A treaty is unchanged (no precision)."""
+    from mcp_legal_it.lib.visualex import eurlex_consolidate as ec
+    from mcp_legal_it.lib.visualex.map import EURLEX_TREATY_CELEX
+
+    vuoto = {"validita": None, "precisione": None, "avvisi": [], "successione": None, "upcoming": None}
+    if ((base.get("atto") or {}).get("tipo_atto") or "").lower() in EURLEX_TREATY_CELEX:
+        return vuoto
+    consolidato, verificato = base.get("consolidato"), base.get("consolidato_verificato")
+    allegato_oj = bool(split_annex(article)) and not consolidato
+    avvisi = ec.avvisi(consolidato, verificato, (act_info or {}).get("data_versione") or None, allegato_oj)
+    precisione = "INDICATIVO" if (consolidato or verificato is False or allegato_oj) else "ESATTO"
+    return {**vuoto, "precisione": precisione, "avvisi": avvisi}
 
 
 def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "") -> dict:
@@ -198,6 +224,8 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
     from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, validita_pagina, versione_futura
 
     testo, fonte, url = base.get("testo") or "", base.get("fonte") or "", base.get("url") or ""
+    if testo and fonte == "eurlex":
+        return _qualita_ue(base, act_info, article)
     if not testo or fonte not in ("normattiva", "normattiva-akn"):
         return {"validita": None, "precisione": None, "avvisi": [], "successione": None, "upcoming": None}
     data_rich = (act_info or {}).get("data_versione") or None
