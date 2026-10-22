@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .. import _brocardi_switch, _clock
 from .._http import note_source
-from . import normattiva_html, pagine_normattiva
+from . import act_dates, normattiva_html, pagine_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
@@ -138,6 +138,9 @@ async def _act_metadata(norma: Norma) -> dict:
             resp.raise_for_status()
             note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
             meta = act_page_metadata(resp.text)
+            # VisuaLex's check: the title must name this act (type, year and number).
+            meta["data_titolo"] = act_dates.date_from_title(
+                resp.text, _tipo_urn(norma), (norma.data or "")[:4], norma.numero_atto or "") or ""
     except BaseException as exc:
         if not futuro.done():
             # A cancelled leader must not cancel its waiters (other callers): they get a
@@ -162,14 +165,33 @@ async def with_full_date(norma: Norma) -> Norma:
     """
     if not _year_only_act(norma):
         return norma
+    kind = _tipo_urn(norma)
+    chiave = act_dates.chiave(kind, norma.data, norma.numero_atto)
+    found = act_dates.leggi(chiave)
+    if found:
+        return dataclasses.replace(norma, data=found)
     try:
         meta = await _act_metadata(norma)
     except Exception:  # noqa: BLE001 - identity lookup is best effort
         return norma
-    date = meta.get("date", "")
-    if date and date.startswith(f"{norma.data}-"):
-        return dataclasses.replace(norma, data=date)
-    return norma
+    if kind in act_dates._TITLES:
+        # VisuaLex's rule: the page's title names this act's type, year and number.
+        date = meta.get("data_titolo", "")
+    else:
+        # A kind the titles do not cover (a DPCM, a ministerial decree): the page's ELI
+        # date, accepted when it is in the cited year — a weaker check, as before.
+        date = meta.get("date", "")
+        if not date.startswith(f"{norma.data}-"):
+            date = ""
+    if not date:
+        return norma
+    act_dates.scrivi(chiave, date)
+    return dataclasses.replace(norma, data=date)
+
+
+def _tipo_urn(norma: Norma) -> str:
+    """The act's kind as an URN spells it: "decreto.legislativo"."""
+    return norma.tipo_atto_normalized.strip().lower().replace(" ", ".")
 
 
 # ---------------------------------------------------------------------------
