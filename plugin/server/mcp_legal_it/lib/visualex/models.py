@@ -95,13 +95,27 @@ class NormaVisitata:
     norma: Norma
     numero_articolo: str = ""
     _urn: str = field(default="", repr=False)
+    # The text asked for: in force on *data_versione* ("YYYY-MM-DD", the URN's
+    # "!vig=" suffix), or the original text (*versione* "originale", "@originale").
+    # Empty: the text in force today. A date always means "in force on that date":
+    # VisuaLex's generate_urn reads it only together with versione="vigente".
+    versione: str = ""
+    data_versione: str = ""
 
     def url(self) -> str:
         # An annex article has no ~artN of its own in the act URN: the act's URL is
         # the honest one (~artN would point at the body article with that number).
         if self.norma._is_eurlex() or split_annex(self.numero_articolo):
             return self.norma.url()
-        return self.norma.url(article=self.numero_articolo)
+        return self.norma.url(article=self.numero_articolo) + self.suffisso_versione()
+
+    def suffisso_versione(self) -> str:
+        """"!vig=YYYY-MM-DD" for a text at a date, "@originale" for the original text, else ""."""
+        if self.data_versione:
+            return f"!vig={self.data_versione}"
+        if (self.versione or "").strip().lower() == "originale":
+            return "@originale"
+        return ""
 
     def __str__(self):
         base = str(self.norma)

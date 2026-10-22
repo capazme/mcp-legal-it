@@ -45,7 +45,9 @@ def _build_nv(act_info: dict, article: str) -> NormaVisitata:
         numero_atto=act_info.get("numero_atto", ""),
         allegato=act_info.get("allegato", ""),  # Normattiva's ":k", VisuaLex's allegato (api._norme)
     )
-    return NormaVisitata(norma=norma, numero_articolo=article)
+    # The text asked for: in force on a date, or the original (api._norme validates them).
+    return NormaVisitata(norma=norma, numero_articolo=article, versione=act_info.get("versione", ""),
+                         data_versione=act_info.get("data_versione", ""))
 
 
 def _urn_from_url(url: str) -> str | None:
@@ -163,40 +165,73 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         base["errore"] = result["error"]
     elif not base["testo"]:
         base["errore"] = "nessun testo trovato"
-    q = qualita_testo(base)
+    q = qualita_testo(base, act_info, article)
     base["avvisi"], base["upcoming"] = q["avvisi"], q["upcoming"]
     return base, result.get("esito")
 
 
-def qualita_testo(base: dict) -> dict:
+def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "") -> dict:
     """``{validita, precisione, avvisi, successione, upcoming}`` of a served text, with no request.
 
-    LI-031: ESATTO only for the text of Normattiva's page whose validity the page states;
-    the Akoma Ntoso export's text, or a page that does not say, is INDICATIVO. When the
-    page without a date showed a version not in force yet, the text served is today's (the
-    scraper asked for it) and the coming version is said: an avviso, and its repealing act
-    as ``successione``, INDICATIVO, with the day Normattiva gives for it.
+    LI-031: ESATTO only for the text of Normattiva's page whose validity the page states
+    (and, for a text at a date, whose window holds that date); the Akoma Ntoso export's
+    text, or a page that does not say, is INDICATIVO. Each channel is checked against the
+    other wherever the other is already at hand (the page kept a day, the export in its
+    cache, given *act_info* and *article*): a disagreement on the repeal is said, and so is
+    an export consolidated at another day than the page's. When the page without a date
+    showed a version not in force yet, the text served is today's (the scraper asked for
+    it) and the coming version is said: an avviso, and its repealing act as
+    ``successione``, INDICATIVO, with the day Normattiva gives for it.
     """
+    from mcp_legal_it.lib.visualex import akn_fetch
+    from mcp_legal_it.lib.visualex.akn_parser import is_abrogato
+    from mcp_legal_it.lib.visualex.scraper import _akn_article, _vigenza_akn
     from mcp_legal_it.lib.visualex.scraper import abrogato_da as _abrogato_da
     from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, validita_pagina, versione_futura
 
     testo, fonte, url = base.get("testo") or "", base.get("fonte") or "", base.get("url") or ""
     if not testo or fonte not in ("normattiva", "normattiva-akn"):
         return {"validita": None, "precisione": None, "avvisi": [], "successione": None, "upcoming": None}
-    # The validity is the served text's: the page's for the page's text, none for the export's.
-    validita = validita_pagina(url) if fonte == "normattiva" else None
+    data_rich = (act_info or {}).get("data_versione") or None
+    # The page's validity, kept with the page: the served text's when the text is the page's.
+    validita_letta = validita_pagina(url, data_rich)
+    validita = validita_letta if fonte == "normattiva" else None
+    act = None
+    if act_info is not None:
+        nv = _build_nv(dict(act_info, data=(base.get("atto") or {}).get("data") or act_info.get("data", "")), article)
+        act = akn_fetch.cached_act(nv.norma, _vigenza_akn(nv))
     avvisi: list[str] = []
     if fonte == "normattiva":
         precisione = "ESATTO" if validita else "INDICATIVO"
         if validita is None:
             avvisi.append("la pagina di Normattiva non indica la vigenza del testo: data di vigenza non verificata")
+        elif data_rich and validita.get("request_in_window") is False:
+            precisione = "INDICATIVO"
+            avvisi.append(f"la pagina serve il testo in vigore dal {validita.get('valid_from') or '?'} al "
+                          f"{validita.get('valid_to') or 'oggi'}, che non comprende il {data_rich}")
+        akn_testo = _akn_article(act, nv.numero_articolo, None) if act is not None else None
+        pagina_abrogata = validita is not None and validita["state"] == "abrogated"
+        export_abrogato = is_abrogato(akn_testo) if akn_testo else None
     else:
         precisione = "INDICATIVO"
-        avvisi.append("testo dall'export Akoma Ntoso di Normattiva: vigenza non verificata sulla pagina")
+        consolidato = act.consolidato if act is not None else ""
+        avvisi.append("testo dall'export Akoma Ntoso di Normattiva"
+                      + (f" (consolidato al {consolidato})" if consolidato else "")
+                      + ": vigenza non verificata sulla pagina")
+        aggiornato = (validita_letta or {}).get("act_updated")
+        if aggiornato and consolidato and aggiornato != consolidato:
+            avvisi.append(f"l'export è consolidato al {consolidato}, la pagina dell'atto è aggiornata al "
+                          f"{aggiornato}: i due testi possono non coincidere")
+        pagina_abrogata = None if validita_letta is None else validita_letta["state"] == "abrogated"
+        export_abrogato = is_abrogato(testo)
+    if pagina_abrogata is not None and export_abrogato is not None and pagina_abrogata != export_abrogato:
+        avvisi.append("i due canali di Normattiva non concordano sull'abrogazione: "
+                      + ("la pagina dà l'articolo come abrogato, l'export Akoma Ntoso no"
+                         if pagina_abrogata else "l'export Akoma Ntoso dà l'articolo come abrogato, la pagina no"))
     successione = None
     if (atto := _abrogato_da(testo)) is not None:
         successione = {"abrogato_da": atto, "precisione": "INDICATIVO", "fonte": "avviso di abrogazione nel testo"}
-    futura = versione_futura(url)
+    futura = versione_futura(url) if not data_rich else None
     upcoming = ({"change": futura["change"], "valid_from": futura["valid_from"],
                  "version_number": futura["version_number"]} if futura else None)
     if futura:

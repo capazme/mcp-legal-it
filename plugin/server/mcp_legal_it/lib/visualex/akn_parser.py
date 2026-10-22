@@ -451,6 +451,9 @@ class ParsedAct:
     parts: dict[str, ParsedPart] = field(default_factory=dict)
     # Name of the part that serves the default lookup; "" when it is the body.
     main_part: str = ""
+    # The day Normattiva consolidated the export's text ("CONSOLIDATED/20260604" in its ELI
+    # alias), ISO; "" when the export does not say. Compared with the page's own dates.
+    consolidato: str = ""
 
     def article(self, numero_articolo: str, part: str | None = None) -> str | None:
         """Return the markdown text of an article, or ``None`` if absent.
@@ -1024,6 +1027,18 @@ def _body_approves_annex(articles: dict[str, str], order: list[str]) -> bool:
 # Title
 # ---------------------------------------------------------------------------
 
+_CONSOLIDATED = re.compile(r"/CONSOLIDATED/(\d{4})(\d{2})(\d{2})\b")
+
+
+def _extract_consolidation(root) -> str:
+    """The consolidation day of the export (``.../CONSOLIDATED/20260604`` in an ELI alias), ISO, or ""."""
+    for value in root.xpath(f"//{_local('FRBRalias')}/@value"):
+        m = _CONSOLIDATED.search(value or "")
+        if m:
+            return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    return ""
+
+
 def _extract_title(root) -> str:
     titles = root.xpath(f"//{_local('docTitle')}")
     if titles:
@@ -1084,6 +1099,7 @@ def parse_akn(xml: str) -> ParsedAct:
         return ParsedAct(title="")
 
     title = _extract_title(root)
+    consolidato = _extract_consolidation(root)
 
     parts, main_part = _parse_component(root)
     flat_articles, flat_order = _parse_flat(root)
@@ -1114,6 +1130,7 @@ def parse_akn(xml: str) -> ParsedAct:
             structure="component",
             parts=parts,
             main_part=main_part,
+            consolidato=consolidato,
         )
 
     return ParsedAct(
@@ -1122,4 +1139,5 @@ def parse_akn(xml: str) -> ParsedAct:
         order=flat_order,
         structure="flat",
         parts=parts,
+        consolidato=consolidato,
     )

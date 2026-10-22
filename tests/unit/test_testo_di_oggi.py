@@ -220,3 +220,16 @@ class TestReviewOf69:
         _serve(monkeypatch, {DPR131: OGGI_PAGINA})
         out = json.loads(await lc._cite_law_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
         assert out["avvisi"] == [] and out["upcoming"] is None
+
+
+async def test_an_article_with_no_digits_is_checked_too(monkeypatch):
+    # Review note on #69: with no number there is no identity to compare, and the page went
+    # through unchecked. The window is checked all the same.
+    richieste = _serve(monkeypatch, {DPR131: FUTURA, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
+    url = f"https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:{DPR131}"
+    text, served = await scraper._normattiva_page(url, "preambolo")
+    assert "ABROGATO" in text
+    _, text2, served2 = await scraper._di_oggi(url, text, served, "preambolo")
+    # Neither page confirms a window for "preambolo": fail closed, the export answers.
+    assert text2 == "" and served2 is None
+    assert richieste[-1].endswith(f"!vig={OGGI}") and len(richieste) == 2

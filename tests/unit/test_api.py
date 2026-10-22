@@ -182,8 +182,10 @@ class TestRiferimenti:
         assert api.riferimento_da_parametri("d.lgs.", "1", "2001-06-08", "231").esito == "trovato"
         assert api.riferimento_da_parametri("costituzione", "3").esito == "trovato"
 
-    def test_other_versions_are_planned(self):
-        assert api.riferimento_da_parametri("codice civile", "2043", versione="originale").esito == "non_supportata"
+    def test_versions(self):
+        orig = api.riferimento_da_parametri("codice civile", "2043", versione="originale")
+        assert orig.esito == "trovato" and orig.norma_data[0].url.endswith("~art2043@originale")
+        assert api.riferimento_da_parametri("codice civile", "2043", versione="storica").esito == "riferimento_non_valido"
         assert api.riferimento_da_parametri("", "1").esito == "riferimento_non_valido"
         assert api.riferimento_da_parametri("legge", "1").esito == "riferimento_non_valido"  # no date: no URL
 
