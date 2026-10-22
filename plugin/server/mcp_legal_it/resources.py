@@ -14,7 +14,7 @@ _DATA = Path(__file__).parent / "data"
 
 
 def _load(name: str) -> dict:
-    return json.loads((_DATA / name).read_text())
+    return json.loads((_DATA / name).read_text(encoding="utf-8"))
 
 
 def _eur(value: float) -> str:
