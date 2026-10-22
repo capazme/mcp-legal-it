@@ -661,9 +661,14 @@ entry, it is the same feature as ported to the 3.0 line.
   decisions use for it) now gives the query of the abbreviation, and so do act
   types without dots («d.lgs 231/2001», «dpr 445/2000»). A spelling must end
   where a word ends: «c.p.i.» (codice della proprietà industriale) is no longer
-  read as the codice penale, nor «l.r. 12/2005» as the national law 12/2005. The
-  search for the act's number/year no longer slows down quadratically on a long
-  run of digits.
+  read as the codice penale, nor «l.r. 12/2005» as the national law 12/2005,
+  nor «l'impresa» as a law; «d.lgs.vo» and «d.l.vo» are legislative decrees.
+  The codes that are numbered acts (t.u.b., t.u.f., codice del consumo, codice
+  della strada, c.p.a., CCII, codice della navigazione) no longer OR in the bare
+  «art. N», which matches any decision citing any art. N: the article is tied to
+  the act's number and year by proximity, as for the other acts. The bare form
+  stays for c.c., c.p., c.p.c., c.p.p. and the Constitution. The search for the
+  act's number/year no longer slows down quadratically on a long run of digits.
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the
