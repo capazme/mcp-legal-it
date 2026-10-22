@@ -206,3 +206,51 @@ async def test_a_form_action_on_a_foreign_host_is_refused_without_its_url():
     assert result.error_type == "source_down" and "URL omesso" in result.to_str()
     for piece in _URL_PIECES + ("evil.example",):
         assert piece not in result.to_str(), piece
+
+
+class TestFollowUp:
+    """#52 follow-up: a 429 is "too many requests", a document read never talks about a query."""
+
+    async def test_a_429_is_too_many_requests_not_an_outage(self):
+        factory, sent = _portal(post_status=429)
+        with api.configurazione(client_factory=factory):
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="rinnovo tacito")
+        assert sum(s.startswith("POST") for s in sent) == 3  # 429 is retried like a 5xx
+        assert result.error_type == "rate_limited"
+        text = result.to_str()
+        assert "troppe richieste" in text and "HTTP 429" in text
+        _assert_clean(text)
+
+    async def test_a_long_pause_asked_for_is_too_many_requests(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "POST":
+                return httpx.Response(429, headers={"Retry-After": "600"}, text="slow down")
+            return httpx.Response(200, text=_SEARCH_PAGE_HTML)
+
+        def factory(fonte, **kwargs):
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory):
+            result = await _cerca_giurisprudenza_amministrativa_impl(query="rinnovo tacito")
+        assert result.error_type == "rate_limited" and "600 s" in result.to_str()
+        _assert_clean(result.to_str())
+
+    async def test_the_api_still_reads_a_429_as_the_source_limiting_us(self):
+        factory, _sent = _portal(post_status=429)
+        with api.configurazione(client_factory=factory):
+            ricerca = await api.cerca_decisioni_amministrative("rinnovo tacito")
+        assert ricerca.esito == "fonte_non_raggiungibile"
+
+    async def test_a_403_on_the_search_page_of_a_document_read(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(403, text=_AZURE_403)  # the search page itself is refused
+
+        def factory(fonte, **kwargs):
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory):
+            result = await _leggi_provvedimento_amm_impl("cds", "202301234", "202301234_11.xml")
+        text = result.to_str()
+        assert result.error_type == "refused"
+        assert "lettura del documento" in text and "sintassi" not in text
+        _assert_clean(text)
