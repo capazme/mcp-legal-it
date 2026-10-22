@@ -22,7 +22,7 @@ entry, it is the same feature as ported to the 3.0 line.
   `versione="originale"` asks for the original text (`@originale`). A date always
   means the text in force on that date, with or without `versione="vigente"`:
   VisuaLex reads the date only with `"vigente"` and otherwise serves today's text
-  under the date asked for. A future date, a date with `"originale"` or another
+  under the date asked for, until its PR #276 (the same rule) lands. A future date, a date with `"originale"` or another
   `versione` is `riferimento_non_valido`; a version of an EU act or of an annex,
   and the whole act, its index or its tree at a date, are `non_supportata`. A
   page whose window misses the date is `INDICATIVO`, with an `avviso`
