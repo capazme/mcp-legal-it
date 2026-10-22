@@ -95,7 +95,7 @@ etichette. Tutti includono `diagnostica`.
 
 | Profilo | Etichette | Tool |
 |---|---|---|
-| **full** | tutte | 228 |
+| **full** | tutte | 231 |
 | **sinistro** | danni, rivalutazione, interessi, normativa, giurisprudenza, sinistro, diagnostica | 79 |
 | **credito** | interessi, rivalutazione, parcelle_avv, normativa, giurisprudenza, credito, diagnostica | 89 |
 | **penale** | penale, normativa, giurisprudenza, diagnostica | 51 |
@@ -107,7 +107,7 @@ etichette. Tutti includono `diagnostica`.
 | **cowork** | normativa, giurisprudenza, privacy, parcelle_avv, diagnostica | 77 |
 
 Con `LEGAL_BROCARDI=off` ogni profilo che contiene `normativa` espone due tool in meno
-(`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 228 a 226.
+(`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 231 a 229.
 
 ## Un server con una parte dei tool: `crea_server`
 

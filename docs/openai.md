@@ -211,7 +211,7 @@ Il bundle porta fuori da Claude solo ciò che Codex e ChatGPT sanno leggere:
 ## Verifica dell'installazione
 
 In Codex CLI, digita `/mcp`: deve comparire il server `legal_it` con la sua
-lista di tool (228, meno quelli esclusi dal profilo se ne usi uno ridotto via
+lista di tool (231, meno quelli esclusi dal profilo se ne usi uno ridotto via
 `LEGAL_PROFILE`). Se la lista risulta **vuota** (`Tools: (none)`), la causa
 quasi sempre è il nome del server nel `config.toml`: controlla che sia
 `legal_it` con l'underscore, non `legal-it` (vedi sopra, issue #15832).
