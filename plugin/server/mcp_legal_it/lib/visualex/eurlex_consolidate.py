@@ -34,9 +34,12 @@ from ...core._http import async_client
 from .._http import retry_request
 
 _SPARQL_URL = "https://publications.europa.eu/webapi/rdf/sparql"
-_TIMEOUT = httpx.Timeout(45.0, connect=15.0)
+#: Short, and no retry: a hanging SPARQL endpoint must not hold every EU citation. The OJ
+#: text is served anyway (fail open), and the failure is remembered for NEGATIVO_SECONDI.
+_TIMEOUT = httpx.Timeout(12.0, connect=5.0)
 _HEADERS = {"Accept": "application/sparql-results+json"}
 TTL_SECONDI = 86400
+NEGATIVO_SECONDI = 300
 
 #: An OJ act's CELEX, the only thing interpolated into the query: sector 3, year, R or L, number.
 _CELEX_BASE = re.compile(r"3\d{4}[RL]\d{4}", re.ASCII)
@@ -44,23 +47,24 @@ _CELEX_BASE = re.compile(r"3\d{4}[RL]\d{4}", re.ASCII)
 _CELEX_ATTO = re.compile(r"3(\d{4})([RLD])(\d{4})(R\(\d+\))?", re.ASCII)
 _TIPI = {"R": "regolamento", "L": "direttiva", "D": "decisione"}
 
-_cache: dict[str, tuple[float, dict]] = {}
+_cache: dict[str, tuple[float, "dict | None"]] = {}
 _lock = threading.Lock()
 
 
 def _query(celex: str) -> str:
     return f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-SELECT ?data_atto ?celex ?data (GROUP_CONCAT(DISTINCT ?mc; separator="|") AS ?atti) WHERE {{
+SELECT ?data_gu (MIN(?eif) AS ?in_vigore) ?celex ?data (GROUP_CONCAT(DISTINCT ?mc; separator="|") AS ?atti) WHERE {{
   ?atto cdm:resource_legal_id_celex "{celex}"^^xsd:string .
-  OPTIONAL {{ ?atto cdm:work_date_document ?data_atto }}
+  OPTIONAL {{ ?atto cdm:official-journal-act_date_publication ?data_gu }}
+  OPTIONAL {{ ?atto cdm:resource_legal_date_entry-into-force ?eif }}
   OPTIONAL {{
     ?c cdm:act_consolidated_based_on_resource_legal ?atto ;
        cdm:resource_legal_id_celex ?celex ;
        cdm:act_consolidated_date ?data .
     OPTIONAL {{ ?c cdm:act_consolidated_consolidates_resource_legal ?m . ?m cdm:resource_legal_id_celex ?mc . }}
   }}
-}} GROUP BY ?data_atto ?celex ?data"""
+}} GROUP BY ?data_gu ?celex ?data"""
 
 
 def etichetta(celex: str) -> str:
@@ -73,23 +77,28 @@ def etichetta(celex: str) -> str:
 
 
 def leggi_risposta(celex_base: str, bindings: list[dict]) -> dict:
-    """``{"data_atto", "versioni"}`` from the query's rows, newest consolidation first.
+    """``{"data_gu", "in_vigore_dal", "versioni"}`` from the query's rows, newest consolidation first.
 
-    Each version is ``{"celex", "data", "modifiche": [{"celex", "atto"}]}``; the base act
-    is not among its ``modifiche``.
+    ``data_gu`` is the act's publication in the Official Journal, ``in_vigore_dal`` its first
+    entry into force. Each version is ``{"celex", "data", "modifiche": [{"celex", "atto"}]}``;
+    the base act is not among its ``modifiche``. A consolidation whose CELEX is not this act's
+    («0» + the base's year, type and number + «-YYYYMMDD») is dropped: it never reaches a URL.
     """
-    data_atto, versioni = None, []
+    data_gu, in_vigore, versioni = None, None, []
+    propria = re.compile("0" + re.escape(celex_base[1:]) + r"-\d{8}", re.ASCII)
     for row in bindings:
-        data_atto = data_atto or (row.get("data_atto") or {}).get("value")
+        data_gu = data_gu or (row.get("data_gu") or {}).get("value")
+        in_vigore = in_vigore or (row.get("in_vigore") or {}).get("value")
         celex = (row.get("celex") or {}).get("value")
         data = (row.get("data") or {}).get("value")
-        if not celex or not data:
+        if not celex or not data or not propria.fullmatch(celex):
             continue
         atti = sorted({a for a in ((row.get("atti") or {}).get("value") or "").split("|") if a and a != celex_base})
         versioni.append({"celex": celex, "data": data[:10],
                          "modifiche": [{"celex": a, "atto": etichetta(a)} for a in atti]})
     versioni.sort(key=lambda v: v["data"], reverse=True)
-    return {"data_atto": data_atto[:10] if data_atto else None, "versioni": versioni}
+    return {"data_gu": data_gu[:10] if data_gu else None, "in_vigore_dal": in_vigore[:10] if in_vigore else None,
+            "versioni": versioni}
 
 
 async def consolidazioni(celex_base: str) -> "dict | None":
@@ -99,18 +108,21 @@ async def consolidazioni(celex_base: str) -> "dict | None":
     adesso = time.time()
     with _lock:
         kept = _cache.get(celex_base)
-        if kept is not None and adesso - kept[0] < TTL_SECONDI:
+        if kept is not None and adesso - kept[0] < (TTL_SECONDI if kept[1] is not None else NEGATIVO_SECONDI):
             return kept[1]
     try:
         async with async_client("eur_lex", timeout=_TIMEOUT, headers=_HEADERS) as client:
-            resp = await retry_request(client, "POST", _SPARQL_URL, dataset="eur_lex",
+            resp = await retry_request(client, "POST", _SPARQL_URL, dataset="eur_lex", max_retries=0,
                                        data={"query": _query(celex_base)})
             resp.raise_for_status()
             bindings = resp.json()["results"]["bindings"]
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
-        return None
+        bindings = None
     if not bindings:
-        # The act itself is not in CELLAR's answer: nothing is known, so nothing is kept.
+        # CELLAR could not say, or does not know the act: remembered a few minutes only, so a
+        # down endpoint costs one wait per act, not one per citation.
+        with _lock:
+            _cache[celex_base] = (adesso, None)
         return None
     info = leggi_risposta(celex_base, bindings)
     with _lock:
@@ -118,20 +130,41 @@ async def consolidazioni(celex_base: str) -> "dict | None":
     return info
 
 
-def scegli(info: dict, giorno: "str | None") -> tuple[str, "dict | None"]:
+def scegli(info: dict, giorno: "str | None", oggi: "str | None" = None) -> tuple[str, "dict | None"]:
     """``("consolidato", version)``, ``("oj", None)`` or ``("prima", None)`` for the text asked for.
 
-    Without *giorno*, the latest consolidation; on *giorno* ("YYYY-MM-DD"), the latest one
-    dated on or before it. A consolidation that amends nothing is the Official Journal text
-    (``"oj"``), and so is a day before the first consolidation. A day before the act's own
-    date is ``"prima"``: the act did not exist.
+    The latest consolidation dated on or before *giorno* ("YYYY-MM-DD"), or before *oggi*
+    without a date: a consolidation dated after today is a text not applicable yet
+    (``futura``). A consolidation that amends nothing is the Official Journal text (``"oj"``),
+    and so is a day before the first consolidation. A day before the act's publication in
+    the Official Journal is ``"prima"``: the act did not exist.
     """
-    if giorno and info.get("data_atto") and giorno < info["data_atto"]:
+    if giorno and info.get("data_gu") and giorno < info["data_gu"]:
         return "prima", None
-    candidate = [v for v in info.get("versioni", []) if not giorno or v["data"] <= giorno]
+    limite = giorno or oggi
+    candidate = [v for v in info.get("versioni", []) if not limite or v["data"] <= limite]
     if not candidate or not candidate[0]["modifiche"]:
         return "oj", None
     return "consolidato", candidate[0]
+
+
+def futura(info: dict, oggi: str) -> "dict | None":
+    """The earliest consolidation dated after *oggi* that amends the act, or None: VisuaLex's
+    ``upcoming`` shape, ``{"change", "valid_from", "version_number", "celex"}``."""
+    dopo = [v for v in info.get("versioni", []) if v["data"] > oggi and v["modifiche"]]
+    if not dopo:
+        return None
+    v = min(dopo, key=lambda v: v["data"])
+    return {"change": "amended", "valid_from": v["data"], "version_number": None, "celex": v["celex"]}
+
+
+def avviso_futura(prossima: dict) -> str:
+    return (f"EUR-Lex pubblica già una versione consolidata applicabile dal {prossima['valid_from']} "
+            f"(CELEX {prossima['celex']}): il testo riportato è quello in vigore oggi")
+
+
+def avviso_non_ancora_in_vigore(giorno: str, in_vigore_dal: str) -> str:
+    return f"il {giorno} l'atto era pubblicato in GUUE ma non ancora in vigore (in vigore dal {in_vigore_dal})"
 
 
 def avvisi(consolidato: "dict | None", verificato: "bool | None", giorno: "str | None",

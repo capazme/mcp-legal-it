@@ -473,6 +473,8 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
         validita, precisione, avvisi, successione, upcoming = _qualita(base, act_info, article)
+        # The lookup already joined the source's own notices (an EU consolidation to come).
+        avvisi, upcoming = tuple(base.get("avvisi") or avvisi), base.get("upcoming") or upcoming
         if validita is not None and validita.state == "not_yet":
             # «NON ANCORA ESISTENTE O VIGENTE»: the article did not exist on the day asked
             # for. Its page's notice is not the article's text.

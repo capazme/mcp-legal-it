@@ -703,7 +703,12 @@ entry, it is the same feature as ported to the 3.0 line.
   optional, gives the Official Journal text of an EU act or Normattiva's original
   of an Italian one. In the api an EU act now has a text at a date: the latest
   consolidation dated on or before that day, with a notice that consolidations can
-  lag behind amendments. Treaties, recitals and annexes are not looked up.
+  lag behind amendments; a day before the act's publication in the Official
+  Journal is `riferimento_non_valido`, and a day before its entry into force has a
+  notice. A consolidation dated after today is not served as in force: it is
+  announced in `upcoming` and an `avviso`. The lookup waits at most 12 s, never
+  retries, and remembers a failure for five minutes. Treaties, recitals and annexes
+  are not looked up.
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the

@@ -81,7 +81,7 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 
         consolidato = article_result.get("consolidato")
         avvisi_ue = ec.avvisi(consolidato, article_result.get("consolidato_verificato"), None,
-                              bool(article_result.get("allegato_oj")))
+                              bool(article_result.get("allegato_oj"))) + list(article_result.get("avvisi_ue") or [])
         if text and article_result.get("consolidato_verificato") is False:
             # CELLAR could not say: the first line says so, before anything else (fail open).
             parts.append(f"**Attenzione**: {avvisi_ue[0]}.\n")
