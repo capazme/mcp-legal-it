@@ -76,8 +76,8 @@ def test_art3_co1_dlgs_23_2015_indennita_tra_sei_e_trentasei_mensilita_dopo_ccos
     """Art. 3 co. 1: 'non inferiore a sei e non superiore a trentasei mensilita''.
 
     The words 'di importo pari a due mensilita' ... per ogni anno di servizio' are still printed
-    in the body but Corte cost. 194/2018 struck them down (note 2): the tool's 'anni x 2' is only
-    a starting point, which is why it declares Precisione INDICATIVO and exposes the range.
+    in the body but Corte cost. 194/2018 struck them down (note 2): the tool returns the range
+    only, the amount within it is the judge's (#76).
     """
     testo = _assert_parole(
         "art. 3 d.lgs. 23/2015",
@@ -89,9 +89,9 @@ def test_art3_co1_dlgs_23_2015_indennita_tra_sei_e_trentasei_mensilita_dopo_ccos
 
     grande_min = _call("indennita_licenziamento", anni_servizio=2, retribuzione_mensile=2000)
     assert (grande_min["minimo_mensilita"], grande_min["massimo_mensilita"]) == (6, 36)
-    assert grande_min["mensilita"] == 6 and grande_min["importo"] == 12000
+    assert (grande_min["importo_minimo"], grande_min["importo_massimo"]) == (12000, 72000)
     grande_max = _call("indennita_licenziamento", anni_servizio=20, retribuzione_mensile=1000)
-    assert grande_max["mensilita"] == 36 and grande_max["importo"] == 36000
+    assert (grande_max["importo_minimo"], grande_max["importo_massimo"]) == (6000, 36000)
 
 
 def test_art9_co1_dlgs_23_2015_dimezzamento_senza_tetto_di_sei_dopo_ccost_118_2025():
@@ -107,9 +107,9 @@ def test_art9_co1_dlgs_23_2015_dimezzamento_senza_tetto_di_sei_dopo_ccost_118_20
 
     piccola_max = _call("indennita_licenziamento", anni_servizio=20, retribuzione_mensile=1000, dimensione_azienda="piccola")
     assert (piccola_max["minimo_mensilita"], piccola_max["massimo_mensilita"]) == (3, 18)
-    assert piccola_max["importo"] == 18000
+    assert piccola_max["importo_massimo"] == 18000
     piccola_min = _call("indennita_licenziamento", anni_servizio=1, retribuzione_mensile=2000, dimensione_azienda="piccola")
-    assert piccola_min["mensilita"] == 3 and piccola_min["importo"] == 6000
+    assert piccola_min["importo_minimo"] == 6000
 
 
 def test_art3_co2_dlgs_23_2015_reintegra_indennita_per_il_periodo_fino_a_dodici_mensilita():
