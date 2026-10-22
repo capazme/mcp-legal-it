@@ -44,6 +44,7 @@ def _build_nv(act_info: dict, article: str) -> NormaVisitata:
         data=act_info.get("data", ""),
         numero_atto=act_info.get("numero_atto", ""),
         allegato=act_info.get("allegato", ""),  # Normattiva's ":k", VisuaLex's allegato (api._norme)
+        celex_consolidated=act_info.get("celex_consolidated", ""),  # an EU consolidation (api._norme)
     )
     # The text asked for: in force on a date, or the original (api._norme validates them).
     return NormaVisitata(norma=norma, numero_articolo=article, versione=act_info.get("versione", ""),
