@@ -66,8 +66,9 @@ class TestDataCompletaCondivisa:
         async def handler(request):
             chieste.append(str(request.url))
             await asyncio.sleep(0.05)
-            return httpx.Response(200, text='<html><head><meta property="eli:date_document" '
-                                             'content="1990-08-07"></head></html>')
+            # The full date comes from a title that names the act (act_dates).
+            return httpx.Response(200, text='<html><head><title>LEGGE 7 agosto 1990, n. 241 - Normattiva</title>'
+                                             '<meta property="eli:date_document" content="1990-08-07"></head></html>')
 
         def factory(fonte, **kwargs):
             return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)

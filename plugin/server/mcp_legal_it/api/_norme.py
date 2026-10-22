@@ -191,6 +191,8 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
         url=url,
         allegato=allegato,
         numero_articolo=numero,
+        versione=info.get("versione") or "vigente",
+        data_versione=info.get("data_versione") or None,
         urn=urn,
         descrizione=str(nv.norma),
         # EU acts are cited by year by design; an Italian act's year alone is a placeholder.
@@ -249,14 +251,11 @@ def riferimento_da_parametri(
 ) -> EsitoRiferimento:
     """A NormaDati from explicit fields (VisuaLex request body: act_type, article, ...). No network.
 
-    Only ``versione="vigente"`` without ``data_versione`` is served in this version;
-    other versions answer ``non_supportata`` (vigenza phase).
+    ``data_versione`` ("YYYY-MM-DD", or the Italian long form) asks for the text in force on
+    that day, with ``versione`` "vigente" or None alike; ``versione="originale"`` for the
+    original text. A future day, a date with "originale", another ``versione`` are
+    ``riferimento_non_valido``; a version of an EU act or of an annex is ``non_supportata``.
     """
-    if versione != "vigente" or data_versione:
-        return EsitoRiferimento(
-            esito="non_supportata",
-            errore="versioni diverse dalla vigente: previste dalla fase vigenza, non ancora disponibili",
-        )
     if not tipo_atto or not tipo_atto.strip():
         return EsitoRiferimento(esito="riferimento_non_valido", errore="tipo_atto mancante")
     norm = normalize_act_type(tipo_atto.strip()).lower()
@@ -273,10 +272,16 @@ def riferimento_da_parametri(
         return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
     if (motivo := _allegato_non_valido(tipo_atto, allegato)) is not None:
         return EsitoRiferimento(esito="riferimento_non_valido", errore=motivo)
+    letta = _versione(tipo_atto, versione, data_versione)
+    if isinstance(letta, EsitoRiferimento):
+        return letta
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
+    if letta and split_annex(article):
+        return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
     if parte := _parte(tipo_atto, allegato):
         act_info["allegato"] = parte
+    act_info.update(letta)
     nv = norme._build_nv(act_info, article)
     if not nv.url():
         return EsitoRiferimento(
@@ -286,11 +291,59 @@ def riferimento_da_parametri(
     return EsitoRiferimento(esito="trovato", norma_data=(_norma_dati(act_info, article),))
 
 
-def _act_info(norma: NormaDati) -> tuple[dict, str]:
+_ALLEGATO_A_UNA_DATA = "il testo di un allegato a una data non è ancora disponibile"
+
+
+def _versione(tipo_atto: str, versione: str | None, data_versione: str | None) -> dict | EsitoRiferimento:
+    """``{"versione", "data_versione"}`` for a lookup ({} for today's text), or the refusal.
+
+    A date always means "the text in force on that day" (``!vig=``), with or without
+    ``versione="vigente"``. VisuaLex's ``generate_urn`` reads the date only together with
+    "vigente", and a date sent without it gets today's text under the date asked for
+    (art. 1284 c.c. "at 2010-01-01" came back with the 4th and 5th commi of 2014). This
+    API does not follow it there until VisuaLex #276 lands, which adopts the same rule
+    (docs/api.md).
+    """
+    from mcp_legal_it.lib.visualex.normattiva_validity import _iso_day
+
+    nome = (versione or "vigente").strip().lower()
+    if nome not in ("vigente", "originale"):
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore=f"versione '{versione}' non valida: attese 'vigente' o 'originale'")
+    if not data_versione and nome == "vigente":
+        return {}
+    if not _normattiva(tipo_atto):
+        return EsitoRiferimento(esito="non_supportata",
+                                errore="versioni a una data disponibili solo per gli atti su Normattiva")
+    if nome == "originale":
+        if data_versione:
+            return EsitoRiferimento(esito="riferimento_non_valido",
+                                    errore="data_versione e versione 'originale' si escludono")
+        return {"versione": "originale"}
+    giorno = _iso_day(data_versione)
+    if giorno is None:
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore=f"data_versione '{data_versione}' non è una data (atteso AAAA-MM-GG)")
+    if giorno > _clock.today().isoformat():
+        # Normattiva answers a future date with today's text and says nothing.
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore=("data_versione non può essere futura: Normattiva restituirebbe il "
+                                        "testo attuale, non quello alla data richiesta"))
+    return {"versione": "vigente", "data_versione": giorno}
+
+
+def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
+    """The lookup's act info and article for *norma*, or the refusal of its version."""
+    letta = _versione(norma.tipo_atto, norma.versione, norma.data_versione)
+    if isinstance(letta, EsitoRiferimento):
+        return letta
     article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
+    if letta and split_annex(article):
+        return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
     info = {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}
     if parte := _parte(norma.tipo_atto, norma.allegato):
         info["allegato"] = parte
+    info.update(letta)
     return info, article
 
 
@@ -322,7 +375,7 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
 
     Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
     ``articolo_non_trovato``, ``verifica_non_disponibile``, ``testo_assente``,
-    ``errore_fonte``, ``non_supportata``. ``validity`` is ``None`` until the vigenza phase.
+    ``errore_fonte``, ``non_supportata``.
     """
     if canale not in ("akn", "html"):
         raise ValueError(f"canale sconosciuto: {canale!r} (attesi 'akn' o 'html')")
@@ -331,7 +384,11 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         if (motivo := _allegato_non_valido(riferimento.tipo_atto, riferimento.allegato)) is not None:
             return TestoArticolo(esito="riferimento_non_valido", article_text="", norma_data=None, url="",
                                  canale=canale, data_consultazione=oggi, errore=motivo)
-        act_info, article = _act_info(riferimento)
+        letto = _act_info(riferimento)
+        if isinstance(letto, EsitoRiferimento):
+            return TestoArticolo(esito=letto.esito, article_text="", norma_data=None, url="",
+                                 canale=canale, data_consultazione=oggi, errore=letto.errore)
+        act_info, article = letto
     else:
         letto = _leggi(riferimento)
         if isinstance(letto, EsitoRiferimento):
@@ -341,7 +398,16 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
     with registra() as registro:
         base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
-        validita, precisione, avvisi, successione, upcoming = _qualita(base)
+        validita, precisione, avvisi, successione, upcoming = _qualita(base, act_info, article)
+        if validita is not None and validita.state == "not_yet":
+            # «NON ANCORA ESISTENTE O VIGENTE»: the article did not exist on the day asked
+            # for. Its page's notice is not the article's text.
+            motivo = norme.non_ancora_vigente({"valid_to": validita.valid_to}, act_info.get("data_versione"))
+            return TestoArticolo(
+                esito="articolo_non_trovato", article_text="", norma_data=nd, url=base["url"],
+                validity=validita, urn=nd.urn, fonte=base["fonte"], canale=canale,
+                data_consultazione=base["data_consultazione"], errore=motivo, fonti=registro.fonti(),
+            )
         return TestoArticolo(
             esito=_esito_lookup(base, esito),
             article_text=base["testo"],
@@ -361,9 +427,9 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         )
 
 
-def _qualita(base: dict):
+def _qualita(base: dict, act_info: dict, article: str):
     """``(validity, precisione, avvisi, successione, upcoming)`` of a served text (``norme.qualita_testo``)."""
-    q = norme.qualita_testo(base)
+    q = norme.qualita_testo(base, act_info, article)
     validita = q["validita"]
     vigenza = Vigenza(**{k: validita[k] for k in ("state", "valid_from", "valid_to", "version_number",
                                                    "act_updated", "request_in_window")}) if validita else None
@@ -399,7 +465,13 @@ _VOCE_ARTICOLO = re.compile(rf"^(\d+(?:-(?:{ARTICLE_SUFFIX_ALTERNATION}))?)-\s*(
 def _atto(atto: str | NormaDati) -> Norma | tuple[str, str]:
     """The Norma of an act given by name or NormaDati, or ``(esito, errore)``."""
     if isinstance(atto, NormaDati):
-        info, _ = _act_info(atto)
+        letto = _act_info(atto)
+        if isinstance(letto, EsitoRiferimento):
+            return letto.esito, letto.errore
+        info, _ = letto
+        if info.get("versione"):
+            # The whole act and its index are today's: never served under a date asked for.
+            return "non_supportata", "l'atto intero e il suo indice a una data non sono ancora disponibili"
     else:
         _, act_name = norme._parse_reference(atto)
         if not act_name:

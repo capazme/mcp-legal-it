@@ -67,7 +67,8 @@ _CACHE_MAX = max(1, int(os.environ.get("AKN_CACHE_MAX_ACTS", "50") or "50"))
 # 5: VisuaLex's parser at 0f1477c2: two-word suffixes keyed as the act writes them again
 #    ("135-sex-decies"; comparable_article_key joins them for comparing), rubriche written
 #    without brackets.
-_CACHE_SCHEMA = 5
+# 6: the export's consolidation day (consolidato).
+_CACHE_SCHEMA = 6
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
@@ -187,6 +188,7 @@ def _act_to_dict(act: ParsedAct) -> dict:
         "order": act.order,
         "structure": act.structure,
         "main_part": act.main_part,
+        "consolidato": act.consolidato,
         "dates": act.dates,
         "parts": {
             name: {"name": p.name, "articles": p.articles, "order": p.order, "dates": p.dates,
@@ -215,6 +217,7 @@ def _act_from_dict(data: dict) -> ParsedAct:
         structure=data.get("structure", "flat"),
         parts=parts,
         main_part=data.get("main_part", ""),
+        consolidato=data.get("consolidato", ""),
     )
 
 
@@ -270,6 +273,18 @@ def _cache_lookup(key: tuple[str, str, str]) -> "ParsedAct | None":
         if cached is not None:
             _lru_put(key, cached)
     return cached
+
+
+def cached_act(norma, data_vigenza: "str | None" = None) -> "ParsedAct | None":
+    """The act's parsed export if it is already in the cache (memory or disk), never a request."""
+    try:
+        landing_url = norma.url()
+    except Exception:  # noqa: BLE001
+        return None
+    known = _get_url_params(landing_url) if landing_url else None
+    if known is None:
+        return None
+    return _cache_lookup((known[0], known[1], data_vigenza or _today_vigenza()))
 
 
 def clear_akn_cache(disk: bool = False) -> None:
