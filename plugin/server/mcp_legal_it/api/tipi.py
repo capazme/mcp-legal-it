@@ -159,6 +159,13 @@ class TestoArticolo:
     # text above is today's. {"change": "abrogated" | "amended", "valid_from": "YYYY-MM-DD",
     # "version_number": int | None}; None otherwise.
     upcoming: dict[str, Any] | None = None
+    # An EU act's text (issue #50): the consolidation read, {"celex", "data",
+    # "modificato_da": [{"celex", "atto"}] or None when not looked up}, None for the
+    # Official Journal text. consolidato_verificato: True when CELLAR was asked, False when
+    # it could not say (the OJ text is served, with a notice first in avvisi), None when
+    # not asked (an Italian act, a treaty, the original text, a recital, an annex).
+    consolidato: dict[str, Any] | None = None
+    consolidato_verificato: bool | None = None
 
 
 @dataclass(frozen=True)
