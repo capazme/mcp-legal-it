@@ -59,14 +59,14 @@ def _elenco(intestazione: str, risultati, totale: int) -> SearchResult:
 # ---------------------------------------------------------------------------
 
 async def _cerca_atti_anac_impl(
-    query: str, tipologia: str = "", max_risultati: int = 10, pagina: int = 1,
+    query: str, tipologia: str = "", max_risultati: int = 10, pagina: int = 1, anno: str = "",
 ) -> SearchResult:
     max_risultati = max(1, min(max_risultati, 50))
     if not isinstance(pagina, int) or pagina < 1:
         return _errore(ValueError("pagina deve essere un intero maggiore o uguale a 1"))
     max_risultati = page_size(max_risultati)   # a page is read whole: page 2 follows page 1
     try:
-        risultati, totale = await search_atti(query, tipologia, max_risultati, pagina)
+        risultati, totale = await search_atti(query, tipologia, max_risultati, pagina, anno=anno)
     except Exception as exc:  # noqa: BLE001 - errors are answers
         return _errore(exc)
     if not risultati:
@@ -113,6 +113,7 @@ async def cerca_atti_anac(
     tipologia: str = "",
     max_risultati: int = 10,
     pagina: int = 1,
+    anno: str = "",
 ) -> str:
     """Cerca delibere, pareri, linee guida e altri atti dell'ANAC (Autorità Nazionale Anticorruzione).
 
@@ -138,8 +139,9 @@ async def cerca_atti_anac(
             pagine da 5, 10, 20, 30 o 50: il valore è arrotondato a quella che lo contiene, e la
             pagina successiva parte dopo l'ultimo risultato di questa
         pagina: Pagina dei risultati (1 = prima, default)
+        anno: Anno dell'atto (es. "2025"), applicato dal filtro "Anno" del portale (dal 1999)
     """
-    result = await _cerca_atti_anac_impl(query, tipologia, max_risultati, pagina)
+    result = await _cerca_atti_anac_impl(query, tipologia, max_risultati, pagina, anno)
     return result.to_str()
 
 
@@ -154,9 +156,10 @@ async def leggi_atto_anac(
 
     Usare dopo cerca_atti_anac() o ultimi_atti_anac() con il riferimento del risultato, oppure
     direttamente con tipologia, numero e anno (es. tipologia="delibere", numero="444",
-    anno="2025"): l'atto viene cercato sul portale e letto. Per numero e anno valgono le
-    tipologie numerate (delibere, pareri_precontenzioso, pareri_normativa, linee_guida,
-    bandi_tipo); "non trovato" vale per i primi 50 risultati della ricerca.
+    anno="2025", la Delibera n. 444 dell'11 novembre 2025): l'atto viene cercato sul portale per
+    numero, dentro la tipologia e l'anno (filtro "Anno" del portale), e letto. Per numero e anno
+    valgono le tipologie numerate (delibere, pareri_precontenzioso, pareri_normativa,
+    linee_guida, bandi_tipo).
     Restituisce: titolo, data, anno, argomento, categoria, tipologia, destinatari, oggetto,
     riferimenti normativi, parole chiave e link al PDF ufficiale. NON restituisce il testo
     integrale, che ANAC pubblica solo nel PDF: il link al PDF è nella risposta. La scheda non

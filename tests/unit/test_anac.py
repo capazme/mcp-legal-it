@@ -28,6 +28,7 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "anac"
 SEARCH = (FIXTURES / "search_delibere.html").read_text(encoding="utf-8")
 EMPTY = (FIXTURES / "search_empty.html").read_text(encoding="utf-8")
 DELIBERA = (FIXTURES / "delibera_444_2025.html").read_text(encoding="utf-8")
+SEARCH_444 = (FIXTURES / "search_delibera_444_2025.html").read_text(encoding="utf-8")
 URL_444 = "https://www.anticorruzione.it/-/delibera-n.-444-del-11-novembre-2025"
 
 
@@ -82,9 +83,13 @@ class TestSearchParams:
                      "sort": "ddm__Dataclu0__date_Number_sortableDESC", "delta": "10",
                      "type": "119160", "start": "2"}
 
-    def test_by_relevance_with_every_word(self):
-        p = build_search_params("delibera n. 444 2025", "delibere", rows=50, per_data=False, tutte_le_parole=True)
-        assert p["sort"] == "_scoreASC" and p["searchType"] == "and"
+    def test_number_within_type_and_year(self):
+        p = build_search_params("444", "delibere", rows=50, anno="2025", tutte_le_parole=True)
+        assert (p["q"], p["type"], p["year"], p["searchType"]) == ("444", "119160", "276731294", "and")
+
+    def test_a_year_outside_the_filter_is_an_error(self):
+        with pytest.raises(ValueError, match="anno ANAC non disponibile"):
+            build_search_params("x", anno="1890")
 
     def test_first_page_and_no_type(self):
         p = build_search_params("x", rows=50)
@@ -205,24 +210,24 @@ class TestTools:
         assert "nel PDF ufficiale" in text and f"Fonte: {URL_444}" in text
 
     async def test_read_by_number_and_year(self):
-        search = SEARCH.replace("Delibera n. 347 del 9 settembre 2026", "Delibera n. 444 del 11 novembre 2025") \
-                       .replace("/-/delibera-n.-347-del-9-settembre-2026", "/-/delibera-n.-444-del-11-novembre-2025")
-        factory, sent = _portal(search=search)
+        # The real answer of the portal to that search: one result (read 2026-10-22).
+        factory, sent = _portal(search=SEARCH_444)
         with api.configurazione(client_factory=factory):
             result = await _leggi_atto_anac_impl(tipologia="delibera", numero="444", anno="2025")
         assert result.success
         assert str(sent[1].url) == URL_444
         query = parse_qs(urlparse(str(sent[0].url)).query)
-        assert query["q"] == ["delibera n. 444 2025"]
-        # every word, by relevance: by date and OR-ed the act is buried among 6169 delibere (#82)
-        assert query["sort"] == ["_scoreASC"] and query["searchType"] == ["and"]
+        # the number within type and year: OR-ed over every delibera, newest first, the act is
+        # buried among 6169 (#82 review)
+        assert (query["q"], query["type"], query["year"], query["searchType"]) == (
+            ["444"], ["119160"], ["276731294"], ["and"])
 
     async def test_number_not_found(self):
         factory, sent = _portal()
         with api.configurazione(client_factory=factory):
             result = await _leggi_atto_anac_impl(tipologia="delibere", numero="999", anno="2025")
         assert len(sent) == 1 and result.error_type == "no_results"
-        assert "nessun atto ANAC «Delibere» n. 999 del 2025 tra i primi" in result.to_str()
+        assert "nessun atto ANAC «Delibere» n. 999 del 2025 tra gli atti del 2025" in result.to_str()
 
     async def test_number_without_type_or_reference(self):
         factory, sent = _portal()
@@ -296,4 +301,17 @@ class TestReviewCases:
         factory, _sent = _portal()
         with api.configurazione(client_factory=factory):
             result = await _leggi_atto_anac_impl(tipologia="delibere", numero="999", anno="2025")
-        assert "tra i primi 2 risultati per rilevanza" in result.to_str()
+        assert "tra gli atti del 2025 che contengono «999»" in result.to_str()
+
+
+async def test_search_by_year():
+    factory, sent = _portal(search=SEARCH_444)
+    with api.configurazione(client_factory=factory):
+        result = await _cerca_atti_anac_impl("444", "delibere", anno="2025")
+    assert parse_qs(urlparse(str(sent[0].url)).query)["year"] == ["276731294"]
+    assert result.success and "Delibera n. 444 del 11 novembre 2025" in result.to_str()
+
+
+def test_the_real_search_for_444_2025_has_one_result():
+    risultati, totale = parse_search(SEARCH_444)
+    assert totale == 1 and [r.titolo for r in risultati] == ["Delibera n. 444 del 11 novembre 2025"]
