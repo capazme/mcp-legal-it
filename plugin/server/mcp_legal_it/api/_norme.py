@@ -194,6 +194,7 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
         versione=info.get("versione") or "vigente",
         data_versione=info.get("data_versione") or None,
         urn=urn,
+        celex_consolidated=info.get("celex_consolidated") or None,
         descrizione=str(nv.norma),
         # EU acts are cited by year by design; an Italian act's year alone is a placeholder.
         data_risolta=eu or not re.fullmatch(r"\d{4}", data),
@@ -248,8 +249,12 @@ def riferimento_da_parametri(
     allegato: str | None = None,
     versione: str = "vigente",
     data_versione: str | None = None,
+    celex_consolidated: str | None = None,
 ) -> EsitoRiferimento:
     """A NormaDati from explicit fields (VisuaLex request body: act_type, article, ...). No network.
+
+    ``celex_consolidated`` names a consolidated version of an EU regulation or directive by
+    its sector-0 CELEX ("02002L0058-20091219"); it must be that act's (year, type, number).
 
     ``data_versione`` ("YYYY-MM-DD", or the Italian long form) asks for the text in force on
     that day, with ``versione`` "vigente" or None alike; ``versione="originale"`` for the
@@ -275,13 +280,20 @@ def riferimento_da_parametri(
     letta = _versione(tipo_atto, versione, data_versione)
     if isinstance(letta, EsitoRiferimento):
         return letta
+    consolidato = _consolidato(tipo_atto, data, numero_atto, celex_consolidated)
+    if isinstance(consolidato, EsitoRiferimento):
+        return consolidato
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     if letta and split_annex(article):
         return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
+    if consolidato and (motivo := _non_nel_consolidato(article)):
+        return EsitoRiferimento(esito="non_supportata", errore=motivo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
     if parte := _parte(tipo_atto, allegato):
         act_info["allegato"] = parte
     act_info.update(letta)
+    if consolidato:
+        act_info["celex_consolidated"] = consolidato
     nv = norme._build_nv(act_info, article)
     if not nv.url():
         return EsitoRiferimento(
@@ -337,14 +349,64 @@ def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
     letta = _versione(norma.tipo_atto, norma.versione, norma.data_versione)
     if isinstance(letta, EsitoRiferimento):
         return letta
+    consolidato = _consolidato(norma.tipo_atto, norma.data, norma.numero_atto, norma.celex_consolidated)
+    if isinstance(consolidato, EsitoRiferimento):
+        return consolidato
     article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
     if letta and split_annex(article):
         return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
+    if consolidato and (motivo := _non_nel_consolidato(article)):
+        return EsitoRiferimento(esito="non_supportata", errore=motivo)
     info = {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}
     if parte := _parte(norma.tipo_atto, norma.allegato):
         info["allegato"] = parte
     info.update(letta)
+    if consolidato:
+        info["celex_consolidated"] = consolidato
     return info, article
+
+
+def _non_nel_consolidato(article: str) -> "str | None":
+    """Why *article* is not served from a consolidated EU version, or None.
+
+    A consolidated text has no preamble: asked for a recital, the page's only «(N)»
+    paragraphs are its footnotes («(2) GU L 204 del 21.7.1998…»), which a lookup would
+    serve as the recital. Its annexes are not read yet.
+    """
+    if (article or "").startswith("rec_"):
+        return ("i considerando non sono nel testo consolidato UE: chiederli senza celex_consolidated "
+                "(versione della Gazzetta ufficiale)")
+    if split_annex(article):
+        return "gli allegati di una versione consolidata UE non sono ancora disponibili"
+    return None
+
+
+def _consolidato(tipo_atto: str, data: str, numero_atto: str, celex: str | None) -> "str | EsitoRiferimento":
+    """The consolidated CELEX asked for ("" for the Official Journal text), or the refusal.
+
+    VisuaLex checks the shape (sector 0, ``fullmatch`` with ASCII digits: a trailing newline
+    or another script's digits never reach a URL) and that the act is an EU regulation or
+    directive. This also checks it is the act's own: «02016R0679-…» under directive 2002/58
+    would serve another act's text under this one's name.
+    """
+    from mcp_legal_it.lib.visualex.eurlex_text import _CONSOLIDATED_CELEX
+
+    if not celex:
+        return ""
+    norm = normalize_act_type((tipo_atto or "").strip()).lower()
+    if norm not in ("regolamento ue", "direttiva ue"):
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore="celex_consolidated vale solo per atti EUR-Lex (regolamento ue, direttiva ue)")
+    if not isinstance(celex, str) or not _CONSOLIDATED_CELEX.fullmatch(celex):
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore=(f"celex_consolidated non valido: {celex!r} (atteso il CELEX di una "
+                                        "versione consolidata, es. 02002L0058-20091219)"))
+    anno = (data or "").split("-")[0]
+    atteso = f"0{anno}{'L' if norm == 'direttiva ue' else 'R'}{(numero_atto or '').zfill(4)}"
+    if celex[:10] != atteso:
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore=f"celex_consolidated {celex} non è una versione di questo atto (atteso {atteso}-AAAAMMGG)")
+    return celex
 
 
 # ---------------------------------------------------------------------------

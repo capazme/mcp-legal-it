@@ -115,13 +115,15 @@ def _cache_isolata(tmp_path_factory, monkeypatch):
     real lookup would read them back (the Normattiva page cache keeps a reading for a
     day). A test that sets ``MCP_CACHE_DIR`` itself overrides this one.
     """
-    from mcp_legal_it.lib.visualex import act_dates, pagine_normattiva
+    from mcp_legal_it.lib.visualex import act_dates, pagine_eurlex, pagine_normattiva
 
     monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path_factory.mktemp("mcp-cache")))
     pagine_normattiva.svuota_memoria()
+    pagine_eurlex.svuota_memoria()
     act_dates.svuota_memoria()
     yield
     pagine_normattiva.svuota_memoria()
+    pagine_eurlex.svuota_memoria()
     act_dates.svuota_memoria()
 
 

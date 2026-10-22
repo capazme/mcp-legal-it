@@ -679,7 +679,9 @@ degli articoli dalla pagina di Normattiva (`mcp_legal_it/lib/visualex/normattiva
 il lettore dell'export Akoma Ntoso (`mcp_legal_it/lib/visualex/akn_parser.py`, unito al nostro)
 e i suoi test (`tests/unit/test_akn_parser_visualex.py`); l'albero degli articoli di Normattiva
 e il controllo d'esistenza (`mcp_legal_it/lib/visualex/albero_normattiva.py`); il lettore della vigenza dichiarata
-dalla pagina (`mcp_legal_it/lib/visualex/normattiva_validity.py`) e i suoi test. L'inventario della migrazione è in
+dalla pagina (`mcp_legal_it/lib/visualex/normattiva_validity.py`) e i suoi test; il lettore del testo
+degli articoli UE, Gazzetta ufficiale e versioni consolidate (`mcp_legal_it/lib/visualex/eurlex_text.py`)
+con i suoi test e le pagine EUR-Lex di prova (`tests/fixtures/visualex/eurlex/`). L'inventario della migrazione è in
 [`docs/migration/visualex-inventory.md`](docs/migration/visualex-inventory.md).
 
 [![MCP Badge](https://lobehub.com/badge/mcp/capazme-mcp-legal-it)](https://lobehub.com/mcp/capazme-mcp-legal-it)
