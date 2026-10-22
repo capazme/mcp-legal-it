@@ -25,3 +25,7 @@ Trimming: `str()` of the elements with the listed ids, assembled inside
 `docs/superpowers/plans/2026-09-19-archivio-visualex-extensions.md`, Task 1.
 
 Used by `tests/unit/test_eurlex_fixtures.py` and `tests/unit/test_eurlex_consolidated.py` (VisuaLex's tests, adapted).
+
+- `dir2009_136_oj_art1_2_trimmed.html` (mcp-legal-it's, captured 2026-10-22 from CELLAR, 32009L0136):
+  `div#art_1` and `div#art_2` of dir. 2009/136/CE. Art. 1 quotes, in table cells, the articles of
+  dir. 2002/22/CE it rewrites (21, 22, 23, 27, …). Used by `tests/unit/test_eurlex_quoted_articles.py`.

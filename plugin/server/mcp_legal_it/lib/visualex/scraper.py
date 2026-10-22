@@ -1016,6 +1016,57 @@ def _eurlex_urls(norma) -> tuple[str, str]:
 _PAGINA_EURLEX = re.compile(r"ti-art|title-article-norm|eli-subdivision|>\s*Articolo\s")
 
 
+#: An act's own article on a modern OJ page: ``div.eli-subdivision#art_N`` (``art_N.tit_1`` and
+#: the like are its parts, not articles).
+_ARTICOLO_PROPRIO = re.compile(r"^art_([^.]+)$")
+
+
+def _articolo_citato(soup: BeautifulSoup, article: str) -> bool:
+    """Whether the page has no article *article* of its own, only a quotation of another act's.
+
+    A modern OJ page wraps each of the act's own articles in ``div.eli-subdivision#art_N``:
+    when it has such divs and none is *article*, every heading «Articolo N» on it is a
+    quotation (an amending act's table cells). A page without them (the legacy class-less
+    markup) is judged by the first heading that names *article*: inside a table cell, or
+    opening with «, it is a quotation. A consolidated page is never judged here.
+    """
+    if soup.find("p", class_="title-article-norm") is not None:
+        return False
+    chiesto = comparable_article_key(article)
+    propri = {comparable_article_key(m.group(1)) for div in soup.find_all("div", id=_ARTICOLO_PROPRIO)
+              if (m := _ARTICOLO_PROPRIO.match(div["id"]))}
+    if propri:
+        return chiesto not in propri
+    numero = re.match(r"\d+", chiesto)
+    if numero is None:
+        return False
+    testa = re.compile(rf"^(«)?\s*Articolo\s+{numero.group(0)}(?!\d)", re.IGNORECASE)
+    for tag in soup.find_all(["p", "div", "span", "h1", "h2", "h3", "h4", "h5", "h6"]):
+        m = testa.match(tag.get_text(strip=True))
+        if m:
+            return bool(m.group(1)) or tag.find_parent("td") is not None
+    return False
+
+
+def _non_e_il_proprio(soup: BeautifulSoup, article: str, text: str) -> bool:
+    """Whether *text*, served for *article*, is not the act's own article on a modern OJ page.
+
+    The own article is ``div#art_N``: its heading and rubrica must be the text's first lines.
+    A page without those divs, or a consolidated page, is not judged here.
+    """
+    if soup.find("p", class_="title-article-norm") is not None:
+        return False
+    chiesto = comparable_article_key(article)
+    for div in soup.find_all("div", id=_ARTICOLO_PROPRIO):
+        if comparable_article_key(_ARTICOLO_PROPRIO.match(div["id"]).group(1)) != chiesto:
+            continue
+        testa = div.find("p", class_=lambda c: c and "ti-art" in c and "sti-art" not in c)
+        rubrica = div.find("p", class_=lambda c: c and "sti-art" in c)
+        attese = [t.get_text(strip=True) for t in (testa, rubrica) if t is not None]
+        return text.split("\n")[:len(attese)] != attese
+    return False
+
+
 def _altro_suffisso(text: str, article: str) -> bool:
     """Whether *text* opens with the heading of a suffixed article ("Articolo 15 bis") when a
     plain number ("15") was asked for: another article, not the one asked."""
@@ -1116,9 +1167,18 @@ def _extract_eurlex_article(html: str, article: str) -> str:
     # the OJ page and, for a consolidated version, the consolidated markup.
     from . import eurlex_text
 
+    soup = BeautifulSoup(html, "html.parser")
+    if _articolo_citato(soup, article):
+        # An amending act quotes the articles it rewrites ("Articolo 23" of dir. 2002/22 inside
+        # art. 1 of dir. 2009/136): the quotation is not the act's own article. Checked here,
+        # before VisuaLex's extractor, which takes the first heading it meets (reported upstream).
+        return f"[Articolo {article} non trovato nel documento EUR-Lex]"
     try:
-        text = eurlex_text.extract_article_text(BeautifulSoup(html, "html.parser"), article)
+        text = eurlex_text.extract_article_text(soup, article)
     except eurlex_text.DocumentNotFoundError:
+        return f"[Articolo {article} non trovato nel documento EUR-Lex]"
+    if _non_e_il_proprio(soup, article, text):
+        # The extractor met a quotation of the same number before the act's own article.
         return f"[Articolo {article} non trovato nel documento EUR-Lex]"
     if _altro_suffisso(text, article):
         # VisuaLex's OJ strategies take "Articolo 15 bis" for a request of art. 15 when the
