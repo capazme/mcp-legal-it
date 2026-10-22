@@ -82,10 +82,13 @@ _MSG_FRASI = (
     "ricerca per ciascuna frase e confrontare i risultati."
 )
 
+# A 403 also came for plain queries (the replay tape of 2026-10-21, recorded in a burst): the
+# firewall may be refusing the syntax or the pace, so the message names both.
 _MSG_403 = (
     "il portale della Giustizia Amministrativa ha rifiutato la richiesta (HTTP 403, filtro di "
-    "sicurezza del portale). La fonte è raggiungibile: per una ricerca, riformulare la query "
-    "(meno virgolette o simboli, parole diverse) e riprovare."
+    "sicurezza del portale). La fonte risponde: il rifiuto può dipendere dalla sintassi della "
+    "query (virgolette, simboli) o da troppe richieste ravvicinate. Riformulare la ricerca o "
+    "riprovare tra qualche minuto."
 )
 
 
