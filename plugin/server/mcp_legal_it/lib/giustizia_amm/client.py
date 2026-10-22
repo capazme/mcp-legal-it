@@ -27,7 +27,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from xml.etree import ElementTree
 
 import httpx
-from mcp_legal_it.core._http import async_client
+from mcp_legal_it.core._http import HostNonConsentito, async_client
 
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
@@ -92,21 +92,29 @@ _MSG_403 = (
 )
 
 
+_MSG_403_DOCUMENTO = (
+    "il portale della Giustizia Amministrativa ha rifiutato la lettura del documento (HTTP 403, "
+    "filtro di sicurezza del portale). La fonte risponde: riprovare tra qualche minuto; se il "
+    "rifiuto persiste, ripetere la ricerca e usare i riferimenti appena restituiti."
+)
+
+
 def check_query(query: str) -> None:
     """Raise QueryNonSupportata for a search text the portal is known to refuse."""
     if (query or "").count('"') > _MAX_VIRGOLETTE:
         raise QueryNonSupportata(_MSG_FRASI)
 
 
-def _senza_url(exc: httpx.HTTPStatusError) -> Exception:
+def _senza_url(exc: httpx.HTTPStatusError, *, documento: bool = False) -> Exception:
     """The same failure without the request URL (portlet id and p_auth) in its message.
 
     4xx -> PortaleRifiuta; 429 and 5xx stay HTTPStatusError, so callers still read them as the
-    source being down or limiting us.
+    source being down or limiting us. *documento*: the request read a provvedimento, no query
+    was sent.
     """
     status = exc.response.status_code
     if status == 403:
-        return PortaleRifiuta(_MSG_403)
+        return PortaleRifiuta(_MSG_403_DOCUMENTO if documento else _MSG_403)
     if 400 <= status < 500 and status != 429:
         return PortaleRifiuta(
             f"il portale della Giustizia Amministrativa ha rifiutato la richiesta (HTTP {status})."
@@ -818,11 +826,16 @@ class GASession:
             await self._client.aclose()
             self._client = None
 
-    async def _request(self, method: str, url: str, **kwargs) -> httpx.Response:
+    async def _request(self, method: str, url: str, *, documento: bool = False, **kwargs) -> httpx.Response:
         try:
             return await retry_request(self._client, method, url, dataset="giustizia_amm", **kwargs)
         except httpx.HTTPStatusError as exc:
-            raise _senza_url(exc) from None
+            raise _senza_url(exc, documento=documento) from None
+        except HostNonConsentito:
+            # The guard's own message quotes the URL: the form's action may carry p_auth.
+            raise HostNonConsentito(
+                "giustizia_amm: richiesta verso un indirizzo non consentito (URL omesso)"
+            ) from None
 
     async def search(self, params: dict) -> str:
         if self._client is None:
@@ -834,7 +847,7 @@ class GASession:
         if self._client is None:
             raise RuntimeError("GASession not entered — use `async with`")
         url = build_document_url(sede, nrg, nome_file)
-        resp = await self._request("GET", url)
+        resp = await self._request("GET", url, documento=True)
         return resp.content
 
 
