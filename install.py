@@ -34,7 +34,7 @@ RUN_SERVER = PROJECT_DIR / "run_server.py"
 CACHE_DIR = Path.home() / ".cache" / "mcp-legal-it"
 REMOTE_SSE_URL = "https://unsomber-lashanda-uneffaceable.ngrok-free.dev/legal-it/sse"
 
-MIN_PYTHON = (3, 10)
+MIN_PYTHON = (3, 11)
 
 PROFILES = {
     "sinistro": {

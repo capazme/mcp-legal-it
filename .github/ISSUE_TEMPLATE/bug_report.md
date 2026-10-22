@@ -29,7 +29,7 @@ Cosa e' successo invece (incolla l'output o screenshot).
 ## Ambiente
 
 - **OS**: [es. macOS 15, Ubuntu 24.04, Windows 11]
-- **Python**: [es. 3.10, 3.12]
+- **Python**: [es. 3.11, 3.12]
 - **Client**: [Claude Desktop / Claude Code CLI]
 - **Versione plugin**: [es. 2.0.1]
 
