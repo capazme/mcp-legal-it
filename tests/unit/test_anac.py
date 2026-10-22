@@ -15,6 +15,7 @@ from mcp_legal_it.lib.anac.client import (
     TIPOLOGIE,
     AnacPaginaInattesa,
     build_search_params,
+    page_size,
     parse_atto,
     parse_search,
     path_atto,
@@ -129,7 +130,8 @@ class TestReferences:
         assert path_atto(rif) == "/-/delibera-n.-444-del-11-novembre-2025"
 
     @pytest.mark.parametrize("rif", ["https://evil.example/-/delibera", "/web/guest/home", "delibera 444",
-                                     "/-/../../etc", "http://www.anticorruzione.it.evil.example/-/x"])
+                                     "/-/../../etc", "http://www.anticorruzione.it.evil.example/-/x",
+                                     "/-/..", "/-/%2e%2e%2fadmin", "/-/a%2Fb", "/-/a%5cb", "/-/.hidden"])
     def test_anything_else_is_refused(self, rif):
         with pytest.raises(ValueError):
             path_atto(rif)
@@ -139,6 +141,9 @@ class TestReferences:
         ("Delibera n. 4444 del 11 novembre 2025", False),
         ("Delibera n. 444 del 11 novembre 2024", False),
         ("Parere di precontenzioso n. 444 del 2 maggio 2025", True),
+        # the act's own number is the first one, and the year must follow it
+        ("Delibera n. 500 del 3 marzo 2025 - annullamento delibera n. 444 del 2025", False),
+        ("Delibera 2025 - n. 444 del 3 marzo 2024", False),
     ])
     def test_title_matches_number_and_year(self, titolo, ok):
         assert titolo_corrisponde(titolo, "444", "2025") is ok
@@ -205,7 +210,7 @@ class TestTools:
         with api.configurazione(client_factory=factory):
             result = await _leggi_atto_anac_impl(tipologia="delibere", numero="999", anno="2025")
         assert len(sent) == 1 and result.error_type == "no_results"
-        assert "nessun atto ANAC «Delibere» n. 999 del 2025" in result.to_str()
+        assert "nessun atto ANAC «Delibere» n. 999 del 2025 tra i primi" in result.to_str()
 
     async def test_number_without_type_or_reference(self):
         factory, sent = _portal()
@@ -222,3 +227,61 @@ class TestTools:
         query = parse_qs(urlparse(str(sent[0].url)).query)
         assert query["type"] == ["119168"] and query.get("q", [""]) == [""]
         assert result.success and "Ultimi atti ANAC" in result.to_str()
+
+
+class TestReviewCases:
+    """Cases from the independent review of the first version."""
+
+    def test_page_size_rounds_up_to_what_the_portal_offers(self):
+        assert [page_size(n) for n in (1, 5, 7, 15, 50, 99)] == [5, 5, 10, 20, 50, 75]
+
+    def test_total_with_a_thousands_separator(self):
+        _r, totale = parse_search(SEARCH.replace(">6169<", ">6.169<"))
+        assert totale == 6169
+
+    def test_an_absolute_link_to_the_same_site_becomes_a_path(self):
+        page = SEARCH.replace('href="/-/delibera-n.-350', 'href="http://www.anticorruzione.it/-/delibera-n.-350')
+        risultati, _t = parse_search(page)
+        assert risultati[0].path == "/-/delibera-n.-350-del-9-settembre-2026"
+
+    def test_a_heading_in_a_paragraph_of_its_own_keeps_its_body(self):
+        page = DELIBERA.replace("<p><strong>Parole chiave</strong><br />",
+                                "<p><strong>Parole chiave</strong></p><p>")
+        assert "Proroga tecnica" in parse_atto(page, URL_444).parole_chiave
+
+    def test_a_subject_with_bold_words_is_kept(self):
+        page = DELIBERA.replace("Contratto per il servizio di elisoccorso",
+                                "<strong>Contratto</strong> per il servizio di elisoccorso")
+        assert parse_atto(page, URL_444).oggetto.startswith("Contratto per il servizio di elisoccorso")
+
+    def test_a_card_without_title_is_unreadable(self):
+        page = DELIBERA.replace("<h2>Delibera n. 444 del 11 novembre 2025</h2>", "")
+        with pytest.raises(AnacPaginaInattesa):
+            parse_atto(page, URL_444)
+
+    @pytest.mark.parametrize("tipologia", ["relazioni_annuali", "audizioni", "comunicati_presidente"])
+    async def test_types_without_a_number_cannot_be_looked_up_by_number(self, tipologia):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            result = await _leggi_atto_anac_impl(tipologia=tipologia, numero="1", anno="2025")
+        assert sent == [] and result.error_type == "bad_input" and "cerca_atti_anac" in result.to_str()
+
+    async def test_a_missing_page_is_not_the_source_down(self):
+        factory, sent = _portal(status=404)
+        with api.configurazione(client_factory=factory):
+            result = await _leggi_atto_anac_impl("/-/delibera-n.-1-del-1-gennaio-1900")
+        assert len(sent) == 1  # a 404 is not retried
+        assert result.error_type == "no_results" and "non raggiungibile" not in result.to_str()
+
+    async def test_page_two_follows_the_page_actually_read(self):
+        factory, sent = _portal()
+        with api.configurazione(client_factory=factory):
+            await _cerca_atti_anac_impl("x", max_risultati=15, pagina=2)
+        query = parse_qs(urlparse(str(sent[0].url)).query)
+        assert query["delta"] == ["20"] and query["start"] == ["2"]
+
+    async def test_not_found_says_how_far_it_looked(self):
+        factory, _sent = _portal()
+        with api.configurazione(client_factory=factory):
+            result = await _leggi_atto_anac_impl(tipologia="delibere", numero="999", anno="2025")
+        assert "tra i primi 2 risultati" in result.to_str()

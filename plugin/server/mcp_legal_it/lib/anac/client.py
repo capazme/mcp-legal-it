@@ -63,6 +63,13 @@ TIPOLOGIE: dict[str, tuple[str, str, str]] = {
     "relazioni_vigilanza": ("255521458", "Relazioni di vigilanza collaborativa", "relazione"),
 }
 
+# Types whose titles carry a number ("Delibera n. 444 del 11 novembre 2025"): only these can be
+# looked up by number and year. The others (annual reports, hearings, statements) are searched.
+NUMERATE = frozenset({"delibere", "pareri_precontenzioso", "pareri_normativa", "linee_guida", "bandi_tipo"})
+
+# Results scanned when an act is looked up by number and year.
+_RIGHE_RICERCA_NUMERO = 50
+
 _ALIAS_TIPOLOGIA = {
     "delibera": "delibere",
     "precontenzioso": "pareri_precontenzioso",
@@ -140,13 +147,17 @@ def resolve_tipologia(tipologia: str) -> str:
     )
 
 
-def _delta(rows: int) -> int:
+def page_size(rows: int) -> int:
+    """The portal's page size for *rows*: the smallest it offers that holds them.
+
+    A page is always read whole, so page 2 of 15 rows (sent as 20) starts at the 21st result.
+    """
     return next((d for d in _DELTAS if d >= rows), _DELTAS[-1])
 
 
 def build_search_params(query: str = "", tipologia: str = "", rows: int = 10, pagina: int = 1) -> dict:
     params = {"isDocumentSearchPortlet": "true", "q": query or "", "sort": _SORT_DATA,
-              "delta": str(_delta(rows))}
+              "delta": str(page_size(rows))}
     key = resolve_tipologia(tipologia)
     if key:
         params["type"] = TIPOLOGIE[key][0]
@@ -166,15 +177,17 @@ def parse_search(html: str) -> tuple[list[RisultatoAnac], int]:
     cards = soup.select("div.wd-card-doc")
     if totale_node is None and not cards:
         raise AnacPaginaInattesa("la pagina di ricerca di ANAC non contiene l'elenco dei risultati")
-    totale = int(_text(totale_node)) if totale_node and _text(totale_node).isdigit() else len(cards)
+    cifre = _text(totale_node).replace(".", "") if totale_node else ""   # "6.169" or "6169"
+    totale = int(cifre) if cifre.isdigit() else len(cards)
     risultati = []
     for card in cards:
         link = card.select_one("h3.card-title a[href]")
         if link is None:
             continue
         path = link["href"]
-        if path.startswith(_BASE):
-            path = path[len(_BASE):]
+        parsed = urlparse(path)
+        if parsed.hostname == _HOST:  # an absolute link to the same site, http or https
+            path = parsed.path
         oggetto = card.select_one(".free-text > div")
         risultati.append(RisultatoAnac(
             titolo=link.get("title") or _text(link),
@@ -186,15 +199,22 @@ def parse_search(html: str) -> tuple[list[RisultatoAnac], int]:
     return risultati, totale
 
 
+def _righe(node) -> str:
+    """The text of *node*, one line per <br>: inline tags (bold, links) do not break a line."""
+    for br in node.find_all("br"):
+        br.replace_with("\n")
+    righe = (re.sub(r"\s+", " ", r).strip() for r in node.get_text("").split("\n"))
+    return "\n".join(r for r in righe if r)
+
+
 def _sezione(paragrafo) -> tuple[str, str]:
     """("Riferimenti normativi", "art. 23 ...") for a paragraph that opens with a bold heading."""
     strong = paragrafo.find("strong")
     if strong is None:
-        return "", _text(paragrafo)
+        return "", _righe(paragrafo)
     titolo = _text(strong)
     strong.extract()
-    righe = [r.strip() for r in paragrafo.get_text("\n").splitlines() if r.strip()]
-    return titolo, "\n".join(righe)
+    return titolo, _righe(paragrafo)
 
 
 def parse_atto(html: str, url: str) -> AttoAnac:
@@ -208,21 +228,32 @@ def parse_atto(html: str, url: str) -> AttoAnac:
         if len(spans) >= 2:
             estremi[_text(spans[0]).rstrip(":")] = _text(spans[1])
     dati = dettaglio.select_one(".document-data")
-    atto = AttoAnac(
-        titolo=_text(dati.find("h2")) if dati else "",
-        url=url,
-        data=_text(dati.find("h3")) if dati else "",
-        estremi=estremi,
-    )
-    for p in (dati.select("p") if dati else []):
+    titolo_atto = _text(dati.find("h2")) if dati else ""
+    if not titolo_atto:
+        raise AnacPaginaInattesa("la scheda dell'atto ANAC non ha un titolo leggibile")
+    atto = AttoAnac(titolo=titolo_atto, url=url, data=_text(dati.find("h3")), estremi=estremi)
+    oggetto: list[str] = []
+    sezione = ""   # a heading in a paragraph of its own names the paragraphs after it
+    for p in dati.select("p"):
+        intero = _righe(p)
         titolo, corpo = _sezione(p)
-        if titolo.lower().startswith("riferimenti normativi"):
-            atto.riferimenti_normativi = corpo
-        elif titolo.lower().startswith("parole chiave"):
-            atto.parole_chiave = corpo
-        elif not titolo and corpo and not atto.oggetto:
-            righe = [r.strip() for r in p.get_text("\n").splitlines() if r.strip()]
-            atto.oggetto = "\n".join(righe)
+        chiave = titolo.lower()
+        if chiave.startswith(("riferimenti normativi", "parole chiave")):
+            sezione = "riferimenti" if chiave.startswith("riferimenti") else "parole"
+            if not corpo:
+                continue
+        elif titolo:
+            sezione = ""   # a bold phrase that is not a known heading: part of the subject
+            corpo = intero
+        if not corpo:
+            continue
+        if sezione == "riferimenti":
+            atto.riferimenti_normativi = "\n".join(filter(None, [atto.riferimenti_normativi, corpo]))
+        elif sezione == "parole":
+            atto.parole_chiave = "\n".join(filter(None, [atto.parole_chiave, corpo]))
+        else:
+            oggetto.append(corpo)
+    atto.oggetto = "\n".join(oggetto)
     for a in soup.select(".wd-card-download a[href]"):
         nome = _text(a.select_one("h3")) or a["href"].rsplit("/", 1)[-1]
         atto.allegati.append(Allegato(
@@ -242,7 +273,8 @@ def path_atto(riferimento: str) -> str:
         if parsed.hostname != _HOST:
             raise ValueError(f"l'indirizzo non è una pagina di {_HOST}: {rif}")
         rif = parsed.path
-    if not re.fullmatch(r"/-/[\w.%-]+", rif):
+    # A slug: no dot-segment and no encoded slash, backslash or dot (the host is fixed anyway).
+    if not re.fullmatch(r"/-/(?!\.)[\w.%-]+", rif) or re.search(r"\.\.|%2[fFeE]|%5[cC]", rif):
         raise ValueError(
             "riferimento ANAC non valido: usare il percorso restituito dalla ricerca "
             "(es. \"/-/delibera-n.-444-del-11-novembre-2025\") oppure tipologia, numero e anno"
@@ -251,9 +283,15 @@ def path_atto(riferimento: str) -> str:
 
 
 def titolo_corrisponde(titolo: str, numero: str, anno: str) -> bool:
-    """Whether a title such as "Delibera n. 444 del 11 novembre 2025" names that number and year."""
-    t = titolo.lower()
-    return bool(re.search(rf"\bn\.\s*{re.escape(numero)}\b", t)) and bool(re.search(rf"\b{re.escape(anno)}\b", t))
+    """Whether a title such as "Delibera n. 444 del 11 novembre 2025" names that number and year.
+
+    Only the act's own number counts, the first "n. N" of the title, and the year must follow it:
+    "Delibera n. 500 del 3 marzo 2025 - annullamento delibera n. 12 del 2024" is n. 500/2025.
+    """
+    m = re.search(r"\bn\.\s*(\d+)\b", titolo.lower())
+    if not m or m.group(1).lstrip("0") != str(numero).lstrip("0"):
+        return False
+    return bool(re.search(rf"\b{re.escape(str(anno))}\b", titolo[m.end():]))
 
 
 async def search_atti(
@@ -280,14 +318,23 @@ async def find_atto(tipologia: str, numero: str, anno: str) -> RisultatoAnac:
     if not key:
         raise ValueError("per cercare un atto per numero e anno indicare anche la tipologia")
     numero, anno = str(numero).strip(), str(anno).strip()
+    if key not in NUMERATE:
+        raise ValueError(
+            f"gli atti «{TIPOLOGIE[key][1]}» non hanno un numero nel titolo: cercarli con "
+            "cerca_atti_anac e leggerli con il riferimento restituito"
+        )
     if not (numero.isdigit() and re.fullmatch(r"\d{4}", anno)):
         raise ValueError("numero e anno devono essere numerici (es. numero=\"444\", anno=\"2025\")")
     singolare = TIPOLOGIE[key][2]
-    risultati, _totale = await search_atti(f"{singolare} n. {numero} {anno}", key, rows=20)
+    query = f"{singolare} n. {numero} {anno}"
+    risultati, _totale = await search_atti(query, key, rows=_RIGHE_RICERCA_NUMERO)
     for r in risultati:
         if titolo_corrisponde(r.titolo, numero, anno):
             return r
-    raise AnacNonTrovato(f"nessun atto ANAC «{TIPOLOGIE[key][1]}» n. {numero} del {anno}")
+    raise AnacNonTrovato(
+        f"nessun atto ANAC «{TIPOLOGIE[key][1]}» n. {numero} del {anno} tra i primi "
+        f"{len(risultati)} risultati della ricerca «{query}»: verificare con cerca_atti_anac"
+    )
 
 
 def format_result(r: RisultatoAnac) -> str:

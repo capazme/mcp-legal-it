@@ -140,12 +140,12 @@ un server nuovo che monta quello standard con gli stessi filtri, senza modificar
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 228 | Claude Code con Tool Search |
+| `full` | 231 | Claude Code con Tool Search |
 | `sinistro` | 79 | Risarcimento danni e sinistri |
 | `credito` | 89 | Recupero crediti |
 | `penale` | 51 | Diritto penale |
 | `fiscale` | 66 | Calcoli fiscali, immobiliari, societari e di crisi |
-| `normativa` | 70 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
+| `normativa` | 73 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
 | `privacy` | 64 | GDPR e privacy compliance |
 | `studio` | 76 | Gestione studio legale |
 | `redattore` | 76 | Redazione di atti giudiziari |

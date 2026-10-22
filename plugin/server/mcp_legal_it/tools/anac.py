@@ -6,6 +6,8 @@ pubblici, affidamenti diretti, proroghe tecniche, rinnovi, conflitto di interess
 inconferibilità e incompatibilità, whistleblowing, trasparenza amministrativa.
 """
 
+import httpx
+
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._result import SearchResult
 from mcp_legal_it.lib.anac.client import (
@@ -16,6 +18,7 @@ from mcp_legal_it.lib.anac.client import (
     find_atto,
     format_atto,
     format_result,
+    page_size,
     search_atti,
 )
 
@@ -30,6 +33,11 @@ def _errore(exc: Exception) -> SearchResult:
     if isinstance(exc, AnacNonTrovato):
         return SearchResult(success=False, source=_SOURCE, error_type="no_results",
                             results_text=f"Nessun risultato: {exc}.")
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None and exc.response.status_code in (404, 410):
+        # The portal answered: that page does not exist. Not "unreachable".
+        return SearchResult(success=False, source=_SOURCE, error_type="no_results",
+                            results_text="Nessun atto ANAC a questo riferimento: la pagina non esiste "
+                                         "(HTTP 404). Usare il riferimento restituito da una ricerca recente.")
     if isinstance(exc, AnacPaginaInattesa):
         return SearchResult(success=False, source=_SOURCE, error_type="source_error", error_message=str(exc))
     return SearchResult(success=False, source=_SOURCE, error_type="source_down", error_message=str(exc))
@@ -56,6 +64,7 @@ async def _cerca_atti_anac_impl(
     max_risultati = max(1, min(max_risultati, 50))
     if not isinstance(pagina, int) or pagina < 1:
         return _errore(ValueError("pagina deve essere un intero maggiore o uguale a 1"))
+    max_risultati = page_size(max_risultati)   # a page is read whole: page 2 follows page 1
     try:
         risultati, totale = await search_atti(query, tipologia, max_risultati, pagina)
     except Exception as exc:  # noqa: BLE001 - errors are answers
@@ -125,7 +134,9 @@ async def cerca_atti_anac(
             regolamenti, provvedimenti_ordine, segnalazioni, protocolli_vigilanza,
             protocolli_intesa, audizioni, relazioni_annuali, relazioni_vigilanza
             (accettati anche "delibera", "precontenzioso", "parere sulla normativa", ...)
-        max_risultati: Numero massimo di risultati (default 10, max 50)
+        max_risultati: Numero di risultati per pagina (default 10, max 50). Il portale offre
+            pagine da 5, 10, 20, 30 o 50: il valore è arrotondato a quella che lo contiene, e la
+            pagina successiva parte dopo l'ultimo risultato di questa
         pagina: Pagina dei risultati (1 = prima, default)
     """
     result = await _cerca_atti_anac_impl(query, tipologia, max_risultati, pagina)
@@ -143,7 +154,9 @@ async def leggi_atto_anac(
 
     Usare dopo cerca_atti_anac() o ultimi_atti_anac() con il riferimento del risultato, oppure
     direttamente con tipologia, numero e anno (es. tipologia="delibere", numero="444",
-    anno="2025"): l'atto viene cercato sul portale e letto.
+    anno="2025"): l'atto viene cercato sul portale e letto. Per numero e anno valgono le
+    tipologie numerate (delibere, pareri_precontenzioso, pareri_normativa, linee_guida,
+    bandi_tipo); "non trovato" vale per i primi 50 risultati della ricerca.
     Restituisce: titolo, data, anno, argomento, categoria, tipologia, destinatari, oggetto,
     riferimenti normativi, parole chiave e link al PDF ufficiale. NON restituisce il testo
     integrale, che ANAC pubblica solo nel PDF: il link al PDF è nella risposta. La scheda non

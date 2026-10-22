@@ -676,7 +676,8 @@ descrizione di ogni tool.
 | 32 | Procure e quotazioni (recupero crediti) | 2 |
 | 33 | Iter parlamentare (DDL) | 3 |
 | 34 | Marchi (TMview) | 3 |
-| | **Totale** | **228** |
+| 35 | Atti ANAC | 3 |
+| | **Totale** | **231** |
 
 ---
 

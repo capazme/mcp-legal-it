@@ -3,7 +3,7 @@
 mcp-legal-it espone 231 tool MCP. Questo documento è la guida discorsiva: per ogni tool
 trattato riporta parametri, uso tipico ed esempio concreto.
 
-> **Copertura**: 147 tool su 228. Mancano le schede dei moduli aggiunti dalla v2.6 in poi —
+> **Copertura**: 147 tool su 231. Mancano le schede dei moduli aggiunti dalla v2.6 in poi —
 > Gazzetta Ufficiale, Corte Costituzionale, giurisprudenza tributaria (CeRDEF), giustizia
 > amministrativa (TAR/CdS), CGUE, CONSOB, orientamenti, recepimento UE→IT, diritto del lavoro,
 > diritto societario, crisi d'impresa, procedura civile, modelli di atti, procure e quotazioni,
