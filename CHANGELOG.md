@@ -671,6 +671,14 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **An EU article the text in force no longer has says so.** Without a date an EU
+  act is read from its latest consolidation, and an article a later act repealed
+  is not in it: art. 1 of dir. 2009/136 is not in 02009L0136-20201221. The answer
+  was a bare «non trovato»; it now says the article is not in the consolidated
+  text at that date (CELEX), was probably repealed or deleted by a later act, and
+  that the Official Journal text is available with `versione="originale"`, in
+  `errore` and in `avvisi`, with `consolidato` naming the consolidation checked.
+  The Official Journal article is not served in its place.
 - **Italgiure searches on an article find the same decisions however the code
   is written** (#73, reported with a patch by @SOsintOps).
   `giurisprudenza_su_norma("art. 2043 cod. civ.")` searched only the phrase
