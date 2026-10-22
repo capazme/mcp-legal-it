@@ -172,6 +172,15 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
+        "module": "mcp_legal_it/lib/visualex/pagine_eurlex.py",
+        "label": "eurlex_pagine",
+        "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine",
+        "files": ["<sha256 of the CELLAR URL>.json.gz -- an EU act's page as CELLAR served it"],
+        "retention": "24 hours (TTL_SECONDI, VisuaLex's page TTL); at most MAX_SU_DISCO (100) files, oldest first",
+        "markers": ("eurlex_pagine",),
+        "switch": "cache_enabled()",
+    },
+    {
         "module": "mcp_legal_it/lib/visualex/act_dates.py",
         "label": "act_dates",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
@@ -516,7 +525,8 @@ class Audit:
             elif isinstance(func, ast.Attribute):
                 base = ast.unparse(func.value)
                 body.add(("%s.%s" % (aliases.get(base, base), func.attr), func.attr))
-                if func.attr in WRITE_ATTRS:
+                # `copy.copy(x)` is the stdlib's object copy, not shutil's file copy.
+                if func.attr in WRITE_ATTRS and not (base == "copy" and func.attr == "copy"):
                     found.add("%s.%s()" % (base, func.attr))
                 if func.attr in NET_WRITE_ATTRS:
                     found.add("net %s.%s()" % (base, func.attr))

@@ -15,6 +15,14 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **EU consolidated versions** (`api`): `riferimento_da_parametri(...,
+  celex_consolidated="02002L0058-20091219")` and `NormaDati.celex_consolidated`
+  (VisuaLex's key, last in the dataclass) ask for the text of an EU regulation or
+  directive as amended, instead of the Official Journal text. The CELEX must have
+  the shape and be the act's own; the text is VisuaLex's reader on CELLAR's copy of
+  the consolidated page: no «▼M2» markers, one line per lettered point, «14 bis»
+  found in either spelling. A recital or an annex of a consolidation is
+  `non_supportata` (a consolidated text has no preamble: its «(N)» are footnotes).
 - **The text of an article at a date, and the original text** (`api`).
   `riferimento_da_parametri(..., data_versione="2010-01-01")` (or «1 gennaio
   2010») and a `NormaDati` with `data_versione` ask for the text in force on that
@@ -508,6 +516,17 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **EU article text: VisuaLex's reader, from CELLAR, one page per act.** The text
+  of an article of an EU act is read by VisuaLex's extractor
+  (`lib/visualex/eurlex_text.py`, `eurlex_scraper.py` at `493a8dd1`), whose text is
+  frozen. Before the switch, the two readers were compared on every article of the
+  GDPR, the AI Act, directive 2002/58 and the TFUE: 591 of 591 identical, so the
+  Official Journal texts served do not change. VisuaLex reads EUR-Lex through a
+  browser; a serial A/B check showed CELLAR's copy gives the same bytes, so no
+  browser enters the package. The page is kept a day (`eurlex_pagine`, declared in
+  the cache audit): one request serves every article of an act. An empty or error
+  page is not kept. On an Official Journal page, art. 15 is not served art. 15-bis
+  when the act has no art. 15 (a check outside the imported code).
 - **Python 3.11 or later.** The article-number patterns now imported from
   VisuaLex use possessive quantifiers, which Python's `re` reads only from
   3.11. `requires-python`, the two manifests, `install.py`, the CI matrix
@@ -667,8 +686,21 @@ entry, it is the same feature as ported to the 3.0 line.
   della strada, c.p.a., CCII, codice della navigazione) no longer OR in the bare
   «art. N», which matches any decision citing any art. N: the article is tied to
   the act's number and year by proximity, as for the other acts. The bare form
-  stays for c.c., c.p., c.p.c., c.p.p. and the Constitution. The search for the
-  act's number/year no longer slows down quadratically on a long run of digits.
+  stays for c.c., c.p., c.p.c., c.p.p. and the Constitution, and the acronyms
+  without dots («TUB», «TUF», «cds», «cpa», «cod. cons.») are searched as
+  phrases of their own. The search for the act's number/year no longer slows
+  down quadratically on a long run of digits, and a double quote in the
+  reference no longer closes the Solr phrase (it could inject a clause).
+- **Giustizia Amministrativa: two quoted phrases no longer end in «non
+  raggiungibile»** (#52). The firewall in front of the portal answers 403 to a
+  search holding two phrases in quotes, and the tools reported the source as
+  down, echoing the request URL with its session token. Such a query is now
+  refused before any request, with a way to rephrase it (one phrase in quotes,
+  the other words free: verified live); any other 4xx from the portal says the
+  portal refused the request, not that it is unreachable, and no error repeats
+  the request URL (a 5xx is still the source down). Same rules in
+  `giurisprudenza_amm_su_norma`, `cerca_giurisprudenza_unificata` and
+  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`).
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the

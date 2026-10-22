@@ -47,12 +47,12 @@ async def _cerca_amministrativa(
         return await fn(query, tipo=tipo, max_risultati=max_risultati)
 
     from mcp_legal_it.lib.giustizia_amm.client import format_result, search_provvedimenti
-    from mcp_legal_it.tools.giustizia_amm import _NO_YEAR_FILTER_NOTE
+    from mcp_legal_it.tools.giustizia_amm import _NO_YEAR_FILTER_NOTE, _rifiuto
 
     try:
         docs = await search_provvedimenti(query=query, tipo=tipo, rows=_GA_YEAR_ROWS)
     except Exception as exc:
-        return SearchResult(
+        return _rifiuto(exc) or SearchResult(
             success=False, source="giustizia_amm", error_type="source_down", error_message=str(exc),
         )
 
