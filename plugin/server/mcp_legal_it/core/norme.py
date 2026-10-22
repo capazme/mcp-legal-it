@@ -175,7 +175,10 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     elif not base["testo"]:
         base["errore"] = "nessun testo trovato"
     q = qualita_testo(base, act_info, article)
-    base["avvisi"], base["upcoming"] = q["avvisi"], q["upcoming"]
+    # An EU text's own notices (a consolidation not applicable yet, a day before the act
+    # was in force) come from the lookup, after the notice of what the text is.
+    base["avvisi"] = q["avvisi"] + (list(result.get("avvisi_ue") or []) if base["testo"] else [])
+    base["upcoming"] = q["upcoming"] or (result.get("upcoming") if base["testo"] else None)
     return base, result.get("esito")
 
 

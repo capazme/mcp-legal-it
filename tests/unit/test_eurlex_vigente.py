@@ -25,7 +25,7 @@ CONS = (FIXTURES / "ai_act_consolidated_20260727_art111_trimmed.html").read_text
 
 #: What CELLAR answered for 32024R1689 on 22/10/2026 (``consolidazioni``).
 AI_ACT = {
-    "data_atto": "2024-06-13",
+    "data_gu": "2024-07-12", "in_vigore_dal": "2024-08-01",
     "versioni": [
         {"celex": "02024R1689-20260727", "data": "2026-07-27",
          "modifiche": [{"celex": "32026R1744", "atto": "regolamento 2026/1744"},
@@ -122,7 +122,7 @@ class TestTheTextInForce:
 
     async def test_a_consolidation_that_amends_nothing_is_the_oj_text(self, cellar, lookup):
         # Dir. 2019/790 has only 02019L0790-20190517: the base act again.
-        lookup["risposta"] = {"data_atto": "2024-06-13",
+        lookup["risposta"] = {"data_gu": "2024-07-12", "in_vigore_dal": "2024-08-01",
                               "versioni": [{"celex": "02024R1689-20240712", "data": "2024-07-12", "modifiche": []}]}
         t = await api.testo_articolo(_ai_act(), canale="html")
         assert "prima del 2 agosto 2026, solo se" in _sp(t.article_text)
@@ -131,7 +131,7 @@ class TestTheTextInForce:
         assert cellar.asked == [CELLAR + "32024R1689"]
 
     async def test_no_consolidation_at_all_is_the_oj_text(self, cellar, lookup):
-        lookup["risposta"] = {"data_atto": "2024-06-13", "versioni": []}
+        lookup["risposta"] = {"data_gu": "2024-07-12", "in_vigore_dal": "2024-08-01", "versioni": []}
         t = await api.testo_articolo(_ai_act(), canale="html")
         assert t.consolidato is None and t.consolidato_verificato is True and t.precisione == "ESATTO"
 
@@ -191,13 +191,18 @@ class TestADate:
         assert cellar.asked == [CELLAR + "02024R1689-20240712"]
 
     async def test_after_the_act_and_before_its_first_consolidation_is_the_oj_text(self, cellar, lookup):
-        t = await api.testo_articolo(_ai_act(data_versione="2024-07-01"), canale="html")
+        # Published on 12.7.2024, in force from 1.8.2024: on 20.7 it was the OJ text, not in force yet.
+        lookup["risposta"] = {**AI_ACT, "versioni": [{**AI_ACT["versioni"][1], "data": "2024-07-25"},
+                                                     AI_ACT["versioni"][0]]}
+        t = await api.testo_articolo(_ai_act(data_versione="2024-07-20"), canale="html")
         assert t.esito == "trovato" and t.consolidato is None and "prima del 2 agosto 2026" in _sp(t.article_text)
+        assert any("non ancora in vigore (in vigore dal 2024-08-01)" in a for a in t.avvisi)
 
-    async def test_a_day_before_the_act_is_not_valid(self, cellar, lookup):
-        t = await api.testo_articolo(_ai_act(data_versione="2024-01-01"), canale="html")
+    async def test_a_day_before_the_act_s_publication_is_not_valid(self, cellar, lookup):
+        # Adopted on 13.6.2024, published on 12.7.2024: on 20.6 there was no act to read.
+        t = await api.testo_articolo(_ai_act(data_versione="2024-06-20"), canale="html")
         assert t.esito == "riferimento_non_valido" and t.article_text == "" and cellar.asked == []
-        assert "2024-06-13" in t.errore
+        assert "2024-07-12" in t.errore
 
     def test_a_consolidation_and_a_version_do_not_go_together(self):
         for kw in ({"versione": "originale"}, {"data_versione": "2025-01-01"}):
@@ -274,17 +279,23 @@ class TestCiteLaw:
 class TestTheLookup:
     def test_the_answer_is_read(self):
         rows = [
-            {"data_atto": {"value": "2024-06-13"}, "celex": {"value": "02024R1689-20240712"},
+            {"data_gu": {"value": "2024-07-12"}, "in_vigore": {"value": "2024-08-01"}, "celex": {"value": "02024R1689-20240712"},
              "data": {"value": "2024-07-12"}, "atti": {"value": "32024R1689|32024R1689R(01)"}},
-            {"data_atto": {"value": "2024-06-13"}, "celex": {"value": "02024R1689-20260727"},
+            {"data_gu": {"value": "2024-07-12"}, "in_vigore": {"value": "2024-08-01"}, "celex": {"value": "02024R1689-20260727"},
              "data": {"value": "2026-07-27"}, "atti": {"value": "32024R1689|32026R1744|32026R1744R(01)"}},
         ]
         info = ec.leggi_risposta("32024R1689", rows)
-        assert info["data_atto"] == "2024-06-13" and [v["celex"] for v in info["versioni"]] == [
+        assert info["data_gu"] == "2024-07-12" and info["in_vigore_dal"] == "2024-08-01"
+        assert [v["celex"] for v in info["versioni"]] == [
             "02024R1689-20260727", "02024R1689-20240712"]
         assert info["versioni"][0]["modifiche"][0] == {"celex": "32026R1744", "atto": "regolamento 2026/1744"}
-        assert ec.leggi_risposta("32019L0790", [{"data_atto": {"value": "2019-04-17"}}]) == {
-            "data_atto": "2019-04-17", "versioni": []}
+        assert ec.leggi_risposta("32019L0790", [{"data_gu": {"value": "2019-05-17"}}]) == {
+            "data_gu": "2019-05-17", "in_vigore_dal": None, "versioni": []}
+
+    def test_a_consolidation_that_is_not_the_act_s_is_dropped(self):
+        rows = [{"celex": {"value": c}, "data": {"value": "2026-07-27"}, "atti": {"value": "32026R1744"}}
+                for c in ("02024R1689-20260727", "02016R0679-20260727", "02024R1689-2026072", "02024R1689-20260727/x")]
+        assert [v["celex"] for v in ec.leggi_risposta("32024R1689", rows)["versioni"]] == ["02024R1689-20260727"]
 
     def test_labels(self):
         assert ec.etichetta("32026R1744") == "regolamento 2026/1744"
@@ -294,13 +305,23 @@ class TestTheLookup:
         assert ec.etichetta("altro") == "altro"
 
     def test_the_choice(self):
-        assert ec.scegli(AI_ACT, None)[1]["celex"] == "02024R1689-20260727"
+        assert ec.scegli(AI_ACT, None, "2026-10-22")[1]["celex"] == "02024R1689-20260727"
         assert ec.scegli(AI_ACT, "2026-07-27")[1]["celex"] == "02024R1689-20260727"
         assert ec.scegli(AI_ACT, "2026-07-26")[1]["celex"] == "02024R1689-20240712"
-        assert ec.scegli(AI_ACT, "2024-06-13") == ("oj", None)
-        assert ec.scegli(AI_ACT, "2024-06-12") == ("prima", None)
+        assert ec.scegli(AI_ACT, "2024-07-12")[1]["celex"] == "02024R1689-20240712"
+        assert ec.scegli(AI_ACT, "2024-07-11") == ("prima", None)
 
-    async def test_one_query_per_act_a_day_and_a_failure_is_not_kept(self, monkeypatch):
+    def test_a_consolidation_dated_after_today_is_not_the_text_in_force(self):
+        # The review's case: -20271202 must not be served as in force on 22.10.2026.
+        con_futura = {**AI_ACT, "versioni": [{"celex": "02024R1689-20271202", "data": "2027-12-02",
+                                              "modifiche": [{"celex": "32027R0001", "atto": "regolamento 2027/1"}]},
+                                             *AI_ACT["versioni"]]}
+        assert ec.scegli(con_futura, None, "2026-10-22")[1]["celex"] == "02024R1689-20260727"
+        assert ec.futura(con_futura, "2026-10-22") == {"change": "amended", "valid_from": "2027-12-02",
+                                                        "version_number": None, "celex": "02024R1689-20271202"}
+        assert ec.futura(AI_ACT, "2026-10-22") is None
+
+    async def test_one_query_per_act_a_day_and_a_failure_kept_a_few_minutes(self, monkeypatch):
         import httpx
 
         ec._cache.clear()
@@ -313,7 +334,8 @@ class TestTheLookup:
             async def __aexit__(self, *exc):
                 return False
 
-        async def retry(client, method, url, *, dataset="", data=None, **kw):
+        async def retry(client, method, url, *, dataset="", data=None, max_retries=2, **kw):
+            assert max_retries == 0  # a hanging endpoint is not asked again within the call
             chieste.append((dataset, data["query"]))
             r = risposte.pop(0)
             if isinstance(r, Exception):
@@ -323,11 +345,16 @@ class TestTheLookup:
         monkeypatch.setattr(ec, "async_client", lambda fonte, **kw: _Client())
         monkeypatch.setattr(ec, "retry_request", retry)
         risposte.extend([httpx.ConnectError("down"), {"results": {"bindings": [
-            {"data_atto": {"value": "2024-06-13"}}]}}])
+            {"data_gu": {"value": "2024-07-12"}}]}}])
         assert await ec.consolidazioni("32024R1689") is None
-        assert (await ec.consolidazioni("32024R1689"))["data_atto"] == "2024-06-13"
-        assert (await ec.consolidazioni("32024R1689"))["data_atto"] == "2024-06-13"
+        assert await ec.consolidazioni("32024R1689") is None  # the failure is remembered: no second wait
+        assert len(chieste) == 1
+        with ec._lock:  # five minutes later
+            ec._cache["32024R1689"] = (ec._cache["32024R1689"][0] - ec.NEGATIVO_SECONDI - 1, None)
+        assert (await ec.consolidazioni("32024R1689"))["data_gu"] == "2024-07-12"
+        assert (await ec.consolidazioni("32024R1689"))["data_gu"] == "2024-07-12"
         assert len(chieste) == 2 and chieste[0][0] == "eur_lex" and '"32024R1689"' in chieste[0][1]
+        assert ec._TIMEOUT.read <= 15
         ec._cache.clear()
 
     async def test_only_an_oj_celex_reaches_the_query(self):
@@ -345,3 +372,48 @@ def test_a_consolidation_of_corrigenda_only_says_so():
     amended = AI_ACT["versioni"][0]
     first = ec.avvisi({**amended, "modificato_da": amended["modifiche"]}, True, None)[0]
     assert first.startswith("testo consolidato EUR-Lex, al 2026-07-27") and "rettifiche" not in first
+
+
+
+class TestEndToEnd:
+    async def test_a_consolidation_not_applicable_yet_is_said(self, cellar, lookup):
+        lookup["risposta"] = {**AI_ACT, "versioni": [
+            {"celex": "02024R1689-20990101", "data": "2099-01-01",
+             "modifiche": [{"celex": "32098R0001", "atto": "regolamento 2098/1"}]}, *AI_ACT["versioni"]]}
+        t = await api.testo_articolo(_ai_act(), canale="html")
+        assert t.consolidato["celex"] == "02024R1689-20260727"
+        assert t.upcoming == {"change": "amended", "valid_from": "2099-01-01", "version_number": None,
+                              "celex": "02024R1689-20990101"}
+        assert any("applicabile dal 2099-01-01" in a for a in t.avvisi)
+
+    async def test_the_gdpr_is_its_corrigenda_consolidation(self, monkeypatch, lookup):
+        # 32016R0679 has one consolidation, 02016R0679-20160504, folding in the corrigenda only.
+        lookup["risposta"] = {"data_gu": "2016-05-04", "in_vigore_dal": "2016-05-24", "versioni": [
+            {"celex": "02016R0679-20160504", "data": "2016-05-04",
+             "modifiche": [{"celex": "32016R0679R(02)", "atto": "rettifica del regolamento 2016/679"}]}]}
+        cons = ('<html><body><div class="eli-subdivision" id="art_7"><p class="title-article-norm">Articolo 7</p>'
+                '<p class="stitle-article-norm">Condizioni per il consenso</p><p class="norm">1. Qualora il '
+                'trattamento sia basato sul consenso, il titolare del trattamento deve essere in grado di dimostrare '
+                'che l\'interessato ha prestato il proprio consenso al trattamento dei propri dati personali.</p>'
+                '</div></body></html>')
+        pages = _Cellar({CELLAR + "02016R0679-20160504": cons})
+        monkeypatch.setattr(scraper, "async_client", pages)
+        nd = api.riferimento_da_parametri("regolamento ue", "7", data="2016", numero_atto="679").norma_data[0]
+        t = await api.testo_articolo(nd, canale="html")
+        assert "ha prestato il proprio consenso" in t.article_text and t.precisione == "INDICATIVO"
+        assert t.avvisi[0].startswith("testo consolidato EUR-Lex che incorpora le rettifiche pubblicate in GUUE")
+        assert pages.asked == [CELLAR + "02016R0679-20160504"]
+
+    async def test_a_directive_with_only_its_initial_consolidation_is_the_oj_text(self, monkeypatch, lookup):
+        # Dir. 2019/790: 02019L0790-20190517 consolidates nothing but the base act.
+        lookup["risposta"] = {"data_gu": "2019-05-17", "in_vigore_dal": "2019-06-06", "versioni": [
+            {"celex": "02019L0790-20190517", "data": "2019-05-17", "modifiche": []}]}
+        oj = ('<html><body><div class="eli-subdivision" id="art_17"><p class="oj-ti-art">Articolo 17</p>'
+              '<p class="oj-sti-art">Utilizzo di contenuti protetti</p><p class="oj-normal">1. Testo.</p>'
+              '</div></body></html>')
+        pages = _Cellar({CELLAR + "32019L0790": oj})
+        monkeypatch.setattr(scraper, "async_client", pages)
+        nd = api.riferimento_da_parametri("direttiva ue", "17", data="2019", numero_atto="790").norma_data[0]
+        t = await api.testo_articolo(nd, canale="html")
+        assert t.consolidato is None and t.consolidato_verificato is True and t.precisione == "ESATTO"
+        assert pages.asked == [CELLAR + "32019L0790"]

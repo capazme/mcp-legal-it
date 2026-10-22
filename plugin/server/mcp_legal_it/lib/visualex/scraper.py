@@ -979,16 +979,23 @@ async def _versione_ue(nv: NormaVisitata) -> "tuple[NormaVisitata, dict]":
     if info is None:
         return nv, {"consolidato": None, "consolidato_verificato": False}
     giorno = nv.data_versione or None
-    scelta, versione = ec.scegli(info, giorno)
+    oggi = _clock.today().isoformat()
+    scelta, versione = ec.scegli(info, giorno, oggi)
     if scelta == "prima":
         return nv, {"consolidato": None, "consolidato_verificato": True, "esito": "riferimento_non_valido",
-                    "error": f"{norma} è del {info['data_atto']}: non esisteva il {giorno}"}
+                    "error": f"{norma} è pubblicato in GUUE il {info['data_gu']}: non esisteva il {giorno}"}
+    extra = {"consolidato_verificato": True, "avvisi_ue": []}
+    if not giorno and (prossima := ec.futura(info, oggi)):
+        # A consolidation not applicable yet is said, as Normattiva's coming version is.
+        extra["upcoming"] = prossima
+        extra["avvisi_ue"].append(ec.avviso_futura(prossima))
+    if giorno and info.get("in_vigore_dal") and giorno < info["in_vigore_dal"]:
+        extra["avvisi_ue"].append(ec.avviso_non_ancora_in_vigore(giorno, info["in_vigore_dal"]))
     if scelta == "oj":
-        return nv, {"consolidato": None, "consolidato_verificato": True}
+        return nv, {"consolidato": None, **extra}
     letta = dataclasses.replace(nv, norma=dataclasses.replace(norma, celex_consolidated=versione["celex"]))
     return letta, {"consolidato": {"celex": versione["celex"], "data": versione["data"],
-                                   "modificato_da": versione["modifiche"]},
-                   "consolidato_verificato": True}
+                                   "modificato_da": versione["modifiche"]}, **extra}
 
 
 def senza_export(nv: NormaVisitata) -> bool:
