@@ -63,8 +63,11 @@ _CACHE_MAX = max(1, int(os.environ.get("AKN_CACHE_MAX_ACTS", "50") or "50"))
 # 2: the body of an act with annexes is the default lookup (issue #47).
 # 3: the parser merged with VisuaLex's (tables, the Dispositivo part, per-article dates,
 #    Normattiva positions of the parts, a treaty's law keeps its body).
-# 4: a suffix written in two words is keyed joined ("135-sexdecies", not "135-sex-decies").
-_CACHE_SCHEMA = 4
+# 4: a suffix written in two words was keyed joined ("135-sexdecies").
+# 5: VisuaLex's parser at 0f1477c2: two-word suffixes keyed as the act writes them again
+#    ("135-sex-decies"; comparable_article_key joins them for comparing), rubriche written
+#    without brackets.
+_CACHE_SCHEMA = 5
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()

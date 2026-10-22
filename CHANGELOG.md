@@ -488,6 +488,21 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **Python 3.11 or later.** The article-number patterns now imported from
+  VisuaLex use possessive quantifiers, which Python's `re` reads only from
+  3.11. `requires-python`, the two manifests, `install.py`, the CI matrix
+  (3.11 and 3.12 × FastMCP 3 and 4) and the docs say so; the package declares
+  its Python classifiers. The plugin and the Docker image already run 3.12.
+- **VisuaLex's parser, suffix table and tree reader re-pinned to `0f1477c2`.**
+  The Akoma Ntoso parser takes VisuaLex's linear patterns, the rubriche an
+  amendment wrote without brackets and `comparable_article_key`: a suffix
+  written in two words is keyed as the act writes it again («135-sex-decies»,
+  as VisuaLex answers it) and joined only to compare, so «135 sex decies» and
+  «135-sexdecies» are one article in the tree and in the «elsewhere in the act»
+  check. The tree also reads the links an annex writes «art 1», without the dot
+  (d.lgs. 36/2023, Allegato I.4), which it used to drop. The cached exports are
+  read again once (cache schema 5). VisuaLex's tests for these pieces are
+  imported with their fixtures.
 - **The August suspension says when it moved a deadline, and what it does not
   cover (decision LI-042).** When the suspension changed the result, the nine
   deadline tools that apply it (`scadenza_processuale`,
@@ -633,6 +648,10 @@ entry, it is the same feature as ported to the 3.0 line.
   `valid_from`, `version_number`). `cite_law`'s JSON gains the keys `avvisi`
   (a list) and `upcoming` (an object or `null`), always present; its Markdown
   adds the line «**Attenzione**: …».
+- **An article number with a long run of blanks no longer takes seconds.**
+  VisuaLex's normaliser of article keys was quadratic: «1», 20,000 blanks and
+  «x y» took 18 s. At `0f1477c2` it is linear (2 ms on the same input), and a
+  test keeps every pattern of the normaliser under 0.1 s on such inputs.
 - **Art. 3 of l. 654/1975 is the law's, not the Convention's.** On the Akoma
   Ntoso path the largest part of an act won, so a law that executes a treaty
   served the treaty's articles under its own numbers (art. 3 on apartheid for

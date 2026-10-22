@@ -63,7 +63,7 @@ Prompt guidati (23) e risorse `legal://` (15) restano disponibili in ogni profil
 ### Flusso di install.py
 
 ```
-1. check_python()         verifica Python >= 3.10
+1. check_python()         verifica Python >= 3.11
 2. detect_existing_install()  rileva venv e config esistenti
 3. setup_venv()           crea .venv/ (o aggiorna se esistente)
 4. install_deps()         pip install -e .

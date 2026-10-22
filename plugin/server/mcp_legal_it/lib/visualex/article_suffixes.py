@@ -2,7 +2,7 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/article_suffixes.py at eca698dc.
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/article_suffixes.py at 0f1477c2.
 # Kept byte for byte below this header: tests/unit/test_article_suffixes.py checks it
 # against VisuaLex's file, whose TypeScript mirrors are pinned to it on VisuaLex's side.
 
@@ -60,3 +60,35 @@ ARTICLE_ORDINAL_SUFFIXES = (
 ARTICLE_SUFFIX_ALTERNATION = "|".join(
     sorted(ARTICLE_ORDINAL_SUFFIXES, key=len, reverse=True)
 )
+
+# The two spellings of one ordinal. An act uses one of them, and a request may use the
+# other: «391-nonies» c.p.p., asked through the MCP, was «non presente» because Normattiva writes «391
+# novies» there, while it writes «21 nonies» in l. 241/1990. Only for comparing what was
+# asked with what the act holds (`other_ordinal_spelling`): `normalize_article_key` keeps
+# the spelling it was given, because its keys are what /fetch_rubriche and the
+# fingerprints answer, under the act's own spelling.
+ORDINAL_SPELLINGS = (
+    ("novies", "nonies"),
+    ("quinquiesdecies", "quindecies"),
+    ("sexiesdecies", "sexdecies"),
+    ("octiesdecies", "duodevicies"),
+    ("noviesdecies", "undevicies"),
+    ("vicies", "vices"),
+)
+_OTHER_SPELLING = {a: b for a, b in ORDINAL_SPELLINGS} | {b: a for a, b in ORDINAL_SPELLINGS}
+
+
+def other_ordinal_spelling(key: str):
+    """The same article with the other spelling of its ordinal, or None.
+
+    `key` is a canonical key (`normalize_article_key`): «391-nonies» -> «391-novies»,
+    «25-quindecies.1» -> «25-quinquiesdecies.1»; «2-bis» and «2043» have no other spelling.
+    """
+    number, dash, rest = key.partition("-")
+    if not dash:
+        return None
+    suffix, dot, tail = rest.partition(".")
+    other = _OTHER_SPELLING.get(suffix)
+    if other is None:
+        return None
+    return f"{number}-{other}{dot}{tail}"

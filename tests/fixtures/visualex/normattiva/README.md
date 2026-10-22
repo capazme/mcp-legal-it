@@ -80,6 +80,19 @@ its `<title>` exactly as served (the only part the reader looks at), wrapped in
   n. 127» first).
 - `resolver_l241_1990_title_trimmed.html` — `…:legge:1990;241`: "LEGGE 7 agosto 1990, n. 241".
 
+Trimmed capture of 2026-10-21, for the annex positions of the article tree
+(`treextractor._parse_normattiva_tree`, `tests/test_tree_annex_positions.py`):
+
+- `dlgs36_2023_tree_trimmed.html` — `urn:nir:stato:decreto.legislativo:2023-03-31;36`
+  (codice dei contratti pubblici), the `div#albero` block only, wrapped in
+  `<html><body>`; the dispositivo cut to its first entries and each annex to its first
+  few (its tables kept). Normattiva's positional annex `;36:k` is the entry's place among
+  the tree's annex headings, the «Allegati» index first: Allegato I.7 is `:8`, I.11 is
+  `:12`. A part after a dash is not an entry («Allegato I.4-Tabella A» sits inside I.4,
+  «Allegato II.2 bis art. 1» inside II.2). Every link's `flagTipoArticolo` carries the
+  portal's own number for its annex (0 in the dispositivo), which the test reads as the
+  truth. Allegato I.4 (`:5`) writes its articles «art 1», without the dot.
+
 The portal prints the end of the window as `<span class="indent">al: <span id="artFine" class="rosso">29-12-2007</span></span>`
 when the window has a start (the start is `<span id="artInizio" class="rosso">`, preceded by `&nbsp;`),
 and as the bare text `<span>Testo in vigore al: 12-9-2014</span>`, with no `id` and no `class`, when it has none.

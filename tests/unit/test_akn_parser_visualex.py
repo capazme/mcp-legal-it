@@ -2,7 +2,7 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_akn_parser.py at eca698dc.
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_akn_parser.py at 0f1477c2.
 # Adapted: the imports name this package, and the codice penale fixture is the whole
 # export (tests/fixtures/akn/codice_penale.xml) instead of VisuaLex's trimmed copy.
 """Pure parser tests. No network: XML string in, ParsedAct out."""
@@ -299,3 +299,53 @@ class TestPresentableTitle:
         assert presentable_title(None) == ""
         assert presentable_title("   ") == ""
         assert presentable_title("(13G00018)") == ""
+
+
+class TestLinearOnWhitespace:
+    """Adjacent whitespace runs made these quadratic or worse: an article number
+    «1» + 8,000 spaces + «x» took 3 s in normalize_article_key (the number can come
+    from a request), and a title ending in 2,000 spaces 3 s in the Gazzetta-code
+    cleanup (cubic: a search from every position of the run; `presentable_title`
+    collapses whitespace first, so that one is defensive). Sized so that a
+    regression fails in about a second instead of stalling the suite."""
+
+    SPACES = " " * 5_000
+
+    @pytest.mark.parametrize("raw", [
+        "1" + SPACES + "x", "1" + SPACES + "bisx", "1" + SPACES + "-" + SPACES + "x", "art. 1" + SPACES + "terx",
+    ])
+    def test_article_number(self, raw):
+        import time
+        started = time.perf_counter()
+        normalize_article_key(raw)
+        assert time.perf_counter() - started < 0.5
+
+    # 3,000 spaces: the cubic search took about 10 s on it, so a regression fails here
+    # instead of hanging the suite.
+    @pytest.mark.parametrize("title", [
+        "Titolo" + " " * 3_000 + "x", "Titolo" + " " * 3_000 + "." + " " * 3_000 + "x",
+        "Titolo" + " " * 3_000 + "(13G0001",
+    ])
+    def test_gazzetta_code(self, title):
+        import time
+        from mcp_legal_it.lib.visualex.akn_parser import _GAZZETTA_CODE
+        started = time.perf_counter()
+        _GAZZETTA_CODE.sub("", title)
+        presentable_title(title)
+        assert time.perf_counter() - started < 0.5
+
+    @pytest.mark.parametrize("raw,key", [
+        ("2 bis", "2-bis"), ("2 - bis", "2-bis"), ("2-bis", "2-bis"), ("2bis", "2-bis"),
+        ("2\t \tbis", "2-bis"), ("25  quinquiesdecies", "25-quinquiesdecies"),
+    ])
+    def test_same_keys(self, raw, key):
+        assert normalize_article_key(raw) == key
+
+    @pytest.mark.parametrize("title,clean", [
+        ("Legge professionale forense. (13G00018)", "Legge professionale forense"),
+        ("Codice penale (030U1398)", "Codice penale"),
+        ("Codice penale.(030U1398)  ", "Codice penale"),
+    ])
+    def test_the_code_still_goes(self, title, clean):
+        from mcp_legal_it.lib.visualex.akn_parser import _GAZZETTA_CODE
+        assert _GAZZETTA_CODE.sub("", title) == clean

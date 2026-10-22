@@ -1,7 +1,8 @@
 # `mcp_legal_it.api` — the library API
 
 `mcp_legal_it.api` is mcp-legal-it used as a Python library: Italian and EU norms
-and case law as plain `async` functions that return typed data.
+and case law as plain `async` functions that return typed data. It needs
+Python 3.11 or later.
 
 **It is the package's only stable surface.** Everything else is internal:
 `mcp_legal_it.core`, `mcp_legal_it.lib`, `mcp_legal_it.tools`, the MCP server
