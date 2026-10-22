@@ -283,6 +283,8 @@ def riferimento_da_parametri(
     consolidato = _consolidato(tipo_atto, data, numero_atto, celex_consolidated)
     if isinstance(consolidato, EsitoRiferimento):
         return consolidato
+    if consolidato and letta:
+        return EsitoRiferimento(esito="riferimento_non_valido", errore=_CONSOLIDATO_E_VERSIONE)
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     if letta and split_annex(article):
         return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
@@ -324,9 +326,11 @@ def _versione(tipo_atto: str, versione: str | None, data_versione: str | None) -
                                 errore=f"versione '{versione}' non valida: attese 'vigente' o 'originale'")
     if not data_versione and nome == "vigente":
         return {}
-    if not _normattiva(tipo_atto):
+    if not _normattiva(tipo_atto) and normalize_act_type((tipo_atto or "").strip()).lower() not in (
+            "regolamento ue", "direttiva ue"):
         return EsitoRiferimento(esito="non_supportata",
-                                errore="versioni a una data disponibili solo per gli atti su Normattiva")
+                                errore="versioni a una data disponibili per gli atti su Normattiva e per "
+                                       "regolamenti e direttive UE")
     if nome == "originale":
         if data_versione:
             return EsitoRiferimento(esito="riferimento_non_valido",
@@ -352,6 +356,8 @@ def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
     consolidato = _consolidato(norma.tipo_atto, norma.data, norma.numero_atto, norma.celex_consolidated)
     if isinstance(consolidato, EsitoRiferimento):
         return consolidato
+    if consolidato and letta:
+        return EsitoRiferimento(esito="riferimento_non_valido", errore=_CONSOLIDATO_E_VERSIONE)
     article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
     if letta and split_annex(article):
         return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
@@ -364,6 +370,10 @@ def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
     if consolidato:
         info["celex_consolidated"] = consolidato
     return info, article
+
+
+_CONSOLIDATO_E_VERSIONE = ("celex_consolidated nomina già una versione: non va insieme a data_versione né a "
+                           "versione 'originale'")
 
 
 def _non_nel_consolidato(article: str) -> "str | None":
@@ -421,6 +431,8 @@ def _esito_lookup(base: dict, esito: str | None) -> str:
         return "articolo_non_trovato"
     if esito == CHECK_UNAVAILABLE:
         return "verifica_non_disponibile"
+    if esito == "riferimento_non_valido":  # an EU act asked at a day before its own date
+        return "riferimento_non_valido"
     if base["errore"] == "nessun testo trovato":
         return "testo_assente"
     return "errore_fonte"
@@ -461,6 +473,8 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
         validita, precisione, avvisi, successione, upcoming = _qualita(base, act_info, article)
+        # The lookup already joined the source's own notices (an EU consolidation to come).
+        avvisi, upcoming = tuple(base.get("avvisi") or avvisi), base.get("upcoming") or upcoming
         if validita is not None and validita.state == "not_yet":
             # «NON ANCORA ESISTENTE O VIGENTE»: the article did not exist on the day asked
             # for. Its page's notice is not the article's text.
@@ -486,6 +500,8 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
             avvisi=avvisi,
             successione=successione,
             upcoming=upcoming,
+            consolidato=base.get("consolidato"),
+            consolidato_verificato=base.get("consolidato_verificato"),
         )
 
 
