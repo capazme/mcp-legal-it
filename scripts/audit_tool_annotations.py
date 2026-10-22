@@ -172,6 +172,15 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
+        "module": "mcp_legal_it/lib/visualex/act_dates.py",
+        "label": "act_dates",
+        "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",
+        "files": ["act_dates.json -- full date of an act cited by year only, read from its page's title"],
+        "retention": "a year per date (TTL_SECONDI); a miss is never kept",
+        "markers": ("act_dates.json",),
+        "switch": "cache_enabled()",
+    },
+    {
         "module": "mcp_legal_it/lib/brocardi/client.py",
         "label": "cache root",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",

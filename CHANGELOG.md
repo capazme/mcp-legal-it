@@ -632,6 +632,14 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **An act cited with the year only takes its full date from its own page's
+  title.** The full date of «d.lgs. 36/2023» is read from the title of the page
+  already fetched (VisuaLex's `date_from_title`, imported), and only when the
+  title names that type, year and number: the resolver does not check what it is
+  asked, and the page's ELI date used to be accepted on the year alone. A type
+  outside VisuaLex's nine keeps the ELI rule. A found date is kept a year in
+  `${MCP_CACHE_DIR}/act_dates.json`: after a restart a year-only citation costs
+  no request for its date.
 - **A citation without a date is the text in force today, even when Normattiva's
   page is not.** The page Normattiva serves without a date can be a version not
   in force yet: on 21/10/2026 art. 3 of d.P.R. 131/1986 (and of d.lgs. 546/1992,

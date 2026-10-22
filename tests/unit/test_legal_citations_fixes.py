@@ -205,10 +205,31 @@ class TestYearOnlyActDate:
 
     @pytest.mark.asyncio
     async def test_with_full_date_never_accepts_a_date_of_another_year(self, monkeypatch):
-        wrong_year = _LANDING_742.replace('content="1969-10-07"', 'content="1970-10-07"')
+        wrong_year = (_LANDING_742.replace('content="1969-10-07"', 'content="1970-10-07"')
+                      .replace("LEGGE 7 ottobre 1969, n. 742", "LEGGE 7 ottobre 1970, n. 742"))
         _install(monkeypatch, {"1969-01-01;742": wrong_year})
         norma = Norma(tipo_atto="legge", data="1969", numero_atto="742")
         assert await with_full_date(norma) is norma
+
+    @pytest.mark.asyncio
+    async def test_with_full_date_reads_the_title_not_only_the_eli_date(self, monkeypatch):
+        # VisuaLex's rule: the page's title must name this act. A page of another act of the
+        # same year (the resolver does not check what it is asked) gives no date.
+        other_act = _LANDING_742.replace("LEGGE 7 ottobre 1969, n. 742", "LEGGE 7 ottobre 1969, n. 743")
+        _install(monkeypatch, {"1969-01-01;742": other_act})
+        norma = Norma(tipo_atto="legge", data="1969", numero_atto="742")
+        assert await with_full_date(norma) is norma
+
+    @pytest.mark.asyncio
+    async def test_a_found_date_is_kept_on_disk(self, monkeypatch):
+        from mcp_legal_it.lib.visualex import act_dates
+
+        calls = _install(monkeypatch, {"1969-01-01;742": _LANDING_742})
+        await with_full_date(Norma(tipo_atto="legge", data="1969", numero_atto="742"))
+        act_dates.svuota_memoria()  # a new process: only the disk remains
+        scraper._full_date_cache.clear()
+        again = await with_full_date(Norma(tipo_atto="legge", data="1969", numero_atto="742"))
+        assert again.data == "1969-10-07" and len(calls) == 1
 
     @pytest.mark.asyncio
     async def test_cite_law_json_urn_carries_the_real_date(self, monkeypatch):

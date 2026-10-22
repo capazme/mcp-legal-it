@@ -103,7 +103,7 @@ def _serve(monkeypatch, act: "ParsedAct | None", pages: "dict[str, str] | None" 
 
     async def fake_metadata(norma):
         date = _REAL_DATES.get(norma.numero_atto)
-        return {"date": date} if date else {}
+        return {"date": date, "data_titolo": date} if date else {}
 
     class _Client:
         def __init__(self, *a, **k):

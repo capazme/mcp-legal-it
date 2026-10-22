@@ -286,7 +286,8 @@ def _serve(monkeypatch, act, pagine: "dict[str, str] | None" = None):
 
     async def fake_metadata(norma):
         # The real date of an act cited with the year only, as its Normattiva page gives it.
-        return {"date": {"104": "2010-07-02", "654": "1975-10-13"}.get(norma.numero_atto, "")}
+        data = {"104": "2010-07-02", "654": "1975-10-13"}.get(norma.numero_atto, "")
+        return {"date": data, "data_titolo": data}
 
     monkeypatch.delenv("AKN_DISABLED", raising=False)
     monkeypatch.setattr(akn_fetch, "fetch_act_akn", fake_fetch_act_akn)
