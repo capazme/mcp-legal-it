@@ -85,7 +85,7 @@ PROFILES = {
     "full": {
         "desc": "Tutti gli strumenti",
         "detail": "consigliato per Claude Code (usa Tool Search per caricarli on-demand)",
-        "tools": 228,
+        "tools": 231,
     },
 }
 

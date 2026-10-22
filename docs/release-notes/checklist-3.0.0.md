@@ -55,7 +55,7 @@ is shipped as it is today, stated as such in the release notes. None may be
 - [ ] `docs/migration/2.x-to-3.0.md` and `docs/release-notes/3.0.0.md` updated
       with what the remaining migration PRs changed, and with the outcome of
       every decision in §1 (or left «in attesa di decisione»).
-- [ ] Counts are true everywhere: 228 tools (226 with `LEGAL_BROCARDI=off`),
+- [ ] Counts are true everywhere: 231 tools (229 with `LEGAL_BROCARDI=off`),
       30 skills, 9 slash commands, 6 agents (`release.py` `count_tools()`,
       `plugin.json`, `marketplace.json`, README, the pages).
 
@@ -96,12 +96,12 @@ release candidate:
 | | Mac (Apple silicon) | Mac (Intel) | Windows 11 |
 |---|---|---|---|
 | Plugin from the marketplace, following the published guide step by step | [ ] | [ ] | [ ] |
-| `/mcp` connected; 228 tools; `stato_server` says 3.0.0 | [ ] | [ ] | [ ] |
+| `/mcp` connected; 231 tools; `stato_server` says 3.0.0 | [ ] | [ ] | [ ] |
 | `LEGAL_BROCARDI=off claude` (Windows: `$env:LEGAL_BROCARDI="off"; claude`): 226 tools, `stato_server` says off | [ ] | [ ] | [ ] |
 | `"LEGAL_BROCARDI": "off"` in the `env` block of `~/.claude/settings.json`, app's Code tab (not started from a terminal): `stato_server` says off. The mechanism was verified on 2026-10-21 (Mac, Claude Code CLI, temporary HOME: a plugin MCP server received `off` with the block and an empty value without it); this row checks it end to end in the app | [ ] | [ ] | [ ] |
 | `.mcpb` in Claude Desktop: installs, tools answer, first start rebuilds once | [ ] | [ ] | [ ] |
 | `uvx --from git+https://github.com/capazme/mcp-legal-it@v3.0.0 mcp-legal-it --version` | [ ] | [ ] | [ ] |
-| Docker (`docker build .`, `docker run -p 8000:8000`), 228 tools on `/mcp` | [ ] | — | — |
+| Docker (`docker build .`, `docker run -p 8000:8000`), 231 tools on `/mcp` | [ ] | — | — |
 | A generated DOCX lands in the private temp folder (0700 on Mac) | [ ] | [ ] | [ ] |
 | Time to `initialize`, cold / warm (2.x reference: plugin 1.8 s / 0.6 s) | | | |
 
