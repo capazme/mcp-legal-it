@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .. import _brocardi_switch, _clock
 from .._http import note_source
-from . import normattiva_html, pagine_normattiva
+from . import act_dates, normattiva_html, pagine_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
@@ -138,6 +138,9 @@ async def _act_metadata(norma: Norma) -> dict:
             resp.raise_for_status()
             note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
             meta = act_page_metadata(resp.text)
+            # VisuaLex's check: the title must name this act (type, year and number).
+            meta["data_titolo"] = act_dates.date_from_title(
+                resp.text, _tipo_urn(norma), (norma.data or "")[:4], norma.numero_atto or "") or ""
     except BaseException as exc:
         if not futuro.done():
             # A cancelled leader must not cancel its waiters (other callers): they get a
@@ -162,14 +165,36 @@ async def with_full_date(norma: Norma) -> Norma:
     """
     if not _year_only_act(norma):
         return norma
+    kind = _tipo_urn(norma)
+    chiave = act_dates.chiave(kind, norma.data, norma.numero_atto)
+    found = act_dates.leggi(chiave)
+    if found:
+        return dataclasses.replace(norma, data=found)
     try:
         meta = await _act_metadata(norma)
     except Exception:  # noqa: BLE001 - identity lookup is best effort
         return norma
-    date = meta.get("date", "")
-    if date and date.startswith(f"{norma.data}-"):
-        return dataclasses.replace(norma, data=date)
-    return norma
+    if kind in act_dates._TITLES:
+        # VisuaLex's rule: the page's title names this act's type, year and number.
+        date = meta.get("data_titolo", "")
+        if date:
+            act_dates.scrivi(chiave, date)
+    else:
+        # A kind the titles do not cover (a DPCM, a ministerial decree, a regional law):
+        # the page's ELI date, accepted when it is in the cited year — a weaker check, as
+        # before. Never kept: the resolver can answer a regional law with the state law of
+        # the same year and number, and a year on disk would make that mistake last.
+        date = meta.get("date", "")
+        if not date.startswith(f"{norma.data}-"):
+            date = ""
+    if not date:
+        return norma
+    return dataclasses.replace(norma, data=date)
+
+
+def _tipo_urn(norma: Norma) -> str:
+    """The act's kind as an URN spells it: "decreto.legislativo"."""
+    return norma.tipo_atto_normalized.strip().lower().replace(" ", ".")
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +249,15 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
         # URL (and the URN derived from it) is the act's own, not YYYY-01-01.
         full = await with_full_date(nv.norma)
         if full is not nv.norma:
-            nv = NormaVisitata(norma=full, numero_articolo=nv.numero_articolo)
+            nv = dataclasses.replace(nv, norma=full)  # the version asked for stays
+        if nv.suffisso_versione() and _year_only_act(nv.norma):
+            # A text at a date, or the original, of an act whose full date could not be read:
+            # the export would be asked at today's date (the original's day is the act's),
+            # and the page would be the placeholder act's. Refused, never today's text.
+            return {"text": "", "url": nv.norma.url(), "source": source, "esito": CHECK_UNAVAILABLE,
+                    "error": (f"{'testo originale' if nv.versione == 'originale' else 'testo a una data'} "
+                              f"di {nv.norma}: la data completa dell'atto non è stata letta da Normattiva; "
+                              "indicarla (data=\"AAAA-MM-GG\")")}
         url = nv.url()
         if not url:
             return {"text": "", "url": "", "source": "", "error": "Could not generate URL for this act"}
@@ -235,10 +268,10 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
 
         # AKN channel: the official Akoma Ntoso XML export first, then the page.
         act = None
-        if not _akn_disabled():
+        if not _akn_disabled() and not senza_export(nv):
             from .akn_fetch import fetch_act_akn
 
-            act = await fetch_act_akn(nv.norma)
+            act = await fetch_act_akn(nv.norma, _vigenza_akn(nv))
             if act is not None:
                 akn_text = _akn_article(act, nv.numero_articolo, part)
                 if akn_text:
@@ -590,12 +623,15 @@ def _validita_da_pagina(html: str, articolo: str | None) -> "dict | None":
         return None
 
 
-def validita_pagina(url: str) -> "dict | None":
+def validita_pagina(url: str, data_richiesta: str | None = None) -> "dict | None":
     """VisuaLex's ``validity`` of the page at *url*, from the page already fetched (no request).
 
-    The state is reckoned against today: a window that ends before today is ``historical``.
+    The state is reckoned against today: a window that ends before today is ``historical``;
+    ``request_in_window`` against *data_richiesta*, the day a dated text was asked for.
     None when the page was not read or does not say.
     """
+    from . import normattiva_validity
+
     rec = pagine_normattiva.leggi(url)
     validita = dict(rec["validita"]) if rec is not None and rec.get("validita") else None
     if validita is None:
@@ -604,6 +640,9 @@ def validita_pagina(url: str) -> "dict | None":
         oggi = _clock.today().isoformat()
         validita["state"] = ("current" if validita["valid_to"] is None or validita["valid_to"] >= oggi
                              else "historical")
+    giorno = normattiva_validity._iso_day(data_richiesta)
+    validita["request_in_window"] = (normattiva_validity._in_window(giorno, validita["valid_from"],
+                                                                   validita["valid_to"]) if giorno else None)
     return validita
 
 
@@ -644,10 +683,12 @@ async def _di_oggi(url: str, text: str, served: "str | None", articolo: str) -> 
     request more; if it cannot be read, ``("", None)``, never the undated page, which may
     be tomorrow's text: the export at today's date answers, or nothing does.
     """
-    requested = _article_identity(normalize_article_key(articolo)) if articolo else None
-    if not text or requested is None:
+    if not text or not articolo:
         return url, text, served
-    if served is not None and _article_identity(served) != requested:
+    # An article number with no digits ("unico" aside) has no identity to compare: its page
+    # is checked all the same, never let through because the comparison cannot be made.
+    requested = _article_identity(normalize_article_key(articolo))
+    if requested is not None and served is not None and _article_identity(served) != requested:
         return url, text, served  # another article: the existence check decides
     # A page that does not say which article it is ("Testo Unico-art. 3", a repeal notice
     # outside the label) is checked too: it may be tomorrow's text all the same.
@@ -659,7 +700,7 @@ async def _di_oggi(url: str, text: str, served: "str | None", articolo: str) -> 
     except httpx.HTTPError:
         oggi_text, oggi_served = "", None
     rec = pagine_normattiva.leggi(oggi_url) if oggi_text else None
-    if (oggi_text and (oggi_served is None or _article_identity(oggi_served) == requested)
+    if (oggi_text and (oggi_served is None or requested is None or _article_identity(oggi_served) == requested)
             and _in_vigore_oggi((rec or {}).get("validita"), _clock.today().isoformat())):
         return oggi_url, oggi_text, oggi_served
     # Today's page could not be read, or does not say it is today's text: the export at
@@ -890,14 +931,33 @@ async def _pagina_della_parte(nv: NormaVisitata, url: str, act, requested) -> "d
 
 async def _akn_act(nv: NormaVisitata):
     """The parsed Akoma Ntoso export of the act, or None (disabled, unreachable)."""
-    if _akn_disabled():
+    if _akn_disabled() or senza_export(nv):
         return None
     from .akn_fetch import fetch_act_akn
 
     try:
-        return await fetch_act_akn(nv.norma)
+        return await fetch_act_akn(nv.norma, _vigenza_akn(nv))
     except Exception:  # noqa: BLE001 - the export is a fallback: its failure is "no export"
         return None
+
+
+def senza_export(nv: NormaVisitata) -> bool:
+    """Whether the Akoma Ntoso export cannot give the text asked for: the original text.
+
+    The export is a text in force on a day (``dataVigenza``), and the original is not one:
+    an act's own day can precede its entry into force (the c.c. is dated 16 March 1942 and
+    in force from 21 April), and a code's NormaVisitata has no date at all, so the export
+    would be asked at today's date. The original is read from the page (``@originale``) only.
+    """
+    return (nv.versione or "").strip().lower() == "originale"
+
+
+def _vigenza_akn(nv: NormaVisitata) -> "str | None":
+    """caricaAKN's ``dataVigenza`` for the text asked for: the date, or None (today) for the
+    text in force. Never asked for the original text (``senza_export``)."""
+    if nv.data_versione:
+        return nv.data_versione.replace("-", "")
+    return None
 
 
 # ---------------------------------------------------------------------------
