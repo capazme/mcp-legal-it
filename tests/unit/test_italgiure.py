@@ -3,6 +3,8 @@
 HTTP calls are mocked — no real network access required.
 """
 
+import re
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -525,15 +527,139 @@ class TestBuildNormaVariantsExpanded:
         assert '"articolo 2043"' in q
         assert "codice civile" in q.lower() or "c.c." in q
 
+    # Codes that are numbered acts: no bare "art. N" (it matches any art. N of any act), the
+    # article is tied to the act by proximity, as for the acts (#73 review).
     def test_codice_della_strada(self):
         q = build_norma_variants("art. 37 c.d.s.")
-        assert '"art. 37"' in q
+        assert '"art. 37"' not in q
+        assert '"art. 37 285/1992"~15' in q
         assert "codice della strada" in q.lower() or "cod. strada" in q.lower()
 
     def test_testo_unico_bancario(self):
         q = build_norma_variants("art. 5 t.u.b.")
-        assert '"art. 5"' in q
+        assert '"art. 5"' not in q
+        assert '"art. 5 385/1993"~15' in q
         assert "testo unico bancario" in q.lower() or "t.u.b." in q
+
+    # Issue #73 (with the patch proposed there by @SOsintOps). Italgiure 2026-10-22, civil
+    # archive: "2043 c.c." 1350 decisions, "2043 cod. civ." 774, "2043 codice civile" 7: the
+    # spelling typed must not decide which of them are found.
+    @pytest.mark.parametrize("spelling,canonical", [
+        ("art. 2043 cod. civ.", "art. 2043 c.c."),
+        ("art. 2043 codice civile", "art. 2043 c.c."),
+        ("art. 2043 Codice Civile", "art. 2043 c.c."),
+        ("art. 2043 cc", "art. 2043 c.c."),
+        ("art. 2043 c.c", "art. 2043 c.c."),
+        ("art. 2043 cod.civ.", "art. 2043 c.c."),
+        ("art. 2043 cod.  civ.", "art. 2043 c.c."),
+        ("art. 3 Costituzione", "art. 3 cost."),
+        ("art. 3 cost", "art. 3 cost."),
+        ("art. 360 cpc", "art. 360 c.p.c."),
+        ("art. 360 cod. proc. civ.", "art. 360 c.p.c."),
+        ("art. 575 cod. pen.", "art. 575 c.p."),
+        ("art. 575 cp", "art. 575 c.p."),
+        ("art. 7 CCII", "art. 7 c.c.i.i."),
+        ("art. 7 codice della crisi d'impresa", "art. 7 c.c.i.i."),
+        ("art. 37 codice della strada", "art. 37 c.d.s."),
+    ])
+    def test_every_spelling_of_a_code_gives_the_same_query(self, spelling, canonical):
+        assert build_norma_variants(spelling) == build_norma_variants(canonical)
+        assert build_norma_variants(spelling, strict=True) == build_norma_variants(canonical, strict=True)
+
+    @pytest.mark.parametrize("spelling,canonical", [
+        ("art. 33 codice del consumo", "art. 33 c.cons."),
+        ("art. 1 tub 385/1993", "art. 1 t.u.b."),
+        ("art. 1 cod. nav.", "art. 1 c.n."),
+        ("art. 94 testo unico finanza", "art. 94 t.u.f."),
+    ])
+    def test_a_code_named_in_words_stays_tied_to_its_act(self, spelling, canonical):
+        q = build_norma_variants(spelling)
+        assert q == build_norma_variants(canonical)
+        num = spelling.split()[1]
+        assert f'"art. {num}"' not in q and f'"articolo {num}"' not in q
+        assert f'"art. {num} ' in q and "~15" in q
+
+    @pytest.mark.parametrize("rif", ["art. 2043 c.c.", "art. 575 c.p.", "art. 360 c.p.c.",
+                                     "art. 191 c.p.p.", "art. 3 cost."])
+    def test_the_main_codes_keep_the_bare_article(self, rif):
+        num = rif.split()[1]
+        assert f'"art. {num}"' in build_norma_variants(rif)
+        assert f'"art. {num}"' not in build_norma_variants(rif, strict=True)
+
+    def test_cod_civ_gives_the_query_of_the_issue(self):
+        assert build_norma_variants("art. 2043 cod. civ.") == (
+            'ocr:("art. 2043" OR "articolo 2043" OR "2043 c.c." OR "2043 cod. civ." OR "2043 codice civile")'
+        )
+
+    @pytest.mark.parametrize("rif,not_code", [
+        ("art. 20 c.p.i.", "codice penale"),   # codice della proprietà industriale, not c.p.
+        ("art. 20 cpi", "codice penale"),
+        ("art. 2 ccnl", "codice civile"),      # a collective agreement, not c.c.
+        ("art. 360 c.p.c.", "codice penale"),  # the longest spelling wins over "c.p."
+        ("art. 7 c.c.i.i.", "codice civile"),
+    ])
+    def test_a_shorter_code_never_catches_a_longer_one(self, rif, not_code):
+        assert not_code not in build_norma_variants(rif)
+
+    @pytest.mark.parametrize("rif,tipo", [
+        ("art. 6 d.lgs 231/2001", "decreto legislativo"),
+        ("art. 6 dlgs 231/2001", "decreto legislativo"),
+        ("art. 1 d.l 78/2010", "decreto legge"),
+        ("art. 21 l 241/1990", "legge"),
+        ("art. 4 dpr 445/2000", "D.P.R."),
+    ])
+    def test_act_type_without_dots(self, rif, tipo):
+        q = build_norma_variants(rif)
+        number = rif.rsplit(" ", 1)[1]
+        assert f'"art. {rif.split()[1]} {tipo} {number}"' in q
+
+    @pytest.mark.parametrize("rif,phrase", [
+        ("art. 117 TUB", '"117 TUB"'), ("art. 117 t.u.b.", '"117 TUB"'), ("art. 21 tuf", '"21 TUF"'),
+        ("art. 186 cds", '"186 cds"'), ("art. 186 c.d.s.", '"186 cds"'), ("art. 120 cpa", '"120 cpa"'),
+        ("art. 33 cod. cons.", '"33 cod. cons."'),
+    ])
+    def test_acronyms_without_dots_are_phrases_of_their_own(self, rif, phrase):
+        # "117 t.u.b." does not match a decision that writes "art. 117 TUB" (#73 review).
+        assert phrase in build_norma_variants(rif)
+
+    @pytest.mark.parametrize("rif", ['art. 1 foo" OR id:* "', 'art. 1 d.lgs. 231/2001" OR kind:snpen "',
+                                     'GDPR" OR id:* "', 'art. 1 foo\\" OR id:*'])
+    def test_a_quote_in_the_reference_never_closes_the_phrase(self, rif):
+        q = build_norma_variants(rif)
+        # Every double quote the user typed is escaped: outside the phrases nothing but OR remains.
+        outside = re.sub(r'"(?:[^"\\]|\\.)*"(?:~\d+)?', "", q[len("ocr:("):-1])
+        assert set(outside.split()) <= {"OR"}, q
+        assert "id:*" not in outside and "kind:" not in outside
+
+    @pytest.mark.parametrize("rif", ["art. 1 l'impresa", "art. 1 l’impresa"])
+    def test_an_elided_article_is_not_a_law(self, rif):
+        assert "legge" not in build_norma_variants(rif)
+
+    @pytest.mark.parametrize("rif", ["art. 4 d.lgs.vo 231/2001", "art. 4 d.l.vo 231/2001"])
+    def test_old_spellings_of_legislative_decree(self, rif):
+        assert build_norma_variants(rif) == build_norma_variants("art. 4 d.lgs. 231/2001")
+
+    def test_regional_law_is_not_a_national_law(self):
+        # "l.r. 12/2005" used to be read as "L. 12/2005" and ORed "legge 12/2005" in.
+        q = build_norma_variants("art. 3 l.r. 12/2005")
+        assert "legge 12/2005" not in q
+        assert '"art. 3 12/2005"~15' in q
+
+    @pytest.mark.parametrize("rif", [
+        "art. 2043 c.c." + " " * 20000 + "x",
+        "art. 2043 " + "c" * 20000,
+        "art. 2043 cod." + "x" * 20000,
+        "art. 2043 " + "c." * 10000,
+        "art. 6 d.lgs" + " " * 20000 + "231/2001",
+        "art. 6 " + "1" * 20000,
+    ], ids=["blanks-after-code", "letters", "letters-after-dot", "dots", "blanks-in-act", "digits"])
+    def test_long_runs_stay_linear(self, rif):
+        import time
+
+        build_norma_variants("art. 6 d.lgs. 231/2001")  # lazy imports out of the timing
+        start = time.perf_counter()
+        build_norma_variants(rif)
+        assert time.perf_counter() - start < 0.1
 
     def test_legge_reference(self):
         q = build_norma_variants("art. 21 L. 241/1990")
@@ -547,17 +673,20 @@ class TestBuildNormaVariantsExpanded:
 
     def test_cpa_codice_del_processo_amministrativo(self):
         q = build_norma_variants("art. 120 c.p.a.")
-        assert '"art. 120"' in q
+        assert '"art. 120"' not in q
+        assert '"art. 120 104/2010"~15' in q
         assert "codice del processo amministrativo" in q.lower() or "c.p.a." in q
 
     def test_tuf_testo_unico_finanza(self):
         q = build_norma_variants("art. 94 t.u.f.")
-        assert '"art. 94"' in q
+        assert '"art. 94"' not in q
+        assert '"art. 94 58/1998"~15' in q
         assert "testo unico finanza" in q.lower() or "t.u.f." in q
 
     def test_ccii_codice_della_crisi(self):
         q = build_norma_variants("art. 7 c.c.i.i.")
-        assert '"art. 7"' in q
+        assert '"art. 7"' not in q
+        assert '"art. 7 14/2019"~15' in q
         assert "codice della crisi" in q.lower() or "c.c.i.i." in q or "CCII" in q
 
     def test_returns_ocr_prefix_for_all_new_codes(self):
