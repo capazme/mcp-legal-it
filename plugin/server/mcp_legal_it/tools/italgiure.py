@@ -745,6 +745,8 @@ async def giurisprudenza_su_norma(
 
     Genera automaticamente varianti del riferimento per massimizzare i risultati
     (es. "art. 2043 c.c." → cerca anche "articolo 2043", "2043 codice civile", "2043 cod. civ.").
+    Il codice si può scrivere in qualsiasi forma ("c.c.", "cc", "cod. civ.", "codice civile"):
+    la ricerca è la stessa.
 
     Il riferimento deve indicare il codice o l'atto ("art. 13 GDPR", "art. 6 D.Lgs. 231/2001"):
     per gli atti la ricerca richiede l'articolo N insieme agli estremi dell'atto (numero/anno o
