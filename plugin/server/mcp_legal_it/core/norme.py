@@ -178,6 +178,10 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     # An EU text's own notices (a consolidation not applicable yet, a day before the act
     # was in force) come from the lookup, after the notice of what the text is.
     base["avvisi"] = q["avvisi"] + (list(result.get("avvisi_ue") or []) if base["testo"] else [])
+    if result.get("avviso_assenza"):
+        # An article missing from the consolidation read: the outcome is «not found», and the
+        # reader is told why and where the OJ text is.
+        base["avvisi"].append(result["avviso_assenza"])
     base["upcoming"] = q["upcoming"] or (result.get("upcoming") if base["testo"] else None)
     return base, result.get("esito")
 

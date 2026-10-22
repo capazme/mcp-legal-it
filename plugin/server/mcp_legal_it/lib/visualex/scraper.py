@@ -239,8 +239,18 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
         if nv.numero_articolo and _EURLEX_NOT_FOUND_RE.match(text):
             # The extractor's "[Articolo N non trovato ...]" is an answer about the
             # document, not its text: returned as text it read as the article.
+            errore = text.strip("[]")
+            consolidato = ue.get("consolidato")
+            if consolidato and ue.get("consolidato_verificato") and not nv.numero_articolo.startswith("rec_"):
+                # The text in force is the consolidation's, and it has no such article: a later
+                # act repealed or deleted it (art. 1 of dir. 2009/136). Said, never served from
+                # the OJ page, which would present a repealed text as current.
+                from .eurlex_consolidate import avviso_assente
+
+                errore = avviso_assente(nv.numero_articolo, consolidato)
+                ue = {**ue, "avviso_assenza": errore}
             return {"text": "", "url": url, "source": source, **ue, "esito": ARTICLE_NOT_FOUND,
-                    "error": text.strip("[]")}
+                    "error": errore}
     elif annex:
         return await _fetch_normattiva_annex(nv, *annex, canale=canale)
     elif names_an_annex(nv.numero_articolo):

@@ -130,7 +130,7 @@ async def consolidazioni(celex_base: str) -> "dict | None":
     return info
 
 
-def scegli(info: dict, giorno: "str | None", oggi: "str | None" = None) -> tuple[str, "dict | None"]:
+def scegli(info: dict, giorno: "str | None", oggi: str) -> tuple[str, "dict | None"]:
     """``("consolidato", version)``, ``("oj", None)`` or ``("prima", None)`` for the text asked for.
 
     The latest consolidation dated on or before *giorno* ("YYYY-MM-DD"), or before *oggi*
@@ -141,8 +141,9 @@ def scegli(info: dict, giorno: "str | None", oggi: "str | None" = None) -> tuple
     """
     if giorno and info.get("data_gu") and giorno < info["data_gu"]:
         return "prima", None
+    # *oggi* is required: without it a consolidation dated in the future would be served.
     limite = giorno or oggi
-    candidate = [v for v in info.get("versioni", []) if not limite or v["data"] <= limite]
+    candidate = [v for v in info.get("versioni", []) if v["data"] <= limite]
     if not candidate or not candidate[0]["modifiche"]:
         return "oj", None
     return "consolidato", candidate[0]
@@ -161,6 +162,13 @@ def futura(info: dict, oggi: str) -> "dict | None":
 def avviso_futura(prossima: dict) -> str:
     return (f"EUR-Lex pubblica già una versione consolidata applicabile dal {prossima['valid_from']} "
             f"(CELEX {prossima['celex']}): il testo riportato è quello in vigore oggi")
+
+
+def avviso_assente(articolo: str, consolidato: dict) -> str:
+    """An article the latest consolidation does not have: said, with the way to the OJ text."""
+    return (f"articolo {articolo} non presente nel testo consolidato al {consolidato['data']} "
+            f"(CELEX {consolidato['celex']}): probabilmente abrogato o soppresso da un atto successivo; "
+            "il testo pubblicato in GUUE è disponibile con versione=\"originale\"")
 
 
 def avviso_non_ancora_in_vigore(giorno: str, in_vigore_dal: str) -> str:
