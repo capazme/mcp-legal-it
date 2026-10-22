@@ -546,7 +546,7 @@ descrizione di ogni tool.
 |------|-------|-------------|
 | `calcolo_naspi` | `calcolo_naspi(retribuzione_media_mensile: float, settimane_contributive: int, eta_anni: int)` | Calcola l'importo e la durata della NASpI (indennità di disoccupazione). |
 | `costo_lavoro` | `costo_lavoro(retribuzione_lorda_annua: float, tipo_contratto: str = 'dipendente')` | Stima il costo totale del lavoro per l'azienda e il netto per il dipendente. |
-| `indennita_licenziamento` | `indennita_licenziamento(anni_servizio: float, retribuzione_mensile: float, dimensione_azienda: str = 'grande', tipo: str = 'indennitario')` | Calcola l'indennità di licenziamento per tutele crescenti (D.Lgs. 23/2015). |
+| `indennita_licenziamento` | `indennita_licenziamento(anni_servizio: float, retribuzione_mensile: float, dimensione_azienda: str = 'grande', tipo: str = 'indennitario')` | Calcola la forbice dell'indennità di licenziamento per tutele crescenti (D.Lgs. 23/2015). |
 | `indennita_preavviso` | `indennita_preavviso(ccnl: str, livello: str, anzianita_anni: float, retribuzione_mensile: float, tipo: str = 'licenziamento')` | Calcola l'indennità sostitutiva del preavviso per CCNL principali. |
 | `offerta_conciliativa` | `offerta_conciliativa(anni_servizio: float, retribuzione_mensile: float, dimensione_azienda: str = 'grande')` | Calcola l'offerta conciliativa esente da IRPEF e contributi (art. 6 D.Lgs. 23/2015). |
 | `scadenze_licenziamento` | `scadenze_licenziamento(data_licenziamento: str)` | Calcola le scadenze perentorie per l'impugnazione del licenziamento. |

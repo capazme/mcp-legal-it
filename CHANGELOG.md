@@ -671,6 +671,17 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **`indennita_licenziamento` returns the range, not an amount** (#76). After
+  C.Cost. 194/2018 struck the words «di importo pari a due mensilità … per ogni
+  anno di servizio» from art. 3 co. 1 d.lgs. 23/2015, the amount is set by the
+  judge between 6 and 36 mensilità, weighing seniority and the other criteria of
+  art. 8 L. 604/1966; the tool still computed years × 2 (years × 1 for small
+  employers) and returned it as `mensilita` and `importo`. The indemnity branch
+  now returns `minimo_mensilita`/`massimo_mensilita`, `importo_minimo`/
+  `importo_massimo` and the `criteri`, and no single figure: 6-36, or 3-18 for an
+  employer below the art. 18 St. lav. threshold (halved by art. 9 co. 1, with no
+  six-month cap after C.Cost. 118/2025). Breaking for a caller that read
+  `mensilita`/`importo` of the indemnity; `tipo="reintegra"` is unchanged.
 - **Giustizia Amministrativa: two quoted phrases no longer end in «non
   raggiungibile»** (#52). The firewall in front of the portal answers 403 to a
   search holding two phrases in quotes, and the tools reported the source as
