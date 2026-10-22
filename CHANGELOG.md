@@ -652,6 +652,18 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **Italgiure searches on an article find the same decisions however the code
+  is written** (#73, reported with a patch by @SOsintOps).
+  `giurisprudenza_su_norma("art. 2043 cod. civ.")` searched only the phrase
+  typed, and lost the 1350 civil decisions that write «2043 c.c.»; «codice
+  civile», «Costituzione», «cpc», «cod. pen.», «CCII» did the same. Every
+  spelling of a code (its abbreviation with or without dots, each form Italgiure
+  decisions use for it) now gives the query of the abbreviation, and so do act
+  types without dots («d.lgs 231/2001», «dpr 445/2000»). A spelling must end
+  where a word ends: «c.p.i.» (codice della proprietà industriale) is no longer
+  read as the codice penale, nor «l.r. 12/2005» as the national law 12/2005. The
+  search for the act's number/year no longer slows down quadratically on a long
+  run of digits.
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the
