@@ -399,6 +399,15 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
         validita, precisione, avvisi, successione, upcoming = _qualita(base, act_info, article)
+        if validita is not None and validita.state == "not_yet":
+            # «NON ANCORA ESISTENTE O VIGENTE»: the article did not exist on the day asked
+            # for. Its page's notice is not the article's text.
+            motivo = norme.non_ancora_vigente({"valid_to": validita.valid_to}, act_info.get("data_versione"))
+            return TestoArticolo(
+                esito="articolo_non_trovato", article_text="", norma_data=nd, url=base["url"],
+                validity=validita, urn=nd.urn, fonte=base["fonte"], canale=canale,
+                data_consultazione=base["data_consultazione"], errore=motivo, fonti=registro.fonti(),
+            )
         return TestoArticolo(
             esito=_esito_lookup(base, esito),
             article_text=base["testo"],

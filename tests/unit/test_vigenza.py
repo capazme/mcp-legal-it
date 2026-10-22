@@ -203,3 +203,116 @@ class TestWhatIsNotServedAtADate:
 
         t = await api.testo_articolo(replace(_l241("7"), versione="storica"), canale="html")
         assert t.esito == "riferimento_non_valido"
+
+
+def _c_p_c(article: str, data_versione: str):
+    return api.riferimento_da_parametri("codice di procedura civile", article, data_versione=data_versione).norma_data[0]
+
+
+class TestReviewOf72:
+    @pytest.mark.finestra_reale
+    async def test_an_article_that_did_not_exist_on_the_day_is_not_found(self, monkeypatch):
+        # «CODICE DI PROCEDURA CIVILE-art. 183 bis NON ANCORA ESISTENTE O VIGENTE», «al: 12-09-2014».
+        _serve(monkeypatch, {"~art183bis!vig=2010-01-01": page("art183bis_cpc_at_2010-01-01_not_yet_trimmed.html")})
+        t = await api.testo_articolo(_c_p_c("183-bis", "2010-01-01"), canale="html")
+        assert t.esito == "articolo_non_trovato" and t.article_text == ""
+        assert t.errore == "l'articolo non esisteva il 2010-01-01: entra in vigore dopo il 2014-09-12"
+        assert t.validity.state == "not_yet"
+
+    @pytest.mark.finestra_reale
+    async def test_the_last_day_before_the_article_existed_and_the_first_day_it_did(self, monkeypatch):
+        prima = page("art183bis_cpc_at_2010-01-01_not_yet_trimmed.html")
+        dopo = synthetic(dal="13-09-2014", label="Art. 183 bis",
+                         content='<span class="art-just-text-akn">Il testo del 2014.</span>')
+        _serve(monkeypatch, {"~art183bis!vig=2014-09-12": prima, "~art183bis!vig=2014-09-13": dopo})
+        t = await api.testo_articolo(_c_p_c("183-bis", "2014-09-12"), canale="html")
+        assert t.esito == "articolo_non_trovato"
+        t = await api.testo_articolo(_c_p_c("183-bis", "2014-09-13"), canale="html")
+        assert t.esito == "trovato" and "Il testo del 2014" in t.article_text
+        assert t.validity.request_in_window is True and t.precisione == "ESATTO"
+
+    def test_the_core_says_it_too(self, monkeypatch):
+        from mcp_legal_it.core import norme
+
+        assert norme.non_ancora_vigente({"valid_to": "2014-09-12"}, None) == (
+            "l'articolo non esisteva alla data richiesta: entra in vigore dopo il 2014-09-12")
+
+    @pytest.mark.parametrize("canale", ["akn", "html"])
+    @pytest.mark.parametrize("kw", [{"versione": "originale"}, {"data_versione": "2010-01-01"}])
+    async def test_a_version_of_an_act_whose_full_date_is_unknown_is_refused(self, monkeypatch, canale, kw):
+        # Cited with the year only and its date not read: the export would be asked at today's date.
+        export = []
+
+        async def nessuna_data(norma):
+            return {}
+
+        async def akn(norma, data_vigenza=None):
+            export.append(data_vigenza)
+            return ParsedAct(title="L. 241/1990", articles={"7": "### Art. 7.\n\n1. Testo di oggi."}, order=["7"])
+
+        richieste = _serve(monkeypatch, {})
+        monkeypatch.setattr(scraper, "_act_metadata", nessuna_data)
+        monkeypatch.setattr(akn_fetch, "fetch_act_akn", akn)
+        nd = api.riferimento_da_parametri("legge", "7", data="1990", numero_atto="241", **kw).norma_data[0]
+        t = await api.testo_articolo(nd, canale=canale)
+        assert t.esito == "verifica_non_disponibile" and t.article_text == ""
+        assert "data completa dell'atto" in t.errore
+        assert export == [] and richieste == []
+
+
+async def test_a_date_read_from_the_eli_alone_is_not_kept(monkeypatch):
+    # A kind outside the titles' nine: its ELI date serves this call, and is never written to disk.
+    from mcp_legal_it.lib.visualex import act_dates
+    from mcp_legal_it.lib.visualex.models import Norma
+
+    async def meta(norma):
+        return {"date": "2020-03-04"}
+
+    monkeypatch.setattr(scraper, "_act_metadata", meta)
+    norma = Norma("decreto del presidente del consiglio dei ministri", "2020", "5")
+    piena = await scraper.with_full_date(norma)
+    assert piena.data == "2020-03-04"
+    assert act_dates.leggi(act_dates.chiave(scraper._tipo_urn(norma), "2020", "5")) is None
+
+
+async def test_a_date_read_from_the_title_is_kept(monkeypatch):
+    from mcp_legal_it.lib.visualex import act_dates
+    from mcp_legal_it.lib.visualex.models import Norma
+
+    async def meta(norma):
+        return {"date": "1990-08-07", "data_titolo": "1990-08-07"}
+
+    monkeypatch.setattr(scraper, "_act_metadata", meta)
+    norma = Norma("legge", "1990", "241")
+    assert (await scraper.with_full_date(norma)).data == "1990-08-07"
+    assert act_dates.leggi(act_dates.chiave("legge", "1990", "241")) == "1990-08-07"
+
+
+@pytest.mark.parametrize("canale", ["akn", "html"])
+async def test_the_original_text_never_comes_from_the_export(monkeypatch, canale):
+    # A code has no date in its NormaVisitata: the export would be asked at today's date.
+    export = []
+
+    async def akn(norma, data_vigenza=None):
+        export.append(data_vigenza)
+        return ParsedAct(title="c.c.", articles={"2043": "### Art. 2043.\n\nTesto di oggi."}, order=["2043"])
+
+    originale = synthetic(dal="21-04-1942", label="Art. 2043",
+                          content='<span class="art-just-text-akn">Il testo del 1942.</span>')
+    richieste = _serve(monkeypatch, {"~art2043@originale": originale})
+    monkeypatch.setattr(akn_fetch, "fetch_act_akn", akn)
+    nd = api.riferimento_da_parametri("codice civile", "2043", versione="originale").norma_data[0]
+    t = await api.testo_articolo(nd, canale=canale)
+    assert t.esito == "trovato" and "Il testo del 1942" in t.article_text and t.fonte == "normattiva"
+    assert export == [] and len(richieste) == 1
+
+
+async def test_the_original_text_without_its_page_is_not_today_s(monkeypatch):
+    async def akn(norma, data_vigenza=None):
+        raise AssertionError("the export was asked for the original text")
+
+    _serve(monkeypatch, {})  # the @originale page cannot be read
+    monkeypatch.setattr(akn_fetch, "fetch_act_akn", akn)
+    nd = api.riferimento_da_parametri("codice civile", "2043", versione="originale").norma_data[0]
+    t = await api.testo_articolo(nd, canale="html")
+    assert t.article_text == "" and t.esito != "trovato"

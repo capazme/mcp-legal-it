@@ -177,15 +177,18 @@ async def with_full_date(norma: Norma) -> Norma:
     if kind in act_dates._TITLES:
         # VisuaLex's rule: the page's title names this act's type, year and number.
         date = meta.get("data_titolo", "")
+        if date:
+            act_dates.scrivi(chiave, date)
     else:
-        # A kind the titles do not cover (a DPCM, a ministerial decree): the page's ELI
-        # date, accepted when it is in the cited year — a weaker check, as before.
+        # A kind the titles do not cover (a DPCM, a ministerial decree, a regional law):
+        # the page's ELI date, accepted when it is in the cited year — a weaker check, as
+        # before. Never kept: the resolver can answer a regional law with the state law of
+        # the same year and number, and a year on disk would make that mistake last.
         date = meta.get("date", "")
         if not date.startswith(f"{norma.data}-"):
             date = ""
     if not date:
         return norma
-    act_dates.scrivi(chiave, date)
     return dataclasses.replace(norma, data=date)
 
 
@@ -247,6 +250,14 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
         full = await with_full_date(nv.norma)
         if full is not nv.norma:
             nv = dataclasses.replace(nv, norma=full)  # the version asked for stays
+        if nv.suffisso_versione() and _year_only_act(nv.norma):
+            # A text at a date, or the original, of an act whose full date could not be read:
+            # the export would be asked at today's date (the original's day is the act's),
+            # and the page would be the placeholder act's. Refused, never today's text.
+            return {"text": "", "url": nv.norma.url(), "source": source, "esito": CHECK_UNAVAILABLE,
+                    "error": (f"{'testo originale' if nv.versione == 'originale' else 'testo a una data'} "
+                              f"di {nv.norma}: la data completa dell'atto non è stata letta da Normattiva; "
+                              "indicarla (data=\"AAAA-MM-GG\")")}
         url = nv.url()
         if not url:
             return {"text": "", "url": "", "source": "", "error": "Could not generate URL for this act"}
@@ -257,7 +268,7 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
 
         # AKN channel: the official Akoma Ntoso XML export first, then the page.
         act = None
-        if not _akn_disabled():
+        if not _akn_disabled() and not senza_export(nv):
             from .akn_fetch import fetch_act_akn
 
             act = await fetch_act_akn(nv.norma, _vigenza_akn(nv))
@@ -920,7 +931,7 @@ async def _pagina_della_parte(nv: NormaVisitata, url: str, act, requested) -> "d
 
 async def _akn_act(nv: NormaVisitata):
     """The parsed Akoma Ntoso export of the act, or None (disabled, unreachable)."""
-    if _akn_disabled():
+    if _akn_disabled() or senza_export(nv):
         return None
     from .akn_fetch import fetch_act_akn
 
@@ -930,13 +941,22 @@ async def _akn_act(nv: NormaVisitata):
         return None
 
 
+def senza_export(nv: NormaVisitata) -> bool:
+    """Whether the Akoma Ntoso export cannot give the text asked for: the original text.
+
+    The export is a text in force on a day (``dataVigenza``), and the original is not one:
+    an act's own day can precede its entry into force (the c.c. is dated 16 March 1942 and
+    in force from 21 April), and a code's NormaVisitata has no date at all, so the export
+    would be asked at today's date. The original is read from the page (``@originale``) only.
+    """
+    return (nv.versione or "").strip().lower() == "originale"
+
+
 def _vigenza_akn(nv: NormaVisitata) -> "str | None":
-    """caricaAKN's ``dataVigenza`` for the text asked for: the date, the act's own day for the
-    original text, None (today) for the text in force."""
+    """caricaAKN's ``dataVigenza`` for the text asked for: the date, or None (today) for the
+    text in force. Never asked for the original text (``senza_export``)."""
     if nv.data_versione:
         return nv.data_versione.replace("-", "")
-    if (nv.versione or "").strip().lower() == "originale" and re.fullmatch(r"\d{4}-\d{2}-\d{2}", nv.norma.data or ""):
-        return nv.norma.data.replace("-", "")
     return None
 
 
