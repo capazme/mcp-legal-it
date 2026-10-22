@@ -236,8 +236,23 @@ The same, from explicit fields (the VisuaLex request body). No network.
   - `riferimento_non_valido`: no type; an EU regulation or directive without year
     (`data`) and `numero_atto`; or an Italian act without the date and number
     needed to build its address;
-  - `non_supportata`: a `versione` other than `vigente`, or any `data_versione`
-    (vigenza phase).
+  - `riferimento_non_valido` also for a version that cannot be one: a
+    `versione` other than `vigente` or `originale`, a `data_versione` that is not a
+    date, a future one (Normattiva would answer it with today's text and say
+    nothing), or a date together with `originale`;
+  - `non_supportata`: a version of an EU act or of an annex.
+- **Versions.** `data_versione` (`"2010-01-01"`, or the long form `"1 gennaio
+  2010"`) asks for the text in force on that day: the URN gains `!vig=2010-01-01`
+  and the export is asked at that day. **A date always means the text in force on
+  that date**, with `versione="vigente"` or without it. This departs from VisuaLex
+  on purpose: its `generate_urn` reads the date only together with
+  `versione="vigente"`, so a date sent alone gets today's text under the date
+  asked for (art. 1284 c.c. «at 2010-01-01» came back with the 4th and 5th commi
+  added in 2014). `versione="originale"` asks for the original text
+  (`@originale`; the export at the act's own day). `NormaDati.versione` and
+  `data_versione` carry the version to `testo_articolo`. The whole act, its index
+  and its tree are today's: `indice_atto`, `testo_atto` and `albero_atto` answer
+  `non_supportata` for a `NormaDati` with a version.
 
 ### `testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> TestoArticolo`
 
@@ -321,8 +336,15 @@ The text in force of one article, from Normattiva or EUR-Lex.
   does not say.
 - **`precisione`**: `ESATTO` only for the text of Normattiva's page whose
   validity the page states (decision LI-031); `INDICATIVO` for the export's text
-  or a page that does not say. **`avvisi`**: what the reader must know about the
-  text (the coming version, an unread window, the export's text).
+  or a page that does not say, or a page whose window does not hold the date
+  asked for (`validity.request_in_window` is `False`, and an `avviso` says so).
+  **`avvisi`**: what the reader must know about the text (the coming version, an
+  unread window, a window that misses the date, the export's text with the day it
+  was consolidated). **The two channels are checked against each other** wherever
+  the other one is already at hand, with no request: the page kept a day, the
+  export in its cache. When they disagree on the repeal, an `avviso` says which
+  says what; when the export's consolidation day differs from the day the act's
+  page says it was updated, an `avviso` says the two texts may differ.
   **`successione`**: the act that repealed the article (or will), as the repeal
   notice names it, derived automatically and always `INDICATIVO`.
 - **Esiti:** the whole `EsitoNorma` vocabulary.

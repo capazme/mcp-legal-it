@@ -15,6 +15,23 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **The text of an article at a date, and the original text** (`api`).
+  `riferimento_da_parametri(..., data_versione="2010-01-01")` (or «1 gennaio
+  2010») and a `NormaDati` with `data_versione` ask for the text in force on that
+  day: the page at that date (`!vig=`) and the export at that day.
+  `versione="originale"` asks for the original text (`@originale`). A date always
+  means the text in force on that date, with or without `versione="vigente"`:
+  VisuaLex reads the date only with `"vigente"` and otherwise serves today's text
+  under the date asked for. A future date, a date with `"originale"` or another
+  `versione` is `riferimento_non_valido`; a version of an EU act or of an annex,
+  and the whole act, its index or its tree at a date, are `non_supportata`. A
+  page whose window misses the date is `INDICATIVO`, with an `avviso`
+  (`validity.request_in_window`).
+- **Normattiva's two channels checked against each other** (`api.testo_articolo`,
+  `cite_law`), with no request: when the page kept a day and the export in its
+  cache disagree on the repeal, an `avviso` says which says what; the export's
+  text says the day it was consolidated (`consolidato`, from its ELI alias), and
+  an `avviso` says when the act's page was updated at another day.
 - **`LEGAL_CITATION_GATE=off` switches off the plugin's citation gate** (also
   `0`, `false`, `no`, any case). Only the Stop/SubagentStop hook stops; the
   plugin's tools stay. Meant for software-development sessions, for example
@@ -640,6 +657,9 @@ entry, it is the same feature as ported to the 3.0 line.
   outside VisuaLex's nine keeps the ELI rule. A found date is kept a year in
   `${MCP_CACHE_DIR}/act_dates.json`: after a restart a year-only citation costs
   no request for its date.
+- **A page asked for an article with no digits is checked against today's
+  window too.** Such a number has nothing to compare with the page's, and the
+  undated page went through unchecked.
 - **A citation without a date is the text in force today, even when Normattiva's
   page is not.** The page Normattiva serves without a date can be a version not
   in force yet: on 21/10/2026 art. 3 of d.P.R. 131/1986 (and of d.lgs. 546/1992,
