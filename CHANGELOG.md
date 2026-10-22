@@ -671,6 +671,26 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **Italgiure searches on an article find the same decisions however the code
+  is written** (#73, reported with a patch by @SOsintOps).
+  `giurisprudenza_su_norma("art. 2043 cod. civ.")` searched only the phrase
+  typed, and lost the 1350 civil decisions that write «2043 c.c.»; «codice
+  civile», «Costituzione», «cpc», «cod. pen.», «CCII» did the same. Every
+  spelling of a code (its abbreviation with or without dots, each form Italgiure
+  decisions use for it) now gives the query of the abbreviation, and so do act
+  types without dots («d.lgs 231/2001», «dpr 445/2000»). A spelling must end
+  where a word ends: «c.p.i.» (codice della proprietà industriale) is no longer
+  read as the codice penale, nor «l.r. 12/2005» as the national law 12/2005,
+  nor «l'impresa» as a law; «d.lgs.vo» and «d.l.vo» are legislative decrees.
+  The codes that are numbered acts (t.u.b., t.u.f., codice del consumo, codice
+  della strada, c.p.a., CCII, codice della navigazione) no longer OR in the bare
+  «art. N», which matches any decision citing any art. N: the article is tied to
+  the act's number and year by proximity, as for the other acts. The bare form
+  stays for c.c., c.p., c.p.c., c.p.p. and the Constitution, and the acronyms
+  without dots («TUB», «TUF», «cds», «cpa», «cod. cons.») are searched as
+  phrases of their own. The search for the act's number/year no longer slows
+  down quadratically on a long run of digits, and a double quote in the
+  reference no longer closes the Solr phrase (it could inject a clause).
 - **Giustizia Amministrativa: two quoted phrases no longer end in «non
   raggiungibile»** (#52). The firewall in front of the portal answers 403 to a
   search holding two phrases in quotes, and the tools reported the source as
