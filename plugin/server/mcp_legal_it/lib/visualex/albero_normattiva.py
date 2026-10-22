@@ -2,7 +2,8 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at eca698dc.
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at 0f1477c2
+# (first at eca698dc).
 # Adapted: only the Normattiva half (``_narrow``, ``_parse_normattiva_tree``,
 # ``_extract_normattiva_article``, ``_generate_article_url``), unchanged but for
 # ``_parse_normattiva_tree``, which awaited nothing and is a plain function here, and the
@@ -10,7 +11,9 @@
 # dropped: the records go to the standard ``logging`` module, configured by the caller. The EUR-Lex half and the Playwright fetch stay
 # in VisuaLex. ``articolo_nell_albero`` and ``dove_altrove`` are VisuaLex's
 # ``NormaController._article_exists_in_tree`` / ``_where_else_in_tree``
-# (services/visualex/app.py at eca698dc) rewritten as pure functions over a tree.
+# (services/visualex/app.py at 0f1477c2) rewritten as pure functions over a tree, with
+# ``comparable_article_key`` on both sides as there; ``grafia_dell_atto`` is its
+# ``_source_spelling``.
 
 """Normattiva's article tree (the ``albero`` of an act's page), as VisuaLex reads it.
 
@@ -24,7 +27,8 @@ Ntoso export (``akn_parser``).
 import logging
 import re
 
-from .akn_parser import normalize_article_key
+from .akn_parser import comparable_article_key
+from .article_suffixes import other_ordinal_spelling
 
 def _narrow(result, count, metadata, details, return_metadata):
     """A Normattiva tree as `get_tree(details, return_metadata)` answers it, from the widest
@@ -37,6 +41,11 @@ def _narrow(result, count, metadata, details, return_metadata):
     if return_metadata:
         return result, count, metadata
     return result, count
+
+
+# "art. 1" in the tree's links, or "art 1" without the dot, as some annexes write it
+# (d.lgs. 36/2023, Allegato I.4): the dotless ones used to be dropped from the tree.
+_ARTICLE_LABEL_PREFIX = re.compile(r'^\s*art(?:\.\s*|\s+)', re.IGNORECASE)
 
 
 def _parse_normattiva_tree(soup, normurn, link, details, return_metadata=False):
@@ -167,7 +176,7 @@ def _parse_normattiva_tree(soup, normurn, link, details, return_metadata=False):
         if a_tag and a_tag.find_parent('li') == li:
             text_content = a_tag.get_text(separator=" ", strip=True)
             # Rimuove "art. ", spazi e punti finali
-            article_num = re.sub(r'^\s*art\.\s*', '', text_content, flags=re.IGNORECASE).strip().rstrip('.')
+            article_num = _ARTICLE_LABEL_PREFIX.sub('', text_content).strip().rstrip('.')
 
             # Skip invalid article numbers (e.g., "orig", empty strings, non-article text)
             if not article_num or not re.match(r'^[\dIVXLCDM]', article_num, re.IGNORECASE):
@@ -229,7 +238,7 @@ def _extract_normattiva_article(a_tag, normurn, link, attachment_number=None):
     """
     # Rimuove eventuali prefissi come "art. " e spazi
     text_content = a_tag.get_text(separator=" ", strip=True)
-    text_content = re.sub(r'^\s*art\.\s*', '', text_content, flags=re.IGNORECASE)
+    text_content = _ARTICLE_LABEL_PREFIX.sub('', text_content)
 
     article_data = {
         "numero": text_content,
@@ -313,19 +322,37 @@ def articolo_nell_albero(articoli, articolo: str, allegato=None) -> "bool | None
 
     ``None`` when the tree cannot tell (a failure message, an empty tree): an outage
     is never "the article does not exist". Article numbers are compared through
-    ``normalize_article_key`` on both sides ("1-bis" and "1 bis" are one article).
+    ``comparable_article_key`` on both sides ("1-bis" and "1 bis" are one article, and so are
+    "135 sex decies" and "135-sexdecies").
     """
     if isinstance(articoli, str) or not articoli:
         return None
-    wanted = normalize_article_key(articolo)
+    wanted = comparable_article_key(articolo)
     for entry in articoli:
         if not isinstance(entry, dict):
             continue  # section/annex labels are bare strings
         if allegato is not None and str(entry.get("allegato") or "") != str(allegato):
             continue
-        if normalize_article_key(entry.get("numero", "")) == wanted:
+        if comparable_article_key(entry.get("numero", "")) == wanted:
             return True
     return False
+
+
+def grafia_dell_atto(articoli, articolo: str, allegato=None) -> "tuple[str, bool | None]":
+    """``(articolo, esiste)``: *articolo* as the act spells its ordinal, and whether the tree holds it.
+
+    VisuaLex's ``NormaController._source_spelling``. Two spellings circulate for 9, 15, 16,
+    18, 19 and 20 («novies» / «nonies», …) and an act uses one: «391 novies» in the c.p.p.,
+    «21 nonies» in l. 241/1990. Asked with the other one, the act's spelling is answered
+    (its URN is the act's). Anything else, an unreadable tree included, keeps what was asked.
+    """
+    esiste = articolo_nell_albero(articoli, articolo, allegato)
+    if esiste is not False:
+        return articolo, esiste
+    altra = other_ordinal_spelling(comparable_article_key(articolo))
+    if altra is not None and articolo_nell_albero(articoli, altra, allegato):
+        return altra, True
+    return articolo, esiste
 
 
 def dove_altrove(articoli, articolo: str, allegato) -> str:
@@ -342,10 +369,10 @@ def dove_altrove(articoli, articolo: str, allegato) -> str:
         # No part named: there is no "elsewhere" (VisuaLex gives the hint only for a part
         # the caller asked for, and str(None) would exclude nothing).
         return ""
-    wanted = normalize_article_key(articolo)
+    wanted = comparable_article_key(articolo)
     parts: list[str] = []
     for entry in articoli:
-        if not isinstance(entry, dict) or normalize_article_key(entry.get("numero", "")) != wanted:
+        if not isinstance(entry, dict) or comparable_article_key(entry.get("numero", "")) != wanted:
             continue
         part = str(entry.get("allegato") or "")
         if part != str(allegato) and part not in parts:

@@ -10,7 +10,15 @@ license = "MPL-2.0"
 # NOTICE points at LICENSES/Apache-2.0.txt for the 2.x contributions: every
 # artefact that carries the code carries that text too.
 license-files = ["LICENSE", "NOTICE", "LICENSES/*"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
+# 3.11 is the floor: the article-number patterns imported from VisuaLex use
+# possessive quantifiers (`\s*+`), which `re` reads only from 3.11.
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "fastmcp>=3.4,<5",
     "httpx>=0.27",

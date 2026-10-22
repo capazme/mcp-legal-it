@@ -337,8 +337,7 @@ def build_openai(root: Path) -> None:
     (bundle_root / "README.md").write_text(_OPENAI_README, encoding="utf-8")
 
 
-# Same regex approach as release.py's PYPROJECT_VERSION_RE: tomllib is stdlib
-# only from Python 3.11, and the test suite still runs this module on 3.10.
+# Same regex approach as release.py's PYPROJECT_VERSION_RE (the two stay alike).
 _PYPROJECT_VERSION_RE = re.compile(r'^version\s*=\s*"([^"]+)"', re.MULTILINE)
 
 

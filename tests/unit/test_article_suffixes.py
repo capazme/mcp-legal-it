@@ -29,8 +29,8 @@ from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.scraper import _article_identity
 
 #: sha256 of VisuaLex's ``services/visualex/visualex_api/tools/article_suffixes.py`` at
-#: ``eca698dc``. A change on either side must be made on both, the TypeScript mirrors included.
-VISUALEX_SHA256 = "eeda117e62581f533fe163c5f9c803366c2ce3dc6763850c71fea79f9a046688"
+#: ``0f1477c2``. A change on either side must be made on both, the TypeScript mirrors included.
+VISUALEX_SHA256 = "6f169cea9a56692434586186e1ec84231b631613c8340bdd8c74110df1cf9a34"
 
 # The suffixes Normattiva actually returned (VisuaLex's tests/test_article_existence.py).
 LIVE_SUFFIXES = [
@@ -96,10 +96,9 @@ class TestNormalizeArticleKey:
         # shapes the table cannot spell: the fallback keeps them, a trailing digit is a sub-number
         ("270 bis.1", "270-bis.1"),
         ("171 octies 1", "171-octies.1"),
-        # Documented adaptation (akn_parser header): a suffix split in two words is joined
-        # when the joined form is in the table; VisuaLex keeps "135-sex-decies" (sent upstream).
-        ("135 sex decies", "135-sexdecies"),
-        ("135 sex-decies", "135-sexdecies"),
+        # A suffix split in two words keeps them apart in the key (VisuaLex's keys answer
+        # /fetch_rubriche); comparable_article_key joins them for comparing (see below).
+        ("135 sex decies", "135-sex-decies"),
         ("135 foo bar", "135-foo-bar"),
         ("2 bis", "2-bis"),
         ("2043", "2043"),
@@ -217,11 +216,29 @@ def test_a_dashed_article_with_letters_before_the_dash_stays_linear(article):
     assert time.perf_counter() - start < 0.1
 
 
-def test_the_two_word_suffix_join_stays_linear_on_letters():
-    # The join of a suffix written in two words. (A long run of blanks is still slow in the
-    # normaliser's two patterns that come from VisuaLex: their fix lands there first.)
+@pytest.mark.parametrize("raw", ["1 " + "a" * 40 + " 1", "1" + " " * 20000 + "x", "1" + " " * 20000 + "x y",
+                                 "1" + " " * 20000 + "-" + " " * 20000 + "x"])
+def test_the_normaliser_stays_linear(raw):
+    # VisuaLex's patterns at 0f1477c2 (#271): "1" + 20,000 blanks + "x y" took 18 s before.
     import time
 
+    from mcp_legal_it.lib.visualex.akn_parser import comparable_article_key
+
     start = time.perf_counter()
-    normalize_article_key("1 " + "a" * 40 + " 1")
+    normalize_article_key(raw)
+    comparable_article_key(raw)
     assert time.perf_counter() - start < 0.1
+
+
+@pytest.mark.parametrize("raw,expected", [("135 sex decies", "135-sexdecies"), ("135-sexdecies", "135-sexdecies"),
+                                          ("135 vicies semel", "135-vicies-semel"), ("2 bis", "2-bis")])
+def test_comparable_key_joins_a_split_ordinal_the_table_holds(raw, expected):
+    from mcp_legal_it.lib.visualex.akn_parser import comparable_article_key
+
+    assert comparable_article_key(raw) == expected
+
+
+def test_the_other_spelling_of_an_ordinal():
+    assert article_suffixes.other_ordinal_spelling("391-nonies") == "391-novies"
+    assert article_suffixes.other_ordinal_spelling("25-quindecies.1") == "25-quinquiesdecies.1"
+    assert article_suffixes.other_ordinal_spelling("2-bis") is None
