@@ -15,6 +15,14 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **An EU act's index, tree and recitals** (`api`). `indice_atto` and
+  `albero_atto` now answer for EU regulations, directives and treaties: VisuaLex's
+  EU tree reader (`lib/visualex/eurlex_tree.py`) on the page of the text in force,
+  the same page the articles are read from (one request, kept a day), with
+  `consolidato` saying which text it is. A key keeps its ordinal («Articolo 15 bis»
+  is `15-bis`), and a heading an amending act quotes is not one of its articles.
+  The new `api.considerando(atto)` gives every recital, VisuaLex's
+  `/fetch_recitals`: `{number, text}` from the Official Journal page.
 - **EU consolidated versions** (`api`): `riferimento_da_parametri(...,
   celex_consolidated="02002L0058-20091219")` and `NormaDati.celex_consolidated`
   (VisuaLex's key, last in the dataclass) ask for the text of an EU regulation or
@@ -530,6 +538,16 @@ entry, it is the same feature as ported to the 3.0 line.
   caller that read them reads the range. `tipo="reintegra"` is unchanged. The
   answer also warns that Normattiva still prints the words struck down by
   194/2018 in art. 3.
+- **A recital's text is VisuaLex's** (`considerando 42 GDPR`): without its «(42)»
+  and without the Official Journal's footnote calls. `cite_law` still prints «(42)»
+  before it, as the label. A legacy page's recitals are read in their sequence, so a
+  footnote numbered like a recital is never taken for one.
+- **EUR-Lex readers re-pinned to VisuaLex `36ed6942`**: a heading «Articolo 15 bis»
+  no longer answers a request for art. 15 on any markup, and the article opens in
+  any spelling («15 bis», «15-bis», «15bis»). The consolidated-text regexes are linear
+  on long runs of blanks, and a legacy page's title comes from its Italian ELI
+  metadata. The 782 article texts of the GDPR, the AI Act and the TFUE are
+  unchanged.
 - **EU article text: VisuaLex's reader, from CELLAR, one page per act.** The text
   of an article of an EU act is read by VisuaLex's extractor
   (`lib/visualex/eurlex_text.py`, `eurlex_scraper.py` at `493a8dd1`), whose text is

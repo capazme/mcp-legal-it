@@ -1,4 +1,4 @@
-<!-- Imported from VisuaLex (MPL-2.0), services/visualex/tests/fixtures/eurlex/README.md at 493a8dd1, with the four pages it describes, byte for byte. -->
+<!-- Imported from VisuaLex (MPL-2.0), services/visualex/tests/fixtures/eurlex/README.md at 36ed6942 (first at 493a8dd1), with the six pages it describes, byte for byte. -->
 
 # EUR-Lex fixtures
 
@@ -24,7 +24,17 @@ Trimming: `str()` of the elements with the listed ids, assembled inside
 `<html><body>`. The capture and trim commands are in
 `docs/superpowers/plans/2026-09-19-archivio-visualex-extensions.md`, Task 1.
 
-Used by `tests/unit/test_eurlex_fixtures.py` and `tests/unit/test_eurlex_consolidated.py` (VisuaLex's tests, adapted).
+Added 2026-10-22:
+
+- `eprivacy_eli_legacy_trimmed.html` — the `/eli/dir/2002/58/oj/ita` page as the scraper's
+  browser receives it: a legacy act with no `DC.description`, no `oj-doc-ti`, no
+  `title-doc-last`, only the ELI metadata naming the act in 23 languages
+  (`<meta property="eli:title" lang="…">`). Trimmed to `<title>`, those metas and `#TexteOnly`.
+- `synthetic_oj_article_15_bis.html` — **synthetic**, written for the test: an OJ-style act
+  whose only article 15 is «Articolo 15 bis». No real page with that shape is known.
+
+Used by `tests/unit/test_eurlex_fixtures.py`, `test_eurlex_consolidated.py`, `test_eurlex_tree.py`,
+`test_eurlex_rubriche.py` and `test_eurlex_recitals.py` (VisuaLex's tests, generated).
 
 mcp-legal-it's own, captured 2026-10-22 from CELLAR (`publications.europa.eu/resource/celex/<CELEX>`),
 trimmed as above and checked to give the same article text as the whole page:

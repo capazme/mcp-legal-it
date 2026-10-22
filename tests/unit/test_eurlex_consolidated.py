@@ -2,13 +2,11 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at 493a8dd1:
-# TestConsolidatedArticleText, TestOneLinePerPoint, TestNoSpaceBeforePunctuation and
-# TestStripAmendmentMarkers, with their assertions as they are. Adapted: the extractor is a plain
-# function (``eurlex_text.extract_article_text``, not the scraper's coroutine); the two tests that
-# walk every article take the article numbers from the page's ``title-article-norm`` headings
-# (``_articoli``) instead of VisuaLex's EU tree, which comes with the rubriche and the title in a
-# later change. The model tests are this package's (below the imported classes).
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at 36ed6942: TestConsolidatedArticleText, TestOneLinePerPoint,
+# TestNoSpaceBeforePunctuation, TestStripAmendmentMarkers and TestWhitespaceRunsAreLinear (the tree,
+# rubriche and title classes are in test_eurlex_tree.py); this package's own tests follow them.
+# Generated (scratch gen_eurlex_tests.py): VisuaLex's assertions as they are; the extractor and
+# the tree reader are plain functions here, the fixtures are tests/fixtures/visualex/eurlex.
 """EU consolidated texts: VisuaLex's reader, and how a consolidated version is asked for.
 
 For regulations and directives the Official Journal page is the act as published. That is the
@@ -29,18 +27,14 @@ from mcp_legal_it.lib.visualex.eurlex_text import (
     extract_article_text,
     strip_amendment_markers,
 )
+from mcp_legal_it.lib.visualex.eurlex_tree import _parse_eurlex_tree
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "visualex" / "eurlex"
+CONSOLIDATED = "https://eur-lex.europa.eu/legal-content/IT/TXT/HTML/?uri=CELEX:02002L0058-20091219"
 
 
 def soup_of(name):
     return BeautifulSoup((FIXTURES / name).read_text(encoding="utf-8"), "html.parser")
-
-
-def _articoli(soup):
-    """``(items, count, metadata)`` with the page's article numbers, as VisuaLex's tree gives them."""
-    numeri = [re.sub(r"^Articolo\s+", "", p.get_text(" ", strip=True)) for p in soup.find_all("p", class_="title-article-norm")]
-    return [{"numero": n} for n in numeri], len(numeri), {}
 
 
 class TestConsolidatedArticleText:
@@ -118,6 +112,47 @@ class TestConsolidatedArticleText:
         with pytest.raises(DocumentNotFoundError):
             extract_article_text(BeautifulSoup(html, "html.parser"), "1")
 
+    @pytest.mark.parametrize("markup", ["oj-ti-art, nbsp", "oj-ti-art", "class with art", "class-less", "eli-subdivision"])
+    def test_oj_article_15_is_never_served_as_15_bis(self, markup):
+        # Synthetic page (fixtures/eurlex/README.md): its only article 15 is «Articolo 15 bis».
+        # A request for art. 15 was served art. 15 bis, the wrong article as the one asked
+        # (the class of inventory row 3.1). The suffix served must be the one asked, none for none.
+        html = (FIXTURES / "synthetic_oj_article_15_bis.html").read_text(encoding="utf-8")
+        if markup != "oj-ti-art, nbsp":
+            html = html.replace("&nbsp;", " ")
+        if markup == "class with art":
+            html = html.replace('class="oj-ti-art"', 'class="title-art"')
+        elif markup == "class-less":
+            html = re.sub(r' class="[^"]*"', "", html)
+        elif markup == "eli-subdivision":
+            html = re.sub(r' class="[^"]*"', "", html).replace("<body>", '<body><div class="eli-subdivision">')
+        with pytest.raises(DocumentNotFoundError):
+            extract_article_text(BeautifulSoup(html, "html.parser"), "15")
+        if markup != "eli-subdivision":  # one subdivision holds every article: no boundary to test
+            text14 = extract_article_text(BeautifulSoup(html, "html.parser"), "14")
+            assert text14.split("\n")[:3] == ["Articolo\xa014" if "nbsp" in markup else "Articolo 14",
+                                               "Disposizioni generali", "Testo dell'articolo 14."]
+        # The article that is there opens, asked in any spelling, non-breaking spaces included.
+        for spelling in ("15 bis", "15-bis", "15bis"):
+            asked = extract_article_text(BeautifulSoup(html, "html.parser"), spelling)
+            assert asked.replace("\xa0", " ").split("\n")[:2] == ["Articolo 15 bis", "Articolo inserito"], spelling
+
+    @pytest.mark.parametrize("heading,article,heads", [
+        ("Articolo 15 bis", "15", False),
+        ("Articolo 15bis", "15", False),
+        ("Articolo 15-ter", "15", False),
+        ("Articolo 15 quinquiesdecies", "15", False),
+        ("Articolo 15 bis", "15 bis", True),
+        ("Articolo 15 bis decies", "15 bis", False),
+        ("Articolo 150", "15", False),
+        ("Articolo 15", "15", True),
+        ("Articolo 15Terzi", "15", True),     # a rubrica run on, not an ordinal
+        ("Articolo 15 Bisogna", "15", True),
+    ])
+    def test_the_number_ends_with_the_heading(self, heading, article, heads):
+        from mcp_legal_it.lib.visualex.eurlex_text import _heads_article
+        assert _heads_article(heading, f"Articolo {article}") is heads
+
     def test_inline_amendment_markers_are_not_text(self):
         soup = soup_of("eprivacy_consolidated_20091219.html")
         text4 = extract_article_text(soup, "4")
@@ -134,7 +169,7 @@ class TestConsolidatedArticleText:
         # "►M2 … ◄" inline marker, no "▼M2" block marker, no "—————" left by a
         # deleted point. The markers are not text (gotcha 23).
         soup = soup_of(fixture)
-        result, count, _ = _articoli(soup)
+        result, count, _ = _parse_eurlex_tree(soup, CONSOLIDATED, link=False, details=False)
         assert count > 0
         for item in result:
             text = extract_article_text(soup, item["numero"])
@@ -278,7 +313,7 @@ class TestNoSpaceBeforePunctuation:
     ])
     def test_no_line_keeps_a_space_before_punctuation(self, fixture):
         soup = soup_of(fixture)
-        result, _, _ = _articoli(soup)
+        result, _, _ = _parse_eurlex_tree(soup, CONSOLIDATED, link=False, details=False)
         for item in result:
             text = extract_article_text(soup, item["numero"])
             assert not re.search(r"\s[.,;:)]", text), (fixture, item["numero"])
@@ -298,6 +333,39 @@ class TestStripAmendmentMarkers:
         assert strip_amendment_markers("►M2 Sicurezza del trattamento ◄") == "Sicurezza del trattamento"
         assert strip_amendment_markers("personali»: ◄ violazione") == "personali»: violazione"
         assert strip_amendment_markers("Articolo 5") == "Articolo 5"
+
+
+class TestWhitespaceRunsAreLinear:
+    """`\\s*[►◄▼]…` and `\\s+([.,;:)])` restarted at every blank of a run and scanned the rest of
+    it each time: 0.85 s a pass on 20,000 blanks, three passes per element (consolidated path).
+    Matched now only from a run's first blank, with the same result."""
+
+    OLD_MARK = re.compile(r"\s*[►◄▼](?:[A-Z]\d*)?\s*")
+    OLD_PUNCT = re.compile(r"\s+([.,;:)])")
+
+    def test_same_result_as_the_quadratic_patterns(self):
+        import random
+        from mcp_legal_it.lib.visualex.eurlex_text import _SPACE_BEFORE_PUNCTUATION
+        from mcp_legal_it.lib.visualex.eurlex_text import _AMENDMENT_MARK
+
+        rng = random.Random(20261022)
+        alphabet = [" ", " ", "\xa0", "\n", "\t", "►", "◄", "▼", "M", "B", "2", "a", "x", ".", ",", ";", ")", "("]
+        for _ in range(5000):
+            text = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 24)))
+            assert _AMENDMENT_MARK.sub(" ", text) == self.OLD_MARK.sub(" ", text), repr(text)
+            assert _SPACE_BEFORE_PUNCTUATION.sub(r"\1", text) == self.OLD_PUNCT.sub(r"\1", text), repr(text)
+
+    @pytest.mark.parametrize("blank", [" ", "\xa0", "\n"])
+    def test_a_long_run_of_blanks_costs_linear_time(self, blank):
+        import time
+        from mcp_legal_it.lib.visualex.eurlex_text import _cons_text
+
+        text = "x" + blank * 50_000 + "x"
+        start = time.perf_counter()
+        assert strip_amendment_markers(text) == (text if blank == "\n" else "x x")
+        _cons_text(BeautifulSoup(f"<p>{text}</p>", "html.parser"))
+        # Before: about 5 s for these 50,000 blanks. A linear pass takes milliseconds.
+        assert time.perf_counter() - start < 0.5
 
 
 # --- this package's: the model, the api, the page cache --------------------------------
