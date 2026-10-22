@@ -68,4 +68,5 @@ addopts = "-m 'not live'"
 markers = [
     "live: live integration tests hitting real APIs",
     "finestra_reale: a unit test of the validity window, without the in-force default for made-up pages",
+    "consolidazioni_reali: a unit test of the EU consolidated default, without the no-consolidation stub",
 ]
