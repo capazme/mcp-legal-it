@@ -798,7 +798,10 @@ def format_full(
 class GASession:
     """Async context manager for Giustizia Amministrativa HTTP session."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, documento: bool = False) -> None:
+        # documento: the session only reads a provvedimento, so a refusal never talks about
+        # the query's syntax, not even on the search page it opens first.
+        self._documento = documento
         self._client: httpx.AsyncClient | None = None
         self._p_auth: str = ""
         self._action: str = ""
@@ -810,7 +813,7 @@ class GASession:
             headers=_HEADERS,
             follow_redirects=True,
         )
-        resp = await self._request("GET", _BASE_SEARCH + _SEARCH_PATH)
+        resp = await self._request("GET", _BASE_SEARCH + _SEARCH_PATH, documento=self._documento)
         html = resp.text
         self.portlet_id = _extract_portlet_id(html)
         self._p_auth = _extract_p_auth(html)
@@ -912,7 +915,7 @@ class ProvvedimentoDocument:
 
 async def fetch_provvedimento_document(sede: str, nrg: str, nome_file: str) -> ProvvedimentoDocument:
     """Fetch a provvedimento from mdp: text and citation data, or the PDF flag."""
-    async with GASession() as session:
+    async with GASession(documento=True) as session:
         content = await session.fetch_text(sede, nrg, nome_file)
     title, text = _parse_xml_text(content)
     return ProvvedimentoDocument(
