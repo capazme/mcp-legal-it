@@ -301,7 +301,8 @@ def _versione(tipo_atto: str, versione: str | None, data_versione: str | None) -
     ``versione="vigente"``. VisuaLex's ``generate_urn`` reads the date only together with
     "vigente", and a date sent without it gets today's text under the date asked for
     (art. 1284 c.c. "at 2010-01-01" came back with the 4th and 5th commi of 2014). This
-    API does not follow it there, on purpose (docs/api.md).
+    API does not follow it there until VisuaLex #276 lands, which adopts the same rule
+    (docs/api.md).
     """
     from mcp_legal_it.lib.visualex.normattiva_validity import _iso_day
 

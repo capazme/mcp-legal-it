@@ -244,11 +244,12 @@ The same, from explicit fields (the VisuaLex request body). No network.
 - **Versions.** `data_versione` (`"2010-01-01"`, or the long form `"1 gennaio
   2010"`) asks for the text in force on that day: the URN gains `!vig=2010-01-01`
   and the export is asked at that day. **A date always means the text in force on
-  that date**, with `versione="vigente"` or without it. This departs from VisuaLex
-  on purpose: its `generate_urn` reads the date only together with
-  `versione="vigente"`, so a date sent alone gets today's text under the date
-  asked for (art. 1284 c.c. «at 2010-01-01» came back with the 4th and 5th commi
-  added in 2014). `versione="originale"` asks for the original text
+  that date**, with `versione="vigente"` or without it. This is a temporary
+  divergence from VisuaLex, until its PR #276 lands: today its `generate_urn`
+  reads the date only together with `versione="vigente"`, so a date sent alone
+  gets today's text under the date asked for (art. 1284 c.c. «at 2010-01-01»
+  came back with the 4th and 5th commi added in 2014). VisuaLex adopts the same
+  rule there. `versione="originale"` asks for the original text
   (`@originale`; the export at the act's own day). `NormaDati.versione` and
   `data_versione` carry the version to `testo_articolo`. The whole act, its index
   and its tree are today's: `indice_atto`, `testo_atto` and `albero_atto` answer
