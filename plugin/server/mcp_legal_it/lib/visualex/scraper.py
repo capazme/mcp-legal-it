@@ -12,13 +12,13 @@ from urllib.parse import urljoin
 
 import httpx
 from mcp_legal_it.core._http import async_client
-from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
+from bs4 import BeautifulSoup, Tag, XMLParsedAsHTMLWarning
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .. import _brocardi_switch, _clock
 from .._http import note_source
-from . import act_dates, normattiva_html, pagine_normattiva
+from . import act_dates, normattiva_html, pagine_eurlex, pagine_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
@@ -1001,7 +1001,9 @@ def _eurlex_urls(norma) -> tuple[str, str]:
     if treaty_celex:
         return f"{_CELLAR_BASE}{quote(treaty_celex, safe='')}", eurlex_val
 
-    celex = _build_celex(norma)
+    # A consolidated version: CELLAR serves its sector-0 CELEX with the consolidated markup
+    # (Q1: the same bytes for VisuaLex's extractor as the EUR-Lex page).
+    celex = norma.celex_consolidated or _build_celex(norma)
     if not celex:
         return "", ""
     return f"{_CELLAR_BASE}{celex}", eurlex_citable_url(celex)
@@ -1021,6 +1023,12 @@ async def _fetch_eurlex_html(norma) -> tuple[str, str]:
     url, display_url = _eurlex_urls(norma)
     if not url:
         return "", ""
+    # One page carries the whole act: kept a day, as VisuaLex keeps it (pagine_eurlex).
+    kept = pagine_eurlex.leggi(url)
+    if kept is not None:
+        html, servito = kept
+        note_source("eur_lex", servito)
+        return html, display_url or servito
 
     async with async_client("eur_lex",
         headers={
@@ -1039,6 +1047,7 @@ async def _fetch_eurlex_html(norma) -> tuple[str, str]:
     # Detect WAF challenge (202 + tiny body)
     if resp.status_code == 202 or (len(html) < 5000 and "WAF" in html):
         return "", url
+    pagine_eurlex.scrivi(url, html, str(resp.url) if hasattr(resp, "url") else url)
 
     final_url = display_url or (str(resp.url) if hasattr(resp, "url") else url)
     return html, final_url
@@ -1077,50 +1086,14 @@ def _extract_eurlex_article(html: str, article: str) -> str:
     if annex:
         return _extract_eurlex_annex(soup, *annex)
 
-    # Strategy 1: semantic id — div#art_N (most reliable on Cellar XHTML)
-    art_id = f"art_{article}"
-    article_div = soup.find("div", id=art_id)
-    if article_div:
-        return _extract_eurlex_subdivision(article_div)
+    # An article: VisuaLex's extractor, on VisuaLex's parser (its text is frozen). It reads
+    # the OJ page and, for a consolidated version, the consolidated markup.
+    from . import eurlex_text
 
-    search_patterns = [f"Articolo {article}", f"Article {article}", f"Art. {article}"]
-    # A title names the article only if the number ends there: "Articolo 9" is not
-    # the head of "Articolo 90", which a bare startswith() served for a missing art. 9.
-    title_re = re.compile(
-        "^(?:" + "|".join(re.escape(p) for p in search_patterns) + r")(?!\d)"
-    )
-
-    # Strategy 2: <p class="oj-ti-art"> (Cellar/OJ format)
-    for pattern in search_patterns:
-        for p_tag in soup.find_all("p", class_=lambda c: c and "ti-art" in c):
-            title = p_tag.get_text(strip=True)
-            if title.startswith(pattern) and title_re.match(title):
-                # Check if parent is eli-subdivision — if so, extract the whole block
-                parent_sub = p_tag.find_parent("div", class_=lambda c: c and "eli-subdivision" in c)
-                if parent_sub:
-                    return _extract_eurlex_subdivision(parent_sub)
-                # Fallback: collect siblings until next article
-                return _extract_eurlex_siblings(p_tag)
-
-    # Strategy 3: eli-subdivision containing article text
-    for subdiv in soup.find_all("div", class_=lambda c: c and "eli-subdivision" in c):
-        title_elem = subdiv.find(
-            ["p", "span", "div"],
-            string=lambda s: s and bool(title_re.match(s.strip())),
-        )
-        if title_elem:
-            return _extract_eurlex_subdivision(subdiv)
-
-    # Strategy 4: regex text match anywhere
-    article_regex = re.compile(rf"^Articolo\s+{re.escape(str(article))}\b", re.IGNORECASE)
-    for tag in soup.find_all(["p", "div", "span", "h1", "h2", "h3", "h4"]):
-        if article_regex.match(tag.get_text(strip=True)):
-            parent_sub = tag.find_parent("div", class_=lambda c: c and "eli-subdivision" in c)
-            if parent_sub:
-                return _extract_eurlex_subdivision(parent_sub)
-            return _extract_eurlex_siblings(tag)
-
-    return f"[Articolo {article} non trovato nel documento EUR-Lex]"
+    try:
+        return eurlex_text.extract_article_text(BeautifulSoup(html, "html.parser"), article)
+    except eurlex_text.DocumentNotFoundError:
+        return f"[Articolo {article} non trovato nel documento EUR-Lex]"
 
 
 def _extract_eurlex_annex(soup: BeautifulSoup, annex_id: str, article: str) -> str:
@@ -1188,63 +1161,6 @@ def _table_rows_text(node: Tag) -> str:
     if rows:
         return "\n".join(rows)
     return node.get_text(strip=True)
-
-
-def _extract_eurlex_subdivision(div: Tag) -> str:
-    """Extract text from an eli-subdivision div, handling nested structure."""
-    parts: list[str] = []
-    for child in div.children:
-        if isinstance(child, NavigableString):
-            t = str(child).strip()
-            if t:
-                parts.append(t)
-        elif isinstance(child, Tag):
-            # Skip nested article subdivisions (they are separate articles)
-            if child.get("class") and any("eli-subdivision" in c for c in child.get("class", [])):
-                child_id = child.get("id", "")
-                if child_id.startswith("art_"):
-                    continue
-            if child.name == "table":
-                for row in child.find_all("tr"):
-                    cells = row.find_all("td")
-                    row_text = " ".join(c.get_text(strip=True) for c in cells)
-                    if row_text:
-                        parts.append(row_text)
-            else:
-                t = child.get_text(strip=True)
-                if t:
-                    parts.append(t)
-    return "\n".join(parts)
-
-
-# Article-heading class, exactly: "sti-art" is the *subtitle* of the same
-# article ("(ex articolo 81 del TCE)"), not the start of the next one.
-_TI_ART_CLASS = re.compile(r"^(?:oj-)?ti-art$")
-
-
-def _extract_eurlex_siblings(start_tag: Tag) -> str:
-    """Collect text from start_tag and siblings until next article header."""
-    full_text = [start_tag.get_text(strip=True)]
-    next_article_pat = re.compile(r"^Articolo\s+\d+|^Article\s+\d+|^Art\.\s+\d+", re.IGNORECASE)
-    element = start_tag.find_next_sibling()
-    while element:
-        classes = element.get("class", []) if hasattr(element, "get") else []
-        if any(_TI_ART_CLASS.match(c) for c in classes):
-            break
-        elem_text = element.get_text(strip=True) if hasattr(element, "get_text") else ""
-        if next_article_pat.match(elem_text):
-            break
-        if element.name in ["p", "div", "span"]:
-            if elem_text:
-                full_text.append(elem_text)
-        elif element.name == "table":
-            for row in element.find_all("tr"):
-                cells = row.find_all("td")
-                row_text = " ".join(c.get_text(strip=True) for c in cells)
-                if row_text:
-                    full_text.append(row_text)
-        element = element.find_next_sibling()
-    return "\n".join(full_text)
 
 
 # ---------------------------------------------------------------------------

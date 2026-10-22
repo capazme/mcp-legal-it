@@ -34,6 +34,10 @@ class Norma:
     # It is VisuaLex's ``allegato``: a position, not the name the act gives the annex
     # ("Allegato 1"). Empty: the act's body, or a code's own default part.
     allegato: str = ""
+    # A consolidated version of an EU act: its sector-0 CELEX ("02002L0058-20091219", Dir.
+    # 2002/58/CE as amended up to 19 December 2009). VisuaLex's ``celex_consolidated``;
+    # empty for the Official Journal text. Checked by ``api`` (shape, and that it is this act's).
+    celex_consolidated: str = ""
 
     def __post_init__(self):
         self.tipo_atto_normalized = normalize_act_type(self.tipo_atto)
@@ -50,6 +54,9 @@ class Norma:
             val = EURLEX[norm]
             if val.startswith("https"):
                 return val
+            if self.celex_consolidated:
+                # VisuaLex's URL of a consolidated version (EurlexScraper.get_uri).
+                return f"https://eur-lex.europa.eu/legal-content/IT/TXT/HTML/?uri=CELEX:{self.celex_consolidated}"
             year = self.data.split("-")[0] if self.data and "-" in self.data else self.data
             return f"{_EURLEX_BASE}/{val}/{year}/{self.numero_atto}/oj/ita"
 
@@ -87,6 +94,9 @@ class Norma:
             parts.append(f"{self.data},")
         if self.numero_atto:
             parts.append(f"n. {self.numero_atto}")
+        if self.celex_consolidated:
+            # As VisuaLex: the OJ text and a consolidation do not have the same articles.
+            parts.append(f"(consolidato {self.celex_consolidated})")
         return " ".join(parts)
 
 

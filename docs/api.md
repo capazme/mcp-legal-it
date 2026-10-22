@@ -224,7 +224,7 @@ r = api.leggi_riferimento("art. 2043 c.c.")
 r.norma_data[0].urn   # 'urn:nir:stato:regio.decreto:1942-03-16;262:2~art2043'
 ```
 
-### `riferimento_da_parametri(tipo_atto, numero_articolo="", data="", numero_atto="", allegato=None, versione="vigente", data_versione=None) -> EsitoRiferimento`
+### `riferimento_da_parametri(tipo_atto, numero_articolo="", data="", numero_atto="", allegato=None, versione="vigente", data_versione=None, celex_consolidated=None) -> EsitoRiferimento`
 
 The same, from explicit fields (the VisuaLex request body). No network.
 
@@ -260,6 +260,17 @@ The same, from explicit fields (the VisuaLex request body). No network.
   `data_versione` carry the version to `testo_articolo`. The whole act, its index
   and its tree are today's: `indice_atto`, `testo_atto` and `albero_atto` answer
   `non_supportata` for a `NormaDati` with a version.
+- **EU consolidated versions.** `celex_consolidated` (VisuaLex's key) names a
+  consolidated version of an EU regulation or directive by its sector-0 CELEX:
+  `"02002L0058-20091219"` is directive 2002/58/CE as amended up to 19 December
+  2009. The Official Journal text is the act as published, which is the wrong text
+  for an amended act (2002/58 without the 2009 amendment has no cookie rule in art.
+  5(3)). The CELEX must have the shape (sector 0, ASCII digits, nothing after the
+  date) and be this act's own (year, type and number): another act's consolidation
+  is `riferimento_non_valido`, as is the field on an act that is not an EU
+  regulation or directive. `url` is the consolidated page (VisuaLex's URL); the text
+  is read from CELLAR's copy of it, with VisuaLex's reader: no «▼M2» marker, one
+  line per point. An annex of a consolidated version is `non_supportata` for now.
 
 ### `testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> TestoArticolo`
 
@@ -647,7 +658,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 
 | Type | Fields |
 |---|---|
-| `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta` |
+| `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta`, and VisuaLex's `celex_consolidated` last |
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
 | `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |

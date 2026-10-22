@@ -114,6 +114,10 @@ class NormaDati:
     #: False when the act was cited with the year only and its full date could not be
     #: read: ``data`` is then "YYYY" and the URN carries a placeholder date.
     data_risolta: bool = True
+    # VisuaLex's ``celex_consolidated``, last so that positional calls keep their meaning: a
+    # consolidated version of an EU act by its sector-0 CELEX ("02002L0058-20091219"); None
+    # for the Official Journal text.
+    celex_consolidated: str | None = None
 
 
 @dataclass(frozen=True)
