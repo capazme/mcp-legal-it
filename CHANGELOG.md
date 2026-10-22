@@ -652,6 +652,16 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **Giustizia Amministrativa: two quoted phrases no longer end in «non
+  raggiungibile»** (#52). The firewall in front of the portal answers 403 to a
+  search holding two phrases in quotes, and the tools reported the source as
+  down, echoing the request URL with its session token. Such a query is now
+  refused before any request, with a way to rephrase it (one phrase in quotes,
+  the other words free: verified live); any other 4xx from the portal says the
+  portal refused the request, not that it is unreachable, and no error repeats
+  the request URL (a 5xx is still the source down). Same rules in
+  `giurisprudenza_amm_su_norma`, `cerca_giurisprudenza_unificata` and
+  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`).
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the

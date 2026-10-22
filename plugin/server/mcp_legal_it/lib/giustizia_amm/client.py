@@ -54,6 +54,66 @@ _HEADERS = {
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 _MAX_TEXT_LENGTH = 15000
 
+
+class QueryNonSupportata(ValueError):
+    """A query the portal is known to refuse: rejected here, before any request (#52)."""
+
+
+class PortaleRifiuta(Exception):
+    """The portal answered 4xx: it is reachable but refused this request.
+
+    The message is meant for the user. It never carries the request URL, whose query string
+    holds the portlet id and the session's CSRF token (p_auth).
+    """
+
+
+# The firewall in front of the portal (Azure Application Gateway) answers 403 to a search
+# text holding two quoted phrases (#52, read 2026-10-22: '"accordi tra pubbliche
+# amministrazioni" "rinnovo tacito"' -> 403, '"rinnovo tacito" accordi tra pubbliche
+# amministrazioni' -> 200, 50 results). The portal has no other field that searches a second
+# phrase, so the query is refused with a way to rephrase it rather than sent to be blocked.
+_MAX_VIRGOLETTE = 2
+
+_MSG_FRASI = (
+    "il portale della Giustizia Amministrativa non accetta più di una frase tra virgolette "
+    "nella stessa ricerca: il filtro di sicurezza del portale la respinge (HTTP 403). "
+    "Ricerca non inviata. Riformulare con una sola frase tra virgolette e le altre parole "
+    "libere (es. `\"rinnovo tacito\" accordi tra pubbliche amministrazioni`), oppure fare una "
+    "ricerca per ciascuna frase e confrontare i risultati."
+)
+
+_MSG_403 = (
+    "il portale della Giustizia Amministrativa ha rifiutato la richiesta (HTTP 403, filtro di "
+    "sicurezza del portale). La fonte è raggiungibile: per una ricerca, riformulare la query "
+    "(meno virgolette o simboli, parole diverse) e riprovare."
+)
+
+
+def check_query(query: str) -> None:
+    """Raise QueryNonSupportata for a search text the portal is known to refuse."""
+    if (query or "").count('"') > _MAX_VIRGOLETTE:
+        raise QueryNonSupportata(_MSG_FRASI)
+
+
+def _senza_url(exc: httpx.HTTPStatusError) -> Exception:
+    """The same failure without the request URL (portlet id and p_auth) in its message.
+
+    4xx -> PortaleRifiuta; 429 and 5xx stay HTTPStatusError, so callers still read them as the
+    source being down or limiting us.
+    """
+    status = exc.response.status_code
+    if status == 403:
+        return PortaleRifiuta(_MSG_403)
+    if 400 <= status < 500 and status != 429:
+        return PortaleRifiuta(
+            f"il portale della Giustizia Amministrativa ha rifiutato la richiesta (HTTP {status})."
+        )
+    return httpx.HTTPStatusError(
+        f"il portale della Giustizia Amministrativa ha risposto HTTP {status}",
+        request=exc.request,
+        response=exc.response,
+    )
+
 # Friendly key -> value accepted by the portal's `sedeProvvedimenti` select.
 # Regional aliases map to the main seat; second seats are addressable explicitly.
 SEDI: dict[str, str] = {
@@ -739,7 +799,7 @@ class GASession:
             headers=_HEADERS,
             follow_redirects=True,
         )
-        resp = await retry_request(self._client, "GET", _BASE_SEARCH + _SEARCH_PATH, dataset="giustizia_amm")
+        resp = await self._request("GET", _BASE_SEARCH + _SEARCH_PATH)
         html = resp.text
         self.portlet_id = _extract_portlet_id(html)
         self._p_auth = _extract_p_auth(html)
@@ -755,17 +815,23 @@ class GASession:
             await self._client.aclose()
             self._client = None
 
+    async def _request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        try:
+            return await retry_request(self._client, method, url, dataset="giustizia_amm", **kwargs)
+        except httpx.HTTPStatusError as exc:
+            raise _senza_url(exc) from None
+
     async def search(self, params: dict) -> str:
         if self._client is None:
             raise RuntimeError("GASession not entered — use `async with`")
-        resp = await retry_request(self._client, "POST", self._action, dataset="giustizia_amm", data=params)
+        resp = await self._request("POST", self._action, data=params)
         return resp.text
 
     async def fetch_text(self, sede: str, nrg: str, nome_file: str) -> bytes:
         if self._client is None:
             raise RuntimeError("GASession not entered — use `async with`")
         url = build_document_url(sede, nrg, nome_file)
-        resp = await retry_request(self._client, "GET", url, dataset="giustizia_amm")
+        resp = await self._request("GET", url)
         return resp.content
 
 
@@ -792,7 +858,12 @@ async def search_provvedimenti_page(
     numero: str = "",
     rows: int = 20,
 ) -> tuple[list[ProvvedimentoResult], int | None]:
-    """Like search_provvedimenti, plus the portal's total hit count (None if absent)."""
+    """Like search_provvedimenti, plus the portal's total hit count (None if absent).
+
+    Raises QueryNonSupportata (before any request) for a query the portal refuses, and
+    PortaleRifiuta when the portal answers 4xx.
+    """
+    check_query(query)
     rows = min(rows, 60)
     tipo_val = TIPI_PROVVEDIMENTO.get(tipo.lower().replace(" ", "_"), tipo) if tipo else ""
     sede_val = _resolve_sede_filter(sede)
