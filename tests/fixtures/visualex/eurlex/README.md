@@ -25,3 +25,10 @@ Trimming: `str()` of the elements with the listed ids, assembled inside
 `docs/superpowers/plans/2026-09-19-archivio-visualex-extensions.md`, Task 1.
 
 Used by `tests/unit/test_eurlex_fixtures.py` and `tests/unit/test_eurlex_consolidated.py` (VisuaLex's tests, adapted).
+
+mcp-legal-it's own, captured 2026-10-22 from CELLAR (`publications.europa.eu/resource/celex/<CELEX>`),
+trimmed as above to `div#art_111` and checked to give the same article text as the whole page:
+
+- `ai_act_oj_art111_trimmed.html`: Reg. (UE) 2024/1689, Official Journal text (32024R1689).
+- `ai_act_consolidated_20260727_art111_trimmed.html`: the consolidation 02024R1689-20260727
+  (Reg. (UE) 2026/1744): par. 2 rewritten, par. 4 added. Used by `tests/unit/test_eurlex_vigente.py`.
