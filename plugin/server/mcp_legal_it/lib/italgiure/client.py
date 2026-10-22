@@ -134,7 +134,8 @@ _TIPO_LABELS = {
 
 _RAMO = {"snciv": "civ.", "snpen": "pen."}
 
-# Keys ordered longest-first to avoid short-prefix false matches (e.g. "c.p." before "c.p.a.").
+# Codes and the spellings Italgiure decisions use for them. Matching tries the longest spelling
+# first (see _spelling_index), so the order of the keys does not matter.
 _CODICI = {
     "c.c.i.i.": ["c.c.i.i.", "CCII", "codice della crisi"],
     "c.p.c.": ["c.p.c.", "cod. proc. civ."],
@@ -150,7 +151,7 @@ _CODICI = {
     "c.n.": ["c.n.", "cod. nav.", "codice della navigazione"],
 }
 
-# Keys ordered longest-first to avoid "l." matching inside "d.l." or "d.lgs.".
+# Act types and their spellings; matched like _CODICI, longest spelling first.
 _TIPI_ATTO = {
     "d.lgs.": ["D.Lgs.", "decreto legislativo", "d.lgs."],
     "d.p.r.": ["DPR", "D.P.R.", "decreto del Presidente della Repubblica"],
@@ -159,6 +160,44 @@ _TIPI_ATTO = {
     "reg.": ["Reg.", "regolamento"],
     "l.": ["L.", "legge", "l."],
 }
+
+
+def _spelling_index(table: dict[str, list[str]]) -> list[tuple[str, str]]:
+    """(spelling, key) for every way a key of *table* is written, longest spelling first.
+
+    A key is recognised by itself ("c.c."), without the final dot ("c.c"), without any dot
+    ("cc"), or by any of its variants ("cod. civ.", "codice civile"; "cod.civ." too). The
+    longest spelling wins, so "c.p.c." is tried before "c.p." whatever the order of the table.
+    """
+    index: dict[str, str] = {}
+    for key, variants in table.items():
+        for form in (key, *variants):
+            form = form.lower()
+            for spelling in (form, form.rstrip("."), form.replace(".", ""), form.replace(". ", ".")):
+                if spelling:
+                    index.setdefault(spelling, key)
+    return sorted(index.items(), key=lambda item: -len(item[0]))
+
+
+_CODICI_SPELLINGS = _spelling_index(_CODICI)
+_TIPI_ATTO_SPELLINGS = _spelling_index(_TIPI_ATTO)
+
+
+def _leading_key(rest: str, spellings: list[tuple[str, str]]) -> str | None:
+    """Key of the code or act type that *rest* starts with, or None.
+
+    The spelling must end where a word ends: "cp" is not "cpi", "c.p." is not "c.p.i."
+    (codice della proprietà industriale), "l." is not "l.r." (regional law). Plain prefix
+    checks, no regular expression: linear in the length of *rest*.
+    """
+    for spelling, key in spellings:
+        if not rest.startswith(spelling):
+            continue
+        after = rest[len(spelling):len(spelling) + 2]
+        if after[:1].isalpha() or (after[:1] == "." and after[1:2].isalpha()):
+            continue
+        return key
+    return None
 
 
 def get_kind_filter(archivio: str) -> list[str]:
@@ -550,7 +589,9 @@ def _act_identity_markers(rest: str) -> list[str]:
     name itself is also a marker.
     """
     markers: list[str] = []
-    pair = re.search(r"(\d+)\s*(?:/|del)\s*(\d{2,4})", rest)
+    # "(?<!\d)": a match starts where a number starts, never inside it (a long run of digits
+    # would otherwise be retried from every position: quadratic).
+    pair = re.search(r"(?<!\d)(\d+)\s*(?:/|del)\s*(\d{2,4})", rest)
     if pair:
         a, b = pair.group(1), pair.group(2)
     else:
@@ -600,20 +641,17 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
         return f'ocr:("{riferimento}")'
 
     num = match.group(1) + (f"-{match.group(2)}" if match.group(2) else "")
-    rest = rif[match.end():].strip()
+    # One blank between words: "cod.  civ." is "cod. civ.".
+    rest = " ".join(rif[match.end():].split())
 
     bare = [f'"art. {num}"', f'"articolo {num}"']
     qualified: list[str] = []
 
-    matched_code = False
-    for abbrev, expansions in _CODICI.items():
-        if rest.startswith(abbrev) or rest == abbrev.rstrip("."):
-            for exp in expansions:
-                qualified.append(f'"{num} {exp}"')
-            matched_code = True
-            break
-
-    if matched_code:
+    # The code however it is written ("c.c.", "cc", "cod. civ.", "codice civile"): the query
+    # is the same, so the spelling typed never decides which decisions are found.
+    codice = _leading_key(rest, _CODICI_SPELLINGS)
+    if codice:
+        qualified = [f'"{num} {exp}"' for exp in _CODICI[codice]]
         variants = qualified if strict else bare + qualified
         return "ocr:(" + " OR ".join(variants) + ")"
 
@@ -625,21 +663,17 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
     num_year_match = re.search(r"(\d+(?:/\d+)?)", rest)
     act_num_str = num_year_match.group(1) if num_year_match else ""
 
-    matched_tipo = False
-    for abbrev, tipo_variants in _TIPI_ATTO.items():
-        if rest.startswith(abbrev) or any(rest.startswith(v.lower()) for v in tipo_variants):
-            for v in tipo_variants:
-                if act_num_str:
-                    # Only forms carrying the act number identify the act: "art. 6 D.Lgs."
-                    # alone matches any legislative decree.
-                    qualified.append(f'"art. {num} {v} {act_num_str}"')
-                    qualified.append(f'"art. {num} {v} n. {act_num_str}"')
-                else:
-                    qualified.append(f'"art. {num} {v}"')
-            matched_tipo = True
-            break
-
-    if not matched_tipo:
+    tipo = _leading_key(rest, _TIPI_ATTO_SPELLINGS)
+    if tipo:
+        for v in _TIPI_ATTO[tipo]:
+            if act_num_str:
+                # Only forms carrying the act number identify the act: "art. 6 D.Lgs."
+                # alone matches any legislative decree.
+                qualified.append(f'"art. {num} {v} {act_num_str}"')
+                qualified.append(f'"art. {num} {v} n. {act_num_str}"')
+            else:
+                qualified.append(f'"art. {num} {v}"')
+    else:
         qualified.append(f'"art. {num} {rest}"')
 
     markers = _act_identity_markers(rest)

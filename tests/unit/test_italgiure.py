@@ -535,6 +535,80 @@ class TestBuildNormaVariantsExpanded:
         assert '"art. 5"' in q
         assert "testo unico bancario" in q.lower() or "t.u.b." in q
 
+    # Issue #73 (with the patch proposed there by @SOsintOps). Italgiure 2026-10-22, civil
+    # archive: "2043 c.c." 1350 decisions, "2043 cod. civ." 774, "2043 codice civile" 7: the
+    # spelling typed must not decide which of them are found.
+    @pytest.mark.parametrize("spelling,canonical", [
+        ("art. 2043 cod. civ.", "art. 2043 c.c."),
+        ("art. 2043 codice civile", "art. 2043 c.c."),
+        ("art. 2043 Codice Civile", "art. 2043 c.c."),
+        ("art. 2043 cc", "art. 2043 c.c."),
+        ("art. 2043 c.c", "art. 2043 c.c."),
+        ("art. 2043 cod.civ.", "art. 2043 c.c."),
+        ("art. 2043 cod.  civ.", "art. 2043 c.c."),
+        ("art. 3 Costituzione", "art. 3 cost."),
+        ("art. 3 cost", "art. 3 cost."),
+        ("art. 360 cpc", "art. 360 c.p.c."),
+        ("art. 360 cod. proc. civ.", "art. 360 c.p.c."),
+        ("art. 575 cod. pen.", "art. 575 c.p."),
+        ("art. 575 cp", "art. 575 c.p."),
+        ("art. 7 CCII", "art. 7 c.c.i.i."),
+        ("art. 7 codice della crisi d'impresa", "art. 7 c.c.i.i."),
+        ("art. 37 codice della strada", "art. 37 c.d.s."),
+    ])
+    def test_every_spelling_of_a_code_gives_the_same_query(self, spelling, canonical):
+        assert build_norma_variants(spelling) == build_norma_variants(canonical)
+        assert build_norma_variants(spelling, strict=True) == build_norma_variants(canonical, strict=True)
+
+    def test_cod_civ_gives_the_query_of_the_issue(self):
+        assert build_norma_variants("art. 2043 cod. civ.") == (
+            'ocr:("art. 2043" OR "articolo 2043" OR "2043 c.c." OR "2043 cod. civ." OR "2043 codice civile")'
+        )
+
+    @pytest.mark.parametrize("rif,not_code", [
+        ("art. 20 c.p.i.", "codice penale"),   # codice della proprietà industriale, not c.p.
+        ("art. 20 cpi", "codice penale"),
+        ("art. 2 ccnl", "codice civile"),      # a collective agreement, not c.c.
+        ("art. 360 c.p.c.", "codice penale"),  # the longest spelling wins over "c.p."
+        ("art. 7 c.c.i.i.", "codice civile"),
+    ])
+    def test_a_shorter_code_never_catches_a_longer_one(self, rif, not_code):
+        assert not_code not in build_norma_variants(rif)
+
+    @pytest.mark.parametrize("rif,tipo", [
+        ("art. 6 d.lgs 231/2001", "decreto legislativo"),
+        ("art. 6 dlgs 231/2001", "decreto legislativo"),
+        ("art. 1 d.l 78/2010", "decreto legge"),
+        ("art. 21 l 241/1990", "legge"),
+        ("art. 4 dpr 445/2000", "D.P.R."),
+    ])
+    def test_act_type_without_dots(self, rif, tipo):
+        q = build_norma_variants(rif)
+        number = rif.rsplit(" ", 1)[1]
+        assert f'"art. {rif.split()[1]} {tipo} {number}"' in q
+
+    def test_regional_law_is_not_a_national_law(self):
+        # "l.r. 12/2005" used to be read as "L. 12/2005" and ORed "legge 12/2005" in.
+        q = build_norma_variants("art. 3 l.r. 12/2005")
+        assert "legge 12/2005" not in q
+        assert '"art. 3 12/2005"~15' in q
+
+    @pytest.mark.parametrize("rif", [
+        "art. 2043 c.c." + " " * 20000 + "x",
+        "art. 2043 " + "c" * 20000,
+        "art. 2043 cod." + "x" * 20000,
+        "art. 2043 " + "c." * 10000,
+        "art. 6 d.lgs" + " " * 20000 + "231/2001",
+        "art. 6 " + "1" * 20000,
+    ], ids=["blanks-after-code", "letters", "letters-after-dot", "dots", "blanks-in-act", "digits"])
+    def test_long_runs_stay_linear(self, rif):
+        import time
+
+        build_norma_variants("art. 6 d.lgs. 231/2001")  # lazy imports out of the timing
+        start = time.perf_counter()
+        build_norma_variants(rif)
+        assert time.perf_counter() - start < 0.1
+
     def test_legge_reference(self):
         q = build_norma_variants("art. 21 L. 241/1990")
         assert '"art. 21 241/1990"~15' in q
