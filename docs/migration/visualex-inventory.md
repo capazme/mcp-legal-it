@@ -241,6 +241,13 @@ hashes only.
   on CELLAR's XHTML, byte for byte. (a) same bytes on OJ pages? (b) does CELLAR serve sector-0
   consolidated texts with the same markup? (c) same title fields for legacy acts and treaties? If
   yes, no browser in the engine; if not, the EUR-Lex text stays behind an optional extra.
+  **Answered 22/10/2026 (A/B, 10 documents, serial):** VisuaLex's extractors at `493a8dd1` on
+  VisuaLex's own Playwright page and on CELLAR's copy give the same bytes: (a) every article of
+  the GDPR, the AI Act and dir. 2002/58 (legacy markup), 591 of 591 counting the whole TFUE,
+  and the recitals; (b) CELLAR serves the sector-0 consolidated text with the consolidated
+  markup (02002L0058-20091219: articles, tree and title identical); (c) the titles are identical
+  but for the legacy 2002/58, where the browser's ELI page has no `DC.description` and gives
+  none, and CELLAR gives it. **No browser in the engine**: CELLAR, with a page cache.
 - **Q2 — `article_text` channel default.** The MCP tools serve AKN first today; VisuaLex must get
   `canale="html"`. Does the MCP default stay AKN (faster warm, accent-transliterated) or move to
   HTML (the frozen text)?
