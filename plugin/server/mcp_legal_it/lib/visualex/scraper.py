@@ -1024,28 +1024,46 @@ _ARTICOLO_PROPRIO = re.compile(r"^art_([^.]+)$")
 def _articolo_citato(soup: BeautifulSoup, article: str) -> bool:
     """Whether the page has no article *article* of its own, only a quotation of another act's.
 
-    A modern OJ page wraps each of the act's own articles in ``div.eli-subdivision#art_N``:
-    when it has such divs and none is *article*, every heading «Articolo N» on it is a
-    quotation (an amending act's table cells). A page without them (the legacy class-less
-    markup) is judged by the first heading that names *article*: inside a table cell, or
-    opening with «, it is a quotation. A consolidated page is never judged here.
+    On a modern OJ page (``ti-art`` headings) *article* is a quotation when every heading
+    that names it sits in a table cell or opens with «: an amending act quotes in table cells.
+    The ``div#art_N`` ids do not decide it: they do not cover every article (the TFUE has no
+    ``art_354``). A page without such headings (the legacy class-less markup) is judged by the
+    first heading that names *article*, a «-heading skipped as the extractor skips it: inside
+    a table cell, it is a quotation. A consolidated page is never judged here.
     """
     if soup.find("p", class_="title-article-norm") is not None:
         return False
     chiesto = comparable_article_key(article)
-    propri = {comparable_article_key(m.group(1)) for div in soup.find_all("div", id=_ARTICOLO_PROPRIO)
-              if (m := _ARTICOLO_PROPRIO.match(div["id"]))}
-    if propri:
-        return chiesto not in propri
+    teste = soup.find_all("p", class_=lambda c: c and "ti-art" in c and "sti-art" not in c)
+    if teste:
+        sue = [t for t in teste if _chiave_intestazione(t) == chiesto]
+        return bool(sue) and all(t.find_parent("td") is not None or t.get_text(strip=True).startswith("«")
+                                 for t in sue)
     numero = re.match(r"\d+", chiesto)
     if numero is None:
         return False
     testa = re.compile(rf"^(«)?\s*Articolo\s+{numero.group(0)}(?!\d)", re.IGNORECASE)
     for tag in soup.find_all(["p", "div", "span", "h1", "h2", "h3", "h4", "h5", "h6"]):
         m = testa.match(tag.get_text(strip=True))
+        if m and m.group(1):
+            continue  # «Articolo N: a quotation the extractor skips too; the own article may follow
         if m:
-            return bool(m.group(1)) or tag.find_parent("td") is not None
+            return tag.find_parent("td") is not None
     return False
+
+
+def _intestazione_propria(div):
+    """The heading «Articolo N» of the own article ``div#art_N``: a ``ti-art`` paragraph of its own,
+    never one of a quotation inside it (a table cell)."""
+    for p in div.find_all("p", class_=lambda c: c and "ti-art" in c and "sti-art" not in c):
+        if p.find_parent("td") is None:
+            return p
+    return None
+
+
+def _chiave_intestazione(testa) -> str:
+    """The article key a heading «Articolo 16 bis» names ("16-bis"), any «, NBSP or spacing aside."""
+    return comparable_article_key(re.sub(r"^[«\s]*Articolo\s+", "", testa.get_text(" ", strip=True)))
 
 
 def _non_e_il_proprio(soup: BeautifulSoup, article: str, text: str) -> bool:
@@ -1058,11 +1076,21 @@ def _non_e_il_proprio(soup: BeautifulSoup, article: str, text: str) -> bool:
         return False
     chiesto = comparable_article_key(article)
     for div in soup.find_all("div", id=_ARTICOLO_PROPRIO):
-        if comparable_article_key(_ARTICOLO_PROPRIO.match(div["id"]).group(1)) != chiesto:
+        testa = _intestazione_propria(div)
+        chiavi = {comparable_article_key(_ARTICOLO_PROPRIO.match(div["id"]).group(1))}
+        if testa is not None:
+            chiavi.add(_chiave_intestazione(testa))
+        if chiesto not in chiavi or testa is None:
             continue
-        testa = div.find("p", class_=lambda c: c and "ti-art" in c and "sti-art" not in c)
-        rubrica = div.find("p", class_=lambda c: c and "sti-art" in c)
-        attese = [t.get_text(strip=True) for t in (testa, rubrica) if t is not None]
+        # The line after the heading is what follows the own heading: its title (``art_N.tit_1``),
+        # a bare rubrica, or the first paragraph of an amending article that has no rubrica. Never
+        # the rubrica of an article it quotes, which sits further down, in a table cell.
+        attese = [testa.get_text(strip=True)]
+        seguente = testa.find_next_sibling()
+        # VisuaLex's extractor writes a p/div/span as one line (a table row by row): only then.
+        if (seguente is not None and seguente.name in ("p", "div", "span") and seguente.find_parent("td") is None
+                and seguente.get_text(strip=True)):
+            attese.append(seguente.get_text(strip=True))
         return text.split("\n")[:len(attese)] != attese
     return False
 
