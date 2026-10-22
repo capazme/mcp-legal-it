@@ -306,10 +306,10 @@ class TestTheLookup:
 
     def test_the_choice(self):
         assert ec.scegli(AI_ACT, None, "2026-10-22")[1]["celex"] == "02024R1689-20260727"
-        assert ec.scegli(AI_ACT, "2026-07-27")[1]["celex"] == "02024R1689-20260727"
-        assert ec.scegli(AI_ACT, "2026-07-26")[1]["celex"] == "02024R1689-20240712"
-        assert ec.scegli(AI_ACT, "2024-07-12")[1]["celex"] == "02024R1689-20240712"
-        assert ec.scegli(AI_ACT, "2024-07-11") == ("prima", None)
+        assert ec.scegli(AI_ACT, "2026-07-27", "2026-10-22")[1]["celex"] == "02024R1689-20260727"
+        assert ec.scegli(AI_ACT, "2026-07-26", "2026-10-22")[1]["celex"] == "02024R1689-20240712"
+        assert ec.scegli(AI_ACT, "2024-07-12", "2026-10-22")[1]["celex"] == "02024R1689-20240712"
+        assert ec.scegli(AI_ACT, "2024-07-11", "2026-10-22") == ("prima", None)
 
     def test_a_consolidation_dated_after_today_is_not_the_text_in_force(self):
         # The review's case: -20271202 must not be served as in force on 22.10.2026.
@@ -417,3 +417,52 @@ class TestEndToEnd:
         t = await api.testo_articolo(nd, canale="html")
         assert t.consolidato is None and t.consolidato_verificato is True and t.precisione == "ESATTO"
         assert pages.asked == [CELLAR + "32019L0790"]
+
+
+class TestAnArticleTheConsolidationDropped:
+    """Dir. 2009/136's consolidation 02009L0136-20201221 has arts 2-6 only: art. 1 (its amendments
+    to dir. 2002/22, repealed by dir. 2018/1972) is gone. The whole public page is the fixture."""
+
+    CONS_2009_136 = (FIXTURES / "dir2009_136_consolidated_20201221.html").read_text(encoding="utf-8")
+    INFO = {"data_gu": "2009-12-18", "in_vigore_dal": "2009-12-19", "versioni": [
+        {"celex": "02009L0136-20201221", "data": "2020-12-21",
+         "modifiche": [{"celex": "32018L1972", "atto": "direttiva 2018/1972"}]}]}
+
+    @pytest.fixture
+    def pagine(self, monkeypatch, lookup):
+        lookup["risposta"] = self.INFO
+        pages = _Cellar({CELLAR + "02009L0136-20201221": self.CONS_2009_136})
+        monkeypatch.setattr(scraper, "async_client", pages)
+        return pages
+
+    async def test_it_is_not_found_and_says_why(self, pagine):
+        nd = api.riferimento_da_parametri("direttiva ue", "1", data="2009", numero_atto="136").norma_data[0]
+        t = await api.testo_articolo(nd, canale="html")
+        atteso = ("articolo 1 non presente nel testo consolidato al 2020-12-21 (CELEX 02009L0136-20201221): "
+                  "probabilmente abrogato o soppresso da un atto successivo; il testo pubblicato in GUUE è "
+                  "disponibile con versione=\"originale\"")
+        assert t.esito == "articolo_non_trovato" and t.article_text == "" and t.errore == atteso
+        assert t.avvisi[-1] == atteso and t.consolidato["celex"] == "02009L0136-20201221"
+        assert pagine.asked == [CELLAR + "02009L0136-20201221"]  # no extra request for the OJ page
+
+    async def test_the_articles_it_has_are_served(self, pagine):
+        nd = api.riferimento_da_parametri("direttiva ue", "4", data="2009", numero_atto="136").norma_data[0]
+        t = await api.testo_articolo(nd, canale="html")
+        assert t.esito == "trovato" and t.article_text.startswith("Articolo 4") and t.precisione == "INDICATIVO"
+
+    async def test_cite_law_says_it_in_markdown_and_json(self, pagine):
+        from mcp_legal_it.tools import legal_citations as lc
+
+        md = await lc._cite_law_impl("art. 1 direttiva 2009/136/CE")
+        assert md.startswith("**Errore**: articolo 1 non presente nel testo consolidato al 2020-12-21")
+        out = json.loads(await lc._cite_law_impl("art. 1 direttiva 2009/136/CE", formato="json"))
+        assert out["consolidato"]["celex"] == "02009L0136-20201221"
+        assert out["avvisi"][-1].startswith("articolo 1 non presente nel testo consolidato")
+
+    async def test_a_consolidation_named_by_the_caller_keeps_the_plain_message(self, monkeypatch, lookup):
+        pages = _Cellar({CELLAR + "02009L0136-20201221": self.CONS_2009_136})
+        monkeypatch.setattr(scraper, "async_client", pages)
+        nd = api.riferimento_da_parametri("direttiva ue", "1", data="2009", numero_atto="136",
+                                          celex_consolidated="02009L0136-20201221").norma_data[0]
+        t = await api.testo_articolo(nd, canale="html")
+        assert t.esito == "articolo_non_trovato" and "non trovato nel documento EUR-Lex" in t.errore

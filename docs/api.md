@@ -296,6 +296,13 @@ The same, from explicit fields (the VisuaLex request body). No network.
     published but not in force yet. A day before the act's publication in the
     Official Journal (not its adoption: the AI Act was adopted on 13.6.2024 and
     published on 12.7.2024) is `riferimento_non_valido`.
+  - **An article the consolidation does not have** (a later act repealed or deleted it:
+    art. 1 of dir. 2009/136 is not in 02009L0136-20201221) is `articolo_non_trovato`,
+    and `errore` and an `avviso` say so: «non presente nel testo consolidato al … (CELEX
+    …): probabilmente abrogato o soppresso da un atto successivo; il testo pubblicato
+    in GUUE è disponibile con versione="originale"». `consolidato` names the
+    consolidation checked. The Official Journal article is not served in its place: it
+    would present a repealed text as current. No extra request.
   - **Not looked up:** treaties (unchanged), recitals (a consolidation has no
     preamble, and amendments do not rewrite recitals), and annexes. A consolidation's
     annexes are not read yet, so an annex is the Official Journal's, `INDICATIVO`,
