@@ -140,11 +140,13 @@ _CODICI = {
     "c.c.i.i.": ["c.c.i.i.", "CCII", "codice della crisi"],
     "c.p.c.": ["c.p.c.", "cod. proc. civ."],
     "c.p.p.": ["c.p.p.", "cod. proc. pen."],
-    "c.p.a.": ["c.p.a.", "codice del processo amministrativo"],
-    "c.d.s.": ["c.d.s.", "cod. strada", "codice della strada"],
-    "c.cons.": ["c.cons.", "codice del consumo"],
-    "t.u.b.": ["t.u.b.", "testo unico bancario"],
-    "t.u.f.": ["t.u.f.", "testo unico finanza", "testo unico intermediazione finanziaria"],
+    "c.p.a.": ["c.p.a.", "cpa", "codice del processo amministrativo"],
+    "c.d.s.": ["c.d.s.", "cds", "cod. strada", "codice della strada"],
+    "c.cons.": ["c.cons.", "cod. cons.", "codice del consumo"],
+    # The dotless acronyms are separate phrases: a decision writing "art. 117 TUB" is not
+    # matched by "117 t.u.b." (#73 review).
+    "t.u.b.": ["t.u.b.", "TUB", "testo unico bancario"],
+    "t.u.f.": ["t.u.f.", "TUF", "testo unico finanza", "testo unico intermediazione finanziaria"],
     "cost.": ["cost.", "costituzione"],
     "c.c.": ["c.c.", "cod. civ.", "codice civile"],
     "c.p.": ["c.p.", "cod. pen.", "codice penale"],
@@ -245,9 +247,9 @@ def _codice_markers(codice: str) -> tuple[str, ...]:
 
 def _near(num: str, markers) -> list[str]:
     # Only "art." and "articolo": phrase queries on "artt." make the Solr highlighter answer
-    # 500 on some decisions (read 2026-09-29).
+    # 500 on some decisions (read 2026-09-29). A marker may be the user's own text: quoted.
     return [
-        f'"{art} {num} {marker}"~{_NORMA_PROXIMITY}'
+        quote_fq_value(f"{art} {num} {marker}") + f"~{_NORMA_PROXIMITY}"
         for art in ("art.", "articolo")
         for marker in markers
     ]
@@ -693,7 +695,8 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
         rif,
     )
     if not match:
-        return f'ocr:("{riferimento}")'
+        # User text inside a phrase: a double quote must not close it (an injected clause).
+        return f"ocr:({quote_fq_value(riferimento)})"
 
     num = match.group(1) + (f"-{match.group(2)}" if match.group(2) else "")
     # One blank between words: "cod.  civ." is "cod. civ.".
@@ -732,7 +735,7 @@ def build_norma_variants(riferimento: str, strict: bool = False) -> str:
             else:
                 qualified.append(f'"art. {num} {v}"')
     else:
-        qualified.append(f'"art. {num} {rest}"')
+        qualified.append(quote_fq_value(f"art. {num} {rest}"))
 
     markers = _act_identity_markers(rest)
     if not markers:

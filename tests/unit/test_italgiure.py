@@ -3,6 +3,8 @@
 HTTP calls are mocked — no real network access required.
 """
 
+import re
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -610,6 +612,24 @@ class TestBuildNormaVariantsExpanded:
         q = build_norma_variants(rif)
         number = rif.rsplit(" ", 1)[1]
         assert f'"art. {rif.split()[1]} {tipo} {number}"' in q
+
+    @pytest.mark.parametrize("rif,phrase", [
+        ("art. 117 TUB", '"117 TUB"'), ("art. 117 t.u.b.", '"117 TUB"'), ("art. 21 tuf", '"21 TUF"'),
+        ("art. 186 cds", '"186 cds"'), ("art. 186 c.d.s.", '"186 cds"'), ("art. 120 cpa", '"120 cpa"'),
+        ("art. 33 cod. cons.", '"33 cod. cons."'),
+    ])
+    def test_acronyms_without_dots_are_phrases_of_their_own(self, rif, phrase):
+        # "117 t.u.b." does not match a decision that writes "art. 117 TUB" (#73 review).
+        assert phrase in build_norma_variants(rif)
+
+    @pytest.mark.parametrize("rif", ['art. 1 foo" OR id:* "', 'art. 1 d.lgs. 231/2001" OR kind:snpen "',
+                                     'GDPR" OR id:* "', 'art. 1 foo\\" OR id:*'])
+    def test_a_quote_in_the_reference_never_closes_the_phrase(self, rif):
+        q = build_norma_variants(rif)
+        # Every double quote the user typed is escaped: outside the phrases nothing but OR remains.
+        outside = re.sub(r'"(?:[^"\\]|\\.)*"(?:~\d+)?', "", q[len("ocr:("):-1])
+        assert set(outside.split()) <= {"OR"}, q
+        assert "id:*" not in outside and "kind:" not in outside
 
     @pytest.mark.parametrize("rif", ["art. 1 l'impresa", "art. 1 l’impresa"])
     def test_an_elided_article_is_not_a_law(self, rif):
