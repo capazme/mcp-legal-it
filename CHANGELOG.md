@@ -680,7 +680,11 @@ entry, it is the same feature as ported to the 3.0 line.
   portal refused the request, not that it is unreachable, and no error repeats
   the request URL (a 5xx is still the source down). Same rules in
   `giurisprudenza_amm_su_norma`, `cerca_giurisprudenza_unificata` and
-  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`).
+  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`). A 429, or a
+  pause the portal asks for, reads «troppe richieste: riprovare tra qualche
+  minuto», not «non raggiungibile» (the api outcome is unchanged); reading a
+  provvedimento never talks about a query's syntax, not even when the search
+  page it opens first is refused.
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the
