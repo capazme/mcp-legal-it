@@ -233,6 +233,6 @@ che apre un canale privato con il manutentore.
 
 | Workflow | Cosa fa |
 |----------|---------|
-| [`ci.yml`](.github/workflows/ci.yml) | test su Python 3.10 e 3.12; coerenza delle dipendenze fra i quattro percorsi d'installazione |
+| [`ci.yml`](.github/workflows/ci.yml) | test su Python 3.11 e 3.12; coerenza delle dipendenze fra i quattro percorsi d'installazione |
 | [`security-audit.yml`](.github/workflows/security-audit.yml) | `pip-audit` sulle dipendenze risolte, settimanale |
 | [`data-freshness.yml`](.github/workflows/data-freshness.yml) | rinfresco mensile dei dati da fonti ufficiali e segnalazione delle tabelle scadute |

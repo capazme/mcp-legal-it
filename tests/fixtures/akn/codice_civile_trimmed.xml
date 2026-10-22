@@ -1,0 +1,1430 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0" xmlns:eli="http://data.europa.eu/eli/ontology#" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:gu="http://www.gazzettaufficiale.it/eli/" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:na="http://www.normattiva.it/eli/" xmlns:nakn="http://normattiva.it/akn/vocabulary" xmlns:nrdfa="http://www.normattiva.it/rdfa/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfa="http://www.w3.org/1999/xhtml#">
+    <act name="monovigente">
+        <meta>
+            <identification source="">
+                <FRBRWork>
+                    <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main"/>
+                    <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                    <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                    <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                    <FRBRdate date="1942-03-16" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812" aknrelname="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalResource"/>
+                            <nrdfa:span content="Approvazione del testo del Codice civile. (042U0262)  " lang="it" property="eli:title" xml:lang="it"/>
+                            <nrdfa:span content="http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}" property="eli:uri_schema"/>
+                            <nrdfa:span content="042U0262" property="eli:id_local"/>
+                            <nrdfa:span property="eli:type_document" resource="gu:tables/resource-type#REGIO DECRETO"/>
+                            <nrdfa:span content="1942-03-16" datatype="xsd:date" property="eli:date_document"/>
+                            <nrdfa:span property="eli:version" resource="gu:tables/versions#ORIGINAL"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRcountry value="it"/>
+                </FRBRWork>
+                <FRBRExpression>
+                    <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main"/>
+                    <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                    <FRBRdate date="1944-11-10" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812/ita">
+                            <nrdfa:span property="rdf:type" resource="eli:LegalExpression"/>
+                            <nrdfa:span property="eli:realizes" resource="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                            <nrdfa:span property="eli:is_embodied_by" resource="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812/ita/akn"/>
+                            <nrdfa:span property="eli:language" resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                            <nrdfa:span property="eli:publisher_agent" resource="http://www.ipzs.it"/>
+                        </nrdfa:eli>
+                    </preservation>
+                    <FRBRlanguage language="ita"/>
+                </FRBRExpression>
+                <FRBRManifestation>
+                    <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main.xml"/>
+                    <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                    <FRBRdate date="1942-03-16" name=""/>
+                    <FRBRauthor as="#author" href=""/>
+                    <preservation>
+                        <nrdfa:eli about="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812/ita/akn">
+                            <nrdfa:span property="rdf:type" resource="eli:Format"/>
+                            <nrdfa:span property="eli:format" resource="http://www.iana.org/assignments/media-types/xml"/>
+                        </nrdfa:eli>
+                    </preservation>
+                </FRBRManifestation>
+            </identification>
+            <publication date="1942-04-04" name="" number="79" showAs=""/>
+            <lifecycle source="">
+                </lifecycle>
+            <analysis source="">
+                <passiveModifications>
+                    </passiveModifications>
+            </analysis>
+            <references source="">
+                </references>
+            <proprietary source="">
+                <rdf:RDF>
+                    <rdf:Description rdf:about="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812">
+                        <rdf:type rdf:resource="eli:LegalResource"/>
+                        <eli:title xml:lang="it">Approvazione del testo del Codice civile. (042U0262)  </eli:title>
+                        <eli:uri_schema>http://www.normattiva.it/eli/id/{yyyy}/{mm}/{dd}/{codiceRedazionale}/{tipoVersione}</eli:uri_schema>
+                        <eli:id_local>042U0262</eli:id_local>
+                        <eli:type_document rdf:resource="gu:tables/resource-type#REGIO DECRETO"/>
+                        <eli:date_document rdf:datatype="xsd:date">1942-03-16</eli:date_document>
+                        <eli:version rdf:resource="gu:tables/versions#ORIGINAL"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812/ita">
+                        <rdf:type rdf:resource="eli:LegalExpression"/>
+                        <eli:realizes rdf:resource="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                        <eli:is_embodied_by rdf:resource="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812/ita/akn"/>
+                        <eli:language rdf:resource="http://publications.europa.eu/resource/authority/language/ITA"/>
+                        <eli:publisher_agent rdf:resource="http://www.ipzs.it"/>
+                    </rdf:Description>
+                    <rdf:Description rdf:about="na:id/1942/04/04/042U0262/CONSOLIDATED/20260812/ita/akn">
+                        <rdf:type rdf:resource="eli:format"/>
+                        <eli:format rdf:resource="http://www.iana.org/assignments/media-types/xml"/>
+                    </rdf:Description>
+                </rdf:RDF>
+            </proprietary>
+        </meta>
+        <preface>
+            <p>
+                <docType>REGIO DECRETO</docType>
+                <docDate date="1942-03-16">16 marzo 1942</docDate>
+                <docNumber>262</docNumber>
+                <docTitle>Approvazione del testo del Codice civile. (042U0262) 
+</docTitle>
+            </p>
+            <p>
+                <authorialNote eId="atn1" placement="bottom">
+                    <p>Entrata in vigore del provvedimento: 19/4/1942.</p>
+                </authorialNote>
+            </p>
+        </preface>
+        <preamble>
+            <formula name="formulaInizialePreambolo">
+                <p>REGIO DECRETO 16 marzo 1942-XX, n. 262.</p>
+            </formula>
+            <p>Approvazione del testo del <ref eId="ref_1" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">Codice civile</ref>
+            </p>
+            <p>VITTORIO EMANUELE III</p>
+            <p>PER GRAZIA DI DIO E PER VOLONTA' DELLA NAZIONE</p>
+            <p>RE D'ITALIA E DI ALBANIA</p>
+            <p>IMPERATORE D'ETIOPIA</p>
+            <citations eId="cits_1">
+                <citation eId="cits_1__cit_1">
+                    <p>Visti i Regi decreti 12 dicembre 1938-XVII, n. 1852, 26 ottobre 1939-XVII, n. 1586, 30 gennaio 1941-XIX, n. 15, 30 gennaio 1941-XIX, n. 16, 30 gennaio 1941-XIX, n. 17 e 30 gennaio 1941-XIX, n. 18, che danno facolta' al Governo di provvedere alla riunione ed al coordinamento dei libri del <ref eId="ref_2" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">Codice civile</ref> delle persone, delle successioni per causa di morte e delle donazioni, della proprieta', delle obbligazioni, del lavoro e della tutela dei diritti, approvati con gli stessi Regi decreti;</p>
+                </citation>
+            </citations>
+            <citations eId="cits_2">
+                <citation eId="cits_2__cit_1">
+                    <p>Vista la legge 30 gennaio 1941-XIX, n. 14, sul valore giuridico della Carta del Lavoro;</p>
+                </citation>
+            </citations>
+            <p>Udito il Consiglio dei Ministri;</p>
+            <formula name="formulaFinalePreambolo">
+                <p>Sulla proposta del Nostro Guardasigilli, Ministro Segretario di Stato per la grazia e giustizia; Abbiamo decretato e decretiamo:</p>
+            </formula>
+        </preamble>
+        <body>
+            <article eId="art_1">
+                <num>Art. 1.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ 
+ E' approvato il testo del <ref eId="content__ref_3" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">Codice civile</ref>, il quale, preceduto dalle disposizioni sul valore giuridico della Carta del Lavoro, dal testo della Carta del Lavoro, approvato dal Gran Consiglio del Fascismo il 21 aprile 1927-V, e dalle Disposizioni sulla legge in generale, avra' esecuzione a cominciare dal 21 aprile 1942-XX, sostituendo da questa data i libri del Codice stesso, approvati con i Regi decreti 12 dicembre 1938-XVII, n. 1852, 26 ottobre 1939-XVII, n. 1586, 30 gennaio 1941-XIX, n. 15, 30 gennaio 1941-XIX, n. 16, 30 gennaio 1941-XIX, n. 17, e 30 gennaio 1941-XIX, n. 18. <ins eId="ins_1">((3))</ins>
+                        </p>
+                    </content>
+                </paragraph>
+                <paragraph>
+                    <content>
+                        <p>-------------</p>
+                        <p>AGGIORNAMENTO (3)</p>
+                        <p>
+ Il <ref eId="4" href="/akn/it/act/decreto.legislativo.luogotenenziale/stato/1944-09-14/287/!main">D.Lgs. Luogotenenziale 14 settembre 1944, n. 287</ref> ha disposto (con l'art. 2, comma 1) che "La <ref eId="5" href="/akn/it/act/legge/stato/1941-01-30/14/!main">legge 30 gennaio 1941, n. 14</ref>, sul valore giuridico della Carta del Lavoro e' abrogata, rimanendo soppressa, nell'<ref eId="6" href="/akn/it/act/regio.decreto/stato/1942-03-16/262/!main#art_1">art. 1 del R. decreto 16 marzo 1942, n. 262</ref>, che approva il testo del <ref eId="7" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">Codice civile</ref>, la menzione delle disposizioni sul valore giuridico della Carta del lavoro e del testo della Carta del lavoro medesima". </p>
+                    </content>
+                </paragraph>
+            </article>
+            <article eId="art_2">
+                <num>Art. 2.</num>
+                <heading/>
+                <paragraph>
+                    <content>
+                        <p>
+ 
+ Un esemplare del testo del <ref eId="content__ref_8" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main">Codice civile</ref>, firmato da Noi e contrassegnato dal Nostro Ministro Segretario di Stato per la grazia e giustizia, servira' di originale e sara' depositato e custodito nell'Archivio del Regno. 
+ Ordiniamo che il presente decreto, munito del sigillo dello Stato, sia inserto nella Raccolta ufficiale delle leggi e dei decreti del Regno d'Italia, mandando a chiunque spetti di osservarlo e di farlo osservare. 
+ 
+ Dato a Roma, addi' 16 marzo 1942-XX 
+ 
+ VITTORIO EMANUELE 
+ 
+ MUSSOLINI - GRANDI 
+ 
+Visto, il Guardasigilli: GRANDI. 
+ Registrato alla Corte dei conti, addi' 16 marzo 1942-XX 
+ Atti del Governo, registro n. 443, foglio n. 53 - MANCINI 
+</p>
+                    </content>
+                </paragraph>
+            </article>
+        </body>
+        <attachments>
+            <attachment>
+                <doc name="Disposizioni sulla legge in generale-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_1"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> DISPOSIZIONI SULLA LEGGE IN GENERALE 
+ 
+ 
+ Art. 1. 
+ 
+ (Indicazione delle fonti). 
+ 
+ Sono fonti del diritto: 
+ 1) le leggi; 
+ 2) i regolamenti; 
+ 3) le norme corporative 
+ 4) gli usi. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Disposizioni sulla legge in generale-art. 2">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2. 
+ 
+ (Leggi). 
+ 
+ La formazione delle leggi e l'emanazione degli atti del Governo aventi forza di legge sono disciplinate da leggi di carattere costituzionale. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="Disposizioni sulla legge in generale-art. 3">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_3"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_3"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_3.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 3. 
+ 
+ (Regolamenti). 
+ 
+ Il potere regolamentare del Governo e' disciplinato da leggi di carattere costituzionale. 
+ 
+ Il potere regolamentare di altre autorita' e' esercitato nei limiti delle rispettive competenze, in conformita' delle leggi particolari. </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 1">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_32"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_32"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_32.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> <ref eId="content__ref_12" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main#art_1">CODICE CIVILE 
+ 
+ 
+ Art. 1</ref>. 
+ 
+ (Capacita' giuridica). 
+ 
+ La capacita' giuridica si acquista dal momento della nascita. 
+ 
+ I diritti che la legge riconosce a favore del concepito sono subordinati all'evento della nascita. 
+ 
+ <ins eId="ins_17">((IL D.LGS. LUOGOTENENZIALE 14 SETTEMBRE 1944, N. 287 HA CONFERMATO L'ABROGAZIONE DEL PRESENTE COMMA))</ins>. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_33"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1975-03-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_33"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_33.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2. 
+ 
+ <ins eId="ins_18">(( (Maggiore eta'. Capacita' di agire).))</ins>
+                                    <ins eId="ins_19">((La maggiore eta' e' fissata al compimento del diciottesimo anno.
+Con la maggiore eta' si acquista la capacita' di compiere tutti gli atti per i quali non sia stabilita una eta' diversa. 
+ 
+ Sono salve le leggi speciali che stabiliscono un'eta' inferiore in materia di capacita' a prestare il proprio lavoro. In tal caso il minore e' abilitato all'esercizio dei diritti e delle azioni che dipendono dal contratto di lavoro))</ins>. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 3">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_34"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1975-03-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_34"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_34.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 3. 
+ 
+ <ins eId="ins_20">((ARTICOLO ABROGATO DALLA L. 8 MARZO 1975, N. 39))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 45">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_77"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1976-07-22" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_77"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_77.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 45. 
+ 
+ Domicilio dei coniugi, del minore e dell'interdetto. 
+ 
+ Ciascuno dei coniugi ha il proprio domicilio nel luogo in cui ha stabilito la sede principale dei propri affari o interessi. <ins eId="ins_32">((45))</ins> 
+ 
+ Il minore ha il domicilio nel luogo di residenza della famiglia o quello del tutore. Se i genitori sono separati o il loro matrimonio e' stato annullato o sciolto o ne sono cessati gli effetti civili o comunque non hanno la stessa residenza, il minore ha il domicilio del genitore con il quale convive. 
+ 
+ L'interdetto ha il domicilio del tutore. 
+</p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (45)</p>
+                                <p>
+ La Corte Costituzionale, con sentenza 12-14 luglio 1976, n. 171 (in G.U. 1a s.s. 21/7/1976, n. 191) ha dichiarato "l'illegittimita' costituzionale dell'<ref eId="40" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main#art_45">art. 45 del codice civile</ref>, <ref eId="41" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main#art_45-com1">primo comma</ref> (nel testo anteriore alla sostituzione operata dall'<ref eId="42" href="/akn/it/act/legge/stato/1975-05-19/151/!main#art_1">art. 1 della legge 19 maggio 1975, n. 151</ref>), nella parte in cui, in caso di separazione di fatto dei coniugi ed ai fini della competenza per territorio nel giudizio di separazione, prevede che la moglie, la quale abbia fissato altrove la propria residenza, conservi legalmente il domicilio del marito".</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 84">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_116"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1975-09-20" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_116"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_116.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 84. 
+ 
+ <ins eId="ins_40">((Eta'))</ins>. 
+ 
+ <ins eId="ins_41">((I minori di eta' non possono contrarre matrimonio. 
+ 
+ Il tribunale, su istanza dell'interessato, accertata la sua maturita' psico-fisica e la fondatezza delle ragioni addotte, sentito il pubblico ministero, i genitori o il tutore, puo' con decreto emesso in camera di consiglio ammettere per gravi motivi al matrimonio chi abbia compiuto i sedici anni. 
+ 
+ Il decreto e' comunicato al pubblico ministero, agli sposi, ai genitori e al tutore. 
+ 
+ Contro il decreto puo' essere proposto reclamo, con ricorso alla corte d'appello, nel termine perentorio di dieci giorni dalla comunicazione. 
+ 
+ La corte d'appello decide con ordinanza non impugnabile, emessa in camera di consiglio. 
+ 
+ Il decreto acquista efficacia quando e' decorso il termine previsto nel quarto comma, senza che sia stato proposto reclamo))</ins>. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 87">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_119"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2014-02-07" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_119"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_119.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 87. 
+ 
+ Parentela, affinita', adozione <ins eId="ins_44">((...))</ins>. 
+ 
+ Non possono contrarre matrimonio fra loro: 
+ 1) gli ascendenti e i discendenti in linea retta <ins eId="ins_45">((...))</ins>; 
+ 2) i fratelli e le sorelle germani, consanguinei o uterini; 
+ 3) lo zio e la nipote, la zia e il nipote; 
+ 4) gli affini in linea retta; il divieto sussiste anche nel caso in cui l'affinita' deriva da matrimonio dichiarato nullo o sciolto o per il quale e' stata pronunziata la cessazione degli effetti civili; 
+ 5) gli affini in linea collaterale in secondo grado; 
+ 6) l'adottante, l'adottato e i suoi discendenti; 
+ 7) i figli adottivi della stessa persona; 
+ 8) l'adottato e i figli dell'adottante; 
+ 9) l'adottato e il coniuge dell'adottante, l'adottante e il coniuge dell'adottato. 
+ 
+ <ins eId="ins_46">((COMMA ABROGATO DAL D.LGS. 28 DICEMBRE 2013, N. 154))</ins>. 
+ 
+ <ins eId="ins_47">((COMMA ABROGATO DAL D.LGS. 28 DICEMBRE 2013, N. 154))</ins>. 
+ 
+ Il tribunale, su ricorso degli interessati, con decreto emesso in camera di consiglio, sentito il pubblico ministero, puo' autorizzare il matrimonio nei casi indicati dai numeri 3 e 5, anche se si tratti di affiliazione <ins eId="ins_48">((...))</ins>. L'autorizzazione puo' essere accordata anche nel caso indicato dal numero 4, quando l'affinita' deriva da matrimonio dichiarato nullo. 
+ 
+ Il decreto e' notificato agli interessati e al pubblico ministero. 
+ 
+ Si applicano le disposizioni dei commi quarto, quinto e sesto dell'articolo 84. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 147">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_182"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2014-02-07" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_182"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_182.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 147. 
+ 
+ <ins eId="ins_104">((Il matrimonio impone ad ambedue i coniugi l'obbligo di mantenere, istruire, educare e assistere moralmente i figli, nel rispetto delle loro capacita', inclinazioni naturali e aspirazioni, secondo quanto previsto dall'articolo 315-bis.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 155">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_190"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2014-02-07" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_190"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_190.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 155. 
+ 
+ <ins eId="ins_116">((In caso di separazione, riguardo ai figli, si applicano le disposizioni contenute nel Capo II del titolo IX.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>-------------</p>
+                                <p>AGGIORNAMENTO (72)</p>
+                                <p>
+ La Corte Costituzionale, con sentenza 19 - 27 luglio 1989, n. 454 (in G.U. 1a s.s. 2/8/1989, n. 31), ha dichiarato "la illegittimita' costituzionale dell'<ref eId="61" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main#art_155-com4">art. 155, quarto comma, del codice civile</ref>, nella parte in cui non prevede la trascrizione del provvedimento giudiziale di assegnazione della abitazione nella casa familiare al coniuge affidatario della prole, ai fini della opponibilita' ai terzi". </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 336">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_411"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2023-02-28" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_411"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_411.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 336. 
+ 
+ Legittimazione ad agire (321)(322) 
+ 
+ I provvedimenti indicati negli articoli precedenti sono adottati su ricorso dell'altro genitore, dei parenti, del curatore speciale se gia' nominato o del pubblico ministero e, quando si tratta di revocare deliberazioni anteriori, anche del genitore interessato. (321)(322) 
+ 
+ <ins eId="ins_434">((COMMA ABROGATO DAL D.LGS. 10 OTTOBRE 2022, N. 149, COME MODIFICATO DALLA L. 29 DICEMBRE 2022, N. 197))</ins>. 
+ 
+ <ins eId="ins_435">((COMMA ABROGATO DAL D.LGS. 10 OTTOBRE 2022, N. 149, COME MODIFICATO DALLA L. 29 DICEMBRE 2022, N. 197))</ins>. 
+ 
+ I genitori e il minore sono assistiti da un difensore. (321)(322) 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (321)</p>
+                                <p>
+ Il <ref eId="177" href="/akn/it/act/decretoLegislativo/stato/2022-10-10/149/!main">D.Lgs. 10 ottobre 2022, n. 149</ref> ha disposto (con l'art. 35, comma 1) che "Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data.
+Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti". </p>
+                                <p>--------------</p>
+                                <p>AGGIORNAMENTO (322)</p>
+                                <p>
+ Il <ref eId="178" href="/akn/it/act/decretoLegislativo/stato/2022-10-10/149/!main">D.Lgs. 10 ottobre 2022, n. 149</ref>, come modificato dalla <ref eId="179" href="/akn/it/act/legge/stato/2022-12-29/197/!main">L. 29 dicembre 2022, n. 197</ref>, ha disposto (con l'art. 35, comma 1) che "Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti". </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 1159">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_1260"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1260"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1260.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 1159. 
+ 
+ (Usucapione decennale). 
+ 
+ Colui che acquista in buona fede da chi non e' proprietario un immobile, in forza di un titolo che sia idoneo a trasferire la proprieta' e che sia stato debitamente trascritto, ne compie l'usucapione in suo favore col decorso di dieci anni dalla data della trascrizione. 
+ 
+ La stessa disposizione si applica nel caso di acquisto degli altri diritti reali di godimento sopra un immobile. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 1159 bis">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_1261"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1994-02-24" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1261"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1261.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 1159. 
+ 
+ Usucapione speciale per la piccola proprieta' rurale. 
+ 
+ La proprieta' dei fondi rustici con annessi fabbricati situati in comuni classificati montani dalla legge si acquista in virtu' del possesso continuato per quindici anni. 
+ 
+ Colui che acquista in buona fede da chi non e' proprietario, in forza di un titolo che sia idoneo a trasferire la proprieta' e che sia debitamente trascritto, un fondo rustico con annessi fabbricati, situati in comuni classificati montani dalla legge, ne compie l'usucapione in suo favore col decorso di cinque anni dalla data di trascrizione. 
+ 
+ La legge speciale stabilisce la procedura, le modalita' e le agevolazioni per la regolarizzazione del titolo di proprieta'. 
+ 
+ Le disposizioni di cui ai commi precedenti si applicano anche ai fondi rustici con annessi fabbricati, situati in comuni non classificati montani dalla legge, aventi un reddito non superiore ai limiti fissati dalla legge speciale.(43)<ins eId="ins_782">((96))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                        <paragraph>
+                            <content>
+                                <p>----------------</p>
+                                <p>AGGIORNAMENTO (43)</p>
+                                <p>
+ La <ref eId="535" href="/akn/it/act/legge/stato/1976-05-10/346/!main">L. 10 maggio 1976, n. 346</ref> ha disposto (con l'art. 2, comma 1) che "Le disposizioni dell'<ref eId="536" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main#art_1159bis">articolo 1159-bis del codice civile</ref> si applicano ai fondi rustici con annessi fabbricati situati in comuni classificati montani ai sensi della <ref eId="537" href="/akn/it/act/legge/stato/1971-12-03/1102/!main">legge 3 dicembre 1971, n. 1102</ref>, qualunque siano la loro estensione ed il loro reddito, nonche' ai fondi rustici con annessi fabbricati situati in comuni non classificati montani, quando il loro reddito dominicale iscritto in catasto ai sensi del <ref eId="538" href="/akn/it/act/regio.decreto.legge/stato/1939-04-04/589/!main">regio decreto-legge 4 aprile 1939, n. 589</ref>, convertito nella <ref eId="539" href="/akn/it/act/legge/stato/1939-06-29/976/!main">legge 29 giugno 1939, n. 976</ref>, non supera complessivamente le lire cinquemila." </p>
+                                <p>----------------</p>
+                                <p>AGGIORNAMENTO (96)</p>
+                                <p>
+La <ref eId="540" href="/akn/it/act/legge/stato/1976-05-10/346/!main">L. 10 maggio 1976, n. 346</ref>, come modificata dalla <ref eId="541" href="/akn/it/act/legge/stato/1994-01-31/97/!main">L. 31 gennaio 1994, n. 97</ref> ha disposto (con l'art. 2, comma 1) che "Le disposizioni dell'<ref eId="542" href="/akn/it/act/codice.civile/stato/1942-03-16/262/!main#art_1159bis">articolo 1159-bis del codice civile</ref> si applicano ai fondi rustici con annessi fabbricati situati in comuni classificati montani ai sensi della <ref eId="543" href="/akn/it/act/legge/stato/1971-12-03/1102/!main">legge 3 dicembre 1971, n. 1102</ref>, qualunque siano la loro estensione ed il loro reddito, nonche' ai fondi rustici con annessi fabbricati situati in comuni non classificati montani, quando il loro reddito dominicale iscritto in catasto ai sensi del <ref eId="544" href="/akn/it/act/regio.decreto.legge/stato/1939-04-04/589/!main">regio decreto-legge 4 aprile 1939, n. 589</ref>, convertito nella <ref eId="545" href="/akn/it/act/legge/stato/1939-06-29/976/!main">legge 29 giugno 1939, n. 976</ref>, non supera complessivamente le lire 350.000". </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 1469 ter">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_1573"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2005-10-23" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1573"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_1573.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 1469-ter. 
+ 
+ <ins eId="ins_794">((Il D.Lgs. 6 settembre 2005, n. 206 ha disposto (con l'art. 142, comma 1) che il presente articolo e' sostituito dall'attuale art. 1469-bis del regio decreto 16 marzo 1942, n. 262))</ins>. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2043">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2164"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2164"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2164.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2043. 
+ 
+ (Risarcimento per fatto illecito). 
+ 
+ Qualunque fatto doloso o colposo, che cagiona ad altri un danno ingiusto, obbliga colui che ha commesso il fatto a risarcire il danno. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2044">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2165"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2019-05-18" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2165"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2165.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2044. 
+ 
+ (Legittima difesa). 
+ 
+ Non e' responsabile chi cagiona il danno per legittima difesa di se' o di altri. 
+ 
+ <ins eId="ins_888">((Nei casi di cui all'articolo 52, commi secondo, terzo e quarto, del codice penale, la responsabilita' di chi ha compiuto il fatto e' esclusa. 
+ 
+ Nel caso di cui all'articolo 55, secondo comma, del codice penale, al danneggiato e' dovuta una indennita' la cui misura e' rimessa all'equo apprezzamento del giudice, tenuto altresi' conto della gravita', delle modalita' realizzative e del contributo causale della condotta posta in essere dal danneggiato))</ins>. 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2045">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2166"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2166"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2166.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2045. 
+ 
+ (Stato di necessita'). 
+ 
+ Quando chi ha compiuto il fatto dannoso vi e' stato costretto dalla necessita' di salvare se' o altri dal pericolo attuale di un danno grave alla persona, e il pericolo non e' stato da lui volontariamente causato ne' era altrimenti evitabile, al danneggiato e' dovuta un'indennita', la cui misura e' rimessa all'equo apprezzamento del giudice. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2046">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2167"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2167"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2167.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2046. 
+ 
+ (Imputabilita' del fatto dannoso). 
+ 
+ Non risponde delle conseguenze dal fatto dannoso chi non aveva la capacita' d'intendere o di volere al momento in cui lo ha commesso, a meno che lo stato d'incapacita' derivi da sua colpa. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2047">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2168"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2168"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2168.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2047. 
+ 
+ (Danno cagionato dall'incapace). 
+ 
+ In caso di danno cagionato da persona incapace di intendere o di volere, il risarcimento e' dovuto da chi e' tenuto alla sorveglianza dell'incapace, salvo che provi di non aver potuto impedire il fatto. 
+ 
+ Nel caso in cui il danneggiato non abbia potuto ottenere il risarcimento da chi e' tenuto alla sorveglianza, il giudice, in considerazione delle condizioni economiche delle parti, puo' condannare l'autore del danno a un'equa indennita'. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2048">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2169"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2169"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2169.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2048. 
+ 
+(Responsabilita' dei genitori, dei tutori, dei precettori e dei maestri d'arte). 
+ 
+ Il padre e la madre, o il tutore, sono responsabili del danno cagionato dal fatto illecito dei figli minori non emancipati o delle persone soggette alla tutela, che abitano con essi. La stessa disposizione si applica all'affiliante. 
+ 
+ I precettori e coloro che insegnano un mestiere o un'arte sono responsabili del danno cagionato dal fatto illecito dei loro allievi e apprendisti nel tempo in cui sono sotto la loro vigilanza. 
+ 
+ Le persone indicate dai commi precedenti sono liberate dalla responsabilita' soltanto se provano di non aver potuto impedire il fatto. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2049">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2170"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2170"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2170.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2049. 
+ 
+ (Responsabilita' dei padroni e dei committenti). 
+ 
+ I padroni e i committenti sono responsabili per i danni arrecati dal fatto illecito dei loro domestici e commessi nell'esercizio delle incombenze a cui sono adibiti. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2050">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2171"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2171"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2171.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2050. 
+ 
+ (Responsabilita' per l'esercizio di attivita' pericolose). 
+ 
+ Chiunque cagiona danno ad altri nello svolgimento di un'attivita' pericolosa, per sua natura o per la natura dei mezzi adoperati, e' tenuto al risarcimento, se non prova di avere adottato tutte le misure idonee a evitare il danno. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2051">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2172"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2172"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2172.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2051. 
+ 
+ (Danno cagionato da cosa in custodia). 
+ 
+ Ciascuno e' responsabile del danno cagionato dalle cose che ha in custodia, salvo che provi il caso fortuito. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2052">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2173"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="1942-04-19" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2173"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2173.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2052. 
+ 
+ (Danno cagionato da animali). 
+ 
+ Il proprietario di un animale o chi se ne serve per il tempo in cui lo ha in uso, e' responsabile dei danni cagionati dall'animale, sia che fosse sotto la sua custodia, sia che fosse smarrito o fuggito, salvo che provi il caso fortuito. 
+ 
+</p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2384 bis">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2530"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2004-01-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2530"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2530.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2384-bis. 
+ 
+ <ins eId="ins_1099">((ARTICOLO NON PIU' PREVISTO A SEGUITO DELLA SOSTITUZIONE DEL LIBRO  V, TITOLO V, CAPO V, DISPOSTA DAL D.LGS. 17 GENNAIO 2003, N. 6))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            <attachment>
+                <doc name="CODICE CIVILE-art. 2545 quindecies">
+                    <meta>
+                        <identification source="">
+                            <FRBRWork>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/!main/annesso_2833"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262"/>
+                                <FRBRalias name="urn:nir" value="urn:nir:stato:regio.decreto:1942-03-16;262"/>
+                                <FRBRalias name="eli" value="eli/id/1942/04/04/042U0262/CONSOLIDATED/20260812"/>
+                                <FRBRdate date="2004-01-01" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRcountry value="it"/>
+                            </FRBRWork>
+                            <FRBRExpression>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2833"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10"/>
+                                <FRBRdate date="1944-11-10" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                                <FRBRlanguage language="ita"/>
+                            </FRBRExpression>
+                            <FRBRManifestation>
+                                <FRBRthis value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10/!main/annesso_2833.xml"/>
+                                <FRBRuri value="/akn/it/act/regio_decreto/stato/1942-03-16/262/ita@1944-11-10.xml"/>
+                                <FRBRdate date="1942-03-16" name=""/>
+                                <FRBRauthor as="#author" href=""/>
+                            </FRBRManifestation>
+                        </identification>
+                    </meta>
+                    <mainBody>
+                        <paragraph>
+                            <content>
+                                <p> Art. 2545-quinquiesdecies. 
+ 
+ <ins eId="ins_1742">(( (Controllo giudiziario).))</ins>
+                                    <ins eId="ins_1743">((I fatti previsti dall'articolo 2409 possono essere denunciati al tribunale dai soci che siano titolari del decimo del capitale sociale ovvero da un decimo del numero complessivo dei soci, e, nelle societa' cooperative che hanno piu' di tremila soci, da un ventesimo dei soci. 
+ 
+ Il ricorso deve essere notificato a cura dei ricorrenti anche all'autorita' di vigilanza. 
+ 
+ Il tribunale, sentiti in camera di consiglio gli amministratori, i sindaci e l'autorita' di vigilanza, dichiara improcedibile il ricorso se per i medesimi fatti sia stato gia' nominato un ispettore o un commissario dall'autorita' di vigilanza. 
+ 
+ L'autorita' di vigilanza dispone la sospensione del procedimento dalla medesima iniziato se il tribunale per i medesimi fatti ha nominato un ispettore o un amministratore giudiziario.))</ins>
+                                </p>
+                            </content>
+                        </paragraph>
+                    </mainBody>
+                </doc>
+            </attachment>
+            </attachments>
+    </act>
+</akomaNtoso>

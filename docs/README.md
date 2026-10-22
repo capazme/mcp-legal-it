@@ -108,7 +108,7 @@ Fonte: `pyproject.toml` (`[project].dependencies`).
 | PDF generation | fpdf2 | >= 2.7 |
 | DOCX generation | python-docx | >= 1.0 |
 | XLSX generation | openpyxl | >= 3.1 |
-| Runtime | Python | >= 3.10 |
+| Runtime | Python | >= 3.11 |
 | Test | pytest + pytest-asyncio | >= 7.0 / >= 0.21 |
 
 Il vincolo superiore su `fastmcp` è deliberato: l'uscita di una major 4.x

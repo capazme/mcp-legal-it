@@ -64,7 +64,7 @@ is shipped as it is today, stated as such in the release notes. None may be
 Run long jobs under `caffeinate -dims`: a sleeping Mac stalls the live suites.
 
 - [ ] Full non-live suite: `pytest tests/ -m "not live"`, green in CI on
-      Python 3.10 and 3.12 × FastMCP 3 and 4.
+      Python 3.11 and 3.12 × FastMCP 3 and 4.
 - [ ] `python scripts/audit_tool_annotations.py --check`: up to date.
 - [ ] `python scripts/check_deps_sync.py`: OK.
 - [ ] `python scripts/check_directory_readiness.py`: OK, only the two accepted

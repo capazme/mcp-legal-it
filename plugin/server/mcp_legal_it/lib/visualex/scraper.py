@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 from .. import _brocardi_switch, _clock
 from .._http import note_source
 from . import normattiva_html, pagine_normattiva
-from .akn_parser import annex_id_of, normalize_article_key, position_hint
+from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
 
@@ -404,10 +404,10 @@ def _altrove(act, nv: NormaVisitata, result: dict) -> str:
         return ""
     # Where it is, but repealed there: said, so that a repealed article is not taken for
     # the text the reader was looking for (read from the export: no request).
-    wanted = normalize_article_key(nv.numero_articolo)
+    wanted = comparable_article_key(nv.numero_articolo)
     trovato = {str(e["allegato"] or "") for e in entries
-               if normalize_article_key(e["numero"]) == wanted and str(e["allegato"] or "") != asked}
-    abrogato = sorted(part for part in trovato if any(normalize_article_key(k) == wanted for k in abrogati.get(part, ())))
+               if comparable_article_key(e["numero"]) == wanted and str(e["allegato"] or "") != asked}
+    abrogato = sorted(part for part in trovato if any(comparable_article_key(k) == wanted for k in abrogati.get(part, ())))
     if abrogato and len(abrogato) == len(trovato):
         return hint + " (abrogato)"
     if abrogato:
