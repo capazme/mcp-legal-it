@@ -25,3 +25,15 @@ Trimming: `str()` of the elements with the listed ids, assembled inside
 `docs/superpowers/plans/2026-09-19-archivio-visualex-extensions.md`, Task 1.
 
 Used by `tests/unit/test_eurlex_fixtures.py` and `tests/unit/test_eurlex_consolidated.py` (VisuaLex's tests, adapted).
+
+mcp-legal-it's own, captured 2026-10-22 from CELLAR (`publications.europa.eu/resource/celex/<CELEX>`),
+trimmed as above and checked to give the same article text as the whole page:
+
+- `ai_act_oj_art111_trimmed.html` (`div#art_111`): Reg. (UE) 2024/1689, Official Journal text (32024R1689).
+- `ai_act_consolidated_20260727_art111_trimmed.html`: the consolidation 02024R1689-20260727
+  (Reg. (UE) 2026/1744): par. 2 rewritten, par. 4 added. Used by `tests/unit/test_eurlex_vigente.py`.
+- `dir2009_136_oj_art1_2_trimmed.html` (32009L0136): `div#art_1` and `div#art_2` of dir.
+  2009/136/CE. Art. 1 quotes, in table cells, the articles of dir. 2002/22/CE it rewrites (21, 22,
+  23, 27, …). Used by `tests/unit/test_eurlex_quoted_articles.py`.
+- `dir2009_136_consolidated_20201221.html` (02009L0136-20201221), the whole page: the consolidation
+  of dir. 2009/136/CE has arts 2-6 only; art. 1 is gone. Used by `tests/unit/test_eurlex_vigente.py`.
