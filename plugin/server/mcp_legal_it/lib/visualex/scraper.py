@@ -224,19 +224,33 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
     annex = split_annex(nv.numero_articolo)
 
     if is_eurlex:
+        # The text in force of an amended act is its latest consolidation (issue #50).
+        nv, ue = await _versione_ue(nv)
+        if ue.get("error"):
+            return {"text": "", "url": nv.norma.url(), "source": source, **ue}
         html, url = await _fetch_eurlex_html(nv.norma)
         if not html:
-            return {"text": "", "url": url, "source": source, "error": "Could not fetch EUR-Lex document"}
+            return {"text": "", "url": url, "source": source, **ue, "error": "Could not fetch EUR-Lex document"}
         text = _extract_eurlex_article(html, nv.numero_articolo)
         if annex:
             if text.startswith("["):  # not found / not divided into articles
-                return {"text": "", "url": url, "source": source, "error": text.strip("[]")}
-            return {"text": text, "url": url, "source": source, "allegato": f"Allegato {annex[0]}"}
+                return {"text": "", "url": url, "source": source, **ue, "error": text.strip("[]")}
+            return {"text": text, "url": url, "source": source, **ue, "allegato": f"Allegato {annex[0]}"}
         if nv.numero_articolo and _EURLEX_NOT_FOUND_RE.match(text):
             # The extractor's "[Articolo N non trovato ...]" is an answer about the
             # document, not its text: returned as text it read as the article.
-            return {"text": "", "url": url, "source": source, "esito": ARTICLE_NOT_FOUND,
-                    "error": text.strip("[]")}
+            errore = text.strip("[]")
+            consolidato = ue.get("consolidato")
+            if consolidato and ue.get("consolidato_verificato") and not nv.numero_articolo.startswith("rec_"):
+                # The text in force is the consolidation's, and it has no such article: a later
+                # act repealed or deleted it (art. 1 of dir. 2009/136). Said, never served from
+                # the OJ page, which would present a repealed text as current.
+                from .eurlex_consolidate import avviso_assente
+
+                errore = avviso_assente(nv.numero_articolo, consolidato)
+                ue = {**ue, "avviso_assenza": errore}
+            return {"text": "", "url": url, "source": source, **ue, "esito": ARTICLE_NOT_FOUND,
+                    "error": errore}
     elif annex:
         return await _fetch_normattiva_annex(nv, *annex, canale=canale)
     elif names_an_annex(nv.numero_articolo):
@@ -295,7 +309,7 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
             return result
         return _checked_html_article(result, nv, served, act, part)
 
-    return {"text": text, "url": url, "source": source}
+    return {"text": text, "url": url, "source": source, **ue}
 
 
 # ---------------------------------------------------------------------------
@@ -942,6 +956,58 @@ async def _akn_act(nv: NormaVisitata):
         return None
 
 
+async def _versione_ue(nv: NormaVisitata) -> "tuple[NormaVisitata, dict]":
+    """The EU text asked for, and what the answer says of it: ``(nv to read, extra keys)``.
+
+    The extra keys are ``consolidato`` (``{"celex", "data", "modificato_da"}`` of the
+    consolidation read, None for the Official Journal text) and ``consolidato_verificato``
+    (True: CELLAR was asked; False: it could not say, and the OJ text is served with a
+    notice; None: not asked, as for a treaty, the original text or a consolidation named
+    by the caller). A day before the act's own date is an ``error`` with
+    ``esito="riferimento_non_valido"``.
+    """
+    from . import eurlex_consolidate as ec
+    from .map import EURLEX_TREATY_CELEX
+
+    norma = nv.norma
+    if norma.celex_consolidated:
+        data = norma.celex_consolidated.split("-", 1)[1]
+        return nv, {"consolidato": {"celex": norma.celex_consolidated, "data": f"{data[:4]}-{data[4:6]}-{data[6:]}",
+                                    "modificato_da": None},
+                    "consolidato_verificato": None}
+    if (norma.tipo_atto_normalized.lower() in EURLEX_TREATY_CELEX
+            or (nv.versione or "").strip().lower() == "originale"
+            or (nv.numero_articolo or "").startswith("rec_")):
+        # A treaty, the original text asked for, a recital (a consolidation has no preamble,
+        # and amendments do not rewrite recitals): the Official Journal text, as before.
+        return nv, {"consolidato": None, "consolidato_verificato": None}
+    if split_annex(nv.numero_articolo):
+        # A consolidation's annexes are not read yet: the OJ annex, said to be possibly outdated.
+        return nv, {"consolidato": None, "consolidato_verificato": None, "allegato_oj": True}
+    base = _build_celex(norma)
+    info = await ec.consolidazioni(base) if base else None
+    if info is None:
+        return nv, {"consolidato": None, "consolidato_verificato": False}
+    giorno = nv.data_versione or None
+    oggi = _clock.today().isoformat()
+    scelta, versione = ec.scegli(info, giorno, oggi)
+    if scelta == "prima":
+        return nv, {"consolidato": None, "consolidato_verificato": True, "esito": "riferimento_non_valido",
+                    "error": f"{norma} è pubblicato in GUUE il {info['data_gu']}: non esisteva il {giorno}"}
+    extra = {"consolidato_verificato": True, "avvisi_ue": []}
+    if not giorno and (prossima := ec.futura(info, oggi)):
+        # A consolidation not applicable yet is said, as Normattiva's coming version is.
+        extra["upcoming"] = prossima
+        extra["avvisi_ue"].append(ec.avviso_futura(prossima))
+    if giorno and info.get("in_vigore_dal") and giorno < info["in_vigore_dal"]:
+        extra["avvisi_ue"].append(ec.avviso_non_ancora_in_vigore(giorno, info["in_vigore_dal"]))
+    if scelta == "oj":
+        return nv, {"consolidato": None, **extra}
+    letta = dataclasses.replace(nv, norma=dataclasses.replace(norma, celex_consolidated=versione["celex"]))
+    return letta, {"consolidato": {"celex": versione["celex"], "data": versione["data"],
+                                   "modificato_da": versione["modifiche"]}, **extra}
+
+
 def senza_export(nv: NormaVisitata) -> bool:
     """Whether the Akoma Ntoso export cannot give the text asked for: the original text.
 
@@ -1014,6 +1080,85 @@ def _eurlex_urls(norma) -> tuple[str, str]:
 #: (``title-article-norm``), the ``eli-subdivision`` wrappers, or the legacy class-less page's
 #: «<p>Articolo 1</p>» (dir. 2002/58, which carries none of the classes).
 _PAGINA_EURLEX = re.compile(r"ti-art|title-article-norm|eli-subdivision|>\s*Articolo\s")
+
+
+#: An act's own article on a modern OJ page: ``div.eli-subdivision#art_N`` (``art_N.tit_1`` and
+#: the like are its parts, not articles).
+_ARTICOLO_PROPRIO = re.compile(r"^art_([^.]+)$")
+
+
+def _articolo_citato(soup: BeautifulSoup, article: str) -> bool:
+    """Whether the page has no article *article* of its own, only a quotation of another act's.
+
+    On a modern OJ page (``ti-art`` headings) *article* is a quotation when every heading
+    that names it sits in a table cell or opens with «: an amending act quotes in table cells.
+    The ``div#art_N`` ids do not decide it: they do not cover every article (the TFUE has no
+    ``art_354``). A page without such headings (the legacy class-less markup) is judged by the
+    first heading that names *article*, a «-heading skipped as the extractor skips it: inside
+    a table cell, it is a quotation. A consolidated page is never judged here.
+    """
+    if soup.find("p", class_="title-article-norm") is not None:
+        return False
+    chiesto = comparable_article_key(article)
+    teste = soup.find_all("p", class_=lambda c: c and "ti-art" in c and "sti-art" not in c)
+    if teste:
+        sue = [t for t in teste if _chiave_intestazione(t) == chiesto]
+        return bool(sue) and all(t.find_parent("td") is not None or t.get_text(strip=True).startswith("«")
+                                 for t in sue)
+    numero = re.match(r"\d+", chiesto)
+    if numero is None:
+        return False
+    testa = re.compile(rf"^(«)?\s*Articolo\s+{numero.group(0)}(?!\d)", re.IGNORECASE)
+    for tag in soup.find_all(["p", "div", "span", "h1", "h2", "h3", "h4", "h5", "h6"]):
+        m = testa.match(tag.get_text(strip=True))
+        if m and m.group(1):
+            continue  # «Articolo N: a quotation the extractor skips too; the own article may follow
+        if m:
+            return tag.find_parent("td") is not None
+    return False
+
+
+def _intestazione_propria(div):
+    """The heading «Articolo N» of the own article ``div#art_N``: a ``ti-art`` paragraph of its own,
+    never one of a quotation inside it (a table cell)."""
+    for p in div.find_all("p", class_=lambda c: c and "ti-art" in c and "sti-art" not in c):
+        if p.find_parent("td") is None:
+            return p
+    return None
+
+
+def _chiave_intestazione(testa) -> str:
+    """The article key a heading «Articolo 16 bis» names ("16-bis"), any «, NBSP or spacing aside."""
+    return comparable_article_key(re.sub(r"^[«\s]*Articolo\s+", "", testa.get_text(" ", strip=True)))
+
+
+def _non_e_il_proprio(soup: BeautifulSoup, article: str, text: str) -> bool:
+    """Whether *text*, served for *article*, is not the act's own article on a modern OJ page.
+
+    The own article is ``div#art_N``: its heading and rubrica must be the text's first lines.
+    A page without those divs, or a consolidated page, is not judged here.
+    """
+    if soup.find("p", class_="title-article-norm") is not None:
+        return False
+    chiesto = comparable_article_key(article)
+    for div in soup.find_all("div", id=_ARTICOLO_PROPRIO):
+        testa = _intestazione_propria(div)
+        chiavi = {comparable_article_key(_ARTICOLO_PROPRIO.match(div["id"]).group(1))}
+        if testa is not None:
+            chiavi.add(_chiave_intestazione(testa))
+        if chiesto not in chiavi or testa is None:
+            continue
+        # The line after the heading is what follows the own heading: its title (``art_N.tit_1``),
+        # a bare rubrica, or the first paragraph of an amending article that has no rubrica. Never
+        # the rubrica of an article it quotes, which sits further down, in a table cell.
+        attese = [testa.get_text(strip=True)]
+        seguente = testa.find_next_sibling()
+        # VisuaLex's extractor writes a p/div/span as one line (a table row by row): only then.
+        if (seguente is not None and seguente.name in ("p", "div", "span") and seguente.find_parent("td") is None
+                and seguente.get_text(strip=True)):
+            attese.append(seguente.get_text(strip=True))
+        return text.split("\n")[:len(attese)] != attese
+    return False
 
 
 def _altro_suffisso(text: str, article: str) -> bool:
@@ -1116,9 +1261,18 @@ def _extract_eurlex_article(html: str, article: str) -> str:
     # the OJ page and, for a consolidated version, the consolidated markup.
     from . import eurlex_text
 
+    soup = BeautifulSoup(html, "html.parser")
+    if _articolo_citato(soup, article):
+        # An amending act quotes the articles it rewrites ("Articolo 23" of dir. 2002/22 inside
+        # art. 1 of dir. 2009/136): the quotation is not the act's own article. Checked here,
+        # before VisuaLex's extractor, which takes the first heading it meets (reported upstream).
+        return f"[Articolo {article} non trovato nel documento EUR-Lex]"
     try:
-        text = eurlex_text.extract_article_text(BeautifulSoup(html, "html.parser"), article)
+        text = eurlex_text.extract_article_text(soup, article)
     except eurlex_text.DocumentNotFoundError:
+        return f"[Articolo {article} non trovato nel documento EUR-Lex]"
+    if _non_e_il_proprio(soup, article, text):
+        # The extractor met a quotation of the same number before the act's own article.
         return f"[Articolo {article} non trovato nel documento EUR-Lex]"
     if _altro_suffisso(text, article):
         # VisuaLex's OJ strategies take "Articolo 15 bis" for a request of art. 15 when the
