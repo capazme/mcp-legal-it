@@ -741,6 +741,16 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **`python -m mcp_legal_it` refuses an unknown `LEGAL_PROFILE` without a
+  traceback**, like the console script; the encoding guard of the package also
+  sees `io.open`, `codecs.open`, an `open` under another name and
+  `encoding=None` (#76 review).
+- **ANAC: linee guida and bandi tipo are no longer looked up by number and
+  year.** Their titles carry the number without a date («Linee guida n. 4»), so
+  the lookup mostly answered «not found»: `leggi_atto_anac` now says to search
+  them with `cerca_atti_anac` and read the act from the reference it returns. A
+  year the portal's «Anno» filter does not list falls back to the newest acts,
+  and the answer says so (#82 review).
 - The citation hook (Stop and SubagentStop) no longer opens the server's
   Python environment. `uv run --project <plugin>/server`, even with
   `--no-sync`, deletes and recreates that environment whenever it finds it

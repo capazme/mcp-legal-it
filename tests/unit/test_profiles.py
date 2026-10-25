@@ -62,10 +62,12 @@ def test_an_unknown_profile_refuses_to_start(profile, tmp_path):
     assert "calcoli" in out.stderr  # the valid names are listed
 
 
-def test_the_console_script_prints_the_refusal_without_a_traceback(tmp_path):
+@pytest.mark.parametrize("module", ["mcp_legal_it.cli", "mcp_legal_it"])
+def test_the_entry_points_print_the_refusal_without_a_traceback(module, tmp_path):
+    # the console script (cli) and `python -m mcp_legal_it` (__main__)
     env = {"LEGAL_PROFILE": "nonexistent", "PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "LEGAL_CACHE": "off",
            "PYTHONPATH": str(REPO / "plugin" / "server")}
-    out = subprocess.run([sys.executable, "-m", "mcp_legal_it.cli"], cwd=tmp_path, env=env,
+    out = subprocess.run([sys.executable, "-m", module], cwd=tmp_path, env=env,
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 1
     assert out.stderr.startswith("mcp-legal-it: LEGAL_PROFILE='nonexistent' non è un profilo")
