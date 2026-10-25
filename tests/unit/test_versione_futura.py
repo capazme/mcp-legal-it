@@ -118,6 +118,17 @@ async def test_verifica_citazioni_says_a_coming_repeal(monkeypatch):
     assert c["nota"].endswith("Attenzione: abrogato con effetto dal 2027-01-01.")
 
 
+async def test_verifica_citazioni_adds_no_note_without_a_later_version(monkeypatch):
+    # The undated page is today's text: nothing announced, so no «Attenzione» in the note.
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools import legal_citations as lc
+
+    _serve(monkeypatch, {DPR131: OGGI_PAGINA})
+    dati = json.loads(await lc._verifica_citazioni_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
+    [c] = dati["citazioni"]
+    assert c["verdetto"] == "verificata" and "Attenzione" not in c["nota"]
+
+
 class TestTheLaterTextAskedFor:
     def test_the_reference_keeps_the_version_asked_for(self):
         nd = _futura().norma_data[0]

@@ -81,3 +81,7 @@ CLAUDE.md
 # HTTP tapes of scripts/replay_mcp_outputs.py: third-party content, never commit
 .replay-tapes/
 *.tape.json.gz
+
+# Leftovers of patch(1)
+*.orig
+*.rej
