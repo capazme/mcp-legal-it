@@ -43,7 +43,7 @@ def _surface(profile: str, home: Path) -> dict:
 def test_profile_narrows_tools_and_keeps_prompts_and_resources(profile, must_have, must_not_have, tmp_path):
     full = _surface("full", tmp_path)
     narrowed = _surface(profile, tmp_path)
-    assert len(full["tools"]) == 228
+    assert len(full["tools"]) == 231
     assert 0 < len(narrowed["tools"]) < len(full["tools"]), f"{profile}: {len(narrowed['tools'])} tools"
     assert must_have in narrowed["tools"]
     assert must_not_have not in narrowed["tools"]
@@ -74,7 +74,7 @@ def test_the_console_script_prints_the_refusal_without_a_traceback(tmp_path):
 
 @pytest.mark.parametrize("profile", ["", "  "])
 def test_a_blank_profile_is_full(profile, tmp_path):
-    assert len(_surface(profile, tmp_path)["tools"]) == 228
+    assert len(_surface(profile, tmp_path)["tools"]) == 231
 
 
 def test_the_calcoli_profile_never_goes_online(tmp_path):
@@ -87,3 +87,11 @@ def test_the_calcoli_profile_never_goes_online(tmp_path):
     assert "interessi_legali" in tools and "stato_server" in tools
     assert not tools & set(OPEN_WORLD)
     assert not {name for name in tools if TOOL_SOURCES.get(name)}
+
+
+def test_anac_is_a_network_source_never_in_calcoli(tmp_path):
+    # ANAC goes online: it belongs to the source profiles (`normativa` takes every authority),
+    # never to the offline `calcoli`.
+    anac = {"cerca_atti_anac", "leggi_atto_anac", "ultimi_atti_anac"}
+    assert anac <= set(_surface("normativa", tmp_path)["tools"])
+    assert not anac & set(_surface("calcoli", tmp_path)["tools"])

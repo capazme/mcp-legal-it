@@ -51,6 +51,7 @@ CLIENT_SOURCES = {
     "cerdef": "Corte di Cassazione, sezione tributaria",
     "cgue": "Corte di giustizia UE (CELLAR SPARQL)",
     "consob": "CONSOB delibere",
+    "anac": "ANAC atti",
     "corte_cost": "Corte costituzionale (open data)",
     "gazzetta": "Gazzetta Ufficiale (ELI)",
     "giustizia_amm": "Giustizia amministrativa (TAR/CdS)",

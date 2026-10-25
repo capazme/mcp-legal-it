@@ -15,6 +15,21 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **ANAC acts** (#51): `cerca_atti_anac`, `leggi_atto_anac` and
+  `ultimi_atti_anac` search the acts of the Autorità Nazionale Anticorruzione
+  (delibere, pareri di precontenzioso and sulla normativa, linee guida, bandi
+  tipo, comunicati del Presidente, regolamenti…) on www.anticorruzione.it's
+  public «Consulta i documenti» search, newest first, by type and year (the
+  portal's own «Anno» filter). An act is read by the reference the search
+  returns or by type, number and year (the number searched within the type
+  and the year: one result for delibera 444/2025): its
+  particulars (year, topic, category, type, recipients), subject, «Riferimenti
+  normativi», «Parole chiave» and the link to the official PDF. The full text is
+  published only in that PDF and is not extracted. A page the client cannot
+  read is an error, never «no results». New host `www.anticorruzione.it`
+  (robots.txt allows every agent); the open-data portal refuses automated
+  requests and is not used. New authority tag `anac`, in the `normativa`
+  profile.
 - **EU consolidated versions** (`api`): `riferimento_da_parametri(...,
   celex_consolidated="02002L0058-20091219")` and `NormaDati.celex_consolidated`
   (VisuaLex's key, last in the dataclass) ask for the text of an EU regulation or
@@ -516,6 +531,11 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **The installer configures a local server only.** `install.py` no longer
+  offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
+  interactive question are gone): it pointed at a personal tunnel address
+  written in the code. The plugin always runs the server on the user's
+  machine; a test keeps remote endpoints out of the installer.
 - **`indennita_licenziamento` returns the range, not an amount** (#76). After
   C.Cost. 194/2018 struck the words «di importo pari a due mensilità … per ogni
   anno di servizio» from art. 3 co. 1 d.lgs. 23/2015, the amount is set by the
@@ -683,6 +703,12 @@ entry, it is the same feature as ported to the 3.0 line.
   canonical wording. The server's OUTPUT convention adds the provenance
   clause (`dati_applicati` with their vintage, `mcp-legal-it/fonti_consultate`
   from `_meta`), so every host surfaces where an answer's numbers come from.
+
+### Security
+- **fastmcp 3.4.11 in the plugin's lock** (was 3.4.9): GHSA-7xgj-8392-5q4r,
+  «post-transform component authorization is skipped on direct calls»
+  (medium, published 2026-10-23, fixed in 3.4.10). Same major; the declared range
+  `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
 - The citation hook (Stop and SubagentStop) no longer opens the server's
