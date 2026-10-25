@@ -237,19 +237,22 @@ The same, from explicit fields (the VisuaLex request body). No network.
     (`data`) and `numero_atto`; or an Italian act without the date and number
     needed to build its address;
   - `riferimento_non_valido` also for a version that cannot be one: a
-    `versione` other than `vigente` or `originale`, a `data_versione` that is not a
-    date, a future one (Normattiva would answer it with today's text and say
-    nothing), or a date together with `originale`;
-  - `non_supportata`: a version of an EU act or of an annex.
+    `versione` other than `vigente`, `originale` or `futura`, a `data_versione` that
+    is not a date, a future one (Normattiva would answer it with today's text and say
+    nothing; with `futura` it must instead be after today), or a date together with
+    `originale`;
+  - `non_supportata`: a version of an EU act (`futura` included) or of an annex.
 - **Versions.** `data_versione` (`"2010-01-01"`, or the long form `"1 gennaio
   2010"`) asks for the text in force on that day: the URN gains `!vig=2010-01-01`
   and the export is asked at that day. **A date always means the text in force on
-  that date**, with `versione="vigente"` or without it. This is a temporary
-  divergence from VisuaLex, until its PR #276 lands: today its `generate_urn`
-  reads the date only together with `versione="vigente"`, so a date sent alone
-  gets today's text under the date asked for (art. 1284 c.c. «at 2010-01-01»
-  came back with the 4th and 5th commi added in 2014). VisuaLex adopts the same
-  rule there. `versione="originale"` asks for the original text, read from the
+  that date**, with `versione="vigente"` or without it, as in VisuaLex since
+  4aa59a9d (its PR #276; before it, a date sent alone got today's text under the
+  date asked for: art. 1284 c.c. «at 2010-01-01» came back with the 4th and 5th
+  commi added in 2014). A date together with `versione="originale"` is
+  `riferimento_non_valido` here, while VisuaLex since 4aa59a9d reads it as the text
+  in force on that date: a deliberate difference, because the two ask for
+  different texts and guessing which one was meant could serve the wrong one.
+  `versione="originale"` asks for the original text, read from the
   page only (`@originale`): the export is a text in force on a day, and an act's
   own day can precede its entry into force. An article that did not exist yet on
   the day asked for (the page says «NON ANCORA ESISTENTE O VIGENTE») is
@@ -260,6 +263,30 @@ The same, from explicit fields (the VisuaLex request body). No network.
   `data_versione` carry the version to `testo_articolo`. The whole act, its index
   and its tree are today's: `indice_atto`, `testo_atto` and `albero_atto` answer
   `non_supportata` for a `NormaDati` with a version.
+- **The text not in force yet** (`versione="futura"`, VisuaLex's `upcoming: true`,
+  its decision G-357; Normattiva acts only). The undated page, when its window
+  starts after today: `not_in_force` is `True`, `precisione` `INDICATIVO`, the
+  first `avviso` says it is not the text in force today and from when it is,
+  `upcoming` describes it, `validity.request_in_window` is `True`, and `norma_data`
+  is dated to the day it comes into force (`versione="vigente"`, `data_versione`
+  that day; `url` and `urn` stay the undated page's), so it reads as a text at a
+  day. The page at today's date (one request more) tells an article inserted from
+  that day (`change` `inserted`) from one changed by it (`amended`; `None` when that
+  page cannot be read, `abrogated` for a coming repeal). An optional `data_versione`,
+  after today, is the latest day it may come into force. None published, or none by
+  that day, is `articolo_non_trovato` («Nessuna versione non ancora in vigore …»,
+  «… entra in vigore il …»); a page whose validity cannot be read is
+  `verifica_non_disponibile` («Non riesco a leggere la vigenza …»). An annex is
+  `non_supportata`. `cite_law(..., versione="futura")` does the same, without a
+  day.
+- **An article inserted from a later day** (nothing of it is in force today: the
+  page at today says «NON ANCORA ESISTENTE O VIGENTE», the undated page is its later
+  text), asked without a version, is served as VisuaLex serves it (its G-358): the
+  later text, `not_in_force` `True`, `precisione` `INDICATIVO`, `upcoming`
+  `{change: "inserted", valid_from, version_number}` and a first `avviso` that it is
+  not in force yet and from when. `norma_data` keeps the request's key (no date),
+  `validity` is the page's. No extra request: both pages were read to look for
+  today's text.
 - **The text in force of an EU act** (issue #50). For a regulation or a directive
   without a date, `testo_articolo` serves the **latest consolidation** EUR-Lex
   publishes that applies today, when that consolidation includes an amending act or
@@ -381,8 +408,14 @@ The text in force of one article, from Normattiva or EUR-Lex.
   served from is in `url` and `urn` only: "art. 120 d.lgs. 104/2010" answers
   with `urn` `…;104:2~art120` and `allegato=None`. Passing a code's default
   part back (`allegato="2"` for the c.c.) reads the article, not an annex.
-  The `None` of the codes whose URN gained its part on 21/10/2026 is
-  **provisional** (see §8, «Saved norms keep their key»).
+  Since 4aa59a9d VisuaLex gives their part to the codes approved as an annex of
+  their decree too: codice del turismo, norme di attuazione del c.p.p.,
+  regolamento della navigazione marittima, codici penali militari (`"1"`; the
+  codice penale militare di guerra, which VisuaLex has only inside the joint row,
+  `"2"`), and to the acts cited by their own number whose articles are their
+  annex 1 (VisuaLex's `ANNEXED_ACTS`): TULPS (r.d. 773/1931), c.p.p. minorile
+  (d.P.R. 448/1988) and TU successioni (d.lgs. 346/1990), all `"1"`; VisuaLex has the
+  TULPS at 4aa59a9d and adds the other two.
 - **`url` and `urn`** are both always filled for Normattiva acts (EU acts have
   no NIR URN). An act cited with the year only whose full date could not be
   read keeps the URN derived from its URL. That URN has a placeholder date,
@@ -397,14 +430,13 @@ The text in force of one article, from Normattiva or EUR-Lex.
   the undated page). The coming version is an `avviso`, and its repealing act is
   `successione` with `dal`. **`upcoming`** carries the same facts as VisuaLex's
   `upcoming`, key for key: `change` (`abrogated` when the coming version repeals
-  the article, else `amended`), `valid_from`, `version_number`; `None` when the
-  undated page was today's text. This is a deliberate, temporary divergence from
-  VisuaLex, which serves the undated page as it is: VisuaLex adopts the same rule
-  (its decision G-355), and the two converge with VisuaLex <SHA>.
+  the article, else `amended`; `inserted` for an article inserted from a later
+  day, below), `valid_from`, `version_number`; `None` when the undated page was
+  today's text. VisuaLex follows the same rule since 4aa59a9d (its decision G-355).
 - **`cite_law(..., formato="json")`** carries the same two facts under the same
-  names, and both keys are always present so the schema does not change with the
-  answer: `avvisi` (a list, `[]` when there is nothing to say) and `upcoming` (the
-  object above, or `null`). The Markdown form prints the notice as a line
+  names, and the keys are always present so the schema does not change with the
+  answer: `avvisi` (a list, `[]` when there is nothing to say), `upcoming` (the
+  object above, or `null`) and `not_in_force` (`true` only for `versione="futura"`). The Markdown form prints the notice as a line
   «**Attenzione**: …».
 - **`validity`** is what the page states of the text it served: the window
   «Testo in vigore dal … al …», the version, the repeal (VisuaLex's
@@ -719,7 +751,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 |---|---|
 | `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta`, and VisuaLex's `celex_consolidated` last |
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, consolidato, consolidato_verificato` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti` |
@@ -814,9 +846,9 @@ updates that test, this document and the CHANGELOG in the same change.
 `/stream_article_text`, `/fetch_all_data`) can switch to `canale="html"`, which
 returns VisuaLex's `article_text` byte for byte (checked against VisuaLex's
 frozen hashes and a live run of its `collector_timing.py`), with `validity`
-read from the same page. One exception, until VisuaLex <SHA>: when the undated page
-serves a version not in force yet, this library serves today's page (see
-`testo_articolo`). Multi-article references come with the next phases. `/fetch_decision` switches
+read from the same page, and the text in force today when the undated page serves
+a later version, and the later text of an article inserted from a later day,
+marked `not_in_force`, as VisuaLex since 4aa59a9d (see `testo_articolo`). Multi-article references come with the next phases. `/fetch_decision` switches
 **only once** the block form of §6 exists.
 
 - `canale="akn"` text is not VisuaLex's frozen `article_text`: AKN and HTML
@@ -846,22 +878,15 @@ serves a version not in force yet, this library serves today's page (see
   `codice_civile`, `codice_penale`, `regolamento-ue--AAAA--NNNN::art::N`. Any
   change that alters that key for an existing norm (a code's URN, a date, an act
   type) needs an alignment on VisuaLex's side before the shell switches to the
-  3.0 package. The shell switches only after realigning the saved norms whose
-  code URN differs from VisuaLex's table. Today these are the codes whose URN
-  gained the part holding their articles on 21/10/2026: codice del turismo
-  (`;79:1`), codici penali militari (`;303:1`), norme di attuazione del c.p.p.
-  (`;271:1`), regolamento per la navigazione marittima (`;328:1`), and the acts
-  cited by their own number whose articles are an annex: c.p.p. minorile
-  (d.P.R. 448/1988, `;448:1`), TULPS (r.d. 773/1931, `;773:1`), TU successioni
-  (d.lgs. 346/1990, `;346:1`). For the codice del turismo no saved norm depends
-  on it, so it needs no data migration, only the code fix in VisuaLex. VisuaLex
-  corrects the URN only, never `norma_data.allegato`: for these seven the
-  `:1` is in the URN and `allegato` stays `None`, as VisuaLex has it, so their
-  item keys do not change. The same holds for the codice penale militare di pace (`;303:1`)
-  and di guerra (`;303:2`), added on 21/10/2026 and absent from VisuaLex's table.
-  **Provisional:** this `allegato=None` rule for those nine depends on a decision
-  still open on VisuaLex's side, which may file them with `allegato` "1" (or "2")
-  as it does the c.c. and the c.p.; it is not part of the frozen contract until
-  that decision is taken.
+  3.0 package. Since 4aa59a9d VisuaLex has the URNs this library gives the codes
+  approved as an annex of their decree (codice del turismo `;79:1`, codici penali
+  militari `;303:1`, norme di attuazione del c.p.p. `;271:1`, regolamento per la
+  navigazione marittima `;328:1`) and the TULPS (r.d. 773/1931, `;773:1`), and files
+  them with that `allegato`: `norma_data` here gives the same. The codice penale militare di guerra (`;303:2`), absent from
+  VisuaLex's table, is filed with `"2"`. The c.p.p. minorile (d.P.R. 448/1988,
+  `;448:1`) and the TU successioni (d.lgs. 346/1990, `;346:1`) are filed with `"1"`
+  here; at 4aa59a9d VisuaLex's URN for them lacks the part (it serves the approving
+  decree's art. 1) and it adds both to `ANNEXED_ACTS`: its saved norms of the two need
+  realigning before the shell switches.
 - **Serialisation stays the shell's job.** Key order, ASCII escaping, the NDJSON
   stream: `come_dict` returns data, not JSON text.
