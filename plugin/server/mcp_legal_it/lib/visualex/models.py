@@ -107,9 +107,8 @@ class NormaVisitata:
     _urn: str = field(default="", repr=False)
     # The text asked for: in force on *data_versione* ("YYYY-MM-DD", the URN's
     # "!vig=" suffix), or the original text (*versione* "originale", "@originale").
-    # Empty: the text in force today. A date always means "in force on that date":
-    # VisuaLex's generate_urn reads it only together with versione="vigente", until its
-    # PR #276 (the same rule) lands.
+    # Empty: the text in force today. A date always means "in force on that date", as in
+    # VisuaLex's generate_urn since 4aa59a9d (its PR #276).
     versione: str = ""
     data_versione: str = ""
 

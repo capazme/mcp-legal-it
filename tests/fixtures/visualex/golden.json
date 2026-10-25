@@ -90,6 +90,41 @@
       "labels": {"citation": {"value": "art. 33, d.lgs. 6 settembre 2005, n. 206", "status": "decided"}, "short": {"value": "art. 33 d.lgs. 206/2005", "status": "decided"}}
     },
     {
+      "id": "cpa-29",
+      "note": "The c.p.a. is «Allegato 1» of d.lgs. 104/2010 and annex 2 on Normattiva, and that number is its identity (owner, 11 October 2026). A code cited by its decree never names the code's default annex: no «(Allegato 2)». The owner, 21 October 2026 (G-359): «sì: per un codice l'allegato predefinito non si scrive, ed è fissato nella convenzione». The label reads back to the decree with no annex, and the API's smart lookup finds the article in the code's annex: each of these rows cites an article the decree's own text does not have (checked on Normattiva, 21 October 2026).",
+      "input": {"tipo_atto": "codice del processo amministrativo", "tipo_atto_reale": "decreto legislativo", "numero_atto": "104", "data": "2010-07-02", "allegato": "2", "numero_articolo": "29"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:2", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:2~art29", "status": "current"}},
+      "labels": {"citation": {"value": "art. 29, d.lgs. 2 luglio 2010, n. 104", "status": "decided"}, "short": {"value": "art. 29 d.lgs. 104/2010", "status": "decided"}}
+    },
+    {
+      "id": "cod-nav-69",
+      "note": "The codice della navigazione, annex 1 of r.d. 327/1942: its default annex is never named (as cpa-29).",
+      "input": {"tipo_atto": "codice della navigazione", "tipo_atto_reale": "regio decreto", "numero_atto": "327", "data": "1942-03-30", "allegato": "1", "numero_articolo": "69"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327:1~art69", "status": "current"}},
+      "labels": {"citation": {"value": "art. 69, r.d. 30 marzo 1942, n. 327", "status": "decided"}, "short": {"value": "art. 69 r.d. 327/1942", "status": "decided"}}
+    },
+    {
+      "id": "cod-postale-20",
+      "note": "The codice postale e delle telecomunicazioni, annex 1 of d.p.r. 156/1973: its default annex is never named (as cpa-29).",
+      "input": {"tipo_atto": "codice postale e delle telecomunicazioni", "tipo_atto_reale": "decreto del presidente della repubblica", "numero_atto": "156", "data": "1973-03-29", "allegato": "1", "numero_articolo": "20"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-03-29;156:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-03-29;156:1~art20", "status": "current"}},
+      "labels": {"citation": {"value": "art. 20, d.p.r. 29 marzo 1973, n. 156", "status": "decided"}, "short": {"value": "art. 20 d.p.r. 156/1973", "status": "decided"}}
+    },
+    {
+      "id": "cgc-52",
+      "note": "The codice di giustizia contabile, annex 1 of d.lgs. 174/2016: its default annex is never named (as cpa-29).",
+      "input": {"tipo_atto": "codice di giustizia contabile", "tipo_atto_reale": "decreto legislativo", "numero_atto": "174", "data": "2016-08-26", "allegato": "1", "numero_articolo": "52"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:1~art52", "status": "current"}},
+      "labels": {"citation": {"value": "art. 52, d.lgs. 26 agosto 2016, n. 174", "status": "decided"}, "short": {"value": "art. 52 d.lgs. 174/2016", "status": "decided"}}
+    },
+    {
+      "id": "turismo-32",
+      "note": "The codice del turismo is annex 1 of d.lgs. 79/2011 and keyed by it like the c.c. by its annex (G-350); its default annex is never named (as cpa-29).",
+      "input": {"tipo_atto": "codice del turismo", "tipo_atto_reale": "decreto legislativo", "numero_atto": "79", "data": "2011-05-23", "allegato": "1", "numero_articolo": "32"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-05-23;79:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-05-23;79:1~art32", "status": "current"}},
+      "labels": {"citation": {"value": "art. 32, d.lgs. 23 maggio 2011, n. 79", "status": "decided"}, "short": {"value": "art. 32 d.lgs. 79/2011", "status": "decided"}}
+    },
+    {
       "id": "dpr-445-2000-38",
       "note": "d.p.r. in lower case, like every act (round «Testo alla data», applied as recommended; the owner: «atto minuscolo»).",
       "input": {"tipo_atto": "decreto del presidente della repubblica", "numero_atto": "445", "data": "2000-12-28", "numero_articolo": "38"},
@@ -108,9 +143,9 @@
     },
     {
       "id": "rd-773-1931-86",
-      "note": "A regio decreto that is not a code.",
-      "input": {"tipo_atto": "regio decreto", "numero_atto": "773", "data": "1931-06-18", "numero_articolo": "86"},
-      "identity": {"article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1931-06-18;773~art86", "status": "current"}},
+      "note": "A regio decreto whose text is its annex: the testo unico delle leggi di pubblica sicurezza is annex 1 of r.d. 773/1931, so the article is keyed by the annex (;773:1, G-351) and the annex is never named in the label, as for a code.",
+      "input": {"tipo_atto": "regio decreto", "numero_atto": "773", "data": "1931-06-18", "allegato": "1", "numero_articolo": "86"},
+      "identity": {"article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1931-06-18;773:1~art86", "status": "current"}},
       "labels": {"citation": {"value": "art. 86, r.d. 18 giugno 1931, n. 773", "status": "decided"}, "short": {"value": "art. 86 r.d. 773/1931", "status": "decided"}, "act_heading": {"value": "r.d. 18 giugno 1931, n. 773", "status": "decided"}, "authority": {"value": "Re", "status": "proposed"}}
     },
     {
