@@ -597,6 +597,18 @@ entry, it is the same feature as ported to the 3.0 line.
   keeps them in the text: «dati(4)» in recital 1 of dir. 2002/58). `cite_law` still prints «(42)»
   before it, as the label. A legacy page's recitals are read in their sequence, so a
   footnote numbered like a recital is never taken for one.
+- **VisuaLex re-pinned to `02ebc80a`** (its #342 and #343, and the review of #279):
+  - EUR-Lex: on a legacy class-less Official Journal page a heading glued to the
+    end of the paragraph before it («… della prescrizione. Articolo 11») is read
+    as the next article's. Dir. 85/374's art. 11 was «non trovato» and its text was
+    served at the end of art. 10; both are right now, and the act's index has 22
+    articles. Old Official Journal titles (85/374, 64/221) are read. On whole pages
+    (GDPR, AI Act, TFUE, OJ and consolidated, 85/374) and every fixture, 1207 of
+    1209 article texts are unchanged; the two that change are 85/374's art. 10 and 11.
+  - `upcoming` carries `versions_between: n` when other versions not in force yet
+    come before the one Normattiva shows; `versione="futura"` with a day before the
+    latest of them is `verifica_non_disponibile` («Non so dire quale versione …»).
+  - «cod post telecom», without dots, is the codice postale (as «cod. post. telecom.»).
 - **EUR-Lex readers re-pinned to VisuaLex `b2f7a30f`** (its PRs up to #312): a heading
   «Articolo 15 bis» no longer answers a request for art. 15 on any markup, «Articolo
   15 bisTesto» included, and the article opens in any spelling («15 bis», «15-bis»,
