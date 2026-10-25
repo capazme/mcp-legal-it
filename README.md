@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-blue?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/python-%3E%3D3.11-3776ab?style=flat-square" alt="Python">
   <a href="https://github.com/capazme/mcp-legal-it/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/capazme/mcp-legal-it/ci.yml?branch=develop&style=flat-square&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tool-228-green?style=flat-square" alt="Tools">
+  <img src="https://img.shields.io/badge/tool-231-green?style=flat-square" alt="Tools">
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 ## Cos'e mcp-legal-it
 
-Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **228 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
+Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **231 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
 - **Normativa verificata** — testi vigenti da Normattiva, EUR-Lex e Brocardi (no allucinazioni)
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
@@ -31,6 +31,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 - **Giustizia Amministrativa** — sentenze TAR e Consiglio di Stato (giustizia-amministrativa.it)
 - **Giurisprudenza CGUE** — sentenze Corte di Giustizia UE e Tribunale UE via CELLAR SPARQL
 - **Delibere CONSOB** — ricerca e testo integrale dal Bollettino ufficiale
+- **Atti ANAC** — delibere, pareri di precontenzioso e sulla normativa, linee guida: ricerca e scheda ufficiale con link al PDF
 - **Calcoli giuridici** — interessi, rivalutazione ISTAT, parcelle, contributo unificato, IRPEF, successioni, danni e altro
 - **GDPR compliance** — informative, DPIA, DPA, registro trattamenti, data breach, sanzioni
 - **30 skill + 6 agenti** — workflow guidati per pareri, cause civili, sinistri, recupero crediti
@@ -58,7 +59,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 1. Installa `uv` (vedi sopra).
 2. Scarica **`legal-it-X.Y.Z.mcpb`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
 3. In Claude Desktop: **doppio click sul file** — oppure **Impostazioni → Estensioni → Impostazioni avanzate → Sviluppatore estensioni → Installa file `.mcpb`**.
-4. Riavvia Claude. I 228 tool girano in locale.
+4. Riavvia Claude. I 231 tool girano in locale.
 
 > **Il primo avvio è lento** (~1 min: scarica Python 3.12 e le dipendenze) e Claude Desktop
 > può mostrare il server come *disconnesso* mentre sta ancora scaricando. Attendi un minuto
@@ -173,7 +174,7 @@ plugin Claude Code, usa il **bundle OpenAI** generato dallo stesso corpus:
 
 1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 42 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
 2. **Codex CLI**: estrai `.agents/skills/` in `$HOME/.agents/skills/` (globale) o nella root del progetto; copia `AGENTS.md`; aggiungi il blocco `config.toml.example` a `~/.codex/config.toml` (server MCP separato, via `uv`).
-3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 228 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
+3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 231 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
 
 Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Claude Code): [`docs/openai.md`](docs/openai.md).
 
@@ -193,7 +194,7 @@ Per provare una beta:
 
 ---
 
-## Tool disponibili — 228 tool, 34 moduli
+## Tool disponibili — 231 tool, 35 moduli
 
 | # | Categoria | Tool | Esempi |
 |---|-----------|:----:|--------|
@@ -208,28 +209,29 @@ Per provare una beta:
 | 9 | Iter parlamentare (DDL) | 3 | `cerca_ddl`, `iter_ddl`, `ddl_su_norma` |
 | 10 | Recepimento UE → Italia | 3 | `get_italian_implementation`, `get_eu_basis` |
 | 11 | Delibere CONSOB | 3 | `cerca_delibere_consob`, `leggi_delibera_consob` |
-| 12 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
-| 13 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
-| 14 | Analisi fornitori (privacy) | 3 | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori` |
-| 15 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
-| 16 | Rivalutazione monetaria | 12 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
-| 17 | Interessi e tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
-| 18 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche`, `termini_processuali_civili` (artt. 171-ter e 189 c.p.c., sospensione feriale contata giorno per giorno) |
-| 19 | Atti giudiziari | 23 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
-| 20 | Parcelle avvocati | 12 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
-| 21 | Parcelle professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
-| 22 | Risarcimento danni | 7 | `danno_biologico_micro`, `danno_biologico_macro`, `danno_parentale` |
-| 23 | Diritto penale | 5 | `prescrizione_reato`, `aumenti_riduzioni_pena` |
-| 24 | Proprietà e successioni | 12 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
-| 25 | Investimenti | 5 | `rendimento_bot`, `rendimento_btp`, `rendimento_buoni_postali` |
-| 26 | Dichiarazione dei redditi | 16 | `calcolo_irpef`, `regime_forfettario`, `calcolo_tfr` |
-| 27 | Diritto del lavoro | 6 | `indennita_licenziamento`, `calcolo_naspi`, `costo_lavoro` |
-| 28 | Diritto societario | 4 | `quorum_assembleari`, `soglie_organo_controllo_srl` |
-| 29 | Crisi d'impresa | 4 | `test_crisi_impresa`, `composizione_negoziata`, `compenso_occ` |
-| 30 | Procedura civile | 3 | `competenza_giudice`, `verifica_mediazione_obbligatoria`, `gratuito_patrocinio` |
-| 31 | Modelli di atti | 3 | `genera_modello_atto`, `esporta_atto_docx`, `lista_categorie_atti` |
-| 32 | Recupero crediti seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
-| 33 | Utilità e provenienza dei dati | 14 | `codice_fiscale`, `verifica_iban`, `verbale_mensile` |
+| 12 | Atti ANAC | 3 | `cerca_atti_anac`, `leggi_atto_anac`, `ultimi_atti_anac` |
+| 13 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
+| 14 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
+| 15 | Analisi fornitori (privacy) | 3 | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori` |
+| 16 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
+| 17 | Rivalutazione monetaria | 12 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
+| 18 | Interessi e tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
+| 19 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche`, `termini_processuali_civili` (artt. 171-ter e 189 c.p.c., sospensione feriale contata giorno per giorno) |
+| 20 | Atti giudiziari | 23 | `contributo_unificato`, `decreto_ingiuntivo`, `pignoramento_stipendio` |
+| 21 | Parcelle avvocati | 12 | `parcella_avvocato_civile`, `parcella_avvocato_penale` |
+| 22 | Parcelle professionisti | 11 | `compenso_ctu`, `spese_mediazione` |
+| 23 | Risarcimento danni | 7 | `danno_biologico_micro`, `danno_biologico_macro`, `danno_parentale` |
+| 24 | Diritto penale | 5 | `prescrizione_reato`, `aumenti_riduzioni_pena` |
+| 25 | Proprietà e successioni | 12 | `calcolo_eredita`, `imposte_successione`, `calcolo_imu` |
+| 26 | Investimenti | 5 | `rendimento_bot`, `rendimento_btp`, `rendimento_buoni_postali` |
+| 27 | Dichiarazione dei redditi | 16 | `calcolo_irpef`, `regime_forfettario`, `calcolo_tfr` |
+| 28 | Diritto del lavoro | 6 | `indennita_licenziamento`, `calcolo_naspi`, `costo_lavoro` |
+| 29 | Diritto societario | 4 | `quorum_assembleari`, `soglie_organo_controllo_srl` |
+| 30 | Crisi d'impresa | 4 | `test_crisi_impresa`, `composizione_negoziata`, `compenso_occ` |
+| 31 | Procedura civile | 3 | `competenza_giudice`, `verifica_mediazione_obbligatoria`, `gratuito_patrocinio` |
+| 32 | Modelli di atti | 3 | `genera_modello_atto`, `esporta_atto_docx`, `lista_categorie_atti` |
+| 33 | Recupero crediti seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
+| 34 | Utilità e provenienza dei dati | 14 | `codice_fiscale`, `verifica_iban`, `verbale_mensile` |
 
 ---
 
@@ -571,12 +573,12 @@ sempre disponibili. Etichette e regole: [docs/tool-tags.md](docs/tool-tags.md).
 
 | Profilo | Tool | Contenuto |
 |---------|------|-----------|
-| `full` | 228 | Tutti i tool |
+| `full` | 231 | Tutti i tool |
 | `sinistro` | 79 | Danni, rivalutazione, interessi + norme e giurisprudenza |
 | `credito` | 89 | Interessi, rivalutazione, parcelle, recupero crediti + norme e giurisprudenza |
 | `penale` | 51 | Diritto penale + norme e giurisprudenza |
 | `fiscale` | 66 | Fisco, immobili, società, crisi, investimenti, CeRDEF, CONSOB |
-| `normativa` | 70 | Tutte le fonti: norme, ogni giurisprudenza, Garante e CONSOB, registri, privacy |
+| `normativa` | 73 | Tutte le fonti: norme, ogni giurisprudenza, Garante, CONSOB e ANAC, registri, privacy |
 | `privacy` | 64 | GDPR + Garante + norme e giurisprudenza |
 | `studio` | 76 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
 | `redattore` | 76 | Atti, procedura, parcelle, scadenze + norme |
@@ -597,8 +599,8 @@ norma) ed è attiva per impostazione predefinita. Per usare il server senza Broc
 LEGAL_BROCARDI=off mcp-legal-it
 ```
 
-Con l'interruttore spento `cerca_brocardi` e `fetch_law_annotations` non sono esposti (226 tool
-invece di 228), nessuna richiesta parte verso brocardi.it, e `cite_law(include_annotations=True)`,
+Con l'interruttore spento `cerca_brocardi` e `fetch_law_annotations` non sono esposti (229 tool
+invece di 231), nessuna richiesta parte verso brocardi.it, e `cite_law(include_annotations=True)`,
 `giurisprudenza_articolo` e `mappa_orientamento` rispondono senza Brocardi e lo dichiarano.
 In codice: `crea_server(brocardi=False)` (vedi sotto) o, per chi chiama direttamente gli scraper,
 `mcp_legal_it.lib._brocardi_switch.disabled()`. Uno *spento* impostato nell'ambiente non può essere
