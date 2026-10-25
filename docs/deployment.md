@@ -49,7 +49,7 @@ Conteggi reali (`tests/unit/test_profiles.py` li tiene allineati al codice):
 | `redattore` | 86 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
 | `cowork` | 79 | Set ridotto (normativa, giurisprudenza, privacy, parcelle) per host con contesto limitato |
 | `calcoli` | 144 | Solo calcoli e diagnostica, nessuna connessione di rete |
-| `full` | 228 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
+| `full` | 231 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
 
 Prompt guidati (23) e risorse `legal://` (15) restano disponibili in ogni profilo.
 

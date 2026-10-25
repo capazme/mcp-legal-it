@@ -35,6 +35,7 @@ ALLOWED_HOSTS: dict[str, str] = {
     "www.garanteprivacy.it": "Garante per la protezione dei dati personali",
     "servizi.gpdp.it": "Garante privacy — servizi",
     "www.consob.it": "CONSOB",
+    "www.anticorruzione.it": "ANAC — Autorità Nazionale Anticorruzione",
     # --- European Union ---
     "eur-lex.europa.eu": "EUR-Lex — Ufficio delle pubblicazioni UE",
     "publications.europa.eu": "CELLAR/SPARQL — Ufficio delle pubblicazioni UE",

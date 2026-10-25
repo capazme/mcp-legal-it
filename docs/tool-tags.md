@@ -23,7 +23,7 @@ se questa pagina smette di coincidere con il vocabolario.
 |---|---|---|
 | `normativa` | 19 | Legislazione e ciò che la annota: testo delle norme, indice e PDF dell'atto, Gazzetta Ufficiale, disegni di legge, recepimento UE↔Italia, verifica delle citazioni, annotazioni Brocardi. |
 | `giurisprudenza` | 24 | Decisioni di un giudice: ricerca, testo integrale, giurisprudenza su una norma, orientamenti. |
-| `autorita` | 6 | Provvedimenti e indirizzi di un'autorità indipendente (Garante privacy, CONSOB). |
+| `autorita` | 9 | Provvedimenti e indirizzi di un'autorità indipendente (Garante privacy, CONSOB, ANAC). |
 | `registri` | 5 | Fatti cercati online in un registro pubblico o su un sito di terzi, non diritto: marchi (TMview), partite IVA (VIES), DPA pubblicato da un fornitore. |
 | `calcolo` | 141 | Risposta calcolata in locale dagli input e dalle tabelle incluse: calcoli, termini, compensi, imposte, verifiche e ricerche in tabella. Nessuna fonte online. |
 | `redazione` | 30 | Produce una bozza di documento o di testo da usare come tale: atti, lettere, informative, DPA, file DOCX ed Excel. Fatture, notule, ricevute e preventivi sono `calcolo`: il loro contenuto è il conto. |
@@ -48,6 +48,7 @@ TAR/CdS e CGUE.
 |---|---|
 | `garante` | Garante per la protezione dei dati personali (porta anche l'area `privacy`). |
 | `consob` | CONSOB. |
+| `anac` | ANAC (Autorità Nazionale Anticorruzione). |
 
 La Gazzetta Ufficiale non è un'autorità: i suoi tool sono `normativa`.
 
@@ -94,12 +95,12 @@ etichette. Tutti includono `diagnostica`.
 
 | Profilo | Etichette | Tool |
 |---|---|---|
-| **full** | tutte | 228 |
+| **full** | tutte | 231 |
 | **sinistro** | danni, rivalutazione, interessi, normativa, giurisprudenza, sinistro, diagnostica | 79 |
 | **credito** | interessi, rivalutazione, parcelle_avv, normativa, giurisprudenza, credito, diagnostica | 89 |
 | **penale** | penale, normativa, giurisprudenza, diagnostica | 51 |
 | **fiscale** | fiscale, proprieta, utility, consob, investimenti, crisi_impresa, societario, diagnostica | 66 |
-| **normativa** | normativa, giurisprudenza, autorita, registri, privacy, diagnostica | 70 |
+| **normativa** | normativa, giurisprudenza, autorita, registri, privacy, diagnostica | 73 |
 | **privacy** | privacy, garante, normativa, giurisprudenza, diagnostica | 64 |
 | **studio** | scadenze, giudiziario, parcelle_avv, parcelle_prof, investimenti, lavoro, diagnostica | 76 |
 | **redattore** | atti, giudiziario, parcelle_avv, scadenze, normativa, diagnostica | 76 |
@@ -107,7 +108,7 @@ etichette. Tutti includono `diagnostica`.
 | **calcoli** | calcolo, diagnostica | 144 |
 
 Con `LEGAL_BROCARDI=off` ogni profilo che contiene `normativa` espone due tool in meno
-(`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 228 a 226.
+(`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 231 a 229.
 
 ## Un server con una parte dei tool: `crea_server`
 
