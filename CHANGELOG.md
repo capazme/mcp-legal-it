@@ -712,6 +712,12 @@ entry, it is the same feature as ported to the 3.0 line.
   clause (`dati_applicati` with their vintage, `mcp-legal-it/fonti_consultate`
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
+### Security
+- **fastmcp 3.4.11 in the plugin's lock** (was 3.4.9): GHSA-7xgj-8392-5q4r,
+  «post-transform component authorization is skipped on direct calls»
+  (medium, published 2026-10-23, fixed in 3.4.10). Same major; the declared range
+  `fastmcp>=3.4,<5` is unchanged.
+
 ### Fixed
 - **An unknown `LEGAL_PROFILE` refuses to start; `calcoli` exists** (#76). A
   name that is not a profile fell back to `full` in silence: asking for the
