@@ -781,22 +781,46 @@ def test_a_long_session_is_judged_quickly(tmp_path):
 
 # --- launcher -----------------------------------------------------------------
 
-_COMMAND = ('uv run --frozen --no-sync --python 3.12 --project "${CLAUDE_PLUGIN_ROOT}/server" '
+_COMMAND = ('uv run --no-project --python 3.12 '
             'python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"')
 
 
 @pytest.mark.parametrize("event", ["Stop", "SubagentStop"])
-def test_the_hook_runs_in_the_plugin_server_environment(event):
+def test_the_hook_runs_on_uv_python_outside_the_server_environment(event):
     """No bare `python3`: on Windows it is usually the Microsoft Store alias
-    (exit 9009), which turned every reply into a "Stop hook error". The hook
-    reuses the server's locked uv environment, which the plugin needs anyway.
+    (exit 9009), which turned every reply into a "Stop hook error". uv's own
+    Python 3.12 is there anyway, since the server needs it.
 
-    --no-sync, like the server's own launcher: the gate imports only the
-    standard library and the plugin's own stdlib-only modules, and without it
-    every Stop could install the server's packages (network, writes) before
-    the server's bootstrap has done so. The same script serves SubagentStop,
-    so a subagent's unread citation is stopped where it was written."""
+    --no-project: the gate imports only the standard library and the plugin's
+    own stdlib-only modules, so it must never open the server's `.venv`. A
+    `uv run --project <plugin>/server` that finds that environment linked to an
+    interpreter it cannot reach deletes and recreates it under the running
+    server; with --no-sync it is left empty and every tool then fails with
+    "No module named ...". The same script serves SubagentStop, so a
+    subagent's unread citation is stopped where it was written."""
     hook = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"][event][0]["hooks"][0]
     assert hook["command"] == _COMMAND
     # Seconds. On the first Stop of a session uv may still have to fetch Python 3.12.
     assert 15 <= hook["timeout"] <= 600
+
+
+def test_no_hook_opens_the_server_project():
+    hooks = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]
+    commands = [h["command"] for groups in hooks.values() for g in groups for h in g["hooks"]]
+    assert commands
+    for command in commands:
+        assert "--project" not in command.replace("--no-project", ""), command
+
+
+def test_the_gate_reader_imports_on_a_bare_interpreter():
+    # What --no-project relies on: no site-packages (-S), only the plugin folder.
+    probe = (
+        "import sys; sys.path.insert(0, sys.argv[1]);"
+        "from mcp_legal_it.core import citazioni;"
+        "extra = {m.split('.')[0] for m in sys.modules} - set(sys.stdlib_module_names);"
+        "print(sorted(extra - {'__main__', 'mcp_legal_it'}))"
+    )
+    done = subprocess.run([sys.executable, "-I", "-S", "-c", probe, str(HOOK.parents[1] / "server")],
+                          capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.strip() == "[]"
