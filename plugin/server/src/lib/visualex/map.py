@@ -61,6 +61,7 @@ ARTICOLATO_IN_ALLEGATO: dict[str, str] = {
     "decreto.del.presidente.della.repubblica:1988-09-22;448": "1",  # c.p.p. minorile
     "regio.decreto:1931-06-18;773": "1",  # TULPS
     "decreto.legislativo:1990-10-31;346": "1",  # TU imposta successioni e donazioni
+    "regio.decreto:1942-03-16;267": "1",  # legge fallimentare
 }
 _ALLEGATO_PER_ATTO = {
     (u.split(":")[0], u.split(":")[1][:4], u.split(";")[1]): a for u, a in ARTICOLATO_IN_ALLEGATO.items()
