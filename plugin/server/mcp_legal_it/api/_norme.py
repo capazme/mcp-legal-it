@@ -579,8 +579,9 @@ def _atto(atto: str | NormaDati) -> Norma | tuple[str, str]:
         if isinstance(letto, EsitoRiferimento):
             return letto.esito, letto.errore
         info, _ = letto
-        if info.get("versione"):
-            # The whole act and its index are today's: never served under a date asked for.
+        if info.get("versione") or info.get("futura"):
+            # The whole act and its index are today's: never served under a date asked for,
+            # nor as the text not in force yet (versione="futura").
             return "non_supportata", "l'atto intero e il suo indice a una data non sono ancora disponibili"
     else:
         _, act_name = norme._parse_reference(atto)
@@ -737,13 +738,20 @@ async def _indice_ue(norma: Norma) -> IndiceAtto:
                           consolidato=result.get("consolidato"),
                           consolidato_verificato=result.get("consolidato_verificato"))
     rubriche = dict(result["metadata"].get("rubriche") or {})
+    if result["count"] and not rubriche:
+        # The legacy class-less OJ page (dir. 2002/58) has its articles but prints no rubriche:
+        # never an empty «trovato», which would read as an act without articles.
+        errore = (f"la pagina dell'atto non riporta le rubriche dei suoi {result['count']} articoli "
+                  "(l'elenco degli articoli è in albero_atto)")
+    else:
+        errore = None if result["count"] else "pagina senza articoli"
     return IndiceAtto(
-        esito="trovato" if result["count"] else "testo_assente",
+        esito="trovato" if rubriche else "testo_assente",
         title=result["metadata"].get("title") or "",
         rubriche=rubriche,
         count=len(rubriche),
         url=result["url"],
-        errore=None if result["count"] else "pagina senza articoli",
+        errore=errore,
         fonti=fonti,
         consolidato=result.get("consolidato"),
         consolidato_verificato=result.get("consolidato_verificato"),
@@ -767,8 +775,9 @@ async def considerando(atto: str | NormaDati) -> ConsiderandiAtto:
     """Every recital of an EU regulation or directive: VisuaLex's ``/fetch_recitals``.
 
     ``considerando`` is ``({"number": "1", "text": "…"}, …)``, VisuaLex's reader on the Official
-    Journal page (a consolidated text has no preamble): the text without its «(N)» and
-    without the footnote calls. One request, kept a day with the act's page.
+    Journal page (a consolidated text has no preamble): the text without its «(N)» (a
+    legacy page keeps its footnote calls). One request, kept a day with the act's page.
+    A ``NormaDati`` with ``celex_consolidated`` is ``non_supportata``, before any request.
     Esiti: ``trovato``, ``testo_assente`` (no recital on the page), ``riferimento_non_valido``,
     ``atto_non_riconosciuto``, ``non_supportata`` (an Italian act, a treaty),
     ``verifica_non_disponibile``, ``errore_fonte``.
@@ -782,6 +791,9 @@ async def considerando(atto: str | NormaDati) -> ConsiderandiAtto:
     if not norma._is_eurlex() or norma.tipo_atto_normalized.lower() in EURLEX_TREATY_CELEX:
         return ConsiderandiAtto(esito="non_supportata",
                                 errore="considerando disponibili per regolamenti e direttive UE")
+    if norma.celex_consolidated:
+        # A consolidation has no preamble: its «(N)» are footnotes (testo_articolo refuses it alike).
+        return ConsiderandiAtto(esito="non_supportata", errore=_non_nel_consolidato("rec_1"))
     with registra() as registro:
         try:
             result = await fetch_eurlex_recitals(norma)

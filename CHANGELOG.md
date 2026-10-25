@@ -22,7 +22,10 @@ entry, it is the same feature as ported to the 3.0 line.
   `consolidato` saying which text it is. A key keeps its ordinal («Articolo 15 bis»
   is `15-bis`), and a heading an amending act quotes is not one of its articles.
   The new `api.considerando(atto)` gives every recital, VisuaLex's
-  `/fetch_recitals`: `{number, text}` from the Official Journal page.
+  `/fetch_recitals`: `{number, text}` from the Official Journal page (a consolidation,
+  which has no preamble, is refused before any request). A page with articles but no
+  rubriche (dir. 2002/58's legacy page) is `testo_assente` with an `errore`, never an
+  empty «trovato».
 - **ANAC acts** (#51): `cerca_atti_anac`, `leggi_atto_anac` and
   `ultimi_atti_anac` search the acts of the Autorità Nazionale Anticorruzione
   (delibere, pareri di precontenzioso and sulla normativa, linee guida, bandi
@@ -575,8 +578,9 @@ entry, it is the same feature as ported to the 3.0 line.
   caller that read them reads the range. `tipo="reintegra"` is unchanged. The
   answer also warns that Normattiva still prints the words struck down by
   194/2018 in art. 3.
-- **A recital's text is VisuaLex's** (`considerando 42 GDPR`): without its «(42)»
-  and without the Official Journal's footnote calls. `cite_law` still prints «(42)»
+- **A recital's text is VisuaLex's** (`considerando 42 GDPR`): without its «(42)»,
+  and on a modern Official Journal page without its footnote calls (a legacy page
+  keeps them in the text: «dati(4)» in recital 1 of dir. 2002/58). `cite_law` still prints «(42)»
   before it, as the label. A legacy page's recitals are read in their sequence, so a
   footnote numbered like a recital is never taken for one.
 - **EUR-Lex readers re-pinned to VisuaLex `b2f7a30f`** (its PRs up to #312): a heading
