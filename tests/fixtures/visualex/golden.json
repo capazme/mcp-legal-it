@@ -91,35 +91,105 @@
     },
     {
       "id": "cpa-29",
-      "note": "The c.p.a. is «Allegato 1» of d.lgs. 104/2010 and annex 2 on Normattiva, and that number is its identity (owner, 11 October 2026). A code cited by its decree never names the code's default annex: no «(Allegato 2)». The owner, 21 October 2026 (G-359): «sì: per un codice l'allegato predefinito non si scrive, ed è fissato nella convenzione». The label reads back to the decree with no annex, and the API's smart lookup finds the article in the code's annex: each of these rows cites an article the decree's own text does not have (checked on Normattiva, 21 October 2026).",
+      "note": "The c.p.a. is «Allegato 1» of d.lgs. 104/2010 and annex 2 on Normattiva, and that number is its identity (owner, 11 October 2026). Cited by its sigla, like the c.c. and the c.p.c.: «art. 29 c.p.a.». Its default annex is never named (G-359), so the decree's form «art. 29, d.lgs. 2 luglio 2010, n. 104» read like the decree's own article (owner, 22 October 2026, G-360: «sì: sigla per c.p.a., c.d.n., codice postale e codice di giustizia contabile, come c.c. e c.p.c.»; the sigle, G-366: «sì: c.p.a., cod. nav., cod. post., c.g.c.»). The heading spells the code's name, as «Codice civile» does.",
       "input": {"tipo_atto": "codice del processo amministrativo", "tipo_atto_reale": "decreto legislativo", "numero_atto": "104", "data": "2010-07-02", "allegato": "2", "numero_articolo": "29"},
       "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:2", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:2~art29", "status": "current"}},
-      "labels": {"citation": {"value": "art. 29, d.lgs. 2 luglio 2010, n. 104", "status": "decided"}, "short": {"value": "art. 29 d.lgs. 104/2010", "status": "decided"}}
+      "labels": {"citation": {"value": "art. 29 c.p.a.", "status": "decided"}, "short": {"value": "art. 29 c.p.a.", "status": "decided"}, "act_citation": {"value": "c.p.a.", "status": "decided"}, "act_heading": {"value": "Codice del processo amministrativo", "status": "proposed"}}
+    },
+    {
+      "id": "cc-annex-1-preleggi",
+      "note": "Annex 1 of the c.c.'s decree, stored under the codice civile: the preleggi, cited as their own row is («art. 12 preleggi», decided on 1 October 2026; owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»).",
+      "input": {"tipo_atto": "codice civile", "tipo_atto_reale": "regio decreto", "numero_atto": "262", "data": "1942-03-16", "allegato": "1", "numero_articolo": "12"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262:1~art12", "status": "current"}},
+      "labels": {"citation": {"value": "art. 12 preleggi", "status": "decided"}, "short": {"value": "art. 12 preleggi", "status": "decided"}, "act_citation": {"value": "preleggi", "status": "decided"}, "act_heading": {"value": "Preleggi", "status": "decided"}}
+    },
+    {
+      "id": "cpa-other-annex-1",
+      "note": "Another annex of the c.p.a.'s decree (annex 3 on Normattiva, the norme di attuazione) is not the c.p.a.: never «art. 1 c.p.a.», which is another article (found by the independent review of G-360). Cited by its own sigla «disp. att. c.p.a.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»); the decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "codice del processo amministrativo", "tipo_atto_reale": "decreto legislativo", "numero_atto": "104", "data": "2010-07-02", "allegato": "3", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:3", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:3~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 disp. att. c.p.a.", "status": "decided"}, "short": {"value": "art. 1 disp. att. c.p.a.", "status": "decided"}, "act_citation": {"value": "disp. att. c.p.a.", "status": "decided"}, "act_heading": {"value": "Norme di attuazione del codice del processo amministrativo", "status": "proposed"}}
+    },
+    {
+      "id": "disp-trans-cpa-1",
+      "note": "Norme transitorie del codice del processo amministrativo, annex 4 of the decree on Normattiva: cited by its own sigla «disp. trans. c.p.a.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "codice del processo amministrativo", "tipo_atto_reale": "decreto legislativo", "numero_atto": "104", "data": "2010-07-02", "allegato": "4", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:4", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:4~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 disp. trans. c.p.a.", "status": "decided"}, "short": {"value": "art. 1 disp. trans. c.p.a.", "status": "decided"}, "act_citation": {"value": "disp. trans. c.p.a.", "status": "decided"}, "act_heading": {"value": "Norme transitorie del codice del processo amministrativo", "status": "proposed"}}
+    },
+    {
+      "id": "disp-coord-cpa-1",
+      "note": "Norme di coordinamento e abrogazioni del codice del processo amministrativo, annex 5 of the decree on Normattiva: cited by its own sigla «disp. coord. c.p.a.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "codice del processo amministrativo", "tipo_atto_reale": "decreto legislativo", "numero_atto": "104", "data": "2010-07-02", "allegato": "5", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:5", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104:5~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 disp. coord. c.p.a.", "status": "decided"}, "short": {"value": "art. 1 disp. coord. c.p.a.", "status": "decided"}, "act_citation": {"value": "disp. coord. c.p.a.", "status": "decided"}, "act_heading": {"value": "Norme di coordinamento e abrogazioni del codice del processo amministrativo", "status": "proposed"}}
+    },
+    {
+      "id": "disp-att-cgc-1",
+      "note": "Norme di attuazione del codice di giustizia contabile, annex 2 of the decree on Normattiva: cited by its own sigla «disp. att. c.g.c.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "codice di giustizia contabile", "tipo_atto_reale": "decreto legislativo", "numero_atto": "174", "data": "2016-08-26", "allegato": "2", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:2", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:2~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 disp. att. c.g.c.", "status": "decided"}, "short": {"value": "art. 1 disp. att. c.g.c.", "status": "decided"}, "act_citation": {"value": "disp. att. c.g.c.", "status": "decided"}, "act_heading": {"value": "Norme di attuazione del codice di giustizia contabile", "status": "proposed"}}
+    },
+    {
+      "id": "disp-trans-cgc-1",
+      "note": "Norme transitorie e abrogazioni del codice di giustizia contabile, annex 3 of the decree on Normattiva: cited by its own sigla «disp. trans. c.g.c.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "codice di giustizia contabile", "tipo_atto_reale": "decreto legislativo", "numero_atto": "174", "data": "2016-08-26", "allegato": "3", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:3", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:3~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 disp. trans. c.g.c.", "status": "decided"}, "short": {"value": "art. 1 disp. trans. c.g.c.", "status": "decided"}, "act_citation": {"value": "disp. trans. c.g.c.", "status": "decided"}, "act_heading": {"value": "Norme transitorie e abrogazioni del codice di giustizia contabile", "status": "proposed"}}
+    },
+    {
+      "id": "cpmp-1",
+      "note": "Codice penale militare di pace, annex 1 of the decree on Normattiva: cited by its own sigla «c.p.m.p.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "codici penali militari di pace e di guerra", "tipo_atto_reale": "regio decreto", "numero_atto": "303", "data": "1941-02-20", "allegato": "1", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-02-20;303:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-02-20;303:1~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 c.p.m.p.", "status": "decided"}, "short": {"value": "art. 1 c.p.m.p.", "status": "decided"}, "act_citation": {"value": "c.p.m.p.", "status": "decided"}, "act_heading": {"value": "Codice penale militare di pace", "status": "proposed"}}
+    },
+    {
+      "id": "cpmg-1",
+      "note": "Codice penale militare di guerra, annex 2 of the decree on Normattiva: cited by its own sigla «c.p.m.g.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "codici penali militari di pace e di guerra", "tipo_atto_reale": "regio decreto", "numero_atto": "303", "data": "1941-02-20", "allegato": "2", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-02-20;303:2", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-02-20;303:2~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 c.p.m.g.", "status": "decided"}, "short": {"value": "art. 1 c.p.m.g.", "status": "decided"}, "act_citation": {"value": "c.p.m.g.", "status": "decided"}, "act_heading": {"value": "Codice penale militare di guerra", "status": "proposed"}}
+    },
+    {
+      "id": "disp-att-cpp-1",
+      "note": "Norme di attuazione del codice di procedura penale, annex 1 of the decree on Normattiva: cited by its own sigla «disp. att. c.p.p.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale", "tipo_atto_reale": "decreto legislativo", "numero_atto": "271", "data": "1989-07-28", "allegato": "1", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1989-07-28;271:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1989-07-28;271:1~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 disp. att. c.p.p.", "status": "decided"}, "short": {"value": "art. 1 disp. att. c.p.p.", "status": "decided"}, "act_citation": {"value": "disp. att. c.p.p.", "status": "decided"}, "act_heading": {"value": "Norme di attuazione del codice di procedura penale", "status": "proposed"}}
+    },
+    {
+      "id": "reg-nav-mar-1",
+      "note": "Regolamento per l'esecuzione del codice della navigazione (navigazione marittima), annex 1 of the decree on Normattiva: cited by its own sigla «reg. nav. mar.» (owner, 22 October 2026, G-369: «sì a tutto l'elenco, preleggi come già deciso»). The decree with «(Allegato N)» stays for an annex without one.",
+      "input": {"tipo_atto": "approvazione del Regolamento per l'esecuzione del Codice della navigazione (Navigazione marittima)", "tipo_atto_reale": "decreto del presidente della repubblica", "numero_atto": "328", "data": "1952-02-15", "allegato": "1", "numero_articolo": "1"},
+      "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1952-02-15;328:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1952-02-15;328:1~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1 reg. nav. mar.", "status": "decided"}, "short": {"value": "art. 1 reg. nav. mar.", "status": "decided"}, "act_citation": {"value": "reg. nav. mar.", "status": "decided"}, "act_heading": {"value": "Regolamento per l'esecuzione del codice della navigazione (navigazione marittima)", "status": "proposed"}}
     },
     {
       "id": "cod-nav-69",
-      "note": "The codice della navigazione, annex 1 of r.d. 327/1942: its default annex is never named (as cpa-29).",
+      "note": "The codice della navigazione, annex 1 of r.d. 327/1942: cited by its sigla «cod. nav.» (G-360, G-366, as cpa-29).",
       "input": {"tipo_atto": "codice della navigazione", "tipo_atto_reale": "regio decreto", "numero_atto": "327", "data": "1942-03-30", "allegato": "1", "numero_articolo": "69"},
       "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;327:1~art69", "status": "current"}},
-      "labels": {"citation": {"value": "art. 69, r.d. 30 marzo 1942, n. 327", "status": "decided"}, "short": {"value": "art. 69 r.d. 327/1942", "status": "decided"}}
+      "labels": {"citation": {"value": "art. 69 cod. nav.", "status": "decided"}, "short": {"value": "art. 69 cod. nav.", "status": "decided"}, "act_citation": {"value": "cod. nav.", "status": "decided"}, "act_heading": {"value": "Codice della navigazione", "status": "proposed"}}
     },
     {
       "id": "cod-postale-20",
-      "note": "The codice postale e delle telecomunicazioni, annex 1 of d.p.r. 156/1973: its default annex is never named (as cpa-29).",
+      "note": "The codice postale e delle telecomunicazioni, annex 1 of d.p.r. 156/1973: cited by its sigla «cod. post.» (G-360, G-366, as cpa-29).",
       "input": {"tipo_atto": "codice postale e delle telecomunicazioni", "tipo_atto_reale": "decreto del presidente della repubblica", "numero_atto": "156", "data": "1973-03-29", "allegato": "1", "numero_articolo": "20"},
       "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-03-29;156:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-03-29;156:1~art20", "status": "current"}},
-      "labels": {"citation": {"value": "art. 20, d.p.r. 29 marzo 1973, n. 156", "status": "decided"}, "short": {"value": "art. 20 d.p.r. 156/1973", "status": "decided"}}
+      "labels": {"citation": {"value": "art. 20 cod. post.", "status": "decided"}, "short": {"value": "art. 20 cod. post.", "status": "decided"}, "act_citation": {"value": "cod. post.", "status": "decided"}, "act_heading": {"value": "Codice postale e delle telecomunicazioni", "status": "proposed"}}
     },
     {
       "id": "cgc-52",
-      "note": "The codice di giustizia contabile, annex 1 of d.lgs. 174/2016: its default annex is never named (as cpa-29).",
+      "note": "The codice di giustizia contabile, annex 1 of d.lgs. 174/2016: cited by its sigla «c.g.c.» (G-360, G-366, as cpa-29).",
       "input": {"tipo_atto": "codice di giustizia contabile", "tipo_atto_reale": "decreto legislativo", "numero_atto": "174", "data": "2016-08-26", "allegato": "1", "numero_articolo": "52"},
       "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2016-08-26;174:1~art52", "status": "current"}},
-      "labels": {"citation": {"value": "art. 52, d.lgs. 26 agosto 2016, n. 174", "status": "decided"}, "short": {"value": "art. 52 d.lgs. 174/2016", "status": "decided"}}
+      "labels": {"citation": {"value": "art. 52 c.g.c.", "status": "decided"}, "short": {"value": "art. 52 c.g.c.", "status": "decided"}, "act_citation": {"value": "c.g.c.", "status": "decided"}, "act_heading": {"value": "Codice di giustizia contabile", "status": "proposed"}}
     },
     {
       "id": "turismo-32",
-      "note": "The codice del turismo is annex 1 of d.lgs. 79/2011 and keyed by it like the c.c. by its annex (G-350); its default annex is never named (as cpa-29).",
+      "note": "The codice del turismo is annex 1 of d.lgs. 79/2011 and keyed by it like the c.c. by its annex (G-350). Not among the codes cited by a sigla (G-360): cited by its decree, its default annex never named (G-359).",
       "input": {"tipo_atto": "codice del turismo", "tipo_atto_reale": "decreto legislativo", "numero_atto": "79", "data": "2011-05-23", "allegato": "1", "numero_articolo": "32"},
       "identity": {"act": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-05-23;79:1", "status": "current"}, "article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-05-23;79:1~art32", "status": "current"}},
       "labels": {"citation": {"value": "art. 32, d.lgs. 23 maggio 2011, n. 79", "status": "decided"}, "short": {"value": "art. 32 d.lgs. 79/2011", "status": "decided"}}
@@ -147,6 +217,27 @@
       "input": {"tipo_atto": "regio decreto", "numero_atto": "773", "data": "1931-06-18", "allegato": "1", "numero_articolo": "86"},
       "identity": {"article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1931-06-18;773:1~art86", "status": "current"}},
       "labels": {"citation": {"value": "art. 86, r.d. 18 giugno 1931, n. 773", "status": "decided"}, "short": {"value": "art. 86 r.d. 773/1931", "status": "decided"}, "act_heading": {"value": "r.d. 18 giugno 1931, n. 773", "status": "decided"}, "authority": {"value": "Re", "status": "proposed"}}
+    },
+    {
+      "id": "rd-267-1942-1",
+      "note": "An act whose text is its annex, as the TULPS (G-351): the legge fallimentare is annex 1 of r.d. 267/1942, whose own art. 1 approves it, so the article is keyed by the annex and the annex is never named in the label (G-359). Found on Normattiva on 25 October 2026.",
+      "input": {"tipo_atto": "regio decreto", "numero_atto": "267", "data": "1942-03-16", "allegato": "1", "numero_articolo": "1"},
+      "identity": {"article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;267:1~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1, r.d. 16 marzo 1942, n. 267", "status": "decided"}, "short": {"value": "art. 1 r.d. 267/1942", "status": "decided"}}
+    },
+    {
+      "id": "dpr-448-1988-1",
+      "note": "An act whose text is its annex, as the TULPS (G-351): the c.p.p. minorile (disposizioni sul processo penale a carico di imputati minorenni) is annex 1 of d.p.r. 448/1988, whose own art. 1 approves it, so the article is keyed by the annex and the annex is never named in the label (G-359). Found on Normattiva on 25 October 2026.",
+      "input": {"tipo_atto": "decreto del presidente della repubblica", "numero_atto": "448", "data": "1988-09-22", "allegato": "1", "numero_articolo": "1"},
+      "identity": {"article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;448:1~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1, d.p.r. 22 settembre 1988, n. 448", "status": "decided"}, "short": {"value": "art. 1 d.p.r. 448/1988", "status": "decided"}}
+    },
+    {
+      "id": "dlgs-346-1990-1",
+      "note": "An act whose text is its annex, as the TULPS (G-351): the testo unico sulle successioni e donazioni is annex 1 of d.lgs. 346/1990, whose own art. 1 approves it, so the article is keyed by the annex and the annex is never named in the label (G-359). Found on Normattiva on 25 October 2026.",
+      "input": {"tipo_atto": "decreto legislativo", "numero_atto": "346", "data": "1990-10-31", "allegato": "1", "numero_articolo": "1"},
+      "identity": {"article": {"value": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1990-10-31;346:1~art1", "status": "current"}},
+      "labels": {"citation": {"value": "art. 1, d.lgs. 31 ottobre 1990, n. 346", "status": "decided"}, "short": {"value": "art. 1 d.lgs. 346/1990", "status": "decided"}}
     },
     {
       "id": "dlgs-385-1993-127",

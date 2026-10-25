@@ -249,9 +249,8 @@ The same, from explicit fields (the VisuaLex request body). No network.
   4aa59a9d (its PR #276; before it, a date sent alone got today's text under the
   date asked for: art. 1284 c.c. «at 2010-01-01» came back with the 4th and 5th
   commi added in 2014). A date together with `versione="originale"` is
-  `riferimento_non_valido` here, while VisuaLex since 4aa59a9d reads it as the text
-  in force on that date: a deliberate difference, because the two ask for
-  different texts and guessing which one was meant could serve the wrong one.
+  `riferimento_non_valido`: the two ask for different texts. VisuaLex refuses the
+  pair too since f47ac1b6 (before it, the date won).
   `versione="originale"` asks for the original text, read from the
   page only (`@originale`): the export is a text in force on a day, and an act's
   own day can precede its entry into force. An article that did not exist yet on
@@ -413,9 +412,23 @@ The text in force of one article, from Normattiva or EUR-Lex.
   regolamento della navigazione marittima, codici penali militari (`"1"`; the
   codice penale militare di guerra, which VisuaLex has only inside the joint row,
   `"2"`), and to the acts cited by their own number whose articles are their
-  annex 1 (VisuaLex's `ANNEXED_ACTS`): TULPS (r.d. 773/1931), c.p.p. minorile
-  (d.P.R. 448/1988) and TU successioni (d.lgs. 346/1990), all `"1"`; VisuaLex has the
-  TULPS at 4aa59a9d and adds the other two.
+  annex 1 (VisuaLex's `ANNEXED_ACTS`, at f47ac1b6): TULPS (r.d. 773/1931), legge
+  fallimentare (r.d. 267/1942), c.p.p. minorile (d.P.R. 448/1988) and TU successioni
+  (d.lgs. 346/1990), all `"1"`, with the part in the URN (`;267:1~art1`): without it,
+  Normattiva's art. 1 of these acts is the approving decree's.
+- **Sigle of the convention** (VisuaLex's G-360, G-366, G-369, at f47ac1b6). The codes
+  cited by sigla read as the code: `c.p.a.`, `cod. nav.`, `cod. post.`, `c.g.c.`. An
+  annex of a code's decree with a sigla of its own reads as that code and annex, as
+  VisuaLex keys it: «art. 1 disp. att. c.p.a.» is `codice del processo amministrativo`
+  with `allegato="3"` (`;104:3~art1`), never the c.p.a.; likewise `disp. trans. c.p.a.`
+  (`"4"`), `disp. coord. c.p.a.` (`"5"`), `disp. att. c.g.c.` (`"2"`), `disp. trans.
+  c.g.c.` (`"3"`), `reg. nav. mar.`, `c.p.m.p.`, `c.p.m.g.`, `disp. att. c.p.p.`. Every
+  sigla of more than one word is read however dotted or spaced («disp att cpa»,
+  «disp.att.c.c.», «cod nav»), and only as the whole act name. «1° settembre 1993» is the
+  first of the month. Every label of VisuaLex's source convention with a Normattiva
+  identity reads back to it (`tests/unit/test_sigle_convenzione.py`), except a code
+  cited by its decree (its annex is found at the lookup), an annex named «A», and an act
+  with no number.
 - **`url` and `urn`** are both always filled for Normattiva acts (EU acts have
   no NIR URN). An act cited with the year only whose full date could not be
   read keeps the URN derived from its URL. That URN has a placeholder date,
@@ -880,15 +893,14 @@ marked `not_in_force`, as VisuaLex since 4aa59a9d (see `testo_articolo`). Multi-
   `codice_civile`, `codice_penale`, `regolamento-ue--AAAA--NNNN::art::N`. Any
   change that alters that key for an existing norm (a code's URN, a date, an act
   type) needs an alignment on VisuaLex's side before the shell switches to the
-  3.0 package. Since 4aa59a9d VisuaLex has the URNs this library gives the codes
+  3.0 package. Since f47ac1b6 VisuaLex has the URNs this library gives the codes
   approved as an annex of their decree (codice del turismo `;79:1`, codici penali
   militari `;303:1`, norme di attuazione del c.p.p. `;271:1`, regolamento per la
-  navigazione marittima `;328:1`) and the TULPS (r.d. 773/1931, `;773:1`), and files
-  them with that `allegato`: `norma_data` here gives the same. The codice penale militare di guerra (`;303:2`), absent from
-  VisuaLex's table, is filed with `"2"`. The c.p.p. minorile (d.P.R. 448/1988,
-  `;448:1`) and the TU successioni (d.lgs. 346/1990, `;346:1`) are filed with `"1"`
-  here; at 4aa59a9d VisuaLex's URN for them lacks the part (it serves the approving
-  decree's art. 1) and it adds both to `ANNEXED_ACTS`: its saved norms of the two need
-  realigning before the shell switches.
+  navigazione marittima `;328:1`) and the acts whose text is their annex 1 (TULPS
+  `;773:1`, legge fallimentare `;267:1`, c.p.p. minorile `;448:1`, TU successioni
+  `;346:1`), and files them with that `allegato`: `norma_data` here gives the same. The
+  codice penale militare di guerra (`;303:2`), absent from VisuaLex's table, is filed
+  with `"2"`. VisuaLex's saved norms of the last three, filed before f47ac1b6 without
+  the part, need realigning on its side before the shell switches.
 - **Serialisation stays the shell's job.** Key order, ASCII escaping, the NDJSON
   stream: `come_dict` returns data, not JSON text.

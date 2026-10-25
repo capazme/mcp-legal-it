@@ -20,8 +20,8 @@ import pytest
 from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata
 
 GOLDEN = Path(__file__).resolve().parents[1] / "fixtures" / "visualex" / "golden.json"
-#: VisuaLexAPI conventions/sources/golden.json read at 4aa59a9d (first at eca698dc).
-GOLDEN_SHA256 = "4f0854a4572e36f80e046aeeb1af82379b9d4e273446fe8b33435c1cdeeb933f"
+#: VisuaLexAPI conventions/sources/golden.json read at f47ac1b6 (first at eca698dc).
+GOLDEN_SHA256 = "73bb3c78ff8de42c9c592ddaee7c414707beb1d260f5db40091c0c3f1747158c"
 
 #: Norm ids whose identity mcp-legal-it does not build yet, and why.
 LACUNE = {
@@ -48,7 +48,11 @@ def _confronti(norma: dict) -> list[tuple[str, str | None, str]]:
     """``(kind, expected, built)`` for the act and the article identity the file asserts."""
     i = norma["input"]
     ide = norma.get("identity", {})
-    n = Norma(i["tipo_atto"], i.get("data", ""), i.get("numero_atto", ""))
+    # The annex the norm is stored with, when it is a position as in this API (a digit: «A» is a
+    # name): the convention's identity of a code's other annex («disp. att. c.p.a.», annex 3 of
+    # the c.p.a.'s decree) is that annex's.
+    allegato = i.get("allegato", "") if str(i.get("allegato", "")).isdigit() else ""
+    n = Norma(i["tipo_atto"], i.get("data", ""), i.get("numero_atto", ""), allegato=allegato)
     out = []
     for kind in ("act", "article"):
         atteso = ide.get(kind)
