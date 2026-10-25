@@ -89,6 +89,7 @@ HOST_PER_FONTE: dict[str, frozenset[str] | None] = {
     "gazzetta": frozenset({"www.gazzettaufficiale.it"}),
     "gpdp": frozenset({"www.garanteprivacy.it", "servizi.gpdp.it"}),
     "consob": frozenset({"www.consob.it"}),
+    "anac": frozenset({"www.anticorruzione.it"}),
     "parlamento_senato": frozenset({"dati.senato.it"}),
     "parlamento_camera": frozenset({"dati.camera.it"}),
     "tmview": frozenset({"www.tmdn.org"}),

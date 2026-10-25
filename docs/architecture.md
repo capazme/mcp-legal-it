@@ -58,7 +58,7 @@ from mcp_legal_it.tools import (  # 34 moduli — l'elenco completo è in mcp_le
     risarcimento_danni, diritto_penale, diritto_societario, diritto_lavoro,
     crisi_impresa, proprieta_successioni, investimenti, dichiarazione_redditi,
     varie, procedura_civile, legal_citations, italgiure, gpdp, privacy_gdpr,
-    cerdef, giustizia_amm, cgue, consob, gazzetta, corte_cost, orientamento,
+    cerdef, giustizia_amm, cgue, consob, anac, gazzetta, corte_cost, orientamento,
     eu_implementation, giurisprudenza_unificata, modelli_atti,
     procure_quotazioni, analisi_fornitori,
 )
@@ -86,7 +86,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from mcp_legal_it.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (34 moduli, 228 tool totali)
+       └─ ... (35 moduli, 231 tool totali)
        └─ from mcp_legal_it import prompts
             └─ @mcp.prompt() → 23 prompt registrati
        └─ from mcp_legal_it import resources
@@ -141,12 +141,12 @@ un server nuovo che monta quello standard con gli stessi filtri, senza modificar
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 228 | Claude Code con Tool Search |
+| `full` | 231 | Claude Code con Tool Search |
 | `sinistro` | 79 | Risarcimento danni e sinistri |
 | `credito` | 89 | Recupero crediti |
 | `penale` | 51 | Diritto penale |
 | `fiscale` | 66 | Calcoli fiscali, immobiliari, societari e di crisi |
-| `normativa` | 70 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
+| `normativa` | 73 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
 | `privacy` | 64 | GDPR e privacy compliance |
 | `studio` | 76 | Gestione studio legale |
 | `redattore` | 76 | Redazione di atti giudiziari |
@@ -215,6 +215,7 @@ testabili senza il server MCP.
 | `cgue/` | Corte di Giustizia UE | SPARQL su CELLAR | CELEX literal con `^^xsd:string` |
 | `gpdp/` | Garante Privacy | Liferay scraping | Lettura via endpoint "stampa" |
 | `consob/` | CONSOB | Liferay scraping | Bollettino delibere |
+| `anac/` | ANAC | Liferay scraping (GET) | Delibere, pareri, linee guida: scheda dell'atto + link al PDF |
 | `gazzetta/` | Gazzetta Ufficiale | HTML + RSS | Ricerca parametrica e sommari |
 | `eu_implementation/` | EUR-Lex | HTML scraping | Misure nazionali di recepimento |
 | `vies/` | VIES (Commissione UE) | SOAP | Validazione P.IVA intracomunitaria |
@@ -287,7 +288,7 @@ non parlano con fonti esterne: osservano le chiamate.
 
 Tre file in `mcp_legal_it/` sono **generati** da `scripts/audit_tool_annotations.py --write`
 e verificati in CI (`policy-sync`): `tool_annotations.py` (`readOnlyHint`/`openWorldHint`
-per ciascuno dei 228 tool, derivati dal grafo delle chiamate), `table_bindings.py`
+per ciascuno dei 231 tool, derivati dal grafo delle chiamate), `table_bindings.py`
 (tabella → costante) e `source_bindings.py` (tool → dataset online). Modificarli a
 mano è inutile: la rigenerazione li sovrascrive e `--check` fallisce sul drift.
 `tests/unit/test_golden_calcoli.py` congela le risposte dei calcolatori locali per
