@@ -841,6 +841,13 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
 
     fonte = f"{data['fonte'].title()} — {data['url']}" if data["fonte"] else ""
 
+    if data.get("not_in_force"):
+        # The text found is a later one (an article inserted from a later day): it exists, but
+        # is not law today, and a citation of it as such is not verified.
+        dal = (data.get("upcoming") or {}).get("valid_from") or "?"
+        nota = f"L'articolo non è ancora in vigore: entra in vigore il {dal}."
+        return "non in vigore", nota + (f" Fonte: {fonte}" if fonte else "")
+
     if _norma_misquote(reference, data["testo"]):
         nota = "Comma/lettera citato non riscontrato nel testo dell'articolo."
         if fonte:
@@ -1070,6 +1077,8 @@ async def verifica_citazioni(
         nell'atto citato (Normattiva risponde a un numero inesistente con un altro articolo)
       - **non trovata** — l'atto/articolo non è reperibile
       - **metadati discordanti** — la fonte esiste ma sezione/comma/lettera non coincidono
+      - **non in vigore** — per una norma, l'articolo è pubblicato ma entra in vigore in una
+        data futura (la nota la indica): oggi non è diritto vigente
       - **non verificabile** — sentenza anteriore all'inizio dell'archivio Italgiure (finestra
         mobile: nel 2026 parte dal 2021, letta dall'archivio stesso) o non trovata nel primo
         anno, coperto solo in parte: non si può stabilire se esista

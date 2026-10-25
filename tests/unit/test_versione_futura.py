@@ -81,6 +81,25 @@ class TestAnArticleInsertedFromALaterDay:
         assert dati["upcoming"]["change"] == "inserted" and dati["not_in_force"] is True
         assert "Il testo che verrà" in dati["testo"]
 
+    async def test_verifica_citazioni_does_not_call_it_verified(self, monkeypatch):
+        # Review of #88: a text not in force yet is no verified citation of the law in force.
+        import mcp_legal_it.server  # noqa: F401
+        from mcp_legal_it.tools import legal_citations as lc
+
+        _serve(monkeypatch, {DPR131: DAL_2027, f"{DPR131}!vig={OGGI}": NON_ANCORA})
+        dati = json.loads(await lc._verifica_citazioni_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
+        [c] = dati["citazioni"]
+        assert c["verdetto"] == "non in vigore"
+        assert c["nota"].startswith("L'articolo non è ancora in vigore: entra in vigore il 2027-01-01.")
+
+    async def test_verifica_citazioni_still_verifies_today_s_text(self, monkeypatch):
+        import mcp_legal_it.server  # noqa: F401
+        from mcp_legal_it.tools import legal_citations as lc
+
+        _serve(monkeypatch, {DPR131: DAL_2027, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
+        dati = json.loads(await lc._verifica_citazioni_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
+        assert dati["citazioni"][0]["verdetto"] == "verificata"
+
 
 class TestTheLaterTextAskedFor:
     def test_the_reference_keeps_the_version_asked_for(self):
@@ -157,6 +176,18 @@ class TestTheLaterTextAskedFor:
                                                   versione="futura"))
         assert dati["not_in_force"] is True and dati["upcoming"]["change"] == "amended"
         assert dati["avvisi"][0].startswith("testo non ancora in vigore")
+
+    async def test_cite_law_refuses_it_for_an_annex_before_any_request(self, monkeypatch):
+        # Review of #88: it sent a request, then said «Non riesco a leggere la vigenza».
+        import mcp_legal_it.server  # noqa: F401
+        from mcp_legal_it.tools import legal_citations as lc
+
+        richieste = _serve(monkeypatch, {})
+        out = await lc._cite_law_impl("art. 30 allegato I.7 d.lgs. 36/2023", versione="futura")
+        assert out == "**Errore**: la versione futura di un allegato non è ancora disponibile" and richieste == []
+        dati = json.loads(await lc._cite_law_impl("art. 30 allegato I.7 d.lgs. 36/2023", formato="json",
+                                                  versione="futura"))
+        assert dati["errore"] == "la versione futura di un allegato non è ancora disponibile" and richieste == []
 
     async def test_cite_law_refuses_it_for_an_eu_act(self):
         import mcp_legal_it.server  # noqa: F401
