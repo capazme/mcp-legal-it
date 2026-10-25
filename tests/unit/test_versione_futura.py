@@ -98,7 +98,35 @@ class TestAnArticleInsertedFromALaterDay:
 
         _serve(monkeypatch, {DPR131: DAL_2027, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
         dati = json.loads(await lc._verifica_citazioni_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
-        assert dati["citazioni"][0]["verdetto"] == "verificata"
+        [c] = dati["citazioni"]
+        # In force today, with a later version published: verified, and the note says it.
+        assert c["verdetto"] == "verificata"
+        assert c["nota"].endswith("Attenzione: modificato con effetto dal 2027-01-01.")
+
+
+async def test_verifica_citazioni_says_a_coming_repeal(monkeypatch):
+    # Art. 3 d.P.R. 131/1986 on 21/10/2026: in force today, repealed from 1/1/2027.
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools import legal_citations as lc
+
+    from .test_testo_di_oggi import FUTURA
+
+    _serve(monkeypatch, {DPR131: FUTURA, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
+    dati = json.loads(await lc._verifica_citazioni_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
+    [c] = dati["citazioni"]
+    assert c["verdetto"] == "verificata"
+    assert c["nota"].endswith("Attenzione: abrogato con effetto dal 2027-01-01.")
+
+
+async def test_verifica_citazioni_adds_no_note_without_a_later_version(monkeypatch):
+    # The undated page is today's text: nothing announced, so no «Attenzione» in the note.
+    import mcp_legal_it.server  # noqa: F401
+    from mcp_legal_it.tools import legal_citations as lc
+
+    _serve(monkeypatch, {DPR131: OGGI_PAGINA})
+    dati = json.loads(await lc._verifica_citazioni_impl("art. 3 d.p.r. 26 aprile 1986, n. 131", formato="json"))
+    [c] = dati["citazioni"]
+    assert c["verdetto"] == "verificata" and "Attenzione" not in c["nota"]
 
 
 class TestTheLaterTextAskedFor:
