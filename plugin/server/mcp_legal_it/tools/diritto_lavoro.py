@@ -13,10 +13,10 @@ from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).parent.parent / "data"
 
-with open(_DATA / "preavviso_ccnl.json") as _f:
+with open(_DATA / "preavviso_ccnl.json", encoding="utf-8") as _f:
     _PREAVVISO: dict = json.load(_f)
 
-with open(_DATA / "irpef_scaglioni.json") as _f:
+with open(_DATA / "irpef_scaglioni.json", encoding="utf-8") as _f:
     _IRPEF: dict = json.load(_f)
 
 
@@ -86,6 +86,16 @@ def _calcola_irpef_semplificata(imponibile: float) -> float:
     return float(_cent(imposta))
 
 
+# The criteria the judge weighs within the range (art. 8 L. 604/1966, the ones C.Cost. 194/2018
+# points to), seniority first.
+_CRITERI_ART_8 = (
+    "anzianità di servizio",
+    "numero dei dipendenti occupati",
+    "dimensioni dell'impresa",
+    "comportamento e condizioni delle parti",
+)
+
+
 @mcp.tool(tags={"calcolo", "lavoro"})
 def indennita_licenziamento(
     anni_servizio: float,
@@ -93,18 +103,25 @@ def indennita_licenziamento(
     dimensione_azienda: str = "grande",
     tipo: str = "indennitario",
 ) -> dict:
-    """Calcola l'indennità di licenziamento per tutele crescenti (D.Lgs. 23/2015).
+    """Calcola la forbice dell'indennità di licenziamento per tutele crescenti (D.Lgs. 23/2015).
 
-    Indennità dell'art. 3 co. 1 nella forma post C.Cost. 194/2018 (caduto il moltiplicatore
-    fisso di due mensilità per anno: resta l'intervallo 6-36, o 3-18 per i datori sotto la
-    soglia dell'art. 18 St. lav. dopo C.Cost. 118/2025, che ha eliminato il tetto di sei
-    mensilità dell'art. 9 co. 1). Con tipo='reintegra' restituisce il tetto di 12 mensilità
+    Indennità dell'art. 3 co. 1 dopo C.Cost. 194/2018, che ha dichiarato illegittime le parole
+    «di importo pari a due mensilità ... per ogni anno di servizio»: resta solo la forbice da 6 a
+    36 mensilità, entro cui la misura la determina il giudice, tenendo conto dell'anzianità di
+    servizio e degli altri criteri dell'art. 8 L. 604/1966 (numero dei dipendenti occupati,
+    dimensioni dell'impresa, comportamento e condizioni delle parti). Per i datori di lavoro
+    dell'art. 9 (sotto la soglia dell'art. 18 St. lav.): importi dimezzati (art. 9, co. 1), quindi
+    3-18 mensilità; il limite di sei mensilità è stato dichiarato illegittimo da C.Cost. 118/2025.
+    Per questo NON restituisce un importo unico: restituisce minimo e massimo, in mensilità e in
+    euro, e i criteri. Attenzione: il testo dell'art. 3 su Normattiva riporta ancora le parole
+    dichiarate illegittime da C.Cost. 194/2018 (vedi le sue note di aggiornamento).
+    Con tipo='reintegra' restituisce il tetto di 12 mensilità
     dell'indennità risarcitoria dell'art. 3 co. 2 (esteso da C.Cost. 128/2024 al licenziamento
     per giustificato motivo oggettivo con fatto materiale insussistente), che non dipende
     dall'anzianità: il valore effettivo è il periodo tra licenziamento e reintegra, dedotto
     l'aliunde percepito o percepibile, più i contributi senza sanzioni.
     Vigenza: D.Lgs. 23/2015 artt. 3, 9 nel testo vigente al 2026-09-29 — C.Cost. 194/2018, 128/2024, 118/2025.
-    Precisione: INDICATIVO (il giudice può discostarsi nei limiti floor/cap in base a criteri art. 8 L. 604/1966).
+    Precisione: INDICATIVO (una forbice, non un importo: la misura è rimessa al giudice).
     Chaining: → offerta_conciliativa() per la formula agevolata art. 6 D.Lgs. 23/2015.
 
     Args:
@@ -149,20 +166,40 @@ def indennita_licenziamento(
             "licenziamento alla reintegra, senza sanzioni. Il lavoratore può chiedere in luogo della reintegra "
             "l'indennità sostitutiva di 15 mensilità (art. 3 co. 2, che richiama l'art. 2 co. 3)"
         )
-    elif dimensione_azienda == "grande":
-        mensilita_raw = anni_servizio * 2
-        floor_val = 6
-        cap_val = 36
-        mensilita = max(floor_val, min(mensilita_raw, cap_val))
-        formula = f"anni_servizio ({anni_servizio}) × 2 = {round(mensilita_raw, 2)} → clamp [{floor_val}, {cap_val}]"
-        nota = "Azienda con >15 dipendenti: regime ordinario D.Lgs. 23/2015 art. 3"
     else:
-        mensilita_raw = anni_servizio * 1
-        floor_val = 3
-        cap_val = 18
-        mensilita = max(floor_val, min(mensilita_raw, cap_val))
-        formula = f"anni_servizio ({anni_servizio}) × 1 = {round(mensilita_raw, 2)} → clamp [{floor_val}, {cap_val}]"
-        nota = "Azienda con ≤15 dipendenti: regime ridotto post C.Cost. 118/2025"
+        # Art. 3 co. 1 after C.Cost. 194/2018: no multiplier, only the range; the judge sets the
+        # amount within it. Art. 9 co. 1 halves it below the threshold (3-18 after 118/2025).
+        floor_val, cap_val = (6, 36) if dimensione_azienda == "grande" else (3, 18)
+        regime = (
+            "datore sopra la soglia dell'art. 18 St. lav.: art. 3 co. 1"
+            if dimensione_azienda == "grande"
+            else "datore di lavoro dell'art. 9: importi dimezzati (art. 9, co. 1), quindi 3-18 mensilità; "
+                 "il limite di sei mensilità è stato dichiarato illegittimo da C.Cost. 118/2025"
+        )
+        return {
+            "anni_servizio": anni_servizio,
+            "retribuzione_mensile": retribuzione_mensile,
+            "tipo": tipo,
+            "dimensione_azienda": dimensione_azienda,
+            "minimo_mensilita": floor_val,
+            "massimo_mensilita": cap_val,
+            "importo_minimo": round(floor_val * retribuzione_mensile, 2),
+            "importo_massimo": round(cap_val * retribuzione_mensile, 2),
+            "criteri": list(_CRITERI_ART_8),
+            "dettaglio_formula": (
+                f"forbice {floor_val}-{cap_val} mensilità × {retribuzione_mensile} € "
+                f"({regime}); nessun moltiplicatore per anno di servizio dopo C.Cost. 194/2018"
+            ),
+            "nota": (
+                "La misura dell'indennità è determinata dal giudice entro la forbice, tenendo conto "
+                f"dell'anzianità di servizio ({anni_servizio} anni) e degli altri criteri dell'art. 8 "
+                "L. 604/1966: non esiste un importo calcolabile in anticipo. Il testo dell'art. 3 su "
+                "Normattiva riporta ancora le parole «di importo pari a due mensilità ... per ogni anno "
+                "di servizio», dichiarate illegittime da C.Cost. 194/2018 (vedi le note "
+                "dell'articolo). Per la conciliazione agevolata dell'art. 6 vedi offerta_conciliativa()."
+            ),
+            "riferimento_normativo": "D.Lgs. 23/2015 artt. 3 co. 1, 9 co. 1 — C.Cost. 194/2018, 118/2025 — art. 8 L. 604/1966",
+        }
 
     importo = round(mensilita * retribuzione_mensile, 2)
 

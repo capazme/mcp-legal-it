@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware
 
+from mcp_legal_it._profilo import profilo_richiesto
 from mcp_legal_it.cli_version import package_version
 
 mcp = FastMCP(
@@ -151,9 +152,12 @@ _TABLES_WRAPPED = apply_table_ledger(
 # a profile names kinds (normativa, giurisprudenza, autorita, diagnostica) and
 # areas, never a single tool, so a new tool lands in the right profiles by its tags.
 # Every profile carries `diagnostica`, so stato_server and the data report answer
-# whatever surface was chosen.
+# whatever surface was chosen. An unknown LEGAL_PROFILE refuses to start (_profilo.py).
 # ---------------------------------------------------------------------------
 _PROFILES: dict[str, set[str]] = {
+    # Offline only: every `calcolo` tool answers from its inputs and the bundled tables,
+    # and the diagnostics read the server itself (test_profiles checks no source is online).
+    "calcoli": {"calcolo", "diagnostica"},
     "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro", "diagnostica"},
     "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito", "diagnostica"},
     "penale": {"penale", "normativa", "giurisprudenza", "diagnostica"},
@@ -167,8 +171,8 @@ _PROFILES: dict[str, set[str]] = {
 
 _PROMPTS_AND_RESOURCES = {"prompt", "resource", "template"}
 
-_profile = os.environ.get("LEGAL_PROFILE", "full")
-if _profile != "full" and _profile in _PROFILES:
+_profile = profilo_richiesto(_PROFILES)
+if _profile != "full":
     # FastMCP 3 replaced the `include_tags` attribute with a visibility transform:
     # `only=True` disables every component whose tags do not intersect the
     # profile; prompts and resources carry no tags, so the second transform
