@@ -125,10 +125,11 @@ _PROFILES: dict[str, set[str]] = {
     "studio":    {"scadenze", "giudiziario", "parcelle_avv", "parcelle_prof", "investimenti", "lavoro", "diagnostica"},
     "redattore": {"atti", "giudiziario", "parcelle_avv", "scadenze", "normativa", "diagnostica"},
     "cowork":    {"normativa", "giurisprudenza", "privacy", "parcelle_avv", "diagnostica"},
+    "calcoli":   {"calcolo", "diagnostica"},   # offline only
 }
 
-_profile = os.environ.get("LEGAL_PROFILE", "full")
-if _profile != "full" and _profile in _PROFILES:
+_profile = profilo_richiesto(_PROFILES)   # an unknown name raises ProfiloSconosciuto
+if _profile != "full":
     mcp.enable(tags=_PROFILES[_profile], only=True)
     mcp.enable(components={"prompt", "resource", "template"})
 ```
@@ -150,6 +151,7 @@ un server nuovo che monta quello standard con gli stessi filtri, senza modificar
 | `studio` | 76 | Gestione studio legale |
 | `redattore` | 76 | Redazione di atti giudiziari |
 | `cowork` | 77 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
+| `calcoli` | 144 | Solo calcoli e diagnostica, nessuna connessione di rete |
 
 Il profilo `full` è consigliato per Claude Code, che usa Tool Search per
 caricare i tool on-demand senza saturare il context window.

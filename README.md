@@ -559,7 +559,7 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 | `MCP_TRANSPORT` | `stdio` | Transport: `stdio`, `http` (Streamable HTTP, endpoint `/mcp`; default nell'immagine Docker) o `sse` (legacy) |
 | `MCP_HOST` | `0.0.0.0` | Bind address (solo http/sse) |
 | `MCP_PORT` | `8000` | Porta (solo http/sse) |
-| `LEGAL_PROFILE` | `full` | Profilo tool da caricare |
+| `LEGAL_PROFILE` | `full` | Profilo tool da caricare (un nome sconosciuto blocca l'avvio) |
 | `LEGAL_PREVIGENTE` | `on` | `off` nasconde i tool a normativa previgente (tag `previgente`) |
 | `LEGAL_BROCARDI` | `on` | `off` spegne Brocardi: nessuna richiesta a brocardi.it, tool `solo_brocardi` non esposti |
 | `MCP_CACHE_DIR` | — | Directory cache Brocardi |
@@ -581,9 +581,12 @@ sempre disponibili. Etichette e regole: [docs/tool-tags.md](docs/tool-tags.md).
 | `studio` | 76 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
 | `redattore` | 76 | Atti, procedura, parcelle, scadenze + norme |
 | `cowork` | 77 | Norme, giurisprudenza, privacy, parcelle (set ridotto) |
+| `calcoli` | 144 | Solo strumenti di calcolo e diagnostica: nessuna connessione di rete |
 
 Ogni profilo include i tre tool di diagnostica (`stato_server`, `verbale_mensile`,
-`backlog_riconciliazione`).
+`backlog_riconciliazione`). Un `LEGAL_PROFILE` che non è in questa tabella blocca l'avvio
+con un errore che elenca i profili validi: il server non ricade su `full`, che esporrebbe
+anche gli strumenti che vanno in rete.
 
 ### Senza Brocardi
 
