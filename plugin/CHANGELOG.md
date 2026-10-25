@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- The plugin's end-of-turn citation hook no longer opens the server's Python
+  environment. It ran `uv run --project <plugin>/server`, so whenever uv found
+  that environment linked to an interpreter it could not reach, it deleted and
+  rebuilt it under the running server. It now runs on uv's Python 3.12 with
+  `--no-project`: the gate needs only the standard library.
+
 ## [2.17.1] - 2026-10-21
 
 ### Security
