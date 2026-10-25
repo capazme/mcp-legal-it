@@ -180,8 +180,16 @@ class TestAlberoAtto:
         assert len(richieste) == 2
         assert api.articolo_nell_albero(t, "1") is None and api.dove_altrove(t, "1", "") == ""
 
-    async def test_eu_acts_have_no_tree(self):
-        assert (await api.albero_atto("GDPR")).esito == "non_supportata"
+    async def test_an_eu_act_s_tree_is_read_from_its_eurlex_page(self, monkeypatch):
+        # Since the 3.0 migration: VisuaLex's EU tree (test_eurlex_indice.py).
+        from mcp_legal_it.lib.visualex import scraper
+
+        async def pagina(norma):
+            return '<html><body><p class="oj-ti-art">Articolo 1</p></body></html>', "u"
+
+        monkeypatch.setattr(scraper, "_fetch_eurlex_html", pagina)
+        t = await api.albero_atto("GDPR")
+        assert t.esito == "trovato" and t.articles == ({"numero": "1"},)
 
     def test_existence_on_the_api_type(self):
         t = AlberoAtto(esito="trovato", articles=tuple(CPA_TREE), count=len(CPA_TREE))
