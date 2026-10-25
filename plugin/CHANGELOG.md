@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- FastMCP 3.4.10 in the plugin's locked dependencies (GHSA-7xgj-8392-5q4r:
+  component authorization after a transform was skipped on direct calls).
+
 ### Fixed
 - The plugin's end-of-turn citation hook no longer opens the server's Python
   environment. It ran `uv run --project <plugin>/server`, so whenever uv found
