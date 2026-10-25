@@ -12,6 +12,7 @@ from mcp_legal_it.api.tipi import (
     AnnotazioniBrocardi,
     Canale,
     CatalogoAlias,
+    ConsiderandiAtto,
     EsitoRiferimento,
     IndiceAtto,
     MassimaBrocardi,
@@ -578,8 +579,9 @@ def _atto(atto: str | NormaDati) -> Norma | tuple[str, str]:
         if isinstance(letto, EsitoRiferimento):
             return letto.esito, letto.errore
         info, _ = letto
-        if info.get("versione"):
-            # The whole act and its index are today's: never served under a date asked for.
+        if info.get("versione") or info.get("futura"):
+            # The whole act and its index are today's: never served under a date asked for,
+            # nor as the text not in force yet (versione="futura").
             return "non_supportata", "l'atto intero e il suo indice a una data non sono ancora disponibili"
     else:
         _, act_name = norme._parse_reference(atto)
@@ -588,7 +590,8 @@ def _atto(atto: str | NormaDati) -> Norma | tuple[str, str]:
         info = norme._resolve_act(act_name)
         if not info:
             return "atto_non_riconosciuto", _senza_tool(norme._unresolved_act_error(act_name))
-    return Norma(tipo_atto=info["tipo_atto"], data=info.get("data", ""), numero_atto=info.get("numero_atto", ""))
+    return Norma(tipo_atto=info["tipo_atto"], data=info.get("data", ""), numero_atto=info.get("numero_atto", ""),
+                 celex_consolidated=info.get("celex_consolidated", ""))
 
 
 async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
@@ -607,7 +610,7 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
     if isinstance(norma, tuple):
         return IndiceAtto(esito=norma[0], errore=norma[1])
     if norma._is_eurlex():
-        return IndiceAtto(esito="non_supportata", errore="indice disponibile solo per gli atti su Normattiva")
+        return await _indice_ue(norma)
     with registra() as registro:
         act = await _export_atto(norma)
         if act is not None:
@@ -696,7 +699,7 @@ async def albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bo
     if isinstance(norma, tuple):
         return AlberoAtto(esito=norma[0], errore=norma[1])
     if norma._is_eurlex():
-        return AlberoAtto(esito="non_supportata", errore="albero disponibile solo per gli atti su Normattiva")
+        return await _albero_ue(norma, link=link, dettagli=dettagli)
     with registra() as registro:
         try:
             result = await fetch_act_tree(norma, link=link, details=dettagli)
@@ -708,6 +711,102 @@ async def albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bo
                               fonti=registro.fonti())
         return AlberoAtto(esito="trovato", articles=tuple(result["articles"]), count=result["count"],
                           metadata=result["metadata"], url=result["url"], fonti=registro.fonti())
+
+
+async def _albero_eurlex(norma: Norma, *, link: bool, dettagli: bool):
+    from mcp_legal_it.lib.visualex.scraper import fetch_eurlex_tree
+
+    with registra() as registro:
+        try:
+            result = await fetch_eurlex_tree(norma, link=link, details=dettagli)
+        except Exception as exc:  # noqa: BLE001 - errors are data
+            return {"error": str(exc), "url": norma.url(), "giu": fonte_giu(exc)}, registro.fonti()
+        return result, registro.fonti()
+
+
+def _esito_ue(result: dict) -> str:
+    if result.get("esito") == "riferimento_non_valido":
+        return "riferimento_non_valido"
+    return "verifica_non_disponibile" if result.get("giu") else "errore_fonte"
+
+
+async def _indice_ue(norma: Norma) -> IndiceAtto:
+    """An EU act's rubriche and title, from the page of its text in force (VisuaLex's EU tree)."""
+    result, fonti = await _albero_eurlex(norma, link=False, dettagli=False)
+    if result.get("error"):
+        return IndiceAtto(esito=_esito_ue(result), url=result.get("url", ""), errore=result["error"], fonti=fonti,
+                          consolidato=result.get("consolidato"),
+                          consolidato_verificato=result.get("consolidato_verificato"))
+    rubriche = dict(result["metadata"].get("rubriche") or {})
+    if result["count"] and not rubriche:
+        # The legacy class-less OJ page (dir. 2002/58) has its articles but prints no rubriche:
+        # never an empty «trovato», which would read as an act without articles.
+        errore = (f"la pagina dell'atto non riporta le rubriche dei suoi {result['count']} articoli "
+                  "(l'elenco degli articoli è in albero_atto)")
+    else:
+        errore = None if result["count"] else "pagina senza articoli"
+    return IndiceAtto(
+        esito="trovato" if rubriche else "testo_assente",
+        title=result["metadata"].get("title") or "",
+        rubriche=rubriche,
+        count=len(rubriche),
+        url=result["url"],
+        errore=errore,
+        fonti=fonti,
+        consolidato=result.get("consolidato"),
+        consolidato_verificato=result.get("consolidato_verificato"),
+    )
+
+
+async def _albero_ue(norma: Norma, *, link: bool, dettagli: bool) -> AlberoAtto:
+    """An EU act's article tree, from the page of its text in force (VisuaLex's EU tree)."""
+    result, fonti = await _albero_eurlex(norma, link=link, dettagli=dettagli)
+    if result.get("error"):
+        return AlberoAtto(esito=_esito_ue(result), url=result.get("url", ""), errore=result["error"], fonti=fonti,
+                          consolidato=result.get("consolidato"),
+                          consolidato_verificato=result.get("consolidato_verificato"))
+    return AlberoAtto(esito="trovato" if result["count"] else "testo_assente", articles=tuple(result["articles"]),
+                      count=result["count"], metadata=result["metadata"], url=result["url"], fonti=fonti,
+                      consolidato=result.get("consolidato"),
+                      consolidato_verificato=result.get("consolidato_verificato"))
+
+
+async def considerando(atto: str | NormaDati) -> ConsiderandiAtto:
+    """Every recital of an EU regulation or directive: VisuaLex's ``/fetch_recitals``.
+
+    ``considerando`` is ``({"number": "1", "text": "…"}, …)``, VisuaLex's reader on the Official
+    Journal page (a consolidated text has no preamble): the text without its «(N)» (a
+    legacy page keeps its footnote calls). One request, kept a day with the act's page.
+    A ``NormaDati`` with ``celex_consolidated`` is ``non_supportata``, before any request.
+    Esiti: ``trovato``, ``testo_assente`` (no recital on the page), ``riferimento_non_valido``,
+    ``atto_non_riconosciuto``, ``non_supportata`` (an Italian act, a treaty),
+    ``verifica_non_disponibile``, ``errore_fonte``.
+    """
+    from mcp_legal_it.lib.visualex.map import EURLEX_TREATY_CELEX
+    from mcp_legal_it.lib.visualex.scraper import fetch_eurlex_recitals
+
+    norma = _atto(atto)
+    if isinstance(norma, tuple):
+        return ConsiderandiAtto(esito=norma[0], errore=norma[1])
+    if not norma._is_eurlex() or norma.tipo_atto_normalized.lower() in EURLEX_TREATY_CELEX:
+        return ConsiderandiAtto(esito="non_supportata",
+                                errore="considerando disponibili per regolamenti e direttive UE")
+    if norma.celex_consolidated:
+        # A consolidation has no preamble: its «(N)» are footnotes (testo_articolo refuses it alike).
+        return ConsiderandiAtto(esito="non_supportata", errore=_non_nel_consolidato("rec_1"))
+    with registra() as registro:
+        try:
+            result = await fetch_eurlex_recitals(norma)
+        except Exception as exc:  # noqa: BLE001 - errors are data
+            esito = "verifica_non_disponibile" if fonte_giu(exc) else "errore_fonte"
+            return ConsiderandiAtto(esito=esito, url=norma.url(), errore=str(exc), fonti=registro.fonti())
+        if result.get("error"):
+            return ConsiderandiAtto(esito="errore_fonte", url=result.get("url", ""), errore=result["error"],
+                                    fonti=registro.fonti())
+        recitals = tuple(result["recitals"])
+        return ConsiderandiAtto(esito="trovato" if recitals else "testo_assente", considerando=recitals,
+                                url=result["url"], errore=None if recitals else "nessun considerando nella pagina",
+                                fonti=registro.fonti())
 
 
 def articolo_nell_albero(albero: AlberoAtto, articolo: str, allegato: str | None = None) -> bool | None:

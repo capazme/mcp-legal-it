@@ -15,6 +15,17 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **An EU act's index, tree and recitals** (`api`). `indice_atto` and
+  `albero_atto` now answer for EU regulations, directives and treaties: VisuaLex's
+  EU tree reader (`lib/visualex/eurlex_tree.py`) on the page of the text in force,
+  the same page the articles are read from (one request, kept a day), with
+  `consolidato` saying which text it is. A key keeps its ordinal («Articolo 15 bis»
+  is `15-bis`), and a heading an amending act quotes is not one of its articles.
+  The new `api.considerando(atto)` gives every recital, VisuaLex's
+  `/fetch_recitals`: `{number, text}` from the Official Journal page (a consolidation,
+  which has no preamble, is refused before any request). A page with articles but no
+  rubriche (dir. 2002/58's legacy page) is `testo_assente` with an `errore`, never an
+  empty «trovato».
 - **ANAC acts** (#51): `cerca_atti_anac`, `leggi_atto_anac` and
   `ultimi_atti_anac` search the acts of the Autorità Nazionale Anticorruzione
   (delibere, pareri di precontenzioso and sulla normativa, linee guida, bandi
@@ -567,6 +578,21 @@ entry, it is the same feature as ported to the 3.0 line.
   caller that read them reads the range. `tipo="reintegra"` is unchanged. The
   answer also warns that Normattiva still prints the words struck down by
   194/2018 in art. 3.
+- **A recital's text is VisuaLex's** (`considerando 42 GDPR`): without its «(42)»,
+  and on a modern Official Journal page without its footnote calls (a legacy page
+  keeps them in the text: «dati(4)» in recital 1 of dir. 2002/58). `cite_law` still prints «(42)»
+  before it, as the label. A legacy page's recitals are read in their sequence, so a
+  footnote numbered like a recital is never taken for one.
+- **EUR-Lex readers re-pinned to VisuaLex `b2f7a30f`** (its PRs up to #312): a heading
+  «Articolo 15 bis» no longer answers a request for art. 15 on any markup, «Articolo
+  15 bisTesto» included, and the article opens in any spelling («15 bis», «15-bis»,
+  «15bis»). A heading an amending act quotes (in a table cell, or opening with «)
+  is never one of its articles, in the text, the index and the rubriche. The
+  consolidated-text regexes are linear on long runs of blanks, and the title comes
+  from the Italian ELI metadata of a legacy page and from `title-doc-first` of the
+  consolidated GDPR. The checks this package kept in its wrapper for these cases are
+  gone: VisuaLex's reader does the same. The article texts of the GDPR, the AI Act
+  and the TFUE are unchanged.
 - **EU article text: VisuaLex's reader, from CELLAR, one page per act.** The text
   of an article of an EU act is read by VisuaLex's extractor
   (`lib/visualex/eurlex_text.py`, `eurlex_scraper.py` at `493a8dd1`), whose text is
@@ -859,8 +885,8 @@ entry, it is the same feature as ported to the 3.0 line.
   trovato»; where the act's own article has its `div#art_N`, a text whose first
   lines are not the own heading and the line after it is refused. On the legacy
   class-less page the first heading naming the article decides (a «-heading is
-  skipped): inside a table cell it is a quotation. These checks sit in our
-  wrapper and only refuse; the imported reader is untouched (reported upstream).
+  skipped): inside a table cell it is a quotation. VisuaLex's reader does the same
+  since `b2f7a30f` (its #312), which the 3.0 line imports.
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the

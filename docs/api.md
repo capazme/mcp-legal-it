@@ -488,9 +488,23 @@ act's Akoma Ntoso export (two requests cold, none warm: the export is cached).
   `vediRubriche` answers: `rubriche` from its lines and `voci` (the lines as
   listed), with no `title`, `abrogati` or `parts`. `voci` is empty when the export
   answered.
+- **An EU regulation or directive** (since the 3.0 migration): `title` and
+  `rubriche` from the EUR-Lex page of its text in force, the page its articles are
+  read from (one request, kept a day), with VisuaLex's EU tree reader
+  (`lib/visualex/eurlex_tree.py`, imported). The text in force is chosen as for
+  `testo_articolo`: the latest consolidation that amends the act, else the Official
+  Journal text. `consolidato` and `consolidato_verificato` say which, as in
+  `TestoArticolo`. A key keeps its ordinal («Articolo 15 bis» is `"15-bis"`), and a
+  heading an amending act quotes (in a table cell, or opening with «) is not one of
+  its articles. No `abrogati`, `parts` or `voci`. A treaty: from its page too. A page
+  with articles but no rubriche (the legacy class-less Official Journal page, dir.
+  2002/58) is `testo_assente`, with an `errore` saying so: its articles are in
+  `albero_atto`. A version asked for (a date, the original, `versione="futura"`) is
+  `non_supportata`, as for an Italian act. `considerando` of a `NormaDati` with
+  `celex_consolidated` is `non_supportata`, before any request.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
-  `non_supportata` (EU acts), `verifica_non_disponibile`, `errore_fonte`,
-  `testo_assente`.
+  `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
+  `errore_fonte`, `testo_assente`.
 
 ### `albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bool = False) -> AlberoAtto`
 
@@ -504,8 +518,31 @@ act's page. One request, kept a day; every variant is read from the same page.
   same number as `NormaDati.allegato`.
 - `metadata["annexes"]`: `number`, `label`, `article_count`, `article_numbers`
   per part.
+- **An EU regulation, directive or treaty**: VisuaLex's EU tree on the page of the
+  text in force (as for `indice_atto`). `articles` are `{"numero"}` (plus `url`,
+  the article's ELI address on an Official Journal page, with `link=True`), the
+  chapter headings as strings with `dettagli=True`, and
+  `metadata = {"rubriche", "title"}`. `consolidato` and `consolidato_verificato`
+  say which text the tree is read from.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
-  `non_supportata` (EU acts), `verifica_non_disponibile`, `errore_fonte`.
+  `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
+  `errore_fonte`, `testo_assente`.
+
+### `considerando(atto: str | NormaDati) -> ConsiderandiAtto`
+
+Every recital of an EU regulation or directive: VisuaLex's `/fetch_recitals`.
+`considerando` is `({"number": "1", "text": "…"}, …)`, read by VisuaLex's reader
+(`extract_recitals`) from the Official Journal page, since a consolidated text
+has no preamble. The text has no «(N)»; a modern page's footnote calls are dropped, a
+legacy page keeps them in the text («dati(4)», recital 1 of dir. 2002/58). Modern pages read
+the `rct_N` blocks, legacy pages the «(N) …» sequence after «considerando quanto
+segue». One request, kept a day with the act's page. A single recital is
+`testo_articolo("considerando 42 GDPR")`, with the same text; `cite_law` prints
+«(42)» before it as the label.
+
+- **Esiti:** `trovato`, `testo_assente` (no recital on the page),
+  `riferimento_non_valido`, `atto_non_riconosciuto`, `non_supportata` (an Italian
+  act, a treaty), `verifica_non_disponibile`, `errore_fonte`.
 
 ### `articolo_nell_albero(albero: AlberoAtto, articolo: str, allegato: str | None = None) -> bool | None`
 
@@ -755,8 +792,9 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
 | `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
-| `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti` |
-| `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti` |
+| `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
+| `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti, consolidato, consolidato_verificato` |
+| `ConsiderandiAtto` | VisuaLex `/fetch_recitals`: `esito, considerando` (`{number, text}`), plus `url, errore, fonti` |
 | `TestoAtto` | `esito, testo, titolo, url, errore, fonti` |
 | `AnnotazioniBrocardi` | `esito, url, ratio, spiegazione, brocardi, massime, errore, fonti` |
 | `MassimaBrocardi` | `autorita, numero, anno, testo` |
