@@ -32,6 +32,7 @@ tests/
 ├── unit/                       # Test senza connessione di rete (tranne i *_live.py, marker `live`)
 │   ├── test_akn_fetch.py                            18 test
 │   ├── test_akn_parser.py                           54 test
+│   ├── test_anac.py                                 69 test  ← atti ANAC: ricerca, scheda, numero e anno con il filtro Anno, errori (#51)
 │   ├── test_analisi_fornitori.py                    29 test
 │   ├── test_atti_denominati_live.py                  2 test  ← gate live: ogni atto della tabella risolve al numero giusto su Normattiva (-m live)
 │   ├── test_atti_giudiziari.py                     142 test
@@ -66,9 +67,11 @@ tests/
 │   ├── test_gazzetta.py                             62 test
 │   ├── test_giurisprudenza_unificata.py             11 test
 │   ├── test_giustizia_amm.py                        74 test
+│   ├── test_giustizia_amm_rifiuti.py                24 test  ← portale GA: due frasi rifiutate prima dell'invio, 403/429 senza URL né token (#52)
 │   ├── test_golden_calcoli.py                        6 test  ← risposte congelate dei calcolatori locali, per gruppo di tabelle (GOLDEN_UPDATE=1 per rigenerare)
 │   ├── test_gpdp.py                                 30 test
 │   ├── test_http_retry.py                            7 test
+│   ├── test_install_script.py                        3 test  ← l'installatore configura solo il server locale, nessun URL remoto
 │   ├── test_investimenti.py                         48 test
 │   ├── test_italgiure.py                           225 test
 │   ├── test_legal_citations.py                     171 test
@@ -76,14 +79,14 @@ tests/
 │   ├── test_online_sources.py                        5 test
 │   ├── test_openai_target.py                         9 test
 │   ├── test_orientamento.py                         34 test
-│   ├── test_packaging.py                             1 test  ← la wheel contiene dati ed entry point (richiede uv)
+│   ├── test_packaging.py                             2 test  ← la wheel contiene dati ed entry point (richiede uv); nessun symlink tracciato
 │   ├── test_parcelle_professionisti.py              79 test
 │   ├── test_parlamento.py                           79 test
 │   ├── test_precision_policy.py                     16 test  ← tabella scaduta/non verificata → degrado o rifiuto negoziabile
 │   ├── test_privacy_gdpr.py                         45 test
 │   ├── test_procedura_civile.py                     42 test
 │   ├── test_procure_quotazioni.py                   17 test
-│   ├── test_profiles.py                              4 test  ← LEGAL_PROFILE restringe i tool e lascia prompt e risorse
+│   ├── test_profiles.py                             12 test  ← LEGAL_PROFILE restringe i tool, rifiuta i nomi sconosciuti, `calcoli` senza rete
 │   ├── test_prompt_surface.py                        2 test
 │   ├── test_prompts.py                               4 test
 │   ├── test_proprieta_successioni.py               110 test
@@ -102,6 +105,7 @@ tests/
 │   ├── test_server_registration.py                   2 test  ← superficie registrata: 231 tool, 23 prompt, 15 risorse
 │   ├── test_table_ledger.py                          6 test
 │   ├── test_tassi_interessi.py                      65 test
+│   ├── test_text_encoding.py                         4 test  ← ogni lettura/scrittura di testo nomina l'encoding (#76)
 │   ├── test_tmview.py                               45 test
 │   ├── test_tool_annotations.py                     13 test  ← policy readOnlyHint/openWorldHint allineata all'audit (policy-sync in CI)
 │   ├── test_update_data.py                          19 test
