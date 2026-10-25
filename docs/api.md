@@ -496,7 +496,12 @@ act's Akoma Ntoso export (two requests cold, none warm: the export is cached).
   Journal text. `consolidato` and `consolidato_verificato` say which, as in
   `TestoArticolo`. A key keeps its ordinal («Articolo 15 bis» is `"15-bis"`), and a
   heading an amending act quotes (in a table cell, or opening with «) is not one of
-  its articles. No `abrogati`, `parts` or `voci`. A treaty: from its page too.
+  its articles. No `abrogati`, `parts` or `voci`. A treaty: from its page too. A page
+  with articles but no rubriche (the legacy class-less Official Journal page, dir.
+  2002/58) is `testo_assente`, with an `errore` saying so: its articles are in
+  `albero_atto`. A version asked for (a date, the original, `versione="futura"`) is
+  `non_supportata`, as for an Italian act. `considerando` of a `NormaDati` with
+  `celex_consolidated` is `non_supportata`, before any request.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
   `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
   `errore_fonte`, `testo_assente`.
@@ -528,7 +533,8 @@ act's page. One request, kept a day; every variant is read from the same page.
 Every recital of an EU regulation or directive: VisuaLex's `/fetch_recitals`.
 `considerando` is `({"number": "1", "text": "…"}, …)`, read by VisuaLex's reader
 (`extract_recitals`) from the Official Journal page, since a consolidated text
-has no preamble. The text has no «(N)» and no footnote calls. Modern pages read
+has no preamble. The text has no «(N)»; a modern page's footnote calls are dropped, a
+legacy page keeps them in the text («dati(4)», recital 1 of dir. 2002/58). Modern pages read
 the `rct_N` blocks, legacy pages the «(N) …» sequence after «considerando quanto
 segue». One request, kept a day with the act's page. A single recital is
 `testo_articolo("considerando 42 GDPR")`, with the same text; `cite_law` prints

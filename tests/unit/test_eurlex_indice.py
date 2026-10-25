@@ -115,6 +115,29 @@ class TestTheApi:
         assert c.esito == "trovato" and [r["number"] for r in c.considerando] == ["1", "2", "3", "173"]
         assert not c.considerando[0]["text"].startswith("(")
 
+    async def test_no_recitals_from_a_consolidation_and_no_request(self, monkeypatch):
+        # Review of #87: a consolidation has no preamble; refused before any request.
+        pages = _Cellar({})
+        monkeypatch.setattr(scraper, "async_client", pages)
+        nd = api.riferimento_da_parametri("direttiva ue", "1", data="2002", numero_atto="58",
+                                          celex_consolidated="02002L0058-20091219").norma_data[0]
+        c = await api.considerando(nd)
+        assert c.esito == "non_supportata" and "considerando non sono nel testo consolidato" in c.errore
+        assert pages.asked == []
+
+    async def test_a_legacy_page_with_articles_but_no_rubriche_says_so(self, monkeypatch, no_lookup):
+        # Review of #87: dir. 2002/58's legacy OJ page has its articles and no rubriche.
+        pages = _Cellar({CELLAR + "32002L0058": _page("eprivacy_oj_legacy.html")})
+        monkeypatch.setattr(scraper, "async_client", pages)
+        i = await api.indice_atto("direttiva 2002/58/CE")
+        assert i.esito == "testo_assente" and i.rubriche == {} and "non riporta le rubriche" in i.errore
+        t = await api.albero_atto("direttiva 2002/58/CE")
+        assert t.esito == "trovato" and t.count == 21
+
+    async def test_no_index_of_the_text_not_in_force_yet(self):
+        nd = api.riferimento_da_parametri("codice civile", "1", versione="futura").norma_data[0]
+        assert (await api.indice_atto(nd)).esito == "non_supportata"
+
     @pytest.mark.parametrize("atto", ["art. 2043 c.c.", "TFUE"])
     async def test_recitals_only_for_eu_regulations_and_directives(self, atto):
         assert (await api.considerando(atto)).esito == "non_supportata"
