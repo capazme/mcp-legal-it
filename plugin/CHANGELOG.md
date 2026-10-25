@@ -468,6 +468,14 @@ entry, it is the same feature as ported to the 3.0 line.
   `mcp-legal-it/fonti_consultate` dal `_meta`).
 
 ### Fixed
+- The citation hook (Stop and SubagentStop) no longer opens the server's
+  Python environment. `uv run --project <plugin>/server`, even with
+  `--no-sync`, deletes and recreates that environment whenever it finds it
+  linked to an interpreter it cannot reach, and `--no-sync` then leaves it
+  empty under the running server ("No module named ..."). The hook now runs
+  on uv's Python 3.12 with `--no-project`: the gate and its reader need only
+  the standard library. `check_directory_readiness.py` accepts a bare
+  `uv run --no-project`, which installs nothing.
 - **`cite_law` reads constitutional laws, royal decree-laws and lieutenancy
   decrees.** "art. 1 l. cost. 3/2001" answered "atto non riconosciuto": the
   reference parser had no `l. cost.` / `legge costituzionale`, `r.d.l.` /
