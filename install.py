@@ -32,7 +32,6 @@ VENV_PYTHON = (
 )
 RUN_SERVER = PROJECT_DIR / "run_server.py"
 CACHE_DIR = Path.home() / ".cache" / "mcp-legal-it"
-REMOTE_SSE_URL = "https://unsomber-lashanda-uneffaceable.ngrok-free.dev/legal-it/sse"
 
 MIN_PYTHON = (3, 11)
 
@@ -116,7 +115,6 @@ def parse_args() -> argparse.Namespace:
               python3 install.py                              # interattivo
               python3 install.py -y                           # defaults (full, desktop)
               python3 install.py --profile full --target plugin
-              python3 install.py --target plugin --mode local # plugin con server locale
               python3 install.py --uninstall
         """),
     )
@@ -140,11 +138,6 @@ def parse_args() -> argparse.Namespace:
         choices=["desktop", "code", "plugin"],
         action="append",
         help="Target di installazione (ripetibile, es. --target desktop --target code)",
-    )
-    parser.add_argument(
-        "--mode",
-        choices=["local", "remote"],
-        help="Modalità server per il plugin: locale (stdio) o remoto (SSE)",
     )
     return parser.parse_args()
 
@@ -451,11 +444,9 @@ def _quit_claude_desktop() -> bool:
     return not _is_claude_desktop_running()
 
 
-def _build_plugin_mcp_config(*, local: bool) -> dict:
-    """Build the plugin's .mcp.json content."""
-    if local:
-        return {"mcpServers": {"legal-it": _build_server_entry("full")}}
-    return {"mcpServers": {"legal-it": {"url": REMOTE_SSE_URL}}}
+def _build_plugin_mcp_config() -> dict:
+    """Build the plugin's .mcp.json content: the server runs locally (stdio)."""
+    return {"mcpServers": {"legal-it": _build_server_entry("full")}}
 
 
 def install_claude_desktop(profiles: list[str], *, non_interactive: bool = False) -> bool:
@@ -580,7 +571,7 @@ def install_claude_code(profiles: list[str]) -> bool:
         return False
 
 
-def install_plugin(*, non_interactive: bool = False, local: bool = False) -> bool:
+def install_plugin(*, non_interactive: bool = False) -> bool:
     """Install the Claude Code plugin (skills, agents, hooks + MCP server)."""
     if not PLUGIN_DIR.exists():
         error(f"Directory plugin non trovata: {PLUGIN_DIR}")
@@ -599,10 +590,9 @@ def install_plugin(*, non_interactive: bool = False, local: bool = False) -> boo
     # Write appropriate .mcp.json for the plugin
     plugin_mcp = PLUGIN_DIR / ".mcp.json"
     plugin_mcp.write_text(
-        json.dumps(_build_plugin_mcp_config(local=local), indent=2, ensure_ascii=False) + "\n"
+        json.dumps(_build_plugin_mcp_config(), indent=2, ensure_ascii=False) + "\n"
     )
-    mode_label = "locale (stdio)" if local else "remoto (SSE)"
-    info(f"Modalità server: {c(BOLD, mode_label)}")
+    info(f"Modalità server: {c(BOLD, 'locale (stdio)')}")
 
     # Check if already installed
     already_installed = _is_plugin_installed()
@@ -680,27 +670,6 @@ def select_targets(args: argparse.Namespace) -> list[str]:
         "6": ["desktop", "code", "plugin"],
     }
     return target_map.get(answer, ["desktop"])
-
-
-def select_plugin_mode(args: argparse.Namespace) -> bool:
-    """Select plugin server mode. Returns True for local, False for remote."""
-    if args.mode:
-        is_local = args.mode == "local"
-        label = "locale (stdio)" if is_local else "remoto (SSE)"
-        info(f"Modalità plugin: {c(BOLD, label)}")
-        return is_local
-
-    if args.non_interactive:
-        return True  # default: local
-
-    print()
-    print(c(BOLD, "  Modalità server per il plugin:"))
-    print()
-    print(f"  {c(BOLD, '1.')} Locale {c(DIM, '(stdio — il server gira sulla tua macchina)')}")
-    print(f"  {c(BOLD, '2.')} Remoto {c(DIM, '(SSE — connessione al server ngrok)')}")
-    print()
-    answer = ask("Scegli", "1")
-    return answer != "2"
 
 
 # ---------------------------------------------------------------------------
@@ -937,9 +906,8 @@ def main() -> None:
         info("Configuro Claude Code (.mcp.json)...")
         ok = install_claude_code(profiles) and ok
     if "plugin" in targets:
-        plugin_local = select_plugin_mode(args)
         info("Installo il plugin Claude Code...")
-        ok = install_plugin(non_interactive=args.non_interactive, local=plugin_local) and ok
+        ok = install_plugin(non_interactive=args.non_interactive) and ok
 
     if not ok:
         print()
