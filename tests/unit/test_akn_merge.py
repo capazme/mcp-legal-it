@@ -354,10 +354,11 @@ class TestPositionalAllegato:
         nd = api.leggi_riferimento("art. 3 d.lgs. 346/1990").norma_data[0]
         assert nd.urn.endswith(";346:1~art3") and nd.allegato == "1"
 
-    def test_visualex_s_annexed_acts_are_all_in_ours(self):
+    def test_visualex_s_annexed_acts_are_ours(self):
+        # VisuaLex's ANNEXED_ACTS at f47ac1b6 and the table that builds this package's URNs.
         from mcp_legal_it.lib.visualex.map import ANNEXED_ACTS, ARTICOLATO_IN_ALLEGATO
 
-        assert ANNEXED_ACTS.items() <= ARTICOLATO_IN_ALLEGATO.items()
+        assert ANNEXED_ACTS == ARTICOLATO_IN_ALLEGATO
 
     def test_a_positional_allegato_never_doubles_the_default_part(self):
         nd = api.riferimento_da_parametri("decreto del presidente della repubblica", "3",

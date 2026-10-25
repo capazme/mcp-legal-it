@@ -854,7 +854,12 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
             nota += f" Fonte: {fonte}"
         return "metadati discordanti", nota
 
-    return "verificata", f"Fonte: {fonte}" if fonte else "Testo ufficiale reperito."
+    nota = f"Fonte: {fonte}" if fonte else "Testo ufficiale reperito."
+    if (prossima := data.get("upcoming")) and prossima.get("valid_from"):
+        # In force today, with a later version already published: still verified, and said.
+        cambio = "abrogato" if prossima.get("change") == "abrogated" else "modificato"
+        nota += f" Attenzione: {cambio} con effetto dal {prossima['valid_from']}."
+    return "verificata", nota
 
 
 async def _verifica_sentenza(reference: str, archivio: str) -> tuple[str, str]:
@@ -1071,7 +1076,8 @@ async def verifica_citazioni(
     l'esattezza del principio di diritto o del contenuto sostanziale citato.
 
     Verdetti possibili:
-      - **verificata** — la fonte esiste e i metadati coincidono
+      - **verificata** — la fonte esiste e i metadati coincidono; se una versione futura è già
+        pubblicata la nota lo dice («abrogato con effetto dal …», «modificato con effetto dal …»)
       - **inesistente** — la decisione non risulta negli archivi (o la ricerca ha restituito
         una decisione diversa da quella citata); per una norma, l'articolo non esiste
         nell'atto citato (Normattiva risponde a un numero inesistente con un altro articolo)

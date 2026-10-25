@@ -280,6 +280,9 @@ def _resolve_act(act_name: str) -> dict | None:
     # Patterns run against the name stripped of any leading preposition
     # ("del D.Lgs. 231/2001"), which resolve_atto has already normalized away.
     candidate = strip_leading_particles(act_name)
+    # «1° settembre 1993», as the Gazzetta Ufficiale writes the first of a month (VisuaLex's
+    # convention): the day is 1.
+    candidate = re.sub(r"\b([1-9]|[12]\d|3[01]) ?[°º] ?(?=[a-z])", r"\1 ", candidate)
 
     eu_match = _EU_PATTERN.match(candidate)
     if eu_match:
