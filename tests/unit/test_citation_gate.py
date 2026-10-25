@@ -253,15 +253,41 @@ def test_the_json_format_inside_the_wrapper_is_judged_as_json(tmp_path):
 HOOKS_JSON = HOOK.with_name("hooks.json")
 
 
-def test_the_hook_runs_in_the_plugin_server_environment():
+def test_the_hook_runs_on_uv_python_outside_the_server_environment():
     """No bare `python3`: on Windows it is usually the Microsoft Store alias
-    (exit 9009), which turned every reply into a "Stop hook error". The hook
-    reuses the server's locked uv environment, which the plugin needs anyway."""
+    (exit 9009), which turned every reply into a "Stop hook error". uv's own
+    Python 3.12 is there anyway, since the server needs it.
+
+    `--no-project`: the hook must never open the server's `.venv`. A `uv run
+    --project <plugin>/server` that finds that environment linked to an
+    interpreter it cannot reach (another machine, a removed Python) deletes and
+    recreates it under the running server, even with `--no-sync`, which then
+    leaves it empty and every tool fails with "No module named ...".
+    """
     hook = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["hooks"][0]
     assert hook["command"] == (
-        'uv run --frozen --python 3.12 --project "${CLAUDE_PLUGIN_ROOT}/server" '
+        'uv run --no-project --python 3.12 '
         'python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"'
     )
-    # Seconds. The first Stop of a session may still be building the
-    # environment the server started.
+    # Seconds.
     assert 15 <= hook["timeout"] <= 600
+
+
+def test_no_hook_opens_the_server_project():
+    hooks = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]
+    commands = [h["command"] for groups in hooks.values() for g in groups for h in g["hooks"]]
+    assert commands
+    for command in commands:
+        assert "--project" not in command.replace("--no-project", ""), command
+
+
+def test_the_gate_needs_only_the_standard_library():
+    # What `--no-project` relies on: the hook runs on a bare interpreter.
+    import ast
+
+    tree = ast.parse(HOOK.read_text(encoding="utf-8"))
+    imported = {alias.name.split(".")[0] for node in ast.walk(tree)
+                if isinstance(node, ast.Import) for alias in node.names}
+    imported |= {node.module.split(".")[0] for node in ast.walk(tree)
+                 if isinstance(node, ast.ImportFrom) and node.module and not node.level}
+    assert imported and imported <= set(sys.stdlib_module_names) | {"__future__"}, imported
