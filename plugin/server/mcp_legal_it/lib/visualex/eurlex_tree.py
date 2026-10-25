@@ -2,12 +2,13 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at b2f7a30f: the
-# EUR-Lex half (``eurlex_heading_number`` to ``_sort_eurlex_results``); first at 36ed6942. Generated,
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at 02ebc80a: the
+# EUR-Lex half (``_parse_eurlex_tree`` to ``_sort_eurlex_results``); first at 36ed6942. Generated,
 # not edited (scratch ``gen_eurlex.py``). Adapted: ``_parse_eurlex_tree`` awaited nothing and is a
 # plain function; the records go to the standard ``logging`` module, configured by the caller
-# (VisuaLex's ``basicConfig`` with a file handler is dropped); ``strip_amendment_markers``,
-# ``is_quoted_heading`` and ``HEADING_ORDINAL`` are ``eurlex_text``'s. No change of behaviour: the
+# (VisuaLex's ``basicConfig`` with a file handler is dropped); ``strip_amendment_markers`` and the
+# heading helpers (``is_quoted_heading`` to ``eurlex_heading_number``) are ``eurlex_text``'s. No
+# change of behaviour: the
 # two this package carried until 36ed6942 (an OJ article keeps its ordinal; a heading an amending act
 # quotes is not one of its articles) are VisuaLex's own since its PR #312.
 
@@ -17,20 +18,7 @@ import logging
 import re
 
 from .akn_parser import normalize_article_key
-from .eurlex_text import HEADING_ORDINAL, is_quoted_heading, strip_amendment_markers
-
-
-# An OJ heading's number with its ordinal, read as one article: «Articolo 15 bis» is «15-bis».
-_EURLEX_HEADING_NUMBER = re.compile(
-    rf"^(?:Articolo|Article)\s+(\d+)(?:[\s\-]*+({HEADING_ORDINAL}))?", re.IGNORECASE)
-
-
-def eurlex_heading_number(text):
-    """The article an OJ heading names («15», «15-bis»), or None when it names none."""
-    match = _EURLEX_HEADING_NUMBER.match(text)
-    if not match:
-        return None
-    return f"{match.group(1)}-{match.group(2).lower()}" if match.group(2) else match.group(1)
+from .eurlex_text import _HEADING_TAGS, eurlex_heading_number, glued_headings, is_quoted_heading, strip_amendment_markers
 
 
 def _parse_eurlex_tree(soup, normurn, link=False, details=False):
@@ -106,8 +94,9 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
     if count_articles == 0:
         logging.info("ti-section/ti-art not found, falling back to pattern search")
 
+        glued = {id(elem): number for number, (elem, _) in glued_headings(soup).items()}
         # Cerca tutti gli elementi che potrebbero contenere articoli o sezioni
-        for elem in soup.find_all(['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4']):
+        for elem in soup.find_all(_HEADING_TAGS):
             text = elem.get_text(strip=True)
 
             # Check for sections first (when details=True)
@@ -124,6 +113,7 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
 
             # Check for articles
             article_num = None if is_quoted_heading(elem) else eurlex_heading_number(text)
+            article_num = article_num or glued.get(id(elem))
             if article_num:
                 if article_num not in seen_articles:
                     seen_articles.add(article_num)
@@ -263,9 +253,10 @@ def _extract_eurlex_rubriche(soup):
 # "del 27 aprile 2016", "dell'8 giugno 2000": the line between an act's name and its subject.
 # A digit after it: «DEL PARLAMENTO EUROPEO…», an act's name split over two lines, is no date.
 _EURLEX_DATE_LINE = re.compile(r"^dell?['’\s]\s*\d", re.IGNORECASE)
-# The legacy page's description: "Direttiva 2002/58/CE del Parlamento europeo e del Consiglio, del 12 luglio 2002, relativa al …".
+# The legacy page's description: "Direttiva 2002/58/CE del Parlamento europeo e del Consiglio, del 12 luglio 2002, relativa al …";
+# an older act's has no commas round the date ("Direttiva 85/374/CEE del Consiglio del 25 luglio 1985 relativa al …").
 _EURLEX_DESCRIPTION_SUBJECT = re.compile(
-    r",\s*dell?['’\s]\s*\d{1,2}[°º]?\s+\S+\s+\d{4}\s*,\s*(.+)$", re.IGNORECASE | re.DOTALL)
+    r"(?:,\s*|\s+)dell?['’\s]\s*\d{1,2}[°º]?\s+\S+\s+\d{4}\s*,?\s*(.+)$", re.IGNORECASE | re.DOTALL)
 
 
 def _eurlex_subject(lines):
@@ -328,8 +319,10 @@ def _extract_eurlex_title(soup):
                                          "about": lambda about: bool(about) and about.rstrip("/").endswith("/ita")})
     for meta in (soup.find("meta", attrs={"name": "DC.description"}), eli_title):
         match = _EURLEX_DESCRIPTION_SUBJECT.search((meta.get("content") or "") if meta else "")
-        if match:
-            return " ".join(match.group(1).split())
+        subject = " ".join(match.group(1).split()) if match else ""
+        # A note in brackets after the date («(GU L 210 …)») is no subject, as in `_eurlex_subject`.
+        if subject and not (subject.startswith("(") and subject.endswith(")")):
+            return subject
     return ""
 
 

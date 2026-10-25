@@ -1034,7 +1034,7 @@ def resolve_atto(name: str) -> dict | None:
 
 
 #: The code sigle of more than one word, read in any spacing or dotting as the annex sigle are.
-_SIGLE_MULTIPAROLA = ("disp. att. c.c.", "disp. att. c.p.c.", "cod. nav.", "cod. post.")
+_SIGLE_MULTIPAROLA = ("disp. att. c.c.", "disp. att. c.p.c.", "cod. nav.", "cod. post.", "cod. post. telecom.")
 
 
 def _sigla_pattern(sigla: str) -> "re.Pattern[str]":
