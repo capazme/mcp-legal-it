@@ -690,6 +690,14 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Fixed
+- **An unknown `LEGAL_PROFILE` refuses to start; `calcoli` exists** (#76). A
+  name that is not a profile fell back to `full` in silence: asking for the
+  offline `calcoli` profile (documented in 2.x, never defined) exposed every
+  tool, the online ones included. The server now stops with an error listing the
+  valid profiles (the console script prints it without a traceback), and
+  `calcoli` exposes the 144 calculators and diagnostics, none of which goes
+  online (a test checks the policy's sources and open-world hints). A blank
+  value is still `full`.
 - **The server starts on Windows without `PYTHONUTF8`** (#76). Thirty reads and
   writes of text files (the bundled JSON tables, the Brocardi cache, the
   `legal://` resources) named no encoding, so Python used the locale's: cp1252 on
