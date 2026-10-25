@@ -1,6 +1,6 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude Code e Claude Desktop: **228 tool** MCP, **30 skill**, **9 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **231 tool** MCP, **30 skill**, **9 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
@@ -49,7 +49,7 @@ Il server gira **sul tuo computer** e non invia telemetria. Contatta soltanto:
   - legislazione: Normattiva (`www.normattiva.it`), Gazzetta Ufficiale (`www.gazzettaufficiale.it`);
   - giurisprudenza: Corte di cassazione (`www.italgiure.giustizia.it`), giustizia amministrativa (`www.giustizia-amministrativa.it`, `mdp.giustizia-amministrativa.it`), Corte costituzionale (`dati.cortecostituzionale.it`), CeRDEF del MEF (`def.finanze.it`);
   - Parlamento: `dati.senato.it`, `dati.camera.it`;
-  - autorità: Garante privacy (`www.garanteprivacy.it`, `servizi.gpdp.it`), CONSOB (`www.consob.it`);
+  - autorità: Garante privacy (`www.garanteprivacy.it`, `servizi.gpdp.it`), CONSOB (`www.consob.it`), ANAC (`www.anticorruzione.it`);
   - Unione europea: EUR-Lex (`eur-lex.europa.eu`), Ufficio delle pubblicazioni (`publications.europa.eu`), VIES della Commissione (`ec.europa.eu`), TMview (`www.tmdn.org`);
   - fonte privata: Brocardi.it (`www.brocardi.it`), solo annotazioni e massime, mai il testo delle norme;
   - `verifica_dpa_fornitore`: il sito pubblico del fornitore indicato dall'utente (solo indirizzi pubblici, verificati prima della richiesta).
@@ -74,7 +74,7 @@ Controlla che la fonte sia stata letta, non che la risposta ne riporti correttam
 
 ## Cosa include
 
-### Server MCP (228 tool)
+### Server MCP (231 tool)
 
 Il plugin avvia automaticamente il server MCP locale — nessun server remoto richiesto. Al primo avvio crea un virtualenv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
 
@@ -91,6 +91,7 @@ Il plugin avvia automaticamente il server MCP locale — nessun server remoto ri
 | Iter parlamentare (DDL) | 3 | `cerca_ddl`, `iter_ddl`, `ddl_su_norma` |
 | Recepimento UE → Italia | 3 | `get_italian_implementation`, `get_eu_basis` |
 | Delibere CONSOB | 3 | `cerca_delibere_consob`, `leggi_delibera_consob` |
+| Atti ANAC | 3 | `cerca_atti_anac`, `leggi_atto_anac`, `ultimi_atti_anac` |
 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
 | Analisi fornitori (privacy) | 3 | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori` |
@@ -206,7 +207,7 @@ Calcola gli interessi di mora su un credito commerciale di 15.000 scaduto il 01/
 
 ## In English
 
-legal-it is a Claude Code plugin for Italian law: a local MCP server with 228 tools (statutes from Normattiva and EUR-Lex, case law from the Italian Supreme Court, administrative courts, Constitutional Court and CJEU, legal calculations, GDPR documents), 23 skills, 9 commands and 6 agents. The server runs on the user's machine through `uv run --frozen` with the versions pinned in `server/uv.lock`, sends no telemetry, and contacts only the public sources listed under «Rete e dati», with the parameters of each query.
+legal-it is a Claude Code plugin for Italian law: a local MCP server with 231 tools (statutes from Normattiva and EUR-Lex, case law from the Italian Supreme Court, administrative courts, Constitutional Court and CJEU, legal calculations, GDPR documents), 23 skills, 9 commands and 6 agents. The server runs on the user's machine through `uv run --frozen` with the versions pinned in `server/uv.lock`, sends no telemetry, and contacts only the public sources listed under «Rete e dati», with the parameters of each query.
 
 ## Licenza
 

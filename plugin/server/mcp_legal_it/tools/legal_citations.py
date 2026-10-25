@@ -97,9 +97,13 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
                          + (f", modifiche: {elenco}" if elenco else "") + ".\n")
         for avviso in avvisi_ue:
             parts.append(f"**Attenzione**: {avviso}.\n")
+        from mcp_legal_it.core.norme import avviso_non_in_vigore
         from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, versione_futura
 
-        if source.startswith("normattiva") and (futura := versione_futura(url)):
+        if article_result.get("not_in_force"):
+            # The later text, asked for (versione="futura"): never to be read as today's.
+            parts.append(f"**Attenzione**: {avviso_non_in_vigore(article_result['upcoming'])}.\n")
+        elif source.startswith("normattiva") and (futura := versione_futura(url)):
             # The undated page showed tomorrow's text: today's is below, and the reader is told.
             parts.append(f"**Attenzione**: {avviso_versione_futura(futura)}.\n")
         if article_result.get("allegato"):
@@ -141,8 +145,8 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown",
                          versione: str = "vigente") -> str:
     """Implementation of cite_law (testable without MCP wrapper)."""
-    if versione not in ("vigente", "originale"):
-        return f"**Errore**: versione '{versione}' non valida: attese 'vigente' o 'originale'"
+    if versione not in ("vigente", "originale", "futura"):
+        return f"**Errore**: versione '{versione}' non valida: attese 'vigente', 'originale' o 'futura'"
     if formato == "json":
         return json.dumps(await _cite_law_struct(reference, versione), ensure_ascii=False)
     article, act_name = _parse_reference(reference)
@@ -159,7 +163,12 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
         act_info = {**act_info, "versione": "originale"}
     nv = _build_nv(act_info, article)
 
-    article_result = await fetch_norma(nv)
+    if versione == "futura":
+        from mcp_legal_it.core.norme import _fetch_futura
+
+        article_result = await _fetch_futura(nv, None)
+    else:
+        article_result = await fetch_norma(nv)
 
     # An article the act does not have has nothing to annotate (and Brocardi would
     # only be searched page by page for it).
@@ -208,7 +217,7 @@ async def cite_law(
     reference: str,
     include_annotations: bool = False,
     formato: Literal["markdown", "json"] = "markdown",
-    versione: Literal["vigente", "originale"] = "vigente",
+    versione: Literal["vigente", "originale", "futura"] = "vigente",
 ) -> str:
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
@@ -257,8 +266,11 @@ async def cite_law(
                  testo, errore, data_consultazione, avvisi, upcoming. "avvisi" (lista, vuota se
                  nulla da dire) dice ciò che il lettore deve sapere del testo: per esempio che
                  Normattiva mostra senza data una versione futura e qui c'è quella in vigore
-                 oggi; "upcoming" è quella versione futura ({change: abrogated|amended,
-                 valid_from, version_number}) o null. "allegato" è il nome dell'allegato da cui
+                 oggi; "upcoming" è quella versione futura ({change: abrogated|amended|inserted,
+                 valid_from, version_number}) o null. "not_in_force" è true quando il
+                 testo è quello non ancora in vigore: con versione="futura", o per un
+                 articolo inserito da una data futura (nulla è in vigore oggi, "upcoming"
+                 con change inserted); l'avviso lo dice per primo. "allegato" è il nome dell'allegato da cui
                  proviene il testo ("Allegato I.7"), null se è il corpo dell'atto; per un
                  allegato "urn" è quello dell'atto. "urn" è l'estremo URN Normattiva quando la
                  fonte è Normattiva, altrimenti null; se l'atto è citato con il solo anno
@@ -274,6 +286,9 @@ async def cite_law(
                   UE è il testo pubblicato in GUUE, l'unico che fa fede; per un atto italiano
                   è la versione originaria di Normattiva (un atto citato con il solo anno
                   di cui non si legge la data completa non ha versione originale).
+                  Oppure "futura" (solo atti su Normattiva): il testo già pubblicato e non
+                  ancora in vigore, dichiarato come tale ("not_in_force", avviso con la data
+                  di entrata in vigore); errore se non ce n'è.
     """
     return await _cite_law_impl(reference, include_annotations, formato, versione)
 
@@ -827,6 +842,13 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
 
     fonte = f"{data['fonte'].title()} — {data['url']}" if data["fonte"] else ""
 
+    if data.get("not_in_force"):
+        # The text found is a later one (an article inserted from a later day): it exists, but
+        # is not law today, and a citation of it as such is not verified.
+        dal = (data.get("upcoming") or {}).get("valid_from") or "?"
+        nota = f"L'articolo non è ancora in vigore: entra in vigore il {dal}."
+        return "non in vigore", nota + (f" Fonte: {fonte}" if fonte else "")
+
     if _norma_misquote(reference, data["testo"]):
         nota = "Comma/lettera citato non riscontrato nel testo dell'articolo."
         if fonte:
@@ -1056,6 +1078,8 @@ async def verifica_citazioni(
         nell'atto citato (Normattiva risponde a un numero inesistente con un altro articolo)
       - **non trovata** — l'atto/articolo non è reperibile
       - **metadati discordanti** — la fonte esiste ma sezione/comma/lettera non coincidono
+      - **non in vigore** — per una norma, l'articolo è pubblicato ma entra in vigore in una
+        data futura (la nota la indica): oggi non è diritto vigente
       - **non verificabile** — sentenza anteriore all'inizio dell'archivio Italgiure (finestra
         mobile: nel 2026 parte dal 2021, letta dall'archivio stesso) o non trovata nel primo
         anno, coperto solo in parte: non si può stabilire se esista

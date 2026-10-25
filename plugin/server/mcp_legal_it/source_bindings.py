@@ -13,6 +13,7 @@ Regenerate with `python scripts/audit_tool_annotations.py --write`.
 """
 
 TOOL_SOURCES: dict[str, tuple[str, ...]] = {
+    "cerca_atti_anac": ("anac",),
     "cerca_brocardi": ("brocardi", "italgiure"),
     "cerca_ddl": ("parlamento_senato",),
     "cerca_delibere_consob": ("consob",),
@@ -41,6 +42,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "giurisprudenza_cgue_su_norma": ("cgue",),
     "giurisprudenza_su_norma": ("italgiure",),
     "iter_ddl": ("parlamento_camera", "parlamento_senato"),
+    "leggi_atto_anac": ("anac",),
     "leggi_atto_gazzetta": ("gazzetta",),
     "leggi_delibera_consob": ("consob",),
     "leggi_marchio": ("tmview",),
@@ -61,6 +63,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "ultime_pronunce_cost": ("corte_cost",),
     "ultime_sentenze_cgue": ("cgue",),
     "ultime_sentenze_tributarie": ("cerdef",),
+    "ultimi_atti_anac": ("anac",),
     "ultimi_provvedimenti_amm": ("giustizia_amm",),
     "ultimi_provvedimenti_garante": ("gpdp",),
     "verifica_anteriorita_marchio": ("tmview",),

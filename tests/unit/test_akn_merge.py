@@ -325,28 +325,39 @@ class TestPositionalAllegato:
         "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
         "approvazione del Regolamento per l'esecuzione del Codice della navigazione (Navigazione marittima)",
     ])
-    def test_codes_fixed_on_21_10_carry_their_part_in_the_urn_only(self, codice):
-        # VisuaLex files these norms without an allegato: a "1" would change their key.
+    def test_codes_approved_as_an_annex_are_keyed_by_it(self, codice):
+        # As VisuaLex since 4aa59a9d: like the c.c. and the c.p., the norm carries its annex.
         nd = api.riferimento_da_parametri(codice, "3").norma_data[0]
-        assert ":1~art3" in nd.urn and nd.allegato is None
+        assert ":1~art3" in nd.urn and nd.allegato == "1"
 
-    @pytest.mark.parametrize("riferimento,suffisso", [
-        ("art. 3 c.p.m.p.", ";303:1~art3"),
-        ("art. 3 c.p.m.g.", ";303:2~art3"),
+    @pytest.mark.parametrize("riferimento,suffisso,allegato", [
+        ("art. 3 c.p.m.p.", ";303:1~art3", "1"),
+        ("art. 3 c.p.m.g.", ";303:2~art3", "2"),
     ])
-    def test_military_codes_carry_their_part_in_the_urn_only(self, riferimento, suffisso):
-        # Not in VisuaLex's table: no saved norm of its has an allegato for them.
+    def test_military_codes_are_keyed_by_their_annex(self, riferimento, suffisso, allegato):
+        # The peace code is annex 1 of r.d. 303/1941, the war code annex 2 (VisuaLex's G-350 test).
         nd = api.leggi_riferimento(riferimento).norma_data[0]
-        assert nd.urn.endswith(suffisso) and nd.allegato is None
+        assert nd.urn.endswith(suffisso) and nd.allegato == allegato
 
-    @pytest.mark.parametrize("riferimento,suffisso", [
-        ("art. 3 d.p.r. 448/1988", ";448:1~art3"),
-        ("art. 3 r.d. 773/1931", ";773:1~art3"),
-        ("art. 3 d.lgs. 346/1990", ";346:1~art3"),
-    ])
-    def test_acts_with_their_articles_in_an_annex_carry_no_allegato(self, riferimento, suffisso):
-        nd = api.leggi_riferimento(riferimento).norma_data[0]
-        assert nd.urn.endswith(suffisso) and nd.allegato is None
+    def test_the_tulps_is_keyed_by_its_annex(self):
+        # As VisuaLex since 4aa59a9d (its ANNEXED_ACTS): r.d. 773/1931's text is its annex 1.
+        nd = api.leggi_riferimento("art. 3 r.d. 773/1931").norma_data[0]
+        assert nd.urn.endswith(";773:1~art3") and nd.allegato == "1"
+
+    def test_the_cpp_minorile_is_keyed_by_its_annex(self):
+        # Without «:1» art. 1 is the approving decree's; the code's articles are annex 1's
+        # (confirmed with VisuaLex, which adds the act to its ANNEXED_ACTS).
+        nd = api.leggi_riferimento("art. 3 d.p.r. 448/1988").norma_data[0]
+        assert nd.urn.endswith(";448:1~art3") and nd.allegato == "1"
+
+    def test_the_tu_successioni_is_keyed_by_its_annex(self):
+        nd = api.leggi_riferimento("art. 3 d.lgs. 346/1990").norma_data[0]
+        assert nd.urn.endswith(";346:1~art3") and nd.allegato == "1"
+
+    def test_visualex_s_annexed_acts_are_all_in_ours(self):
+        from mcp_legal_it.lib.visualex.map import ANNEXED_ACTS, ARTICOLATO_IN_ALLEGATO
+
+        assert ANNEXED_ACTS.items() <= ARTICOLATO_IN_ALLEGATO.items()
 
     def test_a_positional_allegato_never_doubles_the_default_part(self):
         nd = api.riferimento_da_parametri("decreto del presidente della repubblica", "3",

@@ -114,6 +114,8 @@ async def _cite_law_lookup(reference: str, *, canale: str = "html",
 
     if versione == "originale":
         act_info = {**act_info, "versione": "originale"}
+    elif versione == "futura":
+        act_info = {**act_info, "futura": True}
     return await _lookup_visitata(base, _build_nv(act_info, article), act_info, canale=canale)
 
 
@@ -127,6 +129,8 @@ def _lookup_base(reference: str) -> dict:
         # What the reader must know about the text (the coming version Normattiva showed
         # without a date, the export's text, an unread window) and VisuaLex's "upcoming".
         "avvisi": [], "upcoming": None,
+        # VisuaLex's not_in_force: the text is the later one, asked for (versione="futura").
+        "not_in_force": False,
         # An EU act's text: the consolidation read ({celex, data, modificato_da}, None for the
         # Official Journal text), and whether CELLAR was asked (False: it could not say).
         "consolidato": None, "consolidato_verificato": None,
@@ -152,7 +156,11 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         "numero_atto": act_info.get("numero_atto", ""),
         "descrizione": str(nv.norma),
     }
-    result = await fetch_norma(nv, canale=canale)
+    if act_info.get("futura"):
+        # The text not in force yet, asked for explicitly (api._norme, versione="futura").
+        result = await _fetch_futura(nv, act_info.get("futura_entro"))
+    else:
+        result = await fetch_norma(nv, canale=canale)
     base["url"] = result.get("url", "") or nv.url()
     base["urn"] = _urn_from_url(base["url"])
     # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
@@ -174,7 +182,14 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         base["errore"] = result["error"]
     elif not base["testo"]:
         base["errore"] = "nessun testo trovato"
+    if result.get("not_in_force") and base["testo"]:
+        # A text not in force yet is judged as a text at the day it comes into force, never as
+        # the text in force: INDICATIVO, and said first.
+        base["not_in_force"] = True
+        act_info = futura_datata(act_info, result["upcoming"])
     q = qualita_testo(base, act_info, article)
+    if base.get("not_in_force"):
+        q = {**q, "precisione": "INDICATIVO", "avvisi": [avviso_non_in_vigore(result["upcoming"])] + q["avvisi"]}
     # An EU text's own notices (a consolidation not applicable yet, a day before the act
     # was in force) come from the lookup, after the notice of what the text is.
     base["avvisi"] = q["avvisi"] + (list(result.get("avvisi_ue") or []) if base["testo"] else [])
@@ -182,8 +197,35 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         # An article missing from the consolidation read: the outcome is «not found», and the
         # reader is told why and where the OJ text is.
         base["avvisi"].append(result["avviso_assenza"])
+    # The source's own ``upcoming``: an EU consolidation to come, or a later Normattiva text
+    # served (not_in_force).
     base["upcoming"] = q["upcoming"] or (result.get("upcoming") if base["testo"] else None)
     return base, result.get("esito")
+
+
+async def _fetch_futura(nv: NormaVisitata, entro: "str | None") -> dict:
+    """``fetch_article_futura`` with a failure turned into the scraper's error shape, never raised."""
+    from mcp_legal_it.lib.visualex.scraper import fetch_article_futura
+
+    try:
+        return await fetch_article_futura(nv, entro)
+    except Exception as e:
+        return _failed_fetch(nv, e)
+
+
+def futura_datata(act_info: dict, upcoming: dict) -> dict:
+    """*act_info* of a text not in force yet, dated to the day it comes into force (as VisuaLex's
+    ``norma_data``: ``versione`` "vigente", ``data_versione`` that day)."""
+    info = {k: v for k, v in act_info.items() if k not in ("futura", "futura_entro")}
+    return {**info, "versione": "vigente", "data_versione": upcoming["valid_from"]}
+
+
+def avviso_non_in_vigore(upcoming: dict) -> str:
+    """The first notice of a text not in force yet."""
+    cambio = {"inserted": "inserito", "abrogated": "abrogato", "amended": "modificato"}.get(upcoming.get("change") or "")
+    return (f"testo non ancora in vigore: entra in vigore il {upcoming['valid_from']}"
+            + (f" (articolo {cambio} da quella data)" if cambio else "")
+            + "; non è il testo vigente oggi")
 
 
 def non_ancora_vigente(validita: dict, data_rich: "str | None") -> str:

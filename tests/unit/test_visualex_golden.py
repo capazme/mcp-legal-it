@@ -20,8 +20,8 @@ import pytest
 from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata
 
 GOLDEN = Path(__file__).resolve().parents[1] / "fixtures" / "visualex" / "golden.json"
-#: VisuaLexAPI conventions/sources/golden.json read at eca698dc (last changed in 65ee1aa7).
-GOLDEN_SHA256 = "b05e9c511751b39ab7107e98b8c6b98073041e57a5e9ba35c32d7ba93eda288e"
+#: VisuaLexAPI conventions/sources/golden.json read at 4aa59a9d (first at eca698dc).
+GOLDEN_SHA256 = "4f0854a4572e36f80e046aeeb1af82379b9d4e273446fe8b33435c1cdeeb933f"
 
 #: Norm ids whose identity mcp-legal-it does not build yet, and why.
 LACUNE = {
@@ -35,9 +35,8 @@ LACUNE = {
 
 #: Norm ids where the golden file is behind mcp-legal-it, checked live: VisuaLex aligns its
 #: table first (its saved norms are keyed on norma_key, not on the URN), then the golden.
-DIVERGENZE = {
-    "rd-773-1931-86": ("TULPS: its articles are an annex of r.d. 773/1931, ;773~art86 serves the "
-                       "decree's own text; ;773:1 checked live on 21/10/2026 (ARTICOLATO_IN_ALLEGATO)"),
+DIVERGENZE: dict[str, str] = {
+    # rd-773-1931-86 (the TULPS as r.d. 773/1931's annex 1, ;773:1) closed at 4aa59a9d.
 }
 
 

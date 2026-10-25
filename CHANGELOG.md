@@ -23,6 +23,21 @@ entry, it is the same feature as ported to the 3.0 line.
   is `15-bis`), and a heading an amending act quotes is not one of its articles.
   The new `api.considerando(atto)` gives every recital, VisuaLex's
   `/fetch_recitals`: `{number, text}` from the Official Journal page.
+- **ANAC acts** (#51): `cerca_atti_anac`, `leggi_atto_anac` and
+  `ultimi_atti_anac` search the acts of the Autorità Nazionale Anticorruzione
+  (delibere, pareri di precontenzioso and sulla normativa, linee guida, bandi
+  tipo, comunicati del Presidente, regolamenti…) on www.anticorruzione.it's
+  public «Consulta i documenti» search, newest first, by type and year (the
+  portal's own «Anno» filter). An act is read by the reference the search
+  returns or by type, number and year (the number searched within the type
+  and the year: one result for delibera 444/2025): its
+  particulars (year, topic, category, type, recipients), subject, «Riferimenti
+  normativi», «Parole chiave» and the link to the official PDF. The full text is
+  published only in that PDF and is not extracted. A page the client cannot
+  read is an error, never «no results». New host `www.anticorruzione.it`
+  (robots.txt allows every agent); the open-data portal refuses automated
+  requests and is not used. New authority tag `anac`, in the `normativa`
+  profile.
 - **EU consolidated versions** (`api`): `riferimento_da_parametri(...,
   celex_consolidated="02002L0058-20091219")` and `NormaDati.celex_consolidated`
   (VisuaLex's key, last in the dataclass) ask for the text of an EU regulation or
@@ -31,6 +46,23 @@ entry, it is the same feature as ported to the 3.0 line.
   the consolidated page: no «▼M2» markers, one line per lettered point, «14 bis»
   found in either spelling. A recital or an annex of a consolidation is
   `non_supportata` (a consolidated text has no preamble: its «(N)» are footnotes).
+- **The text not in force yet** (`api`, `cite_law`; VisuaLex's `upcoming: true`).
+  `versione="futura"` asks for the text Normattiva has published and not in force
+  yet: the undated page, with `not_in_force=True` (a new `TestoArticolo` field, and a
+  `cite_law` JSON key always present), `precisione` `INDICATIVO`, a first `avviso`
+  with the day it comes into force, `upcoming` describing it (`inserted`,
+  `amended` or `abrogated`; `None` when today's page cannot be read), and
+  `norma_data` dated to that day, so it never reads as the text in force. An
+  optional `data_versione` after today is the latest day it may start. None
+  published, or none by that day, is `articolo_non_trovato`; an unreadable
+  validity is `verifica_non_disponibile`. Normattiva acts only; an annex is
+  `non_supportata`.
+- **An article inserted from a later day** (nothing of it in force today) is
+  served as VisuaLex serves it: its later text, `not_in_force`, `INDICATIVO`,
+  `upcoming` `{change: "inserted", …}` and a first `avviso` that it is not in
+  force yet, instead of «testo non leggibile» after a needless export request.
+  `verifica_citazioni` gives it the verdict «non in vigore», with the day it comes
+  into force, never «verificata».
 - **The text of an article at a date, and the original text** (`api`).
   `riferimento_da_parametri(..., data_versione="2010-01-01")` (or «1 gennaio
   2010») and a `NormaDati` with `data_versione` ask for the text in force on that
@@ -39,9 +71,9 @@ entry, it is the same feature as ported to the 3.0 line.
   (`@originale`), never the export. An article that did not exist yet on that day
   is `articolo_non_trovato`; a version of a year-only act whose full date could
   not be read is `verifica_non_disponibile`, never today's text. A date always
-  means the text in force on that date, with or without `versione="vigente"`:
-  VisuaLex reads the date only with `"vigente"` and otherwise serves today's text
-  under the date asked for, until its PR #276 (the same rule) lands. A future date, a date with `"originale"` or another
+  means the text in force on that date, with or without `versione="vigente"`, as
+  VisuaLex does since `4aa59a9d` (before, it served today's text under the date
+  asked for when the date came without `"vigente"`). A future date, a date with `"originale"` or another
   `versione` is `riferimento_non_valido`; a version of an EU act or of an annex,
   and the whole act, its index or its tree at a date, are `non_supportata`. A
   page whose window misses the date is `INDICATIVO`, with an `avviso`
@@ -524,6 +556,11 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **The installer configures a local server only.** `install.py` no longer
+  offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
+  interactive question are gone): it pointed at a personal tunnel address
+  written in the code. The plugin always runs the server on the user's
+  machine; a test keeps remote endpoints out of the installer.
 - **`indennita_licenziamento` returns the range, not an amount** (#76). After
   C.Cost. 194/2018 struck the words «di importo pari a due mensilità … per ogni
   anno di servizio» from art. 3 co. 1 d.lgs. 23/2015, the amount is set by the
@@ -564,6 +601,19 @@ entry, it is the same feature as ported to the 3.0 line.
   3.11. `requires-python`, the two manifests, `install.py`, the CI matrix
   (3.11 and 3.12 × FastMCP 3 and 4) and the docs say so; the package declares
   its Python classifiers. The plugin and the Docker image already run 3.12.
+- **VisuaLex's validity reader and codes table re-pinned to `4aa59a9d`** (its PRs
+  #274, #276, #277, #279). `normattiva_validity` gains the later-text helpers and
+  compares the page's article label as the tree does («135 sex decies» is
+  «135-sexdecies»), and an unreadable date is refused before any request. The
+  codes approved as an annex of their decree (codice del turismo, norme di
+  attuazione del c.p.p., navigazione marittima, codici penali militari) and the
+  acts whose articles are their annex 1 (TULPS, c.p.p. minorile, TU successioni;
+  VisuaLex's `ANNEXED_ACTS`) are filed in `norma_data` with their part
+  (`allegato` `"1"`, `"2"` for the codice penale militare di guerra), as VisuaLex
+  files them now; the provisional `allegato=None` for them is gone. The
+  divergences the 3.0 line kept until VisuaLex followed (a date always the text
+  in force on it; the text in force today when the undated page is a later one)
+  are closed. VisuaLex's sources golden and its validity tests are re-pinned.
 - **VisuaLex's parser, suffix table and tree reader re-pinned to `0f1477c2`.**
   The Akoma Ntoso parser takes VisuaLex's linear patterns, the rubriche an
   amendment wrote without brackets and `comparable_article_key`: a suffix
@@ -702,7 +752,28 @@ entry, it is the same feature as ported to the 3.0 line.
   clause (`dati_applicati` with their vintage, `mcp-legal-it/fonti_consultate`
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
+### Security
+- **fastmcp 3.4.11 in the plugin's lock** (was 3.4.9): GHSA-7xgj-8392-5q4r,
+  «post-transform component authorization is skipped on direct calls»
+  (medium, published 2026-10-23, fixed in 3.4.10). Same major; the declared range
+  `fastmcp>=3.4,<5` is unchanged.
+
 ### Fixed
+- **An unknown `LEGAL_PROFILE` refuses to start; `calcoli` exists** (#76). A
+  name that is not a profile fell back to `full` in silence: asking for the
+  offline `calcoli` profile (documented in 2.x, never defined) exposed every
+  tool, the online ones included. The server now stops with an error listing the
+  valid profiles (the console script prints it without a traceback), and
+  `calcoli` exposes the 144 calculators and diagnostics, none of which goes
+  online (a test checks the policy's sources and open-world hints). A blank
+  value is still `full`.
+- **The server starts on Windows without `PYTHONUTF8`** (#76). Thirty reads and
+  writes of text files (the bundled JSON tables, the Brocardi cache, the
+  `legal://` resources) named no encoding, so Python used the locale's: cp1252 on
+  Windows, where the server failed at start with a `UnicodeDecodeError`. Every one
+  says `encoding="utf-8"` now; a test scans the package for text I/O without an
+  encoding and another imports the server with `-X warn_default_encoding`, so the
+  mistake cannot come back.
 - **Installing from git works on Windows** (#76). The 2.x root held `src` as a
   symlink to the package: on Windows, without `core.symlinks`, git checks it
   out as a text file and `pip install git+https://…` built a wheel with no code.

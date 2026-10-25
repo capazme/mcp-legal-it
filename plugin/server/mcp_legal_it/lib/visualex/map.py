@@ -72,6 +72,23 @@ _ALLEGATO_PER_ATTO = {
 }
 
 
+# From VisuaLex's table (tools/map.py at 4aa59a9d), unchanged: the acts whose text is an annex of the
+# decree and that VisuaLex keys by that annex, like a code by its default one. Only the TULPS at that
+# commit; VisuaLex adds the c.p.p. minorile and the TU successioni. norma_data takes its allegato from
+# ARTICOLATO_IN_ALLEGATO above, which already has all three (test_akn_merge checks this one is inside it).
+ANNEXED_ACTS = {
+    "regio.decreto:1931-06-18;773": "1",
+}
+
+
+def act_default_annex(act: str) -> "str | None":
+    """The annex that is the act's text, for an act URN such as
+    «regio.decreto:1931-06-18;773» (with or without «urn:nir:stato:» or the resolver
+    before it), or None."""
+    tail = (act or "").split("urn:nir:stato:")[-1].split("~")[0].strip().lower()
+    return ANNEXED_ACTS.get(tail)
+
+
 def articolato_in_allegato(act_urn: str, date: str, numero: str) -> "str | None":
     """The annex holding the articles of this act, if any. Type, year and number identify it:
     a citation with the year only ("D.P.R. 448/1988") carries a placeholder day and month."""

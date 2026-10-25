@@ -1,4 +1,4 @@
-"""MCP Legal IT — 228 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, document generation."""
+"""MCP Legal IT — 231 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, ANAC, document generation."""
 
 import asyncio
 import os
@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware
 
+from mcp_legal_it._profilo import profilo_richiesto
 from mcp_legal_it.cli_version import package_version
 
 mcp = FastMCP(
@@ -37,6 +38,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - GARANTE PRIVACY: provvedimenti GPDP, ricerca sanzioni, linee guida
 - GDPR/PRIVACY COMPLIANCE: informative privacy (art. 13-14), cookie policy, DPA (art. 28), registro trattamenti (art. 30), DPIA (art. 35), data breach (art. 33-34), sanzioni (art. 83), base giuridica (art. 6), analisi mastrino fornitori (verifica_partita_iva_vies per VIES, genera_report_fornitori per l'Excel standard)
 - CONSOB: delibere, provvedimenti, regolamenti mercati finanziari, intermediari, abusi di mercato
+- ANAC: cerca_atti_anac, leggi_atto_anac, ultimi_atti_anac — delibere, pareri di precontenzioso e sulla normativa, linee guida, bandi tipo (contratti pubblici, anticorruzione, trasparenza)
 - GIUSTIZIA AMMINISTRATIVA: sentenze TAR, Consiglio di Stato, appalti, urbanistica, PA, edilizia, accesso atti
 - GIURISPRUDENZA UE: sentenze CGUE, Corte di Giustizia UE, Tribunale UE, rinvio pregiudiziale, conclusioni AG, ECLI
 - ATTUAZIONE UE→IT: get_italian_implementation()/elenco_misure_nazionali() per le misure nazionali di recepimento di una direttiva, get_eu_basis() per la base UE di un atto italiano (CELLAR/SPARQL)
@@ -63,6 +65,7 @@ Analisi fornitori → verifica_partita_iva_vies → verifica_dpa_fornitore (domi
 Marchi → cerca_marchi | verifica_anteriorita_marchio(nome, classi) → leggi_marchio(st13)
 Data Breach → valutazione_data_breach → genera_notifica_data_breach → calcolo_sanzione_gdpr
 CONSOB → cerca_delibere_consob → leggi_delibera_consob
+Contratti pubblici/ANAC → cerca_atti_anac(query, tipologia) → leggi_atto_anac(riferimento) → cite_law
 Tributario → cerca_giurisprudenza_tributaria → cerdef_leggi_provvedimento → cite_law
 Amministrativo → cerca_giurisprudenza_amministrativa → leggi_provvedimento_amm → cite_law
 Diritto UE → cerca_giurisprudenza_cgue → leggi_sentenza_cgue → cite_law
@@ -91,6 +94,7 @@ from mcp_legal_it.tools import (  # noqa: E402, F401
     italgiure,
     gpdp,
     consob,
+    anac,
     cerdef,
     giustizia_amm,
     cgue,
@@ -148,9 +152,12 @@ _TABLES_WRAPPED = apply_table_ledger(
 # a profile names kinds (normativa, giurisprudenza, autorita, diagnostica) and
 # areas, never a single tool, so a new tool lands in the right profiles by its tags.
 # Every profile carries `diagnostica`, so stato_server and the data report answer
-# whatever surface was chosen.
+# whatever surface was chosen. An unknown LEGAL_PROFILE refuses to start (_profilo.py).
 # ---------------------------------------------------------------------------
 _PROFILES: dict[str, set[str]] = {
+    # Offline only: every `calcolo` tool answers from its inputs and the bundled tables,
+    # and the diagnostics read the server itself (test_profiles checks no source is online).
+    "calcoli": {"calcolo", "diagnostica"},
     "sinistro": {"danni", "rivalutazione", "interessi", "normativa", "giurisprudenza", "sinistro", "diagnostica"},
     "credito": {"interessi", "rivalutazione", "parcelle_avv", "normativa", "giurisprudenza", "credito", "diagnostica"},
     "penale": {"penale", "normativa", "giurisprudenza", "diagnostica"},
@@ -164,8 +171,8 @@ _PROFILES: dict[str, set[str]] = {
 
 _PROMPTS_AND_RESOURCES = {"prompt", "resource", "template"}
 
-_profile = os.environ.get("LEGAL_PROFILE", "full")
-if _profile != "full" and _profile in _PROFILES:
+_profile = profilo_richiesto(_PROFILES)
+if _profile != "full":
     # FastMCP 3 replaced the `include_tags` attribute with a visibility transform:
     # `only=True` disables every component whose tags do not intersect the
     # profile; prompts and resources carry no tags, so the second transform
