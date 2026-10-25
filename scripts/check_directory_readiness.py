@@ -56,7 +56,7 @@ SECRET = re.compile(
 #: Holds the directory raises by design and that this plugin cannot avoid.
 ACCEPTED_HOLDS = {
     "uv-run-frozen": (
-        "the local MCP server and the hook start through `uv run --frozen`: "
+        "the local MCP server starts through `uv run --frozen`: "
         "the directory always holds a launcher that installs packages, even "
         "pinned ones (\"Runs a pinned npx or uvx package\"). A Python server "
         "with compiled dependencies cannot ship without one (accepted by the owner)"
@@ -213,7 +213,9 @@ def check_command(where: str, command: str, args: list[str], report: Report,
     if command in ("bash", "sh", "zsh", "cmd", "powershell", "pwsh"):
         report.hold(f"{where}: starts through a shell")
     if command == "uv" and args[:1] == ["run"]:
-        if "--frozen" not in args and "--locked" not in args:
+        if "--no-project" in args and not any(a.startswith("--with") for a in args):
+            pass  # a bare interpreter: nothing is resolved or installed
+        elif "--frozen" not in args and "--locked" not in args:
             report.block(f"{where}: `uv run` without --frozen or --locked")
         else:
             report.accept("uv-run-frozen")
