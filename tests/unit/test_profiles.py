@@ -51,5 +51,47 @@ def test_profile_narrows_tools_and_keeps_prompts_and_resources(profile, must_hav
     assert narrowed["resources"] == full["resources"] == 15
 
 
-def test_unknown_profile_falls_back_to_the_full_surface(tmp_path):
-    assert len(_surface("nonexistent", tmp_path)["tools"]) == 231
+@pytest.mark.parametrize("profile", ["nonexistent", "calcolo", "Calcoli"])
+def test_an_unknown_profile_refuses_to_start(profile, tmp_path):
+    # #76: it used to fall back to `full` in silence, exposing the online tools a reduced
+    # profile was asked to leave out.
+    env = {"LEGAL_PROFILE": profile, "PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "LEGAL_CACHE": "off"}
+    out = subprocess.run([sys.executable, "-c", SNIPPET], cwd=REPO, env=env, capture_output=True, text=True)
+    assert out.returncode != 0
+    assert f"LEGAL_PROFILE={profile!r} non è un profilo" in out.stderr
+    assert "calcoli" in out.stderr  # the valid names are listed
+
+
+def test_the_console_script_prints_the_refusal_without_a_traceback(tmp_path):
+    env = {"LEGAL_PROFILE": "nonexistent", "PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "LEGAL_CACHE": "off",
+           "PYTHONPATH": str(REPO / "plugin" / "server")}
+    out = subprocess.run([sys.executable, "-m", "mcp_legal_it.cli"], cwd=tmp_path, env=env,
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 1
+    assert out.stderr.startswith("mcp-legal-it: LEGAL_PROFILE='nonexistent' non è un profilo")
+    assert "Traceback" not in out.stderr
+
+
+@pytest.mark.parametrize("profile", ["", "  "])
+def test_a_blank_profile_is_full(profile, tmp_path):
+    assert len(_surface(profile, tmp_path)["tools"]) == 231
+
+
+def test_the_calcoli_profile_never_goes_online(tmp_path):
+    # Documented as "solo calcoli, nessuna connessione": every tool it exposes is local.
+    from mcp_legal_it.source_bindings import TOOL_SOURCES
+    from mcp_legal_it.tool_annotations import OPEN_WORLD
+
+    tools = set(_surface("calcoli", tmp_path)["tools"])
+    assert len(tools) == 144
+    assert "interessi_legali" in tools and "stato_server" in tools
+    assert not tools & set(OPEN_WORLD)
+    assert not {name for name in tools if TOOL_SOURCES.get(name)}
+
+
+def test_anac_is_a_network_source_never_in_calcoli(tmp_path):
+    # ANAC goes online: it belongs to the source profiles (`normativa` takes every authority),
+    # never to the offline `calcoli`.
+    anac = {"cerca_atti_anac", "leggi_atto_anac", "ultimi_atti_anac"}
+    assert anac <= set(_surface("normativa", tmp_path)["tools"])
+    assert not anac & set(_surface("calcoli", tmp_path)["tools"])

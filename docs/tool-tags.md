@@ -105,6 +105,7 @@ etichette. Tutti includono `diagnostica`.
 | **studio** | scadenze, giudiziario, parcelle_avv, parcelle_prof, investimenti, lavoro, diagnostica | 76 |
 | **redattore** | atti, giudiziario, parcelle_avv, scadenze, normativa, diagnostica | 76 |
 | **cowork** | normativa, giurisprudenza, privacy, parcelle_avv, diagnostica | 77 |
+| **calcoli** | calcolo, diagnostica | 144 |
 
 Con `LEGAL_BROCARDI=off` ogni profilo che contiene `normativa` espone due tool in meno
 (`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 231 a 229.
