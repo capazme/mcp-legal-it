@@ -15,7 +15,7 @@ from ._api_surface import describe_surface
 
 EXPECTED = {
     'ARTICLE_SUFFIX_ALTERNATION': "str = 'quinquiesdecies|septiesdecies|quaterdecies|sexiesdecies|octiesdecies|noviesdecies|duodevicies|quindecies|undevicies|quinquies|duodecies|terdecies|sexdecies|undecies|septies|quater|sexies|octies|novies|decies|vicies|nonies|vices|semel|bis|ter'",
-    'AlberoAtto': 'dataclass(esito: EsitoNorma, articles: tuple[Any, ...] = ..., count: int = ..., metadata: dict[str, Any] = ..., url: str = ..., errore: str | None = ..., fonti: FontiConsultate | None = ...)',
+    'AlberoAtto': 'dataclass(esito: EsitoNorma, articles: tuple[Any, ...] = ..., count: int = ..., metadata: dict[str, Any] = ..., url: str = ..., errore: str | None = ..., fonti: FontiConsultate | None = ..., consolidato: dict[str, Any] | None = ..., consolidato_verificato: bool | None = ...)',
     'AnnotazioniBrocardi': "dataclass(esito: Literal['trovato', 'brocardi_disattivato', 'riferimento_non_valido', 'atto_non_riconosciuto', 'non_supportata', 'errore_fonte', 'testo_assente'], url: str = ..., ratio: str = ..., spiegazione: str = ..., brocardi: tuple[str, ...] = ..., massime: tuple[MassimaBrocardi, ...] = ..., errore: str | None = ..., fonti: FontiConsultate | None = ...)",
     'Attributi': 'dataclass(sezione: str | None = ..., tipo: str | None = ..., data_deposito: str | None = ..., data_decisione: str | None = ..., ecli: str | None = ..., relatore: str | None = ..., presidente: str | None = ..., materia: str | None = ..., estremi: str | None = ..., titolo: str | None = ...)',
     'Avviso': 'dataclass(tipo: str, dettagli: dict[str, Any] = ...)',
@@ -25,6 +25,7 @@ EXPECTED = {
     'ClientFactory': 'alias',
     'CodiceFonte': "Literal('cassazione', 'corte_costituzionale', 'curia', 'giustizia_amministrativa', 'cerdef')",
     'Configurazione': 'dataclass(client_factory: ClientFactory | None = ..., cache_dir: str | Path | None = ..., cache: bool | None = ..., brocardi: bool | None = ...)',
+    'ConsiderandiAtto': 'dataclass(esito: EsitoNorma, considerando: tuple[dict[str, str], ...] = ..., url: str = ..., errore: str | None = ..., fonti: FontiConsultate | None = ...)',
     'DecisioneTrovata': "dataclass(identita: Identita, attributi: Attributi, trovata: Literal['indice', 'testo'] = ..., frammento: Frammento | None = ...)",
     'EsitoDecisione': 'dataclass(esito: EsitoLettura, identita: Identita | None = ..., attributi: Attributi | None = ..., testo: TestoDecisione | None = ..., fonte: FonteDecisione | None = ..., avvisi: tuple[Avviso, ...] = ..., candidati: tuple[Candidato, ...] = ..., motivo: str | None = ..., archivio_dal: str | None = ..., errori: dict[str, str] = ..., testo_grezzo: TestoGrezzo | None = ..., errore: str | None = ..., fonti: FontiConsultate | None = ...)',
     'EsitoLettura': "Literal('trovata', 'ambigua', 'non_trovata', 'richiesta_non_valida', 'fonte_non_raggiungibile', 'errore_fonte', 'non_supportata')",
@@ -36,7 +37,7 @@ EXPECTED = {
     'FontiConsultate': 'dataclass(consultate_al: str, fonti: tuple[FonteConsultata, ...] = ...)',
     'Frammento': 'dataclass(testo: str, evidenziati: tuple[tuple[int, int], ...] = ...)',
     'Identita': 'dataclass(corte: str, numero: int | str | None, anno: int | None, archivio: str | None = ..., sede: str | None = ..., provvedimento: str | None = ..., chiave_fonte: str | dict[str, str] | None = ...)',
-    'IndiceAtto': 'dataclass(esito: EsitoNorma, title: str = ..., rubriche: dict[str, str] = ..., abrogati: tuple[str, ...] = ..., parts: tuple[dict[str, Any], ...] = ..., count: int = ..., voci: tuple[str, ...] = ..., codice_redazionale: str = ..., data_gu: str = ..., url: str = ..., errore: str | None = ..., fonti: FontiConsultate | None = ...)',
+    'IndiceAtto': 'dataclass(esito: EsitoNorma, title: str = ..., rubriche: dict[str, str] = ..., abrogati: tuple[str, ...] = ..., parts: tuple[dict[str, Any], ...] = ..., count: int = ..., voci: tuple[str, ...] = ..., codice_redazionale: str = ..., data_gu: str = ..., url: str = ..., errore: str | None = ..., fonti: FontiConsultate | None = ..., consolidato: dict[str, Any] | None = ..., consolidato_verificato: bool | None = ...)',
     'MassimaBrocardi': 'dataclass(autorita: str = ..., numero: str = ..., anno: str = ..., testo: str = ...)',
     'NormaDati': 'dataclass(tipo_atto: str, data: str, numero_atto: str, url: str, allegato: str | None, numero_articolo: str, versione: str = ..., data_versione: str | None = ..., urn: str | None = ..., descrizione: str = ..., data_risolta: bool = ..., celex_consolidated: str | None = ...)',
     'RicercaDecisioni': "dataclass(esito: EsitoRicerca, fonte: str = ..., totale: int | None = ..., pagina: int = ..., modo: Literal['indice', 'testo'] = ..., archivio: str | None = ..., archivio_dal: str | None = ..., decisioni: tuple[DecisioneTrovata, ...] = ..., anni: tuple[dict[str, int], ...] = ..., troncato: bool = ..., errori: dict[str, str] = ..., errore: str | None = ..., fonti: FontiConsultate | None = ...)",
@@ -61,6 +62,7 @@ EXPECTED = {
     'con_regole': "def(fonte: 'str', transport: 'httpx.AsyncBaseTransport') -> 'httpx.AsyncBaseTransport'",
     'configura': "def(*, client_factory: 'ClientFactory | None | _NonIndicato' = NON_INDICATO, cache_dir: 'str | Path | None | _NonIndicato' = NON_INDICATO, cache: 'bool | None | _NonIndicato' = NON_INDICATO, brocardi: 'bool | None | _NonIndicato' = NON_INDICATO) -> 'Configurazione'",
     'configurazione': "def(*, client_factory: 'ClientFactory | None | _NonIndicato' = NON_INDICATO, cache_dir: 'str | Path | None | _NonIndicato' = NON_INDICATO, cache: 'bool | None | _NonIndicato' = NON_INDICATO, brocardi: 'bool | None | _NonIndicato' = NON_INDICATO) -> 'Iterator[Configurazione]'",
+    'considerando': "async def(atto: 'str | NormaDati') -> 'ConsiderandiAtto'",
     'dove_altrove': "def(albero: 'AlberoAtto', articolo: 'str', allegato: 'str | None') -> 'str'",
     'giurisprudenza_su_articolo': "async def(riferimento: 'str', *, archivio: 'str | None' = None, pagina: 'int' = 1, per_pagina: 'int' = 20, anno_dal: 'int | None' = None, anno_al: 'int | None' = None, sezione: 'str | None' = None, solo_sezioni_unite: 'bool' = False) -> 'RicercaDecisioni'",
     'giurisprudenza_ue_su_articolo': "async def(riferimento: 'str', *, corte: 'str' = '', anno_dal: 'str' = '', max_risultati: 'int' = 10) -> 'RicercaDecisioni'",
