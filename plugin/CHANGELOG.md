@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that environment linked to an interpreter it could not reach, it deleted and
   rebuilt it under the running server. It now runs on uv's Python 3.12 with
   `--no-project`: the gate needs only the standard library.
+- `art. N legge fallimentare` (R.D. 267/1942) reads the law, which sits in
+  annex 1 of the approving decree. When the AKN export failed, the fallback
+  read the decree's own art. 1 as the law's art. 1 and answered «inesistente»
+  from art. 3 on.
 
 ## [2.17.1] - 2026-10-21
 
