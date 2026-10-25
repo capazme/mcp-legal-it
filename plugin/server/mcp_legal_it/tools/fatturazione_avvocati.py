@@ -10,14 +10,14 @@ from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "parametri_forensi.json") as f:
+with open(_DATA / "parametri_forensi.json", encoding="utf-8") as f:
     _PARAMETRI = json.load(f)
 
 #: Contributo unificato di cognizione, read from the shared table rather than
 #: copied here: a hand-kept copy does not age with the table, diverges from the
 #: answer of `contributo_unificato` without anything failing, and cannot report
 #: its own vintage to the reader.
-with open(_DATA / "contributo_unificato.json") as f:
+with open(_DATA / "contributo_unificato.json", encoding="utf-8") as f:
     _CU_CIVILE: list[dict] = json.load(f)["civile"]["cognizione"]
 
 def _q(x) -> float:
@@ -931,7 +931,7 @@ _NOTULA_PROCEDIMENTI = {
 
 #: Contributo unificato of the executions, art. 13 co. 2 DPR 115/2002 (43 below
 #: 2.500 euro, 139 from 2.500; 278 for the immobiliari), from the shared table.
-_CU_CIVILE_TUTTO: dict = json.loads((_DATA / "contributo_unificato.json").read_text())["civile"]
+_CU_CIVILE_TUTTO: dict = json.loads((_DATA / "contributo_unificato.json").read_text(encoding="utf-8"))["civile"]
 _CU_ESEC_MOBILIARE: list[dict] = _CU_CIVILE_TUTTO["esecuzione_mobiliare"]["scaglioni"]
 _CU_ESEC_IMMOBILIARE: float = float(_CU_CIVILE_TUTTO["esecuzione_immobiliare"])
 

@@ -3,7 +3,7 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 228.**
+**Totale tool: 231.**
 
 ---
 
@@ -43,6 +43,7 @@ descrizione di ogni tool.
 32. [Procure e quotazioni (recupero crediti)](#32-procure-e-quotazioni-recupero-crediti) — 2 tool
 33. [Iter parlamentare (DDL)](#33-iter-parlamentare-ddl) — 3 tool
 34. [Marchi (TMview)](#34-marchi-tmview) — 3 tool
+35. [Atti ANAC](#35-atti-anac) — 3 tool
 
 ---
 
@@ -675,7 +676,8 @@ descrizione di ogni tool.
 | 32 | Procure e quotazioni (recupero crediti) | 2 |
 | 33 | Iter parlamentare (DDL) | 3 |
 | 34 | Marchi (TMview) | 3 |
-| | **Totale** | **228** |
+| 35 | Atti ANAC | 3 |
+| | **Totale** | **231** |
 
 ---
 
@@ -736,5 +738,20 @@ prima dell'uso — non sono documenti legali pronti alla firma.
 | `cerca_marchi` | `cerca_marchi(query: str, uffici: str = '', classi_nizza: str = '', stato: str = '', max_risultati: int = 20)` | Cerca marchi registrati o depositati su TMview (UIBM, EUIPO, WIPO e uffici nazionali). |
 | `leggi_marchio` | `leggi_marchio(st13: str)` | Legge la scheda completa di un marchio da TMview tramite identificativo ST13. |
 | `verifica_anteriorita_marchio` | `verifica_anteriorita_marchio(nome: str, classi_nizza: str = '', uffici: str = '', max_risultati: int = 50)` | Verifica preliminare di anteriorità: marchi identici o simili a un nome, con classi di Nizza. |
+
+---
+
+## 35. Atti ANAC
+
+**Modulo:** `mcp_legal_it/tools/anac.py`
+**Tag:** `autorita`, `anac`
+**API esterne:** anticorruzione.it (Liferay, ricerca «Consulta i documenti»)
+**Note:** La scheda dell'atto riporta estremi, oggetto, riferimenti normativi, parole chiave e il link al PDF ufficiale; il testo integrale sta solo nel PDF e non viene estratto.
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_atti_anac` | `cerca_atti_anac(query: str, tipologia: str = '', max_risultati: int = 10, pagina: int = 1, anno: str = '')` | Cerca delibere, pareri, linee guida e altri atti dell'ANAC (Autorità Nazionale Anticorruzione). |
+| `leggi_atto_anac` | `leggi_atto_anac(riferimento: str = '', tipologia: str = '', numero: str = '', anno: str = '')` | Legge la scheda di un atto ANAC: estremi, oggetto, riferimenti normativi, parole chiave e PDF. |
+| `ultimi_atti_anac` | `ultimi_atti_anac(tipologia: str = '', max_risultati: int = 10)` | Ultimi atti pubblicati dall'ANAC, dal più recente, con filtro opzionale per tipologia. |
 
 ---

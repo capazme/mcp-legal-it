@@ -155,10 +155,15 @@ class TestoArticolo:
     # The act that repealed the article (or will), as the repeal notice names it, derived
     # automatically: {"abrogato_da": "...", "precisione": "INDICATIVO", "fonte": ..., "dal"?}.
     successione: dict[str, str] | None = None
-    # VisuaLex's ``upcoming``: the undated page served a version not in force yet, and the
-    # text above is today's. {"change": "abrogated" | "amended", "valid_from": "YYYY-MM-DD",
+    # VisuaLex's ``upcoming``: Normattiva has published a version not in force yet. Next to
+    # today's text when the undated page served it; next to «articolo_non_trovato» for an
+    # article inserted from a later day; describing the text itself with versione="futura".
+    # {"change": "abrogated" | "amended" | "inserted" | None, "valid_from": "YYYY-MM-DD",
     # "version_number": int | None}; None otherwise.
     upcoming: dict[str, Any] | None = None
+    # VisuaLex's ``not_in_force``: the text is the later one (versione="futura"), dated in
+    # norma_data to the day it comes into force, INDICATIVO; never the text in force.
+    not_in_force: bool = False
     # An EU act's text (issue #50): the consolidation read, {"celex", "data",
     # "modificato_da": [{"celex", "atto"}] or None when not looked up}, None for the
     # Official Journal text. consolidato_verificato: True when CELLAR was asked, False when

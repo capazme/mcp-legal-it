@@ -307,6 +307,8 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
         result = {"text": text, "url": url, "source": source, "data_atto": nv.norma.data}
         if not nv.numero_articolo:
             return result
+        if not text and (inserito := _esito_inserito(nv, url, result)):
+            return inserito
         return _checked_html_article(result, nv, served, act, part)
 
     result = {"text": text, "url": url, "source": source, **ue}
@@ -766,6 +768,92 @@ def versione_futura(url: str) -> "dict | None":
     return None
 
 
+def articolo_inserito(url: str) -> "dict | None":
+    """``{"upcoming", "testo", "url"}`` of an article inserted from a later day, else None (no request).
+
+    Inserted means: the undated page's window starts after today, and the page at today
+    (``!vig=``, already read by ``_di_oggi``) says «NON ANCORA ESISTENTE O VIGENTE».
+    """
+    from .normattiva_validity import starts_after_today, upcoming_change
+
+    base = url.split("!vig=", 1)[0]
+    rec = pagine_normattiva.leggi(base)
+    validita = (rec or {}).get("validita")
+    if not validita or not starts_after_today(validita, _clock.today()):
+        return None
+    oggi = pagine_normattiva.leggi(f"{base}!vig={_clock.today().isoformat()}")
+    if ((oggi or {}).get("validita") or {}).get("state") != "not_yet":
+        return None
+    return {"upcoming": upcoming_change(validita, inserted=True), "testo": rec.get("testo") or "", "url": base}
+
+
+def _esito_inserito(nv: NormaVisitata, url: str, result: dict) -> "dict | None":
+    """An article inserted from a later day, else None: as VisuaLex (G-358), the later text is
+    served, marked ``not_in_force``, with ``upcoming`` {change: "inserted"}; the request keeps
+    its key (no date)."""
+    inserito = articolo_inserito(url)
+    if inserito is None:
+        return None
+    return {**result, "text": inserito["testo"], "url": inserito["url"], "upcoming": inserito["upcoming"],
+            "not_in_force": True}
+
+
+async def fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) -> dict:
+    """The text of a Normattiva article not in force yet, asked for explicitly (VisuaLex G-357).
+
+    The undated page, when its window starts after today, marked ``not_in_force`` with
+    ``upcoming`` describing it; today's page (one request more) tells an article inserted
+    from that day from one changed by it (``change`` None when it cannot be read and the
+    change is not a repeal). *entro*, an ISO day after today: the later text must come into
+    force by then. None published, none by *entro*, or a page whose validity cannot be read
+    is the article's error, as in VisuaLex: nothing is claimed.
+    """
+    from .normattiva_validity import starts_after_today, upcoming_change
+
+    source = "normattiva"
+    if nv.norma._is_eurlex():
+        return {"text": "", "url": nv.norma.url(), "source": "eurlex",
+                "error": "versione 'futura' disponibile per gli atti su Normattiva"}
+    if split_annex(nv.numero_articolo):
+        # Refused before any request, as the api refuses it (the annex's page is not read so).
+        return {"text": "", "url": nv.norma.url(), "source": source,
+                "error": "la versione futura di un allegato non è ancora disponibile"}
+    full = await with_full_date(nv.norma)
+    if full is not nv.norma:
+        nv = dataclasses.replace(nv, norma=full)
+    url = nv.url()
+    base = {"text": "", "url": url, "source": source, "data_atto": nv.norma.data}
+    illeggibile = {**base, "esito": CHECK_UNAVAILABLE,
+                   "error": f"Non riesco a leggere la vigenza dell'art. {nv.numero_articolo} di {nv.norma} su Normattiva"}
+    if not url or not nv.numero_articolo:
+        return {**base, "error": "versione futura: indicare un articolo di un atto su Normattiva"}
+    try:
+        text, _served = await _normattiva_page(url, nv.numero_articolo)
+    except httpx.HTTPError:
+        return illeggibile
+    validita = (pagine_normattiva.leggi(url) or {}).get("validita")
+    if not text or not validita:
+        return illeggibile
+    if not starts_after_today(validita, _clock.today()):
+        return {**base, "esito": ARTICLE_NOT_FOUND,
+                "error": f"Nessuna versione non ancora in vigore per l'art. {nv.numero_articolo} di {nv.norma}"}
+    if entro and validita["valid_from"] > entro:
+        return {**base, "esito": ARTICLE_NOT_FOUND,
+                "error": (f"La versione non ancora in vigore dell'art. {nv.numero_articolo} di {nv.norma} "
+                          f"entra in vigore il {validita['valid_from']}")}
+    oggi_url = f"{url}!vig={_clock.today().isoformat()}"
+    try:
+        await _normattiva_page(oggi_url, nv.numero_articolo)
+    except httpx.HTTPError:
+        pass
+    oggi = (pagine_normattiva.leggi(oggi_url) or {}).get("validita")
+    upcoming = upcoming_change(validita, inserted=bool(oggi and oggi.get("state") == "not_yet"))
+    if oggi is None and upcoming["change"] == "amended":
+        # Today's page could not be read: an amendment cannot be told from an insertion.
+        upcoming["change"] = None
+    return {**base, "text": text, "not_in_force": True, "upcoming": upcoming}
+
+
 def _normattiva_article_page(html: str) -> "tuple[str, str | None]":
     """The article text of a Normattiva page and the number the page gives it (None if unsaid).
 
@@ -820,6 +908,8 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
         if errore_pagina is not None:
             raise errore_pagina
         return result
+    if not text and (inserito := _esito_inserito(nv, url, result)):
+        return inserito
     if text:
         got = _article_identity(served) if served is not None else None
         if requested is not None and got == requested:

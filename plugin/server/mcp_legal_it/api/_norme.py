@@ -77,37 +77,29 @@ _BROCARDI_SPENTO = (
 _ALLEGATO_URN = re.compile(r";[^;:~]+:(\w+)$")
 
 
-#: PROVISIONAL (depends on a decision open on VisuaLex's side, see docs/api.md §8).
-#: Codes whose URN gained its ":1" on 21/10/2026 (their articles sit in an annex of the
-#: approving decree; the row served the decree's own articles). VisuaLex's table still has
-#: them without it, so its saved norms carry no allegato: norma_data mirrors that, and the
-#: part is in the URN only. The three acts of ARTICOLATO_IN_ALLEGATO (c.p.p. minorile,
-#: TULPS, TU successioni) are not codes of the table and carry none either. Nor do the two
-#: military codes added on 21/10/2026 (di pace :1, di guerra :2): VisuaLex has no row for
-#: them, so no saved norm of its carries an allegato.
-_PARTE_SOLO_NELL_URN = frozenset({
-    "codice del turismo",
-    "codici penali militari di pace e di guerra",
-    "codice penale militare di pace",
-    "codice penale militare di guerra",
-    "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
-    "approvazione del regolamento per l'esecuzione del codice della navigazione (navigazione marittima)",
-})
-
-
 def _allegato_predefinito(tipo_atto: str) -> str | None:
     """The annex a code's URN points at ("2" for the c.c., "1" for c.p. and c.p.c.), else None.
 
     VisuaLex keys a saved norm on urn|allegato|article, so the annex is given even
-    when the citation does not name it — as VisuaLex gives it today, nothing more
-    (``_PARTE_SOLO_NELL_URN``).
+    when the citation does not name it, as VisuaLex gives it: since 4aa59a9d also for the
+    codes approved as a decree's annex (codice del turismo, norme di attuazione del c.p.p.,
+    regolamento della navigazione marittima, codici penali militari).
     """
     norm = normalize_act_type(tipo_atto or "").lower()
-    if norm in _PARTE_SOLO_NELL_URN:
-        return None
     urn = codice_urn(norm)
     m = _ALLEGATO_URN.search(urn or "")
     return m.group(1) if m else None
+
+
+def _allegato_dell_atto(info: dict) -> str | None:
+    """The annex an act cited by its own number is keyed by when its articles are that annex's
+    (``map.ARTICOLATO_IN_ALLEGATO``: c.p.p. minorile, TULPS, TU successioni), matched on type,
+    year and number; else None. VisuaLex keys them so in its ``ANNEXED_ACTS`` (the TULPS at
+    4aa59a9d; the other two are being added there, after its G-350)."""
+    from mcp_legal_it.lib.visualex.map import articolato_in_allegato
+
+    tipo = normalize_act_type(info.get("tipo_atto") or "").lower().replace(" ", ".")
+    return articolato_in_allegato(tipo, info.get("data") or "", str(info.get("numero_atto") or ""))
 
 
 def _normattiva(tipo_atto: str) -> bool:
@@ -176,7 +168,8 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
     elif annex:
         allegato, numero = annex
     else:
-        allegato = info.get("allegato") or _allegato_predefinito(info.get("tipo_atto", ""))
+        allegato = (info.get("allegato") or _allegato_predefinito(info.get("tipo_atto", ""))
+                    or _allegato_dell_atto(info))
         numero = article or ""
     data = info.get("data", "") or ""
     eu = nv.norma._is_eurlex()
@@ -192,8 +185,9 @@ def _norma_dati(act_info: dict, article: str, *, data_atto: str = "", url: str =
         url=url,
         allegato=allegato,
         numero_articolo=numero,
-        versione=info.get("versione") or "vigente",
-        data_versione=info.get("data_versione") or None,
+        # versione="futura" stays as asked, its data_versione the latest day it may start.
+        versione="futura" if info.get("futura") else info.get("versione") or "vigente",
+        data_versione=(info.get("futura_entro") if info.get("futura") else info.get("data_versione")) or None,
         urn=urn,
         celex_consolidated=info.get("celex_consolidated") or None,
         descrizione=str(nv.norma),
@@ -288,7 +282,7 @@ def riferimento_da_parametri(
         return EsitoRiferimento(esito="riferimento_non_valido", errore=_CONSOLIDATO_E_VERSIONE)
     article = _con_allegato(tipo_atto, allegato, numero_articolo)
     if letta and split_annex(article):
-        return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
+        return EsitoRiferimento(esito="non_supportata", errore=_allegato_non_servito(letta))
     if consolidato and (motivo := _non_nel_consolidato(article)):
         return EsitoRiferimento(esito="non_supportata", errore=motivo)
     act_info = {"tipo_atto": tipo_atto.strip(), "data": data or "", "numero_atto": numero_atto or ""}
@@ -309,22 +303,30 @@ def riferimento_da_parametri(
 _ALLEGATO_A_UNA_DATA = "il testo di un allegato a una data non è ancora disponibile"
 
 
+def _allegato_non_servito(letta: dict) -> str:
+    """Why an annex is not served in the version *letta* asks for."""
+    return ("la versione futura di un allegato non è ancora disponibile" if letta.get("futura")
+            else _ALLEGATO_A_UNA_DATA)
+
+
 def _versione(tipo_atto: str, versione: str | None, data_versione: str | None) -> dict | EsitoRiferimento:
     """``{"versione", "data_versione"}`` for a lookup ({} for today's text), or the refusal.
 
     A date always means "the text in force on that day" (``!vig=``), with or without
     ``versione="vigente"``. VisuaLex's ``generate_urn`` reads the date only together with
     "vigente", and a date sent without it gets today's text under the date asked for
-    (art. 1284 c.c. "at 2010-01-01" came back with the 4th and 5th commi of 2014). This
-    API does not follow it there until VisuaLex #276 lands, which adopts the same rule
-    (docs/api.md).
+    (art. 1284 c.c. "at 2010-01-01" came back with the 4th and 5th commi of 2014). Since
+    4aa59a9d VisuaLex follows the same rule (its #276). ``versione="futura"`` is the text
+    not in force yet (``_versione_futura``).
     """
     from mcp_legal_it.lib.visualex.normattiva_validity import _iso_day
 
     nome = (versione or "vigente").strip().lower()
-    if nome not in ("vigente", "originale"):
+    if nome not in ("vigente", "originale", "futura"):
         return EsitoRiferimento(esito="riferimento_non_valido",
-                                errore=f"versione '{versione}' non valida: attese 'vigente' o 'originale'")
+                                errore=f"versione '{versione}' non valida: attese 'vigente', 'originale' o 'futura'")
+    if nome == "futura":
+        return _versione_futura(tipo_atto, data_versione)
     if not data_versione and nome == "vigente":
         return {}
     if not _normattiva(tipo_atto) and normalize_act_type((tipo_atto or "").strip()).lower() not in (
@@ -349,6 +351,28 @@ def _versione(tipo_atto: str, versione: str | None, data_versione: str | None) -
     return {"versione": "vigente", "data_versione": giorno}
 
 
+def _versione_futura(tipo_atto: str, data_versione: str | None) -> dict | EsitoRiferimento:
+    """``versione="futura"``: the text Normattiva has published and not in force yet (VisuaLex's
+    ``upcoming: true``). *data_versione*, optional, is the latest day it may come into force:
+    after today, or the request is an ordinary dated one."""
+    from mcp_legal_it.lib.visualex.normattiva_validity import _iso_day
+
+    if not _normattiva(tipo_atto):
+        return EsitoRiferimento(esito="non_supportata",
+                                errore="versione 'futura' disponibile per gli atti su Normattiva")
+    if not data_versione:
+        return {"futura": True}
+    giorno = _iso_day(data_versione)
+    if giorno is None:
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore=f"data_versione '{data_versione}' non è una data (atteso AAAA-MM-GG)")
+    if giorno <= _clock.today().isoformat():
+        return EsitoRiferimento(esito="riferimento_non_valido",
+                                errore=("con versione 'futura' data_versione dev'essere successiva a oggi, o "
+                                        "assente: il testo in vigore fino a oggi è quello a una data"))
+    return {"futura": True, "futura_entro": giorno}
+
+
 def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
     """The lookup's act info and article for *norma*, or the refusal of its version."""
     letta = _versione(norma.tipo_atto, norma.versione, norma.data_versione)
@@ -361,7 +385,7 @@ def _act_info(norma: NormaDati) -> "tuple[dict, str] | EsitoRiferimento":
         return EsitoRiferimento(esito="riferimento_non_valido", errore=_CONSOLIDATO_E_VERSIONE)
     article = _con_allegato(norma.tipo_atto, norma.allegato, norma.numero_articolo)
     if letta and split_annex(article):
-        return EsitoRiferimento(esito="non_supportata", errore=_ALLEGATO_A_UNA_DATA)
+        return EsitoRiferimento(esito="non_supportata", errore=_allegato_non_servito(letta))
     if consolidato and (motivo := _non_nel_consolidato(article)):
         return EsitoRiferimento(esito="non_supportata", errore=motivo)
     info = {"tipo_atto": norma.tipo_atto, "data": norma.data, "numero_atto": norma.numero_atto}
@@ -472,10 +496,16 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
         act_info, article = letto
     with registra() as registro:
         base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
+        if base.get("not_in_force") and act_info.get("futura"):
+            # The later text asked for: dated to the day it comes into force, as VisuaLex's
+            # norma_data. An inserted article asked without a date keeps the request's key.
+            act_info = norme.futura_datata(act_info, base["upcoming"])
         nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
         validita, precisione, avvisi, successione, upcoming = _qualita(base, act_info, article)
         # The lookup already joined the source's own notices (an EU consolidation to come).
         avvisi, upcoming = tuple(base.get("avvisi") or avvisi), base.get("upcoming") or upcoming
+        if base.get("not_in_force"):
+            precisione = "INDICATIVO"
         if validita is not None and validita.state == "not_yet":
             # «NON ANCORA ESISTENTE O VIGENTE»: the article did not exist on the day asked
             # for. Its page's notice is not the article's text.
@@ -501,6 +531,7 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
             avvisi=avvisi,
             successione=successione,
             upcoming=upcoming,
+            not_in_force=bool(base.get("not_in_force")),
             consolidato=base.get("consolidato"),
             consolidato_verificato=base.get("consolidato_verificato"),
         )
