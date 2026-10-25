@@ -2,16 +2,21 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at 36ed6942: TestConsolidatedRubriche, TestEurlexTitle and
-# TestConsolidatedTree (TestTreeFailuresAreNotKept tests VisuaLex's Playwright cache, not imported).
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at b2f7a30f: TestConsolidatedRubriche, TestEurlexTitle,
+# TestConsolidatedTree, TestQuotedArticles, TestEliTitleOfTheItalianExpression, TestGluedHeading
+# and TestConsolidatedTitleFromTheFirstRun (TestTreeFailuresAreNotKept tests VisuaLex's
+# Playwright cache, not imported).
 # Generated (scratch gen_eurlex_tests.py): VisuaLex's assertions as they are; the extractor and
 # the tree reader are plain functions here, the fixtures are tests/fixtures/visualex/eurlex.
 """The EU tree, rubriche and title, as VisuaLex reads them (``eurlex_tree``)."""
 
+import re
 from pathlib import Path
 
+import pytest
 from bs4 import BeautifulSoup
 
+from mcp_legal_it.lib.visualex.eurlex_text import DocumentNotFoundError, extract_article_text
 from mcp_legal_it.lib.visualex.eurlex_tree import (
     _extract_eurlex_rubriche,
     _extract_eurlex_title,
@@ -169,3 +174,121 @@ class TestConsolidatedTree:
         numbers = [item["numero"] for item in result if isinstance(item, dict)]
         assert numbers == ["1", "2", "3", "4", "17"]
         assert "CAPO I" in result
+
+
+class TestQuotedArticles:
+    """An amending act's OJ page quotes, in table cells, the articles it replaces or inserts in
+    another act. Dir. 2009/136 has six articles; it quotes art. 21, 22, 23, 23 bis and 27 of dir.
+    2002/22 (and 14 bis, 15 bis of dir. 2002/58), which were listed in its index and served as
+    its own: art. 23 asked was art. 23 of dir. 2002/22."""
+
+    URL = "https://eur-lex.europa.eu/eli/dir/2009/136/oj/ita"
+
+    def test_the_index_lists_the_acts_own_articles_only(self):
+        result, count, metadata = _parse_eurlex_tree(soup_of("amending_dir_2009_136_trimmed.html"), self.URL)
+        assert [item["numero"] for item in result] == ["1", "2", "3", "4", "5", "6"]
+        assert count == 6
+        assert sorted(metadata["rubriche"], key=int) == ["1", "2", "3", "4", "5", "6"]
+        assert metadata["rubriche"]["6"] == "Destinatari"
+
+    @pytest.mark.parametrize("article", ["21", "22", "23", "27", "23 bis", "14 bis", "15 bis", "20", "37"])
+    def test_a_quoted_article_is_not_found(self, article):
+        with pytest.raises(DocumentNotFoundError):
+            extract_article_text(soup_of("amending_dir_2009_136_trimmed.html"), article)
+
+    @pytest.mark.parametrize("article,rubrica", [("1", "Modifiche alla direttiva 2002/22/CE (direttiva servizio universale)"),
+                                                 ("4", "Recepimento"), ("6", "Destinatari")])
+    def test_the_acts_own_articles_are_served(self, article, rubrica):
+        text = extract_article_text(soup_of("amending_dir_2009_136_trimmed.html"), article)
+        assert text.split("\n")[:2] == [f"Articolo\xa0{article}", rubrica]
+
+    @pytest.mark.parametrize("markup", ["oj-ti-art", "class-less", "eli-subdivision"])
+    def test_a_quoted_heading_before_the_acts_own_article_of_that_number(self, markup):
+        # Synthetic: art. 1 quotes, in a table cell and with no «, an «Articolo 3» of another
+        # act; the act's own art. 3 comes after it and is the one served and listed.
+        quoted = ('<table><tr><td><p class="oj-ti-art">Articolo 3</p>'
+                  '<p class="oj-normal">Testo citato di un altro atto.</p></td></tr></table>')
+        html = ('<html><body><p class="oj-ti-art">Articolo 1</p><p class="oj-normal">Modifiche.</p>' + quoted +
+                '<p class="oj-ti-art">Articolo 3</p><p class="oj-normal">Testo proprio dell\'articolo 3.</p></body></html>')
+        if markup == "class-less":
+            html = re.sub(r' class="[^"]*"', "", html)
+        elif markup == "eli-subdivision":
+            html = (re.sub(r' class="[^"]*"', "", html)
+                    .replace("<body>", '<body><div class="eli-subdivision">')
+                    .replace("<p>Articolo 3</p><p>Testo proprio", '</div><div class="eli-subdivision"><p>Articolo 3</p><p>Testo proprio'))
+        text = extract_article_text(BeautifulSoup(html, "html.parser"), "3")
+        assert text.split("\n")[:2] == ["Articolo 3", "Testo proprio dell'articolo 3."]
+        result, _, _ = _parse_eurlex_tree(BeautifulSoup(html, "html.parser"), self.URL)
+        assert [item["numero"] for item in result] == ["1", "3"]
+
+    def test_a_page_without_tables_keeps_every_article(self):
+        # The legacy ELI page of dir. 2002/58: class-less paragraphs, no table cells, no «.
+        result, count, _ = _parse_eurlex_tree(soup_of("eprivacy_eli_legacy_trimmed.html"),
+                                                    "https://eur-lex.europa.eu/eli/dir/2002/58/oj/ita")
+        assert [item["numero"] for item in result] == [str(n) for n in range(1, 22)]
+        text = extract_article_text(soup_of("eprivacy_eli_legacy_trimmed.html"), "15")
+        assert text.startswith("Articolo 15")
+
+    def test_the_index_reads_the_suffix(self):
+        # Synthetic page (fixtures/eurlex/README.md): «Articolo 15 bis» is article 15-bis, not 15.
+        result, _, metadata = _parse_eurlex_tree(soup_of("synthetic_oj_article_15_bis.html"), self.URL)
+        assert [item["numero"] for item in result] == ["14", "15-bis", "16"]
+        assert metadata["rubriche"]["15-bis"] == "Articolo inserito"
+        text = extract_article_text(soup_of("synthetic_oj_article_15_bis.html"), "15-bis")
+        assert text.startswith("Articolo\xa015\xa0bis")
+
+
+class TestEliTitleOfTheItalianExpression:
+    def test_the_italian_meta_of_another_resource_is_not_the_title(self):
+        soup = soup_of("eprivacy_eli_legacy_trimmed.html")
+        soup.find("meta", attrs={"property": "eli:title", "lang": "it"})["about"] = "http://data.europa.eu/eli/dir/2002/58/oj"
+        assert _extract_eurlex_title(soup) == ""
+
+
+class TestGluedHeading:
+    """A class-less page whose heading and text share an element reads «Articolo 15 bisTesto…»:
+    the ordinal glued to the text was not taken for one, and art. 15 asked was served art. 15 bis
+    (found by the mcp-legal-it review). Synthetic page (fixtures/eurlex/README.md)."""
+
+    def test_art_15_is_not_found(self):
+        with pytest.raises(DocumentNotFoundError):
+            extract_article_text(soup_of("synthetic_classless_glued_15_bis.html"), "15")
+
+    @pytest.mark.parametrize("article", ["15 bis", "15-bis", "15bis"])
+    def test_art_15_bis_is_served_from_its_heading(self, article):
+        text = extract_article_text(soup_of("synthetic_classless_glued_15_bis.html"), article)
+        assert text == "Articolo 15 bis\nTesto dell'articolo 15 bis."
+
+    def test_the_index_lists_15_bis_once(self):
+        result, _, _ = _parse_eurlex_tree(soup_of("synthetic_classless_glued_15_bis.html"),
+                                                "https://eur-lex.europa.eu/eli/reg/2000/1/oj/ita")
+        assert [item["numero"] for item in result] == ["14", "15-bis", "16"]
+
+    @pytest.mark.parametrize("heading,article,heads", [
+        ("Articolo 15 bisTesto", "15", False),
+        ("Articolo 15terDisposizioni", "15", False),
+        ("Articolo 1 Bisogna", "1", True),
+        ("Articolo 1Terzi", "1", True),
+        ("Articolo 1Testo", "1", True),
+    ])
+    def test_a_glued_ordinal_is_an_ordinal(self, heading, article, heads):
+        from mcp_legal_it.lib.visualex.eurlex_text import _heads_article
+        assert _heads_article(heading, f"Articolo {article}") is heads
+
+
+class TestConsolidatedTitleFromTheFirstRun:
+    def test_the_gdpr_consolidated_has_its_subject_in_title_doc_first(self):
+        # CELEX 02016R0679-20160504: `title-doc-last` holds only «(Testo rilevante ai fini del SEE)».
+        assert _extract_eurlex_title(soup_of("gdpr_consolidated_20160504_title_trimmed.html")) == (
+            "relativo alla protezione delle persone fisiche con riguardo al trattamento dei dati personali, "
+            "nonché alla libera circolazione di tali dati e che abroga la direttiva 95/46/CE "
+            "(regolamento generale sulla protezione dei dati)"
+        )
+
+    def test_a_name_split_over_two_lines_is_no_date_line(self):
+        # «DEL PARLAMENTO EUROPEO…» opens with «del» but holds no date: the subject follows the date.
+        page = ('<div class="eli-main-title"><p class="oj-doc-ti">REGOLAMENTO (UE) 2016/679</p>'
+                '<p class="oj-doc-ti">DEL PARLAMENTO EUROPEO E DEL CONSIGLIO</p>'
+                '<p class="oj-doc-ti">del 27 aprile 2016</p>'
+                '<p class="oj-doc-ti">relativo alla protezione delle persone fisiche</p></div>')
+        assert _extract_eurlex_title(BeautifulSoup(page, "html.parser")) == "relativo alla protezione delle persone fisiche"

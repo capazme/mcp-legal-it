@@ -2,15 +2,14 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at 36ed6942: the
-# EUR-Lex half (``_parse_eurlex_tree`` to ``_sort_eurlex_results``). Generated, not edited (scratch
-# ``gen_eurlex.py``). Adapted: ``_parse_eurlex_tree`` awaited nothing and is a plain function; the
-# records go to the standard ``logging`` module, configured by the caller (VisuaLex's ``basicConfig``
-# with a file handler is dropped); ``strip_amendment_markers`` is ``eurlex_text``'s. Two changes of
-# behaviour, marked «mcp-legal-it» in the code: (A) an Official Journal article keeps its ordinal in
-# the tree and the rubriche («Articolo 15 bis» is 15-bis; VisuaLex's ``(\d+)`` gave 15), and (B) a
-# heading an amending act quotes, in a table cell or opening with «, is not one of the act's
-# articles (dir. 2009/136 quotes arts 21-27 of dir. 2002/22). VisuaLex adopts both (its PR #312).
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at b2f7a30f: the
+# EUR-Lex half (``eurlex_heading_number`` to ``_sort_eurlex_results``); first at 36ed6942. Generated,
+# not edited (scratch ``gen_eurlex.py``). Adapted: ``_parse_eurlex_tree`` awaited nothing and is a
+# plain function; the records go to the standard ``logging`` module, configured by the caller
+# (VisuaLex's ``basicConfig`` with a file handler is dropped); ``strip_amendment_markers``,
+# ``is_quoted_heading`` and ``HEADING_ORDINAL`` are ``eurlex_text``'s. No change of behaviour: the
+# two this package carried until 36ed6942 (an OJ article keeps its ordinal; a heading an amending act
+# quotes is not one of its articles) are VisuaLex's own since its PR #312.
 
 """The article tree, the rubriche and the title of an EU act, from its EUR-Lex page (OJ or consolidated)."""
 
@@ -18,17 +17,20 @@ import logging
 import re
 
 from .akn_parser import normalize_article_key
-from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
-from .eurlex_text import strip_amendment_markers
-
-#: mcp-legal-it (A): an article heading and its number, the ordinal included.
-_OJ_ARTICLE_HEADING = re.compile(
-    rf"^(Articolo|Article)\s+(\d+(?:[\s\-]*+(?:{ARTICLE_SUFFIX_ALTERNATION})(?![^\W\d_]))?)", re.IGNORECASE)
+from .eurlex_text import HEADING_ORDINAL, is_quoted_heading, strip_amendment_markers
 
 
-def _quoted(element, text) -> bool:
-    """mcp-legal-it (B): a heading an amending act quotes: in a table cell, or opening with «."""
-    return element.find_parent("td") is not None or (text or "").lstrip().startswith("«")
+# An OJ heading's number with its ordinal, read as one article: «Articolo 15 bis» is «15-bis».
+_EURLEX_HEADING_NUMBER = re.compile(
+    rf"^(?:Articolo|Article)\s+(\d+)(?:[\s\-]*+({HEADING_ORDINAL}))?", re.IGNORECASE)
+
+
+def eurlex_heading_number(text):
+    """The article an OJ heading names («15», «15-bis»), or None when it names none."""
+    match = _EURLEX_HEADING_NUMBER.match(text)
+    if not match:
+        return None
+    return f"{match.group(1)}-{match.group(2).lower()}" if match.group(2) else match.group(1)
 
 
 def _parse_eurlex_tree(soup, normurn, link=False, details=False):
@@ -63,8 +65,6 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
     title_pattern = re.compile(r'^(TITOLO|TITLE)\s+([IVXLCDM]+|\d+)', re.IGNORECASE)
     chapter_pattern = re.compile(r'^(CAPO|CHAPTER)\s+([IVXLCDM]+|\d+)', re.IGNORECASE)
     section_pattern = re.compile(r'^(SEZIONE|SECTION)\s+(\d+|\w+)', re.IGNORECASE)
-    # mcp-legal-it (A): the number keeps its ordinal («Articolo 15 bis» is 15-bis, not 15).
-    article_pattern = _OJ_ARTICLE_HEADING
 
     # Strategia principale: cerca elementi ti-section (sezioni) e ti-art (articoli) in ordine di documento
     # Questo preserva l'ordine gerarchico: CAPO -> Sezione -> Articolo
@@ -78,8 +78,6 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
         for elem in structure_elements:
             text = elem.get_text(strip=True)
             class_str = ' '.join(elem.get('class', []))
-            if _quoted(elem, text):  # mcp-legal-it (B)
-                continue
 
             # Verifica se è un header di sezione (CAPO, Sezione, TITOLO)
             if 'ti-section' in class_str.lower():
@@ -96,9 +94,8 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
 
             # Verifica se è un articolo
             elif 'ti-art' in class_str.lower():
-                article_match = article_pattern.match(text)
-                if article_match:
-                    article_num = normalize_article_key(article_match.group(2))
+                article_num = None if is_quoted_heading(elem) else eurlex_heading_number(text)
+                if article_num:
                     if article_num not in seen_articles:
                         seen_articles.add(article_num)
                         article_data = _format_eurlex_article(article_num, normurn, eli_info, link)
@@ -112,8 +109,6 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
         # Cerca tutti gli elementi che potrebbero contenere articoli o sezioni
         for elem in soup.find_all(['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4']):
             text = elem.get_text(strip=True)
-            if _quoted(elem, text):  # mcp-legal-it (B)
-                continue
 
             # Check for sections first (when details=True)
             if details:
@@ -128,9 +123,8 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
                     continue
 
             # Check for articles
-            article_match = article_pattern.match(text)
-            if article_match:
-                article_num = normalize_article_key(article_match.group(2))
+            article_num = None if is_quoted_heading(elem) else eurlex_heading_number(text)
+            if article_num:
                 if article_num not in seen_articles:
                     seen_articles.add(article_num)
                     article_data = _format_eurlex_article(article_num, normurn, eli_info, link)
@@ -150,9 +144,7 @@ def _parse_eurlex_tree(soup, normurn, link=False, details=False):
     return result, count_articles, {"rubriche": rubriche, "title": _extract_eurlex_title(soup)}
 
 
-# mcp-legal-it (A): as for the tree, the rubrica's key keeps the ordinal.
-_EURLEX_ARTICLE_NUM = re.compile(
-    rf"^(?:Articolo|Article)\s+(\d+(?:[\s\-]*+(?:{ARTICLE_SUFFIX_ALTERNATION})(?![^\W\d_]))?)", re.IGNORECASE)
+_EURLEX_ARTICLE_NUM = re.compile(r"^(?:Articolo|Article)\s+([\w.-]+)", re.IGNORECASE)
 
 
 
@@ -246,11 +238,16 @@ def _extract_eurlex_rubriche(soup):
     rubriche = {}
     for marker in soup.find_all(class_=lambda c: c and "ti-art" in str(c).lower()
                                 and "sti-art" not in str(c).lower()):
-        if _quoted(marker, marker.get_text(" ", strip=True)):  # mcp-legal-it (B)
+        if is_quoted_heading(marker):
             continue
-        match = _EURLEX_ARTICLE_NUM.match(marker.get_text(" ", strip=True))
-        if not match:
-            continue
+        heading = marker.get_text(" ", strip=True)
+        number = eurlex_heading_number(heading)
+        if not number:
+            # A heading with no number in figures («Articolo unico») keeps its own word.
+            match = _EURLEX_ARTICLE_NUM.match(heading)
+            if not match:
+                continue
+            number = match.group(1)
         sibling = marker.find_next_sibling()
         if sibling is None:
             continue
@@ -259,12 +256,13 @@ def _extract_eurlex_rubriche(soup):
             continue
         title = sibling.get_text(" ", strip=True)
         if title:
-            rubriche[normalize_article_key(match.group(1))] = title
+            rubriche[number] = title
     return rubriche
 
 
 # "del 27 aprile 2016", "dell'8 giugno 2000": the line between an act's name and its subject.
-_EURLEX_DATE_LINE = re.compile(r"^dell?['’\s]", re.IGNORECASE)
+# A digit after it: «DEL PARLAMENTO EUROPEO…», an act's name split over two lines, is no date.
+_EURLEX_DATE_LINE = re.compile(r"^dell?['’\s]\s*\d", re.IGNORECASE)
 # The legacy page's description: "Direttiva 2002/58/CE del Parlamento europeo e del Consiglio, del 12 luglio 2002, relativa al …".
 _EURLEX_DESCRIPTION_SUBJECT = re.compile(
     r",\s*dell?['’\s]\s*\d{1,2}[°º]?\s+\S+\s+\d{4}\s*,\s*(.+)$", re.IGNORECASE | re.DOTALL)
@@ -289,7 +287,8 @@ def _extract_eurlex_title(soup):
     The OJ page names the act in `oj-doc-ti` lines inside `eli-main-title` (an annex's heading uses
     the same class, so only the first consecutive run counts, and only when it holds the date); the
     consolidated page in `title-doc-first` and
-    `title-doc-last` (printed twice, the first copy is enough); the legacy page in its
+    `title-doc-last` (printed twice, the first copy is enough; the subject in `title-doc-first`
+    when `title-doc-last` holds only the EEA note); the legacy page in its
     `DC.description` meta, which the `/eli/` address of a legacy act does not carry (dir.
     2002/58): there the ELI metadata names the act in every language, and the Italian
     `eli:title` is read the same way. Never a title from another language.
@@ -310,9 +309,24 @@ def _extract_eurlex_title(soup):
         return _eurlex_subject(lines)
     last = soup.find("p", class_="title-doc-last")
     if last is not None:
-        return _eurlex_subject([last.get_text(" ", strip=True)])
-    for meta in (soup.find("meta", attrs={"name": "DC.description"}),
-                 soup.find("meta", attrs={"property": "eli:title", "lang": "it"})):
+        subject = _eurlex_subject([last.get_text(" ", strip=True)])
+        if subject:
+            return subject
+        # The consolidated GDPR (02016R0679-20160504) has only the EEA note there: its subject is
+        # in the `title-doc-first` run, after the date line, as on the OJ page.
+        first = soup.find("p", class_="title-doc-first")
+        run = [first] if first is not None else []
+        for sibling in first.find_next_siblings() if first is not None else []:
+            if sibling.name != "p" or "title-doc-first" not in (sibling.get("class") or []):
+                break
+            run.append(sibling)
+        lines = [p.get_text(" ", strip=True) for p in run]
+        return _eurlex_subject(lines) if any(_EURLEX_DATE_LINE.match(line) for line in lines) else ""
+    # The Italian expression of the act: `about` names it (…/oj/ita), the language tag alone
+    # could also sit on another resource's meta.
+    eli_title = soup.find("meta", attrs={"property": "eli:title", "lang": "it",
+                                         "about": lambda about: bool(about) and about.rstrip("/").endswith("/ita")})
+    for meta in (soup.find("meta", attrs={"name": "DC.description"}), eli_title):
         match = _EURLEX_DESCRIPTION_SUBJECT.search((meta.get("content") or "") if meta else "")
         if match:
             return " ".join(match.group(1).split())
