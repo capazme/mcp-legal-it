@@ -2,10 +2,10 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at b2f7a30f
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at 02ebc80a
 # (the recitals, the consolidated-text reader, ``extract_article_text`` with ``extract_table_text``)
-# and services/visualex/visualex_api/tools/treextractor.py at b2f7a30f (``strip_amendment_markers``,
-# ``is_quoted_heading``, ``HEADING_ORDINAL``);
+# and services/visualex/visualex_api/tools/treextractor.py at 02ebc80a (``strip_amendment_markers``,
+# ``is_quoted_heading`` to ``eurlex_heading_number``, the heading helpers);
 # first at 493a8dd1. Generated, not edited: the scratch generator ``gen_eurlex.py`` rebuilds it for a
 # re-pin. Adapted: the scraper's two methods are plain functions (no ``self``); structlog is a no-op
 # ``log``, so the calls stay as they are; the Playwright fetch and the persistent cache are left out
@@ -85,12 +85,57 @@ def is_quoted_heading(element) -> bool:
             or element.find_parent("td") is not None)
 
 
+# A legacy OJ page can glue an article's heading to the end of the paragraph before it: dir.
+# 85/374 reads «… l'interruzione della prescrizione. Articolo 11</p>», so art. 11 was not listed,
+# not found, and its text was served at the end of art. 10's.
+_GLUED_HEADING = re.compile(r"[.;:]\s+((?:Articolo|Article)\s+(\d+))$")
+_HEADING_TAGS = ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4']
+
+
+def glued_headings(soup):
+    """The article headings glued to the end of a class-less paragraph, as {number: (paragraph,
+    where the heading starts in its stripped text)}. Only the article right after the one before
+    it, and never one that an element of its own heads: a sentence ending «… Articolo 11» is
+    otherwise a reference, not a heading."""
+    own = set()
+    for elem in soup.find_all(_HEADING_TAGS):
+        number = None if is_quoted_heading(elem) else eurlex_heading_number(elem.get_text(strip=True))
+        if number:
+            own.add(number)
+    found, previous = {}, None
+    for elem in soup.find_all(_HEADING_TAGS):
+        text = elem.get_text(strip=True)
+        number = None if is_quoted_heading(elem) else eurlex_heading_number(text)
+        if number:
+            previous = number
+            continue
+        match = _GLUED_HEADING.search(text) if elem.name == 'p' and not elem.get('class') else None
+        if (match and match.group(2) not in own and previous is not None and previous.isdigit()
+                and int(match.group(2)) == int(previous) + 1):
+            found[match.group(2)] = (elem, match.start(1))
+            previous = match.group(2)
+    return found
+
+
 # An ordinal after a heading's number: a whole word («15 bis», «15 BIS», «15-bis»), or a lower-case
 # ordinal glued to the capital that opens the text after it, as a class-less page whose heading and
 # text share an element reads «Articolo 15 bisTesto». A capital after a lower-case ordinal never
 # starts a word of it; «Articolo 1 Bisogna» and «Articolo 1Terzi» stay art. 1.
 HEADING_ORDINAL = (rf"(?:(?:{ARTICLE_SUFFIX_ALTERNATION})(?![^\W\d_])"
                    rf"|(?-i:(?:{ARTICLE_SUFFIX_ALTERNATION})(?=[A-ZÀ-Ý])))")
+
+# An OJ heading's number with its ordinal, read as one article: «Articolo 15 bis» is «15-bis».
+_EURLEX_HEADING_NUMBER = re.compile(
+    rf"^(?:Articolo|Article)\s+(\d+)(?:[\s\-]*+({HEADING_ORDINAL}))?", re.IGNORECASE)
+
+
+def eurlex_heading_number(text):
+    """The article an OJ heading names («15», «15-bis»), or None when it names none."""
+    match = _EURLEX_HEADING_NUMBER.match(text)
+    if not match:
+        return None
+    return f"{match.group(1)}-{match.group(2).lower()}" if match.group(2) else match.group(1)
+
 
 
 # --- Recitals -------------------------------------------------------------
@@ -426,6 +471,15 @@ def extract_article_text(soup, article):
                 log.debug("Found article in eli-subdivision")
                 break
 
+    # Strategy 5: a heading glued to the end of the paragraph before it (`glued_headings`). Only
+    # a class-less page has one, so a page whose heading carries a class is not walked for it.
+    glued = glued_headings(soup) if article_section is None or not article_section.get('class') else {}
+    heading = None
+    if not article_section and str(article).strip() in glued:
+        article_section, start = glued[str(article).strip()]
+        heading = article_section.get_text(strip=True)[start:]
+        log.debug("Found article glued to the end of a paragraph")
+
     if not article_section:
         log.warning(f"Article {article} not found in the document after all strategies")
         raise DocumentNotFoundError(
@@ -434,8 +488,9 @@ def extract_article_text(soup, article):
         )
 
     log.debug("Article found, extracting text")
-    full_text = [article_section.get_text(strip=True)]
+    full_text = [heading or article_section.get_text(strip=True)]
     element = article_section.find_next_sibling()
+    glued_at = {id(elem): start for elem, start in glued.values()}
 
     # Detect end of article by finding next article
     next_article_pattern = re.compile(r'^Articolo\s+\d+|^Article\s+\d+|^Art\.\s+\d+', re.IGNORECASE)
@@ -448,6 +503,12 @@ def extract_article_text(soup, article):
         elem_text = element.get_text(strip=True) if element.name else ''
         if next_article_pattern.match(elem_text):
             log.debug("Next article section found (text pattern), stopping extraction")
+            break
+        if id(element) in glued_at:
+            # The paragraph is this article's, up to the next one's heading glued to its end.
+            if elem_text[:glued_at[id(element)]].rstrip():
+                full_text.append(elem_text[:glued_at[id(element)]].rstrip())
+            log.debug("Next article glued to the end of a paragraph, stopping extraction")
             break
         if element.name in ['p', 'div', 'span']:
             text = element.get_text(strip=True)

@@ -763,7 +763,7 @@ def versione_futura(url: str) -> "dict | None":
     if validita.get("valid_from") and validita["valid_from"] > _clock.today().isoformat():
         return {"valid_from": validita["valid_from"], "testo": rec.get("testo") or "",
                 "change": "abrogated" if validita.get("state") == "abrogated" else "amended",
-                "version_number": validita.get("version_number")}
+                "version_number": validita.get("version_number"), "validita": validita}
     return None
 
 
@@ -807,7 +807,7 @@ async def fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) ->
     force by then. None published, none by *entro*, or a page whose validity cannot be read
     is the article's error, as in VisuaLex: nothing is claimed.
     """
-    from .normattiva_validity import starts_after_today, upcoming_change
+    from .normattiva_validity import starts_after_today, upcoming_change, versions_between
 
     source = "normattiva"
     if nv.norma._is_eurlex():
@@ -836,17 +836,26 @@ async def fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) ->
     if not starts_after_today(validita, _clock.today()):
         return {**base, "esito": ARTICLE_NOT_FOUND,
                 "error": f"Nessuna versione non ancora in vigore per l'art. {nv.numero_articolo} di {nv.norma}"}
-    if entro and validita["valid_from"] > entro:
-        return {**base, "esito": ARTICLE_NOT_FOUND,
-                "error": (f"La versione non ancora in vigore dell'art. {nv.numero_articolo} di {nv.norma} "
-                          f"entra in vigore il {validita['valid_from']}")}
     oggi_url = f"{url}!vig={_clock.today().isoformat()}"
     try:
         await _normattiva_page(oggi_url, nv.numero_articolo)
     except httpx.HTTPError:
         pass
     oggi = (pagine_normattiva.leggi(oggi_url) or {}).get("validita")
-    upcoming = upcoming_change(validita, inserted=bool(oggi and oggi.get("state") == "not_yet"))
+    inserito = bool(oggi and oggi.get("state") == "not_yet")
+    if entro and validita["valid_from"] > entro:
+        if (tra := 0 if inserito else versions_between(validita, oggi)):
+            # The day falls before the latest version, and other versions come first: Normattiva
+            # shows only the latest, so the one of that day cannot be read (VisuaLex, the same).
+            altre = "ce n'è un'altra" if tra == 1 else f"ce ne sono altre {tra}"
+            return {**base, "esito": CHECK_UNAVAILABLE,
+                    "error": (f"Non so dire quale versione dell'art. {nv.numero_articolo} di {nv.norma} sia in "
+                              f"vigore il {entro}: prima di quella che entra in vigore il {validita['valid_from']} "
+                              f"{altre}, che Normattiva non mostra a parte")}
+        return {**base, "esito": ARTICLE_NOT_FOUND,
+                "error": (f"La versione non ancora in vigore dell'art. {nv.numero_articolo} di {nv.norma} "
+                          f"entra in vigore il {validita['valid_from']}")}
+    upcoming = upcoming_change(validita, inserted=inserito, today=oggi)
     if oggi is None and upcoming["change"] == "amended":
         # Today's page could not be read: an amendment cannot be told from an insertion.
         upcoming["change"] = None

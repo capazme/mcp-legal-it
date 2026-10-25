@@ -167,9 +167,35 @@ class TestTheLaterTextAskedFor:
         assert t.errore.startswith("Nessuna versione non ancora in vigore per l'art. 3")
 
     async def test_none_by_the_day_named(self, monkeypatch):
-        _serve(monkeypatch, {DPR131: DAL_2027})
+        _serve(monkeypatch, {DPR131: DAL_2027, f"{DPR131}!vig={OGGI}": OGGI_PAGINA})
         t = await api.testo_articolo(_futura(data_versione="2026-12-31").norma_data[0], canale="html")
         assert t.esito == "articolo_non_trovato" and t.errore.endswith("entra in vigore il 2027-01-01")
+
+    async def test_a_day_before_the_latest_of_several_later_versions_cannot_be_told(self, monkeypatch):
+        # VisuaLex 02ebc80a: today's text is version 1, the undated page version 3, so version 2
+        # comes in between, and Normattiva does not show it on its own.
+        later = synthetic(dal="01-01-2027", label="Art. 3", version=3,
+                          content='<span class="art-just-text-akn">Il testo che verrà.</span>')
+        today = synthetic(dal="30-12-2025", label="Art. 3", version=1,
+                          content='<span class="art-just-text-akn">Il testo di oggi.</span>')
+        _serve(monkeypatch, {DPR131: later, f"{DPR131}!vig={OGGI}": today})
+        t = await api.testo_articolo(_futura(data_versione="2026-12-31").norma_data[0], canale="html")
+        assert t.esito == "verifica_non_disponibile"
+        assert t.errore.startswith("Non so dire quale versione dell'art. 3") and "ce n'è un'altra" in t.errore
+        t = await api.testo_articolo(_futura().norma_data[0], canale="html")
+        assert t.upcoming == {"change": "amended", "valid_from": "2027-01-01", "version_number": 3,
+                              "versions_between": 1}
+
+    async def test_the_text_of_today_says_the_versions_in_between(self, monkeypatch):
+        # Undated request: today's text (version 1) is served, the latest version (3) is announced.
+        later = synthetic(dal="01-01-2027", label="Art. 3", version=3,
+                          content='<span class="art-just-text-akn">Il testo che verrà.</span>')
+        today = synthetic(dal="30-12-2025", label="Art. 3", version=1,
+                          content='<span class="art-just-text-akn">Il testo di oggi.</span>')
+        _serve(monkeypatch, {DPR131: later, f"{DPR131}!vig={OGGI}": today})
+        t = await api.testo_articolo(_dpr131(), canale="html")
+        assert "Il testo di oggi" in t.article_text and not t.not_in_force
+        assert t.upcoming["versions_between"] == 1
 
     async def test_a_page_that_does_not_say(self, monkeypatch):
         senza = DAL_2027.replace('<div class="vigore my-5">', '<div class="altro">')

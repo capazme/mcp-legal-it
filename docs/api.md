@@ -274,7 +274,10 @@ The same, from explicit fields (the VisuaLex request body). No network.
   page cannot be read, `abrogated` for a coming repeal). An optional `data_versione`,
   after today, is the latest day it may come into force. None published, or none by
   that day, is `articolo_non_trovato` («Nessuna versione non ancora in vigore …»,
-  «… entra in vigore il …»); a page whose validity cannot be read is
+  «… entra in vigore il …»). A day that falls before the latest version, with other
+  versions not in force yet before it (`versions_between`), is
+  `verifica_non_disponibile` («Non so dire quale versione … sia in vigore il …»):
+  Normattiva shows only the latest, as in VisuaLex since 02ebc80a. A page whose validity cannot be read is
   `verifica_non_disponibile` («Non riesco a leggere la vigenza …»). An annex is
   `non_supportata`. `cite_law(..., versione="futura")` does the same, without a
   day.
@@ -444,8 +447,12 @@ The text in force of one article, from Normattiva or EUR-Lex.
   `successione` with `dal`. **`upcoming`** carries the same facts as VisuaLex's
   `upcoming`, key for key: `change` (`abrogated` when the coming version repeals
   the article, else `amended`; `inserted` for an article inserted from a later
-  day, below), `valid_from`, `version_number`; `None` when the undated page was
-  today's text. VisuaLex follows the same rule since 4aa59a9d (its decision G-355).
+  day, below), `valid_from`, `version_number`, and `versions_between: n` when the
+  version numbers show `n` other versions not in force yet before it (absent
+  otherwise: Normattiva's undated page is the latest version, and the ones in
+  between cannot be read on their own); `None` when the undated page was today's
+  text. VisuaLex follows the same rule since 4aa59a9d (its decision G-355), and
+  `versions_between` since 02ebc80a.
 - **`cite_law(..., formato="json")`** carries the same two facts under the same
   names, and the keys are always present so the schema does not change with the
   answer: `avvisi` (a list, `[]` when there is nothing to say), `upcoming` (the
