@@ -531,6 +531,11 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **The installer configures a local server only.** `install.py` no longer
+  offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
+  interactive question are gone): it pointed at a personal tunnel address
+  written in the code. The plugin always runs the server on the user's
+  machine; a test keeps remote endpoints out of the installer.
 - **`indennita_licenziamento` returns the range, not an amount** (#76). After
   C.Cost. 194/2018 struck the words «di importo pari a due mensilità … per ogni
   anno di servizio» from art. 3 co. 1 d.lgs. 23/2015, the amount is set by the
