@@ -3,7 +3,7 @@
 # https://mozilla.org/MPL/2.0/.
 #
 # Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/normattiva_validity.py
-# at 4aa59a9d (first at eca698dc). Adapted: structlog replaced by a small adapter on ``logging``; today read from
+# at f47ac1b6 (first at eca698dc). Adapted: structlog replaced by a small adapter on ``logging``; today read from
 # ``lib/_clock`` (the single reader of the clock) instead of ``datetime.now(Europe/Rome)``;
 # VisuaLex's ``parse_date`` (tools/text_op.py) and ``ValidationError`` brought in; and
 # ``read_validity`` left out: VisuaLex reads the raw page back from its cache, while here the
@@ -437,6 +437,22 @@ def read_upcoming_request(version: Any, version_date: Any, today: Optional[date]
     if date.fromisoformat(day) <= (today or _today_in_rome()):
         raise ValidationError("con upcoming la data dev'essere successiva a oggi, o assente")
     return day
+
+
+def reject_original_with_a_date(version: Any, version_date: Any) -> None:
+    """Refuse «originale» together with a `version_date` (400).
+
+    A date asks for the text in force on that day (owner, G-353), so the pair asks for two
+    texts at once: until 25 October 2026 the date silently won, while mcp-legal-it refuses the
+    pair as invalid. Neither the web nor the MCP server writes it; a norm saved with both is
+    asked again only as it was saved.
+    """
+    if (isinstance(version, str) and version.strip().lower() == "originale"
+            and isinstance(version_date, str) and version_date.strip()):
+        raise ValidationError(
+            "version_date non si combina con la versione originale: una data chiede il testo "
+            "in vigore quel giorno; togli la data per il testo originale"
+        )
 
 
 def reject_future_version_date(version_date: Any, today: Optional[date] = None) -> None:

@@ -15,6 +15,20 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **The sigle of VisuaLex's source convention** (G-360, G-366, G-369): «cod.
+  post.» and «c.g.c.» name their codes, and an annex of a code's decree with a
+  sigla of its own reads as that code and annex, as VisuaLex keys it: «art. 1
+  disp. att. c.p.a.» is the c.p.a.'s decree at annex 3 (`;104:3~art1`, `allegato`
+  `"3"`), never the c.p.a. Also `disp. trans.` and `disp. coord. c.p.a.`, `disp.
+  att.` and `disp. trans. c.g.c.`, `reg. nav. mar.`; a sigla of more than one word
+  is read however dotted or spaced («disp att cpa», «cod nav», «disp.att.c.c.»).
+  «1° settembre 1993» is read as the first of the month. Every label of the
+  convention with a Normattiva identity reads back to it, three known exceptions
+  aside (`tests/unit/test_sigle_convenzione.py`, adapted from VisuaLex's tests).
+- **`verifica_citazioni` says a coming repeal or amendment.** An article in force
+  today with a later version already published stays «verificata», and the note
+  adds «abrogato con effetto dal …» or «modificato con effetto dal …» (art. 3
+  d.P.R. 131/1986, repealed from 1 January 2027).
 - **An EU act's index, tree and recitals** (`api`). `indice_atto` and
   `albero_atto` now answer for EU regulations, directives and treaties: VisuaLex's
   EU tree reader (`lib/visualex/eurlex_tree.py`) on the page of the text in force,
@@ -609,6 +623,12 @@ entry, it is the same feature as ported to the 3.0 line.
   3.11. `requires-python`, the two manifests, `install.py`, the CI matrix
   (3.11 and 3.12 × FastMCP 3 and 4) and the docs say so; the package declares
   its Python classifiers. The plugin and the Docker image already run 3.12.
+- **VisuaLex's codes table, validity reader and sources golden re-pinned to
+  `f47ac1b6`** (its PRs #310 and #337, after `4aa59a9d`). The legge fallimentare
+  joins the acts whose text is their annex 1 (r.d. 267/1942, `;267:1`); the
+  validity reader gains VisuaLex's refusal of a date with «originale», which this
+  API already refused. The 13 new rows of VisuaLex's source convention match the
+  identities built here.
 - **VisuaLex's validity reader and codes table re-pinned to `4aa59a9d`** (its PRs
   #274, #276, #277, #279). `normattiva_validity` gains the later-text helpers and
   compares the page's article label as the tree does («135 sex decies» is
@@ -767,6 +787,11 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **Art. 1 of the legge fallimentare is the law's, from its own page.** Its
+  articles are annex 1 of r.d. 267/1942, and the URN lacked the part: the page
+  of `;267~art1` is the approving decree's, so the law's art. 1 came only from
+  the Akoma Ntoso export (indicative, four requests). The URN is now
+  `;267:1~artN` and `norma_data.allegato` `"1"`, as VisuaLex files it.
 - **`python -m mcp_legal_it` refuses an unknown `LEGAL_PROFILE` without a
   traceback**, like the console script; the encoding guard of the package also
   sees `io.open`, `codecs.open`, an `open` under another name and
