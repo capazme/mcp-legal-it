@@ -93,6 +93,15 @@ Trimmed capture of 2026-10-21, for the annex positions of the article tree
   portal's own number for its annex (0 in the dispositivo), which the test reads as the
   truth. Allegato I.4 (`:5`) writes its articles «art 1», without the dot.
 
+Trimmed captures of 2026-10-21, imported from VisuaLex at 4aa59a9d, for the text not in
+force yet (`test_normattiva_upcoming.py`):
+
+- `dpr131_1986_art3_undated_abrogato_2027_trimmed.html` — art. 3 d.P.R. 131/1986 asked
+  with no date (`…;131~art3`): «Testo in vigore dal: 1-1-2027», version 2, repealed.
+- `dpr131_1986_art3_at_2026-10-21_in_force_trimmed.html` — the same article at the day
+  (`…~art3!vig=2026-10-21`): in force from 1-7-1986 to 31-12-2026, version 1, «Contratti
+  verbali».
+
 The portal prints the end of the window as `<span class="indent">al: <span id="artFine" class="rosso">29-12-2007</span></span>`
 when the window has a start (the start is `<span id="artInizio" class="rosso">`, preceded by `&nbsp;`),
 and as the bare text `<span>Testo in vigore al: 12-9-2014</span>`, with no `id` and no `class`, when it has none.
