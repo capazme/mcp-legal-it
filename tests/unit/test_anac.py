@@ -276,7 +276,8 @@ class TestReviewCases:
         with pytest.raises(AnacPaginaInattesa):
             parse_atto(page, URL_444)
 
-    @pytest.mark.parametrize("tipologia", ["relazioni_annuali", "audizioni", "comunicati_presidente"])
+    @pytest.mark.parametrize("tipologia", ["relazioni_annuali", "audizioni", "comunicati_presidente",
+                                           "linee_guida", "bandi_tipo"])
     async def test_types_without_a_number_cannot_be_looked_up_by_number(self, tipologia):
         factory, sent = _portal()
         with api.configurazione(client_factory=factory):
@@ -315,3 +316,16 @@ async def test_search_by_year():
 def test_the_real_search_for_444_2025_has_one_result():
     risultati, totale = parse_search(SEARCH_444)
     assert totale == 1 and [r.titolo for r in risultati] == ["Delibera n. 444 del 11 novembre 2025"]
+
+
+async def test_a_year_outside_the_filter_falls_back_to_the_newest_and_says_so():
+    # The portal's "Anno" filter starts at 1999: an older year cannot be filtered. The number and
+    # the year are searched as words, newest first, and "not found" says how far it looked.
+    factory, sent = _portal(search=EMPTY)
+    with api.configurazione(client_factory=factory):
+        result = await _leggi_atto_anac_impl(tipologia="delibere", numero="12", anno="1990")
+    query = parse_qs(urlparse(str(sent[0].url)).query)
+    assert "year" not in query and query["q"] == ["12 1990"] and query["searchType"] == ["and"]
+    assert result.error_type == "no_results"
+    text = result.to_str()
+    assert "non è tra quelli del filtro del portale" in text and "cerca_atti_anac" in text
