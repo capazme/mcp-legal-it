@@ -95,9 +95,11 @@ TIPOLOGIE: dict[str, tuple[str, str, str]] = {
     "relazioni_vigilanza": ("255521458", "Relazioni di vigilanza collaborativa", "relazione"),
 }
 
-# Types whose titles carry a number ("Delibera n. 444 del 11 novembre 2025"): only these can be
-# looked up by number and year. The others (annual reports, hearings, statements) are searched.
-NUMERATE = frozenset({"delibere", "pareri_precontenzioso", "pareri_normativa", "linee_guida", "bandi_tipo"})
+# Types whose titles carry a number AND the date after it ("Delibera n. 444 del 11 novembre
+# 2025"): only these can be looked up by number and year. Linee guida and bandi tipo are numbered
+# without a date in the title ("Linee guida n. 4"), so a lookup by year would mostly answer "not
+# found": they are searched, like the unnumbered types (annual reports, hearings, statements).
+NUMERATE = frozenset({"delibere", "pareri_precontenzioso", "pareri_normativa"})
 
 # Results scanned when an act is looked up by number and year.
 _RIGHE_RICERCA_NUMERO = 50

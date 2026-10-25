@@ -766,6 +766,16 @@ entry, it is the same feature as ported to the 3.0 line.
   of `;267~art1` is the approving decree's, so the law's art. 1 came only from
   the Akoma Ntoso export (indicative, four requests). The URN is now
   `;267:1~artN` and `norma_data.allegato` `"1"`, as VisuaLex files it.
+- **`python -m mcp_legal_it` refuses an unknown `LEGAL_PROFILE` without a
+  traceback**, like the console script; the encoding guard of the package also
+  sees `io.open`, `codecs.open`, an `open` under another name and
+  `encoding=None` (#76 review).
+- **ANAC: linee guida and bandi tipo are no longer looked up by number and
+  year.** Their titles carry the number without a date («Linee guida n. 4»), so
+  the lookup mostly answered «not found»: `leggi_atto_anac` now says to search
+  them with `cerca_atti_anac` and read the act from the reference it returns. A
+  year the portal's «Anno» filter does not list falls back to the newest acts,
+  and the answer says so (#82 review).
 - The citation hook (Stop and SubagentStop) no longer opens the server's
   Python environment. `uv run --project <plugin>/server`, even with
   `--no-sync`, deletes and recreates that environment whenever it finds it

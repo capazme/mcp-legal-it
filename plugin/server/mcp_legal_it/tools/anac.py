@@ -158,8 +158,8 @@ async def leggi_atto_anac(
     direttamente con tipologia, numero e anno (es. tipologia="delibere", numero="444",
     anno="2025", la Delibera n. 444 dell'11 novembre 2025): l'atto viene cercato sul portale per
     numero, dentro la tipologia e l'anno (filtro "Anno" del portale), e letto. Per numero e anno
-    valgono le tipologie numerate (delibere, pareri_precontenzioso, pareri_normativa,
-    linee_guida, bandi_tipo).
+    valgono le tipologie con numero e data nel titolo (delibere, pareri_precontenzioso,
+    pareri_normativa); linee guida, bandi tipo e gli altri atti si cercano con cerca_atti_anac.
     Restituisce: titolo, data, anno, argomento, categoria, tipologia, destinatari, oggetto,
     riferimenti normativi, parole chiave e link al PDF ufficiale. NON restituisce il testo
     integrale, che ANAC pubblica solo nel PDF: il link al PDF è nella risposta. La scheda non
