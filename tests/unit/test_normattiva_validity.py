@@ -2,7 +2,8 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_normattiva_validity.py at eca698dc.
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_normattiva_validity.py at 4aa59a9d
+# (first at eca698dc).
 # Adapted: the imports name this package; TestReadValidity (VisuaLex's cache reader, not
 # imported) and the tz-database case (today comes from lib/_clock here) left out.
 """What a Normattiva article page says about its own validity window.
@@ -624,11 +625,17 @@ class TestRejectFutureVersionDate:
     TODAY = date(2026, 10, 1)
 
     @pytest.mark.parametrize("value", [
-        None, "", "2026-10-01", "2000-01-01", "1 ottobre 2026",
-        "ieri", "2026-02-31", "31 febbraio 2019", 20261002,
+        None, "", "   ", "2026-10-01", "2000-01-01", "1 ottobre 2026", 20261002,
     ])
-    def test_today_the_past_and_what_the_existing_parser_judges_pass(self, value):
+    def test_no_date_today_and_the_past_pass(self, value):
         reject_future_version_date(value, today=self.TODAY)
+
+    @pytest.mark.parametrize("value", ["ieri", "2026-02-31", "31 febbraio 2019"])
+    def test_a_date_that_cannot_be_read_is_refused(self, value):
+        # A date is read for every request since G-353 (it always asks for the text in
+        # force on that day): one that cannot be read is a 400 here, not a 500 later.
+        with pytest.raises(ValidationError, match="non valida"):
+            reject_future_version_date(value, today=self.TODAY)
 
     @pytest.mark.parametrize("value", ["2026-10-02", "2999-01-01", "2 ottobre 2026", " 2026-10-02 "])
     def test_a_later_day_is_refused_with_the_reason(self, value):
@@ -697,3 +704,11 @@ class TestHostilePages:
         assert found is not None
         assert found["state"] == "current"
         assert found["valid_from"] == "2003-12-25"
+
+
+@pytest.mark.parametrize("asked", ["135-sex-decies", "135 sex decies", "135-sexdecies"])
+def test_an_ordinal_split_in_two_words_is_the_same_article(asked):
+    # The tree writes «135 sex decies» (codice del consumo), the page «Art. 135-sexdecies»:
+    # with the split request the window was dropped as «not the article asked for».
+    v = extract_validity(synthetic(dal="1-2-2003", label="Art. 135-sexdecies"), article=asked)
+    assert v is not None and v["valid_from"] == "2003-02-01"
