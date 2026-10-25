@@ -271,6 +271,7 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
     from mcp_legal_it.lib.visualex.scraper import _akn_article, _vigenza_akn, senza_export
     from mcp_legal_it.lib.visualex.scraper import abrogato_da as _abrogato_da
     from mcp_legal_it.lib.visualex.scraper import avviso_versione_futura, validita_pagina, versione_futura
+    from mcp_legal_it.lib.visualex.normattiva_validity import versions_between
 
     testo, fonte, url = base.get("testo") or "", base.get("fonte") or "", base.get("url") or ""
     if testo and fonte == "eurlex":
@@ -323,6 +324,9 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
     futura = versione_futura(url) if not data_rich else None
     upcoming = ({"change": futura["change"], "valid_from": futura["valid_from"],
                  "version_number": futura["version_number"]} if futura else None)
+    if futura and (tra := versions_between(futura["validita"], validita_letta)):
+        # Other versions not in force yet come before it: Normattiva does not show them on their own.
+        upcoming["versions_between"] = tra
     if futura:
         atto_futuro = _abrogato_da(futura["testo"])
         avvisi.append(avviso_versione_futura(futura))

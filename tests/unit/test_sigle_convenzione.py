@@ -53,6 +53,9 @@ class TestAnnexSigle:
         ("art. 3 disp att cpc", "regio.decreto:1941-12-18;1368:1~art3", "1"),
         ("art. 3 disp. att. c.p.c.", "regio.decreto:1941-12-18;1368:1~art3", "1"),
         ("art. 1 cod nav", "regio.decreto:1942-03-30;327:1~art1", "1"),
+        # VisuaLex #340: the long sigla read whole, never «cod. post.» and a stray word
+        ("art. 20 cod. post. telecom.", "decreto.del.presidente.della.repubblica:1973-03-29;156:1~art20", "1"),
+        ("art. 20 cod post telecom", "decreto.del.presidente.della.repubblica:1973-03-29;156:1~art20", "1"),
     ])
     def test_the_code_and_its_annex(self, riferimento, urn, allegato):
         nd = _letta(riferimento)

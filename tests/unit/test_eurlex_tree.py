@@ -2,7 +2,7 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at b2f7a30f: TestConsolidatedRubriche, TestEurlexTitle,
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at 02ebc80a: TestConsolidatedRubriche, TestEurlexTitle,
 # TestConsolidatedTree, TestQuotedArticles, TestEliTitleOfTheItalianExpression, TestGluedHeading
 # and TestConsolidatedTitleFromTheFirstRun (TestTreeFailuresAreNotKept tests VisuaLex's
 # Playwright cache, not imported).
@@ -276,6 +276,44 @@ class TestGluedHeading:
         assert _heads_article(heading, f"Articolo {article}") is heads
 
 
+class TestTitleAsTheJournalPrintsIt:
+    def test_the_ai_act_keeps_the_journals_comma(self):
+        # «(CE) n, 300/2008» is the Official Journal's own Italian title (OJ and consolidated page alike): we show it as published, never corrected.
+        title = _extract_eurlex_title(soup_of("aiact_consolidated_20260727_title_trimmed.html"))
+        assert title.startswith("che stabilisce regole armonizzate sull'intelligenza artificiale e modifica i regolamenti "
+                                "(CE) n, 300/2008, (UE) n, 167/2013, (UE) n, 168/2013, (UE) 2018/858")
+        assert title.endswith("(UE) 2020/1828 (regolamento sull'intelligenza artificiale)")
+
+    @pytest.mark.parametrize("fixture,subject", [
+        ("dir_85_374_eli_title_trimmed.html",
+         "relativa al ravvicinamento delle disposizioni legislative, regolamentari ed amministrative degli "
+         "Stati Membri in materia di responsabilità per danno da prodotti difettosi"),
+        ("dir_64_221_eli_title_trimmed.html",
+         "per il coordinamento dei provvedimenti speciali riguardanti il trasferimento e il soggiorno degli "
+         "stranieri, giustificati da motivi d'ordine pubblico, di pubblica sicurezza e di sanità pubblica"),
+    ])
+    def test_an_older_title_without_commas_round_its_date(self, fixture, subject):
+        # «… del Consiglio del 25 luglio 1985 relativa al …»: the subject was '' while the date needed commas.
+        assert _extract_eurlex_title(soup_of(fixture)) == subject
+
+    @pytest.mark.parametrize("content,subject", [
+        ("Direttiva 2001/29/CE del Parlamento europeo e del Consiglio dell'11 luglio 2001 concernente l'armonizzazione",
+         "concernente l'armonizzazione"),
+        ("Direttiva 93/13/CEE del Consiglio, del 5 aprile 1993 concernente le clausole abusive", "concernente le clausole abusive"),
+        ("Direttiva 93/13/CEE del Consiglio del 5 aprile 1993, concernente le clausole abusive", "concernente le clausole abusive"),
+        ("Direttiva 85/374/CEE del Consiglio del 25 luglio 1985 (GU L 210 del 7.8.1985)", ""),
+    ])
+    def test_the_date_read_with_or_without_its_commas(self, content, subject):
+        page = f'<meta about="http://data.europa.eu/eli/dir/1/1/oj/ita" content="{content}" lang="it" property="eli:title"/>'
+        assert _extract_eurlex_title(BeautifulSoup(page, "html.parser")) == subject
+
+    def test_a_title_without_a_date_still_says_nothing(self):
+        # Reg. 17/1962 names itself «CEE Consiglio: Regolamento n. 17 : Primo regolamento …»: no date, no subject.
+        page = ('<meta about="http://data.europa.eu/eli/reg/1962/17/oj/ita" content="CEE Consiglio: Regolamento n. 17 : '
+                'Primo regolamento d\'applicazione degli articoli 85 e 86 del trattato" lang="it" property="eli:title"/>')
+        assert _extract_eurlex_title(BeautifulSoup(page, "html.parser")) == ""
+
+
 class TestConsolidatedTitleFromTheFirstRun:
     def test_the_gdpr_consolidated_has_its_subject_in_title_doc_first(self):
         # CELEX 02016R0679-20160504: `title-doc-last` holds only «(Testo rilevante ai fini del SEE)».
@@ -292,3 +330,43 @@ class TestConsolidatedTitleFromTheFirstRun:
                 '<p class="oj-doc-ti">del 27 aprile 2016</p>'
                 '<p class="oj-doc-ti">relativo alla protezione delle persone fisiche</p></div>')
         assert _extract_eurlex_title(BeautifulSoup(page, "html.parser")) == "relativo alla protezione delle persone fisiche"
+
+
+class TestHeadingGluedToTheParagraphBefore:
+    """Dir. 85/374's legacy OJ page reads «… l'interruzione della prescrizione. Articolo 11</p>»: art. 11
+    was not listed, not found, and its text was served at the end of art. 10's
+    (fixtures/eurlex/README.md)."""
+
+    URL = "https://eur-lex.europa.eu/eli/dir/1985/374/oj/ita"
+
+    def test_the_index_lists_art_11(self):
+        result, count, _ = _parse_eurlex_tree(soup_of("dir_85_374_eli_legacy_text_trimmed.html"), self.URL)
+        assert [item["numero"] for item in result] == [str(n) for n in range(1, 23)] and count == 22
+
+    def test_art_11_is_served_from_its_glued_heading(self):
+        text = extract_article_text(soup_of("dir_85_374_eli_legacy_text_trimmed.html"), "11")
+        assert text.startswith("Articolo 11\nGli stati membri prevedono nella loro legislazione che i diritti conferiti")
+        assert text.endswith("un procedimento giudiziario contro il produttore.")
+
+    def test_art_10_stops_before_it(self):
+        # Art. 10's text loses the tail it carried until now: the heading and the whole of art. 11.
+        text = extract_article_text(soup_of("dir_85_374_eli_legacy_text_trimmed.html"), "10")
+        assert text.startswith("Articolo 10\n1. Gli stati membri prevedono")
+        assert text.endswith("che disciplinano la sospensione o l'interruzione della prescrizione.")
+        assert "Articolo 11" not in text
+
+    def test_art_12_is_unchanged(self):
+        text = extract_article_text(soup_of("dir_85_374_eli_legacy_text_trimmed.html"), "12")
+        assert text.startswith("Articolo 12\nLa responsabilità del produttore") and "Articolo 13" not in text
+
+    @pytest.mark.parametrize("page", [
+        # A sentence ending on an article that has a heading of its own is a reference.
+        "<p>Articolo 1</p><p>Testo. Articolo 2</p><p>Articolo 2</p><p>Testo.</p>",
+        # Not the article right after the one before it.
+        "<p>Articolo 1</p><p>Testo. Articolo 5</p><p>Altro.</p>",
+        # A paragraph with a class is not a legacy page's.
+        '<p>Articolo 1</p><p class="oj-normal">Testo. Articolo 2</p><p>Altro.</p>',
+    ])
+    def test_only_the_next_article_with_no_heading_of_its_own(self, page):
+        from mcp_legal_it.lib.visualex.eurlex_tree import glued_headings
+        assert glued_headings(BeautifulSoup(page, "html.parser")) == {}
