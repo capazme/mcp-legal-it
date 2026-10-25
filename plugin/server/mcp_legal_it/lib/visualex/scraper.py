@@ -811,6 +811,10 @@ async def fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) ->
     if nv.norma._is_eurlex():
         return {"text": "", "url": nv.norma.url(), "source": "eurlex",
                 "error": "versione 'futura' disponibile per gli atti su Normattiva"}
+    if split_annex(nv.numero_articolo):
+        # Refused before any request, as the api refuses it (the annex's page is not read so).
+        return {"text": "", "url": nv.norma.url(), "source": source,
+                "error": "la versione futura di un allegato non è ancora disponibile"}
     full = await with_full_date(nv.norma)
     if full is not nv.norma:
         nv = dataclasses.replace(nv, norma=full)

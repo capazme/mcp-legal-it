@@ -436,7 +436,9 @@ The text in force of one article, from Normattiva or EUR-Lex.
 - **`cite_law(..., formato="json")`** carries the same two facts under the same
   names, and the keys are always present so the schema does not change with the
   answer: `avvisi` (a list, `[]` when there is nothing to say), `upcoming` (the
-  object above, or `null`) and `not_in_force` (`true` only for `versione="futura"`). The Markdown form prints the notice as a line
+  object above, or `null`) and `not_in_force` (`true` when the text is a later one:
+  with `versione="futura"`, and for an article inserted from a later day asked
+  without a date). The Markdown form prints the notice as a line
   «**Attenzione**: …».
 - **`validity`** is what the page states of the text it served: the window
   «Testo in vigore dal … al …», the version, the repeal (VisuaLex's

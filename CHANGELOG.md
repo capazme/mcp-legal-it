@@ -38,6 +38,8 @@ entry, it is the same feature as ported to the 3.0 line.
   served as VisuaLex serves it: its later text, `not_in_force`, `INDICATIVO`,
   `upcoming` `{change: "inserted", …}` and a first `avviso` that it is not in
   force yet, instead of «testo non leggibile» after a needless export request.
+  `verifica_citazioni` gives it the verdict «non in vigore», with the day it comes
+  into force, never «verificata».
 - **The text of an article at a date, and the original text** (`api`).
   `riferimento_da_parametri(..., data_versione="2010-01-01")` (or «1 gennaio
   2010») and a `NormaDati` with `data_versione` ask for the text in force on that
