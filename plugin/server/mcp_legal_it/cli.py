@@ -11,8 +11,13 @@ import sys
 # before fastmcp is imported: its settings are read once, at import time.
 os.environ.setdefault("FASTMCP_CHECK_FOR_UPDATES", "off")
 
+from mcp_legal_it._profilo import ProfiloSconosciuto  # noqa: E402
 from mcp_legal_it.cli_version import package_version  # noqa: E402  re-export
-from mcp_legal_it.server import mcp  # noqa: E402  (module-level for patching in tests)
+
+try:
+    from mcp_legal_it.server import mcp  # noqa: E402  (module-level for patching in tests)
+except ProfiloSconosciuto as exc:  # an unknown LEGAL_PROFILE: a message, not a traceback
+    sys.exit(f"mcp-legal-it: {exc}")
 
 __all__ = ["main", "package_version", "mcp"]
 

@@ -81,6 +81,11 @@ PROFILES = {
         "detail": "normativa, giurisprudenza, privacy, parcelle avvocato",
         "tools": 79,
     },
+    "calcoli": {
+        "desc": "Solo strumenti di calcolo, senza rete",
+        "detail": "interessi, rivalutazioni, termini, parcelle, imposte, danni: nessuna connessione",
+        "tools": 144,
+    },
     "full": {
         "desc": "Tutti gli strumenti",
         "detail": "consigliato per Claude Code (usa Tool Search per caricarli on-demand)",
