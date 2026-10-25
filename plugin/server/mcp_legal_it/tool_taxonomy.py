@@ -31,7 +31,7 @@ KINDS: dict[str, str] = {
                  "Gazzetta Ufficiale, parliamentary bills, EU-Italy transposition, "
                  "citation checks, Brocardi annotations.",
     "giurisprudenza": "Court decisions: search, full text, case law on a norm, orientations.",
-    "autorita": "Decisions and guidance of an independent authority (Garante privacy, CONSOB).",
+    "autorita": "Decisions and guidance of an independent authority (Garante privacy, CONSOB, ANAC).",
     "registri": "Facts looked up online in a public register or a third-party site, not law: "
                 "trademarks (TMview), VAT numbers (VIES), a supplier's published DPA.",
     "calcolo": "Answered locally from the inputs and the bundled tables: calculations, "
@@ -55,6 +55,7 @@ COURTS: dict[str, str] = {
 AUTHORITIES: dict[str, str] = {
     "garante": "Garante per la protezione dei dati personali.",
     "consob": "CONSOB (Commissione nazionale per le società e la borsa).",
+    "anac": "ANAC (Autorità Nazionale Anticorruzione).",
 }
 
 #: Subject matters. A tool may carry several; the desktop profiles select on them.

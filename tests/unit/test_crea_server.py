@@ -42,7 +42,7 @@ def _kind(tool) -> str:
 def test_without_filters_it_is_the_stock_surface():
     built = surface(crea_server())
     assert set(built["tools"]) == set(STOCK["tools"])
-    assert len(built["tools"]) == 228
+    assert len(built["tools"]) == 231
     assert built["prompts"] == STOCK["prompts"] == 23
     assert built["resources"] == STOCK["resources"] == 15
 
@@ -112,7 +112,7 @@ def test_excluding_brocardi_differs_from_switching_it_off():
     excluded = set(surface(crea_server(exclude_tags={"brocardi"}))["tools"])
     off = set(surface(crea_server(brocardi=False))["tools"])
     assert "cite_law" not in excluded and "cite_law" in off
-    assert len(excluded) == 223 and len(off) == 226
+    assert len(excluded) == 226 and len(off) == 229
 
 
 def test_the_name_is_reported():
@@ -133,4 +133,4 @@ def test_bad_tags_are_refused(kwargs, error):
 
 
 def test_an_empty_exclusion_excludes_nothing():
-    assert len(surface(crea_server(exclude_tags=set()))["tools"]) == 228
+    assert len(surface(crea_server(exclude_tags=set()))["tools"]) == 231
