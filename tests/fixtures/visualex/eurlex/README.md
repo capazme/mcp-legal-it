@@ -1,5 +1,4 @@
-<!-- Imported from VisuaLex (MPL-2.0), services/visualex/tests/fixtures/eurlex/README.md at 36ed6942 (first at 493a8dd1), with the six pages it describes, byte for byte. -->
-
+<!-- Imported from VisuaLex (MPL-2.0), services/visualex/tests/fixtures/eurlex/README.md at b2f7a30f (first at 493a8dd1), with the nine pages it describes, byte for byte. -->
 # EUR-Lex fixtures
 
 Captured 2026-09-19 with a browser User-Agent from the `legal-content/IT/TXT/HTML`
@@ -32,9 +31,19 @@ Added 2026-10-22:
   (`<meta property="eli:title" lang="…">`). Trimmed to `<title>`, those metas and `#TexteOnly`.
 - `synthetic_oj_article_15_bis.html` — **synthetic**, written for the test: an OJ-style act
   whose only article 15 is «Articolo 15 bis». No real page with that shape is known.
+- `amending_dir_2009_136_trimmed.html` — the OJ page of dir. 2009/136 (`/eli/dir/2009/136/oj/ita`,
+  captured 2026-10-22), an amending act: its six articles, and inside art. 1 and 2, in table
+  cells, the articles it replaces or inserts in dir. 2002/22 and 2002/58 («Articolo 21», «Articolo
+  23 bis», «Articolo 15 bis» …). Trimmed to `#tit_1` and `#art_1` … `#art_6`.
+- `synthetic_classless_glued_15_bis.html` — **synthetic**: a class-less page whose heading and text
+  share an element, so the element reads «Articolo 15 bisTesto…»; its only article 15 is 15 bis.
+- `gdpr_consolidated_20160504_title_trimmed.html` — the consolidated GDPR
+  (`CELEX:02016R0679-20160504`, captured 2026-10-22), trimmed to its `title-doc-first` and
+  `title-doc-last` paragraphs: the last holds only the EEA note, the subject is in the first.
 
 Used by `tests/unit/test_eurlex_fixtures.py`, `test_eurlex_consolidated.py`, `test_eurlex_tree.py`,
-`test_eurlex_rubriche.py` and `test_eurlex_recitals.py` (VisuaLex's tests, generated).
+`test_eurlex_rubriche.py` and `test_eurlex_recitals.py` (VisuaLex's tests, generated), and by
+`test_eurlex_indice.py`.
 
 mcp-legal-it's own, captured 2026-10-22 from CELLAR (`publications.europa.eu/resource/celex/<CELEX>`),
 trimmed as above and checked to give the same article text as the whole page:

@@ -2,9 +2,10 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at 36ed6942
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at b2f7a30f
 # (the recitals, the consolidated-text reader, ``extract_article_text`` with ``extract_table_text``)
-# and services/visualex/visualex_api/tools/treextractor.py at 36ed6942 (``strip_amendment_markers``);
+# and services/visualex/visualex_api/tools/treextractor.py at b2f7a30f (``strip_amendment_markers``,
+# ``is_quoted_heading``, ``HEADING_ORDINAL``);
 # first at 493a8dd1. Generated, not edited: the scratch generator ``gen_eurlex.py`` rebuilds it for a
 # re-pin. Adapted: the scraper's two methods are plain functions (no ``self``); structlog is a no-op
 # ``log``, so the calls stay as they are; the Playwright fetch and the persistent cache are left out
@@ -72,6 +73,24 @@ def strip_amendment_markers(text: str) -> str:
     return re.sub(r"[ \t\xa0]+", " ", _AMENDMENT_MARK.sub(" ", text or "")).strip()
 
 
+def is_quoted_heading(element) -> bool:
+    """An article heading quoted inside the act's text, not one of its own articles.
+
+    An amending act's OJ page sets the articles it replaces or inserts in another act in a
+    table cell, the first of a run opening with «: dir. 2009/136 (six articles) quotes art.
+    21, 22, 23, 23 bis and 27 of dir. 2002/22, and they were listed and served as its own.
+    The act's own articles never sit in a table cell (checked on every EUR-Lex test page).
+    """
+    return (element.get_text(strip=True).startswith(("«", "“"))
+            or element.find_parent("td") is not None)
+
+
+# An ordinal after a heading's number: a whole word («15 bis», «15 BIS», «15-bis»), or a lower-case
+# ordinal glued to the capital that opens the text after it, as a class-less page whose heading and
+# text share an element reads «Articolo 15 bisTesto». A capital after a lower-case ordinal never
+# starts a word of it; «Articolo 1 Bisogna» and «Articolo 1Terzi» stay art. 1.
+HEADING_ORDINAL = (rf"(?:(?:{ARTICLE_SUFFIX_ALTERNATION})(?![^\W\d_])"
+                   rf"|(?-i:(?:{ARTICLE_SUFFIX_ALTERNATION})(?=[A-ZÀ-Ý])))")
 
 
 # --- Recitals -------------------------------------------------------------
@@ -269,10 +288,10 @@ def _cons_lines(element) -> list[str]:
     return lines
 
 
-# An ordinal right after a heading's number ("Articolo 15 bis", "Articolo 15bis"), a whole
-# word: "Articolo 1 Terzi" is art. 1 with its rubrica run on, not an ordinal.
-_ORDINAL_AFTER_NUMBER = re.compile(
-    rf"[\s\-]*+(?:{ARTICLE_SUFFIX_ALTERNATION})(?![^\W\d_])", re.IGNORECASE)
+# An ordinal right after a heading's number ("Articolo 15 bis", "Articolo 15bis", and glued to the
+# text after it, "Articolo 15 bisTesto"), never the head of a word: "Articolo 1 Terzi" is art. 1
+# with its rubrica run on (`HEADING_ORDINAL`).
+_ORDINAL_AFTER_NUMBER = re.compile(rf"[\s\-]*+{HEADING_ORDINAL}", re.IGNORECASE)
 
 
 def _number_ends_here(rest) -> bool:
@@ -357,9 +376,12 @@ def extract_article_text(soup, article):
 
     article_section = None
 
+    # A heading quoted inside the act (an amending act's replaced or inserted articles, in a
+    # table cell) is another act's article: no strategy takes it (`is_quoted_heading`).
+
     # Strategy 1: Look for <p class="ti-art"> (original selector)
     for pattern in search_patterns:
-        article_section = soup.find(lambda tag: tag.name == 'p' and 'ti-art' in tag.get('class', []) and _heads_article(tag.get_text(strip=True), pattern))
+        article_section = soup.find(lambda tag: tag.name == 'p' and 'ti-art' in tag.get('class', []) and _heads_article(tag.get_text(strip=True), pattern) and not is_quoted_heading(tag))
         if article_section:
             log.debug(f"Found article with ti-art class using pattern: {pattern}")
             break
@@ -367,7 +389,7 @@ def extract_article_text(soup, article):
     # Strategy 2: Look for any element with class containing 'art' or 'title'
     if not article_section:
         for pattern in search_patterns:
-            article_section = soup.find(lambda tag: tag.get('class') and any('art' in c.lower() or 'title' in c.lower() for c in tag.get('class', [])) and _heads_article(tag.get_text(strip=True), pattern))
+            article_section = soup.find(lambda tag: tag.get('class') and any('art' in c.lower() or 'title' in c.lower() for c in tag.get('class', [])) and _heads_article(tag.get_text(strip=True), pattern) and not is_quoted_heading(tag))
             if article_section:
                 log.debug(f"Found article with art/title class using pattern: {pattern}")
                 break
@@ -388,7 +410,7 @@ def extract_article_text(soup, article):
             match = article_regex.match(text)
             return bool(match) and _number_ends_here(text[match.end():])
 
-        article_section = soup.find(lambda tag: tag.name in ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] and heads_by_regex(tag.get_text(strip=True)))
+        article_section = soup.find(lambda tag: tag.name in ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] and heads_by_regex(tag.get_text(strip=True)) and not is_quoted_heading(tag))
         if article_section:
             log.debug("Found article using regex text match")
 
@@ -396,7 +418,9 @@ def extract_article_text(soup, article):
     if not article_section:
         subdivisions = soup.find_all('div', class_=lambda c: c and 'eli-subdivision' in c)
         for subdiv in subdivisions:
-            title_elem = subdiv.find(['p', 'span', 'div'], string=lambda s: s and any(_heads_article(s.strip(), p) for p in search_patterns))
+            title_elem = subdiv.find(lambda tag: tag.name in ('p', 'span', 'div') and tag.string
+                                     and any(_heads_article(tag.string.strip(), p) for p in search_patterns)
+                                     and not is_quoted_heading(tag))
             if title_elem:
                 article_section = subdiv
                 log.debug("Found article in eli-subdivision")

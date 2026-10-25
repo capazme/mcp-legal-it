@@ -579,12 +579,16 @@ entry, it is the same feature as ported to the 3.0 line.
   and without the Official Journal's footnote calls. `cite_law` still prints «(42)»
   before it, as the label. A legacy page's recitals are read in their sequence, so a
   footnote numbered like a recital is never taken for one.
-- **EUR-Lex readers re-pinned to VisuaLex `36ed6942`**: a heading «Articolo 15 bis»
-  no longer answers a request for art. 15 on any markup, and the article opens in
-  any spelling («15 bis», «15-bis», «15bis»). The consolidated-text regexes are linear
-  on long runs of blanks, and a legacy page's title comes from its Italian ELI
-  metadata. The 782 article texts of the GDPR, the AI Act and the TFUE are
-  unchanged.
+- **EUR-Lex readers re-pinned to VisuaLex `b2f7a30f`** (its PRs up to #312): a heading
+  «Articolo 15 bis» no longer answers a request for art. 15 on any markup, «Articolo
+  15 bisTesto» included, and the article opens in any spelling («15 bis», «15-bis»,
+  «15bis»). A heading an amending act quotes (in a table cell, or opening with «)
+  is never one of its articles, in the text, the index and the rubriche. The
+  consolidated-text regexes are linear on long runs of blanks, and the title comes
+  from the Italian ELI metadata of a legacy page and from `title-doc-first` of the
+  consolidated GDPR. The checks this package kept in its wrapper for these cases are
+  gone: VisuaLex's reader does the same. The article texts of the GDPR, the AI Act
+  and the TFUE are unchanged.
 - **EU article text: VisuaLex's reader, from CELLAR, one page per act.** The text
   of an article of an EU act is read by VisuaLex's extractor
   (`lib/visualex/eurlex_text.py`, `eurlex_scraper.py` at `493a8dd1`), whose text is
@@ -859,8 +863,8 @@ entry, it is the same feature as ported to the 3.0 line.
   trovato»; where the act's own article has its `div#art_N`, a text whose first
   lines are not the own heading and the line after it is refused. On the legacy
   class-less page the first heading naming the article decides (a «-heading is
-  skipped): inside a table cell it is a quotation. These checks sit in our
-  wrapper and only refuse; the imported reader is untouched (reported upstream).
+  skipped): inside a table cell it is a quotation. VisuaLex's reader does the same
+  since `b2f7a30f` (its #312), which the 3.0 line imports.
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the

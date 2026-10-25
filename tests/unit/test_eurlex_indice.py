@@ -8,12 +8,10 @@ import json
 from pathlib import Path
 
 import pytest
-from bs4 import BeautifulSoup
 
 from mcp_legal_it import api
 from mcp_legal_it.lib.visualex import eurlex_consolidate as ec
 from mcp_legal_it.lib.visualex import scraper
-from mcp_legal_it.lib.visualex.eurlex_tree import _extract_eurlex_rubriche, _parse_eurlex_tree
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "visualex" / "eurlex"
 CELLAR = "https://publications.europa.eu/resource/celex/"
@@ -51,32 +49,23 @@ class _Cellar:
         return _Client()
 
 
-class TestOurAdaptations:
-    """(A) and (B) in eurlex_tree.py's header: VisuaLex adopts both in its PR #312."""
-
-    def test_an_oj_article_keeps_its_ordinal_in_the_tree_and_the_rubriche(self):
-        soup = BeautifulSoup(_page("synthetic_oj_article_15_bis.html"), "html.parser")
-        result, count, metadata = _parse_eurlex_tree(soup, "https://eur-lex.europa.eu/eli/reg/2099/1/oj/ita")
-        numeri = [item["numero"] for item in result if isinstance(item, dict)]
-        assert "15-bis" in numeri and "15" not in numeri
-        assert "15-bis" in metadata["rubriche"] and "15" not in metadata["rubriche"]
-
-    def test_the_articles_an_amending_act_quotes_are_not_in_its_index(self):
-        soup = BeautifulSoup(_page("dir2009_136_oj_art1_2_trimmed.html"), "html.parser")
-        result, count, metadata = _parse_eurlex_tree(soup, "https://eur-lex.europa.eu/eli/dir/2009/136/oj/ita")
-        assert [item["numero"] for item in result if isinstance(item, dict)] == ["1", "2"] and count == 2
-        assert set(_extract_eurlex_rubriche(soup)) == {"1", "2"}
+class TestTheWrapper:
+    """``scraper._extract_eurlex_article`` on VisuaLex's extractor: the ordinal and the quoted
+    headings are VisuaLex's own since b2f7a30f (its PR #312), tested in test_eurlex_tree.py."""
 
     @pytest.mark.parametrize("spelling", ["15 bis", "15-bis", "15bis"])
     def test_the_suffixed_article_opens_in_any_spelling(self, spelling):
         assert "Articolo inserito" in scraper._extract_eurlex_article(_page("synthetic_oj_article_15_bis.html"),
                                                                       spelling).replace("\xa0", " ")
 
-    def test_our_suffix_guard_is_still_needed_on_a_class_less_glued_page(self):
-        # VisuaLex #309 checks the ordinal after the number, but here the heading's text runs
-        # into the next words («Articolo 15 bisTesto»): only our wrapper refuses it.
+    def test_a_class_less_glued_ordinal_is_not_the_plain_article(self):
+        # «Articolo 15 bisTesto»: the heading's text runs into the next words.
         html = '<html><body><div class="eli-subdivision"><p>Articolo 15 bis</p><p>Testo.</p></div></body></html>'
         assert scraper._extract_eurlex_article(html, "15") == "[Articolo 15 non trovato nel documento EUR-Lex]"
+
+    def test_an_article_an_amending_act_quotes_is_not_its_own(self):
+        html = _page("dir2009_136_oj_art1_2_trimmed.html")
+        assert scraper._extract_eurlex_article(html, "23") == "[Articolo 23 non trovato nel documento EUR-Lex]"
 
 
 @pytest.fixture
@@ -143,7 +132,7 @@ class TestTheApi:
 
 async def test_a_consolidated_title_in_the_first_lines_only(monkeypatch, no_lookup):
     # The GDPR's consolidation names the act in `title-doc-first` and keeps only the EEA note in
-    # `title-doc-last`: VisuaLex's reader gave no title.
+    # `title-doc-last`: VisuaLex's reader finds the subject there since b2f7a30f.
     from mcp_legal_it.lib.visualex.models import Norma
 
     page = ('<html><body><p class="title-doc-first">REGOLAMENTO (UE) 2016/679 DEL PARLAMENTO EUROPEO E DEL '
