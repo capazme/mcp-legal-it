@@ -107,4 +107,4 @@ def test_the_stock_server_still_registers_every_tool_after_the_api_is_imported()
         env={**os.environ, "PYTHONPATH": str(PACKAGE_ROOT)}, capture_output=True, text=True, timeout=120,
     )
     assert out.returncode == 0, out.stderr
-    assert int(out.stdout.strip().splitlines()[-1]) == 228
+    assert int(out.stdout.strip().splitlines()[-1]) == 231
