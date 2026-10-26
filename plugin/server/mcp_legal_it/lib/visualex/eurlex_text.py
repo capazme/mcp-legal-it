@@ -2,9 +2,9 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at 02ebc80a
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/services/eurlex_scraper.py at d067f710
 # (the recitals, the consolidated-text reader, ``extract_article_text`` with ``extract_table_text``)
-# and services/visualex/visualex_api/tools/treextractor.py at 02ebc80a (``strip_amendment_markers``,
+# and services/visualex/visualex_api/tools/treextractor.py at d067f710 (``strip_amendment_markers``,
 # ``is_quoted_heading`` to ``eurlex_heading_number``, the heading helpers);
 # first at 493a8dd1. Generated, not edited: the scratch generator ``gen_eurlex.py`` rebuilds it for a
 # re-pin. Adapted: the scraper's two methods are plain functions (no ``self``); structlog is a no-op
@@ -92,11 +92,23 @@ _GLUED_HEADING = re.compile(r"[.;:]\s+((?:Articolo|Article)\s+(\d+))$")
 _HEADING_TAGS = ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4']
 
 
+def _body_follows(elem) -> bool:
+    """Whether the next sibling with text is an article's body, not another heading or nothing."""
+    sibling = elem.find_next_sibling()
+    while sibling is not None:
+        text = sibling.get_text(strip=True)
+        if text:
+            return eurlex_heading_number(text) is None
+        sibling = sibling.find_next_sibling()
+    return False
+
+
 def glued_headings(soup):
     """The article headings glued to the end of a class-less paragraph, as {number: (paragraph,
     where the heading starts in its stripped text)}. Only the article right after the one before
-    it, and never one that an element of its own heads: a sentence ending «… Articolo 11» is
-    otherwise a reference, not a heading."""
+    it, never one that an element of its own heads, and only with a body after it: a sentence
+    ending «… Articolo 11» is otherwise a reference, not a heading. Nor a paragraph quoted in the
+    act or set in a table cell (`is_quoted_heading`): there it is another act's text."""
     own = set()
     for elem in soup.find_all(_HEADING_TAGS):
         number = None if is_quoted_heading(elem) else eurlex_heading_number(elem.get_text(strip=True))
@@ -111,7 +123,8 @@ def glued_headings(soup):
             continue
         match = _GLUED_HEADING.search(text) if elem.name == 'p' and not elem.get('class') else None
         if (match and match.group(2) not in own and previous is not None and previous.isdigit()
-                and int(match.group(2)) == int(previous) + 1):
+                and int(match.group(2)) == int(previous) + 1
+                and not is_quoted_heading(elem) and _body_follows(elem)):
             found[match.group(2)] = (elem, match.start(1))
             previous = match.group(2)
     return found

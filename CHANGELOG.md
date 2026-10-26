@@ -597,6 +597,12 @@ entry, it is the same feature as ported to the 3.0 line.
   keeps them in the text: «dati(4)» in recital 1 of dir. 2002/58). `cite_law` still prints «(42)»
   before it, as the label. A legacy page's recitals are read in their sequence, so a
   footnote numbered like a recital is never taken for one.
+- **EUR-Lex readers re-pinned to VisuaLex `d067f710`** (its #346, the findings of the
+  #94 review): a heading glued to the end of a paragraph is an article only when a
+  body follows it, and never in a paragraph quoted by the act or set in a table cell
+  (no «phantom» article); the regex of an old Official Journal title is linear on
+  long runs of blanks. On 23 whole pages and fixtures, 1325 of 1325 article texts,
+  the trees, the rubriche and the titles are unchanged.
 - **VisuaLex re-pinned to `02ebc80a`** (its #342 and #343, and the review of #279):
   - EUR-Lex: on a legacy class-less Official Journal page a heading glued to the
     end of the paragraph before it («… della prescrizione. Articolo 11») is read

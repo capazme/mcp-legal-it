@@ -2,7 +2,7 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at 02ebc80a: TestConsolidatedRubriche, TestEurlexTitle,
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at d067f710: TestConsolidatedRubriche, TestEurlexTitle,
 # TestConsolidatedTree, TestQuotedArticles, TestEliTitleOfTheItalianExpression, TestGluedHeading
 # and TestConsolidatedTitleFromTheFirstRun (TestTreeFailuresAreNotKept tests VisuaLex's
 # Playwright cache, not imported).
@@ -366,7 +366,73 @@ class TestHeadingGluedToTheParagraphBefore:
         "<p>Articolo 1</p><p>Testo. Articolo 5</p><p>Altro.</p>",
         # A paragraph with a class is not a legacy page's.
         '<p>Articolo 1</p><p class="oj-normal">Testo. Articolo 2</p><p>Altro.</p>',
+        # Nothing after it: art. 3 does not exist, the sentence ends the act's text.
+        "<p>Articolo 2</p><p>… misure previste. Articolo 3</p>",
+        "<p>Articolo 2</p><p>… misure previste; Articolo 3</p>",
+        "<p>Articolo 2</p><p>… misure previste. Articolo 3</p><p> </p><p>\xa0</p>",
+        # Another heading after it: art. 3 would have no body.
+        "<p>Articolo 2</p><p>Testo. Articolo 3</p><p>Articolo 4</p><p>Testo.</p>",
+        # A paragraph in a table cell is another act's text, as a heading there is.
+        "<p>Articolo 2</p><table><tr><td><p>blah. Articolo 3</p><p>Testo.</p></td></tr></table><p>Altro.</p>",
+        # A quoted paragraph, likewise.
+        "<p>Articolo 2</p><p>«Testo. Articolo 3</p><p>Altro.</p>",
+        # Real cross-references: no sentence ends before them, or the number is not one.
+        "<p>Articolo 2</p><p>Le misure previste dall'Articolo 3</p><p>Altro.</p>",
+        "<p>Articolo 2</p><p>Testo. Articolo 2 bis</p><p>Altro.</p>",
+        "<p>Articolo 2</p><p>Testo. Articolo 7</p><p>Altro.</p>",
     ])
     def test_only_the_next_article_with_no_heading_of_its_own(self, page):
         from mcp_legal_it.lib.visualex.eurlex_tree import glued_headings
         assert glued_headings(BeautifulSoup(page, "html.parser")) == {}
+
+    def test_a_glued_heading_with_a_body_after_it_is_one(self):
+        from mcp_legal_it.lib.visualex.eurlex_tree import glued_headings
+        page = "<p>Articolo 2</p><p>Testo. Articolo 3</p><p> </p><p>Corpo.</p>"
+        assert {n: start for n, (_, start) in glued_headings(BeautifulSoup(page, "html.parser")).items()} == {"3": 7}
+
+    URL_SYNTHETIC = "https://eur-lex.europa.eu/eli/dir/1/1/oj/ita"
+    TAIL = "<p>Articolo 1</p><p>Testo.</p><p>Articolo 2</p><p>Primo.</p><p>… misure previste. Articolo 3</p>"
+
+    def test_a_last_sentence_ending_on_a_missing_article_lists_no_article(self):
+        # Bartolo's repro: the index listed an art. 3, served as «Articolo 3» with no body.
+        result, count, _ = _parse_eurlex_tree(BeautifulSoup(self.TAIL, "html.parser"), self.URL_SYNTHETIC)
+        assert [item["numero"] for item in result] == ["1", "2"] and count == 2
+        with pytest.raises(DocumentNotFoundError):
+            extract_article_text(BeautifulSoup(self.TAIL, "html.parser"), "3")
+
+    def test_the_article_before_keeps_its_tail(self):
+        text = extract_article_text(BeautifulSoup(self.TAIL, "html.parser"), "2")
+        assert text == "Articolo 2\nPrimo.\n… misure previste. Articolo 3"
+
+
+class TestDescriptionSubjectIsLinear:
+    """`(?:,\\s*|\\s+)dell?…` restarted at every blank of a run and scanned the rest of it each time:
+    0.75 s on 20,000 blanks. Matched now only from a run's first blank, with the same result."""
+
+    OLD = re.compile(r"(?:,\s*|\s+)dell?['’\s]\s*\d{1,2}[°º]?\s+\S+\s+\d{4}\s*,?\s*(.+)$",
+                     re.IGNORECASE | re.DOTALL)
+
+    def test_same_matches_as_the_quadratic_pattern(self):
+        import random
+        from mcp_legal_it.lib.visualex.eurlex_tree import _EURLEX_DESCRIPTION_SUBJECT
+
+        rng = random.Random(20261025)
+        tokens = [" ", " ", "\xa0", "\n", "\t", ",", "del", "dell'", "dell’", "DEL", "de", "l", "1", "25",
+                  "°", "luglio", "1985", "x", "relativa", "(", ")"]
+        for _ in range(20000):
+            text = "".join(rng.choice(tokens) for _ in range(rng.randint(0, 18)))
+            new, old = _EURLEX_DESCRIPTION_SUBJECT.search(text), self.OLD.search(text)
+            assert (new and (new.span(), new.group(1))) == (old and (old.span(), old.group(1))), repr(text)
+
+    @pytest.mark.parametrize("text", [
+        "x" + " " * 50_000 + "x",
+        "x" + "\xa0" * 50_000 + "x",
+        "Direttiva del 25 luglio" + " " * 50_000,
+    ])
+    def test_a_long_run_of_blanks_costs_linear_time(self, text):
+        import time
+        start = time.perf_counter()
+        page = f'<meta about="http://data.europa.eu/eli/dir/1/1/oj/ita" content="{text}" lang="it" property="eli:title"/>'
+        assert _extract_eurlex_title(BeautifulSoup(page, "html.parser")) == ""
+        # Before: about 6 s for these 50,000 blanks. A linear pass takes milliseconds.
+        assert time.perf_counter() - start < 0.5
