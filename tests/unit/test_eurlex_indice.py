@@ -89,7 +89,8 @@ class TestGluedHeadingProbes:
 
     def test_no_glued_heading_inside_a_table_cell(self):
         html = ("<html><body><p>Articolo 1</p><p>Testo dell'articolo 1.</p><p>Articolo 2</p>"
-                "<table><tr><td><p>Testo citato di un altro atto. Articolo 3</p></td></tr></table>"
+                # A body follows inside the same cell, so only the table-cell guard refuses it.
+                "<table><tr><td><p>Testo citato di un altro atto. Articolo 3</p><p>Testo.</p></td></tr></table>"
                 "<p>Il corpo che segue.</p></body></html>")
         assert self._tree(html) == ["1", "2"]
         assert scraper._extract_eurlex_article(html, "3") == "[Articolo 3 non trovato nel documento EUR-Lex]"
