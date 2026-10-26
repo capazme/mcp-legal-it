@@ -2,7 +2,7 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at 02ebc80a: the
+# Imported from VisuaLex (MPL-2.0), services/visualex/visualex_api/tools/treextractor.py at d067f710: the
 # EUR-Lex half (``_parse_eurlex_tree`` to ``_sort_eurlex_results``); first at 36ed6942. Generated,
 # not edited (scratch ``gen_eurlex.py``). Adapted: ``_parse_eurlex_tree`` awaited nothing and is a
 # plain function; the records go to the standard ``logging`` module, configured by the caller
@@ -255,8 +255,11 @@ def _extract_eurlex_rubriche(soup):
 _EURLEX_DATE_LINE = re.compile(r"^dell?['’\s]\s*\d", re.IGNORECASE)
 # The legacy page's description: "Direttiva 2002/58/CE del Parlamento europeo e del Consiglio, del 12 luglio 2002, relativa al …";
 # an older act's has no commas round the date ("Direttiva 85/374/CEE del Consiglio del 25 luglio 1985 relativa al …").
+# The blanks before "del" are matched only from a run's first one (`(?<!\s)`), or a search restarted
+# at every blank of a long run and scanned the rest of it each time: 0.75 s on 20,000 blanks. Same
+# matches as `(?:,\s*|\s+)del…`.
 _EURLEX_DESCRIPTION_SUBJECT = re.compile(
-    r"(?:,\s*|\s+)dell?['’\s]\s*\d{1,2}[°º]?\s+\S+\s+\d{4}\s*,?\s*(.+)$", re.IGNORECASE | re.DOTALL)
+    r"(?:,|(?<!\s)\s)\s*dell?['’\s]\s*\d{1,2}[°º]?\s+\S+\s+\d{4}\s*,?\s*(.+)$", re.IGNORECASE | re.DOTALL)
 
 
 def _eurlex_subject(lines):
