@@ -2,7 +2,7 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at 02ebc80a: TestConsolidatedArticleText, TestOneLinePerPoint,
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_consolidated.py at d067f710: TestConsolidatedArticleText, TestOneLinePerPoint,
 # TestNoSpaceBeforePunctuation, TestStripAmendmentMarkers and TestWhitespaceRunsAreLinear (the tree,
 # rubriche and title classes are in test_eurlex_tree.py); this package's own tests follow them.
 # Generated (scratch gen_eurlex_tests.py): VisuaLex's assertions as they are; the extractor and

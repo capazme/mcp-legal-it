@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
+from bs4 import BeautifulSoup
 
 from mcp_legal_it import api
 from mcp_legal_it.lib.visualex import eurlex_consolidate as ec
@@ -66,6 +67,39 @@ class TestTheWrapper:
     def test_an_article_an_amending_act_quotes_is_not_its_own(self):
         html = _page("dir2009_136_oj_art1_2_trimmed.html")
         assert scraper._extract_eurlex_article(html, "23") == "[Articolo 23 non trovato nel documento EUR-Lex]"
+
+
+class TestGluedHeadingProbes:
+    """The two probes of the #94 review (VisuaLex #346 fixed both): a heading glued to the end of a
+    paragraph is an article only with a body after it, and never inside a table cell."""
+
+    URL = "https://eur-lex.europa.eu/eli/dir/1985/374/oj/ita"
+
+    def _tree(self, html):
+        from mcp_legal_it.lib.visualex.eurlex_tree import _parse_eurlex_tree
+
+        result, _, _ = _parse_eurlex_tree(BeautifulSoup(html, "html.parser"), self.URL)
+        return [item["numero"] for item in result if isinstance(item, dict)]
+
+    def test_no_phantom_article_without_a_body(self):
+        html = ("<html><body><p>Articolo 1</p><p>Testo dell'articolo 1.</p><p>Articolo 2</p>"
+                "<p>Il testo rinvia, come previsto. Articolo 3</p></body></html>")
+        assert self._tree(html) == ["1", "2"]
+        assert scraper._extract_eurlex_article(html, "3") == "[Articolo 3 non trovato nel documento EUR-Lex]"
+
+    def test_no_glued_heading_inside_a_table_cell(self):
+        html = ("<html><body><p>Articolo 1</p><p>Testo dell'articolo 1.</p><p>Articolo 2</p>"
+                # A body follows inside the same cell, so only the table-cell guard refuses it.
+                "<table><tr><td><p>Testo citato di un altro atto. Articolo 3</p><p>Testo.</p></td></tr></table>"
+                "<p>Il corpo che segue.</p></body></html>")
+        assert self._tree(html) == ["1", "2"]
+        assert scraper._extract_eurlex_article(html, "3") == "[Articolo 3 non trovato nel documento EUR-Lex]"
+
+    def test_a_glued_heading_with_its_body_is_still_read(self):
+        html = ("<html><body><p>Articolo 1</p><p>Testo dell'articolo 1.</p><p>Articolo 2</p>"
+                "<p>Testo dell'articolo 2. Articolo 3</p><p>Testo dell'articolo 3.</p></body></html>")
+        assert self._tree(html) == ["1", "2", "3"]
+        assert "Testo dell'articolo 3." in scraper._extract_eurlex_article(html, "3")
 
 
 @pytest.fixture

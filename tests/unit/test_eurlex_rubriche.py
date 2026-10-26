@@ -2,7 +2,7 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 #
-# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_rubriche.py at 02ebc80a.
+# Imported from VisuaLex (MPL-2.0), services/visualex/tests/test_eurlex_rubriche.py at d067f710.
 # Generated (scratch gen_eurlex_tests.py): VisuaLex's assertions as they are; the extractor and
 # the tree reader are plain functions here, the fixtures are tests/fixtures/visualex/eurlex.
 """Article titles for EUR-Lex acts.
