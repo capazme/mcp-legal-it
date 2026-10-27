@@ -12,6 +12,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from mcp_legal_it.tool_annotations import READ_ONLY, WRITES_FILES
 
 REPO = Path(__file__).resolve().parents[2]
@@ -72,6 +73,7 @@ def test_profile_narrows_the_surface(tmp_path):
                    env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "LEGAL_CACHE": "off"})
     report = json.loads(out.read_text(encoding="utf-8"))
     assert report["meta"]["profile"] == "calcoli"
+    assert report["totals"]["tools"] > 0
     assert set(report["by_kind"]) <= {"calcolo", "diagnostica"}
 
 
@@ -106,3 +108,73 @@ def test_subset_server_keeps_module_attribution_and_ignores_an_inherited_profile
     assert "?" not in report["by_module"]
     assert set(report["by_kind"]) <= {"normativa", "giurisprudenza"}
     assert report["totals"]["tools"] > 0
+
+
+def test_output_row_measures_text_structured_and_meta():
+    text = "Art. 1284 c.c. — testo"
+    row = token_report.output_row({
+        "tool": "cite_law", "args": {"reference": "art. 1284 c.c."}, "missed_requests": 0,
+        "wire": {"content": [{"type": "text", "text": text}], "structuredContent": {"result": text},
+                 "_meta": {"k": "v"}, "isError": False},
+    })
+    assert row["call"] == 'cite_law {"reference": "art. 1284 c.c."}'
+    assert row["text_chars"] == len(text)
+    assert row["structured_chars"] == token_report.compact({"result": text})
+    assert row["structured_duplicates_text"] is True
+    assert row["meta_chars"] == token_report.compact({"k": "v"})
+    # a calculator: the text is the structuredContent serialized, estimated as JSON
+    data = {"totale": 1081.68, "nota": "abc"}
+    calc = token_report.output_row({"tool": "interessi_legali", "args": {}, "missed_requests": 0,
+                                    "wire": {"content": [{"type": "text", "text": json.dumps(data)}],
+                                             "structuredContent": data}})
+    assert calc["structured_duplicates_text"] is True
+    assert calc["text_tokens"] == token_report.value_tokens(data)
+
+
+def _report(calls, **meta):
+    rows = [{"call": c, "text_chars": n, "structured_chars": n, "wire_chars": 2 * n, "is_error": False,
+             "missed_requests": missed} for c, n, missed in calls]
+    totals = {"text_chars": sum(r["text_chars"] for r in rows)}
+    return {"measure": "outputs", "meta": {"sha": "x", "fastmcp": "3.4.2", "clock": "c", "env": {}, **meta},
+            "totals": totals, "calls": rows}
+
+
+def _compare(tmp_path, base, head, capsys):
+    (tmp_path / "a.json").write_text(json.dumps(base), encoding="utf-8")
+    (tmp_path / "b.json").write_text(json.dumps(head), encoding="utf-8")
+    code = token_report.compare(tmp_path / "a.json", tmp_path / "b.json", top=5)
+    return code, capsys.readouterr().out
+
+
+def test_compare_fails_on_a_call_that_missed_the_tape(tmp_path, capsys):
+    base = _report([("cite_law x", 8259, 0)])
+    head = _report([("cite_law x", 137, 3)])  # an empty tape: a short error, not a saving
+    code, out = _compare(tmp_path, base, head, capsys)
+    assert code == 1
+    assert "FAILED" in out and "head: `cite_law x`: 3 request(s) not on tape" in out
+
+
+def test_compare_passes_clean_replays_and_warns_on_a_different_setup(tmp_path, capsys):
+    base = _report([("cite_law x", 8259, 0)])
+    head = _report([("cite_law x", 4000, 0)], fastmcp="4.1.4")
+    code, out = _compare(tmp_path, base, head, capsys)
+    assert code == 0
+    assert "8,259 → 4,000" in out
+    assert "Note: fastmcp differs" in out
+
+
+def test_outputs_worker_env_keeps_only_the_pinned_server_variables(monkeypatch):
+    monkeypatch.setenv("LEGAL_TODAY", "2031-06-01")
+    monkeypatch.setenv("AKN_DISABLED", "1")
+    monkeypatch.setenv("UNRELATED", "kept")
+    env = token_report._worker_env({"LEGAL_NOW": "2026-10-21T12:00:00"})
+    assert env["LEGAL_NOW"] == "2026-10-21T12:00:00"
+    assert "LEGAL_TODAY" not in env and "AKN_DISABLED" not in env
+    assert env["UNRELATED"] == "kept"
+
+
+def test_a_tape_on_a_tracked_path_inside_the_repo_is_refused(tmp_path):
+    token_report._refuse_a_committable_tape(token_report.DEFAULT_TAPE.resolve())  # ignored: accepted
+    token_report._refuse_a_committable_tape(tmp_path / "t.json.gz")  # outside the repo: accepted
+    with pytest.raises(SystemExit):
+        token_report._refuse_a_committable_tape((REPO / "docs" / "t.json.gz").resolve())

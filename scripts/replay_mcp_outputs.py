@@ -99,13 +99,13 @@ _ENV = {"LEGAL_NOW": "2026-10-21T12:00:00", "LEGAL_CACHE": "off", "PYTHONHASHSEE
 # ---------------------------------------------------------------------------
 
 
-def install_tape_transport(mode: str, tape_path: str) -> dict[str, list[dict]]:
+def install_tape_transport(mode: str, tape_path: str, misses: list[str] | None = None) -> dict[str, list[dict]]:
     """Route every ``httpx.AsyncClient`` of this process through the tape.
 
     ``mode`` is ``record`` (real network, every exchange appended to the returned
     dict: save it with ``save_tape``) or ``replay`` (served from ``tape_path``, a
-    request missing from it fails like a network error). Also used by
-    ``scripts/token_report.py``.
+    request missing from it fails like a network error, and its key is appended
+    to ``misses`` when one is given). Also used by ``scripts/token_report.py``.
     """
     import httpx
 
@@ -141,6 +141,8 @@ def install_tape_transport(mode: str, tape_path: str) -> dict[str, list[dict]]:
             k = key(request)
             entries = tape.get(k)
             if not entries:
+                if misses is not None:
+                    misses.append(k)
                 raise httpx.ConnectError(f"not on tape: {k}", request=request)
             i = cursor.get(k, 0)
             cursor[k] = i + 1

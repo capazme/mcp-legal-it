@@ -23,7 +23,7 @@ Each offline measure writes JSON; `compare` diffs two reports of the same measur
 
 ```bash
 python scripts/token_report.py tools [--profile P | --include-tags a,b --exclude-tags c] [--json F] [--top N]
-python scripts/token_report.py outputs --tape T.json.gz [--record] [--json F]
+python scripts/token_report.py outputs [--tape T.json.gz] [--record] [--json F]
 python scripts/token_report.py compare base.json head.json
 ```
 
@@ -38,10 +38,25 @@ python scripts/token_report.py compare base.json head.json
    - `outputs --tape <tape> --json head-out.json`: offline, same tape
 3. Run `compare` on each pair, and paste the tables into the PR.
 
-A cut that changes which HTTP requests a tool makes fails the replay with
-"not on tape", and the report flags that call. Record the tape on the base
+The tape defaults to `.replay-tapes/token-calls.json.gz`, which git ignores; when
+the base and the head are two worktrees, pass the same `--tape` to both. A path
+inside the repo that git does not ignore is refused. Record the tape on the base
 ref, never on the branch. Never commit a tape: it holds third-party content.
 The rules of `scripts/replay_mcp_outputs.py` apply.
+
+A cut that changes which HTTP requests a tool makes misses the tape. The
+replayer counts the missed requests per call. `outputs` marks those calls and
+exits 1, and `compare` lists them and exits 1. A failed replay answers in about
+140 characters, and without that check it would pass for a 98% saving.
+
+`compare` also warns when the two runs differ in setup instead of code:
+
+- the FastMCP version (FastMCP 4 adds `serverInfo` to every result's `_meta`);
+- the profile, the tag filters or the switches (`tools`);
+- the clock or the server environment (`outputs`).
+
+The `outputs` worker drops every `LEGAL_*` and `AKN_*` variable of the shell. It
+passes only the pinned ones, and the report records them.
 
 ## What `tools` counts
 
