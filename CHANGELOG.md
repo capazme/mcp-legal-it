@@ -805,6 +805,15 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **`decreto_ingiuntivo` writes amounts the Italian way.** The draft deed read
+  «Euro 25,000.00»; every amount in it (credit, declared value, contributo
+  unificato) is now «Euro 25.000,00», as the sollecito in the same module
+  already was.
+- **A profile no longer prints a false drift warning.** Under any
+  `LEGAL_PROFILE`, the first `tools/list` printed «tool_annotations: policy
+  names no longer registered: …» to stderr, listing every tool the profile
+  only hid. The check now reads the registered tools, so it speaks only when a
+  tool named in the policy is really gone.
 - **Art. 1 of the legge fallimentare is the law's, from its own page.** Its
   articles are annex 1 of r.d. 267/1942, and the URN lacked the part: the page
   of `;267~art1` is the approving decree's, so the law's art. 1 came only from

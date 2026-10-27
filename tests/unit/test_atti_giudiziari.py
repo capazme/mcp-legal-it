@@ -482,6 +482,15 @@ class TestDecretoIngiuntivo:
         r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=5000)
         assert "art. 14 co. 2 DPR 115/2002" in r["bozza_ricorso"]
 
+    def test_importi_in_formato_italiano(self):
+        # An Italian deed: "Euro 25.000,00", never the English "25,000.00"
+        r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=25000)
+        bozza = r["bozza_ricorso"]
+        assert "Euro 25.000,00" in bozza
+        cu = f"{r['riepilogo']['contributo_unificato']:.2f}".replace(".", ",")
+        assert f"il contributo dovuto è di Euro {cu}" in bozza
+        assert "25,000.00" not in bozza
+
     def test_tipo_credito_sconosciuto(self):
         r = _call("decreto_ingiuntivo", creditore="A", debitore="B", importo=5000, tipo_credito="inesistente")
         assert "errore" in r
@@ -503,8 +512,7 @@ class TestDecretoIngiuntivo:
 
     def test_bozza_contiene_importo(self):
         r = _call("decreto_ingiuntivo", creditore="Creditor SRL", debitore="Debtor SPA", importo=12345.67)
-        # Python {:,.2f} usa separatore US: "12,345.67"
-        assert "12,345.67" in r["bozza_ricorso"]
+        assert "12.345,67" in r["bozza_ricorso"]
 
     def test_condominiale_pe_motivo(self):
         r = _call(

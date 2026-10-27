@@ -358,7 +358,8 @@ def annotations_for(tool_name: str) -> ToolAnnotations | None:
 class ToolAnnotationMiddleware(Middleware):
     """Stamp the audited annotations on every `tools/list` response."""
 
-    def __init__(self) -> None:
+    def __init__(self, server) -> None:
+        self._server = server
         self._checked = False
 
     async def on_list_tools(self, context, call_next):
@@ -375,7 +376,9 @@ class ToolAnnotationMiddleware(Middleware):
                 }
         if not self._checked:
             self._checked = True
-            self._warn_on_drift(t.name for t in tools)
+            # Registered, not listed: a profile or a visibility filter hides tools
+            # without unregistering them, and that is not drift.
+            self._warn_on_drift(t.name for t in await self._server.local_provider.list_tools())
         return tools
 
     def _warn_on_drift(self, registered: Iterable[str]) -> None:
@@ -391,7 +394,7 @@ class ToolAnnotationMiddleware(Middleware):
 
 def apply_tool_annotations(server) -> None:
     """Install the annotation middleware on a FastMCP server."""
-    server.add_middleware(ToolAnnotationMiddleware())
+    server.add_middleware(ToolAnnotationMiddleware(server))
 '''
 
 
