@@ -989,14 +989,14 @@ class TestMinimiMetaEsattaAlCentesimo:
         r = _call("modello_notula", tipo_procedimento="decreto_ingiuntivo", avvocato="A",
                   cliente="B", valore_causa=3000, livello="min")
         assert r["dettaglio_calcoli"]["fasi"] == [{"fase": "unica", "importo": 236.5}]
-        assert "€236.50" in r["testo_notula"]
+        assert "€236,50" in r["testo_notula"]
 
     def test_preventivo_civile_porta_i_centesimi(self):
         # 65,50 + 65,50 + 100 + 100 = 331; SG 49,65; CPA 15,23 (15,226); IVA 87,09 (87,0936)
         r = _call("preventivo_civile", valore_causa=1000, livello="min")
         assert [f["importo"] for f in r["dettaglio_calcoli"]["fasi"]] == [65.5, 65.5, 100, 100]
         assert r["dettaglio_calcoli"]["totale_onorari"] == 482.97
-        assert "Fase studio: €65.50" in r["testo_preventivo"]
+        assert "Fase studio: €65,50" in r["testo_preventivo"]
 
     def test_il_massimo_e_una_volta_e_mezza_esatta_al_centesimo(self):
         # Come il minimo: 131 x 1,5 = 196,50 (non 197); 200 x 1,5 = 300

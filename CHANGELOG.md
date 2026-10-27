@@ -805,10 +805,27 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
-- **`decreto_ingiuntivo` writes amounts the Italian way.** The draft deed read
-  «Euro 25,000.00»; every amount in it (credit, declared value, contributo
-  unificato) is now «Euro 25.000,00», as the sollecito in the same module
-  already was.
+- **Amounts are written the Italian way in every tool's text.** Python's
+  default format put «Euro 25,000.00» in the decreto ingiuntivo, «€1,234.00»
+  in quotes and fee notes, «€1092.48» or «€850.0» elsewhere. They now read
+  «Euro 25.000,00», «€1.234,00», «€1.092,48», «€850,00». The fix covers:
+  - deeds: `decreto_ingiuntivo`, `sfratto_morosita`, `atto_di_precetto`,
+    `nota_precisazione_credito`, and the CU note of `note_iscrizione_ruolo`;
+  - quotes and fee notes: `preventivo_civile`, `preventivo_stragiudiziale`,
+    `preventivo_volontaria_giurisdizione`, `modello_notula`,
+    `spese_trasferta_avvocati`;
+  - other professionals: `compenso_curatore_fallimentare`,
+    `compenso_delegati_vendite`, `fattura_enasarco`;
+  - civil procedure: `competenza_giudice`, `gratuito_patrocinio`;
+  - GDPR: `calcolo_sanzione_gdpr`;
+  - ISTAT revaluation: `lettera_adeguamento_canone`, `calcolo_devalutazione`;
+  - interest: the `interessi_acconti` warnings;
+  - penal: the conversion rate of `conversione_pena`;
+  - attachment: the pension note of `pignoramento_stipendio`.
+
+  Every tool now formats amounts through one helper, `lib/_numeri.numero_it`:
+  the module copies call it instead of repeating the code. JSON numbers in
+  structured answers are unchanged.
 - **A profile no longer prints a false drift warning.** Under any
   `LEGAL_PROFILE`, the first `tools/list` printed «tool_annotations: policy
   names no longer registered: …» to stderr, listing every tool the profile

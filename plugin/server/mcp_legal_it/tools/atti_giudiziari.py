@@ -12,6 +12,7 @@ from fractions import Fraction
 from pathlib import Path
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -460,7 +461,7 @@ def pignoramento_stipendio(
         "minimo_impignorabile_pensioni": round(impignorabile_pensioni, 2),
         "nota_pensioni": (
             f"Per le pensioni è impignorabile la parte fino al doppio dell'assegno sociale, con un "
-            f"minimo di 1.000 euro (€{impignorabile_pensioni:.2f} con l'assegno sociale indicato); la "
+            f"minimo di 1.000 euro (€{numero_it(impignorabile_pensioni)} con l'assegno sociale indicato); la "
             f"quota si applica solo all'eccedenza (art. 545 co. 7 c.p.c.). Assegno sociale incluso: "
             f"anno {_ASSEGNO_SOCIALE_ANNO} — aggiornarlo con `assegno_sociale_mensile`."
         ),
@@ -481,7 +482,7 @@ def pignoramento_stipendio(
 
 def _eur_it(x: float) -> str:
     """Importo in formato italiano (1.234,56): le virgole all'inglese sono ambigue in una lettera."""
-    return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return numero_it(x)
 
 
 #: Ultimo giorno delle transazioni cui si applica la maggiorazione di 7 punti (art. 5 D.Lgs.
@@ -1040,7 +1041,7 @@ def note_iscrizione_ruolo(
     cu_importo = _calcola_cu_base(
         valore_causa or 0, cu_tipo, reddito_oltre_soglia=reddito_oltre_soglia_lavoro
     )
-    nota_cu = f"Iscrivere a ruolo come '{tipo_procedimento}'. CU calcolato: EUR {cu_importo:.2f}."
+    nota_cu = f"Iscrivere a ruolo come '{tipo_procedimento}'. CU calcolato: EUR {numero_it(cu_importo)}."
     if tipo_procedimento == "lavoro" and not reddito_oltre_soglia_lavoro:
         nota_cu += (" Esente (art. 9 co. 1-bis): il CU e' dovuto solo dalla parte con reddito superiore a tre "
                     "volte la soglia dell'art. 76; in tal caso passare reddito_oltre_soglia_lavoro=True.")
@@ -1554,8 +1555,8 @@ Il/La sottoscritto/a {locatore}, C.F. ___, residente in ___, rappresentato/a e d
 PREMESSO
 
 — che in data {dt_contratto.strftime('%d/%m/%Y')} è stato stipulato un contratto di locazione avente ad oggetto l'immobile sito in {immobile};
-— che il canone mensile pattuito ammonta ad Euro {canone_mensile:,.2f};
-— che il/la conduttore/trice {conduttore} si è reso/a moroso/a nel pagamento di n. {mensilita_insolute} mensilità, per un importo complessivo di Euro {totale_dovuto:,.2f};
+— che il canone mensile pattuito ammonta ad Euro {numero_it(canone_mensile)};
+— che il/la conduttore/trice {conduttore} si è reso/a moroso/a nel pagamento di n. {mensilita_insolute} mensilità, per un importo complessivo di Euro {numero_it(totale_dovuto)};
 — che, nonostante i solleciti, il/la conduttore/trice non ha provveduto al pagamento;
 
 INTIMA
@@ -1576,7 +1577,7 @@ Con espresso avvertimento che:
 5. Tra la notificazione e l'udienza debbono intercorrere termini liberi non minori di venti giorni (art. 660 co. 4 c.p.c.).
 
 Si chiede inoltre l'ingiunzione di pagamento ai sensi degli artt. 658 co. 1 e 664 co. 1 c.p.c., con decreto ingiuntivo per:
-— Euro {totale_dovuto:,.2f} per canoni scaduti e non pagati;
+— Euro {numero_it(totale_dovuto)} per canoni scaduti e non pagati;
 — canoni a scadere fino all'esecuzione dello sfratto;
 — spese e competenze del procedimento.
 
@@ -1640,12 +1641,12 @@ INTIMA
 
 a {debitore}, C.F. ___, residente/con sede in ___,
 
-di pagare, entro il termine di dieci giorni dalla notificazione del presente atto, la complessiva somma di Euro {totale:,.2f}, così composta:
+di pagare, entro il termine di dieci giorni dalla notificazione del presente atto, la complessiva somma di Euro {numero_it(totale)}, così composta:
 
-— Capitale:                Euro {importo_capitale:>12,.2f}
-— Interessi:               Euro {interessi:>12,.2f}
-— Spese legali:            Euro {spese:>12,.2f}
-— TOTALE:                  Euro {totale:>12,.2f}
+— Capitale:                Euro {numero_it(importo_capitale):>12}
+— Interessi:               Euro {numero_it(interessi):>12}
+— Spese legali:            Euro {numero_it(spese):>12}
+— TOTALE:                  Euro {numero_it(totale):>12}
 
 oltre interessi dalla data odierna al saldo effettivo, oltre spese del presente atto di precetto e successive occorrende.
 
@@ -1719,12 +1720,12 @@ PRECISA
 
 il proprio credito come segue, aggiornato alla data odierna:
 
-1. Capitale:                  Euro {capitale:>12,.2f}
-2. Interessi maturati:        Euro {interessi:>12,.2f}
-3. Spese legali:              Euro {spese_legali:>12,.2f}
-4. Spese di esecuzione:       Euro {spese_esecuzione:>12,.2f}
+1. Capitale:                  Euro {numero_it(capitale):>12}
+2. Interessi maturati:        Euro {numero_it(interessi):>12}
+3. Spese legali:              Euro {numero_it(spese_legali):>12}
+4. Spese di esecuzione:       Euro {numero_it(spese_esecuzione):>12}
    ——————————————————————————————————————
-   TOTALE:                    Euro {totale:>12,.2f}
+   TOTALE:                    Euro {numero_it(totale):>12}
 
 Oltre ulteriori interessi dalla data odierna al saldo effettivo al tasso legale vigente.
 

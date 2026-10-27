@@ -3,11 +3,11 @@ composizione negoziata (artt. 12-25-undecies CCII), concordato preventivo (artt.
 compenso OCC (D.M. 202/2014)."""
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 
 def _it(valore: float, decimali: int = 2) -> str:
     """Italian number format (thousands with a dot, decimals with a comma): 15000.5 -> '15.000,50'."""
-    testo = f"{valore:,.{decimali}f}"
-    return testo.replace(",", "\0").replace(".", ",").replace("\0", ".")
+    return numero_it(valore, decimali)
 
 
 # Art. 25-novies co. 1 lett. d) CCII: AdER threshold by legal form of the debtor (euro, "superiori a").

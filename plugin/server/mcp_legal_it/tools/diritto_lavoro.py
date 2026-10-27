@@ -9,6 +9,7 @@ from pathlib import Path
 
 from mcp_legal_it.lib import _clock, _data
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).parent.parent / "data"
@@ -26,7 +27,7 @@ _ALIAS_LIVELLO = {"quadri_1": "quadri", "quadri": "quadri_1"}
 
 def _it(valore: float) -> str:
     """Italian number format: 122295.0 -> '122.295,00'."""
-    return f"{valore:,.2f}".replace(",", "\0").replace(".", ",").replace("\0", ".")
+    return numero_it(valore)
 
 
 def _parse_date(d: str) -> date:

@@ -5,6 +5,7 @@ costi di costituzione."""
 from datetime import date, timedelta
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 
 
 def _parse_date(d: str) -> date:
@@ -576,7 +577,7 @@ def costi_costituzione(
         "voci_costo": voci,
         "totale_stimato_min": totale_min,
         "totale_stimato_max": totale_max,
-        "totale_stimato_formato": f"€{f'{totale_min:,.2f}'.replace(',', ' ').replace('.', ',').replace(' ', '.')} – €{f'{totale_max:,.2f}'.replace(',', ' ').replace('.', ',').replace(' ', '.')}",
+        "totale_stimato_formato": f"€{numero_it(totale_min)} – €{numero_it(totale_max)}",
         "capitale_minimo": capitale_minimo,
         "capitale_consigliato": capitale_consigliato,
         "note": note_extra,

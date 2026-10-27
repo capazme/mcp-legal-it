@@ -18,6 +18,7 @@ from datetime import date
 from pathlib import Path
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -841,7 +842,7 @@ def lettera_adeguamento_canone(
         f"il canone di locazione verrà adeguato sulla base della variazione "
         f"dell'indice ISTAT FOI (Famiglie di Operai e Impiegati).\n\n"
         f"DATI DI CALCOLO:\n"
-        f"- Canone mensile attuale: € {canone_attuale:.2f}\n"
+        f"- Canone mensile attuale: € {numero_it(canone_attuale)}\n"
         f"- Indice FOI alla stipula ({data_stipula}): {foi_stipula}\n"
         f"- Indice FOI all'adeguamento ({data_adeguamento}): {foi_adeguamento}\n"
         f"- Variazione ISTAT piena: {variazione_piena_pct:.2f}%\n"
@@ -849,7 +850,7 @@ def lettera_adeguamento_canone(
         f"{nota_ufficiale_riga}"
         f"- Percentuale applicata: {percentuale_istat}%\n"
         f"- Variazione applicata: {variazione_applicata_pct:.2f}%\n\n"
-        f"NUOVO CANONE MENSILE: € {canone_nuovo:.2f}\n"
+        f"NUOVO CANONE MENSILE: € {numero_it(canone_nuovo)}\n"
         f"(con decorrenza dal {data_adeguamento})\n\n"
         f"Si invita pertanto a corrispondere il canone aggiornato a partire "
         f"dalla data sopra indicata.\n\n"
@@ -922,7 +923,7 @@ def calcolo_devalutazione(
         "importo_in_data_passata": round(importo_passato, 2),
         "perdita_potere_acquisto_pct": round((1 - coefficiente) * 100, 2),
         "avvertenza": _formatta_avvertenza(sostituzioni),
-        "esempio": f"€ {importo_attuale:.2f} del {data_attuale} equivalevano a € {importo_passato:.2f} del {data_passata}",
+        "esempio": f"€ {numero_it(importo_attuale)} del {data_attuale} equivalevano a € {numero_it(importo_passato)} del {data_passata}",
     }
 
 
