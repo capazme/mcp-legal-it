@@ -418,13 +418,23 @@ def _worker_env(pinned: dict[str, str]) -> dict[str, str]:
 
 
 def _refuse_a_committable_tape(tape: Path) -> None:
-    """A tape holds third-party content: inside the repo it must be on an ignored path."""
-    if not tape.is_relative_to(REPO.resolve()):
-        return
-    ignored = subprocess.run(["git", "-C", str(REPO), "check-ignore", "-q", str(tape)]).returncode == 0
+    """A tape holds third-party content: inside any git repo it must be on an ignored path.
+
+    The repo is the one that contains the tape, not this checkout: from a worktree,
+    a path in the main checkout or in a superproject belongs to that repo.
+    """
+    anchor = tape.parent
+    while not anchor.exists():
+        anchor = anchor.parent
+    top = subprocess.run(["git", "-C", str(anchor), "rev-parse", "--show-toplevel"],
+                         capture_output=True, text=True)
+    if top.returncode != 0:
+        return  # not inside a git repo
+    ignored = subprocess.run(["git", "-C", top.stdout.strip(), "check-ignore", "-q", str(tape)],
+                             capture_output=True).returncode == 0
     if not ignored:
-        sys.exit(f"refusing tape {tape}: it is inside the repo on a path git does not ignore "
-                 f"(use {DEFAULT_TAPE.relative_to(REPO)} or a path outside the repo)")
+        sys.exit(f"refusing tape {tape}: it is inside the git repo {top.stdout.strip()} on a path git does "
+                 f"not ignore (use {DEFAULT_TAPE.relative_to(REPO)} or a path outside any repo)")
 
 
 def _call_problem(row: dict) -> str:
