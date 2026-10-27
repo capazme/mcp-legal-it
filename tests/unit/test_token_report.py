@@ -5,6 +5,7 @@ its helpers are tested here; ``tools`` runs for real in a subprocess, because it
 reads tools/list from a freshly imported server.
 """
 
+import asyncio
 import importlib.util
 import json
 import re
@@ -132,10 +133,13 @@ def test_output_row_measures_text_structured_and_meta():
 
 
 def _report(calls, **meta):
-    rows = [{"call": c, "text_chars": n, "structured_chars": n, "wire_chars": 2 * n, "is_error": False,
+    rows = [{"call": c, "text_chars": n, "text_tokens": n // 3, "structured_chars": n,
+             "structured_duplicates_text": True, "meta_chars": 0, "wire_chars": 2 * n, "is_error": False,
              "missed_requests": missed} for c, n, missed in calls]
-    totals = {"text_chars": sum(r["text_chars"] for r in rows)}
-    return {"measure": "outputs", "meta": {"sha": "x", "fastmcp": "3.4.2", "clock": "c", "env": {}, **meta},
+    totals = {k: sum(r[k] for r in rows) for k in ("text_chars", "text_tokens", "structured_chars", "meta_chars",
+                                                   "wire_chars")}
+    return {"measure": "outputs", "meta": {"sha": "x", "dirty": False, "fastmcp": "3.4.2", "clock": "c",
+                                           "env": {}, "estimator": "e", **meta},
             "totals": totals, "calls": rows}
 
 
@@ -178,3 +182,59 @@ def test_a_tape_on_a_tracked_path_inside_the_repo_is_refused(tmp_path):
     token_report._refuse_a_committable_tape(tmp_path / "t.json.gz")  # outside the repo: accepted
     with pytest.raises(SystemExit):
         token_report._refuse_a_committable_tape((REPO / "docs" / "t.json.gz").resolve())
+
+
+def test_the_replayer_counts_a_request_missing_from_the_tape(tmp_path, monkeypatch):
+    import gzip
+
+    import httpx
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    from replay_mcp_outputs import install_tape_transport
+
+    # install_tape_transport patches httpx.AsyncClient for the whole process: put it back after.
+    monkeypatch.setattr(httpx.AsyncClient, "__init__", httpx.AsyncClient.__init__)
+    tape = tmp_path / "empty.json.gz"
+    with gzip.open(tape, "wt", encoding="utf-8") as fh:
+        fh.write("{}")
+    misses: list[str] = []
+    install_tape_transport("replay", str(tape), misses)
+
+    async def get():
+        async with httpx.AsyncClient() as client:
+            await client.get("https://example.invalid/x")
+
+    with pytest.raises(httpx.ConnectError, match="not on tape"):
+        asyncio.run(get())
+    assert len(misses) == 1 and "https://example.invalid/x" in misses[0]
+
+
+def test_compare_fails_on_a_call_that_errored(tmp_path, capsys):
+    base = _report([("cite_law x", 8259, 0)])
+    head = _report([("cite_law x", 300, 0)])
+    head["calls"][0]["is_error"] = True
+    code, out = _compare(tmp_path, base, head, capsys)
+    assert code == 1
+    assert "head: `cite_law x`: error" in out
+
+
+def test_outputs_exits_1_when_a_call_failed(monkeypatch, tmp_path, capsys):
+    failed = _report([("cite_law x", 137, 2)])
+    monkeypatch.setattr(token_report, "measure_outputs", lambda args: failed)
+    monkeypatch.setattr(sys, "argv", ["token_report.py", "outputs", "--tape", str(tmp_path / "t.json.gz")])
+    assert token_report.main() == 1
+    assert "FAILED" in capsys.readouterr().out
+    monkeypatch.setattr(token_report, "measure_outputs", lambda args: _report([("cite_law x", 8259, 0)]))
+    assert token_report.main() == 0
+
+
+def test_a_tape_on_a_tracked_path_of_an_enclosing_repo_is_refused(tmp_path):
+    import subprocess as sp
+
+    outer = tmp_path / "outer"
+    outer.mkdir()
+    sp.run(["git", "init", "-q", str(outer)], check=True)
+    (outer / ".gitignore").write_text("tapes/\n", encoding="utf-8")
+    token_report._refuse_a_committable_tape(outer / "tapes" / "t.json.gz")  # ignored there: accepted
+    with pytest.raises(SystemExit):
+        token_report._refuse_a_committable_tape(outer / "docs" / "t.json.gz")  # not yet created, tracked path
