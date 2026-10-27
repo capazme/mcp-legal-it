@@ -99,7 +99,14 @@ _ENV = {"LEGAL_NOW": "2026-10-21T12:00:00", "LEGAL_CACHE": "off", "PYTHONHASHSEE
 # ---------------------------------------------------------------------------
 
 
-def _worker(mode: str, tape_path: str, out_path: str) -> None:
+def install_tape_transport(mode: str, tape_path: str) -> dict[str, list[dict]]:
+    """Route every ``httpx.AsyncClient`` of this process through the tape.
+
+    ``mode`` is ``record`` (real network, every exchange appended to the returned
+    dict: save it with ``save_tape``) or ``replay`` (served from ``tape_path``, a
+    request missing from it fails like a network error). Also used by
+    ``scripts/token_report.py``.
+    """
     import httpx
 
     tape: dict[str, list[dict]] = {}
@@ -150,6 +157,16 @@ def _worker(mode: str, tape_path: str, out_path: str) -> None:
         original_init(self, *args, **kwargs)
 
     httpx.AsyncClient.__init__ = patched_init
+    return tape
+
+
+def save_tape(tape: dict[str, list[dict]], tape_path: str) -> None:
+    with gzip.open(tape_path, "wt", encoding="utf-8") as fh:
+        json.dump(tape, fh)
+
+
+def _worker(mode: str, tape_path: str, out_path: str) -> None:
+    tape = install_tape_transport(mode, tape_path)
 
     async def run() -> list[dict]:
         from fastmcp import Client
@@ -171,8 +188,7 @@ def _worker(mode: str, tape_path: str, out_path: str) -> None:
     Path(out_path).write_text(json.dumps(results, ensure_ascii=False, indent=1, sort_keys=True, default=str),
                               encoding="utf-8")
     if mode == "record":
-        with gzip.open(tape_path, "wt", encoding="utf-8") as fh:
-            json.dump(tape, fh)
+        save_tape(tape, tape_path)
     print(f"{mode}: {len(results)} calls, {len(tape)} distinct requests", file=sys.stderr)
 
 

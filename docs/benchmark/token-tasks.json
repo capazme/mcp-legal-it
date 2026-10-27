@@ -1,0 +1,233 @@
+{
+ "version": 1,
+ "status": "draft: designed, never run. Running it calls an LLM API and needs the owners' go-ahead.",
+ "spec": "docs/specs/2026-10-27-token-harness-design.md",
+ "server": {
+  "env": {"LEGAL_PROFILE": "full", "LEGAL_NOW": "2026-10-21T12:00:00", "LEGAL_CACHE": "off"},
+  "note": "LEGAL_NOW pins every 'oggi' and the data vintage, so the calculator facts below stay true."
+ },
+ "fact_matching": "Each fact is a case-insensitive regex searched in the model's final answer. Numbers accept Italian and plain formats (2.892,19 / 2892,19 / 2892.19).",
+ "verified_by_values": {
+  "tool@clock": "the expected tool answered with this fact under LEGAL_NOW above (27 Oct 2026, develop 2631ea1)",
+  "tape": "present in the source text recorded on the token-calls tape (27 Oct 2026)",
+  "to_verify": "drafted from legal knowledge: confirm against the source on the first run before scoring it"
+ },
+ "tasks": [
+  {
+   "id": "T01", "family": "normativa",
+   "prompt": "Qual è il saggio degli interessi legali secondo l'art. 1284 c.c. e che cosa cambia dal momento in cui è proposta la domanda giudiziale? Cita il testo.",
+   "expected": {"required": ["cite_law"], "acceptable": ["fetch_law_article"], "forbidden": ["fetch_full_act"]},
+   "max_calls": 2,
+   "facts": [
+    {"fact": "base rate written in the article", "pattern": "5 per cento", "verified_by": "tape"},
+    {"fact": "from the claim, the late-payment rate applies", "pattern": "transazioni commerciali|ritardi di pagamento", "verified_by": "tape"}
+   ],
+   "source": "output-measure call cite_law art. 1284 c.c."
+  },
+  {
+   "id": "T02", "family": "normativa",
+   "prompt": "Quali sono le basi giuridiche del trattamento elencate all'art. 6 del GDPR?",
+   "expected": {"required": ["cite_law"], "acceptable": ["fetch_law_article", "analisi_base_giuridica"], "forbidden": []},
+   "max_calls": 2,
+   "facts": [
+    {"fact": "consent", "pattern": "consenso", "verified_by": "tape"},
+    {"fact": "legal obligation", "pattern": "obbligo legale", "verified_by": "tape"},
+    {"fact": "legitimate interest", "pattern": "legittimo interesse", "verified_by": "tape"}
+   ],
+   "source": "tests/test-queries.md §1 cite_law (art. 7 GDPR variant)"
+  },
+  {
+   "id": "T03", "family": "normativa",
+   "prompt": "In quale Gazzetta Ufficiale è stato pubblicato il D.Lgs. 101/2018 di adeguamento al GDPR, e con quale data?",
+   "expected": {"required_any": ["cerca_gazzetta_ufficiale", "leggi_atto_gazzetta", "cite_law"], "acceptable": [], "forbidden": []},
+   "max_calls": 3,
+   "facts": [
+    {"fact": "GU Serie Generale n. 205", "pattern": "n\\.?\\s*205", "verified_by": "tape"},
+    {"fact": "published 4 Sept 2018", "pattern": "4 settembre 2018|0?4[-/.]0?9[-/.]2018|2018-09-04", "verified_by": "tape"},
+    {"fact": "act dated 10 Aug 2018", "pattern": "10 agosto 2018", "verified_by": "tape"}
+   ],
+   "source": "output-measure call leggi_atto_gazzetta 18G00129"
+  },
+  {
+   "id": "T04", "family": "normativa",
+   "prompt": "Mi serve il testo vigente dell'art. 18 dello Statuto dei lavoratori.",
+   "expected": {"required": ["cite_law"], "acceptable": ["fetch_law_article"], "forbidden": ["fetch_full_act"]},
+   "max_calls": 2,
+   "facts": [
+    {"fact": "reinstatement", "pattern": "reintegra", "verified_by": "to_verify"}
+   ],
+   "source": "token trap: fetch_full_act on L. 300/1970 costs ~15k tokens for one article",
+   "note": "Scores the cheap path: the whole act is the wrong tool for one article."
+  },
+  {
+   "id": "T05", "family": "giurisprudenza",
+   "prompt": "Leggi l'ordinanza della Cassazione civile n. 21332/2024 e dimmi come ha deciso.",
+   "expected": {"required": ["leggi_sentenza"], "acceptable": [], "forbidden": ["cerca_giurisprudenza_tributaria"]},
+   "max_calls": 2,
+   "facts": [
+    {"fact": "third civil section", "pattern": "sez(ione|\\.)?\\s*(III|terza)", "verified_by": "tape"},
+    {"fact": "first ground upheld", "pattern": "accoglie il primo motivo|primo motivo.{0,40}accolt", "verified_by": "tape"},
+    {"fact": "remand to Caltanissetta", "pattern": "Caltanissetta", "verified_by": "tape"}
+   ],
+   "source": "output-measure call leggi_sentenza 21332/2024"
+  },
+  {
+   "id": "T06", "family": "giurisprudenza",
+   "prompt": "Trova una pronuncia recente della Cassazione sul danno biologico terminale, leggila e riassumine il principio.",
+   "expected": {"required": ["cerca_giurisprudenza", "leggi_sentenza"], "order": ["cerca_giurisprudenza", "leggi_sentenza"], "acceptable": ["cerca_giurisprudenza_unificata"], "forbidden": []},
+   "max_calls": 4,
+   "facts": [
+    {"fact": "cites a Cassazione decision by number and year", "pattern": "n\\.?\\s*\\d{3,5}\\s*/\\s*20\\d\\d", "verified_by": "tape"}
+   ],
+   "source": "output-measure call cerca_giurisprudenza 'danno biologico terminale'"
+  },
+  {
+   "id": "T07", "family": "giurisprudenza",
+   "prompt": "Quali sentenze della Cassazione applicano l'art. 2051 c.c. sul danno da cose in custodia?",
+   "expected": {"required_any": ["giurisprudenza_su_norma", "giurisprudenza_articolo", "orientamento_su_norma"], "acceptable": ["cerca_giurisprudenza", "cite_law"], "forbidden": []},
+   "max_calls": 3,
+   "facts": [],
+   "source": "tests/test-queries.md §2 giurisprudenza_su_norma",
+   "note": "Tool choice only: the hits change as Italgiure indexes new decisions."
+  },
+  {
+   "id": "T08", "family": "giurisprudenza",
+   "prompt": "Cosa hanno stabilito le Sezioni Unite della Cassazione con la sentenza n. 24823/2015 sul contraddittorio endoprocedimentale in materia tributaria?",
+   "expected": {"required_any": ["cerdef_leggi_provvedimento", "leggi_sentenza"], "acceptable": ["cerca_giurisprudenza_tributaria"], "forbidden": []},
+   "max_calls": 3,
+   "facts": [
+    {"fact": "names the principle", "pattern": "contraddittorio endoprocedimentale", "verified_by": "tape"},
+    {"fact": "distinguishes harmonised taxes (VAT)", "pattern": "armonizzat", "verified_by": "to_verify"}
+   ],
+   "source": "output-measure call cerdef_leggi_provvedimento (GUID of tests/unit/test_cerdef_live.py)"
+  },
+  {
+   "id": "T09", "family": "giurisprudenza",
+   "prompt": "Leggi la sentenza Schrems II della Corte di giustizia UE e dimmi quale decisione della Commissione ha dichiarato invalida.",
+   "expected": {"required": ["leggi_sentenza_cgue"], "acceptable": ["cerca_giurisprudenza_cgue", "giurisprudenza_cgue_su_norma"], "forbidden": ["cerca_giurisprudenza"]},
+   "max_calls": 3,
+   "facts": [
+    {"fact": "case number", "pattern": "C-311/18", "verified_by": "to_verify"},
+    {"fact": "Privacy Shield decision", "pattern": "2016/1250", "verified_by": "to_verify"}
+   ],
+   "source": "CGUE read family"
+  },
+  {
+   "id": "T10", "family": "giurisprudenza",
+   "prompt": "Che cosa ha deciso la Corte costituzionale con la sentenza n. 242 del 2019 sull'aiuto al suicidio?",
+   "expected": {"required": ["leggi_pronuncia_costituzionale"], "acceptable": ["cerca_pronuncia_costituzionale", "pronunce_cost_su_norma"], "forbidden": []},
+   "max_calls": 2,
+   "facts": [
+    {"fact": "provision reviewed", "pattern": "art(icolo|\\.)\\s*580", "verified_by": "to_verify"},
+    {"fact": "partial unconstitutionality", "pattern": "illegittimit", "verified_by": "to_verify"}
+   ],
+   "source": "scripts/replay_mcp_outputs.py call leggi_pronuncia_costituzionale 242/2019"
+  },
+  {
+   "id": "T11", "family": "autorita",
+   "prompt": "Cerca provvedimenti del Garante privacy sulla videosorveglianza dei dipendenti.",
+   "expected": {"required": ["cerca_provvedimenti_garante"], "acceptable": ["leggi_provvedimento_garante"], "forbidden": ["cerca_giurisprudenza"]},
+   "max_calls": 3,
+   "facts": [],
+   "source": "authority family",
+   "note": "Tool choice only: the result list changes with new decisions."
+  },
+  {
+   "id": "T12", "family": "calcolo",
+   "prompt": "Calcola gli interessi legali su € 25.000 dal 10/05/2019 al 23/02/2026.",
+   "expected": {"required": ["interessi_legali"], "acceptable": [], "forbidden": ["interessi_mora"]},
+   "max_calls": 1,
+   "facts": [
+    {"fact": "total interest", "pattern": "2\\.?892[,.]19", "verified_by": "tool@clock"},
+    {"fact": "capital plus interest", "pattern": "27\\.?892[,.]19", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §4 interessi_legali"
+  },
+  {
+   "id": "T13", "family": "calcolo",
+   "prompt": "Rivaluta € 50.000 dal 15/03/2018 al 15/03/2025 con gli indici FOI ISTAT.",
+   "expected": {"required": ["rivalutazione_monetaria"], "acceptable": ["rivalutazione_mensile"], "forbidden": []},
+   "max_calls": 1,
+   "facts": [
+    {"fact": "revalued capital", "pattern": "59\\.?685[,.]35", "verified_by": "tool@clock"},
+    {"fact": "coefficient", "pattern": "1[,.]1937", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §3 rivalutazione_monetaria, fixed end date"
+  },
+  {
+   "id": "T14", "family": "calcolo",
+   "prompt": "Danno biologico per una micropermanente dell'8% a una vittima di 42 anni: quanto spetta per il danno permanente?",
+   "expected": {"required": ["danno_biologico_micro"], "acceptable": [], "forbidden": ["danno_biologico_macro"]},
+   "max_calls": 1,
+   "facts": [
+    {"fact": "permanent damage", "pattern": "13\\.?949[,.]01", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §9 danno_biologico_micro"
+  },
+  {
+   "id": "T15", "family": "calcolo",
+   "prompt": "Quanto è la parcella di un avvocato per una causa civile di valore € 30.000, ai valori medi del D.M. 55/2014?",
+   "expected": {"required_any": ["parcella_avvocato_civile", "preventivo_civile"], "acceptable": [], "forbidden": []},
+   "max_calls": 1,
+   "facts": [
+    {"fact": "total fee (four phases, medium values)", "pattern": "7\\.?616", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §7 parcella_avvocato_civile"
+  },
+  {
+   "id": "T16", "family": "calcolo",
+   "prompt": "Quanto costa il contributo unificato per una causa civile di cognizione del valore di € 75.000 in primo grado?",
+   "expected": {"required": ["contributo_unificato"], "acceptable": [], "forbidden": []},
+   "max_calls": 1,
+   "facts": [
+    {"fact": "amount due", "pattern": "759", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §6 contributo_unificato"
+  },
+  {
+   "id": "T17", "family": "calcolo",
+   "prompt": "Sentenza di primo grado pubblicata il 05/01/2026 e non notificata: entro quando va proposto l'appello?",
+   "expected": {"required": ["scadenze_impugnazioni"], "acceptable": ["termini_deposito_atti_appello"], "forbidden": []},
+   "max_calls": 2,
+   "facts": [
+    {"fact": "long term, moved to Monday (art. 155 c.p.c.)", "pattern": "0?6[-/.]0?7[-/.]2026|6 luglio 2026|2026-07-06", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §5 scadenze_impugnazioni",
+   "note": "Disambiguation: the generic scadenza_processuale is a worse choice (no art. 327 term, no art. 155 shift)."
+  },
+  {
+   "id": "T18", "family": "calcolo",
+   "prompt": "Patrimonio di € 400.000, eredi il coniuge e due figli: quali sono le quote di legittima e la disponibile?",
+   "expected": {"required": ["calcolo_eredita"], "acceptable": [], "forbidden": []},
+   "max_calls": 1,
+   "facts": [
+    {"fact": "reserved shares", "pattern": "1/4", "verified_by": "tool@clock"},
+    {"fact": "each reserved share and the available portion", "pattern": "100\\.?000", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §15 successione workflow, reduced to the reserved shares"
+  },
+  {
+   "id": "T19", "family": "redazione",
+   "prompt": "Prepara una bozza di ricorso per decreto ingiuntivo: creditore Studio Legale Rossi, debitore Mario Bianchi, € 25.000 per fatture insolute, con richiesta di provvisoria esecuzione.",
+   "expected": {"required_any": ["decreto_ingiuntivo", "genera_modello_atto"], "acceptable": ["contributo_unificato"], "forbidden": []},
+   "max_calls": 3,
+   "facts": [
+    {"fact": "legal basis of the injunction", "pattern": "633", "verified_by": "tool@clock"},
+    {"fact": "provisional enforcement", "pattern": "642", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §6 decreto_ingiuntivo"
+  },
+  {
+   "id": "T20", "family": "workflow",
+   "prompt": "Sinistro stradale: vittima di 42 anni, invalidità permanente 8%. Calcola il danno biologico e poi rivalutalo dal 01/06/2023 al 01/06/2026 con interessi legali.",
+   "expected": {"required": ["danno_biologico_micro", "rivalutazione_monetaria"], "order": ["danno_biologico_micro", "rivalutazione_monetaria"], "acceptable": ["interessi_vari_capitale_rivalutato"], "forbidden": []},
+   "max_calls": 3,
+   "facts": [
+    {"fact": "damage", "pattern": "13\\.?949[,.]01", "verified_by": "tool@clock"},
+    {"fact": "revalued amount", "pattern": "14\\.?678[,.]22", "verified_by": "tool@clock"},
+    {"fact": "total with legal interest", "pattern": "15\\.?822[,.]64", "verified_by": "tool@clock"}
+   ],
+   "source": "tests/test-queries.md §15 sinistro stradale, reduced"
+  }
+ ]
+}
