@@ -10,8 +10,8 @@ no LLM API. Two measures, each written as JSON so two runs can be diffed.
     python scripts/token_report.py tools --include-tags normativa,giurisprudenza,autorita
 
     # 2. the answers of a fixed set of calls, replayed from a recorded tape
-    python scripts/token_report.py outputs --record --tape T.json.gz    # once, network
-    python scripts/token_report.py outputs --tape T.json.gz --json /tmp/out.json
+    python scripts/token_report.py outputs --record             # once, network
+    python scripts/token_report.py outputs --json /tmp/out.json  # offline
 
     # 3. before/after: any two JSON reports of the same measure
     python scripts/token_report.py compare base.json head.json
@@ -27,10 +27,13 @@ outputSchema, annotations and ``_meta`` included.
 
 ``outputs`` replays the tape with the transport of ``replay_mcp_outputs.py``
 (pinned clock, disk caches off, fixed hash seed), so a run without ``--record``
-never touches the network. NEVER COMMIT THE TAPE: it holds third-party content
-(see ``replay_mcp_outputs.py``). Record it on the base ref before a cut; if a cut
-changes which requests a tool makes, the replay fails on the missing request and
-the report says so.
+never touches the network. The worker drops every ``LEGAL_*``/``AKN_*`` variable
+of the shell, so only the pinned ones reach the server. NEVER COMMIT THE TAPE: it
+holds third-party content (see ``replay_mcp_outputs.py``); the default path is
+git-ignored and a path inside the repo that git does not ignore is refused.
+Record it on the base ref before a cut. A request missing from the tape is
+counted per call: ``outputs`` and ``compare`` then exit 1, because a failed
+replay is not a smaller answer.
 
 Token counts are ESTIMATES. No tokenizer for Claude models runs offline, so the
 script uses the same rule as the 27 Oct 2026 analysis: characters / 3.5 for prose
@@ -212,7 +215,9 @@ async def _read_surface(server_obj, stock) -> tuple[str, list[dict], dict[str, o
     from fastmcp import Client
 
     async with Client(server_obj) as client:
-        instructions = client.initialize_result.instructions or ""
+        # FastMCP 3 exposes the InitializeResult, FastMCP 4 the instructions themselves.
+        init = getattr(client, "initialize_result", None)
+        instructions = (getattr(client, "instructions", None) if init is None else init.instructions) or ""
         listed = await client.list_tools_mcp()
     wire = [t.model_dump(by_alias=True, exclude_none=True, mode="json") for t in listed.tools]
     # Module and tags come from the stock server: a crea_server subset mounts it, and a
@@ -331,6 +336,7 @@ def print_tools(report: dict, top: int) -> None:
     print(f"## tools/list — {m['sha']}{' (dirty)' if m['dirty'] else ''}, profile {m['profile']}"
           + (f", include {m['include_tags']}" if m["include_tags"] else "")
           + (f", exclude {m['exclude_tags']}" if m["exclude_tags"] else "")
+          + "".join(f", {k}={v}" for k, v in (m.get("switches") or {}).items())
           + f", fastmcp {m['fastmcp']}\n")
     print(f"_{m['estimator']}_\n")
     print("| Item | Chars | Tokens (est.) |\n|---|---:|---:|")
@@ -369,7 +375,8 @@ def _outputs_worker(mode: str, tape: str, out: str) -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from replay_mcp_outputs import install_tape_transport, save_tape
 
-    recorded = install_tape_transport(mode, tape)
+    misses: list[str] = []
+    recorded = install_tape_transport(mode, tape, misses)
     server = _import_server()
 
     async def run() -> list[dict]:
@@ -378,12 +385,14 @@ def _outputs_worker(mode: str, tape: str, out: str) -> None:
         results = []
         async with Client(server.mcp) as client:
             for name, call_args in OUTPUT_CALLS:
+                before = len(misses)
                 try:
                     r = await client.call_tool_mcp(name, call_args)
                     wire = r.model_dump(by_alias=True, exclude_none=True, mode="json")
                 except Exception as exc:  # noqa: BLE001 - reported as that call's answer
                     wire = {"isError": True, "content": [{"type": "text", "text": f"exception: {exc!r}"}]}
-                results.append({"tool": name, "args": call_args, "wire": wire})
+                results.append({"tool": name, "args": call_args, "wire": wire,
+                                "missed_requests": len(misses) - before})
         return results
 
     results = asyncio.run(run())
@@ -392,46 +401,83 @@ def _outputs_worker(mode: str, tape: str, out: str) -> None:
         save_tape(recorded, tape)
 
 
+#: Environment variables the server reads (clock, caches, switches, AKN export).
+_SERVER_ENV_PREFIXES = ("LEGAL_", "AKN_")
+#: Default tape: inside the repo, but under .replay-tapes/, which git ignores.
+DEFAULT_TAPE = REPO / ".replay-tapes" / "token-calls.json.gz"
+
+
+def _worker_env(pinned: dict[str, str]) -> dict[str, str]:
+    """The shell's environment without any server variable, plus the pinned ones.
+
+    A ``LEGAL_TODAY`` or ``LEGAL_PROFILE`` left in the shell would change the answers
+    while the report still names the pinned clock.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.startswith(_SERVER_ENV_PREFIXES)}
+    return {**env, **pinned}
+
+
+def _refuse_a_committable_tape(tape: Path) -> None:
+    """A tape holds third-party content: inside the repo it must be on an ignored path."""
+    if not tape.is_relative_to(REPO.resolve()):
+        return
+    ignored = subprocess.run(["git", "-C", str(REPO), "check-ignore", "-q", str(tape)]).returncode == 0
+    if not ignored:
+        sys.exit(f"refusing tape {tape}: it is inside the repo on a path git does not ignore "
+                 f"(use {DEFAULT_TAPE.relative_to(REPO)} or a path outside the repo)")
+
+
+def _call_problem(row: dict) -> str:
+    """Why a replayed answer is not a measurement of the code ('' when it is one)."""
+    missed = row.get("missed_requests", 0) or (1 if row.get("not_on_tape") else 0)
+    if missed:
+        return f"{missed} request(s) not on tape"
+    return "error" if row.get("is_error") else ""
+
+
+def output_row(r: dict) -> dict:
+    """The sizes of one replayed call, from the worker's ``{tool, args, wire, missed_requests}``."""
+    w = r["wire"]
+    text = "".join(b.get("text", "") for b in w.get("content", []) if b.get("type") == "text")
+    structured = w.get("structuredContent")
+    meta = w.get("_meta")
+    try:  # calculators answer JSON: their text is the structuredContent serialized
+        parsed = json.loads(text)
+    except ValueError:
+        parsed = None
+    text_tokens = value_tokens(parsed) if isinstance(parsed, (dict, list)) else tokens(len(text), 0)
+    duplicate = structured is not None and (structured == {"result": text} or structured == parsed)
+    return {
+        "call": f"{r['tool']} {json.dumps(r['args'], ensure_ascii=False)}",
+        "tool": r["tool"], "args": r["args"], "is_error": bool(w.get("isError")),
+        "missed_requests": r["missed_requests"],
+        "text_chars": len(text), "text_tokens": text_tokens,
+        "structured_chars": compact(structured) if structured is not None else 0,
+        "structured_tokens": value_tokens(structured),
+        "structured_duplicates_text": duplicate,
+        "meta_chars": compact(meta) if meta is not None else 0,
+        "wire_chars": compact(w),
+    }
+
+
 def measure_outputs(args) -> dict:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from replay_mcp_outputs import _ENV
 
-    tape = args.tape.expanduser()
+    tape = args.tape.expanduser().resolve()
+    _refuse_a_committable_tape(tape)
     if args.record:
         tape.parent.mkdir(parents=True, exist_ok=True)
     elif not tape.exists():
         sys.exit(f"no tape at {tape}: record one first (outputs --record --tape {tape})")
     with tempfile.TemporaryDirectory(prefix="token-outputs-") as tmp:
         out = Path(tmp) / "wire.json"
-        env = {**os.environ, **_ENV}
-        env.pop("LEGAL_PROFILE", None)
+        env = _worker_env(_ENV)
         subprocess.run([sys.executable, str(Path(__file__).resolve()), "_outputs_worker",
                         "record" if args.record else "replay", str(tape), str(out)], env=env, check=True)
         results = json.loads(out.read_text(encoding="utf-8"))
 
-    rows = []
-    for r in results:
-        w = r["wire"]
-        text = "".join(b.get("text", "") for b in w.get("content", []) if b.get("type") == "text")
-        structured = w.get("structuredContent")
-        meta = w.get("_meta")
-        try:  # calculators answer JSON: their text is the structuredContent serialized
-            parsed = json.loads(text)
-        except ValueError:
-            parsed = None
-        text_tokens = value_tokens(parsed) if isinstance(parsed, (dict, list)) else tokens(len(text), 0)
-        duplicate = structured is not None and (structured == {"result": text} or structured == parsed)
-        rows.append({
-            "call": f"{r['tool']} {json.dumps(r['args'], ensure_ascii=False)}",
-            "tool": r["tool"], "args": r["args"], "is_error": bool(w.get("isError")),
-            "not_on_tape": "not on tape" in text,
-            "text_chars": len(text), "text_tokens": text_tokens,
-            "structured_chars": compact(structured) if structured is not None else 0,
-            "structured_tokens": value_tokens(structured),
-            "structured_duplicates_text": duplicate,
-            "meta_chars": compact(meta) if meta is not None else 0,
-            "wire_chars": compact(w),
-        })
+    rows = [output_row(r) for r in results]
     import fastmcp
 
     totals = {k: sum(r[k] for r in rows) for k in
@@ -439,6 +485,7 @@ def measure_outputs(args) -> dict:
     return {
         "measure": "outputs",
         "meta": {**git_state(), "fastmcp": fastmcp.__version__, "tape": str(tape), "clock": _ENV["LEGAL_NOW"],
+                 "env": dict(sorted((k, env[k]) for k in env if k.startswith(_SERVER_ENV_PREFIXES))),
                  "estimator": ESTIMATOR},
         "totals": totals,
         "calls": rows,
@@ -452,7 +499,8 @@ def print_outputs(report: dict) -> None:
     print("| Call | Text chars | Text tok | structuredContent | dup of text | _meta | Wire chars |\n"
           "|---|---:|---:|---:|:-:|---:|---:|")
     for r in report["calls"]:
-        flag = " ⚠ not on tape" if r["not_on_tape"] else (" ⚠ error" if r["is_error"] else "")
+        flag = _call_problem(r)
+        flag = f" ⚠ {flag}" if flag else ""
         print(f"| `{r['call']}`{flag} | {r['text_chars']:,} | {r['text_tokens']:,} | {r['structured_chars']:,} "
               f"| {'yes' if r['structured_duplicates_text'] else 'no'} | {r['meta_chars']:,} "
               f"| {r['wire_chars']:,} |")
@@ -476,14 +524,18 @@ def compare(base_path: Path, head_path: Path, top: int) -> int:
     if base["measure"] != head["measure"]:
         sys.exit(f"different measures: {base['measure']} vs {head['measure']}")
     print(f"## {base['measure']}: {base['meta']['sha']} → {head['meta']['sha']}\n")
+    # Different setups give deltas the code did not cause: FastMCP 4 adds serverInfo to
+    # every result's _meta, a different clock or switch changes the answers.
+    setup = ("fastmcp",) + (("profile", "include_tags", "exclude_tags", "switches") if base["measure"] == "tools"
+                            else ("clock", "env"))
+    for k in setup:
+        if (base["meta"].get(k) or None) != (head["meta"].get(k) or None):  # absent == empty
+            print(f"Note: {k} differs ({base['meta'].get(k)} vs {head['meta'].get(k)}): "
+                  "part of the delta comes from the setup, not the code.\n")
     print("| Total | Base → head |\n|---|---|")
     for k in base["totals"]:
         print(f"| {k} | {_delta(base['totals'][k], head['totals'].get(k, 0))} |")
     if base["measure"] == "tools":
-        for k in ("profile", "include_tags", "exclude_tags", "switches"):
-            if (base["meta"].get(k) or None) != (head["meta"].get(k) or None):  # absent == empty
-                print(f"\nNote: {k} differs ({base['meta'].get(k)} vs {head['meta'].get(k)}): "
-                      "the two runs measure different surfaces.")
         print("\n| Block | Base → head (chars) |\n|---|---|")
         for k in sorted(set(base["blocks"]) | set(head["blocks"])):
             print(f"| {k} | {_delta(base['blocks'].get(k, {}).get('chars', 0), head['blocks'].get(k, {}).get('chars', 0))} |")
@@ -515,6 +567,15 @@ def compare(base_path: Path, head_path: Path, top: int) -> int:
         gone = sorted(a.keys() - {r["call"] for r in head["calls"]})
         if gone:
             print(f"\nCalls only in the base ({len(gone)}): " + ", ".join(f"`{c}`" for c in gone))
+        # A replay that missed the tape or failed measures nothing: its size says nothing
+        # about the code, so the comparison fails instead of showing a saving.
+        problems = [(side, r["call"], _call_problem(r)) for side, rep in (("base", base), ("head", head))
+                    for r in rep["calls"] if _call_problem(r)]
+        if problems:
+            print(f"\nFAILED: {len(problems)} call(s) did not replay cleanly, their sizes are not measurements:")
+            for side, call, why in problems:
+                print(f"- {side}: `{call}`: {why}")
+            return 1
     return 0
 
 
@@ -531,7 +592,8 @@ def main() -> int:
     t.add_argument("--json", type=Path, help="also write the full report here")
     t.add_argument("--top", type=int, default=10)
     o = sub.add_parser("outputs", help="measure the answers of the fixed calls, replayed from a tape")
-    o.add_argument("--tape", type=Path, required=True, help="the tape (never commit it)")
+    o.add_argument("--tape", type=Path, default=DEFAULT_TAPE,
+                   help=f"the tape (default {DEFAULT_TAPE.relative_to(REPO)}, git-ignored; never commit it)")
     o.add_argument("--record", action="store_true", help="record the tape (network) instead of replaying it")
     o.add_argument("--json", type=Path, help="also write the full report here")
     c = sub.add_parser("compare", help="diff two JSON reports of the same measure")
@@ -557,6 +619,9 @@ def main() -> int:
         print_outputs(report)
     if args.json:
         args.json.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    if args.command == "outputs" and any(_call_problem(r) for r in report["calls"]):
+        print("\nFAILED: some calls did not replay cleanly (⚠ above): re-record the tape on the base ref.")
+        return 1
     return 0
 
 
