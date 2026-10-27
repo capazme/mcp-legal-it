@@ -723,7 +723,7 @@ Il/La sottoscritto/a Avv. [LEGALE], C.F. [...], con studio in [...], quale procu
 
 ESPONE
 
-Che il/la ricorrente vanta un credito di Euro {importo:,.2f} nei confronti di:
+Che il/la ricorrente vanta un credito di Euro {_eur_it(importo)} nei confronti di:
 
 {debitore}, C.F./P.IVA [...], con sede in [...]
 
@@ -733,9 +733,9 @@ Che il credito è certo, liquido ed esigibile, come risulta dalla prova scritta 
 
 CHIEDE
 
-che l'Ill.mo {giudice} voglia emettere decreto con il quale si ingiunge a {debitore} di pagare la somma di Euro {importo:,.2f}, oltre interessi legali dalla messa in mora al saldo, oltre spese e competenze del procedimento.
+che l'Ill.mo {giudice} voglia emettere decreto con il quale si ingiunge a {debitore} di pagare la somma di Euro {_eur_it(importo)}, oltre interessi legali dalla messa in mora al saldo, oltre spese e competenze del procedimento.
 
-Ai fini del contributo unificato si dichiara che il valore della controversia è di Euro {importo:,.2f} (art. 14 co. 2 DPR 115/2002) e che il contributo dovuto è di Euro {cu:,.2f}."""
+Ai fini del contributo unificato si dichiara che il valore della controversia è di Euro {_eur_it(importo)} (art. 14 co. 2 DPR 115/2002) e che il contributo dovuto è di Euro {_eur_it(cu)}."""
 
     if provvisoria_esecuzione:
         bozza += f"""

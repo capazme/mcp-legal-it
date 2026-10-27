@@ -320,3 +320,21 @@ def test_local_calculators_are_not_open_world():
         annotations = annotations_for(name)
         assert annotations.readOnlyHint is True
         assert annotations.openWorldHint is False
+
+
+def test_the_drift_warning_still_names_a_policy_tool_that_is_gone(capsys):
+    # The check reads the registered tools, so a real drift is still reported.
+    from fastmcp import FastMCP
+    from mcp_legal_it.tool_annotations import apply_tool_annotations
+
+    server = FastMCP("drift")
+    apply_tool_annotations(server)
+
+    @server.tool
+    def cite_law(reference: str) -> str:
+        return reference
+
+    asyncio.run(server.list_tools())
+    err = capsys.readouterr().err
+    assert "no longer registered" in err
+    assert "leggi_sentenza" in err and "cite_law" not in err.split(":", 1)[1].split(", ")
