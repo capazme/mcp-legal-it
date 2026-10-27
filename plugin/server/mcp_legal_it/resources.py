@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 
 _DATA = Path(__file__).parent / "data"
 
@@ -19,13 +20,13 @@ def _load(name: str) -> dict:
 
 def _eur(value: float) -> str:
     """1214 -> '1.214,00' (Italian amount formatting)."""
-    return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return numero_it(value)
 
 
 def _soglia(value: float) -> str:
     """Threshold formatting: integers without decimals (1.100), floats with (2.582,28)."""
     if float(value) == int(value):
-        return f"{int(value):,}".replace(",", ".")
+        return numero_it(int(value), 0)
     return _eur(value)
 
 

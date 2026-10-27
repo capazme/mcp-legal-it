@@ -6,6 +6,7 @@ from math import ceil
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 
 
 def _parse_date(d: str) -> date:
@@ -163,7 +164,7 @@ def conversione_pena(
             "tipo_pena": tipo_pena,
             "giorni_detentivi": giorni,
             "importo_pecuniario_euro": round(euro, 2),
-            "tasso_conversione": f"€{tasso_giornaliero}/giorno",
+            "tasso_conversione": f"€{numero_it(tasso_giornaliero, 0)}/giorno",
             "riferimento_normativo": "Art. 135 c.p.",
         }
     else:
@@ -174,7 +175,7 @@ def conversione_pena(
             "tipo_pena": tipo_pena,
             "importo_pecuniario_euro": euro,
             "giorni_detentivi": giorni,
-            "tasso_conversione": f"€{tasso_giornaliero}/giorno",
+            "tasso_conversione": f"€{numero_it(tasso_giornaliero, 0)}/giorno",
             "riferimento_normativo": "Art. 135 c.p.",
         }
 
