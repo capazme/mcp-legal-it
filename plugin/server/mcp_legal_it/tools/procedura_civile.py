@@ -4,6 +4,7 @@ import re
 import unicodedata
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib import _data
 from mcp_legal_it.lib._data import sourced
 
@@ -123,7 +124,7 @@ def competenza_giudice(
                 "valore_causa": valore_causa,
                 "materia": materia,
                 "materia_riservata": False,
-                "note": f"Risarcimento da circolazione veicoli ≤ €{soglia:,.2f}: competenza GdP",
+                "note": f"Risarcimento da circolazione veicoli ≤ €{numero_it(soglia)}: competenza GdP",
                 "soglia_gdp_euro": soglia,
             }
         else:
@@ -133,7 +134,7 @@ def competenza_giudice(
                 "valore_causa": valore_causa,
                 "materia": materia,
                 "materia_riservata": False,
-                "note": f"Risarcimento da circolazione veicoli > €{soglia:,.2f}: competenza Tribunale",
+                "note": f"Risarcimento da circolazione veicoli > €{numero_it(soglia)}: competenza Tribunale",
                 "soglia_gdp_euro": soglia,
             }
 
@@ -147,7 +148,7 @@ def competenza_giudice(
             "valore_causa": valore_causa,
             "materia": materia,
             "materia_riservata": False,
-            "note": f"Cause relative a beni mobili di valore ≤ €{soglia:,.2f}: competenza GdP",
+            "note": f"Cause relative a beni mobili di valore ≤ €{numero_it(soglia)}: competenza GdP",
             "soglia_gdp_euro": soglia,
         }
     else:
@@ -157,7 +158,7 @@ def competenza_giudice(
             "valore_causa": valore_causa,
             "materia": materia,
             "materia_riservata": False,
-            "note": f"Causa di valore > €{soglia:,.2f}: competenza Tribunale",
+            "note": f"Causa di valore > €{numero_it(soglia)}: competenza Tribunale",
             "soglia_gdp_euro": soglia,
         }
 
@@ -312,22 +313,23 @@ def gratuito_patrocinio(
     if ambito == "penale" and n_familiari_conviventi > 0:
         soglia = SOGLIA_BASE + (n_familiari_conviventi * MAGGIORAZIONE_PENALE_PER_FAMILIARE)
         nota_soglia = (
-            f"Soglia penale: €{SOGLIA_BASE:,.2f} base "
-            f"+ ({n_familiari_conviventi} × €{MAGGIORAZIONE_PENALE_PER_FAMILIARE:,.2f}) = €{soglia:,.2f}"
+            f"Soglia penale: €{numero_it(SOGLIA_BASE)} base "
+            f"+ ({n_familiari_conviventi} × €{numero_it(MAGGIORAZIONE_PENALE_PER_FAMILIARE)}) = €{numero_it(soglia)}"
         )
     else:
         soglia = SOGLIA_BASE
-        nota_soglia = f"Soglia civile: €{SOGLIA_BASE:,.2f}"
+        nota_soglia = f"Soglia civile: €{numero_it(SOGLIA_BASE)}"
 
     ammesso = reddito_totale <= soglia
-    margine = round(soglia - reddito_totale, 2)
+    # `or 0.0`: a margin that rounds to -0.0 would print as "+-0,00"
+    margine = round(soglia - reddito_totale, 2) or 0.0
 
     etichetta_reddito = (
         "Reddito personale (art. 76 co. 4 DPR 115/2002)" if solo_personale else "Reddito nucleo familiare"
     )
     note_calc = (
-        f"{etichetta_reddito}: €{reddito_totale:,.2f} — {nota_soglia} — "
-        f"{'AMMESSO' if ammesso else 'NON AMMESSO'} (margine: {'+' if margine >= 0 else ''}{margine:,.2f} €)"
+        f"{etichetta_reddito}: €{numero_it(reddito_totale)} — {nota_soglia} — "
+        f"{'AMMESSO' if ammesso else 'NON AMMESSO'} (margine: {'+' if margine >= 0 else ''}{numero_it(margine)} €)"
     )
 
     return {

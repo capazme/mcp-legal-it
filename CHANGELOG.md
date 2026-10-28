@@ -805,6 +805,39 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **Amounts are written the Italian way in every tool's text.** Python's
+  default format put «Euro 25,000.00» in the decreto ingiuntivo, «€1,234.00»
+  in quotes and fee notes, «€1092.48» or «€850.0» elsewhere. They now read
+  «Euro 25.000,00», «€1.234,00», «€1.092,48», «€850,00». The fix covers:
+  - deeds: `decreto_ingiuntivo`, `sfratto_morosita`, `atto_di_precetto`,
+    `nota_precisazione_credito`, and the CU note of `note_iscrizione_ruolo`;
+  - quotes and fee notes: `preventivo_civile`, `preventivo_stragiudiziale`,
+    `preventivo_volontaria_giurisdizione`, `modello_notula`,
+    `spese_trasferta_avvocati`;
+  - other professionals: `compenso_curatore_fallimentare`,
+    `compenso_delegati_vendite`, `fattura_enasarco`;
+  - civil procedure: `competenza_giudice`, `gratuito_patrocinio`. Its margin
+    no longer prints «+-0,00 €» when it rounds to zero;
+  - GDPR: `calcolo_sanzione_gdpr`;
+  - ISTAT revaluation: `lettera_adeguamento_canone`, `calcolo_devalutazione`,
+    `calcolo_inflazione`;
+  - civil fee brackets: «fino a 52.000€», not «fino a 52000€»;
+  - property, labour and tax: `spese_condominiali` (lift quota),
+    `indennita_licenziamento`, the `regime_forfettario` limit message;
+  - fuel price in `spese_trasferta_avvocati`: «1,789 euro/litro», not the
+    «1.789» an Italian reads as one thousand seven hundred;
+  - interest: the `interessi_acconti` warnings;
+  - penal: the conversion rate of `conversione_pena`;
+  - attachment: the pension note of `pignoramento_stipendio`.
+
+  Every tool now formats amounts through one helper, `lib/_numeri.numero_it`:
+  the module copies call it instead of repeating the code. JSON numbers in
+  structured answers are unchanged.
+- **A profile no longer prints a false drift warning.** Under any
+  `LEGAL_PROFILE`, the first `tools/list` printed «tool_annotations: policy
+  names no longer registered: …» to stderr, listing every tool the profile
+  only hid. The check now reads the registered tools, so it speaks only when a
+  tool named in the policy is really gone.
 - **Art. 1 of the legge fallimentare is the law's, from its own page.** Its
   articles are annex 1 of r.d. 267/1942, and the URN lacked the part: the page
   of `;267~art1` is the approving decree's, so the law's art. 1 came only from

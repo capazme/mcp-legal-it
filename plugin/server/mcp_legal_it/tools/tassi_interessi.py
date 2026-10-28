@@ -9,6 +9,7 @@ from pathlib import Path
 
 from mcp_legal_it.lib import _clock, _data
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 # Shared FOI index access (single load, same fallback and warning semantics).
@@ -596,8 +597,8 @@ def interessi_acconti(
         if imputazione == "interessi":
             if importo > capitale_residuo + interessi_residui + 0.005:
                 return {"errore": (
-                    f"acconto di {importo:.2f} del {dt_mov.isoformat()} superiore al credito residuo "
-                    f"({capitale_residuo + interessi_residui:.2f})"
+                    f"acconto di {numero_it(importo)} del {dt_mov.isoformat()} superiore al credito residuo "
+                    f"({numero_it(capitale_residuo + interessi_residui)})"
                 )}
             agli_interessi = min(importo, interessi_residui)
             interessi_residui -= agli_interessi
@@ -606,8 +607,8 @@ def interessi_acconti(
         else:
             if importo > capitale_residuo + 0.005:
                 return {"errore": (
-                    f"acconto di {importo:.2f} del {dt_mov.isoformat()} superiore al capitale residuo "
-                    f"({capitale_residuo:.2f})"
+                    f"acconto di {numero_it(importo)} del {dt_mov.isoformat()} superiore al capitale residuo "
+                    f"({numero_it(capitale_residuo)})"
                 )}
             capitale_residuo = max(capitale_residuo - importo, 0.0)
 

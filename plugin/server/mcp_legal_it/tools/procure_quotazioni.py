@@ -13,6 +13,7 @@ from pathlib import Path
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -75,8 +76,7 @@ def _d2(value) -> Decimal:
 
 
 def _eur(value) -> str:
-    testo = f"{_d2(value):,.2f}"
-    return "€ " + testo.replace(",", "X").replace(".", ",").replace("X", ".")
+    return "€ " + numero_it(_d2(value))
 
 
 def _data_lettere(data_doc: str) -> str:
