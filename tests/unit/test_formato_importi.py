@@ -17,15 +17,22 @@ from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.server import mcp
 
 #: Any of these is an amount that slipped back to Python's default format:
-#: «25,000.00», «52,000€» (English thousands, no decimals), «€1092.48» (a raw float),
-#: «52000€» (a bare integer: four digits or more with no separator).
+#: «25,000.00» and «52,000€» (English thousands), «€1092.48», «900.9€» or «€850.0»
+#: (a raw float), «52000€» (a bare integer: four digits or more with no separator).
+#: The English-thousands patterns without decimals are tied to the euro sign, so a
+#: legitimate Italian three-decimal value («1,789 euro/litro», «2,500%») never trips
+#: them. Spaces are matched as ' ?', never \s: the scanned text joins its strings with
+#: newlines, and «€» at the end of one must not pair with a number opening the next.
 ENGLISH = [
     re.compile(r"\d,\d{3}\.\d{2}"),
-    re.compile(r"\d,\d{3}(?!\d)"),
-    re.compile(r"€\s?\d{4,}\.\d"),
-    re.compile(r"\d{4,}\.\d+\s?€"),
-    re.compile(r"(?<![\d,.])\d{4,}\s?€"),
-    re.compile(r"€\s?\d{4,}(?![\d.,])"),
+    re.compile(r"\d,\d{3}(?![\d,]) ?€"),
+    re.compile(r"€ ?\d{1,3},\d{3}(?!\d)"),
+    re.compile(r"€ ?\d{4,}\.\d"),
+    re.compile(r"\d{4,}\.\d+ ?€"),
+    re.compile(r"(?<![\d,.])\d+\.\d{1,2} ?€"),
+    re.compile(r"€ ?\d+\.\d{1,2}(?![\d])"),
+    re.compile(r"(?<![\d,.])\d{4,} ?€"),
+    re.compile(r"€ ?\d{4,}(?![\d.,])"),
 ]
 ITALIAN = re.compile(r"\d\.\d{3}(?![\d.])")  # a thousands dot, with or without decimals
 
@@ -39,6 +46,7 @@ CALLS = [
     # quotes and fee notes
     ("preventivo_civile", {"valore_causa": 30000}),
     ("preventivo_stragiudiziale", {"valore_pratica": 30000}),
+    ("preventivo_stragiudiziale", {"valore_pratica": 1000000}),  # the «oltre 520.000€» bracket
     ("preventivo_volontaria_giurisdizione", {"valore_causa": 30000}),
     ("modello_notula", {"tipo_procedimento": "decreto_ingiuntivo", "avvocato": "Avv. A", "cliente": "B", "valore_causa": 30000}),
     # other professionals
@@ -94,6 +102,22 @@ def _run(coro):
 
 def _english(text: str) -> list[str]:
     return [m for pattern in ENGLISH for m in pattern.findall(text)]
+
+
+@pytest.mark.parametrize("text", [
+    "Euro 25,000.00", "fino a 52,000€", "€ 52,000", "€1092.48", "900.9€", "€850.0", "fino a 52000€", "€ 52000",
+    "oltre 520000€",
+])
+def test_the_scan_catches_every_english_shape(text):
+    assert _english(text), text
+
+
+@pytest.mark.parametrize("text", [
+    "Euro 25.000,00", "fino a 52.000€", "€ 1.092,48", "900,90€", "€850,00", "1,789 euro/litro", "2,500%",
+    "0,3500 €/km", "soglia €\n2026-10-21", "anno 2026\n€ 1.000,00", "coefficiente 1,193707",
+])
+def test_the_scan_leaves_italian_numbers_alone(text):
+    assert not _english(text), (text, _english(text))
 
 
 @pytest.mark.parametrize("name,args", CALLS, ids=[c[0] for c in CALLS])
