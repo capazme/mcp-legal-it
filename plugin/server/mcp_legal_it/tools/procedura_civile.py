@@ -321,7 +321,8 @@ def gratuito_patrocinio(
         nota_soglia = f"Soglia civile: €{numero_it(SOGLIA_BASE)}"
 
     ammesso = reddito_totale <= soglia
-    margine = round(soglia - reddito_totale, 2)
+    # `or 0.0`: a margin that rounds to -0.0 would print as "+-0,00"
+    margine = round(soglia - reddito_totale, 2) or 0.0
 
     etichetta_reddito = (
         "Reddito personale (art. 76 co. 4 DPR 115/2002)" if solo_personale else "Reddito nucleo familiare"

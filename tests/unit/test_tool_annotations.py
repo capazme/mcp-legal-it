@@ -337,4 +337,5 @@ def test_the_drift_warning_still_names_a_policy_tool_that_is_gone(capsys):
     asyncio.run(server.list_tools())
     err = capsys.readouterr().err
     assert "no longer registered" in err
-    assert "leggi_sentenza" in err and "cite_law" not in err.split(":", 1)[1].split(", ")
+    names = err.strip().rsplit(": ", 1)[1].split(", ")
+    assert "leggi_sentenza" in names and "cite_law" not in names

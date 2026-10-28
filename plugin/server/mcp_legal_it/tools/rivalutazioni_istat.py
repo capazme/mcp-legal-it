@@ -537,7 +537,7 @@ def calcolo_inflazione(
         "anni": round(anni, 2),
         "inflazione_media_annua_pct": round(inflazione_media_annua, 2),
         "base_indici": "2015=100",
-        "esempio": f"100€ del {data_inizio} equivalgono a {round(100 * coefficiente, 2)}€ del {data_fine}",
+        "esempio": f"100€ del {data_inizio} equivalgono a {numero_it(100 * coefficiente)}€ del {data_fine}",
     }
 
     ufficiale = _variazione_ufficiale(dt_fine, _mesi_tra(dt_inizio, dt_fine))

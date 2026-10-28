@@ -6,6 +6,7 @@ from pathlib import Path
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._data import sourced
 
@@ -995,7 +996,7 @@ def spese_condominiali(
                 ipotesi = f"edificio ipotizzato di {n} piani, un'unita' per piano"
         quota_piano = importo_totale * 0.5 * (coeff_piano / totale_altezze)
         quota_proprietario_tot = round(quota_millesimi + quota_piano, 2)
-        metodo = f"50% millesimi ({round(quota_millesimi, 2)}€) + 50% piano {piano} ({round(quota_piano, 2)}€)"
+        metodo = f"50% millesimi ({numero_it(quota_millesimi)}€) + 50% piano {piano} ({numero_it(quota_piano)}€)"
     else:
         quota_proprietario_tot = round(importo_totale * millesimi_proprietario / 1000, 2)
         metodo = f"Millesimi: {millesimi_proprietario}/1000"

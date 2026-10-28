@@ -30,7 +30,7 @@ class TestParcellaAvvocatoCivile:
         r = _call("parcella_avvocato_civile", valore_causa=1000.0, livello="medio")
         # scaglione fino_a 1100: studio=131, introduttiva=131, istruttoria=200, decisionale=200
         assert r["totale_compenso"] == pytest.approx(131 + 131 + 200 + 200, abs=0.01)
-        assert "1100" in r["scaglione"]
+        assert r["scaglione"] == "fino a 1.100€"
 
     def test_scaglione_5200(self):
         r = _call("parcella_avvocato_civile", valore_causa=5000.0, livello="medio")
@@ -468,7 +468,7 @@ class TestPreventivoStragiudiziale:
 
     def test_scaglione_label_in_testo(self):
         r = _call("preventivo_stragiudiziale", valore_pratica=1000.0)
-        assert "1100" in r["testo_preventivo"]
+        assert "fino a 1.100€" in r["testo_preventivo"]
 
 
 # ---------------------------------------------------------------------------
