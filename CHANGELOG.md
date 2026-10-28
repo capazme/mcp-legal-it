@@ -816,9 +816,16 @@ entry, it is the same feature as ported to the 3.0 line.
     `spese_trasferta_avvocati`;
   - other professionals: `compenso_curatore_fallimentare`,
     `compenso_delegati_vendite`, `fattura_enasarco`;
-  - civil procedure: `competenza_giudice`, `gratuito_patrocinio`;
+  - civil procedure: `competenza_giudice`, `gratuito_patrocinio`. Its margin
+    no longer prints «+-0,00 €» when it rounds to zero;
   - GDPR: `calcolo_sanzione_gdpr`;
-  - ISTAT revaluation: `lettera_adeguamento_canone`, `calcolo_devalutazione`;
+  - ISTAT revaluation: `lettera_adeguamento_canone`, `calcolo_devalutazione`,
+    `calcolo_inflazione`;
+  - civil fee brackets: «fino a 52.000€», not «fino a 52000€»;
+  - property, labour and tax: `spese_condominiali` (lift quota),
+    `indennita_licenziamento`, the `regime_forfettario` limit message;
+  - fuel price in `spese_trasferta_avvocati`: «1,789 euro/litro», not the
+    «1.789» an Italian reads as one thousand seven hundred;
   - interest: the `interessi_acconti` warnings;
   - penal: the conversion rate of `conversione_pena`;
   - attachment: the pension note of `pignoramento_stipendio`.

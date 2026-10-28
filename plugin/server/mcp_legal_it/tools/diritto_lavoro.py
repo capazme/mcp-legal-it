@@ -188,7 +188,7 @@ def indennita_licenziamento(
             "importo_massimo": round(cap_val * retribuzione_mensile, 2),
             "criteri": list(_CRITERI_ART_8),
             "dettaglio_formula": (
-                f"forbice {floor_val}-{cap_val} mensilità × {retribuzione_mensile} € "
+                f"forbice {floor_val}-{cap_val} mensilità × {numero_it(retribuzione_mensile)} € "
                 f"({regime}); nessun moltiplicatore per anno di servizio dopo C.Cost. 194/2018"
             ),
             "nota": (

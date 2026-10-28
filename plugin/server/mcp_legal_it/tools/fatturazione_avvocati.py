@@ -67,9 +67,9 @@ _COMPETENZE_PENALE = [c["tipo"] for c in _PARAMETRI["penale"]["competenze"]]
 
 def _scaglione_label(scaglione: dict, scaglioni: list[dict]) -> str:
     if not scaglione.get("oltre"):
-        return f"fino a {scaglione['fino_a']}€"
+        return f"fino a {numero_it(scaglione['fino_a'], 0)}€"
     finite = [s["fino_a"] for s in scaglioni if not s.get("oltre")]
-    return f"oltre {finite[-1]}€" if finite else "oltre"
+    return f"oltre {numero_it(finite[-1], 0)}€" if finite else "oltre"
 
 
 def _scaglione_civile_oltre_32_milioni(valore_causa: float, ultimo: dict, limite: float) -> dict:
@@ -828,7 +828,7 @@ def spese_trasferta_avvocati(
         carburante_note = "prezzo carburante non indicato: applicati 0,30 euro/km (carburante a 1,50 euro/litro)"
     else:
         euro_km = Decimal(str(prezzo_carburante_litro)) / 5
-        carburante_note = f"un quinto di {prezzo_carburante_litro} euro/litro"
+        carburante_note = f"un quinto di {numero_it(prezzo_carburante_litro, 3)} euro/litro"
     rimborso_km = _q(Decimal(str(km_distanza)) * euro_km) if mezzo == "auto" else 0.0
     albergo_maggiorato = _pct(costo_albergo, "110")
     extra_documentati = _q(Decimal(str(albergo_maggiorato)) + Decimal(str(pedaggi_parcheggi)))

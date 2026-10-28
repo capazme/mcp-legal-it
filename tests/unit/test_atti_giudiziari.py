@@ -1203,7 +1203,6 @@ class TestAttoDiPrecetto:
             interessi=100.0,
             spese=50.0,
         )
-        # Python {:,.2f} usa separatore US: "5,150.00"
         assert "5.150,00" in r["testo"]
 
     def test_solo_capitale_senza_accessori(self):

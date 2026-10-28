@@ -16,7 +16,17 @@ from fastmcp import Client
 from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.server import mcp
 
-ENGLISH = re.compile(r"\d,\d{3}\.\d{2}")
+#: Any of these is an amount that slipped back to Python's default format:
+#: «25,000.00», «52,000€» (English thousands, no decimals), «€1092.48» (a raw float),
+#: «52000€» (a bare integer: four digits or more with no separator).
+ENGLISH = [
+    re.compile(r"\d,\d{3}\.\d{2}"),
+    re.compile(r"\d,\d{3}(?!\d)"),
+    re.compile(r"€\s?\d{4,}\.\d"),
+    re.compile(r"\d{4,}\.\d+\s?€"),
+    re.compile(r"(?<![\d,.])\d{4,}\s?€"),
+    re.compile(r"€\s?\d{4,}(?![\d.,])"),
+]
 ITALIAN = re.compile(r"\d\.\d{3}(?![\d.])")  # a thousands dot, with or without decimals
 
 CALLS = [
@@ -41,6 +51,12 @@ CALLS = [
     ("calcolo_sanzione_gdpr", {"tipo_violazione": "art83_5", "fatturato_annuo": 50000000}),
     # Enasarco: amounts that used to be interpolated raw («€1234.5»)
     ("fattura_enasarco", {"provvigioni": 40000}),
+    # amounts that used to be raw floats or bare integers in prose
+    ("spese_condominiali", {"importo_totale": 25000, "millesimi_proprietario": 120, "tipo_spesa": "ascensore",
+                            "piano": 4}),
+    ("indennita_licenziamento", {"anni_servizio": 8, "retribuzione_mensile": 2500.5}),
+    ("regime_forfettario", {"ricavi": 90000.5}),
+    ("parcella_avvocato_civile", {"valore_causa": 30000}),
     # ISTAT revaluation
     ("lettera_adeguamento_canone", {"locatore": "A", "conduttore": "B", "indirizzo_immobile": "Via Roma 1",
                                     "canone_attuale": 1200, "data_stipula": "2021-09-01",
@@ -76,11 +92,44 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _english(text: str) -> list[str]:
+    return [m for pattern in ENGLISH for m in pattern.findall(text)]
+
+
 @pytest.mark.parametrize("name,args", CALLS, ids=[c[0] for c in CALLS])
 def test_amounts_have_italian_separators(name, args):
     text = _text(name, args)
-    assert not ENGLISH.findall(text), (name, ENGLISH.findall(text)[:5])
+    assert not _english(text), (name, _english(text)[:5])
     assert ITALIAN.search(text), f"{name}: no amount over 1.000 in the text, the scan would be vacuous"
+
+
+def test_inflation_example_has_an_italian_decimal_comma():
+    # 100€ grows to a three-digit amount: no thousands separator to scan for, only the comma.
+    text = _text("calcolo_inflazione", {"data_inizio": "2015-01-01", "data_fine": "2025-12-31"})
+    assert not _english(text)
+    assert re.search(r"equivalgono a \d{3},\d{2}€", text), text
+
+
+def test_fuel_price_keeps_its_three_decimals_with_a_comma():
+    # «1.789 euro/litro» reads as one thousand seven hundred: the price is «1,789».
+    text = _text("spese_trasferta_avvocati", {"km_distanza": 100, "ore_assenza": 6,
+                                              "prezzo_carburante_litro": 1.789})
+    assert "un quinto di 1,789 euro/litro" in text
+    assert "1.789 euro/litro" not in text
+
+
+def test_a_margin_that_rounds_to_zero_has_no_minus_sign():
+    # An income 0,004 € over the threshold: the margin rounds to -0.0, which printed "+-0,00 €".
+    async def run():
+        async with Client(mcp) as client:
+            first = await client.call_tool_mcp("gratuito_patrocinio", {"reddito_richiedente": 1000})
+            soglia = first.structuredContent["soglia_applicata"]
+            r = await client.call_tool_mcp("gratuito_patrocinio", {"reddito_richiedente": soglia + 0.004})
+            return r.structuredContent
+
+    out = _run(run())
+    assert out["margine"] == 0.0 and str(out["margine"]) == "0.0"
+    assert "(margine: +0,00 €)" in out["note"], out["note"]
 
 
 def test_numero_it():

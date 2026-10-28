@@ -9,6 +9,7 @@ from pathlib import Path
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -206,7 +207,7 @@ def regime_forfettario(
 
     if ricavi > limite:
         return {
-            "errore": f"Ricavi {ricavi}€ superano il limite di {limite}€ per il regime forfettario",
+            "errore": f"Ricavi {numero_it(ricavi)}€ superano il limite di {numero_it(limite, 0)}€ per il regime forfettario",
             "limite_ricavi": limite,
         }
 

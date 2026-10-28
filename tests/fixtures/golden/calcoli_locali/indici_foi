@@ -24,7 +24,7 @@
     "data_fine": "2024-06-30",
     "data_inizio": "2021-01-01"
    },
-   "expected": "{\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"foi_inizio\":102.9,\"foi_fine\":119.5,\"variazione_percentuale\":16.13,\"coefficiente_rivalutazione\":1.161322,\"anni\":3.49,\"inflazione_media_annua_pct\":4.37,\"base_indici\":\"2015=100\",\"esempio\":\"100€ del 2021-01-01 equivalgono a 116.13€ del 2024-06-30\",\"nota\":null,\"avvertenza\":null,\"dati_applicati\":[\"indici foi: copre fino al 31/08/2026 (ISTAT, indice FOI senza tabacchi (SDMX esploradati.istat.it, basi originarie raccordate con i coefficienti ufficiali ISTAT)) — serie 1990-2025 ricostruita il 2026-09-29 dai valori ISTAT nelle basi originarie\"]}"
+   "expected": "{\"data_inizio\":\"2021-01-01\",\"data_fine\":\"2024-06-30\",\"foi_inizio\":102.9,\"foi_fine\":119.5,\"variazione_percentuale\":16.13,\"coefficiente_rivalutazione\":1.161322,\"anni\":3.49,\"inflazione_media_annua_pct\":4.37,\"base_indici\":\"2015=100\",\"esempio\":\"100€ del 2021-01-01 equivalgono a 116,13€ del 2024-06-30\",\"nota\":null,\"avvertenza\":null,\"dati_applicati\":[\"indici foi: copre fino al 31/08/2026 (ISTAT, indice FOI senza tabacchi (SDMX esploradati.istat.it, basi originarie raccordate con i coefficienti ufficiali ISTAT)) — serie 1990-2025 ricostruita il 2026-09-29 dai valori ISTAT nelle basi originarie\"]}"
   },
   "inflazione_titoli_stato": {
    "arguments": {
