@@ -83,6 +83,7 @@ CALLS: list[tuple[str, dict]] = [
     ("cerca_giurisprudenza_amministrativa", {"query": "accesso agli atti"}),
     ("ultime_sentenze_tributarie", {}),
     ("ultime_sentenze_cgue", {}),
+    # C-311/19 Bonver Win (not Schrems II, which is C-311/18, CELEX 62018CJ0311)
     ("leggi_sentenza_cgue", {"cellar_uri": "http://publications.europa.eu/resource/celex/62019CJ0311"}),
     ("cerca_giurisprudenza_cgue", {"query": "trasferimento dati personali", "anno_da": "2020"}),
     ("giurisprudenza_cgue_su_norma", {"riferimento": "art. 82 GDPR"}),

@@ -5,6 +5,7 @@ import math
 from decimal import ROUND_HALF_UP, Decimal
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 
 
 def _d(valore) -> Decimal:
@@ -76,9 +77,9 @@ def _mediazione_tabella_a(valore: float) -> tuple[Decimal, Decimal, str]:
     for limite, minimo, massimo in _TABELLA_A_DM150:
         if valore <= limite:
             if precedente == 0:
-                etichetta = f"fino a €{limite:,.0f}".replace(",", ".")
+                etichetta = f"fino a €{numero_it(limite, 0)}"
             else:
-                etichetta = f"da €{precedente + 1:,.0f} a €{limite:,.0f}".replace(",", ".")
+                etichetta = f"da €{numero_it(precedente + 1, 0)} a €{numero_it(limite, 0)}"
             return Decimal(minimo), Decimal(massimo), etichetta
         precedente = limite
     v = _d(valore)
@@ -593,7 +594,7 @@ def _curatore_scaglioni(importo: float, scaglioni: list) -> list:
         c_min = round(fascia * pct_min / 100, 2)
         c_max = round(fascia * pct_max / 100, 2)
         dettaglio.append({
-            "fascia": f"€{precedente:,.2f} - €{min(soglia, importo):,.2f}",
+            "fascia": f"€{numero_it(precedente)} - €{numero_it(min(soglia, importo))}",
             "percentuale_min": pct_min,
             "percentuale_max": pct_max,
             "percentuale": round((pct_min + pct_max) / 2, 4),
@@ -654,13 +655,13 @@ def compenso_curatore_fallimentare(
     note = [
         "Compenso sull'attivo: percentuali per scaglione, DM 30/2012 art. 1 c. 1",
         "Compenso supplementare sul passivo: DM 30/2012 art. 1 c. 2",
-        f"Minimo complessivo: €{_CURATORE_MIN:,.2f} (art. 4 c. 1); nessun massimo complessivo nel decreto",
+        f"Minimo complessivo: €{numero_it(_CURATORE_MIN)} (art. 4 c. 1); nessun massimo complessivo nel decreto",
         "Spese generali del 5% sul compenso (art. 4 c. 2), spese vive documentate, IVA e CPA se dovute",
     ]
     if tot_med != prima_med:
         note.append(
-            f"Totale portato al minimo di legge: somma dei parziali €{prima_med:,.2f}, "
-            f"differenza dai parziali €{round(tot_med - prima_med, 2):,.2f}"
+            f"Totale portato al minimo di legge: somma dei parziali €{numero_it(prima_med)}, "
+            f"differenza dai parziali €{numero_it(round(tot_med - prima_med, 2))}"
         )
 
     return {
@@ -754,7 +755,7 @@ def compenso_delegati_vendite(
         "distribuzione",
     ]
     note = [
-        f"Compenso tabellare per le 4 fasi: {compenso_tabellare:,.2f} euro ({articolo})",
+        f"Compenso tabellare per le 4 fasi: {numero_it(compenso_tabellare)} euro ({articolo})",
         "Spese generali: 10% del compenso (art. 2 c. 4), oltre alle spese documentate",
         "Il giudice dell'esecuzione puo' aumentare il compenso fino al 60% o ridurlo fino al 25% (art. 2 c. 3, non applicato)",
         "Meta' del compenso della fase di trasferimento, con le relative spese generali, e' a carico dell'aggiudicatario (art. 2 c. 7)",
@@ -762,7 +763,7 @@ def compenso_delegati_vendite(
     ]
     if limite_applicato:
         note.append(
-            f"Tetto del {tetto_pct}% del prezzo ({tetto:,.2f} euro) applicato a compenso e spese generali insieme, "
+            f"Tetto del {tetto_pct}% del prezzo ({numero_it(tetto)} euro) applicato a compenso e spese generali insieme, "
             "con riduzione proporzionale di entrambi"
         )
 
@@ -977,8 +978,8 @@ def fattura_enasarco(
         "totale_fattura": totale_fattura,
         "netto_a_pagare": netto,
         "nota": (
-            f"Il preponente versa la propria quota Enasarco (€{quota_preponente}) "
-            f"e trattiene dalla fattura la quota agente (€{quota_agente}) + ritenuta (€{ritenuta})"
+            f"Il preponente versa la propria quota Enasarco (€{numero_it(quota_preponente)}) "
+            f"e trattiene dalla fattura la quota agente (€{numero_it(quota_agente)}) + ritenuta (€{numero_it(ritenuta)})"
         ),
         "riferimento_normativo": "Art. 1742 c.c. — Regolamento Enasarco (attivita' istituzionali) artt. 4-5 — Art. 25-bis DPR 600/1973",
     }
@@ -999,7 +1000,7 @@ _INPS_QUOTA_PRESTATORE = Decimal(1) / Decimal(3)
 
 def _eur_it(valore: float) -> str:
     """Italian money format: 1.234,56."""
-    return f"{valore:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return numero_it(valore)
 
 
 @mcp.tool(tags={"calcolo", "parcelle_prof"})
@@ -1165,7 +1166,8 @@ def tariffe_mediazione(
     for limite, minimo, massimo in _TABELLA_A_DM150:
         avvio, primo = _mediazione_voci_fisse(limite)
         tabella.append({
-            "scaglione": (f"fino a €{limite:,.0f}" if precedente == 0 else f"da €{precedente + 1:,.0f} a €{limite:,.0f}").replace(",", "."),
+            "scaglione": (f"fino a €{numero_it(limite, 0)}" if precedente == 0
+                          else f"da €{numero_it(precedente + 1, 0)} a €{numero_it(limite, 0)}"),
             "spese_avvio": avvio, "spese_primo_incontro": primo,
             "tabella_a_minimo": minimo, "tabella_a_massimo": massimo, "tabella_a_medio": (minimo + massimo) / 2,
         })

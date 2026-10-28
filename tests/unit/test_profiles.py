@@ -97,3 +97,11 @@ def test_anac_is_a_network_source_never_in_calcoli(tmp_path):
     anac = {"cerca_atti_anac", "leggi_atto_anac", "ultimi_atti_anac"}
     assert anac <= set(_surface("normativa", tmp_path)["tools"])
     assert not anac & set(_surface("calcoli", tmp_path)["tools"])
+
+
+def test_a_profile_does_not_trip_the_policy_drift_warning(tmp_path):
+    # The drift check compares the policy with the registered tools: a profile only
+    # hides some of them, so it must not claim they are "no longer registered".
+    env = {"LEGAL_PROFILE": "calcoli", "PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "LEGAL_CACHE": "off"}
+    out = subprocess.run([sys.executable, "-c", SNIPPET], cwd=REPO, env=env, capture_output=True, text=True, check=True)
+    assert "no longer registered" not in out.stderr, out.stderr[:300]

@@ -6,6 +6,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -66,9 +67,9 @@ _COMPETENZE_PENALE = [c["tipo"] for c in _PARAMETRI["penale"]["competenze"]]
 
 def _scaglione_label(scaglione: dict, scaglioni: list[dict]) -> str:
     if not scaglione.get("oltre"):
-        return f"fino a {scaglione['fino_a']}€"
+        return f"fino a {numero_it(scaglione['fino_a'], 0)}€"
     finite = [s["fino_a"] for s in scaglioni if not s.get("oltre")]
-    return f"oltre {finite[-1]}€" if finite else "oltre"
+    return f"oltre {numero_it(finite[-1], 0)}€" if finite else "oltre"
 
 
 def _scaglione_civile_oltre_32_milioni(valore_causa: float, ultimo: dict, limite: float) -> dict:
@@ -407,22 +408,22 @@ def preventivo_volontaria_giurisdizione(
     totale_onorari = round(imponibile_iva + iva_importo, 2)
 
     linee = [
-        f"PREVENTIVO VOLONTARIA GIURISDIZIONE — Valore causa: €{valore_causa:,.2f}",
+        f"PREVENTIVO VOLONTARIA GIURISDIZIONE — Valore causa: €{numero_it(valore_causa)}",
         f"Scaglione: {scaglione_label} | Livello: {livello}",
         "",
         "COMPENSI PROFESSIONALI (DM 55/2014 agg. DM 147/2022, Tab. 7):",
     ]
     for d in dettaglio_fasi:
-        linee.append(f"  - Fase {d['fase']}: €{d['importo']:,.2f}")
-    linee.append(f"  Totale compensi: €{totale_compensi:,.2f}")
+        linee.append(f"  - Fase {d['fase']}: €{numero_it(d['importo'])}")
+    linee.append(f"  Totale compensi: €{numero_it(totale_compensi)}")
     if spese_generali:
-        linee.append(f"  Spese generali 15%: €{sg_importo:,.2f}")
-    linee.append(f"  Subtotale: €{subtotale:,.2f}")
+        linee.append(f"  Spese generali 15%: €{numero_it(sg_importo)}")
+    linee.append(f"  Subtotale: €{numero_it(subtotale)}")
     if cpa:
-        linee.append(f"  CPA 4%: €{cpa_importo:,.2f}")
+        linee.append(f"  CPA 4%: €{numero_it(cpa_importo)}")
     if iva:
-        linee.append(f"  IVA 22%: €{iva_importo:,.2f}")
-    linee.append(f"  TOTALE ONORARI: €{totale_onorari:,.2f}")
+        linee.append(f"  IVA 22%: €{numero_it(iva_importo)}")
+    linee.append(f"  TOTALE ONORARI: €{numero_it(totale_onorari)}")
 
     return {
         "testo_preventivo": "\n".join(linee),
@@ -660,29 +661,29 @@ def preventivo_civile(
     totale_preventivo = round(totale_onorari + totale_spese_vive, 2)
 
     linee = [
-        f"PREVENTIVO CAUSA CIVILE — Valore causa: €{valore_causa:,.2f}",
+        f"PREVENTIVO CAUSA CIVILE — Valore causa: €{numero_it(valore_causa)}",
         f"Scaglione: {scaglione_label} | Livello: {livello}",
         "",
         "COMPENSI PROFESSIONALI:",
     ]
     for d in dettaglio_fasi:
-        linee.append(f"  - Fase {d['fase']}: €{d['importo']:,.2f}")
-    linee.append(f"  Totale compensi: €{totale_compensi:,.2f}")
+        linee.append(f"  - Fase {d['fase']}: €{numero_it(d['importo'])}")
+    linee.append(f"  Totale compensi: €{numero_it(totale_compensi)}")
     if spese_generali:
-        linee.append(f"  Spese generali 15%: €{sg_importo:,.2f}")
-    linee.append(f"  Subtotale: €{subtotale:,.2f}")
+        linee.append(f"  Spese generali 15%: €{numero_it(sg_importo)}")
+    linee.append(f"  Subtotale: €{numero_it(subtotale)}")
     if cpa:
-        linee.append(f"  CPA 4%: €{cpa_importo:,.2f}")
+        linee.append(f"  CPA 4%: €{numero_it(cpa_importo)}")
     if iva:
-        linee.append(f"  IVA 22%: €{iva_importo:,.2f}")
-    linee.append(f"  TOTALE ONORARI: €{totale_onorari:,.2f}")
+        linee.append(f"  IVA 22%: €{numero_it(iva_importo)}")
+    linee.append(f"  TOTALE ONORARI: €{numero_it(totale_onorari)}")
     linee.append("")
     linee.append("SPESE VIVE STIMATE:")
     for k, v in spese_vive.items():
-        linee.append(f"  - {k.replace('_', ' ').title()}: €{v:,.2f}")
-    linee.append(f"  TOTALE SPESE VIVE: €{totale_spese_vive:,.2f}")
+        linee.append(f"  - {k.replace('_', ' ').title()}: €{numero_it(v)}")
+    linee.append(f"  TOTALE SPESE VIVE: €{numero_it(totale_spese_vive)}")
     linee.append("")
-    linee.append(f"TOTALE PREVENTIVO: €{totale_preventivo:,.2f}")
+    linee.append(f"TOTALE PREVENTIVO: €{numero_it(totale_preventivo)}")
 
     return {
         "testo_preventivo": "\n".join(linee),
@@ -746,19 +747,19 @@ def preventivo_stragiudiziale(
     totale = round(imponibile_iva + iva_importo, 2)
 
     linee = [
-        f"PREVENTIVO ATTIVITÀ STRAGIUDIZIALE — Valore pratica: €{valore_pratica:,.2f}",
+        f"PREVENTIVO ATTIVITÀ STRAGIUDIZIALE — Valore pratica: €{numero_it(valore_pratica)}",
         f"Scaglione: {scaglione_label} | Livello: {livello}",
         "",
-        f"  Compenso base: €{compenso:,.2f}",
+        f"  Compenso base: €{numero_it(compenso)}",
     ]
     if spese_generali:
-        linee.append(f"  Spese generali 15%: €{sg_importo:,.2f}")
-    linee.append(f"  Subtotale: €{subtotale:,.2f}")
+        linee.append(f"  Spese generali 15%: €{numero_it(sg_importo)}")
+    linee.append(f"  Subtotale: €{numero_it(subtotale)}")
     if cpa:
-        linee.append(f"  CPA 4%: €{cpa_importo:,.2f}")
+        linee.append(f"  CPA 4%: €{numero_it(cpa_importo)}")
     if iva:
-        linee.append(f"  IVA 22%: €{iva_importo:,.2f}")
-    linee.append(f"  TOTALE: €{totale:,.2f}")
+        linee.append(f"  IVA 22%: €{numero_it(iva_importo)}")
+    linee.append(f"  TOTALE: €{numero_it(totale)}")
 
     return {
         "testo_preventivo": "\n".join(linee),
@@ -827,7 +828,7 @@ def spese_trasferta_avvocati(
         carburante_note = "prezzo carburante non indicato: applicati 0,30 euro/km (carburante a 1,50 euro/litro)"
     else:
         euro_km = Decimal(str(prezzo_carburante_litro)) / 5
-        carburante_note = f"un quinto di {prezzo_carburante_litro} euro/litro"
+        carburante_note = f"un quinto di {numero_it(prezzo_carburante_litro, 3)} euro/litro"
     rimborso_km = _q(Decimal(str(km_distanza)) * euro_km) if mezzo == "auto" else 0.0
     albergo_maggiorato = _pct(costo_albergo, "110")
     extra_documentati = _q(Decimal(str(albergo_maggiorato)) + Decimal(str(pedaggi_parcheggi)))
@@ -844,10 +845,10 @@ def spese_trasferta_avvocati(
     indennita = round(onorario_riferimento * pct_indennita / 100, 2)
 
     voci = [
-        {"voce": f"Indennità trasferta ({pct_indennita}% su €{onorario_riferimento})", "importo": indennita},
+        {"voce": f"Indennità trasferta ({pct_indennita}% su €{numero_it(onorario_riferimento)})", "importo": indennita},
     ]
     if mezzo == "auto":
-        voci.append({"voce": f"Rimborso km ({km_distanza} km × {euro_km:.4f} €/km, {carburante_note})", "importo": rimborso_km})
+        voci.append({"voce": f"Rimborso km ({km_distanza} km × {numero_it(euro_km, 4)} €/km, {carburante_note})", "importo": rimborso_km})
     else:
         voci.append({"voce": f"Rimborso {mezzo}: a piè di lista", "importo": 0.0})
 
@@ -1057,25 +1058,25 @@ def modello_notula(
         f"Avv. {avvocato}",
         f"Cliente: {cliente}",
         f"Procedimento: {proc['descrizione']}",
-        f"Valore causa: €{valore_causa:,.2f}",
+        f"Valore causa: €{numero_it(valore_causa)}",
         "",
         "COMPENSI PROFESSIONALI (DM 55/2014 agg. DM 147/2022):",
     ]
     for d in dettaglio_fasi:
-        linee.append(f"  Fase {d['fase']}: €{d['importo']:,.2f}")
-    linee.append(f"  Totale compensi: €{totale_compensi:,.2f}")
-    linee.append(f"  Spese generali 15%: €{sg:,.2f}")
-    linee.append(f"  Subtotale: €{subtotale:,.2f}")
-    linee.append(f"  CPA 4%: €{cpa_importo:,.2f}")
-    linee.append(f"  IVA 22%: €{iva_importo:,.2f}")
-    linee.append(f"  TOTALE ONORARI: €{totale_onorari:,.2f}")
+        linee.append(f"  Fase {d['fase']}: €{numero_it(d['importo'])}")
+    linee.append(f"  Totale compensi: €{numero_it(totale_compensi)}")
+    linee.append(f"  Spese generali 15%: €{numero_it(sg)}")
+    linee.append(f"  Subtotale: €{numero_it(subtotale)}")
+    linee.append(f"  CPA 4%: €{numero_it(cpa_importo)}")
+    linee.append(f"  IVA 22%: €{numero_it(iva_importo)}")
+    linee.append(f"  TOTALE ONORARI: €{numero_it(totale_onorari)}")
     linee.append("")
     linee.append("SPESE VIVE:")
     for k, v in spese_vive_det.items():
-        linee.append(f"  {k.replace('_', ' ').title()}: €{v:,.2f}")
-    linee.append(f"  TOTALE SPESE VIVE: €{totale_spese_vive:,.2f}")
+        linee.append(f"  {k.replace('_', ' ').title()}: €{numero_it(v)}")
+    linee.append(f"  TOTALE SPESE VIVE: €{numero_it(totale_spese_vive)}")
     linee.append("")
-    linee.append(f"TOTALE NOTULA: €{totale_notula:,.2f}")
+    linee.append(f"TOTALE NOTULA: €{numero_it(totale_notula)}")
 
     return {
         "testo_notula": "\n".join(linee),

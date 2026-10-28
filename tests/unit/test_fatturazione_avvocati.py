@@ -30,7 +30,7 @@ class TestParcellaAvvocatoCivile:
         r = _call("parcella_avvocato_civile", valore_causa=1000.0, livello="medio")
         # scaglione fino_a 1100: studio=131, introduttiva=131, istruttoria=200, decisionale=200
         assert r["totale_compenso"] == pytest.approx(131 + 131 + 200 + 200, abs=0.01)
-        assert "1100" in r["scaglione"]
+        assert r["scaglione"] == "fino a 1.100€"
 
     def test_scaglione_5200(self):
         r = _call("parcella_avvocato_civile", valore_causa=5000.0, livello="medio")
@@ -468,7 +468,7 @@ class TestPreventivoStragiudiziale:
 
     def test_scaglione_label_in_testo(self):
         r = _call("preventivo_stragiudiziale", valore_pratica=1000.0)
-        assert "1100" in r["testo_preventivo"]
+        assert "fino a 1.100€" in r["testo_preventivo"]
 
 
 # ---------------------------------------------------------------------------
@@ -989,14 +989,14 @@ class TestMinimiMetaEsattaAlCentesimo:
         r = _call("modello_notula", tipo_procedimento="decreto_ingiuntivo", avvocato="A",
                   cliente="B", valore_causa=3000, livello="min")
         assert r["dettaglio_calcoli"]["fasi"] == [{"fase": "unica", "importo": 236.5}]
-        assert "€236.50" in r["testo_notula"]
+        assert "€236,50" in r["testo_notula"]
 
     def test_preventivo_civile_porta_i_centesimi(self):
         # 65,50 + 65,50 + 100 + 100 = 331; SG 49,65; CPA 15,23 (15,226); IVA 87,09 (87,0936)
         r = _call("preventivo_civile", valore_causa=1000, livello="min")
         assert [f["importo"] for f in r["dettaglio_calcoli"]["fasi"]] == [65.5, 65.5, 100, 100]
         assert r["dettaglio_calcoli"]["totale_onorari"] == 482.97
-        assert "Fase studio: €65.50" in r["testo_preventivo"]
+        assert "Fase studio: €65,50" in r["testo_preventivo"]
 
     def test_il_massimo_e_una_volta_e_mezza_esatta_al_centesimo(self):
         # Come il minimo: 131 x 1,5 = 196,50 (non 197); 200 x 1,5 = 300

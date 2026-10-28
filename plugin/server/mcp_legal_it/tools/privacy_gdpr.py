@@ -10,6 +10,7 @@ from pathlib import Path
 
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.server import mcp
+from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -2381,17 +2382,17 @@ def _calcolo_sanzione_gdpr_impl(
     if fatturato_noto:
         if fascia_fatturato:
             rettifica_txt = (
-                f"Rettifica dimensionale EDPB (fatturato fino a {fascia_fatturato['fino_a']:,.0f}€): "
+                f"Rettifica dimensionale EDPB (fatturato fino a {numero_it(fascia_fatturato['fino_a'], 0)}€): "
                 f"{fascia_fatturato['da_pct']}%-{fascia_fatturato['a_pct']}% del punto di partenza. "
             )
         else:
             rettifica_txt = "Fatturato oltre 500 milioni di euro: nessuna rettifica dimensionale (EDPB par. 66). "
         range_fatturato_note = (
-            f"Con fatturato {fatturato_annuo:,.0f}€: massimale basato su % fatturato = "
-            f"{max_fatturato:,.0f}€ ({max_pct}% fatturato). "
-            f"Massimale effettivo applicato (maggiore tra i due): {massimale_effettivo:,.0f}€. "
+            f"Con fatturato {numero_it(fatturato_annuo, 0)}€: massimale basato su % fatturato = "
+            f"{numero_it(max_fatturato, 0)}€ ({max_pct}% fatturato). "
+            f"Massimale effettivo applicato (maggiore tra i due): {numero_it(massimale_effettivo, 0)}€. "
             f"{rettifica_txt}"
-            f"Range stimato con fatturato: {range_min_euro:,.0f}€ — {range_max_euro:,.0f}€"
+            f"Range stimato con fatturato: {numero_it(range_min_euro, 0)}€ — {numero_it(range_max_euro, 0)}€"
         )
     else:
         range_fatturato_note = (
@@ -2438,7 +2439,7 @@ def _calcolo_sanzione_gdpr_impl(
             "pct_fatturato": max_pct,
             "effettivo_euro": massimale_effettivo,
             "descrizione": (
-                f"Fino a {max_euro:,}€ o, per le imprese, {max_pct}% del fatturato mondiale totale "
+                f"Fino a {numero_it(max_euro, 0)}€ o, per le imprese, {max_pct}% del fatturato mondiale totale "
                 "annuo dell'esercizio precedente, se superiore"
             ),
         },
