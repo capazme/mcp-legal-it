@@ -262,6 +262,17 @@ sviluppo software, dove il gate scatta su codice e documentazione; per il lavoro
 va lasciato acceso. Per esempio, nel `.claude/settings.local.json` del progetto:
 `{"env": {"LEGAL_CITATION_GATE": "off"}}`.
 
+**Per cartella**: `LEGAL_IT_GATE_SKIP_PATHS` elenca le cartelle (percorsi assoluti,
+separati da `:` su macOS/Linux, `;` su Windows, oppure da virgole) le cui sessioni il gate
+non controlla: se la `cwd` della sessione (dall'input dell'hook, altrimenti quella del
+processo) è una di esse o vi è contenuta, l'hook esce subito. Così le sessioni di sviluppo
+sotto, ad esempio, `~/CODE` non vengono bloccate, mentre il lavoro legale altrove resta
+controllato. È una lista di esclusione: una cartella non elencata resta controllata, le voci
+relative sono ignorate e `/a/CODE2` non è dentro `/a/CODE`. I percorsi vanno scritti con
+le stesse maiuscole che hanno sul disco, e una cartella con una virgola nel nome non si può
+elencare (la virgola separa le voci). Per esempio, nel
+`~/.claude/settings.json`: `{"env": {"LEGAL_IT_GATE_SKIP_PATHS": "/path/to/CODE"}}`.
+
 ---
 
 Il plugin non registra altri hook: `hooks.json` dichiara solo `Stop` e `SubagentStop`.

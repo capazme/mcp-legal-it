@@ -15,6 +15,15 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
+  skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
+  Windows, or by commas): a session whose `cwd` (from the hook input, else the
+  process's) is one of them or inside one ends the Stop/SubagentStop hook at
+  once, so software-development sessions under, say, `~/CODE` are not gated
+  while legal work elsewhere still is. It is a deny-list: a folder not listed
+  stays gated, relative entries are ignored, and `/a/CODE2` is not inside
+  `/a/CODE`. Brings upstream the lane separation a local 2.9.0 patch had, which
+  2.16.1 no longer carried.
 - **The sigle of VisuaLex's source convention** (G-360, G-366, G-369): «cod.
   post.» and «c.g.c.» name their codes, and an annex of a code's decree with a
   sigla of its own reads as that code and annex, as VisuaLex keys it: «art. 1
