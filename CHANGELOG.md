@@ -1005,6 +1005,35 @@ entry, it is the same feature as ported to the 3.0 line.
   - **Agreed shape.** The shape is agreed with VisuaLex.
   - **Tests.** Live gate `tests/unit/test_parti_articolo_live.py` (3 requests); the
     INPS apprentice gate now cites comma 773.
+- **`api.leggi_provvedimento_amministrativo` reads the number as «N/AAAA».** The
+  reader gives a TAR/CdS decision's number as «1918/2026» (from the page, as from the
+  XML). The api took its first four digits as the year: parere n. 1918/2026 became
+  «anno 1918». Sentenza n. 17/2021 lost its year. Now `numero` and `anno` are 1918 and
+  2026; the portal's 9-digit form («202614035») is still read.
+- **TMview's refusals are said as such.** When TMview turns a request away with HTTP
+  401/403 (since 2026-10-29 its trademark-detail endpoint answers `{"error":"Forbidden"}`
+  while the search still works), `leggi_marchio`, `cerca_marchi` and
+  `verifica_anteriorita_marchio` say «TMview ha rifiutato la richiesta (HTTP 403)». They
+  add that this does not mean the mark does not exist, and that the record is on
+  www.tmdn.org. Before, the answer was «non raggiungibile», followed by httpx's English
+  message with the request URL. A refusal is not retried.
+- **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
+  portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
+  provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
+  «pagina di errore». The reader now recognises the page by its own markup before
+  testing for the error page (which is HTML too, and still reported as an error, never
+  read as text). It takes the court, the type, the number of the «REG.PROV.COLL.» line
+  and the «Pubblicato il» date, so the **Estremi** line is unchanged («Sentenza n.
+  17/2021, pubblicata il 09/11/2021»). A parere gives «Parere n. 1918/2026»; its date is
+  the dispatch date, so it is not reported as a publication date. No text is dropped:
+  paragraphs, list items, quotations, headings, table rows and loose text after a line
+  break are all read. AP 17/2021 comes to 106,878 characters, against 106,448 for its XML
+  body. The page carries no markup or embedded emblem. The 15,000-character cut still
+  keeps the dispositivo, from the last block that opens with «P.Q.M.», «P.Q.M.:»,
+  «p.q.m.» or «PER QUESTI MOTIVI». When none is found, the note says «dispositivo non
+  individuato». The XML is still read when the portal serves it. Fixtures: trimmed copies
+  of the real pages of Ad. Plen. n. 17/2021 (private parties and lawyers pseudonymised)
+  and parere n. 1918/2026, and of the portal's error page.
 - **The update notes of a Normattiva article are back** (3.0 only: 2.17.1 reads
   the Akoma Ntoso export, which carries them). Since articles are read from their
   page, an article set out in comma divs came without its «AGGIORNAMENTO (n)»
