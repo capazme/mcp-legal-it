@@ -7,8 +7,9 @@ Read on 2026-10-22 (issue #51): robots.txt says `Allow: /` for every agent, the 
 login and answers a GET in about a second. The search page lists cards (date, title, link,
 subject, tags); the page of an act carries its particulars (year, topic, category, type,
 recipients), the subject, the "Riferimenti normativi" and "Parole chiave" paragraphs and the
-official PDF. The full text exists only in that PDF: this client returns the PDF's link, it does
-not extract its text (`AttoAnac.testo` stays empty until it does).
+official PDF. The full text exists only in that PDF: this client returns the PDF's link and does
+not extract its text, by decision (LI-053: no PDF library; the lawyer reads the PDF), so
+`AttoAnac.testo` stays empty.
 
 The open-data portal (dati.anticorruzione.it) answers automated requests with its firewall's
 "Request Rejected" page: it is not used.
@@ -162,7 +163,7 @@ class AttoAnac:
     riferimenti_normativi: str = ""
     parole_chiave: str = ""
     allegati: list[Allegato] = field(default_factory=list)
-    # Full text of the act. Empty: the text is only in the PDF, which is not read (yet).
+    # Full text of the act. Always empty: the text is only in the PDF, which is not read (LI-053).
     testo: str = ""
 
 

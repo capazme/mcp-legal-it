@@ -1,0 +1,482 @@
+{
+ "searchResult": {
+  "searchHistoryId": 14000134,
+  "totalHits": 90256,
+  "maxScore": "NaN",
+  "retrievedBy": "FULL_TEXT_SEARCH_STRATEGY",
+  "searchBackupResult": false,
+  "documents": [
+   {
+    "version": 0,
+    "insertDate": 1793275303933,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "language": "it",
+    "uri": "cid://3349-b0b9e45b-3faf-4c9c-9a26-478c96c38884",
+    "size": 56655,
+    "checksum": "d2a89605904e28b06ff3b9d08f5ed9e6",
+    "channelType": "push",
+    "score": "NaN",
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "NVQ0yp9-TMSfe-c2IHgr8w",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Comune di Alleghe (BL)) - Rendiconto 2024 - Pronuncia, ai sensi dell'art. 1 comma 166 e ss. della Legge 23 dicembre 2005 n. 266 che:\n - rileva la mancata valorizzazione del FPV di parte corrente nel bilancio di previsione 2024/2026 e raccomanda, per gli esercizi futuri, la valorizzazione del fondo in coerenza con i cronoprogrammi delle spese di investimento e rispettando il principio della programmazione di bilancio;\n- rileva saldi negativi degli equilibri in conto capitale e raccomanda il corrispondente monitoraggio al fine di assicurare il rispetto degli equilibri collegati agli obiettivi di finanza pubblica.",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "29/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCVEN/180/2026/PRSE",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "180",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "21/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "29/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Veneto",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 0,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1793200384600,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-0466dd5d-e077-4542-a116-6b8d1f3fbe27",
+    "size": 209531,
+    "checksum": "823479aa44e4131259b238d09884362d",
+    "channelType": "push",
+    "score": "NaN",
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "VfjzUcgRShGcf53lBbIe2A",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "27/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCBAS/130/2026/PRSP",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Basilicata",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "28/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Con la deliberazione n. 94/2026/PRSP, questa Sezione, a seguito dell’analisi e della verifica ex art. 148-bis del D.lgs. n. 267/2000 - in contraddittorio con il Comune di Bernalda e con l’Organo di revisione economico-finanziaria - del questionario e dei dati immessi nel sistema informativo BDAP relativo all’ esercizio finanziario 2024, ha accertato la sussistenza di criticità suscettibili – se non corrette - di pregiudicare, anche in prospettiva, gli equilibri economico finanziari dell’Ente, con necessità di adozione di misure consequenziali idonee a rimuoverle. ",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "130",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "28/10/2026",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 1,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1793203955969,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-f6379442-0787-448b-ba29-9e87dce4fe0c",
+    "size": 351164,
+    "checksum": "f4c07febced2fcb5c57d48e8e2b9c33d",
+    "channelType": "push",
+    "score": "NaN",
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "Nb5sFBAETGevk8gscR_NtQ",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "27/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "28/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "131",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCBAS/131/2026/PRSE",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "In esecuzione delle attività di controllo intestate a questa Sezione ai sensi dell’art. 1, comma 166 e seguenti della legge n. 266 del 23 dicembre 2005 e dell’art. 148-bis del D.lgs. n. 267 del 18 agosto 2000 (TUEL), sono stati analizzati i dati e le informazioni contenute nel questionario relativo al rendiconto dell’esercizio finanziario 2024 del Comune di Accettura.",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Basilicata",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "28/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2026",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 2,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1793281423986,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-3e5a44e6-3de9-4352-a449-054bdcd2f735",
+    "size": 1293302,
+    "checksum": "f480e9646eecf09733990376bec236f5",
+    "channelType": "push",
+    "score": "NaN",
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "O-FCOD0ES520u-7CcwFZew",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "28/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "191",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione del Controllo sugli Enti",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Relazione AdSP Mar Sicilia occidentale - es. 2024",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "24/09/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SCE/191/2026/RGES",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "29/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2026",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 3,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1793199690390,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-911cac8a-ba70-430b-95db-279e8dcfbfd9",
+    "size": 851977,
+    "checksum": "9adbdebbbd77d47771db2da55360b583",
+    "channelType": "push",
+    "score": "NaN",
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "xLl6TYIcS8ez4gdLRuWt9g",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Comune di Massarosa (LU) - esito del controllo sulle relazioni dell'organo di revisione riguardanti il rendiconto degli esercizi finanziari dal 2019 al 2024.",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "28/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCTOS/186/2026/PRSP",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "24/09/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Toscana",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "186",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "28/10/2026",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 4,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   }
+  ]
+ },
+ "namedEntityTypes": null
+}

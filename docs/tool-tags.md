@@ -22,7 +22,7 @@ se questa pagina smette di coincidere con il vocabolario.
 | Etichetta | Tool | Significato |
 |---|---|---|
 | `normativa` | 19 | Legislazione e ciò che la annota: testo delle norme, indice e PDF dell'atto, Gazzetta Ufficiale, disegni di legge, recepimento UE↔Italia, verifica delle citazioni, annotazioni Brocardi. |
-| `giurisprudenza` | 24 | Decisioni di un giudice: ricerca, testo integrale, giurisprudenza su una norma, orientamenti. |
+| `giurisprudenza` | 27 | Decisioni di un giudice: ricerca, testo integrale, giurisprudenza su una norma, orientamenti. |
 | `autorita` | 9 | Provvedimenti e indirizzi di un'autorità indipendente (Garante privacy, CONSOB, ANAC). |
 | `registri` | 5 | Fatti cercati online in un registro pubblico o su un sito di terzi, non diritto: marchi (TMview), partite IVA (VIES), DPA pubblicato da un fornitore. |
 | `calcolo` | 141 | Risposta calcolata in locale dagli input e dalle tabelle incluse: calcoli, termini, compensi, imposte, verifiche e ricerche in tabella. Nessuna fonte online. |
@@ -38,6 +38,7 @@ se questa pagina smette di coincidere con il vocabolario.
 | `giurisprudenza_trib` | Giudici tributari e Cassazione tributaria (CeRDEF). |
 | `giurisprudenza_amm` | Giustizia amministrativa: TAR e Consiglio di Stato. |
 | `giurisprudenza_ue` | Corte di giustizia e Tribunale dell'Unione europea (CGUE). |
+| `giurisprudenza_conti` | Corte dei conti: deliberazioni e pareri delle sezioni di controllo. |
 
 `cerca_giurisprudenza_unificata` porta quattro organi: interroga Cassazione, CeRDEF,
 TAR/CdS e CGUE.
@@ -95,20 +96,20 @@ etichette. Tutti includono `diagnostica`.
 
 | Profilo | Etichette | Tool |
 |---|---|---|
-| **full** | tutte | 231 |
-| **sinistro** | danni, rivalutazione, interessi, normativa, giurisprudenza, sinistro, diagnostica | 79 |
-| **credito** | interessi, rivalutazione, parcelle_avv, normativa, giurisprudenza, credito, diagnostica | 89 |
-| **penale** | penale, normativa, giurisprudenza, diagnostica | 51 |
+| **full** | tutte | 234 |
+| **sinistro** | danni, rivalutazione, interessi, normativa, giurisprudenza, sinistro, diagnostica | 82 |
+| **credito** | interessi, rivalutazione, parcelle_avv, normativa, giurisprudenza, credito, diagnostica | 92 |
+| **penale** | penale, normativa, giurisprudenza, diagnostica | 54 |
 | **fiscale** | fiscale, proprieta, utility, consob, investimenti, crisi_impresa, societario, diagnostica | 66 |
-| **normativa** | normativa, giurisprudenza, autorita, registri, privacy, diagnostica | 73 |
-| **privacy** | privacy, garante, normativa, giurisprudenza, diagnostica | 64 |
+| **normativa** | normativa, giurisprudenza, autorita, registri, privacy, diagnostica | 76 |
+| **privacy** | privacy, garante, normativa, giurisprudenza, diagnostica | 67 |
 | **studio** | scadenze, giudiziario, parcelle_avv, parcelle_prof, investimenti, lavoro, diagnostica | 76 |
 | **redattore** | atti, giudiziario, parcelle_avv, scadenze, normativa, diagnostica | 76 |
-| **cowork** | normativa, giurisprudenza, privacy, parcelle_avv, diagnostica | 77 |
+| **cowork** | normativa, giurisprudenza, privacy, parcelle_avv, diagnostica | 80 |
 | **calcoli** | calcolo, diagnostica | 144 |
 
 Con `LEGAL_BROCARDI=off` ogni profilo che contiene `normativa` espone due tool in meno
-(`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 231 a 229.
+(`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 234 a 232.
 
 ## Un server con una parte dei tool: `crea_server`
 
