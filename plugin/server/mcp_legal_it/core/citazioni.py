@@ -393,19 +393,27 @@ def _comma_citato(testo: str, inizio: int, fine_articoli: int, dopo: int) -> "st
 
 
 # A tool's notice that its text is one part of an article Normattiva splits:
-# «testo parziale: commi 701-800 di 1364 (l'articolo è diviso in 14 parti su Normattiva)».
+# «testo parziale: commi 701-800 di 1364 (l'articolo è diviso in 14 parti su Normattiva)», or
+# «testo parziale: una sola parte di 1364 (…)» when the part served is not named
+# (core.norme.avviso_parziale writes both).
 _TESTO_PARZIALE = re.compile(
-    rf"testo parziale: commi (\d+(?:-(?:{_SUFFISSI}))?)-(\d+(?:-(?:{_SUFFISSI}))?) di ", re.IGNORECASE)
+    rf"testo parziale: (?:commi (\d+(?:-(?:{_SUFFISSI}))?)-(\d+(?:-(?:{_SUFFISSI}))?)|una sola parte) di ",
+    re.IGNORECASE)
 
 
 def commi_letti(testo: str) -> "tuple[str, str] | None":
     """``(dal, al)`` of the commi a ``cite_law``/``fetch_law_article`` text served, when partial.
 
-    None for a whole article (no «testo parziale» notice). The notice is read from the
-    markdown and from the JSON ``avvisi`` alike.
+    None for a whole article (no «testo parziale» notice). A part not named is ``("?", "?")``:
+    partial, and no comma lies in it. The notice is read from the markdown and from the JSON
+    ``avvisi`` alike.
     """
     m = _TESTO_PARZIALE.search(testo or "")
-    return (canonico_comma(m.group(1)), canonico_comma(m.group(2))) if m else None
+    if m is None:
+        return None
+    if m.group(1) is None:
+        return ("?", "?")
+    return (canonico_comma(m.group(1)), canonico_comma(m.group(2)))
 
 
 def comma_nell_intervallo(comma: str, dal: str, al: str) -> bool:
