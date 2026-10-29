@@ -191,6 +191,17 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
+        "module": "mcp_legal_it/lib/visualex/aggiornamenti.py",
+        "label": "normattiva_aggiornamenti",
+        "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_aggiornamenti",
+        "files": ["<sha256 of the article URN + '|' + version>.json -- a past version's window and update table "
+                  "(api.modifiche_articolo)"],
+        "retention": "90 days (TTL_SECONDI); only versions whose window has ended; the current version, a "
+                     "failed read and a partial result are never kept",
+        "markers": ("normattiva_aggiornamenti",),
+        "switch": "cache_enabled()",
+    },
+    {
         "module": "mcp_legal_it/lib/brocardi/client.py",
         "label": "cache root",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",

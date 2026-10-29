@@ -364,7 +364,8 @@ The same, from explicit fields (the VisuaLex request body). No network.
 ### `risolvi_atto(tipo_atto: str, numero_atto: str, anno_o_data: str) -> AttoRisolto`
 
 The full date and NIR URN of an Italian act, read from its Normattiva page. It is async
-and makes at most one request per act.
+and makes at most two requests per act: the act's page, and one more for the check when
+that page is Normattiva's error page (below; the check is shared per event loop).
 
 - **Input:**
   - `tipo_atto`: any name `riferimento_da_parametri` accepts (`"d.lgs."`, `"legge"`,
@@ -483,6 +484,159 @@ and makes at most one request per act.
 r = await api.risolvi_atto("d.lgs.", "385", "1993")
 r.esito, r.data, r.urn, r.precisione
 # ('trovato', '1993-09-01', 'urn:nir:stato:decreto.legislativo:1993-09-01;385', 'ESATTO')
+```
+
+### `modifiche_articolo(riferimento: str | NormaDati, *, dal=None, al=None, max_versioni=20) -> ModificheArticolo`
+
+The versions of an Italian article and the amendments that produced them, read from
+Normattiva. It is async.
+
+- **Source.** Normattiva gives each version of an article its own page («Testo in vigore
+  dal … al …») and its own update table («aggiornamenti all'articolo»). The table of
+  version *k* lists the amendments that produced version *k*. Measured on 29 Oct 2026 on
+  art. 2 c.c., artt. 2-ter and 13 d.lgs. 196/2003, art. 64-bis CCII and art. 1 d.P.R.
+  131/1986.
+  - So an amendment's `in_vigore_dal` is the start of the version it produced, read from
+    that version's page, not deduced from the Gazzetta date. This is why it is `ESATTO`.
+  - Both pages need the session cookie the article page sets: every call reads them with
+    one client, after the article page.
+  - Asked without the session, the update table answers Normattiva's error page.
+    Therefore `url` is the article's page, never the update table's.
+- **Input:**
+  - an article of an Italian act (`"art. 13 d.lgs. 196/2003"`, a `NormaDati`); a code's
+    article is read in the code (`regio.decreto:1942-03-16;262:2~art2`), never in its
+    approving decree;
+  - an act without an article is `non_supportata`, never its art. 1;
+  - EU acts and articles of an annex named by the act are `non_supportata`;
+  - a `NormaDati` with `versione`/`data_versione` is read as the article: the history is
+    the same.
+- **dal / al.**
+  - Both are `"YYYY-MM-DD"` and both inclusive. They filter on `in_vigore_dal`, the
+    entry into force.
+  - They never filter on the Gazzetta date: the two differ by days and would flip the
+    results. The abrogation of art. 13 d.lgs. 196/2003 was published on 4 Sept 2018 and
+    is in force from 19 Sept 2018.
+  - An amendment whose version window cannot be read has no `in_vigore_dal`. It is
+    filtered on `data_gu`, it is `INDICATIVO`, and an avviso says so.
+  - `versioni` always lists every version.
+  - A bad date or `dal` after `al` is `riferimento_non_valido`.
+- **The walk.** Newest version first, each window before its table:
+  - the table of a version that starts after `al` is not read;
+  - the walk stops at the first version that starts before `dal`, because the older
+    versions start earlier still.
+- **Ceiling.** At most `max_versioni` versions are read, the newest. Past the ceiling:
+  - `completa=False`, `precisione="INDICATIVO"`, and `versioni_non_lette` counts the rest;
+  - an avviso says how many versions were read and how to reach the others (narrow `dal`/
+    `al`, or raise `max_versioni`);
+  - the unread versions are listed with `valid_from`/`valid_to` at `None`.
+  - `max_versioni < 1` raises `ValueError`.
+- **Cost.**
+  - For an article with V versions, all read: 2V-1 requests (the article page, V-1 version
+    pages, V-1 tables); at most 2·`max_versioni`.
+  - With the cache warm: 2 (the article page and the current version's table).
+  - An article never amended: 1 (its page has no update link).
+  - The library's Normattiva limits apply (3 in flight, 0.5 s apart, §2).
+- **Cache.**
+  - Kept: a version whose window has ended, with its table, on disk for 90 days
+    (`normattiva_aggiornamenti/` in the cache directory, through `_cache.py`). Never for
+    ever, because Normattiva corrects its data at times. Version 1 is kept with its window
+    only (it has no table).
+  - Not kept: the current version, a future version, a version that failed, a version
+    whose table was not read.
+  - The article page (current version, number of versions) is read every time, so a new
+    version is seen at once.
+  - `LEGAL_CACHE=off` or `configurazione(cache=False)`: nothing is read or written.
+  - A cached answer equals the live one but for `fonti`.
+- **Partial failure.**
+  - A version whose page or table cannot be read stops the walk there. The cause can be
+    a 429, a 5xx, a network error, an error or session page, or a page of another
+    article.
+  - The answer keeps what was read: `esito="trovato"`, `completa=False`,
+    `precisione="INDICATIVO"`, and an avviso naming the unread versions and saying
+    «riprovare». A gap is never filled.
+  - Read `completa=False` with that avviso as transient, like `fonte_non_raggiungibile`:
+    ask again. A version read whole before the failure is kept, a failed one never.
+- **Article page.**
+  - If the page cannot be read, the result is `verifica_non_disponibile` (transient),
+    never `articolo_non_trovato` and never «no amendments». This covers an error or session
+    page, a 429/5xx/403, a network error, a 2xx without an article, and a page that does
+    not say which article it is.
+  - If the page names another article (Normattiva answers a missing article with art. 1),
+    the result is `articolo_non_trovato`.
+- **Future versions.**
+  - Without a date, Normattiva can serve as «the article» a version not yet in force. For
+    example, art. 1 d.P.R. 131/1986 is abrogated from 1 Jan 2027 by d.lgs. 123/2025.
+  - That version is listed with its future `valid_from`, its amendment with a future
+    `in_vigore_dal`, and an avviso says it is not in force yet.
+  - `valid_to` is as Normattiva states it, inclusive, even when it lies in the future.
+- **Abrogation.** An abrogated article ends with a `Modifica` of `tipo="abrogazione"`. The
+  version before it has its `valid_to`. The last version is Normattiva's abrogated
+  stub, open-ended.
+- **Version 1.** The act that introduced the article does not appear in any table: version
+  1 has no amendment, and an avviso says so (whenever there is more than one version).
+- **Identical rows.** A row that two tables list identically (same act, same provision,
+  same action and parts) is kept once, at the older version. A decree-law and its
+  conversion law are never merged: Normattiva lists the decree-law as published in one
+  version and as converted «con modificazioni» in the next, and those are two amendments.
+- **`tipo`.** It is Normattiva's verb, never guessed:
+  - «la modifica» → `modifica`;
+  - «l'introduzione» → `inserimento`;
+  - «l'abrogazione» → `abrogazione`;
+  - «la sostituzione» → `sostituzione`;
+  - «la conversione» → `conversione`;
+  - anything else → `altro`.
+
+  A provision with two actions («l'introduzione del comma 1-bis … e la modifica … commi 2
+  e 3») gives one `Modifica` per action, each with the provision's whole text.
+- **`testo` and `descrizione`** are Normattiva's wording only, never editorial commentary.
+
+Esiti: `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`, `articolo_non_trovato`,
+`verifica_non_disponibile` (transient), `errore_fonte`, `non_supportata`.
+
+`ModificheArticolo`:
+
+| Field | Value |
+|---|---|
+| `esito` | `EsitoNorma` |
+| `norma_data` | the article (`NormaDati`), with the act's full date |
+| `versioni` | every version Normattiva lists, oldest first (`VersioneArticolo`) |
+| `modifiche` | the amendments within `dal`/`al`, oldest version first (`Modifica`) |
+| `url` | the article's Normattiva page (the update table needs a session: never given) |
+| `completa` | `True` when every version within `dal`/`al` was read, its table included |
+| `precisione` | `"ESATTO"` when complete and every amendment is; else `"INDICATIVO"`; `None` without `trovato` |
+| `avvisi` | version 1, versions not in force yet, the ceiling, unread versions, the `data_gu` fallback |
+| `versioni_non_lette` | versions left unread by the ceiling or by a failure |
+| `errore`, `fonti` | as everywhere |
+
+`VersioneArticolo` (VisuaLex's `validity` keys): `version_number` (Normattiva's own
+`art.versione`), `valid_from`, `valid_to` (ISO, inclusive; `None` when open or not read,
+never `""`).
+
+`Modifica`:
+
+| Field | Value |
+|---|---|
+| `atto` | `AttoModificante` |
+| `tipo` | `TipoModifica` (above) |
+| `disposizione` | of the amending act: `"art. 9, comma 1, lettera a)"` |
+| `parti` | of the article: `"commi 1, 1-bis, 2 e 3"`, `"comma 1-bis"`; `None` for the whole article |
+| `in_vigore_dal` | the start of the version it produced (read); `None` when that window is unreadable |
+| `versione` | that version (Normattiva's number) |
+| `data_gu` | the row's «data pubblicazione», ISO: not the day it applies |
+| `precisione` | `ESATTO` when the act was read whole and the window read; `INDICATIVO` otherwise, and with the `data_gu` fallback |
+| `testo` | the provision as Normattiva words it: `"ha disposto (con l'art. 9, comma 5) la modifica dell'art. 2-ter, comma 1"` |
+
+`AttoModificante`: `tipo_atto` (normalised, `""` when the row cannot be read), `data`,
+`numero_atto`, `urn` (`"urn:nir:stato:decreto.legge:2021-10-08;139"`), `gazzetta`
+(`"G.U. 08/10/2021, n.241"`, `"SO n.30, relativo alla G.U. 11/08/2026, n.185"`), `descrizione`
+(the row's act as Normattiva writes it, with «convertito con modificazioni dalla …»).
+
+```python
+r = await api.modifiche_articolo("art. 2-ter d.lgs. 196/2003")
+[(m.versione, m.in_vigore_dal, m.tipo, m.atto.numero_atto, m.parti) for m in r.modifiche]
+# [(2, '2021-10-09', 'inserimento', '139', 'comma 1-bis'), (2, '2021-10-09', 'modifica', '139', 'commi 2 e 3'),
+#  (3, '2021-12-08', 'modifica', '139', 'commi 1, 1-bis, 2 e 3'), (3, '2021-12-08', 'modifica', '139', 'comma 1'),
+#  (3, '2021-12-08', 'conversione', '205', None)]
 ```
 
 ### `testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> TestoArticolo`
@@ -932,6 +1086,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `EsitoLettura` | the outcomes of reading a decision (§4) |
 | `EsitoRicerca` | the outcomes of a search (§4) |
 | `EsitoAtto` | the outcomes of `risolvi_atto` (§3) |
+| `TipoModifica` | `"modifica"` \| `"inserimento"` \| `"abrogazione"` \| `"sostituzione"` \| `"conversione"` \| `"altro"` (§3, `modifiche_articolo`) |
 | `Canale` | `"akn"` \| `"html"` |
 
 ### Norm types
@@ -941,6 +1096,10 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta`, and VisuaLex's `celex_consolidated` last |
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
 | `AttoRisolto` | `esito, tipo_atto, numero_atto, data, urn, url, precisione, errore, fonti` |
+| `ModificheArticolo` | `esito, norma_data, versioni, modifiche, url, completa, precisione, avvisi, versioni_non_lette, errore, fonti` |
+| `VersioneArticolo` | VisuaLex `validity` keys: `version_number, valid_from, valid_to` |
+| `Modifica` | `atto, tipo, disposizione, parti, in_vigore_dal, versione, data_gu, precisione, testo` |
+| `AttoModificante` | `tipo_atto, data, numero_atto, urn, gazzetta, descrizione` |
 | `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
