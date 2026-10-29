@@ -484,7 +484,10 @@ _FULL_ACT_TEXTS_MAX = 4
 # reading that matches it.
 _FULL_ACT_READINGS: "OrderedDict[tuple, tuple[str, str]]" = OrderedDict()
 _FULL_ACT_READINGS_MAX = 256
-_FULL_ACT_LOCKS: "dict[tuple, asyncio.Lock]" = {}
+# One lock per act and day, with the number of callers holding or awaiting it:
+# the entry goes only when the last of them leaves, so a reading that is not kept
+# (incomplete) still lets one caller at a time read the act.
+_FULL_ACT_LOCKS: "dict[tuple, list]" = {}
 _AKN_SOURCE = "normattiva-akn"
 
 
@@ -535,7 +538,9 @@ async def _full_act_text(norma: Norma, da_carattere: int) -> "dict | str":
         return kept
 
     lock_key = (key, id(asyncio.get_running_loop()))
-    lock = _FULL_ACT_LOCKS.setdefault(lock_key, asyncio.Lock())
+    entry = _FULL_ACT_LOCKS.setdefault(lock_key, [asyncio.Lock(), 0])
+    lock = entry[0]
+    entry[1] += 1
     try:
         async with lock:
             # A concurrent caller may have read the act while this one waited.
@@ -573,8 +578,9 @@ async def _full_act_text(norma: Norma, da_carattere: int) -> "dict | str":
                 return {**result, "riletto": True}
             return result
     finally:
-        if not lock.locked():
-            _FULL_ACT_LOCKS.pop(lock_key, None)
+        entry[1] -= 1
+        if entry[1] == 0 and _FULL_ACT_LOCKS.get(lock_key) is entry:
+            del _FULL_ACT_LOCKS[lock_key]
 
 
 async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
