@@ -805,6 +805,16 @@ def format_estremi(doc: dict, con_tipo: bool = False) -> str:
     return estremi
 
 
+# Solr's highlighter wraps each matched term in <em>…</em> (hl.simple.pre/post):
+# markup for a browser, noise for the model, which gets the passage without it.
+_HL_TAG = re.compile(r"</?em>|&lt;/?em&gt;", re.IGNORECASE)
+
+
+def _plain_snippet(snippet: str) -> str:
+    """A highlighted passage without the highlighter's tags."""
+    return _HL_TAG.sub("", snippet)
+
+
 def format_summary(
     doc: dict, highlights: dict[str, list[str]] | None = None, con_tipo: bool = False,
 ) -> str:
@@ -819,9 +829,9 @@ def format_summary(
         hl_dis = highlights.get("ocrdis", [])
         hl_ocr = highlights.get("ocr", [])
         if hl_dis:
-            lines.append(f"**Dispositivo (match)**: ...{hl_dis[0]}...")
+            lines.append(f"**Dispositivo (match)**: ...{_plain_snippet(hl_dis[0])}...")
         if hl_ocr:
-            lines.append(f"**Estratto**: ...{hl_ocr[0]}...")
+            lines.append(f"**Estratto**: ...{_plain_snippet(hl_ocr[0])}...")
     if ocrdis and not (highlights and highlights.get("ocrdis")):
         disp = ocrdis[:200].strip()
         if len(ocrdis) > 200:
