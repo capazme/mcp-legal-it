@@ -52,6 +52,7 @@ CLIENT_SOURCES = {
     "cgue": "Corte di giustizia UE (CELLAR SPARQL)",
     "consob": "CONSOB delibere",
     "anac": "ANAC atti",
+    "corte_conti": "Corte dei conti (deliberazioni di controllo)",
     "corte_cost": "Corte costituzionale (open data)",
     "gazzetta": "Gazzetta Ufficiale (ELI)",
     "giustizia_amm": "Giustizia amministrativa (TAR/CdS)",

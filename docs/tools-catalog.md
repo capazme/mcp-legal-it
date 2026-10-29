@@ -3,7 +3,7 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 231.**
+**Totale tool: 234.**
 
 ---
 
@@ -44,6 +44,7 @@ descrizione di ogni tool.
 33. [Iter parlamentare (DDL)](#33-iter-parlamentare-ddl) — 3 tool
 34. [Marchi (TMview)](#34-marchi-tmview) — 3 tool
 35. [Atti ANAC](#35-atti-anac) — 3 tool
+36. [Corte dei conti](#36-corte-dei-conti) — 3 tool
 
 ---
 
@@ -677,7 +678,8 @@ descrizione di ogni tool.
 | 33 | Iter parlamentare (DDL) | 3 |
 | 34 | Marchi (TMview) | 3 |
 | 35 | Atti ANAC | 3 |
-| | **Totale** | **231** |
+| 36 | Corte dei conti | 3 |
+| | **Totale** | **234** |
 
 ---
 
@@ -753,5 +755,20 @@ prima dell'uso — non sono documenti legali pronti alla firma.
 | `cerca_atti_anac` | `cerca_atti_anac(query: str, tipologia: str = '', max_risultati: int = 10, pagina: int = 1, anno: str = '')` | Cerca delibere, pareri, linee guida e altri atti dell'ANAC (Autorità Nazionale Anticorruzione). |
 | `leggi_atto_anac` | `leggi_atto_anac(riferimento: str = '', tipologia: str = '', numero: str = '', anno: str = '')` | Legge la scheda di un atto ANAC: estremi, oggetto, riferimenti normativi, parole chiave e PDF. |
 | `ultimi_atti_anac` | `ultimi_atti_anac(tipologia: str = '', max_risultati: int = 10)` | Ultimi atti pubblicati dall'ANAC, dal più recente, con filtro opzionale per tipologia. |
+
+---
+
+## 36. Corte dei conti
+
+**Modulo:** `mcp_legal_it/tools/corte_conti.py`
+**Tag:** `giurisprudenza`, `giurisprudenza_conti`
+**API esterne:** banchedati.corteconti.it (configurazione pubblica), corteconti-iit.almawave.cloud (servizio di ricerca del fornitore)
+**Note:** Solo le deliberazioni delle sezioni di controllo: il servizio pubblico non restituisce le sentenze giurisdizionali. Al più 5 documenti per ricerca (limite del servizio). Le credenziali HTTP Basic che il sito dà a ogni visitatore sono lette a runtime e mai salvate (decisione LI-054).
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `cerca_deliberazioni_corte_conti` | `cerca_deliberazioni_corte_conti(query: str = '', sezione: str = '', anno: str = '', numero: str = '', max_risultati: int = 5)` | Cerca deliberazioni e pareri delle sezioni di controllo della Corte dei conti. |
+| `leggi_deliberazione_corte_conti` | `leggi_deliberazione_corte_conti(id_deliberazione: str = '', numero: str = '', anno: str = '', sezione: str = '', da_carattere: int = 1)` | Legge una deliberazione della Corte dei conti (sezioni di controllo): scheda e testo integrale. |
+| `ultime_deliberazioni_corte_conti` | `ultime_deliberazioni_corte_conti(sezione: str = '', max_risultati: int = 5)` | Ultime deliberazioni depositate dalle sezioni di controllo della Corte dei conti. |
 
 ---

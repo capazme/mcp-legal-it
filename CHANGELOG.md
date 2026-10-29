@@ -24,6 +24,44 @@ entry, it is the same feature as ported to the 3.0 line.
   stays gated, relative entries are ignored, and `/a/CODE2` is not inside
   `/a/CODE`. Brings upstream the lane separation a local 2.9.0 patch had, which
   2.16.1 no longer carried.
+- **`api.modifiche_articolo(riferimento, *, dal=None, al=None, max_versioni=20)`:
+  an article's versions and the amendments that produced them.** It returns a
+  `ModificheArticolo` with:
+  - `versioni` (`VersioneArticolo`: `version_number`, `valid_from`, `valid_to`,
+    VisuaLex's keys);
+  - `modifiche` (`Modifica`: the amending act as an `AttoModificante`, `tipo`,
+    `disposizione`, `parti`, `in_vigore_dal`, `versione`, `data_gu`, `precisione`,
+    `testo`);
+  - `completa`, `precisione`, `avvisi` and `versioni_non_lette`.
+  - **Source.** Normattiva gives each version of an article its own page and its own
+    update table, and the table of version *k* lists the amendments that produced it.
+    So `in_vigore_dal` is read from that version's window, not deduced from the
+    Gazzetta date, and is `ESATTO`.
+  - **Filters.** `dal`/`al` are inclusive and filter on `in_vigore_dal`, never on
+    `data_gu`. Where the window cannot be read, the `data_gu` fallback is `INDICATIVO`,
+    with an avviso.
+  - **Walk.** Newest version first, at most `max_versioni` versions, at most
+    2·`max_versioni` requests (2V for V versions).
+  - **Never filling a gap.** A version that cannot be read (429, 5xx, an error or session
+    page) stops the walk: `completa=False` and an avviso naming the versions to ask again.
+    An unreadable article page is `verifica_non_disponibile`, never «not found» and never
+    «no amendments».
+  - **What it shows.**
+    - A decree-law and its conversion law stay two amendments; only identical rows
+      within one table are merged.
+    - A version Normattiva already serves but that is not in force yet (art. 1 d.P.R.
+      131/1986, abrogated from 2027) has its future `in_vigore_dal` and an avviso.
+    - A code's article is read in the code.
+    - An act without an article, or an article without a number, is `non_supportata`.
+    - Version 1's table is the article's whole history: only its row introducing the
+      article is taken, so the act that introduced it is version 1's `Modifica`
+      (d.lgs. 101/2018 for art. 2-ter d.lgs. 196/2003).
+    - An empty table, the page of another version, a page without the update links
+      are never taken for complete.
+  - **Cache.** Past versions are kept 90 days through `_cache.py`
+    (`normattiva_aggiornamenti/`, declared in the cache inventory). The article page
+    and the current version are read every time.
+  - Documented in `docs/api.md` §3.
 - **`api.risolvi_atto(tipo_atto, numero_atto, anno_o_data)`: an act's full date
   and NIR URN.** One call per act, from the act's own Normattiva page (never its
   art. 1). It returns an `AttoRisolto`: `data` («1993-09-01»), `urn`, `url`,
@@ -103,6 +141,26 @@ entry, it is the same feature as ported to the 3.0 line.
   (robots.txt allows every agent); the open-data portal refuses automated
   requests and is not used. New authority tag `anac`, in the `normativa`
   profile.
+- **Corte dei conti: deliberazioni of the control sections** (#51, LI-054):
+  `cerca_deliberazioni_corte_conti` (by words, number, year and section),
+  `leggi_deliberazione_corte_conti` (by the id the search returns, such as
+  `SRCCAM/29/2025/PREV`, or by number, year and section: a number several
+  sections used is listed, never picked) and `ultime_deliberazioni_corte_conti`
+  read the Court's banca dati. The answer gives the section, number, dates,
+  outcome, president, rapporteur, recipients, subject, the full text as the
+  banca dati holds it (25,000 characters per answer, `da_carattere` for the
+  rest) and the public link to the official PDF. The search service runs on the
+  Court's vendor's host and asks for the HTTP Basic pair the site's public
+  configuration hands every visitor: the client reads that configuration at
+  runtime, keeps the pair in memory only, re-reads it once when refused, and
+  never writes it to code, logs, disk caches, error messages or the replay tapes
+  (`scripts/replay_mcp_outputs.py` scrubs the recorded configuration; a test
+  records a tape and checks it). One request at a time, 1 s apart, and at most
+  5 documents per search, the public service's own limit (it answers an empty
+  204 from 6). The sentenze of the jurisdictional sections are not covered: the
+  public service counts them but returns none. New hosts
+  `banchedati.corteconti.it` and `corteconti-iit.almawave.cloud`, new court tag
+  `giurisprudenza_conti`; 234 tools.
 - **EU consolidated versions** (`api`): `riferimento_da_parametri(...,
   celex_consolidated="02002L0058-20091219")` and `NormaDati.celex_consolidated`
   (VisuaLex's key, last in the dataclass) ask for the text of an EU regulation or

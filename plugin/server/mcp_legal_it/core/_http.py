@@ -90,6 +90,7 @@ HOST_PER_FONTE: dict[str, frozenset[str] | None] = {
     "gpdp": frozenset({"www.garanteprivacy.it", "servizi.gpdp.it"}),
     "consob": frozenset({"www.consob.it"}),
     "anac": frozenset({"www.anticorruzione.it"}),
+    "corte_conti": frozenset({"banchedati.corteconti.it", "corteconti-iit.almawave.cloud"}),
     "parlamento_senato": frozenset({"dati.senato.it"}),
     "parlamento_camera": frozenset({"dati.camera.it"}),
     "tmview": frozenset({"www.tmdn.org"}),
@@ -149,8 +150,11 @@ class Politica:
 
 #: The limits every source gets unless ``POLITICHE`` names it.
 POLITICA = Politica()
-#: Per-source exceptions to ``POLITICA`` (none today).
-POLITICHE: dict[str, Politica] = {}
+#: Per-source exceptions to ``POLITICA``. The Corte dei conti's search service is credentialed
+#: with the public pair its site hands every visitor (LI-054): one request at a time, 1 s apart.
+POLITICHE: dict[str, Politica] = {
+    "corte_conti": Politica(concorrenza=1, intervallo=1.0),
+}
 
 #: Circuit breaker: consecutive failures that open it, and how long it stays open.
 SOGLIA_GUASTI = 3
