@@ -169,7 +169,7 @@ async def _ultime_sentenze_tributarie_impl(
 # ---------------------------------------------------------------------------
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_trib", "fiscale"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_trib", "fiscale"}, output_schema=None)
 async def cerca_giurisprudenza_tributaria(
     query: str,
     tipo_provvedimento: str = "",
@@ -217,7 +217,7 @@ async def cerca_giurisprudenza_tributaria(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_trib", "fiscale"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_trib", "fiscale"}, output_schema=None)
 async def cerdef_leggi_provvedimento(guid: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di un provvedimento CeRDEF tramite GUID.
 
@@ -242,7 +242,7 @@ async def cerdef_leggi_provvedimento(guid: str, da_carattere: int = 1) -> str:
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_trib", "fiscale"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_trib", "fiscale"}, output_schema=None)
 async def ultime_sentenze_tributarie(
     ente: str = "",
     tipo_provvedimento: str = "",
