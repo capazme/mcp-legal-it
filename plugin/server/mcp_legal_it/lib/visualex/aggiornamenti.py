@@ -100,7 +100,7 @@ _VERBI = (
 _AZIONI = re.compile(r"\s+e\s+(?=(?:la|l')\s*(?:modifica|introduzione|inserimento|abrogazione|sostituzione|"
                      r"conversione)\b)")
 _PARTI_DOPO_ART = re.compile(r"dell'art\.\s*[\w.\-]+,\s*(?P<parti>.+)$")
-_PARTI_PRIMA_ART = re.compile(r"^l'\w+\s+(?:del|dei|della|delle|dello|degli)\s+(?P<parti>.+?)\s+all'art\.")
+_PARTI_PRIMA_ART = re.compile(r"^l'\w+\s+(?:del|dei|della|delle|dello|degli|di)\s+(?P<parti>.+?)\s+all'art\.")
 
 
 def _iso(giorno: str, mese: str, anno: str) -> Optional[str]:
@@ -157,9 +157,12 @@ def parse_disposizioni(testo: str) -> list[dict]:
     an entry is the piece as Normattiva writes it, with «ha disposto».
     """
     found = _DISPOSTO.search(testo)
-    if found is None:
+    if found is None and not testo.lstrip().startswith("(con "):
         return [{"disposizione": None, "tipo": "altro", "parti": None, "testo": testo.strip()}]
-    corpo = testo[found.end():].strip().rstrip(".").strip()
+    # A row may open straight with «(con l'art. 9, comma 3) la modifica …» (L. 69/2019 on
+    # art. 612-bis c.p.): the same provision, without «ha disposto».
+    prefisso = found.group().strip() + " " if found else ""
+    corpo = (testo[found.end():] if found else testo).strip().rstrip(".").strip()
     pezzi = re.split(r";\s*(?=\(con\s)", corpo)
     out = []
     for pezzo in pezzi:
@@ -171,7 +174,7 @@ def parse_disposizioni(testo: str) -> list[dict]:
         # e 3»: one provision, two actions. Each is an entry, all with the piece's whole text.
         for parte in _AZIONI.split(azione):
             out.append({"disposizione": disposizione, "tipo": _tipo(parte), "parti": _parti(parte),
-                        "testo": f"{found.group().strip()} {pezzo}"})
+                        "testo": f"{prefisso}{pezzo}"})
     return out
 
 
@@ -225,7 +228,7 @@ def parse_righe(page: str) -> Optional[list[dict]]:
                     atto = dict(prima, descrizione=prima["descrizione"].split(" convertito con ")[0])
                 else:
                     atto = parse_atto("")
-                corrente = {"atto": atto, "disposizioni": []}
+                corrente = {"atto": atto, "disposizioni": [], "continua": prosegue}
                 riga["atti"].append(corrente)
             if nota:
                 corrente["atto"]["descrizione"] = (corrente["atto"]["descrizione"] + " " + nota).strip()
@@ -238,19 +241,26 @@ def parse_righe(page: str) -> Optional[list[dict]]:
 _INTRODUZIONE_ARTICOLO = re.compile(r"^l'introduzione dell'art\.\s*([\w.\-]+?)\.?$")
 
 
-def inserimento_articolo(righe: list[dict], stesso_articolo) -> list[dict]:
-    """The rows of version 1's table that introduced the article itself.
+def inserimento_articolo(righe: list[dict], stesso_articolo, inizio_v1: Optional[str]) -> "tuple[list[dict], str | None]":
+    """``(rows, nota)``: the row of version 1's table that introduced the article itself.
 
     Version 1's table is the article's whole history (measured on 29 Oct: art. 2-ter and
-    13 d.lgs. 196/2003, art. 64-bis CCII, art. 2 c.c., art. 1 d.P.R. 131/1986), not the
-    amendments that produced version 1: only «l'introduzione dell'art. N» of this very
-    article (*stesso_articolo(N)* true) is version 1's. The other rows are the later
-    versions', and are read from their own tables.
+    13 d.lgs. 196/2003, art. 64-bis CCII, art. 2 c.c., art. 1 d.P.R. 131/1986, art.
+    612-bis c.p.), not the amendments that produced version 1. Only «l'introduzione
+    dell'art. N» of this very article (*stesso_articolo(N)* true) can be version 1's, and
+    only if published by version 1's start *inizio_v1*: a later one re-inserted an
+    abrogated article, and is not what produced version 1. A row continuing another
+    («convertito con modificazioni …» under its own entry) is never taken.
+
+    One candidate: it is version 1's. None: ``([], None)``. More than one, or *inizio_v1*
+    unknown with a candidate: ``([], nota)``, the reason no act is given to version 1.
     """
-    out = []
+    candidati = []
     for riga in righe:
         atti = []
         for voce in riga["atti"]:
+            if voce.get("continua"):
+                continue
             tenute = []
             for d in voce["disposizioni"]:
                 azione = re.sub(r"^\S+(?:\s+\S+)?\s+disposto\s+(?:\(con .+?\)\s+)?", "", d["testo"])
@@ -260,8 +270,17 @@ def inserimento_articolo(righe: list[dict], stesso_articolo) -> list[dict]:
             if tenute:
                 atti.append({"atto": voce["atto"], "disposizioni": tenute})
         if atti:
-            out.append({**riga, "atti": atti})
-    return out
+            candidati.append({**riga, "atti": atti})
+    if not candidati:
+        return [], None
+    if inizio_v1 is None:
+        return [], ("la tabella della versione 1 indica l'atto che ha introdotto l'articolo, ma la finestra della "
+                    "versione 1 non si legge: l'atto non le è attribuito")
+    entro = [r for r in candidati if r["data_gu"] and r["data_gu"] <= inizio_v1]
+    if len(entro) > 1 or sum(len(v["disposizioni"]) for r in entro for v in r["atti"]) > 1:
+        return [], ("la tabella della versione 1 indica più atti che hanno introdotto l'articolo prima del suo "
+                    "inizio: nessuno è attribuito alla versione 1")
+    return entro, None
 
 
 # --- cache of past versions ---------------------------------------------------------
@@ -274,7 +293,9 @@ def inserimento_articolo(righe: list[dict], stesso_articolo) -> list[dict]:
 
 TTL_SECONDI = 90 * 86400
 #: Raised when the record's shape changes, so records written before are not read.
-SCHEMA = 1
+#: 2: version 1 is kept with its introduction rows (1 kept its window only, ``righe=[]``,
+#: which would now read as «no introduction»).
+SCHEMA = 2
 
 
 def _dir_cache():
@@ -396,7 +417,7 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
     voluto = scraper._article_identity(scraper.normalize_article_key(articolo))
     urn = url.split("?", 1)[1] if "?" in url else url
     out = {"esito": "trovato", "versioni": {}, "righe": {}, "mancanti": [], "oltre_tetto": [], "vuote": [],
-           "storia_certa": True, "errore": None, "corrente": None}
+           "storia_certa": True, "nota_v1": None, "errore": None, "corrente": None}
 
     def _servito(html: str) -> "str | None":
         # A version's page opens with «<?xml»: VisuaLex's HTML parser reads it, and says so.
@@ -494,12 +515,12 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
                             raise _Interrotta(f"la tabella degli aggiornamenti della versione {k} non si legge "
                                               "(pagina di errore o di sessione)")
                         if k == 1:
-                            righe = inserimento_articolo(righe, stesso_articolo)
+                            righe, out["nota_v1"] = inserimento_articolo(righe, stesso_articolo, inizio)
                         elif not any(v["disposizioni"] for r in righe for v in r["atti"]):
                             out["vuote"].append(k)
                         out["righe"][k] = righe
                         if (k != corrente and finestra and finestra[1] and finestra[1] < oggi
-                                and k not in out["vuote"]):
+                                and k not in out["vuote"] and not (k == 1 and out["nota_v1"])):
                             scrivi_versione(urn, k, finestra, righe)
                 if prima_di_dal:
                     break  # the older versions start earlier still: outside the window

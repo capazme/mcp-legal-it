@@ -30,4 +30,10 @@ Per article `<name>`:
 | `ccii_art64bis` | `decreto.legislativo:2019-01-12;14~art64bis` | Five provisions of d.lgs. 136/2024 in one row (v2), then d.lgs. 147/2026 (v3) |
 | `cc_art2740` | `regio.decreto:1942-03-16;262:2~art2740` | Never amended: no update link |
 
+`cp_art612bis_agg_v1.html` is version 1's table of art. 612-bis c.p.
+(`regio.decreto:1930-10-19;1398:1~art612bis`), alone: the article introduced by the d.l.
+11/2009 «convertito con modificazioni» (G.U. 24 Feb 2009; version 1 starts on 25 Feb
+2009, read the same day), a provision without «ha disposto» (L. 69/2019) and
+«l'introduzione di un comma dopo il terzo» (L. 181/2025).
+
 Used by `tests/unit/test_api_modifiche_articolo.py`.

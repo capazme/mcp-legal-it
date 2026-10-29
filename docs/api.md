@@ -584,8 +584,14 @@ Normattiva. It is async.
     lettera f)) l'introduzione dell'art. 2-ter») is taken, as the `Modifica` of version
     1. Its `in_vigore_dal` is version 1's start, so d.lgs. 101/2018 is the act that
     introduced art. 2-ter d.lgs. 196/2003, from 2018-09-19.
-  - An article of the act's original text has no such row (art. 13 d.lgs. 196/2003). Then
-    version 1 has no amendment and an avviso says so.
+  - The row must have been published by version 1's start: a later «introduzione» re-inserted
+    an abrogated article, and is not what produced version 1. A row continuing another
+    («convertito con modificazioni …» under its own entry) is never taken. An article
+    introduced by a converted decree-law has the note in its own row and is taken (art.
+    612-bis c.p., d.l. 11/2009).
+  - More than one such row, or none, gives version 1 no amendment, with an avviso. The
+    same holds for an article of the act's original text, which has no such row (art. 13
+    d.lgs. 196/2003). A version 1 with such an avviso is never kept in the cache.
 - **Identical rows.** Only a row that one table lists twice identically (same act,
   provision, action and parts) is kept once. Rows are never merged across tables: which
   version keeps a row would then depend on `dal`, which decides which tables are read.

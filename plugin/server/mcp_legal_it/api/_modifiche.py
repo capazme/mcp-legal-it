@@ -154,7 +154,9 @@ async def modifiche_articolo(
         tutte = [VersioneArticolo(k, *(versioni[k] or (None, None))) for k in sorted(versioni)]
         modifiche = _modifiche(versioni, letta["righe"])
         avvisi = []
-        if 1 in letta["righe"] and not any(m.versione == 1 for m in modifiche):
+        if letta["nota_v1"]:
+            avvisi.append(letta["nota_v1"])
+        elif 1 in letta["righe"] and not any(m.versione == 1 for m in modifiche):
             avvisi.append(_AVVISO_VERSIONE_1)
         if not letta["storia_certa"]:
             avvisi.append("la pagina dell'articolo non ha il collegamento agli aggiornamenti né quelli dell'atto "

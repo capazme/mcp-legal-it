@@ -36,7 +36,8 @@ CASI = [
 RICHIESTE = sum(caso[1] for caso in CASI)
 
 
-async def test_modifiche_articolo_on_normattiva(monkeypatch):
+async def test_modifiche_articolo_on_normattiva(monkeypatch, tmp_path):
+    monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path / "cache"))  # never the user's cache
     monkeypatch.setattr(scraper, "_full_date_cache", {})
     act_dates.svuota_memoria()
     print(f"\nmodifiche_articolo: {RICHIESTE} richieste a Normattiva, una alla volta")
