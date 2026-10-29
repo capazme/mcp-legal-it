@@ -533,6 +533,34 @@ class TestLettoriPerChiave:
         assert (await api.leggi_provvedimento_amministrativo("", "", "")).esito == "richiesta_non_valida"
 
 
+    @pytest.mark.parametrize("fixture,attesa", [
+        ("parere_1918_2026.html", (1918, 2026, "Parere", None)),
+        ("ap17_2021.html", (17, 2021, "Sentenza", "2021-11-09")),
+    ])
+    async def test_giustizia_amministrativa_numero_n_anno(self, fixture, attesa):
+        """The reader gives «N/AAAA» («1918/2026»): number 1918 of 2026, never year 1918."""
+        from pathlib import Path
+
+        from mcp_legal_it.lib.giustizia_amm.client import ProvvedimentoDocument, _parse_html_document
+
+        page = (Path(__file__).resolve().parents[1] / "fixtures" / "giustizia_amm" / fixture).read_bytes()
+        title, text, meta = _parse_html_document(page)
+        doc = ProvvedimentoDocument(title=title, text=text, meta=meta, pdf_only=False, url="https://mdp/x")
+        with patch("mcp_legal_it.lib.giustizia_amm.client.fetch_provvedimento_document",
+                   AsyncMock(return_value=doc)):
+            r = await api.leggi_provvedimento_amministrativo("cds", "201303041", fixture)
+        assert (r.identita.numero, r.identita.anno, r.attributi.tipo, r.attributi.data_deposito) == attesa
+
+    @pytest.mark.parametrize("numero,attesa", [
+        ("1918/2026", (1918, 2026)), ("17/2021", (17, 2021)), ("202614035", (14035, 2026)),
+        ("", (None, None)), ("abc", ("abc", None)),
+    ])
+    def test_numero_ga_forms(self, numero, attesa):
+        from mcp_legal_it.api._decisioni import _numero_anno_ga
+
+        assert _numero_anno_ga(numero) == attesa
+
+
 class TestAltreRicerche:
     async def test_costituzionale(self):
         from mcp_legal_it.lib.corte_cost.client import MassimaCost, PronunciaCost
