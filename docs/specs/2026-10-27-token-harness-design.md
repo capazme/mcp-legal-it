@@ -227,6 +227,12 @@ A cut passes when all three hold:
 
 A cut that saves tokens but fails rule 2 on any task is not merged as is.
 
+**Never cut, whatever the saving.** The «AGGIORNAMENTO (n)» notes of a Normattiva
+article and the Corte costituzionale declarations of illegitimacy they carry are part
+of the text a lawyer reads (art. 3 d.lgs. 23/2015 still prints the words C. cost.
+194/2018 struck down). A «notes on request» switch, if one comes, must leave them in
+by default and out of its scope (decided on 29 Oct 2026, with VisuaLex).
+
 ### Cost order of magnitude
 
 - 20 tasks × 3 runs × 2 configurations = 120 conversations.
