@@ -39,7 +39,7 @@ from urllib.parse import quote, urlparse
 
 import httpx
 
-from mcp_legal_it.core._http import HOST_PER_FONTE, async_client
+from mcp_legal_it.core._http import HOST_PER_FONTE, FontePausata, HostNonConsentito, async_client, motivo_rifiuto_host
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
 
@@ -155,12 +155,8 @@ def leggi_configurazione(dati: dict) -> _Accesso:
     # an altered configuration can neither send a request nor point the lawyer elsewhere.
     for url_key in ("IIT_API_SERVICE_URL", "IIT_API_SECURE_SERVICE_URL", "IIT_API_PORTAL_SERVICE_URL",
                     "SERVER_PUBLIC_BASIC_URL"):
-        indirizzo = str(dati[url_key])
-        try:
-            host = urlparse(indirizzo).hostname
-        except ValueError:
-            host = None
-        if not indirizzo.startswith("https://") or host not in HOST_PER_FONTE[FONTE]:
+        if not indirizzo_ammesso(dati[url_key]):
+            # The address itself is never put in the message.
             raise CorteContiPaginaInattesa(
                 "la configurazione della banca dati indica un servizio fuori dagli host della Corte dei conti")
     config = {k: v for k, v in dati.items() if k in _CHIAVI and not _CHIAVE_SEGRETA.search(k)}
@@ -168,27 +164,49 @@ def leggi_configurazione(dati: dict) -> _Accesso:
     return _Accesso(config, "Basic " + token)
 
 
-def scrub_body(url: str, body: bytes) -> bytes:
-    """*body* with the credentials of the site's configuration replaced, when *url* is that file.
+def indirizzo_ammesso(indirizzo) -> bool:
+    """True when *indirizzo* is an https address on one of the source's hosts, read as a browser would.
 
-    For recorded HTTP exchanges (replay tapes): every value of a secret key becomes `<scrubbed>`.
-    Any other body is returned unchanged.
+    `urlparse` alone is not enough: with a backslash before `@<the Court's host>` it reads the
+    Court's host, while a browser goes to the host written first. So no backslash, no control
+    character, no userinfo (no `@` in the authority), and httpx's own reading must agree.
+    """
+    if not isinstance(indirizzo, str) or not indirizzo.startswith("https://"):
+        return False
+    if "\\" in indirizzo or any(ord(c) < 0x21 or ord(c) == 0x7F for c in indirizzo):
+        return False
+    try:
+        parsed = urlparse(indirizzo)
+        url = httpx.URL(indirizzo)
+    except (ValueError, httpx.InvalidURL):
+        return False
+    if "@" in parsed.netloc or parsed.username is not None or parsed.password is not None:
+        return False
+    return (parsed.hostname in HOST_PER_FONTE[FONTE] and url.host == parsed.hostname
+            and motivo_rifiuto_host(FONTE, url) is None)
+
+
+def scrub_body(url: str, body: bytes) -> bytes:
+    """*body* reduced to what the client reads, credentials replaced, when *url* is the site's configuration.
+
+    For recorded HTTP exchanges (replay tapes). By inclusion: only the `_CHIAVI` keys are kept,
+    the secret ones as `<scrubbed>`; any other shape records nothing (`b""`).
+    Any other URL's body is returned unchanged.
     """
     try:
         parsed = urlparse(url)
     except ValueError:
-        return body
+        return b""
     if parsed.hostname != CONFIG_HOST or not parsed.path.endswith("/configuration.json"):
         return body
     try:
         dati = json.loads(body)
     except ValueError:
         return b""
-    if isinstance(dati, dict):
-        for k in dati:
-            if _CHIAVE_SEGRETA.search(k) or k == "KEYCLOAK_DATA":
-                dati[k] = "<scrubbed>"
-    return json.dumps(dati, ensure_ascii=False).encode()
+    if not isinstance(dati, dict):
+        return b""
+    tenuto = {k: ("<scrubbed>" if _CHIAVE_SEGRETA.search(k) else dati[k]) for k in _CHIAVI if k in dati}
+    return json.dumps(tenuto, ensure_ascii=False).encode()
 
 
 # ---------------------------------------------------------------------------
@@ -225,16 +243,24 @@ async def _chiedi(client: httpx.AsyncClient, method: str, url: str, **kwargs) ->
         return await retry_request(client, method, url, dataset="corte_conti", **kwargs)
     except httpx.HTTPStatusError as exc:
         errore = _da_stato(exc.response.status_code)
+    except FontePausata as exc:
+        errore = CorteContiNonRaggiungibile(str(exc))          # how long the source asked to wait, no URL
+    except HostNonConsentito:
+        errore = CorteContiPaginaInattesa("richiesta verso un indirizzo non consentito, non inviata")
     except httpx.TransportError as exc:
-        errore = CorteContiNonRaggiungibile(f"{type(exc).__name__}: {exc}")
+        errore = CorteContiNonRaggiungibile(type(exc).__name__)   # never the exception's text: it may name the URL
+    except httpx.HTTPError as exc:                            # decoding and other errors keep `.request` too
+        errore = CorteContiPaginaInattesa(f"risposta illeggibile del servizio ({type(exc).__name__})")
     raise errore
 
 
 def _json(resp: httpx.Response):
+    # Raised outside the except block: the JSONDecodeError's `.doc` would hold the body (the configuration).
     try:
         return resp.json()
     except ValueError:
-        raise CorteContiPaginaInattesa("il servizio non ha risposto in JSON") from None
+        pass
+    raise CorteContiPaginaInattesa("il servizio non ha risposto in JSON")
 
 
 async def _accesso(client: httpx.AsyncClient, rinnova: bool = False) -> _Accesso:
@@ -499,16 +525,26 @@ async def _organi(client: httpx.AsyncClient, acc: _Accesso) -> list[str]:
         dati = _json(await _chiedi(client, "GET", url))
         try:
             buckets = dati["aggregations"]["distinct_custom_field"]["buckets"]
-            _ORGANI = [str(b["key"]) for b in buckets if b.get("key")]
-        except (KeyError, TypeError):
+            organi = [str(b["key"]) for b in buckets if b.get("key")]
+        except (KeyError, TypeError, AttributeError):
             raise CorteContiPaginaInattesa("l'elenco delle sezioni non ha il formato atteso") from None
+        if not organi:
+            # Not kept: an empty list in memory would make every section «non riconosciuta» until restart.
+            raise CorteContiPaginaInattesa("il servizio non elenca le sezioni della Corte dei conti")
+        _ORGANI = organi
     return _ORGANI
 
 
 async def search_deliberazioni(
     query: str = "", *, numero=None, anno=None, sezione: str = "", per_data: bool = False, n: int = MAX_DOCUMENTI,
 ) -> tuple[list[Deliberazione], int]:
-    """Search the deliberazioni: at most `MAX_DOCUMENTI`, with the total the service reports."""
+    """Search the deliberazioni: at most `MAX_DOCUMENTI`, with the total the service reports.
+
+    The input is checked before any request: a query the site would refuse costs nothing.
+    """
+    query_testuale(query)
+    _intero(numero, "numero")
+    _intero(anno, "anno")
     async with _client() as client:
         acc = await _accesso(client)
         organo = risolvi_organo(sezione, await _organi(client, acc)) if sezione.strip() else ""
