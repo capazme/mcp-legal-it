@@ -21,3 +21,15 @@ inside a minimal HTML shell; the rest of the page (navigation, the act's whole t
 
 Used by `tests/unit/test_articolo_inesistente.py`. To refresh, fetch the same URLs
 (a few seconds apart) and keep only the `bodyTesto` element.
+
+## Act pages (identity only)
+
+Captured on 2026-10-29 from the act's year-only URN, without an article. Each keeps only
+the `<title>` and the `eli:` metadata of the page's head, verbatim.
+
+| File | URN (after `urn:nir:stato:`) | What Normattiva served |
+|------|------------------------------|------------------------|
+| `landing_dm_55_2014.html` | `decreto.ministeriale:2014;55` | the page of D.M. 10 marzo 2014, n. 55 (title «DECRETO 10 marzo 2014, n. 55», ELI date 2014-03-10) |
+| `landing_atto_inesistente.html` | `legge:1990;99999` | HTTP 200, the error page «Normattiva - Errore», no `eli:` metadata |
+
+Used by `tests/unit/test_api_risolvi_atto.py`, together with `../akn/landing_legge_241_1990.html`.

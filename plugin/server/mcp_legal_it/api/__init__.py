@@ -36,6 +36,7 @@ from mcp_legal_it.api._decisioni import (
 from mcp_legal_it.api._norme import (
     ARTICLE_SUFFIX_ALTERNATION,
     SUFFISSI_ARTICOLO,
+    TIPI_ATTO_VERIFICATI,
     albero_atto,
     annotazioni_brocardi,
     articolo_nell_albero,
@@ -45,6 +46,7 @@ from mcp_legal_it.api._norme import (
     indice_atto,
     leggi_riferimento,
     riferimento_da_parametri,
+    risolvi_atto,
     testi_articoli,
     testo_articolo,
     testo_atto,
@@ -52,6 +54,7 @@ from mcp_legal_it.api._norme import (
 from mcp_legal_it.api.tipi import (
     AlberoAtto,
     AnnotazioniBrocardi,
+    AttoRisolto,
     Attributi,
     Avviso,
     Candidato,
@@ -60,6 +63,7 @@ from mcp_legal_it.api.tipi import (
     CodiceFonte,
     ConsiderandiAtto,
     DecisioneTrovata,
+    EsitoAtto,
     EsitoDecisione,
     EsitoLettura,
     EsitoNorma,
@@ -95,6 +99,7 @@ __all__ = [
     # constants
     "ARTICLE_SUFFIX_ALTERNATION",
     "SUFFISSI_ARTICOLO",
+    "TIPI_ATTO_VERIFICATI",
     # norms
     "albero_atto",
     "annotazioni_brocardi",
@@ -105,6 +110,7 @@ __all__ = [
     "indice_atto",
     "leggi_riferimento",
     "riferimento_da_parametri",
+    "risolvi_atto",
     "testi_articoli",
     "testo_articolo",
     "testo_atto",
@@ -125,6 +131,7 @@ __all__ = [
     # types
     "AlberoAtto",
     "AnnotazioniBrocardi",
+    "AttoRisolto",
     "Attributi",
     "Avviso",
     "Candidato",
@@ -133,6 +140,7 @@ __all__ = [
     "ConsiderandiAtto",
     "CodiceFonte",
     "DecisioneTrovata",
+    "EsitoAtto",
     "EsitoDecisione",
     "EsitoLettura",
     "EsitoNorma",
