@@ -573,6 +573,13 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **`fetch_full_act` reads a long act in windows.** It used to return the whole
+  act in one answer: L. 300/1970 alone was about 52,000 characters (~15k
+  tokens), the Codice civile about two million. It now returns windows of
+  30,000 characters and takes the optional `da_carattere` parameter that the
+  other reading tools already have: the final note gives the range, the total
+  and the `da_carattere` to read on from. An act that fits in one window gets
+  the same answer as before, and calls without the parameter keep working.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address
