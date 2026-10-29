@@ -23,10 +23,12 @@ What it checks, on provvedimenti whose identifiers are fixed and public:
   reference (the mdp host answers HTTP 200 with an HTML error page).
 - `ultimi_provvedimenti_amm`: latest judgments of the TAR Lombardia, seat of
   Milan: seat, type, year, descending numbers, ECLI, and freshness of the first
-  one (`<dataPubblicazione>` of its XML within 30 days of `_clock.today()`).
+  one (its date of publication, «Pubblicato il» on the page or `<dataPubblicazione>` in
+  the XML, within 30 days of `_clock.today()`).
 
 Reference values: the search page https://www.giustizia-amministrativa.it/web/guest/dcsnprr
-and the XML/PDF served by https://mdp.giustizia-amministrativa.it/visualizza/,
+and the XML/PDF served by https://mdp.giustizia-amministrativa.it/visualizza/ (an HTML page
+instead of the XML since 2026-10: «Pubblicato il 09/11/2021», same text),
 read on 2026-09-25 (AP 17/2021: `<dataPubblicazione>09/11/2021`, deliberated in
 camera di consiglio on 20/10/2021, ricorso n. 14/2021 A.P., appeal against TAR
 Sicilia - Catania n. 504/2021; the XML body is 106,448 characters and the
@@ -329,12 +331,15 @@ def test_ultimi_sentenze_tar_lombardia_milano():
 
 
 def test_ultimi_sentenze_tar_lombardia_milano_sono_recenti():
-    """'Ultimi' holds only if the newest result was published recently (dataPubblicazione of its XML)."""
+    """'Ultimi' holds only if the newest result was published recently (its date of publication)."""
+    from mcp_legal_it.lib.giustizia_amm.client import _parse_html_document, _parse_xml_meta, is_document_html
+
     first = _ultimi_tar_milano()[0]
     if not first["nome_file"].endswith(".html"):
         pytest.skip(f"primo risultato pubblicato solo in PDF: {first['nome_file']}")
     (raw,) = _fetch_raw("tar_mi", ((first["nrg"], first["nome_file"]),))
-    m = re.search(rb"<dataPubblicazione>(\d{2}/\d{2}/\d{4})</dataPubblicazione>", raw)
-    assert m, raw[:400]
-    pubblicato = datetime.strptime(m.group(1).decode(), "%d/%m/%Y").date()
+    # The page (since 2026-10) or the XML: the client's own reading, the date the tool shows.
+    meta = _parse_html_document(raw)[2] if is_document_html(raw) else _parse_xml_meta(raw)
+    assert meta.get("data_pubblicazione"), raw[:400]
+    pubblicato = datetime.strptime(meta["data_pubblicazione"], "%d/%m/%Y").date()
     assert _clock.today() - timedelta(days=30) <= pubblicato <= _clock.today(), pubblicato

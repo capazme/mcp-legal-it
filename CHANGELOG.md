@@ -961,6 +961,18 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
+  portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
+  provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
+  «pagina di errore». The reader now recognises the page by its own markup before
+  testing for the error page (which is HTML too, and still reported as an error, never
+  read as text). It takes the court, the type, the number of the «REG.PROV.COLL.» line
+  and the «Pubblicato il» date, so the **Estremi** line is unchanged («Sentenza n.
+  17/2021, pubblicata il 09/11/2021»). It also takes the text with the signatures,
+  without markup or the embedded emblem. The 15,000-character cut still keeps the
+  dispositivo, from the last «P.Q.M.». The XML is still read when the portal serves it.
+  Fixtures: trimmed copies of the real page of Ad. Plen. n. 17/2021 and of the portal's
+  error page.
 - **TUIR, TUB, TUF and the Testo unico sicurezza carry their full date.** The
   names `TUIR`, `TUB`, `TUF` and «testo unico sicurezza» resolved to the year
   alone, so `mcp_legal_it.api.leggi_riferimento("art. 1 TUIR")` returned a

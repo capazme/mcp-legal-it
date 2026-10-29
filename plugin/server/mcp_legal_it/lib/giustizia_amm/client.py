@@ -1,7 +1,8 @@
 """Client for Giustizia Amministrativa (giustizia-amministrativa.it).
 
 Search:    https://www.giustizia-amministrativa.it/web/guest/dcsnprr
-Full text: https://mdp.giustizia-amministrativa.it/visualizza/ (XML <GA> format)
+Full text: https://mdp.giustizia-amministrativa.it/visualizza/ (an HTML page since 2026-10; the
+           <GA> XML before, still read when served)
 
 Il sito usa Liferay Portal — nessuna API pubblica JSON. Scraping HTML via BeautifulSoup.
 
@@ -19,6 +20,12 @@ NOTA (issue #32) — il portale è stato riorganizzato nel 2026:
   - le sedi sul filo sono nomi di città ("Roma"), non più codici ("TARLAZ");
   - il testo integrale non sta più su `/mdp/atti/<file>` — quel path risponde
     200 con una pagina di errore 404, quindi va riconosciuto esplicitamente.
+
+NOTA (2026-10-29) — `/visualizza/` non serve più l'XML `<GA>` ma una pagina HTML
+(`<body class="corpo">`, paragrafi con classi `registri`, `sezione`, `popolo`, …, la
+data «Pubblicato il …» in testa, le firme in una tabella). Il lettore riconosce la
+pagina del provvedimento prima della pagina di errore, che resta HTML anch'essa;
+l'XML è ancora letto quando arriva.
 """
 
 import re
@@ -562,13 +569,32 @@ def _parse_results(html: str) -> list[ProvvedimentoResult]:
     return results
 
 
+# The provvedimento as mdp serves it since 2026-10: an HTML page whose body is
+# classed "corpo" and opens with the "registri" paragraphs (N. 00017/2021REG.PROV.COLL.).
+_HTML_DOCUMENT_MARKERS = (b'<body class="corpo"', b'<p class="registri"')
+_RE_PUBBLICATO = re.compile(r"Pubblicato il\s+(\d{2}/\d{2}/\d{4})")
+_RE_REG_PROV = re.compile(r"N\.\s*0*(\d{1,6})\s*/\s*(\d{4})\s*REG\.\s*PROV", re.IGNORECASE)
+_RE_TIPO_HTML = re.compile(r"(?:SENTENZA|ORDINANZA|DECRETO|PARERE)(?: [A-Z]{2,20}){0,2}")
+_SPAZI = re.compile(r"\s+")
+# The paragraph that opens the dispositivo: "P.Q.M." (per questi motivi), spelled as printed.
+_RE_PQM = re.compile(r"P\.\s?Q\.\s?M\.?")
+
+
+def is_document_html(content: bytes) -> bool:
+    """True when mdp served the provvedimento as its HTML page (not an error page, not XML)."""
+    return any(marker in content for marker in _HTML_DOCUMENT_MARKERS)
+
+
 def _is_error_page(content: bytes) -> bool:
-    """True when mdp answered 200 with an HTML error page instead of the XML.
+    """True when mdp answered 200 with an HTML error page instead of the provvedimento.
 
     A stale document URL does NOT return a 404 status — it returns a styled
     "404 - Pagina non trovata" HTML body, which would otherwise be parsed into
-    plausible-looking garbage.
+    plausible-looking garbage. The provvedimento itself is HTML too since 2026-10,
+    so it is recognised first, by its own markup.
     """
+    if is_document_html(content):
+        return False
     head = content[:2048].decode("utf-8", errors="replace").lower()
     if "<?xml" in head or "<ga" in head:
         return False
@@ -645,6 +671,57 @@ def _parse_xml_text(xml_bytes: bytes) -> tuple[str, str]:
         title = "Provvedimento"
 
     return title, body_text
+
+
+def _parse_html_document(content: bytes) -> tuple[str, str, dict[str, str]]:
+    """Title, text and citation data of the provvedimento's HTML page.
+
+    The text is the page's paragraphs and the signature table's rows, in order, one
+    per block. The title is the court as the heading writes it ("Il Consiglio di
+    Stato in sede giurisdizionale (Adunanza Plenaria)"), as the XML's first epigrafe
+    field was. The citation data are the type the heading names ("SENTENZA"), the
+    number of the "REG.PROV.COLL." line and the date of "Pubblicato il …", the
+    same keys `_parse_xml_meta` gives. A "DISPOSITIVO" heading goes before the last
+    "P.Q.M.", as the XML's own section did, so that a cut keeps the decision.
+    """
+    raw = content.decode("utf-8", errors="replace")
+    soup = BeautifulSoup(raw, "lxml")
+    for tag in soup(["style", "script", "img", "head"]):
+        tag.decompose()
+    body = soup.body or soup
+    blocks: list[str] = []
+    heading: list[str] = []
+    tipologia = ""
+    for el in body.find_all(["p", "tr"]):
+        if el.name == "p" and el.find_parent("tr") is not None:
+            continue
+        cells = el.find_all("td") if el.name == "tr" else [el]
+        text = " ".join(t for t in (_SPAZI.sub(" ", c.get_text(" ")).strip() for c in cells) if t)
+        if not text:
+            continue
+        blocks.append(text)
+        classes = el.get("class") or []
+        if "sezione" in classes and not tipologia:
+            if _RE_TIPO_HTML.fullmatch(text):
+                tipologia = text.capitalize()
+            else:
+                heading.append(text)
+    meta: dict[str, str] = {}
+    if tipologia:
+        meta["tipologia"] = tipologia
+    for block in blocks[:4]:
+        if m := _RE_REG_PROV.search(block):
+            meta["numero"] = f"{int(m.group(1))}/{m.group(2)}"
+            break
+    if m := _RE_PUBBLICATO.search(raw[:4096]):
+        meta["data_pubblicazione"] = m.group(1)
+    # The XML put the dispositivo in a section of its own, which `_shorten` keeps whole; on the
+    # page it starts at the last "P.Q.M.", so the same heading goes before it.
+    pqm = [i for i, block in enumerate(blocks) if _RE_PQM.fullmatch(block)]
+    if pqm:
+        blocks.insert(pqm[-1], "DISPOSITIVO")
+    title = " ".join(heading) or "Provvedimento"
+    return title, "\n\n".join(blocks), meta
 
 
 def _parse_xml_meta(xml_bytes: bytes) -> dict[str, str]:
@@ -767,7 +844,7 @@ def format_full(
     """Format full provvedimento as markdown, shortened to _MAX_TEXT_LENGTH keeping the dispositivo.
 
     `meta` (from `_parse_xml_meta`) adds the citation line with the date of
-    publication, which only the official XML carries. `da_carattere` > 1 renders
+    publication, which only the provvedimento itself carries (its HTML page or XML). `da_carattere` > 1 renders
     the plain window of `text` that starts there (no dispositivo extraction).
     """
     schema = _resolve_schema(sede)
@@ -908,7 +985,7 @@ class ProvvedimentoDocument:
 
     title: str
     text: str               # "" for an error page or a PDF
-    meta: dict[str, str]    # tipologia, numero, data_pubblicazione (XML only)
+    meta: dict[str, str]    # tipologia, numero, data_pubblicazione (HTML page or XML)
     pdf_only: bool          # the file is a PDF: no text is extracted from it
     url: str                # official document URL
 
@@ -917,11 +994,15 @@ async def fetch_provvedimento_document(sede: str, nrg: str, nome_file: str) -> P
     """Fetch a provvedimento from mdp: text and citation data, or the PDF flag."""
     async with GASession(documento=True) as session:
         content = await session.fetch_text(sede, nrg, nome_file)
-    title, text = _parse_xml_text(content)
+    if is_document_html(content):
+        title, text, meta = _parse_html_document(content)
+    else:
+        title, text = _parse_xml_text(content)
+        meta = _parse_xml_meta(content)
     return ProvvedimentoDocument(
         title=title,
         text=text,
-        meta=_parse_xml_meta(content),
+        meta=meta,
         pdf_only=is_pdf(content),
         url=build_document_url(sede, nrg, nome_file),
     )
