@@ -33,6 +33,7 @@ from mcp_legal_it.api._decisioni import (
     leggi_sentenza_cgue,
     pronunce_costituzionali_su_norma,
 )
+from mcp_legal_it.api._modifiche import modifiche_articolo
 from mcp_legal_it.api._norme import (
     ARTICLE_SUFFIX_ALTERNATION,
     SUFFISSI_ARTICOLO,
@@ -54,6 +55,7 @@ from mcp_legal_it.api._norme import (
 from mcp_legal_it.api.tipi import (
     AlberoAtto,
     AnnotazioniBrocardi,
+    AttoModificante,
     AttoRisolto,
     Attributi,
     Avviso,
@@ -76,6 +78,8 @@ from mcp_legal_it.api.tipi import (
     Identita,
     IndiceAtto,
     MassimaBrocardi,
+    Modifica,
+    ModificheArticolo,
     NormaDati,
     RicercaDecisioni,
     RiferimentoDecisione,
@@ -83,6 +87,8 @@ from mcp_legal_it.api.tipi import (
     TestoAtto,
     TestoDecisione,
     TestoGrezzo,
+    TipoModifica,
+    VersioneArticolo,
     Vigenza,
     come_dict,
 )
@@ -109,6 +115,7 @@ __all__ = [
     "dove_altrove",
     "indice_atto",
     "leggi_riferimento",
+    "modifiche_articolo",
     "riferimento_da_parametri",
     "risolvi_atto",
     "testi_articoli",
@@ -131,6 +138,7 @@ __all__ = [
     # types
     "AlberoAtto",
     "AnnotazioniBrocardi",
+    "AttoModificante",
     "AttoRisolto",
     "Attributi",
     "Avviso",
@@ -153,6 +161,8 @@ __all__ = [
     "Identita",
     "IndiceAtto",
     "MassimaBrocardi",
+    "Modifica",
+    "ModificheArticolo",
     "NormaDati",
     "RicercaDecisioni",
     "RiferimentoDecisione",
@@ -160,6 +170,8 @@ __all__ = [
     "TestoAtto",
     "TestoDecisione",
     "TestoGrezzo",
+    "TipoModifica",
+    "VersioneArticolo",
     "Vigenza",
     "come_dict",
 ]

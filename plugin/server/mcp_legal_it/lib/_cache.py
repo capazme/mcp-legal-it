@@ -6,6 +6,7 @@ Three clients persist state under `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`:
     akn_acts/akn_hits.json                            fetch_full_act, ...)
     akn_acts/akn_url_params.json                      URL -> export params index
     normattiva_pagine/<sha256 of the URL>.json        an article page's text, 24 h
+    normattiva_aggiornamenti/<sha256>.json            a past version's window and update table, 90 days
     brocardi_urls.json                                article URL map
     corte_cost/{kind}/{year}.json                     Consulta massime, 7-day TTL
 

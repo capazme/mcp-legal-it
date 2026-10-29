@@ -161,6 +161,81 @@ class AttoRisolto:
     fonti: FontiConsultate | None = None
 
 
+#: What an amendment did, in Normattiva's own words: «la modifica», «l'introduzione»,
+#: «l'abrogazione», «la sostituzione», «la conversione»; anything else is ``"altro"``.
+TipoModifica = Literal["modifica", "inserimento", "abrogazione", "sostituzione", "conversione", "altro"]
+
+
+@dataclass(frozen=True)
+class VersioneArticolo:
+    """One version of an article, with VisuaLex's ``validity`` keys.
+
+    ``version_number`` is Normattiva's own number (``art.versione``). The window is the one
+    the version's page states, «Testo in vigore dal … al …», both days inclusive, ISO; None
+    when open (``valid_to`` of the version in force) or not read.
+    """
+
+    version_number: int
+    valid_from: str | None = None
+    valid_to: str | None = None
+
+
+@dataclass(frozen=True)
+class AttoModificante:
+    """The act an amendment row names, as Normattiva writes it."""
+
+    tipo_atto: str = ""           # normalised: "decreto legge"; "" when the row cannot be read
+    data: str | None = None       # "2021-10-08"
+    numero_atto: str = ""         # "139"
+    urn: str | None = None        # "urn:nir:stato:decreto.legge:2021-10-08;139"
+    gazzetta: str | None = None   # "G.U. 08/10/2021, n.241", "SO n.30, relativo alla G.U. 11/08/2026, n.185"
+    # The row's act as Normattiva writes it, with «convertito con modificazioni dalla …» when
+    # it says so. Normattiva's text only, never commentary.
+    descrizione: str = ""
+
+
+@dataclass(frozen=True)
+class Modifica:
+    """One amendment of an article, read from the update table of the version it produced."""
+
+    atto: AttoModificante
+    tipo: TipoModifica
+    disposizione: str | None = None   # of the amending act: "l'art. 9, comma 1, lettera a)"
+    parti: str | None = None          # of the article: "commi 1, 1-bis, 2 e 3", "comma 1-bis"
+    # The start of the version the amendment produced, read from that version's window: the
+    # day it came (or comes) into force. None when the window could not be read.
+    in_vigore_dal: str | None = None
+    versione: int | None = None       # the version it produced (Normattiva's number)
+    data_gu: str | None = None        # the row's «data pubblicazione», ISO: not the day it applies
+    # ESATTO: the row's act read in full and the version's window read. INDICATIVO otherwise,
+    # and when the dal/al filter had to use data_gu.
+    precisione: Literal["ESATTO", "INDICATIVO"] = "ESATTO"
+    # The provision as Normattiva words it in the table («ha disposto (con l'art. 9, comma 1,
+    # lettera a)) la modifica dell'art. 2-ter, commi 1, 1-bis, 2 e 3»): Normattiva's text
+    # only, never editorial commentary.
+    testo: str = ""
+
+
+@dataclass(frozen=True)
+class ModificheArticolo:
+    """The versions of an Italian article and the amendments that produced them (``modifiche_articolo``)."""
+
+    esito: EsitoNorma
+    norma_data: NormaDati | None = None
+    versioni: tuple[VersioneArticolo, ...] = ()   # every version Normattiva lists, oldest first
+    modifiche: tuple[Modifica, ...] = ()          # within dal/al, oldest first
+    url: str = ""                                 # the article's Normattiva page
+    # True when every version within dal/al was read, its table included. False with an
+    # avviso: the ceiling (max_versioni) was reached, or a version could not be read; the
+    # latter is transient, ask again.
+    completa: bool = False
+    precisione: Literal["ESATTO", "INDICATIVO"] | None = None
+    avvisi: tuple[str, ...] = ()
+    versioni_non_lette: int = 0                   # left unread by the ceiling or by a failure
+    errore: str | None = None
+    fonti: FontiConsultate | None = None
+
+
 @dataclass(frozen=True)
 class TestoArticolo:
     """One article: VisuaLex ``/fetch_article_text`` item keys, plus additions."""
