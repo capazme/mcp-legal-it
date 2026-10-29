@@ -884,6 +884,13 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **TUIR, TUB, TUF and the Testo unico sicurezza carry their full date.** The
+  names `TUIR`, `TUB`, `TUF` and «testo unico sicurezza» resolved to the year
+  alone, so `mcp_legal_it.api.leggi_riferimento("art. 1 TUIR")` returned a
+  placeholder date (`…:1986-01-01;917`) with `data_risolta=False`. They now
+  carry the act's date as Normattiva gives it: d.P.R. 22 dicembre 1986, n. 917;
+  d.lgs. 1 settembre 1993, n. 385; d.lgs. 24 febbraio 1998, n. 58; d.lgs.
+  9 aprile 2008, n. 81. EU acts keep the year alone, as they are cited.
 - **Act titles from Normattiva read as plain text.** Normattiva escapes the
   title in `eli:title` twice, so `fetch_full_act` showed «Norme  sulla  tutela
   della libert&agrave; e dignit&agrave; dei lavoratori» for L. 300/1970, split

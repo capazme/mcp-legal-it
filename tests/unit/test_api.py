@@ -171,6 +171,17 @@ class TestRiferimenti:
         for nd in (r.norma_data[0], p.norma_data[0]):
             assert nd.data == "2023" and nd.data_risolta is False
 
+    @pytest.mark.parametrize("testo, urn", [
+        ("art. 1 TUIR", "decreto.del.presidente.della.repubblica:1986-12-22;917~art1"),
+        ("art. 1 TUB", "decreto.legislativo:1993-09-01;385~art1"),
+        ("art. 1 TUF", "decreto.legislativo:1998-02-24;58~art1"),
+        ("art. 1 testo unico sicurezza", "decreto.legislativo:2008-04-09;81~art1"),
+    ])
+    def test_a_known_italian_act_carries_its_full_date(self, testo, urn):
+        nd = api.leggi_riferimento(testo).norma_data[0]
+        assert nd.data_risolta is True
+        assert nd.urn == f"urn:nir:stato:{urn}"
+
     def test_eu_act_has_no_urn(self):
         nd = api.leggi_riferimento("art. 6 GDPR").norma_data[0]
         assert nd.urn is None and nd.data_risolta is True and nd.url.startswith("https://eur-lex")
