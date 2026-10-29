@@ -624,6 +624,14 @@ entry, it is the same feature as ported to the 3.0 line.
   with the same «Unexpected keyword argument» error. The difference is only for
   a client that checks arguments against the schema before sending: it no
   longer refuses an unknown argument itself, and leaves it to the server.
+- **Cassazione search snippets without `<em>` tags.** Italgiure's highlighter
+  wraps every matched term in `<em>…</em>`, and the passages of
+  `cerca_giurisprudenza`, `giurisprudenza_su_norma`, `giurisprudenza_articolo`
+  and the unified search reached the model with them (362 tags in one
+  `giurisprudenza_articolo` answer). The «Estratto» and «Dispositivo (match)»
+  lines now carry the plain passage. The request to Italgiure is unchanged, and
+  so is `mcp_legal_it.api`, whose search results keep the fragment as the
+  source serves it. The other search sources already returned plain text.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address
@@ -856,6 +864,15 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **Act titles from Normattiva read as plain text.** Normattiva escapes the
+  title in `eli:title` twice, so `fetch_full_act` showed «Norme  sulla  tutela
+  della libert&agrave; e dignit&agrave; dei lavoratori» for L. 300/1970, split
+  over three lines under its `#` heading. The titles read from a Normattiva page
+  are now kept on one line with single spaces, and the complete character
+  references of `eli:title`, the only field Normattiva escapes twice, are
+  decoded once more (a bare «&» or «&notizie» stays as it is): «Norme sulla
+  tutela della libertà e dignità dei lavoratori, …». The same title reaches
+  `mcp_legal_it.api.testo_atto().titolo`.
 - **Amounts are written the Italian way in every tool's text.** Python's
   default format put «Euro 25,000.00» in the decreto ingiuntivo, «€1,234.00»
   in quotes and fee notes, «€1092.48» or «€850.0» elsewhere. They now read

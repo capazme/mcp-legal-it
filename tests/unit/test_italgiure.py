@@ -759,6 +759,18 @@ class TestFormatSummary:
         assert "estratto" in result
         assert "**Estratto**" in result
 
+    def test_highlight_tags_are_dropped(self):
+        # Solr wraps every matched term in <em>: the model gets the passage only.
+        doc = _civile_doc()
+        hl = {
+            "ocrdis": ["di disporre della <em>cosa</em> accordata <em>dall’art</em>. 832"],
+            "ocr": ["non essendo configurabile <em>l’usura</em> <EM>sopravvenuta</EM> &lt;em&gt;x&lt;/em&gt;"],
+        }
+        result = format_summary(doc, highlights=hl)
+        assert "**Dispositivo (match)**: ...di disporre della cosa accordata dall’art. 832..." in result
+        assert "**Estratto**: ...non essendo configurabile l’usura sopravvenuta x..." in result
+        assert "em>" not in result.lower() and "em&gt;" not in result
+
     def test_includes_dispositivo(self):
         doc = _civile_doc()
         result = format_summary(doc)

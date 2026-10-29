@@ -8,6 +8,7 @@ import os
 import re
 import unicodedata
 import warnings
+from html import unescape
 from urllib.parse import urljoin
 
 import httpx
@@ -78,6 +79,28 @@ _full_date_cache: dict[str, dict] = {}
 _date_in_corso: "dict[tuple[str, int], asyncio.Future]" = {}
 
 
+# A complete character reference: named (``&agrave;``), decimal (``&#39;``) or hex
+# (``&#x27;``). ``html.unescape`` alone would also decode a name with no semicolon,
+# turning text that is already plain («D&O &notizie») into «D&O ¬izie».
+_ENTITA = re.compile(r"&(?:[A-Za-z][A-Za-z0-9]*|#[0-9]+|#[xX][0-9A-Fa-f]+);")
+
+
+def _one_line(raw: str) -> str:
+    """A title as one line with single spaces (the official heading keeps double spaces
+    and line breaks)."""
+    return " ".join(raw.split())
+
+
+def _eli_title(raw: str) -> str:
+    """The ``eli:title`` of a Normattiva page as plain text on one line.
+
+    Normattiva escapes this attribute twice (``libert&amp;agrave;``), so the parsed
+    value still reads ``libert&agrave;``: its complete entities are decoded once more.
+    The other titles of the page are escaped once and arrive decoded already.
+    """
+    return _one_line(_ENTITA.sub(lambda m: unescape(m.group()), raw))
+
+
 def act_page_metadata(html: str) -> dict:
     """Identity of an act read from its Normattiva page: date, title, page title.
 
@@ -92,9 +115,9 @@ def act_page_metadata(html: str) -> dict:
     date = (meta_date.get("content") or "").strip() if meta_date else ""
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
         date = ""
-    title = (meta_title.get("content") or "").strip().rstrip(".").strip() if meta_title else ""
+    title = _eli_title(meta_title.get("content") or "").rstrip(".").strip() if meta_title else ""
     page_title = soup.find("title")
-    heading = page_title.get_text(strip=True) if page_title else ""
+    heading = _one_line(page_title.get_text(strip=True)) if page_title else ""
     heading = re.sub(r"\s*-\s*Normattiva\s*$", "", heading).strip()
     return {"date": date, "title": title, "heading": heading}
 
@@ -1782,13 +1805,13 @@ def _normattiva_page_title(html: str, soup: BeautifulSoup) -> str:
     for h1 in soup.find_all("h1"):
         if "sr-only" in (h1.get("class") or []):
             continue
-        text = h1.get_text(strip=True)
+        text = _one_line(h1.get_text(strip=True))
         if text:
             return text
     title_tag = soup.find("title")
     if not title_tag:
         return ""
-    return re.sub(r"\s*-\s*Normattiva\s*$", "", title_tag.get_text(strip=True)).strip()
+    return re.sub(r"\s*-\s*Normattiva\s*$", "", _one_line(title_tag.get_text(strip=True))).strip()
 
 
 def _extract_article_ajax_urls(html: str) -> list[str]:
