@@ -30,6 +30,12 @@ _ADVERSARIAL = [
     "art. 30 D.Lgs. 36/2023" + ", " * 5000 + "allegato I.7 x",
     "a " * 25000,
     "x" + " art. 1" * 7000 + " ?",
+    "x art. 1 " + "n1c1" * 200 + " ?",
+    "x art. 1 " + "c1" * 200 + " ?",
+    "x art. 1 " + "co1" * 200 + " ?",
+    "x art. 1 " + "comma1" * 200 + " ?",
+    "x art. 1 co. " + "1" * 3000 + "ñ ?",
+    "co. " + "1" * 3000 + "ñ?",
 ]
 _PARSE_TIMER = """
 import json, sys, time
@@ -56,8 +62,10 @@ def parse_times():
 
     riferimenti = ["x art. 1" + t * 200 + " ?" for t in _TAILS] + _ADVERSARIAL
     try:
+        # The child must import the code under test, from this process's own path.
         done = subprocess.run([sys.executable, "-c", _PARSE_TIMER], input=json.dumps(riferimenti),
-                              capture_output=True, text=True, timeout=60)
+                              capture_output=True, text=True, timeout=60,
+                              env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)})
     except subprocess.TimeoutExpired:
         pytest.fail("_parse_reference did not end within 60 s on the slow-match inputs: a regex backtracks")
     assert done.returncode == 0, done.stderr[-2000:]
@@ -195,7 +203,8 @@ class TestParseReferenceActFirst:
         assert parse_times["x art. 1" + tail * 200 + " ?"] < 0.1
 
     @pytest.mark.parametrize("reference", _ADVERSARIAL, ids=[
-        "spaces", "tabs-nbsp", "commas", "mixed-separators", "annex-last", "50k", "many-articles"])
+        "spaces", "tabs-nbsp", "commas", "mixed-separators", "annex-last", "50k", "many-articles",
+        "glued-n-c", "glued-c", "glued-co", "glued-comma", "long-number", "long-number-no-article"])
     def test_adversarial_input_is_parsed_in_linear_time(self, reference, parse_times):
         # A lazy act name followed by "\s*[,;]?\s+" split each run of spaces many ways:
         # 5000 spaces took 92 s, synchronously, inside async tools.

@@ -998,9 +998,10 @@ entry, it is the same feature as ported to the 3.0 line.
       (`parte_non_letta`).
     - A part lacking the comma's line is said.
     - `parte_articolo(..., canale="akn")` is `non_supportata`.
-    - The library reads the comma of a reference string.
+    - The library reads the comma of a reference string, also after the act when the
+      reference cites one article only («art. 1 L. 296/2006, comma 773»).
     - `_parse_reference` reads «comma 773-bis», «c. 773», «commi 773 e 774» and «773°
-      comma», as the comma reader does.
+      comma», as the comma reader does, in linear time.
   - **Agreed shape.** The shape is agreed with VisuaLex.
   - **Tests.** Live gate `tests/unit/test_parti_articolo_live.py` (3 requests); the
     INPS apprentice gate now cites comma 773.

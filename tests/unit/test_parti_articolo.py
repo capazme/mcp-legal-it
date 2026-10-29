@@ -104,9 +104,24 @@ class TestLettura:
         ("art. 3 l.c. 3/2001", None),  # the «c.» of «l.c.» is no comma
         ("art. 1 c.c. 1942", None),  # nor the year after «c.c.»
         ("art. 18 St. lav. come mod. da art. 1, comma 42, l. 92/2012", None),  # another article's comma
+        ("art. 1 L. 296/2006, comma 773", "773"),  # after the act
+        ("art. 1 legge 27 dicembre 2006, n. 296, c. 773-bis", "773-bis"),
+        ("art. 2 L. 92/2012, come mod. da art. 1 L. 296/2006, comma 5", None),  # two articles: whose?
     ])
     def test_the_comma_of_a_reference(self, riferimento, comma):
         assert parti_normattiva.comma_richiesto(riferimento) == comma
+
+    @pytest.mark.parametrize("riferimento", [
+        "art. 1 " + " " * 20000 + "comma 1 x",
+        "art. 1" + " ," * 20000 + "x",
+        "art. 1 " + "c. " * 10000,
+        "comma 1 , " * 5000 + "art. 1",
+    ])
+    def test_the_comma_reader_is_linear(self, riferimento):
+        import time
+        start = time.perf_counter()
+        parti_normattiva.comma_richiesto(riferimento)
+        assert time.perf_counter() - start < 0.1
 
 
 class TestApi:
