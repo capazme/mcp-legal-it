@@ -188,6 +188,24 @@ class FallbackReader:
         return self.normalizza_articolo(m.group(1)) if m else None
 
     def articoli_serviti(self, testo):
+        # As core/citazioni.corpo_della_finestra: a window may cut a heading at either end.
+        finestra = re.search(r"\n\*\[Caratteri (\d+)-\d+ su \d+ totali: ([^\]\n]*)\]\*[ \t\n]*$", testo)
+        if finestra:
+            righe = testo[: finestra.start()].rstrip().split("\n")
+            while righe and (not righe[-1].strip() or re.match(r"^\*\[[^\n]*\]\*$", righe[-1].strip())):
+                righe.pop()
+            if "per leggere il seguito" in finestra.group(2) and righe:
+                righe.pop()
+            if int(finestra.group(1)) > 1:
+                dimensione = next((i for i, r in enumerate(righe) if r.startswith("**Dimensione**:")), None)
+                if dimensione is not None:
+                    primo = next((i for i in range(dimensione + 1, len(righe)) if righe[i].strip()), None)
+                else:
+                    primo = next((i for i, r in enumerate(righe)
+                                  if r.strip() and not r.lstrip().startswith(("#", "**"))), None)
+                if primo is not None:
+                    del righe[primo]
+            testo = "\n".join(righe) + "\n"
         return {self.normalizza_articolo(m.group(1)) for m in
                 re.finditer(r"^[ \t]*(?:#+[ \t]*)?art(?:icolo)?\.?[ \t]*(\d+" + self._SUFFIX + ")", testo, re.I | re.M)}
 
