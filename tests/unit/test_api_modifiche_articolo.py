@@ -398,6 +398,7 @@ class TestVersione1:
         r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"agg1": tabella})
         assert not any(m.versione == 1 for m in r.modifiche)
         assert any("indica più atti che hanno introdotto l'articolo" in a for a in r.avvisi)
+        assert r.completa and r.precisione == "INDICATIVO"
         # Not kept: a cached version 1 would lose the notice.
         assert len(list((tmp_path / "cache").glob("normattiva_aggiornamenti/*.json"))) == 1
 
@@ -407,6 +408,13 @@ class TestVersione1:
             "la modifica dell'art. 2-ter, commi 1, 1-bis, 2 e 3", "l'introduzione dell'art. 2-ter", 1)
         r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"agg1": tabella})
         assert [(m.atto.numero_atto, m.tipo) for m in r.modifiche if m.versione == 1] == [("101", "inserimento")]
+
+    async def test_an_unread_version_1_window_gives_it_no_act_and_is_indicative(self):
+        senza = re.sub(r'<div class="vigore[\s\S]*?</div>', "", _pagina("dlgs196_art2ter_v1"), count=1)
+        r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"v1": senza})
+        assert not any(m.versione == 1 for m in r.modifiche)
+        assert any("la finestra della versione 1 non si legge" in a for a in r.avvisi)
+        assert r.precisione == "INDICATIVO"
 
     async def test_a_record_of_the_old_schema_is_not_read(self, tmp_path):
         # 3b55cfc kept version 1 with its window only (righe=[]): read now, that would say

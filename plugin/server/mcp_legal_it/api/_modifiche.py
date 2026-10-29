@@ -182,7 +182,9 @@ async def modifiche_articolo(
                           f"({letta['errore']}); è un problema transitorio: riprovare")
         completa = not mancanti and not oltre and letta["storia_certa"]
         # A Modifica is ESATTO only with its version's window read: an unread window shows there.
-        precisione = "ESATTO" if (completa and not letta["vuote"]
+        # Version 1 without its act for want of certainty (two introductions, an unread window)
+        # is a gap in what is said: INDICATIVO, like an empty table.
+        precisione = "ESATTO" if (completa and not letta["vuote"] and not letta["nota_v1"]
                                   and all(m.precisione == "ESATTO" for m in scelte)) else "INDICATIVO"
         return ModificheArticolo(
             esito="trovato", norma_data=nd, versioni=tuple(tutte), modifiche=tuple(scelte), url=url,
