@@ -186,39 +186,82 @@ def parse_righe(page: str) -> Optional[list[dict]]:
     """The rows of an update table: ``[{progressivo, data_gu, atti: [{atto, disposizioni}]}]``.
 
     None when the page has no update table (an error or session page, another page).
-    A row carries one or more amending acts, each an item («Il DECRETO-LEGGE … (in G.U. …)»)
-    followed by the item of its provisions.
+    A row carries one or more amending acts: each an item without a link («Il DECRETO-LEGGE
+    … (in G.U. …)»), followed by the item of its provisions. Every item without a link opens
+    an act, read or not (an act whose fields cannot be read keeps them empty: INDICATIVO).
+    A row without a number continues the one before (the decree-law «convertito con
+    modificazioni …» under its own entry): it is that row's act once more, with its note.
     """
     soup = BeautifulSoup(page, "lxml")
     tabella = soup.select_one("table.tabella_elencoAgg")
     if tabella is None:
         return None
-    righe = []
+    righe: list[dict] = []
     for tr in tabella.select("tbody tr"):
         celle = tr.find_all("td")
         if len(celle) < 3:
             continue
         progressivo = _testo(celle[0])
         data = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", _testo(celle[1]))
-        atti, corrente = [], None
-        for li in celle[2].find_all("li"):
-            testo = _testo(li)
-            if li.find("a") is None and _ATTO.match(testo):
-                corrente = {"atto": parse_atto(testo), "disposizioni": []}
-                atti.append(corrente)
-            elif corrente is not None:
-                if (nota := conversione(testo)):
-                    corrente["atto"]["descrizione"] += " " + nota
-                corrente["disposizioni"].extend(parse_disposizioni(testo))
-            else:
-                corrente = {"atto": parse_atto(testo), "disposizioni": parse_disposizioni(testo)}
-                atti.append(corrente)
-        righe.append({
+        voci = celle[2].find_all("li")
+        prosegue = bool(not progressivo and righe and righe[-1]["atti"] and voci and voci[0].find("a") is not None)
+        riga = righe[-1] if prosegue else {
             "progressivo": int(progressivo) if progressivo.isdigit() else None,
             "data_gu": _iso(*data.groups()) if data else None,
-            "atti": atti,
-        })
+            "atti": [],
+        }
+        corrente = None
+        for li in voci:
+            testo = _testo(li)
+            if li.find("a") is None:
+                corrente = {"atto": parse_atto(testo), "disposizioni": []}
+                riga["atti"].append(corrente)
+                continue
+            nota = conversione(testo)
+            if corrente is None:
+                if prosegue:
+                    # The previous row's act again, as this entry describes it.
+                    prima = riga["atti"][-1]["atto"]
+                    atto = dict(prima, descrizione=prima["descrizione"].split(" convertito con ")[0])
+                else:
+                    atto = parse_atto("")
+                corrente = {"atto": atto, "disposizioni": []}
+                riga["atti"].append(corrente)
+            if nota:
+                corrente["atto"]["descrizione"] = (corrente["atto"]["descrizione"] + " " + nota).strip()
+            corrente["disposizioni"].extend(parse_disposizioni(testo))
+        if not prosegue:
+            righe.append(riga)
     return righe
+
+
+_INTRODUZIONE_ARTICOLO = re.compile(r"^l'introduzione dell'art\.\s*([\w.\-]+?)\.?$")
+
+
+def inserimento_articolo(righe: list[dict], stesso_articolo) -> list[dict]:
+    """The rows of version 1's table that introduced the article itself.
+
+    Version 1's table is the article's whole history (measured on 29 Oct: art. 2-ter and
+    13 d.lgs. 196/2003, art. 64-bis CCII, art. 2 c.c., art. 1 d.P.R. 131/1986), not the
+    amendments that produced version 1: only «l'introduzione dell'art. N» of this very
+    article (*stesso_articolo(N)* true) is version 1's. The other rows are the later
+    versions', and are read from their own tables.
+    """
+    out = []
+    for riga in righe:
+        atti = []
+        for voce in riga["atti"]:
+            tenute = []
+            for d in voce["disposizioni"]:
+                azione = re.sub(r"^\S+(?:\s+\S+)?\s+disposto\s+(?:\(con .+?\)\s+)?", "", d["testo"])
+                found = _INTRODUZIONE_ARTICOLO.match(azione.strip())
+                if d["tipo"] == "inserimento" and d["parti"] is None and found and stesso_articolo(found.group(1)):
+                    tenute.append(d)
+            if tenute:
+                atti.append({"atto": voce["atto"], "disposizioni": tenute})
+        if atti:
+            out.append({**riga, "atti": atti})
+    return out
 
 
 # --- cache of past versions ---------------------------------------------------------
@@ -336,7 +379,14 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
       lists (None: not read); ``corrente``: the version the undated page served;
     - ``righe``: ``{k: [rows]}`` for the versions whose table was read;
     - ``mancanti``: versions a failure left unread (the walk stopped at the first);
-    - ``oltre_tetto``: versions the ceiling left unread; ``errore``.
+    - ``oltre_tetto``: versions the ceiling left unread; ``errore``;
+    - ``vuote``: versions after the first whose table lists nothing (never kept);
+    - ``storia_certa``: False when a page without the article's update link also lacks the
+      act's update link or a window (markup that changed: «never amended» is not said).
+
+    Version 1's table is the whole history: of it, only the article's own introduction is
+    kept (:func:`inserimento_articolo`). Every version page must name the article and be
+    that version (its own update link says so), or the walk stops.
     """
     from mcp_legal_it.core._http import async_client
 
@@ -345,8 +395,8 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
 
     voluto = scraper._article_identity(scraper.normalize_article_key(articolo))
     urn = url.split("?", 1)[1] if "?" in url else url
-    out = {"esito": "trovato", "versioni": {}, "righe": {}, "mancanti": [], "oltre_tetto": [],
-           "errore": None, "corrente": None}
+    out = {"esito": "trovato", "versioni": {}, "righe": {}, "mancanti": [], "oltre_tetto": [], "vuote": [],
+           "storia_certa": True, "errore": None, "corrente": None}
 
     def _servito(html: str) -> "str | None":
         # A version's page opens with «<?xml»: VisuaLex's HTML parser reads it, and says so.
@@ -374,7 +424,9 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
             return out
         servito = _servito(pagina)
         got = scraper._article_identity(servito) if servito else None
-        if got != voluto:
+        if voluto is None or got is None or got != voluto:
+            # A page that does not name the article (an error or session page names none) is
+            # never taken for it: only another article's number says that this one is missing.
             if got is not None and voluto is not None and got[0] != voluto[0]:
                 out["esito"] = "articolo_non_trovato"
                 out["errore"] = (f"per l'art. {articolo} Normattiva restituisce l'art. {servito}: l'articolo non "
@@ -385,11 +437,19 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
                 out["errore"] = ("Normattiva non ha servito la pagina dell'articolo"
                                  + (f" ({problema})" if problema else ": la pagina non dice quale articolo è"))
             return out
+
+        def stesso_articolo(numero: str) -> bool:
+            return scraper._article_identity(scraper.normalize_article_key(numero)) == voluto
+
         link = update_link(pagina)
         if link is None:
-            # Never amended: one version, the page's own window.
-            out["versioni"] = {1: _read_window(pagina)}
+            # Never amended: one version, the page's own window. Said only when the page has
+            # the act's own update link and a window: a page without either is markup that
+            # changed, and «never amended» would then be said of every article.
+            finestra = _read_window(pagina)
+            out["versioni"] = {1: finestra}
             out["corrente"] = 1
+            out["storia_certa"] = bool(finestra) and "vediAggiornamentiAllAtto" in pagina
             return out
         corrente = link_version(link) or 1
         out["corrente"] = corrente
@@ -398,7 +458,8 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
         out["versioni"] = {k: None for k in tutte}
 
         # 2. Each version, newest first: its window (its page; the current one is this page),
-        #    then its table.
+        #    then its table. Version 1's table is the whole history: of it, only the article's
+        #    own introduction is version 1's.
         for posizione, k in enumerate(tutte):
             if posizione >= max_versioni:
                 out["oltre_tetto"] = tutte[posizione:]
@@ -414,16 +475,17 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
                     if path is None:
                         raise _Interrotta(f"nessun collegamento alla versione {k}")
                     html = await get(path)
-                    if scraper._article_identity(_servito(html) or "") != voluto:
+                    servita = scraper._article_identity(_servito(html) or "")
+                    if servita is None or servita != voluto:
                         raise _Interrotta(f"la pagina della versione {k} non è quella dell'articolo")
+                    if link_version(update_link(html) or "") != k:
+                        raise _Interrotta(f"la pagina della versione {k} è quella di un'altra versione")
                     finestra = _read_window(html)
                 out["versioni"][k] = finestra
-                if k == 1 and tenuta is None and finestra and finestra[1] and finestra[1] < oggi:
-                    scrivi_versione(urn, 1, finestra, [])  # version 1 has no table: its window is all
                 inizio = finestra[0] if finestra else None
                 prima_di_dal = bool(dal and inizio and inizio < dal)
                 dopo_al = bool(al and inizio and inizio > al)
-                if k > 1 and not prima_di_dal and not dopo_al:
+                if not prima_di_dal and not dopo_al:
                     if tenuta is not None:
                         out["righe"][k] = tenuta["righe"]
                     else:
@@ -431,8 +493,13 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
                         if righe is None:
                             raise _Interrotta(f"la tabella degli aggiornamenti della versione {k} non si legge "
                                               "(pagina di errore o di sessione)")
+                        if k == 1:
+                            righe = inserimento_articolo(righe, stesso_articolo)
+                        elif not any(v["disposizioni"] for r in righe for v in r["atti"]):
+                            out["vuote"].append(k)
                         out["righe"][k] = righe
-                        if k != corrente and finestra and finestra[1] and finestra[1] < oggi:
+                        if (k != corrente and finestra and finestra[1] and finestra[1] < oggi
+                                and k not in out["vuote"]):
                             scrivi_versione(urn, k, finestra, righe)
                 if prima_di_dal:
                     break  # the older versions start earlier still: outside the window

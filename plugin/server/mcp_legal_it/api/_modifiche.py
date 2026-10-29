@@ -20,8 +20,9 @@ from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib.visualex import aggiornamenti, scraper
 from mcp_legal_it.lib.visualex.models import Norma, split_annex
 
-_AVVISO_VERSIONE_1 = ("la versione 1 è il testo con cui l'articolo è entrato nell'atto: l'atto che lo ha "
-                      "introdotto non compare nella tabella degli aggiornamenti")
+_AVVISO_VERSIONE_1 = ("la versione 1 non ha un atto che l'abbia prodotta nella tabella degli aggiornamenti: è il "
+                      "testo originario dell'atto, o quello con cui l'articolo vi è entrato senza che Normattiva "
+                      "registri l'introduzione")
 
 
 def _atto(dati: dict) -> AttoModificante:
@@ -46,7 +47,10 @@ def _modifiche(versioni: dict, righe: dict) -> list[Modifica]:
                 for d in voce["disposizioni"]:
                     # Only an identical row is the same amendment: a decree-law and its
                     # conversion law «con modificazioni» are two (the law may change the text).
-                    chiave = (atto.descrizione, d["disposizione"], d["testo"], d["tipo"], d["parti"])
+                    # Within one table only: across tables the same row is the same amendment read
+                    # twice, and which version keeps it must not depend on dal (that decides which
+                    # tables are read).
+                    chiave = (k, atto.descrizione, d["disposizione"], d["testo"], d["tipo"], d["parti"])
                     if chiave in viste:
                         continue
                     viste.add(chiave)
@@ -94,9 +98,12 @@ async def modifiche_articolo(
     version cannot be read, ``completa`` is False and ``avvisi`` says which (a failure is
     transient: ask again). ``Modifica.testo`` is Normattiva's wording only.
 
+    Version 1's amendment, when Normattiva records it, is the act that introduced the article.
+
     Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
     ``articolo_non_trovato``, ``verifica_non_disponibile`` (transient), ``errore_fonte``,
-    ``non_supportata`` (an EU act, the whole act without an article, an annex named by the act).
+    ``non_supportata`` (an EU act, the whole act without an article, an article without a
+    number, an annex named by the act).
     """
     if not isinstance(max_versioni, int) or isinstance(max_versioni, bool) or max_versioni < 1:
         raise ValueError("max_versioni deve essere un intero almeno 1")
@@ -126,6 +133,12 @@ async def modifiche_articolo(
     if split_annex(article):
         return ModificheArticolo(esito="non_supportata",
                                  errore="le modifiche di un articolo di un allegato non sono ancora disponibili")
+    if scraper._article_identity(scraper.normalize_article_key(article)) is None:
+        # «XIII», «preambolo»: no number to check each page against, and an error page names
+        # none either; a page could then be taken for the article.
+        return ModificheArticolo(esito="non_supportata",
+                                 errore=f"l'articolo '{article}' non ha un numero: le sue modifiche non si possono "
+                                        "verificare pagina per pagina")
     oggi = _clock.today().isoformat()
     with registra() as registro:
         # A year-only act gets its date (one request, cached), so the URN and the cache key are the act's.
@@ -141,8 +154,13 @@ async def modifiche_articolo(
         tutte = [VersioneArticolo(k, *(versioni[k] or (None, None))) for k in sorted(versioni)]
         modifiche = _modifiche(versioni, letta["righe"])
         avvisi = []
-        if len(tutte) > 1:
+        if 1 in letta["righe"] and not any(m.versione == 1 for m in modifiche):
             avvisi.append(_AVVISO_VERSIONE_1)
+        if not letta["storia_certa"]:
+            avvisi.append("la pagina dell'articolo non ha il collegamento agli aggiornamenti né quelli dell'atto "
+                          "o la finestra di vigore: non si può dire che l'articolo non sia mai stato modificato")
+        for k in letta["vuote"]:
+            avvisi.append(f"la tabella degli aggiornamenti della versione {k} non elenca alcuna modifica")
         for v in tutte:
             if v.valid_from and v.valid_from > oggi:
                 avvisi.append(f"la versione {v.version_number} entra in vigore il {v.valid_from}: non è ancora in "
@@ -156,13 +174,14 @@ async def modifiche_articolo(
         mancanti, oltre = letta["mancanti"], letta["oltre_tetto"]
         if oltre:
             avvisi.append(f"lette le ultime {max_versioni} versioni su {len(tutte)}: per le precedenti "
-                          f"({', '.join(map(str, sorted(oltre)))}) restringere dal/al o alzare max_versioni")
+                          f"({', '.join(map(str, sorted(oltre)))}) alzare max_versioni o spostare dal più avanti")
         if mancanti:
             avvisi.append(f"versioni non lette per un errore della fonte: {', '.join(map(str, sorted(mancanti)))} "
                           f"({letta['errore']}); è un problema transitorio: riprovare")
-        completa = not mancanti and not oltre
+        completa = not mancanti and not oltre and letta["storia_certa"]
         # A Modifica is ESATTO only with its version's window read: an unread window shows there.
-        precisione = "ESATTO" if completa and all(m.precisione == "ESATTO" for m in scelte) else "INDICATIVO"
+        precisione = "ESATTO" if (completa and not letta["vuote"]
+                                  and all(m.precisione == "ESATTO" for m in scelte)) else "INDICATIVO"
         return ModificheArticolo(
             esito="trovato", norma_data=nd, versioni=tuple(tutte), modifiche=tuple(scelte), url=url,
             completa=completa, precisione=precisione, avvisi=tuple(avvisi),

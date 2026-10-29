@@ -526,23 +526,27 @@ Normattiva. It is async.
     versions start earlier still.
 - **Ceiling.** At most `max_versioni` versions are read, the newest. Past the ceiling:
   - `completa=False`, `precisione="INDICATIVO"`, and `versioni_non_lette` counts the rest;
-  - an avviso says how many versions were read and how to reach the others (narrow `dal`/
-    `al`, or raise `max_versioni`);
+  - an avviso says how many versions were read and how to reach the others: raise
+    `max_versioni`, or move `dal` later. Moving `al` earlier does not help, because the
+    later versions still use up the ceiling;
   - the unread versions are listed with `valid_from`/`valid_to` at `None`.
   - `max_versioni < 1` raises `ValueError`.
 - **Cost.**
-  - For an article with V versions, all read: 2V-1 requests (the article page, V-1 version
-    pages, V-1 tables); at most 2·`max_versioni`.
+  - For an article with V versions, all read: 2V requests (the article page, V-1 version
+    pages, V tables, version 1's included); at most 2·`max_versioni`.
   - With the cache warm: 2 (the article page and the current version's table).
   - An article never amended: 1 (its page has no update link).
+  - Plus one, the first time, for an act cited with the year only («art. 1 L. 742/1969»):
+    its full date is read from its page (the lookup `risolvi_atto` uses, kept a year in
+    `act_dates.json`).
   - The library's Normattiva limits apply (3 in flight, 0.5 s apart, §2).
 - **Cache.**
   - Kept: a version whose window has ended, with its table, on disk for 90 days
     (`normattiva_aggiornamenti/` in the cache directory, through `_cache.py`). Never for
-    ever, because Normattiva corrects its data at times. Version 1 is kept with its window
-    only (it has no table).
+    ever, because Normattiva corrects its data at times. Version 1 is kept with its own
+    introduction (below).
   - Not kept: the current version, a future version, a version that failed, a version
-    whose table was not read.
+    whose table was not read or was empty.
   - The article page (current version, number of versions) is read every time, so a new
     version is seen at once.
   - `LEGAL_CACHE=off` or `configurazione(cache=False)`: nothing is read or written.
@@ -572,12 +576,33 @@ Normattiva. It is async.
 - **Abrogation.** An abrogated article ends with a `Modifica` of `tipo="abrogazione"`. The
   version before it has its `valid_to`. The last version is Normattiva's abrogated
   stub, open-ended.
-- **Version 1.** The act that introduced the article does not appear in any table: version
-  1 has no amendment, and an avviso says so (whenever there is more than one version).
-- **Identical rows.** A row that two tables list identically (same act, same provision,
-  same action and parts) is kept once, at the older version. A decree-law and its
-  conversion law are never merged: Normattiva lists the decree-law as published in one
-  version and as converted «con modificazioni» in the next, and those are two amendments.
+- **Version 1.**
+  - Version 1's table is not «what produced version 1»: it is the article's whole
+    history, the later versions' rows included. This was measured on all five amended
+    articles above.
+  - So only its row introducing this very article («ha disposto (con l'art. 2, comma 1,
+    lettera f)) l'introduzione dell'art. 2-ter») is taken, as the `Modifica` of version
+    1. Its `in_vigore_dal` is version 1's start, so d.lgs. 101/2018 is the act that
+    introduced art. 2-ter d.lgs. 196/2003, from 2018-09-19.
+  - An article of the act's original text has no such row (art. 13 d.lgs. 196/2003). Then
+    version 1 has no amendment and an avviso says so.
+- **Identical rows.** Only a row that one table lists twice identically (same act,
+  provision, action and parts) is kept once. Rows are never merged across tables: which
+  version keeps a row would then depend on `dal`, which decides which tables are read.
+  A decree-law and its conversion law are never merged either: Normattiva lists the
+  decree-law as published in one version and as converted «con modificazioni» in the
+  next, and those are two amendments.
+- **What is never taken for complete:**
+  - **An empty table** of a version after the first: an avviso and `INDICATIVO`, and it
+    is not kept.
+  - **The page of another version** served for version *k* (its own update link names
+    another version): the walk stops there.
+  - **«Never amended»** is said only of a page that has a window and the act's own update
+    link but no article update link. A page without them is markup that changed:
+    `completa=False`, `INDICATIVO` and an avviso.
+  - **An article without a number** («XIII», «preambolo») is `non_supportata` before any
+    request: no page could be checked against it, and an error page names no article
+    either.
 - **`tipo`.** It is Normattiva's verb, never guessed:
   - «la modifica» → `modifica`;
   - «l'introduzione» → `inserimento`;
@@ -604,7 +629,7 @@ Esiti: `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`, `articolo_n
 | `url` | the article's Normattiva page (the update table needs a session: never given) |
 | `completa` | `True` when every version within `dal`/`al` was read, its table included |
 | `precisione` | `"ESATTO"` when complete and every amendment is; else `"INDICATIVO"`; `None` without `trovato` |
-| `avvisi` | version 1, versions not in force yet, the ceiling, unread versions, the `data_gu` fallback |
+| `avvisi` | version 1 without its act, versions not in force yet, the ceiling, unread versions, an empty table, a page without the update links, the `data_gu` fallback |
 | `versioni_non_lette` | versions left unread by the ceiling or by a failure |
 | `errore`, `fonti` | as everywhere |
 

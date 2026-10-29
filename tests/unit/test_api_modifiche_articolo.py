@@ -108,6 +108,8 @@ class TestStoria:
         assert r.esito == "trovato" and r.completa and r.precisione == "ESATTO" and r.errore is None
         assert _versioni(r) == [(1, "2018-09-19", "2021-10-08"), (2, "2021-10-09", "2021-12-07"), (3, "2021-12-08", None)]
         assert _righe(r) == [
+            # Version 1: the act that introduced the article (from version 1's table, the whole history).
+            (1, "2018-09-19", "inserimento", "decreto legislativo", "101", "art. 2, comma 1, lettera f)", None),
             # Version 2: the decree-law as it was published.
             (2, "2021-10-09", "inserimento", "decreto legge", "139", "art. 9, comma 1, lettera a)", "comma 1-bis"),
             (2, "2021-10-09", "modifica", "decreto legge", "139", "art. 9, comma 1, lettera a)", "commi 2 e 3"),
@@ -116,17 +118,16 @@ class TestStoria:
             (3, "2021-12-08", "modifica", "decreto legge", "139", "art. 9, comma 5", "comma 1"),
             (3, "2021-12-08", "conversione", "legge", "205", "art. 1, comma 1", None),
         ]
-        dl = r.modifiche[0].atto
+        dl = r.modifiche[1].atto
         assert dl.urn == "urn:nir:stato:decreto.legge:2021-10-08;139" and dl.gazzetta == "G.U. 08/10/2021, n.241"
-        assert r.modifiche[0].data_gu == "2021-10-08"  # published the day before it came into force
-        assert "convertito con modificazioni dalla L. 3 dicembre 2021, n. 205" in r.modifiche[2].atto.descrizione
-        assert r.modifiche[3].testo == "ha disposto (con l'art. 9, comma 5) la modifica dell'art. 2-ter, comma 1"
+        assert r.modifiche[1].data_gu == "2021-10-08"  # published the day before it came into force
+        assert "convertito con modificazioni dalla L. 3 dicembre 2021, n. 205" in r.modifiche[3].atto.descrizione
+        assert r.modifiche[4].testo == "ha disposto (con l'art. 9, comma 5) la modifica dell'art. 2-ter, comma 1"
+        assert r.modifiche[0].testo == "ha disposto (con l'art. 2, comma 1, lettera f)) l'introduzione dell'art. 2-ter"
         assert r.url == N2LS + "decreto.legislativo:2003-06-30;196~art2ter"
         assert r.norma_data.urn == "urn:nir:stato:decreto.legislativo:2003-06-30;196~art2ter"
-        assert r.avvisi == (
-            "la versione 1 è il testo con cui l'articolo è entrato nell'atto: l'atto che lo ha introdotto non "
-            "compare nella tabella degli aggiornamenti",)
-        assert len(chieste) == 5  # 2V-1: the article page, versions 2 and 1, tables 3 and 2
+        assert r.avvisi == ()  # version 1 has its act: no notice
+        assert len(chieste) == 6  # 2V: the article page, versions 2 and 1, tables 3, 2 and 1
         assert r.fonti is not None and r.versioni_non_lette == 0
 
     async def test_an_abrogated_article_ends_with_its_abrogation(self):
@@ -139,7 +140,9 @@ class TestStoria:
             (2, "modifica", "207"), (3, "modifica", "135"), (4, "inserimento", "70"), (5, "abrogazione", "101")]
         # An act that amends the article by amending the act that amended it.
         assert r.modifiche[1].testo.startswith("ha conseguentemente disposto (con l'art. 20-bis, comma 3)")
-        assert len(chieste) == 9
+        # An article of the act's original text: version 1's table has no introduction of it.
+        assert any(a.startswith("la versione 1 non ha un atto che l'abbia prodotta") for a in r.avvisi)
+        assert len(chieste) == 10
 
     async def test_a_change_published_and_not_yet_in_force(self):
         # Without a date, Normattiva serves version 2, in force from 1 January 2027, as the article.
@@ -160,6 +163,7 @@ class TestStoria:
     async def test_one_provision_with_several_actions(self):
         r, _ = await _modifiche("ccii_art64bis", _rif(*CCII_64BIS))
         assert [(m.versione, m.tipo, m.parti) for m in r.modifiche] == [
+            (1, "inserimento", None),  # d.lgs. 83/2022, before the code came into force
             (2, "inserimento", "comma 1-bis"), (2, "modifica", "comma 4, lettera a)"), (2, "modifica", "comma 8"),
             (2, "modifica", "comma 9"), (2, "inserimento", "comma 9-bis"), (3, "modifica", "comma 1-bis")]
 
@@ -169,11 +173,35 @@ class TestStoria:
         assert _versioni(r) == [(1, "1942-04-19", None)] and r.modifiche == () and r.avvisi == ()
         assert len(chieste) == 1
 
-    async def test_identical_rows_are_kept_once(self):
-        # The same table served for versions 2 and 3: its rows are kept at version 2 only.
+    async def test_identical_rows_within_a_table_are_kept_once(self):
         tabella = _pagina("dlgs196_art2ter_agg_v3")
-        r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"agg2": tabella})
-        assert [m.versione for m in r.modifiche] == [2, 2, 2]
+        riga = re.search(r"<tr>[\s\S]*?</tr>", tabella.split("<tbody>", 1)[1]).group()
+        doppia = tabella.replace(riga, riga + riga, 1)
+        r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"agg3": doppia})
+        assert [m.versione for m in r.modifiche].count(3) == 3
+
+    async def test_the_version_of_an_amendment_does_not_depend_on_dal(self):
+        tutte, _ = await _modifiche("dlgs196_art2ter", ART_2TER)
+        dopo, _ = await _modifiche("dlgs196_art2ter", ART_2TER, dal="2021-12-01")
+        assert dopo.modifiche == tuple(m for m in tutte.modifiche if m.versione == 3)
+
+    async def test_an_act_the_row_cannot_read_is_its_own_and_indicative(self):
+        # A second act without a number («Il DECRETO 28 febbraio 2020»): never the first act's.
+        tabella = _pagina("dlgs196_art2ter_agg_v3")
+        altro = ('<li>Il DECRETO 28 febbraio 2020 (in G.U. 01/03/2020, n.52)</li><li><a href="#">ha disposto (con '
+                 "l'art. 1, comma 1) la modifica dell'art. 2-ter, comma 4.</a></li>")
+        con_altro = tabella.replace("</ul></td>", altro + "</ul></td>", 1)
+        r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"agg3": con_altro})
+        ultimo = [m for m in r.modifiche if m.versione == 3 and m.parti == "comma 4"]
+        assert len(ultimo) == 1 and ultimo[0].atto.tipo_atto == "" and ultimo[0].precisione == "INDICATIVO"
+        assert ultimo[0].atto.descrizione.startswith("Il DECRETO 28 febbraio 2020")
+        assert r.precisione == "INDICATIVO"
+
+    async def test_an_empty_table_after_version_1_is_indicative(self):
+        vuota = re.sub(r"<tbody>[\s\S]*?</tbody>", "<tbody></tbody>", _pagina("dlgs196_art13_agg_v4"))
+        r, _ = await _modifiche("dlgs196_art13", ART_13, {"agg4": vuota})
+        assert r.completa and r.precisione == "INDICATIVO"
+        assert "la tabella degli aggiornamenti della versione 4 non elenca alcuna modifica" in r.avvisi
 
 
 class TestPeriodo:
@@ -192,7 +220,7 @@ class TestPeriodo:
     async def test_al_before_a_future_change_leaves_it_out_unread(self):
         r, chieste = await _modifiche("dpr131_art1", _rif(*DPR131_ART1), al="2026-12-31")
         assert r.modifiche == () and r.completa
-        assert not any("vediAggiornamentiAllArticolo" in u for u in chieste)
+        assert not any("vediAggiornamentiAllArticolo" in u and "art.versione=2" in u for u in chieste)
 
     async def test_without_a_window_the_gazzetta_date_filters_and_is_indicative(self):
         # Version 4's page without its validity block: its amendment has no in_vigore_dal.
@@ -238,6 +266,30 @@ class TestFallimenti:
         r, _ = await _modifiche("dlgs196_art13", ART_13, {"v4": _pagina("dlgs196_art2ter_v2")})
         assert not r.completa and [m.versione for m in r.modifiche] == [5]
 
+    async def test_the_page_of_another_version_is_a_failure_and_never_kept(self, tmp_path):
+        r, _ = await _modifiche("dlgs196_art13", ART_13, {"v4": _pagina("dlgs196_art13_v3")})
+        assert not r.completa and r.versioni_non_lette == 4 and [m.versione for m in r.modifiche] == [5]
+        assert any("versione 4 è quella di un'altra versione" in a for a in r.avvisi)
+        assert not list((tmp_path / "cache").glob("normattiva_aggiornamenti/*.json"))
+
+    @pytest.mark.parametrize("guasto", [httpx.Response(503), httpx.Response(429), ERRORE, httpx.Response(202, content=b"")])
+    async def test_a_version_page_that_fails_stops_the_walk(self, guasto):
+        r, _ = await _modifiche("dlgs196_art13", ART_13, {"v3": guasto})
+        assert r.esito == "trovato" and not r.completa and r.precisione == "INDICATIVO"
+        assert [m.versione for m in r.modifiche] == [4, 5] and r.versioni_non_lette == 3
+        assert any(a.startswith("versioni non lette per un errore della fonte: 1, 2, 3") for a in r.avvisi)
+
+    async def test_a_failure_on_the_current_versions_table(self):
+        r, chieste = await _modifiche("dlgs196_art13", ART_13, {"agg5": httpx.Response(503)})
+        assert r.esito == "trovato" and not r.completa and r.modifiche == ()
+        assert r.versioni_non_lette == 5 and len(chieste) == 2
+
+    async def test_a_page_without_the_update_links_is_not_never_amended(self):
+        senza = re.sub(r'<a[^>]*vediAggiornamentiAllAtto[^>]*>[\s\S]*?</a>', "", _pagina("cc_art2740"))
+        r, _ = await _modifiche("cc_art2740", "art. 2740 c.c.", {"pagina": senza})
+        assert r.esito == "trovato" and not r.completa and r.precisione == "INDICATIVO"
+        assert any("non si può dire che l'articolo non sia mai stato modificato" in a for a in r.avvisi)
+
     @pytest.mark.parametrize("pagina", [ERRORE, httpx.Response(503), httpx.Response(429), httpx.ConnectError("giù"),
                                         httpx.Response(202, content=b"")])
     async def test_an_unreadable_article_page_is_transient_never_missing(self, pagina):
@@ -261,6 +313,13 @@ class TestRifiuti:
         r, chieste = await _modifiche("dlgs196_art13", riferimento)
         assert r.esito == esito and chieste == [] and r.errore
 
+    @pytest.mark.parametrize("articolo", ["XIII", "preambolo"])
+    async def test_an_article_without_a_number_is_refused_before_any_request(self, articolo):
+        # An error page names no article either: without a number, it could be taken for it.
+        nd = dataclasses.replace(api.leggi_riferimento(ART_13).norma_data[0], numero_articolo=articolo)
+        r, chieste = await _modifiche("dlgs196_art13", nd, {"pagina": ERRORE})
+        assert r.esito == "non_supportata" and chieste == []
+
     async def test_an_act_without_an_article_is_never_its_art_1(self):
         nd = api.riferimento_da_parametri("decreto legislativo", "", "2003-06-30", "196").norma_data[0]
         r, chieste = await _modifiche("dlgs196_art13", nd)
@@ -270,7 +329,7 @@ class TestRifiuti:
 class TestCache:
     async def test_past_versions_are_read_from_the_cache_and_the_answer_is_the_same(self, tmp_path):
         prima, chieste = await _modifiche("dlgs196_art2ter", ART_2TER)
-        assert len(chieste) == 5
+        assert len(chieste) == 6
         poi, chieste = await _modifiche("dlgs196_art2ter", ART_2TER)
         # The article page and the current version's table are read every time.
         assert len(chieste) == 2 and all("caricaArticolo" not in u for u in chieste)
@@ -281,7 +340,7 @@ class TestCache:
         monkeypatch.setenv("LEGAL_CACHE", "off")
         await _modifiche("dlgs196_art2ter", ART_2TER)
         _, chieste = await _modifiche("dlgs196_art2ter", ART_2TER)
-        assert len(chieste) == 5 and not (tmp_path / "cache").exists()
+        assert len(chieste) == 6 and not (tmp_path / "cache").exists()
 
     async def test_a_failed_version_is_never_kept(self, tmp_path):
         await _modifiche("dlgs196_art13", ART_13, {"agg3": httpx.Response(503)})
@@ -294,7 +353,7 @@ class TestCache:
         await _modifiche("dlgs196_art2ter", ART_2TER)
         monkeypatch.setattr(aggiornamenti, "TTL_SECONDI", -1)
         _, chieste = await _modifiche("dlgs196_art2ter", ART_2TER)
-        assert len(chieste) == 5
+        assert len(chieste) == 6
 
 
 class TestParser:

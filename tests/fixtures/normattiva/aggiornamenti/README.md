@@ -8,15 +8,18 @@ generic error page.
 Per article `<name>`:
 
 - `<name>.html`: the article page (`N2Ls?urn:nir:stato:<urn>`), trimmed. It keeps the
-  title, the `eli:` metadata, the validity block (`div.vigore`), the update-table link,
-  the act tree's entries for this article (its `caricaArticolo?art.versione=k` links) and
-  `div.bodyTesto`, as BeautifulSoup reads them. The rest of the page (the whole act tree,
+  title, the `eli:` metadata, the validity block (`div.vigore`), the act's and the
+  article's update links, the act tree's entries for this article (its
+  `caricaArticolo?art.versione=k` links) and `div.bodyTesto`, as BeautifulSoup reads them. The rest of the page (the whole act tree,
   2.6 MB for the codice civile) is dropped. The trim was checked to give the same update
   link, current version, version links, window, article number and act date as the
   whole page.
 - `<name>_v<k>.html`: version *k*'s page (`/atto/caricaArticolo?art.versione=k&…`), whole.
 - `<name>_agg_v<k>.html`: version *k*'s update table
-  (`/do/atto/vediAggiornamentiAllArticolo?…&art.versione=k`), whole.
+  (`/do/atto/vediAggiornamentiAllArticolo?…&art.versione=k`), whole. Version 1's table
+  (`_agg_v1`) is the article's whole history, not the amendments that produced version 1:
+  for `dlgs196_art2ter` it opens with d.lgs. 101/2018 introducing the article and has the
+  decree-law converted «con modificazioni» as a row without a number of its own.
 
 | Name | Article (URN after `urn:nir:stato:`) | What it shows |
 |------|--------------------------------------|---------------|

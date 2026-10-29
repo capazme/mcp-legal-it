@@ -1,4 +1,4 @@
-"""Live gate of ``api.modifiche_articolo`` on Normattiva: 12 requests, one at a time.
+"""Live gate of ``api.modifiche_articolo`` on Normattiva: 15 requests, one at a time.
 
 Four articles, a 2-second pause between them; inside each walk the requests are serial
 (one client, one session) under the library's Normattiva limits. The count is printed
@@ -20,15 +20,15 @@ pytestmark = pytest.mark.live
 
 # (riferimento, requests, versions, amendments as (versione, in_vigore_dal, tipo, numero dell'atto))
 CASI = [
-    ("art. 2-ter d.lgs. 196/2003", 5,
+    ("art. 2-ter d.lgs. 196/2003", 6,
      [(1, "2018-09-19", "2021-10-08"), (2, "2021-10-09", "2021-12-07"), (3, "2021-12-08", None)],
-     [(2, "2021-10-09", "inserimento", "139"), (2, "2021-10-09", "modifica", "139"),
+     [(1, "2018-09-19", "inserimento", "101"), (2, "2021-10-09", "inserimento", "139"), (2, "2021-10-09", "modifica", "139"),
       (3, "2021-12-08", "modifica", "139"), (3, "2021-12-08", "modifica", "139"),
       (3, "2021-12-08", "conversione", "205")]),
-    ("art. 2 c.c.", 3,
+    ("art. 2 c.c.", 4,
      [(1, "1942-04-19", "1975-03-09"), (2, "1975-03-10", None)],
      [(2, "1975-03-10", "modifica", "39")]),
-    (("decreto del presidente della repubblica", "1", "1986-04-26", "131"), 3,
+    (("decreto del presidente della repubblica", "1", "1986-04-26", "131"), 4,
      [(1, "1986-07-01", "2026-12-31"), (2, "2027-01-01", None)],
      [(2, "2027-01-01", "abrogazione", "123")]),
     ("art. 2740 c.c.", 1, [(1, "1942-04-19", None)], []),
