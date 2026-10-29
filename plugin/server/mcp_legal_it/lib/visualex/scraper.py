@@ -188,31 +188,45 @@ async def with_full_date(norma: Norma) -> Norma:
     """
     if not _year_only_act(norma):
         return norma
+    try:
+        date, _modo, _meta = await act_full_date(norma)
+    except Exception:  # noqa: BLE001 - identity lookup is best effort
+        return norma
+    if not date:
+        return norma
+    return dataclasses.replace(norma, data=date)
+
+
+async def act_full_date(norma: Norma) -> tuple[str, str, dict]:
+    """``(date, how, page)`` of an act cited with the year only (``Norma.data`` = "YYYY").
+
+    *how* is ``"titolo"`` when the page's title names this act's type, year and number
+    (or the date was kept on disk after such a reading), ``"eli"`` for the page's ELI date
+    of a kind the titles do not cover; *date* is ``""`` when the page does not name the
+    act. *page* is :func:`act_page_metadata` of the page read, ``{}`` when no page was read.
+    Network and HTTP errors propagate: :func:`with_full_date` swallows them,
+    ``api.risolvi_atto`` reports them.
+    """
     kind = _tipo_urn(norma)
     chiave = act_dates.chiave(kind, norma.data, norma.numero_atto)
     found = act_dates.leggi(chiave)
     if found:
-        return dataclasses.replace(norma, data=found)
-    try:
-        meta = await _act_metadata(norma)
-    except Exception:  # noqa: BLE001 - identity lookup is best effort
-        return norma
+        return found, "titolo", {}
+    meta = await _act_metadata(norma)
     if kind in act_dates._TITLES:
         # VisuaLex's rule: the page's title names this act's type, year and number.
         date = meta.get("data_titolo", "")
         if date:
             act_dates.scrivi(chiave, date)
-    else:
-        # A kind the titles do not cover (a DPCM, a ministerial decree, a regional law):
-        # the page's ELI date, accepted when it is in the cited year — a weaker check, as
-        # before. Never kept: the resolver can answer a regional law with the state law of
-        # the same year and number, and a year on disk would make that mistake last.
-        date = meta.get("date", "")
-        if not date.startswith(f"{norma.data}-"):
-            date = ""
-    if not date:
-        return norma
-    return dataclasses.replace(norma, data=date)
+        return date, ("titolo" if date else ""), meta
+    # A kind the titles do not cover (a DPCM, a ministerial decree, a regional law):
+    # the page's ELI date, accepted when it is in the cited year — a weaker check, as
+    # before. Never kept: the resolver can answer a regional law with the state law of
+    # the same year and number, and a year on disk would make that mistake last.
+    date = meta.get("date", "")
+    if not date.startswith(f"{norma.data}-"):
+        return "", "", meta
+    return date, "eli", meta
 
 
 def _tipo_urn(norma: Norma) -> str:

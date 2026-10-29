@@ -54,7 +54,8 @@ wrappers of the network functions: from sync code use `asyncio.run(...)`.
 
 The sync functions stay sync and offline. `leggi_riferimento` never resolves
 over the network the full date of an act cited with the year only: that is a
-separate async function (`risolvi_date_atti`, planned, §6). If a remote
+separate async function, `risolvi_atto` (§3), one act per call; the batch form
+is planned (§6). If a remote
 catalogue is ever needed, it gets an async variant next to the sync one, and
 the existing signature does not change.
 
@@ -63,7 +64,7 @@ expect: an unknown act, a missing article, a source that is down, an ambiguous
 number. The result carries:
 
 - `esito`, a closed vocabulary listed in the type (`EsitoNorma`,
-  `EsitoLettura`, `EsitoRicerca`). New values can only appear in a minor
+  `EsitoLettura`, `EsitoRicerca`, `EsitoAtto`). New values can only appear in a minor
   release, and are announced in the CHANGELOG.
 - `errore`, a message for a person, in Italian, without Markdown. It is `None`
   on success.
@@ -360,6 +361,86 @@ The same, from explicit fields (the VisuaLex request body). No network.
   consolidated text has no preamble, and its «(N)» paragraphs are footnotes. An annex
   of a consolidated version is `non_supportata` for now.
 
+### `risolvi_atto(tipo_atto: str, numero_atto: str, anno_o_data: str) -> AttoRisolto`
+
+The full date and NIR URN of an Italian act, read from its Normattiva page. It is async
+and makes at most one request per act.
+
+- **Input:**
+  - `tipo_atto`: any name `riferimento_da_parametri` accepts (`"d.lgs."`, `"legge"`,
+    `"decreto ministeriale"`).
+  - `numero_atto`: digits; leading zeros are dropped.
+  - `anno_o_data`: the year (`"1993"`) or a date (`"1993-09-01"`, `"1 settembre 1993"`,
+    `"1° settembre 1993"`).
+- **How:** the act's own page is asked by its year (`…:1993-01-01;385`, which Normattiva
+  tolerates), never its art. 1, so an act without an art. 1 resolves too.
+  - **ESATTO:** for the types in `TIPI_ATTO_VERIFICATI`, the date is read from the
+    page's title. It is accepted only when the title names this act's type, year and
+    number, because Normattiva's resolver does not check what it is asked and a page of
+    another act gives no date. The seven types are `legge`, `decreto legislativo`,
+    `decreto legge`, `decreto del presidente della repubblica`, `regio decreto`,
+    `regio decreto legge` and `legge costituzionale`, named as `normalize_act_type`
+    names them, so `"d.lgs."` and `"d.P.R."` count.
+  - **INDICATIVO:** for the other types it accepts (DPCM, `decreto ministeriale`, d.lgs.
+    luogotenenziale), the page's ELI date is used, when it falls in the year given. This
+    is the weaker check the library already used for these types. A caller that wants
+    only verified dates skips them before calling, or reads `precisione`.
+- **Cache and limits:**
+  - A date read from a title is kept a year on disk (`act_dates.json` in the cache
+    directory, the same file `cite_law` uses), and the page in memory for the process.
+    A miss or a failure is never kept.
+  - Concurrent calls for one act share one request.
+  - The requests go through the library's client, with the factory of
+    `configurazione`/`configura` and the `normattiva` limits (§2, **Network rules**).
+    The limits are at most 3 requests in flight and 0.5 s between two, for the whole
+    process. A `Retry-After` of a 429 or 503 pauses the source for at most 30 s. They
+    are shared with every other call that reads Normattiva.
+  - **Cost:**
+    - one request for an act not seen before;
+    - none for an act whose date is in the disk cache, or whose page this process
+      already read;
+    - never a second page (no art. 1, no index).
+  - An answer from the disk cache has `fonti=None`: no source was reached.
+  - **Transient failures:**
+    - `fonte_non_raggiungibile` is the only transient outcome. It covers a 429 or 5xx on
+      the act's page, a network error, and a source the limits have paused
+      (`FontePausata`, `FonteSospesa`).
+    - It never comes with a date, and it is never kept: the next call asks again.
+    - `atto_non_trovato` is never transient: Normattiva answered and has no such act.
+
+`EsitoAtto`:
+
+| `esito` | Meaning |
+|---|---|
+| `trovato` | `data`, `urn`, `url` and `precisione` are the act's |
+| `atto_non_trovato` | Normattiva has no act of that type, year and number: its error page, a 404, the page of another act (`errore` names it), or an ELI date of another year |
+| `ambiguo` | a date was given whose day is not the act's. `data`, `urn` and `url` are those of the act Normattiva has with that type, year and number, and `errore` says so: either the day or the number is wrong |
+| `fonte_non_raggiungibile` | Normattiva down, slow or limiting us (5xx, 429, network error, a source paused by the limits) |
+| `errore_fonte` | Normattiva answered with another HTTP error |
+| `riferimento_non_valido` | no type, a number that is not digits (or is 0), a year or date that cannot be read |
+| `atto_non_riconosciuto` | no act type has that name (`errore` suggests the long name) |
+| `non_supportata` | an EU act, a codice, the Costituzione: their date and URN are fixed, use `leggi_riferimento` |
+
+`AttoRisolto` fields:
+
+| Field | Value |
+|---|---|
+| `esito` | `EsitoAtto` |
+| `tipo_atto` | the normalised type (`"decreto legislativo"`), `""` when the type could not be read |
+| `numero_atto` | the number without leading zeros (`"385"`) |
+| `data` | `"YYYY-MM-DD"` with `trovato` and `ambiguo`, else `None` |
+| `urn` | `"urn:nir:stato:decreto.legislativo:1993-09-01;385"`, with `data` |
+| `url` | the act's Normattiva N2Ls URL, with `data` |
+| `precisione` | `"ESATTO"` or `"INDICATIVO"` (above), with `data` |
+| `errore` | message for a person; `None` with `trovato` |
+| `fonti` | `FontiConsultate`, `None` when nothing was reached |
+
+```python
+r = await api.risolvi_atto("d.lgs.", "385", "1993")
+r.esito, r.data, r.urn, r.precisione
+# ('trovato', '1993-09-01', 'urn:nir:stato:decreto.legislativo:1993-09-01;385', 'ESATTO')
+```
+
 ### `testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> TestoArticolo`
 
 The text in force of one article, from Normattiva or EUR-Lex.
@@ -614,6 +695,10 @@ No network.
   prints (`novies`/`nonies`, `quinquiesdecies`/`quindecies`,
   `octiesdecies`/`duodevicies` …). Built from VisuaLex's suffix table, which
   mcp-legal-it imports byte for byte (`lib/visualex/article_suffixes.py`).
+- **`TIPI_ATTO_VERIFICATI`**: the act types whose date and number `risolvi_atto`
+  reads from the Normattiva page's title (`ESATTO`), as `normalize_act_type` names
+  them: `legge`, `decreto legislativo`, `decreto legge`, `decreto del presidente
+  della repubblica`, `regio decreto`, `regio decreto legge`, `legge costituzionale`.
 - **`ARTICLE_SUFFIX_ALTERNATION`**: VisuaLex's regex alternation of all those
   spellings plus `semel` ("vicies semel", 21st), longest first. Close the group
   with `\b`, or a suffix matches the head of an ordinary word ("art. 5 bisogna"):
@@ -802,6 +887,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `EsitoNorma` | the norm outcomes (§3) |
 | `EsitoLettura` | the outcomes of reading a decision (§4) |
 | `EsitoRicerca` | the outcomes of a search (§4) |
+| `EsitoAtto` | the outcomes of `risolvi_atto` (§3) |
 | `Canale` | `"akn"` \| `"html"` |
 
 ### Norm types
@@ -810,6 +896,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 |---|---|
 | `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta`, and VisuaLex's `celex_consolidated` last |
 | `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
+| `AttoRisolto` | `esito, tipo_atto, numero_atto, data, urn, url, precisione, errore, fonti` |
 | `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato` |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
@@ -858,7 +945,7 @@ with their signature.
 | Multi-article references (`"1,2"`, `"3-5"`) | `/fetch_norma_data` |
 | EU recitals | `/fetch_recitals` |
 | Per-article fingerprints | `/fetch_act_fingerprints` |
-| Full dates of year-only URNs, in batch | `/resolve_act_dates` |
+| Full dates of year-only URNs, in batch (one act per call: `risolvi_atto`, §3) | `/resolve_act_dates` |
 | Natural-language query to references | `/parse_query` |
 | Citations in free text | `/extract_citations` |
 | Decision text in VisuaLex's block form (`TestoDecisione`) | `/fetch_decision` |
