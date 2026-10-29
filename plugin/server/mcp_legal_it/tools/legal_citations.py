@@ -1036,6 +1036,12 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
         nota = f"L'articolo non è ancora in vigore: entra in vigore il {dal}."
         return "non in vigore", nota + (f" Fonte: {fonte}" if fonte else "")
 
+    if data.get("parte_non_letta"):
+        # The comma's part of an article Normattiva splits could not be read: the text is
+        # another part, so a comma missing from it says nothing of the citation.
+        return "non verificata", ("Il comma citato sta in una parte dell'articolo che non è stato possibile "
+                                  "leggere ora." + (f" Fonte: {fonte}" if fonte else ""))
+
     if _norma_misquote(reference, data["testo"]):
         nota = "Comma/lettera citato non riscontrato nel testo dell'articolo."
         if fonte:

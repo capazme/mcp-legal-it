@@ -141,7 +141,7 @@ def _lookup_base(reference: str) -> dict:
         # An article Normattiva splits into parts («1 (commi 1-100)» …): the parts
         # ([{progressivo, commi_dal, commi_al, url}], [] when not split, None when the text is
         # not a Normattiva page's), the part the text is, and whether the text is one part only.
-        "parti": None, "parte": None, "testo_parziale": False,
+        "parti": None, "parte": None, "testo_parziale": False, "parte_non_letta": False,
         # An EU act's text: the consolidation read ({celex, data, modificato_da}, None for the
         # Official Journal text), and whether CELLAR was asked (False: it could not say).
         "consolidato": None, "consolidato_verificato": None,
@@ -149,21 +149,21 @@ def _lookup_base(reference: str) -> dict:
 
 
 async def lookup_parametri(act_info: dict, article: str, *, canale: str = "html",
-                           progressivo: int | None = None) -> tuple[dict, str | None]:
-    """``_cite_law_lookup`` for an act already resolved to ``{tipo_atto, data, numero_atto}``.
+                           progressivo: int | None = None, comma: str | None = None) -> tuple[dict, str | None]:
+    """``_cite_law_lookup`` for an act already resolved to ``{tipo_atto, data, numero_atto}``, for the library.
 
-    *progressivo*: the part to read of an article Normattiva splits (``con_parte``).
+    *progressivo* or *comma*: the part to read of an article Normattiva splits (``con_parte``).
     """
     if (motivo := intervallo_articoli(article)) is not None:
         return {**_lookup_base(f"art. {article}"), "errore": motivo}, None
     reference = str(_build_nv(act_info, article))
     return await _lookup_visitata(_lookup_base(reference), _build_nv(act_info, article), act_info, canale=canale,
-                                  progressivo=progressivo)
+                                  progressivo=progressivo, comma=comma, per="api")
 
 
 async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
                            canale: str = "html", comma: str | None = None,
-                           progressivo: int | None = None) -> tuple[dict, str | None]:
+                           progressivo: int | None = None, per: str = "mcp") -> tuple[dict, str | None]:
     """Fetch *nv* and fill *base* (see ``_cite_law_lookup``)."""
     article = nv.numero_articolo
     base["articolo"] = article or ""
@@ -178,7 +178,7 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         result = await _fetch_futura(nv, act_info.get("futura_entro"))
     else:
         result = await fetch_norma(nv, canale=canale)
-    result = await con_parte(result, nv.numero_articolo, comma=comma, progressivo=progressivo)
+    result = await con_parte(result, nv.numero_articolo, comma=comma, progressivo=progressivo, per=per)
     base["url"] = result.get("url", "") or nv.url()
     base["urn"] = _urn_from_url(base["url"])
     # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
@@ -220,6 +220,7 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     base["upcoming"] = q["upcoming"] or (result.get("upcoming") if base["testo"] else None)
     base["parti"], base["parte"] = result.get("parti"), result.get("parte")
     base["testo_parziale"] = bool(result.get("testo_parziale"))
+    base["parte_non_letta"] = bool(result.get("parte_non_letta"))
     base["avvisi"] = list(base["avvisi"]) + list(result.get("avvisi_parti") or [])
     base["chiave_pagina"] = result.get("chiave_pagina")
     if result.get("errore_parte"):
@@ -411,7 +412,16 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
 
 
 
-def avviso_parziale(parte: "dict | None", parti: list[dict], *, comma: bool) -> str:
+_COME_LEGGERE = {
+    # The MCP tools read the comma from the reference.
+    "mcp": "; per un comma, citarlo nel riferimento (es. «art. 1, comma 773, L. 296/2006»)",
+    # The library: a reference string carries it too, else the part is read by its index.
+    "api": ("; per un comma, indicarlo nel riferimento (es. «art. 1, comma 773, L. 296/2006») oppure "
+            "leggerne la parte con parte_del_comma(parti, comma) e parte_articolo(riferimento, progressivo)"),
+}
+
+
+def avviso_parziale(parte: "dict | None", parti: list[dict], *, comma: bool, per: str = "mcp") -> str:
     """The notice of a text that is one part of an article Normattiva splits."""
     totale = parti[-1]["commi_al"] if parti else "?"
     if parte is None:
@@ -420,12 +430,12 @@ def avviso_parziale(parte: "dict | None", parti: list[dict], *, comma: bool) -> 
         quale = f"commi {parte['commi_dal']}-{parte['commi_al']}"
     testo = f"testo parziale: {quale} di {totale} (l'articolo è diviso in {len(parti)} parti su Normattiva)"
     if not comma:
-        testo += "; per un comma, citarlo nel riferimento (es. «art. 1, comma 773, L. 296/2006»)"
+        testo += _COME_LEGGERE[per]
     return testo
 
 
 async def con_parte(result: dict, articolo: str, *, comma: str | None = None,
-                    progressivo: int | None = None) -> dict:
+                    progressivo: int | None = None, per: str = "mcp") -> dict:
     """*result* with the part of a split article it should be, and what the reader must know.
 
     Normattiva serves a very long article in parts (art. 1 L. 296/2006: 14 pages of 100
@@ -434,7 +444,10 @@ async def con_parte(result: dict, articolo: str, *, comma: str | None = None,
     that part. Adds ``parti`` (the tree's parts, with their URL: they need the article page's
     session), ``parte``, ``testo_parziale`` and the notice; ``chiave_pagina`` names the
     reading of the part read, for its notes. A part that cannot be read leaves the text served,
-    with a notice; never another part's text in silence.
+    with a notice and ``parte_non_letta`` (a verifier then says «non verificata», never that
+    the comma is missing); never another part's text in silence. A part read that does not
+    show the comma's own line («773. …») is said too. *per* picks the notice's hint: the MCP
+    tools (``"mcp"``) or the library (``"api"``).
     """
     if result.get("source") != "normattiva" or not result.get("text"):
         return {**result, "parti": None, "testo_parziale": False}
@@ -479,10 +492,16 @@ async def con_parte(result: dict, articolo: str, *, comma: str | None = None,
                                          f"dell'art. {articolo} non letti ({type(exc).__name__})")}
             avvisi.append(f"commi {voluta['commi_dal']}-{voluta['commi_al']} non letti ({type(exc).__name__}): "
                           "il testo è un'altra parte dell'articolo")
+            out["parte_non_letta"] = True
         else:
             out.update(text=letta["text"], chiave_pagina=letta["chiave"])
             parte = voluta
+    if comma and parte is not None and voluta is not None and parte is voluta \
+            and not parti_normattiva.contiene_comma(out["text"], comma):
+        # A «-bis» on a part's edge, or a tree that moved: the part read lacks the comma's line.
+        avvisi.append(f"il comma {comma} non compare nella parte letta (commi {parte['commi_dal']}-"
+                      f"{parte['commi_al']}): verificare su Normattiva")
     out["parte"] = ({k: parte[k] for k in ("progressivo", "commi_dal", "commi_al")}
                     | {"url": "https://www.normattiva.it" + parte["path"]}) if parte else None
-    out["avvisi_parti"] = [avviso_parziale(parte, parti, comma=bool(comma) or progressivo is not None)] + avvisi
+    out["avvisi_parti"] = [avviso_parziale(parte, parti, comma=bool(comma) or progressivo is not None, per=per)] + avvisi
     return out

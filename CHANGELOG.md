@@ -1004,7 +1004,18 @@ entry, it is the same feature as ported to the 3.0 line.
     `testo_parziale`, plus `api.parte_articolo(riferimento, progressivo, *, canale)`
     and `api.parte_del_comma(parti, comma)`. `article_text` stays VisuaLex's.
   - **What is never a key.** The `progressivo` holds for the current tree only, so a
-    part read is kept a day under its commi, never under the progressivo.
+    part read is kept a day under its commi and the tree's `art.versione`, never under
+    the progressivo.
+  - **Sessions.** A session is kept only after it served the part; a dead one is
+    dropped and the part read again with a fresh page.
+  - **Robustness.**
+    - When the comma's part cannot be read, `verifica_citazioni` says «non verificata»
+      (`parte_non_letta`).
+    - A part lacking the comma's line is said.
+    - `parte_articolo(..., canale="akn")` is `non_supportata`.
+    - The library reads the comma of a reference string.
+    - `_parse_reference` reads «comma 773-bis», «c. 773», «commi 773 e 774» and «773°
+      comma», as the comma reader does.
   - **Agreed shape.** The shape is agreed with VisuaLex.
   - **Tests.** Live gate `tests/unit/test_parti_articolo_live.py` (3 requests); the
     INPS apprentice gate now cites comma 773.
