@@ -813,6 +813,13 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **Act titles from Normattiva read as plain text.** Normattiva escapes the
+  title in `eli:title` twice, so `fetch_full_act` showed «Norme  sulla  tutela
+  della libert&agrave; e dignit&agrave; dei lavoratori» for L. 300/1970, split
+  over three lines under its `#` heading. The titles read from a Normattiva page
+  (`eli:title`, the page `<title>`, the heading fallback) are now unescaped and
+  kept on one line with single spaces: «Norme sulla tutela della libertà e
+  dignità dei lavoratori, …».
 - **Amounts are written the Italian way in every tool's text.** Python's
   default format put «Euro 25,000.00» in the decreto ingiuntivo, «€1,234.00»
   in quotes and fee notes, «€1092.48» or «€850.0» elsewhere. They now read

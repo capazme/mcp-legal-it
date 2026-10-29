@@ -8,6 +8,7 @@ import os
 import re
 import unicodedata
 import warnings
+from html import unescape
 from urllib.parse import urljoin
 
 import httpx
@@ -78,6 +79,16 @@ _full_date_cache: dict[str, dict] = {}
 _date_in_corso: "dict[tuple[str, int], asyncio.Future]" = {}
 
 
+def _plain_title(raw: str) -> str:
+    """An act title as one line of text.
+
+    Normattiva escapes the act's title twice in ``eli:title`` (``libert&amp;agrave;``),
+    so the parsed attribute still reads ``libert&agrave;``; the title also keeps the
+    double spaces and line breaks of the official heading. Both go here.
+    """
+    return " ".join(unescape(raw).split())
+
+
 def act_page_metadata(html: str) -> dict:
     """Identity of an act read from its Normattiva page: date, title, page title.
 
@@ -92,9 +103,9 @@ def act_page_metadata(html: str) -> dict:
     date = (meta_date.get("content") or "").strip() if meta_date else ""
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
         date = ""
-    title = (meta_title.get("content") or "").strip().rstrip(".").strip() if meta_title else ""
+    title = _plain_title(meta_title.get("content") or "").rstrip(".").strip() if meta_title else ""
     page_title = soup.find("title")
-    heading = page_title.get_text(strip=True) if page_title else ""
+    heading = _plain_title(page_title.get_text(strip=True)) if page_title else ""
     heading = re.sub(r"\s*-\s*Normattiva\s*$", "", heading).strip()
     return {"date": date, "title": title, "heading": heading}
 
@@ -1772,13 +1783,13 @@ def _normattiva_page_title(html: str, soup: BeautifulSoup) -> str:
     for h1 in soup.find_all("h1"):
         if "sr-only" in (h1.get("class") or []):
             continue
-        text = h1.get_text(strip=True)
+        text = _plain_title(h1.get_text(strip=True))
         if text:
             return text
     title_tag = soup.find("title")
     if not title_tag:
         return ""
-    return re.sub(r"\s*-\s*Normattiva\s*$", "", title_tag.get_text(strip=True)).strip()
+    return re.sub(r"\s*-\s*Normattiva\s*$", "", _plain_title(title_tag.get_text(strip=True))).strip()
 
 
 def _extract_article_ajax_urls(html: str) -> list[str]:
