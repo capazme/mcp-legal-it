@@ -565,6 +565,13 @@ def corpo_della_finestra(testo: str) -> str:
     «Art. 41»), a window that starts after the beginning may open inside one
     («1» of «Art. 41»). Those edge lines are left out; the notes too. A text with
     no window note (a whole act) comes back unchanged.
+
+    Known limit, accepted for 3.0: a genuine heading that falls exactly on the
+    first or the last line of a window is left out too, so the gate may ask to
+    read an article the window did serve (it never credits one it did not). The
+    clean fix is to cut fetch_full_act's windows on a line boundary, which would
+    make these guards unnecessary for it; that departs from the shared paging
+    contract (lib/_paging.py), so it is not done here.
     """
     finestra = _NOTA_FINESTRA.search(testo)
     if not finestra:

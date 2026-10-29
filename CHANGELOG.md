@@ -595,7 +595,7 @@ entry, it is the same feature as ported to the 3.0 line.
   window sends no request (without the Akoma Ntoso export a code is rebuilt
   article by article, thousands of requests), and concurrent first reads of
   one act share a single reading. A reading with articles missing is served
-  but not kept. A later window whose reading is gone is served only from the
+  but not kept, and such readings still run one at a time. A later window whose reading is gone is served only from the
   same text or from a complete Akoma Ntoso export, and then says it was read
   again; otherwise it is refused with a pointer to `da_carattere=1`, never
   served shifted. Known limit: windows carry no reading id, so if the text
@@ -603,6 +603,10 @@ entry, it is the same feature as ported to the 3.0 line.
   is cut from that reading (refused only when the text differs). The citation
   gate does not credit an article heading that a window cut at either end
   («Art. 4» of «Art. 41» at the end, «art. 7» of «vedi art. 7» at the start).
+  Known limit: a genuine heading on a window's first or last line is not
+  credited either, so the gate may ask to read an article the window served
+  (it never credits one it did not); cutting the windows on a line boundary
+  would remove it, and departs from the shared paging contract.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address

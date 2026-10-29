@@ -386,6 +386,29 @@ def test_fetch_full_act_legge_742_1969_titolo():
     assert "742" in titolo and "1969" in titolo, f"titolo: {titolo!r}"
 
 
+@pytest.mark.parametrize("akn", [True, False], ids=["akn", "per-articolo"])
+def test_fetch_full_act_legge_bilancio_seconda_finestra(monkeypatch, akn):
+    """L. 30 dicembre 2023 n. 213 (bilancio 2024, one long article): window 2 is served.
+
+    A later window is refused when its reading is incomplete or gone; an act with no
+    sidebar index and no AKN export would always get that refusal. On 29 Oct 2026 this
+    act had both: the AKN export (500,423 characters) and, with AKN off, an index the
+    per-article walk read whole (32 articles, 188,540 characters). This test keeps
+    watching both paths; a refusal here means the case became real for this act.
+    """
+    if not akn:
+        monkeypatch.setenv("AKN_DISABLED", "1")
+    lc.svuota_testi_atti()
+    first = asyncio.run(_fn(lc.fetch_full_act)(reference="legge 30 dicembre 2023, n. 213"))
+    _skip_if_source_down(first)
+    second = asyncio.run(_fn(lc.fetch_full_act)(reference="legge 30 dicembre 2023, n. 213", da_carattere=30001))
+    _skip_if_source_down(second)
+    lc.svuota_testi_atti()
+    assert "da_carattere=30001]*" in first, first[-300:]
+    assert not second.startswith("**Errore"), second[:400]
+    assert "*[Caratteri 30001-60000 su " in second, second[-300:]
+
+
 def test_fetch_full_act_atto_ue_rinvia_a_pdf(monkeypatch):
     """An EU act is sent to download_law_pdf with no call to Normattiva."""
     async def _vietato(*a, **k):  # pragma: no cover - must not be reached
