@@ -1,0 +1,510 @@
+{
+ "searchResult": {
+  "searchHistoryId": 14000114,
+  "totalHits": 322,
+  "maxScore": 0.5640514,
+  "retrievedBy": "FULL_TEXT_SEARCH_STRATEGY",
+  "searchBackupResult": false,
+  "documents": [
+   {
+    "version": 0,
+    "insertDate": 1548228240705,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/msword",
+    "language": "it",
+    "uri": "cid://3349-c72f8bee-40ef-42d3-9599-f49c29721e36",
+    "size": 114688,
+    "checksum": "35c3177ccd2e15b061d9c7648e103ab1",
+    "channelType": "push",
+    "score": 0.5640514,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "FxJyF57sTeSM2BuLoYRQrA",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "In tema di rinnovo tacito di contratti di locazione passiva.\rLa Sezione ha ammesso al visto e conseguente registrazione sette provvedimenti di  rinnovo tacito per ulteriori sei anni di altrettanti contratti di locazione passiva, aventi ad oggetto immobili di proprietà privata da adibire a Caserme dei locali Comandi del Corpo della Guardia di Finanza - riconoscendo che ai contratti stipulati dallo Stato in qualità di conduttore sia applicabile integralmente il regime che regola la durata dei rapporti di locazione intercorrenti fra privati, ivi   compresa la rinnovazione tacita, prevista dal citato art.28 della legge n.392/1978. Non trova, altresì,  applicazione per i contratti di cui trattasi la disciplina, recata dal comma 222 dell 'art.2 della legge 23 dicembre 2009 n. 191 (legge finanziaria per il 2010) e s.m.i. in materia di Conduttore Unico che, invero, attiene ai nuovi contratti, ivi compresi i rinnovi contrattuali, ma non certo ai rinnovi come quelli  in esame attuati ai sensi dell'art.28 della citata legge sull'equo canone.\rL 'art.1, comma 478, della legge 23 dicembre 2005, n.266, pur vincolando la rinnovabilità dei contratti di locazione passiva in scadenza ad una riduzione del canone annuo del 10%, prevede, al   contempo, che, in caso di rifiuto, le Amministrazioni interessate possano procedere alla valutazione di ipotesi locative meno onerose. Pertanto, la scelta adottata dall'Amministrazione risulta essere in linea con le citate disposizioni normative, non essendo la stessa obbligata a rinunciare agli immobili oggetto di locazione, poiché la ricerca di soluzioni alternative meno onerose ha avuto, come adeguatamente motivato negli stessi provvedimenti, esito negativo.\rRoma, 23 marzo 2012\tCons. Paola COSA\r",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "23/03/2012",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "05/04/2012",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sez. Centrale di controllo di legittimita' sugli atti del Governo e delle amm. dello Stato",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2012",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "08/03/2012",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SCCLEG/7/2012/PREV",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ESITO",
+      "value": "ammette al visto",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "7",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]tacita[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]tacita[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]rinnovo[...]tacita[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovi[...]rinnovo[...]tacito[...]rinnovi[...]rinnovi[...]rinnovo[...]rinnovo[...]tacito[...]rinnovi[...]taciti[...]rinnova[...]rinnovo[...]rinnovi[...]rinnovo[...]rinnovo[...]rinnovo",
+    "rankPosition": 0,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [
+     "termini di <b>rinnovo</b> <b>tacito</b> fino al 30 settembre 2015.\n\nIn sede di replica, fornita dal Comando Generale della Guardia di Finanza, con note rispettivamente n. 5134 del 17 febbraio 2012 e numeri 5981, 5982, 5983, 5987, 5989,.5991 del 24 febbraio 2012, l’Amministrazione, in primo luogo, con riferimento alla legittimità del ricorso al <b>rinnovo</b> <b>tacito</b> nonché della durata scelta per il medesimo <b>rinnovo</b> ha precisato che “ nel contratto originario era presente una generica possibilità di <b>rinnovo</b> <b>tacito</b> del vincolo"
+    ],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1548185480762,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/msword",
+    "language": "it",
+    "uri": "cid://3349-c3ad15d0-cb45-45f6-95ad-9a7c21853742",
+    "size": 62464,
+    "checksum": "b7243b173f140c225c4d4463e7658991",
+    "channelType": "push",
+    "score": 0.42445803,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "Wo0rlyS-RSK75kjIjjEK_w",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "10/01/2013",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Lombardia",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "17",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "30/01/2013",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "17/01/2013",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2013",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCLOM/17/2013/PAR",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "La richiesta di parere in merito all¿alternativa tra la proroga tacita e automatica di un contratto attivo. appare inammissibile in quanto riguarda una fattispecie relativamente alle quali un¿alternativa si è già realizzata (l¿automatico rinnovo).\rLa consolidata giurisprudenza comunitaria e nazionale ,peraltro, afferma la sussistenza di un generale divieto di rinnovo/proroga (taciti ed espressi) dei contratti con la p.a., in quanto contrastanti con il principio di concorrenza.",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ESITO",
+      "value": "",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "rinnovo[...]rinnovo[...]tacito[...]tacito[...]rinnovo[...]taciti[...]rinnovo[...]rinnovi[...]rinnovo[...]rinnovo[...]rinnovo[...]tacita[...]rinnovo",
+    "rankPosition": 1,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [
+     "2004 (L. 62/05) è stato abrogato il secondo inciso dell’art. 2, comma 6, della L. n. 537/93 che consentiva il <b>rinnovo</b> (espresso, anche in assenza di un’apposita clausola nel bando o nel contratto) in presenza di un interesse pubblico e di un miglioramento dell’offerta economica. Sono rimasti fermi, peraltro, il divieto di <b>rinnovo</b> <b>tacito</b> e la sanzione della nullità dell’eventuale accordo <b>tacito</b> di prosecuzione del rapporto, contemplati dalla stessa norma modificata.\n Tali principi, alla luce di queste"
+    ],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1738939114922,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "language": "it",
+    "uri": "cid://3349-8046576e-33b9-490f-8e44-f655610a51fb",
+    "size": 52221,
+    "checksum": "2f2529645230adc5f707e15da2809d13",
+    "channelType": "push",
+    "score": 0.38644886,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "eoBaG36NQCS_X4KkMV3_0g",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "23/01/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Campania",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Delibera n. 29/2025/PREV: GdF. La Sezione regionale di controllo per la Campania ammette al visto e alla conseguente registrazione il Decreto del Comandante del Reparto tecnico logistico amministrativo Campania della Guardia di Finanza n. 64309 del 14.11.2024.",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCCAM/29/2025/PREV",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "22/01/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "07/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "29",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2025",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]tacito[...]rinnovo[...]tacita[...]rinnovo[...]rinnovo",
+    "rankPosition": 2,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [
+     "decreto approvativo del <b>rinnovo</b> <b>tacito</b> del contratto di locazione è stato emesso in data 14.11.2024, successiva all’inizio della decorrenza degli effetti del contratto stesso (1°.7.2024).\nAl riguardo, l’Amministrazione ha chiarito che la documentazione necessaria all’approvazione del Decreto in esame, pur a fronte di richieste formulate in data 7.7.2023 e 7.2.2024, è pervenuta dal proprietario solo in data 15.7.2024 (all. 10), successiva alla decorrenza del <b>rinnovo</b> <b>tacito</b> (1°.7.2024). Ciò ha determinato"
+    ],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1554311654385,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/msword",
+    "language": "it",
+    "uri": "cid://3349-3df8b4f6-3442-4645-bfaf-a1000aeca3e5",
+    "size": 77824,
+    "checksum": "f42e7d5501fc842d16b3b512e3c89da3",
+    "channelType": "push",
+    "score": 0.36718714,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "Cvm0tDnIQYqmb4fnZ5R4CA",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Marche",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ESITO",
+      "value": "",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "30/04/2014",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2014",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "13/05/2014",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCMAR/45/2014/PAR",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "29/04/2014",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "In data 11 marzo 2014 è pervenuta alla segreteria della Sezione una richiesta di parere del Comune di Falconara Marittima ai sensi dell¿art. 7 comma 8 della L. 131/03.\rIl parere ha per oggetto una controversia in atto tra Comune e Università Politecnica delle Marche.\rSecondo la prospettazione dell¿ente, l¿eccezionalità dell¿istanza deriverebbe dal fatto che essa scaturisce dalla necessità di evitare possibili responsabilità erariali a carico di amministratori o funzionari a vario titolo coinvolti nella vicenda che ha dato luogo alla controversia con l¿Università delle Marche.\rAd avviso del Collegio, tuttavia, la fattispecie descritta in premessa non presenta elementi di eccezionalità tali da poter giustificare la deroga al principio generale in base al quale la funzione consultiva delle Sezioni regionali deve essere attivata per il tramite del CAL, ove istituito. \rInoltre, l¿eventuale responsabilità amministrativo-contabile di amministratori e funzionari tenuti a valutare i termini della possibile transazione con l¿Università costituisce autonomo motivo di inammissibilità della richiesta di parere. ",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "45",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "tacito[...]rinnovo[...]tacita[...]rinnovi[...]tacito[...]rinnovo",
+    "rankPosition": 3,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [
+     "di tre anni a decorrere dal 1/10/2002 ed era previsto il <b>tacito</b> <b>rinnovo</b> in assenza di formale disdetta, effettuata dal Comune soltanto nel luglio 2007;\n\n· per gli anni accademici 2005/2006 e 2006/2007 l’Università ha proseguito i corsi di laurea presso la sede di Falconara in regime di proroga <b>tacita</b>;\n· il Comune, ritenendo le clausole della convenzione stipulata con l’Università in contrasto con la normativa vigente in materia di <b>rinnovi</b> contrattuali, rifiutava il pagamento delle somme dovute per"
+    ],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1609162456896,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "language": "it",
+    "uri": "cid://3349-2662cd19-1fd0-4d5d-bd82-f1b7c48cc7d6",
+    "size": 327746,
+    "checksum": "a14585e62ce19ecc484b36f8f7774104",
+    "channelType": "push",
+    "score": 0.3645169,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "vME72JBCQIa7JV3nXw5KMg",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2020",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "05/02/2020",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCLOM/12/2020/PREV",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "12",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "La Sezione regionale di controllo per la Lombardia ricusa il visto e la conseguente registrazione del decreto del Prefetto di Como con cui viene approvato il contratto di locazione stipulato in data 29 novembre 2019 rep. 869 avente ad oggetto un bene di proprietà del Fondo edifici di culto (FEC) per violazione della norma che prevede la pubblicazione di un avviso in caso di rinnovo del contratto successivo al primo (art. 5 co. 2 D.P.R. n. 276/2007).",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "10/02/2020",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "28/12/2020",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Lombardia",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "rinnovo[...]rinnovo[...]tacito[...]tacito[...]rinnovo[...]rinnovo[...]rinnovi[...]rinnovo[...]rinnovo[...]rinnovo[...]rinnovo[...]tacito[...]rinnovo[...]rinnovo[...]rinnovo[...]rinnovo",
+    "rankPosition": 4,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [
+     "concernente i criteri e le modalità per l'affidamento in locazione ad uso abitativo dei beni immobili appartenenti al Fondo edifici di culto”, disciplina, fra le altre cose, il <b>rinnovo</b> della locazione, prevedendo che “alle scadenze del contratto di locazione successive alla prima, é esclusa qualsiasi forma di <b>rinnovo</b> automatico o <b>tacito</b> del contratto medesimo.  In tal caso é facoltà del FEC rinnovare il contratto  in  favore  del soggetto locatario che ne faccia richiesta nel  termine  di  cui al comma 3"
+    ],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   }
+  ]
+ },
+ "namedEntityTypes": null
+}

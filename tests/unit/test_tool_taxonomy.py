@@ -32,7 +32,7 @@ def _with(tag: str) -> set[str]:
 
 
 def test_every_tool_follows_the_taxonomy():
-    assert len(TAGS) == 231
+    assert len(TAGS) == 234
     assert problems(TAGS) == []
 
 
@@ -80,6 +80,7 @@ def test_sources_and_calculators_never_share_a_kind():
     ("gpdp", "autorita", "garante"),
     ("consob", "autorita", "consob"),
     ("anac", "autorita", "anac"),
+    ("corte_conti", "giurisprudenza", "giurisprudenza_conti"),
     ("legal_citations", "normativa", None),
     ("gazzetta", "normativa", None),
     ("parlamento", "normativa", None),

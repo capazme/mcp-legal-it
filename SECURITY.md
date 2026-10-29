@@ -18,7 +18,7 @@ necessarie per rispondere alla domanda che hai posto.
 Verificabile in un comando:
 
 ```bash
-grep -rnE "https?://" --include="*.py" plugin/server/mcp_legal_it/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|garanteprivacy|gpdp|consob|anticorruzione|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it|mozilla\.org"
+grep -rnE "https?://" --include="*.py" plugin/server/mcp_legal_it/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|corteconti|garanteprivacy|gpdp|consob|anticorruzione|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it|mozilla\.org"
 ```
 
 Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
@@ -43,6 +43,8 @@ questo documento. Le due liste non possono divergere.
 | `dati.senato.it` | Senato della Repubblica — open data (SPARQL) |
 | `dati.camera.it` | Camera dei deputati — open data (SPARQL) |
 | `def.finanze.it` | CeRDEF — Ministero dell'economia e delle finanze |
+| `banchedati.corteconti.it` | Corte dei conti — banca dati (configurazione pubblica e scheda delle deliberazioni) |
+| `corteconti-iit.almawave.cloud` | Corte dei conti — servizio di ricerca della banca dati, gestito dal fornitore Almawave |
 | `www.garanteprivacy.it` | Garante per la protezione dei dati personali |
 | `servizi.gpdp.it` | Garante privacy — servizi |
 | `www.consob.it` | CONSOB |
@@ -80,6 +82,25 @@ registra ogni richiesta, chiama ogni tool con tag `brocardi` e fallisce se anche
 sola richiesta raggiunge un host Brocardi; un secondo test percorre il grafo delle
 chiamate dei moduli `tools/` e fallisce se un tool arriva agli scraper Brocardi senza
 il tag `brocardi`.
+
+### Corte dei conti: il servizio del fornitore e le credenziali pubbliche del sito
+
+La banca dati della Corte dei conti (`banchedati.corteconti.it`) è un'applicazione web
+che interroga un servizio gestito dal fornitore Almawave (`corteconti-iit.almawave.cloud`):
+le parole che cerchi con `cerca_deliberazioni_corte_conti` arrivano a quel servizio, come
+quando usi il sito dal browser, e il servizio assegna a ogni ricerca un proprio numero di
+registro (il sito la conserva nelle sue statistiche).
+
+Il sito consegna a ogni visitatore, nel suo file di configurazione pubblico, una coppia di
+credenziali HTTP Basic che il browser invia con ogni ricerca. Il server fa lo stesso: legge
+quel file quando serve e usa le credenziali che contiene. Le credenziali:
+
+- non sono scritte nel codice, nei test o nella documentazione;
+- restano solo in memoria, per la vita del processo, e si rileggono dal sito se il servizio
+  smette di accettarle;
+- non finiscono mai in un log, in una cache su disco, in un messaggio d'errore o nelle
+  registrazioni usate per i test di non regressione (`scripts/replay_mcp_outputs.py` le
+  sostituisce con `<scrubbed>` prima di salvare; `tests/unit/test_corte_conti.py` lo verifica).
 
 ### L'unico host scelto da chi chiama: `verifica_dpa_fornitore`
 
@@ -150,6 +171,8 @@ macchina contro la stessa fonte moltiplicano il tetto.
 Facoltativo, per chi espone il server a più utenti: `LEGAL_CIRCUIT_BREAKER=on`
 sospende per 5 minuti una fonte dopo 3 errori consecutivi (errori di rete, 5xx,
 429; mai un 404).
+La Corte dei conti ha un limite più stretto: una richiesta alla volta, ad almeno 1 secondo
+l'una dall'altra, e al più 5 documenti per ricerca (il limite del suo servizio pubblico).
 
 ## I tuoi dati
 

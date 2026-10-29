@@ -1,0 +1,21 @@
+{
+ "took": 18,
+ "timed_out": false,
+ "_shards": {
+  "total": 96,
+  "successful": 96,
+  "failed": 0
+ },
+ "hits": {
+  "total": 1,
+  "max_score": 1.0,
+  "hits": [
+   {
+    "_index": "km_doc_it_idx",
+    "_type": "push",
+    "_id": "eoBaG36NQCS_X4KkMV3_0g",
+    "_score": 1.0
+   }
+  ]
+ }
+}
