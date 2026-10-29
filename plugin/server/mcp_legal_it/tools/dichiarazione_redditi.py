@@ -1291,7 +1291,7 @@ def rateizzazione_imposte(
     return out
 
 
-@mcp.tool(tags={"calcolo", "fiscale"})
+@mcp.tool(tags={"calcolo", "fiscale"}, output_schema=None)
 @sourced("codici_tributo")
 def cerca_codice_tributo(query: str) -> str:
     """Cerca un codice tributo F24 per codice o descrizione.
