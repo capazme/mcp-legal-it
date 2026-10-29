@@ -1,0 +1,482 @@
+{
+ "searchResult": {
+  "searchHistoryId": 14000120,
+  "totalHits": 24,
+  "maxScore": 1.0,
+  "retrievedBy": "FULL_TEXT_SEARCH_STRATEGY",
+  "searchBackupResult": false,
+  "documents": [
+   {
+    "version": 0,
+    "insertDate": 1742371650825,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-bf3bd0c5-2858-43c4-abd5-3b88bdb3d5c6",
+    "size": 517355,
+    "checksum": "2a754d64d4157dc4ae9bfc22e24d7717",
+    "channelType": "push",
+    "score": 1.0,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "a0GFFkU4QZ2cKI5x1WQe2g",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Esame rendiconto esercizio finanziario 2023 - Comune di Campitello di Fassa.",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "14/03/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "29",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "12/03/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCTAA/29/2025/PRSE",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Trentino Alto Adige - Trento",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "19/03/2025",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 0,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1739964234698,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "language": "it",
+    "uri": "cid://3349-205b5dbc-48e6-4a65-9bbc-43354eb2ddd9",
+    "size": 119798,
+    "checksum": "a5d8256884ebb3184cfa87c932daeb07",
+    "channelType": "push",
+    "score": 1.0,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "5mE__GSRRTWkpg9EI35Jsg",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "19/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCSIC/29/2025/PRSP",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "29",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "17/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Comune di UCRIA (ME) – Osservazioni in ordine alle relazioni ex art. 1, comma 166 e segg. della legge 23 dicembre 2005, n. 266 - Rendiconti della gestione fino all’anno 2023. ",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Sicilia",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "11/02/2025",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 1,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1742988848430,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-ee34c721-ca5c-42e7-87ba-15381f3aee45",
+    "size": 945177,
+    "checksum": "b0f6fe8b7f58985d32cf7b2385cd8ab9",
+    "channelType": "push",
+    "score": 1.0,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "dIsar0giQOWZXonQsn7PGg",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione centrale di controllo sulla gestione delle amministrazioni dello Stato",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "14/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Rapporto Pnrr: Piani urbani integrati (GENERAL PROJECT)",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "29",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "26/03/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SCCGAS/29/2025/GEST",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "03/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 2,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1750923825270,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-da8895cf-5fb3-451a-8249-d87b9d27c53a",
+    "size": 647583,
+    "checksum": "f44720f6b265acc023603d62623e0f0e",
+    "channelType": "push",
+    "score": 1.0,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "VaAa-2ReTJC7PXL-b56Hqg",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "24/06/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "29",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Il Collegio del controllo concomitante relativamente all’intervento denominato “Programma di mitigazione strutturale della vulnerabilità sismica degli edifici pubblici” rileva l’insussistenza, allo stato degli atti, di irregolarità gestionali tali da dare luogo e specifiche raccomandazioni da parte del Collegio o dei presupposti per l’attivazione del procedimento di cui all’art. 22, comma 1, secondo periodo, del D.L. n. 76/2020\n",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "CCC/29/2025/DEL",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "24/06/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Collegio del controllo concomitante ",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "26/06/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2025",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 3,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   },
+   {
+    "version": 0,
+    "insertDate": 1738681543895,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/pdf",
+    "language": "it",
+    "uri": "cid://3349-aee2fa0f-53b6-474b-8d3b-74021f88fd22",
+    "size": 127003,
+    "checksum": "24f616b4252e99e5fd43935d265699bc",
+    "channelType": "push",
+    "score": 1.0,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "175_yD19Ru--NQiyR8hrjA",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "04/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCSAR/29/2025/CCR",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "CERTIFICAZIONE RELATIVA ALL'APPLICAZIONE DEL CONTRATTO COLLETTIVO REGIONALE DI LAVORO, TRIENNIO 2022-2024, PERSONALE DIPENDENTE DELL'AMMINISTRAZIONE, DEGLI ENTI. ISTITUTI, AZIENDE E AGENZIE REGIONALI - PARTE ECONOMICA, AL PERSONALE DIPENDENTE DELL'AZIENDA REGIONALE PER L'EDILIZIA ABITATIVA (AREA).",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "03/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Sardegna",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "03/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "29",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 4,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   }
+  ]
+ },
+ "namedEntityTypes": null
+}

@@ -1,0 +1,106 @@
+{
+ "searchResult": {
+  "searchHistoryId": 14000125,
+  "totalHits": 1,
+  "maxScore": 1.0,
+  "retrievedBy": "FULL_TEXT_SEARCH_STRATEGY",
+  "searchBackupResult": false,
+  "documents": [
+   {
+    "version": 0,
+    "insertDate": 1738939114922,
+    "rawContent": null,
+    "transientRawContent": null,
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "language": "it",
+    "uri": "cid://3349-8046576e-33b9-490f-8e44-f655610a51fb",
+    "size": 52221,
+    "checksum": "2f2529645230adc5f707e15da2809d13",
+    "channelType": "push",
+    "score": 1.0,
+    "documentKey": {
+     "index": "km_doc_it_idx",
+     "type": "push",
+     "id": "eoBaG36NQCS_X4KkMV3_0g",
+     "dbId": null,
+     "version": null,
+     "originalType": null
+    },
+    "documentAttributes": [
+     {
+      "version": 0,
+      "name": "BDC_DT_DEPOSITO_DEL",
+      "value": "23/01/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ORG_EMITTENTE",
+      "value": "Sezione Controllo Regione Campania",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DESCRIZIONE_DEL",
+      "value": "Delibera n. 29/2025/PREV: GdF. La Sezione regionale di controllo per la Campania ammette al visto e alla conseguente registrazione il Decreto del Comandante del Reparto tecnico logistico amministrativo Campania della Guardia di Finanza n. 64309 del 14.11.2024.",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ID_LOCALE",
+      "value": "SRCCAM/29/2025/PREV",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ADUNANZA",
+      "value": "22/01/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_DT_ACQ_DEL",
+      "value": "07/02/2025",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_NUMERO_ID_LOCALE",
+      "value": "29",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "CHANNEL_NAME",
+      "value": "bdc_pu",
+      "nativeValue": null
+     },
+     {
+      "version": 0,
+      "name": "BDC_ANNO",
+      "value": "2025",
+      "nativeValue": null
+     }
+    ],
+    "duplicated": false,
+    "highlightedText": "",
+    "rankPosition": 0,
+    "documentAnnotations": [],
+    "syntagms": [],
+    "fragments": [],
+    "matchingUriScore": null,
+    "businessEvent": null,
+    "formattedText": null,
+    "boosting": 0,
+    "sponsored": false,
+    "customBoosting": {
+     "entry": []
+    },
+    "chageEvent": null,
+    "rewarded": false,
+    "sponsoring": -1
+   }
+  ]
+ },
+ "namedEntityTypes": null
+}

@@ -1,0 +1,170 @@
+{
+ "took": 7,
+ "timed_out": false,
+ "_shards": {
+  "total": 12,
+  "successful": 12,
+  "failed": 0
+ },
+ "hits": {
+  "total": 90256,
+  "max_score": 0.0,
+  "hits": []
+ },
+ "aggregations": {
+  "distinct_custom_field": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "Sezione Controllo Regione Lombardia",
+     "doc_count": 8890
+    },
+    {
+     "key": "Sezione Controllo Regione Veneto",
+     "doc_count": 8196
+    },
+    {
+     "key": "Sezione Controllo Regione Abruzzo",
+     "doc_count": 6631
+    },
+    {
+     "key": "Sezione Controllo Regione Sicilia",
+     "doc_count": 5796
+    },
+    {
+     "key": "Sezione Controllo Regione Toscana",
+     "doc_count": 5628
+    },
+    {
+     "key": "Sezione Controllo Regione Emilia Romagna",
+     "doc_count": 5206
+    },
+    {
+     "key": "Sezione Controllo Regione Campania",
+     "doc_count": 5160
+    },
+    {
+     "key": "Sezione Controllo Regione Calabria",
+     "doc_count": 4650
+    },
+    {
+     "key": "Sezione Controllo Regione Marche",
+     "doc_count": 4306
+    },
+    {
+     "key": "Sezione Controllo Regione Piemonte",
+     "doc_count": 3921
+    },
+    {
+     "key": "Sezione Controllo Regione Sardegna",
+     "doc_count": 3532
+    },
+    {
+     "key": "Sezione Controllo Regione Molise",
+     "doc_count": 3185
+    },
+    {
+     "key": "Sezione Controllo Regione Puglia",
+     "doc_count": 3168
+    },
+    {
+     "key": "Sezione Controllo Regione Umbria",
+     "doc_count": 2978
+    },
+    {
+     "key": "Sezione Controllo Regione Lazio",
+     "doc_count": 2751
+    },
+    {
+     "key": "Sezione Controllo Regione Friuli Venezia Giulia",
+     "doc_count": 2716
+    },
+    {
+     "key": "Sezione del Controllo sugli Enti",
+     "doc_count": 2632
+    },
+    {
+     "key": "Sezione Controllo Regione Liguria",
+     "doc_count": 2198
+    },
+    {
+     "key": "Sezione Controllo Regione Basilicata",
+     "doc_count": 1975
+    },
+    {
+     "key": "Sezione Controllo Regione Trentino Alto Adige - Trento",
+     "doc_count": 1754
+    },
+    {
+     "key": "Sezioni Riunite in sede di controllo",
+     "doc_count": 967
+    },
+    {
+     "key": "Sezione centrale di controllo sulla gestione delle amministrazioni dello Stato",
+     "doc_count": 879
+    },
+    {
+     "key": "Sezione delle Autonomie",
+     "doc_count": 689
+    },
+    {
+     "key": "Sezione Controllo Regione Valle d'Aosta - Vallée d'Aoste",
+     "doc_count": 423
+    },
+    {
+     "key": "Sezione Controllo Regione Trentino Alto Adige - Bolzano",
+     "doc_count": 404
+    },
+    {
+     "key": "Sez. Centrale di controllo di legittimita' sugli atti del Governo e delle amm. dello Stato",
+     "doc_count": 347
+    },
+    {
+     "key": "Sezioni Riunite per la Regione Siciliana in sede consultiva",
+     "doc_count": 284
+    },
+    {
+     "key": "Sezione di controllo affari comunitari e internazionali",
+     "doc_count": 279
+    },
+    {
+     "key": "Collegio del controllo concomitante ",
+     "doc_count": 218
+    },
+    {
+     "key": "Sezioni Riunite per la Regione Siciliana in sede di controllo",
+     "doc_count": 150
+    },
+    {
+     "key": "Sezioni Riunite per la regione Trentino Alto Adige Südtirol",
+     "doc_count": 107
+    },
+    {
+     "key": "Sezioni riunite in sede consultiva",
+     "doc_count": 104
+    },
+    {
+     "key": "Sezioni Riunite Regione Sardegna",
+     "doc_count": 55
+    },
+    {
+     "key": "Sezione di controllo per gli affari europei e internazionali",
+     "doc_count": 39
+    },
+    {
+     "key": "Sezioni riunite in sede deliberante",
+     "doc_count": 32
+    },
+    {
+     "key": "Sezione centrale per il controllo dei contratti secretati",
+     "doc_count": 4
+    },
+    {
+     "key": "Ufficio Controllo Art. 162 c. 5 d.Lgs 50/2016",
+     "doc_count": 2
+    }
+   ]
+  }
+ }
+}

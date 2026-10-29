@@ -111,6 +111,7 @@ def install_tape_transport(mode: str, tape_path: str, misses: list[str] | None =
     import httpx
 
     tape: dict[str, list[dict]] = {}
+    scrub = _scrubber()
     if mode == "replay":
         with gzip.open(tape_path, "rt", encoding="utf-8") as fh:
             tape = json.load(fh)
@@ -128,9 +129,12 @@ def install_tape_transport(mode: str, tape_path: str, misses: list[str] | None =
             resp = await self._inner.handle_async_request(request)
             content = await resp.aread()
             headers = [(k, v) for k, v in resp.headers.items()
-                       if k.lower() not in ("content-encoding", "transfer-encoding", "content-length")]
+                       if k.lower() not in ("content-encoding", "transfer-encoding", "content-length", *_SECRET_HEADERS)]
+            # The tape keeps the request's method, URL and body hash, never its headers; a body that
+            # carries a source's public credentials (the Corte dei conti's configuration) is scrubbed.
+            recorded = scrub(str(request.url), content)
             tape.setdefault(key(request), []).append(
-                {"status": resp.status_code, "headers": headers, "body": base64.b64encode(content).decode()})
+                {"status": resp.status_code, "headers": headers, "body": base64.b64encode(recorded).decode()})
             return httpx.Response(resp.status_code, headers=headers, content=content, request=request)
 
     class Replayer(httpx.AsyncBaseTransport):
@@ -161,6 +165,19 @@ def install_tape_transport(mode: str, tape_path: str, misses: list[str] | None =
 
     httpx.AsyncClient.__init__ = patched_init
     return tape
+
+
+#: Response headers never recorded: they can carry a credential or a session.
+_SECRET_HEADERS = ("authorization", "proxy-authorization", "set-cookie", "www-authenticate")
+
+
+def _scrubber():
+    """The checkout's body scrubber, or the identity on a checkout that predates it."""
+    try:
+        from mcp_legal_it.lib.corte_conti import scrub_body
+    except ImportError:
+        return lambda _url, body: body
+    return scrub_body
 
 
 def save_tape(tape: dict[str, list[dict]], tape_path: str) -> None:

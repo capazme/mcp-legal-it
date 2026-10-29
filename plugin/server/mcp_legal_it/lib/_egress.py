@@ -28,6 +28,8 @@ ALLOWED_HOSTS: dict[str, str] = {
     "mdp.giustizia-amministrativa.it": "Giustizia amministrativa — testi integrali",
     "dati.cortecostituzionale.it": "Corte costituzionale — open data",
     "def.finanze.it": "CeRDEF — Ministero dell'economia e delle finanze",
+    "banchedati.corteconti.it": "Corte dei conti — banca dati (configurazione pubblica e scheda delle deliberazioni)",
+    "corteconti-iit.almawave.cloud": "Corte dei conti — servizio di ricerca della banca dati, gestito dal fornitore Almawave",
     # --- Italian State: parliament ---
     "dati.senato.it": "Senato della Repubblica — open data (SPARQL)",
     "dati.camera.it": "Camera dei deputati — open data (SPARQL)",
