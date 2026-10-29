@@ -581,7 +581,8 @@ entry, it is the same feature as ported to the 3.0 line.
   answer is the text block only, and `tools/list` no longer carries their
   `outputSchema`. The text the model reads is unchanged; the tools that return
   a dict keep their `structuredContent`. A test keeps every new text tool in
-  line.
+  line. For a FastMCP Python client, `CallToolResult.data` is now `None` for
+  these 60 tools: read the answer from `result.content[0].text`.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address
