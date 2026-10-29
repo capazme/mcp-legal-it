@@ -970,6 +970,23 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
+  portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
+  provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
+  «pagina di errore». The reader now recognises the page by its own markup before
+  testing for the error page (which is HTML too, and still reported as an error, never
+  read as text). It takes the court, the type, the number of the «REG.PROV.COLL.» line
+  and the «Pubblicato il» date, so the **Estremi** line is unchanged («Sentenza n.
+  17/2021, pubblicata il 09/11/2021»). A parere gives «Parere n. 1918/2026»; its date is
+  the dispatch date, so it is not reported as a publication date. No text is dropped:
+  paragraphs, list items, quotations, headings, table rows and loose text after a line
+  break are all read. AP 17/2021 comes to 106,878 characters, against 106,448 for its XML
+  body. The page carries no markup or embedded emblem. The 15,000-character cut still
+  keeps the dispositivo, from the last block that opens with «P.Q.M.», «P.Q.M.:»,
+  «p.q.m.» or «PER QUESTI MOTIVI». When none is found, the note says «dispositivo non
+  individuato». The XML is still read when the portal serves it. Fixtures: trimmed copies
+  of the real pages of Ad. Plen. n. 17/2021 (private parties and lawyers pseudonymised)
+  and parere n. 1918/2026, and of the portal's error page.
 - **The update notes of a Normattiva article are back** (3.0 only: 2.17.1 reads
   the Akoma Ntoso export, which carries them). Since articles are read from their
   page, an article set out in comma divs came without its «AGGIORNAMENTO (n)»
