@@ -13,6 +13,7 @@ from typing import Literal
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
+from mcp_legal_it.lib._paging import invalid_start, page
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.models import intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
@@ -457,8 +458,15 @@ async def fetch_act_index(reference: str) -> str:
     return await _fetch_act_index_impl(reference)
 
 
-async def _fetch_full_act_impl(reference: str) -> str:
+# One window of fetch_full_act: a code or a long act no longer arrives whole
+# (L. 300/1970 alone is ~52,000 characters, the Codice civile ~2 million).
+_FULL_ACT_WINDOW = 30000
+
+
+async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
     """Implementation of fetch_full_act."""
+    if (error := invalid_start(da_carattere)) is not None:
+        return f"**Errore**: {error}"
     _, act_name = _parse_reference(reference)
     if not act_name:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
@@ -494,25 +502,33 @@ async def _fetch_full_act_impl(reference: str) -> str:
         f"# {title}",
         f"**Fonte**: Normattiva — {url}",
         f"**Dimensione**: {len(text):,} caratteri\n",
-        text,
     ]
+    if da_carattere == 1 and len(text) <= _FULL_ACT_WINDOW:
+        # Fits in one window: the answer is the one it has always been.
+        lines.append(text)
+    else:
+        body, note = page(text, da_carattere, _FULL_ACT_WINDOW)
+        lines.extend([body, f"\n{note}"])
 
     return "\n".join(lines)
 
 
 @mcp.tool(tags={"normativa"})
-async def fetch_full_act(reference: str) -> str:
+async def fetch_full_act(reference: str, da_carattere: int = 1) -> str:
     """Recupera il testo completo di un atto normativo italiano da Normattiva.
 
-    Restituisce il testo integrale dell'atto senza troncamenti.
+    Restituisce il testo integrale dell'atto a finestre di 30000 caratteri: se l'atto è più
+    lungo, la nota finale indica il da_carattere con cui leggere il seguito.
     ATTENZIONE: per codici voluminosi (c.c., c.p.) il testo può essere molto lungo.
     Per atti UE usare download_law_pdf() per il PDF ufficiale da EUR-Lex.
     Restituisce: testo completo dell'atto con titolo e URL fonte.
 
     Args:
         reference: Nome dell'atto, es. "D.Lgs. 231/2001", "D.M. 55/2014", "L. 604/1966"
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota finale indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    return await _fetch_full_act_impl(reference)
+    return await _fetch_full_act_impl(reference, da_carattere)
 
 
 # ---------------------------------------------------------------------------
