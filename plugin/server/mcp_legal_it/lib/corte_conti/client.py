@@ -169,7 +169,8 @@ def indirizzo_ammesso(indirizzo) -> bool:
 
     `urlparse` alone is not enough: with a backslash before `@<the Court's host>` it reads the
     Court's host, while a browser goes to the host written first. So no backslash, no control
-    character, no userinfo (no `@` in the authority), and httpx's own reading must agree.
+    character, no userinfo (no `@` in the authority), no explicit port (the Court's services
+    answer on the default one), and httpx's own reading must agree.
     """
     if not isinstance(indirizzo, str) or not indirizzo.startswith("https://"):
         return False
@@ -181,6 +182,8 @@ def indirizzo_ammesso(indirizzo) -> bool:
     except (ValueError, httpx.InvalidURL):
         return False
     if "@" in parsed.netloc or parsed.username is not None or parsed.password is not None:
+        return False
+    if ":" in parsed.netloc or url.port is not None:
         return False
     return (parsed.hostname in HOST_PER_FONTE[FONTE] and url.host == parsed.hostname
             and motivo_rifiuto_host(FONTE, url) is None)
@@ -197,7 +200,8 @@ def scrub_body(url: str, body: bytes) -> bytes:
         parsed = urlparse(url)
     except ValueError:
         return b""
-    if parsed.hostname != CONFIG_HOST or not parsed.path.endswith("/configuration.json"):
+    # Trailing slashes stripped: `configuration.json/` is the same file to the server.
+    if parsed.hostname != CONFIG_HOST or not parsed.path.rstrip("/").endswith("/configuration.json"):
         return body
     try:
         dati = json.loads(body)
