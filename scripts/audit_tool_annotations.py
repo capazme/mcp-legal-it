@@ -2,7 +2,7 @@
 """Audit the tool annotations and regenerate (or verify) the policy.
 
 `readOnlyHint` is a promise to the host: "this tool does not change anything,
-you may run it without asking". Deriving that promise by hand for 221 tools is
+you may run it without asking". Deriving that promise by hand for every tool is
 how it silently becomes false, so it is derived from the code instead: every
 implementation reachable from a `@mcp.tool()` function is walked (helpers and
 imported clients included) looking for
@@ -248,9 +248,9 @@ included) looking for `open(..., "w"/"a"/"x")`, `Path.write_text/write_bytes`,
 (`Document`, `Workbook`, `FPDF`, `ZipFile`) and HTTP verbs that mutate
 (`post`, `put`, `patch`).
 
-The 17 tools that do write are listed in `WRITES_FILES` and get an explicit
-`readOnlyHint=False` instead of being left blank: most of them write a cache
-file, five of them write a document the user asked for. Neither group is
+The %d tools that do write are listed in `WRITES_FILES` and get an explicit
+`readOnlyHint=False` instead of being left blank: %d of them only write a cache
+file, %d write a document the user asked for. Neither group is
 `destructiveHint` -- they add or refresh files, they do not delete user data --
 so hosts that gate on destructiveness can still treat them as safe.
 
@@ -307,7 +307,7 @@ READ_ONLY: frozenset[str] = frozenset({
 %s
 })
 
-# Reachable write: cache refresh (12) or document generation (5).
+# Reachable write: cache refresh (%d) or document generation (%d).
 WRITES_FILES: frozenset[str] = frozenset({
 %s
 })
@@ -2144,9 +2144,12 @@ def block_regimes(regimes: dict[str, dict], indent: str = "    ") -> str:
 
 def render(policy: dict[str, list[str]]) -> str:
     local = len(set(policy["read_only"]) - set(policy["open_world"]))
+    writes, caches = len(policy["writes_files"]), len(policy["cache_writes"])
     return TEMPLATE % (
+        writes, caches, writes - caches,
         local,
         block(policy["read_only"]),
+        caches, writes - caches,
         block(policy["writes_files"]),
         block(policy["open_world"] or {"none"}),
         block(policy["cache_writes"] or {"none"}),
