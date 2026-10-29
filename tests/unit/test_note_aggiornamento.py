@@ -199,6 +199,8 @@ class TestApi:
                                                        "corte_costituzionale": False}]}):
             pagine_normattiva.scrivi(ART3_URL, "testo", "3", None, rotte)
             assert norme.note_della_pagina("normattiva", "testo", ART3_URL) == (None, True, False), rotte
+        pagine_normattiva.scrivi(ART3_URL, "testo", "3", None, {"note": []})  # the flags missing
+        assert norme.note_della_pagina("normattiva", "testo", ART3_URL) == ([], True, False)
 
     async def test_a_failure_of_the_note_reader_is_said_by_the_api(self, monkeypatch):
         monkeypatch.setattr(note_normattiva, "leggi_note", lambda *a, **k: 1 / 0)
