@@ -11,6 +11,7 @@ from mcp_legal_it.lib.tmview.client import (
     STATI,
     TMviewBlockedError,
     TMviewNotFoundError,
+    TMviewRefusedError,
     _normalize_name,
     fetch_trademark,
     format_detail,
@@ -22,6 +23,19 @@ _WAF_HINT = (
     "TMview sta limitando le richieste automatiche (protezione anti-bot). "
     "Riprova tra circa un minuto."
 )
+
+def _rifiuto(exc: TMviewRefusedError) -> SearchResult:
+    """TMview turned the request away (401/403): said as such, never as «not found», no URL."""
+    # TMview answered: "refused", not "source_down" (whose text says «non raggiungibile»).
+    return SearchResult(
+        success=False, source="tmview", error_type="refused",
+        results_text=(
+            f"**Errore**: {exc}: la fonte risponde, ma al momento non accetta questa richiesta "
+            "automatica. Non significa che il marchio non esista; la scheda si può consultare su "
+            "www.tmdn.org."
+        ),
+    )
+
 
 _DISCLAIMER_ANTERIORITA = (
     "*Verifica preliminare su denominazione (ricerca testuale TMview): non valuta "
@@ -88,6 +102,8 @@ async def _cerca_marchi_impl(
         )
     except TMviewBlockedError:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=_WAF_HINT)
+    except TMviewRefusedError as exc:
+        return _rifiuto(exc)
     except Exception as exc:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=str(exc))
 
@@ -112,6 +128,8 @@ async def _leggi_marchio_impl(st13: str) -> SearchResult:
         detail = await fetch_trademark(st13.strip())
     except TMviewBlockedError:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=_WAF_HINT)
+    except TMviewRefusedError as exc:
+        return _rifiuto(exc)
     except TMviewNotFoundError:
         # TMview answered (HTTP 500 "Can't get trademark/design detail"): it is reachable but
         # has no record for this ST13. The reply is the same for an unknown ST13 and for the
@@ -159,6 +177,8 @@ async def _verifica_anteriorita_marchio_impl(
         )
     except TMviewBlockedError:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=_WAF_HINT)
+    except TMviewRefusedError as exc:
+        return _rifiuto(exc)
     except Exception as exc:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=str(exc))
 
