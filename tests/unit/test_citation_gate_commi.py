@@ -162,6 +162,10 @@ def test_a_part_not_named_credits_no_comma(tmp_path, lettore):
     t = session(tmp_path).prompt().cite_law("art. 1 L. 296/2006", risposta).say(
         "L'art. 1, comma 50, L. 296/2006 dispone così.")
     assert _gate(t, *lettore).returncode == NAGS
+    # Without a comma it is the article, credited as before.
+    t = session(tmp_path, "senza-comma").prompt().cite_law("art. 1 L. 296/2006", risposta).say(
+        "L'art. 1 L. 296/2006 dispone così.")
+    assert _gate(t, *lettore).returncode == SILENT
 
 
 @pytest.mark.parametrize("per", ["mcp", "api"])

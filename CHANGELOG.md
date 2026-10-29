@@ -998,6 +998,9 @@ entry, it is the same feature as ported to the 3.0 line.
       fallback has only the first part of a split article (#106) and its answer does not
       say which source served it. After a partial `cite_law`, a comma outside the part
       read is asked for even when the whole act was read from Akoma Ntoso.
+    - `fetch_full_act` alone, with no partial `cite_law`, still credits any comma of the
+      article, also when the text came from the Normattiva page that holds only part 1
+      (#106).
 - **An article Normattiva splits into parts is no longer cut in silence** (3.0 only:
   2.17.1 reads the Akoma Ntoso export, which has the whole article). Normattiva
   serves a very long article in parts: art. 1 L. 296/2006 is 14 parts, «commi 1-100»
