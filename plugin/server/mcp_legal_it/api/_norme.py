@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import re
 from typing import Iterable
+
+import httpx
 
 from mcp_legal_it.api._comune import fonte_giu, registra
 from mcp_legal_it.api.tipi import (
     AlberoAtto,
     AnnotazioniBrocardi,
+    AttoRisolto,
     Canale,
     CatalogoAlias,
     ConsiderandiAtto,
@@ -37,9 +41,11 @@ from mcp_legal_it.lib.visualex.models import Norma, annex_reference, intervallo_
 from mcp_legal_it.lib.visualex.scraper import (
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
+    act_full_date,
     fetch_act_index,
     fetch_act_tree,
     fetch_normattiva_full_text,
+    normattiva_serves_acts,
 )
 
 #: Latin ordinals that follow an article number, in the order of the law
@@ -60,6 +66,20 @@ SUFFISSI_ARTICOLO: tuple[tuple[str, ...], ...] = (
 #: shadows ``quinquiesdecies``): VisuaLex's, verbatim. Close the group with ``\b``:
 #: ``rf"(\d+)-?({ARTICLE_SUFFIX_ALTERNATION})\b"``.
 ARTICLE_SUFFIX_ALTERNATION: str = _ALTERNANZA_SUFFISSI
+
+#: The act types whose date and number ``risolvi_atto`` reads from the Normattiva page's
+#: title (``precisione="ESATTO"``), as ``normalize_act_type`` names them. Any other type
+#: it accepts (DPCM, decreto ministeriale, d.lgs. luogotenenziale) is dated by the page's
+#: ELI date, ``INDICATIVO``. ``tests/unit/test_api_risolvi_atto.py`` ties it to the titles' table.
+TIPI_ATTO_VERIFICATI: tuple[str, ...] = (
+    "legge",
+    "decreto legislativo",
+    "decreto legge",
+    "decreto del presidente della repubblica",
+    "regio decreto",
+    "regio decreto legge",
+    "legge costituzionale",
+)
 
 #: Italian act types Normattiva addresses by date and number (codes are known by name).
 _TIPI_NOTI = frozenset(v.lower() for v in NORMATTIVA_SEARCH.values()) | frozenset(norme._TIPO_CANONICO.values())
@@ -298,6 +318,111 @@ def riferimento_da_parametri(
             errore=f"nessun indirizzo per '{nv.norma}': indicare data e numero dell'atto",
         )
     return EsitoRiferimento(esito="trovato", norma_data=(_norma_dati(act_info, article),))
+
+
+# A Normattiva answer without an act that says nothing about the act (scraper.normattiva_page_problem).
+_PROBLEMI_TRANSITORI = {
+    "sessione": "sessione scaduta",
+    "manutenzione": "sito in manutenzione",
+    "illeggibile": "risposta senza atto né pagina di errore",
+}
+
+
+def _atto_esito(esito: str, errore: str, tipo: str = "", numero: str = "", fonti=None) -> AttoRisolto:
+    return AttoRisolto(esito=esito, tipo_atto=tipo, numero_atto=numero, errore=errore, fonti=fonti)
+
+
+async def risolvi_atto(tipo_atto: str, numero_atto: str, anno_o_data: str) -> AttoRisolto:
+    """The full date and NIR URN of an Italian act, from its Normattiva page.
+
+    *anno_o_data* is the year ("1993") or the date ("1993-09-01", "1 settembre 1993"). The
+    act's own page is read (the act, not its art. 1), with the library's limits and
+    configuration; a date found from the page's title is kept on disk a year
+    (``act_dates.json`` in the cache directory) and in memory for the process.
+
+    Esiti: ``trovato``, ``atto_non_trovato``, ``ambiguo`` (a full date whose day is not the
+    act's: ``data`` and ``urn`` are those of the act with that type, year and number),
+    ``fonte_non_raggiungibile`` and ``errore_fonte`` (both transient, never kept),
+    ``riferimento_non_valido``, ``atto_non_riconosciuto``, ``non_supportata`` (an EU act, a
+    codice). Normattiva's error page is ``atto_non_trovato`` only when a known act reads
+    right after it (``scraper.normattiva_serves_acts``): the same page answers a session or
+    server problem.
+    """
+    from mcp_legal_it.lib.visualex.normattiva_validity import _iso_day
+
+    for nome, valore in (("tipo_atto", tipo_atto), ("numero_atto", numero_atto), ("anno_o_data", anno_o_data)):
+        if not isinstance(valore, str):
+            raise TypeError(f"{nome} deve essere una stringa")
+    if not tipo_atto.strip():
+        return _atto_esito("riferimento_non_valido", "tipo_atto mancante")
+    tipo = normalize_act_type(tipo_atto.strip()).lower()
+    if tipo in EURLEX or tipo in ("regolamento ue", "direttiva ue"):
+        return _atto_esito("non_supportata", "risolvi_atto serve gli atti italiani su Normattiva, non gli atti UE")
+    if codice_urn(tipo) or tipo == "costituzione":
+        return _atto_esito("non_supportata", f"'{tipo_atto}' ha già data e URN fissi: usa leggi_riferimento()")
+    if tipo not in _TIPI_NOTI:
+        return _atto_esito("atto_non_riconosciuto",
+                           f"tipo d'atto '{tipo_atto}' non riconosciuto: usa il nome esteso ('decreto legislativo')")
+    numero = numero_atto.strip()
+    if not re.fullmatch(r"\d{1,6}", numero) or int(numero) == 0:
+        return _atto_esito("riferimento_non_valido", f"numero_atto '{numero_atto}' non valido: atteso un numero",
+                           tipo)
+    numero = str(int(numero))
+    # "1° settembre 1993", "1°settembre 1993": the long form's reader takes the day without
+    # its ordinal sign, and a space before the month.
+    testo = re.sub(r"(\d)\s*[°º]\s*", r"\1 ", anno_o_data.strip())
+    citata = None
+    if re.fullmatch(r"\d{4}", testo):
+        anno = testo
+    elif re.fullmatch(r"\d{4}-\d{2}-\d{2}|\d{1,2}\s+[^\W\d_]+\s+\d{4}", testo) and (citata := _iso_day(testo)):
+        anno = citata[:4]
+    else:
+        return _atto_esito("riferimento_non_valido",
+                           f"anno_o_data '{anno_o_data}' non valido: atteso AAAA o AAAA-MM-GG", tipo, numero)
+    norma = Norma(tipo_atto=tipo, data=anno, numero_atto=numero)
+    with registra() as registro:
+        try:
+            data, modo, pagina = await act_full_date(norma)
+        except Exception as exc:  # noqa: BLE001 - every failure of the source is an outcome
+            stato = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None \
+                else None
+            if fonte_giu(exc) or stato == 403:
+                # A 403 is a WAF or rate block, not a fact about the act.
+                motivo = f"HTTP {stato}" if stato else type(exc).__name__
+                return _atto_esito("fonte_non_raggiungibile", f"Normattiva non raggiungibile ({motivo})",
+                                   tipo, numero, registro.fonti())
+            if stato == 404:
+                return _atto_esito("atto_non_trovato", f"nessun atto «{tipo} n. {numero} del {anno}» su Normattiva",
+                                   tipo, numero, registro.fonti())
+            motivo = f"HTTP {stato}" if stato else type(exc).__name__
+            return _atto_esito("errore_fonte", f"Normattiva ha risposto con un errore ({motivo})",
+                               tipo, numero, registro.fonti())
+        if not data:
+            problema = pagina.get("problema")
+            if problema in _PROBLEMI_TRANSITORI:
+                return _atto_esito("fonte_non_raggiungibile",
+                                   f"Normattiva non raggiungibile ({_PROBLEMI_TRANSITORI[problema]})",
+                                   tipo, numero, registro.fonti())
+            if problema == "errore" and not await normattiva_serves_acts():
+                # The same error page answers a missing act and a session or server failure:
+                # it is about the act only when Normattiva serves a known act right now.
+                return _atto_esito("fonte_non_raggiungibile",
+                                   "Normattiva non raggiungibile (pagina di errore, e l'atto di controllo non si legge)",
+                                   tipo, numero, registro.fonti())
+            intestazione = pagina.get("heading", "")
+            altro = f": la pagina restituita è «{intestazione}»" if intestazione and not problema else ""
+            return _atto_esito("atto_non_trovato", f"nessun atto «{tipo} n. {numero} del {anno}» su Normattiva{altro}",
+                               tipo, numero, registro.fonti())
+        url = dataclasses.replace(norma, data=data).url()
+        esito, errore = "trovato", None
+        if citata is not None and citata != data:
+            esito = "ambiguo"
+            errore = (f"«{tipo} n. {numero} del {anno}» su Normattiva è del {data}, non del {citata}: "
+                      "sbagliato il giorno o il numero")
+        return AttoRisolto(
+            esito=esito, tipo_atto=tipo, numero_atto=numero, data=data, urn=norme._urn_from_url(url), url=url,
+            precisione="ESATTO" if modo == "titolo" else "INDICATIVO", errore=errore, fonti=registro.fonti(),
+        )
 
 
 _ALLEGATO_A_UNA_DATA = "il testo di un allegato a una data non è ancora disponibile"

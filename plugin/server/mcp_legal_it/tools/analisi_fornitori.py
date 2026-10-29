@@ -309,7 +309,7 @@ def _scrivi_analisi(ws, fornitori: list[dict]) -> None:
             cella.alignment = Alignment(wrap_text=True, vertical="top")
 
 
-@mcp.tool(tags={"redazione", "privacy", "utility"})
+@mcp.tool(tags={"redazione", "privacy", "utility"}, output_schema=None)
 def genera_report_fornitori(
     fornitori: list[dict],
     cliente: str,

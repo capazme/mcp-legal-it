@@ -4,6 +4,7 @@ import copy
 import importlib
 
 import re
+import sys
 
 import pytest
 
@@ -117,14 +118,20 @@ def _cache_isolata(tmp_path_factory, monkeypatch):
     """
     from mcp_legal_it.lib.visualex import act_dates, pagine_eurlex, pagine_normattiva
 
+    def svuota():
+        pagine_normattiva.svuota_memoria()
+        pagine_eurlex.svuota_memoria()
+        act_dates.svuota_memoria()
+        # fetch_full_act's readings, when the tools are loaded (importing them here
+        # would import the server before a test that sets its environment).
+        citazioni = sys.modules.get("mcp_legal_it.tools.legal_citations")
+        if citazioni is not None:
+            citazioni.svuota_testi_atti()
+
     monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path_factory.mktemp("mcp-cache")))
-    pagine_normattiva.svuota_memoria()
-    pagine_eurlex.svuota_memoria()
-    act_dates.svuota_memoria()
+    svuota()
     yield
-    pagine_normattiva.svuota_memoria()
-    pagine_eurlex.svuota_memoria()
-    act_dates.svuota_memoria()
+    svuota()
 
 
 @pytest.fixture(autouse=True)

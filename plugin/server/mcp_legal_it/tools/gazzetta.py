@@ -258,7 +258,7 @@ async def _scarica_pdf_gazzetta_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def cerca_gazzetta_ufficiale(
     query: str = "",
     titolo: str = "",
@@ -300,7 +300,7 @@ async def cerca_gazzetta_ufficiale(
     return result.to_str()
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def leggi_atto_gazzetta(
     codice_redazionale: str,
     data_pubblicazione: str,
@@ -340,7 +340,7 @@ async def leggi_atto_gazzetta(
     return result.to_str()
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def sommario_gazzetta(
     numero_gazzetta: str,
     data_pubblicazione: str,
@@ -367,7 +367,7 @@ async def sommario_gazzetta(
     return result.to_str()
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def ultime_gazzette(
     serie: str = "serie_generale",
     max_risultati: int = 10,
@@ -389,7 +389,7 @@ async def ultime_gazzette(
     return result.to_str()
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def scarica_pdf_gazzetta(
     numero_gazzetta: str,
     data_pubblicazione: str,

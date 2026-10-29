@@ -3,16 +3,19 @@ e Brocardi (annotazioni dottrinali e giurisprudenziali). Usare cite_law() come p
 principale prima di citare qualsiasi norma in un parere o documento legale."""
 
 import asyncio
+import hashlib
 import json
 import os
 import re
 import time
+from collections import OrderedDict
 from typing import Literal
 
 
 from mcp_legal_it.server import mcp
-from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib import _clock, _sources
 from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
+from mcp_legal_it.lib._paging import invalid_start, page
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.models import intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
@@ -212,7 +215,7 @@ async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "
         return f"**Errore Brocardi**: {e}"
 
 
-@mcp.tool(tags={"normativa", "brocardi"})
+@mcp.tool(tags={"normativa", "brocardi"}, output_schema=None)
 async def cite_law(
     reference: str,
     include_annotations: bool = False,
@@ -293,7 +296,7 @@ async def cite_law(
     return await _cite_law_impl(reference, include_annotations, formato, versione)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupero a basso livello di un articolo con parametri espliciti da Normattiva o EUR-Lex.
     Usare cite_law() per il caso comune; questo tool è per quando serve controllo preciso
@@ -312,7 +315,7 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
     return await _fetch_law_article_impl(act_type, article, date, act_number)
 
 
-@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"})
+@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"}, output_schema=None)
 async def fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupera le annotazioni Brocardi per un articolo: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali. Da usare per approfondire la norma già recuperata con cite_law().
@@ -385,7 +388,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
     return "\n".join(parts)
 
 
-@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"})
+@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"}, output_schema=None)
 async def cerca_brocardi(reference: str) -> str:
     """Cerca annotazioni Brocardi per un articolo di legge: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali con riferimenti strutturati alla Cassazione, relazioni storiche,
@@ -443,7 +446,7 @@ async def _fetch_act_index_impl(reference: str) -> str:
     return "\n".join(lines)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def fetch_act_index(reference: str) -> str:
     """Recupera l'indice strutturato (rubriche) di un atto normativo da Normattiva.
 
@@ -457,8 +460,133 @@ async def fetch_act_index(reference: str) -> str:
     return await _fetch_act_index_impl(reference)
 
 
-async def _fetch_full_act_impl(reference: str) -> str:
+# One window of fetch_full_act: a code or a long act no longer arrives whole
+# (L. 300/1970 alone is ~52,000 characters, the Codice civile ~2 million).
+_FULL_ACT_WINDOW = 30000
+
+# The windows of one act are cut from one reading of it. Without the akoma ntoso
+# export the act is rebuilt article by article (thousands of requests for a code),
+# and an article that fails is skipped: two readings can differ, and a window cut
+# from the second would shift against the first. So a complete reading of an act
+# is kept in memory for the Italian day it is valid at, and every later window
+# reuses it; a reading with articles missing is served but not kept. Concurrent
+# first reads of one act share a single reading (one lock per act and day).
+# Only the last few acts are kept (a code is ~2 million characters).
+#
+# Known limit, accepted for 3.0: windows carry no reading id. If an act's text
+# leaves memory and another caller reads the same act again before this caller
+# asks its next window, that window is cut from the other reading; it is refused
+# when the text differs (digest below), not when it is the same.
+_FULL_ACT_TEXTS: "OrderedDict[tuple, tuple[dict, frozenset]]" = OrderedDict()
+_FULL_ACT_TEXTS_MAX = 4
+# What each kept reading was (path and digest of the text), kept longer than the
+# text itself: a window asked after the text left memory is served only from a
+# reading that matches it.
+_FULL_ACT_READINGS: "OrderedDict[tuple, tuple[str, str]]" = OrderedDict()
+_FULL_ACT_READINGS_MAX = 256
+# One lock per act and day, with the number of callers holding or awaiting it:
+# the entry goes only when the last of them leaves, so a reading that is not kept
+# (incomplete) still lets one caller at a time read the act.
+_FULL_ACT_LOCKS: "dict[tuple, list]" = {}
+_AKN_SOURCE = "normattiva-akn"
+
+
+def svuota_testi_atti() -> None:
+    """Forget the texts and readings kept for fetch_full_act (tests)."""
+    _FULL_ACT_TEXTS.clear()
+    _FULL_ACT_READINGS.clear()
+    _FULL_ACT_LOCKS.clear()
+
+
+def _reading(result: dict) -> tuple[str, str]:
+    text = result.get("text", "")
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+    return result.get("source", "normattiva-html"), digest
+
+
+def _keep(table: OrderedDict, key: tuple, value, limit: int) -> None:
+    table[key] = value
+    table.move_to_end(key)
+    while len(table) > limit:
+        table.popitem(last=False)
+
+
+def _kept_reading(key: tuple) -> "dict | None":
+    kept = _FULL_ACT_TEXTS.get(key)
+    if kept is None:
+        return None
+    result, sources = kept
+    _FULL_ACT_TEXTS.move_to_end(key)
+    for dataset, url in sources:
+        _sources.note(dataset, url)
+    return result
+
+
+async def _full_act_text(norma: Norma, da_carattere: int) -> "dict | str":
+    """The reading of ``norma`` that a window is cut from, or an error message.
+
+    The first window reads the act (or reuses today's reading); a later window
+    reuses the reading the first window was cut from. When that reading is no
+    longer in memory, a new one is used only if it is the same text, or a complete
+    akoma ntoso export (its text does not depend on which requests succeeded), and
+    the window then says it was read again; otherwise the window is refused rather
+    than served shifted.
+    """
+    # The Italian day only keys the memory: not a clock read the answer depends on.
+    key = (norma.tipo_atto, norma.data, norma.numero_atto, _clock.rome_day_unrecorded().isoformat())
+    if (kept := _kept_reading(key)) is not None:
+        return kept
+
+    lock_key = (key, id(asyncio.get_running_loop()))
+    entry = _FULL_ACT_LOCKS.setdefault(lock_key, [asyncio.Lock(), 0])
+    lock = entry[0]
+    entry[1] += 1
+    try:
+        async with lock:
+            # A concurrent caller may have read the act while this one waited.
+            if (kept := _kept_reading(key)) is not None:
+                return kept
+            with _sources.recording() as consulted:
+                result = await fetch_normattiva_full_text(norma)
+            sources = frozenset(consulted)
+            for dataset, url in sources:
+                _sources.note(dataset, url)
+            if result.get("error") or len(result.get("text", "")) < 50:
+                return result
+
+            complete = result.get("completo", True)
+            reading = _reading(result)
+            before = _FULL_ACT_READINGS.get(key) if da_carattere > 1 else None
+            if da_carattere > 1:
+                if before is not None and before != reading:
+                    return (
+                        "**Errore**: il testo dell'atto letto ora non coincide con quello da cui è stata "
+                        "tagliata la finestra precedente (la fonte è cambiata o ha risposto in parte): le "
+                        "posizioni non corrispondono più. Ripetere la lettura da da_carattere=1."
+                    )
+                if before is None and not (complete and reading[0] == _AKN_SOURCE):
+                    return (
+                        "**Errore**: il testo da cui è stata tagliata la finestra precedente non è più "
+                        "disponibile (uscito dalla memoria, o letto in modo incompleto), e una nuova lettura "
+                        "di questo atto potrebbe non coincidere. Ripetere la lettura da da_carattere=1."
+                    )
+            if complete:
+                _keep(_FULL_ACT_TEXTS, key, (result, sources), _FULL_ACT_TEXTS_MAX)
+                _keep(_FULL_ACT_READINGS, key, reading, _FULL_ACT_READINGS_MAX)
+            if da_carattere > 1:
+                # Cut from a reading other than the first window's: say so.
+                return {**result, "riletto": True}
+            return result
+    finally:
+        entry[1] -= 1
+        if entry[1] == 0 and _FULL_ACT_LOCKS.get(lock_key) is entry:
+            del _FULL_ACT_LOCKS[lock_key]
+
+
+async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
     """Implementation of fetch_full_act."""
+    if (error := invalid_start(da_carattere)) is not None:
+        return f"**Errore**: {error}"
     _, act_name = _parse_reference(reference)
     if not act_name:
         return f"**Errore**: impossibile interpretare il riferimento '{reference}'."
@@ -476,9 +604,11 @@ async def _fetch_full_act_impl(reference: str) -> str:
         return "Per atti UE usare download_law_pdf() — il testo integrale è disponibile solo in PDF."
 
     try:
-        result = await fetch_normattiva_full_text(norma)
+        result = await _full_act_text(norma, da_carattere)
     except Exception as e:
         return f"**Errore** nel recupero del testo completo: {e}"
+    if isinstance(result, str):
+        return result
 
     if result.get("error"):
         return f"**Errore**: {result['error']}"
@@ -494,25 +624,41 @@ async def _fetch_full_act_impl(reference: str) -> str:
         f"# {title}",
         f"**Fonte**: Normattiva — {url}",
         f"**Dimensione**: {len(text):,} caratteri\n",
-        text,
     ]
+    if da_carattere == 1 and len(text) <= _FULL_ACT_WINDOW:
+        # Fits in one window: the answer is the one it has always been.
+        lines.append(text)
+    else:
+        body, note = page(text, da_carattere, _FULL_ACT_WINDOW)
+        lines.append(body)
+        if result.get("riletto"):
+            # Before the paging note, which stays the last line (the citation gate reads it there).
+            lines.append(
+                "\n*[Testo riletto dalla fonte: la lettura della finestra precedente non è più in memoria, "
+                "le posizioni possono non coincidere con la finestra precedente; in caso di dubbio "
+                "ripartire da da_carattere=1]*"
+            )
+        lines.append(f"\n{note}")
 
     return "\n".join(lines)
 
 
-@mcp.tool(tags={"normativa"})
-async def fetch_full_act(reference: str) -> str:
+@mcp.tool(tags={"normativa"}, output_schema=None)
+async def fetch_full_act(reference: str, da_carattere: int = 1) -> str:
     """Recupera il testo completo di un atto normativo italiano da Normattiva.
 
-    Restituisce il testo integrale dell'atto senza troncamenti.
-    ATTENZIONE: per codici voluminosi (c.c., c.p.) il testo può essere molto lungo.
+    Restituisce il testo integrale dell'atto a finestre di 30000 caratteri: se l'atto è più
+    lungo, la nota finale indica il da_carattere con cui leggere il seguito.
+    ATTENZIONE: per codici voluminosi (c.c., c.p.) il testo occupa molte finestre.
     Per atti UE usare download_law_pdf() per il PDF ufficiale da EUR-Lex.
-    Restituisce: testo completo dell'atto con titolo e URL fonte.
+    Restituisce: una finestra del testo dell'atto, con titolo e URL fonte.
 
     Args:
         reference: Nome dell'atto, es. "D.Lgs. 231/2001", "D.M. 55/2014", "L. 604/1966"
+        da_carattere: Carattere da cui leggere (1 = inizio, default). Se il testo supera il limite,
+            la nota finale indica il valore con cui ripetere la chiamata per leggere il seguito
     """
-    return await _fetch_full_act_impl(reference)
+    return await _fetch_full_act_impl(reference, da_carattere)
 
 
 # ---------------------------------------------------------------------------
@@ -657,7 +803,7 @@ async def _download_law_pdf_impl(reference: str) -> str:
         return f"**Errore** generazione PDF: {e}"
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def download_law_pdf(reference: str) -> str:
     """Scarica o genera il PDF completo di una legge.
 
@@ -1053,7 +1199,7 @@ async def _verifica_citazioni_impl(
     return _format_verifica_markdown(data)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def verifica_citazioni(
     citazioni: str,
     archivio: str = "tutti",

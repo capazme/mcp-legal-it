@@ -36,7 +36,7 @@ import contextvars
 import os
 import sys
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Iterator
 
 TODAY_ENV = "LEGAL_TODAY"
@@ -121,3 +121,35 @@ def now_unrecorded() -> datetime:
     """
     pinned = _parse(os.environ.get(NOW_ENV, ""))
     return pinned if pinned is not None else datetime.now()
+
+
+def _rome_offset(utc: datetime) -> timedelta:
+    """Italy's offset from UTC at ``utc`` (aware), by the EU rule: summer time from the
+    last Sunday of March to the last Sunday of October, both at 01:00 UTC."""
+    def last_sunday(month: int) -> datetime:
+        day = datetime(utc.year, month, 31, 1, tzinfo=timezone.utc)
+        return day - timedelta(days=(day.weekday() + 1) % 7)
+
+    return timedelta(hours=2 if last_sunday(3) <= utc < last_sunday(10) else 1)
+
+
+def rome_day_unrecorded() -> date:
+    """The calendar day in Italy (Europe/Rome), WITHOUT registering a consult.
+
+    For keys that must turn at Italian midnight whatever the process's own time
+    zone (a container runs in UTC): the day a text read from Normattiva is valid
+    for, say. A pinned `LEGAL_TODAY` or `LEGAL_NOW` is that day. The zone database
+    is used when the system has one; otherwise the EU summer-time rule, which is
+    what it would say.
+    """
+    for name in (TODAY_ENV, NOW_ENV):
+        pinned = _parse(os.environ.get(name, ""))
+        if pinned is not None:
+            return pinned.date()
+    utc = datetime.now(timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+
+        return utc.astimezone(ZoneInfo("Europe/Rome")).date()
+    except Exception:  # noqa: BLE001 - no zone database (Windows without tzdata, a slim image)
+        return (utc + _rome_offset(utc)).date()
