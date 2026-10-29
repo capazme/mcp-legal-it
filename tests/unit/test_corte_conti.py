@@ -159,6 +159,10 @@ class TestConfigurazione:
         ("SERVER_PUBLIC_BASIC_URL", "https://u:p@banchedati.corteconti.it/"),
         ("SERVER_PUBLIC_BASIC_URL", "https://banchedati.corteconti.it\t/"),
         ("SERVER_PUBLIC_BASIC_URL", ["https://banchedati.corteconti.it/"]),
+        # An explicit port, even the default one: the link must be the service as published.
+        ("SERVER_PUBLIC_BASIC_URL", "https://banchedati.corteconti.it:8443/"),
+        ("IIT_API_PORTAL_SERVICE_URL", "https://corteconti-iit.almawave.cloud:443/api/portal/"),
+        ("IIT_API_SECURE_SERVICE_URL", "https://corteconti-iit.almawave.cloud:/api/sservice/"),
     ])
     def test_an_address_off_the_source_hosts_is_refused(self, chiave, valore):
         # Neither a request nor a link shown to the lawyer may leave the Court's two hosts.
@@ -192,6 +196,12 @@ class TestConfigurazione:
         assert set(out) <= set(cc._CHIAVI)
         _niente_segreti(json.dumps(out))
         assert cc.leggi_configurazione({**out, "USER_IIT_PR": "x", "PWD_IIT_PR": "y"})   # still replayable
+
+    @pytest.mark.parametrize("suffisso", ["", "/", "//"])
+    def test_scrub_body_matches_the_path_with_trailing_slashes(self, suffisso):
+        out = cc.scrub_body(cc.CONFIG_URL + suffisso, json.dumps(_config()).encode())
+        _niente_segreti(out.decode())
+        assert json.loads(out)["USER_IIT_PR"] == "<scrubbed>"
 
     @pytest.mark.parametrize("body", [b'["segreto-di-prova-123"]', b'"segreto-di-prova-123"', b"non json"])
     def test_scrub_body_records_nothing_of_another_shape(self, body):
