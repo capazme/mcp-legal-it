@@ -724,7 +724,9 @@ def _blocchi_html(body) -> list[tuple[str, list[str]]]:
                 svuota()
             elif nome == "tr":
                 svuota()
-                celle = [_SPAZI.sub(" ", c.get_text(" ")).strip() for c in figlio.find_all(["td", "th"])]
+                # The row's own cells only: a table nested in a cell is in that cell's text already.
+                celle = [_SPAZI.sub(" ", c.get_text(" ")).strip()
+                         for c in figlio.find_all(["td", "th"], recursive=False)]
                 scrivi(" ".join(c for c in celle if c), figlio.get("class") or [])
             elif nome in _BLOCCHI or _ha_blocchi(figlio):
                 svuota()

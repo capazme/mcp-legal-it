@@ -1088,6 +1088,22 @@ _MDP_404_REAL = (_GA_FIXTURES / "pagina_non_trovata.html").read_bytes()
 _PARERE_HTML = (_GA_FIXTURES / "parere_1918_2026.html").read_bytes()
 
 
+def _assert_stesse_parole(page: bytes, text: str) -> None:
+    """Every word of the page's text is read exactly as many times as it occurs (nothing lost,
+    nothing doubled), the «DISPOSITIVO» label the reader adds aside."""
+    from collections import Counter
+
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(page, "lxml")
+    for tag in soup(["style", "script", "img", "head"]):
+        tag.decompose()
+    attese = Counter(soup.body.get_text(" ").split())
+    lette = Counter(text.split())
+    lette["DISPOSITIVO"] -= text.count("\n\nDISPOSITIVO\n\n") + text.startswith("DISPOSITIVO\n\n")
+    assert +lette == +attese, (attese - lette, lette - attese)
+
+
 class TestHtmlDocument:
     def test_the_page_is_a_document_not_an_error(self):
         from mcp_legal_it.lib.giustizia_amm.client import is_document_html
@@ -1181,10 +1197,24 @@ class TestHtmlDocument:
                       "blocco con namespace"):
             assert passo in text, passo
         assert meta["tipologia"] == "Ordinanza" and meta["numero"] == "5/2026"
-        # Coverage: every word of the page's text is in the extracted text.
-        from bs4 import BeautifulSoup
-        parole = BeautifulSoup(page, "lxml").body.get_text(" ").split()
-        assert all(w in text for w in parole)
+        _assert_stesse_parole(page, text)
+
+    def test_a_table_nested_in_a_cell_is_read_once(self):
+        from mcp_legal_it.lib.giustizia_amm.client import _parse_html_document
+
+        page = b"""<html><body class="corpo"><table><tr><td>IL PRESIDENTE
+        <table><tr><td>Mario Esempio</td><td>firmato</td></tr></table></td>
+        <td>IL SEGRETARIO</td></tr></table></body></html>"""
+        _title, text, _meta = _parse_html_document(page)
+        assert text.count("Mario Esempio") == 1 and text.count("firmato") == 1
+        _assert_stesse_parole(page, text)
+
+    @pytest.mark.parametrize("fixture", ["ap17_2021.html", "parere_1918_2026.html"])
+    def test_the_real_pages_lose_and_double_no_word(self, fixture):
+        from mcp_legal_it.lib.giustizia_amm.client import _parse_html_document
+
+        page = (_GA_FIXTURES / fixture).read_bytes()
+        _assert_stesse_parole(page, _parse_html_document(page)[1])
 
     @pytest.mark.parametrize("apertura", ["P.Q.M.", "P.Q.M.:", "p.q.m.", "P. Q. M.", "PER QUESTI MOTIVI",
                                           "P.Q.M. Il Consiglio di Stato respinge l'appello."])
