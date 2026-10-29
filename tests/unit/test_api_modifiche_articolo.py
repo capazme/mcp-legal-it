@@ -372,3 +372,66 @@ class TestParser:
         link = aggiornamenti.update_link(pagina)
         assert aggiornamenti.link_version(link) == 5
         assert sorted(aggiornamenti.version_pages(pagina, link)) == [1, 2, 3, 4, 5]
+
+class TestVersione1:
+    """Version 1's table is the whole history: only the article's own introduction, published
+    by version 1's start, is version 1's amendment."""
+
+    @staticmethod
+    def _con_riga(tabella: str, atto: str, disposizione: str, data: str) -> str:
+        riga = (f'<tr><td><br>9</td><td class="sinistra"><br>{data}</td><td class="destra"><ul><li>{atto}</li>'
+                f'<li><a href="#">{disposizione}</a></li></ul></td></tr>')
+        return tabella.replace("</tbody>", riga + "</tbody>", 1)
+
+    async def test_a_later_reinsertion_is_not_what_produced_version_1(self):
+        # Art. 13 is of the act's original text; a 2022 «introduzione» in its history re-inserted it.
+        tabella = self._con_riga(_pagina("dlgs196_art13_agg_v1"), "La LEGGE 5 maggio 2022, n. 50 (in G.U. 10/05/2022, n.108)",
+                                 "ha disposto (con l'art. 1, comma 1) l'introduzione dell'art. 13.", "10/05/2022")
+        r, _ = await _modifiche("dlgs196_art13", ART_13, {"agg1": tabella})
+        assert not any(m.versione == 1 for m in r.modifiche)
+        assert any(a.startswith("la versione 1 non ha un atto che l'abbia prodotta") for a in r.avvisi)
+
+    async def test_two_introductions_before_version_1_give_it_none(self, tmp_path):
+        tabella = self._con_riga(_pagina("dlgs196_art2ter_agg_v1"),
+                                 "Il DECRETO LEGISLATIVO 1 agosto 2018, n. 99 (in G.U. 10/09/2018, n.210)",
+                                 "ha disposto (con l'art. 1, comma 1) l'introduzione dell'art. 2-ter.", "10/09/2018")
+        r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"agg1": tabella})
+        assert not any(m.versione == 1 for m in r.modifiche)
+        assert any("indica più atti che hanno introdotto l'articolo" in a for a in r.avvisi)
+        # Not kept: a cached version 1 would lose the notice.
+        assert len(list((tmp_path / "cache").glob("normattiva_aggiornamenti/*.json"))) == 1
+
+    async def test_a_continuation_row_is_never_the_introduction(self):
+        # The decree-law «convertito con modificazioni …» row, made to repeat an introduction.
+        tabella = _pagina("dlgs196_art2ter_agg_v1").replace(
+            "la modifica dell'art. 2-ter, commi 1, 1-bis, 2 e 3", "l'introduzione dell'art. 2-ter", 1)
+        r, _ = await _modifiche("dlgs196_art2ter", ART_2TER, {"agg1": tabella})
+        assert [(m.atto.numero_atto, m.tipo) for m in r.modifiche if m.versione == 1] == [("101", "inserimento")]
+
+    async def test_a_record_of_the_old_schema_is_not_read(self, tmp_path):
+        # 3b55cfc kept version 1 with its window only (righe=[]): read now, that would say
+        # «no introduction».
+        prima, _ = await _modifiche("dlgs196_art2ter", ART_2TER)
+        for path in (tmp_path / "cache" / "normattiva_aggiornamenti").glob("*.json"):
+            rec = __import__("json").loads(path.read_text(encoding="utf-8"))
+            rec.update(schema=1, righe=[])
+            path.write_text(__import__("json").dumps(rec), encoding="utf-8")
+        poi, chieste = await _modifiche("dlgs196_art2ter", ART_2TER)
+        assert len(chieste) == 6 and poi.modifiche == prima.modifiche
+
+    def test_an_article_introduced_by_a_converted_decree_law(self):
+        # Art. 612-bis c.p.: introduced by d.l. 11/2009 (G.U. 24 Feb 2009), «convertito con
+        # modificazioni» by L. 38/2009; version 1 starts on 25 Feb 2009 (read on 29 Oct).
+        righe = aggiornamenti.parse_righe(_pagina("cp_art612bis_agg_v1"))
+        voluto = scraper._article_identity("612-bis")
+        tenute, nota = aggiornamenti.inserimento_articolo(
+            righe, lambda n: scraper._article_identity(scraper.normalize_article_key(n)) == voluto, "2009-02-25")
+        assert nota is None
+        assert [(v["atto"]["numero_atto"], v["atto"]["data"]) for r in tenute for v in r["atti"]] == [("11", "2009-02-23")]
+
+    def test_a_provision_without_ha_disposto(self):
+        # L. 69/2019 on art. 612-bis: «(con l'art. 9, comma 3) la modifica …», no «ha disposto».
+        righe = aggiornamenti.parse_righe(_pagina("cp_art612bis_agg_v1"))
+        voci = {v["atto"]["numero_atto"]: v["disposizioni"] for r in righe for v in r["atti"]}
+        assert [(d["tipo"], d["disposizione"], d["parti"]) for d in voci["69"]] == [("modifica", "art. 9, comma 3", "comma 1")]
+        assert [(d["tipo"], d["parti"]) for d in voci["181"]] == [("inserimento", "un comma dopo il terzo")]
