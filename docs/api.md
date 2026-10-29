@@ -690,6 +690,36 @@ The text in force of one article, from Normattiva or EUR-Lex.
     drops the amendment markers and adds a heading of its own: never
     VisuaLex's display text.
   - EUR-Lex is always read from its HTML; `fonte` is `eurlex`.
+- **Update notes (`note_aggiornamento`, `note_non_lette`).** A Normattiva page
+  carries, after the article, its «AGGIORNAMENTO (n)» notes, which the body calls
+  «((n))» or «(n)». They say what the text alone does not: a Corte costituzionale
+  declaration of illegitimacy (art. 3 d.lgs. 23/2015: C. cost. 194/2018 struck the
+  words «di importo pari a due mensilità … per ogni anno di servizio», which stay in
+  the text), a deferred effect, an exclusion.
+  - **Where they are.** VisuaLex's extractor keeps them in `article_text` for a code's
+    attachment and for its fallback shape, and drops them for the article in comma divs
+    and for the plain text span. `article_text` stays VisuaLex's, byte for byte, so the
+    notes are read from the same page into `note_aggiornamento`, for every shape, in
+    page order (`NotaAggiornamento`: `numero` «10», `testo` the note's own words,
+    `ordine` from 1, `corte_costituzionale` a word match on «Corte costituzionale»/«C.
+    cost.» with «sentenza»).
+  - **Values.** `()` means a page without notes. `None` means the text is not a
+    Normattiva page's (EU, the `normattiva-akn` export, which carries its notes in its
+    text) or the page's notes could not be read.
+  - **When a note cannot be read.** This covers a block without its number or words, a
+    «((n))» call without note n, more «AGGIORNAMENTO (n)» headings on the page than notes
+    read (a note outside the markup this reader knows), a reader failure, and a kept
+    reading of another shape. Then `note_non_lette` is `True` and `avvisi` says «note di
+    aggiornamento non lette: verificare su Normattiva»; the article is never lost.
+  - **What is not a call.** A plain «(n)» is a call only when note n exists. A «((n))» at
+    the start of a line before its full stop is a comma renumbered by an amendment (art.
+    117 TUB: «((6)). Sono nulle …»), and a four-digit «((2025))» is a year: neither is a call.
+  - **Agreed shape.** The shape is agreed with VisuaLex, which will give the same field.
+  - **In the MCP tools.** `cite_law` and `fetch_law_article` print them under the text,
+    in a section «**Aggiornamenti**», «(n) testo», unless the text already carries them
+    (a code's article). They always print them: a notes-on-request switch, if one comes,
+    will never cover these notes. `cite_law(formato="json")` carries
+    `note_aggiornamento`, `note_non_lette` and `note_nel_testo`.
 - **`allegato` is Normattiva's position, as in VisuaLex.** A digit `allegato`
   (in a `NormaDati`, or `riferimento_da_parametri(..., allegato="2")`) is the
   `:k` of the URN, the entry of Normattiva's tree: it goes into the URL, and on
@@ -1131,7 +1161,8 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `VersioneArticolo` | VisuaLex `validity` keys: `version_number, valid_from, valid_to` |
 | `Modifica` | `atto, tipo, disposizione, parti, in_vigore_dal, versione, data_gu, precisione, testo` |
 | `AttoModificante` | `tipo_atto, data, numero_atto, urn, gazzetta, descrizione` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato, note_aggiornamento, note_non_lette` |
+| `NotaAggiornamento` | `numero, testo, ordine, corte_costituzionale`: one «AGGIORNAMENTO (n)» note of the page (§3, `testo_articolo`) |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti, consolidato, consolidato_verificato` |

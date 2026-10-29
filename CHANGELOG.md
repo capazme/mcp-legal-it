@@ -970,6 +970,33 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **The update notes of a Normattiva article are back** (3.0 only: 2.17.1 reads
+  the Akoma Ntoso export, which carries them). Since articles are read from their
+  page, an article set out in comma divs came without its «AGGIORNAMENTO (n)»
+  notes and without any notice. VisuaLex's extractor drops them for that shape
+  and for the plain-text one, and keeps them for a code's article.
+  - **What a lawyer saw.** Art. 3 d.lgs. 23/2015 printed «di importo pari a due
+    mensilità … per ogni anno di servizio» with no word of C. cost. 194/2018, which
+    declared those words unconstitutional.
+  - **Library.** `article_text` stays VisuaLex's, byte for byte. The notes are read
+    from the same page into `TestoArticolo.note_aggiornamento`, a tuple of the new
+    `NotaAggiornamento` (`numero`, `testo`, `ordine`, `corte_costituzionale`), in page
+    order. It is `()` for a page without notes and `None` when the text is not a
+    Normattiva page's. `note_non_lette` and the avviso «note di aggiornamento non
+    lette: verificare su Normattiva» flag a note that cannot be read, a «((n))» with
+    no note n, and a heading outside the known markup. A comma renumbered «((6)).»
+    and a year «((2025))» are not calls.
+  - **MCP tools.** `cite_law` and `fetch_law_article` print the notes under the text,
+    in an «Aggiornamenti» section, unless the text already carries them (a code's
+    article: never twice). `cite_law(formato="json")` carries `note_aggiornamento`,
+    `note_non_lette` and `note_nel_testo`.
+  - **Cache.** The page cache's records now carry the notes (`normattiva_pagine`
+    schema 3: older records are read again).
+  - **Agreed shape.** The shape is agreed with VisuaLex. A future «notes on request»
+    switch will never cover these notes.
+  - **Live gate.** `tests/unit/test_note_aggiornamento_live.py`, 5 articles, serial.
+    The live phrase checks now read the text with its notes
+    (`tests/unit/_norme_live.py`).
 - **TUIR, TUB, TUF and the Testo unico sicurezza carry their full date.** The
   names `TUIR`, `TUB`, `TUF` and «testo unico sicurezza» resolved to the year
   alone, so `mcp_legal_it.api.leggi_riferimento("art. 1 TUIR")` returned a

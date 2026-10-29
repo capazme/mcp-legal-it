@@ -54,12 +54,26 @@ def cite_law_json(reference: str) -> dict:
 
 
 def testo_vigente(reference: str) -> str:
-    """Normalised vigente text of a norm, asserting the fetch succeeded."""
+    """Normalised vigente text of a norm, with its update notes, asserting the fetch succeeded.
+
+    What the reader of cite_law gets: the text and, when the text does not carry them (the
+    HTML channel's article in comma divs), the page's «AGGIORNAMENTO (n)» notes after it, as
+    the Akoma Ntoso text had them. A gate on a Corte costituzionale declaration reads it there.
+    """
     payload = cite_law_json(reference)
     assert not payload.get("errore"), payload
     testo = payload.get("testo") or ""
     assert testo, payload
-    return normalizza(testo)
+    return normalizza(testo_con_note(payload))
+
+
+def testo_con_note(payload: dict) -> str:
+    """A cite_law JSON payload's text and, unless the text carries them, its update notes after it."""
+    testo = payload.get("testo") or ""
+    note = payload.get("note_aggiornamento") or []
+    if note and not payload.get("note_nel_testo"):
+        testo += "".join(f"\n\nAGGIORNAMENTO ({n['numero']})\n{n['testo']}" for n in note)
+    return testo
 
 
 def contiene(testo: str, *frasi: str) -> list[str]:
