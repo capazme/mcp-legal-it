@@ -230,7 +230,7 @@ async def _ddl_su_norma_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"normativa", "parlamento"})
+@mcp.tool(tags={"normativa", "parlamento"}, output_schema=None)
 async def cerca_ddl(
     query: str,
     legislatura: int = LEGISLATURA_CORRENTE,
@@ -265,7 +265,7 @@ async def cerca_ddl(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"normativa", "parlamento"})
+@mcp.tool(tags={"normativa", "parlamento"}, output_schema=None)
 async def iter_ddl(
     atto: str,
     legislatura: int = LEGISLATURA_CORRENTE,
@@ -287,7 +287,7 @@ async def iter_ddl(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"normativa", "parlamento"})
+@mcp.tool(tags={"normativa", "parlamento"}, output_schema=None)
 async def ddl_su_norma(
     riferimento: str,
     legislatura: int = LEGISLATURA_CORRENTE,

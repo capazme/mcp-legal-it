@@ -573,6 +573,16 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **Text answers are sent once.** The 60 tools that answer plain text (the
+  norm, case-law, authority and register readers, and a few writers) used to
+  send each answer twice: as the text block and again as `structuredContent`
+  `{"result": <the same text>}`, because FastMCP gives a `-> str` function a
+  wrapped output schema. They are now declared with `output_schema=None`: the
+  answer is the text block only, and `tools/list` no longer carries their
+  `outputSchema`. The text the model reads is unchanged; the tools that return
+  a dict keep their `structuredContent`. A test keeps every new text tool in
+  line. For a FastMCP Python client, `CallToolResult.data` is now `None` for
+  these 60 tools: read the answer from `result.content[0].text`.
 - **A shorter `tools/list`, same contract.** A middleware
   (`mcp_legal_it/_listing.py`) changes only what the listing says:
   - an optional parameter is published as `type: [X, "null"]` with
