@@ -11,6 +11,7 @@ stdlib fallback), and they are compared on the same sentences.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 
 import pytest
@@ -130,3 +131,53 @@ def test_both_readers_read_the_same_range(testo, letti):
     for comma, dentro in (("773", True), ("800-bis", True), ("801", False), ("700", False)):
         assert citazioni.comma_nell_intervallo(comma, "701", "800") is dentro
         assert fallback.comma_nell_intervallo(comma, "701", "800") is dentro
+
+
+def test_the_whole_act_read_credits_every_comma_of_its_articles(tmp_path, lettore):
+    atto = ("# Legge 27 dicembre 2006, n. 296\n**Fonte**: Normattiva — x\n\nArt. 1\n\n1. Testo del comma."
+            "\n\nArt. 2\n\n1. Testo del comma.")
+    t = (session(tmp_path).prompt()
+         .cite_law("art. 1 L. 296/2006", parte("1", "100", "1", comma=False))
+         .call("fetch_full_act", {"reference": "L. 296/2006"}, atto)
+         .say("L'art. 1, comma 773, L. 296/2006 ridetermina l'aliquota."))
+    assert _gate(t, *lettore).returncode == SILENT
+
+
+# The 14 parts of art. 1 L. 296/2006, as parti_normattiva lists them.
+_PARTI = [{"progressivo": k, "commi_dal": str(100 * k - 99), "commi_al": str(min(100 * k, 1364)), "url": "u"}
+          for k in range(1, 15)]
+
+
+def test_a_part_not_named_credits_no_comma(tmp_path, lettore):
+    from mcp_legal_it.core import norme
+
+    risposta = f"{FONTE}\n\n**Attenzione**: {norme.avviso_parziale(None, _PARTI, comma=False)}.\n\nArt. 1\n\n1. Testo."
+    t = session(tmp_path).prompt().cite_law("art. 1 L. 296/2006", risposta).say(
+        "L'art. 1, comma 50, L. 296/2006 dispone così.")
+    assert _gate(t, *lettore).returncode == NAGS
+
+
+@pytest.mark.parametrize("per", ["mcp", "api"])
+@pytest.mark.parametrize("comma", [False, True])
+@pytest.mark.parametrize("parte, letti", [(_PARTI[7], ("701", "800")), (_PARTI[0], ("1", "100")), (None, ("?", "?"))],
+                         ids=["parte-8", "parte-1", "non-nominata"])
+def test_both_readers_read_the_notice_the_server_writes(per, comma, parte, letti):
+    # The notice is built by the server's own avviso_parziale, so a change of its wording
+    # that the gate's regex no longer reads fails here, in both readers.
+    from mcp_legal_it.core import citazioni, norme
+
+    avviso = norme.avviso_parziale(parte, _PARTI, comma=comma, per=per)
+    for testo in (f"**Attenzione**: {avviso}.", json.dumps({"avvisi": [avviso]}, ensure_ascii=False)):
+        assert citazioni.commi_letti(testo) == _fallback_reader().commi_letti(testo) == letti
+
+
+def test_the_comma_the_gate_asks_for_is_one_cite_law_reads():
+    # The gate's hint asks for «cite_law con il comma 773-bis»: the reference the model then
+    # writes must reach the article and the comma's part, not a parse error.
+    from mcp_legal_it.lib.visualex.parti_normattiva import comma_richiesto
+    from mcp_legal_it.tools.legal_citations import _parse_reference
+
+    for riferimento in ("art. 1, comma 773-bis, L. 296/2006", "art. 1, co. 773 bis, L. 296/2006",
+                        "art. 1, c. 773-bis, L. 296/2006"):
+        assert _parse_reference(riferimento) == ("1", "L. 296/2006")
+        assert comma_richiesto(riferimento) == "773-bis"

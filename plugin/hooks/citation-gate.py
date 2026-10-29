@@ -142,7 +142,8 @@ class FallbackReader:
                       r"[\s,]*(?:(?:comma|co|c)\.?[ \t]?(?P<comma>\d+" + _SUFFIX + r")\b[\s,]*)?"
                       r"(?:(?:della|dello|dell['’]|del)\s*)?(?P<atto>[^\n;]{0,40})", re.I)
     _COMMA_PRIMA = re.compile(r"\bcomma[ \t]+(\d+" + _SUFFIX + r")[ \t]*,?[ \t]*(?:dell['’]|del|dello)?[ \t]*$", re.I)
-    _TESTO_PARZIALE = re.compile(r"testo parziale: commi (\d+(?:-[a-z]+)?)-(\d+(?:-[a-z]+)?) di ", re.I)
+    _TESTO_PARZIALE = re.compile(
+        r"testo parziale: (?:commi (\d+(?:-[a-z]+)?)-(\d+(?:-[a-z]+)?)|una sola parte) di ", re.I)
     _ATTO_NUM = re.compile(r"^(d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m)\.?\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{4})", re.I)
     _CASS = re.compile(r"\bcass(?:azione)?\b[^\n]{0,80}?\bn\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})", re.I)
     _ATTO_PRIMA = re.compile(r"\b(?:d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m|reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:n\.?\s*)?$", re.I)
@@ -184,7 +185,11 @@ class FallbackReader:
 
     def commi_letti(self, testo):
         m = self._TESTO_PARZIALE.search(testo or "")
-        return (self.canonico_comma(m.group(1)), self.canonico_comma(m.group(2))) if m else None
+        if m is None:
+            return None
+        if m.group(1) is None:
+            return ("?", "?")  # a part not named: partial, and no comma lies in it
+        return (self.canonico_comma(m.group(1)), self.canonico_comma(m.group(2)))
 
     @staticmethod
     def comma_nell_intervallo(comma, dal, al):
@@ -379,7 +384,11 @@ class Session:
                 return
             key = r.riferimento_in_identita(tool_input.get("reference") or "")
             if key:
-                self.norms.update((key[0], a) for a in r.articoli_serviti(text))
+                serviti = {(key[0], a) for a in r.articoli_serviti(text)}
+                self.norms.update(serviti)
+                # The whole act's text has each article whole: it credits every comma, as a
+                # whole read of the article does.
+                self.whole.update(serviti)
             return
         body = None
         if stripped.startswith("{"):

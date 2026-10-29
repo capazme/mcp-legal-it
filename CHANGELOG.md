@@ -978,13 +978,24 @@ entry, it is the same feature as ported to the 3.0 line.
     a comma outside every range read is asked to read it («cite_law con il comma 773:
     è stata letta solo un'altra parte dell'articolo»).
   - **What is credited as before.** A citation without a comma, an article read whole at
-    least once, and an article never split. The ranges of several reads add up, and a
-    «-bis» comma sits after its number.
+    least once (also through `fetch_full_act`), and an article never split. The ranges of
+    several reads add up, and a «-bis» comma sits after its number.
+  - **A part not named.** «testo parziale: una sola parte di N» is a partial read that
+    credits no comma.
   - **Both readers.** The server's reader (`core/citazioni`) and the hook's stdlib fallback
-    read the comma the same way, also before the article («il comma 773 dell'art. 1»). A
-    test compares them.
+    agree on the forms the tests list, also before the article («il comma 773 dell'art.
+    1»). The fallback is a smaller reader, not a copy of the server's. A test builds the
+    notice with the server's own `avviso_parziale` and checks that both readers read it.
   - **Fallback reader fix.** It now credits a `cite_law` whose reference names a comma, which
     it did not read before.
+  - **Known limits.**
+    - Only the first comma after the article is read: in «art. 1, comma 50, lett. a),
+      comma 773, L. 296/2006» the server's reader checks comma 50 only, and the fallback
+      does not see that citation.
+    - A plural form («art. 1, commi 773 e 774, L. 296/2006», «commi 773-775») is invisible
+      to the gate: neither reader takes it for a citation, as before this change.
+    - `fetch_full_act` credits its articles whole. Its Akoma Ntoso text has them whole, but
+      its Normattiva-page fallback reads only the first part of a split article (#106).
 - **An article Normattiva splits into parts is no longer cut in silence** (3.0 only:
   2.17.1 reads the Akoma Ntoso export, which has the whole article). Normattiva
   serves a very long article in parts: art. 1 L. 296/2006 is 14 parts, «commi 1-100»
