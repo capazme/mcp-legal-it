@@ -72,6 +72,19 @@ class TMviewBlockedError(Exception):
     """TMview's WAF answered with a challenge page instead of JSON."""
 
 
+class TMviewRefusedError(Exception):
+    """TMview refused the request outright (HTTP 401/403), in JSON, not with a challenge page.
+
+    Seen on 2026-10-29 on the detail endpoint (`{"error":"Forbidden"}` from the F5
+    gateway) while the search still answered. Not a missing record and not a
+    "retry in a minute" throttle: the caller says the source refused, no more.
+    """
+
+    def __init__(self, status: int) -> None:
+        super().__init__(f"TMview ha rifiutato la richiesta (HTTP {status})")
+        self.status = status
+
+
 class TMviewNotFoundError(Exception):
     """TMview answered, but has no record to return for the ST13 asked.
 
@@ -292,6 +305,10 @@ async def _throttle() -> None:
         _last_request_at = time.monotonic()
 
 
+#: Statuses with which TMview refuses a request outright (see TMviewRefusedError).
+_RIFIUTI = frozenset({401, 403})
+
+
 def _json_or_blocked(resp: httpx.Response) -> dict:
     try:
         return resp.json()
@@ -331,7 +348,12 @@ async def search_trademarks(
     await _throttle()
     async with async_client("tmview", timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         await _warm_up(client)
-        resp = await retry_request(client, "POST", _SEARCH_URL, dataset="tmview", json=payload)
+        try:
+            resp = await retry_request(client, "POST", _SEARCH_URL, dataset="tmview", json=payload)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in _RIFIUTI:
+                raise TMviewRefusedError(exc.response.status_code) from None
+            raise
         return _parse_search_response(_json_or_blocked(resp))
 
 
@@ -368,6 +390,8 @@ async def fetch_trademark(st13: str) -> TrademarkDetail:
                 if isinstance(exc, httpx.HTTPStatusError):
                     if _is_detail_unavailable(exc.response):
                         raise TMviewNotFoundError(st13) from exc
+                    if exc.response.status_code in _RIFIUTI:
+                        raise TMviewRefusedError(exc.response.status_code) from None
                     if exc.response.status_code < 500:
                         raise
                 if attempt == _DETAIL_ATTEMPTS - 1:
