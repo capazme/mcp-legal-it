@@ -78,7 +78,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.11', '3.12']
-        # The library range is fastmcp>=3.4,<5: test both majors.
+        # The library range is fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5: test both majors.
         fastmcp: ['3', '4']
 
     steps:

@@ -955,6 +955,15 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Security
+- **The FastMCP floor excludes the vulnerable releases.** Every declaration now asks for
+  `fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5` (library installs: `pyproject.toml`,
+  `plugin/server/pyproject.toml` and the plugin lock's metadata) or `fastmcp>=3.4.11,<4`
+  (the `.mcpb` and the OpenAI bundle's launcher). Before, `>=3.4` still admitted 3.0–3.4.9
+  and 4.0–4.1.1, affected by GHSA-7xgj-8392-5q4r and, on 4.x, GHSA-vqqp-x5qm-5qp4.
+  Today's installs already resolved 3.4.11 (lock) and the latest 4.x. The floor now holds
+  that against an older cache or a pinned environment. `scripts/check_deps_sync.py` checks
+  the new ranges. The `.mcpb` launcher string changes, so Claude Desktop rebuilds its `uv`
+  environment once on the first start of 3.0.
 - **fastmcp 3.4.11 in the plugin's lock** (was 3.4.9): GHSA-7xgj-8392-5q4r,
   «post-transform component authorization is skipped on direct calls»
   (medium, published 2026-10-23, fixed in 3.4.10). Same major; the declared range
@@ -968,6 +977,50 @@ entry, it is the same feature as ported to the 3.0 line.
   add that this does not mean the mark does not exist, and that the record is on
   www.tmdn.org. Before, the answer was «non raggiungibile», followed by httpx's English
   message with the request URL. A refusal is not retried.
+- **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
+  portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
+  provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
+  «pagina di errore». The reader now recognises the page by its own markup before
+  testing for the error page (which is HTML too, and still reported as an error, never
+  read as text). It takes the court, the type, the number of the «REG.PROV.COLL.» line
+  and the «Pubblicato il» date, so the **Estremi** line is unchanged («Sentenza n.
+  17/2021, pubblicata il 09/11/2021»). A parere gives «Parere n. 1918/2026»; its date is
+  the dispatch date, so it is not reported as a publication date. No text is dropped:
+  paragraphs, list items, quotations, headings, table rows and loose text after a line
+  break are all read. AP 17/2021 comes to 106,878 characters, against 106,448 for its XML
+  body. The page carries no markup or embedded emblem. The 15,000-character cut still
+  keeps the dispositivo, from the last block that opens with «P.Q.M.», «P.Q.M.:»,
+  «p.q.m.» or «PER QUESTI MOTIVI». When none is found, the note says «dispositivo non
+  individuato». The XML is still read when the portal serves it. Fixtures: trimmed copies
+  of the real pages of Ad. Plen. n. 17/2021 (private parties and lawyers pseudonymised)
+  and parere n. 1918/2026, and of the portal's error page.
+- **The update notes of a Normattiva article are back** (3.0 only: 2.17.1 reads
+  the Akoma Ntoso export, which carries them). Since articles are read from their
+  page, an article set out in comma divs came without its «AGGIORNAMENTO (n)»
+  notes and without any notice. VisuaLex's extractor drops them for that shape
+  and for the plain-text one, and keeps them for a code's article.
+  - **What a lawyer saw.** Art. 3 d.lgs. 23/2015 printed «di importo pari a due
+    mensilità … per ogni anno di servizio» with no word of C. cost. 194/2018, which
+    declared those words unconstitutional.
+  - **Library.** `article_text` stays VisuaLex's, byte for byte. The notes are read
+    from the same page into `TestoArticolo.note_aggiornamento`, a tuple of the new
+    `NotaAggiornamento` (`numero`, `testo`, `ordine`, `corte_costituzionale`), in page
+    order. It is `()` for a page without notes and `None` when the text is not a
+    Normattiva page's. `note_non_lette` and the avviso «note di aggiornamento non
+    lette: verificare su Normattiva» flag a note that cannot be read, a «((n))» with
+    no note n, and a heading outside the known markup. A comma renumbered «((6)).»
+    and a year «((2025))» are not calls.
+  - **MCP tools.** `cite_law` and `fetch_law_article` print the notes under the text,
+    in an «Aggiornamenti» section, unless the text already carries them (a code's
+    article: never twice). `cite_law(formato="json")` carries `note_aggiornamento`,
+    `note_non_lette` and `note_nel_testo`.
+  - **Cache.** The page cache's records now carry the notes (`normattiva_pagine`
+    schema 3: older records are read again).
+  - **Agreed shape.** The shape is agreed with VisuaLex. A future «notes on request»
+    switch will never cover these notes.
+  - **Live gate.** `tests/unit/test_note_aggiornamento_live.py`, 5 articles, serial.
+    The live phrase checks now read the text with its notes
+    (`tests/unit/_norme_live.py`).
 - **TUIR, TUB, TUF and the Testo unico sicurezza carry their full date.** The
   names `TUIR`, `TUB`, `TUF` and «testo unico sicurezza» resolved to the year
   alone, so `mcp_legal_it.api.leggi_riferimento("art. 1 TUIR")` returned a
