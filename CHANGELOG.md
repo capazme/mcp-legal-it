@@ -870,7 +870,10 @@ entry, it is the same feature as ported to the 3.0 line.
   placeholder date (`…:1986-01-01;917`) with `data_risolta=False`. They now
   carry the act's date as Normattiva gives it: d.P.R. 22 dicembre 1986, n. 917;
   d.lgs. 1 settembre 1993, n. 385; d.lgs. 24 febbraio 1998, n. 58; d.lgs.
-  9 aprile 2008, n. 81. EU acts keep the year alone, as they are cited.
+  9 aprile 2008, n. 81. EU acts keep the year alone, as they are cited. The
+  live gate `tests/unit/test_atti_denominati_live.py` now also checks every
+  Italian act of `ATTI_NOTI` against Normattiva, one request at a time, and
+  refuses an Italian act with the year alone before any request.
 - **Act titles from Normattiva read as plain text.** Normattiva escapes the
   title in `eli:title` twice, so `fetch_full_act` showed «Norme  sulla  tutela
   della libert&agrave; e dignit&agrave; dei lavoratori» for L. 300/1970, split
