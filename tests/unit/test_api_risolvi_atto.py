@@ -22,8 +22,10 @@ DM55 = (FIXTURES / "normattiva" / "landing_dm_55_2014.html").read_text(encoding=
 ERRORE = (FIXTURES / "normattiva" / "landing_atto_inesistente.html").read_text(encoding="utf-8")
 
 N2LS = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
-# The known act read when an act's page is the error page (scraper.normattiva_serves_acts).
-CONTROLLO = "legge:1990-08-07;241"
+# The known act read when an act's page is the error page (scraper.normattiva_serves_acts),
+# asked by its year as every act is.
+CONTROLLO = "legge:1990-01-01;241"
+DM55_URL = "decreto.ministeriale:2014-01-01;55"
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +34,8 @@ def _isolate(monkeypatch, tmp_path):
     monkeypatch.delenv("LEGAL_CACHE", raising=False)
     monkeypatch.setattr(scraper, "_full_date_cache", {})
     monkeypatch.setattr(scraper, "_controllo_valido_fino", 0.0)
+    monkeypatch.setattr(scraper, "_controllo_ok", False)
+    monkeypatch.setattr(scraper, "_controllo_in_corso", {})
     act_dates.svuota_memoria()
     api.configura()
     yield
@@ -214,26 +218,54 @@ class TestPaginaDiErrore:
             assert (await api.risolvi_atto("legge", "99998", "1990")).esito == "atto_non_trovato"
         assert chieste.count(N2LS + CONTROLLO) == 1
 
+    async def test_the_check_takes_the_year_resolver_as_the_act_does(self):
+        # Only the year-only URN serves the act: the full-date one is the error page.
+        r, chieste = await _risolvi({CONTROLLO: L241, "legge:1990-08-07;241": ERRORE}, "legge", "99999", "1990")
+        assert r.esito == "atto_non_trovato"
+        assert chieste[-1] == N2LS + "legge:1990-01-01;241"
+
+    async def test_concurrent_misses_share_the_page_and_the_check(self):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({CONTROLLO: L241}, chieste, attesa=0.05)):
+            stesso = await asyncio.gather(*[api.risolvi_atto("legge", "99999", "1990") for _ in range(3)])
+        assert [r.esito for r in stesso] == ["atto_non_trovato"] * 3
+        assert len(chieste) == 2  # one page, one check
+
+    async def test_concurrent_misses_of_different_acts_share_the_check(self):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({CONTROLLO: L241}, chieste, attesa=0.05)):
+            diversi = await asyncio.gather(*[api.risolvi_atto("legge", str(99990 + i), "1990") for i in range(5)])
+        assert [r.esito for r in diversi] == ["atto_non_trovato"] * 5
+        assert len(chieste) == 6 and chieste.count(N2LS + CONTROLLO) == 1
+
+    async def test_a_failed_check_is_remembered_a_minute(self):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({CONTROLLO: httpx.Response(503)}, chieste)):
+            primo = await api.risolvi_atto("legge", "99999", "1990")
+            secondo = await api.risolvi_atto("legge", "99998", "1990")
+        assert primo.esito == secondo.esito == "fonte_non_raggiungibile"
+        assert chieste.count(N2LS + CONTROLLO) == 1 and len(chieste) == 3
+
     async def test_an_expired_session_is_transient_without_the_check(self):
         # Synthetic: the error page with the notice a consumer saw on 29 Oct («Sessione
         # scaduta»); the copies taken that day show the generic notice instead.
         scaduta = ERRORE.replace("<title>Normattiva - Errore</title>",
                                  "<title>Normattiva - Errore</title><p>Sessione scaduta</p>")
-        r, chieste = await _risolvi({"legge:1990-01-01;241": scaduta, CONTROLLO: L241}, "legge", "241", "1990")
+        r, chieste = await _risolvi({"legge:1990-01-01;99999": scaduta, CONTROLLO: L241}, "legge", "99999", "1990")
         assert r.esito == "fonte_non_raggiungibile" and "sessione scaduta" in r.errore
-        assert chieste == [N2LS + "legge:1990-01-01;241"]
+        assert chieste == [N2LS + "legge:1990-01-01;99999"]
 
     async def test_maintenance_is_transient(self):
         manutenzione = ERRORE.replace("<title>Normattiva - Errore</title>",
                                       "<title>Normattiva - Sito in manutenzione</title>")
-        r, _ = await _risolvi({"legge:1990-01-01;241": manutenzione, CONTROLLO: L241}, "legge", "241", "1990")
+        r, _ = await _risolvi({"legge:1990-01-01;99999": manutenzione, CONTROLLO: L241}, "legge", "99999", "1990")
         assert r.esito == "fonte_non_raggiungibile" and "manutenzione" in r.errore
 
     async def test_an_error_page_is_never_kept(self):
-        r, _ = await _risolvi({"legge:1990-01-01;241": ERRORE, CONTROLLO: ERRORE}, "legge", "241", "1990")
+        r, _ = await _risolvi({DM55_URL: ERRORE, CONTROLLO: ERRORE}, "decreto ministeriale", "55", "2014")
         assert r.esito == "fonte_non_raggiungibile"
-        r, chieste = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
-        assert r.esito == "trovato" and chieste == [N2LS + "legge:1990-01-01;241"]
+        r, chieste = await _risolvi({DM55_URL: DM55}, "decreto ministeriale", "55", "2014")
+        assert r.esito == "trovato" and chieste == [N2LS + DM55_URL]
 
     @pytest.mark.parametrize("risposta", [
         httpx.Response(202, content=b""),  # a WAF's challenge
@@ -242,11 +274,11 @@ class TestPaginaDiErrore:
         httpx.Response(200, text="<html><body></body></html>"),
     ])
     async def test_a_2xx_without_an_act_is_transient_and_asked_again(self, risposta):
-        r, chieste = await _risolvi({"legge:1990-01-01;241": risposta, CONTROLLO: L241}, "legge", "241", "1990")
+        r, chieste = await _risolvi({DM55_URL: risposta, CONTROLLO: L241}, "decreto ministeriale", "55", "2014")
         assert r.esito == "fonte_non_raggiungibile" and r.data is None
-        assert chieste == [N2LS + "legge:1990-01-01;241"]  # no check: not the error page
-        r, chieste = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
-        assert r.esito == "trovato" and chieste == [N2LS + "legge:1990-01-01;241"]
+        assert chieste == [N2LS + DM55_URL]  # no check: not the error page
+        r, chieste = await _risolvi({DM55_URL: DM55}, "decreto ministeriale", "55", "2014")
+        assert r.esito == "trovato" and chieste == [N2LS + DM55_URL]
 
     def test_an_act_page_has_no_problem(self):
         meta = scraper.act_page_metadata(L241)
