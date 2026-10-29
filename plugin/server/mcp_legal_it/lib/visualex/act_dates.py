@@ -108,7 +108,11 @@ def _carica() -> None:
         return
     if isinstance(dati, dict):
         for chiave, rec in dati.items():
-            if isinstance(rec, dict) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(rec.get("data", ""))):
+            # A record is kept only whole: a date, and the moment it was saved as a number
+            # (a broken "salvato" would make every later read of the act fail).
+            salvato = rec.get("salvato") if isinstance(rec, dict) else None
+            if (isinstance(salvato, (int, float)) and not isinstance(salvato, bool)
+                    and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(rec.get("data", "")))):
                 _memoria.setdefault(chiave, rec)
 
 

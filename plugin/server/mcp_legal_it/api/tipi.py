@@ -46,10 +46,10 @@ EsitoRicerca = Literal[
 #: Outcome of resolving an act's identity (``risolvi_atto``).
 EsitoAtto = Literal[
     "trovato",                  # Normattiva has the act: ``data`` and ``urn`` are its own
-    "atto_non_trovato",         # Normattiva has no act of that type, year and number
-    "ambiguo",                  # the date given is not the day of the act with that number
-    "fonte_non_raggiungibile",  # Normattiva down, slow or limiting us
-    "errore_fonte",             # Normattiva answered with another error
+    "atto_non_trovato",         # Normattiva has no act of that type, year and number (not transient)
+    "ambiguo",                  # a full date given whose day is not the act's (never with a year)
+    "fonte_non_raggiungibile",  # transient: down, blocking, limiting us, session or maintenance page
+    "errore_fonte",             # transient: Normattiva answered with another HTTP error
     "riferimento_non_valido",   # a number or date that cannot be read
     "atto_non_riconosciuto",    # no act type has that name
     "non_supportata",           # an EU act, a codice: not resolved here

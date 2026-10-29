@@ -1,7 +1,8 @@
-"""Live gate of ``api.risolvi_atto`` on Normattiva: 5 requests, one at a time.
+"""Live gate of ``api.risolvi_atto`` on Normattiva: 6 requests, one at a time.
 
-One request per act, each a distinct act, with a 2-second pause between them; the count is
-printed before the first one. The expected dates are the ones Normattiva gave on
+One request per act, each a distinct act, with a 2-second pause between calls, plus the
+check on L. 241/1990 that the missing act's error page triggers; the count is printed
+before the first one. The expected dates are the ones Normattiva gave on
 2026-10-29 (page titles «DECRETO LEGISLATIVO 1 settembre 1993, n. 385», «LEGGE 7 agosto
 1990, n. 241», «DECRETO 10 marzo 2014, n. 55» with ELI date 2014-03-10, «DECRETO DEL
 PRESIDENTE DELLA REPUBBLICA 22 dicembre 1986, n. 917», and «Normattiva - Errore» for an
@@ -35,10 +36,15 @@ CASI = [
 ]
 
 
+# One per case, plus the known act read after the error page of L. 99999/1990.
+RICHIESTE = len(CASI) + 1
+
+
 async def test_risolvi_atto_on_normattiva(monkeypatch):
     monkeypatch.setattr(scraper, "_full_date_cache", {})
+    monkeypatch.setattr(scraper, "_controllo_valido_fino", 0.0)
     act_dates.svuota_memoria()
-    print(f"\nrisolvi_atto: {len(CASI)} richieste a Normattiva, una alla volta")
+    print(f"\nrisolvi_atto: {RICHIESTE} richieste a Normattiva, una alla volta")
     ottenuti = []
     with api.configurazione(cache=False):
         for i, (args, _) in enumerate(CASI):
