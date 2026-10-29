@@ -1024,7 +1024,13 @@ def _lettura_pagina(html: str) -> "tuple[str, str | None, dict | None]":
     if corpo is None:
         return "", None, None
     testo = _testo_corpo(corpo)
-    note = note_normattiva.leggi_note(corpo, testo) if testo else None
+    note = None
+    if testo:
+        try:
+            titoli = len(set(note_normattiva._TITOLO_NELLA_PAGINA.findall(html)))
+            note = note_normattiva.leggi_note(corpo, testo, titoli)
+        except Exception:  # noqa: BLE001 - notes unread are said (note_non_lette), never the article lost
+            note = None
     return testo, _served_article_key(corpo), note
 
 

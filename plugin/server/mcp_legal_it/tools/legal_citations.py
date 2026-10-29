@@ -294,7 +294,13 @@ async def cite_law(
                  versione consolidata UE letta, null per il testo GUUE o per un atto italiano;
                  "consolidato_verificato" è true se EUR-Lex è stato interrogato, false se non
                  è stato possibile (testo GUUE, con l'avviso per primo in "avvisi"), null se
-                 non pertinente. In modalità json le annotazioni Brocardi non sono incluse
+                 non pertinente. "note_aggiornamento" sono le note «AGGIORNAMENTO (n)» della
+                 pagina Normattiva ([{numero, testo, ordine, corte_costituzionale}], [] se non
+                 ce ne sono, null se il testo non viene da una pagina Normattiva);
+                 "note_non_lette" è true se una nota non si è potuta leggere (con l'avviso);
+                 "note_nel_testo" è true se il testo le contiene già (articoli dei codici).
+                 In markdown le note sono sotto il testo, nella sezione «Aggiornamenti».
+                 In modalità json le annotazioni Brocardi non sono incluse
                  (include_annotations viene ignorato).
         versione: "vigente" (default) oppure "originale": il testo originario. Per un atto
                   UE è il testo pubblicato in GUUE, l'unico che fa fede; per un atto italiano

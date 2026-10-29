@@ -229,9 +229,18 @@ def note_della_pagina(fonte: str, testo: str, url: str) -> "tuple[list[dict] | N
 
     rec = pagine_normattiva.leggi(url or "")
     note = rec.get("note") if rec else None
-    if note is None:
-        return None, True, False
+    if not _note_ben_formate(note):
+        return None, True, False  # a reading lost, or a record of another shape: unread, and said
     return list(note["note"]), bool(note["non_lette"]), bool(note["nel_testo"])
+
+
+def _note_ben_formate(note) -> bool:
+    """Whether a kept reading's notes have the shape ``note_normattiva.leggi_note`` gives."""
+    if not isinstance(note, dict) or not isinstance(note.get("note"), list):
+        return False
+    tipi = {"numero": str, "testo": str, "ordine": int, "corte_costituzionale": bool}
+    return all(isinstance(n, dict) and set(n) == set(tipi) and all(isinstance(n[k], t) for k, t in tipi.items())
+               for n in note["note"])
 
 
 def note_aggiornamento(base: dict) -> None:

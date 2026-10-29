@@ -20,6 +20,7 @@ inside a minimal HTML shell; the rest of the page (navigation, the act's whole t
 | `cp_n2ls_art416bis1.html` | `regio.decreto:1930-10-19;1398:1~art416bis.1` | art. 416-bis.1 c.p. ("Art. 416-bis.1" head) |
 | `dlgs23_n2ls_art3.html` | `decreto.legislativo:2015-03-04;23~art3` | art. 3 d.lgs. 23/2015, captured 2026-10-29: 3 comma divs and 4 «AGGIORNAMENTO» notes (1, 2, 3, 10), notes 2 and 10 the C. cost. 194/2018 and 128/2024 declarations; the body calls them «(1)» «(2)» «(3)» «((10))» |
 | `cc_n2ls_art2327.html` | `regio.decreto:1942-03-16;262:2~art2327` | art. 2327 c.c., captured 2026-10-29: a code's attachment whose text already carries its note «AGGIORNAMENTO (113)» |
+| `tub_n2ls_art117.html` | `decreto.legislativo:1993-09-01;385~art117` | art. 117 TUB, captured 2026-10-29: commi renumbered by amendments written «((6)).», «((7)).», «((8)).» at the start of their line (not note calls), one real call «((38))» and its note |
 
 Used by `tests/unit/test_articolo_inesistente.py` and `tests/unit/test_note_aggiornamento.py`. To refresh, fetch the same URLs
 (a few seconds apart) and keep only the `bodyTesto` element.

@@ -23,6 +23,7 @@ DIR = Path(__file__).resolve().parents[1] / "fixtures" / "normattiva"
 ART3 = (DIR / "dlgs23_n2ls_art3.html").read_text(encoding="utf-8")
 ART2327 = (DIR / "cc_n2ls_art2327.html").read_text(encoding="utf-8")
 L241_ART3 = (DIR / "l241_n2ls_art3.html").read_text(encoding="utf-8")
+TUB117 = (DIR / "tub_n2ls_art117.html").read_text(encoding="utf-8")
 
 ART3_URL = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-03-04;23~art3"
 
@@ -53,9 +54,8 @@ def _servi(pagina: str):
 
 
 def _lettura(pagina: str):
-    corpo = nh.corpo_testo(nh.parse_document(pagina))
-    testo = nh.estrai_da_corpo(corpo)
-    return testo, note_normattiva.leggi_note(corpo, testo)
+    testo, _servito, note = scraper._lettura_pagina(pagina)
+    return testo, note
 
 
 class TestLettura:
@@ -97,6 +97,55 @@ class TestLettura:
         senza_1 = ART3.replace("AGGIORNAMENTO (1)", "AGGIORNAMENTO (21)", 1)
         _, r = _lettura(senza_1)
         assert r["non_lette"] is False
+
+    def test_a_renumbered_comma_is_not_a_call(self):
+        # Art. 117 TUB: «((6)). Sono nulle …» at the start of a line is comma 6, renumbered;
+        # «((38))» is the one call, and note 38 is there.
+        _, r = _lettura(TUB117)
+        assert [n["numero"] for n in r["note"]] == ["38"] and r["non_lette"] is False
+
+    def test_the_real_call_of_art_117_tub_still_counts(self):
+        senza_38 = TUB117.replace("AGGIORNAMENTO (38)", "AGGIORNAMENTO (39)", 1)
+        _, r = _lettura(senza_38)
+        assert r["non_lette"] is True
+
+    def test_a_year_is_not_a_call(self):
+        con_anno = ART3.replace("del licenziamento fino a quello", "del licenziamento ((2025)) fino a quello", 1)
+        testo, r = _lettura(con_anno)
+        assert "((2025))" in testo and r["non_lette"] is False
+
+    def test_a_heading_outside_the_known_markup_is_unread(self):
+        # Note 2's block under another class: its «AGGIORNAMENTO (2)» heading is still on the page.
+        fuori = ART3.replace('<div class="art_aggiornamento-akn">', '<div class="altro-akn">', 2)
+        fuori = fuori.replace('<div class="altro-akn">', '<div class="art_aggiornamento-akn">', 1)
+        _, r = _lettura(fuori)
+        assert [n["numero"] for n in r["note"]] == ["1", "3", "10"] and r["non_lette"] is True
+
+    def test_a_block_of_another_tag_is_read(self):
+        i = ART3.index('<div class="art_aggiornamento-akn">')
+        j = ART3.index('<div class="art_aggiornamento-akn">', i + 1)
+        blocco = ART3[i:j].rstrip()
+        assert blocco.endswith("</div>")
+        come_section = '<section class="art_aggiornamento-akn">' + blocco[len('<div class="art_aggiornamento-akn">'):-len("</div>")] + "</section>"
+        _, r = _lettura(ART3.replace(blocco, come_section, 1))
+        assert [n["numero"] for n in r["note"]] == ["1", "2", "3", "10"] and r["non_lette"] is False
+
+    def test_a_nested_block_gives_its_note_once(self):
+        i = ART3.index('<div class="art_aggiornamento-akn">')
+        annidato = ART3[:i] + '<div class="art_aggiornamento-akn">' + ART3[i:]
+        k = annidato.index("AGGIORNAMENTO (1)")
+        fine = annidato.index("</div>\n</div>", k) + len("</div>\n</div>")
+        annidato = annidato[:fine] + "</div>" + annidato[fine:]
+        _, r = _lettura(annidato)
+        assert [n["numero"] for n in r["note"]] == ["1", "2", "3", "10"]
+
+    def test_a_failure_of_the_note_reader_never_loses_the_article(self, monkeypatch):
+        def rotto(*args, **kwargs):
+            raise RuntimeError("markup inatteso")
+
+        monkeypatch.setattr(note_normattiva, "leggi_note", rotto)
+        testo, note = _lettura(ART3)
+        assert testo == nh.estrai_da_html(ART3) and note is None
 
     @pytest.mark.parametrize("testo, atteso", [
         ("La Corte Costituzionale, con sentenza 8 novembre 2018 n. 194, ha dichiarato", True),
@@ -143,6 +192,22 @@ class TestApi:
     def test_a_text_not_from_a_page_has_none_and_no_notice(self):
         assert norme.note_della_pagina("normattiva-akn", "testo", ART3_URL) == (None, False, False)
         assert norme.note_della_pagina("eurlex", "testo", ART3_URL) == (None, False, False)
+
+    def test_a_malformed_kept_reading_is_unread_never_an_error(self):
+        for rotte in ({"note": [{"numero": 1}], "non_lette": False, "nel_testo": False},
+                      {"note": "x"}, ["x"], {"note": [{"numero": "1", "testo": "t", "ordine": "1",
+                                                       "corte_costituzionale": False}]}):
+            pagine_normattiva.scrivi(ART3_URL, "testo", "3", None, rotte)
+            assert norme.note_della_pagina("normattiva", "testo", ART3_URL) == (None, True, False), rotte
+
+    async def test_a_failure_of_the_note_reader_is_said_by_the_api(self, monkeypatch):
+        monkeypatch.setattr(note_normattiva, "leggi_note", lambda *a, **k: 1 / 0)
+        with api.configurazione(client_factory=_servi(ART3)):
+            t = await api.testo_articolo(api.riferimento_da_parametri("decreto legislativo", "3", "2015-03-04", "23")
+                                         .norma_data[0], canale="html")
+        assert t.esito == "trovato" and t.article_text == nh.estrai_da_html(ART3)
+        assert t.note_aggiornamento is None and t.note_non_lette is True
+        assert norme.AVVISO_NOTE_NON_LETTE in t.avvisi
 
     def test_a_page_reading_lost_is_never_silent(self):
         # The record of the page served is gone: the notes cannot be said absent.
