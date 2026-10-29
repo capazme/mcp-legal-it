@@ -8,9 +8,9 @@ included) looking for `open(..., "w"/"a"/"x")`, `Path.write_text/write_bytes`,
 (`Document`, `Workbook`, `FPDF`, `ZipFile`) and HTTP verbs that mutate
 (`post`, `put`, `patch`).
 
-The 17 tools that do write are listed in `WRITES_FILES` and get an explicit
-`readOnlyHint=False` instead of being left blank: most of them write a cache
-file, five of them write a document the user asked for. Neither group is
+The 18 tools that do write are listed in `WRITES_FILES` and get an explicit
+`readOnlyHint=False` instead of being left blank: 13 of them only write a cache
+file, 5 write a document the user asked for. Neither group is
 `destructiveHint` -- they add or refresh files, they do not delete user data --
 so hosts that gate on destructiveness can still treat them as safe.
 
@@ -120,7 +120,7 @@ READ_ONLY: frozenset[str] = frozenset({
     "verifica_necessita_dpia", "verifica_partita_iva", "verifica_partita_iva_vies", "verifica_usura",
 })
 
-# Reachable write: cache refresh (12) or document generation (5).
+# Reachable write: cache refresh (13) or document generation (5).
 WRITES_FILES: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_pronuncia_costituzionale", "cite_law", "download_law_pdf", "esporta_atto_docx",
     "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "genera_procura_liti_docx",
