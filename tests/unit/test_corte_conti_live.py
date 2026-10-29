@@ -98,6 +98,8 @@ def test_the_credentials_appear_nowhere():
     utente, password = base64.b64decode(token).decode().split(":", 1)
     secrets = (token, utente, password)
     # Booleans only: a failing assert must not print the values it compares.
-    assert _ANSWERS and not any(s in a for s in secrets for a in _ANSWERS), "a credential is in an answer"
+    trovata = any(s in a for s in secrets for a in _ANSWERS)
+    assert len(_ANSWERS) == 4, "run with the other live tests: they collect the answers"
+    assert not trovata, "a credential is in an answer"
     leaked = [p.name for p in FIXTURES.iterdir() if any(s in p.read_text(encoding="utf-8") for s in secrets)]
     assert not leaked, f"a credential is in the fixtures: {leaked}"

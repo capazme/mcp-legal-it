@@ -33,12 +33,13 @@ from __future__ import annotations
 import base64
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from urllib.parse import quote, urlparse
 
 import httpx
 
-from mcp_legal_it.core._http import async_client
+from mcp_legal_it.core._http import HOST_PER_FONTE, async_client
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
 
@@ -150,9 +151,18 @@ def leggi_configurazione(dati: dict) -> _Accesso:
     utente, password = dati[_UTENTE], dati[_PASSWORD]
     if not (isinstance(utente, str) and isinstance(password, str) and utente and password):
         raise CorteContiPaginaInattesa("la configurazione della banca dati non contiene le credenziali pubbliche")
-    for url_key in ("IIT_API_SERVICE_URL", "IIT_API_SECURE_SERVICE_URL", "IIT_API_PORTAL_SERVICE_URL"):
-        if not str(dati[url_key]).startswith("https://"):
-            raise CorteContiPaginaInattesa("la configurazione della banca dati indica un servizio non https")
+    # Every address the client calls or shows as a link must be https and one of the source's hosts:
+    # an altered configuration can neither send a request nor point the lawyer elsewhere.
+    for url_key in ("IIT_API_SERVICE_URL", "IIT_API_SECURE_SERVICE_URL", "IIT_API_PORTAL_SERVICE_URL",
+                    "SERVER_PUBLIC_BASIC_URL"):
+        indirizzo = str(dati[url_key])
+        try:
+            host = urlparse(indirizzo).hostname
+        except ValueError:
+            host = None
+        if not indirizzo.startswith("https://") or host not in HOST_PER_FONTE[FONTE]:
+            raise CorteContiPaginaInattesa(
+                "la configurazione della banca dati indica un servizio fuori dagli host della Corte dei conti")
     config = {k: v for k, v in dati.items() if k in _CHIAVI and not _CHIAVE_SEGRETA.search(k)}
     token = base64.b64encode(f"{utente}:{password}".encode()).decode()
     return _Accesso(config, "Basic " + token)
@@ -197,19 +207,27 @@ def _url(acc: _Accesso, base_key: str, endpoint_key: str, *parti: str) -> str:
     return url
 
 
+def _da_stato(status: int) -> CorteContiErrore:
+    if status in (401, 403):
+        return CorteContiAccessoNegato(f"il servizio ha rifiutato la richiesta (HTTP {status})")
+    if status >= 500:
+        return CorteContiNonRaggiungibile(f"il servizio risponde HTTP {status}")
+    return CorteContiPaginaInattesa(f"il servizio risponde HTTP {status}")
+
+
 async def _chiedi(client: httpx.AsyncClient, method: str, url: str, **kwargs) -> httpx.Response:
-    """One request; a failure re-raised as our own error, without the request (and its headers)."""
+    """One request; a failure re-raised as our own error, without the request (and its headers).
+
+    The error is raised after the `except` block, so not even `__context__` keeps the httpx
+    exception, whose request carries the `Authorization` header.
+    """
     try:
         return await retry_request(client, method, url, dataset="corte_conti", **kwargs)
     except httpx.HTTPStatusError as exc:
-        status = exc.response.status_code
-        if status in (401, 403):
-            raise CorteContiAccessoNegato(f"il servizio ha rifiutato la richiesta (HTTP {status})") from None
-        if status >= 500:
-            raise CorteContiNonRaggiungibile(f"il servizio risponde HTTP {status}") from None
-        raise CorteContiPaginaInattesa(f"il servizio risponde HTTP {status}") from None
+        errore = _da_stato(exc.response.status_code)
     except httpx.TransportError as exc:
-        raise CorteContiNonRaggiungibile(f"{type(exc).__name__}: {exc}") from None
+        errore = CorteContiNonRaggiungibile(f"{type(exc).__name__}: {exc}")
+    raise errore
 
 
 def _json(resp: httpx.Response):
@@ -240,18 +258,27 @@ async def _accesso(client: httpx.AsyncClient, rinnova: bool = False) -> _Accesso
     return acc
 
 
-async def _post_autenticato(client: httpx.AsyncClient, endpoint_key: str, payload: dict) -> httpx.Response:
-    """POST to the credentialed service; on 401/403 the configuration is read again, once."""
+async def _post_autenticato(
+    client: httpx.AsyncClient, endpoint_key: str, payload: Callable[[_Accesso], dict],
+) -> tuple[httpx.Response, _Accesso]:
+    """POST to the credentialed service; on 401/403 the configuration is read again, once.
+
+    *payload* builds the body from the access, so a retry after a re-read uses the new
+    configuration's addresses and channel, not the ones that were refused.
+    """
     acc = await _accesso(client)
-    url = _url(acc, "IIT_API_SECURE_SERVICE_URL", endpoint_key)
     try:
-        return await _chiedi(client, "POST", url, json=payload, headers=acc.intestazioni())
+        return await _chiedi(client, "POST", _url(acc, "IIT_API_SECURE_SERVICE_URL", endpoint_key),
+                             json=payload(acc), headers=acc.intestazioni()), acc
     except CorteContiAccessoNegato:
-        acc = await _accesso(client, rinnova=True)
-        try:
-            return await _chiedi(client, "POST", url, json=payload, headers=acc.intestazioni())
-        except CorteContiAccessoNegato:
-            raise CorteContiAccessoNegato(_MSG_RIFIUTO) from None
+        pass
+    acc = await _accesso(client, rinnova=True)
+    try:
+        return await _chiedi(client, "POST", _url(acc, "IIT_API_SECURE_SERVICE_URL", endpoint_key),
+                             json=payload(acc), headers=acc.intestazioni()), acc
+    except CorteContiAccessoNegato:
+        pass
+    raise CorteContiAccessoNegato(_MSG_RIFIUTO)
 
 
 # ---------------------------------------------------------------------------
@@ -391,7 +418,10 @@ def parse_search(dati, acc: _Accesso) -> tuple[list[Deliberazione], int]:
     if not isinstance(risultato, dict):
         raise CorteContiPaginaInattesa("la risposta della ricerca non ha il formato atteso")
     out: list[Deliberazione] = []
-    for doc in risultato.get("documents") or []:
+    documenti = risultato.get("documents") or []
+    if not isinstance(documenti, list) or not all(isinstance(doc, dict) for doc in documenti):
+        raise CorteContiPaginaInattesa("la risposta della ricerca non ha il formato atteso")
+    for doc in documenti:
         attr = {a.get("name"): a.get("value") for a in doc.get("documentAttributes") or [] if isinstance(a, dict)}
         if attr.get("CHANNEL_NAME") != acc.config["CHANNEL_NAME_DB_CONTROLLO_PUBLIC"]:
             continue
@@ -482,11 +512,12 @@ async def search_deliberazioni(
     async with _client() as client:
         acc = await _accesso(client)
         organo = risolvi_organo(sezione, await _organi(client, acc)) if sezione.strip() else ""
-        payload = build_search_payload(acc, query, numero=numero, anno=anno, organo=organo, per_data=per_data, n=n)
-        resp = await _post_autenticato(client, "IIT_EXEC_FULLTEXT_SEARCH_PU", payload)
+        resp, acc = await _post_autenticato(
+            client, "IIT_EXEC_FULLTEXT_SEARCH_PU",
+            lambda a: build_search_payload(a, query, numero=numero, anno=anno, organo=organo, per_data=per_data, n=n))
         if resp.status_code == 204 or not resp.content:
             raise CorteContiPaginaInattesa("il servizio ha risposto senza contenuto (HTTP 204)")
-        return parse_search(_json(resp), _ACCESSO or acc)
+        return parse_search(_json(resp), acc)
 
 
 async def _chiave_da_id(client: httpx.AsyncClient, acc: _Accesso, ident: str) -> str:
@@ -495,12 +526,12 @@ async def _chiave_da_id(client: httpx.AsyncClient, acc: _Accesso, ident: str) ->
                                headers={"Content-Type": "application/json"}))
     try:
         hits = dati["hits"]["hits"]
-    except (KeyError, TypeError):
+        chiave = f"{hits[0]['_index']}/{hits[0]['_type']}/{hits[0]['_id']}" if hits else ""
+    except (KeyError, TypeError, IndexError):
         raise CorteContiPaginaInattesa("la ricerca dell'identificativo non ha il formato atteso") from None
-    if not hits:
+    if not chiave:
         raise CorteContiNonTrovato(f"nessuna deliberazione con identificativo {ident}")
-    h = hits[0]
-    return f"{h['_index']}/{h['_type']}/{h['_id']}"
+    return chiave
 
 
 async def fetch_deliberazione(id_locale: str = "", chiave: str = "") -> Deliberazione:
@@ -510,11 +541,11 @@ async def fetch_deliberazione(id_locale: str = "", chiave: str = "") -> Delibera
         acc = await _accesso(client)
         if not chiave:
             chiave = await _chiave_da_id(client, acc, ident)
-        resp = await _post_autenticato(client, "IIT_GETKM_DOCUMENT_DETAIL_PU",
-                                       {"key": chiave, "requiredRawContent": False})
+        resp, acc = await _post_autenticato(client, "IIT_GETKM_DOCUMENT_DETAIL_PU",
+                                            lambda _a: {"key": chiave, "requiredRawContent": False})
         if resp.status_code == 204 or not resp.content:
             raise CorteContiNonTrovato(f"nessun dettaglio per la deliberazione {ident or chiave}")
-        d = parse_dettaglio(_json(resp), _ACCESSO or acc, chiave)
+        d = parse_dettaglio(_json(resp), acc, chiave)
     if ident and d.id_locale.upper() != ident:
         raise CorteContiPaginaInattesa(f"il servizio ha restituito {d.id_locale} invece di {ident}")
     return d

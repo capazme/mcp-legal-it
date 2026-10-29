@@ -148,9 +148,16 @@ class TestConfigurazione:
         with pytest.raises(cc.CorteContiPaginaInattesa, match="credenziali"):
             cc.leggi_configurazione(cfg)
 
-    def test_a_plain_http_service_is_refused(self):
-        with pytest.raises(cc.CorteContiPaginaInattesa, match="https"):
-            cc.leggi_configurazione(_config(IIT_API_SECURE_SERVICE_URL="http://corteconti-iit.almawave.cloud/api/sservice/"))
+    @pytest.mark.parametrize("chiave,valore", [
+        ("IIT_API_SECURE_SERVICE_URL", "http://corteconti-iit.almawave.cloud/api/sservice/"),
+        ("IIT_API_SERVICE_URL", "https://example.org/api/service/"),
+        ("IIT_API_PORTAL_SERVICE_URL", "https://corteconti-iit.almawave.cloud.example.org/api/portal/"),
+        ("SERVER_PUBLIC_BASIC_URL", "https://example.org/"),
+    ])
+    def test_an_address_off_the_source_hosts_is_refused(self, chiave, valore):
+        # Neither a request nor a link shown to the lawyer may leave the Court's two hosts.
+        with pytest.raises(cc.CorteContiPaginaInattesa, match="fuori dagli host"):
+            cc.leggi_configurazione(_config(**{chiave: valore}))
 
     def test_scrub_body_replaces_every_secret_of_the_configuration(self):
         body = json.dumps(_config(KEYCLOAK_DATA={"realm": "x"})).encode()
@@ -267,9 +274,11 @@ class TestParse:
     def test_an_empty_search(self):
         assert cc.parse_search(_fixture("search_nessun_risultato.json"), _acc()) == ([], 0)
 
-    def test_an_unexpected_answer_is_an_error(self):
+    @pytest.mark.parametrize("dati", [{"altro": 1}, {"searchResult": {"documents": ["x"]}},
+                                      {"searchResult": {"documents": {"a": 1}}}])
+    def test_an_unexpected_answer_is_an_error(self, dati):
         with pytest.raises(cc.CorteContiPaginaInattesa):
-            cc.parse_search({"altro": 1}, _acc())
+            cc.parse_search(dati, _acc())
 
     def test_the_detail(self):
         d = cc.parse_dettaglio(_fixture("dettaglio_SRCCAM_29_2025.json"), _acc(), "k")
@@ -391,6 +400,38 @@ class TestTools:
             r = await _cerca_deliberazioni_corte_conti_impl("rinnovo tacito")
         assert r.success and banca.config_letture == 2
 
+    async def test_the_retry_after_a_reread_uses_the_new_configuration(self):
+        banca = Banca(rifiuti=1)
+        canali = [[{"name": "bdc_pu", "id": "3349"}], [{"name": "bdc_pu", "id": "9999"}]]
+        originale = banca.handler
+
+        def handler(request):
+            if str(request.url).endswith("/getBancheDatiChannelList/public"):
+                banca.sent.append(request)
+                return httpx.Response(200, json=canali.pop(0))
+            return originale(request)
+
+        banca.handler = handler
+        with api.configurazione(client_factory=banca.factory):
+            r = await _cerca_deliberazioni_corte_conti_impl("rinnovo tacito")
+        primo, secondo = banca.payloads("/execFullTextSearch/public")
+        assert primo["channels"] == ["3349"] and secondo["channels"] == ["9999"]
+        assert r.success and banca.config_letture == 2
+
+    async def test_a_malformed_id_lookup_is_an_unexpected_answer(self):
+        banca = Banca()
+        originale = banca.handler
+
+        def handler(request):
+            if str(request.url).endswith("/getCidFromKey"):
+                return httpx.Response(200, json={"hits": {"hits": [{"_score": 1.0}]}})
+            return originale(request)
+
+        banca.handler = handler
+        with api.configurazione(client_factory=banca.factory):
+            r = await _leggi_deliberazione_corte_conti_impl("SRCCAM/29/2025/PREV")
+        assert r.error_type == "source_error"
+
     async def test_credentials_refused_twice_are_an_explicit_error(self):
         banca = Banca(rifiuti=5)
         with api.configurazione(client_factory=banca.factory):
@@ -418,7 +459,7 @@ class TestTools:
             with pytest.raises(cc.CorteContiAccessoNegato) as info:
                 await cc.search_deliberazioni("rinnovo tacito")
         exc = info.value
-        assert exc.__cause__ is None and exc.__suppress_context__
+        assert exc.__cause__ is None and exc.__context__ is None
         _niente_segreti(repr(exc) + str(exc))
 
     async def test_no_credential_in_the_logs(self, caplog):
