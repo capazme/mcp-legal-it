@@ -28,7 +28,7 @@ _NO_YEAR_FILTER_NOTE = (
 )
 
 # The search page carries no date: `<dataPubblicazione>` exists only in the
-# provvedimento's own XML, which leggi_provvedimento_amm reads.
+# provvedimento itself (its page, or its XML), which leggi_provvedimento_amm reads.
 _NO_DATE_NOTE = (
     "*Nota: la pagina di ricerca del portale non espone la data dei provvedimenti; la data di "
     "pubblicazione (deposito in segreteria, art. 89 c.p.a.) è riportata da "
@@ -111,7 +111,7 @@ async def _leggi_provvedimento_amm_impl(sede: str, nrg: str, nome_file: str, da_
             return SearchResult(success=False, source="giustizia_amm", error_type="pdf_only",
                               results_text=(
                                   f"Il provvedimento {sede}/{nrg} ({nome_file}) è pubblicato dal portale "
-                                  f"solo in formato PDF: questo tool legge soltanto il testo XML e non "
+                                  f"solo in formato PDF: questo tool legge i provvedimenti pubblicati come pagina e non "
                                   f"estrae il testo dei PDF. Il documento ufficiale è scaricabile da: "
                                   f"{doc.url}"
                               ))

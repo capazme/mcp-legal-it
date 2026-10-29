@@ -1521,7 +1521,7 @@ NOTE TECNICHE
 ═══════════════════════════════════════════════════════════
 
 - Il portale usa Liferay Portal — ricerca pubblica, nessuna autenticazione
-- Testi integrali sul sottodominio mdp in formato XML <GA> (epigrafe + motivazione + dispositivo)
+- Testi integrali sul sottodominio mdp: pagina HTML del provvedimento (dal 2026-10; prima XML <GA>), con intestazione, motivazione e dispositivo
 - Certificato SSL valido su entrambi i domini → verifica TLS attiva
 - Il testo è letto a blocchi di 15000 caratteri (il dispositivo è sempre incluso nella prima risposta): la nota indica il `da_carattere` con cui leggere la parte omessa
 - I parametri sede, nrg e nome_file per leggi_provvedimento_amm vengono dai risultati di ricerca

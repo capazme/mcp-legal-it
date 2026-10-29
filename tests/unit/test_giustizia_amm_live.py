@@ -23,10 +23,12 @@ What it checks, on provvedimenti whose identifiers are fixed and public:
   reference (the mdp host answers HTTP 200 with an HTML error page).
 - `ultimi_provvedimenti_amm`: latest judgments of the TAR Lombardia, seat of
   Milan: seat, type, year, descending numbers, ECLI, and freshness of the first
-  one (`<dataPubblicazione>` of its XML within 30 days of `_clock.today()`).
+  one (its date of publication, «Pubblicato il» on the page or `<dataPubblicazione>` in
+  the XML, within 30 days of `_clock.today()`).
 
 Reference values: the search page https://www.giustizia-amministrativa.it/web/guest/dcsnprr
-and the XML/PDF served by https://mdp.giustizia-amministrativa.it/visualizza/,
+and the XML/PDF served by https://mdp.giustizia-amministrativa.it/visualizza/ (an HTML page
+instead of the XML since 2026-10: «Pubblicato il 09/11/2021», same text),
 read on 2026-09-25 (AP 17/2021: `<dataPubblicazione>09/11/2021`, deliberated in
 camera di consiglio on 20/10/2021, ricorso n. 14/2021 A.P., appeal against TAR
 Sicilia - Catania n. 504/2021; the XML body is 106,448 characters and the
@@ -55,7 +57,7 @@ import pytest
 
 import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
 from src.lib import _clock
-from src.lib.giustizia_amm.client import GASession, _parse_xml_text
+from src.lib.giustizia_amm.client import GASession, _parse_html_document, _parse_xml_text, is_document_html
 from src.tools import giustizia_amm as ga_tools
 
 pytestmark = pytest.mark.live
@@ -225,7 +227,8 @@ def test_su_norma_21_octies_testo_dei_primi_tre_cita_la_norma():
     assert len(docs) == 3, f"meno di tre risultati XML: {[d.get('nome_file') for d in docs]}"
     raws = _fetch_raw("cds", tuple((d["nrg"], d["nome_file"]) for d in docs))
     for doc, raw in zip(docs, raws):
-        _title, body = _parse_xml_text(raw)
+        # The parser the product picks: the page (since 2026-10) or the XML.
+        body = _parse_html_document(raw)[1] if is_document_html(raw) else _parse_xml_text(raw)[1]
         assert body, f"testo vuoto per {doc['nome_file']}"
         m = _OCTIES.search(body)
         assert m, f"{doc['numero']} non cita l'art. 21-octies"
@@ -235,6 +238,16 @@ def test_su_norma_21_octies_testo_dei_primi_tre_cita_la_norma():
 # ---------------------------------------------------------------------------
 # leggi_provvedimento_amm
 # ---------------------------------------------------------------------------
+
+
+def test_ap_17_2021_la_pagina_html_rende_tutto_il_testo():
+    """The HTML page loses no text: its reading is within 2% of the XML body (106,448 characters)."""
+    (raw,) = _fetch_raw("cds", ((AP17_NRG, AP17_FILE),))
+    if not is_document_html(raw):
+        pytest.skip("il portale ha servito l'XML, non la pagina HTML")
+    testo = _parse_html_document(raw)[1]
+    assert abs(len(testo) - 106_448) / 106_448 < 0.02, len(testo)
+    assert "\n\nDISPOSITIVO\n\nP.Q.M." in testo
 
 
 def _ap17_full() -> str:
@@ -329,12 +342,15 @@ def test_ultimi_sentenze_tar_lombardia_milano():
 
 
 def test_ultimi_sentenze_tar_lombardia_milano_sono_recenti():
-    """'Ultimi' holds only if the newest result was published recently (dataPubblicazione of its XML)."""
+    """'Ultimi' holds only if the newest result was published recently (its date of publication)."""
+    from src.lib.giustizia_amm.client import _parse_xml_meta
+
     first = _ultimi_tar_milano()[0]
     if not first["nome_file"].endswith(".html"):
         pytest.skip(f"primo risultato pubblicato solo in PDF: {first['nome_file']}")
     (raw,) = _fetch_raw("tar_mi", ((first["nrg"], first["nome_file"]),))
-    m = re.search(rb"<dataPubblicazione>(\d{2}/\d{2}/\d{4})</dataPubblicazione>", raw)
-    assert m, raw[:400]
-    pubblicato = datetime.strptime(m.group(1).decode(), "%d/%m/%Y").date()
+    # The page (since 2026-10) or the XML: the client's own reading, the date the tool shows.
+    meta = _parse_html_document(raw)[2] if is_document_html(raw) else _parse_xml_meta(raw)
+    assert meta.get("data_pubblicazione"), raw[:400]
+    pubblicato = datetime.strptime(meta["data_pubblicazione"], "%d/%m/%Y").date()
     assert _clock.today() - timedelta(days=30) <= pubblicato <= _clock.today(), pubblicato
