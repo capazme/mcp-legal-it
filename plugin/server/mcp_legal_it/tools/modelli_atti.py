@@ -159,7 +159,7 @@ def genera_modello_atto(tipo_atto: str, parametri: dict | None = None) -> dict:
     return result
 
 
-@mcp.tool(tags={"redazione", "atti"})
+@mcp.tool(tags={"redazione", "atti"}, output_schema=None)
 def esporta_atto_docx(
     testo: str,
     titolo: str = "Atto",

@@ -215,7 +215,7 @@ async def _fetch_law_annotations_impl(act_type: str, article: str, date: str = "
         return f"**Errore Brocardi**: {e}"
 
 
-@mcp.tool(tags={"normativa", "brocardi"})
+@mcp.tool(tags={"normativa", "brocardi"}, output_schema=None)
 async def cite_law(
     reference: str,
     include_annotations: bool = False,
@@ -296,7 +296,7 @@ async def cite_law(
     return await _cite_law_impl(reference, include_annotations, formato, versione)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def fetch_law_article(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupero a basso livello di un articolo con parametri espliciti da Normattiva o EUR-Lex.
     Usare cite_law() per il caso comune; questo tool è per quando serve controllo preciso
@@ -315,7 +315,7 @@ async def fetch_law_article(act_type: str, article: str, date: str = "", act_num
     return await _fetch_law_article_impl(act_type, article, date, act_number)
 
 
-@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"})
+@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"}, output_schema=None)
 async def fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
     """Recupera le annotazioni Brocardi per un articolo: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali. Da usare per approfondire la norma già recuperata con cite_law().
@@ -388,7 +388,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
     return "\n".join(parts)
 
 
-@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"})
+@mcp.tool(tags={"normativa", "brocardi", "solo_brocardi"}, output_schema=None)
 async def cerca_brocardi(reference: str) -> str:
     """Cerca annotazioni Brocardi per un articolo di legge: ratio legis, spiegazione dottrinale,
     massime giurisprudenziali con riferimenti strutturati alla Cassazione, relazioni storiche,
@@ -446,7 +446,7 @@ async def _fetch_act_index_impl(reference: str) -> str:
     return "\n".join(lines)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def fetch_act_index(reference: str) -> str:
     """Recupera l'indice strutturato (rubriche) di un atto normativo da Normattiva.
 
@@ -606,7 +606,7 @@ async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
     return "\n".join(lines)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def fetch_full_act(reference: str, da_carattere: int = 1) -> str:
     """Recupera il testo completo di un atto normativo italiano da Normattiva.
 
@@ -766,7 +766,7 @@ async def _download_law_pdf_impl(reference: str) -> str:
         return f"**Errore** generazione PDF: {e}"
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def download_law_pdf(reference: str) -> str:
     """Scarica o genera il PDF completo di una legge.
 
@@ -1162,7 +1162,7 @@ async def _verifica_citazioni_impl(
     return _format_verifica_markdown(data)
 
 
-@mcp.tool(tags={"normativa"})
+@mcp.tool(tags={"normativa"}, output_schema=None)
 async def verifica_citazioni(
     citazioni: str,
     archivio: str = "tutti",

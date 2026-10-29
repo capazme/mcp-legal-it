@@ -107,7 +107,7 @@ async def _ultimi_atti_anac_impl(tipologia: str = "", max_risultati: int = 10) -
 # ---------------------------------------------------------------------------
 
 
-@mcp.tool(tags={"autorita", "anac"})
+@mcp.tool(tags={"autorita", "anac"}, output_schema=None)
 async def cerca_atti_anac(
     query: str,
     tipologia: str = "",
@@ -145,7 +145,7 @@ async def cerca_atti_anac(
     return result.to_str()
 
 
-@mcp.tool(tags={"autorita", "anac"})
+@mcp.tool(tags={"autorita", "anac"}, output_schema=None)
 async def leggi_atto_anac(
     riferimento: str = "",
     tipologia: str = "",
@@ -179,7 +179,7 @@ async def leggi_atto_anac(
     return result.to_str()
 
 
-@mcp.tool(tags={"autorita", "anac"})
+@mcp.tool(tags={"autorita", "anac"}, output_schema=None)
 async def ultimi_atti_anac(tipologia: str = "", max_risultati: int = 10) -> str:
     """Ultimi atti pubblicati dall'ANAC, dal più recente, con filtro opzionale per tipologia.
 
