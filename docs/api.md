@@ -396,27 +396,61 @@ and makes at most one request per act.
     process. A `Retry-After` of a 429 or 503 pauses the source for at most 30 s. They
     are shared with every other call that reads Normattiva.
   - **Cost:**
-    - one request for an act not seen before;
+    - one request for an act not seen before, two when its page is the error page (the
+      check, at most once every five minutes);
     - none for an act whose date is in the disk cache, or whose page this process
       already read;
-    - never a second page (no art. 1, no index).
+    - never the act's art. 1 or its index.
   - An answer from the disk cache has `fonti=None`: no source was reached.
   - **Transient failures:**
-    - `fonte_non_raggiungibile` is the only transient outcome. It covers a 429 or 5xx on
-      the act's page, a network error, and a source the limits have paused
-      (`FontePausata`, `FonteSospesa`).
-    - It never comes with a date, and it is never kept: the next call asks again.
-    - `atto_non_trovato` is never transient: Normattiva answered and has no such act.
+    - `fonte_non_raggiungibile` and `errore_fonte` are transient: retry later, and do not
+      cache them. Neither ever comes with a date, and the library keeps neither (nor the
+      page that caused it), so the next call asks again.
+    - `fonte_non_raggiungibile` covers:
+      - a 429, 403 (a WAF or rate block, not a fact about the act) or 5xx on the act's page;
+      - a network error, and a source the limits have paused (`FontePausata`, `FonteSospesa`);
+      - a page that says the session expired, or announces maintenance;
+      - any other answer without an act: a 2xx other than 200 (a WAF's 202 with an empty
+        body), a body that does not decode, a page with neither an act nor the error notice;
+      - Normattiva's generic error page when the known act cannot be read either (below);
+      - a shared page read whose first caller was cancelled (the others get
+        `LetturaAnnullata`, a transport error).
+    - `errore_fonte` is any other HTTP error (a 400, a 410).
+  - **The error page needs a check.** For an act it does not have, Normattiva answers
+    HTTP 200 with «Normattiva - Errore» / «Errore nel caricamento delle informazioni». On
+    29 Oct 2026 that page was byte-identical, but for the session id, to the one it serves
+    for an update table asked without the session cookie. So the page alone does not say
+    that the act is missing. On that page, `risolvi_atto` reads a known act, L. 7 agosto
+    1990, n. 241:
+    - if that act reads correctly, the error is about the act asked: `atto_non_trovato`;
+    - if it does not, Normattiva is the problem: `fonte_non_raggiungibile`.
+    - A successful check is trusted five minutes in the process. A miss therefore costs
+      at most two requests.
+  - **`atto_non_trovato` is never transient.** Normattiva answered, and one of these
+    says it has no such act:
+    - a 404;
+    - the page of another act, recognisable by its heading («LEGGE 7 agosto 1990, n. 241»)
+      or its `eli:` metadata, or an ELI date of another year;
+    - the error page («Normattiva - Errore» with «Errore nel caricamento delle
+      informazioni»), with the check passed.
+
+    It can be cached. The library keeps in memory only pages that carry a date.
+  - **Cache parity:** an answer from the cache (disk or memory) has the same `esito`, `data`,
+    `urn`, `url`, `precisione` and `errore` as the live answer; only `fonti` is `None`.
+    The disk file is `act_dates.json` in the cache directory: it follows `MCP_CACHE_DIR`,
+    `configurazione(cache_dir=…)`, and is neither read nor written under `LEGAL_CACHE=off` or
+    `configurazione(cache=False)` (§2). Only dates read from a title go to disk; an ELI
+    date (`INDICATIVO`) is kept in memory for the process only.
 
 `EsitoAtto`:
 
 | `esito` | Meaning |
 |---|---|
 | `trovato` | `data`, `urn`, `url` and `precisione` are the act's |
-| `atto_non_trovato` | Normattiva has no act of that type, year and number: its error page, a 404, the page of another act (`errore` names it), or an ELI date of another year |
-| `ambiguo` | a date was given whose day is not the act's. `data`, `urn` and `url` are those of the act Normattiva has with that type, year and number, and `errore` says so: either the day or the number is wrong |
-| `fonte_non_raggiungibile` | Normattiva down, slow or limiting us (5xx, 429, network error, a source paused by the limits) |
-| `errore_fonte` | Normattiva answered with another HTTP error |
+| `atto_non_trovato` | Normattiva has no act of that type, year and number: its error page with the check passed, a 404, the page of another recognisable act (`errore` names it), or an ELI date of another year. Not transient |
+| `ambiguo` | only when `anno_o_data` is a full date, never with the year alone: a date whose day is not the act's. `data`, `urn` and `url` are those of the act Normattiva has with that type, year and number, and `errore` says so: either the day or the number is wrong |
+| `fonte_non_raggiungibile` | transient: Normattiva down, slow, blocking or limiting us (5xx, 429, 403, network error, a source paused by the limits, an expired session, maintenance, any other answer without an act, the error page with the check failed). Retry, do not cache |
+| `errore_fonte` | transient: Normattiva answered with another HTTP error (400, 410). Retry, do not cache |
 | `riferimento_non_valido` | no type, a number that is not digits (or is 0), a year or date that cannot be read |
 | `atto_non_riconosciuto` | no act type has that name (`errore` suggests the long name) |
 | `non_supportata` | an EU act, a codice, the Costituzione: their date and URN are fixed, use `leggi_riferimento` |

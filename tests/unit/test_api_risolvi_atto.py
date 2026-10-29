@@ -6,12 +6,14 @@ dated by the ELI metadata only) and the page Normattiva serves for an act it doe
 """
 
 import asyncio
+import dataclasses
 from pathlib import Path
 
 import httpx
 import pytest
 
 from mcp_legal_it import api
+from mcp_legal_it.core._http import FontePausata, FonteSospesa
 from mcp_legal_it.lib.visualex import act_dates, scraper
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
@@ -20,6 +22,8 @@ DM55 = (FIXTURES / "normattiva" / "landing_dm_55_2014.html").read_text(encoding=
 ERRORE = (FIXTURES / "normattiva" / "landing_atto_inesistente.html").read_text(encoding="utf-8")
 
 N2LS = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
+# The known act read when an act's page is the error page (scraper.normattiva_serves_acts).
+CONTROLLO = "legge:1990-08-07;241"
 
 
 @pytest.fixture(autouse=True)
@@ -27,6 +31,7 @@ def _isolate(monkeypatch, tmp_path):
     monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path / "cache"))
     monkeypatch.delenv("LEGAL_CACHE", raising=False)
     monkeypatch.setattr(scraper, "_full_date_cache", {})
+    monkeypatch.setattr(scraper, "_controllo_valido_fino", 0.0)
     act_dates.svuota_memoria()
     api.configura()
     yield
@@ -73,7 +78,7 @@ class TestTrovato:
         assert chieste == [N2LS + "legge:1990-01-01;241"]
         assert [(f.fonte, f.url) for f in r.fonti.fonti] == [("normattiva", "https://www.normattiva.it/uri-res/N2Ls")]
 
-    @pytest.mark.parametrize("data", ["1990-08-07", "7 agosto 1990", "7° agosto 1990"])
+    @pytest.mark.parametrize("data", ["1990-08-07", "7 agosto 1990", "7° agosto 1990", "7°agosto 1990"])
     async def test_a_date_that_is_the_acts_own_is_found(self, data):
         r, _ = await _risolvi({"legge:1990-01-01;241": L241}, "L.", " 241 ", data)
         assert r.esito == "trovato" and r.data == "1990-08-07" and r.tipo_atto == "legge"
@@ -109,6 +114,38 @@ class TestTipiVerificati:
 
 
 class TestCache:
+    @pytest.mark.parametrize("args, routes", [
+        (("legge", "241", "1990"), {"legge:1990-01-01;241": L241}),
+        (("legge", "241", "1990-08-08"), {"legge:1990-01-01;241": L241}),
+        (("decreto ministeriale", "55", "2014"), {"decreto.ministeriale:2014-01-01;55": DM55}),
+    ])
+    async def test_a_cached_answer_is_the_live_one_but_for_fonti(self, args, routes):
+        dal_vivo, _ = await _risolvi(routes, *args)
+        in_memoria, chieste = await _risolvi({}, *args)
+        assert chieste == []
+        scraper._full_date_cache.clear()
+        act_dates.svuota_memoria()  # a new process: the disk only (a title's date; an ELI date asks again)
+        da_disco, _ = await _risolvi(routes, *args)
+        senza_fonti = dataclasses.replace(dal_vivo, fonti=None)
+        assert dataclasses.replace(in_memoria, fonti=None) == senza_fonti
+        assert dataclasses.replace(da_disco, fonti=None) == senza_fonti
+        assert dal_vivo.fonti is not None and in_memoria.fonti is None
+
+    async def test_the_date_file_follows_the_cache_directory(self, tmp_path):
+        await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
+        assert (tmp_path / "cache" / "act_dates.json").is_file()
+
+    async def test_no_date_file_with_the_cache_off(self, tmp_path):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({"legge:1990-01-01;241": L241}, chieste), cache=False):
+            r = await api.risolvi_atto("legge", "241", "1990")
+        assert r.esito == "trovato" and not (tmp_path / "cache").exists()
+
+    async def test_no_date_file_with_legal_cache_off(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("LEGAL_CACHE", "off")
+        r, _ = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
+        assert r.esito == "trovato" and not (tmp_path / "cache").exists()
+
     async def test_a_found_date_is_read_again_without_the_network(self):
         await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
         scraper._full_date_cache.clear()
@@ -126,16 +163,24 @@ class TestCache:
         assert len(chieste) == 1
         assert all(r.fonti is not None for r in esiti)  # each call lists the page it rests on
 
+    async def test_a_broken_disk_record_is_ignored(self, tmp_path):
+        (tmp_path / "cache").mkdir()
+        (tmp_path / "cache" / "act_dates.json").write_text(
+            '{"urn:nir:stato:legge:1990;241": {"data": "1990-08-07", "salvato": "ieri"}}', encoding="utf-8")
+        r, chieste = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
+        assert r.esito == "trovato" and r.data == "1990-08-07" and len(chieste) == 1
+
     async def test_a_miss_is_not_kept_on_disk(self):
         await _risolvi({}, "legge", "99999", "1990")
         assert act_dates.leggi(act_dates.chiave("legge", "1990", "99999")) is None
 
 
 class TestNonTrovato:
-    async def test_the_error_page_is_not_found(self):
-        r, _ = await _risolvi({}, "legge", "99999", "1990")
+    async def test_the_error_page_is_not_found_when_a_known_act_reads(self):
+        r, chieste = await _risolvi({CONTROLLO: L241}, "legge", "99999", "1990")
         assert r.esito == "atto_non_trovato" and r.data is None and r.urn is None and r.precisione is None
         assert r.errore == "nessun atto «legge n. 99999 del 1990» su Normattiva"
+        assert chieste == [N2LS + "legge:1990-01-01;99999", N2LS + CONTROLLO]
         assert r.fonti is not None
 
     async def test_the_page_of_another_act_is_not_this_act(self):
@@ -153,7 +198,67 @@ class TestNonTrovato:
         assert r.esito == "atto_non_trovato"
 
 
+class TestPaginaDiErrore:
+    """Normattiva serves one error page for a missing act and for a session or server problem."""
+
+    @pytest.mark.parametrize("controllo", [ERRORE, httpx.Response(503), httpx.ConnectError("giù")])
+    async def test_the_error_page_is_transient_when_the_known_act_does_not_read(self, controllo):
+        r, chieste = await _risolvi({CONTROLLO: controllo}, "legge", "99999", "1990")
+        assert r.esito == "fonte_non_raggiungibile" and r.data is None
+        assert len(chieste) == 2
+
+    async def test_a_known_act_that_reads_is_trusted_five_minutes(self):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({CONTROLLO: L241}, chieste)):
+            assert (await api.risolvi_atto("legge", "99999", "1990")).esito == "atto_non_trovato"
+            assert (await api.risolvi_atto("legge", "99998", "1990")).esito == "atto_non_trovato"
+        assert chieste.count(N2LS + CONTROLLO) == 1
+
+    async def test_an_expired_session_is_transient_without_the_check(self):
+        # Synthetic: the error page with the notice a consumer saw on 29 Oct («Sessione
+        # scaduta»); the copies taken that day show the generic notice instead.
+        scaduta = ERRORE.replace("<title>Normattiva - Errore</title>",
+                                 "<title>Normattiva - Errore</title><p>Sessione scaduta</p>")
+        r, chieste = await _risolvi({"legge:1990-01-01;241": scaduta, CONTROLLO: L241}, "legge", "241", "1990")
+        assert r.esito == "fonte_non_raggiungibile" and "sessione scaduta" in r.errore
+        assert chieste == [N2LS + "legge:1990-01-01;241"]
+
+    async def test_maintenance_is_transient(self):
+        manutenzione = ERRORE.replace("<title>Normattiva - Errore</title>",
+                                      "<title>Normattiva - Sito in manutenzione</title>")
+        r, _ = await _risolvi({"legge:1990-01-01;241": manutenzione, CONTROLLO: L241}, "legge", "241", "1990")
+        assert r.esito == "fonte_non_raggiungibile" and "manutenzione" in r.errore
+
+    async def test_an_error_page_is_never_kept(self):
+        r, _ = await _risolvi({"legge:1990-01-01;241": ERRORE, CONTROLLO: ERRORE}, "legge", "241", "1990")
+        assert r.esito == "fonte_non_raggiungibile"
+        r, chieste = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
+        assert r.esito == "trovato" and chieste == [N2LS + "legge:1990-01-01;241"]
+
+    @pytest.mark.parametrize("risposta", [
+        httpx.Response(202, content=b""),  # a WAF's challenge
+        httpx.Response(200, text="<html><head><title>Sito in manutenzione</title></head><body></body></html>"),
+        httpx.Response(200, content=b"\xff\xfe\x00\x81\x9f\xfe"),  # a body that does not decode
+        httpx.Response(200, text="<html><body></body></html>"),
+    ])
+    async def test_a_2xx_without_an_act_is_transient_and_asked_again(self, risposta):
+        r, chieste = await _risolvi({"legge:1990-01-01;241": risposta, CONTROLLO: L241}, "legge", "241", "1990")
+        assert r.esito == "fonte_non_raggiungibile" and r.data is None
+        assert chieste == [N2LS + "legge:1990-01-01;241"]  # no check: not the error page
+        r, chieste = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
+        assert r.esito == "trovato" and chieste == [N2LS + "legge:1990-01-01;241"]
+
+    def test_an_act_page_has_no_problem(self):
+        meta = scraper.act_page_metadata(L241)
+        assert scraper.normattiva_page_problem(L241, meta) is None
+        assert scraper.normattiva_page_problem(ERRORE, scraper.act_page_metadata(ERRORE)) == "errore"
+
+
 class TestAmbiguo:
+    async def test_a_day_that_is_not_the_acts_is_ambiguous_on_the_eli_path_too(self):
+        r, _ = await _risolvi({"decreto.ministeriale:2014-01-01;55": DM55}, "decreto ministeriale", "55", "2014-03-11")
+        assert r.esito == "ambiguo" and r.data == "2014-03-10" and r.precisione == "INDICATIVO"
+
     async def test_a_day_that_is_not_the_acts_is_ambiguous(self):
         r, _ = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990-08-08")
         assert r.esito == "ambiguo"
@@ -166,15 +271,52 @@ class TestAmbiguo:
 class TestFonte:
     @pytest.mark.parametrize("risposta", [
         httpx.Response(503), httpx.Response(429), httpx.ConnectTimeout("lenta"), httpx.ConnectError("giù"),
+        FontePausata("pausa", retry_after=60), FonteSospesa("sospesa"),
     ])
     async def test_a_source_down_is_unreachable(self, risposta):
         r, _ = await _risolvi({"legge:1990-01-01;241": risposta}, "legge", "241", "1990")
         assert r.esito == "fonte_non_raggiungibile" and r.data is None
         assert r.errore.startswith("Normattiva non raggiungibile")
 
-    async def test_another_http_error_is_an_error_of_the_source(self):
+    async def test_a_403_is_a_block_not_a_fact_about_the_act(self):
         r, _ = await _risolvi({"legge:1990-01-01;241": httpx.Response(403)}, "legge", "241", "1990")
-        assert r.esito == "errore_fonte"
+        assert r.esito == "fonte_non_raggiungibile" and r.errore == "Normattiva non raggiungibile (HTTP 403)"
+
+    async def test_another_http_error_is_an_error_of_the_source(self):
+        r, _ = await _risolvi({"legge:1990-01-01;241": httpx.Response(400)}, "legge", "241", "1990")
+        assert r.esito == "errore_fonte" and r.errore == "Normattiva ha risposto con un errore (HTTP 400)"
+
+    async def test_a_503_shared_by_concurrent_calls_is_transient_for_each(self):
+        chieste: list = []
+        fabbrica = _normattiva({"legge:1990-01-01;241": httpx.Response(503)}, chieste, attesa=0.05)
+        with api.configurazione(client_factory=fabbrica):
+            esiti = await asyncio.gather(*[api.risolvi_atto("legge", "241", "1990") for _ in range(3)])
+        assert [r.esito for r in esiti] == ["fonte_non_raggiungibile"] * 3
+        assert len(chieste) == 1
+
+    async def test_a_cancelled_first_caller_leaves_the_others_a_transient_outcome(self):
+        partita = asyncio.Event()
+        chieste: list = []
+
+        async def handler(request):
+            chieste.append(str(request.url))
+            partita.set()
+            await asyncio.sleep(10)
+            return httpx.Response(200, text=L241)
+
+        def factory(fonte, **kwargs):
+            kwargs.pop("verify", None)
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory):
+            primo = asyncio.create_task(api.risolvi_atto("legge", "241", "1990"))
+            await partita.wait()
+            secondo = asyncio.create_task(api.risolvi_atto("legge", "241", "1990"))
+            await asyncio.sleep(0.01)
+            primo.cancel()
+            r = await secondo
+        assert r.esito == "fonte_non_raggiungibile" and "LetturaAnnullata" in r.errore
+        assert len(chieste) == 1
 
     async def test_a_failure_is_not_kept(self):
         await _risolvi({"legge:1990-01-01;241": httpx.Response(503)}, "legge", "241", "1990")

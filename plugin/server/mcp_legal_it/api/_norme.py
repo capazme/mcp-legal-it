@@ -45,6 +45,7 @@ from mcp_legal_it.lib.visualex.scraper import (
     fetch_act_index,
     fetch_act_tree,
     fetch_normattiva_full_text,
+    normattiva_serves_acts,
 )
 
 #: Latin ordinals that follow an article number, in the order of the law
@@ -66,7 +67,6 @@ SUFFISSI_ARTICOLO: tuple[tuple[str, ...], ...] = (
 #: ``rf"(\d+)-?({ARTICLE_SUFFIX_ALTERNATION})\b"``.
 ARTICLE_SUFFIX_ALTERNATION: str = _ALTERNANZA_SUFFISSI
 
-#: Italian act types Normattiva addresses by date and number (codes are known by name).
 #: The act types whose date and number ``risolvi_atto`` reads from the Normattiva page's
 #: title (``precisione="ESATTO"``), as ``normalize_act_type`` names them. Any other type
 #: it accepts (DPCM, decreto ministeriale, d.lgs. luogotenenziale) is dated by the page's
@@ -81,6 +81,7 @@ TIPI_ATTO_VERIFICATI: tuple[str, ...] = (
     "legge costituzionale",
 )
 
+#: Italian act types Normattiva addresses by date and number (codes are known by name).
 _TIPI_NOTI = frozenset(v.lower() for v in NORMATTIVA_SEARCH.values()) | frozenset(norme._TIPO_CANONICO.values())
 
 _BROCARDI_SPENTO = (
@@ -319,6 +320,14 @@ def riferimento_da_parametri(
     return EsitoRiferimento(esito="trovato", norma_data=(_norma_dati(act_info, article),))
 
 
+# A Normattiva answer without an act that says nothing about the act (scraper.normattiva_page_problem).
+_PROBLEMI_TRANSITORI = {
+    "sessione": "sessione scaduta",
+    "manutenzione": "sito in manutenzione",
+    "illeggibile": "risposta senza atto né pagina di errore",
+}
+
+
 def _atto_esito(esito: str, errore: str, tipo: str = "", numero: str = "", fonti=None) -> AttoRisolto:
     return AttoRisolto(esito=esito, tipo_atto=tipo, numero_atto=numero, errore=errore, fonti=fonti)
 
@@ -331,10 +340,13 @@ async def risolvi_atto(tipo_atto: str, numero_atto: str, anno_o_data: str) -> At
     configuration; a date found from the page's title is kept on disk a year
     (``act_dates.json`` in the cache directory) and in memory for the process.
 
-    Esiti: ``trovato``, ``atto_non_trovato``, ``ambiguo`` (a date whose day is not the act's:
-    ``data`` and ``urn`` are those of the act with that type, year and number),
-    ``fonte_non_raggiungibile``, ``errore_fonte``, ``riferimento_non_valido``,
-    ``atto_non_riconosciuto``, ``non_supportata`` (an EU act, a codice).
+    Esiti: ``trovato``, ``atto_non_trovato``, ``ambiguo`` (a full date whose day is not the
+    act's: ``data`` and ``urn`` are those of the act with that type, year and number),
+    ``fonte_non_raggiungibile`` and ``errore_fonte`` (both transient, never kept),
+    ``riferimento_non_valido``, ``atto_non_riconosciuto``, ``non_supportata`` (an EU act, a
+    codice). Normattiva's error page is ``atto_non_trovato`` only when a known act reads
+    right after it (``scraper.normattiva_serves_acts``): the same page answers a session or
+    server problem.
     """
     from mcp_legal_it.lib.visualex.normattiva_validity import _iso_day
 
@@ -356,8 +368,9 @@ async def risolvi_atto(tipo_atto: str, numero_atto: str, anno_o_data: str) -> At
         return _atto_esito("riferimento_non_valido", f"numero_atto '{numero_atto}' non valido: atteso un numero",
                            tipo)
     numero = str(int(numero))
-    # "1° settembre 1993": the long form's reader takes the day without its ordinal sign.
-    testo = re.sub(r"(\d)\s*[°º]", r"\1", anno_o_data.strip())
+    # "1° settembre 1993", "1°settembre 1993": the long form's reader takes the day without
+    # its ordinal sign, and a space before the month.
+    testo = re.sub(r"(\d)\s*[°º]\s*", r"\1 ", anno_o_data.strip())
     citata = None
     if re.fullmatch(r"\d{4}", testo):
         anno = testo
@@ -371,18 +384,33 @@ async def risolvi_atto(tipo_atto: str, numero_atto: str, anno_o_data: str) -> At
         try:
             data, modo, pagina = await act_full_date(norma)
         except Exception as exc:  # noqa: BLE001 - every failure of the source is an outcome
-            if fonte_giu(exc):
-                return _atto_esito("fonte_non_raggiungibile", f"Normattiva non raggiungibile ({type(exc).__name__})",
+            stato = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None \
+                else None
+            if fonte_giu(exc) or stato == 403:
+                # A 403 is a WAF or rate block, not a fact about the act.
+                motivo = f"HTTP {stato}" if stato else type(exc).__name__
+                return _atto_esito("fonte_non_raggiungibile", f"Normattiva non raggiungibile ({motivo})",
                                    tipo, numero, registro.fonti())
-            if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None \
-                    and exc.response.status_code == 404:
+            if stato == 404:
                 return _atto_esito("atto_non_trovato", f"nessun atto «{tipo} n. {numero} del {anno}» su Normattiva",
                                    tipo, numero, registro.fonti())
-            return _atto_esito("errore_fonte", f"Normattiva ha risposto con un errore ({type(exc).__name__})",
+            motivo = f"HTTP {stato}" if stato else type(exc).__name__
+            return _atto_esito("errore_fonte", f"Normattiva ha risposto con un errore ({motivo})",
                                tipo, numero, registro.fonti())
         if not data:
+            problema = pagina.get("problema")
+            if problema in _PROBLEMI_TRANSITORI:
+                return _atto_esito("fonte_non_raggiungibile",
+                                   f"Normattiva non raggiungibile ({_PROBLEMI_TRANSITORI[problema]})",
+                                   tipo, numero, registro.fonti())
+            if problema == "errore" and not await normattiva_serves_acts():
+                # The same error page answers a missing act and a session or server failure:
+                # it is about the act only when Normattiva serves a known act right now.
+                return _atto_esito("fonte_non_raggiungibile",
+                                   "Normattiva non raggiungibile (pagina di errore, e l'atto di controllo non si legge)",
+                                   tipo, numero, registro.fonti())
             intestazione = pagina.get("heading", "")
-            altro = f": la pagina restituita è «{intestazione}»" if intestazione and "Errore" not in intestazione else ""
+            altro = f": la pagina restituita è «{intestazione}»" if intestazione and not problema else ""
             return _atto_esito("atto_non_trovato", f"nessun atto «{tipo} n. {numero} del {anno}» su Normattiva{altro}",
                                tipo, numero, registro.fonti())
         url = dataclasses.replace(norma, data=data).url()

@@ -24,13 +24,29 @@ entry, it is the same feature as ported to the 3.0 line.
     `api.TIPI_ATTO_VERIFICATI` declares (legge, d.lgs., d.l., d.P.R., r.d., r.d.l.,
     l. cost.). It is `INDICATIVO` when it comes from the page's ELI date (DPCM,
     decreto ministeriale).
-  - **Esiti.** A date whose day is not the act's is `ambiguo`, with the act
-    Normattiva has under that type, year and number. Normattiva's error page or
-    another act's page is `atto_non_trovato`, a source that is down is
-    `fonte_non_raggiungibile`, and EU acts and codici are `non_supportata`.
-  - **Transient failures.** A 429 or 5xx on the act's page is
-    `fonte_non_raggiungibile`, never `trovato` without a date, and is never kept.
-  - **Cost.** At most one request per act, none from the disk cache of act dates
+  - **Esiti.**
+    - A full date whose day is not the act's is `ambiguo`, with the act Normattiva
+      has under that type, year and number. It never comes from a year alone.
+    - Another act's page is `atto_non_trovato`.
+    - EU acts and codici are `non_supportata`.
+  - **Error page.** Normattiva serves one error page for an act it does not
+    have and for a page asked without a session (byte-identical on 29 Oct). So
+    that page is `atto_non_trovato` only when a known act (L. 241/1990) reads
+    right after it; otherwise it is `fonte_non_raggiungibile`.
+  - **Transient failures.** These are `fonte_non_raggiungibile`, never `trovato`
+    without a date, and neither they nor their page are kept (only a page with a
+    date is kept):
+    - a 429, 403 or 5xx;
+    - a network error;
+    - an expired session or a maintenance page;
+    - any other answer without an act, such as a WAF's empty 202;
+    - a shared read whose first caller was cancelled.
+
+    Any other HTTP error is `errore_fonte`, which is transient too.
+  - **Cache parity.** A cached answer equals the live one but for `fonti=None`.
+    The date file follows `MCP_CACHE_DIR` and `LEGAL_CACHE=off`.
+  - **Cost.** One request per act (two on the error page: the check, at most
+    once every five minutes), none from the disk cache of act dates
     (`act_dates.json`). Concurrent calls for one act share one request. The
     library's Normattiva limits apply: 3 in flight, 0.5 s apart, documented in
     `docs/api.md`.
