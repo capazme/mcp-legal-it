@@ -970,6 +970,21 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **The citation gate checks the comma of an article read in parts.** An article
+  Normattiva splits comes from `cite_law` one part at a time, with «testo parziale:
+  commi a-b di N». The gate credited the whole article from any part, so an answer
+  could cite «art. 1, comma 773, L. 296/2006» after reading commi 1-100 only.
+  - **What the gate records.** The commi read for each (act, article). A citation naming
+    a comma outside every range read is asked to read it («cite_law con il comma 773:
+    è stata letta solo un'altra parte dell'articolo»).
+  - **What is credited as before.** A citation without a comma, an article read whole at
+    least once, and an article never split. The ranges of several reads add up, and a
+    «-bis» comma sits after its number.
+  - **Both readers.** The server's reader (`core/citazioni`) and the hook's stdlib fallback
+    read the comma the same way, also before the article («il comma 773 dell'art. 1»). A
+    test compares them.
+  - **Fallback reader fix.** It now credits a `cite_law` whose reference names a comma, which
+    it did not read before.
 - **An article Normattiva splits into parts is no longer cut in silence** (3.0 only:
   2.17.1 reads the Akoma Ntoso export, which has the whole article). Normattiva
   serves a very long article in parts: art. 1 L. 296/2006 is 14 parts, «commi 1-100»
