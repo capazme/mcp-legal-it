@@ -39,17 +39,17 @@ Conteggi reali (`tests/unit/test_profiles.py` li tiene allineati al codice):
 
 | Profilo | Tool | Descrizione |
 |---------|------|-------------|
-| `sinistro` | 81 | Danno biologico, rivalutazione, interessi, normativa, giurisprudenza |
-| `credito` | 91 | Interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato |
-| `penale` | 53 | Prescrizione, calcolo pena, normativa, giurisprudenza |
-| `fiscale` | 65 | IRPEF, detrazioni, TFR, successioni, IMU, CONSOB, crisi d'impresa, societario |
-| `normativa` | 69 | Testo leggi, giurisprudenza di tutte le corti, Garante, CONSOB, privacy |
-| `privacy` | 66 | GDPR, DPIA, registro, data breach, normativa e giurisprudenza |
-| `studio` | 73 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
-| `redattore` | 86 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
-| `cowork` | 79 | Set ridotto (normativa, giurisprudenza, privacy, parcelle) per host con contesto limitato |
+| `sinistro` | 82 | Danno biologico, rivalutazione, interessi, normativa, giurisprudenza |
+| `credito` | 92 | Interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato |
+| `penale` | 54 | Prescrizione, calcolo pena, normativa, giurisprudenza |
+| `fiscale` | 66 | IRPEF, detrazioni, TFR, successioni, IMU, CONSOB, crisi d'impresa, societario |
+| `normativa` | 76 | Testo leggi, giurisprudenza di tutte le corti, Garante, CONSOB, privacy |
+| `privacy` | 67 | GDPR, DPIA, registro, data breach, normativa e giurisprudenza |
+| `studio` | 76 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
+| `redattore` | 76 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
+| `cowork` | 80 | Set ridotto (normativa, giurisprudenza, privacy, parcelle) per host con contesto limitato |
 | `calcoli` | 144 | Solo calcoli e diagnostica, nessuna connessione di rete |
-| `full` | 231 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
+| `full` | 234 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
 
 Prompt guidati (23) e risorse `legal://` (15) restano disponibili in ogni profilo.
 
@@ -252,7 +252,7 @@ curl -s -X POST http://localhost:8000/mcp -H 'Content-Type: application/json' \
 | `MCP_PATH` | `/mcp` | Path dell'endpoint Streamable HTTP |
 | `LEGAL_PROFILE` | `full` | Profilo tool: vedi tabella sopra |
 | `LEGAL_PREVIGENTE` | *(attivo)* | `off`: nasconde i tool a normativa previgente (tag `previgente`) |
-| `LEGAL_BROCARDI` | *(attivo)* | `off` (anche `0`, `false`, `no`): nessuna richiesta a brocardi.it, `cerca_brocardi` e `fetch_law_annotations` non esposti (226 tool), i tool misti rispondono senza Brocardi e lo dicono. Vedi [tool-tags.md](tool-tags.md) |
+| `LEGAL_BROCARDI` | *(attivo)* | `off` (anche `0`, `false`, `no`): nessuna richiesta a brocardi.it, `cerca_brocardi` e `fetch_law_annotations` non esposti (232 tool), i tool misti rispondono senza Brocardi e lo dicono. Vedi [tool-tags.md](tool-tags.md) |
 | `MCP_CACHE_DIR` | `~/.cache/mcp-legal-it` | Directory delle cache su disco (atti AKN, URL Brocardi, massime Consulta, determinazioni DPA, verbale) |
 | `LEGAL_CACHE` | *(attiva)* | `off` (anche `no`, `false`, `0`, `none`, `disabled`): nessuna lettura o scrittura su disco, cache solo in memoria per la vita del processo |
 | `LEGAL_TODAY` / `LEGAL_NOW` | *(orologio reale)* | Pinnano la data/ora vista dal server (`YYYY-MM-DD` / ISO 8601): riproducibilità dei calcoli «a oggi», usati dai golden test |

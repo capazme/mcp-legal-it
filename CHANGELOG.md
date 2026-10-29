@@ -94,6 +94,26 @@ entry, it is the same feature as ported to the 3.0 line.
   (robots.txt allows every agent); the open-data portal refuses automated
   requests and is not used. New authority tag `anac`, in the `normativa`
   profile.
+- **Corte dei conti: deliberazioni of the control sections** (#51, LI-054):
+  `cerca_deliberazioni_corte_conti` (by words, number, year and section),
+  `leggi_deliberazione_corte_conti` (by the id the search returns, such as
+  `SRCCAM/29/2025/PREV`, or by number, year and section: a number several
+  sections used is listed, never picked) and `ultime_deliberazioni_corte_conti`
+  read the Court's banca dati. The answer gives the section, number, dates,
+  outcome, president, rapporteur, recipients, subject, the full text as the
+  banca dati holds it (25,000 characters per answer, `da_carattere` for the
+  rest) and the public link to the official PDF. The search service runs on the
+  Court's vendor's host and asks for the HTTP Basic pair the site's public
+  configuration hands every visitor: the client reads that configuration at
+  runtime, keeps the pair in memory only, re-reads it once when refused, and
+  never writes it to code, logs, disk caches, error messages or the replay tapes
+  (`scripts/replay_mcp_outputs.py` scrubs the recorded configuration; a test
+  records a tape and checks it). One request at a time, 1 s apart, and at most
+  5 documents per search, the public service's own limit (it answers an empty
+  204 from 6). The sentenze of the jurisdictional sections are not covered: the
+  public service counts them but returns none. New hosts
+  `banchedati.corteconti.it` and `corteconti-iit.almawave.cloud`, new court tag
+  `giurisprudenza_conti`; 234 tools.
 - **EU consolidated versions** (`api`): `riferimento_da_parametri(...,
   celex_consolidated="02002L0058-20091219")` and `NormaDati.celex_consolidated`
   (VisuaLex's key, last in the dataclass) ask for the text of an EU regulation or
