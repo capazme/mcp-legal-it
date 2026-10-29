@@ -188,6 +188,12 @@ class FallbackReader:
         return self.normalizza_articolo(m.group(1)) if m else None
 
     def articoli_serviti(self, testo):
+        # As core/citazioni.py: a window with more text after it may end inside a heading.
+        seguito = re.search(r"\n\*\[Caratteri \d+-\d+ su \d+ totali: per leggere il seguito[^\]\n]*\]\*[ \t\n]*$",
+                            testo)
+        if seguito:
+            corpo = testo[: seguito.start()].rstrip()
+            testo = corpo[: corpo.rfind("\n") + 1]
         return {self.normalizza_articolo(m.group(1)) for m in
                 re.finditer(r"^[ \t]*(?:#+[ \t]*)?art(?:icolo)?\.?[ \t]*(\d+" + self._SUFFIX + ")", testo, re.I | re.M)}
 

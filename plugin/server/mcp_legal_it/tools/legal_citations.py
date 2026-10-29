@@ -3,15 +3,17 @@ e Brocardi (annotazioni dottrinali e giurisprudenziali). Usare cite_law() come p
 principale prima di citare qualsiasi norma in un parere o documento legale."""
 
 import asyncio
+import hashlib
 import json
 import os
 import re
 import time
+from collections import OrderedDict
 from typing import Literal
 
 
 from mcp_legal_it.server import mcp
-from mcp_legal_it.lib import _clock
+from mcp_legal_it.lib import _clock, _sources
 from mcp_legal_it.lib._output import OUTPUT_DIR, ensure_private_dir
 from mcp_legal_it.lib._paging import invalid_start, page
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
@@ -462,6 +464,89 @@ async def fetch_act_index(reference: str) -> str:
 # (L. 300/1970 alone is ~52,000 characters, the Codice civile ~2 million).
 _FULL_ACT_WINDOW = 30000
 
+# The windows of one act are cut from one reading of it. Without the akoma ntoso
+# export the act is rebuilt article by article (thousands of requests for a code),
+# and an article that fails is skipped: two readings can differ, and a window cut
+# from the second would shift against the first. So the text read for an act is
+# kept in memory for the day it is valid at, and every later window reuses it.
+# Only the last few acts are kept (a code is ~2 million characters).
+_FULL_ACT_TEXTS: "OrderedDict[tuple, tuple[dict, frozenset]]" = OrderedDict()
+_FULL_ACT_TEXTS_MAX = 4
+# What each reading was (path and digest of the text), kept longer than the
+# text itself: a window asked after the text left memory is served only from
+# a reading that matches it.
+_FULL_ACT_READINGS: "OrderedDict[tuple, tuple[str, str]]" = OrderedDict()
+_FULL_ACT_READINGS_MAX = 256
+_AKN_SOURCE = "normattiva-akn"
+
+
+def svuota_testi_atti() -> None:
+    """Forget the texts and readings kept for fetch_full_act (tests)."""
+    _FULL_ACT_TEXTS.clear()
+    _FULL_ACT_READINGS.clear()
+
+
+def _reading(result: dict) -> tuple[str, str]:
+    text = result.get("text", "")
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+    return result.get("source", "normattiva-html"), digest
+
+
+def _keep(table: OrderedDict, key: tuple, value, limit: int) -> None:
+    table[key] = value
+    table.move_to_end(key)
+    while len(table) > limit:
+        table.popitem(last=False)
+
+
+async def _full_act_text(norma: Norma, da_carattere: int) -> "dict | str":
+    """The reading of ``norma`` that a window is cut from, or an error message.
+
+    The first window reads the act (or reuses today's reading); a later window
+    reuses the reading the first window was cut from. When that reading is no
+    longer in memory, a new one is used only if it is the same text, or comes
+    from the akoma ntoso export, whose text does not depend on which requests
+    succeeded; otherwise the window is refused rather than served shifted.
+    """
+    # The day only keys the memory: not a clock read the answer depends on.
+    key = (norma.tipo_atto, norma.data, norma.numero_atto, _clock.now_unrecorded().date().isoformat())
+    kept = _FULL_ACT_TEXTS.get(key)
+    if kept is not None:
+        result, sources = kept
+        _FULL_ACT_TEXTS.move_to_end(key)
+        for dataset, url in sources:
+            _sources.note(dataset, url)
+        return result
+
+    with _sources.recording() as consulted:
+        result = await fetch_normattiva_full_text(norma)
+    sources = frozenset(consulted)
+    for dataset, url in sources:
+        _sources.note(dataset, url)
+    if result.get("error") or len(result.get("text", "")) < 50:
+        return result
+
+    reading = _reading(result)
+    if da_carattere > 1:
+        before = _FULL_ACT_READINGS.get(key)
+        if before is not None and before != reading:
+            return (
+                "**Errore**: il testo dell'atto letto ora non coincide con quello da cui è stata "
+                "tagliata la finestra precedente (la fonte è cambiata o ha risposto in parte): le "
+                "posizioni non corrispondono più. Ripetere la lettura da da_carattere=1."
+            )
+        if before is None and reading[0] == _AKN_SOURCE:
+            result = {**result, "riletto": True}
+        elif before is None:
+            return (
+                "**Errore**: il testo da cui è stata tagliata la finestra precedente non è più in "
+                "memoria, e questo atto viene ricostruito articolo per articolo: una nuova lettura "
+                "potrebbe non coincidere. Ripetere la lettura da da_carattere=1."
+            )
+    _keep(_FULL_ACT_TEXTS, key, (result, sources), _FULL_ACT_TEXTS_MAX)
+    _keep(_FULL_ACT_READINGS, key, reading, _FULL_ACT_READINGS_MAX)
+    return result
+
 
 async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
     """Implementation of fetch_full_act."""
@@ -484,9 +569,11 @@ async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
         return "Per atti UE usare download_law_pdf() — il testo integrale è disponibile solo in PDF."
 
     try:
-        result = await fetch_normattiva_full_text(norma)
+        result = await _full_act_text(norma, da_carattere)
     except Exception as e:
         return f"**Errore** nel recupero del testo completo: {e}"
+    if isinstance(result, str):
+        return result
 
     if result.get("error"):
         return f"**Errore**: {result['error']}"
@@ -509,6 +596,12 @@ async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
     else:
         body, note = page(text, da_carattere, _FULL_ACT_WINDOW)
         lines.extend([body, f"\n{note}"])
+        if result.get("riletto"):
+            lines.append(
+                "*[Testo riletto dall'export Akoma Ntoso: la lettura della finestra precedente non è più "
+                "in memoria; se veniva da un'altra fonte, le posizioni possono non coincidere: in caso di "
+                "dubbio ripartire da da_carattere=1]*"
+            )
 
     return "\n".join(lines)
 
@@ -519,9 +612,9 @@ async def fetch_full_act(reference: str, da_carattere: int = 1) -> str:
 
     Restituisce il testo integrale dell'atto a finestre di 30000 caratteri: se l'atto è più
     lungo, la nota finale indica il da_carattere con cui leggere il seguito.
-    ATTENZIONE: per codici voluminosi (c.c., c.p.) il testo può essere molto lungo.
+    ATTENZIONE: per codici voluminosi (c.c., c.p.) il testo occupa molte finestre.
     Per atti UE usare download_law_pdf() per il PDF ufficiale da EUR-Lex.
-    Restituisce: testo completo dell'atto con titolo e URL fonte.
+    Restituisce: una finestra del testo dell'atto, con titolo e URL fonte.
 
     Args:
         reference: Nome dell'atto, es. "D.Lgs. 231/2001", "D.M. 55/2014", "L. 604/1966"

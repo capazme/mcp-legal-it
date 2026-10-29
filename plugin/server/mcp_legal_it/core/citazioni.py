@@ -549,8 +549,23 @@ def articolo_servito(testo: str) -> "str | None":
     return normalizza_articolo(m.group("numero")) if m else None
 
 
+# The note closing a ``fetch_full_act`` window that has more text after it
+# (mcp_legal_it/lib/_paging.py): the window may end inside a heading.
+_SEGUITO_FINESTRA = re.compile(
+    r"\n\*\[Caratteri \d+-\d+ su \d+ totali: per leggere il seguito[^\]\n]*\]\*[ \t\n]*$"
+)
+
+
 def articoli_serviti(testo: str) -> set[str]:
-    """Every article heading in a full act's text (``fetch_full_act``)."""
+    """Every article heading in a full act's text (``fetch_full_act``).
+
+    A window that stops before the end of the act may cut its last line inside a
+    heading («Art. 4» of «Art. 41»): that last line is not credited.
+    """
+    seguito = _SEGUITO_FINESTRA.search(testo)
+    if seguito:
+        corpo = testo[: seguito.start()].rstrip()
+        testo = corpo[: corpo.rfind("\n") + 1]
     return {normalizza_articolo(m.group("numero")) for m in _TITOLO_ARTICOLO.finditer(testo)}
 
 
