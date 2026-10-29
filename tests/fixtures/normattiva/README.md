@@ -36,3 +36,19 @@ the `<title>` and the `eli:` metadata of the page's head, verbatim.
 | `landing_atto_inesistente.html` | `legge:1990;99999` | HTTP 200, the error page «Normattiva - Errore», no `eli:` metadata («Errore nel caricamento delle informazioni»). The update table of d.lgs. 196/2003 art. 2-ter asked without the session cookie served the same page, byte for byte but for the session id |
 
 Used by `tests/unit/test_api_risolvi_atto.py`, together with `../akn/landing_legge_241_1990.html`.
+
+## Articles split into parts (`parti/`)
+
+Captured on 2026-10-29. Art. 1 L. 296/2006 is split by Normattiva into 14 parts, «1 (commi
+1-100)» to «1 (commi 1301-1364)», each opened from the act's tree with
+`/atto/caricaArticolo?…&art.progressivo=k` (with the article page's session cookie).
+
+| File | Page | What it keeps |
+|------|------|---------------|
+| `parti/l296_art1.html` | `legge:2006-12-27;296~art1!vig=2026-10-29` | the act tree's 14 entries of art. 1, the visible line «art. 1 (commi 1-100)» and `bodyTesto` (part 1) |
+| `parti/l296_art1_parte8.html` | part 8, `art.progressivo=8` | the visible line «art. 1 (commi 701-800)» and `bodyTesto`: comma 773 («complessivamente rideterminata nel 10 per cento») |
+| `parti/l296_art1_parte2.html` | part 2, `art.progressivo=2` | «art. 1 (commi 101-200)» and `bodyTesto`: a call «((168))» with no note block on the page |
+
+Each trim was checked to give the same text, served article, notes, parts and served part as
+the whole page. Used by `tests/unit/test_parti_articolo.py`.
+
