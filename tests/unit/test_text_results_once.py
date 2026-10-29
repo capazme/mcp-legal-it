@@ -52,7 +52,10 @@ def test_no_tool_wraps_its_result():
     wrapped = sorted(
         t.name for t in _registered() if t.output_schema and t.output_schema.get("x-fastmcp-wrap-result")
     )
-    assert not wrapped
+    assert not wrapped, (
+        "these tools wrap their result in {'result': ...}, so their answer travels twice: "
+        f"return a dict, or add output_schema=None to their @mcp.tool(...): {wrapped}"
+    )
 
 
 def test_dict_tools_keep_their_schema():
