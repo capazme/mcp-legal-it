@@ -208,11 +208,27 @@ class TestYearOnlyActDate:
         assert act_display_title(meta).startswith("LEGGE 20 maggio 1970, n. 300 - Norme sulla tutela della libertà")
         assert "&" not in act_display_title(meta) and "\n" not in act_display_title(meta)
 
-    def test_page_title_fallback_is_unescaped(self):
+    def test_page_title_fallback_is_only_put_on_one_line(self):
+        # <title> is escaped once, so the parser already decoded it: nothing more to decode.
         from bs4 import BeautifulSoup
 
-        html = "<html><head><title>LEGGE 1 gennaio 2000, n. 1 - Libert&amp;agrave; - Normattiva</title></head></html>"
-        assert scraper._normattiva_page_title(html, BeautifulSoup(html, "lxml")) == "LEGGE 1 gennaio 2000, n. 1 - Libertà"
+        html = ("<html><head><title>LEGGE 1 gennaio 2000, n. 1 -  Società &amp; C.\n&amp;notizie"
+                " - Normattiva</title></head></html>")
+        assert scraper._normattiva_page_title(html, BeautifulSoup(html, "lxml")) == (
+            "LEGGE 1 gennaio 2000, n. 1 - Società & C. &notizie"
+        )
+
+    def test_eli_title_decodes_only_complete_entities(self):
+        # A plain «&» or a name with no semicolon stays as it is: html.unescape alone would
+        # turn «&notizie» into «¬izie» and «&sect 3» into «§ 3».
+        page = (
+            '<html><head><title>LEGGE 1 gennaio 2000, n. 1 - Normattiva</title>'
+            '<meta property="eli:title" content="Societ&amp;agrave; &amp; C., D&amp;O &amp;notizie, '
+            '&amp;sect 3, l&amp;#39;atto e l&amp;#x27;altro." /></head></html>'
+        )
+        assert act_page_metadata(page)["title"] == (
+            "Società & C., D&O &notizie, &sect 3, l'atto e l'altro"
+        )
 
     @pytest.mark.asyncio
     async def test_with_full_date_replaces_the_placeholder_date(self, monkeypatch):
