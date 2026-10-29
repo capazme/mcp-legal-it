@@ -955,6 +955,15 @@ entry, it is the same feature as ported to the 3.0 line.
   from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Security
+- **The FastMCP floor excludes the vulnerable releases.** Every declaration now asks for
+  `fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5` (library installs: `pyproject.toml`,
+  `plugin/server/pyproject.toml` and the plugin lock's metadata) or `fastmcp>=3.4.11,<4`
+  (the `.mcpb` and the OpenAI bundle's launcher). Before, `>=3.4` still admitted 3.0–3.4.9
+  and 4.0–4.1.1, affected by GHSA-7xgj-8392-5q4r and, on 4.x, GHSA-vqqp-x5qm-5qp4.
+  Today's installs already resolved 3.4.11 (lock) and the latest 4.x. The floor now holds
+  that against an older cache or a pinned environment. `scripts/check_deps_sync.py` checks
+  the new ranges. The `.mcpb` launcher string changes, so Claude Desktop rebuilds its `uv`
+  environment once on the first start of 3.0.
 - **fastmcp 3.4.11 in the plugin's lock** (was 3.4.9): GHSA-7xgj-8392-5q4r,
   «post-transform component authorization is skipped on direct calls»
   (medium, published 2026-10-23, fixed in 3.4.10). Same major; the declared range
