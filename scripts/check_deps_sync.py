@@ -96,14 +96,16 @@ def read_uv_lock(path: Path) -> list[str]:
 
 
 # Launchers that deliberately pin a narrower range than pyproject.toml, by name.
-# Library installs (wheel, uvx) accept fastmcp>=3.4,<5 since 2.16.1, while the
+# Library installs (wheel, uvx) accept FastMCP 3 and 4 (below 5) since 2.16.1, while the
 # .mcpb launcher keeps FastMCP 3 until it moves to FastMCP 4 in its own release:
 # changing the string also invalidates every user's uv environment, so it must
 # not ride along with an unrelated fix. 3.0 raised the floor from 2.0 to 3.4, the
-# oldest FastMCP the server runs on (enable(tags=..., only=True)), once, at a major.
+# oldest FastMCP the server runs on (enable(tags=..., only=True)), once, at a major,
+# then to 3.4.11 and past the 4.x releases before 4.1.2: the versions that fix
+# GHSA-7xgj-8392-5q4r and GHSA-vqqp-x5qm-5qp4.
 # (The plugin's lock holds FastMCP 3 through a uv constraint instead.) The
 # override must match exactly: drift in a launcher is still a failure.
-LAUNCHER_OVERRIDES: dict[str, str] = {"fastmcp": ">=3.4,<4"}
+LAUNCHER_OVERRIDES: dict[str, str] = {"fastmcp": ">=3.4.11,<4"}
 
 TARGETS: list[tuple[str, Path, object]] = [
     ("plugin/server/pyproject.toml", Path("plugin/server/pyproject.toml"), read_pyproject),
