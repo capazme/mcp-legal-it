@@ -152,7 +152,7 @@ async def _elenco_misure_nazionali_impl(direttiva: str, paese: str = "ITA") -> S
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"normativa", "recepimento_ue"})
+@mcp.tool(tags={"normativa", "recepimento_ue"}, output_schema=None)
 async def get_italian_implementation(direttiva: str) -> str:
     """Trova l'atto italiano che recepisce una direttiva UE (mappatura UE -> Italia).
 
@@ -177,7 +177,7 @@ async def get_italian_implementation(direttiva: str) -> str:
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"normativa", "recepimento_ue"})
+@mcp.tool(tags={"normativa", "recepimento_ue"}, output_schema=None)
 async def get_eu_basis(atto: str) -> str:
     """Trova la direttiva UE recepita da un atto italiano (mappatura Italia -> UE).
 
@@ -200,7 +200,7 @@ async def get_eu_basis(atto: str) -> str:
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"normativa", "recepimento_ue"})
+@mcp.tool(tags={"normativa", "recepimento_ue"}, output_schema=None)
 async def elenco_misure_nazionali(direttiva: str, paese: str = "ITA") -> str:
     """Elenca le misure nazionali di recepimento di una direttiva UE in un Paese.
 

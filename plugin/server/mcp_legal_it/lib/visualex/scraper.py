@@ -6,8 +6,10 @@ import dataclasses
 import difflib
 import os
 import re
+import time
 import unicodedata
 import warnings
+from html import unescape
 from urllib.parse import urljoin
 
 import httpx
@@ -78,6 +80,28 @@ _full_date_cache: dict[str, dict] = {}
 _date_in_corso: "dict[tuple[str, int], asyncio.Future]" = {}
 
 
+# A complete character reference: named (``&agrave;``), decimal (``&#39;``) or hex
+# (``&#x27;``). ``html.unescape`` alone would also decode a name with no semicolon,
+# turning text that is already plain («D&O &notizie») into «D&O ¬izie».
+_ENTITA = re.compile(r"&(?:[A-Za-z][A-Za-z0-9]*|#[0-9]+|#[xX][0-9A-Fa-f]+);")
+
+
+def _one_line(raw: str) -> str:
+    """A title as one line with single spaces (the official heading keeps double spaces
+    and line breaks)."""
+    return " ".join(raw.split())
+
+
+def _eli_title(raw: str) -> str:
+    """The ``eli:title`` of a Normattiva page as plain text on one line.
+
+    Normattiva escapes this attribute twice (``libert&amp;agrave;``), so the parsed
+    value still reads ``libert&agrave;``: its complete entities are decoded once more.
+    The other titles of the page are escaped once and arrive decoded already.
+    """
+    return _one_line(_ENTITA.sub(lambda m: unescape(m.group()), raw))
+
+
 def act_page_metadata(html: str) -> dict:
     """Identity of an act read from its Normattiva page: date, title, page title.
 
@@ -92,11 +116,54 @@ def act_page_metadata(html: str) -> dict:
     date = (meta_date.get("content") or "").strip() if meta_date else ""
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
         date = ""
-    title = (meta_title.get("content") or "").strip().rstrip(".").strip() if meta_title else ""
+    title = _eli_title(meta_title.get("content") or "").rstrip(".").strip() if meta_title else ""
     page_title = soup.find("title")
-    heading = page_title.get_text(strip=True) if page_title else ""
+    heading = _one_line(page_title.get_text(strip=True)) if page_title else ""
     heading = re.sub(r"\s*-\s*Normattiva\s*$", "", heading).strip()
     return {"date": date, "title": title, "heading": heading}
+
+
+#: The page Normattiva serves when it does not answer with an act: «Normattiva - Errore»,
+#: «Errore nel caricamento delle informazioni». Measured on 29 Oct 2026, the page for an
+#: act it does not have (``N2Ls?urn:nir:stato:legge:1990;99999``, HTTP 200) and the page
+#: for an update table asked without the session cookie (HTTP 200) are byte-identical,
+#: but for the session id. So the page alone never says that an act does not exist.
+_PAGINA_ERRORE = "Normattiva - Errore"
+_MESSAGGIO_ERRORE = "Errore nel caricamento delle informazioni"
+_SESSIONE_SCADUTA = re.compile(r"sessione\s+scadut", re.IGNORECASE)
+_MANUTENZIONE = re.compile(r"manutenzione", re.IGNORECASE)
+# The heading of an act's page: "LEGGE 7 agosto 1990, n. 241", "DECRETO 10 marzo 2014, n. 55".
+_INTESTAZIONE_ATTO = re.compile(r"^[A-Z][A-Z' -]+ \d{1,2}[º°]? [a-z]+ \d{4}, n\. \d+")
+
+
+def normattiva_page_problem(html: str, meta: dict, status: int = 200) -> str | None:
+    """Why a Normattiva answer carries no act, or ``None`` when it is an act's page.
+
+    *meta* is :func:`act_page_metadata` of the same page. ``None``: the page has an act's
+    date, or names an act (its heading, or its ``eli:title``): the asked act's or, when
+    the date does not match, another one. Otherwise:
+
+    - ``"errore"``: Normattiva's generic error page, served both for an act it does not
+      have and for a session or server problem (the caller must tell them apart);
+    - ``"sessione"``: the page says the session expired (reported by a consumer);
+    - ``"manutenzione"``: the page announces maintenance;
+    - ``"illeggibile"``: anything else, an answer other than 200 (a WAF's 202 with an
+      empty body) or a page with neither an act nor the error notice.
+    """
+    if meta.get("date"):
+        return None
+    if status != 200:
+        return "illeggibile"
+    if _SESSIONE_SCADUTA.search(html):
+        return "sessione"
+    if _MANUTENZIONE.search(html):  # never on the error page nor on an act's page with its date
+        return "manutenzione"
+    heading = meta.get("heading", "")
+    if heading.startswith(_PAGINA_ERRORE) and _MESSAGGIO_ERRORE in html:
+        return "errore"
+    if _INTESTAZIONE_ATTO.match(heading) or meta.get("title"):
+        return None
+    return "illeggibile"
 
 
 def act_display_title(meta: dict) -> str:
@@ -112,6 +179,14 @@ def _year_only_act(norma: Norma) -> bool:
     if norma._is_eurlex() or codice_urn(norma.tipo_atto_normalized.lower()):
         return False
     return bool(re.fullmatch(r"\d{4}", norma.data or "")) and bool(norma.numero_atto)
+
+
+class LetturaAnnullata(httpx.TransportError):
+    """The call that started a shared page read was cancelled: its waiters get this.
+
+    A ``TransportError``, so a waiter reads it as a source that did not answer (transient),
+    never as a fact about the act.
+    """
 
 
 async def _act_metadata(norma: Norma) -> dict:
@@ -141,19 +216,72 @@ async def _act_metadata(norma: Norma) -> dict:
             # VisuaLex's check: the title must name this act (type, year and number).
             meta["data_titolo"] = act_dates.date_from_title(
                 resp.text, _tipo_urn(norma), (norma.data or "")[:4], norma.numero_atto or "") or ""
+            meta["problema"] = normattiva_page_problem(resp.text, meta, resp.status_code)
     except BaseException as exc:
         if not futuro.done():
             # A cancelled leader must not cancel its waiters (other callers): they get a
             # failed lookup instead, which with_full_date reads as "date not resolved".
-            condiviso = exc if isinstance(exc, Exception) else RuntimeError("ricerca della data annullata")
+            condiviso = exc if isinstance(exc, Exception) else LetturaAnnullata("lettura della pagina annullata")
             futuro.set_exception(condiviso)
             futuro.exception()  # retrieved: a waiter-less failure must not warn
         raise
     finally:
         _date_in_corso.pop(chiave, None)
-    _full_date_cache[url] = meta
+    if meta["date"]:
+        # A page without a date is never kept: an error page, a WAF's challenge or a
+        # maintenance notice may be a problem of this moment, not a fact about the act.
+        _full_date_cache[url] = meta
     futuro.set_result(meta)
     return meta
+
+
+# The act a reachable Normattiva always serves, read when an act's page is the error page:
+# if this one reads, the error is about the act asked; if not, about Normattiva. It is asked
+# by its year, as risolvi_atto asks every act (urn:nir:stato:legge:1990-01-01;241), so the
+# check goes through the same resolver as the page it vouches for.
+_CONTROLLO = Norma(tipo_atto="legge", data="1990", numero_atto="241")
+_CONTROLLO_DATA = "1990-08-07"
+_CONTROLLO_OK_PER = 300.0       # a success is trusted five minutes
+_CONTROLLO_FALLITO_PER = 60.0   # a failure one minute: no second request per miss in an outage
+_controllo_valido_fino = 0.0
+_controllo_ok = False
+_controllo_in_corso: "dict[int, asyncio.Future]" = {}
+
+
+async def normattiva_serves_acts() -> bool:
+    """Whether Normattiva serves a known act's page now (L. 7 agosto 1990, n. 241).
+
+    One request through the library's client. Its answer is shared by the calls that ask
+    while it is in flight (one per event loop), and kept for the process: a success five
+    minutes, a failure one minute. Network and HTTP errors, a page without that act, and a
+    cancelled read are a ``False``.
+    """
+    global _controllo_valido_fino, _controllo_ok
+    if time.monotonic() < _controllo_valido_fino:
+        return _controllo_ok
+    chiave = id(asyncio.get_running_loop())
+    in_corso = _controllo_in_corso.get(chiave)
+    if in_corso is not None:
+        return await asyncio.shield(in_corso)
+    futuro = asyncio.get_running_loop().create_future()
+    _controllo_in_corso[chiave] = futuro
+    ok = False
+    try:
+        async with async_client("normattiva", headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(_CONTROLLO.url())
+            resp.raise_for_status()
+            note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
+        ok = act_dates.date_from_title(resp.text, "legge", "1990", "241") == _CONTROLLO_DATA
+    except Exception:  # noqa: BLE001 - an unreachable source is the answer
+        ok = False
+    finally:
+        _controllo_in_corso.pop(chiave, None)
+        if not futuro.done():
+            # Also when this call is cancelled: the waiters get "not served" (transient).
+            futuro.set_result(ok)
+    _controllo_ok = ok
+    _controllo_valido_fino = time.monotonic() + (_CONTROLLO_OK_PER if ok else _CONTROLLO_FALLITO_PER)
+    return ok
 
 
 async def with_full_date(norma: Norma) -> Norma:
@@ -165,31 +293,45 @@ async def with_full_date(norma: Norma) -> Norma:
     """
     if not _year_only_act(norma):
         return norma
+    try:
+        date, _modo, _meta = await act_full_date(norma)
+    except Exception:  # noqa: BLE001 - identity lookup is best effort
+        return norma
+    if not date:
+        return norma
+    return dataclasses.replace(norma, data=date)
+
+
+async def act_full_date(norma: Norma) -> tuple[str, str, dict]:
+    """``(date, how, page)`` of an act cited with the year only (``Norma.data`` = "YYYY").
+
+    *how* is ``"titolo"`` when the page's title names this act's type, year and number
+    (or the date was kept on disk after such a reading), ``"eli"`` for the page's ELI date
+    of a kind the titles do not cover; *date* is ``""`` when the page does not name the
+    act. *page* is :func:`act_page_metadata` of the page read, ``{}`` when no page was read.
+    Network and HTTP errors propagate: :func:`with_full_date` swallows them,
+    ``api.risolvi_atto`` reports them.
+    """
     kind = _tipo_urn(norma)
     chiave = act_dates.chiave(kind, norma.data, norma.numero_atto)
     found = act_dates.leggi(chiave)
     if found:
-        return dataclasses.replace(norma, data=found)
-    try:
-        meta = await _act_metadata(norma)
-    except Exception:  # noqa: BLE001 - identity lookup is best effort
-        return norma
+        return found, "titolo", {}
+    meta = await _act_metadata(norma)
     if kind in act_dates._TITLES:
         # VisuaLex's rule: the page's title names this act's type, year and number.
         date = meta.get("data_titolo", "")
         if date:
             act_dates.scrivi(chiave, date)
-    else:
-        # A kind the titles do not cover (a DPCM, a ministerial decree, a regional law):
-        # the page's ELI date, accepted when it is in the cited year — a weaker check, as
-        # before. Never kept: the resolver can answer a regional law with the state law of
-        # the same year and number, and a year on disk would make that mistake last.
-        date = meta.get("date", "")
-        if not date.startswith(f"{norma.data}-"):
-            date = ""
-    if not date:
-        return norma
-    return dataclasses.replace(norma, data=date)
+        return date, ("titolo" if date else ""), meta
+    # A kind the titles do not cover (a DPCM, a ministerial decree, a regional law):
+    # the page's ELI date, accepted when it is in the cited year — a weaker check, as
+    # before. Never kept: the resolver can answer a regional law with the state law of
+    # the same year and number, and a year on disk would make that mistake last.
+    date = meta.get("date", "")
+    if not date.startswith(f"{norma.data}-"):
+        return "", "", meta
+    return date, "eli", meta
 
 
 def _tipo_urn(norma: Norma) -> str:
@@ -1699,6 +1841,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                     "url": act_url,
                     "article_count": act.part_article_count(part),
                     "source": "normattiva-akn",
+                    "completo": True,
                 }
 
     ajax_headers = {**_HEADERS, "X-Requested-With": "XMLHttpRequest"}
@@ -1725,10 +1868,13 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
 
         if not article_urls:
             # Fallback: return just the first article (old behavior)
-            return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1}
+            return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
+                    "completo": False}
 
-        # Fetch all articles via AJAX, preserving order
+        # Fetch all articles via AJAX, preserving order. ``missed`` counts the articles
+        # that could not be read: the text is then not the whole act ("completo").
         all_parts: list[str] = []
+        missed = 0
         seen_urls: set[str] = set()
         for ajax_path in article_urls:
             if ajax_path in seen_urls:
@@ -1742,6 +1888,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                 art_html = art_resp.text
                 # Skip error pages
                 if "Normattiva - Errore" in art_html or len(art_html) < 50:
+                    missed += 1
                     continue
                 art_soup = BeautifulSoup(art_html, "lxml")
                 body = art_soup.find("div", class_="bodyTesto")
@@ -1749,14 +1896,19 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                     text = _testo_intero(body)
                     if text and text != "[Articolo senza contenuto o abrogato]":
                         all_parts.append(text)
+                else:
+                    missed += 1
             except httpx.HTTPError:
+                missed += 1
                 continue
 
     if not all_parts:
-        return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1}
+        return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
+                "completo": False}
 
     full_text = "\n\n---\n\n".join(all_parts)
-    return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts)}
+    return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts),
+            "completo": missed == 0}
 
 
 def _normattiva_page_title(html: str, soup: BeautifulSoup) -> str:
@@ -1772,13 +1924,13 @@ def _normattiva_page_title(html: str, soup: BeautifulSoup) -> str:
     for h1 in soup.find_all("h1"):
         if "sr-only" in (h1.get("class") or []):
             continue
-        text = h1.get_text(strip=True)
+        text = _one_line(h1.get_text(strip=True))
         if text:
             return text
     title_tag = soup.find("title")
     if not title_tag:
         return ""
-    return re.sub(r"\s*-\s*Normattiva\s*$", "", title_tag.get_text(strip=True)).strip()
+    return re.sub(r"\s*-\s*Normattiva\s*$", "", _one_line(title_tag.get_text(strip=True))).strip()
 
 
 def _extract_article_ajax_urls(html: str) -> list[str]:

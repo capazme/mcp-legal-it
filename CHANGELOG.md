@@ -24,6 +24,45 @@ entry, it is the same feature as ported to the 3.0 line.
   stays gated, relative entries are ignored, and `/a/CODE2` is not inside
   `/a/CODE`. Brings upstream the lane separation a local 2.9.0 patch had, which
   2.16.1 no longer carried.
+- **`api.risolvi_atto(tipo_atto, numero_atto, anno_o_data)`: an act's full date
+  and NIR URN.** One call per act, from the act's own Normattiva page (never its
+  art. 1). It returns an `AttoRisolto`: `data` («1993-09-01»), `urn`, `url`,
+  `precisione` and `esito`, in the new closed vocabulary `EsitoAtto`.
+  - **Precisione.** The date is `ESATTO` when the page's title names this act's
+    type, year and number, for the seven types the new constant
+    `api.TIPI_ATTO_VERIFICATI` declares (legge, d.lgs., d.l., d.P.R., r.d., r.d.l.,
+    l. cost.). It is `INDICATIVO` when it comes from the page's ELI date (DPCM,
+    decreto ministeriale).
+  - **Esiti.**
+    - A full date whose day is not the act's is `ambiguo`, with the act Normattiva
+      has under that type, year and number. It never comes from a year alone.
+    - Another act's page is `atto_non_trovato`.
+    - EU acts and codici are `non_supportata`.
+  - **Error page.** Normattiva serves one error page for an act it does not
+    have and for a page asked without a session (byte-identical on 29 Oct). So
+    that page is `atto_non_trovato` only when a known act (L. 241/1990, asked by
+    its year as every act is) reads right after it; otherwise it is
+    `fonte_non_raggiungibile`. The residual risk is documented: within five minutes
+    of a successful check, a session error on one act's page reads as missing.
+  - **Transient failures.** These are `fonte_non_raggiungibile`, never `trovato`
+    without a date, and neither they nor their page are kept (only a page with a
+    date is kept):
+    - a 429, 403 or 5xx;
+    - a network error;
+    - an expired session or a maintenance page;
+    - any other answer without an act, such as a WAF's empty 202;
+    - a shared read whose first caller was cancelled.
+
+    Any other HTTP error is `errore_fonte`, which is transient too.
+  - **Cache parity.** A cached answer equals the live one but for `fonti=None`.
+    The date file follows `MCP_CACHE_DIR` and `LEGAL_CACHE=off`.
+  - **Cost.** One request per act, plus one for the check on the error page.
+    The check is shared by concurrent calls, and its answer is kept five minutes
+    (success) or one minute (failure). None from the disk cache of act dates
+    (`act_dates.json`). Concurrent calls for one act share one request. The
+    library's Normattiva limits apply: 3 in flight, 0.5 s apart, documented in
+    `docs/api.md`.
+  - Documented in `docs/api.md` §3. The batch form stays planned (§6).
 - **The sigle of VisuaLex's source convention** (G-360, G-366, G-369): «cod.
   post.» and «c.g.c.» name their codes, and an annex of a code's decree with a
   sigla of its own reads as that code and annex, as VisuaLex keys it: «art. 1
@@ -582,6 +621,65 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **Text answers are sent once.** The 60 tools that answer plain text (the
+  norm, case-law, authority and register readers, and a few writers) used to
+  send each answer twice: as the text block and again as `structuredContent`
+  `{"result": <the same text>}`, because FastMCP gives a `-> str` function a
+  wrapped output schema. They are now declared with `output_schema=None`: the
+  answer is the text block only, and `tools/list` no longer carries their
+  `outputSchema`. The text the model reads is unchanged; the tools that return
+  a dict keep their `structuredContent`. A test keeps every new text tool in
+  line. For a FastMCP Python client, `CallToolResult.data` is now `None` for
+  these 60 tools: read the answer from `result.content[0].text`.
+- **`fetch_full_act` reads a long act in windows.** It used to return the whole
+  act in one answer: L. 300/1970 alone was about 52,000 characters (~15k
+  tokens), the Codice civile about two million. It now returns windows of
+  30,000 characters and takes the optional `da_carattere` parameter that the
+  other reading tools already have: the final note gives the range, the total
+  and the `da_carattere` to read on from. An act that fits in one window gets
+  the same answer as before, and calls without the parameter keep working.
+  The windows of one act are cut from one complete reading of it, kept in
+  memory for the Italian day (Europe/Rome, also in a UTC container): a later
+  window sends no request (without the Akoma Ntoso export a code is rebuilt
+  article by article, thousands of requests), and concurrent first reads of
+  one act share a single reading. A reading with articles missing is served
+  but not kept, and such readings still run one at a time. A later window whose reading is gone is served only from the
+  same text or from a complete Akoma Ntoso export, and then says it was read
+  again; otherwise it is refused with a pointer to `da_carattere=1`, never
+  served shifted. Known limit: windows carry no reading id, so if the text
+  leaves memory and another caller reads the act again first, a later window
+  is cut from that reading (refused only when the text differs). The citation
+  gate does not credit an article heading that a window cut at either end
+  («Art. 4» of «Art. 41» at the end, «art. 7» of «vedi art. 7» at the start).
+  Known limit: a genuine heading on a window's first or last line is not
+  credited either, so the gate may ask to read an article the window served
+  (it never credits one it did not); cutting the windows on a line boundary
+  would remove it, and departs from the shared paging contract.
+- **A shorter `tools/list`, same contract.** A middleware
+  (`mcp_legal_it/_listing.py`) changes only what the listing says:
+  - an optional parameter is published as `type: [X, "null"]` with
+    `default: null` instead of `anyOf [{"type": X}, {"type": "null"}]` (164
+    parameters); hosts that read a property's top-level `type` now find it, and
+    null stays legal, so a client that converts the schema to OpenAI's strict
+    mode does not force the model to invent a value;
+  - `additionalProperties: false` is left out of the 231 input schemas;
+  - descriptions lose the indentation docstrings leave at the start of their
+    continuation lines (words and line breaks stay);
+  - tools are listed by name, the same order for every profile and subset.
+
+  What a tool accepts does not change: FastMCP validates each call against the
+  function's signature, so an unknown argument is still refused by the server
+  with the same «Unexpected keyword argument» error. The difference is only for
+  a client that checks arguments against the schema before sending: it no
+  longer refuses an unknown argument itself, and leaves it to the server.
+- **Cassazione search snippets without `<em>` tags.** Italgiure's highlighter
+  wraps every matched term in `<em>…</em>`, and the passages of
+  `cerca_giurisprudenza`, `giurisprudenza_su_norma`, `giurisprudenza_articolo`
+  and the unified search reached the model with them (362 tags in one
+  `giurisprudenza_articolo` answer). The «Estratto» and «Dispositivo (match)»
+  lines now carry the plain passage. The request to Italgiure is unchanged, and
+  so is `mcp_legal_it.api`, whose search results keep the fragment as the
+  source serves it. The other search sources already returned plain text.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address
@@ -814,6 +912,25 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **TUIR, TUB, TUF and the Testo unico sicurezza carry their full date.** The
+  names `TUIR`, `TUB`, `TUF` and «testo unico sicurezza» resolved to the year
+  alone, so `mcp_legal_it.api.leggi_riferimento("art. 1 TUIR")` returned a
+  placeholder date (`…:1986-01-01;917`) with `data_risolta=False`. They now
+  carry the act's date as Normattiva gives it: d.P.R. 22 dicembre 1986, n. 917;
+  d.lgs. 1 settembre 1993, n. 385; d.lgs. 24 febbraio 1998, n. 58; d.lgs.
+  9 aprile 2008, n. 81. EU acts keep the year alone, as they are cited. The
+  live gate `tests/unit/test_atti_denominati_live.py` now also checks every
+  Italian act of `ATTI_NOTI` against Normattiva, one request at a time, and
+  refuses an Italian act with the year alone before any request.
+- **Act titles from Normattiva read as plain text.** Normattiva escapes the
+  title in `eli:title` twice, so `fetch_full_act` showed «Norme  sulla  tutela
+  della libert&agrave; e dignit&agrave; dei lavoratori» for L. 300/1970, split
+  over three lines under its `#` heading. The titles read from a Normattiva page
+  are now kept on one line with single spaces, and the complete character
+  references of `eli:title`, the only field Normattiva escapes twice, are
+  decoded once more (a bare «&» or «&notizie» stays as it is): «Norme sulla
+  tutela della libertà e dignità dei lavoratori, …». The same title reaches
+  `mcp_legal_it.api.testo_atto().titolo`.
 - **Amounts are written the Italian way in every tool's text.** Python's
   default format put «Euro 25,000.00» in the decreto ingiuntivo, «€1,234.00»
   in quotes and fee notes, «€1092.48» or «€850.0» elsewhere. They now read
