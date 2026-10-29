@@ -583,6 +583,26 @@ entry, it is the same feature as ported to the 3.0 line.
   a dict keep their `structuredContent`. A test keeps every new text tool in
   line. For a FastMCP Python client, `CallToolResult.data` is now `None` for
   these 60 tools: read the answer from `result.content[0].text`.
+- **`fetch_full_act` reads a long act in windows.** It used to return the whole
+  act in one answer: L. 300/1970 alone was about 52,000 characters (~15k
+  tokens), the Codice civile about two million. It now returns windows of
+  30,000 characters and takes the optional `da_carattere` parameter that the
+  other reading tools already have: the final note gives the range, the total
+  and the `da_carattere` to read on from. An act that fits in one window gets
+  the same answer as before, and calls without the parameter keep working.
+  The windows of one act are cut from one complete reading of it, kept in
+  memory for the Italian day (Europe/Rome, also in a UTC container): a later
+  window sends no request (without the Akoma Ntoso export a code is rebuilt
+  article by article, thousands of requests), and concurrent first reads of
+  one act share a single reading. A reading with articles missing is served
+  but not kept. A later window whose reading is gone is served only from the
+  same text or from a complete Akoma Ntoso export, and then says it was read
+  again; otherwise it is refused with a pointer to `da_carattere=1`, never
+  served shifted. Known limit: windows carry no reading id, so if the text
+  leaves memory and another caller reads the act again first, a later window
+  is cut from that reading (refused only when the text differs). The citation
+  gate does not credit an article heading that a window cut at either end
+  («Art. 4» of «Art. 41» at the end, «art. 7» of «vedi art. 7» at the start).
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address
