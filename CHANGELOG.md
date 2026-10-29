@@ -573,6 +573,14 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **Cassazione search snippets without `<em>` tags.** Italgiure's highlighter
+  wraps every matched term in `<em>…</em>`, and the passages of
+  `cerca_giurisprudenza`, `giurisprudenza_su_norma`, `giurisprudenza_articolo`
+  and the unified search reached the model with them (362 tags in one
+  `giurisprudenza_articolo` answer). The «Estratto» and «Dispositivo (match)»
+  lines now carry the plain passage. The request to Italgiure is unchanged, and
+  so is `mcp_legal_it.api`, whose search results keep the fragment as the
+  source serves it. The other search sources already returned plain text.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address
