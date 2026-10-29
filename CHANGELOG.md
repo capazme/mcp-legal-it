@@ -573,6 +573,53 @@ entry, it is the same feature as ported to the 3.0 line.
   changes, and the audit pins which tool may name which source.
 
 ### Changed
+- **Text answers are sent once.** The 60 tools that answer plain text (the
+  norm, case-law, authority and register readers, and a few writers) used to
+  send each answer twice: as the text block and again as `structuredContent`
+  `{"result": <the same text>}`, because FastMCP gives a `-> str` function a
+  wrapped output schema. They are now declared with `output_schema=None`: the
+  answer is the text block only, and `tools/list` no longer carries their
+  `outputSchema`. The text the model reads is unchanged; the tools that return
+  a dict keep their `structuredContent`. A test keeps every new text tool in
+  line. For a FastMCP Python client, `CallToolResult.data` is now `None` for
+  these 60 tools: read the answer from `result.content[0].text`.
+- **`fetch_full_act` reads a long act in windows.** It used to return the whole
+  act in one answer: L. 300/1970 alone was about 52,000 characters (~15k
+  tokens), the Codice civile about two million. It now returns windows of
+  30,000 characters and takes the optional `da_carattere` parameter that the
+  other reading tools already have: the final note gives the range, the total
+  and the `da_carattere` to read on from. An act that fits in one window gets
+  the same answer as before, and calls without the parameter keep working.
+  The windows of one act are cut from one complete reading of it, kept in
+  memory for the Italian day (Europe/Rome, also in a UTC container): a later
+  window sends no request (without the Akoma Ntoso export a code is rebuilt
+  article by article, thousands of requests), and concurrent first reads of
+  one act share a single reading. A reading with articles missing is served
+  but not kept. A later window whose reading is gone is served only from the
+  same text or from a complete Akoma Ntoso export, and then says it was read
+  again; otherwise it is refused with a pointer to `da_carattere=1`, never
+  served shifted. Known limit: windows carry no reading id, so if the text
+  leaves memory and another caller reads the act again first, a later window
+  is cut from that reading (refused only when the text differs). The citation
+  gate does not credit an article heading that a window cut at either end
+  («Art. 4» of «Art. 41» at the end, «art. 7» of «vedi art. 7» at the start).
+- **A shorter `tools/list`, same contract.** A middleware
+  (`mcp_legal_it/_listing.py`) changes only what the listing says:
+  - an optional parameter is published as `type: [X, "null"]` with
+    `default: null` instead of `anyOf [{"type": X}, {"type": "null"}]` (164
+    parameters); hosts that read a property's top-level `type` now find it, and
+    null stays legal, so a client that converts the schema to OpenAI's strict
+    mode does not force the model to invent a value;
+  - `additionalProperties: false` is left out of the 231 input schemas;
+  - descriptions lose the indentation docstrings leave at the start of their
+    continuation lines (words and line breaks stay);
+  - tools are listed by name, the same order for every profile and subset.
+
+  What a tool accepts does not change: FastMCP validates each call against the
+  function's signature, so an unknown argument is still refused by the server
+  with the same «Unexpected keyword argument» error. The difference is only for
+  a client that checks arguments against the schema before sending: it no
+  longer refuses an unknown argument itself, and leaves it to the server.
 - **Cassazione search snippets without `<em>` tags.** Italgiure's highlighter
   wraps every matched term in `<em>…</em>`, and the passages of
   `cerca_giurisprudenza`, `giurisprudenza_su_norma`, `giurisprudenza_articolo`

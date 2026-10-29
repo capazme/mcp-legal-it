@@ -289,6 +289,39 @@ def test_fetch_full_act_counts_for_the_articles_it_returned(tmp_path):
     assert gate(t) == NAGS
 
 
+_WINDOW_CUT_IN_A_HEADING = (
+    "# Decreto legislativo 8 giugno 2001, n. 231\n**Fonte**: Normattiva — x\n**Dimensione**: 90,000 caratteri\n\n"
+    "Art. 5\nResponsabilita'...\n\nArt. 6\nSoggetti...\n\nArt. 4"
+    "\n\n*[Caratteri 1-30000 su 90000 totali: per leggere il seguito ripetere la chiamata con da_carattere=30001]*"
+)
+
+
+def test_fetch_full_act_window_does_not_credit_a_heading_it_cut(tmp_path):
+    # The window stops after «Art. 4» of «Art. 41»: art. 41 was not read, nor art. 4.
+    t = session(tmp_path).prompt().call(
+        "fetch_full_act", {"reference": "D.Lgs. 231/2001"}, _WINDOW_CUT_IN_A_HEADING).say(
+        "Gli artt. 5 e 6 del D.Lgs. 231/2001 definiscono l'imputazione.")
+    assert gate(t) == SILENT
+    t.say("L'art. 4 D.Lgs. 231/2001 regola i reati commessi all'estero.")
+    assert gate(t) == NAGS
+
+
+def test_fetch_full_act_last_window_credits_its_last_heading(tmp_path):
+    last = _WINDOW_CUT_IN_A_HEADING.replace(
+        "per leggere il seguito ripetere la chiamata con da_carattere=30001", "fine del testo")
+    t = session(tmp_path).prompt().call("fetch_full_act", {"reference": "D.Lgs. 231/2001"}, last).say(
+        "L'art. 4 D.Lgs. 231/2001 regola i reati commessi all'estero.")
+    assert gate(t) == SILENT
+
+
+def test_the_fallback_reader_does_not_credit_a_cut_heading(tmp_path, isolated_hook):
+    args = {"python_args": ("-I", "-S"), "hook": isolated_hook}
+    t = session(tmp_path).prompt().call(
+        "fetch_full_act", {"reference": "D.Lgs. 231/2001"}, _WINDOW_CUT_IN_A_HEADING).say(
+        "L'art. 4 D.Lgs. 231/2001 regola i reati commessi all'estero.")
+    assert run({"transcript_path": str(t.write())}, **args).returncode == NAGS
+
+
 def test_verification_anywhere_in_the_session_counts(tmp_path):
     t = (session(tmp_path).prompt("prima domanda").cite_law("art. 2043 c.c.", article("2043"))
          .say("Risposta.").prompt("seconda domanda").say("Resta fermo l'art. 2043 c.c."))

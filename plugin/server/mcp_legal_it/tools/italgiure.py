@@ -629,7 +629,7 @@ async def _ultime_pronunce_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"}, output_schema=None)
 async def leggi_sentenza(
     numero: int,
     anno: int,
@@ -668,7 +668,7 @@ async def leggi_sentenza(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"}, output_schema=None)
 async def cerca_giurisprudenza(
     query: str,
     archivio: str = "tutti",
@@ -731,7 +731,7 @@ async def cerca_giurisprudenza(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"}, output_schema=None)
 async def giurisprudenza_su_norma(
     riferimento: str,
     archivio: str = "tutti",
@@ -968,7 +968,7 @@ async def _giurisprudenza_articolo_impl(
     )
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"}, output_schema=None)
 async def ultime_pronunce(
     materia: str = "",
     sezione: str = "",
@@ -1000,7 +1000,7 @@ async def ultime_pronunce(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass", "brocardi"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass", "brocardi"}, output_schema=None)
 async def giurisprudenza_articolo(
     riferimento: str,
     archivio: str = "tutti",

@@ -570,7 +570,7 @@ async def _mappa_orientamento_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"}, output_schema=None)
 async def orientamento_su_norma(
     riferimento: str,
     archivio: str = "tutti",
@@ -609,7 +609,7 @@ async def orientamento_su_norma(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass"}, output_schema=None)
 async def orientamento_su_principio(
     principio: str,
     archivio: str = "tutti",
@@ -641,7 +641,7 @@ async def orientamento_su_principio(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass", "brocardi"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cass", "brocardi"}, output_schema=None)
 async def mappa_orientamento(
     riferimento: str,
     archivio: str = "tutti",

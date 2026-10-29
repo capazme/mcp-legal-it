@@ -549,9 +549,52 @@ def articolo_servito(testo: str) -> "str | None":
     return normalizza_articolo(m.group("numero")) if m else None
 
 
+# The note closing a ``fetch_full_act`` window (mcp_legal_it/lib/_paging.py), and
+# the other notes the tool may put just before it.
+_NOTA_FINESTRA = re.compile(
+    r"\n\*\[Caratteri (?P<da>\d+)-\d+ su \d+ totali: (?P<resto>[^\]\n]*)\]\*[ \t\n]*$"
+)
+_NOTA = re.compile(r"^\*\[[^\n]*\]\*$")
+
+
+def corpo_della_finestra(testo: str) -> str:
+    """The part of a ``fetch_full_act`` answer whose headings it really served.
+
+    A window cuts the act at a character position, so it may cut a heading at
+    either end: a window with more text after it may end inside one («Art. 4» of
+    «Art. 41»), a window that starts after the beginning may open inside one
+    («1» of «Art. 41»). Those edge lines are left out; the notes too. A text with
+    no window note (a whole act) comes back unchanged.
+    """
+    finestra = _NOTA_FINESTRA.search(testo)
+    if not finestra:
+        return testo
+    righe = testo[: finestra.start()].rstrip().split("\n")
+    while righe and (not righe[-1].strip() or _NOTA.match(righe[-1].strip())):
+        righe.pop()
+    if "per leggere il seguito" in finestra.group("resto") and righe:
+        righe.pop()
+    if int(finestra.group("da")) > 1:
+        # The window's first line comes after the header (title, **Fonte**, **Dimensione**).
+        dimensione = next((i for i, r in enumerate(righe) if r.startswith("**Dimensione**:")), None)
+        if dimensione is not None:
+            primo = next((i for i in range(dimensione + 1, len(righe)) if righe[i].strip()), None)
+        else:
+            primo = next((i for i, r in enumerate(righe)
+                          if r.strip() and not r.lstrip().startswith(("#", "**"))), None)
+        if primo is not None:
+            del righe[primo]
+    return "\n".join(righe) + "\n"
+
+
 def articoli_serviti(testo: str) -> set[str]:
-    """Every article heading in a full act's text (``fetch_full_act``)."""
-    return {normalizza_articolo(m.group("numero")) for m in _TITOLO_ARTICOLO.finditer(testo)}
+    """Every article heading in a full act's text (``fetch_full_act``).
+
+    Only the headings of :func:`corpo_della_finestra`: one cut at an edge of a
+    window is not credited.
+    """
+    corpo = corpo_della_finestra(testo)
+    return {normalizza_articolo(m.group("numero")) for m in _TITOLO_ARTICOLO.finditer(corpo)}
 
 
 def riferimento_in_identita(riferimento: str) -> "tuple[str, str] | None":
