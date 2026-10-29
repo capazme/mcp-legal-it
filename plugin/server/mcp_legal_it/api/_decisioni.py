@@ -301,6 +301,23 @@ async def leggi_provvedimento_tributario(guid: str) -> EsitoDecisione:
         )
 
 
+# The number of a GA decision as the reader gives it: «N/AAAA» (from the page's «REG.PROV.COLL.»
+# or a parere's «Numero» line, and from the XML's <fascicolo>). The portal's own 9-digit form
+# «AAAANNNNN» is still read.
+_NUMERO_GA = re.compile(r"(\d{1,6})/(\d{4})")
+_NUMERO_PORTALE_GA = re.compile(r"(\d{4})(\d{5})")
+
+
+def _numero_anno_ga(numero: str) -> tuple[int | str | None, int | None]:
+    """(number, year) of a GA decision's number; the raw value and no year when it has neither form."""
+    numero = (numero or "").strip()
+    if m := _NUMERO_GA.fullmatch(numero):
+        return int(m.group(1)), int(m.group(2))
+    if m := _NUMERO_PORTALE_GA.fullmatch(numero):
+        return int(m.group(2)), int(m.group(1))
+    return _int(numero), None
+
+
 def _corte_ga(sede: str) -> str:
     s = (sede or "").lower()
     if s in ("cds", "consiglio di stato", "consiglio_di_stato"):
@@ -324,12 +341,12 @@ async def leggi_provvedimento_amministrativo(sede: str, nrg: str, nome_file: str
         except Exception as exc:  # noqa: BLE001 - errors are data
             return replace(_non_raggiungibile(_FONTE_GA, exc), fonti=registro.fonti())
         fonte = replace(_FONTE_GA, url=doc.url or None)
-        numero = (doc.meta or {}).get("numero", "")
+        numero, anno = _numero_anno_ga((doc.meta or {}).get("numero", ""))
         corte = _corte_ga(sede)
         identita = Identita(
             corte=corte,
-            numero=_int(numero[4:]) if len(numero) > 4 and numero[:4].isdigit() else _int(numero),
-            anno=int(numero[:4]) if len(numero) > 4 and numero[:4].isdigit() else None,
+            numero=numero,
+            anno=anno,
             sede=sede if corte == "tar" else None,
             provvedimento=((doc.meta or {}).get("tipologia") or "").lower() or None,
             chiave_fonte=chiave,

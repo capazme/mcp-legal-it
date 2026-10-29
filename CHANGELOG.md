@@ -970,6 +970,11 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **`api.leggi_provvedimento_amministrativo` reads the number as «N/AAAA».** The
+  reader gives a TAR/CdS decision's number as «1918/2026» (from the page, as from the
+  XML). The api took its first four digits as the year: parere n. 1918/2026 became
+  «anno 1918». Sentenza n. 17/2021 lost its year. Now `numero` and `anno` are 1918 and
+  2026; the portal's 9-digit form («202614035») is still read.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
   portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
   provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
