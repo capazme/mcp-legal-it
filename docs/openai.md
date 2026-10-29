@@ -50,7 +50,7 @@ o un endpoint remoto — vedi «Server MCP» sotto.
 | 234 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — | — |
 | 15 risorse `legal://` | ✓ | — | — | — |
-| 30 skill + 10 comandi + 6 agenti (plugin Claude) | ✓ | ✓ 42 skill via bundle | ✓ 42 skill via bundle | — |
+| 30 skill + 9 comandi + 6 agenti (plugin Claude) | ✓ | ✓ 42 skill via bundle | ✓ 42 skill via bundle | — |
 | Transport stdio (locale) | ✓ | — | ✓ | — |
 | Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? | ? |
