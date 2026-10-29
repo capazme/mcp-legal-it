@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .. import _brocardi_switch, _clock
 from .._http import note_source
-from . import act_dates, normattiva_html, pagine_eurlex, pagine_normattiva
+from . import act_dates, normattiva_html, note_normattiva, pagine_eurlex, pagine_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
@@ -767,10 +767,10 @@ async def _normattiva_page(url: str, articolo: str | None = None) -> "tuple[str,
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
-    text, served = _normattiva_article_page(html)
+    text, served, note = _lettura_pagina(html)
     if text:
         validita = await asyncio.to_thread(_validita_da_pagina, html, articolo)
-        pagine_normattiva.scrivi(url, text, served, validita)
+        pagine_normattiva.scrivi(url, text, served, validita, note)
     return text, served
 
 
@@ -1011,10 +1011,21 @@ def _normattiva_article_page(html: str) -> "tuple[str, str | None]":
     (an act's title page, an error page) has no article text: ``""``, never the
     whole page.
     """
+    return _lettura_pagina(html)[:2]
+
+
+def _lettura_pagina(html: str) -> "tuple[str, str | None, dict | None]":
+    """``(text, served, notes)`` of a Normattiva article page, from one parse.
+
+    *notes* is ``note_normattiva.leggi_note``: the page's «AGGIORNAMENTO (n)» notes, read
+    beside VisuaLex's text, which stays byte for byte; None without a text.
+    """
     corpo = normattiva_html.corpo_testo(normattiva_html.parse_document(html))
     if corpo is None:
-        return "", None
-    return _testo_corpo(corpo), _served_article_key(corpo)
+        return "", None, None
+    testo = _testo_corpo(corpo)
+    note = note_normattiva.leggi_note(corpo, testo) if testo else None
+    return testo, _served_article_key(corpo), note
 
 
 def _testo_corpo(corpo: Tag) -> str:
