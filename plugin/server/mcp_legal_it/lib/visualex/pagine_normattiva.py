@@ -41,7 +41,9 @@ MAX_IN_MEMORIA = 256
 MAX_SU_DISCO = 2000
 #: Raised when the record's shape changes, so records written before are not read.
 #: 2: the record keeps what the page says of its own validity (``validita``).
-SCHEMA = 2
+#: 3: and the page's update notes (``note``): a record without them would serve the text
+#: of art. 3 d.lgs. 23/2015 without C. cost. 194/2018 for a day.
+SCHEMA = 3
 
 _memoria: "OrderedDict[str, dict]" = OrderedDict()
 #: The disk is pruned once every this many writes, not at each one (a glob of up to 2000 files).
@@ -91,14 +93,16 @@ def leggi(url: str) -> dict | None:
     return rec
 
 
-def scrivi(url: str, testo: str, servito: str | None, validita: dict | None = None) -> None:
+def scrivi(url: str, testo: str, servito: str | None, validita: dict | None = None,
+           note: dict | None = None) -> None:
     """Keep what the page at *url* said (best effort: an unwritable directory only warns).
 
     *validita* is what the page states of the text's validity (``normattiva_validity``),
-    read from the same page: the window, the version, the repeal.
+    read from the same page: the window, the version, the repeal. *note* is the page's
+    update notes (``note_normattiva.leggi_note``), read from the same page.
     """
     _scrivi({"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito,
-             "validita": validita})
+             "validita": validita, "note": note})
 
 
 def _chiave_albero(url: str) -> str:

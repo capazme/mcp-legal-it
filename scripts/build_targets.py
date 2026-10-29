@@ -259,7 +259,7 @@ _OPENAI_CONFIG_TOML_EXAMPLE = """\
 command = "uv"
 args = [
   "run", "--no-project", "--python", "3.12",
-  "--with", "fastmcp>=3.4,<4",
+  "--with", "fastmcp>=3.4.11,<4",
   "--with", "httpx>=0.27",
   "--with", "beautifulsoup4>=4.12",
   "--with", "lxml>=5.0",
