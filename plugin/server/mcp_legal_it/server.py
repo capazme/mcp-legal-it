@@ -113,6 +113,7 @@ from mcp_legal_it.tools import (  # noqa: E402, F401
 )
 
 from mcp_legal_it import prompts, resources  # noqa: E402, F401
+from mcp_legal_it._listing import apply_listing  # noqa: E402
 from mcp_legal_it.lib import _brocardi_switch  # noqa: E402
 from mcp_legal_it.lib._ledger import apply_table_ledger  # noqa: E402
 from mcp_legal_it.lib._regime import ENV_SWITCH as _PREVIGENTE_SWITCH  # noqa: E402
@@ -128,6 +129,14 @@ from mcp_legal_it.tool_taxonomy import VOCABULARY  # noqa: E402
 # lookup from a file writer (see mcp_legal_it/tool_annotations.py for the audit rule).
 # ---------------------------------------------------------------------------
 apply_tool_annotations(mcp)
+
+# ---------------------------------------------------------------------------
+# Listing shape: optional parameters as their plain type, no
+# additionalProperties:false, no docstring indentation, tools sorted by name
+# (see mcp_legal_it/_listing.py). Only what tools/list says changes, not what a
+# tool accepts.
+# ---------------------------------------------------------------------------
+apply_listing(mcp)
 
 # ---------------------------------------------------------------------------
 # Table ledger: every call declares in its result `_meta` which hand-maintained
