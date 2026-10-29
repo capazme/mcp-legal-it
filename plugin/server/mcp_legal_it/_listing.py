@@ -5,10 +5,13 @@ tokens for the 231 tools), so the listing drops what carries no meaning for it.
 Nothing here changes what a tool accepts: FastMCP validates every call against
 the function's own signature, not against the schema it publishes.
 
-- An optional parameter is published as its plain type with ``default: null``
-  instead of ``anyOf [X, {"type": "null"}]``: the client sees the same contract
-  (the parameter may be left out, and then it is none), in one branch instead of
-  two. Hosts that read a property's top-level ``type`` now find it.
+- An optional parameter is published as ``type: [X, "null"]`` with
+  ``default: null`` instead of ``anyOf [{"type": X}, {"type": "null"}]``: the
+  same contract (it may be left out or be null), in one branch instead of two.
+  Hosts that read a property's top-level ``type`` now find it. The null stays in
+  the type on purpose: a client that converts the schema to OpenAI's strict
+  mode makes every property required, and without a legal null the model would
+  have to invent a value (an ``accetta_precisione`` it never chose).
 - ``additionalProperties: false`` is left out of the input schemas. A call with
   an argument the tool does not have is still refused, by the server, with the
   same validation error; only a client that checks arguments before sending no
@@ -49,11 +52,16 @@ def compact_schema(schema: Any) -> Any:
         and "default" in out
         and out["default"] is None
     ):
-        (plain,) = [b for b in branches if b != _NULL]
-        if isinstance(plain, dict) and "type" in plain and not (plain.keys() & out.keys() - {"anyOf"}):
+        others = [b for b in branches if b != _NULL]
+        plain = others[0] if len(others) == 1 else None
+        if (
+            isinstance(plain, dict)
+            and isinstance(plain.get("type"), str)
+            and not (plain.keys() & out.keys() - {"anyOf"})
+        ):
             rest = {key: value for key, value in out.items() if key != "anyOf"}
-            # The plain type first, where the anyOf stood: the rest keeps its order.
-            out = {**plain, **rest}
+            # The type first, where the anyOf stood: the rest keeps its order.
+            out = {**plain, "type": [plain["type"], "null"], **rest}
     return out
 
 

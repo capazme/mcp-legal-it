@@ -575,9 +575,11 @@ entry, it is the same feature as ported to the 3.0 line.
 ### Changed
 - **A shorter `tools/list`, same contract.** A middleware
   (`mcp_legal_it/_listing.py`) changes only what the listing says:
-  - an optional parameter is published as its plain type with `default: null`
-    instead of `anyOf [X, {"type": "null"}]` (164 parameters); hosts that read a
-    property's top-level `type` now find it;
+  - an optional parameter is published as `type: [X, "null"]` with
+    `default: null` instead of `anyOf [{"type": X}, {"type": "null"}]` (164
+    parameters); hosts that read a property's top-level `type` now find it, and
+    null stays legal, so a client that converts the schema to OpenAI's strict
+    mode does not force the model to invent a value;
   - `additionalProperties: false` is left out of the 231 input schemas;
   - descriptions lose the indentation docstrings leave at the start of their
     continuation lines (words and line breaks stay);
