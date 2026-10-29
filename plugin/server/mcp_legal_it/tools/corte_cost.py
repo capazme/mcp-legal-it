@@ -192,7 +192,7 @@ async def _ultime_pronunce_cost_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"}, output_schema=None)
 async def cerca_pronuncia_costituzionale(
     query: str,
     tipo: str = "",
@@ -225,7 +225,7 @@ async def cerca_pronuncia_costituzionale(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"}, output_schema=None)
 async def leggi_pronuncia_costituzionale(numero: int, anno: int, da_carattere: int = 1) -> str:
     """Legge il testo completo di una pronuncia della Corte Costituzionale.
 
@@ -254,7 +254,7 @@ async def leggi_pronuncia_costituzionale(numero: int, anno: int, da_carattere: i
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"}, output_schema=None)
 async def pronunce_cost_su_norma(
     riferimento: str,
     anno_da: int = 0,
@@ -290,7 +290,7 @@ async def pronunce_cost_su_norma(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_cost"}, output_schema=None)
 async def ultime_pronunce_cost(tipo: str = "", max_risultati: int = 10) -> str:
     """Ultime pronunce depositate dalla Corte Costituzionale (anno corrente).
 

@@ -228,7 +228,7 @@ async def _ultimi_provvedimenti_amm_impl(
 # MCP tool wrappers
 # ---------------------------------------------------------------------------
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"}, output_schema=None)
 async def cerca_giurisprudenza_amministrativa(
     query: str,
     sede: str = "",
@@ -287,7 +287,7 @@ async def cerca_giurisprudenza_amministrativa(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"}, output_schema=None)
 async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str, da_carattere: int = 1) -> str:
     """Legge il testo completo di un provvedimento amministrativo (TAR/CdS) dal sottodominio mdp.
 
@@ -321,7 +321,7 @@ async def leggi_provvedimento_amm(sede: str, nrg: str, nome_file: str, da_caratt
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"}, output_schema=None)
 async def giurisprudenza_amm_su_norma(
     riferimento: str,
     sede: str = "",
@@ -349,7 +349,7 @@ async def giurisprudenza_amm_su_norma(
     return result.to_str() if isinstance(result, SearchResult) else result
 
 
-@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"})
+@mcp.tool(tags={"giurisprudenza", "giurisprudenza_amm"}, output_schema=None)
 async def ultimi_provvedimenti_amm(
     sede: str = "",
     tipo: str = "",
