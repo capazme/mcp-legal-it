@@ -20,11 +20,11 @@ from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference
 # A comma as a citation writes it, the forms parti_normattiva.comma_richiesto reads: «comma
 # 773», «co. 773-bis», «c. 12 ter», «comma 1bis», «commi 773 e 774», «773° comma». «c.» needs
 # its number right after it, so the «c.» of «c.c.» or «c.p.» is never one. Each form matches
-# one way only: a suffix glued to the number is the number's, a suffix after a space or a
-# hyphen is the suffix's. Two ways per indicator, repeated in _PARAGRAPHS, made a failing
-# match exponential («comma 1» × 200 never ended).
+# one way only, so the repeated _PARAGRAPHS stays linear: letters glued to the number are the
+# number's and must end the word (never the next indicator glued to it), a suffix after a
+# space or a hyphen is the suffix's.
 _COMMA = (rf"(?:commi\s*\d+(?:\s*(?:e|,|-|–)\s*\d+)*"
-          rf"|(?:co(?:mma)?|c)\.?\s*\d+\w*(?:(?:\s+|\s*-\s*)(?:{_SUFFISSI})\b)?"
+          rf"|(?:co(?:mma)?|c)\.?\s*\d+(?:[^\W\d_]+)?\b(?:(?:\s+|\s*-\s*)(?:{_SUFFISSI})\b)?"
           rf"|\d+\s*[°º]\s*comma\b)")
 
 # Strips paragraph/point/comma indicators from the start of the act name

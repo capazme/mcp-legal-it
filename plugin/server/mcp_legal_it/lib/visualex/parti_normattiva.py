@@ -102,6 +102,8 @@ _PRIMA = re.compile(
     rf"\b(?:comma|commi)\s+({_COMMA})(?:\s*(?:,|e|-|–)\s*{_COMMA})*\s*,?\s*(?:dell['’]|del|dello)?\s*$",
     re.IGNORECASE,
 )
+# Last, after the act, when the reference cites one article only: «art. 1 L. 296/2006, comma 773».
+_IN_CODA = re.compile(rf"[\s,]+(?:comma|co\.|(?<![a-z]\.)c\.)\s*({_COMMA})\s*[.;]?\s*$", re.IGNORECASE)
 
 
 def comma_richiesto(riferimento: str) -> Optional[str]:
@@ -109,9 +111,10 @@ def comma_richiesto(riferimento: str) -> Optional[str]:
 
     Only a comma attached to the first article cited: right after it («, comma 773», «co.
     773», «c. 773», «773° comma», «commi 773 e 774»: the first) or right before it («comma
-    773 dell'art. 1»). A comma of another article later in the reference («come mod. da art.
-    1, comma 5, l. 92/2012») and the «c.» of «l.c.» or «c.c.» are not it. Canonical
-    («773-bis»); None when none.
+    773 dell'art. 1»), or last, after the act, when the reference cites one article only
+    («art. 1 L. 296/2006, comma 773»). A comma of another article later in the reference
+    («come mod. da art. 1, comma 5, l. 92/2012») and the «c.» of «l.c.» or «c.c.» are not it.
+    Canonical («773-bis»); None when none.
     """
     testo = riferimento or ""
     articolo = _ARTICOLO.search(testo)
@@ -121,7 +124,13 @@ def comma_richiesto(riferimento: str) -> Optional[str]:
     if dopo is not None:
         return _canonico(dopo.group(1) or dopo.group(2))
     prima = _PRIMA.search(testo[max(0, articolo.start() - 60):articolo.start()])
-    return _canonico(prima.group(1)) if prima else None
+    if prima is not None:
+        return _canonico(prima.group(1))
+    if _ARTICOLO.search(testo, articolo.end()) is None:
+        coda = _IN_CODA.search(testo[-80:])  # the tail only: [\s,]+ retried from every position is quadratic
+        if coda is not None:
+            return _canonico(coda.group(1))
+    return None
 
 
 def contiene_comma(testo: str, comma: str) -> bool:
