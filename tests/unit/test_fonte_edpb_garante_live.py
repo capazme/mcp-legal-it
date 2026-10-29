@@ -147,9 +147,10 @@ def _pdf_text(url: str, headers: dict | None = None, *, fonte: str) -> str:
 
 def _massimale_effettivo(risultato: dict) -> int:
     nota = risultato["range_stimato"]["nota"]
-    m = re.search(r"Massimale effettivo applicato \(maggiore tra i due\): ([\d,]+)€", nota)
+    # Whole euros in the Italian form the tool prints: "40.000.000€" (dot for thousands).
+    m = re.search(r"Massimale effettivo applicato \(maggiore tra i due\): (\d{1,3}(?:\.\d{3})*)€", nota)
     assert m, f"nota senza massimale effettivo: {nota!r}"
-    return int(m.group(1).replace(",", ""))
+    return int(m.group(1).replace(".", ""))
 
 
 # ---------------------------------------------------------------------------
