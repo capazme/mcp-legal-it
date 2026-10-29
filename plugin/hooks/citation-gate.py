@@ -139,7 +139,10 @@ class FallbackReader:
     # Bounded separators: "\s*-?\s*" split a run of spaces two ways (quadratic).
     _SUFFIX = r"(?:[ \t]?-?[ \t]?(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)\b)?"
     _ART = re.compile(r"\b(?:artt?|articol[oi])\b\.?\s*(\d+" + _SUFFIX + r")\b"
-                      r"[\s,]*(?:(?:della|dello|dell['’]|del)\s*)?(?P<atto>[^\n;]{0,40})", re.I)
+                      r"[\s,]*(?:(?:comma|co|c)\.?[ \t]?(?P<comma>\d+" + _SUFFIX + r")\b[\s,]*)?"
+                      r"(?:(?:della|dello|dell['’]|del)\s*)?(?P<atto>[^\n;]{0,40})", re.I)
+    _COMMA_PRIMA = re.compile(r"\bcomma[ \t]+(\d+" + _SUFFIX + r")[ \t]*,?[ \t]*(?:dell['’]|del|dello)?[ \t]*$", re.I)
+    _TESTO_PARZIALE = re.compile(r"testo parziale: commi (\d+(?:-[a-z]+)?)-(\d+(?:-[a-z]+)?) di ", re.I)
     _ATTO_NUM = re.compile(r"^(d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m)\.?\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{4})", re.I)
     _CASS = re.compile(r"\bcass(?:azione)?\b[^\n]{0,80}?\bn\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})", re.I)
     _ATTO_PRIMA = re.compile(r"\b(?:d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m|reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:n\.?\s*)?$", re.I)
@@ -161,13 +164,35 @@ class FallbackReader:
                 return self._CODICI[chiave]
         return None
 
+    @staticmethod
+    def canonico_comma(comma):
+        m = re.match(r"\s*(\d+)[ \t]?-?[ \t]?([a-z]+)?\s*$", comma or "", re.I)
+        return (m.group(1) + (f"-{m.group(2).lower()}" if m.group(2) else "")) if m else (comma or "").lower()
+
     def norme_nel_testo(self, testo):
         out = []
         for m in self._ART.finditer(testo):
             atto = self._atto(m.group("atto"))
             if atto:
-                out.append(_Norma(atto, self.normalizza_articolo(m.group(1)), m.group(0)[:80]))
+                comma = m.group("comma")
+                if comma is None:
+                    prima = self._COMMA_PRIMA.search(testo[max(0, m.start() - 40): m.start()])
+                    comma = prima.group(1) if prima else None
+                out.append(_Norma(atto, self.normalizza_articolo(m.group(1)), m.group(0)[:80],
+                                  self.canonico_comma(comma) if comma else None))
         return out
+
+    def commi_letti(self, testo):
+        m = self._TESTO_PARZIALE.search(testo or "")
+        return (self.canonico_comma(m.group(1)), self.canonico_comma(m.group(2))) if m else None
+
+    @staticmethod
+    def comma_nell_intervallo(comma, dal, al):
+        numeri = [re.match(r"\s*(\d+)", c or "") for c in (comma, dal, al)]
+        if not all(numeri):
+            return False
+        n, a, b = (int(x.group(1)) for x in numeri)
+        return a <= n <= b
 
     def decisioni_nel_testo(self, testo):
         return [_Decisione("cass", str(int(m.group(1))), int(m.group(2)), m.group(0)[-60:])
@@ -215,7 +240,8 @@ class FallbackReader:
         if not m:
             atto = self._atto(riferimento)
             return (atto, "") if atto else None
-        atto = self._atto(re.sub(r"^(?:della|dello|dell['’]|del)\s*", "", m.group(2), flags=re.I))
+        resto = re.sub(r"^(?:comma|co|c)\.?[ \t]?\d+" + self._SUFFIX + r"\b[\s,]*", "", m.group(2), flags=re.I)
+        atto = self._atto(re.sub(r"^(?:della|dello|dell['’]|del)\s*", "", resto, flags=re.I))
         return (atto, self.normalizza_articolo(m.group(1))) if atto else None
 
     def identita_norma(self, act_info, articolo):
@@ -227,8 +253,8 @@ class FallbackReader:
 
 
 class _Norma:
-    def __init__(self, atto, articolo, testo):
-        self.atto, self.articolo, self.testo = atto, articolo, testo
+    def __init__(self, atto, articolo, testo, comma=None):
+        self.atto, self.articolo, self.testo, self.comma = atto, articolo, testo, comma
 
 
 class _Decisione:
@@ -305,6 +331,10 @@ class Session:
     def __init__(self, reader):
         self.reader = reader
         self.norms: set = set()
+        # An article Normattiva splits into parts, read in part: the commi ranges read
+        # («testo parziale: commi a-b di N»), and the articles read whole at least once.
+        self.partial: dict = {}
+        self.whole: set = set()
         self.decisions: set = set()
         self.calls: dict = {}  # tool_use id -> (name, input)
         self.texts: list = []
@@ -382,6 +412,11 @@ class Session:
         if served and served != key[1]:
             return  # it answered with another article (the art. 99999 -> art. 1 case)
         self.norms.add(key)
+        letti = r.commi_letti(text) if hasattr(r, "commi_letti") else None
+        if letti:
+            self.partial.setdefault(key, []).append(letti)
+        else:
+            self.whole.add(key)
 
     def read_credits(self, path: Path) -> None:
         """Credits from every tool result of one transcript."""
@@ -583,13 +618,19 @@ def uncovered(session: Session) -> list:
             continue
         for n in r.norme_nel_testo(prose):
             key = (n.atto, n.articolo)
-            if n.atto is not None and key in session.norms:
+            comma = getattr(n, "comma", None)
+            if n.atto is not None and key in session.norms and not _comma_non_letto(session, key, comma):
                 continue
-            if key in seen:
+            chiave = key + (comma,) if key in session.norms else key
+            if chiave in seen:
                 continue
-            seen.add(key)
-            hint = "fonte non coperta dai tool: verificala e scrivi «fuori copertura»" if n.atto is None \
-                else "cite_law"
+            seen.add(chiave)
+            if n.atto is None:
+                hint = "fonte non coperta dai tool: verificala e scrivi «fuori copertura»"
+            elif key in session.norms:
+                hint = f"cite_law con il comma {comma}: è stata letta solo un'altra parte dell'articolo"
+            else:
+                hint = "cite_law"
             missing.append(f"{n.testo} ({hint})")
         for d in r.decisioni_nel_testo(prose):
             key = (d.corte, d.numero, d.anno)
@@ -598,6 +639,19 @@ def uncovered(session: Session) -> list:
             seen.add(key)
             missing.append(f"{d.testo} ({TOOL_PER_CORTE.get(d.corte, 'leggi_*')})")
     return missing
+
+
+def _comma_non_letto(session: Session, key, comma) -> bool:
+    """A comma cited of an article read only in parts, and in none of the parts read.
+
+    An article Normattiva splits («testo parziale: commi a-b di N») is credited as before;
+    only a citation that names a comma outside every range read for it is not. A citation
+    with no comma, or an article read whole at least once, is credited as before.
+    """
+    if not comma or key in session.whole or key not in session.partial:
+        return False
+    r = session.reader
+    return not any(r.comma_nell_intervallo(comma, dal, al) for dal, al in session.partial[key])
 
 
 def opted_out() -> bool:
