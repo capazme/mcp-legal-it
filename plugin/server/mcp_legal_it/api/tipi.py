@@ -43,6 +43,18 @@ EsitoRicerca = Literal[
     "risultati", "richiesta_non_valida", "fonte_non_raggiungibile", "errore_fonte", "non_supportata",
 ]
 
+#: Outcome of resolving an act's identity (``risolvi_atto``).
+EsitoAtto = Literal[
+    "trovato",                  # Normattiva has the act: ``data`` and ``urn`` are its own
+    "atto_non_trovato",         # Normattiva has no act of that type, year and number (not transient)
+    "ambiguo",                  # a full date given whose day is not the act's (never with a year)
+    "fonte_non_raggiungibile",  # transient: down, blocking, limiting us, session or maintenance page
+    "errore_fonte",             # transient: Normattiva answered with another HTTP error
+    "riferimento_non_valido",   # a number or date that cannot be read
+    "atto_non_riconosciuto",    # no act type has that name
+    "non_supportata",           # an EU act, a codice: not resolved here
+]
+
 #: Text channel of an article: ``"akn"`` is mcp-legal-it's pipeline (Akoma Ntoso
 #: export first, its own HTML reader as fallback: ``fonte`` says which served the
 #: text). ``"html"`` is VisuaLex's frozen HTML reader, planned for the migration.
@@ -127,6 +139,26 @@ class EsitoRiferimento:
     esito: EsitoNorma
     norma_data: tuple[NormaDati, ...] = ()
     errore: str | None = None
+
+
+@dataclass(frozen=True)
+class AttoRisolto:
+    """An Italian act's full date and NIR URN, read from its Normattiva page (``risolvi_atto``)."""
+
+    esito: EsitoAtto
+    tipo_atto: str = ""      # normalised act type ("decreto legislativo"); "" when not read
+    numero_atto: str = ""    # without leading zeros ("385")
+    # The act's date, "YYYY-MM-DD": with ``trovato``, and with ``ambiguo`` (the day of the act
+    # Normattiva has with that type, year and number, not the one given). None otherwise.
+    data: str | None = None
+    urn: str | None = None   # "urn:nir:stato:decreto.legislativo:1993-09-01;385", with ``data``
+    url: str | None = None   # the act's Normattiva N2Ls URL, with ``data``
+    # ESATTO: the page's title names this act's type, date and number. INDICATIVO: a type
+    # the titles do not cover (DPCM, decreto ministeriale), dated by the page's ELI date
+    # when it falls in the year given. None without ``data``.
+    precisione: Literal["ESATTO", "INDICATIVO"] | None = None
+    errore: str | None = None
+    fonti: FontiConsultate | None = None
 
 
 @dataclass(frozen=True)
