@@ -622,6 +622,12 @@ async def parte_articolo(riferimento: str | NormaDati, progressivo: int, *, cana
     """
     if not isinstance(progressivo, int) or isinstance(progressivo, bool):
         raise TypeError("progressivo deve essere un intero")
+    if canale == "akn":
+        # The Akoma Ntoso export has the article whole (art. 1 L. 296/2006: 1.3 million
+        # characters): never served as one part.
+        return TestoArticolo(esito="non_supportata", article_text="", norma_data=None, url="", canale=canale,
+                             data_consultazione=_clock.today().isoformat(),
+                             errore="le parti di un articolo esistono sulle pagine Normattiva: canale='html'")
     return await _testo_articolo(riferimento, canale=canale, progressivo=progressivo)
 
 
@@ -659,7 +665,13 @@ async def _testo_articolo(riferimento: str | NormaDati, *, canale: Canale,
                                  canale=canale, data_consultazione=oggi, errore=letto.errore)
         act_info, article = letto
     with registra() as registro:
-        base, esito = await norme.lookup_parametri(act_info, article, canale=canale, progressivo=progressivo)
+        # A reference string may name a comma («art. 1, comma 773, L. 296/2006»): for an article
+        # Normattiva splits into parts, it picks the part read.
+        from mcp_legal_it.lib.visualex.parti_normattiva import comma_richiesto
+
+        comma = comma_richiesto(riferimento) if isinstance(riferimento, str) and progressivo is None else None
+        base, esito = await norme.lookup_parametri(act_info, article, canale=canale, progressivo=progressivo,
+                                                   comma=comma)
         parti = (tuple(ParteArticolo(**p) for p in base["parti"]) if base.get("parti") is not None else None)
         if base.get("esito_parte"):
             nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
