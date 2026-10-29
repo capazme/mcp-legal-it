@@ -48,6 +48,7 @@ COURTS: dict[str, str] = {
     "giurisprudenza_cost": "Corte costituzionale.",
     "giurisprudenza_trib": "Tax courts and tax Cassazione (CeRDEF).",
     "giurisprudenza_amm": "Administrative courts: TAR and Consiglio di Stato.",
+    "giurisprudenza_conti": "Corte dei conti: deliberazioni and pareri of its control sections.",
     "giurisprudenza_ue": "Court of Justice and General Court of the EU (CGUE).",
 }
 
