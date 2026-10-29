@@ -25,14 +25,64 @@ async def _listed(server) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def test_optional_parameter_becomes_its_plain_type():
+def test_optional_parameter_becomes_a_nullable_type():
     prop = {"anyOf": [{"type": "string"}, {"type": "null"}], "default": None, "description": "d"}
-    assert compact_schema(prop) == {"type": "string", "default": None, "description": "d"}
+    assert compact_schema(prop) == {"type": ["string", "null"], "default": None, "description": "d"}
 
 
 def test_optional_list_keeps_its_items():
     prop = {"anyOf": [{"items": {"type": "string"}, "type": "array"}, {"type": "null"}], "default": None}
-    assert compact_schema(prop) == {"items": {"type": "string"}, "type": "array", "default": None}
+    assert compact_schema(prop) == {"items": {"type": "string"}, "type": ["array", "null"], "default": None}
+
+
+def test_nested_optionals_collapse_too():
+    schema = {
+        "type": "object",
+        "properties": {
+            "righe": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"nota": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": None}},
+                },
+            },
+        },
+    }
+    assert compact_schema(schema) == {
+        "type": "object",
+        "properties": {
+            "righe": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {"nota": {"type": ["string", "null"], "default": None}},
+                },
+            },
+        },
+    }
+
+
+def test_a_branch_key_that_clashes_stops_the_merge():
+    # The branch's own description would be overwritten by the property's: keep the union.
+    prop = {"anyOf": [{"type": "string", "description": "branch"}, {"type": "null"}],
+            "default": None, "description": "property"}
+    assert compact_schema(prop) == prop
+
+
+def test_a_ref_branch_stays_a_union():
+    prop = {"anyOf": [{"$ref": "#/$defs/Voce"}, {"type": "null"}], "default": None}
+    assert compact_schema(prop) == prop
+
+
+@pytest.mark.parametrize("branches", [
+    [{"type": "null"}, {"type": "null"}],
+    [{"type": "null"}, "null"],
+    [{"type": ["string", "integer"]}, {"type": "null"}],
+])
+def test_odd_unions_never_break_the_listing(branches):
+    prop = {"anyOf": branches, "default": None}
+    assert compact_schema(prop) == prop
 
 
 @pytest.mark.parametrize("prop", [
@@ -128,7 +178,7 @@ async def test_unknown_argument_is_still_refused_by_the_server():
 
 @pytest.mark.asyncio
 async def test_optional_parameter_still_takes_null_and_absence():
-    # accetta_precisione is published as {"type": "string", "default": null}: the
+    # accetta_precisione is published as {"type": ["string", "null"], "default": null}: the
     # server still takes an explicit null, and answers as if it were left out.
     args = {"capitale": 1000, "data_inizio": "2020-01-01", "data_fine": "2020-12-31"}
     async with Client(mcp) as client:
@@ -136,6 +186,6 @@ async def test_optional_parameter_still_takes_null_and_absence():
         published = tools["interessi_legali"]["inputSchema"]["properties"]["accetta_precisione"]
         explicit = _wire(await client.call_tool_mcp("interessi_legali", {**args, "accetta_precisione": None}))
         absent = _wire(await client.call_tool_mcp("interessi_legali", args))
-    assert published["type"] == "string" and published["default"] is None and "anyOf" not in published
+    assert published["type"] == ["string", "null"] and published["default"] is None and "anyOf" not in published
     assert explicit["isError"] is False
     assert explicit["content"] == absent["content"]
