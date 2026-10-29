@@ -13,6 +13,7 @@ from mcp_legal_it.lib.tmview.client import (
     STATO_LABELS_IT,
     TMviewBlockedError,
     TMviewNotFoundError,
+    TMviewRefusedError,
     TrademarkDetail,
     TrademarkResult,
     _build_search_payload,
@@ -473,6 +474,21 @@ class TestFetchTrademark:
         assert detail.name == "FUORICORSO"
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("status", [401, 403])
+    async def test_a_refusal_is_its_own_error_not_retried(self, status):
+        """TMview's detail endpoint answered 403 {"error":"Forbidden"} (F5 gateway, seen live on
+        2026-10-29, while the search still answered): a refusal, said as one, not retried."""
+        refused = self._status_response(status, {"error": "Forbidden"})
+        mock_client = _mock_http_client()
+        mock_client.get = AsyncMock(side_effect=[_json_response({}), refused])
+        with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
+             patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
+            with pytest.raises(TMviewRefusedError) as info:
+                await fetch_trademark("IT502013902128590")
+        assert info.value.status == status
+        assert mock_client.get.await_count == 2      # warm-up + one detail request, no retry
+
+    @pytest.mark.asyncio
     async def test_500_with_other_body_is_not_a_not_found(self):
         other = self._status_response(500, {"message": "Internal error"})
         mock_client = _mock_http_client()
@@ -590,6 +606,26 @@ class TestLeggiMarchioImpl:
         assert "Nessuna scheda restituita da TMview per ST13 `IT500000000000000`" in text
         assert "inesistente o scheda dell'ufficio d'origine momentaneamente non disponibile" in text
         assert "cerca_marchi()" in text
+
+
+class TestRifiutoTMview:
+    @pytest.mark.asyncio
+    async def test_leggi_marchio_says_the_source_refused_without_the_url(self):
+        with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(side_effect=TMviewRefusedError(403))):
+            result = await _leggi_marchio_impl("IT502013902128590")
+        assert result.success is False and result.error_type == "refused"
+        text = result.to_str()
+        assert "TMview ha rifiutato la richiesta (HTTP 403)" in text and "non raggiungibile" not in text
+        assert "Non significa che il marchio non esista" in text
+        assert "tmview/api" not in text and "Forbidden" not in text and "Client error" not in text
+
+    @pytest.mark.asyncio
+    async def test_the_search_tools_say_it_too(self):
+        with patch("mcp_legal_it.tools.tmview.search_trademarks", AsyncMock(side_effect=TMviewRefusedError(403))):
+            cerca = await _cerca_marchi_impl("fuoricorso")
+            anteriorita = await _verifica_anteriorita_marchio_impl("fuoricorso", "25")
+        for result in (cerca, anteriorita):
+            assert result.error_type == "refused" and "HTTP 403" in result.to_str()
 
 
 class TestVerificaAnterioritaImpl:

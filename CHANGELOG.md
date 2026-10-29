@@ -975,6 +975,13 @@ entry, it is the same feature as ported to the 3.0 line.
   XML). The api took its first four digits as the year: parere n. 1918/2026 became
   «anno 1918». Sentenza n. 17/2021 lost its year. Now `numero` and `anno` are 1918 and
   2026; the portal's 9-digit form («202614035») is still read.
+- **TMview's refusals are said as such.** When TMview turns a request away with HTTP
+  401/403 (since 2026-10-29 its trademark-detail endpoint answers `{"error":"Forbidden"}`
+  while the search still works), `leggi_marchio`, `cerca_marchi` and
+  `verifica_anteriorita_marchio` say «TMview ha rifiutato la richiesta (HTTP 403)». They
+  add that this does not mean the mark does not exist, and that the record is on
+  www.tmdn.org. Before, the answer was «non raggiungibile», followed by httpx's English
+  message with the request URL. A refusal is not retried.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
   portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
   provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
