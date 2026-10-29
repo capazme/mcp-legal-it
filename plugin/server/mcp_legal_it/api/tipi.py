@@ -254,6 +254,23 @@ class NotaAggiornamento:
 
 
 @dataclass(frozen=True)
+class ParteArticolo:
+    """One part of an article Normattiva splits («1 (commi 701-800)»; shape agreed with VisuaLex).
+
+    ``progressivo`` is Normattiva's index in the act's tree as it is today: an amendment can
+    split the article again, so it holds for the current tree only and is never a key on its
+    own. ``commi_dal`` / ``commi_al`` are strings, as the tree writes them («1-bis»).
+    ``url`` is the part's page (``/atto/caricaArticolo?…``): it needs the session of the
+    article's page and does not open on its own (``parte_articolo`` reads it).
+    """
+
+    progressivo: int
+    commi_dal: str
+    commi_al: str
+    url: str
+
+
+@dataclass(frozen=True)
 class TestoArticolo:
     """One article: VisuaLex ``/fetch_article_text`` item keys, plus additions."""
 
@@ -304,6 +321,12 @@ class TestoArticolo:
     # «note di aggiornamento non lette: verificare su Normattiva» is then in avvisi.
     note_aggiornamento: tuple[NotaAggiornamento, ...] | None = None
     note_non_lette: bool = False
+    # An article Normattiva splits into parts (art. 1 L. 296/2006: 14 parts of 100 commi):
+    # its parts in order, () when it is not split, None when the text is not a Normattiva
+    # page's. testo_parziale: article_text is one part only (the article page's own, or the
+    # one parte_articolo read), and avvisi says which («testo parziale: commi 1-100 di 1364 …»).
+    parti: tuple[ParteArticolo, ...] | None = None
+    testo_parziale: bool = False
 
 
 @dataclass(frozen=True)

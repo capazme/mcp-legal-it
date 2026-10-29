@@ -113,9 +113,17 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
             parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         from mcp_legal_it.core.norme import AVVISO_NOTE_NON_LETTE, note_della_pagina
 
-        note, note_non_lette, note_nel_testo = note_della_pagina(source, text, url)
+        note, note_non_lette, note_nel_testo = note_della_pagina(source, text, url,
+                                                                 article_result.get("chiave_pagina"))
         if note_non_lette:
             parts.append(f"**Attenzione**: {AVVISO_NOTE_NON_LETTE}.\n")
+        # An article Normattiva splits into parts: which part this is, said before the text.
+        for avviso in article_result.get("avvisi_parti") or []:
+            parts.append(f"**Attenzione**: {avviso}.\n")
+        parti, parte = article_result.get("parti") or [], article_result.get("parte")
+        if parti and parte:
+            parts.append(f"**Commi {parte['commi_dal']}-{parte['commi_al']}** (parte {parte['progressivo']} "
+                         f"di {len(parti)} dell'articolo su Normattiva)\n")
         # A recital reads «(42) …»: the number is the label, the text is VisuaLex's (without it).
         parts.append(f"({article_result['considerando']}) {text}" if article_result.get("considerando") else text)
         if note and not note_nel_testo:
@@ -124,6 +132,9 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
             # 23/2015, C. cost. 194/2018). A future «notes on request» switch (token phase 3)
             # must never cover these notes. A code's text already carries them: not twice.
             parts.append("\n**Aggiornamenti**\n\n" + "\n\n".join(f"({n['numero']}) {n['testo']}" for n in note))
+        if parti:
+            parts.append("\n**Parti dell'articolo su Normattiva**: "
+                         + "; ".join(f"commi {p['commi_dal']}-{p['commi_al']}" for p in parti) + ".")
     else:
         parts.append(f"**Nessun testo trovato** — URL: {url}")
 
@@ -183,6 +194,11 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
         article_result = await _fetch_futura(nv, None)
     else:
         article_result = await fetch_norma(nv)
+    from mcp_legal_it.core.norme import con_parte
+    from mcp_legal_it.lib.visualex.parti_normattiva import comma_richiesto
+
+    # A comma named in the reference reads the part of a split article that holds it.
+    article_result = await con_parte(article_result, article, comma=comma_richiesto(reference))
 
     # An article the act does not have has nothing to annotate (and Brocardi would
     # only be searched page by page for it).
@@ -213,7 +229,9 @@ async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", a
     nv = NormaVisitata(norma=norma, numero_articolo=article)
 
     result = await fetch_norma(nv)
+    from mcp_legal_it.core.norme import con_parte
 
+    result = await con_parte(result, article)
     return _format_result(result)
 
 
@@ -260,7 +278,10 @@ async def cite_law(
     proviene da un allegato, l'output lo dichiara ("Testo tratto dall'Allegato ...").
 
     I numeri di paragrafo (n. N, co. N, comma N) vengono automaticamente
-    ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR".
+    ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR". Eccezione: un articolo
+    che Normattiva divide in parti (art. 1 L. 296/2006: commi 1-100, 101-200, …);
+    lì il comma citato ("art. 1, comma 773, L. 296/2006") sceglie la parte da leggere,
+    e senza comma si ha la prima parte con l'avviso e l'elenco delle parti.
 
     Atti UE (regolamenti e direttive): il testo vigente è l'ultima versione consolidata
     di EUR-Lex quando questa include un atto modificativo; l'output lo dichiara (CELEX
@@ -299,6 +320,9 @@ async def cite_law(
                  ce ne sono, null se il testo non viene da una pagina Normattiva);
                  "note_non_lette" è true se una nota non si è potuta leggere (con l'avviso);
                  "note_nel_testo" è true se il testo le contiene già (articoli dei codici).
+                 "parti" ([{progressivo, commi_dal, commi_al, url}], [] se l'articolo non è
+                 diviso), "parte" (quella letta) e "testo_parziale" per un articolo diviso
+                 in parti.
                  In markdown le note sono sotto il testo, nella sezione «Aggiornamenti».
                  In modalità json le annotazioni Brocardi non sono incluse
                  (include_annotations viene ignorato).
@@ -1011,6 +1035,12 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
         dal = (data.get("upcoming") or {}).get("valid_from") or "?"
         nota = f"L'articolo non è ancora in vigore: entra in vigore il {dal}."
         return "non in vigore", nota + (f" Fonte: {fonte}" if fonte else "")
+
+    if data.get("parte_non_letta"):
+        # The comma's part of an article Normattiva splits could not be read: the text is
+        # another part, so a comma missing from it says nothing of the citation.
+        return "non verificata", ("Il comma citato sta in una parte dell'articolo che non è stato possibile "
+                                  "leggere ora." + (f" Fonte: {fonte}" if fonte else ""))
 
     if _norma_misquote(reference, data["testo"]):
         nota = "Comma/lettera citato non riscontrato nel testo dell'articolo."

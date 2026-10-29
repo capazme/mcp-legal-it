@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .. import _brocardi_switch, _clock
 from .._http import note_source
-from . import act_dates, normattiva_html, note_normattiva, pagine_eurlex, pagine_normattiva
+from . import act_dates, normattiva_html, note_normattiva, pagine_eurlex, pagine_normattiva, parti_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
@@ -767,11 +767,120 @@ async def _normattiva_page(url: str, articolo: str | None = None) -> "tuple[str,
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
+        _ricorda_sessione(url, client)
     text, served, note = _lettura_pagina(html)
     if text:
         validita = await asyncio.to_thread(_validita_da_pagina, html, articolo)
-        pagine_normattiva.scrivi(url, text, served, validita, note)
+        parti, servita = _parti_della_pagina(html, articolo)
+        pagine_normattiva.scrivi(url, text, served, validita, note, parti=parti, parte_servita=servita)
     return text, served
+
+
+def _parti_della_pagina(html: str, articolo: "str | None") -> "tuple[list[dict], int | None]":
+    """``(parts, progressivo served)`` of an article Normattiva splits («1 (commi 1-100)» …).
+
+    ``([], None)`` for an article not split; the progressivo is None when the page does not
+    say which part it is.
+    """
+    voluto = _article_identity(normalize_article_key(articolo)) if articolo else None
+    if voluto is None:
+        return [], None
+    parti = parti_normattiva.parti_articolo(
+        html, lambda etichetta: _article_identity(normalize_article_key(etichetta)) == voluto)
+    if not parti:
+        return [], None
+    servita = parti_normattiva.parte_servita(html, parti)
+    return parti, servita["progressivo"] if servita else None
+
+
+# The session an article page set, kept a while: a part's page (and only with it) is then one
+# request, not two. Never the key of anything kept: the cookies only.
+_SESSIONE_VALIDA_PER = 600.0
+_MAX_SESSIONI = 64
+_sessioni: "dict[str, tuple[float, dict]]" = {}
+
+
+def _ricorda_sessione(url: str, client) -> None:
+    try:
+        cookies = dict(client.cookies)
+    except Exception:  # noqa: BLE001 - a client without a cookie jar (a test double) keeps none
+        return
+    if not cookies:
+        return
+    _sessioni[url] = (time.monotonic(), cookies)
+    while len(_sessioni) > _MAX_SESSIONI:
+        _sessioni.pop(next(iter(_sessioni)))
+
+
+async def leggi_parte(url: str, parte: dict, articolo: str) -> dict:
+    """One part of an article Normattiva splits: ``{"text", "served", "note", "chiave"}``.
+
+    *url* is the article's page (``N2Ls?…~art1``), *parte* an entry of its tree
+    (``parti_normattiva.parti_articolo``). The part's page needs the article page's session:
+    the one kept from reading it (10 minutes), else the article page is read again first, and
+    the part's path is taken from that fresh page, not from the one kept. The page must name
+    the article and the part's commi, or ``ValueError``; network and HTTP errors propagate.
+
+    A session is kept only after its part was read: with a kept cookie that has died,
+    Normattiva answers 200 with another page, and keeping it would fail every later call.
+    Such a failure drops the kept session and tries once more with the page read again.
+    The reading is kept a day under the article URL, the tree's ``art.versione`` and the
+    part's commi, never its progressivo alone (an amendment can split the article again).
+    """
+    versione = re.search(r"art\.versione=(\d+)", parte.get("path") or "")
+    chiave = (f"{url}|parte|v{versione.group(1) if versione else '?'}|{parte['commi_dal']}-{parte['commi_al']}")
+    rec = pagine_normattiva.leggi(chiave)
+    if rec is not None:
+        note_source("normattiva", url)
+        return {"text": rec["testo"], "served": rec["servito"], "note": rec.get("note"), "chiave": chiave}
+    voluto = _article_identity(normalize_article_key(articolo))
+    if voluto is None:
+        raise ValueError(f"l'art. {articolo} non ha un numero da riscontrare")
+    sessione = _sessioni.get(url)
+    cookies = sessione[1] if sessione and time.monotonic() - sessione[0] < _SESSIONE_VALIDA_PER else None
+    try:
+        return await _leggi_parte_una_volta(url, parte, articolo, voluto, chiave, cookies)
+    except (ValueError, httpx.HTTPStatusError):
+        if cookies is None:
+            raise
+        _sessioni.pop(url, None)  # the kept session is dead or wrong: never reused
+        return await _leggi_parte_una_volta(url, parte, articolo, voluto, chiave, None)
+
+
+async def _leggi_parte_una_volta(url: str, parte: dict, articolo: str, voluto, chiave: str,
+                                 cookies: "dict | None") -> dict:
+    async with async_client("normattiva", headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True,
+                            cookies=cookies) as client:
+        path = parte["path"]
+        if cookies is None:
+            pagina = await client.get(url)
+            pagina.raise_for_status()
+            note_source("normattiva", str(pagina.url) if hasattr(pagina, "url") else "")
+            # The part as this fresh page names it: its path (and art.versione) may have moved.
+            fresche = parti_normattiva.parti_articolo(
+                pagina.text, lambda etichetta: _article_identity(normalize_article_key(etichetta)) == voluto)
+            stessa = next((p for p in fresche if (p["commi_dal"], p["commi_al"]) == (parte["commi_dal"], parte["commi_al"])),
+                          None)
+            if stessa is None:
+                raise ValueError(f"i commi {parte['commi_dal']}-{parte['commi_al']} non sono più una parte "
+                                 f"dell'art. {articolo} su Normattiva")
+            path = stessa["path"]
+        resp = await client.get("https://www.normattiva.it" + path)
+        resp.raise_for_status()
+        note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
+        if resp.status_code != 200:
+            raise ValueError(f"la parte {parte['commi_dal']}-{parte['commi_al']} risponde HTTP {resp.status_code}")
+        html = resp.text
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", XMLParsedAsHTMLWarning)
+            text, served, note = _lettura_pagina(html)
+        if not text or _article_identity(served or "") != voluto \
+                or parti_normattiva.parte_servita(html, [parte]) is None:
+            raise ValueError(f"la pagina dei commi {parte['commi_dal']}-{parte['commi_al']} non è quella "
+                             f"dell'art. {articolo}")
+        _ricorda_sessione(url, client)  # only now: the session served the part
+    pagine_normattiva.scrivi(chiave, text, served, None, note)
+    return {"text": text, "served": served, "note": note, "chiave": chiave}
 
 
 def _validita_da_pagina(html: str, articolo: str | None) -> "dict | None":
