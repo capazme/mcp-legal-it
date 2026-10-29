@@ -961,6 +961,13 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **TMview's refusals are said as such.** When TMview turns a request away with HTTP
+  401/403 (since 2026-10-29 its trademark-detail endpoint answers `{"error":"Forbidden"}`
+  while the search still works), `leggi_marchio`, `cerca_marchi` and
+  `verifica_anteriorita_marchio` say «TMview ha rifiutato la richiesta (HTTP 403)». They
+  add that this does not mean the mark does not exist, and that the record is on
+  www.tmdn.org. Before, the answer was «non raggiungibile», followed by httpx's English
+  message with the request URL. A refusal is not retried.
 - **TUIR, TUB, TUF and the Testo unico sicurezza carry their full date.** The
   names `TUIR`, `TUB`, `TUF` and «testo unico sicurezza» resolved to the year
   alone, so `mcp_legal_it.api.leggi_riferimento("art. 1 TUIR")` returned a
