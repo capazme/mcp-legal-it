@@ -580,6 +580,13 @@ entry, it is the same feature as ported to the 3.0 line.
   other reading tools already have: the final note gives the range, the total
   and the `da_carattere` to read on from. An act that fits in one window gets
   the same answer as before, and calls without the parameter keep working.
+  The windows of one act are cut from one reading of it, kept in memory for
+  the day: a later window sends no request (without the Akoma Ntoso export a
+  code is rebuilt article by article, thousands of requests). A later window
+  whose reading is gone is served only from the same text or from the Akoma
+  Ntoso export, and says so; otherwise it is refused with a pointer to
+  `da_carattere=1`, never served shifted. The citation gate does not credit an
+  article heading that a window cut at its end («Art. 4» of «Art. 41»).
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address
