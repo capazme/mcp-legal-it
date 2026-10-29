@@ -236,32 +236,52 @@ async def _act_metadata(norma: Norma) -> dict:
 
 
 # The act a reachable Normattiva always serves, read when an act's page is the error page:
-# if this one reads, the error is about the act asked; if not, about Normattiva.
-_CONTROLLO = Norma(tipo_atto="legge", data="1990-08-07", numero_atto="241")
-_CONTROLLO_VALIDO_PER = 300.0
+# if this one reads, the error is about the act asked; if not, about Normattiva. It is asked
+# by its year, as risolvi_atto asks every act (urn:nir:stato:legge:1990-01-01;241), so the
+# check goes through the same resolver as the page it vouches for.
+_CONTROLLO = Norma(tipo_atto="legge", data="1990", numero_atto="241")
+_CONTROLLO_DATA = "1990-08-07"
+_CONTROLLO_OK_PER = 300.0       # a success is trusted five minutes
+_CONTROLLO_FALLITO_PER = 60.0   # a failure one minute: no second request per miss in an outage
 _controllo_valido_fino = 0.0
+_controllo_ok = False
+_controllo_in_corso: "dict[int, asyncio.Future]" = {}
 
 
 async def normattiva_serves_acts() -> bool:
     """Whether Normattiva serves a known act's page now (L. 7 agosto 1990, n. 241).
 
-    One request through the library's client; a success is trusted for five minutes in
-    the process, a failure never. Network and HTTP errors are a ``False``.
+    One request through the library's client. Its answer is shared by the calls that ask
+    while it is in flight (one per event loop), and kept for the process: a success five
+    minutes, a failure one minute. Network and HTTP errors, a page without that act, and a
+    cancelled read are a ``False``.
     """
-    global _controllo_valido_fino
+    global _controllo_valido_fino, _controllo_ok
     if time.monotonic() < _controllo_valido_fino:
-        return True
+        return _controllo_ok
+    chiave = id(asyncio.get_running_loop())
+    in_corso = _controllo_in_corso.get(chiave)
+    if in_corso is not None:
+        return await asyncio.shield(in_corso)
+    futuro = asyncio.get_running_loop().create_future()
+    _controllo_in_corso[chiave] = futuro
+    ok = False
     try:
         async with async_client("normattiva", headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
             resp = await client.get(_CONTROLLO.url())
             resp.raise_for_status()
             note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
+        ok = act_dates.date_from_title(resp.text, "legge", "1990", "241") == _CONTROLLO_DATA
     except Exception:  # noqa: BLE001 - an unreachable source is the answer
-        return False
-    if act_dates.date_from_title(resp.text, "legge", "1990", "241") != _CONTROLLO.data:
-        return False
-    _controllo_valido_fino = time.monotonic() + _CONTROLLO_VALIDO_PER
-    return True
+        ok = False
+    finally:
+        _controllo_in_corso.pop(chiave, None)
+        if not futuro.done():
+            # Also when this call is cancelled: the waiters get "not served" (transient).
+            futuro.set_result(ok)
+    _controllo_ok = ok
+    _controllo_valido_fino = time.monotonic() + (_CONTROLLO_OK_PER if ok else _CONTROLLO_FALLITO_PER)
+    return ok
 
 
 async def with_full_date(norma: Norma) -> Norma:

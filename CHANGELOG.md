@@ -31,8 +31,10 @@ entry, it is the same feature as ported to the 3.0 line.
     - EU acts and codici are `non_supportata`.
   - **Error page.** Normattiva serves one error page for an act it does not
     have and for a page asked without a session (byte-identical on 29 Oct). So
-    that page is `atto_non_trovato` only when a known act (L. 241/1990) reads
-    right after it; otherwise it is `fonte_non_raggiungibile`.
+    that page is `atto_non_trovato` only when a known act (L. 241/1990, asked by
+    its year as every act is) reads right after it; otherwise it is
+    `fonte_non_raggiungibile`. The residual risk is documented: within five minutes
+    of a successful check, a session error on one act's page reads as missing.
   - **Transient failures.** These are `fonte_non_raggiungibile`, never `trovato`
     without a date, and neither they nor their page are kept (only a page with a
     date is kept):
@@ -45,8 +47,9 @@ entry, it is the same feature as ported to the 3.0 line.
     Any other HTTP error is `errore_fonte`, which is transient too.
   - **Cache parity.** A cached answer equals the live one but for `fonti=None`.
     The date file follows `MCP_CACHE_DIR` and `LEGAL_CACHE=off`.
-  - **Cost.** One request per act (two on the error page: the check, at most
-    once every five minutes), none from the disk cache of act dates
+  - **Cost.** One request per act, plus one for the check on the error page.
+    The check is shared by concurrent calls, and its answer is kept five minutes
+    (success) or one minute (failure). None from the disk cache of act dates
     (`act_dates.json`). Concurrent calls for one act share one request. The
     library's Normattiva limits apply: 3 in flight, 0.5 s apart, documented in
     `docs/api.md`.

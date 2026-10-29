@@ -43,6 +43,7 @@ RICHIESTE = len(CASI) + 1
 async def test_risolvi_atto_on_normattiva(monkeypatch):
     monkeypatch.setattr(scraper, "_full_date_cache", {})
     monkeypatch.setattr(scraper, "_controllo_valido_fino", 0.0)
+    monkeypatch.setattr(scraper, "_controllo_ok", False)
     act_dates.svuota_memoria()
     print(f"\nrisolvi_atto: {RICHIESTE} richieste a Normattiva, una alla volta")
     ottenuti = []

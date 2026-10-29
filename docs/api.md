@@ -396,8 +396,11 @@ and makes at most one request per act.
     process. A `Retry-After` of a 429 or 503 pauses the source for at most 30 s. They
     are shared with every other call that reads Normattiva.
   - **Cost:**
-    - one request for an act not seen before, two when its page is the error page (the
-      check, at most once every five minutes);
+    - one request for an act not seen before;
+    - when its page is the error page, one more for the check, unless a check answered
+      in the last five minutes (success) or one minute (failure). One check in flight
+      is shared by every call that needs it, so N concurrent misses cost N pages and
+      one check;
     - none for an act whose date is in the disk cache, or whose page this process
       already read;
     - never the act's art. 1 or its index.
@@ -421,11 +424,13 @@ and makes at most one request per act.
     29 Oct 2026 that page was byte-identical, but for the session id, to the one it serves
     for an update table asked without the session cookie. So the page alone does not say
     that the act is missing. On that page, `risolvi_atto` reads a known act, L. 7 agosto
-    1990, n. 241:
+    1990, n. 241, asked by its year like every act (`legge:1990-01-01;241`), so through the
+    same resolver:
     - if that act reads correctly, the error is about the act asked: `atto_non_trovato`;
     - if it does not, Normattiva is the problem: `fonte_non_raggiungibile`.
-    - A successful check is trusted five minutes in the process. A miss therefore costs
-      at most two requests.
+    - The check's answer is kept in the process: a success five minutes, a failure one
+      minute. Concurrent calls share one check. A miss therefore costs two requests at
+      most, and one when a check answered recently; during an outage, one check a minute.
   - **`atto_non_trovato` is never transient.** Normattiva answered, and one of these
     says it has no such act:
     - a 404;
@@ -435,6 +440,11 @@ and makes at most one request per act.
       informazioni»), with the check passed.
 
     It can be cached. The library keeps in memory only pages that carry a date.
+
+    **Accepted residual risk:** in the five minutes after a successful check, an error
+    page caused by a session or server problem on one act's page reads as
+    `atto_non_trovato`, because the check is not repeated. A caller that caches misses
+    for long may want to ask a miss again later.
   - **Cache parity:** an answer from the cache (disk or memory) has the same `esito`, `data`,
     `urn`, `url`, `precisione` and `errore` as the live answer; only `fonti` is `None`.
     The disk file is `act_dates.json` in the cache directory: it follows `MCP_CACHE_DIR`,
