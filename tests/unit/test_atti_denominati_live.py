@@ -1,10 +1,12 @@
 """Live gate over the curated act tables — run by hand before a release.
 
-Every act in ATTI_DENOMINATI is asked of Normattiva by URN; the act that comes
-back must carry the date and number the table claims. A typo'd number usually
-lands on an act published on a different date, which this catches. It cannot
-catch a wrong number that happens to belong to an act of the same date — only
-reading does — so treat a green run as "no drift", not "certified correct".
+Every act in ATTI_DENOMINATI, and every Italian act of ATTI_NOTI, is asked of
+Normattiva by URN; the act that comes back must carry the date and number the
+table claims. An Italian act of ATTI_NOTI with the year alone is refused before
+any request. A typo'd number usually lands on an act published on a different
+date, which this catches. It cannot catch a wrong number that happens to belong
+to an act of the same date — only reading does — so treat a green run as
+"no drift", not "certified correct".
 
     .venv/bin/pytest tests/unit/test_atti_denominati_live.py -m live -q
 
@@ -129,4 +131,36 @@ class TestAttiDenominatiLive:
         failures = [p for p in problems if p]
         assert not failures, "\n".join(
             [f"{len(failures)}/{len(unique)} atti UE non trovati:"] + failures
+        )
+
+    async def test_every_italian_act_noto_matches_normattiva(self):
+        # One request per distinct act, one at a time with a pause; the count is printed
+        # before the first one. An Italian act with the year alone resolves to a placeholder
+        # date, so it is refused before any request.
+        acts: dict[tuple[str, str, str], list[str]] = {}
+        year_only = []
+        for name, entry in ATTI_NOTI.items():
+            if entry["tipo_atto"] in ("regolamento ue", "direttiva ue"):
+                continue  # EU acts are cited by year
+            if re.fullmatch(r"\d{4}", entry.get("data", "")):
+                year_only.append(name)
+            elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", entry.get("data", "")):
+                key = (entry["tipo_atto"], entry["data"], entry["numero_atto"])
+                acts.setdefault(key, []).append(name)
+        assert not year_only, f"atti italiani con il solo anno in ATTI_NOTI: {year_only}"
+        assert acts, "no Italian act with a full date in ATTI_NOTI"
+        print(f"\nATTI_NOTI: {len(acts)} richieste a Normattiva, una alla volta")
+
+        problems = []
+        async with httpx.AsyncClient(
+            follow_redirects=True, timeout=45, headers=HEADERS
+        ) as client:
+            for i, ((tipo, data, numero), aliases) in enumerate(acts.items()):
+                if i:
+                    await asyncio.sleep(2)
+                problems.append(await _check_normattiva(client, tipo, data, numero, aliases))
+
+        failures = [p for p in problems if p]
+        assert not failures, "\n".join(
+            [f"{len(failures)}/{len(acts)} atti di ATTI_NOTI non corrispondono:"] + failures
         )
