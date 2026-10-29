@@ -90,19 +90,46 @@ def parte_del_comma(parti: list[dict[str, Any]], comma: str) -> Optional[dict[st
 
 # --- the comma a reference asks for -----------------------------------------------------
 
-_COMMA_RICHIESTO = re.compile(
-    rf"(?:\bcomma|\bco\.|\bc\.)\s*({_COMMA})\b|\b({_COMMA})\s*[°º]\s*comma\b",
+_ARTICOLO = re.compile(rf"\b(?:art|articolo)\.?\s*\d+(?:[\s-]*(?:{_SUFFISSI})\b)?", re.IGNORECASE)
+# Right after the article: «, comma 773», «co. 773», «c. 773» (never the «c.» of «l.c.» or «c.c.»),
+# «commi 773 e 774», «773° comma».
+_DOPO = re.compile(
+    rf"[\s,]*(?:(?:commi|comma|co\.|(?<![a-z]\.)c\.)\s*({_COMMA})|({_COMMA})\s*[°º]\s*comma\b)",
+    re.IGNORECASE,
+)
+# Right before the article: «comma 773 dell'art. 1», «commi 773 e 774 dell'art. 1».
+_PRIMA = re.compile(
+    rf"\b(?:comma|commi)\s+({_COMMA})(?:\s*(?:,|e|-|–)\s*{_COMMA})*\s*,?\s*(?:dell['’]|del|dello)?\s*$",
     re.IGNORECASE,
 )
 
 
 def comma_richiesto(riferimento: str) -> Optional[str]:
-    """The comma a citation names («art. 1, comma 773, L. 296/2006» -> «773»), canonical; else None.
+    """The comma a citation names for its article («art. 1, comma 773, L. 296/2006» -> «773»).
 
-    Forms: «comma 773», «co. 773», «c. 773», «773° comma», each with a suffix («comma
-    773-bis», «co. 1 bis»). Only the first comma named is taken.
+    Only a comma attached to the first article cited: right after it («, comma 773», «co.
+    773», «c. 773», «773° comma», «commi 773 e 774»: the first) or right before it («comma
+    773 dell'art. 1»). A comma of another article later in the reference («come mod. da art.
+    1, comma 5, l. 92/2012») and the «c.» of «l.c.» or «c.c.» are not it. Canonical
+    («773-bis»); None when none.
     """
-    m = _COMMA_RICHIESTO.search(riferimento or "")
-    if m is None:
+    testo = riferimento or ""
+    articolo = _ARTICOLO.search(testo)
+    if articolo is None:
         return None
-    return _canonico(m.group(1) or m.group(2))
+    dopo = _DOPO.match(testo, articolo.end())
+    if dopo is not None:
+        return _canonico(dopo.group(1) or dopo.group(2))
+    prima = _PRIMA.search(testo[max(0, articolo.start() - 60):articolo.start()])
+    return _canonico(prima.group(1)) if prima else None
+
+
+def contiene_comma(testo: str, comma: str) -> bool:
+    """Whether a part's text has the comma's own line («773. …», «773-bis. …»)."""
+    m = re.match(rf"(\d+)(?:-({_SUFFISSI}))?$", comma or "", re.IGNORECASE)
+    if not m:
+        return False
+    suffisso = rf"[ \t-]*{m.group(2)}" if m.group(2) else ""
+    # [ \t], never \s: under (?m) a \s* from every line start crossed the blank lines after
+    # it, quadratic in a text of many empty lines.
+    return re.search(rf"(?mi)^[ \t]*\(*{m.group(1)}{suffisso}[ \t]*\)*[ \t]*\.", testo or "") is not None
