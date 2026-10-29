@@ -729,8 +729,16 @@ The text in force of one article, from Normattiva or EUR-Lex.
     1364 (l'articolo è diviso in 14 parti su Normattiva)».
   - **Values.** `parti` is `()` for an article not split and `None` when the text is not a
     Normattiva page's.
-  - **Reading another part.** Use `parte_articolo(riferimento, progressivo)`;
-    `parte_del_comma(parti, "773")` finds the part of a comma.
+  - **Reading another part.** A reference string that names a comma («art. 1, comma 773,
+    L. 296/2006») reads that comma's part in `testo_articolo` too. Otherwise use
+    `parte_articolo(riferimento, progressivo)`, with `parte_del_comma(parti, "773")` to
+    find the part of a comma. The library's notice says so: «… ; per un comma, indicarlo
+    nel riferimento (…) oppure leggerne la parte con parte_del_comma(parti, comma) e
+    parte_articolo(riferimento, progressivo)».
+  - **A part read that lacks the comma's own line** («773. …», for example a «-bis» on a
+    part's edge) gets a notice too.
+  - **`verifica_citazioni`.** When the comma's part could not be read, it answers «non
+    verificata», never «metadati discordanti» on another part's text.
   - **Notes.** `note_aggiornamento` is the part's own: the notes of the other parts are
     covered by the notice.
   - **In the MCP tools.** `cite_law` reads the part that holds the comma its reference names
@@ -861,14 +869,22 @@ One part of an article Normattiva splits into parts: `progressivo` is a
 - **What you get.** `article_text` is the part's page, read by VisuaLex's extractor, with
   the part's own notes. `parti` is the whole list, `testo_parziale` is `True`, and `avvisi`
   names the part's commi.
-- **Cost.** Two requests: the article's page, then the part's, which needs that page's
-  session. Only one when the session is less than 10 minutes old or the part is the page's
-  own. A part read is kept a day, under the article and the part's commi.
+- **Cost.**
+  - Two requests: the article's page, then the part's, which needs that page's session.
+  - One when the session kept from the page is less than 10 minutes old, or when the part
+    is the page's own.
+  - None when the part is in the cache: a part read is kept a day, under the article URL,
+    the tree's `art.versione` and the part's commi.
+  - Two more when the kept session has died: Normattiva then answers with another page.
+    The session is dropped, the page is read again and the part asked with the fresh
+    page's path. A session is kept only after it served the part.
 - **The index holds for the current tree only.** An amendment can split the article again,
   so never keep a `progressivo` as a key: read `parti` again. For the same reason
   `commi_dal`/`commi_al` are strings («1-bis»).
 - **`url`.** A part's `url` (`/atto/caricaArticolo?…`) needs the article page's session:
   it does not open on its own.
+- **Channel.** Only `canale="html"`: the Akoma Ntoso export has the article whole, so
+  `canale="akn"` is `non_supportata`.
 - **Esiti:** those of `testo_articolo`, plus:
   - `riferimento_non_valido` for an article not split or a `progressivo` its tree does not
     have (`parti` is then filled, when there are parts);

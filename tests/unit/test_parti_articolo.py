@@ -96,8 +96,14 @@ class TestLettura:
         ("art. 1, 773° comma, L. 296/2006", "773"),
         ("art. 1, comma 773-bis, L. 296/2006", "773-bis"),
         ("art. 1, co. 12 ter, L. 296/2006", "12-ter"),
+        ("art. 1, commi 773 e 774, L. 296/2006", "773"),
+        ("art. 1, commi 773-775, L. 296/2006", "773"),
+        ("commi 773 e 774 dell'art. 1 L. 296/2006", "773"),
         ("art. 1 L. 296/2006", None),
         ("art. 2043 c.c.", None),
+        ("art. 3 l.c. 3/2001", None),  # the «c.» of «l.c.» is no comma
+        ("art. 1 c.c. 1942", None),  # nor the year after «c.c.»
+        ("art. 18 St. lav. come mod. da art. 1, comma 42, l. 92/2012", None),  # another article's comma
     ])
     def test_the_comma_of_a_reference(self, riferimento, comma):
         assert parti_normattiva.comma_richiesto(riferimento) == comma
@@ -224,3 +230,109 @@ class TestStrumentiMcp:
         assert (j["parte"]["progressivo"], j["parte"]["commi_dal"], j["parte"]["commi_al"]) == (8, "701", "800")
         assert len(j["parti"]) == 14 and j["parti"][13]["commi_al"] == "1364"
         assert "chiave_pagina" not in j
+
+
+class TestSessione:
+    """A kept session is reused only while it serves the part; a dead one is dropped."""
+
+    @staticmethod
+    def _sessioni_in_successione(chieste: list):
+        """The page gives the session «morta» first, then «viva»; «morta» answers another part."""
+        sessioni = iter(["morta", "viva", "viva", "viva"])
+
+        def handler(request):
+            url, cookie = str(request.url), request.headers.get("cookie", "")
+            chieste.append((url, cookie))
+            if "uri-res/N2Ls" in url:
+                return httpx.Response(200, text=ART1, headers={"set-cookie": f"JSESSIONID={next(sessioni)}; Path=/"})
+            return httpx.Response(200, text=PARTE2 if "morta" in cookie else PARTE8)
+
+        def factory(fonte, **kwargs):
+            kwargs.pop("verify", None)
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        return factory
+
+    async def test_a_dead_session_is_dropped_and_the_part_read_with_a_new_one(self):
+        chieste: list = []
+        with api.configurazione(client_factory=self._sessioni_in_successione(chieste)):
+            await api.testo_articolo(_rif(), canale="html")
+            t = await api.parte_articolo(_rif(), 8, canale="html")
+        assert t.esito == "trovato" and FRASE_773 in t.article_text
+        # page («morta»), part with «morta» (another part), page again («viva»), part with «viva».
+        assert [("N2Ls" in u, c.split("=")[-1] if c else "") for u, c in chieste] == [
+            (True, ""), (False, "morta"), (True, ""), (False, "viva")]
+        (cookie,) = [v for _, v in scraper._sessioni.values()]
+        assert cookie == {"JSESSIONID": "viva"}
+
+    async def test_a_session_is_never_kept_for_a_part_not_served(self):
+        def handler(request):
+            if "uri-res/N2Ls" in str(request.url):
+                return httpx.Response(200, text=ART1, headers={"set-cookie": "JSESSIONID=x; Path=/"})
+            return httpx.Response(200, text=PARTE2)  # always another part
+
+        def factory(fonte, **kwargs):
+            kwargs.pop("verify", None)
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory):
+            await api.testo_articolo(_rif(), canale="html")
+            scraper._sessioni.clear()
+            t = await api.parte_articolo(_rif(), 8, canale="html")
+        assert t.esito == "verifica_non_disponibile" and scraper._sessioni == {}
+
+    async def test_without_a_session_the_part_path_comes_from_the_fresh_page(self):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva(chieste)):
+            await api.testo_articolo(_rif(), canale="html")  # tree kept with art.versione=150
+        scraper._sessioni.clear()
+        nuova = ART1.replace("art.versione=150", "art.versione=151")
+        chieste.clear()
+        with api.configurazione(client_factory=_normattiva(chieste, pagina=nuova)):
+            t = await api.parte_articolo(_rif(), 8, canale="html")
+        assert FRASE_773 in t.article_text
+        assert "art.versione=151" in chieste[-1][0] and "progressivo=8" in chieste[-1][0]
+
+    async def test_the_part_reading_is_kept_under_the_trees_version(self):
+        with api.configurazione(client_factory=_normattiva([])):
+            await api.parte_articolo(_rif(), 8, canale="html")
+        chiavi = [k for k in pagine_normattiva._memoria if "|parte|" in k]
+        assert chiavi and all("|parte|v150|701-800" in k for k in chiavi)
+
+
+class TestCorrezioni:
+    @pytest.mark.parametrize("testo", ["\n" * 40000, " \n" * 20000 + "(" * 20000, ("1. a\n" * 20000)])
+    def test_the_comma_line_search_is_linear(self, testo):
+        # «^\s*» under (?m) crossed every blank line after each line start: 40k empty lines took 5 s.
+        import time
+        start = time.perf_counter()
+        assert parti_normattiva.contiene_comma(testo, "773-bis") is False
+        assert time.perf_counter() - start < 0.1
+
+    async def test_a_part_not_read_makes_the_verifier_say_non_verificata(self):
+        with api.configurazione(client_factory=_normattiva([], parti={8: httpx.Response(503)})):
+            verdetto, nota = await lc._verifica_norma("art. 1, comma 773, legge 27 dicembre 2006, n. 296")
+        assert verdetto == "non verificata" and "non è stato possibile" in nota
+
+    async def test_the_akn_channel_has_no_parts(self):
+        t = await api.parte_articolo(_rif(), 8, canale="akn")
+        assert t.esito == "non_supportata" and t.article_text == ""
+
+    async def test_the_library_reads_the_comma_of_a_reference_string(self):
+        with api.configurazione(client_factory=_normattiva([])):
+            t = await api.testo_articolo("art. 1, comma 773, legge 27 dicembre 2006, n. 296", canale="html")
+        assert FRASE_773 in t.article_text and t.testo_parziale is True
+
+    async def test_the_library_notice_names_its_own_functions(self):
+        with api.configurazione(client_factory=_normattiva([])):
+            t = await api.testo_articolo(_rif(), canale="html")
+        (avviso,) = [a for a in t.avvisi if a.startswith("testo parziale")]
+        assert "parte_del_comma(parti, comma) e parte_articolo(riferimento, progressivo)" in avviso
+
+    async def test_a_part_without_the_commas_line_is_said(self):
+        senza_773 = re.sub(r"(?m)^(\s*(?:<[^>]+>\s*)*)773\.", r"\1773bis.", PARTE8, count=1)
+        assert senza_773 != PARTE8
+        with api.configurazione(client_factory=_normattiva([], parti={8: senza_773})):
+            out = await lc._cite_law_impl("art. 1, comma 773, legge 27 dicembre 2006, n. 296")
+        assert "il comma 773 non compare nella parte letta (commi 701-800): verificare su Normattiva" in out
+
