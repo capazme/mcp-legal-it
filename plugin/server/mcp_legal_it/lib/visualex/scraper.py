@@ -1699,6 +1699,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                     "url": act_url,
                     "article_count": act.part_article_count(part),
                     "source": "normattiva-akn",
+                    "completo": True,
                 }
 
     ajax_headers = {**_HEADERS, "X-Requested-With": "XMLHttpRequest"}
@@ -1725,10 +1726,13 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
 
         if not article_urls:
             # Fallback: return just the first article (old behavior)
-            return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1}
+            return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
+                    "completo": False}
 
-        # Fetch all articles via AJAX, preserving order
+        # Fetch all articles via AJAX, preserving order. ``missed`` counts the articles
+        # that could not be read: the text is then not the whole act ("completo").
         all_parts: list[str] = []
+        missed = 0
         seen_urls: set[str] = set()
         for ajax_path in article_urls:
             if ajax_path in seen_urls:
@@ -1742,6 +1746,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                 art_html = art_resp.text
                 # Skip error pages
                 if "Normattiva - Errore" in art_html or len(art_html) < 50:
+                    missed += 1
                     continue
                 art_soup = BeautifulSoup(art_html, "lxml")
                 body = art_soup.find("div", class_="bodyTesto")
@@ -1749,14 +1754,19 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                     text = _testo_intero(body)
                     if text and text != "[Articolo senza contenuto o abrogato]":
                         all_parts.append(text)
+                else:
+                    missed += 1
             except httpx.HTTPError:
+                missed += 1
                 continue
 
     if not all_parts:
-        return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1}
+        return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
+                "completo": False}
 
     full_text = "\n\n---\n\n".join(all_parts)
-    return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts)}
+    return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts),
+            "completo": missed == 0}
 
 
 def _normattiva_page_title(html: str, soup: BeautifulSoup) -> str:

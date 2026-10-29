@@ -60,7 +60,7 @@ descrizione di ogni tool.
 | `fetch_law_annotations` | `fetch_law_annotations(act_type: str, article: str, date: str = "", act_number: str = "")` | Solo annotazioni Brocardi per un articolo specifico. |
 | `cerca_brocardi` | `cerca_brocardi(reference: str)` | Annotazioni complete Brocardi: ratio, spiegazione, massime strutturate con riferimenti Cassazione. |
 | `fetch_act_index` | `fetch_act_index(reference: str)` | Indice degli articoli di un atto normativo. |
-| `fetch_full_act` | `fetch_full_act(reference: str)` | Testo integrale di un atto normativo. |
+| `fetch_full_act` | `fetch_full_act(reference: str, da_carattere: int = 1)` | Testo integrale di un atto normativo, a finestre di 30000 caratteri. |
 | `download_law_pdf` | `download_law_pdf(reference: str)` | PDF ufficiale (EUR-Lex) o generato (Normattiva) della norma. |
 | `verifica_citazioni` | `verifica_citazioni(citazioni: str, archivio: str = "tutti", formato: str = "markdown")` | Verifica l'esistenza e la coerenza dei metadati di un elenco di citazioni legali (non entra nel merito); formato="json" per output strutturato. |
 
