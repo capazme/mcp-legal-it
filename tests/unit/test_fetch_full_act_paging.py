@@ -142,6 +142,7 @@ async def test_a_later_window_reads_nothing_again(monkeypatch):
 @pytest.mark.asyncio
 async def test_a_new_day_reads_the_act_again(monkeypatch):
     calls = _counting(monkeypatch, [_long_text()])
+    monkeypatch.delenv("LEGAL_TODAY", raising=False)  # it would win over LEGAL_NOW
     monkeypatch.setenv("LEGAL_NOW", "2026-10-29T10:00:00")
     await lc._fetch_full_act_impl("L. 300/1970")
     monkeypatch.setenv("LEGAL_NOW", "2026-10-30T10:00:00")
