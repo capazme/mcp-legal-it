@@ -7,7 +7,7 @@
   "environmentVariables": [
     {
       "name": "LEGAL_PROFILE",
-      "description": "Restrict the exposed surface to a practice area (sinistro, credito, penale, fiscale, normativa, privacy, studio, redattore, cowork; calcoli = offline calculators only). Unset or 'full' exposes all 231 tools; an unknown name refuses to start.",
+      "description": "Restrict the exposed surface to a practice area (sinistro, credito, penale, fiscale, normativa, privacy, studio, redattore, cowork; calcoli = offline calculators only). Unset or 'full' exposes all 234 tools; an unknown name refuses to start.",
       "isRequired": false
     },
     {

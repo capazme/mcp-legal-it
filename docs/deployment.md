@@ -42,11 +42,11 @@ Conteggi reali (`tests/unit/test_profiles.py` li tiene allineati al codice):
 | `sinistro` | 82 | Danno biologico, rivalutazione, interessi, normativa, giurisprudenza |
 | `credito` | 92 | Interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato |
 | `penale` | 54 | Prescrizione, calcolo pena, normativa, giurisprudenza |
-| `fiscale` | 65 | IRPEF, detrazioni, TFR, successioni, IMU, CONSOB, crisi d'impresa, societario |
+| `fiscale` | 66 | IRPEF, detrazioni, TFR, successioni, IMU, CONSOB, crisi d'impresa, societario |
 | `normativa` | 76 | Testo leggi, giurisprudenza di tutte le corti, Garante, CONSOB, privacy |
 | `privacy` | 67 | GDPR, DPIA, registro, data breach, normativa e giurisprudenza |
-| `studio` | 73 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
-| `redattore` | 86 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
+| `studio` | 76 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
+| `redattore` | 76 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
 | `cowork` | 80 | Set ridotto (normativa, giurisprudenza, privacy, parcelle) per host con contesto limitato |
 | `calcoli` | 144 | Solo calcoli e diagnostica, nessuna connessione di rete |
 | `full` | 234 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
