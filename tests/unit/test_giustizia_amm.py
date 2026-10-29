@@ -916,8 +916,9 @@ class TestPagedReading:
 
     def test_no_dispositivo_cut_resumes_after_the_limit(self):
         out = format_full("T", "a" * 16000, "cds", "1")
-        assert out.rstrip().endswith("Testo troncato a 15000 caratteri su 16000 totali: "
-                                     "per leggere il seguito ripetere la chiamata con da_carattere=15001]*")
+        assert out.rstrip().endswith("Testo troncato a 15000 caratteri su 16000 totali; dispositivo non "
+                                     "individuato: per leggere il seguito ripetere la chiamata con "
+                                     "da_carattere=15001]*")
 
     def test_window_starts_exactly_at_the_first_omitted_character(self):
         text = self._text()
@@ -1066,3 +1067,178 @@ async def test_live_sede_filter():
     docs = await search_provvedimenti(query="", sede="consiglio_di_stato", rows=10)
     assert docs
     assert all(d.sede == "cds" for d in docs)
+
+
+# ---------------------------------------------------------------------------
+# The provvedimento as an HTML page (mdp, since 2026-10)
+# ---------------------------------------------------------------------------
+# tests/fixtures/giustizia_amm/ holds trimmed copies of the REAL pages served on 2026-10-29:
+# Ad. Plen. n. 17/2021 (emblem image and stylesheet emptied, reasoning cut after 40
+# paragraphs, everything from P.Q.M. on kept; the private parties, their lawyers and the
+# individual firms are pseudonymised — «Delta s.r.l.», «avvocato Tizio Primo» — while the
+# magistrates, acting in their public role, keep their names), parere n. 1918/2026 (same
+# trimming) and the page a stale reference gets.
+
+from pathlib import Path as _Path
+
+_GA_FIXTURES = _Path(__file__).resolve().parents[1] / "fixtures" / "giustizia_amm"
+_AP17_HTML = (_GA_FIXTURES / "ap17_2021.html").read_bytes()
+_MDP_404_REAL = (_GA_FIXTURES / "pagina_non_trovata.html").read_bytes()
+# Parere n. 1918/2026 of the Sezione Prima (the parties are already -OMISSIS- on the portal).
+_PARERE_HTML = (_GA_FIXTURES / "parere_1918_2026.html").read_bytes()
+
+
+def _assert_stesse_parole(page: bytes, text: str) -> None:
+    """Every word of the page's text is read exactly as many times as it occurs (nothing lost,
+    nothing doubled), the «DISPOSITIVO» label the reader adds aside."""
+    from collections import Counter
+
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(page, "lxml")
+    for tag in soup(["style", "script", "img", "head"]):
+        tag.decompose()
+    attese = Counter(soup.body.get_text(" ").split())
+    lette = Counter(text.split())
+    lette["DISPOSITIVO"] -= text.count("\n\nDISPOSITIVO\n\n") + text.startswith("DISPOSITIVO\n\n")
+    assert +lette == +attese, (attese - lette, lette - attese)
+
+
+class TestHtmlDocument:
+    def test_the_page_is_a_document_not_an_error(self):
+        from src.lib.giustizia_amm.client import is_document_html
+
+        assert is_document_html(_AP17_HTML) is True
+        assert _is_error_page(_AP17_HTML) is False
+
+    @pytest.mark.parametrize("page", [_MDP_404_REAL, _MDP_404_PAGE])
+    def test_the_error_page_stays_an_error(self, page):
+        from src.lib.giustizia_amm.client import is_document_html
+
+        assert is_document_html(page) is False
+        assert _is_error_page(page) is True
+
+    def test_title_and_citation_data(self):
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        title, _text, meta = _parse_html_document(_AP17_HTML)
+        assert title == "Il Consiglio di Stato in sede giurisdizionale (Adunanza Plenaria)"
+        # The same keys and values the XML of the same sentenza gave (TestXmlMeta).
+        assert meta == {"tipologia": "Sentenza", "numero": "17/2021", "data_pubblicazione": "09/11/2021"}
+
+    def test_the_text_is_the_sentenza_and_nothing_of_the_markup(self):
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        _title, text, _meta = _parse_html_document(_AP17_HTML)
+        for passo in ("registro generale 14 di A.P. del 2021", "n. 504/2021", "2006/123", "FATTO e DIRITTO",
+                      "P.Q.M.", "enuncia i principi di diritto", "Sara Raffaella Molinaro, Consigliere, Estensore"):
+            assert passo in text, passo
+        assert "<" not in text and "font-family" not in text and "data:image" not in text
+        assert "\t" not in text and "  " not in text
+
+    def test_signatures_are_read_once(self):
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        _title, text, _meta = _parse_html_document(_AP17_HTML)
+        assert text.count("Filippo Patroni Griffi") == 2   # the list of judges and the signature
+
+    @pytest.mark.asyncio
+    async def test_the_tool_reads_the_page_keeping_the_dispositivo(self):
+        with _patch_session(doc_bytes=_AP17_HTML):
+            out = (await _leggi_provvedimento_amm_impl("cds", "202105584", "202100017_11.html")).to_str()
+        assert "# Il Consiglio di Stato in sede giurisdizionale (Adunanza Plenaria)" in out
+        assert "**Estremi**: Sentenza n. 17/2021, pubblicata il 09/11/2021" in out
+        assert "Testo troncato a 15000 caratteri" in out            # the page is longer than the limit
+        assert "P.Q.M." in out and "enuncia i principi di diritto" in out
+
+    @pytest.mark.asyncio
+    async def test_a_stale_reference_is_an_error_not_text(self):
+        with _patch_session(doc_bytes=_MDP_404_REAL):
+            result = await _leggi_provvedimento_amm_impl("cds", "202105584", "209900017_11.html")
+        assert result.success is False and result.error_type == "no_results"
+        assert "pagina di errore" in result.to_str()
+
+    @pytest.mark.asyncio
+    async def test_the_page_can_be_read_on(self):
+        with _patch_session(doc_bytes=_AP17_HTML):
+            seguito = (await _leggi_provvedimento_amm_impl("cds", "202105584", "202100017_11.html", 15001)).to_str()
+        assert "Caratteri 15001-" in seguito
+
+    def test_a_parere_names_its_section_and_number_but_no_publication(self):
+        from src.lib.giustizia_amm.client import _estremi_line, _parse_html_document
+
+        title, text, meta = _parse_html_document(_PARERE_HTML)
+        assert title == "Consiglio di Stato Sezione Prima Adunanza di Sezione del 23 luglio 2026"
+        # "e data 27/10/2026 Spedizione" is a dispatch date: never shown as «pubblicata il».
+        assert meta == {"tipologia": "Parere", "numero": "1918/2026"}
+        assert _estremi_line(meta) == "Parere n. 1918/2026"
+        assert "\n\nDISPOSITIVO\n\nP.Q.M.\n\nLa Sezione esprime il parere" in text
+        assert "LA SEZIONE" not in title
+
+    def test_no_text_is_lost_outside_paragraphs(self):
+        """List items, quotations, divs, headings, text after <br> and namespaced tags all count."""
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        page = """<html xmlns:h="http://www.w3.org/HTML/1998/html4"><body class="corpo">
+        <p class="registri">N. 00005/2026REG.PROV.COLL.</p>
+        <p class="sezione">Il Consiglio di Stato</p><p class="sezione">ORDINANZA</p>
+        <ul><li>primo motivo di appello</li><li>secondo motivo</li></ul>
+        <blockquote>citazione della norma impugnata</blockquote>
+        <div>blocco in un div</div><h3>Titolo interno</h3>
+        <div><p>paragrafo dentro un div</p>coda del div fuori dal paragrafo</div>
+        testo libero in body<br>dopo un a capo
+        <h:div>blocco con namespace</h:div>
+        <p class="popolo">P.Q.M. il Consiglio respinge l'istanza.</p>
+        </body></html>""".encode()
+        _title, text, meta = _parse_html_document(page)
+        for passo in ("primo motivo di appello", "secondo motivo", "citazione della norma impugnata",
+                      "blocco in un div", "Titolo interno", "paragrafo dentro un div",
+                      "coda del div fuori dal paragrafo", "testo libero in body", "dopo un a capo",
+                      "blocco con namespace"):
+            assert passo in text, passo
+        assert meta["tipologia"] == "Ordinanza" and meta["numero"] == "5/2026"
+        _assert_stesse_parole(page, text)
+
+    def test_a_table_nested_in_a_cell_is_read_once(self):
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        page = b"""<html><body class="corpo"><table><tr><td>IL PRESIDENTE
+        <table><tr><td>Mario Esempio</td><td>firmato</td></tr></table></td>
+        <td>IL SEGRETARIO</td></tr></table></body></html>"""
+        _title, text, _meta = _parse_html_document(page)
+        assert text.count("Mario Esempio") == 1 and text.count("firmato") == 1
+        _assert_stesse_parole(page, text)
+
+    @pytest.mark.parametrize("fixture", ["ap17_2021.html", "parere_1918_2026.html"])
+    def test_the_real_pages_lose_and_double_no_word(self, fixture):
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        page = (_GA_FIXTURES / fixture).read_bytes()
+        _assert_stesse_parole(page, _parse_html_document(page)[1])
+
+    @pytest.mark.parametrize("apertura", ["P.Q.M.", "P.Q.M.:", "p.q.m.", "P. Q. M.", "PER QUESTI MOTIVI",
+                                          "P.Q.M. Il Consiglio di Stato respinge l'appello."])
+    def test_the_dispositivo_is_found_however_it_opens(self, apertura):
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        page = (f'<html><body class="corpo"><p class="popolo">{"motivazione " * 2000}</p>'
+                f'<p class="fatto">{apertura}</p><p class="popolo">respinge</p></body></html>').encode()
+        _title, text, _meta = _parse_html_document(page)
+        assert "\n\nDISPOSITIVO\n\n" + apertura in text
+
+    def test_a_word_that_merely_starts_like_it_is_not_the_dispositivo(self):
+        from src.lib.giustizia_amm.client import _parse_html_document
+
+        page = b'<html><body class="corpo"><p class="popolo">Per questi motivistici argomenti</p></body></html>'
+        assert "DISPOSITIVO" not in _parse_html_document(page)[1]
+
+    def test_linear_time_on_a_long_page(self):
+        import time
+
+        from src.lib.giustizia_amm.client import _parse_html_document, is_document_html
+
+        page = b'<html><body class="corpo">' + b'<p class="popolo">' + b"N. " * 20_000 + b"</p></body></html>"
+        start = time.perf_counter()
+        assert is_document_html(page)
+        _parse_html_document(page)
+        assert time.perf_counter() - start < 1.0

@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   component authorization after a transform was skipped on direct calls).
 
 ### Fixed
+- **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
+  portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
+  provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
+  «non recuperabile: pagina di errore». The reader now recognises the page by its own
+  markup before testing for the error page, which is still reported as an error. It
+  reads every block in order: paragraphs, list items, quotations, headings, table rows,
+  loose text. It takes the court, the type, the number («Sentenza n. 17/2021, pubblicata
+  il 09/11/2021»; a parere: «Parere n. 1918/2026», whose dispatch date is not reported as
+  a publication date). The 15,000-character cut still keeps the dispositivo, from the
+  last block opening with «P.Q.M.» or «PER QUESTI MOTIVI», and says when none is found.
+  The XML is still read when served. Ported from the 3.0 line.
 - The plugin's end-of-turn citation hook no longer opens the server's Python
   environment. It ran `uv run --project <plugin>/server`, so whenever uv found
   that environment linked to an interpreter it could not reach, it deleted and
