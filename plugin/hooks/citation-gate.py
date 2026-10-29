@@ -189,6 +189,7 @@ class FallbackReader:
 
     def articoli_serviti(self, testo):
         # As core/citazioni.corpo_della_finestra: a window may cut a heading at either end.
+        # Known limit there too: a genuine heading on a window's edge line is not credited.
         finestra = re.search(r"\n\*\[Caratteri (\d+)-\d+ su \d+ totali: ([^\]\n]*)\]\*[ \t\n]*$", testo)
         if finestra:
             righe = testo[: finestra.start()].rstrip().split("\n")
