@@ -607,6 +607,23 @@ entry, it is the same feature as ported to the 3.0 line.
   credited either, so the gate may ask to read an article the window served
   (it never credits one it did not); cutting the windows on a line boundary
   would remove it, and departs from the shared paging contract.
+- **A shorter `tools/list`, same contract.** A middleware
+  (`mcp_legal_it/_listing.py`) changes only what the listing says:
+  - an optional parameter is published as `type: [X, "null"]` with
+    `default: null` instead of `anyOf [{"type": X}, {"type": "null"}]` (164
+    parameters); hosts that read a property's top-level `type` now find it, and
+    null stays legal, so a client that converts the schema to OpenAI's strict
+    mode does not force the model to invent a value;
+  - `additionalProperties: false` is left out of the 231 input schemas;
+  - descriptions lose the indentation docstrings leave at the start of their
+    continuation lines (words and line breaks stay);
+  - tools are listed by name, the same order for every profile and subset.
+
+  What a tool accepts does not change: FastMCP validates each call against the
+  function's signature, so an unknown argument is still refused by the server
+  with the same «Unexpected keyword argument» error. The difference is only for
+  a client that checks arguments against the schema before sending: it no
+  longer refuses an unknown argument itself, and leaves it to the server.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
   interactive question are gone): it pointed at a personal tunnel address

@@ -63,7 +63,11 @@ def test_tools_report_covers_every_listed_tool(tmp_path):
     assert t["total_tokens"] == t["tokens"] + t["instructions_tokens"]
     assert sum(g["tools"] for g in report["by_kind"].values()) == t["tools"]
     assert "?" not in report["by_kind"], "a tool without a kind tag"
-    assert report["blocks"]["additional_properties_false"]["count"] >= 1
+    # The blocks are measured even when the listing no longer carries them
+    # (mcp_legal_it/_listing.py drops additionalProperties:false and anyOf-null).
+    assert report["blocks"]["additional_properties_false"]["count"] == 0
+    assert report["blocks"]["anyof_null"]["count"] == 0
+    assert report["blocks"]["accetta_precisione"]["count"] >= 1
 
 
 def test_profile_narrows_the_surface(tmp_path):
