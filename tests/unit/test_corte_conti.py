@@ -153,19 +153,49 @@ class TestConfigurazione:
         ("IIT_API_SERVICE_URL", "https://example.org/api/service/"),
         ("IIT_API_PORTAL_SERVICE_URL", "https://corteconti-iit.almawave.cloud.example.org/api/portal/"),
         ("SERVER_PUBLIC_BASIC_URL", "https://example.org/"),
+        # urlparse reads banchedati.corteconti.it as the host of these three; a browser does not.
+        ("SERVER_PUBLIC_BASIC_URL", "https://evil.example\\@banchedati.corteconti.it/"),
+        ("IIT_API_PORTAL_SERVICE_URL", "https://evil.example%2f@corteconti-iit.almawave.cloud/api/portal/"),
+        ("SERVER_PUBLIC_BASIC_URL", "https://u:p@banchedati.corteconti.it/"),
+        ("SERVER_PUBLIC_BASIC_URL", "https://banchedati.corteconti.it\t/"),
+        ("SERVER_PUBLIC_BASIC_URL", ["https://banchedati.corteconti.it/"]),
     ])
     def test_an_address_off_the_source_hosts_is_refused(self, chiave, valore):
         # Neither a request nor a link shown to the lawyer may leave the Court's two hosts.
         with pytest.raises(cc.CorteContiPaginaInattesa, match="fuori dagli host"):
             cc.leggi_configurazione(_config(**{chiave: valore}))
+        # Never the address in the message.
+        with pytest.raises(cc.CorteContiPaginaInattesa) as info:
+            cc.leggi_configurazione(_config(**{chiave: valore}))
+        assert "evil" not in str(info.value) and "@" not in str(info.value)
+
+    def test_the_real_addresses_are_accepted(self):
+        for chiave in ("IIT_API_SERVICE_URL", "IIT_API_SECURE_SERVICE_URL", "IIT_API_PORTAL_SERVICE_URL",
+                       "SERVER_PUBLIC_BASIC_URL"):
+            assert cc.indirizzo_ammesso(_fixture("configuration.json")[chiave]), chiave
 
     def test_scrub_body_replaces_every_secret_of_the_configuration(self):
         body = json.dumps(_config(KEYCLOAK_DATA={"realm": "x"})).encode()
         out = cc.scrub_body(cc.CONFIG_URL, body).decode()
         _niente_segreti(out)
         dati = json.loads(out)
-        assert dati["USER_IIT_PR"] == dati["PWD_IIT_PR"] == dati["KEYCLOAK_DATA"] == "<scrubbed>"
+        assert dati["USER_IIT_PR"] == dati["PWD_IIT_PR"] == "<scrubbed>"
+        assert "KEYCLOAK_DATA" not in dati          # a key the client does not read is not recorded
         assert dati["IIT_API_SECURE_SERVICE_URL"].startswith("https://")
+
+    @pytest.mark.parametrize("extra", [
+        {"user_iit_pr": "segreto-di-prova-123"},                 # a lower-case secret key
+        {"ALTRO": {"PWD_IIT_PR": "segreto-di-prova-123"}},       # a nested one
+    ])
+    def test_scrub_body_keeps_only_what_the_client_reads(self, extra):
+        out = json.loads(cc.scrub_body(cc.CONFIG_URL, json.dumps({**_config(), **extra}).encode()))
+        assert set(out) <= set(cc._CHIAVI)
+        _niente_segreti(json.dumps(out))
+        assert cc.leggi_configurazione({**out, "USER_IIT_PR": "x", "PWD_IIT_PR": "y"})   # still replayable
+
+    @pytest.mark.parametrize("body", [b'["segreto-di-prova-123"]', b'"segreto-di-prova-123"', b"non json"])
+    def test_scrub_body_records_nothing_of_another_shape(self, body):
+        assert cc.scrub_body(cc.CONFIG_URL, body) == b""
 
     def test_scrub_body_leaves_other_answers_alone(self):
         body = b'{"USER_IIT_PR": "x"}'
@@ -339,6 +369,54 @@ class TestTools:
         with api.configurazione(client_factory=banca.factory):
             r = await _cerca_deliberazioni_corte_conti_impl("  ")
         assert r.error_type == "bad_input" and not banca.sent
+
+    @pytest.mark.parametrize("kwargs", [{"query": "rinnovo or proroga"}, {"query": "x", "anno": "duemila"},
+                                        {"numero": "29a", "anno": "2025"}])
+    async def test_bad_input_costs_no_request(self, kwargs):
+        banca = Banca()
+        with api.configurazione(client_factory=banca.factory):
+            r = await _cerca_deliberazioni_corte_conti_impl(**kwargs)
+        assert r.error_type == "bad_input" and not banca.sent
+
+    async def test_an_empty_section_list_is_not_kept(self):
+        banca = Banca()
+        originale = banca.handler
+        letture = []
+
+        def handler(request):
+            if "/getDistinctMetadata/" in str(request.url) and not letture:
+                letture.append(request)            # the first answer: no section at all
+                return httpx.Response(200, json={"aggregations": {"distinct_custom_field": {"buckets": []}}})
+            return originale(request)
+
+        banca.handler = handler
+        with api.configurazione(client_factory=banca.factory):
+            primo = await _cerca_deliberazioni_corte_conti_impl("rinnovo", sezione="Campania")
+            secondo = await _cerca_deliberazioni_corte_conti_impl("rinnovo", sezione="Campania")
+        assert primo.error_type == "source_error"
+        assert secondo.success   # the list was read again, not served empty from memory
+
+    async def test_an_undecodable_answer_keeps_no_request(self):
+        banca = Banca()
+
+        def factory(fonte, **kwargs):
+            def handler(request):
+                if "/api/sservice/getKmDocumentDetail" in str(request.url):
+                    return httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=b"not gzip")
+                return banca.handler(request)
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory):
+            with pytest.raises(cc.CorteContiErrore) as info:
+                await cc.fetch_deliberazione("SRCCAM/29/2025/PREV")
+        assert info.value.__context__ is None and info.value.__cause__ is None
+        _niente_segreti(repr(info.value) + str(info.value))
+
+    def test_a_non_json_answer_keeps_no_body(self):
+        risposta = httpx.Response(200, text=json.dumps(_config())[:-1])   # the configuration, cut short
+        with pytest.raises(cc.CorteContiPaginaInattesa) as info:
+            cc._json(risposta)
+        assert info.value.__context__ is None
 
     async def test_nothing_found(self):
         banca = Banca()
