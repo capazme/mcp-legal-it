@@ -467,16 +467,24 @@ _FULL_ACT_WINDOW = 30000
 # The windows of one act are cut from one reading of it. Without the akoma ntoso
 # export the act is rebuilt article by article (thousands of requests for a code),
 # and an article that fails is skipped: two readings can differ, and a window cut
-# from the second would shift against the first. So the text read for an act is
-# kept in memory for the day it is valid at, and every later window reuses it.
+# from the second would shift against the first. So a complete reading of an act
+# is kept in memory for the Italian day it is valid at, and every later window
+# reuses it; a reading with articles missing is served but not kept. Concurrent
+# first reads of one act share a single reading (one lock per act and day).
 # Only the last few acts are kept (a code is ~2 million characters).
+#
+# Known limit, accepted for 3.0: windows carry no reading id. If an act's text
+# leaves memory and another caller reads the same act again before this caller
+# asks its next window, that window is cut from the other reading; it is refused
+# when the text differs (digest below), not when it is the same.
 _FULL_ACT_TEXTS: "OrderedDict[tuple, tuple[dict, frozenset]]" = OrderedDict()
 _FULL_ACT_TEXTS_MAX = 4
-# What each reading was (path and digest of the text), kept longer than the
-# text itself: a window asked after the text left memory is served only from
-# a reading that matches it.
+# What each kept reading was (path and digest of the text), kept longer than the
+# text itself: a window asked after the text left memory is served only from a
+# reading that matches it.
 _FULL_ACT_READINGS: "OrderedDict[tuple, tuple[str, str]]" = OrderedDict()
 _FULL_ACT_READINGS_MAX = 256
+_FULL_ACT_LOCKS: "dict[tuple, asyncio.Lock]" = {}
 _AKN_SOURCE = "normattiva-akn"
 
 
@@ -484,6 +492,7 @@ def svuota_testi_atti() -> None:
     """Forget the texts and readings kept for fetch_full_act (tests)."""
     _FULL_ACT_TEXTS.clear()
     _FULL_ACT_READINGS.clear()
+    _FULL_ACT_LOCKS.clear()
 
 
 def _reading(result: dict) -> tuple[str, str]:
@@ -499,53 +508,73 @@ def _keep(table: OrderedDict, key: tuple, value, limit: int) -> None:
         table.popitem(last=False)
 
 
+def _kept_reading(key: tuple) -> "dict | None":
+    kept = _FULL_ACT_TEXTS.get(key)
+    if kept is None:
+        return None
+    result, sources = kept
+    _FULL_ACT_TEXTS.move_to_end(key)
+    for dataset, url in sources:
+        _sources.note(dataset, url)
+    return result
+
+
 async def _full_act_text(norma: Norma, da_carattere: int) -> "dict | str":
     """The reading of ``norma`` that a window is cut from, or an error message.
 
     The first window reads the act (or reuses today's reading); a later window
     reuses the reading the first window was cut from. When that reading is no
-    longer in memory, a new one is used only if it is the same text, or comes
-    from the akoma ntoso export, whose text does not depend on which requests
-    succeeded; otherwise the window is refused rather than served shifted.
+    longer in memory, a new one is used only if it is the same text, or a complete
+    akoma ntoso export (its text does not depend on which requests succeeded), and
+    the window then says it was read again; otherwise the window is refused rather
+    than served shifted.
     """
-    # The day only keys the memory: not a clock read the answer depends on.
-    key = (norma.tipo_atto, norma.data, norma.numero_atto, _clock.now_unrecorded().date().isoformat())
-    kept = _FULL_ACT_TEXTS.get(key)
-    if kept is not None:
-        result, sources = kept
-        _FULL_ACT_TEXTS.move_to_end(key)
-        for dataset, url in sources:
-            _sources.note(dataset, url)
-        return result
+    # The Italian day only keys the memory: not a clock read the answer depends on.
+    key = (norma.tipo_atto, norma.data, norma.numero_atto, _clock.rome_day_unrecorded().isoformat())
+    if (kept := _kept_reading(key)) is not None:
+        return kept
 
-    with _sources.recording() as consulted:
-        result = await fetch_normattiva_full_text(norma)
-    sources = frozenset(consulted)
-    for dataset, url in sources:
-        _sources.note(dataset, url)
-    if result.get("error") or len(result.get("text", "")) < 50:
-        return result
+    lock_key = (key, id(asyncio.get_running_loop()))
+    lock = _FULL_ACT_LOCKS.setdefault(lock_key, asyncio.Lock())
+    try:
+        async with lock:
+            # A concurrent caller may have read the act while this one waited.
+            if (kept := _kept_reading(key)) is not None:
+                return kept
+            with _sources.recording() as consulted:
+                result = await fetch_normattiva_full_text(norma)
+            sources = frozenset(consulted)
+            for dataset, url in sources:
+                _sources.note(dataset, url)
+            if result.get("error") or len(result.get("text", "")) < 50:
+                return result
 
-    reading = _reading(result)
-    if da_carattere > 1:
-        before = _FULL_ACT_READINGS.get(key)
-        if before is not None and before != reading:
-            return (
-                "**Errore**: il testo dell'atto letto ora non coincide con quello da cui è stata "
-                "tagliata la finestra precedente (la fonte è cambiata o ha risposto in parte): le "
-                "posizioni non corrispondono più. Ripetere la lettura da da_carattere=1."
-            )
-        if before is None and reading[0] == _AKN_SOURCE:
-            result = {**result, "riletto": True}
-        elif before is None:
-            return (
-                "**Errore**: il testo da cui è stata tagliata la finestra precedente non è più in "
-                "memoria, e questo atto viene ricostruito articolo per articolo: una nuova lettura "
-                "potrebbe non coincidere. Ripetere la lettura da da_carattere=1."
-            )
-    _keep(_FULL_ACT_TEXTS, key, (result, sources), _FULL_ACT_TEXTS_MAX)
-    _keep(_FULL_ACT_READINGS, key, reading, _FULL_ACT_READINGS_MAX)
-    return result
+            complete = result.get("completo", True)
+            reading = _reading(result)
+            before = _FULL_ACT_READINGS.get(key) if da_carattere > 1 else None
+            if da_carattere > 1:
+                if before is not None and before != reading:
+                    return (
+                        "**Errore**: il testo dell'atto letto ora non coincide con quello da cui è stata "
+                        "tagliata la finestra precedente (la fonte è cambiata o ha risposto in parte): le "
+                        "posizioni non corrispondono più. Ripetere la lettura da da_carattere=1."
+                    )
+                if before is None and not (complete and reading[0] == _AKN_SOURCE):
+                    return (
+                        "**Errore**: il testo da cui è stata tagliata la finestra precedente non è più "
+                        "disponibile (uscito dalla memoria, o letto in modo incompleto), e una nuova lettura "
+                        "di questo atto potrebbe non coincidere. Ripetere la lettura da da_carattere=1."
+                    )
+            if complete:
+                _keep(_FULL_ACT_TEXTS, key, (result, sources), _FULL_ACT_TEXTS_MAX)
+                _keep(_FULL_ACT_READINGS, key, reading, _FULL_ACT_READINGS_MAX)
+            if da_carattere > 1:
+                # Cut from a reading other than the first window's: say so.
+                return {**result, "riletto": True}
+            return result
+    finally:
+        if not lock.locked():
+            _FULL_ACT_LOCKS.pop(lock_key, None)
 
 
 async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
@@ -595,13 +624,15 @@ async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
         lines.append(text)
     else:
         body, note = page(text, da_carattere, _FULL_ACT_WINDOW)
-        lines.extend([body, f"\n{note}"])
+        lines.append(body)
         if result.get("riletto"):
+            # Before the paging note, which stays the last line (the citation gate reads it there).
             lines.append(
-                "*[Testo riletto dall'export Akoma Ntoso: la lettura della finestra precedente non è più "
-                "in memoria; se veniva da un'altra fonte, le posizioni possono non coincidere: in caso di "
-                "dubbio ripartire da da_carattere=1]*"
+                "\n*[Testo riletto dalla fonte: la lettura della finestra precedente non è più in memoria, "
+                "le posizioni possono non coincidere con la finestra precedente; in caso di dubbio "
+                "ripartire da da_carattere=1]*"
             )
+        lines.append(f"\n{note}")
 
     return "\n".join(lines)
 
