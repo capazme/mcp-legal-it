@@ -237,6 +237,23 @@ class ModificheArticolo:
 
 
 @dataclass(frozen=True)
+class NotaAggiornamento:
+    """One «AGGIORNAMENTO (n)» note of a Normattiva article page (shape agreed with VisuaLex).
+
+    ``numero`` is the note's number as the page writes it («10»): the body calls it «((10))»
+    or «(10)». ``testo`` is the note's own words: whitespace normalised, the separator line
+    and the «AGGIORNAMENTO» heading dropped, nothing else. ``ordine`` is its position on the
+    page, from 1. ``corte_costituzionale`` is a word match only (``«Corte costituzionale»``
+    or ``«C. cost.»`` with ``«sentenza»``), never a legal reading.
+    """
+
+    numero: str
+    testo: str
+    ordine: int
+    corte_costituzionale: bool = False
+
+
+@dataclass(frozen=True)
 class TestoArticolo:
     """One article: VisuaLex ``/fetch_article_text`` item keys, plus additions."""
 
@@ -278,6 +295,15 @@ class TestoArticolo:
     # not asked (an Italian act, a treaty, the original text, a recital, an annex).
     consolidato: dict[str, Any] | None = None
     consolidato_verificato: bool | None = None
+    # The page's «AGGIORNAMENTO (n)» notes, in page order, beside article_text, which stays
+    # VisuaLex's byte for byte (a code's text already carries them; the field is filled all
+    # the same). () for a page without notes; None when the text is not a Normattiva page's
+    # (an EU act, the Akoma Ntoso export, which carries its notes in the text) or when the
+    # page's notes could not be read. note_non_lette: a note, or the notes, could not be read
+    # (a block without its number or words, a «((n))» call without note n); the notice
+    # «note di aggiornamento non lette: verificare su Normattiva» is then in avvisi.
+    note_aggiornamento: tuple[NotaAggiornamento, ...] | None = None
+    note_non_lette: bool = False
 
 
 @dataclass(frozen=True)

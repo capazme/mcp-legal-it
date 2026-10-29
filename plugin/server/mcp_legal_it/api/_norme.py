@@ -21,6 +21,7 @@ from mcp_legal_it.api.tipi import (
     IndiceAtto,
     MassimaBrocardi,
     NormaDati,
+    NotaAggiornamento,
     TestoArticolo,
     TestoAtto,
     Vigenza,
@@ -659,6 +660,9 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
             not_in_force=bool(base.get("not_in_force")),
             consolidato=base.get("consolidato"),
             consolidato_verificato=base.get("consolidato_verificato"),
+            note_aggiornamento=(tuple(NotaAggiornamento(**n) for n in base["note_aggiornamento"])
+                                if base.get("note_aggiornamento") is not None else None),
+            note_non_lette=bool(base.get("note_non_lette")),
         )
 
 

@@ -111,8 +111,19 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
             parts.append(f"**Attenzione**: {avviso_versione_futura(futura)}.\n")
         if article_result.get("allegato"):
             parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
+        from mcp_legal_it.core.norme import AVVISO_NOTE_NON_LETTE, note_della_pagina
+
+        note, note_non_lette, note_nel_testo = note_della_pagina(source, text, url)
+        if note_non_lette:
+            parts.append(f"**Attenzione**: {AVVISO_NOTE_NON_LETTE}.\n")
         # A recital reads «(42) …»: the number is the label, the text is VisuaLex's (without it).
         parts.append(f"({article_result['considerando']}) {text}" if article_result.get("considerando") else text)
+        if note and not note_nel_testo:
+            # The page's «AGGIORNAMENTO (n)» notes, always: they hold what the text alone does not
+            # say, a Corte costituzionale declaration of illegitimacy above all (art. 3 d.lgs.
+            # 23/2015, C. cost. 194/2018). A future «notes on request» switch (token phase 3)
+            # must never cover these notes. A code's text already carries them: not twice.
+            parts.append("\n**Aggiornamenti**\n\n" + "\n\n".join(f"({n['numero']}) {n['testo']}" for n in note))
     else:
         parts.append(f"**Nessun testo trovato** — URL: {url}")
 

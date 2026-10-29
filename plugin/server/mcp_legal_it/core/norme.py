@@ -131,6 +131,10 @@ def _lookup_base(reference: str) -> dict:
         "avvisi": [], "upcoming": None,
         # VisuaLex's not_in_force: the text is the later one, asked for (versione="futura").
         "not_in_force": False,
+        # The page's «AGGIORNAMENTO (n)» notes ([{numero, testo, ordine, corte_costituzionale}],
+        # [] for none, None when the text is not a Normattiva page's), whether some could not be
+        # read, and whether the text already carries them (note_aggiornamento below).
+        "note_aggiornamento": None, "note_non_lette": False, "note_nel_testo": False,
         # An EU act's text: the consolidation read ({celex, data, modificato_da}, None for the
         # Official Journal text), and whether CELLAR was asked (False: it could not say).
         "consolidato": None, "consolidato_verificato": None,
@@ -200,7 +204,42 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     # The source's own ``upcoming``: an EU consolidation to come, or a later Normattiva text
     # served (not_in_force).
     base["upcoming"] = q["upcoming"] or (result.get("upcoming") if base["testo"] else None)
+    note_aggiornamento(base)
     return base, result.get("esito")
+
+
+#: Said whenever a page's update notes could not all be read: the text alone may carry words
+#: the Corte costituzionale struck down (art. 3 d.lgs. 23/2015 without C. cost. 194/2018).
+AVVISO_NOTE_NON_LETTE = "note di aggiornamento non lette: verificare su Normattiva"
+
+
+def note_della_pagina(fonte: str, testo: str, url: str) -> "tuple[list[dict] | None, bool, bool]":
+    """``(note, non_lette, nel_testo)`` of the Normattiva page a text was served from.
+
+    Read with the page (``pagine_normattiva``, the record of the URL served): the page's
+    «AGGIORNAMENTO (n)» notes as ``{numero, testo, ordine, corte_costituzionale}``, ``[]``
+    for a page without notes. None when the text is not a Normattiva page's (an EU act,
+    the Akoma Ntoso export, which carries its notes in the text). ``non_lette`` when a note,
+    or the page's notes, could not be read; ``nel_testo`` when the text already carries them
+    (a code's attachment), so a caller printing both does not print them twice.
+    """
+    if fonte != "normattiva" or not testo:
+        return None, False, False
+    from mcp_legal_it.lib.visualex import pagine_normattiva
+
+    rec = pagine_normattiva.leggi(url or "")
+    note = rec.get("note") if rec else None
+    if note is None:
+        return None, True, False
+    return list(note["note"]), bool(note["non_lette"]), bool(note["nel_testo"])
+
+
+def note_aggiornamento(base: dict) -> None:
+    """Put the served page's notes on *base* (``note_della_pagina``), with the notice when unread."""
+    (base["note_aggiornamento"], base["note_non_lette"],
+     base["note_nel_testo"]) = note_della_pagina(base.get("fonte", ""), base.get("testo", ""), base.get("url", ""))
+    if base["note_non_lette"]:
+        base["avvisi"] = list(base.get("avvisi") or []) + [AVVISO_NOTE_NON_LETTE]
 
 
 async def _fetch_futura(nv: NormaVisitata, entro: "str | None") -> dict:
