@@ -32,18 +32,23 @@ entry, it is the same feature as ported to the 3.0 line.
     `data_gu`. Where the window cannot be read, the `data_gu` fallback is `INDICATIVO`,
     with an avviso.
   - **Walk.** Newest version first, at most `max_versioni` versions, at most
-    2·`max_versioni` requests (2V-1 for V versions).
+    2·`max_versioni` requests (2V for V versions).
   - **Never filling a gap.** A version that cannot be read (429, 5xx, an error or session
     page) stops the walk: `completa=False` and an avviso naming the versions to ask again.
     An unreadable article page is `verifica_non_disponibile`, never «not found» and never
     «no amendments».
   - **What it shows.**
-    - A decree-law and its conversion law stay two amendments; only identical rows are
-      merged.
+    - A decree-law and its conversion law stay two amendments; only identical rows
+      within one table are merged.
     - A version Normattiva already serves but that is not in force yet (art. 1 d.P.R.
       131/1986, abrogated from 2027) has its future `in_vigore_dal` and an avviso.
     - A code's article is read in the code.
-    - An act without an article is `non_supportata`.
+    - An act without an article, or an article without a number, is `non_supportata`.
+    - Version 1's table is the article's whole history: only its row introducing the
+      article is taken, so the act that introduced it is version 1's `Modifica`
+      (d.lgs. 101/2018 for art. 2-ter d.lgs. 196/2003).
+    - An empty table, the page of another version, a page without the update links
+      are never taken for complete.
   - **Cache.** Past versions are kept 90 days through `_cache.py`
     (`normattiva_aggiornamenti/`, declared in the cache inventory). The article page
     and the current version are read every time.
