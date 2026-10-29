@@ -133,14 +133,21 @@ def test_both_readers_read_the_same_range(testo, letti):
         assert fallback.comma_nell_intervallo(comma, "701", "800") is dentro
 
 
-def test_the_whole_act_read_credits_every_comma_of_its_articles(tmp_path, lettore):
+def test_the_whole_act_read_does_not_credit_a_comma_outside_the_part_read(tmp_path, lettore):
+    # fetch_full_act's Normattiva-page fallback has only the first part of a split article
+    # (#106) and does not say so: a false credit is worse than one more request.
     atto = ("# Legge 27 dicembre 2006, n. 296\n**Fonte**: Normattiva — x\n\nArt. 1\n\n1. Testo del comma."
             "\n\nArt. 2\n\n1. Testo del comma.")
     t = (session(tmp_path).prompt()
          .cite_law("art. 1 L. 296/2006", parte("1", "100", "1", comma=False))
          .call("fetch_full_act", {"reference": "L. 296/2006"}, atto)
          .say("L'art. 1, comma 773, L. 296/2006 ridetermina l'aliquota."))
-    assert _gate(t, *lettore).returncode == SILENT
+    assert _gate(t, *lettore).returncode == NAGS
+    t = (session(tmp_path, "altra").prompt()
+         .cite_law("art. 1 L. 296/2006", parte("1", "100", "1", comma=False))
+         .call("fetch_full_act", {"reference": "L. 296/2006"}, atto)
+         .say("L'art. 2 L. 296/2006 e l'art. 1, comma 50, L. 296/2006 dispongono così."))
+    assert _gate(t, *lettore).returncode == SILENT  # its articles, and a comma in the part read
 
 
 # The 14 parts of art. 1 L. 296/2006, as parti_normattiva lists them.

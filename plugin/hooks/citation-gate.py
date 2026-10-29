@@ -384,11 +384,9 @@ class Session:
                 return
             key = r.riferimento_in_identita(tool_input.get("reference") or "")
             if key:
-                serviti = {(key[0], a) for a in r.articoli_serviti(text)}
-                self.norms.update(serviti)
-                # The whole act's text has each article whole: it credits every comma, as a
-                # whole read of the article does.
-                self.whole.update(serviti)
+                # Never in self.whole: its Normattiva-page fallback has only the first part of an
+                # article Normattiva splits (#106), and its answer does not say which source served it.
+                self.norms.update((key[0], a) for a in r.articoli_serviti(text))
             return
         body = None
         if stripped.startswith("{"):
