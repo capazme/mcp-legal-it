@@ -38,7 +38,7 @@ from mcp_legal_it.core._http import HostNonConsentito, async_client
 
 from mcp_legal_it.lib._http import retry_request
 from mcp_legal_it.lib._paging import page, resume_hint
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment, NavigableString
 
 _BASE_SEARCH = "https://www.giustizia-amministrativa.it"
 _BASE_MDP = "https://mdp.giustizia-amministrativa.it"
@@ -574,10 +574,14 @@ def _parse_results(html: str) -> list[ProvvedimentoResult]:
 _HTML_DOCUMENT_MARKERS = (b'<body class="corpo"', b'<p class="registri"')
 _RE_PUBBLICATO = re.compile(r"Pubblicato il\s+(\d{2}/\d{2}/\d{4})")
 _RE_REG_PROV = re.compile(r"N\.\s*0*(\d{1,6})\s*/\s*(\d{4})\s*REG\.\s*PROV", re.IGNORECASE)
+# A parere's register line: "Numero 01918/2026 e data 27/10/2026 Spedizione" (the date is the
+# dispatch's, not a publication: not reported as one).
+_RE_NUMERO_PARERE = re.compile(r"\bNumero\s+0*(\d{1,6})\s*/\s*(\d{4})")
 _RE_TIPO_HTML = re.compile(r"(?:SENTENZA|ORDINANZA|DECRETO|PARERE)(?: [A-Z]{2,20}){0,2}")
 _SPAZI = re.compile(r"\s+")
-# The paragraph that opens the dispositivo: "P.Q.M." (per questi motivi), spelled as printed.
-_RE_PQM = re.compile(r"P\.\s?Q\.\s?M\.?")
+# The block that opens the dispositivo: "P.Q.M." (also "P.Q.M.:", "p.q.m. Il Consiglio…")
+# or "PER QUESTI MOTIVI", at the start of the block.
+_RE_PQM = re.compile(r"\s*(?:P\.\s?Q\.\s?M\.?|PER QUESTI MOTIVI)(?![A-Za-z])", re.IGNORECASE)
 
 
 def is_document_html(content: bytes) -> bool:
@@ -673,51 +677,116 @@ def _parse_xml_text(xml_bytes: bytes) -> tuple[str, str]:
     return title, body_text
 
 
+# Elements that make a block of text of their own. A namespaced tag ("h:div", as the page's
+# own `xmlns:h` allows) counts by its local name.
+_BLOCCHI = frozenset({"p", "div", "li", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "pre",
+                      "dd", "dt", "address", "center", "section", "article", "caption", "tr"})
+
+
+def _nome(tag) -> str:
+    return (tag.name or "").rsplit(":", 1)[-1].lower()
+
+
+def _ha_blocchi(tag) -> bool:
+    return any(_nome(t) in _BLOCCHI for t in tag.find_all(True))
+
+
+def _blocchi_html(body) -> list[tuple[str, list[str]]]:
+    """Every piece of text of *body*, in order, as (text, classes) blocks; nothing is dropped.
+
+    A block with no block inside it (a paragraph, a list item, a quotation, a heading) is
+    one block; a table row is one block, its cells joined; a block holding other blocks is
+    walked into. Text outside any leaf block (after a <br>, inside an inline tag at the top
+    level) gathers into blocks of its own, split at <br>.
+    """
+    out: list[tuple[str, list[str]]] = []
+
+    def scrivi(testo: str, classi: list[str]) -> None:
+        testo = _SPAZI.sub(" ", testo).strip()
+        if testo:
+            out.append((testo, classi))
+
+    def visita(nodo) -> None:
+        sciolto: list[str] = []
+
+        def svuota() -> None:
+            scrivi(" ".join(sciolto), [])
+            sciolto.clear()
+
+        for figlio in nodo.children:
+            if isinstance(figlio, Comment):
+                continue
+            if isinstance(figlio, NavigableString):
+                sciolto.append(str(figlio))
+                continue
+            nome = _nome(figlio)
+            if nome == "br":
+                svuota()
+            elif nome == "tr":
+                svuota()
+                celle = [_SPAZI.sub(" ", c.get_text(" ")).strip() for c in figlio.find_all(["td", "th"])]
+                scrivi(" ".join(c for c in celle if c), figlio.get("class") or [])
+            elif nome in _BLOCCHI or _ha_blocchi(figlio):
+                svuota()
+                if _ha_blocchi(figlio):
+                    visita(figlio)
+                else:
+                    scrivi(figlio.get_text(" "), figlio.get("class") or [])
+            else:
+                sciolto.append(figlio.get_text(" "))
+        svuota()
+
+    visita(body)
+    return out
+
+
 def _parse_html_document(content: bytes) -> tuple[str, str, dict[str, str]]:
     """Title, text and citation data of the provvedimento's HTML page.
 
-    The text is the page's paragraphs and the signature table's rows, in order, one
-    per block. The title is the court as the heading writes it ("Il Consiglio di
-    Stato in sede giurisdizionale (Adunanza Plenaria)"), as the XML's first epigrafe
-    field was. The citation data are the type the heading names ("SENTENZA"), the
-    number of the "REG.PROV.COLL." line and the date of "Pubblicato il …", the
-    same keys `_parse_xml_meta` gives. A "DISPOSITIVO" heading goes before the last
-    "P.Q.M.", as the XML's own section did, so that a cut keeps the decision.
+    The text is every block of the page in order (`_blocchi_html`: paragraphs, list
+    items, quotations, the signature table's rows, loose text). The title is the court
+    as the heading writes it ("Il Consiglio di Stato in sede giurisdizionale (Adunanza
+    Plenaria)"), as the XML's first epigrafe field was. The citation data are the type
+    the heading names ("SENTENZA"), the number of the "REG.PROV.COLL." line and the date
+    of "Pubblicato il …", the same keys `_parse_xml_meta` gives. A "DISPOSITIVO" heading
+    goes before the last block that opens with "P.Q.M." or "PER QUESTI MOTIVI", as the
+    XML's own section did, so that a cut keeps the decision.
     """
     raw = content.decode("utf-8", errors="replace")
     soup = BeautifulSoup(raw, "lxml")
     for tag in soup(["style", "script", "img", "head"]):
         tag.decompose()
-    body = soup.body or soup
-    blocks: list[str] = []
+    blocchi = _blocchi_html(soup.body or soup)
+    blocks = [testo for testo, _classi in blocchi]
+    # The heading is the "sezione" lines before the text begins (the first "popolo" paragraph):
+    # the court, its section and sitting ("Consiglio di Stato", "Sezione Prima", "Adunanza di
+    # Sezione del 23 luglio 2026"), and the type in capitals ("SENTENZA").
     heading: list[str] = []
     tipologia = ""
-    for el in body.find_all(["p", "tr"]):
-        if el.name == "p" and el.find_parent("tr") is not None:
-            continue
-        cells = el.find_all("td") if el.name == "tr" else [el]
-        text = " ".join(t for t in (_SPAZI.sub(" ", c.get_text(" ")).strip() for c in cells) if t)
-        if not text:
-            continue
-        blocks.append(text)
-        classes = el.get("class") or []
-        if "sezione" in classes and not tipologia:
-            if _RE_TIPO_HTML.fullmatch(text):
-                tipologia = text.capitalize()
-            else:
-                heading.append(text)
+    for testo, classi in blocchi:
+        if "popolo" in classi:
+            break
+        if "sezione" in classi or "sezioneGrande" in classi:
+            if _RE_TIPO_HTML.fullmatch(testo):
+                tipologia = testo.capitalize()
+            elif not tipologia:
+                heading.append(testo)
     meta: dict[str, str] = {}
-    if tipologia:
-        meta["tipologia"] = tipologia
     for block in blocks[:4]:
         if m := _RE_REG_PROV.search(block):
             meta["numero"] = f"{int(m.group(1))}/{m.group(2)}"
             break
+        if m := _RE_NUMERO_PARERE.search(block):
+            meta["numero"] = f"{int(m.group(1))}/{m.group(2)}"
+            tipologia = tipologia or "Parere"
+            break
+    if tipologia:
+        meta = {"tipologia": tipologia, **meta}
     if m := _RE_PUBBLICATO.search(raw[:4096]):
         meta["data_pubblicazione"] = m.group(1)
     # The XML put the dispositivo in a section of its own, which `_shorten` keeps whole; on the
-    # page it starts at the last "P.Q.M.", so the same heading goes before it.
-    pqm = [i for i, block in enumerate(blocks) if _RE_PQM.fullmatch(block)]
+    # page it starts at the last block opening with "P.Q.M.", so the same heading goes before it.
+    pqm = [i for i, block in enumerate(blocks) if _RE_PQM.match(block)]
     if pqm:
         blocks.insert(pqm[-1], "DISPOSITIVO")
     title = " ".join(heading) or "Provvedimento"
@@ -808,9 +877,10 @@ def _shorten(text: str) -> tuple[str, str]:
     total = len(text)
     idx = text.rfind(_DISPOSITIVO_MARK)
     if idx == -1:
+        # No dispositivo found to keep: the decision may be in the part not shown, and the note says so.
         return text[:_MAX_TEXT_LENGTH], (
-            f"Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali: "
-            f"{resume_hint(_MAX_TEXT_LENGTH + 1)}"
+            f"Testo troncato a {_MAX_TEXT_LENGTH} caratteri su {total} totali; dispositivo non "
+            f"individuato: {resume_hint(_MAX_TEXT_LENGTH + 1)}"
         )
 
     disp = text[idx + 2:]  # keeps the "DISPOSITIVO" heading

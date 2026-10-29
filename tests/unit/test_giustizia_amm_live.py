@@ -57,7 +57,7 @@ import pytest
 
 import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
 from mcp_legal_it.lib import _clock
-from mcp_legal_it.lib.giustizia_amm.client import GASession, _parse_xml_text
+from mcp_legal_it.lib.giustizia_amm.client import GASession, _parse_html_document, _parse_xml_text, is_document_html
 from mcp_legal_it.tools import giustizia_amm as ga_tools
 
 pytestmark = pytest.mark.live
@@ -227,7 +227,8 @@ def test_su_norma_21_octies_testo_dei_primi_tre_cita_la_norma():
     assert len(docs) == 3, f"meno di tre risultati XML: {[d.get('nome_file') for d in docs]}"
     raws = _fetch_raw("cds", tuple((d["nrg"], d["nome_file"]) for d in docs))
     for doc, raw in zip(docs, raws):
-        _title, body = _parse_xml_text(raw)
+        # The parser the product picks: the page (since 2026-10) or the XML.
+        body = _parse_html_document(raw)[1] if is_document_html(raw) else _parse_xml_text(raw)[1]
         assert body, f"testo vuoto per {doc['nome_file']}"
         m = _OCTIES.search(body)
         assert m, f"{doc['numero']} non cita l'art. 21-octies"
@@ -237,6 +238,16 @@ def test_su_norma_21_octies_testo_dei_primi_tre_cita_la_norma():
 # ---------------------------------------------------------------------------
 # leggi_provvedimento_amm
 # ---------------------------------------------------------------------------
+
+
+def test_ap_17_2021_la_pagina_html_rende_tutto_il_testo():
+    """The HTML page loses no text: its reading is within 2% of the XML body (106,448 characters)."""
+    (raw,) = _fetch_raw("cds", ((AP17_NRG, AP17_FILE),))
+    if not is_document_html(raw):
+        pytest.skip("il portale ha servito l'XML, non la pagina HTML")
+    testo = _parse_html_document(raw)[1]
+    assert abs(len(testo) - 106_448) / 106_448 < 0.02, len(testo)
+    assert "\n\nDISPOSITIVO\n\nP.Q.M." in testo
 
 
 def _ap17_full() -> str:
@@ -332,7 +343,7 @@ def test_ultimi_sentenze_tar_lombardia_milano():
 
 def test_ultimi_sentenze_tar_lombardia_milano_sono_recenti():
     """'Ultimi' holds only if the newest result was published recently (its date of publication)."""
-    from mcp_legal_it.lib.giustizia_amm.client import _parse_html_document, _parse_xml_meta, is_document_html
+    from mcp_legal_it.lib.giustizia_amm.client import _parse_xml_meta
 
     first = _ultimi_tar_milano()[0]
     if not first["nome_file"].endswith(".html"):

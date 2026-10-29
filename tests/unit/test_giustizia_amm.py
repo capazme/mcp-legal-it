@@ -916,8 +916,9 @@ class TestPagedReading:
 
     def test_no_dispositivo_cut_resumes_after_the_limit(self):
         out = format_full("T", "a" * 16000, "cds", "1")
-        assert out.rstrip().endswith("Testo troncato a 15000 caratteri su 16000 totali: "
-                                     "per leggere il seguito ripetere la chiamata con da_carattere=15001]*")
+        assert out.rstrip().endswith("Testo troncato a 15000 caratteri su 16000 totali; dispositivo non "
+                                     "individuato: per leggere il seguito ripetere la chiamata con "
+                                     "da_carattere=15001]*")
 
     def test_window_starts_exactly_at_the_first_omitted_character(self):
         text = self._text()
@@ -1073,13 +1074,18 @@ async def test_live_sede_filter():
 # ---------------------------------------------------------------------------
 # tests/fixtures/giustizia_amm/ holds trimmed copies of the REAL pages served on 2026-10-29:
 # Ad. Plen. n. 17/2021 (emblem image and stylesheet emptied, reasoning cut after 40
-# paragraphs, everything from P.Q.M. on kept) and the page a stale reference gets.
+# paragraphs, everything from P.Q.M. on kept; the private parties, their lawyers and the
+# individual firms are pseudonymised — «Delta s.r.l.», «avvocato Tizio Primo» — while the
+# magistrates, acting in their public role, keep their names), parere n. 1918/2026 (same
+# trimming) and the page a stale reference gets.
 
 from pathlib import Path as _Path
 
 _GA_FIXTURES = _Path(__file__).resolve().parents[1] / "fixtures" / "giustizia_amm"
 _AP17_HTML = (_GA_FIXTURES / "ap17_2021.html").read_bytes()
 _MDP_404_REAL = (_GA_FIXTURES / "pagina_non_trovata.html").read_bytes()
+# Parere n. 1918/2026 of the Sezione Prima (the parties are already -OMISSIS- on the portal).
+_PARERE_HTML = (_GA_FIXTURES / "parere_1918_2026.html").read_bytes()
 
 
 class TestHtmlDocument:
@@ -1141,6 +1147,60 @@ class TestHtmlDocument:
         with _patch_session(doc_bytes=_AP17_HTML):
             seguito = (await _leggi_provvedimento_amm_impl("cds", "202105584", "202100017_11.html", 15001)).to_str()
         assert "Caratteri 15001-" in seguito
+
+    def test_a_parere_names_its_section_and_number_but_no_publication(self):
+        from mcp_legal_it.lib.giustizia_amm.client import _estremi_line, _parse_html_document
+
+        title, text, meta = _parse_html_document(_PARERE_HTML)
+        assert title == "Consiglio di Stato Sezione Prima Adunanza di Sezione del 23 luglio 2026"
+        # "e data 27/10/2026 Spedizione" is a dispatch date: never shown as «pubblicata il».
+        assert meta == {"tipologia": "Parere", "numero": "1918/2026"}
+        assert _estremi_line(meta) == "Parere n. 1918/2026"
+        assert "\n\nDISPOSITIVO\n\nP.Q.M.\n\nLa Sezione esprime il parere" in text
+        assert "LA SEZIONE" not in title
+
+    def test_no_text_is_lost_outside_paragraphs(self):
+        """List items, quotations, divs, headings, text after <br> and namespaced tags all count."""
+        from mcp_legal_it.lib.giustizia_amm.client import _parse_html_document
+
+        page = """<html xmlns:h="http://www.w3.org/HTML/1998/html4"><body class="corpo">
+        <p class="registri">N. 00005/2026REG.PROV.COLL.</p>
+        <p class="sezione">Il Consiglio di Stato</p><p class="sezione">ORDINANZA</p>
+        <ul><li>primo motivo di appello</li><li>secondo motivo</li></ul>
+        <blockquote>citazione della norma impugnata</blockquote>
+        <div>blocco in un div</div><h3>Titolo interno</h3>
+        <div><p>paragrafo dentro un div</p>coda del div fuori dal paragrafo</div>
+        testo libero in body<br>dopo un a capo
+        <h:div>blocco con namespace</h:div>
+        <p class="popolo">P.Q.M. il Consiglio respinge l'istanza.</p>
+        </body></html>""".encode()
+        _title, text, meta = _parse_html_document(page)
+        for passo in ("primo motivo di appello", "secondo motivo", "citazione della norma impugnata",
+                      "blocco in un div", "Titolo interno", "paragrafo dentro un div",
+                      "coda del div fuori dal paragrafo", "testo libero in body", "dopo un a capo",
+                      "blocco con namespace"):
+            assert passo in text, passo
+        assert meta["tipologia"] == "Ordinanza" and meta["numero"] == "5/2026"
+        # Coverage: every word of the page's text is in the extracted text.
+        from bs4 import BeautifulSoup
+        parole = BeautifulSoup(page, "lxml").body.get_text(" ").split()
+        assert all(w in text for w in parole)
+
+    @pytest.mark.parametrize("apertura", ["P.Q.M.", "P.Q.M.:", "p.q.m.", "P. Q. M.", "PER QUESTI MOTIVI",
+                                          "P.Q.M. Il Consiglio di Stato respinge l'appello."])
+    def test_the_dispositivo_is_found_however_it_opens(self, apertura):
+        from mcp_legal_it.lib.giustizia_amm.client import _parse_html_document
+
+        page = (f'<html><body class="corpo"><p class="popolo">{"motivazione " * 2000}</p>'
+                f'<p class="fatto">{apertura}</p><p class="popolo">respinge</p></body></html>').encode()
+        _title, text, _meta = _parse_html_document(page)
+        assert "\n\nDISPOSITIVO\n\n" + apertura in text
+
+    def test_a_word_that_merely_starts_like_it_is_not_the_dispositivo(self):
+        from mcp_legal_it.lib.giustizia_amm.client import _parse_html_document
+
+        page = b'<html><body class="corpo"><p class="popolo">Per questi motivistici argomenti</p></body></html>'
+        assert "DISPOSITIVO" not in _parse_html_document(page)[1]
 
     def test_linear_time_on_a_long_page(self):
         import time

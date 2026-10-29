@@ -968,11 +968,16 @@ entry, it is the same feature as ported to the 3.0 line.
   testing for the error page (which is HTML too, and still reported as an error, never
   read as text). It takes the court, the type, the number of the «REG.PROV.COLL.» line
   and the «Pubblicato il» date, so the **Estremi** line is unchanged («Sentenza n.
-  17/2021, pubblicata il 09/11/2021»). It also takes the text with the signatures,
-  without markup or the embedded emblem. The 15,000-character cut still keeps the
-  dispositivo, from the last «P.Q.M.». The XML is still read when the portal serves it.
-  Fixtures: trimmed copies of the real page of Ad. Plen. n. 17/2021 and of the portal's
-  error page.
+  17/2021, pubblicata il 09/11/2021»). A parere gives «Parere n. 1918/2026»; its date is
+  the dispatch date, so it is not reported as a publication date. No text is dropped:
+  paragraphs, list items, quotations, headings, table rows and loose text after a line
+  break are all read. AP 17/2021 comes to 106,878 characters, against 106,448 for its XML
+  body. The page carries no markup or embedded emblem. The 15,000-character cut still
+  keeps the dispositivo, from the last block that opens with «P.Q.M.», «P.Q.M.:»,
+  «p.q.m.» or «PER QUESTI MOTIVI». When none is found, the note says «dispositivo non
+  individuato». The XML is still read when the portal serves it. Fixtures: trimmed copies
+  of the real pages of Ad. Plen. n. 17/2021 (private parties and lawyers pseudonymised)
+  and parere n. 1918/2026, and of the portal's error page.
 - **TUIR, TUB, TUF and the Testo unico sicurezza carry their full date.** The
   names `TUIR`, `TUB`, `TUF` and «testo unico sicurezza» resolved to the year
   alone, so `mcp_legal_it.api.leggi_riferimento("art. 1 TUIR")` returned a
