@@ -634,7 +634,7 @@ Esiti: `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`, `articolo_n
 | `modifiche` | the amendments within `dal`/`al`, oldest version first (`Modifica`) |
 | `url` | the article's Normattiva page (the update table needs a session: never given) |
 | `completa` | `True` when every version within `dal`/`al` was read, its table included |
-| `precisione` | `"ESATTO"` when complete and every amendment is; else `"INDICATIVO"`; `None` without `trovato` |
+| `precisione` | `"ESATTO"` when complete, every amendment is, no table is empty and version 1 was not left without its act for want of certainty; else `"INDICATIVO"`; `None` without `trovato` |
 | `avvisi` | version 1 without its act, versions not in force yet, the ceiling, unread versions, an empty table, a page without the update links, the `data_gu` fallback |
 | `versioni_non_lette` | versions left unread by the ceiling or by a failure |
 | `errore`, `fonti` | as everywhere |
