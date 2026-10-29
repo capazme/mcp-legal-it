@@ -168,7 +168,8 @@ async def test_the_same_reading_again_is_served(monkeypatch):
     out = await lc._fetch_full_act_impl("L. 300/1970", da_carattere=WINDOW + 1)
     assert len(calls) == 2
     assert f"*[Caratteri {WINDOW + 1}-" in out
-    assert "riletto" not in out
+    # Read again, even if the same text: the window says so.
+    assert "*[Testo riletto dalla fonte:" in out
 
 
 @pytest.mark.asyncio
@@ -184,8 +185,11 @@ async def test_a_lost_article_by_article_reading_is_refused(monkeypatch):
 async def test_a_lost_akn_reading_is_served_and_says_so(monkeypatch):
     _counting(monkeypatch, [_long_text()], source="normattiva-akn")
     out = await lc._fetch_full_act_impl("L. 300/1970", da_carattere=WINDOW + 1)
-    assert f"*[Caratteri {WINDOW + 1}-" in out
-    assert out.rstrip().endswith("in caso di dubbio ripartire da da_carattere=1]*")
+    riletto = out.index("*[Testo riletto dalla fonte:")
+    paging = out.index(f"*[Caratteri {WINDOW + 1}-")
+    # The paging note stays last: the citation gate reads it there.
+    assert riletto < paging
+    assert "le posizioni possono non coincidere con la finestra precedente" in out
 
 
 @pytest.mark.asyncio
@@ -200,3 +204,100 @@ async def test_errors_are_not_kept(monkeypatch):
     for _ in range(2):
         assert (await lc._fetch_full_act_impl("L. 300/1970")).startswith("**Errore**")
     assert len(calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_concurrent_first_reads_share_one_reading(monkeypatch):
+    import asyncio
+
+    calls = []
+    gate = asyncio.Event()
+
+    async def slow(norma):
+        calls.append(norma)
+        await gate.wait()
+        return {"text": _long_text(), "title": "LEGGE 20 maggio 1970, n. 300", "url": URL,
+                "source": "normattiva-html", "completo": True}
+
+    monkeypatch.setattr(lc, "fetch_normattiva_full_text", slow)
+    readers = [asyncio.create_task(lc._fetch_full_act_impl("L. 300/1970")) for _ in range(3)]
+    await asyncio.sleep(0)
+    gate.set()
+    answers = await asyncio.gather(*readers)
+    assert len(calls) == 1
+    assert len(set(answers)) == 1
+    assert not lc._FULL_ACT_LOCKS
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("partial", [
+    {"completo": False},                       # only art. 1 (index unread), or articles skipped
+])
+async def test_a_partial_reading_is_served_but_not_kept(monkeypatch, partial):
+    calls = _counting(monkeypatch, [_long_text()])
+    original = lc.fetch_normattiva_full_text
+
+    async def incomplete(norma):
+        return {**(await original(norma)), **partial}
+
+    monkeypatch.setattr(lc, "fetch_normattiva_full_text", incomplete)
+    first = await lc._fetch_full_act_impl("L. 300/1970")
+    assert f"*[Caratteri 1-{WINDOW} su " in first
+    assert not lc._FULL_ACT_TEXTS and not lc._FULL_ACT_READINGS
+    later = await lc._fetch_full_act_impl("L. 300/1970", da_carattere=WINDOW + 1)
+    assert later.startswith("**Errore**: il testo da cui è stata tagliata la finestra precedente")
+    assert len(calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_the_day_is_the_italian_one(monkeypatch):
+    seen = []
+    monkeypatch.setattr(lc._clock, "rome_day_unrecorded", lambda: seen.append(1) or __import__("datetime").date(2026, 10, 30))
+    _counting(monkeypatch, [_long_text()])
+    await lc._fetch_full_act_impl("L. 300/1970")
+    assert seen and all(key[-1] == "2026-10-30" for key in lc._FULL_ACT_TEXTS)
+
+
+# ---------------------------------------------------------------------------
+# The citation gate on the windows this tool really writes
+# ---------------------------------------------------------------------------
+
+
+def _act_cut_in_a_heading():
+    """An act whose second window opens inside «vedi art. 7» («art. 7», a reference,
+    not a heading) and ends inside «Art. 41» («Art. 4»)."""
+    filler = "x" * 70 + "\n"
+    text = ("Art. 1\nPrimo articolo.\n" + filler * (WINDOW // len(filler) + 1))[: WINDOW - 6] + "\nvedi "
+    text += "art. 7 della legge\n"
+    text = (text + filler * (WINDOW // len(filler) + 1))[: 2 * WINDOW - 7]
+    return text + "\nArt. 41\nQuarantunesimo.\n" + filler * 50
+
+
+def _fallback_reader():
+    import importlib.util
+    from pathlib import Path
+
+    hook = Path(__file__).resolve().parents[2] / "plugin" / "hooks" / "citation-gate.py"
+    spec = importlib.util.spec_from_file_location("citation_gate_for_test", hook)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.FallbackReader()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("re_read", [False, True])
+async def test_gate_does_not_credit_headings_a_window_cut(monkeypatch, re_read):
+    from mcp_legal_it.core.citazioni import articoli_serviti
+
+    text = _act_cut_in_a_heading()
+    window_2 = text[WINDOW: 2 * WINDOW]
+    assert window_2.endswith("\nArt. 4") and window_2.lstrip("\n").split("\n")[0].startswith("art. 7")
+    _counting(monkeypatch, [text], source="normattiva-akn")
+    await lc._fetch_full_act_impl("L. 300/1970")
+    if re_read:
+        lc._FULL_ACT_TEXTS.clear()
+        lc._FULL_ACT_READINGS.clear()
+    out = await lc._fetch_full_act_impl("L. 300/1970", da_carattere=WINDOW + 1)
+    assert ("*[Testo riletto dalla fonte:" in out) is re_read
+    for credited in (articoli_serviti(out), _fallback_reader().articoli_serviti(out)):
+        assert "4" not in credited and "7" not in credited
