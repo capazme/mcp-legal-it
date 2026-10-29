@@ -302,3 +302,32 @@ async def test_gate_does_not_credit_headings_a_window_cut(monkeypatch, re_read):
     assert ("*[Testo riletto dalla fonte:" in out) is re_read
     for credited in (articoli_serviti(out), _fallback_reader().articoli_serviti(out)):
         assert "4" not in credited and "7" not in credited
+
+
+@pytest.mark.asyncio
+async def test_incomplete_readings_still_run_one_at_a_time(monkeypatch):
+    # An incomplete reading is not kept, so every caller reads again: one at a time,
+    # also for callers that arrive while others wait (the lock must not be replaced).
+    import asyncio
+
+    in_flight, peak, readings = 0, 0, 0
+
+    async def partial(norma):
+        nonlocal in_flight, peak, readings
+        in_flight += 1
+        readings += 1
+        peak = max(peak, in_flight)
+        await asyncio.sleep(0.01)
+        in_flight -= 1
+        return {"text": _long_text(), "title": "LEGGE 20 maggio 1970, n. 300", "url": URL,
+                "source": "normattiva-html", "completo": False}
+
+    monkeypatch.setattr(lc, "fetch_normattiva_full_text", partial)
+    callers = [asyncio.create_task(lc._fetch_full_act_impl("L. 300/1970")) for _ in range(5)]
+    for _ in range(10):
+        await asyncio.sleep(0.004)
+        callers.append(asyncio.create_task(lc._fetch_full_act_impl("L. 300/1970")))
+    await asyncio.gather(*callers)
+    assert readings == 15
+    assert peak == 1
+    assert not lc._FULL_ACT_LOCKS
