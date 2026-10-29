@@ -32,6 +32,7 @@ _NUMERO_TITOLO = re.compile(r"AGGIORNAMENTO\s*\((\d+[a-z]*)\)", re.IGNORECASE)
 _SEPARATORE = re.compile(r"^-{3,}\s*")
 # «((10))» in the body: the double brackets are Normattiva's call of a note, never prose.
 _CHIAMATA_DOPPIA = re.compile(r"\(\((\d+[a-z]*)\)\)")
+_TITOLO_NELLA_PAGINA = re.compile(r"AGGIORNAMENTO\s*\((\d+[a-z]*)\)")
 _CORTE = re.compile(r"corte\s+costituzionale|c\.\s*cost\.", re.IGNORECASE)
 _SENTENZA = re.compile(r"\bsentenz[ae]\b", re.IGNORECASE)
 
@@ -49,21 +50,41 @@ def note_nel_testo(corpo: Tag) -> bool:
     return True
 
 
-def leggi_note(corpo: Tag, testo: str) -> dict[str, Any]:
+def _chiamate(testo: str) -> set[str]:
+    """The note numbers the body calls «((n))», without renumbered commas and years.
+
+    «((6)). Sono nulle …» at the start of a line is comma 6, renumbered by an amendment;
+    «31 dicembre ((2025))» is a year an amendment wrote in.
+    """
+    chiamate = set()
+    for m in _CHIAMATA_DOPPIA.finditer(testo or ""):
+        inizio_riga = testo.rfind("\n", 0, m.start()) + 1
+        if not testo[inizio_riga:m.start()].strip() and testo[m.end():m.end() + 1] == ".":
+            continue
+        numero = m.group(1)
+        if re.fullmatch(r"\d{4}", numero):
+            continue
+        chiamate.add(numero)
+    return chiamate
+
+
+def leggi_note(corpo: Tag, testo: str, titoli_nella_pagina: int | None = None) -> dict[str, Any]:
     """The update notes of an article's ``div.bodyTesto``, beside its extracted *testo*.
 
     Returns ``{"note": [{numero, testo, ordine, corte_costituzionale}], "non_lette": bool,
     "nel_testo": bool}``:
 
     - ``note``: in page order, ``ordine`` from 1; ``[]`` when the page has none;
-    - ``non_lette``: a note block without a readable number or text, or a call «((n))» in
-      the body with no note *n* read;
+    - ``non_lette``: a note block without a readable number or text, a call «((n))» in the
+      body with no note *n* read, or more «AGGIORNAMENTO (n)» headings in the page
+      (*titoli_nella_pagina*, counted on the whole page) than notes read;
     - ``nel_testo``: the extractor's text already carries them (a code's attachment, the
       fallback shape): a caller that prints the text must not print them again.
     """
     note: list[dict[str, Any]] = []
     non_lette = False
-    blocchi = corpo.find_all("div", class_=_BLOCCO)
+    # Any element of the class (not only a div); a block holding another is the other's shell.
+    blocchi = [b for b in corpo.find_all(class_=_BLOCCO) if b.find(class_=_BLOCCO) is None]
     for blocco in blocchi:
         titolo = blocco.find(class_=_TITOLO)
         numero = _NUMERO_TITOLO.search(_testo(titolo)) if titolo is not None else None
@@ -80,6 +101,8 @@ def leggi_note(corpo: Tag, testo: str) -> dict[str, Any]:
         })
     # A «((n))» call with no note n read: a note the reader cannot see. A plain «(n)» is a
     # call only when note n exists, so it can never name a missing one.
-    if set(_CHIAMATA_DOPPIA.findall(testo or "")) - {n["numero"] for n in note}:
+    if _chiamate(testo) - {n["numero"] for n in note}:
         non_lette = True
+    if titoli_nella_pagina is not None and titoli_nella_pagina > len(note):
+        non_lette = True  # a note outside the markup this reader knows
     return {"note": note, "non_lette": non_lette, "nel_testo": note_nel_testo(corpo)}

@@ -706,10 +706,15 @@ The text in force of one article, from Normattiva or EUR-Lex.
   - **Values.** `()` means a page without notes. `None` means the text is not a
     Normattiva page's (EU, the `normattiva-akn` export, which carries its notes in its
     text) or the page's notes could not be read.
-  - **When a note cannot be read.** This covers a block without its number or words, and
-    a «((n))» call without note n. Then `note_non_lette` is `True` and `avvisi` says «note
-    di aggiornamento non lette: verificare su Normattiva». A plain «(n)» is a call only
-    when note n exists. The shape is agreed with VisuaLex, which will give the same field.
+  - **When a note cannot be read.** This covers a block without its number or words, a
+    «((n))» call without note n, more «AGGIORNAMENTO (n)» headings on the page than notes
+    read (a note outside the markup this reader knows), a reader failure, and a kept
+    reading of another shape. Then `note_non_lette` is `True` and `avvisi` says «note di
+    aggiornamento non lette: verificare su Normattiva»; the article is never lost.
+  - **What is not a call.** A plain «(n)» is a call only when note n exists. A «((n))» at
+    the start of a line before its full stop is a comma renumbered by an amendment (art.
+    117 TUB: «((6)). Sono nulle …»), and a four-digit «((2025))» is a year: neither is a call.
+  - **Agreed shape.** The shape is agreed with VisuaLex, which will give the same field.
   - **In the MCP tools.** `cite_law` and `fetch_law_article` print them under the text,
     in a section «**Aggiornamenti**», «(n) testo», unless the text already carries them
     (a code's article). They always print them: a notes-on-request switch, if one comes,

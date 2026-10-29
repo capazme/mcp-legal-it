@@ -974,8 +974,9 @@ entry, it is the same feature as ported to the 3.0 line.
     `NotaAggiornamento` (`numero`, `testo`, `ordine`, `corte_costituzionale`), in page
     order. It is `()` for a page without notes and `None` when the text is not a
     Normattiva page's. `note_non_lette` and the avviso «note di aggiornamento non
-    lette: verificare su Normattiva» flag a note that cannot be read, and a «((n))»
-    with no note n.
+    lette: verificare su Normattiva» flag a note that cannot be read, a «((n))» with
+    no note n, and a heading outside the known markup. A comma renumbered «((6)).»
+    and a year «((2025))» are not calls.
   - **MCP tools.** `cite_law` and `fetch_law_article` print the notes under the text,
     in an «Aggiornamenti» section, unless the text already carries them (a code's
     article: never twice). `cite_law(formato="json")` carries `note_aggiornamento`,
