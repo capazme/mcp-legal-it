@@ -20,6 +20,58 @@ from mcp_legal_it.lib.visualex.map import resolve_atto, normalize_act_type, find
 # _parse_reference
 # ---------------------------------------------------------------------------
 
+_TAILS = [" comma 1", " lett. a", ", comma 1", " co. 1-bis", " c. 1 ter", " comma 1bis", " commi 1 e 2",
+          ", commi 1, 2, 3", " 1° comma"]
+_ADVERSARIAL = [
+    "D.Lgs. 196/2003" + " " * 5000 + "x",
+    "D.Lgs. 196/2003" + " \t\u00a0" * 3000 + "x",
+    "D.Lgs. 196/2003" + "," * 5000 + "x",
+    "D.Lgs. 196/2003" + " ,;" * 3000 + "art. 1 x",
+    "art. 30 D.Lgs. 36/2023" + ", " * 5000 + "allegato I.7 x",
+    "a " * 25000,
+    "x" + " art. 1" * 7000 + " ?",
+    "x art. 1 " + "n1c1" * 200 + " ?",
+    "x art. 1 " + "c1" * 200 + " ?",
+    "x art. 1 " + "co1" * 200 + " ?",
+    "x art. 1 " + "comma1" * 200 + " ?",
+    "x art. 1 co. " + "1" * 3000 + "ñ ?",
+    "co. " + "1" * 3000 + "ñ?",
+]
+_PARSE_TIMER = """
+import json, sys, time
+from mcp_legal_it.tools.legal_citations import _parse_reference
+tempi = []
+for riferimento in json.load(sys.stdin):
+    start = time.perf_counter()
+    _parse_reference(riferimento)
+    tempi.append(time.perf_counter() - start)
+print(json.dumps(tempi))
+"""
+
+
+@pytest.fixture(scope="module")
+def parse_times():
+    """Seconds _parse_reference takes on each slow-match input, measured in a child process.
+
+    A regex that backtracks exponentially never returns and holds the GIL: run in this
+    process it hangs the suite. The child is killed after 60 s and the tests fail instead.
+    """
+    import json
+    import subprocess
+    import sys
+
+    riferimenti = ["x art. 1" + t * 200 + " ?" for t in _TAILS] + _ADVERSARIAL
+    try:
+        # The child must import the code under test, from this process's own path.
+        done = subprocess.run([sys.executable, "-c", _PARSE_TIMER], input=json.dumps(riferimenti),
+                              capture_output=True, text=True, timeout=60,
+                              env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)})
+    except subprocess.TimeoutExpired:
+        pytest.fail("_parse_reference did not end within 60 s on the slow-match inputs: a regex backtracks")
+    assert done.returncode == 0, done.stderr[-2000:]
+    return dict(zip(riferimenti, json.loads(done.stdout)))
+
+
 class TestParseReference:
     def test_standard_format(self):
         article, act = _parse_reference("art. 13 GDPR")
@@ -143,32 +195,20 @@ class TestParseReferenceActFirst:
     def test_annex_written_last(self, reference):
         assert _parse_reference(reference) == ("allegato I.7 art. 30", "D.Lgs. 36/2023")
 
-    @pytest.mark.parametrize("tail", [" comma 1", " lett. a", ", comma 1"])
-    def test_long_reference_is_parsed_in_linear_time(self, tail):
+    @pytest.mark.parametrize("tail", _TAILS, ids=[t.strip(" ,") for t in _TAILS])
+    def test_long_reference_is_parsed_in_linear_time(self, tail, parse_times):
         # One separator per repetition: the old "\s*[,;]?\s*" made a failing match
-        # exponential (22 indicators took ~6 s and blocked the event loop).
-        import time
-        reference = "x art. 1" + tail * 200 + " ?"
-        start = time.perf_counter()
-        _parse_reference(reference)
-        assert time.perf_counter() - start < 0.1
+        # exponential (22 indicators took ~6 s and blocked the event loop). Each comma form
+        # must match one way only: «comma 1» read two ways hung the suite (2 hours).
+        assert parse_times["x art. 1" + tail * 200 + " ?"] < 0.1
 
-    @pytest.mark.parametrize("reference", [
-        "D.Lgs. 196/2003" + " " * 5000 + "x",
-        "D.Lgs. 196/2003" + " \t\u00a0" * 3000 + "x",
-        "D.Lgs. 196/2003" + "," * 5000 + "x",
-        "D.Lgs. 196/2003" + " ,;" * 3000 + "art. 1 x",
-        "art. 30 D.Lgs. 36/2023" + ", " * 5000 + "allegato I.7 x",
-        "a " * 25000,
-        "x" + " art. 1" * 7000 + " ?",
-    ], ids=["spaces", "tabs-nbsp", "commas", "mixed-separators", "annex-last", "50k", "many-articles"])
-    def test_adversarial_input_is_parsed_in_linear_time(self, reference):
+    @pytest.mark.parametrize("reference", _ADVERSARIAL, ids=[
+        "spaces", "tabs-nbsp", "commas", "mixed-separators", "annex-last", "50k", "many-articles",
+        "glued-n-c", "glued-c", "glued-co", "glued-comma", "long-number", "long-number-no-article"])
+    def test_adversarial_input_is_parsed_in_linear_time(self, reference, parse_times):
         # A lazy act name followed by "\s*[,;]?\s+" split each run of spaces many ways:
         # 5000 spaces took 92 s, synchronously, inside async tools.
-        import time
-        start = time.perf_counter()
-        _parse_reference(reference)
-        assert time.perf_counter() - start < 0.1
+        assert parse_times[reference] < 0.1
 
     def test_whitespace_of_any_kind_is_one_space(self):
         assert _parse_reference("D.Lgs.\t196/2003\u00a0art.  13") == ("13", "D.Lgs. 196/2003")

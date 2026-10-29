@@ -970,6 +970,41 @@ entry, it is the same feature as ported to the 3.0 line.
   `fastmcp>=3.4,<5` is unchanged.
 
 ### Fixed
+- **An article Normattiva splits into parts is no longer cut in silence** (3.0 only:
+  2.17.1 reads the Akoma Ntoso export, which has the whole article). Normattiva
+  serves a very long article in parts: art. 1 L. 296/2006 is 14 parts, «commi 1-100»
+  to «commi 1301-1364», and the article's page is the first. Since articles are read
+  from their page, `cite_law` gave commi 1-100 as the article, with no notice: comma
+  773, cited for the apprentices' contribution rate, was not there.
+  - **A comma named in the reference reads its part.** `cite_law` reads the part
+    holding the comma the reference names («art. 1, comma 773, L. 296/2006», also «co.
+    773», «c. 773», «773° comma», «comma 773-bis»). It costs one request more, made
+    with the article page's session, and none when the part is the page's own.
+  - **Without a comma.** `cite_law` serves the first part, with the notice «testo
+    parziale: commi 1-100 di 1364 (l'articolo è diviso in 14 parti su Normattiva)» and
+    the list of the parts. A comma in no part, or a part that cannot be read, is said;
+    another part's text never stands in for it.
+  - **Library.** `TestoArticolo.parti` (`ParteArticolo`: `progressivo`, `commi_dal`,
+    `commi_al`, `url`; `()` when not split, `None` when not a Normattiva page) and
+    `testo_parziale`, plus `api.parte_articolo(riferimento, progressivo, *, canale)`
+    and `api.parte_del_comma(parti, comma)`. `article_text` stays VisuaLex's.
+  - **What is never a key.** The `progressivo` holds for the current tree only, so a
+    part read is kept a day under its commi and the tree's `art.versione`, never under
+    the progressivo.
+  - **Sessions.** A session is kept only after it served the part; a dead one is
+    dropped and the part read again with a fresh page.
+  - **Robustness.**
+    - When the comma's part cannot be read, `verifica_citazioni` says «non verificata»
+      (`parte_non_letta`).
+    - A part lacking the comma's line is said.
+    - `parte_articolo(..., canale="akn")` is `non_supportata`.
+    - The library reads the comma of a reference string, also after the act when the
+      reference cites one article only («art. 1 L. 296/2006, comma 773»).
+    - `_parse_reference` reads «comma 773-bis», «c. 773», «commi 773 e 774» and «773°
+      comma», as the comma reader does, in linear time.
+  - **Agreed shape.** The shape is agreed with VisuaLex.
+  - **Tests.** Live gate `tests/unit/test_parti_articolo_live.py` (3 requests); the
+    INPS apprentice gate now cites comma 773.
 - **`api.leggi_provvedimento_amministrativo` reads the number as «N/AAAA».** The
   reader gives a TAR/CdS decision's number as «1918/2026» (from the page, as from the
   XML). The api took its first four digits as the year: parere n. 1918/2026 became

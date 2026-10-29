@@ -302,7 +302,8 @@ def test_costo_lavoro_aliquota_apprendista_5_84_circolare_inps_128_2012():
     quota_apprendista = float(m.group(1).replace(",", "."))
     assert quota_apprendista == 5.84
     _cerca(r"onere \(1,61%", testo, "circ. INPS 128/2012 (ASpI)")
-    assert_parole("art. 1 L. 296/2006", "complessivamente rideterminata nel 10 per cento")
+    # Art. 1 L. 296/2006 is split into parts on Normattiva: the comma names the part to read.
+    assert_parole("art. 1, comma 773, L. 296/2006", "complessivamente rideterminata nel 10 per cento")
 
     r = _tool("costo_lavoro")(retribuzione_lorda_annua=20000, tipo_contratto="apprendista")
     assert r["aliquota_contributi_datore_pct"] == pytest.approx(10 + 1.61, abs=1e-4)

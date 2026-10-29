@@ -43,7 +43,8 @@ MAX_SU_DISCO = 2000
 #: 2: the record keeps what the page says of its own validity (``validita``).
 #: 3: and the page's update notes (``note``): a record without them would serve the text
 #: of art. 3 d.lgs. 23/2015 without C. cost. 194/2018 for a day.
-SCHEMA = 3
+#: 4: and the parts of an article Normattiva splits (``parti``, ``parte_servita``).
+SCHEMA = 4
 
 _memoria: "OrderedDict[str, dict]" = OrderedDict()
 #: The disk is pruned once every this many writes, not at each one (a glob of up to 2000 files).
@@ -94,15 +95,17 @@ def leggi(url: str) -> dict | None:
 
 
 def scrivi(url: str, testo: str, servito: str | None, validita: dict | None = None,
-           note: dict | None = None) -> None:
+           note: dict | None = None, *, parti: list | None = None, parte_servita: int | None = None) -> None:
     """Keep what the page at *url* said (best effort: an unwritable directory only warns).
 
     *validita* is what the page states of the text's validity (``normattiva_validity``),
     read from the same page: the window, the version, the repeal. *note* is the page's
-    update notes (``note_normattiva.leggi_note``), read from the same page.
+    update notes (``note_normattiva.leggi_note``); *parti* the parts Normattiva splits the
+    article into (``parti_normattiva``, ``[]`` for none) and *parte_servita* the progressivo
+    of the part the page served, all read from the same page.
     """
     _scrivi({"schema": SCHEMA, "url": url, "salvato": time.time(), "testo": testo, "servito": servito,
-             "validita": validita, "note": note})
+             "validita": validita, "note": note, "parti": parti or [], "parte_servita": parte_servita})
 
 
 def _chiave_albero(url: str) -> str:
