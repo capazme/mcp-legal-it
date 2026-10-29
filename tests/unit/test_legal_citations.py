@@ -112,6 +112,131 @@ class TestParseReferenceExtended:
 # _parse_reference — act written first
 # ---------------------------------------------------------------------------
 
+# Paragraph indicators written with no separator between them: each one's suffix could
+# take in the next indicator or leave it, so a failing match tried every split.
+_GLUED_TAILS = ["co1", "comma1", "n1co1"]
+_PARSE_TIMER = """
+import json, sys, time
+from src.tools.legal_citations import _parse_reference
+tempi = []
+for riferimento in json.load(sys.stdin):
+    start = time.perf_counter()
+    _parse_reference(riferimento)
+    tempi.append(time.perf_counter() - start)
+print(json.dumps(tempi))
+"""
+
+
+@pytest.fixture(scope="module")
+def glued_parse_times():
+    """Seconds _parse_reference takes on each glued-indicator input, measured in a child process.
+
+    A regex that backtracks exponentially never returns and holds the GIL: run in this
+    process it would hang the suite. The child is killed after 60 s and the test fails instead.
+    """
+    import json
+    import subprocess
+    import sys
+
+    riferimenti = ["x art. 1 " + tail * 200 + " ?" for tail in _GLUED_TAILS]
+    try:
+        done = subprocess.run([sys.executable, "-c", _PARSE_TIMER], input=json.dumps(riferimenti),
+                              capture_output=True, text=True, timeout=60,
+                              env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)})
+    except subprocess.TimeoutExpired:
+        pytest.fail("_parse_reference did not end within 60 s on glued indicators: a regex backtracks")
+    assert done.returncode == 0, done.stderr[-2000:]
+    return dict(zip(_GLUED_TAILS, json.loads(done.stdout)))
+
+
+# How ordinary references read, pinned before the paragraph pattern was made linear:
+# the fix must change no reading of a well-formed reference.
+_READINGS = [
+    ('art. 13 GDPR', ('13', 'GDPR')),
+    ('art 13 GDPR', ('13', 'GDPR')),
+    ('ART 117 Costituzione', ('117', 'Costituzione')),
+    ('art. 2-ter D.Lgs. 196/2003', ('2-ter', 'D.Lgs. 196/2003')),
+    ('art. 2043 c.c.', ('2043', 'c.c.')),
+    ('art. 6 D.Lgs. 231/2001', ('6', 'D.Lgs. 231/2001')),
+    ('GDPR', ('', 'GDPR')),
+    ('art. 4/1 GDPR', ('4/1', 'GDPR')),
+    ('art. 4 n. 11 GDPR', ('4', 'GDPR')),
+    ('art. 13 co. 2 GDPR', ('13', 'GDPR')),
+    ('art. 6 par. 1 lett. f) GDPR', ('6', 'GDPR')),
+    ('art. 6, par. 1, lett. f), GDPR', ('6', 'GDPR')),
+    ('articolo 1 comma 311 legge 30 dicembre 2004 n. 311', ('1', 'legge 30 dicembre 2004 n. 311')),
+    ('art. 1, comma 773, L. 296/2006', ('1', 'L. 296/2006')),
+    ('art. 1 comma 1bis L. 296/2006', ('1', 'bis L. 296/2006')),
+    ('art. 1, co. 2ter, L. 296/2006', ('1', 'ter, L. 296/2006')),
+    ('art. 1 co.3 L. 296/2006', ('1', 'L. 296/2006')),
+    ('art. 1, comma 1-bis, L. 296/2006', ('1', '-bis, L. 296/2006')),
+    ('art. 1 c. 1 ter L. 296/2006', ('1', 'c. 1 ter L. 296/2006')),
+    ('art. 1 commi 1 e 2 L. 296/2006', ('1', 'commi 1 e 2 L. 296/2006')),
+    ('art. 360-bis c.p.c.', ('360-bis', 'c.p.c.')),
+    ('art. 2-quater codice privacy', ('2-quater', 'codice privacy')),
+    ('art. 3-5 c.c.', ('3-5', 'c.c.')),
+    ('artt. 3-5 c.c.', ('3-5', 'c.c.')),
+    ('art. 3 – 5 c.c.', ('3-5', 'c.c.')),
+    ('considerando 42 GDPR', ('rec_42', 'GDPR')),
+    ('recital 47 GDPR', ('rec_47', 'GDPR')),
+    ('art. 1 punto 3 GDPR', ('1', 'GDPR')),
+    ('allegato I.7 art. 30 D.Lgs. 36/2023', ('allegato I.7 art. 30', 'D.Lgs. 36/2023')),
+    ("art. 30 dell'allegato I.7 al D.Lgs. 36/2023", ('allegato I.7 art. 30', 'D.Lgs. 36/2023')),
+    ('Allegato III AI Act', ('allegato III', 'AI Act')),
+    ('art. 30 D.Lgs. 36/2023, allegato I.7', ('allegato I.7 art. 30', 'D.Lgs. 36/2023')),
+    ('art. 30, allegato I.7, D.Lgs. 36/2023', ('allegato I.7 art. 30', 'D.Lgs. 36/2023')),
+    ('D.Lgs. 196/2003 art. 13', ('13', 'D.Lgs. 196/2003')),
+    ('GDPR art. 6', ('6', 'GDPR')),
+    ('GDPR, art. 6 par. 1 lett. f)', ('6', 'GDPR')),
+    ('c.c. art. 2043', ('2043', 'c.c.')),
+    ('c.p.c. art. 360-bis', ('360-bis', 'c.p.c.')),
+    ('codice privacy art. 2-ter comma 1', ('2-ter', 'codice privacy')),
+    ('Statuto dei lavoratori art. 18', ('18', 'Statuto dei lavoratori')),
+    ('legge 30 dicembre 2004 n. 311 articolo 1 comma 311', ('1', 'legge 30 dicembre 2004 n. 311')),
+    ('D.Lgs. 36/2023 allegato I.1 art. 1', ('allegato I.1 art. 1', 'D.Lgs. 36/2023')),
+    ("D.Lgs. 36/2023 art. 1 dell'allegato I.1", ('allegato I.1 art. 1', 'D.Lgs. 36/2023')),
+    ('AI Act allegato III', ('allegato III', 'AI Act')),
+    ('D.L. 18/2020 art. 103 convertito dalla L. 27/2020', ('', '')),
+    ('D.Lgs.\t196/2003\xa0art.  13', ('13', 'D.Lgs. 196/2003')),
+    ('art.\n13\tGDPR', ('13', 'GDPR')),
+    ('L. 296/2006 art. 1 comma 773', ('1', 'L. 296/2006')),
+    ('L. 296/2006 art. 1, comma 1bis', ('1', 'bis L. 296/2006')),
+    ('L. 296/2006 art. 1, co. 2ter', ('1', 'ter L. 296/2006')),
+    ('L. 296/2006 art. 1 co.3', ('1', 'L. 296/2006')),
+    ('L. 296/2006 art. 1, comma 1-bis', ('', '')),
+    ('L. 296/2006 art. 1 comma 3 ter', ('', '')),
+    ('L. 296/2006 art. 1 comma 3 lett. b)', ('1', 'L. 296/2006')),
+    ('D.Lgs. 81/2008 art. 2 comma 1 lett. a) n. 1', ('2', 'D.Lgs. 81/2008')),
+    ('D.Lgs. 81/2008 art. 2 comma 1bis lett. a)', ('2', 'bis lett. a) D.Lgs. 81/2008')),
+    ('GDPR art. 4 n. 11', ('4', 'GDPR')),
+    ('GDPR art. 4 punto 11', ('4', 'GDPR')),
+    ('GDPR art. 9 par. 2 lett. a)', ('9', 'GDPR')),
+    ('D.Lgs. 36/2023 art. 30 comma 2bis, allegato I.7', ('30', 'bis, allegato I.7 D.Lgs. 36/2023')),
+    ('D.Lgs. 36/2023 allegato I.7 comma 2', ('allegato I.7', 'D.Lgs. 36/2023')),
+    ('TUIR art. 51 comma 2 lett. f-bis)', ('', '')),
+    ('TUIR art. 51 co. 2bis', ('51', 'bis TUIR')),
+    ('TUIR art. 51 comma 2-bis', ('', '')),
+    ('TUIR art. 51 comma 2 bis', ('', '')),
+    ('TUIR art. 51 comma 2° ', ('', '')),
+    ('TUIR art. 51 comma 2º', ('51', 'º TUIR')),
+    ('c.c. art. 1418 comma 2 n. 3', ('1418', 'c.c.')),
+    ('c.c. art. 1418 co 2', ('1418', 'c.c.')),
+    ('codice della strada art. 186 comma 2 lett. c)', ('186', 'codice della strada')),
+    ('art. 13', ('', '')),
+    ('art.', ('', 'art.')),
+    ('', ('', '')),
+    ('lorem ipsum', ('', 'lorem ipsum')),
+    ('D.Lgs. 196/2003 art. 13 comma 1é', ('13', 'é D.Lgs. 196/2003')),
+    ('D.Lgs. 196/2003 art. 13 co. 1 co. 2', ('13', 'D.Lgs. 196/2003')),
+    ('D.Lgs. 196/2003 art. 13 comma 12345678', ('13', 'D.Lgs. 196/2003')),
+    ('art. 2-sexies, comma 2, lett. dd), codice privacy', ('2-sexies', 'd), codice privacy')),
+    ('GDPR art. 7 comma 4', ('7', 'GDPR')),
+    ('GDPR art. 7 comma 4bis', ('7', 'bis GDPR')),
+    ('GDPR art. 7 comma 4-ter', ('', '')),
+    ('GDPR art. 7 comma 4 quater', ('', '')),
+]
+
+
 class TestParseReferenceActFirst:
     """"D.Lgs. 196/2003 art. 13" used to resolve the decree alone: the caller got art. 1."""
 
@@ -169,6 +294,22 @@ class TestParseReferenceActFirst:
         start = time.perf_counter()
         _parse_reference(reference)
         assert time.perf_counter() - start < 0.1
+
+    @pytest.mark.parametrize("tail", _GLUED_TAILS)
+    def test_glued_indicators_are_parsed_in_linear_time(self, glued_parse_times, tail):
+        assert glued_parse_times[tail] < 0.1
+
+    @pytest.mark.parametrize("reference, expected", _READINGS, ids=range(len(_READINGS)))
+    def test_ordinary_readings_are_unchanged(self, reference, expected):
+        assert _parse_reference(reference) == expected
+
+    @pytest.mark.parametrize("reference", [
+        "D.Lgs. 196/2003 art. 13 comma 1bis2",
+        "D.Lgs. 196/2003 art. 13 comma 1_2",
+    ])
+    def test_malformed_comma_suffix_is_refused(self, reference):
+        # It used to land in the act name ("bis2 D.Lgs. 196/2003"), which resolved nothing.
+        assert _parse_reference(reference) == ("", "")
 
     def test_whitespace_of_any_kind_is_one_space(self):
         assert _parse_reference("D.Lgs.\t196/2003\u00a0art.  13") == ("13", "D.Lgs. 196/2003")

@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - FastMCP 3.4.10 in the plugin's locked dependencies (GHSA-7xgj-8392-5q4r:
   component authorization after a transform was skipped on direct calls).
+- Legal references are parsed in linear time. A comma's suffix ("comma 1bis") could
+  be matched in many ways, and some long references held the server for seconds or
+  minutes. Well-formed references read as before; a malformed suffix is refused
+  instead of being folded into the act's name.
 
 ### Fixed
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the

@@ -72,9 +72,12 @@ _ANNEX_AFTER_ARTICLE = re.compile(
 # text ("... convertito dalla L. 27/2020") would end up inside the act name.
 _ART = r"(?:articol[oi]|art)\.?\s*\d+(?:[-/.]\w+)*"
 # One separator class per repetition: "\s*[,;]?\s*" splits a run of spaces two ways and,
-# repeated, made a failing match exponential in the number of indicators.
+# repeated, made a failing match exponential in the number of indicators. The separator
+# may be empty, so a comma's suffix ("1bis") is letters closed by a word boundary: a
+# "\w*" there could swallow the next indicator or leave it, and that choice was exponential.
 _PARAGRAPHS = (
-    r"(?:[\s,;]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+\w*|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
+    r"(?:[\s,;]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+(?:[^\W\d_]+)?\b|par\.?\s*\d+|punto\s*\d+"
+    r"|lett\.?\s*\w\)?))*"
 )
 # The act may not end on a separator and every separator run is one [\s,;]+: a lazy
 # ".+?" followed by "\s*[,;]?\s+" could split the same run of spaces many ways, which
