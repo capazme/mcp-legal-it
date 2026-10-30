@@ -566,7 +566,7 @@ Il plugin include hook che garantiscono l'accuratezza delle citazioni normative:
 | `LEGAL_PROFILE` | `full` | Profilo tool da caricare (un nome sconosciuto blocca l'avvio) |
 | `LEGAL_PREVIGENTE` | `on` | `off` nasconde i tool a normativa previgente (tag `previgente`) |
 | `LEGAL_BROCARDI` | `on` | `off` spegne Brocardi: nessuna richiesta a brocardi.it, tool `solo_brocardi` non esposti |
-| `MCP_CACHE_DIR` | — | Directory cache Brocardi |
+| `MCP_CACHE_DIR` | `~/.cache/mcp-legal-it` | Directory delle cache su disco: percorso assoluto (`~` ammesso); un percorso relativo è ignorato |
 
 ### Profili disponibili
 
