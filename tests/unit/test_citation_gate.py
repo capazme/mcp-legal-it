@@ -905,7 +905,7 @@ def test_a_long_session_is_judged_quickly(tmp_path):
 
 # --- launcher -----------------------------------------------------------------
 
-_COMMAND = ('uv run --no-project --python 3.12 '
+_COMMAND = ('uv run --no-project --isolated --no-config --directory "${CLAUDE_PLUGIN_ROOT}" --python 3.12 '
             'python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"')
 
 
@@ -921,7 +921,13 @@ def test_the_hook_runs_on_uv_python_outside_the_server_environment(event):
     interpreter it cannot reach deletes and recreates it under the running
     server; with --no-sync it is left empty and every tool then fails with
     "No module named ...". The same script serves SubagentStop, so a
-    subagent's unread citation is stopped where it was written."""
+    subagent's unread citation is stopped where it was written.
+
+    --directory "${CLAUDE_PLUGIN_ROOT}" (with --isolated --no-config): the hook runs
+    in the folder the user opened. Started from there, uv executes the interpreter
+    of a `.venv` it finds in that folder or above (its `.pth` files run) and reads
+    its `uv.toml`: opening an untrusted repository would run its code at every end
+    of turn. tests/unit/test_launchers_isolated.py proves it on a fresh `.venv`."""
     hook = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"][event][0]["hooks"][0]
     assert hook["command"] == _COMMAND
     # Seconds. On the first Stop of a session uv may still have to fetch Python 3.12.
