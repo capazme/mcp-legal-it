@@ -245,8 +245,9 @@ stessa sessione compresi, mai transcript di altre sessioni):
   qualunque prefisso del connettore): le righe di `riferimenti` e `sentenze`, che VisuaLex
   ha verificato sulle fonti, tolte quelle che la risposta elenca in `non_entrate`. Se la
   risposta ha `errore`, le liste indicate in `in_sospeso` non contano; un `errore` senza
-  `in_sospeso` (VisuaLex precedente alla 1.10.7) non copre nulla. Un dossier non copre i
-  commi di un articolo letto solo in parte.
+  `in_sospeso` (VisuaLex precedente alla 1.10.7) non copre nulla. VisuaLex verifica
+  l'articolo, non il comma: un dossier non copre i commi di un articolo letto solo in parte
+  con `cite_law`, ma senza letture parziali copre il comma così come è scritto (limite noto).
 
 **Ignora**: blocchi di codice e span inline, articoli di documenti che non sono atti
 («art. 5 del contratto», «l'atto di costituzione all'art. 3»), atti citati senza

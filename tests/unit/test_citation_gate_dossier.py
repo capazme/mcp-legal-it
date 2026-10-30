@@ -30,7 +30,7 @@ FRASE_COMMA = "L'art. 1, comma 773, L. 296/2006 ridetermina l'aliquota."
 FRASE_SENTENZA = "Lo conferma Cass. civ., sez. III, n. 12345/2024."
 FRASE_ALTRA_SENTENZA = "Lo conferma anche Cass. civ., sez. lav., n. 6789/2023."
 
-INGRESSO = {"titolo": "Responsabilità civile", "riferimenti": [NORMA, COMMA], "sentenze": [SENTENZA, ALTRA_SENTENZA]}
+INGRESSO = {"nome": "Responsabilità civile", "tipo": "studio", "riferimenti": [NORMA, COMMA], "sentenze": [SENTENZA, ALTRA_SENTENZA]}
 
 
 def risposta(non_entrate=(), **altro) -> str:
@@ -38,7 +38,8 @@ def risposta(non_entrate=(), **altro) -> str:
     entrate = {"norme": 2 - sum(1 for e in non_entrate if e["riga"] in INGRESSO["riferimenti"]),
                "sentenze": 2 - sum(1 for e in non_entrate if e["riga"] in INGRESSO["sentenze"]),
                "note": 0}
-    body = {"dossier": {"id": "d-7f3a", "titolo": INGRESSO["titolo"]}, "entrate": entrate,
+    # «dossier» as VisuaLex 1.10.7 writes it: {"id", "nome", "tipo": "lavoro"|"studio"}.
+    body = {"dossier": {"id": "d-7f3a", "nome": INGRESSO["nome"], "tipo": INGRESSO["tipo"]}, "entrate": entrate,
             "non_entrate": list(non_entrate), **altro}
     return json.dumps(body, ensure_ascii=False)
 
@@ -67,6 +68,8 @@ def verdetto(tmp_path, lettore, result, frase, **kw) -> int:
 
 @pytest.mark.parametrize("frase", [FRASE_NORMA, FRASE_COMMA, FRASE_SENTENZA, FRASE_ALTRA_SENTENZA])
 def test_a_full_dossier_credits_every_line(tmp_path, lettore, frase):
+    # FRASE_COMMA is the known limit: VisuaLex verifies the article, not the comma, so with no
+    # partial cite_law the comma is credited as written.
     assert verdetto(tmp_path, lettore, risposta(), frase) == SILENT
 
 
@@ -136,7 +139,7 @@ def test_other_tools_credit_nothing(tmp_path, lettore, nome, prefix):
 @pytest.mark.parametrize("result, is_error", [
     (risposta(), True),
     ("Errore: VisuaLex non raggiungibile", False),
-    (json.dumps({"dossier": {"id": "d-1"}}), False),  # no non_entrate: not the dossier's answer
+    (json.dumps({"dossier": {"id": "d-1", "nome": "x", "tipo": "studio"}}), False),  # no non_entrate: not the dossier's answer
 ])
 def test_a_failed_or_unknown_answer_credits_nothing(tmp_path, lettore, result, is_error):
     assert verdetto(tmp_path, lettore, result, FRASE_NORMA, is_error=is_error) == NAGS
