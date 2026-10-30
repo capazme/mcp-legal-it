@@ -470,8 +470,9 @@ _CORTE_COME_RIMEDIO = re.compile(r"\b(?:per|in)\s+$", re.IGNORECASE)
 _RUOLO = re.compile(r"^\s*,?\s*(?:(?-i:R\.?\s?G\.?|N\.?\s?R\.?\s?G\.?)|r\.g\.|reg\.?\s*gen)", re.IGNORECASE)
 
 # verifica_citazioni's court names (``_CORTI_NON_CASSAZIONE``) as the gate's courts.
-# Those with no reader here (ECtHR, Corte dei conti, tax and merits courts) are not
-# decisions the gate can ask the session to read.
+# Those with no reader here (ECtHR, tax and merits courts) are not decisions the gate
+# can ask the session to read, nor is the Corte dei conti: its reader covers only the
+# control sections' deliberazioni, and a number without the section names none of them.
 _CORTE_DA_VERIFICA = {"corte_cost": "cost", "giustizia_amm": "amm", "cgue": "cgue"}
 
 
