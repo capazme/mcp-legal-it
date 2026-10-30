@@ -25,8 +25,12 @@ entry, it is the same feature as ported to the 3.0 line.
   - **When the answer has `errore`.** The lists named in `in_sospeso` («norme»,
     «sentenze») are not credited. An `errore` without `in_sospeso`, from a VisuaLex before
     1.10.7, credits nothing.
-  - **Never whole.** A dossier says nothing of the commi read of an article Normattiva
-    splits: after a partial `cite_law`, a comma outside the parts read is still asked for.
+  - **Never whole.** VisuaLex verifies the article and drops the comma clause; for an
+    article Normattiva splits it enters part 1 (commi 1-100). So after a partial
+    `cite_law`, a comma outside the parts read is still asked for.
+  - **Known limit.** A VisuaLex dossier verifies the article, not the comma: for an article
+    split into parts, a comma outside the first part may be credited if no `cite_law` read
+    it. To be tightened when VisuaLex keys the parts.
   - **Both readers.** The server's and the hook's fallback read the dossier's lines with
     the readers they already have; the tests run every case with both.
   - **Server instructions.** One line: «Se crei un dossier con VisuaLex, non verificare
