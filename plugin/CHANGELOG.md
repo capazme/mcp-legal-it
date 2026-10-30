@@ -8,8 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.17.2] - 2026-10-30
 
 ### Security
-- FastMCP 3.4.10 in the plugin's locked dependencies (GHSA-7xgj-8392-5q4r:
-  component authorization after a transform was skipped on direct calls).
+- **The plugin and the extension no longer read the Python environment or the uv
+  configuration of the folder they are launched from.** The citation hook and the
+  `.mcpb` server started uv in the user's folder, where it could use a Python
+  environment found there or above it, and its configuration. They now start uv in
+  their own folder, in a throwaway environment (`--isolated --no-config --directory`).
+  The plugin's server, started from its own locked project, was not affected. A test
+  runs both launchers next to such an environment.
+- **The FastMCP floor excludes the vulnerable releases.** The plugin's lock has
+  FastMCP 3.4.11 (it was 3.4.9: GHSA-7xgj-8392-5q4r, component authorization after a
+  transform was skipped on direct calls). The `.mcpb` asks for `fastmcp>=3.4.11,<4`
+  (it was `>=2.0,<4`), library installs for `fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5`
+  (it was `>=3.4,<5`, which admitted the releases affected by GHSA-7xgj-8392-5q4r and,
+  on 4.x, GHSA-vqqp-x5qm-5qp4). The `.mcpb` launcher changes, so Claude Desktop
+  rebuilds its `uv` environment once, on the first start of 2.17.2.
 - Legal references are parsed in linear time. A comma's suffix ("comma 1bis") could
   be matched in many ways, and some long references held the server for seconds or
   minutes. Well-formed references read as before; a malformed suffix is refused
@@ -31,11 +43,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   environment. It ran `uv run --project <plugin>/server`, so whenever uv found
   that environment linked to an interpreter it could not reach, it deleted and
   rebuilt it under the running server. It now runs on uv's Python 3.12 with
-  `--no-project`: the gate needs only the standard library.
+  `--no-project` (see Security): the gate needs only the standard library.
 - `art. N legge fallimentare` (R.D. 267/1942) reads the law, which sits in
   annex 1 of the approving decree. When the AKN export failed, the fallback
   read the decree's own art. 1 as the law's art. 1 and answered «inesistente»
   from art. 3 on.
+
+### Changed
+- A relative `MCP_CACHE_DIR` is ignored, with one line on stderr, and the cache stays
+  in `~/.cache/mcp-legal-it`: the launchers start the server in its own folder, where a
+  relative path would have put it. `~` in `MCP_CACHE_DIR` is expanded.
 
 ## [2.17.1] - 2026-10-21
 
