@@ -263,11 +263,17 @@ def test_the_hook_runs_on_uv_python_outside_the_server_environment():
     interpreter it cannot reach (another machine, a removed Python) deletes and
     recreates it under the running server, even with `--no-sync`, which then
     leaves it empty and every tool fails with "No module named ...".
+
+    `--isolated --no-config --directory <plugin>`: the hook starts in the folder
+    the user opened, where uv would read a `uv.toml` and, looking for Python 3.12,
+    run a `.venv` found there or above it (its `.pth` files included). uv looks
+    from the plugin's folder instead, in a throwaway environment
+    (tests/unit/test_launcher_isolation.py runs it next to such a `.venv`).
     """
     hook = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["hooks"][0]
     assert hook["command"] == (
-        'uv run --no-project --python 3.12 '
-        'python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"'
+        'uv run --no-project --isolated --no-config --directory "${CLAUDE_PLUGIN_ROOT}" '
+        '--python 3.12 python "${CLAUDE_PLUGIN_ROOT}/hooks/citation-gate.py"'
     )
     # Seconds.
     assert 15 <= hook["timeout"] <= 600
