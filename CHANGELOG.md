@@ -15,6 +15,22 @@ directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
 ### Added
+- **The citation gate reads VisuaLex's dossier** (`omnilex_crea_dossier`, VisuaLex
+  1.10.7 and later). The dossier verifies each reference and decision it is given
+  against the sources, so they count as read.
+  - **What is credited.** The `riferimenti` and `sentenze` given to the tool, under any
+    connector prefix (`mcp__<connector>__omnilex_crea_dossier`, or the bare name), less the
+    lines its answer lists in `non_entrate` (compared byte for byte, as VisuaLex echoes
+    them).
+  - **When the answer has `errore`.** The lists named in `in_sospeso` («norme»,
+    «sentenze») are not credited. An `errore` without `in_sospeso`, from a VisuaLex before
+    1.10.7, credits nothing.
+  - **Never whole.** A dossier says nothing of the commi read of an article Normattiva
+    splits: after a partial `cite_law`, a comma outside the parts read is still asked for.
+  - **Both readers.** The server's and the hook's fallback read the dossier's lines with
+    the readers they already have; the tests run every case with both.
+  - **Server instructions.** One line: «Se crei un dossier con VisuaLex, non verificare
+    prima i riferimenti con questi strumenti».
 - **`api.modifiche_articolo(riferimento, *, dal=None, al=None, max_versioni=20)`:
   an article's versions and the amendments that produced them.** It returns a
   `ModificheArticolo` with:
