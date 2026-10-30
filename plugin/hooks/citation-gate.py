@@ -214,6 +214,12 @@ class FallbackReader:
         return [_Decisione("cass", str(int(m.group(1))), int(m.group(2)), m.group(0)[-60:])
                 for m in self._CASS.finditer(testo)]
 
+    def decisioni_della_riga(self, riga):
+        # A dossier line VisuaLex verified as one decision. This reader knows the Cassazione
+        # only, so a second decision of another court on the line («… richiamata da Corte
+        # cost. n. 238/2014») is invisible to it: a line with two numbers/years is none.
+        return [] if len(self._NUM.findall(riga)) > 1 else self.decisioni_nel_testo(riga)
+
     def decisioni_nel_risultato(self, testo):
         out = set()
         for m in self._NUM.finditer(testo):
@@ -430,7 +436,8 @@ class Session:
                     continue
                 # VisuaLex reads one decision per line: a line naming two («n. 100/2020, conf.
                 # n. 200/2021») has verified one of them, and which is not known.
-                lette = r.decisioni_nel_testo(riga)
+                lette = (r.decisioni_della_riga(riga) if hasattr(r, "decisioni_della_riga")
+                         else r.decisioni_nel_testo(riga))
                 if len(lette) == 1:
                     self.decisions.add((lette[0].corte, lette[0].numero, lette[0].anno))
 
