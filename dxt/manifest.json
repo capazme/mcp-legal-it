@@ -23,6 +23,10 @@
       "args": [
         "run",
         "--no-project",
+        "--isolated",
+        "--no-config",
+        "--directory",
+        "${__dirname}/server",
         "--python",
         "3.12",
         "--with",
