@@ -240,7 +240,13 @@ stessa sessione compresi, mai transcript di altre sessioni):
   d'atto («D.Lgs. 196/2003») non diventa mai una decisione; un «non trovata» non copre nulla,
   le massime di Brocardi e le mappe di orientamento nemmeno (una massima non è la
   decisione); la ricerca unificata accredita ogni numero alla corte indicata accanto.
-  In un elenco («Cass. nn. 500/1999, 600/2000») ogni numero va letto.
+  In un elenco («Cass. nn. 500/1999, 600/2000») ogni numero va letto;
+- norme e decisioni passate a un dossier di VisuaLex (`omnilex_crea_dossier`, con
+  qualunque prefisso del connettore): le righe di `riferimenti` e `sentenze`, che VisuaLex
+  ha verificato sulle fonti, tolte quelle che la risposta elenca in `non_entrate`. Se la
+  risposta ha `errore`, le liste indicate in `in_sospeso` non contano; un `errore` senza
+  `in_sospeso` (VisuaLex precedente alla 1.10.7) non copre nulla. Un dossier non copre i
+  commi di un articolo letto solo in parte.
 
 **Ignora**: blocchi di codice e span inline, articoli di documenti che non sono atti
 («art. 5 del contratto», «l'atto di costituzione all'art. 3»), atti citati senza
