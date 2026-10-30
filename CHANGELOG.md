@@ -35,7 +35,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
     split into parts, a comma outside the first part may be credited if no `cite_law` read
     it. To be tightened when VisuaLex keys the parts.
   - **Both readers.** The server's and the hook's fallback read the dossier's lines with
-    the readers they already have; the tests run every case with both.
+    the readers they already have; the tests run every case with both. The fallback knows
+    the Cassazione only, so it credits no `sentenze` line with two numbers/years («Cass.
+    n. 100/2020 richiamata da Corte cost. n. 238/2014»), where the server sees two
+    decisions.
   - **Server instructions.** One line: «Se crei un dossier con VisuaLex, non verificare
     prima i riferimenti con questi strumenti».
 - **`api.modifiche_articolo(riferimento, *, dal=None, al=None, max_versioni=20)`:
