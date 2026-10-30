@@ -231,6 +231,9 @@ class NormaCitata:
     atto: "str | None"
     articolo: str
     testo: str
+    # The comma cited with a single article («art. 1, comma 773, L. 296/2006», «il comma 773
+    # dell'art. 1 …»), canonical («773», «773-bis»); None when none is, or for a list.
+    comma: "str | None" = None
 
 
 @dataclass(frozen=True)
@@ -359,9 +362,68 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
         if atto is None and not _FONTE_NON_RISOLTA.match(coda):
             continue
         estratto = _estratto(testo, m.start(), min(len(testo), dopo + 30))
-        for articolo in _articoli(lista.group(0)):
-            trovate.append(NormaCitata(atto, normalizza_articolo(articolo), estratto))
+        articoli = _articoli(lista.group(0))
+        comma = _comma_citato(testo, m.start(), lista.end(), dopo) if len(articoli) == 1 else None
+        for articolo in articoli:
+            trovate.append(NormaCitata(atto, normalizza_articolo(articolo), estratto, comma))
     return trovate
+
+
+# The comma of an article, after it («art. 1, comma 773, L. 296/2006», «co. 773», «c. 773»)
+# or before it («il comma 773 dell'art. 1»).
+_COMMA_DOPO = re.compile(rf"\b(?:comma|co|c)\.?\s*(\d+(?:\s*-?\s*(?:{_SUFFISSI}))?)\b", re.IGNORECASE)
+_COMMA_PRIMA = re.compile(
+    rf"\bcomma\s+(\d+(?:\s*-?\s*(?:{_SUFFISSI}))?)\s*,?\s*(?:dell['’]|del|dello)?\s*$", re.IGNORECASE)
+
+
+def canonico_comma(comma: str) -> str:
+    """«773», «773 bis», «773-Bis» -> «773», «773-bis»."""
+    m = re.match(rf"\s*(\d+)\s*-?\s*({_SUFFISSI})?\s*$", comma or "", re.IGNORECASE)
+    if not m:
+        return (comma or "").strip().lower()
+    return m.group(1) + (f"-{m.group(2).lower()}" if m.group(2) else "")
+
+
+def _comma_citato(testo: str, inizio: int, fine_articoli: int, dopo: int) -> "str | None":
+    m = _COMMA_DOPO.search(testo, fine_articoli, dopo)
+    if m:
+        return canonico_comma(m.group(1))
+    m = _COMMA_PRIMA.search(testo[max(0, inizio - 40): inizio])
+    return canonico_comma(m.group(1)) if m else None
+
+
+# A tool's notice that its text is one part of an article Normattiva splits:
+# «testo parziale: commi 701-800 di 1364 (l'articolo è diviso in 14 parti su Normattiva)», or
+# «testo parziale: una sola parte di 1364 (…)» when the part served is not named
+# (core.norme.avviso_parziale writes both).
+_TESTO_PARZIALE = re.compile(
+    rf"testo parziale: (?:commi (\d+(?:-(?:{_SUFFISSI}))?)-(\d+(?:-(?:{_SUFFISSI}))?)|una sola parte) di ",
+    re.IGNORECASE)
+
+
+def commi_letti(testo: str) -> "tuple[str, str] | None":
+    """``(dal, al)`` of the commi a ``cite_law``/``fetch_law_article`` text served, when partial.
+
+    None for a whole article (no «testo parziale» notice). A part not named is ``("?", "?")``:
+    partial, and no comma lies in it. The notice is read from the markdown and from the JSON
+    ``avvisi`` alike.
+    """
+    m = _TESTO_PARZIALE.search(testo or "")
+    if m is None:
+        return None
+    if m.group(1) is None:
+        return ("?", "?")
+    return (canonico_comma(m.group(1)), canonico_comma(m.group(2)))
+
+
+def comma_nell_intervallo(comma: str, dal: str, al: str) -> bool:
+    """Whether *comma* lies in the commi *dal*-*al*; a suffix sits after its number («800-bis» in 701-800)."""
+    def numero(c):
+        m = re.match(r"\s*(\d+)", c or "")
+        return int(m.group(1)) if m else None
+
+    n, a, b = numero(comma), numero(dal), numero(al)
+    return n is not None and a is not None and b is not None and a <= n <= b
 
 
 # --- decisions ------------------------------------------------------------------
