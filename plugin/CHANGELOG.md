@@ -14,6 +14,14 @@ article the act does not have, the `Regime: PREVIGENTE` flag, the
 directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
 entry, it is the same feature as ported to the 3.0 line.
 
+### Security
+- **The citation hook no longer uses the opened folder's Python environment.** It
+  started `uv` from the folder the user had opened, so a Python environment found there
+  could run its own code at every end of turn, and that folder's `uv` configuration was
+  read. The hook now starts `uv` from the plugin's own folder, isolated from the user's
+  configuration. The server's launcher (`--project` on the plugin's lock) was already
+  safe.
+
 ### Added
 - **`LEGAL_BROCARDI=off`: the server without Brocardi.** Brocardi.it, the only
   private source (doctrinal notes and case-law abstracts, never the text of a

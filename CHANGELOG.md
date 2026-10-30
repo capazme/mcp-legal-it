@@ -635,6 +635,21 @@ described in those sections, not repeated here. Upgrading from 2.x:
   Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
 
 ### Security
+- **The citation hook and the local server no longer use the opened folder's Python
+  environment.** The hook and the server's launchers (the `.mcpb`, the Codex
+  configuration of the OpenAI bundle, the documented examples) started `uv` from the
+  folder the user had opened. A Python environment found there could run its own code
+  when the hook or the server started, and that folder's `uv` configuration was read.
+  Every launcher now starts `uv` from the plugin's or the server's own folder, isolated
+  from the user's configuration; `plugin/.mcp.json` was already safe. Tests build a new
+  environment for every run and check that its code never runs, and
+  `check_directory_readiness.py` reads only the options before the command it launches
+  (grouped short options too), and counts a script with inline metadata as an install.
+  Still used, because the user controls them: an active virtual environment
+  (`VIRTUAL_ENV`) and a `.venv` in a folder that contains the plugin's.
+  - **`MCP_CACHE_DIR` must be absolute.** `~` is expanded; a relative path, which would
+    now resolve against the server's folder, is ignored with a line on stderr, and the
+    default directory is used.
 - **The FastMCP floor excludes the vulnerable releases.** Every declaration now asks for
   `fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5` (library installs: `pyproject.toml`,
   `plugin/server/pyproject.toml` and the plugin lock's metadata) or `fastmcp>=3.4.11,<4`

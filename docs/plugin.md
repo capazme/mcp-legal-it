@@ -206,9 +206,11 @@ Si attiva al termine di ogni risposta di Claude e di ogni subagente (lo stesso s
 sui due eventi: la citazione non letta di un subagente si ferma dove è stata scritta).
 
 **Tipo**: hook `command` — esegue `hooks/citation-gate.py` (Python 3, nessun modello:
-deterministico e senza costo) con `uv run --frozen --no-sync` nell'ambiente del server,
-così non dipende da un `python3` di sistema (su Windows spesso è l'alias del Microsoft
-Store). Legge le citazioni con il codice del server (`mcp_legal_it.core.citazioni` e
+deterministico e senza costo) con il Python 3.12 di `uv`, così non dipende da un
+`python3` di sistema (su Windows spesso è l'alias del Microsoft Store). Non apre
+l'ambiente del server e parte dalla cartella del plugin, mai da quella aperta
+dall'utente: un ambiente Python o una configurazione `uv` di quella cartella non vengono
+né usati né letti. Legge le citazioni con il codice del server (`mcp_legal_it.core.citazioni` e
 `core.riferimenti`, sola libreria standard: nessuno stack HTTP a ogni turno); se
 quell'import fallisce, un lettore ridotto interno allo script tiene in piedi il gate.
 
