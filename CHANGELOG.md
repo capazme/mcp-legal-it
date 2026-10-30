@@ -647,7 +647,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
   from the user's configuration; `plugin/.mcp.json` was already safe. Tests build a new
   environment for every run and check that its code never runs, and
   `check_directory_readiness.py` reads only the options before the command it launches
-  (grouped short options too), and counts a script with inline metadata as an install.
+  (grouped short options too), counts a script with inline metadata as an install, and
+  refuses a `--directory` or `--project` outside the plugin's own folder. The guard tests
+  also cover the server's own `.mcpb` manifest and the documented `uvx` launcher, and the
+  Codex example in the docs must equal the generated configuration.
   Still used, because the user controls them: an active virtual environment
   (`VIRTUAL_ENV`) and a `.venv` in a folder that contains the plugin's.
   - **`MCP_CACHE_DIR` must be absolute.** `~` is expanded; a relative path, which would
