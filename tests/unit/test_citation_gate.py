@@ -101,12 +101,6 @@ def json_result(tipo: str, articolo: str, testo: str | None = None, *, data: str
     })
 
 
-@pytest.fixture(autouse=True)
-def _no_skip_paths(monkeypatch):
-    """A developer's own LEGAL_IT_GATE_SKIP_PATHS would silence every test run from that folder."""
-    monkeypatch.delenv("LEGAL_IT_GATE_SKIP_PATHS", raising=False)
-
-
 def _wrapped(markdown: str) -> str:
     """The FastMCP structured wrapper Claude Code hands the hook for a str result."""
     return json.dumps({"result": markdown})
