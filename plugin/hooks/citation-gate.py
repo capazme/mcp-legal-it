@@ -44,6 +44,13 @@ switches the gate off for that session. It is meant for software-development
 sessions that only happen to quote a norm in code or docs; legal work should
 keep it on. The check is the first thing ``main`` does: no stdin, no
 transcript, no reader import.
+
+Lanes: ``LEGAL_IT_GATE_SKIP_PATHS`` lists folders whose sessions are not
+gated (separated by ``os.pathsep`` — ``:`` on macOS/Linux, ``;`` on Windows —
+or by commas), e.g. the folder that holds a developer's code. The session's
+``cwd`` (from the hook input, else the process's) is skipped when it is one of
+them or inside one; ``/a/CODE2`` is not inside ``/a/CODE``. It is a deny-list
+on purpose: a folder not listed stays gated, and relative entries are ignored.
 """
 import json
 import os
@@ -57,6 +64,9 @@ SILENT, BLOCK = 0, 2
 
 # Values of LEGAL_CITATION_GATE that switch the gate off (compared lowercase).
 OPT_OUT_VALUES = {"off", "0", "false", "no"}
+
+# Folders whose sessions are not gated (see "Lanes" above).
+SKIP_PATHS_VAR = "LEGAL_IT_GATE_SKIP_PATHS"
 
 # Tools whose result can show that an article was read.
 NORM_TOOLS = {"cite_law", "fetch_law_article", "fetch_full_act"}
@@ -732,6 +742,36 @@ def opted_out() -> bool:
     return os.environ.get("LEGAL_CITATION_GATE", "").strip().lower() in OPT_OUT_VALUES
 
 
+def skip_paths() -> list:
+    """The absolute folders listed in ``LEGAL_IT_GATE_SKIP_PATHS``, resolved."""
+    raw = os.environ.get(SKIP_PATHS_VAR, "")
+    folders = []
+    for entry in re.split("[" + re.escape(os.pathsep) + ",]", raw):
+        entry = entry.strip()
+        if not entry:
+            continue
+        try:
+            folder = Path(entry).expanduser()
+            if folder.is_absolute():
+                folders.append(folder.resolve())
+        except (OSError, RuntimeError, ValueError):
+            continue
+    return folders
+
+
+def skipped_by_path(data: dict) -> bool:
+    """True when the session's cwd is a listed folder or inside one."""
+    folders = skip_paths()
+    if not folders:
+        return False
+    try:
+        cwd = Path(str(data.get("cwd") or os.getcwd())).expanduser().resolve()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    # Path ancestry, not string prefix: /a/CODE2 is not inside /a/CODE.
+    return any(cwd == folder or folder in cwd.parents for folder in folders)
+
+
 def main() -> int:
     if opted_out():
         return SILENT
@@ -740,6 +780,8 @@ def main() -> int:
     except Exception:
         return SILENT
     if not isinstance(data, dict) or data.get("stop_hook_active"):
+        return SILENT
+    if skipped_by_path(data):
         return SILENT
     tp = data.get("transcript_path")
     if not tp:

@@ -630,6 +630,97 @@ def test_with_the_variable_unset_the_gate_is_on(tmp_path, monkeypatch):
     assert gate(session(tmp_path).prompt().say(_BLOCKING_TEXT)) == NAGS
 
 
+# ---------------------------------------------------------------------------
+# Lanes: LEGAL_IT_GATE_SKIP_PATHS skips sessions whose cwd is inside a listed folder
+# ---------------------------------------------------------------------------
+
+def _gate_in(t: Transcript, cwd: Path, **extra) -> subprocess.CompletedProcess:
+    return run({"transcript_path": str(t.write()), "hook_event_name": "Stop", "cwd": str(cwd), **extra})
+
+
+def _folders(tmp_path: Path, *names: str) -> list:
+    out = []
+    for name in names:
+        (tmp_path / name).mkdir(parents=True, exist_ok=True)
+        out.append(tmp_path / name)
+    return out
+
+
+@pytest.mark.parametrize("inside", ["CODE", "CODE/repo", "CODE/repo/deep/sub"])
+def test_a_session_inside_a_listed_folder_is_skipped(tmp_path, monkeypatch, inside):
+    code, = _folders(tmp_path, "CODE")
+    cwd, = _folders(tmp_path, inside)
+    t = session(tmp_path).prompt().say(_BLOCKING_TEXT)
+    assert _gate_in(t, cwd).returncode == NAGS  # blocks without the variable
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", str(code))
+    done = _gate_in(t, cwd)
+    assert (done.returncode, done.stdout, done.stderr) == (SILENT, "", "")
+
+
+def test_a_session_outside_the_listed_folders_is_gated(tmp_path, monkeypatch):
+    code, legal = _folders(tmp_path, "CODE", "LEGALE/pratica")
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", str(code))
+    assert _gate_in(session(tmp_path).prompt().say(_BLOCKING_TEXT), legal).returncode == NAGS
+
+
+def test_a_sibling_sharing_the_prefix_is_not_inside(tmp_path, monkeypatch):
+    code, code2 = _folders(tmp_path, "CODE", "CODE2/repo")
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", str(code))
+    assert _gate_in(session(tmp_path).prompt().say(_BLOCKING_TEXT), code2).returncode == NAGS
+
+
+@pytest.mark.parametrize("sep", [os.pathsep, ",", f" {os.pathsep} ", " , "])
+def test_several_folders_can_be_listed(tmp_path, monkeypatch, sep):
+    code, work, legal = _folders(tmp_path, "CODE", "WRK/progetto", "LEGALE")
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", sep.join([str(code), str(tmp_path / "WRK")]))
+    t = session(tmp_path).prompt().say(_BLOCKING_TEXT)
+    assert _gate_in(t, code).returncode == SILENT
+    assert _gate_in(t, work).returncode == SILENT
+    assert _gate_in(t, legal).returncode == NAGS
+
+
+@pytest.mark.parametrize("value", [None, "", " ", f"{os.pathsep},{os.pathsep}", "relative/CODE"])
+def test_an_unset_empty_or_relative_list_skips_nothing(tmp_path, monkeypatch, value):
+    code, = _folders(tmp_path, "relative/CODE")
+    monkeypatch.chdir(tmp_path)
+    if value is None:
+        monkeypatch.delenv("LEGAL_IT_GATE_SKIP_PATHS", raising=False)
+    else:
+        monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", value)
+    assert _gate_in(session(tmp_path).prompt().say(_BLOCKING_TEXT), code).returncode == NAGS
+
+
+def test_the_listed_folder_and_the_cwd_are_resolved(tmp_path, monkeypatch):
+    code, = _folders(tmp_path, "CODE")
+    link = tmp_path / "link-to-code"
+    link.symlink_to(code, target_is_directory=True)
+    (code / "repo").mkdir()
+    t = session(tmp_path).prompt().say(_BLOCKING_TEXT)
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", str(link) + "/")
+    assert _gate_in(t, code / "repo").returncode == SILENT
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", str(code))
+    assert _gate_in(t, link / "repo").returncode == SILENT
+
+
+def test_a_listed_folder_may_start_with_the_home_tilde(tmp_path, monkeypatch):
+    code, = _folders(tmp_path, "home/CODE")
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", "~/CODE")
+    assert _gate_in(session(tmp_path).prompt().say(_BLOCKING_TEXT), code).returncode == SILENT
+
+def test_without_cwd_in_the_input_the_process_cwd_is_used(tmp_path, monkeypatch):
+    code, = _folders(tmp_path, "CODE")
+    t = session(tmp_path).prompt().say(_BLOCKING_TEXT)
+    t.write()
+    monkeypatch.setenv("LEGAL_IT_GATE_SKIP_PATHS", str(code))
+    payload = json.dumps({"transcript_path": str(t.path), "hook_event_name": "Stop"})
+    inside = subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True,
+                            text=True, cwd=code, timeout=60)
+    outside = subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True,
+                             text=True, cwd=tmp_path, timeout=60)
+    assert (inside.returncode, outside.returncode) == (SILENT, NAGS)
+
+
 @pytest.mark.parametrize("payload", [
     "not json", "{}", json.dumps({"transcript_path": "/nonexistent/x.jsonl"}), json.dumps([1, 2]),
 ])

@@ -15,6 +15,15 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
+  skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
+  Windows, or by commas): a session whose `cwd` (from the hook input, else the
+  process's) is one of them or inside one ends the Stop/SubagentStop hook at
+  once, so software-development sessions under, say, `~/CODE` are not gated
+  while legal work elsewhere still is. It is a deny-list: a folder not listed
+  stays gated, relative entries are ignored, and `/a/CODE2` is not inside
+  `/a/CODE`. Brings upstream the lane separation a local 2.9.0 patch had, which
+  2.16.1 no longer carried.
 - **The citation gate reads VisuaLex's dossier** (`omnilex_crea_dossier`, VisuaLex
   1.10.7 and later). The dossier verifies each reference and decision it is given
   against the sources, so they count as read.
