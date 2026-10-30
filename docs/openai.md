@@ -116,7 +116,9 @@ checkout reale del server:
 [mcp_servers.legal_it]
 command = "uv"
 args = [
-  "run", "--python", "3.12",
+  "run", "--no-project", "--isolated", "--no-config",
+  "--directory", "/path/to/mcp-legal-it/plugin/server",
+  "--python", "3.12",
   "--with", "fastmcp>=3.4.11,<4",
   "--with", "httpx>=0.27",
   "--with", "beautifulsoup4>=4.12",
@@ -125,9 +127,16 @@ args = [
   "--with", "python-docx>=1.0",
   "--with", "openpyxl>=3.1",
   "--with", "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "--with", "cryptography>=50; sys_platform != 'darwin' or platform_machine != 'x86_64'",
   "/path/to/mcp-legal-it/plugin/server/run_server.py",
 ]
 ```
+
+Sostituisci entrambi i `/path/to/mcp-legal-it` con lo stesso checkout. `--directory`
+fa partire `uv` dalla cartella del server e non da quella del progetto aperto in
+Codex, così `uv` non usa né legge l'ambiente Python o la configurazione di quel
+progetto; i file prodotti restano nella cartella temporanea di sistema e la cache in
+`MCP_CACHE_DIR` (percorso assoluto).
 
 Oppure, per non lanciare `uv` in locale, la variante server remoto
 (Streamable HTTP) già commentata in `config.toml.example`:

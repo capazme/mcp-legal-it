@@ -202,8 +202,90 @@ def check_files(rev: str, files: dict[str, tuple[str, int]], report: Report) -> 
             report.hold(f"{path}: inline `!` command in a skill or command")
 
 
+# `uv run` options that take a value (as the next argument or after "="). The command
+# uv runs starts at the first argument that is neither an option nor an option's value.
+UV_VALUE_OPTIONS = {
+    "--python", "-p", "--project", "--directory", "--with", "-w", "--with-editable",
+    "--with-requirements", "--index", "--index-url", "-i", "--extra-index-url", "--default-index",
+    "--find-links", "-f", "--env-file", "--package", "--extra", "--group", "--only-group",
+    "--no-group", "--config-file", "--cache-dir", "--python-preference", "--exclude-newer",
+    "--index-strategy", "--keyring-provider", "--resolution", "--prerelease", "--link-mode",
+    "--color", "--upgrade-package", "-P", "--reinstall-package", "--refresh-package",
+    "--no-binary-package", "--no-build-package", "--python-platform", "--allow-insecure-host",
+}
+UV_SWITCHES = {
+    "--frozen", "--locked", "--no-sync", "--no-project", "--isolated", "--no-config", "--active",
+    "--no-dev", "--all-extras", "--all-groups", "--no-default-groups", "--offline", "--no-cache",
+    "-n", "--quiet", "-q", "--verbose", "-v", "--no-progress", "--native-tls", "--no-python-downloads",
+    "--managed-python", "--no-managed-python", "--no-editable", "--exact", "--inexact",
+    "--no-env-file", "--refresh", "--reinstall", "--upgrade", "-U", "--compile-bytecode",
+    "--script", "-s", "--gui-script", "--module", "-m", "--no-build-isolation",
+}
+
+
+def uv_run_options(args: list[str]) -> "tuple[list[str], dict[str, str], list[str], list[str]]":
+    """`uv run ...` split: (option names, their values, unknown names, the command it runs).
+
+    Short options may be grouped («-qw six», «-wsix»): each letter is an option, and one
+    that takes a value takes the rest of the token, or the next argument.
+    """
+    names: list[str] = []
+    values: dict[str, str] = {}
+    unknown: list[str] = []
+    i = 1  # args[0] == "run"
+    while i < len(args):
+        token = args[i]
+        if token == "--":
+            i += 1
+            break
+        if not token.startswith("-") or token == "-":
+            break
+        if token.startswith("--"):
+            name, eq, value = token.partition("=")
+            names.append(name)
+            if name in UV_VALUE_OPTIONS:
+                if not eq and i + 1 < len(args):
+                    value = args[i + 1]
+                    i += 1
+                values[name] = value
+            elif name not in UV_SWITCHES:
+                unknown.append(name)
+            i += 1
+            continue
+        lettere = token[1:]
+        for k, lettera in enumerate(lettere):
+            name = f"-{lettera}"
+            names.append(name)
+            if name in UV_VALUE_OPTIONS:
+                value = lettere[k + 1:].lstrip("=")
+                if not value and i + 1 < len(args):
+                    value = args[i + 1]
+                    i += 1
+                values[name] = value
+                break
+            if name not in UV_SWITCHES:
+                unknown.append(name)
+        i += 1
+    return names, values, unknown, args[i:]
+
+
+_INLINE_SCRIPT = re.compile(r"^# /// script\s*$", re.M)
+
+
+def uv_installs(names: list[str], comando: list[str], leggi=None) -> bool:
+    """Whether `uv run` resolves and installs packages: --with*, --script, or a script with
+    inline metadata («# /// script») run as the command, which uv reads without --script."""
+    if any(n.startswith("--with") or n in ("-w", "--script", "-s", "--gui-script") for n in names):
+        return True
+    if comando and comando[0].endswith((".py", ".pyw")):
+        testo = leggi(comando[0]) if leggi is not None else None
+        return testo is None or bool(_INLINE_SCRIPT.search(testo))  # unreadable: assume it does
+    return False
+
+
 def check_command(where: str, command: str, args: list[str], report: Report,
-                  files: dict[str, tuple[str, int]] | None = None) -> None:
+                  files: dict[str, tuple[str, int]] | None = None, leggi=None) -> None:
+    """*leggi*: the text of a file the command names (``${CLAUDE_PLUGIN_ROOT}/…``), or None."""
     line = " ".join([command, *args])
     if OTHER_VARIABLE.search(line) or "$(" in line or "`" in line:
         report.block(f"{where}: variable other than ${{CLAUDE_PLUGIN_ROOT}} or "
@@ -213,23 +295,43 @@ def check_command(where: str, command: str, args: list[str], report: Report,
     if command in ("bash", "sh", "zsh", "cmd", "powershell", "pwsh"):
         report.hold(f"{where}: starts through a shell")
     if command == "uv" and args[:1] == ["run"]:
-        if "--no-project" in args and not any(a.startswith("--with") for a in args):
+        # Only the options before the command count: «--with» in the script's own
+        # arguments installs nothing, and an option after the command is not uv's.
+        names, values, unknown, comando = uv_run_options(args)
+        for name in unknown:
+            report.block(f"{where}: `uv run` option {name} the validator does not know")
+        frozen = "--frozen" in names or "--locked" in names
+        if "--no-project" in names and not uv_installs(names, comando, leggi):
             pass  # a bare interpreter: nothing is resolved or installed
-        elif "--frozen" not in args and "--locked" not in args:
+        elif not frozen:
             report.block(f"{where}: `uv run` without --frozen or --locked")
         else:
             report.accept("uv-run-frozen")
+        if "--project" not in names and "--directory" not in names:
+            # Started from the user's folder, uv runs the Python environment it finds there
+            # (its .pth files execute) and reads its uv.toml.
+            report.block(f"{where}: `uv run` with neither --project nor --directory starts "
+                         "from the user's folder")
         report.accept("subfolder-program")
-        if "--project" in args and files is not None:
-            project = args[args.index("--project") + 1]
-            lock = project.replace("${CLAUDE_PLUGIN_ROOT}", PLUGIN) + "/uv.lock"
-            if ("--frozen" in args or "--locked" in args) and lock not in files:
+        if "--project" in values and files is not None:
+            lock = values["--project"].replace("${CLAUDE_PLUGIN_ROOT}", PLUGIN) + "/uv.lock"
+            if frozen and lock not in files:
                 report.block(f"{where}: `uv run --frozen/--locked` needs {lock}, "
                              "which is not tracked (check .gitignore)")
     if command in LAUNCHERS:
         package = next((a for a in args if not a.startswith("-")), "")
         if not re.search(r"(@|==)\d", package):
             report.block(f"{where}: {command} package not pinned to an exact version")
+
+
+def _lettore(rev: str, files: dict[str, tuple[str, int]]):
+    """The text of a plugin file a launcher names, at *rev*; None when it is not tracked."""
+    def leggi(percorso: str) -> "str | None":
+        path = percorso.replace("${CLAUDE_PLUGIN_ROOT}", PLUGIN)
+        if path not in files:
+            return None
+        return blob(rev, path).decode("utf-8", "replace")
+    return leggi
 
 
 def check_runtime(rev: str, files: dict[str, tuple[str, int]], report: Report) -> None:
@@ -246,7 +348,7 @@ def check_runtime(rev: str, files: dict[str, tuple[str, int]], report: Report) -
                     report.block(f"{mcp} {name}: URL is not https")
                 continue
             check_command(f"{mcp} {name}", server.get("command", ""),
-                          server.get("args", []), report, files)
+                          server.get("args", []), report, files, _lettore(rev, files))
 
     hooks_path = f"{PLUGIN}/hooks/hooks.json"
     if hooks_path in files:
@@ -263,7 +365,7 @@ def check_runtime(rev: str, files: dict[str, tuple[str, int]], report: Report) -
                     words = re.findall(r'"[^"]*"|\S+', hook["command"])
                     words = [w.strip('"') for w in words]
                     check_command(f"{hooks_path} {event}", words[0], words[1:],
-                                  report, files)
+                                  report, files, _lettore(rev, files))
 
 
 def main() -> int:

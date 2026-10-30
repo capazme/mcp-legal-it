@@ -23,7 +23,10 @@ whose owner may not expect a legal lookup to leave anything behind.
 `LEGAL_CACHE=off` (also `no`/`false`/`0`/`none`/`disabled`) is the switch for
 that: nothing is read from or written to the cache directory, the caches stay in
 memory for the life of the process, and the directory is never created.
-`MCP_CACHE_DIR` only relocates the files; it does not stop them.
+`MCP_CACHE_DIR` only relocates the files; it does not stop them. It must be an
+absolute path (``~`` is expanded): the launchers start the server from its own
+folder, so a relative one would land somewhere the user did not mean. A relative
+value is ignored, with one line on stderr, and the default is used.
 
 This module is the single place that reads either variable, so the audit can
 find the switch by looking at one function. A library caller can set both in
@@ -34,6 +37,7 @@ variable ``LEGAL_CACHE=off`` still wins over ``cache=True``.
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from mcp_legal_it.core import _config
@@ -58,7 +62,23 @@ def cache_root() -> Path:
     configured = _config.attuale().cache_dir
     if configured:
         return Path(configured)
-    return Path(os.environ.get(DIR_ENV) or DEFAULT_DIR)
+    valore = os.environ.get(DIR_ENV)
+    if not valore:
+        return DEFAULT_DIR
+    try:
+        percorso = Path(valore).expanduser()
+    except RuntimeError:  # «~utente/x» for a user that does not exist
+        percorso = Path(valore)
+    if percorso.is_absolute():
+        return percorso
+    if valore not in _RELATIVI_SEGNALATI:
+        _RELATIVI_SEGNALATI.add(valore)
+        print(f"{DIR_ENV} deve essere un percorso assoluto: uso {DEFAULT_DIR}", file=sys.stderr)
+    return DEFAULT_DIR
+
+
+# A relative MCP_CACHE_DIR is reported once per value, not at every cache access.
+_RELATIVI_SEGNALATI: set[str] = set()
 
 
 def cache_root_display() -> str:
