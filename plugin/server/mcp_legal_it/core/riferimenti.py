@@ -10,16 +10,27 @@ import difflib
 import re
 
 from mcp_legal_it.lib.visualex import resolve_atto, strip_leading_particles, known_act_names
+from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _SUFFISSI
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+# A comma as a citation writes it, the forms parti_normattiva.comma_richiesto reads: «comma
+# 773», «co. 773-bis», «c. 12 ter», «comma 1bis», «commi 773 e 774», «773° comma». «c.» needs
+# its number right after it, so the «c.» of «c.c.» or «c.p.» is never one. Each form matches
+# one way only, so the repeated _PARAGRAPHS stays linear: letters glued to the number are the
+# number's and must end the word (never the next indicator glued to it), a suffix after a
+# space or a hyphen is the suffix's.
+_COMMA = (rf"(?:commi\s*\d+(?:\s*(?:e|,|-|–)\s*\d+)*"
+          rf"|(?:co(?:mma)?|c)\.?\s*\d+(?:[^\W\d_]+)?\b(?:(?:\s+|\s*-\s*)(?:{_SUFFISSI})\b)?"
+          rf"|\d+\s*[°º]\s*comma\b)")
+
 # Strips paragraph/point/comma indicators from the start of the act name
 # so that "art. 4 n. 11 GDPR" → article="4", act="GDPR".
 _PARAGRAPH_PATTERN = re.compile(
-    r"^[,;\s]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?)\s*[,;]?\s*",
+    rf"^[,;\s]*(?:n\.?\s*\d+|{_COMMA}|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?)\s*[,;]?\s*",
     re.IGNORECASE,
 )
 
@@ -50,7 +61,7 @@ _ART = r"(?:articol[oi]|art)\.?\s*\d+(?:[-/.]\w+)*"
 # One separator class per repetition: "\s*[,;]?\s*" splits a run of spaces two ways and,
 # repeated, made a failing match exponential in the number of indicators.
 _PARAGRAPHS = (
-    r"(?:[\s,;]*(?:n\.?\s*\d+|co(?:mma)?\.?\s*\d+\w*|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
+    rf"(?:[\s,;]*(?:n\.?\s*\d+|{_COMMA}|par\.?\s*\d+|punto\s*\d+|lett\.?\s*\w\)?))*"
 )
 # The act may not end on a separator and every separator run is one [\s,;]+: a lazy
 # ".+?" followed by "\s*[,;]?\s+" could split the same run of spaces many ways, which

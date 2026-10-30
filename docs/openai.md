@@ -50,7 +50,7 @@ o un endpoint remoto — vedi «Server MCP» sotto.
 | 234 tool di calcolo e ricerca | ✓ | ✓ | ✓ | ✓ |
 | 23 prompt guidati | ✓ | — | — | — |
 | 15 risorse `legal://` | ✓ | — | — | — |
-| 30 skill + 10 comandi + 6 agenti (plugin Claude) | ✓ | ✓ 42 skill via bundle | ✓ 42 skill via bundle | — |
+| 30 skill + 9 comandi + 6 agenti (plugin Claude) | ✓ | ✓ 42 skill via bundle | ✓ 42 skill via bundle | — |
 | Transport stdio (locale) | ✓ | — | ✓ | — |
 | Transport Streamable HTTP | ✓ | ✓ | ✓ | ✓ |
 | Transport SSE (legacy) | ✓ | ✓ | ? | ? |
@@ -117,7 +117,7 @@ checkout reale del server:
 command = "uv"
 args = [
   "run", "--python", "3.12",
-  "--with", "fastmcp>=3.4,<4",
+  "--with", "fastmcp>=3.4.11,<4",
   "--with", "httpx>=0.27",
   "--with", "beautifulsoup4>=4.12",
   "--with", "lxml>=5.0",

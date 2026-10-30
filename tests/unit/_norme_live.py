@@ -6,7 +6,8 @@ and is meant for files marked `pytest.mark.live`.
 
 Normattiva's text has quirks a naive substring check trips on: numbers are
 sometimes written after the noun ("giorni sessanta"), the ordinal indicator is
-U+00BA ("1º agosto") rather than the degree sign, and whitespace is irregular.
+U+00BA ("1º agosto") rather than the degree sign, amended words sit inside "((…))"
+and whitespace is irregular.
 `contiene()` normalises both sides before comparing.
 """
 
@@ -22,6 +23,12 @@ _ORDINALS = {"º": "°", "ª": "°"}
 # ("è consentito" / "e' consentito") and has switched between the two for the same
 # article: phrase checks compare on one form.
 _ACCENTI = str.maketrans({"à": "a'", "è": "e'", "é": "e'", "ì": "i'", "ò": "o'", "ù": "u'"})
+# Normattiva wraps the words an amending act changed in "((" and "))" ("nel termine di
+# ((sessanta giorni)) dalla pronuncia"). Since the HTML channel became the default
+# (7d68a46), cite_law serves the page's text byte for byte, markers included, as
+# VisuaLex does: they tell the lawyer what was amended. A phrase check reads past them,
+# so they go here and only here, never from the product's text.
+_MARCATORI_MODIFICA = re.compile(r"\(\(|\)\)")
 
 
 def _senza_accenti(testo: str) -> str:
@@ -29,8 +36,8 @@ def _senza_accenti(testo: str) -> str:
 
 
 def normalizza(testo: str) -> str:
-    """Lower-case, single spaces, ordinal indicators unified, accents kept."""
-    testo = unicodedata.normalize("NFC", testo or "")
+    """Lower-case, single spaces, ordinal indicators unified, amendment markers dropped, accents kept."""
+    testo = _MARCATORI_MODIFICA.sub(" ", unicodedata.normalize("NFC", testo or ""))
     for k, v in _ORDINALS.items():
         testo = testo.replace(k, v)
     return re.sub(r"\s+", " ", testo).strip().lower()
@@ -47,12 +54,26 @@ def cite_law_json(reference: str) -> dict:
 
 
 def testo_vigente(reference: str) -> str:
-    """Normalised vigente text of a norm, asserting the fetch succeeded."""
+    """Normalised vigente text of a norm, with its update notes, asserting the fetch succeeded.
+
+    What the reader of cite_law gets: the text and, when the text does not carry them (the
+    HTML channel's article in comma divs), the page's «AGGIORNAMENTO (n)» notes after it, as
+    the Akoma Ntoso text had them. A gate on a Corte costituzionale declaration reads it there.
+    """
     payload = cite_law_json(reference)
     assert not payload.get("errore"), payload
     testo = payload.get("testo") or ""
     assert testo, payload
-    return normalizza(testo)
+    return normalizza(testo_con_note(payload))
+
+
+def testo_con_note(payload: dict) -> str:
+    """A cite_law JSON payload's text and, unless the text carries them, its update notes after it."""
+    testo = payload.get("testo") or ""
+    note = payload.get("note_aggiornamento") or []
+    if note and not payload.get("note_nel_testo"):
+        testo += "".join(f"\n\nAGGIORNAMENTO ({n['numero']})\n{n['testo']}" for n in note)
+    return testo
 
 
 def contiene(testo: str, *frasi: str) -> list[str]:
