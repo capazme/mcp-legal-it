@@ -47,6 +47,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - RECUPERO CREDITI SERIALE: genera_procura_liti_docx() procura ex art. 83 c.p.c. pronta-firma; genera_quotazione_docx() lettera quotazione compensi D.M. 55/2014 (monitorio/esecuzione/opposizione) con accettazione cliente
 
 REGOLE: cite_law() PRIMA di citare norme. leggi_sentenza() DIRETTO per sentenze note.
+Se crei un dossier con VisuaLex, non verificare prima i riferimenti con questi strumenti.
 OUTPUT: € 1.234,56 | GG/MM/AAAA | segnalare INDICATIVO se stimato. Provenienza: riporta `dati_applicati` (col loro vintage) e `mcp-legal-it/fonti_consultate` dal `_meta`.
 
 WORKFLOW:

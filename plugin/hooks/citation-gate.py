@@ -28,7 +28,13 @@ What counts as read (anywhere in the session, subagents of this session included
   (not an error, not another article), or a fetch_full_act result whose text
   contains it. cite_law's JSON format is read from its own atto+articolo;
 - a decision: a leggi_*/cerca_* (or *_su_norma, ultime_*) result of the same
-  court whose text carries that number and year.
+  court whose text carries that number and year;
+- a VisuaLex dossier (``omnilex_crea_dossier``, any connector prefix): the
+  ``riferimenti`` and ``sentenze`` given to it, which VisuaLex verified against the
+  sources, less the lines its answer lists in ``non_entrate``. With ``errore``, the
+  lists named in ``in_sospeso`` are not credited, and an answer with ``errore`` but no
+  ``in_sospeso`` (a VisuaLex before 1.10.7) credits nothing. A norm read this way is
+  never read whole: a comma outside the parts of an article read in parts is still asked for.
 
 The server's code is imported from the plugin (stdlib only, no HTTP stack);
 if that import fails, a reduced stdlib reader keeps the gate working.
@@ -87,6 +93,11 @@ TOOL_PER_CORTE = {
     "cgue": "cerca_giurisprudenza_cgue + leggi_sentenza_cgue",
 }
 ALL_TOOLS = NORM_TOOLS.union(*DECISION_TOOLS.values(), {UNIFIED_SEARCH})
+
+# VisuaLex's dossier in one call (D8): its references are verified there. The prefix is
+# the user's name for the VisuaLex connector («mcp__visualex__…»), or none.
+DOSSIER_TOOL = "omnilex_crea_dossier"
+_DOSSIER_NAME = re.compile(r"^(?:mcp__.*__)?omnilex_crea_dossier$")
 
 # Files whose text is prose: what is written there is asserted, like an answer.
 PROSE_SUFFIXES = {"", ".md", ".markdown", ".txt", ".text", ".rtf", ".html", ".htm",
@@ -276,6 +287,13 @@ def tool_name(raw: str) -> str:
     return (raw or "").rsplit("__", 1)[-1]
 
 
+def _righe(valore) -> list:
+    """The lines given to a dossier list: a list of strings (VisuaLex accepts nothing else)."""
+    if isinstance(valore, list):
+        return [v for v in valore if isinstance(v, str)]
+    return []
+
+
 def result_text(content) -> str:
     """The text of a tool_result, with the FastMCP {"result": "..."} wrapper removed."""
     if isinstance(content, list):
@@ -351,6 +369,9 @@ class Session:
             return
         text = result_text(block.get("content"))
         try:
+            if name == DOSSIER_TOOL:
+                self._credit_dossier(tool_input, text)
+                return
             if name in NORM_TOOLS:
                 self._credit_norm(name, tool_input, text)
             if self._failed(text):
@@ -369,6 +390,49 @@ class Session:
                         self.decisions.add((court, numero, anno))
         except Exception:
             return
+
+    def _credit_dossier(self, tool_input: dict, text: str) -> None:
+        """The lines VisuaLex verified: the lists given, less what its answer says did not go in.
+
+        When the answer is not exactly the contract's shape, nothing is credited.
+        """
+        try:
+            body = json.loads(text.strip())
+        except ValueError:
+            return
+        if not isinstance(body, dict) or not isinstance(body.get("non_entrate"), list):
+            return  # not a dossier answer: nothing is known to be verified
+        sospesi = body.get("in_sospeso")
+        if body.get("errore") and not isinstance(sospesi, list):
+            return  # a VisuaLex before 1.10.7: the rows still landing are not listed
+        if sospesi is None:
+            sospesi = []
+        if not isinstance(sospesi, list) or not all(isinstance(x, str) for x in sospesi) \
+                or not set(sospesi) <= {"norme", "sentenze"}:
+            return  # an in_sospeso the contract does not have: which list is pending is unknown
+        sospesi = set(sospesi)
+        # Byte-identical to the input line (VisuaLex's contract): compared as is. One item that
+        # is not {riga: str, ...} and the lines not entered are unknown.
+        if not all(isinstance(e, dict) and isinstance(e.get("riga"), str) for e in body["non_entrate"]):
+            return
+        fuori = {e["riga"] for e in body["non_entrate"]}
+        r = self.reader
+        if "norme" not in sospesi:
+            for riga in _righe(tool_input.get("riferimenti")):
+                if riga in fuori:
+                    continue
+                key = r.riferimento_in_identita(riga)
+                if key and key[1]:
+                    self.norms.add(key)  # never self.whole: VisuaLex says nothing of the commi read
+        if "sentenze" not in sospesi:
+            for riga in _righe(tool_input.get("sentenze")):
+                if riga in fuori:
+                    continue
+                # VisuaLex reads one decision per line: a line naming two («n. 100/2020, conf.
+                # n. 200/2021») has verified one of them, and which is not known.
+                lette = r.decisioni_nel_testo(riga)
+                if len(lette) == 1:
+                    self.decisions.add((lette[0].corte, lette[0].numero, lette[0].anno))
 
     @staticmethod
     def _failed(text: str) -> bool:
@@ -439,7 +503,9 @@ class Session:
                     continue
                 if kind == "assistant" and c.get("type") == "tool_use":
                     name = tool_name(c.get("name"))
-                    if name in ALL_TOOLS and c.get("id"):
+                    if name == DOSSIER_TOOL and not _DOSSIER_NAME.match(c.get("name") or ""):
+                        continue  # «…__omnilex_crea_dossier» outside an MCP prefix is not VisuaLex's
+                    if (name in ALL_TOOLS or name == DOSSIER_TOOL) and c.get("id"):
                         calls[c["id"]] = (name, c.get("input") or {})
                         wanted.add(c["id"])
                 elif kind == "user" and c.get("type") == "tool_result":
