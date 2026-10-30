@@ -15,6 +15,29 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **The citation gate reads VisuaLex's dossier** (`omnilex_crea_dossier`, VisuaLex
+  1.10.7 and later). The dossier verifies each reference and decision it is given
+  against the sources, so they count as read.
+  - **What is credited.** The `riferimenti` and `sentenze` given to the tool, under any
+    connector prefix (`mcp__<connector>__omnilex_crea_dossier`, or the bare name), less the
+    lines its answer lists in `non_entrate` (compared byte for byte, as VisuaLex echoes
+    them). A `sentenze` line counts only when it names exactly one decision: VisuaLex
+    reads one per line.
+  - **When unsure, nothing.** Lists that are not arrays, a malformed `non_entrate` item
+    and an `in_sospeso` value other than «norme» or «sentenze» credit nothing.
+  - **When the answer has `errore`.** The lists named in `in_sospeso` («norme»,
+    «sentenze») are not credited. An `errore` without `in_sospeso`, from a VisuaLex before
+    1.10.7, credits nothing.
+  - **Never whole.** VisuaLex verifies the article and drops the comma clause; for an
+    article Normattiva splits it enters part 1 (commi 1-100). So after a partial
+    `cite_law`, a comma outside the parts read is still asked for.
+  - **Known limit.** A VisuaLex dossier verifies the article, not the comma: for an article
+    split into parts, a comma outside the first part may be credited if no `cite_law` read
+    it. To be tightened when VisuaLex keys the parts.
+  - **Both readers.** The server's and the hook's fallback read the dossier's lines with
+    the readers they already have; the tests run every case with both.
+  - **Server instructions.** One line: «Se crei un dossier con VisuaLex, non verificare
+    prima i riferimenti con questi strumenti».
 - **`api.modifiche_articolo(riferimento, *, dal=None, al=None, max_versioni=20)`:
   an article's versions and the amendments that produced them.** It returns a
   `ModificheArticolo` with:
