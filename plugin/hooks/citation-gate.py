@@ -288,9 +288,7 @@ def tool_name(raw: str) -> str:
 
 
 def _righe(valore) -> list:
-    """The lines given to a dossier list: a list of strings, or one string, one line each."""
-    if isinstance(valore, str):
-        return valore.splitlines()
+    """The lines given to a dossier list: a list of strings (VisuaLex accepts nothing else)."""
     if isinstance(valore, list):
         return [v for v in valore if isinstance(v, str)]
     return []
@@ -394,7 +392,10 @@ class Session:
             return
 
     def _credit_dossier(self, tool_input: dict, text: str) -> None:
-        """The lines VisuaLex verified: the lists given, less what its answer says did not go in."""
+        """The lines VisuaLex verified: the lists given, less what its answer says did not go in.
+
+        When the answer is not exactly the contract's shape, nothing is credited.
+        """
         try:
             body = json.loads(text.strip())
         except ValueError:
@@ -404,9 +405,17 @@ class Session:
         sospesi = body.get("in_sospeso")
         if body.get("errore") and not isinstance(sospesi, list):
             return  # a VisuaLex before 1.10.7: the rows still landing are not listed
-        sospesi = set(sospesi) if isinstance(sospesi, list) else set()
-        # Byte-identical to the input line (VisuaLex's contract): compared as is.
-        fuori = {e.get("riga") for e in body["non_entrate"] if isinstance(e, dict)}
+        if sospesi is None:
+            sospesi = []
+        if not isinstance(sospesi, list) or not all(isinstance(x, str) for x in sospesi) \
+                or not set(sospesi) <= {"norme", "sentenze"}:
+            return  # an in_sospeso the contract does not have: which list is pending is unknown
+        sospesi = set(sospesi)
+        # Byte-identical to the input line (VisuaLex's contract): compared as is. One item that
+        # is not {riga: str, ...} and the lines not entered are unknown.
+        if not all(isinstance(e, dict) and isinstance(e.get("riga"), str) for e in body["non_entrate"]):
+            return
+        fuori = {e["riga"] for e in body["non_entrate"]}
         r = self.reader
         if "norme" not in sospesi:
             for riga in _righe(tool_input.get("riferimenti")):
@@ -419,8 +428,11 @@ class Session:
             for riga in _righe(tool_input.get("sentenze")):
                 if riga in fuori:
                     continue
-                for d in r.decisioni_nel_testo(riga):
-                    self.decisions.add((d.corte, d.numero, d.anno))
+                # VisuaLex reads one decision per line: a line naming two («n. 100/2020, conf.
+                # n. 200/2021») has verified one of them, and which is not known.
+                lette = r.decisioni_nel_testo(riga)
+                if len(lette) == 1:
+                    self.decisions.add((lette[0].corte, lette[0].numero, lette[0].anno))
 
     @staticmethod
     def _failed(text: str) -> bool:

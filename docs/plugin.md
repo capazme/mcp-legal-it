@@ -243,7 +243,9 @@ stessa sessione compresi, mai transcript di altre sessioni):
   In un elenco («Cass. nn. 500/1999, 600/2000») ogni numero va letto;
 - norme e decisioni passate a un dossier di VisuaLex (`omnilex_crea_dossier`, con
   qualunque prefisso del connettore): le righe di `riferimenti` e `sentenze`, che VisuaLex
-  ha verificato sulle fonti, tolte quelle che la risposta elenca in `non_entrate`. Se la
+  ha verificato sulle fonti, tolte quelle che la risposta elenca in `non_entrate` (una
+  riga di `sentenze` conta solo se nomina una sola decisione; una risposta fuori dal
+  contratto non copre nulla). Se la
   risposta ha `errore`, le liste indicate in `in_sospeso` non contano; un `errore` senza
   `in_sospeso` (VisuaLex precedente alla 1.10.7) non copre nulla. VisuaLex verifica
   l'articolo, non il comma: un dossier non copre i commi di un articolo letto solo in parte

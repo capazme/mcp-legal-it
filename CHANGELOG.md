@@ -21,7 +21,10 @@ entry, it is the same feature as ported to the 3.0 line.
   - **What is credited.** The `riferimenti` and `sentenze` given to the tool, under any
     connector prefix (`mcp__<connector>__omnilex_crea_dossier`, or the bare name), less the
     lines its answer lists in `non_entrate` (compared byte for byte, as VisuaLex echoes
-    them).
+    them). A `sentenze` line counts only when it names exactly one decision: VisuaLex
+    reads one per line.
+  - **When unsure, nothing.** Lists that are not arrays, a malformed `non_entrate` item
+    and an `in_sospeso` value other than «norme» or «sentenze» credit nothing.
   - **When the answer has `errore`.** The lists named in `in_sospeso` («norme»,
     «sentenze») are not credited. An `errore` without `in_sospeso`, from a VisuaLex before
     1.10.7, credits nothing.

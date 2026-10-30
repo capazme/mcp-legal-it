@@ -145,10 +145,48 @@ def test_a_failed_or_unknown_answer_credits_nothing(tmp_path, lettore, result, i
     assert verdetto(tmp_path, lettore, result, FRASE_NORMA, is_error=is_error) == NAGS
 
 
-def test_a_single_string_of_lines_is_read_line_by_line(tmp_path, lettore):
+def test_a_string_instead_of_a_list_credits_nothing(tmp_path, lettore):
+    # VisuaLex accepts lists only; split here, a line would no longer be the one it echoes.
     ingresso = {"riferimenti": f"{NORMA}\n{COMMA}", "sentenze": SENTENZA}
-    assert verdetto(tmp_path, lettore, risposta(), FRASE_NORMA, tool_input=ingresso) == SILENT
+    assert verdetto(tmp_path, lettore, risposta(), FRASE_NORMA, tool_input=ingresso) == NAGS
+    assert verdetto(tmp_path, lettore, risposta(), FRASE_SENTENZA, tool_input=ingresso) == NAGS
+
+
+def test_a_line_naming_two_decisions_credits_neither(tmp_path, lettore):
+    # VisuaLex reads one decision per line: which of the two it verified is not known.
+    ingresso = {**INGRESSO, "sentenze": ["Cass. civ., n. 100/2020 (conf. Cass. n. 200/2021)", SENTENZA]}
+    assert verdetto(tmp_path, lettore, risposta(), "Lo dice Cass. civ. n. 200/2021.", tool_input=ingresso) == NAGS
+    assert verdetto(tmp_path, lettore, risposta(), "Lo dice Cass. civ. n. 100/2020.", tool_input=ingresso) == NAGS
     assert verdetto(tmp_path, lettore, risposta(), FRASE_SENTENZA, tool_input=ingresso) == SILENT
+
+
+def test_a_line_naming_decisions_of_two_courts_credits_neither(tmp_path, isolated_hook):  # noqa: F811
+    # The server's reader knows the Corte costituzionale too (the fallback reads Cassazione only).
+    ingresso = {**INGRESSO, "sentenze": ["Cass. civ., n. 100/2020, richiamata da Corte cost. n. 238/2014"]}
+    assert verdetto(tmp_path, (False, isolated_hook), risposta(), "Lo dice Corte cost. n. 238/2014.",
+                    tool_input=ingresso) == NAGS
+
+
+@pytest.mark.parametrize("non_entrate", [
+    ["art. 2043 c.c."],  # an item that is not an object
+    [{"motivo": "non verificabile"}],  # no riga
+    [{"riga": None, "motivo": "non verificabile"}],
+    [{"riga": ["art. 2043 c.c."], "motivo": "non verificabile"}],
+    [{"riga": SENTENZA, "motivo": "x"}, 7],
+], ids=["string-item", "no-riga", "riga-null", "riga-list", "one-bad-item"])
+def test_a_malformed_non_entrate_credits_nothing(tmp_path, lettore, non_entrate):
+    body = json.loads(risposta())
+    body["non_entrate"] = non_entrate
+    assert verdetto(tmp_path, lettore, json.dumps(body), FRASE_COMMA) == NAGS
+
+
+@pytest.mark.parametrize("in_sospeso", [["riferimenti"], ["Norme"], ["norme", "note"], "norme", [1], {}],
+                         ids=["riferimenti", "Norme", "with-unknown", "string", "number", "object"])
+@pytest.mark.parametrize("errore", ["timeout", None], ids=["errore", "no-errore"])
+def test_an_unknown_in_sospeso_credits_nothing(tmp_path, lettore, in_sospeso, errore):
+    altro = {"in_sospeso": in_sospeso, **({"errore": errore} if errore else {})}
+    for frase in (FRASE_NORMA, FRASE_SENTENZA):
+        assert verdetto(tmp_path, lettore, risposta(**altro), frase) == NAGS
 
 
 def test_a_dossier_never_reads_an_article_whole(tmp_path, lettore):
