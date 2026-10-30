@@ -44,6 +44,10 @@ def test_a_bare_no_project_run_is_not_blocked():
     ["run", "--python", "3.12", "python", "x.py"],
     ["run", "--python", "3.12", "python", "x.py", "--no-project"],
     ["run", "python", "--no-project", "x.py"],
+    ["run", "--no-project", "-qw", "six", "python", "x.py"],
+    ["run", "--no-project", "-qs", "x.py"],
+    ["run", "--no-project", "--python", "3.12", "x.py"],
+    ["run", "--no-project", "--python", "3.12", "${CLAUDE_PLUGIN_ROOT}/hooks/gate.py"],
 ])
 def test_a_run_that_installs_still_needs_a_lock(args):
     chk = _checker()
@@ -58,3 +62,10 @@ def test_only_options_before_the_command_are_uv_s():
         "--no-project", "--python", "3.12"]
     assert not chk.uv_run_installs(chk.uv_run_options(
         ["run", "--no-project", "python", "x.py", "--with", "httpx", "-s"]))
+
+
+def test_the_executed_command_is_read():
+    chk = _checker()
+    assert chk.uv_run_command(["run", "--no-project", "--python", "3.12", "python", "x.py"]) == "python"
+    assert chk.uv_run_command(["run", "--no-project", "x.py"]) == "x.py"
+    assert chk.uv_run_command(["run", "--no-project"]) == ""

@@ -234,12 +234,19 @@ def uv_run_options(args: list[str]) -> list[str]:
 
 
 def uv_run_installs(options: list[str]) -> bool:
-    """`--with*`, `-w`, `--script` and `-s` (inline script metadata) install packages."""
+    """`--with*`, `-w`, `--script` and `-s` (inline script metadata) install packages,
+    also inside a group of short flags (`-qw six`)."""
     return any(
         o.startswith("--with") or o == "--script"
-        or (o.startswith("-") and not o.startswith("--") and o[1:2] in ("w", "s"))
+        or (o.startswith("-") and not o.startswith("--") and any(c in "ws" for c in o[1:]))
         for o in options
     )
+
+
+def uv_run_command(args: list[str]) -> str:
+    """The command `uv run` executes, or "" when there is none."""
+    rest = args[1 + len(uv_run_options(args)):]
+    return rest[0] if rest else ""
 
 
 def check_command(where: str, command: str, args: list[str], report: Report,
@@ -254,8 +261,10 @@ def check_command(where: str, command: str, args: list[str], report: Report,
         report.hold(f"{where}: starts through a shell")
     if command == "uv" and args[:1] == ["run"]:
         options = uv_run_options(args)
-        if "--no-project" in options and not uv_run_installs(options):
+        if ("--no-project" in options and not uv_run_installs(options)
+                and uv_run_command(args) == "python"):
             pass  # a bare interpreter: nothing is resolved or installed
+            # (a script run directly may carry inline `# /// script` dependencies)
         elif "--frozen" not in options and "--locked" not in options:
             report.block(f"{where}: `uv run` without --frozen or --locked")
         else:
