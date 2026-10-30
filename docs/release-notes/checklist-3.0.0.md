@@ -140,8 +140,13 @@ The beta channel's GA procedure, checked against what the script does today.
       to `origin/develop` before running the script (`check_remote_sync`).
 - [ ] Delete `release/3.0.0` **locally and on origin**: the standard flow
       creates a branch with the same name.
-- [ ] Paste the cleaned section from `CHANGELOG-3.0.0-draft.md` into both
-      changelogs, date filled in; commit through a branch and PR as usual.
+- [ ] `CHANGELOG.md`: rename `## [Unreleased]` to `## [3.0.0] - <date>`. The
+      section is already the release section: the 2.x entries are in their own
+      sections, not repeated. `plugin/CHANGELOG.md` is not a copy of the root
+      one: replace its `[Unreleased]` with the same section and point the
+      migration-guide link at `../docs/migration/2.x-to-3.0.md`. Commit through
+      a branch and PR as usual, and answer **n** to `release.py`'s «Scrivere il
+      CHANGELOG?»: it would prepend a second section built from commit subjects.
 - [ ] Run the suite yourself first. If the worktree has its own `.venv`
       without pytest, `release.py` picks it and the test step fails: then pass
       `--skip-tests` after a green run of your own.

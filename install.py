@@ -642,7 +642,7 @@ def install_plugin(*, non_interactive: bool = False) -> bool:
         return False
 
     success("Plugin legal-it installato")
-    print("     Contenuto: 17 skill, 3 agenti, hooks Legal Grounding, server MCP")
+    print("     Contenuto: 30 skill, 9 comandi, 6 agenti, hooks Legal Grounding, server MCP")
     return True
 
 
@@ -658,7 +658,7 @@ def select_targets(args: argparse.Namespace) -> list[str]:
     print()
     print(f"  {c(BOLD, '1.')} Claude Desktop {c(DIM, '(app desktop — stdio)')}")
     print(f"  {c(BOLD, '2.')} Claude Code — MCP server {c(DIM, '(.mcp.json nel progetto)')}")
-    print(f"  {c(BOLD, '3.')} Claude Code — Plugin completo {c(DIM, '(17 skill + 3 agenti + hooks + MCP)')}")
+    print(f"  {c(BOLD, '3.')} Claude Code — Plugin completo {c(DIM, '(30 skill + 9 comandi + 6 agenti + hooks + MCP)')}")
     print(f"  {c(BOLD, '4.')} Desktop + Code MCP server")
     print(f"  {c(BOLD, '5.')} Desktop + Plugin")
     print(f"  {c(BOLD, '6.')} Tutto (Desktop + Code + Plugin)")

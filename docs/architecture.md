@@ -211,7 +211,7 @@ testabili senza il server MCP.
 | `italgiure/` | Cassazione | API Solr | TLS verificato (intermedio incluso), cookie anti-bot |
 | `corte_cost/` | Corte Costituzionale | HTML scraping | Sentenze e ordinanze, parametri costituzionali |
 | `cerdef/` | CeRDEF (MEF) | POST + XML embeddato | Paginazione via cookie di sessione |
-| `giustizia_amm/` | TAR e Consiglio di Stato | Liferay + XML | Portlet con id d'istanza letto a runtime |
+| `giustizia_amm/` | TAR e Consiglio di Stato | Liferay + HTML (XML `<GA>` fino al 2026-10) | Portlet con id d'istanza letto a runtime |
 | `cgue/` | Corte di Giustizia UE | SPARQL su CELLAR | CELEX literal con `^^xsd:string` |
 | `gpdp/` | Garante Privacy | Liferay scraping | Lettura via endpoint "stampa" |
 | `consob/` | CONSOB | Liferay scraping | Bollettino delibere |

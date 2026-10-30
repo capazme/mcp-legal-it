@@ -28,7 +28,13 @@ What counts as read (anywhere in the session, subagents of this session included
   (not an error, not another article), or a fetch_full_act result whose text
   contains it. cite_law's JSON format is read from its own atto+articolo;
 - a decision: a leggi_*/cerca_* (or *_su_norma, ultime_*) result of the same
-  court whose text carries that number and year.
+  court whose text carries that number and year;
+- a VisuaLex dossier (``omnilex_crea_dossier``, any connector prefix): the
+  ``riferimenti`` and ``sentenze`` given to it, which VisuaLex verified against the
+  sources, less the lines its answer lists in ``non_entrate``. With ``errore``, the
+  lists named in ``in_sospeso`` are not credited, and an answer with ``errore`` but no
+  ``in_sospeso`` (a VisuaLex before 1.10.7) credits nothing. A norm read this way is
+  never read whole: a comma outside the parts of an article read in parts is still asked for.
 
 The server's code is imported from the plugin (stdlib only, no HTTP stack);
 if that import fails, a reduced stdlib reader keeps the gate working.
@@ -98,6 +104,11 @@ TOOL_PER_CORTE = {
 }
 ALL_TOOLS = NORM_TOOLS.union(*DECISION_TOOLS.values(), {UNIFIED_SEARCH})
 
+# VisuaLex's dossier in one call (D8): its references are verified there. The prefix is
+# the user's name for the VisuaLex connector («mcp__visualex__…»), or none.
+DOSSIER_TOOL = "omnilex_crea_dossier"
+_DOSSIER_NAME = re.compile(r"^(?:mcp__.*__)?omnilex_crea_dossier$")
+
 # Files whose text is prose: what is written there is asserted, like an answer.
 PROSE_SUFFIXES = {"", ".md", ".markdown", ".txt", ".text", ".rtf", ".html", ".htm",
                   ".tex", ".rst", ".adoc", ".org"}
@@ -149,7 +160,11 @@ class FallbackReader:
     # Bounded separators: "\s*-?\s*" split a run of spaces two ways (quadratic).
     _SUFFIX = r"(?:[ \t]?-?[ \t]?(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)\b)?"
     _ART = re.compile(r"\b(?:artt?|articol[oi])\b\.?\s*(\d+" + _SUFFIX + r")\b"
-                      r"[\s,]*(?:(?:della|dello|dell['’]|del)\s*)?(?P<atto>[^\n;]{0,40})", re.I)
+                      r"[\s,]*(?:(?:comma|co|c)\.?[ \t]?(?P<comma>\d+" + _SUFFIX + r")\b[\s,]*)?"
+                      r"(?:(?:della|dello|dell['’]|del)\s*)?(?P<atto>[^\n;]{0,40})", re.I)
+    _COMMA_PRIMA = re.compile(r"\bcomma[ \t]+(\d+" + _SUFFIX + r")[ \t]*,?[ \t]*(?:dell['’]|del|dello)?[ \t]*$", re.I)
+    _TESTO_PARZIALE = re.compile(
+        r"testo parziale: (?:commi (\d+(?:-[a-z]+)?)-(\d+(?:-[a-z]+)?)|una sola parte) di ", re.I)
     _ATTO_NUM = re.compile(r"^(d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m)\.?\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{4})", re.I)
     _CASS = re.compile(r"\bcass(?:azione)?\b[^\n]{0,80}?\bn\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})", re.I)
     _ATTO_PRIMA = re.compile(r"\b(?:d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m|reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:n\.?\s*)?$", re.I)
@@ -171,13 +186,39 @@ class FallbackReader:
                 return self._CODICI[chiave]
         return None
 
+    @staticmethod
+    def canonico_comma(comma):
+        m = re.match(r"\s*(\d+)[ \t]?-?[ \t]?([a-z]+)?\s*$", comma or "", re.I)
+        return (m.group(1) + (f"-{m.group(2).lower()}" if m.group(2) else "")) if m else (comma or "").lower()
+
     def norme_nel_testo(self, testo):
         out = []
         for m in self._ART.finditer(testo):
             atto = self._atto(m.group("atto"))
             if atto:
-                out.append(_Norma(atto, self.normalizza_articolo(m.group(1)), m.group(0)[:80]))
+                comma = m.group("comma")
+                if comma is None:
+                    prima = self._COMMA_PRIMA.search(testo[max(0, m.start() - 40): m.start()])
+                    comma = prima.group(1) if prima else None
+                out.append(_Norma(atto, self.normalizza_articolo(m.group(1)), m.group(0)[:80],
+                                  self.canonico_comma(comma) if comma else None))
         return out
+
+    def commi_letti(self, testo):
+        m = self._TESTO_PARZIALE.search(testo or "")
+        if m is None:
+            return None
+        if m.group(1) is None:
+            return ("?", "?")  # a part not named: partial, and no comma lies in it
+        return (self.canonico_comma(m.group(1)), self.canonico_comma(m.group(2)))
+
+    @staticmethod
+    def comma_nell_intervallo(comma, dal, al):
+        numeri = [re.match(r"\s*(\d+)", c or "") for c in (comma, dal, al)]
+        if not all(numeri):
+            return False
+        n, a, b = (int(x.group(1)) for x in numeri)
+        return a <= n <= b
 
     def decisioni_nel_testo(self, testo):
         return [_Decisione("cass", str(int(m.group(1))), int(m.group(2)), m.group(0)[-60:])
@@ -225,7 +266,8 @@ class FallbackReader:
         if not m:
             atto = self._atto(riferimento)
             return (atto, "") if atto else None
-        atto = self._atto(re.sub(r"^(?:della|dello|dell['’]|del)\s*", "", m.group(2), flags=re.I))
+        resto = re.sub(r"^(?:comma|co|c)\.?[ \t]?\d+" + self._SUFFIX + r"\b[\s,]*", "", m.group(2), flags=re.I)
+        atto = self._atto(re.sub(r"^(?:della|dello|dell['’]|del)\s*", "", resto, flags=re.I))
         return (atto, self.normalizza_articolo(m.group(1))) if atto else None
 
     def identita_norma(self, act_info, articolo):
@@ -237,8 +279,8 @@ class FallbackReader:
 
 
 class _Norma:
-    def __init__(self, atto, articolo, testo):
-        self.atto, self.articolo, self.testo = atto, articolo, testo
+    def __init__(self, atto, articolo, testo, comma=None):
+        self.atto, self.articolo, self.testo, self.comma = atto, articolo, testo, comma
 
 
 class _Decisione:
@@ -253,6 +295,13 @@ class _Decisione:
 def tool_name(raw: str) -> str:
     """ "mcp__plugin_legal-it_legal-it__cite_law" -> "cite_law"."""
     return (raw or "").rsplit("__", 1)[-1]
+
+
+def _righe(valore) -> list:
+    """The lines given to a dossier list: a list of strings (VisuaLex accepts nothing else)."""
+    if isinstance(valore, list):
+        return [v for v in valore if isinstance(v, str)]
+    return []
 
 
 def result_text(content) -> str:
@@ -315,6 +364,10 @@ class Session:
     def __init__(self, reader):
         self.reader = reader
         self.norms: set = set()
+        # An article Normattiva splits into parts, read in part: the commi ranges read
+        # («testo parziale: commi a-b di N»), and the articles read whole at least once.
+        self.partial: dict = {}
+        self.whole: set = set()
         self.decisions: set = set()
         self.calls: dict = {}  # tool_use id -> (name, input)
         self.texts: list = []
@@ -326,6 +379,9 @@ class Session:
             return
         text = result_text(block.get("content"))
         try:
+            if name == DOSSIER_TOOL:
+                self._credit_dossier(tool_input, text)
+                return
             if name in NORM_TOOLS:
                 self._credit_norm(name, tool_input, text)
             if self._failed(text):
@@ -345,6 +401,49 @@ class Session:
         except Exception:
             return
 
+    def _credit_dossier(self, tool_input: dict, text: str) -> None:
+        """The lines VisuaLex verified: the lists given, less what its answer says did not go in.
+
+        When the answer is not exactly the contract's shape, nothing is credited.
+        """
+        try:
+            body = json.loads(text.strip())
+        except ValueError:
+            return
+        if not isinstance(body, dict) or not isinstance(body.get("non_entrate"), list):
+            return  # not a dossier answer: nothing is known to be verified
+        sospesi = body.get("in_sospeso")
+        if body.get("errore") and not isinstance(sospesi, list):
+            return  # a VisuaLex before 1.10.7: the rows still landing are not listed
+        if sospesi is None:
+            sospesi = []
+        if not isinstance(sospesi, list) or not all(isinstance(x, str) for x in sospesi) \
+                or not set(sospesi) <= {"norme", "sentenze"}:
+            return  # an in_sospeso the contract does not have: which list is pending is unknown
+        sospesi = set(sospesi)
+        # Byte-identical to the input line (VisuaLex's contract): compared as is. One item that
+        # is not {riga: str, ...} and the lines not entered are unknown.
+        if not all(isinstance(e, dict) and isinstance(e.get("riga"), str) for e in body["non_entrate"]):
+            return
+        fuori = {e["riga"] for e in body["non_entrate"]}
+        r = self.reader
+        if "norme" not in sospesi:
+            for riga in _righe(tool_input.get("riferimenti")):
+                if riga in fuori:
+                    continue
+                key = r.riferimento_in_identita(riga)
+                if key and key[1]:
+                    self.norms.add(key)  # never self.whole: VisuaLex says nothing of the commi read
+        if "sentenze" not in sospesi:
+            for riga in _righe(tool_input.get("sentenze")):
+                if riga in fuori:
+                    continue
+                # VisuaLex reads one decision per line: a line naming two («n. 100/2020, conf.
+                # n. 200/2021») has verified one of them, and which is not known.
+                lette = r.decisioni_nel_testo(riga)
+                if len(lette) == 1:
+                    self.decisions.add((lette[0].corte, lette[0].numero, lette[0].anno))
+
     @staticmethod
     def _failed(text: str) -> bool:
         head = text.lstrip()[:300]
@@ -359,6 +458,8 @@ class Session:
                 return
             key = r.riferimento_in_identita(tool_input.get("reference") or "")
             if key:
+                # Never in self.whole: its Normattiva-page fallback has only the first part of an
+                # article Normattiva splits (#106), and its answer does not say which source served it.
                 self.norms.update((key[0], a) for a in r.articoli_serviti(text))
             return
         body = None
@@ -392,6 +493,11 @@ class Session:
         if served and served != key[1]:
             return  # it answered with another article (the art. 99999 -> art. 1 case)
         self.norms.add(key)
+        letti = r.commi_letti(text) if hasattr(r, "commi_letti") else None
+        if letti:
+            self.partial.setdefault(key, []).append(letti)
+        else:
+            self.whole.add(key)
 
     def read_credits(self, path: Path) -> None:
         """Credits from every tool result of one transcript."""
@@ -407,7 +513,9 @@ class Session:
                     continue
                 if kind == "assistant" and c.get("type") == "tool_use":
                     name = tool_name(c.get("name"))
-                    if name in ALL_TOOLS and c.get("id"):
+                    if name == DOSSIER_TOOL and not _DOSSIER_NAME.match(c.get("name") or ""):
+                        continue  # «…__omnilex_crea_dossier» outside an MCP prefix is not VisuaLex's
+                    if (name in ALL_TOOLS or name == DOSSIER_TOOL) and c.get("id"):
                         calls[c["id"]] = (name, c.get("input") or {})
                         wanted.add(c["id"])
                 elif kind == "user" and c.get("type") == "tool_result":
@@ -593,13 +701,19 @@ def uncovered(session: Session) -> list:
             continue
         for n in r.norme_nel_testo(prose):
             key = (n.atto, n.articolo)
-            if n.atto is not None and key in session.norms:
+            comma = getattr(n, "comma", None)
+            if n.atto is not None and key in session.norms and not _comma_non_letto(session, key, comma):
                 continue
-            if key in seen:
+            chiave = key + (comma,) if key in session.norms else key
+            if chiave in seen:
                 continue
-            seen.add(key)
-            hint = "fonte non coperta dai tool: verificala e scrivi «fuori copertura»" if n.atto is None \
-                else "cite_law"
+            seen.add(chiave)
+            if n.atto is None:
+                hint = "fonte non coperta dai tool: verificala e scrivi «fuori copertura»"
+            elif key in session.norms:
+                hint = f"cite_law con il comma {comma}: è stata letta solo un'altra parte dell'articolo"
+            else:
+                hint = "cite_law"
             missing.append(f"{n.testo} ({hint})")
         for d in r.decisioni_nel_testo(prose):
             key = (d.corte, d.numero, d.anno)
@@ -608,6 +722,19 @@ def uncovered(session: Session) -> list:
             seen.add(key)
             missing.append(f"{d.testo} ({TOOL_PER_CORTE.get(d.corte, 'leggi_*')})")
     return missing
+
+
+def _comma_non_letto(session: Session, key, comma) -> bool:
+    """A comma cited of an article read only in parts, and in none of the parts read.
+
+    An article Normattiva splits («testo parziale: commi a-b di N») is credited as before;
+    only a citation that names a comma outside every range read for it is not. A citation
+    with no comma, or an article read whole at least once, is credited as before.
+    """
+    if not comma or key in session.whole or key not in session.partial:
+        return False
+    r = session.reader
+    return not any(r.comma_nell_intervallo(comma, dal, al) for dal, al in session.partial[key])
 
 
 def opted_out() -> bool:

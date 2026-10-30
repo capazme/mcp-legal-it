@@ -690,6 +690,67 @@ The text in force of one article, from Normattiva or EUR-Lex.
     drops the amendment markers and adds a heading of its own: never
     VisuaLex's display text.
   - EUR-Lex is always read from its HTML; `fonte` is `eurlex`.
+- **Update notes (`note_aggiornamento`, `note_non_lette`).** A Normattiva page
+  carries, after the article, its «AGGIORNAMENTO (n)» notes, which the body calls
+  «((n))» or «(n)». They say what the text alone does not: a Corte costituzionale
+  declaration of illegitimacy (art. 3 d.lgs. 23/2015: C. cost. 194/2018 struck the
+  words «di importo pari a due mensilità … per ogni anno di servizio», which stay in
+  the text), a deferred effect, an exclusion.
+  - **Where they are.** VisuaLex's extractor keeps them in `article_text` for a code's
+    attachment and for its fallback shape, and drops them for the article in comma divs
+    and for the plain text span. `article_text` stays VisuaLex's, byte for byte, so the
+    notes are read from the same page into `note_aggiornamento`, for every shape, in
+    page order (`NotaAggiornamento`: `numero` «10», `testo` the note's own words,
+    `ordine` from 1, `corte_costituzionale` a word match on «Corte costituzionale»/«C.
+    cost.» with «sentenza»).
+  - **Values.** `()` means a page without notes. `None` means the text is not a
+    Normattiva page's (EU, the `normattiva-akn` export, which carries its notes in its
+    text) or the page's notes could not be read.
+  - **When a note cannot be read.** This covers a block without its number or words, a
+    «((n))» call without note n, more «AGGIORNAMENTO (n)» headings on the page than notes
+    read (a note outside the markup this reader knows), a reader failure, and a kept
+    reading of another shape. Then `note_non_lette` is `True` and `avvisi` says «note di
+    aggiornamento non lette: verificare su Normattiva»; the article is never lost.
+  - **What is not a call.** A plain «(n)» is a call only when note n exists. A «((n))» at
+    the start of a line before its full stop is a comma renumbered by an amendment (art.
+    117 TUB: «((6)). Sono nulle …»), and a four-digit «((2025))» is a year: neither is a call.
+  - **Agreed shape.** The shape is agreed with VisuaLex, which will give the same field.
+  - **In the MCP tools.** `cite_law` and `fetch_law_article` print them under the text,
+    in a section «**Aggiornamenti**», «(n) testo», unless the text already carries them
+    (a code's article). They always print them: a notes-on-request switch, if one comes,
+    will never cover these notes. `cite_law(formato="json")` carries
+    `note_aggiornamento`, `note_non_lette` and `note_nel_testo`.
+- **Articles split into parts (`parti`, `testo_parziale`).** Normattiva serves a very long
+  article in parts. Art. 1 L. 296/2006 is 14 parts, «1 (commi 1-100)» to «1 (commi
+  1301-1364)», and the article's own page is the first.
+  - **What you get.** `article_text` is that page's text, VisuaLex's, byte for byte. `parti`
+    lists every part in order (`ParteArticolo`: `progressivo`, `commi_dal`, `commi_al`,
+    `url`). `testo_parziale` is `True`, and `avvisi` says «testo parziale: commi 1-100 di
+    1364 (l'articolo è diviso in 14 parti su Normattiva)».
+  - **Values.** `parti` is `()` for an article not split and `None` when the text is not a
+    Normattiva page's.
+  - **Reading another part.** A reference string that names a comma («art. 1, comma 773,
+    L. 296/2006») reads that comma's part in `testo_articolo` too. Otherwise use
+    `parte_articolo(riferimento, progressivo)`, with `parte_del_comma(parti, "773")` to
+    find the part of a comma. The library's notice says so: «… ; per un comma, indicarlo
+    nel riferimento (…) oppure leggerne la parte con parte_del_comma(parti, comma) e
+    parte_articolo(riferimento, progressivo)».
+  - **A part read that lacks the comma's own line** («773. …», for example a «-bis» on a
+    part's edge) gets a notice too.
+  - **`verifica_citazioni`.** When the comma's part could not be read, it answers «non
+    verificata», never «metadati discordanti» on another part's text.
+  - **Notes.** `note_aggiornamento` is the part's own: the notes of the other parts are
+    covered by the notice.
+  - **In the MCP tools.** `cite_law` reads the part that holds the comma its reference names
+    («art. 1, comma 773, L. 296/2006», also «co. 773», «c. 773», «773° comma», «comma
+    773-bis»). That is one request more, and none when it is the page's own part. It says
+    «**Commi 701-800** (parte 8 di 14 …)» before the text.
+  - **Without a comma.** `cite_law` serves the first part with the notice and the list of the
+    parts after the text. It never serves the whole article: 1.3 million characters in one
+    answer for art. 1 L. 296/2006.
+  - **A comma in no part, or a part that cannot be read.** Said in an «Attenzione» line;
+    never another part's text in silence.
+  - **JSON.** It carries `parti`, `parte` and `testo_parziale`.
 - **`allegato` is Normattiva's position, as in VisuaLex.** A digit `allegato`
   (in a `NormaDati`, or `riferimento_da_parametri(..., allegato="2")`) is the
   `:k` of the URN, the entry of Normattiva's tree: it goes into the URL, and on
@@ -799,6 +860,41 @@ t.esito    # 'articolo_non_trovato'
 
 `testo_articolo` for many articles, in input order, at most `concorrenza` at a
 time. Articles of the same act share one download of the act.
+
+### `parte_articolo(riferimento: str | NormaDati, progressivo: int, *, canale: Canale) -> TestoArticolo`
+
+One part of an article Normattiva splits into parts: `progressivo` is a
+`ParteArticolo.progressivo` from `testo_articolo(...).parti`.
+
+- **What you get.** `article_text` is the part's page, read by VisuaLex's extractor, with
+  the part's own notes. `parti` is the whole list, `testo_parziale` is `True`, and `avvisi`
+  names the part's commi.
+- **Cost.**
+  - Two requests: the article's page, then the part's, which needs that page's session.
+  - One when the session kept from the page is less than 10 minutes old, or when the part
+    is the page's own.
+  - None when the part is in the cache: a part read is kept a day, under the article URL,
+    the tree's `art.versione` and the part's commi.
+  - Two more when the kept session has died: Normattiva then answers with another page.
+    The session is dropped, the page is read again and the part asked with the fresh
+    page's path. A session is kept only after it served the part.
+- **The index holds for the current tree only.** An amendment can split the article again,
+  so never keep a `progressivo` as a key: read `parti` again. For the same reason
+  `commi_dal`/`commi_al` are strings («1-bis»).
+- **`url`.** A part's `url` (`/atto/caricaArticolo?…`) needs the article page's session:
+  it does not open on its own.
+- **Channel.** Only `canale="html"`: the Akoma Ntoso export has the article whole, so
+  `canale="akn"` is `non_supportata`.
+- **Esiti:** those of `testo_articolo`, plus:
+  - `riferimento_non_valido` for an article not split or a `progressivo` its tree does not
+    have (`parti` is then filled, when there are parts);
+  - `verifica_non_disponibile` for a part that could not be read (source down, or a page
+    that is not that part).
+
+### `parte_del_comma(parti: Iterable[ParteArticolo], comma: str) -> ParteArticolo | None`
+
+The part whose commi hold `comma` («773», «773-bis», «100 bis»), or `None`. No network. A
+comma with a suffix sits after its number, so the part ending at «100» holds «100-bis».
 
 ### `indice_atto(atto: str | NormaDati) -> IndiceAtto`
 
@@ -1131,7 +1227,9 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `VersioneArticolo` | VisuaLex `validity` keys: `version_number, valid_from, valid_to` |
 | `Modifica` | `atto, tipo, disposizione, parti, in_vigore_dal, versione, data_gu, precisione, testo` |
 | `AttoModificante` | `tipo_atto, data, numero_atto, urn, gazzetta, descrizione` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato, note_aggiornamento, note_non_lette, parti, testo_parziale` |
+| `NotaAggiornamento` | `numero, testo, ordine, corte_costituzionale`: one «AGGIORNAMENTO (n)» note of the page (§3, `testo_articolo`) |
+| `ParteArticolo` | `progressivo, commi_dal, commi_al, url`: one part of an article Normattiva splits (§3, `parte_articolo`) |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti, consolidato, consolidato_verificato` |

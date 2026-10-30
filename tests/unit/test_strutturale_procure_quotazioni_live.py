@@ -63,7 +63,7 @@ from docx.shared import Pt
 
 import mcp_legal_it.server  # noqa: F401  (registers every tool module first: avoids a circular import)
 from mcp_legal_it.tools import procure_quotazioni as pq
-from tests.unit._norme_live import assert_parole, cite_law_json, contiene, normalizza
+from tests.unit._norme_live import assert_parole, cite_law_json, contiene, normalizza, testo_con_note
 
 pytestmark = pytest.mark.live
 
@@ -601,8 +601,10 @@ def test_procura_art_18_co_5_dm_44_2011_come_sostituito_dal_dm_48_2013(out_dir):
         return normalizza(m.group(1)).replace("è", "e'").replace("é", "e'")
 
     assert comma_5(vigente["testo"]) == comma_5(dm_48["testo"])
-    assert contiene(vigente["testo"], "comma abrogato dal decreto 29 dicembre 2023, n. 217") == []
-    assert contiene(vigente["testo"], "non prevede piu' l'abrogazione dei commi 4, 5 e 6") == []
+    # The amending acts' story is in the page's update notes (the HTML channel keeps them apart).
+    con_note = testo_con_note(vigente)
+    assert contiene(con_note, "comma abrogato dal decreto 29 dicembre 2023, n. 217") == []
+    assert contiene(con_note, "non prevede piu' l'abrogazione dei commi 4, 5 e 6") == []
 
     testo = _testo(_apri(PROCURA(**PROCURA_DUE_DIFENSORI))[1])
     assert "art. 18, co. 5, D.M. Giustizia n. 44/2011, come sostituito dal D.M. Giustizia n. 48/2013" in testo

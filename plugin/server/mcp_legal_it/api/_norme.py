@@ -21,6 +21,8 @@ from mcp_legal_it.api.tipi import (
     IndiceAtto,
     MassimaBrocardi,
     NormaDati,
+    NotaAggiornamento,
+    ParteArticolo,
     TestoArticolo,
     TestoAtto,
     Vigenza,
@@ -601,6 +603,49 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
     ``articolo_non_trovato``, ``verifica_non_disponibile``, ``testo_assente``,
     ``errore_fonte``, ``non_supportata``.
     """
+    return await _testo_articolo(riferimento, canale=canale)
+
+
+async def parte_articolo(riferimento: str | NormaDati, progressivo: int, *, canale: Canale) -> TestoArticolo:
+    """One part of an article Normattiva splits into parts («1 (commi 701-800)»).
+
+    *progressivo* is a ``ParteArticolo.progressivo`` from ``testo_articolo(...).parti``:
+    Normattiva's index in the act's tree as it is today (an amendment can split the article
+    again: read the parts again rather than keep the index). ``article_text`` is that part's
+    page, read by VisuaLex's extractor, with the part's own notes; ``parti`` is the whole
+    list, ``testo_parziale`` is True. Two requests (the article's page, then the part's),
+    one when the part is the page's own; a part read is kept a day under its commi.
+
+    Esiti: those of ``testo_articolo``; ``riferimento_non_valido`` also for an article not
+    split or a progressivo it does not have; ``verifica_non_disponibile`` for a part that
+    could not be read.
+    """
+    if not isinstance(progressivo, int) or isinstance(progressivo, bool):
+        raise TypeError("progressivo deve essere un intero")
+    if canale == "akn":
+        # The Akoma Ntoso export has the article whole (art. 1 L. 296/2006: 1.3 million
+        # characters): never served as one part.
+        return TestoArticolo(esito="non_supportata", article_text="", norma_data=None, url="", canale=canale,
+                             data_consultazione=_clock.today().isoformat(),
+                             errore="le parti di un articolo esistono sulle pagine Normattiva: canale='html'")
+    return await _testo_articolo(riferimento, canale=canale, progressivo=progressivo)
+
+
+def parte_del_comma(parti: Iterable[ParteArticolo], comma: str) -> ParteArticolo | None:
+    """The part whose commi hold *comma* («773», «773-bis»), or None. No network.
+
+    A comma with a suffix sits after its number («100-bis» in the part ending at «100»).
+    """
+    from mcp_legal_it.lib.visualex.parti_normattiva import _canonico, parte_del_comma as _del_comma
+
+    elenco = list(parti or ())
+    trovata = _del_comma([{"commi_dal": p.commi_dal, "commi_al": p.commi_al, "i": i} for i, p in enumerate(elenco)],
+                         _canonico(str(comma)))
+    return elenco[trovata["i"]] if trovata else None
+
+
+async def _testo_articolo(riferimento: str | NormaDati, *, canale: Canale,
+                          progressivo: int | None = None) -> TestoArticolo:
     if canale not in ("akn", "html"):
         raise ValueError(f"canale sconosciuto: {canale!r} (attesi 'akn' o 'html')")
     oggi = _clock.today().isoformat()
@@ -620,7 +665,19 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
                                  canale=canale, data_consultazione=oggi, errore=letto.errore)
         act_info, article = letto
     with registra() as registro:
-        base, esito = await norme.lookup_parametri(act_info, article, canale=canale)
+        # A reference string may name a comma («art. 1, comma 773, L. 296/2006»): for an article
+        # Normattiva splits into parts, it picks the part read.
+        from mcp_legal_it.lib.visualex.parti_normattiva import comma_richiesto
+
+        comma = comma_richiesto(riferimento) if isinstance(riferimento, str) and progressivo is None else None
+        base, esito = await norme.lookup_parametri(act_info, article, canale=canale, progressivo=progressivo,
+                                                   comma=comma)
+        parti = (tuple(ParteArticolo(**p) for p in base["parti"]) if base.get("parti") is not None else None)
+        if base.get("esito_parte"):
+            nd = _norma_dati(act_info, article, data_atto=base["atto"]["data"], url=base["url"], urn=base["urn"])
+            return TestoArticolo(esito=base["esito_parte"], article_text="", norma_data=nd, url=base["url"],
+                                 urn=nd.urn, canale=canale, data_consultazione=oggi, errore=base["errore"],
+                                 fonti=registro.fonti(), parti=parti)
         if base.get("not_in_force") and act_info.get("futura"):
             # The later text asked for: dated to the day it comes into force, as VisuaLex's
             # norma_data. An inserted article asked without a date keeps the request's key.
@@ -659,6 +716,11 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
             not_in_force=bool(base.get("not_in_force")),
             consolidato=base.get("consolidato"),
             consolidato_verificato=base.get("consolidato_verificato"),
+            note_aggiornamento=(tuple(NotaAggiornamento(**n) for n in base["note_aggiornamento"])
+                                if base.get("note_aggiornamento") is not None else None),
+            note_non_lette=bool(base.get("note_non_lette")),
+            parti=parti,
+            testo_parziale=bool(base.get("testo_parziale")),
         )
 
 
