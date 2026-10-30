@@ -54,13 +54,17 @@ def cache_root() -> Path:
 
     A relative `MCP_CACHE_DIR` would be read against the server's working directory,
     which the launchers set to the extension's or plugin's own folder: it is ignored,
-    with one line on stderr, and the default is used. `~` is expanded.
+    with one line on stderr, and the default is used. `~` is expanded; a `~user` that
+    cannot be expanded counts as relative.
     """
     global _warned_relative
     value = os.environ.get(DIR_ENV)
     if not value:
         return DEFAULT_DIR
-    path = Path(value).expanduser()
+    try:
+        path = Path(value).expanduser()
+    except RuntimeError:  # "~user" for a user that does not exist
+        path = Path(value)
     if path.is_absolute():
         return path
     if not _warned_relative:

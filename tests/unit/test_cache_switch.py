@@ -145,3 +145,13 @@ def test_a_home_cache_dir_is_expanded(monkeypatch):
 
     monkeypatch.setenv("MCP_CACHE_DIR", "~/legal-cache")
     assert _cache.cache_root() == pathlib.Path.home() / "legal-cache"
+
+
+def test_an_unknown_home_in_the_cache_dir_falls_back(monkeypatch, capsys):
+    """`~nosuchuser/x` cannot be expanded: the server still starts, on the default."""
+    from src.lib import _cache
+
+    monkeypatch.setattr(_cache, "_warned_relative", False)
+    monkeypatch.setenv("MCP_CACHE_DIR", "~utente-che-non-esiste-mcp/x")
+    assert _cache.cache_root() == _cache.DEFAULT_DIR
+    assert "is not an absolute path" in capsys.readouterr().err
