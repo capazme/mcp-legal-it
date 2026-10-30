@@ -160,11 +160,31 @@ def test_a_line_naming_two_decisions_credits_neither(tmp_path, lettore):
     assert verdetto(tmp_path, lettore, risposta(), FRASE_SENTENZA, tool_input=ingresso) == SILENT
 
 
-def test_a_line_naming_decisions_of_two_courts_credits_neither(tmp_path, isolated_hook):  # noqa: F811
-    # The server's reader knows the Corte costituzionale too (the fallback reads Cassazione only).
+def test_a_line_naming_decisions_of_two_courts_credits_neither(tmp_path, lettore):
+    # The fallback reads the Cassazione only: the Corte cost. decision is invisible to it, so
+    # it refuses any line with two numbers/years, as the server's reader refuses two decisions.
+    ingresso = {**INGRESSO, "sentenze": ["Cass. civ., n. 100/2020, richiamata da Corte cost. n. 238/2014", SENTENZA]}
+    assert verdetto(tmp_path, lettore, risposta(), "Lo dice Cass. civ. n. 100/2020.", tool_input=ingresso) == NAGS
+    assert verdetto(tmp_path, lettore, risposta(), FRASE_SENTENZA, tool_input=ingresso) == SILENT
+
+
+def test_a_corte_cost_decision_on_a_shared_line_is_not_credited(tmp_path, isolated_hook):  # noqa: F811
+    # Only the server's reader sees the Corte costituzionale in prose.
     ingresso = {**INGRESSO, "sentenze": ["Cass. civ., n. 100/2020, richiamata da Corte cost. n. 238/2014"]}
     assert verdetto(tmp_path, (False, isolated_hook), risposta(), "Lo dice Corte cost. n. 238/2014.",
                     tool_input=ingresso) == NAGS
+
+
+@pytest.mark.parametrize("riga, letta", [
+    ("Cass. civ., sez. III, n. 12345/2024", True),
+    ("Cass. civ. n. 12345 del 2024", True),
+    ("Cass. civ., n. 100/2020, richiamata da Corte cost. n. 238/2014", False),
+    ("Cass. n. 100/2020 (conf. Cass. n. 200/2021)", False),
+])
+def test_the_fallback_reads_one_decision_per_line(riga, letta):
+    from tests.unit.test_citation_gate_commi import _fallback_reader
+
+    assert bool(_fallback_reader().decisioni_della_riga(riga)) is letta
 
 
 @pytest.mark.parametrize("non_entrate", [
