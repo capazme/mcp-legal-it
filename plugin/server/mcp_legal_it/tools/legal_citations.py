@@ -893,7 +893,9 @@ _CORTI_NON_VERIFICABILI = {
     "cgue": ("Corte di giustizia UE", "cerca_giurisprudenza_cgue() e leggi_sentenza_cgue()"),
     "tributaria": ("giurisdizione tributaria di merito", "cerca_giurisprudenza_tributaria()"),
     "cedu": ("Corte europea dei diritti dell'uomo", "nessuno strumento di questo server (la banca dati è HUDOC)"),
-    "corte_conti": ("Corte dei conti", "nessuno strumento di questo server"),
+    "corte_conti": ("Corte dei conti",
+                    "cerca_deliberazioni_corte_conti() e leggi_deliberazione_corte_conti(), "
+                    "solo per le deliberazioni delle sezioni di controllo"),
     "merito": ("giudice di merito", "nessun archivio pubblico consultabile da questo server"),
 }
 

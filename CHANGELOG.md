@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-The 3.0 line now carries everything shipped on the 2.x line from 2.13.0 to
-2.17.0 (the 2.x sections below): the benchmark corrections of 2.15.x, paged
-reading of long texts (`da_carattere`), the `cite_law` guard against an
-article the act does not have, the `Regime: PREVIGENTE` flag, the
-directory-ready plugin and TEGM Q4 2026. Where an entry below repeats a 2.x
-entry, it is the same feature as ported to the 3.0 line.
+3.0 is 2.17.0 plus the work below. Every 2.x change from 2.13.0 to 2.17.0 is
+included (the benchmark corrections of 2.15.x, paged reading of long texts with
+`da_carattere`, the `cite_law` guard against an article the act does not have,
+the `Regime: PREVIGENTE` flag, the directory-ready plugin, TEGM Q4 2026…) and is
+described in those sections, not repeated here. Upgrading from 2.x:
+[`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
 - **`api.modifiche_articolo(riferimento, *, dal=None, al=None, max_versioni=20)`:
@@ -60,8 +60,9 @@ entry, it is the same feature as ported to the 3.0 line.
   - **Precisione.** The date is `ESATTO` when the page's title names this act's
     type, year and number, for the seven types the new constant
     `api.TIPI_ATTO_VERIFICATI` declares (legge, d.lgs., d.l., d.P.R., r.d., r.d.l.,
-    l. cost.). It is `INDICATIVO` when it comes from the page's ELI date (DPCM,
-    decreto ministeriale).
+    l. cost.). VisuaLex's title reader knows two more, the regio decreto
+    legislativo and the bare «decreto», which this constant leaves out. It is
+    `INDICATIVO` when it comes from the page's ELI date (DPCM, decreto ministeriale).
   - **Esiti.**
     - A full date whose day is not the act's is `ambiguo`, with the act Normattiva
       has under that type, year and number. It never comes from a year alone.
@@ -92,7 +93,7 @@ entry, it is the same feature as ported to the 3.0 line.
     library's Normattiva limits apply: 3 in flight, 0.5 s apart, documented in
     `docs/api.md`.
   - Documented in `docs/api.md` §3. The batch form stays planned (§6).
-- **The sigle of VisuaLex's source convention** (G-360, G-366, G-369): «cod.
+- **The sigle of VisuaLex's source convention**: «cod.
   post.» and «c.g.c.» name their codes, and an annex of a code's decree with a
   sigla of its own reads as that code and annex, as VisuaLex keys it: «art. 1
   disp. att. c.p.a.» is the c.p.a.'s decree at annex 3 (`;104:3~art1`, `allegato`
@@ -187,8 +188,8 @@ entry, it is the same feature as ported to the 3.0 line.
   not be read is `verifica_non_disponibile`, never today's text. A date always
   means the text in force on that date, with or without `versione="vigente"`, as
   VisuaLex does since `4aa59a9d` (before, it served today's text under the date
-  asked for when the date came without `"vigente"`). A future date, a date with `"originale"` or another
-  `versione` is `riferimento_non_valido`; a version of an EU act or of an annex,
+  asked for when the date came without `"vigente"`). A future date, a date with
+  `"originale"` or another `versione` is `riferimento_non_valido`; a version of an EU act or of an annex,
   and the whole act, its index or its tree at a date, are `non_supportata`. A
   page whose window misses the date is `INDICATIVO`, with an `avviso`
   (`validity.request_in_window`).
@@ -229,10 +230,9 @@ entry, it is the same feature as ported to the 3.0 line.
   tables gain VisuaLex's rows: "d.l.", "l. cost.", "r.d.l.", "d.lgs.lgt."
   given as the act type (`fetch_law_article`, `api.riferimento_da_parametri`)
   built `urn:nir:stato:d.l.:…` and `l..cost.`; "c.p.a."; the implementing
-  regulations of the c.p.p. and of the industrial property code. Written
-  inside a citation (`cite_law("art. 1 l. cost. 1/2012")`) these short forms
-  are still refused as an unknown act, never read as another: the citation
-  parser takes them with the citation-gate work. VisuaLex's source
+  regulations of the c.p.p. and of the industrial property code. The citation
+  parser reads these short forms too (`cite_law("art. 1 l. cost. 3/2001")`, see
+  Fixed). VisuaLex's source
   convention (`golden.json`) is a pinned fixture: the norm identities
   mcp-legal-it builds already must match it, the others are listed with the
   step that closes them.
@@ -301,13 +301,11 @@ entry, it is the same feature as ported to the 3.0 line.
   tool calls once, then replays them offline against a git ref and the working
   tree and compares every answer, `_meta` included, so a refactor can prove
   the tools' outputs did not change. The tape stays local.
-- Concurrent cold requests for the same act now share one download of its
-  Akoma Ntoso export (before, N callers downloaded it N times).
 - **`LEGAL_BROCARDI=off`: the server without Brocardi.** Brocardi.it, the only
   private source (doctrinal notes and case-law abstracts, never the text of a
   norm), stays on by default and can now be switched off in one place. Off
   means: `cerca_brocardi` and `fetch_law_annotations` (tag `solo_brocardi`) are
-  not listed (228 → 226 tools); no request reaches brocardi.it, because the two
+  not listed (234 → 232 tools); no request reaches brocardi.it, because the two
   scrapers that build Brocardi URLs ask `lib/_brocardi_switch.py` before any
   I/O (and `_egress.is_allowed()` reports the host as refused); `cite_law(include_annotations=True)`,
   `giurisprudenza_articolo` and `mappa_orientamento` (tag `brocardi`) answer
@@ -329,348 +327,14 @@ entry, it is the same feature as ported to the 3.0 line.
   nothing; `None` keeps every tool). The server's instructions are the stock
   ones without the tools it hides, so the model is never pointed at a tool it
   cannot call; the stock server does the same under `LEGAL_BROCARDI=off`, and
-  the skills, agents and prompts now say `cerca_brocardi` (se disponibile). The stock server and the plugin are unchanged. Example and
-  parameters in `docs/tool-tags.md`.
-- `stato_server()`: the diagnostics tool that tells the caller WHAT it is
-  talking to — package version of the running code, active tool count after
-  the `LEGAL_PROFILE` filter, pinned clock, cache switch and directory,
-  hostname. Modeled on the `get_quota_status` / `check_capabilities` pattern
-  of the Scopus MCP servers; the declared total is derived from the audited
-  annotation policy, so it cannot drift into a second handwritten count.
-  Surface is now 228 tools (210 read-only, 170 local-only).
-- `server.json`: the server declares its own identity
-  (`io.github.capazme/mcp-legal-it`, stdio transport) in the official MCP
-  Registry schema, with the environment variables every host can pass
-  (`LEGAL_PROFILE`, `LEGAL_CACHE`, `MCP_CACHE_DIR`, `LEGAL_TODAY`, `LEGAL_NOW`).
-  The README carries the `mcp-name:` marker so aggregators can verify the
-  package/manifest association once a public distribution channel exists.
-- `verifica_dpa_fornitore(dominio)`: probes a supplier's site on a fixed list
-  of conventional paths for a published art. 28 DPA, judges the HTML or PDF
-  it finds against GDPR markers and caches the determination for 90 days
-  (`src/lib/dpa_probe/`; the hand-maintained DPA whitelist is gone). The probe
-  is the one tool that contacts a host chosen by the caller, so it is fenced:
-  public registrable names only (no addresses, ports, local or reserved
-  names), every name resolved and refused when any address is not public,
-  the same check on every redirect, the consult declared in
-  `fonti_consultate` and the cache under `LEGAL_CACHE`. `SECURITY.md`
-  documents the exception.
-- TMview (EUIPO/TMDN trademark database) as a new source — module
-  `src/tools/tmview.py` with 3 tools (218 → 221): `cerca_marchi` (search across
-  UIBM, EUIPO, WIPO and ~75 national offices with office/Nice-class/status
-  filters), `leggi_marchio` (full record by ST13: owner, representatives,
-  goods and services per Nice class, publications), and
-  `verifica_anteriorita_marchio` (preliminary prior-rights screening that
-  separates identical from similar marks, with an explicit disclaimer that it
-  does not replace a professional availability search). The client
-  (`src/lib/tmview/`) talks to TMview's public JSON API with browser-like
-  headers, a session warm-up request and a minimum interval between calls to
-  coexist with the site's F5 anti-bot gate; a challenge response surfaces as
-  a clear "retry in a minute" error instead of garbage output. New egress
-  host `www.tmdn.org` declared in `src/lib/_egress.py` and SECURITY.md.
-- `verifica_citazioni(..., formato="json")` and `cite_law(..., formato="json")`:
-  structured output for programmatic clients (LibreLex-IT). Markdown output
-  unchanged.
-- Console entry point `mcp-legal-it` (`src.cli:main`), so the server starts
-  with `uvx --from git+https://github.com/capazme/mcp-legal-it@vX.Y.Z mcp-legal-it`.
-- The server now declares its package version to MCP clients
-  (`serverInfo.version`).
-- The refusal series as a picture: `verbale_mensile` and the CLI report carry a
-  `grafico` block now -- one bar per month, scaled to the window's maximum,
-  the zero mark for a silent month, the current month marked -- so "is this
-  month worse than the last one?" reads at a glance in `/verbale` too, from
-  the same data the table mirrors.
-- Tool annotations: all 221 tools now declare `readOnlyHint` / `openWorldHint`,
-  so hosts that pre-approve safe tools (Claude Desktop, Freebuff) can offer the
-  204 read-only lookups without a per-tool click, while the 17 that write a file
-  stay behind an explicit approval. The classification is audited from the call
-  graph — decorated function → helpers → imported clients, looking for
-  `open(..., "w")`, `write_text`, the document constructors and mutating HTTP
-  verbs. It lives in `src/tool_annotations.py`, generated by
-  `scripts/audit_tool_annotations.py` (`--check` fails the suite on drift,
-  `--json` prints the per-tool evidence); a middleware stamps it on
-  `tools/list`, and `tests/unit/test_tool_annotations.py` fails if a tool is
-  renamed out of the policy.
-- The 12 cache writers are flagged as such (`CACHE_WRITES`): their only write
-  refreshes `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` (parsed acts, Brocardi
-  article URLs, Consulta massime), which is worth telling apart from the 5 tools
-  that produce a document.
-- `LEGAL_CACHE=off` (also `no`, `false`, `0`, `none`, `disabled`) keeps the
-  server off the disk entirely: the cache directory is then never read and never
-  created, and the caches live in memory for the life of the process (the parses
-  still work, they are just not persisted). `src/lib/_cache.py` is the single
-  module that reads the switch and resolves `MCP_CACHE_DIR`; `MCP_CACHE_DIR`
-  alone only relocates the files.
-- The cache side is audited too. `scripts/audit_tool_annotations.py` declares
-  every cache location (`CACHE_LOCATIONS`) and fails when a module starts
-  resolving a cache directory without being declared, when a declared cache
-  loses its literals, or when a cache writer stops consulting the switch; the
-  generated inventory is `docs/cache-inventory.md` (location, files, retention,
-  writer module and the tools that can touch it), compared by `--check` just
-  like the annotation policy. `tests/unit/test_cache_switch.py` proves the
-  switch, including that with `LEGAL_CACHE=off` not even the directory appears.
-- The wall clock has one reader (`src/lib/_clock.py`) and `LEGAL_TODAY` /
-  `LEGAL_NOW` pin it. Several tools are "as of today" by design (prescriptions,
-  deadlines, the current IRPEF brackets, the running year for the Consulta
-  dumps): without an override they cannot be reproduced, so a test on their
-  numbers could either rot with the calendar or skip the most interesting half
-  of the surface. The audit fails on any `date.today()`/`datetime.now()` call
-  outside that module, so a new tool cannot opt out of being pinnable.
-- `tests/unit/test_golden_calcoli.py` freezes what the local read-only tools
-  answer (167 of them) in `tests/fixtures/golden/calcoli_locali/` (arguments + expected answer,
-  pinned to `LEGAL_TODAY`/`LEGAL_NOW`, truncated at 4000 characters where an
-  answer is a whole document). The reference is **one file per set of data
-  tables**, derived from the code (`@sourced(...)` declarations plus the
-  module-level tables each tool's reachable code reads, derived constants
-  included): `indici_foi`, `indici_foi+tassi_legali`, `tabella_danno_bio`,
-  `nessuna_tabella` (104 pure algorithms) and 20 more. A refreshed table or a
-  mistyped bracket fails with the dataset named first — changing a single FOI
-  index reports "tables involved: indici_foi (12/12 tools), tassi_legali
-  (3/12)", lists only the two affected group files, and tags every changed tool
-  with the tables it read. Regenerate deliberately with `GOLDEN_UPDATE=1 pytest
-  tests/unit/test_golden_calcoli.py`; the reference is also checked for being
-  pinned, complete, partitioned by table (no tool twice, none missing), free of
-  error payloads and free of local paths, and each answer's own `dati_applicati`
-  footer must agree with the group it is filed under.
-- The stdio harness the runtime tests share now lives in
-  `tests/unit/mcp_harness.py`, and its argument generation fills object-shaped
-  parameters (rows like `eredi`, `acconti`, `voci`, `rischi`) and picks dates by
-  role (`data_inizio`/`data_fine`, `anno_partenza`/`anno_arrivo`) instead of one
-  value for every `data_*`. Every local read-only tool now answers with a real
-  result, where 12 previously came back with a validation error.
-- `scripts/tool_report.py` renders the surface as a single self-contained page
-  (`docs/tool-report.html`): the 221 tools split into 167 read-only local, 37
-  read-only external, 12 cache refreshers and 5 document generators, with the
-  service each external tool reaches, the cache directory each writer can touch,
-  and — as of the change below — the tables each one applies and whether their
-  vintage needs acting on. It is built from the same audit as the annotations, so the page and the
-  policy cannot disagree.
-- `tests/unit/test_read_only_contract.py` proves the read-only claim at runtime:
-  the server is started with its own `HOME` and `MCP_CACHE_DIR`, every local
-  read-only tool is called with arguments generated from its input schema,
-  and the sandbox, the checkout and the real MCP cache are fingerprinted before
-  and after — any file created, deleted or modified fails the test. All of them
-  answered and nothing changed.
-- `tests/unit/test_provenance_datasets.py` demonstrates the table → tool mapping
-  instead of re-deriving it: a table is perturbed in a throwaway copy of the
-  server and the answers are compared with a clean baseline, in both directions.
-  An answer that moves with a table whose footer does not name it is a silent
-  reader; an answer that names a table and does not move with it is a decorative
-  footer. The caller set comes from the tools' own footers, the controls are
-  tools that read other tables — the two oracles are independent of the audit.
-- Every table a tool reads now says so *and* says how current it is, including
-  the tables preloaded at import: six tools that answered in silence
-  (`cerca_codice_tributo`, `genera_modello_atto`, `lista_categorie_atti`,
-  `indennita_preavviso`, `costo_lavoro`, `ravvedimento_operoso`) carry their
-  `dati_applicati` footer, which is how the unverified vintages of
-  `preavviso_ccnl` and `contributo_unificato` now reach the reader as an explicit
-  warning instead of not reaching them at all.
-- The audit fails when a shipped table is applied by no tool: either it is dead
-  data or its reader is a load the walk cannot follow, and in the second case
-  the tool answering from it reports no vintage. That check is what found
-  `codici_tributo`, `modelli_atti` and `preavviso_ccnl`.
-- Every tool call now declares, in its result `_meta` under
-  `mcp-legal-it/opened_tables`, which hand-maintained tables it *actually* read:
-  observed, not derived. `src/lib/_ledger.py` wraps the table-carrying constants
-  (`src/table_bindings.py`, generated by the audit) in dict and list subclasses
-  that note their dataset when read, so a call that opens no table — a pure
-  algorithm — declares nothing, and one that applies two tables says so. The
-  wrappers are shallow and transparent: nested values stay plain, so `json.dumps`,
-  `==` and the host's serialization see the same objects as before.
-- The `dati_applicati` footer is written from what the call read rather than
-  from the `@sourced(...)` declaration: `_data.effective()` intersects the two,
-  so a tool that branches between tables names the branch it took. Called with
-  the required parameters alone, `note_iscrizione_ruolo` declares
-  `codici_ruolo` + `contributo_unificato` but applies only the first, and that
-  is now what its answer says. The observation is only worth as much as its
-  coverage, so the two tables a tool reads inside a *function body*
-  (`mediazione_obbligatoria` in `procedura_civile`, `tegm` in `verifica_usura`)
-  now go through the accessor `_data.load(name)`, which records the read; the
-  audit recognises the same call as a read, keeping the static map and the
-  observation describing one act. Rendering a vintage goes to the cached `_read`
-  underneath instead, because a footer that counted as applying the tables it
-  describes would make every observation equal its declaration and no answer
-  could ever narrow. The declaration remains the fallback for what cannot be
-  wrapped (a table reached through a scalar computed at import), and with the
-  two in-body reads observed it is now the *only* fallback left: no tool in the
-  local surface answers from a table the ledger could not see.
-- An expired covered period and an unverified provenance are structured fields,
-  not only a line at the end of an answer. A dict answer carries `avvisi_dati`
-  next to `dati_applicati`, every answer carries
-  `mcp-legal-it/data_warnings` in its result `_meta` -- the only channel a tool
-  returning a string has -- and both are the same sentence as the footer, so the
-  two cannot drift. The states are told apart: `scaduta` means the covered
-  period has ended (`tassi_legali` from 2027-01-01; `indici_foi` past its own
-  period *plus* the 92-day tolerance for ISTAT publishing in arrears, so
-  2026-09-30 and not 2026-06-30), `non_verificata` means nobody has established where the table
-  comes from (`contributo_unificato`, `comuni`, `codici_ateco`, and 11 more), and
-  a table that is neither raises nothing -- so the field means something
-  whenever it appears, instead of being a list everybody learns to ignore.
-  Which tables a warning is about follows the same observation as the footer,
-  not the declaration.
-- A stale or unsourced table now changes the answer, not only the footer.
-  Every tool already declares a grade in its own docstring (`Precisione:
-  ESATTO|INDICATIVO|STIMATO`, 144 of them, parsed from the line the calling
-  model reads), and `src/lib/_precision.py` decides what the vintage does to
-  that claim: an exact claim resting on a table nobody sources is **withdrawn**
-  -- the tool returns `errore: "dati_non_affidabili"` with no figure at all,
-  naming the table, its state and the file that would unblock it -- while an
-  indicative one steps down to `STIMATO` and says so in `precisione`, in the
-  answer body and in `mcp-legal-it/precisione` in `_meta`. An expired table is
-  the milder case, because coverage is not provenance: it stops an answer
-  anchored to today (the tool read the clock, observed per call through
-  `_clock.consulted()`) and only downgrades one about a period that has already
-  closed. With the shipped tables that is 6 refusals (`codice_fiscale`,
-  `imposte_*`, `indennita_preavviso`, ...) and 4 downgrades
-  (`ricerca_codici_ateco`, `cerca_ufficio_giudiziario`, ...), and
-  the audit fails when a tool applies a table without declaring a grade, or
-  declares a word `_precision.py` does not know -- an unknown grade would be
-  read as the strongest claim. `tests/unit/test_precision_policy.py` covers both
-  states on the wire and at the seam.
-- A refusal is negotiable, not final. Every tool that reads a table now also
-  takes `accetta_precisione` (`INDICATIVO` or `STIMATO`), declared in its
-  signature and documented in the `Args:` block like any other parameter: the
-  caller names the grade it will settle for, the answer is given at that grade,
-  and both the body (`precisione.accettata`) and `mcp-legal-it/precisione` in
-  `_meta` say the acceptance is what allowed it. The claim itself is not for
-  sale -- asking for `ESATTO` on a table nobody sources is refused, and the
-  refusal carries `concedibile` so the retry is a decision -- and no acceptance
-  unlocks an expired table under a figure about today: a stale rate is wrong, not
-  imprecise, and the refusal says `negoziabile: false` instead of offering a
-  grade that would not help.
-- Two tools can do without the table altogether, which is the other half of the
-  answer. `@sourced(..., alternativa="parametro")` names the parameter that
-  provides what the table would have: `codice_fiscale` accepts the catastal code
-  (`codice_catastale`, so the algorithm is exact on an input instead of a lookup)
-  and `indennita_preavviso` accepts the notice period (`giorni_preavviso`, which
-  is the part of a CCNL table that no vintage can ever be right about, since the
-  contracts get renewed). Such a call reads no table at all, so nothing about a
-  vintage enters the answer: the footer is empty, no warning is emitted, and the
-  answer says `dati_forniti_dal_chiamante: {parametro, al_posto_di}` rather than
-  leaving the reader to guess what backs the number. The middleware knows the
-  same map (`TOOL_ALTERNATIVES`, generated) so it does not fall back to the
-  declaration and flag a table the call deliberately did not open.
-- `scripts/update-data.py` says what each unverified table costs, and it is no
-  longer a warning: the per-table block now lists the tools that apply it with
-  their declared grade and whether they refuse or merely degrade, derived from
-  the audit and the same rule the server runs. The eight `da_verificare` tables
-  block seven tools outright (`comuni` two, `imposte_successione` two,
-  `contributo_unificato`, `preavviso_ccnl`, `violazioni_patente` one each) and
-  degrade nine, which is what makes the check a to-do list rather than a note.
-- The audit fails when a literal restates a shipped table, which is how
-  `preventivo_civile`'s contributo unificato bands lived in
-  `fatturazione_avvocati.py` while `contributo_unificato.json` was updated next to
-  them: a copy reads no file, declares no provenance, and drifts in silence. The
-  comparison is on content and across shapes — the bands were copied as a list of
-  two-tuples while the table stores them as dicts — with `TABLE_COPIES_ALLOWED`
-  for a justified copy (empty today, and the audit fails on an exemption that no
-  longer matches anything).
-- `contributo_unificato.json` is reconciled with the DPR 115/2002 in force
-  (verified against the reference table updated to D.L. 132/2014 and D.L.
-  90/2014), and the table now declares it: `aggiornato_al` + `verifica:
-  manuale`. Three entries carried values or shapes the source contradicts, and
-  the reconciliation fixes them rather than vouching for them: `cautelari` was a
-  flat €147 but the procedurali cautelari are *50% of the ordinary bands by
-  value* (`cautelari.riduzione`); `esecuzione_mobiliare` was a flat €43 but is
-  €43 *below €2,500 and €139 above* (scaglioni, with the boundary at 2499.99 —
-  the largest two-decimal amount the "inferiore a €2.500" rule admits, since
-  the band lookup is inclusive); `ottemperanza` was €650, the source says €300;
-  the never-read `opposizione_esecutiva` key (full bands, where the rule halves
-  them) is replaced by `opposizione_decreto_ingiuntivo` at half bands. The
-  refusal of `contributo_unificato` disappears and the five tools that were
-  degraded by its unverified vintage (`decreto_ingiuntivo`, `modello_notula`,
-  `note_iscrizione_ruolo`, `preventivo_civile`, `genera_quotazione_docx`) answer
-  at their full declared grade again — which is the mechanism working, and the
-  reason the tests pinning the gap moved to tables still unverified.
-- Refusals are put on record, so a reconciliation backlog can be ordered by
-  what *did* block and not only by what could. With `LEGAL_REFUSAL_LEDGER=on`
-  the ledger middleware appends one JSONL line per refusal and one per
-  acceptance to `refusals.jsonl` under the cache root: the tool, the tables
-  that caused it, the state, the grade claimed and what happened — a counter,
-  not a log of the studio's work, so no case data ever reaches the file. It is
-  opt-in (a read-only tool that refuses must not start writing files the host
-  never asked for) and best-effort exactly like the cache: an unwritable ledger
-  never turns a refusal into an error. The audit declares the ledger as a cache
-  location, and its timestamps go through `_clock.now()`, so a pinned
-  `LEGAL_NOW` pins the tally too (`tests/unit/test_refusal_ledger.py`).
-- Every table the vintage policy can block now has a *supplying* alternative,
-  not only a cheaper grade: `@sourced(..., alternativa=...)` is extended from
-  two tools to all seven readers of the blocking tables. `contributo_unificato`
-  takes `tabella_contributo_unificato` (a replacement table with the same
-  shape, consumed by the whole computation including the appello/cassazione
-  multipliers), `imposte_successione` takes `aliquote_franchigie` (the bracket
-  list, read per `parentela` and tolerant of malformed entries),
-  `imposte_compravendita` takes `aliquote_registro` (the registro section),
-  `decurtazione_punti_patente` takes `tabella_violazioni` (the violation map),
-  and `decodifica_codice_fiscale` takes `mappa_comuni` (a reverse catastal-code
-  map). A call that supplies its datum reads no table, so the answer carries no
-  vintage it does not rest on — and a caller who *can* vouch for a value no
-  longer has to buy back a grade the table never supported.
-- `backlog_riconciliazione` (the 222nd tool) is the read-out: the tables still
-  unverified or expired, each with its source, its static cost (who reads it,
-  at what declared grade, refusing or degrading — the audit walk, computed once
-  per process and shared with `scripts/update-data.py`) and the action to take;
-  when the ledger is on, the observed tally re-ranks the list, so the table
-  that actually blocked twice outranks the one that only could have. With the
-  ledger off it says so (`disponibile: false`) instead of staying silent, and
-  the answer is frozen in the golden reference like every other tool's. The
-  same derivation is what `/dati` (new plugin command) reads, so refreshing a
-  table — verify the source, update the values, set `verifica: manuale` and
-  `aggiornato_al`, re-run the suite — is a guided flow that never opens the
-  code.
-- `imposte_successione` and `violazioni_patente` are reconciled with their
-  sources in force: the Agenzia delle Entrate schedule for the succession
-  brackets and franchises (every value matched -- the fix was provenance, not
-  numbers) and the art. 126-bis attached table for the licence points, where
-  three values were wrong and are corrected (failing to yield 6 points, not 8;
-  overtaking 3, not 4; driving uninsured 5 points, not 0), with the speeding
-  bands tied to the right subsections of art. 142 and the pecuniary ranges
-  alongside the points. Their refusals go away: the shipped tables now block
-  three tools (`codice_fiscale`, `decodifica_codice_fiscale`,
-  `indennita_preavviso`) instead of six, and the golden reference shows the
-  diff instead of trusting the edit.
-- `comuni`, `codici_ruolo` and `preavviso_ccnl` are reconciled with their
-  official sources, and with them the backlog reaches **zero refusals** on the
-  shipped surface: every table an exact-grade tool applies is now verified.
-  `comuni` is checked name-by-name against the ISTAT catastal-code list
-  (7,899 comuni): 143 catastal codes were wrong and are corrected, official
-  denominations come first so the reverse lookup answers with them instead of
-  an alias, unverifiable entries are dropped, and the table re-declares
-  itself. `codici_ruolo` is rebuilt on the official DM 32/2012 / DGSIA
-  object-code table. `preavviso_ccnl` is verified against the three contracts
-  (metalmeccanici and commercio matched cell-by-cell; studi professionali had
-  14 wrong cells, corrected). What is left unverified -- `codici_ateco`,
-  `tribunali_competenti` -- has only INDICATIVO readers, so nothing refuses:
-  answers degrade and say so. The refusal path keeps its wire coverage on a
-  probe server (`plugin/server/probe_precision.py`, the same `sourced`
-  wrapper, launched through the harness), so the policy's teeth are tested
-  against a real refusal instead of against a gap the data work has closed.
-- Monthly refusal report: `verbale_mensile` (the 223rd tool) reads the ledger
-  the middleware writes (`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/refusals.jsonl`,
-  opt-in with `LEGAL_REFUSAL_LEDGER=on`) and compares the current month with
-  the previous ones — refusals and accepted downgrades per tool, which table
-  blocked, and whether the callers are negotiating past the policy. The
-  aggregation lives in `src/lib/_refusals.monthly()`, the recurring habit in
-  `scripts/verbale-report.py` (cron line or pre-release check), and the host
-  command `/verbale` reads the same numbers inside a conversation; `/dati`
-  points there from the data side. `tests/unit/test_refusal_ledger.py` covers
-  the aggregation and the wire surface.
-- Online-source provenance: every open-world answer now declares *when it
-  consulted the web*. The shared HTTP wrapper and the direct `httpx` sites
-  (`retry_request(dataset=...)`, `note_source(...)`) record the consult in a
-  contextvar (`src/lib/_sources.py`); the same middleware pass that stamps
-  tables and precision attaches `mcp-legal-it/fonti_consultate` to the result
-  `_meta` — dataset name, `scheme://host//path` prefix (never a query string,
-  so the caller's search terms stay out of the provenance), and a call-level
-  timestamp from the unrecorded clock. The committed policy is
-  `src/source_bindings.py`, derived by the audit from the call graph: a client
-  that starts fetching a new dataset fails the suite until the policy is
-  regenerated, and the CI runs that check (`policy-sync` job) on every push.
-  `tests/unit/test_online_sources.py` proves the middleware, the URL privacy
-  and the undeclared-source flag; the golden fails if a local answer's shape
-  changes, and the audit pins which tool may name which source.
+  the skills, agents and prompts now say `cerca_brocardi` (se disponibile).
+  The stock server and the plugin are unchanged. Example and parameters in
+  `docs/tool-tags.md`.
 
 ### Changed
-- **Text answers are sent once.** The 60 tools that answer plain text (the
+- Concurrent cold requests for the same act now share one download of its
+  Akoma Ntoso export (before, N callers downloaded it N times).
+- **Text answers are sent once.** The 63 tools that answer plain text (the
   norm, case-law, authority and register readers, and a few writers) used to
   send each answer twice: as the text block and again as `structuredContent`
   `{"result": <the same text>}`, because FastMCP gives a `-> str` function a
@@ -679,7 +343,7 @@ entry, it is the same feature as ported to the 3.0 line.
   `outputSchema`. The text the model reads is unchanged; the tools that return
   a dict keep their `structuredContent`. A test keeps every new text tool in
   line. For a FastMCP Python client, `CallToolResult.data` is now `None` for
-  these 60 tools: read the answer from `result.content[0].text`.
+  these tools: read the answer from `result.content[0].text`.
 - **`fetch_full_act` reads a long act in windows.** It used to return the whole
   act in one answer: L. 300/1970 alone was about 52,000 characters (~15k
   tokens), the Codice civile about two million. It now returns windows of
@@ -711,7 +375,7 @@ entry, it is the same feature as ported to the 3.0 line.
     parameters); hosts that read a property's top-level `type` now find it, and
     null stays legal, so a client that converts the schema to OpenAI's strict
     mode does not force the model to invent a value;
-  - `additionalProperties: false` is left out of the 231 input schemas;
+  - `additionalProperties: false` is left out of the input schemas;
   - descriptions lose the indentation docstrings leave at the start of their
     continuation lines (words and line breaks stay);
   - tools are listed by name, the same order for every profile and subset.
@@ -731,7 +395,7 @@ entry, it is the same feature as ported to the 3.0 line.
   source serves it. The other search sources already returned plain text.
 - **The installer configures a local server only.** `install.py` no longer
   offers the «remoto (SSE)» plugin mode (`--mode local|remote` and the
-  interactive question are gone): it pointed at a personal tunnel address
+  interactive question are gone): it pointed at a tunnel address
   written in the code. The plugin always runs the server on the user's
   machine; a test keeps remote endpoints out of the installer.
 - **`indennita_licenziamento` returns the range, not an amount** (#76). After
@@ -753,38 +417,10 @@ entry, it is the same feature as ported to the 3.0 line.
   keeps them in the text: «dati(4)» in recital 1 of dir. 2002/58). `cite_law` still prints «(42)»
   before it, as the label. A legacy page's recitals are read in their sequence, so a
   footnote numbered like a recital is never taken for one.
-- **EUR-Lex readers re-pinned to VisuaLex `d067f710`** (its #346, the findings of the
-  #94 review): a heading glued to the end of a paragraph is an article only when a
-  body follows it, and never in a paragraph quoted by the act or set in a table cell
-  (no «phantom» article); the regex of an old Official Journal title is linear on
-  long runs of blanks. On 23 whole pages and fixtures, 1325 of 1325 article texts,
-  the trees, the rubriche and the titles are unchanged.
-- **VisuaLex re-pinned to `02ebc80a`** (its #342 and #343, and the review of #279):
-  - EUR-Lex: on a legacy class-less Official Journal page a heading glued to the
-    end of the paragraph before it («… della prescrizione. Articolo 11») is read
-    as the next article's. Dir. 85/374's art. 11 was «non trovato» and its text was
-    served at the end of art. 10; both are right now, and the act's index has 22
-    articles. Old Official Journal titles (85/374, 64/221) are read. On whole pages
-    (GDPR, AI Act, TFUE, OJ and consolidated, 85/374) and every fixture, 1207 of
-    1209 article texts are unchanged; the two that change are 85/374's art. 10 and 11.
-  - `upcoming` carries `versions_between: n` when other versions not in force yet
-    come before the one Normattiva shows; `versione="futura"` with a day before the
-    latest of them is `verifica_non_disponibile` («Non so dire quale versione …»).
-  - «cod post telecom», without dots, is the codice postale (as «cod. post. telecom.»).
-- **EUR-Lex readers re-pinned to VisuaLex `b2f7a30f`** (its PRs up to #312): a heading
-  «Articolo 15 bis» no longer answers a request for art. 15 on any markup, «Articolo
-  15 bisTesto» included, and the article opens in any spelling («15 bis», «15-bis»,
-  «15bis»). A heading an amending act quotes (in a table cell, or opening with «)
-  is never one of its articles, in the text, the index and the rubriche. The
-  consolidated-text regexes are linear on long runs of blanks, and the title comes
-  from the Italian ELI metadata of a legacy page and from `title-doc-first` of the
-  consolidated GDPR. The checks this package kept in its wrapper for these cases are
-  gone: VisuaLex's reader does the same. The article texts of the GDPR, the AI Act
-  and the TFUE are unchanged.
 - **EU article text: VisuaLex's reader, from CELLAR, one page per act.** The text
   of an article of an EU act is read by VisuaLex's extractor
-  (`lib/visualex/eurlex_text.py`, `eurlex_scraper.py` at `493a8dd1`), whose text is
-  frozen. Before the switch, the two readers were compared on every article of the
+  (`lib/visualex/eurlex_text.py`, `eurlex_scraper.py`, first imported at
+  `493a8dd1`), whose text is frozen. Before the switch, the two readers were compared on every article of the
   GDPR, the AI Act, directive 2002/58 and the TFUE: 591 of 591 identical, so the
   Official Journal texts served do not change. VisuaLex reads EUR-Lex through a
   browser; a serial A/B check showed CELLAR's copy gives the same bytes, so no
@@ -792,40 +428,70 @@ entry, it is the same feature as ported to the 3.0 line.
   the cache audit): one request serves every article of an act. An empty or error
   page is not kept. On an Official Journal page, art. 15 is not served art. 15-bis
   when the act has no art. 15 (a check outside the imported code).
+- **VisuaLex's readers re-pinned, one component at a time.** Each imported file
+  names the VisuaLex commit it comes from in its header.
+  - **EUR-Lex readers**, first imported at `493a8dd1`, then re-pinned to
+    `36ed6942`, `b2f7a30f`, `02ebc80a` and `d067f710`:
+    - a heading «Articolo 15 bis» no longer answers a request for art. 15 on any
+      markup, «Articolo 15 bisTesto» included, and the article opens in any
+      spelling («15 bis», «15-bis», «15bis»);
+    - a heading an amending act quotes (in a table cell, or opening with «) is
+      never one of its articles, in the text, the index and the rubriche;
+    - on a legacy class-less Official Journal page, a heading glued to the end of
+      the paragraph before it («… della prescrizione. Articolo 11») is read as the
+      next article's when a body follows it, and never in a quoted paragraph or a
+      table cell (no «phantom» article). Dir. 85/374's art. 11 was «non trovato»
+      and its text was served at the end of art. 10; both are right now, and the
+      act's index has 22 articles;
+    - old Official Journal titles (85/374, 64/221) are read; the title comes from
+      the Italian ELI metadata of a legacy page and from `title-doc-first` of the
+      consolidated GDPR;
+    - the consolidated-text regexes and the old title regex are linear on long
+      runs of blanks;
+    - the checks this package kept in its wrapper for these cases are gone:
+      VisuaLex's reader does the same.
+
+    Checked on whole pages (GDPR, AI Act, TFUE, Official Journal and
+    consolidated, 85/374) and every fixture: apart from 85/374's art. 10 and 11,
+    the article texts, the trees, the rubriche and the titles are unchanged.
+  - **Validity reader, codes table and sources golden**, re-pinned to
+    `4aa59a9d`, `f47ac1b6` and `02ebc80a`:
+    - `normattiva_validity` gains the later-text helpers and compares the page's
+      article label as the tree does («135 sex decies» is «135-sexdecies»); an
+      unreadable date, or a date with «originale», is refused before any request;
+    - `upcoming` carries `versions_between: n` when other versions not in force
+      yet come before the one Normattiva shows; `versione="futura"` with a day
+      before the latest of them is `verifica_non_disponibile` («Non so dire quale
+      versione …»);
+    - the codes approved as an annex of their decree (codice del turismo, norme di
+      attuazione del c.p.p., navigazione marittima, codici penali militari) and the
+      acts whose articles are their annex 1 (TULPS, c.p.p. minorile, TU
+      successioni, and the legge fallimentare, r.d. 267/1942, `;267:1`; VisuaLex's
+      `ANNEXED_ACTS`) are filed in `norma_data` with their part (`allegato` `"1"`,
+      `"2"` for the codice penale militare di guerra), as VisuaLex files them; the
+      provisional `allegato=None` for them is gone;
+    - «cod post telecom», without dots, is the codice postale (as «cod. post.
+      telecom.»);
+    - the divergences the 3.0 line kept until VisuaLex followed (a date always the
+      text in force on it; the text in force today when the undated page is a
+      later one) are closed;
+    - the new rows of VisuaLex's source convention match the identities built
+      here, and VisuaLex's validity tests are imported.
+  - **Akoma Ntoso parser, suffix table and tree reader**, re-pinned to
+    `0f1477c2`. The parser takes VisuaLex's linear patterns, the rubriche an
+    amendment wrote without brackets and `comparable_article_key`: a suffix
+    written in two words is keyed as the act writes it again («135-sex-decies»,
+    as VisuaLex answers it) and joined only to compare, so «135 sex decies» and
+    «135-sexdecies» are one article in the tree and in the «elsewhere in the act»
+    check. The tree also reads the links an annex writes «art 1», without the dot
+    (d.lgs. 36/2023, Allegato I.4), which it used to drop. The cached exports are
+    read again once (cache schema 5). VisuaLex's tests for these pieces are
+    imported with their fixtures.
 - **Python 3.11 or later.** The article-number patterns now imported from
   VisuaLex use possessive quantifiers, which Python's `re` reads only from
   3.11. `requires-python`, the two manifests, `install.py`, the CI matrix
   (3.11 and 3.12 × FastMCP 3 and 4) and the docs say so; the package declares
   its Python classifiers. The plugin and the Docker image already run 3.12.
-- **VisuaLex's codes table, validity reader and sources golden re-pinned to
-  `f47ac1b6`** (its PRs #310 and #337, after `4aa59a9d`). The legge fallimentare
-  joins the acts whose text is their annex 1 (r.d. 267/1942, `;267:1`); the
-  validity reader gains VisuaLex's refusal of a date with «originale», which this
-  API already refused. The 13 new rows of VisuaLex's source convention match the
-  identities built here.
-- **VisuaLex's validity reader and codes table re-pinned to `4aa59a9d`** (its PRs
-  #274, #276, #277, #279). `normattiva_validity` gains the later-text helpers and
-  compares the page's article label as the tree does («135 sex decies» is
-  «135-sexdecies»), and an unreadable date is refused before any request. The
-  codes approved as an annex of their decree (codice del turismo, norme di
-  attuazione del c.p.p., navigazione marittima, codici penali militari) and the
-  acts whose articles are their annex 1 (TULPS, c.p.p. minorile, TU successioni;
-  VisuaLex's `ANNEXED_ACTS`) are filed in `norma_data` with their part
-  (`allegato` `"1"`, `"2"` for the codice penale militare di guerra), as VisuaLex
-  files them now; the provisional `allegato=None` for them is gone. The
-  divergences the 3.0 line kept until VisuaLex followed (a date always the text
-  in force on it; the text in force today when the undated page is a later one)
-  are closed. VisuaLex's sources golden and its validity tests are re-pinned.
-- **VisuaLex's parser, suffix table and tree reader re-pinned to `0f1477c2`.**
-  The Akoma Ntoso parser takes VisuaLex's linear patterns, the rubriche an
-  amendment wrote without brackets and `comparable_article_key`: a suffix
-  written in two words is keyed as the act writes it again («135-sex-decies»,
-  as VisuaLex answers it) and joined only to compare, so «135 sex decies» and
-  «135-sexdecies» are one article in the tree and in the «elsewhere in the act»
-  check. The tree also reads the links an annex writes «art 1», without the dot
-  (d.lgs. 36/2023, Allegato I.4), which it used to drop. The cached exports are
-  read again once (cache schema 5). VisuaLex's tests for these pieces are
-  imported with their fixtures.
 - **The August suspension says when it moved a deadline, and what it does not
   cover (decision LI-042).** When the suspension changed the result, the nine
   deadline tools that apply it (`scadenza_processuale`,
@@ -867,11 +533,12 @@ entry, it is the same feature as ported to the 3.0 line.
   escape for sources no tool covers, a stdlib fallback reader if the server's
   code does not import; about 0.25 s on a 40 MB transcript.
 - **Tool tags follow one taxonomy, and some desktop profiles change.** Every
-  tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (24),
-  `autorita` (6), `registri` (5), `calcolo` (141), `redazione` (30),
+  tool now carries exactly one *kind* — `normativa` (19), `giurisprudenza` (27),
+  `autorita` (9), `registri` (5), `calcolo` (141), `redazione` (30),
   `diagnostica` (3) — plus, for case law, its court (`giurisprudenza_cass`,
   `giurisprudenza_cost`, `giurisprudenza_trib`, `giurisprudenza_amm`,
-  `giurisprudenza_ue`) and, for an authority, `garante` or `consob`. The
+  `giurisprudenza_ue`, `giurisprudenza_conti`) and, for an authority, `garante`,
+  `consob` or `anac`. The
   vocabulary is data (`mcp_legal_it/tool_taxonomy.py`), the table is
   `docs/tool-tags.md`, and `tests/unit/test_tool_taxonomy.py` fails on a tool
   without a kind or with a tag outside the vocabulary. Renamed or moved tags:
@@ -884,20 +551,23 @@ entry, it is the same feature as ported to the 3.0 line.
   tags must update them.
 
   `LEGAL_PROFILE` now names kinds and areas, and every profile carries
-  `diagnostica`. Tool counts, before → after:
+  `diagnostica`. Tools per profile in 3.0, and what the taxonomy changed:
 
-  | Profile | Before | After | What changed |
-  |---|---|---|---|
-  | `full` | 228 | 228 | — |
-  | `sinistro` | 81 | 79 | − TMview (3), + `stato_server` |
-  | `credito` | 91 | 89 | − TMview (3), + `stato_server` |
-  | `penale` | 53 | 51 | − TMview (3), + `stato_server` |
-  | `fiscale` | 66 | 66 | — |
-  | `normativa` | 69 | 70 | + `stato_server` (TMview kept through `registri`) |
-  | `privacy` | 66 | 64 | − TMview (3), + `stato_server`; Garante kept (now named by `garante`) |
-  | `studio` | 73 | 76 | + `stato_server`, `verbale_mensile`, `backlog_riconciliazione` |
-  | `redattore` | 86 | 76 | − TAR/CdS (4), CGUE (4), TMview (3), + `stato_server` |
-  | `cowork` | 79 | 77 | − TMview (3), + `stato_server` |
+  | Profile | Tools | What the taxonomy changed |
+  |---|---|---|
+  | `full` | 234 | — |
+  | `sinistro` | 82 | − TMview (3), + `stato_server` |
+  | `credito` | 92 | − TMview (3), + `stato_server` |
+  | `penale` | 54 | − TMview (3), + `stato_server` |
+  | `fiscale` | 66 | — |
+  | `normativa` | 76 | + `stato_server` (TMview kept through `registri`) |
+  | `privacy` | 67 | − TMview (3), + `stato_server`; Garante kept (now named by `garante`) |
+  | `studio` | 76 | + `stato_server`, `verbale_mensile`, `backlog_riconciliazione` |
+  | `redattore` | 76 | − TAR/CdS (4), CGUE (4), TMview (3), + `stato_server` |
+  | `cowork` | 80 | − TMview (3), + `stato_server` |
+  | `calcoli` | 144 | new: the calculators and the diagnostics, none online (see Fixed, #76) |
+
+  The other differences from 2.x are the tools added since (ANAC, Corte dei conti).
 
   The tools that leave a profile were in it only by the stray `normativa` tag:
   trademarks are not a subject of any profile except the all-sources
@@ -932,42 +602,53 @@ entry, it is the same feature as ported to the 3.0 line.
   script in the plugin zip or the `.mcpb`, no `server/.venv`, and the
   claude.ai web-skills zips are built into `dist/web-skills/` and released as
   one asset instead of living in the plugin folder.
-- `/release` is maintainer-only: it leaves `content/commands/` for
-  `.claude/commands/` (the plugin ships 9 slash commands). Command
-  `allowed-tools` now list each MCP tool under both prefixes, the manual
-  `mcp__legal-it__` and the plugin's `mcp__plugin_legal-it_legal-it__`:
-  `command_tool_namespace` in `content/targets.yaml` accepts a list.
+- The generated slash commands list each MCP tool under both prefixes, the manual
+  `mcp__legal-it__` and the plugin's `mcp__plugin_legal-it_legal-it__`, as 2.16.1's
+  hand-written ones do: `command_tool_namespace` in `content/targets.yaml` accepts a list.
 - `termini_separazione_divorzio`: the 6/12-month separation period before
   divorce is no longer extended under art. 155 c.p.c. when it ends on a
-  Saturday or a holiday. It is a minimum duration, not a deadline for an act
-  (owner's legal reading). Example: 12 months from 15/03/2025 now end on
+  Saturday or a holiday. It is a minimum duration, not a deadline for an act.
+  Example: 12 months from 15/03/2025 now end on
   Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
-- CI also verifies the release tarball on every push and on every tag
-  (`tarball-sync` job): `scripts/verify_tarball.py` compares `git archive` of
-  the revision against the tree itself and fails when something forbidden
-  (`/src`, `/tests`, any symlink) is inside, or when a tracked non-ignored
-  file is missing -- the same two directions the marketplace sandbox enforces
-  as `failed_content`, checked before the backend can see the release.
-- Grounding rules normalized: the six agent skills carried seven diverging
-  restatements of the same Legal Grounding rule -- they now share one
-  canonical wording. The server's OUTPUT convention adds the provenance
-  clause (`dati_applicati` with their vintage, `mcp-legal-it/fonti_consultate`
-  from `_meta`), so every host surfaces where an answer's numbers come from.
 
 ### Security
 - **The FastMCP floor excludes the vulnerable releases.** Every declaration now asks for
   `fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5` (library installs: `pyproject.toml`,
   `plugin/server/pyproject.toml` and the plugin lock's metadata) or `fastmcp>=3.4.11,<4`
-  (the `.mcpb` and the OpenAI bundle's launcher). Before, `>=3.4` still admitted 3.0–3.4.9
-  and 4.0–4.1.1, affected by GHSA-7xgj-8392-5q4r and, on 4.x, GHSA-vqqp-x5qm-5qp4.
-  Today's installs already resolved 3.4.11 (lock) and the latest 4.x. The floor now holds
-  that against an older cache or a pinned environment. `scripts/check_deps_sync.py` checks
-  the new ranges. The `.mcpb` launcher string changes, so Claude Desktop rebuilds its `uv`
-  environment once on the first start of 3.0.
-- **fastmcp 3.4.11 in the plugin's lock** (was 3.4.9): GHSA-7xgj-8392-5q4r,
-  «post-transform component authorization is skipped on direct calls»
-  (medium, published 2026-10-23, fixed in 3.4.10). Same major; the declared range
-  `fastmcp>=3.4,<5` is unchanged.
+  (the `.mcpb` and the OpenAI bundle's launcher, whose floor was 2.0 on the 2.x line).
+  Before, `>=3.4` still admitted 3.0–3.4.9 and 4.0–4.1.1, affected by
+  GHSA-7xgj-8392-5q4r («post-transform component authorization is skipped on direct
+  calls», medium, fixed in 3.4.10) and, on 4.x, GHSA-vqqp-x5qm-5qp4. The plugin's lock
+  resolves 3.4.11 (it was 3.4.9). The floor now holds that against an older cache or a
+  pinned environment. `scripts/check_deps_sync.py` checks the new ranges. The `.mcpb`
+  launcher string changes, so Claude Desktop rebuilds its `uv` environment once on the
+  first start of 3.0.
+- `certifi` 2026.10.19 in the plugin lock (2026.10.18 is affected by
+  PYSEC-2026-4320).
+- **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
+  caller and was fetched as is: on the HTTP transport any client could read
+  pages reachable from the server (localhost, cloud metadata, intranet). Only
+  `http(s)://publications.europa.eu/resource/...` is accepted now, refused as
+  `bad_input` before any request.
+- **Italgiure over verified TLS.** The server sends the wrong intermediate
+  certificates, so the client ran with `verify=False`. The missing one ("TI
+  Trust Technologies OV CA", signed by the USERTrust RSA root in certifi) ships
+  in `lib/italgiure/ti_trust_ov_ca.crt`, is checked against its SHA-256 pin every
+  time the TLS context is built, as VisuaLex does (a file swapped inside an
+  installed package is refused instead of trusted), and is added to certifi's
+  roots. A test fails if `verify=False` appears anywhere in the package, and
+  raises a renewal alarm 180 days before the intermediate expires (2029-07-29).
+- `lib/_egress.is_allowed` refuses a backslash, a control character,
+  credentials and any scheme but http(s), the URLs that a browser and Python
+  read as different hosts.
+- **Generated documents are private.** Procure, quotazioni, atti, supplier
+  reports and law PDFs are saved to `<tempdir>/mcp-legal-it` created 0700 (on
+  Linux it was a world-readable `/tmp/mcp-legal-it`); a symlink or a folder
+  owned by another user is refused. `esporta_atto_docx` used a hard-coded
+  `/tmp` instead of the temp dir.
+- The Docker image runs as an unprivileged user (uid 10001). An `mcp-cache`
+  volume created by an older image is root-owned: chown or recreate it, or the
+  server runs without the disk cache.
 
 ### Fixed
 - **The citation gate checks the comma of an article read in parts.** An article
@@ -1149,10 +830,6 @@ entry, it is the same feature as ported to the 3.0 line.
   of `;267~art1` is the approving decree's, so the law's art. 1 came only from
   the Akoma Ntoso export (indicative, four requests). The URN is now
   `;267:1~artN` and `norma_data.allegato` `"1"`, as VisuaLex files it.
-- **`python -m mcp_legal_it` refuses an unknown `LEGAL_PROFILE` without a
-  traceback**, like the console script; the encoding guard of the package also
-  sees `io.open`, `codecs.open`, an `open` under another name and
-  `encoding=None` (#76 review).
 - **ANAC: linee guida and bandi tipo are no longer looked up by number and
   year.** Their titles carry the number without a date («Linee guida n. 4»), so
   the lookup mostly answered «not found»: `leggi_atto_anac` now says to search
@@ -1165,13 +842,15 @@ entry, it is the same feature as ported to the 3.0 line.
   linked to an interpreter it cannot reach, and `--no-sync` then leaves it
   empty under the running server ("No module named ..."). The hook now runs
   on uv's Python 3.12 with `--no-project`: the gate and its reader need only
-  the standard library. `check_directory_readiness.py` accepts a bare
+  the standard library, so a fresh plugin no longer installs the server's
+  packages for the hook. `check_directory_readiness.py` accepts a bare
   `uv run --no-project`, which installs nothing.
 - **An unknown `LEGAL_PROFILE` refuses to start; `calcoli` exists** (#76). A
   name that is not a profile fell back to `full` in silence: asking for the
   offline `calcoli` profile (documented in 2.x, never defined) exposed every
   tool, the online ones included. The server now stops with an error listing the
-  valid profiles (the console script prints it without a traceback), and
+  valid profiles (the console script and `python -m mcp_legal_it` print it
+  without a traceback), and
   `calcoli` exposes the 144 calculators and diagnostics, none of which goes
   online (a test checks the policy's sources and open-world hints). A blank
   value is still `full`.
@@ -1180,14 +859,15 @@ entry, it is the same feature as ported to the 3.0 line.
   `legal://` resources) named no encoding, so Python used the locale's: cp1252 on
   Windows, where the server failed at start with a `UnicodeDecodeError`. Every one
   says `encoding="utf-8"` now; a test scans the package for text I/O without an
-  encoding and another imports the server with `-X warn_default_encoding`, so the
-  mistake cannot come back.
-- **Installing from git works on Windows** (#76). The 2.x root held `src` as a
-  symlink to the package: on Windows, without `core.symlinks`, git checks it
-  out as a text file and `pip install git+https://…` built a wheel with no code.
-  The 3.0 package is found under `plugin/server` with no link (a wheel built
-  from the repository root ships the whole `mcp_legal_it`), and a test now fails
-  if git ever tracks a symlink again.
+  encoding (also `io.open`, `codecs.open`, an `open` under another name and
+  `encoding=None`) and another imports the server with `-X warn_default_encoding`,
+  so the mistake cannot come back.
+- **Installing from git works on Windows** (#76). On Windows, without
+  `core.symlinks`, git checked out the 2.x root's `src` symlink as a text file,
+  and `pip install git+https://…` built a wheel with no code. The link is gone
+  with the package rename (see Changed): a wheel built from the repository root
+  ships the whole `mcp_legal_it`, and a test fails if git ever tracks a symlink
+  again.
 - **An EU article the text in force no longer has says so.** Without a date an EU
   act is read from its latest consolidation, and an article a later act repealed
   is not in it: art. 1 of dir. 2009/136 is not in 02009L0136-20201221. The answer
@@ -1225,8 +905,12 @@ entry, it is the same feature as ported to the 3.0 line.
   portal refused the request, not that it is unreachable, and no error repeats
   the request URL (a 5xx is still the source down). Same rules in
   `giurisprudenza_amm_su_norma`, `cerca_giurisprudenza_unificata` and
-  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`).
-- **An EU regulation or directive is served in its text in force** (issue #50).
+  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`). A 429, or a
+  pause the portal asks for, reads «troppe richieste: riprovare tra qualche
+  minuto», not «non raggiungibile» (the api outcome is unchanged); reading a
+  provvedimento never talks about a query's syntax, not even when the search
+  page it opens first is refused.
+- **An EU regulation or directive is served in its text in force** (#50).
   `cite_law("art. 111 Regolamento UE 2024/1689")` served the Official Journal text
   of 12.7.2024, while Reg. (UE) 2026/1744 had rewritten par. 2 and added par. 4.
   Without a date, an EU act is now read from its latest consolidation when that
@@ -1254,11 +938,6 @@ entry, it is the same feature as ported to the 3.0 line.
   announced in `upcoming` and an `avviso`. The lookup waits at most 12 s, never
   retries, and remembers a failure for five minutes. Treaties, recitals and annexes
   are not looked up.
-  `api.cerca_decisioni_amministrative` (`richiesta_non_valida`). A 429, or a
-  pause the portal asks for, reads «troppe richieste: riprovare tra qualche
-  minuto», not «non raggiungibile» (the api outcome is unchanged); reading a
-  provvedimento never talks about a query's syntax, not even when the search
-  page it opens first is refused.
 - **An article an EU amending act quotes is no longer served as the act's own.**
   Dir. 2009/136/CE rewrites articles of dir. 2002/22/CE and quotes each one inside
   its art. 1. «art. 23 dir. 2009/136» was served art. 23 of dir. 2002/22 as amended,
@@ -1268,7 +947,7 @@ entry, it is the same feature as ported to the 3.0 line.
   lines are not the own heading and the line after it is refused. On the legacy
   class-less page the first heading naming the article decides (a «-heading is
   skipped): inside a table cell it is a quotation. VisuaLex's reader does the same
-  since `b2f7a30f` (its #312), which the 3.0 line imports.
+  since `b2f7a30f`, which the 3.0 line imports.
 - **An act cited with the year only takes its full date from its own page's
   title.** The full date of «d.lgs. 36/2023» is read from the title of the page
   already fetched (VisuaLex's `date_from_title`, imported), and only when the
@@ -1321,12 +1000,6 @@ entry, it is the same feature as ported to the 3.0 line.
   36/2023" answers with `;36:8~art30` (the act's URN before) and, on the HTML
   channel, that page's text. "art. 120 d.lgs. 104/2010" is read from the
   code's own page, `;104:2~art120`, instead of the export.
-- Italgiure's bundled intermediate certificate is checked against its SHA-256
-  pin every time the TLS context is built, as VisuaLex does: a file swapped
-  inside an installed package is refused instead of trusted (the pin was
-  checked only by a test). `lib/_egress.is_allowed` refuses a backslash, a
-  control character, credentials and any scheme but http(s), the URLs that a
-  browser and Python read as different hosts.
 - **Appellee's deadline: 20 days before the hearing, not 70 (decision LI-040).**
   `termini_deposito_atti_appello` computed the comparsa of the appellee (and so
   the cross-appeal deadline, a decadenza under art. 343 c.p.c.) 70 days before
@@ -1386,21 +1059,14 @@ entry, it is the same feature as ported to the 3.0 line.
   now parsed like the article-first one; a reference naming an article that
   cannot be told apart from the act is refused with the expected-format error.
   Shared by every tool that uses the reference parser.
-- **Italgiure over verified TLS.** The server sends the wrong intermediate
-  certificates, so the client ran with `verify=False`. The missing one ("TI
-  Trust Technologies OV CA", signed by the USERTrust RSA root in certifi) ships
-  in `lib/italgiure/ti_trust_ov_ca.crt` and is added to certifi's roots; a test
-  fails if `verify=False` appears anywhere in the package, and raises a renewal
-  alarm 180 days before the intermediate expires (2029-07-29).
-- `.mcpb` and the OpenAI config pin `fastmcp>=3.4,<4` (the floor was 2.0, older
-  than the FastMCP the server needs). The change rebuilds the extension's uv
-  environment once, on the first start of 3.0.
 - **`verifica_citazioni` and other courts.** "Corte cost. n. 238/2014" and
   "Cons. St. n. 1/2020" were looked up on Italgiure as Cassazione and reported
   "inesistente". Corte costituzionale decisions are now checked on the Court's
   archive; Consiglio di Stato, TAR, CGUE, Corte dei conti, Corte EDU, tax and
   merits courts (giudice di pace included, in any case) are "non verificabile",
-  with the tool to search them.
+  with the tool to search them where there is one (for the Corte dei conti,
+  `cerca_deliberazioni_corte_conti`, which covers only the deliberazioni of its
+  control sections).
 - **A range of articles is refused.** "art. 3-5 c.c." (also "3 - 5", "3–5",
   "artt. 3-5") became `~art35`: the
   library API returned the URN of art. 35 as "trovato". `cite_law`,
@@ -1425,16 +1091,6 @@ entry, it is the same feature as ported to the 3.0 line.
   also through the AKN export, which bundles both), "disp. att. c.p.p." and
   "att. c.p.p."; the all-caps "ART. 3" head (codice del turismo) is read as the
   served article.
-- **`leggi_sentenza_cgue` fetches only CELLAR.** The `cellar_uri` came from the
-  caller and was fetched as is: on the HTTP transport any client could read
-  pages reachable from the server (localhost, cloud metadata, intranet). Only
-  `http(s)://publications.europa.eu/resource/...` is accepted now, refused as
-  `bad_input` before any request.
-- **Generated documents are private.** Procure, quotazioni, atti, supplier
-  reports and law PDFs are saved to `<tempdir>/mcp-legal-it` created 0700 (on
-  Linux it was a world-readable `/tmp/mcp-legal-it`); a symlink or a folder
-  owned by another user is refused. `esporta_atto_docx` used a hard-coded
-  `/tmp` instead of the temp dir.
 - `esporta_atto_docx`: numbered lists keep the typed numbers (1, 2 / 1, 2 / 10
   instead of 1..5), `**`/`*` in headings and `***x***` no longer leak
   asterisks, the title heads every page.
@@ -1445,16 +1101,15 @@ entry, it is the same feature as ported to the 3.0 line.
 - `genera_procura_liti_docx` cites "Regolamento (UE) 2016/679";
   `indice_documenti` returns an error for non-numeric or negative pages
   instead of raising.
+- `orientamento_su_norma` orders sections with equal counts by section code;
+  it followed the hash-seed order of a set, so two runs could disagree.
 - Importing `mcp_legal_it.tools.legal_citations` first no longer fails on a
   circular import (library callers, single test files).
-- Distribution: the citation-gate hook starts with `uv run --no-sync` (it
-  installed the server's 76 packages on a fresh plugin); the plugin zip and the
-  `.mcpb` no longer ship `*.egg-info`, `.DS_Store` or key files from the
-  checkout; wheel and sdist carry `LICENSES/Apache-2.0.txt`, which NOTICE
-  refers to; the Docker image runs as an unprivileged user (an `mcp-cache`
-  volume created by an older image is root-owned: chown or recreate it, or the
-  server runs without the disk cache); `scripts/corpus/extract_references.py`
-  explains that the migration is done instead of crashing.
+- Distribution: the plugin zip and the `.mcpb` no longer ship `*.egg-info`,
+  `.DS_Store` or key files from the checkout; wheel and sdist carry
+  `LICENSES/Apache-2.0.txt`, which NOTICE refers to;
+  `scripts/corpus/extract_references.py` explains that the migration is done
+  instead of crashing.
 - Live gates realigned with their sources: CeRDEF unknown GUID is `not_found`,
   INPS reworded the ex-ENPALS split, Normattiva alternates "è"/"e'", a stale
   data path left by the package rename.
@@ -1465,168 +1120,6 @@ entry, it is the same feature as ported to the 3.0 line.
   now `tipo='opposizione_atti_esecutivi'`. The old name `opposizione_esecuzione`,
   which read as art. 615, is removed: it now returns an error listing the
   accepted values.
-- CeRDEF (giurisprudenza tributaria) works again and a failure of the source
-  no longer reads as "no results" (#46). The portal changed its advanced
-  search form and its XML: it answered every request of the old client with
-  an HTTP 200 error page ("Ambito di ricerca non valido"), which the client
-  read as zero results, so `ultime_sentenze_tributarie` reported "nessuna
-  sentenza" to every call (and the weekly digest dropped the tax section),
-  `cerca_giurisprudenza_tributaria` found nothing on any query, and
-  `cerdef_leggi_provvedimento` returned an empty text as a success. The
-  client now posts the current form (field names and option values verified
-  against the live form by a unit test on a saved copy and by a live test),
-  reads the new result and detail XML, follows the portal's own paginator,
-  decodes the portal's JS escapes (`\à`, `\'`, `\u200B`) and keeps every
-  cited norm inside its sentence (the portal links each citation, which used
-  to split the text at every one of them). An error page,
-  an unrecognised payload (a result list or a detail without the elements the
-  client reads) or an empty list the portal's own counter does not confirm
-  raises a `source_error` that every tool renders as `**Errore**` (the unified
-  search labels it "errore", not "0 risultati"); an unknown filter is refused
-  before any request; an unknown GUID is reported as such, not as the source
-  being unreachable.
-- `ultime_sentenze_tributarie` covers the decisions issued in the last twelve
-  months (by issue date: CeRDEF exposes no publication date): the portal
-  refuses a search without criteria, and ordering a whole CGT group by date
-  takes 20-100 seconds. `ente="cgt_primo_grado"` is served by the group of all
-  tax courts filtered client-side (the portal has no first-instance group), so
-  `cerca_giurisprudenza_tributaria` requires `data_da` with it; the filter
-  reads at most 250 items and, when it stops with items left unread, says so
-  instead of reporting fewer results (or none) as if they were all. The
-  `codice` criterion no longer exists on the portal; `parole_adiacenti` and
-  `operatori_logici` are new.
-- Two of the reconciled tables re-read against the primary source
-  (2026-09-20). `violazioni_patente`: generic failure to yield is art. 145
-  c.10 (5 points; the stop line, c.5, keeps its 6), safety distance and
-  wrong-way driving now rest on their base commi (art. 149 c.4: 3, art. 143
-  c.11: 4) with the aggravated cases as separate keys
-  (`distanza_sicurezza_collisione` 5, `distanza_sicurezza_lesioni` 8,
-  `contromano_curve_dossi` 10), hit-and-run split into injuries (art. 189
-  c.6: 10) and damage to things only (`fuga_incidente_cose`, c.5: 4).
-  `contributo_unificato`: sourced from art. 13 DPR 115/2002 on Normattiva
-  instead of a secondary table; adds the fixed 168 for oppositions to
-  enforcement acts (c.2), the three public-contract tiers up to 6.000 above
-  1 M (c.6-bis lett. d), the 1.800 abbreviated rite, the 300 for citizenship
-  and residence cases, and the Consiglio di Stato amounts raised by half
-  (art. 1 c.27 L. 228/2012); the note records that the labour-court
-  exemption only covers parties under twice the art. 76 threshold.
-- Data refresh: FOI index for August 2026 (ISTAT, 16-09-2026: 103,7 in base
-  2025=100 → 125,9 linked to 2015=100; official variations +3,4% / +4,8%,
-  recorded without a Gazzetta reference until the comunicato is published).
-  Verified against the sources on 2026-09-20: TEGM Q3 2026 (DM 23-06-2026,
-  GU n.149; the Q4 decree is not out yet), late-payment rate H2 2026 10,40%
-  (MRO 2,40% + 8, GU n.163 of 16-07-2026), legal rate 2026 1,60% (DM
-  10-12-2025, GU n.289), IRPEF 2026 brackets 23/33/43 (L. 199/2025).
-- Brocardi annotations for every act that is not a codice. `find_brocardi_url`
-  matched the act name as a substring of the table labels, so a resolved
-  `("decreto legislativo", 2001-06-08, 231)` never found `"(D.lgs. 8 giugno
-  2001, n. 231)"` (46 of the 100 Brocardi sources had no page) and every
-  `legge` fell into the first label containing the word — `art. 18 Statuto
-  dei lavoratori` returned the massime of art. 18 legge fallimentare, legge
-  Gelli those of L. 241/1990, legge Pinto those of the divorce law (13 wrong
-  pages). The table labels are now parsed once into the identity (tipo,
-  anno, numero) — `parse_brocardi_estremi` — and a citation matches only its
-  own identity, by name for the labels without extremes (Costituzione,
-  Preleggi, CCNL); a citation without a year matches only when the number is
-  unique for that tipo; a Brocardi name paired with extremes resolves only
-  if they are its own, and explicit extremes that contradict a codice's URN
-  name the act themselves (`codice dei contratti pubblici` + 50/2016 is the
-  abrogated code). The act date now travels from the resolver to the
-  Brocardi client at every call site (`fetch_brocardi(..., data=)` from
-  `cite_law`, `cerca_brocardi`, `fetch_law_annotations`, `mappa_orientamento`,
-  `giurisprudenza_articolo`; `fetch_annotations`), which is what tells
-  D.lgs. 81/2008 from D.lgs. 81/2015. No substring fallback remains: an act
-  that is not on Brocardi says so. 97/101 of the sources listed at
-  brocardi.it/fonti.html now resolve by name (was 35).
-- Brocardi table completed against the fonti index: disposizioni di
-  attuazione c.p.p. (D.lgs. 271/1989) and the abrogated codice dei contratti
-  pubblici (D.lgs. 50/2016, reachable only by explicit citation — the name
-  still resolves to D.lgs. 36/2023); D.L. 18/2020 "Cura Italia" reaches the
-  page Brocardi files under its conversion law; the TU maternità label
-  carries its estremi (D.lgs. 151/2001). Resolver aliases for the GDPR's full
-  name, disp. att. c.p.p., and the quoted nicknames `Decreto "Sostegni"` etc.
-  `scripts/generate_atti_denominati.py` reuses the same parser. New live gate
-  `tests/unit/test_brocardi_codici_live.py` fetches every table URL and diffs
-  the table against the fonti index.
-- Data refresh (issue #36): FOI index for July 2026 (ISTAT, 12-08-2026: 103,1
-  in base 2025=100 → 125,2 linked to 2015=100; official variations +2,8% /
-  +4,3%) and the Gazzetta references for the June and July comunicati, both
-  in GU n.201 of 31-08-2026 (26A04494, 26A04495). Art. 139 CAP
-  micropermanenti amounts revalued by DM MIMIT 20 July 2026 (GU n.173 of
-  28-07-2026, cod. 26A03765): first-point value €988,45, ITT €57,64/day,
-  +2,6% on the April 2026 FOI, applying from April 2026 (`_vintage` now
-  carries `aggiornato_al`; `docs/strumenti.md` follows). Shipped on the stable
-  2.x line in v2.13.1.
-- `scripts/refresh_data.py`: the monthly FOI append matched the first
-  `"<year>": {` of the file, which since the 2025=100 rebasing belongs to
-  `indici_base_2025`; the safety check refused the rewrite every month and
-  the September cron opened issue #36 instead of a PR. The append is now
-  anchored to its block, mirrors the published base-2025 value and moves
-  `_vintage.copre_fino_a` (the one field it rewrites; the dead `_note`
-  stamp is gone); the rewrite must equal the original plus exactly those
-  edits.
-- A helper module in `src/lib/` was classified as an *upstream service*.
-  `upstream_clients()` returns `src/lib/<name>` unless the name is declared an
-  in-process helper, and the ledger's own `_tables_open` was not. The 71 tools
-  that import it (70 read-only calculations and one document generator) were
-  counted as reaching an upstream service: the 70 moved into the report's
-  "external" column and the page's open-world count went from 50 to 121, while
-  every annotation stayed correct
-  (`openWorldHint` reads the call graph instead and never saw the module as a
-  client). Two readers of the same tree disagreed and nothing failed, which is
-  the part worth fixing: `_ledger` and `_tables_open` are declared now, and a new
-  `verify_lib_modules` check fails on any module under `src/lib` that is declared
-  neither way -- a module is an in-process helper, a package is a client -- with
-  `tests/unit/test_tool_annotations.py` sabotaging both directions.
-- The call graph had no edge for a function handed over as a *value*.
-  `_get_fonti()` in `giurisprudenza_unificata.py` returns a dict of the four
-  jurisprudence implementations and the caller calls through it, so there was no
-  `Call` node to follow and the walk stopped at the dispatch table.
-  `cerca_giurisprudenza_unificata` searches Italgiure, CeRDEF, Giustizia
-  Amministrativa and CGUE, and was annotated read-only *and* local -- which is
-  what a host pre-approves without a click, and what a reviewer reads as "a pure
-  lookup". A bare reference to an imported function now counts as an edge;
-  exactly one tool changes classification (read-only local 168 -> 167, open world
-  49 -> 50) and nothing else moves: no table attribution, no write, no cache.
-  The same blind path was also the last live value in the pinned fixture -- the
-  tool answered from the network, so its recorded expectation drifted with the
-  Cassazione archive (the refinement count moved 3866 -> 3863 between two runs).
-  It is out of the reproducible surface now, leaving 167 tools that are.
-- Three import-preloaded tables were invisible to the audit: `_CODICI_TRIBUTO`
-  binds through a subscript (`json.load(f)["codici"]`), `_CATALOGO` through a
-  dict comprehension, `_PREAVVISO` through an annotated assignment, and the walk
-  only recognised a bare `X = json.load(f)`. All three are now attributed to the
-  tools that read them, and a load inside a function body is seen too.
-- `preventivo_civile` and `modello_notula` estimated the contributo unificato
-  from a hand-kept copy of the bands instead of the shipped table: the copy does
-  not age with `contributo_unificato.json`, could diverge from what
-  `contributo_unificato` and `decreto_ingiuntivo` answer without anything
-  failing, and left the estimate with no vintage. Both now read
-  `civile.cognizione` and declare the table (the numbers are unchanged).
-- `verify_provenance` compared the declaration against a `datasets()` that
-  already contained it, so "declares a table the code never reads" could never
-  fire. The code-derived set is now `reads()` and the comparison is real in both
-  directions; `tests/unit/test_tool_annotations.py` sabotages a copy of the tree
-  to check the three cases (dropped declaration, invented declaration, renamed
-  loader) actually fail.
-- The stdio harness passed no `valore_causa` to `note_iscrizione_ruolo` — the
-  parameter is optional *with a default of null* — so the recorded answer was
-  the "valore_causa richiesto per il calcolo del CU" branch and the table the
-  tool declares was never applied. The curated arguments now compute it.
-- `start_server.sh` is PATH-independent. GUI hosts (Claude Desktop, Cowork,
-  Freebuff) spawn MCP servers with launchd's bare PATH
-  (`/usr/bin:/bin:/usr/sbin:/sbin`), which hides Homebrew, `~/.local/bin` and
-  cargo installs: `command -v uv` failed there and the launch silently fell
-  through to the venv path. The bootstrap now prepends the usual install
-  locations and probes `uv` by absolute path as well.
-- The venv fallback no longer trusts `command -v`. Each Python candidate is run
-  and the first one that reports 3.10+ wins: an unaccepted Xcode licence turns
-  the CLT `python3` into a shim that only prints a licence error, and it used
-  to be selected. A cached venv is now reused only if its interpreter is 3.10+
-  **and** imports every runtime dependency, so a half-built venv (deps added in
-  a later release, interrupted install) is rebuilt instead of starting a server
-  that dies on its first import. `MCP_FORCE_VENV=1` skips `uv` to exercise the
-  fallback deliberately.
 
 ## [3.0.0-beta.1] - 2026-08-30
 
