@@ -1076,8 +1076,8 @@ async def test_live_sede_filter():
 # Ad. Plen. n. 17/2021 (emblem image and stylesheet emptied, reasoning cut after 40
 # paragraphs, everything from P.Q.M. on kept; the private parties, their lawyers and the
 # individual firms are pseudonymised — «Delta s.r.l.», «avvocato Tizio Primo» — while the
-# magistrates, acting in their public role, keep their names), parere n. 1918/2026 (same
-# trimming) and the page a stale reference gets.
+# magistrates and the secretary, acting in their public roles in a published decision, keep
+# their names), parere n. 1918/2026 (same trimming) and the page a stale reference gets.
 
 from pathlib import Path as _Path
 
