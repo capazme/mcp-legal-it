@@ -126,3 +126,39 @@ def test_cache_writers_are_declared_in_the_audit():
     from mcp_legal_it.tool_annotations import CACHE_WRITES
 
     assert cache_tools == set(CACHE_WRITES)
+
+
+class TestCacheDirMustBeAbsolute:
+    """The launchers start the server from its own folder: a relative MCP_CACHE_DIR would
+    land there, not where the user meant. It is ignored, said once on stderr."""
+
+    def test_an_absolute_dir_is_used(self, tmp_path, monkeypatch):
+        from mcp_legal_it.lib import _cache
+
+        monkeypatch.setenv("MCP_CACHE_DIR", str(tmp_path))
+        assert _cache.cache_root() == tmp_path
+
+    def test_a_home_dir_is_expanded(self, monkeypatch):
+        from mcp_legal_it.lib import _cache
+
+        monkeypatch.setenv("MCP_CACHE_DIR", "~/legal-it-cache")
+        assert _cache.cache_root() == pathlib.Path.home() / "legal-it-cache"
+
+    def test_a_relative_dir_is_ignored_and_said_once(self, monkeypatch, capsys):
+        from mcp_legal_it.lib import _cache
+
+        monkeypatch.setattr(_cache, "_RELATIVI_SEGNALATI", set())
+        monkeypatch.setenv("MCP_CACHE_DIR", "cache-relativa")
+        assert _cache.cache_root() == _cache.DEFAULT_DIR
+        assert _cache.cache_root() == _cache.DEFAULT_DIR
+        err = capsys.readouterr().err
+        assert err.count("MCP_CACHE_DIR deve essere un percorso assoluto") == 1
+        assert str(_cache.DEFAULT_DIR) in err
+
+    def test_an_unknown_users_home_falls_back_to_the_default(self, monkeypatch, capsys):
+        from mcp_legal_it.lib import _cache
+
+        monkeypatch.setattr(_cache, "_RELATIVI_SEGNALATI", set())
+        monkeypatch.setenv("MCP_CACHE_DIR", "~utente-che-non-esiste-7f3a/cache")
+        assert _cache.cache_root() == _cache.DEFAULT_DIR  # never a RuntimeError at start
+        assert "MCP_CACHE_DIR deve essere un percorso assoluto" in capsys.readouterr().err

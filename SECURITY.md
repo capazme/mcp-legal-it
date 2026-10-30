@@ -202,11 +202,17 @@ diffidenza, sempre. Ecco cosa contiene questo:
   quelli dei suoi subagenti (mai di altre sessioni: i file fuori dalla cartella
   `subagents/` della sessione, link simbolici compresi, sono ignorati) e avvisa se una
   norma o una decisione è stata citata senza averla letta con un tool. Non fa rete e non
-  scrive file; `LEGAL_CITATION_GATE=off` lo spegne (vedi `docs/plugin.md`); `uv run --no-sync` lo avvia senza installare nulla. Leggilo prima di
-  approvarlo.
+  scrive file; `LEGAL_CITATION_GATE=off` lo spegne (vedi `docs/plugin.md`). `uv run` lo
+  avvia senza installare nulla e partendo dalla cartella del plugin, mai da quella aperta
+  dall'utente: l'ambiente Python e la configurazione `uv` di quella cartella non vengono
+  né usati né letti. Restano usati, perché li controlla l'utente stesso, un ambiente
+  virtuale attivo (`VIRTUAL_ENV`) e un `.venv` in una cartella che contiene quella del
+  plugin. Leggilo prima di approvarlo.
 - **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto, e avvia
   il server con `uv run --frozen`: le versioni esatte di `plugin/server/uv.lock`, in un
-  ambiente del plugin, senza toccare il progetto dell'utente.
+  ambiente del plugin, senza toccare il progetto dell'utente né usarne l'ambiente Python
+  o la configurazione `uv`. Lo stesso vale per il pacchetto `.mcpb` e per la
+  configurazione Codex, che partono dalla cartella del server.
 - Le 30 skill, i 9 comandi e i 6 agenti sono file markdown di istruzioni. Non eseguono nulla
   da soli.
 
