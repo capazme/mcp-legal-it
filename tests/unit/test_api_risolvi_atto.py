@@ -7,6 +7,8 @@ dated by the ELI metadata only) and the page Normattiva serves for an act it doe
 
 import asyncio
 import dataclasses
+import json
+import time
 from pathlib import Path
 
 import httpx
@@ -174,6 +176,45 @@ class TestCache:
         r, chieste = await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
         assert r.esito == "trovato" and r.data == "1990-08-07" and len(chieste) == 1
 
+    async def test_another_cache_directory_is_read_in_the_same_process(self, tmp_path):
+        # The first call loads the default directory's dates; a later configurazione(cache_dir=...)
+        # in the same process must read the other directory's file, not keep the first reading.
+        await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
+        altra = tmp_path / "altra"
+        altra.mkdir()
+        (altra / "act_dates.json").write_text(json.dumps(
+            {"urn:nir:stato:legge:1969;742": {"data": "1969-10-07", "salvato": time.time()}}), encoding="utf-8")
+        with api.configurazione(cache_dir=str(altra)):
+            r, chieste = await _risolvi({}, "legge", "742", "1969")
+        assert r.esito == "trovato" and r.data == "1969-10-07" and chieste == []
+        # The dates found in the process stay, as the other in-memory caches do.
+        with api.configurazione(cache_dir=str(altra)):
+            r, chieste = await _risolvi({}, "legge", "241", "1990")
+        assert r.esito == "trovato" and chieste == []
+
+    async def test_a_disk_switched_on_later_is_read(self, tmp_path):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({"legge:1990-01-01;241": L241}, chieste), cache=False):
+            assert (await api.risolvi_atto("legge", "241", "1990")).esito == "trovato"
+        (tmp_path / "cache").mkdir()
+        (tmp_path / "cache" / "act_dates.json").write_text(json.dumps(
+            {"urn:nir:stato:legge:1969;742": {"data": "1969-10-07", "salvato": time.time()}}), encoding="utf-8")
+        r, chieste = await _risolvi({}, "legge", "742", "1969")
+        assert r.esito == "trovato" and r.data == "1969-10-07" and chieste == []
+
+    async def test_a_disk_switched_off_later_is_not_read(self, tmp_path):
+        # The disk is read once (on), then switched off and pointed at another directory:
+        # that directory's file must not be read.
+        await _risolvi({"legge:1990-01-01;241": L241}, "legge", "241", "1990")
+        altra = tmp_path / "altra"
+        altra.mkdir()
+        (altra / "act_dates.json").write_text(json.dumps(
+            {"urn:nir:stato:legge:1969;742": {"data": "1969-10-07", "salvato": time.time()}}), encoding="utf-8")
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({}, chieste), cache=False, cache_dir=str(altra)):
+            r = await api.risolvi_atto("legge", "742", "1969")
+        assert r.esito != "trovato" and chieste  # the disk was off: the page was asked
+
     async def test_a_miss_is_not_kept_on_disk(self):
         await _risolvi({}, "legge", "99999", "1990")
         assert act_dates.leggi(act_dates.chiave("legge", "1990", "99999")) is None
@@ -279,6 +320,49 @@ class TestPaginaDiErrore:
         assert chieste == [N2LS + DM55_URL]  # no check: not the error page
         r, chieste = await _risolvi({DM55_URL: DM55}, "decreto ministeriale", "55", "2014")
         assert r.esito == "trovato" and chieste == [N2LS + DM55_URL]
+
+    # Derived from real copies: the page's <title> replaced by the site's bare name, so the
+    # page keeps its ELI metadata but has no act heading. Normattiva served no such page in
+    # the shapes measured on 2 Nov 2026 (act pages, @originale, !multivig=, ELI, ~art): the
+    # case is a markup change, and such a page is no evidence that it is another act's.
+    SENZA_INTESTAZIONE_DM55 = DM55.replace("<title>DECRETO 10 marzo 2014, n. 55 - Normattiva</title>",
+                                           "<title>Normattiva</title>")
+    SENZA_INTESTAZIONE_L241 = L241.replace("<title>LEGGE 7 agosto 1990, n. 241 - Normattiva</title>",
+                                           "<title>Normattiva</title>")
+
+    @pytest.mark.parametrize("pagina, args, url", [
+        (SENZA_INTESTAZIONE_DM55, ("decreto ministeriale", "55", "2015"), "decreto.ministeriale:2015-01-01;55"),
+        (SENZA_INTESTAZIONE_L241, ("legge", "242", "1990"), "legge:1990-01-01;242"),
+    ], ids=["eli-dm55", "titolo-l241"])
+    async def test_an_eli_date_without_an_act_heading_is_not_another_act(self, pagina, args, url):
+        r, chieste = await _risolvi({url: pagina, CONTROLLO: L241}, *args)
+        assert r.esito == "fonte_non_raggiungibile" and r.data is None
+        assert r.errore == "Normattiva non raggiungibile (pagina senza l'intestazione dell'atto)"
+        assert chieste == [N2LS + url]  # no check: not the error page
+        # Never kept: the next call asks the page again.
+        r, chieste = await _risolvi({url: pagina}, *args)
+        assert r.esito == "fonte_non_raggiungibile" and chieste == [N2LS + url]
+
+    def test_only_an_act_heading_makes_an_act_page(self):
+        # An ELI date (D.M. 55/2014), a date and an eli:title (L. 241/1990), an eli:title alone.
+        solo_titolo = self.SENZA_INTESTAZIONE_L241.replace('property="eli:date_document"', 'property="x"')
+        for pagina in (self.SENZA_INTESTAZIONE_DM55, self.SENZA_INTESTAZIONE_L241, solo_titolo):
+            meta = scraper.act_page_metadata(pagina)
+            assert (meta["date"] or meta["title"]) and meta["heading"] == "Normattiva"
+            assert scraper.normattiva_page_problem(pagina, meta) == "senza_intestazione"
+        assert not scraper.act_page_metadata(solo_titolo)["date"]
+        assert scraper.normattiva_page_problem(DM55, scraper.act_page_metadata(DM55)) is None
+        # The Constitution's page (a real copy) is headed «COSTITUZIONE», with no date nor number.
+        costituzione = (FIXTURES / "visualex" / "normattiva" / "akn_just_text.html").read_text(encoding="utf-8")
+        meta = scraper.act_page_metadata(costituzione)
+        assert meta["heading"] == "COSTITUZIONE" and meta["title"]
+        assert scraper.normattiva_page_problem(costituzione, meta) is None
+
+    async def test_the_eli_path_still_dates_a_page_without_heading_in_the_cited_year(self):
+        # The weaker check of the types the titles do not cover is unchanged: an ELI date in
+        # the cited year is the evidence it accepts, with or without the heading.
+        r, _ = await _risolvi({DM55_URL: self.SENZA_INTESTAZIONE_DM55}, "decreto ministeriale", "55", "2014")
+        assert r.esito == "trovato" and r.data == "2014-03-10" and r.precisione == "INDICATIVO"
 
     def test_an_act_page_has_no_problem(self):
         meta = scraper.act_page_metadata(L241)
