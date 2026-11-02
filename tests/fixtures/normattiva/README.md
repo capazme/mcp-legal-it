@@ -49,6 +49,7 @@ reads (`id_local`, `type_document`, `date_document`, `title`) and the `<title>`,
 | `landing_dllgt_98_1946.html` | `decreto.legislativo.luogotenenziale:1946;98` | the page of D.Lgs.Lgt. 16 marzo 1946, n. 98 (title «DECRETO LEGISLATIVO LUOGOTENENZIALE 16 marzo 1946, n. 98») |
 | `landing_dllgt_151_1944.html` | `decreto.legislativo.luogotenenziale:1944;151` | the act headed «DECRETO-LEGGE LUOGOTENENZIALE 25 giugno 1944, n. 151» (`type_document` DECRETO-LEGGE_LUOGOTENENZIALE) |
 | `landing_dpcm_2020_03_08_senza_numero.html` | by ELI, `/eli/id/2020/03/08/20A01522/CONSOLIDATED` (a URN without a number answers the error page) | the D.P.C.M. 8 marzo 2020, an act without a number (title «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») |
+| `landing_rd_1825_1924_serve_rdl.html` | `regio.decreto:1924;1825` | the act headed «REGIO DECRETO-LEGGE 13 novembre 1924, n. 1825» (a wrong sub-type in the citation) |
 
 Used by `tests/unit/test_api_risolvi_atto.py` and `tests/unit/test_atto_per_anno_tipo.py`,
 together with `../akn/landing_legge_241_1990.html`.
@@ -84,7 +85,18 @@ provvedimento in formato grafico», a `vediPdf` link).
 | `atto_intero/l213_allegato_I.html` | «Allegato I» | `bodyTesto` verbatim: an annex with a table as text |
 | `atto_intero/l213_allegato_II.html` | «Allegato II» | `bodyTesto` verbatim: an annex in graphic form, a heading and the `vediPdf` link only |
 | `atto_intero/dlgs196_albero.html` | `decreto.legislativo:2003-06-30;196` | the `<title>` and ten tree entries, verbatim and in order: arts. 2, 2-bis, 2-ter (one `art.idArticolo=2`, `art.idSottoArticolo` 1, 2, 3) with their older versions, arts. 2-quaterdecies and 2-quaterdecies.1 (`art.idSottoArticolo1` 10 and 20), art. 3 today (`art.idGruppo=4`) and its original text («orig.», `art.idGruppo=1`, `art.imUpdate=true`) |
+| `atto_intero/l213_art1_parte1_v39.html` | part 1 of art. 1, `art.versione=39` (the undated act page's tree) | the validity block («Testo in vigore dal: 1-1-2027»), the visible part line and `bodyTesto` with its first two commi and its last |
+| `atto_intero/l213_art1_parte1_v38.html` | part 1 of art. 1, `art.versione=38` (the tree of `legge:2023-12-30;213!vig=2026-11-02`) | the same, its window 7-10-2026 to 31-12-2026 |
+| `atto_intero/dlgs36_albero_allegati.html` | `decreto.legislativo:2023-03-31;36` | the `<title>` and, verbatim and in order, the tree entry of the code's art. 1, the «Allegati» box heading, «Indice allegati», «Allegato I.01 art. 1», the «Allegato I.1» heading (`<li class="box_allegati_small">`) and that annex's «art. 1» |
 
 Each trimmed part was checked to give the same served part (`parte_servita`) and the same
-served article as the whole page, and the trimmed tree the same parts of art. 1 as the whole
+served article as the whole page (the two validity copies: the same window too), and the trimmed tree the same parts of art. 1 as the whole
 tree. Used by `tests/unit/test_atto_intero_parti.py`.
+
+## An article page served for another act (full date)
+
+| File | Asked as (after `urn:nir:stato:`) | What Normattiva served |
+|------|-----------------------------------|------------------------|
+| `dm_241_1990_art3_serve_legge.html` | `decreto.ministeriale:1990-08-07;241~art3` | art. 3 of L. 7 agosto 1990, n. 241 (title «LEGGE 7 agosto 1990, n. 241»), 2026-11-02; trimmed to the head |
+
+Used by `tests/unit/test_atto_data_completa.py`.

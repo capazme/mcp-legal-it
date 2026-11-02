@@ -441,8 +441,15 @@ class TestInFlightDedupe:
         calls = self._install_slow(monkeypatch, routes)
         a = Norma(tipo_atto="legge", data="1990", numero_atto="241")
         b = Norma(tipo_atto="legge", data="1990", numero_atto="242")
-        await asyncio.gather(fetch_act_akn(a, data_vigenza="20260614"), fetch_act_akn(b, data_vigenza="20260614"))
+        esiti = await asyncio.gather(fetch_act_akn(a, data_vigenza="20260614"),
+                                     fetch_act_akn(b, data_vigenza="20260614"), return_exceptions=True)
         assert sum("uri-res" in c for c in calls) == 2
+        # The routes serve L. 241/1990 for both: the n. 242's own download sees another act's
+        # page and refuses it (#146 follow-up), the n. 241's reads its export.
+        from mcp_legal_it.lib.visualex.scraper import AttoNonVerificato
+
+        assert esiti[0] is not None and not isinstance(esiti[0], Exception)
+        assert isinstance(esiti[1], AttoNonVerificato) and esiti[1].altro_atto
 
 
 class TestMemoryCapFromEnvironment:

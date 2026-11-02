@@ -1,7 +1,7 @@
 ---
 name: causa-civile
 description: Usa quando l'utente chiede di avviare una causa, calcolare costi giudiziali, verificare termini processuali o un preventivo — contributo unificato, scadenze post-Cartabia, impugnazioni e costi.
-tools: [contributo_unificato, preventivo_civile, scadenza_processuale, scadenze_impugnazioni]
+tools: [contributo_unificato, preventivo_civile, scadenza_processuale, scadenze_impugnazioni, termini_procedimento_semplificato]
 prompt: {"name": "causa_civile", "description": "Pianificazione causa civile: contributo unificato, scadenze, impugnazioni e preventivo", "args": [{"name": "valore_causa", "type": "float"}, {"name": "rito", "type": "str"}, {"name": "grado", "type": "str"}]}
 ---
 
@@ -21,7 +21,7 @@ Verifica eventuali esenzioni (es. cause di lavoro sotto soglia, procedimenti di 
 
 Chiama `scadenza_processuale` per i termini in base al rito:
 - **Ordinario**: comparsa risposta (70gg), memorie art. 171-ter c.p.c.
-- **Sommario**: costituzione resistente, mutamento rito
+- **Semplificato** (artt. 281-decies ss. c.p.c., che per i procedimenti instaurati dopo il 28/02/2023 sostituiscono il sommario di cognizione): costituzione del convenuto, eventuali memorie concesse dal giudice, mutamento del rito — usa `termini_procedimento_semplificato`. Per le cause instaurate entro il 28/02/2023 il sommario ex art. 702-bis resta applicabile (art. 35, co. 1, D.Lgs. 149/2022).
 - **Lavoro**: ricorso, memoria difensiva, note autorizzate
 
 Sospensione feriale (1-31 agosto): indicala solo se il rito o la materia vi è soggetto — non opera, tra l'altro, in materia di lavoro, procedimenti cautelari e alimenti.

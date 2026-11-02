@@ -17,12 +17,13 @@ Chiama `interessi_mora` con capitale, data_inizio (decorrenza della mora) e data
 
 - **Commerciale** (imprese/PA): usa `interessi_mora` — tasso BCE + 8 punti (D.Lgs. 231/2002)
 - **Privato** (crediti tra privati): usa `interessi_legali` — tasso legale art. 1284 c.c.
+- **In esecuzione**: se il titolo giudiziale condanna genericamente agli «interessi legali», dopo la domanda giudiziale si applica il saggio dell'art. 1284, co. 1, c.c., non quello maggiorato del co. 4, salvo che il titolo, anche solo in motivazione, accerti la spettanza di quest'ultimo (Cass. SS.UU. n. 12449/2024). Nel ricorso chiedi espressamente gli interessi ex art. 1284, co. 4, dalla domanda.
 
 ### 2. Rivalutazione monetaria
 
 Chiama `rivalutazione_monetaria` con l'importo del credito, dalla data di scadenza a oggi.
 
-**Nota**: per un credito di denaro la rivalutazione non è automatica: è il maggior danno dell'art. 1224, co. 2, c.c., da chiedere e provare (anche in via presuntiva, Cass. SS.UU. n. 19499/2008), e spetta solo per la parte che eccede gli interessi moratori: i due importi non si sommano. Presenta entrambi i calcoli e indica il più favorevole.
+**Nota**: per un credito di denaro la rivalutazione non è automatica: è il maggior danno dell'art. 1224, co. 2, c.c., da chiedere e provare. Secondo Cass. SS.UU. n. 19499/2008 si presume quando, durante la mora, il rendimento netto dei titoli di Stato fino a 12 mesi ha superato il saggio legale (verificalo sui dati del periodo di mora: con un saggio legale basso, come l'1,60% del 2026 fissato dal DM MEF 10/12/2025, la presunzione può tornare a operare); per somme maggiori il creditore deve provarlo (l'imprenditore, ad esempio, con il costo del credito bancario o la redditività dell'impresa), e il debitore può provare che il denaro non avrebbe reso di più. Spetta solo per la parte che eccede gli interessi moratori: i due importi non si sommano. La rivalutazione ISTAT è una stima di confronto, non il criterio delle SS.UU.
 
 ### 3. Decreto ingiuntivo
 
