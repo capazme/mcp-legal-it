@@ -180,3 +180,29 @@ def test_the_date_is_the_clock_s(monkeypatch):
     monkeypatch.setattr(_transizione._clock, "today", lambda: seen.append(1) or date(2026, 1, 1))
     _run(_registered("atti_giudiziari", "tassazione_atti"), tipo_atto="ordinanza", valore=0)
     assert seen
+
+
+def test_the_refusal_is_stamped_in_meta_over_the_wire(monkeypatch):
+    """A host that reads only `_meta` sees the refusal and its reason, not a table's."""
+    import json
+
+    from fastmcp import Client
+
+    from mcp_legal_it.lib._ledger import PRECISION_KEY
+    from mcp_legal_it.server import mcp
+
+    async def run(day: str):
+        monkeypatch.setenv("LEGAL_TODAY", day)
+        async with Client(mcp) as client:
+            return await client.call_tool(
+                "calcolo_usufrutto", {"valore_piena_proprieta": 100000, "eta_usufruttuario": 70}
+            )
+
+    refused = asyncio.run(run("2027-01-01"))
+    body = refused.structured_content or json.loads(refused.content[0].text)
+    assert body["errore"] == ERRORE
+    assert refused.meta[PRECISION_KEY] == body["precisione"]
+    assert "D.P.R. 131/1986" in refused.meta[PRECISION_KEY]["motivo"]
+
+    computed = asyncio.run(run("2026-12-31"))
+    assert PRECISION_KEY not in (computed.meta or {})
