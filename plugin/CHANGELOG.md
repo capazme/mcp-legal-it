@@ -28,6 +28,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of being folded into the act's name.
 
 ### Fixed
+- **An act cited by its year is never read as another act Normattiva serves in its place**
+  (#136, #146). Normattiva's resolver does not check an act's type: asked for a D.M. n. 241
+  of 1990 by its year it serves L. 7 agosto 1990, n. 241, and `cite_law("art. 3 d.m.
+  241/1990")` answered with the law's art. 3 under a decree's URN (a d.lgs. or a DPCM the
+  same: DPCM n. 158 of 2014 got L. 17 ottobre 2014, n. 158).
+  - **Another act's heading is refused, for every type.** When the page's heading names a
+    known type that is not the one cited, or another year or number, every reader of the
+    act (article, annex, full text, index, `cite_law`) answers «nessun atto … la pagina
+    restituita è «LEGGE 7 agosto 1990, n. 241»» and asks nothing more.
+  - **Ministerial decrees, DPCM, d.lgs.lgt.** These are dated by their page alone, so they
+    are taken only when the heading names them (headings measured on real pages:
+    «DECRETO», «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI», «DECRETO LEGISLATIVO
+    LUOGOTENENZIALE», «DECRETO-LEGGE LUOGOTENENZIALE»), with the heading's day. When the
+    page cannot be read or verified now, the answer says to retry later or to cite the
+    act with its full date, rather than read the year-only address, which would serve the
+    law.
+  - **With a full date too.** The address of a D.M. 7 agosto 1990, n. 241 serves the same
+    law: every page read (the article, the act's page before the Akoma Ntoso export, the
+    full text, the index) is checked against the act its address asks for, and another
+    type, number, year or day is refused, naming the page. The export's address index
+    keeps only entries written after that check. Ported from the 3.0 line.
+- **The plugin says why its server stopped at start.** When the server exited before the
+  plugin's first-start relay had handed it the session (an import error, a bad Python), the
+  relay's write failed and the client was told «BrokenPipeError» instead of the server's
+  exit code; Python 3.14's timing made it common. It now waits briefly and reports
+  «server exit N».
+- **The server starts on Python 3.14** (#49, by @HeDo88TH). Python 3.14 no longer copies
+  a function's annotations in `functools.wraps` (PEP 649), so `termini_183_190_cpc`, the
+  one tool flagged both previgente and with its tables declared, lost the type hints of
+  its parameters and the server stopped at import with `KeyError: 'data_udienza'`. The
+  wrapper now carries them. The packaged launchers run Python 3.12: this mattered to
+  installs from pip or uvx on 3.14. From the same contribution, the annotation audit and
+  two isolated tests also run on Windows.
 - **The server starts on Windows** (#133). Thirty reads of the bundled tables, the
   `legal://` resources and the Brocardi cache named no encoding, so Python used the
   locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,

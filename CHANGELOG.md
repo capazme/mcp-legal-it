@@ -49,6 +49,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     full text, the index) is checked against the act its address asks for, and another
     type, number, year or day is refused, naming the page. The export's address index
     keeps only entries written after that check. Ported from the 3.0 line.
+- **The plugin says why its server stopped at start.** When the server exited before the
+  plugin's first-start relay had handed it the session (an import error, a bad Python), the
+  relay's write failed and the client was told «BrokenPipeError» instead of the server's
+  exit code; Python 3.14's timing made it common. It now waits briefly and reports
+  «server exit N».
+- **The server starts on Python 3.14** (#49, by @HeDo88TH). Python 3.14 no longer copies
+  a function's annotations in `functools.wraps` (PEP 649), so `termini_183_190_cpc`, the
+  one tool flagged both previgente and with its tables declared, lost the type hints of
+  its parameters and the server stopped at import with `KeyError: 'data_udienza'`. The
+  wrapper now carries them. The packaged launchers run Python 3.12: this mattered to
+  installs from pip or uvx on 3.14. From the same contribution, the annotation audit and
+  two isolated tests also run on Windows.
 - **The server starts on Windows** (#133). Thirty reads of the bundled tables, the
   `legal://` resources and the Brocardi cache named no encoding, so Python used the
   locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,

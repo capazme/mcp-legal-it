@@ -150,6 +150,32 @@ def attach(result: object, info: Dichiarato) -> object:
     return result  # a bare scalar has nowhere to put it; left untouched
 
 
+def _annotazioni_da_propagare(fn) -> dict:
+    """The type hints the outermost wrapper must expose on Python 3.14.
+
+    PEP 649 made a function's annotations come from its code object: 3.14 dropped
+    ``__annotations__`` from ``functools.WRAPPER_ASSIGNMENTS`` (it forwards
+    ``__annotate__`` instead), and the mapping ``@sourced`` assigns by hand behind
+    ``wraps`` lives in no ``__dict__`` for a second ``wraps`` to copy. So a wrapper
+    that is itself wrapped -- ``@previgente`` over ``@sourced`` -- would carry the
+    extended ``__signature__`` without the hint for one of its parameters, and
+    pydantic aborts registration with a ``KeyError`` on that name. Whatever the
+    ``__wrapped__`` chain still resolves wins; the signature fills the gaps, since
+    the schema is built from the same signature pydantic iterates.
+    """
+    ann = dict(getattr(fn, "__annotations__", {}) or {})
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):  # not callable / malformed signature
+        return ann
+    for name, p in sig.parameters.items():
+        if p.annotation is not inspect.Parameter.empty and name not in ann:
+            ann[name] = p.annotation
+    if sig.return_annotation is not inspect.Signature.empty and "return" not in ann:
+        ann["return"] = sig.return_annotation
+    return ann
+
+
 def previgente(fn):
     """Mark a tool as computing under a superseded rule.
 
@@ -186,8 +212,14 @@ def previgente(fn):
             return attach(fn(*args, **kwargs), info)
 
     # `wraps` copies `__dict__`, so `__signature__`, `__sourced_datasets__` and the
-    # other markers `@sourced` set travel with the wrapper; the annotations it
-    # extended are copied too. Nothing here changes the schema.
+    # other markers `@sourced` set travel with the wrapper. The annotations are the
+    # exception: on Python 3.14 the mapping `@sourced` assigns does not sit in
+    # `__dict__` (PEP 649 resolves it through `__annotate__`/`__wrapped__`, which a
+    # second hop does not follow), so re-expose it on the wrapper or the schema
+    # dies on the first parameter's missing hint.
+    annotations = _annotazioni_da_propagare(fn)
+    if annotations:
+        wrapper.__annotations__ = annotations
     wrapper.__regime_dichiarato__ = info
     return wrapper
 

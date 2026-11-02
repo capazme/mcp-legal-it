@@ -63,6 +63,8 @@ INSTRUCTIONS = (
 PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25")
 # How long the real server may take to answer the replayed initialize.
 REPLAY_TIMEOUT = 120
+# How long a server whose pipe broke during the replay gets to report its own exit.
+EXIT_AFTER_BROKEN_PIPE = 5.0
 
 # Requests answered while the libraries are still being installed.
 EMPTY_RESULTS = {
@@ -219,8 +221,11 @@ class Relay:
             threading.Thread(target=self.read_server, args=(child, lines),
                              daemon=True).start()
             init = json.loads(self.init_line)
-            child.stdin.write(self.init_line)
-            child.stdin.flush()
+            try:
+                child.stdin.write(self.init_line)
+                child.stdin.flush()
+            except (BrokenPipeError, ConnectionResetError) as exc:
+                return self.exit_of(child, exc)
             deadline = time.monotonic() + REPLAY_TIMEOUT
             while True:  # the replayed answer is swallowed, never relayed
                 try:
@@ -236,13 +241,29 @@ class Relay:
                 if isinstance(message, dict) and message.get("id") == init.get("id"):
                     break
             if self.initialized:
-                child.stdin.write(b'{"jsonrpc":"2.0","method":"notifications/initialized"}\n')
-                child.stdin.flush()
+                try:
+                    child.stdin.write(b'{"jsonrpc":"2.0","method":"notifications/initialized"}\n')
+                    child.stdin.flush()
+                except (BrokenPipeError, ConnectionResetError) as exc:
+                    return self.exit_of(child, exc)
             self.child = child
             threading.Thread(target=self.pump_server, args=(lines,), daemon=True).start()
             for method in CHANGED:
                 self.send({"jsonrpc": "2.0", "method": method})
         return None
+
+    @staticmethod
+    def exit_of(child: subprocess.Popen[bytes], exc: OSError) -> str:
+        """The pipe broke because the server ended at start: say how it ended.
+
+        A server that dies before the replay reaches it (an import error, a bad
+        Python) breaks the pipe the relay writes to; its exit code tells the user
+        more than the broken pipe does.
+        """
+        try:
+            return f"server exit {child.wait(timeout=EXIT_AFTER_BROKEN_PIPE)}"
+        except subprocess.TimeoutExpired:
+            return f"{type(exc).__name__}: {exc}"
 
     @staticmethod
     def read_server(child: subprocess.Popen[bytes], lines: queue.Queue) -> None:
