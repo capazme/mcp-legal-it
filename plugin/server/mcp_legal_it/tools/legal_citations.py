@@ -680,6 +680,9 @@ async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
         f"**Fonte**: Normattiva — {url}",
         f"**Dimensione**: {len(text):,} caratteri\n",
     ]
+    # What the reading could not carry (parts not read, parts published as images only),
+    # in every window, before the text.
+    lines.extend(f"**Avviso**: {avviso}\n" for avviso in result.get("avvisi") or ())
     if da_carattere == 1 and len(text) <= _FULL_ACT_WINDOW:
         # Fits in one window: the answer is the one it has always been.
         lines.append(text)
@@ -758,8 +761,13 @@ def _sanitize_for_pdf(text: str) -> str:
     return text.encode("windows-1252", errors="replace").decode("windows-1252")
 
 
-def _generate_pdf_from_text(title: str, text: str, source_url: str, output_path: str) -> None:
-    """Generate a PDF file from text content using fpdf2."""
+def _generate_pdf_from_text(title: str, text: str, source_url: str, output_path: str,
+                            avvisi: "tuple[str, ...] | list[str]" = ()) -> None:
+    """Generate a PDF file from text content using fpdf2.
+
+    *avvisi* (what the text does not carry, #106) are printed under the source, before the
+    text: the file travels without the tool's answer.
+    """
     from fpdf import FPDF
 
     pdf = FPDF()
@@ -773,6 +781,13 @@ def _generate_pdf_from_text(title: str, text: str, source_url: str, output_path:
     pdf.set_font("Helvetica", "I", 7)
     pdf.multi_cell(0, 4, f"Fonte: {source_url}")
     pdf.ln(8)
+
+    if avvisi:
+        pdf.set_font("Helvetica", "B", 9)
+        for avviso in avvisi:
+            pdf.multi_cell(0, 4, _sanitize_for_pdf(f"Avviso: {avviso}"))
+            pdf.ln(2)
+        pdf.ln(4)
 
     pdf.set_font("Helvetica", "", 9)
     pdf.multi_cell(0, 4, _sanitize_for_pdf(text))
@@ -844,15 +859,17 @@ async def _download_law_pdf_impl(reference: str) -> str:
         if not text or len(text) < 50:
             return f"**Errore**: testo insufficiente per generare il PDF. URL: {url}"
 
-        _generate_pdf_from_text(title, text, url, filepath)
+        _generate_pdf_from_text(title, text, url, filepath, avvisi=result.get("avvisi") or ())
         size = os.path.getsize(filepath)
 
+        avvisi = "".join(f"\n**Avviso**: {avviso}" for avviso in result.get("avvisi") or ())
         return (
             f"**PDF generato** ({title})\n\n"
             f"File: `{filepath}`\n"
             f"Fonte: Normattiva — {url}\n"
             f"Dimensione: {size:,} bytes\n"
             f"Nota: PDF generato dal testo ufficiale (non il PDF originale Normattiva)"
+            f"{avvisi}"
         )
     except Exception as e:
         return f"**Errore** generazione PDF: {e}"
