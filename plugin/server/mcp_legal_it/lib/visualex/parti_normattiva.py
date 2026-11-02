@@ -29,7 +29,7 @@ _VOCE = re.compile(
 )
 _PROGRESSIVO = re.compile(r"art\.progressivo=(\d+)")
 # The page's visible line naming the part it serves: «art. 1 (commi 701-800)».
-_SERVITA = re.compile(r"art\.\s*[\w.\- ]+?\s*\(commi\s+(" + _COMMA + r")\s*-\s*(" + _COMMA + r")\)", re.IGNORECASE)
+_SERVITA = re.compile(r"art\.\s*([\w.\- ]+?)\s*\(commi\s+(" + _COMMA + r")\s*-\s*(" + _COMMA + r")\)", re.IGNORECASE)
 _COMMENTO = re.compile(r"<!--.*?-->", re.S)
 
 
@@ -58,13 +58,37 @@ def parti_articolo(html: str, stesso_articolo: Callable[[str], bool]) -> list[di
     return [parti[k] for k in sorted(parti)]
 
 
+def voci_parti(html: str) -> dict[str, dict[str, Any]]:
+    """Every part entry of the page's tree, of any article and version, keyed by its path.
+
+    The path is the one ``showArticle`` opens (entities unescaped); the value has the shape of
+    ``parti_articolo``'s entries, plus ``articolo``, the tree's label of the article («1»). A whole
+    act's reading checks each part page against it.
+    """
+    voci: dict[str, dict[str, Any]] = {}
+    for m in _VOCE.finditer(html):
+        path = _html.unescape(m.group(1))
+        progressivo = _PROGRESSIVO.search(path)
+        if progressivo is None:
+            continue
+        voci.setdefault(path, {"progressivo": int(progressivo.group(1)), "commi_dal": _canonico(m.group(3)),
+                               "commi_al": _canonico(m.group(4)), "path": path, "articolo": m.group(2).strip()})
+    return voci
+
+
 def parte_servita(html: str, parti: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     """The part a page serves, from its visible «art. N (commi a-b)» line; None when it does not say."""
     m = _SERVITA.search(_COMMENTO.sub("", html))
     if m is None:
         return None
-    dal, al = _canonico(m.group(1)), _canonico(m.group(2))
+    dal, al = _canonico(m.group(2)), _canonico(m.group(3))
     return next((p for p in parti if p["commi_dal"] == dal and p["commi_al"] == al), None)
+
+
+def articolo_della_parte(html: str) -> Optional[str]:
+    """The article the page's visible part line names («art. 1 (commi 701-800)» -> «1»); None when unsaid."""
+    m = _SERVITA.search(_COMMENTO.sub("", html))
+    return m.group(1).strip() if m else None
 
 
 def _numero(comma: str) -> Optional[int]:
