@@ -262,13 +262,14 @@ class TestPaginaNonVerificabile:
     DM = Norma(tipo_atto="decreto ministeriale", data="2014", numero_atto="55")
     URL = "decreto.ministeriale:2014-01-01;55"
 
-    @pytest.mark.parametrize("risposta", [
+    @pytest.mark.parametrize("risposta, motivo", [
         # Derived from the real page: the site's bare name as title.
-        DM55.replace("<title>DECRETO 10 marzo 2014, n. 55 - Normattiva</title>", "<title>Normattiva</title>"),
-        httpx.Response(503),
-        ERRORE,
+        (DM55.replace("<title>DECRETO 10 marzo 2014, n. 55 - Normattiva</title>", "<title>Normattiva</title>"),
+         "senza_intestazione"),
+        (httpx.Response(503), "HTTPStatusError"),
+        (ERRORE, "errore"),
     ], ids=["senza-intestazione", "503", "pagina-di-errore"])
-    async def test_fetch_article_refuses_without_asking_the_year_only_urn(self, risposta):
+    async def test_fetch_article_refuses_without_asking_the_year_only_urn(self, risposta, motivo):
         chieste: list = []
 
         async def handler(request):
@@ -284,7 +285,8 @@ class TestPaginaNonVerificabile:
         with api.configurazione(client_factory=factory, brocardi=False):
             r = await scraper.fetch_article(NormaVisitata(norma=self.DM, numero_articolo="3"))
         assert r["text"] == "" and r["esito"] == scraper.CHECK_UNAVAILABLE
-        assert "la data completa dell'atto non è stata verificata su Normattiva" in r["error"]
+        assert r["error"] == ("«decreto ministeriale n. 55 del 2014»: Normattiva non ha confermato ora quale atto è"
+                              f" ({motivo}): riprova più tardi, oppure cita l'atto con la data completa (AAAA-MM-GG)")
         assert all(u.endswith(self.URL) for u in chieste), chieste  # never ~art3 on the year-only URN
 
 
