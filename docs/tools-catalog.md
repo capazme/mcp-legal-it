@@ -735,7 +735,7 @@ prima dell'uso — non sono documenti legali pronti alla firma.
 **Modulo:** `mcp_legal_it/tools/tmview.py`
 **Tag:** `marchi`, `normativa`
 **API esterne:** tmdn.org (TMview — EUIPO/TMDN, JSON API)
-**Note:** Aggrega UIBM, EUIPO, WIPO e ~75 uffici nazionali (140M+ marchi). WAF anti-bot: richieste distanziate (min 1s); su blocco, riprovare dopo ~1 minuto.
+**Note:** Aggrega UIBM, EUIPO, WIPO e ~75 uffici nazionali (140M+ marchi). WAF anti-bot: richieste distanziate (min 1s); su blocco, riprovare dopo ~1 minuto. Dal 29/10/2026 la scheda (`leggi_marchio`) risponde HTTP 403 alle richieste automatiche: il tool restituisce una scheda parziale dichiarata, con i dati della ricerca e il link alla scheda TMview da aprire nel browser.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
