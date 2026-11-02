@@ -1610,6 +1610,8 @@ async def _akn_act(nv: NormaVisitata):
 
     try:
         return await fetch_act_akn(nv.norma, _vigenza_akn(nv))
+    except AttoNonVerificato:
+        raise  # another act's page: a refusal, never «no export»
     except Exception:  # noqa: BLE001 - the export is a fallback: its failure is "no export"
         return None
 

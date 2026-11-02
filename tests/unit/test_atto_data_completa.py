@@ -170,3 +170,45 @@ class TestCache:
 
     def test_the_page_cache_schema_was_raised(self):
         assert pagine_normattiva.SCHEMA == 5
+
+
+class TestExport:
+    async def test_concurrent_downloads_of_another_act_each_refuse(self):
+        import asyncio
+
+        chieste: list = []
+
+        async def handler(request):
+            await asyncio.sleep(0.05)  # the leader is still downloading when the others ask
+            chieste.append(str(request.url))
+            return httpx.Response(200, text=DM241_SERVE_LEGGE)
+
+        def factory(fonte, **kwargs):
+            kwargs.pop("verify", None)
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory):
+            esiti = await asyncio.gather(*(akn_fetch.fetch_act_akn(DM, "20261102") for _ in range(3)),
+                                         return_exceptions=True)
+        assert all(isinstance(e, scraper.AttoNonVerificato) and e.altro_atto for e in esiti), esiti
+        assert len(chieste) == 1  # one landing page, shared
+
+    async def test_the_export_fallback_keeps_the_refusal(self):
+        # The article page fails (503): the export, the fallback, reads the landing page and
+        # finds the law. The answer is atto_non_trovato, not the page's transient error.
+        chieste: list = []
+
+        async def handler(request):
+            url = str(request.url)
+            chieste.append(url)
+            if url.endswith("~art3"):
+                return httpx.Response(503)
+            return httpx.Response(200, text=DM241_SERVE_LEGGE)
+
+        def factory(fonte, **kwargs):
+            kwargs.pop("verify", None)
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+        with api.configurazione(client_factory=factory, brocardi=False):
+            r = await scraper.fetch_article(NormaVisitata(norma=DM, numero_articolo="3"))
+        assert r["esito"] == scraper.ACT_NOT_FOUND and r["error"] == RIFIUTO

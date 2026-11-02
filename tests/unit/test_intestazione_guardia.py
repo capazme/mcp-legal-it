@@ -9,9 +9,7 @@ calling it, unless the function is in ``SENZA_CONTROLLO`` with the reason it nee
 import ast
 from pathlib import Path
 
-VISUALEX = Path(__file__).resolve().parents[2] / "plugin" / "server" / "mcp_legal_it" / "lib" / "visualex"
-FILE = ("scraper.py", "akn_fetch.py", "aggiornamenti.py")
-
+PACCHETTO = Path(__file__).resolve().parents[2] / "plugin" / "server" / "mcp_legal_it"
 #: The download points that need no heading check, each with why.
 SENZA_CONTROLLO = {
     # The landing page of a year-only act: act_full_date reads its identity (title, heading,
@@ -22,27 +20,58 @@ SENZA_CONTROLLO = {
 }
 
 
-def _apre_normattiva(nodo: ast.AST) -> bool:
+def _costanti(albero: ast.Module) -> dict[str, str]:
+    """The module's string constants (``FONTE = "normattiva"``), to read a client's source."""
+    return {t.id: n.value.value for n in albero.body if isinstance(n, ast.Assign) and isinstance(n.value, ast.Constant)
+            and isinstance(n.value.value, str) for t in n.targets if isinstance(t, ast.Name)}
+
+
+def _nome(chiamata: ast.Call) -> str:
+    return getattr(chiamata.func, "id", getattr(chiamata.func, "attr", ""))
+
+
+def _apre_normattiva(nodo: ast.AST, costanti: dict[str, str]) -> bool:
+    def valore(arg: ast.AST) -> "str | None":
+        if isinstance(arg, ast.Constant):
+            return arg.value
+        return costanti.get(arg.id) if isinstance(arg, ast.Name) else None
+
     for figlio in ast.walk(nodo):
-        if (isinstance(figlio, ast.Call) and getattr(figlio.func, "id", getattr(figlio.func, "attr", "")) == "async_client"
-                and figlio.args and isinstance(figlio.args[0], ast.Constant) and figlio.args[0].value == "normattiva"):
-            return True
+        if isinstance(figlio, ast.Call) and _nome(figlio) == "async_client":
+            fonti = [valore(a) for a in figlio.args[:1]] + [valore(k.value) for k in figlio.keywords if k.arg == "fonte"]
+            if "normattiva" in fonti:
+                return True
     return False
 
 
 def _controlla(nodo: ast.AST) -> bool:
-    return any(isinstance(f, ast.Call) and getattr(f.func, "id", getattr(f.func, "attr", "")) == "controlla_intestazione"
-               for f in ast.walk(nodo))
+    return any(isinstance(f, ast.Call) and _nome(f) == "controlla_intestazione" for f in ast.walk(nodo))
 
 
 def _punti() -> dict[str, bool]:
+    """Every function of the package that opens a Normattiva client, and whether it checks."""
     punti = {}
-    for nome in FILE:
-        albero = ast.parse((VISUALEX / nome).read_text(encoding="utf-8"))
+    for percorso in sorted(PACCHETTO.rglob("*.py")):
+        albero = ast.parse(percorso.read_text(encoding="utf-8"))
+        costanti = _costanti(albero)
         for nodo in ast.walk(albero):
-            if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)) and _apre_normattiva(nodo):
-                punti[f"{nome}:{nodo.name}"] = _controlla(nodo)
+            if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)) and _apre_normattiva(nodo, costanti):
+                punti[f"{percorso.relative_to(PACCHETTO)}:{nodo.name}"] = _controlla(nodo)
     return punti
+
+
+def test_the_scan_reads_every_way_of_naming_the_source():
+    sorgente = (
+        'FONTE = "normattiva"\n'
+        "async def a():\n    async with async_client(\"normattiva\") as c: ...\n"
+        "async def b():\n    async with async_client(fonte=\"normattiva\") as c: ...\n"
+        "async def c():\n    async with async_client(FONTE) as c: ...\n"
+        "async def d():\n    async with async_client(\"eurlex\") as c: ...\n"
+    )
+    albero = ast.parse(sorgente)
+    costanti = _costanti(albero)
+    aperti = [n.name for n in albero.body if isinstance(n, ast.AsyncFunctionDef) and _apre_normattiva(n, costanti)]
+    assert aperti == ["a", "b", "c"]
 
 
 def test_every_download_point_checks_the_heading():
