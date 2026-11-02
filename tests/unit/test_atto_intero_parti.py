@@ -293,6 +293,19 @@ class TestInVigoreOggi:
         assert INIZIO_PARTE[1] in r["text"] and r["non_in_vigore"] == [] and r["completo"] is True
         assert r["avvisi"] == []
 
+    @pytest.mark.parametrize("oggi", ["2026-10-07", "2026-12-31"], ids=["in vigore da oggi", "fino a oggi"])
+    async def test_a_window_holds_on_its_first_and_last_day(self, monkeypatch, oggi):
+        # Part 1 v38 is in force 7/10/2026 to 31/12/2026: both days are today's text.
+        monkeypatch.setenv("LEGAL_TODAY", oggi)
+        r = await _leggi([], guasti={1: PARTE1_V38})
+        assert INIZIO_PARTE[1] in r["text"] and r["non_in_vigore"] == []
+
+    @pytest.mark.parametrize("oggi", ["2026-10-06", "2027-01-01"], ids=["il giorno prima", "il giorno dopo"])
+    async def test_a_window_does_not_hold_a_day_outside_it(self, monkeypatch, oggi):
+        monkeypatch.setenv("LEGAL_TODAY", oggi)
+        r = await _leggi([], guasti={1: PARTE1_V38})
+        assert INIZIO_PARTE[1] not in r["text"] and len(r["non_in_vigore"]) == 1
+
     async def test_a_version_no_longer_in_force_is_not_todays_text(self, monkeypatch):
         monkeypatch.setenv("LEGAL_TODAY", "2027-02-01")
         r = await _leggi([], guasti={1: PARTE1_V38})
@@ -350,12 +363,15 @@ class TestAllegatiDellExport:
             return await scraper.fetch_normattiva_full_text(L213)
 
     async def test_the_annexes_left_out_of_the_text_are_named(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
         r = await self._export(monkeypatch, "dlgs_36_2023_positions.xml")
         assert r["source"] == "normattiva-akn" and r["completo"] is True
         (avviso,) = r["avvisi"]
         assert avviso.startswith("Parti dell'atto non incluse nel testo: Allegato I.01, Allegato I.1, Allegato I.2, "
                                  "Allegato I.3, Allegato I.4,")
         assert "e altre 27" in avviso  # 39 annexes, «Indice allegati» not among them
+        # Linked at the export's date, never the undated page (it may show another version).
+        assert avviso.endswith(";213!vig=2026-11-02")
 
     async def test_a_codes_text_names_its_other_parts(self, monkeypatch):
         r = await self._export(monkeypatch, "codice_civile_trimmed.xml")

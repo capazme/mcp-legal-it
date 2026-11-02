@@ -740,7 +740,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   force today without it** (#139).
   - **The export's annexes.** The Akoma Ntoso text is the act's body: its annexes were left
     out with no word, under `completo: True`. An «**Avviso**» now names them («Parti
-    dell'atto non incluse nel testo: Allegato I, Allegato II, …») with the act's page; for a
+    dell'atto non incluse nel testo: Allegato I, Allegato II, …») with the act's page at
+    today's date, the export's own; for a
     codice, its Dispositivo and its other parts (the preleggi of the c.c.). The annexes
     without articles count too: the 11 attachments of L. 213/2023 (tables), which the parser
     did not keep. `ParsedAct.annessi` lists them; the export cache moves to schema 7, so acts
