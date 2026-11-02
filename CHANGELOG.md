@@ -732,6 +732,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **The plugin says why its server stopped at start.** When the server exited before the
+  plugin's first-start relay had handed it the session (an import error, a bad Python), the
+  relay's write failed and the client was told «BrokenPipeError» instead of the server's
+  exit code; Python 3.14's timing made it common. It now waits briefly and reports
+  «server exit N».
 - **The server starts on Python 3.14** (#49, by @HeDo88TH). Python 3.14 no longer copies
   a function's annotations in `functools.wraps` (PEP 649), so `termini_183_190_cpc`, the
   one tool flagged both previgente and with its tables declared, lost the type hints of
