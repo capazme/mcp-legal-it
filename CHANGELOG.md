@@ -358,6 +358,30 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **`rendimento_btp` reports the yield to maturity (TIR), gross and net, as the MEF does**
+  (LI-059). It used to give a simple yield only: on the 50-year BTP of the 10/09/2026
+  auction (cedola 2,15%, prezzo 53,94) it said a net 5,15%, above the MEF gross 4,61%.
+  - **Main figures.** `rendimento_effettivo_lordo_pct` and `rendimento_effettivo_netto_pct`.
+    They use the convention of the MEF «Risultati Asta» («base annua 365 gg»): an annual
+    compound rate discounting coupons and redemption at 100, at actual days/365 from
+    settlement, to the price plus the accrued interest. The net figure taxes coupons at
+    12,5% for the part accrued while held (the first one less the accrued interest paid),
+    and the discount to par. The 50-year BTP now gives 4,6102% gross and 4,1065% net.
+  - **New optional parameters `data_regolamento` and `data_scadenza`** (AAAA-MM-GG). With
+    them the coupon calendar is the real one and the accrued interest is counted
+    (`giorni_rateo`, `rateo_cedolare`, `esborso_totale`, a date for each coupon).
+    Without them, settlement falls on a coupon date and `anni_scadenza` (now optional) gives
+    the life. Old calls still work.
+  - **The simple yield stays as a secondary field, named for what it is.** It is
+    `rendimento_semplice_netto_pct`, with `nota_rendimento_semplice` («rendimento semplice
+    (non composto)»). **Breaking:** the old key `rendimento_netto_annuo_pct` is gone, because
+    keeping it would have kept the simple yield under the headline name.
+  - **Checked on 10 MEF auctions.** These are the fixed-rate BTP auctions of 10/09/2026 and of
+    October 2026 (fixture with the source URL of each PDF). The gross TIR is within 0,01
+    points of every published «Rendimento Lordo», and at most 0,008 points off. The grade
+    stays INDICATIVO: two auctions are off by slightly more than the MEF's two-decimal
+    rounding, and a short first coupon of a new issue is not modelled. The live MEF gate,
+    red on purpose on the 50-year BTP, is green again.
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **Text answers are sent once.** The 63 tools that answer plain text (the
