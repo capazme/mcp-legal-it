@@ -15,6 +15,29 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **`storia_norma`: an article's history as an MCP tool** (#115; 235 tools). A thin
+  wrapper (ADR-001) over `api.modifiche_articolo`: `storia_norma(riferimento, dal, al,
+  max_versioni=20, formato="testo"|"json")`.
+  - **Text.** One table, one row per version: the window in force (GG/MM/AAAA) and the
+    amendments that produced it, grouped by amending act as Normattiva words it. The
+    first line gives the number of versions, whether the history is complete and the
+    grade (`ESATTO` only with the whole history). The library's avvisi sit above the
+    table, in its order: a version not in force yet, the ceiling reached, versions left
+    unread after a failure (ask again), the `data_gu` fallback. With `dal`/`al` only the
+    versions that came into force in the period are listed.
+  - **JSON.** `come_dict(ModificheArticolo)`, as `cite_law(formato="json")` does.
+  - **Citation.** The same resolver as `cite_law`: an act it cannot identify is refused
+    with the nearest names, never guessed. EU acts, whole acts and annex articles are
+    refused (`non_supportata`).
+  - **Says what it is not.** The description and every answer say that vigenza is not
+    applicability: a text in force may not apply to an earlier fact.
+  - **Tags and profiles.** `normativa` plus the new area `vigenza`, so it is in every
+    profile that has `normativa` (sinistro, credito, penale, normativa, privacy,
+    redattore, cowork). It writes only the Normattiva caches: among the cache-only
+    writers (`readOnlyHint: false`, open world).
+  - **Tests.** Unit tests on the recorded pages of art. 2-ter d.lgs. 196/2003, art.
+    64-bis CCII, art. 612-bis c.p. (the rest of its pages captured for this), art. 1
+    d.P.R. 131/1986 and art. 2740 c.c.; a polite serial live test (23 requests).
 - **The citation gate reads VisuaLex's dossier** (`omnilex_crea_dossier`, VisuaLex
   1.10.7 and later). The dossier verifies each reference and decision it is given
   against the sources, so they count as read.
