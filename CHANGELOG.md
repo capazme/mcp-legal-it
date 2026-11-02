@@ -835,6 +835,34 @@ described in those sections, not repeated here. Upgrading from 2.x:
   reading was never read. The file is now read again when the pair (disk on, directory)
   changes; the dates already found in the process stay in memory, as in the other
   in-memory caches.
+- **The Gazzetta's editorial notes of an article are read, beside its text (issue #119).**
+  When an act is published with notes («Note all'art. 13: …»), Normattiva keeps them on the
+  original text and on the current text of an article never amended. Neither the page's
+  extractor nor the Akoma Ntoso renderer read them, so they never reached the reader.
+  - **What they are.** The competent administration drafts them under art. 10 d.P.R.
+    1092/1985 only to help the reading. They have no normative value, and where they
+    transcribe another provision the text is that of the day of publication.
+  - **Where they go.** They are read into a field of their own, `note_redazionali`
+    (`NotaRedazionale`: `intestazione`, `testo`, `ordine`). They never go into
+    `article_text`, which stays VisuaLex's byte for byte, and they are never mixed with
+    `note_aggiornamento`.
+  - **Which ones (LI-058).** Only the «Note all'art. N» sections. Not the «Avvertenza», and
+    not the «Note alle premesse» that art. 1 carries about the act's preamble.
+  - **Both channels.** The page's `div.note-akn` and the export's `authorialNote` give the
+    same sections.
+  - **Output.** `cite_law(formato="json")` carries `note_redazionali` and
+    `note_redazionali_nel_testo`. In markdown, `cite_law` and `fetch_law_article` give one
+    line under the text, never their words: the notes exist, have no normative value (art.
+    10 d.P.R. 1092/1985), transcribe texts as of the publication date, and the JSON has
+    them.
+  - **The JSON caps them at 8,000 characters.** They reach 60,000 on a long original text,
+    enough to break a client's output cap. Past the cap, `note_redazionali_troncate` is `true`,
+    `note_redazionali_caratteri` gives their whole length, the note cut short ends with «[…]»,
+    and the markdown line says how much the JSON carries. The library keeps them whole.
+  - **Headings.** A heading is matched in any case. A line naming another act's article
+    («Nota all'art. 14 della legge 400/1988:») is never taken for one.
+  - **Cache.** The export's cache keeps the notes; an export kept before this version
+    gives `None` («not read»), never «none».
 - **The citation gate checks the comma of an article read in parts.** An article
   Normattiva splits comes from `cite_law` one part at a time, with «testo parziale:
   commi a-b di N». The gate credited the whole article from any part, so an answer
