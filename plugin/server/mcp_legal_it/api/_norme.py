@@ -41,6 +41,7 @@ from mcp_legal_it.lib.visualex import albero_normattiva as _albero
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _ALTERNANZA_SUFFISSI
 from mcp_legal_it.lib.visualex.models import Norma, annex_reference, intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
+    ACT_NOT_FOUND,
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
     AttoNonVerificato,
@@ -587,6 +588,8 @@ def _consolidato(tipo_atto: str, data: str, numero_atto: str, celex: str | None)
 
 def _esito_errore(result: dict) -> str:
     """The outcome of a reader's error dict: a refused act (``CHECK_UNAVAILABLE``) or the source's error."""
+    if result.get("esito") == ACT_NOT_FOUND:
+        return "atto_non_trovato"
     return "verifica_non_disponibile" if result.get("esito") == CHECK_UNAVAILABLE else "errore_fonte"
 
 
@@ -595,6 +598,8 @@ def _esito_lookup(base: dict, esito: str | None) -> str:
         return "trovato"
     if esito == ARTICLE_NOT_FOUND:
         return "articolo_non_trovato"
+    if esito == ACT_NOT_FOUND:
+        return "atto_non_trovato"
     if esito == CHECK_UNAVAILABLE:
         return "verifica_non_disponibile"
     if esito == "riferimento_non_valido":  # an EU act asked at a day before its own date
@@ -816,7 +821,7 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
         try:
             act = await _export_atto(norma)
         except AttoNonVerificato as exc:
-            return IndiceAtto(esito="verifica_non_disponibile", errore=str(exc), fonti=registro.fonti())
+            return IndiceAtto(esito=_esito_errore({"esito": exc.esito}), errore=str(exc), fonti=registro.fonti())
         if act is not None:
             return _indice_da_export(act, norma, registro.fonti())
         try:
