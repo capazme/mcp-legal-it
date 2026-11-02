@@ -31,6 +31,9 @@ LAUNCHER_SERVER = REPO / "plugin/server/run_server.py"
 # free-form strings with a documented format. Each entry here is a tool the
 # generated arguments could only make fail.
 CURATED = {
+    # anni_scadenza is optional since the dates were added (LI-059): keep the golden case on it.
+    "rendimento_btp": {"valore_nominale": 10000.0, "prezzo_acquisto": 10000.0, "cedola_annua_pct": 5.0,
+                       "anni_scadenza": 10},
     # millesimi are shares of 1000: the generic 10000.0 sample is rejected since the range check.
     "spese_condominiali": {"importo_totale": 10000.0, "millesimi_proprietario": 100.0},
     # `tipo_societa` is validated against a closed list that the schema calls a
