@@ -8,8 +8,8 @@ included) looking for `open(..., "w"/"a"/"x")`, `Path.write_text/write_bytes`,
 (`Document`, `Workbook`, `FPDF`, `ZipFile`) and HTTP verbs that mutate
 (`post`, `put`, `patch`).
 
-The 18 tools that do write are listed in `WRITES_FILES` and get an explicit
-`readOnlyHint=False` instead of being left blank: 13 of them only write a cache
+The 19 tools that do write are listed in `WRITES_FILES` and get an explicit
+`readOnlyHint=False` instead of being left blank: 14 of them only write a cache
 file, 5 write a document the user asked for. Neither group is
 `destructiveHint` -- they add or refresh files, they do not delete user data --
 so hosts that gate on destructiveness can still treat them as safe.
@@ -120,13 +120,13 @@ READ_ONLY: frozenset[str] = frozenset({
     "verifica_necessita_dpia", "verifica_partita_iva", "verifica_partita_iva_vies", "verifica_usura",
 })
 
-# Reachable write: cache refresh (13) or document generation (5).
+# Reachable write: cache refresh (14) or document generation (5).
 WRITES_FILES: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_pronuncia_costituzionale", "cite_law", "download_law_pdf", "esporta_atto_docx",
     "fetch_full_act", "fetch_law_annotations", "fetch_law_article", "genera_procura_liti_docx",
     "genera_quotazione_docx", "genera_report_fornitori", "giurisprudenza_articolo", "leggi_pronuncia_costituzionale",
-    "mappa_orientamento", "pronunce_cost_su_norma", "ultime_pronunce_cost", "verifica_citazioni",
-    "verifica_dpa_fornitore",
+    "mappa_orientamento", "pronunce_cost_su_norma", "storia_norma", "ultime_pronunce_cost",
+    "verifica_citazioni", "verifica_dpa_fornitore",
 })
 
 # Reaches an external service.
@@ -142,10 +142,11 @@ OPEN_WORLD: frozenset[str] = frozenset({
     "leggi_deliberazione_corte_conti", "leggi_marchio", "leggi_pronuncia_costituzionale",
     "leggi_provvedimento_amm", "leggi_provvedimento_garante", "leggi_sentenza", "leggi_sentenza_cgue",
     "mappa_orientamento", "orientamento_su_norma", "orientamento_su_principio", "pronunce_cost_su_norma",
-    "scarica_pdf_gazzetta", "sommario_gazzetta", "ultime_deliberazioni_corte_conti", "ultime_delibere_consob",
-    "ultime_gazzette", "ultime_pronunce", "ultime_pronunce_cost", "ultime_sentenze_cgue",
-    "ultime_sentenze_tributarie", "ultimi_atti_anac", "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante",
-    "verifica_anteriorita_marchio", "verifica_citazioni", "verifica_dpa_fornitore", "verifica_partita_iva_vies",
+    "scarica_pdf_gazzetta", "sommario_gazzetta", "storia_norma", "ultime_deliberazioni_corte_conti",
+    "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce", "ultime_pronunce_cost",
+    "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_atti_anac", "ultimi_provvedimenti_amm",
+    "ultimi_provvedimenti_garante", "verifica_anteriorita_marchio", "verifica_citazioni",
+    "verifica_dpa_fornitore", "verifica_partita_iva_vies",
 })
 
 # Subset of WRITES_FILES whose only write refreshes the local cache under
@@ -153,7 +154,8 @@ OPEN_WORLD: frozenset[str] = frozenset({
 CACHE_WRITES: frozenset[str] = frozenset({
     "cerca_brocardi", "cerca_pronuncia_costituzionale", "cite_law", "fetch_full_act", "fetch_law_annotations",
     "fetch_law_article", "giurisprudenza_articolo", "leggi_pronuncia_costituzionale", "mappa_orientamento",
-    "pronunce_cost_su_norma", "ultime_pronunce_cost", "verifica_citazioni", "verifica_dpa_fornitore",
+    "pronunce_cost_su_norma", "storia_norma", "ultime_pronunce_cost", "verifica_citazioni",
+    "verifica_dpa_fornitore",
 })
 
 # Reachable code that consults an online source (provenance recorded per call
@@ -171,10 +173,11 @@ ONLINE_SOURCES: frozenset[str] = frozenset({
     "leggi_deliberazione_corte_conti", "leggi_marchio", "leggi_pronuncia_costituzionale",
     "leggi_provvedimento_amm", "leggi_provvedimento_garante", "leggi_sentenza", "leggi_sentenza_cgue",
     "mappa_orientamento", "orientamento_su_norma", "orientamento_su_principio", "pronunce_cost_su_norma",
-    "scarica_pdf_gazzetta", "sommario_gazzetta", "ultime_deliberazioni_corte_conti", "ultime_delibere_consob",
-    "ultime_gazzette", "ultime_pronunce", "ultime_pronunce_cost", "ultime_sentenze_cgue",
-    "ultime_sentenze_tributarie", "ultimi_atti_anac", "ultimi_provvedimenti_amm", "ultimi_provvedimenti_garante",
-    "verifica_anteriorita_marchio", "verifica_citazioni", "verifica_dpa_fornitore", "verifica_partita_iva_vies",
+    "scarica_pdf_gazzetta", "sommario_gazzetta", "storia_norma", "ultime_deliberazioni_corte_conti",
+    "ultime_delibere_consob", "ultime_gazzette", "ultime_pronunce", "ultime_pronunce_cost",
+    "ultime_sentenze_cgue", "ultime_sentenze_tributarie", "ultimi_atti_anac", "ultimi_provvedimenti_amm",
+    "ultimi_provvedimenti_garante", "verifica_anteriorita_marchio", "verifica_citazioni",
+    "verifica_dpa_fornitore", "verifica_partita_iva_vies",
 })
 
 # Tools that compute under a superseded rule (`Regime: PREVIGENTE`): the
