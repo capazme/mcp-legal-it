@@ -247,7 +247,8 @@ class FallbackReader:
             if int(finestra.group(1)) > 1:
                 dimensione = next((i for i, r in enumerate(righe) if r.startswith("**Dimensione**:")), None)
                 if dimensione is not None:
-                    primo = next((i for i in range(dimensione + 1, len(righe)) if righe[i].strip()), None)
+                    primo = next((i for i in range(dimensione + 1, len(righe))
+                                  if righe[i].strip() and not righe[i].startswith("**Avviso**:")), None)
                 else:
                     primo = next((i for i, r in enumerate(righe)
                                   if r.strip() and not r.lstrip().startswith(("#", "**"))), None)
@@ -455,8 +456,9 @@ class Session:
                 return
             key = r.riferimento_in_identita(tool_input.get("reference") or "")
             if key:
-                # Never in self.whole: its Normattiva-page fallback has only the first part of an
-                # article Normattiva splits (#106), and its answer does not say which source served it.
+                # Never in self.whole: its Normattiva-page fallback may miss a part of an article
+                # Normattiva splits (it then says so in an «**Avviso**», #106), and its answer does
+                # not say which source served it.
                 self.norms.update((key[0], a) for a in r.articoli_serviti(text))
             return
         body = None
