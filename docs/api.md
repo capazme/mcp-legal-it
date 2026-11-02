@@ -203,6 +203,7 @@ Shared outcome vocabulary, `EsitoNorma`:
 | `trovato` | success |
 | `riferimento_non_valido` | the citation could not be read |
 | `atto_non_riconosciuto` | no act has that name; `errore` lists the closest names |
+| `atto_non_trovato` | an act cited by its year only: Normattiva serves another act's page in its place (its heading names another type, year or number, e.g. L. 7 agosto 1990, n. 241 for a «d.m. 241/1990»), and `errore` names it. Not transient: retrying is vain |
 | `articolo_non_trovato` | the act exists, the article is not in it. Normattiva answers a missing article with art. 1; this is detected |
 | `verifica_non_disponibile` | the source could not tell: down, slow, rate limited, or its structure unreadable |
 | `testo_assente` | the source answered without a text |
@@ -390,6 +391,15 @@ that page is Normattiva's error page (below; the check is shared per event loop)
     year, it serves L. 17 ottobre 2014, n. 158, which is then `atto_non_trovato`. A caller
     that wants only dates read from a verified title skips these types, or reads
     `precisione`.
+  - **A citation with the wrong sub-type is another act.** The heading's type must be
+    the cited one: «R.D. 1825/1924», served «REGIO DECRETO-LEGGE 13 novembre 1924,
+    n. 1825», is `atto_non_trovato`, and `errore` names the page, so the caller can cite
+    it right. The
+    only alias is the d.lgs.lgt. served as «DECRETO-LEGGE LUOGOTENENZIALE» (measured).
+  - **«DECRETO» does not name the ministry.** A D.M.'s page is headed «DECRETO 10 marzo
+    2014, n. 55»: the heading checks the type, year and number, not which ministry issued
+    it. Two ministerial decrees with the same number and year would both pass as
+    INDICATIVO; give the full date, or check `errore`/the page, when the ministry matters.
 - **Cache and limits:**
   - A date read from a title is kept a year on disk (`act_dates.json` in the cache
     directory, the same file `cite_law` uses), and the page in memory for the process.
@@ -625,8 +635,8 @@ Normattiva. It is async.
   e 3») gives one `Modifica` per action, each with the provision's whole text.
 - **`testo` and `descrizione`** are Normattiva's wording only, never editorial commentary.
 
-Esiti: `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`, `articolo_non_trovato`,
-`verifica_non_disponibile` (transient), `errore_fonte`, `non_supportata`.
+Esiti: `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`, `atto_non_trovato`,
+`articolo_non_trovato`, `verifica_non_disponibile` (transient), `errore_fonte`, `non_supportata`.
 
 `ModificheArticolo`:
 
@@ -981,6 +991,7 @@ act's Akoma Ntoso export (two requests cold, none warm: the export is cached).
   `non_supportata`, as for an Italian act. `considerando` of a `NormaDati` with
   `celex_consolidated` is `non_supportata`, before any request.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
+  `atto_non_trovato` (cited by year, Normattiva serves another act),
   `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
   `errore_fonte`, `testo_assente`.
 
@@ -1003,6 +1014,7 @@ act's page. One request, kept a day; every variant is read from the same page.
   `metadata = {"rubriche", "title"}`. `consolidato` and `consolidato_verificato`
   say which text the tree is read from.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
+  `atto_non_trovato` (cited by year, Normattiva serves another act),
   `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
   `errore_fonte`, `testo_assente`.
 
