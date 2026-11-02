@@ -3,7 +3,7 @@
 Riferimento completo di tutti i tool esposti dal server MCP. Fonte di verità per nome, firma e
 descrizione di ogni tool.
 
-**Totale tool: 234.**
+**Totale tool: 235.**
 
 ---
 
@@ -45,6 +45,7 @@ descrizione di ogni tool.
 34. [Marchi (TMview)](#34-marchi-tmview) — 3 tool
 35. [Atti ANAC](#35-atti-anac) — 3 tool
 36. [Corte dei conti](#36-corte-dei-conti) — 3 tool
+37. [Vigenza delle norme](#37-vigenza-delle-norme) — 1 tool
 
 ---
 
@@ -679,7 +680,8 @@ descrizione di ogni tool.
 | 34 | Marchi (TMview) | 3 |
 | 35 | Atti ANAC | 3 |
 | 36 | Corte dei conti | 3 |
-| | **Totale** | **234** |
+| 37 | Vigenza delle norme | 1 |
+| | **Totale** | **235** |
 
 ---
 
@@ -770,5 +772,18 @@ prima dell'uso — non sono documenti legali pronti alla firma.
 | `cerca_deliberazioni_corte_conti` | `cerca_deliberazioni_corte_conti(query: str = '', sezione: str = '', anno: str = '', numero: str = '', max_risultati: int = 5)` | Cerca deliberazioni e pareri delle sezioni di controllo della Corte dei conti. |
 | `leggi_deliberazione_corte_conti` | `leggi_deliberazione_corte_conti(id_deliberazione: str = '', numero: str = '', anno: str = '', sezione: str = '', da_carattere: int = 1)` | Legge una deliberazione della Corte dei conti (sezioni di controllo): scheda e testo integrale. |
 | `ultime_deliberazioni_corte_conti` | `ultime_deliberazioni_corte_conti(sezione: str = '', max_risultati: int = 5)` | Ultime deliberazioni depositate dalle sezioni di controllo della Corte dei conti. |
+
+---
+
+## 37. Vigenza delle norme
+
+**Modulo:** `mcp_legal_it/tools/vigenza.py`
+**Tag:** `normativa`, `vigenza`
+**API esterne:** Normattiva (pagine delle versioni e tabelle degli aggiornamenti per versione)
+**Note:** Wrapper di `api.modifiche_articolo` (ADR-001). Le date sono di entrata in vigore, lette dalla finestra di ogni versione, non dalla Gazzetta. Vigenza non è applicabilità: un testo in vigore può non applicarsi a un fatto anteriore. Solo atti italiani, un articolo per volta; un atto non riconosciuto è rifiutato con i nomi più vicini. Scrive solo nella cache (`normattiva_aggiornamenti/`).
+
+| Tool | Firma | Descrizione |
+|------|-------|-------------|
+| `storia_norma` | `storia_norma(riferimento: str, dal: str \| None = None, al: str \| None = None, max_versioni: int = 20, formato: str = "testo")` | Versioni di un articolo con le date di vigenza e gli atti che le hanno prodotte; ESATTO con la storia completa, altrimenti INDICATIVO con gli avvisi; formato="json" per l'oggetto `ModificheArticolo`. |
 
 ---
