@@ -906,6 +906,13 @@ described in those sections, not repeated here. Upgrading from 2.x:
   encoding (also `io.open`, `codecs.open`, an `open` under another name and
   `encoding=None`) and another imports the server with `-X warn_default_encoding`,
   so the mistake cannot come back.
+- **The installer reads and writes the Claude configuration as UTF-8** (#133). `install.py`
+  used the locale encoding, cp1252 on Windows, for `claude_desktop_config.json` and the
+  Claude Code configuration: a non-ASCII value was garbled, and a file an editor had saved
+  with a BOM read as «not valid» and was rewritten from scratch without the user's other
+  servers (a `.bak` copy was kept). It now reads with `utf-8-sig` and writes UTF-8. The
+  encoding test covers the installer and every script of the plugin, not only the server
+  package. The server package itself was fixed under #76; 2.17.2 carries both fixes.
 - **Installing from git works on Windows** (#76). On Windows, without
   `core.symlinks`, git checked out the 2.x root's `src` symlink as a text file,
   and `pip install git+https://…` built a wheel with no code. The link is gone

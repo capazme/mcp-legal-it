@@ -1,15 +1,18 @@
-"""Every text file the package opens names its encoding (#76).
+"""Every text file the shipped code opens names its encoding (#76, #133).
 
 Without `encoding=` Python uses the locale's: cp1252 on Windows, where the server failed at
 start with a UnicodeDecodeError on the bundled JSON tables (privacy_gdpr.py first). This scan
-fails on any `open()` / `Path.open()` in text mode, `read_text()` or `write_text()` without it.
+fails on any `open()` / `Path.open()` in text mode, `read_text()` or `write_text()` without it,
+in the server package, the plugin's other scripts (hooks, bootstrap, skill scripts) and the
+installer a Windows user runs from a clone.
 """
 from __future__ import annotations
 
 import ast
 from pathlib import Path
 
-PACKAGE = Path(__file__).resolve().parents[2] / "plugin" / "server" / "mcp_legal_it"
+REPO = Path(__file__).resolve().parents[2]
+PACKAGE = REPO / "plugin" / "server" / "mcp_legal_it"
 TEXT_CALLS = {"open", "read_text", "write_text"}
 
 
@@ -79,10 +82,22 @@ def text_calls_without_encoding(source: str) -> list[int]:
     return lines
 
 
+def _shipped_python() -> list[Path]:
+    """The plugin folder (server package included) and the installer."""
+    files = set((REPO / "plugin").rglob("*.py")) | {REPO / "install.py"}
+    return sorted(p for p in files if "__pycache__" not in p.parts)
+
+
+def test_the_scan_covers_the_package_and_the_installer():
+    shipped = _shipped_python()
+    assert PACKAGE / "server.py" in shipped
+    assert REPO / "install.py" in shipped
+
+
 def test_every_text_open_names_its_encoding():
     missing = [
-        f"{path.relative_to(PACKAGE.parents[1])}:{line}"
-        for path in sorted(PACKAGE.rglob("*.py"))
+        f"{path.relative_to(REPO)}:{line}"
+        for path in _shipped_python()
         for line in text_calls_without_encoding(path.read_text(encoding="utf-8"))
     ]
     assert missing == [], "text I/O without encoding=: " + ", ".join(missing)
