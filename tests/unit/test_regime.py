@@ -241,3 +241,33 @@ def test_a_tag_without_a_declaration_and_an_unknown_successor_fail_the_audit(tmp
                         encoding="utf-8")
     problems = verify_regime(Audit(src2))
     assert any("tool_fantasma" in p for p in problems), problems
+
+
+def test_previgente_over_sourced_keeps_every_hint_when_wraps_copies_none(monkeypatch):
+    """PR #49 (@HeDo88TH): on Python 3.14 `functools.wraps` no longer copies
+    `__annotations__` (PEP 649 forwards `__annotate__`), so the hints `@sourced` extends by
+    hand never reached `@previgente`'s wrapper and FastMCP stopped the server at import
+    with `KeyError: 'data_udienza'`. That `wraps` is reproduced here on any Python."""
+    import functools
+    import inspect
+
+    from fastmcp import FastMCP
+    from mcp_legal_it.lib._data import sourced
+
+    assigned = tuple(a for a in functools.WRAPPER_ASSIGNMENTS if a != "__annotations__")
+    monkeypatch.setattr(_regime, "wraps", functools.partial(functools.wraps, assigned=assigned))
+
+    @_regime.previgente
+    @sourced("festivita")
+    def termini_prova(data_udienza: str, sospensione_feriale: bool = True) -> dict:
+        """Termini di prova.
+
+        Regime: PREVIGENTE — cause iscritte a ruolo prima del 28/02/2023; tool vigenti: termini_memorie_repliche
+
+        Precisione: ESATTO (prova).
+        """
+        return {}
+
+    hints = termini_prova.__annotations__
+    assert set(inspect.signature(termini_prova).parameters) <= set(hints)
+    FastMCP("prova").tool(termini_prova)  # the schema is built here, as at import
