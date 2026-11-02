@@ -52,7 +52,7 @@ questo documento. Le due liste non possono divergere.
 | `eur-lex.europa.eu` | EUR-Lex — Ufficio delle pubblicazioni UE |
 | `publications.europa.eu` | CELLAR / SPARQL — Ufficio delle pubblicazioni UE |
 | `ec.europa.eu` | VIES — Commissione europea (validazione partite IVA) |
-| `www.tmdn.org` | TMview — EUIPO / EU Intellectual Property Network (banca dati marchi) |
+| `www.tmdn.org` | TMview — EUIPO / EU Intellectual Property Network (banca dati marchi). Dal 29/10/2026 la scheda del marchio rifiuta le richieste automatiche (HTTP 403): il rifiuto non viene aggirato, `leggi_marchio` dà i soli dati della ricerca e il link pubblico |
 | `www.brocardi.it` | **Brocardi.it — fonte privata** (vedi sotto) |
 
 **Brocardi è l'unica fonte non istituzionale**, ed è una scelta deliberata da

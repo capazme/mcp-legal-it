@@ -215,7 +215,7 @@ Per provare una beta:
 | 14 | Provvedimenti Garante Privacy | 3 | `cerca_provvedimenti_garante`, `leggi_provvedimento_garante` |
 | 15 | Privacy/GDPR | 12 | `genera_informativa_privacy`, `genera_dpia`, `valutazione_data_breach` |
 | 16 | Analisi fornitori (privacy) | 3 | `verifica_partita_iva_vies`, `verifica_dpa_fornitore`, `genera_report_fornitori` |
-| 17 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` |
+| 17 | Marchi (TMview) | 3 | `cerca_marchi`, `leggi_marchio`, `verifica_anteriorita_marchio` (dal 29/10/2026 TMview rifiuta la scheda alle richieste automatiche: `leggi_marchio` dà una scheda parziale dichiarata e il link pubblico) |
 | 18 | Rivalutazione monetaria | 12 | `rivalutazione_monetaria`, `adeguamento_canone_locazione` |
 | 19 | Interessi e tassi | 10 | `interessi_legali`, `interessi_mora`, `verifica_usura` |
 | 20 | Scadenze e termini | 11 | `scadenza_processuale`, `termini_memorie_repliche`, `termini_processuali_civili` (artt. 171-ter e 189 c.p.c., sospensione feriale contata giorno per giorno) |

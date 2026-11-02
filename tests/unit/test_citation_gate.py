@@ -863,3 +863,17 @@ def test_the_gate_reader_imports_on_a_bare_interpreter():
                           capture_output=True, text=True, timeout=60)
     assert done.returncode == 0, done.stderr
     assert done.stdout.strip() == "[]"
+
+
+def test_a_transcript_path_with_accents_is_read_on_a_cp1252_stdin(tmp_path):
+    """#133: on Windows a pipe's stdin decodes in the locale encoding (cp1252), while Claude
+    Code sends UTF-8: «…\\Niccolò\\…» became «NiccolÃ²», the transcript did not open and the
+    gate gave up in silence. PYTHONIOENCODING=cp1252 stands in for that stdin."""
+    t = Transcript(tmp_path / "Niccolò" / "sessione.jsonl").prompt().say(_BLOCKING_TEXT)
+    payload = json.dumps({"transcript_path": str(t.write()), "hook_event_name": "Stop"},
+                         ensure_ascii=False)
+    env = {k: v for k, v in os.environ.items() if k != "LEGAL_CITATION_GATE"}
+    env["PYTHONIOENCODING"] = "cp1252"
+    done = subprocess.run([sys.executable, str(HOOK)], input=payload.encode("utf-8"),
+                          capture_output=True, env=env, timeout=60)
+    assert done.returncode == NAGS, done.stderr[-2000:]
