@@ -52,7 +52,7 @@ Costruisce l'istanza `mcp` e registra tutti i moduli:
 ```python
 mcp = FastMCP("Legal IT", instructions="...")
 
-from mcp_legal_it.tools import (  # 36 moduli — l'elenco completo è in mcp_legal_it/server.py
+from mcp_legal_it.tools import (  # 37 moduli — l'elenco completo è in mcp_legal_it/server.py
     rivalutazioni_istat, tassi_interessi, scadenze_termini,
     atti_giudiziari, fatturazione_avvocati, parcelle_professionisti,
     risarcimento_danni, diritto_penale, diritto_societario, diritto_lavoro,
@@ -86,7 +86,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from mcp_legal_it.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (36 moduli, 234 tool totali)
+       └─ ... (37 moduli, 235 tool totali)
        └─ from mcp_legal_it import prompts
             └─ @mcp.prompt() → 23 prompt registrati
        └─ from mcp_legal_it import resources
@@ -141,16 +141,16 @@ un server nuovo che monta quello standard con gli stessi filtri, senza modificar
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 234 | Claude Code con Tool Search |
-| `sinistro` | 82 | Risarcimento danni e sinistri |
-| `credito` | 92 | Recupero crediti |
-| `penale` | 54 | Diritto penale |
+| `full` | 235 | Claude Code con Tool Search |
+| `sinistro` | 83 | Risarcimento danni e sinistri |
+| `credito` | 93 | Recupero crediti |
+| `penale` | 55 | Diritto penale |
 | `fiscale` | 66 | Calcoli fiscali, immobiliari, societari e di crisi |
-| `normativa` | 76 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
-| `privacy` | 67 | GDPR e privacy compliance |
+| `normativa` | 77 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
+| `privacy` | 68 | GDPR e privacy compliance |
 | `studio` | 76 | Gestione studio legale |
-| `redattore` | 76 | Redazione di atti giudiziari |
-| `cowork` | 80 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
+| `redattore` | 77 | Redazione di atti giudiziari |
+| `cowork` | 81 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
 | `calcoli` | 144 | Solo calcoli e diagnostica, nessuna connessione di rete |
 
 Il profilo `full` è consigliato per Claude Code, che usa Tool Search per
@@ -289,7 +289,7 @@ non parlano con fonti esterne: osservano le chiamate.
 
 Tre file in `mcp_legal_it/` sono **generati** da `scripts/audit_tool_annotations.py --write`
 e verificati in CI (`policy-sync`): `tool_annotations.py` (`readOnlyHint`/`openWorldHint`
-per ciascuno dei 234 tool, derivati dal grafo delle chiamate), `table_bindings.py`
+per ciascuno dei 235 tool, derivati dal grafo delle chiamate), `table_bindings.py`
 (tabella → costante) e `source_bindings.py` (tool → dataset online). Modificarli a
 mano è inutile: la rigenerazione li sovrascrive e `--check` fallisce sul drift.
 `tests/unit/test_golden_calcoli.py` congela le risposte dei calcolatori locali per
