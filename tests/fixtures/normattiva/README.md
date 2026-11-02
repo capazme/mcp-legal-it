@@ -68,7 +68,10 @@ provvedimento in formato grafico», a `vediPdf` link).
 | `atto_intero/l213_allegato_I.html` | «Allegato I» | `bodyTesto` verbatim: an annex with a table as text |
 | `atto_intero/l213_allegato_II.html` | «Allegato II» | `bodyTesto` verbatim: an annex in graphic form, a heading and the `vediPdf` link only |
 | `atto_intero/dlgs196_albero.html` | `decreto.legislativo:2003-06-30;196` | the `<title>` and ten tree entries, verbatim and in order: arts. 2, 2-bis, 2-ter (one `art.idArticolo=2`, `art.idSottoArticolo` 1, 2, 3) with their older versions, arts. 2-quaterdecies and 2-quaterdecies.1 (`art.idSottoArticolo1` 10 and 20), art. 3 today (`art.idGruppo=4`) and its original text («orig.», `art.idGruppo=1`, `art.imUpdate=true`) |
+| `atto_intero/l213_art1_parte1_v39.html` | part 1 of art. 1, `art.versione=39` (the undated act page's tree) | the validity block («Testo in vigore dal: 1-1-2027»), the visible part line and `bodyTesto` with its first two commi and its last |
+| `atto_intero/l213_art1_parte1_v38.html` | part 1 of art. 1, `art.versione=38` (the tree of `legge:2023-12-30;213!vig=2026-11-02`) | the same, its window 7-10-2026 to 31-12-2026 |
+| `atto_intero/dlgs36_albero_allegati.html` | `decreto.legislativo:2023-03-31;36` | the `<title>` and, verbatim and in order, the tree entry of the code's art. 1, the «Allegati» box heading, «Indice allegati», «Allegato I.01 art. 1», the «Allegato I.1» heading (`<li class="box_allegati_small">`) and that annex's «art. 1» |
 
 Each trimmed part was checked to give the same served part (`parte_servita`) and the same
-served article as the whole page, and the trimmed tree the same parts of art. 1 as the whole
+served article as the whole page (the two validity copies: the same window too), and the trimmed tree the same parts of art. 1 as the whole
 tree. Used by `tests/unit/test_atto_intero_parti.py`.

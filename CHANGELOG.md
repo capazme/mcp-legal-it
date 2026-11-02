@@ -725,7 +725,7 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **`download_law_pdf`** adds the same lines to its answer and prints them in the PDF,
     under the source; **`api.testo_atto`** gains `completo` and `avvisi` (additions with
     defaults, see `docs/api.md`). From the export, `completo` covers the act's articles: the
-    export's text leaves the annexes out, not yet said in a notice.
+    export's text leaves the annexes out, and says so (#139, below).
   - **The citation gate** skips the «**Avviso**» lines when it drops the line a later
     window may have cut, in both readers.
   - **Measured live on 2 Nov 2026** (walk with `AKN_DISABLED=1`, against the export):
@@ -734,6 +734,23 @@ described in those sections, not repeated here. Upgrading from 2.x:
     annexes named as having parts in graphic form; D.Lgs. 231/2001 (117,582) and L.
     604/1966 (29,425) unchanged, no notice. Requests: one per entry, as before (L.
     213/2023: 33 to 38; D.Lgs. 196/2003 +6 net).
+- **`fetch_full_act` says which parts the export's text leaves out, and reads the text in
+  force today without it** (#139).
+  - **The export's annexes.** The Akoma Ntoso text is the act's body: its annexes were left
+    out with no word, under `completo: True`. An «**Avviso**» now names them («Parti
+    dell'atto non incluse nel testo: Allegato I, Allegato II, …») with the act's page; for a
+    codice, its Dispositivo and its other parts (the preleggi of the c.c.). The annexes
+    without articles count too: the 11 attachments of L. 213/2023 (tables), which the parser
+    did not keep. `ParsedAct.annessi` lists them; the export cache moves to schema 7, so acts
+    parsed before are fetched again.
+  - **Today's text without the export.** The walk read the undated act page, whose tree
+    lists each article's newest version: on 2 Nov 2026 the six parts of art. 1 L. 213/2023
+    were the version in force from 1 Jan 2027. The act is now read at today's date
+    (`!vig=`), as `cite_law` already re-asks an undated page; an entry whose page states a
+    window that does not hold today is not taken, and an «**Avviso**» names it with its
+    window («art. 1 (commi 1-100) (in vigore dal 2027-01-01)»), `completo: False`.
+  - **The annex in a notice's name.** An annex article is labelled «art. 1» in the tree,
+    like the act's own: notices now name it «Allegato I.1, art. 1».
 - **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).
   A Normattiva page with an act's ELI date or `eli:title` but no act heading
   («LEGGE 7 agosto 1990, n. 241») was read as another act's page, so the act came back
