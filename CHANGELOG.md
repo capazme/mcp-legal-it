@@ -695,6 +695,33 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **A decree cited by its year is no longer read as the law Normattiva serves in its place**
+  (#136). Asked for a ministerial decree, a DPCM or a d.lgs.lgt. by its year, Normattiva's
+  resolver does not check the type: for a DPCM n. 158 of 2014 it serves L. 17 ottobre 2014,
+  n. 158, and for a D.M. n. 241 of 1990 L. 7 agosto 1990, n. 241. These types were dated by the
+  page's ELI date alone, so `risolvi_atto` answered `trovato` with the law's date, and the
+  readers of a year-only act would have read the law at that date.
+  - **The heading must name the act.** The date is taken only when the page's heading
+    names the asked type (a table of headings measured on real pages: «DECRETO» for a D.M.,
+    «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI», «DECRETO LEGISLATIVO
+    LUOGOTENENZIALE» and «DECRETO-LEGGE LUOGOTENENZIALE»), with the asked year and number.
+    The date is the heading's day; an ELI date that disagrees with it makes the answer
+    transient.
+  - **Another act.** A heading of a known type that is not the asked one, or another year or
+    number (none, for an act without one), is `atto_non_trovato`, naming the page served.
+  - **Not verifiable.** A heading whose type is in no table, or a page without heading, is
+    `fonte_non_raggiungibile`, never kept, and never dated by its ELI date. The readers never
+    fall back on the year-only URN for these types either, which would serve the same law:
+    when the page cannot be read or verified now (a network error, an error page, no
+    heading), they refuse and say to retry or give the full date.
+  - **Every reader refuses it.** `testo_articolo`, the article of an annex, the future
+    version, `albero_atto`, `testo_atto`, `indice_atto` (the AKN export and the index, also
+    with the export disabled), `modifiche_articolo`, `cite_law` and the `fetch_act_index`
+    tool answer with the error and ask Normattiva nothing more. The api readers report it
+    as `verifica_non_disponibile`, the only refusal their outcomes have.
+  - **Headings without a number.** An act heading without «, n. …» («DECRETO DEL PRESIDENTE
+    DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») now counts as an act's heading, not as a page
+    without one.
 - **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).
   A Normattiva page with an act's ELI date or `eli:title` but no act heading
   («LEGGE 7 agosto 1990, n. 241») was read as another act's page, so the act came back
@@ -702,8 +729,7 @@ described in those sections, not repeated here. Upgrading from 2.x:
   now `fonte_non_raggiungibile` («pagina senza l'intestazione dell'atto»), never kept in
   memory, and asked again on the next call. `scraper.normattiva_page_problem` returns the
   new code `"senza_intestazione"` for it; an act page with its heading (or the
-  Constitution's, headed «COSTITUZIONE») is unchanged. The types dated by the ELI date
-  alone (ministerial decrees, DPCM) still take that date when it falls in the cited year.
+  Constitution's, headed «COSTITUZIONE») is unchanged.
 - **`act_dates.json` follows the cache configuration within one process** (#113 D). The
   dates file was read once per process, so a later `configurazione(cache_dir=…)` or
   `cache=…` never read the other directory, and a disk switched on after the first

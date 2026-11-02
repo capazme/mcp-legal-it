@@ -3,6 +3,7 @@
 import asyncio
 import copy
 import dataclasses
+import datetime
 import difflib
 import os
 import re
@@ -132,8 +133,12 @@ _PAGINA_ERRORE = "Normattiva - Errore"
 _MESSAGGIO_ERRORE = "Errore nel caricamento delle informazioni"
 _SESSIONE_SCADUTA = re.compile(r"sessione\s+scadut", re.IGNORECASE)
 _MANUTENZIONE = re.compile(r"manutenzione", re.IGNORECASE)
-# The heading of an act's page: "LEGGE 7 agosto 1990, n. 241", "DECRETO 10 marzo 2014, n. 55".
-_INTESTAZIONE_ATTO = re.compile(r"^[A-Z][A-Z' -]+ \d{1,2}[º°]? [a-z]+ \d{4}, n\. \d+")
+# The heading of an act's page: "LEGGE 7 agosto 1990, n. 241", "DECRETO 10 marzo 2014, n. 55",
+# and an act without a number: "DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI 8 marzo 2020".
+_INTESTAZIONE_ATTO = re.compile(
+    r"^(?P<tipo>[A-Z][A-Z' -]*[A-Z]) (?P<giorno>\d{1,2})[º°]? (?P<mese>[a-z]+) (?P<anno>\d{4})"
+    r"(?:, n\. (?P<numero>\d+))?"
+)
 # The one act page whose heading has no date nor number (measured: «COSTITUZIONE - Normattiva»).
 _INTESTAZIONE_COSTITUZIONE = "COSTITUZIONE"
 
@@ -147,8 +152,7 @@ def normattiva_page_problem(html: str, meta: dict, status: int = 200) -> str | N
     act»: an ELI date or an ``eli:title`` without it is no such evidence. Otherwise:
 
     - ``"senza_intestazione"``: the page has an act's ELI date or title but no act heading
-      (a markup change). It never makes an act «not found»; the ELI path of
-      :func:`act_full_date` still takes its date when it falls in the cited year;
+      (a markup change). It never makes an act «not found», nor dates one;
     - ``"errore"``: Normattiva's generic error page, served both for an act it does not
       have and for a session or server problem (the caller must tell them apart);
     - ``"sessione"``: the page says the session expired (reported by a consumer);
@@ -171,6 +175,63 @@ def normattiva_page_problem(html: str, meta: dict, status: int = 200) -> str | N
     if heading.startswith(_PAGINA_ERRORE) and _MESSAGGIO_ERRORE in html:
         return "errore"
     return "illeggibile"
+
+
+#: The headings a Normattiva page of each type dated by its ELI date opens with (the types
+#: :data:`act_dates._TITLES` does not cover). Only headings measured on real pages, all kept
+#: in ``tests/fixtures/normattiva``; a heading of another type is never taken for the act.
+_INTESTAZIONI_ELI = {
+    # D.M. 10 marzo 2014, n. 55 (29 Oct 2026) and D.M. 22 gennaio 2008, n. 37 (2 Nov 2026):
+    # «DECRETO 10 marzo 2014, n. 55». No ministry's name in the heading.
+    "decreto.ministeriale": frozenset({"DECRETO"}),
+    # D.P.C.M. 5 dicembre 2013, n. 159 and the D.P.C.M. 8 marzo 2020, without a number (2 Nov 2026).
+    "decreto.del.presidente.del.consiglio.dei.ministri": frozenset({
+        "DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI"}),
+    # D.Lgs.Lgt. 16 marzo 1946, n. 98 (2 Nov 2026). The year-only URN of a d.lgs.lgt. n. 151 of
+    # 1944 serves «DECRETO-LEGGE LUOGOTENENZIALE 25 giugno 1944, n. 151» (2 Nov 2026), the act
+    # cited under its other name.
+    "decreto.legislativo.luogotenenziale": frozenset({
+        "DECRETO LEGISLATIVO LUOGOTENENZIALE", "DECRETO-LEGGE LUOGOTENENZIALE"}),
+}
+#: Every heading type the library knows: a page headed by one of these that is not the asked
+#: type's is another act's (L. 17 ottobre 2014, n. 158 served for a DPCM n. 158 of 2014).
+_TIPI_INTESTAZIONE_NOTI = frozenset(act_dates._TITLES.values()).union(*_INTESTAZIONI_ELI.values())
+
+
+class AttoNonVerificato(LookupError):
+    """A year-only act of a type dated by its ELI date whose page does not prove it is that act.
+
+    Raised by :func:`with_full_date`: the page is another act's (its heading names another
+    type, year or number), its heading's type is not one the library can compare, or the
+    page could not be read or verified now. Normattiva's resolver does not check the type,
+    so the year-only URN of an article would serve the same other act: the caller refuses
+    instead of reading it.
+    """
+
+
+def _confronta_intestazione(meta: dict, kind: str, anno: str, numero: str) -> tuple[str, str]:
+    """``(verdict, date)``: what the heading of an act's page says about the asked act.
+
+    *meta* is an act's page (:func:`normattiva_page_problem` is ``None``). *verdict*:
+    ``"atto"`` (the heading names *kind*'s type, *anno* and *numero*; *date* is the
+    heading's day, ``""`` when the day cannot be read), ``"altro"`` (a known type that is
+    not *kind*'s, or another year or number, none for an act without one) or
+    ``"non_verificato"`` (*kind* or the heading's type is not in the measured tables, the
+    Constitution's heading included). Never a near match.
+    """
+    found = _INTESTAZIONE_ATTO.match(meta.get("heading", ""))
+    compatibili = _INTESTAZIONI_ELI.get(kind)
+    if found is None or compatibili is None or found["tipo"] not in _TIPI_INTESTAZIONE_NOTI:
+        return "non_verificato", ""
+    voluto = re.sub(r"^0+(?=\d)", "", str(numero).strip())
+    if found["tipo"] not in compatibili or found["anno"] != anno or (found["numero"] or "") != voluto:
+        return "altro", ""
+    mese = act_dates._MESI.get(found["mese"].lower())
+    try:
+        giorno = datetime.date(int(found["anno"]), mese, int(found["giorno"])).isoformat() if mese else ""
+    except ValueError:
+        giorno = ""
+    return "atto", giorno
 
 
 def act_display_title(meta: dict) -> str:
@@ -301,22 +362,50 @@ async def with_full_date(norma: Norma) -> Norma:
     """
     if not _year_only_act(norma):
         return norma
+    # The types dated by their ELI date never fall back on their year-only URN: Normattiva's
+    # resolver does not check the type, and would serve the law with that year and number.
+    per_eli = _tipo_urn(norma) not in act_dates._TITLES
     try:
-        date, _modo, _meta = await act_full_date(norma)
-    except Exception:  # noqa: BLE001 - identity lookup is best effort
+        date, _modo, meta = await act_full_date(norma)
+    except Exception as exc:  # noqa: BLE001 - identity lookup is best effort
+        if per_eli:
+            raise AttoNonVerificato(_atto_non_corrispondente(norma, "", "non_letta", type(exc).__name__)) from exc
         return norma
     if not date:
+        verifica = meta.get("verifica_tipo")
+        if verifica in ("altro", "non_verificato"):
+            # The year-only URN would serve this same page: refused, never read as the act.
+            raise AttoNonVerificato(_atto_non_corrispondente(norma, meta.get("heading", ""), verifica))
+        if per_eli:
+            raise AttoNonVerificato(_atto_non_corrispondente(norma, "", "non_letta", meta.get("problema") or ""))
         return norma
     return dataclasses.replace(norma, data=date)
+
+
+def _atto_non_corrispondente(norma: Norma, intestazione: str, verifica: str, motivo: str = "") -> str:
+    """The refusal of a year-only act whose page does not prove it (:class:`AttoNonVerificato`)."""
+    citato = f"{norma.tipo_atto_normalized} n. {norma.numero_atto} del {norma.data}"
+    if verifica == "altro":
+        return (f"nessun atto «{citato}» su Normattiva: la pagina restituita è «{intestazione}» "
+                "(controlla tipo, numero e anno)")
+    if verifica == "date_discordi":
+        return (f"«{citato}»: l'intestazione della pagina («{intestazione}») e la sua data ELI non coincidono; "
+                "indicare la data completa dell'atto")
+    if verifica == "non_letta":
+        return (f"«{citato}»: la data completa dell'atto non è stata verificata su Normattiva"
+                + (f" ({motivo})" if motivo else "") + "; riprovare, o indicarla")
+    return (f"«{citato}»: Normattiva restituisce «{intestazione}», un tipo d'atto che la libreria non sa "
+            "confrontare con quello citato; indicare la data completa dell'atto")
 
 
 async def act_full_date(norma: Norma) -> tuple[str, str, dict]:
     """``(date, how, page)`` of an act cited with the year only (``Norma.data`` = "YYYY").
 
     *how* is ``"titolo"`` when the page's title names this act's type, year and number
-    (or the date was kept on disk after such a reading), ``"eli"`` for the page's ELI date
-    of a kind the titles do not cover; *date* is ``""`` when the page does not name the
-    act. *page* is :func:`act_page_metadata` of the page read, ``{}`` when no page was read.
+    (or the date was kept on disk after such a reading), ``"eli"`` for a kind the titles do
+    not cover, whose page's heading names it through :data:`_INTESTAZIONI_ELI` (the date is
+    the heading's day; a disagreeing ELI date is a problem); *date* is ``""`` when the page
+    does not name the act. *page* is :func:`act_page_metadata` of the page read, ``{}`` when no page was read.
     Network and HTTP errors propagate: :func:`with_full_date` swallows them,
     ``api.risolvi_atto`` reports them.
     """
@@ -332,14 +421,24 @@ async def act_full_date(norma: Norma) -> tuple[str, str, dict]:
         if date:
             act_dates.scrivi(chiave, date)
         return date, ("titolo" if date else ""), meta
-    # A kind the titles do not cover (a DPCM, a ministerial decree, a regional law):
-    # the page's ELI date, accepted when it is in the cited year — a weaker check, as
-    # before. Never kept: the resolver can answer a regional law with the state law of
-    # the same year and number, and a year on disk would make that mistake last.
-    date = meta.get("date", "")
-    if not date.startswith(f"{norma.data}-"):
-        return "", "", meta
-    return date, "eli", meta
+    # A kind the titles do not cover (a DPCM, a ministerial decree): the page's ELI date,
+    # accepted when the page's heading names this act (its type through the measured
+    # headings, its year and number) and the date is in the cited year. The resolver does
+    # not check the type: asked a DPCM n. 158 of 2014, it serves L. 17 ottobre 2014, n. 158.
+    # Never kept on disk.
+    if meta.get("problema") is not None:
+        return "", "", meta  # no act's heading: the page's problem says why
+    verifica, giorno = _confronta_intestazione(meta, kind, norma.data, norma.numero_atto)
+    if verifica == "altro":
+        return "", "", {**meta, "verifica_tipo": verifica}  # another act's page: not found
+    eli = meta.get("date", "")
+    if verifica == "atto" and giorno and eli in ("", giorno):
+        return giorno, "eli", meta  # the heading's day, which the ELI date (when there) confirms
+    # Nothing to compare, or a heading and an ELI date that disagree: transient, and the page
+    # is not kept in memory either.
+    _full_date_cache.pop(norma.url(), None)
+    problema = "tipo_non_verificato" if verifica == "non_verificato" else "date_discordi"
+    return "", "", {**meta, "problema": problema, "verifica_tipo": "non_verificato"}
 
 
 def _tipo_urn(norma: Norma) -> str:
@@ -411,7 +510,10 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
     else:
         # A bare-year citation is resolved to the act's real date first, so the
         # URL (and the URN derived from it) is the act's own, not YYYY-01-01.
-        full = await with_full_date(nv.norma)
+        try:
+            full = await with_full_date(nv.norma)
+        except AttoNonVerificato as exc:
+            return {"text": "", "url": "", "source": source, "esito": CHECK_UNAVAILABLE, "error": str(exc)}
         if full is not nv.norma:
             nv = dataclasses.replace(nv, norma=full)  # the version asked for stays
         if nv.suffisso_versione() and _year_only_act(nv.norma):
@@ -679,7 +781,10 @@ async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str
     article of the annex then gets the URN of its part (";36:8~art30": Normattiva
     numbers the parts by position) and, on the HTML channel, that page's text.
     """
-    full = await with_full_date(nv.norma)
+    try:
+        full = await with_full_date(nv.norma)
+    except AttoNonVerificato as exc:
+        return {"text": "", "url": "", "source": "normattiva-akn", "esito": CHECK_UNAVAILABLE, "error": str(exc)}
     url = full.url()
     base = {"text": "", "url": url, "source": "normattiva-akn", "data_atto": full.data}
     label = f"Allegato {annex_id}" + (f", art. {article}" if article else "")
@@ -1076,7 +1181,10 @@ async def fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) ->
         # Refused before any request, as the api refuses it (the annex's page is not read so).
         return {"text": "", "url": nv.norma.url(), "source": source,
                 "error": "la versione futura di un allegato non è ancora disponibile"}
-    full = await with_full_date(nv.norma)
+    try:
+        full = await with_full_date(nv.norma)
+    except AttoNonVerificato as exc:
+        return {"text": "", "url": "", "source": source, "esito": CHECK_UNAVAILABLE, "error": str(exc)}
     if full is not nv.norma:
         nv = dataclasses.replace(nv, norma=full)
     url = nv.url()
@@ -1832,7 +1940,10 @@ async def fetch_act_tree(norma: "Norma", *, link: bool = False, details: bool = 
     """
     from .albero_normattiva import _narrow, _parse_normattiva_tree
 
-    norma = await with_full_date(norma)  # a year-only act's tree is its real date's
+    try:
+        norma = await with_full_date(norma)  # a year-only act's tree is its real date's
+    except AttoNonVerificato as exc:
+        return {"error": str(exc), "url": "", "esito": CHECK_UNAVAILABLE}
     # The act's own URL, without a code's default part (";262:2" -> ";262"): the tree
     # numbers the parts itself, and builds each article's URL from this one.
     act_url = re.sub(r"(;[^;:~!@?]+):\d+$", r"\1",
@@ -1871,6 +1982,12 @@ async def fetch_act_index(norma: "Norma") -> dict:
     Uses /atto/vediRubriche endpoint to get article titles without full text.
     Returns: {"index": list[str], "codice_redazionale": str, "url": str} or {"error": str}
     """
+    try:
+        # A decree cited by year whose page is not provably its own is refused; the index is
+        # still read from the URN as cited (its full date is not substituted here).
+        await with_full_date(norma)
+    except AttoNonVerificato as exc:
+        return {"index": [], "url": "", "error": str(exc), "esito": CHECK_UNAVAILABLE}
     act_url = norma.url()
     if not act_url:
         return {"index": [], "url": "", "error": "Could not generate URL"}
@@ -1945,7 +2062,10 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     Returns: {"text": str, "title": str, "url": str, "article_count": int} or {"error": str}
     """
     # A bare-year citation is resolved to the act's real date first (see with_full_date).
-    norma = await with_full_date(norma)
+    try:
+        norma = await with_full_date(norma)
+    except AttoNonVerificato as exc:
+        return {"text": "", "title": "", "url": "", "error": str(exc), "esito": CHECK_UNAVAILABLE}
     act_url = norma.url()
     if not act_url:
         return {"text": "", "title": "", "url": "", "error": "Could not generate URL"}
