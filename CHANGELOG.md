@@ -703,7 +703,9 @@ described in those sections, not repeated here. Upgrading from 2.x:
     the tree's order, with the session the act's page set. It used to read the first part
     only. A part's page must name the part's commi, or it is not taken (with a dead session
     Normattiva answers with another part); a part whose commi the tree does not state in a
-    form the reader knows is not taken either.
+    form the reader knows is not taken either, nor a page whose visible line names another
+    article (two articles split into the same commi). A page with an empty body is an entry
+    not read.
   - **Every article with a suffix is read.** Arts. 2, 2-bis and 2-ter share one article id
     on Normattiva (2-quaterdecies and 2-quaterdecies.1 one sub-id): all but the first were
     dropped. On the trees counted on 2 Nov 2026: 30 articles of D.Lgs. 196/2003 (arts. 2-bis
@@ -722,7 +724,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
     the act's own page (no tree, or no entry with a text) now says so too.
   - **`download_law_pdf`** adds the same lines to its answer and prints them in the PDF,
     under the source; **`api.testo_atto`** gains `completo` and `avvisi` (additions with
-    defaults, see `docs/api.md`).
+    defaults, see `docs/api.md`). From the export, `completo` covers the act's articles: the
+    export's text leaves the annexes out, not yet said in a notice.
   - **The citation gate** skips the «**Avviso**» lines when it drops the line a later
     window may have cut, in both readers.
   - **Measured live on 2 Nov 2026** (walk with `AKN_DISABLED=1`, against the export):

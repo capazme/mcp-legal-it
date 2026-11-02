@@ -88,7 +88,7 @@ def _normattiva(chieste: list, *, guasti: dict | None = None):
             k = int(re.search(r"art\.progressivo=(\d+)", url).group(1))
             risposta = guasti.get(k, PARTI[k] if "sessione-1" in cookie else PARTI[1])
         elif gruppo == "2":
-            risposta = ART2
+            risposta = guasti.get("art2", ART2)
         else:
             etichetta = {"1": "Allegato I", "2": "Allegato II"}[tipo]
             risposta = guasti.get(etichetta, {"Allegato I": ALLEGATO_I, "Allegato II": ALLEGATO_II}[etichetta])
@@ -186,6 +186,26 @@ class TestLettura:
         assert r["completo"] is False
         assert r["non_lette"] == ["art. 1 (comma 201-300)"]
         assert INIZIO_PARTE[3] not in r["text"] and INIZIO_PARTE[4] in r["text"]
+
+    async def test_another_articles_part_with_the_same_commi_is_not_taken(self):
+        # Made from the real page of part 3, the article changed to 2 in its visible line and its
+        # heading: the page of another article split into the same commi (a stale session).
+        altro = (PARTI[3].replace("art. 1 (commi 201-300)", "art. 2 (commi 201-300)")
+                 .replace('<h2 class="article-num-akn" id="art_1">Art. 1</h2>',
+                          '<h2 class="article-num-akn" id="art_2">Art. 2</h2>'))
+        assert altro.count("art. 2 (commi 201-300)") == 1 and "id=\"art_2\"" in altro
+        r = await _leggi([], guasti={3: altro})
+        assert r["completo"] is False and r["non_lette"] == ["art. 1 (commi 201-300)"]
+        assert INIZIO_PARTE[3] not in r["text"]
+
+    async def test_a_page_with_an_empty_body_is_named_not_dropped(self):
+        # Made from the real page of art. 2, its bodyTesto emptied: a page Normattiva answers 200
+        # with nothing in it is an entry not read, never an entry with nothing to read.
+        vuota = re.sub(r'(<div class="bodyTesto">).*?(</div>\s*</body>)', r"\1</div>\n</body>", ART2, flags=re.S)
+        assert '<div class="bodyTesto"></div>' in vuota
+        r = await _leggi([], guasti={"art2": vuota})
+        assert r["completo"] is False and r["non_lette"] == ["art. 2"]
+        assert any("art. 2" in a and "Lettura parziale" in a for a in r["avvisi"])
 
     async def test_without_a_tree_the_act_page_is_said_partial(self, monkeypatch):
         monkeypatch.setattr(sys.modules[__name__], "ATTO", re.sub(r"<div id=\"albero\">.*?</div>", "",
