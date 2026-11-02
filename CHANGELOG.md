@@ -390,6 +390,33 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **The time-limit tools take the matter of the case for the August suspension**
+  (decision G-406). `scadenza_processuale`, `termini_processuali_civili`,
+  `scadenze_impugnazioni`, `termini_memorie_repliche`,
+  `termini_procedimento_semplificato`, `termini_183_190_cpc`,
+  `termini_deposito_atti_appello` and `termini_deposito_ctu` accept an optional
+  `materia`, with closed values: `ordinaria` or one of the ten matters that art. 3
+  L. 742/1969 and art. 92 R.D. 12/1941 exclude from the suspension
+  (`lavoro_previdenza`, `alimenti`, `cautelare`, `amministrazione_sostegno`,
+  `ordini_protezione`, `sfratto`, `opposizione_esecuzione`, `fallimento`,
+  `materia_corporativa`, `urgenza_dichiarata`).
+  - **Excluded matter.** The suspension is switched off and the answer says why, with
+    its source (`sospensione_feriale_esclusa`).
+  - **No matter given.** Nothing changes in the calculation. When the suspension is
+    applied the answer says the matter was not given (`nota_materia`). When August moved
+    a deadline, each deadline that moved carries `scadenza_se_materia_esclusa`, the date
+    that holds for an excluded matter; a summary of dates (`riepilogo_*`) gets a parallel
+    `riepilogo_*_se_materia_esclusa` with the entries that change, and the warning is
+    added even when only the summary moved.
+  - **Codes in the warning.** `avviso_sospensione_feriale` lists the matters with their
+    `codice`. `materia` is the last parameter, so positional calls are unchanged.
+- **Backward terms and a start day in August state their rule and source** (decision
+  G-327). The calculation was already right: a backward deadline falling on a Saturday,
+  Sunday or holiday goes back to the previous working day, more than one day if needed
+  (Sunday to Friday, and Thursday when Friday is a holiday; art. 155 co. 4-5 c.p.c., Cass.
+  14767/2014). A start day in August counts as 31 August, so 1 September is the first day
+  counted (art. 1 L. 742/1969). The note of `termini_memorie_repliche` now cites the
+  ruling.
 - **`termini_esecuzioni` states the reading applied for art. 617 c.p.c.** (decision
   LI-060). The August suspension is still not applied to the 20 days; the field that
   said the point was debated (`avvertenza_sospensione_feriale`) becomes
@@ -744,6 +771,30 @@ described in those sections, not repeated here. Upgrading from 2.x:
   wrapper now carries them. The library declares Python 3.11 or later, so a pip or uvx
   install on 3.14 hit it; the plugin and the `.mcpb` run 3.12. From the same
   contribution, the annotation audit and two isolated tests also run on Windows.
+- **`termini_esecuzioni`: the art. 482 c.p.c. window opened one day early and was
+  extended** (decision G-329). For the three `pignoramento_*` types,
+  `termine_minimo_10gg` gave notice+10, extended under art. 155, as the date
+  enforcement could start. It now gives `primo_giorno_utile` (notice+11) and
+  `divieto_fino_al` (notice+10, the last day of the ban). Neither is extended: art. 482
+  imposes no act, it protects the debtor. The note presents this as an interpretation,
+  since no legitimacy ruling deals with art. 482 and the extension. Example: notice on
+  2 March gives the 13th, not the 12th. `finestra_utile` starts on the same day. For a
+  `pignoramento_mobiliare` whose first day is a Sunday or a holiday (not a Saturday;
+  decision G-405), `avviso_art_519` recalls that seizure on holidays needs the judge's
+  authorisation and gives the first day without one; the term itself does not move.
+  The ten days are not suspended in August (decision G-407): the precetto is an
+  out-of-court act and its terms are not procedural ones. The new optional
+  `termine_precetto_giorni` takes the term stated in the precetto when longer, and
+  the answer recalls the immediate enforcement the court may authorise when delay is
+  dangerous (`esecuzione_immediata`). When the precetto's term outlasts the 90 days of
+  art. 481, `finestra_utile` is null and `avviso_finestra` says the precetto lapses
+  before enforcement may start.
+- **`termini_esecuzioni`: the art. 481 c.p.c. term explains its reading** (decision
+  G-408). The date is unchanged: 90 days, no August suspension, a Saturday or a holiday
+  extended to the next working day (art. 155 co. 4-5, stated as an interpretation). The
+  note says it is a time limit for loss of rights (Cass. 11578/2005), and
+  `avviso_opposizione` recalls that an opposition to the precetto suspends the term
+  until the proceedings resume (art. 481 co. 2, art. 627).
 - **An act cited with its full date is never read as another act served in its place**
   (#136, #146 follow-up). Normattiva's resolver does not check the act's type with a full
   date either: the address of a D.M. 7 agosto 1990, n. 241 serves L. 7 agosto 1990, n. 241,
