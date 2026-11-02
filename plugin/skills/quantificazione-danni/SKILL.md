@@ -19,7 +19,7 @@ Calcolo base, personalizzazione e attualizzazione.
 **Patrimoniale** (importo):
 - Danno emergente + lucro cessante
 - Lucro cessante: calcola in base alla durata della privazione
-- `legal-it:interessi_legali` dalla data evento
+- Rivalutazione e interessi: vedi Attualizzazione (voci storiche)
 
 **Morale/esistenziale**:
 - `legal-it:danno_non_patrimoniale` come base
@@ -32,8 +32,10 @@ Indica una percentuale di personalizzazione motivata.
 
 ### 3. Attualizzazione
 
-1. `legal-it:rivalutazione_monetaria` dalla data evento
-2. Interessi compensativi (Cass. SS.UU. 1712/1995) non sul capitale interamente rivalutato, che sarebbe una sovra-compensazione: le tabelle danno valori attuali, quindi prima devaluta la somma alla data del fatto, poi calcola gli interessi sulla somma progressivamente rivalutata o, in via semplificata (semplificazione di prassi, non formula delle SS.UU.), sul valore medio: `legal-it:interessi_legali` sulla base `(somma_devalutata + somma_rivalutata) / 2`. Il saggio dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, debito di valore (Cass. civ., sez. III, n. 6698/2026)
+Interessi compensativi (Cass. SS.UU. 1712/1995) mai sul capitale interamente rivalutato, che sarebbe una sovra-compensazione:
+1. **Voci storiche** (danno patrimoniale espresso in moneta dell'epoca): `legal-it:rivalutazione_monetaria` dalla data evento con `con_interessi_legali=True`, che rivaluta e calcola gli interessi anno per anno sul capitale rivalutato. Non aggiungere altri interessi.
+2. **Voci a valore attuale** (danno non patrimoniale da tabella): non rivalutarle di nuovo. Riconducile alla data del fatto con `legal-it:calcolo_devalutazione`, poi `legal-it:interessi_vari_capitale_rivalutato` sulla somma devalutata dalla data evento (solo `totale_interessi`); così Cass. civ., sez. III, n. 11614/2025 («previa devalutazione fino alla data del fatto illecito e rivalutazione di anno in anno»). In via semplificata (semplificazione di prassi, non formula delle SS.UU.): `legal-it:interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`.
+3. Il saggio dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, debito di valore (Cass. civ., sez. III, n. 6698/2026)
 
 ## Formato output
 
@@ -44,8 +46,8 @@ Intestazione `## Quantificazione Danno` con il tipo di danno tra parentesi, poi 
 | Danno base (tabellare/documentale) | € ... |
 | Personalizzazione (±...%) | € ... |
 | Subtotale | € ... |
-| Rivalutazione ISTAT | € ... |
-| Interessi legali | € ... |
+| Rivalutazione ISTAT (solo voci storiche) | € ... |
+| Interessi compensativi | € ... |
 | **TOTALE** | **€ ...** |
 
 ### Motivazione
