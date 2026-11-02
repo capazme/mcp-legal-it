@@ -788,6 +788,20 @@ described in those sections, not repeated here. Upgrading from 2.x:
   add that this does not mean the mark does not exist, and that the record is on
   www.tmdn.org. Before, the answer was «non raggiungibile», followed by httpx's English
   message with the request URL. A refusal is not retried.
+- **`leggi_marchio` gives a partial record when TMview refuses the detail** (#124). The
+  refusal is the source's, and nothing tries to get around it. The tool asks the search
+  endpoint for the same mark, using the application-number field of TMview's advanced
+  search and taking a hit only if its ST13 is the one asked. The answer is headed «Scheda
+  parziale» and names the refusal (HTTP 403, since 29/10/2026). It gives what the search has
+  (holder, Nice classes, status, dates) and lists what is missing: goods and services per
+  class, representative, the holder's nationality, the status date and the publications.
+  It ends with the link to the record on TMview, for a browser. When the search finds
+  nothing, or the ST13 cannot be searched by number, or the search fails as well, the
+  answer is the refusal plus that link. When the search reports more marks than the page
+  read, a miss is said as «non è tra i primi N risultati», never as «nessun marchio». `verifica_anteriorita_marchio` now says it works
+  from the search data only and does not compare goods and services. The live tests accept
+  two outcomes, the full record or the declared partial one, so they pass whether or not
+  TMview lifts the block.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
   portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
   provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
