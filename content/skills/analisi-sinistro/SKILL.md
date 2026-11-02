@@ -73,7 +73,8 @@ massimi della tabella (calcolata sulla componente biologica), tramite `personali
 
 Il valore tabellare (nella versione vigente al momento della decisione) è già espresso in moneta
 attuale: NON rivalutarlo di nuovo. Per calcolare gli interessi, riconducilo alla data del sinistro
-con `calcolo_devalutazione` (`importo_attuale` = valore tabellare, `data_attuale` = oggi,
+con `calcolo_devalutazione` (`importo_attuale` = valore tabellare comprensivo dell'eventuale
+personalizzazione, `data_attuale` = oggi,
 `data_passata` = data del sinistro). La somma devalutata è solo la base di calcolo: non si somma.
 
 ### 4. Interessi compensativi (Cass. SS.UU. 1712/1995)
@@ -84,8 +85,8 @@ per anno (così Cass. civ., sez. III, n. 11614/2025: interessi compensativi «pr
 fino alla data del fatto illecito e rivalutazione di anno in anno»): chiama
 `interessi_vari_capitale_rivalutato` con `capitale` = somma devalutata, dalla data del sinistro a
 oggi, e prendi solo `totale_interessi`. In via semplificata (è una semplificazione di prassi, non
-una formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`
-dalla data del sinistro a oggi.
+una formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2` (valore tabellare
+comprensivo dell'eventuale personalizzazione) dalla data del sinistro a oggi.
 
 Gli interessi compensativi coprono il periodo dall'evento alla liquidazione. Il saggio maggiorato
 dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, che è

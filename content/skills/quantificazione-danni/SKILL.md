@@ -36,7 +36,7 @@ Indica una percentuale di personalizzazione motivata.
 
 Interessi compensativi (Cass. SS.UU. 1712/1995) mai sul capitale interamente rivalutato, che sarebbe una sovra-compensazione:
 1. **Voci storiche** (danno patrimoniale espresso in moneta dell'epoca): `rivalutazione_monetaria` dalla data evento con `con_interessi_legali=True`, che rivaluta e calcola gli interessi anno per anno sul capitale rivalutato. Non aggiungere altri interessi.
-2. **Voci a valore attuale** (danno non patrimoniale da tabella): non rivalutarle di nuovo. Riconducile alla data del fatto con `calcolo_devalutazione`, poi `interessi_vari_capitale_rivalutato` sulla somma devalutata dalla data evento (solo `totale_interessi`); così Cass. civ., sez. III, n. 11614/2025 («previa devalutazione fino alla data del fatto illecito e rivalutazione di anno in anno»). In via semplificata (semplificazione di prassi, non formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`.
+2. **Voci a valore attuale** (danno non patrimoniale da tabella, comprensivo dell'eventuale personalizzazione): non rivalutarle di nuovo. Riconducile alla data del fatto con `calcolo_devalutazione`, poi `interessi_vari_capitale_rivalutato` sulla somma devalutata dalla data evento (solo `totale_interessi`); così Cass. civ., sez. III, n. 11614/2025 («previa devalutazione fino alla data del fatto illecito e rivalutazione di anno in anno»). In via semplificata (semplificazione di prassi, non formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`.
 3. Il saggio dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, debito di valore (Cass. civ., sez. III, n. 6698/2026)
 
 ## Formato output
