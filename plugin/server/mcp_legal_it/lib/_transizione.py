@@ -39,6 +39,8 @@ from dataclasses import dataclass
 from datetime import date
 from functools import wraps
 
+from ._regime import _annotazioni_da_propagare
+
 from . import _clock, _precision
 
 #: The field the notice lands in, in a dict answer.
@@ -172,7 +174,12 @@ def transitoria(disciplina: Disciplina):
                 return _attach(fn(*args, **kwargs), disciplina)
 
         # `wraps` copies `__dict__`: `__signature__`, `__sourced_datasets__` and the
-        # other markers travel with the wrapper, so the schema does not change.
+        # other markers travel with the wrapper, so the schema does not change. The
+        # annotations are the exception on Python 3.14 (PEP 649): re-expose them, as
+        # `@previgente` does, or the schema dies on a parameter's missing hint (#49).
+        annotations = _annotazioni_da_propagare(fn)
+        if annotations:
+            wrapper.__annotations__ = annotations
         wrapper.__disciplina_transitoria__ = disciplina
         return wrapper
 

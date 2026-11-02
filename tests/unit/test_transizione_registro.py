@@ -206,3 +206,30 @@ def test_the_refusal_is_stamped_in_meta_over_the_wire(monkeypatch):
 
     computed = asyncio.run(run("2026-12-31"))
     assert PRECISION_KEY not in (computed.meta or {})
+
+
+def test_transitoria_over_sourced_keeps_every_hint_when_wraps_copies_none(monkeypatch):
+    """Python 3.14's `functools.wraps` no longer copies `__annotations__` (PEP 649): the
+    hints `@sourced` extends by hand must still reach `@transitoria`'s wrapper, or FastMCP
+    stops the server at import with a `KeyError` on a parameter (as #49 for `@previgente`).
+    That `wraps` is reproduced here on any Python."""
+    import functools
+
+    from fastmcp import FastMCP
+    from mcp_legal_it.lib._data import sourced
+
+    assigned = tuple(a for a in functools.WRAPPER_ASSIGNMENTS if a != "__annotations__")
+    monkeypatch.setattr(_transizione, "wraps", functools.partial(functools.wraps, assigned=assigned))
+
+    @transitoria(DPR_131_1986)
+    @sourced("festivita")
+    def calcolo_prova(valore_piena_proprieta: float, eta: int = 60) -> dict:
+        """Calcolo di prova.
+
+        Precisione: ESATTO (prova).
+        """
+        return {}
+
+    hints = calcolo_prova.__annotations__
+    assert set(inspect.signature(calcolo_prova).parameters) <= set(hints)
+    FastMCP("prova").tool(calcolo_prova)  # the schema is built here, as at import

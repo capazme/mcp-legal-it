@@ -14,8 +14,9 @@ What it checks (sources consulted on 2026-09-25):
   - the tool's arithmetic (cedole, scarto, imposta) on the plan cases;
   - the MEF "Risultati Asta" of 10 September 2026 (BTP 3y IT0005716839, 7y IT0005722845,
     50y IT0005441883): the gross IRR rebuilt from price, coupon and dates reproduces the
-    MEF "Rendimento Lordo" (validating the method), then the tool's simple net yield is
-    compared with the net IRR of the same flows and with the MEF gross yield.
+    MEF "Rendimento Lordo" (validating the method); since LI-059 the tool, given the same
+    dates, reports that gross IRR (within 0,01 points of the MEF figure) and the net IRR of
+    the same flows.
 * `rendimento_buoni_postali`
   - series in placement (Buono ordinario, 3x4 con premio, dedicati ai minori): the link to
     the current foglio informativo is scraped from the product page on poste.it, the PDF is
@@ -158,16 +159,16 @@ def test_aliquota_12_50_titoli_di_stato_art2_dlgs_239_1996_art3_dl_66_2014():
           "anni_scadenza": 5, "frequenza_cedola": 2},
          {"totale_cedole_lordo": 1500.0, "imposta_cedole": 187.5, "plusvalenza_lorda": 200,
           "imposta_plusvalenza": 25.0, "guadagno_netto_totale": 1487.5,
-          "rendimento_netto_annuo_pct": 3.0357}),
+          "rendimento_semplice_netto_pct": 3.0357}),
         # Sopra la pari: no tax on a negative difference (art. 2 D.Lgs. 239/1996 taxes proceeds).
         ({"valore_nominale": 10000, "prezzo_acquisto": 10300, "cedola_annua_pct": 4.0,
           "anni_scadenza": 3, "frequenza_cedola": 2},
          {"totale_cedole_netto": 1050.0, "imposta_plusvalenza": 0.0,
-          "guadagno_netto_totale": 750.0, "rendimento_netto_annuo_pct": 2.4272}),
+          "guadagno_netto_totale": 750.0, "rendimento_semplice_netto_pct": 2.4272}),
         # Alla pari, cedola annuale: 2,5 x 0,875 = 2,1875%.
         ({"valore_nominale": 1000, "prezzo_acquisto": 1000, "cedola_annua_pct": 2.5,
           "anni_scadenza": 10, "frequenza_cedola": 1},
-         {"guadagno_netto_totale": 218.75, "rendimento_netto_annuo_pct": 2.1875}),
+         {"guadagno_netto_totale": 218.75, "rendimento_semplice_netto_pct": 2.1875}),
     ],
     ids=["sotto_la_pari", "sopra_la_pari", "alla_pari_annuale"],
 )
@@ -176,13 +177,12 @@ def test_btp_casi_piano_aritmetica_e_tir(kwargs, atteso):
     for chiave, valore in atteso.items():
         tol = 0.0001 if chiave.endswith("_pct") else 0.01
         assert r[chiave] == pytest.approx(valore, abs=tol), chiave
-    # INDICATIVO (declared): simple return instead of the IRR. Tolerance 0,05 percentage
-    # points, motivated by that grade: it accepts the simple/compound gap near par
-    # (measured 0,0008 / 0,0445 / 0 points on these cases), not a gap as large as the tax.
+    # Since LI-059 the tool's headline net figure is the IRR itself (the simple yield above
+    # stays as a secondary field): it must equal the IRR rebuilt here from the same flows.
     tir = _tir_netto_btp(kwargs["valore_nominale"], kwargs["prezzo_acquisto"],
                          kwargs["cedola_annua_pct"], kwargs["anni_scadenza"],
                          kwargs["frequenza_cedola"])
-    assert abs(r["rendimento_netto_annuo_pct"] - tir) <= 0.05, (r["rendimento_netto_annuo_pct"], tir)
+    assert abs(r["rendimento_effettivo_netto_pct"] - tir) <= 0.0005, (r["rendimento_effettivo_netto_pct"], tir)
 
 
 def test_btp_frequenza_cedolare_nulla_errore():
@@ -271,20 +271,18 @@ def test_btp_asta_mef_10_settembre_2026(asta):
     tir_lordo = _tir(_flussi_asta(letto, netto=False))
     assert abs(tir_lordo - letto["lordo"]) <= 0.005, (tir_lordo, letto["lordo"])
 
-    # 2) The tool on the same bond. `anni_scadenza` is an int: the residual life is truncated
-    #    to whole years (exact for 3y and 7y; 45,46 -> 45 for the 50y, dietimi not modelled).
-    anni = (letto["scadenza"] - letto["regolamento"]).days // 365
-    r = _btp(valore_nominale=100, prezzo_acquisto=letto["prezzo"],
-             cedola_annua_pct=letto["cedola"], anni_scadenza=anni, frequenza_cedola=2)
-    tool = r["rendimento_netto_annuo_pct"]
+    # 2) The tool on the same bond, with its dates (LI-059): its gross IRR is the MEF figure
+    #    within 0,01 points, its net IRR the one rebuilt here from the same flows.
+    r = _btp(valore_nominale=100, prezzo_acquisto=letto["prezzo"], cedola_annua_pct=letto["cedola"],
+             data_regolamento=letto["regolamento"].isoformat(), data_scadenza=letto["scadenza"].isoformat())
+    assert r["giorni_rateo"] == letto["dietimi"], (r["giorni_rateo"], letto["dietimi"])
+    assert abs(r["rendimento_effettivo_lordo_pct"] - letto["lordo"]) <= 0.01, (
+        asta, r["rendimento_effettivo_lordo_pct"], letto["lordo"])
     tir_netto = _tir(_flussi_asta(letto, netto=True))
+    assert abs(r["rendimento_effettivo_netto_pct"] - tir_netto) <= 0.0005, (
+        asta, r["rendimento_effettivo_netto_pct"], tir_netto)
     # A net yield can never exceed the official gross yield of the same auction.
-    assert tool < letto["lordo"], (
-        f"{asta}: rendimento netto del tool {tool}% superiore al lordo MEF {letto['lordo']}% "
-        f"(TIR netto {tir_netto:.4f}%)")
-    # Same motivated tolerance as the plan cases (INDICATIVO: 0,05 percentage points).
-    assert abs(tool - tir_netto) <= 0.05, (
-        f"{asta}: tool {tool}% vs TIR netto {tir_netto:.4f}% (lordo MEF {letto['lordo']}%)")
+    assert r["rendimento_effettivo_netto_pct"] < letto["lordo"]
 
 
 # --- rendimento_buoni_postali: CDP/Poste fogli informativi -------------------------------
