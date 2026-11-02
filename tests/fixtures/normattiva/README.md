@@ -68,3 +68,23 @@ Captured on 2026-10-29. Art. 1 L. 296/2006 is split by Normattiva into 14 parts,
 Each trim was checked to give the same text, served article, notes, parts and served part as
 the whole page. Used by `tests/unit/test_parti_articolo.py`.
 
+
+## A whole act read article by article (`atto_intero/`)
+
+Captured on 2026-11-02 from L. 30 dicembre 2023, n. 213 (bilancio 2024), one request at a
+time, with the session cookie the act page sets. Art. 1 is split by Normattiva into six parts,
+«1 (commi 1-100)» to «1 (commi 501-561)»; some annexes are published as images only («Parte di
+provvedimento in formato grafico», a `vediPdf` link).
+
+| File | Page | What it keeps |
+|------|------|---------------|
+| `atto_intero/l213_atto.html` | `legge:2023-12-30;213` | the `<title>`, the `eli:` title/id/type metadata and 15 entries of the act's tree, verbatim: the six current parts of art. 1 (`art.versione=39`), the six parts of its previous version («agg.37», `art.imUpdate=true`), art. 2, «Allegato I», «Allegato II» |
+| `atto_intero/l213_art1_parteK.html` (K = 1…6) | part K, `art.progressivo=K` | the visible line «art. 1 (commi a-b)» and `bodyTesto` with its first two commi and its last |
+| `atto_intero/l213_art2.html` | art. 2 | `bodyTesto` verbatim |
+| `atto_intero/l213_allegato_I.html` | «Allegato I» | `bodyTesto` verbatim: an annex with a table as text |
+| `atto_intero/l213_allegato_II.html` | «Allegato II» | `bodyTesto` verbatim: an annex in graphic form, a heading and the `vediPdf` link only |
+| `atto_intero/dlgs196_albero.html` | `decreto.legislativo:2003-06-30;196` | the `<title>` and ten tree entries, verbatim and in order: arts. 2, 2-bis, 2-ter (one `art.idArticolo=2`, `art.idSottoArticolo` 1, 2, 3) with their older versions, arts. 2-quaterdecies and 2-quaterdecies.1 (`art.idSottoArticolo1` 10 and 20), art. 3 today (`art.idGruppo=4`) and its original text («orig.», `art.idGruppo=1`, `art.imUpdate=true`) |
+
+Each trimmed part was checked to give the same served part (`parte_servita`) and the same
+served article as the whole page, and the trimmed tree the same parts of art. 1 as the whole
+tree. Used by `tests/unit/test_atto_intero_parti.py`.
