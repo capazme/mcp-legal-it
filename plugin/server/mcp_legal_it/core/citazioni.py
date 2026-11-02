@@ -645,10 +645,12 @@ def corpo_della_finestra(testo: str) -> str:
     if "per leggere il seguito" in finestra.group("resto") and righe:
         righe.pop()
     if int(finestra.group("da")) > 1:
-        # The window's first line comes after the header (title, **Fonte**, **Dimensione**).
+        # The window's first line comes after the header (title, **Fonte**, **Dimensione**)
+        # and the reading's notices (**Avviso**: …), which every window repeats.
         dimensione = next((i for i, r in enumerate(righe) if r.startswith("**Dimensione**:")), None)
         if dimensione is not None:
-            primo = next((i for i in range(dimensione + 1, len(righe)) if righe[i].strip()), None)
+            primo = next((i for i in range(dimensione + 1, len(righe))
+                          if righe[i].strip() and not righe[i].startswith("**Avviso**:")), None)
         else:
             primo = next((i for i, r in enumerate(righe)
                           if r.strip() and not r.lstrip().startswith(("#", "**"))), None)
