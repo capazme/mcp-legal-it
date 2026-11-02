@@ -36,7 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   also accepts a configuration saved with a BOM, and reads the output of the commands it
   runs as UTF-8). The citation hook read its input in the locale encoding too: on a Windows
   account with an accented name it could not open the session and stopped checking in
-  silence; it now reads the input as UTF-8. A test scans the shipped code for text I/O
+  silence; it now reads the input as UTF-8, and so does the PDF export script of the
+  `esporta-documento` skill when the markdown is piped into it. A test scans the shipped code for text I/O
   without an encoding, and another imports the server with `-X warn_default_encoding`.
   Reported, with the cause and the fix, by @Liguria360.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the

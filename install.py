@@ -600,8 +600,9 @@ def install_plugin(*, non_interactive: bool = False, local: bool = False) -> boo
     # Write appropriate .mcp.json for the plugin
     plugin_mcp = PLUGIN_DIR / ".mcp.json"
     plugin_mcp.write_text(
-        json.dumps(_build_plugin_mcp_config(local=local), indent=2, ensure_ascii=False) + "\n"
-    , encoding="utf-8")
+        json.dumps(_build_plugin_mcp_config(local=local), indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     mode_label = "locale (stdio)" if local else "remoto (SSE)"
     info(f"Modalità server: {c(BOLD, mode_label)}")
 
@@ -748,8 +749,9 @@ def uninstall() -> None:
                     success("Rimosso .mcp.json (conteneva solo legal-it)")
                 else:
                     _CLAUDE_CODE_MCP.write_text(
-                        json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-                    , encoding="utf-8")
+                        json.dumps(config, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                    )
                     success(f"Rimossi da .mcp.json: {', '.join(legal_keys)}")
                 removed_any = True
             else:
