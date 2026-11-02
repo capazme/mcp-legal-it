@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import pathlib
 import re
 import shutil
@@ -41,7 +42,17 @@ print(json.dumps(asyncio.run(main())))
 
 
 def _surface(home: pathlib.Path, **extra: str) -> list[str]:
-    env = {"PATH": "/usr/bin:/bin", "HOME": str(home), "LEGAL_CACHE": "off", **extra}
+    # Only what the interpreter needs to boot -- PATH to find it, SYSTEMROOT
+    # for it on Windows -- and the home the test isolates: USERPROFILE
+    # beside HOME because Path.home() reads the Windows one.
+    env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "LEGAL_CACHE": "off",
+        **extra,
+    }
     out = subprocess.run(
         [sys.executable, "-c", SNIPPET], cwd=REPO, env=env, capture_output=True, text=True, check=True
     )
@@ -241,3 +252,33 @@ def test_a_tag_without_a_declaration_and_an_unknown_successor_fail_the_audit(tmp
                         encoding="utf-8")
     problems = verify_regime(Audit(src2))
     assert any("tool_fantasma" in p for p in problems), problems
+
+
+def test_previgente_over_sourced_keeps_every_hint_when_wraps_copies_none(monkeypatch):
+    """PR #49 (@HeDo88TH): on Python 3.14 `functools.wraps` no longer copies
+    `__annotations__` (PEP 649 forwards `__annotate__`), so the hints `@sourced` extends by
+    hand never reached `@previgente`'s wrapper and FastMCP stopped the server at import
+    with `KeyError: 'data_udienza'`. That `wraps` is reproduced here on any Python."""
+    import functools
+    import inspect
+
+    from fastmcp import FastMCP
+    from mcp_legal_it.lib._data import sourced
+
+    assigned = tuple(a for a in functools.WRAPPER_ASSIGNMENTS if a != "__annotations__")
+    monkeypatch.setattr(_regime, "wraps", functools.partial(functools.wraps, assigned=assigned))
+
+    @_regime.previgente
+    @sourced("festivita")
+    def termini_prova(data_udienza: str, sospensione_feriale: bool = True) -> dict:
+        """Termini di prova.
+
+        Regime: PREVIGENTE — cause iscritte a ruolo prima del 28/02/2023; tool vigenti: termini_memorie_repliche
+
+        Precisione: ESATTO (prova).
+        """
+        return {}
+
+    hints = termini_prova.__annotations__
+    assert set(inspect.signature(termini_prova).parameters) <= set(hints)
+    FastMCP("prova").tool(termini_prova)  # the schema is built here, as at import

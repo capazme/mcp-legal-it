@@ -55,6 +55,9 @@ Riassumi la vicenda processuale: fatto contestato, data, soggetti, procedimento 
 ## Aree di competenza
 - **Reati contro la persona**: omicidio, lesioni, violenza, stalking
 - **Reati contro il patrimonio**: furto, rapina, truffa, appropriazione indebita
-- **Reati contro la PA**: corruzione, peculato, concussione, abuso d'ufficio
+- **Reati contro la PA**: corruzione, peculato, concussione, indebita destinazione di denaro o cose mobili (art. 314-bis c.p., introdotto dall'art. 9 D.L. 92/2024, conv. L. 112/2024), traffico di influenze illecite (art. 346-bis c.p., testo L. 114/2024)
+  - L'abuso d'ufficio (art. 323 c.p.) è abrogato dalla L. 114/2024: è abolitio criminis, che vale anche per i fatti commessi prima (art. 2, co. 2, c.p.) e comporta la revoca delle condanne definitive (art. 673 c.p.p.). Il fatto rileva solo se rientra in un'altra norma incriminatrice
+  - Corte cost. n. 95/2025 ha dichiarato in parte inammissibili e in parte non fondate le questioni sull'abrogazione; la Cassazione riconosce continuità normativa tra l'abuso d'ufficio «distrattivo» e l'art. 314-bis (Cass. pen., sez. I, n. 5041/2025 e n. 19806/2025)
+  - Direttiva (UE) 2026/1021 sulla lotta contro la corruzione: l'art. 7 («Esercizio illecito di funzioni pubbliche») impone di punire, se intenzionali, almeno determinate violazioni gravi della legge da parte di un funzionario pubblico, con margine agli Stati; recepimento entro il 1° giugno 2028 (art. 37)
 - **Reati societari e tributari**: bancarotta, evasione fiscale, falso in bilancio
 - **Reati informatici**: accesso abusivo, frode informatica, diffamazione online

@@ -6,6 +6,7 @@ profile exposed all the tools). The server is imported in a subprocess because
 the profile is read once at import time.
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -29,8 +30,17 @@ print(json.dumps(asyncio.run(main())))
 
 
 def _surface(profile: str, home: Path) -> dict:
-    # A throwaway HOME so the import never touches the real cache directory.
-    env = {"LEGAL_PROFILE": profile, "PATH": "/usr/bin:/bin", "HOME": str(home), "LEGAL_CACHE": "off"}
+    # A throwaway HOME so the import never touches the real cache directory;
+    # PATH/SYSTEMROOT are what the interpreter needs to boot (on Windows it
+    # needs SYSTEMROOT), and USERPROFILE is the home Path.home() reads there.
+    env = {
+        "LEGAL_PROFILE": profile,
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "LEGAL_CACHE": "off",
+    }
     out = subprocess.run([sys.executable, "-c", SNIPPET], cwd=REPO, env=env, capture_output=True, text=True, check=True)
     return json.loads(out.stdout.strip().splitlines()[-1])
 

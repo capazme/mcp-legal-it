@@ -64,9 +64,10 @@ Come si è evoluta l'interpretazione della CGUE nel tempo.
 
 ### 4. Impatto sull'Ordinamento Italiano
 Come i principi CGUE influenzano l'applicazione del diritto italiano:
-- Obbligo di interpretazione conforme (Mangold/Kücükdeveci)
-- Disapplicazione norme nazionali incompatibili
-- Responsabilità dello Stato per violazione diritto UE (Francovich)
+- Obbligo di interpretazione conforme (von Colson e Kamann, Marleasing, Pfeiffer): non può fondare un'interpretazione contra legem, ma il giudice non può ritenerla impossibile per il solo fatto di avere costantemente interpretato la norma in senso incompatibile (Dansk Industri, C-441/14, punti 32-34)
+- Disapplicazione delle norme nazionali incompatibili, anche tra privati quando è in gioco un principio generale del diritto UE (Mangold, C-144/04; Kücükdeveci, C-555/07) o un diritto della Carta (Egenberger, C-414/16, artt. 21 e 47; Bauer, C-569/16, art. 31, par. 2)
+- In Italia, «doppia pregiudizialità» per le questioni che toccano insieme Costituzione e Carta dei diritti fondamentali (Corte cost. n. 269/2017 e n. 20/2019)
+- Responsabilità dello Stato per violazione del diritto UE (Francovich)
 
 ### 5. Norme di Riferimento
 Disposizioni UE rilevanti (testo da cite_law).
