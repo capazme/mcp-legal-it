@@ -12,6 +12,7 @@ from mcp_legal_it.lib.tmview.client import (
     TMviewBlockedError,
     TMviewNotFoundError,
     TMviewRefusedError,
+    St13Lookup,
     TrademarkResult,
     _normalize_name,
     _number_query_for_st13,
@@ -185,16 +186,22 @@ async def _leggi_marchio_impl(st13: str) -> SearchResult:
                 "verificarlo con cerca_marchi()."
             ))
         try:
-            found = await find_trademark_by_st13(st13)
+            lookup: St13Lookup | None = await find_trademark_by_st13(st13)
         except TMviewBlockedError:
             return _scheda_rifiutata(st13, exc, None, f"La ricerca di ripiego non ha dato esito: {_WAF_HINT}")
         except TMviewRefusedError:
             return _scheda_rifiutata(st13, exc, None, "Anche la ricerca di ripiego su TMview è stata rifiutata.")
         except Exception:
             return _scheda_rifiutata(st13, exc, None, "La ricerca di ripiego su TMview non ha dato esito.")
-        return _scheda_rifiutata(
-            st13, exc, found, f"La ricerca TMview non restituisce nessun marchio con ST13 `{st13}`.",
-        )
+        if lookup is None or (lookup.found is None and lookup.total <= lookup.read):
+            esito = f"La ricerca TMview non restituisce nessun marchio con ST13 `{st13}`."
+        else:
+            # Only the first page was read: what lies beyond it is not known, so not denied.
+            esito = (
+                f"L'ST13 `{st13}` non è tra i primi {lookup.read} risultati della ricerca TMview "
+                f"per numero di domanda ({lookup.total} in tutto): verificarlo con cerca_marchi()."
+            )
+        return _scheda_rifiutata(st13, exc, lookup.found if lookup else None, esito)
     except TMviewNotFoundError:
         # TMview answered (HTTP 500 "Can't get trademark/design detail"): it is reachable but
         # has no record for this ST13. The reply is the same for an unknown ST13 and for the
