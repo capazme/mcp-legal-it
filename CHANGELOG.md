@@ -731,9 +731,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **Measured live on 2 Nov 2026** (walk with `AKN_DISABLED=1`, against the export):
     L. 213/2023 from 32 entries and 188,540 characters to 37 and 546,473 (export: 500,423;
     the walk also carries the annexes' text, which the export's text leaves out), five
-    annexes named as having parts in graphic form; D.Lgs. 231/2001 (117,582) and L.
-    604/1966 (29,425) unchanged, no notice. Requests: one per entry, as before (L.
-    213/2023: 33 to 38; D.Lgs. 196/2003 +6 net).
+    annexes named as having parts in graphic form; D.Lgs. 231/2001 from 85 entries and
+    117,582 characters to 110 and 158,924 (the export has 110 articles: the walk now reads
+    its articles with a suffix, 25-bis and the like); L. 604/1966 (29,425) unchanged; no
+    notice on either. Requests: one per entry, as before (L. 213/2023: 33 to 38; D.Lgs.
+    231/2001: 86 to 111).
 - **`fetch_full_act` says which parts the export's text leaves out, and reads the text in
   force today without it** (#139).
   - **The export's annexes.** The Akoma Ntoso text is the act's body: its annexes were left
