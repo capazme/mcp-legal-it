@@ -154,8 +154,8 @@ class AttoRisolto:
     urn: str | None = None   # "urn:nir:stato:decreto.legislativo:1993-09-01;385", with ``data``
     url: str | None = None   # the act's Normattiva N2Ls URL, with ``data``
     # ESATTO: the page's title names this act's type, date and number. INDICATIVO: a type
-    # the titles do not cover (DPCM, decreto ministeriale), dated by the page's ELI date
-    # when it falls in the year given. None without ``data``.
+    # the titles do not cover (DPCM, decreto ministeriale), dated by the page's heading when
+    # it names this act through the measured headings. None without ``data``.
     precisione: Literal["ESATTO", "INDICATIVO"] | None = None
     errore: str | None = None
     fonti: FontiConsultate | None = None
