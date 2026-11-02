@@ -235,7 +235,7 @@ def detect_existing_install() -> dict[str, bool]:
     config_path = _CLAUDE_DESKTOP_PATHS.get(platform.system())
     if config_path and config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding="utf-8-sig"))
             result["desktop"] = any(
                 k.startswith("legal-it") for k in config.get("mcpServers", {})
             )
@@ -497,7 +497,7 @@ def install_claude_desktop(profiles: list[str], *, non_interactive: bool = False
     config: dict = {}
     if config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding="utf-8-sig"))
         except (json.JSONDecodeError, OSError):
             warn("Configurazione esistente non valida, ne creo una nuova")
 
@@ -527,7 +527,7 @@ def install_claude_desktop(profiles: list[str], *, non_interactive: bool = False
             backup = config_path.with_suffix(".json.bak")
             shutil.copy2(config_path, backup)
 
-        config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+        config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         success(f"Configurazione Claude Desktop aggiornata: {config_path}")
         for name in added:
             profile = name.replace("legal-it-", "") if name != "legal-it" else "full"
@@ -544,7 +544,7 @@ def install_claude_code(profiles: list[str]) -> bool:
     config: dict = {}
     if _CLAUDE_CODE_MCP.exists():
         try:
-            config = json.loads(_CLAUDE_CODE_MCP.read_text())
+            config = json.loads(_CLAUDE_CODE_MCP.read_text(encoding="utf-8-sig"))
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -564,7 +564,7 @@ def install_claude_code(profiles: list[str]) -> bool:
         added.append(name)
 
     try:
-        _CLAUDE_CODE_MCP.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+        _CLAUDE_CODE_MCP.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         success(f"Configurazione Claude Code aggiornata: {_CLAUDE_CODE_MCP.name}")
         for name in added:
             profile = name.replace("legal-it-", "") if name != "legal-it" else "full"
@@ -596,7 +596,7 @@ def install_plugin(*, non_interactive: bool = False) -> bool:
     plugin_mcp = PLUGIN_DIR / ".mcp.json"
     plugin_mcp.write_text(
         json.dumps(_build_plugin_mcp_config(), indent=2, ensure_ascii=False) + "\n"
-    )
+    , encoding="utf-8")
     info(f"Modalità server: {c(BOLD, 'locale (stdio)')}")
 
     # Check if already installed
@@ -693,13 +693,13 @@ def uninstall() -> None:
     config_path = _CLAUDE_DESKTOP_PATHS.get(platform.system())
     if config_path and config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding="utf-8-sig"))
             servers = config.get("mcpServers", {})
             legal_keys = [k for k in servers if k.startswith("legal-it")]
             if legal_keys:
                 for k in legal_keys:
                     del servers[k]
-                config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+                config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
                 success(f"Rimossi da Claude Desktop: {', '.join(legal_keys)}")
                 removed_any = True
             else:
@@ -710,7 +710,7 @@ def uninstall() -> None:
     # 2. Claude Code .mcp.json
     if _CLAUDE_CODE_MCP.exists():
         try:
-            config = json.loads(_CLAUDE_CODE_MCP.read_text())
+            config = json.loads(_CLAUDE_CODE_MCP.read_text(encoding="utf-8-sig"))
             servers = config.get("mcpServers", {})
             legal_keys = [k for k in servers if k.startswith("legal-it")]
             if legal_keys:
@@ -722,7 +722,7 @@ def uninstall() -> None:
                 else:
                     _CLAUDE_CODE_MCP.write_text(
                         json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-                    )
+                    , encoding="utf-8")
                     success(f"Rimossi da .mcp.json: {', '.join(legal_keys)}")
                 removed_any = True
             else:
