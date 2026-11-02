@@ -11,14 +11,17 @@ contratti; la Confidenza deve rifletterlo.
 Tratta dati personali PER CONTO del titolare, su sue istruzioni.
 Esempi: cloud/hosting/SaaS, software gestionali con accesso ai dati, agenzie
 marketing/adv che gestiscono liste o campagne del titolare, piattaforme di
-e-mail marketing, payroll gestito per conto, manutentori IT con accesso ai
-sistemi, call center, società di archiviazione/distruzione documenti.
+e-mail marketing, payroll gestito per conto, consulente del lavoro / studio paghe
+per l'elaborazione delle paghe e gli adempimenti relativi ai dipendenti del
+cliente, manutentori IT con accesso ai sistemi, call center, società di
+archiviazione/distruzione documenti.
 
 ### `titolare_autonomo` — Titolare autonomo
 Determina autonomamente finalità e mezzi del trattamento.
 Esempi: commercialista, avvocati e notai esterni, banche e istituti di
-pagamento, assicurazioni, medico competente, agenzie interinali, e — di norma —
-consulente del lavoro / studio paghe.
+pagamento, assicurazioni, medico competente, agenzie interinali, consulente del
+lavoro quando assiste o rappresenta il cliente in un contenzioso con autonomia
+professionale.
 
 ### `fuori_perimetro` — Fuori perimetro privacy
 Non tratta dati personali per conto del cliente.
@@ -32,7 +35,7 @@ Assegna il default, scrivi `controverso` in `note`, Confidenza MAI sopra `medio`
 
 | Fornitore | Default | Perché è controverso |
 |-----------|---------|----------------------|
-| Consulente del lavoro / studio paghe | `titolare_autonomo` | Prassi e giurisprudenza oscillano; se opera su istruzioni stringenti può essere responsabile |
+| Consulente del lavoro / studio paghe | `responsabile` | Per i dati dei dipendenti del cliente (elaborazione paghe) il Garante lo qualifica responsabile (risposta al CNCL del 22/01/2019, doc. web 9080970); resta titolare per i dati propri e dei propri clienti come committenti, e titolare autonomo quando assiste o rappresenta il cliente in un contenzioso con autonomia professionale. La categoria sostiene la tesi opposta. Confidenza `medio` |
 | Corrieri / spedizionieri | `titolare_autonomo` | Trattano i dati dei destinatari con autonomia organizzativa propria |
 | Recupero crediti | dipende dalla ricerca | Mandato su istruzioni = `responsabile`; acquisto del credito = `titolare_autonomo`. Confidenza `basso` |
 | Telefonia / TLC business | `titolare_autonomo` | Titolari per i dati di traffico; ma servizi gestiti (centralino cloud) possono renderli responsabili |
