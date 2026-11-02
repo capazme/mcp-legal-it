@@ -695,6 +695,21 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).
+  A Normattiva page with an act's ELI date or `eli:title` but no act heading
+  («LEGGE 7 agosto 1990, n. 241») was read as another act's page, so the act came back
+  `atto_non_trovato`. Such a page is a markup change, not evidence about the act: it is
+  now `fonte_non_raggiungibile` («pagina senza l'intestazione dell'atto»), never kept in
+  memory, and asked again on the next call. `scraper.normattiva_page_problem` returns the
+  new code `"senza_intestazione"` for it; an act page with its heading (or the
+  Constitution's, headed «COSTITUZIONE») is unchanged. The types dated by the ELI date
+  alone (ministerial decrees, DPCM) still take that date when it falls in the cited year.
+- **`act_dates.json` follows the cache configuration within one process** (#113 D). The
+  dates file was read once per process, so a later `configurazione(cache_dir=…)` or
+  `cache=…` never read the other directory, and a disk switched on after the first
+  reading was never read. The file is now read again when the pair (disk on, directory)
+  changes; the dates already found in the process stay in memory, as in the other
+  in-memory caches.
 - **The Gazzetta's editorial notes of an article are read, beside its text (issue #119).**
   When an act is published with notes («Note all'art. 13: …»), Normattiva keeps them on the
   original text and on the current text of an article never amended. Neither the page's
@@ -795,6 +810,20 @@ described in those sections, not repeated here. Upgrading from 2.x:
   add that this does not mean the mark does not exist, and that the record is on
   www.tmdn.org. Before, the answer was «non raggiungibile», followed by httpx's English
   message with the request URL. A refusal is not retried.
+- **`leggi_marchio` gives a partial record when TMview refuses the detail** (#124). The
+  refusal is the source's, and nothing tries to get around it. The tool asks the search
+  endpoint for the same mark, using the application-number field of TMview's advanced
+  search and taking a hit only if its ST13 is the one asked. The answer is headed «Scheda
+  parziale» and names the refusal (HTTP 403, since 29/10/2026). It gives what the search has
+  (holder, Nice classes, status, dates) and lists what is missing: goods and services per
+  class, representative, the holder's nationality, the status date and the publications.
+  It ends with the link to the record on TMview, for a browser. When the search finds
+  nothing, or the ST13 cannot be searched by number, or the search fails as well, the
+  answer is the refusal plus that link. When the search reports more marks than the page
+  read, a miss is said as «non è tra i primi N risultati», never as «nessun marchio». `verifica_anteriorita_marchio` now says it works
+  from the search data only and does not compare goods and services. The live tests accept
+  two outcomes, the full record or the declared partial one, so they pass whether or not
+  TMview lifts the block.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
   portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
   provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
