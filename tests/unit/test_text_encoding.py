@@ -138,3 +138,61 @@ def test_importing_the_server_reads_nothing_in_the_locale_encoding():
         cwd=PACKAGE.parent, env=env, capture_output=True, text=True,
     )
     assert out.returncode == 0, out.stderr[-2000:]
+
+
+_STDIN_TEXT_READS = {"read", "readline", "readlines"}
+
+
+def _is_sys_stdin(node: ast.AST) -> bool:
+    return (isinstance(node, ast.Attribute) and node.attr == "stdin"
+            and isinstance(node.value, ast.Name) and node.value.id == "sys")
+
+
+def stdin_text_reads(source: str) -> list[int]:
+    """Lines that read `sys.stdin` as text: `sys.stdin.read()`/`.readline()`/`.readlines()`,
+    or `sys.stdin` handed to another reader (`json.load(sys.stdin)`). On Windows a pipe's
+    stdin decodes in the locale encoding; `sys.stdin.buffer` gives the bytes."""
+    lines = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _STDIN_TEXT_READS and _is_sys_stdin(func.value):
+            lines.append(node.lineno)
+        elif any(_is_sys_stdin(arg) for arg in node.args):
+            lines.append(node.lineno)
+    return lines
+
+
+def test_no_shipped_script_reads_stdin_as_text():
+    found = [
+        f"{path.relative_to(REPO)}:{line}"
+        for path in _shipped_python()
+        for line in stdin_text_reads(path.read_text(encoding="utf-8"))
+    ]
+    assert found == [], "sys.stdin read as text (use sys.stdin.buffer): " + ", ".join(found)
+
+
+def test_the_stdin_scan_catches_each_form():
+    src = (
+        "import sys, json\nsys.stdin.read()\nsys.stdin.readlines()\njson.load(sys.stdin)\n"
+        "sys.stdin.buffer.read()\njson.loads(sys.stdin.buffer.read())\nRelay(sys.stdin.buffer)\n"
+    )
+    assert stdin_text_reads(src) == [2, 3, 4]
+
+
+def test_the_pdf_script_reads_piped_markdown_as_utf8(monkeypatch):
+    """SKILL.md documents piping the markdown into render_legal_pdf.py. Under a cp1252
+    stdin the closing quote (U+201D, bytes E2 80 9D) stopped it with a UnicodeDecodeError."""
+    import importlib.util
+    import io
+    import sys
+
+    spec = importlib.util.spec_from_file_location(
+        "render_legal_pdf", REPO / "plugin" / "skills" / "esporta-documento" / "scripts" / "render_legal_pdf.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    text = "# Parere\n\nÈ «perché» — “così”.\n"
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(("﻿" + text).encode("utf-8")),
+                                                       encoding="cp1252"))
+    assert module._read_input(None) == text

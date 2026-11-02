@@ -913,7 +913,9 @@ described in those sections, not repeated here. Upgrading from 2.x:
   servers (a `.bak` copy was kept). It now reads with `utf-8-sig`, writes UTF-8 and reads
   the output of the commands it runs as UTF-8. The citation hook read its input in the
   locale encoding too: on a Windows account with an accented name it could not open the
-  session and stopped checking in silence; it now reads the input as UTF-8. The encoding
+  session and stopped checking in silence; it now reads the input as UTF-8, and so does
+  the PDF export script of the `esporta-documento` skill when the markdown is piped into
+  it. The encoding
   test covers the installer and every script of the plugin, not only the server package.
   The server package itself was fixed under #76; 2.17.2 carries both fixes.
 - **Installing from git works on Windows** (#76). On Windows, without
