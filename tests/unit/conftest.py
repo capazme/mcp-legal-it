@@ -89,6 +89,17 @@ def _regole_di_rete_neutre(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _gate_senza_cartelle_escluse(monkeypatch):
+    """No test inherits the developer's own ``LEGAL_IT_GATE_SKIP_PATHS``.
+
+    A shell that lists the folder holding this checkout would make the citation gate
+    skip every session, and every gate test run from there would fail. The tests of
+    that variable set it themselves.
+    """
+    monkeypatch.delenv("LEGAL_IT_GATE_SKIP_PATHS", raising=False)
+
+
+@pytest.fixture(autouse=True)
 def _niente_rete_nei_test_unitari(request, monkeypatch):
     """A unit test never reaches a real source: a request that gets to httpx's network
     transport fails at once. Tests marked ``live`` are the only ones allowed out.

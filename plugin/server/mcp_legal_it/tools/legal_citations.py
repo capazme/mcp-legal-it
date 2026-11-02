@@ -19,6 +19,7 @@ from mcp_legal_it.lib._paging import invalid_start, page
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.models import intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
+    ACT_NOT_FOUND,
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
     _build_celex,
@@ -132,6 +133,15 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
             # 23/2015, C. cost. 194/2018). A future «notes on request» switch (token phase 3)
             # must never cover these notes. A code's text already carries them: not twice.
             parts.append("\n**Aggiornamenti**\n\n" + "\n\n".join(f"({n['numero']}) {n['testo']}" for n in note))
+        from mcp_legal_it.core.norme import note_redazionali_del_testo, riga_note_redazionali
+
+        redazionali, redazionali_nel_testo = note_redazionali_del_testo(
+            source, text, url, article_result.get("chiave_pagina"), article_result.get("note_redazionali"),
+            article_result.get("note_redazionali_nel_testo") is True)
+        if redazionali:
+            # The Gazzetta's notes to the article: one line, never their words (decision LI-058).
+            parts.append("\n" + riga_note_redazionali(redazionali_nel_testo,
+                                                         sum(len(n["testo"]) for n in redazionali)))
         if parti:
             parts.append("\n**Parti dell'articolo su Normattiva**: "
                          + "; ".join(f"commi {p['commi_dal']}-{p['commi_al']}" for p in parti) + ".")
@@ -202,7 +212,9 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
 
     # An article the act does not have has nothing to annotate (and Brocardi would
     # only be searched page by page for it).
-    annotate = include_annotations and article and article_result.get("esito") != ARTICLE_NOT_FOUND
+    # Nor has an act Normattiva does not have (another act's page served: atto_non_trovato).
+    annotate = (include_annotations and article
+                and article_result.get("esito") not in (ARTICLE_NOT_FOUND, ACT_NOT_FOUND))
     brocardi_md = ""
     if annotate and split_annex(article):
         brocardi_md = "\n\n**Annotazioni Brocardi**: non disponibili per gli allegati"
@@ -320,6 +332,14 @@ async def cite_law(
                  ce ne sono, null se il testo non viene da una pagina Normattiva);
                  "note_non_lette" è true se una nota non si è potuta leggere (con l'avviso);
                  "note_nel_testo" è true se il testo le contiene già (articoli dei codici).
+                 "note_redazionali" ([{intestazione, testo, ordine}], [] se non ce ne sono,
+                 null se non lette) sono le note della Gazzetta all'articolo («Note
+                 all'art. N», art. 10 d.P.R. 1092/1985): non sono testo normativo e i testi
+                 che trascrivono sono quelli alla data di pubblicazione, non quelli vigenti
+                 ("note_redazionali_nel_testo": il testo le contiene già). Il JSON ne riporta
+                 al massimo 8.000 battute: oltre, "note_redazionali_troncate" è true e
+                 "note_redazionali_caratteri" ne dà la lunghezza intera. In markdown una
+                 sola riga ne segnala la presenza.
                  "parti" ([{progressivo, commi_dal, commi_al, url}], [] se l'articolo non è
                  diviso), "parte" (quella letta) e "testo_parziale" per un articolo diviso
                  in parti.
@@ -611,7 +631,10 @@ async def _full_act_text(norma: Norma, da_carattere: int) -> "dict | str":
                         "disponibile (uscito dalla memoria, o letto in modo incompleto), e una nuova lettura "
                         "di questo atto potrebbe non coincidere. Ripetere la lettura da da_carattere=1."
                     )
-            if complete:
+            # A stable reading (no entry failed: the same text whenever read today) is kept
+            # even when incomplete by design (an entry not in force today), so its later
+            # windows can be cut from it.
+            if result.get("stabile", complete):
                 _keep(_FULL_ACT_TEXTS, key, (result, sources), _FULL_ACT_TEXTS_MAX)
                 _keep(_FULL_ACT_READINGS, key, reading, _FULL_ACT_READINGS_MAX)
             if da_carattere > 1:
@@ -1043,6 +1066,9 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
         return "inesistente", f"L'articolo non esiste nell'atto citato: {data['errore']}."
     if esito == CHECK_UNAVAILABLE:
         return "non verificata", f"Esistenza dell'articolo non verificabile ora: {data['errore']}."
+    if esito == ACT_NOT_FOUND:
+        # Cited by its year, the act is another one on Normattiva: the note names the page served.
+        return "non trovata", f"L'atto citato non è su Normattiva: {data['errore']}."
     if data["errore"] or not data["testo"]:
         return "non trovata", "Atto o articolo non reperibile su Normattiva/EUR-Lex."
 

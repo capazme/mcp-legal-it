@@ -358,11 +358,11 @@ class TestPaginaDiErrore:
         assert meta["heading"] == "COSTITUZIONE" and meta["title"]
         assert scraper.normattiva_page_problem(costituzione, meta) is None
 
-    async def test_the_eli_path_still_dates_a_page_without_heading_in_the_cited_year(self):
-        # The weaker check of the types the titles do not cover is unchanged: an ELI date in
-        # the cited year is the evidence it accepts, with or without the heading.
+    async def test_the_eli_path_does_not_date_a_page_without_heading(self):
+        # Since #136 the ELI date is taken only from a page whose heading names the act: an
+        # ELI date in the cited year alone says nothing about whose page it is.
         r, _ = await _risolvi({DM55_URL: self.SENZA_INTESTAZIONE_DM55}, "decreto ministeriale", "55", "2014")
-        assert r.esito == "trovato" and r.data == "2014-03-10" and r.precisione == "INDICATIVO"
+        assert r.esito == "fonte_non_raggiungibile" and r.data is None
 
     def test_an_act_page_has_no_problem(self):
         meta = scraper.act_page_metadata(L241)

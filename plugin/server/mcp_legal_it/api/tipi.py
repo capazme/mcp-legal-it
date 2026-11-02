@@ -24,6 +24,7 @@ EsitoNorma = Literal[
     "trovato",                   # the text is in ``article_text``
     "riferimento_non_valido",    # the citation could not be read
     "atto_non_riconosciuto",     # no act matches the name (``errore`` lists near misses)
+    "atto_non_trovato",          # an act cited by year: Normattiva serves another act's page (not transient)
     "articolo_non_trovato",      # the act exists, the article is not in it
     "verifica_non_disponibile",  # the source could not tell (down, slow, structure unreadable)
     "testo_assente",             # the source answered without a text
@@ -154,8 +155,8 @@ class AttoRisolto:
     urn: str | None = None   # "urn:nir:stato:decreto.legislativo:1993-09-01;385", with ``data``
     url: str | None = None   # the act's Normattiva N2Ls URL, with ``data``
     # ESATTO: the page's title names this act's type, date and number. INDICATIVO: a type
-    # the titles do not cover (DPCM, decreto ministeriale), dated by the page's ELI date
-    # when it falls in the year given. None without ``data``.
+    # the titles do not cover (DPCM, decreto ministeriale), dated by the page's heading when
+    # it names this act through the measured headings. None without ``data``.
     precisione: Literal["ESATTO", "INDICATIVO"] | None = None
     errore: str | None = None
     fonti: FontiConsultate | None = None
@@ -271,6 +272,26 @@ class ParteArticolo:
 
 
 @dataclass(frozen=True)
+class NotaRedazionale:
+    """One section of the editorial notes the Gazzetta publishes with an act.
+
+    Drafted by the competent administration under art. 10, commi 2 and 3, d.P.R. 1092/1985,
+    only to help the reading: they have no normative value, and where they transcribe another
+    provision the text is that of the day of publication, not the text in force.
+    Only the notes to the article are kept (decision LI-058): not the Avvertenza, not the
+    «Note alle premesse» of art. 1. ``intestazione`` is the section's heading as the Gazzetta
+    writes it, without its colon («Note all'art. 13», «Nota all'articolo 4», «Note agli
+    articoli 2 e 3»). ``testo`` is the
+    section's words: links become their text, whitespace is normalised inside each line,
+    line breaks are kept. ``ordine`` is its position, from 1.
+    """
+
+    intestazione: str
+    testo: str
+    ordine: int
+
+
+@dataclass(frozen=True)
 class TestoArticolo:
     """One article: VisuaLex ``/fetch_article_text`` item keys, plus additions."""
 
@@ -321,6 +342,12 @@ class TestoArticolo:
     # «note di aggiornamento non lette: verificare su Normattiva» is then in avvisi.
     note_aggiornamento: tuple[NotaAggiornamento, ...] | None = None
     note_non_lette: bool = False
+    # The editorial notes of the Gazzetta («Note all'art. 13: …»), beside article_text and
+    # never in it: Normattiva keeps them on the original text and on the current text of an
+    # article never amended. From the page, or from the Akoma Ntoso export when the text is
+    # the export's. () for an article without them; None when not read (an EU act, an annex
+    # of the export, a reading lost). They are not the text: see NotaRedazionale.
+    note_redazionali: tuple[NotaRedazionale, ...] | None = None
     # An article Normattiva splits into parts (art. 1 L. 296/2006: 14 parts of 100 commi):
     # its parts in order, () when it is not split, None when the text is not a Normattiva
     # page's. testo_parziale: article_text is one part only (the article page's own, or the
@@ -402,10 +429,12 @@ class TestoAtto:
     errore: str | None = None
     fonti: FontiConsultate | None = None
     # True when every entry of the text was read: from the Akoma Ntoso export, the act's
-    # articles (its annexes are not in the text); without it, every article page and part, the
-    # annexes' pages included. False with an avviso naming what was not read: transient, ask again.
+    # articles (its annexes are not in the text, an avviso names them); without it, every
+    # article page and part at today's date, the annexes' pages included. False with an avviso
+    # naming what was not read (transient, ask again) or is not in force today (not transient).
     completo: bool = False
-    # What the text does not carry: entries not read, parts published as images only.
+    # What the text does not carry: parts left out of the export's text, entries not read or
+    # not in force today, parts published as images only.
     avvisi: tuple[str, ...] = ()
 
 
