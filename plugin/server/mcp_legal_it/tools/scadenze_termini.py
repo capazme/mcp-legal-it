@@ -5,8 +5,10 @@ stradali. La sospensione feriale (1-31 agosto, L. 742/1969) è calcolata giorno 
 Per procedimenti iscritti a ruolo prima del 28/02/2023 usare termini_183_190_cpc() (regime previgente)."""
 
 import calendar
+import inspect
 import json
 from datetime import date, timedelta
+from functools import wraps
 from pathlib import Path
 
 from mcp_legal_it.server import mcp
@@ -26,24 +28,39 @@ _RIF_FERIALE = "L. 742/1969, art. 1 (sospensione dal 1° al 31 agosto, come modi
 _FONTE_ART_92 = "art. 3 L. 742/1969; art. 92, co. 1, R.D. 12/1941"
 _MATERIE_ESCLUSE_FERIALE = (
     {
+        "codice": "lavoro_previdenza",
         "materia": "controversie di lavoro e di previdenza e assistenza obbligatorie",
         "fonte": (
             "art. 3 L. 742/1969, che richiama gli artt. 429 e 459 c.p.c. nella numerazione "
             "anteriore alla L. 533/1973 (oggi artt. 409 e 442 c.p.c.)"
         ),
     },
-    {"materia": "cause relative ad alimenti", "fonte": _FONTE_ART_92},
-    {"materia": "procedimenti cautelari", "fonte": _FONTE_ART_92},
+    {"codice": "alimenti", "materia": "cause relative ad alimenti", "fonte": _FONTE_ART_92},
+    {"codice": "cautelare", "materia": "procedimenti cautelari", "fonte": _FONTE_ART_92},
     {
+        "codice": "amministrazione_sostegno",
         "materia": "amministrazione di sostegno, interdizione e inabilitazione",
         "fonte": _FONTE_ART_92,
     },
-    {"materia": "ordini di protezione contro gli abusi familiari", "fonte": _FONTE_ART_92},
-    {"materia": "sfratto", "fonte": _FONTE_ART_92},
-    {"materia": "opposizione all'esecuzione", "fonte": _FONTE_ART_92},
-    {"materia": "dichiarazione e revoca dei fallimenti", "fonte": _FONTE_ART_92},
-    {"materia": "materia corporativa", "fonte": _FONTE_ART_92},
     {
+        "codice": "ordini_protezione",
+        "materia": "ordini di protezione contro gli abusi familiari",
+        "fonte": _FONTE_ART_92,
+    },
+    {"codice": "sfratto", "materia": "sfratto", "fonte": _FONTE_ART_92},
+    {
+        "codice": "opposizione_esecuzione",
+        "materia": "opposizione all'esecuzione",
+        "fonte": _FONTE_ART_92,
+    },
+    {
+        "codice": "fallimento",
+        "materia": "dichiarazione e revoca dei fallimenti",
+        "fonte": _FONTE_ART_92,
+    },
+    {"codice": "materia_corporativa", "materia": "materia corporativa", "fonte": _FONTE_ART_92},
+    {
+        "codice": "urgenza_dichiarata",
         "materia": (
             "cause la cui ritardata trattazione potrebbe produrre grave pregiudizio alle parti, "
             "con dichiarazione d'urgenza del presidente o del giudice"
@@ -51,6 +68,10 @@ _MATERIE_ESCLUSE_FERIALE = (
         "fonte": "art. 3 L. 742/1969; art. 92, co. 1 e 2, R.D. 12/1941",
     },
 )
+_MATERIE_PER_CODICE = {m["codice"]: m for m in _MATERIE_ESCLUSE_FERIALE}
+#: Il valore di `materia` per una causa che non rientra tra quelle escluse.
+_MATERIA_ORDINARIA = "ordinaria"
+_MATERIE_AMMESSE = [_MATERIA_ORDINARIA, *_MATERIE_PER_CODICE]
 
 
 def _avviso_feriale() -> dict:
@@ -75,6 +96,92 @@ def _con_avviso_feriale(result: dict) -> dict:
     if result.get("sospensione_feriale_incidente"):
         result["avviso_sospensione_feriale"] = _avviso_feriale()
     return result
+
+
+_NOTA_MATERIA_NON_INDICATA = (
+    "Materia non indicata: sospensione feriale applicata. Se la causa rientra tra le materie "
+    "escluse (art. 3 L. 742/1969) passare `materia`."
+)
+_TESTO_AVVISO_CON_MATERIA = (
+    "La sospensione feriale (1-31 agosto) ha spostato il risultato di questo calcolo. Non si "
+    "applica alle materie elencate qui sotto: se la causa rientra in una di esse vale "
+    "`scadenza_se_materia_esclusa`, riportata accanto a ogni scadenza che cambia (oppure "
+    "ricalcolare con `materia` o con sospensione_feriale=False)."
+)
+
+
+def _segna_alternative(con: object, senza: object) -> bool:
+    """Accanto a ogni `scadenza` che cambia senza sospensione, la data senza sospensione.
+
+    I riepiloghi (`riepilogo_*`, nome -> data) ricevono un dizionario parallelo
+    `<riepilogo>_se_materia_esclusa` con le sole voci che cambiano. Dice se ha segnato qualcosa.
+    """
+    segnato = False
+    if isinstance(con, dict) and isinstance(senza, dict):
+        alternativa = senza.get("scadenza")
+        if "scadenza" in con and alternativa and alternativa != con["scadenza"]:
+            con["scadenza_se_materia_esclusa"] = alternativa
+            segnato = True
+        for chiave, valore in list(con.items()):
+            if chiave not in senza:
+                continue
+            if chiave.startswith("riepilogo_") and isinstance(valore, dict):
+                diverse = {
+                    nome: data for nome, data in senza[chiave].items()
+                    if isinstance(data, str) and valore.get(nome) != data
+                }
+                if diverse:
+                    con[f"{chiave}_se_materia_esclusa"] = diverse
+                    segnato = True
+            else:
+                segnato = _segna_alternative(valore, senza[chiave]) or segnato
+    elif isinstance(con, list) and isinstance(senza, list):
+        for a, b in zip(con, senza):
+            segnato = _segna_alternative(a, b) or segnato
+    return segnato
+
+
+def _materia_feriale(fn):
+    """Gestisce il parametro `materia` dei tool che applicano la sospensione feriale.
+
+    Una materia esclusa (art. 3 L. 742/1969) spegne la sospensione e lo dichiara con la fonte;
+    `ordinaria` lascia decidere `sospensione_feriale`. Senza materia la sospensione resta quella
+    chiesta, la risposta dice che la materia non è stata indicata e, se agosto ha spostato una
+    scadenza, riporta accanto anche la data che vale per le materie escluse.
+    """
+    firma = inspect.signature(fn)
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        argomenti = firma.bind(*args, **kwargs)
+        argomenti.apply_defaults()
+        chiamata = dict(argomenti.arguments)
+        materia = chiamata.get("materia")
+        if materia is not None and materia not in _MATERIE_AMMESSE:
+            return {"errore": f"materia non valida: {materia}", "valori_ammessi": list(_MATERIE_AMMESSE)}
+        esclusa = _MATERIE_PER_CODICE.get(materia)
+        if esclusa:
+            chiamata["sospensione_feriale"] = False
+        result = fn(**chiamata)
+        if not isinstance(result, dict) or "errore" in result:
+            return result
+        if materia is not None:
+            result["materia"] = materia
+        if esclusa:
+            result["sospensione_feriale_esclusa"] = {
+                "materia": esclusa["materia"],
+                "fonte": esclusa["fonte"],
+            }
+        elif materia is None and chiamata["sospensione_feriale"]:
+            result["nota_materia"] = _NOTA_MATERIA_NON_INDICATA
+            # Confronto sempre con il calcolo senza sospensione: anche una data di riepilogo
+            # spostata da agosto, con la scadenza principale intatta, deve mostrare l'alternativa.
+            if _segna_alternative(result, fn(**{**chiamata, "sospensione_feriale": False})):
+                avviso = result.setdefault("avviso_sospensione_feriale", _avviso_feriale())
+                avviso["testo"] = _TESTO_AVVISO_CON_MATERIA
+        return result
+
+    return wrapper
 
 
 def _parse_date(d: str) -> date:
@@ -176,7 +283,9 @@ def _add_business_days(start: date, days: int) -> date:
 def _slide_backward(d: date) -> tuple[date, bool]:
     """Termini a ritroso: se il giorno finale è festivo (o sabato) la scadenza anticipa
     al giorno non festivo precedente, perché una proroga in avanti ridurrebbe il termine
-    minimo garantito alla controparte."""
+    minimo garantito alla controparte (art. 155 co. 4-5 c.p.c. applicato ai termini a
+    ritroso: Cass. 14767/2014, sul termine dell'art. 378). Si risale finché serve: la
+    domenica va al venerdì, non al sabato, e se il venerdì è festivo al giovedì (G-327)."""
     original = d
     while _is_holiday(d):
         d -= timedelta(days=1)
@@ -192,9 +301,10 @@ def _conta_avanti(dies_a_quo: date, giorni: int, feriale: bool) -> tuple[date, b
     """Conta `giorni` in avanti dal dies a quo (escluso, art. 155 co. 1 c.p.c.).
 
     Con la sospensione feriale i giorni dal 1° al 31 agosto non si contano; se il
-    dies a quo cade in agosto il decorso è differito al 1° settembre, che vale come
-    primo giorno (art. 1 co. 2 L. 742/1969). Restituisce anche se la sospensione ha
-    inciso sul conteggio.
+    dies a quo cade in agosto il decorso è differito alla fine della sospensione
+    (art. 1, co. 1, secondo periodo, L. 742/1969): il dies a quo vale come 31 agosto e
+    il primo giorno contato è il 1° settembre (G-327). Restituisce anche se la
+    sospensione ha inciso sul conteggio.
     """
     d = dies_a_quo
     contati = 0
@@ -242,7 +352,7 @@ def _mesi_avanti(dies_a_quo: date, mesi: int, feriale: bool) -> tuple[date, bool
 
     Ogni periodo 1-31 agosto compreso nel termine non si conta e sposta la scadenza
     di 31 giorni. Se il dies a quo cade in agosto il decorso è differito alla fine
-    della sospensione (art. 1 co. 2 L. 742/1969): il termine si computa dal 31
+    della sospensione (art. 1, co. 1, secondo periodo, L. 742/1969): il termine si computa dal 31
     agosto, lettura prudenziale rispetto a chi lo fa decorrere dal 1° settembre.
     """
     incisa = False
@@ -283,11 +393,13 @@ def _voce_scadenza(scadenza: date, prorogata: bool) -> dict:
 
 @mcp.tool(tags={"calcolo", "scadenze", "sinistro"})
 @sourced("festivita")
+@_materia_feriale
 def scadenza_processuale(
     data_evento: str,
     giorni: int,
     tipo: str = "calendario",
     sospensione_feriale: bool = False,
+    materia: str | None = None,
 ) -> dict:
     """Calcola una scadenza processuale generica con proroga festiva ex art. 155 c.p.c.
     Vigenza: art. 155 c.p.c. (testo vigente — non modificato dalla Riforma Cartabia); L. 742/1969
@@ -305,6 +417,10 @@ def scadenza_processuale(
         sospensione_feriale: True per non contare i giorni 1-31 agosto (L. 742/1969) — solo per
                              termini processuali di cause non escluse dall'art. 3 L. 742/1969.
                              Default False perché il tool serve anche per termini sostanziali.
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     err = _validate_date(data_evento)
     if err:
@@ -342,11 +458,13 @@ def scadenza_processuale(
 
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
+@_materia_feriale
 def termini_processuali_civili(
     data_udienza: str,
     tipo_termine: str,
     sospensione_feriale: bool = True,
     giorni: int | None = None,
+    materia: str | None = None,
 ) -> dict:
     """Calcola un termine del rito ordinario post-Cartabia: memorie ex art. 171-ter c.p.c. (a ritroso
     dall'udienza ex art. 183) o atti per la decisione ex art. 189 c.p.c. (a ritroso dall'udienza di
@@ -370,6 +488,10 @@ def termini_processuali_civili(
                              False per le materie escluse dall'art. 3 L. 742/1969, es. lavoro)
         giorni: Termine diverso assegnato dal giudice, in giorni prima dell'udienza (facoltativo:
                 l'art. 189 fissa solo i massimi di 60/30/15 giorni)
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     err = _validate_date(data_udienza)
     if err:
@@ -556,11 +678,13 @@ def termini_separazione_divorzio(
 
 @mcp.tool(tags={"calcolo", "scadenze", "sinistro"})
 @sourced("festivita")
+@_materia_feriale
 def scadenze_impugnazioni(
     data_pubblicazione: str,
     tipo_impugnazione: str,
     notificata: bool = False,
     sospensione_feriale: bool = True,
+    materia: str | None = None,
 ) -> dict:
     """Calcola i termini di impugnazione per sentenze civili (termine breve e termine lungo).
     Vigenza: artt. 325-327 c.p.c. (termini non modificati dalla Riforma Cartabia D.Lgs. 149/2022);
@@ -580,6 +704,10 @@ def scadenze_impugnazioni(
         notificata: True = termine breve dalla notifica; False = termine lungo dalla pubblicazione
         sospensione_feriale: Applica la sospensione feriale 1-31 agosto ex L. 742/1969 (default
                              True; False per le materie escluse dall'art. 3 L. 742/1969)
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     err = _validate_date(data_pubblicazione)
     if err:
@@ -768,9 +896,11 @@ def scadenze_multe(
 
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
+@_materia_feriale
 def termini_memorie_repliche(
     data_udienza: str,
     sospensione_feriale: bool = True,
+    materia: str | None = None,
 ) -> dict:
     """Calcola in un'unica risposta tutte le scadenze per memorie e repliche ex art. 171-ter c.p.c.
     Vigenza: rito ordinario post-Cartabia (D.Lgs. 149/2022, in vigore dal 28/02/2023); L. 742/1969
@@ -785,6 +915,10 @@ def termini_memorie_repliche(
         data_udienza: Data dell'udienza di comparizione e trattazione ex art. 183 c.p.c. (YYYY-MM-DD)
         sospensione_feriale: Applica la sospensione feriale 1-31 agosto ex L. 742/1969 (default
                              True; False per le materie escluse dall'art. 3 L. 742/1969)
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     err = _validate_date(data_udienza)
     if err:
@@ -820,18 +954,21 @@ def termini_memorie_repliche(
         "scadenze": scadenze,
         "nota": (
             "I termini sono a ritroso rispetto alla data di udienza. Se cadono in giorno festivo "
-            "o di sabato anticipano al giorno non festivo precedente (art. 155 c.p.c.)."
+            "o di sabato anticipano al giorno non festivo precedente, anche di più giorni "
+            "(art. 155, co. 4-5, c.p.c.; Cass. 14767/2014)."
         ),
     })
 
 
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
+@_materia_feriale
 def termini_procedimento_semplificato(
     data_udienza: str,
     giorni_memoria: int = 20,
     giorni_replica: int = 10,
     sospensione_feriale: bool = True,
+    materia: str | None = None,
 ) -> dict:
     """Calcola i termini del procedimento semplificato di cognizione (artt. 281-decies ss. c.p.c.).
     Vigenza: artt. 281-undecies e 281-duodecies c.p.c. introdotti dal D.Lgs. 149/2022 (in vigore dal
@@ -854,6 +991,10 @@ def termini_procedimento_semplificato(
         giorni_replica: Ulteriori giorni concessi per replica e prova contraria (massimo 10, default 10)
         sospensione_feriale: Applica la sospensione feriale 1-31 agosto ex L. 742/1969 (default
                              True; False per le materie escluse dall'art. 3 L. 742/1969)
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     err = _validate_date(data_udienza)
     if err:
@@ -942,9 +1083,11 @@ def termini_procedimento_semplificato(
 @mcp.tool(tags={"calcolo", "previgente", "scadenze"})
 @previgente
 @sourced("festivita")
+@_materia_feriale
 def termini_183_190_cpc(
     data_udienza: str,
     sospensione_feriale: bool = True,
+    materia: str | None = None,
 ) -> dict:
     """Calcola i termini ex art. 183 co. 6 e art. 190 c.p.c. (rito civile ordinario PRE-Cartabia).
     Regime: PREVIGENTE — cause iscritte a ruolo prima del 28/02/2023 (artt. 183 co. 6 e 190 c.p.c.
@@ -966,6 +1109,10 @@ def termini_183_190_cpc(
                       conclusionali e repliche, data dell'udienza di precisazione conclusioni (YYYY-MM-DD)
         sospensione_feriale: Applica la sospensione feriale 1-31 agosto ex L. 742/1969 (default
                              True; False per le materie escluse dall'art. 3 L. 742/1969)
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     err = _validate_date(data_udienza)
     if err:
@@ -1027,17 +1174,72 @@ _NOTA_617_FERIALE = (
 )
 
 
+#: Art. 482 c.p.c. (G-329, G-407): termine dilatorio, primo giorno utile senza proroga e senza
+#: sospensione feriale.
+_NOTA_482 = (
+    "Art. 482 c.p.c.: l'esecuzione non può iniziare prima che sia decorso il termine indicato nel "
+    "precetto e in ogni caso non prima di dieci giorni dalla notificazione. Termine applicato: "
+    "{fonte}. Il giorno della notifica non si conta (art. 155, co. 1): i giorni vanno dal {dal} al "
+    "{al}, il divieto dura fino al {al} compreso e il primo giorno utile è il {primo}. Nessuna "
+    "proroga ex art. 155, co. 4-5: l'art. 482 non impone il compimento di un atto, tutela il "
+    "debitore, e la proroga si applica nel senso che rispetta la funzione del termine (cfr. Cass. "
+    "14767/2014 sui termini a ritroso). È una lettura interpretativa: non risulta una pronuncia di "
+    "legittimità specifica sull'art. 482 e la proroga."
+)
+_FERIALE_PRECETTO = (
+    "Non applicata: il precetto è un atto stragiudiziale e i suoi termini (artt. 481 e 482) non "
+    "sono termini processuali ai fini della L. 742/1969 (lettura applicata, decisioni G-407 e G-408)."
+)
+_ESECUZIONE_IMMEDIATA_482 = (
+    "Se vi è pericolo nel ritardo, il presidente del tribunale competente per l'esecuzione (o un "
+    "giudice delegato) può autorizzare l'esecuzione immediata, con o senza cauzione; il decreto è "
+    "scritto in calce al precetto (art. 482, seconda parte)."
+)
+_AVVISO_519 = (
+    "Il primo giorno utile è festivo: il pignoramento mobiliare non può essere eseguito nei giorni "
+    "festivi salvo autorizzazione del giudice (art. 519 c.p.c.). Il termine non si sposta; senza "
+    "autorizzazione il primo giorno per eseguirlo è il {primo}."
+)
+#: Art. 481 c.p.c. (G-408): 90 giorni, termine di decadenza, con proroga art. 155 (anche del sabato).
+_NOTA_481 = (
+    "Il precetto perde efficacia se l'esecuzione non è iniziata entro 90 giorni dalla notifica "
+    "(art. 481, co. 1, c.p.c.; termine di decadenza: Cass. 11578/2005). Se il 90° giorno è festivo "
+    "o sabato la scadenza è prorogata al primo giorno non festivo (art. 155, co. 4-5): lettura "
+    "interpretativa, non risulta una pronuncia specifica."
+)
+_AVVISO_481_OPPOSIZIONE = (
+    "Se contro il precetto è proposta opposizione, il termine resta sospeso e riprende a decorrere "
+    "a norma dell'art. 627 c.p.c. (art. 481, co. 2): la scadenza indicata non ne tiene conto."
+)
+_MESI_IT = (
+    "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+    "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre",
+)
+
+
+def _data_it(d: date) -> str:
+    return f"{d.day} {_MESI_IT[d.month - 1]} {d.year}"
+
+
+def _festivo_519(d: date) -> bool:
+    """Giorno festivo ai fini dell'art. 519 c.p.c.: domenica o festività (il sabato no)."""
+    return d.weekday() == 6 or _is_public_holiday(d)
+
+
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
 def termini_esecuzioni(
     data_notifica_titolo: str,
     tipo: str = "pignoramento_mobiliare",
+    termine_precetto_giorni: int | None = None,
 ) -> dict:
     """Calcola i termini nelle procedure esecutive civili (pignoramento, opposizione).
-    Vigenza: artt. 480-482, 543, 555, 617 c.p.c. (testo vigente).
-    Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c.). La sospensione feriale non viene
-    applicata: le opposizioni esecutive, compresa quella agli atti esecutivi (art. 617), ne sono escluse
-    (decisione LI-060) e la risposta riporta i riferimenti quando agosto cade nel termine.
+    Vigenza: artt. 480-482, 519, 543, 555, 617 c.p.c. (testo vigente).
+    Precisione: ESATTO (termini di legge). Art. 482: primo giorno utile per iniziare l'esecuzione, senza
+    proroga. Art. 481: 90 giorni con proroga art. 155 c.p.c., anche del sabato. La sospensione feriale
+    non viene applicata: i termini del precetto non sono processuali, e le opposizioni esecutive,
+    compresa quella agli atti esecutivi (art. 617), ne sono escluse (decisione LI-060; la risposta
+    riporta i riferimenti quando agosto cade nel termine).
 
     Args:
         data_notifica_titolo: Data di notifica del precetto al debitore (YYYY-MM-DD)
@@ -1046,6 +1248,8 @@ def termini_esecuzioni(
               'opposizione_atti_esecutivi' (20gg per l'opposizione agli atti esecutivi ex
               art. 617 c.p.c.).
               Per l'opposizione all'esecuzione (art. 615 c.p.c.) il tool non calcola termini.
+        termine_precetto_giorni: Termine ad adempiere indicato nel precetto, in giorni, se più lungo
+              dei 10 dell'art. 482 (facoltativo; solo per i pignoramenti)
     """
     err = _validate_date(data_notifica_titolo)
     if err:
@@ -1087,6 +1291,15 @@ def termini_esecuzioni(
         }
 
     cfg = config[tipo]
+    if termine_precetto_giorni is not None:
+        if tipo == "opposizione_atti_esecutivi":
+            return {"errore": "termine_precetto_giorni vale solo per i tipi pignoramento_*"}
+        if (
+            isinstance(termine_precetto_giorni, bool)
+            or not isinstance(termine_precetto_giorni, int)
+            or termine_precetto_giorni < 1
+        ):
+            return {"errore": "termine_precetto_giorni deve essere un intero positivo"}
 
     if tipo == "opposizione_atti_esecutivi":
         scad_raw = dt_notifica + timedelta(days=cfg["termine_opposizione_giorni"])
@@ -1106,31 +1319,65 @@ def termini_esecuzioni(
             result["nota_sospensione_feriale"] = _NOTA_617_FERIALE
         return result
 
-    # Termine dilatorio minimo (10gg) — non si può pignorare prima
-    termine_min_raw = dt_notifica + timedelta(days=cfg["termine_minimo_giorni"])
-    termine_min, termine_min_adj = _slide_forward(termine_min_raw)
+    # Termine dilatorio (art. 482): il più lungo tra i dieci giorni e il termine del precetto. Il
+    # giorno della notifica non si conta (art. 155 co. 1) e l'esecuzione può iniziare dal giorno
+    # dopo l'ultimo. Nessuna proroga e nessuna sospensione feriale (G-329, G-407).
+    giorni_dilatori = max(cfg["termine_minimo_giorni"], termine_precetto_giorni or 0)
+    if giorni_dilatori > cfg["termine_minimo_giorni"]:
+        fonte = f"{giorni_dilatori} giorni, il termine indicato nel precetto"
+    else:
+        fonte = "10 giorni (art. 482)"
+    divieto_fino_al = dt_notifica + timedelta(days=giorni_dilatori)
+    primo_giorno_utile = divieto_fino_al + timedelta(days=1)
+    termine_min = {
+        "primo_giorno_utile": primo_giorno_utile.isoformat(),
+        "giorno_settimana": _giorno(primo_giorno_utile),
+        "divieto_fino_al": divieto_fino_al.isoformat(),
+        "giorni": giorni_dilatori,
+        "prorogata_art_155": False,
+        "nota": _NOTA_482.format(
+            fonte=fonte,
+            dal=_data_it(dt_notifica + timedelta(days=1)),
+            al=_data_it(divieto_fino_al),
+            primo=_data_it(primo_giorno_utile),
+        ),
+        "sospensione_feriale": _FERIALE_PRECETTO,
+        "esecuzione_immediata": _ESECUZIONE_IMMEDIATA_482,
+    }
+    if tipo == "pignoramento_mobiliare" and _festivo_519(primo_giorno_utile):
+        dopo = primo_giorno_utile
+        while _festivo_519(dopo):
+            dopo += timedelta(days=1)
+        termine_min["avviso_art_519"] = _AVVISO_519.format(primo=_data_it(dopo))
 
     # Efficacia precetto (90gg)
     efficacia_raw = dt_notifica + timedelta(days=cfg["efficacia_precetto_giorni"])
     efficacia, efficacia_adj = _slide_forward(efficacia_raw)
 
-    return {
+    result = {
         "data_notifica_precetto": data_notifica_titolo,
         "tipo": tipo,
         "descrizione": cfg["descrizione"],
-        "termine_minimo_10gg": {
-            "data": termine_min.isoformat(),
-            "nota": "Il pignoramento non può essere eseguito prima di 10gg dalla notifica del precetto (art. 482 c.p.c.)",
-            "prorogata_art_155": termine_min_adj,
-        },
+        "termine_minimo_10gg": termine_min,
         "scadenza_efficacia_precetto": {
             "data": efficacia.isoformat(),
-            "nota": "Il precetto perde efficacia se l'esecuzione non è iniziata entro 90gg dalla notifica (art. 481 c.p.c.)",
+            "giorno_settimana": _giorno(efficacia),
+            "nota": _NOTA_481,
             "prorogata_art_155": efficacia_adj,
+            "sospensione_feriale": _FERIALE_PRECETTO,
+            "avviso_opposizione": _AVVISO_481_OPPOSIZIONE,
         },
-        "finestra_utile": f"dal {termine_min.isoformat()} al {efficacia.isoformat()}",
+        "finestra_utile": f"dal {primo_giorno_utile.isoformat()} al {efficacia.isoformat()}",
         "riferimento_normativo": cfg["normativa"],
     }
+    if primo_giorno_utile > efficacia:
+        result["finestra_utile"] = None
+        result["avviso_finestra"] = (
+            f"Il primo giorno utile ({primo_giorno_utile.isoformat()}) cade dopo la perdita di "
+            f"efficacia del precetto ({efficacia.isoformat()}): con questo termine il precetto "
+            "diventa inefficace prima che l'esecuzione possa iniziare (artt. 481 e 482 c.p.c.)."
+        )
+    return result
 
 
 #: Art. 347, co. 1, c.p.c. (D.Lgs. 164/2024): le altre parti si costituiscono in appello "almeno
@@ -1165,12 +1412,14 @@ def _appello_nel_periodo_transitorio(data_notifica_citazione: str | None) -> boo
 
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
+@_materia_feriale
 def termini_deposito_atti_appello(
     data_notifica_sentenza: str | None = None,
     data_pubblicazione: str | None = None,
     data_notifica_citazione: str | None = None,
     data_udienza: str | None = None,
     sospensione_feriale: bool = True,
+    materia: str | None = None,
 ) -> dict:
     """Calcola i termini del giudizio di appello civile: impugnazione (breve e lungo), costituzione
     dell'appellante e comparsa di risposta dell'appellato.
@@ -1195,6 +1444,10 @@ def termini_deposito_atti_appello(
                       (YYYY-MM-DD), opzionale
         sospensione_feriale: Applica la sospensione feriale 1-31 agosto ex L. 742/1969 (default
                              True; False per le materie escluse dall'art. 3 L. 742/1969)
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     if not any((data_notifica_sentenza, data_pubblicazione, data_notifica_citazione, data_udienza)):
         return {
@@ -1291,12 +1544,14 @@ def termini_deposito_atti_appello(
 
 @mcp.tool(tags={"calcolo", "scadenze"})
 @sourced("festivita")
+@_materia_feriale
 def termini_deposito_ctu(
     data_conferimento: str,
     giorni_termine: int = 60,
     giorni_osservazioni: int = 15,
     giorni_replica: int = 15,
     sospensione_feriale: bool = True,
+    materia: str | None = None,
 ) -> dict:
     """Calcola le scadenze per il deposito della relazione CTU e le osservazioni delle parti.
     Vigenza: art. 195 co. 3 c.p.c. (testo post-Cartabia — D.Lgs. 149/2022): i tre termini (invio
@@ -1314,6 +1569,10 @@ def termini_deposito_ctu(
                         osservazioni (default 15)
         sospensione_feriale: Applica la sospensione feriale 1-31 agosto ex L. 742/1969 (default
                              True; False per le materie escluse dall'art. 3 L. 742/1969)
+        materia: 'ordinaria' o una materia esclusa dalla sospensione feriale (art. 3 L. 742/1969):
+                 lavoro_previdenza, alimenti, cautelare, amministrazione_sostegno, ordini_protezione,
+                 sfratto, opposizione_esecuzione, fallimento, materia_corporativa, urgenza_dichiarata.
+                 Una materia esclusa spegne la sospensione; se omessa, la risposta lo segnala
     """
     err = _validate_date(data_conferimento)
     if err:
