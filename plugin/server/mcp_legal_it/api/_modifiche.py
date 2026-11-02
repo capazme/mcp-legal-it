@@ -145,7 +145,8 @@ async def modifiche_articolo(
         try:
             nv = dataclasses.replace(nv, norma=await scraper.with_full_date(nv.norma))
         except scraper.AttoNonVerificato as exc:
-            return ModificheArticolo(esito="verifica_non_disponibile", errore=str(exc), fonti=registro.fonti())
+            esito = "atto_non_trovato" if exc.altro_atto else "verifica_non_disponibile"
+            return ModificheArticolo(esito=esito, errore=str(exc), fonti=registro.fonti())
         url = nv.url()
         letta = await aggiornamenti.leggi_aggiornamenti(url, article, dal=dal, al=al, max_versioni=max_versioni,
                                                         oggi=oggi)

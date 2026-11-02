@@ -732,6 +732,28 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **A law or d.lgs. cited by its year is never read as another act served in its place**
+  (#146). For the types whose page title is verified (laws, d.lgs., decree-laws, d.P.R. …),
+  `risolvi_atto` already said `atto_non_trovato` when Normattiva served another act's page,
+  but the readers then fetched the article through the year-only address, which serves
+  that other act: `cite_law("art. 3 d.lgs. 241/1990")` answered with art. 3 of L. 7 agosto
+  1990, n. 241 under a d.lgs. URN. When the page's heading names another known type, year
+  or number, every reader now refuses («nessun atto … la pagina restituita è «LEGGE 7
+  agosto 1990, n. 241»»), as for the decrees of #136; the `fetch_act_index` tool checks
+  the page it reads anyway. A page that cannot be read keeps the year-only address, as
+  before. A citation with the wrong sub-type is now refused too, where the year-only
+  address used to read the act under the wrong label: «R.D. 1825/1924» is served «REGIO
+  DECRETO-LEGGE 13 novembre 1924, n. 1825»; the error names the page so the citation can
+  be corrected.
+  `verifica_citazioni` reports such a reference as «non trovata», with the page served in
+  its note.
+- **The readers say `atto_non_trovato` when the page served is another act's** (#136,
+  #146). `testo_articolo`, `albero_atto`, `testo_atto`, `indice_atto` and
+  `modifiche_articolo` answered `verifica_non_disponibile`, which reads as «retry»; for a
+  page that names another act, retrying is vain. The new value is added to `EsitoNorma`
+  (additive); a page that could not be read or verified is still
+  `verifica_non_disponibile`. `docs/api.md` also says that the heading «DECRETO» does not
+  name the ministry: two ministerial decrees with the same number and year would both pass.
 - **A decree cited by its year is no longer read as the law Normattiva serves in its place**
   (#136). Asked for a ministerial decree, a DPCM or a d.lgs.lgt. by its year, Normattiva's
   resolver does not check the type: for a DPCM n. 158 of 2014 it serves L. 17 ottobre 2014,
@@ -754,8 +776,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **Every reader refuses it.** `testo_articolo`, the article of an annex, the future
     version, `albero_atto`, `testo_atto`, `indice_atto` (the AKN export and the index, also
     with the export disabled), `modifiche_articolo`, `cite_law` and the `fetch_act_index`
-    tool answer with the error and ask Normattiva nothing more. The api readers report it
-    as `verifica_non_disponibile`, the only refusal their outcomes have.
+    tool answer with the error and ask Normattiva nothing more (`atto_non_trovato` for
+    another act's page, `verifica_non_disponibile` for a page not verified now).
   - **Headings without a number.** An act heading without «, n. …» («DECRETO DEL PRESIDENTE
     DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») now counts as an act's heading, not as a page
     without one.

@@ -24,6 +24,7 @@ EsitoNorma = Literal[
     "trovato",                   # the text is in ``article_text``
     "riferimento_non_valido",    # the citation could not be read
     "atto_non_riconosciuto",     # no act matches the name (``errore`` lists near misses)
+    "atto_non_trovato",          # an act cited by year: Normattiva serves another act's page (not transient)
     "articolo_non_trovato",      # the act exists, the article is not in it
     "verifica_non_disponibile",  # the source could not tell (down, slow, structure unreadable)
     "testo_assente",             # the source answered without a text

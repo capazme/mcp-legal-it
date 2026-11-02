@@ -196,17 +196,32 @@ _INTESTAZIONI_ELI = {
 #: Every heading type the library knows: a page headed by one of these that is not the asked
 #: type's is another act's (L. 17 ottobre 2014, n. 158 served for a DPCM n. 158 of 2014).
 _TIPI_INTESTAZIONE_NOTI = frozenset(act_dates._TITLES.values()).union(*_INTESTAZIONI_ELI.values())
+#: The heading each type's page opens with: the titles VisuaLex verifies (``act_dates._TITLES``)
+#: and the measured ones above. A titled type is dated by its title; its heading only says
+#: when the page is another act's (L. 241/1990 served for a d.lgs. n. 241 of 1990, #146).
+_INTESTAZIONI = {**{kind: frozenset({tipo}) for kind, tipo in act_dates._TITLES.items()}, **_INTESTAZIONI_ELI}
 
 
 class AttoNonVerificato(LookupError):
-    """A year-only act of a type dated by its ELI date whose page does not prove it is that act.
+    """A year-only act whose Normattiva page is not provably that act.
 
-    Raised by :func:`with_full_date`: the page is another act's (its heading names another
-    type, year or number), its heading's type is not one the library can compare, or the
-    page could not be read or verified now. Normattiva's resolver does not check the type,
-    so the year-only URN of an article would serve the same other act: the caller refuses
-    instead of reading it.
+    Raised by :func:`with_full_date`: for every type, when the page is another act's (its
+    heading names another type, year or number); for the types dated by their ELI date,
+    also when the heading's type is not one the library can compare, or the page could not
+    be read or verified now. Normattiva's resolver does not check the type, so the year-only
+    URN of an article would serve the same other act: the caller refuses instead of reading it.
+
+    ``esito`` is the readers' outcome: :data:`ACT_NOT_FOUND` when the page is another act's
+    (a fact about the citation: retrying is vain), :data:`CHECK_UNAVAILABLE` otherwise.
     """
+
+    def __init__(self, messaggio: str, *, altro_atto: bool = False):
+        super().__init__(messaggio)
+        self.altro_atto = altro_atto
+
+    @property
+    def esito(self) -> str:
+        return ACT_NOT_FOUND if self.altro_atto else CHECK_UNAVAILABLE
 
 
 def _confronta_intestazione(meta: dict, kind: str, anno: str, numero: str) -> tuple[str, str]:
@@ -220,7 +235,7 @@ def _confronta_intestazione(meta: dict, kind: str, anno: str, numero: str) -> tu
     Constitution's heading included). Never a near match.
     """
     found = _INTESTAZIONE_ATTO.match(meta.get("heading", ""))
-    compatibili = _INTESTAZIONI_ELI.get(kind)
+    compatibili = _INTESTAZIONI.get(kind)
     if found is None or compatibili is None or found["tipo"] not in _TIPI_INTESTAZIONE_NOTI:
         return "non_verificato", ""
     voluto = re.sub(r"^0+(?=\d)", "", str(numero).strip())
@@ -356,9 +371,12 @@ async def normattiva_serves_acts() -> bool:
 async def with_full_date(norma: Norma) -> Norma:
     """The same act with its real date when it was cited with the year only.
 
-    Any other act is returned unchanged; so is a year-only act whose page cannot
-    be read or whose date disagrees with the cited year (never guess: the caller
-    then keeps what the user cited and the URN is not presented as official).
+    Any other act is returned unchanged. A year-only act whose page names another act
+    (another type, year or number) raises :class:`AttoNonVerificato` (``altro_atto``),
+    for every type: its year-only URN would serve that other act. For the types dated by
+    their ELI date it raises too when the page cannot be read or verified now. A titled
+    type whose page cannot be read is returned unchanged (never guess: the caller then
+    keeps what the user cited and the URN is not presented as official).
     """
     if not _year_only_act(norma):
         return norma
@@ -373,8 +391,8 @@ async def with_full_date(norma: Norma) -> Norma:
         return norma
     if not date:
         rifiuto = _rifiuto_per_anno(norma, meta, per_eli)
-        if rifiuto:
-            raise AttoNonVerificato(rifiuto)  # the year-only URN would serve this same page
+        if rifiuto is not None:
+            raise rifiuto  # the year-only URN would serve this same page
         return norma
     return dataclasses.replace(norma, data=date)
 
@@ -394,17 +412,28 @@ async def verifica_atto_per_anno(norma: Norma) -> None:
         raise AttoNonVerificato(_atto_non_corrispondente(norma, "", "non_letta", type(exc).__name__)) from exc
     date, _modo, meta = _data_da_intestazione(norma, _tipo_urn(norma), meta)
     if not date:
-        raise AttoNonVerificato(_rifiuto_per_anno(norma, meta, True))
+        raise _rifiuto_per_anno(norma, meta, True)
 
 
-def _rifiuto_per_anno(norma: Norma, meta: dict, per_eli: bool) -> str:
-    """Why a year-only act without a date must not be read by its year-only URN ("" if it may)."""
+def _rifiuto_per_anno(norma: Norma, meta: dict, per_eli: bool) -> "AttoNonVerificato | None":
+    """Why a year-only act without a date must not be read by its year-only URN (None if it may)."""
     verifica = meta.get("verifica_tipo")
     if verifica in ("altro", "non_verificato", "date_discordi"):
-        return _atto_non_corrispondente(norma, meta.get("heading", ""), verifica)
+        return AttoNonVerificato(_atto_non_corrispondente(norma, meta.get("heading", ""), verifica),
+                                 altro_atto=verifica == "altro")
     if per_eli:
-        return _atto_non_corrispondente(norma, "", "non_letta", meta.get("problema") or "")
-    return ""
+        return AttoNonVerificato(_atto_non_corrispondente(norma, "", "non_letta", meta.get("problema") or ""))
+    if _altro_atto_titolato(norma, meta):
+        return AttoNonVerificato(_atto_non_corrispondente(norma, meta.get("heading", ""), "altro"), altro_atto=True)
+    return None  # a titled type whose page could not be read: the year-only URN, as before
+
+
+def _altro_atto_titolato(norma: Norma, meta: dict) -> bool:
+    """Whether the act page *meta* of a titled type (its title did not name the act) is
+    another act's: its heading names another known type, year or number (#146)."""
+    if not meta or meta.get("problema") is not None:
+        return False
+    return _confronta_intestazione(meta, _tipo_urn(norma), norma.data, norma.numero_atto)[0] == "altro"
 
 
 def _atto_non_corrispondente(norma: Norma, intestazione: str, verifica: str, motivo: str = "") -> str:
@@ -547,7 +576,7 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
         try:
             full = await with_full_date(nv.norma)
         except AttoNonVerificato as exc:
-            return {"text": "", "url": "", "source": source, "esito": CHECK_UNAVAILABLE, "error": str(exc)}
+            return {"text": "", "url": "", "source": source, "esito": exc.esito, "error": str(exc)}
         if full is not nv.norma:
             nv = dataclasses.replace(nv, norma=full)  # the version asked for stays
         if nv.suffisso_versione() and _year_only_act(nv.norma):
@@ -612,6 +641,8 @@ async def fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
 # not be read to tell. Callers (verifica_citazioni) branch on it, never on the wording.
 ARTICLE_NOT_FOUND = "articolo_non_trovato"
 CHECK_UNAVAILABLE = "verifica_non_disponibile"
+#: The act cited by year is not on Normattiva: the page served is another act's (#136, #146).
+ACT_NOT_FOUND = "atto_non_trovato"
 
 # What _extract_eurlex_article answers when the document has no such article or recital.
 _EURLEX_NOT_FOUND_RE = re.compile(r"^\[(?:Articolo|Considerando) .+ non trovato nel documento EUR-Lex\]$")
@@ -846,7 +877,7 @@ async def _fetch_normattiva_annex(nv: NormaVisitata, annex_id: str, article: str
     try:
         full = await with_full_date(nv.norma)
     except AttoNonVerificato as exc:
-        return {"text": "", "url": "", "source": "normattiva-akn", "esito": CHECK_UNAVAILABLE, "error": str(exc)}
+        return {"text": "", "url": "", "source": "normattiva-akn", "esito": exc.esito, "error": str(exc)}
     url = full.url()
     base = {"text": "", "url": url, "source": "normattiva-akn", "data_atto": full.data}
     label = f"Allegato {annex_id}" + (f", art. {article}" if article else "")
@@ -1246,7 +1277,7 @@ async def fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) ->
     try:
         full = await with_full_date(nv.norma)
     except AttoNonVerificato as exc:
-        return {"text": "", "url": "", "source": source, "esito": CHECK_UNAVAILABLE, "error": str(exc)}
+        return {"text": "", "url": "", "source": source, "esito": exc.esito, "error": str(exc)}
     if full is not nv.norma:
         nv = dataclasses.replace(nv, norma=full)
     url = nv.url()
@@ -2016,7 +2047,7 @@ async def fetch_act_tree(norma: "Norma", *, link: bool = False, details: bool = 
     try:
         norma = await with_full_date(norma)  # a year-only act's tree is its real date's
     except AttoNonVerificato as exc:
-        return {"error": str(exc), "url": "", "esito": CHECK_UNAVAILABLE}
+        return {"error": str(exc), "url": "", "esito": exc.esito}
     # The act's own URL, without a code's default part (";262:2" -> ";262"): the tree
     # numbers the parts itself, and builds each article's URL from this one.
     act_url = re.sub(r"(;[^;:~!@?]+):\d+$", r"\1",
@@ -2061,7 +2092,7 @@ async def fetch_act_index(norma: "Norma") -> dict:
         # from the URN as cited, and the types the titles cover are read as before.
         await verifica_atto_per_anno(norma)
     except AttoNonVerificato as exc:
-        return {"index": [], "url": "", "error": str(exc), "esito": CHECK_UNAVAILABLE}
+        return {"index": [], "url": "", "error": str(exc), "esito": exc.esito}
     act_url = norma.url()
     if not act_url:
         return {"index": [], "url": "", "error": "Could not generate URL"}
@@ -2075,6 +2106,15 @@ async def fetch_act_index(norma: "Norma") -> dict:
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
+
+        if _year_only_act(norma) and _tipo_urn(norma) in act_dates._TITLES:
+            # A titled type is read from the URN as cited: never when this very page is
+            # another act's (Normattiva's resolver does not check the type, #146).
+            meta = act_page_metadata(html)
+            meta["problema"] = normattiva_page_problem(html, meta, resp.status_code)
+            if _altro_atto_titolato(norma, meta):
+                return {"index": [], "url": "", "esito": ACT_NOT_FOUND,
+                        "error": _atto_non_corrispondente(norma, meta.get("heading", ""), "altro")}
 
         # Extract codiceRedazionale from ELI meta tags
         soup = BeautifulSoup(html, "lxml")
@@ -2145,7 +2185,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     try:
         norma = await with_full_date(norma)
     except AttoNonVerificato as exc:
-        return {"text": "", "title": "", "url": "", "error": str(exc), "esito": CHECK_UNAVAILABLE}
+        return {"text": "", "title": "", "url": "", "error": str(exc), "esito": exc.esito}
     act_url = norma.url()
     if not act_url:
         return {"text": "", "title": "", "url": "", "error": "Could not generate URL"}
