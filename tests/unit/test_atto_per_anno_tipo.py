@@ -416,3 +416,33 @@ class TestTipoConTitolo:
         assert verdetto == "non trovata"
         assert nota.startswith("L'atto citato non è su Normattiva: nessun atto «decreto legislativo n. 241 del 1990»")
         assert "«LEGGE 7 agosto 1990, n. 241»" in nota
+
+
+class TestSottotipoSbagliato:
+    """A R.D. n. 1825 of 1924 asked by its year: Normattiva serves the «REGIO DECRETO-LEGGE»
+    with that number (a real copy). Refused, naming the page so the citation can be fixed."""
+
+    URL = "regio.decreto:1924-01-01;1825"
+    RDL = _pagina("landing_rd_1825_1924_serve_rdl.html")
+
+    async def test_the_reader_names_the_right_sub_type(self):
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({self.URL: self.RDL}, chieste, altrimenti=L241_ART3),
+                                brocardi=False):
+            r = await scraper.fetch_article(NormaVisitata(
+                norma=Norma(tipo_atto="regio decreto", data="1924", numero_atto="1825"), numero_articolo="1"))
+        assert r["text"] == "" and r["esito"] == scraper.ACT_NOT_FOUND
+        assert "la pagina restituita è «REGIO DECRETO-LEGGE 13 novembre 1924, n. 1825»" in r["error"]
+        assert chieste == [N2LS + self.URL]
+
+    async def test_cite_law_json_has_no_link_to_the_other_act(self):
+        import json
+
+        from mcp_legal_it.tools.legal_citations import _cite_law_impl
+
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({self.URL: self.RDL}, chieste, altrimenti=L241_ART3),
+                                brocardi=False):
+            payload = json.loads(await _cite_law_impl("art. 1 r.d. 1825/1924", formato="json"))
+        assert "REGIO DECRETO-LEGGE" in payload["errore"]
+        assert payload["url"] == "" and payload["urn"] is None and not payload["testo"]
