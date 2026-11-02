@@ -14,6 +14,7 @@ from pathlib import Path
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib._data import sourced
+from mcp_legal_it.lib._transizione import DPR_131_1986, transitoria
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -798,6 +799,7 @@ def calcolo_hash(testo: str) -> dict:
 
 
 @mcp.tool(tags={"calcolo", "giudiziario"})
+@transitoria(DPR_131_1986)
 def tassazione_atti(
     tipo_atto: str,
     valore: float,

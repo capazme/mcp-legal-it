@@ -290,9 +290,13 @@ def tool_body(fn):
     covered end to end by `tests/unit/test_precision_policy.py` and by the frozen
     reference in `tests/unit/test_golden_calcoli.py`, which both run the whole
     stack. `__wrapped__` is only followed for a wrapper this project put there.
+    `@transitoria(...)` is skipped too, so a computation test does not depend on
+    the calendar: the guard is covered by `tests/unit/test_transizione_registro.py`.
     """
     if hasattr(fn, "fn"):
         fn = fn.fn
+    if getattr(fn, "__disciplina_transitoria__", None) is not None:
+        fn = fn.__wrapped__
     if getattr(fn, "__sourced_datasets__", None) is not None:
         fn = fn.__wrapped__
     return fn

@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._numeri import numero_it
+from mcp_legal_it.lib._transizione import DPR_131_1986, transitoria
 
 
 def _parse_date(d: str) -> date:
@@ -469,6 +470,7 @@ def scadenze_societarie(
 
 
 @mcp.tool(tags={"calcolo", "societario"})
+@transitoria(DPR_131_1986)
 def costi_costituzione(
     tipo_societa: str,
 ) -> dict:

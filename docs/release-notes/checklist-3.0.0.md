@@ -20,8 +20,9 @@ is shipped as it is today, stated as such in the release notes. None may be
       20 days; decide whether that stays.
 - [ ] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
       how the yield is calculated; its live gate is red on purpose.
-- [ ] Registration tax: whether the text of D.P.R. 131/1986 is still
-      applicable or D.Lgs. 123/2025 replaces it.
+- [x] Registration tax: whether the text of D.P.R. 131/1986 is still
+      applicable or D.Lgs. 123/2025 replaces it (decided, LI-061: D.P.R.
+      131/1986 until 31/12/2026).
 - [ ] How long the 2.x line keeps receiving fixes after 3.0.
 - [ ] Review of twelve content items: non-pecuniary damage tables (Milan vs
       TUN), art. 139 Codice delle assicurazioni in work accidents, order of the
