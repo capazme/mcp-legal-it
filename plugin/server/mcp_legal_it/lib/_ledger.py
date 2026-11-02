@@ -39,7 +39,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware
 
-from . import _clock, _precision, _refusals, _regime, _sources
+from . import _clock, _precision, _refusals, _regime, _sources, _transizione
 from ._data import warnings as data_warnings
 from ._tables_open import CURRENT, note, opened, recording
 
@@ -288,6 +288,13 @@ class TableLedgerMiddleware(Middleware):
                         "tables": sorted({a["tabella"] for a in avvisi}),
                     }
                 )
+        elif _rifiuto_di_disciplina(result) is not None:
+            # A rule past its last day (`_transizione`): the body carries the
+            # refusal, and a host that reads only `_meta` has to see it too --
+            # otherwise the only thing stamped here would be the table warnings,
+            # and the refusal would read as theirs. Not written to the refusal
+            # ledger, which ranks tables to reconcile.
+            meta[PRECISION_KEY] = _rifiuto_di_disciplina(result)
         if meta:
             result.meta = meta
         if name == "verbale_mensile":
@@ -300,6 +307,15 @@ class TableLedgerMiddleware(Middleware):
                 result.meta = meta = dict(meta or {})
             meta[REFUSALS_KEY] = {"ledger": str(_refusals.ledger_path())}
         return result
+
+
+def _rifiuto_di_disciplina(result) -> dict | None:
+    """The `precisione` block of a `_transizione` refusal, when the result is one."""
+    corpo = getattr(result, "structured_content", None)
+    if isinstance(corpo, dict) and corpo.get("errore") == _transizione.ERRORE:
+        precisione = corpo.get("precisione")
+        return precisione if isinstance(precisione, dict) else None
+    return None
 
 
 def apply_table_ledger(

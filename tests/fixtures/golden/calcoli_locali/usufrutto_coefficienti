@@ -8,7 +8,7 @@
     "eta_usufruttuario": 65,
     "valore_piena_proprieta": 200000.0
    },
-   "expected": "{\"valore_piena_proprieta\":200000.0,\"eta_usufruttuario\":65,\"tasso_legale_pct\":2.5,\"coefficiente\":20.0,\"rendita_annua\":5000.0,\"valore_usufrutto\":100000.0,\"valore_nuda_proprieta\":100000.0,\"percentuale_usufrutto\":50.0,\"percentuale_nuda_proprieta\":50.0,\"riferimento_normativo\":\"DPR 131/1986 — Prospetto coefficienti usufrutto\",\"dati_applicati\":[\"usufrutto coefficienti: copre fino al 31/12/2026 (prospetto allegato al DPR 131/1986, tasso minimo 2,5%) — anno di verifica dichiarato in tabella: 2026\"]}"
+   "expected": "{\"valore_piena_proprieta\":200000.0,\"eta_usufruttuario\":65,\"tasso_legale_pct\":2.5,\"coefficiente\":20.0,\"rendita_annua\":5000.0,\"valore_usufrutto\":100000.0,\"valore_nuda_proprieta\":100000.0,\"percentuale_usufrutto\":50.0,\"percentuale_nuda_proprieta\":50.0,\"riferimento_normativo\":\"DPR 131/1986 — Prospetto coefficienti usufrutto\",\"dati_applicati\":[\"usufrutto coefficienti: copre fino al 31/12/2026 (prospetto allegato al DPR 131/1986, tasso minimo 2,5%) — anno di verifica dichiarato in tabella: 2026\"],\"avviso_disciplina\":\"Calcolo secondo il D.P.R. 131/1986, applicabile fino al 31/12/2026. Dal 1° gennaio 2027 si applica il testo unico di cui al D.Lgs. 123/2025 (art. 205, come modificato dall'art. 4, comma 5, del d.l. 200/2025): per atti con effetti da quella data il calcolo va rifatto. Uno schema di decreto legislativo correttivo dei testi unici, che riguarda anche l'imposta di registro, è stato approvato in esame preliminare dal Consiglio dei ministri il 13/10/2026: non ancora in vigore.\"}"
   }
  }
 }

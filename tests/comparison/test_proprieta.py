@@ -6,9 +6,8 @@ from tests.comparison.conftest import assert_close
 def _call(fn_name, **kwargs):
     import importlib
     mod = importlib.import_module("mcp_legal_it.tools.proprieta_successioni")
-    fn = getattr(mod, fn_name)
-    fn = getattr(fn, "fn", fn)
-    return fn(**kwargs)
+    from tests.unit.mcp_harness import tool_body
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 class TestImposteSuccessione:

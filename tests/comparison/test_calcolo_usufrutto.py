@@ -24,8 +24,9 @@ def _tool(valore, eta):
     import mcp_legal_it.server  # noqa: F401  (registers modules, avoids circular imports)
     from mcp_legal_it.tools.proprieta_successioni import calcolo_usufrutto
 
-    fn = getattr(calcolo_usufrutto, "fn", calcolo_usufrutto)
-    return fn(valore_piena_proprieta=valore, eta_usufruttuario=eta)
+    from tests.unit.mcp_harness import tool_body
+
+    return tool_body(calcolo_usufrutto)(valore_piena_proprieta=valore, eta_usufruttuario=eta)
 
 
 def _site(page, valore, eta) -> dict:
