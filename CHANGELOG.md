@@ -358,6 +358,27 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **Imposta di registro calculators: D.P.R. 131/1986 until 31/12/2026 (decision
+  LI-061).** The D.P.R. still governs the tax today; from 1 January 2027 the testo
+  unico of D.Lgs. 123/2025 applies (art. 205, as amended by art. 4, comma 5, d.l.
+  200/2025; art. 204 co. 1 lett. f abrogates the D.P.R.'s articles, tariffa and
+  prospetto dei coefficienti from that date).
+  - **The five tools that apply it** (`imposta_registro_locazioni`,
+    `imposte_compravendita`, `calcolo_usufrutto`, `tassazione_atti`,
+    `costi_costituzione`) keep their figures and their declared grade, and add a
+    fixed notice in `avviso_disciplina`: the rule applies until 31/12/2026, and for
+    acts with effects from 1 January 2027 the calculation has to be redone. Until it
+    is final, the notice also names the correttivo of the testi unici, registro
+    included, approved in preliminary examination by the Consiglio dei ministri on
+    13/10/2026 and not yet in force (LI-062).
+  - **From 1 January 2027 they refuse** (`errore: disciplina_non_applicabile`, no
+    figure) until they implement the testo unico. The date is the calculation date,
+    read through the server clock (`LEGAL_TODAY` pins it). `accetta_precisione`
+    cannot unlock the refusal: a figure under a rule that no longer applies is
+    wrong, not imprecise.
+  - `calcolo_valore_catastale` is not guarded: art. 52 D.P.R. 131/1986 is not
+    among the provisions art. 204 D.Lgs. 123/2025 abrogates (the tool's docstring
+    already names where its multipliers go from 2027).
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **Text answers are sent once.** The 63 tools that answer plain text (the
