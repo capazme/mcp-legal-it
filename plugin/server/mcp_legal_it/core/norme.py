@@ -87,8 +87,55 @@ async def fetch_norma(nv: NormaVisitata, *, canale: str = "html") -> dict:
 
 
 async def _cite_law_struct(reference: str, versione: str = "vigente") -> dict:
-    """Structured article lookup (no Brocardi): the JSON face of cite_law."""
-    return (await _cite_law_lookup(reference, versione=versione))[0]
+    """Structured article lookup (no Brocardi): the JSON face of cite_law.
+
+    The editorial notes are capped here (``limita_note_redazionali``): on a long original
+    text they reach 60,000 characters, enough for a whole call to fail on a client's output
+    cap where the article alone would pass. The library (``api.testo_articolo``) keeps them whole.
+    """
+    base = (await _cite_law_lookup(reference, versione=versione))[0]
+    (base["note_redazionali"], base["note_redazionali_troncate"],
+     base["note_redazionali_caratteri"]) = limita_note_redazionali(base.get("note_redazionali"))
+    return base
+
+
+#: The most characters of editorial notes cite_law's JSON carries (about 2,000 tokens).
+MAX_CARATTERI_NOTE_REDAZIONALI = 8000
+#: Put at the end of a note cut short by the cap.
+TAGLIO_NOTA = " […]"
+
+
+def limita_note_redazionali(note: "list[dict] | None",
+                            massimo: int | None = None) -> "tuple[list[dict] | None, bool, int | None]":
+    """``(notes, cut, characters)``: the editorial notes within *massimo* characters of ``testo``.
+
+    In order, whole while they fit; the note that crosses the cap is cut at the last space
+    before it and ends with «[…]»; the ones after it are left out. *cut* says so;
+    *characters* is the length of all their ``testo`` before the cap. ``(None, False, None)``
+    for notes not read.
+    """
+    if note is None:
+        return None, False, None
+    massimo = MAX_CARATTERI_NOTE_REDAZIONALI if massimo is None else massimo
+    totale = sum(len(n["testo"]) for n in note)
+    if totale <= massimo:
+        return list(note), False, totale
+    tenute: list[dict] = []
+    resto = massimo
+    for n in note:
+        if len(n["testo"]) <= resto:
+            tenute.append(n)
+            resto -= len(n["testo"])
+            continue
+        if resto > 0:
+            taglio = n["testo"][:resto]
+            if not n["testo"][resto].isspace():  # the cap falls inside a word: back to its start
+                spazio = taglio.rfind(" ")
+                taglio = taglio[:spazio] if spazio > 0 else taglio
+            taglio = taglio.rstrip()
+            tenute.append({**n, "testo": taglio + TAGLIO_NOTA})
+        break
+    return tenute, True, totale
 
 
 async def _cite_law_lookup(reference: str, *, canale: str = "html",
@@ -139,6 +186,13 @@ def _lookup_base(reference: str) -> dict:
         # [] for none, None when the text is not a Normattiva page's), whether some could not be
         # read, and whether the text already carries them (note_aggiornamento below).
         "note_aggiornamento": None, "note_non_lette": False, "note_nel_testo": False,
+        # The editorial notes of the Gazzetta («Note all'art. 13: …», art. 10 d.P.R. 1092/1985):
+        # [{intestazione, testo, ordine}], [] for none, None when not read (not a Normattiva
+        # text, or unread); whether the text already carries them (note_redazionali below).
+        "note_redazionali": None, "note_redazionali_nel_testo": False,
+        # In the JSON only: whether they were cut to MAX_CARATTERI_NOTE_REDAZIONALI, and the
+        # length of their whole text (None when not read).
+        "note_redazionali_troncate": False, "note_redazionali_caratteri": None,
         # An article Normattiva splits into parts («1 (commi 1-100)» …): the parts
         # ([{progressivo, commi_dal, commi_al, url}], [] when not split, None when the text is
         # not a Normattiva page's), the part the text is, and whether the text is one part only.
@@ -229,6 +283,7 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     if result.get("errore_parte"):
         base["errore"], base["esito_parte"] = result["errore_parte"], result.get("esito_parte")
     note_aggiornamento(base)
+    note_redazionali(base, result)
     base.pop("chiave_pagina", None)
     return base, result.get("esito")
 
@@ -278,6 +333,82 @@ def note_aggiornamento(base: dict) -> None:
                                                  base.get("chiave_pagina"))
     if base["note_non_lette"]:
         base["avvisi"] = list(base.get("avvisi") or []) + [AVVISO_NOTE_NON_LETTE]
+
+
+def riga_note_redazionali(nel_testo: bool = False, caratteri: int | None = None) -> str:
+    """The one line the markdown output gives an article's editorial notes (decision LI-058).
+
+    Their words stay out of it: they have no normative value, and their transcriptions of
+    other provisions are the texts of the day of publication. *nel_testo*: the text above
+    already ends with them (VisuaLex's fallback shape), so the line says so instead of
+    pointing at the JSON; *caratteri*, their whole length: past the JSON's cap the line says
+    how much of them the JSON carries.
+    """
+    if nel_testo:
+        dove = "sono riportate in coda al testo"
+    elif caratteri is not None and caratteri > MAX_CARATTERI_NOTE_REDAZIONALI:
+        # The JSON carries only part of them: said here, so the reader knows before asking.
+        dove = (f'per leggerle: cite_law(formato="json"), campo note_redazionali, che ne riporta '
+                f'le prime {MAX_CARATTERI_NOTE_REDAZIONALI:,} battute su {caratteri:,} (testo integrale '
+                "su Normattiva)").replace(",", ".")
+    else:
+        dove = 'per leggerle: cite_law(formato="json"), campo note_redazionali'
+
+    return ("**Note redazionali**: la Gazzetta Ufficiale pubblica con l'atto note a questo articolo "
+            "(art. 10 d.P.R. 1092/1985), prive di valore normativo; i testi che trascrivono sono quelli "
+            f"alla data di pubblicazione, non quelli vigenti; {dove}.")
+
+
+def note_redazionali_del_testo(fonte: str, testo: str, url: str, chiave: str | None = None,
+                               dall_export: "list | None" = None,
+                               export_nel_testo: bool = False) -> "tuple[list[dict] | None, bool]":
+    """``(note, nel_testo)``: the editorial notes of the article a text was served from.
+
+    The notes the Gazzetta publishes with an act («Note all'art. 13: …»), drafted by the
+    administration under art. 10 d.P.R. 1092/1985 to help the reading, without normative
+    value; their transcriptions of other provisions are the texts of the day of publication.
+    ``[{intestazione, testo, ordine}]`` in order, ``[]`` for an article without them:
+
+    - a Normattiva page's (``fonte`` ``normattiva``): read with the page (``pagine_normattiva``,
+      the record of the URL served, or of the part served, *chiave*);
+    - the Akoma Ntoso export's (``normattiva-akn``): *dall_export*, read with the export.
+
+    None when not read: another source, a reading lost, a record of another shape. *nel_testo*:
+    the text already carries them (VisuaLex's fallback shape; for the export, an article
+    without paragraphs, *export_nel_testo*), so a caller printing both does not print them twice.
+    """
+    if not testo:
+        return None, False
+    if fonte == "normattiva-akn":
+        if not _redazionali_ben_formate(dall_export):
+            return None, False
+        return list(dall_export), export_nel_testo is True
+    if fonte != "normattiva":
+        return None, False
+    from mcp_legal_it.lib.visualex import pagine_normattiva
+
+    rec = pagine_normattiva.leggi(chiave or url or "")
+    note = rec.get("note") if rec else None
+    lette = note.get("redazionali") if isinstance(note, dict) else None
+    if not isinstance(lette, dict) or not _redazionali_ben_formate(lette.get("note")):
+        return None, False
+    return list(lette["note"]), lette.get("nel_testo") is True
+
+
+def _redazionali_ben_formate(note) -> bool:
+    """Whether a reading's editorial notes have the shape ``note_redazionali.sezioni`` gives."""
+    if not isinstance(note, list):
+        return False
+    tipi = {"intestazione": str, "testo": str, "ordine": int}
+    return all(isinstance(n, dict) and set(n) == set(tipi) and all(isinstance(n[k], t) for k, t in tipi.items())
+               for n in note)
+
+
+def note_redazionali(base: dict, result: dict) -> None:
+    """Put the served article's editorial notes on *base* (``note_redazionali_del_testo``)."""
+    base["note_redazionali"], base["note_redazionali_nel_testo"] = note_redazionali_del_testo(
+        base.get("fonte", ""), base.get("testo", ""), base.get("url", ""), base.get("chiave_pagina"),
+        result.get("note_redazionali"), result.get("note_redazionali_nel_testo") is True)
 
 
 async def _fetch_futura(nv: NormaVisitata, entro: "str | None") -> dict:

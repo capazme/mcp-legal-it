@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from .. import _brocardi_switch, _clock
 from .._http import note_source
-from . import act_dates, normattiva_html, note_normattiva, pagine_eurlex, pagine_normattiva, parti_normattiva
+from . import act_dates, normattiva_html, note_normattiva, note_redazionali, pagine_eurlex, pagine_normattiva, parti_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
 from .map import codice_urn, find_brocardi_url
@@ -663,7 +663,8 @@ async def _fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
             if act is not None:
                 akn_text = _akn_article(act, nv.numero_articolo, part)
                 if akn_text:
-                    result = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data}
+                    result = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data,
+                              **_note_export(act, nv.numero_articolo, part)}
                     if not part:
                         served_url = url_in_part(url, act.part_position())
                         # The act's main text is a code approved in an annex, cited by the
@@ -758,6 +759,33 @@ def _akn_article(act, numero_articolo: str, part: "str | None") -> "str | None":
         if _article_identity(key) == wanted:
             return articles.get(key)
     return None
+
+
+def _akn_note_redazionali(act, numero_articolo: str, part: "str | None") -> "tuple[list[dict] | None, bool]":
+    """``(notes, in the text)``: the editorial notes of the export's article that served the text.
+
+    The article is found as ``_akn_article`` finds it: its key as asked, else the first key of
+    the same identity, so «art. 1» never takes the notes of an «art. 01». ``[]`` for an article
+    without notes. None when they were not read: an annex or another part (only the body's
+    flat articles are read), a component act, an act kept by an older parser.
+    """
+    note = getattr(act, "note_redazionali", None)
+    if part or note is None or act.structure != "flat":
+        return None, False
+    key = normalize_article_key(numero_articolo)
+    if key not in act.articles:
+        wanted = _article_identity(key)
+        key = next((k for k in act.article_keys(None) if wanted is not None and _article_identity(k) == wanted), None)
+    lette = note.get(key) if key else None
+    if not lette:
+        return [], False
+    return list(lette["note"]), bool(lette["nel_testo"])
+
+
+def _note_export(act, numero_articolo: str, part: "str | None") -> dict:
+    """The result keys of the export's editorial notes (``_akn_note_redazionali``)."""
+    note, nel_testo = _akn_note_redazionali(act, numero_articolo, part)
+    return {"note_redazionali": note, "note_redazionali_nel_testo": nel_testo}
 
 
 # The number at the head of a code article, which Normattiva serves as an
@@ -1377,7 +1405,8 @@ def _lettura_pagina(html: str) -> "tuple[str, str | None, dict | None]":
     """``(text, served, notes)`` of a Normattiva article page, from one parse.
 
     *notes* is ``note_normattiva.leggi_note``: the page's «AGGIORNAMENTO (n)» notes, read
-    beside VisuaLex's text, which stays byte for byte; None without a text.
+    beside VisuaLex's text, which stays byte for byte, plus ``redazionali``, the page's
+    editorial notes (``note_redazionali.leggi_html``, None when unread); None without a text.
     """
     corpo = normattiva_html.corpo_testo(normattiva_html.parse_document(html))
     if corpo is None:
@@ -1390,6 +1419,15 @@ def _lettura_pagina(html: str) -> "tuple[str, str | None, dict | None]":
             note = note_normattiva.leggi_note(corpo, testo, titoli)
         except Exception:  # noqa: BLE001 - notes unread are said (note_non_lette), never the article lost
             note = None
+        # The editorial notes («Note all'art. 13: …»), a kind of their own, kept beside the
+        # update notes in the same record and read on their own: a failure here leaves them
+        # unread (None), never the update notes or the article lost. Without the update notes'
+        # keys the record still says those were not read.
+        try:
+            redazionali = note_redazionali.leggi_html(corpo)
+        except Exception:  # noqa: BLE001
+            redazionali = None
+        note = {**(note or {}), "redazionali": redazionali}
     return testo, _served_article_key(corpo), note
 
 
@@ -1512,7 +1550,8 @@ def _da_export(act, nv: NormaVisitata, url: str, part: "str | None", base: dict,
     akn_text = _akn_article(act, nv.numero_articolo, part)
     if not akn_text:
         return None
-    servito = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": base.get("data_atto", "")}
+    servito = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": base.get("data_atto", ""),
+               **_note_export(act, nv.numero_articolo, part)}
     if not part and (etichetta or annex_id_of(act.main_part)):
         servito["allegato"] = act.main_part
         if etichetta:
