@@ -58,6 +58,23 @@ def parti_articolo(html: str, stesso_articolo: Callable[[str], bool]) -> list[di
     return [parti[k] for k in sorted(parti)]
 
 
+def voci_parti(html: str) -> dict[str, dict[str, Any]]:
+    """Every part entry of the page's tree, of any article and version, keyed by its path.
+
+    The path is the one ``showArticle`` opens (entities unescaped); the value has the shape of
+    ``parti_articolo``'s entries. A whole act's reading checks each part page against it.
+    """
+    voci: dict[str, dict[str, Any]] = {}
+    for m in _VOCE.finditer(html):
+        path = _html.unescape(m.group(1))
+        progressivo = _PROGRESSIVO.search(path)
+        if progressivo is None:
+            continue
+        voci.setdefault(path, {"progressivo": int(progressivo.group(1)), "commi_dal": _canonico(m.group(3)),
+                               "commi_al": _canonico(m.group(4)), "path": path})
+    return voci
+
+
 def parte_servita(html: str, parti: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     """The part a page serves, from its visible «art. N (commi a-b)» line; None when it does not say."""
     m = _SERVITA.search(_COMMENTO.sub("", html))

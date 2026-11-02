@@ -401,6 +401,11 @@ class TestoAtto:
     url: str = ""
     errore: str | None = None
     fonti: FontiConsultate | None = None
+    # True when every entry of the act was read (the Akoma Ntoso export, or every article page
+    # and part). False with an avviso naming what was not read: transient, ask again.
+    completo: bool = False
+    # What the text does not carry: entries not read, parts published as images only.
+    avvisi: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
