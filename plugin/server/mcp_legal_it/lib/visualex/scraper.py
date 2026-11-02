@@ -1986,7 +1986,9 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                 # The export's text is the act's body: what it leaves out is said, never implied.
                 fuori = [] if part else act.parti_fuori_dal_testo()
                 if fuori:
-                    letto["avvisi"] = [_avviso_parti_fuori(fuori, act_url)]
+                    # Linked at the export's own date (today): the undated page may show
+                    # another version of the parts named.
+                    letto["avvisi"] = [_avviso_parti_fuori(fuori, f"{act_url}!vig={_clock.today().isoformat()}")]
                 return letto
 
     ajax_headers = {**_HEADERS, "X-Requested-With": "XMLHttpRequest"}
@@ -2127,7 +2129,7 @@ def _avviso_parti_fuori(fuori: list[str], url: str) -> str:
     """The notice of an export's text that leaves parts of the act out (its annexes)."""
     quali = "Parte dell'atto non inclusa" if len(fuori) == 1 else "Parti dell'atto non incluse"
     return (f"{quali} nel testo: {_elenco(fuori)}. Il testo è il corpo dell'atto dell'export Akoma Ntoso "
-            f"di Normattiva; consultare queste parti sulla pagina dell'atto: {url}")
+            f"di Normattiva; consultare queste parti sulla pagina dell'atto alla data di oggi: {url}")
 
 
 def _avvisi_lettura(non_lette: list[str], parti_grafiche: list[str], url: str,
