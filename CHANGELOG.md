@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of being folded into the act's name.
 
 ### Fixed
+- **The server starts on Python 3.14** (#49, by @HeDo88TH). Python 3.14 no longer copies
+  a function's annotations in `functools.wraps` (PEP 649), so `termini_183_190_cpc`, the
+  one tool flagged both previgente and with its tables declared, lost the type hints of
+  its parameters and the server stopped at import with `KeyError: 'data_udienza'`. The
+  wrapper now carries them. The packaged launchers run Python 3.12: this mattered to
+  installs from pip or uvx on 3.14. From the same contribution, the annotation audit and
+  two isolated tests also run on Windows.
 - **The server starts on Windows** (#133). Thirty reads of the bundled tables, the
   `legal://` resources and the Brocardi cache named no encoding, so Python used the
   locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,
