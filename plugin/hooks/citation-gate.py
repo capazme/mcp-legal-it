@@ -743,7 +743,9 @@ def main() -> int:
     if opted_out():
         return SILENT
     try:
-        data = json.load(sys.stdin)
+        # Bytes, not sys.stdin: on Windows a pipe decodes in the locale encoding (cp1252)
+        # and Claude Code sends UTF-8 (#133). json.loads detects UTF-8 and a BOM.
+        data = json.loads(sys.stdin.buffer.read())
     except Exception:
         return SILENT
     if not isinstance(data, dict) or data.get("stop_hook_active"):
