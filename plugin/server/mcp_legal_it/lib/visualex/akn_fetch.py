@@ -68,7 +68,8 @@ _CACHE_MAX = max(1, int(os.environ.get("AKN_CACHE_MAX_ACTS", "50") or "50"))
 #    ("135-sex-decies"; comparable_article_key joins them for comparing), rubriche written
 #    without brackets.
 # 6: the export's consolidation day (consolidato).
-_CACHE_SCHEMA = 6
+# 7: the export's attachments as tree entries (annessi), those without articles included.
+_CACHE_SCHEMA = 7
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
@@ -189,6 +190,7 @@ def _act_to_dict(act: ParsedAct) -> dict:
         "structure": act.structure,
         "main_part": act.main_part,
         "consolidato": act.consolidato,
+        "annessi": act.annessi,
         "dates": act.dates,
         "parts": {
             name: {"name": p.name, "articles": p.articles, "order": p.order, "dates": p.dates,
@@ -218,6 +220,7 @@ def _act_from_dict(data: dict) -> ParsedAct:
         parts=parts,
         main_part=data.get("main_part", ""),
         consolidato=data.get("consolidato", ""),
+        annessi=list(data.get("annessi", [])),
     )
 
 
