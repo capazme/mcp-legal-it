@@ -90,7 +90,12 @@ def _hits_path() -> Path:
 # URL -> export params index. A warm cache hit can resolve (codice, dataGU) from
 # the act URL alone and skip the landing-page round-trip entirely (no session is
 # needed when we answer from cache without calling caricaAKN). (codice, dataGU)
-# are the GU publication identifiers — stable forever for a given act.
+# are the GU publication identifiers — stable forever for a given act. An entry is
+# kept only after the landing page's heading named the act its URL asks for
+# (``scraper.controlla_intestazione``), and says so with its third element: an entry
+# written before that check (two elements) is never read, since Normattiva's resolver
+# serves another act for some URLs (the D.M. 7 agosto 1990, n. 241 gets the law).
+_VERIFICATA = "intestazione"
 _url_params: "dict[str, tuple[str, str]]" = {}
 _url_params_loaded = False
 
@@ -111,7 +116,7 @@ def _load_url_params() -> None:
         if path.exists():
             raw = json.loads(path.read_text(encoding="utf-8"))
             for url, val in raw.items():
-                if isinstance(val, list) and len(val) == 2:
+                if isinstance(val, list) and len(val) == 3 and val[2] == _VERIFICATA:
                     _url_params[url] = (val[0], val[1])
     except (ValueError, OSError) as exc:
         print(f"[akn_fetch] url-params read failed: {exc}", file=sys.stderr)
@@ -133,7 +138,7 @@ def _set_url_params(url: str, codice: str, data_gu: str) -> None:
         path = _url_params_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            json.dumps({u: list(v) for u, v in _url_params.items()}, ensure_ascii=False),
+            json.dumps({u: [*v, _VERIFICATA] for u, v in _url_params.items()}, ensure_ascii=False),
             encoding="utf-8",
         )
     except OSError as exc:
@@ -379,7 +384,8 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
     ``norma`` is a :class:`mcp_legal_it.lib.visualex.models.Norma`. Returns a
     :class:`ParsedAct` on success, or ``None`` on any failure (the caller then
     falls back to the HTML path). Cache lookup (memory → disk) happens before any
-    network request.
+    network request. One exception: ``scraper.AttoNonVerificato`` when the act's
+    landing page is another act's (the caller refuses instead of falling back).
     """
     try:
         landing_url = norma.url()
@@ -445,6 +451,11 @@ async def _download_act(landing_url: str, data_vigenza: str) -> "ParsedAct | Non
             landing_resp = await client.get(landing_url)
             landing_resp.raise_for_status()
             note_source("normattiva", str(landing_resp.url) if hasattr(landing_resp, "url") else "")
+            # Another act's landing page (the resolver does not check what it is asked) is a
+            # refusal for the caller, never that act's export nor a kept URL entry.
+            from .scraper import controlla_intestazione
+
+            controlla_intestazione(landing_url, landing_resp.text)
             params = _extract_params(landing_resp.text)
             if not params:
                 return None
@@ -489,5 +500,9 @@ async def _download_act(landing_url: str, data_vigenza: str) -> "ParsedAct | Non
         _bump_hits(key)
         return act
     except Exception as exc:  # noqa: BLE001 — fail closed, never raise
+        from .scraper import AttoNonVerificato
+
+        if isinstance(exc, AttoNonVerificato):
+            raise  # the one exception: the page is another act's, the caller refuses
         print(f"[akn_fetch] fetch failed for {landing_url}: {exc}", file=sys.stderr)
         return None
