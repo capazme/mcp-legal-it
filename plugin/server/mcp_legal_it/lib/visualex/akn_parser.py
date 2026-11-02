@@ -454,6 +454,11 @@ class ParsedAct:
     # The day Normattiva consolidated the export's text ("CONSOLIDATED/20260604" in its ELI
     # alias), ISO; "" when the export does not say. Compared with the page's own dates.
     consolidato: str = ""
+    # The editorial notes of the body's flat articles (``note_redazionali.leggi_akn``:
+    # {"note": [...], "nel_testo": bool}), by article key, only for the articles that have
+    # some. None when not read: a component act (a code), whose body is not flat, or an act
+    # kept by an older parser.
+    note_redazionali: "dict[str, dict] | None" = None
 
     def article(self, numero_articolo: str, part: str | None = None) -> str | None:
         """Return the markdown text of an article, or ``None`` if absent.
@@ -855,6 +860,26 @@ def _render_flat_paragraph(para) -> str:
     return "\n".join(chunk for chunk in chunks if chunk.strip())
 
 
+def _note_flat(root) -> dict[str, dict]:
+    """The editorial notes of the flat ``<article>`` elements, by key; articles without notes left out.
+
+    The same walk and keys as ``_parse_flat``: the first article of a key wins.
+    """
+    from .note_redazionali import leggi_akn
+
+    note: dict[str, list[dict]] = {}
+    visti: set[str] = set()
+    for article in root.xpath(f"//{_local('body')}//{_local('article')}"):
+        key = normalize_article_key(article.get("eId", ""))
+        if not key or key in visti:
+            continue
+        visti.add(key)
+        lette = leggi_akn(article)
+        if lette["note"]:
+            note[key] = lette
+    return note
+
+
 def _parse_flat(root) -> tuple[dict[str, str], list[str]]:
     """Parse flat ``<article eId="art_N">`` elements under the body."""
     articles: dict[str, str] = {}
@@ -1133,6 +1158,11 @@ def parse_akn(xml: str) -> ParsedAct:
             consolidato=consolidato,
         )
 
+    try:
+        note = _note_flat(root)
+    except Exception as exc:  # noqa: BLE001 - notes unread stay None, never the act lost
+        print(f"[akn_parser] editorial notes not read: {exc}", file=sys.stderr)
+        note = None
     return ParsedAct(
         title=title,
         articles=flat_articles,
@@ -1140,4 +1170,5 @@ def parse_akn(xml: str) -> ParsedAct:
         structure="flat",
         parts=parts,
         consolidato=consolidato,
+        note_redazionali=note,
     )
