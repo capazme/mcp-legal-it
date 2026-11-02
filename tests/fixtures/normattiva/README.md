@@ -21,3 +21,25 @@ inside a minimal HTML shell; the rest of the page (navigation, the act's whole t
 
 Used by `tests/unit/test_articolo_inesistente.py`. To refresh, fetch the same URLs
 (a few seconds apart) and keep only the `bodyTesto` element.
+
+## Act pages (identity only)
+
+Trimmed copies of what Normattiva served for an act asked by its year-only URN, without an
+article (`landing_dm_55_2014.html` and `landing_atto_inesistente.html` on 2026-10-29, the
+others on 2026-11-02). Each keeps only the `<title>` and the `eli:` metadata of the page's
+head, verbatim. Normattiva's resolver does not check an act's type: the first two are the
+laws it serves for decrees it does not have.
+
+| File | Asked as (after `urn:nir:stato:`) | What Normattiva served |
+|------|-----------------------------------|------------------------|
+| `landing_dpcm_158_2014_serve_legge.html` | `decreto.del.presidente.del.consiglio.dei.ministri:2014;158` | the page of L. 17 ottobre 2014, n. 158 |
+| `landing_dm_241_1990_serve_legge.html` | `decreto.ministeriale:1990;241` | the page of L. 7 agosto 1990, n. 241 |
+| `landing_dpcm_159_2013.html` | `decreto.del.presidente.del.consiglio.dei.ministri:2013;159` | D.P.C.M. 5 dicembre 2013, n. 159 |
+| `landing_dm_37_2008.html` | `decreto.ministeriale:2008;37` | D.M. 22 gennaio 2008, n. 37 («DECRETO 22 gennaio 2008, n. 37») |
+| `landing_dm_55_2014.html` | `decreto.ministeriale:2014;55` | D.M. 10 marzo 2014, n. 55 («DECRETO 10 marzo 2014, n. 55») |
+| `landing_dllgt_98_1946.html` | `decreto.legislativo.luogotenenziale:1946;98` | D.Lgs.Lgt. 16 marzo 1946, n. 98 |
+| `landing_dllgt_151_1944.html` | `decreto.legislativo.luogotenenziale:1944;151` | the act headed «DECRETO-LEGGE LUOGOTENENZIALE 25 giugno 1944, n. 151» |
+| `landing_dpcm_2020_03_08_senza_numero.html` | by ELI, `/eli/id/2020/03/08/20A01522/CONSOLIDATED` | the D.P.C.M. 8 marzo 2020, an act without a number |
+| `landing_atto_inesistente.html` | `legge:1990;99999` | HTTP 200, the error page «Normattiva - Errore», no `eli:` metadata |
+
+Used by `tests/unit/test_atto_per_anno_tipo.py`, with `../akn/landing_legge_241_1990.html`.

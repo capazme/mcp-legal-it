@@ -28,6 +28,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of being folded into the act's name.
 
 ### Fixed
+- **An act cited by its year is never read as another act Normattiva serves in its place**
+  (#136, #146). Normattiva's resolver does not check an act's type: asked for a D.M. n. 241
+  of 1990 by its year it serves L. 7 agosto 1990, n. 241, and `cite_law("art. 3 d.m.
+  241/1990")` answered with the law's art. 3 under a decree's URN (a d.lgs. or a DPCM the
+  same: DPCM n. 158 of 2014 got L. 17 ottobre 2014, n. 158).
+  - **Another act's heading is refused, for every type.** When the page's heading names a
+    known type that is not the one cited, or another year or number, every reader of the
+    act (article, annex, full text, index, `cite_law`) answers «nessun atto … la pagina
+    restituita è «LEGGE 7 agosto 1990, n. 241»» and asks nothing more.
+  - **Ministerial decrees, DPCM, d.lgs.lgt.** These are dated by their page alone, so they
+    are taken only when the heading names them (headings measured on real pages:
+    «DECRETO», «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI», «DECRETO LEGISLATIVO
+    LUOGOTENENZIALE», «DECRETO-LEGGE LUOGOTENENZIALE»), with the heading's day. When the
+    page cannot be read or verified now, the answer says to retry later or to cite the
+    act with its full date, rather than read the year-only address, which would serve the
+    law. Ported from the 3.0 line.
 - **The server starts on Windows** (#133). Thirty reads of the bundled tables, the
   `legal://` resources and the Brocardi cache named no encoding, so Python used the
   locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,
