@@ -42,8 +42,11 @@ import check_directory_readiness as readiness  # noqa: E402
 
 sys.path.pop(0)
 
-# Where `--directory` may point: our plugin, our server, or the placeholder of a checkout.
-_NOSTRA_CARTELLA = re.compile(r"^(?:\$\{CLAUDE_PLUGIN_ROOT\}|\$\{__dirname\}/server|/path/to/mcp-legal-it/plugin/server)")
+# Where a shipped launcher may start uv: the plugin's folder, or the .mcpb bundle's.
+_CARTELLA_SPEDITA = re.compile(r"^\$\{(?:CLAUDE_PLUGIN_ROOT|__dirname)\}(?:/|$)")
+# A launcher the user copies into their own configuration names the checkout instead.
+_CARTELLA_DOCUMENTATA = re.compile(r"^/path/to/mcp-legal-it/plugin/server$")
+_DOCUMENTATI = ("config.toml.example", "docs/openai.md")
 
 
 # --- the launchers we ship or document --------------------------------------------------
@@ -59,9 +62,19 @@ def _mcp_json(path: Path) -> dict[str, list[str]]:
     return {f"{path.name} {name}": [s["command"], *s["args"]] for name, s in servers.items() if s.get("command")}
 
 
-def _manifest() -> dict[str, list[str]]:
-    config = json.loads((ROOT / "dxt" / "manifest.json").read_text(encoding="utf-8"))["server"]["mcp_config"]
-    return {"dxt/manifest.json": [config["command"], *config["args"]]}
+def _manifest(path: Path = ROOT / "dxt" / "manifest.json") -> dict[str, list[str]]:
+    config = json.loads(path.read_text(encoding="utf-8"))["server"]["mcp_config"]
+    return {str(path.relative_to(ROOT)): [config["command"], *config["args"]]}
+
+
+def _uvx_lines() -> dict[str, list[str]]:
+    """`uvx … mcp-legal-it` in the user docs: a tool environment, never the folder's (tested below)."""
+    out = {}
+    for path in (ROOT / "README.md", ROOT / "docs" / "migration" / "2.x-to-3.0.md"):
+        for i, riga in enumerate(re.findall(r"^\s*(uvx [^\n]*)", path.read_text(encoding="utf-8"), re.M)):
+            out[f"{path.relative_to(ROOT)} uvx #{i}"] = shlex.split(riga)
+    assert out, "no uvx launcher in the docs any more: update this test"
+    return out
 
 
 def _toml_args(text: str) -> list[str]:
@@ -97,36 +110,56 @@ def _skill_lines() -> dict[str, list[str]]:
 
 def launchers() -> dict[str, list[str]]:
     found = {**_hook_commands(), **_mcp_json(PLUGIN / ".mcp.json"), **_mcp_json(ROOT / ".mcp.json.example"),
-             **_manifest(), **_codex_config(), **_openai_docs(), **_skill_lines()}
+             **_manifest(), **_manifest(SERVER / "manifest.json"), **_codex_config(), **_openai_docs(),
+             **_skill_lines()}
     return {where: argv for where, argv in found.items() if argv[:2] == ["uv", "run"]}
 
 
 # Files that hold a launcher, each read by one of the functions above. A new file with a
 # uv launcher of our programs fails test_no_launcher_is_left_out until it is read here.
 _FILE_LETTI = {".mcp.json.example", "plugin/.mcp.json", "plugin/hooks/hooks.json", "dxt/manifest.json",
-               "scripts/build_targets.py", "docs/openai.md"}
-# Files that mention `uv run` in prose or call uv themselves with --project (bootstrap.py).
-_SOLO_TESTO = {"SECURITY.md", "docs/plugin.md", "docs/migration/2.x-to-3.0.md", "release.py",
-               "plugin/server/bootstrap.py"}
+               "plugin/server/manifest.json", "scripts/build_targets.py", "docs/openai.md", "README.md",
+               "docs/migration/2.x-to-3.0.md"}
+# Files that mention uv in prose, run it inside this repository (CONTRIBUTING's dev commands)
+# or call it with --project (bootstrap.py).
+_SOLO_TESTO = {"SECURITY.md", "docs/plugin.md", "release.py", "plugin/server/bootstrap.py", "CONTRIBUTING.md",
+               "Dockerfile", "plugin/README.md", "plugin/server/pyproject.toml"}
 
 
 def test_every_launcher_starts_from_our_folder():
     found = launchers()
-    assert len(found) >= 7, found.keys()
+    assert len(found) >= 8, found.keys()
     for where, argv in found.items():
         names, values, unknown, _comando = readiness.uv_run_options(argv[1:])
         assert not unknown, (where, unknown)
+        for opzione in ("--directory", "--project"):
+            assert ".." not in values.get(opzione, ""), (where, opzione, values[opzione])
         if "--project" in names:
             continue  # the server's own environment and configuration
         assert "--directory" in names, f"{where}: uv starts from the user's folder"
-        assert _NOSTRA_CARTELLA.match(values["--directory"]), (where, values["--directory"])
-        assert "--isolated" in names and "--no-config" in names, where
+        cartella = _CARTELLA_DOCUMENTATA if where.startswith(_DOCUMENTATI) else _CARTELLA_SPEDITA
+        assert cartella.match(values["--directory"]), (where, values["--directory"])
+        if "--no-project" in names:
+            assert "--isolated" in names and "--no-config" in names, where
+        # Without --no-project, --directory names our server's project: its own environment.
+
+
+def test_the_uvx_launchers_run_a_tool_environment():
+    for where, argv in _uvx_lines().items():
+        assert argv[0] == "uvx" and argv[-1] == "mcp-legal-it", (where, argv)
+
+
+def test_the_codex_docs_are_the_generated_configuration():
+    # Every argument, not only the options: a pin that drifts here is what users copy.
+    generato = _codex_config()["config.toml.example"]
+    for where, argv in _openai_docs().items():
+        assert argv == generato, where
 
 
 def test_no_launcher_is_left_out():
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
-    lancio = re.compile(r'uv run|"command":\s*"uv"|command\s*=\s*"uv"')
-    programma = re.compile(r"(run_server|bootstrap|citation-gate)\.py")
+    lancio = re.compile(r'uv run|uvx|uv tool run|"command":\s*"uv"|command\s*=\s*"uv"')
+    programma = re.compile(r"(run_server|bootstrap|citation-gate)\.py|mcp_legal_it|mcp-legal-it")
     for name in tracked:
         if name.startswith(("tests/", "docs/specs/", "docs/release-notes/", "content/", "plugin/skills/")) \
                 or "CHANGELOG" in name:
@@ -174,6 +207,20 @@ def test_the_checker_accepts_our_launchers(argv):
 def test_the_checker_blocks(argv, motivo):
     blocks = _check(argv).blocks
     assert any(motivo in b for b in blocks), blocks
+
+
+@pytest.mark.parametrize("opzione, cartella", [
+    ("--directory", "/tmp/elsewhere"),
+    ("--directory", "."),
+    ("--directory", "${CLAUDE_PLUGIN_ROOT}/../.."),
+    ("--directory", "${HOME}"),
+    ("--project", "${CLAUDE_PLUGIN_ROOT}/../other"),
+    ("--project", "server"),
+], ids=["absolute-elsewhere", "dot", "dotdot", "home", "project-dotdot", "project-relative"])
+def test_the_checker_blocks_a_folder_outside_the_plugin(opzione, cartella):
+    argv = ["uv", "run", "--frozen", "--no-sync", opzione, cartella, "python", "${CLAUDE_PLUGIN_ROOT}/g.py"]
+    blocks = _check(argv).blocks
+    assert any("is not inside the plugin's own folder" in b for b in blocks), blocks
 
 
 @pytest.mark.parametrize("testo, blocca", [
@@ -281,3 +328,15 @@ def test_the_project_launcher_does_not_run_the_opened_folders_environment(tmp_pa
     assert done.returncode == 0, done.stderr[-500:]
     assert not segno.exists(), "the --project launcher ran the opened folder's environment"
     assert not (tmp_path / "foreign-cache").exists(), "the --project launcher read the opened folder's uv.toml"
+
+
+def test_uvx_does_not_run_the_opened_folders_environment(tmp_path):
+    # The README's `uvx --from git+… mcp-legal-it`, with a small tool already in uv's cache:
+    # a tool environment, built on uv's own Python, never on the folder's .venv.
+    cwd, segno = _cartella_ostile(tmp_path)
+    done = _lancia([_uv(), "tool", "run", "--offline", "--python", "3.12", "--from", "httpx[cli]", "httpx",
+                    "--help"], cwd)
+    if done.returncode != 0:
+        pytest.skip(f"httpx[cli] is not in uv's cache (offline run): {done.stderr[-200:]}")
+    assert not segno.exists(), "uvx ran the opened folder's environment"
+    assert not (tmp_path / "foreign-cache").exists(), "uvx read the opened folder's uv.toml"

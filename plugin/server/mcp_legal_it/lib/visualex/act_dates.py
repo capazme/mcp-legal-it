@@ -87,7 +87,9 @@ def date_from_title(page: str, kind: str, year: str, number: str) -> Optional[st
 
 TTL_SECONDI = 365 * 86400
 _memoria: dict[str, dict] = {}
-_caricato = False
+# The (disk on?, directory) the disk was last read for: another configurazione(cache_dir=...)
+# or cache=... in the same process reads the disk again. Dates found stay in memory.
+_caricato_per: Optional[tuple[bool, Path]] = None
 _lock = threading.Lock()
 
 
@@ -96,11 +98,13 @@ def _path() -> Path:
 
 
 def _carica() -> None:
-    global _caricato
-    if _caricato:
+    global _caricato_per
+    attiva = cache_enabled()
+    per = (attiva, cache_root() if attiva else Path())
+    if per == _caricato_per:
         return
-    _caricato = True
-    if not cache_enabled():
+    _caricato_per = per
+    if not attiva:
         return
     try:
         dati = json.loads(_path().read_text(encoding="utf-8"))
@@ -150,7 +154,7 @@ def scrivi(chiave_atto: str, data_atto: str) -> None:
 
 def svuota_memoria() -> None:
     """Forget the dates kept in memory, and read the disk again next time (tests)."""
-    global _caricato
+    global _caricato_per
     with _lock:
         _memoria.clear()
-        _caricato = False
+        _caricato_per = None

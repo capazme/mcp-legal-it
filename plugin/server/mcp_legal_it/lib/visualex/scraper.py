@@ -134,15 +134,21 @@ _SESSIONE_SCADUTA = re.compile(r"sessione\s+scadut", re.IGNORECASE)
 _MANUTENZIONE = re.compile(r"manutenzione", re.IGNORECASE)
 # The heading of an act's page: "LEGGE 7 agosto 1990, n. 241", "DECRETO 10 marzo 2014, n. 55".
 _INTESTAZIONE_ATTO = re.compile(r"^[A-Z][A-Z' -]+ \d{1,2}[º°]? [a-z]+ \d{4}, n\. \d+")
+# The one act page whose heading has no date nor number (measured: «COSTITUZIONE - Normattiva»).
+_INTESTAZIONE_COSTITUZIONE = "COSTITUZIONE"
 
 
 def normattiva_page_problem(html: str, meta: dict, status: int = 200) -> str | None:
     """Why a Normattiva answer carries no act, or ``None`` when it is an act's page.
 
-    *meta* is :func:`act_page_metadata` of the same page. ``None``: the page has an act's
-    date, or names an act (its heading, or its ``eli:title``): the asked act's or, when
-    the date does not match, another one. Otherwise:
+    *meta* is :func:`act_page_metadata` of the same page. ``None``: the page's heading
+    names an act (``LEGGE 7 agosto 1990, n. 241``, or ``COSTITUZIONE``): the asked act's
+    or, when the title does not name it, another one. Only that heading says «another
+    act»: an ELI date or an ``eli:title`` without it is no such evidence. Otherwise:
 
+    - ``"senza_intestazione"``: the page has an act's ELI date or title but no act heading
+      (a markup change). It never makes an act «not found»; the ELI path of
+      :func:`act_full_date` still takes its date when it falls in the cited year;
     - ``"errore"``: Normattiva's generic error page, served both for an act it does not
       have and for a session or server problem (the caller must tell them apart);
     - ``"sessione"``: the page says the session expired (reported by a consumer);
@@ -150,19 +156,20 @@ def normattiva_page_problem(html: str, meta: dict, status: int = 200) -> str | N
     - ``"illeggibile"``: anything else, an answer other than 200 (a WAF's 202 with an
       empty body) or a page with neither an act nor the error notice.
     """
-    if meta.get("date"):
+    heading = meta.get("heading", "")
+    if _INTESTAZIONE_ATTO.match(heading) or heading == _INTESTAZIONE_COSTITUZIONE:
         return None
     if status != 200:
         return "illeggibile"
+    if meta.get("date") or meta.get("title"):
+        # Before the notices: an act's text can say «manutenzione».
+        return "senza_intestazione"
     if _SESSIONE_SCADUTA.search(html):
         return "sessione"
-    if _MANUTENZIONE.search(html):  # never on the error page nor on an act's page with its date
+    if _MANUTENZIONE.search(html):  # never on the error page nor on an act's page
         return "manutenzione"
-    heading = meta.get("heading", "")
     if heading.startswith(_PAGINA_ERRORE) and _MESSAGGIO_ERRORE in html:
         return "errore"
-    if _INTESTAZIONE_ATTO.match(heading) or meta.get("title"):
-        return None
     return "illeggibile"
 
 
@@ -227,9 +234,10 @@ async def _act_metadata(norma: Norma) -> dict:
         raise
     finally:
         _date_in_corso.pop(chiave, None)
-    if meta["date"]:
-        # A page without a date is never kept: an error page, a WAF's challenge or a
-        # maintenance notice may be a problem of this moment, not a fact about the act.
+    if meta["date"] and meta["problema"] is None:
+        # Only an act's page is kept: an error page, a WAF's challenge, a maintenance
+        # notice or a page without its heading may be a problem of this moment, not a
+        # fact about the act.
         _full_date_cache[url] = meta
     futuro.set_result(meta)
     return meta
@@ -1934,7 +1942,11 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     on-demand via /atto/caricaArticolo. This function extracts all article URLs from
     the sidebar tree (#albero) and fetches each one.
 
-    Returns: {"text": str, "title": str, "url": str, "article_count": int} or {"error": str}
+    Returns ``{"text", "title", "url", "article_count", "completo"}`` (plus ``"source":
+    "normattiva-akn"`` from the export), or ``{"error": str}``. The article-by-article
+    reading adds ``"non_lette"`` (the entries not read: ``completo`` is then False),
+    ``"parti_grafiche"`` (the entries with parts published as images only) and ``"avvisi"``
+    (the sentences that say both to a reader).
     """
     # A bare-year citation is resolved to the act's real date first (see with_full_date).
     norma = await with_full_date(norma)
@@ -1989,52 +2001,132 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
         first_body = soup.find("div", class_="bodyTesto")
         first_article_text = _testo_intero(first_body) if first_body else ""
 
-        # Extract all article AJAX URLs from the sidebar tree
-        article_urls = _extract_article_ajax_urls(html)
+        # Every entry of the sidebar tree: each article, each part of an article Normattiva
+        # splits («1 (commi 1-100)» …), each annex.
+        voci = _voci_albero(html)
 
-        if not article_urls:
-            # Fallback: return just the first article (old behavior)
+        if not voci:
+            # Fallback: return just the first article (old behavior), and say so.
             return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
-                    "completo": False}
+                    "completo": False, "non_lette": [], "parti_grafiche": [],
+                    "avvisi": [_AVVISO_SENZA_INDICE + _SOLO_PAGINA_ATTO]}
 
-        # Fetch all articles via AJAX, preserving order. ``missed`` counts the articles
-        # that could not be read: the text is then not the whole act ("completo").
+        # A part's page needs the session the act page set (this client keeps it); with a dead
+        # session Normattiva answers 200 with another part. Each part page must name its commi.
+        parti = parti_normattiva.voci_parti(html)
+
+        # Fetch every entry, preserving order. ``non_lette`` names the entries that could not be
+        # read: the text is then not the whole act ("completo"). ``parti_grafiche`` names the
+        # entries Normattiva publishes as images only: their content is in no text.
         all_parts: list[str] = []
-        missed = 0
-        seen_urls: set[str] = set()
-        for ajax_path in article_urls:
-            if ajax_path in seen_urls:
-                continue
-            seen_urls.add(ajax_path)
+        non_lette: list[str] = []
+        parti_grafiche: list[str] = []
+        for ajax_path, etichetta in voci:
+            nome = _nome_voce(etichetta)
             ajax_url = f"https://www.normattiva.it{ajax_path}"
             try:
                 art_resp = await client.get(ajax_url, headers=ajax_headers)
                 art_resp.raise_for_status()
                 note_source("normattiva", str(art_resp.url) if hasattr(art_resp, "url") else "")
                 art_html = art_resp.text
-                # Skip error pages
-                if "Normattiva - Errore" in art_html or len(art_html) < 50:
-                    missed += 1
-                    continue
-                art_soup = BeautifulSoup(art_html, "lxml")
-                body = art_soup.find("div", class_="bodyTesto")
-                if body:
-                    text = _testo_intero(body)
-                    if text and text != "[Articolo senza contenuto o abrogato]":
-                        all_parts.append(text)
-                else:
-                    missed += 1
             except httpx.HTTPError:
-                missed += 1
+                non_lette.append(nome)
                 continue
+            # Skip error pages
+            if "Normattiva - Errore" in art_html or len(art_html) < 50:
+                non_lette.append(nome)
+                continue
+            if _e_una_parte(ajax_path) and not _pagina_della_parte_giusta(art_html, parti.get(ajax_path)):
+                # Another part's page (of this article or of another article split into the same
+                # commi) is never taken for this one; nor a part whose commi the tree does not
+                # say in a form we read (nothing to check the page against).
+                non_lette.append(nome)
+                continue
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", XMLParsedAsHTMLWarning)
+                body = BeautifulSoup(art_html, "lxml").find("div", class_="bodyTesto")
+            if not body:
+                non_lette.append(nome)
+                continue
+            if _parti_in_formato_grafico(body):
+                parti_grafiche.append(nome)
+            text = _testo_intero(body)
+            if not text:
+                non_lette.append(nome)  # a page with an empty body: nothing read, never nothing to read
+                continue
+            if text != "[Articolo senza contenuto o abrogato]":
+                all_parts.append(text)
 
+    avvisi = _avvisi_lettura(non_lette, parti_grafiche, act_url)
     if not all_parts:
         return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
-                "completo": False}
+                "completo": False, "non_lette": non_lette, "parti_grafiche": parti_grafiche,
+                "avvisi": avvisi or [_AVVISO_VOCI_VUOTE + _SOLO_PAGINA_ATTO]}
 
     full_text = "\n\n---\n\n".join(all_parts)
     return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts),
-            "completo": missed == 0}
+            "completo": not non_lette, "non_lette": non_lette, "parti_grafiche": parti_grafiche,
+            "avvisi": avvisi}
+
+
+# The notices of a reading that fell back on the act's own page (its first article).
+_AVVISO_SENZA_INDICE = "Lettura parziale: la pagina dell'atto su Normattiva non ha un indice degli articoli"
+_AVVISO_VOCI_VUOTE = "Lettura parziale: nessuna voce dell'indice dell'atto su Normattiva ha dato un testo"
+_SOLO_PAGINA_ATTO = (". Il testo è quello che la pagina dell'atto mostra (il primo articolo) e può non essere "
+                     "l'atto intero.")
+# Names listed in a notice before «e altre N».
+_AVVISO_MAX_NOMI = 12
+
+
+def _elenco(nomi: list[str]) -> str:
+    if len(nomi) <= _AVVISO_MAX_NOMI:
+        return ", ".join(nomi)
+    return ", ".join(nomi[:_AVVISO_MAX_NOMI]) + f" e altre {len(nomi) - _AVVISO_MAX_NOMI}"
+
+
+def _avvisi_lettura(non_lette: list[str], parti_grafiche: list[str], url: str) -> list[str]:
+    """The notices of an article-by-article reading: what was not read, what has no text."""
+    avvisi: list[str] = []
+    if non_lette:
+        n = len(non_lette)
+        quante = "1 parte dell'atto non è stata letta" if n == 1 else f"{n} parti dell'atto non sono state lette"
+        avvisi.append(f"Lettura parziale: {quante} da Normattiva ({_elenco(non_lette)}). Il testo non è "
+                      "l'atto intero; ripetere la richiesta più tardi.")
+    if parti_grafiche:
+        verbo = "contiene" if len(parti_grafiche) == 1 else "contengono"
+        avvisi.append(f"Parti in formato grafico: su Normattiva {_elenco(parti_grafiche)} {verbo} parti "
+                      "pubblicate solo come immagine (PDF), non come testo. Quel contenuto non è nel testo, che "
+                      "segna il punto con «Parte di provvedimento in formato grafico»; consultarlo sulla pagina "
+                      f"dell'atto: {url}")
+    return avvisi
+
+
+def _pagina_della_parte_giusta(html: str, parte: "dict | None") -> bool:
+    """Whether *html* is the page of *parte* (a ``voci_parti`` entry): its visible line names the
+    part's commi and the same article as the tree. False when the tree did not give the part."""
+    if parte is None or parti_normattiva.parte_servita(html, [parte]) is None:
+        return False
+    servito = parti_normattiva.articolo_della_parte(html)
+    voluto = _article_identity(normalize_article_key(parte.get("articolo") or ""))
+    return servito is not None and voluto is not None \
+        and _article_identity(normalize_article_key(servito)) == voluto
+
+
+def _e_una_parte(path: str) -> bool:
+    """Whether a tree path opens a part of an article Normattiva splits (``art.progressivo`` ≥ 1)."""
+    m = re.search(r"art\.progressivo=(\d+)", path)
+    return m is not None and int(m.group(1)) >= 1
+
+
+def _parti_in_formato_grafico(body: Tag) -> bool:
+    """Whether a ``bodyTesto`` carries a part Normattiva publishes as an image only (``vediPdf`` link)."""
+    return any("vediPdf" in (a.get("href") or "") for a in body.select("a.attachment-url-link"))
+
+
+def _nome_voce(etichetta: str) -> str:
+    """A tree label as a notice names it: «1 (commi 101-200)» -> «art. 1 (commi 101-200)»; «Allegato II» stays."""
+    etichetta = _one_line(etichetta)
+    return f"art. {etichetta}" if etichetta[:1].isdigit() else etichetta
 
 
 def _normattiva_page_title(html: str, soup: BeautifulSoup) -> str:
@@ -2060,25 +2152,45 @@ def _normattiva_page_title(html: str, soup: BeautifulSoup) -> str:
 
 
 def _extract_article_ajax_urls(html: str) -> list[str]:
-    """Extract /atto/caricaArticolo URLs from onclick handlers in the sidebar tree.
+    """The /atto/caricaArticolo paths of the sidebar tree, in order (see ``_voci_albero``)."""
+    return [path for path, _ in _voci_albero(html)]
 
-    Normattiva sidebar lists multiple versions (art.versione) for articles that
-    have been amended. We keep only the first occurrence per article (idGruppo +
-    idArticolo + flagTipoArticolo), which is the current/vigente version.
+
+# A tree entry: showArticle('/atto/caricaArticolo?…') … >label</a> (the label may be absent:
+# a "next article" button carries no plain label).
+_VOCE_ALBERO = re.compile(r"showArticle\('(/atto/caricaArticolo\?[^']+)'(?:[^>]*>([^<]*)</a>)?")
+
+
+# What identifies an entry of the tree: neither the version (only today's is kept) nor the
+# Gazzetta date, written two ways.
+_IDENTITA_VOCE = ("idGruppo", "idArticolo", "idSottoArticolo", "idSottoArticolo1", "flagTipoArticolo",
+                  "progressivo")
+
+
+def _voci_albero(html: str) -> list[tuple[str, str]]:
+    """``(path, label)`` of every entry of the sidebar tree, in order, once each.
+
+    An entry is identified by ``_IDENTITA_VOCE``; the first occurrence is kept (the act's
+    "next article" button repeats an entry of the tree). The sub-article ids tell apart the
+    articles that share a number (art. 2, 2-bis, 2-ter; 2-quaterdecies and 2-quaterdecies.1);
+    the progressivo the parts Normattiva splits a long article into («1 (commi 1-100)», «1
+    (commi 101-200)» …): each is an entry of its own. The older versions' entries («orig.»,
+    «agg.37 (commi 1-100)», ``art.imUpdate=true``) are history, never an entry: they may sit
+    under another group than today's text, or have more parts than today's.
     """
-    pattern = re.compile(r"showArticle\('(/atto/caricaArticolo\?[^']+)'")
-    matches = pattern.findall(html)
-    # Deduplicate by article identity (keep first = vigente version).
-    # Params can appear in any order, so extract each individually.
     seen_articles: set[str] = set()
-    unique: list[str] = []
-    for raw_url in matches:
-        url_clean = raw_url.replace("&amp;", "&")
+    unique: list[tuple[str, str]] = []
+    for m in _VOCE_ALBERO.finditer(html):
+        url_clean = m.group(1).replace("&amp;", "&")
+        if "art.imUpdate=true" in url_clean:
+            continue
+        etichetta = unescape(m.group(2) or "").strip()
         grp = re.search(r"art\.idGruppo=(\d+)", url_clean)
         art = re.search(r"art\.idArticolo=(\d+)", url_clean)
         flag = re.search(r"art\.flagTipoArticolo=(\d+)", url_clean)
         if grp and art and flag:
-            article_key = f"{grp.group(1)}_{art.group(1)}_{flag.group(1)}"
+            article_key = "_".join(p.group(1) if (p := re.search(rf"art\.{nome}=(\d+)", url_clean)) else "0"
+                                   for nome in _IDENTITA_VOCE)
             if article_key in seen_articles:
                 continue
             seen_articles.add(article_key)
@@ -2086,5 +2198,5 @@ def _extract_article_ajax_urls(html: str) -> list[str]:
             continue
         else:
             seen_articles.add(url_clean)
-        unique.append(url_clean)
+        unique.append((url_clean, etichetta))
     return unique
