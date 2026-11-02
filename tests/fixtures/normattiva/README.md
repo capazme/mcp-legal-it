@@ -35,7 +35,23 @@ the `<title>` and the `eli:` metadata of the page's head, verbatim.
 | `landing_dm_55_2014.html` | `decreto.ministeriale:2014;55` | the page of D.M. 10 marzo 2014, n. 55 (title «DECRETO 10 marzo 2014, n. 55», ELI date 2014-03-10) |
 | `landing_atto_inesistente.html` | `legge:1990;99999` | HTTP 200, the error page «Normattiva - Errore», no `eli:` metadata («Errore nel caricamento delle informazioni»). The update table of d.lgs. 196/2003 art. 2-ter asked without the session cookie served the same page, byte for byte but for the session id |
 
-Used by `tests/unit/test_api_risolvi_atto.py`, together with `../akn/landing_legge_241_1990.html`.
+Captured on 2026-11-02 the same way (the type check of #136). The first two are the pages
+Normattiva's resolver serves for a decree it does not have: the law with the same year and
+number, since it does not check the type. Each keeps the four `eli:` properties the library
+reads (`id_local`, `type_document`, `date_document`, `title`) and the `<title>`, verbatim.
+
+| File | Asked as (after `urn:nir:stato:`) | What Normattiva served |
+|------|-----------------------------------|------------------------|
+| `landing_dpcm_158_2014_serve_legge.html` | `decreto.del.presidente.del.consiglio.dei.ministri:2014;158` | the page of L. 17 ottobre 2014, n. 158 (title «LEGGE 17 ottobre 2014, n. 158», `type_document` LEGGE) |
+| `landing_dm_241_1990_serve_legge.html` | `decreto.ministeriale:1990;241` | the page of L. 7 agosto 1990, n. 241 |
+| `landing_dpcm_159_2013.html` | `decreto.del.presidente.del.consiglio.dei.ministri:2013;159` | the page of D.P.C.M. 5 dicembre 2013, n. 159 (title «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI 5 dicembre 2013, n. 159») |
+| `landing_dm_37_2008.html` | `decreto.ministeriale:2008;37` | the page of D.M. 22 gennaio 2008, n. 37 (title «DECRETO 22 gennaio 2008, n. 37») |
+| `landing_dllgt_98_1946.html` | `decreto.legislativo.luogotenenziale:1946;98` | the page of D.Lgs.Lgt. 16 marzo 1946, n. 98 (title «DECRETO LEGISLATIVO LUOGOTENENZIALE 16 marzo 1946, n. 98») |
+| `landing_dllgt_151_1944.html` | `decreto.legislativo.luogotenenziale:1944;151` | the act headed «DECRETO-LEGGE LUOGOTENENZIALE 25 giugno 1944, n. 151» (`type_document` DECRETO-LEGGE_LUOGOTENENZIALE) |
+| `landing_dpcm_2020_03_08_senza_numero.html` | by ELI, `/eli/id/2020/03/08/20A01522/CONSOLIDATED` (a URN without a number answers the error page) | the D.P.C.M. 8 marzo 2020, an act without a number (title «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») |
+
+Used by `tests/unit/test_api_risolvi_atto.py` and `tests/unit/test_atto_per_anno_tipo.py`,
+together with `../akn/landing_legge_241_1990.html`.
 
 ## Articles split into parts (`parti/`)
 
