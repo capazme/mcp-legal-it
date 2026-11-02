@@ -718,6 +718,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **The replay recorder keeps the live client's session** (`scripts/replay_mcp_outputs.py`).
+  It dropped `Set-Cookie` from the response handed to the client, not only from the tape, so
+  Normattiva answered the per-version update tables with its session page and `storia_norma`
+  was recorded incomplete. Cookies now reach the live client and still never reach the tape.
+  The replay calls include `storia_norma` (text, JSON with a period, an unknown act).
 - **`fetch_full_act` without the Akoma Ntoso export reads every article and every part of
   an article, and says what it could not read** (#106). The article-by-article reading of
   the Normattiva page kept one tree entry per article number, and called the result
