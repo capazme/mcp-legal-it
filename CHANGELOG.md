@@ -398,7 +398,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
     figure) until they implement the testo unico. The date is the calculation date,
     read through the server clock (`LEGAL_TODAY` pins it). `accetta_precisione`
     cannot unlock the refusal: a figure under a rule that no longer applies is
-    wrong, not imprecise.
+    wrong, not imprecise. The refusal's `precisione` block is also stamped in
+    `_meta` (`mcp-legal-it/precisione`), for hosts that read only that.
   - `calcolo_valore_catastale` is not guarded: art. 52 D.P.R. 131/1986 is not
     among the provisions art. 204 D.Lgs. 123/2025 abrogates (the tool's docstring
     already names where its multipliers go from 2027).
