@@ -224,3 +224,10 @@ def test_errori_di_input(kwargs, messaggio):
     base = {"valore_nominale": 100, "prezzo_acquisto": 98.0, "cedola_annua_pct": 3.0}
     r = _btp(**{**base, **kwargs})
     assert messaggio in r.get("errore", ""), r
+
+
+def test_la_scelta_actual_365_e_documentata():
+    """LI-062: ICMA for the accrued interest, actual/365 for discounting, with the measured deviations."""
+    doc = getattr(rendimento_btp, "fn", rendimento_btp).__doc__
+    assert "Act/Act ICMA vale per il rateo" in doc
+    assert "0,0077" in doc and "0,0101" in doc
