@@ -18,11 +18,11 @@ is shipped as it is today, stated as such in the release notes. None may be
       owner decision».
 - [x] Art. 617 c.p.c. and the August suspension: decided (LI-060), excluded;
       `termini_esecuzioni` states the reading and the case law in a note.
-- [ ] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
-      how the yield is calculated; its live gate is red on purpose.
 - [x] Registration tax: whether the text of D.P.R. 131/1986 is still
       applicable or D.Lgs. 123/2025 replaces it (decided, LI-061: D.P.R.
       131/1986 until 31/12/2026).
+- [x] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
+      decided (LI-059), yield to maturity gross and net as the MEF; live gate green.
 - [ ] How long the 2.x line keeps receiving fixes after 3.0.
 - [ ] Review of twelve content items: non-pecuniary damage tables (Milan vs
       TUN), art. 139 Codice delle assicurazioni in work accidents, order of the

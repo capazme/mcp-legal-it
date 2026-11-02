@@ -412,6 +412,44 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - `calcolo_valore_catastale` is not guarded: art. 52 D.P.R. 131/1986 is not
     among the provisions art. 204 D.Lgs. 123/2025 abrogates (the tool's docstring
     already names where its multipliers go from 2027).
+- **`rendimento_btp` reports the yield to maturity (TIR), gross and net, as the MEF does**
+  (LI-059). It used to give a simple yield only: on the 50-year BTP of the 10/09/2026
+  auction (cedola 2,15%, prezzo 53,94) it said a net 5,15%, above the MEF gross 4,61%.
+  - **Main figures.** `rendimento_effettivo_lordo_pct` and `rendimento_effettivo_netto_pct`.
+    They use the convention of the MEF «Risultati Asta» («base annua 365 gg»): an annual
+    compound rate discounting coupons and redemption at 100, at actual days/365 from
+    settlement, to the tel-quel price (clean price plus the accrued interest, counted Act/Act
+    ICMA). The net figure taxes coupons at
+    12,5% for the part accrued while held (the first one less the accrued interest paid),
+    and the discount to par. The 50-year BTP now gives 4,6102% gross and 4,1065% net.
+  - **New optional parameters `data_regolamento` and `data_scadenza`** (AAAA-MM-GG). With
+    them the coupon calendar is built back from maturity and the accrued interest is counted
+    (`giorni_rateo`, `rateo_cedolare`, `prezzo_tel_quel`, a date for each coupon).
+    Without them, settlement falls on a coupon date and `anni_scadenza` (now optional) gives
+    the life. Old calls still work.
+  - **The simple yield stays as a secondary field, named for what it is.** It is
+    `rendimento_semplice_netto_pct`, with `nota_rendimento_semplice` («rendimento semplice
+    (non composto)»). **Breaking:** the old key `rendimento_netto_annuo_pct` is gone, because
+    keeping it would have kept the simple yield under the headline name.
+  - **Checked on 10 MEF auctions.** These are the fixed-rate BTP auctions of 10/09/2026 and of
+    October 2026 (fixture with the source URL of each PDF). The gross TIR is within 0,01
+    points of every published «Rendimento Lordo», and at most 0,008 points off. The grade
+    stays INDICATIVO: two auctions are off by slightly more than the MEF's two-decimal
+    rounding, and a short first coupon of a new issue is not modelled (the answer says so; on
+    the TIR the effect is negligible). Only the gross figure is checked against the MEF: its
+    auction results publish no net yield. The live MEF gate,
+    red on purpose on the 50-year BTP, is green again.
+  - **Reopenings are flagged** (LI-062). Below par, the answer warns that on a reopening, or a
+    purchase on the market, only the part of the discount down to the issue price («prezzo
+    fiscale» in the MEF results) is scarto di emissione. The rest is a plusvalenza (art. 67
+    co. 1 lett. c-ter) TUIR). The 12,5% at maturity is the same, but only the plusvalenza is
+    netted against minusvalenze (art. 68 co. 5 TUIR). Every auction in the test set is a
+    reopening; the 50-year BTP was first issued on 01/03/2021.
+  - **Out-of-range inputs are refused.** A yield that cannot be bracketed answers «rendimento
+    fuori scala» instead of a made-up figure, and dates outside 1900-2200 are refused.
+  - **Not the parameter of the maggior danno.** The description says so: Cass. SS.UU.
+    19499/2008 (art. 1224 co. 2 c.c.) uses State securities with a maturity of up to twelve
+    months.
 - **Legal content review (LI-062).** Twelve corpus entries re-read against the norms and
   decisions, each fact checked with the project's own tools:
   - *Non-pecuniary damage tables (LI-062, LI-067)* (`analisi-sinistro`, `quantificazione-danni`):
@@ -823,6 +861,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **The replay recorder keeps the live client's session** (`scripts/replay_mcp_outputs.py`).
+  It dropped `Set-Cookie` from the response handed to the client, not only from the tape, so
+  Normattiva answered the per-version update tables with its session page and `storia_norma`
+  was recorded incomplete. Cookies now reach the live client and still never reach the tape.
+  The replay calls include `storia_norma` (text, JSON with a period, an unknown act).
 - **The plugin says why its server stopped at start.** When the server exited before the
   plugin's first-start relay had handed it the session (an import error, a bad Python), the
   relay's write failed and the client was told «BrokenPipeError» instead of the server's
