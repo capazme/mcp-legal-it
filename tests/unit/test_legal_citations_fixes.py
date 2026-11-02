@@ -252,7 +252,9 @@ class TestYearOnlyActDate:
                       .replace("LEGGE 7 ottobre 1969, n. 742", "LEGGE 7 ottobre 1970, n. 742"))
         _install(monkeypatch, {"1969-01-01;742": wrong_year})
         norma = Norma(tipo_atto="legge", data="1969", numero_atto="742")
-        assert await with_full_date(norma) is norma
+        # Since #146 a page headed by another year's act is refused, not read by the year-only URN.
+        with pytest.raises(scraper.AttoNonVerificato, match="la pagina restituita è «LEGGE 7 ottobre 1970, n. 742»"):
+            await with_full_date(norma)
 
     @pytest.mark.asyncio
     async def test_with_full_date_reads_the_title_not_only_the_eli_date(self, monkeypatch):
@@ -261,7 +263,9 @@ class TestYearOnlyActDate:
         other_act = _LANDING_742.replace("LEGGE 7 ottobre 1969, n. 742", "LEGGE 7 ottobre 1969, n. 743")
         _install(monkeypatch, {"1969-01-01;742": other_act})
         norma = Norma(tipo_atto="legge", data="1969", numero_atto="742")
-        assert await with_full_date(norma) is norma
+        # Since #146 that page is refused: its year-only URN of an article would serve n. 743.
+        with pytest.raises(scraper.AttoNonVerificato, match="la pagina restituita è «LEGGE 7 ottobre 1969, n. 743»"):
+            await with_full_date(norma)
 
     @pytest.mark.asyncio
     async def test_a_found_date_is_kept_on_disk(self, monkeypatch):
