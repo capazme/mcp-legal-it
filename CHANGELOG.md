@@ -15,6 +15,38 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **`storia_norma`: an article's history as an MCP tool** (#115; 235 tools). A thin
+  wrapper (ADR-001) over `api.modifiche_articolo`: `storia_norma(riferimento, dal, al,
+  max_versioni=20, formato="testo"|"json")`.
+  - **Text.** One table, one row per version: the window in force (GG/MM/AAAA) and the
+    amendments that produced it, grouped by amending act as Normattiva words it. The
+    first line gives the number of versions, whether the history is complete and the
+    grade (`ESATTO` only with the whole history). The library's avvisi sit above the
+    table, in its order: a version not in force yet, the ceiling reached, versions left
+    unread after a failure (ask again), the `data_gu` fallback. With `dal`/`al` only the
+    versions that came into force in the period are listed.
+  - **JSON.** `come_dict(ModificheArticolo)`, as `cite_law(formato="json")` does.
+  - **Citation.** The same resolver as `cite_law`: an act it cannot identify is refused
+    with the nearest names, never guessed. EU acts, whole acts and annex articles are
+    refused (`non_supportata`).
+  - **Says what it is not.** The description and every answer say that vigenza is not
+    applicability: a text in force may not apply to an earlier fact.
+  - **Tags and profiles.** `normativa` plus the new area `vigenza`, so it is in every
+    profile that has `normativa` (sinistro, credito, penale, normativa, privacy,
+    redattore, cowork). It writes only the Normattiva caches: among the cache-only
+    writers (`readOnlyHint: false`, open world).
+  - **Tests.** Unit tests on the recorded pages of art. 2-ter d.lgs. 196/2003, art.
+    64-bis CCII, art. 612-bis c.p. (the rest of its pages captured for this), art. 1
+    d.P.R. 131/1986 and art. 2740 c.c.; a polite serial live test (23 requests).
+- **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
+  skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
+  Windows, or by commas): a session whose `cwd` (from the hook input, else the
+  process's) is one of them or inside one ends the Stop/SubagentStop hook at
+  once, so software-development sessions under, say, `~/CODE` are not gated
+  while legal work elsewhere still is. It is a deny-list: a folder not listed
+  stays gated, relative entries are ignored, and `/a/CODE2` is not inside
+  `/a/CODE`. Brings upstream the lane separation a local 2.9.0 patch had, which
+  2.16.1 no longer carried.
 - **The citation gate reads VisuaLex's dossier** (`omnilex_crea_dossier`, VisuaLex
   1.10.7 and later). The dossier verifies each reference and decision it is given
   against the sources, so they count as read.
@@ -400,6 +432,40 @@ described in those sections, not repeated here. Upgrading from 2.x:
   valida» from the implementation functions), instead of reaching the portal as a meaningless
   filter and coming back as «Nessuna delibera». A raw Liferay id is no longer accepted for
   `argomento`.
+- **The time-limit tools take the matter of the case for the August suspension**
+  (decision G-406). `scadenza_processuale`, `termini_processuali_civili`,
+  `scadenze_impugnazioni`, `termini_memorie_repliche`,
+  `termini_procedimento_semplificato`, `termini_183_190_cpc`,
+  `termini_deposito_atti_appello` and `termini_deposito_ctu` accept an optional
+  `materia`, with closed values: `ordinaria` or one of the ten matters that art. 3
+  L. 742/1969 and art. 92 R.D. 12/1941 exclude from the suspension
+  (`lavoro_previdenza`, `alimenti`, `cautelare`, `amministrazione_sostegno`,
+  `ordini_protezione`, `sfratto`, `opposizione_esecuzione`, `fallimento`,
+  `materia_corporativa`, `urgenza_dichiarata`).
+  - **Excluded matter.** The suspension is switched off and the answer says why, with
+    its source (`sospensione_feriale_esclusa`).
+  - **No matter given.** Nothing changes in the calculation. When the suspension is
+    applied the answer says the matter was not given (`nota_materia`). When August moved
+    a deadline, each deadline that moved carries `scadenza_se_materia_esclusa`, the date
+    that holds for an excluded matter; a summary of dates (`riepilogo_*`) gets a parallel
+    `riepilogo_*_se_materia_esclusa` with the entries that change, and the warning is
+    added even when only the summary moved.
+  - **Codes in the warning.** `avviso_sospensione_feriale` lists the matters with their
+    `codice`. `materia` is the last parameter, so positional calls are unchanged.
+- **Backward terms and a start day in August state their rule and source** (decision
+  G-327). The calculation was already right: a backward deadline falling on a Saturday,
+  Sunday or holiday goes back to the previous working day, more than one day if needed
+  (Sunday to Friday, and Thursday when Friday is a holiday; art. 155 co. 4-5 c.p.c., Cass.
+  14767/2014). A start day in August counts as 31 August, so 1 September is the first day
+  counted (art. 1 L. 742/1969). The note of `termini_memorie_repliche` now cites the
+  ruling.
+- **`termini_esecuzioni` states the reading applied for art. 617 c.p.c.** (decision
+  LI-060). The August suspension is still not applied to the 20 days; the field that
+  said the point was debated (`avvertenza_sospensione_feriale`) becomes
+  `nota_sospensione_feriale`, which says that the opposizione agli atti esecutivi is
+  excluded together with the other enforcement oppositions, that art. 92 R.D. 12/1941
+  (via art. 3 L. 742/1969) names only the «opposizione all'esecuzione», and cites
+  Cass. n. 26443/2024, n. 25666/2025 and n. 13797/2022. The calculation is unchanged.
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **Text answers are sent once.** The 63 tools that answer plain text (the
@@ -578,10 +644,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   every answer is gone (it also said "opposizioni esecutive" where art. 92
   says "opposizione all'esecuzione"); the `scadenza` command and the
   `procedura-civile` reference carry the same list. `termini_esecuzioni` keeps
-  computing the art. 617 opposition without the suspension (the prudent
-  reading) and, when August falls in its 20 days, adds
-  `avvertenza_sospensione_feriale`: whether art. 617 is excluded is debated,
-  since art. 92 R.D. 12/1941 names only the "opposizione all'esecuzione".
+  computing the art. 617 opposition without the suspension and, when August falls in its 20 days, adds
+  `nota_sospensione_feriale` (see Changed).
 - **The citation gate reads like the server, and checks decisions too.** The
   plugin's Stop hook, now also registered on `SubagentStop`, extracts citations
   with the server's own parser and resolver (moved, unchanged, into the
@@ -737,6 +801,98 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`termini_esecuzioni`: the art. 482 c.p.c. window opened one day early and was
+  extended** (decision G-329). For the three `pignoramento_*` types,
+  `termine_minimo_10gg` gave notice+10, extended under art. 155, as the date
+  enforcement could start. It now gives `primo_giorno_utile` (notice+11) and
+  `divieto_fino_al` (notice+10, the last day of the ban). Neither is extended: art. 482
+  imposes no act, it protects the debtor. The note presents this as an interpretation,
+  since no legitimacy ruling deals with art. 482 and the extension. Example: notice on
+  2 March gives the 13th, not the 12th. `finestra_utile` starts on the same day. For a
+  `pignoramento_mobiliare` whose first day is a Sunday or a holiday (not a Saturday;
+  decision G-405), `avviso_art_519` recalls that seizure on holidays needs the judge's
+  authorisation and gives the first day without one; the term itself does not move.
+  The ten days are not suspended in August (decision G-407): the precetto is an
+  out-of-court act and its terms are not procedural ones. The new optional
+  `termine_precetto_giorni` takes the term stated in the precetto when longer, and
+  the answer recalls the immediate enforcement the court may authorise when delay is
+  dangerous (`esecuzione_immediata`). When the precetto's term outlasts the 90 days of
+  art. 481, `finestra_utile` is null and `avviso_finestra` says the precetto lapses
+  before enforcement may start.
+- **`termini_esecuzioni`: the art. 481 c.p.c. term explains its reading** (decision
+  G-408). The date is unchanged: 90 days, no August suspension, a Saturday or a holiday
+  extended to the next working day (art. 155 co. 4-5, stated as an interpretation). The
+  note says it is a time limit for loss of rights (Cass. 11578/2005), and
+  `avviso_opposizione` recalls that an opposition to the precetto suspends the term
+  until the proceedings resume (art. 481 co. 2, art. 627).
+- **An act cited with its full date is never read as another act served in its place**
+  (#136, #146 follow-up). Normattiva's resolver does not check the act's type with a full
+  date either: the address of a D.M. 7 agosto 1990, n. 241 serves L. 7 agosto 1990, n. 241,
+  and `cite_law("art. 3 D.M. 7 agosto 1990, n. 241")` would have answered with the law's
+  art. 3.
+  - **Every page a reader downloads is checked** against the act its address asks for
+    (`scraper.controlla_intestazione`): the article page, an article's parts, the tree, the
+    index, the full text, the act's page before the Akoma Ntoso export and the update
+    tables. A heading that names another known type, another number, another year or
+    (with a full date) another day is `atto_non_trovato`, naming the page. A page that
+    cannot be compared (no act heading, a type no table knows, a fragment) is never refused.
+  - **A wrong day is another act.** «L. 8 agosto 1990, n. 241» is served L. 7 agosto 1990,
+    n. 241: refused, with the right date in the error.
+  - **Caches kept before the check are not read.** The day's page cache
+    (`normattiva_pagine`, schema 5) and the export's address index
+    (`akn_url_params.json`, whose entries now carry the mark of the check) skip the page
+    when warm, so their older records are ignored; each act's page is read once more.
+  - **A guard test** (`tests/unit/test_intestazione_guardia.py`) fails when a function
+    opens a Normattiva client without the check, unless it is listed with its reason.
+- **A law or d.lgs. cited by its year is never read as another act served in its place**
+  (#146). For the types whose page title is verified (laws, d.lgs., decree-laws, d.P.R. …),
+  `risolvi_atto` already said `atto_non_trovato` when Normattiva served another act's page,
+  but the readers then fetched the article through the year-only address, which serves
+  that other act: `cite_law("art. 3 d.lgs. 241/1990")` answered with art. 3 of L. 7 agosto
+  1990, n. 241 under a d.lgs. URN. When the page's heading names another known type, year
+  or number, every reader now refuses («nessun atto … la pagina restituita è «LEGGE 7
+  agosto 1990, n. 241»»), as for the decrees of #136; the `fetch_act_index` tool checks
+  the page it reads anyway. A page that cannot be read keeps the year-only address, as
+  before. A citation with the wrong sub-type is now refused too, where the year-only
+  address used to read the act under the wrong label: «R.D. 1825/1924» is served «REGIO
+  DECRETO-LEGGE 13 novembre 1924, n. 1825»; the error names the page so the citation can
+  be corrected.
+  `verifica_citazioni` reports such a reference as «non trovata», with the page served in
+  its note.
+- **The readers say `atto_non_trovato` when the page served is another act's** (#136,
+  #146). `testo_articolo`, `albero_atto`, `testo_atto`, `indice_atto` and
+  `modifiche_articolo` answered `verifica_non_disponibile`, which reads as «retry»; for a
+  page that names another act, retrying is vain. The new value is added to `EsitoNorma`
+  (additive); a page that could not be read or verified is still
+  `verifica_non_disponibile`. `docs/api.md` also says that the heading «DECRETO» does not
+  name the ministry: two ministerial decrees with the same number and year would both pass.
+- **A decree cited by its year is no longer read as the law Normattiva serves in its place**
+  (#136). Asked for a ministerial decree, a DPCM or a d.lgs.lgt. by its year, Normattiva's
+  resolver does not check the type: for a DPCM n. 158 of 2014 it serves L. 17 ottobre 2014,
+  n. 158, and for a D.M. n. 241 of 1990 L. 7 agosto 1990, n. 241. These types were dated by the
+  page's ELI date alone, so `risolvi_atto` answered `trovato` with the law's date, and the
+  readers of a year-only act would have read the law at that date.
+  - **The heading must name the act.** The date is taken only when the page's heading
+    names the asked type (a table of headings measured on real pages: «DECRETO» for a D.M.,
+    «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI», «DECRETO LEGISLATIVO
+    LUOGOTENENZIALE» and «DECRETO-LEGGE LUOGOTENENZIALE»), with the asked year and number.
+    The date is the heading's day; an ELI date that disagrees with it makes the answer
+    transient.
+  - **Another act.** A heading of a known type that is not the asked one, or another year or
+    number (none, for an act without one), is `atto_non_trovato`, naming the page served.
+  - **Not verifiable.** A heading whose type is in no table, or a page without heading, is
+    `fonte_non_raggiungibile`, never kept, and never dated by its ELI date. The readers never
+    fall back on the year-only URN for these types either, which would serve the same law:
+    when the page cannot be read or verified now (a network error, an error page, no
+    heading), they refuse and say to retry or give the full date.
+  - **Every reader refuses it.** `testo_articolo`, the article of an annex, the future
+    version, `albero_atto`, `testo_atto`, `indice_atto` (the AKN export and the index, also
+    with the export disabled), `modifiche_articolo`, `cite_law` and the `fetch_act_index`
+    tool answer with the error and ask Normattiva nothing more (`atto_non_trovato` for
+    another act's page, `verifica_non_disponibile` for a page not verified now).
+  - **Headings without a number.** An act heading without «, n. …» («DECRETO DEL PRESIDENTE
+    DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») now counts as an act's heading, not as a page
+    without one.
 - **`fetch_full_act` without the Akoma Ntoso export reads every article and every part of
   an article, and says what it could not read** (#106). The article-by-article reading of
   the Normattiva page kept one tree entry per article number, and called the result
@@ -767,7 +923,7 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **`download_law_pdf`** adds the same lines to its answer and prints them in the PDF,
     under the source; **`api.testo_atto`** gains `completo` and `avvisi` (additions with
     defaults, see `docs/api.md`). From the export, `completo` covers the act's articles: the
-    export's text leaves the annexes out, not yet said in a notice.
+    export's text leaves the annexes out, and says so (#139, below).
   - **The citation gate** skips the «**Avviso**» lines when it drops the line a later
     window may have cut, in both readers.
   - **Measured live on 2 Nov 2026** (walk with `AKN_DISABLED=1`, against the export):
@@ -778,6 +934,27 @@ described in those sections, not repeated here. Upgrading from 2.x:
     its articles with a suffix, 25-bis and the like); L. 604/1966 (29,425) unchanged; no
     notice on either. Requests: one per entry, as before (L. 213/2023: 33 to 38; D.Lgs.
     231/2001: 86 to 111).
+- **`fetch_full_act` says which parts the export's text leaves out, and reads the text in
+  force today without it** (#139).
+  - **The export's annexes.** The Akoma Ntoso text is the act's body: its annexes were left
+    out with no word, under `completo: True`. An «**Avviso**» now names them («Parti
+    dell'atto non incluse nel testo: Allegato I, Allegato II, …») with the act's page at
+    today's date, the export's own; for a
+    codice, its Dispositivo and its other parts (the preleggi of the c.c.). The annexes
+    without articles count too: the 11 attachments of L. 213/2023 (tables), which the parser
+    did not keep. `ParsedAct.annessi` lists them; the export cache moves to schema 7, so acts
+    parsed before are fetched again.
+  - **Today's text without the export.** The walk read the undated act page, whose tree
+    lists each article's newest version: on 2 Nov 2026 the six parts of art. 1 L. 213/2023
+    were the version in force from 1 Jan 2027. The act is now read at today's date
+    (`!vig=`, the Italian day), as `cite_law` already re-asks an undated page; an entry
+    whose page states a window that does not hold today is not taken, and an «**Avviso**»
+    names it with its window («art. 1 (commi 1-100) (in vigore dal 1/1/2027)») and links the
+    act at today's date; `completo: False`. Such a reading is the same all day, so its later
+    windows are still served (it is kept for paging, as a complete one). When no entry has
+    a text in force today, the answer is that notice, never the act page's own body.
+  - **The annex in a notice's name.** An annex article is labelled «art. 1» in the tree,
+    like the act's own: notices now name it «Allegato I.1, art. 1».
 - **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).
   A Normattiva page with an act's ELI date or `eli:title` but no act heading
   («LEGGE 7 agosto 1990, n. 241») was read as another act's page, so the act came back
@@ -785,14 +962,41 @@ described in those sections, not repeated here. Upgrading from 2.x:
   now `fonte_non_raggiungibile` («pagina senza l'intestazione dell'atto»), never kept in
   memory, and asked again on the next call. `scraper.normattiva_page_problem` returns the
   new code `"senza_intestazione"` for it; an act page with its heading (or the
-  Constitution's, headed «COSTITUZIONE») is unchanged. The types dated by the ELI date
-  alone (ministerial decrees, DPCM) still take that date when it falls in the cited year.
+  Constitution's, headed «COSTITUZIONE») is unchanged.
 - **`act_dates.json` follows the cache configuration within one process** (#113 D). The
   dates file was read once per process, so a later `configurazione(cache_dir=…)` or
   `cache=…` never read the other directory, and a disk switched on after the first
   reading was never read. The file is now read again when the pair (disk on, directory)
   changes; the dates already found in the process stay in memory, as in the other
   in-memory caches.
+- **The Gazzetta's editorial notes of an article are read, beside its text (issue #119).**
+  When an act is published with notes («Note all'art. 13: …»), Normattiva keeps them on the
+  original text and on the current text of an article never amended. Neither the page's
+  extractor nor the Akoma Ntoso renderer read them, so they never reached the reader.
+  - **What they are.** The competent administration drafts them under art. 10 d.P.R.
+    1092/1985 only to help the reading. They have no normative value, and where they
+    transcribe another provision the text is that of the day of publication.
+  - **Where they go.** They are read into a field of their own, `note_redazionali`
+    (`NotaRedazionale`: `intestazione`, `testo`, `ordine`). They never go into
+    `article_text`, which stays VisuaLex's byte for byte, and they are never mixed with
+    `note_aggiornamento`.
+  - **Which ones (LI-058).** Only the «Note all'art. N» sections. Not the «Avvertenza», and
+    not the «Note alle premesse» that art. 1 carries about the act's preamble.
+  - **Both channels.** The page's `div.note-akn` and the export's `authorialNote` give the
+    same sections.
+  - **Output.** `cite_law(formato="json")` carries `note_redazionali` and
+    `note_redazionali_nel_testo`. In markdown, `cite_law` and `fetch_law_article` give one
+    line under the text, never their words: the notes exist, have no normative value (art.
+    10 d.P.R. 1092/1985), transcribe texts as of the publication date, and the JSON has
+    them.
+  - **The JSON caps them at 8,000 characters.** They reach 60,000 on a long original text,
+    enough to break a client's output cap. Past the cap, `note_redazionali_troncate` is `true`,
+    `note_redazionali_caratteri` gives their whole length, the note cut short ends with «[…]»,
+    and the markdown line says how much the JSON carries. The library keeps them whole.
+  - **Headings.** A heading is matched in any case. A line naming another act's article
+    («Nota all'art. 14 della legge 400/1988:») is never taken for one.
+  - **Cache.** The export's cache keeps the notes; an export kept before this version
+    gives `None` («not read»), never «none».
 - **The citation gate checks the comma of an article read in parts.** An article
   Normattiva splits comes from `cite_law` one part at a time, with «testo parziale:
   commi a-b di N». The gate credited the whole article from any part, so an answer

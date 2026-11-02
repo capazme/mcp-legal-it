@@ -68,7 +68,8 @@ _CACHE_MAX = max(1, int(os.environ.get("AKN_CACHE_MAX_ACTS", "50") or "50"))
 #    ("135-sex-decies"; comparable_article_key joins them for comparing), rubriche written
 #    without brackets.
 # 6: the export's consolidation day (consolidato).
-_CACHE_SCHEMA = 6
+# 7: the export's attachments as tree entries (annessi), those without articles included.
+_CACHE_SCHEMA = 7
 
 # In-memory LRU: most-recently-used key is moved to the end.
 _lru: "OrderedDict[tuple[str, str, str], ParsedAct]" = OrderedDict()
@@ -89,7 +90,12 @@ def _hits_path() -> Path:
 # URL -> export params index. A warm cache hit can resolve (codice, dataGU) from
 # the act URL alone and skip the landing-page round-trip entirely (no session is
 # needed when we answer from cache without calling caricaAKN). (codice, dataGU)
-# are the GU publication identifiers — stable forever for a given act.
+# are the GU publication identifiers — stable forever for a given act. An entry is
+# kept only after the landing page's heading named the act its URL asks for
+# (``scraper.controlla_intestazione``), and says so with its third element: an entry
+# written before that check (two elements) is never read, since Normattiva's resolver
+# serves another act for some URLs (the D.M. 7 agosto 1990, n. 241 gets the law).
+_VERIFICATA = "intestazione"
 _url_params: "dict[str, tuple[str, str]]" = {}
 _url_params_loaded = False
 
@@ -110,7 +116,7 @@ def _load_url_params() -> None:
         if path.exists():
             raw = json.loads(path.read_text(encoding="utf-8"))
             for url, val in raw.items():
-                if isinstance(val, list) and len(val) == 2:
+                if isinstance(val, list) and len(val) == 3 and val[2] == _VERIFICATA:
                     _url_params[url] = (val[0], val[1])
     except (ValueError, OSError) as exc:
         print(f"[akn_fetch] url-params read failed: {exc}", file=sys.stderr)
@@ -132,7 +138,7 @@ def _set_url_params(url: str, codice: str, data_gu: str) -> None:
         path = _url_params_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            json.dumps({u: list(v) for u, v in _url_params.items()}, ensure_ascii=False),
+            json.dumps({u: [*v, _VERIFICATA] for u, v in _url_params.items()}, ensure_ascii=False),
             encoding="utf-8",
         )
     except OSError as exc:
@@ -189,7 +195,9 @@ def _act_to_dict(act: ParsedAct) -> dict:
         "structure": act.structure,
         "main_part": act.main_part,
         "consolidato": act.consolidato,
+        "annessi": act.annessi,
         "dates": act.dates,
+        "note_redazionali": act.note_redazionali,
         "parts": {
             name: {"name": p.name, "articles": p.articles, "order": p.order, "dates": p.dates,
                    "position": p.position}
@@ -218,6 +226,9 @@ def _act_from_dict(data: dict) -> ParsedAct:
         parts=parts,
         main_part=data.get("main_part", ""),
         consolidato=data.get("consolidato", ""),
+        # An act kept before the notes were read has none: None, «not read», never «none».
+        note_redazionali=data.get("note_redazionali"),
+        annessi=list(data.get("annessi", [])),
     )
 
 
@@ -376,7 +387,8 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
     ``norma`` is a :class:`mcp_legal_it.lib.visualex.models.Norma`. Returns a
     :class:`ParsedAct` on success, or ``None`` on any failure (the caller then
     falls back to the HTML path). Cache lookup (memory → disk) happens before any
-    network request.
+    network request. One exception: ``scraper.AttoNonVerificato`` when the act's
+    landing page is another act's (the caller refuses instead of falling back).
     """
     try:
         landing_url = norma.url()
@@ -413,10 +425,14 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
     future: "asyncio.Future[tuple[ParsedAct | None, frozenset]]" = loop.create_future()
     _in_flight[flight_key] = future
     act, consulted = None, frozenset()
+    rifiuto: "Exception | None" = None
     try:
         with _sources.recording() as noted:
             try:
                 act = await _download_act(landing_url, data_vigenza)
+            except Exception as exc:
+                rifiuto = exc  # only AttoNonVerificato leaves _download_act
+                raise
             finally:
                 consulted = frozenset(noted)
         return act
@@ -425,8 +441,13 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             _sources.note(dataset, url)  # back into the caller's own record
         # A cancelled download hands its waiters None: they fall back to HTML,
         # as on any other AKN failure, instead of inheriting the cancellation.
+        # Another act's page is the one thing they share: each refuses the same way.
         if not future.done():
-            future.set_result((act, consulted))
+            if rifiuto is not None:
+                future.set_exception(rifiuto)
+                future.exception()  # retrieved: a waiter-less refusal must not warn
+            else:
+                future.set_result((act, consulted))
         _in_flight.pop(flight_key, None)
 
 
@@ -442,6 +463,11 @@ async def _download_act(landing_url: str, data_vigenza: str) -> "ParsedAct | Non
             landing_resp = await client.get(landing_url)
             landing_resp.raise_for_status()
             note_source("normattiva", str(landing_resp.url) if hasattr(landing_resp, "url") else "")
+            # Another act's landing page (the resolver does not check what it is asked) is a
+            # refusal for the caller, never that act's export nor a kept URL entry.
+            from .scraper import controlla_intestazione
+
+            controlla_intestazione(landing_url, landing_resp.text)
             params = _extract_params(landing_resp.text)
             if not params:
                 return None
@@ -486,5 +512,9 @@ async def _download_act(landing_url: str, data_vigenza: str) -> "ParsedAct | Non
         _bump_hits(key)
         return act
     except Exception as exc:  # noqa: BLE001 — fail closed, never raise
+        from .scraper import AttoNonVerificato
+
+        if isinstance(exc, AttoNonVerificato):
+            raise  # the one exception: the page is another act's, the caller refuses
         print(f"[akn_fetch] fetch failed for {landing_url}: {exc}", file=sys.stderr)
         return None

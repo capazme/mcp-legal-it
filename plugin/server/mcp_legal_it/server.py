@@ -28,6 +28,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - INVESTIMENTI: BOT, BTP, buoni postali, rendimento
 - UTILITÀ: codice fiscale, IBAN, scorporo IVA, patente, alcolemico, ATECO
 - NORMATIVA: cite_law() per testo vigente, Brocardi per dottrina, PDF norme
+- STORIA DI UNA NORMA: storia_norma() versioni e atti modificativi di un articolo (vigenza ≠ applicabilità)
 - VERIFICA CITAZIONI: verifica_citazioni() controlla esistenza e metadati di un elenco di norme e sentenze citate (NON verifica il merito)
 - GAZZETTA UFFICIALE: cerca_gazzetta_ufficiale, leggi_atto_gazzetta, sommario_gazzetta, ultime_gazzette, scarica_pdf_gazzetta — atti pubblicati in GU (leggi, decreti, ELI)
 - DDL E ITER PARLAMENTARE: cerca_ddl, iter_ddl, ddl_su_norma — disegni di legge pendenti, navette Senato/Camera, riforme in corso (dati.senato.it + dati.camera.it; ddl_su_norma cerca solo nei TITOLI, best-effort dichiarato)
@@ -114,6 +115,7 @@ from mcp_legal_it.tools import (  # noqa: E402, F401
     procure_quotazioni,
     analisi_fornitori,
     tmview,
+    vigenza,
 )
 
 from mcp_legal_it import prompts, resources  # noqa: E402, F401
