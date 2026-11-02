@@ -13,13 +13,13 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "irpef_scaglioni.json") as f:
+with open(_DATA / "irpef_scaglioni.json", encoding="utf-8") as f:
     _IRPEF = json.load(f)
 
-with open(_DATA / "codici_tributo.json") as f:
+with open(_DATA / "codici_tributo.json", encoding="utf-8") as f:
     _CODICI_TRIBUTO: list[dict] = json.load(f)["codici"]
 
-with open(_DATA / "tassi_legali.json") as f:
+with open(_DATA / "tassi_legali.json", encoding="utf-8") as f:
     _TASSI_LEGALI: list[dict] = json.load(f)["tassi"]
 
 

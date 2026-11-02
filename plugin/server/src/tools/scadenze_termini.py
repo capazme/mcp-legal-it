@@ -15,7 +15,7 @@ from src.lib._regime import previgente
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "festivita.json") as f:
+with open(_DATA / "festivita.json", encoding="utf-8") as f:
     _FESTIVITA_FISSE = json.load(f)["fisse"]
 
 #: Riferimento unico alla sospensione feriale, ripetuto nelle risposte.

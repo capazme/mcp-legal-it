@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of being folded into the act's name.
 
 ### Fixed
+- **The server starts on Windows** (#133). Thirty reads of the bundled tables, the
+  `legal://` resources and the Brocardi cache named no encoding, so Python used the
+  locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,
+  and a table it could decode would have been read garbled. The installer read and wrote
+  the Claude configuration files the same way. All of them say UTF-8 now (the installer
+  also accepts a configuration saved with a BOM). A test scans the shipped code for text
+  I/O without an encoding, and another imports the server with `-X warn_default_encoding`.
+  Reported, with the cause and the fix, by @Liguria360.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
   portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
   provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered

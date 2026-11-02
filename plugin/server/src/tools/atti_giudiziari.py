@@ -16,18 +16,18 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "contributo_unificato.json") as f:
+with open(_DATA / "contributo_unificato.json", encoding="utf-8") as f:
     _CU = json.load(f)
 
-with open(_DATA / "tassi_mora.json") as f:
+with open(_DATA / "tassi_mora.json", encoding="utf-8") as f:
     _TASSI_MORA = json.load(f)["tassi"]
 
-with open(_DATA / "tribunali_competenti.json") as f:
+with open(_DATA / "tribunali_competenti.json", encoding="utf-8") as f:
     _TRIBUNALI_COMPETENTI = {
         k: v for k, v in json.load(f).items() if not k.startswith("_")
     }  # `_`-prefixed keys are metadata (see src/lib/_data.py), not records
 
-with open(_DATA / "codici_ruolo.json") as f:
+with open(_DATA / "codici_ruolo.json", encoding="utf-8") as f:
     _CODICI_RUOLO = json.load(f)["codici"]
 
 
