@@ -203,7 +203,7 @@ Shared outcome vocabulary, `EsitoNorma`:
 | `trovato` | success |
 | `riferimento_non_valido` | the citation could not be read |
 | `atto_non_riconosciuto` | no act has that name; `errore` lists the closest names |
-| `atto_non_trovato` | an act cited by its year only: Normattiva serves another act's page in its place (its heading names another type, year or number, e.g. L. 7 agosto 1990, n. 241 for a «d.m. 241/1990»), and `errore` names it. Not transient: retrying is vain |
+| `atto_non_trovato` | Normattiva serves another act's page in place of the one cited, by its year or with its full date: the heading names another type, number, year or day (L. 7 agosto 1990, n. 241 for a «d.m. 241/1990» or a «D.M. 7 agosto 1990, n. 241»), and `errore` names it. Not transient: retrying is vain |
 | `articolo_non_trovato` | the act exists, the article is not in it. Normattiva answers a missing article with art. 1; this is detected |
 | `verifica_non_disponibile` | the source could not tell: down, slow, rate limited, or its structure unreadable |
 | `testo_assente` | the source answered without a text |

@@ -2227,7 +2227,10 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     if not _akn_disabled():
         from .akn_fetch import fetch_act_akn
 
-        act = await fetch_act_akn(norma)
+        try:
+            act = await fetch_act_akn(norma)
+        except AttoNonVerificato as exc:
+            return {"text": "", "title": "", "url": "", "error": str(exc), "esito": exc.esito}
         if act is not None:
             part = _akn_part_hint(norma)
             full_text = act.full_text(part=part)
