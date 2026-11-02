@@ -383,9 +383,13 @@ that page is Normattiva's error page (below; the check is shared per event loop)
     `regio decreto legge` and `legge costituzionale`, named as `normalize_act_type`
     names them, so `"d.lgs."` and `"d.P.R."` count.
   - **INDICATIVO:** for the other types it accepts (DPCM, `decreto ministeriale`, d.lgs.
-    luogotenenziale), the page's ELI date is used, when it falls in the year given. This
-    is the weaker check the library already used for these types. A caller that wants
-    only verified dates skips them before calling, or reads `precisione`.
+    luogotenenziale), the page's heading must name the asked type, year and number, read
+    through a table of headings measured on real pages («DECRETO» for a D.M.); the date is
+    the heading's day, and an ELI date that disagrees with it makes the answer transient.
+    Normattiva's resolver does not check the type: asked a DPCM n. 158 of 2014 by its
+    year, it serves L. 17 ottobre 2014, n. 158, which is then `atto_non_trovato`. A caller
+    that wants only dates read from a verified title skips these types, or reads
+    `precisione`.
 - **Cache and limits:**
   - A date read from a title is kept a year on disk (`act_dates.json` in the cache
     directory, the same file `cite_law` uses), and the page in memory for the process.
@@ -435,8 +439,8 @@ that page is Normattiva's error page (below; the check is shared per event loop)
   - **`atto_non_trovato` is never transient.** Normattiva answered, and one of these
     says it has no such act:
     - a 404;
-    - the page of another act, recognisable by its heading («LEGGE 7 agosto 1990, n. 241»)
-      or its `eli:` metadata, or an ELI date of another year;
+    - the page of another act, recognisable by its heading («LEGGE 7 agosto 1990, n. 241»
+      for a D.M. n. 241 of 1990, or an act without a number for a numbered one);
     - the error page («Normattiva - Errore» with «Errore nel caricamento delle
       informazioni»), with the check passed.
 
@@ -458,9 +462,9 @@ that page is Normattiva's error page (below; the check is shared per event loop)
 | `esito` | Meaning |
 |---|---|
 | `trovato` | `data`, `urn`, `url` and `precisione` are the act's |
-| `atto_non_trovato` | Normattiva has no act of that type, year and number: its error page with the check passed, a 404, the page of another recognisable act (`errore` names it), or an ELI date of another year. Not transient |
+| `atto_non_trovato` | Normattiva has no act of that type, year and number: its error page with the check passed, a 404, or the page of another act recognisable by its heading (`errore` names it). Not transient |
 | `ambiguo` | only when `anno_o_data` is a full date, never with the year alone: a date whose day is not the act's. `data`, `urn` and `url` are those of the act Normattiva has with that type, year and number, and `errore` says so: either the day or the number is wrong |
-| `fonte_non_raggiungibile` | transient: Normattiva down, slow, blocking or limiting us (5xx, 429, 403, network error, a source paused by the limits, an expired session, maintenance, any other answer without an act, the error page with the check failed). Retry, do not cache |
+| `fonte_non_raggiungibile` | transient: Normattiva down, slow, blocking or limiting us (5xx, 429, 403, network error, a source paused by the limits, an expired session, maintenance, any other answer without an act, a page without an act heading or with a heading the library cannot compare, the error page with the check failed). Retry, do not cache |
 | `errore_fonte` | transient: Normattiva answered with another HTTP error (400, 410). Retry, do not cache |
 | `riferimento_non_valido` | no type, a number that is not digits (or is 0), a year or date that cannot be read |
 | `atto_non_riconosciuto` | no act type has that name (`errore` suggests the long name) |
@@ -992,13 +996,18 @@ codes.
 
 - **Esiti:** as `indice_atto`. `testo_assente` covers a text under 50 characters.
 - **`completo`.** `True` when every entry of the text was read. From the Akoma
-  Ntoso export that means the act's articles: the text leaves the annexes out
-  (not yet said in `avvisi`). Without the export it means every article page
-  and every part of an article Normattiva splits («1 (commi 1-100)» …), the
-  annexes' pages included. `False` when an entry could not be read; `avvisi`
-  names it. A failed entry is transient: ask again.
+  Ntoso export that means the act's articles: the text leaves the annexes out,
+  and `avvisi` names them. Without the export, the act is read at today's date
+  and `completo` means every article page and every part of an article
+  Normattiva splits («1 (commi 1-100)» …), the annexes' pages included, each
+  in force today. `False` when an entry could not be read, or Normattiva gave
+  for it only a text not in force today; `avvisi` names it. An entry not read
+  is transient: ask again. An entry not in force today is not: asking again
+  the same day gives the same text.
 - **`avvisi`.** What the text does not carry, in words a reader can be shown:
-  the entries not read, and the parts Normattiva publishes as images only
+  the parts of the act the export's text leaves out, the entries not read, the
+  entries whose only text is not in force today (with its window), and the
+  parts Normattiva publishes as images only
   («Parte di provvedimento in formato grafico», e.g. the budget law's tables).
   Those parts have no text anywhere on Normattiva, so they do not make the
   reading incomplete; the avviso names them and links the act's page.

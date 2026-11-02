@@ -256,3 +256,128 @@ class TestRisposta:
         assert t.completo is False
         assert any("art. 1 (commi 201-300)" in a for a in t.avvisi)
         assert any("Allegato II" in a for a in t.avvisi)
+
+
+# ---------------------------------------------------------------------------
+# The text in force today, the export's annexes, the annex in a notice's name
+# ---------------------------------------------------------------------------
+
+PARTE1_V39 = _pagina("l213_art1_parte1_v39.html")  # «Testo in vigore dal: 1-1-2027»
+PARTE1_V38 = _pagina("l213_art1_parte1_v38.html")  # in force 7-10-2026 to 31-12-2026
+DLGS36 = _pagina("dlgs36_albero_allegati.html")
+AKN = Path(__file__).resolve().parents[1] / "fixtures" / "akn"
+
+
+class TestInVigoreOggi:
+    async def test_the_act_is_read_at_todays_date(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        chieste: list = []
+        await _leggi(chieste)
+        assert chieste[0].endswith(";213!vig=2026-11-02")
+
+    async def test_a_version_not_yet_in_force_is_not_todays_text(self, monkeypatch):
+        # The undated page's version of part 1 (in force from 1 Jan 2027) served on 2 Nov 2026.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        r = await _leggi([], guasti={1: PARTE1_V39})
+        assert INIZIO_PARTE[1] not in r["text"] and INIZIO_PARTE[2] in r["text"]
+        assert r["non_in_vigore"] == ["art. 1 (commi 1-100) (in vigore dal 1/1/2027)"]
+        assert r["completo"] is False and r["stabile"] is True
+        avviso = next(a for a in r["avvisi"] if a.startswith("Parti escluse perché non in vigore oggi"))
+        assert "art. 1 (commi 1-100) (in vigore dal 1/1/2027)" in avviso
+        # The link is the act at today's date, never the undated page that shows 2027's text.
+        assert avviso.endswith(";213!vig=2026-11-02")
+
+    async def test_the_version_in_force_today_is_read(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        r = await _leggi([], guasti={1: PARTE1_V38, "Allegato II": ALLEGATO_I})
+        assert INIZIO_PARTE[1] in r["text"] and r["non_in_vigore"] == [] and r["completo"] is True
+        assert r["avvisi"] == []
+
+    @pytest.mark.parametrize("oggi", ["2026-10-07", "2026-12-31"], ids=["in vigore da oggi", "fino a oggi"])
+    async def test_a_window_holds_on_its_first_and_last_day(self, monkeypatch, oggi):
+        # Part 1 v38 is in force 7/10/2026 to 31/12/2026: both days are today's text.
+        monkeypatch.setenv("LEGAL_TODAY", oggi)
+        r = await _leggi([], guasti={1: PARTE1_V38})
+        assert INIZIO_PARTE[1] in r["text"] and r["non_in_vigore"] == []
+
+    @pytest.mark.parametrize("oggi", ["2026-10-06", "2027-01-01"], ids=["il giorno prima", "il giorno dopo"])
+    async def test_a_window_does_not_hold_a_day_outside_it(self, monkeypatch, oggi):
+        monkeypatch.setenv("LEGAL_TODAY", oggi)
+        r = await _leggi([], guasti={1: PARTE1_V38})
+        assert INIZIO_PARTE[1] not in r["text"] and len(r["non_in_vigore"]) == 1
+
+    async def test_a_version_no_longer_in_force_is_not_todays_text(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2027-02-01")
+        r = await _leggi([], guasti={1: PARTE1_V38})
+        assert r["non_in_vigore"] == ["art. 1 (commi 1-100) (in vigore dal 7/10/2026 al 31/12/2026)"]
+        assert r["completo"] is False
+
+
+    async def test_nothing_in_force_today_is_an_error_not_the_act_page(self, monkeypatch):
+        # Every entry's text not in force today: the act page's own body (unchecked) is never
+        # served instead; the answer is the notice.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        voci = re.findall(r'<a href="" onclick="return showArticle[^>]*progressivo=1&[^>]*>1 \(commi 1-100\)</a>', ATTO)
+        solo_parte1 = re.sub(r'(<div id="albero">).*?(</div>)', lambda m: m.group(1) + "\n" + voci[0] + "\n" + m.group(2),
+                             ATTO, flags=re.S)
+        monkeypatch.setattr(sys.modules[__name__], "ATTO", solo_parte1)
+        r = await _leggi([], guasti={1: PARTE1_V39})
+        assert r["text"] == "" and r["error"].startswith("Parti escluse perché non in vigore oggi")
+
+    async def test_a_reading_without_some_of_todays_text_can_be_paged(self, monkeypatch):
+        # Incomplete by design, yet stable: a later window is cut from the same reading.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        monkeypatch.setattr(lc, "_FULL_ACT_WINDOW", 2000)
+        with api.configurazione(client_factory=_normattiva([], guasti={1: PARTE1_V39})):
+            primo = await lc._fetch_full_act_impl("legge 30 dicembre 2023, n. 213")
+            secondo = await lc._fetch_full_act_impl("legge 30 dicembre 2023, n. 213", da_carattere=2001)
+        assert "da_carattere=2001]*" in primo
+        assert not secondo.startswith("**Errore") and "*[Caratteri 2001-4000 su " in secondo
+        assert "**Avviso**: Parti escluse perché non in vigore oggi" in secondo
+
+
+class TestNomiDegliAllegati:
+    def test_an_annex_article_is_named_with_its_annex(self):
+        etichette = [etichetta for _, etichetta in scraper._voci_albero(DLGS36)]
+        # The code's art. 1, the index, an annex article whose label names its annex, the
+        # article «art. 1» of Allegato I.1.
+        assert etichette == ["1", "Indice allegati", "Allegato I.01 art. 1", "Allegato I.1, art. 1"]
+
+    def test_the_label_that_is_its_annex_stays(self):
+        assert [e for _, e in scraper._voci_albero(ATTO)][-2:] == ["Allegato I", "Allegato II"]
+
+
+class TestAllegatiDellExport:
+    async def _export(self, monkeypatch, nome: str) -> dict:
+        from mcp_legal_it.lib.visualex import akn_fetch
+        from mcp_legal_it.lib.visualex.akn_parser import parse_akn
+
+        monkeypatch.delenv("AKN_DISABLED", raising=False)
+        act = parse_akn((AKN / nome).read_text(encoding="utf-8"))
+
+        async def export(norma, data_vigenza=None):
+            return act
+
+        monkeypatch.setattr(akn_fetch, "fetch_act_akn", export)
+        with api.configurazione(client_factory=_normattiva([])):
+            return await scraper.fetch_normattiva_full_text(L213)
+
+    async def test_the_annexes_left_out_of_the_text_are_named(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        r = await self._export(monkeypatch, "dlgs_36_2023_positions.xml")
+        assert r["source"] == "normattiva-akn" and r["completo"] is True
+        (avviso,) = r["avvisi"]
+        assert avviso.startswith("Parti dell'atto non incluse nel testo: Allegato I.01, Allegato I.1, Allegato I.2, "
+                                 "Allegato I.3, Allegato I.4,")
+        assert "e altre 27" in avviso  # 39 annexes, «Indice allegati» not among them
+        # Linked at the export's date, never the undated page (it may show another version).
+        assert avviso.endswith(";213!vig=2026-11-02")
+
+    async def test_a_codes_text_names_its_other_parts(self, monkeypatch):
+        r = await self._export(monkeypatch, "codice_civile_trimmed.xml")
+        assert r["avvisi"][0].startswith("Parti dell'atto non incluse nel testo: Dispositivo, "
+                                         "Disposizioni sulla legge in generale.")
+
+    async def test_an_act_without_annexes_has_no_notice(self, monkeypatch):
+        r = await self._export(monkeypatch, "legge_241_1990.xml")
+        assert "avvisi" not in r
