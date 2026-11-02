@@ -718,6 +718,21 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).
+  A Normattiva page with an act's ELI date or `eli:title` but no act heading
+  («LEGGE 7 agosto 1990, n. 241») was read as another act's page, so the act came back
+  `atto_non_trovato`. Such a page is a markup change, not evidence about the act: it is
+  now `fonte_non_raggiungibile` («pagina senza l'intestazione dell'atto»), never kept in
+  memory, and asked again on the next call. `scraper.normattiva_page_problem` returns the
+  new code `"senza_intestazione"` for it; an act page with its heading (or the
+  Constitution's, headed «COSTITUZIONE») is unchanged. The types dated by the ELI date
+  alone (ministerial decrees, DPCM) still take that date when it falls in the cited year.
+- **`act_dates.json` follows the cache configuration within one process** (#113 D). The
+  dates file was read once per process, so a later `configurazione(cache_dir=…)` or
+  `cache=…` never read the other directory, and a disk switched on after the first
+  reading was never read. The file is now read again when the pair (disk on, directory)
+  changes; the dates already found in the process stay in memory, as in the other
+  in-memory caches.
 - **The citation gate checks the comma of an article read in parts.** An article
   Normattiva splits comes from `cite_law` one part at a time, with «testo parziale:
   commi a-b di N». The gate credited the whole article from any part, so an answer

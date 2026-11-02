@@ -134,15 +134,21 @@ _SESSIONE_SCADUTA = re.compile(r"sessione\s+scadut", re.IGNORECASE)
 _MANUTENZIONE = re.compile(r"manutenzione", re.IGNORECASE)
 # The heading of an act's page: "LEGGE 7 agosto 1990, n. 241", "DECRETO 10 marzo 2014, n. 55".
 _INTESTAZIONE_ATTO = re.compile(r"^[A-Z][A-Z' -]+ \d{1,2}[º°]? [a-z]+ \d{4}, n\. \d+")
+# The one act page whose heading has no date nor number (measured: «COSTITUZIONE - Normattiva»).
+_INTESTAZIONE_COSTITUZIONE = "COSTITUZIONE"
 
 
 def normattiva_page_problem(html: str, meta: dict, status: int = 200) -> str | None:
     """Why a Normattiva answer carries no act, or ``None`` when it is an act's page.
 
-    *meta* is :func:`act_page_metadata` of the same page. ``None``: the page has an act's
-    date, or names an act (its heading, or its ``eli:title``): the asked act's or, when
-    the date does not match, another one. Otherwise:
+    *meta* is :func:`act_page_metadata` of the same page. ``None``: the page's heading
+    names an act (``LEGGE 7 agosto 1990, n. 241``, or ``COSTITUZIONE``): the asked act's
+    or, when the title does not name it, another one. Only that heading says «another
+    act»: an ELI date or an ``eli:title`` without it is no such evidence. Otherwise:
 
+    - ``"senza_intestazione"``: the page has an act's ELI date or title but no act heading
+      (a markup change). It never makes an act «not found»; the ELI path of
+      :func:`act_full_date` still takes its date when it falls in the cited year;
     - ``"errore"``: Normattiva's generic error page, served both for an act it does not
       have and for a session or server problem (the caller must tell them apart);
     - ``"sessione"``: the page says the session expired (reported by a consumer);
@@ -150,19 +156,20 @@ def normattiva_page_problem(html: str, meta: dict, status: int = 200) -> str | N
     - ``"illeggibile"``: anything else, an answer other than 200 (a WAF's 202 with an
       empty body) or a page with neither an act nor the error notice.
     """
-    if meta.get("date"):
+    heading = meta.get("heading", "")
+    if _INTESTAZIONE_ATTO.match(heading) or heading == _INTESTAZIONE_COSTITUZIONE:
         return None
     if status != 200:
         return "illeggibile"
+    if meta.get("date") or meta.get("title"):
+        # Before the notices: an act's text can say «manutenzione».
+        return "senza_intestazione"
     if _SESSIONE_SCADUTA.search(html):
         return "sessione"
-    if _MANUTENZIONE.search(html):  # never on the error page nor on an act's page with its date
+    if _MANUTENZIONE.search(html):  # never on the error page nor on an act's page
         return "manutenzione"
-    heading = meta.get("heading", "")
     if heading.startswith(_PAGINA_ERRORE) and _MESSAGGIO_ERRORE in html:
         return "errore"
-    if _INTESTAZIONE_ATTO.match(heading) or meta.get("title"):
-        return None
     return "illeggibile"
 
 
@@ -227,9 +234,10 @@ async def _act_metadata(norma: Norma) -> dict:
         raise
     finally:
         _date_in_corso.pop(chiave, None)
-    if meta["date"]:
-        # A page without a date is never kept: an error page, a WAF's challenge or a
-        # maintenance notice may be a problem of this moment, not a fact about the act.
+    if meta["date"] and meta["problema"] is None:
+        # Only an act's page is kept: an error page, a WAF's challenge, a maintenance
+        # notice or a page without its heading may be a problem of this moment, not a
+        # fact about the act.
         _full_date_cache[url] = meta
     futuro.set_result(meta)
     return meta
