@@ -391,10 +391,11 @@ def test_fetch_full_act_legge_bilancio_seconda_finestra(monkeypatch, akn):
     """L. 30 dicembre 2023 n. 213 (bilancio 2024, one long article): window 2 is served.
 
     A later window is refused when its reading is incomplete or gone; an act with no
-    sidebar index and no AKN export would always get that refusal. On 29 Oct 2026 this
+    sidebar index and no AKN export would always get that refusal. On 2 Nov 2026 this
     act had both: the AKN export (500,423 characters) and, with AKN off, an index the
-    per-article walk read whole (32 articles, 188,540 characters). This test keeps
-    watching both paths; a refusal here means the case became real for this act.
+    per-article walk read whole (37 entries, the six parts of art. 1 included, 546,473
+    characters; before #106 it read 32 and 188,540). This test keeps watching both paths;
+    a refusal here means the case became real for this act.
     """
     if not akn:
         monkeypatch.setenv("AKN_DISABLED", "1")
@@ -407,6 +408,38 @@ def test_fetch_full_act_legge_bilancio_seconda_finestra(monkeypatch, akn):
     assert "da_carattere=30001]*" in first, first[-300:]
     assert not second.startswith("**Errore"), second[:400]
     assert "*[Caratteri 30001-60000 su " in second, second[-300:]
+
+
+def test_lettura_per_articolo_legge_bilancio_come_export_o_parziale(monkeypatch):
+    """L. 213/2023 read article by article carries the export's text, or says it does not (#106).
+
+    On 29 Oct 2026 the walk read 188,540 characters against the export's 500,423 and called
+    itself complete: art. 1 is split by Normattiva into six parts and the walk read the first.
+    Now every part is an entry: the walk is complete and at least as long as the export (it
+    also carries the annexes, which the export's text leaves out), or it says what it missed.
+    The annexes published as images only are named in an avviso.
+    """
+    from mcp_legal_it.lib.visualex import scraper
+    from mcp_legal_it.lib.visualex.models import Norma
+
+    norma = Norma(tipo_atto="legge", data="2023-12-30", numero_atto="213")
+    try:
+        export = asyncio.run(scraper.fetch_normattiva_full_text(norma))
+        monkeypatch.setenv("AKN_DISABLED", "1")
+        walk = asyncio.run(scraper.fetch_normattiva_full_text(norma))
+    except httpx.TransportError as exc:
+        pytest.skip(f"fonte non raggiungibile: {exc}")
+    if export.get("source") != "normattiva-akn":
+        pytest.skip("export Akoma Ntoso non disponibile: nessun termine di confronto")
+    assert walk.get("source") != "normattiva-akn"
+    if walk["completo"]:
+        assert len(walk["text"]) >= 0.9 * len(export["text"]), (len(walk["text"]), len(export["text"]))
+        assert walk["non_lette"] == [] and "561. " in walk["text"]
+    else:
+        assert walk["non_lette"], walk.get("avvisi")
+        assert any("Lettura parziale" in a for a in walk["avvisi"]), walk["avvisi"]
+    for nome in walk["parti_grafiche"]:
+        assert any(nome in a and "formato grafico" in a for a in walk["avvisi"]), (nome, walk["avvisi"])
 
 
 def test_fetch_full_act_atto_ue_rinvia_a_pdf(monkeypatch):
