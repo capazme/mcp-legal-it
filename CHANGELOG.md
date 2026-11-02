@@ -748,9 +748,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **Today's text without the export.** The walk read the undated act page, whose tree
     lists each article's newest version: on 2 Nov 2026 the six parts of art. 1 L. 213/2023
     were the version in force from 1 Jan 2027. The act is now read at today's date
-    (`!vig=`), as `cite_law` already re-asks an undated page; an entry whose page states a
-    window that does not hold today is not taken, and an «**Avviso**» names it with its
-    window («art. 1 (commi 1-100) (in vigore dal 2027-01-01)»), `completo: False`.
+    (`!vig=`, the Italian day), as `cite_law` already re-asks an undated page; an entry
+    whose page states a window that does not hold today is not taken, and an «**Avviso**»
+    names it with its window («art. 1 (commi 1-100) (in vigore dal 1/1/2027)») and links the
+    act at today's date; `completo: False`. Such a reading is the same all day, so its later
+    windows are still served (it is kept for paging, as a complete one). When no entry has
+    a text in force today, the answer is that notice, never the act page's own body.
   - **The annex in a notice's name.** An annex article is labelled «art. 1» in the tree,
     like the act's own: notices now name it «Allegato I.1, art. 1».
 - **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).

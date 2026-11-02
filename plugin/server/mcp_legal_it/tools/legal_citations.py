@@ -611,7 +611,10 @@ async def _full_act_text(norma: Norma, da_carattere: int) -> "dict | str":
                         "disponibile (uscito dalla memoria, o letto in modo incompleto), e una nuova lettura "
                         "di questo atto potrebbe non coincidere. Ripetere la lettura da da_carattere=1."
                     )
-            if complete:
+            # A stable reading (no entry failed: the same text whenever read today) is kept
+            # even when incomplete by design (an entry not in force today), so its later
+            # windows can be cut from it.
+            if result.get("stabile", complete):
                 _keep(_FULL_ACT_TEXTS, key, (result, sources), _FULL_ACT_TEXTS_MAX)
                 _keep(_FULL_ACT_READINGS, key, reading, _FULL_ACT_READINGS_MAX)
             if da_carattere > 1:

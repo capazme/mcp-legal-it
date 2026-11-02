@@ -280,10 +280,12 @@ class TestInVigoreOggi:
         monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
         r = await _leggi([], guasti={1: PARTE1_V39})
         assert INIZIO_PARTE[1] not in r["text"] and INIZIO_PARTE[2] in r["text"]
-        assert r["non_in_vigore"] == ["art. 1 (commi 1-100) (in vigore dal 2027-01-01)"]
-        assert r["completo"] is False
-        avviso = next(a for a in r["avvisi"] if a.startswith("Testo non in vigore oggi"))
-        assert "art. 1 (commi 1-100) (in vigore dal 2027-01-01)" in avviso
+        assert r["non_in_vigore"] == ["art. 1 (commi 1-100) (in vigore dal 1/1/2027)"]
+        assert r["completo"] is False and r["stabile"] is True
+        avviso = next(a for a in r["avvisi"] if a.startswith("Parti escluse perché non in vigore oggi"))
+        assert "art. 1 (commi 1-100) (in vigore dal 1/1/2027)" in avviso
+        # The link is the act at today's date, never the undated page that shows 2027's text.
+        assert avviso.endswith(";213!vig=2026-11-02")
 
     async def test_the_version_in_force_today_is_read(self, monkeypatch):
         monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
@@ -294,8 +296,31 @@ class TestInVigoreOggi:
     async def test_a_version_no_longer_in_force_is_not_todays_text(self, monkeypatch):
         monkeypatch.setenv("LEGAL_TODAY", "2027-02-01")
         r = await _leggi([], guasti={1: PARTE1_V38})
-        assert r["non_in_vigore"] == ["art. 1 (commi 1-100) (in vigore dal 2026-10-07 al 2026-12-31)"]
+        assert r["non_in_vigore"] == ["art. 1 (commi 1-100) (in vigore dal 7/10/2026 al 31/12/2026)"]
         assert r["completo"] is False
+
+
+    async def test_nothing_in_force_today_is_an_error_not_the_act_page(self, monkeypatch):
+        # Every entry's text not in force today: the act page's own body (unchecked) is never
+        # served instead; the answer is the notice.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        voci = re.findall(r'<a href="" onclick="return showArticle[^>]*progressivo=1&[^>]*>1 \(commi 1-100\)</a>', ATTO)
+        solo_parte1 = re.sub(r'(<div id="albero">).*?(</div>)', lambda m: m.group(1) + "\n" + voci[0] + "\n" + m.group(2),
+                             ATTO, flags=re.S)
+        monkeypatch.setattr(sys.modules[__name__], "ATTO", solo_parte1)
+        r = await _leggi([], guasti={1: PARTE1_V39})
+        assert r["text"] == "" and r["error"].startswith("Parti escluse perché non in vigore oggi")
+
+    async def test_a_reading_without_some_of_todays_text_can_be_paged(self, monkeypatch):
+        # Incomplete by design, yet stable: a later window is cut from the same reading.
+        monkeypatch.setenv("LEGAL_TODAY", "2026-11-02")
+        monkeypatch.setattr(lc, "_FULL_ACT_WINDOW", 2000)
+        with api.configurazione(client_factory=_normattiva([], guasti={1: PARTE1_V39})):
+            primo = await lc._fetch_full_act_impl("legge 30 dicembre 2023, n. 213")
+            secondo = await lc._fetch_full_act_impl("legge 30 dicembre 2023, n. 213", da_carattere=2001)
+        assert "da_carattere=2001]*" in primo
+        assert not secondo.startswith("**Errore") and "*[Caratteri 2001-4000 su " in secondo
+        assert "**Avviso**: Parti escluse perché non in vigore oggi" in secondo
 
 
 class TestNomiDegliAllegati:
