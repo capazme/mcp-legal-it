@@ -42,9 +42,9 @@ ARGOMENTI (filtro per materia)
 | `cripto_attivita` | MiCA, crypto-asset, token |
 | `crowdfunding` | Piattaforme, Reg. UE 2020/1503 |
 
-Le chiavi sono le sole accettate dai tool: una chiave diversa viene rifiutata con l'errore
-«Chiave non valida», distinto dalla risposta «Nessuna delibera» (ricerca andata a buon fine
-senza risultati).
+Le chiavi sono le sole accettate dai tool (maiuscole e spazi sono indifferenti): una chiave
+diversa viene rifiutata con un errore che elenca i valori ammessi, distinto dalla risposta
+«Nessuna delibera» (ricerca andata a buon fine senza risultati).
 
 ═══════════════════════════════════════════════════════════
 WORKFLOW CONSIGLIATI

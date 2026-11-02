@@ -507,7 +507,8 @@ Quale tabella:
   aggiornati ogni anno con decreto del Ministro delle imprese e del made in Italy (art. 138, co. 5,
   CdA): DM 10/12/2025 (G.U. 27/12/2025) e DM 28/9/2026 (G.U. 9/10/2026).
 - **Stessi ambiti — micropermanenti (≤9%)**: art. 139 CdA (per la sanità, art. 7, co. 4, L. 24/2017).
-- **Fuori dall'ambito diretto della TUN** (altri illeciti, sinistri anteriori al 5/3/2025): la
+- **Fuori dall'ambito diretto della TUN** (altri illeciti, sinistri verificatisi fino al 5/3/2025
+  compreso): la
   liquidazione è equitativa (artt. 1226 e 2056 c.c.). Prima di scegliere tra TUN e tabelle di
   Milano, verifica l'orientamento di legittimità più recente con `cerca_giurisprudenza` e motiva
   la scelta della tabella.
@@ -546,18 +547,23 @@ massimi della tabella (calcolata sulla componente biologica), tramite `personali
 - **Lavoro**: prima il passaggio INAIL e il danno differenziale (sezione 1-bis), poi l'incidenza
   sulla capacità lavorativa specifica
 
-### 3. Rivalutazione monetaria (debito di valore)
+### 3. Devalutazione (debito di valore)
 
-Chiama `rivalutazione_monetaria` dalla data del sinistro a oggi.
+Il valore tabellare (nella versione vigente al momento della decisione) è già espresso in moneta
+attuale: NON rivalutarlo di nuovo. Per calcolare gli interessi, riconducilo alla data del sinistro
+con `calcolo_devalutazione` (`importo_attuale` = valore tabellare, `data_attuale` = oggi,
+`data_passata` = data del sinistro). La somma devalutata è solo la base di calcolo: non si somma.
 
 ### 4. Interessi compensativi (Cass. SS.UU. 1712/1995)
 
 NON calcolare gli interessi sul capitale INTERAMENTE rivalutato all'attualità: sarebbe la
-sovra-compensazione censurata dalle SS.UU. Le tabelle danno valori attuali: prima DEVALUTA la somma
-liquidata alla data del fatto, poi calcola gli interessi sulla somma PROGRESSIVAMENTE rivalutata
-anno per anno o, in via semplificata (è una semplificazione di prassi, non una formula delle
-SS.UU.), sul VALORE MEDIO tra somma devalutata e somma rivalutata: chiama `interessi_legali` sulla
-base `(somma_devalutata + somma_rivalutata) / 2`.
+sovra-compensazione censurata dalle SS.UU. Calcolali sulla somma devalutata e poi rivalutata anno
+per anno (così Cass. civ., sez. III, n. 11614/2025: interessi compensativi «previa devalutazione
+fino alla data del fatto illecito e rivalutazione di anno in anno»): chiama
+`interessi_vari_capitale_rivalutato` con `capitale` = somma devalutata, dalla data del sinistro a
+oggi, e prendi solo `totale_interessi`. In via semplificata (è una semplificazione di prassi, non
+una formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`
+dalla data del sinistro a oggi.
 
 Gli interessi compensativi coprono il periodo dall'evento alla liquidazione. Il saggio maggiorato
 dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, che è
@@ -569,8 +575,7 @@ un debito di valore (Cass. civ., sez. III, n. 6698/2026).
 |------|---------|
 | Danno non patrimoniale (valore complessivo, morale incluso) | ... |
 | Personalizzazione (se ricorrente, entro i tetti) | ... |
-| Rivalutazione monetaria | ... |
-| Interessi compensativi (su base media/progressiva) | ... |
+| Interessi compensativi (su somma devalutata e rivalutata anno per anno, o base media) | ... |
 | **TOTALE RISARCIMENTO** | **...** |
 
 ## Avvertenze da includere
@@ -799,7 +804,7 @@ Verifica eventuali esenzioni (es. cause di lavoro sotto soglia, procedimenti di 
 
 Chiama `scadenza_processuale` per i termini in base al rito:
 - **Ordinario**: comparsa risposta (70gg), memorie art. 171-ter c.p.c.
-- **Semplificato** (artt. 281-decies ss. c.p.c., che dal 28/02/2023 sostituiscono il sommario di cognizione): costituzione del convenuto, eventuali memorie concesse dal giudice, mutamento del rito — usa `termini_procedimento_semplificato`. Per le cause iscritte prima del 28/02/2023 il sommario ex art. 702-bis resta applicabile.
+- **Semplificato** (artt. 281-decies ss. c.p.c., che per i procedimenti instaurati dopo il 28/02/2023 sostituiscono il sommario di cognizione): costituzione del convenuto, eventuali memorie concesse dal giudice, mutamento del rito — usa `termini_procedimento_semplificato`. Per le cause instaurate entro il 28/02/2023 il sommario ex art. 702-bis resta applicabile (art. 35, co. 1, D.Lgs. 149/2022).
 - **Lavoro**: ricorso, memoria difensiva, note autorizzate
 
 Sospensione feriale (1-31 agosto): indicala solo se il rito o la materia vi è soggetto — non opera, tra l'altro, in materia di lavoro, procedimenti cautelari e alimenti.
@@ -1389,7 +1394,7 @@ Calcolo base, personalizzazione e attualizzazione.
 **Patrimoniale** (importo):
 - Danno emergente + lucro cessante
 - Lucro cessante: calcola in base alla durata della privazione
-- `interessi_legali` dalla data evento
+- Rivalutazione e interessi: vedi Attualizzazione (voci storiche)
 
 **Morale/esistenziale**:
 - `danno_non_patrimoniale` come base
@@ -1402,8 +1407,10 @@ Indica una percentuale di personalizzazione motivata.
 
 ### 3. Attualizzazione
 
-1. `rivalutazione_monetaria` dalla data evento
-2. Interessi compensativi (Cass. SS.UU. 1712/1995) non sul capitale interamente rivalutato, che sarebbe una sovra-compensazione: le tabelle danno valori attuali, quindi prima devaluta la somma alla data del fatto, poi calcola gli interessi sulla somma progressivamente rivalutata o, in via semplificata (semplificazione di prassi, non formula delle SS.UU.), sul valore medio: `interessi_legali` sulla base `(somma_devalutata + somma_rivalutata) / 2`. Il saggio dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, debito di valore (Cass. civ., sez. III, n. 6698/2026)
+Interessi compensativi (Cass. SS.UU. 1712/1995) mai sul capitale interamente rivalutato, che sarebbe una sovra-compensazione:
+1. **Voci storiche** (danno patrimoniale espresso in moneta dell'epoca): `rivalutazione_monetaria` dalla data evento con `con_interessi_legali=True`, che rivaluta e calcola gli interessi anno per anno sul capitale rivalutato. Non aggiungere altri interessi.
+2. **Voci a valore attuale** (danno non patrimoniale da tabella): non rivalutarle di nuovo. Riconducile alla data del fatto con `calcolo_devalutazione`, poi `interessi_vari_capitale_rivalutato` sulla somma devalutata dalla data evento (solo `totale_interessi`); così Cass. civ., sez. III, n. 11614/2025 («previa devalutazione fino alla data del fatto illecito e rivalutazione di anno in anno»). In via semplificata (semplificazione di prassi, non formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`.
+3. Il saggio dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, debito di valore (Cass. civ., sez. III, n. 6698/2026)
 
 ## Formato output
 
@@ -1414,8 +1421,8 @@ Intestazione `## Quantificazione Danno` con il tipo di danno tra parentesi, poi 
 | Danno base (tabellare/documentale) | € ... |
 | Personalizzazione (±...%) | € ... |
 | Subtotale | € ... |
-| Rivalutazione ISTAT | € ... |
-| Interessi legali | € ... |
+| Rivalutazione ISTAT (solo voci storiche) | € ... |
+| Interessi compensativi | € ... |
 | **TOTALE** | **€ ...** |
 
 ### Motivazione

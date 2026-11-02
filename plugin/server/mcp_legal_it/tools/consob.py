@@ -4,7 +4,9 @@ TRIGGER: usare quando l'utente chiede di delibere/provvedimenti CONSOB, sanzioni
 finanziari, abusi di mercato, intermediari, emittenti, OPA, crowdfunding, cripto-attivita.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
+
+from pydantic import BeforeValidator
 
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._paging import invalid_start
@@ -24,17 +26,29 @@ from mcp_legal_it.lib.consob.client import (
 # ---------------------------------------------------------------------------
 
 
+def _normalize_key(value):
+    """"Intermediari", " delibere", "abusi di mercato" -> the canonical key (as before the enum)."""
+    return value.strip().lower().replace(" ", "_") if isinstance(value, str) else value
+
+
 # The valid filter keys, declared as an enum in the tools' input schema so a model cannot send
-# a key the portal does not know (LI-062). They must stay equal to the client's tables:
+# a key the portal does not know (LI-062). Case and spaces are normalised before the check, as
+# the tools did before the enum. The lists must stay equal to the client's tables:
 # tests/unit/test_consob.py pins the two together.
-TipologiaConsob = Literal[
-    "", "delibere", "comunicazioni", "provvedimenti_urgenti", "altre_decisioni", "opa",
-    "appendice", "tutti",
+TipologiaConsob = Annotated[
+    Literal[
+        "", "delibere", "comunicazioni", "provvedimenti_urgenti", "altre_decisioni", "opa",
+        "appendice", "tutti",
+    ],
+    BeforeValidator(_normalize_key),
 ]
-ArgomentoConsob = Literal[
-    "", "abusi_di_mercato", "intermediari", "emittenti", "mercati", "offerte_acquisto",
-    "offerte_vendita", "gestione_collettiva", "servizi_investimento", "cripto_attivita",
-    "crowdfunding",
+ArgomentoConsob = Annotated[
+    Literal[
+        "", "abusi_di_mercato", "intermediari", "emittenti", "mercati", "offerte_acquisto",
+        "offerte_vendita", "gestione_collettiva", "servizi_investimento", "cripto_attivita",
+        "crowdfunding",
+    ],
+    BeforeValidator(_normalize_key),
 ]
 
 
@@ -47,8 +61,8 @@ def _resolve_consob_filters(
     error instead of being forwarded to the portal, where it would run as a meaningless
     filter and come back as "no delibera".
     """
-    tip_key = tipologia.strip().lower() if tipologia else ""
-    arg_key = argomento.strip().lower().replace(" ", "_") if argomento else ""
+    tip_key = _normalize_key(tipologia) if tipologia else ""
+    arg_key = _normalize_key(argomento) if argomento else ""
     if tip_key and tip_key not in TIPOLOGIE:
         return "", "", (
             f"Chiave non valida per tipologia: «{tipologia}». "

@@ -21,7 +21,7 @@ PRIMO GRADO
 | Memorie di replica | termine non superiore a 15 gg prima dell'udienza | art. 189, co. 1, n. 3 |
 | Deposito sentenza | 30 gg (rito semplificato) / 60 gg (ordinario) | art. 275 |
 
-Termini a ritroso (es. memorie ex art. 171-ter): si applica la sospensione feriale (Cass. civ., sez. II, n. 12087/2023); scadenza in giorno festivo o di sabato → anticipata al primo giorno precedente non festivo (Cass. civ., sez. III, n. 25742/2025).
+Termini a ritroso (es. memorie ex art. 171-ter): si applica la sospensione feriale (Cass. civ., sez. II, n. 12087/2023); scadenza in giorno festivo o di sabato → anticipata al primo giorno precedente non festivo (Cass. civ., sez. III, n. 25742/2025; per il sabato, Cass. civ., sez. II, n. 25390/2023).
 
 ═══════════════════════════════════════════════════════════
 IMPUGNAZIONI

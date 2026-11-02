@@ -381,21 +381,25 @@ described in those sections, not repeated here. Upgrading from 2.x:
     c.p.p.), Corte cost. 95/2025, continuity with art. 314-bis, directive (EU) 2026/1021.
   - *CONSOB keys* (`consob-delibere`): the reference lists the keys the client knows, without
     numeric ids.
-  - *Labour consultant* (`analisi-fornitori`): processor for payroll (Garante, 2019), autonomous
-    controller when assisting in litigation.
+  - *Labour consultant* (`analisi-fornitori`): processor for the client's payroll (Garante,
+    2019); autonomous controller when assisting the client in litigation (art. 4(7) GDPR).
   - *Art. 1224 c.c. greater damage* (`interessi`, `recupero-credito`): the SS.UU. 19499/2008
     criterion stated in full; SS.UU. 12449/2024 on «interessi legali» in an enforcement title.
   - *Compensatory interest* (`analisi-sinistro`, `quantificazione-danni`, docstring of
-    `interessi_vari_capitale_rivalutato`): devaluation to the date of the fact first; the
-    average is a practice shortcut; art. 1284, co. 4, c.c. does not apply to a debt of value.
+    `interessi_vari_capitale_rivalutato`): a table value is already current, so it is devalued
+    to the date of the fact (`calcolo_devalutazione`) instead of being revalued again, and the
+    interest runs on the sum revalued year by year; the average is a practice shortcut;
+    art. 1284, co. 4, c.c. does not apply to a debt of value.
   - *Conforming interpretation vs disapplication* (`analisi-giurisprudenza-europea`): Mangold
     and Kücükdeveci moved to disapplication; Dansk Industri, Egenberger, Bauer and the
     Italian double preliminarity added.
 - **CONSOB filter keys are an enum (LI-062).** `cerca_delibere_consob` and
   `ultime_delibere_consob` declare the valid `tipologia` and `argomento` keys as an `enum` in
-  their input schema. An unknown key is refused with «Chiave non valida» and the list of valid
-  keys, instead of reaching the portal as a meaningless filter and coming back as «Nessuna
-  delibera». A raw Liferay id is no longer accepted for `argomento`.
+  their input schema (case and spaces are still normalised first). An unknown key is refused
+  with an error listing the valid keys (the schema's validation error over MCP, «Chiave non
+  valida» from the implementation functions), instead of reaching the portal as a meaningless
+  filter and coming back as «Nessuna delibera». A raw Liferay id is no longer accepted for
+  `argomento`.
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **Text answers are sent once.** The 63 tools that answer plain text (the

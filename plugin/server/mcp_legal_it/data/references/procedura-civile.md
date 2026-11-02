@@ -64,6 +64,6 @@ SOSPENSIONE FERIALE
 ═══════════════════════════════════════════════════════════
 - Periodo: 1 agosto — 31 agosto (L. 742/1969 mod. D.L. 132/2014)
 - I termini processuali sono sospesi (non decorrono)
-- Termini a ritroso (es. memorie ex art. 171-ter): la sospensione feriale si applica anche a loro (Cass. civ., sez. II, n. 12087/2023); se la scadenza cade in giorno festivo (o di sabato) si anticipa al primo giorno precedente non festivo, non si proroga in avanti (Cass. civ., sez. III, n. 25742/2025)
+- Termini a ritroso (es. memorie ex art. 171-ter): la sospensione feriale si applica anche a loro (Cass. civ., sez. II, n. 12087/2023); se la scadenza cade in giorno festivo (o di sabato) si anticipa al primo giorno precedente non festivo, non si proroga in avanti (Cass. civ., sez. III, n. 25742/2025; per il sabato, Cass. civ., sez. II, n. 25390/2023)
 - Eccezioni in materia civile (art. 3 L. 742/1969, che rinvia all'art. 92 R.D. 12/1941): controversie di lavoro e di previdenza, alimenti, procedimenti cautelari, amministrazione di sostegno, interdizione e inabilitazione, ordini di protezione contro gli abusi familiari, sfratto, opposizione all'esecuzione, dichiarazione e revoca dei fallimenti, cause dichiarate urgenti
 - Eccezioni in materia penale: procedimenti penali con detenuti

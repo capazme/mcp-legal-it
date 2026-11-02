@@ -27,7 +27,8 @@ Quale tabella:
   aggiornati ogni anno con decreto del Ministro delle imprese e del made in Italy (art. 138, co. 5,
   CdA): DM 10/12/2025 (G.U. 27/12/2025) e DM 28/9/2026 (G.U. 9/10/2026).
 - **Stessi ambiti — micropermanenti (≤9%)**: art. 139 CdA (per la sanità, art. 7, co. 4, L. 24/2017).
-- **Fuori dall'ambito diretto della TUN** (altri illeciti, sinistri anteriori al 5/3/2025): la
+- **Fuori dall'ambito diretto della TUN** (altri illeciti, sinistri verificatisi fino al 5/3/2025
+  compreso): la
   liquidazione è equitativa (artt. 1226 e 2056 c.c.). Prima di scegliere tra TUN e tabelle di
   Milano, verifica l'orientamento di legittimità più recente con `legal-it:cerca_giurisprudenza` e motiva
   la scelta della tabella.
@@ -66,18 +67,23 @@ massimi della tabella (calcolata sulla componente biologica), tramite `personali
 - **Lavoro**: prima il passaggio INAIL e il danno differenziale (sezione 1-bis), poi l'incidenza
   sulla capacità lavorativa specifica
 
-### 3. Rivalutazione monetaria (debito di valore)
+### 3. Devalutazione (debito di valore)
 
-Chiama `legal-it:rivalutazione_monetaria` dalla data del sinistro a oggi.
+Il valore tabellare (nella versione vigente al momento della decisione) è già espresso in moneta
+attuale: NON rivalutarlo di nuovo. Per calcolare gli interessi, riconducilo alla data del sinistro
+con `legal-it:calcolo_devalutazione` (`importo_attuale` = valore tabellare, `data_attuale` = oggi,
+`data_passata` = data del sinistro). La somma devalutata è solo la base di calcolo: non si somma.
 
 ### 4. Interessi compensativi (Cass. SS.UU. 1712/1995)
 
 NON calcolare gli interessi sul capitale INTERAMENTE rivalutato all'attualità: sarebbe la
-sovra-compensazione censurata dalle SS.UU. Le tabelle danno valori attuali: prima DEVALUTA la somma
-liquidata alla data del fatto, poi calcola gli interessi sulla somma PROGRESSIVAMENTE rivalutata
-anno per anno o, in via semplificata (è una semplificazione di prassi, non una formula delle
-SS.UU.), sul VALORE MEDIO tra somma devalutata e somma rivalutata: chiama `legal-it:interessi_legali` sulla
-base `(somma_devalutata + somma_rivalutata) / 2`.
+sovra-compensazione censurata dalle SS.UU. Calcolali sulla somma devalutata e poi rivalutata anno
+per anno (così Cass. civ., sez. III, n. 11614/2025: interessi compensativi «previa devalutazione
+fino alla data del fatto illecito e rivalutazione di anno in anno»): chiama
+`legal-it:interessi_vari_capitale_rivalutato` con `capitale` = somma devalutata, dalla data del sinistro a
+oggi, e prendi solo `totale_interessi`. In via semplificata (è una semplificazione di prassi, non
+una formula delle SS.UU.): `legal-it:interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`
+dalla data del sinistro a oggi.
 
 Gli interessi compensativi coprono il periodo dall'evento alla liquidazione. Il saggio maggiorato
 dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, che è
@@ -89,8 +95,7 @@ un debito di valore (Cass. civ., sez. III, n. 6698/2026).
 |------|---------|
 | Danno non patrimoniale (valore complessivo, morale incluso) | ... |
 | Personalizzazione (se ricorrente, entro i tetti) | ... |
-| Rivalutazione monetaria | ... |
-| Interessi compensativi (su base media/progressiva) | ... |
+| Interessi compensativi (su somma devalutata e rivalutata anno per anno, o base media) | ... |
 | **TOTALE RISARCIMENTO** | **...** |
 
 ## Avvertenze da includere

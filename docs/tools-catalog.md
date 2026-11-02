@@ -492,9 +492,9 @@ descrizione di ogni tool.
 
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
-| `cerca_delibere_consob` | `cerca_delibere_consob(query: str, tipologia: str = '', argomento: str = '', data_da: str = '', data_a: str = '', max_risultati: int = 20)` | Cerca delibere e provvedimenti CONSOB nel bollettino ufficiale. |
+| `cerca_delibere_consob` | `cerca_delibere_consob(query: str, tipologia: TipologiaConsob = '', argomento: ArgomentoConsob = '', data_da: str = '', data_a: str = '', max_risultati: int = 20)` | Cerca delibere e provvedimenti CONSOB nel bollettino ufficiale. |
 | `leggi_delibera_consob` | `leggi_delibera_consob(numero: str, da_carattere: int = 1)` | Legge il testo completo di una delibera CONSOB tramite numero. |
-| `ultime_delibere_consob` | `ultime_delibere_consob(tipologia: str = '', argomento: str = '', max_risultati: int = 10)` | Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale. |
+| `ultime_delibere_consob` | `ultime_delibere_consob(tipologia: TipologiaConsob = '', argomento: ArgomentoConsob = '', max_risultati: int = 10)` | Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale. |
 
 ---
 

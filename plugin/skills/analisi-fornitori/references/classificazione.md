@@ -20,8 +20,8 @@ archiviazione/distruzione documenti.
 Determina autonomamente finalità e mezzi del trattamento.
 Esempi: commercialista, avvocati e notai esterni, banche e istituti di
 pagamento, assicurazioni, medico competente, agenzie interinali, consulente del
-lavoro quando assiste o rappresenta il cliente in un contenzioso con autonomia
-professionale.
+lavoro quando assiste o rappresenta il cliente in un contenzioso (criterio: con
+autonomia professionale determina finalità e mezzi, art. 4, n. 7, GDPR).
 
 ### `fuori_perimetro` — Fuori perimetro privacy
 Non tratta dati personali per conto del cliente.
@@ -35,7 +35,7 @@ Assegna il default, scrivi `controverso` in `note`, Confidenza MAI sopra `medio`
 
 | Fornitore | Default | Perché è controverso |
 |-----------|---------|----------------------|
-| Consulente del lavoro / studio paghe | `responsabile` | Per i dati dei dipendenti del cliente (elaborazione paghe) il Garante lo qualifica responsabile (risposta al CNCL del 22/01/2019, doc. web 9080970); resta titolare per i dati propri e dei propri clienti come committenti, e titolare autonomo quando assiste o rappresenta il cliente in un contenzioso con autonomia professionale. La categoria sostiene la tesi opposta. Confidenza `medio` |
+| Consulente del lavoro / studio paghe | `responsabile` | Per i dati dei dipendenti del cliente (elaborazione paghe) il Garante lo qualifica responsabile (risposta al CNCL del 22/01/2019, doc. web 9080970); resta titolare per i dati propri e dei propri clienti come committenti. La categoria sostiene la tesi opposta. Per l'assistenza o la rappresentanza in un contenzioso vedi `titolare_autonomo` sopra. Confidenza `medio` |
 | Corrieri / spedizionieri | `titolare_autonomo` | Trattano i dati dei destinatari con autonomia organizzativa propria |
 | Recupero crediti | dipende dalla ricerca | Mandato su istruzioni = `responsabile`; acquisto del credito = `titolare_autonomo`. Confidenza `basso` |
 | Telefonia / TLC business | `titolare_autonomo` | Titolari per i dati di traffico; ma servizi gestiti (centralino cloud) possono renderli responsabili |
