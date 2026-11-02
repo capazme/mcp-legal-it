@@ -269,7 +269,9 @@ async def test_a_date_read_from_the_eli_alone_is_not_kept(monkeypatch):
     from mcp_legal_it.lib.visualex.models import Norma
 
     async def meta(norma):
-        return {"date": "2020-03-04"}
+        # Since #136 the page's heading must name the act (its type, year and number).
+        return {"date": "2020-03-04", "title": "", "problema": None,
+                "heading": "DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI 4 marzo 2020, n. 5"}
 
     monkeypatch.setattr(scraper, "_act_metadata", meta)
     norma = Norma("decreto del presidente del consiglio dei ministri", "2020", "5")

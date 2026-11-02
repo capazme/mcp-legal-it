@@ -22,6 +22,7 @@ from mcp_legal_it.api.tipi import (
     MassimaBrocardi,
     NormaDati,
     NotaAggiornamento,
+    NotaRedazionale,
     ParteArticolo,
     TestoArticolo,
     TestoAtto,
@@ -41,8 +42,11 @@ from mcp_legal_it.lib.visualex import albero_normattiva as _albero
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _ALTERNANZA_SUFFISSI
 from mcp_legal_it.lib.visualex.models import Norma, annex_reference, intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
+    ACT_NOT_FOUND,
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
+    AttoNonVerificato,
+    _atto_non_corrispondente,
     act_full_date,
     fetch_act_index,
     fetch_act_tree,
@@ -328,6 +332,8 @@ _PROBLEMI_TRANSITORI = {
     "manutenzione": "sito in manutenzione",
     "illeggibile": "risposta senza atto né pagina di errore",
     "senza_intestazione": "pagina senza l'intestazione dell'atto",
+    "tipo_non_verificato": "la pagina è di un tipo d'atto non verificato",
+    "date_discordi": "intestazione e data ELI della pagina non coincidono",
 }
 
 
@@ -402,6 +408,10 @@ async def risolvi_atto(tipo_atto: str, numero_atto: str, anno_o_data: str) -> At
                                tipo, numero, registro.fonti())
         if not data:
             problema = pagina.get("problema")
+            if problema in ("tipo_non_verificato", "date_discordi"):
+                return _atto_esito("fonte_non_raggiungibile",
+                                   _atto_non_corrispondente(norma, pagina.get("heading", ""), problema),
+                                   tipo, numero, registro.fonti())
             if problema in _PROBLEMI_TRANSITORI:
                 return _atto_esito("fonte_non_raggiungibile",
                                    f"Normattiva non raggiungibile ({_PROBLEMI_TRANSITORI[problema]})",
@@ -577,11 +587,21 @@ def _consolidato(tipo_atto: str, data: str, numero_atto: str, celex: str | None)
 # ---------------------------------------------------------------------------
 
 
+def _esito_errore(result: dict) -> str:
+    """The outcome of a reader's error dict: another act's page (``ACT_NOT_FOUND``), a page not
+    verified now (``CHECK_UNAVAILABLE``), or the source's error."""
+    if result.get("esito") == ACT_NOT_FOUND:
+        return "atto_non_trovato"
+    return "verifica_non_disponibile" if result.get("esito") == CHECK_UNAVAILABLE else "errore_fonte"
+
+
 def _esito_lookup(base: dict, esito: str | None) -> str:
     if not base.get("errore"):
         return "trovato"
     if esito == ARTICLE_NOT_FOUND:
         return "articolo_non_trovato"
+    if esito == ACT_NOT_FOUND:
+        return "atto_non_trovato"
     if esito == CHECK_UNAVAILABLE:
         return "verifica_non_disponibile"
     if esito == "riferimento_non_valido":  # an EU act asked at a day before its own date
@@ -601,8 +621,8 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
     transliterated, no «(( … ))» amendment markers, never VisuaLex's display text.
 
     Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
-    ``articolo_non_trovato``, ``verifica_non_disponibile``, ``testo_assente``,
-    ``errore_fonte``, ``non_supportata``.
+    ``atto_non_trovato`` (cited by year, Normattiva serves another act), ``articolo_non_trovato``,
+    ``verifica_non_disponibile``, ``testo_assente``, ``errore_fonte``, ``non_supportata``.
     """
     return await _testo_articolo(riferimento, canale=canale)
 
@@ -720,6 +740,8 @@ async def _testo_articolo(riferimento: str | NormaDati, *, canale: Canale,
             note_aggiornamento=(tuple(NotaAggiornamento(**n) for n in base["note_aggiornamento"])
                                 if base.get("note_aggiornamento") is not None else None),
             note_non_lette=bool(base.get("note_non_lette")),
+            note_redazionali=(tuple(NotaRedazionale(**n) for n in base["note_redazionali"])
+                              if base.get("note_redazionali") is not None else None),
             parti=parti,
             testo_parziale=bool(base.get("testo_parziale")),
         )
@@ -791,7 +813,7 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
     number). The export is the act's own (two requests cold, none warm). When it cannot be
     read, Normattiva's ``vediRubriche`` answers: ``rubriche`` and ``voci`` (its lines),
     without abrogati or parts.
-    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
+    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``, ``atto_non_trovato``,
     ``non_supportata`` (EU acts), ``verifica_non_disponibile``, ``errore_fonte``, ``testo_assente``.
     """
     norma = _atto(atto)
@@ -800,7 +822,10 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
     if norma._is_eurlex():
         return await _indice_ue(norma)
     with registra() as registro:
-        act = await _export_atto(norma)
+        try:
+            act = await _export_atto(norma)
+        except AttoNonVerificato as exc:
+            return IndiceAtto(esito=_esito_errore({"esito": exc.esito}), errore=str(exc), fonti=registro.fonti())
         if act is not None:
             return _indice_da_export(act, norma, registro.fonti())
         try:
@@ -810,7 +835,7 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
             return IndiceAtto(esito=esito, url=norma.url(), errore=str(exc), fonti=registro.fonti())
         voci = tuple(result.get("index", []) or [])
         if result.get("error"):
-            return IndiceAtto(esito="errore_fonte", url=result.get("url", ""), errore=result["error"],
+            return IndiceAtto(esito=_esito_errore(result), url=result.get("url", ""), errore=result["error"],
                               fonti=registro.fonti())
         rubriche: dict[str, str] = {}
         for voce in voci:
@@ -839,6 +864,8 @@ async def _export_atto(norma: Norma):
         return None
     try:
         return await akn_fetch.fetch_act_akn(await with_full_date(norma))
+    except AttoNonVerificato:
+        raise  # not the act: no other source may read it either
     except Exception:  # noqa: BLE001 - the export is one source: its failure is "no export"
         return None
 
@@ -880,7 +907,7 @@ async def albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bo
     Every article with the part it belongs to (``allegato``, Normattiva's number; ``None``
     for the act's own text), its URL when *link*, the section labels between them when
     *dettagli*, and ``metadata["annexes"]``. One request (the act's page), kept a day.
-    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
+    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``, ``atto_non_trovato``,
     ``non_supportata`` (EU acts), ``verifica_non_disponibile``, ``errore_fonte``.
     """
     norma = _atto(atto)
@@ -895,7 +922,7 @@ async def albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bo
             esito = "verifica_non_disponibile" if fonte_giu(exc) else "errore_fonte"
             return AlberoAtto(esito=esito, url=norma.url(), errore=str(exc), fonti=registro.fonti())
         if result.get("error"):
-            return AlberoAtto(esito="errore_fonte", url=result.get("url", ""), errore=result["error"],
+            return AlberoAtto(esito=_esito_errore(result), url=result.get("url", ""), errore=result["error"],
                               fonti=registro.fonti())
         return AlberoAtto(esito="trovato", articles=tuple(result["articles"]), count=result["count"],
                           metadata=result["metadata"], url=result["url"], fonti=registro.fonti())
@@ -1029,7 +1056,7 @@ async def testo_atto(atto: str | NormaDati) -> TestoAtto:
             esito = "verifica_non_disponibile" if fonte_giu(exc) else "errore_fonte"
             return TestoAtto(esito=esito, url=norma.url(), errore=str(exc), fonti=registro.fonti())
         if result.get("error"):
-            return TestoAtto(esito="errore_fonte", url=result.get("url", ""), errore=result["error"],
+            return TestoAtto(esito=_esito_errore(result), url=result.get("url", ""), errore=result["error"],
                              fonti=registro.fonti())
         testo = result.get("text", "") or ""
         if len(testo) < 50:
