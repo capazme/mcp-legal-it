@@ -23,6 +23,15 @@ entry, it is the same feature as ported to the 3.0 line.
   safe.
 
 ### Added
+- **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
+  skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
+  Windows, or by commas): a session whose `cwd` (from the hook input, else the
+  process's) is one of them or inside one ends the Stop/SubagentStop hook at
+  once, so software-development sessions under, say, `~/CODE` are not gated
+  while legal work elsewhere still is. It is a deny-list: a folder not listed
+  stays gated, relative entries are ignored, and `/a/CODE2` is not inside
+  `/a/CODE`. Brings upstream the lane separation a local 2.9.0 patch had, which
+  2.16.1 no longer carried.
 - **`LEGAL_BROCARDI=off`: the server without Brocardi.** Brocardi.it, the only
   private source (doctrinal notes and case-law abstracts, never the text of a
   norm), stays on by default and can now be switched off in one place. Off

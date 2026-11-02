@@ -454,6 +454,10 @@ class ParsedAct:
     # The day Normattiva consolidated the export's text ("CONSOLIDATED/20260604" in its ELI
     # alias), ISO; "" when the export does not say. Compared with the page's own dates.
     consolidato: str = ""
+    # Every attachment of the export as an entry of Normattiva's tree ("Allegato I.4" for
+    # "Allegato I.4" and "Allegato I.4-Tabella A"), in order, those without articles included
+    # (the budget law's tables): what the text of the default lookup leaves out is said from it.
+    annessi: list[str] = field(default_factory=list)
 
     def article(self, numero_articolo: str, part: str | None = None) -> str | None:
         """Return the markdown text of an article, or ``None`` if absent.
@@ -497,6 +501,18 @@ class ParsedAct:
         for key in source_order:
             out.append(source_articles[key])
         return "\n\n".join(out).strip()
+
+    def parti_fuori_dal_testo(self) -> list[str]:
+        """What ``full_text()`` (the default lookup) leaves out, as tree entries, in order.
+
+        Every attachment of the export but the one the text is (a codice's body), and the
+        Dispositivo of a codice (its approving decree's own articles).
+        """
+        principale = _SOTTO_DOCUMENTO_RE.split(self.main_part, maxsplit=1)[0].strip() if self.main_part else ""
+        fuori = [entry for entry in self.annessi if entry != principale]
+        if self.main_part and _DISPOSITIVO_PART in self.parts:
+            fuori.insert(0, _DISPOSITIVO_PART)
+        return fuori
 
     def _resolve_part(self, query: str) -> "ParsedPart | None":
         """Resolve a part hint to a :class:`ParsedPart`: ``":k"`` by position, else exact then substring."""
@@ -1005,6 +1021,32 @@ def _parse_component(root) -> tuple[dict[str, ParsedPart], str]:
     return parts, main_part
 
 
+# The index of the annexes or of the act ("Indice allegati", "Indice generale"), a document of
+# its own in some exports: not a part of the act.
+_INDICE_ALLEGATI_RE = re.compile(r"^indice(?:\s+(?:allegati|generale))?$", re.IGNORECASE)
+# The dash before a document inside an entry ("Allegato I.4-Tabella A", "Allegati VI e VI
+# bis-Allegato VI"), never the dash of a label ("Allegato-I" of the Constitution).
+_SOTTO_DOCUMENTO_RE = re.compile(r"\s*-\s*(?=[A-ZÀ-Ý][a-zà-ÿ])")
+
+
+def _attachment_entries(root) -> list[str]:
+    """The export's attachments as entries of Normattiva's tree, in order, once each.
+
+    A ``<doc name>`` is an article of an annex ("Allegato I.7 - art. 3") or a whole attachment
+    ("Tabelle A e B", "Allegato I.4-Tabella A"): its part, without the "Allegati - " prefix, up
+    to the dash before a document of the entry ("-Tabella A").
+    """
+    entries: list[str] = []
+    for doc in root.xpath(f"//{_local('attachments')}//{_local('doc')}"):
+        name = (doc.get("name") or "").strip()
+        m = _DOC_NAME_RE.match(name)
+        part = _PART_PREFIX_RE.sub("", (m.group("part") if m else name).strip())
+        entry = _SOTTO_DOCUMENTO_RE.split(part, maxsplit=1)[0].strip()
+        if entry and not _INDICE_ALLEGATI_RE.match(entry) and entry not in entries:
+            entries.append(entry)
+    return entries
+
+
 # The enacting formula of a decree that approves the text it annexes: "E' approvato il testo
 # del Codice civile" (r.d. 262/1942), "Il testo definitivo del codice penale … e' approvato"
 # (r.d. 1398/1930), "E' approvato il codice del processo amministrativo di cui all'allegato 1"
@@ -1131,6 +1173,7 @@ def parse_akn(xml: str) -> ParsedAct:
             parts=parts,
             main_part=main_part,
             consolidato=consolidato,
+            annessi=_attachment_entries(root),
         )
 
     return ParsedAct(
@@ -1140,4 +1183,5 @@ def parse_akn(xml: str) -> ParsedAct:
         structure="flat",
         parts=parts,
         consolidato=consolidato,
+        annessi=_attachment_entries(root),
     )
