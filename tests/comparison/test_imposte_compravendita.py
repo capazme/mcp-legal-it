@@ -32,7 +32,9 @@ from tests.comparison.conftest import accept_cookies, assert_close, goto, parse_
 import mcp_legal_it.server  # noqa: E402,F401  (registers every tool module)
 from mcp_legal_it.tools.proprieta_successioni import imposte_compravendita  # noqa: E402
 
-_fn = getattr(imposte_compravendita, "fn", imposte_compravendita)
+from tests.unit.mcp_harness import tool_body  # noqa: E402
+
+_fn = tool_body(imposte_compravendita)
 
 PAGE = "calcolo-imposte-compravendita-immobiliare.php"
 TOL = 0.01
