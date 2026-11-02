@@ -38,6 +38,15 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **Tests.** Unit tests on the recorded pages of art. 2-ter d.lgs. 196/2003, art.
     64-bis CCII, art. 612-bis c.p. (the rest of its pages captured for this), art. 1
     d.P.R. 131/1986 and art. 2740 c.c.; a polite serial live test (23 requests).
+- **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
+  skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
+  Windows, or by commas): a session whose `cwd` (from the hook input, else the
+  process's) is one of them or inside one ends the Stop/SubagentStop hook at
+  once, so software-development sessions under, say, `~/CODE` are not gated
+  while legal work elsewhere still is. It is a deny-list: a folder not listed
+  stays gated, relative entries are ignored, and `/a/CODE2` is not inside
+  `/a/CODE`. Brings upstream the lane separation a local 2.9.0 patch had, which
+  2.16.1 no longer carried.
 - **The citation gate reads VisuaLex's dossier** (`omnilex_crea_dossier`, VisuaLex
   1.10.7 and later). The dossier verifies each reference and decision it is given
   against the sources, so they count as read.
@@ -403,6 +412,13 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - `calcolo_valore_catastale` is not guarded: art. 52 D.P.R. 131/1986 is not
     among the provisions art. 204 D.Lgs. 123/2025 abrogates (the tool's docstring
     already names where its multipliers go from 2027).
+- **`termini_esecuzioni` states the reading applied for art. 617 c.p.c.** (decision
+  LI-060). The August suspension is still not applied to the 20 days; the field that
+  said the point was debated (`avvertenza_sospensione_feriale`) becomes
+  `nota_sospensione_feriale`, which says that the opposizione agli atti esecutivi is
+  excluded together with the other enforcement oppositions, that art. 92 R.D. 12/1941
+  (via art. 3 L. 742/1969) names only the «opposizione all'esecuzione», and cites
+  Cass. n. 26443/2024, n. 25666/2025 and n. 13797/2022. The calculation is unchanged.
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **Text answers are sent once.** The 63 tools that answer plain text (the
@@ -581,10 +597,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   every answer is gone (it also said "opposizioni esecutive" where art. 92
   says "opposizione all'esecuzione"); the `scadenza` command and the
   `procedura-civile` reference carry the same list. `termini_esecuzioni` keeps
-  computing the art. 617 opposition without the suspension (the prudent
-  reading) and, when August falls in its 20 days, adds
-  `avvertenza_sospensione_feriale`: whether art. 617 is excluded is debated,
-  since art. 92 R.D. 12/1941 names only the "opposizione all'esecuzione".
+  computing the art. 617 opposition without the suspension and, when August falls in its 20 days, adds
+  `nota_sospensione_feriale` (see Changed).
 - **The citation gate reads like the server, and checks decisions too.** The
   plugin's Stop hook, now also registered on `SubagentStop`, extracts citations
   with the server's own parser and resolver (moved, unchanged, into the
@@ -740,6 +754,33 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **A decree cited by its year is no longer read as the law Normattiva serves in its place**
+  (#136). Asked for a ministerial decree, a DPCM or a d.lgs.lgt. by its year, Normattiva's
+  resolver does not check the type: for a DPCM n. 158 of 2014 it serves L. 17 ottobre 2014,
+  n. 158, and for a D.M. n. 241 of 1990 L. 7 agosto 1990, n. 241. These types were dated by the
+  page's ELI date alone, so `risolvi_atto` answered `trovato` with the law's date, and the
+  readers of a year-only act would have read the law at that date.
+  - **The heading must name the act.** The date is taken only when the page's heading
+    names the asked type (a table of headings measured on real pages: «DECRETO» for a D.M.,
+    «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI», «DECRETO LEGISLATIVO
+    LUOGOTENENZIALE» and «DECRETO-LEGGE LUOGOTENENZIALE»), with the asked year and number.
+    The date is the heading's day; an ELI date that disagrees with it makes the answer
+    transient.
+  - **Another act.** A heading of a known type that is not the asked one, or another year or
+    number (none, for an act without one), is `atto_non_trovato`, naming the page served.
+  - **Not verifiable.** A heading whose type is in no table, or a page without heading, is
+    `fonte_non_raggiungibile`, never kept, and never dated by its ELI date. The readers never
+    fall back on the year-only URN for these types either, which would serve the same law:
+    when the page cannot be read or verified now (a network error, an error page, no
+    heading), they refuse and say to retry or give the full date.
+  - **Every reader refuses it.** `testo_articolo`, the article of an annex, the future
+    version, `albero_atto`, `testo_atto`, `indice_atto` (the AKN export and the index, also
+    with the export disabled), `modifiche_articolo`, `cite_law` and the `fetch_act_index`
+    tool answer with the error and ask Normattiva nothing more. The api readers report it
+    as `verifica_non_disponibile`, the only refusal their outcomes have.
+  - **Headings without a number.** An act heading without «, n. …» («DECRETO DEL PRESIDENTE
+    DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») now counts as an act's heading, not as a page
+    without one.
 - **`fetch_full_act` without the Akoma Ntoso export reads every article and every part of
   an article, and says what it could not read** (#106). The article-by-article reading of
   the Normattiva page kept one tree entry per article number, and called the result
@@ -788,8 +829,7 @@ described in those sections, not repeated here. Upgrading from 2.x:
   now `fonte_non_raggiungibile` («pagina senza l'intestazione dell'atto»), never kept in
   memory, and asked again on the next call. `scraper.normattiva_page_problem` returns the
   new code `"senza_intestazione"` for it; an act page with its heading (or the
-  Constitution's, headed «COSTITUZIONE») is unchanged. The types dated by the ELI date
-  alone (ministerial decrees, DPCM) still take that date when it falls in the cited year.
+  Constitution's, headed «COSTITUZIONE») is unchanged.
 - **`act_dates.json` follows the cache configuration within one process** (#113 D). The
   dates file was read once per process, so a later `configurazione(cache_dir=…)` or
   `cache=…` never read the other directory, and a disk switched on after the first
