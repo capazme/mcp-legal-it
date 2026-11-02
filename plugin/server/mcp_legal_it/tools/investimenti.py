@@ -3,6 +3,7 @@ pronti contro termine (PCT), buoni fruttiferi postali e confronto tra più strum
 Tassazione agevolata 12,5% per titoli di Stato (D.Lgs. 239/1996); 26% per altri strumenti."""
 
 from bisect import bisect_right
+from calendar import monthrange
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -122,28 +123,94 @@ def rendimento_bot(
     return risultato
 
 
+def _data_iso(testo: str) -> date | None:
+    try:
+        return date.fromisoformat(testo.strip())
+    except ValueError:
+        return None
+
+
+#: Plausible years for a settlement or maturity date: outside them the input is a typo.
+_ANNI_PLAUSIBILI = (1900, 2200)
+
+
+def _mesi_indietro(giorno: date, mesi: int) -> date:
+    """`giorno` moved back by whole months, the day clamped to the month's last day."""
+    anno, mese = divmod(giorno.month - 1 - mesi, 12)
+    anno += giorno.year
+    return date(anno, mese + 1, min(giorno.day, monthrange(anno, mese + 1)[1]))
+
+
+def _piano_cedolare(regolamento: date, scadenza: date, frequenza: int) -> tuple[date, list[date]]:
+    """(previous coupon date, coupon dates after settlement), stepping back from maturity.
+
+    Each date is computed from the maturity (never from the previous date), so a day 31 or
+    29 February does not drift.
+    """
+    passo = 12 // frequenza
+    date_cedole: list[date] = []
+    k = 0
+    giorno = scadenza
+    while giorno > regolamento:
+        date_cedole.append(giorno)
+        k += 1
+        giorno = _mesi_indietro(scadenza, passo * k)
+    date_cedole.reverse()
+    return giorno, date_cedole
+
+
+def _tir(flussi: list[tuple[float, float]]) -> float | None:
+    """Annual compound IRR (fraction) of (years, amount) flows, the first one the outlay.
+
+    Bracketed bisection: with an outlay followed by non-negative flows the present value
+    falls as the rate rises, so the root is unique once bracketed. None when it cannot be
+    bracketed (a rate beyond 100.000% a year, or a float overflow): never a made-up root.
+    """
+    def valore(tasso: float) -> float:
+        return sum(importo / (1 + tasso) ** anni for anni, importo in flussi)
+
+    basso, alto = -0.99, 1.0
+    try:
+        while valore(alto) > 0 and alto < 1e3:
+            alto *= 2
+        if valore(basso) < 0 or valore(alto) > 0:
+            return None
+    except OverflowError:
+        return None
+    for _ in range(200):
+        medio = (basso + alto) / 2
+        if valore(medio) > 0:
+            basso = medio
+        else:
+            alto = medio
+    return (basso + alto) / 2
+
+
 @mcp.tool(tags={"calcolo", "investimenti"})
 def rendimento_btp(
     valore_nominale: float,
     prezzo_acquisto: float,
     cedola_annua_pct: float,
-    anni_scadenza: int,
+    anni_scadenza: int = 0,
     frequenza_cedola: int = 2,
+    data_regolamento: str = "",
+    data_scadenza: str = "",
 ) -> dict:
-    """Calcola il rendimento netto di un BTP (Buono del Tesoro Poliennale) a cedola fissa.
+    """Calcola il rendimento effettivo a scadenza (TIR) di un BTP a cedola fissa, lordo e netto, con la convenzione del MEF.
     Vigenza: D.Lgs. 239/1996 — imposta sostitutiva 12,5% su cedole e plusvalenza da capital gain.
-    Precisione: INDICATIVO (rendimento semplificato: non considera il reinvestimento delle cedole
-    né il rateo cedolare al momento dell'acquisto; per il rendimento esatto usare il TIR).
+    Convenzione (come i «Risultati Asta» del MEF, base annua 365 gg): tasso annuo a capitalizzazione composta che sconta cedole e rimborso a 100, a giorni effettivi/365 dal regolamento, al prezzo tel quel (corso secco più rateo Act/Act ICMA). Act/Act ICMA vale per il rateo; l'attualizzazione resta a giorni effettivi/365, la base del MEF: sulle 10 aste di prova scarto massimo 0,0077 punti, contro 0,0101 con esponenti in periodi cedolari ICMA. Netto: 12,5% sulle cedole per la parte maturata nel possesso (la prima al netto del rateo pagato) e sullo scarto tra prezzo e nominale. Con le date: calendario cedolare a ritroso dalla scadenza e rateo; senza, il regolamento cade in una data di stacco. Voce secondaria: il rendimento semplice (non composto).
+    Non è il parametro del maggior danno ex art. 1224 co. 2 c.c.: Cass. SS.UU. 19499/2008 usa il rendimento medio netto dei titoli di Stato con scadenza non superiore a dodici mesi.
+    Precisione: INDICATIVO per il rendimento: sulle 10 aste BTP del MEF di settembre-ottobre 2026 il TIR lordo con le date si scosta dal rendimento lordo pubblicato al massimo di 0,008 punti; una prima cedola corta di nuova emissione non è modellata (rateo e prima cedola del calendario regolare). ESATTO per cedole regolari, imposta e scarto.
 
     Args:
-        valore_nominale: Valore nominale del BTP in euro (€), solitamente 1.000€ per titolo
-        prezzo_acquisto: Prezzo di acquisto in euro (€), può essere sopra o sotto il nominale
+        valore_nominale: Valore nominale del BTP in euro (€), es. 1000 (o 100 per ragionare in prezzo)
+        prezzo_acquisto: Prezzo di acquisto (corso secco, senza rateo) in euro (€) sullo stesso nominale
         cedola_annua_pct: Tasso cedolare annuo lordo in percentuale (es. 3.5 per 3,5%)
-        anni_scadenza: Anni residui alla scadenza (interi positivi)
+        anni_scadenza: Anni residui alla scadenza (interi positivi): solo senza date
         frequenza_cedola: Numero di cedole per anno (default 2 = semestrale; 1 = annuale)
+        data_regolamento: Data di regolamento dell'acquisto, AAAA-MM-GG (con data_scadenza)
+        data_scadenza: Data di scadenza del titolo, AAAA-MM-GG (con data_regolamento)
     """
-    if anni_scadenza <= 0:
-        return {"errore": "anni_scadenza deve essere positivo"}
     if prezzo_acquisto <= 0:
         return {"errore": "prezzo_acquisto deve essere positivo"}
     if valore_nominale <= 0:
@@ -151,36 +218,125 @@ def rendimento_btp(
     if frequenza_cedola <= 0:
         return {"errore": "frequenza_cedola deve essere positiva (es. 1 annuale, 2 semestrale)"}
 
-    # Cedole
+    avvertenze: list[str] = []
     cedola_singola_lorda = valore_nominale * (cedola_annua_pct / 100) / frequenza_cedola
-    n_cedole = anni_scadenza * frequenza_cedola
-    totale_cedole_lordo = cedola_singola_lorda * n_cedole
-    imposta_cedole = totale_cedole_lordo * _ALIQUOTA_TITOLI_STATO / 100
+    aliquota = _ALIQUOTA_TITOLI_STATO / 100
+
+    if data_regolamento or data_scadenza:
+        if not (data_regolamento and data_scadenza):
+            return {"errore": "data_regolamento e data_scadenza vanno indicate insieme"}
+        regolamento, scadenza = _data_iso(data_regolamento), _data_iso(data_scadenza)
+        if regolamento is None or scadenza is None:
+            return {"errore": "date nel formato AAAA-MM-GG (es. 2026-09-15)"}
+        if not all(_ANNI_PLAUSIBILI[0] <= d.year <= _ANNI_PLAUSIBILI[1] for d in (regolamento, scadenza)):
+            return {"errore": "date con l'anno tra il 1900 e il 2200"}
+        if regolamento >= scadenza:
+            return {"errore": "data_regolamento deve precedere data_scadenza"}
+        if 12 % frequenza_cedola:
+            return {"errore": "con le date, frequenza_cedola deve dividere l'anno in mesi interi (1, 2, 3, 4, 6, 12)"}
+        if anni_scadenza:
+            avvertenze.append("anni_scadenza ignorato: valgono data_regolamento e data_scadenza")
+        cedola_precedente, date_cedole = _piano_cedolare(regolamento, scadenza, frequenza_cedola)
+        giorni_rateo = (regolamento - cedola_precedente).days
+        giorni_periodo = (date_cedole[0] - cedola_precedente).days
+        rateo = cedola_singola_lorda * giorni_rateo / giorni_periodo
+        tempi = [(d - regolamento).days / 365 for d in date_cedole]
+        anni_residui = (scadenza - regolamento).days / 365
+        convenzione_date = (
+            "giorni effettivi/365 dal regolamento, calendario cedolare regolare a ritroso dalla "
+            "scadenza; per un titolo di nuova emissione con prima cedola corta, rateo e prima "
+            "cedola sono quelli del calendario regolare (sul TIR l'effetto è trascurabile)"
+        )
+    else:
+        if anni_scadenza <= 0:
+            return {"errore": "anni_scadenza deve essere positivo (oppure indicare data_regolamento e data_scadenza)"}
+        date_cedole = []
+        giorni_rateo, rateo = 0, 0.0
+        n_cedole = anni_scadenza * frequenza_cedola
+        tempi = [(k + 1) / frequenza_cedola for k in range(n_cedole)]
+        anni_residui = float(anni_scadenza)
+        convenzione_date = (
+            "senza date: regolamento in una data di stacco cedola, nessun rateo, "
+            "tempo in anni = numero di cedole / frequenza"
+        )
+
+    # Coupons: taxed for the part accrued while held (art. 2 co. 1 D.Lgs. 239/1996): the
+    # first one net of the accrued interest paid to the seller.
+    imposte_cedole = [
+        (cedola_singola_lorda - (rateo if i == 0 else 0.0)) * aliquota for i in range(len(tempi))
+    ]
+    totale_cedole_lordo = cedola_singola_lorda * len(tempi)
+    imposta_cedole = sum(imposte_cedole)
     totale_cedole_netto = totale_cedole_lordo - imposta_cedole
 
     # Plusvalenza in conto capitale
     plusvalenza = valore_nominale - prezzo_acquisto
-    imposta_plusvalenza = plusvalenza * _ALIQUOTA_TITOLI_STATO / 100 if plusvalenza > 0 else 0.0
+    imposta_plusvalenza = plusvalenza * aliquota if plusvalenza > 0 else 0.0
     plusvalenza_netta = plusvalenza - imposta_plusvalenza
+    if plusvalenza > 0:
+        # LI-062: on a reopening (or a purchase on the market) the discount to par is only
+        # partly scarto di emissione; the tool cannot tell the split, so it says what changes.
+        avvertenze.append(
+            "se il titolo è una riapertura di un titolo già emesso o è comprato sul mercato, la "
+            "differenza tra prezzo e rimborso è scarto di emissione (reddito di capitale) solo fino "
+            "al prezzo di emissione (il «prezzo fiscale» dei comunicati MEF); il resto è plusvalenza "
+            "(reddito diverso, art. 67 co. 1 lett. c-ter) TUIR). L'imposta a scadenza resta il 12,5% "
+            "sul totale, ma solo la plusvalenza si somma alle minusvalenze (art. 68 co. 5 TUIR)"
+        )
 
-    # Rendimento complessivo
-    guadagno_netto_totale = totale_cedole_netto + plusvalenza_netta
-    rendimento_netto_annuo = (guadagno_netto_totale / prezzo_acquisto / anni_scadenza) * 100
+    esborso = prezzo_acquisto + rateo
+    flussi_lordi = [(0.0, -esborso)] + [(t, cedola_singola_lorda) for t in tempi]
+    flussi_netti = [(0.0, -esborso)] + [
+        (t, cedola_singola_lorda - imposta) for t, imposta in zip(tempi, imposte_cedole)
+    ]
+    flussi_lordi[-1] = (flussi_lordi[-1][0], flussi_lordi[-1][1] + valore_nominale)
+    flussi_netti[-1] = (flussi_netti[-1][0], flussi_netti[-1][1] + valore_nominale - imposta_plusvalenza)
+    tir_lordo, tir_netto = _tir(flussi_lordi), _tir(flussi_netti)
+    if tir_lordo is None or tir_netto is None:
+        return {"errore": "rendimento fuori scala: prezzo o durata non realistici"}
+    tir_lordo, tir_netto = tir_lordo * 100, tir_netto * 100
+
+    # Secondary: the simple (non-compound) yield, the tool's only figure before LI-059.
+    guadagno_netto_totale = totale_cedole_netto - rateo + plusvalenza_netta
+    rendimento_semplice_netto = (guadagno_netto_totale / prezzo_acquisto / anni_residui) * 100
 
     flusso_cedole = []
-    for i in range(1, n_cedole + 1):
-        flusso_cedole.append({
-            "cedola_n": i,
+    for i, imposta in enumerate(imposte_cedole):
+        voce = {
+            "cedola_n": i + 1,
             "lorda": round(cedola_singola_lorda, 2),
-            "netta": round(cedola_singola_lorda * (1 - _ALIQUOTA_TITOLI_STATO / 100), 2),
-        })
+            "netta": round(cedola_singola_lorda - imposta, 2),
+        }
+        if date_cedole:
+            voce["data"] = date_cedole[i].isoformat()
+        flusso_cedole.append(voce)
 
-    return {
+    risultato = {
         "valore_nominale": valore_nominale,
         "prezzo_acquisto": prezzo_acquisto,
         "cedola_annua_pct": cedola_annua_pct,
         "anni_scadenza": anni_scadenza,
         "frequenza_cedola": frequenza_cedola,
+    }
+    if date_cedole:
+        risultato.update({
+            "data_regolamento": regolamento.isoformat(),
+            "data_scadenza": scadenza.isoformat(),
+        })
+    risultato.update({
+        "anni_residui": round(anni_residui, 4),
+        "giorni_rateo": giorni_rateo,
+        "rateo_cedolare": round(rateo, 4),
+        "prezzo_tel_quel": round(esborso, 4),
+        "rendimento_effettivo_lordo_pct": round(tir_lordo, 4),
+        "rendimento_effettivo_netto_pct": round(tir_netto, 4),
+        "convenzione": (
+            "rendimento effettivo a scadenza (TIR); lordo con la convenzione del MEF: "
+            "capitalizzazione composta annua, prezzo tel quel (corso secco più rateo), rateo "
+            "Act/Act ICMA (giorni maturati / giorni del periodo cedolare), rimborso al nominale; "
+            "netto calcolato con imposta 12,5% su cedole (per la parte maturata nel possesso) e scarto; "
+            + convenzione_date
+        ),
         "totale_cedole_lordo": round(totale_cedole_lordo, 2),
         "imposta_cedole": round(imposta_cedole, 2),
         "totale_cedole_netto": round(totale_cedole_netto, 2),
@@ -188,10 +344,17 @@ def rendimento_btp(
         "imposta_plusvalenza": round(imposta_plusvalenza, 2),
         "plusvalenza_netta": round(plusvalenza_netta, 2),
         "guadagno_netto_totale": round(guadagno_netto_totale, 2),
-        "rendimento_netto_annuo_pct": round(rendimento_netto_annuo, 4),
+        "rendimento_semplice_netto_pct": round(rendimento_semplice_netto, 4),
+        "nota_rendimento_semplice": (
+            "rendimento semplice (non composto): guadagno netto totale diviso per prezzo e anni, "
+            "senza capitalizzazione; voce secondaria, non confrontabile con il rendimento lordo del MEF"
+        ),
         "flusso_cedole": flusso_cedole,
         "riferimento_normativo": "D.Lgs. 239/1996 — imposta sostitutiva 12,5% su titoli di Stato",
-    }
+    })
+    if avvertenze:
+        risultato["avvertenze"] = avvertenze
+    return risultato
 
 
 @mcp.tool(tags={"calcolo", "investimenti"})

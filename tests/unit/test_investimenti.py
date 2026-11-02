@@ -154,12 +154,14 @@ class TestRendimentoBtp:
         assert r["imposta_plusvalenza"] == pytest.approx(0.0)
         assert r["plusvalenza_netta"] == pytest.approx(-50.0)
 
-    def test_rendimento_netto_annuo_formula(self):
+    def test_rendimento_semplice_formula(self):
+        """The simple (non-compound) yield is kept as a secondary field (LI-059)."""
         r = _call("rendimento_btp", valore_nominale=1000, prezzo_acquisto=950,
                   cedola_annua_pct=3.0, anni_scadenza=10)
         guadagno = r["guadagno_netto_totale"]
         expected = (guadagno / 950 / 10) * 100
-        assert r["rendimento_netto_annuo_pct"] == pytest.approx(expected, rel=1e-4)
+        assert r["rendimento_semplice_netto_pct"] == pytest.approx(expected, rel=1e-4)
+        assert r["rendimento_effettivo_netto_pct"] < r["rendimento_semplice_netto_pct"]
 
     def test_error_anni_zero(self):
         r = _call("rendimento_btp", valore_nominale=1000, prezzo_acquisto=980,
