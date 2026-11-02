@@ -34,6 +34,13 @@ FIXED DEFECT (found on 2026-09-25, two runs; corrected after the audit):
   momentaneamente non disponibile". The same endpoint also answers transient 500s for existing
   marks (seen once for IT502013902128590, gone 40 s later), so the wording covers both.
 
+DETAIL REFUSED SINCE 2026-10-29 (issue #124): the detail endpoint answers HTTP 403
+{"error":"Forbidden"} to automated requests while the search still answers. No attempt is made
+to get around it. `leggi_marchio` then returns a record marked "Scheda parziale", built from the
+search endpoint (advanced-search field applicationNumber, exact ST13 match), with the public
+TMview link. The two `leggi_marchio` cases accept exactly two outcomes: the full record (the
+source lifted the block) or the honest partial one; anything else fails.
+
 If the WAF turns the client away the tool answers with its anti-bot hint: the case is skipped
 as "source temporarily unavailable", never passed.
 
@@ -58,6 +65,8 @@ pytestmark = pytest.mark.live
 
 _ST13_FUORICORSO = "IT502013902128590"
 _ST13_INESISTENTE = "IT500000000000000"
+_ST13_EUIPO = "EM500000018203824"  # EUIPO number 018203824: the zero padding must be dropped
+_LINK_TMVIEW = "https://www.tmdn.org/tmview/#/tmview/detail/"
 _DATA_RE = r"\d{2}/\d{2}/\d{4}"
 _DISCLAIMER = "Non sostituisce una ricerca di anteriorità professionale"
 
@@ -176,11 +185,31 @@ def test_cerca_marchi_stato_scaduto_arriva_come_expired():
 # leggi_marchio
 # ---------------------------------------------------------------------------
 
+def _scheda_parziale(r: str) -> bool:
+    """True if the detail was refused and the tool fell back to the search, saying so."""
+    if "**Scheda parziale**" not in r:
+        return False
+    assert re.search(r"dal 29/10/2026 TMview rifiuta le richieste automatiche della scheda completa \(HTTP 40[13]\)", r), r[:600]
+    assert "**Mancano** rispetto alla scheda completa: descrizione di prodotti e servizi per classe" in r, r
+    return True
+
+
 def test_leggi_marchio_fuoricorso_scheda_completa():
-    """Plan case 1: the UIBM record of FUORICORSO with holder, class 25, numbers and dates."""
+    """Plan case 1: the UIBM record of FUORICORSO with holder, class 25, numbers and dates.
+
+    While TMview refuses the detail (#124) the same mark comes from the search, marked partial.
+    """
     r = _run(leggi_marchio, st13=_ST13_FUORICORSO)
     assert "**Errore**" not in r, r[:600]
     assert r.splitlines()[0] == "# FUORICORSO", r[:300]
+    if _scheda_parziale(r):
+        assert f"**ST13**: `{_ST13_FUORICORSO}` | **Ufficio**: IT | **Stato**: Registrato" in r, r[:600]
+        assert "**Titolare**: MENNUCCI LETIZIA" in r, r[:600]
+        assert "**Classi Nizza**: 25, 43" in r, r[:600]
+        assert "**Deposito**: 19/02/2013" in r, r[:600]
+        assert "**Registrazione**: 17/09/2013 (n. 0001557431)" in r, r[:600]
+        assert f"{_LINK_TMVIEW}{_ST13_FUORICORSO}" in r, r[-300:]
+        return
     assert f"**ST13**: `{_ST13_FUORICORSO}` | **Ufficio**: Italy - UIBM" in r, r[:600]
     assert re.search(r"^\*\*Stato\*\*: Registrato \(", r, flags=re.M), r[:600]
     assert "**Domanda**: n. 2013902128590 del 19/02/2013" in r, r[:600]
@@ -191,6 +220,18 @@ def test_leggi_marchio_fuoricorso_scheda_completa():
     assert re.search(rf"Dati dell'ufficio aggiornati al {_DATA_RE}", r), r[-300:]
 
 
+def test_leggi_marchio_euipo_numero_con_zeri_iniziali():
+    """An EUIPO mark (number 018203824): full record, or the partial one found without the padding."""
+    r = _run(leggi_marchio, st13=_ST13_EUIPO)
+    assert "**Errore**" not in r, r[:600]
+    assert f"`{_ST13_EUIPO}`" in r, r[:600]
+    assert "HMH Education Company" in r, r[:600]
+    if _scheda_parziale(r):
+        assert "**Ufficio**: EM" in r, r[:600]
+        assert "**Deposito**: 02/03/2020" in r, r[:600]
+        assert f"{_LINK_TMVIEW}{_ST13_EUIPO}" in r, r[-300:]
+
+
 def test_leggi_marchio_st13_inesistente_e_non_trovato_non_fonte_giu():
     """Plan case 2: a nonexistent ST13 is 'no record returned', not 'source unreachable'.
 
@@ -199,9 +240,18 @@ def test_leggi_marchio_st13_inesistente_e_non_trovato_non_fonte_giu():
     must not call the source unreachable. The wording is "Nessuna scheda restituita ... ST13
     inesistente o scheda ... momentaneamente non disponibile" (the old assertion looked for
     "Nessun marchio trovato", which would claim non-existence: wrong in form, not in substance).
+
+    While the detail is refused (#124) the 500 never comes: the answer is the refusal, which
+    must not claim the mark does not exist, plus the public link. An all-zero number cannot be
+    searched, so no search is claimed either.
     """
     r = _run(leggi_marchio, riprova=False, st13=_ST13_INESISTENTE)  # deterministic: no retry
     assert "non raggiungibile" not in r, r[:600]
+    if "TMview ha rifiutato la richiesta (HTTP" in r:
+        assert "Non significa che il marchio non esista" in r, r[:600]
+        assert f"L'ST13 `{_ST13_INESISTENTE}` non permette di cercarlo per numero di domanda" in r, r
+        assert f"{_LINK_TMVIEW}{_ST13_INESISTENTE}" in r, r
+        return
     assert f"Nessuna scheda restituita da TMview per ST13 `{_ST13_INESISTENTE}`" in r, r[:600]
     assert "ST13 inesistente o scheda dell'ufficio d'origine momentaneamente non disponibile" in r, r[:600]
 
@@ -231,6 +281,7 @@ def test_verifica_anteriorita_fuori_corso_classe_25_fuoricorso_tra_gli_identici(
         assert "25" in _classi(b), b[:300]
         assert _campo(b, "Ufficio") == "IT", b[:300]
 
+    assert "non legge la scheda dei singoli marchi" in r, r[-400:]
     assert r.rstrip().endswith(_DISCLAIMER + ".*"), r[-400:]
 
 
