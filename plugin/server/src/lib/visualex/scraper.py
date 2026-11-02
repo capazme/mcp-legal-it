@@ -5,6 +5,7 @@ import datetime
 import os
 import re
 import warnings
+from html import unescape
 from urllib.parse import urljoin
 
 import httpx
@@ -228,6 +229,45 @@ def _verifica_pagina(norma: Norma, meta: dict) -> str:
     return eli if eli.startswith(f"{norma.data}-") else ""
 
 
+#: The act an N2Ls URL asks for: its kind, date and number («…stato:legge:1990-08-07;241~art3»).
+#: A year-only citation's URN carries ``YYYY-01-01``: then only the year is compared.
+_URN_ATTO = re.compile(r"urn:nir:stato:(?P<kind>[a-z]+(?:\.[a-z]+)*):(?P<data>\d{4}-\d{2}-\d{2});(?P<numero>\d+)")
+_TITOLO = re.compile(r"<title[^>]{0,200}>([^<]{0,400})</title>", re.IGNORECASE)
+
+
+def controlla_intestazione(url: str, html: str) -> None:
+    """Raise :class:`AttoNonVerificato` when the Normattiva page served for *url* is headed
+    by another act than the one its URN asks for.
+
+    Normattiva's resolver does not check what it is asked, with a full date either: the URN
+    of a D.M. 7 agosto 1990, n. 241 serves L. 7 agosto 1990, n. 241. Positive evidence only:
+    another known type, another number (none, for an act without one), another year, or
+    (a full date) another day. Silent when the URL or the page cannot be compared.
+    """
+    urn = _URN_ATTO.search(url)
+    tag = _TITOLO.search(html) if urn else None
+    if tag is None:
+        return
+    intestazione = re.sub(r"\s*-\s*Normattiva\s*$", "", " ".join(unescape(tag.group(1)).split())).strip()
+    found = _INTESTAZIONE_ATTO.match(intestazione)
+    compatibili = _INTESTAZIONI.get(urn["kind"])
+    if found is None or compatibili is None or found["tipo"] not in _TIPI_INTESTAZIONE_NOTI:
+        return
+    data, numero = urn["data"], re.sub(r"^0+(?=\d)", "", urn["numero"])
+    solo_anno = data.endswith("-01-01")  # the placeholder of a year-only citation
+    mese = _MESI.get(found["mese"].lower())
+    try:
+        giorno = datetime.date(int(found["anno"]), mese, int(found["giorno"])).isoformat() if mese else ""
+    except ValueError:
+        giorno = ""
+    if (found["tipo"] in compatibili and found["anno"] == data[:4] and (found["numero"] or "") == numero
+            and (solo_anno or not giorno or giorno == data)):
+        return
+    citato = f"{urn['kind'].replace('.', ' ')} n. {numero} del {data[:4] if solo_anno else data}"
+    raise AttoNonVerificato(f"nessun atto «{citato}» su Normattiva: la pagina restituita è «{intestazione}» "
+                            f"(controlla tipo, numero e {'anno' if solo_anno else 'data'})")
+
+
 async def with_full_date(norma: Norma) -> Norma:
     """The same act with its real date when it was cited with the year only.
 
@@ -257,6 +297,14 @@ async def with_full_date(norma: Norma) -> Norma:
 # ---------------------------------------------------------------------------
 
 async def fetch_article(nv: NormaVisitata) -> dict:
+    """:func:`_fetch_article`, refused when a page read is another act's (:func:`controlla_intestazione`)."""
+    try:
+        return await _fetch_article(nv)
+    except AttoNonVerificato as exc:
+        return {"text": "", "url": "", "source": "normattiva", "esito": CHECK_UNAVAILABLE, "error": str(exc)}
+
+
+async def _fetch_article(nv: NormaVisitata) -> dict:
     """Fetch article text from Normattiva or EUR-Lex.
 
     Returns: {"text": str, "url": str, "source": "normattiva"|"eurlex"}
@@ -321,6 +369,7 @@ async def fetch_article(nv: NormaVisitata) -> dict:
             resp.raise_for_status()
             note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
             html = resp.text
+        controlla_intestazione(url, html)  # never another act's article
         text, served = _normattiva_article_page(html)
         result = {"text": text, "url": url, "source": source, "data_atto": nv.norma.data}
         if not nv.numero_articolo:
@@ -1135,6 +1184,10 @@ async def fetch_act_index(norma: "Norma") -> dict:
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
+        try:
+            controlla_intestazione(act_url, html)  # with a full date too
+        except AttoNonVerificato as exc:
+            return {"index": [], "url": "", "error": str(exc)}
 
         if _year_only_act(norma):
             # The index is read from the URN as cited: never another act's (the resolver does
@@ -1217,7 +1270,10 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     if not _akn_disabled():
         from .akn_fetch import fetch_act_akn
 
-        act = await fetch_act_akn(norma)
+        try:
+            act = await fetch_act_akn(norma)
+        except AttoNonVerificato as exc:
+            return {"text": "", "title": "", "url": "", "error": str(exc)}
         if act is not None:
             part = _akn_part_hint(norma)
             full_text = act.full_text(part=part)
@@ -1250,6 +1306,10 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
+        try:
+            controlla_intestazione(act_url, html)
+        except AttoNonVerificato as exc:
+            return {"text": "", "title": "", "url": "", "error": str(exc)}
         soup = BeautifulSoup(html, "lxml")
 
         title = _normattiva_page_title(html, soup) or str(norma)

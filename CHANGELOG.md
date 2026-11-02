@@ -43,7 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     LUOGOTENENZIALE», «DECRETO-LEGGE LUOGOTENENZIALE»), with the heading's day. When the
     page cannot be read or verified now, the answer says to retry later or to cite the
     act with its full date, rather than read the year-only address, which would serve the
-    law. Ported from the 3.0 line.
+    law.
+  - **With a full date too.** The address of a D.M. 7 agosto 1990, n. 241 serves the same
+    law: every page read (the article, the act's page before the Akoma Ntoso export, the
+    full text, the index) is checked against the act its address asks for, and another
+    type, number, year or day is refused, naming the page. The export's address index
+    keeps only entries written after that check. Ported from the 3.0 line.
 - **The server starts on Windows** (#133). Thirty reads of the bundled tables, the
   `legal://` resources and the Brocardi cache named no encoding, so Python used the
   locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,

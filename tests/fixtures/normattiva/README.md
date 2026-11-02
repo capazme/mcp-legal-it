@@ -43,3 +43,4 @@ laws it serves for decrees it does not have.
 | `landing_atto_inesistente.html` | `legge:1990;99999` | HTTP 200, the error page «Normattiva - Errore», no `eli:` metadata |
 
 Used by `tests/unit/test_atto_per_anno_tipo.py`, with `../akn/landing_legge_241_1990.html`.
+| `dm_241_1990_art3_serve_legge.html` | `decreto.ministeriale:1990-08-07;241~art3` (full date) | art. 3 of L. 7 agosto 1990, n. 241 (2026-11-02), trimmed to the head |

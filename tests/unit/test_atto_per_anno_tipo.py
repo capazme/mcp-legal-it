@@ -187,3 +187,90 @@ class TestOgniLettura:
         assert "«LEGGE 7 agosto 1990, n. 241»" in testo
         assert "motivazione" not in testo.lower()  # nothing of the law's art. 3
         assert chieste == [N2LS + DM241]
+
+
+ART3_SERVE_LEGGE = _pagina("dm_241_1990_art3_serve_legge.html")
+DM_DATA = Norma("decreto ministeriale", "1990-08-07", "241")
+
+
+class TestDataCompleta:
+    """With a full date the resolver does not check the type either: every page read is
+    compared with the act its URN asks for (scraper.controlla_intestazione)."""
+
+    ROTTE = {"decreto.ministeriale:1990-08-07;241~art3": ART3_SERVE_LEGGE,
+             "decreto.ministeriale:1990-08-07;241": DM241_SERVE_LEGGE}
+
+    @pytest.mark.parametrize("akn", ["1", ""], ids=["solo-pagina", "export-prima"])
+    async def test_fetch_article(self, monkeypatch, akn):
+        if akn:
+            monkeypatch.setenv("AKN_DISABLED", akn)
+        _normattiva(monkeypatch, self.ROTTE, altrimenti=L241)
+        r = await scraper.fetch_article(NormaVisitata(norma=DM_DATA, numero_articolo="3"))
+        assert r["text"] == "" and r["url"] == "" and r["esito"] == scraper.CHECK_UNAVAILABLE
+        assert r["error"] == ("nessun atto «decreto ministeriale n. 241 del 1990-08-07» su Normattiva: la pagina "
+                              "restituita è «LEGGE 7 agosto 1990, n. 241» (controlla tipo, numero e data)")
+
+    @pytest.mark.parametrize("lettura", ["testo_atto", "indice"])
+    async def test_the_act_readers(self, monkeypatch, lettura):
+        monkeypatch.setenv("AKN_DISABLED", "1")
+        _normattiva(monkeypatch, self.ROTTE, altrimenti=L241)
+        if lettura == "testo_atto":
+            r = await scraper.fetch_normattiva_full_text(DM_DATA)
+        else:
+            r = await scraper.fetch_act_index(DM_DATA)
+        assert "«LEGGE 7 agosto 1990, n. 241»" in r["error"]
+
+    async def test_cite_law(self, monkeypatch):
+        from src.tools.legal_citations import _cite_law_impl
+
+        _normattiva(monkeypatch, self.ROTTE, altrimenti=L241)
+        testo = await _cite_law_impl("art. 3 D.M. 7 agosto 1990, n. 241")
+        assert "«LEGGE 7 agosto 1990, n. 241»" in testo and "motivazione" not in testo.lower()
+
+    @pytest.mark.parametrize("url, pagina", [
+        (N2LS + "legge:1990-08-07;241~art3", L241), (N2LS + "legge:1990-01-01;241", L241),
+        (N2LS + "costituzione:1947-12-27~art1", L241), ("https://www.normattiva.it/do/atto/x", L241),
+        (N2LS + "decreto.ministeriale:1990-08-07;241", "<html><title>Normattiva</title></html>"),
+    ], ids=["stesso-atto", "solo-anno", "senza-numero", "frammento", "senza-intestazione"])
+    def test_nothing_is_refused_without_positive_evidence(self, url, pagina):
+        scraper.controlla_intestazione(url, pagina)
+
+    def test_a_wrong_day_is_another_act(self):
+        with pytest.raises(AttoNonVerificato, match=r"\(controlla tipo, numero e data\)$"):
+            scraper.controlla_intestazione(N2LS + "legge:1990-08-08;241", L241)
+
+    def test_an_export_url_entry_kept_before_the_check_is_not_read(self, monkeypatch, tmp_path):
+        import json
+
+        monkeypatch.setattr(akn_fetch, "_url_params", {})
+        monkeypatch.setattr(akn_fetch, "_url_params_loaded", False)
+        url = N2LS + "decreto.ministeriale:1990-08-07;241"
+        (tmp_path / "cache" / "akn_acts").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "cache" / "akn_acts" / "akn_url_params.json").write_text(
+            json.dumps({url: ["090G0294", "1990-08-18"]}), encoding="utf-8")
+        assert akn_fetch._get_url_params(url) is None
+
+
+def test_every_normattiva_download_checks_the_heading():
+    """A function that fetches a Normattiva page (it records the source «normattiva») calls
+    controlla_intestazione, unless listed here with its reason."""
+    import ast
+
+    senza_controllo = {
+        # The landing page of a year-only act: with_full_date checks its heading (_verifica_pagina).
+        "_act_metadata",
+    }
+    radice = Path(__file__).resolve().parents[2] / "plugin" / "server" / "src"
+    scoperti = []
+    for percorso in sorted(radice.rglob("*.py")):
+        for nodo in ast.walk(ast.parse(percorso.read_text(encoding="utf-8"))):
+            if not isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            chiamate = [c for c in ast.walk(nodo) if isinstance(c, ast.Call)]
+            nome = lambda c: getattr(c.func, "id", getattr(c.func, "attr", ""))  # noqa: E731
+            scarica = any(nome(c) == "note_source" and c.args and isinstance(c.args[0], ast.Constant)
+                          and c.args[0].value == "normattiva" for c in chiamate)
+            if scarica and nodo.name not in senza_controllo \
+                    and not any(nome(c) in ("controlla_intestazione", "_verifica_pagina") for c in chiamate):
+                scoperti.append(f"{percorso.relative_to(radice)}:{nodo.name}")
+    assert not scoperti, f"Normattiva downloads without the heading check: {scoperti}"
