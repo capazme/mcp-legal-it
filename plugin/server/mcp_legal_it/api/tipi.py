@@ -272,6 +272,26 @@ class ParteArticolo:
 
 
 @dataclass(frozen=True)
+class NotaRedazionale:
+    """One section of the editorial notes the Gazzetta publishes with an act.
+
+    Drafted by the competent administration under art. 10, commi 2 and 3, d.P.R. 1092/1985,
+    only to help the reading: they have no normative value, and where they transcribe another
+    provision the text is that of the day of publication, not the text in force.
+    Only the notes to the article are kept (decision LI-058): not the Avvertenza, not the
+    «Note alle premesse» of art. 1. ``intestazione`` is the section's heading as the Gazzetta
+    writes it, without its colon («Note all'art. 13», «Nota all'articolo 4», «Note agli
+    articoli 2 e 3»). ``testo`` is the
+    section's words: links become their text, whitespace is normalised inside each line,
+    line breaks are kept. ``ordine`` is its position, from 1.
+    """
+
+    intestazione: str
+    testo: str
+    ordine: int
+
+
+@dataclass(frozen=True)
 class TestoArticolo:
     """One article: VisuaLex ``/fetch_article_text`` item keys, plus additions."""
 
@@ -322,6 +342,12 @@ class TestoArticolo:
     # «note di aggiornamento non lette: verificare su Normattiva» is then in avvisi.
     note_aggiornamento: tuple[NotaAggiornamento, ...] | None = None
     note_non_lette: bool = False
+    # The editorial notes of the Gazzetta («Note all'art. 13: …»), beside article_text and
+    # never in it: Normattiva keeps them on the original text and on the current text of an
+    # article never amended. From the page, or from the Akoma Ntoso export when the text is
+    # the export's. () for an article without them; None when not read (an EU act, an annex
+    # of the export, a reading lost). They are not the text: see NotaRedazionale.
+    note_redazionali: tuple[NotaRedazionale, ...] | None = None
     # An article Normattiva splits into parts (art. 1 L. 296/2006: 14 parts of 100 commi):
     # its parts in order, () when it is not split, None when the text is not a Normattiva
     # page's. testo_parziale: article_text is one part only (the article page's own, or the

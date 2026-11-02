@@ -133,6 +133,15 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
             # 23/2015, C. cost. 194/2018). A future «notes on request» switch (token phase 3)
             # must never cover these notes. A code's text already carries them: not twice.
             parts.append("\n**Aggiornamenti**\n\n" + "\n\n".join(f"({n['numero']}) {n['testo']}" for n in note))
+        from mcp_legal_it.core.norme import note_redazionali_del_testo, riga_note_redazionali
+
+        redazionali, redazionali_nel_testo = note_redazionali_del_testo(
+            source, text, url, article_result.get("chiave_pagina"), article_result.get("note_redazionali"),
+            article_result.get("note_redazionali_nel_testo") is True)
+        if redazionali:
+            # The Gazzetta's notes to the article: one line, never their words (decision LI-058).
+            parts.append("\n" + riga_note_redazionali(redazionali_nel_testo,
+                                                         sum(len(n["testo"]) for n in redazionali)))
         if parti:
             parts.append("\n**Parti dell'articolo su Normattiva**: "
                          + "; ".join(f"commi {p['commi_dal']}-{p['commi_al']}" for p in parti) + ".")
@@ -323,6 +332,14 @@ async def cite_law(
                  ce ne sono, null se il testo non viene da una pagina Normattiva);
                  "note_non_lette" è true se una nota non si è potuta leggere (con l'avviso);
                  "note_nel_testo" è true se il testo le contiene già (articoli dei codici).
+                 "note_redazionali" ([{intestazione, testo, ordine}], [] se non ce ne sono,
+                 null se non lette) sono le note della Gazzetta all'articolo («Note
+                 all'art. N», art. 10 d.P.R. 1092/1985): non sono testo normativo e i testi
+                 che trascrivono sono quelli alla data di pubblicazione, non quelli vigenti
+                 ("note_redazionali_nel_testo": il testo le contiene già). Il JSON ne riporta
+                 al massimo 8.000 battute: oltre, "note_redazionali_troncate" è true e
+                 "note_redazionali_caratteri" ne dà la lunghezza intera. In markdown una
+                 sola riga ne segnala la presenza.
                  "parti" ([{progressivo, commi_dal, commi_al, url}], [] se l'articolo non è
                  diviso), "parte" (quella letta) e "testo_parziale" per un articolo diviso
                  in parti.
