@@ -32,7 +32,7 @@ def _with(tag: str) -> set[str]:
 
 
 def test_every_tool_follows_the_taxonomy():
-    assert len(TAGS) == 234
+    assert len(TAGS) == 235
     assert problems(TAGS) == []
 
 
