@@ -87,8 +87,55 @@ async def fetch_norma(nv: NormaVisitata, *, canale: str = "html") -> dict:
 
 
 async def _cite_law_struct(reference: str, versione: str = "vigente") -> dict:
-    """Structured article lookup (no Brocardi): the JSON face of cite_law."""
-    return (await _cite_law_lookup(reference, versione=versione))[0]
+    """Structured article lookup (no Brocardi): the JSON face of cite_law.
+
+    The editorial notes are capped here (``limita_note_redazionali``): on a long original
+    text they reach 60,000 characters, enough for a whole call to fail on a client's output
+    cap where the article alone would pass. The library (``api.testo_articolo``) keeps them whole.
+    """
+    base = (await _cite_law_lookup(reference, versione=versione))[0]
+    (base["note_redazionali"], base["note_redazionali_troncate"],
+     base["note_redazionali_caratteri"]) = limita_note_redazionali(base.get("note_redazionali"))
+    return base
+
+
+#: The most characters of editorial notes cite_law's JSON carries (about 2,000 tokens).
+MAX_CARATTERI_NOTE_REDAZIONALI = 8000
+#: Put at the end of a note cut short by the cap.
+TAGLIO_NOTA = " […]"
+
+
+def limita_note_redazionali(note: "list[dict] | None",
+                            massimo: int | None = None) -> "tuple[list[dict] | None, bool, int | None]":
+    """``(notes, cut, characters)``: the editorial notes within *massimo* characters of ``testo``.
+
+    In order, whole while they fit; the note that crosses the cap is cut at the last space
+    before it and ends with «[…]»; the ones after it are left out. *cut* says so;
+    *characters* is the length of all their ``testo`` before the cap. ``(None, False, None)``
+    for notes not read.
+    """
+    if note is None:
+        return None, False, None
+    massimo = MAX_CARATTERI_NOTE_REDAZIONALI if massimo is None else massimo
+    totale = sum(len(n["testo"]) for n in note)
+    if totale <= massimo:
+        return list(note), False, totale
+    tenute: list[dict] = []
+    resto = massimo
+    for n in note:
+        if len(n["testo"]) <= resto:
+            tenute.append(n)
+            resto -= len(n["testo"])
+            continue
+        if resto > 0:
+            taglio = n["testo"][:resto]
+            if not n["testo"][resto].isspace():  # the cap falls inside a word: back to its start
+                spazio = taglio.rfind(" ")
+                taglio = taglio[:spazio] if spazio > 0 else taglio
+            taglio = taglio.rstrip()
+            tenute.append({**n, "testo": taglio + TAGLIO_NOTA})
+        break
+    return tenute, True, totale
 
 
 async def _cite_law_lookup(reference: str, *, canale: str = "html",
@@ -142,6 +189,9 @@ def _lookup_base(reference: str) -> dict:
         # [{intestazione, testo, ordine}], [] for none, None when not read (not a Normattiva
         # text, or unread); whether the text already carries them (note_redazionali below).
         "note_redazionali": None, "note_redazionali_nel_testo": False,
+        # In the JSON only: whether they were cut to MAX_CARATTERI_NOTE_REDAZIONALI, and the
+        # length of their whole text (None when not read).
+        "note_redazionali_troncate": False, "note_redazionali_caratteri": None,
         # An article Normattiva splits into parts («1 (commi 1-100)» …): the parts
         # ([{progressivo, commi_dal, commi_al, url}], [] when not split, None when the text is
         # not a Normattiva page's), the part the text is, and whether the text is one part only.
@@ -282,16 +332,25 @@ def note_aggiornamento(base: dict) -> None:
         base["avvisi"] = list(base.get("avvisi") or []) + [AVVISO_NOTE_NON_LETTE]
 
 
-def riga_note_redazionali(nel_testo: bool = False) -> str:
+def riga_note_redazionali(nel_testo: bool = False, caratteri: int | None = None) -> str:
     """The one line the markdown output gives an article's editorial notes (decision LI-058).
 
     Their words stay out of it: they have no normative value, and their transcriptions of
     other provisions are the texts of the day of publication. *nel_testo*: the text above
     already ends with them (VisuaLex's fallback shape), so the line says so instead of
-    pointing at the JSON.
+    pointing at the JSON; *caratteri*, their whole length: past the JSON's cap the line says
+    how much of them the JSON carries.
     """
-    dove = ("sono riportate in coda al testo" if nel_testo
-            else 'per leggerle: cite_law(formato="json"), campo note_redazionali')
+    if nel_testo:
+        dove = "sono riportate in coda al testo"
+    elif caratteri is not None and caratteri > MAX_CARATTERI_NOTE_REDAZIONALI:
+        # The JSON carries only part of them: said here, so the reader knows before asking.
+        dove = (f'per leggerle: cite_law(formato="json"), campo note_redazionali, che ne riporta '
+                f'le prime {MAX_CARATTERI_NOTE_REDAZIONALI:,} battute su {caratteri:,} (testo integrale '
+                "su Normattiva)").replace(",", ".")
+    else:
+        dove = 'per leggerle: cite_law(formato="json"), campo note_redazionali'
+
     return ("**Note redazionali**: la Gazzetta Ufficiale pubblica con l'atto note a questo articolo "
             "(art. 10 d.P.R. 1092/1985), prive di valore normativo; i testi che trascrivono sono quelli "
             f"alla data di pubblicazione, non quelli vigenti; {dove}.")

@@ -771,6 +771,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
     line under the text, never their words: the notes exist, have no normative value (art.
     10 d.P.R. 1092/1985), transcribe texts as of the publication date, and the JSON has
     them.
+  - **The JSON caps them at 8,000 characters.** They reach 60,000 on a long original text,
+    enough to break a client's output cap. Past the cap, `note_redazionali_troncate` is `true`,
+    `note_redazionali_caratteri` gives their whole length, the note cut short ends with «[…]»,
+    and the markdown line says how much the JSON carries. The library keeps them whole.
+  - **Headings.** A heading is matched in any case. A line naming another act's article
+    («Nota all'art. 14 della legge 400/1988:») is never taken for one.
   - **Cache.** The export's cache keeps the notes; an export kept before this version
     gives `None` («not read»), never «none».
 - **The citation gate checks the comma of an article read in parts.** An article

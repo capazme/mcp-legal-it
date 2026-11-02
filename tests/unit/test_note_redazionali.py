@@ -127,6 +127,21 @@ class TestLettore:
             ["Avvertenza:", "x", "Note alle premesse.", "- y", "Note all'art. 1:", "- z"])] == [
             "Avvertenza", "Note alle premesse", "Note all'art. 1"]
 
+    def test_headings_in_any_case(self):
+        # «Note all'Art. 5:» lost would be a false «no notes».
+        for intestazione in ("Note all'Art. 5", "NOTE ALL'ART. 5", "Nota all'articolo 5", "note all'art. 5"):
+            assert note_redazionali.dell_articolo(note_redazionali.sezioni([intestazione + ":", "- x"])) == [
+                {"intestazione": intestazione, "testo": "- x", "ordine": 1}], intestazione
+
+    def test_a_line_naming_another_act_s_article_is_never_a_heading(self):
+        righe = ["Note alle premesse:", "- a",
+                 "Nota all'art. 14 della legge 23 agosto 1988, n. 400:", "- b",
+                 "Note all'art. 1:", "- c"]
+        tutte = note_redazionali.sezioni(righe)
+        assert [n["intestazione"] for n in tutte] == ["Note alle premesse", "Note all'art. 1"]
+        assert "Nota all'art. 14 della legge 23 agosto 1988, n. 400:\n- b" in tutte[0]["testo"]
+        assert note_redazionali.dell_articolo(tutte) == [{"intestazione": "Note all'art. 1", "testo": "- c", "ordine": 1}]
+
     def test_only_the_notes_to_the_article(self):
         lette = [{"intestazione": h, "testo": "t", "ordine": i} for i, h in enumerate(
             ["", "Avvertenza", "Note alle premesse", "Note all'art. 2", "Nota all'articolo 2",
@@ -293,6 +308,40 @@ class TestStrumentiMcp:
         assert [(n["intestazione"], n["ordine"]) for n in j["note_redazionali"]] == [("Note all'art. 7", 1)]
         assert j["note_redazionali_nel_testo"] is False
         assert "Si riporta" not in j["testo"]
+
+    def test_the_json_cap(self):
+        note = [{"intestazione": "Note all'art. 1", "testo": "uno due tre", "ordine": 1},
+                {"intestazione": "Note all'art. 1", "testo": "quattro cinque sei sette", "ordine": 2},
+                {"intestazione": "Note all'art. 1", "testo": "otto", "ordine": 3}]
+        assert norme.limita_note_redazionali(note, 100) == (note, False, 39)
+        tenute, troncate, caratteri = norme.limita_note_redazionali(note, 25)
+        assert troncate is True and caratteri == 39
+        # Whole while they fit; the one crossing the cap cut at a space and marked; none after it.
+        assert tenute == [note[0], {**note[1], "testo": "quattro cinque" + norme.TAGLIO_NOTA}]
+        # Inside a word: back to the last space.
+        assert norme.limita_note_redazionali(note, 23)[0][1]["testo"] == "quattro" + norme.TAGLIO_NOTA
+        assert norme.limita_note_redazionali(None) == (None, False, None)
+        assert norme.limita_note_redazionali([]) == ([], False, 0)
+
+    async def test_cite_law_json_caps_them_and_says_so(self, monkeypatch):
+        monkeypatch.setattr(norme, "MAX_CARATTERI_NOTE_REDAZIONALI", 1000)
+        with api.configurazione(client_factory=_servi(L24_ART7)):
+            j = json.loads(await lc._cite_law_impl("art. 7 legge 8 marzo 2017, n. 24", formato="json"))
+            md = await lc._cite_law_impl("art. 7 legge 8 marzo 2017, n. 24")
+            t = await api.testo_articolo(_l24(), canale="html")
+        intera = t.note_redazionali[0].testo  # the library keeps them whole
+        assert j["note_redazionali_troncate"] is True and j["note_redazionali_caratteri"] == len(intera) > 1000
+        testo = j["note_redazionali"][0]["testo"]
+        assert testo.endswith(norme.TAGLIO_NOTA) and len(testo) <= 1000 + len(norme.TAGLIO_NOTA)
+        assert intera.startswith(testo[:-len(norme.TAGLIO_NOTA)])
+        # The markdown line says how much of them the JSON carries.
+        assert f"le prime 1.000 battute su {len(intera):,}".replace(",", ".") in md
+
+    async def test_cite_law_json_under_the_cap(self):
+        with api.configurazione(client_factory=_servi(L24_ART7)):
+            j = json.loads(await lc._cite_law_impl("art. 7 legge 8 marzo 2017, n. 24", formato="json"))
+        assert j["note_redazionali_troncate"] is False
+        assert j["note_redazionali_caratteri"] == len(j["note_redazionali"][0]["testo"])
 
     async def test_cite_law_json_without_them(self):
         with api.configurazione(client_factory=_servi(DLGS23_ART3)):
