@@ -439,8 +439,17 @@ def _number_query_for_st13(st13: str) -> tuple[str, str] | None:
     return (m.group(1), number) if number else None
 
 
-async def find_trademark_by_st13(st13: str) -> TrademarkResult | None:
-    """The search endpoint's record for exactly this ST13, or None.
+@dataclass
+class St13Lookup:
+    """What the search said for one ST13: the exact hit if any, and how much was looked at."""
+
+    found: TrademarkResult | None
+    total: int  # marks the search reported for the office + number query
+    read: int  # marks on the page read (the hit is looked for there only)
+
+
+async def find_trademark_by_st13(st13: str) -> St13Lookup | None:
+    """The search endpoint's answer for exactly this ST13; None if the ST13 can't be searched.
 
     One search request, filtered by office and application number; a hit counts only if its
     ST13 is the one asked. Raises what search_trademarks raises.
@@ -451,8 +460,9 @@ async def find_trademark_by_st13(st13: str) -> TrademarkResult | None:
     office, number = query
     # A full page: the field is not matched literally (padding is ignored), so a short number may
     # bring more than one mark, and the right one must not fall off the page.
-    _, results = await search_trademarks(
+    total, results = await search_trademarks(
         "", offices=[office], application_number=number, page_size=_MAX_PAGE_SIZE
     )
     wanted = st13.strip().upper()
-    return next((tm for tm in results if tm.st13 == wanted), None)
+    found = next((tm for tm in results if tm.st13 == wanted), None)
+    return St13Lookup(found=found, total=total, read=len(results))

@@ -14,6 +14,7 @@ from mcp_legal_it.lib.tmview.client import (
     TMviewBlockedError,
     TMviewNotFoundError,
     TMviewRefusedError,
+    St13Lookup,
     TrademarkDetail,
     TrademarkResult,
     _build_search_payload,
@@ -450,7 +451,9 @@ class TestLookupBySt13:
         mock_client = _mock_http_client(post_response=_json_response(_SEARCH_BY_NUMBER_RESPONSE))
         with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
              patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
-            found = await find_trademark_by_st13("IT502013902128590")
+            lookup = await find_trademark_by_st13("IT502013902128590")
+        found = lookup.found
+        assert lookup.total == 1 and lookup.read == 1
         assert found is not None and found.st13 == "IT502013902128590"
         assert found.applicants == ["MENNUCCI LETIZIA"] and found.nice_classes == [25, 43]
         payload = mock_client.post.await_args.kwargs["json"]
@@ -463,12 +466,14 @@ class TestLookupBySt13:
         mock_client = _mock_http_client(post_response=_json_response(_SEARCH_RESPONSE))
         with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", return_value=mock_client), \
              patch("mcp_legal_it.lib.tmview.client._MIN_INTERVAL", 0):
-            assert await find_trademark_by_st13("IT502013902128590") is None
+            lookup = await find_trademark_by_st13("IT502013902128590")
+        # the search said 9 marks, the page held 3, none of them the one asked
+        assert lookup == St13Lookup(found=None, total=9, read=3)
 
     @pytest.mark.asyncio
     async def test_unusable_st13_makes_no_request(self):
         with patch("mcp_legal_it.lib.tmview.client.httpx.AsyncClient", side_effect=AssertionError("no call")):
-            assert await find_trademark_by_st13("IT500000000000000") is None
+            assert await find_trademark_by_st13("IT500000000000000") is None  # nothing searched
 
 
 class TestFetchTrademark:
@@ -694,7 +699,7 @@ class TestRifiutoTMview:
     @pytest.mark.asyncio
     async def test_leggi_marchio_says_the_source_refused_without_the_url(self):
         with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(side_effect=TMviewRefusedError(403))), \
-             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=None)):
+             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=St13Lookup(None, 0, 0))):
             result = await _leggi_marchio_impl("IT502013902128590")
         assert result.success is False and result.error_type == "refused"
         text = result.to_str()
@@ -722,7 +727,7 @@ class TestSchedaRifiutata:
     @pytest.mark.asyncio
     async def test_partial_record_from_the_search_marked_as_such(self):
         with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(side_effect=TMviewRefusedError(403))), \
-             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=self._found())) as cerca:
+             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=St13Lookup(self._found(), 1, 1))) as cerca:
             result = await _leggi_marchio_impl(" IT502013902128590 ")
         cerca.assert_awaited_once_with("IT502013902128590")
         assert result.success is True and result.error_type == "partial" and result.num_found == 1
@@ -742,7 +747,7 @@ class TestSchedaRifiutata:
     @pytest.mark.asyncio
     async def test_no_match_in_the_search_is_the_refusal_with_the_link(self):
         with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(side_effect=TMviewRefusedError(403))), \
-             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=None)):
+             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=St13Lookup(None, 0, 0))):
             result = await _leggi_marchio_impl("CH502024000017249")
         assert result.success is False and result.error_type == "refused"
         text = result.to_str()
@@ -750,6 +755,19 @@ class TestSchedaRifiutata:
         assert "Non significa che il marchio non esista" in text
         assert "nessun marchio con ST13 `CH502024000017249`" in text
         assert "https://www.tmdn.org/tmview/#/tmview/detail/CH502024000017249" in text
+
+    @pytest.mark.asyncio
+    async def test_more_results_than_read_is_not_said_as_none(self):
+        """The search had more marks than the page read: 'not among the first N', never 'none'."""
+        with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(side_effect=TMviewRefusedError(403))), \
+             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=St13Lookup(None, 73, 50))):
+            result = await _leggi_marchio_impl("EM500000000000123")
+        assert result.error_type == "refused"
+        text = result.to_str()
+        assert "non restituisce nessun marchio" not in text
+        assert ("L'ST13 `EM500000000000123` non è tra i primi 50 risultati della ricerca TMview "
+                "per numero di domanda (73 in tutto): verificarlo con cerca_marchi().") in text
+        assert "https://www.tmdn.org/tmview/#/tmview/detail/EM500000000000123" in text
 
     @pytest.mark.asyncio
     async def test_unsearchable_st13_does_not_claim_a_search_was_made(self):
@@ -783,7 +801,7 @@ class TestSchedaRifiutata:
     @pytest.mark.asyncio
     async def test_lowercase_st13_gives_the_uppercase_link(self):
         with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(side_effect=TMviewRefusedError(403))), \
-             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=self._found())):
+             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=St13Lookup(self._found(), 1, 1))):
             text = (await _leggi_marchio_impl("it502013902128590")).to_str()
         assert "https://www.tmdn.org/tmview/#/tmview/detail/IT502013902128590" in text
 
@@ -792,7 +810,7 @@ class TestSchedaRifiutata:
         senza_nome = self._found()
         senza_nome.name = ""
         with patch("mcp_legal_it.tools.tmview.fetch_trademark", AsyncMock(side_effect=TMviewRefusedError(403))), \
-             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=senza_nome)):
+             patch("mcp_legal_it.tools.tmview.find_trademark_by_st13", AsyncMock(return_value=St13Lookup(senza_nome, 1, 1))):
             text = (await _leggi_marchio_impl("IT502013902128590")).to_str()
         assert text.splitlines()[0] == "# IT502013902128590"
 
@@ -907,7 +925,7 @@ class TestLive:
             detail = await fetch_trademark("IT502013902128590")
         except TMviewRefusedError as exc:
             assert exc.status in (401, 403)
-            found = await find_trademark_by_st13("IT502013902128590")
+            found = (await find_trademark_by_st13("IT502013902128590")).found
             assert found is not None and found.name == "FUORICORSO"
             assert found.applicants == ["MENNUCCI LETIZIA"] and 25 in found.nice_classes
             return

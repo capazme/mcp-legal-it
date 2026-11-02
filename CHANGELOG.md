@@ -782,7 +782,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   class, representative, the holder's nationality, the status date and the publications.
   It ends with the link to the record on TMview, for a browser. When the search finds
   nothing, or the ST13 cannot be searched by number, or the search fails as well, the
-  answer is the refusal plus that link. `verifica_anteriorita_marchio` now says it works
+  answer is the refusal plus that link. When the search reports more marks than the page
+  read, a miss is said as «non è tra i primi N risultati», never as «nessun marchio». `verifica_anteriorita_marchio` now says it works
   from the search data only and does not compare goods and services. The live tests accept
   two outcomes, the full record or the declared partial one, so they pass whether or not
   TMview lifts the block.
