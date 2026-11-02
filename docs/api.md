@@ -749,14 +749,25 @@ The text in force of one article, from Normattiva or EUR-Lex.
   - **Both channels.** The HTML channel reads them from the page, the `akn` channel (or the
     export as a fallback) from the export: for art. 4 d.lgs. 231/2001 the two give the same
     sections and the same words, but for the export's transliterated accents.
+  - **Known limits.** A heading is matched in any case («Note all'Art. 5»). A line naming
+    another act's article («Nota all'art. 14 della legge 400/1988:») is never a heading. A
+    block «Note agli articoli 2 e 3» is read where Normattiva puts it, on the page of art. 2
+    only: art. 3's page does not carry it.
   - **In the MCP tools.** `cite_law(formato="json")` carries `note_redazionali` and
-    `note_redazionali_nel_testo`. The markdown output of `cite_law` and `fetch_law_article`
+    `note_redazionali_nel_testo`, capped at 8,000 characters of notes
+    (`norme.MAX_CARATTERI_NOTE_REDAZIONALI`). Past the cap, the notes are kept whole while
+    they fit, the one crossing it is cut at a space and ends with «[…]», and those after it
+    are left out. `note_redazionali_troncate` is then `true` and `note_redazionali_caratteri`
+    gives their whole length. On a long original text they reach 60,000 characters, enough to
+    break a client's output cap. The library (`testo_articolo`) keeps them whole. The markdown output of `cite_law` and `fetch_law_article`
     gives them one line under the text, never their words: «**Note redazionali**: la
     Gazzetta Ufficiale pubblica con l'atto note a questo articolo (art. 10 d.P.R.
     1092/1985), prive di valore normativo; i testi che trascrivono sono quelli alla data di
     pubblicazione, non quelli vigenti; per leggerle: cite_law(formato="json"), campo
-    note_redazionali.» (`norme.riga_note_redazionali`). When the text already ends with them,
-    the line says «sono riportate in coda al testo» instead.
+    note_redazionali.» (`norme.riga_note_redazionali`). Past the JSON's cap the line adds how
+    much the JSON carries («che ne riporta le prime 8.000 battute su 61.295 (testo integrale su
+    Normattiva)»). When the text already ends with them, the line says «sono riportate in coda
+    al testo» instead.
 - **Articles split into parts (`parti`, `testo_parziale`).** Normattiva serves a very long
   article in parts. Art. 1 L. 296/2006 is 14 parts, «1 (commi 1-100)» to «1 (commi
   1301-1364)», and the article's own page is the first.

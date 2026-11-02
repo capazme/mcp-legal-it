@@ -139,7 +139,8 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
             article_result.get("note_redazionali_nel_testo") is True)
         if redazionali:
             # The Gazzetta's notes to the article: one line, never their words (decision LI-058).
-            parts.append("\n" + riga_note_redazionali(redazionali_nel_testo))
+            parts.append("\n" + riga_note_redazionali(redazionali_nel_testo,
+                                                         sum(len(n["testo"]) for n in redazionali)))
         if parti:
             parts.append("\n**Parti dell'articolo su Normattiva**: "
                          + "; ".join(f"commi {p['commi_dal']}-{p['commi_al']}" for p in parti) + ".")
@@ -332,7 +333,9 @@ async def cite_law(
                  null se non lette) sono le note della Gazzetta all'articolo («Note
                  all'art. N», art. 10 d.P.R. 1092/1985): non sono testo normativo e i testi
                  che trascrivono sono quelli alla data di pubblicazione, non quelli vigenti
-                 ("note_redazionali_nel_testo": il testo le contiene già). In markdown una
+                 ("note_redazionali_nel_testo": il testo le contiene già). Il JSON ne riporta
+                 al massimo 8.000 battute: oltre, "note_redazionali_troncate" è true e
+                 "note_redazionali_caratteri" ne dà la lunghezza intera. In markdown una
                  sola riga ne segnala la presenza.
                  "parti" ([{progressivo, commi_dal, commi_al, url}], [] se l'articolo non è
                  diviso), "parte" (quella letta) e "testo_parziale" per un articolo diviso

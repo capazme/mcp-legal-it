@@ -44,17 +44,21 @@ _BLOCCO_HTML = "note-akn"
 _BANNER = re.compile(r"N\s*O\s*T\s*E")
 # A heading opens a line and ends with a colon, in one of the three kinds a block holds:
 # «Avvertenza:», «Note alle premesse:» (the Gazzetta also writes «Note alla premesse:») and the
-# notes to the article, «Note all'art. 13:», «Nota all'art. 4:», «Note agli articoli 2 e 3:».
-# Capitalised as the Gazzetta writes them. Any other line, «Note al decreto …:» inside a note
-# included, is words of the section it sits in: never a heading, so never dropped with one.
-# The words after the colon on the same line, if any, are the section's first line; a heading
-# alone on its line may end with a full stop instead.
+# notes to the article, «Note all'art. 13:», «Nota all'art. 4:», «Note agli articoli 2 e 3:»,
+# in any case («Note all'Art. 5:», «NOTE ALL'ART. 5:»). Any other line, «Note al decreto …:»
+# inside a note included, is words of the section it sits in: never a heading, so never
+# dropped with one. The words after the colon on the same line, if any, are the section's
+# first line; a heading alone on its line may end with a full stop instead.
 _INTESTAZIONE = re.compile(
-    r"(Avvertenza|AVVERTENZA"
-    r"|(?:Not[ae]|NOT[AE])\s+(?:all[ae]|ALL[AE])\s+(?:premesse|PREMESSE)"
-    r"|(?:Not[ae]|NOT[AE])\s+(?:all['’]\s*|agli\s+|ALL['’]\s*|AGLI\s+)(?:art|ART)[^:]{0,120}?)"
-    r"(?:\s*:\s*(.*)|\s*\.)"  # «Note alle premesse.»: a full stop, the heading alone on its line
+    r"(avvertenza"
+    r"|not[ae]\s+all[ae]\s+premesse"
+    r"|not[ae]\s+(?:all['’]\s*|agli\s+)art[^:]{0,120}?)"
+    r"(?:\s*:\s*(.*)|\s*\.)",  # «Note alle premesse.»: a full stop, the heading alone on its line
+    re.IGNORECASE,
 )
+# «Nota all'art. 14 della legge 400/1988:» names an article of another act: a line of the note
+# it sits in (the «Note alle premesse» above all), never the heading of this article's notes.
+_ALTRO_ATTO = re.compile(r"\b(?:del|dello|della|dei|degli|delle|di)\b", re.IGNORECASE)
 
 
 def _righe_html(nodo: Tag) -> list[str]:
@@ -117,6 +121,8 @@ def sezioni(righe: Iterable[str], ordine_da: int = 1) -> list[dict[str, Any]]:
         if not riga or _BANNER.fullmatch(riga):
             continue
         m = _INTESTAZIONE.fullmatch(riga)
+        if m and _ALTRO_ATTO.search(m.group(1)):
+            m = None
         if m:
             corrente = {"intestazione": " ".join(m.group(1).split()), "righe": [m.group(2)] if m.group(2) else []}
             risultato.append(corrente)
