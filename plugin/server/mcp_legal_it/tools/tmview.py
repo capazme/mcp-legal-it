@@ -12,10 +12,15 @@ from mcp_legal_it.lib.tmview.client import (
     TMviewBlockedError,
     TMviewNotFoundError,
     TMviewRefusedError,
+    St13Lookup,
+    TrademarkResult,
     _normalize_name,
+    _number_query_for_st13,
     fetch_trademark,
+    find_trademark_by_st13,
     format_detail,
     format_result,
+    public_detail_url,
     search_trademarks,
 )
 
@@ -40,8 +45,52 @@ def _rifiuto(exc: TMviewRefusedError) -> SearchResult:
 _DISCLAIMER_ANTERIORITA = (
     "*Verifica preliminare su denominazione (ricerca testuale TMview): non valuta "
     "somiglianza fonetica, concettuale o grafica né i marchi figurativi senza "
-    "denominazione. Non sostituisce una ricerca di anteriorità professionale.*"
+    "denominazione. Usa i soli dati della ricerca (denominazione, classi, stato, titolare) e "
+    "non legge la scheda dei singoli marchi: non confronta la descrizione di prodotti e servizi. "
+    "Non sostituisce una ricerca di anteriorità professionale.*"
 )
+
+#: Since when TMview refuses automated requests for the trademark detail (issue #124).
+_SCHEDA_RIFIUTATA_DAL = "29/10/2026"
+
+#: What the detail carries and the search does not.
+_MANCANTI_NELLA_RICERCA = (
+    "descrizione di prodotti e servizi per classe, rappresentante, nazionalità del titolare, "
+    "data dello stato, pubblicazioni"
+)
+
+
+def _scheda_rifiutata(
+    st13: str, exc: TMviewRefusedError, found: TrademarkResult | None, esito: str,
+) -> SearchResult:
+    """Detail refused: the search's record for the same ST13 marked as partial, or the refusal.
+
+    Either way the public TMview page is given, for the lawyer to open in a browser.
+    """
+    link = f"Scheda completa da consultare nel browser: {public_detail_url(st13)}"
+    if found is not None:
+        corpo = format_result(found).split("\n", 1)[1]
+        lines = [
+            f"# {found.name or found.st13}",
+            (
+                f"**Scheda parziale**: dal {_SCHEDA_RIFIUTATA_DAL} TMview rifiuta le richieste "
+                f"automatiche della scheda completa (HTTP {exc.status}). Seguono i soli dati che la "
+                "ricerca TMview restituisce per questo ST13."
+            ),
+            "",
+            corpo,
+            "",
+            f"**Mancano** rispetto alla scheda completa: {_MANCANTI_NELLA_RICERCA}.",
+            link,
+        ]
+        return SearchResult(
+            success=True, source="tmview", error_type="partial", num_found=1, results_text="\n".join(lines),
+        )
+    testo = _rifiuto(exc).results_text
+    return SearchResult(
+        success=False, source="tmview", error_type="refused",
+        results_text=f"{testo}\n\n{esito}\n{link}",
+    )
 
 
 def _parse_uffici(uffici: str) -> list[str]:
@@ -124,12 +173,35 @@ async def _cerca_marchi_impl(
 
 
 async def _leggi_marchio_impl(st13: str) -> SearchResult:
+    st13 = st13.strip()
     try:
-        detail = await fetch_trademark(st13.strip())
+        detail = await fetch_trademark(st13)
     except TMviewBlockedError:
         return SearchResult(success=False, source="tmview", error_type="source_down", error_message=_WAF_HINT)
     except TMviewRefusedError as exc:
-        return _rifiuto(exc)
+        # The refusal is the source's: no way around it, only what the search legitimately gives.
+        if _number_query_for_st13(st13) is None:
+            return _scheda_rifiutata(st13, exc, None, (
+                f"L'ST13 `{st13}` non permette di cercarlo per numero di domanda: "
+                "verificarlo con cerca_marchi()."
+            ))
+        try:
+            lookup: St13Lookup | None = await find_trademark_by_st13(st13)
+        except TMviewBlockedError:
+            return _scheda_rifiutata(st13, exc, None, f"La ricerca di ripiego non ha dato esito: {_WAF_HINT}")
+        except TMviewRefusedError:
+            return _scheda_rifiutata(st13, exc, None, "Anche la ricerca di ripiego su TMview è stata rifiutata.")
+        except Exception:
+            return _scheda_rifiutata(st13, exc, None, "La ricerca di ripiego su TMview non ha dato esito.")
+        if lookup is None or (lookup.found is None and lookup.total <= lookup.read):
+            esito = f"La ricerca TMview non restituisce nessun marchio con ST13 `{st13}`."
+        else:
+            # Only the first page was read: what lies beyond it is not known, so not denied.
+            esito = (
+                f"L'ST13 `{st13}` non è tra i primi {lookup.read} risultati della ricerca TMview "
+                f"per numero di domanda ({lookup.total} in tutto): verificarlo con cerca_marchi()."
+            )
+        return _scheda_rifiutata(st13, exc, lookup.found if lookup else None, esito)
     except TMviewNotFoundError:
         # TMview answered (HTTP 500 "Can't get trademark/design detail"): it is reachable but
         # has no record for this ST13. The reply is the same for an unknown ST13 and for the
@@ -139,7 +211,7 @@ async def _leggi_marchio_impl(st13: str) -> SearchResult:
             source="tmview",
             error_type="no_results",
             results_text=(
-                f"Nessuna scheda restituita da TMview per ST13 `{st13.strip()}`: ST13 inesistente "
+                f"Nessuna scheda restituita da TMview per ST13 `{st13}`: ST13 inesistente "
                 "o scheda dell'ufficio d'origine momentaneamente non disponibile. "
                 "Verificare l'ST13 con cerca_marchi()."
             ),
@@ -255,6 +327,9 @@ async def leggi_marchio(st13: str) -> str:
     titolare con nazionalità, rappresentante, descrizione prodotti/servizi per classe
     di Nizza, pubblicazioni, date di deposito/registrazione/scadenza, stato corrente.
     Restituisce: scheda completa del marchio dall'ufficio di origine.
+    Dal 29/10/2026 TMview rifiuta le richieste automatiche della scheda (HTTP 403): in quel caso
+    restituisce una SCHEDA PARZIALE, dichiarata come tale, con i soli dati della ricerca per
+    quell'ST13 (titolare, classi, stato, date) e il link alla scheda TMview da aprire nel browser.
     Se TMview non restituisce nessuna scheda (risposta HTTP 500 "Can't get trademark/design
     detail") l'esito è "nessuna scheda restituita": ST13 inesistente OPPURE scheda dell'ufficio
     momentaneamente non disponibile, che TMview non distingue. Non è "fonte non raggiungibile" e
