@@ -63,6 +63,9 @@ CALLS: list[tuple[str, dict]] = [
     ("cite_law", {"reference": "art. 5 legge inventata 1/1900"}),
     ("cite_law", {"reference": "art. 13 D.Lgs. 196/2003", "formato": "json"}),
     ("cite_law", {"reference": "art. 1 L. 241/1990"}),
+    ("storia_norma", {"riferimento": "art. 2-ter d.lgs. 196/2003"}),
+    ("storia_norma", {"riferimento": "art. 612-bis c.p.", "dal": "2019-01-01", "formato": "json"}),
+    ("storia_norma", {"riferimento": "art. 5 legge inventata 1/1900"}),
     ("fetch_law_article", {"act_type": "codice penale", "article": "575"}),
     ("fetch_law_annotations", {"act_type": "codice civile", "article": "1176"}),
     ("cerca_brocardi", {"reference": "art. 2043 c.c."}),
@@ -128,14 +131,18 @@ def install_tape_transport(mode: str, tape_path: str, misses: list[str] | None =
             await request.aread()
             resp = await self._inner.handle_async_request(request)
             content = await resp.aread()
-            headers = [(k, v) for k, v in resp.headers.items()
-                       if k.lower() not in ("content-encoding", "transfer-encoding", "content-length", *_SECRET_HEADERS)]
+            # The body is already decoded: its encoding and length headers no longer describe it.
+            live = [(k, v) for k, v in resp.headers.multi_items()
+                    if k.lower() not in ("content-encoding", "transfer-encoding", "content-length")]
+            headers = [(k, v) for k, v in live if k.lower() not in _SECRET_HEADERS]
             # The tape keeps the request's method, URL and body hash, never its headers; a body that
             # carries a source's public credentials (the Corte dei conti's configuration) is scrubbed.
             recorded = scrub(str(request.url), content)
             tape.setdefault(key(request), []).append(
                 {"status": resp.status_code, "headers": headers, "body": base64.b64encode(recorded).decode()})
-            return httpx.Response(resp.status_code, headers=headers, content=content, request=request)
+            # The live client gets its cookies back: a source with a session (Normattiva's
+            # per-version tables) answers the next request with a session page without them.
+            return httpx.Response(resp.status_code, headers=live, content=content, request=request)
 
     class Replayer(httpx.AsyncBaseTransport):
         def __init__(self, verify=True):
