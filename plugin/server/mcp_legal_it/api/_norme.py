@@ -328,6 +328,7 @@ _PROBLEMI_TRANSITORI = {
     "sessione": "sessione scaduta",
     "manutenzione": "sito in manutenzione",
     "illeggibile": "risposta senza atto né pagina di errore",
+    "senza_intestazione": "pagina senza l'intestazione dell'atto",
 }
 
 
