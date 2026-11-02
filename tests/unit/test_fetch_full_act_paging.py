@@ -103,7 +103,7 @@ async def test_tool_exposes_the_optional_parameter():
 # ---------------------------------------------------------------------------
 
 
-def _counting(monkeypatch, texts, source=None):
+def _counting(monkeypatch, texts, source=None, avvisi=None):
     """Serve ``texts`` one reading after the other; returns the list of readings made."""
     calls = []
 
@@ -116,6 +116,8 @@ def _counting(monkeypatch, texts, source=None):
         out = {"text": text, "title": "LEGGE 20 maggio 1970, n. 300", "url": URL}
         if source:
             out["source"] = source
+        if avvisi:
+            out["avvisi"] = list(avvisi)
         return out
 
     monkeypatch.setattr(lc, "fetch_normattiva_full_text", fake)
@@ -300,6 +302,23 @@ async def test_gate_does_not_credit_headings_a_window_cut(monkeypatch, re_read):
         lc._FULL_ACT_READINGS.clear()
     out = await lc._fetch_full_act_impl("L. 300/1970", da_carattere=WINDOW + 1)
     assert ("*[Testo riletto dalla fonte:" in out) is re_read
+    for credited in (articoli_serviti(out), _fallback_reader().articoli_serviti(out)):
+        assert "4" not in credited and "7" not in credited
+
+
+@pytest.mark.asyncio
+async def test_gate_skips_the_notices_before_a_windows_first_line(monkeypatch):
+    # The notices of a reading («**Avviso**: …», #106) sit between the header and the text in
+    # every window: the line a later window may cut is the text's first, not the notice.
+    from mcp_legal_it.core.citazioni import articoli_serviti
+
+    text = _act_cut_in_a_heading()
+    avvisi = ["Parti in formato grafico: Normattiva pubblica Allegato II solo come immagine (PDF)",
+              "Lettura parziale: 1 parte dell'atto non è stata letta da Normattiva (art. 1 (commi 101-200))"]
+    _counting(monkeypatch, [text], avvisi=avvisi)
+    await lc._fetch_full_act_impl("L. 300/1970")
+    out = await lc._fetch_full_act_impl("L. 300/1970", da_carattere=WINDOW + 1)
+    assert out.count("**Avviso**: ") == 2
     for credited in (articoli_serviti(out), _fallback_reader().articoli_serviti(out)):
         assert "4" not in credited and "7" not in credited
 

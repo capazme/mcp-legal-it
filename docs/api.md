@@ -995,6 +995,17 @@ The whole text of an Italian act from Normattiva. It can be very long for the
 codes.
 
 - **Esiti:** as `indice_atto`. `testo_assente` covers a text under 50 characters.
+- **`completo`.** `True` when every entry of the text was read. From the Akoma
+  Ntoso export that means the act's articles: the text leaves the annexes out
+  (not yet said in `avvisi`). Without the export it means every article page
+  and every part of an article Normattiva splits («1 (commi 1-100)» …), the
+  annexes' pages included. `False` when an entry could not be read; `avvisi`
+  names it. A failed entry is transient: ask again.
+- **`avvisi`.** What the text does not carry, in words a reader can be shown:
+  the entries not read, and the parts Normattiva publishes as images only
+  («Parte di provvedimento in formato grafico», e.g. the budget law's tables).
+  Those parts have no text anywhere on Normattiva, so they do not make the
+  reading incomplete; the avviso names them and links the act's page.
 
 ### `annotazioni_brocardi(riferimento: str) -> AnnotazioniBrocardi`
 
@@ -1238,7 +1249,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti, consolidato, consolidato_verificato` |
 | `ConsiderandiAtto` | VisuaLex `/fetch_recitals`: `esito, considerando` (`{number, text}`), plus `url, errore, fonti` |
-| `TestoAtto` | `esito, testo, titolo, url, errore, fonti` |
+| `TestoAtto` | `esito, testo, titolo, url, errore, fonti, completo, avvisi` |
 | `AnnotazioniBrocardi` | `esito, url, ratio, spiegazione, brocardi, massime, errore, fonti` |
 | `MassimaBrocardi` | `autorita, numero, anno, testo` |
 | `CatalogoAlias` | `presets, known_acts` |

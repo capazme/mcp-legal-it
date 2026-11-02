@@ -722,6 +722,47 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **Headings without a number.** An act heading without «, n. …» («DECRETO DEL PRESIDENTE
     DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») now counts as an act's heading, not as a page
     without one.
+- **`fetch_full_act` without the Akoma Ntoso export reads every article and every part of
+  an article, and says what it could not read** (#106). The article-by-article reading of
+  the Normattiva page kept one tree entry per article number, and called the result
+  complete. On L. 213/2023 it carried 188,540 characters against the export's 500,423.
+  - **Every part of a split article is read** («1 (commi 1-100)» … «1 (commi 501-561)»), in
+    the tree's order, with the session the act's page set. It used to read the first part
+    only. A part's page must name the part's commi, or it is not taken (with a dead session
+    Normattiva answers with another part); a part whose commi the tree does not state in a
+    form the reader knows is not taken either, nor a page whose visible line names another
+    article (two articles split into the same commi). A page with an empty body is an entry
+    not read.
+  - **Every article with a suffix is read.** Arts. 2, 2-bis and 2-ter share one article id
+    on Normattiva (2-quaterdecies and 2-quaterdecies.1 one sub-id): all but the first were
+    dropped. On the trees counted on 2 Nov 2026: 30 articles of D.Lgs. 196/2003 (arts. 2-bis
+    to 2-septiesdecies among them), 14 of D.Lgs. 36/2023; 260 on the codice civile tree kept
+    in the tests.
+  - **The older versions' entries are never read** («orig.», «agg.N», `art.imUpdate=true`).
+    The original text of an article Normattiva now lists under another group was read as
+    one more article: 25 outdated texts on D.Lgs. 196/2003, 1 on D.Lgs. 36/2023, 172 on the
+    codice civile tree.
+  - **What is missing is said**, in an «**Avviso**» line under the header of every window:
+    the entries that could not be read («art. 1 (commi 201-300)», «Allegato I»), and the
+    entries with parts Normattiva publishes as images only («Parte di provvedimento in
+    formato grafico»: the budget law's tables), with the act's page. An entry not read makes
+    the reading incomplete, as before (a later window then asks to start again); a part in
+    graphic form does not, since Normattiva has no text for it. A reading that falls back on
+    the act's own page (no tree, or no entry with a text) now says so too.
+  - **`download_law_pdf`** adds the same lines to its answer and prints them in the PDF,
+    under the source; **`api.testo_atto`** gains `completo` and `avvisi` (additions with
+    defaults, see `docs/api.md`). From the export, `completo` covers the act's articles: the
+    export's text leaves the annexes out, not yet said in a notice.
+  - **The citation gate** skips the «**Avviso**» lines when it drops the line a later
+    window may have cut, in both readers.
+  - **Measured live on 2 Nov 2026** (walk with `AKN_DISABLED=1`, against the export):
+    L. 213/2023 from 32 entries and 188,540 characters to 37 and 546,473 (export: 500,423;
+    the walk also carries the annexes' text, which the export's text leaves out), five
+    annexes named as having parts in graphic form; D.Lgs. 231/2001 from 85 entries and
+    117,582 characters to 110 and 158,924 (the export has 110 articles: the walk now reads
+    its articles with a suffix, 25-bis and the like); L. 604/1966 (29,425) unchanged; no
+    notice on either. Requests: one per entry, as before (L. 213/2023: 33 to 38; D.Lgs.
+    231/2001: 86 to 111).
 - **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).
   A Normattiva page with an act's ELI date or `eli:title` but no act heading
   («LEGGE 7 agosto 1990, n. 241») was read as another act's page, so the act came back
@@ -761,12 +802,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
     - A plural form («art. 1, commi 773 e 774, L. 296/2006», «commi 773-775») is invisible
       to the gate: neither reader takes it for a citation, as before this change.
     - `fetch_full_act` credits its articles but never as read whole: its Normattiva-page
-      fallback has only the first part of a split article (#106) and its answer does not
-      say which source served it. After a partial `cite_law`, a comma outside the part
+      fallback may miss a part of a split article (since #106 its answer then says so in an
+      «Avviso») and its answer does not say which source served it. After a partial `cite_law`, a comma outside the part
       read is asked for even when the whole act was read from Akoma Ntoso.
     - `fetch_full_act` alone, with no partial `cite_law`, still credits any comma of the
-      article, also when the text came from the Normattiva page that holds only part 1
-      (#106).
+      article, also when its Normattiva-page fallback could not read one of its parts (the
+      answer's «Avviso» names it, #106).
 - **An article Normattiva splits into parts is no longer cut in silence** (3.0 only:
   2.17.1 reads the Akoma Ntoso export, which has the whole article). Normattiva
   serves a very long article in parts: art. 1 L. 296/2006 is 14 parts, «commi 1-100»
@@ -961,6 +1002,18 @@ described in those sections, not repeated here. Upgrading from 2.x:
   encoding (also `io.open`, `codecs.open`, an `open` under another name and
   `encoding=None`) and another imports the server with `-X warn_default_encoding`,
   so the mistake cannot come back.
+- **The installer reads and writes the Claude configuration as UTF-8** (#133). `install.py`
+  used the locale encoding, cp1252 on Windows, for `claude_desktop_config.json` and the
+  Claude Code configuration: a non-ASCII value was garbled, and a file an editor had saved
+  with a BOM read as «not valid» and was rewritten from scratch without the user's other
+  servers (a `.bak` copy was kept). It now reads with `utf-8-sig`, writes UTF-8 and reads
+  the output of the commands it runs as UTF-8. The citation hook read its input in the
+  locale encoding too: on a Windows account with an accented name it could not open the
+  session and stopped checking in silence; it now reads the input as UTF-8, and so does
+  the PDF export script of the `esporta-documento` skill when the markdown is piped into
+  it. The encoding
+  test covers the installer and every script of the plugin, not only the server package.
+  The server package itself was fixed under #76; 2.17.2 carries both fixes.
 - **Installing from git works on Windows** (#76). On Windows, without
   `core.symlinks`, git checked out the 2.x root's `src` symlink as a text file,
   and `pip install git+https://…` built a wheel with no code. The link is gone
