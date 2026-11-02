@@ -443,6 +443,11 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
             out["esito"] = "verifica_non_disponibile" if _transitorio(exc) else "errore_fonte"
             out["errore"] = f"Normattiva non raggiungibile ({_motivo(exc)})"
             return out
+        try:
+            scraper.controlla_intestazione(url, pagina)  # the version pages are the same act's
+        except scraper.AttoNonVerificato as exc:
+            out["esito"], out["errore"] = exc.esito, str(exc)
+            return out
         servito = _servito(pagina)
         got = scraper._article_identity(servito) if servito else None
         if voluto is None or got is None or got != voluto:
