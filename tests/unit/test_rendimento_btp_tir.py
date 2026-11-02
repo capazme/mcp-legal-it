@@ -72,7 +72,9 @@ def test_btp_50_anni_asta_10_settembre_2026():
     assert r["rendimento_effettivo_lordo_pct"] == pytest.approx(4.61, abs=0.005)
     assert r["giorni_rateo"] == 14
     assert r["rateo_cedolare"] == pytest.approx(1.075 * 14 / 181, abs=0.005)
-    assert r["esborso_totale"] == pytest.approx(53.94 + 1.075 * 14 / 181, abs=0.005)
+    # LI-062: the tel-quel price (clean price + accrued coupon), 54,023 here.
+    assert r["prezzo_tel_quel"] == pytest.approx(54.023, abs=0.001)
+    assert "esborso_totale" not in r
     assert r["anni_residui"] == pytest.approx((date(2072, 3, 1) - date(2026, 9, 15)).days / 365, abs=1e-4)
 
     # Net: coupons taxed at 12,5% on the part accrued while held (the first one less the
@@ -162,7 +164,40 @@ def test_la_convenzione_e_dichiarata():
              data_regolamento="2026-09-15", data_scadenza="2072-03-01")
     assert "capitalizzazione composta annua" in r["convenzione"]
     assert "giorni effettivi/365" in r["convenzione"]
-    assert "rateo" in r["convenzione"]
+    assert "prezzo tel quel (corso secco più rateo)" in r["convenzione"]
+    assert "rateo Act/Act ICMA" in r["convenzione"]
+    # Only the gross figure is checked against the MEF (its auction results publish no net yield).
+    assert "lordo con la convenzione del MEF" in r["convenzione"]
+    assert "netto calcolato" in r["convenzione"]
+    # A short first coupon of a new issue is not modelled: the answer says so.
+    assert "prima cedola corta" in r["convenzione"]
+
+
+def test_riapertura_scarto_e_plusvalenza_segnalati():
+    """LI-062: the 10/09/2026 auction of the BTP 2,15% 01/03/2072 is a reopening (issued
+    01/03/2021, tranches 8-9, prezzo fiscale 99,467 in the MEF PDF): of the 46,06 to par only
+    0,533 is scarto di emissione, the rest is a plusvalenza (reddito diverso). Same 12,5% at
+    maturity, but only the plusvalenza is compensable with minusvalenze: the tool says so."""
+    asta = next(a for a in _ASTE if a["isin"] == "IT0005441883")
+    assert asta["data_emissione"] == "2021-03-01" and asta["prezzo_fiscale"] == 99.467
+    r = _btp(valore_nominale=100, prezzo_acquisto=53.94, cedola_annua_pct=2.15,
+             data_regolamento="2026-09-15", data_scadenza="2072-03-01")
+    avviso = " ".join(r["avvertenze"])
+    for frammento in ("riapertura", "scarto di emissione", "prezzo fiscale",
+                      "art. 67 co. 1 lett. c-ter) TUIR", "art. 68 co. 5 TUIR", "minusvalenze"):
+        assert frammento in avviso, frammento
+
+
+def test_nessun_avviso_di_scarto_sopra_la_pari():
+    r = _btp(valore_nominale=10000, prezzo_acquisto=10300, cedola_annua_pct=4.0, anni_scadenza=3)
+    assert "avvertenze" not in r
+
+
+def test_non_e_il_parametro_del_maggior_danno():
+    """SS.UU. 19499/2008 (art. 1224 co. 2 c.c.) uses State securities up to twelve months: the
+    tool description must not let a long BTP yield pass for that parameter."""
+    doc = rendimento_btp.__doc__ if not hasattr(rendimento_btp, "fn") else rendimento_btp.fn.__doc__
+    assert "art. 1224 co. 2 c.c." in doc and "19499/2008" in doc and "dodici mesi" in doc
 
 
 def test_date_e_anni_insieme_prevalgono_le_date():
@@ -181,8 +216,11 @@ def test_date_e_anni_insieme_prevalgono_le_date():
     ({"data_regolamento": "15/09/2026", "data_scadenza": "2029-09-15"}, "AAAA-MM-GG"),
     ({"data_regolamento": "2029-09-15", "data_scadenza": "2029-09-15"}, "precedere"),
     ({"data_regolamento": "2026-09-15", "data_scadenza": "2029-09-15", "frequenza_cedola": 5}, "frequenza_cedola"),
+    ({"data_regolamento": "0001-03-01", "data_scadenza": "0001-06-15"}, "tra il 1900 e il 2200"),
+    ({"data_regolamento": "2026-09-14", "data_scadenza": "2026-09-15", "prezzo_acquisto": 95.0}, "fuori scala"),
+    ({"data_regolamento": "2026-09-15", "data_scadenza": "2199-09-15", "prezzo_acquisto": 1e-9}, "fuori scala"),
 ])
 def test_errori_di_input(kwargs, messaggio):
     base = {"valore_nominale": 100, "prezzo_acquisto": 98.0, "cedola_annua_pct": 3.0}
-    r = _btp(**base, **kwargs)
+    r = _btp(**{**base, **kwargs})
     assert messaggio in r.get("errore", ""), r

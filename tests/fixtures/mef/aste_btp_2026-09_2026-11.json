@@ -1,7 +1,7 @@
 {
  "fonte": "MEF, Dipartimento del Tesoro, «Risultati Asta» (PDF), una richiesta per documento",
  "letto_il": "2026-11-02",
- "note": "Values copied by hand from each PDF: Cedola, Prezzo di Aggiudicazione, Rendimento Lordo (two decimals, «Base Annua Rendimenti 365 gg»), Giorni dietimi, Data Regolamento, Data Scadenza. The fixed-rate BTP auctions of 10-11/09/2026 (3, 7 and 50 years) and every fixed-rate BTP auction of October 2026 listed on the MEF results pages on 2026-11-02 (13-14/10 and 27-30/10); the BTP 10 anni of 29/10 appears once, its two PDFs carrying the same figures.",
+ "note": "Values copied by hand from each PDF: Cedola, Prezzo di Aggiudicazione, Rendimento Lordo (two decimals, «Base Annua Rendimenti 365 gg»), Giorni dietimi, Data Regolamento, Data Scadenza. The fixed-rate BTP auctions of 10-11/09/2026 (3, 7 and 50 years) and every fixed-rate BTP auction of October 2026 listed on the MEF results pages on 2026-11-02 (13-14/10 and 27-30/10); the BTP 10 anni of 29/10 appears once, its two PDFs carrying the same figures. data_emissione, tranche and prezzo_fiscale too: every auction here is a reopening (tranche 3 or later), so the discount to par is only partly scarto di emissione.",
  "aste": [
   {
    "url": "https://www.dt.mef.gov.it/export/sites/sitodt/modules/documenti_it/debito_pubblico/risultati_aste/risultati_aste_btp_short_term/BTP-Short-Term-Risultati-Asta-27-28.10.2026.pdf",
@@ -13,6 +13,9 @@
    "giorni_dietimi": 62,
    "data_regolamento": "2026-10-29",
    "data_scadenza": "2028-10-30",
+   "data_emissione": "2026-08-28",
+   "tranche": "5° - 6°",
+   "prezzo_fiscale": 100.0,
    "prima_cedola_irregolare": "prima cedola corta: 63 gg., tasso 0,516393%"
   },
   {
@@ -25,6 +28,9 @@
    "giorni_dietimi": 30,
    "data_regolamento": "2026-10-15",
    "data_scadenza": "2029-09-15",
+   "data_emissione": "2026-06-15",
+   "tranche": "7° - 8°",
+   "prezzo_fiscale": 99.96,
    "prima_cedola_irregolare": null
   },
   {
@@ -37,6 +43,9 @@
    "giorni_dietimi": 32,
    "data_regolamento": "2026-11-02",
    "data_scadenza": "2032-02-01",
+   "data_emissione": "2026-10-01",
+   "tranche": "3° - 4°",
+   "prezzo_fiscale": 99.58,
    "prima_cedola_irregolare": "prima cedola corta: 123 gg., tasso 1,320245%"
   },
   {
@@ -49,6 +58,9 @@
    "giorni_dietimi": 79,
    "data_regolamento": "2026-11-02",
    "data_scadenza": "2031-02-15",
+   "data_emissione": "2024-01-16",
+   "tranche": "8° - 9°",
+   "prezzo_fiscale": 99.88,
    "prima_cedola_irregolare": null
   },
   {
@@ -61,6 +73,9 @@
    "giorni_dietimi": 30,
    "data_regolamento": "2026-10-15",
    "data_scadenza": "2033-09-15",
+   "data_emissione": "2026-07-15",
+   "tranche": "5° - 6°",
+   "prezzo_fiscale": 99.22,
    "prima_cedola_irregolare": null
   },
   {
@@ -73,6 +88,9 @@
    "giorni_dietimi": 32,
    "data_regolamento": "2026-11-02",
    "data_scadenza": "2036-10-01",
+   "data_emissione": "2026-09-01",
+   "tranche": "5° - 6°",
+   "prezzo_fiscale": 99.56,
    "prima_cedola_irregolare": null
   },
   {
@@ -85,6 +103,9 @@
    "giorni_dietimi": 14,
    "data_regolamento": "2026-10-15",
    "data_scadenza": "2041-10-01",
+   "data_emissione": "2026-02-10",
+   "tranche": "6° - 7°",
+   "prezzo_fiscale": 99.99,
    "prima_cedola_irregolare": null
   },
   {
@@ -97,6 +118,9 @@
    "giorni_dietimi": 0,
    "data_regolamento": "2026-09-15",
    "data_scadenza": "2029-09-15",
+   "data_emissione": "2026-06-15",
+   "tranche": "5° - 6°",
+   "prezzo_fiscale": 99.96,
    "prima_cedola_irregolare": null
   },
   {
@@ -109,6 +133,9 @@
    "giorni_dietimi": 0,
    "data_regolamento": "2026-09-15",
    "data_scadenza": "2033-09-15",
+   "data_emissione": "2026-07-15",
+   "tranche": "3° - 4°",
+   "prezzo_fiscale": 99.22,
    "prima_cedola_irregolare": null
   },
   {
@@ -121,6 +148,9 @@
    "giorni_dietimi": 14,
    "data_regolamento": "2026-09-15",
    "data_scadenza": "2072-03-01",
+   "data_emissione": "2021-03-01",
+   "tranche": "8° - 9°",
+   "prezzo_fiscale": 99.467,
    "prima_cedola_irregolare": null
   }
  ]

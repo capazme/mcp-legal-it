@@ -1471,7 +1471,7 @@ _Calcola il rendimento netto annualizzato di un BOT (Buono Ordinario del Tesoro,
 ### `rendimento_btp`
 _Calcola il rendimento effettivo a scadenza (TIR) di un BTP a cedola fissa, lordo e netto, con la convenzione dei «Risultati Asta» del MEF (capitalizzazione composta annua, giorni effettivi/365, prezzo più rateo); il rendimento semplice (non composto) resta come voce secondaria._
 
-**Parametri**: `valore_nominale` (float, obbligatorio). `prezzo_acquisto` (float, obbligatorio) — corso secco. `cedola_annua_pct` (float, obbligatorio) — tasso cedolare lordo annuo in %. `anni_scadenza` (int, opzionale) — solo senza date. `frequenza_cedola` (int, opzionale, default `2`). `data_regolamento`, `data_scadenza` (str, opzionali, AAAA-MM-GG, insieme) — calendario cedolare reale e rateo.
+**Parametri**: `valore_nominale` (float, obbligatorio). `prezzo_acquisto` (float, obbligatorio) — corso secco. `cedola_annua_pct` (float, obbligatorio) — tasso cedolare lordo annuo in %. `anni_scadenza` (int, opzionale) — solo senza date. `frequenza_cedola` (int, opzionale, default `2`). `data_regolamento`, `data_scadenza` (str, opzionali, AAAA-MM-GG, insieme) — calendario cedolare a ritroso dalla scadenza e rateo.
 
 **Quando usare**: per il rendimento a scadenza di un BTP acquistato all'asta o sul mercato, confrontabile con il rendimento lordo pubblicato dal MEF.
 

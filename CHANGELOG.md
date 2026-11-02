@@ -364,12 +364,13 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - **Main figures.** `rendimento_effettivo_lordo_pct` and `rendimento_effettivo_netto_pct`.
     They use the convention of the MEF «Risultati Asta» («base annua 365 gg»): an annual
     compound rate discounting coupons and redemption at 100, at actual days/365 from
-    settlement, to the price plus the accrued interest. The net figure taxes coupons at
+    settlement, to the tel-quel price (clean price plus the accrued interest, counted Act/Act
+    ICMA). The net figure taxes coupons at
     12,5% for the part accrued while held (the first one less the accrued interest paid),
     and the discount to par. The 50-year BTP now gives 4,6102% gross and 4,1065% net.
   - **New optional parameters `data_regolamento` and `data_scadenza`** (AAAA-MM-GG). With
-    them the coupon calendar is the real one and the accrued interest is counted
-    (`giorni_rateo`, `rateo_cedolare`, `esborso_totale`, a date for each coupon).
+    them the coupon calendar is built back from maturity and the accrued interest is counted
+    (`giorni_rateo`, `rateo_cedolare`, `prezzo_tel_quel`, a date for each coupon).
     Without them, settlement falls on a coupon date and `anni_scadenza` (now optional) gives
     the life. Old calls still work.
   - **The simple yield stays as a secondary field, named for what it is.** It is
@@ -380,8 +381,21 @@ described in those sections, not repeated here. Upgrading from 2.x:
     October 2026 (fixture with the source URL of each PDF). The gross TIR is within 0,01
     points of every published «Rendimento Lordo», and at most 0,008 points off. The grade
     stays INDICATIVO: two auctions are off by slightly more than the MEF's two-decimal
-    rounding, and a short first coupon of a new issue is not modelled. The live MEF gate,
+    rounding, and a short first coupon of a new issue is not modelled (the answer says so; on
+    the TIR the effect is negligible). Only the gross figure is checked against the MEF: its
+    auction results publish no net yield. The live MEF gate,
     red on purpose on the 50-year BTP, is green again.
+  - **Reopenings are flagged** (LI-062). Below par, the answer warns that on a reopening, or a
+    purchase on the market, only the part of the discount down to the issue price («prezzo
+    fiscale» in the MEF results) is scarto di emissione. The rest is a plusvalenza (art. 67
+    co. 1 lett. c-ter) TUIR). The 12,5% at maturity is the same, but only the plusvalenza is
+    netted against minusvalenze (art. 68 co. 5 TUIR). Every auction in the test set is a
+    reopening; the 50-year BTP was first issued on 01/03/2021.
+  - **Out-of-range inputs are refused.** A yield that cannot be bracketed answers «rendimento
+    fuori scala» instead of a made-up figure, and dates outside 1900-2200 are refused.
+  - **Not the parameter of the maggior danno.** The description says so: Cass. SS.UU.
+    19499/2008 (art. 1224 co. 2 c.c.) uses State securities with a maturity of up to twelve
+    months.
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **Text answers are sent once.** The 63 tools that answer plain text (the
