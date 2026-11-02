@@ -102,7 +102,9 @@ def covers(ref: str, result: "dict | None") -> bool:
 
 def main():
     try:
-        data = json.load(sys.stdin)
+        # Bytes, not sys.stdin: on Windows a pipe decodes in the locale encoding (cp1252)
+        # and Claude Code sends UTF-8 (#133). json.loads detects UTF-8 and a BOM.
+        data = json.loads(sys.stdin.buffer.read())
     except Exception:
         return 0
     if data.get("stop_hook_active"):

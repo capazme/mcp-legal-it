@@ -33,8 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,
   and a table it could decode would have been read garbled. The installer read and wrote
   the Claude configuration files the same way. All of them say UTF-8 now (the installer
-  also accepts a configuration saved with a BOM). A test scans the shipped code for text
-  I/O without an encoding, and another imports the server with `-X warn_default_encoding`.
+  also accepts a configuration saved with a BOM, and reads the output of the commands it
+  runs as UTF-8). The citation hook read its input in the locale encoding too: on a Windows
+  account with an accented name it could not open the session and stopped checking in
+  silence; it now reads the input as UTF-8. A test scans the shipped code for text I/O
+  without an encoding, and another imports the server with `-X warn_default_encoding`.
   Reported, with the cause and the fix, by @Liguria360.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
   portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the

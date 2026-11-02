@@ -297,3 +297,23 @@ def test_the_gate_needs_only_the_standard_library():
     imported |= {node.module.split(".")[0] for node in ast.walk(tree)
                  if isinstance(node, ast.ImportFrom) and node.module and not node.level}
     assert imported and imported <= set(sys.stdlib_module_names) | {"__future__"}, imported
+
+
+def test_a_transcript_path_with_accents_is_read_on_a_cp1252_stdin(tmp_path):
+    """#133: on Windows a pipe's stdin decodes in the locale encoding (cp1252), while Claude
+    Code sends UTF-8: «…\\Niccolò\\…» became «NiccolÃ²», the transcript did not open and the
+    gate gave up in silence. PYTHONIOENCODING=cp1252 stands in for that stdin."""
+    import os
+
+    folder = tmp_path / "Niccolò"
+    folder.mkdir()
+    transcript = folder / "transcript.jsonl"
+    transcript.write_text(json.dumps({
+        "type": "assistant",
+        "message": {"content": [{"type": "text", "text": "Nel merito si applica l'art. 2043 c.c."}]},
+    }), encoding="utf-8")
+    payload = json.dumps({"transcript_path": str(transcript)}, ensure_ascii=False)
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+    done = subprocess.run([sys.executable, str(HOOK)], input=payload.encode("utf-8"),
+                          capture_output=True, env=env, timeout=60)
+    assert done.returncode == NAGS, done.stderr[-2000:]
