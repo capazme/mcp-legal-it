@@ -22,6 +22,7 @@ from mcp_legal_it.api.tipi import (
     MassimaBrocardi,
     NormaDati,
     NotaAggiornamento,
+    NotaRedazionale,
     ParteArticolo,
     TestoArticolo,
     TestoAtto,
@@ -733,6 +734,8 @@ async def _testo_articolo(riferimento: str | NormaDati, *, canale: Canale,
             note_aggiornamento=(tuple(NotaAggiornamento(**n) for n in base["note_aggiornamento"])
                                 if base.get("note_aggiornamento") is not None else None),
             note_non_lette=bool(base.get("note_non_lette")),
+            note_redazionali=(tuple(NotaRedazionale(**n) for n in base["note_redazionali"])
+                              if base.get("note_redazionali") is not None else None),
             parti=parti,
             testo_parziale=bool(base.get("testo_parziale")),
         )

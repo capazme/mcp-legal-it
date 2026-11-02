@@ -80,7 +80,9 @@ class TestLettura:
 
     def test_an_article_without_notes(self):
         _, r = _lettura(L241_ART3)
-        assert r == {"note": [], "non_lette": False, "nel_testo": False}
+        # The page's editorial notes ride in the same record, under a key of their own (#119).
+        assert r == {"note": [], "non_lette": False, "nel_testo": False,
+                     "redazionali": {"note": [], "nel_testo": False}}
 
     def test_a_note_block_without_its_number_is_unread(self):
         rotta = ART3.replace("AGGIORNAMENTO (2)", "AGGIORNAMENTO", 1)
@@ -145,7 +147,9 @@ class TestLettura:
 
         monkeypatch.setattr(note_normattiva, "leggi_note", rotto)
         testo, note = _lettura(ART3)
-        assert testo == nh.estrai_da_html(ART3) and note is None
+        assert testo == nh.estrai_da_html(ART3)
+        # Only the editorial notes (#119) are left: the update notes still read as unread.
+        assert set(note) == {"redazionali"} and norme._note_ben_formate(note) is False
 
     @pytest.mark.parametrize("testo, atteso", [
         ("La Corte Costituzionale, con sentenza 8 novembre 2018 n. 194, ha dichiarato", True),

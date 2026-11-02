@@ -724,6 +724,54 @@ The text in force of one article, from Normattiva or EUR-Lex.
     (a code's article). They always print them: a notes-on-request switch, if one comes,
     will never cover these notes. `cite_law(formato="json")` carries
     `note_aggiornamento`, `note_non_lette` and `note_nel_testo`.
+- **Editorial notes (`note_redazionali`).** When an act is published in the Gazzetta
+  Ufficiale with notes («Note all'art. 13: …»), Normattiva keeps them on the versions
+  never replaced: the original text, and the current text of an article never amended
+  (L. 24/2017 art. 7). They are drafted by the competent administration under art. 10,
+  commi 2 and 3, d.P.R. 1092/1985, only to help the reading. They have no normative value
+  and change nothing in the text. Where they transcribe another provision, the text is the
+  one of the day of publication, not the text in force (the original art. 2 d.lgs. 81/2008
+  transcribes art. 2549 c.c. as it stood before 2015). A kind of their own: never mixed
+  with the update notes.
+  - **Where they are.** The page puts them in a `div.note-akn` after the commi; the
+    Akoma Ntoso export puts the same words in an `authorialNote` after the paragraphs. Neither
+    VisuaLex's extractor (comma and plain-text shapes) nor the export's renderer reads them,
+    so `article_text` does not carry them. Two cases do: VisuaLex's fallback shape, which
+    reads the whole body, and an export article without paragraphs, rendered from all its
+    content. `note_redazionali_nel_testo` says so in `cite_law(formato="json")`.
+  - **Only the notes to the article (decision LI-058).** A block is split at the Gazzetta's
+    headings and only the «Note all'art. N» sections are kept («Nota all'art. 4», «Note agli
+    articoli 2 e 3»). The «Avvertenza» is left out: the tools say in their own words what it
+    says. So are the «Note alle premesse», which art. 1 carries and which are about the act's
+    preamble, not the article, and any words before a heading.
+  - **Shape.** `NotaRedazionale`: `intestazione` as the Gazzetta writes it, without its
+    colon («Note all'art. 13»); `testo`, the section's words, links as their text,
+    whitespace normalised inside each line, line breaks kept; `ordine` from 1.
+  - **Values.** `()` means an article without them. `None` means not read: an EU act, an
+    annex or a code read from the export (only the export's flat body articles are read),
+    an export kept by an older version, a reading lost or of another shape.
+  - **Both channels.** The HTML channel reads them from the page, the `akn` channel (or the
+    export as a fallback) from the export: for art. 4 d.lgs. 231/2001 the two give the same
+    sections and the same words, but for the export's transliterated accents.
+  - **Known limits.** A heading is matched in any case («Note all'Art. 5»). A line naming
+    another act's article («Nota all'art. 14 della legge 400/1988:») is never a heading. A
+    block «Note agli articoli 2 e 3» is read where Normattiva puts it, on the page of art. 2
+    only: art. 3's page does not carry it.
+  - **In the MCP tools.** `cite_law(formato="json")` carries `note_redazionali` and
+    `note_redazionali_nel_testo`, capped at 8,000 characters of notes
+    (`norme.MAX_CARATTERI_NOTE_REDAZIONALI`). Past the cap, the notes are kept whole while
+    they fit, the one crossing it is cut at a space and ends with «[…]», and those after it
+    are left out. `note_redazionali_troncate` is then `true` and `note_redazionali_caratteri`
+    gives their whole length. On a long original text they reach 60,000 characters, enough to
+    break a client's output cap. The library (`testo_articolo`) keeps them whole. The markdown output of `cite_law` and `fetch_law_article`
+    gives them one line under the text, never their words: «**Note redazionali**: la
+    Gazzetta Ufficiale pubblica con l'atto note a questo articolo (art. 10 d.P.R.
+    1092/1985), prive di valore normativo; i testi che trascrivono sono quelli alla data di
+    pubblicazione, non quelli vigenti; per leggerle: cite_law(formato="json"), campo
+    note_redazionali.» (`norme.riga_note_redazionali`). Past the JSON's cap the line adds how
+    much the JSON carries («che ne riporta le prime 8.000 battute su 61.295 (testo integrale su
+    Normattiva)»). When the text already ends with them, the line says «sono riportate in coda
+    al testo» instead.
 - **Articles split into parts (`parti`, `testo_parziale`).** Normattiva serves a very long
   article in parts. Art. 1 L. 296/2006 is 14 parts, «1 (commi 1-100)» to «1 (commi
   1301-1364)», and the article's own page is the first.
@@ -1247,8 +1295,9 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `VersioneArticolo` | VisuaLex `validity` keys: `version_number, valid_from, valid_to` |
 | `Modifica` | `atto, tipo, disposizione, parti, in_vigore_dal, versione, data_gu, precisione, testo` |
 | `AttoModificante` | `tipo_atto, data, numero_atto, urn, gazzetta, descrizione` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato, note_aggiornamento, note_non_lette, parti, testo_parziale` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato, note_aggiornamento, note_non_lette, note_redazionali, parti, testo_parziale` |
 | `NotaAggiornamento` | `numero, testo, ordine, corte_costituzionale`: one «AGGIORNAMENTO (n)» note of the page (§3, `testo_articolo`) |
+| `NotaRedazionale` | `intestazione, testo, ordine`: one «Note all'art. N» section of the Gazzetta's editorial notes (§3, `testo_articolo`) |
 | `ParteArticolo` | `progressivo, commi_dal, commi_al, url`: one part of an article Normattiva splits (§3, `parte_articolo`) |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
