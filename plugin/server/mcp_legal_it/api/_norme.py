@@ -1036,7 +1036,9 @@ async def testo_atto(atto: str | NormaDati) -> TestoAtto:
             return TestoAtto(esito="testo_assente", url=result.get("url", ""), errore="testo insufficiente",
                              fonti=registro.fonti())
         return TestoAtto(esito="trovato", testo=testo, titolo=result.get("title", str(norma)),
-                         url=result.get("url", ""), fonti=registro.fonti())
+                         url=result.get("url", ""), fonti=registro.fonti(),
+                         completo=bool(result.get("completo", True)),
+                         avvisi=tuple(result.get("avvisi") or ()))
 
 
 # ---------------------------------------------------------------------------
