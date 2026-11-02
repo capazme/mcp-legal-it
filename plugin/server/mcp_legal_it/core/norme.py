@@ -96,6 +96,7 @@ async def _cite_law_lookup(reference: str, *, canale: str = "html",
     """The JSON face of cite_law, plus the outcome of the existence check.
 
     The outcome is ``ARTICLE_NOT_FOUND`` (the article is not in the act),
+    ``ACT_NOT_FOUND`` (an act cited by year: the page served is another act's),
     ``CHECK_UNAVAILABLE`` (the source could not tell) or None.
     """
     base = _lookup_base(reference)

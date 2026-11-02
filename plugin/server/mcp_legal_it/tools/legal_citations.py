@@ -19,6 +19,7 @@ from mcp_legal_it.lib._paging import invalid_start, page
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.models import intervallo_articoli, split_annex
 from mcp_legal_it.lib.visualex.scraper import (
+    ACT_NOT_FOUND,
     ARTICLE_NOT_FOUND,
     CHECK_UNAVAILABLE,
     _build_celex,
@@ -1046,6 +1047,9 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
         return "inesistente", f"L'articolo non esiste nell'atto citato: {data['errore']}."
     if esito == CHECK_UNAVAILABLE:
         return "non verificata", f"Esistenza dell'articolo non verificabile ora: {data['errore']}."
+    if esito == ACT_NOT_FOUND:
+        # Cited by its year, the act is another one on Normattiva: the note names the page served.
+        return "non trovata", f"L'atto citato non è su Normattiva: {data['errore']}."
     if data["errore"] or not data["testo"]:
         return "non trovata", "Atto o articolo non reperibile su Normattiva/EUR-Lex."
 

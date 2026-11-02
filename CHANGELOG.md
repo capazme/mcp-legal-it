@@ -741,7 +741,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
   or number, every reader now refuses («nessun atto … la pagina restituita è «LEGGE 7
   agosto 1990, n. 241»»), as for the decrees of #136; the `fetch_act_index` tool checks
   the page it reads anyway. A page that cannot be read keeps the year-only address, as
-  before.
+  before. A citation with the wrong sub-type is now refused too, where the year-only
+  address used to read the act under the wrong label: «R.D. 1825/1924» served «REGIO
+  DECRETO-LEGGE 13 novembre 1924, n. 1825», «L. 3/2001» served «LEGGE COSTITUZIONALE 18
+  ottobre 2001, n. 3»; the error names the page so the citation can be corrected.
+  `verifica_citazioni` reports such a reference as «non trovata», with the page served in
+  its note.
 - **The readers say `atto_non_trovato` when the page served is another act's** (#136,
   #146). `testo_articolo`, `albero_atto`, `testo_atto`, `indice_atto` and
   `modifiche_articolo` answered `verifica_non_disponibile`, which reads as «retry»; for a
