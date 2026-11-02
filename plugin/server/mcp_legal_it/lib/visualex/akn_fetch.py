@@ -192,6 +192,7 @@ def _act_to_dict(act: ParsedAct) -> dict:
         "consolidato": act.consolidato,
         "annessi": act.annessi,
         "dates": act.dates,
+        "note_redazionali": act.note_redazionali,
         "parts": {
             name: {"name": p.name, "articles": p.articles, "order": p.order, "dates": p.dates,
                    "position": p.position}
@@ -220,6 +221,8 @@ def _act_from_dict(data: dict) -> ParsedAct:
         parts=parts,
         main_part=data.get("main_part", ""),
         consolidato=data.get("consolidato", ""),
+        # An act kept before the notes were read has none: None, «not read», never «none».
+        note_redazionali=data.get("note_redazionali"),
         annessi=list(data.get("annessi", [])),
     )
 
