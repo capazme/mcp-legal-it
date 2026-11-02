@@ -45,8 +45,8 @@ def _parse_result(page) -> dict:
 
 def _our_usufrutto(valore, eta):
     from mcp_legal_it.tools.proprieta_successioni import calcolo_usufrutto
-    fn = getattr(calcolo_usufrutto, "fn", calcolo_usufrutto)
-    return fn(valore_piena_proprieta=valore, eta_usufruttuario=eta)
+    from tests.unit.mcp_harness import tool_body
+    return tool_body(calcolo_usufrutto)(valore_piena_proprieta=valore, eta_usufruttuario=eta)
 
 
 class TestUsufruttoComparison:

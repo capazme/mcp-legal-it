@@ -2,12 +2,12 @@ import importlib
 
 import pytest
 
+from .mcp_harness import tool_body
+
 
 def _call(fn_name: str, **kwargs):
     mod = importlib.import_module("mcp_legal_it.tools.diritto_societario")
-    fn = getattr(mod, fn_name)
-    actual = fn.fn if hasattr(fn, "fn") else fn
-    return actual(**kwargs)
+    return tool_body(getattr(mod, fn_name))(**kwargs)
 
 
 # ---------------------------------------------------------------------------

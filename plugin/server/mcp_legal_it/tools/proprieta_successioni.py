@@ -940,7 +940,7 @@ def imposta_registro_locazioni(
         "sconto_intera_durata": sconto,
         "minimo_applicato": prima_registrazione and imposta_annua < minimo,
         "nota": "Imposta a carico 50% locatore e 50% conduttore (salvo patto contrario)" if tipo == "libero" else "Canone concordato: 2% sul 70% del canone (art. 8 c. 1 L. 431/1998), 1,4% effettivo",
-        "riferimento_normativo": "DPR 131/1986 art. 5 Tariffa Parte I (D.Lgs. 123/2025); art. 8 L. 431/1998 — Imposta registro locazioni",
+        "riferimento_normativo": "DPR 131/1986 art. 5 Tariffa Parte I (dal 1/1/2027 D.Lgs. 123/2025); art. 8 L. 431/1998 — Imposta registro locazioni",
     }
 
 
