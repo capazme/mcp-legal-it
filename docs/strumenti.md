@@ -1469,13 +1469,13 @@ _Calcola il rendimento netto annualizzato di un BOT (Buono Ordinario del Tesoro,
 ---
 
 ### `rendimento_btp`
-_Calcola il rendimento netto di un BTP a cedola fissa, scorporando l'imposta 12,5% su cedole e capital gain, con il flusso cedolare dettagliato._
+_Calcola il rendimento effettivo a scadenza (TIR) di un BTP a cedola fissa, lordo e netto, con la convenzione dei «Risultati Asta» del MEF (capitalizzazione composta annua, giorni effettivi/365, prezzo più rateo); il rendimento semplice (non composto) resta come voce secondaria._
 
-**Parametri**: `valore_nominale` (float, obbligatorio). `prezzo_acquisto` (float, obbligatorio). `cedola_annua_pct` (float, obbligatorio) — tasso cedolare lordo annuo in %. `anni_scadenza` (int, obbligatorio). `frequenza_cedola` (int, opzionale, default `2`) — cedole per anno (1=annuale, 2=semestrale).
+**Parametri**: `valore_nominale` (float, obbligatorio). `prezzo_acquisto` (float, obbligatorio) — corso secco. `cedola_annua_pct` (float, obbligatorio) — tasso cedolare lordo annuo in %. `anni_scadenza` (int, opzionale) — solo senza date. `frequenza_cedola` (int, opzionale, default `2`). `data_regolamento`, `data_scadenza` (str, opzionali, AAAA-MM-GG, insieme) — calendario cedolare a ritroso dalla scadenza e rateo.
 
-**Quando usare**: per valutare la convenienza di un BTP quotato sotto o sopra la pari rispetto al rendimento netto atteso a scadenza.
+**Quando usare**: per il rendimento a scadenza di un BTP acquistato all'asta o sul mercato, confrontabile con il rendimento lordo pubblicato dal MEF.
 
-**Esempio**: `rendimento_btp(valore_nominale=1000, prezzo_acquisto=950, cedola_annua_pct=3.5, anni_scadenza=5)` → cedole nette totali, plusvalenza netta e rendimento netto annuo.
+**Esempio**: `rendimento_btp(valore_nominale=100, prezzo_acquisto=53.94, cedola_annua_pct=2.15, data_regolamento="2026-09-15", data_scadenza="2072-03-01")` → TIR lordo 4,61% (come il MEF), netto 4,11%, rateo di 14 giorni.
 
 ---
 

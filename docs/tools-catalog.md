@@ -333,7 +333,7 @@ descrizione di ogni tool.
 | Tool | Firma | Descrizione |
 |------|-------|-------------|
 | `rendimento_bot` | `rendimento_bot(valore_nominale: float, prezzo_acquisto: float, giorni_scadenza: int, commissione_pct: float = 0.0)` | Rendimento netto BOT (zero-coupon) con imposta sostitutiva 12,5%. |
-| `rendimento_btp` | `rendimento_btp(valore_nominale: float, prezzo_acquisto: float, cedola_annua_pct: float, anni_scadenza: int, frequenza_cedola: int = 2)` | Rendimento netto BTP cedola fissa con flusso cedole e capital gain. |
+| `rendimento_btp` | `rendimento_btp(valore_nominale: float, prezzo_acquisto: float, cedola_annua_pct: float, anni_scadenza: int = 0, frequenza_cedola: int = 2, data_regolamento: str = '', data_scadenza: str = '')` | Rendimento effettivo a scadenza (TIR) lordo e netto di un BTP a cedola fissa, convenzione MEF, con flusso cedole, rateo e capital gain; rendimento semplice come voce secondaria. |
 | `pronti_termine` | `pronti_termine(capitale: float, tasso_lordo_pct: float, giorni: int, tipo_sottostante: str = "titoli_stato")` | Rendimento netto pronti contro termine (12,5% o 26% secondo sottostante). |
 | `rendimento_buoni_postali` | `rendimento_buoni_postali(importo: float, tipo: str = "ordinario", anni: int = 10, serie: str \| None = None, eta_minore: int = 0, valore_portafoglio_buoni: float \| None = None)` | Montante e rendimento netto buoni fruttiferi postali con i coefficienti dei fogli informativi CDP per serie. |
 | `confronto_investimenti` | `confronto_investimenti(importo: float, investimenti: list[dict])` | Confronto rendimento netto tra strumenti finanziari diversi. |
