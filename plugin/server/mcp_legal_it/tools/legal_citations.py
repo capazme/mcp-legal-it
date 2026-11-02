@@ -203,7 +203,9 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
 
     # An article the act does not have has nothing to annotate (and Brocardi would
     # only be searched page by page for it).
-    annotate = include_annotations and article and article_result.get("esito") != ARTICLE_NOT_FOUND
+    # Nor has an act Normattiva does not have (another act's page served: atto_non_trovato).
+    annotate = (include_annotations and article
+                and article_result.get("esito") not in (ARTICLE_NOT_FOUND, ACT_NOT_FOUND))
     brocardi_md = ""
     if annotate and split_annex(article):
         brocardi_md = "\n\n**Annotazioni Brocardi**: non disponibili per gli allegati"

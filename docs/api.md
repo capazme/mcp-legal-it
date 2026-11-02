@@ -392,9 +392,9 @@ that page is Normattiva's error page (below; the check is shared per event loop)
     that wants only dates read from a verified title skips these types, or reads
     `precisione`.
   - **A citation with the wrong sub-type is another act.** The heading's type must be
-    the cited one: «R.D. 1825/1924» served «REGIO DECRETO-LEGGE 13 novembre 1924, n. 1825»,
-    or «L. 3/2001» served «LEGGE COSTITUZIONALE 18 ottobre 2001, n. 3», is
-    `atto_non_trovato`, and `errore` names the page, so the caller can cite it right. The
+    the cited one: «R.D. 1825/1924», served «REGIO DECRETO-LEGGE 13 novembre 1924,
+    n. 1825», is `atto_non_trovato`, and `errore` names the page, so the caller can cite
+    it right. The
     only alias is the d.lgs.lgt. served as «DECRETO-LEGGE LUOGOTENENZIALE» (measured).
   - **«DECRETO» does not name the ministry.** A D.M.'s page is headed «DECRETO 10 marzo
     2014, n. 55»: the heading checks the type, year and number, not which ministry issued
