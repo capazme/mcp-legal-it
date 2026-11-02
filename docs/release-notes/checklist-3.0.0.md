@@ -10,11 +10,12 @@ is shipped as it is today, stated as such in the release notes. None may be
 «completed» by whoever runs the release.
 
 - [ ] Merge order and approval of the 3.0 chain (§2).
-- [ ] Start of the art. 482 c.p.c. window (day 10 or day 11). Drafted code on
-      the branch `feature/termini-decisioni-pendenti`; tests are strict
-      `xfail` «pending owner decision».
+- [x] Start of the art. 482 c.p.c. window: decided (G-329, G-407), first day
+      = notice + 11, no extension, no August suspension.
 - [ ] A «substantive» mode of `scadenza_processuale` without the Saturday
-      extension (same branch, same `xfail`).
+      extension. Drafted code on the branch
+      `feature/termini-decisioni-pendenti`; tests are strict `xfail` «pending
+      owner decision».
 - [x] Art. 617 c.p.c. and the August suspension: decided (LI-060), excluded;
       `termini_esecuzioni` states the reading and the case law in a note.
 - [ ] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
