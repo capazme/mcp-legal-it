@@ -372,14 +372,39 @@ async def with_full_date(norma: Norma) -> Norma:
             raise AttoNonVerificato(_atto_non_corrispondente(norma, "", "non_letta", type(exc).__name__)) from exc
         return norma
     if not date:
-        verifica = meta.get("verifica_tipo")
-        if verifica in ("altro", "non_verificato"):
-            # The year-only URN would serve this same page: refused, never read as the act.
-            raise AttoNonVerificato(_atto_non_corrispondente(norma, meta.get("heading", ""), verifica))
-        if per_eli:
-            raise AttoNonVerificato(_atto_non_corrispondente(norma, "", "non_letta", meta.get("problema") or ""))
+        rifiuto = _rifiuto_per_anno(norma, meta, per_eli)
+        if rifiuto:
+            raise AttoNonVerificato(rifiuto)  # the year-only URN would serve this same page
         return norma
     return dataclasses.replace(norma, data=date)
+
+
+async def verifica_atto_per_anno(norma: Norma) -> None:
+    """Raise :class:`AttoNonVerificato` when a year-only act of a type dated by its ELI date
+    is not provably its page; nothing for any other act.
+
+    For a reader that keeps the URN as cited (:func:`fetch_act_index`): it reads the act's
+    page (shared with :func:`act_full_date` in memory) and writes nothing to disk.
+    """
+    if not _year_only_act(norma) or _tipo_urn(norma) in act_dates._TITLES:
+        return
+    try:
+        meta = await _act_metadata(norma)
+    except Exception as exc:  # noqa: BLE001 - a page not read is a page not verified
+        raise AttoNonVerificato(_atto_non_corrispondente(norma, "", "non_letta", type(exc).__name__)) from exc
+    date, _modo, meta = _data_da_intestazione(norma, _tipo_urn(norma), meta)
+    if not date:
+        raise AttoNonVerificato(_rifiuto_per_anno(norma, meta, True))
+
+
+def _rifiuto_per_anno(norma: Norma, meta: dict, per_eli: bool) -> str:
+    """Why a year-only act without a date must not be read by its year-only URN ("" if it may)."""
+    verifica = meta.get("verifica_tipo")
+    if verifica in ("altro", "non_verificato", "date_discordi"):
+        return _atto_non_corrispondente(norma, meta.get("heading", ""), verifica)
+    if per_eli:
+        return _atto_non_corrispondente(norma, "", "non_letta", meta.get("problema") or "")
+    return ""
 
 
 def _atto_non_corrispondente(norma: Norma, intestazione: str, verifica: str, motivo: str = "") -> str:
@@ -421,11 +446,17 @@ async def act_full_date(norma: Norma) -> tuple[str, str, dict]:
         if date:
             act_dates.scrivi(chiave, date)
         return date, ("titolo" if date else ""), meta
-    # A kind the titles do not cover (a DPCM, a ministerial decree): the page's ELI date,
-    # accepted when the page's heading names this act (its type through the measured
-    # headings, its year and number) and the date is in the cited year. The resolver does
-    # not check the type: asked a DPCM n. 158 of 2014, it serves L. 17 ottobre 2014, n. 158.
-    # Never kept on disk.
+    return _data_da_intestazione(norma, kind, meta)
+
+
+def _data_da_intestazione(norma: Norma, kind: str, meta: dict) -> tuple[str, str, dict]:
+    """:func:`act_full_date` for a kind the titles do not cover (a DPCM, a ministerial decree).
+
+    The page's heading must name this act (its type through :data:`_INTESTAZIONI_ELI`, its
+    year and number); the date is the heading's day, which the ELI date, when there, must
+    confirm. The resolver does not check the type: asked a DPCM n. 158 of 2014, it serves
+    L. 17 ottobre 2014, n. 158. Never kept on disk.
+    """
     if meta.get("problema") is not None:
         return "", "", meta  # no act's heading: the page's problem says why
     verifica, giorno = _confronta_intestazione(meta, kind, norma.data, norma.numero_atto)
@@ -438,7 +469,8 @@ async def act_full_date(norma: Norma) -> tuple[str, str, dict]:
     # is not kept in memory either.
     _full_date_cache.pop(norma.url(), None)
     problema = "tipo_non_verificato" if verifica == "non_verificato" else "date_discordi"
-    return "", "", {**meta, "problema": problema, "verifica_tipo": "non_verificato"}
+    return "", "", {**meta, "problema": problema,
+                    "verifica_tipo": "non_verificato" if verifica == "non_verificato" else "date_discordi"}
 
 
 def _tipo_urn(norma: Norma) -> str:
@@ -1983,9 +2015,10 @@ async def fetch_act_index(norma: "Norma") -> dict:
     Returns: {"index": list[str], "codice_redazionale": str, "url": str} or {"error": str}
     """
     try:
-        # A decree cited by year whose page is not provably its own is refused; the index is
-        # still read from the URN as cited (its full date is not substituted here).
-        await with_full_date(norma)
+        # A decree cited by year whose page is not provably its own is refused (Normattiva's
+        # resolver would serve the law with that year and number); the index is still read
+        # from the URN as cited, and the types the titles cover are read as before.
+        await verifica_atto_per_anno(norma)
     except AttoNonVerificato as exc:
         return {"index": [], "url": "", "error": str(exc), "esito": CHECK_UNAVAILABLE}
     act_url = norma.url()

@@ -305,3 +305,13 @@ class TestDataDallIntestazione:
         assert "non coincidono" in r.errore
         r, chieste = await _risolvi({self.URL: DM55}, "decreto ministeriale", "55", "2014")
         assert r.esito == "trovato" and chieste == [N2LS + self.URL]
+
+    async def test_a_reader_says_why_when_heading_and_eli_date_disagree(self):
+        discorde = DM55.replace('content="2014-03-10"', 'content="2014-03-11"')
+        chieste: list = []
+        with api.configurazione(client_factory=_normattiva({self.URL: discorde}, chieste, altrimenti=L241_ART3),
+                                brocardi=False):
+            r = await scraper.fetch_article(NormaVisitata(
+                norma=Norma(tipo_atto="decreto ministeriale", data="2014", numero_atto="55"), numero_articolo="3"))
+        assert r["text"] == "" and r["esito"] == scraper.CHECK_UNAVAILABLE and "non coincidono" in r["error"]
+        assert chieste == [N2LS + self.URL]
