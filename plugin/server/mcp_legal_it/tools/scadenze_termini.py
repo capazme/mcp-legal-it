@@ -1012,14 +1012,18 @@ def termini_183_190_cpc(
     })
 
 
-#: Art. 617 e sospensione feriale: questione interpretativa aperta. Il tool resta sulla lettura
-#: prudente (nessuna sospensione) e lo dice quando agosto cade nel termine.
-_AVVERTENZA_617_FERIALE = (
-    "Il termine è calcolato senza sospensione feriale, la lettura prudente. Che l'opposizione agli "
-    "atti esecutivi (art. 617 c.p.c.) sia esclusa dalla sospensione è discusso: l'art. 3 L. 742/1969 "
-    "rinvia all'art. 92 R.D. 12/1941, che nomina la sola «opposizione all'esecuzione». Se la "
-    "sospensione si applicasse, il termine scadrebbe più tardi: la scadenza indicata resta la più "
-    "sicura."
+#: Art. 617 e sospensione feriale (decisione LI-060): il tool applica la lettura estensiva e
+#: lo dice, con i riferimenti che la sostengono, quando agosto cade nel termine.
+_NOTA_617_FERIALE = (
+    "Termine calcolato senza sospensione feriale: l'opposizione agli atti esecutivi (art. 617 "
+    "c.p.c.) è esclusa insieme alle altre opposizioni esecutive (lettura estensiva: l'art. 92 "
+    "R.D. 12/1941, richiamato dall'art. 3 L. 742/1969, nomina la sola «opposizione "
+    "all'esecuzione»). In questo senso: Cass. civ., sez. III, 10/10/2024, n. 26443 (termine "
+    "per proporre l'opposizione ex art. 617, che «non soggiace a sospensione feriale»); Cass. "
+    "civ., sez. III, 19/09/2025, n. 25666 (termine per impugnare la sentenza sull'opposizione "
+    "esecutiva); Cass. civ., sez. VI, 02/05/2022, n. 13797 (termine per ricorrere in "
+    "cassazione nei giudizi in materia di esecuzione forzata, anche di distribuzione ex art. "
+    "512 c.p.c.)."
 )
 
 
@@ -1032,9 +1036,8 @@ def termini_esecuzioni(
     """Calcola i termini nelle procedure esecutive civili (pignoramento, opposizione).
     Vigenza: artt. 480-482, 543, 555, 617 c.p.c. (testo vigente).
     Precisione: ESATTO (termini di legge; proroga art. 155 c.p.c.). La sospensione feriale non viene
-    applicata, lettura prudente: per l'opposizione agli atti esecutivi l'esclusione è discussa (l'art. 92
-    R.D. 12/1941, richiamato dall'art. 3 L. 742/1969, nomina la sola opposizione all'esecuzione) e la
-    risposta lo segnala quando agosto cade nel termine.
+    applicata: le opposizioni esecutive, compresa quella agli atti esecutivi (art. 617), ne sono escluse
+    (decisione LI-060) e la risposta riporta i riferimenti quando agosto cade nel termine.
 
     Args:
         data_notifica_titolo: Data di notifica del precetto al debitore (YYYY-MM-DD)
@@ -1100,7 +1103,7 @@ def termini_esecuzioni(
         }
         _, agosto_nel_termine = _conta_avanti(dt_notifica, cfg["termine_opposizione_giorni"], True)
         if agosto_nel_termine:
-            result["avvertenza_sospensione_feriale"] = _AVVERTENZA_617_FERIALE
+            result["nota_sospensione_feriale"] = _NOTA_617_FERIALE
         return result
 
     # Termine dilatorio minimo (10gg) — non si può pignorare prima

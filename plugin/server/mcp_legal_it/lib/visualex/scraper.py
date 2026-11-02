@@ -2132,10 +2132,12 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     the sidebar tree (#albero) and fetches each one.
 
     Returns ``{"text", "title", "url", "article_count", "completo"}`` (plus ``"source":
-    "normattiva-akn"`` from the export), or ``{"error": str}``. The article-by-article
-    reading adds ``"non_lette"`` (the entries not read: ``completo`` is then False),
-    ``"parti_grafiche"`` (the entries with parts published as images only) and ``"avvisi"``
-    (the sentences that say both to a reader).
+    "normattiva-akn"`` from the export, and ``"avvisi"`` naming the parts its text leaves
+    out), or ``{"error": str}``. The article-by-article reading, of the act at today's date,
+    adds ``"non_lette"`` (the entries not read: ``completo`` is then False),
+    ``"non_in_vigore"`` (the entries whose page states a window that does not hold today: not
+    taken, ``completo`` False), ``"parti_grafiche"`` (the entries with parts published as
+    images only) and ``"avvisi"`` (the sentences that say them to a reader).
     """
     # A bare-year citation is resolved to the act's real date first (see with_full_date).
     try:
@@ -2165,7 +2167,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                     except Exception:  # noqa: BLE001 - the heading is best effort
                         display = ""
                     title = display or title
-                return {
+                letto = {
                     "text": full_text,
                     "title": title,
                     "url": act_url,
@@ -2173,6 +2175,13 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                     "source": "normattiva-akn",
                     "completo": True,
                 }
+                # The export's text is the act's body: what it leaves out is said, never implied.
+                fuori = [] if part else act.parti_fuori_dal_testo()
+                if fuori:
+                    # Linked at the export's own date (today): the undated page may show
+                    # another version of the parts named.
+                    letto["avvisi"] = [_avviso_parti_fuori(fuori, f"{act_url}!vig={_clock.today().isoformat()}")]
+                return letto
 
     ajax_headers = {**_HEADERS, "X-Requested-With": "XMLHttpRequest"}
 
@@ -2181,7 +2190,13 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
         timeout=httpx.Timeout(120.0, connect=15.0),
         follow_redirects=True,
     ) as client:
-        resp = await client.get(act_url)
+        # The act at today's date: undated, the tree lists each article's newest version, which
+        # may not be in force yet (art. 1 L. 213/2023, «in vigore dal 1-1-2027», on 2 Nov 2026).
+        # The Italian day (a container runs in UTC); the consult is recorded all the same.
+        _clock.today()
+        oggi = _clock.rome_day_unrecorded().isoformat()
+        url_oggi = f"{act_url}!vig={oggi}"
+        resp = await client.get(url_oggi)
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
@@ -2213,6 +2228,7 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
         all_parts: list[str] = []
         non_lette: list[str] = []
         parti_grafiche: list[str] = []
+        non_in_vigore: list[str] = []
         for ajax_path, etichetta in voci:
             nome = _nome_voce(etichetta)
             ajax_url = f"https://www.normattiva.it{ajax_path}"
@@ -2240,24 +2256,37 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
             if not body:
                 non_lette.append(nome)
                 continue
-            if _parti_in_formato_grafico(body):
-                parti_grafiche.append(nome)
             text = _testo_intero(body)
             if not text:
                 non_lette.append(nome)  # a page with an empty body: nothing read, never nothing to read
                 continue
+            validita = _validita_da_pagina(art_html, None)
+            if validita and validita.get("valid_from") and not _in_vigore_oggi(validita, oggi):
+                # A window that does not hold today: not today's text, never served as it.
+                non_in_vigore.append(f"{nome} ({_finestra(validita)})")
+                continue
+            if _parti_in_formato_grafico(body):
+                parti_grafiche.append(nome)
             if text != "[Articolo senza contenuto o abrogato]":
                 all_parts.append(text)
 
-    avvisi = _avvisi_lettura(non_lette, parti_grafiche, act_url)
+    avvisi = _avvisi_lettura(non_lette, parti_grafiche, act_url, non_in_vigore, url_oggi)
+    if not all_parts and non_in_vigore:
+        # Every text Normattiva gave is not in force today: never the act page's own body
+        # instead, whose version nothing checked.
+        return {"text": "", "title": title, "url": act_url, "error": " ".join(avvisi)}
     if not all_parts:
         return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
                 "completo": False, "non_lette": non_lette, "parti_grafiche": parti_grafiche,
+                "non_in_vigore": non_in_vigore,
                 "avvisi": avvisi or [_AVVISO_VOCI_VUOTE + _SOLO_PAGINA_ATTO]}
 
     full_text = "\n\n---\n\n".join(all_parts)
+    # ``stabile``: the same text whenever read today (no entry failed); a reading without today's
+    # text of some entry is not complete, but it is stable, so later windows can be cut from it.
     return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts),
-            "completo": not non_lette, "non_lette": non_lette, "parti_grafiche": parti_grafiche,
+            "completo": not non_lette and not non_in_vigore, "stabile": not non_lette,
+            "non_lette": non_lette, "parti_grafiche": parti_grafiche, "non_in_vigore": non_in_vigore,
             "avvisi": avvisi}
 
 
@@ -2276,14 +2305,40 @@ def _elenco(nomi: list[str]) -> str:
     return ", ".join(nomi[:_AVVISO_MAX_NOMI]) + f" e altre {len(nomi) - _AVVISO_MAX_NOMI}"
 
 
-def _avvisi_lettura(non_lette: list[str], parti_grafiche: list[str], url: str) -> list[str]:
-    """The notices of an article-by-article reading: what was not read, what has no text."""
+def _data_it(iso: str) -> str:
+    """«2027-01-01» -> «1/1/2027»; anything else unchanged."""
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", iso or "")
+    return f"{int(m.group(3))}/{int(m.group(2))}/{m.group(1)}" if m else iso
+
+
+def _finestra(validita: dict) -> str:
+    """«in vigore dal 1/1/2027», «in vigore dal 7/10/2026 al 31/12/2026»: a page's window."""
+    fine = f" al {_data_it(validita['valid_to'])}" if validita.get("valid_to") else ""
+    return f"in vigore dal {_data_it(validita['valid_from'])}{fine}"
+
+
+def _avviso_parti_fuori(fuori: list[str], url: str) -> str:
+    """The notice of an export's text that leaves parts of the act out (its annexes)."""
+    quali = "Parte dell'atto non inclusa" if len(fuori) == 1 else "Parti dell'atto non incluse"
+    return (f"{quali} nel testo: {_elenco(fuori)}. Il testo è il corpo dell'atto dell'export Akoma Ntoso "
+            f"di Normattiva; consultare queste parti sulla pagina dell'atto alla data di oggi: {url}")
+
+
+def _avvisi_lettura(non_lette: list[str], parti_grafiche: list[str], url: str,
+                    non_in_vigore: "list[str] | None" = None, url_oggi: str = "") -> list[str]:
+    """The notices of an article-by-article reading: what was not read, what is not today's text,
+    what has no text."""
     avvisi: list[str] = []
     if non_lette:
         n = len(non_lette)
         quante = "1 parte dell'atto non è stata letta" if n == 1 else f"{n} parti dell'atto non sono state lette"
         avvisi.append(f"Lettura parziale: {quante} da Normattiva ({_elenco(non_lette)}). Il testo non è "
                       "l'atto intero; ripetere la richiesta più tardi.")
+    if non_in_vigore:
+        avvisi.append(f"Parti escluse perché non in vigore oggi: alla data di oggi Normattiva ha dato per "
+                      f"{_elenco(non_in_vigore)} solo un testo che oggi non è in vigore, e quel testo non è qui. "
+                      f"Il testo non è l'atto intero in vigore oggi; la pagina dell'atto alla data di oggi: "
+                      f"{url_oggi or url}")
     if parti_grafiche:
         verbo = "contiene" if len(parti_grafiche) == 1 else "contengono"
         avvisi.append(f"Parti in formato grafico: su Normattiva {_elenco(parti_grafiche)} {verbo} parti "
@@ -2353,6 +2408,31 @@ def _extract_article_ajax_urls(html: str) -> list[str]:
 _VOCE_ALBERO = re.compile(r"showArticle\('(/atto/caricaArticolo\?[^']+)'(?:[^>]*>([^<]*)</a>)?")
 
 
+# The heading of an annex in the tree: <li class="box_allegati_small"><span>Allegato I.8 </span></li>.
+_INTESTAZIONE_ALLEGATO = re.compile(r'<li class="box_allegati[^"]*"><span>([^<]*)</span>')
+# A heading that names no annex of its own: the tree's "Allegati" box over the whole list.
+_INTESTAZIONE_GENERICA = re.compile(r"^allegati$", re.IGNORECASE)
+
+
+def _con_allegato(etichetta: str, path: str, posizione: int, intestazioni: "list[tuple[int, str]]") -> str:
+    """A tree label with the annex it belongs to: «art. 1» under «Allegato I.1» -> «Allegato I.1, art. 1».
+
+    An annex's article is labelled as the act's own («art. 1»), so a notice naming it would not
+    say which. The annex is the last heading before the entry; the act's own articles
+    (``flagTipoArticolo=0``), a label under the tree's generic «Allegati» box and a label that
+    starts with its annex («Allegato I» under «Allegato I») stay as they are.
+    """
+    if not etichetta or "art.flagTipoArticolo=0&" in path:
+        return etichetta
+    prima = [nome for inizio, nome in intestazioni if inizio < posizione]
+    if not prima or not prima[-1] or _INTESTAZIONE_GENERICA.match(prima[-1]):
+        return etichetta
+    allegato = prima[-1]
+    if etichetta.lower().startswith(allegato.lower()):
+        return etichetta  # «Allegato I» under «Allegato I»: the label is the annex
+    return f"{allegato}, {etichetta}"
+
+
 # What identifies an entry of the tree: neither the version (only today's is kept) nor the
 # Gazzetta date, written two ways.
 _IDENTITA_VOCE = ("idGruppo", "idArticolo", "idSottoArticolo", "idSottoArticolo1", "flagTipoArticolo",
@@ -2372,11 +2452,12 @@ def _voci_albero(html: str) -> list[tuple[str, str]]:
     """
     seen_articles: set[str] = set()
     unique: list[tuple[str, str]] = []
+    intestazioni = [(t.start(), _one_line(unescape(t.group(1)))) for t in _INTESTAZIONE_ALLEGATO.finditer(html)]
     for m in _VOCE_ALBERO.finditer(html):
         url_clean = m.group(1).replace("&amp;", "&")
         if "art.imUpdate=true" in url_clean:
             continue
-        etichetta = unescape(m.group(2) or "").strip()
+        etichetta = _con_allegato(unescape(m.group(2) or "").strip(), url_clean, m.start(), intestazioni)
         grp = re.search(r"art\.idGruppo=(\d+)", url_clean)
         art = re.search(r"art\.idArticolo=(\d+)", url_clean)
         flag = re.search(r"art\.flagTipoArticolo=(\d+)", url_clean)
