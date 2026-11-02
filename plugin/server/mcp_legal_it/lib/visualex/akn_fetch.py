@@ -425,10 +425,14 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
     future: "asyncio.Future[tuple[ParsedAct | None, frozenset]]" = loop.create_future()
     _in_flight[flight_key] = future
     act, consulted = None, frozenset()
+    rifiuto: "Exception | None" = None
     try:
         with _sources.recording() as noted:
             try:
                 act = await _download_act(landing_url, data_vigenza)
+            except Exception as exc:
+                rifiuto = exc  # only AttoNonVerificato leaves _download_act
+                raise
             finally:
                 consulted = frozenset(noted)
         return act
@@ -437,8 +441,13 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             _sources.note(dataset, url)  # back into the caller's own record
         # A cancelled download hands its waiters None: they fall back to HTML,
         # as on any other AKN failure, instead of inheriting the cancellation.
+        # Another act's page is the one thing they share: each refuses the same way.
         if not future.done():
-            future.set_result((act, consulted))
+            if rifiuto is not None:
+                future.set_exception(rifiuto)
+                future.exception()  # retrieved: a waiter-less refusal must not warn
+            else:
+                future.set_result((act, consulted))
         _in_flight.pop(flight_key, None)
 
 
