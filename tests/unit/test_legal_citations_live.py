@@ -440,6 +440,9 @@ def test_lettura_per_articolo_legge_bilancio_come_export_o_parziale(monkeypatch)
         assert any("Lettura parziale" in a for a in walk["avvisi"]), walk["avvisi"]
     for nome in walk["parti_grafiche"]:
         assert any(nome in a and "formato grafico" in a for a in walk["avvisi"]), (nome, walk["avvisi"])
+    # The export's text leaves the annexes out and says so; the walk reads today's text.
+    assert any("Allegato I" in a and "non incluse" in a for a in export.get("avvisi", [])), export.get("avvisi")
+    assert walk["non_in_vigore"] == [], walk["avvisi"]
 
 
 def test_fetch_full_act_atto_ue_rinvia_a_pdf(monkeypatch):
