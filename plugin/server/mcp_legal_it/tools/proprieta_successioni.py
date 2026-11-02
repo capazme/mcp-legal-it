@@ -9,6 +9,7 @@ from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._numeri import numero_it
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._data import sourced
+from mcp_legal_it.lib._transizione import DPR_131_1986, transitoria
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -204,6 +205,7 @@ def imposte_successione(
 
 
 @mcp.tool(tags={"calcolo", "proprieta"})
+@transitoria(DPR_131_1986)
 @sourced("usufrutto_coefficienti")
 def calcolo_usufrutto(
     valore_piena_proprieta: float,
@@ -329,6 +331,7 @@ def calcolo_imu(
 
 
 @mcp.tool(tags={"calcolo", "proprieta"})
+@transitoria(DPR_131_1986)
 @sourced("imposte_successione", alternativa="aliquote_registro")
 def imposte_compravendita(
     prezzo: float,
@@ -874,6 +877,7 @@ def cedolare_secca(
 
 
 @mcp.tool(tags={"calcolo", "proprieta"})
+@transitoria(DPR_131_1986)
 @sourced("tassi_legali")
 def imposta_registro_locazioni(
     canone_annuo: float,
@@ -886,7 +890,7 @@ def imposta_registro_locazioni(
     del canone (art. 8 c. 1 L. 431/1998), cioè 1,4% effettivo; minimo €67 sulla prima annualità.
     Pagando per l'intera durata l'imposta è ridotta di una percentuale pari alla metà del tasso di interesse
     legale per il numero delle annualità (nota all'art. 5 della Tariffa, parte prima, DPR 131/1986).
-    Vigenza: art. 5 Tariffa parte I e art. 17 c. 3 DPR 131/1986 (ora art. 21 c. 3 del testo unico, D.Lgs.
+    Vigenza: art. 5 Tariffa parte I e art. 17 c. 3 DPR 131/1986 (dal 1/1/2027 art. 21 c. 3 del testo unico, D.Lgs.
     123/2025); art. 8 c. 1 L. 431/1998. Aggiornata al 2026-09-29.
     Precisione: ESATTO (aliquote, base del 70%, minimo e sconto di legge; importi non arrotondati all'euro,
     l'arrotondamento del versamento in F24 non è applicato)
@@ -936,7 +940,7 @@ def imposta_registro_locazioni(
         "sconto_intera_durata": sconto,
         "minimo_applicato": prima_registrazione and imposta_annua < minimo,
         "nota": "Imposta a carico 50% locatore e 50% conduttore (salvo patto contrario)" if tipo == "libero" else "Canone concordato: 2% sul 70% del canone (art. 8 c. 1 L. 431/1998), 1,4% effettivo",
-        "riferimento_normativo": "DPR 131/1986 art. 5 Tariffa Parte I (D.Lgs. 123/2025); art. 8 L. 431/1998 — Imposta registro locazioni",
+        "riferimento_normativo": "DPR 131/1986 art. 5 Tariffa Parte I (dal 1/1/2027 D.Lgs. 123/2025); art. 8 L. 431/1998 — Imposta registro locazioni",
     }
 
 

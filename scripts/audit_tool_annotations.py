@@ -131,6 +131,7 @@ LOCAL_LIB_MODULES = {
     "_result",
     "_sources",
     "_tables_open",
+    "_transizione",
 }
 # Evidence that a tool produces something for the user rather than refreshing a
 # cache: a document, a spreadsheet or a PDF handle.
