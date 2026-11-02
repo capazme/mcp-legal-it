@@ -414,13 +414,15 @@ def _atto_non_corrispondente(norma: Norma, intestazione: str, verifica: str, mot
         return (f"nessun atto «{citato}» su Normattiva: la pagina restituita è «{intestazione}» "
                 "(controlla tipo, numero e anno)")
     if verifica == "date_discordi":
-        return (f"«{citato}»: l'intestazione della pagina («{intestazione}») e la sua data ELI non coincidono; "
-                "indicare la data completa dell'atto")
+        return (f"«{citato}»: l'intestazione della pagina («{intestazione}») e la sua data ELI non coincidono: "
+                "cita l'atto con la data completa (AAAA-MM-GG)")
     if verifica == "non_letta":
-        return (f"«{citato}»: la data completa dell'atto non è stata verificata su Normattiva"
-                + (f" ({motivo})" if motivo else "") + "; riprovare, o indicarla")
+        # Never the year-only URN instead: Normattiva would serve the law with that year and number.
+        return (f"«{citato}»: Normattiva non ha confermato ora quale atto è"
+                + (f" ({motivo})" if motivo else "")
+                + ": riprova più tardi, oppure cita l'atto con la data completa (AAAA-MM-GG)")
     return (f"«{citato}»: Normattiva restituisce «{intestazione}», un tipo d'atto che la libreria non sa "
-            "confrontare con quello citato; indicare la data completa dell'atto")
+            "confrontare con quello citato: cita l'atto con la data completa (AAAA-MM-GG)")
 
 
 async def act_full_date(norma: Norma) -> tuple[str, str, dict]:
