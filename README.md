@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-blue?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/python-%3E%3D3.11-3776ab?style=flat-square" alt="Python">
   <a href="https://github.com/capazme/mcp-legal-it/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/capazme/mcp-legal-it/ci.yml?branch=develop&style=flat-square&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tool-234-green?style=flat-square" alt="Tools">
+  <img src="https://img.shields.io/badge/tool-235-green?style=flat-square" alt="Tools">
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 ## Cos'e mcp-legal-it
 
-Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **234 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
+Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **235 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
 - **Normativa verificata** — testi vigenti da Normattiva, EUR-Lex e Brocardi (no allucinazioni)
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
@@ -60,7 +60,7 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 1. Installa `uv` (vedi sopra).
 2. Scarica **`legal-it-X.Y.Z.mcpb`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest).
 3. In Claude Desktop: **doppio click sul file** — oppure **Impostazioni → Estensioni → Impostazioni avanzate → Sviluppatore estensioni → Installa file `.mcpb`**.
-4. Riavvia Claude. I 234 tool girano in locale.
+4. Riavvia Claude. I 235 tool girano in locale.
 
 > **Il primo avvio è lento** (~1 min: scarica Python 3.12 e le dipendenze) e Claude Desktop
 > può mostrare il server come *disconnesso* mentre sta ancora scaricando. Attendi un minuto
@@ -175,7 +175,7 @@ plugin Claude Code, usa il **bundle OpenAI** generato dallo stesso corpus:
 
 1. Scarica **`legal-it-openai-skills-X.Y.Z.zip`** dall'ultima [Release](https://github.com/capazme/mcp-legal-it/releases/latest) — contiene 42 skill (`.agents/skills/`), `AGENTS.md` e `config.toml.example`.
 2. **Codex CLI**: estrai `.agents/skills/` in `$HOME/.agents/skills/` (globale) o nella root del progetto; copia `AGENTS.md`; aggiungi il blocco `config.toml.example` a `~/.codex/config.toml` (server MCP separato, via `uv`).
-3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 234 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
+3. **ChatGPT**: carica `.agents/skills/` nella Skills UI; i 235 tool richiedono un connector Developer Mode su un endpoint HTTPS self-hosted (vedi Docker sopra).
 
 Guida completa (naming del server, verifica `/mcp`, limiti rispetto al plugin Claude Code): [`docs/openai.md`](docs/openai.md).
 
@@ -195,7 +195,7 @@ Per provare una beta:
 
 ---
 
-## Tool disponibili — 234 tool, 36 moduli
+## Tool disponibili — 235 tool, 37 moduli
 
 | # | Categoria | Tool | Esempi |
 |---|-----------|:----:|--------|
@@ -234,6 +234,7 @@ Per provare una beta:
 | 33 | Modelli di atti | 3 | `genera_modello_atto`, `esporta_atto_docx`, `lista_categorie_atti` |
 | 34 | Recupero crediti seriale (DOCX) | 2 | `genera_procura_liti_docx`, `genera_quotazione_docx` |
 | 35 | Utilità e provenienza dei dati | 14 | `codice_fiscale`, `verifica_iban`, `verbale_mensile` |
+| 36 | Vigenza delle norme | 1 | `storia_norma` (versioni di un articolo, date di vigenza, atti modificativi) |
 
 ---
 
@@ -575,16 +576,16 @@ sempre disponibili. Etichette e regole: [docs/tool-tags.md](docs/tool-tags.md).
 
 | Profilo | Tool | Contenuto |
 |---------|------|-----------|
-| `full` | 234 | Tutti i tool |
-| `sinistro` | 82 | Danni, rivalutazione, interessi + norme e giurisprudenza |
-| `credito` | 92 | Interessi, rivalutazione, parcelle, recupero crediti + norme e giurisprudenza |
-| `penale` | 54 | Diritto penale + norme e giurisprudenza |
+| `full` | 235 | Tutti i tool |
+| `sinistro` | 83 | Danni, rivalutazione, interessi + norme e giurisprudenza |
+| `credito` | 93 | Interessi, rivalutazione, parcelle, recupero crediti + norme e giurisprudenza |
+| `penale` | 55 | Diritto penale + norme e giurisprudenza |
 | `fiscale` | 66 | Fisco, immobili, società, crisi, investimenti, CeRDEF, CONSOB |
-| `normativa` | 76 | Tutte le fonti: norme, ogni giurisprudenza, Garante, CONSOB e ANAC, registri, privacy |
-| `privacy` | 67 | GDPR + Garante + norme e giurisprudenza |
+| `normativa` | 77 | Tutte le fonti: norme, ogni giurisprudenza, Garante, CONSOB e ANAC, registri, privacy |
+| `privacy` | 68 | GDPR + Garante + norme e giurisprudenza |
 | `studio` | 76 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
-| `redattore` | 76 | Atti, procedura, parcelle, scadenze + norme |
-| `cowork` | 80 | Norme, giurisprudenza, privacy, parcelle (set ridotto) |
+| `redattore` | 77 | Atti, procedura, parcelle, scadenze + norme |
+| `cowork` | 81 | Norme, giurisprudenza, privacy, parcelle (set ridotto) |
 | `calcoli` | 144 | Solo strumenti di calcolo e diagnostica: nessuna connessione di rete |
 
 Ogni profilo include i tre tool di diagnostica (`stato_server`, `verbale_mensile`,
@@ -601,8 +602,8 @@ norma) ed è attiva per impostazione predefinita. Per usare il server senza Broc
 LEGAL_BROCARDI=off mcp-legal-it
 ```
 
-Con l'interruttore spento `cerca_brocardi` e `fetch_law_annotations` non sono esposti (232 tool
-invece di 234), nessuna richiesta parte verso brocardi.it, e `cite_law(include_annotations=True)`,
+Con l'interruttore spento `cerca_brocardi` e `fetch_law_annotations` non sono esposti (233 tool
+invece di 235), nessuna richiesta parte verso brocardi.it, e `cite_law(include_annotations=True)`,
 `giurisprudenza_articolo` e `mappa_orientamento` rispondono senza Brocardi e lo dichiarano.
 In codice: `crea_server(brocardi=False)` (vedi sotto) o, per chi chiama direttamente gli scraper,
 `mcp_legal_it.lib._brocardi_switch.disabled()`. Uno *spento* impostato nell'ambiente non può essere
