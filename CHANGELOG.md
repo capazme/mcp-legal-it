@@ -390,6 +390,48 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **Legal content review (LI-062).** Twelve corpus entries re-read against the norms and
+  decisions, each fact checked with the project's own tools:
+  - *Non-pecuniary damage tables (LI-062, LI-067)* (`analisi-sinistro`, `quantificazione-danni`):
+    the national single table (D.P.R. 12/2025, in force 5 March 2025, for sinistri after that
+    date; updated by DM 10/12/2025 and DM 28/9/2026) for road traffic and healthcare;
+    outside that scope the liquidation is equitable (artt. 1226, 2056 c.c.) and the choice of
+    table is checked and motivated; the table in force at the decision applies; the
+    tools' value for macro-permanents is flagged as an estimate.
+  - *Accidents at work* (`analisi-sinistro`): INAIL indemnity, differential damage computed
+    item by item, art. 139 CdA only when the accident is also a road accident (INAIL
+    subrogation).
+  - *Art. 171-ter memorie* (`procedura-civile`, `termini-processuali`): contents follow the
+    three numbers of the article (evidence belongs to the second); backward terms get the
+    summer suspension and move back from a holiday.
+  - *Art. 348-bis* (`procedura-civile`): the 2022 text, with the old filter kept for appeals
+    lodged by 28/02/2023.
+  - *Mediation* (`termini-processuali`): first meeting 20-40 days, six-month duration
+    (D.Lgs. 216/2024).
+  - *Simplified procedure* (`causa-civile`): replaces the abrogated summary procedure.
+  - *Abuso d'ufficio* (`penalista`): abolitio criminis by L. 114/2024 (art. 2 c.p., art. 673
+    c.p.p.), Corte cost. 95/2025, continuity with art. 314-bis, directive (EU) 2026/1021.
+  - *CONSOB keys* (`consob-delibere`): the reference lists the keys the client knows, without
+    numeric ids.
+  - *Labour consultant* (`analisi-fornitori`): processor for the client's payroll (Garante,
+    2019); autonomous controller when assisting the client in litigation (art. 4(7) GDPR).
+  - *Art. 1224 c.c. greater damage* (`interessi`, `recupero-credito`): the SS.UU. 19499/2008
+    criterion stated in full; SS.UU. 12449/2024 on «interessi legali» in an enforcement title.
+  - *Compensatory interest* (`analisi-sinistro`, `quantificazione-danni`, docstring of
+    `interessi_vari_capitale_rivalutato`): a table value is already current, so it is devalued
+    to the date of the fact (`calcolo_devalutazione`) instead of being revalued again, and the
+    interest runs on the sum revalued year by year; the average is a practice shortcut;
+    art. 1284, co. 4, c.c. does not apply to a debt of value.
+  - *Conforming interpretation vs disapplication* (`analisi-giurisprudenza-europea`): Mangold
+    and Kücükdeveci moved to disapplication; Dansk Industri, Egenberger, Bauer and the
+    Italian double preliminarity added.
+- **CONSOB filter keys are an enum (LI-062).** `cerca_delibere_consob` and
+  `ultime_delibere_consob` declare the valid `tipologia` and `argomento` keys as an `enum` in
+  their input schema (case and spaces are still normalised first). An unknown key is refused
+  with an error listing the valid keys (the schema's validation error over MCP, «Chiave non
+  valida» from the implementation functions), instead of reaching the portal as a meaningless
+  filter and coming back as «Nessuna delibera». A raw Liferay id is no longer accepted for
+  `argomento`.
 - **The time-limit tools take the matter of the case for the August suspension**
   (decision G-406). `scadenza_processuale`, `termini_processuali_civili`,
   `scadenze_impugnazioni`, `termini_memorie_repliche`,

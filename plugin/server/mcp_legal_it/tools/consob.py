@@ -4,6 +4,10 @@ TRIGGER: usare quando l'utente chiede di delibere/provvedimenti CONSOB, sanzioni
 finanziari, abusi di mercato, intermediari, emittenti, OPA, crowdfunding, cripto-attivita.
 """
 
+from typing import Annotated, Literal
+
+from pydantic import BeforeValidator
+
 from mcp_legal_it.server import mcp
 from mcp_legal_it.lib._paging import invalid_start
 from mcp_legal_it.lib.consob.client import (
@@ -22,13 +26,54 @@ from mcp_legal_it.lib.consob.client import (
 # ---------------------------------------------------------------------------
 
 
+def _normalize_key(value):
+    """"Intermediari", " delibere", "abusi di mercato" -> the canonical key (as before the enum)."""
+    return value.strip().lower().replace(" ", "_") if isinstance(value, str) else value
+
+
+# The valid filter keys, declared as an enum in the tools' input schema so a model cannot send
+# a key the portal does not know (LI-062). Case and spaces are normalised before the check, as
+# the tools did before the enum. The lists must stay equal to the client's tables:
+# tests/unit/test_consob.py pins the two together.
+TipologiaConsob = Annotated[
+    Literal[
+        "", "delibere", "comunicazioni", "provvedimenti_urgenti", "altre_decisioni", "opa",
+        "appendice", "tutti",
+    ],
+    BeforeValidator(_normalize_key),
+]
+ArgomentoConsob = Annotated[
+    Literal[
+        "", "abusi_di_mercato", "intermediari", "emittenti", "mercati", "offerte_acquisto",
+        "offerte_vendita", "gestione_collettiva", "servizi_investimento", "cripto_attivita",
+        "crowdfunding",
+    ],
+    BeforeValidator(_normalize_key),
+]
+
+
 def _resolve_consob_filters(
     tipologia: str, argomento: str,
-) -> tuple[str, str]:
-    """Resolve human-friendly tipologia/argomento keys to Liferay values."""
-    tipologia_val = TIPOLOGIE.get(tipologia.lower(), tipologia) if tipologia else ""
-    argomento_id = ARGOMENTI.get(argomento.lower().replace(" ", "_"), argomento) if argomento else ""
-    return tipologia_val, argomento_id
+) -> tuple[str, str, str]:
+    """Resolve the tipologia/argomento keys to Liferay values.
+
+    Returns ``(tipologia_val, argomento_id, error)``. An unknown key is refused with an
+    error instead of being forwarded to the portal, where it would run as a meaningless
+    filter and come back as "no delibera".
+    """
+    tip_key = _normalize_key(tipologia) if tipologia else ""
+    arg_key = _normalize_key(argomento) if argomento else ""
+    if tip_key and tip_key not in TIPOLOGIE:
+        return "", "", (
+            f"Chiave non valida per tipologia: «{tipologia}». "
+            f"Valori ammessi: {', '.join(TIPOLOGIE)}."
+        )
+    if arg_key and arg_key not in ARGOMENTI:
+        return "", "", (
+            f"Chiave non valida per argomento: «{argomento}». "
+            f"Valori ammessi: {', '.join(ARGOMENTI)}."
+        )
+    return TIPOLOGIE.get(tip_key, ""), ARGOMENTI.get(arg_key, ""), ""
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +90,9 @@ async def _cerca_delibere_consob_impl(
 ) -> str:
     max_risultati = max(1, min(max_risultati, 100))
 
-    tipologia_val, argomento_id = _resolve_consob_filters(tipologia, argomento)
+    tipologia_val, argomento_id, error = _resolve_consob_filters(tipologia, argomento)
+    if error:
+        return error
 
     try:
         docs = await search_delibere(
@@ -91,7 +138,9 @@ async def _ultime_delibere_consob_impl(
 ) -> str:
     max_risultati = max(1, min(max_risultati, 100))
 
-    tipologia_val, argomento_id = _resolve_consob_filters(tipologia, argomento)
+    tipologia_val, argomento_id, error = _resolve_consob_filters(tipologia, argomento)
+    if error:
+        return error
 
     try:
         docs = await search_delibere(
@@ -122,8 +171,8 @@ async def _ultime_delibere_consob_impl(
 @mcp.tool(tags={"autorita", "consob"}, output_schema=None)
 async def cerca_delibere_consob(
     query: str,
-    tipologia: str = "",
-    argomento: str = "",
+    tipologia: TipologiaConsob = "",
+    argomento: ArgomentoConsob = "",
     data_da: str = "",
     data_a: str = "",
     max_risultati: int = 20,
@@ -143,10 +192,8 @@ async def cerca_delibere_consob(
 
     Args:
         query: Testo da cercare (es. "abusi di mercato", "sanzione intermediario", "OPA")
-        tipologia: Filtra per tipo (es. "delibere", "comunicazioni", "provvedimenti_urgenti", "opa")
-        argomento: Filtra per argomento (es. "abusi_di_mercato", "intermediari", "emittenti",
-            "mercati", "offerte_acquisto", "gestione_collettiva", "servizi_investimento",
-            "cripto_attivita", "crowdfunding") oppure ID Liferay diretto
+        tipologia: Filtra per tipo di documento (vuoto = nessun filtro)
+        argomento: Filtra per argomento del Bollettino (vuoto = nessun filtro)
         data_da: Data inizio in formato YYYY-MM-DD (es. "2023-01-01")
         data_a: Data fine in formato YYYY-MM-DD (es. "2024-12-31")
         max_risultati: Numero massimo di risultati (default 20, max 100)
@@ -178,8 +225,8 @@ async def leggi_delibera_consob(numero: str, da_carattere: int = 1) -> str:
 
 @mcp.tool(tags={"autorita", "consob"}, output_schema=None)
 async def ultime_delibere_consob(
-    tipologia: str = "",
-    argomento: str = "",
+    tipologia: TipologiaConsob = "",
+    argomento: ArgomentoConsob = "",
     max_risultati: int = 10,
 ) -> str:
     """Ultime delibere e provvedimenti pubblicati dalla CONSOB, con filtro opzionale.
@@ -190,8 +237,8 @@ async def ultime_delibere_consob(
     attenzione, Avviso...), numero completo, titolo, date e link alla pagina reale del documento.
 
     Args:
-        tipologia: Filtra per tipo (es. "delibere", "comunicazioni", "provvedimenti_urgenti")
-        argomento: Filtra per argomento (es. "abusi_di_mercato", "intermediari", "emittenti")
+        tipologia: Filtra per tipo di documento (vuoto = nessun filtro)
+        argomento: Filtra per argomento del Bollettino (vuoto = nessun filtro)
         max_risultati: Numero massimo di risultati (default 10, max 100)
     """
     return await _ultime_delibere_consob_impl(

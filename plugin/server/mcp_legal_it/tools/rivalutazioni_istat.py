@@ -675,7 +675,7 @@ def interessi_vari_capitale_rivalutato(
     data_fine: str,
     tasso_personalizzato: float | None = None,
 ) -> dict:
-    """Rivaluta un capitale FOI e calcola interessi a tasso personalizzato o legale sul rivalutato (criterio Cass. SU 1712/1995).
+    """Rivaluta un capitale FOI e calcola interessi a tasso personalizzato o legale sul capitale rivalutato anno per anno, non su quello finale (criterio Cass. SU 1712/1995).
 
     Versione estesa di rivalutazione_monetaria che permette di usare un tasso diverso da quello legale
     (es. tasso contrattuale, tasso BOT). Se tasso_personalizzato=None usa il tasso legale vigente per anno.
