@@ -15,6 +15,29 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **`storia_norma`: an article's history as an MCP tool** (#115; 235 tools). A thin
+  wrapper (ADR-001) over `api.modifiche_articolo`: `storia_norma(riferimento, dal, al,
+  max_versioni=20, formato="testo"|"json")`.
+  - **Text.** One table, one row per version: the window in force (GG/MM/AAAA) and the
+    amendments that produced it, grouped by amending act as Normattiva words it. The
+    first line gives the number of versions, whether the history is complete and the
+    grade (`ESATTO` only with the whole history). The library's avvisi sit above the
+    table, in its order: a version not in force yet, the ceiling reached, versions left
+    unread after a failure (ask again), the `data_gu` fallback. With `dal`/`al` only the
+    versions that came into force in the period are listed.
+  - **JSON.** `come_dict(ModificheArticolo)`, as `cite_law(formato="json")` does.
+  - **Citation.** The same resolver as `cite_law`: an act it cannot identify is refused
+    with the nearest names, never guessed. EU acts, whole acts and annex articles are
+    refused (`non_supportata`).
+  - **Says what it is not.** The description and every answer say that vigenza is not
+    applicability: a text in force may not apply to an earlier fact.
+  - **Tags and profiles.** `normativa` plus the new area `vigenza`, so it is in every
+    profile that has `normativa` (sinistro, credito, penale, normativa, privacy,
+    redattore, cowork). It writes only the Normattiva caches: among the cache-only
+    writers (`readOnlyHint: false`, open world).
+  - **Tests.** Unit tests on the recorded pages of art. 2-ter d.lgs. 196/2003, art.
+    64-bis CCII, art. 612-bis c.p. (the rest of its pages captured for this), art. 1
+    d.P.R. 131/1986 and art. 2740 c.c.; a polite serial live test (23 requests).
 - **The citation gate reads VisuaLex's dossier** (`omnilex_crea_dossier`, VisuaLex
   1.10.7 and later). The dossier verifies each reference and decision it is given
   against the sources, so they count as read.
@@ -358,6 +381,13 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **`termini_esecuzioni` states the reading applied for art. 617 c.p.c.** (decision
+  LI-060). The August suspension is still not applied to the 20 days; the field that
+  said the point was debated (`avvertenza_sospensione_feriale`) becomes
+  `nota_sospensione_feriale`, which says that the opposizione agli atti esecutivi is
+  excluded together with the other enforcement oppositions, that art. 92 R.D. 12/1941
+  (via art. 3 L. 742/1969) names only the «opposizione all'esecuzione», and cites
+  Cass. n. 26443/2024, n. 25666/2025 and n. 13797/2022. The calculation is unchanged.
 - Concurrent cold requests for the same act now share one download of its
   Akoma Ntoso export (before, N callers downloaded it N times).
 - **Text answers are sent once.** The 63 tools that answer plain text (the
@@ -536,10 +566,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   every answer is gone (it also said "opposizioni esecutive" where art. 92
   says "opposizione all'esecuzione"); the `scadenza` command and the
   `procedura-civile` reference carry the same list. `termini_esecuzioni` keeps
-  computing the art. 617 opposition without the suspension (the prudent
-  reading) and, when August falls in its 20 days, adds
-  `avvertenza_sospensione_feriale`: whether art. 617 is excluded is debated,
-  since art. 92 R.D. 12/1941 names only the "opposizione all'esecuzione".
+  computing the art. 617 opposition without the suspension and, when August falls in its 20 days, adds
+  `nota_sospensione_feriale` (see Changed).
 - **The citation gate reads like the server, and checks decisions too.** The
   plugin's Stop hook, now also registered on `SubagentStop`, extracts citations
   with the server's own parser and resolver (moved, unchanged, into the
