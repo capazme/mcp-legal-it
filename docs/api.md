@@ -391,6 +391,11 @@ that page is Normattiva's error page (below; the check is shared per event loop)
     year, it serves L. 17 ottobre 2014, n. 158, which is then `atto_non_trovato`. A caller
     that wants only dates read from a verified title skips these types, or reads
     `precisione`.
+  - **A citation with the wrong sub-type is another act.** The heading's type must be
+    the cited one: «R.D. 1825/1924» served «REGIO DECRETO-LEGGE 13 novembre 1924, n. 1825»,
+    or «L. 3/2001» served «LEGGE COSTITUZIONALE 18 ottobre 2001, n. 3», is
+    `atto_non_trovato`, and `errore` names the page, so the caller can cite it right. The
+    only alias is the d.lgs.lgt. served as «DECRETO-LEGGE LUOGOTENENZIALE» (measured).
   - **«DECRETO» does not name the ministry.** A D.M.'s page is headed «DECRETO 10 marzo
     2014, n. 55»: the heading checks the type, year and number, not which ministry issued
     it. Two ministerial decrees with the same number and year would both pass as
@@ -938,6 +943,7 @@ act's Akoma Ntoso export (two requests cold, none warm: the export is cached).
   `non_supportata`, as for an Italian act. `considerando` of a `NormaDati` with
   `celex_consolidated` is `non_supportata`, before any request.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
+  `atto_non_trovato` (cited by year, Normattiva serves another act),
   `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
   `errore_fonte`, `testo_assente`.
 
@@ -960,6 +966,7 @@ act's page. One request, kept a day; every variant is read from the same page.
   `metadata = {"rubriche", "title"}`. `consolidato` and `consolidato_verificato`
   say which text the tree is read from.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
+  `atto_non_trovato` (cited by year, Normattiva serves another act),
   `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
   `errore_fonte`, `testo_assente`.
 

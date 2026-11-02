@@ -390,3 +390,29 @@ class TestTipoConTitolo:
             lambda: scraper.fetch_article(NormaVisitata(norma=legge, numero_articolo="3")),
             routes={"legge:1990-01-01;241": L241})
         assert "Motivazione" in r["text"] or "motivazione" in r["text"].lower()
+
+    async def test_a_warm_cache_refuses_too_without_asking_again(self):
+        primo, chieste = await self._con_normattiva(
+            lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")))
+        secondo, ancora = await self._con_normattiva(
+            lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")))
+        assert primo["esito"] == secondo["esito"] == scraper.ACT_NOT_FOUND
+        assert chieste == [N2LS + self.URL] and ancora == []
+
+    async def test_a_heading_of_an_unknown_type_keeps_the_year_only_urn(self):
+        # Derived from the real page: a heading type no table knows says nothing about another act.
+        ignota = L241.replace("<title>LEGGE 7 agosto 1990, n. 241 - Normattiva</title>",
+                              "<title>DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 7 agosto 1990, n. 241"
+                              " - Normattiva</title>")
+        _r, chieste = await self._con_normattiva(
+            lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")),
+            routes={self.URL: ignota})
+        assert any("~art3" in u for u in chieste)
+
+    async def test_verifica_citazioni_names_the_page_served(self):
+        from mcp_legal_it.tools.legal_citations import _verifica_norma
+
+        (verdetto, nota), _ = await self._con_normattiva(lambda: _verifica_norma("art. 3 d.lgs. 241/1990"))
+        assert verdetto == "non trovata"
+        assert nota.startswith("L'atto citato non è su Normattiva: nessun atto «decreto legislativo n. 241 del 1990»")
+        assert "«LEGGE 7 agosto 1990, n. 241»" in nota

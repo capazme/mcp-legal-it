@@ -587,7 +587,8 @@ def _consolidato(tipo_atto: str, data: str, numero_atto: str, celex: str | None)
 
 
 def _esito_errore(result: dict) -> str:
-    """The outcome of a reader's error dict: a refused act (``CHECK_UNAVAILABLE``) or the source's error."""
+    """The outcome of a reader's error dict: another act's page (``ACT_NOT_FOUND``), a page not
+    verified now (``CHECK_UNAVAILABLE``), or the source's error."""
     if result.get("esito") == ACT_NOT_FOUND:
         return "atto_non_trovato"
     return "verifica_non_disponibile" if result.get("esito") == CHECK_UNAVAILABLE else "errore_fonte"
@@ -619,8 +620,8 @@ async def testo_articolo(riferimento: str | NormaDati, *, canale: Canale) -> Tes
     transliterated, no «(( … ))» amendment markers, never VisuaLex's display text.
 
     Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
-    ``articolo_non_trovato``, ``verifica_non_disponibile``, ``testo_assente``,
-    ``errore_fonte``, ``non_supportata``.
+    ``atto_non_trovato`` (cited by year, Normattiva serves another act), ``articolo_non_trovato``,
+    ``verifica_non_disponibile``, ``testo_assente``, ``errore_fonte``, ``non_supportata``.
     """
     return await _testo_articolo(riferimento, canale=canale)
 
@@ -809,7 +810,7 @@ async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
     number). The export is the act's own (two requests cold, none warm). When it cannot be
     read, Normattiva's ``vediRubriche`` answers: ``rubriche`` and ``voci`` (its lines),
     without abrogati or parts.
-    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
+    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``, ``atto_non_trovato``,
     ``non_supportata`` (EU acts), ``verifica_non_disponibile``, ``errore_fonte``, ``testo_assente``.
     """
     norma = _atto(atto)
@@ -903,7 +904,7 @@ async def albero_atto(atto: str | NormaDati, *, link: bool = False, dettagli: bo
     Every article with the part it belongs to (``allegato``, Normattiva's number; ``None``
     for the act's own text), its URL when *link*, the section labels between them when
     *dettagli*, and ``metadata["annexes"]``. One request (the act's page), kept a day.
-    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``,
+    Esiti: ``trovato``, ``riferimento_non_valido``, ``atto_non_riconosciuto``, ``atto_non_trovato``,
     ``non_supportata`` (EU acts), ``verifica_non_disponibile``, ``errore_fonte``.
     """
     norma = _atto(atto)
