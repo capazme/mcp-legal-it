@@ -42,7 +42,7 @@ def _isolate(monkeypatch, tmp_path):
 def _normattiva(insieme: str, chieste: list, eccezioni: dict | None = None):
     """A client factory serving *insieme*'s pages: the article page, ``_v{k}`` and ``_agg_v{k}``.
 
-    *eccezioni* maps a page name (``"dlgs196_art2ter_v2"``) to the text served instead.
+    *eccezioni* maps a page name (``"dlgs196_art2ter_v2"``) to the text or response served instead.
     """
     eccezioni = eccezioni or {}
 
@@ -59,7 +59,8 @@ def _normattiva(insieme: str, chieste: list, eccezioni: dict | None = None):
         else:
             return httpx.Response(404)
         if nome in eccezioni:
-            return httpx.Response(200, text=eccezioni[nome])
+            risposta = eccezioni[nome]
+            return risposta if isinstance(risposta, httpx.Response) else httpx.Response(200, text=risposta)
         pagina = DIR / f"{nome}.html"
         if not pagina.exists():
             return httpx.Response(404)
@@ -130,6 +131,14 @@ class TestTesto:
         assert righe[3].endswith(": art. 9, comma 3: modifica comma 1 |")
         assert righe[4].endswith(": art. 1, comma 1, lettera g): inserimento un comma dopo il terzo |")
         assert "regio.decreto:1930-10-19;1398:1~art612bis" in out and len(chieste) == 10
+
+    async def test_a_closed_window_starting_after_today_is_labelled(self, monkeypatch):
+        # Asked on 1 Oct 2021, versions 2 (closed) and 3 (open) of art. 2-ter had not come into force.
+        monkeypatch.setenv("LEGAL_TODAY", "2021-10-01")
+        out, _ = await _storia("dlgs196_art2ter", ART_2TER)
+        assert [r.split(" | ")[1] for r in _righe(out)] == [
+            "19/09/2018 – 08/10/2021", "09/10/2021 – 07/12/2021 (non ancora in vigore)",
+            "dal 08/12/2021 (non ancora in vigore)"]
 
     async def test_a_version_not_in_force_yet_is_labelled_and_warned(self):
         out, _ = await _storia("dpr131_art1", "art. 1 d.p.r. 131/1986")
@@ -234,12 +243,27 @@ class TestRifiuti:
     @pytest.mark.parametrize("valore", [0, -3])
     async def test_a_ceiling_below_one(self, valore):
         out, chieste = await _storia("dlgs196_art2ter", ART_2TER, max_versioni=valore)
-        assert out == "**Errore**: max_versioni deve essere un intero almeno 1" and chieste == []
+        assert out == ("**Errore** (riferimento_non_valido): max_versioni deve essere un intero almeno 1")
+        assert chieste == []
 
     async def test_a_ceiling_below_one_in_json_is_json(self):
         out, chieste = await _storia("dlgs196_art2ter", ART_2TER, max_versioni=0, formato="json")
         dati = json.loads(out)
         assert dati["esito"] == "riferimento_non_valido" and "max_versioni" in dati["errore"] and chieste == []
+
+    async def test_an_article_the_act_does_not_have(self):
+        # Normattiva answers art. 99999 c.c. with art. 1 (the copy it served): never its history.
+        pagina = (DIR.parent / "cc_n2ls_art99999.html").read_text(encoding="utf-8")
+        out, chieste = await _storia("cc_art2", "art. 99999 c.c.", {"cc_art2": pagina})
+        assert out.startswith("**Errore** (articolo_non_trovato): ") and "art. 1" in out
+        assert TESTATA not in out and len(chieste) == 1
+
+    async def test_a_source_error_and_a_transient_failure(self):
+        # No page for the article: Normattiva's 404 is an error of the source, not a missing article.
+        out, _ = await _storia("nessuna_copia", ART_2TER)
+        assert out.startswith("**Errore** (errore_fonte): Normattiva non raggiungibile")
+        out, _ = await _storia("dlgs196_art2ter", ART_2TER, {"dlgs196_art2ter": httpx.Response(503)})
+        assert out.startswith("**Errore** (verifica_non_disponibile): ")
 
     async def test_an_unknown_format(self):
         out, chieste = await _storia("dlgs196_art2ter", ART_2TER, formato="markdown")
