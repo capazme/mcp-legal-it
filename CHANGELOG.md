@@ -739,6 +739,25 @@ described in those sections, not repeated here. Upgrading from 2.x:
   wrapper now carries them. The library declares Python 3.11 or later, so a pip or uvx
   install on 3.14 hit it; the plugin and the `.mcpb` run 3.12. From the same
   contribution, the annotation audit and two isolated tests also run on Windows.
+- **An act cited with its full date is never read as another act served in its place**
+  (#136, #146 follow-up). Normattiva's resolver does not check the act's type with a full
+  date either: the address of a D.M. 7 agosto 1990, n. 241 serves L. 7 agosto 1990, n. 241,
+  and `cite_law("art. 3 D.M. 7 agosto 1990, n. 241")` would have answered with the law's
+  art. 3.
+  - **Every page a reader downloads is checked** against the act its address asks for
+    (`scraper.controlla_intestazione`): the article page, an article's parts, the tree, the
+    index, the full text, the act's page before the Akoma Ntoso export and the update
+    tables. A heading that names another known type, another number, another year or
+    (with a full date) another day is `atto_non_trovato`, naming the page. A page that
+    cannot be compared (no act heading, a type no table knows, a fragment) is never refused.
+  - **A wrong day is another act.** «L. 8 agosto 1990, n. 241» is served L. 7 agosto 1990,
+    n. 241: refused, with the right date in the error.
+  - **Caches kept before the check are not read.** The day's page cache
+    (`normattiva_pagine`, schema 5) and the export's address index
+    (`akn_url_params.json`, whose entries now carry the mark of the check) skip the page
+    when warm, so their older records are ignored; each act's page is read once more.
+  - **A guard test** (`tests/unit/test_intestazione_guardia.py`) fails when a function
+    opens a Normattiva client without the check, unless it is listed with its reason.
 - **A law or d.lgs. cited by its year is never read as another act served in its place**
   (#146). For the types whose page title is verified (laws, d.lgs., decree-laws, d.P.R. …),
   `risolvi_atto` already said `atto_non_trovato` when Normattiva served another act's page,
