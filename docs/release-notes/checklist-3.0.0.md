@@ -15,9 +15,8 @@ is shipped as it is today, stated as such in the release notes. None may be
       `xfail` «pending owner decision».
 - [ ] A «substantive» mode of `scadenza_processuale` without the Saturday
       extension (same branch, same `xfail`).
-- [ ] Art. 617 c.p.c. and the August suspension: `termini_esecuzioni` applies
-      the prudent reading (no suspension) and warns when August falls in the
-      20 days; decide whether that stays.
+- [x] Art. 617 c.p.c. and the August suspension: decided (LI-060), excluded;
+      `termini_esecuzioni` states the reading and the case law in a note.
 - [ ] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
       how the yield is calculated; its live gate is red on purpose.
 - [ ] Registration tax: whether the text of D.P.R. 131/1986 is still
