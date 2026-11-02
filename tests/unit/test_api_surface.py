@@ -32,7 +32,7 @@ EXPECTED = {
     'EsitoAtto': "Literal('trovato', 'atto_non_trovato', 'ambiguo', 'fonte_non_raggiungibile', 'errore_fonte', 'riferimento_non_valido', 'atto_non_riconosciuto', 'non_supportata')",
     'EsitoDecisione': 'dataclass(esito: EsitoLettura, identita: Identita | None = ..., attributi: Attributi | None = ..., testo: TestoDecisione | None = ..., fonte: FonteDecisione | None = ..., avvisi: tuple[Avviso, ...] = ..., candidati: tuple[Candidato, ...] = ..., motivo: str | None = ..., archivio_dal: str | None = ..., errori: dict[str, str] = ..., testo_grezzo: TestoGrezzo | None = ..., errore: str | None = ..., fonti: FontiConsultate | None = ...)',
     'EsitoLettura': "Literal('trovata', 'ambigua', 'non_trovata', 'richiesta_non_valida', 'fonte_non_raggiungibile', 'errore_fonte', 'non_supportata')",
-    'EsitoNorma': "Literal('trovato', 'riferimento_non_valido', 'atto_non_riconosciuto', 'articolo_non_trovato', 'verifica_non_disponibile', 'testo_assente', 'errore_fonte', 'non_supportata')",
+    'EsitoNorma': "Literal('trovato', 'riferimento_non_valido', 'atto_non_riconosciuto', 'atto_non_trovato', 'articolo_non_trovato', 'verifica_non_disponibile', 'testo_assente', 'errore_fonte', 'non_supportata')",
     'EsitoRicerca': "Literal('risultati', 'richiesta_non_valida', 'fonte_non_raggiungibile', 'errore_fonte', 'non_supportata')",
     'EsitoRiferimento': 'dataclass(esito: EsitoNorma, norma_data: tuple[NormaDati, ...] = ..., errore: str | None = ...)',
     'FonteConsultata': 'dataclass(fonte: str, url: str)',

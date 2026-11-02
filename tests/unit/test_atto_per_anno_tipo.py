@@ -193,45 +193,45 @@ class TestOgniLettura:
 
     async def test_fetch_article(self):
         r = await self._con_normattiva(lambda: scraper.fetch_article(NormaVisitata(norma=self.DM, numero_articolo="3")))
-        assert r["text"] == "" and r["url"] == "" and r["esito"] == scraper.CHECK_UNAVAILABLE
+        assert r["text"] == "" and r["url"] == "" and r["esito"] == scraper.ACT_NOT_FOUND
         self._rifiuto(r["error"])
 
     async def test_fetch_article_of_an_annex(self):
         r = await self._con_normattiva(
             lambda: scraper.fetch_article(NormaVisitata(norma=self.DM, numero_articolo="allegato A")))
-        assert r["text"] == "" and r["esito"] == scraper.CHECK_UNAVAILABLE
+        assert r["text"] == "" and r["esito"] == scraper.ACT_NOT_FOUND
         self._rifiuto(r["error"])
 
     async def test_fetch_article_futura(self):
         r = await self._con_normattiva(
             lambda: scraper.fetch_article_futura(NormaVisitata(norma=self.DM, numero_articolo="3")))
-        assert r["text"] == "" and r["esito"] == scraper.CHECK_UNAVAILABLE
+        assert r["text"] == "" and r["esito"] == scraper.ACT_NOT_FOUND
         self._rifiuto(r["error"])
 
     async def test_testo_articolo(self):
         r = await self._con_normattiva(lambda: api.testo_articolo("art. 3 d.m. 241/1990", canale="html"))
-        assert r.esito == "verifica_non_disponibile" and not r.article_text
+        assert r.esito == "atto_non_trovato" and not r.article_text
         self._rifiuto(r.errore)
 
     async def test_albero_atto(self):
         r = await self._con_normattiva(lambda: api.albero_atto("d.m. 241/1990"))
-        assert r.esito == "verifica_non_disponibile" and not r.articles
+        assert r.esito == "atto_non_trovato" and not r.articles
         self._rifiuto(r.errore)
 
     async def test_testo_atto(self):
         r = await self._con_normattiva(lambda: api.testo_atto("d.m. 241/1990"))
-        assert r.esito == "verifica_non_disponibile" and not r.testo
+        assert r.esito == "atto_non_trovato" and not r.testo
         self._rifiuto(r.errore)
 
     async def test_indice_atto_and_the_akn_export(self):
         r = await self._con_normattiva(lambda: api.indice_atto("d.m. 241/1990"))
-        assert r.esito == "verifica_non_disponibile" and not r.rubriche
+        assert r.esito == "atto_non_trovato" and not r.rubriche
         self._rifiuto(r.errore)
 
     async def test_indice_atto_without_the_akn_export(self, monkeypatch):
         monkeypatch.setenv("AKN_DISABLED", "1")
         r = await self._con_normattiva(lambda: api.indice_atto("d.m. 241/1990"))
-        assert r.esito == "verifica_non_disponibile" and not r.rubriche and not r.codice_redazionale
+        assert r.esito == "atto_non_trovato" and not r.rubriche and not r.codice_redazionale
         self._rifiuto(r.errore)
 
     async def test_the_fetch_act_index_tool(self):
@@ -243,7 +243,7 @@ class TestOgniLettura:
 
     async def test_modifiche_articolo(self):
         r = await self._con_normattiva(lambda: api.modifiche_articolo("art. 3 d.m. 241/1990"))
-        assert r.esito == "verifica_non_disponibile" and not r.versioni
+        assert r.esito == "atto_non_trovato" and not r.versioni
         self._rifiuto(r.errore)
 
     async def test_cite_law(self):
@@ -317,3 +317,76 @@ class TestDataDallIntestazione:
                 norma=Norma(tipo_atto="decreto ministeriale", data="2014", numero_atto="55"), numero_articolo="3"))
         assert r["text"] == "" and r["esito"] == scraper.CHECK_UNAVAILABLE and "non coincidono" in r["error"]
         assert chieste == [N2LS + self.URL]
+
+
+class TestTipoConTitolo:
+    """#146: a titled type (a d.lgs.) cited by year whose page is another act's (the law
+    with that year and number) is refused by every reader, not read through its year-only URN.
+    The real L. 241/1990 page is what Normattiva serves for a d.lgs. n. 241 of 1990."""
+
+    DLGS = Norma(tipo_atto="decreto legislativo", data="1990", numero_atto="241")
+    URL = "decreto.legislativo:1990-01-01;241"
+
+    async def _con_normattiva(self, chiamata, routes=None):
+        chieste: list = []
+        fabbrica = _normattiva(routes or {self.URL: L241}, chieste, altrimenti=L241_ART3)
+        with api.configurazione(client_factory=fabbrica, brocardi=False):
+            risultato = await chiamata()
+        return risultato, chieste
+
+    @staticmethod
+    def _rifiuto(errore: str) -> None:
+        assert errore == ("nessun atto «decreto legislativo n. 241 del 1990» su Normattiva: la pagina restituita "
+                          "è «LEGGE 7 agosto 1990, n. 241» (controlla tipo, numero e anno)")
+
+    async def test_risolvi_atto_was_already_not_found(self):
+        r, _ = await self._con_normattiva(lambda: api.risolvi_atto("decreto legislativo", "241", "1990"))
+        assert r.esito == "atto_non_trovato" and "«LEGGE 7 agosto 1990, n. 241»" in r.errore
+
+    async def test_fetch_article(self):
+        r, chieste = await self._con_normattiva(
+            lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")))
+        assert r["text"] == "" and r["esito"] == scraper.ACT_NOT_FOUND
+        self._rifiuto(r["error"])
+        assert chieste == [N2LS + self.URL]
+
+    async def test_cite_law(self):
+        from mcp_legal_it.tools.legal_citations import _cite_law_impl
+
+        testo, chieste = await self._con_normattiva(lambda: _cite_law_impl("art. 3 d.lgs. 241/1990"))
+        assert "«LEGGE 7 agosto 1990, n. 241»" in testo and "motivazione" not in testo.lower()
+        assert chieste == [N2LS + self.URL]
+
+    async def test_the_api_readers(self):
+        for chiamata in (lambda: api.testo_articolo("art. 3 d.lgs. 241/1990", canale="html"),
+                         lambda: api.albero_atto("d.lgs. 241/1990"),
+                         lambda: api.testo_atto("d.lgs. 241/1990"),
+                         lambda: api.indice_atto("d.lgs. 241/1990"),
+                         lambda: api.modifiche_articolo("art. 3 d.lgs. 241/1990")):
+            scraper._full_date_cache.clear()  # each reader as a fresh process: the page is asked once
+            r, chieste = await self._con_normattiva(chiamata)
+            assert r.esito == "atto_non_trovato", (chiamata, r.esito)
+            self._rifiuto(r.errore)
+            assert chieste == [N2LS + self.URL]
+
+    async def test_the_index_tool_checks_the_page_it_reads(self, monkeypatch):
+        from mcp_legal_it.tools.legal_citations import _fetch_act_index_impl
+
+        monkeypatch.setenv("AKN_DISABLED", "1")
+        testo, chieste = await self._con_normattiva(lambda: _fetch_act_index_impl("d.lgs. 241/1990"))
+        assert "«LEGGE 7 agosto 1990, n. 241»" in testo and "motivazione" not in testo.lower()
+        assert chieste == [N2LS + self.URL]  # one page: the one it reads anyway
+
+    async def test_a_titled_act_whose_page_is_not_read_keeps_the_year_only_urn(self):
+        # Unchanged: a page that cannot be read says nothing about another act.
+        r, chieste = await self._con_normattiva(
+            lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")),
+            routes={self.URL: httpx.Response(503)})
+        assert any("~art3" in u for u in chieste)
+
+    async def test_the_law_by_its_year_is_still_read(self):
+        legge = Norma(tipo_atto="legge", data="1990", numero_atto="241")
+        r, chieste = await self._con_normattiva(
+            lambda: scraper.fetch_article(NormaVisitata(norma=legge, numero_articolo="3")),
+            routes={"legge:1990-01-01;241": L241})
+        assert "Motivazione" in r["text"] or "motivazione" in r["text"].lower()
