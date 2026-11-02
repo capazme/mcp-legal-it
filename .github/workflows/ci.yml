@@ -77,7 +77,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.11', '3.12']
+        # 3.14: the library declares Python 3.11 or later, and 3.14 changed what
+        # functools.wraps copies (PEP 649), which broke tool registration (#49).
+        python-version: ['3.11', '3.12', '3.14']
         # The library range is fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5: test both majors.
         fastmcp: ['3', '4']
 
