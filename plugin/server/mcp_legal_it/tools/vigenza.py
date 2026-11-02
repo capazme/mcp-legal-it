@@ -57,9 +57,9 @@ def _modifiche_della_versione(modifiche: list[api.Modifica]) -> str:
 def _finestra(v: api.VersioneArticolo, oggi: str) -> str:
     if not v.valid_from:
         return "finestra non letta"
-    if v.valid_to:
-        return f"{_gg(v.valid_from)} – {_gg(v.valid_to)}"
     futura = " (non ancora in vigore)" if v.valid_from > oggi else ""
+    if v.valid_to:
+        return f"{_gg(v.valid_from)} – {_gg(v.valid_to)}{futura}"
     return f"dal {_gg(v.valid_from)}{futura}"
 
 
@@ -115,10 +115,7 @@ async def _storia_norma_impl(riferimento: str, dal: str | None = None, al: str |
     try:
         r = await api.modifiche_articolo(riferimento, dal=dal, al=al, max_versioni=max_versioni)
     except ValueError as e:  # max_versioni below 1
-        if formato == "json":
-            rifiuto = api.ModificheArticolo(esito="riferimento_non_valido", errore=str(e))
-            return json.dumps(api.come_dict(rifiuto), ensure_ascii=False)
-        return f"**Errore**: {e}"
+        r = api.ModificheArticolo(esito="riferimento_non_valido", errore=str(e))
     if formato == "json":
         return json.dumps(api.come_dict(r), ensure_ascii=False)
     if r.esito != "trovato":
