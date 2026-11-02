@@ -59,6 +59,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "pronunce_cost_su_norma": ("corte_cost",),
     "scarica_pdf_gazzetta": ("gazzetta",),
     "sommario_gazzetta": ("gazzetta",),
+    "storia_norma": ("normattiva",),
     "ultime_deliberazioni_corte_conti": ("corte_conti",),
     "ultime_delibere_consob": ("consob",),
     "ultime_gazzette": ("gazzetta",),

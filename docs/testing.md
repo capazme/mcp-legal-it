@@ -45,7 +45,7 @@ tests/
 │   ├── test_calculations.py                         18 test
 │   ├── test_cerdef.py                              133 test  ← include il gate live (8 test, -m live): il modulo CeRDEF offre ancora i campi e i valori che il client invia
 │   ├── test_cgue.py                                 76 test
-│   ├── test_citation_gate.py                       161 test
+│   ├── test_citation_gate.py                       162 test
 │   ├── test_cli.py                                   6 test
 │   ├── test_consob.py                               38 test
 │   ├── test_corpus_build.py                          2 test
@@ -102,7 +102,7 @@ tests/
 │   ├── test_risarcimento_danni.py                   75 test
 │   ├── test_rivalutazioni_istat.py                 110 test
 │   ├── test_scadenze_termini.py                     91 test
-│   ├── test_server_registration.py                   2 test  ← superficie registrata: 234 tool, 23 prompt, 15 risorse
+│   ├── test_server_registration.py                   2 test  ← superficie registrata: 235 tool, 23 prompt, 15 risorse
 │   ├── test_table_ledger.py                          6 test
 │   ├── test_tassi_interessi.py                      65 test
 │   ├── test_text_encoding.py                         4 test  ← ogni lettura/scrittura di testo nomina l'encoding (#76)

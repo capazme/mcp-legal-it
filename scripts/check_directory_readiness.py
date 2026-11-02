@@ -269,6 +269,9 @@ def uv_run_options(args: list[str]) -> "tuple[list[str], dict[str, str], list[st
     return names, values, unknown, args[i:]
 
 
+# The only folders a launcher may start uv from: the plugin's (or, in a .mcpb, the bundle's).
+_CARTELLA_DEL_PLUGIN = re.compile(r"^\$\{(?:CLAUDE_PLUGIN_ROOT|__dirname)\}(?:/|$)")
+
 _INLINE_SCRIPT = re.compile(r"^# /// script\s*$", re.M)
 
 
@@ -307,6 +310,10 @@ def check_command(where: str, command: str, args: list[str], report: Report,
             report.block(f"{where}: `uv run` without --frozen or --locked")
         else:
             report.accept("uv-run-frozen")
+        for opzione in ("--directory", "--project"):
+            cartella = values.get(opzione)
+            if cartella is not None and (not _CARTELLA_DEL_PLUGIN.match(cartella) or ".." in cartella):
+                report.block(f"{where}: `uv run {opzione} {cartella}` is not inside the plugin's own folder")
         if "--project" not in names and "--directory" not in names:
             # Started from the user's folder, uv runs the Python environment it finds there
             # (its .pth files execute) and reads its uv.toml.

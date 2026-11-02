@@ -224,6 +224,12 @@ class FallbackReader:
         return [_Decisione("cass", str(int(m.group(1))), int(m.group(2)), m.group(0)[-60:])
                 for m in self._CASS.finditer(testo)]
 
+    def decisioni_della_riga(self, riga):
+        # A dossier line VisuaLex verified as one decision. This reader knows the Cassazione
+        # only, so a second decision of another court on the line («… richiamata da Corte
+        # cost. n. 238/2014») is invisible to it: a line with two numbers/years is none.
+        return [] if len(self._NUM.findall(riga)) > 1 else self.decisioni_nel_testo(riga)
+
     def decisioni_nel_risultato(self, testo):
         out = set()
         for m in self._NUM.finditer(testo):
@@ -251,7 +257,8 @@ class FallbackReader:
             if int(finestra.group(1)) > 1:
                 dimensione = next((i for i, r in enumerate(righe) if r.startswith("**Dimensione**:")), None)
                 if dimensione is not None:
-                    primo = next((i for i in range(dimensione + 1, len(righe)) if righe[i].strip()), None)
+                    primo = next((i for i in range(dimensione + 1, len(righe))
+                                  if righe[i].strip() and not righe[i].startswith("**Avviso**:")), None)
                 else:
                     primo = next((i for i, r in enumerate(righe)
                                   if r.strip() and not r.lstrip().startswith(("#", "**"))), None)
@@ -440,7 +447,8 @@ class Session:
                     continue
                 # VisuaLex reads one decision per line: a line naming two («n. 100/2020, conf.
                 # n. 200/2021») has verified one of them, and which is not known.
-                lette = r.decisioni_nel_testo(riga)
+                lette = (r.decisioni_della_riga(riga) if hasattr(r, "decisioni_della_riga")
+                         else r.decisioni_nel_testo(riga))
                 if len(lette) == 1:
                     self.decisions.add((lette[0].corte, lette[0].numero, lette[0].anno))
 
@@ -458,8 +466,9 @@ class Session:
                 return
             key = r.riferimento_in_identita(tool_input.get("reference") or "")
             if key:
-                # Never in self.whole: its Normattiva-page fallback has only the first part of an
-                # article Normattiva splits (#106), and its answer does not say which source served it.
+                # Never in self.whole: its Normattiva-page fallback may miss a part of an article
+                # Normattiva splits (it then says so in an «**Avviso**», #106), and its answer does
+                # not say which source served it.
                 self.norms.update((key[0], a) for a in r.articoli_serviti(text))
             return
         body = None
@@ -776,7 +785,9 @@ def main() -> int:
     if opted_out():
         return SILENT
     try:
-        data = json.load(sys.stdin)
+        # Bytes, not sys.stdin: on Windows a pipe decodes in the locale encoding (cp1252)
+        # and Claude Code sends UTF-8 (#133). json.loads detects UTF-8 and a BOM.
+        data = json.loads(sys.stdin.buffer.read())
     except Exception:
         return SILENT
     if not isinstance(data, dict) or data.get("stop_hook_active"):

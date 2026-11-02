@@ -15,6 +15,29 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **`storia_norma`: an article's history as an MCP tool** (#115; 235 tools). A thin
+  wrapper (ADR-001) over `api.modifiche_articolo`: `storia_norma(riferimento, dal, al,
+  max_versioni=20, formato="testo"|"json")`.
+  - **Text.** One table, one row per version: the window in force (GG/MM/AAAA) and the
+    amendments that produced it, grouped by amending act as Normattiva words it. The
+    first line gives the number of versions, whether the history is complete and the
+    grade (`ESATTO` only with the whole history). The library's avvisi sit above the
+    table, in its order: a version not in force yet, the ceiling reached, versions left
+    unread after a failure (ask again), the `data_gu` fallback. With `dal`/`al` only the
+    versions that came into force in the period are listed.
+  - **JSON.** `come_dict(ModificheArticolo)`, as `cite_law(formato="json")` does.
+  - **Citation.** The same resolver as `cite_law`: an act it cannot identify is refused
+    with the nearest names, never guessed. EU acts, whole acts and annex articles are
+    refused (`non_supportata`).
+  - **Says what it is not.** The description and every answer say that vigenza is not
+    applicability: a text in force may not apply to an earlier fact.
+  - **Tags and profiles.** `normativa` plus the new area `vigenza`, so it is in every
+    profile that has `normativa` (sinistro, credito, penale, normativa, privacy,
+    redattore, cowork). It writes only the Normattiva caches: among the cache-only
+    writers (`readOnlyHint: false`, open world).
+  - **Tests.** Unit tests on the recorded pages of art. 2-ter d.lgs. 196/2003, art.
+    64-bis CCII, art. 612-bis c.p. (the rest of its pages captured for this), art. 1
+    d.P.R. 131/1986 and art. 2740 c.c.; a polite serial live test (23 requests).
 - **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
   skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
   Windows, or by commas): a session whose `cwd` (from the hook input, else the
@@ -44,7 +67,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
     split into parts, a comma outside the first part may be credited if no `cite_law` read
     it. To be tightened when VisuaLex keys the parts.
   - **Both readers.** The server's and the hook's fallback read the dossier's lines with
-    the readers they already have; the tests run every case with both.
+    the readers they already have; the tests run every case with both. The fallback knows
+    the Cassazione only, so it credits no `sentenze` line with two numbers/years («Cass.
+    n. 100/2020 richiamata da Corte cost. n. 238/2014»), where the server sees two
+    decisions.
   - **Server instructions.** One line: «Se crei un dossier con VisuaLex, non verificare
     prima i riferimenti con questi strumenti».
 - **`api.modifiche_articolo(riferimento, *, dal=None, al=None, max_versioni=20)`:
@@ -653,7 +679,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
   from the user's configuration; `plugin/.mcp.json` was already safe. Tests build a new
   environment for every run and check that its code never runs, and
   `check_directory_readiness.py` reads only the options before the command it launches
-  (grouped short options too), and counts a script with inline metadata as an install.
+  (grouped short options too), counts a script with inline metadata as an install, and
+  refuses a `--directory` or `--project` outside the plugin's own folder. The guard tests
+  also cover the server's own `.mcpb` manifest and the documented `uvx` launcher, and the
+  Codex example in the docs must equal the generated configuration.
   Still used, because the user controls them: an active virtual environment
   (`VIRTUAL_ENV`) and a `.venv` in a folder that contains the plugin's.
   - **`MCP_CACHE_DIR` must be absolute.** `~` is expanded; a relative path, which would
@@ -698,6 +727,62 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`fetch_full_act` without the Akoma Ntoso export reads every article and every part of
+  an article, and says what it could not read** (#106). The article-by-article reading of
+  the Normattiva page kept one tree entry per article number, and called the result
+  complete. On L. 213/2023 it carried 188,540 characters against the export's 500,423.
+  - **Every part of a split article is read** («1 (commi 1-100)» … «1 (commi 501-561)»), in
+    the tree's order, with the session the act's page set. It used to read the first part
+    only. A part's page must name the part's commi, or it is not taken (with a dead session
+    Normattiva answers with another part); a part whose commi the tree does not state in a
+    form the reader knows is not taken either, nor a page whose visible line names another
+    article (two articles split into the same commi). A page with an empty body is an entry
+    not read.
+  - **Every article with a suffix is read.** Arts. 2, 2-bis and 2-ter share one article id
+    on Normattiva (2-quaterdecies and 2-quaterdecies.1 one sub-id): all but the first were
+    dropped. On the trees counted on 2 Nov 2026: 30 articles of D.Lgs. 196/2003 (arts. 2-bis
+    to 2-septiesdecies among them), 14 of D.Lgs. 36/2023; 260 on the codice civile tree kept
+    in the tests.
+  - **The older versions' entries are never read** («orig.», «agg.N», `art.imUpdate=true`).
+    The original text of an article Normattiva now lists under another group was read as
+    one more article: 25 outdated texts on D.Lgs. 196/2003, 1 on D.Lgs. 36/2023, 172 on the
+    codice civile tree.
+  - **What is missing is said**, in an «**Avviso**» line under the header of every window:
+    the entries that could not be read («art. 1 (commi 201-300)», «Allegato I»), and the
+    entries with parts Normattiva publishes as images only («Parte di provvedimento in
+    formato grafico»: the budget law's tables), with the act's page. An entry not read makes
+    the reading incomplete, as before (a later window then asks to start again); a part in
+    graphic form does not, since Normattiva has no text for it. A reading that falls back on
+    the act's own page (no tree, or no entry with a text) now says so too.
+  - **`download_law_pdf`** adds the same lines to its answer and prints them in the PDF,
+    under the source; **`api.testo_atto`** gains `completo` and `avvisi` (additions with
+    defaults, see `docs/api.md`). From the export, `completo` covers the act's articles: the
+    export's text leaves the annexes out, not yet said in a notice.
+  - **The citation gate** skips the «**Avviso**» lines when it drops the line a later
+    window may have cut, in both readers.
+  - **Measured live on 2 Nov 2026** (walk with `AKN_DISABLED=1`, against the export):
+    L. 213/2023 from 32 entries and 188,540 characters to 37 and 546,473 (export: 500,423;
+    the walk also carries the annexes' text, which the export's text leaves out), five
+    annexes named as having parts in graphic form; D.Lgs. 231/2001 from 85 entries and
+    117,582 characters to 110 and 158,924 (the export has 110 articles: the walk now reads
+    its articles with a suffix, 25-bis and the like); L. 604/1966 (29,425) unchanged; no
+    notice on either. Requests: one per entry, as before (L. 213/2023: 33 to 38; D.Lgs.
+    231/2001: 86 to 111).
+- **`api.risolvi_atto` says «another act» only when the page's heading names one** (#113 E).
+  A Normattiva page with an act's ELI date or `eli:title` but no act heading
+  («LEGGE 7 agosto 1990, n. 241») was read as another act's page, so the act came back
+  `atto_non_trovato`. Such a page is a markup change, not evidence about the act: it is
+  now `fonte_non_raggiungibile` («pagina senza l'intestazione dell'atto»), never kept in
+  memory, and asked again on the next call. `scraper.normattiva_page_problem` returns the
+  new code `"senza_intestazione"` for it; an act page with its heading (or the
+  Constitution's, headed «COSTITUZIONE») is unchanged. The types dated by the ELI date
+  alone (ministerial decrees, DPCM) still take that date when it falls in the cited year.
+- **`act_dates.json` follows the cache configuration within one process** (#113 D). The
+  dates file was read once per process, so a later `configurazione(cache_dir=…)` or
+  `cache=…` never read the other directory, and a disk switched on after the first
+  reading was never read. The file is now read again when the pair (disk on, directory)
+  changes; the dates already found in the process stay in memory, as in the other
+  in-memory caches.
 - **The citation gate checks the comma of an article read in parts.** An article
   Normattiva splits comes from `cite_law` one part at a time, with «testo parziale:
   commi a-b di N». The gate credited the whole article from any part, so an answer
@@ -723,12 +808,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
     - A plural form («art. 1, commi 773 e 774, L. 296/2006», «commi 773-775») is invisible
       to the gate: neither reader takes it for a citation, as before this change.
     - `fetch_full_act` credits its articles but never as read whole: its Normattiva-page
-      fallback has only the first part of a split article (#106) and its answer does not
-      say which source served it. After a partial `cite_law`, a comma outside the part
+      fallback may miss a part of a split article (since #106 its answer then says so in an
+      «Avviso») and its answer does not say which source served it. After a partial `cite_law`, a comma outside the part
       read is asked for even when the whole act was read from Akoma Ntoso.
     - `fetch_full_act` alone, with no partial `cite_law`, still credits any comma of the
-      article, also when the text came from the Normattiva page that holds only part 1
-      (#106).
+      article, also when its Normattiva-page fallback could not read one of its parts (the
+      answer's «Avviso» names it, #106).
 - **An article Normattiva splits into parts is no longer cut in silence** (3.0 only:
   2.17.1 reads the Akoma Ntoso export, which has the whole article). Normattiva
   serves a very long article in parts: art. 1 L. 296/2006 is 14 parts, «commi 1-100»
@@ -776,6 +861,20 @@ described in those sections, not repeated here. Upgrading from 2.x:
   add that this does not mean the mark does not exist, and that the record is on
   www.tmdn.org. Before, the answer was «non raggiungibile», followed by httpx's English
   message with the request URL. A refusal is not retried.
+- **`leggi_marchio` gives a partial record when TMview refuses the detail** (#124). The
+  refusal is the source's, and nothing tries to get around it. The tool asks the search
+  endpoint for the same mark, using the application-number field of TMview's advanced
+  search and taking a hit only if its ST13 is the one asked. The answer is headed «Scheda
+  parziale» and names the refusal (HTTP 403, since 29/10/2026). It gives what the search has
+  (holder, Nice classes, status, dates) and lists what is missing: goods and services per
+  class, representative, the holder's nationality, the status date and the publications.
+  It ends with the link to the record on TMview, for a browser. When the search finds
+  nothing, or the ST13 cannot be searched by number, or the search fails as well, the
+  answer is the refusal plus that link. When the search reports more marks than the page
+  read, a miss is said as «non è tra i primi N risultati», never as «nessun marchio». `verifica_anteriorita_marchio` now says it works
+  from the search data only and does not compare goods and services. The live tests accept
+  two outcomes, the full record or the declared partial one, so they pass whether or not
+  TMview lifts the block.
 - **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
   portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
   provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
@@ -909,6 +1008,18 @@ described in those sections, not repeated here. Upgrading from 2.x:
   encoding (also `io.open`, `codecs.open`, an `open` under another name and
   `encoding=None`) and another imports the server with `-X warn_default_encoding`,
   so the mistake cannot come back.
+- **The installer reads and writes the Claude configuration as UTF-8** (#133). `install.py`
+  used the locale encoding, cp1252 on Windows, for `claude_desktop_config.json` and the
+  Claude Code configuration: a non-ASCII value was garbled, and a file an editor had saved
+  with a BOM read as «not valid» and was rewritten from scratch without the user's other
+  servers (a `.bak` copy was kept). It now reads with `utf-8-sig`, writes UTF-8 and reads
+  the output of the commands it runs as UTF-8. The citation hook read its input in the
+  locale encoding too: on a Windows account with an accented name it could not open the
+  session and stopped checking in silence; it now reads the input as UTF-8, and so does
+  the PDF export script of the `esporta-documento` skill when the markdown is piped into
+  it. The encoding
+  test covers the installer and every script of the plugin, not only the server package.
+  The server package itself was fixed under #76; 2.17.2 carries both fixes.
 - **Installing from git works on Windows** (#76). On Windows, without
   `core.symlinks`, git checked out the 2.x root's `src` symlink as a text file,
   and `pip install git+https://…` built a wheel with no code. The link is gone
