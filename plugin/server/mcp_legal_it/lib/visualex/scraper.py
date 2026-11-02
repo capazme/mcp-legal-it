@@ -2028,13 +2028,12 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
             if "Normattiva - Errore" in art_html or len(art_html) < 50:
                 non_lette.append(nome)
                 continue
-            if _e_una_parte(ajax_path):
-                # Another part's page is never taken for this one; nor a part whose commi the
-                # tree does not say in a form we read (nothing to check the page against).
-                parte = parti.get(ajax_path)
-                if parte is None or parti_normattiva.parte_servita(art_html, [parte]) is None:
-                    non_lette.append(nome)
-                    continue
+            if _e_una_parte(ajax_path) and not _pagina_della_parte_giusta(art_html, parti.get(ajax_path)):
+                # Another part's page (of this article or of another article split into the same
+                # commi) is never taken for this one; nor a part whose commi the tree does not
+                # say in a form we read (nothing to check the page against).
+                non_lette.append(nome)
+                continue
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", XMLParsedAsHTMLWarning)
                 body = BeautifulSoup(art_html, "lxml").find("div", class_="bodyTesto")
@@ -2044,7 +2043,10 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
             if _parti_in_formato_grafico(body):
                 parti_grafiche.append(nome)
             text = _testo_intero(body)
-            if text and text != "[Articolo senza contenuto o abrogato]":
+            if not text:
+                non_lette.append(nome)  # a page with an empty body: nothing read, never nothing to read
+                continue
+            if text != "[Articolo senza contenuto o abrogato]":
                 all_parts.append(text)
 
     avvisi = _avvisi_lettura(non_lette, parti_grafiche, act_url)
@@ -2089,6 +2091,17 @@ def _avvisi_lettura(non_lette: list[str], parti_grafiche: list[str], url: str) -
                       "segna il punto con «Parte di provvedimento in formato grafico»; consultarlo sulla pagina "
                       f"dell'atto: {url}")
     return avvisi
+
+
+def _pagina_della_parte_giusta(html: str, parte: "dict | None") -> bool:
+    """Whether *html* is the page of *parte* (a ``voci_parti`` entry): its visible line names the
+    part's commi and the same article as the tree. False when the tree did not give the part."""
+    if parte is None or parti_normattiva.parte_servita(html, [parte]) is None:
+        return False
+    servito = parti_normattiva.articolo_della_parte(html)
+    voluto = _article_identity(normalize_article_key(parte.get("articolo") or ""))
+    return servito is not None and voluto is not None \
+        and _article_identity(normalize_article_key(servito)) == voluto
 
 
 def _e_una_parte(path: str) -> bool:

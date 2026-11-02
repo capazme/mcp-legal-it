@@ -401,8 +401,9 @@ class TestoAtto:
     url: str = ""
     errore: str | None = None
     fonti: FontiConsultate | None = None
-    # True when every entry of the act was read (the Akoma Ntoso export, or every article page
-    # and part). False with an avviso naming what was not read: transient, ask again.
+    # True when every entry of the text was read: from the Akoma Ntoso export, the act's
+    # articles (its annexes are not in the text); without it, every article page and part, the
+    # annexes' pages included. False with an avviso naming what was not read: transient, ask again.
     completo: bool = False
     # What the text does not carry: entries not read, parts published as images only.
     avvisi: tuple[str, ...] = ()
