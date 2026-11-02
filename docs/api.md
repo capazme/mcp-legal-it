@@ -203,6 +203,7 @@ Shared outcome vocabulary, `EsitoNorma`:
 | `trovato` | success |
 | `riferimento_non_valido` | the citation could not be read |
 | `atto_non_riconosciuto` | no act has that name; `errore` lists the closest names |
+| `atto_non_trovato` | Normattiva serves another act's page in place of the one cited, by its year or with its full date: the heading names another type, number, year or day (L. 7 agosto 1990, n. 241 for a «d.m. 241/1990» or a «D.M. 7 agosto 1990, n. 241»), and `errore` names it. Not transient: retrying is vain. (`risolvi_atto` answers a wrong day with `ambiguo` and the act's real date instead) |
 | `articolo_non_trovato` | the act exists, the article is not in it. Normattiva answers a missing article with art. 1; this is detected |
 | `verifica_non_disponibile` | the source could not tell: down, slow, rate limited, or its structure unreadable |
 | `testo_assente` | the source answered without a text |
@@ -390,6 +391,15 @@ that page is Normattiva's error page (below; the check is shared per event loop)
     year, it serves L. 17 ottobre 2014, n. 158, which is then `atto_non_trovato`. A caller
     that wants only dates read from a verified title skips these types, or reads
     `precisione`.
+  - **A citation with the wrong sub-type is another act.** The heading's type must be
+    the cited one: «R.D. 1825/1924», served «REGIO DECRETO-LEGGE 13 novembre 1924,
+    n. 1825», is `atto_non_trovato`, and `errore` names the page, so the caller can cite
+    it right. The
+    only alias is the d.lgs.lgt. served as «DECRETO-LEGGE LUOGOTENENZIALE» (measured).
+  - **«DECRETO» does not name the ministry.** A D.M.'s page is headed «DECRETO 10 marzo
+    2014, n. 55»: the heading checks the type, year and number, not which ministry issued
+    it. Two ministerial decrees with the same number and year would both pass as
+    INDICATIVO; give the full date, or check `errore`/the page, when the ministry matters.
 - **Cache and limits:**
   - A date read from a title is kept a year on disk (`act_dates.json` in the cache
     directory, the same file `cite_law` uses), and the page in memory for the process.
@@ -625,8 +635,8 @@ Normattiva. It is async.
   e 3») gives one `Modifica` per action, each with the provision's whole text.
 - **`testo` and `descrizione`** are Normattiva's wording only, never editorial commentary.
 
-Esiti: `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`, `articolo_non_trovato`,
-`verifica_non_disponibile` (transient), `errore_fonte`, `non_supportata`.
+Esiti: `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`, `atto_non_trovato`,
+`articolo_non_trovato`, `verifica_non_disponibile` (transient), `errore_fonte`, `non_supportata`.
 
 `ModificheArticolo`:
 
@@ -724,6 +734,54 @@ The text in force of one article, from Normattiva or EUR-Lex.
     (a code's article). They always print them: a notes-on-request switch, if one comes,
     will never cover these notes. `cite_law(formato="json")` carries
     `note_aggiornamento`, `note_non_lette` and `note_nel_testo`.
+- **Editorial notes (`note_redazionali`).** When an act is published in the Gazzetta
+  Ufficiale with notes («Note all'art. 13: …»), Normattiva keeps them on the versions
+  never replaced: the original text, and the current text of an article never amended
+  (L. 24/2017 art. 7). They are drafted by the competent administration under art. 10,
+  commi 2 and 3, d.P.R. 1092/1985, only to help the reading. They have no normative value
+  and change nothing in the text. Where they transcribe another provision, the text is the
+  one of the day of publication, not the text in force (the original art. 2 d.lgs. 81/2008
+  transcribes art. 2549 c.c. as it stood before 2015). A kind of their own: never mixed
+  with the update notes.
+  - **Where they are.** The page puts them in a `div.note-akn` after the commi; the
+    Akoma Ntoso export puts the same words in an `authorialNote` after the paragraphs. Neither
+    VisuaLex's extractor (comma and plain-text shapes) nor the export's renderer reads them,
+    so `article_text` does not carry them. Two cases do: VisuaLex's fallback shape, which
+    reads the whole body, and an export article without paragraphs, rendered from all its
+    content. `note_redazionali_nel_testo` says so in `cite_law(formato="json")`.
+  - **Only the notes to the article (decision LI-058).** A block is split at the Gazzetta's
+    headings and only the «Note all'art. N» sections are kept («Nota all'art. 4», «Note agli
+    articoli 2 e 3»). The «Avvertenza» is left out: the tools say in their own words what it
+    says. So are the «Note alle premesse», which art. 1 carries and which are about the act's
+    preamble, not the article, and any words before a heading.
+  - **Shape.** `NotaRedazionale`: `intestazione` as the Gazzetta writes it, without its
+    colon («Note all'art. 13»); `testo`, the section's words, links as their text,
+    whitespace normalised inside each line, line breaks kept; `ordine` from 1.
+  - **Values.** `()` means an article without them. `None` means not read: an EU act, an
+    annex or a code read from the export (only the export's flat body articles are read),
+    an export kept by an older version, a reading lost or of another shape.
+  - **Both channels.** The HTML channel reads them from the page, the `akn` channel (or the
+    export as a fallback) from the export: for art. 4 d.lgs. 231/2001 the two give the same
+    sections and the same words, but for the export's transliterated accents.
+  - **Known limits.** A heading is matched in any case («Note all'Art. 5»). A line naming
+    another act's article («Nota all'art. 14 della legge 400/1988:») is never a heading. A
+    block «Note agli articoli 2 e 3» is read where Normattiva puts it, on the page of art. 2
+    only: art. 3's page does not carry it.
+  - **In the MCP tools.** `cite_law(formato="json")` carries `note_redazionali` and
+    `note_redazionali_nel_testo`, capped at 8,000 characters of notes
+    (`norme.MAX_CARATTERI_NOTE_REDAZIONALI`). Past the cap, the notes are kept whole while
+    they fit, the one crossing it is cut at a space and ends with «[…]», and those after it
+    are left out. `note_redazionali_troncate` is then `true` and `note_redazionali_caratteri`
+    gives their whole length. On a long original text they reach 60,000 characters, enough to
+    break a client's output cap. The library (`testo_articolo`) keeps them whole. The markdown output of `cite_law` and `fetch_law_article`
+    gives them one line under the text, never their words: «**Note redazionali**: la
+    Gazzetta Ufficiale pubblica con l'atto note a questo articolo (art. 10 d.P.R.
+    1092/1985), prive di valore normativo; i testi che trascrivono sono quelli alla data di
+    pubblicazione, non quelli vigenti; per leggerle: cite_law(formato="json"), campo
+    note_redazionali.» (`norme.riga_note_redazionali`). Past the JSON's cap the line adds how
+    much the JSON carries («che ne riporta le prime 8.000 battute su 61.295 (testo integrale su
+    Normattiva)»). When the text already ends with them, the line says «sono riportate in coda
+    al testo» instead.
 - **Articles split into parts (`parti`, `testo_parziale`).** Normattiva serves a very long
   article in parts. Art. 1 L. 296/2006 is 14 parts, «1 (commi 1-100)» to «1 (commi
   1301-1364)», and the article's own page is the first.
@@ -933,6 +991,7 @@ act's Akoma Ntoso export (two requests cold, none warm: the export is cached).
   `non_supportata`, as for an Italian act. `considerando` of a `NormaDati` with
   `celex_consolidated` is `non_supportata`, before any request.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
+  `atto_non_trovato` (cited by year, Normattiva serves another act),
   `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
   `errore_fonte`, `testo_assente`.
 
@@ -955,6 +1014,7 @@ act's page. One request, kept a day; every variant is read from the same page.
   `metadata = {"rubriche", "title"}`. `consolidato` and `consolidato_verificato`
   say which text the tree is read from.
 - **Esiti:** `trovato`, `riferimento_non_valido`, `atto_non_riconosciuto`,
+  `atto_non_trovato` (cited by year, Normattiva serves another act),
   `non_supportata` (a NormaDati with a version), `verifica_non_disponibile`,
   `errore_fonte`, `testo_assente`.
 
@@ -1247,8 +1307,9 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `VersioneArticolo` | VisuaLex `validity` keys: `version_number, valid_from, valid_to` |
 | `Modifica` | `atto, tipo, disposizione, parti, in_vigore_dal, versione, data_gu, precisione, testo` |
 | `AttoModificante` | `tipo_atto, data, numero_atto, urn, gazzetta, descrizione` |
-| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato, note_aggiornamento, note_non_lette, parti, testo_parziale` |
+| `TestoArticolo` | `esito, article_text, norma_data, url, validity`, plus `urn, fonte, canale, data_consultazione, errore, fonti, precisione, avvisi, successione, upcoming, not_in_force, consolidato, consolidato_verificato, note_aggiornamento, note_non_lette, note_redazionali, parti, testo_parziale` |
 | `NotaAggiornamento` | `numero, testo, ordine, corte_costituzionale`: one «AGGIORNAMENTO (n)» note of the page (§3, `testo_articolo`) |
+| `NotaRedazionale` | `intestazione, testo, ordine`: one «Note all'art. N» section of the Gazzetta's editorial notes (§3, `testo_articolo`) |
 | `ParteArticolo` | `progressivo, commi_dal, commi_al, url`: one part of an article Normattiva splits (§3, `parte_articolo`) |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
 | `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
