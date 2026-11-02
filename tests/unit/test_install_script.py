@@ -32,3 +32,23 @@ def test_the_plugin_config_runs_the_server_locally():
     config = _load()._build_plugin_mcp_config()
     entry = config["mcpServers"]["legal-it"]
     assert "url" not in entry and "command" in entry
+
+
+def test_a_desktop_config_saved_with_a_bom_keeps_its_other_servers(tmp_path, monkeypatch):
+    """#133: on Windows an editor may save the Claude Desktop config with a BOM. Read as
+    plain UTF-8 it was «not valid» and rewritten from scratch, dropping the user's other
+    servers (a .bak was kept); read in the locale encoding it could not be parsed at all."""
+    import json
+
+    install = _load()
+    config = tmp_path / "claude_desktop_config.json"
+    config.write_bytes(b"\xef\xbb\xbf" + json.dumps(
+        {"mcpServers": {"altro": {"command": "altro-server", "args": ["--perché"]}}},
+        ensure_ascii=False).encode("utf-8"))
+    monkeypatch.setattr(install, "_CLAUDE_DESKTOP_PATHS", {install.platform.system(): config})
+    monkeypatch.setattr(install, "_is_claude_desktop_running", lambda: False)
+
+    assert install.install_claude_desktop(["full"], non_interactive=True)
+    written = json.loads(config.read_text(encoding="utf-8"))
+    assert written["mcpServers"]["altro"] == {"command": "altro-server", "args": ["--perché"]}
+    assert "legal-it" in written["mcpServers"]
