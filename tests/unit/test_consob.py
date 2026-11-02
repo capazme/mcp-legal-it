@@ -722,3 +722,81 @@ class TestNonDeliberaImpl:
         with self._patched(_SEARCH_HTML):
             result = await _cerca_delibere_consob_impl("abusi di mercato")
         assert result.startswith("**Trovate 2 delibere CONSOB per**")
+
+
+# ---------------------------------------------------------------------------
+# Filter keys (LI-062): unknown keys are refused, never forwarded to the portal
+# ---------------------------------------------------------------------------
+
+
+class TestFilterKeys:
+    """An unknown tipologia/argomento used to be passed to the portal verbatim, so the
+    search ran with a meaningless filter and its empty result read as "no delibera"."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("impl,kwargs", [
+        (_cerca_delibere_consob_impl, {"query": "x", "tipologia": "regolamenti"}),
+        (_cerca_delibere_consob_impl, {"query": "x", "argomento": "vigilanza"}),
+        (_ultime_delibere_consob_impl, {"tipologia": "pareri"}),
+        (_ultime_delibere_consob_impl, {"argomento": "4989535"}),
+    ])
+    async def test_unknown_key_is_refused_without_calling_the_portal(self, impl, kwargs):
+        with patch("mcp_legal_it.tools.consob.search_delibere", new=AsyncMock()) as search:
+            result = await impl(**kwargs)
+        search.assert_not_called()
+        assert result.startswith("Chiave non valida")
+        assert "Nessuna" not in result
+        assert "Valori ammessi" in result
+
+    @pytest.mark.asyncio
+    async def test_no_result_is_still_reported_as_no_result(self):
+        with patch("mcp_legal_it.tools.consob.search_delibere", new=AsyncMock(return_value=[])):
+            result = await _cerca_delibere_consob_impl("x", tipologia="delibere", argomento="intermediari")
+        assert result.startswith("Nessuna delibera CONSOB trovata")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("tool", ["cerca_delibere_consob", "ultime_delibere_consob"])
+    async def test_input_schema_declares_the_valid_keys_as_enum(self, tool):
+        from mcp_legal_it.server import mcp
+        props = (await mcp.get_tool(tool)).parameters["properties"]
+        assert set(props["tipologia"]["enum"]) == {"", *TIPOLOGIE}
+        assert set(props["argomento"]["enum"]) == {"", *ARGOMENTI}
+
+    @pytest.mark.asyncio
+    async def test_unknown_key_is_rejected_at_the_protocol_boundary(self):
+        from fastmcp import Client
+        from mcp_legal_it.server import mcp
+        with patch("mcp_legal_it.tools.consob.search_delibere", new=AsyncMock()) as search:
+            async with Client(mcp) as client:
+                res = await client.call_tool(
+                    "ultime_delibere_consob", {"argomento": "vigilanza"}, raise_on_error=False)
+        assert res.is_error
+        search.assert_not_called()
+
+
+def test_enum_literals_match_the_client_tables():
+    from typing import get_args
+    from mcp_legal_it.tools.consob import ArgomentoConsob, TipologiaConsob
+    # Annotated[Literal[...], BeforeValidator]: the Literal is the first argument
+    assert set(get_args(get_args(TipologiaConsob)[0])) == {"", *TIPOLOGIE}
+    assert set(get_args(get_args(ArgomentoConsob)[0])) == {"", *ARGOMENTI}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("args,expected", [
+    ({"tipologia": "DELIBERE"}, ("delibera", "")),
+    ({"tipologia": " delibere"}, ("delibera", "")),
+    ({"argomento": "abusi di mercato"}, ("", "4989535")),
+    ({"argomento": "Intermediari"}, ("", "4989527")),
+])
+async def test_case_and_spaces_are_still_tolerated_at_the_protocol_boundary(args, expected):
+    """Before the enum the tools accepted "Intermediari" or "abusi di mercato": the schema
+    must not turn those into a validation error."""
+    from fastmcp import Client
+    from mcp_legal_it.server import mcp
+    with patch("mcp_legal_it.tools.consob.search_delibere", new=AsyncMock(return_value=[])) as search:
+        async with Client(mcp) as client:
+            res = await client.call_tool("ultime_delibere_consob", args, raise_on_error=False)
+    assert not res.is_error
+    kwargs = search.call_args.kwargs
+    assert (kwargs["tipologia"], kwargs["argomento_id"]) == expected

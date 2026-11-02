@@ -20,27 +20,31 @@ TIPOLOGIE (filtro per tipo di provvedimento)
 | `delibere` | Delibere della Commissione |
 | `comunicazioni` | Comunicazioni ufficiali |
 | `provvedimenti_urgenti` | Provvedimenti d'urgenza |
+| `altre_decisioni` | Altre decisioni pubblicate nel Bollettino |
 | `opa` | Provvedimenti OPA |
-| `regolamenti` | Regolamenti CONSOB |
-| `interpelli` | Risposte a interpelli |
-| `pareri` | Pareri resi dalla Commissione |
+| `appendice` | Appendice del Bollettino |
+| `tutti` | Tutte le tipologie |
 
 ═══════════════════════════════════════════════════════════
-ARGOMENTI (filtro per materia — ID Liferay)
+ARGOMENTI (filtro per materia)
 ═══════════════════════════════════════════════════════════
 
-| Chiave | Descrizione | ID |
-|--------|-------------|----|
-| `abusi_di_mercato` | Market abuse, insider trading, manipolazione | 4989535 |
-| `intermediari` | SIM, SGR, banche, consulenti | 4989527 |
-| `emittenti` | Obblighi informativi società quotate | 4989652 |
-| `mercati` | Struttura e regolamentazione mercati | 4989533 |
-| `offerte_acquisto` | OPA, OPS, offerte pubbliche | 4989651 |
-| `gestione_collettiva` | OICR, fondi, SICAV | 4989529 |
-| `servizi_investimento` | MiFID II, adeguatezza, best execution | 4989531 |
-| `cripto_attivita` | MiCA, crypto-asset, token | 4989653 |
-| `crowdfunding` | Piattaforme, Reg. UE 2020/1503 | 4989654 |
-| `vigilanza` | Attività di vigilanza generale | 4989534 |
+| Chiave | Descrizione |
+|--------|-------------|
+| `abusi_di_mercato` | Market abuse, insider trading, manipolazione |
+| `intermediari` | SIM, SGR, banche, consulenti |
+| `emittenti` | Obblighi informativi società quotate |
+| `mercati` | Struttura e regolamentazione mercati |
+| `offerte_acquisto` | OPA, OPS, offerte pubbliche di acquisto e scambio |
+| `offerte_vendita` | Offerte pubbliche di vendita e sottoscrizione |
+| `gestione_collettiva` | OICR, fondi, SICAV |
+| `servizi_investimento` | MiFID II, adeguatezza, best execution |
+| `cripto_attivita` | MiCA, crypto-asset, token |
+| `crowdfunding` | Piattaforme, Reg. UE 2020/1503 |
+
+Le chiavi sono le sole accettate dai tool: una chiave diversa viene rifiutata con l'errore
+«Chiave non valida», distinto dalla risposta «Nessuna delibera» (ricerca andata a buon fine
+senza risultati).
 
 ═══════════════════════════════════════════════════════════
 WORKFLOW CONSIGLIATI
