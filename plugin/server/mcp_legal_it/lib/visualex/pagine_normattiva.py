@@ -44,7 +44,9 @@ MAX_SU_DISCO = 2000
 #: 3: and the page's update notes (``note``): a record without them would serve the text
 #: of art. 3 d.lgs. 23/2015 without C. cost. 194/2018 for a day.
 #: 4: and the parts of an article Normattiva splits (``parti``, ``parte_servita``).
-SCHEMA = 4
+#: 5: written only after the page's heading was checked against the URN asked
+#: (``scraper.controlla_intestazione``): a record kept before could be another act's page.
+SCHEMA = 5
 
 _memoria: "OrderedDict[str, dict]" = OrderedDict()
 #: The disk is pruned once every this many writes, not at each one (a glob of up to 2000 files).

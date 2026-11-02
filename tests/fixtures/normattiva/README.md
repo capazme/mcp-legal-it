@@ -92,3 +92,11 @@ provvedimento in formato grafico», a `vediPdf` link).
 Each trimmed part was checked to give the same served part (`parte_servita`) and the same
 served article as the whole page (the two validity copies: the same window too), and the trimmed tree the same parts of art. 1 as the whole
 tree. Used by `tests/unit/test_atto_intero_parti.py`.
+
+## An article page served for another act (full date)
+
+| File | Asked as (after `urn:nir:stato:`) | What Normattiva served |
+|------|-----------------------------------|------------------------|
+| `dm_241_1990_art3_serve_legge.html` | `decreto.ministeriale:1990-08-07;241~art3` | art. 3 of L. 7 agosto 1990, n. 241 (title «LEGGE 7 agosto 1990, n. 241»), 2026-11-02; trimmed to the head |
+
+Used by `tests/unit/test_atto_data_completa.py`.
