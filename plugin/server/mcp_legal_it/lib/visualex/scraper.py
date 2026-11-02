@@ -1998,8 +1998,11 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
     ) as client:
         # The act at today's date: undated, the tree lists each article's newest version, which
         # may not be in force yet (art. 1 L. 213/2023, «in vigore dal 1-1-2027», on 2 Nov 2026).
-        oggi = _clock.today().isoformat()
-        resp = await client.get(f"{act_url}!vig={oggi}")
+        # The Italian day (a container runs in UTC); the consult is recorded all the same.
+        _clock.today()
+        oggi = _clock.rome_day_unrecorded().isoformat()
+        url_oggi = f"{act_url}!vig={oggi}"
+        resp = await client.get(url_oggi)
         resp.raise_for_status()
         note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
         html = resp.text
@@ -2073,7 +2076,11 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
             if text != "[Articolo senza contenuto o abrogato]":
                 all_parts.append(text)
 
-    avvisi = _avvisi_lettura(non_lette, parti_grafiche, act_url, non_in_vigore)
+    avvisi = _avvisi_lettura(non_lette, parti_grafiche, act_url, non_in_vigore, url_oggi)
+    if not all_parts and non_in_vigore:
+        # Every text Normattiva gave is not in force today: never the act page's own body
+        # instead, whose version nothing checked.
+        return {"text": "", "title": title, "url": act_url, "error": " ".join(avvisi)}
     if not all_parts:
         return {"text": first_article_text, "title": title, "url": act_url, "article_count": 1,
                 "completo": False, "non_lette": non_lette, "parti_grafiche": parti_grafiche,
@@ -2081,9 +2088,12 @@ async def fetch_normattiva_full_text(norma: "Norma") -> dict:
                 "avvisi": avvisi or [_AVVISO_VOCI_VUOTE + _SOLO_PAGINA_ATTO]}
 
     full_text = "\n\n---\n\n".join(all_parts)
+    # ``stabile``: the same text whenever read today (no entry failed); a reading without today's
+    # text of some entry is not complete, but it is stable, so later windows can be cut from it.
     return {"text": full_text, "title": title, "url": act_url, "article_count": len(all_parts),
-            "completo": not non_lette and not non_in_vigore, "non_lette": non_lette,
-            "parti_grafiche": parti_grafiche, "non_in_vigore": non_in_vigore, "avvisi": avvisi}
+            "completo": not non_lette and not non_in_vigore, "stabile": not non_lette,
+            "non_lette": non_lette, "parti_grafiche": parti_grafiche, "non_in_vigore": non_in_vigore,
+            "avvisi": avvisi}
 
 
 # The notices of a reading that fell back on the act's own page (its first article).
@@ -2101,10 +2111,16 @@ def _elenco(nomi: list[str]) -> str:
     return ", ".join(nomi[:_AVVISO_MAX_NOMI]) + f" e altre {len(nomi) - _AVVISO_MAX_NOMI}"
 
 
+def _data_it(iso: str) -> str:
+    """«2027-01-01» -> «1/1/2027»; anything else unchanged."""
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", iso or "")
+    return f"{int(m.group(3))}/{int(m.group(2))}/{m.group(1)}" if m else iso
+
+
 def _finestra(validita: dict) -> str:
-    """«in vigore dal 2027-01-01», «in vigore dal 2026-10-07 al 2026-12-31»: a page's window."""
-    fine = f" al {validita['valid_to']}" if validita.get("valid_to") else ""
-    return f"in vigore dal {validita['valid_from']}{fine}"
+    """«in vigore dal 1/1/2027», «in vigore dal 7/10/2026 al 31/12/2026»: a page's window."""
+    fine = f" al {_data_it(validita['valid_to'])}" if validita.get("valid_to") else ""
+    return f"in vigore dal {_data_it(validita['valid_from'])}{fine}"
 
 
 def _avviso_parti_fuori(fuori: list[str], url: str) -> str:
@@ -2115,7 +2131,7 @@ def _avviso_parti_fuori(fuori: list[str], url: str) -> str:
 
 
 def _avvisi_lettura(non_lette: list[str], parti_grafiche: list[str], url: str,
-                    non_in_vigore: "list[str] | None" = None) -> list[str]:
+                    non_in_vigore: "list[str] | None" = None, url_oggi: str = "") -> list[str]:
     """The notices of an article-by-article reading: what was not read, what is not today's text,
     what has no text."""
     avvisi: list[str] = []
@@ -2125,9 +2141,10 @@ def _avvisi_lettura(non_lette: list[str], parti_grafiche: list[str], url: str,
         avvisi.append(f"Lettura parziale: {quante} da Normattiva ({_elenco(non_lette)}). Il testo non è "
                       "l'atto intero; ripetere la richiesta più tardi.")
     if non_in_vigore:
-        avvisi.append(f"Testo non in vigore oggi: alla data di oggi Normattiva ha dato per {_elenco(non_in_vigore)} "
-                      "solo un testo con un'altra vigenza, che non è nel testo. Il testo non è l'atto intero in "
-                      f"vigore oggi; consultare la pagina dell'atto: {url}")
+        avvisi.append(f"Parti escluse perché non in vigore oggi: alla data di oggi Normattiva ha dato per "
+                      f"{_elenco(non_in_vigore)} solo un testo che oggi non è in vigore, e quel testo non è qui. "
+                      f"Il testo non è l'atto intero in vigore oggi; la pagina dell'atto alla data di oggi: "
+                      f"{url_oggi or url}")
     if parti_grafiche:
         verbo = "contiene" if len(parti_grafiche) == 1 else "contengono"
         avvisi.append(f"Parti in formato grafico: su Normattiva {_elenco(parti_grafiche)} {verbo} parti "

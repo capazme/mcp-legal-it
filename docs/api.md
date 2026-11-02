@@ -997,8 +997,9 @@ codes.
   and `completo` means every article page and every part of an article
   Normattiva splits («1 (commi 1-100)» …), the annexes' pages included, each
   in force today. `False` when an entry could not be read, or Normattiva gave
-  for it only a text not in force today; `avvisi` names it. A failed entry is
-  transient: ask again.
+  for it only a text not in force today; `avvisi` names it. An entry not read
+  is transient: ask again. An entry not in force today is not: asking again
+  the same day gives the same text.
 - **`avvisi`.** What the text does not carry, in words a reader can be shown:
   the parts of the act the export's text leaves out, the entries not read, the
   entries whose only text is not in force today (with its window), and the
