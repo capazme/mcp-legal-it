@@ -996,13 +996,18 @@ codes.
 
 - **Esiti:** as `indice_atto`. `testo_assente` covers a text under 50 characters.
 - **`completo`.** `True` when every entry of the text was read. From the Akoma
-  Ntoso export that means the act's articles: the text leaves the annexes out
-  (not yet said in `avvisi`). Without the export it means every article page
-  and every part of an article Normattiva splits («1 (commi 1-100)» …), the
-  annexes' pages included. `False` when an entry could not be read; `avvisi`
-  names it. A failed entry is transient: ask again.
+  Ntoso export that means the act's articles: the text leaves the annexes out,
+  and `avvisi` names them. Without the export, the act is read at today's date
+  and `completo` means every article page and every part of an article
+  Normattiva splits («1 (commi 1-100)» …), the annexes' pages included, each
+  in force today. `False` when an entry could not be read, or Normattiva gave
+  for it only a text not in force today; `avvisi` names it. An entry not read
+  is transient: ask again. An entry not in force today is not: asking again
+  the same day gives the same text.
 - **`avvisi`.** What the text does not carry, in words a reader can be shown:
-  the entries not read, and the parts Normattiva publishes as images only
+  the parts of the act the export's text leaves out, the entries not read, the
+  entries whose only text is not in force today (with its window), and the
+  parts Normattiva publishes as images only
   («Parte di provvedimento in formato grafico», e.g. the budget law's tables).
   Those parts have no text anywhere on Normattiva, so they do not make the
   reading incomplete; the avviso names them and links the act's page.
