@@ -83,6 +83,8 @@ AREAS: dict[str, str] = {
     "sinistro": "Road and medical accident workflow.",
     "societario": "Company law.",
     "utility": "General-purpose checks and conversions (tax code, IBAN, VAT, dates).",
+    "vigenza": "Validity in time of Italian norms: an article's versions and the amendments that "
+               "produced them. Vigenza is not applicability (transitional rules).",
 }
 
 #: Cross-cutting flags. They change how a tool is offered, not what it is about.

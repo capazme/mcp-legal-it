@@ -29,11 +29,18 @@ Per article `<name>`:
 | `cc_art2` | `regio.decreto:1942-03-16;262:2~art2` | A code's article, in the code's annex: the L. 39/1975 amendment |
 | `ccii_art64bis` | `decreto.legislativo:2019-01-12;14~art64bis` | Five provisions of d.lgs. 136/2024 in one row (v2), then d.lgs. 147/2026 (v3) |
 | `cc_art2740` | `regio.decreto:1942-03-16;262:2~art2740` | Never amended: no update link |
+| `cp_art612bis` | `regio.decreto:1930-10-19;1398:1~art612bis` | 5 versions, 2009 to 2025, captured on 2026-11-02 (below) |
 
 `cp_art612bis_agg_v1.html` is version 1's table of art. 612-bis c.p.
-(`regio.decreto:1930-10-19;1398:1~art612bis`), alone: the article introduced by the d.l.
+(`regio.decreto:1930-10-19;1398:1~art612bis`): the article introduced by the d.l.
 11/2009 «convertito con modificazioni» (G.U. 24 Feb 2009; version 1 starts on 25 Feb
 2009, read the same day), a provision without «ha disposto» (L. 69/2019) and
-«l'introduzione di un comma dopo il terzo» (L. 181/2025).
+«l'introduzione di un comma dopo il terzo» (L. 181/2025). The rest of the set (the
+article page, versions 1-4 and tables 2-5) was captured on 2026-11-02 the same way, in
+one serial walk of 10 requests; that walk served version 1's table byte for byte as the
+copy above. The code's tree lists only the current version of the article (no
+`agg.`/`orig.` entries), so the trimmed page keeps that one entry
+(`art.idArticolo=612&art.idSottoArticolo=2`); `api.modifiche_articolo` and
+`api.testo_articolo` give the same result on the trimmed page as on the whole one (1.2 MB).
 
-Used by `tests/unit/test_api_modifiche_articolo.py`.
+Used by `tests/unit/test_api_modifiche_articolo.py` and `tests/unit/test_storia_norma.py`.
