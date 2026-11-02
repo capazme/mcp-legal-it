@@ -15,7 +15,7 @@ import httpx
 from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib.visualex import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.models import intervallo_articoli, split_annex
-from mcp_legal_it.lib.visualex.scraper import CHECK_UNAVAILABLE, fetch_article
+from mcp_legal_it.lib.visualex.scraper import ACT_NOT_FOUND, CHECK_UNAVAILABLE, fetch_article
 from mcp_legal_it.core.riferimenti import (  # noqa: F401 - re-exported
     _ACT_FIRST_PATTERN,
     _ANNEX_AFTER_ARTICLE,
@@ -180,8 +180,10 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     else:
         result = await fetch_norma(nv, canale=canale)
     result = await con_parte(result, nv.numero_articolo, comma=comma, progressivo=progressivo, per=per)
-    base["url"] = result.get("url", "") or nv.url()
-    base["urn"] = _urn_from_url(base["url"])
+    # Another act's page served for the citation (atto_non_trovato): no link, no URN, since
+    # the act's own address is exactly the one that serves that other act.
+    base["url"] = "" if result.get("esito") == ACT_NOT_FOUND else (result.get("url", "") or nv.url())
+    base["urn"] = _urn_from_url(base["url"]) if base["url"] else None
     # Cited with the year only, the act is queried as YYYY-01-01. The scraper replaces that
     # with the act's real date (from the Normattiva page); when it could not, the URL still
     # works but its date is a placeholder, so no URN is presented as the act's own.

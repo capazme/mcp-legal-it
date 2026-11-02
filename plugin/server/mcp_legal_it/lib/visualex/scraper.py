@@ -371,9 +371,12 @@ async def normattiva_serves_acts() -> bool:
 async def with_full_date(norma: Norma) -> Norma:
     """The same act with its real date when it was cited with the year only.
 
-    Any other act is returned unchanged; so is a year-only act whose page cannot
-    be read or whose date disagrees with the cited year (never guess: the caller
-    then keeps what the user cited and the URN is not presented as official).
+    Any other act is returned unchanged. A year-only act whose page names another act
+    (another type, year or number) raises :class:`AttoNonVerificato` (``altro_atto``),
+    for every type: its year-only URN would serve that other act. For the types dated by
+    their ELI date it raises too when the page cannot be read or verified now. A titled
+    type whose page cannot be read is returned unchanged (never guess: the caller then
+    keeps what the user cited and the URN is not presented as official).
     """
     if not _year_only_act(norma):
         return norma
