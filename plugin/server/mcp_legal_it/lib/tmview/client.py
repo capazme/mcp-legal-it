@@ -8,6 +8,12 @@ Endpoints:
 - POST /tmview/api/search/results          — search (JSON body, JSON response)
 - GET  /tmview/api/trademark/detail/{ST13} — full record for one trademark
 
+Since 2026-10-29 the detail endpoint refuses automated requests (HTTP 403,
+TMviewRefusedError) while the search still answers. The client does not try to
+get around the refusal: find_trademark_by_st13() asks the search endpoint for the
+same mark by application number (the "Application number" field of TMview's
+advanced search), and public_detail_url() gives the record's page for a browser.
+
 WAF: the site sits behind an F5/APM gate. Rapid request bursts from non-browser
 clients get connection resets or an HTML challenge page instead of JSON. The
 client mitigates with browser-like headers, a cookie warm-up GET on the home
@@ -16,6 +22,7 @@ TMviewBlockedError — callers should tell the user to retry in a minute.
 """
 
 import asyncio
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -29,6 +36,8 @@ _BASE_URL = "https://www.tmdn.org/tmview"
 _HOME_URL = f"{_BASE_URL}/"
 _SEARCH_URL = f"{_BASE_URL}/api/search/results"
 _DETAIL_URL = f"{_BASE_URL}/api/trademark/detail/{{st13}}"
+#: The record's page in TMview's web app (hash route of the SPA), for a person in a browser.
+_PUBLIC_DETAIL_URL = f"{_BASE_URL}/#/tmview/detail/{{st13}}"
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 _MAX_PAGE_SIZE = 50
@@ -168,6 +177,7 @@ def _build_search_payload(
     statuses: list[str] | None = None,
     page: int = 1,
     page_size: int = 20,
+    application_number: str = "",
 ) -> dict:
     payload: dict = {
         "page": str(page),
@@ -175,6 +185,8 @@ def _build_search_payload(
         "criteria": "C",
         "basicSearch": term,
     }
+    if application_number:
+        payload["applicationNumber"] = application_number
     if offices:
         payload["offices"] = offices
     if nice_classes:
@@ -341,10 +353,13 @@ async def search_trademarks(
     statuses: list[str] | None = None,
     page: int = 1,
     page_size: int = 20,
+    application_number: str = "",
 ) -> tuple[int, list[TrademarkResult]]:
     """Search TMview. Returns (total_results, results_on_page)."""
     page_size = max(1, min(page_size, _MAX_PAGE_SIZE))
-    payload = _build_search_payload(term, offices, nice_classes, statuses, page, page_size)
+    payload = _build_search_payload(
+        term, offices, nice_classes, statuses, page, page_size, application_number=application_number
+    )
     await _throttle()
     async with async_client("tmview", timeout=_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         await _warm_up(client)
@@ -398,3 +413,46 @@ async def fetch_trademark(st13: str) -> TrademarkDetail:
                     raise
                 await asyncio.sleep(2 ** attempt)
         return _parse_detail_response(_json_or_blocked(resp))
+
+
+#: ST13 (WIPO ST.13): office code, two-digit IP type ("50" for trade marks), then the
+#: application number left-padded with zeros.
+_ST13_RE = re.compile(r"([A-Z]{2})\d{2}([0-9A-Z]+)")
+
+
+def public_detail_url(st13: str) -> str:
+    """The trademark's page on TMview, to open in a browser."""
+    return _PUBLIC_DETAIL_URL.format(st13=st13.strip().upper())
+
+
+def _number_query_for_st13(st13: str) -> tuple[str, str] | None:
+    """(office, application number) to find an ST13 with the search, or None if it can't be built.
+
+    The padding zeros are dropped: TMview matches "18203824" to the EUIPO number "018203824"
+    (verified 2026-11-02), while the padded "0000018203824" finds nothing. Numbers that the
+    office writes differently (e.g. "17249/2024" for CH502024000017249) are simply not found.
+    """
+    m = _ST13_RE.fullmatch(st13.strip().upper())
+    if not m:
+        return None
+    number = m.group(2).lstrip("0")
+    return (m.group(1), number) if number else None
+
+
+async def find_trademark_by_st13(st13: str) -> TrademarkResult | None:
+    """The search endpoint's record for exactly this ST13, or None.
+
+    One search request, filtered by office and application number; a hit counts only if its
+    ST13 is the one asked. Raises what search_trademarks raises.
+    """
+    query = _number_query_for_st13(st13)
+    if query is None:
+        return None
+    office, number = query
+    # A full page: the field is not matched literally (padding is ignored), so a short number may
+    # bring more than one mark, and the right one must not fall off the page.
+    _, results = await search_trademarks(
+        "", offices=[office], application_number=number, page_size=_MAX_PAGE_SIZE
+    )
+    wanted = st13.strip().upper()
+    return next((tm for tm in results if tm.st13 == wanted), None)
