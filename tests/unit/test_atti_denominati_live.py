@@ -64,6 +64,12 @@ async def _check_normattiva(client, tipo, data, numero, aliases):
             f"{aliases[0]}: la tabella dice «{expected_date}, n. {numero}», "
             f"Normattiva risponde «{title}» — {url}"
         )
+    # The type too: the readers refuse a page headed by another type (scraper.controlla_intestazione).
+    from mcp_legal_it.lib.visualex import scraper
+
+    tipi = scraper._INTESTAZIONI.get(tipo.replace(" ", "."))
+    if tipi is not None and not any(title.startswith(f"{t} ") for t in tipi):
+        return f"{aliases[0]}: la tabella dice «{tipo}», Normattiva risponde «{title}» — {url}"
     return None
 
 

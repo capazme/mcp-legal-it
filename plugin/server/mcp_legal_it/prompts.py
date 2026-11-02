@@ -363,9 +363,10 @@ Come si è evoluta l'interpretazione della CGUE nel tempo.
 
 ### 4. Impatto sull'Ordinamento Italiano
 Come i principi CGUE influenzano l'applicazione del diritto italiano:
-- Obbligo di interpretazione conforme (Mangold/Kücükdeveci)
-- Disapplicazione norme nazionali incompatibili
-- Responsabilità dello Stato per violazione diritto UE (Francovich)
+- Obbligo di interpretazione conforme (von Colson e Kamann, Marleasing, Pfeiffer): non può fondare un'interpretazione contra legem, ma il giudice non può ritenerla impossibile per il solo fatto di avere costantemente interpretato la norma in senso incompatibile (Dansk Industri, C-441/14, punti 32-34)
+- Disapplicazione delle norme nazionali incompatibili, anche tra privati quando è in gioco un principio generale del diritto UE (Mangold, C-144/04; Kücükdeveci, C-555/07) o un diritto della Carta (Egenberger, C-414/16, artt. 21 e 47; Bauer, C-569/16, art. 31, par. 2)
+- In Italia, «doppia pregiudizialità» per le questioni che toccano insieme Costituzione e Carta dei diritti fondamentali (Corte cost. n. 269/2017 e n. 20/2019)
+- Responsabilità dello Stato per violazione del diritto UE (Francovich)
 
 ### 5. Norme di Riferimento
 Disposizioni UE rilevanti (testo da cite_law).
@@ -488,19 +489,53 @@ Quantificazione del danno NON PATRIMONIALE da sinistro stradale, sanitario o lav
 
 **Principio (Cass. SS.UU. 26972/2008, «San Martino»)**: il danno non patrimoniale è UNITARIO
 (art. 2059 c.c.). Biologico, morale ed esistenziale sono aspetti di un unico pregiudizio, NON
-poste autonome da sommare. Le Tabelle di Milano liquidano un valore COMPLESSIVO che già incorpora
-la componente morale.
+poste autonome da sommare. Le tabelle (tabella unica nazionale e tabelle di Milano) liquidano un
+valore COMPLESSIVO che comprende la componente morale (per la TUN: art. 138, co. 2, lett. e), CdA).
 
 ## Workflow
 
 ### 1. Danno non patrimoniale (valore complessivo, unitario)
 
 Chiama UNA SOLA VOLTA `danno_non_patrimoniale` con `percentuale_invalidita` (intero) e
-`eta_vittima` (intero). Usa le Tabelle di Milano (macro >9%) o l'art. 139 Cod. Ass. (micro ≤9%).
-Il valore restituito è GIÀ comprensivo del danno morale.
+`eta_vittima` (intero).
+
+Quale tabella:
+- **Circolazione di veicoli a motore e natanti, responsabilità sanitaria — macropermanenti (>9%)**:
+  tabella unica nazionale (TUN, D.P.R. 13 gennaio 2025, n. 12, art. 138 CdA; per la sanità
+  art. 7, co. 4, L. 24/2017). Il D.P.R. è in vigore dal 5 marzo 2025 (pubblicato in G.U. il
+  18/2/2025) e si applica ai sinistri verificatisi dopo quella data (art. 5). I valori sono
+  aggiornati ogni anno con decreto del Ministro delle imprese e del made in Italy (art. 138, co. 5,
+  CdA): DM 10/12/2025 (G.U. 27/12/2025) e DM 28/9/2026 (G.U. 9/10/2026).
+- **Stessi ambiti — micropermanenti (≤9%)**: art. 139 CdA (per la sanità, art. 7, co. 4, L. 24/2017).
+- **Fuori dall'ambito diretto della TUN** (altri illeciti, sinistri verificatisi fino al 5/3/2025
+  compreso): la
+  liquidazione è equitativa (artt. 1226 e 2056 c.c.). Prima di scegliere tra TUN e tabelle di
+  Milano, verifica l'orientamento di legittimità più recente con `cerca_giurisprudenza` e motiva
+  la scelta della tabella.
+- Qualunque tabella usi, applica la versione vigente al momento della decisione (Cass. civ.,
+  sez. III, n. 13539/2026).
+
+Attenzione: per le macropermanenti `danno_non_patrimoniale` restituisce una STIMA di ordine di
+grandezza, che non è né la TUN né le tabelle di Milano: sostituiscila con il valore tabellare del
+caso. Il valore tabellare comprende già il danno morale.
 
 NON chiamare in aggiunta un tool di "danno morale" da sommare: duplicherebbe la componente già
 inclusa (unitarietà del danno non patrimoniale).
+
+### 1-bis. Infortunio sul lavoro
+
+L'art. 139 CdA vale per le lesioni da circolazione di veicoli a motore e natanti (e per la sanità,
+art. 7, co. 4, L. 24/2017), non per l'infortunio sul lavoro in quanto tale:
+- L'INAIL indennizza il danno biologico con le proprie tabelle (art. 13 D.Lgs. 38/2000): usa
+  `risarcimento_inail`.
+- Verso il datore di lavoro responsabile spetta solo il danno differenziale, cioè la parte che
+  eccede le indennità INAIL (art. 10 D.P.R. 1124/1965), calcolata per poste omogenee: dal danno
+  biologico civilistico si detrae solo la quota della rendita INAIL che ristora il danno biologico,
+  non l'intera rendita (Cass. civ., sez. lav., n. 21196/2025). Il danno civilistico si liquida con
+  i criteri della sezione 1 per gli illeciti fuori dall'ambito della TUN, non con l'art. 139.
+- Se l'infortunio è anche un sinistro stradale (tipico l'infortunio in itinere, art. 2, co. 3,
+  D.P.R. 1124/1965), verso il terzo responsabile si applicano gli artt. 138 e 139 CdA; l'INAIL che
+  ha pagato è surrogato nei diritti dell'infortunato (art. 1916 c.c., ultimo comma; art. 142 CdA).
 
 ### 2. Personalizzazione (solo se motivata da circostanze eccezionali)
 
@@ -509,18 +544,31 @@ massimi della tabella (calcolata sulla componente biologica), tramite `personali
 è una seconda voce cumulata: è un incremento del valore tabellare entro i limiti. In base al tipo:
 - **Stradale**: dinamica relazionale (mobilità, lavoro, sport)
 - **Sanitario**: sofferenza iatrogena da errore medico
-- **Lavoro**: incidenza sulla capacità lavorativa specifica
+- **Lavoro**: prima il passaggio INAIL e il danno differenziale (sezione 1-bis), poi l'incidenza
+  sulla capacità lavorativa specifica
 
-### 3. Rivalutazione monetaria (debito di valore)
+### 3. Devalutazione (debito di valore)
 
-Chiama `rivalutazione_monetaria` dalla data del sinistro a oggi.
+Il valore tabellare (nella versione vigente al momento della decisione) è già espresso in moneta
+attuale: NON rivalutarlo di nuovo. Per calcolare gli interessi, riconducilo alla data del sinistro
+con `calcolo_devalutazione` (`importo_attuale` = valore tabellare comprensivo dell'eventuale
+personalizzazione, `data_attuale` = oggi,
+`data_passata` = data del sinistro). La somma devalutata è solo la base di calcolo: non si somma.
 
 ### 4. Interessi compensativi (Cass. SS.UU. 1712/1995)
 
 NON calcolare gli interessi sul capitale INTERAMENTE rivalutato all'attualità: sarebbe la
-sovra-compensazione censurata dalle SS.UU. Calcolali sulla somma PROGRESSIVAMENTE rivalutata anno
-per anno o, in via semplificata, sul VALORE MEDIO tra somma originaria e somma finale rivalutata:
-chiama `interessi_legali` sulla base `(somma_originaria + somma_rivalutata) / 2`.
+sovra-compensazione censurata dalle SS.UU. Calcolali sulla somma devalutata e poi rivalutata anno
+per anno (così Cass. civ., sez. III, n. 11614/2025: interessi compensativi «previa devalutazione
+fino alla data del fatto illecito e rivalutazione di anno in anno»): chiama
+`interessi_vari_capitale_rivalutato` con `capitale` = somma devalutata, dalla data del sinistro a
+oggi, e prendi solo `totale_interessi`. In via semplificata (è una semplificazione di prassi, non
+una formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2` (valore tabellare
+comprensivo dell'eventuale personalizzazione) dalla data del sinistro a oggi.
+
+Gli interessi compensativi coprono il periodo dall'evento alla liquidazione. Il saggio maggiorato
+dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, che è
+un debito di valore (Cass. civ., sez. III, n. 6698/2026).
 
 ## Output atteso
 
@@ -528,15 +576,14 @@ chiama `interessi_legali` sulla base `(somma_originaria + somma_rivalutata) / 2`
 |------|---------|
 | Danno non patrimoniale (valore complessivo, morale incluso) | ... |
 | Personalizzazione (se ricorrente, entro i tetti) | ... |
-| Rivalutazione monetaria | ... |
-| Interessi compensativi (su base media/progressiva) | ... |
+| Interessi compensativi (su somma devalutata e rivalutata anno per anno, o base media) | ... |
 | **TOTALE RISARCIMENTO** | **...** |
 
 ## Avvertenze da includere
 
 - Danno non patrimoniale UNITARIO: una sola voce comprensiva del morale (SS.UU. 26972/2008) — non sommare biologico e morale come poste distinte.
-- Interessi compensativi sulla somma progressivamente rivalutata / valore medio, MAI sul capitale già interamente rivalutato (SS.UU. 1712/1995).
-- Valori INDICATIVI (Tabelle di Milano macro >9% / art. 139 Cod. Ass. micro ≤9%) — non sostituiscono la valutazione medico-legale.
+- Interessi compensativi, previa devalutazione alla data del fatto, sulla somma progressivamente rivalutata / valore medio, MAI sul capitale già interamente rivalutato (SS.UU. 1712/1995).
+- Valori INDICATIVI: micro ≤9% art. 139 CdA; macro >9% TUN per circolazione e sanità (sinistri dopo il 5/3/2025), altrimenti la tabella scelta e motivata. Per le macro il valore del tool è una stima da sostituire con quello tabellare. Non sostituiscono la valutazione medico-legale.
 - Per ITT/ITP, danno emergente e lucro cessante servono dati aggiuntivi.
 - Citare sempre la fonte tabellare e normativa.
 """
@@ -758,7 +805,7 @@ Verifica eventuali esenzioni (es. cause di lavoro sotto soglia, procedimenti di 
 
 Chiama `scadenza_processuale` per i termini in base al rito:
 - **Ordinario**: comparsa risposta (70gg), memorie art. 171-ter c.p.c.
-- **Sommario**: costituzione resistente, mutamento rito
+- **Semplificato** (artt. 281-decies ss. c.p.c., che per i procedimenti instaurati dopo il 28/02/2023 sostituiscono il sommario di cognizione): costituzione del convenuto, eventuali memorie concesse dal giudice, mutamento del rito — usa `termini_procedimento_semplificato`. Per le cause instaurate entro il 28/02/2023 il sommario ex art. 702-bis resta applicabile (art. 35, co. 1, D.Lgs. 149/2022).
 - **Lavoro**: ricorso, memoria difensiva, note autorizzate
 
 Sospensione feriale (1-31 agosto): indicala solo se il rito o la materia vi è soggetto — non opera, tra l'altro, in materia di lavoro, procedimenti cautelari e alimenti.
@@ -1342,13 +1389,13 @@ Calcolo base, personalizzazione e attualizzazione.
 
 **Biologico** (percentuale invalidita):
 - <= 9%: `danno_biologico_micro` (tabelle art. 139 CdA)
-- > 9%: `danno_biologico_macro` (tabelle Milano)
+- > 9%: `danno_biologico_macro` — restituisce una STIMA di ordine di grandezza, non la TUN né le tabelle di Milano: sostituiscila con il valore tabellare (vedi Avvertenze)
 - Parametri richiesti: percentuale di invalidita ed eta della vittima (l'eta incide sul demoltiplicatore tabellare)
 
 **Patrimoniale** (importo):
 - Danno emergente + lucro cessante
 - Lucro cessante: calcola in base alla durata della privazione
-- `interessi_legali` dalla data evento
+- Rivalutazione e interessi: vedi Attualizzazione (voci storiche)
 
 **Morale/esistenziale**:
 - `danno_non_patrimoniale` come base
@@ -1361,8 +1408,10 @@ Indica una percentuale di personalizzazione motivata.
 
 ### 3. Attualizzazione
 
-1. `rivalutazione_monetaria` dalla data evento
-2. Interessi compensativi (Cass. SS.UU. 1712/1995) non sul capitale interamente rivalutato, che sarebbe una sovra-compensazione, ma sulla somma progressivamente rivalutata o, in via semplificata, sul valore medio: `interessi_legali` sulla base `(somma_originaria + somma_rivalutata) / 2`
+Interessi compensativi (Cass. SS.UU. 1712/1995) mai sul capitale interamente rivalutato, che sarebbe una sovra-compensazione:
+1. **Voci storiche** (danno patrimoniale espresso in moneta dell'epoca): `rivalutazione_monetaria` dalla data evento con `con_interessi_legali=True`, che rivaluta e calcola gli interessi anno per anno sul capitale rivalutato. Non aggiungere altri interessi.
+2. **Voci a valore attuale** (danno non patrimoniale da tabella, comprensivo dell'eventuale personalizzazione): non rivalutarle di nuovo. Riconducile alla data del fatto con `calcolo_devalutazione`, poi `interessi_vari_capitale_rivalutato` sulla somma devalutata dalla data evento (solo `totale_interessi`); così Cass. civ., sez. III, n. 11614/2025 («previa devalutazione fino alla data del fatto illecito e rivalutazione di anno in anno»). In via semplificata (semplificazione di prassi, non formula delle SS.UU.): `interessi_legali` sulla base `(somma_devalutata + valore_tabellare) / 2`.
+3. Il saggio dell'art. 1284, co. 4, c.c. non si applica all'obbligazione risarcitoria da fatto illecito, debito di valore (Cass. civ., sez. III, n. 6698/2026)
 
 ## Formato output
 
@@ -1373,8 +1422,8 @@ Intestazione `## Quantificazione Danno` con il tipo di danno tra parentesi, poi 
 | Danno base (tabellare/documentale) | € ... |
 | Personalizzazione (±...%) | € ... |
 | Subtotale | € ... |
-| Rivalutazione ISTAT | € ... |
-| Interessi legali | € ... |
+| Rivalutazione ISTAT (solo voci storiche) | € ... |
+| Interessi compensativi | € ... |
 | **TOTALE** | **€ ...** |
 
 ### Motivazione
@@ -1383,7 +1432,7 @@ Spiega i criteri di personalizzazione adottati e la giurisprudenza di riferiment
 
 ## Avvertenze
 
-- Quantificazione indicativa basata sulle tabelle vigenti. Per le macropermanenti (> 9%) in ambito RC auto e responsabilita sanitaria la liquidazione segue la Tabella Unica Nazionale ex art. 138 CdA (vincolante); le tabelle Milano restano il riferimento per i danni fuori dal perimetro del Codice delle Assicurazioni.
+- Quantificazione indicativa. Per le macropermanenti (> 9%) da circolazione di veicoli e natanti o da responsabilità sanitaria si applica la tabella unica nazionale (D.P.R. 12/2025, art. 138 CdA; art. 7, co. 4, L. 24/2017) ai sinistri verificatisi dopo il 5/3/2025, data della sua entrata in vigore; i valori sono aggiornati ogni anno con decreto ministeriale (art. 138, co. 5, CdA; da ultimo DM 28/9/2026). Fuori da quell'ambito la liquidazione è equitativa (artt. 1226 e 2056 c.c.): verifica l'orientamento di legittimità più recente e motiva la scelta della tabella. Qualunque tabella si usi, va applicata la versione vigente al momento della decisione (Cass. civ., sez. III, n. 13539/2026).
 - La prova del danno patrimoniale richiede documentazione specifica.
 - Per il danno biologico serve una perizia medico-legale.
 """
@@ -1414,12 +1463,13 @@ Chiama `interessi_mora` con capitale, data_inizio (decorrenza della mora) e data
 
 - **Commerciale** (imprese/PA): usa `interessi_mora` — tasso BCE + 8 punti (D.Lgs. 231/2002)
 - **Privato** (crediti tra privati): usa `interessi_legali` — tasso legale art. 1284 c.c.
+- **In esecuzione**: se il titolo giudiziale condanna genericamente agli «interessi legali», dopo la domanda giudiziale si applica il saggio dell'art. 1284, co. 1, c.c., non quello maggiorato del co. 4, salvo che il titolo, anche solo in motivazione, accerti la spettanza di quest'ultimo (Cass. SS.UU. n. 12449/2024). Nel ricorso chiedi espressamente gli interessi ex art. 1284, co. 4, dalla domanda.
 
 ### 2. Rivalutazione monetaria
 
 Chiama `rivalutazione_monetaria` con l'importo del credito, dalla data di scadenza a oggi.
 
-**Nota**: per un credito di denaro la rivalutazione non è automatica: è il maggior danno dell'art. 1224, co. 2, c.c., da chiedere e provare (anche in via presuntiva, Cass. SS.UU. n. 19499/2008), e spetta solo per la parte che eccede gli interessi moratori: i due importi non si sommano. Presenta entrambi i calcoli e indica il più favorevole.
+**Nota**: per un credito di denaro la rivalutazione non è automatica: è il maggior danno dell'art. 1224, co. 2, c.c., da chiedere e provare. Secondo Cass. SS.UU. n. 19499/2008 si presume quando, durante la mora, il rendimento netto dei titoli di Stato fino a 12 mesi ha superato il saggio legale (verificalo sui dati del periodo di mora: con un saggio legale basso, come l'1,60% del 2026 fissato dal DM MEF 10/12/2025, la presunzione può tornare a operare); per somme maggiori il creditore deve provarlo (l'imprenditore, ad esempio, con il costo del credito bancario o la redditività dell'impresa), e il debitore può provare che il denaro non avrebbe reso di più. Spetta solo per la parte che eccede gli interessi moratori: i due importi non si sommano. La rivalutazione ISTAT è una stima di confronto, non il criterio delle SS.UU.
 
 ### 3. Decreto ingiuntivo
 

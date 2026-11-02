@@ -154,21 +154,21 @@ def test_opposizione_natale_santo_stefano_sabato_limite(page):
 # ------------------------------------------------ termine dilatorio (art. 482), solo aritmetica
 
 def test_dilatorio_10_giorni_aritmetica(page):
-    """Il sito non ha una voce per l'art. 482; si usa il termine manuale di 10 giorni (aritmetica
-    +10 con proroga). Piano: notifica 2025-06-01, il tool apre la finestra il 2025-06-11 (il piano
-    nota che giuridicamente il pignoramento e' eseguibile dall'undicesimo giorno, 2025-06-12: e'
-    una questione di norma, non di confronto col sito)."""
-    d = date.fromisoformat(_tool("2025-06-01", "pignoramento_mobiliare")["termine_minimo_10gg"]["data"])
-    assert d == _sito(page, "2025-06-01", giorni_manuali=10)
+    """Il sito non ha una voce per l'art. 482; si usa il termine manuale di 10 giorni. Senza
+    festivi di mezzo l'aritmetica +10 del sito e' l'ultimo giorno di divieto del tool (G-329:
+    notifica 2025-06-01, divieto fino all'11/06, primo giorno utile il 12/06)."""
+    t = _tool("2025-06-01", "pignoramento_mobiliare")["termine_minimo_10gg"]
+    assert date.fromisoformat(t["divieto_fino_al"]) == _sito(page, "2025-06-01", giorni_manuali=10)
+    assert t["primo_giorno_utile"] == "2025-06-12"
 
 
-def test_dilatorio_10_giorni_santo_stefano_limite(page):
-    """LIMITE. Piano: notifica 2025-12-16, dieci giorni al 26 dicembre (festivo): il tool indica
-    2025-12-29 (26 festivo, 27 sabato). Il piano ritiene che per un termine dilatorio la proroga
-    non serva (eseguibile da sabato 27/12): il sito, con termine manuale, proroga come un termine
-    ordinario. Si confronta il tool con l'aritmetica del sito."""
-    d = date.fromisoformat(_tool("2025-12-16", "pignoramento_presso_terzi")["termine_minimo_10gg"]["data"])
-    assert d == _sito(page, "2025-12-16", giorni_manuali=10)
+def test_dilatorio_10_giorni_santo_stefano_senza_proroga():
+    """Notifica 2025-12-16: i dieci giorni finiscono il 26 dicembre (festivo). Il sito, con
+    termine manuale, proroga come un termine per compiere un atto (lunedi 29/12); il tool no
+    (G-329: l'art. 482 non impone un atto): primo giorno utile sabato 27/12. Non confrontabile."""
+    t = _tool("2025-12-16", "pignoramento_presso_terzi")["termine_minimo_10gg"]
+    assert (t["divieto_fino_al"], t["primo_giorno_utile"]) == ("2025-12-26", "2025-12-27")
+    assert t["prorogata_art_155"] is False
 
 
 # ------------------------------------------------------------------------------ non confrontabili
@@ -195,5 +195,5 @@ def test_pagina_primaria_termini_post_pignoramento_non_confrontabile():
 # holiday (15/8, 26/12) onto a Saturday. Co. 5 extends only terms that "scadono nella giornata del
 # sabato" and co. 6 makes Saturday a working day, so whether the extended date needs a second
 # extension is not settled by the text. The tool goes to Monday, the site stops on Saturday.
-# Not decidable from the primary source: no change. Art. 482 (10 days) is a dilatory term whose
-# reading (last day vs first day to execute) is also open.
+# Not decidable from the primary source: no change. Art. 482 (10 days) is a dilatory term: the
+# tool gives the first day to execute, without extension (decision G-329).
