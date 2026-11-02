@@ -801,6 +801,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **The replay recorder keeps the live client's session** (`scripts/replay_mcp_outputs.py`).
+  It dropped `Set-Cookie` from the response handed to the client, not only from the tape, so
+  Normattiva answered the per-version update tables with its session page and `storia_norma`
+  was recorded incomplete. Cookies now reach the live client and still never reach the tape.
+  The replay calls include `storia_norma` (text, JSON with a period, an unknown act).
 - **The plugin says why its server stopped at start.** When the server exited before the
   plugin's first-start relay had handed it the session (an import error, a bad Python), the
   relay's write failed and the client was told «BrokenPipeError» instead of the server's
