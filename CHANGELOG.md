@@ -801,6 +801,18 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **The plugin says why its server stopped at start.** When the server exited before the
+  plugin's first-start relay had handed it the session (an import error, a bad Python), the
+  relay's write failed and the client was told «BrokenPipeError» instead of the server's
+  exit code; Python 3.14's timing made it common. It now waits briefly and reports
+  «server exit N».
+- **The server starts on Python 3.14** (#49, by @HeDo88TH). Python 3.14 no longer copies
+  a function's annotations in `functools.wraps` (PEP 649), so `termini_183_190_cpc`, the
+  one tool flagged both previgente and with its tables declared, lost the type hints of
+  its parameters and the server stopped at import with `KeyError: 'data_udienza'`. The
+  wrapper now carries them. The library declares Python 3.11 or later, so a pip or uvx
+  install on 3.14 hit it; the plugin and the `.mcpb` run 3.12. From the same
+  contribution, the annotation audit and two isolated tests also run on Windows.
 - **`termini_esecuzioni`: the art. 482 c.p.c. window opened one day early and was
   extended** (decision G-329). For the three `pignoramento_*` types,
   `termine_minimo_10gg` gave notice+10, extended under art. 155, as the date
