@@ -67,7 +67,8 @@ massimi della tabella (calcolata sulla componente biologica), tramite `personali
 - **Lavoro**: prima il passaggio INAIL e il danno differenziale (sezione 1-bis), poi l'incidenza
   sulla capacità lavorativa specifica, ma SOLO per il suo aspetto non reddituale: maggiore usura,
   fatica e difficoltà nello svolgere il lavoro (c.d. cenestesi lavorativa), che è danno alla
-  salute e si liquida nel danno biologico (Cass. civ., sez. III, ord. n. 16844/2023). La perdita
+  salute e si liquida nel danno biologico (Cass. civ., sez. III, ord. n. 16844/2023, che riferisce
+  questo orientamento a postumi contenuti, orientativamente entro il 25%). La perdita
   di reddito non entra qui: è danno patrimoniale (sezione 2-bis).
 
 ### 2-bis. Danno patrimoniale da ridotta capacità di guadagno (voce separata)
@@ -76,8 +77,8 @@ La riduzione della capacità di produrre reddito (lucro cessante, presente e fut
 PATRIMONIALE autonoma, da provare e liquidare a parte, fuori dal valore tabellare e dalla
 personalizzazione. La percentuale di invalidità, o di «incapacità lavorativa specifica» stimata
 dal CTU, non prova da sola la perdita di reddito: il danneggiato deve allegare e provare il lavoro
-svolto, le mansioni e l'impegno che richiedono, e la riduzione di reddito in atto o probabile
-(oppure una qualificazione professionale acquisita e non ancora esercitata); da questi fatti il
+svolto (oppure una qualificazione professionale acquisita e non ancora esercitata), le mansioni e
+l'impegno che richiedono, e la riduzione di reddito in atto o probabile; da questi fatti il
 giudice può risalire anche per presunzioni, non per automatismo dai postumi (Cass. civ., sez. III,
 ord. n. 25467/2025). Con invalidità molto elevate, che escludono qualunque attività lavorativa, la
 perdita di guadagno va comunque liquidata come danno patrimoniale (Cass. n. 16844/2023). Senza
