@@ -916,8 +916,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
   term comes before enforcement starts, while the terms of enforcement already under
   way are suspended (Cass. 18652/2013, on art. 497). It warns that an early seizure
   would be void and open to an art. 617 opposition. When the last day of the ban is a
-  holiday, `data_prudente` gives the day after the deadline extended under art. 155
-  co. 4, with the same warning (G-414). The new optional
+  holiday or a Saturday, `data_prudente` gives the day after the deadline extended
+  under art. 155 in full, co. 4 (holidays) and co. 5 (Saturday), with the same warning
+  (G-414, LI-073). Examples: notice on 16/12/2025 gives the 30th; on 4/3/2026, the
+  17th. The new optional
   `termine_precetto_giorni` takes the term stated in the precetto when longer, and
   the answer recalls the immediate enforcement the court may authorise when delay is
   dangerous (`esecuzione_immediata`). When the precetto's term outlasts the 90 days of

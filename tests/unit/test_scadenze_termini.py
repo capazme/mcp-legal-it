@@ -1385,21 +1385,30 @@ class TestG414:
         assert t["data_prudente"] == "2026-03-17"
         assert "art. 617" in t["avviso_ultimo_giorno_festivo"]
 
-    def test_decimo_giorno_santo_stefano_sabato_non_prorogato(self):
-        # notifica 16/12/2025: decimo giorno venerdi 26/12 (festivo) -> prorogato a sabato 27 (il
-        # sabato non e' festivo), prudente domenica 28; per il mobiliare dal 29 (art. 519)
+    def test_decimo_giorno_santo_stefano_proroga_completa(self):
+        # LI-073: notifica 16/12/2025, decimo giorno venerdi 26/12 (festivo); la data prudente
+        # applica l'art. 155 per intero: 27 sabato (co. 5), 28 domenica -> lunedi 29, prudente 30
         t = _call("termini_esecuzioni", data_notifica_titolo="2025-12-16")["termine_minimo_10gg"]
-        assert (t["primo_giorno_utile"], t["data_prudente"]) == ("2025-12-27", "2025-12-28")
-        assert "29 dicembre 2025" in t["avviso_ultimo_giorno_festivo"]
+        assert (t["primo_giorno_utile"], t["data_prudente"]) == ("2025-12-27", "2025-12-30")
+        avviso = t["avviso_ultimo_giorno_festivo"]
+        assert "29 dicembre 2025" in avviso and "30 dicembre 2025" in avviso
+        assert "co. 4-5" in avviso
+        assert "Anche la data prudente è festiva" not in avviso  # martedi 30/12
         t = _call("termini_esecuzioni", data_notifica_titolo="2025-12-16",
                   tipo="pignoramento_presso_terzi")["termine_minimo_10gg"]
-        assert t["data_prudente"] == "2025-12-28"
-        assert "art. 519" not in t["avviso_ultimo_giorno_festivo"]
+        assert t["data_prudente"] == "2025-12-30"
 
-    def test_decimo_giorno_sabato_nessuna_data_prudente(self):
-        # notifica 04/03/2026: decimo giorno sabato 14/03, non festivo
+    def test_decimo_giorno_sabato_data_prudente(self):
+        # LI-073: notifica 04/03/2026, decimo giorno sabato 14/03 -> co. 5: lunedi 16, prudente 17
         t = _call("termini_esecuzioni", data_notifica_titolo="2026-03-04")["termine_minimo_10gg"]
-        assert "data_prudente" not in t
+        assert (t["divieto_fino_al"], t["primo_giorno_utile"]) == ("2026-03-14", "2026-03-15")
+        assert t["data_prudente"] == "2026-03-17"
+        assert "è un sabato" in t["avviso_ultimo_giorno_festivo"]
+
+    def test_decimo_giorno_feriale_nessuna_data_prudente(self):
+        # notifica 03/03/2026: decimo giorno venerdi 13/03, nessuna proroga possibile
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-03-03")["termine_minimo_10gg"]
+        assert "data_prudente" not in t and "avviso_ultimo_giorno_festivo" not in t
 
     def test_sospensione_482_tesi_diffusa_con_rischio_di_nullita(self):
         t = _call("termini_esecuzioni", data_notifica_titolo="2026-07-25")["termine_minimo_10gg"]
@@ -1443,7 +1452,7 @@ class TestG414:
 
     def test_avviso_519_rimanda_alla_data_prudente(self):
         # notifica 15/12/2026: divieto fino a venerdi 25/12 (Natale), primo giorno sabato 26 (Santo
-        # Stefano, art. 519: dal 28). Proroga del festivo: 26 festivo, 27 domenica -> 28; prudente 29
+        # Stefano, art. 519: dal 28). Proroga art. 155: 26 festivo, 27 domenica -> 28; prudente 29
         t = _call("termini_esecuzioni", data_notifica_titolo="2026-12-15")["termine_minimo_10gg"]
         assert (t["primo_giorno_utile"], t["data_prudente"]) == ("2026-12-26", "2026-12-29")
         assert "Vedi anche data_prudente" in t["avviso_art_519"]
