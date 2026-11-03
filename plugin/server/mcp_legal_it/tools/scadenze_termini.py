@@ -1218,7 +1218,7 @@ _NOTA_482 = (
     "proroga ex art. 155, co. 4-5: l'art. 482 non impone il compimento di un atto. È una lettura "
     "interpretativa: non risulta una pronuncia di legittimità sull'art. 482 e la proroga."
 )
-#: G-414: il decimo giorno festivo, con la data prudente se la proroga si ritenesse applicabile.
+#: G-414, LI-073: l'ultimo giorno del divieto festivo o sabato, con la data prudente (art. 155 co. 4-5).
 _AVVISO_482_FESTIVO = (
     "L'ultimo giorno del divieto ({al}) è {quale}. Se si ritenesse applicabile la proroga "
     "dell'art. 155, co. 4-5, il divieto durerebbe fino al {prorogato} e la data prudente per iniziare "

@@ -1404,6 +1404,15 @@ class TestG414:
         assert (t["divieto_fino_al"], t["primo_giorno_utile"]) == ("2026-03-14", "2026-03-15")
         assert t["data_prudente"] == "2026-03-17"
         assert "è un sabato" in t["avviso_ultimo_giorno_festivo"]
+        assert "16 marzo 2026" in t["avviso_art_519"]
+        assert "Vedi anche data_prudente" in t["avviso_art_519"]
+
+    def test_sabato_festivo_letto_come_festivo(self):
+        # notifica 16/12/2026: divieto fino a sabato 26/12 (Santo Stefano) -> 27 domenica -> 28,
+        # prudente 29; il sabato festivo si dice «festivo»
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-12-16")["termine_minimo_10gg"]
+        assert t["data_prudente"] == "2026-12-29"
+        assert "è festivo" in t["avviso_ultimo_giorno_festivo"]
 
     def test_decimo_giorno_feriale_nessuna_data_prudente(self):
         # notifica 03/03/2026: decimo giorno venerdi 13/03, nessuna proroga possibile
