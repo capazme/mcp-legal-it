@@ -84,6 +84,12 @@ ord. n. 25467/2025). Con invalidità molto elevate, che escludono qualunque atti
 perdita di guadagno va comunque liquidata come danno patrimoniale (Cass. n. 16844/2023). Senza
 questi dati, segnala la voce come da istruire e non quantificarla.
 
+Nell'infortunio sul lavoro, verso il datore di lavoro spetta solo il danno patrimoniale
+differenziale, per poste omogenee: si liquida il lucro cessante civilistico, se ne detrae il valore
+capitale della quota di rendita INAIL che indennizza le conseguenze patrimoniali (art. 13, co. 2,
+lett. b, D.Lgs. 38/2000: menomazioni dal 16%) e si riconosce solo l'eccedenza; il danno emergente
+provato non è coperto dalla rendita e non si riduce (Cass. civ., sez. lav., n. 21196/2025).
+
 ### 3. Devalutazione (debito di valore)
 
 Il valore tabellare (nella versione vigente al momento della decisione) è già espresso in moneta
