@@ -191,6 +191,10 @@ def _materia_feriale(fn):
             result["materia"] = materia
         if materia in _MATERIE_NON_ESCLUSE:
             result["nota_materia"] = _MATERIE_NON_ESCLUSE[materia]
+            if not chiamata["sospensione_feriale"]:
+                result["nota_materia"] += (
+                    " Questo calcolo non l'ha applicata: ricalcolare con sospensione_feriale=True."
+                )
         if esclusa:
             result["sospensione_feriale_esclusa"] = {
                 "materia": esclusa["materia"],
@@ -1218,8 +1222,8 @@ _NOTA_482 = (
 _AVVISO_482_FESTIVO = (
     "L'ultimo giorno del divieto ({al}) è festivo. Se si ritenesse applicabile la proroga "
     "dell'art. 155, co. 4, il divieto durerebbe fino al {prorogato} e la data prudente per iniziare "
-    "l'esecuzione è il {prudente}. Un pignoramento eseguito prima del termine è nullo e opponibile "
-    "con l'opposizione agli atti esecutivi (art. 617 c.p.c.)."
+    "l'esecuzione è il {prudente}: con quella lettura, un pignoramento eseguito prima sarebbe nullo "
+    "e opponibile con l'opposizione agli atti esecutivi (art. 617 c.p.c.)."
 )
 _FERIALE_482 = (
     "Non applicata. È una tesi diffusa, senza un precedente di legittimità specifico: il termine "
@@ -1248,8 +1252,8 @@ _NOTA_481 = (
     "specifica."
 )
 _FERIALE_481 = (
-    "Non applicata: il termine è di decadenza e il precetto è un atto stragiudiziale (tesi "
-    "prevalente). In senso contrario un precedente di merito applica la sospensione, perché il "
+    "Non applicata: il termine è di decadenza sostanziale e il precetto è un atto stragiudiziale "
+    "(tesi prevalente). In senso contrario un precedente di merito applica la sospensione, perché il "
     "pignoramento è il primo atto dell'esecuzione (Trib. Vicenza 22/3/2012): in quel caso la "
     "scadenza sarebbe più tarda, quindi quella indicata è la più prudente."
 )
@@ -1391,6 +1395,17 @@ def termini_esecuzioni(
         "sospensione_feriale": _FERIALE_482,
         "esecuzione_immediata": _ESECUZIONE_IMMEDIATA_482,
     }
+    if tipo == "pignoramento_mobiliare" and _festivo_519(primo_giorno_utile):
+        dopo = primo_giorno_utile
+        while _festivo_519(dopo):
+            dopo += timedelta(days=1)
+        termine_min["avviso_art_519"] = _AVVISO_519.format(primo=_data_it(dopo))
+
+    # Efficacia precetto (90gg)
+    efficacia_raw = dt_notifica + timedelta(days=cfg["efficacia_precetto_giorni"])
+    efficacia, efficacia_adj = _slide_forward_festivi(efficacia_raw)
+
+    # G-414: ultimo giorno del divieto festivo -> data prudente se la proroga si applicasse.
     if _festivo_519(divieto_fino_al):
         prorogato, _ = _slide_forward_festivi(divieto_fino_al)
         prudente = prorogato + timedelta(days=1)
@@ -1408,16 +1423,14 @@ def termini_esecuzioni(
                 f" Anche la data prudente è festiva: senza autorizzazione il pignoramento mobiliare "
                 f"si esegue dal {_data_it(dopo)} (art. 519 c.p.c.)."
             )
+        if prudente > efficacia:
+            avviso += (
+                f" La data prudente cade dopo la perdita di efficacia del precetto "
+                f"({_data_it(efficacia)}, art. 481)."
+            )
         termine_min["avviso_ultimo_giorno_festivo"] = avviso
-    if tipo == "pignoramento_mobiliare" and _festivo_519(primo_giorno_utile):
-        dopo = primo_giorno_utile
-        while _festivo_519(dopo):
-            dopo += timedelta(days=1)
-        termine_min["avviso_art_519"] = _AVVISO_519.format(primo=_data_it(dopo))
-
-    # Efficacia precetto (90gg)
-    efficacia_raw = dt_notifica + timedelta(days=cfg["efficacia_precetto_giorni"])
-    efficacia, efficacia_adj = _slide_forward_festivi(efficacia_raw)
+        if "avviso_art_519" in termine_min:
+            termine_min["avviso_art_519"] += " Vedi anche data_prudente."
 
     result = {
         "data_notifica_precetto": data_notifica_titolo,

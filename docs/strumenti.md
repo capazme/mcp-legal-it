@@ -485,10 +485,11 @@ _Calcola i termini nelle procedure esecutive: finestra utile per pignorare (10-9
 **Parametri**:
 - `data_notifica_titolo` (str, obbligatorio) — data di notifica del precetto al debitore (YYYY-MM-DD).
 - `tipo` (str, opzionale, default `"pignoramento_mobiliare"`) — `'pignoramento_mobiliare'`, `'pignoramento_immobiliare'`, `'pignoramento_presso_terzi'`, `'opposizione_atti_esecutivi'` (art. 617 c.p.c.).
+- `termine_precetto_giorni` (int, opzionale) — termine ad adempiere indicato nel precetto, se più lungo dei 10 giorni dell'art. 482.
 
 **Quando usare**: pianificare il pignoramento dopo aver notificato il precetto, o verificare il termine per l'opposizione.
 
-**Esempio**: `termini_esecuzioni(data_notifica_titolo="2025-02-01", tipo="pignoramento_mobiliare")` → finestra utile: dal 11/02 al 02/05/2025.
+**Esempio**: `termini_esecuzioni(data_notifica_titolo="2025-02-01", tipo="pignoramento_mobiliare")` → finestra utile: dal 12/02 al 02/05/2025 (art. 482: il divieto dura fino all'11/02 compreso).
 
 ---
 
