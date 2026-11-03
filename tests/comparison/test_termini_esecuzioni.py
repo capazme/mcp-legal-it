@@ -87,10 +87,11 @@ def _opposizione(data: str) -> date:
 
 # ---------------------------------------------------------------- efficacia del precetto (art. 481)
 
-def test_efficacia_precetto_sabato_prorogato(page):
-    """Piano: notifica 2025-06-01, il 90 giorno e' sabato 2025-08-30 -> tool 2025-09-01 (art. 481 +
-    art. 155 co. 5). Sito senza sospensione feriale: lunedi 1 settembre 2025."""
-    assert _efficacia("2025-06-01") == _sito(page, "2025-06-01", _ID_481)
+def test_efficacia_precetto_sabato_non_prorogato():
+    """Notifica 2025-06-01, il 90 giorno e' sabato 2025-08-30. Il sito proroga a lunedi 1 settembre;
+    il tool no (G-414: il co. 5 dell'art. 155 riguarda gli atti processuali e il pignoramento si
+    puo' eseguire di sabato). Non confrontabile."""
+    assert _efficacia("2025-06-01") == date(2025, 8, 30)
 
 
 def test_efficacia_precetto_santo_stefano_marzo(page):
@@ -100,7 +101,8 @@ def test_efficacia_precetto_santo_stefano_marzo(page):
 
 def test_efficacia_precetto_ferragosto_limite(page):
     """LIMITE (festivita' + sabato): notifica 2025-05-17, il 90 giorno e' venerdi 15 agosto
-    (Assunzione), poi sabato 16 -> lunedi 2025-08-18 (art. 481, art. 155 co. 4-5)."""
+    (Assunzione) -> sabato 2025-08-16, primo giorno non festivo (art. 481, art. 155 co. 4; il sabato
+    non si proroga, G-414)."""
     assert _efficacia("2025-05-17") == _sito(page, "2025-05-17", _ID_481)
 
 
@@ -194,6 +196,7 @@ def test_pagina_primaria_termini_post_pignoramento_non_confrontabile():
 # CONVENTION (phase 2-3): the failing cases are a deadline that art. 155 co. 4 moves from a
 # holiday (15/8, 26/12) onto a Saturday. Co. 5 extends only terms that "scadono nella giornata del
 # sabato" and co. 6 makes Saturday a working day, so whether the extended date needs a second
-# extension is not settled by the text. The tool goes to Monday, the site stops on Saturday.
-# Not decidable from the primary source: no change. Art. 482 (10 days) is a dilatory term: the
+# extension is not settled by the text. For art. 617 the tool goes to Monday, the site stops on
+# Saturday: not decidable from the primary source, no change. For art. 481 the tool now stops on
+# Saturday too (G-414: no Saturday extension for that term). Art. 482 (10 days) is a dilatory term: the
 # tool gives the first day to execute, without extension (decision G-329).

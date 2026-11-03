@@ -512,6 +512,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
     added even when only the summary moved.
   - **Codes in the warning.** `avviso_sospensione_feriale` lists the matters with their
     `codice`. `materia` is the last parameter, so positional calls are unchanged.
+  - **Matters made precise** (decision G-414). `mantenimento` is accepted and keeps the
+    suspension, with a note: maintenance and divorce allowances are not «alimenti» (Cass.
+    SS.UU. 12946/2024). `alimenti` says so too, and `cautelare` covers only the
+    precautionary phase, not the trial on the merits.
 - **Backward terms and a start day in August state their rule and source** (decision
   G-327). The calculation was already right: a backward deadline falling on a Saturday,
   Sunday or holiday goes back to the previous working day, more than one day if needed
@@ -889,19 +893,29 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `pignoramento_mobiliare` whose first day is a Sunday or a holiday (not a Saturday;
   decision G-405), `avviso_art_519` recalls that seizure on holidays needs the judge's
   authorisation and gives the first day without one; the term itself does not move.
-  The ten days are not suspended in August (decision G-407): the precetto is an
-  out-of-court act and its terms are not procedural ones. The new optional
+  The ten days are not suspended in August (decision G-407). The answer presents
+  this as a widespread view with no verified legitimacy ruling (decision G-414): the
+  term comes before enforcement starts, while the terms of enforcement already under
+  way are suspended (Cass. 18652/2013, on art. 497). It warns that an early seizure
+  would be void and open to an art. 617 opposition. When the last day of the ban is a
+  holiday, `data_prudente` gives the day after the deadline extended under art. 155
+  co. 4, with the same warning (G-414). The new optional
   `termine_precetto_giorni` takes the term stated in the precetto when longer, and
   the answer recalls the immediate enforcement the court may authorise when delay is
   dangerous (`esecuzione_immediata`). When the precetto's term outlasts the 90 days of
   art. 481, `finestra_utile` is null and `avviso_finestra` says the precetto lapses
   before enforcement may start.
-- **`termini_esecuzioni`: the art. 481 c.p.c. term explains its reading** (decision
-  G-408). The date is unchanged: 90 days, no August suspension, a Saturday or a holiday
-  extended to the next working day (art. 155 co. 4-5, stated as an interpretation). The
-  note says it is a time limit for loss of rights (Cass. 11578/2005), and
-  `avviso_opposizione` recalls that an opposition to the precetto suspends the term
-  until the proceedings resume (art. 481 co. 2, art. 627).
+- **`termini_esecuzioni`: the art. 481 c.p.c. term is no longer extended on a
+  Saturday, and explains its reading** (decisions G-408, G-414). The 90 days carry no
+  August suspension. A holiday is still extended to the next non-holiday day (art. 155
+  co. 4 as a general principle). A Saturday is not, since co. 5 covers procedural acts
+  and a seizure can be carried out on a Saturday. Example: notice on 1 June 2025 gives
+  Saturday 30 August 2025, no longer Monday 1 September. The note says the term is a
+  time limit for loss of rights (Cass. 11578/2005). `sospensione_feriale` names the
+  contrary merits decision that applies the suspension (Trib. Vicenza 22/3/2012),
+  whose deadline would come later. `avviso_opposizione` recalls that an opposition to
+  the precetto suspends the term until the proceedings resume (art. 481 co. 2, art.
+  627).
 - **An act cited with its full date is never read as another act served in its place**
   (#136, #146 follow-up). Normattiva's resolver does not check the act's type with a full
   date either: the address of a D.M. 7 agosto 1990, n. 241 serves L. 7 agosto 1990, n. 241,
